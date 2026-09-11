@@ -1,3 +1,4 @@
+import type { GetAppPackageInfoRequest } from '@nimiplatform/sdk/runtime/wire-types';
 import { useCallback, useEffect, type ReactElement } from 'react';
 import type { NimiDesktopOpenAppsSection } from '@nimiplatform/kit/core/desktop-open';
 import { useAppStore } from '../../app-shell/providers/app-store';
@@ -7,6 +8,8 @@ import { useAppsPanelController } from './apps-panel-controller.js';
 import { AppsPanelView } from './apps-panel-view.js';
 import { startAppsPackageInstall, startAppsPackageUpdate } from './apps-install-runtime.js';
 import { finishInstalledAppUninstall } from './apps-installed-bridge.js';
+import { AppsLocalImportFeedback, useAppsLocalImport } from './apps-local-import.js';
+import { packageJobKey } from './apps-downloads-observer.js';
 import { useAppsDownloads } from './apps-downloads-context.js';
 import { catalogTargetMatchesJob } from './apps-downloads-view.js';
 import type { DesktopAppsEntry } from './apps-panel-projection.js';
@@ -72,6 +75,11 @@ export function AppsPanel(): ReactElement {
     ),
     [sdk],
   );
+  const readPackageInfo = useCallback(async (request: GetAppPackageInfoRequest) => {
+    const response = await sdk.machineProduct().apps.getAppPackageInfo(request);
+    if (response.reasonCode !== ReasonCode.ACTION_EXECUTED || !response.info) throw new Error('App information is unavailable');
+    return response.info;
+  }, [sdk]);
   const listCommittedReleases = useCallback(async () => {
     const response = await sdk.machineProduct().apps.listCommittedAppReleases({});
     if (response.reasonCode !== ReasonCode.ACTION_EXECUTED) {
@@ -114,7 +122,7 @@ export function AppsPanel(): ReactElement {
     const job = response.job;
     if (response.reasonCode !== ReasonCode.ACTION_EXECUTED || !job || job.jobId.length === 0
       || job.appId !== entry.identity.appId || job.targetRef !== release.releaseRef || job.kind !== AppPackageJobKind.UNINSTALL
-      || job.sourceClass !== AppPackageSourceClass.VERIFIED || job.phase !== AppPackageJobPhase.QUEUED) {
+      || job.sourceClass !== release.sourceClass || job.phase !== AppPackageJobPhase.QUEUED) {
       throw new Error('Runtime did not reserve the exact App uninstall');
     }
     try {
@@ -136,6 +144,7 @@ export function AppsPanel(): ReactElement {
     listCommittedReleases,
     listPackageJobs,
     readAppAIConfig,
+    readPackageInfo,
   });
   const {
     projection,
@@ -152,12 +161,24 @@ export function AppsPanel(): ReactElement {
     confirmInstall,
     cancelInstall,
   } = controller;
+  const getLocalImportClient = useCallback(() => sdk.machineProduct().apps, [sdk]);
+  const localImportStarted = useCallback((job: AppPackageJob) => {
+    closeDetail();
+    setAppsDetailAppId(null);
+    void downloads.observer.refresh();
+    downloads.openDownloads(packageJobKey(job));
+  }, [closeDetail, downloads.observer, downloads.openDownloads, setAppsDetailAppId]);
+  const localImport = useAppsLocalImport(getLocalImportClient, localImportStarted);
   const handleCardAction = useCallback((entryKey: string, action: AppCardActionId): void => {
     if (action === 'details' || action === 'open-ai-config') downloads.showLibrary();
     const entry = projection?.status === 'loaded'
       ? projection.entries.find((candidate) => candidate.identity.entryKey === entryKey)
       : null;
     if (!entry) return;
+    if (action === 'update' && entry.committedRelease?.sourceClass === AppPackageSourceClass.USER_IMPORTED) {
+      void localImport.choose(entry.committedRelease);
+      return;
+    }
     dispatchAppsPanelCardAction({
       entryKey,
       appId: entry.identity.appId,
@@ -165,7 +186,7 @@ export function AppsPanel(): ReactElement {
       setAppsDetailAppId,
       runCardAction,
     });
-  }, [downloads.showLibrary, projection, runCardAction, setAppsDetailAppId]);
+  }, [downloads.showLibrary, projection, runCardAction, setAppsDetailAppId, localImport.choose]);
 
   useEffect(() => {
     if (!requestedDetailAppId || projection?.status !== 'loaded') return;
@@ -179,18 +200,24 @@ export function AppsPanel(): ReactElement {
 
   const viewDownloadApp = (job: AppPackageJob) => {
     downloads.showLibrary();
-    const entry = projection?.status === 'loaded' ? projection.entries.find((candidate) => candidate.identity.appId === job.appId && candidate.identity.sourceClass === 'verified') : null;
+    const entry = projection?.status === 'loaded' ? projection.entries.find((candidate) => candidate.identity.appId === job.appId && candidate.identity.sourceClass === (job.sourceClass === AppPackageSourceClass.USER_IMPORTED ? 'user_imported' : 'verified')) : null;
     if (entry) handleCardAction(entry.identity.entryKey, 'details');
     else { closeDetail(); setSearchQuery(job.appId); }
   };
 
   return (
     <div data-testid="apps-panel" className="flex min-h-0 flex-1 flex-col">
+      <AppsLocalImportFeedback state={localImport} />
       <AppsPanelView
         downloads={downloads}
         onViewDownloadApp={viewDownloadApp}
         onRetryDownload={(job) => {
-          const entry = projection?.status === 'loaded' ? projection.entries.find((candidate) => candidate.identity.appId === job.appId && candidate.identity.sourceClass === 'verified') : null;
+          if (job.sourceClass === AppPackageSourceClass.USER_IMPORTED) {
+            const installed = projection?.status === 'loaded' ? projection.entries.find((entry) => entry.identity.sourceClass === 'user_imported' && entry.identity.appId === job.appId)?.committedRelease ?? null : null;
+            void localImport.choose(job.kind === AppPackageJobKind.UPDATE ? installed : null);
+            return;
+          }
+          const entry = projection?.status === 'loaded' ? projection.entries.find((candidate) => candidate.identity.appId === job.appId && candidate.identity.sourceClass === (job.sourceClass === AppPackageSourceClass.USER_IMPORTED ? 'user_imported' : 'verified')) : null;
           viewDownloadApp(job);
           // Retry the same selected release through the existing confirmation.
           // A changed selection stays in App detail for a new explicit choice.
@@ -207,6 +234,7 @@ export function AppsPanel(): ReactElement {
           setAppsDetailAppId(null);
           closeDetail();
         }}
+        onImportLocal={() => void localImport.choose()}
         onOpenDeveloperMode={() => {
           settings.openSection('developer');
           setActiveTab('settings');

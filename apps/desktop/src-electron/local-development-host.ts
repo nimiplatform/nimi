@@ -1,3 +1,5 @@
+import { PNG } from 'pngjs';
+import { parse as parseYaml } from 'yaml';
 import { createHash, randomBytes } from 'node:crypto';
 import { watch, type FSWatcher } from 'node:fs';
 import { open, readFile, readdir, rm } from 'node:fs/promises';
@@ -52,16 +54,8 @@ const COMMANDS = new Set([
   'local_development_project_readme',
   'local_development_project_icon',
 ]);
-const PROJECT_README_CANDIDATES = ['README.md', 'README.zh-CN.md', 'README.zh.md', 'readme.md'] as const;
 const PROJECT_README_MAX_BYTES = 96 * 1024;
-// Conventional icon locations produced by the supported project shapes:
-// scaffolded Apps keep their Tauri icon set, first-party Electron Apps keep
-// the shell asset that also feeds their window icon.
-const PROJECT_ICON_CANDIDATES = [
-  'src-tauri/icons/icon.png',
-  path.join('src', 'shell', 'assets', 'app-icon.png'),
-] as const;
-const PROJECT_ICON_MAX_BYTES = 1024 * 1024;
+const PROJECT_ICON_MAX_BYTES = 512 * 1024;
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const HEALTH_MS = 2_000;
 const LAUNCHER_LEASE_MS = 10_000;
@@ -523,73 +517,80 @@ export class ElectronLocalDevelopmentHost {
 
   // The project README is presentation content for the Apps detail surface,
   // never runnable truth; reads stay bounded and inside the registered root.
-  private async readProjectReadme(payload: Readonly<Record<string, unknown>>): Promise<{
-    readonly selector: string;
-    readonly content: string | null;
-    readonly fileName: string | null;
-  }> {
-    const value = exact(payload, ['selector']);
-    const selectorValue = selector(value.selector, 'dev-project');
-    const projectRoot = await this.registeredProjectRoot(selectorValue);
-    for (const fileName of PROJECT_README_CANDIDATES) {
-      try {
-        const handle = await open(path.join(projectRoot, fileName), 'r');
-        try {
-          const stat = await handle.stat();
-          if (!stat.isFile()) continue;
-          const size = Math.min(stat.size, PROJECT_README_MAX_BYTES);
-          const buffer = Buffer.alloc(size);
-          const { bytesRead } = await handle.read(buffer, 0, size, 0);
-          return {
-            selector: selectorValue,
-            content: buffer.subarray(0, bytesRead).toString('utf8'),
-            fileName,
-          };
-        } finally {
-          await handle.close();
-        }
-      } catch {
-        // Missing or unreadable candidate: try the next conventional name.
-      }
-    }
-    return { selector: selectorValue, content: null, fileName: null };
+  private async projectMetadata(projectRoot: string): Promise<Record<string, unknown>> {
+    const file = await open(path.join(projectRoot, 'nimi.app.yaml'), 'r');
+    let source: string;
+    try {
+      const stat = await file.stat();
+      if (!stat.isFile() || stat.size > 1024 * 1024) throw new Error('local-development-metadata-too-large');
+      source = new TextDecoder('utf-8', { fatal: true }).decode(await file.readFile());
+    } finally { await file.close(); }
+    const document = parseYaml(source) as { metadata?: Record<string, unknown> };
+    return document?.metadata && typeof document.metadata === 'object' ? document.metadata : {};
   }
 
-  // The project icon is presentation content for Apps identity visuals, never
-  // runnable truth; reads stay bounded, PNG-only, and inside the registered
-  // root, exactly like the project README above.
-  private async readProjectIcon(payload: Readonly<Record<string, unknown>>): Promise<{
-    readonly selector: string;
-    readonly iconDataUrl: string | null;
+  private projectResourceName(value: unknown): string | null {
+    if (typeof value !== 'string' || !value || path.isAbsolute(value) || value.includes('\\') || value.split('/').some((part) => !part || part === '.' || part === '..')) return null;
+    return value;
+  }
+
+  private async readProjectReadme(payload: Readonly<Record<string, unknown>>): Promise<{
+    readonly selector: string; readonly content: string | null; readonly fileName: string | null; readonly summary: string | null; readonly truncated: boolean;
   }> {
     const value = exact(payload, ['selector']);
     const selectorValue = selector(value.selector, 'dev-project');
     const projectRoot = await this.registeredProjectRoot(selectorValue);
-    for (const candidate of PROJECT_ICON_CANDIDATES) {
+    const metadata = await this.projectMetadata(projectRoot);
+    const summary = typeof metadata.summary === 'string' && metadata.summary.trim() && [...metadata.summary].length <= 280 ? metadata.summary : null;
+    const fileName = this.projectResourceName(metadata.readme ?? 'README.md');
+    if (!fileName) return { selector: selectorValue, content: null, fileName: null, summary, truncated: false };
+    try {
+      const handle = await open(path.join(projectRoot, fileName), 'r');
       try {
-        const handle = await open(path.join(projectRoot, candidate), 'r');
-        try {
-          const stat = await handle.stat();
-          if (!stat.isFile()) continue;
-          const size = Math.min(stat.size, PROJECT_ICON_MAX_BYTES);
-          const buffer = Buffer.alloc(size);
-          const { bytesRead } = await handle.read(buffer, 0, size, 0);
-          const content = buffer.subarray(0, bytesRead);
-          if (bytesRead < PNG_SIGNATURE.length || !content.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE)) {
-            continue;
-          }
-          return {
-            selector: selectorValue,
-            iconDataUrl: `data:image/png;base64,${content.toString('base64')}`,
-          };
-        } finally {
-          await handle.close();
-        }
-      } catch {
-        // Missing or unreadable candidate: try the next conventional name.
-      }
+        const stat = await handle.stat();
+        if (!stat.isFile()) throw new Error('local-development-readme-invalid');
+        const buffer = Buffer.alloc(Math.min(stat.size, PROJECT_README_MAX_BYTES + 1));
+        const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
+        const truncated = bytesRead > PROJECT_README_MAX_BYTES;
+        const content = new TextDecoder('utf-8', { fatal: true }).decode(
+          buffer.subarray(0, Math.min(bytesRead, PROJECT_README_MAX_BYTES)), { stream: truncated },
+        );
+        return { selector: selectorValue, content, fileName, summary, truncated };
+      } finally { await handle.close(); }
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+      return { selector: selectorValue, content: null, fileName: null, summary, truncated: false };
     }
-    return { selector: selectorValue, iconDataUrl: null };
+  }
+
+  // Declared artwork is presentation content, never runnable or admission truth.
+  private async readProjectIcon(payload: Readonly<Record<string, unknown>>): Promise<{
+    readonly selector: string; readonly iconDataUrl: string | null;
+  }> {
+    const value = exact(payload, ['selector']);
+    const selectorValue = selector(value.selector, 'dev-project');
+    const projectRoot = await this.registeredProjectRoot(selectorValue);
+    const metadata = await this.projectMetadata(projectRoot);
+    const iconName = this.projectResourceName(metadata.icon);
+    if (!iconName) return { selector: selectorValue, iconDataUrl: null };
+    try {
+      const handle = await open(path.join(projectRoot, iconName), 'r');
+      try {
+        const stat = await handle.stat();
+        if (!stat.isFile() || stat.size > PROJECT_ICON_MAX_BYTES) throw new Error('local-development-icon-invalid');
+        const content = await handle.readFile();
+        if (!content.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE)) throw new Error('local-development-icon-invalid');
+        if (content.length < 33 || content.readUInt32BE(8) !== 13 || content.toString('ascii', 12, 16) !== 'IHDR') throw new Error('local-development-icon-invalid');
+        const width = content.readUInt32BE(16);
+        if (width < 128 || width > 1024 || width !== content.readUInt32BE(20)) throw new Error('local-development-icon-invalid');
+        const decoded = PNG.sync.read(content, { checkCRC: true });
+        if (!decoded.data.some((value: number, index: number) => index % 4 === 3 && value !== 0)) throw new Error('local-development-icon-invalid');
+        return { selector: selectorValue, iconDataUrl: `data:image/png;base64,${content.toString('base64')}` };
+      } finally { await handle.close(); }
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+      return { selector: selectorValue, iconDataUrl: null };
+    }
   }
 
   private async registeredProjectRoot(selectorValue: string): Promise<string> {

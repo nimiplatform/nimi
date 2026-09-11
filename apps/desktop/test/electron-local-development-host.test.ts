@@ -1,3 +1,4 @@
+import { PNG } from 'pngjs';
 import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, rm, utimes, writeFile } from 'node:fs/promises';
 import os from 'node:os';
@@ -1276,7 +1277,7 @@ describe('Desktop local-development project README', () => {
       const result = await host.invoke('local_development_project_readme', {
         payload: { selector: row!.selector },
       }) as { selector: string; content: string | null; fileName: string | null };
-      assert.deepEqual(result, { selector: row!.selector, content: null, fileName: null });
+      assert.deepEqual(result, { selector: row!.selector, content: null, fileName: null, summary: null, truncated: false });
     } finally {
       await rm(projectRoot, { recursive: true, force: true });
     }
@@ -1289,13 +1290,30 @@ describe('Desktop local-development project README', () => {
       /local-development-registration-not-found/u,
     );
   });
+
+  it('truncates long development documentation without losing its summary or splitting UTF-8', async () => {
+    const projectRoot = await mkdtemp(path.join(os.tmpdir(), 'nimi-readme-limit-'));
+    try {
+      await writeFile(path.join(projectRoot, 'nimi.app.yaml'), 'metadata:\n  summary: Author summary\n  readme: README.md\n');
+      const appControl = control({ listRegistrations: async () => [registration({ project: {
+        appId: 'example.local-app', displayName: 'Example Local App', canonicalProjectRoot: projectRoot,
+        canonicalManifestPath: path.join(projectRoot, 'nimi.app.yaml'), shell: 'electron', appAccess: [], sourceGeneration: 3, declarationGeneration: 4,
+      } })] });
+      const host = new ElectronLocalDevelopmentHost(appControl, '/tmp');
+      const [row] = await host.invoke('local_development_registrations_list', {}) as Array<{ selector: string }>;
+      const prefix = 'a'.repeat(96 * 1024 - 1);
+      await writeFile(path.join(projectRoot, 'README.md'), `${prefix}中文尾部`);
+      const result = await host.invoke('local_development_project_readme', { payload: { selector: row!.selector } });
+      assert.deepEqual(result, { selector: row!.selector, content: prefix, fileName: 'README.md', summary: 'Author summary', truncated: true });
+      await writeFile(path.join(projectRoot, 'README.md'), 'a'.repeat(96 * 1024));
+      const exactLimit = await host.invoke('local_development_project_readme', { payload: { selector: row!.selector } }) as { truncated: boolean };
+      assert.equal(exactLimit.truncated, false);
+    } finally { await rm(projectRoot, { recursive: true, force: true }); }
+  });
 });
 
 describe('Desktop local-development project icon', () => {
-  const PNG_BYTES = Buffer.from([
-    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
-    0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
-  ]);
+  const PNG_BYTES = PNG.sync.write(Object.assign(new PNG({ width: 128, height: 128 }), { data: Buffer.alloc(128 * 128 * 4, 255) }));
 
   function iconControl(projectRoot: string) {
     return control({
@@ -1314,10 +1332,10 @@ describe('Desktop local-development project icon', () => {
     });
   }
 
-  it('returns the scaffolded tauri icon as a bounded PNG data URL', async () => {
+  it('reads the declared PNG path and decodes the complete artwork', async () => {
     const projectRoot = await mkdtemp(path.join(os.tmpdir(), 'nimi-icon-test-'));
     try {
-      await writeFile(path.join(projectRoot, 'nimi.app.yaml'), 'ai_config_ui:\n  allowed_routes:\n    - local\n', 'utf8');
+      await writeFile(path.join(projectRoot, 'nimi.app.yaml'), 'ai_config_ui:\n  allowed_routes:\n    - local\nmetadata:\n  icon: src-tauri/icons/icon.png\n', 'utf8');
       await mkdir(path.join(projectRoot, 'src-tauri', 'icons'), { recursive: true });
       await writeFile(path.join(projectRoot, 'src-tauri', 'icons', 'icon.png'), PNG_BYTES);
       const host = new ElectronLocalDevelopmentHost(iconControl(projectRoot), '/tmp');
@@ -1332,10 +1350,10 @@ describe('Desktop local-development project icon', () => {
     }
   });
 
-  it('falls back to the first-party shell asset convention', async () => {
+  it('uses an explicitly declared shell artwork path', async () => {
     const projectRoot = await mkdtemp(path.join(os.tmpdir(), 'nimi-icon-test-'));
     try {
-      await writeFile(path.join(projectRoot, 'nimi.app.yaml'), 'ai_config_ui:\n  allowed_routes:\n    - local\n', 'utf8');
+      await writeFile(path.join(projectRoot, 'nimi.app.yaml'), 'ai_config_ui:\n  allowed_routes:\n    - local\nmetadata:\n  icon: src/shell/assets/app-icon.png\n', 'utf8');
       await mkdir(path.join(projectRoot, 'src', 'shell', 'assets'), { recursive: true });
       await writeFile(path.join(projectRoot, 'src', 'shell', 'assets', 'app-icon.png'), PNG_BYTES);
       const host = new ElectronLocalDevelopmentHost(iconControl(projectRoot), '/tmp');
@@ -1349,7 +1367,7 @@ describe('Desktop local-development project icon', () => {
     }
   });
 
-  it('returns null when no conventional icon exists or the candidate is not a PNG', async () => {
+  it('does not guess an icon from undeclared conventional files', async () => {
     const projectRoot = await mkdtemp(path.join(os.tmpdir(), 'nimi-icon-test-'));
     try {
       await writeFile(path.join(projectRoot, 'nimi.app.yaml'), 'ai_config_ui:\n  allowed_routes:\n    - local\n', 'utf8');
@@ -1364,6 +1382,19 @@ describe('Desktop local-development project icon', () => {
     } finally {
       await rm(projectRoot, { recursive: true, force: true });
     }
+  });
+
+  it('rejects the transparent placeholder and incomplete PNGs at a declared path', async () => {
+    const projectRoot = await mkdtemp(path.join(os.tmpdir(), 'nimi-icon-validation-'));
+    try {
+      await writeFile(path.join(projectRoot, 'nimi.app.yaml'), 'metadata: { icon: icon.png }\n');
+      const host = new ElectronLocalDevelopmentHost(iconControl(projectRoot), '/tmp');
+      const [row] = await host.invoke('local_development_registrations_list', {}) as Array<{ selector: string }>;
+      for (const content of [PNG_BYTES.subarray(0, 16), PNG.sync.write(new PNG({ width: 1, height: 1 })), PNG.sync.write(new PNG({ width: 128, height: 128 }))]) {
+        await writeFile(path.join(projectRoot, 'icon.png'), content);
+        await assert.rejects(host.invoke('local_development_project_icon', { payload: { selector: row!.selector } }), /local-development-icon-invalid/u);
+      }
+    } finally { await rm(projectRoot, { recursive: true, force: true }); }
   });
 
   it('fails closed for an unknown icon selector', async () => {

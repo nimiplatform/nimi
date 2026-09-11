@@ -1,11 +1,12 @@
 /**
- * Apps panel library/detail render proof.
+ * Apps panel home/detail render proof.
  *
  * Mounts AppsPanelView through the real i18n instance and asserts the loading,
- * error, empty, app-center grid, running-first ordering, and detail states
- * render with resolved copy. Effects do not run under `renderToStaticMarkup`,
- * so this covers static structure and translation wiring; live polling and
- * host actions are covered by the controller/projection tests.
+ * error, empty, home sections, merged rail list, running section, and detail
+ * states render with resolved copy. Effects do not run under
+ * `renderToStaticMarkup`, so this covers static structure and translation
+ * wiring; live polling and host actions are covered by the
+ * controller/projection tests.
  */
 
 import assert from 'node:assert/strict';
@@ -44,6 +45,7 @@ function registration(
     canonicalProjectRoot: '/projects/nimi-lab',
     shell: 'electron',
     appAccess: ['realm.data', 'runtime.consume'],
+    aiConfigAllowedRoutes: ['local', 'cloud'],
     sourceGeneration: 1,
     declarationGeneration: 2,
     registeredAtUnixMs: 1_721_000_000_000,
@@ -84,6 +86,7 @@ function entry(
         hostGeneration: 1,
       },
     aiConfigSummary: null,
+    iconUrl: null,
     summary: null,
   };
 }
@@ -103,6 +106,7 @@ function installedRuntimeEntry(overrides: Partial<AppPackageJob> = {}): DesktopA
     packageJob: null,
     run: null,
     aiConfigSummary: null,
+    iconUrl: null,
     summary: null,
   };
   const committedRelease: CommittedAppRelease = {
@@ -132,6 +136,22 @@ function installedRuntimeEntry(overrides: Partial<AppPackageJob> = {}): DesktopA
   return { ...entry, committedRelease, packageJob };
 }
 
+function verifiedLabEntry(): DesktopAppsEntry {
+  const base = installedRuntimeEntry();
+  return {
+    ...base,
+    identity: {
+      entryKey: 'verified:nimi.lab',
+      appId: 'nimi.lab',
+      sourceClass: 'verified',
+      displayName: 'Nimi Lab',
+      updatedAtUnixMs: 1_788_134_400_000,
+    },
+    committedRelease: { ...base.committedRelease!, appId: 'nimi.lab' },
+    packageJob: null,
+  };
+}
+
 function catalogRuntimeEntry(policyBlocked = false): DesktopAppsEntry {
   const catalogTarget = {
     approvedTargetSelector: new Uint8Array([1, 2, 3]), observedRegistryRevision: 'a'.repeat(40),
@@ -149,12 +169,12 @@ function catalogRuntimeEntry(policyBlocked = false): DesktopAppsEntry {
     },
     catalogTarget,
     localDevelopment: null,
-    summary: null,
     committedRelease: null,
     packageJob: null,
     run: null,
     aiConfigSummary: null,
     iconUrl: null,
+    summary: null,
   };
 }
 
@@ -174,6 +194,7 @@ function baseProps(overrides: Partial<AppsPanelViewProps> = {}): AppsPanelViewPr
     onCardAction: () => {},
     onBack: () => {},
     onOpenDeveloperMode: () => {},
+    onImportLocal: () => {},
     onRetry: () => {},
     onAIConfigChanged: () => {},
     actionError: null,
@@ -189,14 +210,41 @@ function renderView(props: AppsPanelViewProps): string {
   return renderToStaticMarkup(<AppsPanelView {...props} />);
 }
 
-test('Apps library renders the loading skeleton', async () => {
+test('installed AI model tabs follow installed access, independently of Catalog access', async () => {
+  await initI18n();
+  await changeLocale('en');
+  for (const source of [AppPackageSourceClass.VERIFIED, AppPackageSourceClass.USER_IMPORTED]) {
+    const base = installedRuntimeEntry();
+    const installed: DesktopAppsEntry = {
+      ...base, packageJob: null,
+      identity: { ...base.identity, sourceClass: source === AppPackageSourceClass.USER_IMPORTED ? 'user_imported' : 'verified' },
+      committedRelease: { ...base.committedRelease!, sourceClass: source, appAccess: ['runtime.consume'] },
+    };
+    const markup = renderView(baseProps({
+      projection: { status: 'loaded', entries: [installed], catalogStatus: 'loaded', runtimeError: null },
+      selectedEntryKey: installed.identity.entryKey,
+    }));
+    assert.match(markup.replace(/<[^>]*>/gu, " "), /AI models/iu);
+    const catalogOnlyAccess: DesktopAppsEntry = {
+      ...installed, committedRelease: { ...installed.committedRelease!, appAccess: [] },
+      catalogTarget: { ...catalogRuntimeEntry().catalogTarget!, appAccess: ['runtime.consume'] },
+    };
+    const withoutAccess = renderView(baseProps({
+      projection: { status: 'loaded', entries: [catalogOnlyAccess], catalogStatus: 'loaded', runtimeError: null },
+      selectedEntryKey: installed.identity.entryKey,
+    }));
+    assert.doesNotMatch(withoutAccess.replace(/<[^>]*>/gu, " "), /AI models/iu);
+  }
+});
+
+test('Apps home renders the loading skeleton', async () => {
   await initI18n();
   await changeLocale('zh');
   const markup = renderView(baseProps({ projection: null }));
   assert.ok(markup.includes('data-testid="apps-panel-loading"'), 'expected loading skeleton');
 });
 
-test('Apps library fails visible on projection error with retry copy', async () => {
+test('Apps home fails visible on projection error with retry copy', async () => {
   await initI18n();
   await changeLocale('zh');
   const markup = renderView(baseProps({
@@ -207,53 +255,92 @@ test('Apps library fails visible on projection error with retry copy', async () 
   assert.ok(markup.includes('重试'), 'expected zh retry copy');
 });
 
-test('Apps library renders the empty state with the developer-mode action', async () => {
+test('Apps home renders the empty state with the add-app action', async () => {
   await initI18n();
   await changeLocale('zh');
   const markup = renderView(baseProps({ projection: { status: 'loaded', entries: [], catalogStatus: 'not-implemented', runtimeError: null } }));
   assert.ok(markup.includes('data-testid="apps-empty-local-development"'), 'expected empty state');
   assert.ok(markup.includes('还没有接入应用'), 'expected zh empty title');
-  assert.ok(markup.includes('打开开发者模式'), 'expected zh developer action');
+  assert.ok(markup.includes('data-testid="apps-connect-local"'), 'expected add-app action');
+  assert.ok(markup.includes('添加应用'), 'expected add-app copy');
 });
 
-test('Apps library renders the app-center header and App Store style list rows with resolved zh copy', async () => {
+test('Apps home renders the header, recent rows, and the merged rail with resolved zh copy', async () => {
   await initI18n();
   await changeLocale('zh');
   const markup = renderView(baseProps());
   assert.ok(markup.includes('data-testid="apps-library-title"'), 'expected page title');
   assert.ok(markup.includes('应用中心'), 'expected app-center title copy');
-  assert.ok(markup.includes('data-testid="apps-entry-list"'), 'expected entry collection');
-  assert.ok(markup.includes('所有应用'), 'expected all-apps section title');
-  assert.ok(markup.includes('2 个'), 'expected all-apps count copy');
-  assert.ok(markup.includes('data-testid="apps-filter-all"'), 'expected all filter chip');
-  assert.ok(markup.includes('data-testid="apps-filter-running"'), 'expected running filter chip');
-  assert.ok(markup.includes('data-testid="apps-filter-attention"'), 'expected attention filter chip');
-  assert.ok(markup.includes('全部'), 'expected all chip copy');
-  assert.ok(markup.includes('需处理'), 'expected attention chip copy');
+  assert.ok(markup.includes('data-testid="apps-home-recent"'), 'expected recent section');
+  assert.ok(markup.includes('最近活跃'), 'expected recent section copy');
   assert.ok(markup.includes('data-testid="apps-entry-local_development:nimi.lab:dev-project-example"'), 'expected first row');
   assert.ok(markup.includes('data-testid="apps-entry-local_development:nimi.zhiyu:dev-project-zhiyu"'), 'expected second row');
   assert.ok(markup.includes('Nimi Lab'), 'expected first display name');
   assert.ok(markup.includes('织羽 Zhiyu'), 'expected second display name');
-  assert.equal(markup.includes('data-source-badge="local_development"'), false, 'local-development source tag hidden on rows');
-  assert.equal(markup.includes('本地开发'), false, 'local-development source tag copy hidden on rows');
+  assert.equal(markup.includes('data-source-badge="local_development"'), false, 'single-source local rows keep the quiet name line');
+  assert.equal(markup.includes('本地开发'), false, 'local-development source copy hidden without duplicates');
   assert.ok(markup.includes('linear-gradient'), 'expected generated artwork gradients');
   assert.ok(markup.includes('未运行'), 'expected stopped status copy on rows');
   assert.ok(markup.includes('启动'), 'expected launch action copy');
   assert.ok(markup.includes('data-testid="apps-connect-local"'), 'expected header add-app action');
   assert.ok(markup.includes('添加应用'), 'expected add-app action copy');
+  assert.ok(markup.includes('data-testid="apps-rail-app-nimi.lab"'), 'expected merged rail row for nimi.lab');
+  assert.ok(markup.includes('data-testid="apps-rail-app-nimi.zhiyu"'), 'expected merged rail row for nimi.zhiyu');
+  assert.ok(markup.includes('2 个 App'), 'expected merged rail count copy');
   assert.ok(markup.includes('搜索 App 或 App ID'), 'expected rail search placeholder');
-  assert.ok(markup.includes('搜索应用'), 'expected library search placeholder');
+  assert.equal(markup.includes('搜索应用'), false, 'the rail is the only search');
   assert.ok(markup.includes('最近更新'), 'expected default sort copy');
-  assert.equal(markup.includes('data-testid="apps-frequent-section"'), false, 'frequent section hidden below the minimum entry count');
   assert.equal(markup.includes('-installed-version"'), false, 'local-development rows have no package state');
   assert.equal(markup.includes('Apps.library.'), false, 'no raw i18n keys');
   assert.equal(markup.includes('Apps.sourceBadge.'), false, 'no raw i18n keys');
 });
 
-test('Apps library renders bounded App AIConfig posture without opening the App', async () => {
+test('sources of one App merge into a single rail row with source glyphs', async () => {
   await initI18n();
   await changeLocale('zh');
-  const configured = {
+  const markup = renderView(baseProps({
+    projection: { status: 'loaded', entries: [entry(), verifiedLabEntry()], catalogStatus: 'not-implemented', runtimeError: null },
+  }));
+  const railRows = markup.match(/data-rail-group="nimi\.lab"/g) ?? [];
+  assert.equal(railRows.length, 1, 'two sources produce one merged rail row');
+  assert.ok(markup.includes('1 个 App'), 'rail count follows the merged identity');
+  assert.ok(markup.includes('本地开发'), 'multi-source row shows the development glyph');
+  assert.ok(markup.includes('已通过 Registry 审核'), 'multi-source row shows the verified glyph');
+  assert.ok(markup.includes('data-testid="apps-entry-verified:nimi.lab"'), 'home recent row uses the installed primary');
+  assert.equal(markup.includes('data-testid="apps-entry-local_development:nimi.lab:dev-project-example"'), false, 'duplicate source does not repeat on home');
+});
+
+test('Apps rail keeps running Apps in a 运行中 section and home orders them first', async () => {
+  await initI18n();
+  await changeLocale('zh');
+  const running = entry({ updatedAtUnixMs: 1_721_000_000_000 }, 'running');
+  const stopped = entry({
+    selector: 'dev-project-zhiyu',
+    appId: 'nimi.zhiyu',
+    displayName: '织羽 Zhiyu',
+    updatedAtUnixMs: 1_999_000_000_000,
+  });
+  const markup = renderView(baseProps({
+    projection: { status: 'loaded', entries: [stopped, running], catalogStatus: 'not-implemented', runtimeError: null },
+  }));
+  assert.ok(markup.includes('data-testid="apps-rail-running-section"'), 'expected running section');
+  assert.ok(markup.includes('运行中'), 'expected running section copy');
+  const runningIndex = markup.indexOf('data-testid="apps-rail-app-nimi.lab"');
+  const stoppedIndex = markup.indexOf('data-testid="apps-rail-app-nimi.zhiyu"');
+  assert.ok(runningIndex !== -1 && stoppedIndex !== -1, 'expected both rail rows');
+  assert.ok(runningIndex < stoppedIndex, 'running section renders before the flat list');
+  const runningCardIndex = markup.indexOf('data-testid="apps-entry-local_development:nimi.lab:dev-project-example"');
+  const stoppedCardIndex = markup.indexOf('data-testid="apps-entry-local_development:nimi.zhiyu:dev-project-zhiyu"');
+  assert.ok(runningCardIndex !== -1 && stoppedCardIndex !== -1, 'expected both home rows');
+  assert.ok(runningCardIndex < stoppedCardIndex, 'running row pinned before the stopped row on home');
+  assert.ok(markup.includes('data-testid="apps-entry-local_development:nimi.lab:dev-project-example-stop"'), 'running app exposes the supported stop action');
+  assert.ok(markup.includes('停止'), 'expected stop action copy for the running app');
+});
+
+test('Apps home surfaces only actionable App AIConfig postures', async () => {
+  await initI18n();
+  await changeLocale('zh');
+  const blocked = {
     ...entry(),
     aiConfigSummary: {
       routePosture: 'partial-cloud' as const,
@@ -266,11 +353,12 @@ test('Apps library renders bounded App AIConfig posture without opening the App'
     },
   };
   const markup = renderView(baseProps({
-    projection: { status: 'loaded', entries: [configured], catalogStatus: 'not-implemented', runtimeError: null },
+    projection: { status: 'loaded', entries: [blocked], catalogStatus: 'not-implemented', runtimeError: null },
   }));
   assert.ok(markup.includes('data-app-ai-config-summary="partial-cloud"'));
   assert.ok(markup.includes('data-app-ai-config-health="blocked"'));
-  assert.ok(markup.includes('AI 云端 · 2/9 · 1 项受阻'));
+  assert.ok(markup.includes('AI 配置受阻 · 1 项'), 'expected the blocked brief copy');
+  assert.equal(markup.includes('AI 云端 · 2/9'), false, 'route fractions stay out of list rows');
   assert.ok(
     markup.includes('data-testid="apps-entry-local_development:nimi.lab:dev-project-example-ai-config-open"'),
     'expected the AI pill to be an actionable button',
@@ -278,28 +366,45 @@ test('Apps library renders bounded App AIConfig posture without opening the App'
   assert.ok(markup.includes('打开 AI 模型设置'), 'expected the AI pill open-settings hint');
 });
 
-test('Apps library hides the unconfigured AI pill as a default empty state', async () => {
+test('Apps home hides non-actionable AI postures as ambient state', async () => {
   await initI18n();
   await changeLocale('zh');
-  const unconfigured = {
-    ...entry(),
-    aiConfigSummary: {
-      routePosture: 'unconfigured' as const,
-      healthPosture: 'healthy' as const,
-      intentCount: 0,
-      total: 9,
-      blockedCount: 0,
-      localCount: 0,
-      cloudCount: 0,
-    },
-  };
-  const markup = renderView(baseProps({
-    projection: { status: 'loaded', entries: [unconfigured], catalogStatus: 'not-implemented', runtimeError: null },
-  }));
-  assert.equal(markup.includes('AI 未配置'), false, 'unconfigured AI pill hidden on cards');
+  const cases = [
+    { routePosture: 'unconfigured' as const, healthPosture: 'healthy' as const, intentCount: 0, total: 9, blockedCount: 0, localCount: 0, cloudCount: 0 },
+    { routePosture: 'partial-local' as const, healthPosture: 'healthy' as const, intentCount: 2, total: 9, blockedCount: 0, localCount: 2, cloudCount: 0 },
+    { routePosture: 'local' as const, healthPosture: 'healthy' as const, intentCount: 9, total: 9, blockedCount: 0, localCount: 9, cloudCount: 0 },
+  ];
+  for (const aiConfigSummary of cases) {
+    const markup = renderView(baseProps({
+      projection: { status: 'loaded', entries: [{ ...entry(), aiConfigSummary }], catalogStatus: 'not-implemented', runtimeError: null },
+    }));
+    assert.equal(markup.includes('-ai-config-open"'), false, `no AI pill for ${aiConfigSummary.routePosture}/${aiConfigSummary.healthPosture}`);
+  }
 });
 
-test('Apps library renders the host-read project summary under the app title', async () => {
+test('Apps home lists Apps with an available catalog update in their own section', async () => {
+  await initI18n();
+  await changeLocale('zh');
+  const installed = installedRuntimeEntry();
+  const catalog = catalogRuntimeEntry();
+  const updatable: DesktopAppsEntry = {
+    ...catalog,
+    catalogTarget: { ...catalog.catalogTarget!, version: '1.1.0' },
+    committedRelease: installed.committedRelease,
+  };
+  const markup = renderView(baseProps({
+    projection: { status: 'loaded', entries: [updatable], catalogStatus: 'loaded', runtimeError: null },
+  }));
+  assert.ok(markup.includes('data-testid="apps-home-updates"'), 'expected updates section');
+  assert.ok(markup.includes('有更新'), 'expected updates section copy');
+  assert.ok(markup.includes(`data-testid="apps-entry-${updatable.identity.entryKey}-update"`), 'expected the update action');
+  const current = renderView(baseProps({
+    projection: { status: 'loaded', entries: [{ ...catalog, committedRelease: installed.committedRelease }], catalogStatus: 'loaded', runtimeError: null },
+  }));
+  assert.equal(current.includes('data-testid="apps-home-updates"'), false, 'no updates section when everything is current');
+});
+
+test('Apps home renders the host-read project summary under the app title', async () => {
   await initI18n();
   await changeLocale('zh');
   const withSummary = {
@@ -315,48 +420,46 @@ test('Apps library renders the host-read project summary under the app title', a
   assert.equal(withoutSummary.includes('-summary"'), false, 'no summary element when the project has none');
 });
 
-test('Apps search fields render a clear button only when the query is non-empty', async () => {
+test('Apps rail search renders a clear button only when the query is non-empty', async () => {
   await initI18n();
   await changeLocale('zh');
   const withQuery = renderView(baseProps({ searchQuery: 'lab' }));
   assert.ok(withQuery.includes('data-testid="apps-search-clear"'), 'expected rail clear button');
-  assert.ok(withQuery.includes('data-testid="apps-search-clear-library"'), 'expected library clear button');
   assert.ok(withQuery.includes('清除搜索'), 'expected zh clear copy');
   const emptyQuery = renderView(baseProps({ searchQuery: '' }));
   assert.equal(emptyQuery.includes('data-testid="apps-search-clear"'), false, 'no rail clear button when empty');
-  assert.equal(emptyQuery.includes('data-testid="apps-search-clear-library"'), false, 'no library clear button when empty');
+  assert.equal(withQuery.includes('data-testid="apps-search-clear-library"'), false, 'no second search clear button');
 });
 
-test('Apps rail and library list pin running apps first without group sections', async () => {
+test('Apps rail keeps search results keyboard reachable when the selected App is filtered out', async () => {
+  await initI18n();
+  const markup = renderView(baseProps({
+    selectedEntryKey: ENTRIES[0]!.identity.entryKey,
+    searchQuery: 'nimi.zhiyu',
+  }));
+  const rows = (markup.match(/<button\b[^>]*>/g) ?? []).filter((button) => button.includes('data-app-row'));
+  assert.equal(rows.length, 1);
+  assert.ok(rows[0]!.includes('data-testid="apps-rail-app-nimi.zhiyu"'));
+  assert.ok(rows[0]!.includes('tabindex="0"'), 'the visible result must remain in the Tab order');
+});
+
+test('Apps home surfaces entries needing attention in their own section', async () => {
   await initI18n();
   await changeLocale('zh');
-  const running = entry({ updatedAtUnixMs: 1_721_000_000_000 }, 'running');
-  const stopped = entry({
-    selector: 'dev-project-zhiyu',
-    appId: 'nimi.zhiyu',
-    displayName: '织羽 Zhiyu',
-    updatedAtUnixMs: 1_999_000_000_000,
-  });
+  const failed = entry({}, 'registration-unavailable');
+  const healthy = entry({ selector: 'dev-project-zhiyu', appId: 'nimi.zhiyu', displayName: '织羽 Zhiyu' });
   const markup = renderView(baseProps({
-    projection: { status: 'loaded', entries: [stopped, running], catalogStatus: 'not-implemented', runtimeError: null },
+    projection: { status: 'loaded', entries: [failed, healthy], catalogStatus: 'not-implemented', runtimeError: null },
   }));
-  assert.ok(!markup.includes('data-testid="apps-running-group"'), 'no running group section');
-  assert.ok(!markup.includes('正在运行'), 'no group title copy');
-  assert.ok(markup.includes('运行中'), 'expected running status copy');
-  assert.ok(markup.includes('停止'), 'expected stop action copy for the running app');
-  const runningIndex = markup.indexOf('data-testid="apps-rail-entry-local_development:nimi.lab:dev-project-example"');
-  const stoppedIndex = markup.indexOf('data-testid="apps-rail-entry-local_development:nimi.zhiyu:dev-project-zhiyu"');
-  assert.ok(runningIndex !== -1 && stoppedIndex !== -1, 'expected both rail rows');
-  assert.ok(runningIndex < stoppedIndex, 'running app pinned before the stopped app');
-  const runningCardIndex = markup.indexOf('data-testid="apps-entry-local_development:nimi.lab:dev-project-example"');
-  const stoppedCardIndex = markup.indexOf('data-testid="apps-entry-local_development:nimi.zhiyu:dev-project-zhiyu"');
-  assert.ok(runningCardIndex !== -1 && stoppedCardIndex !== -1, 'expected both list rows');
-  assert.ok(runningCardIndex < stoppedCardIndex, 'running row pinned before the stopped row');
-  assert.ok(markup.includes('data-testid="apps-entry-local_development:nimi.lab:dev-project-example-stop"'), 'running app exposes the supported stop action');
-  assert.equal(markup.includes('data-testid="apps-entry-local_development:nimi.lab:dev-project-example-open"'), false, 'startRegistration does not focus an existing window');
+  assert.ok(markup.includes('data-testid="apps-home-attention"'), 'expected attention section');
+  assert.ok(markup.includes('需处理'), 'expected attention section copy');
+  const calm = renderView(baseProps({
+    projection: { status: 'loaded', entries: [healthy], catalogStatus: 'not-implemented', runtimeError: null },
+  }));
+  assert.equal(calm.includes('data-testid="apps-home-attention"'), false, 'attention section hidden when nothing needs it');
 });
 
-test('Apps detail mode renders the header, tabs, and README surface', async () => {
+test('Apps detail mode renders the header, tabs, and overview about card', async () => {
   await initI18n();
   await changeLocale('zh');
   const markup = renderView(baseProps({ selectedEntryKey: 'local_development:nimi.lab:dev-project-example' }));
@@ -365,14 +468,35 @@ test('Apps detail mode renders the header, tabs, and README surface', async () =
   assert.ok(markup.includes('Nimi Lab'), 'expected detail name');
   assert.ok(markup.includes('返回应用库'), 'expected back-to-library copy');
   assert.ok(markup.includes('概览'), 'expected overview tab');
-  assert.ok(markup.includes('data-testid="apps-readme-loading"'), 'expected readme loading surface');
+  assert.ok(markup.includes('关于此 App'), 'expected overview about card');
+  assert.equal(markup.includes('data-testid="apps-readme-loading"'), false, 'README moved out of the overview tab');
   assert.ok(markup.includes('data-testid="apps-detail-launch"'), 'expected primary launch action');
   assert.equal(markup.includes('-installed-version"'), false, 'local-development detail has no package state');
   assert.ok(markup.includes('data-testid="apps-sidebar"'), 'expected permanent rail');
-  assert.ok(markup.includes('data-testid="apps-rail-entry-local_development:nimi.zhiyu:dev-project-zhiyu"'), 'expected rail rows');
+  assert.ok(markup.includes('data-testid="apps-rail-app-nimi.zhiyu"'), 'expected rail rows');
 });
 
-test('Apps library exposes public catalog search as not implemented without fabricated entries', async () => {
+test('Apps detail lists the other sources of the same App', async () => {
+  await initI18n();
+  await changeLocale('zh');
+  const entries = [entry(), verifiedLabEntry()];
+  const devDetail = renderView(baseProps({
+    projection: { status: 'loaded', entries, catalogStatus: 'not-implemented', runtimeError: null },
+    selectedEntryKey: 'local_development:nimi.lab:dev-project-example',
+  }));
+  assert.ok(devDetail.includes('其他来源'), 'expected other-sources card');
+  assert.ok(devDetail.includes('data-testid="apps-source-entry-verified:nimi.lab"'), 'expected the installed source link');
+  assert.ok(devDetail.includes('已安装 1.0.0'), 'expected the installed source version');
+  const installedDetail = renderView(baseProps({
+    projection: { status: 'loaded', entries, catalogStatus: 'not-implemented', runtimeError: null },
+    selectedEntryKey: 'verified:nimi.lab',
+  }));
+  assert.ok(installedDetail.includes('data-testid="apps-source-entry-local_development:nimi.lab:dev-project-example"'), 'expected the development source link');
+  const single = renderView(baseProps({ selectedEntryKey: 'local_development:nimi.lab:dev-project-example' }));
+  assert.equal(single.includes('其他来源'), false, 'single-source Apps render no sources card');
+});
+
+test('Apps home exposes public catalog search as not implemented without fabricated entries', async () => {
   await initI18n();
   await changeLocale('en');
   const markup = renderView(baseProps({
@@ -460,7 +584,7 @@ test('active uninstall phases use the non-terminal Apps locale copy', async () =
   })).includes('正在卸载'));
 });
 
-test('Apps library surfaces a terminal launch failure instead of a silent stop', async () => {
+test('Apps home surfaces a terminal launch failure instead of a silent stop', async () => {
   await initI18n();
   await changeLocale('zh');
   const failed = entry({}, 'registration-unavailable');
@@ -473,32 +597,7 @@ test('Apps library surfaces a terminal launch failure instead of a silent stop',
   assert.ok(!markup.includes('Apps.runState.'), 'no raw i18n keys');
 });
 
-test('Apps library renders the 常用 quick-launch strip once enough apps are connected', async () => {
-  await initI18n();
-  await changeLocale('zh');
-  const running = entry({ selector: 'dev-project-running', appId: 'nimi.running', displayName: 'Running App', updatedAtUnixMs: 1_721_000_000_000 }, 'running');
-  const recent = entry({ selector: 'dev-project-recent', appId: 'nimi.recent', displayName: 'Recent App', updatedAtUnixMs: 1_999_000_000_000 });
-  const older = entry({ selector: 'dev-project-older', appId: 'nimi.older', displayName: 'Older App', updatedAtUnixMs: 1_900_000_000_000 });
-  const oldest = entry({ selector: 'dev-project-oldest', appId: 'nimi.oldest', displayName: 'Oldest App', updatedAtUnixMs: 1_800_000_000_000 });
-  const markup = renderView(baseProps({
-    projection: { status: 'loaded', entries: [oldest, older, recent, running], catalogStatus: 'not-implemented', runtimeError: null },
-  }));
-  assert.ok(markup.includes('data-testid="apps-frequent-section"'), 'expected frequent section');
-  assert.ok(markup.includes('常用'), 'expected frequent section copy');
-  const runningTile = markup.indexOf('data-testid="apps-frequent-local_development:nimi.running:dev-project-running"');
-  const recentTile = markup.indexOf('data-testid="apps-frequent-local_development:nimi.recent:dev-project-recent"');
-  const olderTile = markup.indexOf('data-testid="apps-frequent-local_development:nimi.older:dev-project-older"');
-  assert.ok(runningTile !== -1 && recentTile !== -1 && olderTile !== -1, 'expected three frequent tiles');
-  assert.ok(runningTile < recentTile && recentTile < olderTile, 'frequent tiles order running first, then recently updated');
-  assert.equal(markup.includes('data-testid="apps-frequent-local_development:nimi.oldest:dev-project-oldest"'), false, 'frequent strip capped at three apps');
-  const searching = renderView(baseProps({
-    searchQuery: 'running',
-    projection: { status: 'loaded', entries: [oldest, older, recent, running], catalogStatus: 'not-implemented', runtimeError: null },
-  }));
-  assert.equal(searching.includes('data-testid="apps-frequent-section"'), false, 'frequent section hidden while searching');
-});
-
-test('An action on another App disables mutations in rows, frequent apps and details without marking them loading', async () => {
+test('An action on another App disables mutations on home rows, rail rows and details without marking them loading', async () => {
   await initI18n();
   await changeLocale('en');
   const installed = { ...installedRuntimeEntry(), packageJob: null };
@@ -506,16 +605,16 @@ test('An action on another App disables mutations in rows, frequent apps and det
     projection: { status: 'loaded', entries: [installed, ...ENTRIES, entry({ selector: 'fourth', appId: 'example.fourth' })], catalogStatus: 'not-implemented', runtimeError: null },
     activeAction: { entryKey: ENTRIES[0]!.identity.entryKey, action: 'launch' },
   });
-  const library = renderView(props);
-  const buttons = [...library.matchAll(/<button\b[^>]*>/g)].map((match) => match[0]);
+  const home = renderView(props);
+  const buttons = [...home.matchAll(/<button\b[^>]*>/g)].map((match) => match[0]);
   const launches = buttons.filter((button) => button.includes(`data-testid="apps-entry-${installed.identity.entryKey}-launch"`));
-  assert.equal(launches.length, 2, 'installed App appears in the library and frequent strip');
+  assert.equal(launches.length, 1, 'installed App appears once on the merged home');
   for (const button of launches) {
     assert.ok(button.includes(' disabled=""'), 'other App launch must be disabled');
     assert.ok(!button.includes('aria-busy="true"'), 'other App is not launching');
   }
-  const name = buttons.find((button) => button.includes(`data-testid="apps-frequent-${installed.identity.entryKey}-name"`));
-  assert.ok(name && !name.includes(' disabled=""'), 'details navigation remains available');
+  const railLaunch = buttons.find((button) => button.includes(`data-testid="apps-rail-app-${installed.identity.appId}-launch"`));
+  assert.ok(railLaunch?.includes(' disabled=""'), 'rail quick launch must be disabled');
   const detail = renderView({ ...props, selectedEntryKey: installed.identity.entryKey });
   const detailLaunch = [...detail.matchAll(/<button\b[^>]*>/g)].map((match) => match[0])
     .find((button) => button.includes('data-testid="apps-installed-launch"'));
@@ -527,18 +626,17 @@ test('An action on another App disables mutations in rows, frequent apps and det
   assert.ok(idleLaunch && !idleLaunch.includes(' disabled=""'), 'launch becomes available after the operation finishes');
 });
 
-test('Apps library renders with resolved en copy after locale switch', async () => {
+test('Apps home renders with resolved en copy after locale switch', async () => {
   await initI18n();
   await changeLocale('en');
   const markup = renderView(baseProps());
   assert.ok(markup.includes('App Center'), 'expected en page title');
   assert.ok(markup.includes('Add App'), 'expected en add-app action copy');
   assert.ok(markup.includes('Search apps or App ID'), 'expected en rail search placeholder');
-  assert.ok(markup.includes('Search apps'), 'expected en library search placeholder');
-  assert.ok(markup.includes('All Apps'), 'expected en all-apps section title');
-  assert.ok(markup.includes('Needs Attention'), 'expected en attention chip copy');
+  assert.ok(markup.includes('Recent Activity'), 'expected en recent section copy');
   assert.ok(markup.includes('Recently updated'), 'expected en sort copy');
   assert.ok(markup.includes('Not running'), 'expected en stopped status copy on rows');
+  assert.equal(markup.includes('All Apps'), false, 'no second all-apps list on home');
   await changeLocale('zh');
 });
 
@@ -562,6 +660,7 @@ test('approved Catalog facts render an install intent without claiming certifica
   assert.ok(detailMarkup.includes('@publisher'));
   assert.ok(detailMarkup.includes('MIT'));
   assert.ok(detailMarkup.includes('unsigned'));
+  assert.ok(detailMarkup.includes('Registry target · 1.0.0'));
   assert.ok(detailMarkup.includes('Expected size: 1–10 MiB'));
 
   const blocked = catalogRuntimeEntry(true);

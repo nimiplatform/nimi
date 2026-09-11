@@ -1,4 +1,5 @@
 import {
+  memo,
   useEffect,
   useMemo,
   useRef,
@@ -10,14 +11,20 @@ import { useTranslation } from 'react-i18next';
 import type { NimiDesktopOpenAppsSection } from '@nimiplatform/kit/core/desktop-open';
 import type { NimiAIConfigOverwriteResult } from '@nimiplatform/kit/core/sdk-contract';
 import {
+  BadgeCheck,
   Box,
   Check,
   Code2,
+  Download,
   Info,
   ListFilter,
   LoaderCircle,
+  MoreHorizontal,
+  PackageOpen,
+  Play,
   Plus,
   SearchX,
+  Square,
   X,
 } from 'lucide-react';
 import {
@@ -35,23 +42,38 @@ import {
   Surface,
   type NimiMenuItem,
 } from '@nimiplatform/kit/ui';
-import type { AppCardActionId } from './apps-card-actions.js';
+import {
+  actionPlanForEntry,
+  hasAvailableCatalogUpdate,
+  type AppCardActionId,
+} from './apps-card-actions.js';
 import {
   appRunVisualState,
-  filterAppsEntries,
-  filterAppsEntriesByStatus,
-  pinRunningAppsFirst,
+  entryNeedsAttention,
   sortAppsEntries,
-  type AppsLibraryFilterId,
   type AppsSortId,
 } from './apps-card-fields.js';
 import { AppArtworkIcon } from './apps-card-visuals.js';
 import { AppListRow } from './apps-list-row.js';
-import { FrequentAppsSection } from './apps-frequent-section.js';
 import { AppsDetailView } from './apps-detail-view.js';
 import { AppsInstallConfirmationDialog } from './apps-install-confirmation.js';
 import type { AppsInstallIntentSnapshot } from './apps-install-intent.js';
-import type { DesktopAppsEntry, DesktopAppsPanelProjection } from './apps-panel-projection.js';
+import { useAppEntryMenu } from './apps-entry-menu.js';
+import {
+  filterAppGroups,
+  groupAppsEntries,
+  reconcileAppGroups,
+  siblingSourceEntries,
+  sortAppGroups,
+  splitRunningGroups,
+  type DesktopAppGroup,
+} from './apps-entry-groups.js';
+import type {
+  DesktopAppsCatalogProjection,
+  DesktopAppsEntry,
+  DesktopAppsPanelProjection,
+  DesktopAppSourceClass,
+} from './apps-panel-projection.js';
 import type { AppPackageJob } from '@nimiplatform/sdk/runtime/wire-types';
 import type { AppsDownloadsContextValue } from './apps-downloads-context.js';
 import { AppsDownloadsView, isAppDownloadJob } from './apps-downloads-view.js';
@@ -72,6 +94,7 @@ export interface AppsPanelViewProps {
   readonly onCardAction: (entryKey: string, action: AppCardActionId) => void;
   readonly onBack: () => void;
   readonly onOpenDeveloperMode: () => void;
+  readonly onImportLocal: () => void;
   readonly onRetry: () => void;
   readonly onAIConfigChanged: (entryKey: string, result: NimiAIConfigOverwriteResult) => void;
   readonly actionError: string | null;
@@ -88,15 +111,8 @@ const SORT_LABEL_KEYS: Readonly<Record<AppsSortId, string>> = {
   activity: 'Apps.library.sortActivity',
 };
 
-const LIBRARY_FILTER_IDS: readonly AppsLibraryFilterId[] = ['all', 'running', 'attention'];
-const LIBRARY_FILTER_LABEL_KEYS: Readonly<Record<AppsLibraryFilterId, string>> = {
-  all: 'Apps.filter.all',
-  running: 'Apps.library.filterRunning',
-  attention: 'Apps.library.filterNeedsAttention',
-};
-
-/** The 常用 strip stays a quick-launch subset, not a second full list. */
-const FREQUENT_ENTRIES_LIMIT = 3;
+/** The home 最近活跃 section stays a quick-launch subset, not a second list. */
+const RECENT_GROUPS_LIMIT = 6;
 
 export function AppsPanelView({
   downloads,
@@ -111,6 +127,7 @@ export function AppsPanelView({
   onCardAction,
   onBack,
   onOpenDeveloperMode,
+  onImportLocal,
   onRetry,
   onAIConfigChanged,
   actionError,
@@ -121,37 +138,66 @@ export function AppsPanelView({
 }: AppsPanelViewProps): ReactElement {
   const { t } = useTranslation();
   const [sortId, setSortId] = useState<AppsSortId>('updated');
-  const [libraryFilterId, setLibraryFilterId] = useState<AppsLibraryFilterId>('all');
   const railSearchRef = useRef<HTMLInputElement>(null);
-  const librarySearchRef = useRef<HTMLInputElement>(null);
 
   const loadedEntries = projection?.status === 'loaded' ? projection.entries : [];
-  const searchedEntries = useMemo(
-    () => pinRunningAppsFirst(sortAppsEntries(filterAppsEntries(loadedEntries, searchQuery), sortId)),
-    [loadedEntries, searchQuery, sortId],
+  // Group-level structural sharing: quiet polls keep group identity so the
+  // memoized rail rows skip re-rendering.
+  const reconciledGroupsRef = useRef<readonly DesktopAppGroup[]>([]);
+  const groups = useMemo(() => {
+    const next = reconcileAppGroups(reconciledGroupsRef.current, groupAppsEntries(loadedEntries));
+    reconciledGroupsRef.current = next;
+    return next;
+  }, [loadedEntries]);
+  // Stable per-entry dispatchers keep memoized rows referentially quiet even
+  // though `onCardAction` itself is re-created around each new projection.
+  const onCardActionRef = useRef(onCardAction);
+  onCardActionRef.current = onCardAction;
+  const actionDispatchersRef = useRef(new Map<string, (action: AppCardActionId) => void>());
+  const actionDispatcherFor = (entryKey: string): ((action: AppCardActionId) => void) => {
+    let dispatcher = actionDispatchersRef.current.get(entryKey);
+    if (!dispatcher) {
+      dispatcher = (action) => onCardActionRef.current(entryKey, action);
+      actionDispatchersRef.current.set(entryKey, dispatcher);
+    }
+    return dispatcher;
+  };
+  const searching = searchQuery.trim() !== '';
+  const sortedGroups = useMemo(
+    () => sortAppGroups(filterAppGroups(groups, searchQuery), sortId),
+    [groups, searchQuery, sortId],
   );
-  const visibleEntries = useMemo(
-    () => filterAppsEntriesByStatus(searchedEntries, libraryFilterId),
-    [searchedEntries, libraryFilterId],
+  // Steam-style rail: a 运行中 section on top, one flat list below; searching
+  // collapses the sections into a single result set.
+  const { running: runningGroups, rest: restGroups } = useMemo(
+    () => (searching ? { running: [] as readonly DesktopAppGroup[], rest: sortedGroups } : splitRunningGroups(sortedGroups)),
+    [searching, sortedGroups],
   );
-  const frequentEntries = useMemo(
-    () => pinRunningAppsFirst(sortAppsEntries(loadedEntries, 'updated')).slice(0, FREQUENT_ENTRIES_LIMIT),
+  const attentionEntries = useMemo(
+    () => sortAppsEntries(loadedEntries.filter(entryNeedsAttention), 'updated'),
     [loadedEntries],
   );
-  // 常用 only earns its strip when the full list is long enough that a subset
-  // adds value, and stays out of the way of search/filter results.
-  const showFrequent = libraryFilterId === 'all'
-    && searchQuery.trim() === ''
-    && loadedEntries.length > FREQUENT_ENTRIES_LIMIT;
+  const updateEntries = useMemo(
+    () => sortAppsEntries(loadedEntries.filter(hasAvailableCatalogUpdate), 'updated'),
+    [loadedEntries],
+  );
+  const recentGroups = useMemo(
+    () => sortAppGroups(groups, 'activity').slice(0, RECENT_GROUPS_LIMIT),
+    [groups],
+  );
   const selectedEntry = loadedEntries.find(
     (entry) => entry.identity.entryKey === selectedEntryKey,
   ) ?? null;
   const detailMode = selectedEntry !== null;
+  const sourceEntries = useMemo(
+    () => (selectedEntry ? siblingSourceEntries(loadedEntries, selectedEntry) : []),
+    [loadedEntries, selectedEntry],
+  );
 
   useEffect(() => {
     const focusAppsSearch = (event: globalThis.KeyboardEvent) => {
       if (!(event.ctrlKey || event.metaKey) || event.key.toLocaleLowerCase() !== 'f') return;
-      const input = librarySearchRef.current ?? railSearchRef.current;
+      const input = railSearchRef.current;
       if (!input) return;
       event.preventDefault();
       input.focus();
@@ -172,7 +218,9 @@ export function AppsPanelView({
     <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 px-3 pb-3 pt-2 lg:flex-row">
       <AppsRail
         projection={projection}
-        visibleEntries={searchedEntries}
+        groupsCount={groups.length}
+        runningGroups={runningGroups}
+        restGroups={restGroups}
         selectedEntryKey={selectedEntryKey}
         searchQuery={searchQuery}
         onSearchChange={onSearchChange}
@@ -180,7 +228,10 @@ export function AppsPanelView({
         searchInputRef={railSearchRef}
         sortId={sortId}
         sortMenuItems={sortMenuItems}
-        onCardAction={onCardAction}
+        downloads={downloads}
+        activeAction={activeAction}
+        actionDispatcherFor={actionDispatcherFor}
+        onLeaveDownloads={onBack}
         onRetry={onRetry}
       />
 
@@ -191,52 +242,43 @@ export function AppsPanelView({
         padding="none"
         className="flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden rounded-xl border-[var(--nimi-border-subtle)] shadow-[var(--nimi-elevation-base)]"
       >
-        {downloads ? <nav aria-label={t('Apps.downloads.views')} className="flex shrink-0 gap-2 border-b border-[var(--nimi-border-subtle)] px-4 py-2">
-          <Button size="sm" tone="ghost" active={downloads.view === 'library'} onClick={() => { downloads.showLibrary(); onBack(); }}>{t('Apps.downloads.library')}</Button>
-          <Button size="sm" tone="ghost" active={downloads.view === 'downloads'} data-testid="apps-downloads-entry" onClick={() => downloads.openDownloads()}>
-            {t('Apps.downloads.title')} <span className="tabular-nums">{downloads.jobs.filter((job) => isAppDownloadJob(job) && !packageJobIsTerminal(job)).length}</span>
-          </Button>
-        </nav> : null}
-        {downloads?.view !== 'downloads' && detailMode && projection?.status === 'loaded' && projection.runtimeError ? (
-          <div className="shrink-0 px-5 pt-4 sm:px-7">
-            <InlineAlert tone="danger" data-testid="apps-runtime-error">
-              {t('Apps.error', { detail: projection.runtimeError })}
-            </InlineAlert>
-          </div>
-        ) : null}
         {downloads?.view === 'downloads' && onViewDownloadApp && onRetryDownload ? (
           <AppsDownloadsView downloads={downloads} entries={loadedEntries} onViewApp={onViewDownloadApp} onRetry={onRetryDownload} />
         ) : detailMode ? (
-          <AppsDetailView
-            entry={selectedEntry}
-            requestedSection={requestedDetailSection}
-            requestedNavigationRevision={requestedDetailNavigationRevision}
-            onBack={onBack}
-            onAction={(action) => onCardAction(selectedEntry.identity.entryKey, action)}
-            activeAction={activeAction && activeAction.entryKey === selectedEntry.identity.entryKey ? activeAction.action : null}
-            actionsDisabled={activeAction !== null}
-            actionError={actionError}
-            onAIConfigChanged={(result) => onAIConfigChanged(selectedEntry.identity.entryKey, result)}
-          />
+          <>
+            {projection?.status === 'loaded' && projection.runtimeError ? (
+              <div className="shrink-0 px-5 pt-4 sm:px-7">
+                <InlineAlert tone="danger" data-testid="apps-runtime-error">
+                  {t('Apps.error', { detail: projection.runtimeError })}
+                </InlineAlert>
+              </div>
+            ) : null}
+            <AppsDetailView
+              entry={selectedEntry}
+              sourceEntries={sourceEntries}
+              requestedSection={requestedDetailSection}
+              requestedNavigationRevision={requestedDetailNavigationRevision}
+              onBack={onBack}
+              onOpenEntry={(entryKey) => onCardAction(entryKey, 'details')}
+              onAction={(action) => onCardAction(selectedEntry.identity.entryKey, action)}
+              activeAction={activeAction && activeAction.entryKey === selectedEntry.identity.entryKey ? activeAction.action : null}
+              actionsDisabled={activeAction !== null}
+              actionError={actionError}
+              onAIConfigChanged={(result) => onAIConfigChanged(selectedEntry.identity.entryKey, result)}
+            />
+          </>
         ) : (
-          <LibraryContent
+          <AppsHome
             projection={projection}
-            visibleEntries={visibleEntries}
-            frequentEntries={frequentEntries}
-            showFrequent={showFrequent}
-            searchQuery={searchQuery}
-            onSearchChange={onSearchChange}
-            onClearFilters={() => {
-              onSearchChange('');
-              setLibraryFilterId('all');
-            }}
-            searchInputRef={librarySearchRef}
-            libraryFilterId={libraryFilterId}
-            onLibraryFilterChange={setLibraryFilterId}
+            attentionEntries={attentionEntries}
+            updateEntries={updateEntries}
+            recentGroups={recentGroups}
             activeAction={activeAction}
-            onCardAction={onCardAction}
+            actionDispatcherFor={actionDispatcherFor}
             onRetry={onRetry}
             onOpenDeveloperMode={onOpenDeveloperMode}
+            onImportLocal={onImportLocal}
+            onFocusRailSearch={() => railSearchRef.current?.focus()}
             actionError={actionError}
           />
         )}
@@ -253,7 +295,9 @@ export function AppsPanelView({
 
 function AppsRail({
   projection,
-  visibleEntries,
+  groupsCount,
+  runningGroups,
+  restGroups,
   selectedEntryKey,
   searchQuery,
   onSearchChange,
@@ -261,11 +305,16 @@ function AppsRail({
   searchInputRef,
   sortId,
   sortMenuItems,
-  onCardAction,
+  downloads,
+  activeAction,
+  actionDispatcherFor,
+  onLeaveDownloads,
   onRetry,
 }: {
   readonly projection: DesktopAppsPanelProjection | null;
-  readonly visibleEntries: readonly DesktopAppsEntry[];
+  readonly groupsCount: number;
+  readonly runningGroups: readonly DesktopAppGroup[];
+  readonly restGroups: readonly DesktopAppGroup[];
   readonly selectedEntryKey: string | null;
   readonly searchQuery: string;
   readonly onSearchChange: (value: string) => void;
@@ -273,12 +322,32 @@ function AppsRail({
   readonly searchInputRef: React.RefObject<HTMLInputElement | null>;
   readonly sortId: AppsSortId;
   readonly sortMenuItems: NimiMenuItem[];
-  readonly onCardAction: (entryKey: string, action: AppCardActionId) => void;
+  readonly downloads?: AppsDownloadsContextValue;
+  readonly activeAction: Readonly<{ entryKey: string; action: AppCardActionId }> | null;
+  readonly actionDispatcherFor: (entryKey: string) => (action: AppCardActionId) => void;
+  readonly onLeaveDownloads: () => void;
   readonly onRetry: () => void;
 }): ReactElement {
   const { t } = useTranslation();
+  const flatGroups = useMemo(() => [...runningGroups, ...restGroups], [runningGroups, restGroups]);
+  const selectedGroupVisible = flatGroups.some((group) => (
+    group.entries.some((entry) => entry.identity.entryKey === selectedEntryKey)
+  ));
+  const tabbableEntryKey = selectedGroupVisible ? selectedEntryKey : flatGroups[0]?.primary.identity.entryKey ?? null;
+  const renderRow = (group: DesktopAppGroup) => (
+    <RailGroupRow
+      key={group.appId}
+      group={group}
+      active={group.entries.some((entry) => entry.identity.entryKey === selectedEntryKey)}
+      tabIndex={group.entries.some((entry) => entry.identity.entryKey === tabbableEntryKey) ? 0 : -1}
+      activeAction={activeAction && group.entries.some((entry) => entry.identity.entryKey === activeAction.entryKey) ? activeAction.action : null}
+      actionsDisabled={activeAction !== null}
+      onAction={actionDispatcherFor(group.primary.identity.entryKey)}
+      onKeyDown={handleRailKeyDown}
+    />
+  );
   return (
-    <SidebarShell className="hidden w-[248px] lg:flex" data-testid="apps-sidebar">
+    <SidebarShell className="h-56 min-h-0 w-full lg:h-auto lg:w-[248px]" data-testid="apps-sidebar">
       <div className="flex min-h-[var(--nimi-sidebar-header-height)] shrink-0 items-center justify-between gap-3 px-4">
         <div className="min-w-0">
           <h1 className="text-base font-semibold leading-6 text-[color:var(--nimi-text-primary)]">
@@ -286,7 +355,7 @@ function AppsRail({
           </h1>
           <p className="truncate text-[11px] text-[color:var(--nimi-text-muted)]">
             {projection?.status === 'loaded'
-              ? t('Apps.inventoryCount', { count: projection.entries.length })
+              ? t('Apps.inventoryCount', { count: groupsCount })
               : t('Apps.sidebar.subtitle')}
           </p>
         </div>
@@ -344,7 +413,7 @@ function AppsRail({
           <p className="px-2 py-4 text-xs leading-5 text-[color:var(--nimi-text-muted)]">
             {t('Apps.sidebar.emptyHint')}
           </p>
-        ) : visibleEntries.length === 0 ? (
+        ) : flatGroups.length === 0 ? (
           <div className="px-2 py-6 text-center">
             <SearchX className="mx-auto h-5 w-5 text-[var(--nimi-text-muted)]" aria-hidden="true" />
             <p className="mt-2 text-xs leading-5 text-[color:var(--nimi-text-muted)]">{t('Apps.sidebar.noResultsDescription')}</p>
@@ -352,109 +421,309 @@ function AppsRail({
           </div>
         ) : (
           <div data-app-rail-list>
+            {runningGroups.length > 0 ? (
+              <section data-testid="apps-rail-running-section" aria-label={t('Apps.rail.runningSection')} className="mb-2">
+                <h2 className="px-2 pb-1 text-[11px] font-semibold leading-4 text-[color:var(--nimi-text-muted)]">
+                  {t('Apps.rail.runningSection')}
+                </h2>
+                <div className="space-y-0.5">
+                  {runningGroups.map(renderRow)}
+                </div>
+              </section>
+            ) : null}
             <div className="space-y-0.5">
-              {visibleEntries.map((entry, index) => (
-                <RailAppRow
-                  key={entry.identity.entryKey}
-                  entry={entry}
-                  active={entry.identity.entryKey === selectedEntryKey}
-                  tabIndex={entry.identity.entryKey === selectedEntryKey || (!selectedEntryKey && index === 0) ? 0 : -1}
-                  onOpen={() => onCardAction(entry.identity.entryKey, 'details')}
-                  onKeyDown={handleRailKeyDown}
-                />
-              ))}
+              {restGroups.map(renderRow)}
             </div>
           </div>
         )}
       </ScrollArea>
+
+      {downloads ? <RailDownloadsEntry downloads={downloads} onLeaveDownloads={onLeaveDownloads} /> : null}
     </SidebarShell>
   );
 }
 
-function RailAppRow({
-  entry,
-  active,
-  tabIndex,
-  onOpen,
-  onKeyDown,
+function RailDownloadsEntry({
+  downloads,
+  onLeaveDownloads,
 }: {
-  readonly entry: DesktopAppsEntry;
-  readonly active: boolean;
-  readonly tabIndex?: number;
-  readonly onOpen: () => void;
-  readonly onKeyDown?: (event: KeyboardEvent<HTMLButtonElement>) => void;
+  readonly downloads: AppsDownloadsContextValue;
+  readonly onLeaveDownloads: () => void;
 }): ReactElement {
   const { t } = useTranslation();
-  const visual = appRunVisualState(entry.run?.state ?? null);
+  const activeCount = downloads.jobs.filter((job) => isAppDownloadJob(job) && !packageJobIsTerminal(job)).length;
+  const active = downloads.view === 'downloads';
   return (
-    <button
-      type="button"
-      data-app-row
-      data-testid={`apps-rail-entry-${entry.identity.entryKey}`}
-      tabIndex={tabIndex}
-      onClick={onOpen}
-      onKeyDown={onKeyDown}
-      className={`flex w-full min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[var(--nimi-focus-ring-color)] ${active
-        ? 'bg-[var(--nimi-surface-active)]'
-        : 'hover:bg-[color-mix(in_srgb,var(--nimi-surface-active)_60%,transparent)]'
-      }`}
-    >
-      <AppArtworkIcon
-        appId={entry.identity.appId}
-        displayName={entry.identity.displayName}
-        iconUrl={entry.iconUrl}
-        size="xs"
-      />
-      <span className={`min-w-0 flex-1 truncate text-[13px] leading-5 ${visual === 'running' ? 'font-semibold text-[color:var(--nimi-text-primary)]' : 'font-medium text-[color:var(--nimi-text-primary)]'}`}>
-        {entry.identity.displayName}
-      </span>
-      {visual === 'running' ? (
-        <span className="inline-flex items-center gap-1">
-          <span className="h-1.5 w-1.5 rounded-full bg-[var(--nimi-status-success)]" aria-hidden="true" />
-          <span className="sr-only">{t('Apps.runState.running')}</span>
-        </span>
-      ) : null}
-      {visual === 'starting' ? (
-        <span className="inline-flex items-center gap-1 text-[var(--nimi-action-primary-bg)]">
-          <LoaderCircle className="h-3 w-3 animate-spin" aria-hidden="true" />
-          <span className="sr-only">{t('Apps.runState.starting')}</span>
-        </span>
-      ) : null}
-    </button>
+    <div className="shrink-0 border-t border-[var(--nimi-border-subtle)] px-2 py-2">
+      <button
+        type="button"
+        data-testid="apps-downloads-entry"
+        aria-pressed={active}
+        onClick={() => {
+          if (active) {
+            downloads.showLibrary();
+            onLeaveDownloads();
+          } else {
+            downloads.openDownloads();
+          }
+        }}
+        className={`flex w-full min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[13px] leading-5 transition-colors focus-visible:outline-none focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[var(--nimi-focus-ring-color)] ${active
+          ? 'bg-[var(--nimi-surface-active)] font-medium text-[color:var(--nimi-text-primary)]'
+          : 'font-medium text-[color:var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-active)_60%,transparent)]'
+        }`}
+      >
+        <Download className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+        <span className="min-w-0 flex-1 truncate">{t('Apps.downloads.title')}</span>
+        {activeCount > 0 ? (
+          <span className="shrink-0 rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] px-1.5 py-0.5 text-[11px] font-medium leading-3 tabular-nums text-[var(--nimi-action-primary-bg)]">
+            {activeCount}
+          </span>
+        ) : null}
+      </button>
+    </div>
   );
 }
 
-function LibraryContent({
-  projection,
-  visibleEntries,
-  frequentEntries,
-  showFrequent,
-  searchQuery,
-  onSearchChange,
-  onClearFilters,
-  searchInputRef,
-  libraryFilterId,
-  onLibraryFilterChange,
+const RAIL_SOURCE_GLYPH: Readonly<Record<DesktopAppSourceClass, {
+  readonly icon: typeof Code2;
+  readonly labelKey: string;
+  readonly className: string;
+}>> = Object.freeze({
+  local_development: {
+    icon: Code2,
+    labelKey: 'Apps.sourceBadge.localDevelopment',
+    className: 'text-[color:var(--nimi-text-muted)]',
+  },
+  user_imported: {
+    icon: PackageOpen,
+    labelKey: 'Apps.sourceBadge.userImported',
+    className: 'text-[var(--nimi-status-info-soft-text)]',
+  },
+  verified: {
+    icon: BadgeCheck,
+    labelKey: 'Apps.sourceBadge.verified',
+    className: 'text-[var(--nimi-status-success-soft-text)]',
+  },
+});
+
+function RailSourceGlyph({ source }: { readonly source: DesktopAppSourceClass }): ReactElement {
+  const { t } = useTranslation();
+  const meta = RAIL_SOURCE_GLYPH[source];
+  const Icon = meta.icon;
+  return (
+    <span title={t(meta.labelKey)} className={`inline-flex shrink-0 items-center ${meta.className}`}>
+      <Icon className="h-3 w-3" aria-hidden="true" />
+      <span className="sr-only">{t(meta.labelKey)}</span>
+    </span>
+  );
+}
+
+function railGroupRowPropsEqual(
+  prev: RailGroupRowProps,
+  next: RailGroupRowProps,
+): boolean {
+  const sameGroup = prev.group === next.group || (
+    prev.group.appId === next.group.appId
+    && prev.group.primary === next.group.primary
+    && prev.group.displayName === next.group.displayName
+    && prev.group.iconUrl === next.group.iconUrl
+    && prev.group.running === next.group.running
+    && prev.group.starting === next.group.starting
+    && prev.group.sourceClasses.length === next.group.sourceClasses.length
+    && prev.group.sourceClasses.every((source, index) => source === next.group.sourceClasses[index])
+  );
+  return sameGroup
+    && prev.active === next.active
+    && prev.tabIndex === next.tabIndex
+    && prev.activeAction === next.activeAction
+    && prev.actionsDisabled === next.actionsDisabled
+    && prev.onAction === next.onAction
+    && prev.onKeyDown === next.onKeyDown;
+}
+
+interface RailGroupRowProps {
+  readonly group: DesktopAppGroup;
+  readonly active: boolean;
+  readonly tabIndex?: number;
+  readonly activeAction: AppCardActionId | null;
+  readonly actionsDisabled: boolean;
+  readonly onAction: (action: AppCardActionId) => void;
+  readonly onKeyDown?: (event: KeyboardEvent<HTMLButtonElement>) => void;
+}
+
+const RailGroupRow = memo(function RailGroupRow({
+  group,
+  active,
+  tabIndex,
   activeAction,
-  onCardAction,
+  actionsDisabled,
+  onAction,
+  onKeyDown,
+}: RailGroupRowProps): ReactElement {
+  const { t } = useTranslation();
+  const primary = group.primary;
+  const visual = appRunVisualState(primary.run?.state ?? null);
+  const { menuItems, confirmElement } = useAppEntryMenu({
+    entry: primary,
+    actionsDisabled,
+    removePending: activeAction === 'remove',
+    onAction,
+  });
+  return (
+    <div className="group relative" data-rail-group={group.appId}>
+      <div className={`flex w-full min-w-0 items-center rounded-lg transition-colors ${active
+        ? 'bg-[var(--nimi-surface-active)]'
+        : 'hover:bg-[color-mix(in_srgb,var(--nimi-surface-active)_60%,transparent)]'
+      }`}>
+        <button
+          type="button"
+          data-app-row
+          data-testid={`apps-rail-app-${group.appId}`}
+          tabIndex={tabIndex}
+          onClick={() => onAction('details')}
+          onKeyDown={onKeyDown}
+          className="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-1.5 text-left focus-visible:outline-none focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[var(--nimi-focus-ring-color)]"
+        >
+          <AppArtworkIcon
+            appId={group.appId}
+            displayName={group.displayName}
+            iconUrl={group.iconUrl}
+            size="xs"
+          />
+          <span className={`min-w-0 flex-1 truncate text-[13px] leading-5 ${visual === 'running' ? 'font-semibold text-[color:var(--nimi-text-primary)]' : 'font-medium text-[color:var(--nimi-text-primary)]'}`}>
+            {group.displayName}
+          </span>
+          {visual === 'running' ? (
+            <span className="inline-flex shrink-0 items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--nimi-status-success)]" aria-hidden="true" />
+              <span className="sr-only">{t('Apps.runState.running')}</span>
+            </span>
+          ) : null}
+          {visual === 'starting' ? (
+            <span className="inline-flex shrink-0 items-center gap-1 text-[var(--nimi-action-primary-bg)]">
+              <LoaderCircle className="h-3 w-3 animate-spin" aria-hidden="true" />
+              <span className="sr-only">{t('Apps.runState.starting')}</span>
+            </span>
+          ) : null}
+          {visual === 'failed' ? (
+            <span className="inline-flex shrink-0 items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--nimi-status-danger)]" aria-hidden="true" />
+              <span className="sr-only">{t('Apps.runState.failed')}</span>
+            </span>
+          ) : null}
+          {group.sourceClasses.length > 1 ? (
+            <span className="inline-flex shrink-0 items-center gap-1 group-hover:hidden group-focus-within:hidden">
+              {group.sourceClasses.map((source) => <RailSourceGlyph key={source} source={source} />)}
+            </span>
+          ) : null}
+        </button>
+        <span className="hidden shrink-0 items-center pr-1 group-hover:flex group-focus-within:flex">
+          <RailQuickAction
+            entry={primary}
+            activeAction={activeAction}
+            actionsDisabled={actionsDisabled}
+            onAction={onAction}
+          />
+          <Popover>
+            <PopoverTrigger asChild>
+              <IconButton
+                data-testid={`apps-rail-app-${group.appId}-menu`}
+                icon={<MoreHorizontal className="h-3.5 w-3.5" aria-hidden="true" />}
+                tone="ghost"
+                size="sm"
+                aria-label={t('Apps.library.cardMenuLabel')}
+                title={t('Apps.library.cardMenuLabel')}
+                className="h-6 w-6 min-h-0"
+              />
+            </PopoverTrigger>
+            <PopoverContent align="end" sideOffset={6} className="p-1">
+              <ActionMenu items={menuItems} ariaLabel={t('Apps.library.cardMenuLabel')} />
+            </PopoverContent>
+          </Popover>
+        </span>
+      </div>
+      {confirmElement}
+    </div>
+  );
+}, railGroupRowPropsEqual);
+
+/** Compact icon-only twin of AppRowActionButton for the merged rail rows. */
+function RailQuickAction({
+  entry,
+  activeAction,
+  actionsDisabled,
+  onAction,
+}: {
+  readonly entry: DesktopAppsEntry;
+  readonly activeAction: AppCardActionId | null;
+  readonly actionsDisabled: boolean;
+  readonly onAction: (action: AppCardActionId) => void;
+}): ReactElement | null {
+  const { t } = useTranslation();
+  const visual = appRunVisualState(entry.run?.state ?? null);
+  const plan = actionPlanForEntry(entry);
+  if (!plan.primary) return null;
+  if (visual === 'starting') {
+    return (
+      <span className="inline-flex h-6 w-6 items-center justify-center text-[var(--nimi-action-primary-bg)]" role="status" aria-label={t('Apps.runState.starting')}>
+        <LoaderCircle className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+      </span>
+    );
+  }
+  if (plan.primary.id === 'stop') {
+    return (
+      <IconButton
+        data-testid={`apps-rail-app-${entry.identity.appId}-stop`}
+        icon={activeAction === 'stop' ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Square className="h-3.5 w-3.5" aria-hidden="true" />}
+        tone="ghost"
+        size="sm"
+        disabled={actionsDisabled}
+        aria-label={t('Apps.action.stop')}
+        title={t('Apps.action.stop')}
+        className="h-6 w-6 min-h-0"
+        onClick={() => onAction('stop')}
+      />
+    );
+  }
+  const launchLabel = t(entry.committedRelease && entry.run?.state === 'running' ? 'Apps.action.focus' : visual === 'failed' ? 'Apps.action.retry' : 'Apps.action.launch');
+  return (
+    <IconButton
+      data-testid={`apps-rail-app-${entry.identity.appId}-launch`}
+      icon={activeAction === 'launch' ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Play className="h-3.5 w-3.5" aria-hidden="true" />}
+      tone="ghost"
+      size="sm"
+      disabled={actionsDisabled}
+      aria-label={launchLabel}
+      title={launchLabel}
+      className="h-6 w-6 min-h-0"
+      onClick={() => onAction('launch')}
+    />
+  );
+}
+
+function AppsHome({
+  projection,
+  attentionEntries,
+  updateEntries,
+  recentGroups,
+  activeAction,
+  actionDispatcherFor,
   onRetry,
   onOpenDeveloperMode,
+  onImportLocal,
+  onFocusRailSearch,
   actionError,
 }: {
   readonly projection: DesktopAppsPanelProjection | null;
-  readonly visibleEntries: readonly DesktopAppsEntry[];
-  readonly frequentEntries: readonly DesktopAppsEntry[];
-  readonly showFrequent: boolean;
-  readonly searchQuery: string;
-  readonly onSearchChange: (value: string) => void;
-  readonly onClearFilters: () => void;
-  readonly searchInputRef: React.RefObject<HTMLInputElement | null>;
-  readonly libraryFilterId: AppsLibraryFilterId;
-  readonly onLibraryFilterChange: (value: AppsLibraryFilterId) => void;
+  readonly attentionEntries: readonly DesktopAppsEntry[];
+  readonly updateEntries: readonly DesktopAppsEntry[];
+  readonly recentGroups: readonly DesktopAppGroup[];
   readonly activeAction: Readonly<{ entryKey: string; action: AppCardActionId }> | null;
-  readonly onCardAction: (entryKey: string, action: AppCardActionId) => void;
+  readonly actionDispatcherFor: (entryKey: string) => (action: AppCardActionId) => void;
   readonly onRetry: () => void;
   readonly onOpenDeveloperMode: () => void;
+  readonly onImportLocal: () => void;
+  readonly onFocusRailSearch: () => void;
   readonly actionError: string | null;
 }): ReactElement {
   const { t } = useTranslation();
@@ -471,29 +740,7 @@ function LibraryContent({
             </h1>
           </div>
           <div className="flex min-w-0 items-center gap-2">
-            <SearchField
-              ref={searchInputRef}
-              value={searchQuery}
-              onChange={(event) => onSearchChange(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Escape') onClearFilters();
-              }}
-              trailing={searchQuery ? <SearchClearButton testId="apps-search-clear-library" onClear={onClearFilters} /> : undefined}
-              placeholder={t('Apps.library.searchPlaceholder')}
-              aria-label={t('Apps.library.searchPlaceholder')}
-              className="min-h-9 w-44 sm:w-64"
-              inputClassName="text-xs"
-            />
-            <Button
-              data-testid="apps-connect-local"
-              tone="primary"
-              size="md"
-              className="text-white"
-              leadingIcon={<Plus className="h-4 w-4" aria-hidden="true" />}
-              onClick={onOpenDeveloperMode}
-            >
-              {t('Apps.library.connectLocalTitle')}
-            </Button>
+            <AppsAddMenu onImport={onImportLocal} onDeveloper={onOpenDeveloperMode} onBrowse={onFocusRailSearch} />
           </div>
         </div>
       </div>
@@ -515,66 +762,45 @@ function LibraryContent({
       ) : null}
 
       <ScrollArea className="min-h-0 flex-1" viewportClassName="bg-transparent">
-        <LibraryBody
+        <AppsHomeBody
           projection={projection}
-          visibleEntries={visibleEntries}
-          frequentEntries={frequentEntries}
-          showFrequent={showFrequent}
-          searchQuery={searchQuery}
-          libraryFilterId={libraryFilterId}
-          onLibraryFilterChange={onLibraryFilterChange}
+          attentionEntries={attentionEntries}
+          updateEntries={updateEntries}
+          recentGroups={recentGroups}
           activeAction={activeAction}
-          onCardAction={onCardAction}
-          onClearFilters={onClearFilters}
+          actionDispatcherFor={actionDispatcherFor}
           onRetry={onRetry}
           onOpenDeveloperMode={onOpenDeveloperMode}
+          onImportLocal={onImportLocal}
+          onFocusRailSearch={onFocusRailSearch}
         />
       </ScrollArea>
-
-      {projection?.status === 'loaded' && projection.catalogStatus === 'loading' ? (
-        <p role="status" className="shrink-0 px-5 pb-4 text-xs text-[var(--nimi-text-muted)] sm:px-7">{t('Apps.catalog.loading')}</p>
-      ) : null}
-      {projection?.status === 'loaded' && projection.catalogStatus === 'not-implemented' ? (
-        <div className="shrink-0 px-5 pb-4 sm:px-7">
-          <p
-            data-testid="apps-catalog-unavailable"
-            className="flex items-center gap-1.5 text-[11px] leading-4 text-[color:var(--nimi-text-muted)]"
-          >
-            <Info className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-            {t('Apps.catalogNotImplemented')}
-          </p>
-        </div>
-      ) : null}
     </>
   );
 }
 
-function LibraryBody({
+function AppsHomeBody({
   projection,
-  visibleEntries,
-  frequentEntries,
-  showFrequent,
-  searchQuery,
-  libraryFilterId,
-  onLibraryFilterChange,
+  attentionEntries,
+  updateEntries,
+  recentGroups,
   activeAction,
-  onCardAction,
-  onClearFilters,
+  actionDispatcherFor,
   onRetry,
   onOpenDeveloperMode,
+  onImportLocal,
+  onFocusRailSearch,
 }: {
   readonly projection: DesktopAppsPanelProjection | null;
-  readonly visibleEntries: readonly DesktopAppsEntry[];
-  readonly frequentEntries: readonly DesktopAppsEntry[];
-  readonly showFrequent: boolean;
-  readonly searchQuery: string;
-  readonly libraryFilterId: AppsLibraryFilterId;
-  readonly onLibraryFilterChange: (value: AppsLibraryFilterId) => void;
+  readonly attentionEntries: readonly DesktopAppsEntry[];
+  readonly updateEntries: readonly DesktopAppsEntry[];
+  readonly recentGroups: readonly DesktopAppGroup[];
   readonly activeAction: Readonly<{ entryKey: string; action: AppCardActionId }> | null;
-  readonly onCardAction: (entryKey: string, action: AppCardActionId) => void;
-  readonly onClearFilters: () => void;
+  readonly actionDispatcherFor: (entryKey: string) => (action: AppCardActionId) => void;
   readonly onRetry: () => void;
   readonly onOpenDeveloperMode: () => void;
+  readonly onImportLocal: () => void;
+  readonly onFocusRailSearch: () => void;
 }): ReactElement {
   const { t } = useTranslation();
 
@@ -623,99 +849,109 @@ function LibraryBody({
           title={t('Apps.emptyConnectedTitle')}
           description={t('Apps.emptyConnectedDescription')}
           action={(
-            <Button tone="primary" size="sm" onClick={onOpenDeveloperMode}>
-              <Code2 className="mr-2 h-4 w-4" aria-hidden="true" />
-              {t('Apps.developerCard.action')}
-            </Button>
+            <AppsAddMenu onImport={onImportLocal} onDeveloper={onOpenDeveloperMode} onBrowse={onFocusRailSearch} />
           )}
         />
+        <CatalogStatusNote status={projection.catalogStatus} />
       </div>
     );
   }
 
   return (
     <div className="space-y-8 px-5 py-5 sm:px-7">
-      {showFrequent ? (
-        <FrequentAppsSection
-          entries={frequentEntries}
-          activeAction={activeAction}
-          onAction={onCardAction}
-        />
-      ) : null}
-
-      <section data-testid="apps-entry-list" data-app-list aria-label={t('Apps.library.allAppsTitle')}>
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-1">
-          <h2 className="flex min-w-0 items-baseline gap-2 text-base font-semibold leading-6 text-[color:var(--nimi-text-primary)]">
-            <span className="truncate">{t('Apps.library.allAppsTitle')}</span>
+      {attentionEntries.length > 0 ? (
+        <section data-testid="apps-home-attention" aria-label={t('Apps.home.attentionTitle')}>
+          <h2 className="flex min-w-0 items-baseline gap-2 px-1 text-base font-semibold leading-6 text-[color:var(--nimi-text-primary)]">
+            <span className="truncate">{t('Apps.home.attentionTitle')}</span>
             <span className="shrink-0 text-xs font-normal text-[color:var(--nimi-text-muted)]">
-              {t('Apps.library.allAppsCount', { count: visibleEntries.length })}
+              {t('Apps.library.allAppsCount', { count: attentionEntries.length })}
             </span>
           </h2>
-          <div className="flex items-center gap-1" role="group" aria-label={t('Apps.filter.label')}>
-            {LIBRARY_FILTER_IDS.map((filterId) => (
-              <button
-                key={filterId}
-                type="button"
-                data-testid={`apps-filter-${filterId}`}
-                aria-pressed={filterId === libraryFilterId}
-                onClick={() => onLibraryFilterChange(filterId)}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[var(--nimi-focus-ring-color)] ${filterId === libraryFilterId
-                  ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] text-[var(--nimi-action-primary-bg)]'
-                  : 'text-[color:var(--nimi-text-muted)] hover:text-[color:var(--nimi-text-primary)]'
-                }`}
-              >
-                {t(LIBRARY_FILTER_LABEL_KEYS[filterId])}
-              </button>
-            ))}
-          </div>
-        </div>
-        {visibleEntries.length === 0 ? (
-          <LibraryListEmpty
-            searching={searchQuery.trim() !== ''}
-            onClearFilters={onClearFilters}
-          />
-        ) : (
           <div className="mt-3 grid grid-cols-1 gap-1 xl:grid-cols-2 xl:gap-x-4">
-            {visibleEntries.map((entry) => (
+            {attentionEntries.map((entry) => (
               <AppListRow
                 key={entry.identity.entryKey}
                 entry={entry}
+                showSourceBadge
                 activeAction={activeAction && activeAction.entryKey === entry.identity.entryKey ? activeAction.action : null}
                 actionsDisabled={activeAction !== null}
-                onAction={(action) => onCardAction(entry.identity.entryKey, action)}
+                onAction={actionDispatcherFor(entry.identity.entryKey)}
               />
             ))}
           </div>
-        )}
+        </section>
+      ) : null}
+
+      {updateEntries.length > 0 ? (
+        <section data-testid="apps-home-updates" aria-label={t('Apps.home.updatesTitle')}>
+          <h2 className="flex min-w-0 items-baseline gap-2 px-1 text-base font-semibold leading-6 text-[color:var(--nimi-text-primary)]">
+            <span className="truncate">{t('Apps.home.updatesTitle')}</span>
+            <span className="shrink-0 text-xs font-normal text-[color:var(--nimi-text-muted)]">
+              {t('Apps.library.allAppsCount', { count: updateEntries.length })}
+            </span>
+          </h2>
+          <div className="mt-3 grid grid-cols-1 gap-1 xl:grid-cols-2 xl:gap-x-4">
+            {updateEntries.map((entry) => (
+              <AppListRow
+                key={entry.identity.entryKey}
+                entry={entry}
+                showSourceBadge
+                activeAction={activeAction && activeAction.entryKey === entry.identity.entryKey ? activeAction.action : null}
+                actionsDisabled={activeAction !== null}
+                onAction={actionDispatcherFor(entry.identity.entryKey)}
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <section data-testid="apps-home-recent" aria-label={t('Apps.home.recentTitle')}>
+        <h2 className="px-1 text-base font-semibold leading-6 text-[color:var(--nimi-text-primary)]">
+          {t('Apps.home.recentTitle')}
+        </h2>
+        <div className="mt-3 grid grid-cols-1 gap-1 xl:grid-cols-2 xl:gap-x-4">
+          {recentGroups.map((group) => (
+            <AppListRow
+              key={group.primary.identity.entryKey}
+              entry={group.primary}
+              showSourceBadge={group.entries.length > 1}
+              activeAction={activeAction && activeAction.entryKey === group.primary.identity.entryKey ? activeAction.action : null}
+              actionsDisabled={activeAction !== null}
+              onAction={actionDispatcherFor(group.primary.identity.entryKey)}
+            />
+          ))}
+        </div>
       </section>
+
+      <CatalogStatusNote status={projection.catalogStatus} />
     </div>
   );
 }
 
-function LibraryListEmpty({
-  searching,
-  onClearFilters,
-}: {
-  readonly searching: boolean;
-  readonly onClearFilters: () => void;
-}): ReactElement {
+function CatalogStatusNote({ status }: {
+  readonly status: DesktopAppsCatalogProjection['status'];
+}): ReactElement | null {
   const { t } = useTranslation();
-  return (
-    <div data-testid="apps-filter-empty" className="py-10 text-center">
-      <SearchX className="mx-auto h-7 w-7 text-[var(--nimi-text-muted)]" aria-hidden="true" />
-      <p className="mt-3 text-sm font-semibold text-[color:var(--nimi-text-primary)]">
-        {searching ? t('Apps.sidebar.noResultsTitle') : t('Apps.filter.empty')}
+  if (status === 'loading') {
+    return (
+      <p role="status" className="mt-4 flex items-center gap-1.5 px-1 text-xs text-[var(--nimi-text-muted)]">
+        <LoaderCircle className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+        {t('Apps.catalog.loading')}
       </p>
-      {searching ? (
-        <p className="mt-1 text-xs leading-5 text-[color:var(--nimi-text-muted)]">
-          {t('Apps.sidebar.noResultsDescription')}
-        </p>
-      ) : null}
-      <Button tone="ghost" size="sm" className="mt-2" onClick={onClearFilters}>
-        {searching ? t('Apps.sidebar.clearSearch') : t('Apps.filter.reset')}
-      </Button>
-    </div>
-  );
+    );
+  }
+  if (status === 'not-implemented') {
+    return (
+      <p
+        data-testid="apps-catalog-unavailable"
+        className="mt-4 flex items-center gap-1.5 px-1 text-[11px] leading-4 text-[color:var(--nimi-text-muted)]"
+      >
+        <Info className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+        {t('Apps.catalogNotImplemented')}
+      </p>
+    );
+  }
+  return null;
 }
 
 function SearchClearButton({
@@ -757,4 +993,20 @@ function handleRailKeyDown(event: KeyboardEvent<HTMLButtonElement>): void {
   // Arrow keys move focus only; Enter/Space activates the focused row through
   // native button behavior, so browsing no longer hijacks the detail surface.
   rows[nextIndex]?.focus();
+}
+
+function AppsAddMenu({ onImport, onDeveloper, onBrowse }: { readonly onImport: () => void; readonly onDeveloper: () => void; readonly onBrowse: () => void }): ReactElement {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const select = (action: () => void) => () => { setOpen(false); action(); };
+  return <Popover open={open} onOpenChange={setOpen}>
+    <PopoverTrigger asChild><Button data-testid="apps-connect-local" tone="primary" size="md" className="text-white" leadingIcon={<Plus className="h-4 w-4" aria-hidden="true" />}>{t('Apps.library.connectLocalTitle')}</Button></PopoverTrigger>
+    <PopoverContent align="end" sideOffset={6} className="p-1">
+      <ActionMenu ariaLabel={t('Apps.library.connectLocalTitle')} items={[
+        { id: 'catalog', label: t('Apps.localImport.browseCatalog'), onSelect: select(onBrowse) },
+        { id: 'local-import', label: t('Apps.localImport.action'), onSelect: select(onImport) },
+        { id: 'development', label: t('Apps.localImport.connectDevelopment'), onSelect: select(onDeveloper) },
+      ]} />
+    </PopoverContent>
+  </Popover>;
 }

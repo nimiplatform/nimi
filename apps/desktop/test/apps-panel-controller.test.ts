@@ -4,7 +4,9 @@ import { describe, it } from 'node:test';
 import { readFileSync } from 'node:fs';
 import {
   applyAppsPanelAIConfigAcknowledgement,
+  mergeAppsPanelProjection,
   createAppsPanelProjectionReloader,
+  appsPanelHasInFlightWork,
   assertAppsAction,
   requestAppsInstallFromDetail,
 } from '../src/shell/renderer/features/apps/apps-panel-controller.js';
@@ -229,11 +231,12 @@ describe('Desktop Apps controller action boundary', () => {
   });
 });
 
-it('limits the current installed lifecycle to verified packages without promoting local imports', () => {
+it('supports imported lifecycle without granting Catalog installation or trust', () => {
   const entry = { catalogTarget: null, committedRelease: { sourceClass: AppPackageSourceClass.USER_IMPORTED }, localDevelopment: null, packageJob: null, run: null };
-  assert.equal(actionPlanForEntry(entry).primary, null);
+  assert.equal(actionPlanForEntry(entry).primary?.id, 'launch');
   assert.equal(canRequestCatalogInstall(entry), false);
-  assert.equal(canRequestUninstall(entry), false);
+  assert.equal(canRequestUninstall(entry), true);
+  assert.deepEqual(actionPlanForEntry(entry).secondary.map((action) => action.id), ['details', 'update']);
   const verified = { ...entry, committedRelease: { sourceClass: AppPackageSourceClass.VERIFIED } };
   assert.equal(actionPlanForEntry(verified).primary?.id, 'launch');
   assert.equal(canRequestUninstall(verified), true);
@@ -283,7 +286,7 @@ it('local lifecycle refresh completes while Catalog is pending and does not refe
   const reloader = createAppsPanelProjectionReloader({
     source: {
       listApprovedCatalogTargets: () => { catalogCalls += 1; return new Promise((resolve) => { resolveCatalog = resolve; }); },
-      listCommittedReleases: async () => [{ appId: 'example.app', sourceClass: AppPackageSourceClass.VERIFIED, version, releaseRef: 'release', launchSelector: new Uint8Array([1]) }],
+      listCommittedReleases: async () => [{ displayName: 'Example', appAccess: [], appId: 'example.app', sourceClass: AppPackageSourceClass.VERIFIED, version, releaseRef: 'release', launchSelector: new Uint8Array([1]) }],
       listPackageJobs: async () => [], listRegistrations: async () => [], listRuns: async () => [],
     },
     getCurrent: () => current,
@@ -309,4 +312,77 @@ it('local lifecycle refresh completes while Catalog is pending and does not refe
   assert.equal(final.catalogStatus, 'loaded');
   assert.equal(final.entries[0]?.committedRelease?.version, '2.0.0');
   reloader.dispose();
+});
+
+it('a late AI refresh cannot replace information from a newer installed release', () => {
+  const entry = (version: string): DesktopAppsEntry => ({
+    identity: { entryKey: 'verified:example.app', appId: 'example.app', sourceClass: 'verified', displayName: 'Example', updatedAtUnixMs: 1 },
+    committedRelease: { appId: 'example.app', sourceClass: AppPackageSourceClass.VERIFIED, displayName: 'Example', appAccess: [], version, releaseRef: `release:${version}`, launchSelector: new Uint8Array([1]) },
+    catalogTarget: null, localDevelopment: null, packageJob: null, run: null, aiConfigSummary: null,
+    appInfoKey: `installed:01:release:${version}`, iconUrl: `icon:${version}`, summary: `summary:${version}`,
+  });
+  const projection = (row: DesktopAppsEntry): DesktopAppsPanelProjection => ({ status: 'loaded', catalogStatus: 'loaded', runtimeError: null, entries: [row] });
+  const old = projection(entry('1.0.0'));
+  const updated = mergeAppsPanelProjection(old, projection(entry('2.0.0')), 'lifecycle');
+  const late = mergeAppsPanelProjection(updated, old, 'ai-config');
+  assert.equal(late.status, 'loaded');
+  if (late.status !== 'loaded') throw new Error('projection did not load');
+  assert.equal(late.entries[0]?.committedRelease?.version, '2.0.0');
+  assert.equal(late.entries[0]?.iconUrl, 'icon:2.0.0');
+  assert.equal(late.entries[0]?.summary, 'summary:2.0.0');
+});
+
+describe('appsPanelHasInFlightWork adaptive cadence signal', () => {
+  const entryOf = (overrides: Partial<DesktopAppsEntry>): DesktopAppsEntry => ({
+    identity: { entryKey: 'verified:example.app', appId: 'example.app', sourceClass: 'verified', displayName: 'Example', updatedAtUnixMs: 0 },
+    catalogTarget: null,
+    localDevelopment: null,
+    committedRelease: null,
+    packageJob: null,
+    run: null,
+    aiConfigSummary: null,
+    iconUrl: null,
+    summary: null,
+    ...overrides,
+  });
+  const projectionOf = (entries: DesktopAppsEntry[]): DesktopAppsPanelProjection => ({
+    status: 'loaded',
+    entries,
+    catalogStatus: 'loaded',
+    runtimeError: null,
+  });
+  const jobOf = (phase: AppPackageJobPhase): AppPackageJob => ({
+    jobId: new Uint8Array([1]),
+    appId: 'example.app',
+    sourceClass: AppPackageSourceClass.VERIFIED,
+    kind: AppPackageJobKind.INSTALL,
+    targetRef: 'release:example:1.0.0',
+    phase,
+    progressBasis: AppPackageProgressBasis.INDETERMINATE,
+    bytesCompleted: '0',
+    bytesTotal: '0',
+    stepsCompleted: '0',
+    terminalResult: AppPackageTerminalResult.UNSPECIFIED,
+    reasonCode: '',
+    cancelable: true,
+    queuePosition: 0, speedBytesPerSec: '0', etaSeconds: '0', displayName: 'Example', targetVersion: '1.0.0', previousVersion: '', targetOs: 'windows', targetArch: 'x86_64',
+  });
+
+  it('relaxes on empty, errored, and steady projections', () => {
+    assert.equal(appsPanelHasInFlightWork(null), false);
+    assert.equal(appsPanelHasInFlightWork({ status: 'error', detail: 'x' }), false);
+    assert.equal(appsPanelHasInFlightWork(projectionOf([])), false);
+    assert.equal(appsPanelHasInFlightWork(projectionOf([entryOf({
+      run: { launchSelector: [1], state: 'running', accessAvailable: true, accessReasonCode: '', message: '' },
+    })])), false, 'a steady running App is not in-flight work');
+    assert.equal(appsPanelHasInFlightWork(projectionOf([entryOf({ packageJob: jobOf(AppPackageJobPhase.COMPLETED) })])), false);
+  });
+
+  it('keeps the fast cadence for active jobs and transitioning runs', () => {
+    assert.equal(appsPanelHasInFlightWork(projectionOf([entryOf({ packageJob: jobOf(AppPackageJobPhase.DOWNLOADING) })])), true);
+    assert.equal(appsPanelHasInFlightWork(projectionOf([entryOf({ packageJob: jobOf(AppPackageJobPhase.COMMITTING) })])), true);
+    assert.equal(appsPanelHasInFlightWork(projectionOf([entryOf({
+      run: { launchSelector: [1], state: 'launching', accessAvailable: true, accessReasonCode: '', message: '' },
+    })])), true, 'a launching App is still settling');
+  });
 });

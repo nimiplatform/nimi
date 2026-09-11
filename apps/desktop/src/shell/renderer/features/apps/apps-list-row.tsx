@@ -1,25 +1,16 @@
-import { useEffect, useRef, useState, type MouseEvent, type ReactElement } from 'react';
+import { memo, type MouseEvent, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Check,
-  Copy,
-  Info,
   LoaderCircle,
   MoreHorizontal,
-  Play,
-  Square,
-  Trash2,
-  X,
 } from 'lucide-react';
 import {
   ActionMenu,
   Button,
-  ConfirmDialog,
   IconButton,
   Popover,
   PopoverContent,
   PopoverTrigger,
-  type NimiMenuItem,
 } from '@nimiplatform/kit/ui';
 import {
   actionPlanForEntry,
@@ -38,64 +29,35 @@ import {
   AppSourceBadge,
   appRunStatusLabel,
 } from './apps-card-visuals.js';
+import { useAppEntryMenu } from './apps-entry-menu.js';
 import type { DesktopAppsEntry } from './apps-panel-projection.js';
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-001a
 
-type AIConfigSummaryTone = 'neutral' | 'success' | 'info' | 'warning' | 'danger';
-
 function aiConfigSummaryPresentation(
   entry: DesktopAppsEntry,
   t: ReturnType<typeof useTranslation>['t'],
-): { readonly label: string; readonly tone: AIConfigSummaryTone } | null {
+): { readonly label: string } | null {
   const summary = entry.aiConfigSummary;
   if (!summary) return null;
-  const count = `${summary.intentCount}/${summary.total}`;
-  const route = (() => {
-    switch (summary.routePosture) {
-      case 'local': return { label: t('Apps.aiConfig.summary.local', { defaultValue: `AI Local · ${count}`, summaryCount: count }), tone: 'success' as const };
-      case 'cloud': return { label: t('Apps.aiConfig.summary.cloud', { defaultValue: `AI Cloud · ${count}`, summaryCount: count }), tone: 'info' as const };
-      case 'mixed': return { label: t('Apps.aiConfig.summary.mixed', { defaultValue: `AI Local + Cloud · ${count}`, summaryCount: count }), tone: 'info' as const };
-      case 'partial-local': return { label: t('Apps.aiConfig.summary.partialLocal', { defaultValue: `AI Local · ${count}`, summaryCount: count }), tone: 'warning' as const };
-      case 'partial-cloud': return { label: t('Apps.aiConfig.summary.partialCloud', { defaultValue: `AI Cloud · ${count}`, summaryCount: count }), tone: 'warning' as const };
-      case 'partial-mixed': return { label: t('Apps.aiConfig.summary.partialMixed', { defaultValue: `AI Local + Cloud · ${count}`, summaryCount: count }), tone: 'warning' as const };
-      case 'unconfigured': return { label: t('Apps.aiConfig.summary.unconfigured', { defaultValue: 'AI not configured' }), tone: 'neutral' as const };
-    }
-  })();
+  // List rows are the consumer surface: only postures that need action earn a
+  // pill. Route fractions (AI 本地 · 2/13) and healthy partial setups stay in
+  // the detail AI tab, whose audience can act on the precise numbers.
   if (summary.healthPosture === 'blocked') {
     return {
-      label: t('Apps.aiConfig.summary.blocked', {
-        defaultValue: `${route.label} · ${summary.blockedCount} blocked`,
-        routeLabel: route.label,
+      label: t('Apps.aiConfig.summary.blockedBrief', {
+        defaultValue: `AI blocked · ${summary.blockedCount}`,
         blockedCount: summary.blockedCount,
       }),
-      tone: 'danger',
     };
   }
   if (summary.healthPosture === 'unavailable') {
     return {
-      label: summary.intentCount === 0
-        ? t('Apps.aiConfig.summary.unavailable', { defaultValue: 'AI config unavailable' })
-        : t('Apps.aiConfig.summary.healthUnavailable', {
-            defaultValue: `${route.label} · health unavailable`,
-            routeLabel: route.label,
-          }),
-      tone: 'danger',
+      label: t('Apps.aiConfig.summary.unavailableBrief', { defaultValue: 'AI status unavailable' }),
     };
   }
-  // Plain unconfigured is the default for a fresh app, not a signal: repeating
-  // neutral copy on every row would drown out the postures that actually need
-  // attention (configured, partial, blocked, unavailable above).
-  return summary.routePosture === 'unconfigured' ? null : route;
+  return null;
 }
-
-const AI_CONFIG_TEXT_TONE: Readonly<Record<AIConfigSummaryTone, string>> = Object.freeze({
-  neutral: 'text-[color:var(--nimi-text-muted)]',
-  success: 'text-[var(--nimi-status-success)]',
-  info: 'text-[var(--nimi-action-primary-bg)]',
-  warning: 'text-[var(--nimi-status-warning)]',
-  danger: 'text-[var(--nimi-status-danger)]',
-});
 
 const RUN_STATUS_TEXT_TONE: Readonly<Record<AppRunVisualState, string>> = Object.freeze({
   running: 'text-[var(--nimi-status-success)]',
@@ -238,95 +200,29 @@ function stopRowEvent(event: MouseEvent): void {
   event.stopPropagation();
 }
 
-export function AppListRow({
+export const AppListRow = memo(function AppListRow({
   entry,
   activeAction,
   actionsDisabled,
+  showSourceBadge = false,
   onAction,
 }: {
   readonly entry: DesktopAppsEntry;
   readonly activeAction: AppCardActionId | null;
   readonly actionsDisabled: boolean;
+  readonly showSourceBadge?: boolean;
   readonly onAction: (action: AppCardActionId) => void;
 }): ReactElement {
   const { t } = useTranslation();
   const { identity, localDevelopment } = entry;
   const aiConfigSummary = aiConfigSummaryPresentation(entry, t);
-  const actionPlan = actionPlanForEntry(entry);
   const source = appSourceForEntry(entry);
-  const [copiedAppId, setCopiedAppId] = useState(false);
-  const [confirmingRemove, setConfirmingRemove] = useState(false);
-  const copyResetTimerRef = useRef<number | null>(null);
-
-  useEffect(() => () => {
-    if (copyResetTimerRef.current !== null) {
-      window.clearTimeout(copyResetTimerRef.current);
-    }
-  }, []);
-
-  const copyAppId = (): void => {
-    void navigator.clipboard?.writeText(identity.appId).then(() => {
-      setCopiedAppId(true);
-      if (copyResetTimerRef.current !== null) window.clearTimeout(copyResetTimerRef.current);
-      copyResetTimerRef.current = window.setTimeout(() => setCopiedAppId(false), 1_600);
-    }).catch(() => {
-      // Clipboard is a convenience; a rejected write needs no surface.
-    });
-  };
-
-  const menuItems: NimiMenuItem[] = [
-    {
-      id: 'details',
-      label: t('Apps.action.details'),
-      icon: <Info className="h-4 w-4" aria-hidden="true" />,
-      onSelect: () => onAction('details'),
-    },
-    ...(actionPlan.primary ? [actionPlan.primary.id === 'stop'
-      ? {
-        id: 'stop',
-        label: t('Apps.action.stop'),
-        icon: <Square className="h-4 w-4" aria-hidden="true" />,
-        disabled: actionsDisabled,
-        onSelect: () => onAction('stop'),
-      }
-      : {
-        id: 'launch',
-        label: t(entry.committedRelease && entry.run?.state === 'running' ? 'Apps.action.focus' : 'Apps.action.launch'),
-        icon: <Play className="h-4 w-4" aria-hidden="true" />,
-        disabled: actionsDisabled,
-        onSelect: () => onAction('launch'),
-      }] : []),
-    ...(actionPlan.primary?.id !== 'stop' && actionPlan.secondary.some((action) => action.id === 'stop') ? [{
-      id: 'stop',
-      label: t('Apps.action.stop'),
-      icon: <Square className="h-4 w-4" aria-hidden="true" />,
-      disabled: actionsDisabled,
-      onSelect: () => onAction('stop'),
-    }] : []),
-    ...(actionPlan.secondary.some((action) => action.id === 'cancel-job') ? [{
-      id: 'cancel-job',
-      label: t('Apps.action.cancel'),
-      icon: <X className="h-4 w-4" aria-hidden="true" />,
-      disabled: actionsDisabled,
-      onSelect: () => onAction('cancel-job'),
-    }] : []),
-    {
-      id: 'copy-app-id',
-      label: copiedAppId ? t('Apps.detail.appIdCopied') : t('Apps.detail.copyAppId'),
-      icon: copiedAppId
-        ? <Check className="h-4 w-4" aria-hidden="true" />
-        : <Copy className="h-4 w-4" aria-hidden="true" />,
-      onSelect: copyAppId,
-    },
-    ...(actionPlan.secondary.some((action) => action.id === 'remove') ? [{
-      id: 'remove',
-      label: t('Apps.action.removeDevelopment'),
-      icon: <Trash2 className="h-4 w-4" aria-hidden="true" />,
-      tone: 'danger' as const,
-      disabled: actionsDisabled,
-      onSelect: () => setConfirmingRemove(true),
-    }] : []),
-  ];
+  const { menuItems, confirmElement } = useAppEntryMenu({
+    entry,
+    actionsDisabled,
+    removePending: activeAction === 'remove',
+    onAction,
+  });
 
   return (
     <div
@@ -354,7 +250,7 @@ export function AppListRow({
           >
             {identity.displayName}
           </button>
-          {source !== 'local_development' ? (
+          {showSourceBadge || source !== 'local_development' ? (
             <AppSourceBadge source={source} variant="quiet" className="shrink-0" />
           ) : null}
         </div>
@@ -381,7 +277,7 @@ export function AppListRow({
               aria-label={t('Apps.aiConfig.openSettings')}
               data-app-ai-config-summary={entry.aiConfigSummary?.routePosture}
               data-app-ai-config-health={entry.aiConfigSummary?.healthPosture}
-              className={`relative z-10 inline-flex min-w-0 items-center rounded text-xs font-medium leading-4 outline-none hover:underline focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[var(--nimi-focus-ring-color)] ${AI_CONFIG_TEXT_TONE[aiConfigSummary.tone]}`}
+              className="relative z-10 inline-flex min-w-0 items-center rounded text-xs font-medium leading-4 text-[var(--nimi-status-danger)] outline-none hover:underline focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[var(--nimi-focus-ring-color)]"
               onClick={(event) => {
                 event.stopPropagation();
                 onAction('open-ai-config');
@@ -422,20 +318,7 @@ export function AppListRow({
         </Popover>
       </div>
 
-      <ConfirmDialog
-        open={confirmingRemove}
-        title={t('Apps.confirm.removeDevelopment.title')}
-        message={t('Apps.confirm.removeDevelopment.message', { app: identity.displayName })}
-        confirmLabel={t('Apps.confirm.removeDevelopment.confirm')}
-        cancelLabel={t('Common.cancel')}
-        confirmTone="danger"
-        pending={activeAction === 'remove'}
-        onConfirm={() => {
-          setConfirmingRemove(false);
-          onAction('remove');
-        }}
-        onClose={() => setConfirmingRemove(false)}
-      />
+      {confirmElement}
     </div>
   );
-}
+});

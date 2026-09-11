@@ -64,6 +64,23 @@ test('old failures remain history when a later owner job exists', () => {
   assert.equal(failedDownloadNeedsAttention(failed, [failed, retry]), false);
 });
 
+test('local import tasks preserve source and omit network controls', async () => {
+  await initI18n(); await changeLocale('en');
+  const imported = { ...job(1, AppPackageJobPhase.VERIFYING), sourceClass: AppPackageSourceClass.USER_IMPORTED };
+  const html = render([imported], '01');
+  assert.match(html, /Local import/);
+  assert.match(html, /Checking the selected local package/);
+  assert.doesNotMatch(html, /Download complete|Pause Test App 1|Move Test App 1 up|1\.0 KB\/s/);
+  const canceled = render([{ ...imported, phase: AppPackageJobPhase.CANCELED, cancelable: false }], '01');
+  assert.match(canceled, /Temporary installation files were removed/);
+});
+
+test('an explicit task awaiting observation never opens another task detail', async () => {
+  await initI18n(); await changeLocale('en');
+  const html = render([job(1, AppPackageJobPhase.DOWNLOADING)], '02');
+  assert.doesNotMatch(html, /data-testid="apps-download-detail"/);
+});
+
 test('shared download display gates unknown total, zero ETA, and expired observations', async () => {
   await initI18n(); await changeLocale('en');
   const props = { name: 'Transfer', received: 1024, speed: 1024, eta: 0, observedAt: Date.now() - 1000, available: true, transferring: true };

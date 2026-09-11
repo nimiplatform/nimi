@@ -52,9 +52,9 @@ export function actionPlanForLocalDevelopmentEntry(runState: string | null): App
 export function actionPlanForEntry(entry: AppsActionEntry): AppCardActionPlan {
   const base = entry.localDevelopment
     ? actionPlanForLocalDevelopmentEntry(entry.run?.state ?? null)
-    : entry.committedRelease?.sourceClass === AppPackageSourceClass.VERIFIED && (!packageJobActive(entry.packageJob) || isLocalDevelopmentRunActive(entry.run?.state ?? null))
+    : isInstalledPackage(entry) && (!packageJobActive(entry.packageJob) || isLocalDevelopmentRunActive(entry.run?.state ?? null))
       ? { primary: entry.catalogTarget?.policyBlocked && !isLocalDevelopmentRunActive(entry.run?.state ?? null) ? null : LAUNCH,
-          secondary: isLocalDevelopmentRunActive(entry.run?.state ?? null) ? [DETAILS, STOP] : [DETAILS] }
+          secondary: isLocalDevelopmentRunActive(entry.run?.state ?? null) ? [DETAILS, STOP] : canRequestLocalPackageUpdate(entry) ? [DETAILS, { id: 'update' as const }] : [DETAILS] }
       : { primary: null, secondary: [DETAILS] };
   return entry.packageJob?.cancelable
     ? { ...base, secondary: [...base.secondary, CANCEL_JOB] }
@@ -86,5 +86,12 @@ function packageJobActive(job: AppsActionEntry['packageJob']): boolean {
 }
 
 export function canRequestUninstall(entry: AppsActionEntry): boolean {
-  return Boolean(entry.committedRelease?.sourceClass === AppPackageSourceClass.VERIFIED && !entry.localDevelopment && !packageJobActive(entry.packageJob));
+  return Boolean(isInstalledPackage(entry) && !entry.localDevelopment && !packageJobActive(entry.packageJob));
+}
+
+function isInstalledPackage(entry: AppsActionEntry): boolean {
+  return entry.committedRelease?.sourceClass === AppPackageSourceClass.VERIFIED || entry.committedRelease?.sourceClass === AppPackageSourceClass.USER_IMPORTED;
+}
+export function canRequestLocalPackageUpdate(entry: AppsActionEntry): boolean {
+  return entry.committedRelease?.sourceClass === AppPackageSourceClass.USER_IMPORTED && !entry.localDevelopment && !packageJobActive(entry.packageJob) && !isLocalDevelopmentRunActive(entry.run?.state ?? null);
 }

@@ -1,8 +1,9 @@
+import { PNG } from 'pngjs';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import type { LocalDevelopmentRegistration, LocalDevelopmentRun } from '../src/shell/renderer/features/local-development/local-development-types.js';
-import { deriveAppSummary, desktopAppsEntryKey, projectAppsPanel } from '../src/shell/renderer/features/apps/apps-panel-projection.js';
+import { deriveAppSummary, desktopAppsEntryKey, projectAppsPanel, type DesktopAppsEntry } from '../src/shell/renderer/features/apps/apps-panel-projection.js';
 import {
   AppPackageJobKind,
   AppPackageJobPhase,
@@ -33,7 +34,7 @@ function run(): LocalDevelopmentRun {
 
 function release(sourceClass: AppPackageSourceClass, version: string): CommittedAppRelease {
   return {
-    appId: 'example.shared', sourceClass, version, releaseRef: `release:${sourceClass}:${version}`,
+    displayName: 'Example installed App', appAccess: [], appId: 'example.shared', sourceClass, version, releaseRef: `release:${sourceClass}:${version}`,
     launchSelector: new Uint8Array([sourceClass]), committedAt: { seconds: '1788134400', nanos: 0 },
   };
 }
@@ -95,7 +96,7 @@ describe('Desktop Apps source-qualified projection', () => {
     assert.equal(projection.catalogStatus, 'loaded');
     assert.equal(projection.entries.length, 2);
     const verified = projection.entries.find((entry) => entry.identity.sourceClass === 'verified');
-    assert.equal(verified?.identity.displayName, 'Example Catalog App');
+    assert.equal(verified?.identity.displayName, 'Example installed App');
     assert.equal(verified?.catalogTarget?.descriptorId, 'example.shared@2.0.0');
     assert.equal(verified?.committedRelease?.version, '2.0.0');
     target.approvedTargetSelector[0] = 9;
@@ -271,5 +272,98 @@ describe('deriveAppSummary', () => {
     assert.equal(deriveAppSummary(null), null);
     assert.equal(deriveAppSummary(''), null);
     assert.equal(deriveAppSummary('# 只有标题\n\n- 只有列表\n'), null);
+  });
+});
+
+it('reads portable information for the exact installed source and replaces it with the release', async () => {
+  let currentVersion = '1.0.0';
+  const calls: string[] = [];
+  const source = {
+    listRegistrations: async () => [], listRuns: async () => [], listPackageJobs: async () => [],
+    listCommittedReleases: async () => [release(AppPackageSourceClass.USER_IMPORTED, currentVersion)],
+    readPackageInfo: async (request: import('@nimiplatform/sdk/runtime/wire-types').GetAppPackageInfoRequest) => {
+      assert.equal(request.approvedTargetSelector.length, 0);
+      assert.deepEqual(request.launchSelector, release(AppPackageSourceClass.USER_IMPORTED, currentVersion).launchSelector);
+      calls.push(request.installedReleaseRef);
+      return {
+        appId: 'example.shared', version: currentVersion, targetId: 'macos-aarch64', displayName: 'Example App', summary: `Summary ${currentVersion}`,
+        iconPngBase64: PNG.sync.write(Object.assign(new PNG({ width: 128, height: 128 }), { data: Buffer.alloc(128 * 128 * 4, 255) })).toString('base64'), readmeMarkdown: 'Use the app.', releaseNotesMarkdown: currentVersion, licenseIdentifier: 'MIT', licenseText: 'MIT',
+        appAccess: [], capabilityContractRefs: [], requiredStandardizedFeatureRefs: [], storagePolicyKind: 'nimi-mediated-default', osStorageDisclosure: [], author: '', homepageUrl: '', supportUrl: '',
+      };
+    },
+  };
+  const first = await projectAppsPanel(source);
+  assert.equal(first.status, 'loaded');
+  if (first.status !== 'loaded') return;
+  assert.equal(first.entries[0]?.summary, 'Summary 1.0.0');
+  const second = await projectAppsPanel(source, { previous: first, onInventory: (inventory) => {
+    if (inventory.status === 'loaded') assert.equal(inventory.entries[0]?.appInfo, first.entries[0]?.appInfo);
+  } });
+  assert.equal(calls.length, 1);
+  currentVersion = '2.0.0';
+  const third = await projectAppsPanel(source, { previous: second });
+  assert.equal(third.status, 'loaded');
+  if (third.status === 'loaded') assert.equal(third.entries[0]?.summary, 'Summary 2.0.0');
+  assert.equal(calls.length, 2);
+});
+
+it('keeps App information failures visible and retries the same catalog selection', async () => {
+  const target = catalogTarget();
+  let attempts = 0;
+  const source = {
+    listRegistrations: async () => [], listRuns: async () => [], listPackageJobs: async () => [], listCommittedReleases: async () => [],
+    listApprovedCatalogTargets: async () => [target],
+    readPackageInfo: async (request: import('@nimiplatform/sdk/runtime/wire-types').GetAppPackageInfoRequest) => {
+      attempts += 1;
+      assert.deepEqual(request.approvedTargetSelector, target.approvedTargetSelector);
+      assert.equal(request.launchSelector.length, 0);
+      throw new Error('information asset unavailable');
+    },
+  };
+  const first = await projectAppsPanel(source, { catalog: { status: 'loaded', targets: [target] } });
+  assert.equal(first.status, 'loaded');
+  if (first.status === 'loaded') {
+    assert.match(first.entries[0]?.appInfoError ?? '', /asset unavailable/u);
+    assert.equal(first.entries[0]?.iconUrl, null);
+  }
+  await projectAppsPanel(source, { previous: first, catalog: { status: 'loaded', targets: [target] } });
+  assert.equal(attempts, 2);
+});
+
+describe('Desktop Apps projection structural sharing', () => {
+  it('reuses entry identity for unchanged inputs across projections', async () => {
+    const source = {
+      listRegistrations: async () => [registration()],
+      listRuns: async () => [run()],
+      listCommittedReleases: async () => [release(AppPackageSourceClass.VERIFIED, '1.0.0')],
+      listPackageJobs: async () => [job(AppPackageSourceClass.VERIFIED)],
+    };
+    const first = await projectAppsPanel(source);
+    if (first.status !== 'loaded') throw new Error('projection failed');
+    const second = await projectAppsPanel(source, { previous: first });
+    if (second.status !== 'loaded') throw new Error('projection failed');
+    assert.equal(second.entries.length, first.entries.length);
+    for (const entry of second.entries) {
+      const before: DesktopAppsEntry | undefined = first.entries.find((candidate) => candidate.identity.entryKey === entry.identity.entryKey);
+      assert.equal(entry, before, `entry ${entry.identity.entryKey} should keep its object identity`);
+    }
+  });
+
+  it('rebuilds only the entry whose inputs changed', async () => {
+    let version = '1.0.0';
+    const source = {
+      ...emptyLocal,
+      listCommittedReleases: async () => [release(AppPackageSourceClass.VERIFIED, version)],
+      listPackageJobs: async () => [],
+    };
+    const first = await projectAppsPanel(source);
+    if (first.status !== 'loaded') throw new Error('projection failed');
+    version = '2.0.0';
+    const second = await projectAppsPanel(source, { previous: first });
+    if (second.status !== 'loaded') throw new Error('projection failed');
+    const firstVerified = first.entries.find((entry) => entry.identity.sourceClass === 'verified');
+    const secondVerified = second.entries.find((entry) => entry.identity.sourceClass === 'verified');
+    assert.notEqual(secondVerified, firstVerified, 'a changed release produces a new entry object');
+    assert.equal(secondVerified?.committedRelease?.version, '2.0.0');
   });
 });

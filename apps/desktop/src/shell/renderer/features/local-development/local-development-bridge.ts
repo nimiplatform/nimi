@@ -70,6 +70,8 @@ export async function listLocalDevelopmentRuns(): Promise<LocalDevelopmentRun[]>
 }
 
 export type LocalDevelopmentProjectReadme = {
+  readonly truncated: boolean;
+  readonly summary?: string | null;
   readonly content: string | null;
   readonly fileName: string | null;
 };
@@ -108,10 +110,12 @@ export async function readLocalDevelopmentProjectReadme(
     { payload: { selector: requireSelector(selector) } },
     (value) => value,
   );
-  const record = exactRecord(response, ['content', 'fileName', 'selector']);
-  if (record.selector !== selector) throw new Error('Local development readme response is invalid');
+  const record = exactRecord(response, ['content', 'fileName', 'selector', 'summary', 'truncated']);
+  if (record.selector !== selector || typeof record.truncated !== 'boolean') throw new Error('Local development readme response is invalid');
   return {
+    truncated: record.truncated,
     content: requireReadmeText(record.content),
+    summary: record.summary === null ? null : requireText(record.summary),
     fileName: record.fileName === null ? null : requireText(record.fileName),
   };
 }

@@ -18,6 +18,8 @@ import {
   type ApprovedAppCatalogTarget,
   type AppPackageJob,
   type CommittedAppRelease,
+  type AppPackageInfo,
+  type GetAppPackageInfoRequest,
 } from '@nimiplatform/sdk/runtime/wire-types';
 
 export type DesktopAppAIConfigRoutePosture =
@@ -53,6 +55,7 @@ export interface DesktopAppsCatalogProjection {
 }
 
 export interface DesktopAppsProjectionSource {
+  readPackageInfo?(request: GetAppPackageInfoRequest): Promise<AppPackageInfo>;
   listApprovedCatalogTargets?(): Promise<readonly ApprovedAppCatalogTarget[]>;
   listCommittedReleases(): Promise<readonly CommittedAppRelease[]>;
   listPackageJobs(): Promise<readonly AppPackageJob[]>;
@@ -61,7 +64,7 @@ export interface DesktopAppsProjectionSource {
   listInstalledRuns?(): Promise<readonly InstalledAppRun[]>;
   readAppAIConfig?(appId: string, options: DesktopAppAIConfigReadOptions): Promise<NimiAIConfigSnapshot>;
   readAppIcon?(selector: string): Promise<string | null>;
-  readProjectReadme?(selector: string): Promise<{ readonly content: string | null }>;
+  readProjectReadme?(selector: string): Promise<{ readonly content: string | null; readonly summary?: string | null }>;
 }
 
 export interface DesktopAppsCommonIdentity {
@@ -81,6 +84,9 @@ export function desktopAppsEntryKey(appId: string, sourceClass: DesktopAppSource
 }
 
 export interface DesktopAppsEntry {
+  readonly appInfo?: AppPackageInfo | null;
+  readonly appInfoKey?: string;
+  readonly appInfoError?: string | null;
   readonly identity: DesktopAppsCommonIdentity;
   readonly catalogTarget: ApprovedAppCatalogTarget | null;
   readonly localDevelopment: LocalDevelopmentRegistration | null;
@@ -88,17 +94,9 @@ export interface DesktopAppsEntry {
   readonly packageJob: AppPackageJob | null;
   readonly run: LocalDevelopmentRun | InstalledAppRun | null;
   readonly aiConfigSummary: DesktopAppAIConfigSummary | null;
-  /**
-   * Host-read project icon (PNG data URL) for identity visuals, or null when
-   * the project has no conventional icon. Presentation content only, exactly
-   * like the project README; never runnable truth.
-   */
+  /** Validated source artwork; display content only, never admission or runnable truth. */
   readonly iconUrl: string | null;
-  /**
-   * Short intro excerpt derived from the host-read project README, or null
-   * when the project has no README prose. Presentation content only; the
-   * formal catalog owns release descriptions for installed Apps.
-   */
+  /** Portable App summary, or development project description. */
   readonly summary: string | null;
 }
 
@@ -221,6 +219,7 @@ export async function projectAppsPanel(
         ...current,
         identity: {
           ...current.identity,
+          displayName: committedRelease.displayName || current.identity.displayName,
           updatedAtUnixMs: Math.max(
             current.identity.updatedAtUnixMs,
             timestampUnixMs(committedRelease.committedAt),
@@ -246,7 +245,14 @@ export async function projectAppsPanel(
         packageJob,
       });
     }
-    const mergedEntries = [...entriesByKey.values()].sort((left, right) => (
+    const mergedEntries = [...entriesByKey.values()].map((entry) => {
+      const previous = previousEntries.get(entry.identity.entryKey);
+      if (!previous) return entry;
+      const sameSelection = entry.localDevelopment
+        ? previous.localDevelopment?.selector === entry.localDevelopment.selector && previous.identity.updatedAtUnixMs === entry.identity.updatedAtUnixMs
+        : packageInfoKey(entry) === previous.appInfoKey;
+      return sameSelection ? { ...entry, iconUrl: previous.iconUrl, summary: previous.summary, appInfo: previous.appInfo, appInfoKey: previous.appInfoKey, appInfoError: previous.appInfoError, aiConfigSummary: previous.aiConfigSummary } : entry;
+    }).sort((left, right) => (
       right.identity.updatedAtUnixMs - left.identity.updatedAtUnixMs
       || left.identity.appId.localeCompare(right.identity.appId)
     ));
@@ -254,33 +260,42 @@ export async function projectAppsPanel(
       runtimeResult.ok ? null : `Runtime Apps lifecycle list failed: ${errorMessage(runtimeResult.error)}`,
       catalogResult.status === 'unavailable' ? `Runtime Apps Catalog list failed: ${errorMessage(catalogResult.error)}` : null,
     ].filter((message): message is string => message !== null).join('; ') || null;
-    options.onInventory?.({ status: 'loaded', entries: mergedEntries, catalogStatus: catalogResult.status, runtimeError });
-    const entries = await projectEntriesBounded(mergedEntries, async (entry) => ({
-      ...entry,
-      iconUrl: await projectAppIconUrl({
-        entry,
-        source,
-        previous: previousIconUrl(previousEntries.get(entry.identity.entryKey) ?? null, entry),
-      }),
-      summary: await projectAppSummary({
-        entry,
-        source,
-        previous: previousSummary(previousEntries.get(entry.identity.entryKey) ?? null, entry),
-      }),
-      aiConfigSummary: appAccessForAIConfig(entry).includes('runtime.consume')
-        ? await projectAppAIConfigSummary({
-            appId: entry.identity.appId,
-            appAccess: appAccessForAIConfig(entry),
-            source,
-            previous: previousEntries.get(entry.identity.entryKey)?.aiConfigSummary ?? null,
-            refresh: options.refreshAIConfig !== false,
-            timeoutMs: options.aiConfigReadTimeoutMs ?? 10_000,
-          })
-        : null,
-    }));
+    options.onInventory?.({
+      status: 'loaded',
+      entries: reconcileAppsEntries(previousEntries, mergedEntries),
+      catalogStatus: catalogResult.status,
+      runtimeError,
+    });
+    const entries = await projectEntriesBounded(mergedEntries, async (entry) => {
+      const information = await projectPackageInfo(entry, previousEntries.get(entry.identity.entryKey), source);
+      return {
+        ...entry,
+        ...information,
+        iconUrl: information.appInfo ? `data:image/png;base64,${information.appInfo.iconPngBase64}` : await projectAppIconUrl({
+          entry,
+          source,
+          previous: previousIconUrl(previousEntries.get(entry.identity.entryKey) ?? null, entry),
+        }),
+        summary: information.appInfo?.summary ?? await projectAppSummary({
+          entry,
+          source,
+          previous: previousSummary(previousEntries.get(entry.identity.entryKey) ?? null, entry),
+        }),
+        aiConfigSummary: appAccessForAIConfig(entry).includes('runtime.consume')
+          ? await projectAppAIConfigSummary({
+              appId: entry.identity.appId,
+              appAccess: appAccessForAIConfig(entry),
+              source,
+              previous: previousEntries.get(entry.identity.entryKey)?.aiConfigSummary ?? null,
+              refresh: options.refreshAIConfig !== false,
+              timeoutMs: options.aiConfigReadTimeoutMs ?? 10_000,
+            })
+          : null,
+      };
+    });
     return {
       status: 'loaded',
-      entries,
+      entries: reconcileAppsEntries(previousEntries, entries),
       catalogStatus: catalogResult.status,
       runtimeError,
     };
@@ -416,7 +431,7 @@ function timestampUnixMs(timestamp: { readonly seconds: string; readonly nanos: 
 
 function appAccessForAIConfig(entry: DesktopAppsEntry): readonly string[] {
   if (entry.localDevelopment) return entry.localDevelopment.appAccess;
-  return [];
+  return entry.committedRelease?.appAccess ?? [];
 }
 
 /**
@@ -433,13 +448,39 @@ function previousIconUrl(
     : undefined;
 }
 
+export function packageInfoKey(entry: DesktopAppsEntry): string {
+  return entry.committedRelease ? `installed:${bytesKey(entry.committedRelease.launchSelector)}:${entry.committedRelease.releaseRef}`
+    : entry.catalogTarget ? `catalog:${bytesKey(entry.catalogTarget.approvedTargetSelector)}` : '';
+}
+
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-042c
+async function projectPackageInfo(entry: DesktopAppsEntry, previous: DesktopAppsEntry | undefined, source: DesktopAppsProjectionSource): Promise<Pick<DesktopAppsEntry, 'appInfo' | 'appInfoKey' | 'appInfoError'>> {
+  if (entry.localDevelopment || !source.readPackageInfo) return {};
+  const release = entry.committedRelease;
+  const target = entry.catalogTarget;
+  if (!release && !target) return {};
+  const key = packageInfoKey(entry);
+  if (previous?.appInfo && previous.appInfoKey === key) return { appInfo: previous.appInfo, appInfoKey: key, appInfoError: null };
+  try {
+    const info = await source.readPackageInfo({
+      approvedTargetSelector: release ? new Uint8Array() : target!.approvedTargetSelector,
+      launchSelector: release?.launchSelector ?? new Uint8Array(),
+      installedReleaseRef: release?.releaseRef ?? '',
+    });
+    if (info.appId !== entry.identity.appId || info.version !== (release?.version ?? target?.version) || !info.iconPngBase64) throw new Error('App information does not match the selected release');
+    return { appInfo: info, appInfoKey: key, appInfoError: null };
+  } catch (error) {
+    return { appInfo: null, appInfoKey: key, appInfoError: errorMessage(error) };
+  }
+}
+
 async function projectAppIconUrl(input: {
   readonly entry: DesktopAppsEntry;
   readonly source: DesktopAppsProjectionSource;
   readonly previous: string | null | undefined;
 }): Promise<string | null> {
   if (!input.entry.localDevelopment) return null;
-  if (input.previous !== undefined) return input.previous;
+  if (input.previous != null) return input.previous;
   if (!input.source.readAppIcon) return null;
   try {
     return await input.source.readAppIcon(input.entry.localDevelopment.selector);
@@ -468,11 +509,11 @@ async function projectAppSummary(input: {
   readonly previous: string | null | undefined;
 }): Promise<string | null> {
   if (!input.entry.localDevelopment) return null;
-  if (input.previous !== undefined) return input.previous;
+  if (input.previous != null) return input.previous;
   if (!input.source.readProjectReadme) return null;
   try {
     const readme = await input.source.readProjectReadme(input.entry.localDevelopment.selector);
-    return deriveAppSummary(readme.content);
+    return readme.summary || deriveAppSummary(readme.content);
   } catch {
     return null;
   }
@@ -639,4 +680,43 @@ function errorMessage(error: unknown): string {
   const cause = (error as { readonly cause?: unknown }).cause;
   if (cause instanceof Error && cause.message) return `${error.message}: ${cause.message}`;
   return error.message;
+}
+
+/**
+ * Structural sharing: an entry whose projected inputs are unchanged keeps its
+ * previous object identity, so memoized list rows skip re-rendering on quiet
+ * polls. Wire payloads are compared by their serialized content.
+ */
+function reconcileAppsEntries(
+  previousEntries: ReadonlyMap<string, DesktopAppsEntry>,
+  entries: readonly DesktopAppsEntry[],
+): readonly DesktopAppsEntry[] {
+  if (previousEntries.size === 0) return entries;
+  return entries.map((entry) => {
+    const previous = previousEntries.get(entry.identity.entryKey);
+    return previous && appsEntryEqual(previous, entry) ? previous : entry;
+  });
+}
+
+function appsEntryEqual(left: DesktopAppsEntry, right: DesktopAppsEntry): boolean {
+  return left.identity.entryKey === right.identity.entryKey
+    && left.appInfo === right.appInfo
+    && left.appInfoKey === right.appInfoKey
+    && left.appInfoError === right.appInfoError
+    && left.identity.appId === right.identity.appId
+    && left.identity.sourceClass === right.identity.sourceClass
+    && left.identity.displayName === right.identity.displayName
+    && left.identity.updatedAtUnixMs === right.identity.updatedAtUnixMs
+    && left.iconUrl === right.iconUrl
+    && left.summary === right.summary
+    && stableJson(left.catalogTarget) === stableJson(right.catalogTarget)
+    && stableJson(left.localDevelopment) === stableJson(right.localDevelopment)
+    && stableJson(left.committedRelease) === stableJson(right.committedRelease)
+    && stableJson(left.packageJob) === stableJson(right.packageJob)
+    && stableJson(left.run) === stableJson(right.run)
+    && stableJson(left.aiConfigSummary) === stableJson(right.aiConfigSummary);
+}
+
+function stableJson(value: unknown): string {
+  return value === undefined || value === null ? '' : JSON.stringify(value);
 }

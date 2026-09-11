@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import type { AppCardActionId } from './apps-card-actions.js';
-import { canRequestCatalogInstall, canRequestCatalogUpdate } from './apps-card-actions.js';
+import { canRequestCatalogInstall, canRequestCatalogUpdate, isLocalDevelopmentRunActive } from './apps-card-actions.js';
 import type {
   AppsInstallIntentController,
   AppsInstallIntentResult,
@@ -16,6 +16,7 @@ import { resolveDetailEntryKey } from './apps-card-fields.js';
 import { createDesktopAppsLiveBridge } from './apps-live-bridge.js';
 import {
   desktopAppsEntryKey,
+  packageInfoKey,
   projectAppsPanel,
   summarizeAppAIConfig,
   type DesktopAppAIConfigReadOptions,
@@ -28,7 +29,7 @@ import type {
   NimiAIConfigOverwriteResult,
   NimiAIConfigSnapshot,
 } from '@nimiplatform/kit/core/sdk-contract';
-import type { AppPackageJob } from '@nimiplatform/sdk/runtime/wire-types';
+import { AppPackageJobPhase, type AppPackageJob } from '@nimiplatform/sdk/runtime/wire-types';
 
 export interface AppsPanelState {
   readonly projection: DesktopAppsPanelProjection | null;
@@ -52,6 +53,7 @@ export interface AppsPanelActions {
 export type AppsPanelController = AppsPanelState & AppsPanelActions;
 
 export interface AppsPanelControllerDeps {
+  readonly readPackageInfo?: DesktopAppsProjectionSource['readPackageInfo'];
   readonly buildLiveBridge?: typeof createDesktopAppsLiveBridge;
   readonly listCommittedReleases: DesktopAppsProjectionSource['listCommittedReleases'];
   readonly listPackageJobs: DesktopAppsProjectionSource['listPackageJobs'];
@@ -102,11 +104,17 @@ export function mergeAppsPanelProjection(
     runtimeError: current.runtimeError,
     entries: current.entries.map((entry) => {
       const refreshedEntry = refreshedByKey.get(entry.identity.entryKey);
+      const sameSelection = refreshedEntry && (entry.localDevelopment
+        ? refreshedEntry.localDevelopment?.selector === entry.localDevelopment.selector
+          && refreshedEntry.identity.updatedAtUnixMs === entry.identity.updatedAtUnixMs
+        : packageInfoKey(refreshedEntry) === packageInfoKey(entry));
       return {
         ...entry,
         aiConfigSummary: refreshedEntry ? refreshedEntry.aiConfigSummary : entry.aiConfigSummary,
-        iconUrl: refreshedEntry ? refreshedEntry.iconUrl : entry.iconUrl,
-        summary: refreshedEntry ? refreshedEntry.summary : entry.summary,
+        ...(sameSelection ? {
+          iconUrl: refreshedEntry.iconUrl, summary: refreshedEntry.summary,
+          appInfo: refreshedEntry.appInfo, appInfoKey: refreshedEntry.appInfoKey, appInfoError: refreshedEntry.appInfoError,
+        } : {}),
       };
     }),
   };
@@ -236,6 +244,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
       listCommittedReleases: deps.listCommittedReleases,
       listPackageJobs: deps.listPackageJobs,
       readAppAIConfig: deps.readAppAIConfig,
+      readPackageInfo: deps.readPackageInfo,
       readAppIcon: async (selector: string) => (
         (await liveBridge.readProjectIcon(selector)).iconDataUrl
       ),
@@ -245,7 +254,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
       projectionRef.current = next;
       setProjection(next);
     },
-  }), [deps.listApprovedCatalogTargets, deps.listCommittedReleases, deps.listPackageJobs, deps.readAppAIConfig, liveBridge]);
+  }), [deps.listApprovedCatalogTargets, deps.listCommittedReleases, deps.listPackageJobs, deps.readAppAIConfig, deps.readPackageInfo, liveBridge]);
   const reload = useCallback(
     (refreshAIConfig = true): Promise<void> => reloader.reload(refreshAIConfig),
     [reloader],
@@ -267,8 +276,24 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
   useEffect(() => () => reloader.dispose(), [reloader]);
 
   useEffect(() => {
-    const interval = window.setInterval(() => void reload(false), 2_000);
-    return () => window.clearInterval(interval);
+    let disposed = false;
+    let timer: number | undefined;
+    const tick = (): void => {
+      if (disposed) return;
+      // Hidden windows skip the work but keep the schedule; the next visible
+      // tick lands within one interval. Idle projections poll on a relaxed
+      // cadence; in-flight runs and package jobs keep the 2s liveness.
+      const work = document.hidden ? Promise.resolve() : reload(false);
+      void work.finally(() => {
+        if (disposed) return;
+        timer = window.setTimeout(tick, appsPanelHasInFlightWork(projectionRef.current) ? 2_000 : 10_000);
+      });
+    };
+    timer = window.setTimeout(tick, 2_000);
+    return () => {
+      disposed = true;
+      if (timer !== undefined) window.clearTimeout(timer);
+    };
   }, [reload]);
 
   useEffect(() => {
@@ -430,4 +455,23 @@ function appsInstallIntentFailure(result: AppsInstallIntentResult, t: TFunction)
 
 export function assertAppsAction(action: never): never {
   throw new Error(`Unsupported Apps action: ${String(action)}`);
+}
+
+/**
+ * Adaptive-poll signal: an active package job or a run in a transition state
+ * (launching/stopping, not a steady `running`) keeps the 2s cadence; steady
+ * states relax to the idle interval.
+ */
+export function appsPanelHasInFlightWork(projection: DesktopAppsPanelProjection | null): boolean {
+  if (projection?.status !== 'loaded') return false;
+  return projection.entries.some((entry) => {
+    const job = entry.packageJob;
+    if (job && ![
+      AppPackageJobPhase.COMPLETED,
+      AppPackageJobPhase.FAILED,
+      AppPackageJobPhase.CANCELED,
+    ].includes(job.phase)) return true;
+    const runState = entry.run?.state ?? null;
+    return runState !== null && runState !== 'running' && isLocalDevelopmentRunActive(runState);
+  });
 }

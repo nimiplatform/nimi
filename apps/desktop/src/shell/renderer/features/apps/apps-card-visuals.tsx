@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react';
+import { useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BadgeCheck, Code2, LoaderCircle, PackageOpen } from 'lucide-react';
 import { Button, StatusBadge, type StatusBadgeShape } from '@nimiplatform/kit/ui';
@@ -44,21 +44,20 @@ export function AppArtworkIcon({
   readonly className?: string;
 }): ReactElement {
   const artwork = appArtworkFor(appId);
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const visibleUrl = iconUrl && iconUrl !== failedUrl ? iconUrl : null;
   return (
     <span
       aria-hidden="true"
       className={`relative inline-flex shrink-0 select-none items-center justify-center overflow-hidden font-semibold text-white ${ICON_SIZE_CLASS[size]} ${className}`}
       style={{
-        // Real project icons sit on a white tile so transparent PNGs never
-        // leak the fallback gradient through; the gradient remains the
-        // glyph-only fallback background.
-        background: iconUrl ? '#ffffff' : artwork.iconBackground,
+        background: visibleUrl ? 'transparent' : artwork.iconBackground,
         fontFamily: 'var(--nimi-font-display)',
         boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -2px 6px rgba(15,23,42,0.18)',
       }}
     >
-      {iconUrl ? (
-        <img src={iconUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+      {visibleUrl ? (
+        <img src={visibleUrl} alt="" className="absolute inset-0 h-full w-full object-contain" onError={() => setFailedUrl(visibleUrl)} />
       ) : deriveIconGlyph(displayName)}
     </span>
   );

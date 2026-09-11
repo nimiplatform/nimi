@@ -191,18 +191,6 @@ function safeUnsignedBigInt(value: string): bigint | null {
 
 export type AppsSortId = 'updated' | 'name' | 'activity';
 
-export function filterAppsEntries(
-  entries: readonly DesktopAppsEntry[],
-  query: string,
-): readonly DesktopAppsEntry[] {
-  const normalized = query.trim().toLocaleLowerCase();
-  if (!normalized) return entries;
-  return entries.filter(({ identity }) => (
-    identity.displayName.toLocaleLowerCase().includes(normalized)
-    || identity.appId.toLocaleLowerCase().includes(normalized)
-  ));
-}
-
 export function sortAppsEntries(
   entries: readonly DesktopAppsEntry[],
   sort: AppsSortId,
@@ -228,20 +216,6 @@ export function sortAppsEntries(
 }
 
 /**
- * Running apps pin to the top of the library ordering (WeChat-style sticky);
- * the active sort still applies within the running and stopped groups.
- */
-export function pinRunningAppsFirst(
-  entries: readonly DesktopAppsEntry[],
-): readonly DesktopAppsEntry[] {
-  const running = entries.filter(isEntryRunActive);
-  const stopped = entries.filter((entry) => !isEntryRunActive(entry));
-  return [...running, ...stopped];
-}
-
-export type AppsLibraryFilterId = 'all' | 'running' | 'attention';
-
-/**
  * "Needs attention" is a pure presentation derivation from owner data: a
  * failed supervised run, a failed Runtime package job, or an app AIConfig
  * posture that blocks usage. There is no renderer-local health truth.
@@ -256,15 +230,6 @@ export function entryNeedsAttention(entry: DesktopAppsEntry): boolean {
   ) return true;
   const health = entry.aiConfigSummary?.healthPosture;
   return health === 'blocked' || health === 'unavailable';
-}
-
-export function filterAppsEntriesByStatus(
-  entries: readonly DesktopAppsEntry[],
-  filter: AppsLibraryFilterId,
-): readonly DesktopAppsEntry[] {
-  if (filter === 'running') return entries.filter(isEntryRunActive);
-  if (filter === 'attention') return entries.filter(entryNeedsAttention);
-  return entries;
 }
 
 /**

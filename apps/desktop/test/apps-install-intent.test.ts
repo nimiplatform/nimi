@@ -83,7 +83,7 @@ describe('Desktop approved App install intent', () => {
   it('freezes both update selectors and dispatches only once after confirmation', async () => {
     const calls: unknown[] = [];
     const controller = createAppsInstallIntentController({ startInstall: async () => { throw new Error('wrong operation'); }, startUpdate: async (target, installed, version) => { calls.push([[...target], [...installed], version]); return { kind: 'started' }; }, refresh: () => undefined });
-    const installed = { appId: 'publisher.example', sourceClass: AppPackageSourceClass.VERIFIED, version: '1.2.2', releaseRef: 'old-release', launchSelector: new Uint8Array([4, 5, 6]) };
+    const installed = { displayName: 'Example', appAccess: [], appId: 'publisher.example', sourceClass: AppPackageSourceClass.VERIFIED, version: '1.2.2', releaseRef: 'old-release', launchSelector: new Uint8Array([4, 5, 6]) };
     const target = catalogTarget();
     const result = await controller.requestUpdate(target, installed);
     assert.equal(result.kind, 'confirmation-required');

@@ -1,3 +1,4 @@
+import { AppPackageSourceClass } from '@nimiplatform/sdk/runtime/wire-types';
 import { useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { NimiDesktopOpenAppsSection } from '@nimiplatform/kit/core/desktop-open';
@@ -38,7 +39,7 @@ import type { DesktopAppsEntry } from './apps-panel-projection.js';
 import {
   actionPlanForEntry,
   canRequestCatalogInstall,
-  canRequestCatalogUpdate,
+  canRequestCatalogUpdate, canRequestLocalPackageUpdate,
   hasAvailableCatalogUpdate,
   canRequestUninstall,
   type AppCardActionId,
@@ -46,6 +47,7 @@ import {
 import { appRunVisualState, appSourceForEntry } from './apps-card-fields.js';
 import { AppArtworkIcon, AppPackageStatusLine, AppRunStatusBadge, AppSourceBadge } from './apps-card-visuals.js';
 import { AppsReadmeMarkdown } from './apps-readme-markdown.js';
+import { AppsDistributionInfo } from './apps-distribution-info.js';
 import { createDesktopAppsLiveBridge } from './apps-live-bridge.js';
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-appacc-001
@@ -62,14 +64,17 @@ const APP_ACCESS_COPY_KEYS = Object.freeze({
 
 type ProjectReadmeState =
   | { readonly status: 'loading' }
-  | { readonly status: 'loaded'; readonly content: string | null }
+  | { readonly status: 'loaded'; readonly content: string | null; readonly truncated: boolean }
   | { readonly status: 'error' };
 
 export interface AppsDetailViewProps {
   readonly entry: DesktopAppsEntry;
+  /** Other sources of the same App, for cross-source management. */
+  readonly sourceEntries: readonly DesktopAppsEntry[];
   readonly requestedSection: NimiDesktopOpenAppsSection | null;
   readonly requestedNavigationRevision: number;
   readonly onBack: () => void;
+  readonly onOpenEntry: (entryKey: string) => void;
   readonly onAction: (action: AppCardActionId) => void;
   readonly activeAction: AppCardActionId | null;
   readonly actionsDisabled: boolean;
@@ -88,9 +93,11 @@ export function AppsDetailView({
 
 function LocalDevelopmentAppsDetailView({
   entry,
+  sourceEntries,
   requestedSection,
   requestedNavigationRevision,
   onBack,
+  onOpenEntry,
   onAction,
   activeAction,
   actionsDisabled,
@@ -121,7 +128,7 @@ function LocalDevelopmentAppsDetailView({
     setReadme({ status: 'loading' });
     liveBridge.readProjectReadme(registration.selector)
       .then((result) => {
-        if (alive) setReadme({ status: 'loaded', content: result.content });
+        if (alive) setReadme({ status: 'loaded', content: result.content, truncated: result.truncated });
       })
       .catch(() => {
         if (alive) setReadme({ status: 'error' });
@@ -293,37 +300,23 @@ function LocalDevelopmentAppsDetailView({
           ) : null}
 
           {activeTab === 'overview' ? (
-            <div role="tabpanel" id="apps-detail-panel-overview" aria-labelledby="apps-detail-tab-overview" tabIndex={0} className="outline-none">
-              {readme.status === 'loading' ? (
-                <div data-testid="apps-readme-loading" aria-label={t('Apps.loading')} className="max-w-3xl space-y-3 rounded-xl border border-[color:var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_88%,transparent)] p-5 sm:p-6">
-                  <div className="h-6 w-1/3 animate-pulse rounded bg-[color-mix(in_srgb,var(--nimi-surface-active)_64%,transparent)]" />
-                  <div className="h-4 w-full animate-pulse rounded bg-[color-mix(in_srgb,var(--nimi-surface-active)_54%,transparent)]" />
-                  <div className="h-4 w-5/6 animate-pulse rounded bg-[color-mix(in_srgb,var(--nimi-surface-active)_54%,transparent)]" />
-                  <div className="h-4 w-2/3 animate-pulse rounded bg-[color-mix(in_srgb,var(--nimi-surface-active)_54%,transparent)]" />
-                </div>
-              ) : readme.status === 'loaded' && readme.content ? (
-                <section data-testid="apps-readme" className="max-w-3xl rounded-xl border border-[color:var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_88%,transparent)] p-5 sm:p-6">
-                  <AppsReadmeMarkdown content={readme.content} />
-                </section>
-              ) : (
-                <div className="max-w-3xl space-y-4">
-                  <div data-testid="apps-readme-empty" className="rounded-xl border border-dashed border-[color:var(--nimi-border-subtle)] px-5 py-8 text-center">
-                    <BookOpen className="mx-auto h-7 w-7 text-[var(--nimi-text-muted)]" aria-hidden="true" />
-                    <h3 className="mt-3 text-sm font-semibold text-[color:var(--nimi-text-primary)]">{t('Apps.detail.readmeEmptyTitle')}</h3>
-                    <p className="mt-1 text-sm leading-6 text-[color:var(--nimi-text-secondary)]">{t('Apps.detail.readmeEmptyDescription')}</p>
+            <div role="tabpanel" id="apps-detail-panel-overview" aria-labelledby="apps-detail-tab-overview" tabIndex={0} className="space-y-7 outline-none">
+              {entry.summary ? (
+                <p data-testid="apps-detail-summary" className="max-w-3xl text-sm leading-6 text-[color:var(--nimi-text-secondary)]">
+                  {entry.summary}
+                </p>
+              ) : null}
+              <OverviewCard title={t('Apps.detail.aboutTitle')}>
+                <div className="divide-y divide-[color:var(--nimi-border-subtle)]">
+                  <div className="flex items-center justify-between gap-3 py-2">
+                    <span className="shrink-0 text-xs text-[color:var(--nimi-text-muted)]">{t('Apps.detail.source')}</span>
+                    <AppSourceBadge source={appSourceForEntry(entry)} />
                   </div>
-                  <OverviewCard title={t('Apps.detail.aboutTitle')}>
-                    <div className="divide-y divide-[color:var(--nimi-border-subtle)]">
-                      <div className="flex items-center justify-between gap-3 py-2">
-                        <span className="shrink-0 text-xs text-[color:var(--nimi-text-muted)]">{t('Apps.detail.source')}</span>
-                        <AppSourceBadge source={appSourceForEntry(entry)} />
-                      </div>
-                      <CardRow label={t('Apps.detail.registeredAt')} value={registeredAt} />
-                      <CardRow label={t('Apps.detail.lastUpdated')} value={updatedAt} />
-                    </div>
-                  </OverviewCard>
+                  <CardRow label={t('Apps.detail.registeredAt')} value={registeredAt} />
+                  <CardRow label={t('Apps.detail.lastUpdated')} value={updatedAt} />
                 </div>
-              )}
+              </OverviewCard>
+              <AppSourcesCard entries={sourceEntries} onOpenEntry={onOpenEntry} />
             </div>
           ) : null}
 
@@ -406,6 +399,32 @@ function LocalDevelopmentAppsDetailView({
                   ) : null}
                 </dl>
               </DetailSection>
+
+              <DetailSection title={t('Apps.detail.readmeTitle')} description={t('Apps.detail.readmeDescription')}>
+                <div className="mt-4">
+                  {readme.status === 'loading' ? (
+                    <div data-testid="apps-readme-loading" aria-label={t('Apps.loading')} className="max-w-3xl space-y-3 rounded-xl border border-[color:var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_88%,transparent)] p-5 sm:p-6">
+                      <div className="h-6 w-1/3 animate-pulse rounded bg-[color-mix(in_srgb,var(--nimi-surface-active)_64%,transparent)]" />
+                      <div className="h-4 w-full animate-pulse rounded bg-[color-mix(in_srgb,var(--nimi-surface-active)_54%,transparent)]" />
+                      <div className="h-4 w-5/6 animate-pulse rounded bg-[color-mix(in_srgb,var(--nimi-surface-active)_54%,transparent)]" />
+                      <div className="h-4 w-2/3 animate-pulse rounded bg-[color-mix(in_srgb,var(--nimi-surface-active)_54%,transparent)]" />
+                    </div>
+                  ) : readme.status === 'loaded' && readme.content ? (
+                    <section data-testid="apps-readme" className="max-w-3xl rounded-xl border border-[color:var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_88%,transparent)] p-5 sm:p-6">
+                      {readme.truncated ? <InlineAlert tone="info" className="mb-3">{t('Apps.detail.readmeTruncated')}</InlineAlert> : null}
+                      <AppsReadmeMarkdown content={readme.content} />
+                    </section>
+                  ) : readme.status === 'error' ? (
+                    <InlineAlert tone="warning" data-testid="apps-readme-error">{t('Apps.detail.readmeError')}</InlineAlert>
+                  ) : (
+                    <div data-testid="apps-readme-empty" className="max-w-3xl rounded-xl border border-dashed border-[color:var(--nimi-border-subtle)] px-5 py-8 text-center">
+                      <BookOpen className="mx-auto h-7 w-7 text-[var(--nimi-text-muted)]" aria-hidden="true" />
+                      <h3 className="mt-3 text-sm font-semibold text-[color:var(--nimi-text-primary)]">{t('Apps.detail.readmeEmptyTitle')}</h3>
+                      <p className="mt-1 text-sm leading-6 text-[color:var(--nimi-text-secondary)]">{t('Apps.detail.readmeEmptyDescription')}</p>
+                    </div>
+                  )}
+                </div>
+              </DetailSection>
             </div>
           ) : null}
         </div>
@@ -431,17 +450,29 @@ function LocalDevelopmentAppsDetailView({
 
 function InstalledAppsDetailView({
   entry,
+  sourceEntries,
+  requestedSection,
+  requestedNavigationRevision,
   onBack,
+  onOpenEntry,
   onAction,
   activeAction,
   actionsDisabled,
   actionError,
+  onAIConfigChanged,
 }: AppsDetailViewProps): ReactElement {
   const { t } = useTranslation();
   const release = entry.committedRelease;
   const catalog = entry.catalogTarget;
   const installedRun = entry.run && 'accessAvailable' in entry.run ? entry.run : null;
   const [confirmingUninstall, setConfirmingUninstall] = useState(false);
+  const aiModelsAvailable = appsAIConfigCapabilityContracts(release?.appAccess ?? []).length > 0;
+  const [activeTab, setActiveTab] = useState<'overview' | 'ai-models'>(
+    requestedSection === 'ai-models' && aiModelsAvailable ? 'ai-models' : 'overview',
+  );
+  useEffect(() => {
+    setActiveTab(requestedSection === 'ai-models' && aiModelsAvailable ? 'ai-models' : 'overview');
+  }, [aiModelsAvailable, entry.identity.entryKey, requestedNavigationRevision, requestedSection]);
 
   return (
     <div data-testid="apps-detail-body" data-installed-detail className="flex min-h-0 flex-1 flex-col">
@@ -539,6 +570,10 @@ function InstalledAppsDetailView({
                 {t('Apps.action.install')}
               </Button>
             ) : null}
+            {release?.sourceClass === AppPackageSourceClass.USER_IMPORTED ? (
+              <div className="mt-3"><Button tone="secondary" size="sm" data-testid="apps-detail-local-update" disabled={actionsDisabled || !canRequestLocalPackageUpdate(entry)} onClick={() => onAction('update')}>{t('Apps.localImport.updateAction')}</Button>
+              {entry.run?.state === 'running' ? <p className="mt-2 text-xs text-[var(--nimi-text-muted)]">{t('Apps.update.stopRequired')}</p> : null}</div>
+            ) : null}
             {hasAvailableCatalogUpdate(entry) ? (
               <div className="mt-3">
                 <Button data-testid="apps-detail-update" tone="primary" size="sm"
@@ -566,6 +601,16 @@ function InstalledAppsDetailView({
             ) : null}
           </div>
         </div>
+        {aiModelsAvailable ? <NimiTabs
+          className="mt-5"
+          items={[
+            { value: 'overview', label: t('Apps.detail.overviewTab') },
+            { value: 'ai-models', label: t('Apps.detail.aiModelsTab') },
+          ]}
+          value={activeTab}
+          onValueChange={(value) => setActiveTab(value as 'overview' | 'ai-models')}
+          ariaLabel={t('Apps.detail.tabsLabel')}
+        /> : null}
       </header>
 
       <ScrollArea className="min-h-0 flex-1" viewportClassName="bg-transparent">
@@ -575,41 +620,101 @@ function InstalledAppsDetailView({
               {actionError}
             </InlineAlert>
           ) : null}
+          {activeTab === 'ai-models' && aiModelsAvailable ? (
+            <div role="tabpanel" id="apps-detail-panel-ai-models" tabIndex={0}>
+              <AppsAIConfigSection appId={entry.identity.appId} appDisplayName={entry.identity.displayName}
+                allowedRoutes={['local', 'cloud']} onAIConfigChanged={onAIConfigChanged} />
+            </div>
+          ) : <>
           <OverviewCard title={t('Apps.detail.aboutTitle')}>
+            <AppsDistributionInfo info={entry.appInfo} error={entry.appInfoError} />
             <dl className="divide-y divide-[color:var(--nimi-border-subtle)]">
               <DetailRow label={t('LocalDevelopment.field.app')} value={entry.identity.appId} mono />
               <DetailRow label={t('Apps.detail.source')} value={t(appSourceForEntry(entry) === 'user_imported' ? 'Apps.sourceBadge.userImported' : 'Apps.sourceBadge.verified')} />
               <DetailRow label={t('Apps.detail.catalogVersion', { defaultValue: 'Version' })} value={release?.version ?? catalog?.version ?? t('Apps.version.notInstalled')} mono />
-              {release ? <DetailRow label={t('Apps.detail.releaseRef', { defaultValue: 'Release reference' })} value={release.releaseRef} mono /> : null}
-              {catalog ? (
-                <>
+            </dl>
+          </OverviewCard>
+          {release ? <div className="mt-5">
+            <OverviewCard title={t('Apps.detail.technicalTitle')}>
+              <dl className="divide-y divide-[color:var(--nimi-border-subtle)]">
+                <DetailRow label={t('Apps.detail.releaseRef')} value={release.releaseRef} mono />
+                <DetailRow label={t('Apps.catalog.appAccess')} value={release.appAccess?.join(', ') || t('Apps.catalog.none')} mono />
+              </dl>
+            </OverviewCard>
+          </div> : null}
+          {catalog ? <div className="mt-5" data-testid="apps-catalog-target-facts">
+            <OverviewCard title={t('Apps.detail.catalogTargetTitle', { version: catalog.version })}>
+              <dl className="divide-y divide-[color:var(--nimi-border-subtle)]">
                   <DetailRow label={t('Apps.catalog.publisher')} value={`@${catalog.publisherGithubNamespace}`} mono />
                   <DetailRow label={t('Apps.catalog.sourceRepository')} value={catalog.sourceRepository} mono />
                   <DetailRow label={t('Apps.catalog.license')} value={catalog.sourceLicenseSpdxExpression} mono />
-                  <DetailRow label={t('Apps.catalog.target')} value={`${catalog.targetId} · ${catalog.os}/${catalog.arch}`} mono />
-                  <DetailRow label={t('Apps.catalog.asset')} value={`${catalog.assetName} · ${catalog.assetSize} bytes`} mono />
                   <DetailRow label={t('Apps.catalog.nativePosture')} value={catalog.os === 'macos'
                     ? `${catalog.observedSigningSubject || t('Apps.catalog.macosUnsigned')} · ${t(catalog.macosNotarization === 'notarized' ? 'Apps.catalog.macosNotarized' : catalog.macosNotarization === 'absent' ? 'Apps.catalog.macosNotarizationAbsent' : 'Apps.catalog.macosNotarizationUnknown')}`
                     : catalog.observedSigningSubject ? `${catalog.windowsCodeSigning} · ${catalog.observedSigningSubject}` : catalog.windowsCodeSigning} mono />
-                  <DetailRow label={t('Apps.catalog.executionProfile')} value={catalog.executionProfileRef} mono />
-                  <DetailRow label={t('Apps.catalog.appAccess')} value={catalog.appAccess.join(', ') || t('Apps.catalog.none')} mono />
-                  <DetailRow label={t('Apps.catalog.capabilities')} value={catalog.capabilityContractRefs.join(', ') || t('Apps.catalog.none')} mono />
-                  <DetailRow label={t('Apps.catalog.requiredFeatures')} value={catalog.requiredStandardizedFeatureRefs.join(', ') || t('Apps.catalog.none')} mono />
-                  <DetailRow label={t('Apps.catalog.storage')} value={catalog.storagePolicyKind} mono />
-                  <DetailRow
-                    label={t('Apps.catalog.storageDisclosures')}
-                    value={catalog.osStorageDisclosures.map((disclosure) => (
-                      `${disclosure.pathPattern}: ${disclosure.purpose}; ${t('Apps.detail.expectedStorageSize')}: ${disclosure.expectedSizeBand}`
-                    )).join(' · ') || t('Apps.catalog.none')}
-                    mono
-                  />
-                </>
-              ) : null}
-            </dl>
-          </OverviewCard>
+                      <DetailRow label={t('Apps.catalog.target')} value={`${catalog.targetId} · ${catalog.os}/${catalog.arch}`} mono />
+                      <DetailRow label={t('Apps.catalog.asset')} value={`${catalog.assetName} · ${catalog.assetSize} bytes`} mono />
+                      <DetailRow label={t('Apps.catalog.executionProfile')} value={catalog.executionProfileRef} mono />
+                      <DetailRow label={t('Apps.catalog.appAccess')} value={catalog.appAccess.join(', ') || t('Apps.catalog.none')} mono />
+                      <DetailRow label={t('Apps.catalog.capabilities')} value={catalog.capabilityContractRefs.join(', ') || t('Apps.catalog.none')} mono />
+                      <DetailRow label={t('Apps.catalog.requiredFeatures')} value={catalog.requiredStandardizedFeatureRefs.join(', ') || t('Apps.catalog.none')} mono />
+                      <DetailRow label={t('Apps.catalog.storage')} value={catalog.storagePolicyKind} mono />
+                      <DetailRow
+                        label={t('Apps.catalog.storageDisclosures')}
+                        value={catalog.osStorageDisclosures.map((disclosure) => (
+                          `${disclosure.pathPattern}: ${disclosure.purpose}; ${t('Apps.detail.expectedStorageSize')}: ${disclosure.expectedSizeBand}`
+                        )).join(' · ') || t('Apps.catalog.none')}
+                        mono
+                      />
+                </dl>
+              </OverviewCard>
+            </div>
+          : null}
+          <div className="mt-5">
+            <AppSourcesCard entries={sourceEntries} onOpenEntry={onOpenEntry} />
+          </div>
+          </>}
         </div>
       </ScrollArea>
     </div>
+  );
+}
+
+/** Other sources of the same App; each source keeps its own install/run/remove. */
+function AppSourcesCard({ entries, onOpenEntry }: {
+  readonly entries: readonly DesktopAppsEntry[];
+  readonly onOpenEntry: (entryKey: string) => void;
+}): ReactElement | null {
+  const { t } = useTranslation();
+  if (entries.length === 0) return null;
+  return (
+    <OverviewCard title={t('Apps.detail.otherSourcesTitle')}>
+      <p className="text-xs leading-5 text-[color:var(--nimi-text-secondary)]">
+        {t('Apps.detail.otherSourcesDescription')}
+      </p>
+      <ul className="mt-2 divide-y divide-[color:var(--nimi-border-subtle)]">
+        {entries.map((sourceEntry) => (
+          <li key={sourceEntry.identity.entryKey} className="flex items-center gap-3 py-2">
+            <AppSourceBadge source={appSourceForEntry(sourceEntry)} variant="quiet" className="shrink-0" />
+            <span className="min-w-0 flex-1 truncate text-xs text-[color:var(--nimi-text-muted)]">
+              {sourceEntry.committedRelease
+                ? t('Apps.version.installed', { version: sourceEntry.committedRelease.version })
+                : sourceEntry.localDevelopment
+                  ? sourceEntry.localDevelopment.canonicalProjectRoot
+                  : t('Apps.version.notInstalled')}
+            </span>
+            <Button
+              tone="ghost"
+              size="sm"
+              className="shrink-0"
+              data-testid={`apps-source-entry-${sourceEntry.identity.entryKey}`}
+              onClick={() => onOpenEntry(sourceEntry.identity.entryKey)}
+            >
+              {t('Apps.detail.viewSource')}
+            </Button>
+          </li>
+        ))}
+      </ul>
+    </OverviewCard>
   );
 }
 
