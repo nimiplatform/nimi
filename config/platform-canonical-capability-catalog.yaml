@@ -236,4 +236,42 @@ capabilities:
       auditSource: runtime-scenario-job-evidence
     source_rule: P-CAPCAT-006
 
+  - capabilityId: image.face_swap
+    section: image
+    editorKind: null
+    sourceRef:
+      table: local-adapter-routing
+      capability: image.face_swap
+    i18nKeys:
+      title: AIConfig.capability.imageFaceSwap.title
+      subtitle: AIConfig.capability.imageFaceSwap.subtitle
+      detail: AIConfig.capability.imageFaceSwap.detail
+    runtimeEvidenceClass: job
+    governance:
+      owner: runtime-image-route
+      dataMovement: local-by-selected-route
+      retention: runtime-scenario-job-policy
+      revocation: route-or-job-owner
+      auditSource: runtime-scenario-job-evidence
+    source_rule: P-CAPCAT-001
+
+  - capabilityId: video.face_swap
+    section: video
+    editorKind: null
+    sourceRef:
+      table: local-adapter-routing
+      capability: video.face_swap
+    i18nKeys:
+      title: AIConfig.capability.videoFaceSwap.title
+      subtitle: AIConfig.capability.videoFaceSwap.subtitle
+      detail: AIConfig.capability.videoFaceSwap.detail
+    runtimeEvidenceClass: job-and-session
+    governance:
+      owner: runtime-video-route
+      dataMovement: local-by-selected-route
+      retention: job-artifacts-and-session-ephemeral
+      revocation: job-or-session-owner
+      auditSource: scenario-job-and-video-session-lifecycle
+    source_rule: P-CAPCAT-001
+
 deferred: []

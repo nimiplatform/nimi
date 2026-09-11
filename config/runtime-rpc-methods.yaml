@@ -8,6 +8,7 @@ protocol_id: runtime_rpc_methods
 surfaces:
   - AIService
   - RuntimeAiRealtimeService
+  - RuntimeAiVideoSessionService
   - RuntimeRealmRealtimeService
   - ConnectorService
   - RuntimeLocalService
@@ -112,6 +113,21 @@ services:
       - name: CloseRealtimeSession
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession
+  - name: RuntimeAiVideoSessionService
+    source_rule: rule.nimi.runtime.ai-provider.face-swap-session-operations
+    methods:
+      - name: OpenVideoSession
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAiVideoSessionService/OpenVideoSession
+      - name: SubmitVideoSessionFrame
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAiVideoSessionService/SubmitVideoSessionFrame
+      - name: ReadVideoSessionResult
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAiVideoSessionService/ReadVideoSessionResult
+      - name: CloseVideoSession
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAiVideoSessionService/CloseVideoSession
   - name: RuntimeRealmRealtimeService
     source_rule: rule.nimi.runtime.realm-realtime.r002
     methods:

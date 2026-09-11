@@ -19,6 +19,220 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	RuntimeAiVideoSessionService_OpenVideoSession_FullMethodName        = "/nimi.runtime.v1.RuntimeAiVideoSessionService/OpenVideoSession"
+	RuntimeAiVideoSessionService_SubmitVideoSessionFrame_FullMethodName = "/nimi.runtime.v1.RuntimeAiVideoSessionService/SubmitVideoSessionFrame"
+	RuntimeAiVideoSessionService_ReadVideoSessionResult_FullMethodName  = "/nimi.runtime.v1.RuntimeAiVideoSessionService/ReadVideoSessionResult"
+	RuntimeAiVideoSessionService_CloseVideoSession_FullMethodName       = "/nimi.runtime.v1.RuntimeAiVideoSessionService/CloseVideoSession"
+)
+
+// RuntimeAiVideoSessionServiceClient is the client API for RuntimeAiVideoSessionService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type RuntimeAiVideoSessionServiceClient interface {
+	OpenVideoSession(ctx context.Context, in *OpenVideoSessionRequest, opts ...grpc.CallOption) (*OpenVideoSessionResponse, error)
+	SubmitVideoSessionFrame(ctx context.Context, in *SubmitVideoSessionFrameRequest, opts ...grpc.CallOption) (*SubmitVideoSessionFrameResponse, error)
+	ReadVideoSessionResult(ctx context.Context, in *ReadVideoSessionResultRequest, opts ...grpc.CallOption) (*ReadVideoSessionResultResponse, error)
+	CloseVideoSession(ctx context.Context, in *CloseVideoSessionRequest, opts ...grpc.CallOption) (*CloseVideoSessionResponse, error)
+}
+
+type runtimeAiVideoSessionServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewRuntimeAiVideoSessionServiceClient(cc grpc.ClientConnInterface) RuntimeAiVideoSessionServiceClient {
+	return &runtimeAiVideoSessionServiceClient{cc}
+}
+
+func (c *runtimeAiVideoSessionServiceClient) OpenVideoSession(ctx context.Context, in *OpenVideoSessionRequest, opts ...grpc.CallOption) (*OpenVideoSessionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OpenVideoSessionResponse)
+	err := c.cc.Invoke(ctx, RuntimeAiVideoSessionService_OpenVideoSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAiVideoSessionServiceClient) SubmitVideoSessionFrame(ctx context.Context, in *SubmitVideoSessionFrameRequest, opts ...grpc.CallOption) (*SubmitVideoSessionFrameResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SubmitVideoSessionFrameResponse)
+	err := c.cc.Invoke(ctx, RuntimeAiVideoSessionService_SubmitVideoSessionFrame_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAiVideoSessionServiceClient) ReadVideoSessionResult(ctx context.Context, in *ReadVideoSessionResultRequest, opts ...grpc.CallOption) (*ReadVideoSessionResultResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ReadVideoSessionResultResponse)
+	err := c.cc.Invoke(ctx, RuntimeAiVideoSessionService_ReadVideoSessionResult_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAiVideoSessionServiceClient) CloseVideoSession(ctx context.Context, in *CloseVideoSessionRequest, opts ...grpc.CallOption) (*CloseVideoSessionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CloseVideoSessionResponse)
+	err := c.cc.Invoke(ctx, RuntimeAiVideoSessionService_CloseVideoSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// RuntimeAiVideoSessionServiceServer is the server API for RuntimeAiVideoSessionService service.
+// All implementations should embed UnimplementedRuntimeAiVideoSessionServiceServer
+// for forward compatibility.
+type RuntimeAiVideoSessionServiceServer interface {
+	OpenVideoSession(context.Context, *OpenVideoSessionRequest) (*OpenVideoSessionResponse, error)
+	SubmitVideoSessionFrame(context.Context, *SubmitVideoSessionFrameRequest) (*SubmitVideoSessionFrameResponse, error)
+	ReadVideoSessionResult(context.Context, *ReadVideoSessionResultRequest) (*ReadVideoSessionResultResponse, error)
+	CloseVideoSession(context.Context, *CloseVideoSessionRequest) (*CloseVideoSessionResponse, error)
+}
+
+// UnimplementedRuntimeAiVideoSessionServiceServer should be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedRuntimeAiVideoSessionServiceServer struct{}
+
+func (UnimplementedRuntimeAiVideoSessionServiceServer) OpenVideoSession(context.Context, *OpenVideoSessionRequest) (*OpenVideoSessionResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method OpenVideoSession not implemented")
+}
+func (UnimplementedRuntimeAiVideoSessionServiceServer) SubmitVideoSessionFrame(context.Context, *SubmitVideoSessionFrameRequest) (*SubmitVideoSessionFrameResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SubmitVideoSessionFrame not implemented")
+}
+func (UnimplementedRuntimeAiVideoSessionServiceServer) ReadVideoSessionResult(context.Context, *ReadVideoSessionResultRequest) (*ReadVideoSessionResultResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ReadVideoSessionResult not implemented")
+}
+func (UnimplementedRuntimeAiVideoSessionServiceServer) CloseVideoSession(context.Context, *CloseVideoSessionRequest) (*CloseVideoSessionResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CloseVideoSession not implemented")
+}
+func (UnimplementedRuntimeAiVideoSessionServiceServer) testEmbeddedByValue() {}
+
+// UnsafeRuntimeAiVideoSessionServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to RuntimeAiVideoSessionServiceServer will
+// result in compilation errors.
+type UnsafeRuntimeAiVideoSessionServiceServer interface {
+	mustEmbedUnimplementedRuntimeAiVideoSessionServiceServer()
+}
+
+func RegisterRuntimeAiVideoSessionServiceServer(s grpc.ServiceRegistrar, srv RuntimeAiVideoSessionServiceServer) {
+	// If the following call panics, it indicates UnimplementedRuntimeAiVideoSessionServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&RuntimeAiVideoSessionService_ServiceDesc, srv)
+}
+
+func _RuntimeAiVideoSessionService_OpenVideoSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OpenVideoSessionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAiVideoSessionServiceServer).OpenVideoSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAiVideoSessionService_OpenVideoSession_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAiVideoSessionServiceServer).OpenVideoSession(ctx, req.(*OpenVideoSessionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAiVideoSessionService_SubmitVideoSessionFrame_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SubmitVideoSessionFrameRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAiVideoSessionServiceServer).SubmitVideoSessionFrame(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAiVideoSessionService_SubmitVideoSessionFrame_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAiVideoSessionServiceServer).SubmitVideoSessionFrame(ctx, req.(*SubmitVideoSessionFrameRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAiVideoSessionService_ReadVideoSessionResult_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReadVideoSessionResultRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAiVideoSessionServiceServer).ReadVideoSessionResult(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAiVideoSessionService_ReadVideoSessionResult_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAiVideoSessionServiceServer).ReadVideoSessionResult(ctx, req.(*ReadVideoSessionResultRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAiVideoSessionService_CloseVideoSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CloseVideoSessionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAiVideoSessionServiceServer).CloseVideoSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAiVideoSessionService_CloseVideoSession_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAiVideoSessionServiceServer).CloseVideoSession(ctx, req.(*CloseVideoSessionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// RuntimeAiVideoSessionService_ServiceDesc is the grpc.ServiceDesc for RuntimeAiVideoSessionService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var RuntimeAiVideoSessionService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "nimi.runtime.v1.RuntimeAiVideoSessionService",
+	HandlerType: (*RuntimeAiVideoSessionServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "OpenVideoSession",
+			Handler:    _RuntimeAiVideoSessionService_OpenVideoSession_Handler,
+		},
+		{
+			MethodName: "SubmitVideoSessionFrame",
+			Handler:    _RuntimeAiVideoSessionService_SubmitVideoSessionFrame_Handler,
+		},
+		{
+			MethodName: "ReadVideoSessionResult",
+			Handler:    _RuntimeAiVideoSessionService_ReadVideoSessionResult_Handler,
+		},
+		{
+			MethodName: "CloseVideoSession",
+			Handler:    _RuntimeAiVideoSessionService_CloseVideoSession_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "runtime/v1/ai.proto",
+}
+
+const (
 	RuntimeAiService_GetAppAIConfig_FullMethodName                     = "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig"
 	RuntimeAiService_OverwriteAppAIConfig_FullMethodName               = "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig"
 	RuntimeAiService_ListAppAIConfigOptions_FullMethodName             = "/nimi.runtime.v1.RuntimeAiService/ListAppAIConfigOptions"

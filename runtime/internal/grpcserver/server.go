@@ -644,6 +644,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	aiSvc.SetRuntimeArtifactStore(artifactStore)
 	runtimev1.RegisterRuntimeAiServiceServer(g, aiSvc)
 	runtimev1.RegisterRuntimeAiRealtimeServiceServer(g, aiSvc)
+	runtimev1.RegisterRuntimeAiVideoSessionServiceServer(g, aiSvc)
 
 	localSvc, err := localservice.NewRuntimeWithProductControlDataRoot(logger, auditStore, cfg.LocalStatePath, cfg.LocalAuditCapacity, cfg.LocalModelsPath, cfg.DataRootRef)
 	if err != nil {

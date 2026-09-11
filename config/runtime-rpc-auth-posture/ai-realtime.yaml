@@ -1,6 +1,14 @@
 version: 1
 owner: runtime
 methods:
+  - method_id: /nimi.runtime.v1.RuntimeAiVideoSessionService/OpenVideoSession
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAiVideoSessionService/SubmitVideoSessionFrame
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAiVideoSessionService/ReadVideoSessionResult
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAiVideoSessionService/CloseVideoSession
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput

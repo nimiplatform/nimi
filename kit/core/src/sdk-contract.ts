@@ -170,6 +170,7 @@ export {
 // --- Typed error envelope ---------------------------------------------------
 export type { NimiError } from '@nimiplatform/sdk/types';
 export { asNimiError, createNimiError, isNimiError, ReasonCode } from '@nimiplatform/sdk/types';
+export { AiVideoPixelFormat } from '@nimiplatform/sdk/runtime/wire-types';
 
 // --- Nimi AI developer-experience primitives --------------------------------
 export {

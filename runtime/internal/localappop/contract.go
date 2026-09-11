@@ -60,6 +60,10 @@ const (
 	AppOperationIDAIRealtimeEventsRead           = "runtime.ai.realtime.events.read"
 	AppOperationIDAIRealtimeOutputInterrupt      = "runtime.ai.realtime.output.interrupt"
 	AppOperationIDAIRealtimeClose                = "runtime.ai.realtime.close"
+	AppOperationIDVideoSessionOpen               = "runtime.ai.video-session.open"
+	AppOperationIDVideoSessionFrameSubmit        = "runtime.ai.video-session.frame.submit"
+	AppOperationIDVideoSessionResultRead         = "runtime.ai.video-session.result.read"
+	AppOperationIDVideoSessionClose              = "runtime.ai.video-session.close"
 	AppOperationIDAgentRealtimeOpen              = "runtime.agent.realtime.open"
 	AppOperationIDAgentRealtimeInputAppend       = "runtime.agent.realtime.input.append"
 	AppOperationIDAgentRealtimeEventsSubscribe   = "runtime.agent.realtime.events.subscribe"
@@ -159,6 +163,10 @@ const (
 	IngressAgentMemoryForget
 	IngressAgentMemorySwitch
 	IngressAgentMemoryDelete
+	IngressVideoSessionOpen
+	IngressVideoSessionFrameSubmit
+	IngressVideoSessionResultRead
+	IngressVideoSessionClose
 	IngressAgentEmbodimentSnapshotGet
 	IngressAgentEmbodimentEventsSubscribe
 )
@@ -237,6 +245,10 @@ const (
 	OperationAgentMemoryForget
 	OperationAgentMemorySwitch
 	OperationAgentMemoryDelete
+	OperationVideoSessionOpen
+	OperationVideoSessionFrameSubmit
+	OperationVideoSessionResultRead
+	OperationVideoSessionClose
 	OperationAgentEmbodimentSnapshotGet
 	OperationAgentEmbodimentEventsSubscribe
 )
@@ -298,6 +310,10 @@ var canonicalAppOperationContract = [...]contractRow{
 	{IngressAIRealtimeEventsRead, OperationAIRealtimeEventsRead, AppOperationIDAIRealtimeEventsRead, AuthorityClassAppAccess, "runtime.consume"},
 	{IngressAIRealtimeOutputInterrupt, OperationAIRealtimeOutputInterrupt, AppOperationIDAIRealtimeOutputInterrupt, AuthorityClassAppAccess, "runtime.consume"},
 	{IngressAIRealtimeClose, OperationAIRealtimeClose, AppOperationIDAIRealtimeClose, AuthorityClassAppAccess, "runtime.consume"},
+	{IngressVideoSessionOpen, OperationVideoSessionOpen, AppOperationIDVideoSessionOpen, AuthorityClassAppAccess, "runtime.consume"},
+	{IngressVideoSessionFrameSubmit, OperationVideoSessionFrameSubmit, AppOperationIDVideoSessionFrameSubmit, AuthorityClassAppAccess, "runtime.consume"},
+	{IngressVideoSessionResultRead, OperationVideoSessionResultRead, AppOperationIDVideoSessionResultRead, AuthorityClassAppAccess, "runtime.consume"},
+	{IngressVideoSessionClose, OperationVideoSessionClose, AppOperationIDVideoSessionClose, AuthorityClassAppAccess, "runtime.consume"},
 	{IngressAgentRealtimeOpen, OperationAgentRealtimeOpen, AppOperationIDAgentRealtimeOpen, AuthorityClassAppAccess, "agent.local"},
 	{IngressAgentRealtimeInputAppend, OperationAgentRealtimeInputAppend, AppOperationIDAgentRealtimeInputAppend, AuthorityClassAppAccess, "agent.local"},
 	{IngressAgentRealtimeEventsSubscribe, OperationAgentRealtimeEventsSubscribe, AppOperationIDAgentRealtimeEventsSubscribe, AuthorityClassAppAccess, "agent.local"},

@@ -1394,7 +1394,39 @@ export enum ReasonCode {
     /**
      * @generated from protobuf enum value: APP_PACKAGE_UPDATE_UNAVAILABLE = 737;
      */
-    APP_PACKAGE_UPDATE_UNAVAILABLE = 737
+    APP_PACKAGE_UPDATE_UNAVAILABLE = 737,
+    /**
+     * @generated from protobuf enum value: AI_FACE_REFERENCE_MISSING = 738;
+     */
+    AI_FACE_REFERENCE_MISSING = 738,
+    /**
+     * @generated from protobuf enum value: AI_FACE_REFERENCE_AMBIGUOUS = 739;
+     */
+    AI_FACE_REFERENCE_AMBIGUOUS = 739,
+    /**
+     * @generated from protobuf enum value: AI_FACE_TARGET_MISSING = 740;
+     */
+    AI_FACE_TARGET_MISSING = 740,
+    /**
+     * @generated from protobuf enum value: AI_FACE_TARGET_AMBIGUOUS = 741;
+     */
+    AI_FACE_TARGET_AMBIGUOUS = 741,
+    /**
+     * @generated from protobuf enum value: AI_VIDEO_DECODE_FAILED = 742;
+     */
+    AI_VIDEO_DECODE_FAILED = 742,
+    /**
+     * @generated from protobuf enum value: AI_VIDEO_ENCODE_FAILED = 743;
+     */
+    AI_VIDEO_ENCODE_FAILED = 743,
+    /**
+     * @generated from protobuf enum value: AI_VIDEO_SESSION_OVERLOADED = 744;
+     */
+    AI_VIDEO_SESSION_OVERLOADED = 744,
+    /**
+     * @generated from protobuf enum value: AI_VIDEO_SESSION_GENERATION_INVALID = 745;
+     */
+    AI_VIDEO_SESSION_GENERATION_INVALID = 745
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

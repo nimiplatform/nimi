@@ -500,6 +500,14 @@ pub enum ReasonCode {
     AppPackageHostRunning = 735,
     AppPackageUninstallFailed = 736,
     AppPackageUpdateUnavailable = 737,
+    AiFaceReferenceMissing = 738,
+    AiFaceReferenceAmbiguous = 739,
+    AiFaceTargetMissing = 740,
+    AiFaceTargetAmbiguous = 741,
+    AiVideoDecodeFailed = 742,
+    AiVideoEncodeFailed = 743,
+    AiVideoSessionOverloaded = 744,
+    AiVideoSessionGenerationInvalid = 745,
 }
 impl ReasonCode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -851,6 +859,16 @@ impl ReasonCode {
             Self::AppPackageHostRunning => "APP_PACKAGE_HOST_RUNNING",
             Self::AppPackageUninstallFailed => "APP_PACKAGE_UNINSTALL_FAILED",
             Self::AppPackageUpdateUnavailable => "APP_PACKAGE_UPDATE_UNAVAILABLE",
+            Self::AiFaceReferenceMissing => "AI_FACE_REFERENCE_MISSING",
+            Self::AiFaceReferenceAmbiguous => "AI_FACE_REFERENCE_AMBIGUOUS",
+            Self::AiFaceTargetMissing => "AI_FACE_TARGET_MISSING",
+            Self::AiFaceTargetAmbiguous => "AI_FACE_TARGET_AMBIGUOUS",
+            Self::AiVideoDecodeFailed => "AI_VIDEO_DECODE_FAILED",
+            Self::AiVideoEncodeFailed => "AI_VIDEO_ENCODE_FAILED",
+            Self::AiVideoSessionOverloaded => "AI_VIDEO_SESSION_OVERLOADED",
+            Self::AiVideoSessionGenerationInvalid => {
+                "AI_VIDEO_SESSION_GENERATION_INVALID"
+            }
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -1269,6 +1287,16 @@ impl ReasonCode {
             "APP_PACKAGE_HOST_RUNNING" => Some(Self::AppPackageHostRunning),
             "APP_PACKAGE_UNINSTALL_FAILED" => Some(Self::AppPackageUninstallFailed),
             "APP_PACKAGE_UPDATE_UNAVAILABLE" => Some(Self::AppPackageUpdateUnavailable),
+            "AI_FACE_REFERENCE_MISSING" => Some(Self::AiFaceReferenceMissing),
+            "AI_FACE_REFERENCE_AMBIGUOUS" => Some(Self::AiFaceReferenceAmbiguous),
+            "AI_FACE_TARGET_MISSING" => Some(Self::AiFaceTargetMissing),
+            "AI_FACE_TARGET_AMBIGUOUS" => Some(Self::AiFaceTargetAmbiguous),
+            "AI_VIDEO_DECODE_FAILED" => Some(Self::AiVideoDecodeFailed),
+            "AI_VIDEO_ENCODE_FAILED" => Some(Self::AiVideoEncodeFailed),
+            "AI_VIDEO_SESSION_OVERLOADED" => Some(Self::AiVideoSessionOverloaded),
+            "AI_VIDEO_SESSION_GENERATION_INVALID" => {
+                Some(Self::AiVideoSessionGenerationInvalid)
+            }
             _ => None,
         }
     }
@@ -5298,6 +5326,158 @@ pub mod world_generate_scenario_spec {
         VideoPrompt(super::WorldGenerateVideoPrompt),
     }
 }
+/// Both artifacts belong to the current protected App caller.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ImageFaceSwapScenarioSpec {
+    #[prost(string, tag = "1")]
+    pub reference_image_artifact_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub target_image_artifact_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AiVideoSessionFormat {
+    #[prost(uint32, tag = "1")]
+    pub width: u32,
+    #[prost(uint32, tag = "2")]
+    pub height: u32,
+    #[prost(enumeration = "AiVideoPixelFormat", tag = "3")]
+    pub pixel_format: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct OpenVideoSessionRequest {
+    #[prost(string, tag = "1")]
+    pub reference_image_artifact_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub format: ::core::option::Option<AiVideoSessionFormat>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct OpenVideoSessionResponse {
+    #[prost(string, tag = "1")]
+    pub video_session_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "2")]
+    pub generation: u64,
+    #[prost(message, optional, tag = "3")]
+    pub format: ::core::option::Option<AiVideoSessionFormat>,
+    #[prost(uint32, tag = "4")]
+    pub maximum_in_flight_submissions: u32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SubmitVideoSessionFrameRequest {
+    #[prost(string, tag = "1")]
+    pub video_session_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "2")]
+    pub generation: u64,
+    #[prost(uint64, tag = "3")]
+    pub sequence: u64,
+    #[prost(uint64, tag = "4")]
+    pub timestamp_us: u64,
+    #[prost(bytes = "vec", tag = "5")]
+    pub frame: ::prost::alloc::vec::Vec<u8>,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SubmitVideoSessionFrameResponse {
+    #[prost(bool, tag = "1")]
+    pub accepted: bool,
+    #[prost(uint64, tag = "2")]
+    pub sequence: u64,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReadVideoSessionResultRequest {
+    #[prost(string, tag = "1")]
+    pub video_session_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "2")]
+    pub generation: u64,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AiVideoTransformedFrame {
+    #[prost(uint64, tag = "1")]
+    pub sequence: u64,
+    #[prost(uint64, tag = "2")]
+    pub timestamp_us: u64,
+    #[prost(bytes = "vec", tag = "3")]
+    pub frame: ::prost::alloc::vec::Vec<u8>,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AiVideoFrameDisposition {
+    #[prost(uint64, tag = "1")]
+    pub sequence: u64,
+    #[prost(uint64, tag = "2")]
+    pub timestamp_us: u64,
+    #[prost(enumeration = "ReasonCode", tag = "3")]
+    pub reason_code: i32,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AiVideoSessionTerminal {
+    #[prost(enumeration = "ReasonCode", tag = "1")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AiVideoSessionResult {
+    #[prost(string, tag = "1")]
+    pub video_session_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "2")]
+    pub generation: u64,
+    #[prost(oneof = "ai_video_session_result::Result", tags = "3, 4, 5, 6, 7")]
+    pub result: ::core::option::Option<ai_video_session_result::Result>,
+}
+/// Nested message and enum types in `AiVideoSessionResult`.
+pub mod ai_video_session_result {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Result {
+        #[prost(message, tag = "3")]
+        Transformed(super::AiVideoTransformedFrame),
+        #[prost(message, tag = "4")]
+        NoTargetFace(super::AiVideoFrameDisposition),
+        #[prost(message, tag = "5")]
+        InputDropped(super::AiVideoFrameDisposition),
+        #[prost(message, tag = "6")]
+        InputRejected(super::AiVideoFrameDisposition),
+        #[prost(message, tag = "7")]
+        SessionTerminal(super::AiVideoSessionTerminal),
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReadVideoSessionResultResponse {
+    /// Absent means the bounded poll has no result yet.
+    #[prost(message, optional, tag = "1")]
+    pub result: ::core::option::Option<AiVideoSessionResult>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CloseVideoSessionRequest {
+    #[prost(string, tag = "1")]
+    pub video_session_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "2")]
+    pub generation: u64,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CloseVideoSessionResponse {
+    #[prost(bool, tag = "1")]
+    pub closed: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct VideoFaceSwapScenarioSpec {
+    #[prost(string, tag = "1")]
+    pub reference_image_artifact_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub target_video_artifact_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "FaceSwapNoFacePolicy", tag = "3")]
+    pub no_face_policy: i32,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct VideoFaceSwapSummary {
+    #[prost(uint32, tag = "1")]
+    pub total_frames: u32,
+    #[prost(uint32, tag = "2")]
+    pub transformed_frames: u32,
+    #[prost(uint32, tag = "3")]
+    pub preserved_frames: u32,
+    #[prost(uint64, tag = "4")]
+    pub duration_us: u64,
+    #[prost(uint32, tag = "5")]
+    pub frame_rate: u32,
+    #[prost(bool, tag = "6")]
+    pub audio_preserved: bool,
+}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct VisionLocateScenarioSpec {
     #[prost(string, tag = "1")]
@@ -5357,7 +5537,10 @@ pub struct VisionLocateResult {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ScenarioSpec {
-    #[prost(oneof = "scenario_spec::Spec", tags = "1, 2, 3, 4, 5, 6, 9, 10, 11, 12")]
+    #[prost(
+        oneof = "scenario_spec::Spec",
+        tags = "1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14"
+    )]
     pub spec: ::core::option::Option<scenario_spec::Spec>,
 }
 /// Nested message and enum types in `ScenarioSpec`.
@@ -5384,6 +5567,10 @@ pub mod scenario_spec {
         VoiceCreate(super::VoiceCreateScenarioSpec),
         #[prost(message, tag = "12")]
         VisionLocate(super::VisionLocateScenarioSpec),
+        #[prost(message, tag = "13")]
+        ImageFaceSwap(super::ImageFaceSwapScenarioSpec),
+        #[prost(message, tag = "14")]
+        VideoFaceSwap(super::VideoFaceSwapScenarioSpec),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -5432,6 +5619,18 @@ pub struct TextEmbedOutput {
 pub struct ImageGenerateResult {
     #[prost(message, repeated, tag = "1")]
     pub artifacts: ::prost::alloc::vec::Vec<ScenarioArtifact>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ImageFaceSwapResult {
+    #[prost(message, repeated, tag = "1")]
+    pub artifacts: ::prost::alloc::vec::Vec<ScenarioArtifact>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct VideoFaceSwapResult {
+    #[prost(message, repeated, tag = "1")]
+    pub artifacts: ::prost::alloc::vec::Vec<ScenarioArtifact>,
+    #[prost(message, optional, tag = "2")]
+    pub summary: ::core::option::Option<VideoFaceSwapSummary>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct VideoGenerateResult {
@@ -5490,7 +5689,7 @@ pub struct WorldGenerateResult {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ScenarioOutput {
-    #[prost(oneof = "scenario_output::Output", tags = "1, 2, 3, 4, 5, 6, 7, 8")]
+    #[prost(oneof = "scenario_output::Output", tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10")]
     pub output: ::core::option::Option<scenario_output::Output>,
 }
 /// Nested message and enum types in `ScenarioOutput`.
@@ -5513,6 +5712,10 @@ pub mod scenario_output {
         MusicGenerate(super::MusicGenerateResult),
         #[prost(message, tag = "8")]
         WorldGenerate(super::WorldGenerateResult),
+        #[prost(message, tag = "9")]
+        ImageFaceSwap(super::ImageFaceSwapResult),
+        #[prost(message, tag = "10")]
+        VideoFaceSwap(super::VideoFaceSwapResult),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -5567,7 +5770,7 @@ pub struct GenerateLocalAppTextCandidateResponse {
 }
 /// Trimmed artifact projection for Local App scenario outputs. Runtime-private
 /// uri, producer, and owner fields are never projected; oversized payloads are
-/// reachable only through ReadLocalAppArtifact.
+/// retrieved through owned artifact adoption and App asset streaming.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppScenarioArtifact {
     #[prost(string, tag = "1")]
@@ -5801,7 +6004,7 @@ pub struct SubmitLocalAppScenarioJobRequest {
     pub timeout_ms: i32,
     #[prost(
         oneof = "submit_local_app_scenario_job_request::Spec",
-        tags = "1, 2, 3, 4, 7, 8, 10, 11"
+        tags = "1, 2, 3, 4, 7, 8, 10, 11, 12, 13"
     )]
     pub spec: ::core::option::Option<submit_local_app_scenario_job_request::Spec>,
 }
@@ -5825,6 +6028,10 @@ pub mod submit_local_app_scenario_job_request {
         WorldGenerate(super::LocalAppWorldGenerateJobSpec),
         #[prost(message, tag = "11")]
         VisionLocate(super::VisionLocateScenarioSpec),
+        #[prost(message, tag = "12")]
+        ImageFaceSwap(super::ImageFaceSwapScenarioSpec),
+        #[prost(message, tag = "13")]
+        VideoFaceSwap(super::VideoFaceSwapScenarioSpec),
     }
 }
 /// Trimmed Job projection for Local App consumption: status, progress, typed
@@ -5864,6 +6071,9 @@ pub struct LocalAppScenarioJob {
     /// Set only with reason_code AI_EXECUTION_INTERRUPTED and status FAILED.
     #[prost(message, optional, tag = "14")]
     pub interruption: ::core::option::Option<ExecutionInterruption>,
+    /// Present only for a completed VIDEO_FACE_SWAP Job.
+    #[prost(message, optional, tag = "15")]
+    pub video_face_swap_summary: ::core::option::Option<VideoFaceSwapSummary>,
 }
 /// Trimmed voice asset catalog projection. Provider, model, provider voice
 /// ref, and owner identity fields are never projected.
@@ -6251,6 +6461,9 @@ pub struct ScenarioJob {
     /// Set only with reason_code AI_EXECUTION_INTERRUPTED and status FAILED.
     #[prost(message, optional, tag = "25")]
     pub interruption: ::core::option::Option<ExecutionInterruption>,
+    /// Immutable per-frame outcome counts captured with the completed artifact.
+    #[prost(message, optional, tag = "26")]
+    pub video_face_swap_summary: ::core::option::Option<VideoFaceSwapSummary>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SubmitScenarioJobRequest {
@@ -6605,6 +6818,8 @@ pub enum ScenarioType {
     WorldGenerate = 10,
     VoiceCreate = 11,
     VisionLocate = 12,
+    ImageFaceSwap = 13,
+    VideoFaceSwap = 14,
 }
 impl ScenarioType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -6624,6 +6839,8 @@ impl ScenarioType {
             Self::WorldGenerate => "SCENARIO_TYPE_WORLD_GENERATE",
             Self::VoiceCreate => "SCENARIO_TYPE_VOICE_CREATE",
             Self::VisionLocate => "SCENARIO_TYPE_VISION_LOCATE",
+            Self::ImageFaceSwap => "SCENARIO_TYPE_IMAGE_FACE_SWAP",
+            Self::VideoFaceSwap => "SCENARIO_TYPE_VIDEO_FACE_SWAP",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -6640,6 +6857,8 @@ impl ScenarioType {
             "SCENARIO_TYPE_WORLD_GENERATE" => Some(Self::WorldGenerate),
             "SCENARIO_TYPE_VOICE_CREATE" => Some(Self::VoiceCreate),
             "SCENARIO_TYPE_VISION_LOCATE" => Some(Self::VisionLocate),
+            "SCENARIO_TYPE_IMAGE_FACE_SWAP" => Some(Self::ImageFaceSwap),
+            "SCENARIO_TYPE_VIDEO_FACE_SWAP" => Some(Self::VideoFaceSwap),
             _ => None,
         }
     }
@@ -7242,6 +7461,61 @@ impl VisionLocateGeometry {
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
+pub enum FaceSwapNoFacePolicy {
+    Unspecified = 0,
+    Fail = 1,
+    PreserveFrame = 2,
+}
+impl FaceSwapNoFacePolicy {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "FACE_SWAP_NO_FACE_POLICY_UNSPECIFIED",
+            Self::Fail => "FACE_SWAP_NO_FACE_POLICY_FAIL",
+            Self::PreserveFrame => "FACE_SWAP_NO_FACE_POLICY_PRESERVE_FRAME",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "FACE_SWAP_NO_FACE_POLICY_UNSPECIFIED" => Some(Self::Unspecified),
+            "FACE_SWAP_NO_FACE_POLICY_FAIL" => Some(Self::Fail),
+            "FACE_SWAP_NO_FACE_POLICY_PRESERVE_FRAME" => Some(Self::PreserveFrame),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AiVideoPixelFormat {
+    Unspecified = 0,
+    Rgb8 = 1,
+}
+impl AiVideoPixelFormat {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AI_VIDEO_PIXEL_FORMAT_UNSPECIFIED",
+            Self::Rgb8 => "AI_VIDEO_PIXEL_FORMAT_RGB8",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AI_VIDEO_PIXEL_FORMAT_UNSPECIFIED" => Some(Self::Unspecified),
+            "AI_VIDEO_PIXEL_FORMAT_RGB8" => Some(Self::Rgb8),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
 pub enum ScenarioJobStatus {
     Unspecified = 0,
     Submitted = 1,
@@ -7325,6 +7599,217 @@ impl ScenarioJobEventType {
             "SCENARIO_JOB_EVENT_CANCELED" => Some(Self::ScenarioJobEventCanceled),
             "SCENARIO_JOB_EVENT_TIMEOUT" => Some(Self::ScenarioJobEventTimeout),
             _ => None,
+        }
+    }
+}
+/// Generated client implementations.
+pub mod runtime_ai_video_session_service_client {
+    #![allow(
+        unused_variables,
+        dead_code,
+        missing_docs,
+        clippy::wildcard_imports,
+        clippy::let_unit_value,
+    )]
+    use tonic::codegen::*;
+    use tonic::codegen::http::Uri;
+    #[derive(Debug, Clone)]
+    pub struct RuntimeAiVideoSessionServiceClient<T> {
+        inner: tonic::client::Grpc<T>,
+    }
+    impl RuntimeAiVideoSessionServiceClient<tonic::transport::Channel> {
+        /// Attempt to create a new client by connecting to a given endpoint.
+        pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
+        where
+            D: TryInto<tonic::transport::Endpoint>,
+            D::Error: Into<StdError>,
+        {
+            let conn = tonic::transport::Endpoint::new(dst)?.connect().await?;
+            Ok(Self::new(conn))
+        }
+    }
+    impl<T> RuntimeAiVideoSessionServiceClient<T>
+    where
+        T: tonic::client::GrpcService<tonic::body::Body>,
+        T::Error: Into<StdError>,
+        T::ResponseBody: Body<Data = Bytes> + std::marker::Send + 'static,
+        <T::ResponseBody as Body>::Error: Into<StdError> + std::marker::Send,
+    {
+        pub fn new(inner: T) -> Self {
+            let inner = tonic::client::Grpc::new(inner);
+            Self { inner }
+        }
+        pub fn with_origin(inner: T, origin: Uri) -> Self {
+            let inner = tonic::client::Grpc::with_origin(inner, origin);
+            Self { inner }
+        }
+        pub fn with_interceptor<F>(
+            inner: T,
+            interceptor: F,
+        ) -> RuntimeAiVideoSessionServiceClient<InterceptedService<T, F>>
+        where
+            F: tonic::service::Interceptor,
+            T::ResponseBody: Default,
+            T: tonic::codegen::Service<
+                http::Request<tonic::body::Body>,
+                Response = http::Response<
+                    <T as tonic::client::GrpcService<tonic::body::Body>>::ResponseBody,
+                >,
+            >,
+            <T as tonic::codegen::Service<
+                http::Request<tonic::body::Body>,
+            >>::Error: Into<StdError> + std::marker::Send + std::marker::Sync,
+        {
+            RuntimeAiVideoSessionServiceClient::new(
+                InterceptedService::new(inner, interceptor),
+            )
+        }
+        /// Compress requests with the given encoding.
+        ///
+        /// This requires the server to support it otherwise it might respond with an
+        /// error.
+        #[must_use]
+        pub fn send_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.inner = self.inner.send_compressed(encoding);
+            self
+        }
+        /// Enable decompressing responses.
+        #[must_use]
+        pub fn accept_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.inner = self.inner.accept_compressed(encoding);
+            self
+        }
+        /// Limits the maximum size of a decoded message.
+        ///
+        /// Default: `4MB`
+        #[must_use]
+        pub fn max_decoding_message_size(mut self, limit: usize) -> Self {
+            self.inner = self.inner.max_decoding_message_size(limit);
+            self
+        }
+        /// Limits the maximum size of an encoded message.
+        ///
+        /// Default: `usize::MAX`
+        #[must_use]
+        pub fn max_encoding_message_size(mut self, limit: usize) -> Self {
+            self.inner = self.inner.max_encoding_message_size(limit);
+            self
+        }
+        pub async fn open_video_session(
+            &mut self,
+            request: impl tonic::IntoRequest<super::OpenVideoSessionRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::OpenVideoSessionResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiVideoSessionService/OpenVideoSession",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAiVideoSessionService",
+                        "OpenVideoSession",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn submit_video_session_frame(
+            &mut self,
+            request: impl tonic::IntoRequest<super::SubmitVideoSessionFrameRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::SubmitVideoSessionFrameResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiVideoSessionService/SubmitVideoSessionFrame",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAiVideoSessionService",
+                        "SubmitVideoSessionFrame",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn read_video_session_result(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ReadVideoSessionResultRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ReadVideoSessionResultResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiVideoSessionService/ReadVideoSessionResult",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAiVideoSessionService",
+                        "ReadVideoSessionResult",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn close_video_session(
+            &mut self,
+            request: impl tonic::IntoRequest<super::CloseVideoSessionRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::CloseVideoSessionResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiVideoSessionService/CloseVideoSession",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAiVideoSessionService",
+                        "CloseVideoSession",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
         }
     }
 }

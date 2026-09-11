@@ -28,7 +28,8 @@ export type CanonicalCapabilityRuntimeEvidenceClass =
   | 'turn'
   | 'job'
   | 'workflow'
-  | 'session';
+  | 'session'
+  | 'job-and-session';
 
 export type CanonicalCapabilitySourceTable =
   | 'provider-capabilities'
@@ -125,6 +126,29 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
       dataMovement: 'local-or-cloud-by-selected-route',
       retention: 'runtime-audio-policy',
       revocation: 'route-or-connector-owner',
+      auditSource: 'runtime-scenario-job-evidence',
+    }),
+  }),
+  Object.freeze({
+    capabilityId: 'image.face_swap',
+    section: 'image',
+    editorKind: null,
+    sourceRef: Object.freeze({
+      table: 'local-adapter-routing',
+      capability: 'image.face_swap',
+    }),
+    additionalRuntimeTables: Object.freeze([]),
+    i18nKeys: Object.freeze({
+      title: 'AIConfig.capability.imageFaceSwap.title',
+      subtitle: 'AIConfig.capability.imageFaceSwap.subtitle',
+      detail: 'AIConfig.capability.imageFaceSwap.detail',
+    }),
+    runtimeEvidenceClass: 'job',
+    governance: Object.freeze({
+      owner: 'runtime-image-route',
+      dataMovement: 'local-by-selected-route',
+      retention: 'runtime-scenario-job-policy',
+      revocation: 'route-or-job-owner',
       auditSource: 'runtime-scenario-job-evidence',
     }),
   }),
@@ -251,6 +275,29 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
       retention: 'zhiyu-retains-no-provider-payload',
       revocation: 'change-runtime-route-or-revoke-connector',
       auditSource: 'runtime-route-evidence',
+    }),
+  }),
+  Object.freeze({
+    capabilityId: 'video.face_swap',
+    section: 'video',
+    editorKind: null,
+    sourceRef: Object.freeze({
+      table: 'local-adapter-routing',
+      capability: 'video.face_swap',
+    }),
+    additionalRuntimeTables: Object.freeze([]),
+    i18nKeys: Object.freeze({
+      title: 'AIConfig.capability.videoFaceSwap.title',
+      subtitle: 'AIConfig.capability.videoFaceSwap.subtitle',
+      detail: 'AIConfig.capability.videoFaceSwap.detail',
+    }),
+    runtimeEvidenceClass: 'job-and-session',
+    governance: Object.freeze({
+      owner: 'runtime-video-route',
+      dataMovement: 'local-by-selected-route',
+      retention: 'job-artifacts-and-session-ephemeral',
+      revocation: 'job-or-session-owner',
+      auditSource: 'scenario-job-and-video-session-lifecycle',
     }),
   }),
   Object.freeze({

@@ -854,6 +854,38 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "UploadLocalAppArtifactResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAiVideoSessionService/CloseVideoSession",
+    "service": "RuntimeAiVideoSessionService",
+    "method": "CloseVideoSession",
+    "kind": "unary",
+    "requestType": "CloseVideoSessionRequest",
+    "responseType": "CloseVideoSessionResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAiVideoSessionService/OpenVideoSession",
+    "service": "RuntimeAiVideoSessionService",
+    "method": "OpenVideoSession",
+    "kind": "unary",
+    "requestType": "OpenVideoSessionRequest",
+    "responseType": "OpenVideoSessionResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAiVideoSessionService/ReadVideoSessionResult",
+    "service": "RuntimeAiVideoSessionService",
+    "method": "ReadVideoSessionResult",
+    "kind": "unary",
+    "requestType": "ReadVideoSessionResultRequest",
+    "responseType": "ReadVideoSessionResultResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAiVideoSessionService/SubmitVideoSessionFrame",
+    "service": "RuntimeAiVideoSessionService",
+    "method": "SubmitVideoSessionFrame",
+    "kind": "unary",
+    "requestType": "SubmitVideoSessionFrameRequest",
+    "responseType": "SubmitVideoSessionFrameResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob",
     "service": "RuntimeAppPackageService",
     "method": "CancelAppPackageJob",

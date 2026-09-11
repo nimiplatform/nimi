@@ -8,6 +8,8 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 )
 
 const (
@@ -76,6 +78,9 @@ func PythonDependencyProfileStaticFiles(consumer string, identity PythonDependen
 		}
 		return append(files, driverFiles...), nil
 	}
+	if strings.TrimSpace(consumer) == FaceSwapConsumerID {
+		return append(files, faceSwapDriverStaticFiles()...), nil
+	}
 	driverFiles := speechPipelineFilesForConsumer(consumer)
 	if len(driverFiles) == 0 && strings.HasPrefix(strings.TrimSpace(consumer), "media.") {
 		driverFiles = []struct {
@@ -132,9 +137,12 @@ func ResolvePythonDependencyProfileIdentity(consumer string, platformTuple strin
 	if err != nil {
 		return PythonDependencyProfileIdentity{}, err
 	}
-	torchIdentity, err := ResolvePythonTorchWheelDependencyIdentity(trimmedConsumer + "." + trimmedPlane)
-	if err != nil {
-		return PythonDependencyProfileIdentity{}, err
+	torchIdentity := PythonTorchWheelDependencyIdentity{AcceleratorPlane: trimmedPlane, CUDAABI: "cu13"}
+	if trimmedConsumer != FaceSwapConsumerID {
+		torchIdentity, err = ResolvePythonTorchWheelDependencyIdentity(trimmedConsumer + "." + trimmedPlane)
+		if err != nil {
+			return PythonDependencyProfileIdentity{}, err
+		}
 	}
 	driverProtocol := pythonDependencyProfileDriverProtocol(trimmedConsumer)
 	driverBundleDigest, err := pythonDependencyProfileDriverBundleDigest(trimmedConsumer, driverProtocol)
@@ -200,6 +208,11 @@ func admitPythonDependencyProfilePlatform(platformTuple string, acceleratorPlane
 func pythonDependencyProfileSourceLabel(consumer string, platformTuple string, acceleratorPlane string) (string, error) {
 	line := ""
 	switch strings.TrimSpace(consumer) {
+	case FaceSwapConsumerID:
+		if platformTuple != "windows/amd64" || acceleratorPlane != "cuda" {
+			return "", fmt.Errorf("face replacement profile requires windows/amd64 NVIDIA CUDA")
+		}
+		return "face-swap-insightface-cu13", nil
 	case VisionLocateConsumerID:
 		backend, err := visionPythonBackend(platformTuple, acceleratorPlane)
 		if err != nil {
@@ -257,6 +270,9 @@ func pythonDependencyProfileInput(sourceLabel string, name string) ([]byte, erro
 }
 
 func pythonDependencyProfilePackageSource(consumer string, acceleratorPlane string) (string, error) {
+	if strings.TrimSpace(consumer) == FaceSwapConsumerID {
+		return "pypi=https://pypi.org/simple", nil
+	}
 	manifest, err := resolvePythonTorchWheelManifest(strings.TrimSpace(consumer) + "." + strings.TrimSpace(acceleratorPlane))
 	if err != nil {
 		return "", err
@@ -265,6 +281,9 @@ func pythonDependencyProfilePackageSource(consumer string, acceleratorPlane stri
 }
 
 func pythonDependencyProfileDriverProtocol(consumer string) string {
+	if strings.TrimSpace(consumer) == FaceSwapConsumerID {
+		return capabilitydriver.InsightFaceProtocol
+	}
 	if strings.TrimSpace(consumer) == VisionLocateConsumerID {
 		return visionDriverProtocolVersion
 	}
@@ -279,6 +298,13 @@ func speechDriverBundleDigest(consumer string) (string, error) {
 }
 
 func pythonDependencyProfileDriverBundleDigest(consumer string, driverProtocol string) (string, error) {
+	if strings.TrimSpace(consumer) == FaceSwapConsumerID {
+		lines := []string{"driver_protocol=" + driverProtocol}
+		for _, file := range faceSwapDriverStaticFiles() {
+			lines = append(lines, "file="+file.RelativePath, string(file.Content))
+		}
+		return sha256Hex([]byte(strings.Join(lines, "\n") + "\n")), nil
+	}
 	if strings.TrimSpace(consumer) == VisionLocateConsumerID {
 		files, err := visionDriverStaticFiles()
 		if err != nil {

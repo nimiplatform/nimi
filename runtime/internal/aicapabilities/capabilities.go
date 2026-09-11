@@ -22,6 +22,8 @@ const (
 	MusicGenerate     = "music.generate"
 	RealtimeInteract  = "realtime.interact"
 	VisionLocate      = "vision.locate"
+	ImageFaceSwap     = "image.face_swap"
+	VideoFaceSwap     = "video.face_swap"
 )
 
 var ErrUnknownCatalogCapability = errors.New("unknown catalog capability")
@@ -41,6 +43,8 @@ var canonicalCatalog = []string{
 	MusicGenerate,
 	RealtimeInteract,
 	VisionLocate,
+	ImageFaceSwap,
+	VideoFaceSwap,
 }
 
 var standardizedFeaturesByCapability = map[string]map[string]struct{}{
@@ -114,6 +118,10 @@ func NormalizeCatalogCapability(value string) (string, error) {
 		return RealtimeInteract, nil
 	case VisionLocate:
 		return VisionLocate, nil
+	case ImageFaceSwap:
+		return ImageFaceSwap, nil
+	case VideoFaceSwap:
+		return VideoFaceSwap, nil
 	default:
 		return "", ErrUnknownCatalogCapability
 	}

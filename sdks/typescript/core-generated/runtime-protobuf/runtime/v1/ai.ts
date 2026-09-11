@@ -32,9 +32,9 @@ import { VoiceOutputMode } from "./voice";
 import { VoiceCreationSource } from "./voice";
 import { VoiceAssetStatus } from "./voice";
 import { Timestamp } from "../../google/protobuf/timestamp";
-import { ReasonCode } from "./common";
 import { LoadoutEffectiveInputIdentity } from "./capability_configuration";
 import { UsageStats } from "./common";
+import { ReasonCode } from "./common";
 import { VoiceT2VInput } from "./voice";
 import { VoiceV2VInput } from "./voice";
 import { VoiceReference } from "./voice";
@@ -993,6 +993,294 @@ export interface WorldGenerateScenarioSpec {
     };
 }
 /**
+ * Both artifacts belong to the current protected App caller.
+ *
+ * @generated from protobuf message nimi.runtime.v1.ImageFaceSwapScenarioSpec
+ */
+export interface ImageFaceSwapScenarioSpec {
+    /**
+     * @generated from protobuf field: string reference_image_artifact_id = 1
+     */
+    referenceImageArtifactId: string;
+    /**
+     * @generated from protobuf field: string target_image_artifact_id = 2
+     */
+    targetImageArtifactId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AiVideoSessionFormat
+ */
+export interface AiVideoSessionFormat {
+    /**
+     * @generated from protobuf field: uint32 width = 1
+     */
+    width: number;
+    /**
+     * @generated from protobuf field: uint32 height = 2
+     */
+    height: number;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AiVideoPixelFormat pixel_format = 3
+     */
+    pixelFormat: AiVideoPixelFormat;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.OpenVideoSessionRequest
+ */
+export interface OpenVideoSessionRequest {
+    /**
+     * @generated from protobuf field: string reference_image_artifact_id = 1
+     */
+    referenceImageArtifactId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AiVideoSessionFormat format = 2
+     */
+    format?: AiVideoSessionFormat;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.OpenVideoSessionResponse
+ */
+export interface OpenVideoSessionResponse {
+    /**
+     * @generated from protobuf field: string video_session_id = 1
+     */
+    videoSessionId: string;
+    /**
+     * @generated from protobuf field: uint64 generation = 2
+     */
+    generation: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AiVideoSessionFormat format = 3
+     */
+    format?: AiVideoSessionFormat;
+    /**
+     * @generated from protobuf field: uint32 maximum_in_flight_submissions = 4
+     */
+    maximumInFlightSubmissions: number;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.SubmitVideoSessionFrameRequest
+ */
+export interface SubmitVideoSessionFrameRequest {
+    /**
+     * @generated from protobuf field: string video_session_id = 1
+     */
+    videoSessionId: string;
+    /**
+     * @generated from protobuf field: uint64 generation = 2
+     */
+    generation: string;
+    /**
+     * @generated from protobuf field: uint64 sequence = 3
+     */
+    sequence: string;
+    /**
+     * @generated from protobuf field: uint64 timestamp_us = 4
+     */
+    timestampUs: string;
+    /**
+     * @generated from protobuf field: bytes frame = 5
+     */
+    frame: Uint8Array;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.SubmitVideoSessionFrameResponse
+ */
+export interface SubmitVideoSessionFrameResponse {
+    /**
+     * @generated from protobuf field: bool accepted = 1
+     */
+    accepted: boolean;
+    /**
+     * @generated from protobuf field: uint64 sequence = 2
+     */
+    sequence: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ReadVideoSessionResultRequest
+ */
+export interface ReadVideoSessionResultRequest {
+    /**
+     * @generated from protobuf field: string video_session_id = 1
+     */
+    videoSessionId: string;
+    /**
+     * @generated from protobuf field: uint64 generation = 2
+     */
+    generation: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AiVideoTransformedFrame
+ */
+export interface AiVideoTransformedFrame {
+    /**
+     * @generated from protobuf field: uint64 sequence = 1
+     */
+    sequence: string;
+    /**
+     * @generated from protobuf field: uint64 timestamp_us = 2
+     */
+    timestampUs: string;
+    /**
+     * @generated from protobuf field: bytes frame = 3
+     */
+    frame: Uint8Array;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AiVideoFrameDisposition
+ */
+export interface AiVideoFrameDisposition {
+    /**
+     * @generated from protobuf field: uint64 sequence = 1
+     */
+    sequence: string;
+    /**
+     * @generated from protobuf field: uint64 timestamp_us = 2
+     */
+    timestampUs: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 3
+     */
+    reasonCode: ReasonCode;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AiVideoSessionTerminal
+ */
+export interface AiVideoSessionTerminal {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 1
+     */
+    reasonCode: ReasonCode;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AiVideoSessionResult
+ */
+export interface AiVideoSessionResult {
+    /**
+     * @generated from protobuf field: string video_session_id = 1
+     */
+    videoSessionId: string;
+    /**
+     * @generated from protobuf field: uint64 generation = 2
+     */
+    generation: string;
+    /**
+     * @generated from protobuf oneof: result
+     */
+    result: {
+        oneofKind: "transformed";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AiVideoTransformedFrame transformed = 3
+         */
+        transformed: AiVideoTransformedFrame;
+    } | {
+        oneofKind: "noTargetFace";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AiVideoFrameDisposition no_target_face = 4
+         */
+        noTargetFace: AiVideoFrameDisposition;
+    } | {
+        oneofKind: "inputDropped";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AiVideoFrameDisposition input_dropped = 5
+         */
+        inputDropped: AiVideoFrameDisposition;
+    } | {
+        oneofKind: "inputRejected";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AiVideoFrameDisposition input_rejected = 6
+         */
+        inputRejected: AiVideoFrameDisposition;
+    } | {
+        oneofKind: "sessionTerminal";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AiVideoSessionTerminal session_terminal = 7
+         */
+        sessionTerminal: AiVideoSessionTerminal;
+    } | {
+        oneofKind: undefined;
+    };
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ReadVideoSessionResultResponse
+ */
+export interface ReadVideoSessionResultResponse {
+    /**
+     * Absent means the bounded poll has no result yet.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.AiVideoSessionResult result = 1
+     */
+    result?: AiVideoSessionResult;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.CloseVideoSessionRequest
+ */
+export interface CloseVideoSessionRequest {
+    /**
+     * @generated from protobuf field: string video_session_id = 1
+     */
+    videoSessionId: string;
+    /**
+     * @generated from protobuf field: uint64 generation = 2
+     */
+    generation: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.CloseVideoSessionResponse
+ */
+export interface CloseVideoSessionResponse {
+    /**
+     * @generated from protobuf field: bool closed = 1
+     */
+    closed: boolean;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.VideoFaceSwapScenarioSpec
+ */
+export interface VideoFaceSwapScenarioSpec {
+    /**
+     * @generated from protobuf field: string reference_image_artifact_id = 1
+     */
+    referenceImageArtifactId: string;
+    /**
+     * @generated from protobuf field: string target_video_artifact_id = 2
+     */
+    targetVideoArtifactId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.FaceSwapNoFacePolicy no_face_policy = 3
+     */
+    noFacePolicy: FaceSwapNoFacePolicy;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.VideoFaceSwapSummary
+ */
+export interface VideoFaceSwapSummary {
+    /**
+     * @generated from protobuf field: uint32 total_frames = 1
+     */
+    totalFrames: number;
+    /**
+     * @generated from protobuf field: uint32 transformed_frames = 2
+     */
+    transformedFrames: number;
+    /**
+     * @generated from protobuf field: uint32 preserved_frames = 3
+     */
+    preservedFrames: number;
+    /**
+     * @generated from protobuf field: uint64 duration_us = 4
+     */
+    durationUs: string;
+    /**
+     * @generated from protobuf field: uint32 frame_rate = 5
+     */
+    frameRate: number;
+    /**
+     * @generated from protobuf field: bool audio_preserved = 6
+     */
+    audioPreserved: boolean;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.VisionLocateScenarioSpec
  */
 export interface VisionLocateScenarioSpec {
@@ -1162,6 +1450,18 @@ export interface ScenarioSpec {
          */
         visionLocate: VisionLocateScenarioSpec;
     } | {
+        oneofKind: "imageFaceSwap";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.ImageFaceSwapScenarioSpec image_face_swap = 13
+         */
+        imageFaceSwap: ImageFaceSwapScenarioSpec;
+    } | {
+        oneofKind: "videoFaceSwap";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.VideoFaceSwapScenarioSpec video_face_swap = 14
+         */
+        videoFaceSwap: VideoFaceSwapScenarioSpec;
+    } | {
         oneofKind: undefined;
     };
 }
@@ -1252,6 +1552,28 @@ export interface ImageGenerateResult {
      * @generated from protobuf field: repeated nimi.runtime.v1.ScenarioArtifact artifacts = 1
      */
     artifacts: ScenarioArtifact[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ImageFaceSwapResult
+ */
+export interface ImageFaceSwapResult {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.ScenarioArtifact artifacts = 1
+     */
+    artifacts: ScenarioArtifact[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.VideoFaceSwapResult
+ */
+export interface VideoFaceSwapResult {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.ScenarioArtifact artifacts = 1
+     */
+    artifacts: ScenarioArtifact[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.VideoFaceSwapSummary summary = 2
+     */
+    summary?: VideoFaceSwapSummary;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.VideoGenerateResult
@@ -1409,6 +1731,18 @@ export interface ScenarioOutput {
          */
         worldGenerate: WorldGenerateResult;
     } | {
+        oneofKind: "imageFaceSwap";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.ImageFaceSwapResult image_face_swap = 9
+         */
+        imageFaceSwap: ImageFaceSwapResult;
+    } | {
+        oneofKind: "videoFaceSwap";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.VideoFaceSwapResult video_face_swap = 10
+         */
+        videoFaceSwap: VideoFaceSwapResult;
+    } | {
         oneofKind: undefined;
     };
 }
@@ -1515,7 +1849,7 @@ export interface GenerateLocalAppTextCandidateResponse {
 /**
  * Trimmed artifact projection for Local App scenario outputs. Runtime-private
  * uri, producer, and owner fields are never projected; oversized payloads are
- * reachable only through ReadLocalAppArtifact.
+ * retrieved through owned artifact adoption and App asset streaming.
  *
  * @generated from protobuf message nimi.runtime.v1.LocalAppScenarioArtifact
  */
@@ -1984,6 +2318,18 @@ export interface SubmitLocalAppScenarioJobRequest {
          */
         visionLocate: VisionLocateScenarioSpec;
     } | {
+        oneofKind: "imageFaceSwap";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.ImageFaceSwapScenarioSpec image_face_swap = 12
+         */
+        imageFaceSwap: ImageFaceSwapScenarioSpec;
+    } | {
+        oneofKind: "videoFaceSwap";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.VideoFaceSwapScenarioSpec video_face_swap = 13
+         */
+        videoFaceSwap: VideoFaceSwapScenarioSpec;
+    } | {
         oneofKind: undefined;
     };
     /**
@@ -2064,6 +2410,12 @@ export interface LocalAppScenarioJob {
      * @generated from protobuf field: nimi.runtime.v1.ExecutionInterruption interruption = 14
      */
     interruption?: ExecutionInterruption;
+    /**
+     * Present only for a completed VIDEO_FACE_SWAP Job.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.VideoFaceSwapSummary video_face_swap_summary = 15
+     */
+    videoFaceSwapSummary?: VideoFaceSwapSummary;
 }
 /**
  * Trimmed voice asset catalog projection. Provider, model, provider voice
@@ -2785,6 +3137,12 @@ export interface ScenarioJob {
      * @generated from protobuf field: nimi.runtime.v1.ExecutionInterruption interruption = 25
      */
     interruption?: ExecutionInterruption;
+    /**
+     * Immutable per-frame outcome counts captured with the completed artifact.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.VideoFaceSwapSummary video_face_swap_summary = 26
+     */
+    videoFaceSwapSummary?: VideoFaceSwapSummary;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.SubmitScenarioJobRequest
@@ -3412,7 +3770,15 @@ export enum ScenarioType {
     /**
      * @generated from protobuf enum value: SCENARIO_TYPE_VISION_LOCATE = 12;
      */
-    VISION_LOCATE = 12
+    VISION_LOCATE = 12,
+    /**
+     * @generated from protobuf enum value: SCENARIO_TYPE_IMAGE_FACE_SWAP = 13;
+     */
+    IMAGE_FACE_SWAP = 13,
+    /**
+     * @generated from protobuf enum value: SCENARIO_TYPE_VIDEO_FACE_SWAP = 14;
+     */
+    VIDEO_FACE_SWAP = 14
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExecutionMode
@@ -3813,6 +4179,36 @@ export enum VisionLocateGeometry {
      * @generated from protobuf enum value: VISION_LOCATE_GEOMETRY_POINT = 2;
      */
     POINT = 2
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.FaceSwapNoFacePolicy
+ */
+export enum FaceSwapNoFacePolicy {
+    /**
+     * @generated from protobuf enum value: FACE_SWAP_NO_FACE_POLICY_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: FACE_SWAP_NO_FACE_POLICY_FAIL = 1;
+     */
+    FAIL = 1,
+    /**
+     * @generated from protobuf enum value: FACE_SWAP_NO_FACE_POLICY_PRESERVE_FRAME = 2;
+     */
+    PRESERVE_FRAME = 2
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.AiVideoPixelFormat
+ */
+export enum AiVideoPixelFormat {
+    /**
+     * @generated from protobuf enum value: AI_VIDEO_PIXEL_FORMAT_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: AI_VIDEO_PIXEL_FORMAT_RGB8 = 1;
+     */
+    RGB8 = 1
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ScenarioJobStatus
@@ -6632,6 +7028,1014 @@ class WorldGenerateScenarioSpec$Type extends MessageType<WorldGenerateScenarioSp
  */
 export const WorldGenerateScenarioSpec = new WorldGenerateScenarioSpec$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class ImageFaceSwapScenarioSpec$Type extends MessageType<ImageFaceSwapScenarioSpec> {
+    constructor() {
+        super("nimi.runtime.v1.ImageFaceSwapScenarioSpec", [
+            { no: 1, name: "reference_image_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "target_image_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ImageFaceSwapScenarioSpec>): ImageFaceSwapScenarioSpec {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.referenceImageArtifactId = "";
+        message.targetImageArtifactId = "";
+        if (value !== undefined)
+            reflectionMergePartial<ImageFaceSwapScenarioSpec>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ImageFaceSwapScenarioSpec): ImageFaceSwapScenarioSpec {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string reference_image_artifact_id */ 1:
+                    message.referenceImageArtifactId = reader.string();
+                    break;
+                case /* string target_image_artifact_id */ 2:
+                    message.targetImageArtifactId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ImageFaceSwapScenarioSpec, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string reference_image_artifact_id = 1; */
+        if (message.referenceImageArtifactId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.referenceImageArtifactId);
+        /* string target_image_artifact_id = 2; */
+        if (message.targetImageArtifactId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.targetImageArtifactId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ImageFaceSwapScenarioSpec
+ */
+export const ImageFaceSwapScenarioSpec = new ImageFaceSwapScenarioSpec$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AiVideoSessionFormat$Type extends MessageType<AiVideoSessionFormat> {
+    constructor() {
+        super("nimi.runtime.v1.AiVideoSessionFormat", [
+            { no: 1, name: "width", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 2, name: "height", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 3, name: "pixel_format", kind: "enum", T: () => ["nimi.runtime.v1.AiVideoPixelFormat", AiVideoPixelFormat, "AI_VIDEO_PIXEL_FORMAT_"] }
+        ]);
+    }
+    create(value?: PartialMessage<AiVideoSessionFormat>): AiVideoSessionFormat {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.width = 0;
+        message.height = 0;
+        message.pixelFormat = 0;
+        if (value !== undefined)
+            reflectionMergePartial<AiVideoSessionFormat>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AiVideoSessionFormat): AiVideoSessionFormat {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* uint32 width */ 1:
+                    message.width = reader.uint32();
+                    break;
+                case /* uint32 height */ 2:
+                    message.height = reader.uint32();
+                    break;
+                case /* nimi.runtime.v1.AiVideoPixelFormat pixel_format */ 3:
+                    message.pixelFormat = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AiVideoSessionFormat, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* uint32 width = 1; */
+        if (message.width !== 0)
+            writer.tag(1, WireType.Varint).uint32(message.width);
+        /* uint32 height = 2; */
+        if (message.height !== 0)
+            writer.tag(2, WireType.Varint).uint32(message.height);
+        /* nimi.runtime.v1.AiVideoPixelFormat pixel_format = 3; */
+        if (message.pixelFormat !== 0)
+            writer.tag(3, WireType.Varint).int32(message.pixelFormat);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AiVideoSessionFormat
+ */
+export const AiVideoSessionFormat = new AiVideoSessionFormat$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class OpenVideoSessionRequest$Type extends MessageType<OpenVideoSessionRequest> {
+    constructor() {
+        super("nimi.runtime.v1.OpenVideoSessionRequest", [
+            { no: 1, name: "reference_image_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "format", kind: "message", T: () => AiVideoSessionFormat }
+        ]);
+    }
+    create(value?: PartialMessage<OpenVideoSessionRequest>): OpenVideoSessionRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.referenceImageArtifactId = "";
+        if (value !== undefined)
+            reflectionMergePartial<OpenVideoSessionRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: OpenVideoSessionRequest): OpenVideoSessionRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string reference_image_artifact_id */ 1:
+                    message.referenceImageArtifactId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.AiVideoSessionFormat format */ 2:
+                    message.format = AiVideoSessionFormat.internalBinaryRead(reader, reader.uint32(), options, message.format);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: OpenVideoSessionRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string reference_image_artifact_id = 1; */
+        if (message.referenceImageArtifactId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.referenceImageArtifactId);
+        /* nimi.runtime.v1.AiVideoSessionFormat format = 2; */
+        if (message.format)
+            AiVideoSessionFormat.internalBinaryWrite(message.format, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.OpenVideoSessionRequest
+ */
+export const OpenVideoSessionRequest = new OpenVideoSessionRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class OpenVideoSessionResponse$Type extends MessageType<OpenVideoSessionResponse> {
+    constructor() {
+        super("nimi.runtime.v1.OpenVideoSessionResponse", [
+            { no: 1, name: "video_session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "generation", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 3, name: "format", kind: "message", T: () => AiVideoSessionFormat },
+            { no: 4, name: "maximum_in_flight_submissions", kind: "scalar", T: 13 /*ScalarType.UINT32*/ }
+        ]);
+    }
+    create(value?: PartialMessage<OpenVideoSessionResponse>): OpenVideoSessionResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.videoSessionId = "";
+        message.generation = "0";
+        message.maximumInFlightSubmissions = 0;
+        if (value !== undefined)
+            reflectionMergePartial<OpenVideoSessionResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: OpenVideoSessionResponse): OpenVideoSessionResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string video_session_id */ 1:
+                    message.videoSessionId = reader.string();
+                    break;
+                case /* uint64 generation */ 2:
+                    message.generation = reader.uint64().toString();
+                    break;
+                case /* nimi.runtime.v1.AiVideoSessionFormat format */ 3:
+                    message.format = AiVideoSessionFormat.internalBinaryRead(reader, reader.uint32(), options, message.format);
+                    break;
+                case /* uint32 maximum_in_flight_submissions */ 4:
+                    message.maximumInFlightSubmissions = reader.uint32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: OpenVideoSessionResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string video_session_id = 1; */
+        if (message.videoSessionId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.videoSessionId);
+        /* uint64 generation = 2; */
+        if (message.generation !== "0")
+            writer.tag(2, WireType.Varint).uint64(message.generation);
+        /* nimi.runtime.v1.AiVideoSessionFormat format = 3; */
+        if (message.format)
+            AiVideoSessionFormat.internalBinaryWrite(message.format, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* uint32 maximum_in_flight_submissions = 4; */
+        if (message.maximumInFlightSubmissions !== 0)
+            writer.tag(4, WireType.Varint).uint32(message.maximumInFlightSubmissions);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.OpenVideoSessionResponse
+ */
+export const OpenVideoSessionResponse = new OpenVideoSessionResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SubmitVideoSessionFrameRequest$Type extends MessageType<SubmitVideoSessionFrameRequest> {
+    constructor() {
+        super("nimi.runtime.v1.SubmitVideoSessionFrameRequest", [
+            { no: 1, name: "video_session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "generation", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 3, name: "sequence", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 4, name: "timestamp_us", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 5, name: "frame", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
+        ]);
+    }
+    create(value?: PartialMessage<SubmitVideoSessionFrameRequest>): SubmitVideoSessionFrameRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.videoSessionId = "";
+        message.generation = "0";
+        message.sequence = "0";
+        message.timestampUs = "0";
+        message.frame = new Uint8Array(0);
+        if (value !== undefined)
+            reflectionMergePartial<SubmitVideoSessionFrameRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SubmitVideoSessionFrameRequest): SubmitVideoSessionFrameRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string video_session_id */ 1:
+                    message.videoSessionId = reader.string();
+                    break;
+                case /* uint64 generation */ 2:
+                    message.generation = reader.uint64().toString();
+                    break;
+                case /* uint64 sequence */ 3:
+                    message.sequence = reader.uint64().toString();
+                    break;
+                case /* uint64 timestamp_us */ 4:
+                    message.timestampUs = reader.uint64().toString();
+                    break;
+                case /* bytes frame */ 5:
+                    message.frame = reader.bytes();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SubmitVideoSessionFrameRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string video_session_id = 1; */
+        if (message.videoSessionId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.videoSessionId);
+        /* uint64 generation = 2; */
+        if (message.generation !== "0")
+            writer.tag(2, WireType.Varint).uint64(message.generation);
+        /* uint64 sequence = 3; */
+        if (message.sequence !== "0")
+            writer.tag(3, WireType.Varint).uint64(message.sequence);
+        /* uint64 timestamp_us = 4; */
+        if (message.timestampUs !== "0")
+            writer.tag(4, WireType.Varint).uint64(message.timestampUs);
+        /* bytes frame = 5; */
+        if (message.frame.length)
+            writer.tag(5, WireType.LengthDelimited).bytes(message.frame);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SubmitVideoSessionFrameRequest
+ */
+export const SubmitVideoSessionFrameRequest = new SubmitVideoSessionFrameRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SubmitVideoSessionFrameResponse$Type extends MessageType<SubmitVideoSessionFrameResponse> {
+    constructor() {
+        super("nimi.runtime.v1.SubmitVideoSessionFrameResponse", [
+            { no: 1, name: "accepted", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 2, name: "sequence", kind: "scalar", T: 4 /*ScalarType.UINT64*/ }
+        ]);
+    }
+    create(value?: PartialMessage<SubmitVideoSessionFrameResponse>): SubmitVideoSessionFrameResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.accepted = false;
+        message.sequence = "0";
+        if (value !== undefined)
+            reflectionMergePartial<SubmitVideoSessionFrameResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SubmitVideoSessionFrameResponse): SubmitVideoSessionFrameResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bool accepted */ 1:
+                    message.accepted = reader.bool();
+                    break;
+                case /* uint64 sequence */ 2:
+                    message.sequence = reader.uint64().toString();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SubmitVideoSessionFrameResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bool accepted = 1; */
+        if (message.accepted !== false)
+            writer.tag(1, WireType.Varint).bool(message.accepted);
+        /* uint64 sequence = 2; */
+        if (message.sequence !== "0")
+            writer.tag(2, WireType.Varint).uint64(message.sequence);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SubmitVideoSessionFrameResponse
+ */
+export const SubmitVideoSessionFrameResponse = new SubmitVideoSessionFrameResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ReadVideoSessionResultRequest$Type extends MessageType<ReadVideoSessionResultRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ReadVideoSessionResultRequest", [
+            { no: 1, name: "video_session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "generation", kind: "scalar", T: 4 /*ScalarType.UINT64*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ReadVideoSessionResultRequest>): ReadVideoSessionResultRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.videoSessionId = "";
+        message.generation = "0";
+        if (value !== undefined)
+            reflectionMergePartial<ReadVideoSessionResultRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ReadVideoSessionResultRequest): ReadVideoSessionResultRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string video_session_id */ 1:
+                    message.videoSessionId = reader.string();
+                    break;
+                case /* uint64 generation */ 2:
+                    message.generation = reader.uint64().toString();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ReadVideoSessionResultRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string video_session_id = 1; */
+        if (message.videoSessionId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.videoSessionId);
+        /* uint64 generation = 2; */
+        if (message.generation !== "0")
+            writer.tag(2, WireType.Varint).uint64(message.generation);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ReadVideoSessionResultRequest
+ */
+export const ReadVideoSessionResultRequest = new ReadVideoSessionResultRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AiVideoTransformedFrame$Type extends MessageType<AiVideoTransformedFrame> {
+    constructor() {
+        super("nimi.runtime.v1.AiVideoTransformedFrame", [
+            { no: 1, name: "sequence", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 2, name: "timestamp_us", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 3, name: "frame", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AiVideoTransformedFrame>): AiVideoTransformedFrame {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.sequence = "0";
+        message.timestampUs = "0";
+        message.frame = new Uint8Array(0);
+        if (value !== undefined)
+            reflectionMergePartial<AiVideoTransformedFrame>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AiVideoTransformedFrame): AiVideoTransformedFrame {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* uint64 sequence */ 1:
+                    message.sequence = reader.uint64().toString();
+                    break;
+                case /* uint64 timestamp_us */ 2:
+                    message.timestampUs = reader.uint64().toString();
+                    break;
+                case /* bytes frame */ 3:
+                    message.frame = reader.bytes();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AiVideoTransformedFrame, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* uint64 sequence = 1; */
+        if (message.sequence !== "0")
+            writer.tag(1, WireType.Varint).uint64(message.sequence);
+        /* uint64 timestamp_us = 2; */
+        if (message.timestampUs !== "0")
+            writer.tag(2, WireType.Varint).uint64(message.timestampUs);
+        /* bytes frame = 3; */
+        if (message.frame.length)
+            writer.tag(3, WireType.LengthDelimited).bytes(message.frame);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AiVideoTransformedFrame
+ */
+export const AiVideoTransformedFrame = new AiVideoTransformedFrame$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AiVideoFrameDisposition$Type extends MessageType<AiVideoFrameDisposition> {
+    constructor() {
+        super("nimi.runtime.v1.AiVideoFrameDisposition", [
+            { no: 1, name: "sequence", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 2, name: "timestamp_us", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 3, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<AiVideoFrameDisposition>): AiVideoFrameDisposition {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.sequence = "0";
+        message.timestampUs = "0";
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<AiVideoFrameDisposition>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AiVideoFrameDisposition): AiVideoFrameDisposition {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* uint64 sequence */ 1:
+                    message.sequence = reader.uint64().toString();
+                    break;
+                case /* uint64 timestamp_us */ 2:
+                    message.timestampUs = reader.uint64().toString();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 3:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AiVideoFrameDisposition, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* uint64 sequence = 1; */
+        if (message.sequence !== "0")
+            writer.tag(1, WireType.Varint).uint64(message.sequence);
+        /* uint64 timestamp_us = 2; */
+        if (message.timestampUs !== "0")
+            writer.tag(2, WireType.Varint).uint64(message.timestampUs);
+        /* nimi.runtime.v1.ReasonCode reason_code = 3; */
+        if (message.reasonCode !== 0)
+            writer.tag(3, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AiVideoFrameDisposition
+ */
+export const AiVideoFrameDisposition = new AiVideoFrameDisposition$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AiVideoSessionTerminal$Type extends MessageType<AiVideoSessionTerminal> {
+    constructor() {
+        super("nimi.runtime.v1.AiVideoSessionTerminal", [
+            { no: 1, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<AiVideoSessionTerminal>): AiVideoSessionTerminal {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<AiVideoSessionTerminal>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AiVideoSessionTerminal): AiVideoSessionTerminal {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 1:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AiVideoSessionTerminal, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.ReasonCode reason_code = 1; */
+        if (message.reasonCode !== 0)
+            writer.tag(1, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AiVideoSessionTerminal
+ */
+export const AiVideoSessionTerminal = new AiVideoSessionTerminal$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AiVideoSessionResult$Type extends MessageType<AiVideoSessionResult> {
+    constructor() {
+        super("nimi.runtime.v1.AiVideoSessionResult", [
+            { no: 1, name: "video_session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "generation", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 3, name: "transformed", kind: "message", oneof: "result", T: () => AiVideoTransformedFrame },
+            { no: 4, name: "no_target_face", kind: "message", oneof: "result", T: () => AiVideoFrameDisposition },
+            { no: 5, name: "input_dropped", kind: "message", oneof: "result", T: () => AiVideoFrameDisposition },
+            { no: 6, name: "input_rejected", kind: "message", oneof: "result", T: () => AiVideoFrameDisposition },
+            { no: 7, name: "session_terminal", kind: "message", oneof: "result", T: () => AiVideoSessionTerminal }
+        ]);
+    }
+    create(value?: PartialMessage<AiVideoSessionResult>): AiVideoSessionResult {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.videoSessionId = "";
+        message.generation = "0";
+        message.result = { oneofKind: undefined };
+        if (value !== undefined)
+            reflectionMergePartial<AiVideoSessionResult>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AiVideoSessionResult): AiVideoSessionResult {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string video_session_id */ 1:
+                    message.videoSessionId = reader.string();
+                    break;
+                case /* uint64 generation */ 2:
+                    message.generation = reader.uint64().toString();
+                    break;
+                case /* nimi.runtime.v1.AiVideoTransformedFrame transformed */ 3:
+                    message.result = {
+                        oneofKind: "transformed",
+                        transformed: AiVideoTransformedFrame.internalBinaryRead(reader, reader.uint32(), options, (message.result as any).transformed)
+                    };
+                    break;
+                case /* nimi.runtime.v1.AiVideoFrameDisposition no_target_face */ 4:
+                    message.result = {
+                        oneofKind: "noTargetFace",
+                        noTargetFace: AiVideoFrameDisposition.internalBinaryRead(reader, reader.uint32(), options, (message.result as any).noTargetFace)
+                    };
+                    break;
+                case /* nimi.runtime.v1.AiVideoFrameDisposition input_dropped */ 5:
+                    message.result = {
+                        oneofKind: "inputDropped",
+                        inputDropped: AiVideoFrameDisposition.internalBinaryRead(reader, reader.uint32(), options, (message.result as any).inputDropped)
+                    };
+                    break;
+                case /* nimi.runtime.v1.AiVideoFrameDisposition input_rejected */ 6:
+                    message.result = {
+                        oneofKind: "inputRejected",
+                        inputRejected: AiVideoFrameDisposition.internalBinaryRead(reader, reader.uint32(), options, (message.result as any).inputRejected)
+                    };
+                    break;
+                case /* nimi.runtime.v1.AiVideoSessionTerminal session_terminal */ 7:
+                    message.result = {
+                        oneofKind: "sessionTerminal",
+                        sessionTerminal: AiVideoSessionTerminal.internalBinaryRead(reader, reader.uint32(), options, (message.result as any).sessionTerminal)
+                    };
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AiVideoSessionResult, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string video_session_id = 1; */
+        if (message.videoSessionId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.videoSessionId);
+        /* uint64 generation = 2; */
+        if (message.generation !== "0")
+            writer.tag(2, WireType.Varint).uint64(message.generation);
+        /* nimi.runtime.v1.AiVideoTransformedFrame transformed = 3; */
+        if (message.result.oneofKind === "transformed")
+            AiVideoTransformedFrame.internalBinaryWrite(message.result.transformed, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AiVideoFrameDisposition no_target_face = 4; */
+        if (message.result.oneofKind === "noTargetFace")
+            AiVideoFrameDisposition.internalBinaryWrite(message.result.noTargetFace, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AiVideoFrameDisposition input_dropped = 5; */
+        if (message.result.oneofKind === "inputDropped")
+            AiVideoFrameDisposition.internalBinaryWrite(message.result.inputDropped, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AiVideoFrameDisposition input_rejected = 6; */
+        if (message.result.oneofKind === "inputRejected")
+            AiVideoFrameDisposition.internalBinaryWrite(message.result.inputRejected, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AiVideoSessionTerminal session_terminal = 7; */
+        if (message.result.oneofKind === "sessionTerminal")
+            AiVideoSessionTerminal.internalBinaryWrite(message.result.sessionTerminal, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AiVideoSessionResult
+ */
+export const AiVideoSessionResult = new AiVideoSessionResult$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ReadVideoSessionResultResponse$Type extends MessageType<ReadVideoSessionResultResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ReadVideoSessionResultResponse", [
+            { no: 1, name: "result", kind: "message", T: () => AiVideoSessionResult }
+        ]);
+    }
+    create(value?: PartialMessage<ReadVideoSessionResultResponse>): ReadVideoSessionResultResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<ReadVideoSessionResultResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ReadVideoSessionResultResponse): ReadVideoSessionResultResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AiVideoSessionResult result */ 1:
+                    message.result = AiVideoSessionResult.internalBinaryRead(reader, reader.uint32(), options, message.result);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ReadVideoSessionResultResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AiVideoSessionResult result = 1; */
+        if (message.result)
+            AiVideoSessionResult.internalBinaryWrite(message.result, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ReadVideoSessionResultResponse
+ */
+export const ReadVideoSessionResultResponse = new ReadVideoSessionResultResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class CloseVideoSessionRequest$Type extends MessageType<CloseVideoSessionRequest> {
+    constructor() {
+        super("nimi.runtime.v1.CloseVideoSessionRequest", [
+            { no: 1, name: "video_session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "generation", kind: "scalar", T: 4 /*ScalarType.UINT64*/ }
+        ]);
+    }
+    create(value?: PartialMessage<CloseVideoSessionRequest>): CloseVideoSessionRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.videoSessionId = "";
+        message.generation = "0";
+        if (value !== undefined)
+            reflectionMergePartial<CloseVideoSessionRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CloseVideoSessionRequest): CloseVideoSessionRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string video_session_id */ 1:
+                    message.videoSessionId = reader.string();
+                    break;
+                case /* uint64 generation */ 2:
+                    message.generation = reader.uint64().toString();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: CloseVideoSessionRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string video_session_id = 1; */
+        if (message.videoSessionId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.videoSessionId);
+        /* uint64 generation = 2; */
+        if (message.generation !== "0")
+            writer.tag(2, WireType.Varint).uint64(message.generation);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.CloseVideoSessionRequest
+ */
+export const CloseVideoSessionRequest = new CloseVideoSessionRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class CloseVideoSessionResponse$Type extends MessageType<CloseVideoSessionResponse> {
+    constructor() {
+        super("nimi.runtime.v1.CloseVideoSessionResponse", [
+            { no: 1, name: "closed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<CloseVideoSessionResponse>): CloseVideoSessionResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.closed = false;
+        if (value !== undefined)
+            reflectionMergePartial<CloseVideoSessionResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CloseVideoSessionResponse): CloseVideoSessionResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bool closed */ 1:
+                    message.closed = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: CloseVideoSessionResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bool closed = 1; */
+        if (message.closed !== false)
+            writer.tag(1, WireType.Varint).bool(message.closed);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.CloseVideoSessionResponse
+ */
+export const CloseVideoSessionResponse = new CloseVideoSessionResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class VideoFaceSwapScenarioSpec$Type extends MessageType<VideoFaceSwapScenarioSpec> {
+    constructor() {
+        super("nimi.runtime.v1.VideoFaceSwapScenarioSpec", [
+            { no: 1, name: "reference_image_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "target_video_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "no_face_policy", kind: "enum", T: () => ["nimi.runtime.v1.FaceSwapNoFacePolicy", FaceSwapNoFacePolicy, "FACE_SWAP_NO_FACE_POLICY_"] }
+        ]);
+    }
+    create(value?: PartialMessage<VideoFaceSwapScenarioSpec>): VideoFaceSwapScenarioSpec {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.referenceImageArtifactId = "";
+        message.targetVideoArtifactId = "";
+        message.noFacePolicy = 0;
+        if (value !== undefined)
+            reflectionMergePartial<VideoFaceSwapScenarioSpec>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: VideoFaceSwapScenarioSpec): VideoFaceSwapScenarioSpec {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string reference_image_artifact_id */ 1:
+                    message.referenceImageArtifactId = reader.string();
+                    break;
+                case /* string target_video_artifact_id */ 2:
+                    message.targetVideoArtifactId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.FaceSwapNoFacePolicy no_face_policy */ 3:
+                    message.noFacePolicy = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: VideoFaceSwapScenarioSpec, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string reference_image_artifact_id = 1; */
+        if (message.referenceImageArtifactId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.referenceImageArtifactId);
+        /* string target_video_artifact_id = 2; */
+        if (message.targetVideoArtifactId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.targetVideoArtifactId);
+        /* nimi.runtime.v1.FaceSwapNoFacePolicy no_face_policy = 3; */
+        if (message.noFacePolicy !== 0)
+            writer.tag(3, WireType.Varint).int32(message.noFacePolicy);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.VideoFaceSwapScenarioSpec
+ */
+export const VideoFaceSwapScenarioSpec = new VideoFaceSwapScenarioSpec$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class VideoFaceSwapSummary$Type extends MessageType<VideoFaceSwapSummary> {
+    constructor() {
+        super("nimi.runtime.v1.VideoFaceSwapSummary", [
+            { no: 1, name: "total_frames", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 2, name: "transformed_frames", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 3, name: "preserved_frames", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 4, name: "duration_us", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 5, name: "frame_rate", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 6, name: "audio_preserved", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<VideoFaceSwapSummary>): VideoFaceSwapSummary {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.totalFrames = 0;
+        message.transformedFrames = 0;
+        message.preservedFrames = 0;
+        message.durationUs = "0";
+        message.frameRate = 0;
+        message.audioPreserved = false;
+        if (value !== undefined)
+            reflectionMergePartial<VideoFaceSwapSummary>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: VideoFaceSwapSummary): VideoFaceSwapSummary {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* uint32 total_frames */ 1:
+                    message.totalFrames = reader.uint32();
+                    break;
+                case /* uint32 transformed_frames */ 2:
+                    message.transformedFrames = reader.uint32();
+                    break;
+                case /* uint32 preserved_frames */ 3:
+                    message.preservedFrames = reader.uint32();
+                    break;
+                case /* uint64 duration_us */ 4:
+                    message.durationUs = reader.uint64().toString();
+                    break;
+                case /* uint32 frame_rate */ 5:
+                    message.frameRate = reader.uint32();
+                    break;
+                case /* bool audio_preserved */ 6:
+                    message.audioPreserved = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: VideoFaceSwapSummary, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* uint32 total_frames = 1; */
+        if (message.totalFrames !== 0)
+            writer.tag(1, WireType.Varint).uint32(message.totalFrames);
+        /* uint32 transformed_frames = 2; */
+        if (message.transformedFrames !== 0)
+            writer.tag(2, WireType.Varint).uint32(message.transformedFrames);
+        /* uint32 preserved_frames = 3; */
+        if (message.preservedFrames !== 0)
+            writer.tag(3, WireType.Varint).uint32(message.preservedFrames);
+        /* uint64 duration_us = 4; */
+        if (message.durationUs !== "0")
+            writer.tag(4, WireType.Varint).uint64(message.durationUs);
+        /* uint32 frame_rate = 5; */
+        if (message.frameRate !== 0)
+            writer.tag(5, WireType.Varint).uint32(message.frameRate);
+        /* bool audio_preserved = 6; */
+        if (message.audioPreserved !== false)
+            writer.tag(6, WireType.Varint).bool(message.audioPreserved);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.VideoFaceSwapSummary
+ */
+export const VideoFaceSwapSummary = new VideoFaceSwapSummary$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class VisionLocateScenarioSpec$Type extends MessageType<VisionLocateScenarioSpec> {
     constructor() {
         super("nimi.runtime.v1.VisionLocateScenarioSpec", [
@@ -6971,7 +8375,9 @@ class ScenarioSpec$Type extends MessageType<ScenarioSpec> {
             { no: 9, name: "music_generate", kind: "message", oneof: "spec", T: () => MusicGenerateScenarioSpec },
             { no: 10, name: "world_generate", kind: "message", oneof: "spec", T: () => WorldGenerateScenarioSpec },
             { no: 11, name: "voice_create", kind: "message", oneof: "spec", T: () => VoiceCreateScenarioSpec },
-            { no: 12, name: "vision_locate", kind: "message", oneof: "spec", T: () => VisionLocateScenarioSpec }
+            { no: 12, name: "vision_locate", kind: "message", oneof: "spec", T: () => VisionLocateScenarioSpec },
+            { no: 13, name: "image_face_swap", kind: "message", oneof: "spec", T: () => ImageFaceSwapScenarioSpec },
+            { no: 14, name: "video_face_swap", kind: "message", oneof: "spec", T: () => VideoFaceSwapScenarioSpec }
         ]);
     }
     create(value?: PartialMessage<ScenarioSpec>): ScenarioSpec {
@@ -7046,6 +8452,18 @@ class ScenarioSpec$Type extends MessageType<ScenarioSpec> {
                         visionLocate: VisionLocateScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).visionLocate)
                     };
                     break;
+                case /* nimi.runtime.v1.ImageFaceSwapScenarioSpec image_face_swap */ 13:
+                    message.spec = {
+                        oneofKind: "imageFaceSwap",
+                        imageFaceSwap: ImageFaceSwapScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).imageFaceSwap)
+                    };
+                    break;
+                case /* nimi.runtime.v1.VideoFaceSwapScenarioSpec video_face_swap */ 14:
+                    message.spec = {
+                        oneofKind: "videoFaceSwap",
+                        videoFaceSwap: VideoFaceSwapScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).videoFaceSwap)
+                    };
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -7088,6 +8506,12 @@ class ScenarioSpec$Type extends MessageType<ScenarioSpec> {
         /* nimi.runtime.v1.VisionLocateScenarioSpec vision_locate = 12; */
         if (message.spec.oneofKind === "visionLocate")
             VisionLocateScenarioSpec.internalBinaryWrite(message.spec.visionLocate, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ImageFaceSwapScenarioSpec image_face_swap = 13; */
+        if (message.spec.oneofKind === "imageFaceSwap")
+            ImageFaceSwapScenarioSpec.internalBinaryWrite(message.spec.imageFaceSwap, writer.tag(13, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.VideoFaceSwapScenarioSpec video_face_swap = 14; */
+        if (message.spec.oneofKind === "videoFaceSwap")
+            VideoFaceSwapScenarioSpec.internalBinaryWrite(message.spec.videoFaceSwap, writer.tag(14, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -7411,6 +8835,107 @@ class ImageGenerateResult$Type extends MessageType<ImageGenerateResult> {
  * @generated MessageType for protobuf message nimi.runtime.v1.ImageGenerateResult
  */
 export const ImageGenerateResult = new ImageGenerateResult$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ImageFaceSwapResult$Type extends MessageType<ImageFaceSwapResult> {
+    constructor() {
+        super("nimi.runtime.v1.ImageFaceSwapResult", [
+            { no: 1, name: "artifacts", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ScenarioArtifact }
+        ]);
+    }
+    create(value?: PartialMessage<ImageFaceSwapResult>): ImageFaceSwapResult {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.artifacts = [];
+        if (value !== undefined)
+            reflectionMergePartial<ImageFaceSwapResult>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ImageFaceSwapResult): ImageFaceSwapResult {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.ScenarioArtifact artifacts */ 1:
+                    message.artifacts.push(ScenarioArtifact.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ImageFaceSwapResult, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.ScenarioArtifact artifacts = 1; */
+        for (let i = 0; i < message.artifacts.length; i++)
+            ScenarioArtifact.internalBinaryWrite(message.artifacts[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ImageFaceSwapResult
+ */
+export const ImageFaceSwapResult = new ImageFaceSwapResult$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class VideoFaceSwapResult$Type extends MessageType<VideoFaceSwapResult> {
+    constructor() {
+        super("nimi.runtime.v1.VideoFaceSwapResult", [
+            { no: 1, name: "artifacts", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ScenarioArtifact },
+            { no: 2, name: "summary", kind: "message", T: () => VideoFaceSwapSummary }
+        ]);
+    }
+    create(value?: PartialMessage<VideoFaceSwapResult>): VideoFaceSwapResult {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.artifacts = [];
+        if (value !== undefined)
+            reflectionMergePartial<VideoFaceSwapResult>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: VideoFaceSwapResult): VideoFaceSwapResult {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.ScenarioArtifact artifacts */ 1:
+                    message.artifacts.push(ScenarioArtifact.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* nimi.runtime.v1.VideoFaceSwapSummary summary */ 2:
+                    message.summary = VideoFaceSwapSummary.internalBinaryRead(reader, reader.uint32(), options, message.summary);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: VideoFaceSwapResult, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.ScenarioArtifact artifacts = 1; */
+        for (let i = 0; i < message.artifacts.length; i++)
+            ScenarioArtifact.internalBinaryWrite(message.artifacts[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.VideoFaceSwapSummary summary = 2; */
+        if (message.summary)
+            VideoFaceSwapSummary.internalBinaryWrite(message.summary, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.VideoFaceSwapResult
+ */
+export const VideoFaceSwapResult = new VideoFaceSwapResult$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class VideoGenerateResult$Type extends MessageType<VideoGenerateResult> {
     constructor() {
@@ -7807,7 +9332,9 @@ class ScenarioOutput$Type extends MessageType<ScenarioOutput> {
             { no: 5, name: "speech_synthesize", kind: "message", oneof: "output", T: () => SpeechSynthesizeResult },
             { no: 6, name: "speech_transcribe", kind: "message", oneof: "output", T: () => SpeechTranscribeResult },
             { no: 7, name: "music_generate", kind: "message", oneof: "output", T: () => MusicGenerateResult },
-            { no: 8, name: "world_generate", kind: "message", oneof: "output", T: () => WorldGenerateResult }
+            { no: 8, name: "world_generate", kind: "message", oneof: "output", T: () => WorldGenerateResult },
+            { no: 9, name: "image_face_swap", kind: "message", oneof: "output", T: () => ImageFaceSwapResult },
+            { no: 10, name: "video_face_swap", kind: "message", oneof: "output", T: () => VideoFaceSwapResult }
         ]);
     }
     create(value?: PartialMessage<ScenarioOutput>): ScenarioOutput {
@@ -7870,6 +9397,18 @@ class ScenarioOutput$Type extends MessageType<ScenarioOutput> {
                         worldGenerate: WorldGenerateResult.internalBinaryRead(reader, reader.uint32(), options, (message.output as any).worldGenerate)
                     };
                     break;
+                case /* nimi.runtime.v1.ImageFaceSwapResult image_face_swap */ 9:
+                    message.output = {
+                        oneofKind: "imageFaceSwap",
+                        imageFaceSwap: ImageFaceSwapResult.internalBinaryRead(reader, reader.uint32(), options, (message.output as any).imageFaceSwap)
+                    };
+                    break;
+                case /* nimi.runtime.v1.VideoFaceSwapResult video_face_swap */ 10:
+                    message.output = {
+                        oneofKind: "videoFaceSwap",
+                        videoFaceSwap: VideoFaceSwapResult.internalBinaryRead(reader, reader.uint32(), options, (message.output as any).videoFaceSwap)
+                    };
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -7906,6 +9445,12 @@ class ScenarioOutput$Type extends MessageType<ScenarioOutput> {
         /* nimi.runtime.v1.WorldGenerateResult world_generate = 8; */
         if (message.output.oneofKind === "worldGenerate")
             WorldGenerateResult.internalBinaryWrite(message.output.worldGenerate, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ImageFaceSwapResult image_face_swap = 9; */
+        if (message.output.oneofKind === "imageFaceSwap")
+            ImageFaceSwapResult.internalBinaryWrite(message.output.imageFaceSwap, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.VideoFaceSwapResult video_face_swap = 10; */
+        if (message.output.oneofKind === "videoFaceSwap")
+            VideoFaceSwapResult.internalBinaryWrite(message.output.videoFaceSwap, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -9343,6 +10888,8 @@ class SubmitLocalAppScenarioJobRequest$Type extends MessageType<SubmitLocalAppSc
             { no: 8, name: "music_generate", kind: "message", oneof: "spec", T: () => LocalAppMusicGenerateJobSpec },
             { no: 10, name: "world_generate", kind: "message", oneof: "spec", T: () => LocalAppWorldGenerateJobSpec },
             { no: 11, name: "vision_locate", kind: "message", oneof: "spec", T: () => VisionLocateScenarioSpec },
+            { no: 12, name: "image_face_swap", kind: "message", oneof: "spec", T: () => ImageFaceSwapScenarioSpec },
+            { no: 13, name: "video_face_swap", kind: "message", oneof: "spec", T: () => VideoFaceSwapScenarioSpec },
             { no: 9, name: "timeout_ms", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
         ]);
     }
@@ -9407,6 +10954,18 @@ class SubmitLocalAppScenarioJobRequest$Type extends MessageType<SubmitLocalAppSc
                         visionLocate: VisionLocateScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).visionLocate)
                     };
                     break;
+                case /* nimi.runtime.v1.ImageFaceSwapScenarioSpec image_face_swap */ 12:
+                    message.spec = {
+                        oneofKind: "imageFaceSwap",
+                        imageFaceSwap: ImageFaceSwapScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).imageFaceSwap)
+                    };
+                    break;
+                case /* nimi.runtime.v1.VideoFaceSwapScenarioSpec video_face_swap */ 13:
+                    message.spec = {
+                        oneofKind: "videoFaceSwap",
+                        videoFaceSwap: VideoFaceSwapScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).videoFaceSwap)
+                    };
+                    break;
                 case /* int32 timeout_ms */ 9:
                     message.timeoutMs = reader.int32();
                     break;
@@ -9449,6 +11008,12 @@ class SubmitLocalAppScenarioJobRequest$Type extends MessageType<SubmitLocalAppSc
         /* nimi.runtime.v1.VisionLocateScenarioSpec vision_locate = 11; */
         if (message.spec.oneofKind === "visionLocate")
             VisionLocateScenarioSpec.internalBinaryWrite(message.spec.visionLocate, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ImageFaceSwapScenarioSpec image_face_swap = 12; */
+        if (message.spec.oneofKind === "imageFaceSwap")
+            ImageFaceSwapScenarioSpec.internalBinaryWrite(message.spec.imageFaceSwap, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.VideoFaceSwapScenarioSpec video_face_swap = 13; */
+        if (message.spec.oneofKind === "videoFaceSwap")
+            VideoFaceSwapScenarioSpec.internalBinaryWrite(message.spec.videoFaceSwap, writer.tag(13, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -9476,7 +11041,8 @@ class LocalAppScenarioJob$Type extends MessageType<LocalAppScenarioJob> {
             { no: 11, name: "created_at", kind: "message", T: () => Timestamp },
             { no: 12, name: "updated_at", kind: "message", T: () => Timestamp },
             { no: 13, name: "transcription_text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 14, name: "interruption", kind: "message", T: () => ExecutionInterruption }
+            { no: 14, name: "interruption", kind: "message", T: () => ExecutionInterruption },
+            { no: 15, name: "video_face_swap_summary", kind: "message", T: () => VideoFaceSwapSummary }
         ]);
     }
     create(value?: PartialMessage<LocalAppScenarioJob>): LocalAppScenarioJob {
@@ -9543,6 +11109,9 @@ class LocalAppScenarioJob$Type extends MessageType<LocalAppScenarioJob> {
                 case /* nimi.runtime.v1.ExecutionInterruption interruption */ 14:
                     message.interruption = ExecutionInterruption.internalBinaryRead(reader, reader.uint32(), options, message.interruption);
                     break;
+                case /* nimi.runtime.v1.VideoFaceSwapSummary video_face_swap_summary */ 15:
+                    message.videoFaceSwapSummary = VideoFaceSwapSummary.internalBinaryRead(reader, reader.uint32(), options, message.videoFaceSwapSummary);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -9597,6 +11166,9 @@ class LocalAppScenarioJob$Type extends MessageType<LocalAppScenarioJob> {
         /* nimi.runtime.v1.ExecutionInterruption interruption = 14; */
         if (message.interruption)
             ExecutionInterruption.internalBinaryWrite(message.interruption, writer.tag(14, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.VideoFaceSwapSummary video_face_swap_summary = 15; */
+        if (message.videoFaceSwapSummary)
+            VideoFaceSwapSummary.internalBinaryWrite(message.videoFaceSwapSummary, writer.tag(15, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -11471,7 +13043,8 @@ class ScenarioJob$Type extends MessageType<ScenarioJob> {
             { no: 22, name: "progress_total_steps", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 23, name: "transcription_text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 24, name: "effective_input_identity", kind: "message", T: () => LoadoutEffectiveInputIdentity },
-            { no: 25, name: "interruption", kind: "message", T: () => ExecutionInterruption }
+            { no: 25, name: "interruption", kind: "message", T: () => ExecutionInterruption },
+            { no: 26, name: "video_face_swap_summary", kind: "message", T: () => VideoFaceSwapSummary }
         ]);
     }
     create(value?: PartialMessage<ScenarioJob>): ScenarioJob {
@@ -11577,6 +13150,9 @@ class ScenarioJob$Type extends MessageType<ScenarioJob> {
                 case /* nimi.runtime.v1.ExecutionInterruption interruption */ 25:
                     message.interruption = ExecutionInterruption.internalBinaryRead(reader, reader.uint32(), options, message.interruption);
                     break;
+                case /* nimi.runtime.v1.VideoFaceSwapSummary video_face_swap_summary */ 26:
+                    message.videoFaceSwapSummary = VideoFaceSwapSummary.internalBinaryRead(reader, reader.uint32(), options, message.videoFaceSwapSummary);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -11664,6 +13240,9 @@ class ScenarioJob$Type extends MessageType<ScenarioJob> {
         /* nimi.runtime.v1.ExecutionInterruption interruption = 25; */
         if (message.interruption)
             ExecutionInterruption.internalBinaryWrite(message.interruption, writer.tag(25, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.VideoFaceSwapSummary video_face_swap_summary = 26; */
+        if (message.videoFaceSwapSummary)
+            VideoFaceSwapSummary.internalBinaryWrite(message.videoFaceSwapSummary, writer.tag(26, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

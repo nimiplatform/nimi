@@ -2,6 +2,18 @@ format: nimicoding.authority/v2
 owner: team.sdks
 scope: sdks.feature-clients
 units:
+  - id: rule.nimi.sdks.feature-clients.face-swap-video-session
+    kind: rule
+    title: Formal Apps consume bounded video Sessions through typed SDK operations
+    modality: must
+    statement: The formal App AI client exposes videoSessions.open, submitFrame, read and close as the typed projection of the four canonical video Session operations, with owned reference artifact input, Runtime-issued session and generation, fixed RGB8 format, Uint8Array frame payloads and closed associated result variants. A client permits at most the negotiated two unfinished submissions and one unfinished read per scope, rejects unsupported values before transport, and treats an absent bounded-poll result as no item yet. Native and renderer carriers preserve bounded binary content without expansion into JSON number arrays; an internal base64 encoding is a transport detail, never a provider channel, public pixel format, artifact or alternate authorization path. Terminal receipt and transport loss stop further submissions and resolve or reject pending calls without claiming unobserved inference was dropped. Close always preserves the Runtime outcome rather than fabricating capacity release. No request carries owner, model, Driver, Loadout, provider, endpoint, camera or recording controls.
+    condition: Whenever a formal App consumes a video face-replacement Session through the SDK or its Host carrier.
+    failure: Fail closed on malformed or unbounded input, stale scope, unexpected result shape, duplicate readers or excess unfinished submissions, and preserve Runtime termination and failed-close outcomes without automatic replay, fallback or fake frames.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.face-swap-contract
+      - type: applies_to
+        target: definition.nimi.sdks.feature-clients.app-client-plane
   - id: definition.nimi.sdks.feature-clients.ai-adapter-plane
     kind: definition
     title: SDK AI adapter plane

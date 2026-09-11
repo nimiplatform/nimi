@@ -84,6 +84,7 @@ type pythonDependencyProfileCommandRunner func(
 ) (string, error)
 
 type pythonDependencyProfileProbe struct {
+	ONNXRuntimeVersion     string   `json:"onnxruntime_version"`
 	PythonVersion          string   `json:"python_version"`
 	PythonCacheTag         string   `json:"python_cache_tag"`
 	PythonSOABI            string   `json:"python_soabi"`
@@ -599,13 +600,17 @@ func verifyPythonDependencyProfile(
 			return PythonDependencyProfileStatus{}, fmt.Errorf("verify python dependency profile import %s: %w", module, err)
 		}
 	}
+	probeScript := pythonDependencyProfileTorchProbeScript(identity.AcceleratorPlane)
+	if strings.TrimSpace(consumer) == FaceSwapConsumerID {
+		probeScript = "from face_swap import probe_environment; probe_environment()"
+	}
 	torchProbe, err := run(
 		ctx,
 		profileRoot,
 		readOnlyEnv,
 		managedCommandPreferredPath(interpreterPath),
 		"-c",
-		pythonDependencyProfileTorchProbeScript(identity.AcceleratorPlane),
+		probeScript,
 	)
 	if err != nil {
 		return PythonDependencyProfileStatus{}, fmt.Errorf("verify python dependency profile Torch allocation: %w", err)
@@ -614,7 +619,12 @@ func verifyPythonDependencyProfile(
 	if err != nil {
 		return PythonDependencyProfileStatus{}, err
 	}
-	if err := verifyPythonDependencyProfileTorchProbe(observed, identity); err != nil {
+	if strings.TrimSpace(consumer) == FaceSwapConsumerID {
+		err = verifyFaceSwapProfileProbe(observed, identity)
+	} else {
+		err = verifyPythonDependencyProfileTorchProbe(observed, identity)
+	}
+	if err != nil {
 		return PythonDependencyProfileStatus{}, err
 	}
 	if err := verifyPythonDependencyProfileInterpreterProbe(observed, identity); err != nil {
@@ -793,6 +803,9 @@ func pythonDependencyProfileImportProbes(consumer string, identity PythonDepende
 	if err != nil {
 		return nil, err
 	}
+	if strings.TrimSpace(consumer) == FaceSwapConsumerID {
+		return append(packageManifest.ImportProbes, "face_swap"), nil
+	}
 	if strings.TrimSpace(consumer) == VisionLocateConsumerID {
 		backend, err := visionPythonBackend(identity.PlatformTuple, identity.AcceleratorPlane)
 		if err != nil {
@@ -835,6 +848,9 @@ func pythonDependencyProfileImportProbes(consumer string, identity PythonDepende
 
 func verifyPythonDependencyProfileDriverBundle(root string, consumer string) error {
 	trimmedConsumer := strings.TrimSpace(consumer)
+	if trimmedConsumer == FaceSwapConsumerID {
+		return verifyFaceSwapDriverBundle(root)
+	}
 	if trimmedConsumer == VisionLocateConsumerID {
 		return verifyVisionDriverBundle(root)
 	}
@@ -856,6 +872,9 @@ func pythonDependencyProfileDriverCommands(root string, consumer string) map[str
 
 func pythonDependencyProfileDriverScripts(root string, consumer string) []string {
 	trimmedConsumer := strings.TrimSpace(consumer)
+	if trimmedConsumer == FaceSwapConsumerID {
+		return []string{filepath.Join(root, "face_swap_server.py")}
+	}
 	if trimmedConsumer == VisionLocateConsumerID {
 		return []string{filepath.Join(strings.TrimSpace(root), "vision_server.py")}
 	}

@@ -9,6 +9,7 @@ import {
 import { Timestamp } from '../../core-generated/runtime-protobuf/google/protobuf/timestamp.js';
 import {
   ExecutionMode,
+  FaceSwapNoFacePolicy,
   ScenarioJobStatus,
   ScenarioType,
   VoiceAssetStatus,
@@ -29,6 +30,36 @@ import {
   type NimiLocalAppStandardShell,
 } from './local-app-runtime-platform.js';
 import { createNimiLocalAppVoiceAssetsRuntimeClient } from './local-app-runtime-platform-ai.js';
+
+test('image face replacement uses owned artifact Job input and rejects extra selectors', async () => {
+  const captured: unknown[] = [];
+  const base = standardShell([]);
+  const job = {
+    jobId: 'face-job-1', scenarioType: 'image-face-swap' as const, status: 'submitted' as const,
+    progressPercent: 0, progressCurrentStep: 0, progressTotalSteps: 0, reasonCode: '',
+    reasonDetail: '', artifacts: [], traceId: 'face-trace-1', createdAt: null,
+    updatedAt: null, transcriptionText: '',
+  };
+  const client = createNimiLocalAppClient({ standardShell: {
+    ...base, ai: { ...base.ai, scenarioJobs: { ...base.ai.scenarioJobs,
+      async submit(spec) { captured.push(spec); return { job }; },
+    } },
+  } });
+  const spec = { type: 'image-face-swap' as const, referenceImageArtifactId: 'reference-1', targetImageArtifactId: 'target-1' };
+  assert.equal((await client.ai.scenarioJobs.submit(spec)).job.scenarioType, 'image-face-swap');
+  const adapter = createNimiLocalAppRuntimeScenarioJobClient(client.ai);
+  await adapter.submitScenarioJob({
+    scenarioType: ScenarioType.IMAGE_FACE_SWAP, executionMode: ExecutionMode.ASYNC_JOB,
+    spec: { spec: { oneofKind: 'imageFaceSwap', imageFaceSwap: { referenceImageArtifactId: 'reference-1', targetImageArtifactId: 'target-1' } } },
+    requestId: '', idempotencyKey: '', labels: {}, extensions: [],
+  });
+  assert.deepEqual(captured, [spec, spec]);
+  for (const invalid of [{ ...spec, modelId: 'model-1' }, { ...spec, targetImageArtifactId: '' }, { ...spec, owner: 'account-1' }]) {
+    await assert.rejects(() => client.ai.scenarioJobs.submit(invalid as never));
+  }
+  await assert.rejects(() => client.ai.scenario.execute(spec as never));
+  assert.equal(captured.length, 2);
+});
 
 function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
   const touched = (name: string) => async (): Promise<never> => {
@@ -67,6 +98,7 @@ function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
         upload: touched('ai.artifacts.upload'),
       },
       voiceAssets: { list: touched('ai.voiceAssets.list') },
+      videoSessions: { open: touched('ai.videoSessions.open'), submitFrame: touched('ai.videoSessions.submitFrame'), read: touched('ai.videoSessions.read'), close: touched('ai.videoSessions.close') },
       realtime: {
         open: touched('ai.realtime.open'),
         appendInput: touched('ai.realtime.appendInput'),
@@ -251,7 +283,7 @@ test('local-app client hard-cuts the access workflow namespace', () => {
   ]);
   assert.equal('permissions' in client, false);
   assert.equal('artifacts' in client, false);
-  assert.deepEqual(Object.keys(client.ai).sort(), ['artifacts', 'realtime', 'scenario', 'scenarioJobs', 'text', 'voiceAssets']);
+  assert.deepEqual(Object.keys(client.ai).sort(), ['artifacts', 'realtime', 'scenario', 'scenarioJobs', 'text', 'videoSessions', 'voiceAssets']);
   assert.deepEqual(Object.keys(client.ai.text).sort(), ['generateCandidate', 'streamTurn']);
   assert.deepEqual(Object.keys(client.ai.artifacts).sort(), ['read', 'upload']);
   assert.deepEqual(Object.keys(client.realm.chat), ['list']);
@@ -1182,7 +1214,7 @@ test('local-app image generation admits one artifact custody carrier and rejects
   assert.deepEqual(calls, ['ai.scenarioJobs.submit']);
 });
 
-test('local-app artifact upload validates the closed image input and exact custody projection', async () => {
+test('local-app artifact upload validates the closed media input and exact custody projection', async () => {
   const calls: unknown[] = [];
   const base = standardShell([]);
   const shell: NimiLocalAppStandardShell = {
@@ -1193,7 +1225,7 @@ test('local-app artifact upload validates the closed image input and exact custo
         ...base.ai.artifacts,
         async upload(input) {
           calls.push(input);
-          return { artifactId: 'artifact-upload-1', sizeBytes: 2, mimeType: 'image/png' };
+          return { artifactId: 'artifact-upload-1', sizeBytes: input.bytes.length, mimeType: input.mimeType };
         },
       },
     },
@@ -1204,10 +1236,26 @@ test('local-app artifact upload validates the closed image input and exact custo
     { artifactId: 'artifact-upload-1', sizeBytes: 2, mimeType: 'image/png' },
   );
   assert.deepEqual(calls, [{ bytes: [1, 2], mimeType: 'image/png' }]);
+  assert.deepEqual(await client.ai.artifacts.upload({ bytes: new Uint8Array([1, 2]), mimeType: 'video/mp4' }), { artifactId: 'artifact-upload-1', sizeBytes: 2, mimeType: 'video/mp4' });
   await assert.rejects(
-    () => client.ai.artifacts.upload({ bytes: new Uint8Array([1]), mimeType: 'video/mp4' as never }),
+    () => client.ai.artifacts.upload({ bytes: new Uint8Array([1]), mimeType: 'video/webm' as never }),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_INPUT_INVALID',
   );
+});
+
+test('video face replacement requires an explicit policy through both App and Runtime SDK inputs', async () => {
+  const captured: unknown[] = [];
+  const base = standardShell([]);
+  const job = { jobId: 'face-video-job', scenarioType: 'video-face-swap', status: 'submitted', progressPercent: 0, progressCurrentStep: 0, progressTotalSteps: 0, reasonCode: '', reasonDetail: '', artifacts: [], traceId: '', createdAt: null, updatedAt: null, transcriptionText: '' };
+  const client = createNimiLocalAppClient({ standardShell: { ...base, ai: { ...base.ai, scenarioJobs: { ...base.ai.scenarioJobs, async submit(spec) { captured.push(spec); return { job }; } } } } });
+  const spec = { type: 'video-face-swap' as const, referenceImageArtifactId: 'reference-1', targetVideoArtifactId: 'video-1', noFacePolicy: 'preserve-frame' as const };
+  assert.equal((await client.ai.scenarioJobs.submit(spec)).job.scenarioType, 'video-face-swap');
+  const adapter = createNimiLocalAppRuntimeScenarioJobClient(client.ai);
+  await adapter.submitScenarioJob({ scenarioType: ScenarioType.VIDEO_FACE_SWAP, executionMode: ExecutionMode.ASYNC_JOB, spec: { spec: { oneofKind: 'videoFaceSwap', videoFaceSwap: { referenceImageArtifactId: 'reference-1', targetVideoArtifactId: 'video-1', noFacePolicy: FaceSwapNoFacePolicy.PRESERVE_FRAME } } }, requestId: '', idempotencyKey: '', labels: {}, extensions: [] });
+  assert.deepEqual(captured, [spec, spec]);
+  for (const invalid of [{ ...spec, noFacePolicy: undefined }, { ...spec, noFacePolicy: 'continue' }, { ...spec, targetVideoArtifactId: '' }, { ...spec, modelId: 'override' }]) await assert.rejects(() => client.ai.scenarioJobs.submit(invalid as never));
+  await assert.rejects(() => client.ai.scenario.execute(spec as never));
+  assert.equal(captured.length, 2);
 });
 
 test('local-app video jobs admit only the canonical seed range', async () => {

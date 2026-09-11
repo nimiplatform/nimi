@@ -1,4 +1,5 @@
 use super::*;
+use nimi_shell_protected_local::{LocalAppVideoSessionOpenRequest, LocalAppVideoSessionScopeRequest, LocalAppVideoSessionFrameRequest};
 use std::{
     collections::HashMap,
     sync::{
@@ -49,6 +50,28 @@ struct ScenarioStream {
 static SCENARIO_JOB_STREAMS: OnceLock<Mutex<ScenarioStreamRegistry>> = OnceLock::new();
 static TEXT_TURN_STREAMS: OnceLock<Mutex<ScenarioStreamRegistry>> = OnceLock::new();
 static SCENARIO_STREAM_COUNTER: AtomicU64 = AtomicU64::new(1);
+
+#[napi(js_name = "localAppVideoSessionOpen")]
+pub async fn local_app_video_session_open(input: NativeVideoSessionOpenInput) -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.video_session_open(LocalAppVideoSessionOpenRequest { reference_image_artifact_id:input.reference_image_artifact_id, width:input.width, height:input.height, pixel_format:input.pixel_format }).await }).await
+}
+#[napi(js_name = "localAppVideoSessionSubmit")]
+pub async fn local_app_video_session_submit(input: NativeVideoSessionFrameInput) -> NativeJsonOutcome {
+    let generation=match native_realtime_generation(&input.generation){Ok(value)=>value,Err(error)=>return NativeJsonOutcome::error(error)};
+    let sequence=match native_realtime_generation(&input.sequence){Ok(value)=>value,Err(error)=>return NativeJsonOutcome::error(error)};
+    let timestamp_us=if input.timestamp_us=="0" {0} else {match native_realtime_generation(&input.timestamp_us){Ok(value)=>value,Err(error)=>return NativeJsonOutcome::error(error)}};
+    invoke_agent(|session| async move {session.video_session_submit(LocalAppVideoSessionFrameRequest {video_session_id:input.video_session_id,generation,sequence,timestamp_us,frame_base64:input.frame_base64}).await}).await
+}
+#[napi(js_name = "localAppVideoSessionRead")]
+pub async fn local_app_video_session_read(input: NativeVideoSessionScopeInput) -> NativeJsonOutcome {
+    let generation=match native_realtime_generation(&input.generation){Ok(value)=>value,Err(error)=>return NativeJsonOutcome::error(error)};
+    invoke_agent(|session| async move {session.video_session_read(LocalAppVideoSessionScopeRequest {video_session_id:input.video_session_id,generation}).await}).await
+}
+#[napi(js_name = "localAppVideoSessionClose")]
+pub async fn local_app_video_session_close(input: NativeVideoSessionScopeInput) -> NativeJsonOutcome {
+    let generation=match native_realtime_generation(&input.generation){Ok(value)=>value,Err(error)=>return NativeJsonOutcome::error(error)};
+    invoke_agent(|session| async move {session.video_session_close(LocalAppVideoSessionScopeRequest {video_session_id:input.video_session_id,generation}).await}).await
+}
 const MAX_SCENARIO_STREAMS: usize = 8;
 const MAX_ASSET_STREAMS: usize = 8;
 const MAX_ASSET_CHUNK_BYTES: usize = 1024 * 1024;

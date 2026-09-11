@@ -876,6 +876,18 @@ impl Default for AiRealtimeTurnDetectionMode {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AiVideoPixelFormat {
+    AIVIDEOPIXELFORMATUNSPECIFIED,
+    AIVIDEOPIXELFORMATRGB8,
+}
+
+impl Default for AiVideoPixelFormat {
+    fn default() -> Self {
+        Self::AIVIDEOPIXELFORMATUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AppMessageEventType {
     APPMESSAGEEVENTTYPEUNSPECIFIED,
     APPMESSAGEEVENTRECEIVED,
@@ -1509,6 +1521,19 @@ impl ExternalProofType {
             "EXTERNALPROOFTYPEJWT" => Some(Self::EXTERNALPROOFTYPEJWT),
             _ => None,
         }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum FaceSwapNoFacePolicy {
+    FACESWAPNOFACEPOLICYUNSPECIFIED,
+    FACESWAPNOFACEPOLICYFAIL,
+    FACESWAPNOFACEPOLICYPRESERVEFRAME,
+}
+
+impl Default for FaceSwapNoFacePolicy {
+    fn default() -> Self {
+        Self::FACESWAPNOFACEPOLICYUNSPECIFIED
     }
 }
 
@@ -2545,6 +2570,14 @@ pub enum ReasonCode {
     APPPACKAGEHOSTRUNNING,
     APPPACKAGEUNINSTALLFAILED,
     APPPACKAGEUPDATEUNAVAILABLE,
+    AIFACEREFERENCEMISSING,
+    AIFACEREFERENCEAMBIGUOUS,
+    AIFACETARGETMISSING,
+    AIFACETARGETAMBIGUOUS,
+    AIVIDEODECODEFAILED,
+    AIVIDEOENCODEFAILED,
+    AIVIDEOSESSIONOVERLOADED,
+    AIVIDEOSESSIONGENERATIONINVALID,
 }
 
 impl Default for ReasonCode {
@@ -3106,6 +3139,22 @@ impl ReasonCode {
             "APPPACKAGEUNINSTALLFAILED" => Some(Self::APPPACKAGEUNINSTALLFAILED),
             "APP_PACKAGE_UPDATE_UNAVAILABLE" => Some(Self::APPPACKAGEUPDATEUNAVAILABLE),
             "APPPACKAGEUPDATEUNAVAILABLE" => Some(Self::APPPACKAGEUPDATEUNAVAILABLE),
+            "AI_FACE_REFERENCE_MISSING" => Some(Self::AIFACEREFERENCEMISSING),
+            "AIFACEREFERENCEMISSING" => Some(Self::AIFACEREFERENCEMISSING),
+            "AI_FACE_REFERENCE_AMBIGUOUS" => Some(Self::AIFACEREFERENCEAMBIGUOUS),
+            "AIFACEREFERENCEAMBIGUOUS" => Some(Self::AIFACEREFERENCEAMBIGUOUS),
+            "AI_FACE_TARGET_MISSING" => Some(Self::AIFACETARGETMISSING),
+            "AIFACETARGETMISSING" => Some(Self::AIFACETARGETMISSING),
+            "AI_FACE_TARGET_AMBIGUOUS" => Some(Self::AIFACETARGETAMBIGUOUS),
+            "AIFACETARGETAMBIGUOUS" => Some(Self::AIFACETARGETAMBIGUOUS),
+            "AI_VIDEO_DECODE_FAILED" => Some(Self::AIVIDEODECODEFAILED),
+            "AIVIDEODECODEFAILED" => Some(Self::AIVIDEODECODEFAILED),
+            "AI_VIDEO_ENCODE_FAILED" => Some(Self::AIVIDEOENCODEFAILED),
+            "AIVIDEOENCODEFAILED" => Some(Self::AIVIDEOENCODEFAILED),
+            "AI_VIDEO_SESSION_OVERLOADED" => Some(Self::AIVIDEOSESSIONOVERLOADED),
+            "AIVIDEOSESSIONOVERLOADED" => Some(Self::AIVIDEOSESSIONOVERLOADED),
+            "AI_VIDEO_SESSION_GENERATION_INVALID" => Some(Self::AIVIDEOSESSIONGENERATIONINVALID),
+            "AIVIDEOSESSIONGENERATIONINVALID" => Some(Self::AIVIDEOSESSIONGENERATIONINVALID),
             _ => None,
         }
     }
@@ -3266,6 +3315,8 @@ pub enum ScenarioType {
     SCENARIOTYPEWORLDGENERATE,
     SCENARIOTYPEVOICECREATE,
     SCENARIOTYPEVISIONLOCATE,
+    SCENARIOTYPEIMAGEFACESWAP,
+    SCENARIOTYPEVIDEOFACESWAP,
 }
 
 impl Default for ScenarioType {
@@ -4347,6 +4398,43 @@ pub struct AiRealtimeTranscript {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct AiVideoFrameDisposition {
+    pub sequence: Option<u64>,
+    pub timestamp_us: Option<u64>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AiVideoSessionFormat {
+    pub width: Option<u32>,
+    pub height: Option<u32>,
+    pub pixel_format: Option<AiVideoPixelFormat>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AiVideoSessionResult {
+    pub video_session_id: Option<String>,
+    pub generation: Option<u64>,
+    pub transformed: Option<Box<AiVideoTransformedFrame>>,
+    pub no_target_face: Option<Box<AiVideoFrameDisposition>>,
+    pub input_dropped: Option<Box<AiVideoFrameDisposition>>,
+    pub input_rejected: Option<Box<AiVideoFrameDisposition>>,
+    pub session_terminal: Option<Box<AiVideoSessionTerminal>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AiVideoSessionTerminal {
+    pub reason_code: Option<ReasonCode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AiVideoTransformedFrame {
+    pub sequence: Option<u64>,
+    pub timestamp_us: Option<u64>,
+    pub frame: Option<Vec<u8>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AppAIConfigPresetVoiceOption {
     pub voice_id: Option<String>,
     pub name: Option<String>,
@@ -5047,6 +5135,49 @@ pub struct CloseRealtimeSessionRequest {
 pub struct CloseRealtimeSessionResponse {
     pub ack: Option<Box<Ack>>,
     pub control: Option<Box<RealtimeControlStatus>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CloseVideoSessionRequest {
+    pub video_session_id: Option<String>,
+    pub generation: Option<u64>,
+}
+
+impl CloseVideoSessionRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.video_session_id { pairs.push(format!("video_session_id={}", value)); }
+        if let Some(value) = &self.generation { pairs.push(format!("generation={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.video_session_id = pairs.get("video_session_id").cloned();
+        out.generation = pairs.get("generation").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CloseVideoSessionResponse {
+    pub closed: Option<bool>,
+}
+
+impl CloseVideoSessionResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.closed { pairs.push(format!("closed={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.closed = pairs.get("closed").and_then(|value| value.parse().ok());
+        out
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -6619,6 +6750,17 @@ pub struct IgnoredScenarioExtension {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ImageFaceSwapResult {
+    pub artifacts: Vec<Box<ScenarioArtifact>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ImageFaceSwapScenarioSpec {
+    pub reference_image_artifact_id: Option<String>,
+    pub target_image_artifact_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ImageGenerateResult {
     pub artifacts: Vec<Box<ScenarioArtifact>>,
 }
@@ -8078,6 +8220,7 @@ pub struct LocalAppScenarioJob {
     pub updated_at: Option<String>,
     pub transcription_text: Option<String>,
     pub interruption: Option<Box<ExecutionInterruption>>,
+    pub video_face_swap_summary: Option<Box<VideoFaceSwapSummary>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -9050,6 +9193,20 @@ pub struct OpenRealtimeSessionResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct OpenVideoSessionRequest {
+    pub reference_image_artifact_id: Option<String>,
+    pub format: Option<Box<AiVideoSessionFormat>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct OpenVideoSessionResponse {
+    pub video_session_id: Option<String>,
+    pub generation: Option<u64>,
+    pub format: Option<Box<AiVideoSessionFormat>>,
+    pub maximum_in_flight_submissions: Option<u32>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct OverwriteAppAIConfigRequest {
     pub config: Option<Box<AIConfig>>,
     pub expected_revision: Option<String>,
@@ -9355,6 +9512,17 @@ pub struct ReadLocalAppStorageJsonResponse {
 pub struct ReadRealtimeEventsRequest {
     pub realtime_session_id: Option<String>,
     pub generation: Option<u64>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ReadVideoSessionResultRequest {
+    pub video_session_id: Option<String>,
+    pub generation: Option<u64>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ReadVideoSessionResultResponse {
+    pub result: Option<Box<AiVideoSessionResult>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10172,6 +10340,7 @@ pub struct ScenarioJob {
     pub transcription_text: Option<String>,
     pub effective_input_identity: Option<Box<LoadoutEffectiveInputIdentity>>,
     pub interruption: Option<Box<ExecutionInterruption>>,
+    pub video_face_swap_summary: Option<Box<VideoFaceSwapSummary>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10193,6 +10362,8 @@ pub struct ScenarioOutput {
     pub speech_transcribe: Option<Box<SpeechTranscribeResult>>,
     pub music_generate: Option<Box<MusicGenerateResult>>,
     pub world_generate: Option<Box<WorldGenerateResult>>,
+    pub image_face_swap: Option<Box<ImageFaceSwapResult>>,
+    pub video_face_swap: Option<Box<VideoFaceSwapResult>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10221,6 +10392,8 @@ pub struct ScenarioSpec {
     pub world_generate: Option<Box<WorldGenerateScenarioSpec>>,
     pub voice_create: Option<Box<VoiceCreateScenarioSpec>>,
     pub vision_locate: Option<Box<VisionLocateScenarioSpec>>,
+    pub image_face_swap: Option<Box<ImageFaceSwapScenarioSpec>>,
+    pub video_face_swap: Option<Box<VideoFaceSwapScenarioSpec>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10716,6 +10889,8 @@ pub struct SubmitLocalAppScenarioJobRequest {
     pub timeout_ms: Option<i32>,
     pub world_generate: Option<Box<LocalAppWorldGenerateJobSpec>>,
     pub vision_locate: Option<Box<VisionLocateScenarioSpec>>,
+    pub image_face_swap: Option<Box<ImageFaceSwapScenarioSpec>>,
+    pub video_face_swap: Option<Box<VideoFaceSwapScenarioSpec>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10752,6 +10927,21 @@ pub struct SubmitScenarioJobRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct SubmitScenarioJobResponse {
     pub job: Option<Box<ScenarioJob>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SubmitVideoSessionFrameRequest {
+    pub video_session_id: Option<String>,
+    pub generation: Option<u64>,
+    pub sequence: Option<u64>,
+    pub timestamp_us: Option<u64>,
+    pub frame: Option<Vec<u8>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SubmitVideoSessionFrameResponse {
+    pub accepted: Option<bool>,
+    pub sequence: Option<u64>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -11244,6 +11434,29 @@ pub struct VideoContentVideoURL {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct VideoFaceSwapResult {
+    pub artifacts: Vec<Box<ScenarioArtifact>>,
+    pub summary: Option<Box<VideoFaceSwapSummary>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct VideoFaceSwapScenarioSpec {
+    pub reference_image_artifact_id: Option<String>,
+    pub target_video_artifact_id: Option<String>,
+    pub no_face_policy: Option<FaceSwapNoFacePolicy>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct VideoFaceSwapSummary {
+    pub total_frames: Option<u32>,
+    pub transformed_frames: Option<u32>,
+    pub preserved_frames: Option<u32>,
+    pub duration_us: Option<u64>,
+    pub frame_rate: Option<u32>,
+    pub audio_preserved: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct VideoGenerateResult {
     pub artifacts: Vec<Box<ScenarioArtifact>>,
 }
@@ -11563,6 +11776,12 @@ impl From<Vec<u8>> for OpenLocalAppConversationResponse {
     }
 }
 
+impl From<Vec<u8>> for CloseVideoSessionResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for RemoveLocalAppAssetResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -11730,6 +11949,16 @@ where
             timeout,
         })?;
         Ok(OpenLocalAppConversationResponse::from_transport(&raw))
+    }
+
+    pub fn close_video_session(&self, request: CloseVideoSessionRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CloseVideoSessionResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAiVideoSessionService/CloseVideoSession".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(CloseVideoSessionResponse::from_transport(&raw))
     }
 
     pub fn remove_local_app_asset(&self, request: RemoveLocalAppAssetRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RemoveLocalAppAssetResponse, T::Error> {

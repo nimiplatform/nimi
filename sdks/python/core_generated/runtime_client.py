@@ -848,6 +848,38 @@ RUNTIME_METHODS = [
     "response_type": "UploadLocalAppArtifactResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAiVideoSessionService/CloseVideoSession",
+    "service": "RuntimeAiVideoSessionService",
+    "method": "CloseVideoSession",
+    "kind": "unary",
+    "request_type": "CloseVideoSessionRequest",
+    "response_type": "CloseVideoSessionResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAiVideoSessionService/OpenVideoSession",
+    "service": "RuntimeAiVideoSessionService",
+    "method": "OpenVideoSession",
+    "kind": "unary",
+    "request_type": "OpenVideoSessionRequest",
+    "response_type": "OpenVideoSessionResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAiVideoSessionService/ReadVideoSessionResult",
+    "service": "RuntimeAiVideoSessionService",
+    "method": "ReadVideoSessionResult",
+    "kind": "unary",
+    "request_type": "ReadVideoSessionResultRequest",
+    "response_type": "ReadVideoSessionResultResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAiVideoSessionService/SubmitVideoSessionFrame",
+    "service": "RuntimeAiVideoSessionService",
+    "method": "SubmitVideoSessionFrame",
+    "kind": "unary",
+    "request_type": "SubmitVideoSessionFrameRequest",
+    "response_type": "SubmitVideoSessionFrameResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob",
     "service": "RuntimeAppPackageService",
     "method": "CancelAppPackageJob",

@@ -38,6 +38,8 @@ enum ScenarioType {
   SCENARIO_TYPE_WORLD_GENERATE = 10;
   SCENARIO_TYPE_VOICE_CREATE = 11;
   SCENARIO_TYPE_VISION_LOCATE = 12;
+  SCENARIO_TYPE_IMAGE_FACE_SWAP = 13;
+  SCENARIO_TYPE_VIDEO_FACE_SWAP = 14;
 }
 
 enum ExecutionMode {
@@ -490,6 +492,123 @@ enum VisionLocateGeometry {
   VISION_LOCATE_GEOMETRY_POINT = 2;
 }
 
+// Both artifacts belong to the current protected App caller.
+message ImageFaceSwapScenarioSpec {
+  string reference_image_artifact_id = 1;
+  string target_image_artifact_id = 2;
+}
+
+enum FaceSwapNoFacePolicy {
+  FACE_SWAP_NO_FACE_POLICY_UNSPECIFIED = 0;
+  FACE_SWAP_NO_FACE_POLICY_FAIL = 1;
+  FACE_SWAP_NO_FACE_POLICY_PRESERVE_FRAME = 2;
+}
+
+enum AiVideoPixelFormat {
+  AI_VIDEO_PIXEL_FORMAT_UNSPECIFIED = 0;
+  AI_VIDEO_PIXEL_FORMAT_RGB8 = 1;
+}
+
+message AiVideoSessionFormat {
+  uint32 width = 1;
+  uint32 height = 2;
+  AiVideoPixelFormat pixel_format = 3;
+}
+
+message OpenVideoSessionRequest {
+  string reference_image_artifact_id = 1;
+  AiVideoSessionFormat format = 2;
+}
+
+message OpenVideoSessionResponse {
+  string video_session_id = 1;
+  uint64 generation = 2;
+  AiVideoSessionFormat format = 3;
+  uint32 maximum_in_flight_submissions = 4;
+}
+
+message SubmitVideoSessionFrameRequest {
+  string video_session_id = 1;
+  uint64 generation = 2;
+  uint64 sequence = 3;
+  uint64 timestamp_us = 4;
+  bytes frame = 5;
+}
+
+message SubmitVideoSessionFrameResponse {
+  bool accepted = 1;
+  uint64 sequence = 2;
+}
+
+message ReadVideoSessionResultRequest {
+  string video_session_id = 1;
+  uint64 generation = 2;
+}
+
+message AiVideoTransformedFrame {
+  uint64 sequence = 1;
+  uint64 timestamp_us = 2;
+  bytes frame = 3;
+}
+
+message AiVideoFrameDisposition {
+  uint64 sequence = 1;
+  uint64 timestamp_us = 2;
+  ReasonCode reason_code = 3;
+}
+
+message AiVideoSessionTerminal {
+  ReasonCode reason_code = 1;
+}
+
+message AiVideoSessionResult {
+  string video_session_id = 1;
+  uint64 generation = 2;
+  oneof result {
+    AiVideoTransformedFrame transformed = 3;
+    AiVideoFrameDisposition no_target_face = 4;
+    AiVideoFrameDisposition input_dropped = 5;
+    AiVideoFrameDisposition input_rejected = 6;
+    AiVideoSessionTerminal session_terminal = 7;
+  }
+}
+
+message ReadVideoSessionResultResponse {
+  // Absent means the bounded poll has no result yet.
+  AiVideoSessionResult result = 1;
+}
+
+message CloseVideoSessionRequest {
+  string video_session_id = 1;
+  uint64 generation = 2;
+}
+
+message CloseVideoSessionResponse {
+  bool closed = 1;
+}
+
+service RuntimeAiVideoSessionService {
+  rpc OpenVideoSession(OpenVideoSessionRequest) returns (OpenVideoSessionResponse);
+  rpc SubmitVideoSessionFrame(SubmitVideoSessionFrameRequest) returns (SubmitVideoSessionFrameResponse);
+  rpc ReadVideoSessionResult(ReadVideoSessionResultRequest) returns (ReadVideoSessionResultResponse);
+  rpc CloseVideoSession(CloseVideoSessionRequest) returns (CloseVideoSessionResponse);
+}
+
+message VideoFaceSwapScenarioSpec {
+  string reference_image_artifact_id = 1;
+  string target_video_artifact_id = 2;
+  FaceSwapNoFacePolicy no_face_policy = 3;
+}
+
+message VideoFaceSwapSummary {
+  uint32 total_frames = 1;
+  uint32 transformed_frames = 2;
+  uint32 preserved_frames = 3;
+  uint64 duration_us = 4;
+  uint32 frame_rate = 5;
+  bool audio_preserved = 6;
+}
+
 message VisionLocateScenarioSpec {
   string image_artifact_id = 1;
   string query = 2;
@@ -537,6 +656,8 @@ message ScenarioSpec {
     WorldGenerateScenarioSpec world_generate = 10;
     VoiceCreateScenarioSpec voice_create = 11;
     VisionLocateScenarioSpec vision_locate = 12;
+    ImageFaceSwapScenarioSpec image_face_swap = 13;
+    VideoFaceSwapScenarioSpec video_face_swap = 14;
   }
   reserved 7, 8;
   reserved "voice_clone", "voice_design";
@@ -575,6 +696,15 @@ message TextEmbedOutput {
 
 message ImageGenerateResult {
   repeated ScenarioArtifact artifacts = 1;
+}
+
+message ImageFaceSwapResult {
+  repeated ScenarioArtifact artifacts = 1;
+}
+
+message VideoFaceSwapResult {
+  repeated ScenarioArtifact artifacts = 1;
+  VideoFaceSwapSummary summary = 2;
 }
 
 message VideoGenerateResult {
@@ -624,6 +754,8 @@ message ScenarioOutput {
     SpeechTranscribeResult speech_transcribe = 6;
     MusicGenerateResult music_generate = 7;
     WorldGenerateResult world_generate = 8;
+    ImageFaceSwapResult image_face_swap = 9;
+    VideoFaceSwapResult video_face_swap = 10;
   }
 }
 
@@ -672,7 +804,7 @@ message GenerateLocalAppTextCandidateResponse {
 
 // Trimmed artifact projection for Local App scenario outputs. Runtime-private
 // uri, producer, and owner fields are never projected; oversized payloads are
-// reachable only through ReadLocalAppArtifact.
+// retrieved through owned artifact adoption and App asset streaming.
 message LocalAppScenarioArtifact {
   string artifact_id = 1;
   string mime_type = 2;
@@ -816,6 +948,8 @@ message SubmitLocalAppScenarioJobRequest {
     LocalAppMusicGenerateJobSpec music_generate = 8;
     LocalAppWorldGenerateJobSpec world_generate = 10;
     VisionLocateScenarioSpec vision_locate = 11;
+    ImageFaceSwapScenarioSpec image_face_swap = 12;
+    VideoFaceSwapScenarioSpec video_face_swap = 13;
   }
   // Canonical Job deadline in milliseconds. Zero keeps Runtime's
   // capability-owned default; no other ScenarioRequestHead field is exposed.
@@ -846,6 +980,8 @@ message LocalAppScenarioJob {
   string transcription_text = 13;
   // Set only with reason_code AI_EXECUTION_INTERRUPTED and status FAILED.
   ExecutionInterruption interruption = 14;
+  // Present only for a completed VIDEO_FACE_SWAP Job.
+  VideoFaceSwapSummary video_face_swap_summary = 15;
 }
 
 // Trimmed voice asset catalog projection. Provider, model, provider voice
@@ -1124,6 +1260,8 @@ message ScenarioJob {
   LoadoutEffectiveInputIdentity effective_input_identity = 24;
   // Set only with reason_code AI_EXECUTION_INTERRUPTED and status FAILED.
   ExecutionInterruption interruption = 25;
+  // Immutable per-frame outcome counts captured with the completed artifact.
+  VideoFaceSwapSummary video_face_swap_summary = 26;
 }
 
 message SubmitScenarioJobRequest {

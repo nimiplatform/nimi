@@ -62,6 +62,20 @@ pub enum LocalAppReasonCode {
     AiRealtimeSessionClosed,
     AiMediaSpecInvalid,
     AiMediaOptionUnsupported,
+    AiFaceReferenceMissing,
+    AiFaceReferenceAmbiguous,
+    AiFaceTargetMissing,
+    AiFaceTargetAmbiguous,
+    AiVideoDecodeFailed,
+    AiVideoEncodeFailed,
+    AiVideoSessionOverloaded,
+    AiVideoSessionGenerationInvalid,
+    AiLocalExecutionLoadFailed,
+    AiLocalExecutionInferenceFailed,
+    AiLocalExecutionCanceled,
+    AiLocalExecutionProcessCrashed,
+    AiLocalExecutionContentMismatch,
+    AiLocalExecutionOutOfMemory,
     AiVoiceInputInvalid,
     AiVoiceWorkflowUnsupported,
     AiVoiceAssetNotFound,
@@ -154,6 +168,20 @@ impl LocalAppReasonCode {
             Self::AiRealtimeSessionClosed => "ai-realtime-session-closed",
             Self::AiMediaSpecInvalid => "ai-media-spec-invalid",
             Self::AiMediaOptionUnsupported => "ai-media-option-unsupported",
+            Self::AiFaceReferenceMissing => "ai-face-reference-missing",
+            Self::AiFaceReferenceAmbiguous => "ai-face-reference-ambiguous",
+            Self::AiFaceTargetMissing => "ai-face-target-missing",
+            Self::AiFaceTargetAmbiguous => "ai-face-target-ambiguous",
+            Self::AiVideoDecodeFailed => "ai-video-decode-failed",
+            Self::AiVideoEncodeFailed => "ai-video-encode-failed",
+            Self::AiVideoSessionOverloaded => "ai-video-session-overloaded",
+            Self::AiVideoSessionGenerationInvalid => "ai-video-session-generation-invalid",
+            Self::AiLocalExecutionLoadFailed => "ai-local-execution-load-failed",
+            Self::AiLocalExecutionInferenceFailed => "ai-local-execution-inference-failed",
+            Self::AiLocalExecutionCanceled => "ai-local-execution-canceled",
+            Self::AiLocalExecutionProcessCrashed => "ai-local-execution-process-crashed",
+            Self::AiLocalExecutionContentMismatch => "ai-local-execution-content-mismatch",
+            Self::AiLocalExecutionOutOfMemory => "ai-local-execution-out-of-memory",
             Self::AiVoiceInputInvalid => "ai-voice-input-invalid",
             Self::AiVoiceWorkflowUnsupported => "ai-voice-workflow-unsupported",
             Self::AiVoiceAssetNotFound => "ai-voice-asset-not-found",
@@ -891,6 +919,26 @@ pub struct LocalAppAiRealtimeOpenRequest {
     pub audio_output_enabled: bool,
     pub turn_detection: String,
     pub initial_instruction: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppVideoSessionOpenRequest {
+    pub reference_image_artifact_id: String,
+    pub width: u32,
+    pub height: u32,
+    pub pixel_format: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppVideoSessionScopeRequest { pub video_session_id: String, pub generation: u64 }
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppVideoSessionFrameRequest {
+    pub video_session_id: String,
+    pub generation: u64,
+    pub sequence: u64,
+    pub timestamp_us: u64,
+    pub frame_base64: String,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -1687,6 +1735,11 @@ pub trait NimiLocalAppSession: Send + Sync {
         &self,
         request: LocalAppAiRealtimeOpenRequest,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn video_session_open(&self, request: LocalAppVideoSessionOpenRequest) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+    fn video_session_submit(&self, request: LocalAppVideoSessionFrameRequest) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+    fn video_session_read(&self, request: LocalAppVideoSessionScopeRequest) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+    fn video_session_close(&self, request: LocalAppVideoSessionScopeRequest) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
     fn realm_chat_list(
         &self,

@@ -1,0 +1,37 @@
+[project]
+name = "nimi-face-swap-profile"
+version = "0.0.0"
+requires-python = "==3.12.13"
+dependencies = [
+  "av==18.1.0",
+  "insightface==0.7.3",
+  "numpy==1.26.4",
+  "onnx==1.22.0",
+  "onnxruntime-gpu[cuda,cudnn]==1.28.0",
+  "opencv-python-headless==4.11.0.86",
+  "pillow==12.3.0",
+  "scikit-image==0.26.0",
+  "scipy==1.17.1",
+  "nvidia-cublas==13.7.0.27",
+  "nvidia-cuda-nvrtc==13.4.59",
+  "nvidia-cuda-runtime==13.4.49",
+  "nvidia-cudnn-cu13==9.25.1.1",
+  "nvidia-cufft==12.4.0.34",
+  "nvidia-curand==10.4.4.49",
+  "nvidia-nvjitlink==13.4.52",
+]
+
+[tool.uv]
+environments = ["sys_platform == 'win32' and platform_machine == 'AMD64'"]
+# InsightFace builds a Cython extension in an isolated environment. Its build
+# inputs must stay exact independently of the locked runtime dependencies.
+build-constraint-dependencies = [
+  "setuptools==84.0.0",
+  "numpy==1.26.4",
+  "cython==3.3.0",
+]
+
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple"
+default = true

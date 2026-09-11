@@ -253,6 +253,9 @@ func newProtectedDesktopRPCServer(
 	if realtimeService, ok := aiService.(runtimev1.RuntimeAiRealtimeServiceServer); ok {
 		runtimev1.RegisterRuntimeAiRealtimeServiceServer(server, realtimeService)
 	}
+	if videoService, ok := aiService.(runtimev1.RuntimeAiVideoSessionServiceServer); ok {
+		runtimev1.RegisterRuntimeAiVideoSessionServiceServer(server, videoService)
+	}
 	runtimev1.RegisterRuntimeAgentServiceServer(server, agentService)
 	runtimev1.RegisterRuntimeConnectorServiceServer(server, connectorService)
 	runtimev1.RegisterRuntimeExternalAgentServiceServer(server, externalAgentService)
@@ -315,7 +318,26 @@ func newUnaryProtectedDesktopTransportInterceptor(desktopSessions *protectedloca
 				return nil, formalErr
 			}
 			if authorized {
-				return handler(formalContext, req)
+				if !strings.HasPrefix(info.FullMethod, "/nimi.runtime.v1.RuntimeAiVideoSessionService/") {
+					return handler(formalContext, req)
+				}
+				// Video Sessions retain the same technical-session resource
+				// binding on formal Apps as on ordinary protected Apps.
+				formalConnection, ok := protectedlocal.LocalAppConnectionFromContext(formalContext)
+				if !ok || formalConnection == nil {
+					return nil, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+				}
+				if err := authorizeProtectedLocalAppRealtimeResource(formalContext, formalConnection, info.FullMethod, req); err != nil {
+					return nil, err
+				}
+				response, err := handler(formalContext, req)
+				if err != nil {
+					return nil, err
+				}
+				if err := updateProtectedLocalAppRealtimeResource(formalContext, formalConnection, info.FullMethod, req, response, info.Server); err != nil {
+					return nil, err
+				}
+				return response, nil
 			}
 		}
 		if formalAppSessionMethod(info.FullMethod) && (bundled || firstPartyProfile.account) {

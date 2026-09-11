@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"io"
 	"sort"
 	"strings"
 
@@ -82,15 +83,14 @@ type ModelAssetDescriptor struct {
 	Family            string
 	Engine            string
 	ArtifactRoles     []string
-	// FormatProbe is a bounded prefix (at most MaxAssetFormatProbeBytes) read
-	// from the verified exact entry. It is used only by Drivers whose dialect
-	// requires magic/header validation.
+	// FormatProbe is bounded metadata from the verified exact entry: a prefix
+	// by default, or the exact Driver's structured format probe.
 	FormatProbe []byte
 }
 
 // ModelAssetFileFact is one path-safe, content-verified file exposed while a
-// Driver projects an exact ModelAsset binding. FormatProbe is a bounded prefix
-// of that same verified file; Drivers cannot reopen paths or discover files.
+// Driver projects an exact ModelAsset binding. FormatProbe is bounded format
+// metadata from that same verified file; Drivers cannot reopen or discover paths.
 type ModelAssetFileFact struct {
 	RelativePath string
 	SizeBytes    int64
@@ -121,6 +121,12 @@ type ModelAssetFormatProbeInput struct {
 // exact recipe/slot/file semantic. It does not read paths or select content.
 type ModelAssetFormatProbeDriver interface {
 	ModelAssetFormatProbeBytes(input ModelAssetFormatProbeInput) int64
+}
+
+// ModelAssetStructuredProbeDriver inspects the already verified, opened file.
+// It receives no path access; its bounded result replaces the prefix probe.
+type ModelAssetStructuredProbeDriver interface {
+	ProbeModelAsset(input ModelAssetFormatProbeInput, source io.ReaderAt, size int64) ([]byte, error)
 }
 
 // ModelAssetBindingProjection is the Driver-owned interpretation of verified
@@ -1534,7 +1540,10 @@ func (registry *Registry) Resolve(capabilityContract string, identity Identity) 
 
 func NewProductionRegistry() *Registry {
 	entries := map[RegistrationKey]Driver{
-		{CapabilityContract: VisionLocateContract, Identity: Identity{ImplementationID: LocateAnythingImplementationID, DriverID: LocateAnythingDriverID, DriverDialect: LocateAnythingDriverDialect}}: LocateAnythingDriver{},
+		// @nimi-authority: rule.nimi.runtime.local-compute.face-swap-driver
+		{CapabilityContract: ImageFaceSwapContract, Identity: Identity{ImplementationID: InsightFaceImplementationID, DriverID: InsightFaceDriverID, DriverDialect: InsightFaceDriverDialect}}:           InsightFaceImageDriver{},
+		{CapabilityContract: VideoFaceSwapContract, Identity: Identity{ImplementationID: InsightFaceVideoImplementationID, DriverID: InsightFaceDriverID, DriverDialect: InsightFaceVideoDriverDialect}}: InsightFaceVideoDriver{},
+		{CapabilityContract: VisionLocateContract, Identity: Identity{ImplementationID: LocateAnythingImplementationID, DriverID: LocateAnythingDriverID, DriverDialect: LocateAnythingDriverDialect}}:   LocateAnythingDriver{},
 		// @nimi-authority: rule.nimi.runtime.local-compute.r112
 		{CapabilityContract: LlamaCapabilityContract, Identity: Identity{ImplementationID: LlamaImplementationID, DriverID: LlamaDriverID, DriverDialect: LlamaDriverDialect}}:                                                             LlamaTextDriver{},
 		{CapabilityContract: TextEmbedCapabilityContract, Identity: Identity{ImplementationID: LlamaEmbedImplementationID, DriverID: LlamaDriverID, DriverDialect: LlamaEmbedDriverDialect}}:                                               LlamaEmbedDriver{},

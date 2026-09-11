@@ -48,6 +48,18 @@ test('compiles all protected Runtime profiles and current generated consumers', 
   }
 });
 
+test('carries every video Session operation on both formal App profiles', () => {
+  const { model } = compile();
+  for (const profileId of ['desktop_account_product_v1', 'bundled_avatar_v1']) {
+    const methods = new Map(model.profiles.find(profile => profile.profileId === profileId).methods.map(method => [method.methodId, method]));
+    for (const operation of ['OpenVideoSession', 'SubmitVideoSessionFrame', 'ReadVideoSessionResult', 'CloseVideoSession']) {
+      const methodId = `/nimi.runtime.v1.RuntimeAiVideoSessionService/${operation}`;
+      assert.equal(methods.get(methodId)?.kind, 'unary', `${profileId} must carry ${methodId}`);
+      if (profileId === 'bundled_avatar_v1') assert.equal(methods.get(methodId)?.capability, 'runtime.consume');
+    }
+  }
+});
+
 test('keeps raw Avatar Host target methods in native profiles and out of SDK typed groups', () => {
   const { model, outputs } = compile();
   const nativeOutput = outputs.get(

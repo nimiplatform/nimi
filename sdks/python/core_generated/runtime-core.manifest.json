@@ -703,6 +703,48 @@
       ]
     },
     {
+      "name": "RuntimeAiVideoSessionService",
+      "source_file": "proto/runtime/v1/ai.proto",
+      "methods": [
+        {
+          "name": "OpenVideoSession",
+          "method_id": "/nimi.runtime.v1.RuntimeAiVideoSessionService/OpenVideoSession",
+          "kind": "unary",
+          "request_type": "OpenVideoSessionRequest",
+          "response_type": "OpenVideoSessionResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "SubmitVideoSessionFrame",
+          "method_id": "/nimi.runtime.v1.RuntimeAiVideoSessionService/SubmitVideoSessionFrame",
+          "kind": "unary",
+          "request_type": "SubmitVideoSessionFrameRequest",
+          "response_type": "SubmitVideoSessionFrameResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "ReadVideoSessionResult",
+          "method_id": "/nimi.runtime.v1.RuntimeAiVideoSessionService/ReadVideoSessionResult",
+          "kind": "unary",
+          "request_type": "ReadVideoSessionResultRequest",
+          "response_type": "ReadVideoSessionResultResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "CloseVideoSession",
+          "method_id": "/nimi.runtime.v1.RuntimeAiVideoSessionService/CloseVideoSession",
+          "kind": "unary",
+          "request_type": "CloseVideoSessionRequest",
+          "response_type": "CloseVideoSessionResponse",
+          "request_stream": false,
+          "response_stream": false
+        }
+      ]
+    },
+    {
       "name": "RuntimeAiService",
       "source_file": "proto/runtime/v1/ai.proto",
       "methods": [
@@ -2345,6 +2387,10 @@
     "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents",
     "/nimi.runtime.v1.RuntimeAiService/UploadArtifact",
     "/nimi.runtime.v1.RuntimeAiService/UploadLocalAppArtifact",
+    "/nimi.runtime.v1.RuntimeAiVideoSessionService/CloseVideoSession",
+    "/nimi.runtime.v1.RuntimeAiVideoSessionService/OpenVideoSession",
+    "/nimi.runtime.v1.RuntimeAiVideoSessionService/ReadVideoSessionResult",
+    "/nimi.runtime.v1.RuntimeAiVideoSessionService/SubmitVideoSessionFrame",
     "/nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob",
     "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob",
     "/nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs",
@@ -3315,6 +3361,38 @@
       "kind": "unary",
       "request_type": "UploadLocalAppArtifactRequest",
       "response_type": "UploadLocalAppArtifactResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAiVideoSessionService/CloseVideoSession",
+      "service": "RuntimeAiVideoSessionService",
+      "method": "CloseVideoSession",
+      "kind": "unary",
+      "request_type": "CloseVideoSessionRequest",
+      "response_type": "CloseVideoSessionResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAiVideoSessionService/OpenVideoSession",
+      "service": "RuntimeAiVideoSessionService",
+      "method": "OpenVideoSession",
+      "kind": "unary",
+      "request_type": "OpenVideoSessionRequest",
+      "response_type": "OpenVideoSessionResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAiVideoSessionService/ReadVideoSessionResult",
+      "service": "RuntimeAiVideoSessionService",
+      "method": "ReadVideoSessionResult",
+      "kind": "unary",
+      "request_type": "ReadVideoSessionResultRequest",
+      "response_type": "ReadVideoSessionResultResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAiVideoSessionService/SubmitVideoSessionFrame",
+      "service": "RuntimeAiVideoSessionService",
+      "method": "SubmitVideoSessionFrame",
+      "kind": "unary",
+      "request_type": "SubmitVideoSessionFrameRequest",
+      "response_type": "SubmitVideoSessionFrameResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob",
@@ -5191,6 +5269,38 @@
       "response_type": "UploadLocalAppArtifactResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAiVideoSessionService/CloseVideoSession",
+      "service": "RuntimeAiVideoSessionService",
+      "method": "CloseVideoSession",
+      "kind": "unary",
+      "request_type": "CloseVideoSessionRequest",
+      "response_type": "CloseVideoSessionResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAiVideoSessionService/OpenVideoSession",
+      "service": "RuntimeAiVideoSessionService",
+      "method": "OpenVideoSession",
+      "kind": "unary",
+      "request_type": "OpenVideoSessionRequest",
+      "response_type": "OpenVideoSessionResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAiVideoSessionService/ReadVideoSessionResult",
+      "service": "RuntimeAiVideoSessionService",
+      "method": "ReadVideoSessionResult",
+      "kind": "unary",
+      "request_type": "ReadVideoSessionResultRequest",
+      "response_type": "ReadVideoSessionResultResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAiVideoSessionService/SubmitVideoSessionFrame",
+      "service": "RuntimeAiVideoSessionService",
+      "method": "SubmitVideoSessionFrame",
+      "kind": "unary",
+      "request_type": "SubmitVideoSessionFrameRequest",
+      "response_type": "SubmitVideoSessionFrameResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob",
       "service": "RuntimeAppPackageService",
       "method": "CancelAppPackageJob",
@@ -6302,6 +6412,11 @@
       "AiRealtimeTextInput",
       "AiRealtimeTextOutput",
       "AiRealtimeTranscript",
+      "AiVideoFrameDisposition",
+      "AiVideoSessionFormat",
+      "AiVideoSessionResult",
+      "AiVideoSessionTerminal",
+      "AiVideoTransformedFrame",
       "AppAIConfigPresetVoiceOption",
       "AppAIConfigPresetVoiceOptions",
       "AppAIConfigPresetVoiceOptionsQuery",
@@ -6371,6 +6486,8 @@
       "CloseRealmRealtimeSubscriptionResponse",
       "CloseRealtimeSessionRequest",
       "CloseRealtimeSessionResponse",
+      "CloseVideoSessionRequest",
+      "CloseVideoSessionResponse",
       "CognitionMemoryActivityTerminal",
       "CognitionMemoryAiJobRequest",
       "CognitionMemoryAiJobResult",
@@ -6556,6 +6673,8 @@
       "HookTriggerEventUserIdleDetail",
       "HookTriggerTimeDetail",
       "IgnoredScenarioExtension",
+      "ImageFaceSwapResult",
+      "ImageFaceSwapScenarioSpec",
       "ImageGenerateResult",
       "ImageGenerateScenarioSpec",
       "ImportModelAssetRequest",
@@ -6806,6 +6925,8 @@
       "OpenRealmRealtimeChannelResponse",
       "OpenRealtimeSessionRequest",
       "OpenRealtimeSessionResponse",
+      "OpenVideoSessionRequest",
+      "OpenVideoSessionResponse",
       "OverwriteAppAIConfigRequest",
       "OverwriteAppAIConfigResponse",
       "OverwriteLocalAppSharedLocalAgentAIConfigRequest",
@@ -6848,6 +6969,8 @@
       "ReadLocalAppStorageJsonRequest",
       "ReadLocalAppStorageJsonResponse",
       "ReadRealtimeEventsRequest",
+      "ReadVideoSessionResultRequest",
+      "ReadVideoSessionResultResponse",
       "RealmChatAttachmentPayload",
       "RealmChatDurableEvent",
       "RealmChatFriendRequestPayload",
@@ -6995,6 +7118,8 @@
       "SubmitRealtimeOwnerControlResponse",
       "SubmitScenarioJobRequest",
       "SubmitScenarioJobResponse",
+      "SubmitVideoSessionFrameRequest",
+      "SubmitVideoSessionFrameResponse",
       "SubscribeAccountSessionEventsRequest",
       "SubscribeAppMessagesRequest",
       "SubscribeLocalAppAgentRealtimeEventsRequest",
@@ -7056,6 +7181,9 @@
       "VideoContentImageURL",
       "VideoContentItem",
       "VideoContentVideoURL",
+      "VideoFaceSwapResult",
+      "VideoFaceSwapScenarioSpec",
+      "VideoFaceSwapSummary",
       "VideoGenerateResult",
       "VideoGenerateScenarioSpec",
       "VideoGenerationOptions",
@@ -7135,6 +7263,7 @@
       "AiRealtimeOwnerControlKind",
       "AiRealtimeSpeechState",
       "AiRealtimeTurnDetectionMode",
+      "AiVideoPixelFormat",
       "AppMessageEventType",
       "AppPackageJobKind",
       "AppPackageJobPhase",
@@ -7175,6 +7304,7 @@
       "ExecutionResubmitDisposition",
       "ExternalPrincipalType",
       "ExternalProofType",
+      "FaceSwapNoFacePolicy",
       "FinishReason",
       "GpuMemoryModel",
       "HookAdmissionState",
@@ -10399,6 +10529,155 @@
         "source_file": "proto/runtime/v1/ai_realtime.proto"
       },
       {
+        "name": "AiVideoFrameDisposition",
+        "fields": [
+          {
+            "name": "sequence",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "timestamp_us",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "AiVideoSessionFormat",
+        "fields": [
+          {
+            "name": "width",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "height",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "pixel_format",
+            "type": "AiVideoPixelFormat",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "AiVideoSessionResult",
+        "fields": [
+          {
+            "name": "video_session_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "generation",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "transformed",
+            "type": "AiVideoTransformedFrame",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "no_target_face",
+            "type": "AiVideoFrameDisposition",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "input_dropped",
+            "type": "AiVideoFrameDisposition",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "input_rejected",
+            "type": "AiVideoFrameDisposition",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "session_terminal",
+            "type": "AiVideoSessionTerminal",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "AiVideoSessionTerminal",
+        "fields": [
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "AiVideoTransformedFrame",
+        "fields": [
+          {
+            "name": "sequence",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "timestamp_us",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "frame",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
         "name": "AppAIConfigPresetVoiceOption",
         "fields": [
           {
@@ -13035,6 +13314,39 @@
           }
         ],
         "source_file": "proto/runtime/v1/ai_realtime.proto"
+      },
+      {
+        "name": "CloseVideoSessionRequest",
+        "fields": [
+          {
+            "name": "video_session_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "generation",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "CloseVideoSessionResponse",
+        "fields": [
+          {
+            "name": "closed",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
       },
       {
         "name": "CognitionMemoryActivityTerminal",
@@ -18228,6 +18540,39 @@
           },
           {
             "name": "reason",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "ImageFaceSwapResult",
+        "fields": [
+          {
+            "name": "artifacts",
+            "type": "ScenarioArtifact",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "ImageFaceSwapScenarioSpec",
+        "fields": [
+          {
+            "name": "reference_image_artifact_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "target_image_artifact_id",
             "type": "string",
             "repeated": false,
             "optional": false,
@@ -23900,6 +24245,13 @@
             "repeated": false,
             "optional": false,
             "number": 14
+          },
+          {
+            "name": "video_face_swap_summary",
+            "type": "VideoFaceSwapSummary",
+            "repeated": false,
+            "optional": false,
+            "number": 15
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -27906,6 +28258,60 @@
         "source_file": "proto/runtime/v1/ai_realtime.proto"
       },
       {
+        "name": "OpenVideoSessionRequest",
+        "fields": [
+          {
+            "name": "reference_image_artifact_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "format",
+            "type": "AiVideoSessionFormat",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "OpenVideoSessionResponse",
+        "fields": [
+          {
+            "name": "video_session_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "generation",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "format",
+            "type": "AiVideoSessionFormat",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "maximum_in_flight_submissions",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
         "name": "OverwriteAppAIConfigRequest",
         "fields": [
           {
@@ -29031,6 +29437,39 @@
           }
         ],
         "source_file": "proto/runtime/v1/ai_realtime.proto"
+      },
+      {
+        "name": "ReadVideoSessionResultRequest",
+        "fields": [
+          {
+            "name": "video_session_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "generation",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "ReadVideoSessionResultResponse",
+        "fields": [
+          {
+            "name": "result",
+            "type": "AiVideoSessionResult",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
       },
       {
         "name": "RealmChatAttachmentPayload",
@@ -31529,6 +31968,13 @@
             "repeated": false,
             "optional": false,
             "number": 25
+          },
+          {
+            "name": "video_face_swap_summary",
+            "type": "VideoFaceSwapSummary",
+            "repeated": false,
+            "optional": false,
+            "number": 26
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -31632,6 +32078,20 @@
             "repeated": false,
             "optional": false,
             "number": 8
+          },
+          {
+            "name": "image_face_swap",
+            "type": "ImageFaceSwapResult",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "video_face_swap",
+            "type": "VideoFaceSwapResult",
+            "repeated": false,
+            "optional": false,
+            "number": 10
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -31762,6 +32222,20 @@
             "repeated": false,
             "optional": false,
             "number": 12
+          },
+          {
+            "name": "image_face_swap",
+            "type": "ImageFaceSwapScenarioSpec",
+            "repeated": false,
+            "optional": false,
+            "number": 13
+          },
+          {
+            "name": "video_face_swap",
+            "type": "VideoFaceSwapScenarioSpec",
+            "repeated": false,
+            "optional": false,
+            "number": 14
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -33395,6 +33869,20 @@
             "repeated": false,
             "optional": false,
             "number": 11
+          },
+          {
+            "name": "image_face_swap",
+            "type": "ImageFaceSwapScenarioSpec",
+            "repeated": false,
+            "optional": false,
+            "number": 12
+          },
+          {
+            "name": "video_face_swap",
+            "type": "VideoFaceSwapScenarioSpec",
+            "repeated": false,
+            "optional": false,
+            "number": 13
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -33538,6 +34026,67 @@
             "repeated": false,
             "optional": false,
             "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "SubmitVideoSessionFrameRequest",
+        "fields": [
+          {
+            "name": "video_session_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "generation",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "sequence",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "timestamp_us",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "frame",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "SubmitVideoSessionFrameResponse",
+        "fields": [
+          {
+            "name": "accepted",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "sequence",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -35546,6 +36095,101 @@
         "source_file": "proto/runtime/v1/ai.proto"
       },
       {
+        "name": "VideoFaceSwapResult",
+        "fields": [
+          {
+            "name": "artifacts",
+            "type": "ScenarioArtifact",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "summary",
+            "type": "VideoFaceSwapSummary",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "VideoFaceSwapScenarioSpec",
+        "fields": [
+          {
+            "name": "reference_image_artifact_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "target_video_artifact_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "no_face_policy",
+            "type": "FaceSwapNoFacePolicy",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "VideoFaceSwapSummary",
+        "fields": [
+          {
+            "name": "total_frames",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "transformed_frames",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "preserved_frames",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "duration_us",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "frame_rate",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "audio_preserved",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
         "name": "VideoGenerateResult",
         "fields": [
           {
@@ -37149,6 +37793,14 @@
         "source_file": "proto/runtime/v1/ai_realtime.proto"
       },
       {
+        "name": "AiVideoPixelFormat",
+        "values": [
+          "AI_VIDEO_PIXEL_FORMAT_UNSPECIFIED",
+          "AI_VIDEO_PIXEL_FORMAT_RGB8"
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
         "name": "AppMessageEventType",
         "values": [
           "APP_MESSAGE_EVENT_TYPE_UNSPECIFIED",
@@ -37580,6 +38232,15 @@
           "EXTERNAL_PROOF_TYPE_JWT"
         ],
         "source_file": "proto/runtime/v1/auth.proto"
+      },
+      {
+        "name": "FaceSwapNoFacePolicy",
+        "values": [
+          "FACE_SWAP_NO_FACE_POLICY_UNSPECIFIED",
+          "FACE_SWAP_NO_FACE_POLICY_FAIL",
+          "FACE_SWAP_NO_FACE_POLICY_PRESERVE_FRAME"
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
       },
       {
         "name": "FinishReason",
@@ -38414,7 +39075,15 @@
           "APP_PACKAGE_UNINSTALL_UNAVAILABLE",
           "APP_PACKAGE_HOST_RUNNING",
           "APP_PACKAGE_UNINSTALL_FAILED",
-          "APP_PACKAGE_UPDATE_UNAVAILABLE"
+          "APP_PACKAGE_UPDATE_UNAVAILABLE",
+          "AI_FACE_REFERENCE_MISSING",
+          "AI_FACE_REFERENCE_AMBIGUOUS",
+          "AI_FACE_TARGET_MISSING",
+          "AI_FACE_TARGET_AMBIGUOUS",
+          "AI_VIDEO_DECODE_FAILED",
+          "AI_VIDEO_ENCODE_FAILED",
+          "AI_VIDEO_SESSION_OVERLOADED",
+          "AI_VIDEO_SESSION_GENERATION_INVALID"
         ],
         "source_file": "proto/runtime/v1/common.proto"
       },
@@ -38521,7 +39190,9 @@
           "SCENARIO_TYPE_MUSIC_GENERATE",
           "SCENARIO_TYPE_WORLD_GENERATE",
           "SCENARIO_TYPE_VOICE_CREATE",
-          "SCENARIO_TYPE_VISION_LOCATE"
+          "SCENARIO_TYPE_VISION_LOCATE",
+          "SCENARIO_TYPE_IMAGE_FACE_SWAP",
+          "SCENARIO_TYPE_VIDEO_FACE_SWAP"
         ],
         "source_file": "proto/runtime/v1/ai.proto"
       },

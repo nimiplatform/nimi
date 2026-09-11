@@ -60,6 +60,7 @@ type Service struct {
 	scheduler                              *scheduler.Scheduler
 	scenarioJobs                           *scenarioJobStore
 	realtimeSessions                       *realtimeSessionStore
+	videoSessions                          *videoSessionStore
 	voiceAssets                            *voiceAssetStore
 	runtimeArtifacts                       runtimeartifact.Store
 	runtimeCustodyIssuer                   *capabilitydriver.RuntimeCustodyIssuer
@@ -74,6 +75,8 @@ type Service struct {
 	localSpeechHost                        localexecution.SpeechExecutionHost
 	localVisionHost                        localexecution.VisionExecutionHost
 	localVisionJobOrder                    localMediaSubmissionOrder
+	localFaceSwapHost                      localexecution.FaceSwapExecutionHost
+	localFaceSwapJobOrder                  localMediaSubmissionOrder
 	localImageJobOrder                     localMediaSubmissionOrder
 	localMusicJobOrder                     localMediaSubmissionOrder
 	localVideoJobOrder                     localMediaSubmissionOrder
@@ -245,6 +248,7 @@ func newFromProviderConfig(logger *slog.Logger, auditStore *auditlog.Store, conn
 		scheduler:                              scheduler.New(scheduler.Config{GlobalConcurrency: globalConc, PerAppConcurrency: perAppConc, StarvationThreshold: 30 * time.Second}),
 		scenarioJobs:                           newScenarioJobStore(),
 		realtimeSessions:                       realtimeSessions,
+		videoSessions:                          newVideoSessionStore(),
 		voiceAssets:                            newVoiceAssetStore(),
 		runtimeArtifacts:                       runtimeartifact.NewMemoryStore(),
 		runtimeCustodyIssuer:                   capabilitydriver.NewRuntimeCustodyIssuer(),
@@ -303,6 +307,12 @@ func (s *Service) SetLocalImageExecutionHost(host localexecution.ImageExecutionH
 func (s *Service) SetLocalVisionExecutionHost(host localexecution.VisionExecutionHost) {
 	if s != nil {
 		s.localVisionHost = host
+	}
+}
+
+func (s *Service) SetLocalFaceSwapExecutionHost(host localexecution.FaceSwapExecutionHost) {
+	if s != nil {
+		s.localFaceSwapHost = host
 	}
 }
 

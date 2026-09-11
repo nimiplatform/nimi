@@ -182,6 +182,10 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents
       - method_id: /nimi.runtime.v1.RuntimeAiRealtimeService/InterruptRealtimeOutput
       - method_id: /nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession
+      - method_id: /nimi.runtime.v1.RuntimeAiVideoSessionService/OpenVideoSession
+      - method_id: /nimi.runtime.v1.RuntimeAiVideoSessionService/SubmitVideoSessionFrame
+      - method_id: /nimi.runtime.v1.RuntimeAiVideoSessionService/ReadVideoSessionResult
+      - method_id: /nimi.runtime.v1.RuntimeAiVideoSessionService/CloseVideoSession
       - method_id: /nimi.runtime.v1.RuntimeAgentService/OpenLocalAppAgentRealtime
       - method_id: /nimi.runtime.v1.RuntimeAgentService/AppendLocalAppAgentRealtimeInput
       - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents
@@ -342,6 +346,14 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAiRealtimeService/InterruptRealtimeOutput
         capability: runtime.consume
       - method_id: /nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession
+        capability: runtime.consume
+      - method_id: /nimi.runtime.v1.RuntimeAiVideoSessionService/OpenVideoSession
+        capability: runtime.consume
+      - method_id: /nimi.runtime.v1.RuntimeAiVideoSessionService/SubmitVideoSessionFrame
+        capability: runtime.consume
+      - method_id: /nimi.runtime.v1.RuntimeAiVideoSessionService/ReadVideoSessionResult
+        capability: runtime.consume
+      - method_id: /nimi.runtime.v1.RuntimeAiVideoSessionService/CloseVideoSession
         capability: runtime.consume
       - method_id: /nimi.runtime.v1.RuntimeAgentService/OpenLocalAppAgentRealtime
         capability: agent.local

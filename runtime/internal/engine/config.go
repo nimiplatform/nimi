@@ -289,6 +289,10 @@ type EngineConfig struct {
 	// ShutdownTimeout is the maximum time to wait for graceful SIGTERM shutdown
 	// before sending SIGKILL.
 	ShutdownTimeout time.Duration
+
+	// ForceTerminationTimeout bounds confirmed process-tree exit after SIGKILL.
+	// Zero uses the supervisor's normal termination window.
+	ForceTerminationTimeout time.Duration
 }
 
 // DefaultLlamaConfig returns the default configuration for the llama engine.

@@ -7,6 +7,7 @@ mod realm_persona_character;
 mod realm_realtime;
 mod realm_world_core;
 mod realtime;
+mod video_session;
 mod reference;
 mod scenario;
 mod shared_agent_ai_config;
@@ -845,6 +846,19 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
             let _operation = self.operation_gate.read().await;
             realtime::ai_open(self.checked_channel()?, request).await
         })
+    }
+
+    fn video_session_open(&self, request: crate::LocalAppVideoSessionOpenRequest) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>> {
+        Box::pin(async move { let _operation = self.operation_gate.read().await; video_session::open(self.checked_channel()?, request).await })
+    }
+    fn video_session_submit(&self, request: crate::LocalAppVideoSessionFrameRequest) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>> {
+        Box::pin(async move { let _operation = self.operation_gate.read().await; video_session::submit(self.checked_channel()?, request).await })
+    }
+    fn video_session_read(&self, request: crate::LocalAppVideoSessionScopeRequest) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>> {
+        Box::pin(async move { let _operation = self.operation_gate.read().await; video_session::read(self.checked_channel()?, request).await })
+    }
+    fn video_session_close(&self, request: crate::LocalAppVideoSessionScopeRequest) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>> {
+        Box::pin(async move { let _operation = self.operation_gate.read().await; video_session::close(self.checked_channel()?, request).await })
     }
 
     fn realm_chat_list(

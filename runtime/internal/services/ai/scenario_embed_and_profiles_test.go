@@ -15,14 +15,20 @@ func TestListScenarioProfiles(t *testing.T) {
 	if err != nil {
 		t.Fatalf("list scenario profiles: %v", err)
 	}
-	if len(resp.GetProfiles()) != 10 {
-		t.Fatalf("expected 10 scenario profiles, got %d", len(resp.GetProfiles()))
+	if len(resp.GetProfiles()) != 12 {
+		t.Fatalf("expected 12 scenario profiles, got %d", len(resp.GetProfiles()))
 	}
 	var foundTextGenerate bool
 	var foundImageGenerate bool
 	var foundWorldGenerate bool
+	var foundFaceSwap bool
 	for _, profile := range resp.GetProfiles() {
 		switch profile.GetScenarioType() {
+		case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_FACE_SWAP:
+			foundFaceSwap = true
+			if modes := profile.GetSupportedExecutionModes(); len(modes) != 1 || modes[0] != runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB {
+				t.Fatalf("face replacement must be async-job-only: %v", modes)
+			}
 		case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE:
 			foundTextGenerate = true
 			if got := profile.GetSupportedExecutionModes(); len(got) != 2 ||
@@ -44,6 +50,9 @@ func TestListScenarioProfiles(t *testing.T) {
 	}
 	if !foundTextGenerate {
 		t.Fatalf("text generate profile not found")
+	}
+	if !foundFaceSwap {
+		t.Fatal("image face replacement profile not found")
 	}
 	if !foundImageGenerate {
 		t.Fatalf("image generate profile not found")

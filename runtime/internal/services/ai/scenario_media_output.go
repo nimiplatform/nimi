@@ -20,6 +20,10 @@ func buildScenarioOutputFromArtifacts(
 	clonedArtifacts := cloneScenarioArtifacts(artifacts)
 
 	switch job.GetScenarioType() {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_FACE_SWAP:
+		return &runtimev1.ScenarioOutput{Output: &runtimev1.ScenarioOutput_VideoFaceSwap{VideoFaceSwap: &runtimev1.VideoFaceSwapResult{Artifacts: clonedArtifacts, Summary: job.GetVideoFaceSwapSummary()}}}
+	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_FACE_SWAP:
+		return &runtimev1.ScenarioOutput{Output: &runtimev1.ScenarioOutput_ImageFaceSwap{ImageFaceSwap: &runtimev1.ImageFaceSwapResult{Artifacts: clonedArtifacts}}}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE:
 		text := ""
 		if len(artifacts) > 0 && artifacts[0] != nil {

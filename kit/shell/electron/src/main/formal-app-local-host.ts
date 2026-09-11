@@ -11,6 +11,7 @@ import {
   createNimiRealmRealtimeRuntimeClient,
   createNimiLocalAppAIConfigRuntimeClient,
   AccountReasonCode,
+  AiVideoPixelFormat,
   FinishReason,
   LocalAppSessionState,
   RuntimeReasonCode as ReasonCode,
@@ -502,6 +503,33 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
     embodimentSnapshot: (record) => embodiment.snapshot(record as never) as Promise<NimiElectronLocalAppRecord>,
     embodimentSubscribe: async (record) => openPullStream(await embodiment.subscribe(record as never)),
     aiRealtimeOpen: (record) => aiRealtime.open(record as never) as Promise<NimiElectronLocalAppRecord>,
+    async videoSessionOpen(record) {
+      const result = await runtime.openVideoSession({ referenceImageArtifactId: requiredText(record.referenceImageArtifactId), format: { width: Number(record.width), height: Number(record.height), pixelFormat: AiVideoPixelFormat.RGB8 } });
+      if (!result.format) throw new NimiElectronLocalAppHostError('runtime-service-untrusted', false);
+      return { videoSessionId: result.videoSessionId, generation: result.generation, format: { width: result.format.width, height: result.format.height, pixelFormat: 'rgb8' }, maximumInFlightSubmissions: result.maximumInFlightSubmissions };
+    },
+    async videoSessionSubmit(record) {
+      const result = await runtime.submitVideoSessionFrame({ videoSessionId: requiredText(record.videoSessionId), generation: requiredText(record.generation), sequence: requiredText(record.sequence), timestampUs: requiredText(record.timestampUs), frame: Buffer.from(requiredText(record.frameBase64), 'base64') });
+      return { accepted: result.accepted, sequence: result.sequence };
+    },
+    async videoSessionRead(record) {
+      const response = await runtime.readVideoSessionResult({ videoSessionId: requiredText(record.videoSessionId), generation: requiredText(record.generation) });
+      if (!response.result) return { result: null };
+      const scope = { videoSessionId: response.result.videoSessionId, generation: response.result.generation };
+      const result = response.result.result;
+      if (result.oneofKind === 'transformed') return { result: { ...scope, type: 'transformed', sequence: result.transformed.sequence, timestampUs: result.transformed.timestampUs, frameBase64: Buffer.from(result.transformed.frame).toString('base64') } };
+      if (result.oneofKind === 'sessionTerminal') return { result: { ...scope, type: 'session-terminal', reasonCode: String(ReasonCode[result.sessionTerminal.reasonCode]).toLowerCase().replaceAll('_', '-') } };
+      if (result.oneofKind === 'noTargetFace' || result.oneofKind === 'inputDropped' || result.oneofKind === 'inputRejected') {
+        const kind = result.oneofKind;
+        const value = kind === 'noTargetFace' ? result.noTargetFace : kind === 'inputDropped' ? result.inputDropped : result.inputRejected;
+        return { result: { ...scope, type: kind === 'noTargetFace' ? 'no-target-face' : kind === 'inputDropped' ? 'input-dropped' : 'input-rejected', sequence: value.sequence, timestampUs: value.timestampUs, reasonCode: String(ReasonCode[value.reasonCode]).toLowerCase().replaceAll('_', '-') } };
+      }
+      throw new NimiElectronLocalAppHostError('runtime-service-untrusted', false);
+    },
+    async videoSessionClose(record) {
+      const result = await runtime.closeVideoSession({ videoSessionId: requiredText(record.videoSessionId), generation: requiredText(record.generation) });
+      return { closed: result.closed };
+    },
     aiRealtimeAppendInput: (record) => aiRealtime.appendInput(record as never) as Promise<NimiElectronLocalAppRecord>,
     aiRealtimeSubmitOwnerControl: (record) => aiRealtime.submitOwnerControl(record as never) as Promise<NimiElectronLocalAppRecord>,
     aiRealtimeSubscribe: async (record) => openPullStream(await aiRealtime.subscribe(record as never)),
@@ -582,6 +610,7 @@ function createFormalAppResourceScope(
   const voiceTranscriptions = new Set<string>();
   const realmRealtimeChannels = new Map<string, NimiElectronLocalAppRecord>();
   const aiRealtimeSessions = new Map<string, NimiElectronLocalAppRecord>();
+  const videoSessions = new Map<string, NimiElectronLocalAppRecord>();
   const agentRealtimeSessions = new Map<string, NimiElectronLocalAppRecord>();
   let invalidationInFlight: Promise<void> | undefined;
   let disposed = false;
@@ -808,6 +837,20 @@ function createFormalAppResourceScope(
       (sessionId, closeInput) => aiRealtimeSessions.set(sessionId, closeInput),
       (closeInput) => closeHost.aiRealtimeClose(closeInput),
     ),
+    videoSessionOpen: (record) => openResource(
+      () => host.videoSessionOpen(record),
+      (result) => ({ resourceId: requiredText(result.videoSessionId), closeInput: { videoSessionId: result.videoSessionId, generation: result.generation } }),
+      (videoSessionId, closeInput) => videoSessions.set(videoSessionId, closeInput),
+      (closeInput) => closeHost.videoSessionClose(closeInput),
+    ),
+    videoSessionSubmit: (record) => { requireScopedResource(videoSessions, record, 'videoSessionId'); return host.videoSessionSubmit(record); },
+    videoSessionRead: (record) => { requireScopedResource(videoSessions, record, 'videoSessionId'); return host.videoSessionRead(record); },
+    async videoSessionClose(record) {
+      const id = requireScopedResource(videoSessions, record, 'videoSessionId');
+      const result = await host.videoSessionClose(record);
+      if (result.closed === true) videoSessions.delete(id);
+      return result;
+    },
     async aiRealtimeClose(record) {
       const sessionId = requireScopedResource(
         aiRealtimeSessions,
@@ -856,6 +899,7 @@ function createFormalAppResourceScope(
         const transcriptions = [...voiceTranscriptions];
         const realmChannels = [...realmRealtimeChannels.values()];
         const aiSessions = [...aiRealtimeSessions.values()];
+        const visualSessions = [...videoSessions.values()];
         const agentSessions = [...agentRealtimeSessions.values()];
         pullStreams.clear();
         assetReads.clear();
@@ -863,6 +907,7 @@ function createFormalAppResourceScope(
         voiceTranscriptions.clear();
         realmRealtimeChannels.clear();
         aiRealtimeSessions.clear();
+        videoSessions.clear();
         agentRealtimeSessions.clear();
         await invalidateElectronLocalAppCommandResources(scopedHost, closeHost);
         await Promise.allSettled([
@@ -877,6 +922,7 @@ function createFormalAppResourceScope(
           ...transcriptions.map((requestId) => closeHost.conversationVoiceTranscribe({ action: 'cancel', requestId })),
           ...realmChannels.map((record) => closeHost.realmRealtimeChannelClose(record)),
           ...aiSessions.map((record) => closeHost.aiRealtimeClose(record)),
+          ...visualSessions.map((record) => closeHost.videoSessionClose(record)),
           ...agentSessions.map((record) => closeHost.agentRealtimeClose(record)),
         ]);
       })().finally(() => {

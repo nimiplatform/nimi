@@ -43,6 +43,10 @@ func validateBaseRequestWithOptions(appID string, subjectUserID string, modelID 
 
 func scenarioTargetCapability(scenarioType runtimev1.ScenarioType) string {
 	switch scenarioType {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_FACE_SWAP:
+		return "video.face_swap"
+	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_FACE_SWAP:
+		return "image.face_swap"
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VISION_LOCATE:
 		return "vision.locate"
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE:

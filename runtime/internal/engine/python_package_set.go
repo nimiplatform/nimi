@@ -16,6 +16,8 @@ type pythonPackageSetManifest struct {
 func resolvePythonPackageSetManifest(consumer string) (pythonPackageSetManifest, error) {
 	trimmed := strings.TrimSpace(consumer)
 	switch {
+	case trimmed == FaceSwapConsumerID:
+		return pythonPackageSetManifest{ID: "face-swap-insightface-python-core", ImportProbes: []string{"insightface", "onnxruntime", "onnx", "cv2", "PIL", "av"}}, nil
 	case trimmed == VisionLocateConsumerID:
 		return pythonPackageSetManifest{
 			ID:           "vision-locateanything-python-core",
@@ -246,6 +248,13 @@ func materializePythonPipelineServerScript(root string, consumer string) error {
 		return fmt.Errorf("python pipeline script root is required")
 	}
 	switch {
+	case strings.TrimSpace(consumer) == FaceSwapConsumerID:
+		for _, file := range faceSwapDriverStaticFiles() {
+			if err := os.WriteFile(filepath.Join(trimmedRoot, file.RelativePath), file.Content, 0o444); err != nil {
+				return err
+			}
+		}
+		return nil
 	case strings.TrimSpace(consumer) == VisionLocateConsumerID:
 		return materializeVisionDriverBundle(trimmedRoot)
 	case strings.HasPrefix(strings.TrimSpace(consumer), "stable-diffusion.cpp."):

@@ -89,6 +89,10 @@ const (
 	protectedReadAIRealtimeEventsMethod           = "/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents"
 	protectedInterruptAIRealtimeOutputMethod      = "/nimi.runtime.v1.RuntimeAiRealtimeService/InterruptRealtimeOutput"
 	protectedCloseAIRealtimeMethod                = "/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession"
+	protectedOpenVideoSessionMethod               = "/nimi.runtime.v1.RuntimeAiVideoSessionService/OpenVideoSession"
+	protectedSubmitVideoSessionFrameMethod        = "/nimi.runtime.v1.RuntimeAiVideoSessionService/SubmitVideoSessionFrame"
+	protectedReadVideoSessionResultMethod         = "/nimi.runtime.v1.RuntimeAiVideoSessionService/ReadVideoSessionResult"
+	protectedCloseVideoSessionMethod              = "/nimi.runtime.v1.RuntimeAiVideoSessionService/CloseVideoSession"
 	protectedOpenAgentRealtimeMethod              = "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppAgentRealtime"
 	protectedAppendAgentRealtimeInputMethod       = "/nimi.runtime.v1.RuntimeAgentService/AppendLocalAppAgentRealtimeInput"
 	protectedSubscribeAgentRealtimeEventsMethod   = "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents"
@@ -171,6 +175,10 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 	protectedSubmitAIRealtimeOwnerControlMethod:   localAppSessionMethodPolicy(),
 	protectedInterruptAIRealtimeOutputMethod:      localAppSessionMethodPolicy(),
 	protectedCloseAIRealtimeMethod:                localAppSessionMethodPolicy(),
+	protectedOpenVideoSessionMethod:               localAppSessionMethodPolicy(),
+	protectedSubmitVideoSessionFrameMethod:        localAppSessionMethodPolicy(),
+	protectedReadVideoSessionResultMethod:         localAppSessionMethodPolicy(),
+	protectedCloseVideoSessionMethod:              localAppSessionMethodPolicy(),
 	protectedOpenAgentRealtimeMethod:              localAppSessionMethodPolicy(),
 	protectedAppendAgentRealtimeInputMethod:       localAppSessionMethodPolicy(),
 	protectedGetAgentRealtimeStatusMethod:         localAppSessionMethodPolicy(),
@@ -294,6 +302,9 @@ func newProtectedLocalAppRPCServer(runtimeControlService runtimev1.RuntimeServic
 	runtimev1.RegisterRuntimeAiServiceServer(server, aiService)
 	if realtimeService, ok := aiService.(runtimev1.RuntimeAiRealtimeServiceServer); ok {
 		runtimev1.RegisterRuntimeAiRealtimeServiceServer(server, realtimeService)
+	}
+	if videoService, ok := aiService.(runtimev1.RuntimeAiVideoSessionServiceServer); ok {
+		runtimev1.RegisterRuntimeAiVideoSessionServiceServer(server, videoService)
 	}
 	runtimev1.RegisterRuntimeAgentServiceServer(server, agentService)
 	runtimev1.RegisterRuntimeAppServiceServer(server, appService)
@@ -424,6 +435,14 @@ func newStreamProtectedLocalAppTransportInterceptor(admissions ...protectedLocal
 
 func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingress {
 	switch method {
+	case protectedOpenVideoSessionMethod:
+		return localappop.IngressVideoSessionOpen
+	case protectedSubmitVideoSessionFrameMethod:
+		return localappop.IngressVideoSessionFrameSubmit
+	case protectedReadVideoSessionResultMethod:
+		return localappop.IngressVideoSessionResultRead
+	case protectedCloseVideoSessionMethod:
+		return localappop.IngressVideoSessionClose
 	case protectedReadLocalAppStorageJSONMethod:
 		return localappop.IngressStorageJSONRead
 	case protectedWriteLocalAppStorageJSONMethod:
@@ -574,6 +593,8 @@ func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingres
 
 func protectedLocalAppOwnerEnabled(method string, request any, ingress localappop.Ingress) bool {
 	switch method {
+	case protectedOpenVideoSessionMethod, protectedSubmitVideoSessionFrameMethod, protectedReadVideoSessionResultMethod, protectedCloseVideoSessionMethod:
+		return true
 	case protectedReadLocalAppStorageJSONMethod, protectedWriteLocalAppStorageJSONMethod, protectedRemoveLocalAppStorageJSONMethod,
 		protectedStatLocalAppAssetMethod, protectedListLocalAppAssetsMethod, protectedRemoveLocalAppAssetMethod, protectedMoveLocalAppAssetMethod, protectedRevealLocalAppAssetMethod,
 		protectedAdoptLocalAppArtifactMethod,
@@ -736,6 +757,8 @@ func protectedLocalAppCallerAssertionFieldExceptRealtimeGeneration(value string,
 
 func protectedLocalAppMethodAllowsRealtimeGeneration(method string) bool {
 	switch method {
+	case protectedSubmitVideoSessionFrameMethod, protectedReadVideoSessionResultMethod, protectedCloseVideoSessionMethod:
+		return true
 	case protectedAppendAIRealtimeInputMethod,
 		protectedSubmitAIRealtimeOwnerControlMethod,
 		protectedReadAIRealtimeEventsMethod,

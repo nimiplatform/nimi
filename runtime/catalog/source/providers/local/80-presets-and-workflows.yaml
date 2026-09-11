@@ -2,6 +2,58 @@
 # parameters to exact slots projected by the versioned Driver dialect. It does
 # not own a second slot topology and never causes acquisition.
 loadout_recipes:
+  - recipe_id: insightface.video-face-swap.v1
+    revision: "1"
+    title: Video face replacement
+    capability_contract: video.face_swap
+    implementation_id: local.video.face-swap.insightface
+    driver_id: nimi.runtime.driver.insightface
+    driver_dialect: insightface/video-face-swap/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: detector.onnx
+        display_label: Face detector
+        recommended_variant_ids: []
+        model_contract:
+          format: onnx
+      - slot_id: recognizer.onnx
+        display_label: Face identity encoder
+        recommended_variant_ids: []
+        model_contract:
+          format: onnx
+      - slot_id: swapper.onnx
+        display_label: Face replacement model
+        recommended_variant_ids: []
+        model_contract:
+          format: onnx
+  - recipe_id: insightface.image-face-swap.v1
+    revision: "1"
+    title: Image face replacement
+    capability_contract: image.face_swap
+    implementation_id: local.image.face-swap.insightface
+    driver_id: nimi.runtime.driver.insightface
+    driver_dialect: insightface/image-face-swap/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: detector.onnx
+        display_label: Face detector
+        recommended_variant_ids: []
+        model_contract:
+          format: onnx
+      - slot_id: recognizer.onnx
+        display_label: Face identity encoder
+        recommended_variant_ids: []
+        model_contract:
+          format: onnx
+      - slot_id: swapper.onnx
+        display_label: Face replacement model
+        recommended_variant_ids: []
+        model_contract:
+          format: onnx
   - recipe_id: locateanything.vision-locate.v1
     revision: "1"
     title: LocateAnything image localization

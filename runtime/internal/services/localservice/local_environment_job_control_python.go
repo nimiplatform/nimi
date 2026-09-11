@@ -155,7 +155,7 @@ func (s *Service) executePythonVenvEnvironmentDependencyJob(ctx context.Context,
 	if !ok {
 		return failedPrerequisiteDependencyResult(detail), nil
 	}
-	if identity.AcceleratorPlane == "cuda" {
+	if identity.AcceleratorPlane == "cuda" && consumer != engine.FaceSwapConsumerID {
 		cudaConsumer := consumer
 		if strings.HasPrefix(cudaConsumer, "speech.") || cudaConsumer == engine.VisionLocateConsumerID {
 			cudaConsumer += ".cuda"

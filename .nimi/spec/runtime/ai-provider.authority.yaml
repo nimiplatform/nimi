@@ -1371,3 +1371,35 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.face-swap-contract
+  - id: rule.nimi.runtime.ai-provider.face-swap-image-job
+    kind: rule
+    title: Image face replacement has one typed finite Job input and result
+    modality: must
+    statement: IMAGE_FACE_SWAP uses ImageFaceSwapScenarioSpec with exactly reference_image_artifact_id and target_image_artifact_id through the existing Local App ScenarioJob submission family; it admits only ASYNC_JOB and the selected Local implementation, without a prompt, provider override, synchronous alias or alternate input path. After decoding both committed inputs, no reference face fails with AI_FACE_REFERENCE_MISSING, more than one reference face with AI_FACE_REFERENCE_AMBIGUOUS, no target face with AI_FACE_TARGET_MISSING, and more than one target face with AI_FACE_TARGET_AMBIGUOUS. A completed Job produces exactly one PNG artifact through ImageFaceSwapResult; malformed input, unavailable resources, inference failure and invalid output keep their existing typed failure categories and never become a face-count outcome.
+    condition: Whenever an image face-replacement request, face-selection outcome or terminal result is admitted or projected.
+    failure: Reject a mismatched spec or mode before Job publication, preserve the exact face-selection reason, and reject successful output with no artifact, multiple artifacts or unchanged-media fallback.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.face-swap-contract
+  - id: rule.nimi.runtime.ai-provider.face-swap-video-job
+    kind: rule
+    title: Finite video face replacement uses owned ScenarioJob inputs and exact outcome counts
+    modality: must
+    statement: VIDEO_FACE_SWAP is Local ASYNC_JOB only and accepts exactly reference_image_artifact_id, target_video_artifact_id and an explicit no_face_policy of FAIL or PRESERVE_FRAME. Both artifacts belong to the current protected App owner and are captured with the exact selected video.face_swap Loadout before publication. Success returns exactly one committed video/mp4 artifact and a typed video_face_swap_summary on the completed Job containing total_frames, transformed_frames, preserved_frames, duration_us, frame_rate and audio_preserved; counts describe every decoded source frame and total_frames equals transformed_frames plus preserved_frames. The existing face-reference and target-face reasons remain exact, AI_VIDEO_DECODE_FAILED identifies decoding failure, AI_VIDEO_ENCODE_FAILED identifies encoding failure, unsupported profiles use AI_MEDIA_OPTION_UNSUPPORTED, and corrupt timelines use AI_INPUT_INVALID. PRESERVE_FRAME covers only AI_FACE_TARGET_MISSING and does not turn inference or encoder failure into a preserved frame. Failed, canceled and timed-out Jobs publish no partial success artifact or successful summary; inline reads and larger artifact adoption retain existing owners and bounds.
+    condition: Whenever a finite video face-replacement Job is submitted, observed or completed.
+    failure: Reject malformed or unsupported input, wrong-owner artifacts and unsupported routes before execution; preserve exact execution failures and never reselect a model or publish incomplete video as successful replacement.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.face-swap-contract
+  - id: rule.nimi.runtime.ai-provider.face-swap-session-operations
+    kind: rule
+    title: Video Session operations have bounded receipt and result semantics
+    modality: must
+    statement: RuntimeAiVideoSessionService exposes OpenVideoSession, SubmitVideoSessionFrame, ReadVideoSessionResult and CloseVideoSession under the canonical runtime.ai.video-session.open, runtime.ai.video-session.frame.submit, runtime.ai.video-session.result.read and runtime.ai.video-session.close App operations, all AppAccess runtime.consume. Open accepts only an owned reference_image_artifact_id and a fixed RGB8 sRGB format, captures the current video.face_swap Local Loadout, prepares its exact models and reference within 30 seconds, and returns a Runtime-issued video_session_id, generation, negotiated format and maximum_in_flight_submissions of two. The first InsightFace Session format is 1280 by 720 packed RGB8. Each submitted frame carries that scope, a nonzero strictly increasing sequence, a nondecreasing timestamp_us and exactly width times height times three bytes; an envelope rejection consumes no sequence and receipt acknowledges only acceptance. One executing frame and one replaceable waiting frame belong to the concrete Host; replacement reports input_dropped only for the waiting input that never began execution. The single reader receives a scoped transformed frame, no_target_face association, input_rejected association, input_dropped association or session_terminal; a bounded 250-ms read with no result returns an absent result rather than fabricated media. At most four result items are buffered, and result overflow or two seconds without consumption while results wait terminates with AI_VIDEO_SESSION_OVERLOADED. SDK submissions and reads are also bounded, and transport failure or terminal receipt ends unresolved waits without asserting that unobserved inference never ran. Successful Close follows confirmed supervised stopping within three seconds and capacity release, while failed stopping returns failure and forbids Host reuse. Session reference features, frames and results are not persisted; normal technical-session renewal preserves the resource only through existing revalidation, and actual invalidation uses the existing BindSessionResource cleanup owner.
+    condition: Whenever the admitted video Session is opened, submitted, read, terminated or closed.
+    failure: Reject unsupported format, malformed scope or frame and stale generation; return AI_VIDEO_SESSION_GENERATION_INVALID for a mismatched generation on an owned Session, preserve execution failures, and never report Close success before capacity is safely released or substitute a queued-frame drop for an unknown or already executed result.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.face-swap-contract

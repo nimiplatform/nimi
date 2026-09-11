@@ -37,6 +37,8 @@ func scenarioAllowedModes(scenarioType runtimev1.ScenarioType) []runtimev1.Execu
 			runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
+		runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_FACE_SWAP,
+		runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_FACE_SWAP,
 		runtimev1.ScenarioType_SCENARIO_TYPE_VISION_LOCATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
@@ -60,6 +62,10 @@ func scenarioAllowedModes(scenarioType runtimev1.ScenarioType) []runtimev1.Execu
 // markers and resolved by the catalog layer.
 func scenarioRequiredCapabilities(scenarioType runtimev1.ScenarioType) []string {
 	switch scenarioType {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_FACE_SWAP:
+		return []string{aicapabilities.VideoFaceSwap}
+	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_FACE_SWAP:
+		return []string{aicapabilities.ImageFaceSwap}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VISION_LOCATE:
 		return []string{aicapabilities.VisionLocate}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE:

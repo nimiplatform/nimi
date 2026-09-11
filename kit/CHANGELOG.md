@@ -26,6 +26,13 @@ Discipline.
   progress projections. Hosts with exhaustive native method or App job phase
   matches must handle the new variants. Kit 0.7.0 requires SDK 0.11.0.
 
+- Added typed image and finite-video face replacement Jobs and four bounded
+  video Session commands to the unreleased minor surface. Custom protected
+  bindings must implement `localAppVideoSessionOpen`, `localAppVideoSessionSubmit`,
+  `localAppVideoSessionRead`, and `localAppVideoSessionClose`; frames cross the
+  carrier as base64 while the public SDK accepts and returns `Uint8Array`.
+  Artifact upload now admits `video/mp4`. SDK consumers replace the removed
+  `NimiLocalAppArtifactImageMime` type with `NimiLocalAppArtifactUploadMime`.
 - Added the macOS arm64 native package and main-only installed App control to
   the 0.6.0 component release. The shared installed-launch transaction uses a
   macOS current-user, same-session suspended child and retains its real exit

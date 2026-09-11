@@ -1075,4 +1075,10 @@ func (s *Service) ShutdownRealtime() {
 	for _, record := range s.realtimeSessions.all() {
 		s.terminalizeRealtimeSession(record, runtimev1.ReasonCode_AI_REALTIME_SESSION_CLOSED, realtimecore.TerminalRuntimeShutdown)
 	}
+	if s.videoSessions != nil {
+		for _, record := range s.videoSessions.all() {
+			_ = s.terminateVideoSession(record, runtimev1.ReasonCode_AI_REALTIME_SESSION_CLOSED, realtimecore.TerminalRuntimeShutdown)
+			s.videoSessions.remove(record.id)
+		}
+	}
 }

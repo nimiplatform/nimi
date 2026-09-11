@@ -261,6 +261,10 @@ capability_sets:
       - local-app.embodimentSnapshot
       - local-app.embodimentSubscribe
       - local-app.aiRealtimeOpen
+      - local-app.videoSessionOpen
+      - local-app.videoSessionSubmit
+      - local-app.videoSessionRead
+      - local-app.videoSessionClose
       - local-app.aiRealtimeAppendInput
       - local-app.aiRealtimeSubmitOwnerControl
       - local-app.aiRealtimeSubscribe
@@ -767,6 +771,38 @@ local_app_operation_contract:
       transport_boundary: unary
       effect_boundary: foreground_compute
       owner: runtime_ai_realtime_service
+    videoSessionOpen:
+      command: local-app.videoSessionOpen
+      operation_id: runtime.ai.video-session.open
+      request_fields: [referenceImageArtifactId, width, height, pixelFormat]
+      response_fields: [videoSessionId, generation, format, maximumInFlightSubmissions]
+      transport_boundary: unary
+      effect_boundary: foreground_compute
+      owner: runtime_ai_video_session_service
+    videoSessionSubmit:
+      command: local-app.videoSessionSubmit
+      operation_id: runtime.ai.video-session.frame.submit
+      request_fields: [videoSessionId, generation, sequence, timestampUs, frameBase64]
+      response_fields: [accepted, sequence]
+      transport_boundary: unary
+      effect_boundary: stream_write
+      owner: runtime_ai_video_session_service
+    videoSessionRead:
+      command: local-app.videoSessionRead
+      operation_id: runtime.ai.video-session.result.read
+      request_fields: [videoSessionId, generation]
+      response_fields: [result]
+      transport_boundary: unary
+      effect_boundary: stream_read
+      owner: runtime_ai_video_session_service
+    videoSessionClose:
+      command: local-app.videoSessionClose
+      operation_id: runtime.ai.video-session.close
+      request_fields: [videoSessionId, generation]
+      response_fields: [closed]
+      transport_boundary: unary
+      effect_boundary: write
+      owner: runtime_ai_video_session_service
     aiRealtimeAppendInput:
       command: local-app.aiRealtimeAppendInput
       operation_id: runtime.ai.realtime.input.append
@@ -1314,6 +1350,18 @@ capabilities:
       - id: aiRealtimeOpen
         command: nimi.shell.localApp.aiRealtimeOpen
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, host-internal-error]
+      - id: videoSessionOpen
+        command: nimi.shell.localApp.videoSessionOpen
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-unauthenticated, runtime-permission-denied, invalid-payload, resource-exhausted, host-internal-error]
+      - id: videoSessionSubmit
+        command: nimi.shell.localApp.videoSessionSubmit
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-unauthenticated, runtime-permission-denied, invalid-payload, resource-exhausted, host-internal-error]
+      - id: videoSessionRead
+        command: nimi.shell.localApp.videoSessionRead
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-unauthenticated, runtime-permission-denied, invalid-payload, resource-exhausted, host-internal-error]
+      - id: videoSessionClose
+        command: nimi.shell.localApp.videoSessionClose
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-unauthenticated, runtime-permission-denied, invalid-payload, host-internal-error]
       - id: aiRealtimeAppendInput
         command: nimi.shell.localApp.aiRealtimeAppendInput
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, host-internal-error]

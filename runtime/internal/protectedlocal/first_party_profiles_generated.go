@@ -348,6 +348,14 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession":
 			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAiVideoSessionService/OpenVideoSession":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAiVideoSessionService/SubmitVideoSessionFrame":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAiVideoSessionService/ReadVideoSessionResult":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAiVideoSessionService/CloseVideoSession":
+			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppAgentRealtime":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAgentService/AppendLocalAppAgentRealtimeInput":
@@ -512,6 +520,14 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 		case "/nimi.runtime.v1.RuntimeAiRealtimeService/InterruptRealtimeOutput":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAiVideoSessionService/OpenVideoSession":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAiVideoSessionService/SubmitVideoSessionFrame":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAiVideoSessionService/ReadVideoSessionResult":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAiVideoSessionService/CloseVideoSession":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppAgentRealtime":
 			return FirstPartyMethodUnary, true
@@ -710,6 +726,10 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 			{MethodID: "/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents", Kind: FirstPartyMethodServerStream},
 			{MethodID: "/nimi.runtime.v1.RuntimeAiRealtimeService/InterruptRealtimeOutput", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAiVideoSessionService/OpenVideoSession", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAiVideoSessionService/SubmitVideoSessionFrame", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAiVideoSessionService/ReadVideoSessionResult", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAiVideoSessionService/CloseVideoSession", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppAgentRealtime", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/AppendLocalAppAgentRealtimeInput", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents", Kind: FirstPartyMethodServerStream},
@@ -794,6 +814,10 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 			{MethodID: "/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents", Kind: FirstPartyMethodServerStream},
 			{MethodID: "/nimi.runtime.v1.RuntimeAiRealtimeService/InterruptRealtimeOutput", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAiVideoSessionService/OpenVideoSession", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAiVideoSessionService/SubmitVideoSessionFrame", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAiVideoSessionService/ReadVideoSessionResult", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAiVideoSessionService/CloseVideoSession", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppAgentRealtime", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/AppendLocalAppAgentRealtimeInput", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents", Kind: FirstPartyMethodServerStream},

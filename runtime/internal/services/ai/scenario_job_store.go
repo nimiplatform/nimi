@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
@@ -12,6 +13,18 @@ import (
 func (s *Service) SubmitScenarioJob(ctx context.Context, req *runtimev1.SubmitScenarioJobRequest) (*runtimev1.SubmitScenarioJobResponse, error) {
 	if req == nil || req.GetHead() == nil || req.GetSpec() == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	var faceSwapDeadline time.Time
+	if req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_FACE_SWAP || req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_FACE_SWAP {
+		timeout := imageFaceSwapJobTimeout
+		if req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_FACE_SWAP {
+			timeout = videoFaceSwapJobTimeout
+		}
+		duration, err := timeout(req.GetHead().GetTimeoutMs())
+		if err != nil {
+			return nil, err
+		}
+		faceSwapDeadline = time.Now().Add(duration)
 	}
 	var ownerErr error
 	req, ownerErr = s.normalizeSubmitScenarioJobOwner(ctx, req)
@@ -75,6 +88,16 @@ func (s *Service) SubmitScenarioJob(ctx context.Context, req *runtimev1.SubmitSc
 	}
 
 	switch req.GetScenarioType() {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_FACE_SWAP:
+		if !intent.IsLocal() {
+			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
+		}
+		return s.submitLocalVideoFaceSwapJob(ctx, req, mode, ignored, faceSwapDeadline)
+	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_FACE_SWAP:
+		if !intent.IsLocal() {
+			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
+		}
+		return s.submitLocalFaceSwapJob(ctx, req, mode, ignored, faceSwapDeadline)
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VISION_LOCATE:
 		if !intent.IsLocal() {
 			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)

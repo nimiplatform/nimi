@@ -145,6 +145,14 @@ func Method(methodID string) (MethodProfile, bool) {
 		return MethodProfile{Kind: MethodUnary, Capability: "runtime.consume"}, true
 	case "/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession":
 		return MethodProfile{Kind: MethodUnary, Capability: "runtime.consume"}, true
+	case "/nimi.runtime.v1.RuntimeAiVideoSessionService/OpenVideoSession":
+		return MethodProfile{Kind: MethodUnary, Capability: "runtime.consume"}, true
+	case "/nimi.runtime.v1.RuntimeAiVideoSessionService/SubmitVideoSessionFrame":
+		return MethodProfile{Kind: MethodUnary, Capability: "runtime.consume"}, true
+	case "/nimi.runtime.v1.RuntimeAiVideoSessionService/ReadVideoSessionResult":
+		return MethodProfile{Kind: MethodUnary, Capability: "runtime.consume"}, true
+	case "/nimi.runtime.v1.RuntimeAiVideoSessionService/CloseVideoSession":
+		return MethodProfile{Kind: MethodUnary, Capability: "runtime.consume"}, true
 	case "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppAgentRealtime":
 		return MethodProfile{Kind: MethodUnary, Capability: "agent.local"}, true
 	case "/nimi.runtime.v1.RuntimeAgentService/AppendLocalAppAgentRealtimeInput":

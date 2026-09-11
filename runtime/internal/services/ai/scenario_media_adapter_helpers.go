@@ -29,9 +29,9 @@ func scenarioModalFromType(scenarioType runtimev1.ScenarioType) runtimev1.Modal 
 	switch scenarioType {
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VISION_LOCATE:
 		return runtimev1.Modal_MODAL_VISION
-	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:
+	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE, runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_FACE_SWAP:
 		return runtimev1.Modal_MODAL_IMAGE
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE:
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_FACE_SWAP:
 		return runtimev1.Modal_MODAL_VIDEO
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE:
 		return runtimev1.Modal_MODAL_TTS
@@ -113,6 +113,18 @@ func sanitizeScenarioJobReasonDetail(err error, reasonCode runtimev1.ReasonCode)
 
 func stableScenarioJobReasonDetail(reasonCode runtimev1.ReasonCode) string {
 	switch reasonCode {
+	case runtimev1.ReasonCode_AI_VIDEO_DECODE_FAILED:
+		return "the source video could not be completely decoded"
+	case runtimev1.ReasonCode_AI_VIDEO_ENCODE_FAILED:
+		return "the processed video could not be encoded"
+	case runtimev1.ReasonCode_AI_FACE_REFERENCE_MISSING:
+		return "no face was detected in the reference image"
+	case runtimev1.ReasonCode_AI_FACE_REFERENCE_AMBIGUOUS:
+		return "the reference image must contain exactly one face"
+	case runtimev1.ReasonCode_AI_FACE_TARGET_MISSING:
+		return "no face was detected in the target image"
+	case runtimev1.ReasonCode_AI_FACE_TARGET_AMBIGUOUS:
+		return "the target image must contain exactly one face"
 	case runtimev1.ReasonCode_ACTION_EXECUTED:
 		return "request canceled"
 	case runtimev1.ReasonCode_AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED:

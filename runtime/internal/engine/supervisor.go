@@ -161,7 +161,11 @@ func (s *Supervisor) Stop() error {
 			process.recordLifecycleError(fmt.Errorf("force terminate supervised process tree: %w", err))
 		}
 	}
-	if waitSupervisorProcessExit(process, pid, supervisorForceTerminationWait) {
+	forceWait := supervisorForceTerminationWait
+	if s.cfg.ForceTerminationTimeout > 0 {
+		forceWait = s.cfg.ForceTerminationTimeout
+	}
+	if waitSupervisorProcessExit(process, pid, forceWait) {
 		return s.finishStoppedProcess(process, "force terminated")
 	}
 

@@ -5,6 +5,10 @@ const MACOS_ARM64_BINDING_PACKAGE = '@nimiplatform/kit-protected-local-darwin-ar
 const MAX_PERSONA_REQUEST_BYTES = 2 * 1024 * 1024;
 
 const LOCAL_APP_BINDING_METHODS = [
+  'localAppVideoSessionOpen',
+  'localAppVideoSessionSubmit',
+  'localAppVideoSessionRead',
+  'localAppVideoSessionClose',
   'localAppSessionStatus',
   'localAppSessionRenew',
   'localAppAIConfigGet',
@@ -139,6 +143,20 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'ai-realtime-session-closed',
   'ai-media-spec-invalid',
   'ai-media-option-unsupported',
+  'ai-face-reference-missing',
+  'ai-face-reference-ambiguous',
+  'ai-face-target-missing',
+  'ai-face-target-ambiguous',
+  'ai-video-decode-failed',
+  'ai-video-encode-failed',
+  'ai-video-session-overloaded',
+  'ai-video-session-generation-invalid',
+  'ai-local-execution-load-failed',
+  'ai-local-execution-inference-failed',
+  'ai-local-execution-canceled',
+  'ai-local-execution-process-crashed',
+  'ai-local-execution-content-mismatch',
+  'ai-local-execution-out-of-memory',
   'ai-voice-input-invalid',
   'ai-voice-workflow-unsupported',
   'ai-voice-asset-not-found',
@@ -352,6 +370,10 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppRealmRealtimeSubscriptionClose: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppRealmRealtimeChannelClose: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAiRealtimeOpen: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppVideoSessionOpen: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppVideoSessionSubmit: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppVideoSessionRead: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppVideoSessionClose: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAiRealtimeAppendInput: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAiRealtimeSubmitOwnerControl: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAiRealtimeSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
@@ -447,6 +469,10 @@ export type NimiElectronLocalAppHost = {
   readonly realmRealtimeSubscriptionClose: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly realmRealtimeChannelClose: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly aiRealtimeOpen: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly videoSessionOpen: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly videoSessionSubmit: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly videoSessionRead: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly videoSessionClose: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly aiRealtimeAppendInput: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly aiRealtimeSubmitOwnerControl: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly aiRealtimeSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
@@ -723,7 +749,7 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
 
   artifactUpload(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     const bytes = validateByteArray(input.bytes);
-    const mimeType = boundedImageMime(input.mimeType);
+    const mimeType = boundedArtifactUploadMime(input.mimeType);
     if (bytes.length === 0) throw untrustedRuntimeError();
     return invokeArtifactUpload(
       () => this.binding.localAppArtifactUpload({ bytes: Buffer.from(bytes), mimeType }),
@@ -967,6 +993,10 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
   aiRealtimeOpen(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return invokeRecord(() => this.binding.localAppAiRealtimeOpen(input));
   }
+  videoSessionOpen(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return invokeRecord(() => this.binding.localAppVideoSessionOpen(input)); }
+  videoSessionSubmit(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return invokeRecord(() => this.binding.localAppVideoSessionSubmit(input)); }
+  videoSessionRead(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return invokeRecord(() => this.binding.localAppVideoSessionRead(input)); }
+  videoSessionClose(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return invokeRecord(() => this.binding.localAppVideoSessionClose(input)); }
 
   aiRealtimeAppendInput(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return invokeRecord(() => this.binding.localAppAiRealtimeAppendInput(input));
@@ -1270,6 +1300,10 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
   realmRealtimeChannelClose(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().realmRealtimeChannelClose(input); }
 
   aiRealtimeOpen(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().aiRealtimeOpen(input); }
+  videoSessionOpen(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().videoSessionOpen(input); }
+  videoSessionSubmit(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().videoSessionSubmit(input); }
+  videoSessionRead(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().videoSessionRead(input); }
+  videoSessionClose(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().videoSessionClose(input); }
   aiRealtimeAppendInput(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().aiRealtimeAppendInput(input); }
   aiRealtimeSubmitOwnerControl(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().aiRealtimeSubmitOwnerControl(input); }
   aiRealtimeSubscribe(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().aiRealtimeSubscribe(input); }
@@ -1597,7 +1631,7 @@ async function invokeArtifactUpload(
   }
   const artifactId = boundedExactText(value.artifactId, 128, false);
   const sizeBytes = boundedInteger(value.sizeBytes, 1, 32 * 1024 * 1024);
-  const mimeType = boundedImageMime(value.mimeType);
+  const mimeType = boundedArtifactUploadMime(value.mimeType);
   if (sizeBytes !== expectedSize || mimeType !== expectedMimeType) throw untrustedRuntimeError();
   return Object.freeze({ artifactId, sizeBytes, mimeType });
 }
@@ -1670,8 +1704,11 @@ function validateScenarioJob(value: unknown): NimiElectronLocalAppRecord {
     'progressTotalSteps', 'reasonCode', 'reasonDetail', 'artifacts', 'traceId',
     'createdAt', 'updatedAt', 'transcriptionText',
     ...(Object.hasOwn(value, 'interruption') ? ['interruption'] : []),
+    ...(Object.hasOwn(value, 'videoFaceSwapSummary') ? ['videoFaceSwapSummary'] : []),
   ])) throw untrustedRuntimeError();
   const scenarioTypes = [
+    'video-face-swap',
+    'image-face-swap',
     'vision-locate',
     'image-generate',
     'video-generate',
@@ -1689,10 +1726,13 @@ function validateScenarioJob(value: unknown): NimiElectronLocalAppRecord {
   const progressCurrentStep = boundedInteger(value.progressCurrentStep, 0, Number.MAX_SAFE_INTEGER);
   const progressTotalSteps = boundedInteger(value.progressTotalSteps, 0, Number.MAX_SAFE_INTEGER);
   if (progressCurrentStep > progressTotalSteps) throw untrustedRuntimeError();
+  if ((value.videoFaceSwapSummary !== undefined) !== (value.scenarioType === 'video-face-swap' && value.status === 'completed')) throw untrustedRuntimeError();
+  const videoFaceSwapSummary = value.videoFaceSwapSummary === undefined ? undefined : validateVideoFaceSwapSummary(value.videoFaceSwapSummary);
   const interruption = value.interruption;
   if ((interruption !== undefined) !== (value.reasonCode === 'ai-execution-interrupted') || (interruption !== undefined && value.status !== 'failed')) throw untrustedRuntimeError();
   if (interruption !== undefined && (!isPlainRecord(interruption) || !hasExactKeys(interruption, ['cause', 'resubmitDisposition']) || interruption.cause !== 'runtime-restart' || interruption.resubmitDisposition !== 'caller-may-resubmit')) throw untrustedRuntimeError();
   return Object.freeze({
+    ...(videoFaceSwapSummary ? { videoFaceSwapSummary } : {}),
     ...(interruption !== undefined ? { interruption: Object.freeze({ ...(interruption as Record<string, unknown>) }) } : {}),
     jobId: boundedExactText(value.jobId, 128, false),
     scenarioType: value.scenarioType,
@@ -1708,6 +1748,16 @@ function validateScenarioJob(value: unknown): NimiElectronLocalAppRecord {
     updatedAt: validateTimestamp(value.updatedAt),
     transcriptionText: boundedUtf8Content(value.transcriptionText, 256 * 1024, true),
   }) as NimiElectronLocalAppRecord;
+}
+
+function validateVideoFaceSwapSummary(value: unknown): NimiElectronLocalAppRecord {
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['totalFrames', 'transformedFrames', 'preservedFrames', 'durationUs', 'frameRate', 'audioPreserved'])) throw untrustedRuntimeError();
+  const totalFrames = boundedInteger(value.totalFrames, 1, 9000);
+  const transformedFrames = boundedInteger(value.transformedFrames, 0, totalFrames);
+  const preservedFrames = boundedInteger(value.preservedFrames, 0, totalFrames);
+  const frameRate = boundedInteger(value.frameRate, 24, 30);
+  if (transformedFrames + preservedFrames !== totalFrames || ![24, 25, 30].includes(frameRate) || typeof value.audioPreserved !== 'boolean') throw untrustedRuntimeError();
+  return Object.freeze({ totalFrames, transformedFrames, preservedFrames, frameRate, durationUs: boundedInteger(value.durationUs, 1, 300000000), audioPreserved: value.audioPreserved });
 }
 
 function validateVisionLocateResult(value: unknown): NimiElectronLocalAppRecord {
@@ -1873,6 +1923,12 @@ function boundedImageMime(value: unknown): string {
   if (!['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(mime)) {
     throw untrustedRuntimeError();
   }
+  return mime;
+}
+
+function boundedArtifactUploadMime(value: unknown): string {
+  const mime = boundedMime(value);
+  if (!['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'video/mp4'].includes(mime)) throw untrustedRuntimeError();
   return mime;
 }
 

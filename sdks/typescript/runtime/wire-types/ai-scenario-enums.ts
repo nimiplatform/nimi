@@ -50,6 +50,11 @@ export enum AiRealtimeTurnDetectionMode {
   MANUAL = 2,
 }
 
+export enum AiVideoPixelFormat {
+  UNSPECIFIED = 0,
+  RGB8 = 1,
+}
+
 export enum CharacterSourceKindV3 {
   UNSPECIFIED = 0,
   WORLD_CHARACTER = 1,
@@ -136,6 +141,12 @@ export enum ExecutionMode {
 export enum ExecutionResubmitDisposition {
   UNSPECIFIED = 0,
   CALLER_MAY_RESUBMIT = 1,
+}
+
+export enum FaceSwapNoFacePolicy {
+  UNSPECIFIED = 0,
+  FAIL = 1,
+  PRESERVE_FRAME = 2,
 }
 
 export enum FinishReason {
@@ -322,6 +333,8 @@ export enum ScenarioType {
   WORLD_GENERATE = 10,
   VOICE_CREATE = 11,
   VISION_LOCATE = 12,
+  IMAGE_FACE_SWAP = 13,
+  VIDEO_FACE_SWAP = 14,
 }
 
 export enum SchedulingState {

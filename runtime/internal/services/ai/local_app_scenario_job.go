@@ -8,6 +8,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc"
@@ -206,6 +207,8 @@ func projectLocalAppScenarioJob(job *runtimev1.ScenarioJob) (*runtimev1.LocalApp
 	}
 	switch job.GetScenarioType() {
 	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+		runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_FACE_SWAP,
+		runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_FACE_SWAP,
 		runtimev1.ScenarioType_SCENARIO_TYPE_VISION_LOCATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
@@ -262,21 +265,31 @@ func projectLocalAppScenarioJob(job *runtimev1.ScenarioJob) (*runtimev1.LocalApp
 	} else if job.GetInterruption() != nil {
 		return invalid()
 	}
+	var videoSummary *runtimev1.VideoFaceSwapSummary
+	if job.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_FACE_SWAP && job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		if err := localexecution.ValidateVideoFaceSwapSummary(job.GetVideoFaceSwapSummary()); err != nil {
+			return invalid()
+		}
+		videoSummary = proto.Clone(job.VideoFaceSwapSummary).(*runtimev1.VideoFaceSwapSummary)
+	} else if job.GetVideoFaceSwapSummary() != nil {
+		return invalid()
+	}
 	return &runtimev1.LocalAppScenarioJob{
-		JobId:               job.GetJobId(),
-		ScenarioType:        job.GetScenarioType(),
-		Status:              job.GetStatus(),
-		ProgressPercent:     job.GetProgressPercent(),
-		ProgressCurrentStep: job.GetProgressCurrentStep(),
-		ProgressTotalSteps:  job.GetProgressTotalSteps(),
-		ReasonCode:          job.GetReasonCode(),
-		ReasonDetail:        job.GetReasonDetail(),
-		Artifacts:           artifacts,
-		TraceId:             job.GetTraceId(),
-		CreatedAt:           job.GetCreatedAt(),
-		UpdatedAt:           job.GetUpdatedAt(),
-		TranscriptionText:   transcriptionText,
-		Interruption:        interruption,
+		VideoFaceSwapSummary: videoSummary,
+		JobId:                job.GetJobId(),
+		ScenarioType:         job.GetScenarioType(),
+		Status:               job.GetStatus(),
+		ProgressPercent:      job.GetProgressPercent(),
+		ProgressCurrentStep:  job.GetProgressCurrentStep(),
+		ProgressTotalSteps:   job.GetProgressTotalSteps(),
+		ReasonCode:           job.GetReasonCode(),
+		ReasonDetail:         job.GetReasonDetail(),
+		Artifacts:            artifacts,
+		TraceId:              job.GetTraceId(),
+		CreatedAt:            job.GetCreatedAt(),
+		UpdatedAt:            job.GetUpdatedAt(),
+		TranscriptionText:    transcriptionText,
+		Interruption:         interruption,
 	}, nil
 }
 
@@ -334,6 +347,16 @@ func validateLocalAppScenarioJobRequest(req *runtimev1.SubmitLocalAppScenarioJob
 		return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	switch spec := req.GetSpec().(type) {
+	case *runtimev1.SubmitLocalAppScenarioJobRequest_VideoFaceSwap:
+		if err := validateVideoFaceSwapSpec(spec.VideoFaceSwap); err != nil {
+			return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, err
+		}
+		return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VideoFaceSwap{VideoFaceSwap: proto.Clone(spec.VideoFaceSwap).(*runtimev1.VideoFaceSwapScenarioSpec)}}, runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_FACE_SWAP, nil
+	case *runtimev1.SubmitLocalAppScenarioJobRequest_ImageFaceSwap:
+		if err := validateImageFaceSwapSpec(spec.ImageFaceSwap); err != nil {
+			return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, err
+		}
+		return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_ImageFaceSwap{ImageFaceSwap: proto.Clone(spec.ImageFaceSwap).(*runtimev1.ImageFaceSwapScenarioSpec)}}, runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_FACE_SWAP, nil
 	case *runtimev1.SubmitLocalAppScenarioJobRequest_VisionLocate:
 		if err := validateVisionLocateSpec(spec.VisionLocate); err != nil {
 			return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, err

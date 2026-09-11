@@ -15,6 +15,14 @@ surfaces:
   - routes_7
   - routes_8
 routes:
+  - provider: media
+    capability: video.face_swap
+    adapter: face_swap_execution_host
+    source_rule: rule.nimi.runtime.local-compute.face-swap-video-driver
+  - provider: media
+    capability: image.face_swap
+    adapter: face_swap_execution_host
+    source_rule: rule.nimi.runtime.local-compute.face-swap-driver
   - provider: local
     capability: vision.locate
     adapter: vision_execution_host

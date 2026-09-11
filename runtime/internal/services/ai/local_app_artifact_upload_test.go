@@ -50,6 +50,8 @@ func TestUploadLocalAppArtifactRejectsDecisionMimeAndSizeViolations(t *testing.T
 	assertLocalAppTextCandidateError(t, err, codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 
 	_, err = svc.UploadLocalAppArtifact(localAppArtifactUploadContext(), &runtimev1.UploadLocalAppArtifactRequest{Bytes: []byte{1}, MimeType: "video/mp4"})
+	assertLocalAppTextCandidateError(t, err, codes.InvalidArgument, runtimev1.ReasonCode_AI_ARTIFACT_UPLOAD_INVALID)
+	_, err = svc.UploadLocalAppArtifact(localAppArtifactUploadContext(), &runtimev1.UploadLocalAppArtifactRequest{Bytes: []byte{1}, MimeType: "video/webm"})
 	assertLocalAppTextCandidateError(t, err, codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_UPLOAD_MIME_UNSUPPORTED)
 
 	_, err = svc.UploadLocalAppArtifact(localAppArtifactUploadContext(), &runtimev1.UploadLocalAppArtifactRequest{Bytes: make([]byte, runtimeartifact.MaxInlineBytes+1), MimeType: "image/png"})

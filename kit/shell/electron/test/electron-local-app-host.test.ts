@@ -349,7 +349,23 @@ describe('Electron protected local-app host', () => {
   });
 
   it('preserves typed media validation failures', async () => {
-    for (const reasonCode of ['ai-media-spec-invalid', 'ai-media-option-unsupported']) {
+    for (const reasonCode of [
+      'ai-media-spec-invalid', 'ai-media-option-unsupported',
+      'ai-face-reference-missing',
+      'ai-face-reference-ambiguous',
+      'ai-face-target-missing',
+      'ai-face-target-ambiguous',
+      'ai-video-decode-failed',
+      'ai-video-encode-failed',
+      'ai-video-session-overloaded',
+      'ai-video-session-generation-invalid',
+      'ai-local-execution-load-failed',
+      'ai-local-execution-inference-failed',
+      'ai-local-execution-canceled',
+      'ai-local-execution-process-crashed',
+      'ai-local-execution-content-mismatch',
+      'ai-local-execution-out-of-memory',
+    ]) {
       const candidate = {
         ...binding([]),
         localAppScenarioJobSubmit: async () => ({
@@ -789,6 +805,10 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     }),
     localAppEmbodimentSubscribe: record('localAppEmbodimentSubscribe', { streamId: 'embodiment-1' }),
     localAppAiRealtimeOpen: record('localAppAiRealtimeOpen', {}),
+    localAppVideoSessionOpen: record('localAppVideoSessionOpen', {}),
+    localAppVideoSessionSubmit: record('localAppVideoSessionSubmit', {}),
+    localAppVideoSessionRead: record('localAppVideoSessionRead', {}),
+    localAppVideoSessionClose: record('localAppVideoSessionClose', {}),
     localAppAiRealtimeAppendInput: record('localAppAiRealtimeAppendInput', {}),
     localAppAiRealtimeSubmitOwnerControl: record('localAppAiRealtimeSubmitOwnerControl', {}),
     localAppAiRealtimeSubscribe: record('localAppAiRealtimeSubscribe', { streamId: 'ai-realtime-1' }),

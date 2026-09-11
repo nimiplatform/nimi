@@ -19,6 +19,9 @@ import {
 import {
   GetLocalAppScenarioJobRequest,
   GetLocalAppScenarioJobResponse,
+  AiVideoPixelFormat,
+  OpenVideoSessionResponse,
+  CloseVideoSessionResponse,
 } from '../../../../sdks/typescript/core-generated/runtime-protobuf/runtime/v1/ai.js';
 import {
   WriteLocalAppAssetRequest,
@@ -73,6 +76,41 @@ function control(profile: 'desktop' | 'avatar') {
 }
 
 describe('Electron formal App local host', () => {
+  it.each(['desktop', 'avatar'] as const)('preserves Runtime video generation errors on %s owned resources', async (profile) => {
+    const runtime = control(profile);
+    const invoke = profile === 'desktop' ? runtime.host.accountProductUnary : runtime.host.bundledAvatarUnary;
+    const unary = async (input: { methodId: string; requestBytes: Uint8Array }) => {
+      if (input.methodId.endsWith('/OpenVideoSession')) {
+        return OpenVideoSessionResponse.toBinary(OpenVideoSessionResponse.create({
+          videoSessionId: 'video-1', generation: '1', maximumInFlightSubmissions: 2,
+          format: { width: 1280, height: 720, pixelFormat: AiVideoPixelFormat.RGB8 },
+        }));
+      }
+      if (input.methodId.endsWith('/CloseVideoSession')) {
+        return CloseVideoSessionResponse.toBinary(CloseVideoSessionResponse.create({ closed: true }));
+      }
+      if (input.methodId.startsWith('/nimi.runtime.v1.RuntimeAiVideoSessionService/')) {
+        throw new NimiElectronDesktopControlHostError('AI_VIDEO_SESSION_GENERATION_INVALID', false);
+      }
+      return invoke(input);
+    };
+    const owner = createNimiElectronFormalAppLocalHostOwner({
+      profile, appId: `nimi.${profile}`,
+      control: { ...runtime.host, [profile === 'desktop' ? 'accountProductUnary' : 'bundledAvatarUnary']: unary },
+    });
+    const scope = owner.createResourceScope();
+    try {
+      await scope.host.videoSessionOpen({ referenceImageArtifactId: 'reference-1', width: 1280, height: 720, pixelFormat: 'rgb8' });
+      await expect(scope.host.videoSessionRead({ videoSessionId: 'video-1', generation: '2' }))
+        .rejects.toMatchObject({ reasonCode: 'AI_VIDEO_SESSION_GENERATION_INVALID' });
+      expect(() => scope.host.videoSessionRead({ videoSessionId: 'not-owned', generation: '1' }))
+        .toThrow('not-found');
+    } finally {
+      await scope.dispose();
+      await owner.dispose();
+    }
+  });
+
   it.each([false, true])('cancels only the owning sender transcription (dispose: %s)', async (dispose) => {
     let markStarted!: () => void;
     const started = new Promise<void>((resolve) => { markStarted = resolve; });

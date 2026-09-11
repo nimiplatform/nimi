@@ -79,10 +79,11 @@ type localResolvedAssemblyDependencySource struct {
 }
 
 type localResolvedAssemblyRequest struct {
-	Kind        string          `json:"kind"`
-	Payload     json.RawMessage `json:"payload"`
-	BinaryInput []byte          `json:"binary_input,omitempty"`
-	MIMEType    string          `json:"mime_type,omitempty"`
+	Kind           string          `json:"kind"`
+	Payload        json.RawMessage `json:"payload"`
+	BinaryInput    []byte          `json:"binary_input,omitempty"`
+	ReferenceInput []byte          `json:"reference_input,omitempty"`
+	MIMEType       string          `json:"mime_type,omitempty"`
 }
 
 type localResolvedAssemblyProcessIdentity struct {
@@ -93,14 +94,15 @@ type localResolvedAssemblyProcessIdentity struct {
 }
 
 type localResolvedAssemblyLoadPlan struct {
-	Kind   string                           `json:"kind"`
-	Text   *localResolvedAssemblyTextPlan   `json:"text,omitempty"`
-	Embed  *localResolvedAssemblyEmbedPlan  `json:"embed,omitempty"`
-	Speech *localResolvedAssemblySpeechPlan `json:"speech,omitempty"`
-	Image  *localResolvedAssemblyImagePlan  `json:"image,omitempty"`
-	Video  *localResolvedAssemblyVideoPlan  `json:"video,omitempty"`
-	Music  *localResolvedAssemblyMusicPlan  `json:"music,omitempty"`
-	Vision *localResolvedAssemblyVisionPlan `json:"vision,omitempty"`
+	Kind     string                             `json:"kind"`
+	Text     *localResolvedAssemblyTextPlan     `json:"text,omitempty"`
+	Embed    *localResolvedAssemblyEmbedPlan    `json:"embed,omitempty"`
+	Speech   *localResolvedAssemblySpeechPlan   `json:"speech,omitempty"`
+	Image    *localResolvedAssemblyImagePlan    `json:"image,omitempty"`
+	Video    *localResolvedAssemblyVideoPlan    `json:"video,omitempty"`
+	Music    *localResolvedAssemblyMusicPlan    `json:"music,omitempty"`
+	Vision   *localResolvedAssemblyVisionPlan   `json:"vision,omitempty"`
+	FaceSwap *localResolvedAssemblyFaceSwapPlan `json:"face_swap,omitempty"`
 }
 
 type localResolvedAssemblyMusicPlan struct {
@@ -942,6 +944,14 @@ func validateLocalResolvedAssembly(assembly *localResolvedAssembly) error {
 		return fmt.Errorf("non-text ResolvedAssembly carries admitted text behaviors")
 	}
 	switch assembly.LoadPlan.Kind {
+	case "video-face-swap":
+		if _, err := videoFaceSwapPlanFromResolvedAssembly(assembly); err != nil {
+			return err
+		}
+	case "image-face-swap":
+		if _, err := faceSwapPlanFromResolvedAssembly(assembly); err != nil {
+			return err
+		}
 	case "vision":
 		if _, err := visionPlanFromResolvedAssembly(assembly); err != nil {
 			return err

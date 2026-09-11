@@ -1393,8 +1393,8 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 	}
 
 	all := list("")
-	if len(all) != 73 {
-		t.Fatalf("all Loadout recipes = %d, want 73", len(all))
+	if len(all) != 75 {
+		t.Fatalf("all Loadout recipes = %d, want 75", len(all))
 	}
 	byID := make(map[string]*runtimev1.LoadoutRecipeDescriptor, len(all))
 	for _, recipe := range all {
@@ -1404,6 +1404,7 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 		capabilitydriver.LlamaGemma4RecipeID,
 		capabilitydriver.LlamaEmbedGGUFRecipeID,
 		capabilitydriver.LocateAnythingRecipeID,
+		capabilitydriver.InsightFaceRecipeID,
 		capabilitydriver.StableDiffusionQwenImageRecipeID,
 		capabilitydriver.StableDiffusionQwenImageEditRecipeID,
 		"z-image",

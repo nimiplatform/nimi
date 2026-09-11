@@ -116,6 +116,7 @@ pub use bundled_avatar::{
     BundledAvatarRuntimeRequest, BundledAvatarRuntimeResponse, BundledAvatarRuntimeStreamReceiver,
 };
 pub use carrier::{
+    LocalAppVideoSessionOpenRequest, LocalAppVideoSessionScopeRequest, LocalAppVideoSessionFrameRequest,
     DesktopControlFuture, LocalAppAIConfigLocalOptionsRequest, LocalAppAIConfigOverwriteRequest,
     LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest,
     LocalAppAgentManagerSnapshotRequest, LocalAppAgentMemoryCorrectRequest,

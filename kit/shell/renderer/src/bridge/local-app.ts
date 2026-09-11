@@ -156,6 +156,8 @@ export type NimiLocalAppVideoContentRole =
 
 export type NimiLocalAppScenarioJobSpec =
   | NimiLocalAppImageGenerateSpec
+  | { readonly type: 'image-face-swap'; readonly referenceImageArtifactId: string; readonly targetImageArtifactId: string }
+  | { readonly type: 'video-face-swap'; readonly referenceImageArtifactId: string; readonly targetVideoArtifactId: string; readonly noFacePolicy: 'fail' | 'preserve-frame' }
   | { readonly type: 'vision-locate'; readonly imageArtifactId: string; readonly query: string; readonly geometry: 'box' | 'point' }
   | {
       readonly type: 'video-generate'; readonly prompt: string; readonly negativePrompt: string;
@@ -212,8 +214,9 @@ export type NimiLocalAppScenarioArtifact = {
   readonly width: number; readonly height: number; readonly sampleRateHz: number; readonly channels: number;
 };
 export type NimiLocalAppScenarioJob = {
+  readonly videoFaceSwapSummary?: { readonly totalFrames: number; readonly transformedFrames: number; readonly preservedFrames: number; readonly durationUs: number; readonly frameRate: 24 | 25 | 30; readonly audioPreserved: boolean };
   readonly jobId: string;
-  readonly scenarioType: 'image-generate' | 'vision-locate' | 'video-generate' | 'speech-synthesize' | 'speech-transcribe' | 'voice-create' | 'music-generate' | 'world-generate';
+  readonly scenarioType: 'image-generate' | 'image-face-swap' | 'video-face-swap' | 'vision-locate' | 'video-generate' | 'speech-synthesize' | 'speech-transcribe' | 'voice-create' | 'music-generate' | 'world-generate';
   readonly status: 'submitted' | 'queued' | 'running' | 'completed' | 'failed' | 'canceled' | 'timeout';
   readonly progressPercent: number; readonly progressCurrentStep: number; readonly progressTotalSteps: number;
   readonly reasonCode: string; readonly reasonDetail: string;
@@ -243,7 +246,7 @@ export type NimiLocalAppScenarioJobGetResult = {
 export type NimiLocalAppArtifactUploadResult = {
   readonly artifactId: string;
   readonly sizeBytes: number;
-  readonly mimeType: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif';
+  readonly mimeType: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif' | 'video/mp4';
 };
 export type NimiLocalAppTextTurnEvent =
   | { readonly type: 'delta'; readonly sequence: string; readonly traceId: string; readonly text: string }
@@ -426,6 +429,12 @@ export type NimiLocalAppStandardShellSurface = {
       readonly interruptOutput: (input: JsonObject) => Promise<JsonObject>;
       readonly close: (input: JsonObject) => Promise<JsonObject>;
     };
+    readonly videoSessions: {
+      readonly open: (input: JsonObject) => Promise<JsonObject>;
+      readonly submitFrame: (input: JsonObject) => Promise<JsonObject>;
+      readonly read: (input: JsonObject) => Promise<JsonObject>;
+      readonly close: (input: JsonObject) => Promise<JsonObject>;
+    };
   };
   readonly aiConfig: {
     readonly get: () => Promise<NimiAIConfigSnapshot>;
@@ -539,6 +548,12 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
         subscribe: subscribeNimiLocalAppAiRealtime,
         interruptOutput: interruptNimiLocalAppAiRealtimeOutput,
         close: closeNimiLocalAppAiRealtime,
+      },
+      videoSessions: {
+        open: (input) => invokeRealtimeRecord(NIMI_STANDARD_SHELL_COMMANDS['local-app.videoSessionOpen'], input),
+        submitFrame: (input) => invokeRealtimeRecord(NIMI_STANDARD_SHELL_COMMANDS['local-app.videoSessionSubmit'], input),
+        read: (input) => invokeRealtimeRecord(NIMI_STANDARD_SHELL_COMMANDS['local-app.videoSessionRead'], input),
+        close: (input) => invokeRealtimeRecord(NIMI_STANDARD_SHELL_COMMANDS['local-app.videoSessionClose'], input),
       },
     },
     aiConfig: {
@@ -849,7 +864,7 @@ export function uploadNimiLocalAppScenarioArtifact(input: {
   assertAllowedInputKeys(input, ['bytes', 'mimeType'], ['bytes', 'mimeType'], command);
   if (!Array.isArray(input.bytes) || input.bytes.length === 0 || input.bytes.length > 32 * 1024 * 1024
     || input.bytes.some((entry) => !Number.isInteger(entry) || entry < 0 || entry > 255)
-    || !['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(input.mimeType)) {
+    || !['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'video/mp4'].includes(input.mimeType)) {
     throw invalidInput(command, 'artifact upload is invalid');
   }
   return invokeChecked(command, { payload: { bytes: [...input.bytes], mimeType: input.mimeType } },
@@ -2211,14 +2226,17 @@ function parseScenarioJob(value: unknown, command: string): NimiLocalAppScenario
     'progressTotalSteps', 'reasonCode', 'reasonDetail', 'artifacts', 'traceId',
     'createdAt', 'updatedAt', 'transcriptionText',
     ...(Object.hasOwn(record, 'interruption') ? ['interruption'] : []),
+    ...(Object.hasOwn(record, 'videoFaceSwapSummary') ? ['videoFaceSwapSummary'] : []),
   ], command, 'scenario Job');
-  if (!['image-generate', 'vision-locate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'voice-create', 'music-generate', 'world-generate'].includes(String(record.scenarioType))
+  if (!['image-generate', 'image-face-swap', 'video-face-swap', 'vision-locate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'voice-create', 'music-generate', 'world-generate'].includes(String(record.scenarioType))
     || !['submitted', 'queued', 'running', 'completed', 'failed', 'canceled', 'timeout'].includes(String(record.status))) {
     throw new Error(`${command}: Job enum is invalid`);
   }
   const progressCurrentStep = boundedProjectionInteger(record.progressCurrentStep, 0, Number.MAX_SAFE_INTEGER, command);
   const progressTotalSteps = boundedProjectionInteger(record.progressTotalSteps, 0, Number.MAX_SAFE_INTEGER, command);
   if (progressCurrentStep > progressTotalSteps) throw new Error(`${command}: Job progress is invalid`);
+  if ((record.videoFaceSwapSummary !== undefined) !== (record.scenarioType === 'video-face-swap' && record.status === 'completed')) throw new Error(`${command}: video summary state is invalid`);
+  const videoFaceSwapSummary = record.videoFaceSwapSummary === undefined ? undefined : parseVideoFaceSwapSummary(record.videoFaceSwapSummary, command);
   const interruption = record.interruption;
   if ((interruption !== undefined) !== (record.reasonCode === 'ai-execution-interrupted') || (interruption !== undefined && record.status !== 'failed')) throw new Error(`${command}: Job interruption does not match failure`);
   if (interruption !== undefined) {
@@ -2227,6 +2245,7 @@ function parseScenarioJob(value: unknown, command: string): NimiLocalAppScenario
     if (cause.cause !== 'runtime-restart' || cause.resubmitDisposition !== 'caller-may-resubmit') throw new Error(`${command}: Job interruption is invalid`);
   }
   return Object.freeze({
+    ...(videoFaceSwapSummary ? { videoFaceSwapSummary } : {}),
     ...(interruption !== undefined ? { interruption: { ...(interruption as NimiLocalAppExecutionInterruption) } } : {}),
     jobId: requiredText(record.jobId, 'jobId', command, 128),
     scenarioType: record.scenarioType,
@@ -2242,6 +2261,17 @@ function parseScenarioJob(value: unknown, command: string): NimiLocalAppScenario
     updatedAt: parseScenarioTimestamp(record.updatedAt, command),
     transcriptionText: optionalProjectionText(record.transcriptionText, 256 * 1024, command),
   }) as unknown as NimiLocalAppScenarioJob;
+}
+
+function parseVideoFaceSwapSummary(value: unknown, command: string): NonNullable<NimiLocalAppScenarioJob['videoFaceSwapSummary']> {
+  const record = assertRecord(value, `${command}: video summary is invalid`);
+  assertProjectionKeys(record, ['totalFrames', 'transformedFrames', 'preservedFrames', 'durationUs', 'frameRate', 'audioPreserved'], command, 'video summary');
+  const totalFrames = boundedProjectionInteger(record.totalFrames, 1, 9000, command);
+  const transformedFrames = boundedProjectionInteger(record.transformedFrames, 0, totalFrames, command);
+  const preservedFrames = boundedProjectionInteger(record.preservedFrames, 0, totalFrames, command);
+  const frameRate = boundedProjectionInteger(record.frameRate, 24, 30, command);
+  if (transformedFrames + preservedFrames !== totalFrames || ![24, 25, 30].includes(frameRate) || typeof record.audioPreserved !== 'boolean') throw new Error(`${command}: video summary counts are invalid`);
+  return Object.freeze({ totalFrames, transformedFrames, preservedFrames, frameRate: frameRate as 24 | 25 | 30, durationUs: boundedProjectionInteger(record.durationUs, 1, 300000000, command), audioPreserved: record.audioPreserved });
 }
 
 function parseVisionLocateResult(value: unknown, command: string): NimiLocalAppVisionLocateResult {
@@ -2303,7 +2333,7 @@ function parseArtifactUpload(
   const artifactId = requiredText(record.artifactId, 'artifactId', command, 128);
   const sizeBytes = boundedProjectionInteger(record.sizeBytes, 1, 32 * 1024 * 1024, command);
   if (sizeBytes !== expectedSize || record.mimeType !== expectedMimeType
-    || !['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(String(record.mimeType))) {
+    || !['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'video/mp4'].includes(String(record.mimeType))) {
     throw new Error(`${command}: artifact upload result is invalid`);
   }
   return Object.freeze({ artifactId, sizeBytes, mimeType: record.mimeType }) as NimiLocalAppArtifactUploadResult;

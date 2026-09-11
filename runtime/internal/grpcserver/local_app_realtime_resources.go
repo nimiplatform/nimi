@@ -14,6 +14,7 @@ import (
 const (
 	protectedLocalAppRealmResourcePrefix = "realm-channel:"
 	protectedLocalAppAIResourcePrefix    = "ai-realtime:"
+	protectedLocalAppVideoResourcePrefix = "video-session:"
 	protectedLocalAppAgentResourcePrefix = "agent-realtime:"
 )
 
@@ -24,6 +25,8 @@ type protectedLocalAppRealmRealtimeRevoker interface {
 type protectedLocalAppAIRealtimeRevoker interface {
 	RevokeProtectedLocalAppAIRealtimeSession(string)
 }
+
+type protectedLocalAppVideoSessionRevoker interface{ RevokeProtectedLocalAppVideoSession(string) }
 
 type protectedLocalAppAgentRealtimeRevoker interface {
 	RevokeProtectedLocalAppAgentRealtimeSession(string)
@@ -92,6 +95,13 @@ func updateProtectedLocalAppRealtimeResource(
 
 func protectedLocalAppRealtimeCleanup(server any, key string) func() {
 	switch {
+	case strings.HasPrefix(key, protectedLocalAppVideoResourcePrefix):
+		owner, ok := server.(protectedLocalAppVideoSessionRevoker)
+		if !ok {
+			return nil
+		}
+		id := strings.TrimPrefix(key, protectedLocalAppVideoResourcePrefix)
+		return func() { owner.RevokeProtectedLocalAppVideoSession(id) }
 	case strings.HasPrefix(key, protectedLocalAppRealmResourcePrefix):
 		owner, ok := server.(protectedLocalAppRealmRealtimeRevoker)
 		if !ok {
@@ -119,15 +129,31 @@ func protectedLocalAppRealtimeCleanup(server any, key string) func() {
 }
 
 func protectedLocalAppRealtimeOpenMethod(method string) bool {
-	return method == protectedOpenRealmRealtimeChannelMethod || method == protectedOpenAIRealtimeMethod || method == protectedOpenAgentRealtimeMethod
+	return method == protectedOpenRealmRealtimeChannelMethod || method == protectedOpenAIRealtimeMethod || method == protectedOpenAgentRealtimeMethod || method == protectedOpenVideoSessionMethod
 }
 
 func protectedLocalAppRealtimeCloseMethod(method string) bool {
-	return method == protectedCloseRealmRealtimeChannelMethod || method == protectedCloseAIRealtimeMethod || method == protectedCloseAgentRealtimeMethod
+	return method == protectedCloseRealmRealtimeChannelMethod || method == protectedCloseAIRealtimeMethod || method == protectedCloseAgentRealtimeMethod || method == protectedCloseVideoSessionMethod
 }
 
 func protectedLocalAppRealtimeResourceKey(method string, message any) string {
 	switch method {
+	case protectedOpenVideoSessionMethod:
+		if response, ok := message.(*runtimev1.OpenVideoSessionResponse); ok {
+			return protectedLocalAppRealtimeKey(protectedLocalAppVideoResourcePrefix, response.GetVideoSessionId())
+		}
+	case protectedSubmitVideoSessionFrameMethod:
+		if request, ok := message.(*runtimev1.SubmitVideoSessionFrameRequest); ok {
+			return protectedLocalAppRealtimeKey(protectedLocalAppVideoResourcePrefix, request.GetVideoSessionId())
+		}
+	case protectedReadVideoSessionResultMethod:
+		if request, ok := message.(*runtimev1.ReadVideoSessionResultRequest); ok {
+			return protectedLocalAppRealtimeKey(protectedLocalAppVideoResourcePrefix, request.GetVideoSessionId())
+		}
+	case protectedCloseVideoSessionMethod:
+		if request, ok := message.(*runtimev1.CloseVideoSessionRequest); ok {
+			return protectedLocalAppRealtimeKey(protectedLocalAppVideoResourcePrefix, request.GetVideoSessionId())
+		}
 	case protectedOpenRealmRealtimeChannelMethod:
 		if response, ok := message.(*runtimev1.OpenRealmRealtimeChannelResponse); ok {
 			return protectedLocalAppRealtimeKey(protectedLocalAppRealmResourcePrefix, response.GetChannelId())

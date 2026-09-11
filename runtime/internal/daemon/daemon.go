@@ -733,6 +733,7 @@ func (d *Daemon) startSupervisedEngines(_ context.Context) {
 		})
 		aiSvc.SetLocalImageExecutionHost(d.imageExecutionHost)
 		aiSvc.SetLocalVisionExecutionHost(engine.NewVisionExecutionHost(mgr))
+		aiSvc.SetLocalFaceSwapExecutionHost(engine.NewFaceSwapExecutionHost(mgr))
 		d.audioCppExecutionHost = engine.NewAudioCppExecutionHost(d.logger)
 		aiSvc.SetLocalMusicExecutionHost(d.audioCppExecutionHost)
 		d.videoExecutionHost = engine.NewVideoExecutionHost(mgr, d.logger, engine.VideoExecutionHostConfig{

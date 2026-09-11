@@ -98,6 +98,10 @@ const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.embodimentSnapshot'], 'embodimentSnapshot'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.embodimentSubscribe'], 'embodimentSubscribe'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.aiRealtimeOpen'], 'aiRealtimeOpen'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.videoSessionOpen'], 'videoSessionOpen'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.videoSessionSubmit'], 'videoSessionSubmit'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.videoSessionRead'], 'videoSessionRead'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.videoSessionClose'], 'videoSessionClose'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.aiRealtimeAppendInput'], 'aiRealtimeAppendInput'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.aiRealtimeSubmitOwnerControl'], 'aiRealtimeSubmitOwnerControl'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.aiRealtimeSubscribe'], 'aiRealtimeSubscribe'],
@@ -185,7 +189,9 @@ export async function dispatchElectronLocalAppCommand(input: {
       const streams = activeScenarioStreams(input.host);
       if (payload.action === 'cancel') {
         const subscriptionId = String(payload.subscriptionId);
-        streams.delete(subscriptionId);
+        // The pump removes a naturally completed stream before notifying
+        // the renderer. Iterator cleanup can arrive after that completion.
+        if (!streams.delete(subscriptionId)) return { subscriptionId, closed: false };
         const result = method === 'textTurnSubscribe'
           ? await input.host.textTurnStreamClose({ streamId: subscriptionId })
           : await input.host.scenarioJobStreamClose({ streamId: subscriptionId });
@@ -369,7 +375,7 @@ function validatePayload(
       assertExactKeys(payload, ['bytes', 'mimeType'], command);
       if (!Array.isArray(payload.bytes) || payload.bytes.length === 0 || payload.bytes.length > 32 * 1024 * 1024
         || payload.bytes.some((entry) => !Number.isInteger(entry) || Number(entry) < 0 || Number(entry) > 255)
-        || !['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(String(payload.mimeType))) {
+        || !['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'video/mp4'].includes(String(payload.mimeType))) {
         throw invalidPayload(command, 'artifact upload is invalid');
       }
       return { bytes: [...payload.bytes] as NimiElectronLocalAppJson, mimeType: String(payload.mimeType) };
@@ -564,6 +570,19 @@ function validatePayload(
         turnDetection: realtimeTurnDetection(payload.turnDetection, command),
         initialInstruction: optionalExactText(payload.initialInstruction, 'initialInstruction', command, 16 * 1024),
       };
+    case 'videoSessionOpen':
+      assertExactKeys(payload, ['referenceImageArtifactId', 'width', 'height', 'pixelFormat'], command);
+      if (payload.width !== 1280 || payload.height !== 720 || payload.pixelFormat !== 'rgb8') throw invalidPayload(command, 'video format is invalid');
+      return { referenceImageArtifactId: requiredText(payload.referenceImageArtifactId, 'referenceImageArtifactId', command, 128), width: 1280, height: 720, pixelFormat: 'rgb8' };
+    case 'videoSessionSubmit': {
+      assertExactKeys(payload, ['videoSessionId', 'generation', 'sequence', 'timestampUs', 'frameBase64'], command);
+      if (typeof payload.frameBase64 !== 'string' || payload.frameBase64.length !== 1280 * 720 * 4) throw invalidPayload(command, 'video frame size is invalid');
+      return { ...videoSessionScope(payload, command), sequence: videoInteger(payload.sequence, false, command), timestampUs: videoInteger(payload.timestampUs, true, command), frameBase64: payload.frameBase64 };
+    }
+    case 'videoSessionRead':
+    case 'videoSessionClose':
+      assertExactKeys(payload, ['videoSessionId', 'generation'], command);
+      return videoSessionScope(payload, command);
     case 'agentRealtimeOpen': {
       assertAllowedKeys(payload, ['agentHandle', 'conversationAnchorId', 'inputAudio', 'turnDetection'], ['agentHandle', 'inputAudio', 'turnDetection'], command);
       return {
@@ -970,6 +989,16 @@ function validateScenarioSpec(value: unknown, command: string, execute: boolean)
   }
   if (execute) throw invalidPayload(command, 'execute scenario type is invalid');
   switch (value.type) {
+    // @nimi-authority: rule.nimi.runtime.ai-provider.face-swap-video-job
+    case 'video-face-swap':
+      assertExactKeys(value, ['type', 'referenceImageArtifactId', 'targetVideoArtifactId', 'noFacePolicy'], command);
+      if (!optionalBoundedIdentifier(value.referenceImageArtifactId, 'referenceImageArtifactId', command) || !optionalBoundedIdentifier(value.targetVideoArtifactId, 'targetVideoArtifactId', command) || (value.noFacePolicy !== 'fail' && value.noFacePolicy !== 'preserve-frame')) throw invalidPayload(command, 'video face replacement references and policy are required');
+      return;
+    // @nimi-authority: rule.nimi.runtime.ai-provider.face-swap-image-job
+    case 'image-face-swap':
+      assertExactKeys(value, ['type', 'referenceImageArtifactId', 'targetImageArtifactId'], command);
+      if (!optionalBoundedIdentifier(value.referenceImageArtifactId, 'referenceImageArtifactId', command) || !optionalBoundedIdentifier(value.targetImageArtifactId, 'targetImageArtifactId', command)) throw invalidPayload(command, 'reference and target artifacts are required');
+      return;
     // @nimi-authority: rule.nimi.runtime.ai-provider.r126
     case 'vision-locate':
       assertExactKeys(value, ['type', 'imageArtifactId', 'query', 'geometry'], command);
@@ -1550,6 +1579,15 @@ function boundedImageMime(value: unknown, command: string): string {
     throw invalidPayload(command, 'image MIME is invalid');
   }
   return mimeType;
+}
+
+function videoInteger(value: unknown, zero: boolean, command: string): string {
+  if (typeof value !== 'string' || !(zero ? /^(0|[1-9][0-9]{0,19})$/u : /^[1-9][0-9]{0,19}$/u).test(value) || BigInt(value) > 18446744073709551615n) throw invalidPayload(command, 'video integer is invalid');
+  return value;
+}
+
+function videoSessionScope(value: Readonly<Record<string, unknown>>, command: string): NimiElectronLocalAppRecord {
+  return { videoSessionId: requiredText(value.videoSessionId, 'videoSessionId', command, 128), generation: videoInteger(value.generation, false, command) };
 }
 
 function realtimeScope(

@@ -470,6 +470,13 @@ const (
 	AIREALTIMETURNDETECTIONMODEMANUAL      AiRealtimeTurnDetectionMode = "AI_REALTIME_TURN_DETECTION_MODE_MANUAL"
 )
 
+type AiVideoPixelFormat string
+
+const (
+	AIVIDEOPIXELFORMATUNSPECIFIED AiVideoPixelFormat = "AI_VIDEO_PIXEL_FORMAT_UNSPECIFIED"
+	AIVIDEOPIXELFORMATRGB8        AiVideoPixelFormat = "AI_VIDEO_PIXEL_FORMAT_RGB8"
+)
+
 type AppMessageEventType string
 
 const (
@@ -861,6 +868,14 @@ type ExternalProofType string
 const (
 	EXTERNALPROOFTYPEUNSPECIFIED ExternalProofType = "EXTERNAL_PROOF_TYPE_UNSPECIFIED"
 	EXTERNALPROOFTYPEJWT         ExternalProofType = "EXTERNAL_PROOF_TYPE_JWT"
+)
+
+type FaceSwapNoFacePolicy string
+
+const (
+	FACESWAPNOFACEPOLICYUNSPECIFIED   FaceSwapNoFacePolicy = "FACE_SWAP_NO_FACE_POLICY_UNSPECIFIED"
+	FACESWAPNOFACEPOLICYFAIL          FaceSwapNoFacePolicy = "FACE_SWAP_NO_FACE_POLICY_FAIL"
+	FACESWAPNOFACEPOLICYPRESERVEFRAME FaceSwapNoFacePolicy = "FACE_SWAP_NO_FACE_POLICY_PRESERVE_FRAME"
 )
 
 type FinishReason string
@@ -1647,6 +1662,14 @@ const (
 	APPPACKAGEHOSTRUNNING                           ReasonCode = "APP_PACKAGE_HOST_RUNNING"
 	APPPACKAGEUNINSTALLFAILED                       ReasonCode = "APP_PACKAGE_UNINSTALL_FAILED"
 	APPPACKAGEUPDATEUNAVAILABLE                     ReasonCode = "APP_PACKAGE_UPDATE_UNAVAILABLE"
+	AIFACEREFERENCEMISSING                          ReasonCode = "AI_FACE_REFERENCE_MISSING"
+	AIFACEREFERENCEAMBIGUOUS                        ReasonCode = "AI_FACE_REFERENCE_AMBIGUOUS"
+	AIFACETARGETMISSING                             ReasonCode = "AI_FACE_TARGET_MISSING"
+	AIFACETARGETAMBIGUOUS                           ReasonCode = "AI_FACE_TARGET_AMBIGUOUS"
+	AIVIDEODECODEFAILED                             ReasonCode = "AI_VIDEO_DECODE_FAILED"
+	AIVIDEOENCODEFAILED                             ReasonCode = "AI_VIDEO_ENCODE_FAILED"
+	AIVIDEOSESSIONOVERLOADED                        ReasonCode = "AI_VIDEO_SESSION_OVERLOADED"
+	AIVIDEOSESSIONGENERATIONINVALID                 ReasonCode = "AI_VIDEO_SESSION_GENERATION_INVALID"
 )
 
 type ReasoningActivation string
@@ -1745,6 +1768,8 @@ const (
 	SCENARIOTYPEWORLDGENERATE    ScenarioType = "SCENARIO_TYPE_WORLD_GENERATE"
 	SCENARIOTYPEVOICECREATE      ScenarioType = "SCENARIO_TYPE_VOICE_CREATE"
 	SCENARIOTYPEVISIONLOCATE     ScenarioType = "SCENARIO_TYPE_VISION_LOCATE"
+	SCENARIOTYPEIMAGEFACESWAP    ScenarioType = "SCENARIO_TYPE_IMAGE_FACE_SWAP"
+	SCENARIOTYPEVIDEOFACESWAP    ScenarioType = "SCENARIO_TYPE_VIDEO_FACE_SWAP"
 )
 
 type SchedulingState string
@@ -2569,6 +2594,38 @@ type AiRealtimeTranscript struct {
 	Final        bool   `json:"final,omitempty"`
 }
 
+type AiVideoFrameDisposition struct {
+	Sequence    uint64     `json:"sequence,omitempty"`
+	TimestampUs uint64     `json:"timestamp_us,omitempty"`
+	ReasonCode  ReasonCode `json:"reason_code,omitempty"`
+}
+
+type AiVideoSessionFormat struct {
+	Width       uint32             `json:"width,omitempty"`
+	Height      uint32             `json:"height,omitempty"`
+	PixelFormat AiVideoPixelFormat `json:"pixel_format,omitempty"`
+}
+
+type AiVideoSessionResult struct {
+	VideoSessionId  string                   `json:"video_session_id,omitempty"`
+	Generation      uint64                   `json:"generation,omitempty"`
+	Transformed     *AiVideoTransformedFrame `json:"transformed,omitempty"`
+	NoTargetFace    *AiVideoFrameDisposition `json:"no_target_face,omitempty"`
+	InputDropped    *AiVideoFrameDisposition `json:"input_dropped,omitempty"`
+	InputRejected   *AiVideoFrameDisposition `json:"input_rejected,omitempty"`
+	SessionTerminal *AiVideoSessionTerminal  `json:"session_terminal,omitempty"`
+}
+
+type AiVideoSessionTerminal struct {
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
+type AiVideoTransformedFrame struct {
+	Sequence    uint64 `json:"sequence,omitempty"`
+	TimestampUs uint64 `json:"timestamp_us,omitempty"`
+	Frame       []byte `json:"frame,omitempty"`
+}
+
 type AppAIConfigPresetVoiceOption struct {
 	VoiceId        string   `json:"voice_id,omitempty"`
 	Name           string   `json:"name,omitempty"`
@@ -3092,6 +3149,15 @@ type CloseRealtimeSessionRequest struct {
 type CloseRealtimeSessionResponse struct {
 	Ack     *Ack                   `json:"ack,omitempty"`
 	Control *RealtimeControlStatus `json:"control,omitempty"`
+}
+
+type CloseVideoSessionRequest struct {
+	VideoSessionId string `json:"video_session_id,omitempty"`
+	Generation     uint64 `json:"generation,omitempty"`
+}
+
+type CloseVideoSessionResponse struct {
+	Closed bool `json:"closed,omitempty"`
 }
 
 type CognitionMemoryActivityTerminal struct {
@@ -4233,6 +4299,15 @@ type HookTriggerTimeDetail struct {
 type IgnoredScenarioExtension struct {
 	Namespace string `json:"namespace,omitempty"`
 	Reason    string `json:"reason,omitempty"`
+}
+
+type ImageFaceSwapResult struct {
+	Artifacts []ScenarioArtifact `json:"artifacts,omitempty"`
+}
+
+type ImageFaceSwapScenarioSpec struct {
+	ReferenceImageArtifactId string `json:"reference_image_artifact_id,omitempty"`
+	TargetImageArtifactId    string `json:"target_image_artifact_id,omitempty"`
 }
 
 type ImageGenerateResult struct {
@@ -5405,20 +5480,21 @@ type LocalAppScenarioArtifact struct {
 }
 
 type LocalAppScenarioJob struct {
-	JobId               string                     `json:"job_id,omitempty"`
-	ScenarioType        ScenarioType               `json:"scenario_type,omitempty"`
-	Status              ScenarioJobStatus          `json:"status,omitempty"`
-	ProgressPercent     int32                      `json:"progress_percent,omitempty"`
-	ProgressCurrentStep int32                      `json:"progress_current_step,omitempty"`
-	ProgressTotalSteps  int32                      `json:"progress_total_steps,omitempty"`
-	ReasonCode          ReasonCode                 `json:"reason_code,omitempty"`
-	ReasonDetail        string                     `json:"reason_detail,omitempty"`
-	Artifacts           []LocalAppScenarioArtifact `json:"artifacts,omitempty"`
-	TraceId             string                     `json:"trace_id,omitempty"`
-	CreatedAt           string                     `json:"created_at,omitempty"`
-	UpdatedAt           string                     `json:"updated_at,omitempty"`
-	TranscriptionText   string                     `json:"transcription_text,omitempty"`
-	Interruption        *ExecutionInterruption     `json:"interruption,omitempty"`
+	JobId                string                     `json:"job_id,omitempty"`
+	ScenarioType         ScenarioType               `json:"scenario_type,omitempty"`
+	Status               ScenarioJobStatus          `json:"status,omitempty"`
+	ProgressPercent      int32                      `json:"progress_percent,omitempty"`
+	ProgressCurrentStep  int32                      `json:"progress_current_step,omitempty"`
+	ProgressTotalSteps   int32                      `json:"progress_total_steps,omitempty"`
+	ReasonCode           ReasonCode                 `json:"reason_code,omitempty"`
+	ReasonDetail         string                     `json:"reason_detail,omitempty"`
+	Artifacts            []LocalAppScenarioArtifact `json:"artifacts,omitempty"`
+	TraceId              string                     `json:"trace_id,omitempty"`
+	CreatedAt            string                     `json:"created_at,omitempty"`
+	UpdatedAt            string                     `json:"updated_at,omitempty"`
+	TranscriptionText    string                     `json:"transcription_text,omitempty"`
+	Interruption         *ExecutionInterruption     `json:"interruption,omitempty"`
+	VideoFaceSwapSummary *VideoFaceSwapSummary      `json:"video_face_swap_summary,omitempty"`
 }
 
 type LocalAppScenarioJobEvent struct {
@@ -6153,6 +6229,18 @@ type OpenRealtimeSessionResponse struct {
 	Control               *RealtimeControlStatus `json:"control,omitempty"`
 }
 
+type OpenVideoSessionRequest struct {
+	ReferenceImageArtifactId string                `json:"reference_image_artifact_id,omitempty"`
+	Format                   *AiVideoSessionFormat `json:"format,omitempty"`
+}
+
+type OpenVideoSessionResponse struct {
+	VideoSessionId             string                `json:"video_session_id,omitempty"`
+	Generation                 uint64                `json:"generation,omitempty"`
+	Format                     *AiVideoSessionFormat `json:"format,omitempty"`
+	MaximumInFlightSubmissions uint32                `json:"maximum_in_flight_submissions,omitempty"`
+}
+
 type OverwriteAppAIConfigRequest struct {
 	Config           *AIConfig `json:"config,omitempty"`
 	ExpectedRevision string    `json:"expected_revision,omitempty"`
@@ -6402,6 +6490,15 @@ type ReadLocalAppStorageJsonResponse struct {
 type ReadRealtimeEventsRequest struct {
 	RealtimeSessionId string `json:"realtime_session_id,omitempty"`
 	Generation        uint64 `json:"generation,omitempty"`
+}
+
+type ReadVideoSessionResultRequest struct {
+	VideoSessionId string `json:"video_session_id,omitempty"`
+	Generation     uint64 `json:"generation,omitempty"`
+}
+
+type ReadVideoSessionResultResponse struct {
+	Result *AiVideoSessionResult `json:"result,omitempty"`
 }
 
 type RealmChatAttachmentPayload struct {
@@ -6929,6 +7026,7 @@ type ScenarioJob struct {
 	TranscriptionText      string                         `json:"transcription_text,omitempty"`
 	EffectiveInputIdentity *LoadoutEffectiveInputIdentity `json:"effective_input_identity,omitempty"`
 	Interruption           *ExecutionInterruption         `json:"interruption,omitempty"`
+	VideoFaceSwapSummary   *VideoFaceSwapSummary          `json:"video_face_swap_summary,omitempty"`
 }
 
 type ScenarioJobEvent struct {
@@ -6948,6 +7046,8 @@ type ScenarioOutput struct {
 	SpeechTranscribe *SpeechTranscribeResult `json:"speech_transcribe,omitempty"`
 	MusicGenerate    *MusicGenerateResult    `json:"music_generate,omitempty"`
 	WorldGenerate    *WorldGenerateResult    `json:"world_generate,omitempty"`
+	ImageFaceSwap    *ImageFaceSwapResult    `json:"image_face_swap,omitempty"`
+	VideoFaceSwap    *VideoFaceSwapResult    `json:"video_face_swap,omitempty"`
 }
 
 type ScenarioProfile struct {
@@ -6973,6 +7073,8 @@ type ScenarioSpec struct {
 	WorldGenerate    *WorldGenerateScenarioSpec    `json:"world_generate,omitempty"`
 	VoiceCreate      *VoiceCreateScenarioSpec      `json:"voice_create,omitempty"`
 	VisionLocate     *VisionLocateScenarioSpec     `json:"vision_locate,omitempty"`
+	ImageFaceSwap    *ImageFaceSwapScenarioSpec    `json:"image_face_swap,omitempty"`
+	VideoFaceSwap    *VideoFaceSwapScenarioSpec    `json:"video_face_swap,omitempty"`
 }
 
 type ScenarioStreamCompleted struct {
@@ -7331,6 +7433,8 @@ type SubmitLocalAppScenarioJobRequest struct {
 	TimeoutMs        int32                              `json:"timeout_ms,omitempty"`
 	WorldGenerate    *LocalAppWorldGenerateJobSpec      `json:"world_generate,omitempty"`
 	VisionLocate     *VisionLocateScenarioSpec          `json:"vision_locate,omitempty"`
+	ImageFaceSwap    *ImageFaceSwapScenarioSpec         `json:"image_face_swap,omitempty"`
+	VideoFaceSwap    *VideoFaceSwapScenarioSpec         `json:"video_face_swap,omitempty"`
 }
 
 type SubmitLocalAppScenarioJobResponse struct {
@@ -7362,6 +7466,19 @@ type SubmitScenarioJobRequest struct {
 
 type SubmitScenarioJobResponse struct {
 	Job *ScenarioJob `json:"job,omitempty"`
+}
+
+type SubmitVideoSessionFrameRequest struct {
+	VideoSessionId string `json:"video_session_id,omitempty"`
+	Generation     uint64 `json:"generation,omitempty"`
+	Sequence       uint64 `json:"sequence,omitempty"`
+	TimestampUs    uint64 `json:"timestamp_us,omitempty"`
+	Frame          []byte `json:"frame,omitempty"`
+}
+
+type SubmitVideoSessionFrameResponse struct {
+	Accepted bool   `json:"accepted,omitempty"`
+	Sequence uint64 `json:"sequence,omitempty"`
 }
 
 type SubscribeAccountSessionEventsRequest struct {
@@ -7779,6 +7896,26 @@ type VideoContentItem struct {
 
 type VideoContentVideoURL struct {
 	Url string `json:"url,omitempty"`
+}
+
+type VideoFaceSwapResult struct {
+	Artifacts []ScenarioArtifact    `json:"artifacts,omitempty"`
+	Summary   *VideoFaceSwapSummary `json:"summary,omitempty"`
+}
+
+type VideoFaceSwapScenarioSpec struct {
+	ReferenceImageArtifactId string               `json:"reference_image_artifact_id,omitempty"`
+	TargetVideoArtifactId    string               `json:"target_video_artifact_id,omitempty"`
+	NoFacePolicy             FaceSwapNoFacePolicy `json:"no_face_policy,omitempty"`
+}
+
+type VideoFaceSwapSummary struct {
+	TotalFrames       uint32 `json:"total_frames,omitempty"`
+	TransformedFrames uint32 `json:"transformed_frames,omitempty"`
+	PreservedFrames   uint32 `json:"preserved_frames,omitempty"`
+	DurationUs        uint64 `json:"duration_us,omitempty"`
+	FrameRate         uint32 `json:"frame_rate,omitempty"`
+	AudioPreserved    bool   `json:"audio_preserved,omitempty"`
 }
 
 type VideoGenerateResult struct {
@@ -8909,6 +9046,38 @@ func (c RuntimeTypedClient) UploadLocalAppArtifact(ctx context.Context, request 
 		return UploadLocalAppArtifactResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[UploadLocalAppArtifactResponse](raw, "UploadLocalAppArtifactResponse")
+}
+
+func (c RuntimeTypedClient) CloseVideoSession(ctx context.Context, request CloseVideoSessionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CloseVideoSessionResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiVideoSessionService/CloseVideoSession", request, metadata, timeoutMS)
+	if err != nil {
+		return CloseVideoSessionResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[CloseVideoSessionResponse](raw, "CloseVideoSessionResponse")
+}
+
+func (c RuntimeTypedClient) OpenVideoSession(ctx context.Context, request OpenVideoSessionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OpenVideoSessionResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiVideoSessionService/OpenVideoSession", request, metadata, timeoutMS)
+	if err != nil {
+		return OpenVideoSessionResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[OpenVideoSessionResponse](raw, "OpenVideoSessionResponse")
+}
+
+func (c RuntimeTypedClient) ReadVideoSessionResult(ctx context.Context, request ReadVideoSessionResultRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ReadVideoSessionResultResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiVideoSessionService/ReadVideoSessionResult", request, metadata, timeoutMS)
+	if err != nil {
+		return ReadVideoSessionResultResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ReadVideoSessionResultResponse](raw, "ReadVideoSessionResultResponse")
+}
+
+func (c RuntimeTypedClient) SubmitVideoSessionFrame(ctx context.Context, request SubmitVideoSessionFrameRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SubmitVideoSessionFrameResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAiVideoSessionService/SubmitVideoSessionFrame", request, metadata, timeoutMS)
+	if err != nil {
+		return SubmitVideoSessionFrameResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[SubmitVideoSessionFrameResponse](raw, "SubmitVideoSessionFrameResponse")
 }
 
 func (c RuntimeTypedClient) CancelAppPackageJob(ctx context.Context, request CancelAppPackageJobRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CancelAppPackageJobResponse, error) {

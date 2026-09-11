@@ -1093,8 +1093,23 @@ func (s *Service) resolveLoadoutModelAxisWithHasher(loadout *runtimev1.Loadout, 
 			contentMismatch = true
 			continue
 		}
-		probe, readErr := io.ReadAll(io.LimitReader(opened, probeLimit))
+		var probe []byte
+		var readErr error
+		if structured, ok := driver.(capabilitydriver.ModelAssetStructuredProbeDriver); ok {
+			probe, readErr = structured.ProbeModelAsset(capabilitydriver.ModelAssetFormatProbeInput{
+				RecipeID: loadout.GetRecipeId(), RequirementID: requirement.GetRequirementId(),
+				RelativePath: declared.GetRelativePath(), Entry: declared.GetRelativePath() == asset.GetEntry(),
+			}, opened, info.Size())
+			if len(probe) > capabilitydriver.MaxAssetFormatProbeBytes {
+				readErr = fmt.Errorf("structured ModelAsset probe exceeds its bound")
+			}
+		} else {
+			probe, readErr = io.ReadAll(io.LimitReader(opened, probeLimit))
+		}
 		closeErr := opened.Close()
+		if _, structured := driver.(capabilitydriver.ModelAssetStructuredProbeDriver); structured && readErr != nil && closeErr == nil {
+			return resolvedLoadoutAxis{}, runtimev1.ReasonCode_AI_LOADOUT_MODEL_CONTRACT_FAILED
+		}
 		if readErr != nil || closeErr != nil {
 			contentMismatch = true
 			continue

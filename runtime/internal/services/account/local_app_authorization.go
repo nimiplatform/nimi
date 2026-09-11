@@ -77,6 +77,10 @@ const (
 	LocalAppOperationAIRealtimeEventsRead           = localappop.OperationAIRealtimeEventsRead
 	LocalAppOperationAIRealtimeOutputInterrupt      = localappop.OperationAIRealtimeOutputInterrupt
 	LocalAppOperationAIRealtimeClose                = localappop.OperationAIRealtimeClose
+	LocalAppOperationVideoSessionOpen               = localappop.OperationVideoSessionOpen
+	LocalAppOperationVideoSessionFrameSubmit        = localappop.OperationVideoSessionFrameSubmit
+	LocalAppOperationVideoSessionResultRead         = localappop.OperationVideoSessionResultRead
+	LocalAppOperationVideoSessionClose              = localappop.OperationVideoSessionClose
 	LocalAppOperationAgentRealtimeOpen              = localappop.OperationAgentRealtimeOpen
 	LocalAppOperationAgentRealtimeInputAppend       = localappop.OperationAgentRealtimeInputAppend
 	LocalAppOperationAgentRealtimeEventsSubscribe   = localappop.OperationAgentRealtimeEventsSubscribe

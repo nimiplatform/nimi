@@ -36,6 +36,12 @@ import (
 type recordingFormalAppAdmission struct {
 	calls        []string
 	bindingSlots []string
+	connection   *protectedlocal.LocalAppConnection
+}
+
+type protectedDesktopVideoAITestService struct {
+	runtimev1.UnimplementedRuntimeAiServiceServer
+	runtimev1.UnimplementedRuntimeAiVideoSessionServiceServer
 }
 
 func (admission *recordingFormalAppAdmission) AuthorizeFormalAppIngress(ctx context.Context, appID string, bindingSlot string, boot protectedlocal.Identifier, ingress localappop.Ingress) (context.Context, error) {
@@ -45,12 +51,19 @@ func (admission *recordingFormalAppAdmission) AuthorizeFormalAppIngress(ctx cont
 	}
 	admission.calls = append(admission.calls, appID+":"+string(classification.Domain))
 	admission.bindingSlots = append(admission.bindingSlots, bindingSlot)
-	return accountservice.ContextWithAuthorizedLocalAppDecision(ctx, accountservice.LocalAppCallerDecision{
+	decision := accountservice.LocalAppCallerDecision{
 		SessionID: boot, RuntimeBootEpoch: boot, AppID: appID,
 		AccountID: "account-1", RealmEnvironmentID: "realm-1", AccountGeneration: 1,
 		Operation: classification.Operation, AuthorityClass: classification.Class,
 		OperationCapability: string(classification.Domain), RegisteredAppSubject: "ras_v1_formal_test_subject",
-	}), nil
+	}
+	if admission.connection != nil {
+		handle, _ := admission.connection.Session()
+		decision.SessionID = handle.SessionID
+		decision.SessionInvalidated, _ = admission.connection.SessionInvalidated(handle)
+		ctx = protectedlocal.ContextWithLocalAppConnection(ctx, admission.connection)
+	}
+	return accountservice.ContextWithAuthorizedLocalAppDecision(ctx, decision), nil
 }
 
 func (admission *recordingFormalAppAdmission) BindFormalAppSession(ctx context.Context, appID string, bindingSlot string, _ protectedlocal.Identifier) (context.Context, func(), error) {
@@ -172,6 +185,42 @@ func TestFormalAppUnaryAdmissionPrecedesAccountProductPrincipal(t *testing.T) {
 			})
 			if err != nil || !reached || len(admission.calls) != 1 {
 				t.Fatalf("formal App admission reached=%v calls=%v err=%v", reached, admission.calls, err)
+			}
+		})
+	}
+}
+
+func TestFormalVideoSessionBindsExistingTechnicalSessionCleanup(t *testing.T) {
+	manager, desktop := newProtectedRPCFixture(t)
+	if _, err := manager.Open(protectedlocal.ContextWithDesktopConnection(context.Background(), desktop)); err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range []struct {
+		name string
+		ctx  context.Context
+	}{
+		{"Desktop", protectedAccountProfileTestContext(desktop)},
+		{"Avatar", bundledAvatarProfileTestContext(desktop)},
+	} {
+		t.Run(entry.name, func(t *testing.T) {
+			connection := newGRPCLocalAppConnection(t, 0x78)
+			handle := protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(0x79), SessionProof: grpcLocalAppIdentifier(0x7a)}
+			if err := connection.BindSession(handle); err != nil {
+				t.Fatal(err)
+			}
+			admission := &recordingFormalAppAdmission{connection: connection}
+			owner := &localAppRealtimeRevokerStub{}
+			_, err := newUnaryProtectedDesktopTransportInterceptor(manager, nil, nil, admission)(entry.ctx, &runtimev1.OpenVideoSessionRequest{}, &grpc.UnaryServerInfo{
+				Server: owner, FullMethod: protectedOpenVideoSessionMethod,
+			}, func(context.Context, any) (any, error) {
+				return &runtimev1.OpenVideoSessionResponse{VideoSessionId: "video-1", Generation: 1}, nil
+			})
+			if err != nil || !connection.SessionOwnsResource(handle, protectedLocalAppVideoResourcePrefix+"video-1") {
+				t.Fatalf("formal video resource was not bound: %v", err)
+			}
+			connection.Revoke()
+			if owner.videoCalls != 1 {
+				t.Fatalf("connection loss cleanup count = %d", owner.videoCalls)
 			}
 		})
 	}
@@ -314,7 +363,7 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 		&runtimev1.UnimplementedRuntimeRealmRealtimeServiceServer{},
 		auditService,
 		localService,
-		&runtimev1.UnimplementedRuntimeAiServiceServer{},
+		&protectedDesktopVideoAITestService{},
 		&runtimev1.UnimplementedRuntimeAgentServiceServer{},
 		&runtimev1.UnimplementedRuntimeConnectorServiceServer{},
 		&runtimev1.UnimplementedRuntimeExternalAgentServiceServer{},
@@ -331,6 +380,7 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 		"nimi.runtime.v1.RuntimeAuditService",
 		"nimi.runtime.v1.RuntimeLocalService",
 		"nimi.runtime.v1.RuntimeAiService",
+		"nimi.runtime.v1.RuntimeAiVideoSessionService",
 		"nimi.runtime.v1.RuntimeAgentService",
 		"nimi.runtime.v1.RuntimeConnectorService",
 	} {

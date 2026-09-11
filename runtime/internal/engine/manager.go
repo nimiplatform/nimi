@@ -633,7 +633,7 @@ func (m *Manager) ListEngines() []SupervisorInfo {
 	m.mu.RLock()
 	running := make(map[EngineKind]SupervisorInfo, len(m.supervisors))
 	for kind, s := range m.supervisors {
-		if kind == engineManagedImageBackend || kind == engineImageExecutionHost || kind == engineVideoExecutionHost || kind == engineVisionExecutionHost {
+		if kind == engineManagedImageBackend || kind == engineImageExecutionHost || kind == engineVideoExecutionHost || kind == engineVisionExecutionHost || kind == engineFaceSwapExecutionHost {
 			continue
 		}
 		running[kind] = s.Info()

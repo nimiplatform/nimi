@@ -14,6 +14,8 @@ use crate::generated::{
     ExecuteLocalAppScenarioRequest as ProtoExecuteRequest, ExecutionInterruption,
     ExecutionInterruptionCause, ExecutionResubmitDisposition,
     GetLocalAppScenarioJobRequest as ProtoGetJobRequest,
+    ImageFaceSwapScenarioSpec,
+    VideoFaceSwapScenarioSpec, FaceSwapNoFacePolicy,
     ListLocalAppVoiceAssetsRequest as ProtoListVoiceAssetsRequest,
     LocalAppImageGenerateScenarioSpec, LocalAppMusicGenerateJobSpec, LocalAppScenarioArtifact,
     LocalAppScenarioJob, LocalAppScenarioJobEvent, LocalAppSpeechSynthesizeJobSpec,
@@ -317,7 +319,7 @@ pub(super) async fn upload_artifact(
 ) -> Result<JsonValue, LocalAppOperationError> {
     if request.bytes.is_empty()
         || request.bytes.len() > MAX_ARTIFACT_BYTES
-        || !valid_image_mime(&request.mime_type)
+        || !valid_upload_mime(&request.mime_type)
     {
         return Err(invalid_payload());
     }
@@ -336,7 +338,7 @@ pub(super) async fn upload_artifact(
     require_identifier(&response.artifact_id).map_err(|_| untrusted())?;
     if response.size_bytes != expected_size as i64
         || response.mime_type != expected_mime
-        || !valid_image_mime(&response.mime_type)
+        || !valid_upload_mime(&response.mime_type)
     {
         return Err(untrusted());
     }
@@ -394,6 +396,27 @@ fn parse_execute_spec(value: JsonValue) -> Result<ExecuteSpec, LocalAppOperation
 fn parse_job_spec(value: JsonValue) -> Result<JobSpec, LocalAppOperationError> {
     let object = exact_object(value)?;
     match string_field(&object, "type")? {
+        "video-face-swap" => {
+            exact_keys(&object, &["type", "referenceImageArtifactId", "targetVideoArtifactId", "noFacePolicy"])?;
+            let reference_image_artifact_id = required_text_field(&object, "referenceImageArtifactId", MAX_IDENTIFIER_BYTES)?;
+            let target_video_artifact_id = required_text_field(&object, "targetVideoArtifactId", MAX_IDENTIFIER_BYTES)?;
+            require_identifier(&reference_image_artifact_id)?;
+            require_identifier(&target_video_artifact_id)?;
+            let no_face_policy = match string_field(&object, "noFacePolicy")? {
+                "fail" => FaceSwapNoFacePolicy::Fail,
+                "preserve-frame" => FaceSwapNoFacePolicy::PreserveFrame,
+                _ => return Err(invalid_payload()),
+            };
+            Ok(JobSpec::VideoFaceSwap(VideoFaceSwapScenarioSpec { reference_image_artifact_id, target_video_artifact_id, no_face_policy: no_face_policy as i32 }))
+        }
+        "image-face-swap" => {
+            exact_keys(&object, &["type", "referenceImageArtifactId", "targetImageArtifactId"])?;
+            let reference_image_artifact_id = required_text_field(&object, "referenceImageArtifactId", MAX_IDENTIFIER_BYTES)?;
+            let target_image_artifact_id = required_text_field(&object, "targetImageArtifactId", MAX_IDENTIFIER_BYTES)?;
+            require_identifier(&reference_image_artifact_id)?;
+            require_identifier(&target_image_artifact_id)?;
+            Ok(JobSpec::ImageFaceSwap(ImageFaceSwapScenarioSpec { reference_image_artifact_id, target_image_artifact_id }))
+        }
         "image-generate" => Ok(JobSpec::ImageGenerate(parse_image_spec(&object)?)),
         "vision-locate" => {
             exact_keys(&object, &["type", "imageArtifactId", "query", "geometry"])?;
@@ -935,6 +958,8 @@ fn project_job(job: LocalAppScenarioJob) -> Result<JsonValue, LocalAppOperationE
     require_runtime_identifier(&job.job_id)?;
     let scenario_type = match ScenarioType::try_from(job.scenario_type).map_err(|_| untrusted())? {
         ScenarioType::ImageGenerate => "image-generate",
+        ScenarioType::ImageFaceSwap => "image-face-swap",
+        ScenarioType::VideoFaceSwap => "video-face-swap",
         ScenarioType::VisionLocate => "vision-locate",
         ScenarioType::VideoGenerate => "video-generate",
         ScenarioType::SpeechSynthesize => "speech-synthesize",
@@ -993,6 +1018,15 @@ fn project_job(job: LocalAppScenarioJob) -> Result<JsonValue, LocalAppOperationE
         "updatedAt": project_timestamp(job.updated_at)?,
         "transcriptionText": job.transcription_text,
     });
+    if job.video_face_swap_summary.is_some() != (scenario_type == "video-face-swap" && status == "completed") { return Err(untrusted()); }
+    if let Some(summary) = job.video_face_swap_summary {
+        if summary.total_frames == 0 || summary.total_frames > 9000 || summary.transformed_frames > summary.total_frames || summary.preserved_frames > summary.total_frames || summary.transformed_frames + summary.preserved_frames != summary.total_frames || summary.duration_us == 0 || summary.duration_us > 300000000 || ![24, 25, 30].contains(&summary.frame_rate) { return Err(untrusted()); }
+        projected.as_object_mut().ok_or_else(untrusted)?.insert("videoFaceSwapSummary".to_string(), json!({
+            "totalFrames": summary.total_frames, "transformedFrames": summary.transformed_frames,
+            "preservedFrames": summary.preserved_frames, "durationUs": summary.duration_us,
+            "frameRate": summary.frame_rate, "audioPreserved": summary.audio_preserved,
+        }));
+    }
     if !interruption.is_null() {
         projected
             .as_object_mut()
@@ -1550,10 +1584,10 @@ fn valid_mime(value: &str) -> bool {
         && !value.chars().any(char::is_control)
 }
 
-fn valid_image_mime(value: &str) -> bool {
+fn valid_upload_mime(value: &str) -> bool {
     matches!(
         value,
-        "image/png" | "image/jpeg" | "image/webp" | "image/gif"
+        "image/png" | "image/jpeg" | "image/webp" | "image/gif" | "video/mp4"
     )
 }
 
@@ -1564,6 +1598,29 @@ fn valid_page_token(value: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn face_replacement_job_has_two_owned_references_and_no_sync_alias() {
+        let input = json!({
+            "type": "image-face-swap",
+            "referenceImageArtifactId": "reference-1",
+            "targetImageArtifactId": "target-1"
+        });
+        match parse_job_spec(input.clone()).unwrap() {
+            JobSpec::ImageFaceSwap(spec) => {
+                assert_eq!(spec.reference_image_artifact_id, "reference-1");
+                assert_eq!(spec.target_image_artifact_id, "target-1");
+            }
+            _ => panic!("wrong face replacement wire spec"),
+        }
+        assert!(parse_execute_spec(input.clone()).is_err());
+        let mut expanded = input.clone();
+        expanded["provider"] = json!("local");
+        assert!(parse_job_spec(expanded).is_err());
+        let mut missing = input;
+        missing["targetImageArtifactId"] = json!("");
+        assert!(parse_job_spec(missing).is_err());
+    }
 
     #[test]
     fn execute_spec_rejects_unknown_fields_and_unbounded_embed_inputs() {
@@ -1670,10 +1727,11 @@ mod tests {
     #[test]
     fn upload_artifact_mime_is_a_closed_image_set() {
         for mime in ["image/png", "image/jpeg", "image/webp", "image/gif"] {
-            assert!(valid_image_mime(mime));
+            assert!(valid_upload_mime(mime));
         }
-        assert!(!valid_image_mime("video/mp4"));
-        assert!(!valid_image_mime(" IMAGE/PNG "));
+        assert!(valid_upload_mime("video/mp4"));
+        assert!(!valid_upload_mime("video/webm"));
+        assert!(!valid_upload_mime(" IMAGE/PNG "));
     }
 
     #[test]

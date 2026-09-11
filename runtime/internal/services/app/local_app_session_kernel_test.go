@@ -444,6 +444,10 @@ func TestLocalAppSessionScenarioConsumptionFamilyAuthorization(t *testing.T) {
 		localappop.IngressAIRealtimeEventsRead:         {operation: accountservice.LocalAppOperationAIRealtimeEventsRead, capability: "runtime.consume"},
 		localappop.IngressAIRealtimeOutputInterrupt:    {operation: accountservice.LocalAppOperationAIRealtimeOutputInterrupt, capability: "runtime.consume"},
 		localappop.IngressAIRealtimeClose:              {operation: accountservice.LocalAppOperationAIRealtimeClose, capability: "runtime.consume"},
+		localappop.IngressVideoSessionOpen:             {operation: accountservice.LocalAppOperationVideoSessionOpen, capability: localappop.AppOperationIDVideoSessionOpen},
+		localappop.IngressVideoSessionFrameSubmit:      {operation: accountservice.LocalAppOperationVideoSessionFrameSubmit, capability: localappop.AppOperationIDVideoSessionFrameSubmit},
+		localappop.IngressVideoSessionResultRead:       {operation: accountservice.LocalAppOperationVideoSessionResultRead, capability: localappop.AppOperationIDVideoSessionResultRead},
+		localappop.IngressVideoSessionClose:            {operation: accountservice.LocalAppOperationVideoSessionClose, capability: localappop.AppOperationIDVideoSessionClose},
 	} {
 		authorized, err := fixture.service.AuthorizeLocalAppIngress(fixture.context, ingress)
 		if err != nil {

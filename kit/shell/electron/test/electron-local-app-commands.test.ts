@@ -13,6 +13,30 @@ import { dispatchElectronLocalAppCommand } from '../src/main/local-app-commands.
 import { FakeIpcMain, createInvokeEvent, invokeBridge } from './electron-shell-test-utils.js';
 
 describe('Electron local-app standard-shell operations', () => {
+  it('accepts iterator cleanup after the Job stream has naturally completed', async () => {
+    let completed!: () => void;
+    const ended = new Promise<void>((resolve) => { completed = resolve; });
+    let closeCalls = 0;
+    const host = {
+      ...localAppHost([]),
+      scenarioJobStreamClose: async () => {
+        closeCalls++;
+        throw new NimiElectronLocalAppHostError('not-found', false);
+      },
+    };
+    const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubscribe'];
+    const opened = await dispatchElectronLocalAppCommand({
+      host, command, payload: { jobId: 'job-1' },
+      sendEvent: (_name, event) => { if (event.eventType === 'completed') completed(); },
+    }) as { subscriptionId: string };
+    await ended;
+    const cleanupCalls = closeCalls;
+    await expect(dispatchElectronLocalAppCommand({
+      host, command, payload: { action: 'cancel', subscriptionId: opened.subscriptionId },
+    })).resolves.toEqual({ subscriptionId: opened.subscriptionId, closed: false });
+    expect(closeCalls).toBe(cleanupCalls);
+  });
+
   it('forwards the exact Agent capture-stop observation and keeps it out of the AI owner plane', async () => {
     const calls: unknown[] = [];
     const host = {
@@ -271,6 +295,22 @@ describe('Electron local-app standard-shell operations', () => {
     expect(calls).toHaveLength(1);
   });
 
+  it('carries face replacement artifact references through the existing Job command', async () => {
+    const calls: unknown[] = [];
+    const host = localAppHost(calls);
+    const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit'];
+    const spec = { type: 'image-face-swap', referenceImageArtifactId: 'reference-1', targetImageArtifactId: 'target-1' };
+    await dispatchElectronLocalAppCommand({ host, command, payload: { spec, timeoutMs: 120000 } });
+    expect(calls).toEqual([['scenarioJobSubmit', { spec, timeoutMs: 120000 }]]);
+    for (const invalid of [{ ...spec, provider: 'local' }, { ...spec, referenceImageArtifactId: '' }]) {
+      await expect(dispatchElectronLocalAppCommand({ host, command, payload: { spec: invalid, timeoutMs: 0 } }))
+        .rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    }
+    await expect(dispatchElectronLocalAppCommand({ host, command: NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioExecute'], payload: { spec } }))
+      .rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    expect(calls).toHaveLength(1);
+  });
+
   it('preserves optional parameter presence and applies owner clamps', async () => {
     const calls: unknown[] = [];
     const host = localAppHost(calls);
@@ -521,7 +561,7 @@ describe('Electron local-app standard-shell operations', () => {
     expect(calls).toHaveLength(1);
   });
 
-  it('routes bounded image artifact upload and rejects MIME or authority expansion', async () => {
+  it('routes bounded media artifact upload and rejects MIME or authority expansion', async () => {
     const calls: unknown[] = [];
     const host = localAppHost(calls);
     const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.artifactUpload'];
@@ -530,7 +570,7 @@ describe('Electron local-app standard-shell operations', () => {
     })).resolves.toEqual({ artifactId: 'artifact-upload-1', sizeBytes: 2, mimeType: 'image/png' });
     expect(calls).toEqual([['artifactUpload', { bytes: [1, 2], mimeType: 'image/png' }]]);
     await expect(dispatchElectronLocalAppCommand({
-      host, command, payload: { bytes: [1], mimeType: 'video/mp4' },
+      host, command, payload: { bytes: [1], mimeType: 'video/webm' },
     })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
     await expect(dispatchElectronLocalAppCommand({
       host, command, payload: { bytes: [1], mimeType: 'image/png', appId: 'forged' },

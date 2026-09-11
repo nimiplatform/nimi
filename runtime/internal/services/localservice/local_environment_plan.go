@@ -90,6 +90,11 @@ type localComputePackDefinition struct {
 // @nimi-authority: rule.nimi.runtime.local-compute.r066
 func localEnvironmentTargetForDriver(driver capabilitydriver.Driver, host localEnvironmentHostProfileState) (string, string, bool) {
 	switch driver.(type) {
+	case capabilitydriver.InsightFaceImageDriver, capabilitydriver.InsightFaceVideoDriver:
+		if strings.EqualFold(host.OS, "windows") && strings.EqualFold(host.Arch, "amd64") && localEnvironmentHostSupportsCUDA(host) {
+			return "local-face-swap", engine.FaceSwapConsumerID, true
+		}
+		return "", "", false
 	case capabilitydriver.LocateAnythingDriver:
 		if strings.EqualFold(host.OS, "windows") && strings.EqualFold(host.Arch, "amd64") && localEnvironmentHostSupportsCUDA(host) ||
 			strings.EqualFold(host.OS, "darwin") && strings.EqualFold(host.Arch, "arm64") {
@@ -527,7 +532,7 @@ func (s *Service) resolveLocalEnvironmentDependencyWithID(def localComputePackDe
 }
 
 func (s *Service) resolveExpandedLocalEnvironmentDependencies(def localComputePackDefinition, family string, required bool, hostState localEnvironmentHostProfileState, platformTuple string, runtimeDataRoot string, consumerScope string) ([]localEnvironmentPlanDependency, bool) {
-	if def.PackID != "local-speech" && def.PackID != "local-vision" {
+	if def.PackID != "local-speech" && def.PackID != "local-vision" && def.PackID != "local-face-swap" {
 		return nil, false
 	}
 	if family != localEnvironmentFamilyPythonUV &&
@@ -544,6 +549,9 @@ func (s *Service) resolveExpandedLocalEnvironmentDependencies(def localComputePa
 	consumers := localSpeechPlanConsumers(consumerScope)
 	if def.PackID == "local-vision" {
 		consumers = []string{engine.VisionLocateConsumerID}
+	}
+	if def.PackID == "local-face-swap" {
+		consumers = []string{engine.FaceSwapConsumerID}
 	}
 	dependencies := make([]localEnvironmentPlanDependency, 0, len(consumers))
 	for _, consumer := range consumers {
@@ -708,6 +716,11 @@ func localComputePackByID(packID string) (localComputePackDefinition, bool) {
 
 func localComputePackDefinitions() []localComputePackDefinition {
 	return []localComputePackDefinition{
+		{
+			PackID: "local-face-swap", ProductLabel: "Face replacement",
+			RequiredDependencyFamilies: []string{localEnvironmentFamilyPythonUV, localEnvironmentFamilyPythonRuntime, localEnvironmentFamilyPythonVenv, localEnvironmentFamilyPythonPackageSet},
+			CloudOnlyImpact:            "none",
+		},
 		{
 			PackID: "local-vision", ProductLabel: "Local vision",
 			RequiredDependencyFamilies: []string{localEnvironmentFamilyPythonUV, localEnvironmentFamilyPythonRuntime, localEnvironmentFamilyPythonVenv, localEnvironmentFamilyPythonPackageSet, localEnvironmentFamilyPythonTorchWheel},

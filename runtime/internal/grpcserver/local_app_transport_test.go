@@ -669,9 +669,14 @@ func (stub *localAppAdmissionStub) AuthorizeLocalAppIngress(ctx context.Context,
 }
 
 type localAppRealtimeRevokerStub struct {
+	videoCalls int
 	realmCalls int
 	aiCalls    int
 	agentCalls int
+}
+
+func (stub *localAppRealtimeRevokerStub) RevokeProtectedLocalAppVideoSession(string) {
+	stub.videoCalls++
 }
 
 func (stub *localAppRealtimeRevokerStub) RevokeProtectedLocalAppRealmRealtimeChannel(string) {

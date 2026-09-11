@@ -441,6 +441,13 @@ pub struct NativeAiRealtimeOpenInput {
 }
 
 #[napi(object)]
+pub struct NativeVideoSessionOpenInput { pub reference_image_artifact_id: String, pub width: u32, pub height: u32, pub pixel_format: String }
+#[napi(object)]
+pub struct NativeVideoSessionScopeInput { pub video_session_id: String, pub generation: String }
+#[napi(object)]
+pub struct NativeVideoSessionFrameInput { pub video_session_id: String, pub generation: String, pub sequence: String, pub timestamp_us: String, pub frame_base64: String }
+
+#[napi(object)]
 pub struct NativeAiRealtimeAppendInput {
     pub realtime_session_id: String,
     pub generation: String,

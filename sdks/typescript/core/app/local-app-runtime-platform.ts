@@ -1,4 +1,6 @@
 import type { JsonValue } from '../../types';
+import { createNimiVideoSessionClient, type NimiVideoSessionClient, type NimiVideoSessionShell } from './local-app-runtime-platform-video.js';
+export type { NimiVideoSessionClient, NimiVideoSessionFormat, NimiVideoSessionOpened, NimiVideoSessionResult, NimiVideoSessionScope, NimiVideoSessionShell } from './local-app-runtime-platform-video.js';
 import type { RealmModel } from '../../realm/generated.js';
 import {
   createNimiLocalAppAIConfigClient,
@@ -186,7 +188,8 @@ export {
 export type {
   NimiLocalAppAIConsumptionClient,
   NimiLocalAppAIConsumptionShell,
-  NimiLocalAppArtifactImageMime,
+  NimiLocalAppArtifactUploadMime,
+  NimiLocalAppVideoFaceSwapSummary,
   NimiLocalAppArtifactUploadResult,
   NimiLocalAppImageGenerateSpec,
   NimiLocalAppScenarioArtifact,
@@ -440,6 +443,7 @@ export type NimiLocalAppStandardShell = {
     readonly artifacts: NimiLocalAppAIConsumptionShell['artifacts'];
     readonly voiceAssets: NimiLocalAppAIConsumptionShell['voiceAssets'];
     readonly realtime: NimiAiRealtimeShell;
+    readonly videoSessions: NimiVideoSessionShell;
   };
   readonly aiConfig: NimiLocalAppAIConfigShell;
   readonly storage: {
@@ -487,6 +491,7 @@ export type NimiLocalAppClient = {
     readonly artifacts: NimiLocalAppAIConsumptionClient['artifacts'];
     readonly voiceAssets: NimiLocalAppAIConsumptionClient['voiceAssets'];
     readonly realtime: NimiAiRealtimeClient;
+    readonly videoSessions: NimiVideoSessionClient;
   };
   readonly aiConfig: NimiLocalAppAIConfigClient;
   readonly storage: {
@@ -548,7 +553,7 @@ export function createNimiLocalAppClient(
   }
   assertExactMethodNamespace(standardShell.session, ['status'], 'session');
   const ai = asRecord(standardShell.ai);
-  const aiNamespaces = ['text', 'scenario', 'scenarioJobs', 'artifacts', 'voiceAssets', 'realtime'] as const;
+  const aiNamespaces = ['text', 'scenario', 'scenarioJobs', 'artifacts', 'voiceAssets', 'realtime', 'videoSessions'] as const;
   if (!ai || Object.keys(ai).sort().join('|') !== [...aiNamespaces].sort().join('|')) {
     return localAppError(
       'Host-injected local-app standardShell ai namespace is invalid.',
@@ -562,6 +567,7 @@ export function createNimiLocalAppClient(
   assertExactMethodNamespace(ai.artifacts, ['read', 'upload'], 'ai.artifacts');
   assertExactMethodNamespace(ai.voiceAssets, ['list'], 'ai.voiceAssets');
   assertExactMethodNamespace(ai.realtime, ['open', 'appendInput', 'submitOwnerControl', 'subscribe', 'interruptOutput', 'close'], 'ai.realtime');
+  assertExactMethodNamespace(ai.videoSessions, ['open', 'submitFrame', 'read', 'close'], 'ai.videoSessions');
   assertExactMethodNamespace(standardShell.aiConfig, ['get', 'overwrite', 'listOptions'], 'aiConfig');
   const storage = asRecord(standardShell.storage);
   if (!storage || Object.keys(storage).sort().join('|') !== ['assets', 'readJson', 'removeJson', 'writeJson'].sort().join('|')) {
@@ -645,6 +651,7 @@ function createAIClient(
       streamTurn: consumption.text.streamTurn,
     }),
     realtime: createNimiAiRealtimeClient(shell.realtime),
+    videoSessions: createNimiVideoSessionClient(shell.videoSessions),
   });
 }
 
