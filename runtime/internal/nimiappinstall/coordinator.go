@@ -194,6 +194,18 @@ func (coordinator *Coordinator) Install(ctx context.Context, selector publicappr
 		}
 		switch job.Phase {
 		case localappkernel.PackageJobCompleted:
+			// Publication precedes cleanup in the asynchronous product path.
+			// The internal synchronous helper waits for that worker to finish.
+			coordinator.workersMu.Lock()
+			worker := coordinator.workers[job.JobID]
+			coordinator.workersMu.Unlock()
+			if worker != nil {
+				select {
+				case <-worker.done:
+				case <-ctx.Done():
+					return InstallResult{}, ctx.Err()
+				}
+			}
 			coordinator.operations.RLock()
 			if coordinator.isClosing() {
 				coordinator.operations.RUnlock()

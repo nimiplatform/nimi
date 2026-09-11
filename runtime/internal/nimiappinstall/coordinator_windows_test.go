@@ -72,14 +72,24 @@ func (transport *installFixtureTransport) RoundTrip(request *http.Request) (*htt
 		if !ok {
 			return fixtureHTTPResponse(request, http.StatusNotFound, nil), nil
 		}
-		if path == "index.json" && transport.blocked {
+		if path == "index.json" && (transport.blocked || (transport.switchAfterAsset && transport.revision == installTestNextRevision)) {
 			var index map[string]any
 			if err := json.Unmarshal(raw, &index); err != nil {
 				return nil, err
 			}
 			apps := index["apps"].(map[string]any)
 			row := apps[installTestAppID].(map[string]any)
-			row["kill_switch"] = map[string]any{"active": true, "reason": "security-review-revoked", "revision": 1}
+			if transport.blocked {
+				row["kill_switch"] = map[string]any{"active": true, "reason": "security-review-revoked", "revision": 1}
+			}
+			if transport.switchAfterAsset && transport.revision == installTestNextRevision {
+				// A new Registry commit alone preserves the selected release.
+				// Exercise actual staleness by publishing a new target pointer.
+				row["latest_admitted_release_by_target"] = map[string]any{installTestTargetID: map[string]any{
+					"descriptor_id": installTestAppID + "@1.2.4",
+					"path":          "descriptors/" + installTestAppID + "/1.2.4.json",
+				}}
+			}
 			raw = mustFixtureJSON(index)
 		}
 		return fixtureHTTPResponse(request, http.StatusOK, raw), nil
