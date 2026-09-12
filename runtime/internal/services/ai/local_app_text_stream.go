@@ -7,6 +7,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
+	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/proto"
@@ -21,8 +22,8 @@ const (
 // StreamLocalAppTextTurn preserves the third-party Local App streaming text
 // contract while delegating route composition, scheduling, Driver mapping,
 // metering, and execution to the Scenario stream owner. The stream carries
-// ordered text increments, complete function calls and terminal state; private
-// reasoning, source and raw payloads never cross the App boundary.
+// ordered text increments, complete function calls, opaque continuity and
+// terminal state. Raw reasoning, sources and provider payloads stay private.
 // @nimi-authority: rule.nimi.runtime.ai-provider.local-app-text-behaviors
 func (s *Service) StreamLocalAppTextTurn(req *runtimev1.StreamLocalAppTextTurnRequest, stream grpc.ServerStreamingServer[runtimev1.StreamLocalAppTextTurnEvent]) error {
 	decision, err := localAppScenarioDecision(stream.Context(), accountservice.LocalAppOperationTextTurnStream, localappop.AppOperationIDTextTurnStream)
@@ -116,6 +117,22 @@ func (b *localAppTextTurnStreamBridge) Send(event *runtimev1.StreamScenarioEvent
 			out.Payload = &runtimev1.StreamLocalAppTextTurnEvent_ToolCall{
 				ToolCall: &runtimev1.LocalAppTextTurnToolCall{
 					ItemIndex: item.GetItemIndex(), ToolCall: proto.Clone(call).(*runtimev1.ToolCall),
+				},
+			}
+			break
+		}
+		if carrier := item.GetReasoningContinuity(); carrier != nil {
+			if b.textOpen || !item.GetItemCompleted() || !textbehavior.ValidContinuity(carrier) {
+				return invalid()
+			}
+			b.totalBytes += proto.Size(carrier)
+			if b.totalBytes > maxLocalAppTextTurnTotalBytes {
+				return invalid()
+			}
+			b.nextItemIndex++
+			out.Payload = &runtimev1.StreamLocalAppTextTurnEvent_ReasoningContinuity{
+				ReasoningContinuity: &runtimev1.LocalAppTextTurnContinuity{
+					ItemIndex: item.GetItemIndex(), Carrier: proto.Clone(carrier).(*runtimev1.ReasoningContinuityCarrier),
 				},
 			}
 			break

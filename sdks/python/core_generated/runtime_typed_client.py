@@ -3885,6 +3885,11 @@ class LocalAppTextTurnCompleted:
     finish_reason: FinishReason | None = None
 
 @dataclass(frozen=True)
+class LocalAppTextTurnContinuity:
+    item_index: int | None = None
+    carrier: ReasoningContinuityCarrier | None = None
+
+@dataclass(frozen=True)
 class LocalAppTextTurnDelta:
     text: str | None = None
     item_index: int | None = None
@@ -5755,6 +5760,7 @@ class StreamLocalAppTextTurnEvent:
     completed: LocalAppTextTurnCompleted | None = None
     failed: LocalAppTextTurnFailed | None = None
     tool_call: LocalAppTextTurnToolCall | None = None
+    reasoning_continuity: LocalAppTextTurnContinuity | None = None
 
 @dataclass(frozen=True)
 class StreamLocalAppTextTurnRequest:

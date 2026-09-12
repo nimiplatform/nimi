@@ -22,6 +22,7 @@ func productionTextBehaviorAdapterRegistrations() []textBehaviorAdapterRegistrat
 		registrations = append(registrations, gemma4TextBehaviorRegistration(entry))
 	}
 	registrations = append(registrations, anthropicSonnet46TextBehaviorRegistration())
+	registrations = append(registrations, codexTextBehaviorRegistration())
 	return registrations
 }
 

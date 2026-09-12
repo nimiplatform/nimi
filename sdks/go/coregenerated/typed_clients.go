@@ -5624,6 +5624,11 @@ type LocalAppTextTurnCompleted struct {
 	FinishReason FinishReason `json:"finish_reason,omitempty"`
 }
 
+type LocalAppTextTurnContinuity struct {
+	ItemIndex uint32                      `json:"item_index,omitempty"`
+	Carrier   *ReasoningContinuityCarrier `json:"carrier,omitempty"`
+}
+
 type LocalAppTextTurnDelta struct {
 	Text      string `json:"text,omitempty"`
 	ItemIndex uint32 `json:"item_index,omitempty"`
@@ -7477,12 +7482,13 @@ type StatLocalAppAssetResponse struct {
 }
 
 type StreamLocalAppTextTurnEvent struct {
-	Sequence  uint64                     `json:"sequence,omitempty"`
-	TraceId   string                     `json:"trace_id,omitempty"`
-	Delta     *LocalAppTextTurnDelta     `json:"delta,omitempty"`
-	Completed *LocalAppTextTurnCompleted `json:"completed,omitempty"`
-	Failed    *LocalAppTextTurnFailed    `json:"failed,omitempty"`
-	ToolCall  *LocalAppTextTurnToolCall  `json:"tool_call,omitempty"`
+	Sequence            uint64                      `json:"sequence,omitempty"`
+	TraceId             string                      `json:"trace_id,omitempty"`
+	Delta               *LocalAppTextTurnDelta      `json:"delta,omitempty"`
+	Completed           *LocalAppTextTurnCompleted  `json:"completed,omitempty"`
+	Failed              *LocalAppTextTurnFailed     `json:"failed,omitempty"`
+	ToolCall            *LocalAppTextTurnToolCall   `json:"tool_call,omitempty"`
+	ReasoningContinuity *LocalAppTextTurnContinuity `json:"reasoning_continuity,omitempty"`
 }
 
 type StreamLocalAppTextTurnRequest struct {

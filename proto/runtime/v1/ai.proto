@@ -1085,6 +1085,12 @@ message LocalAppTextTurnToolCall {
   ToolCall tool_call = 2;
 }
 
+// Opaque transcript continuity, never raw reasoning or a reasoning control.
+message LocalAppTextTurnContinuity {
+  uint32 item_index = 1;
+  ReasoningContinuityCarrier carrier = 2;
+}
+
 message LocalAppTextTurnCompleted {
   FinishReason finish_reason = 1;
 }
@@ -1103,6 +1109,7 @@ message StreamLocalAppTextTurnEvent {
     LocalAppTextTurnCompleted completed = 4;
     LocalAppTextTurnFailed failed = 5;
     LocalAppTextTurnToolCall tool_call = 6;
+    LocalAppTextTurnContinuity reasoning_continuity = 7;
   }
 }
 

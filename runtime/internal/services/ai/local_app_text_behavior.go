@@ -144,6 +144,9 @@ func validateLocalAppTextTurnItem(item *runtimev1.TextTurnItem, tools map[string
 		if call := output.GetToolCall(); call != nil {
 			return validateLocalAppTextToolCall(call, tools)
 		}
+		if textbehavior.ValidContinuity(output.GetReasoningContinuity()) {
+			return nil
+		}
 		return localAppTextInputInvalid()
 	}
 	result := item.GetToolResult()
@@ -195,12 +198,14 @@ func projectLocalAppTextOutput(output *runtimev1.TextGenerateOutput, finish runt
 	result := &runtimev1.LocalAppTextGenerateOutput{FinishReason: finish}
 	seenCalls := make(map[string]struct{})
 	bytes := 0
+	hasPrimary := false
 	for _, item := range output.GetItems() {
 		if item == nil {
 			return invalid()
 		}
 		if text := item.GetText(); text != nil && text.GetText() != "" {
 			bytes += len(text.GetText())
+			hasPrimary = true
 		} else if call := item.GetToolCall(); call != nil {
 			if err := validateLocalAppTextToolCall(call, declared); err != nil ||
 				!localAppTextOutputChoiceValid(spec.GetToolChoice(), spec.GetToolChoiceName(), call) {
@@ -211,6 +216,9 @@ func projectLocalAppTextOutput(output *runtimev1.TextGenerateOutput, finish runt
 			}
 			seenCalls[call.GetId()] = struct{}{}
 			bytes += proto.Size(call)
+			hasPrimary = true
+		} else if carrier := item.GetReasoningContinuity(); textbehavior.ValidContinuity(carrier) {
+			bytes += proto.Size(carrier)
 		} else {
 			return invalid()
 		}
@@ -219,7 +227,7 @@ func projectLocalAppTextOutput(output *runtimev1.TextGenerateOutput, finish runt
 		}
 		result.Items = append(result.Items, proto.Clone(item).(*runtimev1.TextOutputItem))
 	}
-	if finish == runtimev1.FinishReason_FINISH_REASON_TOOL_CALL && len(seenCalls) == 0 {
+	if !hasPrimary || finish == runtimev1.FinishReason_FINISH_REASON_TOOL_CALL && len(seenCalls) == 0 {
 		return invalid()
 	}
 	if localAppTextRequiresTool(spec.GetToolChoice()) && len(seenCalls) == 0 {

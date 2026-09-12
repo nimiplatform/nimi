@@ -710,6 +710,8 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
       state.bytes += Buffer.byteLength(event.text, 'utf8');
     } else if (event.type === 'tool-call') {
       state.bytes += Buffer.byteLength(JSON.stringify(event.toolCall), 'utf8');
+    } else if (event.type === 'reasoning-continuity') {
+      state.bytes += Buffer.byteLength(JSON.stringify(event.carrier), 'utf8');
     }
     if (state.bytes > 256 * 1024) {
       this.textTurnStreams.delete(streamId);
@@ -1559,13 +1561,16 @@ async function invokeScenarioExecute(
       if (item.type === 'text' && hasExactKeys(item, ['type', 'text'])) {
         return Object.freeze({ type: 'text', text: boundedUtf8Content(item.text, 256 * 1024) });
       }
+      if (item.type === 'reasoning-continuity' && hasExactKeys(item, ['type', 'carrier'])) {
+        return Object.freeze({ type: 'reasoning-continuity', carrier: validateTextContinuity(item.carrier) });
+      }
       if (item.type !== 'tool-call' || !hasExactKeys(item, ['type', 'toolCall'])) throw untrustedRuntimeError();
       const toolCall = validateTextToolCall(item.toolCall);
       if (ids.has(String(toolCall.id))) throw untrustedRuntimeError();
       ids.add(String(toolCall.id));
       return Object.freeze({ type: 'tool-call', toolCall });
     });
-    if ((output.finishReason === 'tool-calls' && ids.size === 0) || Buffer.byteLength(JSON.stringify(items), 'utf8') > 256 * 1024) throw untrustedRuntimeError();
+    if (!items.some((item) => item.type === 'text' || item.type === 'tool-call') || (output.finishReason === 'tool-calls' && ids.size === 0) || Buffer.byteLength(JSON.stringify(items), 'utf8') > 256 * 1024) throw untrustedRuntimeError();
     return Object.freeze({ output: Object.freeze({ type: 'text-generate', items: Object.freeze(items), finishReason: String(output.finishReason) }), traceId });
   }
   if (output.type === 'text-embed') {
@@ -1875,6 +1880,13 @@ function validateScenarioJobEvent(value: unknown): NimiElectronLocalAppRecord {
   }) as NimiElectronLocalAppRecord;
 }
 
+function validateTextContinuity(value: unknown): NimiElectronLocalAppRecord {
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['kind', 'version', 'payload'])
+    || !Array.isArray(value.payload) || value.payload.length === 0 || value.payload.length > 64 * 1024
+    || value.payload.some((byte) => !Number.isInteger(byte) || byte < 0 || byte > 255)) throw untrustedRuntimeError();
+  return Object.freeze({ kind: boundedExactText(value.kind, 128, false), version: boundedInteger(value.version, 1, 0xffff_ffff), payload: Object.freeze([...value.payload]) });
+}
+
 function validateTextTurnEvent(value: unknown): NimiElectronLocalAppRecord {
   if (!isPlainRecord(value) || typeof value.type !== 'string'
     || typeof value.sequence !== 'string' || !/^[1-9][0-9]*$/u.test(value.sequence)) {
@@ -1890,6 +1902,11 @@ function validateTextTurnEvent(value: unknown): NimiElectronLocalAppRecord {
     if (!hasExactKeys(value, ['type', 'sequence', 'traceId', 'itemIndex', 'toolCall'])) throw untrustedRuntimeError();
     return Object.freeze({ type: 'tool-call', sequence: value.sequence, traceId,
       itemIndex: boundedInteger(value.itemIndex, 0, 4_294_967_295), toolCall: validateTextToolCall(value.toolCall) });
+  }
+  if (value.type === 'reasoning-continuity') {
+    if (!hasExactKeys(value, ['type', 'sequence', 'traceId', 'itemIndex', 'carrier'])) throw untrustedRuntimeError();
+    return Object.freeze({ type: 'reasoning-continuity', sequence: value.sequence, traceId,
+      itemIndex: boundedInteger(value.itemIndex, 0, 4_294_967_295), carrier: validateTextContinuity(value.carrier) });
   }
   if (value.type === 'completed') {
     if (!hasExactKeys(value, ['type', 'sequence', 'traceId', 'finishReason'])

@@ -16,6 +16,7 @@ import (
 )
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.anthropic-sonnet46-text-behaviors
+// @nimi-authority: rule.nimi.runtime.ai-provider.codex-text-behaviors
 // The Host supplies the exact credential-bearing target only for this call.
 // Hooks were selected and their request serialized before Job publication.
 func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
@@ -23,7 +24,16 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	invocation *textbehavior.Invocation, serialized textbehavior.SerializedRequest,
 	onDelta func(textbehavior.OrderedDelta) error,
 ) (textbehavior.NormalizedResult, error) {
-	if target == nil || target.ProviderType != "anthropic" || invocation == nil {
+	if target == nil || invocation == nil {
+		return textbehavior.NormalizedResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED)
+	}
+	path := "/v1/messages"
+	wireStream := onDelta != nil
+	switch target.ProviderType {
+	case "anthropic":
+	case "openai_codex":
+		path, wireStream = codexResponsesPath, true
+	default:
 		return textbehavior.NormalizedResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED)
 	}
 	backend, resolvedModelID := p.resolveBackendForTarget(modelID, target)
@@ -41,12 +51,12 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	if err != nil {
 		return textbehavior.NormalizedResult{}, MapProviderRequestError(err)
 	}
-	request, err := backend.newRequest(ctx, http.MethodPost, backend.baseURL+"/v1/messages", bytes.NewReader(payload))
+	request, err := backend.newRequest(ctx, http.MethodPost, backend.baseURL+path, bytes.NewReader(payload))
 	if err != nil {
 		return textbehavior.NormalizedResult{}, err
 	}
 	request.Header.Set("Content-Type", serialized.ContentType)
-	if onDelta != nil {
+	if wireStream {
 		request.Header.Set("Accept", "text/event-stream")
 	}
 	response, err := backend.do(request)
@@ -59,7 +69,7 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 		_ = json.NewDecoder(response.Body).Decode(&providerError)
 		return textbehavior.NormalizedResult{}, MapProviderHTTPError(response.StatusCode, providerError)
 	}
-	if onDelta == nil {
+	if !wireStream {
 		body, err := io.ReadAll(response.Body)
 		if err != nil {
 			return textbehavior.NormalizedResult{}, MapProviderRequestError(err)
@@ -84,7 +94,7 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 			return err
 		}
 		for _, delta := range deltas {
-			if delta.HasPublicPayload() {
+			if onDelta != nil && delta.HasPublicPayload() {
 				if err := onDelta(delta); err != nil {
 					return err
 				}

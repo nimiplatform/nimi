@@ -24,6 +24,11 @@ Discipline.
 - These APIs represent one model step. The App owns its tool handlers and
   subsequent steps; the model binding does not execute callbacks or resume
   interrupted work.
+- The same unreleased minor adds `reasoning-continuity` stream/output items.
+  Preserve their ordered opaque carrier in later assistant turns without
+  displaying it. The common SDK model uses `Uint8Array`; the native JSON
+  carrier uses byte arrays, bounded to 64 KiB per payload. Raw reasoning and
+  reasoning controls are not exposed by Local App consumption.
 
 ### Added
 

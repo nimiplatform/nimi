@@ -24,6 +24,11 @@ defaults:
     notes: Codex subscription-backed pricing is not published as standard API token pricing.
 
 sources:
+  - source_id: openai_codex_authenticated_model_inventory_2026_09_12
+    source_kind: authenticated_provider_inventory
+    url: https://chatgpt.com/backend-api/codex/models?client_version=1.0.0
+    retrieved_at: 2026-09-12
+    note: Authenticated non-public provider inventory observed through the Nimi Connector test; gpt-5.6-sol was listed for the connected ChatGPT account. This does not promise availability for every account.
   - source_id: openai_codex_auth_doc
     url: https://developers.openai.com/codex/auth
     retrieved_at: 2026-04-23
@@ -73,6 +78,19 @@ selection_profiles:
     rationale: Current Codex-backed image generation route.
 
 models:
+  - model_id: gpt-5.6-sol
+    model_type: chat
+    updated_at: 2026-09-12
+    capabilities: [text.generate]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-09-12
+      notes: Subscription-backed Codex route; standard API pricing does not apply directly.
+    source_ids: [openai_codex_authenticated_model_inventory_2026_09_12]
+
   - model_id: gpt-5.6-sol-wm
     model_type: chat
     updated_at: 2026-08-09

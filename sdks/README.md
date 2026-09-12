@@ -74,6 +74,11 @@ export function requestSearch(client: NimiLocalAppClient, signal: AbortSignal) {
 The result contains complete tool calls. The caller executes its fixed handlers
 after a successful step, preserves `outputItems` in ordered `turnItems`, appends
 the corresponding `tool-result` entries, and explicitly requests the next step.
+This includes opaque `reasoning-continuity` items required by exact adapters:
+retain their order and bytes without decoding or displaying them. Update custom
+stream collectors to handle that event as well as `tool-call`; the standard
+model collector already preserves it. Carriers use `Uint8Array` in the common
+model and byte arrays at the JSON shell boundary, with a 64 KiB payload limit.
 `generateText` collects the same cancellable stream as `streamText`; neither
 method owns a multi-step workflow. Missing terminal events, invalid tool calls
 and interrupted streams fail without manufacturing a result.

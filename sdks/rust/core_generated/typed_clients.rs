@@ -8368,6 +8368,12 @@ pub struct LocalAppTextTurnCompleted {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppTextTurnContinuity {
+    pub item_index: Option<u32>,
+    pub carrier: Option<Box<ReasoningContinuityCarrier>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppTextTurnDelta {
     pub text: Option<String>,
     pub item_index: Option<u32>,
@@ -10949,6 +10955,7 @@ pub struct StreamLocalAppTextTurnEvent {
     pub completed: Option<Box<LocalAppTextTurnCompleted>>,
     pub failed: Option<Box<LocalAppTextTurnFailed>>,
     pub tool_call: Option<Box<LocalAppTextTurnToolCall>>,
+    pub reasoning_continuity: Option<Box<LocalAppTextTurnContinuity>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

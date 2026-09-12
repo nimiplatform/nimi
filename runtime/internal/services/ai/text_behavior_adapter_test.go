@@ -14,13 +14,14 @@ import (
 
 func TestTextBehaviorAdapterResolutionIsExactAndClosed(t *testing.T) {
 	registrations := productionTextBehaviorAdapterRegistrations()
-	if len(registrations) != 10 {
-		t.Fatalf("production adapter registrations = %d, want nine Gemma mappings and one Anthropic target", len(registrations))
+	if len(registrations) != 11 {
+		t.Fatalf("production adapter registrations = %d, want nine Gemma mappings and two Cloud targets", len(registrations))
 	}
 	seenContents := map[string]struct{}{}
 	for _, registration := range registrations {
 		if registration.CloudTarget != nil {
-			if !validTextBehaviorAdapterRegistration(registration) || registration.CloudTarget.Provider != "anthropic" || registration.CloudTarget.ProviderModelID != "claude-sonnet-4-6" {
+			expectedModel := map[string]string{"anthropic": "claude-sonnet-4-6", "openai_codex": "gpt-5.6-sol"}[registration.CloudTarget.Provider]
+			if !validTextBehaviorAdapterRegistration(registration) || expectedModel == "" || registration.CloudTarget.ProviderModelID != expectedModel {
 				t.Fatalf("unexpected Cloud target: %+v", registration)
 			}
 			continue
