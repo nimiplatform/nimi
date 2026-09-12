@@ -1569,8 +1569,9 @@ async function invokeScenarioExecute(
     return Object.freeze({ output: Object.freeze({ type: 'text-generate', items: Object.freeze(items), finishReason: String(output.finishReason) }), traceId });
   }
   if (output.type === 'text-embed') {
-    if (!hasExactKeys(output, ['type', 'vectors']) || !Array.isArray(output.vectors)
+    if (!hasExactKeys(output, ['type', 'vectors', 'spaceId']) || !Array.isArray(output.vectors)
       || output.vectors.length === 0 || output.vectors.length > 16) throw untrustedRuntimeError();
+    const spaceId = boundedExactText(output.spaceId, 128, false);
     const vectors = output.vectors.map((vector) => {
       if (!Array.isArray(vector) || vector.length === 0 || vector.length > 8192
         || vector.some((entry) => typeof entry !== 'number' || !Number.isFinite(entry))) {
@@ -1578,7 +1579,7 @@ async function invokeScenarioExecute(
       }
       return Object.freeze([...vector]);
     });
-    return Object.freeze({ output: Object.freeze({ type: 'text-embed', vectors: Object.freeze(vectors) }), traceId });
+    return Object.freeze({ output: Object.freeze({ type: 'text-embed', vectors: Object.freeze(vectors), spaceId }), traceId });
   }
   if (output.type === 'image-generate') {
     if (!hasExactKeys(output, ['type', 'artifacts']) || !Array.isArray(output.artifacts)) throw untrustedRuntimeError();

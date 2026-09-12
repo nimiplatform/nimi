@@ -8,6 +8,19 @@ import {
 } from '../src/main/local-app-host.js';
 
 describe('Electron protected local-app host', () => {
+  it('preserves the embedding space through the Host projection and rejects an absent identity', async () => {
+    const candidate = binding([]);
+    const host = createNimiElectronLocalAppHostForBinding(candidate);
+    await expect(host.scenarioExecute({ spec: { type: 'text-embed', inputs: ['document'] } })).resolves.toEqual({
+      output: { type: 'text-embed', vectors: [[0.1, 0.2]], spaceId: 'space-test-1' }, traceId: 'trace-1',
+    });
+    candidate.localAppScenarioExecute = async () => ({ status: 'ok', value: {
+      output: { type: 'text-embed', vectors: [[0.1, 0.2]] }, traceId: 'trace-1',
+    } });
+    await expect(host.scenarioExecute({ spec: { type: 'text-embed', inputs: ['document'] } })).rejects.toMatchObject({
+      reasonCode: 'runtime-service-untrusted',
+    });
+  });
   it('preserves App-owned work on a successful routine renewal', async () => {
     let invalidated = 0;
     const host = createNimiElectronLocalAppHostForBinding(binding([]), () => { invalidated++; });
