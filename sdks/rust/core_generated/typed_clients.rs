@@ -8348,6 +8348,7 @@ pub struct LocalAppTextCandidateMessage {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppTextEmbedOutput {
     pub vectors: Vec<Box<EmbeddingVector>>,
+    pub space_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -11206,6 +11207,7 @@ pub struct TextBehaviorCapabilityProjection {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct TextEmbedOutput {
     pub vectors: Vec<Box<EmbeddingVector>>,
+    pub space_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

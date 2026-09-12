@@ -25000,6 +25000,13 @@
             "repeated": true,
             "optional": false,
             "number": 1
+          },
+          {
+            "name": "space_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -35276,6 +35283,13 @@
             "repeated": true,
             "optional": false,
             "number": 1
+          },
+          {
+            "name": "space_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"

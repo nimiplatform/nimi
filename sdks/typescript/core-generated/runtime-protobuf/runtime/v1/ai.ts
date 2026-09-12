@@ -1543,6 +1543,13 @@ export interface TextEmbedOutput {
      * @generated from protobuf field: repeated nimi.runtime.v1.EmbeddingVector vectors = 1
      */
     vectors: EmbeddingVector[];
+    /**
+     * Opaque compatibility identity of the captured embedding semantics.
+     * Compare actual result values before combining vectors or reusing an index.
+     *
+     * @generated from protobuf field: string space_id = 2
+     */
+    spaceId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ImageGenerateResult
@@ -2020,6 +2027,10 @@ export interface LocalAppTextEmbedOutput {
      * @generated from protobuf field: repeated nimi.runtime.v1.EmbeddingVector vectors = 1
      */
     vectors: EmbeddingVector[];
+    /**
+     * @generated from protobuf field: string space_id = 2
+     */
+    spaceId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalAppImageGenerateOutput
@@ -8826,12 +8837,14 @@ export const EmbeddingVector = new EmbeddingVector$Type();
 class TextEmbedOutput$Type extends MessageType<TextEmbedOutput> {
     constructor() {
         super("nimi.runtime.v1.TextEmbedOutput", [
-            { no: 1, name: "vectors", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => EmbeddingVector }
+            { no: 1, name: "vectors", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => EmbeddingVector },
+            { no: 2, name: "space_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<TextEmbedOutput>): TextEmbedOutput {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.vectors = [];
+        message.spaceId = "";
         if (value !== undefined)
             reflectionMergePartial<TextEmbedOutput>(this, message, value);
         return message;
@@ -8843,6 +8856,9 @@ class TextEmbedOutput$Type extends MessageType<TextEmbedOutput> {
             switch (fieldNo) {
                 case /* repeated nimi.runtime.v1.EmbeddingVector vectors */ 1:
                     message.vectors.push(EmbeddingVector.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string space_id */ 2:
+                    message.spaceId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -8859,6 +8875,9 @@ class TextEmbedOutput$Type extends MessageType<TextEmbedOutput> {
         /* repeated nimi.runtime.v1.EmbeddingVector vectors = 1; */
         for (let i = 0; i < message.vectors.length; i++)
             EmbeddingVector.internalBinaryWrite(message.vectors[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string space_id = 2; */
+        if (message.spaceId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.spaceId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -10231,12 +10250,14 @@ export const ExecuteLocalAppScenarioRequest = new ExecuteLocalAppScenarioRequest
 class LocalAppTextEmbedOutput$Type extends MessageType<LocalAppTextEmbedOutput> {
     constructor() {
         super("nimi.runtime.v1.LocalAppTextEmbedOutput", [
-            { no: 1, name: "vectors", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => EmbeddingVector }
+            { no: 1, name: "vectors", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => EmbeddingVector },
+            { no: 2, name: "space_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<LocalAppTextEmbedOutput>): LocalAppTextEmbedOutput {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.vectors = [];
+        message.spaceId = "";
         if (value !== undefined)
             reflectionMergePartial<LocalAppTextEmbedOutput>(this, message, value);
         return message;
@@ -10248,6 +10269,9 @@ class LocalAppTextEmbedOutput$Type extends MessageType<LocalAppTextEmbedOutput> 
             switch (fieldNo) {
                 case /* repeated nimi.runtime.v1.EmbeddingVector vectors */ 1:
                     message.vectors.push(EmbeddingVector.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string space_id */ 2:
+                    message.spaceId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -10264,6 +10288,9 @@ class LocalAppTextEmbedOutput$Type extends MessageType<LocalAppTextEmbedOutput> 
         /* repeated nimi.runtime.v1.EmbeddingVector vectors = 1; */
         for (let i = 0; i < message.vectors.length; i++)
             EmbeddingVector.internalBinaryWrite(message.vectors[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string space_id = 2; */
+        if (message.spaceId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.spaceId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

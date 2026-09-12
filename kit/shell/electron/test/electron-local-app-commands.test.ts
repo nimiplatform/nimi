@@ -304,7 +304,7 @@ describe('Electron local-app standard-shell operations', () => {
       host,
       command,
       payload: { spec: { type: 'text-embed', inputs: ['hello'] } },
-    })).resolves.toEqual({ output: { type: 'text-embed', vectors: [[0.1]] }, traceId: 'trace-1' });
+    })).resolves.toEqual({ output: { type: 'text-embed', vectors: [[0.1]], spaceId: 'space-test-1' }, traceId: 'trace-1' });
     expect(calls).toEqual([['scenarioExecute', { spec: { type: 'text-embed', inputs: ['hello'] } }]]);
 
     await expect(dispatchElectronLocalAppCommand({
@@ -619,7 +619,7 @@ describe('Electron local-app standard-shell operations', () => {
     await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
       command: NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioExecute'],
       payload: { payload: { spec: { type: 'text-embed', inputs: ['hello'] } } },
-    })).resolves.toEqual({ output: { type: 'text-embed', vectors: [[0.1]] }, traceId: 'trace-1' });
+    })).resolves.toEqual({ output: { type: 'text-embed', vectors: [[0.1]], spaceId: 'space-test-1' }, traceId: 'trace-1' });
     expect(calls).toEqual([['scenarioExecute', { spec: { type: 'text-embed', inputs: ['hello'] } }]]);
   });
 
@@ -1221,7 +1221,7 @@ function localAppHost(calls: unknown[]) {
     textTurnStreamClose: async () => ({ closed: true }),
     scenarioExecute: async (input: unknown) => {
       calls.push(['scenarioExecute', input]);
-      return { output: { type: 'text-embed', vectors: [[0.1]] }, traceId: 'trace-1' };
+      return { output: { type: 'text-embed', vectors: [[0.1]], spaceId: 'space-test-1' }, traceId: 'trace-1' };
     },
     scenarioJobSubmit: async (input: unknown) => {
       calls.push(['scenarioJobSubmit', input]);

@@ -262,7 +262,7 @@ export type NimiLocalAppVoiceAsset = {
 
 export type NimiLocalAppScenarioExecuteResult =
   | { readonly output: { readonly type: 'text-generate'; readonly items: readonly NimiLocalAppTextOutputItem[]; readonly finishReason: 'stop' | 'length' | 'tool-calls' | 'content-filter' }; readonly traceId: string }
-  | { readonly output: { readonly type: 'text-embed'; readonly vectors: readonly (readonly number[])[] }; readonly traceId: string }
+  | { readonly output: { readonly type: 'text-embed'; readonly vectors: readonly (readonly number[])[]; readonly spaceId: string }; readonly traceId: string }
   | { readonly output: { readonly type: 'image-generate'; readonly artifacts: readonly NimiLocalAppScenarioArtifact[] }; readonly traceId: string };
 
 export type NimiLocalAppScenarioJobSubmitResult = {
@@ -989,14 +989,15 @@ function projectScenarioExecute(value: unknown): NimiLocalAppScenarioExecuteResu
   }
   assertSafeProjection(record);
   if (output.type === 'text-embed') {
-    assertExactProjectionKeys(output, ['type', 'vectors'], 'text embed output');
+    assertExactProjectionKeys(output, ['type', 'vectors', 'spaceId'], 'text embed output');
+    const spaceId = boundedProjectionText(output.spaceId, 'embedding spaceId', 128);
     if (!Array.isArray(output.vectors) || output.vectors.length === 0 || output.vectors.length > 16) localAppProjectionError('text embed vectors');
     const vectors = output.vectors.map((vector) => {
       if (!Array.isArray(vector) || vector.length === 0 || vector.length > 8192
         || vector.some((entry) => typeof entry !== 'number' || !Number.isFinite(entry))) localAppProjectionError('text embed vector');
       return Object.freeze([...vector] as number[]);
     });
-    return Object.freeze({ output: Object.freeze({ type: 'text-embed', vectors: Object.freeze(vectors) }), traceId });
+    return Object.freeze({ output: Object.freeze({ type: 'text-embed', vectors: Object.freeze(vectors), spaceId }), traceId });
   }
   if (output.type === 'image-generate') {
     assertExactProjectionKeys(output, ['type', 'artifacts'], 'image execute output');
@@ -1466,6 +1467,7 @@ function projectRuntimeScenarioExecuteResponse(response: ExecuteLocalAppScenario
         output: {
           type: 'text-embed',
           vectors: response.output.textEmbed.vectors.map((vector) => [...vector.values]),
+          spaceId: response.output.textEmbed.spaceId,
         },
         traceId: response.traceId,
       };

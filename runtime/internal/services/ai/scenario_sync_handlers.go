@@ -131,9 +131,13 @@ func executeTextEmbedScenario(ctx context.Context, s *Service, req *runtimev1.Ex
 	if err != nil {
 		return nil, err
 	}
+	spaceID, err := cloudEmbeddingSpaceID(effective, result.Vectors)
+	if err != nil {
+		return nil, err
+	}
 	return &runtimev1.ExecuteScenarioResponse{
 		Output: &runtimev1.ScenarioOutput{Output: &runtimev1.ScenarioOutput_TextEmbed{
-			TextEmbed: &runtimev1.TextEmbedOutput{Vectors: result.Vectors},
+			TextEmbed: &runtimev1.TextEmbedOutput{Vectors: result.Vectors, SpaceId: spaceID},
 		}},
 		FinishReason:      runtimev1.FinishReason_FINISH_REASON_STOP,
 		Usage:             result.Usage,

@@ -692,6 +692,9 @@ message EmbeddingVector {
 
 message TextEmbedOutput {
   repeated EmbeddingVector vectors = 1;
+  // Opaque compatibility identity of the captured embedding semantics.
+  // Compare actual result values before combining vectors or reusing an index.
+  string space_id = 2;
 }
 
 message ImageGenerateResult {
@@ -857,6 +860,7 @@ message ExecuteLocalAppScenarioRequest {
 
 message LocalAppTextEmbedOutput {
   repeated EmbeddingVector vectors = 1;
+  string space_id = 2;
 }
 
 message LocalAppImageGenerateOutput {

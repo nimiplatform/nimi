@@ -206,6 +206,9 @@ func (s *Service) ExecuteLocalAppScenario(ctx context.Context, req *runtimev1.Ex
 			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 		}
 		vectors := embed.GetVectors()
+		if !localAppExactText(embed.GetSpaceId(), 128) {
+			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		}
 		if len(vectors) == 0 || len(vectors) > maxLocalAppEmbeddingVectors {
 			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 		}
@@ -220,7 +223,7 @@ func (s *Service) ExecuteLocalAppScenario(ctx context.Context, req *runtimev1.Ex
 			}
 		}
 		return &runtimev1.ExecuteLocalAppScenarioResponse{
-			Output:  &runtimev1.ExecuteLocalAppScenarioResponse_TextEmbed{TextEmbed: &runtimev1.LocalAppTextEmbedOutput{Vectors: vectors}},
+			Output:  &runtimev1.ExecuteLocalAppScenarioResponse_TextEmbed{TextEmbed: &runtimev1.LocalAppTextEmbedOutput{Vectors: vectors, SpaceId: embed.GetSpaceId()}},
 			TraceId: result.GetTraceId(),
 		}, nil
 	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:

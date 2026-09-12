@@ -1417,3 +1417,15 @@ units:
         target: definition.nimi.platform.core-protocol.app-operation-contract
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+  - id: rule.nimi.runtime.ai-provider.embedding-space-identity
+    kind: rule
+    title: Embedding results identify their captured vector space
+    modality: must
+    statement: Each successful TEXT_EMBED Scenario execution returns a nonempty opaque space_id with its vectors, including the protected Local App projection. Runtime derives this compatibility value from the exact captured embedding implementation and versioned dialect, Local recipe and bound content with effective options or the exact Cloud Connector resource and provider target with effective defaults, and the returned vector dimensions. Input text, batch boundaries, AIConfig owner revision, other capabilities, display labels, transient process state and filesystem locations do not identify a vector space. Equal values permit a consumer to combine vectors under the same captured embedding semantics; changed values require rebuilding or separating its index. The value conveys no execution, configuration or authorization authority and exposes no provider, model, route, credential, account or private assembly fields; it is not a Loadout revision or an attestation of unannounced provider-side behavior. Consumers compare values from actual embedding results, so a configuration change between batches cannot silently mix an index.
+    condition: Whenever a text.embed Scenario result is returned or its vectors are persisted or reused by a consumer.
+    failure: Return AI_OUTPUT_INVALID rather than successful embedding output without a valid space_id; consumers reject mixed spaceIds and never infer compatibility solely from vector length or current configuration projections.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
