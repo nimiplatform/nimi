@@ -7,7 +7,6 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
 	"google.golang.org/grpc/codes"
 )
@@ -15,7 +14,7 @@ import (
 // textBehaviorAdapterRegistration is the one Runtime-private, versioned
 // adapter contract shared by Cloud and Local text targets. A registration is
 // exact: neither catalog labels nor execution-time probes participate in
-// matching. Production intentionally registers no adapter yet.
+// matching. Production registrations are explicit, reviewed target slices.
 type textBehaviorAdapterRegistration struct {
 	AdapterID        string
 	Version          string
@@ -862,22 +861,6 @@ func invalidTextBehaviorToolTranscriptError() error {
 
 func textBehaviorUnavailableError() error {
 	return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED)
-}
-
-func (adapter *resolvedTextBehaviorAdapter) nimillmAdmission() *nimillm.TextBehaviorAdmission {
-	if adapter == nil || adapter.facts.CloudTarget == nil {
-		return nil
-	}
-	return &nimillm.TextBehaviorAdmission{
-		AdapterID: adapter.registration.AdapterID, Version: adapter.registration.Version,
-		Provider: adapter.facts.CloudTarget.Provider, ProviderModelID: adapter.facts.CloudTarget.ProviderModelID,
-		ToolUse: adapter.requested.toolUse, Reasoning: adapter.requested.reasoning,
-		StructuredOutput:          adapter.requested.structured,
-		Sync:                      adapter.mode == runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
-		Stream:                    adapter.mode == runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
-		Async:                     adapter.mode == runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
-		ToolStructuredCombination: adapter.requested.toolUse && adapter.requested.structured,
-	}
 }
 
 func (adapter *resolvedTextBehaviorAdapter) capture() *textBehaviorAdapterCapture {

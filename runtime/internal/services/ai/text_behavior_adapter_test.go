@@ -14,11 +14,17 @@ import (
 
 func TestTextBehaviorAdapterResolutionIsExactAndClosed(t *testing.T) {
 	registrations := productionTextBehaviorAdapterRegistrations()
-	if len(registrations) != 9 {
-		t.Fatalf("production Gemma 4 adapter registrations = %d, want 9", len(registrations))
+	if len(registrations) != 10 {
+		t.Fatalf("production adapter registrations = %d, want nine Gemma mappings and one Anthropic target", len(registrations))
 	}
 	seenContents := map[string]struct{}{}
 	for _, registration := range registrations {
+		if registration.CloudTarget != nil {
+			if !validTextBehaviorAdapterRegistration(registration) || registration.CloudTarget.Provider != "anthropic" || registration.CloudTarget.ProviderModelID != "claude-sonnet-4-6" {
+				t.Fatalf("unexpected Cloud target: %+v", registration)
+			}
+			continue
+		}
 		if !validTextBehaviorAdapterRegistration(registration) || registration.LocalTarget == nil ||
 			registration.DriverDialect != gemma4TextDriverDialect || registration.LocalTarget.RecipeID != gemma4TextRecipeID ||
 			len(registration.LocalTarget.ModelContents) != 1 {
