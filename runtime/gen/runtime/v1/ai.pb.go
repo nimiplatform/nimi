@@ -6081,8 +6081,11 @@ func (x *EmbeddingVector) GetValues() []float64 {
 }
 
 type TextEmbedOutput struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Vectors       []*EmbeddingVector     `protobuf:"bytes,1,rep,name=vectors,proto3" json:"vectors,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Vectors []*EmbeddingVector     `protobuf:"bytes,1,rep,name=vectors,proto3" json:"vectors,omitempty"`
+	// Opaque compatibility identity of the captured embedding semantics.
+	// Compare actual result values before combining vectors or reusing an index.
+	SpaceId       string `protobuf:"bytes,2,opt,name=space_id,json=spaceId,proto3" json:"space_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6122,6 +6125,13 @@ func (x *TextEmbedOutput) GetVectors() []*EmbeddingVector {
 		return x.Vectors
 	}
 	return nil
+}
+
+func (x *TextEmbedOutput) GetSpaceId() string {
+	if x != nil {
+		return x.SpaceId
+	}
+	return ""
 }
 
 type ImageGenerateResult struct {
@@ -7544,6 +7554,7 @@ func (*ExecuteLocalAppScenarioRequest_TextGenerate) isExecuteLocalAppScenarioReq
 type LocalAppTextEmbedOutput struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Vectors       []*EmbeddingVector     `protobuf:"bytes,1,rep,name=vectors,proto3" json:"vectors,omitempty"`
+	SpaceId       string                 `protobuf:"bytes,2,opt,name=space_id,json=spaceId,proto3" json:"space_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -7583,6 +7594,13 @@ func (x *LocalAppTextEmbedOutput) GetVectors() []*EmbeddingVector {
 		return x.Vectors
 	}
 	return nil
+}
+
+func (x *LocalAppTextEmbedOutput) GetSpaceId() string {
+	if x != nil {
+		return x.SpaceId
+	}
+	return ""
 }
 
 type LocalAppImageGenerateOutput struct {
@@ -13303,9 +13321,10 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x05items\x18\a \x03(\v2\x1f.nimi.runtime.v1.TextOutputItemR\x05items\x12+\n" +
 	"\x11reasoning_summary\x18\b \x01(\tR\x10reasoningSummaryJ\x04\b\x03\x10\x04J\x04\b\x04\x10\x05R\ftool_resultsR\x16tool_approval_requests\")\n" +
 	"\x0fEmbeddingVector\x12\x16\n" +
-	"\x06values\x18\x01 \x03(\x01R\x06values\"M\n" +
+	"\x06values\x18\x01 \x03(\x01R\x06values\"h\n" +
 	"\x0fTextEmbedOutput\x12:\n" +
-	"\avectors\x18\x01 \x03(\v2 .nimi.runtime.v1.EmbeddingVectorR\avectors\"V\n" +
+	"\avectors\x18\x01 \x03(\v2 .nimi.runtime.v1.EmbeddingVectorR\avectors\x12\x19\n" +
+	"\bspace_id\x18\x02 \x01(\tR\aspaceId\"V\n" +
 	"\x13ImageGenerateResult\x12?\n" +
 	"\tartifacts\x18\x01 \x03(\v2!.nimi.runtime.v1.ScenarioArtifactR\tartifacts\"V\n" +
 	"\x13ImageFaceSwapResult\x12?\n" +
@@ -13425,9 +13444,10 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"text_embed\x18\x01 \x01(\v2..nimi.runtime.v1.LocalAppTextEmbedScenarioSpecH\x00R\ttextEmbed\x12[\n" +
 	"\x0eimage_generate\x18\x02 \x01(\v22.nimi.runtime.v1.LocalAppImageGenerateScenarioSpecH\x00R\rimageGenerate\x12U\n" +
 	"\rtext_generate\x18\x03 \x01(\v2..nimi.runtime.v1.StreamLocalAppTextTurnRequestH\x00R\ftextGenerateB\x06\n" +
-	"\x04spec\"U\n" +
+	"\x04spec\"p\n" +
 	"\x17LocalAppTextEmbedOutput\x12:\n" +
-	"\avectors\x18\x01 \x03(\v2 .nimi.runtime.v1.EmbeddingVectorR\avectors\"f\n" +
+	"\avectors\x18\x01 \x03(\v2 .nimi.runtime.v1.EmbeddingVectorR\avectors\x12\x19\n" +
+	"\bspace_id\x18\x02 \x01(\tR\aspaceId\"f\n" +
 	"\x1bLocalAppImageGenerateOutput\x12G\n" +
 	"\tartifacts\x18\x01 \x03(\v2).nimi.runtime.v1.LocalAppScenarioArtifactR\tartifacts\"\x97\x01\n" +
 	"\x1aLocalAppTextGenerateOutput\x125\n" +

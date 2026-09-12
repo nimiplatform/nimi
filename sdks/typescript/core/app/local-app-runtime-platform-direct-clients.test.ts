@@ -19,6 +19,7 @@ import { createNimiAiRealtimeRuntimeClient } from './local-app-runtime-platform-
 test('formal AI consumption runtime adapter keeps the canonical Local App operation family', async () => {
   let textRequest: unknown;
   let executeRequest: unknown;
+  let embeddingSpaceId = 'space-test-1';
   const client = createNimiLocalAppAIConsumptionRuntimeClient({
     streamLocalAppTextTurn(request) {
       textRequest = request;
@@ -38,7 +39,7 @@ test('formal AI consumption runtime adapter keeps the canonical Local App operat
       return {
         output: {
           oneofKind: 'textEmbed' as const,
-          textEmbed: { vectors: [{ values: [0.25, 0.75] }] },
+          textEmbed: { vectors: [{ values: [0.25, 0.75] }], spaceId: embeddingSpaceId },
         },
         traceId: 'trace-embed',
       };
@@ -86,11 +87,15 @@ test('formal AI consumption runtime adapter keeps the canonical Local App operat
   });
 
   assert.deepEqual(await client.scenario.execute({ type: 'text-embed', inputs: ['hello'] }), {
-    output: { type: 'text-embed', vectors: [[0.25, 0.75]] },
+    output: { type: 'text-embed', vectors: [[0.25, 0.75]], spaceId: 'space-test-1' },
     traceId: 'trace-embed',
   });
   assert.deepEqual(executeRequest, {
     spec: { oneofKind: 'textEmbed', textEmbed: { inputs: ['hello'] } },
+  });
+  embeddingSpaceId = '';
+  await assert.rejects(client.scenario.execute({ type: 'text-embed', inputs: ['hello'] }), {
+    reasonCode: 'SDK_LOCAL_APP_PROJECTION_INVALID',
   });
 });
 

@@ -71,6 +71,7 @@ pub(super) async fn execute(
     valid_runtime_text(&response.trace_id, MAX_TRACE_BYTES)?;
     let output = match response.output.ok_or_else(untrusted)? {
         ExecuteOutput::TextEmbed(value) => {
+            valid_runtime_text(&value.space_id, MAX_IDENTIFIER_BYTES)?;
             if value.vectors.is_empty() || value.vectors.len() > 16 {
                 return Err(untrusted());
             }
@@ -89,7 +90,7 @@ pub(super) async fn execute(
                     ))
                 })
                 .collect::<Result<Vec<_>, LocalAppOperationError>>()?;
-            json!({"type": "text-embed", "vectors": vectors})
+            json!({"type": "text-embed", "vectors": vectors, "spaceId": value.space_id})
         }
         ExecuteOutput::TextGenerate(value) => text_behavior::project_output(value)?,
         ExecuteOutput::ImageGenerate(value) => json!({

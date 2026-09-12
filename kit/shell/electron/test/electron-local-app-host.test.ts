@@ -753,7 +753,7 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppTextTurnStreamNext: record('localAppTextTurnStreamNext', { completed: true }),
     localAppTextTurnStreamClose: record('localAppTextTurnStreamClose', { closed: true }),
     localAppScenarioExecute: record('localAppScenarioExecute', {
-      output: { type: 'text-embed', vectors: [[0.1, 0.2]] }, traceId: 'trace-1',
+      output: { type: 'text-embed', vectors: [[0.1, 0.2]], spaceId: 'space-test-1' }, traceId: 'trace-1',
     }),
     localAppScenarioJobSubmit: record('localAppScenarioJobSubmit', { job: scenarioJobProjection() }),
     localAppScenarioJobGet: record('localAppScenarioJobGet', { job: scenarioJobProjection(), asset: null, voiceReference: null }),

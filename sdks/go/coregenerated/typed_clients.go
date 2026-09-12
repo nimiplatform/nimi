@@ -5608,6 +5608,7 @@ type LocalAppTextCandidateMessage struct {
 
 type LocalAppTextEmbedOutput struct {
 	Vectors []EmbeddingVector `json:"vectors,omitempty"`
+	SpaceId string            `json:"space_id,omitempty"`
 }
 
 type LocalAppTextEmbedScenarioSpec struct {
@@ -7698,6 +7699,7 @@ type TextBehaviorCapabilityProjection struct {
 
 type TextEmbedOutput struct {
 	Vectors []EmbeddingVector `json:"vectors,omitempty"`
+	SpaceId string            `json:"space_id,omitempty"`
 }
 
 type TextEmbedScenarioSpec struct {

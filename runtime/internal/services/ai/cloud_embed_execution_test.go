@@ -90,6 +90,9 @@ func TestCloudEmbedExecutionUsesCapturedAIConfigConnectorWithoutFallback(t *test
 		t.Fatalf("ExecuteScenario(text.embed): %v", err)
 	}
 	vectors := response.GetOutput().GetTextEmbed().GetVectors()
+	if response.GetOutput().GetTextEmbed().GetSpaceId() == "" {
+		t.Fatal("embedding response omitted its vector space")
+	}
 	if len(vectors) != 2 || len(vectors[0].GetValues()) != 2 || vectors[1].GetValues()[1] != 0.4 {
 		t.Fatalf("embedding vectors = %+v", vectors)
 	}
