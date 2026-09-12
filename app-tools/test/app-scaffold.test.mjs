@@ -505,6 +505,8 @@ test('standalone scaffold creates a generic starter with rewritten identity', as
     assert.match(electronProductionPackager, /platform: NATIVE_PLATFORM/);
     assert.match(electronProductionPackager, /arch: NATIVE_ARCH/);
     assert.match(electronProductionPackager, /asar: \{ unpack: '\*\*\/\*\.node' \}/);
+    assert.match(electronProductionPackager, /path\.join\(stagingRoot, 'nimi-native', 'protected-local'\)/);
+    assert.match(electronProductionPackager, /extraResource: \[path\.join\(stagingRoot, 'nimi-native'\)\]/);
     assert.match(electronProductionPackager, /name: APP_EXECUTABLE_NAME/);
     assert.match(electronProductionPackager, /executableName: APP_EXECUTABLE_NAME/);
     assert.match(electronProductionPackager, /Kit does not declare the current-platform protected native binding as optional/);
