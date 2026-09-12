@@ -25,6 +25,32 @@ const user = { role: 'user' as const, content: [{ type: 'text' as const, text: '
 const tool = { name: 'search', inputSchema: { type: 'object' } };
 const call = { id: 'call-1', name: 'search', arguments: { query: 'Nimi', token: 'business data' } };
 
+test('opaque continuity survives the native JSON boundary and the next model turn', async () => {
+  const carrier = { kind: 'test.encrypted', version: 1, payload: [0, 127, 255] };
+  const f = fixture(async function* () {
+    yield { type: 'reasoning-continuity', sequence: '1', traceId: 'trace-continuity', itemIndex: 0, carrier };
+    yield { type: 'tool-call', sequence: '2', traceId: 'trace-continuity', itemIndex: 1, toolCall: call };
+    yield { type: 'completed', sequence: '3', traceId: 'trace-continuity', finishReason: 'tool-calls' };
+  });
+  const first = await f.model.generateText({ messages: [user], tools: [tool] });
+  assert.deepEqual(first.outputItems?.[0], { type: 'reasoning-continuity', carrier: { ...carrier, payload: new Uint8Array(carrier.payload) } });
+  await f.model.generateText({ messages: [user, { role: 'assistant', content: [], turnItems: [
+    ...first.outputItems!.map((output) => ({ type: 'output' as const, output })),
+    { type: 'tool-result', toolResult: { toolCallId: call.id, toolName: call.name, result: 'found' } },
+  ] }], tools: [tool] });
+  assert.deepEqual(f.inputs[1].messages[1].turnItems?.[0], { type: 'output', output: { type: 'reasoning-continuity', carrier } });
+});
+
+test('invalid or carrier-only output cannot complete a Local App step', async () => {
+  for (const payload of [[1], [], [256], Array(64 * 1024 + 1).fill(1)]) {
+    const f = fixture(async function* () {
+      yield { type: 'reasoning-continuity', sequence: '1', traceId: 'trace-continuity', itemIndex: 0, carrier: { kind: 'test', version: 1, payload } };
+      yield { type: 'completed', sequence: '2', traceId: 'trace-continuity', finishReason: 'stop' };
+    });
+    await assert.rejects(f.model.generateText({ messages: [user] }), { reasonCode: 'SDK_LOCAL_APP_PROJECTION_INVALID' });
+  }
+});
+
 test('Local App model preserves common tool values without executing callbacks', async () => {
   const f = fixture(async function* () {
     yield { type: 'tool-call', sequence: '1', traceId: 'trace-1', itemIndex: 0, toolCall: call };

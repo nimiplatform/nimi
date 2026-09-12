@@ -429,6 +429,12 @@ func validTextBehaviorToolUseSupport(support textBehaviorToolUseSupport) bool {
 }
 
 func validTextBehaviorReasoningSupport(support textBehaviorReasoningSupport) bool {
+	// A stateless relay can preserve opaque continuity without admitting any
+	// reasoning activation, intensity or presentation controls.
+	if support.OpaqueContinuityCarrier && !support.SummaryTranscript && len(support.Activations) == 0 &&
+		len(support.Presentations) == 0 && len(support.Efforts) == 0 && !support.ExactBudget {
+		return true
+	}
 	if len(support.Activations) == 0 || len(support.Presentations) == 0 || len(support.Efforts) == 0 && !support.ExactBudget {
 		return false
 	}

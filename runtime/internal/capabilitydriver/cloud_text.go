@@ -363,6 +363,8 @@ func (providerCloudTextDriver) NormalizeResponse(response CloudTextTransportResp
 		} else if item.Kind == textbehavior.OrderedItemToolCall && item.ToolCall != nil {
 			item.ToolCall = proto.Clone(item.ToolCall).(*runtimev1.ToolCall)
 			toolCalls = append(toolCalls, item.ToolCall)
+		} else if item.Kind == textbehavior.OrderedItemReasoningContinuity && textbehavior.ValidContinuity(item.ReasoningContinuity) {
+			item.ReasoningContinuity = proto.Clone(item.ReasoningContinuity).(*runtimev1.ReasoningContinuityCarrier)
 		} else {
 			return CloudTextResult{}, cloudInvocationError(CloudInvocationFailureResponse, fmt.Errorf("unsupported ordered cloud text output"))
 		}
@@ -394,6 +396,11 @@ func (providerCloudTextDriver) NormalizeReason(err error) error {
 	if errors.Is(err, context.DeadlineExceeded) {
 		return grpcerr.WrapWithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, err, grpcerr.ReasonOptions{Message: "provider request timed out"})
 	}
+	// A provider can reject a model for this account with HTTP 400. Preserve
+	// that classified cause instead of replacing it with a generic HTTP error.
+	if reason, ok := grpcerr.ExtractReasonCode(err); ok && reason == runtimev1.ReasonCode_AI_MODEL_NOT_FOUND {
+		return err
+	}
 	if metadata, ok := grpcerr.ExtractReasonMetadata(err); ok {
 		if statusCode, parseErr := strconv.Atoi(metadata["provider_http_status"]); parseErr == nil && statusCode > 0 {
 			reason := CloudTextReasonForHTTPStatus(statusCode)
@@ -421,6 +428,7 @@ func (providerCloudTextDriver) NormalizeReason(err error) error {
 			runtimev1.ReasonCode_AI_INPUT_INVALID,
 			runtimev1.ReasonCode_AI_OUTPUT_INVALID,
 			runtimev1.ReasonCode_AI_TOOL_CALL_INVALID,
+			runtimev1.ReasonCode_AI_REASONING_CONTINUITY_INVALID,
 			runtimev1.ReasonCode_AI_TEXT_OUTPUT_INCOMPLETE,
 			runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED,
 			runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED:

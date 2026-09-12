@@ -7046,6 +7046,7 @@
       "LocalAppTextEmbedScenarioSpec",
       "LocalAppTextGenerateOutput",
       "LocalAppTextTurnCompleted",
+      "LocalAppTextTurnContinuity",
       "LocalAppTextTurnDelta",
       "LocalAppTextTurnFailed",
       "LocalAppTextTurnToolCall",
@@ -25113,6 +25114,26 @@
         "source_file": "proto/runtime/v1/ai.proto"
       },
       {
+        "name": "LocalAppTextTurnContinuity",
+        "fields": [
+          {
+            "name": "item_index",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "carrier",
+            "type": "ReasoningContinuityCarrier",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
         "name": "LocalAppTextTurnDelta",
         "fields": [
           {
@@ -34350,6 +34371,13 @@
             "repeated": false,
             "optional": false,
             "number": 6
+          },
+          {
+            "name": "reasoning_continuity",
+            "type": "LocalAppTextTurnContinuity",
+            "repeated": false,
+            "optional": false,
+            "number": 7
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"

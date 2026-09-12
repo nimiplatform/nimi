@@ -467,15 +467,16 @@ func (b *Backend) applyAuthenticationHeaders(request *http.Request) {
 
 // GenerateText sends a non-streaming chat completion request. The OpenAI-compatible
 // path maps tools, tool choice, structured response formats, and the standard
-// advanced-sampling parameters and parses returned tool calls. The Anthropic and
-// Codex paths fail closed on tools / structured output until they are wired.
+// advanced-sampling parameters and parses returned tool calls. Exact Anthropic and
+// Codex tools/structured behavior uses the captured adapter transport; these
+// primitive Backend entrypoints retain their narrower admission.
 func (b *Backend) GenerateText(ctx context.Context, modelID string, input []*runtimev1.ChatMessage, systemPrompt string, temperature float32, topP float32, maxTokens int32, params textGenParams) (string, []*runtimev1.ToolCall, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
 	if err := unsupportedTextBehaviorSurface(ctx, b, modelID, params, input, false); err != nil {
 		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 	}
 	if b.supportsAnthropicMessages() {
-		// Anthropic Messages has no native JSON response_format; structured output
-		// stays fail-closed while tools execute through tool_use blocks.
+		// Native structured output is owned by the captured Messages adapter.
+		// This primitive path does not accept response-format requests.
 		if params.wantsStructuredOutput() {
 			return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, textBehaviorUnsupportedError()
 		}

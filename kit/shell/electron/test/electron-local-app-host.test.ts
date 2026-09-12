@@ -692,6 +692,26 @@ describe('Electron protected local-app host', () => {
     await expect(host.scenarioExecute({ spec: {} })).rejects.toThrow();
   });
 
+  it('carries bounded opaque continuity in ordered sync and stream outputs', async () => {
+    const carrier = { kind: 'test.encrypted', version: 1, payload: [0, 255] };
+    const event = { type: 'reasoning-continuity', sequence: '1', traceId: 'trace-continuity', itemIndex: 0, carrier };
+    const output = { type: 'text-generate', items: [{ type: 'reasoning-continuity', carrier }, { type: 'text', text: 'Answer.' }], finishReason: 'stop' };
+    const host = createNimiElectronLocalAppHostForBinding({
+      ...binding([]),
+      localAppScenarioExecute: async () => ({ status: 'ok' as const, value: { output, traceId: 'trace-continuity' } }),
+      localAppTextTurnStreamNext: async () => ({ status: 'ok' as const, value: { completed: false, event } }),
+    });
+    await expect(host.scenarioExecute({ spec: {} })).resolves.toEqual({ output, traceId: 'trace-continuity' });
+    await host.textTurnSubscribe({ messages: [{ role: 'user', text: 'Answer.' }] });
+    await expect(host.textTurnStreamNext({ streamId: 'text-turn-1' })).resolves.toEqual({ completed: false, event });
+    output.items.pop();
+    await expect(host.scenarioExecute({ spec: {} })).rejects.toThrow();
+    carrier.payload.push(256);
+    await host.textTurnStreamClose({ streamId: 'text-turn-1' });
+    await host.textTurnSubscribe({ messages: [{ role: 'user', text: 'Answer.' }] });
+    await expect(host.textTurnStreamNext({ streamId: 'text-turn-1' })).rejects.toThrow();
+  });
+
   it('resolves only independently admitted fixed native binding package identities', () => {
     expect(resolveNimiElectronProtectedLocalBindingPackage('win32', 'x64')).toBe(
       '@nimiplatform/kit-protected-local-win32-x64',

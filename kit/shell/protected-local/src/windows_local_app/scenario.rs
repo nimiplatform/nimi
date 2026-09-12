@@ -1263,6 +1263,12 @@ fn project_text_turn_event(
             *total_delta_bytes = total_delta_bytes.checked_add(bytes).filter(|total| *total <= 256 * 1024).ok_or_else(untrusted)?;
             Ok(json!({"type": "tool-call", "sequence": event.sequence.to_string(), "traceId": event.trace_id, "itemIndex": value.item_index, "toolCall": call}))
         }
+        TextTurnPayload::ReasoningContinuity(value) => {
+            let carrier = text_behavior::project_continuity(value.carrier.ok_or_else(untrusted)?)?;
+            let bytes = serde_json::to_vec(&carrier).map_err(|_| untrusted())?.len();
+            *total_delta_bytes = total_delta_bytes.checked_add(bytes).filter(|total| *total <= 256 * 1024).ok_or_else(untrusted)?;
+            Ok(json!({"type": "reasoning-continuity", "sequence": event.sequence.to_string(), "traceId": event.trace_id, "itemIndex": value.item_index, "carrier": carrier}))
+        }
         TextTurnPayload::Completed(value) => {
             let finish_reason = text_behavior::finish_reason(value.finish_reason)?;
             Ok(

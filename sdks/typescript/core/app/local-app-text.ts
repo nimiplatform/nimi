@@ -4,8 +4,15 @@ import { asRecord, assertExactKeys, assertExactProjectionKeys, localAppError, lo
 
 export type NimiLocalAppFunctionTool = Pick<NimiFunctionTool, 'type' | 'name' | 'description' | 'inputSchema'>;
 export type NimiLocalAppToolCall = Pick<NimiToolCall, 'id' | 'name' | 'arguments'>;
+// The native/IPC boundary is JSON; the common model uses Uint8Array.
+export type NimiLocalAppReasoningContinuityCarrier = {
+  readonly kind: string;
+  readonly version: number;
+  readonly payload: readonly number[];
+};
 export type NimiLocalAppTextOutputItem =
   | Extract<NimiTextOutputItem, { readonly type: 'text' }>
+  | { readonly type: 'reasoning-continuity'; readonly carrier: NimiLocalAppReasoningContinuityCarrier }
   | { readonly type: 'tool-call'; readonly toolCall: NimiLocalAppToolCall };
 export type NimiLocalAppTextTurnItem =
   | { readonly type: 'output'; readonly output: NimiLocalAppTextOutputItem }
@@ -66,17 +73,46 @@ export function projectLocalAppToolCall(value: unknown): NimiLocalAppToolCall {
   return readToolCall(value, true);
 }
 
+function readContinuity(value: unknown, projection: boolean): NimiLocalAppReasoningContinuityCarrier {
+  const fail = projection ? localAppProjectionError : invalid;
+  const record = asRecord(value);
+  if (!record) return fail('continuity carrier');
+  if (projection) assertExactProjectionKeys(record, ['kind', 'version', 'payload'], 'continuity carrier');
+  else assertExactKeys(record, ['kind', 'version', 'payload'], 'continuity carrier');
+  const kind = identifier(record.kind, fail);
+  if (!Number.isSafeInteger(record.version) || Number(record.version) < 1 || Number(record.version) > 0xffff_ffff
+    || !Array.isArray(record.payload) || record.payload.length === 0 || record.payload.length > 64 * 1024
+    || record.payload.some((byte) => !Number.isInteger(byte) || byte < 0 || byte > 255)) return fail('continuity payload');
+  return Object.freeze({ kind, version: Number(record.version), payload: Object.freeze([...record.payload]) });
+}
+
+export function projectLocalAppContinuity(value: unknown): NimiLocalAppReasoningContinuityCarrier {
+  return readContinuity(value, true);
+}
+
+export function modelTextOutputToLocalApp(item: NimiTextOutputItem): NimiLocalAppTextOutputItem {
+  if (item.type !== 'reasoning-continuity') return item as NimiLocalAppTextOutputItem;
+  if (!(item.carrier?.payload instanceof Uint8Array)) invalid('continuity payload');
+  return { ...item, carrier: { ...item.carrier, payload: Array.from(item.carrier.payload) } };
+}
+
+export function localAppTextOutputToModel(item: NimiLocalAppTextOutputItem): NimiTextOutputItem {
+  return item.type === 'reasoning-continuity'
+    ? { ...item, carrier: { ...item.carrier, payload: new Uint8Array(item.carrier.payload) } } : item;
+}
+
 function readOutputItem(value: unknown, projection: boolean): NimiLocalAppTextOutputItem {
   const fail = projection ? localAppProjectionError : invalid;
   const record = asRecord(value);
   if (!record) return fail('text output item');
-  const keys = record.type === 'text' ? ['type', 'text'] : ['type', 'toolCall'];
+  const keys = record.type === 'text' ? ['type', 'text'] : record.type === 'reasoning-continuity' ? ['type', 'carrier'] : ['type', 'toolCall'];
   if (projection) assertExactProjectionKeys(record, keys, 'text output item');
   else assertExactKeys(record, keys, 'text output item');
   if (record.type === 'text' && typeof record.text === 'string' && record.text.length > 0) {
     return Object.freeze({ type: 'text', text: record.text });
   }
   if (record.type === 'tool-call') return Object.freeze({ type: 'tool-call', toolCall: readToolCall(record.toolCall, projection) });
+  if (record.type === 'reasoning-continuity') return Object.freeze({ type: 'reasoning-continuity', carrier: readContinuity(record.carrier, projection) });
   return fail('unsupported text output item');
 }
 
@@ -91,6 +127,7 @@ export function projectLocalAppTextItems(value: unknown): readonly NimiLocalAppT
     }
     return projected;
   });
+  if (!items.some((item) => item.type === 'text' || item.type === 'tool-call')) localAppProjectionError('missing primary text output');
   if (new TextEncoder().encode(JSON.stringify(items)).byteLength > 256 * 1024) localAppProjectionError('text output size');
   return Object.freeze(items);
 }

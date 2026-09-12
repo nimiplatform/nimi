@@ -6,7 +6,7 @@ use serde_json::{json, Value};
 
 use crate::generated::{
     text_output_item, text_turn_item, LocalAppTextCandidateMessage, LocalAppTextGenerateOutput,
-    ResponseFormat, ResponseFormatKind, StreamLocalAppTextTurnRequest, TextOutputItem,
+    ReasoningContinuityCarrier, ResponseFormat, ResponseFormatKind, StreamLocalAppTextTurnRequest, TextOutputItem,
     TextOutputText, TextTurnItem, ToolCall, ToolChoiceMode, ToolResult, ToolSpec, ToolSpecKind,
 };
 use crate::{LocalAppOperationError, LocalAppTextTurnRequest};
@@ -15,6 +15,15 @@ use super::{invalid_payload, untrusted};
 
 const MAX_REQUEST_BYTES: usize = 1024 * 1024;
 const MAX_OUTPUT_BYTES: usize = 256 * 1024;
+const MAX_CONTINUITY_BYTES: usize = 64 * 1024;
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ContinuityCarrier {
+    kind: String,
+    version: u32,
+    payload: Vec<u8>,
+}
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -48,6 +57,7 @@ struct FunctionResult {
 #[derive(Deserialize)]
 #[serde(tag = "type", rename_all = "kebab-case", deny_unknown_fields)]
 enum OutputItem {
+    ReasoningContinuity { carrier: ContinuityCarrier },
     Text {
         text: String,
     },
@@ -241,6 +251,15 @@ fn parse_turn_item(value: Value) -> Result<TextTurnItem, LocalAppOperationError>
     let item = match item {
         TurnItem::Output { output } => text_turn_item::Item::Output(TextOutputItem {
             item: Some(match output {
+                OutputItem::ReasoningContinuity { carrier } => {
+                    identifier(&carrier.kind)?;
+                    if carrier.version == 0 || carrier.payload.is_empty() || carrier.payload.len() > MAX_CONTINUITY_BYTES {
+                        return Err(invalid_payload());
+                    }
+                    text_output_item::Item::ReasoningContinuity(ReasoningContinuityCarrier {
+                        kind: carrier.kind, version: carrier.version, payload: carrier.payload,
+                    })
+                }
                 OutputItem::Text { text } => {
                     if text.is_empty() {
                         return Err(invalid_payload());
@@ -338,6 +357,14 @@ pub(super) fn project_tool_call(call: ToolCall) -> Result<Value, LocalAppOperati
     Ok(json!({"id": call.id, "name": call.name, "arguments": arguments}))
 }
 
+pub(super) fn project_continuity(carrier: ReasoningContinuityCarrier) -> Result<Value, LocalAppOperationError> {
+    identifier(&carrier.kind).map_err(|_| untrusted())?;
+    if carrier.version == 0 || carrier.payload.is_empty() || carrier.payload.len() > MAX_CONTINUITY_BYTES {
+        return Err(untrusted());
+    }
+    Ok(json!({"kind": carrier.kind, "version": carrier.version, "payload": carrier.payload}))
+}
+
 pub(super) fn finish_reason(reason: i32) -> Result<&'static str, LocalAppOperationError> {
     match reason {
         1 => Ok("stop"),
@@ -353,21 +380,26 @@ pub(super) fn project_output(
 ) -> Result<Value, LocalAppOperationError> {
     let finish = finish_reason(output.finish_reason)?;
     let mut has_call = false;
+    let mut has_text = false;
     let items = output
         .items
         .into_iter()
         .map(|item| match item.item {
             Some(text_output_item::Item::Text(value)) if !value.text.is_empty() => {
+                has_text = true;
                 Ok(json!({"type": "text", "text": value.text}))
             }
             Some(text_output_item::Item::ToolCall(call)) => {
                 has_call = true;
                 Ok(json!({"type": "tool-call", "toolCall": project_tool_call(call)?}))
             }
+            Some(text_output_item::Item::ReasoningContinuity(carrier)) => {
+                Ok(json!({"type": "reasoning-continuity", "carrier": project_continuity(carrier)?}))
+            }
             _ => Err(untrusted()),
         })
         .collect::<Result<Vec<_>, _>>()?;
-    if items.is_empty()
+    if !has_text && !has_call
         || (finish == "tool-calls" && !has_call)
         || serde_json::to_vec(&items).map_err(|_| untrusted())?.len() > MAX_OUTPUT_BYTES
     {
@@ -379,6 +411,18 @@ pub(super) fn project_output(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn bounded_continuity_round_trips_without_becoming_primary_output() {
+        let carrier = json!({"kind":"test.encrypted", "version":1, "payload":[0,255]});
+        let input = json!({"type":"output", "output":{"type":"reasoning-continuity", "carrier":carrier}});
+        let parsed = parse_turn_item(input).unwrap();
+        let Some(text_turn_item::Item::Output(item)) = parsed.item else { panic!("missing output") };
+        assert!(project_output(LocalAppTextGenerateOutput { items: vec![item.clone()], finish_reason: 1 }).is_err());
+        let output = project_output(LocalAppTextGenerateOutput { items: vec![item, TextOutputItem { item: Some(text_output_item::Item::Text(TextOutputText { text: "Answer".into() })) }], finish_reason: 1 }).unwrap();
+        assert_eq!(output["items"][0]["carrier"], carrier);
+        assert!(parse_turn_item(json!({"type":"output", "output":{"type":"reasoning-continuity", "carrier":{"kind":"test", "version":1, "payload":[256]}}})).is_err());
+    }
 
     #[test]
     fn function_transcript_and_response_schema_cross_the_typed_boundary() {

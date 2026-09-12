@@ -50,8 +50,9 @@ import {
 import type { Timestamp } from '../../core-generated/runtime-protobuf/google/protobuf/timestamp.js';
 import { toRuntimeMessages, toRuntimeTools, toRuntimeStruct, toNimiToolCall, toNimiTextOutputItems } from '../ai/runtime-model-text-projection.js';
 import {
-  validateLocalAppTextInput, projectLocalAppToolCall, projectLocalAppTextItems,
-  type NimiLocalAppTextOutputItem, type NimiLocalAppToolCall,
+  validateLocalAppTextInput, projectLocalAppToolCall, projectLocalAppTextItems, projectLocalAppContinuity,
+  modelTextOutputToLocalApp, localAppTextOutputToModel,
+  type NimiLocalAppTextOutputItem, type NimiLocalAppToolCall, type NimiLocalAppReasoningContinuityCarrier,
 } from './local-app-text.js';
 import type {
   NimiProtectedLocalScenarioJobClient,
@@ -284,6 +285,7 @@ export type NimiLocalAppArtifactUploadResult = {
 };
 
 export type NimiLocalAppTextTurnEvent =
+  | { readonly type: 'reasoning-continuity'; readonly sequence: string; readonly traceId: string; readonly itemIndex: number; readonly carrier: NimiLocalAppReasoningContinuityCarrier }
   | { readonly type: 'delta'; readonly sequence: string; readonly traceId: string; readonly text: string; readonly itemIndex: number }
   | { readonly type: 'tool-call'; readonly sequence: string; readonly traceId: string; readonly itemIndex: number; readonly toolCall: NimiLocalAppToolCall }
   | { readonly type: 'completed'; readonly sequence: string; readonly traceId: string; readonly finishReason: 'stop' | 'length' | 'tool-calls' | 'content-filter' }
@@ -435,18 +437,22 @@ export function createNimiLocalAppAIConsumptionClient(
             let resultBytes = 0;
             let sequence = 0n;
             let terminal = false;
+            let hasPrimary = false;
             const toolIds = new Set<string>();
             try {
               for await (const event of stream) {
                 if (canceled) break;
                 if (terminal || BigInt(event.sequence) !== ++sequence) localAppProjectionError('text-turn event sequence');
-                if (event.type === 'delta') resultBytes += utf8Length(event.text);
+                if (event.type === 'delta') { resultBytes += utf8Length(event.text); hasPrimary = true; }
                 if (event.type === 'tool-call') {
+                  hasPrimary = true;
                   if (toolIds.has(event.toolCall.id)) localAppProjectionError('duplicate text tool call');
                   toolIds.add(event.toolCall.id);
                   resultBytes += utf8Length(JSON.stringify(event.toolCall));
                 }
+                if (event.type === 'reasoning-continuity') resultBytes += utf8Length(JSON.stringify(event.carrier));
                 if (resultBytes > MAX_RESULT_BYTES) localAppProjectionError('text-turn result size');
+                if (event.type === 'completed' && !hasPrimary) localAppProjectionError('missing primary text output');
                 terminal = event.type === 'completed' || event.type === 'failed';
                 yield event;
               }
@@ -961,6 +967,10 @@ function projectTextTurnEvent(value: unknown): NimiLocalAppTextTurnEvent {
     assertExactProjectionKeys(record, ['type', 'sequence', 'traceId', 'itemIndex', 'toolCall'], 'text tool call');
     return Object.freeze({ ...base, type: 'tool-call', itemIndex: projectionInteger(record.itemIndex, 'tool item index', 0, 4_294_967_295), toolCall: projectLocalAppToolCall(record.toolCall) });
   }
+  if (record.type === 'reasoning-continuity') {
+    assertExactProjectionKeys(record, ['type', 'sequence', 'traceId', 'itemIndex', 'carrier'], 'text continuity');
+    return Object.freeze({ ...base, type: 'reasoning-continuity', itemIndex: projectionInteger(record.itemIndex, 'continuity item index', 0, 4_294_967_295), carrier: projectLocalAppContinuity(record.carrier) });
+  }
   if (record.type === 'completed') {
     assertExactProjectionKeys(record, ['type', 'sequence', 'traceId', 'finishReason'], 'text-turn completed');
     if (!['stop', 'length', 'tool-calls', 'content-filter'].includes(String(record.finishReason))) localAppProjectionError('text-turn finishReason');
@@ -1206,7 +1216,8 @@ function runtimeTextTurnRequest(input: NimiLocalAppTextTurnInput): StreamLocalAp
   const messages = toRuntimeMessages(input.messages.map((message) => ({
     role: message.role,
     content: message.turnItems?.length || message.role === 'assistant' ? [] : [{ type: 'text' as const, text: message.text }],
-    turnItems: message.turnItems?.length ? message.turnItems : message.role === 'assistant'
+    turnItems: message.turnItems?.length ? message.turnItems.map((item) => item.type === 'output'
+      ? { ...item, output: localAppTextOutputToModel(item.output) } : item) : message.role === 'assistant'
       ? [{ type: 'output' as const, output: { type: 'text' as const, text: message.text } }] : undefined,
   })));
   const choice = input.toolChoice;
@@ -1434,6 +1445,12 @@ function runtimeVoiceReference(
 function projectRuntimeTextTurnEvent(event: StreamLocalAppTextTurnEvent): unknown {
   const base = { sequence: event.sequence, traceId: event.traceId };
   switch (event.payload.oneofKind) {
+    case 'reasoningContinuity': {
+      const carrier = event.payload.reasoningContinuity.carrier;
+      if (!carrier) return localAppProjectionError('Runtime continuity carrier');
+      return { ...base, type: 'reasoning-continuity', itemIndex: event.payload.reasoningContinuity.itemIndex,
+        carrier: { ...carrier, payload: Array.from(carrier.payload) } };
+    }
     case 'toolCall':
       if (!event.payload.toolCall.toolCall) return localAppProjectionError('Runtime tool call');
       return { ...base, type: 'tool-call', itemIndex: event.payload.toolCall.itemIndex, toolCall: toNimiToolCall(event.payload.toolCall.toolCall) };
@@ -1461,7 +1478,7 @@ function projectRuntimeTextTurnEvent(event: StreamLocalAppTextTurnEvent): unknow
 function projectRuntimeScenarioExecuteResponse(response: ExecuteLocalAppScenarioResponse): unknown {
   switch (response.output.oneofKind) {
     case 'textGenerate':
-      return { output: { type: 'text-generate', items: toNimiTextOutputItems(response.output.textGenerate.items), finishReason: runtimeFinishReason(response.output.textGenerate.finishReason) }, traceId: response.traceId };
+      return { output: { type: 'text-generate', items: toNimiTextOutputItems(response.output.textGenerate.items).map(modelTextOutputToLocalApp), finishReason: runtimeFinishReason(response.output.textGenerate.finishReason) }, traceId: response.traceId };
     case 'textEmbed':
       return {
         output: {

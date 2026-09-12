@@ -71,6 +71,10 @@ func TestCloudTextDriverNormalizesTransportHTTPMetadata(t *testing.T) {
 	if reason, ok := grpcerr.ExtractReasonCode(normalized); !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_INTERNAL {
 		t.Fatalf("503 normalized reason = %v present=%v err=%v", reason, ok, normalized)
 	}
+	modelError := grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, grpcerr.ReasonOptions{Metadata: map[string]string{"provider_http_status": "400"}})
+	if got := driver.NormalizeReason(modelError); got != modelError {
+		t.Fatalf("model rejection lost: %v", got)
+	}
 }
 
 func TestCloudTextDriverSeparatesTargetAndRequestMapping(t *testing.T) {

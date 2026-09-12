@@ -296,6 +296,15 @@ func TestMapProviderHTTPError_BadRequestModelNotFound(t *testing.T) {
 	assertProviderMessageAbsent(t, metadata)
 }
 
+func TestMapProviderHTTPError_CodexModelUnavailableForAccount(t *testing.T) {
+	err := MapProviderHTTPError(400, map[string]any{"detail": "The 'gpt-5.6-sol-wm' model is not supported when using Codex with a ChatGPT account."})
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_MODEL_NOT_FOUND || status.Code(err) != codes.NotFound {
+		t.Fatalf("Codex model rejection = %v", err)
+	}
+	assertProviderMessageAbsent(t, extractErrorInfoMetadata(err))
+}
+
 func TestMapProviderHTTPError_BadRequestMarketAppNotActivated(t *testing.T) {
 	err := MapProviderHTTPError(400, map[string]any{
 		"error": map[string]any{
