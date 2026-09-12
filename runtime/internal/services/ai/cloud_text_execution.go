@@ -15,6 +15,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/remoteexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
+	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -158,6 +159,10 @@ func (s *Service) captureCloudTextEffectiveInputs(
 	if err != nil {
 		return fail(cloudTextDriverError(err))
 	}
+	mapped, err = bindCloudTextBehavior(mapped, behaviorAdapter)
+	if err != nil {
+		return fail(err)
+	}
 	implementation, _ := proto.Clone(intent.CloudImplementation).(*runtimev1.CapabilityImplementationIdentity)
 	rawTarget, _ := proto.Clone(intent.ProviderModelTarget).(*structpb.Struct)
 	defaults, _ := proto.Clone(intent.Defaults).(*structpb.Struct)
@@ -244,6 +249,10 @@ func (s *Service) cloudTextEffectiveInputsFromResolvedAssembly(assembly *cloudRe
 	if err != nil {
 		return nil, cloudTextDriverError(err)
 	}
+	mapped, err = bindCloudTextBehavior(mapped, behaviorAdapter)
+	if err != nil {
+		return nil, err
+	}
 	clonedAssembly, err := cloneCloudResolvedAssembly(assembly)
 	if err != nil {
 		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{})
@@ -286,7 +295,6 @@ func (s *Service) executeCapturedCloudText(ctx context.Context, effective *cloud
 	if s == nil || effective == nil || effective.driver == nil || s.remoteTextHost == nil {
 		return capabilitydriver.CloudTextResult{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
-	ctx = nimillm.WithTextBehaviorAdmission(ctx, effective.behaviorAdapter.nimillmAdmission())
 	transportResponse, err := s.remoteTextHost.ExecuteText(ctx, effective.connector, effective.target, effective.mapped, effective.dispatchAudit())
 	if err != nil {
 		return capabilitydriver.CloudTextResult{}, effective.driver.NormalizeReason(err)
@@ -298,18 +306,17 @@ func (s *Service) executeCapturedCloudText(ctx context.Context, effective *cloud
 	return result, nil
 }
 
-func (s *Service) streamCapturedCloudText(ctx context.Context, effective *cloudTextEffectiveInputs, onDelta func(string) error) (capabilitydriver.CloudTextResult, error) {
+func (s *Service) streamCapturedCloudText(ctx context.Context, effective *cloudTextEffectiveInputs, onDelta func(textbehavior.OrderedDelta) error) (capabilitydriver.CloudTextResult, error) {
 	if s == nil || effective == nil || effective.driver == nil || s.remoteTextHost == nil || onDelta == nil {
 		return capabilitydriver.CloudTextResult{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
-	ctx = nimillm.WithTextBehaviorAdmission(ctx, effective.behaviorAdapter.nimillmAdmission())
-	transportResponse, err := s.remoteTextHost.StreamText(ctx, effective.connector, effective.target, effective.mapped, func(raw string) error {
-		delta, normalizeErr := effective.driver.NormalizeStreamDelta(raw)
-		if normalizeErr != nil {
-			return cloudTextDriverError(normalizeErr)
-		}
-		if delta == "" {
-			return nil
+	transportResponse, err := s.remoteTextHost.StreamText(ctx, effective.connector, effective.target, effective.mapped, func(delta textbehavior.OrderedDelta) error {
+		if delta.Kind == textbehavior.OrderedItemText {
+			text, err := effective.driver.NormalizeStreamDelta(delta.Text)
+			if err != nil {
+				return cloudTextDriverError(err)
+			}
+			delta.Text = text
 		}
 		return onDelta(delta)
 	}, effective.dispatchAudit())
@@ -321,6 +328,14 @@ func (s *Service) streamCapturedCloudText(ctx context.Context, effective *cloudT
 		return capabilitydriver.CloudTextResult{}, cloudTextDriverError(err)
 	}
 	return result, nil
+}
+
+func bindCloudTextBehavior(mapped *capabilitydriver.CloudTextMappedRequest, adapter *resolvedTextBehaviorAdapter) (*capabilitydriver.CloudTextMappedRequest, error) {
+	resolved, err := adapter.runtimeAdapter()
+	if err != nil {
+		return nil, err
+	}
+	return mapped.WithTextBehavior(resolved)
 }
 
 func (s *Service) auditCloudTextCapture(effective *cloudTextEffectiveInputs, stream bool) error {

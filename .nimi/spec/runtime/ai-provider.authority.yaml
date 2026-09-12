@@ -1429,3 +1429,15 @@ units:
         target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+  - id: rule.nimi.runtime.ai-provider.anthropic-sonnet46-text-behaviors
+    kind: rule
+    title: The first Cloud text adapter uses exact Anthropic Messages semantics
+    modality: must
+    statement: The first admitted Cloud text behavior slice matches provider anthropic and provider model target claude-sonnet-4-6 with the existing AIConfig implementation tuple anthropic, nimillm, anthropic. Its versioned Anthropic Messages hooks serialize text-only canonical messages and ordered function ToolCall and ToolResult turns, preserve ordered text and tool_use content blocks, and admit auto, none, required and named tool choice with single or parallel calls through synchronous and streaming Scenario execution. Structured output uses the native output_config.format JSON Schema contract and validates final JSON against the captured schema; unsupported schema constraints fail before dispatch without deleting constraints or substituting a repair prompt. A stream publishes only complete schema-valid tool arguments, requires message_stop and a valid stop reason, and fails incomplete or error output without converting transport closure into success. The slice does not admit reasoning, provider-executed tools, media, asynchronous behavior Jobs or combined tools and structured output. Credential custody, exact endpoint composition, scheduling and metering remain with the existing Runtime owners, while only the external Host executes tools and chooses subsequent turns; registering a provider or catalog row does not implicitly admit another model or protocol.
+    condition: Whenever the exact Claude Sonnet 4.6 target consumes Tool Use or Structured Output through a Cloud text Scenario.
+    failure: Reject a different or ambiguous adapter target and unsupported behavior with AI_TEXT_BEHAVIOR_UNSUPPORTED, malformed input with AI_INPUT_INVALID, invalid tool arguments with AI_TOOL_CALL_INVALID, and malformed or unterminated provider output with AI_OUTPUT_INVALID or AI_TEXT_OUTPUT_INCOMPLETE; preserve provider and cancellation failures without another model, protocol or workflow fallback.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane

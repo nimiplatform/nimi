@@ -15,6 +15,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
+	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -44,7 +45,7 @@ type TextDispatchAudit struct {
 // transports one exact request.
 type TextHost interface {
 	ExecuteText(context.Context, connector.ConnectorRecord, capabilitydriver.CloudTextTarget, *capabilitydriver.CloudTextMappedRequest, TextDispatchAudit) (capabilitydriver.CloudTextTransportResponse, error)
-	StreamText(context.Context, connector.ConnectorRecord, capabilitydriver.CloudTextTarget, *capabilitydriver.CloudTextMappedRequest, func(string) error, TextDispatchAudit) (capabilitydriver.CloudTextTransportResponse, error)
+	StreamText(context.Context, connector.ConnectorRecord, capabilitydriver.CloudTextTarget, *capabilitydriver.CloudTextMappedRequest, func(textbehavior.OrderedDelta) error, TextDispatchAudit) (capabilitydriver.CloudTextTransportResponse, error)
 }
 
 type auditSink interface {
@@ -85,6 +86,16 @@ func (h *ProviderTextHost) ExecuteText(
 		return capabilitydriver.CloudTextTransportResponse{}, h.auditedError(audit, "error", err)
 	}
 	spec := request.Spec()
+	if invocation, serialized := request.TextBehavior(); invocation != nil {
+		result, err := h.transport.ExecuteTextBehaviorWithTarget(ctx, request.ProviderModelID(), remoteTarget, invocation, serialized, nil)
+		if err != nil {
+			return capabilitydriver.CloudTextTransportResponse{}, h.auditedError(audit, dispatchExit(ctx, "error"), err)
+		}
+		if err := h.recordDispatch(audit, "complete", runtimev1.ReasonCode_ACTION_EXECUTED, false); err != nil {
+			return capabilitydriver.CloudTextTransportResponse{}, err
+		}
+		return capabilitydriver.CloudTextTransportResponse{Items: result.Items, Usage: result.Usage, FinishReason: result.FinishReason}, nil
+	}
 	text, toolCalls, usage, finish, err := h.transport.GenerateTextScenarioWithTarget(
 		ctx,
 		request.ProviderModelID(),
@@ -100,7 +111,7 @@ func (h *ProviderTextHost) ExecuteText(
 		return capabilitydriver.CloudTextTransportResponse{}, err
 	}
 	return capabilitydriver.CloudTextTransportResponse{
-		Text: text, ToolCalls: toolCalls, Usage: usage, FinishReason: finish,
+		Items: primitiveCloudTextItems(text, toolCalls), Usage: usage, FinishReason: finish,
 	}, nil
 }
 
@@ -109,7 +120,7 @@ func (h *ProviderTextHost) StreamText(
 	connectorRecord connector.ConnectorRecord,
 	target capabilitydriver.CloudTextTarget,
 	request *capabilitydriver.CloudTextMappedRequest,
-	onDelta func(string) error,
+	onDelta func(textbehavior.OrderedDelta) error,
 	audit TextDispatchAudit,
 ) (capabilitydriver.CloudTextTransportResponse, error) {
 	if err := h.recordDispatch(audit, "dispatch", runtimev1.ReasonCode_ACTION_EXECUTED, false); err != nil {
@@ -124,21 +135,51 @@ func (h *ProviderTextHost) StreamText(
 		err = grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 		return capabilitydriver.CloudTextTransportResponse{}, h.auditedError(audit, "error", err)
 	}
+	if invocation, serialized := request.TextBehavior(); invocation != nil {
+		result, err := h.transport.ExecuteTextBehaviorWithTarget(ctx, request.ProviderModelID(), remoteTarget, invocation, serialized, onDelta)
+		if err != nil {
+			return capabilitydriver.CloudTextTransportResponse{}, h.auditedError(audit, dispatchExit(ctx, "error"), err)
+		}
+		if err := h.recordDispatch(audit, "complete", runtimev1.ReasonCode_ACTION_EXECUTED, false); err != nil {
+			return capabilitydriver.CloudTextTransportResponse{}, err
+		}
+		return capabilitydriver.CloudTextTransportResponse{Items: result.Items, Usage: result.Usage, FinishReason: result.FinishReason}, nil
+	}
+	var text strings.Builder
 	usage, finish, err := h.transport.StreamGenerateTextScenarioWithTarget(
 		ctx,
 		request.ProviderModelID(),
 		request.Spec(),
-		onDelta,
+		func(part string) error {
+			text.WriteString(part)
+			return onDelta(textbehavior.OrderedDelta{Kind: textbehavior.OrderedItemText, Text: part})
+		},
 		remoteTarget,
 		request.WireDirectives(),
 	)
 	if err != nil {
 		return capabilitydriver.CloudTextTransportResponse{}, h.auditedError(audit, dispatchExit(ctx, "error"), err)
 	}
+	if text.Len() > 0 {
+		if err := onDelta(textbehavior.OrderedDelta{Kind: textbehavior.OrderedItemText, ItemCompleted: true}); err != nil {
+			return capabilitydriver.CloudTextTransportResponse{}, err
+		}
+	}
 	if err := h.recordDispatch(audit, "complete", runtimev1.ReasonCode_ACTION_EXECUTED, false); err != nil {
 		return capabilitydriver.CloudTextTransportResponse{}, err
 	}
-	return capabilitydriver.CloudTextTransportResponse{Usage: usage, FinishReason: finish, Streamed: true}, nil
+	return capabilitydriver.CloudTextTransportResponse{Items: primitiveCloudTextItems(text.String(), nil), Usage: usage, FinishReason: finish}, nil
+}
+
+func primitiveCloudTextItems(text string, calls []*runtimev1.ToolCall) []textbehavior.OrderedItem {
+	items := make([]textbehavior.OrderedItem, 0, len(calls)+1)
+	if text != "" {
+		items = append(items, textbehavior.OrderedItem{Kind: textbehavior.OrderedItemText, Text: text})
+	}
+	for _, call := range calls {
+		items = append(items, textbehavior.OrderedItem{Kind: textbehavior.OrderedItemToolCall, ToolCall: call})
+	}
+	return items
 }
 
 // requestScopedTarget is the only credential opening point. The Connector

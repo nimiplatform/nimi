@@ -21,6 +21,7 @@ func productionTextBehaviorAdapterRegistrations() []textBehaviorAdapterRegistrat
 	for _, entry := range cohort {
 		registrations = append(registrations, gemma4TextBehaviorRegistration(entry))
 	}
+	registrations = append(registrations, anthropicSonnet46TextBehaviorRegistration())
 	return registrations
 }
 

@@ -11,6 +11,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
+	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
 	"github.com/nimiplatform/nimi/runtime/internal/usagemetrics"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -315,37 +316,16 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	}
 
 	var chunkBuf strings.Builder
-	textItemOpened := false
-	sendDelta := func(text string) error {
-		if text == "" {
-			return nil
-		}
-		chunkBuf.WriteString(text)
-		if chunkBuf.Len() < minStreamChunkBytes {
-			return nil
-		}
-		chunk := chunkBuf.String()
-		chunkBuf.Reset()
-		textItemOpened = true
-		if err := send(&runtimev1.StreamScenarioEvent{
-			EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
-			Payload:   &runtimev1.StreamScenarioEvent_Delta{Delta: textOutputDelta(0, chunk, false)},
-		}); err != nil {
-			return err
-		}
-		recordFirstDeltaSent()
-		return nil
-	}
+	var chunkIndex uint32
 	flushDelta := func() error {
 		if chunkBuf.Len() == 0 {
 			return nil
 		}
-		chunk := chunkBuf.String()
+		part := chunkBuf.String()
 		chunkBuf.Reset()
-		textItemOpened = true
 		if err := send(&runtimev1.StreamScenarioEvent{
 			EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
-			Payload:   &runtimev1.StreamScenarioEvent_Delta{Delta: textOutputDelta(0, chunk, false)},
+			Payload:   &runtimev1.StreamScenarioEvent_Delta{Delta: orderedTextOutputDelta(textbehavior.OrderedDelta{Kind: textbehavior.OrderedItemText, ItemIndex: chunkIndex, Text: part})},
 		}); err != nil {
 			return err
 		}
@@ -353,27 +333,40 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		return nil
 	}
 	requestCtx = nimillm.WithStreamSimulationFlag(requestCtx, &streamSimulated)
-	result, streamErr := s.streamCapturedCloudText(requestCtx, effective, func(part string) error {
+	result, streamErr := s.streamCapturedCloudText(requestCtx, effective, func(delta textbehavior.OrderedDelta) error {
 		recordFirstProviderCallback()
 		recordActivity()
-		return sendDelta(part)
+		if delta.Kind == textbehavior.OrderedItemText && !delta.ItemCompleted {
+			if chunkBuf.Len() > 0 && chunkIndex != delta.ItemIndex {
+				if err := flushDelta(); err != nil {
+					return err
+				}
+			}
+			chunkIndex = delta.ItemIndex
+			chunkBuf.WriteString(delta.Text)
+			if chunkBuf.Len() >= minStreamChunkBytes {
+				return flushDelta()
+			}
+			return nil
+		}
+		if err := flushDelta(); err != nil {
+			return err
+		}
+		if err := send(&runtimev1.StreamScenarioEvent{
+			EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
+			Payload:   &runtimev1.StreamScenarioEvent_Delta{Delta: orderedTextOutputDelta(delta)},
+		}); err != nil {
+			return err
+		}
+		recordFirstDeltaSent()
+		return nil
 	})
 	if streamErr != nil {
 		return failAndStop(streamErr)
 	}
-	usage = result.Usage
-	finishReason = result.FinishReason
-
+	usage, finishReason = result.Usage, result.FinishReason
 	if err := flushDelta(); err != nil {
 		return err
-	}
-	if textItemOpened {
-		if err := send(&runtimev1.StreamScenarioEvent{
-			EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
-			Payload:   &runtimev1.StreamScenarioEvent_Delta{Delta: textOutputDelta(0, "", true)},
-		}); err != nil {
-			return err
-		}
 	}
 	if streamSimulated {
 		s.recordStreamSimulation(
