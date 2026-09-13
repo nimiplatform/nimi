@@ -574,7 +574,16 @@ func TestRuntimeAgentLifeTrackLoopEmitsCommittedHookActivityAndBudgetEvents(t *t
 			AgentId:              "agent-loop-events",
 			AdmissionStateFilter: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_COMPLETED,
 		})
-		return err == nil && len(resp.GetHooks()) == 1
+		if err != nil || len(resp.GetHooks()) != 1 {
+			return false
+		}
+		// Completion precedes the sweep's final cadence reconciliation. Wait
+		// for that committed state before asserting the complete event sequence.
+		state, err := svc.GetAgentState(ctx, &runtimev1.GetAgentStateRequest{
+			Context: testRuntimeAgentIdentityContext("agent-loop-events"),
+			AgentId: "agent-loop-events",
+		})
+		return err == nil && state.GetState().GetExecutionState() == runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_LIFE_PENDING
 	})
 
 	// Per K-AGCORE-042 the `family` field on AgentHookEventDetail is the
