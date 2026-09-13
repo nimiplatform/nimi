@@ -4,6 +4,75 @@
 
 It does not own GitHub publisher or repository truth, registry review/main, Runtime installed state, Desktop process state, or Nimi Access. Nimi Account and the private Nimi backend are not publisher credentials or App-release infrastructure.
 
+## AI development and existing projects
+
+The package includes one `skills/nimi-app-lifecycle/SKILL.md` with on-demand
+guides for creating, adapting, platform upgrades, upstream sync, releases and
+acceptance. Read it inside the installed package before initializing an existing
+repository. `nimi-app --help` prints its resolved location. Installation does
+not activate instructions; explicit init/sync maintains the project skill under
+`.agents/skills/nimi-app-lifecycle/` and an independent AGENTS.md block.
+
+Prepare the existing App's actual pnpm/Vite/Electron renderer, supervised Host
+and build/test scripts first. Init does not convert a server framework, invent
+tests or replace product UI. Install the selected app-tools and the exact
+nimi-coding version declared in its `nimiScaffoldVersions`, then preview:
+
+```bash
+pnpm exec nimi-app init --adopt --dry-run --json
+pnpm exec nimi-app init --adopt
+pnpm install
+pnpm exec nimi-app check
+```
+
+Existing nimi.app.yaml and `.nimi/config/build-profile.yaml` supply the inputs.
+If either is missing, pass `--input .nimi/local/adopt-input.json`. This temporary
+JSON accepts only `manifest` and `build_profile`, using those same schemas.
+For an App whose named scripts are already implemented, an input is:
+
+```json
+{
+  "manifest": {
+    "app_id": "example.editor", "display_name": "Example Editor", "version": "0.1.0",
+    "profile": "standalone", "manifest_role": "submitted-input",
+    "app_access": ["runtime.consume"], "capability_contract_refs": ["text.generate"],
+    "required_standardized_feature_refs": [], "storage_policy": { "kind": "nimi-mediated-default" },
+    "local_development": { "electron": { "renderer_origin": "http://127.0.0.1:1466" } }
+  },
+  "build_profile": {
+    "build_profile_ref": "electron-packager-pnpm-vite", "profile_role": "developer-workflow-input",
+    "test_command": "pnpm run test:app", "build_command": "pnpm run build:electron:production",
+    "targets": {
+      "windows-x86_64": {
+        "os": "windows", "arch": "x86_64",
+        "payload_path": "dist-electron-package/example-editor-shell-win32-x64",
+        "runtime_entry": "payload/example-editor-shell.exe"
+      }
+    }
+  }
+}
+```
+
+Use actual identity, version, declarations and target outputs. Complete portable
+App information before packaging. Supplied input must agree with an existing
+file. Unknown managed-file collisions and broken markers fail before writes;
+existing Host, business code, README and license remain App-owned. Adoption
+creates no fresh scaffold intent/lock. Init validates output declarations;
+build/pack later verify actual payloads.
+
+`init --dry-run --json` and `sync --dry-run --json` show app-tools file/field
+changes without writes, installation or owner mutation. The separate
+nimi-coding step and expected version are listed without simulating its internals.
+For an upgrade, install the target app-tools and exact nimi-coding before apply.
+Sync recomputes fresh scaffold derived projections while retaining immutable
+identity/direct features and App-owned code; then install the normalized
+dependencies, refresh package-manager locks, check and verify the affected task.
+The checkout directory is reported in command output, not persisted as App
+identity; syncing an upgraded project after relocating it does not dirty its
+intent/lock merely because the absolute path changed.
+An installed nimi-coding version that differs from the selected tool matrix is
+rejected before its projection command runs.
+
 ## Command family
 
 The public CLI has exactly eight commands:
@@ -14,7 +83,7 @@ create -> dependency install -> init -> sync -> check
 ```
 
 - `create` writes a standalone private App project with a dotted App ID, exact version, public dependency declarations, developer build/submission inputs and one managed workflow. It does not install dependencies or create admission truth.
-- `init` materializes package-owned projections and the scaffold lock after dependencies are installed.
+- `init` materializes package-owned projections and lifecycle guidance after dependencies are installed. Fresh scaffolds also receive their scaffold lock; `init --adopt` preserves an existing App without creating scaffold intent or lock.
 - `sync` refreshes only scaffold-managed dependencies, configuration, workflow and glue. App-owned product code is preserved.
 - `check` is non-mutating and incorporates the former scaffold validation behavior.
 - `dev` requests the official Desktop-supervised Electron development Host.
@@ -77,7 +146,7 @@ pnpm dev -- --resume <selector>
 
 The list shows the current project's registrations and creation times. Copy the desired selector from that list; Desktop resolves it to the exact existing Runtime-owned registration. Selectors last for the current Desktop session, so list again after restarting Desktop. No selector is stored in the App repository, and no App ID or path automatically reopens a subject. Plain `pnpm dev` keeps its fresh-registration behavior when no matching run is active. These options require a Desktop build that supports explicit launcher selection.
 
-The default `windows-x86_64` build profile runs `build:electron:production`. It rebuilds the renderer and Electron main/preload, then creates a fresh, non-installer `dist-electron-package/<app>-shell-win32-x64/` directory with `asar` disabled and an App-specific `<app>-shell.exe`. The production main bundle has a compile-time production marker and rejects every `--nimi-dev-renderer-url` argument; packaged renderer assets stay relative under `dist/`. The protected native binding is resolved from Kit's optional dependency and is never declared directly by the App.
+The default `windows-x86_64` build profile runs `build:electron:production`. It rebuilds the renderer and Electron main/preload, then creates a fresh, non-installer `dist-electron-package/<app>-shell-win32-x64/` directory with ASAR packaging, native `.node` addons unpacked, and an App-specific `<app>-shell.exe`. The production main bundle has a compile-time production marker and rejects every `--nimi-dev-renderer-url` argument; packaged renderer assets stay relative under `dist/`. The protected native binding is resolved from Kit's optional dependency and is never declared directly by the App.
 
 App Tools 0.3 also prepares the `macos-aarch64` target on an Apple Silicon Mac.
 The same owner command produces `dist-electron-package/<app>-shell-darwin-arm64/`
@@ -102,8 +171,9 @@ Tauri remains an explicit alternative through `pnpm run build:tauri:production`;
 ## Canonical release boundary
 
 The Registry publication chain uses the stages below. Publisher GitHub Release
-is available for configured pilot repositories; protected Registry admission and
-verified installation, update, launch and uninstall are available on Windows x86_64:
+is available for configured pilot repositories. Protected Registry admission and
+installed App lifecycle use their separate Platform, Runtime and Desktop owners;
+each App's declared target still needs its own acceptance.
 
 ```text
 public App repository
@@ -111,11 +181,16 @@ public App repository
   -> immutable protected version tag
   -> tag-triggered publisher GitHub Actions
   -> immutable GitHub Release assets
-  -> publisher-fork registry pull request
+  -> publisher-owned registry pull request
   -> human-reviewed static registry main
   -> Runtime download/install
   -> Desktop exact Host launch
 ```
+
+External publishers submit from their own fork. An authorized publisher sharing
+the Registry namespace can use a same-repository branch. Both paths use one
+publisher-owned branch and pull request for the exact App version and Release;
+human maintainers own admission.
 
 The registry references publisher Release assets and never mirrors bytes. GitHub Release is not catalog admission; catalog admission is not installed; installed is not running; running is not Nimi Access ready.
 
@@ -280,15 +355,19 @@ declares the tested public SDK, Kit and Tauri shell versions used by new Apps an
 explicit `sync`; workspace development version bumps do not change those ranges.
 The release workflow requires those public versions before publishing App Tools.
 
-App Tools 0.5.1 uses SDK `^0.11.0` and Kit `^0.7.0`. Existing Apps upgrade explicitly:
+Existing Apps follow the [platform upgrade guide](skills/nimi-app-lifecycle/references/upgrade-platform.md).
+Select a published app-tools version and the exact nimi-coding version in that
+release's `nimiScaffoldVersions`. Install both in the App's `devDependencies`
+before invoking the target tool. Read the SDK/Kit migration notes and update the
+affected App-owned API uses, then preview and apply:
 
 ```bash
-pnpm add -D @nimiplatform/app-tools@^0.5.1
-pnpm run sync
+pnpm exec nimi-app sync --dry-run --json
+pnpm exec nimi-app sync
 pnpm install
-pnpm run check
-pnpm run test
-pnpm run app:build -- --target windows-x86_64
+pnpm exec nimi-app check
+pnpm exec nimi-app test
+pnpm exec nimi-app build --target windows-x86_64
 ```
 
 Use the App's declared target for the final build. `sync` preserves App-owned

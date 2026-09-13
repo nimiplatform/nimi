@@ -253,7 +253,15 @@ function cliScaffold(profile, extraArgs = [], tempRootParent = os.tmpdir()) {
 }
 
 function writeInstalledLock(target) {
+  const codingPackage = path.join(target, 'node_modules/@nimiplatform/nimi-coding');
+  mkdirSync(path.join(codingPackage, 'bin'), { recursive: true });
   const packageJson = JSON.parse(readFileSync(path.join(target, 'package.json'), 'utf8'));
+  writeFileSync(path.join(codingPackage, 'package.json'), JSON.stringify({ name: '@nimiplatform/nimi-coding', version: packageJson.devDependencies['@nimiplatform/nimi-coding'], bin: { nimicoding: 'bin/nimicoding.mjs' } }));
+  writeFileSync(path.join(codingPackage, 'bin/nimicoding.mjs'), [
+    'import { mkdirSync, writeFileSync } from "node:fs";',
+    'if (process.argv.slice(2).join(" ") === "sync --apply --json") { mkdirSync(".nimi/methodology", { recursive: true }); writeFileSync(".nimi/methodology/authority-authoring.yaml", "source: fake-nimicoding-sync\\n"); }',
+    'process.stdout.write(JSON.stringify({ ok: true, summary: { total: 1, created: 1 } }) + "\\n");',
+  ].join('\n'));
   const importer = {};
   for (const sectionName of ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']) {
     const entries = Object.entries(packageJson[sectionName] || {});

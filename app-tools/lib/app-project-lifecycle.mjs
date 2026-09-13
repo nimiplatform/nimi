@@ -7,7 +7,9 @@ import path from 'node:path';
 import { parse as parseYaml, parseDocument as parseYamlDocument, stringify as stringifyYaml } from 'yaml';
 
 import { assertManifestAppAccessDeclaration } from './app-access-declaration.mjs';
-import { syncManagedApp, validateAppProject } from './app-doctor-update.mjs';
+import { planManagedAppSync, validateAppProject, validateAppProjectInputs, validateManagedAppFiles } from './app-doctor-update.mjs';
+import { LIFECYCLE_SKILL_PATH, hasLifecycleGuidanceOwner, lifecycleOwnerSteps, planLifecycleGuidance } from './app-lifecycle-guidance.mjs';
+import { applyProjectFiles, describeChanges, plannedFile } from './app-project-files.mjs';
 import {
   SCAFFOLD_INTENT_PATH,
   SCAFFOLD_LOCK_PATH,
@@ -16,6 +18,7 @@ import {
   renderAppBuildProfile,
   renderAppIdentityInput,
   renderAppSubmissionInput,
+  renderScaffoldBoundary,
 } from './app-scaffold.mjs';
 import { validateAppScaffoldNpmRegistryVersion } from './app-scaffold-capabilities.mjs';
 
@@ -63,12 +66,22 @@ function readJsonFile(filePath, label) {
   }
 }
 
-function readSubmittedManifest(targetDir) {
+function hasProjectFile(targetDir, relativePath, sources) {
+  return sources?.has(relativePath) ? sources.get(relativePath) !== null : existsSync(path.join(targetDir, relativePath));
+}
+
+function readProjectText(targetDir, relativePath, sources) {
+  return sources?.has(relativePath)
+    ? Buffer.from(sources.get(relativePath)).toString('utf8')
+    : readFileSync(path.join(targetDir, relativePath), 'utf8');
+}
+
+function readSubmittedManifest(targetDir, sources) {
   const manifestPath = path.join(targetDir, 'nimi.app.yaml');
-  if (!existsSync(manifestPath)) {
+  if (!hasProjectFile(targetDir, 'nimi.app.yaml', sources)) {
     throw new Error('Existing submitted app requires nimi.app.yaml');
   }
-  const source = readFileSync(manifestPath, 'utf8');
+  const source = readProjectText(targetDir, 'nimi.app.yaml', sources);
   assertManifestAppAccessDeclaration(source, manifestPath);
   let document;
   try {
@@ -401,10 +414,10 @@ function normalizePnpmWorkspace(targetDir) {
   };
 }
 
-function assertPnpmWorkspaceCurrent(targetDir) {
+function assertPnpmWorkspaceCurrent(targetDir, sources) {
   const workspacePath = path.join(targetDir, 'pnpm-workspace.yaml');
-  if (!existsSync(workspacePath)) return;
-  const source = readFileSync(workspacePath, 'utf8');
+  if (!hasProjectFile(targetDir, 'pnpm-workspace.yaml', sources)) return;
+  const source = readProjectText(targetDir, 'pnpm-workspace.yaml', sources);
   const workspace = parseYamlFile(source, workspacePath);
   const overrides = workspace?.overrides;
   if (overrides !== undefined && (!overrides || typeof overrides !== 'object' || Array.isArray(overrides))) {
@@ -565,12 +578,12 @@ function assertTauriConfigCurrent(config, appId) {
   }
 }
 
-function normalizeStandaloneSourceFiles(targetDir) {
+function normalizeStandaloneSourceFiles(targetDir, sources) {
   const planned = [];
   for (const name of ['vite.config.ts', 'vite.config.js', 'vite.config.mjs']) {
     const filePath = path.join(targetDir, name);
-    if (!existsSync(filePath)) continue;
-    const previous = readFileSync(filePath, 'utf8');
+    if (!hasProjectFile(targetDir, name, sources)) continue;
+    const previous = readProjectText(targetDir, name, sources);
     let content = previous
       .replace(/^const nimiRepoRoot\s*=.*\r?\n/gmu, '')
       .replace(/^const nimiSdkSourceRoot\s*=.*\r?\n/gmu, '')
@@ -582,8 +595,8 @@ function normalizeStandaloneSourceFiles(targetDir) {
     planned.push({ path: filePath, content, previous });
   }
   const stylesPath = path.join(targetDir, 'src', 'styles.css');
-  if (existsSync(stylesPath)) {
-    const previous = readFileSync(stylesPath, 'utf8');
+  if (hasProjectFile(targetDir, 'src/styles.css', sources)) {
+    const previous = readProjectText(targetDir, 'src/styles.css', sources);
     const content = previous.replace(
       /^@source\s+["'][^"']*\/nimi\/kit\/\*\*\/\*\.\{ts,tsx\}["'];?\r?$/gmu,
       '@source "../node_modules/@nimiplatform/kit/**/*.{js,mjs,ts,tsx}";',
@@ -593,11 +606,11 @@ function normalizeStandaloneSourceFiles(targetDir) {
   return planned;
 }
 
-function assertNoStandaloneParentSources(targetDir) {
+function assertNoStandaloneParentSources(targetDir, sources) {
   for (const relativePath of ['vite.config.ts', 'vite.config.js', 'vite.config.mjs', 'src/styles.css']) {
     const filePath = path.join(targetDir, ...relativePath.split('/'));
-    if (!existsSync(filePath)) continue;
-    const source = readFileSync(filePath, 'utf8');
+    if (!hasProjectFile(targetDir, relativePath, sources)) continue;
+    const source = readProjectText(targetDir, relativePath, sources);
     if (
       /nimiRepoRoot|nimiSdkSourceRoot|nimiKitSourceRoot|\/nimi-realm\/nimi\/(?:sdks|kit)\//u.test(source)
       || /find:\s*\/\^@nimiplatform\\\/(?:sdk|kit)(?:\\\/|\$)/u.test(source)
@@ -626,13 +639,13 @@ function tauriIdentifierFromAppId(appId) {
   return `ai.nimi.apps.${appId}`;
 }
 
-function readProjectLifecycleFiles(targetDir, buildProfileRef) {
+function readProjectLifecycleFiles(targetDir, buildProfileRef, sources) {
   const packagePath = path.join(targetDir, 'package.json');
   if (!existsSync(packagePath)) throw new Error('Required App lifecycle file is missing: package.json');
   const files = {
     packagePath,
-    packageSource: readFileSync(packagePath, 'utf8'),
-    packageJson: readJsonFile(packagePath, 'package.json'),
+    packageSource: readProjectText(targetDir, 'package.json', sources),
+    packageJson: JSON.parse(readProjectText(targetDir, 'package.json', sources)),
     cargoPath: null,
     cargoSource: null,
     tauriPath: null,
@@ -645,9 +658,9 @@ function readProjectLifecycleFiles(targetDir, buildProfileRef) {
   for (const requiredPath of [files.cargoPath, files.tauriPath]) {
     if (!existsSync(requiredPath)) throw new Error(`Required App lifecycle file is missing: ${path.relative(targetDir, requiredPath)}`);
   }
-  files.cargoSource = readFileSync(files.cargoPath, 'utf8');
-  files.tauriSource = readFileSync(files.tauriPath, 'utf8');
-  files.tauriConfig = readJsonFile(files.tauriPath, 'src-tauri/tauri.conf.json');
+  files.cargoSource = readProjectText(targetDir, 'src-tauri/Cargo.toml', sources);
+  files.tauriSource = readProjectText(targetDir, 'src-tauri/tauri.conf.json', sources);
+  files.tauriConfig = JSON.parse(files.tauriSource);
   return files;
 }
 
@@ -701,12 +714,12 @@ function assertVersionLockstep(files, descriptor, buildProfileRef) {
   return version;
 }
 
-function assertCanonicalAuthoringInputs(targetDir, descriptor, files, version, nativeIdentity) {
+function assertCanonicalAuthoringInputs(targetDir, descriptor, files, version, nativeIdentity, sources) {
   const identityPath = path.join(targetDir, APP_IDENTITY_PATH);
   const submissionPath = path.join(targetDir, SUBMISSION_PATH);
-  if (!existsSync(identityPath)) throw new Error(`Required App lifecycle file is missing: ${APP_IDENTITY_PATH}`);
-  if (!existsSync(submissionPath)) throw new Error(`Required App lifecycle file is missing: ${SUBMISSION_PATH}`);
-  const identity = assertExactKeys(parseYamlFile(readFileSync(identityPath, 'utf8'), identityPath), APP_IDENTITY_PATH, [
+  if (!hasProjectFile(targetDir, APP_IDENTITY_PATH, sources)) throw new Error(`Required App lifecycle file is missing: ${APP_IDENTITY_PATH}`);
+  if (!hasProjectFile(targetDir, SUBMISSION_PATH, sources)) throw new Error(`Required App lifecycle file is missing: ${SUBMISSION_PATH}`);
+  const identity = assertExactKeys(parseYamlFile(readProjectText(targetDir, APP_IDENTITY_PATH, sources), identityPath), APP_IDENTITY_PATH, [
     'app_id', 'display_name', 'version', 'npm_package_name', 'cargo_package_name', 'tauri_identifier', 'package_author', 'identity_role',
   ]);
   const packageAuthor = files.packageJson.author === undefined ? null : files.packageJson.author;
@@ -725,7 +738,7 @@ function assertCanonicalAuthoringInputs(targetDir, descriptor, files, version, n
     if (identity[key] !== expected) throw new Error(`${APP_IDENTITY_PATH} ${key} must match its canonical owner`);
   }
 
-  const submission = assertExactKeys(parseYamlFile(readFileSync(submissionPath, 'utf8'), submissionPath), SUBMISSION_PATH, [
+  const submission = assertExactKeys(parseYamlFile(readProjectText(targetDir, SUBMISSION_PATH, sources), submissionPath), SUBMISSION_PATH, [
     'app_id',
     'display_name',
     'version',
@@ -776,14 +789,14 @@ function assertCanonicalAuthoringInputs(targetDir, descriptor, files, version, n
   return { identity, submission };
 }
 
-function assertManagedWorkflowCurrent(targetDir) {
+function assertManagedWorkflowCurrent(targetDir, sources) {
   const workflowPath = path.join(targetDir, MANAGED_WORKFLOW_PATH);
-  if (!existsSync(workflowPath)) throw new Error(`Required App lifecycle file is missing: ${MANAGED_WORKFLOW_PATH}`);
-  if (readFileSync(workflowPath, 'utf8') !== managedAppReleaseWorkflowSource()) {
+  if (!hasProjectFile(targetDir, MANAGED_WORKFLOW_PATH, sources)) throw new Error(`Required App lifecycle file is missing: ${MANAGED_WORKFLOW_PATH}`);
+  if (readProjectText(targetDir, MANAGED_WORKFLOW_PATH, sources) !== managedAppReleaseWorkflowSource()) {
     throw new Error(`${MANAGED_WORKFLOW_PATH} must match the app-tools managed workflow`);
   }
   const workflowDir = path.dirname(workflowPath);
-  for (const name of readdirSync(workflowDir).sort()) {
+  for (const name of existsSync(workflowDir) ? readdirSync(workflowDir).sort() : []) {
     const candidatePath = path.join(workflowDir, name);
     if (candidatePath === workflowPath || !/\.ya?ml$/iu.test(name)) continue;
     const source = readFileSync(candidatePath, 'utf8');
@@ -821,10 +834,10 @@ function canonicalProjectPath(value, field) {
   return value;
 }
 
-function readBuildProfile(targetDir) {
+function readBuildProfile(targetDir, sources) {
   const filePath = path.join(targetDir, BUILD_PROFILE_PATH);
-  if (!existsSync(filePath)) throw new Error(`Required App lifecycle file is missing: ${BUILD_PROFILE_PATH}`);
-  const profile = parseYamlFile(readFileSync(filePath, 'utf8'), filePath);
+  if (!hasProjectFile(targetDir, BUILD_PROFILE_PATH, sources)) throw new Error(`Required App lifecycle file is missing: ${BUILD_PROFILE_PATH}`);
+  const profile = parseYamlFile(readProjectText(targetDir, BUILD_PROFILE_PATH, sources), filePath);
   if (!profile || typeof profile !== 'object' || Array.isArray(profile)) {
     throw new Error(`${BUILD_PROFILE_PATH} must contain an object`);
   }
@@ -925,9 +938,10 @@ function runOwnerCommand(targetDir, kind, command, options, runners) {
 }
 
 function assertProjectLifecycleCurrent(targetDir, versions, options = {}) {
-  const descriptor = readSubmittedManifest(targetDir);
-  const buildProfile = readBuildProfile(targetDir);
-  const files = readProjectLifecycleFiles(targetDir, buildProfile.buildProfileRef);
+  const sources = options.sources;
+  const descriptor = readSubmittedManifest(targetDir, sources);
+  const buildProfile = readBuildProfile(targetDir, sources);
+  const files = readProjectLifecycleFiles(targetDir, buildProfile.buildProfileRef, sources);
   assertPackageManifestCurrent(files.packageJson, versions);
   const version = assertVersionLockstep(files, descriptor, buildProfile.buildProfileRef);
   let nativeIdentity = {
@@ -942,10 +956,10 @@ function assertProjectLifecycleCurrent(targetDir, versions, options = {}) {
       tauriIdentifier: files.tauriConfig.identifier,
     };
   }
-  assertNoStandaloneParentSources(targetDir);
-  const authoring = assertCanonicalAuthoringInputs(targetDir, descriptor, files, version, nativeIdentity);
-  assertManagedWorkflowCurrent(targetDir);
-  assertPnpmWorkspaceCurrent(targetDir);
+  assertNoStandaloneParentSources(targetDir, sources);
+  const authoring = assertCanonicalAuthoringInputs(targetDir, descriptor, files, version, nativeIdentity, sources);
+  assertManagedWorkflowCurrent(targetDir, sources);
+  assertPnpmWorkspaceCurrent(targetDir, sources);
   if (options.requireInstalledLock === true) {
     assertPnpmLockCurrent(targetDir, files.packageJson);
     if (buildProfile.buildProfileRef === TAURI_BUILD_PROFILE_REF) {
@@ -955,10 +969,10 @@ function assertProjectLifecycleCurrent(targetDir, versions, options = {}) {
   return { descriptor, files, version, buildProfile, authoring };
 }
 
-function buildExistingSubmittedAppSyncPlan(targetDir, versions) {
-  const descriptor = readSubmittedManifest(targetDir);
-  const buildProfile = readBuildProfile(targetDir);
-  const files = readProjectLifecycleFiles(targetDir, buildProfile.buildProfileRef);
+function buildExistingSubmittedAppSyncPlan(targetDir, versions, sources) {
+  const descriptor = readSubmittedManifest(targetDir, sources);
+  const buildProfile = readBuildProfile(targetDir, sources);
+  const files = readProjectLifecycleFiles(targetDir, buildProfile.buildProfileRef, sources);
   const version = files.packageJson.version;
   if (typeof version !== 'string' || !SEMVER_PATTERN.test(version)) {
     throw new Error('package.json version must be an exact semantic version before sync');
@@ -988,7 +1002,7 @@ function buildExistingSubmittedAppSyncPlan(targetDir, versions) {
     );
     identity.tauriIdentifier = tauriIdentifierFromAppId(descriptor.appId);
   }
-  planned.push(...normalizeStandaloneSourceFiles(targetDir));
+  planned.push(...normalizeStandaloneSourceFiles(targetDir, sources));
   const identityPath = path.join(targetDir, APP_IDENTITY_PATH);
   planned.push({
     path: identityPath,
@@ -996,7 +1010,7 @@ function buildExistingSubmittedAppSyncPlan(targetDir, versions) {
     previous: existsSync(identityPath) ? readFileSync(identityPath, 'utf8') : '',
   });
   const submissionPath = path.join(targetDir, SUBMISSION_PATH);
-  const currentSubmissionSource = existsSync(submissionPath) ? readFileSync(submissionPath, 'utf8') : '';
+  const currentSubmissionSource = hasProjectFile(targetDir, SUBMISSION_PATH, sources) ? readProjectText(targetDir, SUBMISSION_PATH, sources) : '';
   const currentSubmission = currentSubmissionSource ? parseYamlFile(currentSubmissionSource, submissionPath) : null;
   let supportManifest;
   if (currentSubmission) {
@@ -1031,7 +1045,7 @@ function buildExistingSubmittedAppSyncPlan(targetDir, versions) {
   });
   planned.push({ path: submissionPath, content: submissionContent, previous: currentSubmissionSource });
   const buildProfilePath = path.join(targetDir, BUILD_PROFILE_PATH);
-  const currentBuildProfile = existsSync(buildProfilePath) ? readFileSync(buildProfilePath, 'utf8') : '';
+  const currentBuildProfile = hasProjectFile(targetDir, BUILD_PROFILE_PATH, sources) ? readProjectText(targetDir, BUILD_PROFILE_PATH, sources) : '';
   const buildProfileInput = currentBuildProfile
     ? parseYamlFile(currentBuildProfile, buildProfilePath)
     : {};
@@ -1066,7 +1080,7 @@ function buildExistingSubmittedAppSyncPlan(targetDir, versions) {
   });
   const workspace = normalizePnpmWorkspace(targetDir);
   if (workspace) planned.push(workspace);
-  return { descriptor, planned, buildProfileRef: buildProfile.buildProfileRef };
+  return { descriptor, planned: planned.map((file) => plannedFile(targetDir, path.relative(targetDir, file.path), file.content)), buildProfileRef: buildProfile.buildProfileRef };
 }
 
 function lifecycleNextSteps(buildProfileRef, versions) {
@@ -1095,49 +1109,117 @@ function emitResult(payload, options, message) {
   return payload;
 }
 
-function applySyncPlan(targetDir, plan) {
-  const synchronizedFiles = [];
-  for (const file of plan.planned) {
-    if (file.content === file.previous) continue;
-    mkdirSync(path.dirname(file.path), { recursive: true });
-    writeFileSync(file.path, file.content);
-    synchronizedFiles.push(path.relative(targetDir, file.path).split(path.sep).join('/'));
-  }
-  return synchronizedFiles;
+function planSources(targetDir, planned) {
+  return new Map(planned.map((file) => [path.relative(targetDir, file.path).split(path.sep).join('/'), file.content]));
 }
 
+function validateProjectPlan(targetDir, versions, planned, managed) {
+  const sources = planSources(targetDir, planned);
+  const current = assertProjectLifecycleCurrent(targetDir, versions, { sources });
+  for (const target of Object.keys(current.buildProfile.targets)) selectBuildOwner(current.buildProfile, target);
+  validateAppProjectInputs(targetDir, parseYaml(readProjectText(targetDir, 'nimi.app.yaml', sources)), current.files.packageJson, managed, sources);
+  return current;
+}
+
+export function validateAppInitialization(targetDir, versions) {
+  const current = assertProjectLifecycleCurrent(targetDir, versions);
+  for (const target of Object.keys(current.buildProfile.targets)) selectBuildOwner(current.buildProfile, target);
+}
+
+function executeProjectPlan(targetDir, options, versions, runners, plan, scaffold) {
+  if (scaffold) validateManagedAppFiles(targetDir, scaffold.snapshot.lock, planSources(targetDir, plan.planned));
+  validateProjectPlan(targetDir, versions, plan.planned, Boolean(scaffold));
+  const preview = {
+    ok: true, command: options.adopt ? 'init' : 'sync', dir: targetDir,
+    managed: Boolean(scaffold), appId: plan.descriptor.appId,
+    dryRun: options.dryRun === true, skillPath: LIFECYCLE_SKILL_PATH,
+    changes: describeChanges(targetDir, plan.planned), ownerSteps: lifecycleOwnerSteps(versions),
+    nextSteps: lifecycleNextSteps(plan.buildProfileRef, versions),
+  };
+  if (options.dryRun) return emitResult(preview, options, `${preview.command} preview: ${preview.changes.map((file) => `${file.action} ${file.path}`).join(', ') || 'no app-tools changes'}`);
+  const nimicoding = runNimicodingSync(targetDir, 'apply', runners);
+  const lockPath = path.join(targetDir, SCAFFOLD_LOCK_PATH);
+  const lockFile = plan.planned.find((file) => file.path === lockPath);
+  const synchronizedFiles = applyProjectFiles(targetDir, [
+    ...plan.planned.filter((file) => file !== lockFile),
+    ...planLifecycleGuidance(targetDir),
+  ]);
+  assertProjectLifecycleCurrent(targetDir, versions);
+  if (scaffold) {
+    validateManagedAppFiles(targetDir, scaffold.snapshot.lock);
+    synchronizedFiles.push(...applyProjectFiles(targetDir, [lockFile]));
+  }
+  validateAppProject(targetDir, { silent: true }, versions, runners);
+  return emitResult({ ...preview, synchronizedFiles, nimicodingSync: nimicoding?.summary || null }, options, `${preview.command} completed for ${targetDir}`);
+}
+
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-018c
 export function syncAppProject(cwd, options = {}, versions, runners = {}) {
   const targetDir = resolveTargetDir(cwd, options);
   assertNoRetiredScaffoldState(targetDir);
-  const managed = existsSync(path.join(targetDir, SCAFFOLD_LOCK_PATH));
-  if (managed) {
-    const refreshed = syncManagedApp(cwd, { dir: targetDir, silent: true }, versions, runners);
-    const plan = buildExistingSubmittedAppSyncPlan(targetDir, versions);
-    const synchronizedFiles = applySyncPlan(targetDir, plan);
-    validateAppProject(cwd, { dir: targetDir, silent: true }, versions, runners);
-    assertProjectLifecycleCurrent(targetDir, versions);
-    return emitResult({
-      ...refreshed,
-      managed: true,
-      synchronizedFiles,
-      nextSteps: lifecycleNextSteps(plan.buildProfileRef, versions),
-    }, options, `sync completed for ${targetDir}`);
+  const guidance = planLifecycleGuidance(targetDir);
+  const scaffold = existsSync(path.join(targetDir, SCAFFOLD_LOCK_PATH))
+    ? planManagedAppSync(targetDir, {}, versions) : null;
+  const base = scaffold?.planned || [];
+  const plan = buildExistingSubmittedAppSyncPlan(targetDir, versions, planSources(targetDir, base));
+  plan.planned = [...base, ...plan.planned, ...guidance];
+  return executeProjectPlan(targetDir, options, versions, runners, plan, scaffold);
+}
+
+function adoptionSources(targetDir, options) {
+  const input = options.input ? readJsonFile(path.resolve(targetDir, options.input), 'adoption input') : {};
+  assertExactKeys(input, 'adoption input', [], ['manifest', 'build_profile']);
+  const sources = new Map();
+  for (const [key, relativePath] of [['manifest', 'nimi.app.yaml'], ['build_profile', BUILD_PROFILE_PATH]]) {
+    if (!Object.hasOwn(input, key)) continue;
+    requireObject(input[key], `adoption input ${key}`);
+    if (existsSync(path.join(targetDir, relativePath))) {
+      const existing = parseYamlFile(readProjectText(targetDir, relativePath), relativePath);
+      if (stableInputJson(existing) !== stableInputJson(input[key])) throw new Error(`Adoption input conflicts with ${relativePath}`);
+    } else sources.set(relativePath, stringifyYaml(input[key], { lineWidth: 0 }));
   }
-  const plan = managed ? null : buildExistingSubmittedAppSyncPlan(targetDir, versions);
-  const nimicoding = runNimicodingSync(targetDir, 'apply', runners);
-  const synchronizedFiles = applySyncPlan(targetDir, plan);
-  validateAppProject(cwd, { dir: targetDir, silent: true }, versions, runners);
-  assertProjectLifecycleCurrent(targetDir, versions);
-  return emitResult({
-    ok: true,
-    command: 'sync',
-    dir: targetDir,
-    managed,
-    appId: plan?.descriptor.appId || readSubmittedManifest(targetDir).appId,
-    synchronizedFiles,
-    nimicodingSync: nimicoding?.summary || null,
-    nextSteps: lifecycleNextSteps(plan.buildProfileRef, versions),
-  }, options, `sync completed for ${targetDir}`);
+  return sources;
+}
+
+function stableInputJson(value) {
+  if (Array.isArray(value)) return JSON.stringify(value.map((item) => JSON.parse(stableInputJson(item))));
+  if (value && typeof value === 'object') return JSON.stringify(Object.fromEntries(Object.keys(value).sort().map((key) => [key, JSON.parse(stableInputJson(value[key]))])));
+  return JSON.stringify(value);
+}
+
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-008
+export function adoptAppProject(cwd, options = {}, versions, runners = {}) {
+  const targetDir = resolveTargetDir(cwd, options);
+  assertNoRetiredScaffoldState(targetDir);
+  if (existsSync(path.join(targetDir, SCAFFOLD_INTENT_PATH)) || existsSync(path.join(targetDir, SCAFFOLD_LOCK_PATH))) {
+    throw new Error('Existing-App adoption cannot replace fresh scaffold intent/lock. Use nimi-app init or sync for this scaffold.');
+  }
+  const guidance = planLifecycleGuidance(targetDir);
+  const sources = adoptionSources(targetDir, options);
+  let plan;
+  try {
+    plan = buildExistingSubmittedAppSyncPlan(targetDir, versions, sources);
+  } catch (cause) {
+    throw new Error(`${cause.message}. Prepare the real App-owned Host and build/test inputs using ${LIFECYCLE_SKILL_PATH}`, { cause });
+  }
+  if (plan.buildProfileRef !== ELECTRON_BUILD_PROFILE_REF) throw new Error('Existing-App init supports electron-packager-pnpm-vite; existing Tauri projects retain their sync path.');
+  const files = readProjectLifecycleFiles(targetDir, plan.buildProfileRef);
+  const profile = readBuildProfile(targetDir, sources);
+  for (const command of [profile.testCommand, profile.buildCommand, ...Object.keys(profile.targets).map((target) => selectBuildOwner(profile, target).command)]) {
+    const script = command.match(/^pnpm\s+run\s+([^\s]+)(?:\s|$)/u)?.[1];
+    if (script && (!files.packageJson.scripts?.[script] || /\bnimi-app\s+(?:test|build)\b/u.test(files.packageJson.scripts[script]))) {
+      throw new Error(`Adoption requires an actual non-recursive package script: ${script}`);
+    }
+  }
+  const established = hasLifecycleGuidanceOwner(targetDir);
+  const boundary = plannedFile(targetDir, '.nimi/contracts/scaffold-boundary.yaml', renderScaffoldBoundary());
+  plan.planned.push(boundary, ...[...sources].map(([relativePath, content]) => plannedFile(targetDir, relativePath, content)), ...guidance);
+  if (!established) {
+    for (const file of plan.planned.filter((file) => [MANAGED_WORKFLOW_PATH, APP_IDENTITY_PATH, '.nimi/contracts/scaffold-boundary.yaml'].includes(path.relative(targetDir, file.path).split(path.sep).join('/')))) {
+      if (file.previous !== null && !Buffer.from(file.previous).equals(Buffer.from(file.content))) throw new Error(`Unknown adoption file collision: ${path.relative(targetDir, file.path)}`);
+    }
+  }
+  return executeProjectPlan(targetDir, { ...options, adopt: true }, versions, runners, plan, null);
 }
 
 export function checkAppProject(cwd, options = {}, versions, runners = {}) {
@@ -1147,10 +1229,11 @@ export function checkAppProject(cwd, options = {}, versions, runners = {}) {
   }
   assertNoRetiredScaffoldState(targetDir);
   const managed = existsSync(path.join(targetDir, SCAFFOLD_LOCK_PATH));
+  const existingState = managed ? null : assertProjectLifecycleCurrent(targetDir, versions, { requireInstalledLock: true });
   const validation = validateAppProject(cwd, { dir: targetDir, silent: true }, versions, runners);
   let nimicoding = null;
   if (!managed) nimicoding = runNimicodingSync(targetDir, 'check', runners);
-  const { descriptor, buildProfile } = assertProjectLifecycleCurrent(targetDir, versions, { requireInstalledLock: true });
+  const { descriptor, buildProfile } = existingState || assertProjectLifecycleCurrent(targetDir, versions, { requireInstalledLock: true });
   if (options.production === true) {
     for (const target of Object.keys(buildProfile.targets)) readAppInfo(targetDir, target);
   }

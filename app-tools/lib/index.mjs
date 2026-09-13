@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import {
@@ -12,9 +12,11 @@ import {
 import { initApp } from './app-doctor-update.mjs';
 import {
   buildAppProject,
+  adoptAppProject,
   checkAppProject,
   syncAppProject,
   testAppProject,
+  validateAppInitialization,
 } from './app-project-lifecycle.mjs';
 import { aggregateAppTargetCandidates, packAppTarget } from './app-pack.mjs';
 export { runDevShell } from '../scripts/dev-shell.mjs';
@@ -68,13 +70,25 @@ function runNimicodingSync(targetDir, mode) {
   if (!['apply', 'check'].includes(mode)) {
     throw new Error(`Unsupported nimicoding sync mode: ${mode}`);
   }
+  const packagePath = path.join(targetDir, 'node_modules', '@nimiplatform', 'nimi-coding', 'package.json');
+  const expectedVersion = SCAFFOLD_VERSIONS.nimicodingVersion;
+  let installed;
+  try { installed = JSON.parse(readFileSync(packagePath, 'utf8')); }
+  catch { throw new Error(`Install project-local @nimiplatform/nimi-coding@${expectedVersion} before nimi-app ${mode === 'apply' ? 'init/sync' : 'check'}.`); }
+  if (installed.name !== '@nimiplatform/nimi-coding' || installed.version !== expectedVersion) {
+    throw new Error(`Project-local @nimiplatform/nimi-coding must be ${expectedVersion}, found ${installed.version || 'unknown'}. Install the target app-tools/nimi-coding combination before applying projections.`);
+  }
+  let entry;
+  try {
+    const packageRoot = realpathSync(path.dirname(packagePath));
+    if (typeof installed.bin?.nimicoding !== 'string' || !installed.bin.nimicoding) throw new Error('Missing bin.nimicoding');
+    entry = realpathSync(path.resolve(packageRoot, installed.bin.nimicoding));
+    if (!entry.startsWith(`${packageRoot}${path.sep}`) || !statSync(entry).isFile()) throw new Error('Invalid bin.nimicoding');
+  } catch (cause) {
+    throw new Error(`Project-local @nimiplatform/nimi-coding@${expectedVersion} must declare an existing nimicoding entry inside its package. Reinstall the selected package before init/sync/check.`, { cause });
+  }
   const flag = mode === 'apply' ? '--apply' : '--check';
-  const pnpmArgs = ['--silent', 'exec', 'nimicoding', 'sync', flag, '--json'];
-  const command =
-    process.platform === 'win32'
-      ? { binary: 'cmd.exe', args: ['/d', '/c', 'corepack', 'pnpm', ...pnpmArgs] }
-      : { binary: 'corepack', args: ['pnpm', ...pnpmArgs] };
-  const result = spawnSync(command.binary, command.args, {
+  const result = spawnSync(process.execPath, [entry, 'sync', flag, '--json'], {
     cwd: targetDir,
     encoding: 'utf8',
   });
@@ -180,6 +194,8 @@ function resolveCreateTopology() {
 }
 
 export function initAppScaffold(cwd, options = {}) {
+  if (options.adopt) return adoptAppProject(cwd, options, appScaffoldVersions(), appToolRunners());
+  validateAppInitialization(path.resolve(cwd, options.dir || '.'), appScaffoldVersions());
   return initApp(cwd, options, appScaffoldVersions(), appToolRunners());
 }
 

@@ -1483,7 +1483,7 @@ units:
     kind: rule
     title: P-DEV-004 immutable candidate submission
     modality: must
-    statement: A submitted candidate artifact is built only by the publisher's tag-triggered GitHub Actions from a protected immutable version tag resolved to one commit SHA, is published in the immutable GitHub Release for that tag, and is submitted through one publisher-owned registry fork branch bound to the same app_id, version, Release, tag, and SHA; a bare reviewed SHA, branch, mutable tag, local artifact upload, parallel retry pull request, or direct upstream-main push is not a production candidate source.
+    statement: A submitted candidate artifact is built only by the publisher's tag-triggered GitHub Actions from a protected immutable version tag resolved to one commit SHA, is published in the immutable GitHub Release for that tag, and is submitted through one publisher-owned Registry pull-request branch bound to the same app_id, version, Release, tag, and SHA; an external publisher uses its own fork, while a publisher sharing the Registry repository namespace may use an authorized branch in that repository, and neither path bypasses deterministic checks or the explicit human admission decision; a bare reviewed SHA, branch, mutable tag, local artifact upload, parallel retry pull request, or direct upstream-main push is not a production candidate source.
     condition: Whenever a third-party candidate artifact is submitted or admitted.
     failure: Fail admission closed with mutable_submission_artifact or submission_identity_conflict before review when tag, SHA, Release, publisher branch, or candidate identity is absent, mutable, mismatched, or duplicated.
     relations:
@@ -1502,7 +1502,7 @@ units:
   - id: definition.nimi.platform.app-ecosystem.scaffold-custody
     kind: definition
     title: Scaffold authoring and custody boundary
-    meaning: App Tools owns third-party repository creation and initialization, scaffold synchronization and checks, Desktop-supervised local development, test and build orchestration, deterministic per-target packaging and aggregate candidate input, production preflight, and managed tag-only GitHub workflow source while the App owns product code and repository, the publisher repository and GitHub own protected-tag Actions, attestation, and immutable Release execution, Platform registry maintainers own review and main, Runtime owns source-qualified installation and protected access, and Desktop owns exact Host processes; publisher branch pull-request preparation and human-reviewed static Registry admission are available through their Registry owner path, verified Catalog discovery, installation, installed launch/focus/stop, protected App session Access and uninstall on Windows x86_64 are available through Runtime and Desktop, while local publish, other-platform package lifecycle, update and repair remain unavailable, and a publisher GitHub Release alone creates none of those later truths.
+    meaning: App Tools owns third-party repository creation and initialization, scaffold synchronization and checks, packaged lifecycle guidance, Desktop-supervised local development, test and build orchestration, deterministic per-target packaging and aggregate candidate input, production preflight, and managed tag-only GitHub workflow source while the App owns product code and repository, the publisher repository and GitHub own protected-tag Actions, attestation, and immutable Release execution, Platform registry maintainers own review and main, Runtime owns source-qualified installation and protected access, and Desktop owns exact Host processes; current availability follows P-ARCH-001a and the exact lifecycle owners rather than creating another availability promise in scaffold guidance, and a publisher GitHub Release alone creates none of those later truths.
   - id: definition.nimi.platform.app-ecosystem.nimi-lab
     kind: definition
     title: Nimi Lab full-capability development App
@@ -1543,7 +1543,7 @@ units:
     kind: rule
     title: P-SCAF-002 accepted bootstrap command and dependency boundaries
     modality: must
-    statement: Third-party repository authoring, development, build, packaging, and managed workflow preparation remain under the exact nimi-app command family defined by P-SCAF-008, while local publish and registry pull-request preparation remain unavailable; standalone Rust shell consumption uses the published nimi-shell-tauri channel only after its public mechanics are admitted, and workspace consumption remains a non-public validation topology.
+    statement: Third-party repository authoring, development, build, packaging, and managed workflow preparation remain under the exact nimi-app command family defined by P-SCAF-008, local publish remains unavailable, and publisher pull-request preparation uses the Registry owner path; standalone Rust shell consumption uses the published nimi-shell-tauri channel only after its public mechanics are admitted, and workspace consumption remains a non-public validation topology.
     condition: Whenever the app-authoring command or Rust-shell dependency surface is selected.
     failure: Reject a Runtime CLI takeover, unadmitted publication claim, or dependency path outside the applicable boundary.
     relations:
@@ -1597,7 +1597,7 @@ units:
     kind: rule
     title: P-SCAF-008 complete nimi-app command family
     modality: must
-    statement: The public nimi-app CLI is exactly two sub-families consisting of authoring create, init, and sync and development and build check, dev, test, build, and pack; public doctor, update, and publish commands, aliases, compatibility shims, additional command owners, and Runtime-CLI ownership of these semantics are forbidden until a separately aligned publisher and registry owner path is implemented.
+    statement: The public nimi-app CLI is exactly two sub-families consisting of authoring create, init, and sync and development and build check, dev, test, build, and pack; init may explicitly adopt an existing pnpm, Vite, and Desktop-supervised Electron App using its actual submitted manifest and build-owner inputs, and init and sync may preview their own planned changes without writes or owner mutation; public doctor, update, and publish commands, aliases, compatibility shims, additional command owners, and Runtime-CLI ownership of these semantics are forbidden.
     condition: Whenever a third-party developer command is exposed or assigned an owner.
     failure: Reject an unknown, duplicate, aliased, or out-of-owner command before mutation or execution.
     relations:
@@ -1607,7 +1607,7 @@ units:
     kind: rule
     title: P-SCAF-009 create and init custody
     modality: must
-    statement: nimi-app create writes the source skeleton, canonical identity and version inputs, developer manifest and build profile, explicit initialization intent, and managed workflow source without installing dependencies or creating release or admission truth, while nimi-app init consumes installed dependencies, performs pinned deterministic package projection sync, and writes scaffold-owned lock and developer-input state without hidden postinstall mutation or product-code reconstruction.
+    statement: nimi-app create writes the source skeleton, canonical identity and version inputs, developer manifest and build profile, explicit initialization intent, and managed workflow source without installing dependencies or creating release or admission truth, while nimi-app init consumes installed dependencies and performs pinned deterministic package projection sync; fresh initialization writes the scaffold lock from its create intent, and explicit existing-App adoption validates actual manifest and build-owner inputs and file ownership before writing developer inputs and lifecycle guidance without a fresh intent or lock, hidden postinstall mutation, or product-code reconstruction.
     condition: Whenever create or init mutates a developer repository.
     failure: Abort on uninstalled, hidden, interactive, template-owned, or out-of-custody mutation.
     relations:
@@ -1709,9 +1709,19 @@ units:
     kind: rule
     title: P-SCAF-018 synchronization preserves app custody
     modality: must
-    statement: nimi-app sync keeps official launcher, public dependency, managed workflow, and package-contract references deterministic, never overwrites app-owned product files, removes local, workspace, path, and parent-source overrides from standalone external App repositories rather than preserving a second release topology, preserves the Nimi Lab workspace validation topology allowed by P-SCAF-002, and applies the same Kit and Runtime product boundary to both consumers.
+    statement: nimi-app sync keeps official launcher, public dependency, managed workflow, and package-contract references deterministic, never overwrites app-owned product files, removes local, workspace, path, and parent-source overrides from standalone external App repositories rather than preserving a second release topology, preserves the Nimi Lab workspace validation topology allowed by P-SCAF-002, and applies the same Kit and Runtime product boundary to both consumers; existing-App adoption retains App-owned Host and business code without fabricating fresh scaffold intent or lock, while fresh scaffold upgrades preserve immutable identity and direct feature inputs and recompute dependency and other derived projections from the selected tool version.
     condition: Whenever launcher glue is synchronized or consumed.
     failure: Reject non-deterministic glue, product-file overwrite, or consumer-specific authority bypass.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.scaffold-custody
+  - id: rule.nimi.platform.app-ecosystem.p-scaf-018d
+    kind: rule
+    title: P-SCAF-018 packaged lifecycle guidance
+    modality: must
+    statement: App Tools packages one lifecycle skill with task-specific references readable before initialization, projects it into its fixed project skill directory and an independent AGENTS managed block only through explicit init or sync, preserves unrelated instructions and App-owned source and license files, and rejects unknown first-adoption file or block collisions before writing; dependency installation does not activate instructions, check remains read-only, and neither guidance nor command results own external AI-host tasks or imply product acceptance, release, Registry admission, installation, running, or App Access.
+    condition: Whenever lifecycle guidance is packaged, projected, synchronized, or used for App development.
+    failure: Reject conflicting ownership, implicit install-time mutation, fabricated scaffold state, or a completion claim beyond the operation actually observed.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.scaffold-custody

@@ -198,6 +198,7 @@ describe('runtime AI consume contract', () => {
     const executeScenario = vi.fn<RuntimeAIConsumeRuntime['ai']['executeScenario']>(async () => ({
       output: { output: { oneofKind: 'textEmbed', textEmbed: {
         vectors: [{ values: [0.1, 0.2, 0.3] }, { values: [0.4, 0.5, 0.6] }],
+        spaceId: 'embedding-space-fixture',
       } } },
       finishReason: 1,
       usage: {

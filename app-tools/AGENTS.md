@@ -3,7 +3,7 @@
 ## Scope
 - Applies to `app-tools/**`.
 - `@nimiplatform/app-tools` is the public full-stack developer toolkit for third-party Nimi Apps. Its closed CLI surface is `create`, `init`, `sync`, `check`, `dev`, `test`, `build`, and `pack`; `doctor`, `update`, and local `publish` are absent without aliases.
-- App Tools prepares repositories, production preflight, deterministic packages, and managed GitHub workflow source. Local `publish` and app-tools-owned tag orchestration do not exist; in an explicitly configured pilot repository, a publisher-owned protected tag may trigger the managed GitHub Actions, attestation, and immutable Release path. Registry submission, Runtime installation, Desktop installed launch, and Runtime access remain unavailable until their real owner paths are implemented. App Tools does not own GitHub identity or repository truth, registry review/main, Runtime installed state, Desktop process truth, or Runtime access.
+- App Tools prepares repositories, lifecycle skills, production preflight, deterministic packages, and managed GitHub workflow source. Local `publish` and app-tools-owned tag orchestration do not exist; in an explicitly configured pilot repository, a publisher-owned protected tag may trigger the managed GitHub Actions, attestation, and immutable Release path. Registry preparation and admission, Runtime installation and access, and Desktop installed launch use their separate owner paths; current platform availability follows P-ARCH-001a and those exact owners. App Tools does not own GitHub identity or repository truth, registry review/main, Runtime installed state, Desktop process truth, or Runtime access.
 
 ## Hard Boundaries
 - `apps/lab` is the hand-authored full-capability development and incubation Nimi App. Its presence does not make the whole App, or every Lab surface, scaffoldable.
@@ -16,6 +16,7 @@
 - Platform registry review owns catalog admission and release descriptors; Runtime owns source-qualified installation/update state and access; Desktop owns exact Host process truth.
 - Keep scaffold-managed glue explicit and reviewable in generator-owned code. Do not hide shared Runtime/SDK/Kit/shell behavior inside App-owned Lab product files.
 - Do not add install-time side effects that mutate `.nimi/**`; activation belongs to explicit `nimi-app init`.
+- Package one lifecycle skill and its references for pre-init use; explicit init/sync projects the fixed skill directory and an independent AGENTS block. Existing adoption preserves App-owned Host, product code and licenses without creating fresh scaffold intent/lock. Dry-run plans only app-tools changes and never invokes owner mutations.
 - Do not use Lab-local prose or implementation presence as App ecosystem authority or scaffold admission truth.
 
 ## Retrieval Defaults
