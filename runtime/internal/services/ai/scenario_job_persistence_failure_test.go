@@ -114,6 +114,19 @@ func TestCloudVoiceRunningPersistenceFailureDoesNotCallProviderOrPublishAsset(t 
 	if asset, ok := fixture.service.voiceAssets.getAsset(response.GetJob().GetJobId()); ok || asset != nil {
 		t.Fatalf("RUNNING persistence failure published VoiceAsset %#v", asset)
 	}
+	// A visible FAILED Job precedes deferred credential-custody persistence.
+	// Let the worker finish before TempDir cleanup removes its durable store.
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		store.mu.RLock()
+		finished := !store.jobs[response.GetJob().GetJobId()].executionStarted
+		store.mu.RUnlock()
+		if finished {
+			return
+		}
+		time.Sleep(time.Millisecond)
+	}
+	t.Fatal("voice workflow did not finish durable cleanup")
 }
 
 func TestCloudVoiceTerminalPersistenceFailureDoesNotPublishAsset(t *testing.T) {
