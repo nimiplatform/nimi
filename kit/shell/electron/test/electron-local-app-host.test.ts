@@ -712,6 +712,38 @@ describe('Electron protected local-app host', () => {
     await expect(host.textTurnStreamNext({ streamId: 'text-turn-1' })).rejects.toThrow();
   });
 
+  it('preserves sync and streamed native content when JSON representation expands', async () => {
+    const payload = new TextEncoder().encode(JSON.stringify({
+      type: 'reasoning', id: 'rs_budget', encrypted_content: 'A'.repeat(60 * 1024), summary: [],
+    }));
+    const carrier = { kind: 'openai_codex.responses.encrypted-reasoning', version: 1, payload: Array.from(payload) };
+    const rawArguments = `{"values":[${Array(16 * 1024).fill('1e20').join(',')}]}`;
+    const text = 'x'.repeat(100 * 1024);
+    for (const args of [{ query: 'Nimi' }, JSON.parse(rawArguments)]) {
+      const toolCall = { id: 'call-budget', name: 'search', arguments: args };
+      const output = { type: 'text-generate', items: [{ type: 'reasoning-continuity', carrier }, { type: 'tool-call', toolCall }, { type: 'text', text }], finishReason: 'tool-calls' };
+      const events = [
+        { type: 'reasoning-continuity', sequence: '1', traceId: 'trace-budget', itemIndex: 0, carrier },
+        { type: 'tool-call', sequence: '2', traceId: 'trace-budget', itemIndex: 1, toolCall },
+        ...Array.from({ length: Math.ceil(text.length / (64 * 1024)) }, (_, index) => ({
+          type: 'delta', sequence: String(index + 3), traceId: 'trace-budget', itemIndex: 2, text: text.slice(index * 64 * 1024, (index + 1) * 64 * 1024),
+        })),
+      ];
+      let index = 0;
+      const host = createNimiElectronLocalAppHostForBinding({
+        ...binding([]),
+        localAppScenarioExecute: async () => ({ status: 'ok' as const, value: { output, traceId: 'trace-budget' } }),
+        localAppTextTurnStreamNext: async () => ({ status: 'ok' as const, value: { completed: false, event: events[index++] } }),
+      });
+      await expect(host.scenarioExecute({ spec: {} })).resolves.toEqual({ output, traceId: 'trace-budget' });
+      await host.textTurnSubscribe({ messages: [{ role: 'user', text: 'Answer.' }] });
+      for (let offset = 0; offset < events.length; offset++) {
+        await expect(host.textTurnStreamNext({ streamId: 'text-turn-1' })).resolves.toEqual({ completed: false, event: events[offset] });
+      }
+      await host.textTurnStreamClose({ streamId: 'text-turn-1' });
+    }
+  });
+
   it('resolves only independently admitted fixed native binding package identities', () => {
     expect(resolveNimiElectronProtectedLocalBindingPackage('win32', 'x64')).toBe(
       '@nimiplatform/kit-protected-local-win32-x64',

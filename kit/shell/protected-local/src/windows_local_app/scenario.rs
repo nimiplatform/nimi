@@ -1258,14 +1258,16 @@ fn project_text_turn_event(
             )
         }
         TextTurnPayload::ToolCall(value) => {
-            let call = text_behavior::project_tool_call(value.tool_call.ok_or_else(untrusted)?)?;
-            let bytes = serde_json::to_vec(&call).map_err(|_| untrusted())?.len();
+            let call = value.tool_call.ok_or_else(untrusted)?;
+            let bytes = prost::Message::encoded_len(&call);
+            let call = text_behavior::project_tool_call(call)?;
             *total_delta_bytes = total_delta_bytes.checked_add(bytes).filter(|total| *total <= 256 * 1024).ok_or_else(untrusted)?;
             Ok(json!({"type": "tool-call", "sequence": event.sequence.to_string(), "traceId": event.trace_id, "itemIndex": value.item_index, "toolCall": call}))
         }
         TextTurnPayload::ReasoningContinuity(value) => {
-            let carrier = text_behavior::project_continuity(value.carrier.ok_or_else(untrusted)?)?;
-            let bytes = serde_json::to_vec(&carrier).map_err(|_| untrusted())?.len();
+            let carrier = value.carrier.ok_or_else(untrusted)?;
+            let bytes = prost::Message::encoded_len(&carrier);
+            let carrier = text_behavior::project_continuity(carrier)?;
             *total_delta_bytes = total_delta_bytes.checked_add(bytes).filter(|total| *total <= 256 * 1024).ok_or_else(untrusted)?;
             Ok(json!({"type": "reasoning-continuity", "sequence": event.sequence.to_string(), "traceId": event.trace_id, "itemIndex": value.item_index, "carrier": carrier}))
         }
@@ -1601,6 +1603,40 @@ fn valid_page_token(value: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn text_stream_budget_counts_content_before_json_expansion() {
+        use crate::generated::{LocalAppTextTurnContinuity, LocalAppTextTurnDelta, LocalAppTextTurnToolCall, ReasoningContinuityCarrier, StreamLocalAppTextTurnEvent, ToolCall};
+        let carrier = ReasoningContinuityCarrier {
+            kind: "openai_codex.responses.encrypted-reasoning".into(), version: 1,
+            payload: serde_json::to_vec(&json!({
+                "type": "reasoning", "id": "rs_budget", "encrypted_content": "A".repeat(60 * 1024), "summary": []
+            })).unwrap(),
+        };
+        let call = ToolCall {
+            id: "call-budget".into(), name: "search".into(),
+            arguments_json: format!("{{\"values\":[{}]}}", vec!["1e20"; 16 * 1024].join(",")),
+            ..Default::default()
+        };
+        let mut total_bytes = 0;
+        let mut sequence = 0;
+        let mut send = |payload| {
+            sequence += 1;
+            project_text_turn_event(StreamLocalAppTextTurnEvent {
+                sequence, trace_id: "trace-budget".into(), payload: Some(payload),
+            }, sequence, &mut total_bytes)
+        };
+        send(TextTurnPayload::ReasoningContinuity(LocalAppTextTurnContinuity { item_index: 0, carrier: Some(carrier.clone()) })).unwrap();
+        send(TextTurnPayload::ToolCall(LocalAppTextTurnToolCall { item_index: 1, tool_call: Some(call.clone()) })).unwrap();
+        let remaining = 256 * 1024 - prost::Message::encoded_len(&carrier) - prost::Message::encoded_len(&call);
+        let mut sent = 0;
+        while sent < remaining {
+            let bytes = (remaining - sent).min(50 * 1024);
+            send(TextTurnPayload::Delta(LocalAppTextTurnDelta { item_index: 2, text: "x".repeat(bytes) })).unwrap();
+            sent += bytes;
+        }
+        assert!(send(TextTurnPayload::Delta(LocalAppTextTurnDelta { item_index: 2, text: "x".into() })).is_err());
+    }
 
     #[test]
     fn face_replacement_job_has_two_owned_references_and_no_sync_alias() {

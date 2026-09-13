@@ -1,7 +1,6 @@
 package nimillm
 
 import (
-	"context"
 	"encoding/json"
 	"strings"
 
@@ -85,15 +84,6 @@ func (p textGenParams) hasTools() bool {
 
 func (p textGenParams) requestsToolUse() bool {
 	return p.hasTools() || p.toolChoice != runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_UNSPECIFIED || strings.TrimSpace(p.toolChoiceName) != ""
-}
-
-func (p textGenParams) hasProviderTools() bool {
-	for _, tool := range p.tools {
-		if tool != nil && tool.GetKind() == runtimev1.ToolSpecKind_TOOL_SPEC_KIND_PROVIDER {
-			return true
-		}
-	}
-	return false
 }
 
 // wantsStructuredOutput reports whether a non-text response format was requested.
@@ -279,40 +269,31 @@ func providerRawChunksUnsupportedError() error {
 	})
 }
 
-// unsupportedTextBehaviorSurface admits Tool Use or Structured Output only
-// with one request-scoped exact adapter proof. Current stream serializers have
-// no registered ordered Tool/Structured mapping and therefore stay closed.
-func unsupportedTextBehaviorSurface(ctx context.Context, backend *Backend, modelID string, params textGenParams, input []*runtimev1.ChatMessage, stream bool) error {
+// Primitive Backend entrypoints accept base text only. Optional text behaviors
+// execute through the captured adapter transport.
+// @nimi-authority: rule.nimi.runtime.ai-provider.r119
+// @nimi-authority: rule.nimi.runtime.ai-provider.r123
+func unsupportedTextBehaviorSurface(params textGenParams, input []*runtimev1.ChatMessage) error {
 	if params.includeRawChunks {
 		return providerRawChunksUnsupportedError()
 	}
 	turnToolUse, turnReasoning := textMessagesRequestBehavior(input)
-	toolUse := params.requestsToolUse() || turnToolUse
-	structured := params.wantsStructuredOutput()
-	if turnReasoning || params.hasProviderTools() {
-		return textBehaviorUnsupportedError()
-	}
-	if !toolUse && !structured {
-		return nil
-	}
-	admission := textBehaviorAdmissionFromContext(ctx)
-	if admission == nil || !textBehaviorAdmissionMatchesTarget(admission, backend, modelID) ||
-		(toolUse && !admission.ToolUse) || (structured && !admission.StructuredOutput) ||
-		(toolUse && structured && !admission.ToolStructuredCombination) ||
-		(stream && !admission.Stream) || (!stream && !admission.Sync && !admission.Async) {
-		return textBehaviorUnsupportedError()
-	}
-	if stream {
+	if params.requestsToolUse() || params.wantsStructuredOutput() || turnToolUse || turnReasoning {
 		return textBehaviorUnsupportedError()
 	}
 	return nil
 }
 
-func textBehaviorAdmissionMatchesTarget(admission *TextBehaviorAdmission, backend *Backend, modelID string) bool {
-	if admission == nil || backend == nil || strings.TrimSpace(modelID) == "" || modelID != strings.TrimSpace(modelID) {
-		return false
+func textMessagesRequestBehavior(input []*runtimev1.ChatMessage) (toolUse bool, reasoning bool) {
+	for _, message := range input {
+		for _, item := range message.GetTurnItems() {
+			if item.GetToolResult() != nil || item.GetOutput().GetToolCall() != nil {
+				toolUse = true
+			}
+			if item.GetOutput().GetReasoningSummary() != nil || item.GetOutput().GetReasoningContinuity() != nil {
+				reasoning = true
+			}
+		}
 	}
-	provider := strings.TrimPrefix(strings.ToLower(strings.TrimSpace(backend.Name)), "cloud-")
-	provider = ResolveProviderAlias(provider)
-	return provider == admission.Provider && modelID == admission.ProviderModelID
+	return toolUse, reasoning
 }

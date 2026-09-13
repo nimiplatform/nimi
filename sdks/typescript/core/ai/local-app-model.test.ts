@@ -4,7 +4,7 @@ import { createNimiLocalAppTextModel } from './local-app-model';
 import { createNimiLocalAppAIConsumptionClient } from '../app/local-app-runtime-platform-ai';
 import type { NimiLocalAppTextTurnInput } from '../app/local-app-text';
 
-function fixture(events: () => AsyncIterable<unknown>, onCancel: () => void = () => {}) {
+function fixture(events: () => AsyncIterable<unknown>, onCancel: () => void = () => {}, executeOutput?: unknown) {
   const inputs: NimiLocalAppTextTurnInput[] = [];
   let canceled = 0;
   const unused = async (): Promise<never> => { throw new Error('unused fixture operation'); };
@@ -13,7 +13,7 @@ function fixture(events: () => AsyncIterable<unknown>, onCancel: () => void = ()
       inputs.push(input);
       return { events: events(), cancel: async () => { canceled++; onCancel(); } };
     } },
-    scenario: { execute: unused },
+    scenario: { execute: executeOutput === undefined ? unused : async () => executeOutput },
     scenarioJobs: { submit: unused, get: unused, subscribe: unused, cancel: unused },
     artifacts: { read: unused, upload: unused },
     voiceAssets: { list: unused },
@@ -49,6 +49,42 @@ test('invalid or carrier-only output cannot complete a Local App step', async ()
     });
     await assert.rejects(f.model.generateText({ messages: [user] }), { reasonCode: 'SDK_LOCAL_APP_PROJECTION_INVALID' });
   }
+});
+
+test('sync and streamed output preserve native content after JSON representation expands', async () => {
+  const payload = new TextEncoder().encode(JSON.stringify({
+    type: 'reasoning', id: 'rs_budget', encrypted_content: 'A'.repeat(60 * 1024), summary: [],
+  }));
+  const carrier = { kind: 'openai_codex.responses.encrypted-reasoning', version: 1, payload: Array.from(payload) };
+  // Runtime/native retain this compact numeric spelling. The JSON projection
+  // carries the same values, whose JS serialization uses much longer decimals.
+  const rawArguments = `{"values":[${Array(16 * 1024).fill('1e20').join(',')}]}`;
+  const text = 'x'.repeat(100 * 1024);
+  for (const toolCall of [call, { ...call, arguments: JSON.parse(rawArguments) }]) {
+    const items = [{ type: 'reasoning-continuity', carrier }, { type: 'tool-call', toolCall }, { type: 'text', text }];
+    const f = fixture(async function* () {
+      let sequence = 0;
+      yield { type: 'reasoning-continuity', sequence: String(++sequence), traceId: 'trace-budget', itemIndex: 0, carrier };
+      yield { type: 'tool-call', sequence: String(++sequence), traceId: 'trace-budget', itemIndex: 1, toolCall };
+      for (let offset = 0; offset < text.length; offset += 64 * 1024) {
+        yield { type: 'delta', sequence: String(++sequence), traceId: 'trace-budget', itemIndex: 2, text: text.slice(offset, offset + 64 * 1024) };
+      }
+      yield { type: 'completed', sequence: String(++sequence), traceId: 'trace-budget', finishReason: 'tool-calls' };
+    }, undefined, { output: { type: 'text-generate', items, finishReason: 'tool-calls' }, traceId: 'trace-budget' });
+    const sync = await f.ai.scenario.execute({ type: 'text-generate', messages: [{ role: 'user', text: 'Answer.' }], tools: [tool] });
+    assert.equal(sync.output.type, 'text-generate');
+    assert.deepEqual(sync.output.type === 'text-generate' && sync.output.items, items);
+    const streamed = await f.model.generateText({ messages: [user], tools: [tool] });
+    assert.equal(streamed.text, text);
+    assert.deepEqual(streamed.toolCalls, [toolCall]);
+  }
+});
+
+test('sync output rejects an individually oversized text item', async () => {
+  const f = fixture(async function* () {}, undefined, { output: {
+    type: 'text-generate', items: [{ type: 'text', text: 'x'.repeat(256 * 1024 + 1) }], finishReason: 'stop',
+  }, traceId: 'trace-size' });
+  await assert.rejects(f.ai.scenario.execute({ type: 'text-generate', messages: [{ role: 'user', text: 'Answer.' }] }), { reasonCode: 'SDK_LOCAL_APP_PROJECTION_INVALID' });
 });
 
 test('Local App model preserves common tool values without executing callbacks', async () => {

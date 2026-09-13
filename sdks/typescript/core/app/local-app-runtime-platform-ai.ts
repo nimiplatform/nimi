@@ -434,7 +434,6 @@ export function createNimiLocalAppAIConsumptionClient(
         const cancel = () => { canceled = true; return closing ??= stream.cancel(); };
         return Object.freeze({
           async *[Symbol.asyncIterator]() {
-            let resultBytes = 0;
             let sequence = 0n;
             let terminal = false;
             let hasPrimary = false;
@@ -443,15 +442,12 @@ export function createNimiLocalAppAIConsumptionClient(
               for await (const event of stream) {
                 if (canceled) break;
                 if (terminal || BigInt(event.sequence) !== ++sequence) localAppProjectionError('text-turn event sequence');
-                if (event.type === 'delta') { resultBytes += utf8Length(event.text); hasPrimary = true; }
+                if (event.type === 'delta') hasPrimary = true;
                 if (event.type === 'tool-call') {
                   hasPrimary = true;
                   if (toolIds.has(event.toolCall.id)) localAppProjectionError('duplicate text tool call');
                   toolIds.add(event.toolCall.id);
-                  resultBytes += utf8Length(JSON.stringify(event.toolCall));
                 }
-                if (event.type === 'reasoning-continuity') resultBytes += utf8Length(JSON.stringify(event.carrier));
-                if (resultBytes > MAX_RESULT_BYTES) localAppProjectionError('text-turn result size');
                 if (event.type === 'completed' && !hasPrimary) localAppProjectionError('missing primary text output');
                 terminal = event.type === 'completed' || event.type === 'failed';
                 yield event;

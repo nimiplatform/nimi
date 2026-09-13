@@ -9,6 +9,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
+	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/proto"
 )
@@ -24,6 +25,7 @@ const (
 // contract while delegating route composition, spend disclosure, scheduling,
 // Driver mapping, metering, and execution to the post-I5 Scenario owner. The
 // App supplies no route, implementation, target, model, tool, or stream.
+// @nimi-authority: rule.nimi.runtime.ai-provider.r107
 func (s *Service) GenerateLocalAppTextCandidate(ctx context.Context, req *runtimev1.GenerateLocalAppTextCandidateRequest) (*runtimev1.GenerateLocalAppTextCandidateResponse, error) {
 	decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx)
 	if !ok || decision.Operation != accountservice.LocalAppOperationTextCandidateGenerate ||
@@ -81,14 +83,16 @@ func canonicalPlainText(output *runtimev1.TextGenerateOutput) (string, bool) {
 		return "", false
 	}
 	var builder strings.Builder
+	// Candidate responses omit the Scenario's valid opaque continuity.
 	for _, item := range output.GetItems() {
-		if item == nil || item.GetText() == nil {
+		if text := item.GetText(); text != nil {
+			builder.WriteString(text.GetText())
+		} else if !textbehavior.ValidContinuity(item.GetReasoningContinuity()) {
 			return "", false
 		}
-		builder.WriteString(item.GetText().GetText())
 	}
 	text := builder.String()
-	return text, text == output.GetText()
+	return text, text != "" && text == output.GetText()
 }
 
 func localAppTextCandidateFinishReason(reason runtimev1.FinishReason) bool {
