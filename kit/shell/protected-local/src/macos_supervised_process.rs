@@ -491,7 +491,7 @@ mod tests {
             "HOME=/Users/test",
             "NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT=1",
             "NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_NATIVE_ENTRY=/source/kit/index.cjs",
-            "NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_RUNTIME_EXECUTABLE=/source/nimi-runtime",
+            "NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_RUNTIME_EXECUTABLE=/source/nimi-runtime", // pragma: allowlist secret -- Test-only path.
         ]
         .into_iter()
         .map(|value| CString::new(value).expect("environment entry"))
@@ -504,7 +504,7 @@ mod tests {
             projected,
             vec![
                 "HOME=/Users/test",
-                "NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_RUNTIME_EXECUTABLE=/source/nimi-runtime",
+                "NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_RUNTIME_EXECUTABLE=/source/nimi-runtime", // pragma: allowlist secret -- Test-only path.
             ]
         );
     }
