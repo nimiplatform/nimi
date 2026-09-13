@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import YAML from 'yaml';
+import { lifecycleSkillFiles } from './app-lifecycle-guidance.mjs';
 import {
   WORKBENCH_CORE_SOURCE_ROOT,
   readAppSourceFile,
@@ -1096,7 +1097,7 @@ export function renderAppSubmissionInput(identity, options = {}) {
   }, { lineWidth: 0 });
 }
 
-function buildScaffoldBoundary() {
+export function renderScaffoldBoundary() {
   return YAML.stringify({
     scaffold_contract: 'P-SCAF',
     profile: 'standalone',
@@ -1147,7 +1148,7 @@ function buildStructuredFiles(identity, profile, versions) {
     },
     {
       path: '.nimi/contracts/scaffold-boundary.yaml',
-      content: buildScaffoldBoundary(),
+      content: renderScaffoldBoundary(),
       mutationClass: 'scaffold-managed glue',
     },
     {
@@ -1179,7 +1180,8 @@ function buildIdentityMapping(identity, targetDir = '') {
     devPort: identity.devPort,
     devRendererOrigin: `http://127.0.0.1:${identity.devPort}`,
     appOwnedNamespace: identity.appOwnedNamespace,
-    targetDir: targetDir || null,
+    // Checkout location belongs to CLI diagnostics, not persisted identity.
+    targetDir: null,
   };
 }
 
@@ -1426,9 +1428,11 @@ function buildAppScaffoldSnapshotWithResolver(
     buildScaffoldIntentFile(identity, versions, targetDir),
   ];
   validateScaffoldFileOwnership(createFiles);
-  const filesWithoutLock = [...createFiles];
+  const guidanceFiles = lifecycleSkillFiles();
+  const filesWithoutLock = [...createFiles, ...guidanceFiles];
   const lock = buildScaffoldLock(identity, versions, filesWithoutLock, targetDir);
   const initFiles = [
+    ...guidanceFiles,
     {
       path: SCAFFOLD_LOCK_PATH,
       content: jsonFile(lock),
@@ -1469,7 +1473,7 @@ export function buildAppScaffoldCandidateSnapshot(input) {
   return buildAppScaffoldSnapshotWithResolver(input, resolveAppScaffoldCandidateFeatures);
 }
 
-export function buildAppScaffoldSnapshotFromIntent({ intent, versions, targetDir = '', allowDerivedAppAccessDrift = false }) {
+export function buildAppScaffoldSnapshotFromIntent({ intent, versions, targetDir = '', allowDerivedAppAccessDrift = false, refreshDerived = false }) {
   if (intent?.intentVersion !== SCAFFOLD_INTENT_VERSION) {
     throw new Error(`Unsupported scaffold intent version: ${String(intent?.intentVersion || 'missing')}`);
   }
@@ -1493,7 +1497,14 @@ export function buildAppScaffoldSnapshotFromIntent({ intent, versions, targetDir
     targetDir: canonicalTargetDir,
   }, resolveAppScaffoldIntentFeatures);
   const expectedIntent = JSON.parse(snapshot.filesByPath.get(SCAFFOLD_INTENT_PATH).content);
-  const comparableIntent = allowDerivedAppAccessDrift
+  // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-018c
+  const immutableInputs = new Set(['intentVersion', 'scaffoldVersion', 'initRequired', 'initCommand', 'initOrder', 'profile', 'appId', 'appTitle', 'version', 'packageName', 'packageAuthor', 'cargoPackageName', 'tauriIdentifier', 'accentPack', 'directFeatures', 'devPort', 'semantics']);
+  if (canonicalJson(Object.keys(intent).sort()) !== canonicalJson(Object.keys(expectedIntent).sort())) {
+    throw new Error('Scaffold intent fields do not match the current canonical resolved intent');
+  }
+  const comparableIntent = refreshDerived
+    ? Object.fromEntries(Object.entries(expectedIntent).map(([key, value]) => [key, immutableInputs.has(key) ? intent[key] : value]))
+    : allowDerivedAppAccessDrift
     ? { ...intent, appAccessItems: expectedIntent.appAccessItems }
     : intent;
   if (canonicalJson(comparableIntent) !== canonicalJson(expectedIntent)) {

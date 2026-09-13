@@ -1,5 +1,5 @@
 import { APP_AUTHOR_DECLARATION_FIELDS, hashScaffoldManagedContent } from './app-scaffold.mjs';
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import {
@@ -13,6 +13,8 @@ import {
 } from './app-scaffold.mjs';
 import { assertManifestAppAccessDeclaration } from './app-access-declaration.mjs';
 import { validateSimulatorAppSourceWithCanonicalKitExports } from './simulator-conformance.mjs';
+import { assertLifecycleGuidanceCurrent, LIFECYCLE_SKILL_PATH, lifecycleOwnerSteps, planLifecycleGuidance } from './app-lifecycle-guidance.mjs';
+import { applyProjectFiles, describeChanges, plannedFile } from './app-project-files.mjs';
 
 const SCAN_EXCLUDED_DIRS = new Set([
   '.git',
@@ -199,6 +201,7 @@ function expectedSnapshotFromLock(lock, versions, intent, targetDir, options = {
     versions,
     targetDir,
     allowDerivedAppAccessDrift: options.allowDerivedAppAccessDrift === true,
+    refreshDerived: options.refreshDerived === true,
   });
   if (stableStringify(intent.directFeatures) !== stableStringify(lock.directFeatures)) {
     throw new Error('Scaffold feature selection is immutable; create a fresh scaffold for a different feature closure');
@@ -250,6 +253,14 @@ function projectHashClasses(entries) {
   );
 }
 
+function isScannedTextPath(relativePath) {
+  const parts = relativePath.split('/');
+  return !parts.some((part) => SCAN_EXCLUDED_DIRS.has(part))
+    && !SCAN_EXCLUDED_FILES.has(parts.at(-1))
+    && !/^\.nimi\/(?:config|contracts|methodology|spec|local|cache)\//u.test(relativePath)
+    && TEXT_EXTENSIONS.has(path.extname(relativePath));
+}
+
 function collectTextFiles(rootDir) {
   const results = [];
   const walk = (currentDir) => {
@@ -266,24 +277,9 @@ function collectTextFiles(rootDir) {
         continue;
       }
       const relativePath = path.relative(rootDir, fullPath).split(path.sep).join('/');
-      if (SCAN_EXCLUDED_FILES.has(entry.name)) {
-        continue;
-      }
-      if (
-        relativePath.startsWith('.nimi/config/')
-        || relativePath.startsWith('.nimi/contracts/')
-        || relativePath.startsWith('.nimi/methodology/')
-        || relativePath.startsWith('.nimi/spec/')
-        || relativePath.startsWith('.nimi/local/')
-        || relativePath.startsWith('.nimi/cache/')
-      ) {
-        continue;
-      }
+      if (!isScannedTextPath(relativePath)) continue;
       const stat = statSync(fullPath);
       if (stat.size > 1024 * 1024) {
-        continue;
-      }
-      if (!TEXT_EXTENSIONS.has(path.extname(entry.name))) {
         continue;
       }
       results.push(fullPath);
@@ -347,7 +343,7 @@ function buildForbiddenPatterns() {
 }
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-016b
-function scanForbiddenPatterns(targetDir, profile, selectedLabels = null) {
+function scanForbiddenPatterns(targetDir, profile, selectedLabels = null, plannedSources) {
   const findings = [];
   const patterns = buildForbiddenPatterns();
   const testFileAllowedLabels = new Set([
@@ -363,9 +359,15 @@ function scanForbiddenPatterns(targetDir, profile, selectedLabels = null) {
     'renderer or app storage of protected material',
     'environment custody of protected material',
   ]);
-  for (const filePath of collectTextFiles(targetDir)) {
-    const relativePath = path.relative(targetDir, filePath).split(path.sep).join('/');
-    const text = readFileSync(filePath, 'utf8');
+  const relativePaths = new Set(collectTextFiles(targetDir).map((filePath) => path.relative(targetDir, filePath).split(path.sep).join('/')));
+  for (const [relativePath, content] of plannedSources || []) {
+    if (content !== null && isScannedTextPath(relativePath) && Buffer.byteLength(content) <= 1024 * 1024) relativePaths.add(relativePath);
+  }
+  for (const relativePath of relativePaths) {
+    if (plannedSources?.has(relativePath) && plannedSources.get(relativePath) === null) continue;
+    const text = plannedSources?.has(relativePath)
+      ? Buffer.from(plannedSources.get(relativePath)).toString('utf8')
+      : readFileSync(path.join(targetDir, relativePath), 'utf8');
     const isManagedReleaseWorkflow = relativePath === '.github/workflows/nimi-app-release.yml'
       && text.replaceAll('\r\n', '\n') === managedAppReleaseWorkflowSource();
     const isTestFile = /^(?:test|tests)\//.test(relativePath) || /(?:^|\/)\w[^/]*\.(?:test|spec)\.[cm]?[jt]sx?$/i.test(relativePath);
@@ -485,8 +487,7 @@ function assertElectronLocalDevelopmentManifest(document) {
   return parsed.origin;
 }
 
-function assertOfficialDevelopmentEntrypoints(targetDir, rendererOrigin) {
-  const packageJson = readJsonFile(path.join(targetDir, 'package.json'), 'package.json');
+function assertOfficialDevelopmentEntrypoints(targetDir, rendererOrigin, packageJson = readJsonFile(path.join(targetDir, 'package.json'), 'package.json')) {
   const scripts = packageJson?.scripts;
   if (!scripts || typeof scripts !== 'object' || Array.isArray(scripts)) {
     throw new Error('package.json scripts are required');
@@ -533,15 +534,30 @@ function assertNimicodingProjectionCurrent(targetDir, runners) {
   }
 }
 
-function assertManagedFilesCurrent(targetDir, lock) {
+export function validateAppProjectInputs(targetDir, manifest, packageJson, managed = false, plannedSources) {
+  assertManifestAppAccessDeclaration(stringifyYaml(manifest), 'nimi.app.yaml');
+  const rendererOrigin = assertElectronLocalDevelopmentManifest(manifest);
+  assertOfficialDevelopmentEntrypoints(targetDir, rendererOrigin, packageJson);
+  const findings = scanForbiddenPatterns(targetDir, manifest.profile, managed ? null : LOCAL_DEVELOPMENT_BYPASS_LABELS, plannedSources);
+  if (findings.length) throw new Error(`Forbidden App source patterns: ${findings.join('; ')}`);
+}
+
+export function validateManagedAppFiles(targetDir, lock, plannedSources) {
+  assertManagedFilesCurrent(targetDir, lock, plannedSources);
+}
+
+function assertManagedFilesCurrent(targetDir, lock, plannedSources) {
   const drift = [];
   for (const [relativePath, entry] of Object.entries(lock.managedFileHashes || {})) {
     const absolutePath = path.join(targetDir, relativePath);
-    if (!existsSync(absolutePath)) {
+    const content = plannedSources?.has(relativePath)
+      ? plannedSources.get(relativePath)
+      : existsSync(absolutePath) ? readContentForHash(absolutePath) : null;
+    if (content === null) {
       drift.push(`${relativePath}: missing`);
       continue;
     }
-    const currentHash = hashScaffoldManagedContent(relativePath, readContentForHash(absolutePath));
+    const currentHash = hashScaffoldManagedContent(relativePath, content);
     if (currentHash !== entry.sha256) {
       drift.push(`${relativePath}: sha256 drift`);
     }
@@ -556,8 +572,10 @@ function validateAppProjectState(targetDir, versions, runners = {}) {
     if (existsSync(path.join(targetDir, SCAFFOLD_INTENT_PATH))) {
       readLock(targetDir);
     }
+    assertLifecycleGuidanceCurrent(targetDir);
     return validateExistingSubmittedApp(targetDir);
   }
+  assertLifecycleGuidanceCurrent(targetDir);
   const lock = readLock(targetDir);
   const intent = readIntent(targetDir);
   const snapshot = expectedSnapshotFromLock(lock, versions, intent, targetDir);
@@ -616,15 +634,32 @@ export function initApp(cwd, options = {}, versions, runners = {}) {
   const intent = readIntent(targetDir);
   const currentManifest = readCurrentAppManifest(targetDir);
   const snapshot = buildAppScaffoldSnapshotFromIntent({ intent, versions, targetDir });
+  validateAppProjectInputs(targetDir, currentManifest, readJsonFile(path.join(targetDir, 'package.json')), true);
+  const initializedPaths = new Set(snapshot.initFiles.map((file) => file.path));
+  assertManagedFilesCurrent(targetDir, { managedFileHashes: Object.fromEntries(Object.entries(snapshot.lock.managedFileHashes).filter(([relativePath]) => !initializedPaths.has(relativePath))) });
+  const planned = [...planLifecycleGuidance(targetDir), ...snapshot.initFiles.map((file) => plannedFile(targetDir, file.path, file.content))];
+  const preview = {
+    ok: true, command: 'init', dir: targetDir, dryRun: options.dryRun === true,
+    skillPath: LIFECYCLE_SKILL_PATH, changes: describeChanges(targetDir, planned), ownerSteps: lifecycleOwnerSteps(versions),
+  };
+  if (options.dryRun) {
+    process.stdout.write(`${options.json ? JSON.stringify(preview, null, 2) : `[nimi-app] init preview: ${preview.changes.map((file) => `${file.action} ${file.path}`).join(', ')}`}\n`);
+    return preview;
+  }
   if (!runners?.runNimicodingSync) {
     throw new Error('Missing nimicoding sync runner');
   }
   const nimicoding = runners.runNimicodingSync(targetDir, 'apply');
-  for (const file of snapshot.initFiles) {
-    writeScaffoldFile(targetDir, file, currentManifest);
-  }
+  // The owner may have added its own AGENTS block; compose ours afterward.
+  const lockFile = planned.find((file) => file.path === path.join(targetDir, SCAFFOLD_LOCK_PATH));
+  applyProjectFiles(targetDir, [...planned.filter((file) => file !== lockFile), ...planLifecycleGuidance(targetDir)]);
+  assertProjectConfiguration(targetDir);
+  assertManagedFilesCurrent(targetDir, snapshot.lock);
+  assertNimicodingProjectionCurrent(targetDir, runners);
+  applyProjectFiles(targetDir, [lockFile]);
   validateAppProjectState(targetDir, versions, runners);
   const payload = {
+    ...preview,
     ok: true,
     command: 'init',
     dir: targetDir,
@@ -721,21 +756,7 @@ function readCurrentAppManifest(targetDir) {
   return manifest;
 }
 
-function writeScaffoldFile(targetDir, file, currentManifest) {
-  const targetPath = path.join(targetDir, file.path);
-  mkdirSync(path.dirname(targetPath), { recursive: true });
-  if (file.path === 'nimi.app.yaml' && currentManifest) {
-    const next = parseYaml(file.content);
-    for (const field of APP_AUTHOR_DECLARATION_FIELDS) {
-      if (Object.hasOwn(currentManifest, field)) next[field] = currentManifest[field];
-    }
-    writeFileSync(targetPath, stringifyYaml(next, { lineWidth: 0 }));
-    return;
-  }
-  writeFileSync(targetPath, file.content);
-}
-
-export function syncManagedApp(cwd, options = {}, versions, runners = {}) {
+export function planManagedAppSync(cwd, options = {}, versions) {
   const targetDir = resolveTargetDir(cwd, options);
   const lock = readLock(targetDir);
   const intent = readIntent(targetDir);
@@ -749,43 +770,17 @@ export function syncManagedApp(cwd, options = {}, versions, runners = {}) {
       version: packageJson.version,
     },
   };
-  const snapshot = expectedSnapshotFromLock(lock, versions, versionedIntent, targetDir, { allowDerivedAppAccessDrift: true });
+  const snapshot = expectedSnapshotFromLock(lock, versions, versionedIntent, targetDir, { refreshDerived: true });
   assertNoClassificationConflict(lock, snapshot);
-  if (!runners?.runNimicodingSync) {
-    throw new Error('Missing nimicoding sync runner');
-  }
-  runners.runNimicodingSync(targetDir, 'apply');
-
-  for (const file of snapshot.filesWithoutLock) {
-    const managedEntry = snapshot.lock.managedFileHashes[file.path];
-    if (!managedEntry) {
-      continue;
+  const planned = snapshot.filesWithoutLock.filter((file) => snapshot.lock.managedFileHashes[file.path]).map((file) => {
+    let content = file.content;
+    if (file.path === 'nimi.app.yaml' && currentManifest) {
+      const next = parseYaml(content);
+      for (const field of APP_AUTHOR_DECLARATION_FIELDS) if (Object.hasOwn(currentManifest, field)) next[field] = currentManifest[field];
+      content = stringifyYaml(next, { lineWidth: 0 });
     }
-    writeScaffoldFile(targetDir, file, currentManifest);
-  }
-  writeScaffoldFile(targetDir, {
-    path: SCAFFOLD_LOCK_PATH,
-    content: `${JSON.stringify(snapshot.lock, null, 2)}\n`,
+    return plannedFile(targetDir, file.path, content);
   });
-
-  validateAppProjectState(targetDir, versions, runners);
-  const payload = {
-    ok: true,
-    command: 'sync',
-    dir: targetDir,
-    scaffoldVersion: snapshot.lock.scaffoldVersion,
-    profile: snapshot.lock.profile,
-    appId: snapshot.lock.appId,
-    features: snapshot.lock.features,
-    refreshedManagedFiles: Object.keys(snapshot.lock.managedFileHashes).length,
-  };
-  if (options.silent) {
-    return payload;
-  }
-  if (options.json) {
-    process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
-  } else {
-    process.stdout.write(`[nimi-app] sync refreshed managed scaffold files at ${targetDir}\n`);
-  }
-  return payload;
+  planned.push(...planLifecycleGuidance(targetDir), plannedFile(targetDir, SCAFFOLD_LOCK_PATH, `${JSON.stringify(snapshot.lock, null, 2)}\n`));
+  return { targetDir, snapshot, planned };
 }

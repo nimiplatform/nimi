@@ -1,6 +1,6 @@
 import { PNG } from 'pngjs';
 import assert from 'node:assert/strict';
-import { chmodSync, existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, cpSync, existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -9,6 +9,10 @@ import { fileURLToPath } from 'node:url';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 
 import { observeWindowsExecutableFacts } from '../lib/windows-powershell.mjs';
+import { lifecycleSkillFiles } from '../lib/app-lifecycle-guidance.mjs';
+import { buildAppScaffoldSnapshot, renderAppIdentityInput, SCAFFOLD_INTENT_PATH, SCAFFOLD_LOCK_PATH } from '../lib/app-scaffold.mjs';
+import { initApp } from '../lib/app-doctor-update.mjs';
+import { syncAppProject } from '../lib/app-project-lifecycle.mjs';
 
 const testDir = path.dirname(fileURLToPath(import.meta.url));
 const appToolsRoot = path.join(testDir, '..');
@@ -88,6 +92,15 @@ function fakeNimicodingEnv(tempRoot) {
 
 function writeExistingSubmittedApp(tempRoot, options = {}) {
   const target = path.join(tempRoot, 'app');
+  const codingPackage = path.join(target, 'node_modules/@nimiplatform/nimi-coding');
+  mkdirSync(path.join(codingPackage, 'bin'), { recursive: true });
+  writeFileSync(path.join(codingPackage, 'package.json'), JSON.stringify({ name: '@nimiplatform/nimi-coding', version: versions.nimicodingVersion, bin: { nimicoding: 'bin/nimicoding.mjs' } }));
+  writeFileSync(path.join(codingPackage, 'bin/nimicoding.mjs'), [
+    'import { mkdirSync, readFileSync, writeFileSync } from "node:fs";',
+    'if (process.argv.slice(2).join(" ") === "sync --apply --json") { mkdirSync(".nimi/methodology", { recursive: true }); writeFileSync(".nimi/methodology/authority-authoring.yaml", "source: focused-lifecycle-test\\n"); }',
+    'const { version } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url)));',
+    'process.stdout.write(JSON.stringify({ ok: true, summary: { total: 1, created: 0, executedVersion: version } }) + "\\n");',
+  ].join('\n'));
   mkdirSync(path.join(target, 'src', 'product'), { recursive: true });
   mkdirSync(path.join(target, 'src-tauri'), { recursive: true });
   mkdirSync(path.join(target, '.nimi', 'config'), { recursive: true });
@@ -284,6 +297,236 @@ function snapshotTree(rootDir) {
   return snapshot;
 }
 
+function rawAppInput(target) {
+  const manifest = parseYaml(readFileSync(path.join(target, 'nimi.app.yaml'), 'utf8'));
+  const buildProfile = parseYaml(readFileSync(path.join(target, '.nimi/config/build-profile.yaml'), 'utf8'));
+  rmSync(path.join(target, '.nimi'), { recursive: true });
+  rmSync(path.join(target, 'nimi.app.yaml'));
+  const inputPath = path.join(target, 'adopt-input.json');
+  writeFileSync(inputPath, JSON.stringify({ manifest, build_profile: buildProfile }));
+  // The owner test executes real product logic; init never executes or replaces it.
+  writeFileSync(path.join(target, 'src/product/title.mjs'), 'export const normalizeTitle = value => value.trim().replace(/\\s+/g, " ");\n');
+  writeFileSync(path.join(target, 'scripts/owner-test.mjs'), 'import assert from "node:assert/strict"; import { normalizeTitle } from "../src/product/title.mjs"; assert.equal(normalizeTitle("  A   title  "), "A title");\n');
+  writeFileSync(path.join(target, 'index.html'), '<!doctype html><title>Document title</title><input id="title"><output id="preview"></output><script type="module">import {normalizeTitle} from "./src/product/title.mjs"; document.querySelector("input").oninput = e => document.querySelector("output").textContent=normalizeTitle(e.target.value);</script>');
+  return inputPath;
+}
+
+test('raw adoption previews without writes, keeps product ownership and repeats without changes', () => {
+  const temp = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-raw-adopt-'));
+  try {
+    const target = writeExistingSubmittedApp(temp, { buildProfileRef: 'electron-packager-pnpm-vite' });
+    const input = rawAppInput(target);
+    writeFileSync(path.join(target, 'AGENTS.md'), '# Original development instructions\n');
+    const before = snapshotTree(target);
+    const env = fakeNimicodingEnv(temp);
+    let result = runCli(['init', '--adopt', '--input', input, '--dry-run', '--json'], target, env);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    const preview = JSON.parse(result.stdout);
+    assert.equal(preview.dryRun, true);
+    assert.equal(preview.ownerSteps[0].previewed, false);
+    assert.ok(preview.changes.some((file) => file.path === 'nimi.app.yaml' && file.action === 'create'));
+    assert.deepEqual(snapshotTree(target), before);
+    result = runCli(['init', '--adopt', '--input', input, '--json'], target, env);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.equal(existsSync(path.join(target, SCAFFOLD_INTENT_PATH)), false);
+    assert.equal(existsSync(path.join(target, SCAFFOLD_LOCK_PATH)), false);
+    for (const file of ['README.md', 'LICENSE', 'src/product/title.mjs', 'scripts/owner-test.mjs', 'index.html']) {
+      assert.equal(snapshotTree(target)[file], before[file]);
+    }
+    assert.match(readFileSync(path.join(target, 'AGENTS.md'), 'utf8'), /Original development instructions/);
+    assert.equal(existsSync(path.join(target, 'build/windows')), false, 'init does not require production output');
+    result = runCli(['init', '--adopt', '--input', input, '--json'], target, env);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.deepEqual(JSON.parse(result.stdout).changes, []);
+    const retired = path.join(target, '.agents/skills/nimi-app-lifecycle/references/retired.md');
+    writeFileSync(retired, 'Retired generated guidance');
+    result = runCli(['sync', '--json'], target, env);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.equal(existsSync(retired), false);
+    result = runCli(['test', '--json'], target, env);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+  } finally { rmSync(temp, { recursive: true, force: true }); }
+});
+
+test('adoption rejects conflicting input or unknown managed files before owner writes', () => {
+  const temp = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-adopt-conflicts-'));
+  try {
+    const target = writeExistingSubmittedApp(temp, { buildProfileRef: 'electron-packager-pnpm-vite' });
+    const input = rawAppInput(target);
+    mkdirSync(path.join(target, '.github/workflows'), { recursive: true });
+    writeFileSync(path.join(target, '.github/workflows/nimi-app-release.yml'), 'name: original workflow\n');
+    const before = snapshotTree(target);
+    const env = fakeNimicodingEnv(temp);
+    let result = runCli(['init', '--adopt', '--input', input, '--json'], target, env);
+    assert.notEqual(result.status, 0);
+    assert.match(jsonErrorMessage(result), /Unknown adoption file collision/);
+    assert.deepEqual(snapshotTree(target), before);
+    rmSync(path.join(target, '.github'), { recursive: true });
+    writeFileSync(path.join(target, 'nimi.app.yaml'), stringifyYaml({ ...JSON.parse(readFileSync(input)).manifest, version: '99.0.0' }));
+    const conflicting = snapshotTree(target);
+    result = runCli(['init', '--adopt', '--input', input, '--json'], target, env);
+    assert.notEqual(result.status, 0);
+    assert.match(jsonErrorMessage(result), /Adoption input conflicts/);
+    assert.deepEqual(snapshotTree(target), conflicting);
+  } finally { rmSync(temp, { recursive: true, force: true }); }
+});
+
+test('authoring input files do not establish ownership of an unknown adoption workflow', () => {
+  const temp = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-adopt-ownership-'));
+  try {
+    const target = writeExistingSubmittedApp(temp, { buildProfileRef: 'electron-packager-pnpm-vite' });
+    writeFileSync(path.join(target, '.nimi/config/app-identity.yaml'), renderAppIdentityInput({
+      appId: 'focused.existing', appTitle: 'Focused Existing', version: '0.1.0', packageName: 'focused-existing-app',
+      cargoPackageName: 'focused-existing-app-shell', tauriIdentifier: 'ai.nimi.apps.focused.existing',
+    }));
+    mkdirSync(path.join(target, '.github/workflows'), { recursive: true });
+    writeFileSync(path.join(target, '.github/workflows/nimi-app-release.yml'), 'name: Original App workflow\n');
+    const before = snapshotTree(target);
+    for (const dryRun of [true, false]) {
+      const result = runCli(['init', '--adopt', ...(dryRun ? ['--dry-run'] : []), '--json'], target, fakeNimicodingEnv(temp));
+      assert.notEqual(result.status, 0);
+      assert.match(jsonErrorMessage(result), /Unknown adoption file collision: .github\/workflows\/nimi-app-release.yml/);
+      assert.deepEqual(snapshotTree(target), before);
+    }
+  } finally { rmSync(temp, { recursive: true, force: true }); }
+});
+
+test('adoption scans a manifest supplied only by the plan before any owner writes', () => {
+  const temp = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-adopt-new-source-'));
+  try {
+    const target = writeExistingSubmittedApp(temp, { buildProfileRef: 'electron-packager-pnpm-vite' });
+    const previousInput = rawAppInput(target);
+    const input = JSON.parse(readFileSync(previousInput));
+    input.manifest.metadata.summary = 'NIMI_RUNTIME_TOKEN';
+    rmSync(previousInput);
+    mkdirSync(path.join(target, '.nimi/local'), { recursive: true });
+    writeFileSync(path.join(target, '.nimi/local/adopt-input.json'), JSON.stringify(input));
+    const before = snapshotTree(target);
+    for (const dryRun of [true, false]) {
+      const result = runCli(['init', '--adopt', '--input', '.nimi/local/adopt-input.json', ...(dryRun ? ['--dry-run'] : []), '--json'], target, fakeNimicodingEnv(temp));
+      assert.notEqual(result.status, 0);
+      assert.match(jsonErrorMessage(result), /Forbidden App source patterns: nimi.app.yaml: environment custody of protected material/);
+      assert.deepEqual(snapshotTree(target), before);
+    }
+  } finally { rmSync(temp, { recursive: true, force: true }); }
+});
+
+test('shared skill directory ancestors are rejected without modifying the shared directory', () => {
+  const temp = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-output-boundary-'));
+  try {
+    const target = writeExistingSubmittedApp(temp, { buildProfileRef: 'electron-packager-pnpm-vite' });
+    const shared = path.join(temp, 'shared');
+    mkdirSync(shared);
+    writeFileSync(path.join(shared, 'keep.md'), 'Shared user instructions');
+    symlinkSync(shared, path.join(target, '.agents'), 'junction');
+    const before = snapshotTree(shared);
+    const result = runCli(['sync', '--json'], target, fakeNimicodingEnv(temp));
+    assert.notEqual(result.status, 0);
+    assert.match(jsonErrorMessage(result), /output path collision: .agents/);
+    assert.deepEqual(snapshotTree(shared), before);
+    assert.equal(existsSync(path.join(target, '.nimi/methodology')), false);
+  } finally { rmSync(temp, { recursive: true, force: true }); }
+});
+
+test('a stale installed nimi-coding is a zero-write failure while dry-run remains usable', () => {
+  const temp = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-owner-version-'));
+  try {
+    const target = writeExistingSubmittedApp(temp, { buildProfileRef: 'electron-packager-pnpm-vite' });
+    writeFileSync(path.join(target, 'node_modules/@nimiplatform/nimi-coding/package.json'), JSON.stringify({ name: '@nimiplatform/nimi-coding', version: '0.0.1' }));
+    const before = snapshotTree(target);
+    const env = fakeNimicodingEnv(temp);
+    const preview = runCli(['sync', '--dry-run', '--json'], target, env);
+    assert.equal(preview.status, 0, preview.stdout + preview.stderr);
+    const apply = runCli(['sync', '--json'], target, env);
+    assert.notEqual(apply.status, 0);
+    assert.match(jsonErrorMessage(apply), /found 0.0.1/);
+    assert.deepEqual(snapshotTree(target), before);
+  } finally { rmSync(temp, { recursive: true, force: true }); }
+});
+
+test('sync executes the verified project package entry despite a different owner on PATH', () => {
+  const temp = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-owner-entry-'));
+  try {
+    const target = writeExistingSubmittedApp(temp, { buildProfileRef: 'electron-packager-pnpm-vite' });
+    const result = runCli(['sync', '--json'], target, fakeNimicodingEnv(temp));
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    const payload = JSON.parse(result.stdout);
+    assert.equal(payload.nimicodingSync.executedVersion, versions.nimicodingVersion);
+    assert.equal(payload.ownerSteps[0].command, 'nimicoding sync --apply --json');
+    assert.match(payload.ownerSteps[0].executor, /project-local package bin.nimicoding/);
+  } finally { rmSync(temp, { recursive: true, force: true }); }
+});
+
+test('fresh upgrade plans every owner before mutation and recomputes derived versions', () => {
+  const temp = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-derived-upgrade-'));
+  let relocated;
+  try {
+    const oldVersions = { ...versions, sdkVersion: '^0.11.0', kitVersion: '^0.7.0', appToolsVersion: '^0.5.1', nimicodingVersion: '0.6.2', nimiShellTauriVersion: '0.2.1' };
+    const old = buildAppScaffoldSnapshot({ profile: 'standalone', versions: oldVersions, appId: 'upgrade.example', appTitle: 'Upgrade', packageName: 'upgrade-example', targetDir: temp, features: [] });
+    for (const file of old.createFiles) {
+      const fullPath = path.join(temp, file.path); mkdirSync(path.dirname(fullPath), { recursive: true }); writeFileSync(fullPath, file.content);
+    }
+    let ownerCalls = 0;
+    const runners = { runNimicodingSync(target, mode) {
+      if (mode === 'apply') {
+        ownerCalls += 1;
+        mkdirSync(path.join(target, '.nimi/methodology'), { recursive: true });
+        writeFileSync(path.join(target, '.nimi/methodology/authority-authoring.yaml'), 'test-owner: true\n');
+        const agents = path.join(target, 'AGENTS.md');
+        const text = readFileSync(agents, 'utf8');
+        if (!text.includes('Owner projection preserved')) writeFileSync(agents, text + '\nOwner projection preserved\n');
+      }
+      return { ok: true };
+    } };
+    initApp(temp, {}, oldVersions, runners);
+    const packagePath = path.join(temp, 'package.json');
+    const packageSource = readFileSync(packagePath, 'utf8');
+    for (const [field, value] of [['name', 'changed-package-name'], ['author', 'Changed Author']]) {
+      writeFileSync(packagePath, `${JSON.stringify({ ...JSON.parse(packageSource), [field]: value }, null, 2)}\n`);
+      const beforeIdentitySync = snapshotTree(temp);
+      const beforeOwnerCalls = ownerCalls;
+      for (const dryRun of [true, false]) {
+        assert.throws(() => syncAppProject(temp, { dryRun }, versions, runners), /Managed scaffold drift detected: .nimi\/config\/app-identity.yaml/);
+        assert.equal(ownerCalls, beforeOwnerCalls);
+        assert.deepEqual(snapshotTree(temp), beforeIdentitySync);
+      }
+    }
+    writeFileSync(packagePath, packageSource);
+    const profilePath = path.join(temp, '.nimi/config/build-profile.yaml');
+    const profile = readFileSync(profilePath, 'utf8');
+    writeFileSync(profilePath, stringifyYaml({ ...parseYaml(profile), test_command: 'nimi-app test' }));
+    const invalid = snapshotTree(temp);
+    const previousCalls = ownerCalls;
+    assert.throws(() => syncAppProject(temp, {}, versions, runners), /recursively invoke/);
+    assert.equal(ownerCalls, previousCalls);
+    assert.deepEqual(snapshotTree(temp), invalid);
+    writeFileSync(profilePath, profile);
+    const managedClient = path.join(temp, 'src/shell/auth/local-app-client.ts');
+    writeFileSync(managedClient, 'import { obsolete } from "runtime/internal/private";\n');
+    const product = path.join(temp, 'src/shell/routes/product-area.tsx');
+    writeFileSync(product, 'export const appOwnedEdit = true;\n');
+    const before = snapshotTree(temp);
+    const preview = syncAppProject(temp, { dryRun: true, json: true }, versions, runners);
+    assert.deepEqual(snapshotTree(temp), before);
+    assert.ok(preview.changes.some((file) => file.path === 'package.json'));
+    syncAppProject(temp, {}, versions, runners);
+    const next = JSON.parse(readFileSync(path.join(temp, SCAFFOLD_INTENT_PATH), 'utf8'));
+    assert.equal(next.dependencyMatrix.npm['@nimiplatform/sdk'], versions.sdkVersion);
+    assert.equal(next.appId, 'upgrade.example');
+    assert.deepEqual(next.directFeatures, []);
+    assert.equal(readFileSync(product, 'utf8'), 'export const appOwnedEdit = true;\n');
+    assert.match(readFileSync(path.join(temp, 'AGENTS.md'), 'utf8'), /Owner projection preserved/);
+    assert.doesNotMatch(readFileSync(managedClient, 'utf8'), /runtime\/internal/);
+    assert.equal(next.appIdentity.targetDir, null);
+    relocated = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-relocated-'));
+    cpSync(temp, relocated, { recursive: true });
+    assert.deepEqual(syncAppProject(relocated, { dryRun: true, json: true }, versions, runners).changes, []);
+  } finally {
+    rmSync(temp, { recursive: true, force: true });
+    if (relocated) rmSync(relocated, { recursive: true, force: true });
+  }
+});
+
 test('sync closes the former unknown-command path and only normalizes submitted App platform wiring', () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-project-sync-'));
   const target = writeExistingSubmittedApp(tempRoot);
@@ -305,6 +548,8 @@ test('sync closes the former unknown-command path and only normalizes submitted 
       '.nimi/admission/submission.yaml',
       '.github/workflows/nimi-app-release.yml',
       'pnpm-workspace.yaml',
+      'AGENTS.md',
+      ...lifecycleSkillFiles().map((file) => file.path),
     ]);
     assert.deepEqual(payload.nextSteps, [
       'pnpm install',

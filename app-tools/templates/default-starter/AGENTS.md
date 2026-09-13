@@ -2,7 +2,7 @@
 
 ## Scope
 - Treat `.nimi/app-scaffold/{intent,lock}.json` as app-scaffold intent and lock state.
-- Treat `.nimi/{config,contracts,methodology}/**` as `@nimiplatform/nimi-coding` managed projections created by `pnpm run init`.
+- App Tools maintains its identity/contract projections and the declared engineering fields in `.nimi/config` and `.nimi/admission`; the build profile and product declarations retain their App-owned inputs. Nimi-coding maintains its own methodology and AGENTS block through its declared sync command.
 - Keep auth, Runtime, App Access declaration, manifest, and Tauri shell glue in scaffold-managed files.
 - App-owned product code is `src/workbench-core/**`, selected `src/capabilities/**`, `src/shell/routes/product-area.tsx`, and App-authored product screens, state, tests, styles, and bounded native helpers.
 - Scaffold-managed code is the carrier/auth wiring, identity, manifests, project tooling, bounded native integration, and `src/scaffold/generated/**` composition glue.

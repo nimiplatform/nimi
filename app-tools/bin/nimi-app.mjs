@@ -15,6 +15,7 @@ import {
   testApp,
 } from '../lib/index.mjs';
 import { APP_SCAFFOLD_MODULE_REGISTRY } from '../lib/app-scaffold-capabilities.mjs';
+import { LIFECYCLE_SKILL_PATH } from '../lib/app-lifecycle-guidance.mjs';
 import { createInterface } from 'node:readline/promises';
 
 function parseArgs(argv) {
@@ -22,6 +23,7 @@ function parseArgs(argv) {
   const values = {
     dir: '', profile: '', appId: '', version: '', title: '', packageName: '', author: '',
     features: undefined, shell: '', cdpPort: undefined, noCdp: false, listRegistrations: false, resume: '', conformance: '', target: '', aggregate: false, production: false, json: false,
+    adopt: false, dryRun: false, input: '',
   };
   const seen = new Set();
   const readValue = (index, flag, key, preserve = false) => {
@@ -37,6 +39,17 @@ function parseArgs(argv) {
     return index + 1;
   };
   for (let index = 0; index < rest.length; index += 1) {
+    if (rest[index] === '--input') {
+      index = readValue(index, '--input', 'input');
+      continue;
+    }
+    if (rest[index] === '--adopt' || rest[index] === '--dry-run') {
+      const key = rest[index] === '--adopt' ? 'adopt' : 'dryRun';
+      if (seen.has(key)) throw new Error(`Duplicate option: ${rest[index]}`);
+      seen.add(key);
+      values[key] = true;
+      continue;
+    }
     if (rest[index] === '--') {
       continue;
     }
@@ -134,8 +147,8 @@ function parseArgs(argv) {
 function assertCommandOptions(command, providedOptions) {
   const allowed = {
     create: new Set(['dir', 'profile', 'appId', 'version', 'title', 'packageName', 'author', 'features', 'json']),
-    init: new Set(['dir', 'json']),
-    sync: new Set(['dir', 'json']),
+    init: new Set(['dir', 'json', 'adopt', 'input', 'dryRun']),
+    sync: new Set(['dir', 'json', 'dryRun']),
     check: new Set(['dir', 'json', 'conformance', 'production']),
     dev: new Set(['dir', 'shell', 'cdpPort', 'noCdp', 'listRegistrations', 'resume']),
     test: new Set(['dir', 'json']),
@@ -165,8 +178,8 @@ function printUsage() {
       '',
       'Usage:',
       '  nimi-app create [--dir path] [--profile standalone] [--features admitted-ids|all] [--app-id dotted.id] [--version semver] [--title title] [--package-name name] [--author person-or-team] [--json]',
-      '  nimi-app init [--dir path] [--json]',
-      '  nimi-app sync [--dir path] [--json]',
+      '  nimi-app init [--adopt [--input json-path]] [--dry-run] [--dir path] [--json]',
+      '  nimi-app sync [--dry-run] [--dir path] [--json]',
       '  nimi-app check [--dir path] [--conformance simulator | --production] [--json]',
       '  nimi-app dev [--dir path] [--shell electron] [--list-registrations | --resume <selector>] [--cdp-port 1024..65535 | --no-cdp]',
       '  nimi-app test [--dir path] [--json]',
@@ -201,6 +214,8 @@ function printUsage() {
       'Required order:',
       '  create -> dependency install -> init -> sync -> check -> dev/test/build -> pack',
       '  Run init and later commands only after dependency installation.',
+      `  Before init, read the packaged lifecycle skill: ${LIFECYCLE_SKILL_PATH}`,
+      '  Existing adoption requires real pnpm/Vite/Electron Host and build/test inputs; it creates no fresh scaffold lock.',
       '',
       'Development CDP:',
       '  Electron CDP defaults to an automatically selected loopback port.',
@@ -302,6 +317,9 @@ try {
     aggregate,
     production,
     json,
+    adopt,
+    dryRun,
+    input,
     providedOptions,
   } = parsedArgs;
   if (!command || command === '--help' || command === '-h') {
@@ -309,6 +327,7 @@ try {
     process.exit(0);
   }
   assertCommandOptions(command, providedOptions);
+  if (input && !adopt) throw new Error('--input requires nimi-app init --adopt');
   if (command !== 'dev' && (cdpPort !== undefined || noCdp)) {
     throw new Error('--cdp-port and --no-cdp are available only for nimi-app dev');
   }
@@ -351,12 +370,16 @@ try {
       initAppScaffold(process.cwd(), {
         dir,
         json,
+        adopt,
+        input,
+        dryRun,
       });
       break;
     case 'sync':
       syncApp(process.cwd(), {
         dir,
         json,
+        dryRun,
       });
       break;
     case 'check':
