@@ -4,6 +4,43 @@ catalog_version: 2026-08-11-openai-codex-provenance-review
 inventory_mode: static_source
 default_text_model: gpt-5.6-sol-wm
 models:
+  - model_id: gpt-6-astra
+    provider: openai_codex
+    model_type: chat
+    updated_at: 2026-09-13
+    capabilities:
+      - text.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-09-13
+      notes: Subscription-backed Codex route; standard API token pricing does not apply directly.
+    source_ref:
+      url: https://developers.openai.com/codex/models
+      retrieved_at: 2026-09-13
+      note: Official Codex model guidance lists gpt-6-astra for desktop, CLI and IDE use; availability depends on account, sign-in method and rollout.
+    context_window_tokens: 1050000
+  - model_id: gpt-5.6-sol
+    provider: openai_codex
+    model_type: chat
+    updated_at: 2026-09-12
+    capabilities:
+      - text.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-09-12
+      notes: Subscription-backed Codex route; standard API pricing does not apply directly.
+    source_ref:
+      source_kind: authenticated_provider_inventory
+      url: https://chatgpt.com/backend-api/codex/models?client_version=1.0.0
+      retrieved_at: 2026-09-12
+      note: Authenticated non-public provider inventory observed through the Nimi Connector test; gpt-5.6-sol was listed for the connected ChatGPT account. This does not promise availability for every account.
+    context_window_tokens: 8192
   - model_id: gpt-5.6-sol-wm
     provider: openai_codex
     model_type: chat

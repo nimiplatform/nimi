@@ -20,4 +20,4 @@
 ## Verification Commands
 - Component-only work: run the affected Kit test and `pnpm --filter @nimiplatform/kit build`.
 - Token/theme/primitive-table work: `pnpm generate:nimi-ui-lib`, `pnpm check:nimi-ui-pattern`, and `pnpm check:nimi-ui-lib-drift`.
-- Run `pnpm check:nimi-kit` for Kit-wide changes; run spec governance only when canonical authority changes.
+- Run `pnpm check:nimi-kit` for the public-export, boundary, shared-projection, or Kit-wide changes defined by `kit/AGENTS.md`; run spec governance only when canonical authority changes.

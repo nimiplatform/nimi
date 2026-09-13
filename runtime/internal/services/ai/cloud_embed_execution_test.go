@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	aicatalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
@@ -53,6 +54,12 @@ func TestCloudEmbedExecutionUsesCapturedAIConfigConnectorWithoutFallback(t *test
 		CloudProviders:        map[string]nimillm.ProviderCredentials{},
 		AllowLoopbackEndpoint: true,
 	})
+	catalog, err := aicatalog.NewResolver(aicatalog.ResolverConfig{CustomDir: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	fixture.service.speechCatalog = catalog
+	fixture.connectorService.SetModelCatalogResolver(catalog)
 	target, err := structpb.NewStruct(map[string]any{
 		"provider":             "openai",
 		"providerModelId":      fixture.descriptor.GetProviderModelId(),
@@ -90,6 +97,9 @@ func TestCloudEmbedExecutionUsesCapturedAIConfigConnectorWithoutFallback(t *test
 		t.Fatalf("ExecuteScenario(text.embed): %v", err)
 	}
 	vectors := response.GetOutput().GetTextEmbed().GetVectors()
+	if response.GetOutput().GetTextEmbed().GetSpaceId() == "" {
+		t.Fatal("embedding response omitted its vector space")
+	}
 	if len(vectors) != 2 || len(vectors[0].GetValues()) != 2 || vectors[1].GetValues()[1] != 0.4 {
 		t.Fatalf("embedding vectors = %+v", vectors)
 	}
@@ -99,6 +109,54 @@ func TestCloudEmbedExecutionUsesCapturedAIConfigConnectorWithoutFallback(t *test
 	if response.GetUsage().GetInputTokens() != 3 {
 		t.Fatalf("embedding usage = %+v", response.GetUsage())
 	}
+	spaceID := response.GetOutput().GetTextEmbed().GetSpaceId()
+
+	// Admission tracks the whole inventory, but a chat-only catalog change
+	// must not change the embedding space after the same target is recommitted.
+	_, err = fixture.connectorService.UpsertModelCatalogProvider(fixture.context, &runtimev1.UpsertModelCatalogProviderRequest{
+		Provider: "openai",
+		Yaml: `version: 1
+provider: openai
+catalog_version: chat-only-update
+models:
+  - provider: openai
+    model_id: additional-chat-model
+    model_type: chat
+    updated_at: "2026-09-13"
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: "unknown"
+      output: "unknown"
+      currency: USD
+      as_of: "2026-09-13"
+      notes: chat catalog fixture
+    source_ref:
+      url: https://example.com/chat-model
+      retrieved_at: "2026-09-13"
+      note: chat catalog fixture
+voices: []
+`,
+	})
+	if err != nil {
+		t.Fatalf("update chat catalog: %v", err)
+	}
+	_, err = fixture.service.ExecuteScenario(ctx, request)
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE || calls.Load() != 1 {
+		t.Fatalf("stale catalog must fail before dispatch: calls=%d err=%v", calls.Load(), err)
+	}
+	descriptor := connectorModelDescriptorForAITest(t, fixture.connectorService, fixture.context, fixture.connectorID, "text-embedding-3-small")
+	target.Fields["remoteModelCatalogId"] = structpb.NewStringValue(descriptor.GetRemoteModelCatalogId())
+	if err := overwriteAIConfigStoreForTest(ctx, fixture.service.aiConfigStore, "user-001", config); err != nil {
+		t.Fatalf("recommit embedding target: %v", err)
+	}
+	response, err = fixture.service.ExecuteScenario(ctx, request)
+	if err != nil {
+		t.Fatalf("embed after catalog refresh: %v", err)
+	}
+	if got := response.GetOutput().GetTextEmbed().GetSpaceId(); got != spaceID {
+		t.Fatalf("chat-only catalog change invalidated embedding space: before=%q after=%q", spaceID, got)
+	}
 
 	failAuth.Store(true)
 	_, err = fixture.service.ExecuteScenario(ctx, request)
@@ -106,8 +164,8 @@ func TestCloudEmbedExecutionUsesCapturedAIConfigConnectorWithoutFallback(t *test
 		t.Fatalf("embedding auth reason = %v present=%v err=%v", reason, ok, err)
 	}
 	failAuth.Store(false)
-	if calls.Load() != 2 {
-		t.Fatalf("provider calls = %d, want exactly two and no fallback dispatch", calls.Load())
+	if calls.Load() != 3 {
+		t.Fatalf("provider calls = %d, want exactly three and no fallback dispatch", calls.Load())
 	}
 }
 

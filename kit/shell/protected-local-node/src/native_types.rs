@@ -200,8 +200,15 @@ pub struct NativeTextCandidateInput {
 }
 
 #[napi(object)]
+pub struct NativeTextTurnMessage {
+    pub role: String,
+    pub text: String,
+    pub turn_items: Option<Vec<JsonValue>>,
+}
+
+#[napi(object)]
 pub struct NativeTextTurnInput {
-    pub messages: Vec<NativeTextCandidateMessage>,
+    pub messages: Vec<NativeTextTurnMessage>,
     pub temperature: Option<f64>,
     pub top_p: Option<f64>,
     pub max_tokens: Option<f64>,
@@ -210,6 +217,9 @@ pub struct NativeTextTurnInput {
     pub frequency_penalty: Option<f64>,
     pub stop: Option<Vec<String>>,
     pub seed: Option<f64>,
+    pub tools: Option<Vec<JsonValue>>,
+    pub tool_choice: Option<JsonValue>,
+    pub response_format: Option<JsonValue>,
 }
 
 #[napi(object)]

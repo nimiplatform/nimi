@@ -465,26 +465,16 @@ func (b *Backend) applyAuthenticationHeaders(request *http.Request) {
 	request.Header.Set("Authorization", "Bearer "+apiKey)
 }
 
-// GenerateText sends a non-streaming chat completion request. The OpenAI-compatible
-// path maps tools, tool choice, structured response formats, and the standard
-// advanced-sampling parameters and parses returned tool calls. The Anthropic and
-// Codex paths fail closed on tools / structured output until they are wired.
+// GenerateText sends one primitive non-streaming text request. Optional text
+// behaviors execute through the captured adapter transport.
 func (b *Backend) GenerateText(ctx context.Context, modelID string, input []*runtimev1.ChatMessage, systemPrompt string, temperature float32, topP float32, maxTokens int32, params textGenParams) (string, []*runtimev1.ToolCall, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
-	if err := unsupportedTextBehaviorSurface(ctx, b, modelID, params, input, false); err != nil {
+	if err := unsupportedTextBehaviorSurface(params, input); err != nil {
 		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 	}
 	if b.supportsAnthropicMessages() {
-		// Anthropic Messages has no native JSON response_format; structured output
-		// stays fail-closed while tools execute through tool_use blocks.
-		if params.wantsStructuredOutput() {
-			return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, textBehaviorUnsupportedError()
-		}
 		return b.generateTextAnthropicMessages(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, params)
 	}
 	if b.supportsCodexResponses() {
-		if params.requestsToolUse() || params.wantsStructuredOutput() {
-			return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, textBehaviorUnsupportedError()
-		}
 		text, usage, finish, err := b.generateTextCodexResponses(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, params)
 		return text, nil, usage, finish, err
 	}
@@ -628,7 +618,7 @@ func (b *Backend) StreamGenerateText(ctx context.Context, modelID string, input 
 // StreamGenerateTextRich sends a streaming chat completion request while
 // preserving provider reasoning deltas as a separate typed channel.
 func (b *Backend) StreamGenerateTextRich(ctx context.Context, modelID string, input []*runtimev1.ChatMessage, systemPrompt string, temperature float32, topP float32, maxTokens int32, params textGenParams, handler TextStreamEventHandler) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
-	if err := unsupportedTextBehaviorSurface(ctx, b, modelID, params, input, true); err != nil {
+	if err := unsupportedTextBehaviorSurface(params, input); err != nil {
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 	}
 	if b.supportsAnthropicMessages() {

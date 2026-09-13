@@ -124,6 +124,7 @@ func classifyProviderBadRequest(providerMessage string) (codes.Code, runtimev1.R
 		"no such model",
 		"model does not exist",
 		"model is not available",
+		"model is not supported when using codex with a chatgpt account",
 		"invalid model",
 	)
 	if modelNotFound {

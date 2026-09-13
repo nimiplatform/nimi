@@ -15,7 +15,7 @@ Goal:
   scoped family requires that for comparison
 
 Hard constraints:
-- runtime/catalog/source/providers/*.source.yaml remains the authority home
+- Product authority lives under .nimi/spec/runtime/{ai-provider,model-catalog}.authority.yaml. Provider source YAML and generated snapshots are reviewed projections, not parallel product authority.
 - your output is a candidate report, not a source mutation
 - declare whether this run is provider_wide or family_scoped
 - if family_scoped, explicitly list families_in_scope

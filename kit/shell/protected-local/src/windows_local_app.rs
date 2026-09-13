@@ -13,6 +13,7 @@ mod scenario;
 mod shared_agent_ai_config;
 mod storage;
 mod text_candidate;
+mod text_behavior;
 
 use std::future::Future;
 use std::pin::Pin;

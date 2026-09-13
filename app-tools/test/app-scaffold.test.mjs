@@ -353,7 +353,7 @@ test('Electron production maps exact App SemVer to bounded Windows resource meta
   assert.match(packagerSource, /const RESOURCE_VERSION = MACOS_BUILD \? APP_VERSION : resolveWindowsResourceVersion\(APP_VERSION\);/u);
   assert.match(packagerSource, /appVersion: RESOURCE_VERSION,/u);
   assert.match(packagerSource, /buildVersion: RESOURCE_VERSION,/u);
-  assert.match(packagerSource, /afterInitialize: \[async \(\{ buildPath \}\) => \{/u);
+  assert.match(packagerSource, /beforeAsar: \[async \(\{ buildPath \}\) => \{/u);
   assert.match(packagerSource, /packagedManifest\.version = APP_VERSION;/u);
 });
 
@@ -504,7 +504,9 @@ test('standalone scaffold creates a generic starter with rewritten identity', as
     assert.doesNotMatch(electronProductionPackager, /\.nimi['"], ['"]local['"], ['"]electron-packager-stage/);
     assert.match(electronProductionPackager, /platform: NATIVE_PLATFORM/);
     assert.match(electronProductionPackager, /arch: NATIVE_ARCH/);
-    assert.match(electronProductionPackager, /asar: false/);
+    assert.match(electronProductionPackager, /asar: \{ unpack: '\*\*\/\*\.node' \}/);
+    assert.match(electronProductionPackager, /path\.join\(stagingRoot, 'nimi-native', 'protected-local'\)/);
+    assert.match(electronProductionPackager, /extraResource: \[path\.join\(stagingRoot, 'nimi-native'\)\]/);
     assert.match(electronProductionPackager, /name: APP_EXECUTABLE_NAME/);
     assert.match(electronProductionPackager, /executableName: APP_EXECUTABLE_NAME/);
     assert.match(electronProductionPackager, /Kit does not declare the current-platform protected native binding as optional/);
@@ -2567,6 +2569,7 @@ test('sync adopts and check audits an existing submitted App without creating a 
 
     const vendorExample = 'fetch("/api/vendor-example");\nconst url = "https://vendor.example/v1/chat/completions";\n';
     for (const referencePath of [
+      '.next/server/chunks/previous-build.js',
       '.agents/skills/vendor/references/example.md',
       '.claude/skills/vendor/SKILL.md',
       '.agents/skills/vendor/scripts/tests/fixtures/example.tsx',

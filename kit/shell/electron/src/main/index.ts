@@ -8,6 +8,7 @@ export * from './agent-center.js';
 export * from './agent-center-resource-pack-placement.js';
 export * from './desktop-open.js';
 export * from './avatar-host-handoff.js';
+export type { NimiElectronAppBusinessServices } from './app-business-services.js';
 export {
   registerNimiElectronAppBridge,
   type NimiElectronAgentCenterOpenFileDialog,

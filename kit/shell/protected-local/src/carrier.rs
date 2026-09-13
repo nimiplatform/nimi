@@ -45,6 +45,12 @@ pub enum LocalAppReasonCode {
     AiRouteFallbackDenied,
     AiInputInvalid,
     AiOutputInvalid,
+    AiTextBehaviorUnsupported,
+    AiTextBehaviorAmbiguous,
+    AiTextOutputIncomplete,
+    AiToolCallInvalid,
+    AiReasoningContinuityInvalid,
+    AiExecutionInterrupted,
     AiContentFilterBlocked,
     AiLocalModelUnavailable,
     AiLocalModelProfileMissing,
@@ -151,6 +157,12 @@ impl LocalAppReasonCode {
             Self::AiRouteFallbackDenied => "ai-route-fallback-denied",
             Self::AiInputInvalid => "ai-input-invalid",
             Self::AiOutputInvalid => "ai-output-invalid",
+            Self::AiTextBehaviorUnsupported => "ai-text-behavior-unsupported",
+            Self::AiTextBehaviorAmbiguous => "ai-text-behavior-ambiguous",
+            Self::AiTextOutputIncomplete => "ai-text-output-incomplete",
+            Self::AiToolCallInvalid => "ai-tool-call-invalid",
+            Self::AiReasoningContinuityInvalid => "ai-reasoning-continuity-invalid",
+            Self::AiExecutionInterrupted => "ai-execution-interrupted",
             Self::AiContentFilterBlocked => "ai-content-filter-blocked",
             Self::AiLocalModelUnavailable => "ai-local-model-unavailable",
             Self::AiLocalModelProfileMissing => "ai-local-model-profile-missing",
@@ -332,17 +344,33 @@ pub struct LocalAppTextCandidateRequest {
     pub max_tokens: Option<i32>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppTextMessage {
+    pub role: String,
+    #[serde(default)]
+    pub text: String,
+    #[serde(default)]
+    pub turn_items: Vec<JsonValue>,
+}
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct LocalAppTextTurnRequest {
-    pub messages: Vec<LocalAppTextCandidateMessage>,
+    pub messages: Vec<LocalAppTextMessage>,
     pub temperature: Option<f32>,
     pub top_p: Option<f32>,
     pub max_tokens: Option<i32>,
     pub top_k: Option<i32>,
     pub presence_penalty: Option<f32>,
     pub frequency_penalty: Option<f32>,
+    #[serde(default)]
     pub stop: Vec<String>,
     pub seed: Option<i64>,
+    #[serde(default)]
+    pub tools: Vec<JsonValue>,
+    pub tool_choice: Option<JsonValue>,
+    pub response_format: Option<JsonValue>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

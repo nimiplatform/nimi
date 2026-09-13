@@ -24,4 +24,6 @@
 - Kit `Button` wraps children in one inline content span with pointer events disabled; composite rows that lay out structured children dissolve that wrapper with `> span { display: contents; }` (and restore `pointer-events: auto` where nested Tooltips need hover).
 
 ## Verification Commands
-- Run the focused test, then `pnpm --filter @nimiplatform/lab test` and `pnpm --filter @nimiplatform/lab run validate`.
+- For implementation changes, run the directly affected test and `pnpm --filter @nimiplatform/lab typecheck`; locale-key or bundle-registration changes include `test/i18n-parity.test.mjs`.
+- Run `pnpm --filter @nimiplatform/lab test` for app-wide behavior or shared shell/SDK/Kit integration changes.
+- Run `pnpm --filter @nimiplatform/lab run validate` when `nimi.app.yaml`, its App Access declaration, submitted-input role, or the validator changes; this checks manifest declarations, not product behavior.

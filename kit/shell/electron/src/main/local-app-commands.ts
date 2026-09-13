@@ -1,5 +1,6 @@
 import { Buffer } from 'node:buffer';
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
+import { validateNimiLocalAppTextInput } from '@nimiplatform/kit/core/sdk-contract';
 import {
   NimiElectronLocalAppHostError,
   type NimiElectronLocalAppHost,
@@ -890,23 +891,12 @@ function textTurnPayload(
   payload: Readonly<Record<string, unknown>>,
   command: string,
 ): NimiElectronLocalAppRecord {
-  const output = textInputBasePayload(
-    payload,
-    command,
-    ['messages', 'temperature', 'topP', 'maxTokens', 'topK', 'presencePenalty', 'frequencyPenalty', 'stop', 'seed'],
-  );
-  if (payload.topK !== undefined) output.topK = boundedSafeInteger(payload.topK, 'topK', command, 0, 2_147_483_647);
-  if (payload.presencePenalty !== undefined) output.presencePenalty = boundedFiniteNumber(payload.presencePenalty, 'presencePenalty', command, -2, 2);
-  if (payload.frequencyPenalty !== undefined) output.frequencyPenalty = boundedFiniteNumber(payload.frequencyPenalty, 'frequencyPenalty', command, -2, 2);
-  if (payload.stop !== undefined) {
-    if (!Array.isArray(payload.stop)
-      || payload.stop.some((value) => typeof value !== 'string' || value.trim() === '')) {
-      throw invalidPayload(command, 'stop is invalid');
-    }
-    output.stop = [...payload.stop];
+  // @nimi-authority: rule.nimi.sdks.feature-clients.local-app-text-behaviors
+  try {
+    return validateNimiLocalAppTextInput(payload) as unknown as NimiElectronLocalAppRecord;
+  } catch {
+    throw invalidPayload(command, 'text input is invalid');
   }
-  if (payload.seed !== undefined) output.seed = boundedSafeInteger(payload.seed, 'seed', command, Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER);
-  return output;
 }
 
 function textInputBasePayload(
@@ -965,6 +955,11 @@ function textInputBasePayload(
 function validateScenarioSpec(value: unknown, command: string, execute: boolean): void {
   if (!isPlainRecord(value) || typeof value.type !== 'string') {
     throw invalidPayload(command, 'scenario spec is invalid');
+  }
+  if (value.type === 'text-generate' && execute) {
+    const { type: _type, ...input } = value;
+    textTurnPayload(input, command);
+    return;
   }
   assertNoForbiddenAuthorityValue(value, command);
   const acceptsInlineAudio = !execute

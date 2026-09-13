@@ -15,6 +15,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/remoteexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
+	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -57,7 +58,7 @@ func (h *deleteConnectorBeforeTextHost) StreamText(
 	record connector.ConnectorRecord,
 	target capabilitydriver.CloudTextTarget,
 	request *capabilitydriver.CloudTextMappedRequest,
-	onDelta func(string) error,
+	onDelta func(textbehavior.OrderedDelta) error,
 	audit remoteexecution.TextDispatchAudit,
 ) (capabilitydriver.CloudTextTransportResponse, error) {
 	if err := h.deleteConnector(); err != nil {
@@ -112,7 +113,7 @@ func (h *durableCaptureTextHost) ExecuteText(
 		return capabilitydriver.CloudTextTransportResponse{}, err
 	}
 	return capabilitydriver.CloudTextTransportResponse{
-		Text: "sync result", FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
+		Items: []textbehavior.OrderedItem{{Kind: textbehavior.OrderedItemText, Text: "sync result"}}, FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
 	}, nil
 }
 
@@ -121,17 +122,17 @@ func (h *durableCaptureTextHost) StreamText(
 	_ connector.ConnectorRecord,
 	_ capabilitydriver.CloudTextTarget,
 	request *capabilitydriver.CloudTextMappedRequest,
-	onDelta func(string) error,
+	onDelta func(textbehavior.OrderedDelta) error,
 	audit remoteexecution.TextDispatchAudit,
 ) (capabilitydriver.CloudTextTransportResponse, error) {
 	if err := h.assertCapturedBeforeDispatch(audit, request); err != nil {
 		return capabilitydriver.CloudTextTransportResponse{}, err
 	}
-	if err := onDelta("stream result"); err != nil {
+	if err := onDelta(textbehavior.OrderedDelta{Kind: textbehavior.OrderedItemText, Text: "stream result", ItemCompleted: true}); err != nil {
 		return capabilitydriver.CloudTextTransportResponse{}, err
 	}
 	return capabilitydriver.CloudTextTransportResponse{
-		Streamed: true, FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
+		Items: []textbehavior.OrderedItem{{Kind: textbehavior.OrderedItemText, Text: "stream result"}}, FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
 	}, nil
 }
 

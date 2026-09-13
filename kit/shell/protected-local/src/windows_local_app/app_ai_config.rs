@@ -259,7 +259,7 @@ pub(super) fn project_cloud_target(
         "label": required_text_value(&resource.label)?,
         "capabilityContract": required_text_value(&resource.capability_contract)?,
         "implementation": project_implementation(resource.implementation.ok_or_else(untrusted)?)?,
-        "providerModelTarget": project_proto_struct(resource.provider_model_target.ok_or_else(untrusted)?)?,
+        "providerModelTarget": project_target_json(resource.provider_model_target.ok_or_else(untrusted)?)?,
         "supportedFeatures": resource.supported_features,
         "state": project_effective_state(resource.state)?,
         "reasons": resource.reasons,
@@ -703,6 +703,26 @@ pub(super) fn project_capability(
     Ok(JsonValue::Object(projected))
 }
 
+// Options expose the SDK's plain JSON target. Committed portable intent below
+// retains its generated Struct representation; the two are distinct contracts.
+fn project_target_json(value: ProtoStruct) -> Result<JsonValue, LocalAppOperationError> {
+    Ok(JsonValue::Object(value.fields.into_iter()
+        .map(|(key, value)| Ok((key, project_target_value(value)?)))
+        .collect::<Result<Map<_, _>, LocalAppOperationError>>()?))
+}
+
+fn project_target_value(value: ProtoValue) -> Result<JsonValue, LocalAppOperationError> {
+    match value.kind.ok_or_else(untrusted)? {
+        ProtoValueKind::NullValue(0) => Ok(JsonValue::Null),
+        ProtoValueKind::NumberValue(value) if value.is_finite() => Ok(json!(value)),
+        ProtoValueKind::StringValue(value) => Ok(JsonValue::String(value)),
+        ProtoValueKind::BoolValue(value) => Ok(JsonValue::Bool(value)),
+        ProtoValueKind::StructValue(value) => project_target_json(value),
+        ProtoValueKind::ListValue(value) => Ok(JsonValue::Array(value.values.into_iter().map(project_target_value).collect::<Result<Vec<_>, _>>()?)),
+        _ => Err(untrusted()),
+    }
+}
+
 fn project_proto_struct(value: ProtoStruct) -> Result<JsonValue, LocalAppOperationError> {
     let fields = value
         .fields
@@ -800,6 +820,21 @@ fn untrusted() -> LocalAppOperationError {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn cloud_options_project_plain_target_json_for_model_selection() {
+        let target = ProtoStruct { fields: BTreeMap::from([
+            ("provider".into(), ProtoValue { kind: Some(ProtoValueKind::StringValue("provider-test".into())) }),
+            ("providerModelId".into(), ProtoValue { kind: Some(ProtoValueKind::StringValue("model-1".into())) }),
+            ("remoteModelCatalogId".into(), ProtoValue { kind: Some(ProtoValueKind::StringValue("catalog-1".into())) }),
+        ]) };
+        let projected = project_cloud_target(AiConfigCloudTargetProjection {
+            connector_ref: "connector-1".into(), label: "model-1".into(), capability_contract: "text.generate".into(),
+            implementation: Some(CapabilityImplementationIdentity { implementation_id: "provider-test".into(), driver_id: "nimillm".into(), driver_dialect: "provider-test".into() }),
+            provider_model_target: Some(target), state: AiConfigEffectiveState::Ready as i32, ..Default::default()
+        }).unwrap();
+        assert_eq!(projected["providerModelTarget"], json!({"provider":"provider-test", "providerModelId":"model-1", "remoteModelCatalogId":"catalog-1"}));
+    }
     use crate::generated::{AiConfigAppOwner, AiConfigOwner};
 
     fn overwrite_response() -> OverwriteAppAiConfigResponse {

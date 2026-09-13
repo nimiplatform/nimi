@@ -7,7 +7,6 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
 	"google.golang.org/grpc/codes"
 )
@@ -15,7 +14,7 @@ import (
 // textBehaviorAdapterRegistration is the one Runtime-private, versioned
 // adapter contract shared by Cloud and Local text targets. A registration is
 // exact: neither catalog labels nor execution-time probes participate in
-// matching. Production intentionally registers no adapter yet.
+// matching. Production registrations are explicit, reviewed target slices.
 type textBehaviorAdapterRegistration struct {
 	AdapterID        string
 	Version          string
@@ -214,10 +213,10 @@ func resolveTextBehaviorAdapterForFacts(
 	if err != nil {
 		return nil, err
 	}
-	if !requested.any() {
-		return nil, nil
-	}
 	if !validTextBehaviorResolutionFacts(facts) {
+		if !requested.any() {
+			return nil, nil
+		}
 		return nil, textBehaviorUnavailableError()
 	}
 
@@ -228,6 +227,21 @@ func resolveTextBehaviorAdapterForFacts(
 	for _, registration := range registrations {
 		if validTextBehaviorAdapterRegistration(registration) && textBehaviorAdapterMatchesFacts(registration, facts) {
 			matches = append(matches, registration)
+		}
+	}
+	if !requested.any() {
+		// A declared plain-text combination keeps that exact target on its
+		// captured hooks. Other targets retain their existing base protocol.
+		declaresPlainText := false
+		for _, registration := range matches {
+			for _, combination := range registration.Support.Combinations {
+				if !combination.ToolUse && !combination.Reasoning && !combination.StructuredOutput {
+					declaresPlainText = true
+				}
+			}
+		}
+		if !declaresPlainText {
+			return nil, nil
 		}
 	}
 	switch len(matches) {
@@ -364,7 +378,7 @@ func validTextBehaviorSupport(support textBehaviorSupport) bool {
 	seenCombinationModes := map[string]struct{}{}
 	coveredTool, coveredReasoning, coveredStructured := false, false, false
 	for _, combination := range support.Combinations {
-		if !combination.ToolUse && !combination.Reasoning && !combination.StructuredOutput || len(combination.Modes) == 0 ||
+		if len(combination.Modes) == 0 ||
 			combination.ToolUse && support.ToolUse == nil || combination.Reasoning && support.Reasoning == nil ||
 			combination.StructuredOutput && support.StructuredOutput == nil {
 			return false
@@ -430,6 +444,12 @@ func validTextBehaviorToolUseSupport(support textBehaviorToolUseSupport) bool {
 }
 
 func validTextBehaviorReasoningSupport(support textBehaviorReasoningSupport) bool {
+	// A stateless relay can preserve opaque continuity without admitting any
+	// reasoning activation, intensity or presentation controls.
+	if support.OpaqueContinuityCarrier && !support.SummaryTranscript && len(support.Activations) == 0 &&
+		len(support.Presentations) == 0 && len(support.Efforts) == 0 && !support.ExactBudget {
+		return true
+	}
 	if len(support.Activations) == 0 || len(support.Presentations) == 0 || len(support.Efforts) == 0 && !support.ExactBudget {
 		return false
 	}
@@ -862,22 +882,6 @@ func invalidTextBehaviorToolTranscriptError() error {
 
 func textBehaviorUnavailableError() error {
 	return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED)
-}
-
-func (adapter *resolvedTextBehaviorAdapter) nimillmAdmission() *nimillm.TextBehaviorAdmission {
-	if adapter == nil || adapter.facts.CloudTarget == nil {
-		return nil
-	}
-	return &nimillm.TextBehaviorAdmission{
-		AdapterID: adapter.registration.AdapterID, Version: adapter.registration.Version,
-		Provider: adapter.facts.CloudTarget.Provider, ProviderModelID: adapter.facts.CloudTarget.ProviderModelID,
-		ToolUse: adapter.requested.toolUse, Reasoning: adapter.requested.reasoning,
-		StructuredOutput:          adapter.requested.structured,
-		Sync:                      adapter.mode == runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
-		Stream:                    adapter.mode == runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
-		Async:                     adapter.mode == runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
-		ToolStructuredCombination: adapter.requested.toolUse && adapter.requested.structured,
-	}
 }
 
 func (adapter *resolvedTextBehaviorAdapter) capture() *textBehaviorAdapterCapture {

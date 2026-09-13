@@ -13,6 +13,41 @@ import { dispatchElectronLocalAppCommand } from '../src/main/local-app-commands.
 import { FakeIpcMain, createInvokeEvent, invokeBridge } from './electron-shell-test-utils.js';
 
 describe('Electron local-app standard-shell operations', () => {
+  it('carries ordered tool transcripts through both text commands without treating business JSON as authority', async () => {
+    const calls: unknown[] = [];
+    const host = localAppHost(calls);
+    const input = {
+      messages: [
+        { role: 'user', text: 'Search the subject' },
+        { role: 'assistant', text: '', turnItems: [
+          { type: 'output', output: { type: 'tool-call', toolCall: { id: 'call-1', name: 'search', arguments: { subject: 'trees' } } } },
+          { type: 'tool-result', toolResult: { toolCallId: 'call-1', toolName: 'search', result: { subject: 'trees', token: 'a business word' } } },
+        ] },
+      ],
+      tools: [{ type: 'function', name: 'search', inputSchema: { type: 'object', properties: { subject: { type: 'string' } } } }],
+      toolChoice: 'auto',
+    };
+    await dispatchElectronLocalAppCommand({
+      host, command: NIMI_STANDARD_SHELL_COMMANDS['local-app.textTurnStream'],
+      payload: input, sendEvent: () => undefined,
+    });
+    await dispatchElectronLocalAppCommand({
+      host, command: NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioExecute'],
+      payload: { spec: { type: 'text-generate', ...input } },
+    });
+    expect(calls).toEqual([
+      ['textTurnSubscribe', input],
+      ['scenarioExecute', { spec: { type: 'text-generate', ...input } }],
+    ]);
+    for (const field of [{ provider: 'private' }, { tools: [{ type: 'provider', name: 'search' }] }]) {
+      await expect(dispatchElectronLocalAppCommand({
+        host, command: NIMI_STANDARD_SHELL_COMMANDS['local-app.textTurnStream'],
+        payload: { ...input, ...field }, sendEvent: () => undefined,
+      })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    }
+    expect(calls).toHaveLength(2);
+  });
+
   it('accepts iterator cleanup after the Job stream has naturally completed', async () => {
     let completed!: () => void;
     const ended = new Promise<void>((resolve) => { completed = resolve; });
@@ -269,7 +304,7 @@ describe('Electron local-app standard-shell operations', () => {
       host,
       command,
       payload: { spec: { type: 'text-embed', inputs: ['hello'] } },
-    })).resolves.toEqual({ output: { type: 'text-embed', vectors: [[0.1]] }, traceId: 'trace-1' });
+    })).resolves.toEqual({ output: { type: 'text-embed', vectors: [[0.1]], spaceId: 'space-test-1' }, traceId: 'trace-1' });
     expect(calls).toEqual([['scenarioExecute', { spec: { type: 'text-embed', inputs: ['hello'] } }]]);
 
     await expect(dispatchElectronLocalAppCommand({
@@ -584,7 +619,7 @@ describe('Electron local-app standard-shell operations', () => {
     await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
       command: NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioExecute'],
       payload: { payload: { spec: { type: 'text-embed', inputs: ['hello'] } } },
-    })).resolves.toEqual({ output: { type: 'text-embed', vectors: [[0.1]] }, traceId: 'trace-1' });
+    })).resolves.toEqual({ output: { type: 'text-embed', vectors: [[0.1]], spaceId: 'space-test-1' }, traceId: 'trace-1' });
     expect(calls).toEqual([['scenarioExecute', { spec: { type: 'text-embed', inputs: ['hello'] } }]]);
   });
 
@@ -1186,7 +1221,7 @@ function localAppHost(calls: unknown[]) {
     textTurnStreamClose: async () => ({ closed: true }),
     scenarioExecute: async (input: unknown) => {
       calls.push(['scenarioExecute', input]);
-      return { output: { type: 'text-embed', vectors: [[0.1]] }, traceId: 'trace-1' };
+      return { output: { type: 'text-embed', vectors: [[0.1]], spaceId: 'space-test-1' }, traceId: 'trace-1' };
     },
     scenarioJobSubmit: async (input: unknown) => {
       calls.push(['scenarioJobSubmit', input]);

@@ -252,3 +252,4 @@ export * from './config';
 export * from './embeddings';
 export * from './runtime-model';
 export * from './text-runner';
+export * from './local-app-model';

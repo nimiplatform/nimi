@@ -94,6 +94,35 @@ func TestGemma4BehaviorSerializerLowersNamedChoiceToOneRequiredTool(t *testing.T
 	}
 }
 
+func TestGemma4BehaviorSerializerProjectsResultsInAnOrderedAssistantTurn(t *testing.T) {
+	items := []*runtimev1.TextTurnItem{{Item: &runtimev1.TextTurnItem_Output{Output: &runtimev1.TextOutputItem{Item: &runtimev1.TextOutputItem_Text{Text: &runtimev1.TextOutputText{Text: "Checking.\n"}}}}}}
+	for _, id := range []string{"first", "second"} {
+		items = append(items, &runtimev1.TextTurnItem{Item: &runtimev1.TextTurnItem_Output{Output: &runtimev1.TextOutputItem{Item: &runtimev1.TextOutputItem_ToolCall{ToolCall: &runtimev1.ToolCall{Id: id, Name: "weather", ArgumentsJson: `{"city":"Paris"}`}}}}})
+	}
+	for _, id := range []string{"first", "second"} {
+		items = append(items, &runtimev1.TextTurnItem{Item: &runtimev1.TextTurnItem_ToolResult{ToolResult: &runtimev1.ToolResult{ToolCallId: id, ToolName: "weather", Result: structpb.NewStringValue(id)}}})
+	}
+	spec := &runtimev1.TextGenerateScenarioSpec{
+		Input: []*runtimev1.ChatMessage{{Role: "user", Content: "Compare weather."}, {Role: "assistant", TurnItems: items}},
+		Tools: []*runtimev1.ToolSpec{gemma4ToolForTest(t, "weather")},
+	}
+	serialized, err := Gemma4TextBehaviorRequestSerializer(spec, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var body struct {
+		Messages []map[string]any `json:"messages"`
+	}
+	if err := json.Unmarshal(serialized.Payload, &body); err != nil {
+		t.Fatal(err)
+	}
+	if len(body.Messages) != 4 || body.Messages[1]["role"] != "assistant" || body.Messages[1]["content"] != "Checking.\n" ||
+		len(body.Messages[1]["tool_calls"].([]any)) != 2 || body.Messages[2]["role"] != "tool" || body.Messages[2]["tool_call_id"] != "first" ||
+		body.Messages[3]["role"] != "tool" || body.Messages[3]["tool_call_id"] != "second" || len(spec.Input[1].TurnItems) != 5 {
+		t.Fatalf("ordered result projection = %+v", body.Messages)
+	}
+}
+
 func TestGemma4BehaviorParsersNormalizeParallelCallsAndHiddenReasoning(t *testing.T) {
 	spec := &runtimev1.TextGenerateScenarioSpec{
 		Input:      []*runtimev1.ChatMessage{{Role: "user", Content: "Compare weather."}},
@@ -215,6 +244,32 @@ func TestGemma4BehaviorStreamAcceptsHiddenReasoningThenUsageTail(t *testing.T) {
 	if err != nil || len(result.Items) != 1 || result.Items[0].Kind != textbehavior.OrderedItemText || result.Items[0].Text != "64" ||
 		result.Usage.GetInputTokens() != 31 || result.Usage.GetOutputTokens() != 18 || result.FinishReason != runtimev1.FinishReason_FINISH_REASON_STOP {
 		t.Fatalf("hidden reasoning stream result=%+v err=%v", result, err)
+	}
+}
+
+func TestGemma4BehaviorStreamPreservesWhitespaceAcrossTokenBoundaries(t *testing.T) {
+	spec := &runtimev1.TextGenerateScenarioSpec{Input: []*runtimev1.ChatMessage{{Role: "user", Content: "Answer."}}}
+	assembler, err := Gemma4TextBehaviorStreamAssembler(spec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var streamed strings.Builder
+	for _, content := range []string{"Hello", " ", "world", "\n", "  next line "} {
+		deltas, err := assembler.Append(gemma4ChunkForTest(t, map[string]any{"content": content}, nil))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, delta := range deltas {
+			streamed.WriteString(delta.Text)
+		}
+	}
+	if _, err := assembler.Append(gemma4ChunkForTest(t, map[string]any{}, "stop")); err != nil {
+		t.Fatal(err)
+	}
+	result, err := assembler.Finish()
+	const expected = "Hello world\n  next line "
+	if err != nil || len(result.Items) != 1 || result.Items[0].Text != expected || streamed.String() != expected {
+		t.Fatalf("whitespace changed: stream=%q result=%+v err=%v", streamed.String(), result, err)
 	}
 }
 

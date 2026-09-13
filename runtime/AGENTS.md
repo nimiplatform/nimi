@@ -2,7 +2,7 @@
 
 ## Scope
 - Applies to `runtime/**`.
-- Start from the package or consumer that produced the observed failure; inspect Runtime only when the trace, contract, or changed dependency points here.
+- Start from the requested Runtime package or the consumer that produced the observed failure. Follow a concrete task question, trace, contract, or changed dependency into other Runtime packages.
 
 ## Hard Boundaries
 - Keep Runtime self-contained: no imports from `sdks/**` or `apps/**`.
@@ -12,7 +12,7 @@
 - Do not patch runtime gaps with desktop or SDK hardcodes.
 
 ## Retrieval Defaults
-- Read the failing package, its direct dependencies, and the exact Runtime authority it implements.
+- Read the affected package and its direct dependencies; read its exact Runtime authority when semantics or ownership are unresolved.
 - Read `runtime/catalog/source/**` only for catalog work; inspect generated outputs only for codegen or drift failures.
 - Skip unrelated Runtime packages, generated files, large fixtures, and historical evidence.
 

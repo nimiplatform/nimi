@@ -1,4 +1,13 @@
 import { createNimiError } from '../../types';
+export type { NimiLocalAppTextMessage, NimiLocalAppTextTurnItem, NimiLocalAppTextOutputItem, NimiLocalAppFunctionTool, NimiLocalAppToolCall } from './local-app-text.js';
+export {
+  validateLocalAppTextInput as validateNimiLocalAppTextInput,
+  projectLocalAppTextItems as validateNimiLocalAppTextOutputItems,
+} from './local-app-text.js';
+export { createNimiLocalAppAIConsumptionClient, type NimiLocalAppAIConsumptionClient } from './local-app-runtime-platform-ai.js';
+export { createNimiLocalAppAIConfigClient } from './local-app-runtime-platform-ai-config.js';
+export { createNimiAppRuntimeStorageClient } from './local-app-runtime-platform-protected-operations.js';
+export { createNimiLocalAppAssetsClient } from './local-app-runtime-platform-assets.js';
 import {
   validateNimiAppInventoryEntry,
   validateNimiAppStatus,

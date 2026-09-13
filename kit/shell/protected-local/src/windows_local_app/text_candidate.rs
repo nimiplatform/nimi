@@ -26,6 +26,7 @@ pub(super) async fn generate(
             .map(|message| ProtoMessage {
                 role: message.role,
                 text: message.text,
+                turn_items: vec![],
             })
             .collect(),
         temperature: request.temperature,

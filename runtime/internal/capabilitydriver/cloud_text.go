@@ -12,6 +12,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
+	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
 	"github.com/nimiplatform/nimi/runtime/internal/textwire"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -71,6 +72,33 @@ type CloudTextMappedRequest struct {
 	spec            *runtimev1.TextGenerateScenarioSpec
 	stream          bool
 	wireDirectives  textwire.Directives
+	behavior        *textbehavior.Invocation
+	behaviorRequest textbehavior.SerializedRequest
+}
+
+// WithTextBehavior fixes the already-selected hooks and serializes their request
+// before Job publication. It performs no adapter or target selection.
+func (r *CloudTextMappedRequest) WithTextBehavior(adapter *textbehavior.Adapter) (*CloudTextMappedRequest, error) {
+	if adapter == nil {
+		return r, nil
+	}
+	invocation, err := adapter.Bind(r.spec)
+	if err != nil {
+		return nil, err
+	}
+	serialized, err := invocation.Serialize(r.stream)
+	if err != nil {
+		return nil, err
+	}
+	cloned := *r
+	cloned.behavior, cloned.behaviorRequest = invocation, serialized
+	return &cloned, nil
+}
+
+func (r *CloudTextMappedRequest) TextBehavior() (*textbehavior.Invocation, textbehavior.SerializedRequest) {
+	serialized := r.behaviorRequest
+	serialized.Payload = append([]byte(nil), serialized.Payload...)
+	return r.behavior, serialized
 }
 
 func (r *CloudTextMappedRequest) ProviderModelID() string {
@@ -100,15 +128,14 @@ func (r *CloudTextMappedRequest) WireDirectives() textwire.Directives {
 // CloudTextTransportResponse is the credential-free normalized transport
 // carrier returned by Remote ExecutionHost to the Driver.
 type CloudTextTransportResponse struct {
-	Text         string
-	ToolCalls    []*runtimev1.ToolCall
+	Items        []textbehavior.OrderedItem
 	Usage        *runtimev1.UsageStats
 	FinishReason runtimev1.FinishReason
-	Streamed     bool
 }
 
 // CloudTextResult is the final Runtime-normalized Driver response.
 type CloudTextResult struct {
+	Items        []textbehavior.OrderedItem
 	Text         string
 	ToolCalls    []*runtimev1.ToolCall
 	Usage        *runtimev1.UsageStats
@@ -327,8 +354,23 @@ func (providerCloudTextDriver) NormalizeResponse(response CloudTextTransportResp
 	if finish == runtimev1.FinishReason_FINISH_REASON_ERROR {
 		return CloudTextResult{}, cloudInvocationError(CloudInvocationFailureResponse, fmt.Errorf("provider returned an error finish reason without an error"))
 	}
-	toolCalls := cloneCloudToolCalls(response.ToolCalls)
-	if !response.Streamed && response.Text == "" && len(toolCalls) == 0 {
+	var text strings.Builder
+	var toolCalls []*runtimev1.ToolCall
+	items := make([]textbehavior.OrderedItem, 0, len(response.Items))
+	for _, item := range response.Items {
+		if item.Kind == textbehavior.OrderedItemText {
+			text.WriteString(item.Text)
+		} else if item.Kind == textbehavior.OrderedItemToolCall && item.ToolCall != nil {
+			item.ToolCall = proto.Clone(item.ToolCall).(*runtimev1.ToolCall)
+			toolCalls = append(toolCalls, item.ToolCall)
+		} else if item.Kind == textbehavior.OrderedItemReasoningContinuity && textbehavior.ValidContinuity(item.ReasoningContinuity) {
+			item.ReasoningContinuity = proto.Clone(item.ReasoningContinuity).(*runtimev1.ReasoningContinuityCarrier)
+		} else {
+			return CloudTextResult{}, cloudInvocationError(CloudInvocationFailureResponse, fmt.Errorf("unsupported ordered cloud text output"))
+		}
+		items = append(items, item)
+	}
+	if text.Len() == 0 && len(toolCalls) == 0 {
 		return CloudTextResult{}, cloudInvocationError(CloudInvocationFailureResponse, fmt.Errorf("provider returned no text or tool call output"))
 	}
 	var usage *runtimev1.UsageStats
@@ -336,7 +378,8 @@ func (providerCloudTextDriver) NormalizeResponse(response CloudTextTransportResp
 		usage, _ = proto.Clone(response.Usage).(*runtimev1.UsageStats)
 	}
 	return CloudTextResult{
-		Text:         response.Text,
+		Text:         text.String(),
+		Items:        items,
 		ToolCalls:    toolCalls,
 		Usage:        usage,
 		FinishReason: finish,
@@ -352,6 +395,11 @@ func (providerCloudTextDriver) NormalizeReason(err error) error {
 	}
 	if errors.Is(err, context.DeadlineExceeded) {
 		return grpcerr.WrapWithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, err, grpcerr.ReasonOptions{Message: "provider request timed out"})
+	}
+	// A provider can reject a model for this account with HTTP 400. Preserve
+	// that classified cause instead of replacing it with a generic HTTP error.
+	if reason, ok := grpcerr.ExtractReasonCode(err); ok && reason == runtimev1.ReasonCode_AI_MODEL_NOT_FOUND {
+		return err
 	}
 	if metadata, ok := grpcerr.ExtractReasonMetadata(err); ok {
 		if statusCode, parseErr := strconv.Atoi(metadata["provider_http_status"]); parseErr == nil && statusCode > 0 {
@@ -379,6 +427,10 @@ func (providerCloudTextDriver) NormalizeReason(err error) error {
 			runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED,
 			runtimev1.ReasonCode_AI_INPUT_INVALID,
 			runtimev1.ReasonCode_AI_OUTPUT_INVALID,
+			runtimev1.ReasonCode_AI_TOOL_CALL_INVALID,
+			runtimev1.ReasonCode_AI_REASONING_CONTINUITY_INVALID,
+			runtimev1.ReasonCode_AI_TEXT_OUTPUT_INCOMPLETE,
+			runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED,
 			runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED:
 			return err
 		}
@@ -560,23 +612,6 @@ func cloudDefaultInteger(value *structpb.Value) (int64, bool) {
 		return 0, false
 	}
 	return int64(number), true
-}
-
-func cloneCloudToolCalls(values []*runtimev1.ToolCall) []*runtimev1.ToolCall {
-	if len(values) == 0 {
-		return nil
-	}
-	out := make([]*runtimev1.ToolCall, 0, len(values))
-	for _, value := range values {
-		if value == nil {
-			continue
-		}
-		cloned, _ := proto.Clone(value).(*runtimev1.ToolCall)
-		if cloned != nil {
-			out = append(out, cloned)
-		}
-	}
-	return out
 }
 
 func cloudInvocationError(kind CloudInvocationFailureKind, err error) error {

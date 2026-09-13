@@ -28,6 +28,7 @@
 - Read platform authority only when ownership or semantics remain ambiguous; skip unrelated platform packages and generated files.
 
 ## Verification Commands
-- After `pnpm install` and `pnpm run init`, run `pnpm run sync`, `pnpm run check`, the directly affected tests, and the affected build.
+- Initial setup: after `pnpm install` and `pnpm run init`, run `pnpm run sync`, `pnpm run check`, the directly affected tests, and the affected build.
+- In an initialized project, app-owned changes use the directly affected tests and build. Rerun sync/check when scaffold inputs, managed glue, or dependencies change, and before packaging; do not repeat initialization for ordinary product edits.
 - Run the official Desktop-supervised App journey when product interaction is in scope; shell or native checks alone do not replace it.
 - Mark every product path not actually run as `NOT-VERIFIED`. Help text, focused tests, and CDP visibility do not establish implementation or release acceptance.

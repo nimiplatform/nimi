@@ -94,6 +94,11 @@ impl SupervisedDevelopmentProcess {
             .collect::<Vec<_>>();
         argv.push(std::ptr::null_mut());
         let environment_values = sanitized_environment()?;
+        let environment_values = if installed {
+            installed_app_environment(environment_values)
+        } else {
+            environment_values
+        };
         let mut envp = environment_values
             .iter()
             .map(|value| value.as_ptr().cast_mut())
@@ -244,6 +249,19 @@ fn canonical_working_directory(path: &Path) -> Result<PathBuf, NimiHostError> {
 fn path_cstring(path: &Path) -> Result<CString, NimiHostError> {
     use std::os::unix::ffi::OsStrExt;
     CString::new(path.as_os_str().as_bytes()).map_err(|_| untrusted())
+}
+
+fn installed_app_environment(environment: Vec<CString>) -> Vec<CString> {
+    // Packaged Apps load their own fixed resource carrier. The source Runtime
+    // executable observation remains available to a source-built carrier.
+    environment
+        .into_iter()
+        .filter(|value| {
+            let value = value.as_bytes();
+            !value.starts_with(b"NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT=")
+                && !value.starts_with(b"NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_NATIVE_ENTRY=")
+        })
+        .collect()
 }
 
 fn sanitized_environment() -> Result<Vec<CString>, NimiHostError> {
@@ -465,6 +483,30 @@ mod tests {
         assert!(keys
             .iter()
             .all(|value| !value.to_ascii_lowercase().contains("token")));
+    }
+
+    #[test]
+    fn installed_app_uses_its_packaged_carrier_while_retaining_source_runtime_observation() {
+        let environment = [
+            "HOME=/Users/test",
+            "NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT=1",
+            "NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_NATIVE_ENTRY=/source/kit/index.cjs",
+            "NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_RUNTIME_EXECUTABLE=/source/nimi-runtime",
+        ]
+        .into_iter()
+        .map(|value| CString::new(value).expect("environment entry"))
+        .collect();
+        let projected = installed_app_environment(environment)
+            .into_iter()
+            .map(|value| value.into_string().expect("UTF-8 environment entry"))
+            .collect::<Vec<_>>();
+        assert_eq!(
+            projected,
+            vec![
+                "HOME=/Users/test",
+                "NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_RUNTIME_EXECUTABLE=/source/nimi-runtime",
+            ]
+        );
     }
 
     #[cfg(feature = "macos-source-local-development")]

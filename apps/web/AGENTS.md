@@ -20,6 +20,7 @@
 - Keep complete public claims and required policy disclosures accurate and reachable. Facts, owner boundaries, and safety obligations remain binding; equal-meaning wording, grouping, and visual hierarchy are Web-owned presentation decisions, not reasons to copy every internal term into the hero.
 
 ## Verification Commands
-- `pnpm --filter @nimiplatform/web typecheck`
-- `pnpm --filter @nimiplatform/web test`
-- `pnpm --filter @nimiplatform/web build`
+- TypeScript changes: run the directly affected tests and `pnpm --filter @nimiplatform/web typecheck`.
+- Shared routing, account adapters, or app-wide behavior changes: run `pnpm --filter @nimiplatform/web test`.
+- Bundling, generated landing data, assets, dependencies, or release preparation: run `pnpm --filter @nimiplatform/web build`; it already includes typecheck.
+- When the task includes visual or interaction acceptance, inspect the affected Web route; static checks alone do not establish that result.

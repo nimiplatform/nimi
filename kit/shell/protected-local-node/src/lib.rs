@@ -55,7 +55,7 @@ use nimi_shell_protected_local::{
     LocalAppScenarioUploadArtifactRequest, LocalAppSessionStatus,
     LocalAppSharedAgentAIConfigLocalOptionsRequest, LocalAppSharedAgentAIConfigOverwriteRequest,
     LocalAppStorageReadRequest, LocalAppStorageRemoveRequest, LocalAppStorageWriteRequest,
-    LocalAppTextCandidateMessage, LocalAppTextCandidateRequest, LocalAppTextTurnRequest,
+    LocalAppTextCandidateMessage, LocalAppTextCandidateRequest, LocalAppTextMessage, LocalAppTextTurnRequest,
     LocalAppWorldCoreCreateRequest, LocalAppWorldCoreListRequest, LocalDevelopmentEndRunRequest,
     LocalDevelopmentLaunchRequest, LocalDevelopmentRegistration,
     LocalDevelopmentRegistrationRequest, LocalDevelopmentShellKind, NimiDesktopControl,

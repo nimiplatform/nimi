@@ -167,7 +167,7 @@ pub use carrier::{
     LocalAppSharedAgentAIConfigOverwriteRequest, LocalAppStorageDocument,
     LocalAppStorageReadRequest, LocalAppStorageRemoveRequest, LocalAppStorageRemoveResult,
     LocalAppStorageWriteRequest, LocalAppTextCandidateMessage, LocalAppTextCandidateRequest,
-    LocalAppTextCandidateResult, LocalAppTextTurnRequest, LocalAppWorldCoreCreateRequest,
+    LocalAppTextCandidateResult, LocalAppTextMessage, LocalAppTextTurnRequest, LocalAppWorldCoreCreateRequest,
     LocalAppWorldCoreListRequest, NimiDesktopControl, NimiLocalAppCarrier, NimiLocalAppSession,
     NimiProtectedLocalHostCarrier,
 };

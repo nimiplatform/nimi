@@ -84,7 +84,17 @@ export type {
   NimiLocalAppVisionLocateResult,
   NimiLocalAppVisionLocation,
   NimiLocalAppTextTurnEvent,
+  NimiLocalAppTextTurnInput,
+  NimiLocalAppTextOutputItem,
 } from '@nimiplatform/sdk';
+export { validateNimiLocalAppTextInput, validateNimiLocalAppTextOutputItems } from '@nimiplatform/sdk/app';
+export {
+  createNimiLocalAppAIConsumptionClient,
+  createNimiLocalAppAIConfigClient,
+  createNimiAppRuntimeStorageClient,
+  createNimiLocalAppAssetsClient,
+} from '@nimiplatform/sdk/app';
+export type { NimiLocalAppAIConsumptionClient, NimiLocalAppAssetBody } from '@nimiplatform/sdk/app';
 export {
   createNimiCloudAIConfigCapabilityIntent,
   createNimiLocalAIConfigCapabilityIntent,

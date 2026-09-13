@@ -18,6 +18,7 @@ const SCAN_EXCLUDED_DIRS = new Set([
   '.git',
   '.turbo',
   '.vite',
+  '.next',
   'build',
   'coverage',
   'dist',

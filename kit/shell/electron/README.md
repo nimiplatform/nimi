@@ -12,16 +12,17 @@ Runtime access through the explicit `electron-ipc` transport.
 
 Desktop-supervised local apps register the fixed catalogued Local App host from
 their Electron main process. The admitted surface includes Runtime-selected
-foreground text candidate generation and the bounded canonical Agent
-configuration family:
+text generation with function tools and structured output, managed storage,
+and the bounded canonical Agent configuration family:
 
 ```ts
 import { registerNimiElectronAppBridge } from '@nimiplatform/kit/shell/electron/main';
 
-registerNimiElectronAppBridge({
+const bridge = registerNimiElectronAppBridge({
   appId: 'nimi.example.local-app',
   allowedRendererUrls: [rendererUrl],
   ipcMain,
+  assetMediaPlatform: { protocol, webRequest: session.defaultSession.webRequest, webContents },
 });
 ```
 
@@ -39,8 +40,18 @@ reopen, or unregister the renderer bridge. Protected calls continue to return
 bounded typed unavailable posture while Kit performs bounded same-Host session
 rebind. App code receives no session material or authority selector.
 
-This entrypoint deliberately has no Runtime endpoint, ordinary gRPC factory,
-native-host injection, capability-set selection, or command-handler input.
+App-owned Node modules use `bridge.services.ai`, `bridge.services.aiConfig`
+and `bridge.services.storage`, which are SDK feature clients over this same
+Host. Register fixed business commands through `appCommandHandlers` and use
+`onSessionInvalidated` to abort application tasks and clear their account-scoped
+memory. These handlers never occupy the reserved `nimi.shell.*` namespace.
+Business requests carry their own cancellation signal into the SDK model
+binding and check it before committing asynchronous work. Renderer disconnect
+does not itself replay or cancel a business workflow; the App owns that policy.
+
+This entrypoint has no Runtime endpoint, ordinary gRPC factory, native-host
+injection or capability-set selection. Services become unavailable when the
+bridge is unregistered, and old resource handles cannot cross a session rebind.
 
 The public Windows native package targets the existing D2 Runtime. A
 Desktop-launched installed App loads that binding from its own package;

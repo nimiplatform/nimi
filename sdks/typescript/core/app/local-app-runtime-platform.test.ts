@@ -912,8 +912,8 @@ test('Local App text stream preserves whitespace-bearing deltas as content', asy
         streamTurn: async () => ({
           events: {
             async *[Symbol.asyncIterator]() {
-              yield { type: 'delta', sequence: '1', traceId: 'trace-text', text: 'hello ' };
-              yield { type: 'delta', sequence: '2', traceId: 'trace-text', text: '\nworld' };
+              yield { type: 'delta', sequence: '1', traceId: 'trace-text', text: 'hello ', itemIndex: 0 };
+              yield { type: 'delta', sequence: '2', traceId: 'trace-text', text: '\nworld', itemIndex: 0 };
               yield { type: 'completed', sequence: '3', traceId: 'trace-text', finishReason: 'stop' };
             },
           },
@@ -927,7 +927,7 @@ test('Local App text stream preserves whitespace-bearing deltas as content', asy
   });
   const events = [];
   for await (const event of subscription) events.push(event);
-  assert.deepEqual(events.map((event) => event.type === 'delta' ? event.text : event.finishReason), [
+  assert.deepEqual(events.map((event) => event.type === 'delta' ? event.text : event.type === 'completed' ? event.finishReason : event.type), [
     'hello ', '\nworld', 'stop',
   ]);
 });

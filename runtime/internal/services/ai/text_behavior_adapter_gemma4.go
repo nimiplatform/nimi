@@ -21,6 +21,11 @@ func productionTextBehaviorAdapterRegistrations() []textBehaviorAdapterRegistrat
 	for _, entry := range cohort {
 		registrations = append(registrations, gemma4TextBehaviorRegistration(entry))
 	}
+	registrations = append(registrations, anthropicSonnet46TextBehaviorRegistration())
+	registrations = append(registrations,
+		codexTextBehaviorRegistration("gpt-5.6-sol", "openai_codex.sol.responses"),
+		codexTextBehaviorRegistration("gpt-6-astra", "openai_codex.astra.responses"),
+	)
 	return registrations
 }
 

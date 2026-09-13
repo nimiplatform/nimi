@@ -312,9 +312,13 @@ func executeLocalTextEmbedScenario(
 	if err != nil {
 		return nil, err
 	}
+	spaceID, err := localEmbeddingSpaceID(effective, result.Vectors)
+	if err != nil {
+		return nil, err
+	}
 	return &runtimev1.ExecuteScenarioResponse{
 		Output: &runtimev1.ScenarioOutput{Output: &runtimev1.ScenarioOutput_TextEmbed{
-			TextEmbed: &runtimev1.TextEmbedOutput{Vectors: result.Vectors},
+			TextEmbed: &runtimev1.TextEmbedOutput{Vectors: result.Vectors, SpaceId: spaceID},
 		}},
 		FinishReason:      runtimev1.FinishReason_FINISH_REASON_STOP,
 		Usage:             usage,

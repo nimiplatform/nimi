@@ -126,6 +126,12 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'ai-route-fallback-denied',
   'ai-input-invalid',
   'ai-output-invalid',
+  'ai-text-behavior-unsupported',
+  'ai-text-behavior-ambiguous',
+  'ai-text-output-incomplete',
+  'ai-tool-call-invalid',
+  'ai-reasoning-continuity-invalid',
+  'ai-execution-interrupted',
   'ai-content-filter-blocked',
   'ai-local-model-unavailable',
   'ai-local-model-profile-missing',
@@ -579,11 +585,12 @@ function withBoundedSessionRebind(
         if (!isSessionInvalidOutcome(first)) {
           return first;
         }
+        // Old App-owned work must stop even when the subsequent rebind fails.
+        onSessionChange();
         const rebound = await renew();
         if (!isReadySessionOutcome(rebound)) {
           return rebound.status === 'error' ? rebound : untrustedNativeOutcome();
         }
-        onSessionChange();
         if (!LOCAL_APP_BINDING_RETRY_SAFE_METHODS.has(property)) {
           return first;
         }
@@ -643,11 +650,9 @@ function untrustedNativeOutcome(): NativeLocalAppOutcome {
 
 class ElectronLocalAppHost implements NimiElectronLocalAppHost {
   private readonly binding: NimiElectronProtectedLocalBinding;
-  private readonly onSessionChange: () => void;
-  private readonly textTurnStreams = new Map<string, { bytes: number; sequence: bigint }>();
+  private readonly textTurnStreams = new Map<string, { sequence: bigint }>();
 
   constructor(binding: NimiElectronProtectedLocalBinding, onSessionChange: () => void = () => undefined) {
-    this.onSessionChange = onSessionChange;
     this.binding = withBoundedSessionRebind(binding, onSessionChange);
   }
 
@@ -656,9 +661,10 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
   }
 
   async renewTechnicalSession(): Promise<NimiElectronLocalAppRecord> {
-    const renewed = await invokeRecord(() => this.binding.localAppSessionRenew());
-    this.onSessionChange();
-    return renewed;
+    // @nimi-authority: rule.nimi.runtime.protected-session.r016
+    // Runtime only renews a live session after revalidating the same context.
+    // A successful renewal preserves resources and App-owned work.
+    return invokeRecord(() => this.binding.localAppSessionRenew());
   }
 
   aiConfigGet(): Promise<NimiElectronLocalAppRecord> {
@@ -679,7 +685,7 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
 
   async textTurnSubscribe(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     const opened = await invokeExactTextRecord(() => this.binding.localAppTextTurnSubscribe(input), ['streamId']);
-    this.textTurnStreams.set(String(opened.streamId), { bytes: 0, sequence: 0n });
+    this.textTurnStreams.set(String(opened.streamId), { sequence: 0n });
     return opened;
   }
 
@@ -700,13 +706,9 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     const sequence = BigInt(event.sequence);
     if (sequence !== state.sequence + 1n) throw untrustedRuntimeError();
     state.sequence = sequence;
-    if (event.type === 'delta' && typeof event.text === 'string') {
-      state.bytes += Buffer.byteLength(event.text, 'utf8');
-      if (state.bytes > 256 * 1024) {
-        this.textTurnStreams.delete(streamId);
-        throw untrustedRuntimeError();
-      }
-    }
+    // @nimi-authority: rule.nimi.runtime.ai-provider.local-app-text-behaviors
+    // The native carrier enforces the total on the original protobuf. Parsed
+    // tool arguments cannot reproduce its byte size from their JSON spelling.
     return next;
   }
 
@@ -1542,9 +1544,31 @@ async function invokeScenarioExecute(
   }
   const traceId = boundedExactText(value.traceId, 512, false);
   const output = value.output;
+  if (output.type === 'text-generate') {
+    if (!hasExactKeys(output, ['type', 'items', 'finishReason']) || !Array.isArray(output.items)
+      || output.items.length === 0 || !['stop', 'length', 'tool-calls', 'content-filter'].includes(String(output.finishReason))) throw untrustedRuntimeError();
+    const ids = new Set<string>();
+    const items = output.items.map((item) => {
+      if (!isPlainRecord(item)) throw untrustedRuntimeError();
+      if (item.type === 'text' && hasExactKeys(item, ['type', 'text'])) {
+        return Object.freeze({ type: 'text', text: boundedUtf8Content(item.text, 256 * 1024) });
+      }
+      if (item.type === 'reasoning-continuity' && hasExactKeys(item, ['type', 'carrier'])) {
+        return Object.freeze({ type: 'reasoning-continuity', carrier: validateTextContinuity(item.carrier) });
+      }
+      if (item.type !== 'tool-call' || !hasExactKeys(item, ['type', 'toolCall'])) throw untrustedRuntimeError();
+      const toolCall = validateTextToolCall(item.toolCall);
+      if (ids.has(String(toolCall.id))) throw untrustedRuntimeError();
+      ids.add(String(toolCall.id));
+      return Object.freeze({ type: 'tool-call', toolCall });
+    });
+    if (!items.some((item) => item.type === 'text' || item.type === 'tool-call') || (output.finishReason === 'tool-calls' && ids.size === 0)) throw untrustedRuntimeError();
+    return Object.freeze({ output: Object.freeze({ type: 'text-generate', items: Object.freeze(items), finishReason: String(output.finishReason) }), traceId });
+  }
   if (output.type === 'text-embed') {
-    if (!hasExactKeys(output, ['type', 'vectors']) || !Array.isArray(output.vectors)
+    if (!hasExactKeys(output, ['type', 'vectors', 'spaceId']) || !Array.isArray(output.vectors)
       || output.vectors.length === 0 || output.vectors.length > 16) throw untrustedRuntimeError();
+    const spaceId = boundedExactText(output.spaceId, 128, false);
     const vectors = output.vectors.map((vector) => {
       if (!Array.isArray(vector) || vector.length === 0 || vector.length > 8192
         || vector.some((entry) => typeof entry !== 'number' || !Number.isFinite(entry))) {
@@ -1552,7 +1576,7 @@ async function invokeScenarioExecute(
       }
       return Object.freeze([...vector]);
     });
-    return Object.freeze({ output: Object.freeze({ type: 'text-embed', vectors: Object.freeze(vectors) }), traceId });
+    return Object.freeze({ output: Object.freeze({ type: 'text-embed', vectors: Object.freeze(vectors), spaceId }), traceId });
   }
   if (output.type === 'image-generate') {
     if (!hasExactKeys(output, ['type', 'artifacts']) || !Array.isArray(output.artifacts)) throw untrustedRuntimeError();
@@ -1848,6 +1872,13 @@ function validateScenarioJobEvent(value: unknown): NimiElectronLocalAppRecord {
   }) as NimiElectronLocalAppRecord;
 }
 
+function validateTextContinuity(value: unknown): NimiElectronLocalAppRecord {
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['kind', 'version', 'payload'])
+    || !Array.isArray(value.payload) || value.payload.length === 0 || value.payload.length > 64 * 1024
+    || value.payload.some((byte) => !Number.isInteger(byte) || byte < 0 || byte > 255)) throw untrustedRuntimeError();
+  return Object.freeze({ kind: boundedExactText(value.kind, 128, false), version: boundedInteger(value.version, 1, 0xffff_ffff), payload: Object.freeze([...value.payload]) });
+}
+
 function validateTextTurnEvent(value: unknown): NimiElectronLocalAppRecord {
   if (!isPlainRecord(value) || typeof value.type !== 'string'
     || typeof value.sequence !== 'string' || !/^[1-9][0-9]*$/u.test(value.sequence)) {
@@ -1855,22 +1886,42 @@ function validateTextTurnEvent(value: unknown): NimiElectronLocalAppRecord {
   }
   const traceId = boundedExactText(value.traceId, 512, false);
   if (value.type === 'delta') {
-    if (!hasExactKeys(value, ['type', 'sequence', 'traceId', 'text'])) throw untrustedRuntimeError();
+    if (!hasExactKeys(value, ['type', 'sequence', 'traceId', 'text', 'itemIndex'])) throw untrustedRuntimeError();
     return Object.freeze({ type: 'delta', sequence: value.sequence, traceId,
-      text: boundedUtf8Content(value.text, 64 * 1024) });
+      text: boundedUtf8Content(value.text, 64 * 1024), itemIndex: boundedInteger(value.itemIndex, 0, 4_294_967_295) });
+  }
+  if (value.type === 'tool-call') {
+    if (!hasExactKeys(value, ['type', 'sequence', 'traceId', 'itemIndex', 'toolCall'])) throw untrustedRuntimeError();
+    return Object.freeze({ type: 'tool-call', sequence: value.sequence, traceId,
+      itemIndex: boundedInteger(value.itemIndex, 0, 4_294_967_295), toolCall: validateTextToolCall(value.toolCall) });
+  }
+  if (value.type === 'reasoning-continuity') {
+    if (!hasExactKeys(value, ['type', 'sequence', 'traceId', 'itemIndex', 'carrier'])) throw untrustedRuntimeError();
+    return Object.freeze({ type: 'reasoning-continuity', sequence: value.sequence, traceId,
+      itemIndex: boundedInteger(value.itemIndex, 0, 4_294_967_295), carrier: validateTextContinuity(value.carrier) });
   }
   if (value.type === 'completed') {
     if (!hasExactKeys(value, ['type', 'sequence', 'traceId', 'finishReason'])
-      || !['stop', 'length', 'content-filter'].includes(String(value.finishReason))) throw untrustedRuntimeError();
+      || !['stop', 'length', 'tool-calls', 'content-filter'].includes(String(value.finishReason))) throw untrustedRuntimeError();
     return Object.freeze({ type: 'completed', sequence: value.sequence, traceId, finishReason: String(value.finishReason) });
   }
   if (value.type === 'failed') {
-    if (!hasExactKeys(value, ['type', 'sequence', 'traceId', 'reasonCode', 'actionHint'])) throw untrustedRuntimeError();
+    if (!hasExactKeys(value, ['type', 'sequence', 'traceId', 'reasonCode', 'actionHint', ...(Object.hasOwn(value, 'interruption') ? ['interruption'] : [])])) throw untrustedRuntimeError();
+    const interruption = value.interruption == null ? undefined : value.interruption;
+    if ((interruption !== undefined) !== (value.reasonCode === 'ai-execution-interrupted')) throw untrustedRuntimeError();
+    if (interruption !== undefined && (!isPlainRecord(interruption) || !hasExactKeys(interruption, ['cause', 'resubmitDisposition'])
+      || interruption.cause !== 'runtime-restart' || interruption.resubmitDisposition !== 'caller-may-resubmit')) throw untrustedRuntimeError();
     return Object.freeze({ type: 'failed', sequence: value.sequence, traceId,
       reasonCode: boundedExactText(value.reasonCode, 128, false),
-      actionHint: boundedExactText(value.actionHint, 512, true) });
+      actionHint: boundedExactText(value.actionHint, 512, true), ...(interruption ? { interruption: interruption as NimiElectronLocalAppRecord } : {}) });
   }
   throw untrustedRuntimeError();
+}
+
+function validateTextToolCall(value: unknown): NimiElectronLocalAppRecord {
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['id', 'name', 'arguments']) || !isPlainRecord(value.arguments)) throw untrustedRuntimeError();
+  validateJsonValue(value.arguments);
+  return Object.freeze({ id: boundedExactText(value.id, 128, false), name: boundedExactText(value.name, 128, false), arguments: value.arguments });
 }
 
 function validateTimestamp(value: unknown): NimiElectronLocalAppRecord | null {
@@ -2506,7 +2557,7 @@ function optionalExactText(value: unknown): string | null {
   return exactText(value);
 }
 
-function validateJsonValue(value: unknown, depth = 0, budget = { nodes: 0 }): void {
+function validateJsonValue(value: unknown, depth = 0, budget = { nodes: 0 }): asserts value is NimiElectronLocalAppJson {
   budget.nodes += 1;
   if (depth > 32 || budget.nodes > 100_000) throw untrustedRuntimeError();
   if (value === null || typeof value === 'string' || typeof value === 'boolean') return;
