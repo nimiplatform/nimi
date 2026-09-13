@@ -231,6 +231,18 @@ const localAppStandardShell: NimiLocalAppStandardShell = {
     worldCore: {
       async list() { return []; },
       async create() { return {}; },
+      getCreationEligibility: unavailableCarrier,
+      get: unavailableCarrier,
+      replace: unavailableCarrier,
+      listCharacters: unavailableCarrier,
+      getCharacter: unavailableCarrier,
+      createCharacter: unavailableCarrier,
+      replaceCharacter: unavailableCarrier,
+      listEntities: unavailableCarrier,
+      getEntity: unavailableCarrier,
+      createEntity: unavailableCarrier,
+      listRelationships: unavailableCarrier,
+      getRelationship: unavailableCarrier,
     },
     personaCharacter: {
       async listOwned() { return []; },
