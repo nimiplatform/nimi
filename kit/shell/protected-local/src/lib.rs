@@ -64,6 +64,8 @@ compile_error!("windows-source-local-development requires a Windows target");
 mod generated {
     tonic::include_proto!("nimi.runtime.v1");
 }
+#[cfg(any(target_os = "windows", target_os = "macos"))]
+mod installed_app_control;
 #[cfg(all(
     target_os = "windows",
     not(feature = "windows-source-local-development")
@@ -76,8 +78,6 @@ mod windows_data_root;
 mod windows_data_root;
 #[cfg(any(target_os = "windows", target_os = "macos"))]
 mod windows_desktop_account;
-#[cfg(any(target_os = "windows", target_os = "macos"))]
-mod installed_app_control;
 #[cfg(any(target_os = "windows", target_os = "macos"))]
 #[allow(unsafe_code)]
 mod windows_local_app;
@@ -120,7 +120,6 @@ pub use bundled_avatar::{
     BundledAvatarRuntimeRequest, BundledAvatarRuntimeResponse, BundledAvatarRuntimeStreamReceiver,
 };
 pub use carrier::{
-    LocalAppVideoSessionOpenRequest, LocalAppVideoSessionScopeRequest, LocalAppVideoSessionFrameRequest,
     DesktopControlFuture, LocalAppAIConfigLocalOptionsRequest, LocalAppAIConfigOverwriteRequest,
     LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest,
     LocalAppAgentManagerSnapshotRequest, LocalAppAgentMemoryCorrectRequest,
@@ -167,9 +166,15 @@ pub use carrier::{
     LocalAppSharedAgentAIConfigOverwriteRequest, LocalAppStorageDocument,
     LocalAppStorageReadRequest, LocalAppStorageRemoveRequest, LocalAppStorageRemoveResult,
     LocalAppStorageWriteRequest, LocalAppTextCandidateMessage, LocalAppTextCandidateRequest,
-    LocalAppTextCandidateResult, LocalAppTextMessage, LocalAppTextTurnRequest, LocalAppWorldCoreCreateRequest,
-    LocalAppWorldCoreListRequest, NimiDesktopControl, NimiLocalAppCarrier, NimiLocalAppSession,
-    NimiProtectedLocalHostCarrier,
+    LocalAppTextCandidateResult, LocalAppTextMessage, LocalAppTextTurnRequest, LocalAppVideoSessionFrameRequest,
+    LocalAppVideoSessionOpenRequest, LocalAppVideoSessionScopeRequest,
+    LocalAppWorldCharacterCreateRequest, LocalAppWorldCharacterGetRequest,
+    LocalAppWorldCharacterListRequest, LocalAppWorldCharacterReplaceRequest,
+    LocalAppWorldCoreCreateRequest, LocalAppWorldCoreGetRequest, LocalAppWorldCoreListRequest,
+    LocalAppWorldCoreReplaceRequest, LocalAppWorldEntityCreateRequest,
+    LocalAppWorldEntityGetRequest, LocalAppWorldEntityListRequest,
+    LocalAppWorldRelationshipGetRequest, LocalAppWorldRelationshipListRequest, NimiDesktopControl,
+    NimiLocalAppCarrier, NimiLocalAppSession, NimiProtectedLocalHostCarrier,
 };
 pub use desktop_account::{
     DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,

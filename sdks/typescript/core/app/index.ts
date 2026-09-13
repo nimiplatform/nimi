@@ -396,3 +396,5 @@ function appError(code: string, message: string, actionHint: string, cause?: unk
     details: cause === undefined ? undefined : { cause: String(cause instanceof Error ? cause.message : cause) },
   });
 }
+
+export type { NimiLocalAppWorldCharacterListInput, NimiLocalAppWorldEntityListInput, NimiLocalAppWorldRelationshipListInput } from './local-app-runtime-platform-world-creator.js';

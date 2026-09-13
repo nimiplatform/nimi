@@ -364,3 +364,10 @@ function assertRejectsRendererRequest(
     (error) => error instanceof NimiDesktopOpenIntentParseError && error.reasonCode === reasonCode,
   );
 }
+
+it('rejects a creator trial target without changing the admitted Desktop targets', () => {
+  assertRejectsRendererRequest({ intent: {
+    kind: 'open-world-character-preview',
+    sourceRef: { kind: 'worldCharacter', id: 'character-1', worldId: 'world-1', sourceHash: 'a'.repeat(64), worldEntityRef: { kind: 'worldEntity', worldId: 'world-1', entityId: 'entity-1' } },
+  } }, 'desktop-open-target-unsupported');
+});

@@ -16,7 +16,13 @@ use nimi_shell_protected_local::{
     LocalAppSessionStatus, LocalAppSharedAgentAIConfigLocalOptionsRequest,
     LocalAppSharedAgentAIConfigOverwriteRequest, LocalAppStorageReadRequest,
     LocalAppStorageRemoveRequest, LocalAppStorageWriteRequest, LocalAppTextCandidateMessage,
-    LocalAppTextCandidateRequest, LocalAppWorldCoreCreateRequest, LocalAppWorldCoreListRequest,
+    LocalAppTextCandidateRequest, LocalAppWorldCharacterCreateRequest,
+    LocalAppWorldCharacterGetRequest, LocalAppWorldCharacterListRequest,
+    LocalAppWorldCharacterReplaceRequest, LocalAppWorldCoreCreateRequest,
+    LocalAppWorldCoreGetRequest, LocalAppWorldCoreListRequest, LocalAppWorldCoreReplaceRequest,
+    LocalAppWorldEntityCreateRequest, LocalAppWorldEntityGetRequest,
+    LocalAppWorldEntityListRequest, LocalAppWorldRelationshipGetRequest,
+    LocalAppWorldRelationshipListRequest,
 };
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -501,6 +507,88 @@ fn validate_app_ai_config_options_payload(
         return Err(invalid_payload("local_app_ai_config_local_options"));
     }
     Ok(())
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppWorldCoreGetPayload {
+    world_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppWorldCoreReplacePayload {
+    world_id: String,
+    body: Value,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppWorldCharacterListPayload {
+    world_id: String,
+    visibility: Option<String>,
+    after_id: Option<String>,
+    take: Option<u32>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppWorldCharacterGetPayload {
+    character_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppWorldCharacterCreatePayload {
+    world_id: String,
+    body: Value,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppWorldCharacterReplacePayload {
+    character_id: String,
+    body: Value,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppWorldEntityListPayload {
+    world_id: String,
+    kind: Option<String>,
+    after_id: Option<String>,
+    take: Option<u32>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppWorldEntityGetPayload {
+    entity_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppWorldEntityCreatePayload {
+    world_id: String,
+    body: Value,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppWorldRelationshipListPayload {
+    world_id: String,
+    entity_id: Option<String>,
+    source_entity_id: Option<String>,
+    target_entity_id: Option<String>,
+    r#type: Option<String>,
+    after_id: Option<String>,
+    take: Option<u32>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppWorldRelationshipGetPayload {
+    relationship_id: String,
 }
 
 pub async fn world_core_list_for_host(
@@ -1776,4 +1864,216 @@ mod tests {
             assert_eq!(envelope["source"], source);
         }
     }
+}
+
+pub async fn world_core_get_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppWorldCoreGetPayload =
+        parse_payload(payload, "local_app_realm_world_core_get")?;
+    if invalid_identifier(&payload.world_id) {
+        return Err(invalid_payload("local_app_realm_world_core_get"));
+    }
+    host.world_core_get(LocalAppWorldCoreGetRequest {
+        world_id: payload.world_id,
+    })
+    .await
+    .map_err(map_local_app_error)
+}
+
+pub async fn world_core_replace_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppWorldCoreReplacePayload =
+        parse_payload(payload, "local_app_realm_world_core_replace")?;
+    if invalid_identifier(&payload.world_id) || !payload.body.is_object() {
+        return Err(invalid_payload("local_app_realm_world_core_replace"));
+    }
+    host.world_core_replace(LocalAppWorldCoreReplaceRequest {
+        world_id: payload.world_id,
+        body: payload.body,
+    })
+    .await
+    .map_err(map_local_app_error)
+}
+
+pub async fn world_character_list_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppWorldCharacterListPayload =
+        parse_payload(payload, "local_app_realm_world_character_list")?;
+    if invalid_identifier(&payload.world_id)
+        || payload.take.is_some_and(|take| take == 0 || take > 500)
+    {
+        return Err(invalid_payload("local_app_realm_world_character_list"));
+    }
+    host.world_character_list(LocalAppWorldCharacterListRequest {
+        world_id: payload.world_id,
+        visibility: payload.visibility,
+        after_id: payload.after_id,
+        take: payload.take,
+    })
+    .await
+    .map_err(map_local_app_error)
+}
+
+pub async fn world_character_get_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppWorldCharacterGetPayload =
+        parse_payload(payload, "local_app_realm_world_character_get")?;
+    if invalid_identifier(&payload.character_id) {
+        return Err(invalid_payload("local_app_realm_world_character_get"));
+    }
+    host.world_character_get(LocalAppWorldCharacterGetRequest {
+        character_id: payload.character_id,
+    })
+    .await
+    .map_err(map_local_app_error)
+}
+
+pub async fn world_character_create_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppWorldCharacterCreatePayload =
+        parse_payload(payload, "local_app_realm_world_character_create")?;
+    if invalid_identifier(&payload.world_id) || !payload.body.is_object() {
+        return Err(invalid_payload("local_app_realm_world_character_create"));
+    }
+    host.world_character_create(LocalAppWorldCharacterCreateRequest {
+        world_id: payload.world_id,
+        body: payload.body,
+    })
+    .await
+    .map_err(map_local_app_error)
+}
+
+pub async fn world_character_replace_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppWorldCharacterReplacePayload =
+        parse_payload(payload, "local_app_realm_world_character_replace")?;
+    if invalid_identifier(&payload.character_id) || !payload.body.is_object() {
+        return Err(invalid_payload("local_app_realm_world_character_replace"));
+    }
+    host.world_character_replace(LocalAppWorldCharacterReplaceRequest {
+        character_id: payload.character_id,
+        body: payload.body,
+    })
+    .await
+    .map_err(map_local_app_error)
+}
+
+pub async fn world_entity_list_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppWorldEntityListPayload =
+        parse_payload(payload, "local_app_realm_world_entity_list")?;
+    if invalid_identifier(&payload.world_id)
+        || payload.take.is_some_and(|take| take == 0 || take > 500)
+    {
+        return Err(invalid_payload("local_app_realm_world_entity_list"));
+    }
+    host.world_entity_list(LocalAppWorldEntityListRequest {
+        world_id: payload.world_id,
+        kind: payload.kind,
+        after_id: payload.after_id,
+        take: payload.take,
+    })
+    .await
+    .map_err(map_local_app_error)
+}
+
+pub async fn world_entity_get_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppWorldEntityGetPayload =
+        parse_payload(payload, "local_app_realm_world_entity_get")?;
+    if invalid_identifier(&payload.entity_id) {
+        return Err(invalid_payload("local_app_realm_world_entity_get"));
+    }
+    host.world_entity_get(LocalAppWorldEntityGetRequest {
+        entity_id: payload.entity_id,
+    })
+    .await
+    .map_err(map_local_app_error)
+}
+
+pub async fn world_entity_create_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppWorldEntityCreatePayload =
+        parse_payload(payload, "local_app_realm_world_entity_create")?;
+    if invalid_identifier(&payload.world_id) || !payload.body.is_object() {
+        return Err(invalid_payload("local_app_realm_world_entity_create"));
+    }
+    host.world_entity_create(LocalAppWorldEntityCreateRequest {
+        world_id: payload.world_id,
+        body: payload.body,
+    })
+    .await
+    .map_err(map_local_app_error)
+}
+
+pub async fn world_relationship_list_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppWorldRelationshipListPayload =
+        parse_payload(payload, "local_app_realm_world_relationship_list")?;
+    if invalid_identifier(&payload.world_id)
+        || payload.take.is_some_and(|take| take == 0 || take > 500)
+    {
+        return Err(invalid_payload("local_app_realm_world_relationship_list"));
+    }
+    host.world_relationship_list(LocalAppWorldRelationshipListRequest {
+        world_id: payload.world_id,
+        entity_id: payload.entity_id,
+        source_entity_id: payload.source_entity_id,
+        target_entity_id: payload.target_entity_id,
+        r#type: payload.r#type,
+        after_id: payload.after_id,
+        take: payload.take,
+    })
+    .await
+    .map_err(map_local_app_error)
+}
+
+pub async fn world_relationship_get_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppWorldRelationshipGetPayload =
+        parse_payload(payload, "local_app_realm_world_relationship_get")?;
+    if invalid_identifier(&payload.relationship_id) {
+        return Err(invalid_payload("local_app_realm_world_relationship_get"));
+    }
+    host.world_relationship_get(LocalAppWorldRelationshipGetRequest {
+        relationship_id: payload.relationship_id,
+    })
+    .await
+    .map_err(map_local_app_error)
+}
+
+pub async fn world_creation_eligibility_get_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    if !payload.as_object().is_some_and(|value| value.is_empty()) {
+        return Err(invalid_payload(
+            "local_app_realm_world_creation_eligibility_get",
+        ));
+    }
+    host.world_creation_eligibility_get()
+        .await
+        .map_err(map_local_app_error)
 }

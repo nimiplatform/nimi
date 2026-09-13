@@ -30,6 +30,18 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppVoiceAssetsList',
   'localAppRealmWorldCoreList',
   'localAppRealmWorldCoreCreate',
+  'localAppRealmWorldCreationEligibilityGet',
+  'localAppRealmWorldCoreGet',
+  'localAppRealmWorldCoreReplace',
+  'localAppRealmWorldCharacterList',
+  'localAppRealmWorldCharacterGet',
+  'localAppRealmWorldCharacterCreate',
+  'localAppRealmWorldCharacterReplace',
+  'localAppRealmWorldEntityList',
+  'localAppRealmWorldEntityGet',
+  'localAppRealmWorldEntityCreate',
+  'localAppRealmWorldRelationshipList',
+  'localAppRealmWorldRelationshipGet',
   'localAppRealmPersonaCharacterListOwned',
   'localAppRealmPersonaCharacterGetOwned',
   'localAppRealmPersonaCharacterCreate',
@@ -332,6 +344,18 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppVoiceAssetsList: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppRealmWorldCoreList: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppRealmWorldCoreCreate: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppRealmWorldCreationEligibilityGet: () => Promise<NativeLocalAppOutcome>;
+  readonly localAppRealmWorldCoreGet: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppRealmWorldCoreReplace: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppRealmWorldCharacterList: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppRealmWorldCharacterGet: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppRealmWorldCharacterCreate: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppRealmWorldCharacterReplace: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppRealmWorldEntityList: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppRealmWorldEntityGet: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppRealmWorldEntityCreate: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppRealmWorldRelationshipList: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppRealmWorldRelationshipGet: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppRealmPersonaCharacterListOwned: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppRealmPersonaCharacterGetOwned: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppRealmPersonaCharacterCreate: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
@@ -431,6 +455,18 @@ export type NimiElectronLocalAppHost = {
   readonly voiceAssetsList: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly realmWorldCoreList: (input: NimiElectronLocalAppRecord) => Promise<readonly NimiElectronLocalAppRecord[]>;
   readonly realmWorldCoreCreate: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly realmWorldCreationEligibilityGet: () => Promise<NimiElectronLocalAppRecord>;
+  readonly realmWorldCoreGet: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly realmWorldCoreReplace: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly realmWorldCharacterList: (input: NimiElectronLocalAppRecord) => Promise<readonly NimiElectronLocalAppRecord[]>;
+  readonly realmWorldCharacterGet: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly realmWorldCharacterCreate: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly realmWorldCharacterReplace: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly realmWorldEntityList: (input: NimiElectronLocalAppRecord) => Promise<readonly NimiElectronLocalAppRecord[]>;
+  readonly realmWorldEntityGet: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly realmWorldEntityCreate: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly realmWorldRelationshipList: (input: NimiElectronLocalAppRecord) => Promise<readonly NimiElectronLocalAppRecord[]>;
+  readonly realmWorldRelationshipGet: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly realmPersonaCharacterListOwned: (input: NimiElectronLocalAppRecord) => Promise<readonly NimiElectronLocalAppRecord[]>;
   readonly realmPersonaCharacterGetOwned: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly realmPersonaCharacterCreate: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
@@ -528,6 +564,14 @@ const LOCAL_APP_BINDING_RETRY_SAFE_METHODS: ReadonlySet<string> = new Set([
   'localAppSessionStatus',
   'localAppAIConfigGet', 'localAppAIConfigLocalOptions',
   'localAppScenarioJobGet', 'localAppArtifactRead', 'localAppVoiceAssetsList',
+  'localAppRealmWorldCoreGet',
+  'localAppRealmWorldCharacterList',
+  'localAppRealmWorldCharacterGet',
+  'localAppRealmWorldEntityList',
+  'localAppRealmWorldEntityGet',
+  'localAppRealmWorldRelationshipList',
+  'localAppRealmWorldRelationshipGet',
+  'localAppRealmWorldCreationEligibilityGet',
   'localAppRealmWorldCoreList', 'localAppRealmPersonaCharacterListOwned',
   'localAppRealmPersonaCharacterGetOwned', 'localAppRealmChatList',
   'localAppAgentReferenceList', 'localAppAvatarHostTargetResolve',
@@ -770,6 +814,54 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
 
   realmWorldCoreCreate(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return invokeWorldCore(() => this.binding.localAppRealmWorldCoreCreate({ body: input }));
+  }
+
+  realmWorldCreationEligibilityGet(): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppRealmWorldCreationEligibilityGet());
+  }
+
+  realmWorldCoreGet(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeWorldCreatorRecord(() => this.binding.localAppRealmWorldCoreGet(input));
+  }
+
+  realmWorldCoreReplace(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeWorldCreatorRecord(() => this.binding.localAppRealmWorldCoreReplace(input));
+  }
+
+  realmWorldCharacterList(input: NimiElectronLocalAppRecord): Promise<readonly NimiElectronLocalAppRecord[]> {
+    return invokeWorldCreatorList(() => this.binding.localAppRealmWorldCharacterList(input));
+  }
+
+  realmWorldCharacterGet(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeWorldCreatorRecord(() => this.binding.localAppRealmWorldCharacterGet(input));
+  }
+
+  realmWorldCharacterCreate(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeWorldCreatorRecord(() => this.binding.localAppRealmWorldCharacterCreate(input));
+  }
+
+  realmWorldCharacterReplace(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeWorldCreatorRecord(() => this.binding.localAppRealmWorldCharacterReplace(input));
+  }
+
+  realmWorldEntityList(input: NimiElectronLocalAppRecord): Promise<readonly NimiElectronLocalAppRecord[]> {
+    return invokeWorldCreatorList(() => this.binding.localAppRealmWorldEntityList(input));
+  }
+
+  realmWorldEntityGet(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeWorldCreatorRecord(() => this.binding.localAppRealmWorldEntityGet(input));
+  }
+
+  realmWorldEntityCreate(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeWorldCreatorRecord(() => this.binding.localAppRealmWorldEntityCreate(input));
+  }
+
+  realmWorldRelationshipList(input: NimiElectronLocalAppRecord): Promise<readonly NimiElectronLocalAppRecord[]> {
+    return invokeWorldCreatorList(() => this.binding.localAppRealmWorldRelationshipList(input));
+  }
+
+  realmWorldRelationshipGet(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeWorldCreatorRecord(() => this.binding.localAppRealmWorldRelationshipGet(input));
   }
 
   realmPersonaCharacterListOwned(input: NimiElectronLocalAppRecord): Promise<readonly NimiElectronLocalAppRecord[]> {
@@ -1188,6 +1280,54 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
 
   realmWorldCoreCreate(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return this.resolve().realmWorldCoreCreate(input);
+  }
+
+  realmWorldCreationEligibilityGet(): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().realmWorldCreationEligibilityGet();
+  }
+
+  realmWorldCoreGet(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().realmWorldCoreGet(input);
+  }
+
+  realmWorldCoreReplace(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().realmWorldCoreReplace(input);
+  }
+
+  realmWorldCharacterList(input: NimiElectronLocalAppRecord): Promise<readonly NimiElectronLocalAppRecord[]> {
+    return this.resolve().realmWorldCharacterList(input);
+  }
+
+  realmWorldCharacterGet(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().realmWorldCharacterGet(input);
+  }
+
+  realmWorldCharacterCreate(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().realmWorldCharacterCreate(input);
+  }
+
+  realmWorldCharacterReplace(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().realmWorldCharacterReplace(input);
+  }
+
+  realmWorldEntityList(input: NimiElectronLocalAppRecord): Promise<readonly NimiElectronLocalAppRecord[]> {
+    return this.resolve().realmWorldEntityList(input);
+  }
+
+  realmWorldEntityGet(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().realmWorldEntityGet(input);
+  }
+
+  realmWorldEntityCreate(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().realmWorldEntityCreate(input);
+  }
+
+  realmWorldRelationshipList(input: NimiElectronLocalAppRecord): Promise<readonly NimiElectronLocalAppRecord[]> {
+    return this.resolve().realmWorldRelationshipList(input);
+  }
+
+  realmWorldRelationshipGet(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().realmWorldRelationshipGet(input);
   }
 
   realmPersonaCharacterListOwned(input: NimiElectronLocalAppRecord): Promise<readonly NimiElectronLocalAppRecord[]> {
@@ -1988,7 +2128,7 @@ async function invokeWorldCoreList(
 ): Promise<readonly NimiElectronLocalAppRecord[]> {
   const value = await invoke(call);
   if (!Array.isArray(value)) throw untrustedRuntimeError();
-  return Object.freeze(value.map((entry) => validateWorldCore(entry)));
+  return Object.freeze(value.map(worldCreatorRecord));
 }
 
 async function invokeAgentReferenceList(
@@ -2033,14 +2173,7 @@ async function invokeAvatarHostTargetResolve(
 async function invokeWorldCore(
   call: () => Promise<NativeLocalAppOutcome>,
 ): Promise<NimiElectronLocalAppRecord> {
-  return validateWorldCore(await invoke(call));
-}
-
-function validateWorldCore(value: unknown): NimiElectronLocalAppRecord {
-  if (!isPlainRecord(value)) throw untrustedRuntimeError();
-  validateJsonValue(value);
-  validateProjectionValue(value);
-  return Object.freeze({ ...value }) as NimiElectronLocalAppRecord;
+  return worldCreatorRecord(await invoke(call));
 }
 
 async function invokePersonaCharacterList(
@@ -2597,4 +2730,28 @@ function isPlainRecord(value: unknown): value is Record<string, unknown> {
 
 function untrustedRuntimeError(): NimiElectronLocalAppHostError {
   return new NimiElectronLocalAppHostError('runtime-service-untrusted', false);
+}
+
+async function invokeWorldCreatorRecord(call: () => Promise<NativeLocalAppOutcome>): Promise<NimiElectronLocalAppRecord> {
+  return worldCreatorRecord(await invoke(call));
+}
+async function invokeWorldCreatorList(call: () => Promise<NativeLocalAppOutcome>): Promise<readonly NimiElectronLocalAppRecord[]> {
+  const value = await invoke(call);
+  if (!Array.isArray(value) || value.length > 500) throw untrustedRuntimeError();
+  return Object.freeze(value.map(worldCreatorRecord));
+}
+function worldCreatorRecord(value: unknown): NimiElectronLocalAppRecord {
+  if (!isPlainRecord(value) || typeof value.id !== 'string' || !value.id) throw untrustedRuntimeError();
+  validateJsonValue(value);
+  const { core, profile, ...frame } = value;
+  const frameKeys = ['id', 'schemaVersion', 'contentRevision', 'contentHash', 'origin', 'createdAt', 'updatedAt',
+    'creatorId', 'worldId', 'visibility', 'lorebookDeclaration', 'worldEntityRef', 'validity', 'materializationReadiness', 'sourceHash',
+    'kind', 'sourceEntityId', 'targetEntityId', 'type'];
+  if (Object.keys(frame).some(key => !frameKeys.includes(key))) throw untrustedRuntimeError();
+  validateProjectionValue(frame);
+  const source = profile ?? core;
+  if (isPlainRecord(source) && isPlainRecord(source.assets) && source.assets.externalRefs !== undefined) {
+    validateProjectionValue(source.assets.externalRefs);
+  }
+  return Object.freeze({ ...value }) as NimiElectronLocalAppRecord;
 }

@@ -51,6 +51,15 @@ fn request_id_requires_desktop_open_prefix() {
 }
 
 #[test]
+fn creator_trial_is_not_an_admitted_desktop_open_target() {
+    let result = compose_envelope_for_source(
+        "nimi.realm-world-studio",
+        json!({ "intent": { "kind": "open-world-character-preview" } }),
+    );
+    assert_eq!(result.expect_err("creator trial must not open").reason_code(), "desktop-open-target-unsupported");
+}
+
+#[test]
 fn renderer_request_rejects_invalid_intent_before_descriptor_io() {
     let result = compose_envelope_for_source(
         "nimi.tauri",

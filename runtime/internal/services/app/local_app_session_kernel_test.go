@@ -295,6 +295,39 @@ func TestLocalAppSessionCurrentUserProjectionAndFailureIsolation(t *testing.T) {
 	}
 }
 
+func TestLocalAppSessionWorldCreatorOwnerHandoffRequiresRealmData(t *testing.T) {
+	granted := newLocalAppSessionFixture(t, []string{"realm.data"})
+	uncovered := newLocalAppSessionFixture(t, nil)
+	for _, fixture := range []localAppSessionFixture{granted, uncovered} {
+		if _, err := fixture.service.OpenLocalAppSessionProjection(fixture.context); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, ingress := range []localappop.Ingress{
+		localappop.IngressRealmWorldCreationEligibilityGet,
+		localappop.IngressRealmWorldCoreGet, localappop.IngressRealmWorldCoreReplace,
+		localappop.IngressRealmWorldCharacterList, localappop.IngressRealmWorldCharacterGet,
+		localappop.IngressRealmWorldCharacterCreate, localappop.IngressRealmWorldCharacterReplace,
+		localappop.IngressRealmWorldEntityList, localappop.IngressRealmWorldEntityGet,
+		localappop.IngressRealmWorldEntityCreate, localappop.IngressRealmWorldRelationshipList,
+		localappop.IngressRealmWorldRelationshipGet,
+	} {
+		authorized, err := granted.service.AuthorizeLocalAppIngress(granted.context, ingress)
+		if err != nil {
+			t.Fatalf("world creator ingress %v: %v", ingress, err)
+		}
+		classification, err := localappop.ClassifyIngress(ingress)
+		if err != nil {
+			t.Fatal(err)
+		}
+		decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(authorized)
+		if !ok || decision.Operation != classification.Operation || decision.AuthorityClass != localappop.AuthorityClassAppAccess || decision.OperationCapability != "realm.data" || decision.AccountID != "account-1" {
+			t.Fatalf("invalid world creator handoff: %+v", decision)
+		}
+		assertLocalAppReason(t, uncovered.service.AdmitLocalAppIngress(uncovered.context, ingress), runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+	}
+}
+
 func TestLocalAppSessionOwnerHandoffContainsOnlyRuntimeDerivedAdmission(t *testing.T) {
 	fixture := newLocalAppSessionFixture(t, []string{"realm.data", "runtime.consume", "agent.local", "agent.configure"})
 	if _, err := fixture.service.OpenLocalAppSessionProjection(fixture.context); err != nil {

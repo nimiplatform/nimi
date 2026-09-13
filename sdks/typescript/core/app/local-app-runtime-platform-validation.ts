@@ -147,7 +147,7 @@ function sameKeys(record: Record<string, unknown>, expected: readonly string[]):
   return actual.length === wanted.length && actual.every((key, index) => key === wanted[index]);
 }
 
-export function assertSafeProjection(value: unknown, seen = new Set<object>()): void {
+export function assertSafeProjection(value: unknown, seen = new Set<object>(), productContent = false): void {
   if (value === null || typeof value === 'string' || typeof value === 'boolean') return;
   if (typeof value === 'number' && Number.isFinite(value)) return;
   if (!value || typeof value !== 'object') localAppProjectionError('unsafe value');
@@ -155,16 +155,16 @@ export function assertSafeProjection(value: unknown, seen = new Set<object>()): 
   seen.add(value);
   if (value instanceof Uint8Array) return;
   if (Array.isArray(value)) {
-    for (const entry of value) assertSafeProjection(entry, seen);
+    for (const entry of value) assertSafeProjection(entry, seen, productContent);
     return;
   }
   const record = asRecord(value);
   if (!record) localAppProjectionError('unsafe object');
   for (const [key, entry] of Object.entries(record)) {
-    if (FORBIDDEN_AUTHORITY_FIELDS.has(normalizeFieldName(key))) {
+    if (!productContent && FORBIDDEN_AUTHORITY_FIELDS.has(normalizeFieldName(key))) {
       localAppProjectionError(`forbidden ${key}`);
     }
-    assertSafeProjection(entry, seen);
+    assertSafeProjection(entry, seen, productContent);
   }
 }
 

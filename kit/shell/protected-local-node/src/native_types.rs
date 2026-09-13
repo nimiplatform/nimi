@@ -451,11 +451,25 @@ pub struct NativeAiRealtimeOpenInput {
 }
 
 #[napi(object)]
-pub struct NativeVideoSessionOpenInput { pub reference_image_artifact_id: String, pub width: u32, pub height: u32, pub pixel_format: String }
+pub struct NativeVideoSessionOpenInput {
+    pub reference_image_artifact_id: String,
+    pub width: u32,
+    pub height: u32,
+    pub pixel_format: String,
+}
 #[napi(object)]
-pub struct NativeVideoSessionScopeInput { pub video_session_id: String, pub generation: String }
+pub struct NativeVideoSessionScopeInput {
+    pub video_session_id: String,
+    pub generation: String,
+}
 #[napi(object)]
-pub struct NativeVideoSessionFrameInput { pub video_session_id: String, pub generation: String, pub sequence: String, pub timestamp_us: String, pub frame_base64: String }
+pub struct NativeVideoSessionFrameInput {
+    pub video_session_id: String,
+    pub generation: String,
+    pub sequence: String,
+    pub timestamp_us: String,
+    pub frame_base64: String,
+}
 
 #[napi(object)]
 pub struct NativeAiRealtimeAppendInput {
@@ -630,4 +644,75 @@ pub struct NativeAgentMemorySwitchInput {
 pub struct NativeAgentMemoryDeleteInput {
     pub agent_handle: String,
     pub confirmed: bool,
+}
+
+#[napi(object)]
+pub struct NativeWorldCoreGetInput {
+    pub world_id: String,
+}
+
+#[napi(object)]
+pub struct NativeWorldCoreReplaceInput {
+    pub world_id: String,
+    pub body: JsonValue,
+}
+
+#[napi(object)]
+pub struct NativeWorldCharacterListInput {
+    pub world_id: String,
+    pub visibility: Option<String>,
+    pub after_id: Option<String>,
+    pub take: Option<u32>,
+}
+
+#[napi(object)]
+pub struct NativeWorldCharacterGetInput {
+    pub character_id: String,
+}
+
+#[napi(object)]
+pub struct NativeWorldCharacterCreateInput {
+    pub world_id: String,
+    pub body: JsonValue,
+}
+
+#[napi(object)]
+pub struct NativeWorldCharacterReplaceInput {
+    pub character_id: String,
+    pub body: JsonValue,
+}
+
+#[napi(object)]
+pub struct NativeWorldEntityListInput {
+    pub world_id: String,
+    pub kind: Option<String>,
+    pub after_id: Option<String>,
+    pub take: Option<u32>,
+}
+
+#[napi(object)]
+pub struct NativeWorldEntityGetInput {
+    pub entity_id: String,
+}
+
+#[napi(object)]
+pub struct NativeWorldEntityCreateInput {
+    pub world_id: String,
+    pub body: JsonValue,
+}
+
+#[napi(object)]
+pub struct NativeWorldRelationshipListInput {
+    pub world_id: String,
+    pub entity_id: Option<String>,
+    pub source_entity_id: Option<String>,
+    pub target_entity_id: Option<String>,
+    pub r#type: Option<String>,
+    pub after_id: Option<String>,
+    pub take: Option<u32>,
+}
+
+#[napi(object)]
+pub struct NativeWorldRelationshipGetInput {
+    pub relationship_id: String,
 }

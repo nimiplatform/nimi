@@ -75,6 +75,18 @@ const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [AIC_COMMANDS.voiceAssetsList, 'voiceAssetsList'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCoreList'], 'realmWorldCoreList'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCoreCreate'], 'realmWorldCoreCreate'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCreationEligibilityGet'], 'realmWorldCreationEligibilityGet'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCoreGet'], 'realmWorldCoreGet'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCoreReplace'], 'realmWorldCoreReplace'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCharacterList'], 'realmWorldCharacterList'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCharacterGet'], 'realmWorldCharacterGet'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCharacterCreate'], 'realmWorldCharacterCreate'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCharacterReplace'], 'realmWorldCharacterReplace'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldEntityList'], 'realmWorldEntityList'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldEntityGet'], 'realmWorldEntityGet'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldEntityCreate'], 'realmWorldEntityCreate'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldRelationshipList'], 'realmWorldRelationshipList'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldRelationshipGet'], 'realmWorldRelationshipGet'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmPersonaCharacterListOwned'], 'realmPersonaCharacterListOwned'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmPersonaCharacterGetOwned'], 'realmPersonaCharacterGetOwned'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmPersonaCharacterCreate'], 'realmPersonaCharacterCreate'],
@@ -163,6 +175,7 @@ export async function dispatchElectronLocalAppCommand(input: {
   if (!input.host) throw carrierRequired(input.command);
   try {
     if (method === 'sessionStatus') return await input.host.sessionStatus();
+    if (method === 'realmWorldCreationEligibilityGet') return await input.host.realmWorldCreationEligibilityGet();
     if (method === 'aiConfigGet') return await input.host.aiConfigGet();
     if (method === 'aiConfigOverwrite') return await input.host.aiConfigOverwrite(payload);
     if (method === 'aiConfigLocalOptions') return await input.host.aiConfigLocalOptions(payload);
@@ -388,6 +401,85 @@ function validatePayload(
         throw invalidPayload(command, 'voice asset page is invalid');
       }
       return { pageSize, pageToken: payload.pageToken };
+    }
+    case 'realmWorldCreationEligibilityGet':
+      assertExactKeys(payload, [], command);
+      return {};
+    case 'realmWorldCoreGet': {
+      assertAllowedKeys(payload, ['worldId'], ['worldId'], command);
+      const result: Record<string, NimiElectronLocalAppRecord[string]> = { worldId: requiredText(payload.worldId, 'worldId', command, MAX_IDENTIFIER_LENGTH) };
+      return result;
+    }
+    case 'realmWorldCoreReplace': {
+      assertAllowedKeys(payload, ['worldId', 'body'], ['worldId', 'body'], command);
+      const result: Record<string, NimiElectronLocalAppRecord[string]> = { worldId: requiredText(payload.worldId, 'worldId', command, MAX_IDENTIFIER_LENGTH) };
+      if (!isPlainRecord(payload.body)) throw invalidPayload(command, 'body must be an object');
+      validateWorldCreatorBodyInput(payload.body, 'world-core', true, command);
+      result.body = payload.body as NimiElectronLocalAppJson;
+      return result;
+    }
+    case 'realmWorldCharacterList': {
+      assertAllowedKeys(payload, ['worldId', 'visibility', 'afterId', 'take'], ['worldId'], command);
+      const result: Record<string, NimiElectronLocalAppRecord[string]> = { worldId: requiredText(payload.worldId, 'worldId', command, MAX_IDENTIFIER_LENGTH) };
+      if (payload.visibility !== undefined) result.visibility = worldVisibility(payload.visibility, command);
+      if (payload.afterId !== undefined) result.afterId = requiredText(payload.afterId, 'afterId', command, MAX_IDENTIFIER_LENGTH);
+      if (payload.take !== undefined) result.take = boundedSafeInteger(payload.take, 'take', command, 1, 500);      return result;
+    }
+    case 'realmWorldCharacterGet': {
+      assertAllowedKeys(payload, ['characterId'], ['characterId'], command);
+      const result: Record<string, NimiElectronLocalAppRecord[string]> = { characterId: requiredText(payload.characterId, 'characterId', command, MAX_IDENTIFIER_LENGTH) };
+      return result;
+    }
+    case 'realmWorldCharacterCreate': {
+      assertAllowedKeys(payload, ['worldId', 'body'], ['worldId', 'body'], command);
+      const result: Record<string, NimiElectronLocalAppRecord[string]> = { worldId: requiredText(payload.worldId, 'worldId', command, MAX_IDENTIFIER_LENGTH) };
+      if (!isPlainRecord(payload.body)) throw invalidPayload(command, 'body must be an object');
+      validateWorldCreatorBodyInput(payload.body, 'world-character', false, command);
+      result.body = payload.body as NimiElectronLocalAppJson;
+      return result;
+    }
+    case 'realmWorldCharacterReplace': {
+      assertAllowedKeys(payload, ['characterId', 'body'], ['characterId', 'body'], command);
+      const result: Record<string, NimiElectronLocalAppRecord[string]> = { characterId: requiredText(payload.characterId, 'characterId', command, MAX_IDENTIFIER_LENGTH) };
+      if (!isPlainRecord(payload.body)) throw invalidPayload(command, 'body must be an object');
+      validateWorldCreatorBodyInput(payload.body, 'world-character', true, command);
+      result.body = payload.body as NimiElectronLocalAppJson;
+      return result;
+    }
+    case 'realmWorldEntityList': {
+      assertAllowedKeys(payload, ['worldId', 'kind', 'afterId', 'take'], ['worldId'], command);
+      const result: Record<string, NimiElectronLocalAppRecord[string]> = { worldId: requiredText(payload.worldId, 'worldId', command, MAX_IDENTIFIER_LENGTH) };
+      if (payload.kind !== undefined) result.kind = requiredText(payload.kind, 'kind', command, MAX_IDENTIFIER_LENGTH);
+      if (payload.afterId !== undefined) result.afterId = requiredText(payload.afterId, 'afterId', command, MAX_IDENTIFIER_LENGTH);
+      if (payload.take !== undefined) result.take = boundedSafeInteger(payload.take, 'take', command, 1, 500);      return result;
+    }
+    case 'realmWorldEntityGet': {
+      assertAllowedKeys(payload, ['entityId'], ['entityId'], command);
+      const result: Record<string, NimiElectronLocalAppRecord[string]> = { entityId: requiredText(payload.entityId, 'entityId', command, MAX_IDENTIFIER_LENGTH) };
+      return result;
+    }
+    case 'realmWorldEntityCreate': {
+      assertAllowedKeys(payload, ['worldId', 'body'], ['worldId', 'body'], command);
+      const result: Record<string, NimiElectronLocalAppRecord[string]> = { worldId: requiredText(payload.worldId, 'worldId', command, MAX_IDENTIFIER_LENGTH) };
+      if (!isPlainRecord(payload.body)) throw invalidPayload(command, 'body must be an object');
+      validateWorldCreatorBodyInput(payload.body, 'world-entity', false, command);
+      result.body = payload.body as NimiElectronLocalAppJson;
+      return result;
+    }
+    case 'realmWorldRelationshipList': {
+      assertAllowedKeys(payload, ['worldId', 'entityId', 'sourceEntityId', 'targetEntityId', 'type', 'afterId', 'take'], ['worldId'], command);
+      const result: Record<string, NimiElectronLocalAppRecord[string]> = { worldId: requiredText(payload.worldId, 'worldId', command, MAX_IDENTIFIER_LENGTH) };
+      if (payload.entityId !== undefined) result.entityId = requiredText(payload.entityId, 'entityId', command, MAX_IDENTIFIER_LENGTH);
+      if (payload.sourceEntityId !== undefined) result.sourceEntityId = requiredText(payload.sourceEntityId, 'sourceEntityId', command, MAX_IDENTIFIER_LENGTH);
+      if (payload.targetEntityId !== undefined) result.targetEntityId = requiredText(payload.targetEntityId, 'targetEntityId', command, MAX_IDENTIFIER_LENGTH);
+      if (payload.type !== undefined) result.type = requiredText(payload.type, 'type', command, MAX_IDENTIFIER_LENGTH);
+      if (payload.afterId !== undefined) result.afterId = requiredText(payload.afterId, 'afterId', command, MAX_IDENTIFIER_LENGTH);
+      if (payload.take !== undefined) result.take = boundedSafeInteger(payload.take, 'take', command, 1, 500);      return result;
+    }
+    case 'realmWorldRelationshipGet': {
+      assertAllowedKeys(payload, ['relationshipId'], ['relationshipId'], command);
+      const result: Record<string, NimiElectronLocalAppRecord[string]> = { relationshipId: requiredText(payload.relationshipId, 'relationshipId', command, MAX_IDENTIFIER_LENGTH) };
+      return result;
     }
     case 'realmWorldCoreList': {
       assertAllowedKeys(payload, ['take', 'visibility'], [], command);
@@ -2015,4 +2107,11 @@ function invalidPayload(command: string, reason: string): NimiElectronShellHostE
     actionHint: 'send_only_declared_local_app_operation_fields',
     details: { command },
   });
+}
+
+function validateWorldCreatorBodyInput(body: Readonly<Record<string, unknown>>, family: string, replace: boolean, command: string): void {
+  const required = family === 'world-core' ? ['core', 'origin', 'lorebookDeclaration'] : family === 'world-character' ? ['profile', 'origin', 'lorebookDeclaration', 'worldEntityRef'] : ['core', 'origin', 'kind'];
+  assertAllowedKeys(body, [...required, 'id', ...(family === 'world-entity' ? [] : ['visibility']), ...(replace ? ['baseContentHash'] : [])], [...required, ...(replace ? ['baseContentHash'] : [])], command);
+  if (replace) requiredText(body.baseContentHash, 'baseContentHash', command, MAX_IDENTIFIER_LENGTH);
+  if (Buffer.byteLength(JSON.stringify(body), 'utf8') > 2 * 1024 * 1024) throw invalidPayload(command, 'world creator request is too large');
 }

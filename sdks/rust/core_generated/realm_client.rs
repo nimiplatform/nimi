@@ -878,12 +878,6 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/auth/wallet/login"),
     },
     RealmOperationDescriptor {
-        operation_id: "WorldCoreController_bootstrapOasisWorld",
-        service: "Realm Core",
-        method: "POST",
-        path: Some("/api/realm/core/oasis/bootstrap"),
-    },
-    RealmOperationDescriptor {
         operation_id: "WorldCoreController_createPersonaCharacter",
         service: "Realm Core",
         method: "POST",
@@ -960,6 +954,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         service: "Realm Core",
         method: "GET",
         path: Some("/api/realm/core/worlds/{worldId}"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "WorldCoreController_getWorldCreationEligibility",
+        service: "Realm Core",
+        method: "GET",
+        path: Some("/api/realm/core/world-creation-eligibility"),
     },
     RealmOperationDescriptor {
         operation_id: "WorldCoreController_getWorldEntity",

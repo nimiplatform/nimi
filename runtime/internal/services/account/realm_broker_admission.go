@@ -25,6 +25,7 @@ func (operation realmUnaryOperation) admitsProtectedDesktopCaller(caller *runtim
 	case runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL:
 		return operation.authorizationProfile == realmBrokerProtectedDesktopSourceReadinessProfile ||
 			operation.authorizationProfile == realmBrokerProtectedDesktopProductProfile ||
+			operation.authorizationProfile == realmBrokerProtectedLocalAppWorldCoreProfile ||
 			operation.authorizationProfile == realmBrokerProtectedDesktopSensitiveProfile ||
 			operation.authorizationProfile == realmBrokerProtectedDesktopCommerceProfile ||
 			operation.authorizationProfile == realmBrokerProtectedBundledAvatarSourceReadinessProfile ||

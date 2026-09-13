@@ -10959,34 +10959,6 @@ func (value *BlockUserBodyDto) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-type BootstrapOasisWorldDto struct {
-	Confirm string `json:"confirm"`
-}
-
-func (value *BootstrapOasisWorldDto) UnmarshalJSON(data []byte) error {
-	var raw map[string]json.RawMessage
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return fmt.Errorf("decode BootstrapOasisWorldDto: %w", err)
-	}
-	if err := requireRealmJSONField(raw, "confirm", false); err != nil {
-		return fmt.Errorf("decode BootstrapOasisWorldDto: %w", err)
-	}
-	type modelAlias BootstrapOasisWorldDto
-	var decoded modelAlias
-	if err := json.Unmarshal(data, &decoded); err != nil {
-		return fmt.Errorf("decode BootstrapOasisWorldDto: %w", err)
-	}
-	if _, present := raw["confirm"]; present {
-		switch decoded.Confirm {
-		case "bootstrap-oasis-world-core":
-		default:
-			return fmt.Errorf("decode BootstrapOasisWorldDto: field confirm has unknown literal %v", decoded.Confirm)
-		}
-	}
-	*value = BootstrapOasisWorldDto(decoded)
-	return nil
-}
-
 type BundleDetailDto struct {
 	CompatibleApps []string          `json:"compatibleApps"`
 	CoverAssetId   string            `json:"coverAssetId"`
@@ -19940,6 +19912,27 @@ func (value *WorldCoreValueDtoTimeModelAnchor) UnmarshalJSON(data []byte) error 
 	return nil
 }
 
+type WorldCreationEligibilityDto struct {
+	CanCreateWorld bool `json:"canCreateWorld"`
+}
+
+func (value *WorldCreationEligibilityDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode WorldCreationEligibilityDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "canCreateWorld", false); err != nil {
+		return fmt.Errorf("decode WorldCreationEligibilityDto: %w", err)
+	}
+	type modelAlias WorldCreationEligibilityDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode WorldCreationEligibilityDto: %w", err)
+	}
+	*value = WorldCreationEligibilityDto(decoded)
+	return nil
+}
+
 type WorldEntityCoreDto struct {
 	ContentHash     string                   `json:"contentHash"`
 	ContentRevision float64                  `json:"contentRevision"`
@@ -23953,22 +23946,6 @@ type RealmWalletLoginOperationRequest struct {
 	Body    WalletLoginDto                   `json:"body,omitempty"`
 }
 
-type RealmWorldCoreControllerBootstrapOasisWorldOperationPath struct {
-}
-
-type RealmWorldCoreControllerBootstrapOasisWorldOperationQuery struct {
-}
-
-type RealmWorldCoreControllerBootstrapOasisWorldOperationHeaders struct {
-}
-
-type RealmWorldCoreControllerBootstrapOasisWorldOperationRequest struct {
-	Path    RealmWorldCoreControllerBootstrapOasisWorldOperationPath    `json:"path,omitempty"`
-	Query   RealmWorldCoreControllerBootstrapOasisWorldOperationQuery   `json:"query,omitempty"`
-	Headers RealmWorldCoreControllerBootstrapOasisWorldOperationHeaders `json:"headers,omitempty"`
-	Body    BootstrapOasisWorldDto                                      `json:"body,omitempty"`
-}
-
 type RealmWorldCoreControllerCreatePersonaCharacterOperationPath struct {
 }
 
@@ -24189,6 +24166,22 @@ type RealmWorldCoreControllerGetWorldCoreOperationRequest struct {
 	Query   RealmWorldCoreControllerGetWorldCoreOperationQuery   `json:"query,omitempty"`
 	Headers RealmWorldCoreControllerGetWorldCoreOperationHeaders `json:"headers,omitempty"`
 	Body    struct{}                                             `json:"body,omitempty"`
+}
+
+type RealmWorldCoreControllerGetWorldCreationEligibilityOperationPath struct {
+}
+
+type RealmWorldCoreControllerGetWorldCreationEligibilityOperationQuery struct {
+}
+
+type RealmWorldCoreControllerGetWorldCreationEligibilityOperationHeaders struct {
+}
+
+type RealmWorldCoreControllerGetWorldCreationEligibilityOperationRequest struct {
+	Path    RealmWorldCoreControllerGetWorldCreationEligibilityOperationPath    `json:"path,omitempty"`
+	Query   RealmWorldCoreControllerGetWorldCreationEligibilityOperationQuery   `json:"query,omitempty"`
+	Headers RealmWorldCoreControllerGetWorldCreationEligibilityOperationHeaders `json:"headers,omitempty"`
+	Body    struct{}                                                            `json:"body,omitempty"`
 }
 
 type RealmWorldCoreControllerGetWorldEntityOperationPath struct {
@@ -25664,14 +25657,6 @@ func (c RealmTypedClient) WalletLogin(ctx context.Context, request RealmWalletLo
 	return decodeTypedResponse[OAuthLoginResultDto](raw)
 }
 
-func (c RealmTypedClient) WorldCoreControllerBootstrapOasisWorld(ctx context.Context, request RealmWorldCoreControllerBootstrapOasisWorldOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldCoreDto, error) {
-	raw, err := c.operationTyped(ctx, "WorldCoreController_bootstrapOasisWorld", request, metadata, timeoutMS)
-	if err != nil {
-		return WorldCoreDto{}, err
-	}
-	return decodeTypedResponse[WorldCoreDto](raw)
-}
-
 func (c RealmTypedClient) WorldCoreControllerCreatePersonaCharacter(ctx context.Context, request RealmWorldCoreControllerCreatePersonaCharacterOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PersonaCharacterCoreDto, error) {
 	raw, err := c.operationTyped(ctx, "WorldCoreController_createPersonaCharacter", request, metadata, timeoutMS)
 	if err != nil {
@@ -25774,6 +25759,14 @@ func (c RealmTypedClient) WorldCoreControllerGetWorldCore(ctx context.Context, r
 		return WorldCoreDto{}, err
 	}
 	return decodeTypedResponse[WorldCoreDto](raw)
+}
+
+func (c RealmTypedClient) WorldCoreControllerGetWorldCreationEligibility(ctx context.Context, request RealmWorldCoreControllerGetWorldCreationEligibilityOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldCreationEligibilityDto, error) {
+	raw, err := c.operationTyped(ctx, "WorldCoreController_getWorldCreationEligibility", request, metadata, timeoutMS)
+	if err != nil {
+		return WorldCreationEligibilityDto{}, err
+	}
+	return decodeTypedResponse[WorldCreationEligibilityDto](raw)
 }
 
 func (c RealmTypedClient) WorldCoreControllerGetWorldEntity(ctx context.Context, request RealmWorldCoreControllerGetWorldEntityOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldEntityCoreDto, error) {

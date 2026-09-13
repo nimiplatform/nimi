@@ -649,6 +649,106 @@ pub mod local_app {
     }
 
     #[tauri::command]
+    pub async fn local_app_realm_world_creation_eligibility_get(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::world_creation_eligibility_get_for_host(
+            host.inner(),
+            payload.unwrap_or_else(|| serde_json::json!({})),
+        )
+        .await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_realm_world_core_get(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::world_core_get_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_realm_world_core_replace(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::world_core_replace_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_realm_world_character_list(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::world_character_list_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_realm_world_character_get(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::world_character_get_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_realm_world_character_create(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::world_character_create_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_realm_world_character_replace(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::world_character_replace_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_realm_world_entity_list(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::world_entity_list_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_realm_world_entity_get(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::world_entity_get_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_realm_world_entity_create(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::world_entity_create_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_realm_world_relationship_list(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::world_relationship_list_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_realm_world_relationship_get(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::world_relationship_get_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
     pub async fn local_app_persona_character_list_owned(
         host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
         payload: serde_json::Value,

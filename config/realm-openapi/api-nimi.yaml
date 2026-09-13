@@ -517,15 +517,6 @@ components:
         - nextCursor
         - total
       type: object
-    BootstrapOasisWorldDto:
-      properties:
-        confirm:
-          enum:
-            - bootstrap-oasis-world-core
-          type: string
-      required:
-        - confirm
-      type: object
     BundleDetailDto:
       properties:
         compatibleApps:
@@ -664,6 +655,9 @@ components:
           minItems: 1
           type: array
         relationshipPostures:
+          description: >-
+            Current source writes require an empty array until
+            relationship-posture reference identities are admitted.
           items:
             $ref: '#/components/schemas/CharacterRelationshipPostureDto'
           maxItems: 4
@@ -7053,6 +7047,16 @@ components:
         - assets
         - authoring
       type: object
+    WorldCreationEligibilityDto:
+      properties:
+        canCreateWorld:
+          description: >-
+            Current account has explicit administrator-granted world creation
+            authorization; independent of role, subscription and App Access.
+          type: boolean
+      required:
+        - canCreateWorld
+      type: object
     WorldEntityCoreDto:
       additionalProperties: false
       properties:
@@ -8153,6 +8157,9 @@ components:
       additionalProperties: false
       properties:
         roleRef:
+          description: >-
+            Not admitted on source writes until a role-reference identity
+            contract is defined.
           type: string
         statement:
           maxLength: 160
@@ -8164,13 +8171,20 @@ components:
       additionalProperties: false
       properties:
         evidenceRef:
+          description: >-
+            Not admitted on source writes until an evidence-reference identity
+            contract is defined.
           type: string
         principleRef:
+          description: >-
+            Not admitted on source writes until a principle-reference identity
+            contract is defined.
           type: string
         statement:
           maxLength: 180
           type: string
         systemRef:
+          description: Exact systemId in the submitted owning WorldCore.core.systems.
           type: string
       required:
         - statement
@@ -10701,8 +10715,9 @@ paths:
   /api/human/me/creator-eligibility:
     get:
       description: >-
-        Returns creator eligibility status based on subscription tier. Requires
-        Pro or Max subscription.
+        Returns separate current-account capabilities: explicit administrator
+        authorization for world creation and subscription eligibility for
+        Persona creation.
       operationId: getMyCreatorEligibility
       parameters: []
       responses:
@@ -11394,28 +11409,6 @@ paths:
       summary: Get the explicitly system-scoped OASIS WorldCore
       tags:
         - Realm Core
-  /api/realm/core/oasis/bootstrap:
-    post:
-      operationId: WorldCoreController_bootstrapOasisWorld
-      parameters: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/BootstrapOasisWorldDto'
-        required: true
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/WorldCoreDto'
-          description: ''
-      security:
-        - bearer: []
-      summary: Bootstrap or return the system OASIS WorldCore
-      tags:
-        - Realm Core
   /api/realm/core/persona-characters:
     get:
       operationId: WorldCoreController_listPersonaCharacters
@@ -11722,6 +11715,22 @@ paths:
       summary: Discover public WorldCharacterCore records in public worlds
       tags:
         - Realm Core
+  /api/realm/core/world-creation-eligibility:
+    get:
+      operationId: WorldCoreController_getWorldCreationEligibility
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorldCreationEligibilityDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Get the current account explicit world creation eligibility
+      tags:
+        - Realm Core
   /api/realm/core/world-entities/{entityId}:
     get:
       operationId: WorldCoreController_getWorldEntity
@@ -11867,7 +11876,7 @@ paths:
           description: ''
       security:
         - bearer: []
-      summary: Create a WorldCore
+      summary: Create a WorldCore with explicit account creation authorization
       tags:
         - Realm Core
   /api/realm/core/worlds/{worldId}:

@@ -27,6 +27,18 @@ const agentHandle = 'lah_contract_nonexistent';
 const embodimentAgentHandle = `agent_ref_${'A'.repeat(43)}`;
 
 const calls = [
+  ['localAppRealmWorldCreationEligibilityGet'],
+  ['localAppRealmWorldCoreGet', { worldId: 'world-1' }],
+  ['localAppRealmWorldCoreReplace', { worldId: 'world-1', body: { baseContentHash: 'a'.repeat(64), core: {}, lorebookDeclaration: {}, origin: { kind: 'manual' } } }],
+  ['localAppRealmWorldCharacterList', { worldId: 'world-1', take: 10 }],
+  ['localAppRealmWorldCharacterGet', { characterId: 'character-1' }],
+  ['localAppRealmWorldCharacterCreate', { worldId: 'world-1', body: { profile: {}, lorebookDeclaration: {}, origin: { kind: 'manual' }, worldEntityRef: { kind: 'worldEntity', worldId: 'world-1', entityId: 'entity-1' } } }],
+  ['localAppRealmWorldCharacterReplace', { characterId: 'character-1', body: { baseContentHash: 'a'.repeat(64), profile: {}, lorebookDeclaration: {}, origin: { kind: 'manual' }, worldEntityRef: { kind: 'worldEntity', worldId: 'world-1', entityId: 'entity-1' } } }],
+  ['localAppRealmWorldEntityList', { worldId: 'world-1', kind: 'person' }],
+  ['localAppRealmWorldEntityGet', { entityId: 'entity-1' }],
+  ['localAppRealmWorldEntityCreate', { worldId: 'world-1', body: { core: {}, kind: 'person', origin: { kind: 'manual' } } }],
+  ['localAppRealmWorldRelationshipList', { worldId: 'world-1', type: 'knows' }],
+  ['localAppRealmWorldRelationshipGet', { relationshipId: 'relationship-1' }],
   ['localAppRealmWorldCoreList', { take: 1, visibility: 'private' }],
   ['localAppRealmWorldCoreCreate', {
     body: { core: {}, origin: { kind: 'manual' }, visibility: 'private' },
@@ -71,6 +83,11 @@ const calls = [
 ];
 
 async function main() {
+  assert.throws(
+    () => addon.localAppRealmWorldRelationshipList({ worldId: 'world-1', type: 123 }),
+    /String|string/u,
+    'the Rust raw identifier r#type must expose the declared JavaScript type field',
+  );
   assert.equal(
     typeof addon.desktopFirstPartyProductUnaryCancel,
     'function',

@@ -1,5 +1,8 @@
 use super::*;
-use nimi_shell_protected_local::{LocalAppVideoSessionOpenRequest, LocalAppVideoSessionScopeRequest, LocalAppVideoSessionFrameRequest};
+use nimi_shell_protected_local::{
+    LocalAppVideoSessionFrameRequest, LocalAppVideoSessionOpenRequest,
+    LocalAppVideoSessionScopeRequest,
+};
 use std::{
     collections::HashMap,
     sync::{
@@ -53,24 +56,86 @@ static SCENARIO_STREAM_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 #[napi(js_name = "localAppVideoSessionOpen")]
 pub async fn local_app_video_session_open(input: NativeVideoSessionOpenInput) -> NativeJsonOutcome {
-    invoke_agent(|session| async move { session.video_session_open(LocalAppVideoSessionOpenRequest { reference_image_artifact_id:input.reference_image_artifact_id, width:input.width, height:input.height, pixel_format:input.pixel_format }).await }).await
+    invoke_agent(|session| async move {
+        session
+            .video_session_open(LocalAppVideoSessionOpenRequest {
+                reference_image_artifact_id: input.reference_image_artifact_id,
+                width: input.width,
+                height: input.height,
+                pixel_format: input.pixel_format,
+            })
+            .await
+    })
+    .await
 }
 #[napi(js_name = "localAppVideoSessionSubmit")]
-pub async fn local_app_video_session_submit(input: NativeVideoSessionFrameInput) -> NativeJsonOutcome {
-    let generation=match native_realtime_generation(&input.generation){Ok(value)=>value,Err(error)=>return NativeJsonOutcome::error(error)};
-    let sequence=match native_realtime_generation(&input.sequence){Ok(value)=>value,Err(error)=>return NativeJsonOutcome::error(error)};
-    let timestamp_us=if input.timestamp_us=="0" {0} else {match native_realtime_generation(&input.timestamp_us){Ok(value)=>value,Err(error)=>return NativeJsonOutcome::error(error)}};
-    invoke_agent(|session| async move {session.video_session_submit(LocalAppVideoSessionFrameRequest {video_session_id:input.video_session_id,generation,sequence,timestamp_us,frame_base64:input.frame_base64}).await}).await
+pub async fn local_app_video_session_submit(
+    input: NativeVideoSessionFrameInput,
+) -> NativeJsonOutcome {
+    let generation = match native_realtime_generation(&input.generation) {
+        Ok(value) => value,
+        Err(error) => return NativeJsonOutcome::error(error),
+    };
+    let sequence = match native_realtime_generation(&input.sequence) {
+        Ok(value) => value,
+        Err(error) => return NativeJsonOutcome::error(error),
+    };
+    let timestamp_us = if input.timestamp_us == "0" {
+        0
+    } else {
+        match native_realtime_generation(&input.timestamp_us) {
+            Ok(value) => value,
+            Err(error) => return NativeJsonOutcome::error(error),
+        }
+    };
+    invoke_agent(|session| async move {
+        session
+            .video_session_submit(LocalAppVideoSessionFrameRequest {
+                video_session_id: input.video_session_id,
+                generation,
+                sequence,
+                timestamp_us,
+                frame_base64: input.frame_base64,
+            })
+            .await
+    })
+    .await
 }
 #[napi(js_name = "localAppVideoSessionRead")]
-pub async fn local_app_video_session_read(input: NativeVideoSessionScopeInput) -> NativeJsonOutcome {
-    let generation=match native_realtime_generation(&input.generation){Ok(value)=>value,Err(error)=>return NativeJsonOutcome::error(error)};
-    invoke_agent(|session| async move {session.video_session_read(LocalAppVideoSessionScopeRequest {video_session_id:input.video_session_id,generation}).await}).await
+pub async fn local_app_video_session_read(
+    input: NativeVideoSessionScopeInput,
+) -> NativeJsonOutcome {
+    let generation = match native_realtime_generation(&input.generation) {
+        Ok(value) => value,
+        Err(error) => return NativeJsonOutcome::error(error),
+    };
+    invoke_agent(|session| async move {
+        session
+            .video_session_read(LocalAppVideoSessionScopeRequest {
+                video_session_id: input.video_session_id,
+                generation,
+            })
+            .await
+    })
+    .await
 }
 #[napi(js_name = "localAppVideoSessionClose")]
-pub async fn local_app_video_session_close(input: NativeVideoSessionScopeInput) -> NativeJsonOutcome {
-    let generation=match native_realtime_generation(&input.generation){Ok(value)=>value,Err(error)=>return NativeJsonOutcome::error(error)};
-    invoke_agent(|session| async move {session.video_session_close(LocalAppVideoSessionScopeRequest {video_session_id:input.video_session_id,generation}).await}).await
+pub async fn local_app_video_session_close(
+    input: NativeVideoSessionScopeInput,
+) -> NativeJsonOutcome {
+    let generation = match native_realtime_generation(&input.generation) {
+        Ok(value) => value,
+        Err(error) => return NativeJsonOutcome::error(error),
+    };
+    invoke_agent(|session| async move {
+        session
+            .video_session_close(LocalAppVideoSessionScopeRequest {
+                video_session_id: input.video_session_id,
+                generation,
+            })
+            .await
+    })
+    .await
 }
 const MAX_SCENARIO_STREAMS: usize = 8;
 const MAX_ASSET_STREAMS: usize = 8;
@@ -2469,4 +2534,178 @@ mod session_rebind_tests {
         assert_eq!(outcome.status, "error");
         assert_eq!(outcome.reason_code.as_deref(), Some("canceled"));
     }
+}
+
+#[napi(js_name = "localAppRealmWorldCoreGet")]
+pub async fn local_app_realm_world_core_get(input: NativeWorldCoreGetInput) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .realm_world_core_get(LocalAppWorldCoreGetRequest {
+                world_id: input.world_id,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppRealmWorldCoreReplace")]
+pub async fn local_app_realm_world_core_replace(
+    input: NativeWorldCoreReplaceInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .realm_world_core_replace(LocalAppWorldCoreReplaceRequest {
+                world_id: input.world_id,
+                body: input.body,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppRealmWorldCharacterList")]
+pub async fn local_app_realm_world_character_list(
+    input: NativeWorldCharacterListInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .realm_world_character_list(LocalAppWorldCharacterListRequest {
+                world_id: input.world_id,
+                visibility: input.visibility,
+                after_id: input.after_id,
+                take: input.take,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppRealmWorldCharacterGet")]
+pub async fn local_app_realm_world_character_get(
+    input: NativeWorldCharacterGetInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .realm_world_character_get(LocalAppWorldCharacterGetRequest {
+                character_id: input.character_id,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppRealmWorldCharacterCreate")]
+pub async fn local_app_realm_world_character_create(
+    input: NativeWorldCharacterCreateInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .realm_world_character_create(LocalAppWorldCharacterCreateRequest {
+                world_id: input.world_id,
+                body: input.body,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppRealmWorldCharacterReplace")]
+pub async fn local_app_realm_world_character_replace(
+    input: NativeWorldCharacterReplaceInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .realm_world_character_replace(LocalAppWorldCharacterReplaceRequest {
+                character_id: input.character_id,
+                body: input.body,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppRealmWorldEntityList")]
+pub async fn local_app_realm_world_entity_list(
+    input: NativeWorldEntityListInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .realm_world_entity_list(LocalAppWorldEntityListRequest {
+                world_id: input.world_id,
+                kind: input.kind,
+                after_id: input.after_id,
+                take: input.take,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppRealmWorldEntityGet")]
+pub async fn local_app_realm_world_entity_get(
+    input: NativeWorldEntityGetInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .realm_world_entity_get(LocalAppWorldEntityGetRequest {
+                entity_id: input.entity_id,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppRealmWorldEntityCreate")]
+pub async fn local_app_realm_world_entity_create(
+    input: NativeWorldEntityCreateInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .realm_world_entity_create(LocalAppWorldEntityCreateRequest {
+                world_id: input.world_id,
+                body: input.body,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppRealmWorldRelationshipList")]
+pub async fn local_app_realm_world_relationship_list(
+    input: NativeWorldRelationshipListInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .realm_world_relationship_list(LocalAppWorldRelationshipListRequest {
+                world_id: input.world_id,
+                entity_id: input.entity_id,
+                source_entity_id: input.source_entity_id,
+                target_entity_id: input.target_entity_id,
+                r#type: input.r#type,
+                after_id: input.after_id,
+                take: input.take,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppRealmWorldRelationshipGet")]
+pub async fn local_app_realm_world_relationship_get(
+    input: NativeWorldRelationshipGetInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .realm_world_relationship_get(LocalAppWorldRelationshipGetRequest {
+                relationship_id: input.relationship_id,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppRealmWorldCreationEligibilityGet")]
+pub async fn local_app_realm_world_creation_eligibility_get() -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.realm_world_creation_eligibility_get().await })
+        .await
 }

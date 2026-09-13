@@ -121,7 +121,6 @@ export const REALM_NOTIFICATION_METHODS = [
 ] as const satisfies readonly RealmTypedMethodName[];
 
 export const REALM_WORLD_CORE_METHODS = [
-  'worldCoreControllerBootstrapOasisWorld',
   'worldCoreControllerCreatePersonaCharacter',
   'worldCoreControllerCreateWorldCharacter',
   'worldCoreControllerCreateWorldCore',
@@ -135,6 +134,7 @@ export const REALM_WORLD_CORE_METHODS = [
   'worldCoreControllerGetPersonaCharacter',
   'worldCoreControllerGetWorldCharacter',
   'worldCoreControllerGetWorldCore',
+  'worldCoreControllerGetWorldCreationEligibility',
   'worldCoreControllerGetWorldEntity',
   'worldCoreControllerGetWorldRelationship',
   'worldCoreControllerListPersonaCharacters',

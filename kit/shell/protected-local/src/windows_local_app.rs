@@ -7,13 +7,13 @@ mod realm_persona_character;
 mod realm_realtime;
 mod realm_world_core;
 mod realtime;
-mod video_session;
 mod reference;
 mod scenario;
 mod shared_agent_ai_config;
 mod storage;
 mod text_candidate;
 mod text_behavior;
+mod video_session;
 
 use std::future::Future;
 use std::pin::Pin;
@@ -79,8 +79,13 @@ use crate::{
     LocalAppSharedAgentAIConfigLocalOptionsRequest, LocalAppSharedAgentAIConfigOverwriteRequest,
     LocalAppStorageDocument, LocalAppStorageReadRequest, LocalAppStorageRemoveRequest,
     LocalAppStorageRemoveResult, LocalAppStorageWriteRequest, LocalAppTextCandidateRequest,
-    LocalAppTextCandidateResult, LocalAppTextTurnRequest, LocalAppWorldCoreCreateRequest,
-    LocalAppWorldCoreListRequest, NimiLocalAppCarrier, NimiLocalAppSession,
+    LocalAppTextCandidateResult, LocalAppTextTurnRequest, LocalAppWorldCharacterCreateRequest,
+    LocalAppWorldCharacterGetRequest, LocalAppWorldCharacterListRequest,
+    LocalAppWorldCharacterReplaceRequest, LocalAppWorldCoreCreateRequest,
+    LocalAppWorldCoreGetRequest, LocalAppWorldCoreListRequest, LocalAppWorldCoreReplaceRequest,
+    LocalAppWorldEntityCreateRequest, LocalAppWorldEntityGetRequest,
+    LocalAppWorldEntityListRequest, LocalAppWorldRelationshipGetRequest,
+    LocalAppWorldRelationshipListRequest, NimiLocalAppCarrier, NimiLocalAppSession,
 };
 
 #[cfg(all(
@@ -401,6 +406,137 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
             realm_world_core::create(self.checked_channel()?, request).await
+        })
+    }
+
+    fn realm_world_creation_eligibility_get(
+        &self,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realm_world_core::creation_eligibility(self.checked_channel()?).await
+        })
+    }
+
+    fn realm_world_core_get(
+        &self,
+        request: LocalAppWorldCoreGetRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realm_world_core::get(self.checked_channel()?, request).await
+        })
+    }
+
+    fn realm_world_core_replace(
+        &self,
+        request: LocalAppWorldCoreReplaceRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realm_world_core::replace(self.checked_channel()?, request).await
+        })
+    }
+
+    fn realm_world_character_list(
+        &self,
+        request: LocalAppWorldCharacterListRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realm_world_core::list_characters(self.checked_channel()?, request).await
+        })
+    }
+
+    fn realm_world_character_get(
+        &self,
+        request: LocalAppWorldCharacterGetRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realm_world_core::get_character(self.checked_channel()?, request).await
+        })
+    }
+
+    fn realm_world_character_create(
+        &self,
+        request: LocalAppWorldCharacterCreateRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realm_world_core::create_character(self.checked_channel()?, request).await
+        })
+    }
+
+    fn realm_world_character_replace(
+        &self,
+        request: LocalAppWorldCharacterReplaceRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realm_world_core::replace_character(self.checked_channel()?, request).await
+        })
+    }
+
+    fn realm_world_entity_list(
+        &self,
+        request: LocalAppWorldEntityListRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realm_world_core::list_entities(self.checked_channel()?, request).await
+        })
+    }
+
+    fn realm_world_entity_get(
+        &self,
+        request: LocalAppWorldEntityGetRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realm_world_core::get_entity(self.checked_channel()?, request).await
+        })
+    }
+
+    fn realm_world_entity_create(
+        &self,
+        request: LocalAppWorldEntityCreateRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realm_world_core::create_entity(self.checked_channel()?, request).await
+        })
+    }
+
+    fn realm_world_relationship_list(
+        &self,
+        request: LocalAppWorldRelationshipListRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realm_world_core::list_relationships(self.checked_channel()?, request).await
+        })
+    }
+
+    fn realm_world_relationship_get(
+        &self,
+        request: LocalAppWorldRelationshipGetRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            realm_world_core::get_relationship(self.checked_channel()?, request).await
         })
     }
 
@@ -849,17 +985,45 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         })
     }
 
-    fn video_session_open(&self, request: crate::LocalAppVideoSessionOpenRequest) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>> {
-        Box::pin(async move { let _operation = self.operation_gate.read().await; video_session::open(self.checked_channel()?, request).await })
+    fn video_session_open(
+        &self,
+        request: crate::LocalAppVideoSessionOpenRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            video_session::open(self.checked_channel()?, request).await
+        })
     }
-    fn video_session_submit(&self, request: crate::LocalAppVideoSessionFrameRequest) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>> {
-        Box::pin(async move { let _operation = self.operation_gate.read().await; video_session::submit(self.checked_channel()?, request).await })
+    fn video_session_submit(
+        &self,
+        request: crate::LocalAppVideoSessionFrameRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            video_session::submit(self.checked_channel()?, request).await
+        })
     }
-    fn video_session_read(&self, request: crate::LocalAppVideoSessionScopeRequest) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>> {
-        Box::pin(async move { let _operation = self.operation_gate.read().await; video_session::read(self.checked_channel()?, request).await })
+    fn video_session_read(
+        &self,
+        request: crate::LocalAppVideoSessionScopeRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            video_session::read(self.checked_channel()?, request).await
+        })
     }
-    fn video_session_close(&self, request: crate::LocalAppVideoSessionScopeRequest) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>> {
-        Box::pin(async move { let _operation = self.operation_gate.read().await; video_session::close(self.checked_channel()?, request).await })
+    fn video_session_close(
+        &self,
+        request: crate::LocalAppVideoSessionScopeRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            video_session::close(self.checked_channel()?, request).await
+        })
     }
 
     fn realm_chat_list(

@@ -4,10 +4,15 @@ use serde_json::{json, Map as JsonMap, Value as JsonValue};
 use tonic::{transport::Channel, Request};
 
 use crate::generated::{InvokeRealmUnaryRequest, InvokeRealmUnaryResponse};
-use crate::grpc_status::{local_app_error_from_status, local_app_reason_from_proto};
+use crate::grpc_status::{local_app_error_from_status, local_app_realm_reason_from_response};
 use crate::{
-    LocalAppOperationError, LocalAppReasonCode, LocalAppWorldCoreCreateRequest,
-    LocalAppWorldCoreListRequest,
+    LocalAppOperationError, LocalAppReasonCode, LocalAppWorldCharacterCreateRequest,
+    LocalAppWorldCharacterGetRequest, LocalAppWorldCharacterListRequest,
+    LocalAppWorldCharacterReplaceRequest, LocalAppWorldCoreCreateRequest,
+    LocalAppWorldCoreGetRequest, LocalAppWorldCoreListRequest, LocalAppWorldCoreReplaceRequest,
+    LocalAppWorldEntityCreateRequest, LocalAppWorldEntityGetRequest,
+    LocalAppWorldEntityListRequest, LocalAppWorldRelationshipGetRequest,
+    LocalAppWorldRelationshipListRequest,
 };
 
 use super::{invalid_payload, untrusted};
@@ -66,6 +71,279 @@ pub(super) async fn create(
     Ok(result)
 }
 
+// @nimi-authority: rule.nimi.platform.core-protocol.world-creator-app-operations
+pub(super) async fn get(
+    channel: Channel,
+    request: LocalAppWorldCoreGetRequest,
+) -> Result<JsonValue, LocalAppOperationError> {
+    validate_identifier(&request.world_id)?;
+    let result = invoke_exact(
+        channel,
+        "WorldCoreController_getWorldCore",
+        json!({"path": {"worldId": request.world_id}, "query": {}}),
+    )
+    .await?;
+    if !result.is_object() {
+        return Err(untrusted());
+    }
+    Ok(result)
+}
+
+pub(super) async fn replace(
+    channel: Channel,
+    request: LocalAppWorldCoreReplaceRequest,
+) -> Result<JsonValue, LocalAppOperationError> {
+    validate_identifier(&request.world_id)?;
+    if !request.body.is_object() {
+        return Err(invalid_payload());
+    }
+    let result = invoke_exact(
+        channel,
+        "WorldCoreController_replaceWorldCore",
+        json!({"path": {"worldId": request.world_id}, "query": {}, "body": request.body}),
+    )
+    .await?;
+    if !result.is_object() {
+        return Err(untrusted());
+    }
+    Ok(result)
+}
+
+pub(super) async fn list_characters(
+    channel: Channel,
+    request: LocalAppWorldCharacterListRequest,
+) -> Result<JsonValue, LocalAppOperationError> {
+    validate_identifier(&request.world_id)?;
+    let mut query = JsonMap::new();
+    if let Some(value) = request.visibility {
+        validate_visibility(&value)?;
+        query.insert("visibility".to_string(), JsonValue::from(value));
+    }
+    if let Some(value) = request.after_id {
+        validate_identifier(&value)?;
+        query.insert("afterId".to_string(), JsonValue::from(value));
+    }
+    if let Some(value) = request.take {
+        if !(1..=500).contains(&value) {
+            return Err(invalid_payload());
+        }
+        query.insert("take".to_string(), JsonValue::from(value));
+    }
+    let result = invoke_exact(
+        channel,
+        "WorldCoreController_listWorldCharacters",
+        json!({"path": {"worldId": request.world_id}, "query": query}),
+    )
+    .await?;
+    if !result
+        .as_array()
+        .is_some_and(|rows| rows.len() <= 500 && rows.iter().all(JsonValue::is_object))
+    {
+        return Err(untrusted());
+    }
+    Ok(result)
+}
+
+pub(super) async fn get_character(
+    channel: Channel,
+    request: LocalAppWorldCharacterGetRequest,
+) -> Result<JsonValue, LocalAppOperationError> {
+    validate_identifier(&request.character_id)?;
+    let result = invoke_exact(
+        channel,
+        "WorldCoreController_getWorldCharacter",
+        json!({"path": {"characterId": request.character_id}, "query": {}}),
+    )
+    .await?;
+    if !result.is_object() {
+        return Err(untrusted());
+    }
+    Ok(result)
+}
+
+pub(super) async fn create_character(
+    channel: Channel,
+    request: LocalAppWorldCharacterCreateRequest,
+) -> Result<JsonValue, LocalAppOperationError> {
+    validate_identifier(&request.world_id)?;
+    if !request.body.is_object() {
+        return Err(invalid_payload());
+    }
+    let result = invoke_exact(
+        channel,
+        "WorldCoreController_createWorldCharacter",
+        json!({"path": {"worldId": request.world_id}, "query": {}, "body": request.body}),
+    )
+    .await?;
+    if !result.is_object() {
+        return Err(untrusted());
+    }
+    Ok(result)
+}
+
+pub(super) async fn replace_character(
+    channel: Channel,
+    request: LocalAppWorldCharacterReplaceRequest,
+) -> Result<JsonValue, LocalAppOperationError> {
+    validate_identifier(&request.character_id)?;
+    if !request.body.is_object() {
+        return Err(invalid_payload());
+    }
+    let result = invoke_exact(
+        channel,
+        "WorldCoreController_replaceWorldCharacter",
+        json!({"path": {"characterId": request.character_id}, "query": {}, "body": request.body}),
+    )
+    .await?;
+    if !result.is_object() {
+        return Err(untrusted());
+    }
+    Ok(result)
+}
+
+pub(super) async fn list_entities(
+    channel: Channel,
+    request: LocalAppWorldEntityListRequest,
+) -> Result<JsonValue, LocalAppOperationError> {
+    validate_identifier(&request.world_id)?;
+    let mut query = JsonMap::new();
+    if let Some(value) = request.kind {
+        validate_identifier(&value)?;
+        query.insert("kind".to_string(), JsonValue::from(value));
+    }
+    if let Some(value) = request.after_id {
+        validate_identifier(&value)?;
+        query.insert("afterId".to_string(), JsonValue::from(value));
+    }
+    if let Some(value) = request.take {
+        if !(1..=500).contains(&value) {
+            return Err(invalid_payload());
+        }
+        query.insert("take".to_string(), JsonValue::from(value));
+    }
+    let result = invoke_exact(
+        channel,
+        "WorldCoreController_listWorldEntities",
+        json!({"path": {"worldId": request.world_id}, "query": query}),
+    )
+    .await?;
+    if !result
+        .as_array()
+        .is_some_and(|rows| rows.len() <= 500 && rows.iter().all(JsonValue::is_object))
+    {
+        return Err(untrusted());
+    }
+    Ok(result)
+}
+
+pub(super) async fn get_entity(
+    channel: Channel,
+    request: LocalAppWorldEntityGetRequest,
+) -> Result<JsonValue, LocalAppOperationError> {
+    validate_identifier(&request.entity_id)?;
+    let result = invoke_exact(
+        channel,
+        "WorldCoreController_getWorldEntity",
+        json!({"path": {"entityId": request.entity_id}, "query": {}}),
+    )
+    .await?;
+    if !result.is_object() {
+        return Err(untrusted());
+    }
+    Ok(result)
+}
+
+pub(super) async fn create_entity(
+    channel: Channel,
+    request: LocalAppWorldEntityCreateRequest,
+) -> Result<JsonValue, LocalAppOperationError> {
+    validate_identifier(&request.world_id)?;
+    if !request.body.is_object() {
+        return Err(invalid_payload());
+    }
+    let result = invoke_exact(
+        channel,
+        "WorldCoreController_createWorldEntity",
+        json!({"path": {"worldId": request.world_id}, "query": {}, "body": request.body}),
+    )
+    .await?;
+    if !result.is_object() {
+        return Err(untrusted());
+    }
+    Ok(result)
+}
+
+pub(super) async fn list_relationships(
+    channel: Channel,
+    request: LocalAppWorldRelationshipListRequest,
+) -> Result<JsonValue, LocalAppOperationError> {
+    validate_identifier(&request.world_id)?;
+    let mut query = JsonMap::new();
+    if let Some(value) = request.entity_id {
+        validate_identifier(&value)?;
+        query.insert("entityId".to_string(), JsonValue::from(value));
+    }
+    if let Some(value) = request.source_entity_id {
+        validate_identifier(&value)?;
+        query.insert("sourceEntityId".to_string(), JsonValue::from(value));
+    }
+    if let Some(value) = request.target_entity_id {
+        validate_identifier(&value)?;
+        query.insert("targetEntityId".to_string(), JsonValue::from(value));
+    }
+    if let Some(value) = request.r#type {
+        validate_identifier(&value)?;
+        query.insert("type".to_string(), JsonValue::from(value));
+    }
+    if let Some(value) = request.after_id {
+        validate_identifier(&value)?;
+        query.insert("afterId".to_string(), JsonValue::from(value));
+    }
+    if let Some(value) = request.take {
+        if !(1..=500).contains(&value) {
+            return Err(invalid_payload());
+        }
+        query.insert("take".to_string(), JsonValue::from(value));
+    }
+    let result = invoke_exact(
+        channel,
+        "WorldCoreController_listWorldRelationships",
+        json!({"path": {"worldId": request.world_id}, "query": query}),
+    )
+    .await?;
+    if !result
+        .as_array()
+        .is_some_and(|rows| rows.len() <= 500 && rows.iter().all(JsonValue::is_object))
+    {
+        return Err(untrusted());
+    }
+    Ok(result)
+}
+
+pub(super) async fn get_relationship(
+    channel: Channel,
+    request: LocalAppWorldRelationshipGetRequest,
+) -> Result<JsonValue, LocalAppOperationError> {
+    validate_identifier(&request.relationship_id)?;
+    let result = invoke_exact(
+        channel,
+        "WorldCoreController_getWorldRelationship",
+        json!({"path": {"relationshipId": request.relationship_id}, "query": {}}),
+    )
+    .await?;
+    if !result.is_object() {
+        return Err(untrusted());
+    }
+    Ok(result)
+}
+
+fn validate_identifier(value: &str) -> Result<(), LocalAppOperationError> {
+    if value.is_empty() || value.trim() != value || value.len() > 512 || value.contains('\0') {
+        return Err(invalid_payload());
+    }
+    Ok(())
+}
+
 async fn invoke_exact(
     channel: Channel,
     method_id: &'static str,
@@ -115,8 +393,15 @@ fn project_response(
     {
         return Err(untrusted());
     }
-    let reason = local_app_reason_from_proto(response.reason_code).ok_or_else(untrusted)?;
-    let retryable = matches!(response.reason_code, 661 | 664 | 667);
+    let reason =
+        local_app_realm_reason_from_response(response.reason_code, response.account_reason_code)
+            .ok_or_else(untrusted)?;
+    let retryable = matches!(
+        reason,
+        LocalAppReasonCode::RealmUnavailable
+            | LocalAppReasonCode::RateLimited
+            | LocalAppReasonCode::UpstreamFailed
+    );
     Err(LocalAppOperationError::new(reason, retryable))
 }
 
@@ -131,6 +416,52 @@ fn validate_visibility(value: &str) -> Result<(), LocalAppOperationError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn world_creator_failures_preserve_realm_semantics() {
+        use crate::generated::{AccountReasonCode, ReasonCode};
+        for (code, account_code, http_status, expected, retryable) in [
+            (
+                ReasonCode::RealmConflict,
+                AccountReasonCode::BrokerConflict,
+                409,
+                LocalAppReasonCode::ContentConflict,
+                false,
+            ),
+            (
+                ReasonCode::RealmRateLimited,
+                AccountReasonCode::BrokerRateLimited,
+                429,
+                LocalAppReasonCode::RateLimited,
+                true,
+            ),
+            (
+                ReasonCode::RealmUnavailable,
+                AccountReasonCode::BrokerRealmUnavailable,
+                503,
+                LocalAppReasonCode::RealmUnavailable,
+                true,
+            ),
+            (
+                ReasonCode::RealmContractInvalid,
+                AccountReasonCode::BrokerContractFailed,
+                502,
+                LocalAppReasonCode::ContractInvalid,
+                false,
+            ),
+        ] {
+            let error = project_response(InvokeRealmUnaryResponse {
+                accepted: false,
+                reason_code: code as i32,
+                account_reason_code: account_code as i32,
+                http_status,
+                ..Default::default()
+            })
+            .expect_err("Realm failure");
+            assert_eq!(error.reason_code(), expected);
+            assert_eq!(error.retryable(), retryable);
+        }
+    }
 
     #[test]
     fn exact_world_core_response_projection_is_closed() {
@@ -170,4 +501,24 @@ mod tests {
             LocalAppReasonCode::InvalidPayload
         );
     }
+}
+
+pub(super) async fn creation_eligibility(
+    channel: Channel,
+) -> Result<JsonValue, LocalAppOperationError> {
+    let value = invoke_exact(
+        channel,
+        "WorldCoreController_getWorldCreationEligibility",
+        json!({"path": {}, "query": {}}),
+    )
+    .await?;
+    if !value.as_object().is_some_and(|record| {
+        record.len() == 1
+            && record
+                .get("canCreateWorld")
+                .is_some_and(JsonValue::is_boolean)
+    }) {
+        return Err(untrusted());
+    }
+    Ok(value)
 }

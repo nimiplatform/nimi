@@ -107,6 +107,18 @@ const (
 	IngressAppAIConfigOptionsList
 	IngressRealmWorldCoreList
 	IngressRealmWorldCoreCreate
+	IngressRealmWorldCreationEligibilityGet
+	IngressRealmWorldCoreGet
+	IngressRealmWorldCoreReplace
+	IngressRealmWorldCharacterList
+	IngressRealmWorldCharacterGet
+	IngressRealmWorldCharacterCreate
+	IngressRealmWorldCharacterReplace
+	IngressRealmWorldEntityList
+	IngressRealmWorldEntityGet
+	IngressRealmWorldEntityCreate
+	IngressRealmWorldRelationshipList
+	IngressRealmWorldRelationshipGet
 	IngressRealmPersonaCharacterListOwned
 	IngressRealmPersonaCharacterGetOwned
 	IngressRealmPersonaCharacterCreate
@@ -189,6 +201,18 @@ const (
 	OperationAppAIConfigOptionsList
 	OperationRealmWorldCoreList
 	OperationRealmWorldCoreCreate
+	OperationRealmWorldCreationEligibilityGet
+	OperationRealmWorldCoreGet
+	OperationRealmWorldCoreReplace
+	OperationRealmWorldCharacterList
+	OperationRealmWorldCharacterGet
+	OperationRealmWorldCharacterCreate
+	OperationRealmWorldCharacterReplace
+	OperationRealmWorldEntityList
+	OperationRealmWorldEntityGet
+	OperationRealmWorldEntityCreate
+	OperationRealmWorldRelationshipList
+	OperationRealmWorldRelationshipGet
 	OperationRealmPersonaCharacterListOwned
 	OperationRealmPersonaCharacterGetOwned
 	OperationRealmPersonaCharacterCreate
@@ -283,6 +307,18 @@ var canonicalAppOperationContract = [...]contractRow{
 	{IngressAppAIConfigOptionsList, OperationAppAIConfigOptionsList, "runtime.ai.app-config.options.list", AuthorityClassAppAccess, "runtime.consume"},
 	{IngressRealmWorldCoreList, OperationRealmWorldCoreList, "realm.world-core.list", AuthorityClassAppAccess, "realm.data"},
 	{IngressRealmWorldCoreCreate, OperationRealmWorldCoreCreate, "realm.world-core.create", AuthorityClassAppAccess, "realm.data"},
+	{IngressRealmWorldCreationEligibilityGet, OperationRealmWorldCreationEligibilityGet, "realm.world-core.creation-eligibility.get", AuthorityClassAppAccess, "realm.data"},
+	{IngressRealmWorldCoreGet, OperationRealmWorldCoreGet, "realm.world-core.get", AuthorityClassAppAccess, "realm.data"},
+	{IngressRealmWorldCoreReplace, OperationRealmWorldCoreReplace, "realm.world-core.replace", AuthorityClassAppAccess, "realm.data"},
+	{IngressRealmWorldCharacterList, OperationRealmWorldCharacterList, "realm.world-character.list", AuthorityClassAppAccess, "realm.data"},
+	{IngressRealmWorldCharacterGet, OperationRealmWorldCharacterGet, "realm.world-character.get", AuthorityClassAppAccess, "realm.data"},
+	{IngressRealmWorldCharacterCreate, OperationRealmWorldCharacterCreate, "realm.world-character.create", AuthorityClassAppAccess, "realm.data"},
+	{IngressRealmWorldCharacterReplace, OperationRealmWorldCharacterReplace, "realm.world-character.replace", AuthorityClassAppAccess, "realm.data"},
+	{IngressRealmWorldEntityList, OperationRealmWorldEntityList, "realm.world-entity.list", AuthorityClassAppAccess, "realm.data"},
+	{IngressRealmWorldEntityGet, OperationRealmWorldEntityGet, "realm.world-entity.get", AuthorityClassAppAccess, "realm.data"},
+	{IngressRealmWorldEntityCreate, OperationRealmWorldEntityCreate, "realm.world-entity.create", AuthorityClassAppAccess, "realm.data"},
+	{IngressRealmWorldRelationshipList, OperationRealmWorldRelationshipList, "realm.world-relationship.list", AuthorityClassAppAccess, "realm.data"},
+	{IngressRealmWorldRelationshipGet, OperationRealmWorldRelationshipGet, "realm.world-relationship.get", AuthorityClassAppAccess, "realm.data"},
 	{IngressRealmPersonaCharacterListOwned, OperationRealmPersonaCharacterListOwned, AppOperationIDPersonaListOwned, AuthorityClassAppAccess, "realm.data"},
 	{IngressRealmPersonaCharacterGetOwned, OperationRealmPersonaCharacterGetOwned, AppOperationIDPersonaGetOwned, AuthorityClassAppAccess, "realm.data"},
 	{IngressRealmPersonaCharacterCreate, OperationRealmPersonaCharacterCreate, AppOperationIDPersonaCreate, AuthorityClassAppAccess, "realm.data"},

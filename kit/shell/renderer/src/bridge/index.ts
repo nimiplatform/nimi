@@ -214,3 +214,8 @@ export {
   parseRuntimeBridgeConfigSetResult,
   parseConfirmDialogResult,
 } from './types.js';
+
+export { getNimiLocalAppWorldCore, replaceNimiLocalAppWorldCore, listNimiLocalAppWorldCharacters, getNimiLocalAppWorldCharacter, createNimiLocalAppWorldCharacter, replaceNimiLocalAppWorldCharacter, listNimiLocalAppWorldEntities, getNimiLocalAppWorldEntity, createNimiLocalAppWorldEntity, listNimiLocalAppWorldRelationships, getNimiLocalAppWorldRelationship } from './local-app.js';
+export type { NimiLocalAppWorldCharacterListInput, NimiLocalAppWorldEntityListInput, NimiLocalAppWorldRelationshipListInput } from './local-app.js';
+
+export { getNimiLocalAppWorldCreationEligibility } from './local-app.js';

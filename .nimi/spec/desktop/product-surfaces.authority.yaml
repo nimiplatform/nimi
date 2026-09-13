@@ -2,6 +2,16 @@ format: nimicoding.authority/v2
 owner: team.desktop
 scope: desktop.product-surfaces
 units:
+  - id: definition.nimi.desktop.product-surfaces.creator-world-preview
+    kind: definition
+    lifecycle: removed
+    title: Creator world-character trial
+    reason: World Studio authoring and acceptance maintain Realm World and WorldCharacter settings only; the creator-specific Desktop trial surface is withdrawn without changing ordinary Desktop Explore or Agent operations.
+  - id: rule.nimi.desktop.product-surfaces.creator-world-preview
+    kind: rule
+    lifecycle: removed
+    title: Saved source versions drive real creator trials
+    reason: World Studio authoring and acceptance maintain Realm World and WorldCharacter settings only; the creator-specific Desktop trial surface is withdrawn without changing ordinary Desktop Explore or Agent operations.
   - id: definition.nimi.desktop.product-surfaces.explore
     kind: definition
     title: Desktop Explore product surface

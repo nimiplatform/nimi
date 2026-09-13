@@ -30,6 +30,23 @@ Discipline.
   carrier uses byte arrays, bounded to 64 KiB per payload. Raw reasoning and
   reasoning controls are not exposed by Local App consumption.
 
+### World creator interface (next minor)
+
+- Preserve canonical dynamic world content consistently across list, create,
+  get and replace, while keeping transport identity fields closed. Native world
+  calls preserve Realm content-conflict, rate-limited and unavailable reasons.
+- Align Tauri artifact uploads with the public image, WAV, MP3 and MP4 MIME set.
+- Add protected `realm.worldCore` creation eligibility, world detail/replacement,
+  world-character list/detail/create/replacement, world-entity list/detail/create,
+  and world-relationship list/detail calls across Electron, native and Tauri.
+  Realm enforces account-specific administrator authorization for world creation;
+  `realm.data`, subscription and role do not grant that business permission.
+- Migration: the exact Local App shell method set expands. Upgrade SDK, Kit,
+  native carrier and Runtime together before using these methods. Custom shell
+  implementations must implement the complete typed surface and preserve typed
+  failures. These source changes are unreleased; existing public package versions
+  do not provide them. No direct Realm transport or compatibility fallback is added.
+
 ### Added
 
 - The protected music runner accepts an optional `durationSeconds` generation

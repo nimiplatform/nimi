@@ -497,6 +497,30 @@ func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingres
 			return localappop.IngressRealmWorldCoreList
 		case "WorldCoreController_createWorldCore":
 			return localappop.IngressRealmWorldCoreCreate
+		case "WorldCoreController_getWorldCreationEligibility":
+			return localappop.IngressRealmWorldCreationEligibilityGet
+		case "WorldCoreController_getWorldCore":
+			return localappop.IngressRealmWorldCoreGet
+		case "WorldCoreController_replaceWorldCore":
+			return localappop.IngressRealmWorldCoreReplace
+		case "WorldCoreController_listWorldCharacters":
+			return localappop.IngressRealmWorldCharacterList
+		case "WorldCoreController_getWorldCharacter":
+			return localappop.IngressRealmWorldCharacterGet
+		case "WorldCoreController_createWorldCharacter":
+			return localappop.IngressRealmWorldCharacterCreate
+		case "WorldCoreController_replaceWorldCharacter":
+			return localappop.IngressRealmWorldCharacterReplace
+		case "WorldCoreController_listWorldEntities":
+			return localappop.IngressRealmWorldEntityList
+		case "WorldCoreController_getWorldEntity":
+			return localappop.IngressRealmWorldEntityGet
+		case "WorldCoreController_createWorldEntity":
+			return localappop.IngressRealmWorldEntityCreate
+		case "WorldCoreController_listWorldRelationships":
+			return localappop.IngressRealmWorldRelationshipList
+		case "WorldCoreController_getWorldRelationship":
+			return localappop.IngressRealmWorldRelationshipGet
 		case "WorldCoreController_listPersonaCharacters":
 			return localappop.IngressRealmPersonaCharacterListOwned
 		case "WorldCoreController_getPersonaCharacter":
@@ -634,6 +658,30 @@ func protectedLocalAppOwnerEnabled(method string, request any, ingress localappo
 			return realmRequest.GetMethodId() == "WorldCoreController_listWorldCores"
 		case localappop.IngressRealmWorldCoreCreate:
 			return realmRequest.GetMethodId() == "WorldCoreController_createWorldCore"
+		case localappop.IngressRealmWorldCreationEligibilityGet:
+			return realmRequest.GetMethodId() == "WorldCoreController_getWorldCreationEligibility"
+		case localappop.IngressRealmWorldCoreGet:
+			return realmRequest.GetMethodId() == "WorldCoreController_getWorldCore"
+		case localappop.IngressRealmWorldCoreReplace:
+			return realmRequest.GetMethodId() == "WorldCoreController_replaceWorldCore"
+		case localappop.IngressRealmWorldCharacterList:
+			return realmRequest.GetMethodId() == "WorldCoreController_listWorldCharacters"
+		case localappop.IngressRealmWorldCharacterGet:
+			return realmRequest.GetMethodId() == "WorldCoreController_getWorldCharacter"
+		case localappop.IngressRealmWorldCharacterCreate:
+			return realmRequest.GetMethodId() == "WorldCoreController_createWorldCharacter"
+		case localappop.IngressRealmWorldCharacterReplace:
+			return realmRequest.GetMethodId() == "WorldCoreController_replaceWorldCharacter"
+		case localappop.IngressRealmWorldEntityList:
+			return realmRequest.GetMethodId() == "WorldCoreController_listWorldEntities"
+		case localappop.IngressRealmWorldEntityGet:
+			return realmRequest.GetMethodId() == "WorldCoreController_getWorldEntity"
+		case localappop.IngressRealmWorldEntityCreate:
+			return realmRequest.GetMethodId() == "WorldCoreController_createWorldEntity"
+		case localappop.IngressRealmWorldRelationshipList:
+			return realmRequest.GetMethodId() == "WorldCoreController_listWorldRelationships"
+		case localappop.IngressRealmWorldRelationshipGet:
+			return realmRequest.GetMethodId() == "WorldCoreController_getWorldRelationship"
 		case localappop.IngressRealmPersonaCharacterListOwned:
 			return realmRequest.GetMethodId() == "WorldCoreController_listPersonaCharacters"
 		case localappop.IngressRealmPersonaCharacterGetOwned:

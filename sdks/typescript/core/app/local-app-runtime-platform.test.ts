@@ -130,7 +130,20 @@ function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
     },
     realm: {
       chat: { list: touched('realm.chat.list') },
-      worldCore: { list: touched('realm.worldCore.list'), create: touched('realm.worldCore.create') },
+      worldCore: { list: touched('realm.worldCore.list'), create: touched('realm.worldCore.create'),
+        getCreationEligibility: touched('realm.worldCore.getCreationEligibility'),
+        get: touched('realm.worldCore.get'),
+        replace: touched('realm.worldCore.replace'),
+        listCharacters: touched('realm.worldCore.listCharacters'),
+        getCharacter: touched('realm.worldCore.getCharacter'),
+        createCharacter: touched('realm.worldCore.createCharacter'),
+        replaceCharacter: touched('realm.worldCore.replaceCharacter'),
+        listEntities: touched('realm.worldCore.listEntities'),
+        getEntity: touched('realm.worldCore.getEntity'),
+        createEntity: touched('realm.worldCore.createEntity'),
+        listRelationships: touched('realm.worldCore.listRelationships'),
+        getRelationship: touched('realm.worldCore.getRelationship'),
+      },
       personaCharacter: {
         listOwned: touched('realm.personaCharacter.listOwned'),
         getOwned: touched('realm.personaCharacter.getOwned'),
@@ -1010,22 +1023,36 @@ test('App AIConfig exposes self-owner CAS and bounded Local/Cloud/preset options
 
 test('WorldCore list accepts the exact owner DTO and rejects raw or credential-adjacent projections', async () => {
   const world = {
-    id: 'world-1', schemaVersion: '1', contentRevision: 1, contentHash: 'hash',
+    id: 'world-1', schemaVersion: '1', contentRevision: 1, contentHash: 'a'.repeat(64),
     origin: { kind: 'manual' }, visibility: 'private',
     lorebookDeclaration: { identityBaseSetting: 'A test world.', rolePlacements: [], worldRules: [] },
     core: {
-      identity: {}, presentation: {}, ontology: {}, timeModel: {}, timeline: {},
-      entities: [], relationships: [], systems: [], scenes: [], assets: {}, authoring: {},
+      identity: { name: 'Harbor', summary: 'A coastal world.' }, presentation: {},
+      ontology: { entityKinds: [], relationshipTypes: [] },
+      timeModel: { mode: 'static', flowRatio: 1, isPaused: true,
+        anchor: { realStartedAt: '2026-08-06T00:00:00Z', worldStartedAt: 'year 1', worldStartedAtDisplay: 'Year 1' },
+        pausedWorldTime: null, calendar: null, displayFormat: null },
+      timeline: { events: [] }, entities: [], relationships: [],
+      systems: [{ systemId: 'biology', name: 'Biology', summary: 'Local generations.', parameters: { generation: 3, token: 'story item' } }],
+      scenes: [], assets: { resourceRefs: [], intents: [] }, authoring: { source: 'manual' },
     },
     createdAt: '2026-08-06T00:00:00Z', updatedAt: '2026-08-06T00:00:00Z',
   };
   const base = standardShell([]);
   const exact: NimiLocalAppStandardShell = {
     ...base,
-    realm: { ...base.realm, worldCore: { ...base.realm.worldCore, list: async () => [world] } },
+    realm: { ...base.realm, worldCore: { ...base.realm.worldCore,
+      list: async () => [world], get: async () => world, create: async () => world, replace: async () => world,
+    } },
   };
-  const listed = await createNimiLocalAppClient({ standardShell: exact }).realm.worldCore.list();
+  const worldCore = createNimiLocalAppClient({ standardShell: exact }).realm.worldCore;
+  const listed = await worldCore.list();
   assert.equal(listed[0]?.id, 'world-1');
+  const input = { core: world.core, origin: world.origin, lorebookDeclaration: world.lorebookDeclaration };
+  assert.deepEqual(await worldCore.get('world-1'), world);
+  assert.deepEqual(await worldCore.create(input as never), world);
+  assert.deepEqual(await worldCore.replace('world-1', { ...input, baseContentHash: world.contentHash } as never), world);
+  assert.deepEqual(listed[0], world);
 
   const nullable: NimiLocalAppStandardShell = {
     ...base,

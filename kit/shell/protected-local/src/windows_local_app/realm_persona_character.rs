@@ -6,9 +6,7 @@ use tonic::{transport::Channel, Request};
 use crate::generated::{
     AccountReasonCode, InvokeRealmUnaryRequest, InvokeRealmUnaryResponse, ReasonCode,
 };
-use crate::grpc_status::{
-    local_app_error_from_status, local_app_persona_reason_from_realm_response,
-};
+use crate::grpc_status::{local_app_error_from_status, local_app_realm_reason_from_response};
 use crate::{
     LocalAppOperationError, LocalAppPersonaCharacterCreateRequest,
     LocalAppPersonaCharacterDeleteRequest, LocalAppPersonaCharacterGetOwnedRequest,
@@ -190,11 +188,9 @@ fn project_response(
     {
         return Err(untrusted());
     }
-    let reason = local_app_persona_reason_from_realm_response(
-        response.reason_code,
-        response.account_reason_code,
-    )
-    .ok_or_else(untrusted)?;
+    let reason =
+        local_app_realm_reason_from_response(response.reason_code, response.account_reason_code)
+            .ok_or_else(untrusted)?;
     let retryable = matches!(
         reason,
         LocalAppReasonCode::RealmUnavailable

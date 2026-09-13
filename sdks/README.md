@@ -92,6 +92,27 @@ narrow. Input is limited to 128 messages, 64 function tools and 1 MiB, with a
 256 KiB output bound. Partial structured text is display-only until a successful
 terminal result passes the caller's declared response schema.
 
+## World creator operations (unreleased)
+
+The host-bound `NimiLocalAppClient.realm.worldCore` source surface adds
+`getCreationEligibility`, `get`, `replace`, `listCharacters`, `getCharacter`,
+`createCharacter`, `replaceCharacter`, `listEntities`, `getEntity`, `createEntity`,
+`listRelationships`, and `getRelationship` alongside `list` and `create`.
+Every call requires `realm.data`; Realm separately enforces explicit per-account
+administrator authorization for new worlds. Subscription, role and existing
+ownership do not grant creation. Existing-world maintenance retains ownership
+checks independently. Use eligibility to present the creation action and still
+handle create-time denial. Replacements require the previously read
+`baseContentHash`; world characters require an existing same-world entity.
+
+This expands the exact Local App shell contract and belongs to the next minor
+release. Upgrade SDK, Kit, native carrier and Runtime together; custom shell
+implementations must provide the complete typed method set. The ordinary Realm
+SDK removes administrator-only OASIS bootstrap and adds the current-account
+creation eligibility read. No administrator authorization methods are exposed
+through Local App. These are source changes, not availability in published
+SDK 0.11.0 / Kit 0.7.0.
+
 ## Video reference audio (unreleased)
 
 T2V accepts optional reference audio when the selected implementation and model

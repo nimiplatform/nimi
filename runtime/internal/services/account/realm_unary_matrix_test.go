@@ -185,13 +185,14 @@ func TestLocalAppWorldCoreCreateSanitizesBusinessTransportRefreshAndMalformedFai
 	localContext := func() context.Context {
 		return ContextWithAuthorizedLocalAppDecision(context.Background(), LocalAppCallerDecision{
 			RegisteredAppSubject: "lap_world_studio",
+			AccountID:            "account-1",
 			Operation:            LocalAppOperationRealmWorldCoreCreate,
 		})
 	}
 	request := func() *runtimev1.InvokeRealmUnaryRequest {
 		return &runtimev1.InvokeRealmUnaryRequest{
 			MethodId:    "WorldCoreController_createWorldCore",
-			RequestJson: `{"path":{},"query":{},"body":{"core":{},"origin":{"kind":"manual"}}}`,
+			RequestJson: worldCreatorCreateRequestJSON(t),
 		}
 	}
 	t.Run("business rejection", func(t *testing.T) {

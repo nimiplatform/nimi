@@ -26,8 +26,8 @@ func TestRealmBrokerOperationSetContainsExactDesktopProductVocabulary(t *testing
 		"WorldPublicController_getWorldDetailWithCharacters": {method: http.MethodGet, path: "/api/world/by-id/{worldId}/detail-with-characters"},
 		"WorldPublicController_listWorlds":                   {method: http.MethodGet, path: "/api/world"},
 	}
-	if len(realmBrokerOperations) != 65 {
-		t.Fatalf("Realm broker operation count = %d, want 65", len(realmBrokerOperations))
+	if len(realmBrokerOperations) != 74 {
+		t.Fatalf("Realm broker operation count = %d, want 74", len(realmBrokerOperations))
 	}
 	for operationID, want := range expectedSourceReadiness {
 		operation, ok := realmBrokerOperations[operationID]
@@ -53,6 +53,14 @@ func TestRealmBrokerOperationSetContainsExactDesktopProductVocabulary(t *testing
 				!operation.admitsCallerMode(runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL) ||
 				!operation.admitsCallerMode(runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_APP) {
 				t.Fatalf("%s must admit the exact Desktop and Local App callers: %+v", operationID, operation)
+			}
+			continue
+		}
+		if operationID == "WorldCoreController_getWorldCharacter" || operationID == "WorldCoreController_getWorldEntity" || operationID == "WorldCoreController_listWorldRelationships" {
+			if operation.authorizationProfile != realmBrokerProtectedLocalAppWorldCoreProfile || len(operation.allowedCallerModes) != 2 ||
+				!operation.admitsCallerMode(runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL) ||
+				!operation.admitsCallerMode(runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_APP) {
+				t.Fatalf("%s must preserve Desktop and admit the exact Local App caller: %+v", operationID, operation)
 			}
 			continue
 		}
@@ -124,11 +132,12 @@ func TestInvokeRealmUnaryMediatesExactProtectedLocalAppWorldCoreOperations(t *te
 		{
 			operation:   LocalAppOperationRealmWorldCoreCreate,
 			methodID:    "WorldCoreController_createWorldCore",
-			requestJSON: `{"path":{},"query":{},"body":{"core":{},"origin":{"kind":"manual"},"visibility":"private"}}`,
+			requestJSON: worldCreatorCreateRequestJSON(t),
 		},
 	} {
 		ctx := ContextWithAuthorizedLocalAppDecision(context.Background(), LocalAppCallerDecision{
 			RegisteredAppSubject: "lap_world_studio",
+			AccountID:            "account-1",
 			Operation:            test.operation,
 		})
 		resp, err := svc.InvokeRealmUnary(ctx, &runtimev1.InvokeRealmUnaryRequest{
@@ -226,30 +235,32 @@ func TestInvokeRealmUnaryMediatesDesktopSourceReadinessWithoutReturningToken(t *
 func TestInvokeRealmUnaryAdmitsExactDesktopSourceReadinessOperationIDs(t *testing.T) {
 	var wantMethod string
 	var wantPath string
+	var responseJSON string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != wantMethod || r.URL.Path != wantPath {
 			t.Fatalf("request = %s %s, want %s %s", r.Method, r.URL.Path, wantMethod, wantPath)
 		}
 		w.Header().Set("content-type", "application/json")
-		_, _ = w.Write([]byte(`{"ok":true}`))
+		_, _ = w.Write([]byte(responseJSON))
 	}))
 	defer server.Close()
 	svc := newRealmUnaryHarnessService(t, server.URL)
 	completeLogin(t, svc)
 
 	cases := []struct {
-		name        string
-		methodID    string
-		requestJSON string
-		method      string
-		path        string
+		name         string
+		methodID     string
+		requestJSON  string
+		method       string
+		path         string
+		responseJSON string
 	}{
 		{name: "persona detail", methodID: "WorldCoreController_getPersonaCharacter", requestJSON: `{"path":{"personaCharacterId":"persona-1"}}`, method: http.MethodGet, path: "/api/realm/core/persona-characters/by-id/persona-1"},
-		{name: "character detail", methodID: "WorldCoreController_getWorldCharacter", requestJSON: `{"path":{"characterId":"character-1"}}`, method: http.MethodGet, path: "/api/realm/core/world-characters/by-id/character-1"},
-		{name: "entity detail", methodID: "WorldCoreController_getWorldEntity", requestJSON: `{"path":{"entityId":"entity-1"}}`, method: http.MethodGet, path: "/api/realm/core/world-entities/entity-1"},
+		{name: "character detail", methodID: "WorldCoreController_getWorldCharacter", requestJSON: `{"path":{"characterId":"character-1"}}`, method: http.MethodGet, path: "/api/realm/core/world-characters/by-id/character-1", responseJSON: worldCreatorTestJSON(t, worldCreatorTestCharacter(t))},
+		{name: "entity detail", methodID: "WorldCoreController_getWorldEntity", requestJSON: `{"path":{"entityId":"entity-1"}}`, method: http.MethodGet, path: "/api/realm/core/world-entities/entity-1", responseJSON: worldCreatorTestJSON(t, worldCreatorTestEntity())},
 		{name: "persona list", methodID: "WorldCoreController_listPersonaCharacters", requestJSON: `{}`, method: http.MethodGet, path: "/api/realm/core/persona-characters"},
 		{name: "persona discovery", methodID: "WorldCoreController_discoverPersonaCharacters", requestJSON: `{}`, method: http.MethodGet, path: "/api/realm/core/persona-characters/discovery"},
-		{name: "relationship list", methodID: "WorldCoreController_listWorldRelationships", requestJSON: `{"path":{"worldId":"world-1"}}`, method: http.MethodGet, path: "/api/realm/core/worlds/world-1/relationships"},
+		{name: "relationship list", methodID: "WorldCoreController_listWorldRelationships", requestJSON: `{"path":{"worldId":"world-1"}}`, method: http.MethodGet, path: "/api/realm/core/worlds/world-1/relationships", responseJSON: worldCreatorTestJSON(t, []any{worldCreatorTestRelationship()})},
 		{name: "public character source", methodID: "WorldPublicController_getCharacterSource", requestJSON: `{"body":{"sourceRef":{"kind":"worldCharacter","id":"character-1","worldId":"world-1","worldEntityRef":{"kind":"worldEntity","worldId":"world-1","entityId":"entity-1"},"sourceHash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}}`, method: http.MethodPost, path: "/api/world/character-sources/public-projection"},
 		{name: "world detail", methodID: "WorldPublicController_getWorld", requestJSON: `{"path":{"worldId":"world-1"}}`, method: http.MethodGet, path: "/api/world/by-id/world-1"},
 		{name: "world sources", methodID: "WorldPublicController_getWorldDetailWithCharacters", requestJSON: `{"path":{"worldId":"world-1"}}`, method: http.MethodGet, path: "/api/world/by-id/world-1/detail-with-characters"},
@@ -258,6 +269,10 @@ func TestInvokeRealmUnaryAdmitsExactDesktopSourceReadinessOperationIDs(t *testin
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			wantMethod, wantPath = tc.method, tc.path
+			responseJSON = tc.responseJSON
+			if responseJSON == "" {
+				responseJSON = `{"ok":true}`
+			}
 			resp, err := svc.InvokeRealmUnary(context.Background(), &runtimev1.InvokeRealmUnaryRequest{
 				Caller:      realmDesktopShellCaller(),
 				MethodId:    tc.methodID,

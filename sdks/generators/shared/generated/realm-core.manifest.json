@@ -11250,43 +11250,6 @@
       ]
     },
     {
-      "operation_id": "WorldCoreController_bootstrapOasisWorld",
-      "method": "POST",
-      "path": "/api/realm/core/oasis/bootstrap",
-      "service": "Realm Core",
-      "tags": [
-        "Realm Core"
-      ],
-      "parameters": [],
-      "path_parameters": [],
-      "query_parameters": [],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "ref",
-        "ref": "#/components/schemas/BootstrapOasisWorldDto",
-        "ref_name": "BootstrapOasisWorldDto"
-      },
-      "request_schema_ref": "#/components/schemas/BootstrapOasisWorldDto",
-      "request_content_type": "application/json",
-      "response_schemas": [
-        {
-          "status": "201",
-          "schema": {
-            "kind": "ref",
-            "ref": "#/components/schemas/WorldCoreDto",
-            "ref_name": "WorldCoreDto"
-          },
-          "schema_ref": "#/components/schemas/WorldCoreDto"
-        }
-      ],
-      "response_schema_refs": [
-        {
-          "status": "201",
-          "schema_ref": "#/components/schemas/WorldCoreDto"
-        }
-      ]
-    },
-    {
       "operation_id": "WorldCoreController_createPersonaCharacter",
       "method": "POST",
       "path": "/api/realm/core/persona-characters",
@@ -12210,6 +12173,41 @@
         {
           "status": "200",
           "schema_ref": "#/components/schemas/WorldCoreDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "WorldCoreController_getWorldCreationEligibility",
+      "method": "GET",
+      "path": "/api/realm/core/world-creation-eligibility",
+      "service": "Realm Core",
+      "tags": [
+        "Realm Core"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/WorldCreationEligibilityDto",
+            "ref_name": "WorldCreationEligibilityDto"
+          },
+          "schema_ref": "#/components/schemas/WorldCreationEligibilityDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/WorldCreationEligibilityDto"
         }
       ]
     },
@@ -14713,12 +14711,6 @@
       "path": "/api/auth/wallet/login"
     },
     {
-      "operation_id": "WorldCoreController_bootstrapOasisWorld",
-      "service": "Realm Core",
-      "method": "POST",
-      "path": "/api/realm/core/oasis/bootstrap"
-    },
-    {
       "operation_id": "WorldCoreController_createPersonaCharacter",
       "service": "Realm Core",
       "method": "POST",
@@ -14801,6 +14793,12 @@
       "service": "Realm Core",
       "method": "GET",
       "path": "/api/realm/core/worlds/{worldId}"
+    },
+    {
+      "operation_id": "WorldCoreController_getWorldCreationEligibility",
+      "service": "Realm Core",
+      "method": "GET",
+      "path": "/api/realm/core/world-creation-eligibility"
     },
     {
       "operation_id": "WorldCoreController_getWorldEntity",
@@ -15083,7 +15081,6 @@
     {
       "name": "Realm Core",
       "operation_ids": [
-        "WorldCoreController_bootstrapOasisWorld",
         "WorldCoreController_createPersonaCharacter",
         "WorldCoreController_createSourceMaterializationPacket",
         "WorldCoreController_createWorldCharacter",
@@ -15098,6 +15095,7 @@
         "WorldCoreController_getPersonaCharacter",
         "WorldCoreController_getWorldCharacter",
         "WorldCoreController_getWorldCore",
+        "WorldCoreController_getWorldCreationEligibility",
         "WorldCoreController_getWorldEntity",
         "WorldCoreController_getWorldRelationship",
         "WorldCoreController_listPersonaCharacters",
@@ -15262,9 +15260,6 @@
     },
     {
       "name": "BlockUserBodyDto"
-    },
-    {
-      "name": "BootstrapOasisWorldDto"
     },
     {
       "name": "BundleDetailDto"
@@ -16084,6 +16079,9 @@
     },
     {
       "name": "WorldCoreValueDtoTimeModelAnchor"
+    },
+    {
+      "name": "WorldCreationEligibilityDto"
     },
     {
       "name": "WorldEntityCoreDto"
@@ -18054,30 +18052,6 @@
           }
         ],
         "required_properties": [],
-        "closed": false,
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "BootstrapOasisWorldDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "confirm",
-            "required": true,
-            "schema": {
-              "kind": "enum",
-              "values": [
-                "bootstrap-oasis-world-core"
-              ],
-              "type": "string"
-            }
-          }
-        ],
-        "required_properties": [
-          "confirm"
-        ],
         "closed": false,
         "additional_properties": null
       }
@@ -42013,6 +41987,33 @@
           "worldStartedAtDisplay"
         ],
         "closed": true,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldCreationEligibilityDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "canCreateWorld",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "canCreateWorld"
+        ],
+        "closed": false,
         "additional_properties": null
       }
     },

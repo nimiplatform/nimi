@@ -144,102 +144,7 @@ pub(crate) fn local_app_error_from_status(status: Status) -> LocalAppOperationEr
         .with_reason_metadata(metadata)
 }
 
-pub(crate) fn local_app_reason_from_proto(value: i32) -> Option<LocalAppReasonCode> {
-    Some(match value {
-        1 => LocalAppReasonCode::ActionExecuted,
-        633 => LocalAppReasonCode::RuntimeRestarted,
-        642 | 643 | 644 | 645 | 656 | 658 | 660 => LocalAppReasonCode::RuntimeAccessDenied,
-        655 => LocalAppReasonCode::OperationUnavailable,
-        646..=648 => LocalAppReasonCode::RuntimeUnauthenticated,
-        649 => LocalAppReasonCode::ProcessReplaced,
-        650 => LocalAppReasonCode::Revoked,
-        654 => LocalAppReasonCode::AccountChanged,
-        657 => LocalAppReasonCode::PresenceExpired,
-        200 => LocalAppReasonCode::AiModelNotFound,
-        201 => LocalAppReasonCode::AiModelNotReady,
-        202 => LocalAppReasonCode::AiProviderUnavailable,
-        204 => LocalAppReasonCode::AiRouteUnsupported,
-        205 => LocalAppReasonCode::AiRouteFallbackDenied,
-        206 => LocalAppReasonCode::AiInputInvalid,
-        207 => LocalAppReasonCode::AiOutputInvalid,
-        395 => LocalAppReasonCode::AiTextBehaviorUnsupported,
-        396 => LocalAppReasonCode::AiTextBehaviorAmbiguous,
-        397 => LocalAppReasonCode::AiTextOutputIncomplete,
-        398 => LocalAppReasonCode::AiToolCallInvalid,
-        399 => LocalAppReasonCode::AiReasoningContinuityInvalid,
-        402 => LocalAppReasonCode::AiExecutionInterrupted,
-        209 => LocalAppReasonCode::AiContentFilterBlocked,
-        352 => LocalAppReasonCode::AiLocalModelUnavailable,
-        353 => LocalAppReasonCode::AiLocalModelProfileMissing,
-        364 => LocalAppReasonCode::AiLocalServiceUnavailable,
-        688 => LocalAppReasonCode::AiLocalDriverUnavailable,
-        692 => LocalAppReasonCode::AiLocalAssetIncompatible,
-        697 => LocalAppReasonCode::AiLocalSelectionNotFound,
-        698 => LocalAppReasonCode::AiLocalCapabilityMismatch,
-        699 => LocalAppReasonCode::AiLocalConfigurationNotConfigured,
-        391 => LocalAppReasonCode::AiProviderAuthFailed,
-        392 => LocalAppReasonCode::AiProviderInternal,
-        393 => LocalAppReasonCode::AiProviderRateLimited,
-        394 => LocalAppReasonCode::AiProviderTimeout,
-        417 => LocalAppReasonCode::AiRealtimeSessionNotFound,
-        418 => LocalAppReasonCode::AiRealtimeSessionClosed,
-        410 => LocalAppReasonCode::AiMediaSpecInvalid,
-        411 => LocalAppReasonCode::AiMediaOptionUnsupported,
-        738 => LocalAppReasonCode::AiFaceReferenceMissing,
-        739 => LocalAppReasonCode::AiFaceReferenceAmbiguous,
-        740 => LocalAppReasonCode::AiFaceTargetMissing,
-        741 => LocalAppReasonCode::AiFaceTargetAmbiguous,
-        742 => LocalAppReasonCode::AiVideoDecodeFailed,
-        743 => LocalAppReasonCode::AiVideoEncodeFailed,
-        744 => LocalAppReasonCode::AiVideoSessionOverloaded,
-        745 => LocalAppReasonCode::AiVideoSessionGenerationInvalid,
-        701 => LocalAppReasonCode::AiLocalExecutionLoadFailed,
-        702 => LocalAppReasonCode::AiLocalExecutionInferenceFailed,
-        703 => LocalAppReasonCode::AiLocalExecutionCanceled,
-        704 => LocalAppReasonCode::AiLocalExecutionProcessCrashed,
-        705 => LocalAppReasonCode::AiLocalExecutionContentMismatch,
-        725 => LocalAppReasonCode::AiLocalExecutionOutOfMemory,
-        420 => LocalAppReasonCode::AiVoiceInputInvalid,
-        421 => LocalAppReasonCode::AiVoiceWorkflowUnsupported,
-        422 => LocalAppReasonCode::AiVoiceAssetNotFound,
-        423 => LocalAppReasonCode::AiVoiceAssetExpired,
-        424 => LocalAppReasonCode::AiVoiceAssetScopeForbidden,
-        425 => LocalAppReasonCode::AiVoiceTargetModelMismatch,
-        694 => LocalAppReasonCode::AiConfigInvalid,
-        695 => LocalAppReasonCode::AiConfigNotFound,
-        696 => LocalAppReasonCode::AiConfigPersistenceUnavailable,
-        614 => LocalAppReasonCode::AgentPresentationRevisionConflict,
-        672 => LocalAppReasonCode::AgentPresentationAssetTypeInvalid,
-        673 => LocalAppReasonCode::AgentPresentationAssetTooLarge,
-        674 => LocalAppReasonCode::AgentPresentationAssetStructureInvalid,
-        675 => LocalAppReasonCode::AgentPresentationAssetDependencyMissing,
-        676 => LocalAppReasonCode::AgentPresentationAssetIntegrityMismatch,
-        677 => LocalAppReasonCode::AgentPresentationBackendIncompatible,
-        678 => LocalAppReasonCode::AgentPresentationAssetNotValidated,
-        706 => LocalAppReasonCode::SnapshotUnavailable,
-        707 => LocalAppReasonCode::AccessDenied,
-        708 => LocalAppReasonCode::OperationUnsupported,
-        709 => LocalAppReasonCode::OwnerUnavailable,
-        710 => LocalAppReasonCode::CurrentUserDisplayUnavailable,
-        566 => LocalAppReasonCode::InvalidPath,
-        567 | 662 => LocalAppReasonCode::NotFound,
-        568 | 664 => LocalAppReasonCode::ResourceExhausted,
-        581 => LocalAppReasonCode::AlreadyExists,
-        582 => LocalAppReasonCode::ObjectTooLarge,
-        583 => LocalAppReasonCode::InvalidRange,
-        584 => LocalAppReasonCode::InvalidCursor,
-        585 => LocalAppReasonCode::IntegrityFailure,
-        586 => LocalAppReasonCode::ArtifactUnavailable,
-        569 | 661 | 667 => LocalAppReasonCode::RuntimeServiceUnavailable,
-        663 | 665 => LocalAppReasonCode::InvalidPayload,
-        666 => LocalAppReasonCode::RuntimeServiceUntrusted,
-        300 => LocalAppReasonCode::RuntimeUnauthenticated,
-        503 => LocalAppReasonCode::RuntimeAccessDenied,
-        _ => return None,
-    })
-}
-
-pub(crate) fn local_app_persona_reason_from_realm_response(
+pub(crate) fn local_app_realm_reason_from_response(
     reason_code: i32,
     account_reason_code: i32,
 ) -> Option<LocalAppReasonCode> {
@@ -497,15 +402,14 @@ mod tests {
 
     #[test]
     fn protected_text_behavior_failures_stay_typed() {
-        for (name, number, reason) in [
-            ("AI_TEXT_BEHAVIOR_UNSUPPORTED", 395, LocalAppReasonCode::AiTextBehaviorUnsupported),
-            ("AI_TEXT_BEHAVIOR_AMBIGUOUS", 396, LocalAppReasonCode::AiTextBehaviorAmbiguous),
-            ("AI_TEXT_OUTPUT_INCOMPLETE", 397, LocalAppReasonCode::AiTextOutputIncomplete),
-            ("AI_TOOL_CALL_INVALID", 398, LocalAppReasonCode::AiToolCallInvalid),
-            ("AI_REASONING_CONTINUITY_INVALID", 399, LocalAppReasonCode::AiReasoningContinuityInvalid),
-            ("AI_EXECUTION_INTERRUPTED", 402, LocalAppReasonCode::AiExecutionInterrupted),
+        for (name, reason) in [
+            ("AI_TEXT_BEHAVIOR_UNSUPPORTED", LocalAppReasonCode::AiTextBehaviorUnsupported),
+            ("AI_TEXT_BEHAVIOR_AMBIGUOUS", LocalAppReasonCode::AiTextBehaviorAmbiguous),
+            ("AI_TEXT_OUTPUT_INCOMPLETE", LocalAppReasonCode::AiTextOutputIncomplete),
+            ("AI_TOOL_CALL_INVALID", LocalAppReasonCode::AiToolCallInvalid),
+            ("AI_REASONING_CONTINUITY_INVALID", LocalAppReasonCode::AiReasoningContinuityInvalid),
+            ("AI_EXECUTION_INTERRUPTED", LocalAppReasonCode::AiExecutionInterrupted),
         ] {
-            assert_eq!(local_app_reason_from_proto(number), Some(reason));
             assert_eq!(local_app_reason_from_runtime_reason(name), Some(reason));
         }
     }
@@ -528,30 +432,25 @@ mod tests {
             local_app_reason_from_runtime_reason("LOCAL_APP_ACCESS_DENIED"),
             local_app_reason_from_runtime_reason("LOCAL_APP_OWNER_UNAVAILABLE")
         );
-        for (runtime_reason, proto_reason, expected) in [
+        for (runtime_reason, expected) in [
             (
                 "AI_LOCAL_DRIVER_UNAVAILABLE",
-                688,
                 LocalAppReasonCode::AiLocalDriverUnavailable,
             ),
             (
                 "AI_LOCAL_SELECTION_NOT_FOUND",
-                697,
                 LocalAppReasonCode::AiLocalSelectionNotFound,
             ),
             (
                 "AI_LOCAL_CAPABILITY_MISMATCH",
-                698,
                 LocalAppReasonCode::AiLocalCapabilityMismatch,
             ),
             (
                 "AI_LOCAL_CONFIGURATION_NOT_CONFIGURED",
-                699,
                 LocalAppReasonCode::AiLocalConfigurationNotConfigured,
             ),
             (
                 "AI_LOCAL_ASSET_INCOMPATIBLE",
-                692,
                 LocalAppReasonCode::AiLocalAssetIncompatible,
             ),
         ] {
@@ -559,36 +458,30 @@ mod tests {
                 local_app_reason_from_runtime_reason(runtime_reason),
                 Some(expected)
             );
-            assert_eq!(local_app_reason_from_proto(proto_reason), Some(expected));
         }
     }
 
     #[test]
     fn presentation_conflict_and_validation_failures_keep_exact_public_reasons() {
-        for (runtime_reason, proto_reason, expected) in [
+        for (runtime_reason, expected) in [
             (
                 "AGENT_PRESENTATION_REVISION_CONFLICT",
-                614,
                 LocalAppReasonCode::AgentPresentationRevisionConflict,
             ),
             (
                 "AGENT_PRESENTATION_ASSET_STRUCTURE_INVALID",
-                674,
                 LocalAppReasonCode::AgentPresentationAssetStructureInvalid,
             ),
             (
                 "AGENT_PRESENTATION_ASSET_TOO_LARGE",
-                673,
                 LocalAppReasonCode::AgentPresentationAssetTooLarge,
             ),
             (
                 "AGENT_PRESENTATION_ASSET_INTEGRITY_MISMATCH",
-                676,
                 LocalAppReasonCode::AgentPresentationAssetIntegrityMismatch,
             ),
             (
                 "AGENT_PRESENTATION_BACKEND_INCOMPATIBLE",
-                677,
                 LocalAppReasonCode::AgentPresentationBackendIncompatible,
             ),
         ] {
@@ -596,28 +489,27 @@ mod tests {
                 local_app_reason_from_runtime_reason(runtime_reason),
                 Some(expected)
             );
-            assert_eq!(local_app_reason_from_proto(proto_reason), Some(expected));
         }
     }
 
     #[test]
     fn persona_realm_failures_use_generated_reason_enums() {
         assert_eq!(
-            local_app_persona_reason_from_realm_response(
+            local_app_realm_reason_from_response(
                 ReasonCode::RealmConflict as i32,
                 AccountReasonCode::BrokerConflict as i32,
             ),
             Some(LocalAppReasonCode::ContentConflict)
         );
         assert_eq!(
-            local_app_persona_reason_from_realm_response(
+            local_app_realm_reason_from_response(
                 ReasonCode::RealmContractInvalid as i32,
                 AccountReasonCode::BrokerResponseTooLarge as i32,
             ),
             Some(LocalAppReasonCode::ResponseTooLarge)
         );
         assert_eq!(
-            local_app_persona_reason_from_realm_response(
+            local_app_realm_reason_from_response(
                 ReasonCode::AppMessagePayloadTooLarge as i32,
                 AccountReasonCode::BrokerRequestInvalid as i32,
             ),
@@ -627,21 +519,13 @@ mod tests {
 
     #[test]
     fn media_validation_failures_stay_typed_for_local_apps() {
-        for (runtime_reason, proto_reason, expected) in [
-            ("AI_MEDIA_SPEC_INVALID", 410, "ai-media-spec-invalid"),
-            (
-                "AI_MEDIA_OPTION_UNSUPPORTED",
-                411,
-                "ai-media-option-unsupported",
-            ),
+        for (runtime_reason, expected) in [
+            ("AI_MEDIA_SPEC_INVALID", "ai-media-spec-invalid"),
+            ("AI_MEDIA_OPTION_UNSUPPORTED", "ai-media-option-unsupported"),
         ] {
             assert_eq!(
                 local_app_reason_from_runtime_reason(runtime_reason)
                     .map(LocalAppReasonCode::as_str),
-                Some(expected)
-            );
-            assert_eq!(
-                local_app_reason_from_proto(proto_reason).map(LocalAppReasonCode::as_str),
                 Some(expected)
             );
         }
@@ -649,87 +533,58 @@ mod tests {
 
     #[test]
     fn media_failures_stay_typed_for_local_apps() {
-        for (runtime_reason, proto_reason, expected) in [
-            (
-                "AI_FACE_REFERENCE_MISSING",
-                738,
-                "ai-face-reference-missing",
-            ),
-            (
-                "AI_FACE_REFERENCE_AMBIGUOUS",
-                739,
-                "ai-face-reference-ambiguous",
-            ),
-            ("AI_FACE_TARGET_MISSING", 740, "ai-face-target-missing"),
-            ("AI_FACE_TARGET_AMBIGUOUS", 741, "ai-face-target-ambiguous"),
-            ("AI_VIDEO_DECODE_FAILED", 742, "ai-video-decode-failed"),
-            ("AI_VIDEO_ENCODE_FAILED", 743, "ai-video-encode-failed"),
-            (
-                "AI_VIDEO_SESSION_OVERLOADED",
-                744,
-                "ai-video-session-overloaded",
-            ),
+        for (runtime_reason, expected) in [
+            ("AI_FACE_REFERENCE_MISSING", "ai-face-reference-missing"),
+            ("AI_FACE_REFERENCE_AMBIGUOUS", "ai-face-reference-ambiguous"),
+            ("AI_FACE_TARGET_MISSING", "ai-face-target-missing"),
+            ("AI_FACE_TARGET_AMBIGUOUS", "ai-face-target-ambiguous"),
+            ("AI_VIDEO_DECODE_FAILED", "ai-video-decode-failed"),
+            ("AI_VIDEO_ENCODE_FAILED", "ai-video-encode-failed"),
+            ("AI_VIDEO_SESSION_OVERLOADED", "ai-video-session-overloaded"),
             (
                 "AI_VIDEO_SESSION_GENERATION_INVALID",
-                745,
                 "ai-video-session-generation-invalid",
             ),
             (
                 "AI_LOCAL_EXECUTION_LOAD_FAILED",
-                701,
                 "ai-local-execution-load-failed",
             ),
             (
                 "AI_LOCAL_EXECUTION_INFERENCE_FAILED",
-                702,
                 "ai-local-execution-inference-failed",
             ),
-            (
-                "AI_LOCAL_EXECUTION_CANCELED",
-                703,
-                "ai-local-execution-canceled",
-            ),
+            ("AI_LOCAL_EXECUTION_CANCELED", "ai-local-execution-canceled"),
             (
                 "AI_LOCAL_EXECUTION_PROCESS_CRASHED",
-                704,
                 "ai-local-execution-process-crashed",
             ),
             (
                 "AI_LOCAL_EXECUTION_CONTENT_MISMATCH",
-                705,
                 "ai-local-execution-content-mismatch",
             ),
             (
                 "AI_LOCAL_EXECUTION_OUT_OF_MEMORY",
-                725,
                 "ai-local-execution-out-of-memory",
             ),
-            ("AI_VOICE_INPUT_INVALID", 420, "ai-voice-input-invalid"),
+            ("AI_VOICE_INPUT_INVALID", "ai-voice-input-invalid"),
             (
                 "AI_VOICE_WORKFLOW_UNSUPPORTED",
-                421,
                 "ai-voice-workflow-unsupported",
             ),
-            ("AI_VOICE_ASSET_NOT_FOUND", 422, "ai-voice-asset-not-found"),
-            ("AI_VOICE_ASSET_EXPIRED", 423, "ai-voice-asset-expired"),
+            ("AI_VOICE_ASSET_NOT_FOUND", "ai-voice-asset-not-found"),
+            ("AI_VOICE_ASSET_EXPIRED", "ai-voice-asset-expired"),
             (
                 "AI_VOICE_ASSET_SCOPE_FORBIDDEN",
-                424,
                 "ai-voice-asset-scope-forbidden",
             ),
             (
                 "AI_VOICE_TARGET_MODEL_MISMATCH",
-                425,
                 "ai-voice-target-model-mismatch",
             ),
         ] {
             assert_eq!(
                 local_app_reason_from_runtime_reason(runtime_reason)
                     .map(LocalAppReasonCode::as_str),
-                Some(expected)
-            );
-            assert_eq!(
-                local_app_reason_from_proto(proto_reason).map(LocalAppReasonCode::as_str),
                 Some(expected)
             );
         }

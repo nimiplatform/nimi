@@ -405,6 +405,68 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
       'WorldCoreController_createWorldCore',
       { path: {}, query: {}, body: record },
     ) as Promise<NimiElectronLocalAppRecord>,
+    realmWorldCreationEligibilityGet: () => invokeFormalRealm(runtime, 'WorldCoreController_getWorldCreationEligibility', {path: {}, query: {}}) as Promise<NimiElectronLocalAppRecord>,
+    realmWorldCoreGet: async (record) => {
+      const value = await invokeFormalRealm(runtime, 'WorldCoreController_getWorldCore', { path: { worldId: requiredText(record.worldId) }, query: {} });
+      if (!value || typeof value !== 'object' || Array.isArray(value)) throw new NimiElectronLocalAppHostError('contract-invalid', false);
+      return value as NimiElectronLocalAppRecord;
+    },
+    realmWorldCoreReplace: async (record) => {
+      const value = await invokeFormalRealm(runtime, 'WorldCoreController_replaceWorldCore', { path: { worldId: requiredText(record.worldId) }, query: {}, body: record.body });
+      if (!value || typeof value !== 'object' || Array.isArray(value)) throw new NimiElectronLocalAppHostError('contract-invalid', false);
+      return value as NimiElectronLocalAppRecord;
+    },
+    realmWorldCharacterList: async (record) => {
+      const query: Record<string, NimiElectronLocalAppRecord[string]> = {};
+      for (const field of ['visibility', 'afterId', 'take'] as const) { if (record[field] !== undefined) query[field] = record[field]; }
+      const value = await invokeFormalRealm(runtime, 'WorldCoreController_listWorldCharacters', { path: { worldId: requiredText(record.worldId) }, query: query });
+      if (!Array.isArray(value)) throw new NimiElectronLocalAppHostError('contract-invalid', false);
+      return value as readonly NimiElectronLocalAppRecord[];
+    },
+    realmWorldCharacterGet: async (record) => {
+      const value = await invokeFormalRealm(runtime, 'WorldCoreController_getWorldCharacter', { path: { characterId: requiredText(record.characterId) }, query: {} });
+      if (!value || typeof value !== 'object' || Array.isArray(value)) throw new NimiElectronLocalAppHostError('contract-invalid', false);
+      return value as NimiElectronLocalAppRecord;
+    },
+    realmWorldCharacterCreate: async (record) => {
+      const value = await invokeFormalRealm(runtime, 'WorldCoreController_createWorldCharacter', { path: { worldId: requiredText(record.worldId) }, query: {}, body: record.body });
+      if (!value || typeof value !== 'object' || Array.isArray(value)) throw new NimiElectronLocalAppHostError('contract-invalid', false);
+      return value as NimiElectronLocalAppRecord;
+    },
+    realmWorldCharacterReplace: async (record) => {
+      const value = await invokeFormalRealm(runtime, 'WorldCoreController_replaceWorldCharacter', { path: { characterId: requiredText(record.characterId) }, query: {}, body: record.body });
+      if (!value || typeof value !== 'object' || Array.isArray(value)) throw new NimiElectronLocalAppHostError('contract-invalid', false);
+      return value as NimiElectronLocalAppRecord;
+    },
+    realmWorldEntityList: async (record) => {
+      const query: Record<string, NimiElectronLocalAppRecord[string]> = {};
+      for (const field of ['kind', 'afterId', 'take'] as const) { if (record[field] !== undefined) query[field] = record[field]; }
+      const value = await invokeFormalRealm(runtime, 'WorldCoreController_listWorldEntities', { path: { worldId: requiredText(record.worldId) }, query: query });
+      if (!Array.isArray(value)) throw new NimiElectronLocalAppHostError('contract-invalid', false);
+      return value as readonly NimiElectronLocalAppRecord[];
+    },
+    realmWorldEntityGet: async (record) => {
+      const value = await invokeFormalRealm(runtime, 'WorldCoreController_getWorldEntity', { path: { entityId: requiredText(record.entityId) }, query: {} });
+      if (!value || typeof value !== 'object' || Array.isArray(value)) throw new NimiElectronLocalAppHostError('contract-invalid', false);
+      return value as NimiElectronLocalAppRecord;
+    },
+    realmWorldEntityCreate: async (record) => {
+      const value = await invokeFormalRealm(runtime, 'WorldCoreController_createWorldEntity', { path: { worldId: requiredText(record.worldId) }, query: {}, body: record.body });
+      if (!value || typeof value !== 'object' || Array.isArray(value)) throw new NimiElectronLocalAppHostError('contract-invalid', false);
+      return value as NimiElectronLocalAppRecord;
+    },
+    realmWorldRelationshipList: async (record) => {
+      const query: Record<string, NimiElectronLocalAppRecord[string]> = {};
+      for (const field of ['entityId', 'sourceEntityId', 'targetEntityId', 'type', 'afterId', 'take'] as const) { if (record[field] !== undefined) query[field] = record[field]; }
+      const value = await invokeFormalRealm(runtime, 'WorldCoreController_listWorldRelationships', { path: { worldId: requiredText(record.worldId) }, query: query });
+      if (!Array.isArray(value)) throw new NimiElectronLocalAppHostError('contract-invalid', false);
+      return value as readonly NimiElectronLocalAppRecord[];
+    },
+    realmWorldRelationshipGet: async (record) => {
+      const value = await invokeFormalRealm(runtime, 'WorldCoreController_getWorldRelationship', { path: { relationshipId: requiredText(record.relationshipId) }, query: {} });
+      if (!value || typeof value !== 'object' || Array.isArray(value)) throw new NimiElectronLocalAppHostError('contract-invalid', false);
+      return value as NimiElectronLocalAppRecord;
+    },
     realmPersonaCharacterListOwned: async (record) => {
       const query: Record<string, NimiElectronLocalAppRecord[string]> = { scope: 'owned' };
       for (const field of ['worldId', 'visibility', 'afterId', 'take'] as const) {
@@ -1034,6 +1096,14 @@ const FORMAL_SESSION_RETRY_SAFE_METHODS: ReadonlySet<keyof NimiElectronLocalAppH
   'sessionStatus',
   'aiConfigGet', 'aiConfigLocalOptions',
   'scenarioJobGet', 'artifactRead', 'voiceAssetsList',
+  'realmWorldCreationEligibilityGet',
+  'realmWorldCoreGet',
+  'realmWorldCharacterList',
+  'realmWorldCharacterGet',
+  'realmWorldEntityList',
+  'realmWorldEntityGet',
+  'realmWorldRelationshipList',
+  'realmWorldRelationshipGet',
   'realmWorldCoreList', 'realmPersonaCharacterListOwned', 'realmPersonaCharacterGetOwned',
   'realmChatList',
   'agentReferenceList', 'avatarHostTargetResolve',

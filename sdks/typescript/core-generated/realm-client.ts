@@ -877,12 +877,6 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/auth/wallet/login"
   },
   {
-    "operationId": "WorldCoreController_bootstrapOasisWorld",
-    "service": "Realm Core",
-    "method": "POST",
-    "path": "/api/realm/core/oasis/bootstrap"
-  },
-  {
     "operationId": "WorldCoreController_createPersonaCharacter",
     "service": "Realm Core",
     "method": "POST",
@@ -959,6 +953,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Realm Core",
     "method": "GET",
     "path": "/api/realm/core/worlds/{worldId}"
+  },
+  {
+    "operationId": "WorldCoreController_getWorldCreationEligibility",
+    "service": "Realm Core",
+    "method": "GET",
+    "path": "/api/realm/core/world-creation-eligibility"
   },
   {
     "operationId": "WorldCoreController_getWorldEntity",

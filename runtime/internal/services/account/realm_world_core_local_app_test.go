@@ -115,7 +115,7 @@ func TestLocalAppWorldCoreFailureProjectionDropsRawOwnerDetail(t *testing.T) {
 func validLocalAppWorldCoreJSON(id string) string {
 	return `{
 		"id":"` + id + `","schemaVersion":"1","contentRevision":1,"contentHash":"hash",
-		"origin":{"kind":"manual"},"visibility":"private",
+		"origin":{"kind":"manual"},"visibility":"private","creatorId":"account-1",
 		"lorebookDeclaration":{"identityBaseSetting":"A test world.","rolePlacements":[],"worldRules":[]},
 		"core":{
 			"identity":{"name":"Test World","summary":"A test world"},
@@ -129,4 +129,13 @@ func validLocalAppWorldCoreJSON(id string) string {
 		},
 		"createdAt":"2026-08-06T00:00:00Z","updatedAt":"2026-08-06T00:00:00Z"
 	}`
+}
+
+// Shape regression fixtures run through the same production creator projection.
+func projectLocalAppWorldCoreListResponse(response *runtimev1.InvokeRealmUnaryResponse) *runtimev1.InvokeRealmUnaryResponse {
+	return projectLocalAppWorldCreatorResponse(LocalAppOperationRealmWorldCoreList, realmUnaryRequestJSON{}, "account-1", response)
+}
+
+func projectLocalAppWorldCoreCreateResponse(response *runtimev1.InvokeRealmUnaryResponse) *runtimev1.InvokeRealmUnaryResponse {
+	return projectLocalAppWorldCreatorResponse(LocalAppOperationRealmWorldCoreCreate, realmUnaryRequestJSON{Body: []byte(`{"id":"world-created"}`)}, "account-1", response)
 }

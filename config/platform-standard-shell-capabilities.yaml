@@ -292,6 +292,18 @@ capability_sets:
       - local-app.agentMemoryDelete
       - local-app.realmWorldCoreList
       - local-app.realmWorldCoreCreate
+      - local-app.realmWorldCreationEligibilityGet
+      - local-app.realmWorldCoreGet
+      - local-app.realmWorldCoreReplace
+      - local-app.realmWorldCharacterList
+      - local-app.realmWorldCharacterGet
+      - local-app.realmWorldCharacterCreate
+      - local-app.realmWorldCharacterReplace
+      - local-app.realmWorldEntityList
+      - local-app.realmWorldEntityGet
+      - local-app.realmWorldEntityCreate
+      - local-app.realmWorldRelationshipList
+      - local-app.realmWorldRelationshipGet
       - local-app.realmPersonaCharacterListOwned
       - local-app.realmPersonaCharacterGetOwned
       - local-app.realmPersonaCharacterCreate
@@ -442,7 +454,7 @@ local_app_operation_contract:
       owner: runtime_app_service
     realmWorldCoreList:
       command: local-app.realmWorldCoreList
-      operation_id: realm.world_core.list
+      operation_id: realm.world-core.list
       request_fields: [take, visibility]
       response_fields: [worldCores]
       transport_boundary: exact_runtime_account_unary
@@ -450,11 +462,107 @@ local_app_operation_contract:
       owner: runtime_account_service
     realmWorldCoreCreate:
       command: local-app.realmWorldCoreCreate
-      operation_id: realm.world_core.create
-      request_fields: [core, id, origin, visibility]
+      operation_id: realm.world-core.create
+      request_fields: [core, id, lorebookDeclaration, origin, visibility]
       response_fields: [worldCore]
       transport_boundary: exact_runtime_account_unary
       effect_boundary: write
+      owner: runtime_account_service
+    realmWorldCreationEligibilityGet:
+      command: local-app.realmWorldCreationEligibilityGet
+      operation_id: realm.world-core.creation-eligibility.get
+      request_fields: []
+      response_fields: [canCreateWorld]
+      transport_boundary: exact_runtime_account_unary
+      effect_boundary: read
+      owner: runtime_account_service
+    realmWorldCoreGet:
+      command: local-app.realmWorldCoreGet
+      operation_id: realm.world-core.get
+      request_fields: [worldId]
+      response_fields: [id, schemaVersion, contentRevision, contentHash, origin, creatorId, visibility, lorebookDeclaration, core, createdAt, updatedAt]
+      transport_boundary: exact_runtime_account_unary
+      effect_boundary: read
+      owner: runtime_account_service
+    realmWorldCoreReplace:
+      command: local-app.realmWorldCoreReplace
+      operation_id: realm.world-core.replace
+      request_fields: [worldId, body]
+      response_fields: [id, schemaVersion, contentRevision, contentHash, origin, creatorId, visibility, lorebookDeclaration, core, createdAt, updatedAt]
+      transport_boundary: exact_runtime_account_unary
+      effect_boundary: write
+      owner: runtime_account_service
+    realmWorldCharacterList:
+      command: local-app.realmWorldCharacterList
+      operation_id: realm.world-character.list
+      request_fields: [worldId, visibility, afterId, take]
+      response_fields: [id, schemaVersion, contentRevision, contentHash, origin, creatorId, worldId, worldEntityRef, visibility, lorebookDeclaration, profile, validity, materializationReadiness, sourceHash, createdAt, updatedAt]
+      transport_boundary: exact_runtime_account_unary
+      effect_boundary: read
+      owner: runtime_account_service
+    realmWorldCharacterGet:
+      command: local-app.realmWorldCharacterGet
+      operation_id: realm.world-character.get
+      request_fields: [characterId]
+      response_fields: [id, schemaVersion, contentRevision, contentHash, origin, creatorId, worldId, worldEntityRef, visibility, lorebookDeclaration, profile, validity, materializationReadiness, sourceHash, createdAt, updatedAt]
+      transport_boundary: exact_runtime_account_unary
+      effect_boundary: read
+      owner: runtime_account_service
+    realmWorldCharacterCreate:
+      command: local-app.realmWorldCharacterCreate
+      operation_id: realm.world-character.create
+      request_fields: [worldId, body]
+      response_fields: [id, schemaVersion, contentRevision, contentHash, origin, creatorId, worldId, worldEntityRef, visibility, lorebookDeclaration, profile, validity, materializationReadiness, sourceHash, createdAt, updatedAt]
+      transport_boundary: exact_runtime_account_unary
+      effect_boundary: write
+      owner: runtime_account_service
+    realmWorldCharacterReplace:
+      command: local-app.realmWorldCharacterReplace
+      operation_id: realm.world-character.replace
+      request_fields: [characterId, body]
+      response_fields: [id, schemaVersion, contentRevision, contentHash, origin, creatorId, worldId, worldEntityRef, visibility, lorebookDeclaration, profile, validity, materializationReadiness, sourceHash, createdAt, updatedAt]
+      transport_boundary: exact_runtime_account_unary
+      effect_boundary: write
+      owner: runtime_account_service
+    realmWorldEntityList:
+      command: local-app.realmWorldEntityList
+      operation_id: realm.world-entity.list
+      request_fields: [worldId, kind, afterId, take]
+      response_fields: [id, schemaVersion, contentRevision, contentHash, origin, worldId, kind, core, createdAt, updatedAt]
+      transport_boundary: exact_runtime_account_unary
+      effect_boundary: read
+      owner: runtime_account_service
+    realmWorldEntityGet:
+      command: local-app.realmWorldEntityGet
+      operation_id: realm.world-entity.get
+      request_fields: [entityId]
+      response_fields: [id, schemaVersion, contentRevision, contentHash, origin, worldId, kind, core, createdAt, updatedAt]
+      transport_boundary: exact_runtime_account_unary
+      effect_boundary: read
+      owner: runtime_account_service
+    realmWorldEntityCreate:
+      command: local-app.realmWorldEntityCreate
+      operation_id: realm.world-entity.create
+      request_fields: [worldId, body]
+      response_fields: [id, schemaVersion, contentRevision, contentHash, origin, worldId, kind, core, createdAt, updatedAt]
+      transport_boundary: exact_runtime_account_unary
+      effect_boundary: write
+      owner: runtime_account_service
+    realmWorldRelationshipList:
+      command: local-app.realmWorldRelationshipList
+      operation_id: realm.world-relationship.list
+      request_fields: [worldId, entityId, sourceEntityId, targetEntityId, type, afterId, take]
+      response_fields: [id, schemaVersion, contentRevision, contentHash, origin, worldId, sourceEntityId, targetEntityId, type, core, createdAt, updatedAt]
+      transport_boundary: exact_runtime_account_unary
+      effect_boundary: read
+      owner: runtime_account_service
+    realmWorldRelationshipGet:
+      command: local-app.realmWorldRelationshipGet
+      operation_id: realm.world-relationship.get
+      request_fields: [relationshipId]
+      response_fields: [id, schemaVersion, contentRevision, contentHash, origin, worldId, sourceEntityId, targetEntityId, type, core, createdAt, updatedAt]
+      transport_boundary: exact_runtime_account_unary
+      effect_boundary: read
       owner: runtime_account_service
     realmPersonaCharacterListOwned:
       command: local-app.realmPersonaCharacterListOwned
@@ -1274,10 +1382,46 @@ capabilities:
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, host-internal-error]
       - id: realmWorldCoreList
         command: nimi.shell.localApp.realmWorldCoreList
-        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, invalid-payload, resource-exhausted, host-internal-error]
+        negative_states: [protected-carrier-required, capability-unavailable, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, invalid-input, invalid-payload, session-invalid, access-denied, not-found, content-conflict, realm-unavailable, rate-limited, upstream-failed, contract-invalid, request-too-large, response-too-large, resource-exhausted, host-internal-error]
       - id: realmWorldCoreCreate
         command: nimi.shell.localApp.realmWorldCoreCreate
-        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, invalid-payload, not-found, resource-exhausted, host-internal-error]
+        negative_states: [protected-carrier-required, capability-unavailable, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, invalid-input, invalid-payload, session-invalid, access-denied, not-found, content-conflict, realm-unavailable, rate-limited, upstream-failed, contract-invalid, request-too-large, response-too-large, resource-exhausted, host-internal-error]
+      - id: realmWorldCreationEligibilityGet
+        command: nimi.shell.localApp.realmWorldCreationEligibilityGet
+        negative_states: [protected-carrier-required, capability-unavailable, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, invalid-input, invalid-payload, session-invalid, access-denied, not-found, content-conflict, realm-unavailable, rate-limited, upstream-failed, contract-invalid, request-too-large, response-too-large, resource-exhausted, host-internal-error]
+      - id: realmWorldCoreGet
+        command: nimi.shell.localApp.realmWorldCoreGet
+        negative_states: [protected-carrier-required, capability-unavailable, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, invalid-input, invalid-payload, session-invalid, access-denied, not-found, content-conflict, realm-unavailable, rate-limited, upstream-failed, contract-invalid, request-too-large, response-too-large, resource-exhausted, host-internal-error]
+      - id: realmWorldCoreReplace
+        command: nimi.shell.localApp.realmWorldCoreReplace
+        negative_states: [protected-carrier-required, capability-unavailable, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, invalid-input, invalid-payload, session-invalid, access-denied, not-found, content-conflict, realm-unavailable, rate-limited, upstream-failed, contract-invalid, request-too-large, response-too-large, resource-exhausted, host-internal-error]
+      - id: realmWorldCharacterList
+        command: nimi.shell.localApp.realmWorldCharacterList
+        negative_states: [protected-carrier-required, capability-unavailable, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, invalid-input, invalid-payload, session-invalid, access-denied, not-found, content-conflict, realm-unavailable, rate-limited, upstream-failed, contract-invalid, request-too-large, response-too-large, resource-exhausted, host-internal-error]
+      - id: realmWorldCharacterGet
+        command: nimi.shell.localApp.realmWorldCharacterGet
+        negative_states: [protected-carrier-required, capability-unavailable, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, invalid-input, invalid-payload, session-invalid, access-denied, not-found, content-conflict, realm-unavailable, rate-limited, upstream-failed, contract-invalid, request-too-large, response-too-large, resource-exhausted, host-internal-error]
+      - id: realmWorldCharacterCreate
+        command: nimi.shell.localApp.realmWorldCharacterCreate
+        negative_states: [protected-carrier-required, capability-unavailable, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, invalid-input, invalid-payload, session-invalid, access-denied, not-found, content-conflict, realm-unavailable, rate-limited, upstream-failed, contract-invalid, request-too-large, response-too-large, resource-exhausted, host-internal-error]
+      - id: realmWorldCharacterReplace
+        command: nimi.shell.localApp.realmWorldCharacterReplace
+        negative_states: [protected-carrier-required, capability-unavailable, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, invalid-input, invalid-payload, session-invalid, access-denied, not-found, content-conflict, realm-unavailable, rate-limited, upstream-failed, contract-invalid, request-too-large, response-too-large, resource-exhausted, host-internal-error]
+      - id: realmWorldEntityList
+        command: nimi.shell.localApp.realmWorldEntityList
+        negative_states: [protected-carrier-required, capability-unavailable, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, invalid-input, invalid-payload, session-invalid, access-denied, not-found, content-conflict, realm-unavailable, rate-limited, upstream-failed, contract-invalid, request-too-large, response-too-large, resource-exhausted, host-internal-error]
+      - id: realmWorldEntityGet
+        command: nimi.shell.localApp.realmWorldEntityGet
+        negative_states: [protected-carrier-required, capability-unavailable, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, invalid-input, invalid-payload, session-invalid, access-denied, not-found, content-conflict, realm-unavailable, rate-limited, upstream-failed, contract-invalid, request-too-large, response-too-large, resource-exhausted, host-internal-error]
+      - id: realmWorldEntityCreate
+        command: nimi.shell.localApp.realmWorldEntityCreate
+        negative_states: [protected-carrier-required, capability-unavailable, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, invalid-input, invalid-payload, session-invalid, access-denied, not-found, content-conflict, realm-unavailable, rate-limited, upstream-failed, contract-invalid, request-too-large, response-too-large, resource-exhausted, host-internal-error]
+      - id: realmWorldRelationshipList
+        command: nimi.shell.localApp.realmWorldRelationshipList
+        negative_states: [protected-carrier-required, capability-unavailable, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, invalid-input, invalid-payload, session-invalid, access-denied, not-found, content-conflict, realm-unavailable, rate-limited, upstream-failed, contract-invalid, request-too-large, response-too-large, resource-exhausted, host-internal-error]
+      - id: realmWorldRelationshipGet
+        command: nimi.shell.localApp.realmWorldRelationshipGet
+        negative_states: [protected-carrier-required, capability-unavailable, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, invalid-input, invalid-payload, session-invalid, access-denied, not-found, content-conflict, realm-unavailable, rate-limited, upstream-failed, contract-invalid, request-too-large, response-too-large, resource-exhausted, host-internal-error]
       - id: realmPersonaCharacterListOwned
         command: nimi.shell.localApp.realmPersonaCharacterListOwned
         negative_states: [protected-carrier-required, capability-unavailable, invalid-input, session-invalid, access-denied, owner-authority-missing, realm-unavailable, rate-limited, upstream-failed, contract-invalid, response-too-large, host-internal-error]

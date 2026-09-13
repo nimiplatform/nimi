@@ -872,12 +872,6 @@ REALM_OPERATIONS = [
     "path": "/api/auth/wallet/login"
   },
   {
-    "operation_id": "WorldCoreController_bootstrapOasisWorld",
-    "service": "Realm Core",
-    "method": "POST",
-    "path": "/api/realm/core/oasis/bootstrap"
-  },
-  {
     "operation_id": "WorldCoreController_createPersonaCharacter",
     "service": "Realm Core",
     "method": "POST",
@@ -954,6 +948,12 @@ REALM_OPERATIONS = [
     "service": "Realm Core",
     "method": "GET",
     "path": "/api/realm/core/worlds/{worldId}"
+  },
+  {
+    "operation_id": "WorldCoreController_getWorldCreationEligibility",
+    "service": "Realm Core",
+    "method": "GET",
+    "path": "/api/realm/core/world-creation-eligibility"
   },
   {
     "operation_id": "WorldCoreController_getWorldEntity",

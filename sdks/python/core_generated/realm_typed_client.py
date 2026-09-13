@@ -252,10 +252,6 @@ class BlockUserBodyDto:
     reason: str | None = None
 
 @dataclass(frozen=True)
-class BootstrapOasisWorldDto:
-    confirm: Literal["bootstrap-oasis-world-core"]
-
-@dataclass(frozen=True)
 class BundleDetailDto:
     compatibleApps: tuple[str, ...]
     coverAssetId: str
@@ -2416,6 +2412,10 @@ class WorldCoreValueDtoTimeModelAnchor:
     realStartedAt: str
     worldStartedAt: str
     worldStartedAtDisplay: str
+
+@dataclass(frozen=True)
+class WorldCreationEligibilityDto:
+    canCreateWorld: bool
 
 @dataclass(frozen=True)
 class WorldEntityCoreDto:
@@ -6060,28 +6060,6 @@ class RealmWalletLoginOperationRequest:
     body: WalletLoginDto | None = None
 
 @dataclass(frozen=True)
-class RealmWorldCoreControllerBootstrapOasisWorldOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldCoreControllerBootstrapOasisWorldOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldCoreControllerBootstrapOasisWorldOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmWorldCoreControllerBootstrapOasisWorldOperationRequest:
-    path: RealmWorldCoreControllerBootstrapOasisWorldOperationPath
-    query: RealmWorldCoreControllerBootstrapOasisWorldOperationQuery | None = None
-    headers: RealmWorldCoreControllerBootstrapOasisWorldOperationHeaders | None = None
-    body: BootstrapOasisWorldDto | None = None
-
-@dataclass(frozen=True)
 class RealmWorldCoreControllerCreatePersonaCharacterOperationPath:
     pass
 
@@ -6369,6 +6347,28 @@ class RealmWorldCoreControllerGetWorldCoreOperationRequest:
     path: RealmWorldCoreControllerGetWorldCoreOperationPath
     query: RealmWorldCoreControllerGetWorldCoreOperationQuery | None = None
     headers: RealmWorldCoreControllerGetWorldCoreOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerGetWorldCreationEligibilityOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerGetWorldCreationEligibilityOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerGetWorldCreationEligibilityOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldCoreControllerGetWorldCreationEligibilityOperationRequest:
+    path: RealmWorldCoreControllerGetWorldCreationEligibilityOperationPath
+    query: RealmWorldCoreControllerGetWorldCreationEligibilityOperationQuery | None = None
+    headers: RealmWorldCoreControllerGetWorldCreationEligibilityOperationHeaders | None = None
     body: None | None = None
 
 @dataclass(frozen=True)
@@ -8204,16 +8204,6 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="walletLogin", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(OAuthLoginResultDto, raw)
 
-    async def world_core_controller_bootstrap_oasis_world(self, request: RealmWorldCoreControllerBootstrapOasisWorldOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerBootstrapOasisWorldOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_bootstrapOasisWorld", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(WorldCoreDto, raw)
-
     async def world_core_controller_create_persona_character(self, request: RealmWorldCoreControllerCreatePersonaCharacterOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerCreatePersonaCharacterOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -8343,6 +8333,16 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_getWorldCore", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WorldCoreDto, raw)
+
+    async def world_core_controller_get_world_creation_eligibility(self, request: RealmWorldCoreControllerGetWorldCreationEligibilityOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerGetWorldCreationEligibilityOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_getWorldCreationEligibility", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(WorldCreationEligibilityDto, raw)
 
     async def world_core_controller_get_world_entity(self, request: RealmWorldCoreControllerGetWorldEntityOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerGetWorldEntityOperationResponse:
         envelope: dict[str, object] = {

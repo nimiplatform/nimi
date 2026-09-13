@@ -48,6 +48,26 @@ describe('Electron protected local-app host', () => {
     await expect(host.scenarioExecute({ spec: { type: 'text-generate', messages: [{ role: 'user', text: 'Hello' }] } })).rejects.toMatchObject({ reasonCode });
   });
 
+  it('preserves world content across list/create/get/replace while rejecting frame authority', async () => {
+    const world = { id: 'world-1', core: { systems: [{ systemId: 'trade', name: 'Trade', summary: 'Markets.', parameters: { token: 'coin', generation: 3 } }] } };
+    let value: Record<string, unknown> = world;
+    const host = createNimiElectronLocalAppHostForBinding({ ...binding([]),
+      localAppRealmWorldCoreList: async () => ({ status: 'ok' as const, value: [value] }),
+      localAppRealmWorldCoreCreate: async () => ({ status: 'ok' as const, value }),
+      localAppRealmWorldCoreGet: async () => ({ status: 'ok' as const, value }),
+      localAppRealmWorldCoreReplace: async () => ({ status: 'ok' as const, value }),
+    });
+    const body = { core: world.core, lorebookDeclaration: {}, origin: { kind: 'manual' } };
+    const calls = [() => host.realmWorldCoreList(), () => host.realmWorldCoreGet({ worldId: 'world-1' }),
+      () => host.realmWorldCoreCreate(body), () => host.realmWorldCoreReplace({ worldId: 'world-1', body: { ...body, baseContentHash: 'a'.repeat(64) } })];
+    for (const call of calls) {
+      const result = await call();
+      expect(Array.isArray(result) ? result[0] : result).toEqual(world);
+    }
+    value = { ...world, accessToken: 'unexpected' };
+    for (const call of calls) await expect(call()).rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
+  });
+
   it('bootstraps and rotates only the request-empty technical session', async () => {
     vi.useFakeTimers();
     try {
@@ -846,6 +866,18 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppVoiceAssetsList: record('localAppVoiceAssetsList', { assets: [], nextPageToken: '' }),
     localAppRealmWorldCoreList: record('localAppRealmWorldCoreList', [{ id: 'world-1', visibility: 'private' }]),
     localAppRealmWorldCoreCreate: record('localAppRealmWorldCoreCreate', { id: 'world-2', visibility: 'private' }),
+    localAppRealmWorldCreationEligibilityGet: async () => ({ status: 'error' as const, reasonCode: 'not-found', retryable: false }),
+    localAppRealmWorldCoreGet: async () => ({ status: 'error' as const, reasonCode: 'not-found', retryable: false }),
+    localAppRealmWorldCoreReplace: async () => ({ status: 'error' as const, reasonCode: 'not-found', retryable: false }),
+    localAppRealmWorldCharacterList: async () => ({ status: 'error' as const, reasonCode: 'not-found', retryable: false }),
+    localAppRealmWorldCharacterGet: async () => ({ status: 'error' as const, reasonCode: 'not-found', retryable: false }),
+    localAppRealmWorldCharacterCreate: async () => ({ status: 'error' as const, reasonCode: 'not-found', retryable: false }),
+    localAppRealmWorldCharacterReplace: async () => ({ status: 'error' as const, reasonCode: 'not-found', retryable: false }),
+    localAppRealmWorldEntityList: async () => ({ status: 'error' as const, reasonCode: 'not-found', retryable: false }),
+    localAppRealmWorldEntityGet: async () => ({ status: 'error' as const, reasonCode: 'not-found', retryable: false }),
+    localAppRealmWorldEntityCreate: async () => ({ status: 'error' as const, reasonCode: 'not-found', retryable: false }),
+    localAppRealmWorldRelationshipList: async () => ({ status: 'error' as const, reasonCode: 'not-found', retryable: false }),
+    localAppRealmWorldRelationshipGet: async () => ({ status: 'error' as const, reasonCode: 'not-found', retryable: false }),
     localAppRealmPersonaCharacterListOwned: record('localAppRealmPersonaCharacterListOwned', [personaProjection()]),
     localAppRealmPersonaCharacterGetOwned: record('localAppRealmPersonaCharacterGetOwned', personaProjection()),
     localAppRealmPersonaCharacterCreate: record('localAppRealmPersonaCharacterCreate', personaProjection()),

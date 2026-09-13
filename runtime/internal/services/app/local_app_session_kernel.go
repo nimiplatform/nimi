@@ -467,6 +467,20 @@ func (s *Service) AuthorizeLocalAppIngress(ctx context.Context, ingress localapp
 		capability = "realm.world-core.list"
 	case localappop.OperationRealmWorldCoreCreate:
 		capability = "realm.world-core.create"
+	// @nimi-authority: rule.nimi.platform.core-protocol.world-creator-app-operations
+	case localappop.OperationRealmWorldCreationEligibilityGet,
+		localappop.OperationRealmWorldCoreGet,
+		localappop.OperationRealmWorldCoreReplace,
+		localappop.OperationRealmWorldCharacterList,
+		localappop.OperationRealmWorldCharacterGet,
+		localappop.OperationRealmWorldCharacterCreate,
+		localappop.OperationRealmWorldCharacterReplace,
+		localappop.OperationRealmWorldEntityList,
+		localappop.OperationRealmWorldEntityGet,
+		localappop.OperationRealmWorldEntityCreate,
+		localappop.OperationRealmWorldRelationshipList,
+		localappop.OperationRealmWorldRelationshipGet:
+		capability = string(admission.Domain)
 	case localappop.OperationRealmPersonaCharacterListOwned:
 		capability = localappop.AppOperationIDPersonaListOwned
 	case localappop.OperationRealmPersonaCharacterGetOwned:

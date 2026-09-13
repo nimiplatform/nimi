@@ -12568,11 +12568,6 @@ pub struct BlockUserBodyDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct BootstrapOasisWorldDto {
-    pub confirm: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct BundleDetailDto {
     pub compatible_apps: Vec<String>,
     pub cover_asset_id: String,
@@ -15079,6 +15074,11 @@ pub struct WorldCoreValueDtoTimeModelAnchor {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldCreationEligibilityDto {
+    pub can_create_world: bool,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldEntityCoreDto {
     pub content_hash: String,
     pub content_revision: f64,
@@ -15829,6 +15829,29 @@ pub struct RealmVisibilityControllerGetUserSettingsOperationRequest {
     pub body: (),
 }
 
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerGetWorldCreationEligibilityOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerGetWorldCreationEligibilityOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerGetWorldCreationEligibilityOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmWorldCoreControllerGetWorldCreationEligibilityOperationRequest {
+    pub path: RealmWorldCoreControllerGetWorldCreationEligibilityOperationPath,
+    pub query: RealmWorldCoreControllerGetWorldCreationEligibilityOperationQuery,
+    pub headers: RealmWorldCoreControllerGetWorldCreationEligibilityOperationHeaders,
+    pub body: (),
+}
+
 #[derive(Debug, PartialEq)]
 pub enum RealmTypedClientError<E> {
     Transport(E),
@@ -16259,6 +16282,24 @@ where
             wallet_visibility: pairs.get("walletVisibility").cloned().ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "VisibilityController_getUserSettings",
                 field: "walletVisibility",
+            })?,
+        })
+    }
+
+    pub fn world_core_controller_get_world_creation_eligibility(&self, _request: RealmWorldCoreControllerGetWorldCreationEligibilityOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WorldCreationEligibilityDto, RealmTypedClientError<T::Error>> {
+        let pairs: Vec<String> = Vec::new();
+
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "WorldCoreController_getWorldCreationEligibility".to_string(),
+            metadata,
+            body: pairs.join(";").into_bytes(),
+            timeout,
+        }).map_err(RealmTypedClientError::Transport)?;
+        let pairs = parse_pairs(&raw);
+        Ok(WorldCreationEligibilityDto {
+            can_create_world: pairs.get("canCreateWorld").and_then(|value| value.parse().ok()).ok_or(RealmTypedClientError::ResponseDecode {
+                operation_id: "WorldCoreController_getWorldCreationEligibility",
+                field: "canCreateWorld",
             })?,
         })
     }

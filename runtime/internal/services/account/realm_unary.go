@@ -123,7 +123,7 @@ func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRea
 		return projectFailure(realmUnaryFailure(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID, err.Error(), 0)), nil
 	}
 	var requestShapeErr error
-	if isLocalAppPersonaCharacterOperation(localAppOperation) {
+	if isLocalAppPersonaCharacterOperation(localAppOperation) || isLocalAppWorldCreatorOperation(localAppOperation) {
 		requestShapeErr = validateRealmUnaryRequestShapeForOpaqueProductContent(operation, parsedRequest)
 	} else {
 		requestShapeErr = validateRealmUnaryRequestShape(operation, parsedRequest)
@@ -132,6 +132,11 @@ func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRea
 		return projectFailure(realmUnaryFailure(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID, requestShapeErr.Error(), 0)), nil
 	}
 	if localAppOperation != 0 {
+		if isLocalAppWorldCreatorOperation(localAppOperation) {
+			if err := validateLocalAppWorldCreatorRequest(localAppOperation, parsedRequest); err != nil {
+				return projectFailure(realmUnaryFailure(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID, "World creator request is invalid", 0)), nil
+			}
+		}
 		if err := validateLocalAppPersonaCharacterRequest(localAppOperation, parsedRequest); err != nil {
 			return projectFailure(realmUnaryFailure(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID, "Local App PersonaCharacter request is invalid", 0)), nil
 		}
@@ -191,11 +196,17 @@ func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRea
 		}
 	}
 	var projected *runtimev1.InvokeRealmUnaryResponse
+	desktopWorldRead := desktopWorldSourceReadOperation(methodID)
 	if localAppOperation == LocalAppOperationPersonaDelete {
 		personaCharacterID, _ := parsedRequest.Path["personaCharacterId"].(string)
 		projected = projectLocalAppPersonaCharacterDeleteResponse(result, personaCharacterID)
-	} else if isLocalAppPersonaCharacterOperation(localAppOperation) {
+	} else if isLocalAppPersonaCharacterOperation(localAppOperation) || isLocalAppWorldCreatorOperation(localAppOperation) {
 		projected = projectRealmUnaryHTTPResultForOpaquePersona(result)
+	} else if desktopWorldRead != 0 && result.status >= http.StatusOK && result.status < http.StatusMultipleChoices {
+		projected = projectRealmUnaryHTTPResultWithCredentialBodyScanner(result, nil)
+		if projected.GetAccepted() {
+			projected = projectLocalAppWorldCreatorResponse(desktopWorldRead, parsedRequest, "", projected)
+		}
 	} else if isRealmPersonaCharacterMethodID(methodID) && result.status >= http.StatusOK && result.status < http.StatusMultipleChoices {
 		projected = projectRealmUnaryHTTPResultForOpaquePersonaSuccess(result)
 	} else {
@@ -205,11 +216,10 @@ func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRea
 		if !projected.GetAccepted() {
 			return sanitizeLocalAppRealmFailure(projected), nil
 		}
+		if isLocalAppWorldCreatorOperation(localAppOperation) {
+			return projectLocalAppWorldCreatorResponse(localAppOperation, parsedRequest, localAppDecision.AccountID, projected), nil
+		}
 		switch localAppOperation {
-		case LocalAppOperationRealmWorldCoreList:
-			return projectLocalAppWorldCoreListResponse(projected), nil
-		case LocalAppOperationRealmWorldCoreCreate:
-			return projectLocalAppWorldCoreCreateResponse(projected), nil
 		case LocalAppOperationPersonaListOwned:
 			return projectLocalAppPersonaCharacterListResponse(projected, localAppDecision.AccountID), nil
 		case LocalAppOperationPersonaGetOwned, LocalAppOperationPersonaCreate, LocalAppOperationPersonaReplace:
@@ -227,6 +237,30 @@ func localAppRealmMethodID(operation LocalAppOperation) (string, bool) {
 		return "WorldCoreController_listWorldCores", true
 	case LocalAppOperationRealmWorldCoreCreate:
 		return "WorldCoreController_createWorldCore", true
+	case LocalAppOperationRealmWorldCreationEligibilityGet:
+		return "WorldCoreController_getWorldCreationEligibility", true
+	case LocalAppOperationRealmWorldCoreGet:
+		return "WorldCoreController_getWorldCore", true
+	case LocalAppOperationRealmWorldCoreReplace:
+		return "WorldCoreController_replaceWorldCore", true
+	case LocalAppOperationRealmWorldCharacterList:
+		return "WorldCoreController_listWorldCharacters", true
+	case LocalAppOperationRealmWorldCharacterGet:
+		return "WorldCoreController_getWorldCharacter", true
+	case LocalAppOperationRealmWorldCharacterCreate:
+		return "WorldCoreController_createWorldCharacter", true
+	case LocalAppOperationRealmWorldCharacterReplace:
+		return "WorldCoreController_replaceWorldCharacter", true
+	case LocalAppOperationRealmWorldEntityList:
+		return "WorldCoreController_listWorldEntities", true
+	case LocalAppOperationRealmWorldEntityGet:
+		return "WorldCoreController_getWorldEntity", true
+	case LocalAppOperationRealmWorldEntityCreate:
+		return "WorldCoreController_createWorldEntity", true
+	case LocalAppOperationRealmWorldRelationshipList:
+		return "WorldCoreController_listWorldRelationships", true
+	case LocalAppOperationRealmWorldRelationshipGet:
+		return "WorldCoreController_getWorldRelationship", true
 	case LocalAppOperationPersonaListOwned:
 		return "WorldCoreController_listPersonaCharacters", true
 	case LocalAppOperationPersonaGetOwned:

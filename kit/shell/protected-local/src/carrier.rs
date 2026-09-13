@@ -560,6 +560,77 @@ pub struct LocalAppWorldCoreCreateRequest {
     pub body: JsonValue,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppWorldCoreGetRequest {
+    pub world_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppWorldCoreReplaceRequest {
+    pub world_id: String,
+    pub body: JsonValue,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppWorldCharacterListRequest {
+    pub world_id: String,
+    pub visibility: Option<String>,
+    pub after_id: Option<String>,
+    pub take: Option<u32>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppWorldCharacterGetRequest {
+    pub character_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppWorldCharacterCreateRequest {
+    pub world_id: String,
+    pub body: JsonValue,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppWorldCharacterReplaceRequest {
+    pub character_id: String,
+    pub body: JsonValue,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppWorldEntityListRequest {
+    pub world_id: String,
+    pub kind: Option<String>,
+    pub after_id: Option<String>,
+    pub take: Option<u32>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppWorldEntityGetRequest {
+    pub entity_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppWorldEntityCreateRequest {
+    pub world_id: String,
+    pub body: JsonValue,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppWorldRelationshipListRequest {
+    pub world_id: String,
+    pub entity_id: Option<String>,
+    pub source_entity_id: Option<String>,
+    pub target_entity_id: Option<String>,
+    pub r#type: Option<String>,
+    pub after_id: Option<String>,
+    pub take: Option<u32>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LocalAppWorldRelationshipGetRequest {
+    pub relationship_id: String,
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct LocalAppPersonaCharacterListOwnedRequest {
     pub world_id: Option<String>,
@@ -958,7 +1029,10 @@ pub struct LocalAppVideoSessionOpenRequest {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct LocalAppVideoSessionScopeRequest { pub video_session_id: String, pub generation: u64 }
+pub struct LocalAppVideoSessionScopeRequest {
+    pub video_session_id: String,
+    pub generation: u64,
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct LocalAppVideoSessionFrameRequest {
@@ -1474,6 +1548,65 @@ pub trait NimiLocalAppSession: Send + Sync {
         request: LocalAppWorldCoreCreateRequest,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
+    fn realm_world_creation_eligibility_get(
+        &self,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn realm_world_core_get(
+        &self,
+        request: LocalAppWorldCoreGetRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn realm_world_core_replace(
+        &self,
+        request: LocalAppWorldCoreReplaceRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn realm_world_character_list(
+        &self,
+        request: LocalAppWorldCharacterListRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn realm_world_character_get(
+        &self,
+        request: LocalAppWorldCharacterGetRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn realm_world_character_create(
+        &self,
+        request: LocalAppWorldCharacterCreateRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn realm_world_character_replace(
+        &self,
+        request: LocalAppWorldCharacterReplaceRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn realm_world_entity_list(
+        &self,
+        request: LocalAppWorldEntityListRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn realm_world_entity_get(
+        &self,
+        request: LocalAppWorldEntityGetRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn realm_world_entity_create(
+        &self,
+        request: LocalAppWorldEntityCreateRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn realm_world_relationship_list(
+        &self,
+        request: LocalAppWorldRelationshipListRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn realm_world_relationship_get(
+        &self,
+        request: LocalAppWorldRelationshipGetRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
     fn realm_persona_character_list_owned(
         &self,
         request: LocalAppPersonaCharacterListOwnedRequest,
@@ -1764,10 +1897,22 @@ pub trait NimiLocalAppSession: Send + Sync {
         request: LocalAppAiRealtimeOpenRequest,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
-    fn video_session_open(&self, request: LocalAppVideoSessionOpenRequest) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
-    fn video_session_submit(&self, request: LocalAppVideoSessionFrameRequest) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
-    fn video_session_read(&self, request: LocalAppVideoSessionScopeRequest) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
-    fn video_session_close(&self, request: LocalAppVideoSessionScopeRequest) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+    fn video_session_open(
+        &self,
+        request: LocalAppVideoSessionOpenRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+    fn video_session_submit(
+        &self,
+        request: LocalAppVideoSessionFrameRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+    fn video_session_read(
+        &self,
+        request: LocalAppVideoSessionScopeRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+    fn video_session_close(
+        &self,
+        request: LocalAppVideoSessionScopeRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
     fn realm_chat_list(
         &self,

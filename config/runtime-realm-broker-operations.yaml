@@ -7,7 +7,16 @@ owner: runtime
 protocol_id: runtime_realm_broker_operations
 surfaces:
   - WorldCoreController_createPersonaCharacter
+  - WorldCoreController_getWorldCreationEligibility
   - WorldCoreController_createWorldCore
+  - WorldCoreController_getWorldCore
+  - WorldCoreController_replaceWorldCore
+  - WorldCoreController_listWorldCharacters
+  - WorldCoreController_createWorldCharacter
+  - WorldCoreController_replaceWorldCharacter
+  - WorldCoreController_listWorldEntities
+  - WorldCoreController_createWorldEntity
+  - WorldCoreController_getWorldRelationship
   - WorldCoreController_discoverPersonaCharacters
   - WorldCoreController_getPersonaCharacter
   - WorldCoreController_getWorldCharacter
@@ -156,6 +165,9 @@ policy_templates:
     response_max_bytes: 1048576
     credential_response_policy: forbidden
     source_rule: K-ACCSVC-023
+  desktop_and_local_app_world_core: &desktop_and_local_app_world_core
+    <<: *local_app_world_core
+    allowed_runtime_caller_modes: [ ACCOUNT_CALLER_MODE_DESKTOP_SHELL, ACCOUNT_CALLER_MODE_LOCAL_APP ]
   local_app_persona_character_owner: &local_app_persona_character_owner
     authorization_profile: protected_local_app_persona_character_owner
     allowed_runtime_caller_modes: [ ACCOUNT_CALLER_MODE_LOCAL_APP ]
@@ -202,6 +214,78 @@ operations:
     request_schema_ref: realm-openapi://operation/WorldCoreController_createWorldCore/request
     response_schema_ref: realm-openapi://operation/WorldCoreController_createWorldCore/response
 
+  - <<: *local_app_world_core
+    operation_id: WorldCoreController_getWorldCreationEligibility
+    authority_ref: .nimi/spec/platform/core-protocol.authority.yaml#rule.nimi.platform.core-protocol.world-creator-app-operations
+    http_method: GET
+    path_template: /api/realm/core/world-creation-eligibility
+    request_schema_ref: realm-openapi://operation/WorldCoreController_getWorldCreationEligibility/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_getWorldCreationEligibility/response
+
+  - <<: *local_app_world_core
+    operation_id: WorldCoreController_getWorldCore
+    authority_ref: .nimi/spec/platform/core-protocol.authority.yaml#rule.nimi.platform.core-protocol.world-creator-app-operations
+    http_method: GET
+    path_template: /api/realm/core/worlds/{worldId}
+    request_schema_ref: realm-openapi://operation/WorldCoreController_getWorldCore/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_getWorldCore/response
+
+  - <<: *local_app_world_core
+    operation_id: WorldCoreController_replaceWorldCore
+    authority_ref: .nimi/spec/platform/core-protocol.authority.yaml#rule.nimi.platform.core-protocol.world-creator-app-operations
+    http_method: PUT
+    path_template: /api/realm/core/worlds/{worldId}
+    request_schema_ref: realm-openapi://operation/WorldCoreController_replaceWorldCore/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_replaceWorldCore/response
+
+  - <<: *local_app_world_core
+    operation_id: WorldCoreController_listWorldCharacters
+    authority_ref: .nimi/spec/platform/core-protocol.authority.yaml#rule.nimi.platform.core-protocol.world-creator-app-operations
+    http_method: GET
+    path_template: /api/realm/core/worlds/{worldId}/characters
+    request_schema_ref: realm-openapi://operation/WorldCoreController_listWorldCharacters/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_listWorldCharacters/response
+
+  - <<: *local_app_world_core
+    operation_id: WorldCoreController_createWorldCharacter
+    authority_ref: .nimi/spec/platform/core-protocol.authority.yaml#rule.nimi.platform.core-protocol.world-creator-app-operations
+    http_method: POST
+    path_template: /api/realm/core/worlds/{worldId}/characters
+    request_schema_ref: realm-openapi://operation/WorldCoreController_createWorldCharacter/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_createWorldCharacter/response
+
+  - <<: *local_app_world_core
+    operation_id: WorldCoreController_replaceWorldCharacter
+    authority_ref: .nimi/spec/platform/core-protocol.authority.yaml#rule.nimi.platform.core-protocol.world-creator-app-operations
+    http_method: PUT
+    path_template: /api/realm/core/world-characters/by-id/{characterId}
+    request_schema_ref: realm-openapi://operation/WorldCoreController_replaceWorldCharacter/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_replaceWorldCharacter/response
+
+  - <<: *local_app_world_core
+    operation_id: WorldCoreController_listWorldEntities
+    authority_ref: .nimi/spec/platform/core-protocol.authority.yaml#rule.nimi.platform.core-protocol.world-creator-app-operations
+    http_method: GET
+    path_template: /api/realm/core/worlds/{worldId}/entities
+    request_schema_ref: realm-openapi://operation/WorldCoreController_listWorldEntities/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_listWorldEntities/response
+
+  - <<: *local_app_world_core
+    operation_id: WorldCoreController_createWorldEntity
+    authority_ref: .nimi/spec/platform/core-protocol.authority.yaml#rule.nimi.platform.core-protocol.world-creator-app-operations
+    http_method: POST
+    path_template: /api/realm/core/worlds/{worldId}/entities
+    request_schema_ref: realm-openapi://operation/WorldCoreController_createWorldEntity/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_createWorldEntity/response
+
+  - <<: *local_app_world_core
+    operation_id: WorldCoreController_getWorldRelationship
+    authority_ref: .nimi/spec/platform/core-protocol.authority.yaml#rule.nimi.platform.core-protocol.world-creator-app-operations
+    http_method: GET
+    path_template: /api/realm/core/world-relationships/{relationshipId}
+    request_schema_ref: realm-openapi://operation/WorldCoreController_getWorldRelationship/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_getWorldRelationship/response
+
   - <<: *desktop_source_read
     operation_id: WorldPublicController_getCharacterSource
     authority_ref: realm:spec/realm/core.authority.yaml#rule.realm.core.r004
@@ -226,7 +310,7 @@ operations:
     request_schema_ref: realm-openapi://operation/WorldCoreController_getPersonaCharacter/request
     response_schema_ref: realm-openapi://operation/WorldCoreController_getPersonaCharacter/response
 
-  - <<: *desktop_source_read
+  - <<: *desktop_and_local_app_world_core
     operation_id: WorldCoreController_getWorldCharacter
     authority_ref: realm:spec/realm/core.authority.yaml#rule.realm.core.r006
     http_method: GET
@@ -234,7 +318,7 @@ operations:
     request_schema_ref: realm-openapi://operation/WorldCoreController_getWorldCharacter/request
     response_schema_ref: realm-openapi://operation/WorldCoreController_getWorldCharacter/response
 
-  - <<: *desktop_source_read
+  - <<: *desktop_and_local_app_world_core
     operation_id: WorldCoreController_getWorldEntity
     authority_ref: realm:spec/realm/core.authority.yaml#rule.realm.core.r005
     http_method: GET
@@ -274,7 +358,7 @@ operations:
     request_schema_ref: realm-openapi://operation/WorldCoreController_discoverPersonaCharacters/request
     response_schema_ref: realm-openapi://operation/WorldCoreController_discoverPersonaCharacters/response
 
-  - <<: *desktop_source_read
+  - <<: *desktop_and_local_app_world_core
     operation_id: WorldCoreController_listWorldRelationships
     authority_ref: realm:spec/realm/core.authority.yaml#rule.realm.core.r018
     http_method: GET

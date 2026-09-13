@@ -7,16 +7,16 @@ use nimi_shell_protected_local::WindowsLocalAppCarrier;
 use nimi_shell_protected_local::{
     LocalAppAIConfigLocalOptionsRequest, LocalAppAIConfigOverwriteRequest,
     LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest,
-    LocalAppAgentPresentationAssetReadRequest,
     LocalAppAgentManagerSnapshotRequest, LocalAppAgentMemoryCorrectRequest,
     LocalAppAgentMemoryDeleteRequest, LocalAppAgentMemoryForgetRequest,
     LocalAppAgentMemoryInspectRequest, LocalAppAgentMemorySwitchRequest,
-    LocalAppAgentUpdateAutonomyRequest, LocalAppAssetAdoptRequest, LocalAppAssetListRequest,
-    LocalAppAssetListResult, LocalAppAssetMoveRequest, LocalAppAssetRange,
-    LocalAppAssetReadReceiver, LocalAppAssetReadRequest, LocalAppAssetRecord,
-    LocalAppAssetRemoveRequest, LocalAppAssetRemoveResult, LocalAppAssetRevealRequest,
-    LocalAppAssetRevealTarget, LocalAppAssetStatRequest, LocalAppAssetWriteRequest,
-    LocalAppEmbodimentSnapshotRequest, LocalAppEmbodimentSubscribeRequest, LocalAppOperationError,
+    LocalAppAgentPresentationAssetReadRequest, LocalAppAgentUpdateAutonomyRequest,
+    LocalAppAssetAdoptRequest, LocalAppAssetListRequest, LocalAppAssetListResult,
+    LocalAppAssetMoveRequest, LocalAppAssetRange, LocalAppAssetReadReceiver,
+    LocalAppAssetReadRequest, LocalAppAssetRecord, LocalAppAssetRemoveRequest,
+    LocalAppAssetRemoveResult, LocalAppAssetRevealRequest, LocalAppAssetRevealTarget,
+    LocalAppAssetStatRequest, LocalAppAssetWriteRequest, LocalAppEmbodimentSnapshotRequest,
+    LocalAppEmbodimentSubscribeRequest, LocalAppOperationError,
     LocalAppPersonaCharacterCreateRequest, LocalAppPersonaCharacterDeleteRequest,
     LocalAppPersonaCharacterGetOwnedRequest, LocalAppPersonaCharacterListOwnedRequest,
     LocalAppPersonaCharacterReplaceRequest, LocalAppRealtimeSubscriptionReceiver,
@@ -24,8 +24,13 @@ use nimi_shell_protected_local::{
     LocalAppSharedAgentAIConfigLocalOptionsRequest, LocalAppSharedAgentAIConfigOverwriteRequest,
     LocalAppStorageDocument, LocalAppStorageReadRequest, LocalAppStorageRemoveRequest,
     LocalAppStorageRemoveResult, LocalAppStorageWriteRequest, LocalAppTextCandidateRequest,
-    LocalAppTextCandidateResult, LocalAppWorldCoreCreateRequest, LocalAppWorldCoreListRequest,
-    NimiLocalAppCarrier, NimiLocalAppSession,
+    LocalAppTextCandidateResult, LocalAppWorldCharacterCreateRequest,
+    LocalAppWorldCharacterGetRequest, LocalAppWorldCharacterListRequest,
+    LocalAppWorldCharacterReplaceRequest, LocalAppWorldCoreCreateRequest,
+    LocalAppWorldCoreGetRequest, LocalAppWorldCoreListRequest, LocalAppWorldCoreReplaceRequest,
+    LocalAppWorldEntityCreateRequest, LocalAppWorldEntityGetRequest,
+    LocalAppWorldEntityListRequest, LocalAppWorldRelationshipGetRequest,
+    LocalAppWorldRelationshipListRequest, NimiLocalAppCarrier, NimiLocalAppSession,
 };
 use std::{
     collections::HashMap,
@@ -221,6 +226,173 @@ impl RuntimeBridgeLocalAppHost {
     ) -> Result<serde_json::Value, LocalAppOperationError> {
         let session = self.current_or_open_session().await?;
         match session.realm_world_core_create(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn world_creation_eligibility_get(
+        &self,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.realm_world_creation_eligibility_get().await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn world_core_get(
+        &self,
+        request: LocalAppWorldCoreGetRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.realm_world_core_get(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn world_core_replace(
+        &self,
+        request: LocalAppWorldCoreReplaceRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.realm_world_core_replace(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn world_character_list(
+        &self,
+        request: LocalAppWorldCharacterListRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.realm_world_character_list(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn world_character_get(
+        &self,
+        request: LocalAppWorldCharacterGetRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.realm_world_character_get(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn world_character_create(
+        &self,
+        request: LocalAppWorldCharacterCreateRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.realm_world_character_create(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn world_character_replace(
+        &self,
+        request: LocalAppWorldCharacterReplaceRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.realm_world_character_replace(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn world_entity_list(
+        &self,
+        request: LocalAppWorldEntityListRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.realm_world_entity_list(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn world_entity_get(
+        &self,
+        request: LocalAppWorldEntityGetRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.realm_world_entity_get(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn world_entity_create(
+        &self,
+        request: LocalAppWorldEntityCreateRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.realm_world_entity_create(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn world_relationship_list(
+        &self,
+        request: LocalAppWorldRelationshipListRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.realm_world_relationship_list(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn world_relationship_get(
+        &self,
+        request: LocalAppWorldRelationshipGetRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.realm_world_relationship_get(request).await {
             Ok(value) => Ok(value),
             Err(error) => {
                 self.clear_on_transport_failure(&session, &error).await;

@@ -35,36 +35,6 @@ type worldCoreDTOValidation struct {
 	nodes int
 }
 
-func projectLocalAppWorldCoreListResponse(response *runtimev1.InvokeRealmUnaryResponse) *runtimev1.InvokeRealmUnaryResponse {
-	decoded, ok := decodeLocalAppWorldCoreResponse(response)
-	if !ok {
-		return localAppWorldCoreContractFailure(response)
-	}
-	items, ok := decoded.([]any)
-	if !ok || len(items) > localAppWorldCoreMaxItems {
-		return localAppWorldCoreContractFailure(response)
-	}
-	validation := &worldCoreDTOValidation{}
-	for _, item := range items {
-		if !validation.worldCore(item, 0) {
-			return localAppWorldCoreContractFailure(response)
-		}
-	}
-	return projectCanonicalLocalAppWorldCoreResponse(response, items)
-}
-
-func projectLocalAppWorldCoreCreateResponse(response *runtimev1.InvokeRealmUnaryResponse) *runtimev1.InvokeRealmUnaryResponse {
-	decoded, ok := decodeLocalAppWorldCoreResponse(response)
-	if !ok {
-		return localAppWorldCoreContractFailure(response)
-	}
-	validation := &worldCoreDTOValidation{}
-	if !validation.worldCore(decoded, 0) {
-		return localAppWorldCoreContractFailure(response)
-	}
-	return projectCanonicalLocalAppWorldCoreResponse(response, decoded)
-}
-
 func decodeLocalAppWorldCoreResponse(response *runtimev1.InvokeRealmUnaryResponse) (any, bool) {
 	if response == nil || !response.GetAccepted() || response.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED ||
 		response.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED ||

@@ -229,8 +229,7 @@ fn write_oauth_callback_page(stream: &mut std::net::TcpStream, success: bool) {
 
 const DESKTOP_OAUTH_RESULT_PAGE_TEMPLATE: &str =
     include_str!("native-oauth-result-page.template.html");
-const DESKTOP_OAUTH_RESULT_LOGO_PNG: &[u8] =
-    include_bytes!("native-oauth-result-logo.png");
+const DESKTOP_OAUTH_RESULT_LOGO_PNG: &[u8] = include_bytes!("native-oauth-result-logo.png");
 
 fn oauth_result_logo_data_uri() -> String {
     format!(

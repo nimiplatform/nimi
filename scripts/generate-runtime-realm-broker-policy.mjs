@@ -41,8 +41,25 @@ const bundledAvatarRealmOperationID = 'WorldCoreController_listPersonaCharacters
 const localAppWorldCoreAuthorizationProfile = 'protected_local_app_world_core';
 const localAppPersonaCharacterOwnerAuthorizationProfile = 'protected_local_app_persona_character_owner';
 const localAppWorldCoreOperationIDs = new Set([
+  'WorldCoreController_getWorldCreationEligibility',
   'WorldCoreController_listWorldCores',
   'WorldCoreController_createWorldCore',
+  'WorldCoreController_getWorldCore',
+  'WorldCoreController_replaceWorldCore',
+  'WorldCoreController_listWorldCharacters',
+  'WorldCoreController_getWorldCharacter',
+  'WorldCoreController_createWorldCharacter',
+  'WorldCoreController_replaceWorldCharacter',
+  'WorldCoreController_listWorldEntities',
+  'WorldCoreController_getWorldEntity',
+  'WorldCoreController_createWorldEntity',
+  'WorldCoreController_listWorldRelationships',
+  'WorldCoreController_getWorldRelationship',
+]);
+const desktopWorldCoreOperationIDs = new Set([
+  'WorldCoreController_getWorldCharacter',
+  'WorldCoreController_getWorldEntity',
+  'WorldCoreController_listWorldRelationships',
 ]);
 const localAppPersonaCharacterOwnerOperationIDs = new Set([
   'WorldCoreController_listPersonaCharacters',
@@ -149,7 +166,7 @@ function renderPolicy(operations) {
       : bundledAvatarOperation
       ? [desktopCallerMode, bundledAvatarCallerMode]
       : localAppWorldCoreOperation
-        ? [localAppCallerMode]
+        ? (desktopWorldCoreOperationIDs.has(operation.operation_id) ? [desktopCallerMode, localAppCallerMode] : [localAppCallerMode])
         : [desktopCallerMode];
     if (!Array.isArray(callerModes) || callerModes.length !== expectedCallerModes.length
       || expectedCallerModes.some((mode, index) => callerModes[index] !== mode)) {
@@ -183,6 +200,7 @@ function renderSDKPolicy(operations) {
   const sourceReadinessRows = operations
     .filter((operation) => operation.authorization_profile === desktopSourceReadinessAuthorizationProfile
       || operation.authorization_profile === bundledAvatarSourceReadinessAuthorizationProfile
+      || (operation.authorization_profile === localAppWorldCoreAuthorizationProfile && operation.allowed_runtime_caller_modes.includes(desktopCallerMode))
       || (operation.authorization_profile === localAppPersonaCharacterOwnerAuthorizationProfile
         && operation.allowed_runtime_caller_modes.includes(desktopCallerMode)))
     .map((operation) => `  ${quoted(operation.operation_id)},`).join('\n');

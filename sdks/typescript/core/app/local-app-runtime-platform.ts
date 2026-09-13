@@ -1,3 +1,4 @@
+import { assertSafeWorldCreatorProjection, createNimiLocalAppWorldCreatorClient, type NimiLocalAppWorldCreatorShell, type NimiLocalAppWorldCreatorClient } from './local-app-runtime-platform-world-creator.js';
 import type { JsonValue } from '../../types';
 import type { NimiLocalAppTextTurnInput } from './local-app-text.js';
 export type { NimiLocalAppTextTurnInput, NimiLocalAppTextMessage, NimiLocalAppTextTurnItem, NimiLocalAppTextOutputItem, NimiLocalAppFunctionTool, NimiLocalAppToolCall } from './local-app-text.js';
@@ -451,7 +452,7 @@ export type NimiLocalAppStandardShell = {
     readonly worldCore: {
       readonly list: (input?: NimiLocalAppWorldCoreListInput) => Promise<unknown>;
       readonly create: (input: unknown) => Promise<unknown>;
-    };
+    } & NimiLocalAppWorldCreatorShell;
     readonly personaCharacter: NimiLocalAppPersonaCharacterShell;
     readonly realtime: NimiRealmRealtimeShell;
   };
@@ -506,7 +507,7 @@ export type NimiLocalAppClient = {
       readonly create: (
         input: RealmModel<'CreateWorldCoreDto'>,
       ) => Promise<RealmModel<'WorldCoreDto'>>;
-    };
+    } & NimiLocalAppWorldCreatorClient;
     readonly personaCharacter: NimiLocalAppPersonaCharacterClient;
     readonly realtime: NimiRealmRealtimeClient;
   };
@@ -579,7 +580,7 @@ export function createNimiLocalAppClient(
       'use_host_injected_standard_shell',
     );
   }
-  assertExactMethodNamespace(realm.worldCore, ['list', 'create'], 'realm.worldCore');
+  assertExactMethodNamespace(realm.worldCore, ['list', 'create', 'getCreationEligibility', 'get', 'replace', 'listCharacters', 'getCharacter', 'createCharacter', 'replaceCharacter', 'listEntities', 'getEntity', 'createEntity', 'listRelationships', 'getRelationship'], 'realm.worldCore');
   assertExactMethodNamespace(realm.chat, ['list'], 'realm.chat');
   assertExactMethodNamespace(realm.personaCharacter, ['listOwned', 'getOwned', 'create', 'replace', 'delete'], 'realm.personaCharacter');
   assertExactMethodNamespace(realm.realtime, ['open', 'subscribe', 'ack', 'closeSubscription', 'closeChannel'], 'realm.realtime');
@@ -784,6 +785,7 @@ function createWorldCoreClient(
   shell: NimiLocalAppStandardShell['realm']['worldCore'],
 ): NimiLocalAppClient['realm']['worldCore'] {
   return Object.freeze({
+    ...createNimiLocalAppWorldCreatorClient(shell),
     list: async (
       input: NimiLocalAppWorldCoreListInput = {},
     ): Promise<readonly RealmModel<'WorldCoreDto'>[]> => {
@@ -885,7 +887,7 @@ function projectWorldCore(value: unknown): RealmModel<'WorldCoreDto'> {
     ['identity', 'presentation', 'ontology', 'timeModel', 'timeline', 'entities', 'relationships', 'systems', 'scenes', 'assets', 'authoring'],
     'WorldCore core',
   );
-  assertSafeProjection(record);
+  assertSafeWorldCreatorProjection(record);
   return Object.freeze({ ...record }) as unknown as RealmModel<'WorldCoreDto'>;
 }
 

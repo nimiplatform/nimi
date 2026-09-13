@@ -56,8 +56,13 @@ use nimi_shell_protected_local::{
     LocalAppSharedAgentAIConfigLocalOptionsRequest, LocalAppSharedAgentAIConfigOverwriteRequest,
     LocalAppStorageReadRequest, LocalAppStorageRemoveRequest, LocalAppStorageWriteRequest,
     LocalAppTextCandidateMessage, LocalAppTextCandidateRequest, LocalAppTextMessage, LocalAppTextTurnRequest,
-    LocalAppWorldCoreCreateRequest, LocalAppWorldCoreListRequest, LocalDevelopmentEndRunRequest,
-    LocalDevelopmentLaunchRequest, LocalDevelopmentRegistration,
+    LocalAppWorldCharacterCreateRequest, LocalAppWorldCharacterGetRequest,
+    LocalAppWorldCharacterListRequest, LocalAppWorldCharacterReplaceRequest,
+    LocalAppWorldCoreCreateRequest, LocalAppWorldCoreGetRequest, LocalAppWorldCoreListRequest,
+    LocalAppWorldCoreReplaceRequest, LocalAppWorldEntityCreateRequest,
+    LocalAppWorldEntityGetRequest, LocalAppWorldEntityListRequest,
+    LocalAppWorldRelationshipGetRequest, LocalAppWorldRelationshipListRequest,
+    LocalDevelopmentEndRunRequest, LocalDevelopmentLaunchRequest, LocalDevelopmentRegistration,
     LocalDevelopmentRegistrationRequest, LocalDevelopmentShellKind, NimiDesktopControl,
     NimiHostError, NimiLocalAppCarrier, NimiLocalAppSession, NimiProtectedLocalHostCarrier,
     ProtectedCarrierError,
@@ -757,8 +762,12 @@ pub async fn fixed_runtime_service_status() -> NativeJsonOutcome {
 pub async fn macos_runtime_service_registration(operation: String) -> NativeJsonOutcome {
     match tokio::task::spawn_blocking(move || {
         nimi_shell_protected_local::macos_runtime_service_registration(&operation)
-    }).await {
-        Ok(Ok(status)) => NativeJsonOutcome::success(serde_json::json!({ "registrationStatus": status })),
+    })
+    .await
+    {
+        Ok(Ok(status)) => {
+            NativeJsonOutcome::success(serde_json::json!({ "registrationStatus": status }))
+        }
         Ok(Err(error)) => NativeJsonOutcome::protected_error(error),
         Err(_) => NativeJsonOutcome::host_reason("runtime-service-unavailable", true),
     }

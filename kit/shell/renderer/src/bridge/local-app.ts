@@ -300,6 +300,27 @@ export type NimiLocalAppAssetMediaHandle = {
   readonly revoke: () => Promise<void>;
 };
 
+export type NimiLocalAppWorldCharacterListInput = {
+  readonly visibility?: 'private' | 'unlisted' | 'public' | 'system';
+  readonly afterId?: string;
+  readonly take?: number;
+};
+
+export type NimiLocalAppWorldEntityListInput = {
+  readonly kind?: string;
+  readonly afterId?: string;
+  readonly take?: number;
+};
+
+export type NimiLocalAppWorldRelationshipListInput = {
+  readonly entityId?: string;
+  readonly sourceEntityId?: string;
+  readonly targetEntityId?: string;
+  readonly type?: string;
+  readonly afterId?: string;
+  readonly take?: number;
+};
+
 export type NimiLocalAppWorldCoreListInput = {
   readonly take?: number;
   readonly visibility?: 'private' | 'unlisted' | 'public' | 'system';
@@ -448,8 +469,20 @@ export type NimiLocalAppStandardShellSurface = {
       readonly list: (input?: { readonly cursor?: string; readonly limit?: number }) => Promise<JsonObject>;
     };
     readonly worldCore: {
+      readonly getCreationEligibility: () => Promise<JsonObject>;
       readonly list: (input?: NimiLocalAppWorldCoreListInput) => Promise<readonly JsonObject[]>;
       readonly create: (input: unknown) => Promise<JsonObject>;
+      readonly get: (worldId: string) => Promise<JsonObject>;
+      readonly replace: (worldId: string, input: unknown) => Promise<JsonObject>;
+      readonly listCharacters: (worldId: string, input?: NimiLocalAppWorldCharacterListInput) => Promise<readonly JsonObject[]>;
+      readonly getCharacter: (characterId: string) => Promise<JsonObject>;
+      readonly createCharacter: (worldId: string, input: unknown) => Promise<JsonObject>;
+      readonly replaceCharacter: (characterId: string, input: unknown) => Promise<JsonObject>;
+      readonly listEntities: (worldId: string, input?: NimiLocalAppWorldEntityListInput) => Promise<readonly JsonObject[]>;
+      readonly getEntity: (entityId: string) => Promise<JsonObject>;
+      readonly createEntity: (worldId: string, input: unknown) => Promise<JsonObject>;
+      readonly listRelationships: (worldId: string, input?: NimiLocalAppWorldRelationshipListInput) => Promise<readonly JsonObject[]>;
+      readonly getRelationship: (relationshipId: string) => Promise<JsonObject>;
     };
     readonly personaCharacter: {
       readonly listOwned: (input?: NimiLocalAppPersonaCharacterListOwnedInput) => Promise<readonly JsonObject[]>;
@@ -568,8 +601,20 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
         list: listNimiLocalAppRealmChats,
       },
       worldCore: {
+        getCreationEligibility: getNimiLocalAppWorldCreationEligibility,
         list: listNimiLocalAppWorldCores,
         create: createNimiLocalAppWorldCore,
+        get: getNimiLocalAppWorldCore,
+        replace: replaceNimiLocalAppWorldCore,
+        listCharacters: listNimiLocalAppWorldCharacters,
+        getCharacter: getNimiLocalAppWorldCharacter,
+        createCharacter: createNimiLocalAppWorldCharacter,
+        replaceCharacter: replaceNimiLocalAppWorldCharacter,
+        listEntities: listNimiLocalAppWorldEntities,
+        getEntity: getNimiLocalAppWorldEntity,
+        createEntity: createNimiLocalAppWorldEntity,
+        listRelationships: listNimiLocalAppWorldRelationships,
+        getRelationship: getNimiLocalAppWorldRelationship,
       },
       personaCharacter: {
         listOwned: listNimiLocalAppOwnedPersonaCharacters,
@@ -893,7 +938,7 @@ export function listNimiLocalAppWorldCores(
   if (input.visibility !== undefined) payload.visibility = worldVisibility(input.visibility, command);
   return invokeChecked(command, { payload }, (value) => {
     if (!Array.isArray(value)) throw new Error(`${command}: result must be an array`);
-    return Object.freeze(value.map((entry) => Object.freeze(parseSafeProjection(entry, command))));
+    return Object.freeze(value.map((entry) => parseWorldCreatorProjection(entry, command)));
   });
 }
 
@@ -935,7 +980,7 @@ export function createNimiLocalAppWorldCore(input: unknown): Promise<JsonObject>
   return invokeChecked(
     command,
     { payload: record },
-    (value) => Object.freeze(parseSafeProjection(value, command)),
+    (value) => parseWorldCreatorProjection(value, command),
   );
 }
 
@@ -3840,5 +3885,163 @@ function invalidInput(command: string, reason: string): BridgeError {
     reasonCode: 'renderer-local-app-payload-invalid',
     actionHint: 'send_only_declared_local_app_operation_fields',
     source: 'renderer',
+  });
+}
+
+// @nimi-authority: rule.nimi.platform.core-protocol.world-creator-app-operations
+export function getNimiLocalAppWorldCore(worldId: string): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCoreGet'];
+  const payload: JsonObject = { worldId: requiredText(worldId, 'worldId', command, MAX_IDENTIFIER_LENGTH) };
+  return invokeChecked(command, { payload }, value => {
+    return parseWorldCreatorProjection(value, command);
+  });
+}
+
+export function replaceNimiLocalAppWorldCore(worldId: string, input: unknown): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCoreReplace'];
+  const payload: JsonObject = { worldId: requiredText(worldId, 'worldId', command, MAX_IDENTIFIER_LENGTH) };
+  const body = assertRecord(input, 'World creator body must be an object');
+  validateWorldCreatorBody(body, 'world-core', true, command);
+  payload.body = body;
+  return invokeChecked(command, { payload }, value => {
+    return parseWorldCreatorProjection(value, command);
+  });
+}
+
+export function listNimiLocalAppWorldCharacters(worldId: string, input: NimiLocalAppWorldCharacterListInput = {}): Promise<readonly JsonObject[]> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCharacterList'];
+  const payload: JsonObject = { worldId: requiredText(worldId, 'worldId', command, MAX_IDENTIFIER_LENGTH) };
+  assertAllowedInputKeys(input, ['visibility', 'afterId', 'take'], [], command);
+  if (input.visibility !== undefined) payload.visibility = worldVisibility(input.visibility, command);
+  if (input.afterId !== undefined) payload.afterId = requiredText(input.afterId, 'afterId', command, MAX_IDENTIFIER_LENGTH);
+  if (input.take !== undefined) payload.take = boundedSafeInteger(input.take, 'take', command, 1, 500);
+  return invokeChecked(command, { payload }, value => {
+    if (!Array.isArray(value) || value.length > 500) throw new Error(command + ': result must be a bounded array');
+    return Object.freeze(value.map(entry => parseWorldCreatorProjection(entry, command)));
+  });
+}
+
+export function getNimiLocalAppWorldCharacter(characterId: string): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCharacterGet'];
+  const payload: JsonObject = { characterId: requiredText(characterId, 'characterId', command, MAX_IDENTIFIER_LENGTH) };
+  return invokeChecked(command, { payload }, value => {
+    return parseWorldCreatorProjection(value, command);
+  });
+}
+
+export function createNimiLocalAppWorldCharacter(worldId: string, input: unknown): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCharacterCreate'];
+  const payload: JsonObject = { worldId: requiredText(worldId, 'worldId', command, MAX_IDENTIFIER_LENGTH) };
+  const body = assertRecord(input, 'World creator body must be an object');
+  validateWorldCreatorBody(body, 'world-character', false, command);
+  payload.body = body;
+  return invokeChecked(command, { payload }, value => {
+    return parseWorldCreatorProjection(value, command);
+  });
+}
+
+export function replaceNimiLocalAppWorldCharacter(characterId: string, input: unknown): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCharacterReplace'];
+  const payload: JsonObject = { characterId: requiredText(characterId, 'characterId', command, MAX_IDENTIFIER_LENGTH) };
+  const body = assertRecord(input, 'World creator body must be an object');
+  validateWorldCreatorBody(body, 'world-character', true, command);
+  payload.body = body;
+  return invokeChecked(command, { payload }, value => {
+    return parseWorldCreatorProjection(value, command);
+  });
+}
+
+export function listNimiLocalAppWorldEntities(worldId: string, input: NimiLocalAppWorldEntityListInput = {}): Promise<readonly JsonObject[]> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldEntityList'];
+  const payload: JsonObject = { worldId: requiredText(worldId, 'worldId', command, MAX_IDENTIFIER_LENGTH) };
+  assertAllowedInputKeys(input, ['kind', 'afterId', 'take'], [], command);
+  if (input.kind !== undefined) payload.kind = requiredText(input.kind, 'kind', command, MAX_IDENTIFIER_LENGTH);
+  if (input.afterId !== undefined) payload.afterId = requiredText(input.afterId, 'afterId', command, MAX_IDENTIFIER_LENGTH);
+  if (input.take !== undefined) payload.take = boundedSafeInteger(input.take, 'take', command, 1, 500);
+  return invokeChecked(command, { payload }, value => {
+    if (!Array.isArray(value) || value.length > 500) throw new Error(command + ': result must be a bounded array');
+    return Object.freeze(value.map(entry => parseWorldCreatorProjection(entry, command)));
+  });
+}
+
+export function getNimiLocalAppWorldEntity(entityId: string): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldEntityGet'];
+  const payload: JsonObject = { entityId: requiredText(entityId, 'entityId', command, MAX_IDENTIFIER_LENGTH) };
+  return invokeChecked(command, { payload }, value => {
+    return parseWorldCreatorProjection(value, command);
+  });
+}
+
+export function createNimiLocalAppWorldEntity(worldId: string, input: unknown): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldEntityCreate'];
+  const payload: JsonObject = { worldId: requiredText(worldId, 'worldId', command, MAX_IDENTIFIER_LENGTH) };
+  const body = assertRecord(input, 'World creator body must be an object');
+  validateWorldCreatorBody(body, 'world-entity', false, command);
+  payload.body = body;
+  return invokeChecked(command, { payload }, value => {
+    return parseWorldCreatorProjection(value, command);
+  });
+}
+
+export function listNimiLocalAppWorldRelationships(worldId: string, input: NimiLocalAppWorldRelationshipListInput = {}): Promise<readonly JsonObject[]> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldRelationshipList'];
+  const payload: JsonObject = { worldId: requiredText(worldId, 'worldId', command, MAX_IDENTIFIER_LENGTH) };
+  assertAllowedInputKeys(input, ['entityId', 'sourceEntityId', 'targetEntityId', 'type', 'afterId', 'take'], [], command);
+  if (input.entityId !== undefined) payload.entityId = requiredText(input.entityId, 'entityId', command, MAX_IDENTIFIER_LENGTH);
+  if (input.sourceEntityId !== undefined) payload.sourceEntityId = requiredText(input.sourceEntityId, 'sourceEntityId', command, MAX_IDENTIFIER_LENGTH);
+  if (input.targetEntityId !== undefined) payload.targetEntityId = requiredText(input.targetEntityId, 'targetEntityId', command, MAX_IDENTIFIER_LENGTH);
+  if (input.type !== undefined) payload.type = requiredText(input.type, 'type', command, MAX_IDENTIFIER_LENGTH);
+  if (input.afterId !== undefined) payload.afterId = requiredText(input.afterId, 'afterId', command, MAX_IDENTIFIER_LENGTH);
+  if (input.take !== undefined) payload.take = boundedSafeInteger(input.take, 'take', command, 1, 500);
+  return invokeChecked(command, { payload }, value => {
+    if (!Array.isArray(value) || value.length > 500) throw new Error(command + ': result must be a bounded array');
+    return Object.freeze(value.map(entry => parseWorldCreatorProjection(entry, command)));
+  });
+}
+
+export function getNimiLocalAppWorldRelationship(relationshipId: string): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldRelationshipGet'];
+  const payload: JsonObject = { relationshipId: requiredText(relationshipId, 'relationshipId', command, MAX_IDENTIFIER_LENGTH) };
+  return invokeChecked(command, { payload }, value => {
+    return parseWorldCreatorProjection(value, command);
+  });
+}
+
+function parseWorldCreatorProjection(value: unknown, command: string): JsonObject {
+  const record = assertRecord(value, command + ': expected a Realm source record');
+  validateStorageJsonValue(record, command);
+  const { core, profile, ...frame } = record;
+  const frameKeys = ['id', 'schemaVersion', 'contentRevision', 'contentHash', 'origin', 'createdAt', 'updatedAt',
+    'creatorId', 'worldId', 'visibility', 'lorebookDeclaration', 'worldEntityRef', 'validity', 'materializationReadiness', 'sourceHash',
+    'kind', 'sourceEntityId', 'targetEntityId', 'type'];
+  if (Object.keys(frame).some(key => !frameKeys.includes(key))) throw new Error(command + ': invalid Realm source frame');
+  validateProjectionValue(frame, command);
+  const source = profile ?? core;
+  if (source !== undefined) {
+    const assets = assertRecord(source, command + ': source must be an object').assets;
+    if (assets !== undefined) {
+      const refs = assertRecord(assets, command + ': assets must be an object').externalRefs;
+      if (refs !== undefined) validateProjectionValue(refs, command);
+    }
+  }
+  return Object.freeze(record);
+}
+
+function validateWorldCreatorBody(body: JsonObject, family: string, replace: boolean, command: string): void {
+  const required = family === 'world-core' ? ['core', 'origin', 'lorebookDeclaration'] : family === 'world-character' ? ['profile', 'origin', 'lorebookDeclaration', 'worldEntityRef'] : ['core', 'origin', 'kind'];
+  const allowed = [...required, 'id', ...(family === 'world-entity' ? [] : ['visibility']), ...(replace ? ['baseContentHash'] : [])];
+  assertAllowedInputKeys(body, allowed, [...required, ...(replace ? ['baseContentHash'] : [])], command);
+  if (replace) requiredText(body.baseContentHash, 'baseContentHash', command, MAX_IDENTIFIER_LENGTH);
+  validateStorageJsonValue(body, command);
+  if (new TextEncoder().encode(JSON.stringify(body)).byteLength > MAX_WORLD_CORE_REQUEST_BYTES) throw invalidInput(command, 'request is too large');
+}
+
+export function getNimiLocalAppWorldCreationEligibility(): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.realmWorldCreationEligibilityGet'];
+  return invokeChecked(command, {}, value => {
+    const record = assertRecord(value, command + ': eligibility must be an object');
+    assertProjectionKeys(record, ['canCreateWorld'], command, 'world creation eligibility');
+    if (typeof record.canCreateWorld !== 'boolean') throw new Error(command + ': canCreateWorld must be boolean');
+    return Object.freeze({canCreateWorld: record.canCreateWorld});
   });
 }
