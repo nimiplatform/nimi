@@ -365,7 +365,9 @@ func buildRealmSourceMaterializationPacketRequest(request RealmSourceMaterializa
 		SourceRef: sourceRef, MaterializerAccountId: accountID,
 		ChallengeId: request.Challenge.ChallengeID, ChallengeDigest: request.Challenge.ChallengeDigest,
 		IntendedRuntimeAudience: request.Challenge.IntendedRuntimeAudience,
-		ChallengeExpiresAt:      request.Challenge.ExpiresAt.UTC().Format(time.RFC3339Nano),
+		// Realm's canonical instant requires exactly three fractional digits,
+		// including trailing zeroes that RFC3339Nano would omit.
+		ChallengeExpiresAt: request.Challenge.ExpiresAt.UTC().Format("2006-01-02T15:04:05.000Z"),
 		PublishedLimits: &realmv1.SourceMaterializationPublishedLimitsDto{
 			MaxSegmentBytes: float64(limits.MaxSegmentBytes), MaxSegmentComponentCount: float64(limits.MaxSegmentComponentCount),
 			MaxChunkBytes: float64(limits.MaxChunkBytes), MaxSegmentChunks: float64(limits.MaxSegmentChunks),

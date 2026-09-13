@@ -15,6 +15,26 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
+func TestRealmSourceMaterializationPacketUsesCanonicalMillisecondExpiry(t *testing.T) {
+	for _, canonical := range []string{"2026-09-12T06:15:00.000Z", "2026-09-12T06:15:00.700Z", "2026-09-12T06:15:00.710Z", "2026-09-12T06:15:00.713Z"} {
+		t.Run(canonical, func(t *testing.T) {
+			expiry, err := time.Parse(time.RFC3339Nano, canonical)
+			if err != nil {
+				t.Fatal(err)
+			}
+			request := realmSourceMaterializationRequestFixture(expiry.Add(-time.Minute))
+			request.Challenge.ExpiresAt = expiry.In(time.FixedZone("offset", 8*60*60))
+			body, err := buildRealmSourceMaterializationPacketRequest(request, "acct-1")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if body.ChallengeExpiresAt != canonical {
+				t.Fatalf("expiry = %q, want %q", body.ChallengeExpiresAt, canonical)
+			}
+		})
+	}
+}
+
 func TestAcquireRealmSourceMaterializationCallsOnlyTheFirstPartyPacketOperation(t *testing.T) {
 	now := time.Now().UTC().Truncate(time.Second)
 	var paths []string

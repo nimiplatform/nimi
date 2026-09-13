@@ -250,6 +250,9 @@ func TestSourceProjectorOmitsOverBoundSemanticTextWithoutTruncation(t *testing.T
 	if len(atBoundPartition.CognitionUnits) != 1 || atBoundPartition.CognitionUnits[0].Text != atBound || len(atBoundPartition.Omissions) != 0 {
 		t.Fatalf("at-bound semantic item changed: %#v", atBoundPartition)
 	}
+	if err := validateLocalAgentCognitionProvenanceRefsV1(atBoundPartition.CognitionUnits[0].ProvenanceRefs); err != nil {
+		t.Fatalf("projector lost the explicit empty provenance array: %v", err)
+	}
 	if err := validateLocalAgentCognitionProvenanceRefsV1(nil); err == nil {
 		t.Fatal("nil provenance refs were accepted")
 	}

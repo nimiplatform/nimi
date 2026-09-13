@@ -305,7 +305,7 @@ func appendLocalAgentCognitionUnitV1(partition *localAgentSourcePartitionV1, see
 	if unit.ProvenanceRefs == nil {
 		unit.ProvenanceRefs = []string{}
 	} else {
-		unit.ProvenanceRefs = append([]string(nil), unit.ProvenanceRefs...)
+		unit.ProvenanceRefs = append([]string{}, unit.ProvenanceRefs...)
 	}
 	if err := validateLocalAgentCognitionTextV1(unit.Text); err != nil {
 		if strings.TrimSpace(unit.Text) != "" && strings.TrimSpace(unit.Text) == unit.Text && utf8.ValidString(unit.Text) && len([]byte(unit.Text)) > localAgentCognitionTextMaxBytes {
