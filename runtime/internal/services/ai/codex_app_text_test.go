@@ -42,7 +42,7 @@ func writeCodexAppResponse(t *testing.T, w http.ResponseWriter, output []map[str
 		if err != nil {
 			t.Fatal(err)
 		}
-		fmt.Fprintf(w, "data: %s\n\n", bytes)
+		_, _ = fmt.Fprintf(w, "data: %s\n\n", bytes)
 	}
 	write(map[string]any{"type": "response.created", "response": map[string]any{"status": "in_progress"}})
 	for index, item := range output {

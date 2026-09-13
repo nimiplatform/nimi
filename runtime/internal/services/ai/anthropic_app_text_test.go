@@ -55,7 +55,7 @@ func TestAnthropicAppTextRoundTripUsesProductionHooksAndOrderedResults(t *testin
 		}
 		w.Header().Set("Content-Type", "application/json")
 		if calls.Load() == 1 {
-			fmt.Fprint(w, `{"content":[{"type":"text","text":"Checking "},{"type":"tool_use","id":"call-1","name":"lookup","input":{"query":"one"}},{"type":"text","text":" then "},{"type":"tool_use","id":"call-2","name":"lookup","input":{"query":"two"}}],"stop_reason":"tool_use","usage":{"input_tokens":4,"output_tokens":8}}`)
+			_, _ = fmt.Fprint(w, `{"content":[{"type":"text","text":"Checking "},{"type":"tool_use","id":"call-1","name":"lookup","input":{"query":"one"}},{"type":"text","text":" then "},{"type":"tool_use","id":"call-2","name":"lookup","input":{"query":"two"}}],"stop_reason":"tool_use","usage":{"input_tokens":4,"output_tokens":8}}`)
 			return
 		}
 		messages := body["messages"].([]any)
@@ -64,7 +64,7 @@ func TestAnthropicAppTextRoundTripUsesProductionHooksAndOrderedResults(t *testin
 		if last["role"] != "user" || len(results) != 2 || results[0].(map[string]any)["tool_use_id"] != "call-2" || results[1].(map[string]any)["tool_use_id"] != "call-1" {
 			t.Errorf("tool results reordered or mispaired: %v", results)
 		}
-		fmt.Fprint(w, `{"content":[{"type":"text","text":"Both lookups completed."}],"stop_reason":"end_turn","usage":{"input_tokens":8,"output_tokens":5}}`)
+		_, _ = fmt.Fprint(w, `{"content":[{"type":"text","text":"Both lookups completed."}],"stop_reason":"end_turn","usage":{"input_tokens":8,"output_tokens":5}}`)
 	})
 	input := &runtimev1.StreamLocalAppTextTurnRequest{Messages: []*runtimev1.LocalAppTextCandidateMessage{{Role: "user", Text: "Use both lookups"}}, Tools: []*runtimev1.ToolSpec{localAppLookupTool(t)}, ToolChoice: runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_AUTO}
 	execute := func() (*runtimev1.ExecuteLocalAppScenarioResponse, error) {
@@ -119,10 +119,10 @@ func TestAnthropicAppStreamPublishesCompleteToolsAndRejectsMissingTerminal(t *te
 			`{"type":"content_block_stop","index":0}`,
 			`{"type":"message_delta","delta":{"stop_reason":"tool_use"},"usage":{"output_tokens":8}}`,
 		} {
-			fmt.Fprintf(w, "data: %s\n\n", event)
+			_, _ = fmt.Fprintf(w, "data: %s\n\n", event)
 		}
 		if !omitStop.Load() {
-			fmt.Fprint(w, "data: {\"type\":\"message_stop\"}\n\n")
+			_, _ = fmt.Fprint(w, "data: {\"type\":\"message_stop\"}\n\n")
 		}
 	})
 	input := &runtimev1.StreamLocalAppTextTurnRequest{Messages: []*runtimev1.LocalAppTextCandidateMessage{{Role: "user", Text: "Lookup"}}, Tools: []*runtimev1.ToolSpec{localAppLookupTool(t)}, ToolChoice: runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_REQUIRED}
@@ -165,7 +165,7 @@ func TestAnthropicAppStructuredOutputUsesTheNativeSchemaAndRejectsUnsupportedCon
 			t.Errorf("native schema was omitted: %v", body)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, `{"content":[{"type":"text","text":"{\"query\":\"ok\"}"}],"stop_reason":"end_turn","usage":{"input_tokens":2,"output_tokens":3}}`)
+		_, _ = fmt.Fprint(w, `{"content":[{"type":"text","text":"{\"query\":\"ok\"}"}],"stop_reason":"end_turn","usage":{"input_tokens":2,"output_tokens":3}}`)
 	})
 	input := &runtimev1.StreamLocalAppTextTurnRequest{
 		Messages:       []*runtimev1.LocalAppTextCandidateMessage{{Role: "user", Text: "Return structured data"}},
@@ -189,7 +189,7 @@ func TestAnthropicAppCancellationClosesProviderTransportWithoutCompletingTools(t
 	started, closed := make(chan struct{}), make(chan struct{})
 	fixture, decision := anthropicAppFixture(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
-		fmt.Fprint(w, "data: {\"type\":\"message_start\",\"message\":{\"content\":[],\"usage\":{\"input_tokens\":1,\"output_tokens\":1}}}\n\n")
+		_, _ = fmt.Fprint(w, "data: {\"type\":\"message_start\",\"message\":{\"content\":[],\"usage\":{\"input_tokens\":1,\"output_tokens\":1}}}\n\n")
 		w.(http.Flusher).Flush()
 		close(started)
 		<-r.Context().Done()
