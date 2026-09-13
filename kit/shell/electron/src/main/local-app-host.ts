@@ -1979,7 +1979,7 @@ function boundedImageMime(value: unknown): string {
 
 function boundedArtifactUploadMime(value: unknown): string {
   const mime = boundedMime(value);
-  if (!['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'video/mp4'].includes(mime)) throw untrustedRuntimeError();
+  if (!['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'audio/wav', 'audio/mpeg', 'video/mp4'].includes(mime)) throw untrustedRuntimeError();
   return mime;
 }
 

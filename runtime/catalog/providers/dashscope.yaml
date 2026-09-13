@@ -1814,7 +1814,7 @@ models:
   - model_id: wan2.7-t2v
     provider: dashscope
     model_type: video
-    updated_at: 2026-04-18
+    updated_at: 2026-09-12
     capabilities:
       - video.generate
     pricing:
@@ -1825,9 +1825,9 @@ models:
       as_of: 2026-04-18
       notes: Wan 2.7 text-to-video pricing varies by resolution, duration, and account tier.
     source_ref:
-      url: https://help.aliyun.com/zh/model-studio/use-video-generation
-      retrieved_at: 2026-04-18
-      note: Official Wan video generation guide covering t2v and i2v families.
+      url: https://help.aliyun.com/zh/model-studio/text-to-video-api-reference
+      retrieved_at: 2026-09-12
+      note: Wan 2.7 native video parameters and one optional WAV/MP3 reference audio URL; the provider validates remote audio format, 2–30 second duration and at most 15 MB size.
     video_generation:
       modes:
         - t2v
@@ -1836,17 +1836,31 @@ models:
           - prompt
           - reference_audio
       limits:
+        reference_audios:
+          min: 1
+          max: 1
         resolution:
           - 720p
           - 1080p
+        ratio:
+          - 16:9
+          - 9:16
+          - 1:1
+          - 4:3
+          - 3:4
+        seed:
+          min: 0
+          max: 2147483647
         duration_sec:
           min: 2
           max: 15
       options:
         supports:
           - resolution
+          - ratio
           - duration_sec
-          - generate_audio
+          - watermark
+          - seed
         constraints: {}
       outputs:
         video_url: true

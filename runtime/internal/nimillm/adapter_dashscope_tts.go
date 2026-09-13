@@ -66,8 +66,12 @@ func buildAlibabaQwenTTSPayload(
 		"emotion":  strings.TrimSpace(spec.GetEmotion()),
 		"speed":    scenarioSpeechSpeed(spec),
 		"pitch":    spec.GetPitch(),
-		"volume":   spec.GetVolume(),
 		"format":   strings.TrimSpace(spec.GetAudioFormat()),
+	}
+	// An omitted gain is not a request for silence. Preserve explicit zero,
+	// while leaving an absent optional control to the provider's default.
+	if spec.Volume != nil {
+		parameters["volume"] = spec.GetVolume()
 	}
 	if sampleRateHz > 0 {
 		parameters["sample_rate"] = sampleRateHz

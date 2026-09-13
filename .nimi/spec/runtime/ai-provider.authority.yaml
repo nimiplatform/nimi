@@ -773,7 +773,7 @@ units:
     kind: rule
     title: Video mode and role matrix is strict
     modality: must
-    statement: Text-to-video requires at least one TEXT PROMPT part and forbids frame and reference image roles, first-frame mode requires exactly one IMAGE_URL FIRST_FRAME, first-last mode requires exactly one FIRST_FRAME and one LAST_FRAME, reference mode requires at least one REFERENCE_IMAGE, text content always uses the TEXT PROMPT role, optional REFERENCE_VIDEO and REFERENCE_AUDIO follow catalog-declared roles and limits with declared allowed roles never misread as per-request requirements, an audio reference requires at least one visual anchor input, and any mode or role conflict fails closed with AI_MEDIA_SPEC_INVALID or AI_MEDIA_OPTION_UNSUPPORTED.
+    statement: Text-to-video requires at least one TEXT PROMPT part and forbids frame and reference image roles, first-frame mode requires exactly one IMAGE_URL FIRST_FRAME, first-last mode requires exactly one FIRST_FRAME and one LAST_FRAME, reference mode requires at least one REFERENCE_IMAGE, and text content always uses the TEXT PROMPT role. Optional REFERENCE_VIDEO and REFERENCE_AUDIO are admitted only when the selected implementation and model declare those roles for the current mode and the request satisfies their declared limits; declared allowed roles are never per-request requirements. A declared text-to-video implementation may accept text plus reference audio without a visual anchor, while each mode retains its required and forbidden inputs. Any mode, role, or limit conflict fails closed with AI_MEDIA_SPEC_INVALID or AI_MEDIA_OPTION_UNSUPPORTED.
     condition: Whenever a video generation request is validated.
     failure: Fail closed on every mode and role conflict.
     relations:

@@ -14,8 +14,31 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"golang.org/x/net/websocket"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
+
+func TestAlibabaQwenTTSVolumePresence(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		volume  *float32
+		present bool
+		want    float32
+	}{
+		{name: "omitted", present: false},
+		{name: "explicit mute", volume: proto.Float32(0), present: true, want: 0},
+		{name: "unity gain", volume: proto.Float32(1), present: true, want: 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			payload := buildAlibabaQwenTTSPayload("qwen3-tts-flash", &runtimev1.SpeechSynthesizeScenarioSpec{Text: "hello", Volume: tc.volume}, "Cherry", nil)
+			parameters := payload["parameters"].(map[string]any)
+			got, present := parameters["volume"]
+			if present != tc.present || (present && got != tc.want) {
+				t.Fatalf("volume presence/value = %v/%v, want %v/%v", present, got, tc.present, tc.want)
+			}
+		})
+	}
+}
 
 func TestNativeOriginURL(t *testing.T) {
 	tests := []struct {
@@ -898,17 +921,33 @@ func TestExecuteAlibabaNativeVideoUsesAsyncTaskContract(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected parameters payload, got=%T", capturedPayload["parameters"])
 	}
-	if got, ok := parameters["duration_sec"].(float64); !ok || got != 4 {
-		t.Fatalf("unexpected duration_sec: %#v", parameters["duration_sec"])
+	if got, ok := parameters["duration"].(float64); !ok || got != 4 {
+		t.Fatalf("unexpected duration: %#v", parameters["duration"])
 	}
-	if got := strings.TrimSpace(toString(parameters["resolution"])); got != "720p" {
+	if got := strings.TrimSpace(toString(parameters["resolution"])); got != "720P" {
 		t.Fatalf("unexpected resolution: %q", got)
+	}
+	if len(parameters) != 2 || len(capturedPayload) != 3 {
+		t.Fatalf("text-to-video leaked neutral or omitted options into provider payload: %#v", capturedPayload)
 	}
 	if len(artifacts) != 1 {
 		t.Fatalf("expected one video artifact, got=%d", len(artifacts))
 	}
 	if len(artifacts[0].GetBytes()) != 0 || artifacts[0].GetUri() != server.URL+"/artifact.mp4" {
 		t.Fatalf("unexpected private video source: %+v", artifacts[0])
+	}
+}
+
+func TestAlibabaTextVideoRejectsMultipleAudioReferences(t *testing.T) {
+	spec := &runtimev1.VideoGenerateScenarioSpec{Mode: runtimev1.VideoMode_VIDEO_MODE_T2V}
+	for _, source := range []string{"https://media.example.test/first.mp3", "https://media.example.test/second.wav"} {
+		spec.Content = append(spec.Content, &runtimev1.VideoContentItem{
+			Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_AUDIO_URL, Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_AUDIO,
+			AudioUrl: &runtimev1.VideoContentAudioURL{Url: source},
+		})
+	}
+	if payload, err := buildAlibabaTextVideoPayload("wan2.7-t2v", spec); err == nil || payload != nil {
+		t.Fatalf("multiple audio references were truncated into a request: payload=%v error=%v", payload, err)
 	}
 }
 

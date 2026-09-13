@@ -74,6 +74,7 @@ func (s *Service) validateImageGenerateAgainstCatalog(
 	return nil
 }
 
+// @nimi-authority: rule.nimi.runtime.ai-provider.r075
 func (s *Service) validateVideoGenerateAgainstCatalog(
 	ctx context.Context,
 	providerType string,
@@ -134,7 +135,7 @@ func (s *Service) validateVideoGenerateAgainstCatalog(
 			return err
 		}
 	}
-	if value := options.GetDurationSec(); value > 0 {
+	if value := options.GetDurationSec(); options.DurationSec != nil {
 		if err := ensureVideoOptionSupported(model.VideoGeneration, "duration_sec"); err != nil {
 			return err
 		}
@@ -142,7 +143,7 @@ func (s *Service) validateVideoGenerateAgainstCatalog(
 			return err
 		}
 	}
-	if value := options.GetFrames(); value > 0 {
+	if value := options.GetFrames(); options.Frames != nil {
 		if err := ensureVideoOptionSupported(model.VideoGeneration, "frames"); err != nil {
 			return err
 		}
@@ -152,7 +153,7 @@ func (s *Service) validateVideoGenerateAgainstCatalog(
 			}
 		}
 	}
-	if value := options.GetFps(); value > 0 {
+	if value := options.GetFps(); options.Fps != nil {
 		if err := ensureVideoOptionSupported(model.VideoGeneration, "fps"); err != nil {
 			return err
 		}
@@ -162,7 +163,7 @@ func (s *Service) validateVideoGenerateAgainstCatalog(
 			}
 		}
 	}
-	if value := options.GetSeed(); value != 0 {
+	if value := options.GetSeed(); options.Seed != nil {
 		if err := ensureVideoOptionSupported(model.VideoGeneration, "seed"); err != nil {
 			return err
 		}
@@ -172,22 +173,22 @@ func (s *Service) validateVideoGenerateAgainstCatalog(
 			}
 		}
 	}
-	if options.GetCameraFixed() {
+	if options.CameraFixed != nil {
 		if err := ensureVideoOptionSupported(model.VideoGeneration, "camera_fixed"); err != nil {
 			return err
 		}
 	}
-	if options.GetWatermark() {
+	if options.Watermark != nil {
 		if err := ensureVideoOptionSupported(model.VideoGeneration, "watermark"); err != nil {
 			return err
 		}
 	}
-	if options.GetGenerateAudio() {
+	if options.GenerateAudio != nil {
 		if err := ensureVideoOptionSupported(model.VideoGeneration, "generate_audio"); err != nil {
 			return err
 		}
 	}
-	if options.GetDraft() {
+	if options.Draft != nil {
 		if err := ensureVideoOptionSupported(model.VideoGeneration, "draft"); err != nil {
 			return err
 		}
@@ -202,11 +203,11 @@ func (s *Service) validateVideoGenerateAgainstCatalog(
 			return err
 		}
 	}
-	if options.GetReturnLastFrame() {
+	if options.ReturnLastFrame != nil {
 		if err := ensureVideoOptionSupported(model.VideoGeneration, "return_last_frame"); err != nil {
 			return err
 		}
-		if !model.VideoGeneration.Outputs.LastFrameURL {
+		if options.GetReturnLastFrame() && !model.VideoGeneration.Outputs.LastFrameURL {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 		}
 	}

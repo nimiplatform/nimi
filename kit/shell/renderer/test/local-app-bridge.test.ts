@@ -475,21 +475,21 @@ describe('renderer local-app standard-shell surface', () => {
     }]);
   });
 
-  it('uploads bounded image bytes through the typed artifact surface', async () => {
+  it.each(['image/png', 'audio/wav', 'audio/mpeg'] as const)('uploads bounded %s bytes through the typed artifact surface', async (mimeType) => {
     const invocations: Array<{ command: string; payload: unknown }> = [];
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
       invoke: async (command: string, payload: unknown) => {
         invocations.push({ command, payload });
-        return { artifactId: 'artifact-upload-1', sizeBytes: 2, mimeType: 'image/png' };
+        return { artifactId: 'artifact-upload-1', sizeBytes: 2, mimeType };
       },
       listen: () => () => {},
     };
     await expect(createNimiLocalAppStandardShellSurface().ai.artifacts.upload({
-      bytes: [1, 2], mimeType: 'image/png',
-    })).resolves.toEqual({ artifactId: 'artifact-upload-1', sizeBytes: 2, mimeType: 'image/png' });
+      bytes: [1, 2], mimeType,
+    })).resolves.toEqual({ artifactId: 'artifact-upload-1', sizeBytes: 2, mimeType });
     expect(invocations).toEqual([{
       command: 'nimi.shell.localApp.artifactUpload',
-      payload: { payload: { bytes: [1, 2], mimeType: 'image/png' } },
+      payload: { payload: { bytes: [1, 2], mimeType } },
     }]);
   });
 

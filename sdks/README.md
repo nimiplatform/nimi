@@ -92,6 +92,29 @@ narrow. Input is limited to 128 messages, 64 function tools and 1 MiB, with a
 256 KiB output bound. Partial structured text is display-only until a successful
 terminal result passes the caller's declared response schema.
 
+## Video reference audio (unreleased)
+
+T2V accepts optional reference audio when the selected implementation and model
+declare `reference_audio` for that mode. A visual reference is not required;
+the mode's other required inputs and model limits still apply. The Local App
+video content uses the existing `audio-url` type, `reference-audio` role and
+HTTPS `url`, through the App's committed AIConfig and protected Scenario Job.
+
+Wan 2.7 T2V accepts one reference audio URL. Runtime enforces that count and the
+Driver maps it to `input.audio_url`. Wan validates the remote file: WAV or MP3,
+2–30 seconds, at most 15 MB. Its media rejection remains a failed Job. A model
+without declared audio support rejects the input before provider dispatch.
+Explicit video controls are validated even when their value is zero or false.
+Wan accepts `durationSec` from 2 through 15 and `seed` from 0 through 2147483647;
+omit an option to use the provider default. Wan does not support the
+`generateAudio` control, including an explicit `false`. Runtime includes a
+non-empty top-level `prompt` as the first text prompt before validating the
+mode, including when `content` only contains reference audio. If the first text
+item already mirrors that prompt, it is used once. Remaining content retains
+its order, including later repeated text; text prompt parts are joined with
+newlines.
+These source changes do not establish published-package or live-provider readiness.
+
 ## Locate objects in a local image
 
 An App with `runtime.consume` can upload an image and run `vision.locate`

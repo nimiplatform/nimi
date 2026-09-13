@@ -245,7 +245,7 @@ export type NimiLocalAppScenarioJobGetResult = {
 export type NimiLocalAppArtifactUploadResult = {
   readonly artifactId: string;
   readonly sizeBytes: number;
-  readonly mimeType: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif' | 'video/mp4';
+  readonly mimeType: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif' | 'audio/wav' | 'audio/mpeg' | 'video/mp4';
 };
 export type NimiLocalAppTextTurnEvent = SdkLocalAppTextTurnEvent;
 export type NimiLocalAppScenarioJobEvent = {
@@ -850,7 +850,7 @@ export function uploadNimiLocalAppScenarioArtifact(input: {
   assertAllowedInputKeys(input, ['bytes', 'mimeType'], ['bytes', 'mimeType'], command);
   if (!Array.isArray(input.bytes) || input.bytes.length === 0 || input.bytes.length > 32 * 1024 * 1024
     || input.bytes.some((entry) => !Number.isInteger(entry) || entry < 0 || entry > 255)
-    || !['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'video/mp4'].includes(input.mimeType)) {
+    || !['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'audio/wav', 'audio/mpeg', 'video/mp4'].includes(input.mimeType)) {
     throw invalidInput(command, 'artifact upload is invalid');
   }
   return invokeChecked(command, { payload: { bytes: [...input.bytes], mimeType: input.mimeType } },
@@ -2327,7 +2327,7 @@ function parseArtifactUpload(
   const artifactId = requiredText(record.artifactId, 'artifactId', command, 128);
   const sizeBytes = boundedProjectionInteger(record.sizeBytes, 1, 32 * 1024 * 1024, command);
   if (sizeBytes !== expectedSize || record.mimeType !== expectedMimeType
-    || !['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'video/mp4'].includes(String(record.mimeType))) {
+    || !['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'audio/wav', 'audio/mpeg', 'video/mp4'].includes(String(record.mimeType))) {
     throw new Error(`${command}: artifact upload result is invalid`);
   }
   return Object.freeze({ artifactId, sizeBytes, mimeType: record.mimeType }) as NimiLocalAppArtifactUploadResult;

@@ -1018,7 +1018,7 @@ func TestLocalVideoExecutionWithoutSelectionFailsClosed(t *testing.T) {
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VideoGenerate{VideoGenerate: &runtimev1.VideoGenerateScenarioSpec{
 			Mode:    runtimev1.VideoMode_VIDEO_MODE_T2V,
-			Content: []*runtimev1.VideoContentItem{{Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT, Text: "clip"}},
+			Content: []*runtimev1.VideoContentItem{{Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT, Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT, Text: "clip"}},
 			Options: &runtimev1.VideoGenerationOptions{},
 		}}},
 	})

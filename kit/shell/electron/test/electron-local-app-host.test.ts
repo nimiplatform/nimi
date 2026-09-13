@@ -507,6 +507,21 @@ describe('Electron protected local-app host', () => {
       .rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted', retryable: false });
   });
 
+  it.each(['audio/wav', 'audio/mpeg'])('projects imported %s without expanding the owner request', async (mimeType) => {
+    const calls: unknown[] = [];
+    const host = createNimiElectronLocalAppHostForBinding({
+      ...binding([]),
+      localAppArtifactUpload: async (input) => {
+        calls.push(input);
+        return { status: 'ok' as const, value: { artifactId: 'audio-import-1', mimeType, sizeBytes: 2 } };
+      },
+    });
+    await expect(host.artifactUpload({ bytes: [1, 2], mimeType })).resolves.toEqual({
+      artifactId: 'audio-import-1', mimeType, sizeBytes: 2,
+    });
+    expect(calls).toEqual([{ bytes: Buffer.from([1, 2]), mimeType }]);
+  });
+
   it('strictly validates scenario Job and artifact projections', async () => {
     const calls: Array<{ method: string; input?: unknown }> = [];
     const host = createNimiElectronLocalAppHostForBinding(binding(calls));

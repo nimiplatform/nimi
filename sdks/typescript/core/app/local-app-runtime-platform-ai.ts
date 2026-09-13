@@ -277,7 +277,7 @@ export type NimiLocalAppScenarioJobGetResult = {
   readonly voiceReference: { readonly kind: 'voice_asset_id'; readonly voiceAssetId: string } | null;
 };
 
-export type NimiLocalAppArtifactUploadMime = 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif' | 'video/mp4';
+export type NimiLocalAppArtifactUploadMime = 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif' | 'audio/wav' | 'audio/mpeg' | 'video/mp4';
 export type NimiLocalAppArtifactUploadResult = {
   readonly artifactId: string;
   readonly sizeBytes: number;
@@ -1139,7 +1139,7 @@ function projectArtifactUpload(
 }
 
 function isArtifactUploadMime(value: unknown): value is NimiLocalAppArtifactUploadMime {
-  return value === 'image/png' || value === 'image/jpeg' || value === 'image/webp' || value === 'image/gif' || value === 'video/mp4';
+  return value === 'image/png' || value === 'image/jpeg' || value === 'image/webp' || value === 'image/gif' || value === 'audio/wav' || value === 'audio/mpeg' || value === 'video/mp4';
 }
 
 function projectArtifactRead(value: unknown): { readonly bytes: Uint8Array; readonly mimeType: string; readonly sizeBytes: number } {

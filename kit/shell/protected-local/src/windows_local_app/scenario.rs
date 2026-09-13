@@ -1592,7 +1592,7 @@ fn valid_mime(value: &str) -> bool {
 fn valid_upload_mime(value: &str) -> bool {
     matches!(
         value,
-        "image/png" | "image/jpeg" | "image/webp" | "image/gif" | "video/mp4"
+        "image/png" | "image/jpeg" | "image/webp" | "image/gif" | "audio/wav" | "audio/mpeg" | "video/mp4"
     )
 }
 
@@ -1636,6 +1636,29 @@ mod tests {
             sent += bytes;
         }
         assert!(send(TextTurnPayload::Delta(LocalAppTextTurnDelta { item_index: 2, text: "x".into() })).is_err());
+    }
+
+    #[test]
+    fn t2v_reference_audio_preserves_the_existing_carrier() {
+        let JobSpec::VideoGenerate(spec) = parse_job_spec(json!({
+            "type": "video-generate", "mode": "t2v", "prompt": "A harbor.", "negativePrompt": "",
+            "content": [{ "type": "audio-url", "role": "reference-audio", "url": "https://media.example.test/reference.mp3" }],
+            "options": { "resolution": "720p", "ratio": "16:9", "durationSec": 4 }
+        })).expect("T2V reference audio") else {
+            panic!("expected the existing video Job spec");
+        };
+        assert_eq!(spec.mode, VideoMode::T2v as i32);
+        assert_eq!(spec.content.len(), 1);
+        assert_eq!(spec.content[0].role, VideoContentRole::ReferenceAudio as i32);
+        assert_eq!(spec.content[0].audio_url.as_ref().unwrap().url, "https://media.example.test/reference.mp3");
+    }
+
+    #[test]
+    fn local_upload_audio_mime_set_is_closed() {
+        assert!(valid_upload_mime("audio/wav"));
+        assert!(valid_upload_mime("audio/mpeg"));
+        assert!(!valid_upload_mime("audio/ogg"));
+        assert!(!valid_upload_mime("application/octet-stream"));
     }
 
     #[test]

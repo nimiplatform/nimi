@@ -376,7 +376,7 @@ function validatePayload(
       assertExactKeys(payload, ['bytes', 'mimeType'], command);
       if (!Array.isArray(payload.bytes) || payload.bytes.length === 0 || payload.bytes.length > 32 * 1024 * 1024
         || payload.bytes.some((entry) => !Number.isInteger(entry) || Number(entry) < 0 || Number(entry) > 255)
-        || !['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'video/mp4'].includes(String(payload.mimeType))) {
+        || !['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'audio/wav', 'audio/mpeg', 'video/mp4'].includes(String(payload.mimeType))) {
         throw invalidPayload(command, 'artifact upload is invalid');
       }
       return { bytes: [...payload.bytes] as NimiElectronLocalAppJson, mimeType: String(payload.mimeType) };

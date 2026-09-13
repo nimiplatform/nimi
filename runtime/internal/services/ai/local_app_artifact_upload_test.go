@@ -60,3 +60,31 @@ func TestUploadLocalAppArtifactRejectsDecisionMimeAndSizeViolations(t *testing.T
 	_, err = svc.UploadLocalAppArtifact(localAppArtifactUploadContext(), &runtimev1.UploadLocalAppArtifactRequest{MimeType: "image/png"})
 	assertLocalAppTextCandidateError(t, err, codes.InvalidArgument, runtimev1.ReasonCode_AI_ARTIFACT_UPLOAD_INVALID)
 }
+
+func TestUploadLocalAppAudioArtifactUsesExistingOwnerCustody(t *testing.T) {
+	for _, mime := range []string{"audio/wav", "audio/mpeg"} {
+		t.Run(mime, func(t *testing.T) {
+			svc := newTestService(nil)
+			payload := []byte("audio-payload")
+			response, err := svc.UploadLocalAppArtifact(localAppArtifactUploadContext(), &runtimev1.UploadLocalAppArtifactRequest{
+				Bytes: payload, MimeType: mime,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			record, ok := svc.runtimeArtifacts.Get(response.GetArtifactId())
+			if !ok || record.Owner == nil || record.Owner.SubjectUserID != "account-1" || record.Owner.RegisteredAppSubject != "principal-1" {
+				t.Fatalf("owner custody missing: %+v", record)
+			}
+			read, err := svc.ReadLocalAppArtifact(localAppArtifactReadContext(), &runtimev1.ReadLocalAppArtifactRequest{ArtifactId: response.GetArtifactId()})
+			if err != nil || string(read.GetBytes()) != string(payload) || read.GetMimeType() != mime {
+				t.Fatalf("audio read = %+v, error=%v", read, err)
+			}
+		})
+	}
+	for _, mime := range []string{"audio/ogg", "application/octet-stream"} {
+		svc := newTestService(nil)
+		_, err := svc.UploadLocalAppArtifact(localAppArtifactUploadContext(), &runtimev1.UploadLocalAppArtifactRequest{Bytes: []byte{1}, MimeType: mime})
+		assertLocalAppTextCandidateError(t, err, codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_UPLOAD_MIME_UNSUPPORTED)
+	}
+}

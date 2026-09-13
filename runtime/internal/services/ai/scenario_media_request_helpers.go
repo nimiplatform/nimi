@@ -165,6 +165,7 @@ func validateWorldGenerateAssetSource(source *runtimev1.WorldGenerateAssetSource
 	return nil
 }
 
+// @nimi-authority: rule.nimi.runtime.ai-provider.r075
 func validateVideoGenerateScenarioSpec(spec *runtimev1.VideoGenerateScenarioSpec) error {
 	if spec == nil {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
@@ -182,15 +183,13 @@ func validateVideoGenerateScenarioSpec(spec *runtimev1.VideoGenerateScenarioSpec
 	firstFrameCount := 0
 	lastFrameCount := 0
 	referenceImageCount := 0
-	referenceVideoCount := 0
-	referenceAudioCount := 0
 	for _, item := range content {
 		if item == nil {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 		}
 		switch item.GetType() {
 		case runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT:
-			if strings.TrimSpace(item.GetText()) == "" {
+			if strings.TrimSpace(item.GetText()) == "" || item.GetRole() != runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT {
 				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 			}
 			textCount++
@@ -213,19 +212,14 @@ func validateVideoGenerateScenarioSpec(spec *runtimev1.VideoGenerateScenarioSpec
 				item.GetRole() != runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_VIDEO {
 				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 			}
-			referenceVideoCount++
 		case runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_AUDIO_URL:
 			if strings.TrimSpace(item.GetAudioUrl().GetUrl()) == "" ||
 				item.GetRole() != runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_AUDIO {
 				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 			}
-			referenceAudioCount++
 		default:
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 		}
-	}
-	if referenceAudioCount > 0 && referenceVideoCount == 0 && firstFrameCount == 0 && lastFrameCount == 0 && referenceImageCount == 0 {
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 	}
 
 	switch mode {

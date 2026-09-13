@@ -423,23 +423,36 @@ pub async fn artifact_upload_for_host(
     host: &RuntimeBridgeLocalAppHost,
     payload: Value,
 ) -> Result<Value, String> {
+    host.upload_scenario_artifact(artifact_upload_request(payload)?)
+        .await
+        .map_err(map_local_app_error)
+}
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.r109
+fn artifact_upload_request(
+    payload: Value,
+) -> Result<LocalAppScenarioUploadArtifactRequest, String> {
     let payload: LocalAppArtifactUploadPayload =
         parse_payload(payload, "local_app_artifact_upload")?;
     if payload.bytes.is_empty()
         || payload.bytes.len() > nimi_shell_protected_local::RUNTIME_MAX_INLINE_PAYLOAD_BYTES
         || !matches!(
             payload.mime_type.as_str(),
-            "image/png" | "image/jpeg" | "image/webp" | "image/gif"
+            "image/png"
+                | "image/jpeg"
+                | "image/webp"
+                | "image/gif"
+                | "audio/wav"
+                | "audio/mpeg"
+                | "video/mp4"
         )
     {
         return Err(invalid_payload("local_app_artifact_upload"));
     }
-    host.upload_scenario_artifact(LocalAppScenarioUploadArtifactRequest {
+    Ok(LocalAppScenarioUploadArtifactRequest {
         bytes: payload.bytes,
         mime_type: payload.mime_type,
     })
-    .await
-    .map_err(map_local_app_error)
 }
 
 pub async fn ai_config_get_for_host(host: &RuntimeBridgeLocalAppHost) -> Result<Value, String> {
@@ -1432,6 +1445,25 @@ mod tests {
         LocalAppCurrentUserDisplay, LocalAppCurrentUserStatus, LocalAppReasonCode,
         LocalAppSessionState,
     };
+
+    #[test]
+    fn artifact_upload_preserves_audio_and_video_inputs() {
+        for mime_type in ["audio/wav", "audio/mpeg", "video/mp4"] {
+            let request = artifact_upload_request(json!({"bytes":[1,2],"mimeType":mime_type}))
+                .expect("supported artifact MIME reaches the host request");
+            assert_eq!(request.mime_type, mime_type);
+            assert_eq!(request.bytes, vec![1, 2]);
+        }
+        for payload in [
+            json!({"bytes":[1],"mimeType":"audio/ogg"}),
+            json!({"bytes":[],"mimeType":"audio/wav"}),
+            json!({"bytes":[1],"mimeType":"audio/wav","accountId":"other"}),
+        ] {
+            assert!(artifact_upload_request(payload)
+                .unwrap_err()
+                .contains("invalid-payload"));
+        }
+    }
 
     #[test]
     fn session_projection_matches_renderer_current_user_contract() {

@@ -142,6 +142,13 @@ func ExecuteAlibabaNative(
 		if content := VideoContentPayload(spec); len(content) > 0 {
 			submitPayload["content"] = content
 		}
+		if spec.GetMode() == runtimev1.VideoMode_VIDEO_MODE_T2V {
+			var err error
+			submitPayload, err = buildAlibabaTextVideoPayload(modelResolved, spec)
+			if err != nil {
+				return nil, nil, "", err
+			}
+		}
 		submitResp := map[string]any{}
 		if err := DoJSONRequestWithHeaders(ctx, http.MethodPost, JoinURL(baseURL, submitPath), apiKey, submitPayload, &submitResp, dashScopeAsyncTaskHeaders()); err != nil {
 			return nil, nil, "", err
@@ -223,6 +230,43 @@ func ExecuteAlibabaNative(
 	default:
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
+}
+
+// Wan text-to-video uses provider-native parameter names, not the neutral
+// Scenario option names. Omitted options must remain provider defaults.
+// https://help.aliyun.com/zh/model-studio/text-to-video-api-reference
+// @nimi-authority: rule.nimi.runtime.ai-provider.r075
+func buildAlibabaTextVideoPayload(model string, spec *runtimev1.VideoGenerateScenarioSpec) (map[string]any, error) {
+	input := map[string]any{"prompt": VideoPrompt(spec)}
+	if negative := VideoNegativePrompt(spec); negative != "" {
+		input["negative_prompt"] = negative
+	}
+	audio := VideoReferenceAudioURIs(spec)
+	if len(audio) > 1 {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
+	if len(audio) == 1 {
+		input["audio_url"] = audio[0]
+	}
+	parameters := map[string]any{}
+	if options := spec.GetOptions(); options != nil {
+		if resolution := strings.TrimSpace(options.GetResolution()); resolution != "" {
+			parameters["resolution"] = strings.ToUpper(resolution)
+		}
+		if ratio := strings.TrimSpace(options.GetRatio()); ratio != "" {
+			parameters["ratio"] = ratio
+		}
+		if options.DurationSec != nil {
+			parameters["duration"] = options.GetDurationSec()
+		}
+		if options.Seed != nil {
+			parameters["seed"] = options.GetSeed()
+		}
+		if options.Watermark != nil {
+			parameters["watermark"] = options.GetWatermark()
+		}
+	}
+	return map[string]any{"model": model, "input": input, "parameters": parameters}, nil
 }
 
 func ExecuteDashScopeTranscribe(

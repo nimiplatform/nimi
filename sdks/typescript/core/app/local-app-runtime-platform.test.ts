@@ -1236,6 +1236,10 @@ test('local-app artifact upload validates the closed media input and exact custo
     { artifactId: 'artifact-upload-1', sizeBytes: 2, mimeType: 'image/png' },
   );
   assert.deepEqual(calls, [{ bytes: [1, 2], mimeType: 'image/png' }]);
+  for (const mimeType of ['audio/wav', 'audio/mpeg'] as const) {
+    assert.deepEqual(await client.ai.artifacts.upload({ bytes: new Uint8Array([1, 2]), mimeType }),
+      { artifactId: 'artifact-upload-1', sizeBytes: 2, mimeType });
+  }
   assert.deepEqual(await client.ai.artifacts.upload({ bytes: new Uint8Array([1, 2]), mimeType: 'video/mp4' }), { artifactId: 'artifact-upload-1', sizeBytes: 2, mimeType: 'video/mp4' });
   await assert.rejects(
     () => client.ai.artifacts.upload({ bytes: new Uint8Array([1]), mimeType: 'video/webm' as never }),
@@ -1256,6 +1260,25 @@ test('video face replacement requires an explicit policy through both App and Ru
   for (const invalid of [{ ...spec, noFacePolicy: undefined }, { ...spec, noFacePolicy: 'continue' }, { ...spec, targetVideoArtifactId: '' }, { ...spec, modelId: 'override' }]) await assert.rejects(() => client.ai.scenarioJobs.submit(invalid as never));
   await assert.rejects(() => client.ai.scenario.execute(spec as never));
   assert.equal(captured.length, 2);
+});
+
+test('local-app T2V forwards reference audio without requiring a visual input', async () => {
+  const base = standardShell([]);
+  const calls: unknown[] = [];
+  const ownerFailure = Object.assign(new Error('provider rejected reference audio'), { reasonCode: 'upstream-failed' });
+  const client = createNimiLocalAppClient({ standardShell: {
+    ...base, ai: { ...base.ai, scenarioJobs: { ...base.ai.scenarioJobs,
+      async submit(spec) { calls.push(spec); throw ownerFailure; },
+    } },
+  } });
+  const spec = {
+    type: 'video-generate' as const, mode: 't2v' as const,
+    prompt: 'A harbor.', negativePrompt: '',
+    content: [{ type: 'audio-url' as const, role: 'reference-audio' as const, url: 'https://media.example.test/reference.mp3' }],
+    options: { resolution: '720p', ratio: '16:9', durationSec: 4 },
+  };
+  await assert.rejects(() => client.ai.scenarioJobs.submit(spec), error => error === ownerFailure);
+  assert.deepEqual(calls, [spec]);
 });
 
 test('local-app video jobs admit only the canonical seed range', async () => {

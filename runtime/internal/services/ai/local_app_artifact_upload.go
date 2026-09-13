@@ -13,6 +13,7 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
+// @nimi-authority: rule.nimi.runtime.ai-provider.r109
 // UploadLocalAppArtifact is the bounded unary counterpart to
 // ReadLocalAppArtifact. Admission supplies the App+subject owner; the request
 // can supply only bounded media bytes and a closed MIME value. Storage delegates to
@@ -30,7 +31,7 @@ func (s *Service) UploadLocalAppArtifact(ctx context.Context, req *runtimev1.Upl
 	}
 	mimeType := strings.ToLower(strings.TrimSpace(req.GetMimeType()))
 	switch mimeType {
-	case "image/png", "image/jpeg", "image/webp", "image/gif", "video/mp4":
+	case "image/png", "image/jpeg", "image/webp", "image/gif", "audio/wav", "audio/mpeg", "video/mp4":
 	default:
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_UPLOAD_MIME_UNSUPPORTED)
 	}
