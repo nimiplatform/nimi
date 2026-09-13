@@ -6,12 +6,12 @@ import (
 )
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.codex-text-behaviors
-func codexTextBehaviorRegistration() textBehaviorAdapterRegistration {
+func codexTextBehaviorRegistration(modelID, adapterID string) textBehaviorAdapterRegistration {
 	modes := []runtimev1.ExecutionMode{runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, runtimev1.ExecutionMode_EXECUTION_MODE_STREAM}
 	return textBehaviorAdapterRegistration{
-		AdapterID: "openai_codex.sol.responses", Version: "1",
+		AdapterID: adapterID, Version: "1",
 		ImplementationID: "openai_codex", DriverID: "nimillm", DriverDialect: "openai_codex",
-		CloudTarget: &textBehaviorCloudTarget{Provider: "openai_codex", ProviderModelID: "gpt-5.6-sol"},
+		CloudTarget: &textBehaviorCloudTarget{Provider: "openai_codex", ProviderModelID: modelID},
 		Support: textBehaviorSupport{
 			ToolUse: &textBehaviorToolUseSupport{
 				SpecKinds:   []runtimev1.ToolSpecKind{runtimev1.ToolSpecKind_TOOL_SPEC_KIND_FUNCTION},
@@ -21,6 +21,7 @@ func codexTextBehaviorRegistration() textBehaviorAdapterRegistration {
 			Reasoning:        &textBehaviorReasoningSupport{OpaqueContinuityCarrier: true},
 			StructuredOutput: &textBehaviorStructuredOutputSupport{Kinds: []runtimev1.ResponseFormatKind{runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_SCHEMA}, SupportsStrictJSONSchema: true},
 			Combinations: []textBehaviorCombination{
+				{Modes: modes},
 				{ToolUse: true, Modes: modes}, {StructuredOutput: true, Modes: modes}, {Reasoning: true, Modes: modes},
 				{ToolUse: true, Reasoning: true, Modes: modes}, {StructuredOutput: true, Reasoning: true, Modes: modes},
 			},

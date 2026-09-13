@@ -213,10 +213,10 @@ func resolveTextBehaviorAdapterForFacts(
 	if err != nil {
 		return nil, err
 	}
-	if !requested.any() {
-		return nil, nil
-	}
 	if !validTextBehaviorResolutionFacts(facts) {
+		if !requested.any() {
+			return nil, nil
+		}
 		return nil, textBehaviorUnavailableError()
 	}
 
@@ -227,6 +227,21 @@ func resolveTextBehaviorAdapterForFacts(
 	for _, registration := range registrations {
 		if validTextBehaviorAdapterRegistration(registration) && textBehaviorAdapterMatchesFacts(registration, facts) {
 			matches = append(matches, registration)
+		}
+	}
+	if !requested.any() {
+		// A declared plain-text combination keeps that exact target on its
+		// captured hooks. Other targets retain their existing base protocol.
+		declaresPlainText := false
+		for _, registration := range matches {
+			for _, combination := range registration.Support.Combinations {
+				if !combination.ToolUse && !combination.Reasoning && !combination.StructuredOutput {
+					declaresPlainText = true
+				}
+			}
+		}
+		if !declaresPlainText {
+			return nil, nil
 		}
 	}
 	switch len(matches) {
@@ -363,7 +378,7 @@ func validTextBehaviorSupport(support textBehaviorSupport) bool {
 	seenCombinationModes := map[string]struct{}{}
 	coveredTool, coveredReasoning, coveredStructured := false, false, false
 	for _, combination := range support.Combinations {
-		if !combination.ToolUse && !combination.Reasoning && !combination.StructuredOutput || len(combination.Modes) == 0 ||
+		if len(combination.Modes) == 0 ||
 			combination.ToolUse && support.ToolUse == nil || combination.Reasoning && support.Reasoning == nil ||
 			combination.StructuredOutput && support.StructuredOutput == nil {
 			return false

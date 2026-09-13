@@ -14,16 +14,22 @@ import (
 
 func TestTextBehaviorAdapterResolutionIsExactAndClosed(t *testing.T) {
 	registrations := productionTextBehaviorAdapterRegistrations()
-	if len(registrations) != 11 {
-		t.Fatalf("production adapter registrations = %d, want nine Gemma mappings and two Cloud targets", len(registrations))
+	if len(registrations) != 12 {
+		t.Fatalf("production adapter registrations = %d, want nine Gemma mappings and three Cloud targets", len(registrations))
+	}
+	expectedCloudTargets := map[string]string{
+		"anthropic/claude-sonnet-4-6": "anthropic.sonnet46.messages",
+		"openai_codex/gpt-5.6-sol":    "openai_codex.sol.responses",
+		"openai_codex/gpt-6-astra":    "openai_codex.astra.responses",
 	}
 	seenContents := map[string]struct{}{}
 	for _, registration := range registrations {
 		if registration.CloudTarget != nil {
-			expectedModel := map[string]string{"anthropic": "claude-sonnet-4-6", "openai_codex": "gpt-5.6-sol"}[registration.CloudTarget.Provider]
-			if !validTextBehaviorAdapterRegistration(registration) || expectedModel == "" || registration.CloudTarget.ProviderModelID != expectedModel {
+			key := registration.CloudTarget.Provider + "/" + registration.CloudTarget.ProviderModelID
+			if !validTextBehaviorAdapterRegistration(registration) || expectedCloudTargets[key] != registration.AdapterID {
 				t.Fatalf("unexpected Cloud target: %+v", registration)
 			}
+			delete(expectedCloudTargets, key)
 			continue
 		}
 		if !validTextBehaviorAdapterRegistration(registration) || registration.LocalTarget == nil ||
@@ -36,6 +42,9 @@ func TestTextBehaviorAdapterResolutionIsExactAndClosed(t *testing.T) {
 			t.Fatalf("duplicate production Gemma 4 adapter content %q", contentID)
 		}
 		seenContents[contentID] = struct{}{}
+	}
+	if len(expectedCloudTargets) != 0 {
+		t.Fatalf("missing Cloud targets: %v", expectedCloudTargets)
 	}
 	oldFacts := textBehaviorAdapterResolutionFacts{
 		ImplementationID: "local.text.generate.llama-cpp", DriverID: "nimi.runtime.driver.llama-cpp",
@@ -81,6 +90,28 @@ func TestTextBehaviorAdapterResolutionIsExactAndClosed(t *testing.T) {
 	second.AdapterID = "openai-tools-second"
 	if _, err := resolveTextBehaviorAdapter([]textBehaviorAdapterRegistration{registration, second}, identity, "openai", "model-a", runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, toolSpec); textBehaviorReason(err) != runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_AMBIGUOUS {
 		t.Fatalf("ambiguous adapters error = %v", err)
+	}
+}
+
+func TestCodexPlainTextUsesExactDeclaredHooks(t *testing.T) {
+	registrations := productionTextBehaviorAdapterRegistrations()
+	identity := &runtimev1.CapabilityImplementationIdentity{ImplementationId: "openai_codex", DriverId: "nimillm", DriverDialect: "openai_codex"}
+	plain := &runtimev1.TextGenerateScenarioSpec{Input: []*runtimev1.ChatMessage{{Role: "user", Content: "hello"}}}
+	for _, model := range []string{"gpt-5.6-sol", "gpt-6-astra"} {
+		for _, mode := range []runtimev1.ExecutionMode{runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, runtimev1.ExecutionMode_EXECUTION_MODE_STREAM} {
+			adapter, err := resolveTextBehaviorAdapter(registrations, identity, "openai_codex", model, mode, plain)
+			if err != nil || adapter == nil || adapter.registration.CloudTarget.ProviderModelID != model {
+				t.Fatalf("plain %s/%s did not capture exact hooks: %+v %v", model, mode, adapter, err)
+			}
+		}
+	}
+	if _, err := resolveTextBehaviorAdapter(registrations, identity, "openai_codex", "gpt-6-astra-preview", runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, testTextBehaviorToolSpec()); textBehaviorReason(err) != runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED {
+		t.Fatalf("unregistered model matched by name: %v", err)
+	}
+	duplicate := codexTextBehaviorRegistration("gpt-6-astra", "conflicting-astra-adapter")
+	registrations = append(registrations, duplicate)
+	if _, err := resolveTextBehaviorAdapter(registrations, identity, "openai_codex", "gpt-6-astra", runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, plain); textBehaviorReason(err) != runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_AMBIGUOUS {
+		t.Fatalf("ambiguous plain-text hooks accepted: %v", err)
 	}
 }
 

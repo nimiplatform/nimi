@@ -650,7 +650,7 @@ function untrustedNativeOutcome(): NativeLocalAppOutcome {
 
 class ElectronLocalAppHost implements NimiElectronLocalAppHost {
   private readonly binding: NimiElectronProtectedLocalBinding;
-  private readonly textTurnStreams = new Map<string, { bytes: number; sequence: bigint }>();
+  private readonly textTurnStreams = new Map<string, { sequence: bigint }>();
 
   constructor(binding: NimiElectronProtectedLocalBinding, onSessionChange: () => void = () => undefined) {
     this.binding = withBoundedSessionRebind(binding, onSessionChange);
@@ -685,7 +685,7 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
 
   async textTurnSubscribe(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     const opened = await invokeExactTextRecord(() => this.binding.localAppTextTurnSubscribe(input), ['streamId']);
-    this.textTurnStreams.set(String(opened.streamId), { bytes: 0, sequence: 0n });
+    this.textTurnStreams.set(String(opened.streamId), { sequence: 0n });
     return opened;
   }
 
@@ -706,17 +706,9 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     const sequence = BigInt(event.sequence);
     if (sequence !== state.sequence + 1n) throw untrustedRuntimeError();
     state.sequence = sequence;
-    if (event.type === 'delta' && typeof event.text === 'string') {
-      state.bytes += Buffer.byteLength(event.text, 'utf8');
-    } else if (event.type === 'tool-call') {
-      state.bytes += Buffer.byteLength(JSON.stringify(event.toolCall), 'utf8');
-    } else if (event.type === 'reasoning-continuity') {
-      state.bytes += Buffer.byteLength(JSON.stringify(event.carrier), 'utf8');
-    }
-    if (state.bytes > 256 * 1024) {
-      this.textTurnStreams.delete(streamId);
-      throw untrustedRuntimeError();
-    }
+    // @nimi-authority: rule.nimi.runtime.ai-provider.local-app-text-behaviors
+    // The native carrier enforces the total on the original protobuf. Parsed
+    // tool arguments cannot reproduce its byte size from their JSON spelling.
     return next;
   }
 
@@ -1570,7 +1562,7 @@ async function invokeScenarioExecute(
       ids.add(String(toolCall.id));
       return Object.freeze({ type: 'tool-call', toolCall });
     });
-    if (!items.some((item) => item.type === 'text' || item.type === 'tool-call') || (output.finishReason === 'tool-calls' && ids.size === 0) || Buffer.byteLength(JSON.stringify(items), 'utf8') > 256 * 1024) throw untrustedRuntimeError();
+    if (!items.some((item) => item.type === 'text' || item.type === 'tool-call') || (output.finishReason === 'tool-calls' && ids.size === 0)) throw untrustedRuntimeError();
     return Object.freeze({ output: Object.freeze({ type: 'text-generate', items: Object.freeze(items), finishReason: String(output.finishReason) }), traceId });
   }
   if (output.type === 'text-embed') {

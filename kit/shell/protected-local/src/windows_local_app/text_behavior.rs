@@ -381,19 +381,23 @@ pub(super) fn project_output(
     let finish = finish_reason(output.finish_reason)?;
     let mut has_call = false;
     let mut has_text = false;
+    let mut content_bytes = 0;
     let items = output
         .items
         .into_iter()
         .map(|item| match item.item {
             Some(text_output_item::Item::Text(value)) if !value.text.is_empty() => {
                 has_text = true;
+                content_bytes += value.text.len();
                 Ok(json!({"type": "text", "text": value.text}))
             }
             Some(text_output_item::Item::ToolCall(call)) => {
                 has_call = true;
+                content_bytes += prost::Message::encoded_len(&call);
                 Ok(json!({"type": "tool-call", "toolCall": project_tool_call(call)?}))
             }
             Some(text_output_item::Item::ReasoningContinuity(carrier)) => {
+                content_bytes += prost::Message::encoded_len(&carrier);
                 Ok(json!({"type": "reasoning-continuity", "carrier": project_continuity(carrier)?}))
             }
             _ => Err(untrusted()),
@@ -401,7 +405,7 @@ pub(super) fn project_output(
         .collect::<Result<Vec<_>, _>>()?;
     if !has_text && !has_call
         || (finish == "tool-calls" && !has_call)
-        || serde_json::to_vec(&items).map_err(|_| untrusted())?.len() > MAX_OUTPUT_BYTES
+        || content_bytes > MAX_OUTPUT_BYTES
     {
         return Err(untrusted());
     }
@@ -411,6 +415,38 @@ pub(super) fn project_output(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn text_output_budget_counts_content_before_json_expansion() {
+        let carrier = ReasoningContinuityCarrier {
+            kind: "openai_codex.responses.encrypted-reasoning".into(),
+            version: 1,
+            payload: serde_json::to_vec(&json!({
+                "type": "reasoning", "id": "rs_budget", "encrypted_content": "A".repeat(60 * 1024), "summary": []
+            })).unwrap(),
+        };
+        let call = ToolCall {
+            id: "call-budget".into(), name: "search".into(),
+            arguments_json: format!("{{\"values\":[{}]}}", vec!["1e20"; 16 * 1024].join(",")),
+            ..Default::default()
+        };
+        let remaining = MAX_OUTPUT_BYTES - prost::Message::encoded_len(&carrier) - prost::Message::encoded_len(&call);
+        for text_bytes in [100 * 1024, remaining, remaining + 1] {
+            let output = LocalAppTextGenerateOutput {
+                items: vec![
+                    TextOutputItem { item: Some(text_output_item::Item::ReasoningContinuity(carrier.clone())) },
+                    TextOutputItem { item: Some(text_output_item::Item::ToolCall(call.clone())) },
+                    TextOutputItem { item: Some(text_output_item::Item::Text(TextOutputText { text: "x".repeat(text_bytes) })) },
+                ],
+                finish_reason: 3,
+            };
+            let projected = project_output(output);
+            assert_eq!(projected.is_ok(), text_bytes <= remaining);
+            if let Ok(projected) = projected {
+                assert_eq!(projected["items"][1]["toolCall"]["arguments"]["values"][0], json!(1e20));
+            }
+        }
+    }
 
     #[test]
     fn bounded_continuity_round_trips_without_becoming_primary_output() {

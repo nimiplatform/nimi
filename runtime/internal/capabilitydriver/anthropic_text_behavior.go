@@ -16,6 +16,9 @@ func AnthropicTextBehaviorRequestSerializer(spec *runtimev1.TextGenerateScenario
 	if spec == nil {
 		return textbehavior.SerializedRequest{}, anthropicBehaviorInput("missing text request")
 	}
+	if spec.GetIncludeRawChunks() {
+		return textbehavior.SerializedRequest{}, anthropicBehaviorUnsupported("raw provider chunks")
+	}
 	if spec.Seed != nil || spec.PresencePenalty != nil || spec.FrequencyPenalty != nil || spec.Temperature != nil && spec.TopP != nil {
 		return textbehavior.SerializedRequest{}, anthropicBehaviorUnsupported("sampling controls")
 	}

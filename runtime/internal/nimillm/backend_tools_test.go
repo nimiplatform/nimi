@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -15,11 +16,6 @@ func TestBuildTextGenParamsCarriesTopK(t *testing.T) {
 	spec := &runtimev1.TextGenerateScenarioSpec{
 		TopK:             testInt32(19),
 		IncludeRawChunks: true,
-		Tools: []*runtimev1.ToolSpec{{
-			Name:           "web_search",
-			Kind:           runtimev1.ToolSpecKind_TOOL_SPEC_KIND_PROVIDER,
-			ProviderToolId: "test.web_search",
-		}},
 	}
 	params := BuildTextGenParams(spec)
 	if params.topK != 19 {
@@ -27,9 +23,6 @@ func TestBuildTextGenParamsCarriesTopK(t *testing.T) {
 	}
 	if !params.includeRawChunks {
 		t.Fatal("expected includeRawChunks to be preserved")
-	}
-	if !params.hasProviderTools() {
-		t.Fatal("expected provider tool detection")
 	}
 }
 
@@ -95,199 +88,72 @@ func TestGenerateTextOpenAIRawChunksFailClosed(t *testing.T) {
 	}
 }
 
-func TestGenerateTextOpenAIToolCallsAndStructuredOutputRequireExactAdapterAdmission(t *testing.T) {
-	var captured map[string]any
-	requestCount := 0
-	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requestCount++
-		captured = decodeJSONBodyForBackendMediaTest(t, r)
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"","tool_calls":[{"id":"call_1","type":"function","function":{"name":"get_weather","arguments":"{\"city\":\"Paris\"}"}}]},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":4,"completion_tokens":2}}`))
-	}))
-	defer server.Close()
-
-	backend := newBackend("cloud-openai", server.URL, "", nil, 0, server.Client().Transport, false, true)
-	if backend == nil {
-		t.Fatal("expected backend")
-	}
-
+func TestPrimitiveTextGenerationRejectsOptionalBehaviors(t *testing.T) {
 	schema, err := structpb.NewStruct(map[string]any{"type": "object"})
 	if err != nil {
-		t.Fatalf("schema: %v", err)
+		t.Fatal(err)
 	}
-	params := textGenParams{
-		tools: []*runtimev1.ToolSpec{{
-			Name:        "get_weather",
-			Description: "look up the weather",
-			InputSchema: schema,
-		}},
-		toolChoice:     runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_REQUIRED,
-		responseFormat: &runtimev1.ResponseFormat{Kind: runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_OBJECT},
-		seed:           7,
-		topK:           41,
+	userInput := []*runtimev1.ChatMessage{{Role: "user", Content: "weather in Paris"}}
+	cases := []struct {
+		name   string
+		params textGenParams
+		input  []*runtimev1.ChatMessage
+	}{
+		{name: "function tools", params: textGenParams{tools: []*runtimev1.ToolSpec{{Name: "weather", Kind: runtimev1.ToolSpecKind_TOOL_SPEC_KIND_FUNCTION, InputSchema: schema}}}},
+		{name: "tool choice", params: textGenParams{toolChoice: runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_NONE}},
+		{name: "structured output", params: textGenParams{responseFormat: &runtimev1.ResponseFormat{Kind: runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_OBJECT}}},
+		{name: "tool transcript", input: []*runtimev1.ChatMessage{userInput[0], canonicalAssistantToolMessage("call-1", "weather", `{}`), canonicalToolResultMessage(t, "call-1", "weather", "sunny")}},
+		{
+			name: "reasoning summary",
+			input: []*runtimev1.ChatMessage{{Role: "assistant", TurnItems: []*runtimev1.TextTurnItem{{
+				Item: &runtimev1.TextTurnItem_Output{Output: &runtimev1.TextOutputItem{
+					Item: &runtimev1.TextOutputItem_ReasoningSummary{ReasoningSummary: &runtimev1.ReasoningSummary{Text: "summary"}},
+				}},
+			}}}},
+		},
+		{
+			name: "reasoning continuity",
+			input: []*runtimev1.ChatMessage{{Role: "assistant", TurnItems: []*runtimev1.TextTurnItem{{
+				Item: &runtimev1.TextTurnItem_Output{Output: &runtimev1.TextOutputItem{
+					Item: &runtimev1.TextOutputItem_ReasoningContinuity{ReasoningContinuity: &runtimev1.ReasoningContinuityCarrier{
+						Kind: "test.continuity", Version: 1, Payload: []byte("opaque"),
+					}},
+				}},
+			}}}},
+		},
 	}
-
-	input := []*runtimev1.ChatMessage{{Role: "user", Content: "weather in Paris"}}
-	if _, _, _, _, err := backend.GenerateText(
-		context.Background(), "gpt-4o-mini", input, "", 0, 0, 0, params,
-	); textBehaviorReasonForTest(err) != runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED || requestCount != 0 {
-		t.Fatalf("unadmitted tool/structured request = reason=%v requests=%d err=%v", textBehaviorReasonForTest(err), requestCount, err)
-	}
-	ctx := WithTextBehaviorAdmission(context.Background(), &TextBehaviorAdmission{
-		AdapterID: "openai-tools-json", Version: "1", Provider: "openai", ProviderModelID: "gpt-4o-mini", ToolUse: true, StructuredOutput: true,
-		Sync: true, ToolStructuredCombination: true,
-	})
-	text, toolCalls, _, finish, err := backend.GenerateText(
-		ctx,
-		"gpt-4o-mini",
-		input,
-		"",
-		0, 0, 0,
-		params,
-	)
-	if err != nil {
-		t.Fatalf("generate text: %v", err)
-	}
-	if text != "" {
-		t.Fatalf("expected empty text for tool-call response, got %q", text)
-	}
-	if len(toolCalls) != 1 {
-		t.Fatalf("expected 1 tool call, got %d", len(toolCalls))
-	}
-	if toolCalls[0].GetName() != "get_weather" {
-		t.Fatalf("unexpected tool name: %q", toolCalls[0].GetName())
-	}
-	if toolCalls[0].GetId() != "call_1" {
-		t.Fatalf("unexpected tool id: %q", toolCalls[0].GetId())
-	}
-	if toolCalls[0].GetArgumentsJson() != `{"city":"Paris"}` {
-		t.Fatalf("unexpected tool args: %q", toolCalls[0].GetArgumentsJson())
-	}
-	if finish != runtimev1.FinishReason_FINISH_REASON_TOOL_CALL {
-		t.Fatalf("expected tool-call finish reason, got %v", finish)
-	}
-
-	tools, ok := captured["tools"].([]any)
-	if !ok || len(tools) != 1 {
-		t.Fatalf("expected 1 request tool, got=%T len=%d", captured["tools"], len(tools))
-	}
-	toolObj, _ := tools[0].(map[string]any)
-	if toolObj["type"] != "function" {
-		t.Fatalf("expected function tool, got %v", toolObj["type"])
-	}
-	function, _ := toolObj["function"].(map[string]any)
-	if function["name"] != "get_weather" {
-		t.Fatalf("unexpected request tool name: %v", function["name"])
-	}
-	if captured["tool_choice"] != "required" {
-		t.Fatalf("expected required tool_choice, got %v", captured["tool_choice"])
-	}
-	responseFormat, ok := captured["response_format"].(map[string]any)
-	if !ok || responseFormat["type"] != "json_object" {
-		t.Fatalf("expected json_object response_format, got %v", captured["response_format"])
-	}
-	if captured["seed"] == nil {
-		t.Fatal("expected seed in request")
-	}
-	if captured["top_k"] != float64(41) {
-		t.Fatalf("expected top_k pass-through, got %v", captured["top_k"])
-	}
-}
-
-func TestGenerateTextAnthropicFailsClosedOnStructuredOutput(t *testing.T) {
-	backend := newBackend("cloud-anthropic", "https://api.anthropic.com", "", nil, 0, nil, false, true)
-	if backend == nil {
-		t.Fatal("expected backend")
-	}
-	params := textGenParams{
-		responseFormat: &runtimev1.ResponseFormat{Kind: runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_OBJECT},
-	}
-	if _, _, _, _, err := backend.GenerateText(
-		context.Background(),
-		"claude-sonnet-4-6",
-		[]*runtimev1.ChatMessage{{Role: "user", Content: "weather"}},
-		"",
-		0, 0, 0,
-		params,
-	); textBehaviorReasonForTest(err) != runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED {
-		t.Fatalf("expected Anthropic path to fail typed on unadmitted structured output: %v", err)
-	}
-}
-
-func TestGenerateTextAnthropicToolCallsRequireExactAdapterAdmission(t *testing.T) {
-	var captured map[string]any
-	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		captured = decodeJSONBodyForBackendMediaTest(t, r)
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"content":[{"type":"tool_use","id":"toolu_1","name":"get_weather","input":{"city":"Paris"}}],"stop_reason":"tool_use","usage":{"input_tokens":4,"output_tokens":2}}`))
-	}))
-	defer server.Close()
-
-	backend := newBackend("cloud-anthropic", server.URL, "", nil, 0, server.Client().Transport, false, true)
-	if backend == nil {
-		t.Fatal("expected backend")
-	}
-	schema, _ := structpb.NewStruct(map[string]any{"type": "object"})
-	params := textGenParams{
-		tools:      []*runtimev1.ToolSpec{{Name: "get_weather", Description: "weather", InputSchema: schema}},
-		toolChoice: runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_AUTO,
-		topK:       27,
-	}
-
-	ctx := WithTextBehaviorAdmission(context.Background(), &TextBehaviorAdmission{
-		AdapterID: "anthropic-tools", Version: "1", Provider: "anthropic", ProviderModelID: "claude-sonnet-4-6", ToolUse: true, Sync: true,
-	})
-	_, toolCalls, _, finish, err := backend.GenerateText(
-		ctx,
-		"claude-sonnet-4-6",
-		[]*runtimev1.ChatMessage{{Role: "user", Content: "weather in Paris"}},
-		"",
-		0, 0, 0,
-		params,
-	)
-	if err != nil {
-		t.Fatalf("generate text: %v", err)
-	}
-	if len(toolCalls) != 1 {
-		t.Fatalf("expected 1 tool call, got %d", len(toolCalls))
-	}
-	if toolCalls[0].GetName() != "get_weather" || toolCalls[0].GetId() != "toolu_1" {
-		t.Fatalf("unexpected tool call: %+v", toolCalls[0])
-	}
-	if toolCalls[0].GetArgumentsJson() != `{"city":"Paris"}` {
-		t.Fatalf("unexpected tool args: %q", toolCalls[0].GetArgumentsJson())
-	}
-	if finish != runtimev1.FinishReason_FINISH_REASON_TOOL_CALL {
-		t.Fatalf("expected tool-call finish, got %v", finish)
-	}
-	tools, ok := captured["tools"].([]any)
-	if !ok || len(tools) != 1 {
-		t.Fatalf("expected 1 request tool, got %T", captured["tools"])
-	}
-	toolObj, _ := tools[0].(map[string]any)
-	if toolObj["name"] != "get_weather" || toolObj["input_schema"] == nil {
-		t.Fatalf("unexpected request tool: %+v", toolObj)
-	}
-	if captured["top_k"] != float64(27) {
-		t.Fatalf("expected top_k pass-through, got %v", captured["top_k"])
-	}
-}
-
-func TestStreamGenerateTextToolUseStaysClosedWithoutNativeOrderedSerializer(t *testing.T) {
-	backend := newBackend("cloud-openai", "https://api.openai.test", "", nil, 0, nil, false, true)
-	ctx := WithTextBehaviorAdmission(context.Background(), &TextBehaviorAdmission{
-		AdapterID: "openai-tools-stream", Version: "1", Provider: "openai", ProviderModelID: "gpt-4o-mini", ToolUse: true, Stream: true,
-	})
-	_, _, err := backend.StreamGenerateText(
-		ctx,
-		"gpt-4o-mini",
-		[]*runtimev1.ChatMessage{{Role: "user", Content: "weather"}},
-		"", 0, 0, 0,
-		textGenParams{tools: []*runtimev1.ToolSpec{{Kind: runtimev1.ToolSpecKind_TOOL_SPEC_KIND_FUNCTION, Name: "weather"}}},
-		func(string) error { return nil },
-	)
-	if textBehaviorReasonForTest(err) != runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED {
-		t.Fatalf("stream tool behavior error = %v", err)
+	for _, provider := range []struct{ name, model string }{{"openai", "gpt-4o-mini"}, {"anthropic", "claude-sonnet-4-6"}, {"openai_codex", "gpt-5.6-sol"}} {
+		t.Run(provider.name, func(t *testing.T) {
+			var requests atomic.Int32
+			server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				requests.Add(1)
+				http.Error(w, "unexpected primitive behavior dispatch", http.StatusBadRequest)
+			}))
+			defer server.Close()
+			backend := newBackend("cloud-"+provider.name, server.URL, "", nil, 0, server.Client().Transport, false, true)
+			if backend == nil {
+				t.Fatal("expected backend")
+			}
+			for _, test := range cases {
+				for _, mode := range []string{"sync", "stream"} {
+					t.Run(test.name+"/"+mode, func(t *testing.T) {
+						input := test.input
+						if input == nil {
+							input = userInput
+						}
+						var err error
+						if mode == "sync" {
+							_, _, _, _, err = backend.GenerateText(context.Background(), provider.model, input, "", 0, 0, 0, test.params)
+						} else {
+							_, _, err = backend.StreamGenerateText(context.Background(), provider.model, input, "", 0, 0, 0, test.params, func(string) error { return nil })
+						}
+						if textBehaviorReasonForTest(err) != runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED || requests.Load() != 0 {
+							t.Fatalf("primitive optional behavior = %v, provider requests = %d", err, requests.Load())
+						}
+					})
+				}
+			}
+		})
 	}
 }
 

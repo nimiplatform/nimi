@@ -41,11 +41,14 @@ func TestLocalEmbeddingSpaceTracksContentNotLoadoutOrRequestIdentity(t *testing.
 	}
 }
 
-func TestCloudEmbeddingSpaceTracksTargetDefaultsAndConnector(t *testing.T) {
-	target, _ := structpb.NewStruct(map[string]any{"providerModelId": "embedding-a"})
+func TestCloudEmbeddingSpaceTracksExecutionTargetNotCatalogRevision(t *testing.T) {
+	target, _ := structpb.NewStruct(map[string]any{"provider": "openai", "providerModelId": "embedding-a", "remoteModelCatalogId": "catalog-a"})
 	effective := &cloudEmbedEffectiveInputs{
 		implementation: &runtimev1.CapabilityImplementationIdentity{ImplementationId: "cloud-embed", DriverId: "driver", DriverDialect: "embed/v1"},
-		rawTarget:      target, connector: connector.ConnectorRecord{ConnectorID: "connector-a"},
+		rawTarget:      target, connector: connector.ConnectorRecord{
+			ConnectorID: "connector-a", Provider: "openai", Endpoint: "https://embeddings.example.test",
+			AuthKind: runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_API_KEY,
+		},
 	}
 	vectors := []*runtimev1.EmbeddingVector{{Values: []float64{0.1, 0.2}}}
 	first, err := cloudEmbeddingSpaceID(effective, vectors)
@@ -53,14 +56,22 @@ func TestCloudEmbeddingSpaceTracksTargetDefaultsAndConnector(t *testing.T) {
 		t.Fatal(err)
 	}
 	effective.defaults = &structpb.Struct{}
+	effective.connector.Label = "Renamed"
+	effective.connector.UpdatedAt++
+	effective.connector.CredentialCustodyRef = "new-custody"
+	effective.rawTarget.Fields["remoteModelCatalogId"] = structpb.NewStringValue("catalog-b")
 	unchanged, err := cloudEmbeddingSpaceID(effective, vectors)
 	if err != nil || unchanged != first {
-		t.Fatalf("empty defaults changed the embedding space: %q %v", unchanged, err)
+		t.Fatalf("non-semantic changes invalidated the embedding space: %q %v", unchanged, err)
+	}
+	if effective.rawTarget.Fields["remoteModelCatalogId"].GetStringValue() != "catalog-b" {
+		t.Fatal("space projection mutated captured catalog admission")
 	}
 	for _, change := range []func(){
 		func() { effective.connector.ConnectorID = "connector-b" },
-		func() { effective.rawTarget, _ = structpb.NewStruct(map[string]any{"providerModelId": "embedding-b"}) },
-		func() { effective.defaults, _ = structpb.NewStruct(map[string]any{"dimensions": 2}) },
+		func() { effective.connector.Endpoint = "https://other-embeddings.example.test" },
+		func() { effective.rawTarget.Fields["providerModelId"] = structpb.NewStringValue("embedding-b") },
+		func() { effective.implementation.DriverDialect = "embed/v2" },
 	} {
 		change()
 		next, err := cloudEmbeddingSpaceID(effective, vectors)

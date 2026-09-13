@@ -5617,6 +5617,10 @@ pub struct EmbeddingVector {
 pub struct TextEmbedOutput {
     #[prost(message, repeated, tag = "1")]
     pub vectors: ::prost::alloc::vec::Vec<EmbeddingVector>,
+    /// Opaque compatibility identity of the captured embedding semantics.
+    /// Compare actual result values before combining vectors or reusing an index.
+    #[prost(string, tag = "2")]
+    pub space_id: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ImageGenerateResult {
@@ -5864,6 +5868,8 @@ pub mod execute_local_app_scenario_request {
 pub struct LocalAppTextEmbedOutput {
     #[prost(message, repeated, tag = "1")]
     pub vectors: ::prost::alloc::vec::Vec<EmbeddingVector>,
+    #[prost(string, tag = "2")]
+    pub space_id: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalAppImageGenerateOutput {
@@ -6215,6 +6221,14 @@ pub struct LocalAppTextTurnToolCall {
     #[prost(message, optional, tag = "2")]
     pub tool_call: ::core::option::Option<ToolCall>,
 }
+/// Opaque transcript continuity, never raw reasoning or a reasoning control.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppTextTurnContinuity {
+    #[prost(uint32, tag = "1")]
+    pub item_index: u32,
+    #[prost(message, optional, tag = "2")]
+    pub carrier: ::core::option::Option<ReasoningContinuityCarrier>,
+}
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppTextTurnCompleted {
     #[prost(enumeration = "FinishReason", tag = "1")]
@@ -6235,7 +6249,7 @@ pub struct StreamLocalAppTextTurnEvent {
     pub sequence: u64,
     #[prost(string, tag = "2")]
     pub trace_id: ::prost::alloc::string::String,
-    #[prost(oneof = "stream_local_app_text_turn_event::Payload", tags = "3, 4, 5, 6")]
+    #[prost(oneof = "stream_local_app_text_turn_event::Payload", tags = "3, 4, 5, 6, 7")]
     pub payload: ::core::option::Option<stream_local_app_text_turn_event::Payload>,
 }
 /// Nested message and enum types in `StreamLocalAppTextTurnEvent`.
@@ -6250,6 +6264,8 @@ pub mod stream_local_app_text_turn_event {
         Failed(super::LocalAppTextTurnFailed),
         #[prost(message, tag = "6")]
         ToolCall(super::LocalAppTextTurnToolCall),
+        #[prost(message, tag = "7")]
+        ReasoningContinuity(super::LocalAppTextTurnContinuity),
     }
 }
 /// Bounded inline artifact read limited to artifacts owned by the calling App

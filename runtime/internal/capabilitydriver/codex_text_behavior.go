@@ -20,6 +20,9 @@ func CodexTextBehaviorRequestSerializer(spec *runtimev1.TextGenerateScenarioSpec
 	if spec == nil {
 		return textbehavior.SerializedRequest{}, codexInput("missing request")
 	}
+	if spec.GetIncludeRawChunks() {
+		return textbehavior.SerializedRequest{}, codexUnsupported("raw provider chunks")
+	}
 	// The subscription endpoint does not admit these generation controls.
 	if spec.Temperature != nil || spec.TopP != nil || spec.TopK != nil || spec.MaxTokens != nil || spec.Seed != nil || spec.PresencePenalty != nil || spec.FrequencyPenalty != nil || len(spec.Stop) > 0 {
 		return textbehavior.SerializedRequest{}, codexUnsupported("generation controls")

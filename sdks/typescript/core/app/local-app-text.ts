@@ -109,6 +109,7 @@ function readOutputItem(value: unknown, projection: boolean): NimiLocalAppTextOu
   if (projection) assertExactProjectionKeys(record, keys, 'text output item');
   else assertExactKeys(record, keys, 'text output item');
   if (record.type === 'text' && typeof record.text === 'string' && record.text.length > 0) {
+    if (projection && new TextEncoder().encode(record.text).byteLength > 256 * 1024) return fail('text item size');
     return Object.freeze({ type: 'text', text: record.text });
   }
   if (record.type === 'tool-call') return Object.freeze({ type: 'tool-call', toolCall: readToolCall(record.toolCall, projection) });
@@ -128,7 +129,8 @@ export function projectLocalAppTextItems(value: unknown): readonly NimiLocalAppT
     return projected;
   });
   if (!items.some((item) => item.type === 'text' || item.type === 'tool-call')) localAppProjectionError('missing primary text output');
-  if (new TextEncoder().encode(JSON.stringify(items)).byteLength > 256 * 1024) localAppProjectionError('text output size');
+  // Runtime and the native carrier enforce the total on the original protobuf.
+  // Parsed tool arguments no longer retain its JSON spelling or encoded size.
   return Object.freeze(items);
 }
 
