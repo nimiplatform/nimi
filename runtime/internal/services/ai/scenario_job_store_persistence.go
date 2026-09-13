@@ -561,5 +561,5 @@ func (s *scenarioJobStore) persistDurableJobsLocked(attempt scenarioJobPersisten
 	if err := temporary.Close(); err != nil {
 		return err
 	}
-	return os.Rename(temporaryPath, s.durablePath)
+	return replaceScenarioJobFileAtomically(temporaryPath, s.durablePath)
 }
