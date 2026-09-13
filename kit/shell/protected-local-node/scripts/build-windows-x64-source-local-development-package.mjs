@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync } from 'node:fs';
+import { copyFileSync, existsSync, readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -41,5 +41,8 @@ const target = path.join(crateRoot, 'npm', 'win32-x64', 'nimi_shell_protected_lo
 if (!existsSync(source)) {
   throw new Error(`native binding output is missing: ${source}`);
 }
-copyFileSync(source, target);
+// A running consumer may lock this DLL. An unchanged build needs no replacement.
+if (!existsSync(target) || !readFileSync(source).equals(readFileSync(target))) {
+  copyFileSync(source, target);
+}
 process.stdout.write(`${target}\n`);
