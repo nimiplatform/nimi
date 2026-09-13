@@ -817,8 +817,10 @@ test('Lab chat.stream runs the Kit streaming face and forwards accumulated parti
       streamInputs.push(input);
       return localTextSubscription([
         { type: 'delta', sequence: '1', traceId: 'trace-stream', text: 'hello ' },
-        { type: 'delta', sequence: '2', traceId: 'trace-stream', text: 'world' },
-        { type: 'completed', sequence: '3', traceId: 'trace-stream', finishReason: 'stop' },
+        { type: 'reasoning-continuity', sequence: '2', traceId: 'trace-stream', itemIndex: 1,
+          carrier: { kind: 'test.opaque', version: 1, payload: [1, 2] } },
+        { type: 'delta', sequence: '3', traceId: 'trace-stream', text: 'world' },
+        { type: 'completed', sequence: '4', traceId: 'trace-stream', finishReason: 'stop' },
       ]);
     },
   });
