@@ -7,7 +7,7 @@ type Entry = { readonly host: NimiElectronLocalAppHost; readonly id: string; rea
 type Scope = {
   readonly sender: Sender;
   readonly entries: Set<Entry>;
-  readonly listeners: Array<readonly [string, (...args: unknown[]) => void]>;
+  readonly listeners: Array<() => void>;
   generation: number;
   closed: boolean;
 };
@@ -30,7 +30,7 @@ export function createElectronLocalAppAssetStreamLifecycle() {
   };
   const close = (scope: Scope) => {
     scope.closed = true;
-    for (const [event, listener] of scope.listeners) scope.sender.removeListener?.(event, listener);
+    for (const detach of scope.listeners) detach();
     scopes.delete(scope.sender);
     return invalidate(scope);
   };
@@ -50,8 +50,14 @@ export function createElectronLocalAppAssetStreamLifecycle() {
     };
     const gone = () => { void invalidate(captured); };
     const destroyed = () => { void close(captured); };
-    scope.listeners.push(['did-start-navigation', navigation], ['render-process-gone', gone], ['destroyed', destroyed]);
-    for (const [event, listener] of scope.listeners) sender.on(event, listener);
+    sender.on('did-start-navigation', navigation);
+    sender.on('render-process-gone', gone);
+    sender.on('destroyed', destroyed);
+    scope.listeners.push(
+      () => sender.removeListener?.('did-start-navigation', navigation),
+      () => sender.removeListener?.('render-process-gone', gone),
+      () => sender.removeListener?.('destroyed', destroyed),
+    );
     scopes.set(sender, scope);
     return scope;
   };

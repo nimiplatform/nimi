@@ -85,8 +85,16 @@ export type NimiElectronIpcMainInvokeEvent = {
   readonly sender?: {
     readonly id?: number;
     readonly send?: (channel: string, payload: unknown) => void;
-    readonly on?: (event: string, listener: (...args: unknown[]) => void) => unknown;
-    readonly removeListener?: (event: string, listener: (...args: unknown[]) => void) => unknown;
+    readonly on?: {
+      (event: 'did-start-navigation', listener: (details: unknown) => void): unknown;
+      (event: 'render-process-gone', listener: () => void): unknown;
+      (event: 'destroyed', listener: () => void): unknown;
+    };
+    readonly removeListener?: {
+      (event: 'did-start-navigation', listener: (details: unknown) => void): unknown;
+      (event: 'render-process-gone', listener: () => void): unknown;
+      (event: 'destroyed', listener: () => void): unknown;
+    };
     readonly isDestroyed?: () => boolean;
   };
 };
