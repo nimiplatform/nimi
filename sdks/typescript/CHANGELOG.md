@@ -35,5 +35,5 @@ published baseline. They are not a complete reconstruction of older releases.
 - App AIConfig selects an eligible execution configuration. Unsupported input,
   interrupted streams and incomplete output remain explicit failures.
 
-See the [0.12.0 release](https://github.com/nimiplatform/nimi/releases/tag/sdk/v0.12.0)
+See the [0.12.0 source tag](https://github.com/nimiplatform/nimi/tree/sdk/v0.12.0)
 and the installed declaration files for the exact versioned API.
