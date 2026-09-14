@@ -251,7 +251,7 @@ function assertPackageManifestCurrent(packageJson, versions) {
   }
 }
 
-function normalizePackageManifest(packageJson, descriptor, versions, buildProfileRef) {
+function normalizePackageManifest(packageJson, descriptor, versions, buildProfileRef, packageSource) {
   if (!packageJson || typeof packageJson !== 'object' || Array.isArray(packageJson)) {
     throw new Error('package.json must contain an object');
   }
@@ -302,6 +302,9 @@ function normalizePackageManifest(packageJson, descriptor, versions, buildProfil
       .replace(/\bnimi-app\s+doctor\s*&&\s*/gu, '');
   }
   assertPackageManifestCurrent(normalized, versions);
+  // Project formatters may use different whitespace or key order. Only managed
+  // value changes require rewriting this App-owned manifest.
+  if (stableInputJson(normalized) === stableInputJson(packageJson)) return packageSource;
   return `${JSON.stringify(normalized, null, 2)}\n`;
 }
 
@@ -996,7 +999,7 @@ function buildExistingSubmittedAppSyncPlan(targetDir, versions, sources) {
     author: typeof files.packageJson.author === 'string' ? files.packageJson.author : '',
   };
   const planned = [
-    { path: files.packagePath, content: normalizePackageManifest(files.packageJson, descriptor, versions, buildProfile.buildProfileRef), previous: files.packageSource },
+    { path: files.packagePath, content: normalizePackageManifest(files.packageJson, descriptor, versions, buildProfile.buildProfileRef, files.packageSource), previous: files.packageSource },
   ];
   if (requiresTauri) {
     planned.push(
