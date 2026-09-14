@@ -224,6 +224,16 @@ async function main() {
   const expectedKitRange = kitVersion ? `^${kitVersion}` : '';
   const expectedAppToolsRange = appToolsVersion ? `^${appToolsVersion}` : '';
 
+  const adapterPath = 'sdks/typescript/adapters/vercel-ai';
+  const adapter = await readJson(`${adapterPath}/package.json`);
+  if (adapter.name !== '@nimiplatform/sdk-adapter-vercel-ai' || adapter.private !== false || !adapter.version) {
+    violations.push('Vercel adapter must have its own publishable package identity');
+  }
+  checkPublicPackageMetadata(violations, adapter, adapter.name, adapterPath, 'Apache-2.0');
+  if (adapter.peerDependencies?.['@nimiplatform/sdk'] !== expectedSdkRange) {
+    violations.push(`Vercel adapter SDK peer must be ${expectedSdkRange}`);
+  }
+
   const kitPackage = packageVersions.get('@nimiplatform/kit')?.pkg;
   for (const native of KIT_NATIVE_PACKAGES) {
     let manifest;

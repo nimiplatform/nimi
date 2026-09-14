@@ -42,8 +42,9 @@ const SYNCHRONIZED_NIMI_PACKAGES = new Set([
 ]);
 const BUILD_PROFILE_PATH = '.nimi/config/build-profile.yaml';
 const ELECTRON_BUILD_PROFILE_REF = 'electron-packager-pnpm-vite';
+const APP_OWNED_ELECTRON_BUILD_PROFILE_REF = 'electron-pnpm';
 const TAURI_BUILD_PROFILE_REF = 'tauri-pnpm-vite';
-const SUPPORTED_BUILD_PROFILE_REFS = new Set([ELECTRON_BUILD_PROFILE_REF, TAURI_BUILD_PROFILE_REF]);
+const SUPPORTED_BUILD_PROFILE_REFS = new Set([ELECTRON_BUILD_PROFILE_REF, APP_OWNED_ELECTRON_BUILD_PROFILE_REF, TAURI_BUILD_PROFILE_REF]);
 const MANAGED_WORKFLOW_PATH = '.github/workflows/nimi-app-release.yml';
 const APP_IDENTITY_PATH = '.nimi/config/app-identity.yaml';
 const SUBMISSION_PATH = '.nimi/admission/submission.yaml';
@@ -250,7 +251,7 @@ function assertPackageManifestCurrent(packageJson, versions) {
   }
 }
 
-function normalizePackageManifest(packageJson, descriptor, versions) {
+function normalizePackageManifest(packageJson, descriptor, versions, buildProfileRef) {
   if (!packageJson || typeof packageJson !== 'object' || Array.isArray(packageJson)) {
     throw new Error('package.json must contain an object');
   }
@@ -283,7 +284,9 @@ function normalizePackageManifest(packageJson, descriptor, versions) {
   normalized.scripts.dev = 'nimi-app dev --shell electron';
   normalized.scripts['dev:shell'] = 'nimi-app dev';
   normalized.scripts['dev:electron'] = 'nimi-app dev --shell electron';
-  normalized.scripts['dev:renderer'] = `vite --host 127.0.0.1 --port ${new URL(descriptor.rendererOrigin).port} --strictPort`;
+  if (buildProfileRef !== APP_OWNED_ELECTRON_BUILD_PROFILE_REF) {
+    normalized.scripts['dev:renderer'] = `vite --host 127.0.0.1 --port ${new URL(descriptor.rendererOrigin).port} --strictPort`;
+  }
   normalized.scripts.sync ||= 'nimi-app sync';
   normalized.scripts.pack = 'nimi-app pack';
   delete normalized.scripts.publish;
@@ -897,12 +900,12 @@ function selectBuildOwner(profile, requestedTarget) {
   return { target, command, payloadPath, runtimeEntry };
 }
 
-function assertProductionRuntimeEntry(targetDir, selected) {
+function assertBuiltRuntimeEntry(targetDir, selected) {
   const projectRoot = path.resolve(targetDir);
   const payloadPath = path.resolve(projectRoot, ...selected.payloadPath.split('/'));
   const projectPrefix = `${projectRoot}${path.sep}`;
   if (!payloadPath.startsWith(projectPrefix) || !existsSync(payloadPath)) {
-    throw new Error(`Production payload is missing or noncanonical: ${selected.payloadPath}`);
+    throw new Error(`Build payload is missing or noncanonical: ${selected.payloadPath}`);
   }
   const payloadStat = lstatSync(payloadPath);
   let runtimeTarget = payloadPath;
@@ -910,20 +913,20 @@ function assertProductionRuntimeEntry(targetDir, selected) {
     const runtimeRelative = selected.runtimeEntry.slice('payload/'.length);
     runtimeTarget = path.resolve(payloadPath, ...runtimeRelative.split('/'));
   } else if (payloadStat.isFile() && selected.runtimeEntry !== `payload/${path.basename(payloadPath)}`) {
-    throw new Error(`Production Runtime entry does not select the direct payload file: ${selected.runtimeEntry}`);
+    throw new Error(`Build Runtime entry does not select the direct payload file: ${selected.runtimeEntry}`);
   } else if (!payloadStat.isFile() || payloadStat.isSymbolicLink()) {
-    throw new Error(`Production payload is not a direct file or directory: ${selected.payloadPath}`);
+    throw new Error(`Build payload is not a direct file or directory: ${selected.payloadPath}`);
   }
   const payloadPrefix = `${payloadPath}${path.sep}`;
   if (
     !existsSync(runtimeTarget)
     || (!payloadStat.isFile() && !runtimeTarget.startsWith(payloadPrefix))
   ) {
-    throw new Error(`Production Runtime entry is missing or noncanonical: ${selected.runtimeEntry}`);
+    throw new Error(`Build Runtime entry is missing or noncanonical: ${selected.runtimeEntry}`);
   }
   const runtimeTargetStat = lstatSync(runtimeTarget);
   if (!runtimeTargetStat.isFile() || runtimeTargetStat.isSymbolicLink()) {
-    throw new Error(`Production Runtime entry must be a direct regular file: ${selected.runtimeEntry}`);
+    throw new Error(`Build Runtime entry must be a direct regular file: ${selected.runtimeEntry}`);
   }
 }
 
@@ -993,7 +996,7 @@ function buildExistingSubmittedAppSyncPlan(targetDir, versions, sources) {
     author: typeof files.packageJson.author === 'string' ? files.packageJson.author : '',
   };
   const planned = [
-    { path: files.packagePath, content: normalizePackageManifest(files.packageJson, descriptor, versions), previous: files.packageSource },
+    { path: files.packagePath, content: normalizePackageManifest(files.packageJson, descriptor, versions, buildProfile.buildProfileRef), previous: files.packageSource },
   ];
   if (requiresTauri) {
     planned.push(
@@ -1202,7 +1205,7 @@ export function adoptAppProject(cwd, options = {}, versions, runners = {}) {
   } catch (cause) {
     throw new Error(`${cause.message}. Prepare the real App-owned Host and build/test inputs using ${LIFECYCLE_SKILL_PATH}`, { cause });
   }
-  if (plan.buildProfileRef !== ELECTRON_BUILD_PROFILE_REF) throw new Error('Existing-App init supports electron-packager-pnpm-vite; existing Tauri projects retain their sync path.');
+  if (![ELECTRON_BUILD_PROFILE_REF, APP_OWNED_ELECTRON_BUILD_PROFILE_REF].includes(plan.buildProfileRef)) throw new Error('Existing-App init supports electron-pnpm and electron-packager-pnpm-vite; existing Tauri projects retain their sync path.');
   const files = readProjectLifecycleFiles(targetDir, plan.buildProfileRef);
   const profile = readBuildProfile(targetDir, sources);
   for (const command of [profile.testCommand, profile.buildCommand, ...Object.keys(profile.targets).map((target) => selectBuildOwner(profile, target).command)]) {
@@ -1271,9 +1274,7 @@ export function buildAppProject(cwd, options = {}, runners = {}) {
   const selected = selectBuildOwner(profile, options.target);
   if (options.production === true) readAppInfo(targetDir, selected.target);
   const result = runOwnerCommand(targetDir, 'build', selected.command, options, runners);
-  if (options.production === true) {
-    assertProductionRuntimeEntry(targetDir, selected);
-  }
+  assertBuiltRuntimeEntry(targetDir, selected);
   return emitResult({
     ok: true,
     command: 'build',

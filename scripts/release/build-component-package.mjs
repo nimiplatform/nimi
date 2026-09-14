@@ -21,7 +21,7 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..', '..');
 const outputRoot = path.join(repoRoot, 'dist', 'component-release');
 const STABLE_VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/u;
-const COMPONENTS = new Set(['sdk', 'kit', 'app-tools']);
+const COMPONENTS = new Set(['sdk', 'kit', 'app-tools', 'sdk-adapter-vercel-ai']);
 
 function run(command, args, { cwd = repoRoot, stdio = 'inherit' } = {}) {
   const result = spawnSyncCommand(command, args, { cwd, stdio, encoding: 'utf8' });
@@ -186,6 +186,22 @@ function buildAppTools(outputDir) {
   return { version, tarball };
 }
 
+function buildVercelAdapter(outputDir) {
+  const packagePath = 'sdks/typescript/adapters/vercel-ai';
+  const version = packageVersion(`${packagePath}/package.json`);
+  const sdkVersion = packageVersion('sdks/typescript/package.json');
+  const manifest = readJson(`${packagePath}/package.json`);
+  if (manifest.peerDependencies?.['@nimiplatform/sdk'] !== `^${sdkVersion}`) throw new Error('Vercel adapter SDK peer must match the selected SDK release');
+  run('pnpm', ['--filter', '@nimiplatform/sdk', 'build']);
+  run('pnpm', ['--filter', '@nimiplatform/sdk-adapter-vercel-ai', 'run', 'build:prepared']);
+  const tarball = stageAndPack(path.join(repoRoot, packagePath), outputDir, (published) => {
+    delete published.devDependencies;
+    delete published.scripts;
+  });
+  run(process.execPath, [path.join(repoRoot, 'scripts/check-sdk-kit-pack-audit.mjs'), '--package', 'sdk-adapter-vercel-ai', '--tarball', tarball]);
+  return { version, tarball };
+}
+
 function main(argv) {
   const { component, outputDir } = parseArgs(argv);
   const statusBefore = capture('git', ['status', '--porcelain', '--untracked-files=all']);
@@ -196,7 +212,9 @@ function main(argv) {
     ? buildSdk(outputDir)
     : component === 'kit'
       ? buildKit(outputDir)
-      : buildAppTools(outputDir);
+      : component === 'sdk-adapter-vercel-ai'
+        ? buildVercelAdapter(outputDir)
+        : buildAppTools(outputDir);
 
   const statusAfter = capture('git', ['status', '--porcelain', '--untracked-files=all']);
   if (statusAfter !== statusBefore) {

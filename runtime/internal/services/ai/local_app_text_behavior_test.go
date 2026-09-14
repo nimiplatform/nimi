@@ -28,6 +28,53 @@ func localAppLookupCall() *runtimev1.ToolCall {
 	return &runtimev1.ToolCall{Id: "lookup-1", Name: "lookup", ArgumentsJson: `{"query":"runtime tools"}`}
 }
 
+func localAppImageParts() []*runtimev1.ChatContentPart {
+	return []*runtimev1.ChatContentPart{
+		{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Content: &runtimev1.ChatContentPart_Text{Text: "Compare diagrams"}},
+		{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL, Content: &runtimev1.ChatContentPart_ImageUrl{ImageUrl: &runtimev1.ChatContentImageURL{Url: "https://example.com/first.png"}}},
+		{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_ARTIFACT_REF, Content: &runtimev1.ChatContentPart_ArtifactRef{ArtifactRef: &runtimev1.ChatContentArtifactRef{ArtifactId: "uploaded-image", MimeType: "image/png"}}},
+	}
+}
+
+func TestLocalAppTextBehaviorPreservesImagePartsAndRejectsOtherInputPlanes(t *testing.T) {
+	request := &runtimev1.StreamLocalAppTextTurnRequest{Messages: []*runtimev1.LocalAppTextCandidateMessage{{Role: "user", Parts: localAppImageParts()}}, Tools: []*runtimev1.ToolSpec{localAppLookupTool(t)}}
+	spec, err := localAppTextGenerateSpec(request)
+	if err != nil || len(spec.GetInput()) != 1 || spec.GetInput()[0].GetContent() != "" || len(spec.GetInput()[0].GetParts()) != 3 {
+		t.Fatalf("image input not preserved: %v %v", spec, err)
+	}
+	for i, part := range request.Messages[0].Parts {
+		if !proto.Equal(part, spec.Input[0].Parts[i]) || part == spec.Input[0].Parts[i] {
+			t.Fatal("part order/capture changed")
+		}
+	}
+	for name, mutate := range map[string]func(*runtimev1.LocalAppTextCandidateMessage){
+		"dual text":       func(m *runtimev1.LocalAppTextCandidateMessage) { m.Text = "duplicate" },
+		"assistant image": func(m *runtimev1.LocalAppTextCandidateMessage) { m.Role = "assistant" },
+		"inline image": func(m *runtimev1.LocalAppTextCandidateMessage) {
+			m.Parts[1].GetImageUrl().Url = "data:image/png;base64,AAAA"
+		},
+		"local path": func(m *runtimev1.LocalAppTextCandidateMessage) {
+			m.Parts[1].GetImageUrl().Url = "file:///tmp/image.png"
+		},
+		"local asset selector": func(m *runtimev1.LocalAppTextCandidateMessage) {
+			m.Parts[2].GetArtifactRef().LocalArtifactId = "local-model-file"
+		},
+		"audio artifact": func(m *runtimev1.LocalAppTextCandidateMessage) { m.Parts[2].GetArtifactRef().MimeType = "audio/wav" },
+	} {
+		t.Run(name, func(t *testing.T) {
+			changed := proto.Clone(request).(*runtimev1.StreamLocalAppTextTurnRequest)
+			mutate(changed.Messages[0])
+			_, err := localAppTextGenerateSpec(changed)
+			assertLocalAppTextCandidateError(t, err, codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+		})
+	}
+	candidate := validLocalAppTextCandidateRequest()
+	candidate.Messages[0].Parts = localAppImageParts()
+	if _, _, err := validateLocalAppTextCandidateRequest(candidate); err == nil {
+		t.Fatal("candidate admitted image parts")
+	}
+}
+
 func TestLocalAppTextBehaviorAcceptsOrderedToolTranscript(t *testing.T) {
 	value, _ := structpb.NewValue(map[string]any{"sources": []any{"result"}})
 	request := &runtimev1.StreamLocalAppTextTurnRequest{

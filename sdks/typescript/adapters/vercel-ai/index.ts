@@ -6,6 +6,9 @@ import type {
 import type {
   NimiAiModel,
 } from '@nimiplatform/sdk/ai';
+import { createNimiLocalAppTextModel } from '@nimiplatform/sdk/ai';
+import type { NimiLocalAppAIConsumptionClient } from '@nimiplatform/sdk/app';
+import { prepareLocalAppImages } from './local-app-images';
 import {
   type NimiCapabilityManifest,
 } from '@nimiplatform/sdk/contracts';
@@ -106,11 +109,13 @@ export function createNimiVercelLanguageModel(options: NimiVercelLanguageModelOp
       if (!options.model.streamText) {
         throwUnsupportedVercelAiFeature('languageModel.doStream', 'model does not expose Nimi streaming');
       }
+      const cancellation = new AbortController();
+      const abortSignal = callOptions.abortSignal ? AbortSignal.any([callOptions.abortSignal, cancellation.signal]) : cancellation.signal;
       const streamEvents = await options.model.streamText(
-        toNimiGenerateTextRequest(callOptions, throwUnsupportedVercelAiFeature),
+        toNimiGenerateTextRequest({ ...callOptions, abortSignal }, throwUnsupportedVercelAiFeature),
       );
       return {
-        stream: toVercelReadableStream(streamEvents),
+        stream: toVercelReadableStream(streamEvents, () => cancellation.abort()),
       };
     },
   };
@@ -133,6 +138,15 @@ export function createNimiVercelProvider(options: NimiVercelProviderOptions): Ni
       return createNimiVercelLanguageModel({ model });
     },
   };
+}
+
+export function createNimiLocalAppVercelLanguageModel(options: { readonly ai: NimiLocalAppAIConsumptionClient }): NimiVercelLanguageModel {
+  const protectedModel = createNimiLocalAppTextModel(options.ai);
+  return createNimiVercelLanguageModel({ model: {
+    model: protectedModel.model,
+    async generateText(request) { return protectedModel.generateText(await prepareLocalAppImages(request, options.ai)); },
+    async *streamText(request) { yield* await protectedModel.streamText!(await prepareLocalAppImages(request, options.ai)); },
+  } });
 }
 
 function resolveProviderModel(options: NimiVercelProviderOptions): NimiAiModel {

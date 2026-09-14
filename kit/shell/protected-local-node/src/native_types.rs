@@ -204,6 +204,7 @@ pub struct NativeTextTurnMessage {
     pub role: String,
     pub text: String,
     pub turn_items: Option<Vec<JsonValue>>,
+    pub parts: Option<Vec<JsonValue>>,
 }
 
 #[napi(object)]

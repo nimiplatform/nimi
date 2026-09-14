@@ -1,5 +1,5 @@
 import { APP_AUTHOR_DECLARATION_FIELDS, hashScaffoldManagedContent } from './app-scaffold.mjs';
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import {
@@ -89,10 +89,9 @@ const LOCAL_DEVELOPMENT_BYPASS_LABELS = new Set([
   'Realm refresh bypass endpoint',
   'Realm permission grant REST bypass endpoint',
   'Realm raw request bypass',
-  'Realm API path literal bypass',
-  'Realm API url literal bypass',
-  'Realm API fetch bypass',
-  'OpenAI-compatible Runtime REST endpoint assumption',
+  // Existing Apps own ordinary HTTP routes and may retain vendor sources.
+  // A bare /api or /v1 URL does not identify Nimi Realm/Runtime authority.
+  // Those broad patterns remain applicable to our generated scaffold only.
   'app-owned session store',
   'app-owned refresh token provider',
   'app-owned protected Runtime gRPC client',
@@ -444,7 +443,15 @@ function assertRequiredSupportFiles(targetDir, snapshot) {
   }
 }
 
-function assertProjectConfiguration(targetDir, parsedManifest = null) {
+function usesAppOwnedRenderer(targetDir, plannedSources) {
+  const relativePath = '.nimi/config/build-profile.yaml';
+  const filePath = path.join(targetDir, relativePath);
+  const source = plannedSources?.get(relativePath)
+    ?? (existsSync(filePath) ? readFileSync(filePath, 'utf8') : undefined);
+  return source !== undefined && parseYaml(source)?.build_profile_ref === 'electron-pnpm';
+}
+
+function assertProjectConfiguration(targetDir, parsedManifest = null, managed = true) {
   const manifestPath = path.join(targetDir, 'nimi.app.yaml');
   const manifest = readFileSync(manifestPath, 'utf8');
   assertManifestAppAccessDeclaration(manifest, manifestPath);
@@ -457,10 +464,17 @@ function assertProjectConfiguration(targetDir, parsedManifest = null) {
     }
   }
   const rendererOrigin = assertElectronLocalDevelopmentManifest(document);
-  assertOfficialDevelopmentEntrypoints(targetDir, rendererOrigin);
+  assertDeclaredHostSourceDirectory(targetDir, document);
+  assertOfficialDevelopmentEntrypoints(targetDir, rendererOrigin, undefined, managed || !usesAppOwnedRenderer(targetDir));
 }
 
 function assertElectronLocalDevelopmentManifest(document) {
+  const sourceDirectory = document?.local_development?.electron?.host_source_directory;
+  if (sourceDirectory !== undefined && (typeof sourceDirectory !== 'string'
+    || sourceDirectory.trim() !== sourceDirectory || /[\\:\r\n\0]/u.test(sourceDirectory)
+    || sourceDirectory.split('/').some((segment) => !segment || segment === '.' || segment === '..'))) {
+    throw new Error('nimi.app.yaml local_development.electron.host_source_directory must be a canonical project-relative directory');
+  }
   const rendererOrigin = document?.local_development?.electron?.renderer_origin;
   if (typeof rendererOrigin !== 'string' || rendererOrigin.trim() !== rendererOrigin) {
     throw new Error('nimi.app.yaml must declare local_development.electron.renderer_origin');
@@ -487,7 +501,21 @@ function assertElectronLocalDevelopmentManifest(document) {
   return parsed.origin;
 }
 
-function assertOfficialDevelopmentEntrypoints(targetDir, rendererOrigin, packageJson = readJsonFile(path.join(targetDir, 'package.json'), 'package.json')) {
+function assertDeclaredHostSourceDirectory(targetDir, document) {
+  const relative = document?.local_development?.electron?.host_source_directory;
+  if (relative === undefined) return;
+  try {
+    const root = realpathSync(targetDir);
+    const source = realpathSync(path.join(root, relative));
+    const contained = path.relative(root, source);
+    if (!contained || contained === '..' || contained.startsWith(`..${path.sep}`)
+      || path.isAbsolute(contained) || !statSync(source).isDirectory()) throw new Error('outside project');
+  } catch {
+    throw new Error('nimi.app.yaml local_development.electron.host_source_directory must exist inside this project');
+  }
+}
+
+function assertOfficialDevelopmentEntrypoints(targetDir, rendererOrigin, packageJson = readJsonFile(path.join(targetDir, 'package.json'), 'package.json'), managed = true) {
   const scripts = packageJson?.scripts;
   if (!scripts || typeof scripts !== 'object' || Array.isArray(scripts)) {
     throw new Error('package.json scripts are required');
@@ -496,12 +524,18 @@ function assertOfficialDevelopmentEntrypoints(targetDir, rendererOrigin, package
   const required = {
     dev: 'nimi-app dev --shell electron',
     'dev:shell': 'nimi-app dev',
-    'dev:renderer': `vite --host 127.0.0.1 --port ${rendererPort} --strictPort`,
+    ...(managed ? { 'dev:renderer': `vite --host 127.0.0.1 --port ${rendererPort} --strictPort` } : {}),
   };
   for (const [name, command] of Object.entries(required)) {
     if (scripts[name] !== command) {
       throw new Error(`package.json ${name} must use the official local-development launcher: ${command}`);
     }
+  }
+  const rendererCommand = scripts['dev:renderer'];
+  if (typeof rendererCommand !== 'string' || !rendererCommand || rendererCommand.trim() !== rendererCommand
+    || /[\r\n\0]/u.test(rendererCommand)
+    || /\b(?:nimi-app\s+dev|(?:pnpm|npm)\s+(?:run\s+)?(?:dev|dev:renderer))(?=\s|$)/u.test(rendererCommand)) {
+    throw new Error('package.json dev:renderer must be a non-recursive App-owned renderer command for the declared loopback origin');
   }
   if (
     typeof scripts['build:electron'] !== 'string'
@@ -537,7 +571,8 @@ function assertNimicodingProjectionCurrent(targetDir, runners) {
 export function validateAppProjectInputs(targetDir, manifest, packageJson, managed = false, plannedSources) {
   assertManifestAppAccessDeclaration(stringifyYaml(manifest), 'nimi.app.yaml');
   const rendererOrigin = assertElectronLocalDevelopmentManifest(manifest);
-  assertOfficialDevelopmentEntrypoints(targetDir, rendererOrigin, packageJson);
+  assertDeclaredHostSourceDirectory(targetDir, manifest);
+  assertOfficialDevelopmentEntrypoints(targetDir, rendererOrigin, packageJson, managed || !usesAppOwnedRenderer(targetDir, plannedSources));
   const findings = scanForbiddenPatterns(targetDir, manifest.profile, managed ? null : LOCAL_DEVELOPMENT_BYPASS_LABELS, plannedSources);
   if (findings.length) throw new Error(`Forbidden App source patterns: ${findings.join('; ')}`);
 }
@@ -615,7 +650,7 @@ function validateExistingSubmittedApp(targetDir) {
   if (parsed?.manifest_role !== 'submitted-input') {
     throw new Error('Submitted manifest marker missing');
   }
-  assertProjectConfiguration(targetDir, parsed);
+  assertProjectConfiguration(targetDir, parsed, false);
   const forbiddenFindings = scanForbiddenPatterns(targetDir, profile, LOCAL_DEVELOPMENT_BYPASS_LABELS);
   if (forbiddenFindings.length > 0) {
     throw new Error(`Forbidden local-development bypasses detected: ${forbiddenFindings.join('; ')}`);

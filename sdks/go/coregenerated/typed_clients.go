@@ -5601,9 +5601,10 @@ type LocalAppSpeechTranscribeJobSpec struct {
 }
 
 type LocalAppTextCandidateMessage struct {
-	Role      string         `json:"role,omitempty"`
-	Text      string         `json:"text,omitempty"`
-	TurnItems []TextTurnItem `json:"turn_items,omitempty"`
+	Role      string            `json:"role,omitempty"`
+	Text      string            `json:"text,omitempty"`
+	TurnItems []TextTurnItem    `json:"turn_items,omitempty"`
+	Parts     []ChatContentPart `json:"parts,omitempty"`
 }
 
 type LocalAppTextEmbedOutput struct {

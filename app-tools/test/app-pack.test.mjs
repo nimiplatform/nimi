@@ -615,10 +615,15 @@ test('explicit Tauri pack independently enforces package, manifest, Cargo, and T
 
 test('pack rejects unknown build profile refs and applies Tauri source checks only to the explicit Tauri profile', () => {
   const electronRoot = fixture();
+  const appOwnedRoot = fixture({ buildProfileRef: 'electron-pnpm' });
   const tauriRoot = fixture({ buildProfileRef: 'tauri-pnpm-vite' });
   try {
     rmSync(path.join(electronRoot, 'src-tauri'), { recursive: true, force: true });
     assert.equal(packAppTarget(electronRoot, { target: 'windows-x86_64' }).target_id, 'windows-x86_64');
+    rmSync(path.join(appOwnedRoot, 'src-tauri'), { recursive: true, force: true });
+    const appOwnedPackage = packAppTarget(appOwnedRoot, { target: 'windows-x86_64' });
+    assert.equal(appOwnedPackage.target_id, 'windows-x86_64');
+    assert.equal(aggregateAppTargetCandidates(appOwnedRoot).targets[0].sha256, appOwnedPackage.sha256);
 
     const electronProfilePath = path.join(electronRoot, '.nimi', 'config', 'build-profile.yaml');
     writeFileSync(electronProfilePath, readFileSync(electronProfilePath, 'utf8').replace(
@@ -637,6 +642,7 @@ test('pack rejects unknown build profile refs and applies Tauri source checks on
     );
   } finally {
     rmSync(electronRoot, { recursive: true, force: true });
+    rmSync(appOwnedRoot, { recursive: true, force: true });
     rmSync(tauriRoot, { recursive: true, force: true });
   }
 });

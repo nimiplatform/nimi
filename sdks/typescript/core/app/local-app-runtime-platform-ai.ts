@@ -1,4 +1,5 @@
 import {
+  ChatContentPartType,
   ExecutionMode,
   FaceSwapNoFacePolicy,
   FinishReason,
@@ -18,6 +19,7 @@ import {
   VoiceReferenceKind,
   VisionLocateGeometry,
   type CancelLocalAppScenarioJobRequest,
+  type ChatContentPart,
   type CancelLocalAppScenarioJobResponse,
   type ExecuteLocalAppScenarioRequest,
   type ExecuteLocalAppScenarioResponse,
@@ -53,6 +55,7 @@ import {
   validateLocalAppTextInput, projectLocalAppToolCall, projectLocalAppTextItems, projectLocalAppContinuity,
   modelTextOutputToLocalApp, localAppTextOutputToModel,
   type NimiLocalAppTextOutputItem, type NimiLocalAppToolCall, type NimiLocalAppReasoningContinuityCarrier,
+  type NimiLocalAppTextPart,
 } from './local-app-text.js';
 import type {
   NimiProtectedLocalScenarioJobClient,
@@ -1208,18 +1211,31 @@ function projectRuntimeLocalAppVoiceAsset(asset: LocalAppVoiceAsset): NimiLocalA
   };
 }
 
+function runtimeLocalTextPart(part: NimiLocalAppTextPart): ChatContentPart {
+  if (part.type === 'text') return { type: ChatContentPartType.TEXT, content: { oneofKind: 'text', text: part.text } };
+  if (part.type === 'image-url') return { type: ChatContentPartType.IMAGE_URL, content: { oneofKind: 'imageUrl', imageUrl: { url: part.url, detail: '' } } };
+  return {
+    type: ChatContentPartType.ARTIFACT_REF,
+    content: { oneofKind: 'artifactRef', artifactRef: { artifactId: part.artifactId, localArtifactId: '', mimeType: part.mediaType, displayName: part.displayName ?? '' } },
+  };
+}
+
 function runtimeTextTurnRequest(input: NimiLocalAppTextTurnInput): StreamLocalAppTextTurnRequest {
-  const messages = toRuntimeMessages(input.messages.map((message) => ({
-    role: message.role,
-    content: message.turnItems?.length || message.role === 'assistant' ? [] : [{ type: 'text' as const, text: message.text }],
-    turnItems: message.turnItems?.length ? message.turnItems.map((item) => item.type === 'output'
-      ? { ...item, output: localAppTextOutputToModel(item.output) } : item) : message.role === 'assistant'
-      ? [{ type: 'output' as const, output: { type: 'text' as const, text: message.text } }] : undefined,
-  })));
+  const messages = input.messages.map((message) => {
+    if (message.parts?.length) return { role: message.role, text: '', turnItems: [], parts: message.parts.map(runtimeLocalTextPart) };
+    const [projected] = toRuntimeMessages([{
+      role: message.role,
+      content: message.turnItems?.length || message.role === 'assistant' ? [] : [{ type: 'text' as const, text: message.text }],
+      turnItems: message.turnItems?.length ? message.turnItems.map((item) => item.type === 'output'
+        ? { ...item, output: localAppTextOutputToModel(item.output) } : item) : message.role === 'assistant'
+        ? [{ type: 'output' as const, output: { type: 'text' as const, text: message.text } }] : undefined,
+    }]);
+    return { role: message.role, text: projected!.content, turnItems: projected!.turnItems, parts: [] };
+  });
   const choice = input.toolChoice;
   const format = input.responseFormat;
   return {
-    messages: messages.map((message) => ({ role: message.role, text: message.content, turnItems: message.turnItems })),
+    messages,
     tools: toRuntimeTools(input.tools),
     toolChoice: choice === 'none' ? ToolChoiceMode.NONE : choice === 'auto' ? ToolChoiceMode.AUTO
       : choice === 'required' ? ToolChoiceMode.REQUIRED : choice ? ToolChoiceMode.TOOL : ToolChoiceMode.UNSPECIFIED,

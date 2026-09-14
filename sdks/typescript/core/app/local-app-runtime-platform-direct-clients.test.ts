@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  ChatContentPartType,
   FinishReason,
   ReasonCode,
   ScenarioJobEventType,
@@ -78,12 +79,25 @@ test('formal AI consumption runtime adapter keeps the canonical Local App operat
     { type: 'completed', sequence: '2', traceId: 'trace-1', finishReason: 'stop' },
   ]);
   assert.deepEqual(textRequest, {
-    messages: [{ role: 'user', text: 'hello', turnItems: [] }],
+    messages: [{ role: 'user', text: 'hello', turnItems: [], parts: [] }],
     tools: [],
     toolChoice: ToolChoiceMode.UNSPECIFIED,
     toolChoiceName: '',
     responseFormat: undefined,
     stop: [],
+  });
+
+  const imageStream = await client.text.streamTurn({ messages: [{ role: 'user', text: '', parts: [
+    { type: 'text', text: 'Inspect.' },
+    { type: 'artifact-ref', artifactId: 'uploaded-image', mediaType: 'image/png' },
+  ] }] });
+  await imageStream.cancel();
+  assert.deepEqual(textRequest, {
+    messages: [{ role: 'user', text: '', turnItems: [], parts: [
+      { type: ChatContentPartType.TEXT, content: { oneofKind: 'text', text: 'Inspect.' } },
+      { type: ChatContentPartType.ARTIFACT_REF, content: { oneofKind: 'artifactRef', artifactRef: { artifactId: 'uploaded-image', localArtifactId: '', mimeType: 'image/png', displayName: '' } } },
+    ] }],
+    tools: [], toolChoice: ToolChoiceMode.UNSPECIFIED, toolChoiceName: '', responseFormat: undefined, stop: [],
   });
 
   assert.deepEqual(await client.scenario.execute({ type: 'text-embed', inputs: ['hello'] }), {

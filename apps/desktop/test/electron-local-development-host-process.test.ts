@@ -1,18 +1,85 @@
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
 import { createServer, createConnection } from 'node:net';
+import { createServer as createHttpServer } from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it } from 'node:test';
 
 import {
   assertLocalDevelopmentRendererOriginAvailable,
+  probeLocalDevelopmentRenderer,
   resolveLocalDevelopmentPackageScriptInvocation,
 } from '../src-electron/local-development-host-process.js';
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 describe('Desktop local-development process ownership', () => {
+  it('probes the rendered page after a same-origin framework locale redirect', async () => {
+    const requests: string[] = [];
+    const server = createHttpServer((request, response) => {
+      requests.push(request.url!);
+      if (request.url === '/') response.writeHead(307, { location: '/en/' }).end();
+      else response.writeHead(200).end('<html>App</html>');
+    });
+    await listen(server, 0);
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    try {
+      assert.equal(await probeLocalDevelopmentRenderer(`http://127.0.0.1:${address.port}`), true);
+      assert.deepEqual(requests, ['/', '/en/']);
+    } finally {
+      server.closeAllConnections();
+      await close(server);
+    }
+  });
+
+  it('does not probe a redirect outside the supervised renderer origin', async () => {
+    let outsideRequests = 0;
+    const outside = createHttpServer((_request, response) => {
+      outsideRequests += 1;
+      response.writeHead(200).end();
+    });
+    await listen(outside, 0);
+    const outsideAddress = outside.address();
+    assert.ok(outsideAddress && typeof outsideAddress !== 'string');
+    const server = createHttpServer((_request, response) => {
+      response.writeHead(302, { location: `http://127.0.0.1:${outsideAddress.port}/` }).end();
+    });
+    await listen(server, 0);
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    try {
+      assert.equal(await probeLocalDevelopmentRenderer(`http://127.0.0.1:${address.port}`), false);
+      assert.equal(outsideRequests, 0);
+    } finally {
+      server.closeAllConnections();
+      outside.closeAllConnections();
+      await close(server);
+      await close(outside);
+    }
+  });
+
+  it('keeps a looping or failing redirected page unready', async () => {
+    let loop = true;
+    const server = createHttpServer((request, response) => {
+      if (request.url === '/' || loop) response.writeHead(308, { location: '/en/' }).end();
+      else response.writeHead(503).end();
+    });
+    await listen(server, 0);
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    const origin = `http://127.0.0.1:${address.port}`;
+    try {
+      assert.equal(await probeLocalDevelopmentRenderer(origin), false);
+      loop = false;
+      assert.equal(await probeLocalDevelopmentRenderer(origin), false);
+    } finally {
+      server.closeAllConnections();
+      await close(server);
+    }
+  });
+
   it('rejects a renderer origin whose strict port is already occupied', async () => {
     const server = createServer();
     await listen(server, 0);

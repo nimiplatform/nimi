@@ -27,6 +27,7 @@ pub(super) async fn generate(
                 role: message.role,
                 text: message.text,
                 turn_items: vec![],
+                parts: vec![],
             })
             .collect(),
         temperature: request.temperature,

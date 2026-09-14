@@ -3865,6 +3865,7 @@ class LocalAppTextCandidateMessage:
     role: str | None = None
     text: str | None = None
     turn_items: tuple[TextTurnItem, ...] = field(default_factory=tuple)
+    parts: tuple[ChatContentPart, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class LocalAppTextEmbedOutput:

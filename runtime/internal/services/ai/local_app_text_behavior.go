@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"net/url"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -68,6 +69,15 @@ func localAppTextGenerateSpec(req *runtimev1.StreamLocalAppTextTurnRequest) (*ru
 		}
 		role := message.GetRole()
 		items := message.GetTurnItems()
+		parts := message.GetParts()
+		if len(parts) > 0 {
+			if role != "user" || message.GetText() != "" || len(items) != 0 {
+				return nil, localAppTextInputInvalid()
+			}
+			if err := validateLocalAppTextParts(parts); err != nil {
+				return nil, err
+			}
+		}
 		if len(items) > 0 {
 			if role != "assistant" || message.GetText() != "" {
 				return nil, localAppTextInputInvalid()
@@ -77,7 +87,7 @@ func localAppTextGenerateSpec(req *runtimev1.StreamLocalAppTextTurnRequest) (*ru
 					return nil, err
 				}
 			}
-		} else if strings.TrimSpace(message.GetText()) == "" {
+		} else if len(parts) == 0 && strings.TrimSpace(message.GetText()) == "" {
 			return nil, localAppTextInputInvalid()
 		}
 		switch role {
@@ -94,6 +104,9 @@ func localAppTextGenerateSpec(req *runtimev1.StreamLocalAppTextTurnRequest) (*ru
 			return nil, localAppTextInputInvalid()
 		}
 		converted := &runtimev1.ChatMessage{Role: role, Content: message.GetText()}
+		for _, part := range parts {
+			converted.Parts = append(converted.Parts, proto.Clone(part).(*runtimev1.ChatContentPart))
+		}
 		if role == "assistant" && len(items) == 0 {
 			converted.Content = ""
 			converted.TurnItems = []*runtimev1.TextTurnItem{{Item: &runtimev1.TextTurnItem_Output{
@@ -131,6 +144,51 @@ func localAppTextGenerateSpec(req *runtimev1.StreamLocalAppTextTurnRequest) (*ru
 		return nil, err
 	}
 	return spec, nil
+}
+
+func validateLocalAppTextParts(parts []*runtimev1.ChatContentPart) error {
+	hasContent := false
+	for _, part := range parts {
+		if part == nil {
+			return localAppTextInputInvalid()
+		}
+		switch part.GetType() {
+		case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT:
+			if _, ok := part.GetContent().(*runtimev1.ChatContentPart_Text); !ok || part.GetText() == "" {
+				return localAppTextInputInvalid()
+			}
+			hasContent = hasContent || strings.TrimSpace(part.GetText()) != ""
+		case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL:
+			image := part.GetImageUrl()
+			if image == nil || image.GetDetail() != "" || image.GetUrl() != strings.TrimSpace(image.GetUrl()) {
+				return localAppTextInputInvalid()
+			}
+			parsed, err := url.Parse(image.GetUrl())
+			if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Hostname() == "" || parsed.User != nil {
+				return localAppTextInputInvalid()
+			}
+			hasContent = true
+		case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_ARTIFACT_REF:
+			ref := part.GetArtifactRef()
+			if ref == nil || !localAppBoundedIdentifier(ref.GetArtifactId()) || ref.GetLocalArtifactId() != "" {
+				return localAppTextInputInvalid()
+			}
+			switch ref.GetMimeType() {
+			case "image/png", "image/jpeg", "image/webp", "image/gif":
+			default:
+				return localAppTextInputInvalid()
+			}
+			// The Scenario resolver revalidates this reference against the exact
+			// protected App owner before reading any artifact content.
+			hasContent = true
+		default:
+			return localAppTextInputInvalid()
+		}
+	}
+	if !hasContent {
+		return localAppTextInputInvalid()
+	}
+	return nil
 }
 
 func validateLocalAppTextTurnItem(item *runtimev1.TextTurnItem, tools map[string]*runtimev1.ToolSpec) error {

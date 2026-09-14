@@ -8343,6 +8343,7 @@ pub struct LocalAppTextCandidateMessage {
     pub role: Option<String>,
     pub text: Option<String>,
     pub turn_items: Vec<Box<TextTurnItem>>,
+    pub parts: Vec<Box<ChatContentPart>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

@@ -1,5 +1,5 @@
 import { createNimiError } from '../../types';
-export type { NimiLocalAppTextMessage, NimiLocalAppTextTurnItem, NimiLocalAppTextOutputItem, NimiLocalAppFunctionTool, NimiLocalAppToolCall } from './local-app-text.js';
+export type { NimiLocalAppTextMessage, NimiLocalAppTextPart, NimiLocalAppTextImageMime, NimiLocalAppTextTurnItem, NimiLocalAppTextOutputItem, NimiLocalAppFunctionTool, NimiLocalAppToolCall } from './local-app-text.js';
 export {
   validateLocalAppTextInput as validateNimiLocalAppTextInput,
   projectLocalAppTextItems as validateNimiLocalAppTextOutputItems,

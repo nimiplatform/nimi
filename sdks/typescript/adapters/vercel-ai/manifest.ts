@@ -13,7 +13,7 @@ export const NIMI_VERCEL_AI_ADAPTER_MANIFEST = {
     'text.generate': { support: 'supported', mode: 'adapter-mapped' },
     'text.stream': { support: 'supported', mode: 'adapter-mapped' },
     'runEvents.text': { support: 'supported', mode: 'adapter-mapped' },
-    'runEvents.reasoning': { support: 'supported', mode: 'adapter-mapped' },
+    'runEvents.reasoning': { support: 'partial', mode: 'adapter-mapped', gaps: ['Permitted reasoning summaries are mapped; opaque continuity is metadata, and raw reasoning is not exposed.'] },
     'runEvents.finish': { support: 'supported', mode: 'adapter-mapped' },
     'runEvents.error': { support: 'supported', mode: 'adapter-mapped' },
     'runEvents.toolCallReturn': { support: 'supported', mode: 'adapter-mapped' },
@@ -36,29 +36,28 @@ export const NIMI_VERCEL_AI_ADAPTER_MANIFEST = {
       note: 'LanguageModelV3 providers do not execute caller tool callbacks; Vercel owns tool({ execute }) orchestration above the model adapter.',
     },
     'tools.providerDefined': {
-      support: 'supported',
+      support: 'unsupported',
       mode: 'adapter-mapped',
-      note: 'LanguageModelV3 provider tools are projected onto Nimi provider tools with id/name/args preserved.',
+      note: 'The current Nimi text contract does not admit this provider-owned behavior; requests and output fail explicitly.',
     },
     'tools.providerExecuted': {
-      support: 'supported',
+      support: 'unsupported',
       mode: 'adapter-mapped',
-      note: 'Provider-executed tool-call flags and dynamic/provider metadata are preserved in generate content and stream parts.',
+      note: 'The current Nimi text contract does not admit this provider-owned behavior; requests and output fail explicitly.',
     },
     'tools.providerToolResults': {
-      support: 'supported',
+      support: 'unsupported',
       mode: 'adapter-mapped',
-      note: 'Provider-executed tool-result content, preliminary/error/dynamic flags, and provider metadata are mapped both directions.',
+      note: 'The current Nimi text contract does not admit this provider-owned behavior; requests and output fail explicitly.',
     },
     'tools.providerApproval': {
-      support: 'supported',
+      support: 'unsupported',
       mode: 'adapter-mapped',
-      note: 'Provider approval requests and prompt approval responses are preserved through formal Nimi contracts.',
+      note: 'The current Nimi text contract does not admit this provider-owned behavior; requests and output fail explicitly.',
     },
     deferredResults: {
-      support: 'supported',
-      mode: 'adapter-mapped',
-      note: 'Deferred/preliminary provider tool results are preserved via the Vercel preliminary flag.',
+      support: 'partial', mode: 'framework-owned',
+      gaps: ['Caller async-iterable tool results are framework-owned and supported; provider-deferred results are not admitted.'],
     },
     multiStep: {
       support: 'supported',
@@ -66,9 +65,8 @@ export const NIMI_VERCEL_AI_ADAPTER_MANIFEST = {
       note: 'Vercel stopWhen/multi-step orchestration is usable through repeated adapter-backed model calls.',
     },
     approval: {
-      support: 'supported',
-      mode: 'framework-owned',
-      note: 'Caller-owned Vercel approvals remain framework-owned; provider approval request/response parts are adapter-mapped.',
+      support: 'partial', mode: 'framework-owned',
+      gaps: ['Provider approval transcripts are rejected. Caller approval continuation is not yet verified through the Local App binding.'],
     },
     externalExecution: {
       support: 'not-applicable',
@@ -86,9 +84,8 @@ export const NIMI_VERCEL_AI_ADAPTER_MANIFEST = {
       gaps: ['Provider acceptance remains route-dependent.'],
     },
     multimodalOutput: {
-      support: 'partial',
-      mode: 'adapter-mapped',
-      gaps: ['Artifact-like output is mapped only for supported Nimi run-event shapes.'],
+      support: 'unsupported', mode: 'out-of-domain',
+      note: 'Use the purpose-specific Nimi media APIs; a text model step does not return media.',
     },
     sources: {
       support: 'supported',
@@ -101,9 +98,8 @@ export const NIMI_VERCEL_AI_ADAPTER_MANIFEST = {
       note: 'includeRawChunks is forwarded; raw stream parts are emitted only from Nimi raw events carrying provider raw chunks.',
     },
     providerOptions: {
-      support: 'partial',
-      mode: 'adapter-mapped',
-      gaps: ['Options are projected into request metadata; provider-side honoring is route-owned.'],
+      support: 'unsupported', mode: 'adapter-mapped',
+      note: 'Configure generation through the admitted Nimi surface; arbitrary provider settings are not forwarded.',
     },
     usageTokenDetails: {
       support: 'partial',

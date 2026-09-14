@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.0 (unreleased)
+
+- Carry ordered user image URL and owned image Artifact parts through the
+  existing Local App text-turn and text-generate operations. Requires SDK
+  0.13.0, Rust shell crates 0.5.0 and the matching Runtime. Custom native
+  bindings must preserve optional message `parts`; the text-candidate surface
+  remains unchanged. Provider/model selection and artifact ownership stay
+  Runtime-owned.
+
 All notable changes to `@nimiplatform/kit` are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).

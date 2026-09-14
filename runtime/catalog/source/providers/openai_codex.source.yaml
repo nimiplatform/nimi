@@ -30,8 +30,16 @@ sources:
     note: Official Codex model guidance lists gpt-6-astra for desktop, CLI and IDE use; availability depends on account, sign-in method and rollout.
   - source_id: openai_gpt_6_astra_doc
     url: https://developers.openai.com/api/docs/models/gpt-6-astra
-    retrieved_at: 2026-09-13
-    note: Official GPT-6 Astra model page documents context capacity, function calling and structured outputs; Codex subscription access and limits remain account-dependent.
+    retrieved_at: 2026-09-14
+    note: Official GPT-6 Astra model page documents text/image input, text output, function calling and structured outputs; Codex subscription access and limits remain account-dependent.
+  - source_id: openai_gpt_5_6_sol_vision_doc
+    url: https://developers.openai.com/api/docs/models/gpt-5.6-sol
+    retrieved_at: 2026-09-14
+    note: Official GPT-5.6 Sol model page documents text/image input with text output and function calling; subscription access remains account-dependent.
+  - source_id: openai_codex_image_inputs_doc
+    url: https://learn.chatgpt.com/docs/image-inputs?surface=cli
+    retrieved_at: 2026-09-14
+    note: Official Codex guidance accepts image attachments including PNG and JPEG; the Nimi versioned Responses adapter carries these inputs through its existing protected owner path.
   - source_id: openai_codex_authenticated_model_inventory_2026_09_12
     source_kind: authenticated_provider_inventory
     url: https://chatgpt.com/backend-api/codex/models?client_version=1.0.0
@@ -88,8 +96,9 @@ selection_profiles:
 models:
   - model_id: gpt-6-astra
     model_type: chat
-    updated_at: 2026-09-13
+    updated_at: 2026-09-14
     capabilities: [text.generate]
+    features: [input.image]
     context_window_tokens: 1050000
     pricing:
       unit: request
@@ -98,12 +107,13 @@ models:
       currency: USD
       as_of: 2026-09-13
       notes: Subscription-backed Codex route; standard API token pricing does not apply directly.
-    source_ids: [openai_codex_models_2026_09_13, openai_gpt_6_astra_doc]
+    source_ids: [openai_codex_models_2026_09_13, openai_gpt_6_astra_doc, openai_codex_image_inputs_doc]
 
   - model_id: gpt-5.6-sol
     model_type: chat
-    updated_at: 2026-09-12
+    updated_at: 2026-09-14
     capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: request
       input: unknown
@@ -111,7 +121,7 @@ models:
       currency: USD
       as_of: 2026-09-12
       notes: Subscription-backed Codex route; standard API pricing does not apply directly.
-    source_ids: [openai_codex_authenticated_model_inventory_2026_09_12]
+    source_ids: [openai_codex_authenticated_model_inventory_2026_09_12, openai_gpt_5_6_sol_vision_doc, openai_codex_image_inputs_doc]
 
   - model_id: gpt-5.6-sol-wm
     model_type: chat

@@ -28,7 +28,7 @@ function parseArgs(argv) {
     }
     if (token === '--help' || token === '-h') {
       process.stdout.write([
-        'Usage: node scripts/check-sdk-kit-pack-audit.mjs --package <sdk|kit> --tarball <path>',
+        'Usage: node scripts/check-sdk-kit-pack-audit.mjs --package <sdk|kit|sdk-adapter-vercel-ai> --tarball <path>',
         '',
         'Audits packed @nimiplatform/sdk and @nimiplatform/kit tarballs for source/test leakage.',
       ].join('\n'));
@@ -36,8 +36,8 @@ function parseArgs(argv) {
     }
     throw new Error(`Unknown argument: ${token}`);
   }
-  if (!['sdk', 'kit'].includes(parsed.packageName)) {
-    throw new Error('--package must be sdk or kit');
+  if (!['sdk', 'kit', 'sdk-adapter-vercel-ai'].includes(parsed.packageName)) {
+    throw new Error('--package must be sdk, kit or sdk-adapter-vercel-ai');
   }
   if (!parsed.tarball) {
     throw new Error('--tarball is required');
@@ -76,7 +76,7 @@ function sdkForbidden(entry) {
     }
     return null;
   }
-  if (entry === 'package/package.json' || entry === 'package/LICENSE' || entry === 'package/README.md') {
+  if (entry === 'package/package.json' || entry === 'package/LICENSE' || entry === 'package/README.md' || entry === 'package/CHANGELOG.md') {
     return null;
   }
   if (/^package\/(?:adapters|core|core-generated|features|realm|runtime|types|contracts)(?:\/|$)/u.test(entry)) {
@@ -121,7 +121,7 @@ function kitForbidden(entry) {
 
 function auditTarball(packageName, tarball) {
   const entries = listTarball(tarball);
-  const classify = packageName === 'sdk' ? sdkForbidden : kitForbidden;
+  const classify = packageName === 'kit' ? kitForbidden : sdkForbidden;
   const violations = entries
     .map((entry) => ({ entry, reason: classify(entry) }))
     .filter((item) => item.reason);

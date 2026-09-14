@@ -17,10 +17,16 @@ export type NimiLocalAppTextOutputItem =
 export type NimiLocalAppTextTurnItem =
   | { readonly type: 'output'; readonly output: NimiLocalAppTextOutputItem }
   | { readonly type: 'tool-result'; readonly toolResult: Pick<NimiToolResult, 'toolCallId' | 'toolName' | 'result' | 'isError'> };
+export type NimiLocalAppTextImageMime = 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif';
+export type NimiLocalAppTextPart =
+  | { readonly type: 'text'; readonly text: string }
+  | { readonly type: 'image-url'; readonly url: string }
+  | { readonly type: 'artifact-ref'; readonly artifactId: string; readonly mediaType: NimiLocalAppTextImageMime; readonly displayName?: string };
 export type NimiLocalAppTextMessage = {
   readonly role: 'system' | 'user' | 'assistant';
   readonly text: string;
   readonly turnItems?: readonly NimiLocalAppTextTurnItem[];
+  readonly parts?: readonly NimiLocalAppTextPart[];
 };
 export type NimiLocalAppTextTurnInput = {
   readonly messages: readonly NimiLocalAppTextMessage[];
@@ -44,6 +50,33 @@ function invalid(detail: string): never {
 function identifier(value: unknown, fail: (detail: string) => never): string {
   if (typeof value !== 'string' || !value || value.trim() !== value || new TextEncoder().encode(value).byteLength > 128 || /[\u0000-\u001f\u007f]/u.test(value)) fail('tool identifier');
   return value as string;
+}
+
+export function isLocalAppTextImageMime(value: unknown): value is NimiLocalAppTextImageMime {
+  return value === 'image/png' || value === 'image/jpeg' || value === 'image/webp' || value === 'image/gif';
+}
+
+function readInputPart(value: unknown): NimiLocalAppTextPart {
+  const part = asRecord(value);
+  if (!part) return invalid('message part');
+  if (part.type === 'text') {
+    assertExactKeys(part, ['type', 'text'], 'text part');
+    if (typeof part.text !== 'string' || !part.text) invalid('text part');
+    return Object.freeze({ type: 'text', text: part.text as string });
+  }
+  if (part.type === 'image-url') {
+    assertExactKeys(part, ['type', 'url'], 'image part');
+    if (typeof part.url !== 'string' || part.url !== part.url.trim()) return invalid('image URL');
+    let parsed: URL;
+    try { parsed = new URL(part.url); } catch { return invalid('image URL'); }
+    if (!['http:', 'https:'].includes(parsed.protocol) || !parsed.hostname || parsed.username || parsed.password) return invalid('image URL; use artifact upload for local images');
+    return Object.freeze({ type: 'image-url', url: part.url });
+  }
+  if (part.type !== 'artifact-ref') return invalid('unsupported message part');
+  assertExactKeys(part, ['type', 'artifactId', 'mediaType', 'displayName'], 'image artifact part');
+  const artifactId = identifier(part.artifactId, invalid);
+  if (!isLocalAppTextImageMime(part.mediaType) || (part.displayName !== undefined && typeof part.displayName !== 'string')) return invalid('image artifact part');
+  return Object.freeze({ type: 'artifact-ref', artifactId, mediaType: part.mediaType, ...(part.displayName === undefined ? {} : { displayName: part.displayName as string }) });
 }
 
 function jsonValue(value: unknown, fail: (detail: string) => never, ancestors = new Set<object>(), depth = 0): asserts value is NimiJsonValue {
@@ -154,13 +187,20 @@ export function validateLocalAppTextInput(value: unknown): NimiLocalAppTextTurnI
   const calls = new Map<string, string>();
   let sawUser = false;
   const messages = input.messages.map((message, index): NimiLocalAppTextMessage => {
-    assertExactKeys(message, ['role', 'text', 'turnItems'], 'text message');
+    assertExactKeys(message, ['role', 'text', 'turnItems', 'parts'], 'text message');
     const role = message.role;
     if (role !== 'system' && role !== 'user' && role !== 'assistant') invalid('message role');
     if (role === 'system' && index !== 0) invalid('message role');
     if (typeof message.text !== 'string') invalid('message text');
     if (message.role === 'user') sawUser = true;
     if (message.turnItems !== undefined && !Array.isArray(message.turnItems)) invalid('ordered transcript');
+    if (message.parts !== undefined && !Array.isArray(message.parts)) invalid('message parts');
+    if (message.parts?.length) {
+      if (role !== 'user' || message.text !== '' || message.turnItems?.length) invalid('mixed message representations');
+      const parts = message.parts.map(readInputPart);
+      if (!parts.some((part) => part.type !== 'text' || part.text.trim())) invalid('empty message');
+      return Object.freeze({ role, text: '', parts: Object.freeze(parts) });
+    }
     if (!message.turnItems?.length) {
       if (!message.text.trim()) invalid('empty message');
       return Object.freeze({ role, text: message.text });

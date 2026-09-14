@@ -104,8 +104,7 @@ export async function waitForLocalDevelopmentRenderer(
     if (stopped()) return;
     if (child.exitCode !== null) throw new Error(`local-development-dev-server-exited-${child.exitCode}`);
     try {
-      const response = await fetch(origin, { redirect: 'error', signal: AbortSignal.timeout(2_000) });
-      if (response.status < 500) {
+      if (await probeLocalDevelopmentRenderer(origin)) {
         await delay(250);
         if (child.exitCode !== null) throw new Error(`local-development-dev-server-exited-${child.exitCode}`);
         return;
@@ -116,6 +115,22 @@ export async function waitForLocalDevelopmentRenderer(
     await delay(350);
   }
   throw new Error('local-development-dev-server-unavailable');
+}
+
+export async function probeLocalDevelopmentRenderer(origin: string): Promise<boolean> {
+  const allowedOrigin = new URL(origin).origin;
+  const signal = AbortSignal.timeout(2_000);
+  let url = new URL(origin);
+  for (let redirects = 0; redirects <= 5; redirects += 1) {
+    const response = await fetch(url, { redirect: 'manual', signal });
+    await response.body?.cancel();
+    if (![301, 302, 303, 307, 308].includes(response.status)) return response.status < 500;
+    const location = response.headers.get('location');
+    if (!location) return false;
+    url = new URL(location, url);
+    if (url.origin !== allowedOrigin || url.username || url.password) return false;
+  }
+  return false;
 }
 
 export async function terminateLocalDevelopmentProcessTree(

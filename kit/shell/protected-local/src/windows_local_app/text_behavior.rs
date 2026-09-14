@@ -5,9 +5,11 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 
 use crate::generated::{
-    text_output_item, text_turn_item, LocalAppTextCandidateMessage, LocalAppTextGenerateOutput,
-    ReasoningContinuityCarrier, ResponseFormat, ResponseFormatKind, StreamLocalAppTextTurnRequest, TextOutputItem,
-    TextOutputText, TextTurnItem, ToolCall, ToolChoiceMode, ToolResult, ToolSpec, ToolSpecKind,
+    chat_content_part, text_output_item, text_turn_item, ChatContentArtifactRef,
+    ChatContentImageUrl, ChatContentPart, ChatContentPartType, LocalAppTextCandidateMessage,
+    LocalAppTextGenerateOutput, ReasoningContinuityCarrier, ResponseFormat, ResponseFormatKind,
+    StreamLocalAppTextTurnRequest, TextOutputItem, TextOutputText, TextTurnItem, ToolCall,
+    ToolChoiceMode, ToolResult, ToolSpec, ToolSpecKind,
 };
 use crate::{LocalAppOperationError, LocalAppTextTurnRequest};
 
@@ -16,6 +18,83 @@ use super::{invalid_payload, untrusted};
 const MAX_REQUEST_BYTES: usize = 1024 * 1024;
 const MAX_OUTPUT_BYTES: usize = 256 * 1024;
 const MAX_CONTINUITY_BYTES: usize = 64 * 1024;
+
+#[derive(Deserialize)]
+#[serde(tag = "type", deny_unknown_fields)]
+enum InputPart {
+    #[serde(rename = "text")]
+    Text { text: String },
+    #[serde(rename = "image-url")]
+    ImageUrl { url: String },
+    #[serde(rename = "artifact-ref")]
+    ArtifactRef {
+        #[serde(rename = "artifactId")]
+        artifact_id: String,
+        #[serde(rename = "mediaType")]
+        media_type: String,
+        #[serde(rename = "displayName", default)]
+        display_name: String,
+    },
+}
+
+fn parse_input_part(value: Value) -> Result<ChatContentPart, LocalAppOperationError> {
+    let part: InputPart = serde_json::from_value(value).map_err(|_| invalid_payload())?;
+    let (kind, content) = match part {
+        InputPart::Text { text } => {
+            if text.is_empty() {
+                return Err(invalid_payload());
+            }
+            (
+                ChatContentPartType::Text,
+                chat_content_part::Content::Text(text),
+            )
+        }
+        InputPart::ImageUrl { url } => {
+            let parsed = url::Url::parse(&url).map_err(|_| invalid_payload())?;
+            if url.trim() != url
+                || !matches!(parsed.scheme(), "http" | "https")
+                || parsed.host_str().is_none()
+                || !parsed.username().is_empty()
+                || parsed.password().is_some()
+            {
+                return Err(invalid_payload());
+            }
+            (
+                ChatContentPartType::ImageUrl,
+                chat_content_part::Content::ImageUrl(ChatContentImageUrl {
+                    url,
+                    detail: String::new(),
+                }),
+            )
+        }
+        InputPart::ArtifactRef {
+            artifact_id,
+            media_type,
+            display_name,
+        } => {
+            identifier(&artifact_id)?;
+            if !matches!(
+                media_type.as_str(),
+                "image/png" | "image/jpeg" | "image/webp" | "image/gif"
+            ) {
+                return Err(invalid_payload());
+            }
+            (
+                ChatContentPartType::ArtifactRef,
+                chat_content_part::Content::ArtifactRef(ChatContentArtifactRef {
+                    artifact_id,
+                    local_artifact_id: String::new(),
+                    mime_type: media_type,
+                    display_name,
+                }),
+            )
+        }
+    };
+    Ok(ChatContentPart {
+        r#type: kind as i32,
+        content: Some(content),
+    })
+}
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -57,7 +136,9 @@ struct FunctionResult {
 #[derive(Deserialize)]
 #[serde(tag = "type", rename_all = "kebab-case", deny_unknown_fields)]
 enum OutputItem {
-    ReasoningContinuity { carrier: ContinuityCarrier },
+    ReasoningContinuity {
+        carrier: ContinuityCarrier,
+    },
     Text {
         text: String,
     },
@@ -136,14 +217,37 @@ pub(super) fn request(
         .into_iter()
         .enumerate()
         .map(|(index, message)| {
+            if !message.parts.is_empty()
+                && (message.role != "user"
+                    || !message.text.is_empty()
+                    || !message.turn_items.is_empty())
+            {
+                return Err(invalid_payload());
+            }
             match message.role.as_str() {
                 "system" if index == 0 && message.turn_items.is_empty() => {}
                 "user" if message.turn_items.is_empty() => saw_user = true,
                 "assistant" => {}
                 _ => return Err(invalid_payload()),
             }
-            if (message.turn_items.is_empty() && message.text.trim().is_empty())
+            if (message.turn_items.is_empty()
+                && message.parts.is_empty()
+                && message.text.trim().is_empty())
                 || (!message.turn_items.is_empty() && !message.text.is_empty())
+            {
+                return Err(invalid_payload());
+            }
+            let parts = message
+                .parts
+                .into_iter()
+                .map(parse_input_part)
+                .collect::<Result<Vec<_>, _>>()?;
+            if !parts.is_empty()
+                && !parts.iter().any(|part| match &part.content {
+                    Some(chat_content_part::Content::Text(text)) => !text.trim().is_empty(),
+                    Some(_) => true,
+                    None => false,
+                })
             {
                 return Err(invalid_payload());
             }
@@ -155,6 +259,7 @@ pub(super) fn request(
                     .into_iter()
                     .map(parse_turn_item)
                     .collect::<Result<_, _>>()?,
+                parts,
             })
         })
         .collect::<Result<Vec<_>, _>>()?;
@@ -253,11 +358,16 @@ fn parse_turn_item(value: Value) -> Result<TextTurnItem, LocalAppOperationError>
             item: Some(match output {
                 OutputItem::ReasoningContinuity { carrier } => {
                     identifier(&carrier.kind)?;
-                    if carrier.version == 0 || carrier.payload.is_empty() || carrier.payload.len() > MAX_CONTINUITY_BYTES {
+                    if carrier.version == 0
+                        || carrier.payload.is_empty()
+                        || carrier.payload.len() > MAX_CONTINUITY_BYTES
+                    {
                         return Err(invalid_payload());
                     }
                     text_output_item::Item::ReasoningContinuity(ReasoningContinuityCarrier {
-                        kind: carrier.kind, version: carrier.version, payload: carrier.payload,
+                        kind: carrier.kind,
+                        version: carrier.version,
+                        payload: carrier.payload,
                     })
                 }
                 OutputItem::Text { text } => {
@@ -357,9 +467,14 @@ pub(super) fn project_tool_call(call: ToolCall) -> Result<Value, LocalAppOperati
     Ok(json!({"id": call.id, "name": call.name, "arguments": arguments}))
 }
 
-pub(super) fn project_continuity(carrier: ReasoningContinuityCarrier) -> Result<Value, LocalAppOperationError> {
+pub(super) fn project_continuity(
+    carrier: ReasoningContinuityCarrier,
+) -> Result<Value, LocalAppOperationError> {
     identifier(&carrier.kind).map_err(|_| untrusted())?;
-    if carrier.version == 0 || carrier.payload.is_empty() || carrier.payload.len() > MAX_CONTINUITY_BYTES {
+    if carrier.version == 0
+        || carrier.payload.is_empty()
+        || carrier.payload.len() > MAX_CONTINUITY_BYTES
+    {
         return Err(untrusted());
     }
     Ok(json!({"kind": carrier.kind, "version": carrier.version, "payload": carrier.payload}))
@@ -417,6 +532,41 @@ mod tests {
     use super::*;
 
     #[test]
+    fn user_image_parts_keep_their_order_and_reject_mixed_representations() {
+        let message = json!({"role":"user", "text":"", "parts":[
+            {"type":"text", "text":"Compare"},
+            {"type":"image-url", "url":"https://example.com/diagram.png"},
+            {"type":"artifact-ref", "artifactId":"uploaded-image", "mediaType":"image/png"}
+        ]});
+        let out = request(serde_json::from_value(json!({"messages":[message.clone()]})).unwrap())
+            .unwrap();
+        assert_eq!(out.messages[0].parts.len(), 3);
+        assert_eq!(
+            out.messages[0].parts[1].r#type,
+            ChatContentPartType::ImageUrl as i32
+        );
+        assert_eq!(
+            out.messages[0].parts[2].r#type,
+            ChatContentPartType::ArtifactRef as i32
+        );
+        for changes in [json!({"role":"assistant"}), json!({"text":"duplicate"})] {
+            let mut invalid = message.clone();
+            invalid
+                .as_object_mut()
+                .unwrap()
+                .extend(changes.as_object().unwrap().clone());
+            assert!(
+                request(serde_json::from_value(json!({"messages":[invalid]})).unwrap()).is_err()
+            );
+        }
+        assert!(
+            parse_input_part(json!({"type":"image-url", "url":"data:image/png;base64,AAAA"}))
+                .is_err()
+        );
+        assert!(parse_input_part(json!({"type":"artifact-ref", "artifactId":"image", "localArtifactId":"path", "mediaType":"image/png"})).is_err());
+    }
+
+    #[test]
     fn text_output_budget_counts_content_before_json_expansion() {
         let carrier = ReasoningContinuityCarrier {
             kind: "openai_codex.responses.encrypted-reasoning".into(),
@@ -426,24 +576,38 @@ mod tests {
             })).unwrap(),
         };
         let call = ToolCall {
-            id: "call-budget".into(), name: "search".into(),
+            id: "call-budget".into(),
+            name: "search".into(),
             arguments_json: format!("{{\"values\":[{}]}}", vec!["1e20"; 16 * 1024].join(",")),
             ..Default::default()
         };
-        let remaining = MAX_OUTPUT_BYTES - prost::Message::encoded_len(&carrier) - prost::Message::encoded_len(&call);
+        let remaining = MAX_OUTPUT_BYTES
+            - prost::Message::encoded_len(&carrier)
+            - prost::Message::encoded_len(&call);
         for text_bytes in [100 * 1024, remaining, remaining + 1] {
             let output = LocalAppTextGenerateOutput {
                 items: vec![
-                    TextOutputItem { item: Some(text_output_item::Item::ReasoningContinuity(carrier.clone())) },
-                    TextOutputItem { item: Some(text_output_item::Item::ToolCall(call.clone())) },
-                    TextOutputItem { item: Some(text_output_item::Item::Text(TextOutputText { text: "x".repeat(text_bytes) })) },
+                    TextOutputItem {
+                        item: Some(text_output_item::Item::ReasoningContinuity(carrier.clone())),
+                    },
+                    TextOutputItem {
+                        item: Some(text_output_item::Item::ToolCall(call.clone())),
+                    },
+                    TextOutputItem {
+                        item: Some(text_output_item::Item::Text(TextOutputText {
+                            text: "x".repeat(text_bytes),
+                        })),
+                    },
                 ],
                 finish_reason: 3,
             };
             let projected = project_output(output);
             assert_eq!(projected.is_ok(), text_bytes <= remaining);
             if let Ok(projected) = projected {
-                assert_eq!(projected["items"][1]["toolCall"]["arguments"]["values"][0], json!(1e20));
+                assert_eq!(
+                    projected["items"][1]["toolCall"]["arguments"]["values"][0],
+                    json!(1e20)
+                );
             }
         }
     }
@@ -451,11 +615,29 @@ mod tests {
     #[test]
     fn bounded_continuity_round_trips_without_becoming_primary_output() {
         let carrier = json!({"kind":"test.encrypted", "version":1, "payload":[0,255]});
-        let input = json!({"type":"output", "output":{"type":"reasoning-continuity", "carrier":carrier}});
+        let input =
+            json!({"type":"output", "output":{"type":"reasoning-continuity", "carrier":carrier}});
         let parsed = parse_turn_item(input).unwrap();
-        let Some(text_turn_item::Item::Output(item)) = parsed.item else { panic!("missing output") };
-        assert!(project_output(LocalAppTextGenerateOutput { items: vec![item.clone()], finish_reason: 1 }).is_err());
-        let output = project_output(LocalAppTextGenerateOutput { items: vec![item, TextOutputItem { item: Some(text_output_item::Item::Text(TextOutputText { text: "Answer".into() })) }], finish_reason: 1 }).unwrap();
+        let Some(text_turn_item::Item::Output(item)) = parsed.item else {
+            panic!("missing output")
+        };
+        assert!(project_output(LocalAppTextGenerateOutput {
+            items: vec![item.clone()],
+            finish_reason: 1
+        })
+        .is_err());
+        let output = project_output(LocalAppTextGenerateOutput {
+            items: vec![
+                item,
+                TextOutputItem {
+                    item: Some(text_output_item::Item::Text(TextOutputText {
+                        text: "Answer".into(),
+                    })),
+                },
+            ],
+            finish_reason: 1,
+        })
+        .unwrap();
         assert_eq!(output["items"][0]["carrier"], carrier);
         assert!(parse_turn_item(json!({"type":"output", "output":{"type":"reasoning-continuity", "carrier":{"kind":"test", "version":1, "payload":[256]}}})).is_err());
     }
