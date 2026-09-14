@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.9.0 (unreleased)
+## 0.9.0
 
 - Carry ordered user image URL and owned image Artifact parts through the
   existing Local App text-turn and text-generate operations. Requires SDK

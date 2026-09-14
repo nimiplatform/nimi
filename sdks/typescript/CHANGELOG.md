@@ -3,7 +3,7 @@
 These package-local notes cover the App-facing changes relevant to the current
 published baseline. They are not a complete reconstruction of older releases.
 
-## 0.13.0 (unreleased)
+## 0.13.0
 
 - Local App model turns accept ordered user text and image URL/artifact parts.
   Use `filePart` with HTTP(S) image URLs or upload local image bytes through
@@ -13,10 +13,9 @@ published baseline. They are not a complete reconstruction of older releases.
 - This widens the public Local App contract and requires Kit/native 0.9.0,
   Rust shell crates 0.5.0 and the matching Runtime. Custom carriers must retain
   optional user `parts`; older carriers cannot provide image support.
-- The Vercel AI SDK 6 adapter is prepared as the independent
+- The Vercel AI SDK 6 adapter uses the independent
   `@nimiplatform/sdk-adapter-vercel-ai` 0.1.0 package. Its Local App factory
   preserves tool loops and opaque continuity through framework message history.
-
 - Include the public App integration guide and these migration notes in the
   npm package, so consumers can discover the supported surfaces without a
   Nimi source checkout.

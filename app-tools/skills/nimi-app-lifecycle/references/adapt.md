@@ -16,6 +16,7 @@ Review the exact dependency, dev/renderer/pack script and workflow changes. Exis
 
 - Renderer code can use `createNimiClient` with Kit's `createNimiLocalAppStandardShellSurface`. Node business work uses `registerNimiElectronAppBridge(...).services` from the same protected Host, fixed app commands and session invalidation callbacks. Consult the installed SDK/Kit public types for exact inputs.
 - Keep the App's tool loop, IDs, ordered tool results and any opaque continuity needed in subsequent turns. An SDK model step does not run business callbacks.
+- For an existing Vercel AI SDK 6 App, use the matching independent `@nimiplatform/sdk-adapter-vercel-ai` package and its Host-bound Local App factory. Read its README for image upload and complete UI message metadata; keep `useChat`/`streamText` and App-owned tools instead of rebuilding their wire protocol inside the App.
 - Preserve Runtime-issued embedding space across batches; do not combine incompatible results. Carry cancellation and session invalidation into outstanding work and prevent late writes to a new session.
 - Local media helpers receive bounded business inputs and an explicit environment; they do not receive Nimi credentials or a generic protected forwarding endpoint.
 - Non-AI services, such as search engines, stay App-owned with honest setup requirements. Do not turn all external HTTP into an AI bypass finding.

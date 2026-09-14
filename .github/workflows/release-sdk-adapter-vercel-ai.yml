@@ -164,9 +164,9 @@ jobs:
         env:
           RELEASE_VERSION: ${{ needs.validate.outputs.version }}
           # npm requires a package to exist before configuring its trusted publisher.
-          # Only the first publication needs this temporary repository secret.
-          # Remove it after configuring this workflow as the package's publisher.
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_ADAPTER_BOOTSTRAP_TOKEN }}
+          # The repository bootstrap credential admits that initial publication.
+          # Once configured, npm prefers this workflow's independent OIDC identity.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_BOOTSTRAP_TOKEN }}
         run: |
           set -euo pipefail
           shopt -s nullglob

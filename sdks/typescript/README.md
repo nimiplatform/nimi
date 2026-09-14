@@ -64,6 +64,12 @@ The installed package's `exports` and `.d.ts` files define the exact callable
 surface. Framework adapters are separate packages; do not infer that an
 adapter is publicly available from a source-workspace directory.
 
+For Vercel AI SDK 6 Apps, `@nimiplatform/sdk-adapter-vercel-ai` 0.1.0 provides
+`createNimiLocalAppVercelLanguageModel({ ai: client.ai })` for `streamText` and
+the existing UI/tool-loop protocol. Read its package README before mapping
+images or conversation history; preserve text/tool provider metadata for opaque
+continuity. It uses SDK 0.13.0 and the matched Kit/native carrier above.
+
 Source and issue reporting: [nimiplatform/nimi](https://github.com/nimiplatform/nimi).
 Include the selected SDK, Kit, App Tools and Runtime versions, the actual App
 operation, expected/observed behavior, and a bounded reproduction.
