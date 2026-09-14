@@ -4,6 +4,8 @@
 
 It does not own GitHub publisher or repository truth, registry review/main, Runtime installed state, Desktop process state, or Nimi Access. Nimi Account and the private Nimi backend are not publisher credentials or App-release infrastructure.
 
+For your first public release, start with [Publishing on GitHub](#publishing-on-github), including the read-only repository-settings credential.
+
 ## AI development and existing projects
 
 The package includes one `skills/nimi-app-lifecycle/SKILL.md` with on-demand
@@ -200,10 +202,24 @@ Registry projects must be open source with an explicit license and reviewable re
 
 ## Publishing on GitHub
 
-Local development does not need a GitHub token. Publishing an App Release does.
-`nimi-app check --production` checks local inputs; the tag workflow checks the
-GitHub repository settings. Complete the one-time setup below before pushing a
-release tag.
+Before the first release, configure `NIMI_REPOSITORY_ADMIN_TOKEN` as an Actions
+secret in the App repository. It needs only **Administration: Read-only**, to
+check tag protection and Release immutability. Local App development does not
+need this credential.
+
+The built-in `GITHUB_TOKEN` has no Administration permission for the
+[repository immutability-settings API](https://docs.github.com/en/rest/repos/repos#check-if-immutable-releases-are-enabled-for-a-repository).
+That is why the current release preflight needs a separate credential. Actual
+Release uploads use GitHub's built-in token, and build attestations use OIDC.
+This secret is neither a Nimi login token nor Registry approval, and needs no
+repository write permission.
+
+Repository secrets are scoped to their repository: configuring another App,
+even under the same organization, does not configure this one. If you do not
+administer the repository, ask its maintainer to complete the setup below.
+
+`nimi-app check --production` checks local inputs; it does not inspect remote
+settings or secrets. Complete the following setup before pushing a release tag.
 
 ### 1. Configure the publisher repository
 

@@ -186,6 +186,13 @@ function printUsage() {
       '  nimi-app build [--dir path] [--target target-id] [--production] [--json]',
       '  nimi-app pack [--dir path] (--target target-id [--production] | --aggregate) [--json]',
       '',
+      'Publishing on GitHub:',
+      '  Before the first release, configure NIMI_REPOSITORY_ADMIN_TOKEN with Administration: Read-only.',
+      '  It checks tag protection and Release immutability; uploads use the built-in GitHub token.',
+      '  The built-in token lacks the Administration permission needed for this settings check.',
+      '  Local development does not need this credential. Setup:',
+      '  https://github.com/nimiplatform/nimi/blob/main/app-tools/README.md#publishing-on-github',
+      '',
       'Current module registry:',
       `  Admitted features: ${featureList(admitted)}`,
       `  Candidate features (not public-selectable): ${featureList(candidates)}`,
@@ -390,7 +397,8 @@ try {
         json,
       });
       if (production && !json) {
-        process.stdout.write('[nimi-app] Local checks do not verify GitHub repository settings or secrets. Before tagging, configure NIMI_REPOSITORY_ADMIN_TOKEN and release protection:\n');
+        process.stdout.write('[nimi-app] Local checks do not verify GitHub repository settings or secrets. Before tagging, configure NIMI_REPOSITORY_ADMIN_TOKEN (Administration: Read-only) to check tag protection and Release immutability:\n');
+        process.stdout.write('[nimi-app] Release uploads use the built-in GitHub token; it lacks the Administration permission needed for this settings check.\n');
         process.stdout.write('https://github.com/nimiplatform/nimi/blob/main/app-tools/README.md#publishing-on-github\n');
       }
       break;

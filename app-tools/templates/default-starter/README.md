@@ -38,6 +38,11 @@ Runtime, Realm, registry admission, installed state and process truth remain wit
 
 ## Publish with GitHub
 
+`NIMI_REPOSITORY_ADMIN_TOKEN` is only for reading tag-protection and Release
+immutability settings, with **Administration: Read-only** permission. The
+built-in GitHub token cannot read the Release immutability setting; it handles the
+actual Release upload. Local development does not need the extra token.
+
 Before pushing a release tag, complete these one-time repository steps:
 
 1. **Settings → General → Releases:** enable Release immutability.
