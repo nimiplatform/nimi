@@ -160,9 +160,13 @@ jobs:
         with:
           name: ${{ needs.validate.outputs.artifact_name }}
           path: dist/component-release/sdk-adapter-vercel-ai
-      - name: Publish or verify exact Vercel adapter package through npm OIDC
+      - name: Publish or verify exact Vercel adapter package with provenance
         env:
           RELEASE_VERSION: ${{ needs.validate.outputs.version }}
+          # npm requires a package to exist before configuring its trusted publisher.
+          # Only the first publication needs this temporary repository secret.
+          # Remove it after configuring this workflow as the package's publisher.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_ADAPTER_BOOTSTRAP_TOKEN }}
         run: |
           set -euo pipefail
           shopt -s nullglob
