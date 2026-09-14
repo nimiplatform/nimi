@@ -1,0 +1,2 @@
+# Preserve the reviewed source license bytes on every checkout platform.
+LICENSE -text

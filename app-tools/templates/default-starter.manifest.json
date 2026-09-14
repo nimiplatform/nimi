@@ -24,6 +24,10 @@
   ],
   "files": [
     {
+      "path": ".gitattributes",
+      "class": "scaffold-managed glue"
+    },
+    {
       "path": "AGENTS.md",
       "class": "app-owned product code"
     },
