@@ -302,6 +302,12 @@ repository while preserving its other attributes, and commit it before tagging.
 This prevents Windows checkout conversion from changing the license bytes that
 Registry verifies against the exact source tag.
 
+Electron packages keep native add-ons and their companion libraries outside ASAR
+with their relative layout intact. The scaffold uses
+`asar: { unpack: '**/*.{node,dylib,dll}' }` on Mac/Windows. Apply the equivalent rule
+to existing App-owned packagers and verify native loading from the packaged layout;
+unpacking only `.node` can leave Sharp's libvips unavailable to the OS loader.
+
 Run the existing local path from the App repository:
 
 ```bash
