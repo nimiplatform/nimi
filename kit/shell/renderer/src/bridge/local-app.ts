@@ -23,7 +23,7 @@ import type {
   NimiLocalAppTextTurnEvent as SdkLocalAppTextTurnEvent,
   NimiLocalAppTextOutputItem,
 } from '@nimiplatform/kit/core/sdk-contract';
-import { runtimeAIConfigStructToJson, validateNimiLocalAppTextInput, validateNimiLocalAppTextOutputItems } from '@nimiplatform/kit/core/sdk-contract';
+import { validateNimiLocalAppTextInput, validateNimiLocalAppTextOutputItems } from '@nimiplatform/kit/core/sdk-contract';
 import { BridgeError, invoke, invokeChecked } from './invoke.js';
 import { listenShell } from './tauri-api.js';
 import { assertRecord, parseRequiredString } from './types.js';
@@ -3343,12 +3343,10 @@ function parseCloudTargetResource(value: unknown, command: string): void {
   for (const key of ['implementationId', 'driverId', 'driverDialect'] as const) {
     requiredText(implementation[key], key, command, MAX_IDENTIFIER_LENGTH);
   }
-  const providerModelTarget = assertRecord(
+  // The native carrier already projects this resource's Struct into plain JSON.
+  assertRecord(
     resource.providerModelTarget,
     `${command}: Cloud provider-model target is invalid`,
-  );
-  resource.providerModelTarget = runtimeAIConfigStructToJson(
-    providerModelTarget as unknown as Parameters<typeof runtimeAIConfigStructToJson>[0],
   );
   if (!Array.isArray(resource.supportedFeatures) || !Array.isArray(resource.reasons)
     || !['ready', 'blocked'].includes(String(resource.state))) {

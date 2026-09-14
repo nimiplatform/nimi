@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   createNimiClient,
+  createNimiCloudAIConfigCapabilityIntent,
   createNimiLocalAIConfigCapabilityIntent,
   createNimiLocalAppAgentConfigureRuntimeShell,
   RuntimeReasonCode,
@@ -329,32 +330,46 @@ describe('renderer local-app standard-shell surface', () => {
     expect(JSON.stringify(invocations)).not.toContain('app.example');
   });
 
-  it('projects Cloud target options as JSON at the renderer boundary', async () => {
+  it('preserves native plain-JSON Cloud targets in options and committed snapshots', async () => {
+    const target = {
+      connectorRef: 'connector-deepseek',
+      label: 'deepseek-v4-flash',
+      capabilityContract: 'text.generate',
+      implementation: {
+        implementationId: 'deepseek',
+        driverId: 'nimillm',
+        driverDialect: 'deepseek',
+      },
+      providerModelTarget: {
+        provider: 'deepseek',
+        providerModelId: 'deepseek-v4-flash',
+        remoteModelCatalogId: 'catalog-deepseek-v4-flash',
+      },
+      supportedFeatures: [],
+      state: 'ready',
+      reasons: [],
+    };
+    const config = {
+      owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } },
+      capabilities: [createNimiCloudAIConfigCapabilityIntent(target)],
+    };
+    const snapshot = {
+      config,
+      revision: '2',
+      effectiveSelections: [{
+        capabilityContract: 'text.generate',
+        state: 'ready',
+        reasons: [],
+        resource: { oneofKind: 'cloud', cloud: {
+          connector: { connectorRef: target.connectorRef, label: 'DeepSeek', provider: 'deepseek', state: 'ready', reasons: [] },
+          target,
+        } },
+      }],
+    };
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
-      invoke: async () => ({
-        kind: 'cloud-targets',
-        options: [{
-          connectorRef: 'connector-deepseek',
-          label: 'deepseek-v4-flash',
-          capabilityContract: 'text.generate',
-          implementation: {
-            implementationId: 'deepseek',
-            driverId: 'nimillm',
-            driverDialect: 'deepseek',
-          },
-          providerModelTarget: {
-            fields: {
-              provider: { kind: { oneofKind: 'stringValue', stringValue: 'deepseek' } },
-              providerModelId: { kind: { oneofKind: 'stringValue', stringValue: 'deepseek-v4-flash' } },
-              remoteModelCatalogId: { kind: { oneofKind: 'stringValue', stringValue: 'catalog-deepseek-v4-flash' } },
-            },
-          },
-          supportedFeatures: [],
-          state: 'ready',
-          reasons: [],
-        }],
-        truncated: false,
-      }),
+      invoke: async (command: string) => structuredClone(command === 'nimi.shell.localApp.aiConfigGet'
+        ? snapshot
+        : { kind: 'cloud-targets', options: [target], truncated: false }),
       listen: () => () => {},
     };
 
@@ -369,6 +384,7 @@ describe('renderer local-app standard-shell surface', () => {
       providerModelId: 'deepseek-v4-flash',
       remoteModelCatalogId: 'catalog-deepseek-v4-flash',
     });
+    await expect(createNimiLocalAppStandardShellSurface().aiConfig.get()).resolves.toEqual(snapshot);
   });
 
   it('accepts canonical Local Loadout behaviors with Tool-Use-only fields omitted', async () => {

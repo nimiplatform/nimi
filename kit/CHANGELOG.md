@@ -2,6 +2,9 @@
 
 ## 0.9.0
 
+- Preserve native plain-JSON Cloud model targets in Local App AIConfig options
+  and committed snapshots, so model selection does not attempt a second
+  Protobuf Struct conversion.
 - Carry ordered user image URL and owned image Artifact parts through the
   existing Local App text-turn and text-generate operations. Requires SDK
   0.13.0, Rust shell crates 0.5.0 and the matching Runtime. Custom native
