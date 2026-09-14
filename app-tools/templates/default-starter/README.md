@@ -30,7 +30,7 @@ Before production, the public GitHub repository must enable a protected `v*` tag
 
 `pnpm dev` selects the official Desktop-supervised Electron development Host. Direct renderer, Electron or Tauri launch does not create protected Nimi access.
 
-The default `windows-x86_64` build creates a fresh non-installer Electron directory at `dist-electron-package/acme-widget-shell-win32-x64/`, with the App-specific `acme-widget-shell.exe`, unpacked renderer files (`asar: false`), and relative renderer assets. Its production bundle rejects `--nimi-dev-renderer-url`. The protected native binding arrives only through Kit's optional dependency; do not add it directly to this App.
+The default `windows-x86_64` build creates a fresh non-installer Electron directory at `dist-electron-package/acme-widget-shell-win32-x64/`, with the App-specific `acme-widget-shell.exe`, ASAR-packaged JavaScript and renderer assets, and unpacked native add-ons plus shared libraries (`**/*.{node,dylib,dll}`). Their relative layout is preserved for the OS loader. Its production bundle rejects `--nimi-dev-renderer-url`. The protected native binding arrives only through Kit's optional dependency; do not add it directly to this App.
 
 `pnpm run build:tauri:production` remains an explicit alternative for a deliberately selected Tauri build profile; it is not the default production carrier.
 
