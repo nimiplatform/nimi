@@ -24,6 +24,7 @@ export type ElectronLocalDevelopmentPlan = {
   readonly rendererOrigin: string;
   readonly electronExecutable: string;
   readonly mainEntry: string;
+  readonly hostSourceDirectory: string;
 };
 
 export type ElectronAIConfigAllowedRoute = 'local' | 'cloud';
@@ -49,15 +50,8 @@ export async function resolveElectronLocalDevelopmentPlan(
 
   const packagePath = within(projectRoot, path.join(projectRoot, 'package.json'));
   const packageDocument = record(JSON.parse(await readFile(packagePath, 'utf8')) as unknown);
-  const scripts = record(packageDocument.scripts);
-  if (scripts.dev !== 'nimi-app dev --shell electron'
-    || scripts['dev:shell'] !== 'nimi-app dev'
-    || scripts['dev:renderer'] !== `vite --host 127.0.0.1 --port ${new URL(rendererOrigin).port} --strictPort`
-    || typeof scripts['build:electron'] !== 'string'
-    || scripts['build:electron'].trim() !== scripts['build:electron']
-    || scripts['build:electron'].length === 0) {
-    fail('local-development-project-changed');
-  }
+  assertLocalDevelopmentPackageScripts(packageDocument.scripts);
+  const hostSourceDirectory = await resolveLocalDevelopmentHostSourceDirectory(projectRoot, electron.host_source_directory);
 
   const electronExecutable = process.platform === 'darwin'
     ? await canonicalFile(macOSLocalAppHostPath())
@@ -65,7 +59,45 @@ export async function resolveElectronLocalDevelopmentPlan(
       projectRoot, 'node_modules', 'electron', 'dist', 'electron.exe',
     )));
   const mainEntry = within(projectRoot, path.join(projectRoot, 'dist-electron', 'main.js'));
-  return { appId, displayName, aiConfigAllowedRoutes, projectRoot, rendererOrigin, electronExecutable, mainEntry };
+  return { appId, displayName, aiConfigAllowedRoutes, projectRoot, rendererOrigin, electronExecutable, mainEntry, hostSourceDirectory };
+}
+
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-008
+export async function resolveLocalDevelopmentHostSourceDirectory(projectRoot: string, value: unknown): Promise<string> {
+  const relative = value === undefined ? 'src-electron' : text(value);
+  if (/[\\:\r\n\0]/u.test(relative)
+    || relative.split('/').some((segment) => !segment || segment === '.' || segment === '..')) {
+    fail('local-development-host-source-unavailable');
+  }
+  const root = await realpath(projectRoot);
+  const source = await realpath(within(root, path.join(root, relative)))
+    .catch(() => fail('local-development-host-source-unavailable'));
+  const contained = path.relative(root, source);
+  if (!contained || contained === '..' || contained.startsWith(`..${path.sep}`) || path.isAbsolute(contained)
+    || !(await stat(source)).isDirectory()) fail('local-development-host-source-unavailable');
+  return source;
+}
+
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-008
+export function assertLocalDevelopmentPackageScripts(value: unknown): void {
+  const scripts = record(value);
+  if (scripts.dev !== 'nimi-app dev --shell electron'
+    || scripts['dev:shell'] !== 'nimi-app dev'
+    || !isRendererCommand(scripts['dev:renderer'])
+    || typeof scripts['build:electron'] !== 'string'
+    || scripts['build:electron'].trim() !== scripts['build:electron']
+    || scripts['build:electron'].length === 0) {
+    fail('local-development-project-changed');
+  }
+
+}
+
+// The renderer framework is App-owned; the supervisor verifies the declared
+// loopback endpoint and owns the process tree launched by this package script.
+function isRendererCommand(value: unknown): value is string {
+  return typeof value === 'string' && value.length > 0 && value.trim() === value
+    && !/[\r\n\0]/u.test(value)
+    && !/\b(?:nimi-app\s+dev|(?:pnpm|npm)\s+(?:run\s+)?(?:dev|dev:renderer))(?=\s|$)/u.test(value);
 }
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-004

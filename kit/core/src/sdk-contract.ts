@@ -87,7 +87,7 @@ export type {
   NimiLocalAppTextTurnInput,
   NimiLocalAppTextOutputItem,
 } from '@nimiplatform/sdk';
-export { validateNimiLocalAppTextInput, validateNimiLocalAppTextOutputItems } from '@nimiplatform/sdk/app';
+export { validateNimiLocalAppTextInput, validateNimiLocalAppTextOutputItems, validateNimiLocalAppReasoningContinuityCarrier } from '@nimiplatform/sdk/app';
 export {
   createNimiLocalAppAIConsumptionClient,
   createNimiLocalAppAIConfigClient,

@@ -1,5 +1,5 @@
 import type { NimiLocalAppAIConsumptionClient } from '../app/local-app-runtime-platform-ai';
-import { validateLocalAppTextInput, modelTextOutputToLocalApp, type NimiLocalAppTextTurnInput, type NimiLocalAppTextTurnItem } from '../app/local-app-text';
+import { validateLocalAppTextInput, modelTextOutputToLocalApp, isLocalAppTextImageMime, type NimiLocalAppTextPart, type NimiLocalAppTextTurnInput, type NimiLocalAppTextTurnItem } from '../app/local-app-text';
 import { assertExactKeys, localAppError } from '../app/local-app-runtime-platform-validation';
 import type { NimiRunEvent } from '../contracts';
 import { createNimiError } from '../../types';
@@ -27,6 +27,29 @@ function localInput(request: NimiGenerateTextRequest): NimiLocalAppTextTurnInput
       return { role: 'assistant' as const, text: '', turnItems: turnItems as readonly NimiLocalAppTextTurnItem[] };
     }
     if (message.role !== 'system' && message.role !== 'user') invalid('non-canonical assistant transcript');
+    if (message.content.some((part) => part?.type !== 'text')) {
+      if (message.role !== 'user') invalid('media outside a user message');
+      const parts = message.content.map((part): NimiLocalAppTextPart => {
+        if (part?.type === 'text') {
+          assertExactKeys(part, ['type', 'text'], 'Local App message part');
+          if (typeof part.text !== 'string') return invalid('text content');
+          return { type: 'text', text: part.text };
+        }
+        if (part?.type === 'file') {
+          assertExactKeys(part, ['type', 'mediaType', 'data', 'filename'], 'Local App image file');
+          if (typeof part.data !== 'string' || !isLocalAppTextImageMime(part.mediaType) || (part.filename !== undefined && typeof part.filename !== 'string')) return invalid('image file metadata');
+          return { type: 'image-url', url: part.data };
+        }
+        if (part?.type === 'artifact-ref') {
+          assertExactKeys(part, ['type', 'artifactId', 'localArtifactId', 'mediaType', 'displayName'], 'Local App image artifact');
+          if (part.localArtifactId !== undefined || typeof part.artifactId !== 'string' || !part.artifactId || !isLocalAppTextImageMime(part.mediaType)
+            || (part.displayName !== undefined && typeof part.displayName !== 'string')) return invalid('image artifact reference; use the App artifact upload result');
+          return { type: 'artifact-ref', artifactId: part.artifactId, mediaType: part.mediaType, ...(part.displayName === undefined ? {} : { displayName: part.displayName }) };
+        }
+        return invalid('non-image content');
+      });
+      return { role: 'user' as const, text: '', parts };
+    }
     const text = message.content.map((part) => {
       assertExactKeys(part, ['type', 'text'], 'Local App message part');
       if (part.type !== 'text' || typeof part.text !== 'string') invalid('non-text content');

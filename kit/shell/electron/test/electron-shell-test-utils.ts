@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { EventEmitter } from 'node:events';
 import { copyFile, mkdtemp, realpath, rename, rm, symlink } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -32,12 +33,12 @@ export function createInvokeEvent(origin = 'http://localhost:1430') {
   return {
     event: {
       senderFrame: { origin },
-      sender: {
+      sender: Object.assign(new EventEmitter(), {
         id: 1,
         send: (channel: string, payload: unknown) => {
           sent.push({ channel, payload });
         },
-      },
+      }),
     },
     sent,
   };

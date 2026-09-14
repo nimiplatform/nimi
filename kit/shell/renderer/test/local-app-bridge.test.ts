@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   createNimiClient,
+  createNimiCloudAIConfigCapabilityIntent,
   createNimiLocalAIConfigCapabilityIntent,
   createNimiLocalAppAgentConfigureRuntimeShell,
   RuntimeReasonCode,
@@ -42,7 +43,8 @@ describe('renderer local-app standard-shell surface', () => {
     const requests: unknown[] = [];
     let unlistenCalls = 0;
     const call = { id: 'call-1', name: 'search', arguments: { subject: 'trees', token: 'business data' } };
-    const output = { type: 'text-generate', items: [{ type: 'text', text: 'Looking up sources.' }, { type: 'tool-call', toolCall: call }], finishReason: 'tool-calls' };
+    const carrier = { kind: 'test.encrypted', version: 1, payload: [0, 127, 255] };
+    const output = { type: 'text-generate', items: [{ type: 'reasoning-continuity', carrier }, { type: 'text', text: 'Looking up sources.' }, { type: 'tool-call', toolCall: call }], finishReason: 'tool-calls' };
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
       invoke: async (command: string, input: { payload: { action?: string } }) => {
         requests.push([command, input.payload]);
@@ -63,9 +65,13 @@ describe('renderer local-app standard-shell surface', () => {
     const stream = await client.ai.text.streamTurn(input);
     const iterator = stream[Symbol.asyncIterator]();
     for (const event of [
-      { type: 'delta', sequence: '1', traceId: 'trace-1', itemIndex: 0, text: 'Looking up sources.' },
-      { type: 'tool-call', sequence: '2', traceId: 'trace-1', itemIndex: 1, toolCall: call },
-      { type: 'completed', sequence: '3', traceId: 'trace-1', finishReason: 'tool-calls' },
+      { type: 'reasoning-continuity', sequence: '1', traceId: 'trace-1', itemIndex: 0, carrier },
+      { type: 'delta', sequence: '2', traceId: 'trace-1', itemIndex: 1, text: 'Looking up' },
+      { type: 'delta', sequence: '3', traceId: 'trace-1', itemIndex: 1, text: ' ' },
+      { type: 'delta', sequence: '4', traceId: 'trace-1', itemIndex: 1, text: '\n' },
+      { type: 'delta', sequence: '5', traceId: 'trace-1', itemIndex: 1, text: 'sources.' },
+      { type: 'tool-call', sequence: '6', traceId: 'trace-1', itemIndex: 2, toolCall: call },
+      { type: 'completed', sequence: '7', traceId: 'trace-1', finishReason: 'tool-calls' },
     ]) {
       const next = iterator.next();
       emit!({ payload: { subscriptionId: 'text-1', eventType: 'next', event } });
@@ -79,6 +85,26 @@ describe('renderer local-app standard-shell surface', () => {
     ]);
     expect(requests).toHaveLength(2);
     expect(unlistenCalls).toBe(1);
+  });
+
+  it.each([{ text: '' }, { itemIndex: -1 }])('classifies malformed model events as output errors: %j', async (invalid) => {
+    let emit: ((event: { payload: unknown }) => void) | undefined;
+    let canceled = false;
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (_command: string, input: { payload: { action?: string } }) => {
+        if (input.payload.action === 'cancel') { canceled = true; return { subscriptionId: 'text-1', closed: true }; }
+        return { subscriptionId: 'text-1', eventName: 'text-events-1' };
+      },
+      listen: (_name: string, listener: typeof emit) => { emit = listener; return () => {}; },
+    };
+    const client = createNimiClient({ localApp: { standardShell: createNimiLocalAppStandardShellSurface() } });
+    const stream = await client.ai.text.streamTurn({ messages: [{ role: 'user', text: 'Draw a diagram.' }] });
+    const next = stream[Symbol.asyncIterator]().next();
+    emit!({ payload: { subscriptionId: 'text-1', eventType: 'next', event: {
+      type: 'delta', sequence: '1', traceId: 'trace-1', itemIndex: 0, text: 'Result', ...invalid,
+    } } });
+    await expect(next).rejects.toMatchObject({ reasonCode: 'renderer-standard-shell-result-invalid', source: 'renderer' });
+    expect(canceled).toBe(true);
   });
 
   it.each([false, true])('validates Realm event envelopes without losing their session fields (extra field: %s)', async (extraField) => {
@@ -329,32 +355,46 @@ describe('renderer local-app standard-shell surface', () => {
     expect(JSON.stringify(invocations)).not.toContain('app.example');
   });
 
-  it('projects Cloud target options as JSON at the renderer boundary', async () => {
+  it('preserves native plain-JSON Cloud targets in options and committed snapshots', async () => {
+    const target = {
+      connectorRef: 'connector-deepseek',
+      label: 'deepseek-v4-flash',
+      capabilityContract: 'text.generate',
+      implementation: {
+        implementationId: 'deepseek',
+        driverId: 'nimillm',
+        driverDialect: 'deepseek',
+      },
+      providerModelTarget: {
+        provider: 'deepseek',
+        providerModelId: 'deepseek-v4-flash',
+        remoteModelCatalogId: 'catalog-deepseek-v4-flash',
+      },
+      supportedFeatures: [],
+      state: 'ready',
+      reasons: [],
+    };
+    const config = {
+      owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } },
+      capabilities: [createNimiCloudAIConfigCapabilityIntent(target)],
+    };
+    const snapshot = {
+      config,
+      revision: '2',
+      effectiveSelections: [{
+        capabilityContract: 'text.generate',
+        state: 'ready',
+        reasons: [],
+        resource: { oneofKind: 'cloud', cloud: {
+          connector: { connectorRef: target.connectorRef, label: 'DeepSeek', provider: 'deepseek', state: 'ready', reasons: [] },
+          target,
+        } },
+      }],
+    };
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
-      invoke: async () => ({
-        kind: 'cloud-targets',
-        options: [{
-          connectorRef: 'connector-deepseek',
-          label: 'deepseek-v4-flash',
-          capabilityContract: 'text.generate',
-          implementation: {
-            implementationId: 'deepseek',
-            driverId: 'nimillm',
-            driverDialect: 'deepseek',
-          },
-          providerModelTarget: {
-            fields: {
-              provider: { kind: { oneofKind: 'stringValue', stringValue: 'deepseek' } },
-              providerModelId: { kind: { oneofKind: 'stringValue', stringValue: 'deepseek-v4-flash' } },
-              remoteModelCatalogId: { kind: { oneofKind: 'stringValue', stringValue: 'catalog-deepseek-v4-flash' } },
-            },
-          },
-          supportedFeatures: [],
-          state: 'ready',
-          reasons: [],
-        }],
-        truncated: false,
-      }),
+      invoke: async (command: string) => structuredClone(command === 'nimi.shell.localApp.aiConfigGet'
+        ? snapshot
+        : { kind: 'cloud-targets', options: [target], truncated: false }),
       listen: () => () => {},
     };
 
@@ -369,6 +409,7 @@ describe('renderer local-app standard-shell surface', () => {
       providerModelId: 'deepseek-v4-flash',
       remoteModelCatalogId: 'catalog-deepseek-v4-flash',
     });
+    await expect(createNimiLocalAppStandardShellSurface().aiConfig.get()).resolves.toEqual(snapshot);
   });
 
   it('accepts canonical Local Loadout behaviors with Tool-Use-only fields omitted', async () => {

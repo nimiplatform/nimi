@@ -1,4 +1,5 @@
 import { createDefaultRuntimeGrpcBridgeClient } from './grpc-client.js';
+import { createElectronLocalAppAssetStreamLifecycle } from './local-app-asset-stream-lifecycle.js';
 import {
   rendererOriginFromUrl,
   rendererUrlsEqualExact,
@@ -278,6 +279,7 @@ export function registerNimiElectronRuntimeBridge(
     });
   }
   const desktopStreams = new Map<string, RuntimeGrpcBridgeStream>();
+  const rendererAssetStreams = createElectronLocalAppAssetStreamLifecycle();
   const desktopUnaries = new Map<string, ActiveRuntimeUnary>();
   const bundledAvatarStreamsBySender = new Map<object, Map<string, RuntimeGrpcBridgeStream>>();
   const bundledAvatarUnariesBySender = new Map<object, Map<string, ActiveRuntimeUnary>>();
@@ -385,6 +387,8 @@ export function registerNimiElectronRuntimeBridge(
     const effectiveStandardShellHost = rendererProfile.standardShellHost;
     const envelope = asRecord(message, 'Electron Runtime bridge message must be an object');
     const command = normalizeRequiredToken(envelope.command, 'command');
+    const assetOpening = rendererProfile.standardShellHost?.localAppHost
+      ? rendererAssetStreams.capture(event.sender, command) : undefined;
     const payload = asRecord(envelope.payload ?? {}, 'Electron Runtime bridge command ' + command + ' payload must be an object');
     const commandHandler = rendererProfile.commandHandlers?.[command];
     const commandKind = classifyElectronHostCommand(command, Boolean(commandHandler));
@@ -493,15 +497,16 @@ export function registerNimiElectronRuntimeBridge(
       }));
     }
     if (effectiveStandardShellHost?.localAppHost && isElectronLocalAppCommand(command)) {
+      const localHost = effectiveStandardShellHost.localAppHost;
       return runDataRootOperation(async () => {
-        const result = await dispatchElectronLocalAppCommand({
-          host: effectiveStandardShellHost.localAppHost,
+        const result = await rendererAssetStreams.run(assetOpening, localHost, command, standardPayload, () => dispatchElectronLocalAppCommand({
+          host: localHost,
           payload: standardPayload,
           command,
           sendEvent: event.sender?.send
             ? (eventName, eventPayload) => event.sender?.send?.(`${eventChannelPrefix}${eventName}`, eventPayload)
             : undefined,
-        });
+        }));
         const mediaHost = effectiveStandardShellHost.localAppAssetMediaHost;
         if (mediaHost) {
           if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.assetRemove']) mediaHost.invalidatePath(String(standardPayload.relativePath));
@@ -639,6 +644,7 @@ export function registerNimiElectronRuntimeBridge(
         }
       : {}),
     unregister: () => {
+      rendererAssetStreams.dispose();
       input.ipcMain.removeHandler?.(invokeChannel);
       for (const stream of desktopStreams.values()) stream.cancel();
       cancelRuntimeUnaries(desktopUnaries, 'Electron Runtime bridge was unregistered during unary');

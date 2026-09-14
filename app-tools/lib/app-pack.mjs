@@ -27,6 +27,7 @@ const TARGET_METADATA_FORMAT = 'nimi.app-target-candidate/v1';
 const AGGREGATE_FORMAT = 'nimi.app-release-candidate/v1';
 const BUILD_PROFILE_PATH = '.nimi/config/build-profile.yaml';
 const ELECTRON_BUILD_PROFILE_REF = 'electron-packager-pnpm-vite';
+const APP_OWNED_ELECTRON_BUILD_PROFILE_REF = 'electron-pnpm';
 const TAURI_BUILD_PROFILE_REF = 'tauri-pnpm-vite';
 const OUTPUT_DIR = 'dist/nimi-app';
 const SEMVER_PATTERN = /^(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?(?:\+[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$/u;
@@ -282,7 +283,7 @@ function readPackInputs(targetDir, targetId) {
   const appInfo = readAppInfo(targetDir, targetId);
   const buildProfile = readYaml(path.join(targetDir, BUILD_PROFILE_PATH), BUILD_PROFILE_PATH);
   const buildProfileRef = buildProfile.build_profile_ref;
-  if (buildProfileRef !== ELECTRON_BUILD_PROFILE_REF && buildProfileRef !== TAURI_BUILD_PROFILE_REF) {
+  if (![ELECTRON_BUILD_PROFILE_REF, APP_OWNED_ELECTRON_BUILD_PROFILE_REF, TAURI_BUILD_PROFILE_REF].includes(buildProfileRef)) {
     throw new Error(`${BUILD_PROFILE_PATH} build_profile_ref is unsupported: ${String(buildProfileRef)}`);
   }
   const requiresTauri = buildProfileRef === TAURI_BUILD_PROFILE_REF;

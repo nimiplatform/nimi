@@ -15,7 +15,7 @@ repository. `nimi-app --help` prints its resolved location. Installation does
 not activate instructions; explicit init/sync maintains the project skill under
 `.agents/skills/nimi-app-lifecycle/` and an independent AGENTS.md block.
 
-Prepare the existing App's actual pnpm/Vite/Electron renderer, supervised Host
+Prepare the existing App's actual renderer, pnpm/Electron supervised Host
 and build/test scripts first. Init does not convert a server framework, invent
 tests or replace product UI. Install the selected app-tools and the exact
 nimi-coding version declared in its `nimiScaffoldVersions`, then preview:
@@ -42,7 +42,7 @@ For an App whose named scripts are already implemented, an input is:
     "local_development": { "electron": { "renderer_origin": "http://127.0.0.1:1466" } }
   },
   "build_profile": {
-    "build_profile_ref": "electron-packager-pnpm-vite", "profile_role": "developer-workflow-input",
+      "build_profile_ref": "electron-packager-pnpm-vite", "profile_role": "developer-workflow-input",
     "test_command": "pnpm run test:app", "build_command": "pnpm run build:electron:production",
     "targets": {
       "windows-x86_64": {
@@ -61,6 +61,26 @@ file. Unknown managed-file collisions and broken markers fail before writes;
 existing Host, business code, README and license remain App-owned. Adoption
 creates no fresh scaffold intent/lock. Init validates output declarations;
 build/pack later verify actual payloads.
+
+An existing Next.js or other renderer can use `build_profile_ref: electron-pnpm`
+with its real test/build commands and target outputs. Declare `dev:renderer` in
+`package.json`, for example `next dev --hostname 127.0.0.1 --port 1466`, matching
+the manifest's loopback origin. Init/sync preserve the command for this profile. The App
+owns the renderer and any required local backend; `build:electron` produces the
+supervised Host at `dist-electron/main.js`. Fresh scaffolds keep their generated
+Vite recipe and existing `electron-packager-pnpm-vite` profiles remain supported.
+When Host sources are outside `src-electron`, declare their existing relative
+directory as `local_development.electron.host_source_directory` in `nimi.app.yaml`
+(for example `electron`). Desktop validates that directory before launch and
+watches it for Host rebuilds; init/sync preserve this App-owned declaration.
+Real development requires a Desktop version that accepts App-owned renderer
+commands; older Desktop versions enforcing Vite reject this project even after
+app-tools validation passes. Do not introduce a Vite placeholder to bypass it.
+
+Use the selected package's `nimiScaffoldVersions` declarations in `package.json`
+and commit the matching lockfile to pin resolved versions. A matrix range in the
+manifest does not require an automatic upgrade; install with the frozen lockfile
+until deliberately selecting and synchronizing a new component combination.
 
 `init --dry-run --json` and `sync --dry-run --json` show app-tools file/field
 changes without writes, installation or owner mutation. The separate
@@ -138,6 +158,15 @@ pnpm dev
 ```
 
 `dev` uses the Desktop supervisor. Direct Electron, Tauri or renderer launch cannot claim protected Nimi access. Process running and Nimi Access ready remain separate states.
+
+Every `build`, including non-production builds, requires the selected target's
+declared payload and exact Runtime entry to exist after its owner command exits
+successfully. Building a macOS payload cannot report success for a missing
+Windows target. The default recipes build for their host platform; use the
+matching build host or provide a real App-owned build command. This file check
+does not prove executable architecture or signing: production App information
+is checked with `--production`, and native package facts are verified by
+`pack --production`.
 
 To continue an existing development App and its data, select a registration explicitly:
 

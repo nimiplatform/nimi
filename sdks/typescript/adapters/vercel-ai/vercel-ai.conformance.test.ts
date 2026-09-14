@@ -71,7 +71,7 @@ function mockNimiModel(steps: MockStep | readonly MockStep[]): MockNimiModel {
     usage: step.usage ?? DEFAULT_USAGE,
     toolCalls: step.toolCalls,
     warnings: step.warnings,
-    ...(step.reasoning ? { raw: { reasoning: step.reasoning } } : {}),
+    outputItems: [...(step.reasoning ? [{ type: 'reasoning-summary' as const, text: step.reasoning }] : []), ...(step.text ? [{ type: 'text' as const, text: step.text }] : []), ...(step.toolCalls ?? []).map(toolCall => ({ type: 'tool-call' as const, toolCall }))],
   });
 
   const model: NimiAiModel = {
@@ -88,13 +88,14 @@ function mockNimiModel(steps: MockStep | readonly MockStep[]): MockNimiModel {
       streamIndex += 1;
       yield { type: 'start', model: modelRef };
       if (step.reasoning) {
-        yield { type: 'reasoning-delta', text: step.reasoning };
+        yield { type: 'reasoning-summary-delta', text: step.reasoning, itemIndex: 0, itemCompleted: true };
       }
       for (const chunk of chunkText(step.text ?? '')) {
-        yield { type: 'text-delta', text: chunk };
+        yield { type: 'text-delta', text: chunk, itemIndex: step.reasoning ? 1 : 0 };
       }
+      let itemIndex = (step.reasoning ? 1 : 0) + (step.text ? 1 : 0);
       for (const toolCall of step.toolCalls ?? []) {
-        yield { type: 'tool-call', toolCall };
+        yield { type: 'tool-call', toolCall, itemIndex: itemIndex++ };
       }
       yield { type: 'done', finishReason: stepFinishReason(step), usage: step.usage ?? DEFAULT_USAGE };
     },
@@ -230,14 +231,13 @@ test('conformance/generateText: multi-step threads tool result back into the mod
 
   const secondCall = calls[1];
   assert.ok(secondCall, 'expected a second model call');
-  const assistant = secondCall.messages.find((message) => message.role === 'assistant' && (message.toolCalls?.length ?? 0) > 0);
-  assert.equal(assistant?.toolCalls?.[0]?.name, 'weather');
+  const assistant = secondCall.messages.find((message) => message.role === 'assistant');
+  const callItem = assistant?.turnItems?.find(item => item.type === 'output' && item.output.type === 'tool-call');
+  assert.equal(callItem?.type === 'output' && callItem.output.type === 'tool-call' ? callItem.output.toolCall.name : '', 'weather');
   const toolMessage = secondCall.messages.find((message) => message.role === 'tool');
-  assert.equal(toolMessage?.toolCallId, 'call-1');
-  assert.ok(
-    toolMessage?.content.some((part) => part.type === 'text' && part.text.includes('sunny in Paris')),
-    'tool result text must be threaded back to the model',
-  );
+  const resultItem = toolMessage?.turnItems?.[0];
+  assert.equal(resultItem?.type === 'tool-result' ? resultItem.toolResult.toolCallId : '', 'call-1');
+  assert.equal(resultItem?.type === 'tool-result' ? resultItem.toolResult.result : '', 'sunny in Paris');
 });
 
 test('conformance/generateText: maps required tool choice into the Nimi request', async () => {
@@ -256,20 +256,10 @@ test('conformance/generateText: maps required tool choice into the Nimi request'
   assert.equal(calls[0]?.toolChoice, 'required');
 });
 
-test('conformance/generateText: projects providerOptions into request metadata', async () => {
-  const { model, calls } = mockNimiModel({ text: 'ok' });
-  await generateText({
-    model: createNimiVercelLanguageModel({ model }),
-    prompt: 'hi',
-    providerOptions: { nimi: { correlation: 'upstream-test' } },
-  });
-
-  const encodedMetadata = calls[0]?.parameters?.metadata?.[VERCEL_AI_METADATA_KEY];
-  const metadata = JSON.parse(String(encodedMetadata ?? '{}')) as { providerOptions?: unknown; headers?: unknown };
-  assert.deepEqual(metadata.providerOptions, { nimi: { correlation: 'upstream-test' } });
-  if (metadata.headers !== undefined) {
-    assert.equal(typeof metadata.headers, 'object');
-  }
+test('conformance/generateText: rejects provider options before model invocation', async () => {
+  const { model, calls } = mockNimiModel({ text: 'unused' });
+  await assert.rejects(generateText({ model: createNimiVercelLanguageModel({ model }), prompt: 'q', providerOptions: { nimi: { correlation: 'unsupported' } } }), /providerOptions/);
+  assert.equal(calls.length, 0);
 });
 
 // ---------------------------------------------------------------------------

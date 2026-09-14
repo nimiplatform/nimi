@@ -83,11 +83,33 @@ func CodexTextBehaviorRequestSerializer(spec *runtimev1.TextGenerateScenarioSpec
 		}
 		var text strings.Builder
 		text.WriteString(message.Content)
+		content := make([]map[string]any, 0, len(message.Parts))
+		hasImage := false
 		for _, part := range message.Parts {
-			if part.GetType() != runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT {
+			if part == nil {
+				return textbehavior.SerializedRequest{}, codexInput("nil content part")
+			}
+			switch part.GetType() {
+			case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT:
+				if _, ok := part.GetContent().(*runtimev1.ChatContentPart_Text); !ok {
+					return textbehavior.SerializedRequest{}, codexInput("text content part")
+				}
+				text.WriteString(part.GetText())
+				content = append(content, map[string]any{"type": "input_text", "text": part.GetText()})
+			case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL:
+				image := part.GetImageUrl()
+				if message.Role != "user" || image == nil || strings.TrimSpace(image.GetUrl()) == "" {
+					return textbehavior.SerializedRequest{}, codexInput("user image content part")
+				}
+				item := map[string]any{"type": "input_image", "image_url": image.GetUrl()}
+				if image.GetDetail() != "" {
+					item["detail"] = image.GetDetail()
+				}
+				content = append(content, item)
+				hasImage = true
+			default:
 				return textbehavior.SerializedRequest{}, codexUnsupported("non-text input")
 			}
-			text.WriteString(part.GetText())
 		}
 		if message.Role == "system" {
 			instructions = append(instructions, text.String())
@@ -96,7 +118,11 @@ func CodexTextBehaviorRequestSerializer(spec *runtimev1.TextGenerateScenarioSpec
 		if message.Role != "user" && message.Role != "assistant" {
 			return textbehavior.SerializedRequest{}, codexInput("message role")
 		}
-		input = append(input, map[string]any{"role": message.Role, "content": text.String()})
+		if hasImage {
+			input = append(input, map[string]any{"role": message.Role, "content": content})
+		} else {
+			input = append(input, map[string]any{"role": message.Role, "content": text.String()})
+		}
 	}
 	if len(input) == 0 {
 		return textbehavior.SerializedRequest{}, codexInput("empty input")

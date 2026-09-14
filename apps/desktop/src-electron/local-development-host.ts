@@ -688,10 +688,10 @@ export class ElectronLocalDevelopmentHost {
       await assertLocalDevelopmentRendererOriginAvailable(run.plan.rendererOrigin);
       run.renderer = this.spawnPackageScript(run, 'dev:renderer');
       await waitForRenderer(run.plan.rendererOrigin, run.renderer, () => run.stopped);
+      const electronSourceRoot = run.plan.hostSourceDirectory;
+      run.electronSourceFingerprint = await captureLocalDevelopmentElectronSourceFingerprint(electronSourceRoot);
       await this.launchHost(run);
       if (run.stopped) return;
-      const electronSourceRoot = path.join(run.plan.projectRoot, 'src-electron');
-      run.electronSourceFingerprint = await captureLocalDevelopmentElectronSourceFingerprint(electronSourceRoot);
       run.watcher = watch(electronSourceRoot, { recursive: true }, () => {
         if (run.stopped) return;
         run.rebuildRequested = true;
@@ -731,10 +731,10 @@ export class ElectronLocalDevelopmentHost {
       do {
         run.rebuildRequested = false;
         const electronSourceFingerprint = await captureLocalDevelopmentElectronSourceFingerprint(
-          path.join(run.plan.projectRoot, 'src-electron'),
+          run.plan.hostSourceDirectory,
         );
         if (electronSourceFingerprint === run.electronSourceFingerprint) {
-          appendLog(run, 'supervisor', 'ignored metadata-only src-electron watch event');
+          appendLog(run, 'supervisor', 'ignored metadata-only Electron source watch event');
           continue;
         }
         setRunState(run, 'restarting', 'Rebuilding Electron main and preload', undefined, true);

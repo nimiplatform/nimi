@@ -5758,6 +5758,10 @@ pub struct LocalAppTextCandidateMessage {
     /// text.generate execute variant. The narrow candidate operation rejects it.
     #[prost(message, repeated, tag = "3")]
     pub turn_items: ::prost::alloc::vec::Vec<TextTurnItem>,
+    /// User text/image parts are admitted only by text-turn and text.generate
+    /// execute. They are exclusive with text and turn_items; candidate rejects them.
+    #[prost(message, repeated, tag = "4")]
+    pub parts: ::prost::alloc::vec::Vec<ChatContentPart>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GenerateLocalAppTextCandidateRequest {

@@ -13,12 +13,14 @@ and fail closed; publishing a D2 artifact does not change that service boundary.
 The addon exposes exact Local App operations, including:
 
 - session status and renewal;
-- read-only App AIConfig;
-- text candidate generation;
+- App AIConfig reads and revision-checked configuration;
+- narrow text candidate generation, and model turns with tools, structured
+  output, ordered continuity and user image parts;
 - Realm world-core list and create;
 - App storage read, write, and remove;
 - session-scoped Agent reference listing; and
-- typed text-only Conversation open, send, interrupt, snapshot, and stream lifecycle;
+- typed Conversation open, send, attachments, interrupt, snapshot, and stream lifecycle;
+- App-owned Artifact upload and reads;
 - bounded `agent.local` embodiment snapshot and ordered stream lifecycle;
 - shared LocalAgent-subsystem AIConfig read and overwrite; and
 - Agent autonomy snapshot/update and presentation snapshot/commit with independent revision CAS.
@@ -27,8 +29,10 @@ Runtime derives the App AIConfig owner and every Agent authority input from the
 authenticated Local App process binding. Agent operations accept only opaque
 session-scoped handles and typed configuration inputs. The shared AIConfig
 surface carries no Agent handle, while presentation commit returns the bounded
-previous profile needed for restore. The addon exposes no AI profile mutation,
-Artifact, or generic messaging surface.
+previous profile needed for restore. Image model inputs use HTTP(S) URLs or
+owned Artifact references, not inline data URLs or local paths. Runtime checks
+the current protected App owner before reading an Artifact. These are exact
+purpose-specific methods, never a generic Runtime or messaging proxy.
 Embodiment results carry only Runtime-owned activity, emotion, semantic
 posture, provenance, and bounded voice-timing correlation; renderer motion,
 lipsync, audio clock, replay, and backend diagnostics are not native exports.

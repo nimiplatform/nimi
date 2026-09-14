@@ -785,6 +785,9 @@ message LocalAppTextCandidateMessage {
   // Ordered assistant transcript is admitted only by text-turn and the
   // text.generate execute variant. The narrow candidate operation rejects it.
   repeated TextTurnItem turn_items = 3;
+  // User text/image parts are admitted only by text-turn and text.generate
+  // execute. They are exclusive with text and turn_items; candidate rejects them.
+  repeated ChatContentPart parts = 4;
 }
 
 message GenerateLocalAppTextCandidateRequest {

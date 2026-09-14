@@ -136,7 +136,7 @@ func validateLocalAppTextCandidateFields(
 	totalBytes := 0
 	seenUser := false
 	for _, message := range messages {
-		if message == nil || len(message.GetTurnItems()) != 0 {
+		if message == nil || len(message.GetTurnItems()) != 0 || len(message.GetParts()) != 0 {
 			return "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		}
 		role := message.GetRole()

@@ -845,6 +845,7 @@ fn native_text_turn_request(
                 role: message.role,
                 text: message.text,
                 turn_items: message.turn_items.unwrap_or_default(),
+                parts: message.parts.unwrap_or_default(),
             })
             .collect(),
         temperature: input.temperature.map(|value| value as f32),
@@ -2469,6 +2470,7 @@ mod session_rebind_tests {
                 role: "user".to_string(),
                 text: "hello".to_string(),
                 turn_items: None,
+                parts: None,
             }],
             temperature: Some(0.0),
             top_p: None,

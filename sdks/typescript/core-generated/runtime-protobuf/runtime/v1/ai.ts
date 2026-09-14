@@ -1815,6 +1815,13 @@ export interface LocalAppTextCandidateMessage {
      * @generated from protobuf field: repeated nimi.runtime.v1.TextTurnItem turn_items = 3
      */
     turnItems: TextTurnItem[];
+    /**
+     * User text/image parts are admitted only by text-turn and text.generate
+     * execute. They are exclusive with text and turn_items; candidate rejects them.
+     *
+     * @generated from protobuf field: repeated nimi.runtime.v1.ChatContentPart parts = 4
+     */
+    parts: ChatContentPart[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.GenerateLocalAppTextCandidateRequest
@@ -9688,7 +9695,8 @@ class LocalAppTextCandidateMessage$Type extends MessageType<LocalAppTextCandidat
         super("nimi.runtime.v1.LocalAppTextCandidateMessage", [
             { no: 1, name: "role", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "turn_items", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => TextTurnItem }
+            { no: 3, name: "turn_items", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => TextTurnItem },
+            { no: 4, name: "parts", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ChatContentPart }
         ]);
     }
     create(value?: PartialMessage<LocalAppTextCandidateMessage>): LocalAppTextCandidateMessage {
@@ -9696,6 +9704,7 @@ class LocalAppTextCandidateMessage$Type extends MessageType<LocalAppTextCandidat
         message.role = "";
         message.text = "";
         message.turnItems = [];
+        message.parts = [];
         if (value !== undefined)
             reflectionMergePartial<LocalAppTextCandidateMessage>(this, message, value);
         return message;
@@ -9713,6 +9722,9 @@ class LocalAppTextCandidateMessage$Type extends MessageType<LocalAppTextCandidat
                     break;
                 case /* repeated nimi.runtime.v1.TextTurnItem turn_items */ 3:
                     message.turnItems.push(TextTurnItem.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated nimi.runtime.v1.ChatContentPart parts */ 4:
+                    message.parts.push(ChatContentPart.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -9735,6 +9747,9 @@ class LocalAppTextCandidateMessage$Type extends MessageType<LocalAppTextCandidat
         /* repeated nimi.runtime.v1.TextTurnItem turn_items = 3; */
         for (let i = 0; i < message.turnItems.length; i++)
             TextTurnItem.internalBinaryWrite(message.turnItems[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.ChatContentPart parts = 4; */
+        for (let i = 0; i < message.parts.length; i++)
+            ChatContentPart.internalBinaryWrite(message.parts[i], writer.tag(4, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

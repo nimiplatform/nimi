@@ -352,6 +352,8 @@ pub struct LocalAppTextMessage {
     pub text: String,
     #[serde(default)]
     pub turn_items: Vec<JsonValue>,
+    #[serde(default)]
+    pub parts: Vec<JsonValue>,
 }
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]

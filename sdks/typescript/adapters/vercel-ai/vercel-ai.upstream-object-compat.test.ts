@@ -30,7 +30,7 @@ test('upstream-compat/generateObject: repairs invalid JSON through Vercel repair
   assert.equal(repairs.length, 1);
 });
 
-test('upstream-compat/generateObject: throws NoObjectGeneratedError when text is absent', async () => {
+test('upstream-compat/generateObject: preserves the missing-primary-output failure', async () => {
   const { model } = createUpstreamCompatModel({ text: '' });
 
   await assert.rejects(
@@ -43,7 +43,7 @@ test('upstream-compat/generateObject: throws NoObjectGeneratedError when text is
       }),
       prompt: 'no object',
     }),
-    (error) => NoObjectGeneratedError.isInstance(error),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_ADAPTER_TRANSCRIPT_INVALID',
   );
 });
 

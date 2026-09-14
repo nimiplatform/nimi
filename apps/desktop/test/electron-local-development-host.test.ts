@@ -70,6 +70,7 @@ function plan(): ElectronLocalDevelopmentPlan {
     rendererOrigin: 'http://127.0.0.1:1420',
     electronExecutable: '/runtime/electron',
     mainEntry: '/projects/example/dist/main.js',
+    hostSourceDirectory: '/projects/example/src-electron',
   };
 }
 
@@ -952,12 +953,12 @@ describe('Desktop Electron local-development registration host', () => {
   it('waits for an in-flight health refresh before rebuilding the Host', async () => {
     const projectRoot = await mkdtemp(path.join(os.tmpdir(), 'nimi-rebuild-test-'));
     try {
-      const sourceRoot = path.join(projectRoot, 'src-electron');
+      const sourceRoot = path.join(projectRoot, 'electron');
       await mkdir(sourceRoot);
       await writeFile(path.join(sourceRoot, 'main.ts'), 'export const generation = 2;\n', 'utf8');
       const host = new ElectronLocalDevelopmentHost(control(), '/tmp');
       const run = activeRun();
-      run.plan = { ...run.plan, projectRoot };
+      run.plan = { ...run.plan, projectRoot, hostSourceDirectory: sourceRoot };
       run.renderer = {};
       run.electronSourceFingerprint = 'previous-source';
       const order: string[] = [];

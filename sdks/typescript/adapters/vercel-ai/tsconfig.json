@@ -19,7 +19,8 @@
     "mappers.ts",
     "manifest.ts",
     "vercel-ai.example.ts",
-    "vercel-ai.test.ts"
+    "vercel-ai.test.ts",
+    "vercel-ai.local-app.test.ts"
   ],
   "exclude": [
     "dist"

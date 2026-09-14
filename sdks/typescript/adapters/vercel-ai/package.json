@@ -1,7 +1,7 @@
 {
   "name": "@nimiplatform/sdk-adapter-vercel-ai",
-  "version": "0.0.0-vnext.0",
-  "private": true,
+  "version": "0.1.0",
+  "private": false,
   "license": "Apache-2.0",
   "type": "module",
   "repository": {
@@ -17,11 +17,13 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "peerDependencies": {
     "@ai-sdk/provider": "^3.0.0",
-    "@nimiplatform/sdk": "^0.8.0",
+    "@nimiplatform/sdk": "^0.13.0",
     "ai": "^6.0.0"
   },
   "devDependencies": {
@@ -37,12 +39,16 @@
     "build": "node ../../../../scripts/with-workspace-surfaces.mjs -- pnpm run build:prepared",
     "build:prepared": "node ../../../../scripts/build-typescript-package.mjs --tsconfig tsconfig.build.json --out-dir dist",
     "lint": "pnpm exec tsc -p tsconfig.json",
-    "test": "pnpm exec tsx --test vercel-ai.test.ts",
+    "test": "pnpm exec tsx --test vercel-ai.test.ts vercel-ai.upstream-compat.test.ts",
     "test:upstream": "pnpm exec tsx --test vercel-ai.upstream-compat.test.ts"
   },
   "nimi": {
     "adapterId": "vercel-ai",
     "targetPackage": "@nimiplatform/sdk-adapter-vercel-ai",
     "basePackage": "@nimiplatform/sdk"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }

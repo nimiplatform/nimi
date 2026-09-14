@@ -26,7 +26,7 @@ jobs:
           COMPONENT: ${{ inputs.component }}
         run: |
           case "$COMPONENT" in
-            sdk|kit|app-tools|protected-local|tauri|macos-production) ;;
+            sdk|kit|app-tools|sdk-adapter-vercel-ai|protected-local|tauri|macos-production) ;;
             *) echo "Unsupported release component" >&2; exit 1 ;;
           esac
       - uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8

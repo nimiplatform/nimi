@@ -348,6 +348,94 @@ test('raw adoption previews without writes, keeps product ownership and repeats 
   } finally { rmSync(temp, { recursive: true, force: true }); }
 });
 
+test('existing Next adoption and sync preserve the App renderer and production owners without Vite', () => {
+  const temp = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-next-adopt-'));
+  try {
+    const target = writeExistingSubmittedApp(temp, { buildProfileRef: 'electron-pnpm' });
+    const input = rawAppInput(target);
+    const inputDocument = JSON.parse(readFileSync(input, 'utf8'));
+    inputDocument.manifest.local_development.electron.host_source_directory = 'electron';
+    writeFileSync(input, JSON.stringify(inputDocument));
+    mkdirSync(path.join(target, 'electron'));
+    writeFileSync(path.join(target, 'electron/main.ts'), 'export const host = "existing";\n');
+    rmSync(path.join(target, 'vite.config.ts'));
+    rmSync(path.join(target, 'index.html'));
+    const packagePath = path.join(target, 'package.json');
+    const pkg = JSON.parse(readFileSync(packagePath, 'utf8'));
+    pkg.scripts['dev:renderer'] = 'next dev --hostname 127.0.0.1 --port 1430';
+    pkg.scripts.build = 'next build';
+    delete pkg.devDependencies.vite;
+    pkg.dependencies.next = '^16.0.7';
+    writeFileSync(packagePath, JSON.stringify(pkg));
+    mkdirSync(path.join(target, 'app/api/example'), { recursive: true });
+    const source = 'export const GET = () => Response.json({ example: true });\n';
+    writeFileSync(path.join(target, 'app/api/example/route.ts'), source);
+    mkdirSync(path.join(target, 'public/editor'), { recursive: true });
+    mkdirSync(path.join(target, 'packages/mcp/src'), { recursive: true });
+    const vendor = 'export const endpoint = "https://api.openai.com/v1/chat/completions";\n';
+    writeFileSync(path.join(target, 'public/editor/editor.js'), vendor);
+    writeFileSync(path.join(target, 'packages/mcp/src/server.ts'), 'fetch("/api/state");\n');
+    const env = fakeNimicodingEnv(temp);
+    const before = snapshotTree(target);
+    let result = runCli(['init', '--adopt', '--input', input, '--dry-run', '--json'], target, env);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.deepEqual(snapshotTree(target), before);
+    result = runCli(['init', '--adopt', '--input', input, '--json'], target, env);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    writePublicRegistryLock(target);
+    result = runCli(['check', '--json'], target, env);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    result = runCli(['sync', '--json'], target, env);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.deepEqual(JSON.parse(result.stdout).changes, []);
+    const actual = JSON.parse(readFileSync(packagePath, 'utf8'));
+    assert.equal(actual.scripts['dev:renderer'], pkg.scripts['dev:renderer']);
+    assert.equal(actual.scripts.build, 'next build');
+    assert.equal(parseYaml(readFileSync(path.join(target, 'nimi.app.yaml'), 'utf8')).local_development.electron.host_source_directory, 'electron');
+    assert.equal(actual.devDependencies.vite, undefined);
+    assert.equal(existsSync(path.join(target, 'vite.config.ts')), false);
+    assert.equal(existsSync(path.join(target, SCAFFOLD_LOCK_PATH)), false);
+    assert.equal(readFileSync(path.join(target, 'app/api/example/route.ts'), 'utf8'), source);
+    assert.equal(readFileSync(path.join(target, 'public/editor/editor.js'), 'utf8'), vendor);
+  } finally { rmSync(temp, { recursive: true, force: true }); }
+});
+
+test('adoption rejects an invalid or missing declared Host source directory before writes', () => {
+  for (const sourceDirectory of ['../outside', '/absolute', 'missing', 'electron\\main']) {
+    const temp = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-host-source-'));
+    try {
+      const target = writeExistingSubmittedApp(temp, { buildProfileRef: 'electron-pnpm' });
+      const manifestPath = path.join(target, 'nimi.app.yaml');
+      const manifest = parseYaml(readFileSync(manifestPath, 'utf8'));
+      manifest.local_development.electron.host_source_directory = sourceDirectory;
+      writeFileSync(manifestPath, stringifyYaml(manifest));
+      const before = snapshotTree(target);
+      const result = runCli(['init', '--adopt', '--json'], target, fakeNimicodingEnv(temp));
+      assert.notEqual(result.status, 0);
+      assert.match(jsonErrorMessage(result), /host_source_directory/);
+      assert.deepEqual(snapshotTree(target), before);
+    } finally { rmSync(temp, { recursive: true, force: true }); }
+  }
+});
+
+test('framework-neutral adoption needs a real non-recursive renderer command before any writes', () => {
+  for (const command of [undefined, '', 'pnpm run dev:renderer', 'nimi-app dev']) {
+    const temp = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-renderer-adopt-'));
+    try {
+      const target = writeExistingSubmittedApp(temp, { buildProfileRef: 'electron-pnpm' });
+      const packagePath = path.join(target, 'package.json');
+      const pkg = JSON.parse(readFileSync(packagePath, 'utf8'));
+      pkg.scripts['dev:renderer'] = command;
+      writeFileSync(packagePath, JSON.stringify(pkg));
+      const before = snapshotTree(target);
+      const result = runCli(['init', '--adopt', '--json'], target, fakeNimicodingEnv(temp));
+      assert.notEqual(result.status, 0);
+      assert.match(jsonErrorMessage(result), /dev:renderer/);
+      assert.deepEqual(snapshotTree(target), before);
+    } finally { rmSync(temp, { recursive: true, force: true }); }
+  }
+});
+
 test('adoption rejects conflicting input or unknown managed files before owner writes', () => {
   const temp = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-adopt-conflicts-'));
   try {
@@ -719,6 +807,11 @@ test('test and build dispatch only the App-declared owner commands', () => {
     assert.equal(testPayload.command, 'test');
     assert.match(testPayload.stdout, /owner test ran/u);
 
+    const missing = runCli(['build', '--dir', target, '--target', 'windows-x86_64', '--json'], tempRoot, process.env);
+    assert.notEqual(missing.status, 0);
+    assert.match(jsonErrorMessage(missing), /Build payload is missing/);
+    mkdirSync(path.join(target, 'build/windows'), { recursive: true });
+    writeFileSync(path.join(target, 'build/windows/focused-existing.exe'), 'declared owner output');
     const buildResult = runCli(['build', '--dir', target, '--target', 'windows-x86_64', '--json'], tempRoot, process.env);
     assert.equal(buildResult.status, 0, buildResult.stderr);
     const buildPayload = JSON.parse(buildResult.stdout);
@@ -726,9 +819,10 @@ test('test and build dispatch only the App-declared owner commands', () => {
     assert.equal(buildPayload.target, 'windows-x86_64');
     assert.match(buildPayload.stdout, /owner build ran/u);
 
+    rmSync(path.join(target, 'build/windows'), { recursive: true });
     const productionResult = runCli(['build', '--dir', target, '--target', 'windows-x86_64', '--production', '--json'], tempRoot, process.env);
     assert.notEqual(productionResult.status, 0);
-    assert.match(jsonErrorMessage(productionResult), /Production payload is missing or noncanonical/u);
+    assert.match(jsonErrorMessage(productionResult), /Build payload is missing or noncanonical/u);
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });
   }
@@ -763,7 +857,7 @@ test('production build validates the exact Runtime entry without signing or cert
       'build', '--dir', target, '--target', 'windows-x86_64', '--production', '--json',
     ], tempRoot, env);
     assert.notEqual(missingExactEntry.status, 0);
-    assert.match(jsonErrorMessage(missingExactEntry), /Production Runtime entry is missing or noncanonical/u);
+    assert.match(jsonErrorMessage(missingExactEntry), /Build Runtime entry is missing or noncanonical/u);
 
     const signingOwnerSources = [
       readFileSync(path.join(appToolsRoot, 'lib', 'app-project-lifecycle.mjs'), 'utf8'),

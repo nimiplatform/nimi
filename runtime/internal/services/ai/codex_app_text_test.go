@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -15,6 +16,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -55,6 +57,60 @@ func writeCodexAppResponse(t *testing.T, w http.ResponseWriter, output []map[str
 	}
 	if flusher, ok := w.(http.Flusher); ok {
 		flusher.Flush()
+	}
+}
+
+func TestCodexAppImageInputResolvesOwnedArtifactBeforeToolDispatch(t *testing.T) {
+	for _, modelID := range []string{"gpt-5.6-sol", "gpt-6-astra"} {
+		t.Run(modelID, func(t *testing.T) {
+			var requests atomic.Int32
+			payload := l1CarrierPNGBytes(t)
+			expectedImage := "data:image/png;base64," + base64.StdEncoding.EncodeToString(payload)
+			fixture, decision := codexAppFixture(t, modelID, func(w http.ResponseWriter, r *http.Request) {
+				requests.Add(1)
+				var body map[string]any
+				if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+					t.Error(err)
+					return
+				}
+				messages, ok := body["input"].([]any)
+				if !ok || len(messages) != 1 {
+					t.Errorf("input = %#v", body["input"])
+					return
+				}
+				content, ok := messages[0].(map[string]any)["content"].([]any)
+				if !ok || len(content) != 2 {
+					t.Errorf("content = %#v", messages[0])
+					return
+				}
+				if content[0].(map[string]any)["type"] != "input_text" || content[1].(map[string]any)["type"] != "input_image" || content[1].(map[string]any)["image_url"] != expectedImage {
+					t.Error("owned image bytes or input order changed")
+				}
+				writeCodexAppResponse(t, w, []map[string]any{{"type": "function_call", "id": "fc_image", "call_id": "image_call", "name": "lookup", "arguments": `{"query":"image"}`}}, true)
+			})
+			uploaded, err := fixture.service.UploadLocalAppArtifact(decision(accountservice.LocalAppOperationArtifactUpload, localappop.AppOperationIDArtifactUpload), &runtimev1.UploadLocalAppArtifactRequest{Bytes: payload, MimeType: "image/png"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			input := &runtimev1.StreamLocalAppTextTurnRequest{Messages: []*runtimev1.LocalAppTextCandidateMessage{{Role: "user", Parts: []*runtimev1.ChatContentPart{
+				{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Content: &runtimev1.ChatContentPart_Text{Text: "Recreate the diagram"}},
+				{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_ARTIFACT_REF, Content: &runtimev1.ChatContentPart_ArtifactRef{ArtifactRef: &runtimev1.ChatContentArtifactRef{ArtifactId: uploaded.ArtifactId, MimeType: "image/png"}}},
+			}}}, Tools: []*runtimev1.ToolSpec{localAppLookupTool(t)}}
+			stream := &mockLocalAppTextTurnStream{ctx: decision(accountservice.LocalAppOperationTextTurnStream, localappop.AppOperationIDTextTurnStream)}
+			if err := fixture.service.StreamLocalAppTextTurn(input, stream); err != nil {
+				t.Fatal(err)
+			}
+			if requests.Load() != 1 || len(stream.events) < 2 || stream.events[len(stream.events)-1].GetCompleted() == nil {
+				t.Fatalf("image step incomplete: requests=%d events=%v", requests.Load(), stream.events)
+			}
+			wrongOwner := accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), accountservice.LocalAppCallerDecision{AccountID: "user-001", AppID: "app.codex", RegisteredAppSubject: "other-registration", Operation: accountservice.LocalAppOperationTextTurnStream, AuthorityClass: localappop.AuthorityClassAppAccess, OperationCapability: localappop.AppOperationIDTextTurnStream})
+			err = fixture.service.StreamLocalAppTextTurn(input, &mockLocalAppTextTurnStream{ctx: wrongOwner})
+			assertLocalAppTextCandidateError(t, err, codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)
+			if requests.Load() != 1 {
+				t.Fatal("foreign image reached the provider")
+			}
+
+		})
 	}
 }
 

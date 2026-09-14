@@ -3,6 +3,7 @@ import test from 'node:test';
 import { createNimiLocalAppTextModel } from './local-app-model';
 import { createNimiLocalAppAIConsumptionClient } from '../app/local-app-runtime-platform-ai';
 import type { NimiLocalAppTextTurnInput } from '../app/local-app-text';
+import { filePart, textPart } from '../contracts';
 
 function fixture(events: () => AsyncIterable<unknown>, onCancel: () => void = () => {}, executeOutput?: unknown) {
   const inputs: NimiLocalAppTextTurnInput[] = [];
@@ -24,6 +25,42 @@ function fixture(events: () => AsyncIterable<unknown>, onCancel: () => void = ()
 const user = { role: 'user' as const, content: [{ type: 'text' as const, text: 'Search.' }] };
 const tool = { name: 'search', inputSchema: { type: 'object' } };
 const call = { id: 'call-1', name: 'search', arguments: { query: 'Nimi', token: 'business data' } };
+
+test('Local App image input preserves user part order alongside tools and schema controls', async () => {
+  const f = fixture(async function* () {
+    yield { type: 'delta', sequence: '1', traceId: 'image-input', itemIndex: 0, text: '{"valid":true}' };
+    yield { type: 'completed', sequence: '2', traceId: 'image-input', finishReason: 'stop' };
+  });
+  const responseFormat = { type: 'json-schema' as const, schema: { type: 'object', properties: { valid: { type: 'boolean' } }, required: ['valid'], additionalProperties: false } };
+  await f.model.generateText({
+    messages: [{ role: 'user', content: [
+      textPart('Compare '), filePart('image/png', 'https://example.com/first.png'),
+      textPart(' with '), { type: 'artifact-ref', artifactId: 'uploaded-second', mediaType: 'image/png', displayName: 'Second diagram' },
+    ] }],
+    responseFormat,
+  });
+  assert.deepEqual(f.inputs[0].messages, [{ role: 'user', text: '', parts: [
+    { type: 'text', text: 'Compare ' }, { type: 'image-url', url: 'https://example.com/first.png' },
+    { type: 'text', text: ' with ' }, { type: 'artifact-ref', artifactId: 'uploaded-second', mediaType: 'image/png', displayName: 'Second diagram' },
+  ] }]);
+  assert.deepEqual(f.inputs[0].responseFormat, responseFormat);
+});
+
+test('Local App image input rejects inline media, non-image files and non-user media before transport', async () => {
+  for (const content of [
+    [filePart('image/png', 'data:image/png;base64,AAAA')],
+    [filePart('image/png', '/tmp/image.png')],
+    [filePart('audio/wav', 'https://example.com/audio.wav')],
+    [{ type: 'artifact-ref' as const, localArtifactId: 'private-local-id', mediaType: 'image/png' }],
+  ]) {
+    const f = fixture(async function* () { throw new Error('must not open'); });
+    await assert.rejects(f.model.generateText({ messages: [{ role: 'user', content }] }), { reasonCode: 'SDK_LOCAL_APP_INPUT_INVALID' });
+    assert.equal(f.inputs.length, 0);
+  }
+  const f = fixture(async function* () { throw new Error('must not open'); });
+  await assert.rejects(f.model.generateText({ messages: [{ role: 'system', content: [filePart('image/png', 'https://example.com/image.png')] }] }), { reasonCode: 'SDK_LOCAL_APP_INPUT_INVALID' });
+  assert.equal(f.inputs.length, 0);
+});
 
 test('opaque continuity survives the native JSON boundary and the next model turn', async () => {
   const carrier = { kind: 'test.encrypted', version: 1, payload: [0, 127, 255] };

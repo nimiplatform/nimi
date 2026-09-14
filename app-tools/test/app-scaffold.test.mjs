@@ -2602,9 +2602,13 @@ test('sync adopts and check audits an existing submitted App without creating a 
 
     writeFileSync(path.join(target, 'src', 'bypass.ts'), vendorExample);
     result = runNimiApp(['check', '--dir', target], tempRoot, { env });
+    assert.equal(result.status, 0, result.stderr);
+
+    writeFileSync(path.join(target, 'src', 'bypass.ts'), 'fetch("/api/human/me/permission-grants");\nconst endpoint = process.env.NIMI_RUNTIME_ENDPOINT;\n');
+    result = runNimiApp(['check', '--dir', target], tempRoot, { env });
     assert.notEqual(result.status, 0);
-    assert.match(result.stderr, /Realm API fetch bypass/);
-    assert.match(result.stderr, /OpenAI-compatible Runtime REST endpoint assumption/);
+    assert.match(result.stderr, /Realm permission grant REST bypass endpoint/);
+    assert.match(result.stderr, /Runtime endpoint custody/);
 
     writeFileSync(path.join(target, 'src', 'bypass.ts'), "import '@grpc/grpc-js';\n");
     result = runNimiApp(['check', '--dir', target], tempRoot, { env });
