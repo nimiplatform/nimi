@@ -8,6 +8,8 @@
 - Preserve nonempty whitespace text deltas. Malformed AI stream projections
   report a renderer result error and cancel the subscription, rather than
   blaming a valid caller request.
+- Relay bounded opaque reasoning-continuity events through the renderer in
+  their original order, so Codex tool turns retain their required continuity.
 - Carry ordered user image URL and owned image Artifact parts through the
   existing Local App text-turn and text-generate operations. Requires SDK
   0.13.0, Rust shell crates 0.5.0 and the matching Runtime. Custom native

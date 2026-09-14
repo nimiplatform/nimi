@@ -23,7 +23,7 @@ import type {
   NimiLocalAppTextTurnEvent as SdkLocalAppTextTurnEvent,
   NimiLocalAppTextOutputItem,
 } from '@nimiplatform/kit/core/sdk-contract';
-import { validateNimiLocalAppTextInput, validateNimiLocalAppTextOutputItems } from '@nimiplatform/kit/core/sdk-contract';
+import { validateNimiLocalAppTextInput, validateNimiLocalAppTextOutputItems, validateNimiLocalAppReasoningContinuityCarrier } from '@nimiplatform/kit/core/sdk-contract';
 import { BridgeError, invoke, invokeChecked } from './invoke.js';
 import { listenShell } from './tauri-api.js';
 import { assertRecord, parseRequiredString } from './types.js';
@@ -823,6 +823,7 @@ export async function streamNimiLocalAppTextTurn(
         deltaBytes += new TextEncoder().encode(event.text).byteLength;
       }
       if (event.type === 'tool-call') deltaBytes += new TextEncoder().encode(JSON.stringify(event.toolCall)).byteLength;
+      if (event.type === 'reasoning-continuity') deltaBytes += event.carrier.payload.length;
       if (deltaBytes > MAX_TEXT_CANDIDATE_RESULT_BYTES) throw new Error(`${command}: text-turn output is too large`);
       return event as NimiLocalAppTextTurnEvent;
     },
@@ -2461,6 +2462,12 @@ function parseTextTurnEvent(value: unknown, command: string): NimiLocalAppTextTu
     if (item?.type !== 'tool-call') throw new Error(`${command}: tool call is invalid`);
     return Object.freeze({ type: 'tool-call', sequence: record.sequence, traceId,
       itemIndex: boundedSafeInteger(record.itemIndex, 'itemIndex', command, 0, 4_294_967_295), toolCall: item.toolCall });
+  }
+  if (record.type === 'reasoning-continuity') {
+    assertProjectionKeys(record, ['type', 'sequence', 'traceId', 'itemIndex', 'carrier'], command, 'text continuity');
+    return Object.freeze({ type: 'reasoning-continuity', sequence: record.sequence, traceId,
+      itemIndex: boundedSafeInteger(record.itemIndex, 'itemIndex', command, 0, 4_294_967_295),
+      carrier: validateNimiLocalAppReasoningContinuityCarrier(record.carrier) });
   }
   if (record.type === 'completed') {
     assertProjectionKeys(record, ['type', 'sequence', 'traceId', 'finishReason'], command, 'text completion');

@@ -43,7 +43,8 @@ describe('renderer local-app standard-shell surface', () => {
     const requests: unknown[] = [];
     let unlistenCalls = 0;
     const call = { id: 'call-1', name: 'search', arguments: { subject: 'trees', token: 'business data' } };
-    const output = { type: 'text-generate', items: [{ type: 'text', text: 'Looking up sources.' }, { type: 'tool-call', toolCall: call }], finishReason: 'tool-calls' };
+    const carrier = { kind: 'test.encrypted', version: 1, payload: [0, 127, 255] };
+    const output = { type: 'text-generate', items: [{ type: 'reasoning-continuity', carrier }, { type: 'text', text: 'Looking up sources.' }, { type: 'tool-call', toolCall: call }], finishReason: 'tool-calls' };
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
       invoke: async (command: string, input: { payload: { action?: string } }) => {
         requests.push([command, input.payload]);
@@ -64,12 +65,13 @@ describe('renderer local-app standard-shell surface', () => {
     const stream = await client.ai.text.streamTurn(input);
     const iterator = stream[Symbol.asyncIterator]();
     for (const event of [
-      { type: 'delta', sequence: '1', traceId: 'trace-1', itemIndex: 0, text: 'Looking up' },
-      { type: 'delta', sequence: '2', traceId: 'trace-1', itemIndex: 0, text: ' ' },
-      { type: 'delta', sequence: '3', traceId: 'trace-1', itemIndex: 0, text: '\n' },
-      { type: 'delta', sequence: '4', traceId: 'trace-1', itemIndex: 0, text: 'sources.' },
-      { type: 'tool-call', sequence: '5', traceId: 'trace-1', itemIndex: 1, toolCall: call },
-      { type: 'completed', sequence: '6', traceId: 'trace-1', finishReason: 'tool-calls' },
+      { type: 'reasoning-continuity', sequence: '1', traceId: 'trace-1', itemIndex: 0, carrier },
+      { type: 'delta', sequence: '2', traceId: 'trace-1', itemIndex: 1, text: 'Looking up' },
+      { type: 'delta', sequence: '3', traceId: 'trace-1', itemIndex: 1, text: ' ' },
+      { type: 'delta', sequence: '4', traceId: 'trace-1', itemIndex: 1, text: '\n' },
+      { type: 'delta', sequence: '5', traceId: 'trace-1', itemIndex: 1, text: 'sources.' },
+      { type: 'tool-call', sequence: '6', traceId: 'trace-1', itemIndex: 2, toolCall: call },
+      { type: 'completed', sequence: '7', traceId: 'trace-1', finishReason: 'tool-calls' },
     ]) {
       const next = iterator.next();
       emit!({ payload: { subscriptionId: 'text-1', eventType: 'next', event } });

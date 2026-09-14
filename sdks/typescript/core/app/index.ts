@@ -3,6 +3,7 @@ export type { NimiLocalAppTextMessage, NimiLocalAppTextPart, NimiLocalAppTextIma
 export {
   validateLocalAppTextInput as validateNimiLocalAppTextInput,
   projectLocalAppTextItems as validateNimiLocalAppTextOutputItems,
+  projectLocalAppContinuity as validateNimiLocalAppReasoningContinuityCarrier,
 } from './local-app-text.js';
 export { createNimiLocalAppAIConsumptionClient, type NimiLocalAppAIConsumptionClient } from './local-app-runtime-platform-ai.js';
 export { createNimiLocalAppAIConfigClient } from './local-app-runtime-platform-ai-config.js';
