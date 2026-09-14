@@ -2,6 +2,9 @@
 
 ## 0.9.0
 
+- Abort uncommitted renderer asset writes and close reads on document replacement,
+  renderer loss and bridge shutdown. Routine native session renewal no longer waits
+  for an upload body to finish before revalidating the same live context.
 - Preserve native plain-JSON Cloud model targets in Local App AIConfig options
   and committed snapshots, so model selection does not attempt a second
   Protobuf Struct conversion.

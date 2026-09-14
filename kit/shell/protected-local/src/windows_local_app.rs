@@ -20,7 +20,7 @@ use std::pin::Pin;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
-use tokio::sync::RwLock;
+use tokio::sync::{Mutex, RwLock};
 use tonic::transport::Channel;
 
 use crate::generated::{OpenLocalAppSessionRequest, RenewLocalAppSessionRequest};
@@ -116,6 +116,7 @@ struct PlatformLocalAppSession {
     #[cfg(target_os = "windows")]
     runtime_peer: PlatformRuntimePeer,
     operation_gate: RwLock<()>,
+    session_maintenance: Mutex<()>,
     session_bound: AtomicBool,
     account_required: AtomicBool,
     current_user: RwLock<LocalAppCurrentUserStatus>,
@@ -156,6 +157,7 @@ impl PlatformLocalAppSession {
     }
 
     async fn open_session(&self) -> Result<LocalAppSessionStatus, LocalAppOperationError> {
+        let _maintenance = self.session_maintenance.lock().await;
         let _opening = self.operation_gate.write().await;
         if self.session_bound.load(Ordering::Acquire) {
             return Ok(ready_session_status(self.current_user.read().await.clone()));
@@ -176,8 +178,12 @@ impl PlatformLocalAppSession {
         Ok(status)
     }
 
+    // @nimi-authority: rule.nimi.runtime.protected-session.r016
     async fn renew_session(&self) -> Result<LocalAppSessionStatus, LocalAppOperationError> {
-        let _renewal = self.operation_gate.write().await;
+        // Renewal revalidates the same context; it must not wait for a caller
+        // to finish a streaming body or prevent that caller's other reads.
+        let _maintenance = self.session_maintenance.lock().await;
+        let _renewal = self.operation_gate.read().await;
         let response = crate::grpc_limits::runtime_auth_client(self.transport_channel()?)
             .renew_local_app_session(RenewLocalAppSessionRequest {})
             .await
@@ -1424,6 +1430,7 @@ async fn open_local_app_session() -> Result<Box<dyn NimiLocalAppSession>, LocalA
         channel,
         runtime_peer,
         operation_gate: RwLock::new(()),
+        session_maintenance: Mutex::new(()),
         session_bound: AtomicBool::new(false),
         account_required: AtomicBool::new(false),
         current_user: RwLock::new(unavailable_current_user()),
@@ -1444,6 +1451,7 @@ async fn open_local_app_session() -> Result<Box<dyn NimiLocalAppSession>, LocalA
     let session = PlatformLocalAppSession {
         channel,
         operation_gate: RwLock::new(()),
+        session_maintenance: Mutex::new(()),
         session_bound: AtomicBool::new(false),
         account_required: AtomicBool::new(false),
         current_user: RwLock::new(unavailable_current_user()),
@@ -1632,6 +1640,42 @@ pub(super) fn untrusted() -> LocalAppOperationError {
 mod tests {
     use super::*;
     use std::collections::VecDeque;
+
+    #[cfg(target_os = "macos")]
+    #[tokio::test(flavor = "current_thread")]
+    async fn session_renewal_reaches_transport_while_a_stream_operation_is_active() {
+        use hyper_util::rt::TokioIo;
+        use std::sync::{atomic::AtomicUsize, Arc};
+        use tower::service_fn;
+
+        let attempts = Arc::new(AtomicUsize::new(0));
+        let observed = attempts.clone();
+        let channel = tonic::transport::Endpoint::from_static("http://127.0.0.1:1")
+            .connect_with_connector_lazy(service_fn(move |_| {
+                observed.fetch_add(1, Ordering::SeqCst);
+                async {
+                    Err::<TokioIo<tokio::io::DuplexStream>, _>(std::io::Error::new(
+                        std::io::ErrorKind::ConnectionRefused,
+                        "renewal transport fixture",
+                    ))
+                }
+            }));
+        let session = PlatformLocalAppSession {
+            channel,
+            operation_gate: RwLock::new(()),
+            session_maintenance: Mutex::new(()),
+            session_bound: AtomicBool::new(true),
+            account_required: AtomicBool::new(false),
+            current_user: RwLock::new(unavailable_current_user()),
+        };
+        // A streaming upload retains its operation guard while waiting for body chunks.
+        let _active_stream = session.operation_gate.read().await;
+        let result = tokio::time::timeout(Duration::from_secs(1), session.renew_session())
+            .await
+            .expect("renewal must not queue an exclusive lock behind an open stream");
+        assert!(result.is_err(), "the fixture deliberately has no Runtime transport");
+        assert!(attempts.load(Ordering::SeqCst) > 0);
+    }
 
     #[test]
     fn local_app_session_decodes_exact_current_user_and_isolates_unavailable_display() {

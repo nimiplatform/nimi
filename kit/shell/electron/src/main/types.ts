@@ -85,6 +85,9 @@ export type NimiElectronIpcMainInvokeEvent = {
   readonly sender?: {
     readonly id?: number;
     readonly send?: (channel: string, payload: unknown) => void;
+    readonly on?: (event: string, listener: (...args: unknown[]) => void) => unknown;
+    readonly removeListener?: (event: string, listener: (...args: unknown[]) => void) => unknown;
+    readonly isDestroyed?: () => boolean;
   };
 };
 
