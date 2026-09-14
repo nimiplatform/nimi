@@ -64,9 +64,12 @@ describe('renderer local-app standard-shell surface', () => {
     const stream = await client.ai.text.streamTurn(input);
     const iterator = stream[Symbol.asyncIterator]();
     for (const event of [
-      { type: 'delta', sequence: '1', traceId: 'trace-1', itemIndex: 0, text: 'Looking up sources.' },
-      { type: 'tool-call', sequence: '2', traceId: 'trace-1', itemIndex: 1, toolCall: call },
-      { type: 'completed', sequence: '3', traceId: 'trace-1', finishReason: 'tool-calls' },
+      { type: 'delta', sequence: '1', traceId: 'trace-1', itemIndex: 0, text: 'Looking up' },
+      { type: 'delta', sequence: '2', traceId: 'trace-1', itemIndex: 0, text: ' ' },
+      { type: 'delta', sequence: '3', traceId: 'trace-1', itemIndex: 0, text: '\n' },
+      { type: 'delta', sequence: '4', traceId: 'trace-1', itemIndex: 0, text: 'sources.' },
+      { type: 'tool-call', sequence: '5', traceId: 'trace-1', itemIndex: 1, toolCall: call },
+      { type: 'completed', sequence: '6', traceId: 'trace-1', finishReason: 'tool-calls' },
     ]) {
       const next = iterator.next();
       emit!({ payload: { subscriptionId: 'text-1', eventType: 'next', event } });
@@ -80,6 +83,26 @@ describe('renderer local-app standard-shell surface', () => {
     ]);
     expect(requests).toHaveLength(2);
     expect(unlistenCalls).toBe(1);
+  });
+
+  it.each([{ text: '' }, { itemIndex: -1 }])('classifies malformed model events as output errors: %j', async (invalid) => {
+    let emit: ((event: { payload: unknown }) => void) | undefined;
+    let canceled = false;
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (_command: string, input: { payload: { action?: string } }) => {
+        if (input.payload.action === 'cancel') { canceled = true; return { subscriptionId: 'text-1', closed: true }; }
+        return { subscriptionId: 'text-1', eventName: 'text-events-1' };
+      },
+      listen: (_name: string, listener: typeof emit) => { emit = listener; return () => {}; },
+    };
+    const client = createNimiClient({ localApp: { standardShell: createNimiLocalAppStandardShellSurface() } });
+    const stream = await client.ai.text.streamTurn({ messages: [{ role: 'user', text: 'Draw a diagram.' }] });
+    const next = stream[Symbol.asyncIterator]().next();
+    emit!({ payload: { subscriptionId: 'text-1', eventType: 'next', event: {
+      type: 'delta', sequence: '1', traceId: 'trace-1', itemIndex: 0, text: 'Result', ...invalid,
+    } } });
+    await expect(next).rejects.toMatchObject({ reasonCode: 'renderer-standard-shell-result-invalid', source: 'renderer' });
+    expect(canceled).toBe(true);
   });
 
   it.each([false, true])('validates Realm event envelopes without losing their session fields (extra field: %s)', async (extraField) => {

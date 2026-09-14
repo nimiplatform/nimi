@@ -1506,7 +1506,7 @@ export function transcribeNimiLocalAppConversationVoice(
   } }, (value) => {
     const record = assertRecord(value, `${command} returned invalid transcription`);
     assertProjectionKeys(record, ['text'], command, 'conversation voice transcription');
-    return Object.freeze({ text: requiredUtf8Content(record.text, 'text', command, 64 * 1024) });
+    return Object.freeze({ text: projectionUtf8Content(record.text, 'text', command, 64 * 1024) });
   });
   const signal = options?.signal;
   if (!signal) return operation;
@@ -2453,7 +2453,7 @@ function parseTextTurnEvent(value: unknown, command: string): NimiLocalAppTextTu
     assertProjectionKeys(record, ['type', 'sequence', 'traceId', 'text', 'itemIndex'], command, 'text delta');
     return Object.freeze({ type: 'delta', sequence: record.sequence, traceId,
       itemIndex: boundedSafeInteger(record.itemIndex, 'itemIndex', command, 0, 4_294_967_295),
-      text: requiredUtf8Content(record.text, 'text', command, 64 * 1024) });
+      text: projectionUtf8Content(record.text, 'text', command, 64 * 1024, true) });
   }
   if (record.type === 'tool-call') {
     assertProjectionKeys(record, ['type', 'sequence', 'traceId', 'itemIndex', 'toolCall'], command, 'text tool call');
@@ -2578,7 +2578,22 @@ class LocalAppAIEventSubscription<T> implements NimiLocalAppStream<T> {
       }
       if (record.eventType !== 'next') throw new Error(`${this.command}: stream event type is invalid`);
       assertProjectionKeys(record, ['subscriptionId', 'eventType', 'event'], this.command, 'AI stream event');
-      const event = this.parser(record.event);
+      let event: T;
+      try {
+        event = this.parser(record.event);
+      } catch (error) {
+        throw new BridgeError(
+          error instanceof Error && !(error instanceof BridgeError)
+            ? error.message : 'Local-app AI stream result is invalid',
+          this.command,
+          {
+            code: 'invalid-payload',
+            reasonCode: 'renderer-standard-shell-result-invalid',
+            actionHint: 'inspect_standard_shell_host_result',
+            source: 'renderer',
+          },
+        );
+      }
       const waiter = this.waiting.shift();
       if (waiter) waiter.resolve({ done: false, value: event });
       else if (this.queued.length < 32) this.queued.push(event);
@@ -2971,7 +2986,7 @@ function safeCurrentUserAvatarUrl(value: unknown): value is string {
 function parseTextCandidate(value: unknown, command: string): NimiLocalAppTextCandidateResult {
   const record = parseSafeProjection(value, command);
   assertProjectionKeys(record, ['text', 'finishReason', 'traceId'], command, 'text candidate');
-  const text = requiredUtf8Content(record.text, 'text', command, MAX_TEXT_CANDIDATE_RESULT_BYTES);
+  const text = projectionUtf8Content(record.text, 'text', command, MAX_TEXT_CANDIDATE_RESULT_BYTES);
   const finishReason = requiredText(record.finishReason, 'finishReason', command, MAX_IDENTIFIER_LENGTH);
   if (finishReason !== 'stop' && finishReason !== 'length' && finishReason !== 'content-filter') {
     throw new Error(`${command}: finishReason is invalid`);
@@ -3838,6 +3853,14 @@ function requiredUtf8Content(value: unknown, field: string, command: string, max
     || !value.trim()
     || new TextEncoder().encode(value).byteLength > maxBytes) {
     throw invalidInput(command, `${field} is invalid`);
+  }
+  return value;
+}
+
+function projectionUtf8Content(value: unknown, field: string, command: string, maxBytes: number, allowWhitespace = false): string {
+  if (typeof value !== 'string' || (allowWhitespace ? value.length === 0 : !value.trim())
+    || value.includes('\0') || new TextEncoder().encode(value).byteLength > maxBytes) {
+    throw new Error(`${command}: ${field} output is invalid`);
   }
   return value;
 }
