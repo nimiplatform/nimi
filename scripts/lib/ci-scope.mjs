@@ -55,7 +55,7 @@ export function selectCiScope(files, { full = false } = {}) {
     kit_changed: kit,
     sdk_changed: sdk,
     sdk_adapter_upstream_changed: shared || touches(/^sdks\/typescript\//u),
-    sdk_conformance_changed: config || proto || touches(/^(?:sdks\/(?:conformance|generators)\/|\.nimi\/spec\/sdks\/)/u),
+    sdk_conformance_changed: config || proto || touches(/^(?:sdks\/(?:conformance|generators|go|python|rust)\/|\.nimi\/spec\/sdks\/)/u),
     proto_changed: proto,
     runtime_changed: runtime,
     cognition_changed: cognition,

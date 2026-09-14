@@ -33,6 +33,26 @@ test('Kit and SDK contracts select pnpm consumers and the source-copy App Tools 
   assert.ok(selectCiScope(['apps/lab/src/lab/view.tsx']).workspace_filters.includes('@nimiplatform/app-tools'));
 });
 
+test('additional SDK language sources select typed-core behavior without unrelated native lanes', () => {
+  for (const file of [
+    'sdks/go/coreclient/client.go',
+    'sdks/python/core_client/__init__.py',
+    'sdks/rust/core_client/mod.rs',
+  ]) {
+    const scope = selectCiScope([file]);
+    assert.equal(scope.sdk_changed, true, file);
+    assert.equal(scope.sdk_conformance_changed, true, file);
+    assert.equal(scope.runtime_changed, false, file);
+    assert.equal(scope.kit_native_changed, false, file);
+    assert.equal(scope.desktop_native_changed, false, file);
+  }
+  for (const language of ['go', 'python', 'rust']) {
+    const docs = selectCiScope([`sdks/${language}/README.md`]);
+    assert.equal(docs.sdk_conformance_changed, false);
+    assert.equal(docs.docs_changed, true);
+  }
+});
+
 test('native and proto changes retain their supported platform checks', () => {
   const native = selectCiScope(['kit/shell/protected-local/src/lib.rs']);
   assert.equal(native.kit_native_changed, true);

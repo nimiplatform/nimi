@@ -15,6 +15,7 @@ jobs:
   changes:
     runs-on: ubuntu-latest
     outputs:
+      comparison_base_sha: ${{ steps.detect.outputs.comparison_base_sha }}
       docs_changed: ${{ steps.detect.outputs.docs_changed }}
       core_changed: ${{ steps.detect.outputs.core_changed }}
       workspace_changed: ${{ steps.detect.outputs.workspace_changed }}
@@ -46,23 +47,7 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-        run: |
-          node --input-type=module <<'NODE'
-          import { appendFileSync } from 'node:fs';
-          import { execFileSync } from 'node:child_process';
-          import { selectCiScope } from './scripts/lib/ci-scope.mjs';
-          const { EVENT_NAME, BASE_SHA, HEAD_SHA, GITHUB_OUTPUT } = process.env;
-          const full = EVENT_NAME === 'workflow_dispatch';
-          if (!full && (!/^[a-f0-9]{40}$/.test(BASE_SHA || '') || /^0+$/.test(BASE_SHA))) {
-            throw new Error('CI comparison base is unavailable');
-          }
-          const files = full ? [] : execFileSync('git', ['diff', '--name-only', '-z', BASE_SHA, HEAD_SHA], { encoding: 'utf8' }).split('\0').filter(Boolean);
-          const scope = selectCiScope(files, { full });
-          for (const [key, value] of Object.entries(scope)) {
-            appendFileSync(GITHUB_OUTPUT, `${key}=${JSON.stringify(value)}\n`);
-          }
-          console.log(scope);
-          NODE
+        run: node scripts/detect-ci-scope.mjs
 
   docs-contract:
     needs: changes
@@ -109,6 +94,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
 
       - name: Setup pnpm
         uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
@@ -152,9 +139,11 @@ jobs:
       - name: authority.canonical.check
         if: needs.changes.outputs.authority_changed == 'true'
         run: pnpm spec:authority:check
-      - name: authority.configured-audit
+      - name: authority.history-review
         if: needs.changes.outputs.authority_changed == 'true'
-        run: pnpm spec:authority:audit
+        env:
+          AUTHORITY_BASE_SHA: ${{ needs.changes.outputs.comparison_base_sha }}
+        run: pnpm spec:authority:review --base "$AUTHORITY_BASE_SHA"
 
   workspace-regression:
     needs: changes

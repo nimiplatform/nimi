@@ -182,6 +182,7 @@
     "spec:authority:check": "pnpm exec nimicoding authority check .nimi/spec --scope-bindings .nimi/config/authority-scope-bindings.yaml",
     "spec:authority:compile": "pnpm exec nimicoding authority compile .nimi/spec",
     "spec:authority:audit": "pnpm exec nimicoding authority audit .nimi/spec --bindings .nimi/config/authority-verifiers.yaml --max-units 5000 --max-edges 50000 --max-bytes 33554432",
+    "spec:authority:review": "pnpm exec nimicoding authority review . --bindings .nimi/config/authority-verifiers.yaml --max-units 5000 --max-edges 50000 --max-bytes 33554432",
     "nimicoding:sync": "pnpm exec nimicoding sync --check",
     "check:nimi-coding-seed-sync": "pnpm nimicoding:sync",
     "nimicoding:doctor": "pnpm exec nimicoding doctor",

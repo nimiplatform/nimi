@@ -31,6 +31,8 @@ Use each package's scripts for its test runner. The complete Desktop build inclu
 
 Change generator inputs, regenerate, then run the corresponding drift check. Do not hand-edit generated output to pass. Authority changes use the pinned project-local commands in [AGENTS.md](AGENTS.md) and the [authoring guide](.nimi/methodology/authority-authoring.yaml); unrelated code changes do not require authority compilation or a corpus audit.
 
+For authority changes, CI runs the complete scope check and `pnpm spec:authority:review --base <commit-SHA>` for legal identity transitions, declared impact, and configured audit. PRs use the event's base SHA; pushes use the event's before SHA; manual full runs use the selected commit's first parent. Missing history fails the check. Review completion does not establish business correctness or implementation conformance.
+
 SDK/Runtime contract tests should exercise public serialization, service behavior and structured errors. Prefer observable behavior over implementation text matching. Use reason codes when the public error contract provides them.
 
 ## Build preparation and concurrency
