@@ -375,6 +375,7 @@ test('standalone scaffold creates a generic starter with rewritten identity', as
     assert.equal(packageJson.packageManager, versions.packageManager);
     assert.equal(Object.hasOwn(packageJson, 'publishConfig'), false);
     assert.match(generated.read('.gitignore'), /^dist-electron-package\/$/m);
+    assert.match(generated.read('.gitattributes'), /^LICENSE -text$/m);
     assert.equal(packageJson.dependencies['@nimiplatform/sdk'], versions.sdkVersion);
     assert.equal(packageJson.dependencies['@nimiplatform/kit'], versions.kitVersion);
     for (const dependency of ['i18next', 'lucide-react', 'react-i18next', '@tauri-apps/api']) {

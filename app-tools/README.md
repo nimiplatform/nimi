@@ -296,6 +296,12 @@ out of source files, `.env`, and release notes.
 
 ### 4. Check, build, and publish a version
 
+Keep the packaged `LICENSE` identical to the reviewed Git source. New scaffolds
+include `LICENSE -text` in `.gitattributes`. Add the same rule to an existing
+repository while preserving its other attributes, and commit it before tagging.
+This prevents Windows checkout conversion from changing the license bytes that
+Registry verifies against the exact source tag.
+
 Run the existing local path from the App repository:
 
 ```bash
