@@ -1,10 +1,27 @@
 # @nimiplatform/nimi2d
 
-Nimi2D owns the layer-input contract, deterministic package solving and
-validation, reference rendering/action behavior, atlas cutting, and the Codex
+Nimi2D owns the layer-input and package contracts, validation, reference
+rendering/action behavior, atlas cutting, and the Codex
 Image2 provider integration. It does not own production Avatar embodiment,
 Runtime projection truth, carrier lifecycle, audio consumer semantics, or app
 adapter behavior.
+
+## Current character package availability
+
+Layer input validation and atlas materialization are available. Character
+package solving and admission currently return
+`NIMI2D_PACKAGE_TOPOLOGY_UNAVAILABLE`: the input carries hints and the package
+wire carries references, but there is no implementation producing and validating
+the required solved skeleton, morphology, deformation and action data. Complete
+hint names or opaque IDs cannot establish a proven character package, including
+tier-0. `solve-package` writes no package on rejection; package-based CLI render,
+visual proof and action commands require admission first. The current tier matrix also requires a proven base-body channel for
+non-character packages; an absent channel is not a proof, so these packages
+remain unadmitted too. Asset byte/structure checks and layer input validation
+remain available.
+
+The pure reference helpers remain usable with explicit test fixtures. Their
+results do not establish package admission or production readiness.
 
 ## Package Entries
 
@@ -38,9 +55,11 @@ adapter behavior.
 
 The layer workflow verifies a supplied provider artifact against the actual PNG,
 normalizes the atlas, writes a transparent copy and atlas spec, cuts layer PNGs,
-validates the generated layer input, solves and validates the package, and
-builds a runtime render plan. It returns ordinary command output and does not
-create a second validation control plane.
+validates the generated layer input, and attempts package solving. With the
+current missing character topology producer it exits unsuccessfully at
+`package_solve`, retains the completed source/atlas/layer files, and reports
+their paths without a package or render-plan success. These retained files can
+be inspected through the direct layer and atlas commands.
 
 Use the nearest direct command while developing. Command success confirms only
 the behavior checked by that owner; final product experience and cross-app

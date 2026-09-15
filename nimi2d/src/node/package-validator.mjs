@@ -5,6 +5,7 @@ import {
   packageKinds,
   anchorKinds,
   requiredCharacterAnchors,
+  requiredBaseBodySlots,
   slotKinds,
   wardrobeKinds,
   packageRenderLayerMaskFields,
@@ -30,10 +31,6 @@ const packageSourceFields = new Set([
   'occlusion_completion_ref',
   'identity_preservation_ref',
   'content_admission_ref',
-  'anchor_solving_evidence_ref',
-  'slot_solving_evidence_ref',
-  'wardrobe_binding_evidence_ref',
-  'validator_evidence_ref',
 ]);
 const packageIntegrityFields = new Set(['package_digest_sha256', 'asset_count']);
 const packageGovernanceFields = new Set([
@@ -109,9 +106,20 @@ function validateGovernance(value, issues) {
 
 function validateBaseBody(value, issues) {
   if (value.package_kind === 'character_package') {
+    // @nimi-authority: rule.nimi.nimi2d.asset-package.r023
+    // IDs and slot/anchor names are not the solved owner data. No admitted
+    // topology data carrier/resolver exists yet, so structural validity alone
+    // must not admit a character package or enable downstream proof commands.
+    issues.push(issue('NIMI2D_PACKAGE_TOPOLOGY_UNAVAILABLE', '$.base_body', 'Character topology admission is unavailable: the required solved topology data cannot be validated from these references.'));
     const body = value.base_body;
     rejectUnknownFields(body, packageBaseBodyFields, 'NIMI2D_PACKAGE_MANIFEST_INVALID', '$.base_body', issues);
     requireFields(body, ['base_body_id', 'topology_id', 'topology_version', 'slot_taxonomy_ref', 'skeleton_id', 'anchor_set_id', 'slot_set_id', 'anchors', 'slots', 'morphology_profile_id', 'deformation_topology_id', 'action_topology_ref', 'owns_main_rig', 'renderable', 'detail_neutral', 'layer_refs'], 'NIMI2D_PACKAGE_BASE_BODY_INVALID', '$.base_body', issues);
+    for (const refField of ['morphology_profile_id', 'deformation_topology_id', 'action_topology_ref']) {
+      const ref = body?.[refField];
+      if (typeof ref !== 'string' || ref.length === 0) {
+        issues.push(issue('NIMI2D_PACKAGE_BASE_BODY_INVALID', `$.base_body.${refField}`, 'Required topology reference must be a non-empty string.'));
+      }
+    }
     if (body?.owns_main_rig !== true) issues.push(issue('NIMI2D_PACKAGE_BASE_BODY_INVALID', '$.base_body.owns_main_rig', 'Base body must own main rig.'));
     if (body?.renderable !== false) issues.push(issue('NIMI2D_PACKAGE_BASE_BODY_RENDERABLE_FORBIDDEN', '$.base_body.renderable', 'Base body must be non-renderable.'));
     if (body?.detail_neutral !== true) issues.push(issue('NIMI2D_PACKAGE_BASE_BODY_INVALID', '$.base_body.detail_neutral', 'Base body must be detail-neutral.'));
@@ -132,14 +140,19 @@ function validateBaseBody(value, issues) {
       }
     }
     const slots = Array.isArray(body?.slots) ? body.slots : [];
-    if (slots.length === 0) {
-      issues.push(issue('NIMI2D_PACKAGE_BASE_BODY_INVALID', '$.base_body.slots', 'Resolved slots are required.'));
-    }
+    const slotKindSet = new Set();
     for (const [index, slot] of slots.entries()) {
       rejectUnknownFields(slot, packageBaseBodySlotFields, 'NIMI2D_PACKAGE_MANIFEST_INVALID', `$.base_body.slots[${index}]`, issues);
       rejectUnknownFields(slot?.bounds_px, rectFields, 'NIMI2D_PACKAGE_MANIFEST_INVALID', `$.base_body.slots[${index}].bounds_px`, issues);
       if (!slotKinds.has(slot?.kind) || !isObject(slot.bounds_px)) {
         issues.push(issue('NIMI2D_PACKAGE_BASE_BODY_INVALID', `$.base_body.slots[${index}]`, 'Resolved slot must use admitted slot kind and bounds.'));
+      } else {
+        slotKindSet.add(slot.kind);
+      }
+    }
+    for (const requiredSlot of requiredBaseBodySlots) {
+      if (!slotKindSet.has(requiredSlot)) {
+        issues.push(issue('NIMI2D_PACKAGE_BASE_BODY_INVALID', '$.base_body.slots', `Missing resolved slot ${requiredSlot}.`));
       }
     }
   } else if (value.base_body !== null) {

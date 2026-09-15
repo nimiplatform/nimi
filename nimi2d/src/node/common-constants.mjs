@@ -81,6 +81,30 @@ const anchorKinds = new Set([
   'scene_origin',
 ]);
 
+const requiredBaseBodySlots = [
+  'head',
+  'face',
+  'hair',
+  'neck',
+  'torso',
+  'hip',
+  'left_arm',
+  'right_arm',
+  'left_hand',
+  'right_hand',
+  'left_leg',
+  'right_leg',
+  'left_foot',
+  'right_foot',
+  'outfit_upper',
+  'outfit_lower',
+  'outfit_full',
+  'accessory_head',
+  'accessory_face',
+  'accessory_hand',
+  'prop_hand',
+];
+
 const slotKinds = new Set([
   'head',
   'face',
@@ -194,7 +218,10 @@ const packageRenderLayerMaskFields = new Set([
   'texture_bounds_px',
 ]);
 
+const packageAssetKinds = new Set(['base_body_layer', 'wardrobe_layer', 'accessory_layer', 'prop_layer', 'scene_layer', 'alpha_mask_layer', 'metadata']);
+
 export {
+  packageAssetKinds,
   LAYER_MANIFEST_KIND,
   PACKAGE_MANIFEST_KIND,
   layerTopLevelFields,
@@ -202,6 +229,7 @@ export {
   layerInputKinds,
   semanticLabels,
   requiredCharacterAnchors,
+  requiredBaseBodySlots,
   anchorKinds,
   slotKinds,
   packageKinds,

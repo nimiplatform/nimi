@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { copyFile, mkdtemp } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile, access } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import test from 'node:test';
+import { rgbaPng, unverifiedCharacterPackage, wardrobePackage } from './package-fixture.mjs';
 
 const execFileAsync = promisify(execFile);
 const packageRoot = path.resolve(import.meta.dirname, '..');
@@ -13,50 +14,48 @@ const fixtureDir = path.join(packageRoot, 'fixtures/basic-character');
 const layerInputPath = path.join(fixtureDir, 'layer-input.yaml');
 
 async function runCli(args) {
-  const { stdout } = await execFileAsync(process.execPath, [cliPath, ...args], {
-    cwd: packageRoot,
-  });
-  return JSON.parse(stdout);
+  try {
+    const { stdout } = await execFileAsync(process.execPath, [cliPath, ...args], { cwd: packageRoot });
+    return { exitCode: 0, result: JSON.parse(stdout) };
+  } catch (error) {
+    assert.equal(error.code, 1);
+    return { exitCode: error.code, result: JSON.parse(error.stdout) };
+  }
 }
 
-test('CLI runs direct layer, package, render, visual, and action owner commands', async () => {
+test('CLI validates real layers and refuses to publish an unsolved character package', async () => {
   const tempDir = await mkdtemp(path.join(tmpdir(), 'nimi2d-cli-'));
   const packagePath = path.join(tempDir, 'package.yaml');
-  await copyFile(path.join(fixtureDir, 'pixel.png'), path.join(tempDir, 'pixel.png'));
-
   const layerValidation = await runCli(['validate-layer-input', layerInputPath]);
-  assert.equal(layerValidation.status, 'ok');
+  assert.equal(layerValidation.exitCode, 0);
+  assert.equal(layerValidation.result.status, 'ok');
 
   const solved = await runCli(['solve-package', layerInputPath, '--out', packagePath]);
-  assert.equal(solved.status, 'ok');
-  assert.equal(solved.outPath, packagePath);
+  assert.equal(solved.exitCode, 1);
+  assert.equal(solved.result.status, 'reject');
+  assert.ok(solved.result.codes.includes('NIMI2D_PACKAGE_TOPOLOGY_UNAVAILABLE'));
+  assert.equal(solved.result.manifest, undefined);
+  await assert.rejects(access(packagePath), { code: 'ENOENT' });
+  await writeFile(packagePath, 'existing output');
+  await runCli(['solve-package', layerInputPath, '--out', packagePath]);
+  assert.equal(await readFile(packagePath, 'utf8'), 'existing output');
+});
 
-  const packageValidation = await runCli(['validate-package', packagePath]);
-  assert.equal(packageValidation.status, 'ok');
-
-  const renderPlan = await runCli(['render-plan', packagePath]);
-  assert.equal(renderPlan.status, 'ok');
-  assert.deepEqual(renderPlan.renderPlan.renderLayers.map((layer) => layer.layerRef), [
-    'layer_body',
-    'layer_head',
-    'layer_eye',
-    'layer_mouth',
-    'layer_outfit',
-  ]);
-
-  const visualProof = await runCli(['prove-visual-frame', packagePath, '--grid-size', '2']);
-  assert.equal(visualProof.status, 'ok');
-  assert.equal(visualProof.stats.visiblePixels, 4);
-  assert.equal(visualProof.stats.defaultOutfitVisiblePixels, 4);
-
-  const referenceBench = await runCli(['run-reference-action-bench', packagePath]);
-  assert.equal(referenceBench.status, 'ok');
-  assert.equal(referenceBench.kind, 'reference_action_bench_run');
-  assert.equal(referenceBench.result.verdict, 'pass_minimal_tier1');
-  const referenceStress = await runCli(['run-reference-action-stress', packagePath]);
-  assert.equal(referenceStress.status, 'ok');
-  assert.equal(referenceStress.kind, 'reference_action_stress_run');
-  assert.equal(referenceStress.result.verdict, 'pass_stream_stress_tier1');
-  assert.equal(referenceStress.result.metrics.rejectedInvalidEventCount, 1);
-
+test('CLI package, render and proof commands all require actual character admission', async () => {
+  const tempDir = await mkdtemp(path.join(tmpdir(), 'nimi2d-cli-admission-'));
+  const packagePath = path.join(tempDir, 'package.yaml');
+  await writeFile(path.join(tempDir, 'pixel.png'), rgbaPng);
+  await writeFile(packagePath, JSON.stringify(await unverifiedCharacterPackage()));
+  for (const command of ['validate-package', 'render-plan', 'prove-visual-frame', 'run-reference-action-bench', 'run-reference-action-stress']) {
+    const { exitCode, result } = await runCli([command, packagePath]);
+    assert.equal(exitCode, 1, command);
+    assert.equal(result.status, 'reject', command);
+    assert.ok(result.codes.includes('NIMI2D_PACKAGE_TOPOLOGY_UNAVAILABLE'), command);
+    assert.equal(result.renderPlan, undefined, command);
+  }
+  await writeFile(packagePath, JSON.stringify(await wardrobePackage()));
+  const admittedWardrobe = await runCli(['validate-package', packagePath]);
+  assert.equal(admittedWardrobe.exitCode, 1);
+  assert.equal(admittedWardrobe.result.status, 'reject');
+  assert.ok(admittedWardrobe.result.codes.includes('NIMI2D_PACKAGE_PROVEN_TIER_UNVERIFIED'));
 });

@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdtemp, writeFile, readFile, access } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { test } from 'node:test';
 import YAML from 'yaml';
+import { validatePackageAssets } from '../src/node/common-assets.mjs';
+import { computeProvenTier } from '../src/node/package-capability.mjs';
+import { rgbaPng, unverifiedCharacterPackage, wardrobePackage } from './package-fixture.mjs';
 
 import {
   solvePackageFromLayerInput,
@@ -12,11 +15,6 @@ import {
   validatePackageManifest,
   writeSolvedPackage,
 } from '../src/index.mjs';
-
-const rgbaPng = Buffer.from(
-  '89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d49444154789c6360f8ffff3f0005fe02fea73581e30000000049454e44ae426082', // pragma: allowlist secret
-  'hex',
-);
 
 function sha256(buffer) {
   return createHash('sha256').update(buffer).digest('hex');
@@ -87,11 +85,27 @@ function baseLayerInput(overrides = {}) {
       source: 'upstream_manual',
     })),
     global_slot_hints: [
+      'head',
+      'face',
+      'hair',
+      'neck',
       'torso',
       'hip',
+      'left_arm',
+      'right_arm',
+      'left_hand',
+      'right_hand',
+      'left_leg',
+      'right_leg',
+      'left_foot',
+      'right_foot',
       'outfit_upper',
       'outfit_lower',
       'outfit_full',
+      'accessory_head',
+      'accessory_face',
+      'accessory_hand',
+      'prop_hand',
     ].map((kind, index) => ({
       slot_hint_id: `slot_hint_${kind}`,
       kind,
@@ -133,64 +147,43 @@ test('layer input rejects nested unknown fields', async () => {
   assert.ok(result.codes.includes('NIMI2D_LAYER_INPUT_MANIFEST_INVALID'));
 });
 
-test('solves a real tier-1 package from admitted character skin input', async () => {
+test('complete layer hints cannot mint a character package or overwrite an output', async () => {
   const dir = await fixtureDir();
   const inputFile = await writeYaml(dir, 'layer-input.yaml', baseLayerInput());
-  const solved = await solvePackageFromLayerInput(inputFile);
-  assert.equal(solved.status, 'ok');
-  assert.equal(solved.manifest.base_body.renderable, false);
-  assert.ok(solved.manifest.base_body.anchors.length > 0);
-  assert.ok(solved.manifest.base_body.slots.length > 0);
-  assert.equal(solved.manifest.wardrobe.assets[0].wardrobe_kind, 'default_outfit');
-  assert.equal(solved.manifest.capability.requested_tier, 'tier-1_agent_basic');
-  assert.equal(solved.manifest.capability.proven_tier, 'tier-1_agent_basic');
-  assert.equal(solved.manifest.capability.channel_evidence.jaw_amplitude_mouth.status, 'proven');
-  assert.equal(solved.manifest.capability.channel_evidence.aeiou_viseme_shapes.status, 'unsupported');
-  assert.equal(solved.manifest.canvas.width_px, 8);
-  assert.deepEqual(solved.manifest.render_layers.map((item) => item.layer_ref), [
-    'layer_body',
-    'layer_head',
-    'layer_eye',
-    'layer_mouth',
-    'layer_outfit',
-  ]);
-  assert.deepEqual(solved.manifest.render_layers.map((item) => item.draw_order_index), [0, 1, 2, 3, 4]);
-  assert.deepEqual(solved.manifest.render_layers[0].placement_px, { x: 0, y: 0 });
-  assert.deepEqual(solved.manifest.assets[0], {
-    asset_id: 'asset_layer_body',
-    asset_kind: 'base_body_layer',
-    ref: 'pixel.png',
-    sha256: sha256(rgbaPng),
-    format: 'png',
-    width_px: 1,
-    height_px: 1,
-    byte_size: rgbaPng.length,
-    color_space: 'srgb',
-    alpha_mode: 'straight',
-    premultiplied_alpha: false,
-  });
-
+  for (const requestedTier of ['tier-0_static_layered', 'tier-1_agent_basic']) {
+    const solved = await solvePackageFromLayerInput(inputFile, { requestedTier });
+    assert.equal(solved.status, 'reject');
+    assert.ok(solved.codes.includes('NIMI2D_PACKAGE_TOPOLOGY_UNAVAILABLE'));
+    assert.equal(solved.manifest, undefined);
+  }
   const outFile = path.join(dir, 'package.yaml');
   const written = await writeSolvedPackage(inputFile, outFile);
-  assert.equal(written.status, 'ok');
-  const packageResult = await validatePackageManifest(outFile);
-  assert.equal(packageResult.status, 'ok');
+  assert.equal(written.status, 'reject');
+  await assert.rejects(access(outFile), { code: 'ENOENT' });
+  await writeFile(outFile, 'existing user output');
+  await writeSolvedPackage(inputFile, outFile);
+  assert.equal(await readFile(outFile, 'utf8'), 'existing user output');
 });
 
-test('can intentionally solve a tier-0 fallback package without tier-1 channel evidence', async () => {
+test('non-empty topology IDs cannot admit a character package', async () => {
   const dir = await fixtureDir();
-  const inputFile = await writeYaml(dir, 'layer-input.yaml', baseLayerInput());
-  const solved = await solvePackageFromLayerInput(inputFile, { requestedTier: 'tier-0_static_layered' });
-  assert.equal(solved.status, 'ok');
-  assert.equal(solved.manifest.capability.requested_tier, 'tier-0_static_layered');
-  assert.equal(solved.manifest.capability.proven_tier, 'tier-0_static_layered');
-  assert.equal(solved.manifest.capability.channel_evidence.jaw_amplitude_mouth, undefined);
+  const file = await writeYaml(dir, 'unverified.yaml', await unverifiedCharacterPackage());
+  const validation = await validatePackageManifest(file);
+  assert.equal(validation.status, 'reject');
+  assert.ok(validation.codes.includes('NIMI2D_PACKAGE_TOPOLOGY_UNAVAILABLE'));
 });
 
 test('package manifest validates asset bytes, metadata, and texture bounds', async () => {
   const dir = await fixtureDir();
-  const inputFile = await writeYaml(dir, 'layer-input.yaml', baseLayerInput());
-  const solved = await solvePackageFromLayerInput(inputFile);
+  const solved = { manifest: await wardrobePackage() };
+
+  const baselineFile = await writeYaml(dir, 'wardrobe.yaml', solved.manifest);
+  const baseline = await validatePackageManifest(baselineFile);
+  assert.equal(baseline.status, 'reject');
+  assert.ok(baseline.codes.includes('NIMI2D_PACKAGE_PROVEN_TIER_UNVERIFIED'));
+  const assetIssues = [];
+  await validatePackageAssets(solved.manifest, dir, assetIssues);
+  assert.deepEqual(assetIssues, []);
 
   const hashMismatch = structuredClone(solved.manifest);
   hashMismatch.assets[0].sha256 = '0'.repeat(64);
@@ -235,7 +228,8 @@ test('package manifest validates asset bytes, metadata, and texture bounds', asy
   };
   const maskedFile = await writeYaml(dir, 'package-masked.yaml', masked);
   const maskedResult = await validatePackageManifest(maskedFile);
-  assert.equal(maskedResult.status, 'ok');
+  assert.equal(maskedResult.status, 'reject');
+  assert.deepEqual(maskedResult.codes, ['NIMI2D_PACKAGE_PROVEN_TIER_UNVERIFIED']);
 
   const missingMaskAsset = structuredClone(masked);
   missingMaskAsset.render_layers[0].mask.asset_id = 'asset_missing_mask';
@@ -262,8 +256,7 @@ test('package manifest validates asset bytes, metadata, and texture bounds', asy
 
 test('package manifest rejects nested unknown fields', async () => {
   const dir = await fixtureDir();
-  const inputFile = await writeYaml(dir, 'layer-input.yaml', baseLayerInput());
-  const solved = await solvePackageFromLayerInput(inputFile);
+  const solved = { manifest: await unverifiedCharacterPackage() };
   const manifest = structuredClone(solved.manifest);
   manifest.base_body.anchors[0].confidence = 1;
   const packageFile = await writeYaml(dir, 'package-nested-unknown.yaml', manifest);
@@ -277,8 +270,7 @@ test('package manifest rejects nested unknown fields', async () => {
 
 test('rejects tier-1 true viseme overclaim in package manifest', async () => {
   const dir = await fixtureDir();
-  const inputFile = await writeYaml(dir, 'layer-input.yaml', baseLayerInput());
-  const solved = await solvePackageFromLayerInput(inputFile);
+  const solved = { manifest: await unverifiedCharacterPackage() };
   const manifest = structuredClone(solved.manifest);
   manifest.capability.requested_tier = 'tier-1_agent_basic';
   manifest.capability.proven_tier = 'tier-1_agent_basic';
@@ -287,4 +279,176 @@ test('rejects tier-1 true viseme overclaim in package manifest', async () => {
   const result = await validatePackageManifest(packageFile);
   assert.equal(result.status, 'reject');
   assert.ok(result.codes.includes('NIMI2D_PACKAGE_TIER1_TRUE_VISEME_FORBIDDEN'));
+});
+
+test('solve rejects character skin input that lacks required base-body topology', async () => {
+  const dir = await fixtureDir();
+  const manifest = baseLayerInput();
+  manifest.global_slot_hints = manifest.global_slot_hints.filter((hint) => !['head', 'prop_hand'].includes(hint.kind));
+  const inputFile = await writeYaml(dir, 'layer-input-partial-topology.yaml', manifest);
+  const solved = await solvePackageFromLayerInput(inputFile);
+  assert.equal(solved.status, 'reject');
+  assert.ok(solved.codes.includes('NIMI2D_PACKAGE_TOPOLOGY_UNAVAILABLE'));
+  assert.equal(solved.manifest, undefined);
+});
+
+test('package manifest rejects base body missing a required resolved slot', async () => {
+  const dir = await fixtureDir();
+  const solved = { manifest: await unverifiedCharacterPackage() };
+  const manifest = structuredClone(solved.manifest);
+  manifest.base_body.slots = manifest.base_body.slots.filter((slot) => slot.kind !== 'prop_hand');
+  const packageFile = await writeYaml(dir, 'package-missing-slot.yaml', manifest);
+  const result = await validatePackageManifest(packageFile);
+  assert.equal(result.status, 'reject');
+  assert.ok(result.codes.includes('NIMI2D_PACKAGE_BASE_BODY_INVALID'));
+  assert.ok(result.issues.some((item) => item.path === '$.base_body.slots' && item.message.includes('prop_hand')));
+});
+
+test('package manifest rejects proven channels without retained attestation', async () => {
+  const dir = await fixtureDir();
+  const solved = { manifest: await unverifiedCharacterPackage() };
+
+  const bareTier0 = structuredClone(solved.manifest);
+  bareTier0.capability.channel_evidence.static_draw_order = { status: 'proven' };
+  const bareTier0File = await writeYaml(dir, 'package-bare-proven.yaml', bareTier0);
+  const bareTier0Result = await validatePackageManifest(bareTier0File);
+  assert.equal(bareTier0Result.status, 'reject');
+  assert.ok(bareTier0Result.codes.includes('NIMI2D_PACKAGE_CAPABILITY_INVALID'));
+
+  const fabricatedTier1 = structuredClone(solved.manifest);
+  fabricatedTier1.capability.proven_tier = 'tier-1_agent_basic';
+  for (const channel of ['wardrobe_reuse', 'discrete_expression_set', 'blink_eye_open_close', 'gaze_anchor_channels', 'jaw_amplitude_mouth', 'motion_primitive_refs', 'safe_motion_bounds']) {
+    fabricatedTier1.capability.channel_evidence[channel] = { status: 'proven' };
+  }
+  const fabricatedFile = await writeYaml(dir, 'package-fabricated-tier1.yaml', fabricatedTier1);
+  const fabricatedResult = await validatePackageManifest(fabricatedFile);
+  assert.equal(fabricatedResult.status, 'reject');
+  assert.ok(fabricatedResult.codes.includes('NIMI2D_PACKAGE_CAPABILITY_INVALID'));
+});
+
+test('package manifest rejects source fields outside the closed lineage set', async () => {
+  const dir = await fixtureDir();
+  const solved = { manifest: await unverifiedCharacterPackage() };
+  const manifest = structuredClone(solved.manifest);
+  manifest.source.validator_evidence_ref = 'n2d_validator_forged';
+  const packageFile = await writeYaml(dir, 'package-forged-source.yaml', manifest);
+  const result = await validatePackageManifest(packageFile);
+  assert.equal(result.status, 'reject');
+  assert.ok(result.codes.includes('NIMI2D_PACKAGE_MANIFEST_INVALID'));
+  assert.ok(result.issues.some((item) => item.path === '$.source.validator_evidence_ref'));
+});
+
+test('package manifest rejects self-declared tier-3 without validator-owned verification', async () => {
+  const dir = await fixtureDir();
+  const solved = { manifest: await unverifiedCharacterPackage() };
+  const manifest = structuredClone(solved.manifest);
+  manifest.capability.requested_tier = 'tier-3_full_body_semantic';
+  manifest.capability.proven_tier = 'tier-3_full_body_semantic';
+  for (const channel of [
+    'wardrobe_reuse',
+    'discrete_expression_set',
+    'expression_interpolation',
+    'blink_eye_open_close',
+    'gaze_anchor_channels',
+    'jaw_amplitude_mouth',
+    'aeiou_viseme_shapes',
+    'motion_primitive_refs',
+    'safe_motion_bounds',
+    'gesture_overlay_channels',
+    'local_attachment_secondary_motion',
+    'full_body_pose_families',
+    'full_body_gesture_primitives',
+    'wardrobe_aware_deformation_masks',
+  ]) {
+    manifest.capability.channel_evidence[channel] = {
+      status: 'proven',
+      attestation: { evidence_ref: 'no-validation-was-performed' },
+    };
+  }
+  const packageFile = await writeYaml(dir, 'package-unverified-tier3.yaml', manifest);
+  const result = await validatePackageManifest(packageFile);
+  assert.equal(result.status, 'reject');
+  assert.ok(result.issues.some((item) => item.code === 'NIMI2D_PACKAGE_PROVEN_TIER_UNVERIFIED' && item.path === '$.capability.channel_evidence.full_body_gesture_primitives'));
+});
+
+test('package manifest rejects null or missing required topology references', async () => {
+  const dir = await fixtureDir();
+  const solved = { manifest: await unverifiedCharacterPackage() };
+
+  const nulled = structuredClone(solved.manifest);
+  nulled.base_body.morphology_profile_id = null;
+  nulled.base_body.deformation_topology_id = null;
+  nulled.base_body.action_topology_ref = null;
+  const nulledFile = await writeYaml(dir, 'package-null-topology.yaml', nulled);
+  const nulledResult = await validatePackageManifest(nulledFile);
+  assert.equal(nulledResult.status, 'reject');
+  assert.ok(nulledResult.codes.includes('NIMI2D_PACKAGE_BASE_BODY_INVALID'));
+  assert.ok(nulledResult.issues.some((item) => item.path === '$.base_body.morphology_profile_id'));
+
+  const missing = structuredClone(solved.manifest);
+  delete missing.base_body.morphology_profile_id;
+  delete missing.base_body.deformation_topology_id;
+  delete missing.base_body.action_topology_ref;
+  const missingFile = await writeYaml(dir, 'package-missing-topology.yaml', missing);
+  const missingResult = await validatePackageManifest(missingFile);
+  assert.equal(missingResult.status, 'reject');
+  assert.ok(missingResult.codes.includes('NIMI2D_PACKAGE_BASE_BODY_INVALID'));
+  assert.ok(missingResult.issues.some((item) => item.path === '$.base_body.morphology_profile_id'));
+});
+
+test('character layer hints need no outfit slot while wardrobe hints require one', async () => {
+  const dir = await fixtureDir();
+  const manifest = baseLayerInput();
+  manifest.global_slot_hints = manifest.global_slot_hints.filter((hint) => !hint.kind.startsWith('outfit_'));
+  const file = await writeYaml(dir, 'layer-input-no-outfit-slot.yaml', manifest);
+  const result = await validateLayerInput(file);
+  assert.equal(result.status, 'ok');
+  assert.deepEqual(result.codes, []);
+
+  manifest.input_kind = 'wardrobe_item';
+  manifest.global_anchor_hints = [{
+    anchor_id: 'anchor_attachment_point', kind: 'attachment_point',
+    point_px: { x: 0, y: 0 }, source: 'upstream_manual',
+  }];
+  const wardrobeFile = await writeYaml(dir, 'wardrobe-input-no-outfit-slot.yaml', manifest);
+  const wardrobeResult = await validateLayerInput(wardrobeFile);
+  assert.equal(wardrobeResult.status, 'reject');
+  assert.ok(wardrobeResult.codes.includes('NIMI2D_LAYER_INPUT_SLOT_HINT_INVALID'));
+});
+
+test('a non-character package cannot count absent mandatory channels as proven', async () => {
+  const dir = await fixtureDir();
+  const manifest = await wardrobePackage();
+  assert.equal(computeProvenTier(manifest), null);
+  const file = await writeYaml(dir, 'wardrobe-unverified.yaml', manifest);
+  const validation = await validatePackageManifest(file);
+  assert.equal(validation.status, 'reject');
+  assert.ok(validation.issues.some((item) => item.code === 'NIMI2D_PACKAGE_PROVEN_TIER_UNVERIFIED' && item.path === '$.capability.channel_evidence.base_body_topology'));
+});
+
+test('asset validation decodes PNG bodies and rejects unadmitted asset kinds', async () => {
+  const dir = await fixtureDir();
+  const manifest = await wardrobePackage();
+  const truncated = rgbaPng.subarray(0, 33);
+  await writeFile(path.join(dir, 'pixel.png'), truncated);
+  manifest.assets[0].sha256 = sha256(truncated);
+  manifest.assets[0].byte_size = truncated.length;
+  const truncatedIssues = [];
+  await validatePackageAssets(manifest, dir, truncatedIssues);
+  assert.ok(truncatedIssues.some((item) => item.code === 'NIMI2D_PACKAGE_ASSET_FORMAT_UNSUPPORTED'));
+
+  const input = baseLayerInput();
+  for (const layer of input.layers) { layer.asset.sha256 = sha256(truncated); layer.asset.byte_size = truncated.length; }
+  const inputFile = await writeYaml(dir, 'truncated-layer.yaml', input);
+  const layerValidation = await validateLayerInput(inputFile);
+  assert.equal(layerValidation.status, 'reject');
+  assert.ok(layerValidation.codes.includes('NIMI2D_LAYER_INPUT_ASSET_FORMAT_UNSUPPORTED'));
+
+  await writeFile(path.join(dir, 'pixel.png'), rgbaPng);
+  const unknownKind = await wardrobePackage();
+  unknownKind.assets[0].asset_kind = 'unadmitted_pixel_kind';
+  unknownKind.render_layers[0].layer_kind = 'unadmitted_pixel_kind';
+  const kindIssues = [];
+  await validatePackageAssets(unknownKind, dir, kindIssues);
+  assert.ok(kindIssues.some((item) => item.path === '$.assets[0].asset_kind'));
 });

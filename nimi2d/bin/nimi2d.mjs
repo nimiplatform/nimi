@@ -205,6 +205,15 @@ async function main() {
     return;
   }
 
+  if (['render-plan', 'prove-visual-frame', 'run-reference-action-bench', 'run-reference-action-stress'].includes(command)) {
+    const admission = await validatePackageManifest(manifestPath);
+    if (admission.status !== 'ok') {
+      printJson(admission);
+      process.exitCode = 1;
+      return;
+    }
+  }
+
   let output;
   if (command === 'validate-layer-input') {
     output = await validateLayerInput(manifestPath);

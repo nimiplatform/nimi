@@ -1,7 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { packageAssetFields } from './common-constants.mjs';
+import { decodePngRgbaBytes } from './png-rgba.mjs';
+import { packageAssetFields, packageAssetKinds } from './common-constants.mjs';
 import {
   issue,
   isObject,
@@ -18,6 +19,11 @@ function parsePngInfo(buffer) {
   }
   const chunkType = buffer.subarray(12, 16).toString('ascii');
   if (chunkType !== 'IHDR') return null;
+  try {
+    decodePngRgbaBytes(buffer);
+  } catch {
+    return null;
+  }
   return {
     width: buffer.readUInt32BE(16),
     height: buffer.readUInt32BE(20),
@@ -35,6 +41,9 @@ function validateAssetMetadataFields(asset, basePath, code, issues) {
     issues,
   );
   rejectUnknownFields(asset, packageAssetFields, code, basePath, issues);
+  if (!packageAssetKinds.has(asset.asset_kind)) {
+    issues.push(issue(code, `${basePath}.asset_kind`, 'Unknown package asset kind.'));
+  }
   if (!Number.isInteger(asset?.width_px) || asset.width_px <= 0) {
     issues.push(issue(code, `${basePath}.width_px`, 'Asset width must be a positive integer.'));
   }

@@ -1,4 +1,4 @@
-import { copyFile, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import YAML from 'yaml';
@@ -7,7 +7,7 @@ import { sha256 } from '../common-utils.mjs';
 import { cutLayerAtlas } from '../image-input/atlas-cutter.mjs';
 import { validateLayerInput } from '../layer-input.mjs';
 import { validatePackageManifest, writeSolvedPackage } from '../package-manifest.mjs';
-import { decodePngRgba } from '../png-rgba.mjs';
+import { decodePngRgbaBytes } from '../png-rgba.mjs';
 import { encodePngRgba } from '../png-rgba-encode.mjs';
 import { createNimi2DRenderPlan } from '../../runtime/index.mjs';
 import { CODEX_IMAGE2_ARTIFACT_KIND } from './artifact.mjs';
@@ -197,6 +197,12 @@ async function runCodexImage2LayerWorkflow(args) {
   const imagePath = path.resolve(imageFlag ?? producerRecord.manifest.artifact.path);
   const outDir = path.resolve(requireFlag(args, '--out-dir'));
 
+  // Snapshot and validate inputs before replacing a prior workflow output.
+  // Inputs may be the retained source or producer manifest from that output.
+  const sourceBytes = await readFile(imagePath);
+  const decoded = decodePngRgbaBytes(sourceBytes, imagePath);
+  assertProducerArtifactMatchesImage(producerRecord, sourceBytes, decoded);
+  const normalized = normalizeAtlasBackground(decoded, defaultColumns, defaultRows);
   await prepareWorkflowOutDir(outDir);
   const sourceDir = path.join(outDir, 'source');
   const atlasDir = path.join(outDir, 'atlas');
@@ -204,15 +210,11 @@ async function runCodexImage2LayerWorkflow(args) {
   await mkdir(sourceDir, { recursive: true });
   await mkdir(atlasDir, { recursive: true });
 
-  const sourceBytes = await readFile(imagePath);
   const imageHash = sha256(sourceBytes);
   const sourceCopyPath = path.join(sourceDir, 'codex-image2-atlas.png');
-  await copyFile(imagePath, sourceCopyPath);
+  await writeFile(sourceCopyPath, sourceBytes);
 
-  const decoded = await decodePngRgba(imagePath);
-  assertProducerArtifactMatchesImage(producerRecord, sourceBytes, decoded);
   const copiedProducerManifestPath = await copyProducerManifest(producerRecord, sourceDir);
-  const normalized = normalizeAtlasBackground(decoded, defaultColumns, defaultRows);
   const atlasPng = encodePngRgba({
     width: normalized.width,
     height: normalized.height,
@@ -248,10 +250,19 @@ async function runCodexImage2LayerWorkflow(args) {
   if (layerValidation.status !== 'ok') {
     return { ...layerValidation, stage: 'layer_input_validation' };
   }
+  const completedLayers = {
+    outDir, sourceImagePath: sourceCopyPath, sourceImageSha256: imageHash,
+    atlasSpecPath, normalizedAtlasPath, transparentAtlasPath,
+    transparentPixelCount: transparentAtlas.transparentPixels,
+    layerInputManifestPath, layerDir: path.join(layerInputDir, 'layers'),
+    layerAssetCount: cut.layerAssetCount,
+    producerManifestPath: copiedProducerManifestPath,
+    producerVerdict: producerRecord?.manifest.verdict ?? 'not_recorded',
+  };
   const packageManifestPath = path.join(layerInputDir, 'package.yaml');
   const solved = await writeSolvedPackage(layerInputManifestPath, packageManifestPath);
   if (solved.status !== 'ok') {
-    return { ...solved, stage: 'package_solve' };
+    return { ...solved, ...completedLayers, kind: 'codex_image2_layer_workflow', stage: 'package_solve' };
   }
   const packageValidation = await validatePackageManifest(packageManifestPath);
   if (packageValidation.status !== 'ok') {

@@ -18,7 +18,10 @@ function addByte(value, predictor) {
 }
 
 export async function decodePngRgba(filePath) {
-  const buffer = await readFile(filePath);
+  return decodePngRgbaBytes(await readFile(filePath), filePath);
+}
+
+export function decodePngRgbaBytes(buffer, filePath = 'in-memory PNG') {
   if (buffer.length < 33 || buffer.subarray(0, 8).toString('hex') !== pngSignature) {
     throw new Error(`Nimi2D PNG decode failed: not a PNG (${filePath})`);
   }

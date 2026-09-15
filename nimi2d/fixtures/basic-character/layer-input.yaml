@@ -96,12 +96,60 @@ global_anchor_hints:
     point_px: { x: 0, y: 0 }
     source: fixture
 global_slot_hints:
+  - slot_hint_id: slot_head
+    kind: head
+    bounds_px: { x: 0, y: 0, width: 1, height: 1 }
+    source: fixture
+  - slot_hint_id: slot_face
+    kind: face
+    bounds_px: { x: 0, y: 0, width: 1, height: 1 }
+    source: fixture
+  - slot_hint_id: slot_hair
+    kind: hair
+    bounds_px: { x: 0, y: 0, width: 1, height: 1 }
+    source: fixture
+  - slot_hint_id: slot_neck
+    kind: neck
+    bounds_px: { x: 0, y: 0, width: 1, height: 1 }
+    source: fixture
   - slot_hint_id: slot_torso
     kind: torso
     bounds_px: { x: 0, y: 0, width: 1, height: 1 }
     source: fixture
   - slot_hint_id: slot_hip
     kind: hip
+    bounds_px: { x: 0, y: 0, width: 1, height: 1 }
+    source: fixture
+  - slot_hint_id: slot_left_arm
+    kind: left_arm
+    bounds_px: { x: 0, y: 0, width: 1, height: 1 }
+    source: fixture
+  - slot_hint_id: slot_right_arm
+    kind: right_arm
+    bounds_px: { x: 0, y: 0, width: 1, height: 1 }
+    source: fixture
+  - slot_hint_id: slot_left_hand
+    kind: left_hand
+    bounds_px: { x: 0, y: 0, width: 1, height: 1 }
+    source: fixture
+  - slot_hint_id: slot_right_hand
+    kind: right_hand
+    bounds_px: { x: 0, y: 0, width: 1, height: 1 }
+    source: fixture
+  - slot_hint_id: slot_left_leg
+    kind: left_leg
+    bounds_px: { x: 0, y: 0, width: 1, height: 1 }
+    source: fixture
+  - slot_hint_id: slot_right_leg
+    kind: right_leg
+    bounds_px: { x: 0, y: 0, width: 1, height: 1 }
+    source: fixture
+  - slot_hint_id: slot_left_foot
+    kind: left_foot
+    bounds_px: { x: 0, y: 0, width: 1, height: 1 }
+    source: fixture
+  - slot_hint_id: slot_right_foot
+    kind: right_foot
     bounds_px: { x: 0, y: 0, width: 1, height: 1 }
     source: fixture
   - slot_hint_id: slot_outfit_upper
@@ -114,5 +162,21 @@ global_slot_hints:
     source: fixture
   - slot_hint_id: slot_outfit_full
     kind: outfit_full
+    bounds_px: { x: 0, y: 0, width: 1, height: 1 }
+    source: fixture
+  - slot_hint_id: slot_accessory_head
+    kind: accessory_head
+    bounds_px: { x: 0, y: 0, width: 1, height: 1 }
+    source: fixture
+  - slot_hint_id: slot_accessory_face
+    kind: accessory_face
+    bounds_px: { x: 0, y: 0, width: 1, height: 1 }
+    source: fixture
+  - slot_hint_id: slot_accessory_hand
+    kind: accessory_hand
+    bounds_px: { x: 0, y: 0, width: 1, height: 1 }
+    source: fixture
+  - slot_hint_id: slot_prop_hand
+    kind: prop_hand
     bounds_px: { x: 0, y: 0, width: 1, height: 1 }
     source: fixture

@@ -5,6 +5,15 @@ import {
   requireFields,
 } from './common.mjs';
 
+const channelMatrixRef = '.nimi/spec/nimi2d/asset-package.authority.yaml';
+
+const tierRank = {
+  'tier-0_static_layered': 0,
+  'tier-1_agent_basic': 1,
+  'tier-2_viseme_gesture': 2,
+  'tier-3_full_body_semantic': 3,
+};
+
 const tierMandatoryChannels = {
   'tier-0_static_layered': [
     'layer_input_lineage',
@@ -75,11 +84,79 @@ const admittedCapabilityChannels = new Set([
   'wardrobe_aware_deformation_masks',
 ]);
 
+function hasRetainedAttestation(evidence) {
+  return isObject(evidence?.attestation)
+    && typeof evidence.attestation.evidence_ref === 'string'
+    && evidence.attestation.evidence_ref.length > 0;
+}
+
+function verifyLayerInputLineage(value) {
+  const source = value.source;
+  return isObject(source)
+    && ['layer_input_ref', 'layer_generation_ref', 'identity_preservation_ref', 'content_admission_ref']
+      .every((field) => typeof source[field] === 'string' && source[field].length > 0);
+}
+
+function verifyDefaultOutfitBinding(value) {
+  if (value.package_kind !== 'character_package') return false;
+  const wardrobe = value.wardrobe;
+  if (!isObject(wardrobe) || typeof wardrobe.default_outfit_ref !== 'string' || wardrobe.default_outfit_ref.length === 0) {
+    return false;
+  }
+  const assets = Array.isArray(wardrobe.assets) ? wardrobe.assets : [];
+  return assets.some((asset) => asset?.wardrobe_asset_id === wardrobe.default_outfit_ref && asset?.wardrobe_kind === 'default_outfit');
+}
+
+function verifyStaticDrawOrder(value) {
+  const layers = Array.isArray(value.render_layers) ? value.render_layers : [];
+  if (layers.length === 0) return false;
+  const orders = new Set();
+  for (const layer of layers) {
+    if (!Number.isInteger(layer?.draw_order_index) || layer.draw_order_index < 0 || orders.has(layer.draw_order_index)) {
+      return false;
+    }
+    orders.add(layer.draw_order_index);
+  }
+  for (let index = 0; index < layers.length; index += 1) {
+    if (!orders.has(index)) return false;
+  }
+  return true;
+}
+
+// The validator only counts a channel as proven when it owns an actual
+// verification for that channel. Channels without a validator-owned
+// verification cannot be claimed proven; claiming them is self-declared
+// success (rule.nimi.nimi2d.asset-package.r036/r044).
+const channelVerifiers = {
+  layer_input_lineage: verifyLayerInputLineage,
+  default_outfit_binding: verifyDefaultOutfitBinding,
+  static_draw_order: verifyStaticDrawOrder,
+};
+
+function computeProvenTier(value) {
+  const evidenceMap = isObject(value.capability?.channel_evidence) ? value.capability.channel_evidence : {};
+  const orderedTiers = ['tier-3_full_body_semantic', 'tier-2_viseme_gesture', 'tier-1_agent_basic', 'tier-0_static_layered'];
+  for (const tier of orderedTiers) {
+    const proven = tierMandatoryChannels[tier].every((channel) => {
+      const verify = channelVerifiers[channel];
+      const evidence = evidenceMap[channel];
+      return typeof verify === 'function'
+        && verify(value)
+        && isObject(evidence)
+        && evidence.status === 'proven'
+        && hasRetainedAttestation(evidence);
+    });
+    if (proven) return tier;
+  }
+  return null;
+}
+
 function validateCapability(value, issues) {
   const cap = value.capability;
   requireFields(cap, ['requested_tier', 'proven_tier', 'channel_matrix_ref', 'channel_evidence'], 'NIMI2D_PACKAGE_CAPABILITY_INVALID', '$.capability', issues);
   if (!tiers.has(cap?.requested_tier)) issues.push(issue('NIMI2D_PACKAGE_CAPABILITY_INVALID', '$.capability.requested_tier', 'Unknown requested tier.'));
   if (!tiers.has(cap?.proven_tier)) issues.push(issue('NIMI2D_PACKAGE_CAPABILITY_INVALID', '$.capability.proven_tier', 'Unknown proven tier.'));
+  if (cap?.channel_matrix_ref !== channelMatrixRef) issues.push(issue('NIMI2D_PACKAGE_CAPABILITY_INVALID', '$.capability.channel_matrix_ref', 'Channel matrix ref must be the admitted literal.'));
   const evidenceMap = isObject(cap?.channel_evidence) ? cap.channel_evidence : {};
   if (!isObject(cap?.channel_evidence)) {
     issues.push(issue('NIMI2D_PACKAGE_CAPABILITY_INVALID', '$.capability.channel_evidence', 'Channel evidence must be an object.'));
@@ -87,6 +164,20 @@ function validateCapability(value, issues) {
   for (const channel of Object.keys(evidenceMap)) {
     if (!admittedCapabilityChannels.has(channel)) {
       issues.push(issue('NIMI2D_PACKAGE_CAPABILITY_INVALID', `$.capability.channel_evidence.${channel}`, 'Unknown capability channel.'));
+    }
+    const evidence = evidenceMap[channel];
+    if (isObject(evidence) && evidence.status === 'proven' && !hasRetainedAttestation(evidence)) {
+      issues.push(issue('NIMI2D_PACKAGE_CAPABILITY_INVALID', `$.capability.channel_evidence.${channel}`, `Proven channel ${channel} requires a retained attestation.`));
+    }
+  }
+  for (const channel of Object.keys(evidenceMap)) {
+    const evidence = evidenceMap[channel];
+    if (!isObject(evidence) || evidence.status !== 'proven') continue;
+    const verify = channelVerifiers[channel];
+    if (typeof verify !== 'function') {
+      issues.push(issue('NIMI2D_PACKAGE_PROVEN_TIER_UNVERIFIED', `$.capability.channel_evidence.${channel}`, `Channel ${channel} has no validator-owned verification and cannot be claimed proven.`));
+    } else if (!verify(value)) {
+      issues.push(issue('NIMI2D_PACKAGE_PROVEN_TIER_UNVERIFIED', `$.capability.channel_evidence.${channel}`, `Channel ${channel} does not satisfy validator-owned verification.`));
     }
   }
   for (const channel of tierMandatoryChannels[cap?.proven_tier] ?? []) {
@@ -101,106 +192,15 @@ function validateCapability(value, issues) {
       issues.push(issue('NIMI2D_PACKAGE_TIER1_TRUE_VISEME_FORBIDDEN', '$.capability.channel_evidence.aeiou_viseme_shapes', 'Tier-1 must not claim true AEIOU viseme.'));
     }
   }
-}
-
-function tierRank(tier) {
-  return [
-    'tier-0_static_layered',
-    'tier-1_agent_basic',
-    'tier-2_viseme_gesture',
-    'tier-3_full_body_semantic',
-  ].indexOf(tier);
-}
-
-function hasSemanticLayer(input, semantic) {
-  return input.layers.some((layer) => layer.semantic_labels.includes(semantic));
-}
-
-function hasAnchor(input, kind) {
-  return input.global_anchor_hints.some((anchor) => anchor.kind === kind);
-}
-
-function hasSlot(input, kind) {
-  return input.global_slot_hints.some((slot) => slot.kind === kind);
-}
-
-function canProveTier1(input) {
-  return hasSemanticLayer(input, 'eye')
-    && hasSemanticLayer(input, 'mouth')
-    && hasSemanticLayer(input, 'outfit')
-    && hasAnchor(input, 'left_eye_center')
-    && hasAnchor(input, 'right_eye_center')
-    && hasAnchor(input, 'head_center')
-    && hasAnchor(input, 'mouth_center')
-    && (hasSlot(input, 'outfit_upper') || hasSlot(input, 'outfit_lower') || hasSlot(input, 'outfit_full'));
-}
-
-function tier1ChannelEvidence(input) {
-  const mouthLayers = input.layers.filter((layer) => layer.semantic_labels.includes('mouth')).map((layer) => layer.layer_id);
-  const eyeLayers = input.layers.filter((layer) => layer.semantic_labels.includes('eye')).map((layer) => layer.layer_id);
-  const faceLayers = input.layers.filter((layer) => layer.semantic_labels.some((label) => ['face', 'mouth', 'eye', 'brow'].includes(label))).map((layer) => layer.layer_id);
-  const outfitLayers = input.layers.filter((layer) => layer.semantic_labels.includes('outfit')).map((layer) => layer.layer_id);
-  return {
-    wardrobe_reuse: {
-      status: 'proven',
-      default_outfit_layer_refs: outfitLayers,
-      topology_ref: 'nimi.nimi2d.base-body.topology@1',
-    },
-    discrete_expression_set: {
-      status: 'proven',
-      implementation: 'layer_group_opacity_and_transform',
-      expressions: ['neutral', 'listen', 'think', 'curious'],
-      layer_refs: faceLayers,
-    },
-    blink_eye_open_close: {
-      status: 'proven',
-      implementation: 'eye_layer_opacity_channel',
-      layer_refs: eyeLayers,
-      anchors: ['left_eye_center', 'right_eye_center'],
-    },
-    gaze_anchor_channels: {
-      status: 'proven',
-      implementation: 'anchor_relative_gaze_offset',
-      anchors: ['head_center', 'left_eye_center', 'right_eye_center'],
-      safe_offset_px: { x: [-2, 2], y: [-1, 1] },
-    },
-    jaw_amplitude_mouth: {
-      status: 'proven',
-      implementation: 'mouth_layer_scale_y_channel',
-      layer_refs: mouthLayers,
-      anchor: 'mouth_center',
-      scale_y_range: [1, 1.32],
-      safe_closed_reset: true,
-    },
-    motion_primitive_refs: {
-      status: 'proven',
-      primitives: ['idle', 'listen', 'speak', 'think', 'greet'],
-      implementation: 'safe_layer_transform_routes',
-    },
-    safe_motion_bounds: {
-      status: 'proven',
-      translate_x_range_px: [-4, 4],
-      translate_y_range_px: [-8, 4],
-      scale_range: [0.98, 1.04],
-      opacity_range: [0.72, 1],
-    },
-    aeiou_viseme_shapes: {
-      status: 'unsupported',
-      reason: 'tier-1 uses jaw/amplitude mouth only',
-    },
-  };
-}
-
-function solveProvenTier(input, requestedTier) {
-  if (tierRank(requestedTier) >= tierRank('tier-1_agent_basic') && canProveTier1(input)) {
-    return 'tier-1_agent_basic';
+  const computedTier = computeProvenTier(value);
+  if (tiers.has(cap?.proven_tier) && (computedTier === null || tierRank[cap.proven_tier] > tierRank[computedTier])) {
+    issues.push(issue('NIMI2D_PACKAGE_PROVEN_TIER_UNVERIFIED', '$.capability.proven_tier', 'Proven tier is validator-computed; declared tier exceeds the fully proven tier.'));
   }
-  return 'tier-0_static_layered';
 }
 
 export {
   tierMandatoryChannels,
+  channelMatrixRef,
+  computeProvenTier,
   validateCapability,
-  solveProvenTier,
-  tier1ChannelEvidence,
 };

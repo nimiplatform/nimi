@@ -370,13 +370,31 @@ function anchorHints(cellWidth, cellHeight, cellStats = []) {
 function slotHints(cellWidth, cellHeight, cellStats = []) {
   const measured = measuredBoundsByLayer(cellStats, cellWidth, cellHeight);
   const body = boundsOrFull(measured.layer_body, cellWidth, cellHeight);
+  const head = boundsOrFull(measured.layer_head, cellWidth, cellHeight);
+  const hair = boundsOrFull(measured.layer_hair, cellWidth, cellHeight);
   const outfit = boundsOrFull(measured.layer_outfit, cellWidth, cellHeight);
   return [
+    ['head', head],
+    ['face', subRect(head, 0.15, 0.35, 0.7, 0.6)],
+    ['hair', hair],
+    ['neck', subRect(body, 0.35, 0.18, 0.3, 0.08)],
     ['torso', subRect(body, 0.15, 0.28, 0.7, 0.35)],
     ['hip', subRect(body, 0.2, 0.7, 0.6, 0.18)],
+    ['left_arm', subRect(body, 0, 0.28, 0.15, 0.4)],
+    ['right_arm', subRect(body, 0.85, 0.28, 0.15, 0.4)],
+    ['left_hand', subRect(body, 0, 0.62, 0.15, 0.12)],
+    ['right_hand', subRect(body, 0.85, 0.62, 0.15, 0.12)],
+    ['left_leg', subRect(body, 0.22, 0.84, 0.24, 0.14)],
+    ['right_leg', subRect(body, 0.54, 0.84, 0.24, 0.14)],
+    ['left_foot', subRect(body, 0.18, 0.94, 0.28, 0.06)],
+    ['right_foot', subRect(body, 0.54, 0.94, 0.28, 0.06)],
     ['outfit_upper', subRect(outfit, 0.08, 0.2, 0.84, 0.35)],
     ['outfit_lower', subRect(outfit, 0.1, 0.55, 0.8, 0.4)],
     ['outfit_full', outfit],
+    ['accessory_head', subRect(head, 0.2, 0, 0.6, 0.18)],
+    ['accessory_face', subRect(head, 0.25, 0.42, 0.5, 0.3)],
+    ['accessory_hand', subRect(body, 0.85, 0.62, 0.15, 0.12)],
+    ['prop_hand', subRect(body, 0, 0.62, 0.15, 0.12)],
   ].map(([kind, bounds]) => ({
     slot_hint_id: `slot_${kind}`,
     kind,

@@ -114,7 +114,7 @@ async function runNimi2D(args) {
   return JSON.parse(stdout);
 }
 
-test('Codex Image2 layer workflow materializes and validates layers and package directly', async () => {
+test('Codex Image2 layer workflow retains validated layers and rejects missing character topology', async () => {
   const tempDir = await mkdtemp(path.join(tmpdir(), 'nimi2d-image2-layer-workflow-'));
   const imagePath = path.join(tempDir, 'generated-atlas.png');
   const outDir = path.join(tempDir, 'run');
@@ -124,18 +124,19 @@ test('Codex Image2 layer workflow materializes and validates layers and package 
     '--image', imagePath,
     '--out-dir', outDir,
   ]);
-  assert.equal(exitStatus, 'ok');
-  assert.equal(result.status, 'ok');
+  assert.equal(exitStatus, 'error');
+  assert.equal(result.status, 'reject');
+  assert.equal(result.stage, 'package_solve');
+  assert.ok(result.codes.includes('NIMI2D_PACKAGE_TOPOLOGY_UNAVAILABLE'));
+  assert.equal(result.packageManifestPath, undefined);
+  assert.equal(await pathExists(path.join(path.dirname(result.layerInputManifestPath), 'package.yaml')), false);
   assert.equal(result.producerVerdict, 'not_recorded');
   assert.equal(result.layerAssetCount, 6);
-  assert.equal(result.renderLayerCount, 6);
+  assert.equal(result.renderLayerCount, undefined);
   assert.ok(result.transparentPixelCount > 0);
   const layerInput = await readYaml(result.layerInputManifestPath);
   assert.equal(layerInput.layers.length, 6);
   assert.equal(layerInput.layers.every((layer) => layer.asset.ref.startsWith('layers/')), true);
-  const packageManifest = await readYaml(result.packageManifestPath);
-  assert.equal(packageManifest.assets.length, 6);
-  assert.equal(packageManifest.capability.proven_tier, 'tier-1_agent_basic');
   const transparentAtlas = await decodePngRgba(result.transparentAtlasPath);
   assert.ok(countTransparentPixels(transparentAtlas) > 0);
   assert.equal(await pathExists(path.join(outDir, 'quality')), false);
@@ -163,15 +164,18 @@ test('Codex Image2 layer workflow verifies and copies a registered provider arti
     '--producer-manifest', producerManifestPath,
     '--out-dir', outDir,
   ]);
-  assert.equal(exitStatus, 'ok');
-  assert.equal(result.status, 'ok');
+  assert.equal(exitStatus, 'error');
+  assert.equal(result.status, 'reject');
+  assert.equal(result.stage, 'package_solve');
+  assert.ok(result.codes.includes('NIMI2D_PACKAGE_TOPOLOGY_UNAVAILABLE'));
+  assert.equal(result.packageManifestPath, undefined);
+  assert.equal(await pathExists(path.join(path.dirname(result.layerInputManifestPath), 'package.yaml')), false);
   assert.equal(result.producerVerdict, 'admit');
   assert.match(result.producerManifestPath, /codex-image2-producer-manifest\.yaml$/);
   const copiedProducer = await readYaml(result.producerManifestPath);
   assert.equal(copiedProducer.manifest_kind, 'nimi.nimi2d.codex-image2.artifact');
   assert.equal(copiedProducer.verdict, 'admit');
   assert.equal(copiedProducer.artifact.file_sha256, result.sourceImageSha256);
-  assert.equal((await readYaml(result.packageManifestPath)).capability.proven_tier, 'tier-1_agent_basic');
 });
 
 test('Codex Image2 layer workflow validates output from a registered-only artifact', async () => {
@@ -195,13 +199,16 @@ test('Codex Image2 layer workflow validates output from a registered-only artifa
     '--producer-manifest', producerManifestPath,
     '--out-dir', outDir,
   ]);
-  assert.equal(exitStatus, 'ok');
-  assert.equal(result.status, 'ok');
+  assert.equal(exitStatus, 'error');
+  assert.equal(result.status, 'reject');
+  assert.equal(result.stage, 'package_solve');
+  assert.ok(result.codes.includes('NIMI2D_PACKAGE_TOPOLOGY_UNAVAILABLE'));
+  assert.equal(result.packageManifestPath, undefined);
+  assert.equal(await pathExists(path.join(path.dirname(result.layerInputManifestPath), 'package.yaml')), false);
   assert.equal(result.producerVerdict, 'recorded_only');
   const copiedProducer = await readYaml(result.producerManifestPath);
   assert.equal(copiedProducer.verdict, 'recorded_only');
   assert.equal(copiedProducer.evidence.pixel_identity.status, 'not_provided');
-  assert.equal((await readYaml(result.packageManifestPath)).capability.proven_tier, 'tier-1_agent_basic');
 });
 
 test('Codex Image2 layer workflow refuses to clean a non-workflow output directory', async () => {
@@ -282,4 +289,31 @@ test('Codex Image2 layer workflow recomputes producer decoded pixel hash', async
   assert.equal(result.status, 'error');
   assert.match(result.message, /NIMI2D_IMAGE2_PRODUCER_ARTIFACT_MISMATCH/);
   assert.match(result.message, /decoded_pixel_sha256/);
+});
+
+test('workflow retries from its retained source without deleting the input first', async () => {
+  const tempDir = await mkdtemp(path.join(tmpdir(), 'nimi2d-image2-retained-retry-'));
+  const imagePath = path.join(tempDir, 'atlas.png');
+  const outDir = path.join(tempDir, 'run');
+  await writeGeneratedLikeAtlas(imagePath);
+  const first = await runWorkflowCli(['--image', imagePath, '--out-dir', outDir]);
+  assert.equal(first.result.stage, 'package_solve');
+  const originalBytes = await readFile(first.result.sourceImagePath);
+  const second = await runWorkflowCli(['--image', first.result.sourceImagePath, '--out-dir', outDir]);
+  assert.equal(second.exitStatus, 'error');
+  assert.equal(second.result.stage, 'package_solve');
+  assert.ok(second.result.codes.includes('NIMI2D_PACKAGE_TOPOLOGY_UNAVAILABLE'));
+  assert.deepEqual(await readFile(second.result.sourceImagePath), originalBytes);
+  assert.equal(await pathExists(second.result.layerInputManifestPath), true);
+  assert.equal(second.result.layerAssetCount, 6);
+
+  const invalidImage = path.join(tempDir, 'invalid.png');
+  const wrongGrid = await readFile(path.join(packageRoot, 'fixtures/basic-character/pixel.png'));
+  for (const invalidBytes of [originalBytes.subarray(0,33), wrongGrid]) {
+    await writeFile(invalidImage, invalidBytes);
+    const rejected = await runWorkflowCli(['--image', invalidImage, '--out-dir', outDir]);
+    assert.equal(rejected.exitStatus, 'error');
+    assert.equal(await pathExists(second.result.layerInputManifestPath), true);
+    assert.deepEqual(await readFile(second.result.sourceImagePath), originalBytes);
+  }
 });
