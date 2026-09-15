@@ -99,7 +99,9 @@ invalid for processing or that a Runtime AI capability is unavailable.
   `status/start/restart` and protected calls. Stop, external-daemon fallback,
   executable/service/path selection, generic config JSON, bearer injection and
   renderer-visible protected material are forbidden.
-- The local-app entrypoint owns the narrowed protected carrier/session and
-  admits only the catalogued App, storage, WorldCore, conversation, and Agent
-  configuration operations. Launch metadata, app-selected carrier authority,
-  AI profile mutation, Artifact access, and generic gRPC proxying fail closed.
+- The local-app entrypoint carries only catalogued protected operations under
+  the Runtime-owned App session, including typed AI scenario/Job operations,
+  owned artifact read/upload, managed storage, WorldCore, conversation, and Agent
+  configuration. Artifact access and adoption retain their exact ownership and
+  size/lifetime limits. Launch metadata, app-selected carrier authority,
+  AI profile mutation, unscoped artifact access, and generic gRPC proxying fail closed.

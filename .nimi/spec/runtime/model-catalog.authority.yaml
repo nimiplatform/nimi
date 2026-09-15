@@ -198,7 +198,7 @@ units:
     kind: rule
     title: Infra providers cannot pose as sources
     modality: must_not
-    statement: The runtime infrastructure providers nimillm, openai_compatible, and volcengine_openspeech appear as source-provider capability declarations instead of remaining registry and routing layer identities.
+    statement: The runtime infrastructure providers nimillm and openai_compatible appear as source-provider capability declarations instead of remaining registry and routing layer identities.
     condition: Whenever provider identities are declared in catalog source.
     failure: Reject infra-provider entries at source validation.
     relations:

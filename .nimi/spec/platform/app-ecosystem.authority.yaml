@@ -1255,7 +1255,7 @@ units:
     kind: rule
     lifecycle: removed
     title: Retired P-NAPP-038 public App lifecycle deferral
-    reason: Removed because source-specific lifecycle semantics are governed by P-NAPP-040; removal does not make public catalog discovery or the ordinary install, update, installed launch, repair, and uninstall lifecycle currently available.
+    reason: Removed because source-specific lifecycle semantics are governed by P-NAPP-040; removal did not itself activate public catalog discovery or the ordinary install, update, installed launch, repair, and uninstall lifecycle, whose current availability is stated by P-NAPP-040a.
   - id: rule.nimi.platform.app-ecosystem.p-napp-039
     kind: rule
     title: P-NAPP-039 stable trust-tier transitions

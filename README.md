@@ -113,9 +113,9 @@ memory, and the authority tooling used to maintain those boundaries.
 | Product | What it owns |
 | --- | --- |
 | **Platform** | The open world model, the six protocol primitives, the cross-domain authority rules. |
-| **Runtime** | LocalAgent execution and lifecycle, Conversation continuity, operational Memory and Knowledge, providers, model catalogs, streaming, multimodal output, local routing, protected access, and audit. Workflow, MCP, and World Evolution are not Runtime-core prerequisites. |
+| **Runtime** | LocalAgent execution and lifecycle, Conversation continuity, providers, model catalogs, streaming, multimodal output, local routing, protected access, and audit. Workflow, MCP, and World Evolution are not Runtime-core prerequisites. |
 | **SDK** | The public app boundary into Runtime and Realm without importing private internals. Scaffolded local apps use Runtime-mediated Realm access; direct SDK consumers retain the standard Auth path. |
-| **Nimi Home, Desktop, and Web** | First-party user surfaces. Nimi Home is the product contract; Desktop is its current replaceable native host, while Web is a constrained projection. |
+| **Nimi Home, Desktop, and Web** | First-party user surfaces. Nimi Home is the product contract; Desktop is its current replaceable native host, while Web is the standalone public account site. |
 | **Realm** | Semantic truth — world state, world history, chat, social and economy, asset binding, transit, creator economy. |
 | **Avatar** | An embodied LocalAgent projection; it does not own LocalAgent execution, Memory, Knowledge, or Conversation truth. |
 | **Cognition** | An independent capability domain whose complete product design is deferred. Runtime may consume it only through a public bridge; Cognition does not take over Runtime-owned LocalAgent truth. |
@@ -137,24 +137,25 @@ than to mix together.
                               v
 +---------------------------------------------------------------+
 |  Execution Substrate                                          |
-|    Runtime    : LocalAgent, Conversation, Memory, Knowledge,  |
-|                 providers, streaming, protected access        |
-|    Cognition  : independent deferred domain, public bridge    |
+|    Runtime    : LocalAgent, Conversation, providers,          |
+|                 streaming, protected access                   |
+|    Cognition  : Memory, Knowledge; independent deferred       |
+|                 domain, public bridge                         |
 +---------------------------------------------------------------+
                               |
                               v
 +---------------------------------------------------------------+
 |  Public Surfaces                                              |
 |    SDK app boundary           Desktop native shell            |
-|    Web constrained projection Realm public read path          |
+|    Web public account site     Realm public read path           |
 |    Avatar embodiment authority                                |
 +---------------------------------------------------------------+
 ```
 
 Runtime executes local and cloud AI capabilities across providers. SDK gives
 apps the integration boundary.
-Desktop carries native and local behavior; Web is the constrained
-projection. Realm owns world truth. Avatar owns embodied presentation.
+Desktop carries native and local behavior; Web is the standalone public
+account site. Realm owns world truth. Avatar owns embodied presentation.
 Cognition owns memory and knowledge as a standalone authority that
 Runtime can bridge to but cannot absorb.
 
@@ -168,8 +169,8 @@ app, not the platform itself.
 
 | App | What it explores |
 | --- | --- |
-| [`apps/desktop/`](apps/desktop/) | Native first-party shell — agent chat, local AI, knowledge, voice |
-| [`apps/web/`](apps/web/) | Browser projection of public Desktop surfaces |
+| [`apps/desktop/`](apps/desktop/) | Native first-party shell — agent chat, local AI, voice |
+| [`apps/web/`](apps/web/) | Standalone public account site |
 | [`apps/avatar/`](apps/avatar/) | Live2D embodied carrier for Nimi agents (floating desktop avatar) |
 | [`apps/lab/`](apps/lab/) | Nimi Lab capability integration and incubation app for SDK, Kit, app-tools, Runtime auth, and AI capability lanes |
 | [`apps/install-gateway/`](apps/install-gateway/) | Cloudflare Worker for release distribution |

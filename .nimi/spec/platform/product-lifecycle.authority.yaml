@@ -145,8 +145,8 @@ units:
     title: P-COLD-008 current local-development App projection
     modality: must_not
     statement: Home derives first-app or Apps truth locally, from registry or package data, or from an ordinary-user lifecycle surface instead of projecting Runtime-mediated local-development App state with explicit unknown or unavailable outcomes.
-    condition: When first-app or Apps state is projected before separate public App lifecycle activation.
-    failure: Reject the unowned or premature public projection, use the current local-development owner projection, and keep ordinary-user lifecycle unavailable.
+    condition: When first-app or Apps state is projected beyond the current rule.nimi.platform.app-ecosystem.p-napp-040a scope, under which verified Catalog discovery and ordinary installation and update on Windows x86_64 and macOS arm64 are available through the protected Desktop machine-product path while ordinary repair and other platforms remain unavailable.
+    failure: Reject the unowned or premature public projection, use the current local-development owner projection, and keep the ordinary-user lifecycle unavailable outside that current scope.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.home-apps
@@ -820,8 +820,8 @@ units:
     title: P-HOME-009 ordinary visibility remains deferred
     modality: must_not
     statement: Apps derives or displays an ordinary-user-visible App entry from app-local specification, workspace source, registry or package data, or any other projection, including Avatar.
-    condition: Until separate lifecycle authority activates public distribution and ordinary-user App installation.
-    failure: Keep ordinary-user Apps visibility unavailable while preserving the explicit local-development flow.
+    condition: Whenever Apps presents ordinary-user-visible App entries outside the current rule.nimi.platform.app-ecosystem.p-napp-040a scope, under which verified Catalog discovery and ordinary installation and update on Windows x86_64 and macOS arm64 are available through the protected Desktop machine-product path while ordinary repair and other platforms remain unavailable.
+    failure: Keep ordinary-user Apps visibility outside that current scope, including Avatar, unavailable while preserving the explicit local-development flow.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.home-apps
@@ -1188,7 +1188,7 @@ units:
     kind: rule
     title: P-WEB-005 informational App pages stay non-distributional
     modality: must_not
-    statement: A Web App page installs an App, creates a public catalog or distribution authority, or promises ordinary-user App availability before the separately owned lifecycle is activated.
+    statement: A Web App page installs an App, creates a public catalog or distribution authority, or promises ordinary-user App availability beyond the current rule.nimi.platform.app-ecosystem.p-napp-040a scope, under which verified Catalog discovery and ordinary installation and update on Windows x86_64 and macOS arm64 are available through the protected Desktop machine-product path while ordinary repair and other platforms remain unavailable.
     condition: Whenever Web presents Nimi App information.
     failure: Keep the page static and informational and remove the installation, catalog, distribution, or release promise.
     relations:

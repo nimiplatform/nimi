@@ -15,8 +15,9 @@ Current scope:
   TypeScript implementation is stable.
 - Generated files are produced through `sdks/generators`; do not hand-edit
   generated outputs.
-- Adapter packages stay source-local/private until owner-approved public package
-  names and compatibility promises are accepted.
+- Framework adapters are independent packages with their own public entry points
+  and compatibility notes, including the [Vercel AI adapter](typescript/adapters/vercel-ai/README.md).
+  Source presence or a package manifest alone does not establish published availability.
 
 Generation:
 
@@ -43,12 +44,14 @@ package tests and SDK matrix gates.
 
 ## Local App text tools
 
-SDK 0.12.0 exposes `createNimiLocalAppTextModel` from `@nimiplatform/sdk/ai`.
+`createNimiLocalAppTextModel` is exposed from `@nimiplatform/sdk/ai`.
 It binds the common `NimiAiModel` interface to a protected App client's `ai`
 surface. It supports function tools, ordered assistant output and tool results,
 tool choice, and a structured `responseFormat`. The App's AIConfig selects a
 compatible execution configuration; requests contain no provider or model
-identity. Kit 0.8.0 and the matching Runtime contract are required.
+identity. Select the SDK/Kit/native and Runtime combination from the
+[TypeScript integration guide](typescript/README.md#developing-a-nimi-app);
+this example is not a separate version matrix or a broader support promise.
 
 ```ts
 import { createNimiLocalAppTextModel } from '@nimiplatform/sdk/ai';
