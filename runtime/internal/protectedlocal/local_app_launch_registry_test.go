@@ -2,7 +2,9 @@ package protectedlocal
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
+	"path/filepath"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -111,6 +113,48 @@ func TestLocalAppLaunchRegistryRevokesBindingOnProcessExit(t *testing.T) {
 	}
 	if _, err := registry.Promote(process, newManualDesktopLiveness()); err == nil {
 		t.Fatal("registry promoted a process after exit")
+	}
+}
+
+func TestInstalledPipeConnectionPreservesCommittedSourceTrust(t *testing.T) {
+	for _, trustClass := range []LocalAppTrustClass{LocalAppTrustVerified, LocalAppTrustUserImported} {
+		t.Run(string(trustClass), func(t *testing.T) {
+			registry, err := NewLocalAppLaunchRegistry(identifierFilled(0x91))
+			if err != nil {
+				t.Fatal(err)
+			}
+			process := localAppRegistryProcess(9902, 0x92)
+			process.CanonicalExecutablePath = filepath.Join(t.TempDir(), "app.exe")
+			registration := identifierFilled(0x93)
+			policy := InstalledAppProcessPolicy{
+				RegistrationHandle: "rar_v1_" + base64.RawURLEncoding.EncodeToString(registration[:]),
+				TrustClass:         trustClass, SourceGeneration: 3, DeclarationGeneration: 4,
+				HostExecutablePath: process.CanonicalExecutablePath, HostExecutableDigest: process.ExecutableDigest,
+				ExecutionProfileRef: "windows-user-mode-as-invoker-v1", SupervisorProcess: localAppRegistryProcess(9901, 0x94),
+			}
+			launch := identifierFilled(0x95)
+			wrongTrust := policy
+			wrongTrust.TrustClass = LocalAppTrustLocalDevelopment
+			if err := registry.BindInstalled(launch, wrongTrust, process, newManualDesktopLiveness(), func() {}); err == nil {
+				t.Fatal("development trust admitted as installed")
+			}
+			if err := registry.BindInstalled(launch, policy, process, newManualDesktopLiveness(), func() {}); err != nil {
+				t.Fatal(err)
+			}
+			peer, err := registry.Promote(process, newManualDesktopLiveness())
+			if err != nil {
+				t.Fatal(err)
+			}
+			connection, err := EstablishLocalAppConnection(context.Background(), localAppTestVerifier{peer: peer})
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer connection.Revoke()
+			handle, installed := connection.InstalledRegistrationHandle()
+			if !installed || handle != policy.RegistrationHandle || connection.TrustClass() != trustClass {
+				t.Fatal("installed connection lost its committed source")
+			}
+		})
 	}
 }
 

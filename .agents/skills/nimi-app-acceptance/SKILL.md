@@ -18,5 +18,6 @@ Verify the requested behavior in the real supported App. Start from the affected
 
 - Reproduce the reported behavior or exercise the newly requested interaction, repair failures within scope, and rerun the affected journey. A missing prerequisite blocks only dependent work.
 - Use the existing browser/CDP tooling for observation. Do not add alternative CDP defaults, acceptance harnesses, Playwright projects, helper endpoints, recordings, fixtures, baselines, or evidence systems.
+- Preserve native window sizing during ordinary Electron acceptance: do not set a fixed Playwright viewport or call `Emulation.setDeviceMetricsOverride`. A renderer-only size can leave the rest of the native window blank. Exercise responsive layouts by resizing the native window through its owner UI. If a specific test requires device emulation, clear the override with `Emulation.clearDeviceMetricsOverride` in `finally` before disconnecting, restore any other overrides introduced by the test, and verify that the renderer fills the native content area before handoff.
 - Run checks that cover the changed behavior. CDP visibility, screenshots, and fixture output do not establish the full product result.
 - Report the observed outcome and mark relevant unexecuted paths `NOT-VERIFIED`. Put any necessary local artifacts under `.nimi/local/**`.

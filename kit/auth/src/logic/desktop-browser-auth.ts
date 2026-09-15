@@ -72,6 +72,7 @@ export function validateRuntimeOAuthAuthorizationUrl(value: unknown): string {
  * The kit/desktop never observes access tokens or refresh tokens at any
  * stage of this flow.
  */
+// @nimi-authority: rule.nimi.desktop.bridge-ipc.r021
 export async function performDesktopBrowserAuth(
   bridge: ShellOAuthCodeBridge,
   options: {
@@ -129,29 +130,33 @@ export async function performDesktopBrowserAuth(
   options.onOpened?.();
 
   const callback = await listenTask;
-  void bridge.focusMainWindow().catch(() => undefined);
+  try {
+    if (callback.error) {
+      throw new Error(`网页授权失败：${callback.error}`);
+    }
 
-  if (callback.error) {
-    throw new Error(`网页授权失败：${callback.error}`);
+    const actualState = String(callback.state || '').trim();
+    if (actualState !== expectedState) {
+      throw new Error(AUTH_COPY.desktopBrowserStateInvalid);
+    }
+
+    const code = String(callback.code || '').trim();
+    if (!code) {
+      throw new Error(AUTH_COPY.desktopBrowserCodeMissing);
+    }
+
+    const completion = await runtimeBroker.complete({
+      loginAttemptId: runtimeAttempt.loginAttemptId,
+      code,
+      state: expectedState,
+      nonce: runtimeAttempt.nonce,
+      callbackUrl,
+    });
+
+    return { user: completion.user };
+  } finally {
+    // Return to Desktop after the account result is ready, including a rejected
+    // callback. A window activation failure must not replace the account result.
+    await bridge.focusMainWindow().catch(() => undefined);
   }
-
-  const actualState = String(callback.state || '').trim();
-  if (actualState !== expectedState) {
-    throw new Error(AUTH_COPY.desktopBrowserStateInvalid);
-  }
-
-  const code = String(callback.code || '').trim();
-  if (!code) {
-    throw new Error(AUTH_COPY.desktopBrowserCodeMissing);
-  }
-
-  const completion = await runtimeBroker.complete({
-    loginAttemptId: runtimeAttempt.loginAttemptId,
-    code,
-    state: expectedState,
-    nonce: runtimeAttempt.nonce,
-    callbackUrl,
-  });
-
-  return { user: completion.user };
 }

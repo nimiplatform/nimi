@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, realpathSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { assertLocalDevelopmentPlatform, runDevShell } from '../scripts/dev-shell.mjs';
+import { assertLocalDevelopmentPlatform, assertProjectElectronRuntime, runDevShell } from '../scripts/dev-shell.mjs';
 
 test('registration listing only reads Desktop-issued selectors and never starts a new subject', {
   skip: !['win32', 'darwin'].includes(process.platform),
@@ -60,6 +60,9 @@ function fixture() {
   const project = path.join(root, 'project');
   const descriptorPath = path.join(root, 'presence.v1.json');
   mkdirSync(project, { recursive: true });
+  const electronDirectory = path.join(project, 'node_modules', 'electron', 'dist');
+  mkdirSync(electronDirectory, { recursive: true });
+  writeFileSync(path.join(electronDirectory, 'electron.exe'), 'dependency-presence unit fixture; never executed');
   writeFileSync(path.join(project, 'nimi.app.yaml'), 'app_id: acme.widget\n');
   writeFileSync(descriptorPath, `${JSON.stringify({
     schemaVersion: 1,
@@ -71,6 +74,30 @@ function fixture() {
   }, null, 2)}\n`);
   return { root, project, descriptorPath };
 }
+
+test('missing Windows Electron is diagnosed before a start request and does not block registration listing', {
+  skip: process.platform !== 'win32',
+}, async () => {
+  const input = fixture();
+  const calls = [];
+  const options = {
+    descriptorPath: input.descriptorPath,
+    now: () => Date.parse('2026-07-12T00:00:02.000Z'),
+    fetch: async (url) => { calls.push(url); return response({ status: 'ok', registrations: [] }); },
+    output: { write() {} },
+  };
+  try {
+    unlinkSync(path.join(input.project, 'node_modules', 'electron', 'dist', 'electron.exe'));
+    await assert.rejects(runDevShell(input.project, options), (error) => (
+      error.reasonCode === 'local-development-launcher-unavailable' && /pnpm exec install-electron --no/u.test(error.message)
+    ));
+    assert.deepEqual(calls, []);
+    await runDevShell(input.project, { ...options, listRegistrations: true });
+    assert.equal(calls.length, 1);
+    assert.ok(calls[0].endsWith('/v1/registrations'));
+    await assert.doesNotReject(assertProjectElectronRuntime(input.project, 'darwin'));
+  } finally { rmSync(input.root, { recursive: true, force: true }); }
+});
 
 function response(payload) {
   return { status: 200, async json() { return payload; } };
@@ -294,6 +321,36 @@ test('official dev launcher stays attached while Desktop recovers a Runtime rest
       errorOutput: { write() {} },
     });
     assert.equal(statusRequests, 1);
+  } finally {
+    rmSync(input.root, { recursive: true, force: true });
+  }
+});
+
+test('official dev launcher accepts a completed Desktop UI stop without sending another cancel', {
+  skip: !['win32', 'darwin'].includes(process.platform),
+}, async () => {
+  const input = fixture();
+  const requests = [];
+  const errors = [];
+  try {
+    const result = await runDevShell(input.project, {
+      shell: 'electron',
+      descriptorPath: input.descriptorPath,
+      now: () => Date.parse('2026-07-12T00:00:02.000Z'),
+      fetch: async (url) => {
+        const pathname = new URL(url).pathname;
+        requests.push(pathname);
+        if (pathname === '/v1/start') return response({ status: 'ok', run: runStatus('running') });
+        if (pathname === '/v1/status') return response({ status: 'ok', run: runStatus('stopped') });
+        throw new Error(`unexpected route: ${url}`);
+      },
+      installSignalHandlers: false,
+      output: { write() {} },
+      errorOutput: { write(message) { errors.push(message); } },
+    });
+    assert.equal(result.state, 'stopped');
+    assert.deepEqual(requests, ['/v1/start', '/v1/status']);
+    assert.deepEqual(errors, []);
   } finally {
     rmSync(input.root, { recursive: true, force: true });
   }

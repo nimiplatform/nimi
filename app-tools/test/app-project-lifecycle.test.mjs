@@ -13,6 +13,7 @@ import { lifecycleSkillFiles } from '../lib/app-lifecycle-guidance.mjs';
 import { buildAppScaffoldSnapshot, renderAppIdentityInput, SCAFFOLD_INTENT_PATH, SCAFFOLD_LOCK_PATH } from '../lib/app-scaffold.mjs';
 import { initApp } from '../lib/app-doctor-update.mjs';
 import { syncAppProject } from '../lib/app-project-lifecycle.mjs';
+import { rebaseLocalPackagePaths } from '../lib/app-scaffold-profiles.mjs';
 
 const testDir = path.dirname(fileURLToPath(import.meta.url));
 const appToolsRoot = path.join(testDir, '..');
@@ -281,6 +282,102 @@ function writePublicRegistryLock(target) {
   }));
 }
 
+test('local Nimi tarball overrides survive sync and are checked without requiring publication', () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-local-packages-'));
+  const target = writeExistingSubmittedApp(tempRoot, { buildProfileRef: 'electron-packager-pnpm-vite' });
+  const env = fakeNimicodingEnv(tempRoot);
+  try {
+    let result = runCli(['sync', '--dir', target, '--json'], tempRoot, env);
+    assert.equal(result.status, 0, result.stderr);
+    writePublicRegistryLock(target);
+    const archive = path.join(tempRoot, 'sdk.tgz');
+    // Package/lock inputs for lifecycle validation only; real pnpm installation is verified separately.
+    writeFileSync(archive, 'archive fixture');
+    const selected = 'file:' + archive.split(path.sep).join('/');
+    const relative = 'file:' + path.relative(target, archive).split(path.sep).join('/');
+    const workspacePath = path.join(target, 'pnpm-workspace.yaml');
+    const workspace = parseYaml(readFileSync(workspacePath, 'utf8'));
+    workspace.overrides['@nimiplatform/sdk'] = selected;
+    writeFileSync(workspacePath, stringifyYaml(workspace));
+    const lockPath = path.join(target, 'pnpm-lock.yaml');
+    const lock = parseYaml(readFileSync(lockPath, 'utf8'));
+    lock.overrides = { '@nimiplatform/sdk': selected };
+    lock.importers['.'].dependencies['@nimiplatform/sdk'] = { specifier: selected, version: relative };
+    lock.packages = { ['@nimiplatform/sdk@' + relative]: { resolution: { tarball: relative }, version: versions.sdkVersion.replace(/^\^/u, '') } };
+    writeFileSync(lockPath, stringifyYaml(lock));
+    const installedPath = path.join(target, 'node_modules', '@nimiplatform', 'sdk');
+    mkdirSync(installedPath, { recursive: true });
+    writeFileSync(path.join(installedPath, 'package.json'), JSON.stringify({ name: '@nimiplatform/sdk', version: versions.sdkVersion.replace(/^\^/u, '') }));
+    result = runCli(['sync', '--dir', target, '--json'], tempRoot, env);
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    assert.equal(parseYaml(readFileSync(workspacePath, 'utf8')).overrides['@nimiplatform/sdk'], selected);
+    result = runCli(['check', '--dir', target, '--json'], tempRoot, env);
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    result = runCli(['check', '--dir', target, '--production', '--json'], tempRoot, env);
+    assert.notEqual(result.status, 0);
+    assert.match(jsonErrorMessage(result), /Production release preflight requires registry dependencies/);
+    const nativeName = '@nimiplatform/kit-protected-local-win32-x64';
+    const nativeArchive = path.join(tempRoot, 'native.tgz');
+    writeFileSync(nativeArchive, 'native archive fixture');
+    const nativeSelected = 'file:' + nativeArchive.split(path.sep).join('/');
+    workspace.overrides[nativeName] = nativeSelected;
+    lock.overrides[nativeName] = nativeSelected;
+    writeFileSync(workspacePath, stringifyYaml(workspace));
+    writeFileSync(lockPath, stringifyYaml(lock));
+    const kitPath = path.join(target, 'node_modules', '@nimiplatform', 'kit');
+    const nativePath = path.join(kitPath, 'node_modules', ...nativeName.split('/'));
+    mkdirSync(nativePath, { recursive: true });
+    writeFileSync(path.join(kitPath, 'package.json'), JSON.stringify({ name: '@nimiplatform/kit', version: versions.kitVersion.replace(/^\^/u, '') }));
+    writeFileSync(path.join(nativePath, 'package.json'), JSON.stringify({ name: nativeName, version: versions.kitVersion.replace(/^\^/u, '') }));
+    result = runCli(['check', '--dir', target, '--json'], tempRoot, env);
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    writeFileSync(path.join(installedPath, 'package.json'), JSON.stringify({ name: '@nimiplatform/sdk', version: '0.0.0' }));
+    result = runCli(['check', '--dir', target, '--json'], tempRoot, env);
+    assert.match(jsonErrorMessage(result), /Installed local Nimi package must be/);
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test('production dependency staging rebases local archives in lock keys, peer suffixes and overrides', () => {
+  const source = path.resolve('fixture/app');
+  const staged = path.join(source, '.nimi/local/production');
+  const original = { overrides: { '@nimiplatform/sdk': 'file:../sdk.tgz' },
+    packages: { '@nimiplatform/sdk@file:../sdk.tgz(peer@1)': { resolution: { tarball: 'file:../sdk.tgz' }, version: '0.13.0' } } };
+  const rebased = rebaseLocalPackagePaths(original, source, staged);
+  const selected = rebased.overrides['@nimiplatform/sdk'];
+  assert.equal(path.resolve(staged, selected.slice(5)), path.resolve(source, '../sdk.tgz'));
+  assert.equal(rebased.packages['@nimiplatform/sdk@' + selected + '(peer@1)'].resolution.tarball, selected);
+  assert.equal(original.overrides['@nimiplatform/sdk'], 'file:../sdk.tgz');
+});
+
+test('production staging preserves parentheses in archive paths and nested local peers', () => {
+  const source = path.resolve('fixture/app');
+  const staged = path.join(source, '.nimi/local/production/source');
+  const sdk = 'file:../packages (dev)/sdk.tgz';
+  const kit = 'file:../cache.tgz (dev)/kit.tar.gz';
+  const peerKey = `@nimiplatform/kit@${kit}(@nimiplatform/sdk@${sdk})(react@19.2.8)`;
+  const original = {
+    overrides: { '@nimiplatform/sdk': sdk, '@nimiplatform/kit': kit },
+    packages: { [`@nimiplatform/sdk@${sdk}`]: { resolution: { tarball: sdk } },
+      [`@nimiplatform/kit@${kit}`]: { resolution: { tarball: kit } } },
+    snapshots: { [peerKey]: { dependencies: { '@nimiplatform/sdk': sdk } } },
+  };
+  const before = structuredClone(original);
+  const rebased = rebaseLocalPackagePaths(original, source, staged);
+  const nextSDK = rebased.overrides['@nimiplatform/sdk'];
+  const nextKit = rebased.overrides['@nimiplatform/kit'];
+  for (const [prior, next] of [[sdk, nextSDK], [kit, nextKit]]) {
+    assert.equal(path.resolve(staged, next.slice(5)), path.resolve(source, prior.slice(5)));
+  }
+  const nextPeerKey = `@nimiplatform/kit@${nextKit}(@nimiplatform/sdk@${nextSDK})(react@19.2.8)`;
+  assert.equal(rebased.snapshots[nextPeerKey].dependencies['@nimiplatform/sdk'], nextSDK);
+  assert.deepEqual(original, before);
+  assert.equal(rebaseLocalPackagePaths(sdk, source, staged), nextSDK);
+  const embeddedRebase = new Function('path', `return (${rebaseLocalPackagePaths.toString()})`)(path);
+  assert.deepEqual(embeddedRebase(original, source, staged), rebased);
+});
+
 function snapshotTree(rootDir) {
   const snapshot = {};
   const walk = (currentDir) => {
@@ -486,7 +583,7 @@ test('authoring input files do not establish ownership of an unknown adoption wo
     for (const dryRun of [true, false]) {
       const result = runCli(['init', '--adopt', ...(dryRun ? ['--dry-run'] : []), '--json'], target, fakeNimicodingEnv(temp));
       assert.notEqual(result.status, 0);
-      assert.match(jsonErrorMessage(result), /Unknown adoption file collision: .github\/workflows\/nimi-app-release.yml/);
+      assert.match(jsonErrorMessage(result).replaceAll('\\', '/'), /Unknown adoption file collision: .github\/workflows\/nimi-app-release.yml/);
       assert.deepEqual(snapshotTree(target), before);
     }
   } finally { rmSync(temp, { recursive: true, force: true }); }
@@ -693,7 +790,7 @@ test('sync closes the former unknown-command path and only normalizes submitted 
     const tauri = JSON.parse(readFileSync(path.join(target, 'src-tauri', 'tauri.conf.json'), 'utf8'));
     assert.equal(tauri.identifier, 'ai.nimi.apps.focused.existing');
     assert.deepEqual(readFileSync(path.join(target, 'src', 'product', 'owned.ts')), productBefore);
-    assert.equal(readFileSync(path.join(target, '.nimi', 'methodology', 'authority-authoring.yaml'), 'utf8'), 'source: focused-lifecycle-test\r\n'.replace('\r\n', os.EOL));
+    assert.deepEqual(parseYaml(readFileSync(path.join(target, '.nimi', 'methodology', 'authority-authoring.yaml'), 'utf8')), { source: 'focused-lifecycle-test' });
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });
   }

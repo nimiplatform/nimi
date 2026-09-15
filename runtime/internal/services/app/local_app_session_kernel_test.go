@@ -36,6 +36,21 @@ func TestInstalledConnectionTrustPreservesPackageSource(t *testing.T) {
 	}
 }
 
+func TestInstalledPackageTrustComesFromCommittedSource(t *testing.T) {
+	for _, source := range []localappkernel.SourceClass{localappkernel.SourceClassVerified, localappkernel.SourceClassUserImported} {
+		trust, ok := installedPackageTrustClass(source)
+		roundTrip, sourceOK := installedSourceClass(trust)
+		if !ok || !sourceOK || roundTrip != source {
+			t.Fatalf("installed source %q did not survive launch trust mapping", source)
+		}
+	}
+	for _, source := range []localappkernel.SourceClass{"", localappkernel.SourceClassLocalDevelopment} {
+		if _, ok := installedPackageTrustClass(source); ok {
+			t.Fatalf("non-installed source %q admitted", source)
+		}
+	}
+}
+
 func TestLocalAppSessionInvalidationAndSameHostRebind(t *testing.T) {
 	fixture := newLocalAppSessionFixture(t, nil)
 	ctx := fixture.context

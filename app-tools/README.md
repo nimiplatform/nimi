@@ -15,10 +15,24 @@ repository. `nimi-app --help` prints its resolved location. Installation does
 not activate instructions; explicit init/sync maintains the project skill under
 `.agents/skills/nimi-app-lifecycle/` and an independent AGENTS.md block.
 
-Prepare the existing App's actual renderer, pnpm/Electron supervised Host
-and build/test scripts first. Init does not convert a server framework, invent
-tests or replace product UI. Install the selected app-tools and the exact
-nimi-coding version declared in its `nimiScaffoldVersions`, then preview:
+Install the selected app-tools and the exact nimi-coding version declared in
+its `nimiScaffoldVersions`. For first integration, generate a minimal reference
+App under `.nimi/local/` with its own identity and the needed admitted features,
+using this same SDK/Kit/native package combination. Run its generated foundation
+and reuse or align its Host, preload, renderer bridge, session, App Access,
+AIConfig and AI call wiring in the existing App. SDK/Kit documentation explains
+the contracts; it does not replace working generated code.
+
+When the task includes installation, establish the reference's local installed
+Access baseline as described in the packaged acceptance guide. Compare under
+the same conditions to separate toolchain failures from App wiring differences.
+Reuse passing results for ordinary business changes; no extra evidence ledger
+or repeated full reference run is needed.
+
+Preserve the original product's workflows and business settings while preparing
+its actual renderer and build/test scripts. A reference workbench or passing
+sample is not the complete App. Init does not convert a server framework,
+invent tests or replace product UI. Preview adoption after this preparation:
 
 ```bash
 pnpm exec nimi-app init --adopt --dry-run --json
@@ -82,6 +96,56 @@ and commit the matching lockfile to pin resolved versions. A matrix range in the
 manifest does not require an automatic upgrade; install with the frozen lockfile
 until deliberately selecting and synchronizing a new component combination.
 
+### Local development packages
+
+Development does not require publishing every SDK/Kit or app-tools change.
+Keep the selected version matrix in `package.json`, and use explicit npm tarball
+overrides in the App's own `pnpm-workspace.yaml`:
+
+```yaml
+packages:
+  - .
+overrides:
+  '@nimiplatform/app-tools': file:D:/nimi-packages/nimiplatform-app-tools-0.6.1.tgz
+  '@nimiplatform/sdk': file:D:/nimi-packages/nimiplatform-sdk-0.13.0.tgz
+  '@nimiplatform/kit': file:D:/nimi-packages/nimiplatform-kit-0.9.0.tgz
+```
+
+These are example artifact locations; use the complete packages you were given.
+Override Kit's matching native optional package too when that component changes;
+keep the native carrier Kit-owned rather than adding it as an App dependency.
+Local archives may also use paths relative to the App. Install, run sync and
+check, then use the normal dev/test/build/pack loop. Sync retains these choices;
+check verifies the lock resolution and installed package name/version against
+the selected matrix. Directory links and source-workspace overrides stay invalid.
+The generated Electron packager rebases archive paths for its isolated dependency
+staging so a local build uses the same packages.
+
+`check --production` is the final public-release preflight and requires registry
+resolutions. It is not a prerequisite for development or local build/pack;
+the normal build still executes the actual declared production payload command.
+
+For local installed-App acceptance, keep these tarball overrides and run:
+
+```bash
+pnpm exec nimi-app check
+pnpm exec nimi-app build --target windows-x86_64
+pnpm exec nimi-app pack --target windows-x86_64 --production
+```
+
+Use the actual target on its matching host. `pack --production` observes the
+payload's native signature and execution permissions; it does not run registry
+dependency preflight or publish anything. Plain `pack` writes a development
+archive that Runtime local import rejects. Import the resulting package through
+Desktop's Apps → Add App → Import local package, then verify its installed launch
+and business use. This exercises the `user_imported` source independently of
+Catalog admission and download.
+
+When preparing a public release after development acceptance, remove local
+overrides, install the published matched versions and complete release preflight.
+Local import creates no GitHub Release or Registry approval and does not verify
+Catalog download or installation on a machine without the development environment.
+
 `init --dry-run --json` and `sync --dry-run --json` show app-tools file/field
 changes without writes, installation or owner mutation. The separate
 nimi-coding step and expected version are listed without simulating its internals.
@@ -140,7 +204,7 @@ node app-tools/bin/nimi-app.mjs create \
 
 The base is identity-neutral and combines only explicitly admitted `--features` plus their dependency closure. `--features all` means all currently admitted features, not all Nimi Lab source.
 
-Standalone output uses public npm and Cargo dependency versions. Workspace paths, local tarballs, parent-source aliases and direct native-carrier dependencies are non-public validation topology, not a public profile or standalone release input.
+Standalone output keeps public npm and Cargo dependency version declarations. Complete local npm tarballs are supported development resolutions through the documented overrides; public-release preflight requires registry resolutions. Source-workspace paths, parent-source aliases and App-owned direct native-carrier dependencies remain outside the standalone dependency boundary.
 
 ## Development and build
 

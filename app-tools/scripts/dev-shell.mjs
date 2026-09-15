@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { lstat, readFile, realpath } from 'node:fs/promises';
+import { lstat, readFile, realpath, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
@@ -63,6 +63,7 @@ export async function runDevShell(cwd, options = {}) {
     return listed.registrations;
   }
 
+  await assertProjectElectronRuntime(projectRoot);
   const startIntent = {
     schemaVersion: 1,
     appId,
@@ -104,7 +105,8 @@ export async function runDevShell(cwd, options = {}) {
       if (current.state !== lastState) lastState = current.state;
       lastLogSequence = printNewLogs(output, current, lastLogSequence);
       if (TERMINAL_STATES.has(current.state)) {
-        if (current.state === 'stopped' && cancelling) return current;
+        // Desktop may finish an ordinary stop from its own UI, without a CLI signal.
+        if (current.state === 'stopped') return current;
         throw new DevShellError(
           current.reasonCode || `local-development-${current.state}`,
           current.message || `Nimi local development ended in state ${current.state}.`,
@@ -146,6 +148,22 @@ export function assertLocalDevelopmentPlatform(platform, shell) {
     'local-development-platform-unsupported',
     'Nimi protected local development is not admitted on this platform.',
   );
+}
+
+// This is a dependency-presence check, not executable identity or admission.
+// Desktop still verifies and supervises the actual Host process.
+export async function assertProjectElectronRuntime(projectRoot, platform = process.platform) {
+  if (platform !== 'win32') return;
+  const executable = path.join(projectRoot, 'node_modules', 'electron', 'dist', 'electron.exe');
+  const available = await stat(executable).then((value) => value.isFile()).catch(() => false);
+  if (!available) {
+    throw new DevShellError(
+      'local-development-launcher-unavailable',
+      'The project Electron binary is missing (node_modules/electron/dist/electron.exe). '
+      + 'For the matched Electron package, run pnpm exec install-electron --no in this project, '
+      + 'resolve any reported installation error, then retry nimi-app dev.',
+    );
+  }
 }
 
 export class DevShellError extends Error {

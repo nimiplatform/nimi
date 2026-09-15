@@ -1,4 +1,32 @@
+import path from 'node:path';
+
 export const SUPPORTED_APP_SCAFFOLD_PROFILES = ['standalone'];
+
+export function rebaseLocalPackagePaths(value, sourceDir, targetDir) {
+  // Parsed pnpm documents retain complete locators in overrides, specifiers
+  // and resolutions. Reuse those exact strings in package/peer keys instead
+  // of guessing whether a parenthesis belongs to a path or a peer suffix.
+  const replacements = new Map();
+  const collect = (item) => {
+    if (typeof item === 'string' && /^file:[^\r\n]+\.(?:tgz|tar\.gz)$/u.test(item)) {
+      replacements.set(item, 'file:' + path.relative(targetDir, path.resolve(sourceDir, item.slice(5))).split(path.sep).join('/'));
+    } else if (Array.isArray(item)) item.forEach(collect);
+    else if (item && typeof item === 'object') Object.values(item).forEach(collect);
+  };
+  collect(value);
+  if (replacements.size === 0) return value;
+  const pattern = new RegExp([...replacements.keys()].sort((a, b) => b.length - a.length)
+    .map((locator) => locator.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')).join('|'), 'gu');
+  const rebase = (text) => text.replace(pattern, (locator) => replacements.get(locator));
+  const rewrite = (item) => {
+    if (typeof item === 'string') return rebase(item);
+    if (Array.isArray(item)) return item.map(rewrite);
+    if (item && typeof item === 'object') return Object.fromEntries(Object.entries(item)
+      .map(([key, child]) => [rebase(key), rewrite(child)]));
+    return item;
+  };
+  return rewrite(value);
+}
 
 export function resolveWindowsResourceVersion(appVersion) {
   const semverPattern = /^(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?(?:\+[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$/u;
@@ -132,10 +160,12 @@ function renderDefaultElectronProductionPackager(identity) {
     "import { fileURLToPath } from 'node:url';",
     "import { packager } from '@electron/packager';",
     "import { build } from 'esbuild';",
+    "import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';",
     '',
     `const APP_EXECUTABLE_NAME = ${JSON.stringify(identity.cargoPackageName)};`,
     `const APP_PRODUCT_NAME = ${JSON.stringify(identity.appTitle)};`,
     resolveWindowsResourceVersion.toString(),
+    rebaseLocalPackagePaths.toString(),
     "const MACOS_BUILD = process.platform === 'darwin' && process.arch === 'arm64';",
     "const NATIVE_PLATFORM = MACOS_BUILD ? 'darwin' : 'win32';",
     "const NATIVE_ARCH = MACOS_BUILD ? 'arm64' : 'x64';",
@@ -192,7 +222,12 @@ function renderDefaultElectronProductionPackager(identity) {
     '',
     '  await mkdir(path.join(productionSourceRoot, \'dist-electron\'), { recursive: true });',
     "  await copyFile(path.join(appRoot, 'package.json'), path.join(productionSourceRoot, 'package.json'));",
-    "  await copyFile(path.join(appRoot, 'pnpm-lock.yaml'), path.join(productionSourceRoot, 'pnpm-lock.yaml'));",
+    "  const dependencyLock = parseYaml(await readFile(path.join(appRoot, 'pnpm-lock.yaml'), 'utf8'));",
+    "  await writeFile(path.join(productionSourceRoot, 'pnpm-lock.yaml'), stringifyYaml(rebaseLocalPackagePaths(dependencyLock, appRoot, productionSourceRoot)));",
+    '  try {',
+    "    const workspace = parseYaml(await readFile(path.join(appRoot, 'pnpm-workspace.yaml'), 'utf8'));",
+    "    await writeFile(path.join(productionSourceRoot, 'pnpm-workspace.yaml'), stringifyYaml({ ...rebaseLocalPackagePaths(workspace, appRoot, productionSourceRoot), packages: ['.'] }));",
+    "  } catch (cause) { if (cause.code !== 'ENOENT') throw cause; }",
     "  await cp(path.join(appRoot, 'dist'), path.join(productionSourceRoot, 'dist'), { recursive: true, force: false });",
     "  await copyFile(path.join(appRoot, 'dist-electron', 'main.js'), path.join(productionSourceRoot, 'dist-electron', 'main.js'));",
     "  await copyFile(path.join(appRoot, 'dist-electron', 'preload.cjs'), path.join(productionSourceRoot, 'dist-electron', 'preload.cjs'));",
@@ -203,6 +238,7 @@ function renderDefaultElectronProductionPackager(identity) {
     '  delete productionManifest.devDependencies;',
     "  await writeFile(productionManifestPath, `${JSON.stringify(productionManifest, null, 2)}\\n`);",
     "  await rm(path.join(productionSourceRoot, 'pnpm-lock.yaml'));",
+    "  await rm(path.join(productionSourceRoot, 'pnpm-workspace.yaml'), { force: true });",
     '',
     "  const installedNativePackage = path.join(productionSourceRoot, 'node_modules', ...NATIVE_BINDING_PACKAGE.split('/'));",
     '  const nativeDestination = MACOS_BUILD',
@@ -349,7 +385,9 @@ function renderDefaultMain(identity) {
     '});',
     '',
     "const rendererRoot = document.getElementById('root') as HTMLElement;",
-    "rendererRoot.classList.add('nimi-workbench-host');",
+    '/* Admitted workbench styles use this module scope, including body-portaled controls. */',
+    "document.body.classList.add('nimi-ui-module--lab');",
+    "rendererRoot.classList.add('nimi-workbench-host', 'nimi-ui-module--lab');",
     'createRoot(rendererRoot).render(',
     '  <React.StrictMode>',
     `    <NimiThemeProvider accentPack="${identity.accentPack}">`,

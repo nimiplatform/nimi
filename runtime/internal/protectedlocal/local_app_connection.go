@@ -116,7 +116,7 @@ func EstablishLocalAppConnection(ctx context.Context, verifier LocalAppLaunchPee
 		return nil, fail(ReasonDesktopExecutableTrustFailed, false, "relaunch_app", fmt.Errorf("validate local-app process: %w", err))
 	}
 	connection := &LocalAppConnection{launchID: peer.LaunchID, process: peer.Process, boot: peer.RuntimeBootEpoch, liveness: peer.ProcessLiveness, trustClass: peer.TrustClass, done: make(chan struct{})}
-	if peer.TrustClass == LocalAppTrustVerified {
+	if peer.TrustClass == LocalAppTrustVerified || peer.TrustClass == LocalAppTrustUserImported {
 		if peer.InstalledRegistrationHandle == "" || peer.SourceGeneration == 0 || peer.DeclarationGeneration == 0 {
 			_ = peer.ProcessLiveness.Close()
 			return nil, fmt.Errorf("verified installed peer registration is incomplete")
@@ -180,7 +180,7 @@ func newDirectLocalAppConnection(peer DirectLocalAppPeer, launch DirectLocalAppL
 		if launch.InstalledProcess.validate() != nil || launch.InstalledProcess.PID != peer.PID {
 			return nil, fmt.Errorf("verified installed direct peer is incomplete")
 		}
-		connection.trustClass = LocalAppTrustVerified
+		connection.trustClass = launch.InstalledTrustClass
 		connection.process = launch.InstalledProcess
 		connection.installedRegistrationHandle = launch.InstalledRegistrationHandle
 		connection.installedSourceGeneration = launch.SourceGeneration

@@ -55,6 +55,10 @@ func (s *Service) PrepareInstalledAppLaunch(ctx context.Context, req *runtimev1.
 	}
 	var lease *installedAppLaunch
 	err := s.appInstallCoordinator.WithInstalledLaunch(ctx, string(selector), func(verified nimiappinstall.InstalledLaunch) error {
+		trustClass, supportedSource := installedPackageTrustClass(verified.Registration.SourceClass)
+		if !supportedSource {
+			return installedLaunchMismatch()
+		}
 		handle, ok := localDevelopmentRegistrationIdentifier(verified.Registration.RegistrationHandle)
 		if !ok {
 			return installedLaunchMismatch()
@@ -81,6 +85,7 @@ func (s *Service) PrepareInstalledAppLaunch(ctx context.Context, req *runtimev1.
 		}
 		lease = &installedAppLaunch{id: id, owner: owner, verified: verified, expires: expires,
 			policy: protectedlocal.InstalledAppProcessPolicy{RegistrationHandle: verified.Registration.RegistrationHandle,
+				TrustClass:       trustClass,
 				SourceGeneration: verified.Registration.SourceGeneration, DeclarationGeneration: verified.Registration.DeclarationGeneration,
 				HostExecutablePath: verified.RuntimeEntry, HostExecutableDigest: verified.ExecutableDigest,
 				ExecutionProfileRef: verified.Release.ExecutionProfileRef, SupervisorProcess: supervisor}}
@@ -141,6 +146,18 @@ func (s *Service) installedLaunch(raw []byte) *installedAppLaunch {
 	return s.installedLaunches[id]
 }
 
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040e
+func installedPackageTrustClass(source localappkernel.SourceClass) (protectedlocal.LocalAppTrustClass, bool) {
+	switch source {
+	case localappkernel.SourceClassVerified:
+		return protectedlocal.LocalAppTrustVerified, true
+	case localappkernel.SourceClassUserImported:
+		return protectedlocal.LocalAppTrustUserImported, true
+	default:
+		return "", false
+	}
+}
+
 func (s *Service) bindInstalledAppProcess(ctx context.Context, req *runtimev1.BindLocalAppProcessRequest) (*runtimev1.BindLocalAppProcessResponse, error) {
 	lease := s.installedLaunch(req.GetLaunchId())
 	owner, ok := protectedlocal.DesktopConnectionFromContext(ctx)
@@ -154,7 +171,8 @@ func (s *Service) bindInstalledAppProcess(ctx context.Context, req *runtimev1.Bi
 	}
 	var deadline time.Time
 	err := s.appInstallCoordinator.WithInstalledLaunch(ctx, lease.policy.RegistrationHandle, func(current nimiappinstall.InstalledLaunch) error {
-		if current.Registration.SourceGeneration != lease.policy.SourceGeneration || current.Registration.DeclarationGeneration != lease.policy.DeclarationGeneration ||
+		if current.Registration.SourceClass != lease.verified.Registration.SourceClass ||
+			current.Registration.SourceGeneration != lease.policy.SourceGeneration || current.Registration.DeclarationGeneration != lease.policy.DeclarationGeneration ||
 			current.Release.ReleaseRef != lease.verified.Release.ReleaseRef || current.Release.PayloadRootDigest != lease.verified.Release.PayloadRootDigest ||
 			current.ExecutableDigest != lease.policy.HostExecutableDigest || current.RuntimeEntry != lease.policy.HostExecutablePath || !s.now().UTC().Before(lease.expires) {
 			return installedLaunchMismatch()

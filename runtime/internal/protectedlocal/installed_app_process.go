@@ -4,6 +4,7 @@ package protectedlocal
 // verification and the current protected Desktop connection.
 type InstalledAppProcessPolicy struct {
 	RegistrationHandle    string
+	TrustClass            LocalAppTrustClass
 	SourceGeneration      uint64
 	DeclarationGeneration uint64
 	HostExecutablePath    string
@@ -13,7 +14,7 @@ type InstalledAppProcessPolicy struct {
 }
 
 func (policy InstalledAppProcessPolicy) valid() bool {
-	return policy.RegistrationHandle != "" && policy.SourceGeneration != 0 && policy.DeclarationGeneration != 0 &&
+	return policy.RegistrationHandle != "" && policy.TrustClass.installed() && policy.SourceGeneration != 0 && policy.DeclarationGeneration != 0 &&
 		policy.HostExecutablePath != "" && policy.HostExecutableDigest != (Identifier{}) &&
 		policy.SupervisorProcess.validate() == nil &&
 		((policy.ExecutionProfileRef == "windows-user-mode-as-invoker-v1" && policy.SupervisorProcess.OS == OSWindows) ||

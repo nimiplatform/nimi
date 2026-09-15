@@ -2,8 +2,10 @@ import { readAppInfo } from './app-info.mjs';
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-018c
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-009b
 
-import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
+import { satisfies } from 'semver';
 import { parse as parseYaml, parseDocument as parseYamlDocument, stringify as stringifyYaml } from 'yaml';
 
 import { assertManifestAppAccessDeclaration } from './app-access-declaration.mjs';
@@ -170,6 +172,15 @@ function isLocalDependencySpec(value) {
   return /^(?:file|link|patch|path|portal|workspace):/iu.test(normalized)
     || /^(?:\.{1,2}[\\/]|~[\\/]|[A-Za-z]:[\\/]|\\\\)/u.test(normalized)
     || /\.(?:tar\.gz|tgz)(?:[?#].*)?$/iu.test(normalized);
+}
+
+function localPackageArchive(value) {
+  return typeof value === 'string' ? value.match(/^(file:[^\r\n]+?\.(?:tgz|tar\.gz))(?:\(.*\))?$/u)?.[1] || '' : '';
+}
+
+function archivePath(targetDir, value) {
+  const archive = localPackageArchive(value);
+  return archive ? path.resolve(targetDir, archive.slice('file:'.length)) : '';
 }
 
 function synchronizedNimiPackageName(key) {
@@ -406,7 +417,7 @@ function normalizePnpmWorkspace(targetDir) {
   }
   let removed = false;
   for (const key of Object.keys(overrides || {})) {
-    if (synchronizedNimiPackageName(key)) {
+    if (synchronizedNimiPackageName(key) && !localPackageArchive(overrides[key])) {
       document.deleteIn(['overrides', key]);
       removed = true;
     }
@@ -420,9 +431,10 @@ function normalizePnpmWorkspace(targetDir) {
   };
 }
 
-function assertPnpmWorkspaceCurrent(targetDir, sources) {
+function assertPnpmWorkspaceCurrent(targetDir, sources, production = false) {
   const workspacePath = path.join(targetDir, 'pnpm-workspace.yaml');
-  if (!hasProjectFile(targetDir, 'pnpm-workspace.yaml', sources)) return;
+  const localPackages = new Map();
+  if (!hasProjectFile(targetDir, 'pnpm-workspace.yaml', sources)) return localPackages;
   const source = readProjectText(targetDir, 'pnpm-workspace.yaml', sources);
   const workspace = parseYamlFile(source, workspacePath);
   const overrides = workspace?.overrides;
@@ -430,16 +442,24 @@ function assertPnpmWorkspaceCurrent(targetDir, sources) {
     throw new Error('pnpm-workspace.yaml overrides must be an object');
   }
   for (const key of Object.keys(overrides || {})) {
-    if (synchronizedNimiPackageName(key)) {
+    const packageName = synchronizedNimiPackageName(key);
+    if (packageName && localPackageArchive(overrides[key])) {
+      if (production) throw new Error('Production release preflight requires registry dependencies. Remove local Nimi tarball overrides only when preparing a public release; use check without --production for local development.');
+      if (key !== packageName) throw new Error(`Local Nimi tarball overrides must name the exact package: ${key}`);
+      const target = archivePath(targetDir, overrides[key]);
+      if (!existsSync(target) || !lstatSync(target).isFile()) throw installRequiredError(`Local Nimi package archive is missing: ${overrides[key]}`);
+      localPackages.set(packageName, overrides[key]);
+    } else if (packageName) {
       throw installRequiredError(`pnpm-workspace.yaml retains a Nimi dependency override: ${key}`);
     }
   }
+  return localPackages;
 }
 
-function findLocalNimiResolution(value, currentPackage = '', pathParts = []) {
+function findLocalNimiResolution(value, currentPackage = '', pathParts = [], allowedArchive = () => false) {
   if (Array.isArray(value)) {
     for (let index = 0; index < value.length; index += 1) {
-      const finding = findLocalNimiResolution(value[index], currentPackage, [...pathParts, String(index)]);
+      const finding = findLocalNimiResolution(value[index], currentPackage, [...pathParts, String(index)], allowedArchive);
       if (finding) return finding;
     }
     return null;
@@ -452,25 +472,28 @@ function findLocalNimiResolution(value, currentPackage = '', pathParts = []) {
       packageName
       && normalizedKey.startsWith(`${packageName}@`)
       && isLocalDependencySpec(normalizedKey.slice(packageName.length + 1))
+      && !allowedArchive(packageName, normalizedKey.slice(packageName.length + 1))
     ) {
       return [...pathParts, key].join('.');
     }
-    if (packageName && typeof child === 'string' && isLocalDependencySpec(child)) {
+    if (packageName && typeof child === 'string' && isLocalDependencySpec(child) && !allowedArchive(packageName, child)) {
       return [...pathParts, key].join('.');
     }
-    const finding = findLocalNimiResolution(child, packageName, [...pathParts, key]);
+    const finding = findLocalNimiResolution(child, packageName, [...pathParts, key], allowedArchive);
     if (finding) return finding;
   }
   return null;
 }
 
-function assertPnpmLockCurrent(targetDir, packageJson) {
+function assertPnpmLockCurrent(targetDir, packageJson, localPackages = new Map(), versions) {
   const lockPath = path.join(targetDir, 'pnpm-lock.yaml');
   if (!existsSync(lockPath)) {
     throw installRequiredError('pnpm-lock.yaml is missing');
   }
   const lock = parseYamlFile(readFileSync(lockPath, 'utf8'), lockPath);
-  const finding = findLocalNimiResolution(lock);
+  const allowedArchive = (name, value) => localPackageArchive(value) && localPackages.has(name)
+    && archivePath(targetDir, value) === archivePath(targetDir, localPackages.get(name));
+  const finding = findLocalNimiResolution(lock, '', [], allowedArchive);
   if (finding) {
     throw installRequiredError(`pnpm-lock.yaml retains a local Nimi resolution at ${finding}`);
   }
@@ -478,12 +501,30 @@ function assertPnpmLockCurrent(targetDir, packageJson) {
   if (!importer || typeof importer !== 'object' || Array.isArray(importer)) {
     throw installRequiredError('pnpm-lock.yaml root importer is missing');
   }
+  for (const [name, selected] of localPackages) {
+    if (lock.overrides?.[name] !== selected) throw installRequiredError(`pnpm-lock.yaml local package override does not match pnpm-workspace.yaml: ${name}`);
+    let manifestPath = path.join(targetDir, 'node_modules', ...name.split('/'), 'package.json');
+    if (KIT_OWNED_NATIVE_CARRIERS.includes(name)) {
+      try {
+        const kitManifest = realpathSync(path.join(targetDir, 'node_modules', '@nimiplatform', 'kit', 'package.json'));
+        manifestPath = createRequire(kitManifest).resolve(name + '/package.json');
+      } catch {
+        throw installRequiredError(`Local Nimi native package is not installed for Kit: ${name}`);
+      }
+    }
+    if (!existsSync(manifestPath)) throw installRequiredError(`Local Nimi package is not installed: ${name}`);
+    const installed = readJsonFile(manifestPath, name);
+    const expected = expectedNimiDependencies(versions).find((entry) => entry.name === name)?.version || versions.kitVersion;
+    if (installed.name !== name || !satisfies(installed.version, expected, { includePrerelease: true })) {
+      throw installRequiredError(`Installed local Nimi package must be ${name}@${expected}`);
+    }
+  }
   for (const sectionName of NPM_DEPENDENCY_SECTIONS) {
     const packageSection = dependencySection(packageJson, sectionName) || {};
     const lockSection = importer[sectionName] || {};
     for (const [name, specifier] of Object.entries(packageSection)) {
       if (!name.startsWith('@nimiplatform/')) continue;
-      if (lockSection?.[name]?.specifier !== specifier) {
+      if (lockSection?.[name]?.specifier !== (localPackages.get(name) || specifier)) {
         throw installRequiredError(`pnpm-lock.yaml ${sectionName}.${name} specifier does not match package.json`);
       }
     }
@@ -965,9 +1006,9 @@ function assertProjectLifecycleCurrent(targetDir, versions, options = {}) {
   assertNoStandaloneParentSources(targetDir, sources);
   const authoring = assertCanonicalAuthoringInputs(targetDir, descriptor, files, version, nativeIdentity, sources);
   assertManagedWorkflowCurrent(targetDir, sources);
-  assertPnpmWorkspaceCurrent(targetDir, sources);
+  const localPackages = assertPnpmWorkspaceCurrent(targetDir, sources, options.production === true);
   if (options.requireInstalledLock === true) {
-    assertPnpmLockCurrent(targetDir, files.packageJson);
+    assertPnpmLockCurrent(targetDir, files.packageJson, localPackages, versions);
     if (buildProfile.buildProfileRef === TAURI_BUILD_PROFILE_REF) {
       assertCargoLockCurrent(targetDir, versions.nimiShellTauriVersion);
     }
@@ -1235,11 +1276,11 @@ export function checkAppProject(cwd, options = {}, versions, runners = {}) {
   }
   assertNoRetiredScaffoldState(targetDir);
   const managed = existsSync(path.join(targetDir, SCAFFOLD_LOCK_PATH));
-  const existingState = managed ? null : assertProjectLifecycleCurrent(targetDir, versions, { requireInstalledLock: true });
+  const existingState = managed ? null : assertProjectLifecycleCurrent(targetDir, versions, { requireInstalledLock: true, production: options.production === true });
   const validation = validateAppProject(cwd, { dir: targetDir, silent: true }, versions, runners);
   let nimicoding = null;
   if (!managed) nimicoding = runNimicodingSync(targetDir, 'check', runners);
-  const { descriptor, buildProfile } = existingState || assertProjectLifecycleCurrent(targetDir, versions, { requireInstalledLock: true });
+  const { descriptor, buildProfile } = existingState || assertProjectLifecycleCurrent(targetDir, versions, { requireInstalledLock: true, production: options.production === true });
   if (options.production === true) {
     for (const target of Object.keys(buildProfile.targets)) readAppInfo(targetDir, target);
   }

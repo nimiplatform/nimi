@@ -1039,8 +1039,9 @@ test('cli help projects the current registry lifecycle and honest workflow witho
     'nimi-app check [--dir path] [--conformance simulator | --production] [--json]',
     '--author person-or-team',
     'identity-neutral Lab-derived workbench-core',
-    'standalone: any empty target directory using public registry package versions only.',
-    'Nimi workspace paths, local tarballs, downgrades, and private validation topology are never public create modes.',
+    'standalone: any empty target directory using public dependency version declarations.',
+    'Development may resolve complete local npm tarballs through documented overrides; no additional create mode is needed.',
+    'Source-workspace paths, parent-source aliases and private validation topology are not public create modes.',
     'App-owned: workbench-core and selected module product code',
     'Scaffold-managed: carrier, identity, manifest/native wiring, and generated composition glue.',
     'create -> dependency install -> init -> sync -> check -> dev/test/build -> pack',
@@ -1058,8 +1059,9 @@ test('cli help projects the current registry lifecycle and honest workflow witho
     assert.doesNotMatch(content, /conformance simulator|Simulator/u);
   }
   assert.match(readme, /author.*person.*team/isu);
-  assert.match(readme, /third-party[\s\S]*public npm and Cargo dependency versions/iu);
-  assert.match(readme, /non-public validation topology[\s\S]*not a public profile/u);
+  assert.match(readme, /third-party[\s\S]*public npm and Cargo dependency version declarations/iu);
+  assert.match(readme, /Complete local npm tarballs are supported development resolutions/u);
+  assert.match(readme, /Source-workspace paths[\s\S]*remain outside the standalone dependency boundary/u);
   assert.match(starterReadme, /App-owned product code/u);
   assert.match(starterReadme, /publisher may sign[\s\S]*explicit unsigned posture/iu);
   assert.doesNotMatch(starterReadme, /WINDOWS_CERTIFICATE_BASE64|WINDOWS_CERTIFICATE_PASSWORD|publisher PFX/iu);

@@ -39,7 +39,7 @@ describe('performDesktopBrowserAuth direct-to-loopback flow', () => {
           state: callbackResponse.state || '',
           error: callbackResponse.error || '',
         }),
-        focusMainWindow: async () => undefined,
+        focusMainWindow: vi.fn(async () => undefined),
       },
       opens,
     };
@@ -92,6 +92,52 @@ describe('performDesktopBrowserAuth direct-to-loopback flow', () => {
     expect(result.user).toEqual({ id: 'acct-1', displayName: 'Acct 1' });
   });
 
+  it('waits for the account result and window activation before finishing browser login', async () => {
+    const { bridge } = buildBridge({ code: 'code', state: 'state' });
+    const completion = Promise.withResolvers<{ user: { id: string } }>();
+    const activation = Promise.withResolvers<undefined>();
+    const complete = vi.fn(() => completion.promise);
+    bridge.focusMainWindow.mockImplementation(() => activation.promise);
+    const finished = vi.fn();
+    const login = performDesktopBrowserAuth(bridge, {
+      runtimeAccountBroker: {
+        begin: async () => ({
+          loginAttemptId: 'attempt',
+          authorizationUrl: 'https://realm.nimi.test/api/auth/oauth/authorize',
+          state: 'state',
+          nonce: 'nonce',
+        }),
+        complete,
+      },
+    }).then(finished);
+
+    await vi.waitFor(() => expect(complete).toHaveBeenCalledOnce());
+    expect(bridge.focusMainWindow).not.toHaveBeenCalled();
+    completion.resolve({ user: { id: 'account' } });
+    await vi.waitFor(() => expect(bridge.focusMainWindow).toHaveBeenCalledOnce());
+    expect(finished).not.toHaveBeenCalled();
+    activation.resolve(undefined);
+    await login;
+    expect(finished).toHaveBeenCalledWith({ user: { id: 'account' } });
+  });
+
+  it('preserves an authenticated account result if window activation fails', async () => {
+    const { bridge } = buildBridge({ code: 'code', state: 'state' });
+    bridge.focusMainWindow.mockRejectedValue(new Error('window activation failed'));
+    await expect(performDesktopBrowserAuth(bridge, {
+      runtimeAccountBroker: {
+        begin: async () => ({
+          loginAttemptId: 'attempt',
+          authorizationUrl: 'https://realm.nimi.test/api/auth/oauth/authorize',
+          state: 'state',
+          nonce: 'nonce',
+        }),
+        complete: async () => ({ user: { id: 'account' } }),
+      },
+    })).resolves.toEqual({ user: { id: 'account' } });
+    expect(bridge.focusMainWindow).toHaveBeenCalledOnce();
+  });
+
   it('validates runtime-supplied authorize URLs as the shared Kit shell primitive', () => {
     expect(validateRuntimeOAuthAuthorizationUrl(
       'https://realm.nimi.test/api/auth/oauth/authorize?response_type=code&client_id=nimi-desktop',
@@ -134,6 +180,7 @@ describe('performDesktopBrowserAuth direct-to-loopback flow', () => {
 
   it('rejects state mismatch from loopback callback', async () => {
     const { bridge } = buildBridge({ code: 'c', state: 'WRONG-STATE' });
+    const complete = vi.fn();
     await expect(
       performDesktopBrowserAuth(bridge, {
         runtimeAccountBroker: {
@@ -143,10 +190,12 @@ describe('performDesktopBrowserAuth direct-to-loopback flow', () => {
             state: 'expected-state',
             nonce: 'n',
           }),
-          complete: async () => ({ user: null }),
+          complete,
         },
       }),
     ).rejects.toThrow();
+    expect(complete).not.toHaveBeenCalled();
+    expect(bridge.focusMainWindow).toHaveBeenCalledOnce();
   });
 
   it('rejects empty code from loopback callback', async () => {

@@ -237,7 +237,7 @@ func (registry *LocalAppLaunchRegistry) Promote(peer ProcessTuple, pipeLiveness 
 	_ = pipeLiveness.Close()
 	result := VerifiedLocalAppLaunchPeer{LaunchID: binding.launchID, Process: binding.process, RuntimeBootEpoch: registry.bootEpoch, ProcessLiveness: binding.liveness, TrustClass: LocalAppTrustLocalDevelopment}
 	if binding.installed != nil {
-		result.TrustClass = LocalAppTrustVerified
+		result.TrustClass = binding.installed.TrustClass
 		result.InstalledRegistrationHandle = binding.installed.RegistrationHandle
 		result.SourceGeneration = binding.installed.SourceGeneration
 		result.DeclarationGeneration = binding.installed.DeclarationGeneration

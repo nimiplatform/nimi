@@ -7,7 +7,7 @@
 
 ## Hard Boundaries
 - `apps/lab` is the hand-authored full-capability development and incubation Nimi App. Its presence does not make the whole App, or every Lab surface, scaffoldable.
-- Public scaffolding is standalone-only for third-party repositories and uses public registry dependencies. Nimi-workspace validation is a non-public test topology, never a profile, CLI flag, alias, or generated intent variant.
+- Public scaffolding is standalone-only for third-party repositories and keeps registry version declarations; local development can resolve complete npm tarballs through explicit pnpm-workspace overrides, while production release preflight requires registry resolutions. Nimi-workspace validation is a non-public test topology, never a profile, CLI flag, alias, or generated intent variant.
 - Every generated App is the generic base plus the dependency closure of explicitly selected `--features`. `all` means every feature admitted by the app-tools capability catalog, not all source under `apps/lab`.
 - A Lab capability slice may enter generated output only through an explicit catalog entry. Keep its App Access items, package dependencies, source root, target root, and dependency edges in that admission boundary.
 - `templates/default-starter/**` and `templates/default-starter.manifest.json` are committed, hand-authored base sources. They must stay generic and free of Lab-only product code or feature implementations.

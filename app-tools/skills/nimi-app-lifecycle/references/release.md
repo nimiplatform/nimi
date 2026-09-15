@@ -1,6 +1,6 @@
 # Release and Registry
 
-Before production, use public dependencies and frozen locks, complete portable App information and existing notices, and build/pack on the declared OS/architecture. Reuse `nimi-app check --production`, `test`, `build --target <target> --production`, and `pack --target <target> --production`. Local check does not establish GitHub settings or a release.
+Before public release, use public dependencies and frozen locks, complete portable App information and existing notices, and build/pack on the declared OS/architecture. Reuse `nimi-app check --production`, `test`, `build --target <target> --production`, and `pack --target <target> --production`. Local check does not establish GitHub settings or a release. Local installed-App acceptance can precede this with complete local npm tarballs and `pack --production`; follow the acceptance guide without requiring publication first.
 
 The packaged root `LICENSE` must match the reviewed source file byte for byte. New scaffolds include `LICENSE -text` in `.gitattributes`; for an existing repository, retain its other attributes and add that rule before tagging. It preserves the Git blob's original bytes when Windows would otherwise convert LF to CRLF. Registry checks the exact published package against the tagged source.
 

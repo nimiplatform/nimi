@@ -63,6 +63,7 @@ type DirectLocalAppLaunch struct {
 	ExpiresAt                   time.Time
 	BindDeadline                time.Time
 	InstalledRegistrationHandle string
+	InstalledTrustClass         LocalAppTrustClass
 	InstalledProcess            ProcessTuple
 }
 
@@ -78,7 +79,8 @@ func (launch DirectLocalAppLaunch) valid() bool {
 		launch.HostExecutablePath == filepath.Clean(strings.TrimSpace(launch.HostExecutablePath)) &&
 		launch.Process.valid() && launch.Process.ParentPID == launch.DesktopPID &&
 		launch.Process.UID == launch.ExpectedUID && launch.Process.ExecutablePath == launch.HostExecutablePath &&
-		!launch.ExpiresAt.IsZero()
+		!launch.ExpiresAt.IsZero() &&
+		(launch.InstalledRegistrationHandle == "" || launch.InstalledTrustClass.installed())
 }
 
 // DirectLocalAppLaunches owns the single common in-memory prepared-launch map
@@ -234,6 +236,7 @@ func (launches *DirectLocalAppLaunches) BindInstalled(launchID Identifier, polic
 		return time.Time{}, fmt.Errorf("installed launch generation changed")
 	}
 	pending.InstalledRegistrationHandle = policy.RegistrationHandle
+	pending.InstalledTrustClass = policy.TrustClass
 	pending.InstalledProcess = process
 	return bound, nil
 }

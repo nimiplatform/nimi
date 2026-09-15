@@ -709,6 +709,7 @@ async function createMainWindow(): Promise<BrowserWindow> {
     minWidth: 390,
     minHeight: 600,
     title: 'Nimi',
+    autoHideMenuBar: true,
     webPreferences: {
       preload: preloadPath,
       contextIsolation: true,
@@ -897,6 +898,7 @@ async function confirmDesktopDialog(payload: {
   return { confirmed: result.response === 1 };
 }
 
+// @nimi-authority: rule.nimi.desktop.bridge-ipc.r014
 async function focusDesktopMainWindow(): Promise<void> {
   const window = mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined;
   if (!window) {
@@ -905,9 +907,24 @@ async function focusDesktopMainWindow(): Promise<void> {
   if (window.isMinimized()) {
     window.restore();
   }
-  window.show();
-  window.moveTop();
-  window.focus();
+  // A browser callback can arrive while Windows still keeps the browser in front.
+  // Keep the raise across a native event-loop turn before restoring normal stacking.
+  const raiseTemporarily = process.platform === 'win32' && !window.isAlwaysOnTop();
+  try {
+    if (raiseTemporarily) window.setAlwaysOnTop(true);
+    window.show();
+    window.moveTop();
+    window.focus();
+    if (raiseTemporarily) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 100));
+    }
+  } finally {
+    if (raiseTemporarily && !window.isDestroyed()) {
+      window.setAlwaysOnTop(false);
+      window.moveTop();
+      window.focus();
+    }
+  }
   menuBarHost?.setWindowVisible(true);
 }
 
