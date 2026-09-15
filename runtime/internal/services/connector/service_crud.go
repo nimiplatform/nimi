@@ -356,6 +356,13 @@ func (s *Service) UpdateConnector(ctx context.Context, req *runtimev1.UpdateConn
 				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
 			}
 			value := normalizeAuthKind(req.GetAuthKind())
+			// Mirror the CreateConnector invariant: OAUTH_MANAGED credentials are
+			// user-bound, so a non-REALM_USER-owned record must never transition
+			// into OAUTH_MANAGED (it would become invisible to every CRUD path).
+			if value == runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_OAUTH_MANAGED &&
+				rec.OwnerType != runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER {
+				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
+			}
 			mutations.AuthKind = &value
 			nextAuthKind = value
 			hasChange = true

@@ -454,6 +454,55 @@ func TestNonUserOwnedOAuthManagedConnectorsFailClosed(t *testing.T) {
 		t.Fatalf("expected DeleteConnector NotFound, got %v", st.Code())
 	}
 }
+func TestUpdateConnectorRejectsOAuthManagedTransitionForMachineOwner(t *testing.T) {
+	svc := newTestService(t)
+	if _, err := svc.store.Create(ConnectorRecord{
+		ConnectorID: "machine-apikey",
+		Kind:        runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+		OwnerType:   runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM,
+		OwnerID:     "machine",
+		Provider:    "openai_codex",
+		Endpoint:    "https://chatgpt.com/backend-api/codex",
+		Status:      runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+		AuthKind:    runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_API_KEY,
+	}, "machine-key"); err != nil {
+		t.Fatalf("create machine connector: %v", err)
+	}
+
+	_, err := svc.UpdateConnector(context.Background(), &runtimev1.UpdateConnectorRequest{
+		ConnectorId:         "machine-apikey",
+		AuthKind:            runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_OAUTH_MANAGED.Enum(),
+		ProviderAuthProfile: proto.String("openai_codex"),
+		CredentialJson:      proto.String(`{"access_token":"token-1"}`),
+	})
+	if err == nil {
+		t.Fatal("expected machine-owned connector to reject OAUTH_MANAGED transition")
+	}
+	if st, _ := status.FromError(err); st.Code() != codes.InvalidArgument {
+		t.Fatalf("expected InvalidArgument, got %v", st.Code())
+	}
+
+	getResp, err := svc.GetConnector(context.Background(), &runtimev1.GetConnectorRequest{
+		ConnectorId: "machine-apikey",
+	})
+	if err != nil {
+		t.Fatalf("GetConnector after rejected transition: %v", err)
+	}
+	if got := getResp.GetConnector().GetAuthKind(); got != runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_API_KEY {
+		t.Fatalf("auth_kind mutated despite rejection: %v", got)
+	}
+	if _, err := svc.UpdateConnector(context.Background(), &runtimev1.UpdateConnectorRequest{
+		ConnectorId: "machine-apikey",
+		Label:       proto.String("renamed"),
+	}); err != nil {
+		t.Fatalf("UpdateConnector label after rejected transition: %v", err)
+	}
+	if _, err := svc.DeleteConnector(context.Background(), &runtimev1.DeleteConnectorRequest{
+		ConnectorId: "machine-apikey",
+	}); err != nil {
+		t.Fatalf("DeleteConnector after rejected transition: %v", err)
+	}
+}
 func TestAuthenticatedCallerSeesMachineGlobalAndOwnedConnectors(t *testing.T) {
 	svc := newTestService(t)
 	if _, err := svc.CreateConnector(context.Background(), &runtimev1.CreateConnectorRequest{
