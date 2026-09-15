@@ -6,8 +6,6 @@ import {
   toShellBridgeNimiError,
 } from '@nimiplatform/kit/shell/renderer/bridge';
 import { emitRendererLog, resolveRendererSessionTraceId, toRendererLogMessage } from '@nimiplatform/kit/telemetry';
-import { parseOptionalJsonObject } from './shared.js';
-import type { JsonObject } from './types';
 
 function translateBridgeMessage(key: string, defaultValue: string): string {
   void key;
@@ -24,24 +22,6 @@ export function toBridgeUserMessage(error: unknown): string {
 // @nimi-authority: rule.nimi.desktop.shell-ui.r073
 export function toBridgeNimiError(error: unknown): NimiError {
   return toShellBridgeNimiError(error, { translate: translateBridgeMessage });
-}
-
-function summarizeInvokePayload(command: string, payload: unknown): JsonObject {
-  if (command !== 'http_request') {
-    return {};
-  }
-
-  const root = parseOptionalJsonObject(payload) || {};
-  const inner = parseOptionalJsonObject(root.payload) || {};
-  const url = String(inner.url || '').trim();
-  const method = String(inner.method || 'GET').toUpperCase();
-  const body = typeof inner.body === 'string' ? inner.body : '';
-
-  return {
-    requestUrl: url,
-    requestMethod: method,
-    requestBodyBytes: body.length,
-  };
 }
 
 type ShellInvokeFn = (command: string, payload?: unknown) => Promise<unknown>;
@@ -78,7 +58,6 @@ export async function invoke(command: string, payload: unknown = {}): Promise<un
   const shellInvoke = resolveShellInvoke();
   const invokeId = createSecureInvokeId(command);
   const sessionTraceId = resolveRendererSessionTraceId();
-  const payloadSummary = summarizeInvokePayload(command, payload);
   const commandLog = {
     level: 'info' as const,
     area: 'bridge',
@@ -88,7 +67,6 @@ export async function invoke(command: string, payload: unknown = {}): Promise<un
       command,
       hasPayload: Boolean(payload),
       sessionTraceId,
-      ...payloadSummary,
       },
   };
   void emitRendererLog(commandLog);
@@ -104,7 +82,6 @@ export async function invoke(command: string, payload: unknown = {}): Promise<un
         command,
         costMs,
         sessionTraceId,
-        ...payloadSummary,
       },
       costMs,
     });
@@ -122,7 +99,6 @@ export async function invoke(command: string, payload: unknown = {}): Promise<un
         command,
         costMs,
         sessionTraceId,
-        ...payloadSummary,
         reasonCode: bridgeError.reasonCode,
         actionHint: bridgeError.actionHint,
         traceId: bridgeError.traceId || null,

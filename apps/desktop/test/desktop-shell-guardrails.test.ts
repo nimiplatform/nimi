@@ -147,33 +147,3 @@ test('confirmDialog invokes the standard shell UI command and payload shape', as
     restoreWindow();
   }
 });
-
-test('proxyHttp fails closed without the Electron standard shell host', async () => {
-  const originalFetch = globalThis.fetch;
-  let fetchCalled = false;
-  globalThis.fetch = (async () => {
-    fetchCalled = true;
-    throw new Error('renderer fetch must not be reached');
-  }) as typeof fetch;
-
-  try {
-    const restoreWindow = installWindowMock({
-      location: {
-        origin: 'https://app.nimi.example',
-        href: 'https://app.nimi.example/settings',
-      },
-    });
-    try {
-      const { proxyHttp } = await import('../src/shell/renderer/bridge/runtime-bridge/http');
-      await assert.rejects(
-        () => proxyHttp({ url: 'http://169.254.169.254/latest/meta-data' }),
-        /Desktop HTTP requests require the Electron standard shell host/,
-      );
-      assert.equal(fetchCalled, false);
-    } finally {
-      restoreWindow();
-    }
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
-});

@@ -6,10 +6,8 @@ import {
 } from '@nimiplatform/sdk/runtime/host';
 import {
   NimiElectronShellHostError,
-  type NimiElectronCommandHandlerInput,
 } from '@nimiplatform/kit/shell/electron/main';
 
-const COMMAND = 'http_request' as const;
 const REQUEST_TIMEOUT_MS = 20_000;
 const RATE_LIMIT_WINDOW_MS = 5_000;
 const RATE_LIMIT_BURST = 32;
@@ -21,21 +19,6 @@ const MAX_REQUEST_BODY_BYTES = 8 * 1024 * 1024;
 const MAX_RESPONSE_BODY_BYTES = 16 * 1024 * 1024;
 const METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD']);
 const RESPONSE_HEADERS_RESTRICTED = new Set(['set-cookie', 'set-cookie2']);
-const REQUEST_KEYS = [
-  'body',
-  'diagnosticSessionId',
-  'headers',
-  'method',
-  'url',
-] as const;
-const LOOPBACK_ORIGINS = [
-  'http://localhost',
-  'http://127.0.0.1',
-  'http://[::1]',
-  'http://localhost:3002',
-  'http://127.0.0.1:3002',
-  'http://[::1]:3002',
-] as const;
 
 type ConnectorAuthPurpose = NimiConnectorAuthAcquisitionHttpRequest['purpose'];
 
@@ -58,10 +41,6 @@ export type DesktopElectronHttpHost = {
     request: NimiConnectorAuthAcquisitionHttpRequest,
     signal?: AbortSignal,
   ) => Promise<NimiConnectorAuthAcquisitionHttpResponse>;
-  readonly commandHandlers: Readonly<Record<
-    typeof COMMAND,
-    (context: Pick<NimiElectronCommandHandlerInput, 'payload'>) => Promise<DesktopElectronHttpResponse>
-  >>;
 };
 
 type FetchRequest = (
@@ -70,19 +49,15 @@ type FetchRequest = (
 ) => Promise<Response>;
 
 export function createDesktopElectronHttpHost(input: {
-  readonly realmBaseUrl: string;
   readonly fetch?: FetchRequest;
   readonly now?: () => number;
 }): DesktopElectronHttpHost {
-  const realmOrigins = realmOriginsFor(input.realmBaseUrl);
-  const ordinaryOrigins = new Set([...LOOPBACK_ORIGINS, ...realmOrigins]);
   const requestHistory = new Map<string, number[]>();
   const send = input.fetch ?? globalThis.fetch;
   const now = input.now ?? (() => performance.now());
 
   const execute = async (
     request: HttpRequest,
-    input: { readonly realmRequest: boolean },
     parentSignal?: AbortSignal,
   ): Promise<DesktopElectronHttpResponse> => {
     if (typeof send !== 'function') {
@@ -118,12 +93,10 @@ export function createDesktopElectronHttpHost(input: {
     } catch (error: unknown) {
       if (error instanceof NimiElectronShellHostError) throw error;
       throw httpError({
-        code: input.realmRequest ? 'runtime-service-unavailable' : 'host-internal-error',
-        reasonCode: input.realmRequest ? 'REALM_UNAVAILABLE' : 'DESKTOP_HTTP_SEND_FAILED',
-        actionHint: input.realmRequest ? 'check_realm_service_status' : 'retry_or_check_network',
-        message: input.realmRequest
-          ? 'Realm service is unavailable.'
-          : 'Desktop HTTP request could not be sent.',
+        code: 'host-internal-error',
+        reasonCode: 'DESKTOP_HTTP_SEND_FAILED',
+        actionHint: 'retry_or_check_network',
+        message: 'Desktop HTTP request could not be sent.',
         details: { origin },
         retryable: true,
       });
@@ -136,23 +109,7 @@ export function createDesktopElectronHttpHost(input: {
     connectorAuthRequest: async (request, signal) => {
       const parsed = parseConnectorAuthRequest(request);
       assertConnectorAuthRequestAllowed(request.profileId, request.purpose, parsed);
-      return execute(parsed, { realmRequest: false }, signal);
-    },
-    commandHandlers: {
-      [COMMAND]: async ({ payload }) => {
-        const request = parseRequest(payload);
-        const origin = request.url.origin;
-        if (!ordinaryOrigins.has(origin)) {
-          throw httpError({
-            code: 'runtime-permission-denied',
-            reasonCode: 'DESKTOP_HTTP_ORIGIN_FORBIDDEN',
-            actionHint: 'use_admitted_desktop_http_origin',
-            message: 'Desktop HTTP target origin is not admitted.',
-            details: { origin },
-          });
-        }
-        return execute(request, { realmRequest: realmOrigins.has(origin) });
-      },
+      return execute(parsed, signal);
     },
   };
 }
@@ -183,35 +140,6 @@ function createRequestSignal(parentSignal: AbortSignal | undefined): {
       clearTimeout(timer);
       parentSignal?.removeEventListener('abort', abortFromParent);
     },
-  };
-}
-
-function parseRequest(payload: Readonly<Record<string, unknown>>): HttpRequest {
-  const envelope = exactRecord(
-    payload,
-    ['payload'],
-    ['payload'],
-    'DESKTOP_HTTP_PAYLOAD_INVALID',
-  );
-  const request = exactRecord(
-    envelope.payload,
-    ['url'],
-    REQUEST_KEYS,
-    'DESKTOP_HTTP_PAYLOAD_INVALID',
-  );
-  const url = parseHttpUrl(request.url);
-  const method = parseMethod(request.method);
-  const headers = parseHeaders(request.headers);
-  const body = optionalString(request.body, 'DESKTOP_HTTP_PAYLOAD_INVALID');
-  if (body !== undefined) {
-    assertByteLimit('body', body, MAX_REQUEST_BODY_BYTES);
-  }
-  optionalDiagnosticSessionId(request.diagnosticSessionId);
-  return {
-    url,
-    method,
-    headers,
-    body,
   };
 }
 
@@ -401,23 +329,6 @@ function optionalString(value: unknown, reasonCode: string): string | undefined 
   return value;
 }
 
-function optionalDiagnosticSessionId(value: unknown): void {
-  if (value === undefined) return;
-  if (
-    typeof value !== 'string'
-    || !value
-    || value.trim() !== value
-    || value.length > 256
-  ) {
-    throw httpError({
-      code: 'invalid-payload',
-      reasonCode: 'DESKTOP_HTTP_PAYLOAD_INVALID',
-      actionHint: 'provide_exact_desktop_http_payload',
-      message: 'Desktop HTTP diagnostic session ID is invalid.',
-    });
-  }
-}
-
 function assertConnectorAuthRequestAllowed(
   profileId: string,
   purpose: ConnectorAuthPurpose,
@@ -458,19 +369,6 @@ function connectorAuthDenied(
       purpose: purpose ?? '',
     },
   });
-}
-
-function realmOriginsFor(realmBaseUrl: string): Set<string> {
-  const realm = parseHttpUrl(realmBaseUrl);
-  const origins = new Set([realm.origin]);
-  if (realm.hostname === 'localhost') {
-    realm.hostname = '127.0.0.1';
-    origins.add(realm.origin);
-  } else if (realm.hostname === '127.0.0.1') {
-    realm.hostname = 'localhost';
-    origins.add(realm.origin);
-  }
-  return origins;
 }
 
 function enforceRateLimit(
@@ -583,37 +481,8 @@ function responseTooLarge(actualBytes: number): never {
   });
 }
 
-function exactRecord(
-  value: unknown,
-  requiredKeys: readonly string[],
-  allowedKeys: readonly string[],
-  reasonCode: string,
-): Readonly<Record<string, unknown>> {
-  if (!isRecord(value)) {
-    invalidRecord(reasonCode);
-  }
-  const allowed = new Set(allowedKeys);
-  const keys = Object.keys(value);
-  if (
-    requiredKeys.some((key) => !Object.hasOwn(value, key))
-    || keys.some((key) => !allowed.has(key))
-  ) {
-    invalidRecord(reasonCode);
-  }
-  return value;
-}
-
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
-}
-
-function invalidRecord(reasonCode: string): never {
-  throw httpError({
-    code: 'invalid-payload',
-    reasonCode,
-    actionHint: 'provide_exact_desktop_http_payload',
-    message: 'Desktop HTTP payload is invalid.',
-  });
 }
 
 type HttpErrorInput = ConstructorParameters<typeof NimiElectronShellHostError>[0] & {

@@ -11,7 +11,6 @@ import {
   startRuntimeBridge,
 } from './runtime-bridge/runtime-daemon';
 import { getSystemResourceSnapshot } from './runtime-bridge/system-resources';
-import { proxyHttp } from './runtime-bridge/http';
 import { desktopManagedConnectorCredentialAcquisitionHost } from './runtime-bridge/connector-auth-acquisition';
 import {
   admitProductReadyForUse,
@@ -93,7 +92,6 @@ export {
   getSystemResourceSnapshot,
   startRuntimeBridge,
   restartRuntimeBridge,
-  proxyHttp,
   desktopManagedConnectorCredentialAcquisitionHost,
   getRuntimeDefaults,
   getProductControlRecord,

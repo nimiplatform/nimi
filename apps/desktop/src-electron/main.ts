@@ -25,7 +25,6 @@ import {
   exchangeElectronOauthTokenInHost,
   isAllowedElectronRendererUrl,
   registerNimiElectronRuntimeBridge,
-  resolveElectronRuntimeDefaults,
   type NimiElectronFileDialogOpenPayload,
   type NimiElectronFileDialogOpenResult,
   type NimiElectronIpcMainInvokeEvent,
@@ -316,9 +315,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       resolveReadyDataRoot: productControlHost.resolveReadyDataRoot,
       operationGate: dataRootOperationGate,
     });
-    const httpRequestHost = createDesktopElectronHttpHost({
-      realmBaseUrl: resolveDesktopRealmBaseUrl(runtimeDeploymentProfile),
-    });
+    const httpRequestHost = createDesktopElectronHttpHost({});
     connectorAuthAcquisitionHost = createDesktopElectronConnectorAuthAcquisitionHost({
       proxyHttp: httpRequestHost.connectorAuthRequest,
       runtime: createDesktopManagedConnectorCredentialRuntime(
@@ -484,7 +481,6 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         ...systemResourcesHost.commandHandlers,
         ...supportLogsHost.commandHandlers,
         ...dataCleanupHost.commandHandlers,
-        ...httpRequestHost.commandHandlers,
         ...connectorAuthAcquisitionHost.commandHandlers,
         ...rendererLogHost.commandHandlers,
         ...menuBarHost.commandHandlers,
@@ -973,19 +969,4 @@ function createDesktopMenuBarIcon(): Electron.NativeImage {
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
-}
-
-function resolveDesktopRealmBaseUrl(
-  deploymentProfile: ReturnType<typeof resolveElectronRuntimeDeploymentProfile>,
-): string {
-  const defaults = resolveElectronRuntimeDefaults(deploymentProfile);
-  const realm = defaults.realm;
-  if (!realm || typeof realm !== 'object' || Array.isArray(realm)) {
-    throw new Error('desktop-http-realm-defaults-invalid');
-  }
-  const realmBaseUrl = (realm as Readonly<Record<string, unknown>>).realmBaseUrl;
-  if (typeof realmBaseUrl !== 'string' || !realmBaseUrl) {
-    throw new Error('desktop-http-realm-defaults-invalid');
-  }
-  return realmBaseUrl;
 }

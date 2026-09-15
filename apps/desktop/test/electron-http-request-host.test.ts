@@ -12,15 +12,6 @@ type SentRequest = {
   readonly init: RequestInit | undefined;
 };
 
-function invoke(
-  host: DesktopElectronHttpHost,
-  request: Readonly<Record<string, unknown>>,
-) {
-  return host.commandHandlers.http_request({
-    payload: { payload: request },
-  });
-}
-
 function invokeConnectorAuth(
   host: DesktopElectronHttpHost,
   request: Readonly<Record<string, unknown>>,
@@ -49,31 +40,32 @@ async function expectReason(
 
 test('Electron HTTP host returns the complete response through a fixed main-process request', async () => {
   const sent: SentRequest[] = [];
+  const profile = CONNECTOR_AUTH_ACQUISITION_PROFILES.openai_codex;
+  assert.ok(profile);
   const host = createDesktopElectronHttpHost({
-    realmBaseUrl: 'https://realm.nimi.ai',
     fetch: async (input, init) => {
       sent.push({ input, init });
-      return new Response('realm-body', {
+      return new Response('{"ok":true}', {
         status: 201,
         headers: {
           'Content-Type': 'application/json',
           'Set-Cookie': 'session=must-not-reach-renderer',
           'Set-Cookie2': 'legacy=must-not-reach-renderer',
-          'X-Realm-Revision': '17',
         },
       });
     },
   });
 
-  const result = await invoke(host, {
-    url: 'https://realm.nimi.ai/api/worlds?limit=2',
-    method: 'post',
+  const result = await invokeConnectorAuth(host, {
+    url: profile.deviceTokenUrl,
+    method: 'POST',
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',
     },
-    body: '{"name":"Nimi"}',
-    diagnosticSessionId: 'renderer-session-1234',
+    body: '{"device_auth_id":"fixture"}',
+    profileId: profile.profileId,
+    purpose: 'device_token',
   });
 
   assert.deepEqual(result, {
@@ -81,72 +73,16 @@ test('Electron HTTP host returns the complete response through a fixed main-proc
     ok: true,
     headers: {
       'content-type': 'application/json',
-      'x-realm-revision': '17',
     },
-    body: 'realm-body',
+    body: '{"ok":true}',
   });
   assert.equal(sent.length, 1);
-  assert.equal(String(sent[0]?.input), 'https://realm.nimi.ai/api/worlds?limit=2');
+  assert.equal(String(sent[0]?.input), profile.deviceTokenUrl);
   assert.equal(sent[0]?.init?.method, 'POST');
-  assert.equal(sent[0]?.init?.body, '{"name":"Nimi"}');
+  assert.equal(sent[0]?.init?.body, '{"device_auth_id":"fixture"}');
   assert.equal(sent[0]?.init?.redirect, 'manual');
   assert.equal(sent[0]?.init?.credentials, 'omit');
   assert.ok(sent[0]?.init?.signal instanceof AbortSignal);
-});
-
-test('Electron HTTP host admits only fixed Realm and loopback ordinary origins', async () => {
-  const sent: string[] = [];
-  const host = createDesktopElectronHttpHost({
-    realmBaseUrl: 'http://127.0.0.1:3002',
-    fetch: async (input) => {
-      sent.push(String(input));
-      return new Response('ok');
-    },
-  });
-
-  await invoke(host, { url: 'http://localhost:3002/api/me' });
-  await invoke(host, { url: 'http://127.0.0.1/health' });
-  assert.deepEqual(sent, [
-    'http://localhost:3002/api/me',
-    'http://127.0.0.1/health',
-  ]);
-
-  await expectReason(
-    invoke(host, { url: 'https://api.third-party.example/v1/data' }),
-    'DESKTOP_HTTP_ORIGIN_FORBIDDEN',
-  );
-  await expectReason(
-    invoke(host, { url: 'http://localhost:3003/socket' }),
-    'DESKTOP_HTTP_ORIGIN_FORBIDDEN',
-  );
-  assert.equal(sent.length, 2);
-});
-
-test('Electron HTTP host admits only the seven fixed HTTP methods', async () => {
-  const sent: RequestInit[] = [];
-  const host = createDesktopElectronHttpHost({
-    realmBaseUrl: 'https://realm.nimi.ai',
-    fetch: async (_input, init) => {
-      assert.ok(init);
-      sent.push(init);
-      return new Response('ok');
-    },
-  });
-  const methods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'] as const;
-
-  for (const method of methods) {
-    await invoke(host, {
-      url: `https://realm.nimi.ai/api/method/${method.toLowerCase()}`,
-      method,
-      body: 'request-body',
-    });
-  }
-
-  assert.deepEqual(sent.map((request) => request.method), methods);
-  assert.deepEqual(
-    sent.map((request) => request.body),
-    [undefined, 'request-body', 'request-body', 'request-body', 'request-body', 'request-body', undefined],
-  );
 });
 
 test('Electron HTTP host uses the SDK acquisition profile for exact OAuth POST admission', async () => {
@@ -154,7 +90,6 @@ test('Electron HTTP host uses the SDK acquisition profile for exact OAuth POST a
   const profile = CONNECTOR_AUTH_ACQUISITION_PROFILES.openai_codex;
   assert.ok(profile);
   const host = createDesktopElectronHttpHost({
-    realmBaseUrl: 'https://realm.nimi.ai',
     fetch: async (input) => {
       sent.push(String(input));
       return new Response('{"ok":true}', {
@@ -222,10 +157,11 @@ test('Electron HTTP host uses the SDK acquisition profile for exact OAuth POST a
   assert.equal(sent.length, 2);
 });
 
-test('Electron HTTP host rejects unknown payload fields and sensitive header overrides', async () => {
+test('Electron HTTP host rejects sensitive header overrides', async () => {
   let sendCount = 0;
+  const profile = CONNECTOR_AUTH_ACQUISITION_PROFILES.openai_codex;
+  assert.ok(profile);
   const host = createDesktopElectronHttpHost({
-    realmBaseUrl: 'https://realm.nimi.ai',
     fetch: async () => {
       sendCount += 1;
       return new Response('unexpected');
@@ -233,39 +169,17 @@ test('Electron HTTP host rejects unknown payload fields and sensitive header ove
   });
 
   await expectReason(
-    invoke(host, {
-      url: 'https://realm.nimi.ai/api/me',
-      connectorAuthProfileId: 'openai_codex',
-      connectorAuthPurpose: 'device_authorization',
-    }),
-    'DESKTOP_HTTP_PAYLOAD_INVALID',
-  );
-  await expectReason(
-    host.commandHandlers.http_request({
-      payload: {
-        payload: { url: 'https://realm.nimi.ai/api/me' },
-        authorization: 'Bearer secret',
-      },
-    }),
-    'DESKTOP_HTTP_PAYLOAD_INVALID',
-  );
-  await expectReason(
-    invoke(host, {
-      url: 'https://realm.nimi.ai/api/me',
-      authorization: 'Bearer secret',
-    }),
-    'DESKTOP_HTTP_PAYLOAD_INVALID',
-  );
-  await expectReason(
-    invoke(host, {
+    invokeConnectorAuth(host, {
       url: 'ftp://realm.nimi.ai/file',
     }),
     'DESKTOP_HTTP_URL_SCHEME_INVALID',
   );
   await expectReason(
-    invoke(host, {
-      url: 'https://realm.nimi.ai/api/me',
+    invokeConnectorAuth(host, {
+      url: profile.deviceTokenUrl,
       method: 'TRACE',
+      profileId: profile.profileId,
+      purpose: 'device_token',
     }),
     'DESKTOP_HTTP_METHOD_INVALID',
   );
@@ -283,9 +197,12 @@ test('Electron HTTP host rejects unknown payload fields and sensitive header ove
     'X-Forwarded-For',
   ]) {
     await expectReason(
-      invoke(host, {
-        url: 'https://realm.nimi.ai/api/me',
+      invokeConnectorAuth(host, {
+        url: profile.deviceTokenUrl,
+        method: 'POST',
         headers: { [headerName]: 'renderer-value' },
+        profileId: profile.profileId,
+        purpose: 'device_token',
       }),
       'DESKTOP_HTTP_HEADER_RESTRICTED',
     );
@@ -295,8 +212,9 @@ test('Electron HTTP host rejects unknown payload fields and sensitive header ove
 
 test('Electron HTTP host applies fixed request-size boundaries before network dispatch', async () => {
   let sendCount = 0;
+  const profile = CONNECTOR_AUTH_ACQUISITION_PROFILES.openai_codex;
+  assert.ok(profile);
   const host = createDesktopElectronHttpHost({
-    realmBaseUrl: 'https://realm.nimi.ai',
     fetch: async () => {
       sendCount += 1;
       return new Response('unexpected');
@@ -304,35 +222,49 @@ test('Electron HTTP host applies fixed request-size boundaries before network di
   });
   const oversizedRequests: Readonly<Record<string, unknown>>[] = [
     {
-      url: `https://realm.nimi.ai/${'u'.repeat(8 * 1024)}`,
+      url: `${profile.deviceTokenUrl}${'u'.repeat(8 * 1024)}`,
+      method: 'POST',
+      profileId: profile.profileId,
+      purpose: 'device_token',
     },
     {
-      url: 'https://realm.nimi.ai/api/me',
+      url: profile.deviceTokenUrl,
+      method: 'POST',
       headers: { [`x-${'n'.repeat(128)}`]: 'value' },
+      profileId: profile.profileId,
+      purpose: 'device_token',
     },
     {
-      url: 'https://realm.nimi.ai/api/me',
+      url: profile.deviceTokenUrl,
+      method: 'POST',
       headers: { 'x-large-value': 'v'.repeat((8 * 1024) + 1) },
+      profileId: profile.profileId,
+      purpose: 'device_token',
     },
     {
-      url: 'https://realm.nimi.ai/api/me',
+      url: profile.deviceTokenUrl,
+      method: 'POST',
       headers: {
         'x-total-a': 'a'.repeat(8 * 1024),
         'x-total-b': 'b'.repeat(8 * 1024),
         'x-total-c': 'c'.repeat(8 * 1024),
         'x-total-d': 'd'.repeat(8 * 1024),
       },
+      profileId: profile.profileId,
+      purpose: 'device_token',
     },
     {
-      url: 'https://realm.nimi.ai/api/me',
+      url: profile.deviceTokenUrl,
       method: 'POST',
       body: 'b'.repeat((8 * 1024 * 1024) + 1),
+      profileId: profile.profileId,
+      purpose: 'device_token',
     },
   ];
 
   for (const request of oversizedRequests) {
     const error = await expectReason(
-      invoke(host, request),
+      invokeConnectorAuth(host, request),
       'DESKTOP_HTTP_REQUEST_TOO_LARGE',
     );
     assert.equal(error.retryable, false);
@@ -342,6 +274,8 @@ test('Electron HTTP host applies fixed request-size boundaries before network di
 
 test('Electron HTTP host cancels a decompressed response stream above 16 MiB', async () => {
   let canceled = false;
+  const profile = CONNECTOR_AUTH_ACQUISITION_PROFILES.openai_codex;
+  assert.ok(profile);
   const body = new ReadableStream<Uint8Array>({
     start(controller) {
       controller.enqueue(new Uint8Array((16 * 1024 * 1024) + 1));
@@ -351,7 +285,6 @@ test('Electron HTTP host cancels a decompressed response stream above 16 MiB', a
     },
   });
   const host = createDesktopElectronHttpHost({
-    realmBaseUrl: 'https://realm.nimi.ai',
     fetch: async () => new Response(body, {
       headers: {
         'Content-Encoding': 'gzip',
@@ -361,7 +294,14 @@ test('Electron HTTP host cancels a decompressed response stream above 16 MiB', a
   });
 
   const error = await expectReason(
-    invoke(host, { url: 'https://realm.nimi.ai/api/oversized' }),
+    invokeConnectorAuth(host, {
+      url: profile.deviceTokenUrl,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}',
+      profileId: profile.profileId,
+      purpose: 'device_token',
+    }),
     'DESKTOP_HTTP_RESPONSE_TOO_LARGE',
   );
   assert.equal(error.retryable, false);
@@ -371,52 +311,52 @@ test('Electron HTTP host cancels a decompressed response stream above 16 MiB', a
 test('Electron HTTP host enforces a 32-request burst for each origin over five seconds', async () => {
   let now = 10_000;
   let sendCount = 0;
+  const profile = CONNECTOR_AUTH_ACQUISITION_PROFILES.openai_codex;
+  assert.ok(profile);
   const host = createDesktopElectronHttpHost({
-    realmBaseUrl: 'https://realm.nimi.ai',
     now: () => now,
     fetch: async () => {
       sendCount += 1;
       return new Response('ok');
     },
   });
+  const admittedRequest = {
+    url: profile.deviceTokenUrl,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: '{}',
+    profileId: profile.profileId,
+    purpose: 'device_token',
+  } as const;
 
   for (let index = 0; index < 32; index += 1) {
-    await invoke(host, { url: `https://realm.nimi.ai/api/items/${index}` });
+    await invokeConnectorAuth(host, admittedRequest);
   }
   assert.equal(sendCount, 32);
   const limited = await expectReason(
-    invoke(host, { url: 'https://realm.nimi.ai/api/items/overflow' }),
+    invokeConnectorAuth(host, admittedRequest),
     'DESKTOP_HTTP_RATE_LIMITED',
   );
   assert.equal(limited.retryable, true);
   assert.equal(sendCount, 32);
 
   now = 9_000;
-  await invoke(host, { url: 'https://realm.nimi.ai/api/items/after-clock-rollback' });
+  await invokeConnectorAuth(host, admittedRequest);
   assert.equal(sendCount, 33);
 
   now += 5_001;
-  await invoke(host, { url: 'https://realm.nimi.ai/api/items/after-window' });
+  await invokeConnectorAuth(host, admittedRequest);
   assert.equal(sendCount, 34);
 });
 
-test('Electron HTTP host classifies Realm and acquisition transport failures', async () => {
+test('Electron HTTP host classifies acquisition transport failures', async () => {
+  const profile = CONNECTOR_AUTH_ACQUISITION_PROFILES.openai_codex;
+  assert.ok(profile);
   const host = createDesktopElectronHttpHost({
-    realmBaseUrl: 'http://127.0.0.1:3002',
     fetch: async () => {
       throw new Error('connection refused');
     },
   });
-  const realm = await expectReason(
-    invoke(host, { url: 'http://localhost:3002/api/worlds' }),
-    'REALM_UNAVAILABLE',
-  );
-  assert.equal(realm.code, 'runtime-service-unavailable');
-  assert.equal(realm.actionHint, 'check_realm_service_status');
-  assert.equal(realm.retryable, true);
-
-  const profile = CONNECTOR_AUTH_ACQUISITION_PROFILES.openai_codex;
-  assert.ok(profile);
   const acquisition = await expectReason(
     invokeConnectorAuth(host, {
       url: profile.deviceTokenUrl,
@@ -436,7 +376,6 @@ test('Electron HTTP host classifies Realm and acquisition transport failures', a
 test('Electron HTTP host propagates managed connector cancellation into provider fetch', async () => {
   let observedSignal: AbortSignal | undefined;
   const host = createDesktopElectronHttpHost({
-    realmBaseUrl: 'https://realm.nimi.ai',
     fetch: async (_input, init) => {
       observedSignal = init?.signal ?? undefined;
       return new Promise<never>((_resolve, reject) => {

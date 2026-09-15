@@ -90,7 +90,7 @@ test('toBridgeNimiError maps DESKTOP_HTTP_FETCH_UNAVAILABLE reason code', () => 
   );
 });
 
-test('toBridgeNimiError maps REALM_UNAVAILABLE from desktop http_request send failure', () => {
+test('toBridgeNimiError maps REALM_UNAVAILABLE with repair guidance', () => {
   const error = toBridgeNimiError(JSON.stringify({
     reasonCode: ReasonCode.REALM_UNAVAILABLE,
     actionHint: 'check_realm_service_status',
