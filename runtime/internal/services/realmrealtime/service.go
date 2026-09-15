@@ -578,6 +578,18 @@ func (s *Service) removeSubscription(channel *realmChannel, subscription *realmS
 }
 
 func (s *Service) terminalizeSubscription(channel *realmChannel, subscription *realmSubscription, reason realtimecore.TerminalReason) {
+	terminal := runtimev1.RealtimeTerminalReason_REALTIME_TERMINAL_REASON_OWNER_FAILED
+	if reason == realtimecore.TerminalSlowConsumer {
+		terminal = runtimev1.RealtimeTerminalReason_REALTIME_TERMINAL_REASON_SLOW_CONSUMER
+	} else if reason == realtimecore.TerminalStaleGeneration {
+		terminal = runtimev1.RealtimeTerminalReason_REALTIME_TERMINAL_REASON_STALE_GENERATION
+	} else if reason == realtimecore.TerminalCancelled || reason == realtimecore.TerminalRuntimeShutdown {
+		terminal = runtimev1.RealtimeTerminalReason_REALTIME_TERMINAL_REASON_CANCELLED
+	}
+	s.terminalizeSubscriptionWithReason(channel, subscription, reason, terminal)
+}
+
+func (s *Service) terminalizeSubscriptionWithReason(channel *realmChannel, subscription *realmSubscription, reason realtimecore.TerminalReason, terminal runtimev1.RealtimeTerminalReason) {
 	if channel == nil || subscription == nil {
 		return
 	}
@@ -588,14 +600,8 @@ func (s *Service) terminalizeSubscription(channel *realmChannel, subscription *r
 	channel.mu.Unlock()
 	s.closeRemoteChatSubscription(subscription)
 	lifecycle := runtimev1.RealtimeLifecycle_REALTIME_LIFECYCLE_FAILED
-	terminal := runtimev1.RealtimeTerminalReason_REALTIME_TERMINAL_REASON_OWNER_FAILED
-	if reason == realtimecore.TerminalSlowConsumer {
-		terminal = runtimev1.RealtimeTerminalReason_REALTIME_TERMINAL_REASON_SLOW_CONSUMER
-	} else if reason == realtimecore.TerminalStaleGeneration {
-		terminal = runtimev1.RealtimeTerminalReason_REALTIME_TERMINAL_REASON_STALE_GENERATION
-	} else if reason == realtimecore.TerminalCancelled || reason == realtimecore.TerminalRuntimeShutdown {
+	if reason == realtimecore.TerminalCancelled || reason == realtimecore.TerminalRuntimeShutdown {
 		lifecycle = runtimev1.RealtimeLifecycle_REALTIME_LIFECYCLE_CLOSED
-		terminal = runtimev1.RealtimeTerminalReason_REALTIME_TERMINAL_REASON_CANCELLED
 	}
 	event := subscriptionEvent(channel, subscription)
 	event.Event = &runtimev1.SubscribeRealmRealtimeEventsResponse_Control{Control: channelControl(

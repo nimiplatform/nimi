@@ -27,15 +27,17 @@ type socketEvent struct {
 }
 
 type socketIOClient struct {
-	conn      *websocket.Conn
-	writeMu   sync.Mutex
-	ackMu     sync.Mutex
-	acks      map[uint64]chan json.RawMessage
-	nextAckID atomic.Uint64
-	events    chan socketEvent
-	errors    chan error
-	closeOnce sync.Once
-	closed    chan struct{}
+	conn          *websocket.Conn
+	writeMu       sync.Mutex
+	ackMu         sync.Mutex
+	acks          map[uint64]chan json.RawMessage
+	nextAckID     atomic.Uint64
+	events        chan socketEvent
+	errors        chan error
+	errorMu       sync.Mutex
+	terminalError error
+	closeOnce     sync.Once
+	closed        chan struct{}
 }
 
 // @nimi-authority: rule.nimi.runtime.realm-realtime.r001
@@ -160,7 +162,7 @@ func (c *socketIOClient) EmitAck(ctx context.Context, eventName string, payload 
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	case <-c.closed:
-		return nil, errSocketClosed
+		return nil, c.failure()
 	}
 }
 
@@ -182,7 +184,7 @@ func (c *socketIOClient) send(frame string) error {
 	defer c.writeMu.Unlock()
 	select {
 	case <-c.closed:
-		return errSocketClosed
+		return c.failure()
 	default:
 	}
 	if err := websocket.Message.Send(c.conn, frame); err != nil {
@@ -199,10 +201,7 @@ func (c *socketIOClient) readLoop() {
 			select {
 			case <-c.closed:
 			default:
-				select {
-				case c.errors <- fmt.Errorf("read Realm realtime frame: %w", err):
-				default:
-				}
+				c.reportError(fmt.Errorf("read Realm realtime frame: %w", err))
 			}
 			c.Close()
 			return
@@ -218,6 +217,11 @@ func (c *socketIOClient) readLoop() {
 			event, err := decodeSocketEvent(frame[2:])
 			if err != nil {
 				c.reportError(err)
+				c.Close()
+				return
+			}
+			if event.name == "realtime:connection.closed" {
+				c.reportError(decodeConnectionClosed(event.payload))
 				c.Close()
 				return
 			}
@@ -253,10 +257,25 @@ func (c *socketIOClient) readLoop() {
 }
 
 func (c *socketIOClient) reportError(err error) {
+	c.errorMu.Lock()
+	if c.terminalError == nil {
+		c.terminalError = err
+	}
+	err = c.terminalError
+	c.errorMu.Unlock()
 	select {
 	case c.errors <- err:
 	default:
 	}
+}
+
+func (c *socketIOClient) failure() error {
+	c.errorMu.Lock()
+	defer c.errorMu.Unlock()
+	if c.terminalError != nil {
+		return c.terminalError
+	}
+	return errSocketClosed
 }
 
 func decodeSocketEvent(value string) (socketEvent, error) {

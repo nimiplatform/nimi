@@ -137,6 +137,16 @@ test('Desktop protected Runtime can project the canonical Realm Realtime client'
           chatId: 'chat-1', highWatermarkSeq: '7', occurredAt: { seconds: '1', nanos: 0 },
         } },
       };
+      yield {
+        realtimeSessionId: 'session-1', channelId: 'channel-1', subscriptionId: 'subscription-1',
+        generation: '1', sequence: '2', correlationId: 'correlation-2',
+        occurredAt: { seconds: '2', nanos: 0 },
+        event: { oneofKind: 'control', control: {
+          ...control(RealtimeAdapterKind.REALM, 'subscription-1'),
+          lifecycle: RealtimeLifecycle.FAILED,
+          terminalReason: RealtimeTerminalReason.UNAUTHENTICATED,
+        } },
+      };
     },
     async ackRealmRealtimeEvents() { return { ack }; },
     async closeRealmRealtimeSubscription() { return { ack }; },
@@ -145,11 +155,18 @@ test('Desktop protected Runtime can project the canonical Realm Realtime client'
   const client = createNimiRealmRealtimeRuntimeClient(runtime);
   const opened = await client.open();
   const subscription = await client.subscribe({ channelId: opened.channelId, target: { type: 'inbox' } });
-  const first = await subscription[Symbol.asyncIterator]().next();
+  const iterator = subscription[Symbol.asyncIterator]();
+  const first = await iterator.next();
   assert.equal(subscribedTarget, 'inbox');
   assert.deepEqual(first.value?.event, {
     type: 'inbox', chatId: 'chat-1', highWatermarkSeq: '7', occurredAt: { seconds: '1', nanos: 0 },
   });
+  const terminal = await iterator.next();
+  assert.equal(terminal.value?.event.type, 'control');
+  if (terminal.value?.event.type === 'control') {
+    assert.equal(terminal.value.event.control.terminalReason, 'unauthenticated');
+    assert.equal(terminal.value.event.control.lifecycle, 'failed');
+  }
   assert.equal((await client.closeChannel({ channelId: opened.channelId })).reasonCode, 'ACTION_EXECUTED');
 });
 

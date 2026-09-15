@@ -12,36 +12,46 @@ import (
 
 func (s *Service) runConnection(remote *realmConnection) {
 	for {
-		connectionFailed := false
+		var failure error
 		select {
 		case <-remote.ctx.Done():
 			return
 		case event, ok := <-remote.driver.Events():
 			if !ok {
-				connectionFailed = true
+				failure = remote.driver.failure()
 			} else if err := s.handleRemoteEvent(remote, event); err != nil {
 				s.logger.Warn("Realm realtime event rejected", "event", event.name, "error", err)
-				connectionFailed = true
+				failure = err
 			}
-		case <-remote.driver.Errors():
-			connectionFailed = true
+		case failure = <-remote.driver.Errors():
 		}
-		if !connectionFailed {
+		if failure == nil {
 			continue
 		}
 		remote.driver.Close()
 		if remote.ctx.Err() != nil {
 			return
 		}
-		if !s.reconnect(remote) {
-			s.failRemote(remote, realtimecore.TerminalOwnerFailed)
+		if reason := connectionCloseReason(failure); reason == "token-expired" || reason == "unavailable" {
+			failure = s.reconnect(remote, failure)
+		}
+		if failure != nil {
+			s.failRemote(remote, connectionTerminalReason(failure))
 			return
 		}
 	}
 }
 
-func (s *Service) reconnect(remote *realmConnection) bool {
+// @nimi-authority: rule.nimi.runtime.realm-realtime.r003
+func (s *Service) reconnect(remote *realmConnection, failure error) error {
 	s.transitionRemoteSubscriptions(remote, realtimecore.LifecycleReconnecting, runtimev1.RealtimeLifecycle_REALTIME_LIFECYCLE_RECONNECTING, "reconnecting")
+	if connectionCloseReason(failure) == "token-expired" {
+		lease, err := s.accounts.RefreshRealmRealtimeAccount(remote.ctx, remote.lease.Generation, remote.lease.AccessToken)
+		if err != nil || lease.AccountID != remote.lease.AccountID || lease.Generation != remote.lease.Generation {
+			return errSocketAuth
+		}
+		remote.lease = lease
+	}
 	backoff := 250 * time.Millisecond
 	for attempt := 0; attempt < 6; attempt++ {
 		if attempt > 0 {
@@ -49,7 +59,7 @@ func (s *Service) reconnect(remote *realmConnection) bool {
 			select {
 			case <-remote.ctx.Done():
 				timer.Stop()
-				return false
+				return remote.ctx.Err()
 			case <-timer.C:
 			}
 			if backoff < 4*time.Second {
@@ -58,27 +68,29 @@ func (s *Service) reconnect(remote *realmConnection) bool {
 		}
 		lease, err := s.accounts.BindRealmRealtimeAccount(remote.ctx)
 		if err != nil || lease.AccountID != remote.lease.AccountID || lease.Generation != remote.lease.Generation {
-			return false
+			return errSocketAuth
 		}
 		driver, err := dialSocketIO(remote.ctx, lease.RealmRealtimeURL, lease.AccessToken)
-		if errors.Is(err, errSocketAuth) {
-			lease, err = s.accounts.RefreshRealmRealtimeAccount(remote.ctx, remote.lease.Generation, remote.lease.AccessToken)
-			if err == nil {
-				driver, err = dialSocketIO(remote.ctx, lease.RealmRealtimeURL, lease.AccessToken)
-			}
-		}
 		if err != nil {
+			failure = err
+			if connectionCloseReason(err) != "unavailable" {
+				return err
+			}
 			continue
 		}
 		remote.driver = driver
 		remote.lease = lease
 		if err := s.restoreRemoteSubscriptions(remote); err != nil {
 			driver.Close()
+			failure = err
+			if connectionCloseReason(err) != "unavailable" {
+				return err
+			}
 			continue
 		}
-		return true
+		return nil
 	}
-	return false
+	return failure
 }
 
 func (s *Service) restoreRemoteSubscriptions(remote *realmConnection) error {
@@ -185,7 +197,7 @@ func (s *Service) transitionRemoteSubscriptions(remote *realmConnection, coreLif
 	}
 }
 
-func (s *Service) failRemote(remote *realmConnection, reason realtimecore.TerminalReason) {
+func (s *Service) failRemote(remote *realmConnection, terminal runtimev1.RealtimeTerminalReason) {
 	if remote == nil {
 		return
 	}
@@ -196,8 +208,12 @@ func (s *Service) failRemote(remote *realmConnection, reason realtimecore.Termin
 	s.mu.Unlock()
 	remote.cancel()
 	remote.driver.Close()
+	reason := realtimecore.TerminalOwnerFailed
+	if terminal == runtimev1.RealtimeTerminalReason_REALTIME_TERMINAL_REASON_CANCELLED {
+		reason = realtimecore.TerminalCancelled
+	}
 	for _, binding := range s.remoteSubscriptions(remote) {
-		s.terminalizeSubscription(binding.channel, binding.subscription, reason)
+		s.terminalizeSubscriptionWithReason(binding.channel, binding.subscription, reason, terminal)
 	}
 }
 
