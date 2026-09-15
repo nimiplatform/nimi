@@ -24,6 +24,21 @@ const ALLOWED_EDITOR_KINDS = new Set([
 ]);
 const ALLOWED_EVIDENCE_CLASSES = new Set(['turn', 'job', 'workflow', 'session', 'job-and-session']);
 const ALLOWED_SOURCE_TABLES = new Set(['provider-capabilities', 'local-adapter-routing']);
+const ROW_FIELDS = new Set(['capabilityId', 'section', 'editorKind', 'sourceRef', 'additionalRuntimeTables', 'i18nKeys', 'runtimeEvidenceClass', 'governance', 'source_rule']);
+const SOURCE_FIELDS = new Set(['table', 'capability']);
+const I18N_FIELDS = new Set(['title', 'subtitle', 'detail']);
+const GOVERNANCE_FIELDS = new Set(['owner', 'dataMovement', 'retention', 'revocation', 'auditSource']);
+const DEFERRED_FIELDS = new Set(['capability', 'table', 'reason', 'source_rule']);
+
+function isMapping(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function validateFields(value, allowed, prefix, errors) {
+  for (const key of Object.keys(value)) {
+    if (!allowed.has(key)) errors.push(`${prefix}.${key}: field is outside the canonical catalog schema`);
+  }
+}
 
 export const CATALOG_CONSTANTS = Object.freeze({
   ALLOWED_SECTIONS: Array.from(ALLOWED_SECTIONS),
@@ -34,7 +49,7 @@ export const CATALOG_CONSTANTS = Object.freeze({
 
 export function validateCanonicalCapabilityCatalog(doc) {
   const errors = [];
-  if (!doc || typeof doc !== 'object') {
+  if (!isMapping(doc)) {
     errors.push('catalog yaml root must be a mapping');
     return { capabilities: [], deferred: [], errors };
   }
@@ -48,10 +63,11 @@ export function validateCanonicalCapabilityCatalog(doc) {
   const seenIds = new Set();
   for (const [index, row] of capabilities.entries()) {
     const prefix = `capabilities[${index}]`;
-    if (!row || typeof row !== 'object') {
+    if (!isMapping(row)) {
       errors.push(`${prefix}: row must be a mapping`);
       continue;
     }
+    validateFields(row, ROW_FIELDS, prefix, errors);
     const capabilityId = typeof row.capabilityId === 'string' ? row.capabilityId.trim() : '';
     if (!capabilityId) {
       errors.push(`${prefix}: capabilityId is required`);
@@ -64,14 +80,15 @@ export function validateCanonicalCapabilityCatalog(doc) {
     if (!ALLOWED_SECTIONS.has(section)) {
       errors.push(`${prefix} ${capabilityId}: section ${section || '<empty>'} not allowed`);
     }
-    const editorKind = row.editorKind ?? null;
+    const editorKind = row.editorKind;
     if (!ALLOWED_EDITOR_KINDS.has(editorKind)) {
       errors.push(`${prefix} ${capabilityId}: editorKind ${editorKind} not allowed`);
     }
     const sourceRef = row.sourceRef;
-    if (!sourceRef || typeof sourceRef !== 'object') {
+    if (!isMapping(sourceRef)) {
       errors.push(`${prefix} ${capabilityId}: sourceRef is required`);
     } else {
+      validateFields(sourceRef, SOURCE_FIELDS, `${prefix}.sourceRef`, errors);
       const table = typeof sourceRef.table === 'string' ? sourceRef.table.trim() : '';
       const capability = typeof sourceRef.capability === 'string' ? sourceRef.capability.trim() : '';
       if (!ALLOWED_SOURCE_TABLES.has(table)) {
@@ -87,10 +104,11 @@ export function validateCanonicalCapabilityCatalog(doc) {
         errors.push(`${prefix} ${capabilityId}: additionalRuntimeTables must be an array when present`);
       } else {
         for (const [addIdx, addEntry] of additionalRuntimeTables.entries()) {
-          if (!addEntry || typeof addEntry !== 'object') {
+          if (!isMapping(addEntry)) {
             errors.push(`${prefix} ${capabilityId}: additionalRuntimeTables[${addIdx}] must be a mapping`);
             continue;
           }
+          validateFields(addEntry, SOURCE_FIELDS, `${prefix}.additionalRuntimeTables[${addIdx}]`, errors);
           const addTable = typeof addEntry.table === 'string' ? addEntry.table.trim() : '';
           const addCap = typeof addEntry.capability === 'string' ? addEntry.capability.trim() : '';
           if (!ALLOWED_SOURCE_TABLES.has(addTable)) {
@@ -106,9 +124,10 @@ export function validateCanonicalCapabilityCatalog(doc) {
       }
     }
     const i18nKeys = row.i18nKeys;
-    if (!i18nKeys || typeof i18nKeys !== 'object') {
+    if (!isMapping(i18nKeys)) {
       errors.push(`${prefix} ${capabilityId}: i18nKeys is required`);
     } else {
+      validateFields(i18nKeys, I18N_FIELDS, `${prefix}.i18nKeys`, errors);
       for (const key of ['title', 'subtitle', 'detail']) {
         const value = typeof i18nKeys[key] === 'string' ? i18nKeys[key].trim() : '';
         if (!value) {
@@ -123,9 +142,10 @@ export function validateCanonicalCapabilityCatalog(doc) {
       errors.push(`${prefix} ${capabilityId}: runtimeEvidenceClass ${runtimeEvidenceClass || '<empty>'} not allowed`);
     }
     const governance = row.governance;
-    if (!governance || typeof governance !== 'object') {
+    if (!isMapping(governance)) {
       errors.push(`${prefix} ${capabilityId}: governance is required`);
     } else {
+      validateFields(governance, GOVERNANCE_FIELDS, `${prefix}.governance`, errors);
       for (const key of ['owner', 'dataMovement', 'retention', 'revocation', 'auditSource']) {
         const value = typeof governance[key] === 'string' ? governance[key].trim() : '';
         if (!value) {
@@ -137,10 +157,11 @@ export function validateCanonicalCapabilityCatalog(doc) {
 
   for (const [index, entry] of deferred.entries()) {
     const prefix = `deferred[${index}]`;
-    if (!entry || typeof entry !== 'object') {
+    if (!isMapping(entry)) {
       errors.push(`${prefix}: entry must be a mapping`);
       continue;
     }
+    validateFields(entry, DEFERRED_FIELDS, prefix, errors);
     const capability = typeof entry.capability === 'string' ? entry.capability.trim() : '';
     const table = typeof entry.table === 'string' ? entry.table.trim() : '';
     const reason = typeof entry.reason === 'string' ? entry.reason.trim() : '';
@@ -157,6 +178,23 @@ export function validateCanonicalCapabilityCatalog(doc) {
   }
 
   return { capabilities, deferred, errors };
+}
+
+export function renderCanonicalCapabilityCatalogArtifacts(doc) {
+  const catalog = renderCanonicalCapabilityCatalogModule(doc);
+  const ids = doc.capabilities.map((row) => row.capabilityId).sort((left, right) => left.localeCompare(right));
+  const identityModule = [
+    '// GENERATED FILE — DO NOT EDIT.',
+    '// Source: config/platform-canonical-capability-catalog.yaml',
+    '// Regenerate: pnpm gen:canonical-capability-catalog',
+    '// These identities validate references; they do not admit scaffold features.',
+    'export const CANONICAL_CAPABILITY_IDS = Object.freeze(' + JSON.stringify(ids, null, 2) + ');',
+    '',
+  ].join('\n');
+  return [
+    { path: 'kit/core/src/runtime-capabilities/generated/canonical-capability-catalog.ts', content: catalog },
+    { path: 'app-tools/lib/canonical-capability-ids.generated.mjs', content: identityModule },
+  ];
 }
 
 export function flattenProviderCapabilityTokens(providerCapabilitiesDoc) {

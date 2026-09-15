@@ -1,6 +1,9 @@
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-019c
 
 import semver from 'semver';
+import { CANONICAL_CAPABILITY_IDS } from './canonical-capability-ids.generated.mjs';
+
+const canonicalCapabilityIds = new Set(CANONICAL_CAPABILITY_IDS);
 
 function frozenSourceMapping(sourceRoot, targetRoot = sourceRoot) {
   return Object.freeze({ sourceRoot, targetRoot });
@@ -440,6 +443,11 @@ function assertModuleEntry(id, entry, registry) {
   assertUniqueStrings(entry.requires, `${id} requires`);
   assertUniqueStrings(entry.appAccessItems, `${id} appAccessItems`);
   assertUniqueStrings(entry.capabilityContractRefs || [], `${id} capabilityContractRefs`);
+  for (const capability of entry.capabilityContractRefs || []) {
+    if (!canonicalCapabilityIds.has(capability)) {
+      throw new Error(`App scaffold module references unknown canonical capability: ${id}: ${capability}`);
+    }
+  }
   assertUniqueStrings(entry.requiredStandardizedFeatureRefs || [], `${id} requiredStandardizedFeatureRefs`);
   assertUniqueStrings(entry.views, `${id} views`);
   assertUniqueStrings(entry.navigation, `${id} navigation`);

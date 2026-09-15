@@ -10,8 +10,8 @@
 //      provider-capabilities.yaml and local-adapter-routing.yaml equals the union of
 //      active rows' sourceRef.capability values and deferred entries' capability
 //      values (constrained to each row's declared table).
-//   4. codegen idempotency: re-rendering the TS module from the YAML matches the
-//      committed generated file byte-for-byte.
+//   4. codegen idempotency: re-rendering the Kit catalog and App Tools identity
+//      projection matches both committed generated files byte-for-byte.
 // Fails closed on any violation.
 
 import fs from 'node:fs';
@@ -21,14 +21,13 @@ import {
   validateCanonicalCapabilityCatalog,
   flattenProviderCapabilityTokens,
   flattenLocalAdapterRoutingTokens,
-  renderCanonicalCapabilityCatalogModule,
+  renderCanonicalCapabilityCatalogArtifacts,
 } from './lib/canonical-capability-catalog-codegen.mjs';
 
 const cwd = process.cwd();
 const catalogRel = 'config/platform-canonical-capability-catalog.yaml';
 const providerCapsRel = 'config/runtime-provider-capabilities.yaml';
 const localAdapterRel = 'config/runtime-local-adapter-routing.yaml';
-const generatedRel = 'kit/core/src/runtime-capabilities/generated/canonical-capability-catalog.ts';
 
 const violations = [];
 
@@ -142,17 +141,18 @@ checkCompleteness('local-adapter-routing', localAdapterTokens);
 if (violations.length === 0) {
   let rendered;
   try {
-    rendered = renderCanonicalCapabilityCatalogModule(catalogDoc);
+    rendered = renderCanonicalCapabilityCatalogArtifacts(catalogDoc);
   } catch (error) {
     fail(`${catalogRel}: codegen render failed: ${error?.message || error}`);
   }
-  if (rendered !== undefined) {
+  for (const artifact of rendered ?? []) {
+    const generatedRel = artifact.path;
     const generatedPath = path.join(cwd, generatedRel);
     if (!fs.existsSync(generatedPath)) {
       fail(`${generatedRel}: missing generated file; run pnpm gen:canonical-capability-catalog`);
     } else {
       const committed = fs.readFileSync(generatedPath, 'utf8');
-      if (committed !== rendered) {
+      if (committed !== artifact.content) {
         fail(`${generatedRel}: drift detected; regenerate with pnpm gen:canonical-capability-catalog`);
       }
     }

@@ -1851,6 +1851,20 @@ test('create accepts only canonical existing-intent feature order after admissio
   assert.equal(rebuilt.filesByPath.has('src/product-modules/kit-recipes/index.tsx'), false);
 });
 
+test('scaffold capability references must be canonical without requiring every capability to be scaffolded', () => {
+  assert.equal(validateAppScaffoldModuleRegistry(), true);
+  const original = APP_SCAFFOLD_MODULE_REGISTRY['studio-create'];
+  const withRefs = (capabilityContractRefs) => ({
+    ...APP_SCAFFOLD_MODULE_REGISTRY,
+    'studio-create': { ...original, capabilityContractRefs },
+  });
+  assert.throws(
+    () => validateAppScaffoldModuleRegistry(withRefs(['text.generate', 'tools'])),
+    /unknown canonical capability: studio-create: tools/,
+  );
+  assert.equal(validateAppScaffoldModuleRegistry(withRefs(['text.generate'])), true);
+});
+
 test('create rejects catalog dependency cycles and target collisions', () => {
   const capability = (id, requires, targetRoot, order, lifecycle = 'candidate') => ({
     id,
