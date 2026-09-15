@@ -10,7 +10,7 @@ import (
 	runtimeagentservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeagent"
 )
 
-const sourceMaterializationAccessPolicyDigestV5 = "7649e8c7aa85f6667b1af5134686fc653f33ed5094e5d11483a5e60f39765faa"
+const sourceMaterializationAccessPolicyDigestV5 = "99c1c433dc75ac2312cbc6e8629fd8b4288ee4a4de21059de56a60561547a512"
 
 type accountRealmSourceMaterializationIssuer struct {
 	account        *accountservice.Service
