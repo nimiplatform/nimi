@@ -267,6 +267,29 @@ func TestCoreCutoffMakesPendingWorkNonEffectingAndDeleteAllStaysEmpty(t *testing
 	}
 }
 
+func TestDeleteAllCutoffCompactsTerminalUncompactedReceipt(t *testing.T) {
+	core := openTestCore(t, t.TempDir())
+	ctx := context.Background()
+	bank := ensureTestBank(t, core, "binding-a")
+	crashed := testCommit(bank, 1, "event-crash", "commit-crash", "crash window preference")
+	if _, err := core.ReceiveCommittedEvent(ctx, crashed); err != nil {
+		t.Fatalf("receive crash-window event: %v", err)
+	}
+	if _, err := core.CommitDecision(ctx, crashed.OperationID, MutationPlan{Outcome: OutcomeAdmitted, Mutations: []MemoryMutation{{Kind: MutationRemember, Content: "crash window preference", EpistemicStatus: EpistemicExplicit, SourceExplanation: "crash-window user event"}}}); err != nil {
+		t.Fatalf("commit crash-window decision: %v", err)
+	}
+	var payloadPresent bool
+	if err := core.db.QueryRowContext(ctx, `SELECT payload IS NOT NULL FROM memory_receipts WHERE operation_id = ?`, crashed.OperationID).Scan(&payloadPresent); err != nil || !payloadPresent {
+		t.Fatalf("crash-window setup must retain terminal payload: present=%v err=%v", payloadPresent, err)
+	}
+	if _, err := core.ApplyCutoff(ctx, CutoffRequest{ContractVersion: ContractVersion, BindingRef: bank.BindingRef, BankRef: bank.BankRef, OperationID: "cutoff-delete-all", CurrentLifecycleRef: bank.LifecycleRef, NewLifecycleRef: "cutoff-after-delete", ReplacementBindingRef: "binding-a-after-delete", DeleteAll: true}); err != nil {
+		t.Fatalf("delete all cutoff: %v", err)
+	}
+	if err := core.db.QueryRowContext(ctx, `SELECT payload IS NOT NULL FROM memory_receipts WHERE operation_id = ?`, crashed.OperationID).Scan(&payloadPresent); err != nil || payloadPresent {
+		t.Fatalf("delete-all cutoff left terminal payload uncompacted: present=%v err=%v", payloadPresent, err)
+	}
+}
+
 func TestCoreRejectsForbiddenAndEpistemicallyOverstatedPlan(t *testing.T) {
 	core := openTestCore(t, t.TempDir())
 	ctx := context.Background()

@@ -99,6 +99,9 @@ func (c *Core) ApplyCutoff(ctx context.Context, request CutoffRequest) (CutoffRe
 		}
 	}
 	if request.DeleteAll {
+		if _, err := tx.ExecContext(ctx, `UPDATE memory_receipts SET payload = NULL WHERE bank_ref = ?`, request.BankRef); err != nil {
+			return CutoffResult{Outcome: OutcomeUnavailable}, fmt.Errorf("apply cutoff: compact receipts: %w", err)
+		}
 		if _, err := tx.ExecContext(ctx, `DELETE FROM memories WHERE bank_ref = ?`, request.BankRef); err != nil {
 			return CutoffResult{Outcome: OutcomeUnavailable}, fmt.Errorf("apply cutoff: delete canonical memories: %w", err)
 		}
