@@ -810,9 +810,11 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 
 	cognitionSvc := composeCognitionV1Owner(logger, cfg)
 	if cognitionSvc != nil {
-		cognitionSvc.SetAgentSourceEmbeddingExecutor(newAgentSourceEmbeddingExecutor(agentSvc, aiSvc, connStore, aiSvc.SpeechCatalogResolver(), localSvc))
+		cognitionSvc.SetAgentSourceEmbeddingExecutor(newAgentSourceEmbeddingExecutor(agentSvc, aiSvc))
 		memoryStore := cognitionmemory.NewStore(backend)
-		memoryCapabilities := newCognitionMemoryCapabilityProvider(backend, agentSvc, aiSvc, connStore, aiSvc.SpeechCatalogResolver(), localSvc)
+		memoryStore.SetEmbeddingDisposer(cognitionMemoryPayloadDisposer(aiSvc))
+		memoryStore.SetAgentEmbeddingDisposer(aiSvc.DisposeAgentMemoryEmbeddingPayloads)
+		memoryCapabilities := newCognitionMemoryCapabilityProvider(backend, agentSvc, aiSvc, memoryStore)
 		memoryOwner := cognitionmemory.NewOwnerAdapter(
 			cognitionSvc.MemoryCore(),
 			memoryStore.BindingForOwner,

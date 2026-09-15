@@ -2,6 +2,7 @@ package ai
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -60,7 +61,7 @@ func TestEmbedTextsForMemoryUsesResolvedCloudBinding(t *testing.T) {
 		}
 		providerModel = body.Model
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"data":[{"embedding":[0.1,0.2,0.3]}],"usage":{"prompt_tokens":3,"total_tokens":3}}`))
+		_ = json.NewEncoder(w).Encode(map[string]any{"data": []any{map[string]any{"embedding": make([]float64, 1536), "index": 0}}})
 	}))
 	defer func() { server.Close() }()
 
@@ -92,25 +93,28 @@ func TestEmbedTextsForMemoryUsesResolvedCloudBinding(t *testing.T) {
 		t.Fatalf("store shared LocalAgent AIConfig: %v", err)
 	}
 
-	vectors, err := fixture.service.EmbedTextsForMemory(fixture.context, &runtimev1.MemoryEmbeddingProfile{
-		Provider:  "openai",
-		ModelId:   fixture.descriptor.GetProviderModelId(),
-		Dimension: 3,
-		Version:   fixture.connectorID,
-		CloudBinding: &runtimev1.MemoryEmbeddingCloudBindingRef{
-			ConnectorId:          fixture.connectorID,
-			RemoteModelCatalogId: fixture.descriptor.GetRemoteModelCatalogId(),
-			ProviderModelId:      fixture.descriptor.GetProviderModelId(),
-			Provider:             "openai",
-		},
-	}, []string{"alpha"})
+	description, err := fixture.service.DescribeMemoryEmbedding(fixture.context)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, capture, err := fixture.service.CaptureMemoryEmbedding(fixture.context, []string{"alpha"}, description.SpaceID, EmbeddingOwner{Kind: "memory", AgentRef: "agent-a", OperationID: "operation-a", BankRef: "bank-a", LifecycleRef: "life-a"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := fixture.service.DiscardMemoryEmbedding(context.WithoutCancel(fixture.context), capture); err != nil {
+			t.Errorf("discard cloud embedding capture: %v", err)
+		}
+	})
+	result, err := fixture.service.ExecuteMemoryEmbedding(fixture.context, capture)
+	vectors := result.Vectors
 	if err != nil {
 		t.Fatalf("EmbedTextsForMemory: %v", err)
 	}
 	if providerModel != "text-embedding-3-small" {
 		t.Fatalf("provider request model = %q want cloud binding provider_model_id", providerModel)
 	}
-	if len(vectors) != 1 || len(vectors[0]) != 3 {
+	if len(vectors) != 1 || len(vectors[0]) != 1536 {
 		t.Fatalf("unexpected vectors: %#v", vectors)
 	}
 	fixture.service.scenarioJobs.mu.RLock()
@@ -120,7 +124,7 @@ func TestEmbedTextsForMemoryUsesResolvedCloudBinding(t *testing.T) {
 	}
 	for _, record := range fixture.service.scenarioJobs.jobs {
 		if record.job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED ||
-			record.cloudAssembly == nil || record.cloudAssembly.RequestKind != cloudResolvedRequestEmbed {
+			record.cloudAssembly != nil || record.payload == nil || record.payload.State != "disposed" {
 			t.Fatalf("memory Cloud durable capture = job %+v assembly %+v", record.job, record.cloudAssembly)
 		}
 	}
@@ -137,7 +141,7 @@ func TestEmbedTextsForMemoryUsesSelectedLocalLlamaBinding(t *testing.T) {
 		RecipeID:                 capabilitydriver.LlamaEmbedGGUFRecipeID,
 		RecipeRevision:           "1",
 		DriverIdentity:           (&capabilitydriver.Identity{ImplementationID: capabilitydriver.LlamaEmbedImplementationID, DriverID: capabilitydriver.LlamaDriverID, DriverDialect: capabilitydriver.LlamaEmbedDriverDialect}).Proto(),
-		ModelContextWindowTokens: 8192,
+		ModelContextWindowTokens: 8192, EmbeddingDimension: 3,
 		Requirements: []*runtimev1.LocalCapabilityRequirement{{
 			RequirementId: capabilitydriver.EmbeddingGGUFRequirementID,
 		}},
@@ -170,12 +174,21 @@ func TestEmbedTextsForMemoryUsesSelectedLocalLlamaBinding(t *testing.T) {
 		t.Fatalf("store shared LocalAgent AIConfig: %v", err)
 	}
 
-	vectors, err := service.EmbedTextsForMemory(ctx, &runtimev1.MemoryEmbeddingProfile{
-		Provider:  "local",
-		ModelId:   "catalog/local-memory-embedding",
-		Dimension: 3,
-		Version:   "model-embedding-memory",
-	}, []string{" first ", "second"})
+	description, err := service.DescribeMemoryEmbedding(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, capture, err := service.CaptureMemoryEmbedding(ctx, []string{" first ", "second"}, description.SpaceID, EmbeddingOwner{Kind: "memory", AgentRef: "agent-a", OperationID: "operation-a", BankRef: "bank-a", LifecycleRef: "life-a"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := service.DiscardMemoryEmbedding(context.WithoutCancel(ctx), capture); err != nil {
+			t.Errorf("discard local embedding capture: %v", err)
+		}
+	})
+	result, err := service.ExecuteMemoryEmbedding(ctx, capture)
+	vectors := result.Vectors
 	if err != nil {
 		t.Fatalf("EmbedTextsForMemory(local): %v", err)
 	}
@@ -200,7 +213,7 @@ func TestEmbedTextsForMemoryUsesSelectedLocalLlamaBinding(t *testing.T) {
 	}
 	for _, record := range service.scenarioJobs.jobs {
 		if record.job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED ||
-			record.resolvedAssembly == nil || record.resolvedAssembly.Request.Kind != "text.embed" {
+			record.resolvedAssembly != nil || record.payload == nil || record.payload.State != "disposed" {
 			t.Fatalf("memory Local durable capture = job %+v assembly %+v", record.job, record.resolvedAssembly)
 		}
 	}

@@ -49,6 +49,8 @@ type ExactDependencySource struct {
 // machine selection. Configured is true for every successful resolution;
 // incomplete configurations return a typed error instead of a partial value.
 type SelectedLocalExecution struct {
+	// EmbeddingDimension is verified by the exact Driver Model Contract.
+	EmbeddingDimension int
 	LoadoutID          string
 	CapabilityContract string
 	DisplayName        string

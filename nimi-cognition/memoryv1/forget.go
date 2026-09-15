@@ -121,6 +121,9 @@ func (c *Core) ForgetExact(ctx context.Context, request ForgetRequest) (ForgetRe
 	if err != nil {
 		return ForgetResult{Outcome: OutcomeFailed}, err
 	}
+	if err := fenceEmbeddingDispositionsTx(ctx, tx, request.BankRef); err != nil {
+		return ForgetResult{Outcome: OutcomeUnavailable}, err
+	}
 	now := formatTime(c.now())
 	if _, err := tx.ExecContext(ctx, `INSERT INTO memory_operations(operation_id, operation_kind, binding_ref, bank_ref, request_key, outcome, result_json, created_at, updated_at) VALUES(?, 'forget', ?, ?, ?, ?, ?, ?, ?)`, request.OperationID, request.BindingRef, request.BankRef, requestKey, result.Outcome, resultJSON, now, now); err != nil {
 		return ForgetResult{Outcome: OutcomeUnavailable}, fmt.Errorf("forget exact: save owner result: %w", err)

@@ -297,7 +297,7 @@ units:
     kind: rule
     title: Memory AI port preserves dual custody without route authority
     modality: must
-    statement: Before the first AI or embedding I/O, Cognition operation custody fixes the operation's bank and event where applicable, canonical request identity, selected static pipeline descriptor, algorithm revision, and abstract capability constraints, while each Runtime AI Job submission separately captures the then-current singular shared LocalAgent AIConfig revision and fixes its exact ResolvedAssembly or Connector target, authorization, egress, Quota, Budget, and usage; retry of that exact Job reuses its immutable Job binding or fails typed, and the Cognition operation never switches pipeline or silently substitutes a provider, model, route, or fallback after execution begins.
+    statement: Before the first AI or embedding I/O, Cognition operation custody fixes the operation's bank and event where applicable, canonical request identity, selected static pipeline descriptor, algorithm revision, and abstract capability constraints, while each Runtime AI Job submission separately captures the then-current singular shared LocalAgent AIConfig revision and fixes its exact ResolvedAssembly or Connector target, authorization, egress, Quota, Budget, and usage; retry of that exact Job reuses its immutable Job binding or fails typed, and the Cognition operation never switches pipeline or silently substitutes a provider, model, route, or fallback after execution begins. Embedding results additionally preserve the actual Runtime-issued opaque vector-space identity; Runtime compares every batch against the captured embedding semantics and Cognition verifies actual-result identity against the generation used for build or Recall. A pre-execution compatibility projection never substitutes for actual-result comparison, and neither a legacy embedding Profile nor current owner reads may reconstruct a persisted Job. Runtime applies the common verified embedding output contract, with Local dimension authority at the exact Driver and Cloud dimension authority at the admitted provider/model contract. Cognition and Runtime retain private owner linkage and a durable consumption-or-abandonment disposition for Memory-derived Job content; independent Runtime Job ownership grants no exemption from the Memory-derived payload lifecycle.
     condition: Whenever a Cognition Memory operation requests, retries, resumes, consumes, or acknowledges Runtime AI or embedding work.
     failure: Return typed conflict, unavailable, or failure without changing Cognition operation custody or an existing Runtime Job binding, committing partial Memory, retaining the consumed Runtime result, or creating an empty AI Job for a non-AI pipeline.
     relations:
@@ -307,6 +307,8 @@ units:
         target: definition.nimi.cognition.runtime-bridge.embedding-resolution
       - type: applies_to
         target: definition.nimi.cognition.runtime-bridge.memory-ai-port-plane
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.memory-derived-payload
   - id: rule.nimi.cognition.runtime-bridge.r023
     kind: rule
     title: Memory bank deletion is exact idempotent and owner terminal
@@ -377,3 +379,19 @@ units:
         target: definition.nimi.cognition.runtime-bridge.memory-handoff-plane
       - type: applies_to
         target: definition.nimi.cognition.runtime-bridge.runtime-authorization-boundary
+  - id: rule.nimi.cognition.runtime-bridge.memory-ai-result-disposition
+    kind: rule
+    title: Memory AI consumption and abandonment have a recoverable disposal outcome
+    modality: must
+    statement: Every Runtime AI result accepted into Cognition Memory processing receives an explicit owner disposition as consumed or abandoned, including stale generations, incompatible spaces, failed Recall, transaction errors, cancellation and terminal paths without a Memory effect. Cognition preserves the same operation's pending disposition and Runtime preserves the required Job linkage until the appropriate owner durably confirms content disposal; making a generation failed, absent or replaced, or advancing a separate route or index outcome, never removes that recovery obligation. Recovery may complete the outstanding acknowledgement or disposal idempotently without rerunning the model, restoring deleted content, changing the captured execution or confusing index readiness with cleanup completion. Full content remains only while genuine execution or recovery needs it; completed consumption and irreversible abandonment leave only bounded non-content status and nonrecoverable lineage. Current Memory deletion and cutoff semantics govern all matching Nimi-controlled execution copies through their respective owners.
+    condition: Whenever a Cognition Memory operation receives an AI result or exits, acknowledges, abandons, fails, cancels or recovers after receiving it.
+    failure: Return typed pending, unavailable, conflict or failure with a durable retryable disposition when cleanup cannot finish, and reject stranded ready results, discarded pending acknowledgements, rerun-as-cleanup, premature completion, double effects or retention after confirmed disposal.
+    relations:
+      - type: applies_to
+        target: definition.nimi.cognition.memory.lifecycle-plane
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.memory-adapter-outcome
+      - type: applies_to
+        target: definition.nimi.cognition.runtime-bridge.memory-ai-port-plane
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.memory-derived-payload

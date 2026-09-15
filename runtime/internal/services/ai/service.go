@@ -191,6 +191,9 @@ func newService(logger *slog.Logger, auditStore *auditlog.Store, connStore *conn
 	if err := svc.releaseRecoveredTerminalCloudCredentialCustody(); err != nil {
 		return nil, err
 	}
+	if err := svc.resumeEmbeddingPayloadDisposals(context.Background()); err != nil {
+		svc.logScenarioJobPersistenceFailure("embedding payload cleanup remains pending", "error", err)
+	}
 	if err := scenarioJobs.pruneRecoveredDurableState(); err != nil {
 		return nil, fmt.Errorf("prune recovered scenario job state: %w", err)
 	}

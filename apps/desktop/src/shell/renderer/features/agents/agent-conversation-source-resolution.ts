@@ -99,27 +99,28 @@ export async function resolveAgentTargetSnapshotForSourceRef(input: {
   sourceRef: CharacterSourceRefV3;
   ownerUserId: string;
   sdk: DesktopRendererSdkPort;
+  isCurrent?: () => boolean;
 }): Promise<AgentLocalTargetSnapshot | null> {
   const ownerUserId = normalizeText(input.ownerUserId);
-  if (!ownerUserId) {
+  if (!ownerUserId || input.isCurrent?.() === false) {
     return null;
   }
   const sourceKey = characterSourceRefKey(input.sourceRef);
   const agents = (await fetchLocalAgentList(ownerUserId, input.sdk))
     .filter((agent) => agent.sourceKey === sourceKey);
-  if (agents.length !== 1) {
+  if (agents.length !== 1 || input.isCurrent?.() === false) {
     return null;
   }
   const agent = agents[0]!;
   const { reference } = await input.sdk.accountProduct().agents.resolveDesktopAgentReference({
     localAgentRef: agent.localAgentRef,
   });
-  if (!reference?.agentHandle) return null;
+  if (!reference?.agentHandle || input.isCurrent?.() === false) return null;
   const opened = await input.sdk.conversation().open({
     agentHandle: reference.agentHandle as NimiLocalAppAgentHandle,
   });
   const conversationAnchorId = normalizeText(opened.conversationAnchorId);
-  if (!conversationAnchorId) return null;
+  if (!conversationAnchorId || input.isCurrent?.() === false) return null;
   return {
     agentHandle: reference.agentHandle,
     conversationAnchorId,

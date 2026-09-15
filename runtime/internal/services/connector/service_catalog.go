@@ -143,6 +143,7 @@ type RemoteModelCatalogRef struct {
 }
 
 type RemoteModelCatalogBinding struct {
+	EmbeddingDimension   int32
 	ConnectorID          string
 	RemoteModelCatalogID string
 	ProviderModelID      string
@@ -243,7 +244,12 @@ func ResolveRemoteModelCatalogBinding(modelCatalog *aicatalog.Resolver, subjectU
 		if executableProviderModelID != providerModelID {
 			return RemoteModelCatalogBinding{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE)
 		}
+		var embeddingDimension int32
+		if model.Model.Embedding != nil {
+			embeddingDimension = model.Model.Embedding.Dimension
+		}
 		return RemoteModelCatalogBinding{
+			EmbeddingDimension:   embeddingDimension,
 			ConnectorID:          strings.TrimSpace(rec.ConnectorID),
 			RemoteModelCatalogID: identity.remoteModelCatalogID,
 			ProviderModelID:      executableProviderModelID,

@@ -755,8 +755,9 @@ func (deterministicConformanceRemember) Plan(CommitRequest, []Memory) (MutationP
 }
 
 type semanticEmbeddingPort struct {
-	fail  bool
-	calls int
+	spaceOverride *string
+	fail          bool
+	calls         int
 }
 
 func (p *semanticEmbeddingPort) Embed(_ context.Context, request AIEmbeddingRequest) (AIEmbeddingResult, error) {
@@ -764,7 +765,10 @@ func (p *semanticEmbeddingPort) Embed(_ context.Context, request AIEmbeddingRequ
 	if p.fail {
 		return AIEmbeddingResult{}, errors.New("injected embedding failure")
 	}
-	result := AIEmbeddingResult{Dimension: 3}
+	result := AIEmbeddingResult{Dimension: 3, SpaceID: request.EmbeddingSpaceRef}
+	if p.spaceOverride != nil {
+		result.SpaceID = *p.spaceOverride
+	}
 	for _, input := range request.Inputs {
 		normalized := strings.ToLower(input)
 		switch {
@@ -837,4 +841,71 @@ func rememberText(t *testing.T, core *Core, bank EnsureBankResult, sequence uint
 		t.Fatalf("execute Remember event %d: result=%+v err=%v", sequence, result, err)
 	}
 	return result.AffectedMemoryRefs[0]
+}
+
+func TestEmbeddingBuildAndRecallRejectActualResultSpaceMismatch(t *testing.T) {
+	for _, wrong := range []string{"", "different-space"} {
+		t.Run("space="+wrong, func(t *testing.T) {
+			core := openTestCore(t, t.TempDir())
+			ctx := context.Background()
+			bank := ensureTestBank(t, core, "binding-actual-space")
+			rememberText(t, core, bank, 1, "I prefer jasmine tea")
+			snapshot := CapabilitySnapshot{ConfigRevision: 1, EmbeddingSpaceRef: "expected-space", Available: []Capability{CapabilityTextEmbed, CapabilityVectorIndex}}
+			bad := &semanticEmbeddingPort{spaceOverride: &wrong}
+			if outcome, err := core.RebuildEmbedding(ctx, "bad-space-build", bank.BankRef, snapshot, bad); err == nil || outcome == OutcomeReady {
+				t.Fatalf("published wrong space: %s %v", outcome, err)
+			}
+			good := &semanticEmbeddingPort{}
+			if outcome, err := core.RebuildEmbedding(ctx, "good-space-build", bank.BankRef, snapshot, good); err != nil || outcome != OutcomeReady {
+				t.Fatalf("valid build: %s %v", outcome, err)
+			}
+			result, err := core.Recall(ctx, testRecallRequest(bank, "wrong-space-recall", "favorite beverage", 4, snapshot), bad)
+			if err == nil || len(result.Hits) != 0 {
+				t.Fatalf("queried incompatible actual space: %+v %v", result, err)
+			}
+		})
+	}
+}
+
+func (*semanticEmbeddingPort) AcknowledgeConsumed(context.Context, string) error { return nil }
+func (*semanticEmbeddingPort) FinalizeStale(context.Context, string) error       { return nil }
+
+func (*blockingEmbeddingPort) AcknowledgeConsumed(context.Context, string) error { return nil }
+func (*blockingEmbeddingPort) FinalizeStale(context.Context, string) error       { return nil }
+
+func (*barrierEmbeddingPort) AcknowledgeConsumed(context.Context, string) error { return nil }
+func (*barrierEmbeddingPort) FinalizeStale(context.Context, string) error       { return nil }
+
+func TestRecallSnapshotRejectsRetiredBindingAfterQueryEmbedding(t *testing.T) {
+	core := openTestCore(t, t.TempDir())
+	ctx := context.Background()
+	bank := ensureTestBank(t, core, "binding-query-cutoff")
+	rememberText(t, core, bank, 1, "I prefer jasmine tea")
+	caps := CapabilitySnapshot{ConfigRevision: 1, EmbeddingSpaceRef: "space-query-cutoff", Available: []Capability{CapabilityTextEmbed, CapabilityVectorIndex}}
+	if _, err := core.RebuildEmbedding(ctx, "build-query-cutoff", bank.BankRef, caps, &semanticEmbeddingPort{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := core.RebuildFTS(ctx, bank.BankRef); err != nil {
+		t.Fatal(err)
+	}
+	port := newBlockingEmbeddingPort()
+	type answer struct {
+		result RecallResult
+		err    error
+	}
+	done := make(chan answer, 1)
+	request := testRecallRequest(bank, "query-cutoff", "jasmine tea", 3, caps)
+	go func() { result, err := core.Recall(ctx, request, port); done <- answer{result, err} }()
+	<-port.started
+	if _, err := core.ApplyCutoff(ctx, CutoffRequest{ContractVersion: ContractVersion, BindingRef: bank.BindingRef, BankRef: bank.BankRef, OperationID: "disable-query", CurrentLifecycleRef: bank.LifecycleRef, NewLifecycleRef: "new-query-life", ReplacementBindingRef: "new-query-binding"}); err != nil {
+		t.Fatal(err)
+	}
+	close(port.release)
+	got := <-done
+	if got.err == nil || len(got.result.Hits) != 0 || got.result.Outcome == OutcomeReady {
+		t.Fatalf("retired Recall returned hits: %+v %v", got.result, got.err)
+	}
+	if result, err := core.recallFTS(ctx, request); err == nil || len(result.Hits) != 0 {
+		t.Fatalf("FTS snapshot accepted retired binding: %+v %v", result, err)
+	}
 }

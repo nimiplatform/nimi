@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"math"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -27,6 +28,13 @@ func embeddingSpaceID(kind, connectorRef string, vectors []*runtimev1.EmbeddingV
 		if len(vector.GetValues()) != dimensions {
 			return "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 		}
+	}
+	return embeddingSpaceIDForDimensions(kind, connectorRef, dimensions, parts...)
+}
+
+func embeddingSpaceIDForDimensions(kind, connectorRef string, dimensions int, parts ...proto.Message) (string, error) {
+	if dimensions <= 0 {
+		return "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	encoded := make([][]byte, 0, len(parts))
 	for _, part := range parts {
@@ -56,16 +64,29 @@ func localEmbeddingSpaceID(effective *localEmbedEffectiveInputs, vectors []*runt
 	if effective == nil || effective.effectiveInputIdentity == nil {
 		return "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	identity := proto.Clone(effective.effectiveInputIdentity).(*runtimev1.LoadoutEffectiveInputIdentity)
+	return localEmbeddingIdentitySpaceID(effective.effectiveInputIdentity, vectors)
+}
+
+func localEmbeddingIdentitySpaceID(input *runtimev1.LoadoutEffectiveInputIdentity, vectors []*runtimev1.EmbeddingVector) (string, error) {
+	identity := normalizedEmbeddingIdentity(input)
+	return embeddingSpaceID("local", "", vectors, identity)
+}
+
+func normalizedEmbeddingIdentity(input *runtimev1.LoadoutEffectiveInputIdentity) *runtimev1.LoadoutEffectiveInputIdentity {
+	identity := proto.Clone(input).(*runtimev1.LoadoutEffectiveInputIdentity)
 	// A new Loadout or re-import of identical content does not change its space.
 	identity.LoadoutId = ""
 	for _, axis := range identity.ModelAxes {
 		axis.ModelAssetId = ""
 	}
-	return embeddingSpaceID("local", "", vectors, identity)
+	return identity
 }
 
 func cloudEmbeddingSpaceID(effective *cloudEmbedEffectiveInputs, vectors []*runtimev1.EmbeddingVector) (string, error) {
+	return embeddingSpaceID("cloud", effective.connector.ConnectorID, vectors, cloudEmbeddingSpaceParts(effective)...)
+}
+
+func cloudEmbeddingSpaceParts(effective *cloudEmbedEffectiveInputs) []proto.Message {
 	// Catalog identity admits the captured target, but its provider-wide
 	// inventory revision does not change this model's embedding semantics.
 	target := proto.Clone(effective.rawTarget).(*structpb.Struct)
@@ -76,6 +97,24 @@ func cloudEmbeddingSpaceID(effective *cloudEmbedEffectiveInputs, vectors []*runt
 		"authKind":            structpb.NewStringValue(effective.connector.AuthKind.String()),
 		"providerAuthProfile": structpb.NewStringValue(effective.connector.ProviderAuthProfile),
 	}}
-	return embeddingSpaceID("cloud", effective.connector.ConnectorID, vectors,
-		effective.implementation, target, effective.defaults, connectorTarget)
+	return []proto.Message{effective.implementation, target, effective.defaults, connectorTarget}
+}
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.embedding-output-contract
+func validateEmbeddingOutput(vectors []*runtimev1.EmbeddingVector, count, dimension int) error {
+	invalid := func() error { return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID) }
+	if count <= 0 || dimension <= 0 || len(vectors) != count {
+		return invalid()
+	}
+	for _, vector := range vectors {
+		if len(vector.GetValues()) != dimension {
+			return invalid()
+		}
+		for _, value := range vector.GetValues() {
+			if math.IsNaN(value) || math.IsInf(value, 0) {
+				return invalid()
+			}
+		}
+	}
+	return nil
 }

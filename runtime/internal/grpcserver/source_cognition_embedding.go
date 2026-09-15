@@ -2,90 +2,44 @@ package grpcserver
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
-	"time"
+	"fmt"
+
+	"github.com/oklog/ulid/v2"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
-	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	aiservice "github.com/nimiplatform/nimi/runtime/internal/services/ai"
 	cognitionservice "github.com/nimiplatform/nimi/runtime/internal/services/cognition"
-	connectorservice "github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	runtimeagentservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeagent"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/protobuf/proto"
 )
 
-// DashScope's formally admitted embedding target accepts at most ten inputs
-// per compatible-mode request. Keep source generation batches within that
-// provider-safe ceiling; every batch still uses the exact captured profile.
-const sourceCognitionEmbeddingBatchSize = 10
-const sourceCognitionEmbeddingBatchTimeout = 20 * time.Second
-const sourceCognitionEmbeddingIdentityDomain = "nimi.cognition.local-agent-source-embedding/v1\x00"
-
-func newAgentSourceEmbeddingExecutor(
-	agentSvc *runtimeagentservice.Service,
-	aiSvc *aiservice.Service,
-	connStore *connectorservice.ConnectorStore,
-	modelCatalog *catalog.Resolver,
-	localResolver localexecution.Resolver,
-) cognitionservice.AgentSourceEmbeddingExecutor {
+// Source Cognition shares the canonical AI execution contract, while retaining
+// its own corpus and generation lifecycle. Capture all batches before dispatch.
+func newAgentSourceEmbeddingExecutor(agentSvc *runtimeagentservice.Service, aiSvc *aiservice.Service) cognitionservice.AgentSourceEmbeddingExecutor {
 	return func(ctx context.Context, accountID, localAgentRef string, texts []string) (cognitionservice.AgentSourceEmbeddingExecution, error) {
-		ctx = withRuntimeMemoryEmbeddingSubject(ctx, accountID)
-		ctx = executionintent.WithRuntimeAccountSubject(ctx, accountID)
-		intent, err := agentSvc.ResolveMemoryEmbeddingIntent(ctx, accountID, localAgentRef)
+		if err := agentSvc.AuthorizeSourceEmbeddingTarget(accountID, localAgentRef); err != nil {
+			return cognitionservice.AgentSourceEmbeddingExecution{Status: "failure"}, err
+		}
+		ctx = cognitionMemoryEmbeddingExecutionContext(ctx, accountID)
+		description, err := aiSvc.DescribeMemoryEmbedding(ctx)
 		if err != nil {
 			return cognitionservice.AgentSourceEmbeddingExecution{Status: sourceCognitionEmbeddingFailureStatus(err)}, err
 		}
-		resolved := resolveRuntimeMemoryEmbeddingProfile(ctx, intent, connStore, modelCatalog, localResolver)
-		if resolved.ResolutionState != "resolved" || resolved.Profile == nil {
-			status := "unavailable"
-			if resolved.ResolutionState == "missing" {
-				status = "unconfigured"
-			}
-			reason := resolved.BlockedReasonCode
-			if reason == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
-				reason = runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE
-			}
-			return cognitionservice.AgentSourceEmbeddingExecution{Status: status}, grpcerr.WithReasonCode(codes.FailedPrecondition, reason)
-		}
-		identity, err := sourceCognitionEmbeddingIdentity(resolved.Profile)
+		_, raw, err := aiSvc.CaptureMemoryEmbedding(ctx, texts, description.SpaceID, aiservice.EmbeddingOwner{Kind: "source", AgentRef: localAgentRef, OperationID: "source_embed_" + ulid.Make().String()})
 		if err != nil {
-			return cognitionservice.AgentSourceEmbeddingExecution{Status: "failure"}, err
+			return cognitionservice.AgentSourceEmbeddingExecution{Status: sourceCognitionEmbeddingFailureStatus(err)}, err
 		}
-		execution := cognitionservice.AgentSourceEmbeddingExecution{
-			Status: "ready", Identity: identity, Dimension: int(resolved.Profile.GetDimension()),
-			Vectors: make([][]float64, 0, len(texts)),
-		}
-		for offset := 0; offset < len(texts); offset += sourceCognitionEmbeddingBatchSize {
-			end := min(offset+sourceCognitionEmbeddingBatchSize, len(texts))
-			batchCtx, cancel := context.WithTimeout(ctx, sourceCognitionEmbeddingBatchTimeout)
-			vectors, embedErr := aiSvc.EmbedTextsForMemory(batchCtx, resolved.Profile, append([]string(nil), texts[offset:end]...))
-			batchErr := batchCtx.Err()
-			cancel()
-			if embedErr != nil {
-				return cognitionservice.AgentSourceEmbeddingExecution{Status: sourceCognitionEmbeddingFailureStatus(embedErr)}, embedErr
+		result, err := aiSvc.ExecuteMemoryEmbedding(ctx, raw)
+		if err != nil {
+			// Source owns the capture even if execution fails before claiming a Job.
+			if cleanupErr := aiSvc.DiscardMemoryEmbedding(context.WithoutCancel(ctx), raw); cleanupErr != nil {
+				err = errors.Join(err, fmt.Errorf("discard source embedding capture: %w", cleanupErr))
 			}
-			if batchErr != nil {
-				return cognitionservice.AgentSourceEmbeddingExecution{Status: "unavailable"}, batchErr
-			}
-			execution.Vectors = append(execution.Vectors, vectors...)
+			return cognitionservice.AgentSourceEmbeddingExecution{Status: sourceCognitionEmbeddingFailureStatus(err)}, err
 		}
-		return execution, nil
+		return cognitionservice.AgentSourceEmbeddingExecution{Status: "ready", Identity: result.SpaceID, Dimension: result.Dimension, Vectors: result.Vectors}, nil
 	}
-}
-
-func sourceCognitionEmbeddingIdentity(profile *runtimev1.MemoryEmbeddingProfile) (string, error) {
-	raw, err := proto.MarshalOptions{Deterministic: true}.Marshal(profile)
-	if err != nil {
-		return "", err
-	}
-	digest := sha256.Sum256(append([]byte(sourceCognitionEmbeddingIdentityDomain), raw...))
-	return hex.EncodeToString(digest[:]), nil
 }
 
 func sourceCognitionEmbeddingFailureStatus(err error) string {

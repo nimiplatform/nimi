@@ -43,20 +43,26 @@ export async function ensureCharacterSourceMaterialized(
   ownerUserIdInput: string | null | undefined,
   t: TFunction,
   sdk: DesktopRendererSdkPort,
+  isCurrent: () => boolean,
 ): Promise<void> {
+  const assertCurrent = () => { if (!isCurrent()) throw new Error('Source action expired'); };
+  assertCurrent();
   const ownerUserId = normalizeRequiredText(ownerUserIdInput, 'ownerUserId');
   const sourceRef = resolveCharacterSourceRefV3(source);
   if (!sourceRef) {
     throw new Error('character source materialization requires hash-bearing sourceRef');
   }
   const existing = await discoverCharacterSourceLocalAgents({ sourceRef }, ownerUserId, sdk);
+  assertCurrent();
   if (existing.length > 1) {
     throw new Error(characterSourceAmbiguousMessage(t));
   }
   if (existing.length === 1) return;
 
   await materializeCharacterSourceLocalAgent({ sourceRef }, t, sdk);
+  assertCurrent();
   const committed = await discoverCharacterSourceLocalAgents({ sourceRef }, ownerUserId, sdk);
+  assertCurrent();
   if (committed.length > 1) {
     throw new Error(characterSourceAmbiguousMessage(t));
   }

@@ -3,6 +3,7 @@ package runtimeagent
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"path/filepath"
 	"testing"
@@ -68,7 +69,8 @@ func seedPendingAccountTerminationWork(t *testing.T, svc *Service, agent *runtim
 		}
 		operationID = item.OperationID
 		now := time.Now().UTC().Format(time.RFC3339Nano)
-		_, err = tx.Exec(`INSERT INTO runtime_cognition_memory_ai_job(operation_id, local_agent_ref, account_namespace, config_revision, request_key, profile_json, status, created_at, updated_at) VALUES(?, ?, ?, 1, 'late-request', X'01', 'running', ?, ?)`, "late-ai-"+agent.GetLocalAgentRef(), agent.GetLocalAgentRef(), agent.GetOwnerUserId(), now, now)
+		payload, _ := json.Marshal(map[string]string{"fixture_job": "late-ai-" + agent.GetLocalAgentRef()})
+		_, err = tx.Exec(`INSERT INTO runtime_cognition_memory_ai_job(operation_id, local_agent_ref, account_namespace, config_revision, request_key, profile_json, status, created_at, updated_at) VALUES(?, ?, ?, 1, 'late-request', ?, 'running', ?, ?)`, "late-ai-"+agent.GetLocalAgentRef(), agent.GetLocalAgentRef(), agent.GetOwnerUserId(), payload, now, now)
 		return err
 	}); err != nil {
 		t.Fatalf("seed pending Account termination work: %v", err)
@@ -88,6 +90,18 @@ func TestRealmAccountDeletionFencesBeforePartialCleanupAndPreservesOtherAccounts
 		targetA.GetLocalAgentRef(): seedPendingAccountTerminationWork(t, svc, targetA),
 		targetB.GetLocalAgentRef(): seedPendingAccountTerminationWork(t, svc, targetB),
 	}
+
+	// This Account lifecycle test uses an explicit execution-owner fixture. The
+	// actual canonical Job content protocol is covered by AI owner integration.
+	pendingPayloads := map[string]bool{targetA.GetLocalAgentRef(): true, targetB.GetLocalAgentRef(): true}
+	svc.cognitionMemoryStore.SetEmbeddingDisposer(func(_ context.Context, account, agent string, raw []byte) error {
+		var capture map[string]string
+		if account != "acct-target" || json.Unmarshal(raw, &capture) != nil || capture["fixture_job"] != "late-ai-"+agent {
+			return errors.New("fixture execution owner mismatch")
+		}
+		delete(pendingPayloads, agent)
+		return nil
+	})
 
 	// The snapshot includes non-ACTIVE persisted LocalAgents.
 	svc.mu.Lock()

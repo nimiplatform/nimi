@@ -1,8 +1,8 @@
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { useAppStore } from '../../app-shell/providers/app-store';
+import { useAppStore, useAppStoreApi } from '../../app-shell/providers/app-store';
 import {
   characterSourceMaterializationFailureMessage,
   characterSourceMaterializationMessage,
@@ -41,6 +41,7 @@ export function SourceDetailPanel({
   onBack?: (() => void) | null;
 } = {}) {
   const bindings = useDesktopRendererBindings();
+  const appStore = useAppStoreApi();
   const i18n = useDesktopI18nResource().instance;
   const queryClient = useQueryClient();
   const authStatus = useAppStore((state) => state.auth.status);
@@ -56,14 +57,18 @@ export function SourceDetailPanel({
   const setAgentConversationTargetSnapshot = useAppStore((state) => state.setAgentConversationTargetSnapshot);
   const setPendingAgentComposerPrefill = useAppStore((state) => state.setPendingAgentComposerPrefill);
   const setFeedback = emitFeedbackToast;
-  // Renderer-phase materialization state for the hero primary action. The
-  // runtime commit (`ensureCharacterSourceMaterialized`) already awaits one
-  // discoverable LocalAgent, so the button can flip to "chat now" immediately
-  // instead of waiting for the invalidated inventory queries to refetch.
+  // Only track an in-flight action. Availability belongs to current owner data.
   const [sourceMaterialization, setSourceMaterialization] = useState<{
     sourceKey: string;
-    phase: 'pending' | 'ready';
+    ownerUserId: string;
   } | null>(null);
+  const currentAction = useRef<{ sourceKey: string; ownerUserId: string } | null>(null);
+  const selectedSourceKey = selectedSourceRef ? characterSourceRefKey(selectedSourceRef) : '';
+  currentAction.current = { sourceKey: selectedSourceKey, ownerUserId };
+  useEffect(() => {
+    currentAction.current = { sourceKey: selectedSourceKey, ownerUserId };
+    return () => { currentAction.current = null; };
+  }, [selectedSourceKey, ownerUserId]);
 
   const profileQuery = useQuery({
     queryKey: selectedSourceRef
@@ -141,20 +146,15 @@ export function SourceDetailPanel({
     );
     return {
       ...source,
-      sourceState: sourceMaterialization?.phase === 'ready'
-          && sourceMaterialization.sourceKey === currentSourceKey
-        ? 'local_agent_available' as const
-        : resolvedState,
+      sourceState: resolvedState,
     };
   }, [
-    currentSourceKey,
     localAgentListQuery.isError,
     localAgentListQuery.isPending,
     ownerUserId,
     source,
     sourceLocalAgentsQuery.isError,
     sourceLocalAgentsQuery.isPending,
-    sourceMaterialization,
     sourceRuntimeLocalAgents,
   ]);
 
@@ -163,12 +163,12 @@ export function SourceDetailPanel({
     return profileQuery.data.stats;
   }, [profileQuery.data]);
 
-  const ensureCharacterSourceReady = async () => {
+  const ensureCharacterSourceReady = async (isCurrent: () => boolean) => {
     if (!source) {
       throw new Error(characterSourceMaterializationMessage(i18n.t));
     }
 
-    await ensureCharacterSourceMaterialized(source, ownerUserId, i18n.t, bindings.sdk);
+    await ensureCharacterSourceMaterialized(source, ownerUserId, i18n.t, bindings.sdk, isCurrent);
     await queryClient.invalidateQueries({ queryKey: ['source-detail-local-agents'], exact: false });
     await queryClient.invalidateQueries({ queryKey: localAgentListQueryKey(ownerUserId), exact: true });
     await queryClient.invalidateQueries({ queryKey: ['desktop-local-app-agent-references'], exact: false });
@@ -178,14 +178,20 @@ export function SourceDetailPanel({
     if (!currentSourceKey) {
       return;
     }
-    if (sourceMaterialization?.phase === 'pending'
-      && sourceMaterialization.sourceKey === currentSourceKey) {
+    if (sourceMaterialization?.sourceKey === currentSourceKey
+      && sourceMaterialization.ownerUserId === ownerUserId) {
       return;
     }
-    setSourceMaterialization({ sourceKey: currentSourceKey, phase: 'pending' });
+    const auth = appStore.getState().auth;
+    const isCurrent = () => auth.status === 'authenticated'
+      && appStore.getState().auth === auth
+      && currentAction.current?.sourceKey === currentSourceKey
+      && currentAction.current?.ownerUserId === ownerUserId;
+    if (!isCurrent()) return;
+    setSourceMaterialization({ sourceKey: currentSourceKey, ownerUserId });
     try {
-      await ensureCharacterSourceReady();
-      setSourceMaterialization({ sourceKey: currentSourceKey, phase: 'ready' });
+      await ensureCharacterSourceReady(isCurrent);
+      if (!isCurrent()) return;
       setFeedback({
         kind: 'success',
         message: i18n.t('Explore.characterSourceMaterializedFeedback', {
@@ -193,23 +199,32 @@ export function SourceDetailPanel({
         }),
       });
     } catch (error) {
-      setSourceMaterialization(null);
+      if (!isCurrent()) return;
       setFeedback({
         kind: 'error',
         message: characterSourceMaterializationFailureMessage(error, i18n.t),
       });
+    } finally {
+      setSourceMaterialization((pending) => pending?.sourceKey === currentSourceKey && pending.ownerUserId === ownerUserId ? null : pending);
     }
   };
 
+  // @nimi-authority: rule.nimi.runtime.agent-participation.r197
   const handleStartChat = async (initialComposerText?: string) => {
+    const auth = appStore.getState().auth;
+    const isCurrent = () => auth.status === 'authenticated'
+      && appStore.getState().auth === auth
+      && currentAction.current?.sourceKey === currentSourceKey
+      && currentAction.current?.ownerUserId === ownerUserId;
+    if (!isCurrent()) return;
     try {
-      await ensureCharacterSourceReady();
       const prefillText = String(initialComposerText || '').trim();
       const conversationTarget = source?.sourceRef
         ? await resolveAgentTargetSnapshotForSourceRef({
           sourceRef: source.sourceRef,
           ownerUserId,
           sdk: bindings.sdk,
+          isCurrent,
         }).catch((error: unknown) => {
           logRendererEvent({
             level: 'warn',
@@ -220,6 +235,7 @@ export function SourceDetailPanel({
           return null;
         })
         : null;
+      if (!isCurrent()) return;
       if (conversationTarget) {
         await launchAgentConversationFromDisplay({
           target: conversationTarget,
@@ -233,20 +249,15 @@ export function SourceDetailPanel({
         });
         return;
       }
-      if (prefillText && source?.sourceRef) {
-        setPendingAgentComposerPrefill({
-          sourceKey: characterSourceRefKey(source.sourceRef),
-          text: prefillText,
-        });
-      }
+      setPendingAgentComposerPrefill({ text: '' });
       setAgentConversationSelection(EMPTY_AGENT_CONVERSATION_SELECTION);
       setSelectedTargetForSource('agent', null);
       setChatMode('agent');
       setActiveTab('chat');
       setFeedback({
-        kind: 'success',
-        message: i18n.t('Explore.characterSourceMaterializedFeedback', {
-          defaultValue: 'Your partner is ready. Select it from the chat list.',
+        kind: 'error',
+        message: i18n.t('SourceDetail.partnerUnavailable', {
+          defaultValue: 'This partner is no longer available. Choose a current partner from the chat list.',
         }),
       });
     } catch (error) {
@@ -280,8 +291,8 @@ export function SourceDetailPanel({
         stats={stats}
         loading={profileQuery.isPending}
         error={profileQuery.isError}
-        primaryActionJoining={sourceMaterialization?.phase === 'pending'
-          && sourceMaterialization.sourceKey === currentSourceKey}
+        primaryActionJoining={sourceMaterialization?.sourceKey === currentSourceKey
+          && sourceMaterialization.ownerUserId === ownerUserId}
         onBack={onBack === null ? undefined : (onBack ?? navigateBack)}
         onOpenWorld={() => {
           if (!source?.worldId) {

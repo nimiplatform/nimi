@@ -413,6 +413,7 @@ func (b *Backend) ensureSchema() error {
 			config_revision INTEGER NOT NULL,
 			request_key TEXT NOT NULL,
 			profile_json BLOB NOT NULL,
+ payload_disposition TEXT NOT NULL DEFAULT 'retained' CHECK (payload_disposition IN ('retained', 'pending', 'disposed')),
 			status TEXT NOT NULL CHECK (status IN ('pending', 'running', 'ready', 'consumed', 'failed')),
 			result_json BLOB,
 			failure_code TEXT,
@@ -420,6 +421,17 @@ func (b *Backend) ensureSchema() error {
 			updated_at TEXT NOT NULL
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_runtime_cognition_memory_ai_job_agent ON runtime_cognition_memory_ai_job(local_agent_ref, status)`,
+		`CREATE TABLE IF NOT EXISTS runtime_cognition_memory_forget (
+ operation_id TEXT PRIMARY KEY,
+ local_agent_ref TEXT NOT NULL,
+ binding_ref TEXT NOT NULL,
+ bank_ref TEXT NOT NULL,
+ targets_json BLOB NOT NULL,
+ phase TEXT NOT NULL CHECK (phase IN ('prepared', 'cognition_committed', 'completed')),
+ result_json BLOB,
+ created_at TEXT NOT NULL
+ )`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_memory_forget_pending ON runtime_cognition_memory_forget(local_agent_ref) WHERE phase <> 'completed'`,
 		`CREATE TABLE IF NOT EXISTS runtime_cognition_memory_cutoff (
 			operation_id TEXT PRIMARY KEY,
 			local_agent_ref TEXT NOT NULL,
@@ -562,6 +574,7 @@ func (b *Backend) ensureSchema() error {
 			profile_id TEXT NOT NULL,
 			title TEXT NOT NULL,
 			profile_json BLOB NOT NULL,
+ payload_disposition TEXT NOT NULL DEFAULT 'retained' CHECK (payload_disposition IN ('retained', 'pending', 'disposed')),
 			imported_at TEXT NOT NULL,
 			updated_at TEXT NOT NULL,
 			PRIMARY KEY(account_namespace, profile_id)
@@ -601,6 +614,15 @@ func (b *Backend) ensureSchema() error {
 		if _, err := b.writeDB.Exec(stmt); err != nil {
 			return fmt.Errorf("ensure immutable source snapshot schema: %w", err)
 		}
+	}
+	// This is a hard cut of the private execution-copy contract. Existing local
+	// state without disposition evidence is reported, never silently migrated.
+	rows, err := b.writeDB.Query(`SELECT payload_disposition FROM runtime_cognition_memory_ai_job LIMIT 0`)
+	if err != nil {
+		return fmt.Errorf("unsupported Memory execution payload schema: %w", err)
+	}
+	if err := rows.Close(); err != nil {
+		return err
 	}
 	if _, err := b.writeDB.Exec(`INSERT INTO runtime_local_agent_meta(key, value) VALUES ('schema_version','1') ON CONFLICT(key) DO NOTHING`); err != nil {
 		return err

@@ -71,7 +71,7 @@ func TestLoadoutPrepareCommitSelectAndResolveEmbeddingModelAsset(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if resolved.LoadoutID != committed.GetLoadoutId() || resolved.RecipeID != capabilitydriver.LlamaEmbedGGUFRecipeID || len(resolved.ExactBindings) != 1 || len(resolved.ExactDependencySources) == 0 || resolved.ExactBindings[0].ModelAssetID != asset.GetModelAssetId() || !filepath.IsAbs(resolved.ExactBindings[0].AbsolutePath) || resolved.ModelContextWindowTokens != 8192 || resolved.ExactBindings[0].TemplateIdentity != "" ||
+	if resolved.LoadoutID != committed.GetLoadoutId() || resolved.RecipeID != capabilitydriver.LlamaEmbedGGUFRecipeID || len(resolved.ExactBindings) != 1 || len(resolved.ExactDependencySources) == 0 || resolved.ExactBindings[0].ModelAssetID != asset.GetModelAssetId() || !filepath.IsAbs(resolved.ExactBindings[0].AbsolutePath) || resolved.ModelContextWindowTokens != 8192 || resolved.EmbeddingDimension != 768 || resolved.ExactBindings[0].TemplateIdentity != "" ||
 		resolved.ExecutionTarget == nil || resolved.ExecutionTarget.GetLocalRuntime().GetReadinessRef() != "model-asset://"+asset.GetModelAssetId() {
 		t.Fatalf("ResolvedAssembly = %+v", resolved)
 	}
@@ -1602,7 +1602,7 @@ func TestCatalogLoadoutRecipeSlotValidatorUsesLiveDriverProjection(t *testing.T)
 	}
 }
 
-func TestModelAssetFormatProbeLimitUsesOnlyTheDriverScopedGemmaMainBudget(t *testing.T) {
+func TestModelAssetFormatProbeLimitUsesDriverScopedGGUFMetadataBudget(t *testing.T) {
 	driver := capabilitydriver.LlamaTextDriver{}
 	large, ok := modelAssetFormatProbeLimit(driver, capabilitydriver.ModelAssetFormatProbeInput{
 		RecipeID:      capabilitydriver.LlamaGemma4RecipeID,
@@ -1617,7 +1617,7 @@ func TestModelAssetFormatProbeLimitUsesOnlyTheDriverScopedGemmaMainBudget(t *tes
 		RequirementID: capabilitydriver.EmbeddingGGUFRequirementID,
 		RelativePath:  "embedding.gguf", Entry: true,
 	})
-	if !ok || ordinary != capabilitydriver.MaxAssetFormatProbeBytes {
+	if !ok || ordinary != capabilitydriver.MaxDriverAssetFormatProbeBytes {
 		t.Fatalf("ordinary probe budget = (%d, %v)", ordinary, ok)
 	}
 }

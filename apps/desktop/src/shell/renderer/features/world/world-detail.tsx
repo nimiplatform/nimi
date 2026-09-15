@@ -1,7 +1,7 @@
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { useEffect, useMemo, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useAppStore } from '../../app-shell/providers/app-store';
+import { useAppStore, useAppStoreApi } from '../../app-shell/providers/app-store';
 
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
@@ -48,6 +48,11 @@ type WorldDetailProps = {
 
 export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps) {
   const bindings = useDesktopRendererBindings();
+  const appStore = useAppStoreApi();
+  const mounted = useRef(true);
+  const currentWorld = useRef(world.id);
+  currentWorld.current = world.id;
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const i18n = useDesktopI18nResource().instance;
   const queryClient = useQueryClient();
   const authStatus = useAppStore((state) => state.auth.status);
@@ -261,6 +266,9 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
   };
 
   const handleMaterializeSource = async (character: WorldCharacter) => {
+    const auth = appStore.getState().auth;
+    const isCurrent = () => mounted.current && currentWorld.current === world.id && auth.status === 'authenticated' && appStore.getState().auth === auth;
+    if (!isCurrent()) return;
     try {
       await ensureCharacterSourceMaterialized({
         ...character,
@@ -269,9 +277,10 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
         sourceKind: character.sourceRef.kind,
         sourceId: character.sourceRef.id,
         sourceHash: character.sourceRef.sourceHash,
-      }, ownerUserId, i18n.t, bindings.sdk);
+      }, ownerUserId, i18n.t, bindings.sdk, isCurrent);
       await queryClient.invalidateQueries({ queryKey: ['world-detail-local-agents'], exact: false });
       await queryClient.invalidateQueries({ queryKey: localAgentListQueryKey(ownerUserId), exact: true });
+      if (!isCurrent()) return;
       setFeedback({
         kind: 'success',
         message: i18n.t('Explore.characterSourceMaterializedFeedback', {
@@ -279,6 +288,7 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
         }),
       });
     } catch (error) {
+      if (!isCurrent()) return;
       const message = characterSourceMaterializationFailureMessage(error, i18n.t);
       setFeedback({ kind: 'error', message });
     }

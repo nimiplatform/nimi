@@ -434,10 +434,12 @@ units:
     kind: rule
     title: Local embedding bindings are exact Loadout slots
     modality: must
-    statement: A Local text.embed versioned CapabilityImplementationDriver dialect projects its independent model slots into a Loadout and each axis remains unresolved or names model_asset_id plus expected_content_id whose chosen payload passes the recipe-specific embedding Model Contract; Runtime never searches inventory, paths, filenames, labels, kind or capability hints at execution, and binding remains separate from selection, admission, Host state, and Memory bank truth.
-    condition: Whenever a local text.embed Loadout binding for a Cognition Memory AI Job is prepared, committed, or admitted.
-    failure: Reject raw paths, engine names, renderer heuristics, label-derived capability, and targets that fail the exact embedding Model Contract.
+    statement: A Local text.embed versioned CapabilityImplementationDriver dialect projects its independent model slots into a Loadout and each axis remains unresolved or names model_asset_id plus expected_content_id whose chosen payload passes the recipe-specific embedding Model Contract; Runtime never searches inventory, paths, filenames, labels, kind or capability hints at execution, and binding remains separate from selection, admission, Host state, and Memory bank truth. The same Model Contract verifies one positive output dimension from the exact selected model metadata and the versioned dialect's supported execution options before Job admission; missing, malformed, ambiguous or unsupported dimension facts fail closed without trial inference, caller-entered dimensions or a catalog-hash whitelist. A ModelAsset absent from catalog remains eligible when that exact Driver can validate it.
+    condition: Whenever a Local text.embed binding is prepared, committed or admitted for an ordinary App, Cognition Memory or another admitted consumer.
+    failure: Reject raw paths, engine names, renderer heuristics, label-derived capability, unverified output dimensions and payloads that fail the exact embedding Model Contract, without replacing the selected model or inventing a dimension.
     relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.model-service-plane
   - id: rule.nimi.runtime.ai-provider.r042
@@ -722,7 +724,7 @@ units:
   - id: rule.nimi.runtime.ai-provider.r070
     kind: rule
     title: Media provider transport keys stay Runtime private
-    modality: must_not
+    modality: must
     statement: A Driver provider extension cannot escape its admitted origin or canonical base path, and transport, credential-header, Driver target, voice creation, preview, and create-path details remain Runtime private rather than catalog, AIConfig, Profile, SDK, or App-facing routing truth.
     condition: Whenever media provider extensions carry transport routing details.
     failure: Reject cross-origin or path-escaping overrides and keep transport keys runtime private.
@@ -1421,7 +1423,7 @@ units:
     kind: rule
     title: Embedding results identify their captured vector space
     modality: must
-    statement: Each successful TEXT_EMBED Scenario execution returns a nonempty opaque space_id with its vectors, including the protected Local App projection. Runtime derives this compatibility value from the exact captured embedding implementation and versioned dialect, Local recipe and bound content with effective options or the exact Cloud Connector resource and provider target with effective defaults, and the returned vector dimensions. Input text, batch boundaries, AIConfig owner revision, other capabilities, display labels, transient process state and filesystem locations do not identify a vector space. Equal values permit a consumer to combine vectors under the same captured embedding semantics; changed values require rebuilding or separating its index. The value conveys no execution, configuration or authorization authority and exposes no provider, model, route, credential, account or private assembly fields; it is not a Loadout revision or an attestation of unannounced provider-side behavior. Consumers compare values from actual embedding results, so a configuration change between batches cannot silently mix an index.
+    statement: Each successful TEXT_EMBED Scenario execution returns a nonempty opaque space_id with its vectors, including the protected Local App projection. Runtime derives this compatibility value from the exact captured embedding implementation and versioned dialect, Local recipe and bound content with effective options or the exact Cloud Connector resource and provider target with effective defaults, and the returned vector dimensions. Input text, batch boundaries, AIConfig owner revision, other capabilities, display labels, transient process state and filesystem locations do not identify a vector space. Equal values permit a consumer to combine vectors under the same captured embedding semantics; changed values require rebuilding or separating its index. The value conveys no execution, configuration or authorization authority and exposes no provider, model, route, credential, account or private assembly fields; it is not a Loadout revision or an attestation of unannounced provider-side behavior. Consumers compare values from actual embedding results, so a configuration change between batches cannot silently mix an index. Runtime issues successful embedding output only after the actual width satisfies the pre-execution captured output contract; comparing space_id never replaces that validation.
     condition: Whenever a text.embed Scenario result is returned or its vectors are persisted or reused by a consumer.
     failure: Return AI_OUTPUT_INVALID rather than successful embedding output without a valid space_id; consumers reject mixed spaceIds and never infer compatibility solely from vector length or current configuration projections.
     relations:
@@ -1453,3 +1455,17 @@ units:
         target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+  - id: rule.nimi.runtime.ai-provider.embedding-output-contract
+    kind: rule
+    title: Embedding output dimensions are verified and captured before execution
+    modality: must
+    statement: "Every admitted text.embed execution uses one positive output dimension verified before Job publication: Local obtains it from the exact Driver Model Contract over the selected model content and supported execution options, and Cloud obtains it from the exact admitted provider/model protocol and reviewed catalog contract. Runtime persists that dimension with the immutable effective inputs, applies the same dimension admission and vector-validity checks to ordinary Scenario, protected App and Cognition consumers while each exact operation retains its existing input, output and transport bounds, and validates every returned vector for the expected count, finite values and exact captured width before successful terminal publication or result delivery. An actual space_id is additional compatibility evidence and never legalizes a width mismatch; model or option changes with a different actual space require a separate or rebuilt derived index while canonical Memory remains owned by Cognition. Unknown dimensions fail before execution without a probe, first-response inference, configuration rewrite or fallback, and queued, running or restored Jobs never obtain a replacement width from the current catalog, selection or owner configuration."
+    condition: Whenever an admitted embedding execution is described, captured, dispatched, completed, restored or consumed.
+    failure: Reject an unverified or unavailable output contract before Job publication and return AI_OUTPUT_INVALID for invalid actual vectors instead of successful output or a completed Job; preserve the captured binding and original owner state without late dimension inference, truncation, padding, mixed spaces or automatic re-selection.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.catalog-plane

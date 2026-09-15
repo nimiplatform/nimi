@@ -58,8 +58,8 @@ func (r agentAdminRuntime) terminateOwned(ctx context.Context, identity localAge
 	r.svc.mu.RLock()
 	current := r.svc.agents[localAgentRef]
 	if current == nil {
-		// With a single atomic delete boundary there can be no legitimate
-		// memory/snapshot remainder to clean after the Agent row disappears.
+		// Peer-owner cleanup completes before the final Agent row removal,
+		// so a removed Agent cannot retain a legitimate Memory/snapshot remainder.
 		// Treat an absent ref as an idempotent no-op instead of allowing an
 		// unbound caller to purge banks by guessing another Agent's ref.
 		r.svc.mu.RUnlock()
@@ -130,29 +130,28 @@ func (r agentAdminRuntime) terminateOwned(ctx context.Context, identity localAge
 		r.svc.mu.Unlock()
 		return nil, grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, fmt.Errorf("Cognition Memory termination is unavailable"), grpcerr.ReasonOptions{Message: "Cognition Memory deletion is unavailable"})
 	}
-	memoryFence, fenceErr := r.svc.cognitionMemoryTermination.PrepareAgentTermination(
+	_, fenceErr := r.svc.cognitionMemoryTermination.PrepareAgentTermination(
 		ctx,
 		localAgentRef,
 		memoryOperationID,
 		deleteReason,
 	)
-	if fenceErr != nil || (memoryFence.Phase != "fenced" && memoryFence.Phase != "completed") {
+	if fenceErr != nil {
 		r.svc.mu.Unlock()
-		if fenceErr == nil {
-			fenceErr = fmt.Errorf("Cognition Memory termination fence returned outcome %q at phase %q", memoryFence.Outcome, memoryFence.Phase)
-		}
 		return nil, grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, fenceErr, grpcerr.ReasonOptions{Message: "Cognition Memory termination fence did not commit"})
 	}
 	r.svc.setAgentDurableTerminationFence(localAgentRef, true)
 	r.svc.cognitionMemoryOwnerLifecycleMu.Unlock()
 	ownerLifecycleLocked = false
-	deleteOutcome, deleteErr := r.svc.sourceCognitionBridge.DeleteAgentSource(ctx, current.Agent.GetOwnerUserId(), scopeID, snapshot.SnapshotHash)
+	// The durable fence is the authority for peer-owner cleanup. Do not hold
+	// the Agent map lock while joining captures/callbacks that read this owner.
+	accountID := current.Agent.GetOwnerUserId()
+	r.svc.mu.Unlock()
+	deleteOutcome, deleteErr := r.svc.sourceCognitionBridge.DeleteAgentSource(ctx, accountID, scopeID, snapshot.SnapshotHash)
 	if deleteErr != nil {
-		r.svc.mu.Unlock()
 		return nil, grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, deleteErr, grpcerr.ReasonOptions{Message: "source Cognition deletion failed"})
 	}
 	if bindingErr := validateSourceCognitionOutcomeBinding(deleteOutcome, scopeID, snapshot.SnapshotHash); bindingErr != nil || (deleteOutcome.Status != "deleted" && deleteOutcome.Status != "already_absent") {
-		r.svc.mu.Unlock()
 		if bindingErr == nil {
 			bindingErr = fmt.Errorf("source Cognition deletion returned non-terminal status %q", deleteOutcome.Status)
 		}
@@ -164,12 +163,22 @@ func (r agentAdminRuntime) terminateOwned(ctx context.Context, identity localAge
 		memoryOperationID,
 		deleteReason,
 	)
-	if terminationErr != nil || memoryTermination.Phase != "completed" || (memoryTermination.Outcome != memoryv1.OutcomeDeleted && memoryTermination.Outcome != memoryv1.OutcomeAlreadyAbsent) {
-		r.svc.mu.Unlock()
+	if terminationErr != nil || (memoryTermination.Outcome != memoryv1.OutcomeDeleted && memoryTermination.Outcome != memoryv1.OutcomeAlreadyAbsent) {
 		if terminationErr == nil {
 			terminationErr = fmt.Errorf("Cognition Memory termination returned outcome %q at phase %q", memoryTermination.Outcome, memoryTermination.Phase)
 		}
 		return nil, grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, terminationErr, grpcerr.ReasonOptions{Message: "Cognition Memory deletion did not complete"})
+	}
+
+	r.svc.mu.Lock()
+	current = r.svc.agents[localAgentRef]
+	if current == nil {
+		r.svc.mu.Unlock()
+		return &runtimev1.TerminateAgentResponse{Ack: okAck()}, nil
+	}
+	if err := validateLocalAgentRecordIdentity(current.Agent, identity); err != nil {
+		r.svc.mu.Unlock()
+		return nil, err
 	}
 
 	entry := cloneAgentEntry(current)

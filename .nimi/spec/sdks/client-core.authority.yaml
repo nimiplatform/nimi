@@ -13,7 +13,7 @@ units:
   - id: definition.nimi.sdks.client-core.transport-plane
     kind: definition
     title: SDK consumer access plane
-    meaning: The SDK consumer access plane separates Desktop-hosted App Tools scaffolded Apps from direct SDK consumers by authentication, token custody, and protected-App admission while preserving shared owner-domain operation, result, and error semantics without creating a common permission plane.
+    meaning: The SDK consumer access plane separates formal protected Apps from independent Direct SDK consumers outside the protected App surface by authentication, token custody, and protected-App admission while preserving shared owner-domain operation, result, and error semantics without creating a common permission plane.
   - id: definition.nimi.sdks.client-core.error-projection-plane
     kind: definition
     title: SDK error projection plane
@@ -108,20 +108,20 @@ units:
         target: definition.nimi.sdks.client-core.scope-plane
   - id: rule.nimi.sdks.client-core.r009
     kind: rule
-    title: Scaffolded Local Apps use Runtime mediation
+    title: Formal protected Apps use Runtime mediation
     modality: must
-    statement: A Desktop-hosted App Tools scaffolded Local App uses the standard SDK while Runtime mediation derives the current account, App identity, authorization, and protected Realm access from the active host session.
-    condition: Whenever a scaffolded Local App accesses Realm or Runtime.
+    statement: Every formal protected Nimi App uses the host-injected standard SDK while Runtime derives current account, registered App identity, authorization and protected Realm access from the current verified session, independently of scaffolding, framework adoption or admitted verified, local-import, local-development, bundled or platform source.
+    condition: Whenever a formal protected App accesses Realm or Runtime.
     failure: Fail closed when the mediated session or owner authorization is unavailable.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.client-core.transport-plane
   - id: rule.nimi.sdks.client-core.r010
     kind: rule
-    title: Scaffolded Local Apps receive no authority material
+    title: Formal protected Apps receive no authority material
     modality: must_not
-    statement: A scaffolded Local App receives, reads, stores, refreshes, or forwards a Realm JWT, Provider Credential, Runtime session proof, protected endpoint, caller-supplied account identity, or host security material.
-    condition: Whenever the scaffolded SDK surface is constructed or used.
+    statement: A formal protected App receives, reads, stores, refreshes or forwards account authority, Realm access or refresh tokens, Provider Credentials, subject, launch witness, session, snapshot or protected transport material.
+    condition: Whenever a formal protected App receives SDK or Host data.
     failure: Reject the surface and keep all protected authority inside Runtime and the verified host.
     relations:
       - type: applies_to
@@ -130,18 +130,18 @@ units:
     kind: rule
     title: Direct SDK consumers own their Realm token custody
     modality: must
-    statement: An App, script, or small program built directly with the SDK may use the public Realm client after standard Auth and is responsible for secure Realm token storage and refresh under Realm rules.
-    condition: Whenever a consumer uses the SDK directly rather than through an App Tools scaffold.
+    statement: An independent Direct SDK consumer outside the formal protected App surface, such as an independently authenticated application, script or small program, may use the public Realm client after standard Auth and owns secure Realm token storage and refresh under Realm rules; whether its source was generated, adopted or handwritten does not select its authorization mode.
+    condition: Whenever an independently authenticated Direct SDK consumer outside the formal protected App surface accesses Realm.
     failure: Reject unauthenticated Realm access or hidden Runtime mediation presented as direct token custody.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.client-core.transport-plane
   - id: rule.nimi.sdks.client-core.r012
     kind: rule
-    title: Direct token mode never enters a scaffolded Local App
+    title: Direct token mode never enters a formal protected App
     modality: must_not
-    statement: A Desktop-hosted App Tools scaffolded Local App enables the direct SDK Realm token path or accepts App-supplied Realm tokens, refresh providers, subject providers, or equivalent credential hooks.
-    condition: Whenever direct and scaffolded consumer paths are composed.
+    statement: A formal protected App enables the Direct SDK Realm token path or accepts App-supplied Realm tokens, refresh providers, subject providers or equivalent credential hooks, regardless of its scaffolding, framework or source provenance.
+    condition: Whenever a formal protected App composes SDK or Host access.
     failure: Reject the composition and retain Runtime-mediated access.
     relations:
       - type: applies_to
@@ -200,10 +200,10 @@ units:
         target: definition.nimi.sdks.client-core.boundary-plane
   - id: rule.nimi.sdks.client-core.r019
     kind: rule
-    title: Protected Local App transport is host injected
+    title: Formal protected App transport is host injected
     modality: must
-    statement: The protected transport for a scaffolded Local App is injected by the verified host, opaque to App and renderer code, and exposes only typed admitted business operations and explicit session posture.
-    condition: Whenever a scaffolded Local App SDK client is created.
+    statement: The protected transport for every formal protected App is injected by the verified Host, remains opaque to App and renderer code and exposes only typed admitted business operations and explicit session posture; handwritten or adopted projects use the same boundary as generated projects.
+    condition: Whenever a formal protected App SDK client is created.
     failure: Fail closed when the verified carrier is unavailable and reject App-constructed protected transport.
     relations:
       - type: applies_to
@@ -300,9 +300,9 @@ units:
         target: definition.nimi.sdks.client-core.transport-plane
   - id: rule.nimi.sdks.client-core.r029
     kind: rule
-    title: Direct and scaffolded consumers share domain semantics
+    title: Direct and formal protected consumers share domain semantics
     modality: must
-    statement: Direct SDK consumers and scaffolded Local Apps use consistent Realm, Runtime, Character, LocalAgent, Conversation, admitted Agent-scoped Memory management, operation, result, and typed-error semantics even though authentication, token custody, and protected-App admission differ, and neither consumer context exposes Knowledge V1.
+    statement: Independent Direct SDK consumers and formal protected Apps use consistent Realm, Runtime, Character, LocalAgent, Conversation, admitted Agent-scoped Memory management, operation, result, and typed-error semantics even though authentication, token custody, and protected-App admission differ, and neither consumer context exposes Knowledge V1.
     condition: Whenever the two consumer contexts expose the same product domain.
     failure: Reject a second ontology or behavior profile created only by transport choice.
     relations:

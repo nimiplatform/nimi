@@ -108,6 +108,10 @@ scopes:
     bindings:
       - kind: path_glob
         value: "runtime/internal/services/cognition/**"
+      - kind: path_glob
+        value: "runtime/internal/services/cognitionmemory/**"
+      - kind: path_glob
+        value: "runtime/internal/grpcserver/cognition_memory.go"
   - scope: desktop.ai-consumption
     bindings:
       - kind: path_glob
@@ -139,9 +143,9 @@ scopes:
       - kind: path_glob
         value: "runtime/internal/services/ai/cloud_*_execution.go"
       - kind: path_glob
-        value: "runtime/internal/services/cognition/*authoriz*.go"
+        value: "runtime/internal/services/runtimeagent/source_embedding_authorizer.go"
       - kind: path_glob
-        value: "runtime/internal/services/memory/memory_embedding_authorization.go"
+        value: "runtime/internal/services/ai/*memory*embedding*.go"
   - scope: runtime.rpc-foundations
     bindings:
       - kind: path_glob
@@ -275,17 +279,15 @@ scopes:
   - scope: runtime.memory-world
     bindings:
       - kind: path_glob
-        value: "runtime/internal/services/memory/**/*.go"
+        value: "runtime/internal/services/ai/*memory*embedding*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/cognitionmemory/**/*.go"
       - kind: path_glob
         value: "runtime/internal/services/cognition/**/*.go"
       - kind: path_glob
-        value: "runtime/internal/memoryengine/**/*.go"
+        value: "runtime/internal/grpcserver/cognition_memory.go"
       - kind: path_glob
         value: "runtime/internal/scheduler/**/*.go"
-      - kind: path_glob
-        value: "runtime/internal/services/runtimeagent/canonical_*.go"
-      - kind: path_glob
-        value: "runtime/internal/services/runtimeagent/review_*.go"
       - kind: path_glob
         value: "runtime/internal/services/runtimeagent/*memory*.go"
   - scope: runtime.model-catalog

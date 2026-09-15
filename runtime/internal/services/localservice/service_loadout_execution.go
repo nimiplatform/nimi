@@ -116,6 +116,7 @@ func (s *Service) resolveLocalExecutionLocked(capabilityContract string, loadout
 	}
 	exact := make([]localexecution.ExactBinding, 0, len(requirements))
 	var contextWindow uint64
+	var embeddingDimension int
 	var executionTarget *runtimeidentity.Target
 	for _, requirement := range requirements {
 		axis, ok := resolvedBySlot[requirement.GetRequirementId()]
@@ -137,6 +138,7 @@ func (s *Service) resolveLocalExecutionLocked(capabilityContract string, loadout
 			contextWindow = axis.contextWindow
 		}
 		if requirement.GetRole() == runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN {
+			embeddingDimension = axis.embeddingDimension
 			executionTarget = &runtimeidentity.Target{Local: &runtimeidentity.LocalTarget{
 				ReadinessRef: "model-asset://" + axis.slot.GetModelAssetId(),
 			}}
@@ -161,7 +163,7 @@ func (s *Service) resolveLocalExecutionLocked(capabilityContract string, loadout
 		CapabilityContract: capabilityContract, DisplayName: loadout.GetDisplayName(),
 		RecipeID: loadout.GetRecipeId(), RecipeRevision: loadout.GetRecipeRevision(), RecipeCustody: custody,
 		DriverIdentity: identity, PortableConfig: cloneStruct(loadout.GetOptions()),
-		ModelContextWindowTokens: contextWindow, Requirements: cloneLocalCapabilityRequirements(requirements),
+		EmbeddingDimension: embeddingDimension, ModelContextWindowTokens: contextWindow, Requirements: cloneLocalCapabilityRequirements(requirements),
 		ExactBindings: exact, ExactDependencySources: dependencySources,
 		ImplementationSupportedFeatures: append([]string(nil), loadout.GetImplementationSupportedFeatures()...),
 		ConfiguredFeatures:              append([]string(nil), loadout.GetConfiguredFeatures()...),

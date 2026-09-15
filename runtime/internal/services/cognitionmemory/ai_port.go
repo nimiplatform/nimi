@@ -10,39 +10,50 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/nimiplatform/nimi/nimi-cognition/memoryv1"
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimepersistence"
-	"google.golang.org/protobuf/proto"
 )
 
 type ResolvedEmbeddingBinding struct {
 	ConfigRevision    uint64
 	EmbeddingSpaceRef string
-	Profile           *runtimev1.MemoryEmbeddingProfile
+	Execution         []byte
+	Discard           func() error
+	Validate          func(*sql.Tx) error
 }
 
-type EmbeddingBindingResolver func(context.Context, string, string) (ResolvedEmbeddingBinding, error)
-type EmbeddingExecutor func(context.Context, *runtimev1.MemoryEmbeddingProfile, []string) ([][]float64, error)
+type EmbeddingBindingResolver func(context.Context, string, string, memoryv1.AIEmbeddingRequest) (ResolvedEmbeddingBinding, error)
+type EmbeddingDisposer func(context.Context, string, string, []byte) error
+
+type EmbeddingExecutor func(context.Context, []byte) (memoryv1.AIEmbeddingResult, error)
 
 type RuntimeEmbeddingPort struct {
+	captureLock      sync.Locker
+	checkCapture     func(context.Context, memoryv1.AIEmbeddingRequest) error
 	backend          *runtimepersistence.Backend
 	accountNamespace string
 	localAgentRef    string
 	resolve          EmbeddingBindingResolver
 	execute          EmbeddingExecutor
+	dispose          EmbeddingDisposer
 	now              func() time.Time
 }
 
-func NewRuntimeEmbeddingPort(backend *runtimepersistence.Backend, accountNamespace, localAgentRef string, resolve EmbeddingBindingResolver, execute EmbeddingExecutor) *RuntimeEmbeddingPort {
-	return &RuntimeEmbeddingPort{backend: backend, accountNamespace: accountNamespace, localAgentRef: localAgentRef, resolve: resolve, execute: execute, now: time.Now}
+func NewRuntimeEmbeddingPort(backend *runtimepersistence.Backend, accountNamespace, localAgentRef string, resolve EmbeddingBindingResolver, execute EmbeddingExecutor, disposer ...EmbeddingDisposer) *RuntimeEmbeddingPort {
+	var dispose EmbeddingDisposer
+	if len(disposer) > 0 {
+		dispose = disposer[0]
+	}
+	return &RuntimeEmbeddingPort{backend: backend, accountNamespace: accountNamespace, localAgentRef: localAgentRef, resolve: resolve, execute: execute, dispose: dispose, now: time.Now}
 }
 
 type persistedEmbeddingResult struct {
 	Vectors   [][]float64 `json:"vectors"`
 	Dimension int         `json:"dimension"`
+	SpaceID   string      `json:"space_id"`
 }
 
 // @nimi-authority: rule.nimi.cognition.runtime-bridge.r022
@@ -67,67 +78,120 @@ func (p *RuntimeEmbeddingPort) Embed(ctx context.Context, request memoryv1.AIEmb
 		if job.AccountNamespace != p.accountNamespace || job.LocalAgentRef != p.localAgentRef || job.ConfigRevision != request.ConfigRevision || job.RequestKey != requestKey {
 			return memoryv1.AIEmbeddingResult{}, ErrConflict
 		}
+		if job.PayloadDisposition != "retained" {
+			return memoryv1.AIEmbeddingResult{}, ErrConflict
+		}
 		switch job.Status {
 		case "ready":
-			return decodeEmbeddingResult(job.ResultJSON)
+			result, err := decodeEmbeddingResult(job.ResultJSON)
+			if err == nil && result.SpaceID != request.EmbeddingSpaceRef {
+				return memoryv1.AIEmbeddingResult{}, ErrConflict
+			}
+			return result, err
 		case "consumed":
 			return memoryv1.AIEmbeddingResult{}, ErrConflict
 		case "failed":
 			return memoryv1.AIEmbeddingResult{}, fmt.Errorf("runtime cognition memory AI port: prior execution failed")
 		case "pending", "running":
-			return p.executeCaptured(ctx, request, job.Profile)
+			return p.executeCaptured(ctx, request, job.Execution)
 		default:
 			return memoryv1.AIEmbeddingResult{}, fmt.Errorf("runtime cognition memory AI port: invalid job state")
 		}
 	}
-	resolved, err := p.resolve(ctx, p.accountNamespace, p.localAgentRef)
+	execution, err := p.captureBinding(ctx, request, requestKey)
 	if err != nil {
-		return memoryv1.AIEmbeddingResult{}, fmt.Errorf("runtime cognition memory AI port: resolve binding: %w", err)
+		return memoryv1.AIEmbeddingResult{}, err
 	}
-	if resolved.EmbeddingSpaceRef != request.EmbeddingSpaceRef || !validEmbeddingProfile(resolved.Profile) {
-		return memoryv1.AIEmbeddingResult{}, ErrConflict
-	}
-	profileRaw, err := proto.MarshalOptions{Deterministic: true}.Marshal(resolved.Profile)
-	if err != nil {
-		return memoryv1.AIEmbeddingResult{}, fmt.Errorf("runtime cognition memory AI port: encode binding: %w", err)
-	}
-	now := p.now().UTC().Format(time.RFC3339Nano)
-	if err := p.backend.WriteTx(ctx, func(tx *sql.Tx) error {
-		_, err := tx.Exec(`INSERT INTO runtime_cognition_memory_ai_job(operation_id, local_agent_ref, account_namespace, config_revision, request_key, profile_json, status, created_at, updated_at) VALUES(?, ?, ?, ?, ?, ?, 'pending', ?, ?)`, request.OperationID, p.localAgentRef, p.accountNamespace, request.ConfigRevision, requestKey, profileRaw, now, now)
-		return err
-	}); err != nil {
-		return memoryv1.AIEmbeddingResult{}, fmt.Errorf("runtime cognition memory AI port: persist binding: %w", err)
-	}
-	return p.executeCaptured(ctx, request, resolved.Profile)
+	return p.executeCaptured(ctx, request, execution)
 }
 
-func (p *RuntimeEmbeddingPort) executeCaptured(ctx context.Context, request memoryv1.AIEmbeddingRequest, profile *runtimev1.MemoryEmbeddingProfile) (memoryv1.AIEmbeddingResult, error) {
-	if !validEmbeddingProfile(profile) {
+func (p *RuntimeEmbeddingPort) SetCaptureGuard(lock sync.Locker, check func(context.Context, memoryv1.AIEmbeddingRequest) error) {
+	p.captureLock, p.checkCapture = lock, check
+}
+
+func (p *RuntimeEmbeddingPort) captureBinding(ctx context.Context, request memoryv1.AIEmbeddingRequest, requestKey string) (_ []byte, resultErr error) {
+	if p.captureLock != nil {
+		p.captureLock.Lock()
+		defer p.captureLock.Unlock()
+	}
+	if p.checkCapture != nil {
+		if err := p.checkCapture(ctx, request); err != nil {
+			return nil, err
+		}
+	}
+	// External owners are read outside the serialized SQLite writer. Lifecycle
+	// cleanup joins this exact-Agent capture lock after recording its fence.
+	resolved, err := p.resolve(ctx, p.accountNamespace, p.localAgentRef, request)
+	if err != nil {
+		return nil, fmt.Errorf("resolve embedding binding: %w", err)
+	}
+	retained := false
+	defer func() {
+		if !retained && resolved.Discard != nil {
+			if err := resolved.Discard(); err != nil {
+				resultErr = errors.Join(resultErr, fmt.Errorf("discard unpublished embedding capture: %w", err))
+			}
+		}
+	}()
+	if resolved.EmbeddingSpaceRef != request.EmbeddingSpaceRef || !json.Valid(resolved.Execution) {
+		return nil, ErrConflict
+	}
+	if err := p.backend.WriteTx(ctx, func(tx *sql.Tx) error {
+		if resolved.Validate != nil {
+			if err := resolved.Validate(tx); err != nil {
+				return err
+			}
+		}
+		now := p.now().UTC().Format(time.RFC3339Nano)
+		_, err := tx.Exec(`INSERT INTO runtime_cognition_memory_ai_job(operation_id, local_agent_ref, account_namespace, config_revision, request_key, profile_json, status, created_at, updated_at) VALUES(?, ?, ?, ?, ?, ?, 'pending', ?, ?)`, request.OperationID, p.localAgentRef, p.accountNamespace, request.ConfigRevision, requestKey, resolved.Execution, now, now)
+		return err
+	}); err != nil {
+		return nil, fmt.Errorf("persist embedding custody: %w", err)
+	}
+	retained = true
+	return resolved.Execution, nil
+}
+
+func (p *RuntimeEmbeddingPort) executeCaptured(ctx context.Context, request memoryv1.AIEmbeddingRequest, execution []byte) (memoryv1.AIEmbeddingResult, error) {
+	if !json.Valid(execution) {
 		return memoryv1.AIEmbeddingResult{}, fmt.Errorf("runtime cognition memory AI port: invalid captured binding")
 	}
 	now := p.now().UTC().Format(time.RFC3339Nano)
 	if err := p.backend.WriteTx(ctx, func(tx *sql.Tx) error {
-		_, err := tx.Exec(`UPDATE runtime_cognition_memory_ai_job SET status = 'running', updated_at = ? WHERE operation_id = ? AND status IN ('pending', 'running')`, now, request.OperationID)
-		return err
+		claimed, err := tx.Exec(`UPDATE runtime_cognition_memory_ai_job SET status = 'running', updated_at = ? WHERE operation_id = ? AND status = 'pending' AND payload_disposition = 'retained' AND account_namespace = ? AND local_agent_ref = ?`, now, request.OperationID, p.accountNamespace, p.localAgentRef)
+		if err != nil {
+			return err
+		}
+		count, err := claimed.RowsAffected()
+		if err != nil {
+			return err
+		}
+		if count != 1 {
+			return ErrConflict
+		}
+		return nil
 	}); err != nil {
 		return memoryv1.AIEmbeddingResult{}, fmt.Errorf("runtime cognition memory AI port: mark running: %w", err)
 	}
-	vectors, err := p.execute(ctx, proto.Clone(profile).(*runtimev1.MemoryEmbeddingProfile), append([]string(nil), request.Inputs...))
+	result, err := p.execute(ctx, append([]byte(nil), execution...))
 	if err != nil {
-		_ = p.markFailed(context.WithoutCancel(ctx), request.OperationID, "execution_failed")
-		return memoryv1.AIEmbeddingResult{}, err
+		cleanupErr := p.failAndDispose(context.WithoutCancel(ctx), request.OperationID, "execution_failed")
+		return memoryv1.AIEmbeddingResult{}, errors.Join(err, cleanupErr)
 	}
-	result := memoryv1.AIEmbeddingResult{Vectors: vectors, Dimension: int(profile.GetDimension())}
+	if result.SpaceID != request.EmbeddingSpaceRef {
+		cleanupErr := p.failAndDispose(context.WithoutCancel(ctx), request.OperationID, "embedding_space_mismatch")
+		return memoryv1.AIEmbeddingResult{}, errors.Join(ErrConflict, cleanupErr)
+	}
 	if err := validateRuntimeEmbeddingResult(result, len(request.Inputs)); err != nil {
-		_ = p.markFailed(context.WithoutCancel(ctx), request.OperationID, "result_invalid")
-		return memoryv1.AIEmbeddingResult{}, err
+		cleanupErr := p.failAndDispose(context.WithoutCancel(ctx), request.OperationID, "result_invalid")
+		return memoryv1.AIEmbeddingResult{}, errors.Join(err, cleanupErr)
 	}
-	resultRaw, err := json.Marshal(persistedEmbeddingResult{Vectors: result.Vectors, Dimension: result.Dimension})
+	resultRaw, err := json.Marshal(persistedEmbeddingResult{Vectors: result.Vectors, Dimension: result.Dimension, SpaceID: result.SpaceID})
 	if err != nil {
 		return memoryv1.AIEmbeddingResult{}, fmt.Errorf("runtime cognition memory AI port: encode result: %w", err)
 	}
 	if err := p.backend.WriteTx(context.WithoutCancel(ctx), func(tx *sql.Tx) error {
-		updated, err := tx.Exec(`UPDATE runtime_cognition_memory_ai_job SET status = 'ready', result_json = ?, failure_code = NULL, updated_at = ? WHERE operation_id = ? AND status = 'running'`, resultRaw, p.now().UTC().Format(time.RFC3339Nano), request.OperationID)
+		updated, err := tx.Exec(`UPDATE runtime_cognition_memory_ai_job SET status = 'ready', result_json = ?, failure_code = NULL, updated_at = ? WHERE operation_id = ? AND status = 'running' AND payload_disposition = 'retained' AND account_namespace = ? AND local_agent_ref = ?`, resultRaw, p.now().UTC().Format(time.RFC3339Nano), request.OperationID, p.accountNamespace, p.localAgentRef)
 		if err != nil {
 			return err
 		}
@@ -137,88 +201,104 @@ func (p *RuntimeEmbeddingPort) executeCaptured(ctx context.Context, request memo
 		}
 		return nil
 	}); err != nil {
-		return memoryv1.AIEmbeddingResult{}, fmt.Errorf("runtime cognition memory AI port: persist result: %w", err)
+		return memoryv1.AIEmbeddingResult{}, errors.Join(fmt.Errorf("runtime cognition memory AI port: persist result: %w", err), p.failAndDispose(context.WithoutCancel(ctx), request.OperationID, "result_persistence_failed"))
 	}
 	return result, nil
 }
 
 func (p *RuntimeEmbeddingPort) AcknowledgeConsumed(ctx context.Context, operationID string) error {
-	if p == nil || p.backend == nil || !validRef(operationID) {
-		return fmt.Errorf("runtime cognition memory AI port: invalid consumption acknowledgement")
-	}
-	return p.backend.WriteTx(ctx, func(tx *sql.Tx) error {
-		var status string
-		if err := tx.QueryRow(`SELECT status FROM runtime_cognition_memory_ai_job WHERE operation_id = ?`, operationID).Scan(&status); err != nil {
-			return err
-		}
-		if status == "consumed" {
-			return nil
-		}
-		if status != "ready" {
-			return ErrConflict
-		}
-		_, err := tx.Exec(`UPDATE runtime_cognition_memory_ai_job SET status = 'consumed', result_json = NULL, updated_at = ? WHERE operation_id = ?`, p.now().UTC().Format(time.RFC3339Nano), operationID)
-		return err
-	})
+	return p.disposeOperation(ctx, operationID, false)
 }
 
 func (p *RuntimeEmbeddingPort) FinalizeStale(ctx context.Context, operationID string) error {
+	return p.disposeOperation(ctx, operationID, true)
+}
+
+// @nimi-authority: rule.nimi.cognition.runtime-bridge.memory-ai-result-disposition
+func (p *RuntimeEmbeddingPort) disposeOperation(ctx context.Context, operationID string, abandon bool) error {
 	if p == nil || p.backend == nil || !validRef(operationID) {
-		return fmt.Errorf("runtime cognition memory AI port: invalid stale finalization")
+		return fmt.Errorf("invalid embedding disposition")
 	}
-	return p.backend.WriteTx(ctx, func(tx *sql.Tx) error {
-		var status string
-		if err := tx.QueryRow(`SELECT status FROM runtime_cognition_memory_ai_job WHERE operation_id = ?`, operationID).Scan(&status); err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
+	var execution []byte
+	if err := p.backend.WriteTx(ctx, func(tx *sql.Tx) error {
+		var state, account, agent, disposition string
+		if err := tx.QueryRow(`SELECT status, account_namespace, local_agent_ref, profile_json, payload_disposition FROM runtime_cognition_memory_ai_job WHERE operation_id = ?`, operationID).Scan(&state, &account, &agent, &execution, &disposition); err != nil {
+			if abandon && errors.Is(err, sql.ErrNoRows) {
 				return nil
 			}
 			return err
 		}
-		switch status {
-		case "consumed", "failed":
-			return nil
-		case "ready":
-			_, err := tx.Exec(`UPDATE runtime_cognition_memory_ai_job SET status = 'consumed', result_json = NULL, updated_at = ? WHERE operation_id = ? AND status = 'ready'`, p.now().UTC().Format(time.RFC3339Nano), operationID)
-			return err
-		case "pending", "running":
-			_, err := tx.Exec(`UPDATE runtime_cognition_memory_ai_job SET status = 'failed', result_json = NULL, failure_code = 'generation_stale', updated_at = ? WHERE operation_id = ? AND status IN ('pending', 'running')`, p.now().UTC().Format(time.RFC3339Nano), operationID)
-			return err
-		default:
+		if account != p.accountNamespace || agent != p.localAgentRef {
 			return ErrConflict
 		}
+		if disposition == "disposed" {
+			execution = nil
+			return nil
+		}
+		if !abandon && state != "ready" && state != "consumed" {
+			return ErrConflict
+		}
+		if state == "ready" || state == "consumed" {
+			state = "consumed"
+		} else {
+			state = "failed"
+		}
+		_, err := tx.Exec(`UPDATE runtime_cognition_memory_ai_job SET status = ?, result_json = NULL, payload_disposition = 'pending', updated_at = ? WHERE operation_id = ?`, state, p.now().UTC().Format(time.RFC3339Nano), operationID)
+		return err
+	}); err != nil {
+		return err
+	}
+	if len(execution) == 0 {
+		return nil
+	}
+	if p.dispose == nil {
+		return fmt.Errorf("embedding payload owner is unavailable")
+	}
+	if err := p.dispose(ctx, p.accountNamespace, p.localAgentRef, execution); err != nil {
+		return err
+	}
+	if err := p.backend.RewriteRecoverySnapshots(ctx, func(tx *sql.Tx) error {
+		_, err := tx.Exec(`UPDATE runtime_cognition_memory_ai_job SET status = 'consumed', result_json = NULL, profile_json = '{}', payload_disposition = 'disposed' WHERE operation_id = ? AND account_namespace = ? AND local_agent_ref = ?`, operationID, p.accountNamespace, p.localAgentRef)
+		return err
+	}); err != nil {
+		return err
+	}
+	return p.backend.WriteTx(ctx, func(tx *sql.Tx) error {
+		_, err := tx.Exec(`UPDATE runtime_cognition_memory_ai_job SET profile_json = '{}', result_json = NULL, payload_disposition = 'disposed', updated_at = ? WHERE operation_id = ? AND account_namespace = ? AND local_agent_ref = ? AND payload_disposition = 'pending'`, p.now().UTC().Format(time.RFC3339Nano), operationID, p.accountNamespace, p.localAgentRef)
+		return err
 	})
 }
 
 type embeddingJob struct {
-	LocalAgentRef    string
-	AccountNamespace string
-	ConfigRevision   uint64
-	RequestKey       string
-	Profile          *runtimev1.MemoryEmbeddingProfile
-	Status           string
-	ResultJSON       []byte
+	LocalAgentRef      string
+	AccountNamespace   string
+	ConfigRevision     uint64
+	RequestKey         string
+	Execution          []byte
+	Status             string
+	PayloadDisposition string
+	ResultJSON         []byte
 }
 
 func (p *RuntimeEmbeddingPort) loadJob(ctx context.Context, operationID string) (embeddingJob, bool, error) {
 	var job embeddingJob
-	var profileRaw []byte
-	err := p.backend.DB().QueryRowContext(ctx, `SELECT local_agent_ref, account_namespace, config_revision, request_key, profile_json, status, result_json FROM runtime_cognition_memory_ai_job WHERE operation_id = ?`, operationID).Scan(&job.LocalAgentRef, &job.AccountNamespace, &job.ConfigRevision, &job.RequestKey, &profileRaw, &job.Status, &job.ResultJSON)
+
+	err := p.backend.DB().QueryRowContext(ctx, `SELECT local_agent_ref, account_namespace, config_revision, request_key, profile_json, status, result_json, payload_disposition FROM runtime_cognition_memory_ai_job WHERE operation_id = ?`, operationID).Scan(&job.LocalAgentRef, &job.AccountNamespace, &job.ConfigRevision, &job.RequestKey, &job.Execution, &job.Status, &job.ResultJSON, &job.PayloadDisposition)
 	if errors.Is(err, sql.ErrNoRows) {
 		return embeddingJob{}, false, nil
 	}
 	if err != nil {
 		return embeddingJob{}, false, fmt.Errorf("runtime cognition memory AI port: load job: %w", err)
 	}
-	job.Profile = &runtimev1.MemoryEmbeddingProfile{}
-	if err := proto.Unmarshal(profileRaw, job.Profile); err != nil || !validEmbeddingProfile(job.Profile) {
-		return embeddingJob{}, false, fmt.Errorf("runtime cognition memory AI port: invalid captured profile")
+	if !json.Valid(job.Execution) {
+		return embeddingJob{}, false, fmt.Errorf("runtime cognition memory AI port: invalid captured execution")
 	}
 	return job, true, nil
 }
 
 func (p *RuntimeEmbeddingPort) markFailed(ctx context.Context, operationID, code string) error {
 	return p.backend.WriteTx(ctx, func(tx *sql.Tx) error {
-		_, err := tx.Exec(`UPDATE runtime_cognition_memory_ai_job SET status = 'failed', result_json = NULL, failure_code = ?, updated_at = ? WHERE operation_id = ?`, code, p.now().UTC().Format(time.RFC3339Nano), operationID)
+		_, err := tx.Exec(`UPDATE runtime_cognition_memory_ai_job SET status = 'failed', result_json = NULL, payload_disposition = 'pending', failure_code = ?, updated_at = ? WHERE operation_id = ? AND account_namespace = ? AND local_agent_ref = ? AND payload_disposition <> 'disposed'`, code, p.now().UTC().Format(time.RFC3339Nano), operationID, p.accountNamespace, p.localAgentRef)
 		return err
 	})
 }
@@ -236,12 +316,8 @@ func embeddingRequestKey(accountNamespace, localAgentRef string, request memoryv
 	return hex.EncodeToString(digest[:]), nil
 }
 
-func validEmbeddingProfile(profile *runtimev1.MemoryEmbeddingProfile) bool {
-	return profile != nil && strings.TrimSpace(profile.GetProvider()) != "" && strings.TrimSpace(profile.GetModelId()) != "" && profile.GetDimension() > 0
-}
-
 func validateRuntimeEmbeddingResult(result memoryv1.AIEmbeddingResult, count int) error {
-	if result.Dimension <= 0 || len(result.Vectors) != count {
+	if !validRef(result.SpaceID) || result.Dimension <= 0 || len(result.Vectors) != count {
 		return fmt.Errorf("runtime cognition memory AI port: invalid embedding result")
 	}
 	for _, vector := range result.Vectors {
@@ -262,9 +338,16 @@ func decodeEmbeddingResult(raw []byte) (memoryv1.AIEmbeddingResult, error) {
 	if len(raw) == 0 || json.Unmarshal(raw, &stored) != nil {
 		return memoryv1.AIEmbeddingResult{}, fmt.Errorf("runtime cognition memory AI port: invalid stored result")
 	}
-	result := memoryv1.AIEmbeddingResult{Vectors: stored.Vectors, Dimension: stored.Dimension}
+	result := memoryv1.AIEmbeddingResult{Vectors: stored.Vectors, Dimension: stored.Dimension, SpaceID: stored.SpaceID}
 	if err := validateRuntimeEmbeddingResult(result, len(result.Vectors)); err != nil {
 		return memoryv1.AIEmbeddingResult{}, err
 	}
 	return result, nil
+}
+
+func (p *RuntimeEmbeddingPort) failAndDispose(ctx context.Context, operationID, code string) error {
+	if err := p.markFailed(ctx, operationID, code); err != nil {
+		return err
+	}
+	return p.FinalizeStale(ctx, operationID)
 }

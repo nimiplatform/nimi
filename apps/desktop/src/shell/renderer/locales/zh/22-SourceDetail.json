@@ -112,6 +112,7 @@
   "friends": "好友",
   "posts": "帖子",
   "likes": "点赞",
+  "partnerUnavailable": "此伙伴当前不可用，请从聊天列表选择可用的伙伴。",
   "noSourceSelected": "未选择人物",
   "noSourceDataAvailable": "没有可用的人物资料"
 }

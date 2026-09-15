@@ -1,11 +1,11 @@
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createRealmExploreData } from './data/realm-explore-data';
 import { createRealmWorldData } from '../world/data/realm-world-data.js';
-import { useAppStore } from '../../app-shell/providers/app-store';
+import { useAppStore, useAppStoreApi } from '../../app-shell/providers/app-store';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 
 import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast';
@@ -50,6 +50,9 @@ type ExplorePanelProps = {
 // @nimi-authority: rule.nimi.desktop.product-surfaces.r001
 export function ExplorePanel(props: ExplorePanelProps) {
   const bindings = useDesktopRendererBindings();
+  const appStore = useAppStoreApi();
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const realmExploreData = useMemo(
     () => createRealmExploreData(bindings.sdk),
     [bindings.sdk],
@@ -182,13 +185,18 @@ export function ExplorePanel(props: ExplorePanelProps) {
   const postFeedKey = `explore-${selectedCategory ?? 'all'}-${refreshKey}`;
 
   const onPersonaSourceManage = useCallback(async (source: ExplorePersonaSourceCardData) => {
+    const auth = appStore.getState().auth;
+    const isCurrent = () => mounted.current && auth.status === 'authenticated' && appStore.getState().auth === auth;
+    if (!isCurrent()) return;
     try {
-      await ensureCharacterSourceMaterialized(source, ownerUserId, i18n.t, bindings.sdk);
+      await ensureCharacterSourceMaterialized(source, ownerUserId, i18n.t, bindings.sdk, isCurrent);
       await queryClient.invalidateQueries({ queryKey: ['explore-personas-local-agents'], exact: false });
       await queryClient.invalidateQueries({ queryKey: localAgentListQueryKey(ownerUserId), exact: true });
+      if (!isCurrent()) return;
       setSelectedTargetForSource('agent', null);
       setChatMode('agent');
       setActiveTab('chat');
+      if (!isCurrent()) return;
       setFeedback({
         kind: 'success',
         message: i18n.t('Explore.characterSourceMaterializedFeedback', {
@@ -201,6 +209,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
         message: 'action:realm-source-materialization:partner-ready',
       });
     } catch (error) {
+      if (!isCurrent()) return;
       setFeedback({
         kind: 'error',
         message: characterSourceMaterializationFailureMessage(error, i18n.t),

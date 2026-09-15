@@ -309,9 +309,9 @@ units:
     kind: rule
     title: ScenarioJob ownership is captured at creation
     modality: must
-    statement: ScenarioJob creation stores owner_id as jwt.sub for a valid JWT and anonymous otherwise, and GetScenarioJob, CancelScenarioJob, SubscribeScenarioJobEvents, and GetScenarioArtifacts authorize against that stored job owner independently of connector existence.
+    statement: ScenarioJob creation captures the exact owner for its admitted caller mode. A protected Local App Job durably binds the Runtime-derived current AccountID plus Registered App Subject, treats AppID as non-authorizing producer metadata, and rejects historical subject-unbound records. Other admitted protected consumers use their Runtime-derived current account owner; only separately admitted ordinary JWT or anonymous RPC callers use validated jwt.sub or anonymous respectively. GetScenarioJob, CancelScenarioJob, SubscribeScenarioJobEvents and GetScenarioArtifacts authorize the captured owner independently of current Connector existence.
     condition: Whenever Runtime creates or accesses a ScenarioJob.
-    failure: Deny job access on owner mismatch without depending on current connector state.
+    failure: Deny absent, stale or mismatched owner context, cross-account or cross-App-subject access and protected-to-anonymous downgrade without depending on current Connector state.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.security-core.ownership-authorization-plane

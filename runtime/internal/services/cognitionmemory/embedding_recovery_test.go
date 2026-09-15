@@ -3,13 +3,14 @@ package cognitionmemory
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
+	"fmt"
 	"path/filepath"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/nimiplatform/nimi/nimi-cognition/memoryv1"
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimepersistence"
 )
 
@@ -181,24 +182,24 @@ func newEmbeddingRecoveryFixture(t *testing.T, localAgentRef string) embeddingRe
 }
 
 func (f embeddingRecoveryFixture) embeddingPort(paidExecutions *int) *RuntimeEmbeddingPort {
-	profile := &runtimev1.MemoryEmbeddingProfile{
-		Provider: "provider-recovery", ModelId: "model-recovery", Dimension: 2, Version: "v1",
-		DistanceMetric: runtimev1.MemoryDistanceMetric_MEMORY_DISTANCE_METRIC_COSINE,
-	}
-	return NewRuntimeEmbeddingPort(
+	return newFixtureEmbeddingPort(
 		f.backend,
 		f.binding.AccountSubjectRef,
 		f.binding.LocalAgentRef,
-		func(context.Context, string, string) (ResolvedEmbeddingBinding, error) {
-			return ResolvedEmbeddingBinding{ConfigRevision: f.snapshot.ConfigRevision, EmbeddingSpaceRef: f.snapshot.EmbeddingSpaceRef, Profile: profile}, nil
+		func(_ context.Context, _, _ string, request memoryv1.AIEmbeddingRequest) (ResolvedEmbeddingBinding, error) {
+			return ResolvedEmbeddingBinding{ConfigRevision: f.snapshot.ConfigRevision, EmbeddingSpaceRef: f.snapshot.EmbeddingSpaceRef, Execution: []byte(fmt.Sprintf(`{"count":%d}`, len(request.Inputs)))}, nil
 		},
-		func(_ context.Context, _ *runtimev1.MemoryEmbeddingProfile, inputs []string) ([][]float64, error) {
+		func(_ context.Context, raw []byte) (memoryv1.AIEmbeddingResult, error) {
 			(*paidExecutions)++
-			vectors := make([][]float64, len(inputs))
+			var captured struct {
+				Count int `json:"count"`
+			}
+			_ = json.Unmarshal(raw, &captured)
+			vectors := make([][]float64, captured.Count)
 			for index := range vectors {
 				vectors[index] = []float64{1, 0}
 			}
-			return vectors, nil
+			return memoryv1.AIEmbeddingResult{Vectors: vectors, Dimension: 2, SpaceID: f.snapshot.EmbeddingSpaceRef}, nil
 		},
 	)
 }

@@ -32,6 +32,7 @@ type OwnerPort interface {
 	InspectStatusSummary(context.Context, string, string) (memoryv1.Status, error)
 	ListPendingEvents(context.Context, string, string) ([]memoryv1.EventStatus, error)
 	RebuildEmbedding(context.Context, string, string, memoryv1.CapabilitySnapshot, memoryv1.EmbeddingPort) (memoryv1.Outcome, error)
+	ResumeEmbeddingDispositions(context.Context, string, memoryv1.EmbeddingPort) error
 	PendingEmbeddingRebuilds(context.Context, string) ([]memoryv1.PendingEmbeddingRebuild, error)
 	NeedsEmbeddingRebuild(context.Context, string, memoryv1.CapabilitySnapshot) (bool, error)
 }
@@ -770,3 +771,10 @@ func ownerLifecycle(value runtimev1.CognitionMemoryLifecycle) memoryv1.Lifecycle
 }
 
 var _ OwnerPort = (*OwnerAdapter)(nil)
+
+func (a *OwnerAdapter) ResumeEmbeddingDispositions(ctx context.Context, bankRef string, port memoryv1.EmbeddingPort) error {
+	if a == nil || a.core == nil {
+		return fmt.Errorf("Memory owner unavailable")
+	}
+	return a.core.ResumeEmbeddingDispositions(ctx, bankRef, port)
+}

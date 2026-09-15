@@ -166,12 +166,18 @@ func (f *Facade) Recall(ctx context.Context, intent RecallIntent) (RecallOutcome
 }
 
 func (f *Facade) ResumePending(ctx context.Context, localAgentRef string) error {
+	if _, found, err := f.resumeForget(ctx, localAgentRef); found && err != nil {
+		return err
+	}
+	// Ordinary cleanup debt is reported independently; it must not stop
+	// canonical Remember processing or a new, unrelated index build.
+	cleanupErr := errors.Join(f.store.DisposeAgentEmbeddingPayloads(ctx, localAgentRef, false), f.store.disposeSettledOutboxCopies(ctx, localAgentRef))
 	binding, err := f.store.BindingForAgent(ctx, localAgentRef)
 	if err != nil {
 		return err
 	}
 	if !binding.Enabled || binding.AdoptionRequired || binding.BankRef == "" {
-		return nil
+		return cleanupErr
 	}
 	if err := f.authorize(ctx, binding); err != nil {
 		return err
@@ -185,7 +191,7 @@ func (f *Facade) ResumePending(ctx context.Context, localAgentRef string) error 
 			return err
 		}
 	}
-	return f.rebuildEmbeddingIfNeeded(ctx, binding)
+	return errors.Join(cleanupErr, f.rebuildEmbeddingIfNeeded(ctx, binding))
 }
 
 func (f *Facade) rebuildEmbeddingIfNeeded(ctx context.Context, binding Binding) error {
@@ -201,6 +207,7 @@ func (f *Facade) rebuildEmbeddingIfNeeded(ctx context.Context, binding Binding) 
 	if err != nil || port == nil {
 		return err
 	}
+	cleanupErr := f.owner.ResumeEmbeddingDispositions(ctx, binding.BankRef, port)
 	pending, err := f.owner.PendingEmbeddingRebuilds(ctx, binding.BankRef)
 	if err != nil {
 		return err
@@ -216,10 +223,10 @@ func (f *Facade) rebuildEmbeddingIfNeeded(ctx context.Context, binding Binding) 
 	}
 	needsRebuild, err := f.owner.NeedsEmbeddingRebuild(ctx, binding.BankRef, snapshot)
 	if err != nil || !needsRebuild {
-		return err
+		return errors.Join(cleanupErr, err)
 	}
 	_, err = f.owner.RebuildEmbedding(ctx, "cmindex_"+ulid.Make().String(), binding.BankRef, snapshot, port)
-	return err
+	return errors.Join(cleanupErr, err)
 }
 
 func (f *Facade) Inspect(ctx context.Context, intent InspectIntent) (Projection, error) {
@@ -350,29 +357,19 @@ func (f *Facade) Forget(ctx context.Context, localAgentRef string, memoryRefs []
 	if err := f.authorize(ctx, binding); err != nil {
 		return MutationOutcome{Outcome: memoryv1.OutcomeInvalid}, err
 	}
-	request := &runtimev1.CognitionMemoryForgetRequest{
-		ContractVersion: memoryv1.ContractVersion,
-		BankBinding:     &runtimev1.CognitionMemoryBankBindingRef{Value: binding.BindingRef},
-		Bank:            &runtimev1.CognitionMemoryBankRef{Value: binding.BankRef},
-		Operation:       &runtimev1.CognitionMemoryOperationRef{Value: "cmforget_" + ulid.Make().String()},
-		Confirmed:       true,
+	if err := f.prepareForget(ctx, binding, memoryRefs); err != nil {
+		return MutationOutcome{Outcome: memoryv1.OutcomeUnavailable}, err
 	}
-	for _, ref := range memoryRefs {
-		request.Targets = append(request.Targets, &runtimev1.CognitionMemoryRef{Value: ref})
-	}
-	result, err := f.owner.Forget(ctx, request)
+	mutation, _, err := f.resumeForget(ctx, localAgentRef)
 	if err != nil {
-		return MutationOutcome{Outcome: ownerMemoryOutcome(result.GetOutcome())}, err
+		return mutation, err
 	}
-	affected := make([]string, 0, len(result.GetAffectedMemories()))
-	for _, ref := range result.GetAffectedMemories() {
-		affected = append(affected, ref.GetValue())
-	}
+	affected := mutation.AffectedMemoryRefs
 	if err := f.rebuildEmbeddingIfNeeded(ctx, binding); err != nil {
-		return MutationOutcome{Outcome: ownerMemoryOutcome(result.GetOutcome()), AffectedMemoryRefs: affected}, err
+		return MutationOutcome{Outcome: mutation.Outcome, AffectedMemoryRefs: affected}, err
 	}
 	projection, inspectErr := f.Inspect(ctx, InspectIntent{LocalAgentRef: localAgentRef, Limit: 100})
-	return MutationOutcome{Outcome: ownerMemoryOutcome(result.GetOutcome()), AffectedMemoryRefs: affected, Projection: projection}, inspectErr
+	return MutationOutcome{Outcome: mutation.Outcome, AffectedMemoryRefs: affected, Projection: projection}, inspectErr
 }
 
 func (f *Facade) SetEnabled(ctx context.Context, localAgentRef string, enabled bool) (MutationOutcome, error) {
@@ -523,6 +520,25 @@ func (f *Facade) applyCutoff(ctx context.Context, localAgentRef string, deleteAl
 		row.Phase = "cognition_committed"
 	}
 	if row.Phase == "cognition_committed" {
+		// The old stream is already fenced. Retire only its pending copies
+		// before mirroring those settled handoff facts into owner backups.
+		if err := f.store.backend.WriteTx(ctx, func(tx *sql.Tx) error {
+			_, err := tx.Exec(`UPDATE runtime_cognition_memory_outbox SET state = 'cutoff_non_effecting', outcome = 'no_effect', payload = NULL WHERE binding_ref = ? AND state = 'pending'`, row.OldBindingRef)
+			return err
+		}); err != nil {
+			return MutationOutcome{Outcome: memoryv1.OutcomeUnavailable}, err
+		}
+		if err := f.store.disposeSettledOutboxCopies(ctx, localAgentRef); err != nil {
+			return MutationOutcome{Outcome: memoryv1.OutcomeUnavailable}, err
+		}
+		if err := f.store.DisposeAgentEmbeddingPayloads(ctx, localAgentRef, true); err != nil {
+			return MutationOutcome{Outcome: memoryv1.OutcomeUnavailable}, err
+		}
+		if row.BankRef != "" {
+			if err := f.owner.ResumeEmbeddingDispositions(ctx, row.BankRef, f.store.EmbeddingDispositionPort(localAgentRef)); err != nil {
+				return MutationOutcome{Outcome: memoryv1.OutcomeUnavailable}, err
+			}
+		}
 		if err := f.store.backend.WriteTx(ctx, func(tx *sql.Tx) error {
 			if row.BankRef == "" {
 				if err := f.store.RotateUnboundCutoffTx(tx, localAgentRef, row.OldBindingRef, row.ReplacementBindingRef, row.NewLifecycleRef, row.DesiredEnabled); err != nil {

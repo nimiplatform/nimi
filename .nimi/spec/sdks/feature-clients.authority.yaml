@@ -262,11 +262,11 @@ units:
         target: definition.nimi.sdks.feature-clients.app-client-plane
   - id: rule.nimi.sdks.feature-clients.r020
     kind: rule
-    title: The inventory operation set is fixed and read-only
+    title: Desktop App management and ordinary App operations remain separate
     modality: must
-    statement: The current Desktop tooling SDK may expose only app.list, app.get, and app.status over an explicitly injected read-only Runtime registration projection; those inventory reads are outside the App Operation Contract and cannot admit or launch an App, while app.install, app.update, app.uninstall, app.launch, app.healthRepair, import, promotion, package-job, account-inventory, package-readiness, and lifecycle subscription operations remain absent and local-development launch is Desktop initiated rather than an SDK app-id call.
-    condition: Whenever the current app read-projection operation set is defined or consumed.
-    failure: Reject ordinary catalog activation, deferred projections, mutation operations, subscriptions, and inferred sources.
+    statement: The protected Desktop machine-product SDK exposes only the typed catalog-target, source-qualified package information, local-import candidate, admitted install, update and uninstall, committed-release, package-job control and observation, readiness and inventory projections supported by their current Runtime and Platform lifecycle owners. Read-only app.list, app.get and app.status registration projections remain non-authorizing tooling, while ordinary App clients expose no package lifecycle mutation, Desktop launch selector or machine-product management operation. An SDK method never creates admission, running or App access truth independently of its owner.
+    condition: Whenever Desktop tooling, machine-product App management, or the ordinary App read-projection operation set is defined or consumed.
+    failure: Reject ordinary App access to machine-product operations, unavailable owner actions, generic package execution, synthetic lifecycle results and inferred runnable sources.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.app-client-plane
@@ -327,21 +327,21 @@ units:
     reason: Removed because no current app lifecycle subscription is admitted; ordinary lifecycle and account-inventory event projections are physically absent.
   - id: rule.nimi.sdks.feature-clients.r027
     kind: rule
-    title: Future catalog metadata cannot activate current Apps
+    title: Catalog projection follows current lifecycle admission
     modality: must
-    statement: Retained generated Platform catalog rows and release descriptors are future-only read-only metadata, current app.list and Desktop Apps consumers never turn them into ordinary visibility or runnable truth, Avatar, bundled first-party, developer-only, workspace, app-local, and source-discovered rows never become ordinary Apps through the SDK, and any future ordinary catalog projection requires separately activated lifecycle authority and a new admitted consumer contract.
+    statement: Platform catalog rows and immutable release descriptors are read-only admission and discovery facts whose current visibility and availability follow the Platform App lifecycle owner. The protected Desktop machine-product SDK may project approved targets and exact committed local state through the admitted owner contract; catalog, bundled, developer-only, workspace or source metadata alone never creates a Runtime registration, installed release, protected session or runnable App, and ordinary App clients gain no marketplace or installation authority.
     condition: Whenever Platform catalog metadata is generated, exported, or considered by an Apps consumer.
-    failure: Reject current ordinary listing, inferred runnable truth, and activation from metadata presence.
+    failure: Reject visibility outside current owner admission, inferred runnable truth and activation from metadata presence alone.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.app-client-plane
   - id: rule.nimi.sdks.feature-clients.r028
     kind: rule
-    title: Immutable package mutation is unadmitted
+    title: Immutable package mutation stays behind the protected Desktop owner path
     modality: must
-    statement: Verified release descriptors are future-only read-only discovery and review metadata, the SDK cannot download, inspect, unpack, register, install, import, update, promote, rollback, repair, or execute an immutable artifact, those operations and package-readiness placeholders are physically absent from the Nimi App client, and the SDK never performs direct npm install, npx, GitHub clone, source build or run, lifecycle script execution, digest-only admission, or local file scanning as package truth.
+    statement: The SDK projects admitted immutable package operations only through the protected Desktop machine-product Runtime contract at each source and platform's current lifecycle availability; Runtime owns inspection, verification, staging, registration, atomic commit and package jobs, while ordinary App clients expose none of those management operations. The SDK never directly performs npm install, npx, GitHub clone, source build or run, lifecycle-script execution, digest-only admission or local file scanning as package truth, and unavailable operations have no successful placeholder.
     condition: Whenever immutable package operations are approached.
-    failure: Reject the operation without a placeholder or direct package execution path.
+    failure: Reject ordinary App package management, bypass of the protected Desktop owner path, unavailable actions and direct package execution.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.app-client-plane
@@ -373,11 +373,11 @@ units:
         target: definition.nimi.sdks.feature-clients.app-client-plane
   - id: rule.nimi.sdks.feature-clients.r031
     kind: rule
-    title: Destructive local-app data deletion is unadmitted
+    title: Uninstall never grants destructive App data authority
     modality: must
-    statement: 0K admits no immutable uninstall and no SDK delete-data prompt or action, a Registered App Subject tombstone leaves retained durable data as Runtime-owned delete-only state that reinstall, reauthorization, the same app id, the same project, or SDK inventory composition cannot rebind, and the SDK never exposes app.uninstall, force-delete, a retain-or-delete choice, an absolute data path, a size-derived deletion decision, direct filesystem mutation, or pseudo-success cleanup.
+    statement: An admitted source-qualified immutable uninstall uses the protected Desktop machine-product lifecycle contract and does not grant the ordinary SDK App client a delete-data prompt, force-delete action, retain-or-delete choice, absolute data path, size-derived deletion decision or direct filesystem mutation. A Registered App Subject tombstone leaves retained durable data as Runtime-owned delete-only state that reinstall, reauthorization, the same App id, project or SDK inventory composition cannot rebind; any separate data deletion requires its exact owner-admitted operation and confirmation.
     condition: Whenever local-app data deletion is approached.
-    failure: Reject deletion surfaces, rebinds, and pseudo-success cleanup.
+    failure: Reject ordinary App deletion surfaces, unadmitted data cleanup, subject or partition rebind and pseudo-success cleanup.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.app-client-plane

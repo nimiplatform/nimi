@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 	"unicode/utf8"
 
@@ -19,13 +20,15 @@ import (
 
 const (
 	storeFilename = "cognition-memory-v1.sqlite3"
-	schemaVersion = 2
+	schemaVersion = 4
 )
 
 type Core struct {
-	db     *sql.DB
-	now    func() time.Time
-	newRef func(string) (string, error)
+	embeddingMu     sync.Mutex
+	embeddingActive map[string]bool
+	db              *sql.DB
+	now             func() time.Time
+	newRef          func(string) (string, error)
 }
 
 type Option func(*Core)
@@ -227,8 +230,10 @@ func (c *Core) initialize() error {
 			pipeline TEXT NOT NULL,
 			algorithm_revision TEXT NOT NULL,
 			config_revision INTEGER NOT NULL,
-			capabilities_json BLOB NOT NULL,
-			outcome TEXT NOT NULL,
+            capabilities_json BLOB NOT NULL,
+            ai_lifecycle_ref TEXT NOT NULL DEFAULT '',
+            ai_disposition TEXT NOT NULL DEFAULT 'none' CHECK(ai_disposition IN ('none', 'retained', 'pending', 'done')),
+            outcome TEXT NOT NULL,
 			created_at TEXT NOT NULL,
 			updated_at TEXT NOT NULL
 		)`,
@@ -237,6 +242,11 @@ func (c *Core) initialize() error {
 		if _, err := tx.Exec(statement); err != nil {
 			return fmt.Errorf("memory core: initialize schema: %w", err)
 		}
+	}
+	// An interrupted consumer cannot still be using its execution copy. This
+	// changes only disposition; it never replays an AI request after restart.
+	if _, err := tx.Exec(`UPDATE memory_operation_routes SET ai_disposition = 'pending', outcome = 'conflict' WHERE ai_disposition = 'retained' AND operation_kind = 'recall'`); err != nil {
+		return err
 	}
 	if version == 0 {
 		if _, err := tx.Exec(fmt.Sprintf(`PRAGMA user_version = %d`, schemaVersion)); err != nil {

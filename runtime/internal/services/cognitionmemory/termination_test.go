@@ -145,15 +145,16 @@ func TestAccountTerminationMakesLateEmbeddingCallbackNonEffecting(t *testing.T) 
 
 	started := make(chan struct{})
 	release := make(chan struct{})
-	port := NewRuntimeEmbeddingPort(
+	store.SetEmbeddingDisposer(func(context.Context, string, string, []byte) error { return nil })
+	port := newFixtureEmbeddingPort(
 		backend, "account-late", "agent-account-late",
-		func(context.Context, string, string) (ResolvedEmbeddingBinding, error) {
-			return ResolvedEmbeddingBinding{ConfigRevision: 1, EmbeddingSpaceRef: "space-account-late", Profile: testEmbeddingProfile("provider-late", "model-late", 2)}, nil
+		func(context.Context, string, string, memoryv1.AIEmbeddingRequest) (ResolvedEmbeddingBinding, error) {
+			return ResolvedEmbeddingBinding{ConfigRevision: 1, EmbeddingSpaceRef: "space-account-late", Execution: []byte(`{"job":"late"}`)}, nil
 		},
-		func(context.Context, *runtimev1.MemoryEmbeddingProfile, []string) ([][]float64, error) {
+		func(context.Context, []byte) (memoryv1.AIEmbeddingResult, error) {
 			close(started)
 			<-release
-			return [][]float64{{0.25, 0.75}}, nil
+			return memoryv1.AIEmbeddingResult{Vectors: [][]float64{{0.25, 0.75}}, Dimension: 2, SpaceID: "space-account-late"}, nil
 		},
 	)
 	type embedResult struct {

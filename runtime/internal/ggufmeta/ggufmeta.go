@@ -111,6 +111,29 @@ func Inspect(reader io.Reader) (Summary, error) {
 	return summary, nil
 }
 
+// InspectEmbeddingMetadata requires the entire bounded metadata section. Unlike
+// optional LLM hints, a truncated prefix cannot prove an output contract: later
+// metadata may change pooling or output width. Tensor contents are not read.
+func InspectEmbeddingMetadata(reader io.Reader) (Summary, error) {
+	summary, err := readSummaryHeader(reader)
+	if err != nil {
+		return Summary{}, err
+	}
+	seen := make(map[string]bool)
+	for i := uint64(0); i < summary.KVCount; i++ {
+		entry, err := readMetadataEntry(reader, i)
+		if err != nil {
+			return Summary{}, err
+		}
+		if seen[entry.Key] {
+			return Summary{}, fmt.Errorf("duplicate embedding metadata key")
+		}
+		seen[entry.Key] = true
+		summary.Entries = append(summary.Entries, entry)
+	}
+	return summary, nil
+}
+
 // InspectLLMMetadata reads only the GGUF metadata needed by LLM Drivers. It
 // returns as soon as architecture and model-authored context length are known,
 // without traversing unrelated tokenizer arrays or tensor headers. If a

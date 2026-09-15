@@ -127,11 +127,11 @@ units:
         target: definition.nimi.sdks.realm-consumer.facade-plane
   - id: rule.nimi.sdks.realm-consumer.r010
     kind: rule
-    title: Scaffolded and Direct SDK Realm access remain distinct
+    title: Formal protected and Direct SDK Realm access remain distinct
     modality: must
-    statement: An App Tools Scaffolded Desktop-hosted Local App uses the standard SDK through Runtime-mediated Realm access and never receives, reads, stores, or refreshes a Realm JWT or maintains Runtime session proof, while a Direct SDK Consumer outside that hosted path may use the standard Realm Auth flow and is responsible for securely maintaining and refreshing its own Realm token.
+    statement: Every formal protected App, independently of scaffolding, adoption, framework or admitted source, uses the standard SDK through Runtime-mediated Realm access and receives no Realm JWT, refresh token or Runtime session proof; an independently authenticated Direct SDK consumer outside the formal protected App surface may use standard Realm Auth and owns secure token custody and refresh. Source-generation tooling never selects an authorization mode.
     condition: Whenever SDK Realm authentication or token custody is selected for a consumer.
-    failure: Reject a user-selectable transport profile, Realm token custody in a Scaffolded Local App, or implicit token custody for a Direct SDK Consumer.
+    failure: Reject a user-selectable transport profile, Realm token custody in a formal protected App, or implicit token custody for a Direct SDK Consumer.
     relations:
       - type: applies_to
         target: definition.nimi.sdks.realm-consumer.facade-plane

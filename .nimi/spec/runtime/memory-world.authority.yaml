@@ -154,12 +154,14 @@ units:
     kind: rule
     title: Mutation and deletion are owner confirmed
     modality: must
-    statement: Runtime reports Memory correction, forget, delete-all, Agent termination, or admitted account deletion success only after every required Cognition and Runtime owner phase commits or is already absent, and retry remains idempotent according to the opaque owner operation contract without changing Realm source, committed Conversation, or another Agent. V1 terminal subject cleanup always returns typed unsupported before custody or mutation; if future additive authority admits it, success likewise requires every newly specified owner and barrier phase to commit or be already absent.
+    statement: "Runtime reports Memory correction, forget, delete-all, Agent termination, or admitted account deletion success only after every required Cognition and Runtime owner phase commits or is already absent, and retry remains idempotent according to the opaque owner operation contract without changing Realm source, committed Conversation, or another Agent. V1 terminal subject cleanup always returns typed unsupported before custody or mutation; if future additive authority admits it, success likewise requires every newly specified owner and barrier phase to commit or be already absent. For an admitted Memory forget or deletion, completion includes the corresponding Nimi-controlled execution-copy disposition: Cognition determines the target and Runtime independently disposes its exact Job-side content before confirming required local cleanup, retaining only non-content facts and nonrecoverable lineage. Disabling Memory preserves established canonical Memory while retiring ineligible execution and its unnecessary copies under the existing cutoff; it is not delete-all."
     condition: Whenever Memory or Knowledge lifecycle intent executes.
     failure: Return the typed failure or pending state without changing Conversation or unrelated owner truth.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.memory-world.memory-lifecycle-mediation-plane
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.memory-derived-payload
   - id: rule.nimi.runtime.memory-world.r011
     kind: rule
     title: Internal substrate is not a public authority
@@ -328,7 +330,7 @@ units:
     kind: rule
     title: Pre-Cognition-v1 Memory and Knowledge paths are hard cut
     modality: must_not
-    statement: Pre-V1 Runtime long-term Memory store tables or owner-side Memory service Jobs, RuntimeAgent direct Memory write or review ownership, generic RuntimeCognition Memory or Knowledge operations, APP_PRIVATE or WORKSPACE_PRIVATE banks, generic Knowledge pages or search, SDK Memory export or observatory, legacy decoder, compatibility stub, dual read or write, feature flag, fallback owner, product startup migration, or pre-v1 data becomes an active Cognition-v1 product path or future placeholder; canonical Runtime AI Jobs used through the Cognition AI port remain a separate retained responsibility.
+    statement: Pre-V1 Runtime long-term Memory store tables or owner-side Memory service Jobs, RuntimeAgent direct Memory write or review ownership, generic RuntimeCognition Memory or Knowledge operations, APP_PRIVATE or WORKSPACE_PRIVATE banks, generic Knowledge pages or search, SDK Memory export or observatory, legacy decoder, compatibility stub, dual read or write, feature flag, fallback owner, product startup migration, or pre-v1 data becomes an active Cognition-v1 product path or future placeholder; canonical Runtime AI Jobs used through the Cognition AI port remain a separate execution and non-content metadata responsibility whose Memory-derived payload is governed by its consumption and Memory deletion lifecycle, not an exemption from disposal.
     condition: Whenever Memory or Knowledge is started, restored, delivered, queried, mutated, exposed, or upgraded after the Cognition v1 authority is active.
     failure: Keep only the new Runtime mediation and Cognition owner path active, return unsupported transport for removed wire callers, and handle pre-release old data only through a one-time non-product disposition.
     relations:
@@ -336,3 +338,5 @@ units:
         target: definition.nimi.cognition.memory.domain
       - type: applies_to
         target: definition.nimi.runtime.memory-world.memory-mediation-plane
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.memory-derived-payload

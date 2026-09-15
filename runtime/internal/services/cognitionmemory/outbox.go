@@ -1,6 +1,5 @@
-// Package cognitionmemory contains the Runtime-owned, unregistered Memory
-// binding and committed-event outbox seam used by direct integration tests
-// before the single active cutover.
+// Package cognitionmemory adapts Runtime-owned bindings, committed-event
+// delivery and execution-copy lifecycle to the Cognition Memory owner.
 package cognitionmemory
 
 import (
@@ -11,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 	"unicode/utf8"
 
@@ -27,8 +27,11 @@ var (
 )
 
 type Store struct {
-	backend *runtimepersistence.Backend
-	now     func() time.Time
+	embeddingCaptures     sync.Map
+	disposeEmbedding      EmbeddingDisposer
+	disposeAgentEmbedding func(context.Context, string) error
+	backend               *runtimepersistence.Backend
+	now                   func() time.Time
 }
 
 type Binding struct {
@@ -625,4 +628,42 @@ func boolInt(value bool) int {
 		return 1
 	}
 	return 0
+}
+
+// Copy disposal follows the handoff owner's actual terminal state. A target
+// forget must never convert an unrelated live pending event into a cutoff.
+func (s *Store) disposeSettledOutboxCopies(ctx context.Context, agent string) error {
+	rows, err := s.backend.DB().QueryContext(ctx, `SELECT o.operation_id, o.binding_ref, o.state, o.outcome FROM runtime_cognition_memory_outbox o JOIN runtime_cognition_memory_stream x ON x.binding_ref = o.binding_ref WHERE x.local_agent_ref = ? AND o.state <> 'pending'`, agent)
+	if err != nil {
+		return err
+	}
+	type settled struct {
+		operation, binding, state string
+		outcome                   sql.NullString
+	}
+	var items []settled
+	for rows.Next() {
+		var item settled
+		if err := rows.Scan(&item.operation, &item.binding, &item.state, &item.outcome); err != nil {
+			return errors.Join(err, rows.Close())
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return errors.Join(err, rows.Close())
+	}
+	if err := rows.Close(); err != nil {
+		return err
+	}
+	if len(items) == 0 {
+		return nil
+	}
+	return s.backend.RewriteRecoverySnapshots(ctx, func(tx *sql.Tx) error {
+		for _, item := range items {
+			if _, err := tx.Exec(`UPDATE runtime_cognition_memory_outbox SET payload = NULL, state = ?, outcome = ? WHERE operation_id = ? AND binding_ref = ?`, item.state, item.outcome, item.operation, item.binding); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }

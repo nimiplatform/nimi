@@ -133,6 +133,7 @@ type ModelAssetStructuredProbeDriver interface {
 // ModelAsset facts. ModelContextWindowTokens is populated only by dialects
 // whose execution contract consumes model-authored context metadata.
 type ModelAssetBindingProjection struct {
+	EmbeddingDimension       int
 	Descriptor               ModelAssetDescriptor
 	ModelContextWindowTokens uint64
 	// TemplateIdentity is the canonical digest of the exact model-authored

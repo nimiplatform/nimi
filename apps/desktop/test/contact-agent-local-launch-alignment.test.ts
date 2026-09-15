@@ -47,7 +47,7 @@ test('existing character source materialization stays outside renderer Chat iden
     avatarUrl: null,
     bio: 'ordinary character source',
     sourceRef: WORLD_SOURCE_REF,
-  }, 'user-1', testTranslate, sdk);
+  }, 'user-1', testTranslate, sdk, () => true);
 
   assert.equal(result, undefined);
   assert.equal(materializeCalls, 0);
@@ -102,7 +102,7 @@ test('character source materialization re-reads committed ownership without retu
     sourceId: 'character-1',
     sourceHash: SOURCE_HASH,
     sourceRef: WORLD_SOURCE_REF,
-  }, 'user-1', testTranslate, sdk);
+  }, 'user-1', testTranslate, sdk, () => true);
 
   assert.equal(result, undefined);
   assert.deepEqual(discoveryInputs[1], { ownerUserId: 'user-1', sourceRef: WORLD_SOURCE_REF });

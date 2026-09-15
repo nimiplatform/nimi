@@ -22,6 +22,13 @@ const llamaEmbedModelAlias = "nimi-selected-local-embedding"
 // process, endpoint, or fallback authority with the llama ExecutionHost.
 type LlamaEmbedDriver struct{}
 
+func (LlamaEmbedDriver) ModelAssetFormatProbeBytes(input ModelAssetFormatProbeInput) int64 {
+	if input.Entry && input.RecipeID == LlamaEmbedGGUFRecipeID && input.RequirementID == EmbeddingGGUFRequirementID {
+		return MaxDriverAssetFormatProbeBytes
+	}
+	return MaxAssetFormatProbeBytes
+}
+
 func (LlamaEmbedDriver) ImplementationSupportedFeatures(recipeID string) ([]string, runtimev1.LocalCapabilityReason) {
 	if strings.TrimSpace(recipeID) != LlamaEmbedGGUFRecipeID {
 		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
@@ -47,19 +54,41 @@ func (LlamaEmbedDriver) recipeModelArchitectures(recipeID string, slotID string)
 	return []string{"bert", "nomic-bert", "qwen3"}
 }
 
+// @nimi-authority: rule.nimi.runtime.ai-provider.embedding-output-contract
 func (driver LlamaEmbedDriver) ProjectModelAssetBinding(input ModelAssetBindingInput) (ModelAssetBindingProjection, runtimev1.LocalCapabilityReason) {
 	probe := input.Entry.FormatProbe
-	if filepath.Ext(strings.ToLower(input.Entry.RelativePath)) != ".gguf" || len(probe) < 4 || len(probe) > MaxAssetFormatProbeBytes || !bytes.Equal(probe[:4], []byte("GGUF")) {
+	if filepath.Ext(strings.ToLower(input.Entry.RelativePath)) != ".gguf" || len(probe) < 4 || len(probe) > MaxDriverAssetFormatProbeBytes || !bytes.Equal(probe[:4], []byte("GGUF")) {
 		return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
 	}
-	summary, err := ggufmeta.InspectLLMMetadata(bytes.NewReader(probe))
+	summary, err := ggufmeta.InspectEmbeddingMetadata(bytes.NewReader(probe))
 	if err != nil || !contains(driver.recipeModelArchitectures(input.RecipeID, EmbeddingGGUFRequirementID), ggufmeta.LLMDetectedArchitecture(summary)) {
 		return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
 	}
+	architecture := ggufmeta.LLMDetectedArchitecture(summary)
+	dimension, ok := summary.Uint64Value(architecture + ".embedding_length")
+	if !ok || dimension == 0 || dimension > uint64(^uint32(0)>>1) {
+		return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+	}
+	// The admitted dialect does not support rank pooling or reduced/projected
+	// output heads. Those need a separately reviewed Model Contract.
+	if summary.HasKey(architecture + ".embedding_length_out") {
+		output, valid := summary.Uint64Value(architecture + ".embedding_length_out")
+		if !valid || output != dimension {
+			return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+		}
+	}
+	if summary.HasKey(architecture + ".pooling_type") {
+		pooling, valid := summary.Uint64Value(architecture + ".pooling_type")
+		if !valid || pooling < 1 || pooling > 3 {
+			return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+		}
+	}
 	contextWindow, _ := ggufmeta.LLMContextLength(summary)
-	return validatedModelAssetBindingProjection(input, ModelAssetDescriptor{
+	projection, reason := validatedModelAssetBindingProjection(input, ModelAssetDescriptor{
 		Kind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING, Engine: "llama", ArtifactRoles: []string{"embedding"}, FormatProbe: probe,
 	}, contextWindow, driver.ValidateBinding)
+	projection.EmbeddingDimension = int(dimension)
+	return projection, reason
 }
 
 func (LlamaEmbedDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {

@@ -53,6 +53,12 @@ func TestLlamaDriversProjectBoundedGGUFIdentityBeforeTruncatedMetadata(t *testin
 				},
 				Entry: ModelAssetFileFact{RelativePath: "model.gguf", SizeBytes: 1 << 30, FormatProbe: probe},
 			})
+			if test.kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING {
+				if reason == success {
+					t.Fatal("truncated embedding contract admitted")
+				}
+				return
+			}
 			if reason != success {
 				t.Fatalf("ProjectModelAssetBinding reason=%v", reason)
 			}

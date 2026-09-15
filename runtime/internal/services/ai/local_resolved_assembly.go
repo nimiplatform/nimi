@@ -26,6 +26,8 @@ import (
 const localResolvedAssemblyVersion = 4
 
 type localResolvedAssembly struct {
+	EmbeddingDimension              int                                     `json:"embedding_dimension,omitempty"`
+	AIConfigRevision                uint64                                  `json:"ai_config_revision,omitempty"`
 	Version                         int                                     `json:"version"`
 	LoadoutID                       string                                  `json:"loadout_id"`
 	CapabilityContract              string                                  `json:"capability_contract"`
@@ -564,6 +566,7 @@ func localResolvedAssemblyForEmbed(selected *localexecution.SelectedLocalExecuti
 	if err != nil {
 		return nil, err
 	}
+	assembly.EmbeddingDimension = selected.EmbeddingDimension
 	assembly.LoadPlan = localResolvedAssemblyLoadPlan{Kind: "embed", Embed: &localResolvedAssemblyEmbedPlan{
 		ProcessKey: plan.ProcessKey(), ProcessArgs: plan.ProcessArgs(), ModelFiles: resolvedAssemblyInvocationBindings(plan.ModelFiles()),
 		RequestPath: plan.RequestPath(), RequestBody: plan.RequestBody(), ExpectedCount: plan.ExpectedCount(),
@@ -998,7 +1001,7 @@ func validateLocalResolvedAssembly(assembly *localResolvedAssembly) error {
 			return fmt.Errorf("local ResolvedAssembly admitted text behavior has no adapter")
 		}
 	case "embed":
-		if assembly.LoadPlan.Embed == nil || strings.TrimSpace(assembly.LoadPlan.Embed.ProcessKey) == "" || assembly.LoadPlan.Embed.ExpectedCount <= 0 {
+		if assembly.LoadPlan.Embed == nil || strings.TrimSpace(assembly.LoadPlan.Embed.ProcessKey) == "" || assembly.LoadPlan.Embed.ExpectedCount <= 0 || assembly.EmbeddingDimension <= 0 {
 			return fmt.Errorf("local ResolvedAssembly embed load plan is incomplete")
 		}
 	case "speech":

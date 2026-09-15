@@ -112,6 +112,7 @@
   "friends": "Friends",
   "posts": "Posts",
   "likes": "Likes",
+  "partnerUnavailable": "This partner is no longer available. Choose a current partner from the chat list.",
   "noSourceSelected": "No character selected",
   "noSourceDataAvailable": "No character details available"
 }

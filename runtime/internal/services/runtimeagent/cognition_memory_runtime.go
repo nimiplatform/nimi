@@ -112,14 +112,16 @@ func (s *Service) AuthorizeCognitionMemoryBinding(ctx context.Context, binding c
 	return s.authorizeCognitionMemoryBinding(ctx, binding)
 }
 
-func (s *Service) ResolveCognitionMemoryEmbeddingIntent(ctx context.Context, localAgentRef string) (string, *cognitionmemory.MemoryEmbeddingTextEmbedIntentSnapshot, error) {
+func (s *Service) CognitionMemoryAccount(localAgentRef string) (string, error) {
 	entry, err := s.agentByID(strings.TrimSpace(localAgentRef))
 	if err != nil {
-		return "", nil, err
+		return "", err
 	}
-	accountID := strings.TrimSpace(entry.Agent.GetOwnerUserId())
-	intent, err := s.ResolveMemoryEmbeddingIntent(ctx, accountID, entry.Agent.GetLocalAgentRef())
-	return accountID, intent, err
+	account := strings.TrimSpace(entry.Agent.GetOwnerUserId())
+	if account == "" {
+		return "", fmt.Errorf("Cognition Memory account is unavailable")
+	}
+	return account, nil
 }
 
 func (s *Service) triggerCognitionMemory(localAgentRef string) {

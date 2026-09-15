@@ -25,6 +25,27 @@ func (s *Service) captureImmediateLocalScenarioJob(
 	effectiveInputIdentity *runtimev1.LoadoutEffectiveInputIdentity,
 	assembly *localResolvedAssembly,
 ) (*runtimev1.ScenarioJob, context.Context, error) {
+	job, jobCtx, err := s.prepareLocalScenarioJob(ctx, head, scenarioType, mode, modelResolved, ignored, effectiveInputIdentity, assembly)
+	if err != nil {
+		return nil, nil, err
+	}
+	if !s.scenarioJobs.startExecution(job.GetJobId()) {
+		return nil, nil, grpcerr.WithReasonCode(codes.Canceled, runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CANCELED)
+	}
+	return job, jobCtx, nil
+}
+
+func (s *Service) prepareLocalScenarioJob(
+	ctx context.Context,
+	head *runtimev1.ScenarioRequestHead,
+	scenarioType runtimev1.ScenarioType,
+	mode runtimev1.ExecutionMode,
+	modelResolved string,
+	ignored []*runtimev1.IgnoredScenarioExtension,
+	effectiveInputIdentity *runtimev1.LoadoutEffectiveInputIdentity,
+	assembly *localResolvedAssembly,
+	payload ...*embeddingPayload,
+) (*runtimev1.ScenarioJob, context.Context, error) {
 	if s == nil || head == nil || effectiveInputIdentity == nil || assembly == nil {
 		return nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
@@ -63,7 +84,7 @@ func (s *Service) captureImmediateLocalScenarioJob(
 		EffectiveInputIdentity: effectiveInputIdentity,
 	}
 	stored, created, persistErr := s.scenarioJobs.createOwnedAndBindAssemblyChecked(
-		job, cancel, localAppJobOwnerFromContext(ctx), "", assembly,
+		job, cancel, localAppJobOwnerFromContext(ctx), "", assembly, payload...,
 	)
 	if persistErr != nil {
 		cancel()
@@ -71,7 +92,7 @@ func (s *Service) captureImmediateLocalScenarioJob(
 			Message: "captured ResolvedAssembly and ScenarioJob could not be committed atomically",
 		})
 	}
-	if !created || stored == nil || !s.scenarioJobs.startExecution(stored.GetJobId()) {
+	if !created || stored == nil {
 		cancel()
 		return nil, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}

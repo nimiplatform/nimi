@@ -48,6 +48,9 @@ func (c *Core) ApplyCutoff(ctx context.Context, request CutoffRequest) (CutoffRe
 	if bankState != "active" || bindingState != "active" || lifecycleRef != request.CurrentLifecycleRef {
 		return CutoffResult{Outcome: OutcomeConflict}, contractError(OutcomeConflict, "lifecycle_cutoff")
 	}
+	if err := fenceEmbeddingDispositionsTx(ctx, tx, request.BankRef); err != nil {
+		return CutoffResult{Outcome: OutcomeUnavailable}, err
+	}
 	now := formatTime(c.now())
 	if _, err := tx.ExecContext(ctx, `UPDATE memory_operation_routes SET outcome = ?, updated_at = ? WHERE bank_ref = ? AND outcome = 'pending'`, OutcomeConflict, now, request.BankRef); err != nil {
 		return CutoffResult{Outcome: OutcomeUnavailable}, fmt.Errorf("apply cutoff: fence pending routes: %w", err)

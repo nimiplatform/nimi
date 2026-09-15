@@ -35,7 +35,7 @@ func TestMemoryEmbeddingTargetAuthorizationPreservesAgentLookupCause(t *testing.
 	const localAgentRef = "private-missing-agent"
 	svc := &Service{agents: map[string]*agentEntry{}}
 
-	err := svc.authorizeMemoryEmbeddingTarget("owner-a", localAgentRef)
+	err := svc.AuthorizeSourceEmbeddingTarget("owner-a", localAgentRef)
 	if err == nil {
 		t.Fatal("expected missing agent authorization error")
 	}

@@ -52,6 +52,8 @@ type scenarioJobPersistenceAttempt struct {
 }
 
 type scenarioJobRecord struct {
+	payload          *embeddingPayload
+	executionDone    chan struct{}
 	job              *runtimev1.ScenarioJob
 	resolvedAssembly *localResolvedAssembly
 	cloudAssembly    *cloudResolvedAssembly
@@ -150,8 +152,9 @@ func (s *scenarioJobStore) createOwnedAndBindAssemblyChecked(
 	owner *localAppJobOwner,
 	idempotencyScope string,
 	resolvedAssembly *localResolvedAssembly,
+	payload ...*embeddingPayload,
 ) (*runtimev1.ScenarioJob, bool, error) {
-	return s.createOwnedAndBindCapturedInputsChecked(job, cancel, owner, idempotencyScope, resolvedAssembly, nil, false)
+	return s.createOwnedAndBindCapturedInputsChecked(job, cancel, owner, idempotencyScope, resolvedAssembly, nil, false, payload...)
 }
 
 func (s *scenarioJobStore) createOwnedAndBindCloudAssemblyChecked(
@@ -160,8 +163,9 @@ func (s *scenarioJobStore) createOwnedAndBindCloudAssemblyChecked(
 	owner *localAppJobOwner,
 	idempotencyScope string,
 	cloudAssembly *cloudResolvedAssembly,
+	payload ...*embeddingPayload,
 ) (*runtimev1.ScenarioJob, bool, error) {
-	return s.createOwnedAndBindCapturedInputsChecked(job, cancel, owner, idempotencyScope, nil, cloudAssembly, true)
+	return s.createOwnedAndBindCapturedInputsChecked(job, cancel, owner, idempotencyScope, nil, cloudAssembly, true, payload...)
 }
 
 func (s *scenarioJobStore) createOwnedAndBindCapturedInputsChecked(
@@ -172,6 +176,7 @@ func (s *scenarioJobStore) createOwnedAndBindCapturedInputsChecked(
 	resolvedAssembly *localResolvedAssembly,
 	cloudAssembly *cloudResolvedAssembly,
 	consumePendingCloudCustody bool,
+	payload ...*embeddingPayload,
 ) (*runtimev1.ScenarioJob, bool, error) {
 	if job == nil {
 		return nil, false, fmt.Errorf("scenario job is required")
@@ -202,7 +207,15 @@ func (s *scenarioJobStore) createOwnedAndBindCapturedInputsChecked(
 	if err := validateScenarioJobCapturedInputsPair(job, capturedAssembly, capturedCloudAssembly); err != nil {
 		return nil, false, err
 	}
+	var capturedPayload *embeddingPayload
+	if len(payload) > 0 {
+		capturedPayload = cloneEmbeddingPayload(payload[0])
+	}
+	if err := validateScenarioJobPayload(job, capturedAssembly, capturedCloudAssembly, capturedPayload); err != nil {
+		return nil, false, err
+	}
 	record := &scenarioJobRecord{
+		payload:          capturedPayload,
 		job:              cloneScenarioJob(job),
 		resolvedAssembly: capturedAssembly,
 		cloudAssembly:    capturedCloudAssembly,
@@ -963,11 +976,12 @@ func (s *scenarioJobStore) startExecution(jobID string) bool {
 	}
 	s.mu.Lock()
 	record, ok := s.jobs[id]
-	if !ok || record == nil || record.job == nil || isTerminalScenarioJobStatus(record.job.GetStatus()) || record.cancelRequested || record.executionStarted {
+	if !ok || record == nil || record.job == nil || isTerminalScenarioJobStatus(record.job.GetStatus()) || record.cancelRequested || record.executionStarted || (record.payload != nil && record.payload.State != "retained") {
 		s.mu.Unlock()
 		return false
 	}
 	record.executionStarted = true
+	record.executionDone = make(chan struct{})
 	s.mu.Unlock()
 	return true
 }
@@ -1025,6 +1039,9 @@ func (s *scenarioJobStore) finishExecution(jobID string) (bool, error) {
 		return false, nil
 	}
 	terminalPersisted := false
+	if record.executionStarted && record.executionDone != nil {
+		close(record.executionDone)
+	}
 	record.executionStarted = false
 	cancel := record.cancel
 	record.cancel = nil
@@ -1279,6 +1296,10 @@ func (s *scenarioJobStore) pruneJobsLocked(now time.Time) {
 		if record.cloudAssembly != nil && strings.TrimSpace(record.cloudAssembly.CredentialCustodyRef) != "" {
 			continue
 		}
+		// Only content awaiting disposition needs protection from ordinary TTL.
+		if record.payload != nil && record.payload.State != "disposed" {
+			continue
+		}
 		terminalAt := scenarioJobRecordTimestamp(record)
 		if !terminalAt.IsZero() && terminalAt.Before(cutoff) {
 			s.deleteJobLocked(jobID)
@@ -1429,4 +1450,25 @@ func cloneScenarioArtifact(input *runtimev1.ScenarioArtifact) *runtimev1.Scenari
 		return nil
 	}
 	return out
+}
+
+// claimPreparedEmbedding replaces only the in-process cancellation hook, never
+// captured inputs. Restored interrupted jobs are terminal and cannot be claimed.
+func (s *scenarioJobStore) claimPreparedEmbedding(ctx context.Context, id string) (context.Context, context.CancelFunc, error) {
+	s.mu.Lock()
+	record, ok := s.jobs[id]
+	if !ok || record == nil || record.job == nil || record.job.GetScenarioType() != runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED || record.job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED || record.cancelRequested || record.executionStarted || (record.payload != nil && record.payload.State != "retained") {
+		s.mu.Unlock()
+		return nil, nil, fmt.Errorf("captured Memory embedding Job is no longer executable")
+	}
+	jobCtx, cancel := context.WithCancel(ctx)
+	oldCancel := record.cancel
+	record.cancel = cancel
+	record.executionStarted = true
+	record.executionDone = make(chan struct{})
+	s.mu.Unlock()
+	if oldCancel != nil {
+		oldCancel()
+	}
+	return jobCtx, cancel, nil
 }

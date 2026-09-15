@@ -31,6 +31,8 @@ const (
 // an exact Connector custody record; credential material stays in the
 // request-scoped Remote ExecutionHost opening point.
 type cloudResolvedAssembly struct {
+	EmbeddingDimension   int                                   `json:"embedding_dimension,omitempty"`
+	AIConfigRevision     uint64                                `json:"ai_config_revision,omitempty"`
 	Version              int                                   `json:"version"`
 	RequestKind          string                                `json:"request_kind"`
 	CapabilityContract   string                                `json:"capability_contract"`
@@ -143,6 +145,9 @@ func cloneCloudResolvedAssembly(input *cloudResolvedAssembly) (*cloudResolvedAss
 }
 
 func validateCloudResolvedAssembly(assembly *cloudResolvedAssembly) error {
+	if assembly != nil && assembly.RequestKind == cloudResolvedRequestEmbed && assembly.EmbeddingDimension <= 0 {
+		return fmt.Errorf("Cloud embedding output contract is missing")
+	}
 	if err := validateCloudResolvedAssemblyDraft(assembly); err != nil {
 		return err
 	}

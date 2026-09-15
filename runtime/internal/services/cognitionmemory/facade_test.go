@@ -483,5 +483,8 @@ func (batchEmbeddingPort) Embed(_ context.Context, request memoryv1.AIEmbeddingR
 	for index := range vectors {
 		vectors[index] = []float64{1, float64(index + 1)}
 	}
-	return memoryv1.AIEmbeddingResult{Vectors: vectors, Dimension: 2}, nil
+	return memoryv1.AIEmbeddingResult{Vectors: vectors, Dimension: 2, SpaceID: request.EmbeddingSpaceRef}, nil
 }
+
+func (batchEmbeddingPort) AcknowledgeConsumed(context.Context, string) error { return nil }
+func (batchEmbeddingPort) FinalizeStale(context.Context, string) error       { return nil }

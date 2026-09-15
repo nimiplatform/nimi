@@ -61,6 +61,7 @@ type scenarioJobDiskSnapshot struct {
 }
 
 type scenarioJobDiskRecord struct {
+	Payload               *embeddingPayload `json:"embedding_payload,omitempty"`
 	Job                   json.RawMessage   `json:"job"`
 	ResolvedAssembly      json.RawMessage   `json:"resolved_assembly,omitempty"`
 	CloudResolvedAssembly json.RawMessage   `json:"cloud_resolved_assembly,omitempty"`
@@ -157,7 +158,7 @@ func (s *scenarioJobStore) loadDurableJobs(prune bool) error {
 			rowErr = validatePersistedScenarioJob(&job, item.CreatedAt, item.UpdatedAt, item.TerminalAt)
 		}
 		if rowErr == nil {
-			rowErr = validateScenarioJobCapturedInputsPair(&job, resolvedAssembly, cloudAssembly)
+			rowErr = validateScenarioJobPayload(&job, resolvedAssembly, cloudAssembly, item.Payload)
 		}
 		var voiceAsset *runtimev1.VoiceAsset
 		if rowErr == nil && len(item.VoiceAsset) > 0 {
@@ -210,7 +211,7 @@ func (s *scenarioJobStore) loadDurableJobs(prune bool) error {
 			item.TerminalAt = now
 		}
 		record := &scenarioJobRecord{
-			job: cloneScenarioJob(&job), resolvedAssembly: resolvedAssembly, cloudAssembly: cloudAssembly, localAppOwner: cloneLocalAppJobOwner(item.Owner),
+			payload: cloneEmbeddingPayload(item.Payload), job: cloneScenarioJob(&job), resolvedAssembly: resolvedAssembly, cloudAssembly: cloudAssembly, localAppOwner: cloneLocalAppJobOwner(item.Owner),
 			voiceAsset: cloneVoiceAsset(voiceAsset), voiceReference: cloneVoiceReference(voiceReference),
 			visionLocate: cloneVisionLocateResult(visionLocate),
 			events:       make([]*runtimev1.ScenarioJobEvent, 0, 1), subscribers: make(map[uint64]chan *runtimev1.ScenarioJobEvent),
@@ -455,7 +456,7 @@ func (s *scenarioJobStore) persistDurableJobsLocked(attempt scenarioJobPersisten
 		if err := validatePersistedScenarioJob(record.job, record.createdAt, record.updatedAt, record.terminalAt); err != nil {
 			return fmt.Errorf("scenario job %q public record: %w", jobID, err)
 		}
-		if err := validateScenarioJobCapturedInputsPair(record.job, record.resolvedAssembly, record.cloudAssembly); err != nil {
+		if err := validateScenarioJobPayload(record.job, record.resolvedAssembly, record.cloudAssembly, record.payload); err != nil {
 			return fmt.Errorf("scenario job %q captured inputs: %w", jobID, err)
 		}
 		if err := validateScenarioJobTerminalResults(record); err != nil {
@@ -501,7 +502,7 @@ func (s *scenarioJobStore) persistDurableJobsLocked(attempt scenarioJobPersisten
 			}
 		}
 		snapshot.Records = append(snapshot.Records, scenarioJobDiskRecord{
-			Job: raw, ResolvedAssembly: assemblyRaw, CloudResolvedAssembly: cloudAssemblyRaw, Owner: cloneLocalAppJobOwner(record.localAppOwner),
+			Payload: cloneEmbeddingPayload(record.payload), Job: raw, ResolvedAssembly: assemblyRaw, CloudResolvedAssembly: cloudAssemblyRaw, Owner: cloneLocalAppJobOwner(record.localAppOwner),
 			VoiceAsset: voiceAssetRaw, VoiceReference: voiceReferenceRaw,
 			VisionLocate: visionRaw,
 			CreatedAt:    record.createdAt, UpdatedAt: record.updatedAt, TerminalAt: record.terminalAt,
@@ -537,10 +538,14 @@ func (s *scenarioJobStore) persistDurableJobsLocked(attempt scenarioJobPersisten
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(filepath.Dir(s.durablePath), 0o700); err != nil {
+	return writeScenarioJobDocument(s.durablePath, raw)
+}
+
+func writeScenarioJobDocument(path string, raw []byte) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return err
 	}
-	temporary, err := os.CreateTemp(filepath.Dir(s.durablePath), ".scenario-jobs-*.tmp")
+	temporary, err := os.CreateTemp(filepath.Dir(path), ".scenario-jobs-*.tmp")
 	if err != nil {
 		return err
 	}
@@ -561,5 +566,5 @@ func (s *scenarioJobStore) persistDurableJobsLocked(attempt scenarioJobPersisten
 	if err := temporary.Close(); err != nil {
 		return err
 	}
-	return replaceScenarioJobFileAtomically(temporaryPath, s.durablePath)
+	return replaceScenarioJobFileAtomically(temporaryPath, path)
 }

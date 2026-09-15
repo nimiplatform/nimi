@@ -38,6 +38,9 @@ type recallRouteRequest struct {
 }
 
 type AIEmbeddingRequest struct {
+	BankRef           string
+	LifecycleRef      string
+	MemoryRefs        []string
 	OperationID       string
 	ConfigRevision    uint64
 	EmbeddingSpaceRef string
@@ -45,6 +48,7 @@ type AIEmbeddingRequest struct {
 }
 
 type AIEmbeddingResult struct {
+	SpaceID   string
 	Vectors   [][]float64
 	Dimension int
 }
@@ -163,6 +167,9 @@ func (c *Core) Recall(ctx context.Context, request RecallRequest, port Embedding
 		err = contractError(OutcomeUnsupported, "recall_pipeline")
 		result = RecallResult{Outcome: OutcomeUnsupported}
 	}
+	if descriptor.Name == PipelineRecallEmbedding {
+		return result, err
+	}
 	if err != nil {
 		_ = c.completeRoute(ctx, request.OperationID, result.Outcome)
 		return result, err
@@ -202,6 +209,7 @@ func (c *Core) PendingEmbeddingRebuilds(ctx context.Context, bankRef string) ([]
 		JOIN memory_banks b ON b.bank_ref = r.bank_ref
 		WHERE r.bank_ref = ? AND r.operation_kind = 'embedding_build' AND r.pipeline = ? AND r.algorithm_revision = 'embedding-1' AND r.outcome = 'pending'
 			AND b.state = 'active' AND (g.generation_ref IS NULL OR g.status IN ('building', 'ready'))
+ AND r.ai_disposition IN ('none', 'retained')
 		ORDER BY r.created_at, r.operation_id`, bankRef, PipelineRecallEmbedding)
 	if err != nil {
 		return nil, fmt.Errorf("inspect pending memory embedding builds: %w", err)
@@ -240,6 +248,9 @@ func (c *Core) recallFTS(ctx context.Context, request RecallRequest) (RecallResu
 		return RecallResult{Outcome: OutcomeUnavailable, Pipeline: PipelineRecallFTS}, fmt.Errorf("recall memory fts: begin snapshot: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
+	if err := validateRecallSnapshotTx(ctx, tx, request); err != nil {
+		return RecallResult{Outcome: errorOutcome(err), Pipeline: PipelineRecallFTS}, err
+	}
 	version, err := compatibleGenerationTx(ctx, tx, request.BankRef, "fts")
 	if err != nil {
 		return RecallResult{Outcome: errorOutcome(err), Pipeline: PipelineRecallFTS}, err
@@ -266,16 +277,53 @@ func (c *Core) recallFTS(ctx context.Context, request RecallRequest) (RecallResu
 }
 
 // @nimi-authority: rule.nimi.cognition.runtime-bridge.r022
-func (c *Core) RebuildEmbedding(ctx context.Context, operationID, bankRef string, snapshot CapabilitySnapshot, port EmbeddingPort) (Outcome, error) {
+func (c *Core) RebuildEmbedding(ctx context.Context, operationID, bankRef string, snapshot CapabilitySnapshot, port EmbeddingPort) (outcome Outcome, resultErr error) {
+	if !c.claimEmbeddingOperation(operationID) {
+		return OutcomeConflict, contractError(OutcomeConflict, "embedding_operation_running")
+	}
+	defer c.releaseEmbeddingOperation(operationID)
 	if port == nil || !validOpaqueRef(operationID) || !validOpaqueRef(bankRef) || !validCapabilitySnapshot(snapshot) || !capabilitySet(snapshot.Available)[CapabilityTextEmbed] || !capabilitySet(snapshot.Available)[CapabilityVectorIndex] {
 		return OutcomeInvalid, contractError(OutcomeInvalid, "embedding_build_request")
 	}
 	if _, err := c.bindRoute(ctx, routeBindingRequest{OperationID: operationID, OperationKind: "embedding_build", BankRef: bankRef, Pipeline: PipelineRecallEmbedding, AlgorithmRevision: "embedding-1", Snapshot: snapshot}); err != nil {
 		return errorOutcome(err), err
 	}
+	if prior, found, err := c.resumeEmbeddingOperation(ctx, operationID, port); found || err != nil {
+		if err != nil {
+			return OutcomeUnavailable, err
+		}
+		if prior == OutcomeReady {
+			return prior, nil
+		}
+		return prior, contractError(prior, "embedding_operation_disposed")
+	}
 	version, lifecycleRef, refs, texts, err := c.canonicalTexts(ctx, bankRef)
 	if err != nil {
 		return errorOutcome(err), err
+	}
+	if len(texts) > 0 {
+		if err := c.retainEmbeddingOperation(ctx, operationID, bankRef, lifecycleRef); err != nil {
+			return OutcomeUnavailable, err
+		}
+		defer func() {
+			if value := recover(); value != nil {
+				panic(value)
+			}
+			if err := c.finishEmbeddingOperation(context.WithoutCancel(ctx), operationID, outcome, port); err != nil {
+				outcome = OutcomeUnavailable
+				if IsOutcome(err, OutcomeConflict) {
+					outcome = OutcomeConflict
+				}
+				resultErr = errors.Join(resultErr, err)
+			}
+		}()
+	} else {
+		defer func() {
+			if err := c.completeRoute(context.WithoutCancel(ctx), operationID, outcome); err != nil {
+				outcome = OutcomeUnavailable
+				resultErr = errors.Join(resultErr, err)
+			}
+		}()
 	}
 	// The build operation is the durable cross-store correlation key. Reusing it
 	// as the generation ref lets a retry find both the Core generation and the
@@ -286,27 +334,15 @@ func (c *Core) RebuildEmbedding(ctx context.Context, operationID, bankRef string
 		return errorOutcome(err), err
 	}
 	if generationStale {
-		if err := finalizeStaleEmbeddingResult(ctx, port, operationID); err != nil {
-			return OutcomeUnavailable, err
-		}
-		if err := c.completeStaleEmbeddingGeneration(ctx, bankRef, generationRef, operationID); err != nil {
+		if err := c.completeStaleEmbeddingGeneration(ctx, bankRef, generationRef); err != nil {
 			return OutcomeUnavailable, err
 		}
 		return OutcomeConflict, contractError(OutcomeConflict, "embedding_generation_stale")
 	}
 	if generationStatus == "ready" {
-		if len(texts) > 0 {
-			if err := acknowledgeEmbeddingResult(ctx, port, operationID); err != nil {
-				return OutcomeUnavailable, err
-			}
-		}
-		if err := c.completeRoute(ctx, operationID, OutcomeReady); err != nil {
-			return OutcomeUnavailable, err
-		}
 		return OutcomeReady, nil
 	}
 	if generationStatus == "failed" {
-		_ = c.completeRoute(ctx, operationID, OutcomeFailed)
 		return OutcomeFailed, contractError(OutcomeFailed, "embedding_generation_failed")
 	}
 	if len(texts) == 0 {
@@ -334,18 +370,15 @@ func (c *Core) RebuildEmbedding(ctx context.Context, operationID, bankRef string
 		if err := tx.Commit(); err != nil {
 			return OutcomeUnavailable, fmt.Errorf("build empty memory embedding: commit publish: %w", err)
 		}
-		_ = c.completeRoute(ctx, operationID, OutcomeReady)
 		return OutcomeReady, nil
 	}
-	result, err := port.Embed(ctx, AIEmbeddingRequest{OperationID: operationID, ConfigRevision: snapshot.ConfigRevision, EmbeddingSpaceRef: snapshot.EmbeddingSpaceRef, Inputs: append([]string(nil), texts...)})
+	result, err := port.Embed(ctx, AIEmbeddingRequest{BankRef: bankRef, LifecycleRef: lifecycleRef, MemoryRefs: refs, OperationID: operationID, ConfigRevision: snapshot.ConfigRevision, EmbeddingSpaceRef: snapshot.EmbeddingSpaceRef, Inputs: append([]string(nil), texts...)})
 	if err != nil {
 		_, _ = c.db.ExecContext(ctx, `UPDATE memory_derived_generations SET status = 'failed', updated_at = ? WHERE generation_ref = ?`, formatTime(c.now()), generationRef)
-		_ = c.completeRoute(ctx, operationID, OutcomeFailed)
 		return OutcomeFailed, fmt.Errorf("build memory embedding: runtime AI port: %w", err)
 	}
-	if err := validateEmbeddingResult(result, len(texts)); err != nil {
+	if err := validateEmbeddingResult(result, len(texts), snapshot.EmbeddingSpaceRef); err != nil {
 		_, _ = c.db.ExecContext(ctx, `UPDATE memory_derived_generations SET status = 'failed', updated_at = ? WHERE generation_ref = ?`, formatTime(c.now()), generationRef)
-		_ = c.completeRoute(ctx, operationID, OutcomeFailed)
 		return OutcomeFailed, err
 	}
 	tx, err := c.db.BeginTx(ctx, nil)
@@ -365,10 +398,6 @@ func (c *Core) RebuildEmbedding(ctx context.Context, operationID, bankRef string
 		if err := tx.Commit(); err != nil {
 			return OutcomeUnavailable, err
 		}
-		if err := acknowledgeEmbeddingResult(ctx, port, operationID); err != nil {
-			return OutcomeUnavailable, err
-		}
-		_ = c.completeRoute(ctx, operationID, OutcomeConflict)
 		return OutcomeConflict, contractError(OutcomeConflict, "embedding_generation_stale")
 	}
 	for index, ref := range refs {
@@ -396,12 +425,6 @@ func (c *Core) RebuildEmbedding(ctx context.Context, operationID, bankRef string
 	}
 	if err := tx.Commit(); err != nil {
 		return OutcomeUnavailable, fmt.Errorf("build memory embedding: commit publish: %w", err)
-	}
-	if err := acknowledgeEmbeddingResult(ctx, port, operationID); err != nil {
-		return OutcomeUnavailable, err
-	}
-	if err := c.completeRoute(ctx, operationID, OutcomeReady); err != nil {
-		return OutcomeUnavailable, err
 	}
 	return OutcomeReady, nil
 }
@@ -435,7 +458,7 @@ func (c *Core) ensureEmbeddingGeneration(ctx context.Context, generationRef, ban
 	return status, storedVersion != canonicalVersion || storedLifecycleRef != lifecycleRef, nil
 }
 
-func (c *Core) completeStaleEmbeddingGeneration(ctx context.Context, bankRef, generationRef, operationID string) error {
+func (c *Core) completeStaleEmbeddingGeneration(ctx context.Context, bankRef, generationRef string) error {
 	tx, err := c.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("finalize stale memory embedding: begin: %w", err)
@@ -449,28 +472,50 @@ func (c *Core) completeStaleEmbeddingGeneration(ctx context.Context, bankRef, ge
 	if count, rowsErr := updated.RowsAffected(); rowsErr != nil || count != 1 {
 		return contractError(OutcomeConflict, "embedding_generation_stale_completion")
 	}
-	updated, err = tx.ExecContext(ctx, `UPDATE memory_operation_routes SET outcome = ?, updated_at = ? WHERE operation_id = ? AND outcome = 'pending'`, OutcomeConflict, formatTime(c.now()), operationID)
-	if err != nil {
-		return fmt.Errorf("finalize stale memory embedding: close route: %w", err)
-	}
-	if count, rowsErr := updated.RowsAffected(); rowsErr != nil || count != 1 {
-		return contractError(OutcomeConflict, "embedding_route_stale_completion")
-	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("finalize stale memory embedding: commit: %w", err)
 	}
 	return nil
 }
 
-func (c *Core) recallEmbedding(ctx context.Context, request RecallRequest, port EmbeddingPort) (RecallResult, error) {
+func (c *Core) recallEmbedding(ctx context.Context, request RecallRequest, port EmbeddingPort) (result RecallResult, resultErr error) {
+	if !c.claimEmbeddingOperation(request.OperationID) {
+		return RecallResult{Outcome: OutcomeConflict}, contractError(OutcomeConflict, "embedding_operation_running")
+	}
+	defer c.releaseEmbeddingOperation(request.OperationID)
 	if port == nil {
 		return RecallResult{Outcome: OutcomeUnavailable, Pipeline: PipelineRecallEmbedding}, contractError(OutcomeUnavailable, "embedding_port")
 	}
-	queryEmbedding, err := port.Embed(ctx, AIEmbeddingRequest{OperationID: request.OperationID, ConfigRevision: request.Capabilities.ConfigRevision, EmbeddingSpaceRef: request.Capabilities.EmbeddingSpaceRef, Inputs: []string{request.Query}})
+	if _, found, err := c.resumeEmbeddingOperation(ctx, request.OperationID, port); found || err != nil {
+		if err != nil {
+			return RecallResult{Outcome: OutcomeUnavailable, Pipeline: PipelineRecallEmbedding}, err
+		}
+		return RecallResult{Outcome: OutcomeConflict, Pipeline: PipelineRecallEmbedding}, contractError(OutcomeConflict, "recall_result_disposed")
+	}
+	var lifecycleRef string
+	if err := c.db.QueryRowContext(ctx, `SELECT lifecycle_ref FROM memory_banks WHERE bank_ref = ? AND state = 'active'`, request.BankRef).Scan(&lifecycleRef); err != nil {
+		return RecallResult{Outcome: OutcomeUnavailable}, err
+	}
+	if err := c.retainEmbeddingOperation(ctx, request.OperationID, request.BankRef, lifecycleRef); err != nil {
+		return RecallResult{Outcome: OutcomeUnavailable}, err
+	}
+	defer func() {
+		if value := recover(); value != nil {
+			panic(value)
+		}
+		if err := c.finishEmbeddingOperation(context.WithoutCancel(ctx), request.OperationID, result.Outcome, port); err != nil {
+			result = RecallResult{Outcome: OutcomeUnavailable, Pipeline: PipelineRecallEmbedding}
+			if IsOutcome(err, OutcomeConflict) {
+				result.Outcome = OutcomeConflict
+			}
+			resultErr = errors.Join(resultErr, err)
+		}
+	}()
+	queryEmbedding, err := port.Embed(ctx, AIEmbeddingRequest{BankRef: request.BankRef, LifecycleRef: lifecycleRef, OperationID: request.OperationID, ConfigRevision: request.Capabilities.ConfigRevision, EmbeddingSpaceRef: request.Capabilities.EmbeddingSpaceRef, Inputs: []string{request.Query}})
 	if err != nil {
 		return RecallResult{Outcome: OutcomeFailed, Pipeline: PipelineRecallEmbedding}, fmt.Errorf("recall memory embedding: runtime AI port: %w", err)
 	}
-	if err := validateEmbeddingResult(queryEmbedding, 1); err != nil {
+	if err := validateEmbeddingResult(queryEmbedding, 1, request.Capabilities.EmbeddingSpaceRef); err != nil {
 		return RecallResult{Outcome: OutcomeFailed, Pipeline: PipelineRecallEmbedding}, err
 	}
 	tx, err := c.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
@@ -478,6 +523,9 @@ func (c *Core) recallEmbedding(ctx context.Context, request RecallRequest, port 
 		return RecallResult{Outcome: OutcomeUnavailable, Pipeline: PipelineRecallEmbedding}, fmt.Errorf("recall memory embedding: begin snapshot: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
+	if err := validateRecallSnapshotTx(ctx, tx, request); err != nil {
+		return RecallResult{Outcome: errorOutcome(err), Pipeline: PipelineRecallEmbedding}, err
+	}
 	version, generationRef, err := compatibleEmbeddingGenerationTx(ctx, tx, request.BankRef, request.Capabilities, queryEmbedding.Dimension)
 	if err != nil {
 		return RecallResult{Outcome: errorOutcome(err), Pipeline: PipelineRecallEmbedding}, err
@@ -542,9 +590,6 @@ func (c *Core) recallEmbedding(ctx context.Context, request RecallRequest, port 
 	if err := tx.Commit(); err != nil {
 		return RecallResult{Outcome: OutcomeUnavailable, Pipeline: PipelineRecallEmbedding}, err
 	}
-	if err := acknowledgeEmbeddingResult(ctx, port, request.OperationID); err != nil {
-		return RecallResult{Outcome: OutcomeUnavailable, Pipeline: PipelineRecallEmbedding}, err
-	}
 	if len(hits) == 0 {
 		return RecallResult{Outcome: OutcomeNoHits, Pipeline: PipelineRecallEmbedding}, nil
 	}
@@ -554,7 +599,7 @@ func (c *Core) recallEmbedding(ctx context.Context, request RecallRequest, port 
 func acknowledgeEmbeddingResult(ctx context.Context, port EmbeddingPort, operationID string) error {
 	acknowledger, ok := port.(EmbeddingResultAcknowledger)
 	if !ok {
-		return nil
+		return contractError(OutcomeUnavailable, "embedding_result_acknowledger")
 	}
 	if err := acknowledger.AcknowledgeConsumed(ctx, operationID); err != nil {
 		return fmt.Errorf("acknowledge Runtime embedding result: %w", err)
@@ -732,7 +777,10 @@ func populateLineageTx(ctx context.Context, tx *sql.Tx, memories []Memory) error
 	return nil
 }
 
-func validateEmbeddingResult(result AIEmbeddingResult, inputCount int) error {
+func validateEmbeddingResult(result AIEmbeddingResult, inputCount int, expectedSpaceID string) error {
+	if !validOpaqueRef(result.SpaceID) || result.SpaceID != expectedSpaceID {
+		return contractError(OutcomeFailed, "embedding_space_mismatch")
+	}
 	if result.Dimension <= 0 || len(result.Vectors) != inputCount {
 		return contractError(OutcomeFailed, "embedding_shape")
 	}
@@ -849,4 +897,15 @@ func ftsIndexedContent(value string) string {
 		return value
 	}
 	return value + "\n" + strings.Join(singles, " ") + "\n" + strings.Join(bigrams, " ")
+}
+
+func validateRecallSnapshotTx(ctx context.Context, tx *sql.Tx, request RecallRequest) error {
+	var active int
+	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM memory_bank_bindings x JOIN memory_banks b ON b.bank_ref = x.bank_ref WHERE x.binding_ref = ? AND b.bank_ref = ? AND x.state = 'active' AND b.state = 'active' AND b.lifecycle_ref = ?`, request.BindingRef, request.BankRef, request.LifecycleRef).Scan(&active); err != nil {
+		return fmt.Errorf("revalidate recall binding: %w", err)
+	}
+	if active != 1 {
+		return contractError(OutcomeConflict, "recall_lifecycle_changed")
+	}
+	return nil
 }

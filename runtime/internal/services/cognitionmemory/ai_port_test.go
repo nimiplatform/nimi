@@ -3,132 +3,180 @@ package cognitionmemory
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/nimiplatform/nimi/nimi-cognition/memoryv1"
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"google.golang.org/protobuf/proto"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimepersistence"
 )
 
 func TestRuntimeEmbeddingPortPinsExactBindingAndCleansConsumedResult(t *testing.T) {
 	backend := openTestBackend(t, filepath.Join(t.TempDir(), "local-state.json"))
-	resolveCalls := 0
-	executeCalls := 0
-	profile := testEmbeddingProfile("provider-a", "model-a", 2)
-	port := NewRuntimeEmbeddingPort(
-		backend,
-		"subject-a",
-		"agent-a",
-		func(context.Context, string, string) (ResolvedEmbeddingBinding, error) {
-			resolveCalls++
-			return ResolvedEmbeddingBinding{ConfigRevision: 7, EmbeddingSpaceRef: "embedding-space-7", Profile: proto.Clone(profile).(*runtimev1.MemoryEmbeddingProfile)}, nil
-		},
-		func(_ context.Context, captured *runtimev1.MemoryEmbeddingProfile, inputs []string) ([][]float64, error) {
-			executeCalls++
-			if captured.GetProvider() != "provider-a" || captured.GetModelId() != "model-a" {
-				t.Fatalf("execution did not use captured target: %+v", captured)
+	resolves, executes := 0, 0
+	payload := []byte(`{"job":"captured-a"}`)
+	port := newFixtureEmbeddingPort(backend, "account-a", "agent-a",
+		func(context.Context, string, string, memoryv1.AIEmbeddingRequest) (ResolvedEmbeddingBinding, error) {
+			resolves++
+			return ResolvedEmbeddingBinding{ConfigRevision: 7, EmbeddingSpaceRef: "space-a", Execution: payload}, nil
+		}, func(_ context.Context, raw []byte) (memoryv1.AIEmbeddingResult, error) {
+			executes++
+			if string(raw) != `{"job":"captured-a"}` {
+				t.Fatal("lost captured canonical Job")
 			}
-			vectors := make([][]float64, len(inputs))
-			for index := range vectors {
-				vectors[index] = []float64{1, 0}
-			}
-			return vectors, nil
-		},
-	)
-	request := memoryv1.AIEmbeddingRequest{OperationID: "operation-a", ConfigRevision: 7, EmbeddingSpaceRef: "embedding-space-7", Inputs: []string{"bounded committed input"}}
-	first, err := port.Embed(context.Background(), request)
-	if err != nil || first.Dimension != 2 || len(first.Vectors) != 1 {
-		t.Fatalf("execute first embedding Job: result=%+v err=%v", first, err)
+			return memoryv1.AIEmbeddingResult{Vectors: [][]float64{{1, 0}}, Dimension: 2, SpaceID: "space-a"}, nil
+		})
+	request := memoryv1.AIEmbeddingRequest{OperationID: "operation-a", ConfigRevision: 7, EmbeddingSpaceRef: "space-a", Inputs: []string{"committed input"}}
+	if _, err := port.Embed(context.Background(), request); err != nil {
+		t.Fatal(err)
 	}
-	profile = testEmbeddingProfile("provider-b", "model-b", 2)
-	retry, err := port.Embed(context.Background(), request)
-	if err != nil || retry.Dimension != first.Dimension || len(retry.Vectors) != 1 {
-		t.Fatalf("recover stored embedding result: result=%+v err=%v", retry, err)
+	payload = []byte(`{"job":"new-b"}`)
+	if _, err := port.Embed(context.Background(), request); err != nil {
+		t.Fatal(err)
 	}
-	if resolveCalls != 1 || executeCalls != 1 {
-		t.Fatalf("same operation re-resolved or re-executed: resolve=%d execute=%d", resolveCalls, executeCalls)
+	if resolves != 1 || executes != 1 {
+		t.Fatalf("replayed canonical Job: resolve=%d execute=%d", resolves, executes)
 	}
-	if _, err := port.Embed(context.Background(), memoryv1.AIEmbeddingRequest{OperationID: request.OperationID, ConfigRevision: 7, EmbeddingSpaceRef: "embedding-space-7", Inputs: []string{"changed input"}}); !errors.Is(err, ErrConflict) {
-		t.Fatalf("same operation accepted changed input: %v", err)
+	changed := request
+	changed.Inputs = []string{"changed input"}
+	if _, err := port.Embed(context.Background(), changed); !errors.Is(err, ErrConflict) {
+		t.Fatalf("changed request accepted: %v", err)
 	}
 	if err := port.AcknowledgeConsumed(context.Background(), request.OperationID); err != nil {
-		t.Fatalf("acknowledge consumed result: %v", err)
+		t.Fatal(err)
 	}
-	var status string
-	var resultPresent bool
-	if err := backend.DB().QueryRow(`SELECT status, result_json IS NOT NULL FROM runtime_cognition_memory_ai_job WHERE operation_id = ?`, request.OperationID).Scan(&status, &resultPresent); err != nil || status != "consumed" || resultPresent {
-		t.Fatalf("consumed result was retained: status=%s present=%v err=%v", status, resultPresent, err)
+	var retained bool
+	if err := backend.DB().QueryRow(`SELECT result_json IS NOT NULL FROM runtime_cognition_memory_ai_job WHERE operation_id = ?`, request.OperationID).Scan(&retained); err != nil || retained {
+		t.Fatalf("retained result: %v %v", retained, err)
 	}
 	if _, err := port.Embed(context.Background(), request); !errors.Is(err, ErrConflict) {
-		t.Fatalf("consumed result was treated as reusable Job payload: %v", err)
+		t.Fatalf("consumed result reused: %v", err)
 	}
 }
 
-func TestRuntimeEmbeddingPortResumesPendingJobWithStoredProfile(t *testing.T) {
+func TestRuntimeEmbeddingPortResumesPendingJobWithStoredExecution(t *testing.T) {
 	backend := openTestBackend(t, filepath.Join(t.TempDir(), "local-state.json"))
-	request := memoryv1.AIEmbeddingRequest{OperationID: "operation-resume", ConfigRevision: 4, EmbeddingSpaceRef: "embedding-space-4", Inputs: []string{"resume input"}}
-	requestKey, err := embeddingRequestKey("subject-a", "agent-a", request)
+	request := memoryv1.AIEmbeddingRequest{OperationID: "operation-resume", ConfigRevision: 4, EmbeddingSpaceRef: "space-old", Inputs: []string{"resume input"}}
+	key, err := embeddingRequestKey("account-a", "agent-a", request)
 	if err != nil {
-		t.Fatalf("build request key: %v", err)
-	}
-	storedProfile := testEmbeddingProfile("provider-old", "model-old", 2)
-	profileRaw, err := proto.MarshalOptions{Deterministic: true}.Marshal(storedProfile)
-	if err != nil {
-		t.Fatalf("marshal stored profile: %v", err)
+		t.Fatal(err)
 	}
 	now := time.Now().UTC().Format(time.RFC3339Nano)
 	if err := backend.WriteTx(context.Background(), func(tx *sql.Tx) error {
-		_, err := tx.Exec(`INSERT INTO runtime_cognition_memory_ai_job(operation_id, local_agent_ref, account_namespace, config_revision, request_key, profile_json, status, created_at, updated_at) VALUES(?, 'agent-a', 'subject-a', 4, ?, ?, 'pending', ?, ?)`, request.OperationID, requestKey, profileRaw, now, now)
+		_, err := tx.Exec(`INSERT INTO runtime_cognition_memory_ai_job(operation_id, local_agent_ref, account_namespace, config_revision, request_key, profile_json, status, created_at, updated_at) VALUES(?, 'agent-a', 'account-a', 4, ?, ?, 'pending', ?, ?)`, request.OperationID, key, []byte(`{"job":"old"}`), now, now)
 		return err
 	}); err != nil {
-		t.Fatalf("seed pending Job: %v", err)
+		t.Fatal(err)
 	}
-	resolveCalls := 0
-	port := NewRuntimeEmbeddingPort(
-		backend,
-		"subject-a",
-		"agent-a",
-		func(context.Context, string, string) (ResolvedEmbeddingBinding, error) {
-			resolveCalls++
-			return ResolvedEmbeddingBinding{ConfigRevision: 5, EmbeddingSpaceRef: "embedding-space-5", Profile: testEmbeddingProfile("provider-new", "model-new", 2)}, nil
+	port := newFixtureEmbeddingPort(backend, "account-a", "agent-a",
+		func(context.Context, string, string, memoryv1.AIEmbeddingRequest) (ResolvedEmbeddingBinding, error) {
+			t.Fatal("resumed Job read current binding")
+			return ResolvedEmbeddingBinding{}, nil
 		},
-		func(_ context.Context, captured *runtimev1.MemoryEmbeddingProfile, _ []string) ([][]float64, error) {
-			if captured.GetProvider() != "provider-old" || captured.GetModelId() != "model-old" {
-				t.Fatalf("resume used current target instead of captured target: %+v", captured)
+		func(_ context.Context, raw []byte) (memoryv1.AIEmbeddingResult, error) {
+			if string(raw) != `{"job":"old"}` {
+				t.Fatalf("wrong capture: %s", raw)
 			}
-			return [][]float64{{0, 1}}, nil
+			return memoryv1.AIEmbeddingResult{Vectors: [][]float64{{0, 1}}, Dimension: 2, SpaceID: "space-old"}, nil
+		})
+	if _, err := port.Embed(context.Background(), request); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestRuntimeEmbeddingPortRejectsActualSpaceMismatch(t *testing.T) {
+	for _, space := range []string{"", "other-space"} {
+		t.Run("space="+space, func(t *testing.T) {
+			backend := openTestBackend(t, filepath.Join(t.TempDir(), "local-state.json"))
+			port := newFixtureEmbeddingPort(backend, "account-a", "agent-a",
+				func(context.Context, string, string, memoryv1.AIEmbeddingRequest) (ResolvedEmbeddingBinding, error) {
+					return ResolvedEmbeddingBinding{ConfigRevision: 12, EmbeddingSpaceRef: "space-a", Execution: json.RawMessage(`{"job":"a"}`)}, nil
+				},
+				func(context.Context, []byte) (memoryv1.AIEmbeddingResult, error) {
+					return memoryv1.AIEmbeddingResult{Vectors: [][]float64{{0, 1}}, Dimension: 2, SpaceID: space}, nil
+				})
+			_, err := port.Embed(context.Background(), memoryv1.AIEmbeddingRequest{OperationID: "operation-a", ConfigRevision: 11, EmbeddingSpaceRef: "space-a", Inputs: []string{"input"}})
+			if err == nil {
+				t.Fatal("actual space mismatch accepted")
+			}
+			var status string
+			var retained bool
+			if err := backend.DB().QueryRow(`SELECT status, result_json IS NOT NULL FROM runtime_cognition_memory_ai_job WHERE operation_id = 'operation-a'`).Scan(&status, &retained); err != nil || status != "failed" || retained {
+				t.Fatalf("invalid output retained: %s %v %v", status, retained, err)
+			}
+		})
+	}
+}
+
+func TestRuntimeEmbeddingPortConcurrentRetryPreservesExecutingOwner(t *testing.T) {
+	backend := openTestBackend(t, filepath.Join(t.TempDir(), "state.json"))
+	started, release := make(chan struct{}), make(chan struct{})
+	port := newFixtureEmbeddingPort(backend, "account-a", "agent-a",
+		func(context.Context, string, string, memoryv1.AIEmbeddingRequest) (ResolvedEmbeddingBinding, error) {
+			return ResolvedEmbeddingBinding{ConfigRevision: 1, EmbeddingSpaceRef: "space-a", Execution: []byte(`{"job":"owned"}`)}, nil
 		},
-	)
-	result, err := port.Embed(context.Background(), request)
-	if err != nil || result.Dimension != 2 || resolveCalls != 0 {
-		t.Fatalf("resume pending Job: result=%+v resolve=%d err=%v", result, resolveCalls, err)
+		func(context.Context, []byte) (memoryv1.AIEmbeddingResult, error) {
+			close(started)
+			<-release
+			return memoryv1.AIEmbeddingResult{SpaceID: "space-a", Dimension: 2, Vectors: [][]float64{{1, 0}}}, nil
+		})
+	req := memoryv1.AIEmbeddingRequest{OperationID: "operation", ConfigRevision: 1, EmbeddingSpaceRef: "space-a", Inputs: []string{"input"}}
+	done := make(chan error, 1)
+	go func() { _, err := port.Embed(context.Background(), req); done <- err }()
+	<-started
+	_, err := port.Embed(context.Background(), req)
+	close(release)
+	if !errors.Is(err, ErrConflict) {
+		t.Fatalf("concurrent execution was not rejected: %v", err)
+	}
+	if err := <-done; err != nil {
+		t.Fatalf("retry damaged executing owner: %v", err)
 	}
 }
 
 func TestRuntimeEmbeddingPortAllowsUnrelatedOwnerRevisionWhenSpaceIsUnchanged(t *testing.T) {
-	backend := openTestBackend(t, filepath.Join(t.TempDir(), "local-state.json"))
-	port := NewRuntimeEmbeddingPort(
-		backend,
-		"subject-a",
-		"agent-a",
-		func(context.Context, string, string) (ResolvedEmbeddingBinding, error) {
-			return ResolvedEmbeddingBinding{ConfigRevision: 12, EmbeddingSpaceRef: "embedding-space-stable", Profile: testEmbeddingProfile("provider-a", "model-a", 2)}, nil
+	backend := openTestBackend(t, filepath.Join(t.TempDir(), "state.json"))
+	port := newFixtureEmbeddingPort(backend, "account-a", "agent-a",
+		func(context.Context, string, string, memoryv1.AIEmbeddingRequest) (ResolvedEmbeddingBinding, error) {
+			return ResolvedEmbeddingBinding{ConfigRevision: 12, EmbeddingSpaceRef: "space-stable", Execution: []byte(`{"job":"current"}`)}, nil
 		},
-		func(context.Context, *runtimev1.MemoryEmbeddingProfile, []string) ([][]float64, error) {
-			return [][]float64{{1, 0}}, nil
-		},
-	)
-	result, err := port.Embed(context.Background(), memoryv1.AIEmbeddingRequest{
-		OperationID: "operation-stable-space", ConfigRevision: 11, EmbeddingSpaceRef: "embedding-space-stable", Inputs: []string{"bounded input"},
-	})
-	if err != nil || result.Dimension != 2 || len(result.Vectors) != 1 {
-		t.Fatalf("unchanged exact embedding space was invalidated by owner revision: result=%+v err=%v", result, err)
+		func(context.Context, []byte) (memoryv1.AIEmbeddingResult, error) {
+			return memoryv1.AIEmbeddingResult{SpaceID: "space-stable", Dimension: 2, Vectors: [][]float64{{1, 0}}}, nil
+		})
+	result, err := port.Embed(context.Background(), memoryv1.AIEmbeddingRequest{OperationID: "operation-stable", ConfigRevision: 11, EmbeddingSpaceRef: "space-stable", Inputs: []string{"input"}})
+	if err != nil || result.SpaceID != "space-stable" {
+		t.Fatalf("unrelated owner revision invalidated compatible embedding: %+v %v", result, err)
 	}
 }
 
-func testEmbeddingProfile(provider, model string, dimension int32) *runtimev1.MemoryEmbeddingProfile {
-	return &runtimev1.MemoryEmbeddingProfile{Provider: provider, ModelId: model, Dimension: dimension, Version: "v1", DistanceMetric: runtimev1.MemoryDistanceMetric_MEMORY_DISTANCE_METRIC_COSINE}
+func TestRuntimeEmbeddingPortReportsUnpublishedCaptureCleanupFailure(t *testing.T) {
+	backend := openTestBackend(t, filepath.Join(t.TempDir(), "state.json"))
+	cleanupErr := errors.New("capture cleanup failed")
+	port := newFixtureEmbeddingPort(backend, "account-a", "agent-a",
+		func(context.Context, string, string, memoryv1.AIEmbeddingRequest) (ResolvedEmbeddingBinding, error) {
+			return ResolvedEmbeddingBinding{
+				ConfigRevision: 1, EmbeddingSpaceRef: "space-a", Execution: []byte(`{"job":"captured"}`),
+				Validate: func(*sql.Tx) error { return ErrConflict },
+				Discard:  func() error { return cleanupErr },
+			}, nil
+		}, func(context.Context, []byte) (memoryv1.AIEmbeddingResult, error) {
+			t.Fatal("unpublished capture executed")
+			return memoryv1.AIEmbeddingResult{}, nil
+		})
+	_, err := port.Embed(context.Background(), memoryv1.AIEmbeddingRequest{OperationID: "unpublished", ConfigRevision: 1, EmbeddingSpaceRef: "space-a", Inputs: []string{"input"}})
+	if !errors.Is(err, ErrConflict) || !errors.Is(err, cleanupErr) {
+		t.Fatalf("lost publication or cleanup error: %v", err)
+	}
+	var count int
+	if err := backend.DB().QueryRow(`SELECT COUNT(*) FROM runtime_cognition_memory_ai_job WHERE operation_id = 'unpublished'`).Scan(&count); err != nil || count != 0 {
+		t.Fatalf("failed capture was published: count=%d err=%v", count, err)
+	}
+}
+
+// The component fixture executor retains no canonical ScenarioJob content.
+// Cross-owner disposal is exercised separately with the actual AI Service.
+func newFixtureEmbeddingPort(backend *runtimepersistence.Backend, account, agent string, resolve EmbeddingBindingResolver, execute EmbeddingExecutor) *RuntimeEmbeddingPort {
+	return NewRuntimeEmbeddingPort(backend, account, agent, resolve, execute, func(context.Context, string, string, []byte) error { return nil })
 }

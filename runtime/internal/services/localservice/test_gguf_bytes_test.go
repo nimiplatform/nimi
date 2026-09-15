@@ -34,6 +34,7 @@ func validEmbeddingTestGGUF() []byte {
 		{Key: "general.architecture", Type: 8, StringValue: "bert"},
 		{Key: "general.name", Type: 8, StringValue: "embedding-test"},
 		{Key: "bert.context_length", Type: 4, Uint32Value: 8192},
+		{Key: "bert.embedding_length", Type: 4, Uint32Value: 768},
 	}, []string{"token_embd.weight"})
 }
 

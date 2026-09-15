@@ -22,6 +22,7 @@ func CloneSelectedLocalExecution(input *SelectedLocalExecution) *SelectedLocalEx
 		RecipeID:                        input.RecipeID,
 		RecipeRevision:                  input.RecipeRevision,
 		ModelContextWindowTokens:        input.ModelContextWindowTokens,
+		EmbeddingDimension:              input.EmbeddingDimension,
 		ExactBindings:                   append([]ExactBinding(nil), input.ExactBindings...),
 		ImplementationSupportedFeatures: append([]string(nil), input.ImplementationSupportedFeatures...),
 		ConfiguredFeatures:              append([]string(nil), input.ConfiguredFeatures...),

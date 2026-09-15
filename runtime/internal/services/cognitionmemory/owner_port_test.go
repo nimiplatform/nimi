@@ -391,5 +391,8 @@ func (ownerConformanceEmbeddingPort) Embed(_ context.Context, request memoryv1.A
 	for index := range vectors {
 		vectors[index] = []float64{1, 1}
 	}
-	return memoryv1.AIEmbeddingResult{Vectors: vectors, Dimension: 2}, nil
+	return memoryv1.AIEmbeddingResult{Vectors: vectors, Dimension: 2, SpaceID: request.EmbeddingSpaceRef}, nil
 }
+
+func (ownerConformanceEmbeddingPort) AcknowledgeConsumed(context.Context, string) error { return nil }
+func (ownerConformanceEmbeddingPort) FinalizeStale(context.Context, string) error       { return nil }

@@ -46,7 +46,9 @@ func TestCloudEmbedExecutionUsesCapturedAIConfigConnectorWithoutFallback(t *test
 			t.Fatalf("mapped embedding request = %+v", body)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"data":[{"embedding":[0.1,0.2]},{"embedding":[0.3,0.4]}],"usage":{"prompt_tokens":3,"total_tokens":3}}`))
+		first, second := make([]float64, 1536), make([]float64, 1536)
+		first[0], first[1], second[0], second[1] = 0.1, 0.2, 0.3, 0.4
+		_ = json.NewEncoder(w).Encode(map[string]any{"data": []any{map[string]any{"embedding": first, "index": 0}, map[string]any{"embedding": second, "index": 1}}, "usage": map[string]any{"prompt_tokens": 3, "total_tokens": 3}})
 	}))
 	defer server.Close()
 
@@ -100,7 +102,7 @@ func TestCloudEmbedExecutionUsesCapturedAIConfigConnectorWithoutFallback(t *test
 	if response.GetOutput().GetTextEmbed().GetSpaceId() == "" {
 		t.Fatal("embedding response omitted its vector space")
 	}
-	if len(vectors) != 2 || len(vectors[0].GetValues()) != 2 || vectors[1].GetValues()[1] != 0.4 {
+	if len(vectors) != 2 || len(vectors[0].GetValues()) != 1536 || vectors[1].GetValues()[1] != 0.4 {
 		t.Fatalf("embedding vectors = %+v", vectors)
 	}
 	if response.GetRouteDecision() != runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD || response.GetModelResolved() != "text-embedding-3-small" {
@@ -179,7 +181,7 @@ func TestTextEmbedLocalIntentExecutesSelectedLlamaDriver(t *testing.T) {
 		RecipeID:                 capabilitydriver.LlamaEmbedGGUFRecipeID,
 		RecipeRevision:           "1",
 		DriverIdentity:           (&capabilitydriver.Identity{ImplementationID: capabilitydriver.LlamaEmbedImplementationID, DriverID: capabilitydriver.LlamaDriverID, DriverDialect: capabilitydriver.LlamaEmbedDriverDialect}).Proto(),
-		ModelContextWindowTokens: 8192,
+		ModelContextWindowTokens: 8192, EmbeddingDimension: 2,
 		Requirements: []*runtimev1.LocalCapabilityRequirement{{
 			RequirementId: capabilitydriver.EmbeddingGGUFRequirementID,
 		}},
