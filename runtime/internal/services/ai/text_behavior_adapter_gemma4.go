@@ -23,6 +23,10 @@ func productionTextBehaviorAdapterRegistrations() []textBehaviorAdapterRegistrat
 	}
 	registrations = append(registrations, anthropicSonnet46TextBehaviorRegistration())
 	registrations = append(registrations,
+		deepseekJSONBehaviorRegistration("deepseek-v4-flash", "deepseek.v4-flash.chat-json"),
+		deepseekJSONBehaviorRegistration("deepseek-v4-pro", "deepseek.v4-pro.chat-json"),
+	)
+	registrations = append(registrations,
 		codexTextBehaviorRegistration("gpt-5.6-sol", "openai_codex.sol.responses"),
 		codexTextBehaviorRegistration("gpt-6-astra", "openai_codex.astra.responses"),
 	)

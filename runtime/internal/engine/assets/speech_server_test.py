@@ -401,6 +401,48 @@ class SpeechServerTests(unittest.TestCase):
                 {"model_ref": "Qwen/Qwen3-ASR-0.6B-hf"},
             )
 
+    def test_alignment_uses_explicit_language_without_inventing_detection(self) -> None:
+        resolve = QWEN3_ASR_TRANSFORMERS_DRIVER.resolve_alignment_language
+        self.assertEqual(resolve("", "English"), ("", "en"))
+        self.assertEqual(resolve("", "yue"), ("", "yue"))
+        self.assertEqual(resolve("French", "English"), ("fr", "fr"))
+        self.assertEqual(resolve("en", None), ("en", "en"))
+        for requested in (None, "", "auto", "Arabic"):
+            with self.subTest(requested=requested):
+                with self.assertRaisesRegex(RuntimeError, "explicit supported source language"):
+                    resolve("", requested)
+        for reported in ("Arabic", "unknown"):
+            with self.subTest(reported=reported):
+                with self.assertRaisesRegex(RuntimeError, "recognized language is not supported"):
+                    resolve(reported, "English")
+
+    def test_alignment_preserves_original_punctuation_and_silence_gaps(self) -> None:
+        rows = [
+            {"text": "Hello", "start_time": 0.4, "end_time": 0.9},
+            {"text": "world", "start_time": 2.1, "end_time": 2.7},
+        ]
+        result = QWEN3_ASR_TRANSFORMERS_DRIVER.restore_alignment_words("Hello, world!", rows, 3, 0.08)
+        self.assertEqual(result, [
+            {"text": "Hello,", "start_seconds": 0.4, "end_seconds": 0.9},
+            {"text": "world!", "start_seconds": 2.1, "end_seconds": 2.7},
+        ])
+        result = QWEN3_ASR_TRANSFORMERS_DRIVER.restore_alignment_words("你好。", [
+            {"text": "你", "start_time": 0.3, "end_time": 0.5},
+            {"text": "好", "start_time": 0.5, "end_time": 0.8},
+        ], 1, 0.08)
+        self.assertEqual([word["text"] for word in result], ["你", "好。"])
+
+    def test_alignment_rejects_missing_words_and_invalid_source_times(self) -> None:
+        with self.assertRaisesRegex(RuntimeError, "do not cover"):
+            QWEN3_ASR_TRANSFORMERS_DRIVER.restore_alignment_words("Hello world", [
+                {"text": "Hello", "start_time": 0, "end_time": 1},
+            ], 3, 0.08)
+        for start, end in [(-1, 1), (1, 0.5), (0, 4), (float("nan"), 1), (0, float("inf"))]:
+            with self.subTest(start=start, end=end), self.assertRaisesRegex(RuntimeError, "invalid source timing"):
+                QWEN3_ASR_TRANSFORMERS_DRIVER.restore_alignment_words("Hello", [
+                    {"text": "Hello", "start_time": start, "end_time": end},
+                ], 3, 0.08)
+
     def test_qwen_asr_driver_decodes_webm_before_model_transcription(self) -> None:
         normalized_paths = []
         decoder_calls = []
@@ -1428,7 +1470,7 @@ class SpeechServerTests(unittest.TestCase):
             return_value={"text": "transcript"},
         ) as run_driver:
             text = runtime.transcribe_with_driver(model, request_payload, cancel_event)
-        self.assertEqual(text, "transcript")
+        self.assertEqual(text, {"text": "transcript"})
         run_driver.assert_called_once_with(
             ["python", "qwen3_asr_driver.py"],
             request_payload,
@@ -1636,7 +1678,7 @@ class SpeechServerTests(unittest.TestCase):
                     os.environ.pop(SPEECH_SERVER.QWEN3_ASR_DRIVER_ENV, None)
                 else:
                     os.environ[SPEECH_SERVER.QWEN3_ASR_DRIVER_ENV] = old_stt
-            self.assertEqual(text, "hello world")
+            self.assertEqual(text, {"text": "hello world"})
 
     def test_find_ready_model_requires_exact_registered_identity(self) -> None:
         model = SPEECH_SERVER.SpeechModelState(

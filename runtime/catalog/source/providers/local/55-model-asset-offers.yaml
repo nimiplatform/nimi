@@ -1,6 +1,29 @@
 # Independent passive ModelAsset offers. Recipe slot metadata may recommend
 # their variant IDs; no row has a parent model, inherited binding, or download claim.
 models:
+  - model_id: asset-silero-vad-onnx
+    model_type: auxiliary
+    family: silero-vad
+    updated_at: 2026-09-16
+    capabilities: []
+    source_ids: [silero_vad_onnx_modelcard]
+    install:
+      repo: onnx-community/silero-vad
+      revision: e71cae966052b992a7eca6b17738916ce0eca4ec # pragma: allowlist secret -- public immutable model revision
+      install_kind: verified-hf-multi-file
+      entry: onnx/model.onnx
+      artifact_roles: [silero_vad_model]
+    variants:
+      - variant_id: local.aux.silero-vad.onnx
+        quant: F32
+        files: [onnx/model.onnx, LICENSE]
+        hashes:
+          onnx/model.onnx: sha256:a4a068cd6cf1ea8355b84327595838ca748ec29a25bc91fc82e6c299ccdc5808
+          LICENSE: sha256:2e63e9a38b6e8fc0c7bc37ce174caca1862870856c6daf5697cfb785e925520b
+        total_size_bytes: 2244097
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 1073741824
   - model_id: asset-image-vae-z-image-ae-f16-cuda
     model_type: vae
     family: flux1-vae
@@ -388,3 +411,36 @@ models:
         total_size_bytes: 1193058784
         host_requirement:
           accelerator: metal
+
+  - model_id: asset-speech-aligner-qwen3-transformers-0.6b
+    model_type: auxiliary
+    updated_at: 2026-09-14
+    capabilities: []
+    source_ids: [qwen3_forced_aligner_transformers_modelcard]
+    install:
+      repo: Qwen/Qwen3-ForcedAligner-0.6B-hf
+      revision: c07281df297b9905d24a508279258cccf987a064 # pragma: allowlist secret -- public immutable model revision
+      install_kind: verified-hf-multi-file
+      entry: model.safetensors
+      artifact_roles: [stt_transformers_aligner]
+    variants:
+      - variant_id: local.stt.qwen3-forced-aligner-transformers-0.6b.safetensors
+        quant: BF16
+        files:
+          - model.safetensors
+          - tokenizer.json
+          - config.json
+          - processor_config.json
+          - tokenizer_config.json
+          - chat_template.jinja
+        hashes:
+          model.safetensors: "sha256:00568245ceca5af1991d28562a75fe1ddc9bfeb041c27fda66947ea05c47fb86"
+          tokenizer.json: "sha256:cadfb9cbd9ff8f4e309075ec6a71b063295ff796afb4b5dbc0fd2873fbb301f2"
+          config.json: "sha256:82ac390b36a8f80c5a0c4e202367debd149e5d8c30abe4cf5eed439101b1c5ce"
+          processor_config.json: "sha256:bc0b230081b44e629dd5b9045b78495615c1831b4b9f4cffe97bd37e82a6156a"
+          tokenizer_config.json: "sha256:945e980986de2ca7768f3326bfdbb4fbea3406f972b8ae0be233089f2b253c11"
+          chat_template.jinja: "sha256:59b5ae119bda7c00089bba5f49af775791ea67c7aeb7d2b828cddda9463121bf"
+        total_size_bytes: 1847225867
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 8589934592

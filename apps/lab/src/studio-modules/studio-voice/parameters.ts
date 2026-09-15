@@ -49,29 +49,27 @@ export type StudioVoiceCreateParameters = {
 export const MAX_STUDIO_AUDIO_UPLOAD_BYTES = 32 * 1024 * 1024;
 export const MAX_STUDIO_VOICE_REFERENCE_AUDIO_BYTES = 20 * 1024 * 1024;
 
-const LOCAL_PRESET_CLOUD_CONFIGURABLE = Object.freeze({
-  local: { kind: 'fixed', value: 'preset' } as const,
-  cloud: SUPPORTED_STUDIO_PARAMETER,
-});
 const LOCAL_TEXT_CLOUD_CONFIGURABLE = Object.freeze({
   local: { kind: 'fixed', value: 'text' } as const,
   cloud: SUPPORTED_STUDIO_PARAMETER,
 });
 
+// Route-level availability does not promise support from every selected model.
+// Runtime validates the exact voice, format, language and timing request.
 export const studioSpeechSynthesizeParameters = defineStudioParameters<StudioSpeechSynthesizeParameters>({
   initial: () => ({}),
   routeMatrix: {
-    voiceKind: LOCAL_PRESET_CLOUD_CONFIGURABLE,
+    voiceKind: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
     voicePreset: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
-    voiceAssetId: CLOUD_ONLY_STUDIO_PARAMETER,
-    language: CLOUD_ONLY_STUDIO_PARAMETER,
-    audioFormat: CLOUD_ONLY_STUDIO_PARAMETER,
+    voiceAssetId: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
+    language: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
+    audioFormat: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
     sampleRateHz: CLOUD_ONLY_STUDIO_PARAMETER,
     speed: CLOUD_ONLY_STUDIO_PARAMETER,
     pitch: CLOUD_ONLY_STUDIO_PARAMETER,
     volume: CLOUD_ONLY_STUDIO_PARAMETER,
     emotion: CLOUD_ONLY_STUDIO_PARAMETER,
-    timingMode: CLOUD_ONLY_STUDIO_PARAMETER,
+    timingMode: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
   },
 });
 
@@ -81,7 +79,7 @@ export const studioSpeechTranscribeParameters = defineStudioParameters<StudioSpe
     audioFile: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
     mimeType: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
     language: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
-    timestamps: CLOUD_ONLY_STUDIO_PARAMETER,
+    timestamps: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
     diarization: CLOUD_ONLY_STUDIO_PARAMETER,
     speakerCount: CLOUD_ONLY_STUDIO_PARAMETER,
     prompt: CLOUD_ONLY_STUDIO_PARAMETER,

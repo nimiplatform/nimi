@@ -19,6 +19,32 @@ func TestDefaultCatalogPreservesVerifiedSourceProvenance(t *testing.T) {
 	}
 }
 
+func TestVerifiedCatalogDoesNotExposeUnspecifiedAssetKinds(t *testing.T) {
+	local, err := catalog.LoadBuiltInLocalProviderCatalog()
+	if err != nil {
+		t.Fatal(err)
+	}
+	descriptors, err := verifiedAssetsFromLocalCatalog(local)
+	if err != nil {
+		t.Fatal(err)
+	}
+	foundSeparation := false
+	for _, descriptor := range descriptors {
+		if descriptor.GetKind() == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
+			t.Fatalf("verified catalog exposes an unusable kind for %s", descriptor.GetTemplateId())
+		}
+		if descriptor.GetTemplateId() == "local.music.htdemucs.pytorch" {
+			foundSeparation = true
+			if descriptor.GetKind() != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_MUSIC {
+				t.Fatalf("separation kind=%v", descriptor.GetKind())
+			}
+		}
+	}
+	if !foundSeparation {
+		t.Fatal("separation offer is missing from the actual catalog")
+	}
+}
+
 func TestProjectVerifiedVoxCPMAssetCarriesCanonicalFamilyAndPrivateBackend(t *testing.T) {
 	row := catalog.ModelEntry{
 		ModelID:      "voxcpm2-local",

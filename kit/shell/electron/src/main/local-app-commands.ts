@@ -1055,7 +1055,7 @@ function validateScenarioSpec(value: unknown, command: string, execute: boolean)
   }
   assertNoForbiddenAuthorityValue(value, command);
   const acceptsInlineAudio = !execute
-    && (value.type === 'speech-transcribe' || value.type === 'voice-create');
+    && (value.type === 'speech-transcribe' || value.type === 'voice-create' || value.type === 'audio-separate');
   validateJsonValue(value, command, 40 * 1024 * 1024, acceptsInlineAudio);
   if (value.type === 'text-embed' && execute) {
     assertExactKeys(value, ['type', 'inputs'], command);
@@ -1076,6 +1076,26 @@ function validateScenarioSpec(value: unknown, command: string, execute: boolean)
   }
   if (execute) throw invalidPayload(command, 'execute scenario type is invalid');
   switch (value.type) {
+    // @nimi-authority: rule.nimi.runtime.ai-provider.text-annotation
+    case 'text-annotate': {
+      assertExactKeys(value, ['type', 'language', 'texts'], command);
+      if (typeof value.language !== 'string' || !/^[a-z-]{2,16}$/.test(value.language)
+        || !Array.isArray(value.texts) || value.texts.length < 1 || value.texts.length > 64) {
+        throw invalidPayload(command, 'annotation language or document batch is invalid');
+      }
+      let bytes = 0;
+      for (const text of value.texts) {
+        if (typeof text !== 'string' || /[\uD800-\uDFFF]/u.test(text)) throw invalidPayload(command, 'annotation requires valid Unicode');
+        bytes += Buffer.byteLength(text, 'utf8');
+      }
+      if (bytes > 512 * 1024) throw invalidPayload(command, 'annotation input exceeds 512 KiB');
+      return;
+    }
+    // @nimi-authority: rule.nimi.runtime.ai-provider.audio-separation
+    case 'audio-separate':
+      assertExactKeys(value, ['type', 'mimeType', 'audioSource'], command);
+      validateSpeechTranscribeSpec({ ...value, language: '', prompt: '', responseFormat: '' }, command);
+      return;
     // @nimi-authority: rule.nimi.runtime.ai-provider.face-swap-video-job
     case 'video-face-swap':
       assertExactKeys(value, ['type', 'referenceImageArtifactId', 'targetVideoArtifactId', 'noFacePolicy'], command);

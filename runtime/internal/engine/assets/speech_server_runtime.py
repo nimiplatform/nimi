@@ -27,6 +27,8 @@ ADMISSION_TOKEN_HEADER = "x-nimi-speech-admission-token"
 QWEN3_TTS_DRIVER_ENV = "NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD"
 QWEN3_ASR_DRIVER_ENV = "NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD"
 QWEN3_ASR_TRANSFORMERS_DRIVER_ENV = "NIMI_RUNTIME_SPEECH_QWEN3_ASR_TRANSFORMERS_CMD"
+FASTER_WHISPER_DRIVER_ENV = "NIMI_RUNTIME_SPEECH_FASTER_WHISPER_CMD"
+DEMUCS_DRIVER_ENV = "NIMI_RUNTIME_SPEECH_DEMUCS_CMD"
 VOXCPM_DRIVER_ENV = "NIMI_RUNTIME_SPEECH_VOXCPM_CMD"
 VOXCPM_BACKEND_ENV = "NIMI_RUNTIME_SPEECH_VOXCPM_BACKEND"
 DRIVER_TIMEOUT_MS_ENV = "NIMI_RUNTIME_SPEECH_DRIVER_TIMEOUT_MS"
@@ -38,9 +40,21 @@ SPEECH_DRIVER_ENV_BY_KIND = {
     "qwen3_tts": QWEN3_TTS_DRIVER_ENV,
     "qwen3_asr": QWEN3_ASR_DRIVER_ENV,
     "qwen3_asr_transformers": QWEN3_ASR_TRANSFORMERS_DRIVER_ENV,
+    "faster_whisper": FASTER_WHISPER_DRIVER_ENV,
+    "demucs": DEMUCS_DRIVER_ENV,
     "voxcpm": VOXCPM_DRIVER_ENV,
 }
 REGISTERED_DRIVER_FACTS = {
+    "nimi.runtime.driver.faster-whisper": {
+        "driver": "faster_whisper", "family": "whisper", "backend": "ctranslate2",
+        "capabilities": {"audio.transcribe"},
+    },
+    "nimi.runtime.driver.demucs": {
+        "driver": "demucs",
+        "family": "demucs",
+        "backend": "pytorch",
+        "capabilities": {"audio.separate"},
+    },
     "nimi.runtime.driver.qwen3-tts": {
         "driver": "qwen3_tts",
         "family": "qwen3_tts",
@@ -54,6 +68,12 @@ REGISTERED_DRIVER_FACTS = {
         "capabilities": {"audio.transcribe"},
     },
     "nimi.runtime.driver.qwen3-asr-transformers": {
+        "driver": "qwen3_asr_transformers",
+        "family": "qwen3_asr",
+        "backend": "transformers",
+        "capabilities": {"audio.transcribe"},
+    },
+    "nimi.runtime.driver.qwen3-asr-transformers-aligned": {
         "driver": "qwen3_asr_transformers",
         "family": "qwen3_asr",
         "backend": "transformers",
@@ -89,6 +109,8 @@ class SpeechModelState:
     driver_backend: str = ""
     voice_creation_sources: list[str] = dataclasses.field(default_factory=list)
     workflow_model_bindings: dict[str, list[str]] = dataclasses.field(default_factory=dict)
+    alignment: SpeechModelState | None = None
+    vad: SpeechModelState | None = None
 
 
 @dataclasses.dataclass
@@ -119,6 +141,12 @@ class HostState:
     voxcpm_configured: bool = False
     voxcpm_ready: bool = False
     voxcpm_detail: str = "voxcpm driver not configured"
+    demucs_configured: bool = False
+    demucs_ready: bool = False
+    demucs_detail: str = "demucs driver not configured"
+    faster_whisper_configured: bool = False
+    faster_whisper_ready: bool = False
+    faster_whisper_detail: str = "faster_whisper driver not configured"
 
 
 def default_models_root() -> str:
@@ -429,6 +457,16 @@ def registered_speech_model_state(payload: dict[str, Any]) -> SpeechModelState:
         SPEECH_DRIVER_ENV_BY_KIND[driver_kind],
         driver_kind,
     )
+    alignment = None
+    if payload.get("alignment") is not None:
+        if driver_id != "nimi.runtime.driver.qwen3-asr-transformers-aligned" or not isinstance(payload["alignment"], dict) or payload["alignment"].get("alignment") is not None or payload["alignment"].get("vad") is not None:
+            raise ValueError("speech alignment binding is not admitted")
+        alignment = registered_speech_model_state(payload["alignment"])
+    vad = None
+    if payload.get("vad") is not None:
+        if driver_id != "nimi.runtime.driver.faster-whisper" or not isinstance(payload["vad"], dict) or payload["vad"].get("alignment") is not None or payload["vad"].get("vad") is not None:
+            raise ValueError("speech VAD binding is not admitted")
+        vad = registered_speech_model_state(payload["vad"])
     return SpeechModelState(
         model_id=model_id,
         declared_capabilities=[capability],
@@ -446,6 +484,8 @@ def registered_speech_model_state(payload: dict[str, Any]) -> SpeechModelState:
         driver_backend=backend,
         voice_creation_sources=voice_creation_sources,
         workflow_model_bindings=workflow_model_bindings,
+        alignment=alignment,
+        vad=vad,
     )
 
 
@@ -458,6 +498,10 @@ def sha256_file(path: pathlib.Path) -> str:
 
 
 def assert_registered_model_content(model: SpeechModelState) -> None:
+    if model.vad is not None:
+        assert_registered_model_content(model.vad)
+    if model.alignment is not None:
+        assert_registered_model_content(model.alignment)
     if not model.verified_content_id:
         return
     if not model.declared_files or set(model.declared_files) != set(model.declared_file_sha256):
@@ -581,6 +625,8 @@ def claim_driver_audio_artifact(path_value: str, content_type: str) -> DriverAud
 
 
 def build_host_state() -> HostState:
+    whisper_state = driver_command_state(FASTER_WHISPER_DRIVER_ENV, "faster_whisper")
+    demucs_state = driver_command_state(DEMUCS_DRIVER_ENV, "demucs")
     qwen3_tts_driver_state = driver_command_state(QWEN3_TTS_DRIVER_ENV, "qwen3_tts")
     qwen3_asr_driver_state = driver_command_state(QWEN3_ASR_DRIVER_ENV, "qwen3_asr")
     qwen3_asr_transformers_driver_state = driver_command_state(QWEN3_ASR_TRANSFORMERS_DRIVER_ENV, "qwen3_asr_transformers")
@@ -589,7 +635,7 @@ def build_host_state() -> HostState:
     if voxcpm_driver_state[0] and voxcpm_backend not in {"standard", "mlx"}:
         voxcpm_driver_state = (voxcpm_driver_state[0], False, "voxcpm backend is not configured")
     models: list[SpeechModelState] = []
-    if not qwen3_tts_driver_state[0] and not qwen3_asr_driver_state[0] and not qwen3_asr_transformers_driver_state[0] and not voxcpm_driver_state[0]:
+    if not qwen3_tts_driver_state[0] and not qwen3_asr_driver_state[0] and not qwen3_asr_transformers_driver_state[0] and not voxcpm_driver_state[0] and not demucs_state[0] and not whisper_state[0]:
         detail = "no runtime-native speech drivers configured"
         status = "not_ready"
         ready = False
@@ -618,6 +664,12 @@ def build_host_state() -> HostState:
         voxcpm_configured=bool(voxcpm_driver_state[0]),
         voxcpm_ready=voxcpm_ready,
         voxcpm_detail=voxcpm_detail,
+        demucs_configured=bool(demucs_state[0]),
+        demucs_ready=demucs_state[1],
+        demucs_detail=demucs_state[2],
+        faster_whisper_configured=bool(whisper_state[0]),
+        faster_whisper_ready=whisper_state[1],
+        faster_whisper_detail=whisper_state[2],
     )
 
 
@@ -696,25 +748,33 @@ def transcribe_with_driver(
     model: SpeechModelState,
     request_payload: dict[str, Any],
     cancel_event: Any | None = None,
-) -> str:
+) -> dict[str, Any]:
     assert_registered_model_content(model)
     driver_kind = model.capability_drivers.get("audio.transcribe", "").strip()
     if driver_kind == "qwen3_asr":
         env_name = QWEN3_ASR_DRIVER_ENV
     elif driver_kind == "qwen3_asr_transformers":
         env_name = QWEN3_ASR_TRANSFORMERS_DRIVER_ENV
+    elif driver_kind == "faster_whisper":
+        env_name = FASTER_WHISPER_DRIVER_ENV
     else:
         raise RuntimeError(f"audio.transcribe runtime-native driver unavailable: {driver_kind or 'unset'}")
     command, ready, detail = driver_command_state(env_name, driver_kind)
     if not ready:
         raise RuntimeError(detail)
+    if model.alignment is not None:
+        request_payload = {**request_payload, "alignment": {"bundle_dir": model.alignment.bundle_dir, "entry_path": model.alignment.entry_path, "declared_files": model.alignment.declared_files}}
+    if model.vad is not None:
+        request_payload = {**request_payload, "vad": {"bundle_dir": model.vad.bundle_dir, "entry_path": model.vad.entry_path, "declared_files": model.vad.declared_files}}
     response = run_driver_command(command, request_payload, cancel_event)
     text = str(response.get("text") or "").strip()
     if not text:
+        if response.get("no_speech") is True:
+            return {"text": "", "no_speech": True}
         if allow_empty_transcript_request(request_payload) and truthy_payload_value(response.get("empty_transcript")):
-            return ""
+            return {"text": "", "no_speech": True}
         raise RuntimeError("speech driver response missing transcription text")
-    return text
+    return {"text": text, **{key: response[key] for key in ("language", "words") if key in response}}
 
 
 def workflow_execution_unavailable_response(operation: str, detail: str, reason: str) -> JSONResponse:
@@ -728,6 +788,26 @@ def workflow_execution_unavailable_response(operation: str, detail: str, reason:
             }
         },
     )
+
+
+def separate_with_driver(model: SpeechModelState, request_payload: dict[str, Any], cancel_event: Any | None = None) -> dict[str, Any]:
+    assert_registered_model_content(model)
+    if model.capability_drivers.get("audio.separate") != "demucs":
+        raise RuntimeError("audio separation driver is not admitted")
+    command, ready, detail = driver_command_state(DEMUCS_DRIVER_ENV, "demucs")
+    if not ready:
+        raise RuntimeError(detail)
+    result = run_driver_command(command, request_payload, cancel_event)
+    if set(result) != {"sample_rate_hz", "channels", "sample_count", "vocals_path", "background_path"}:
+        raise RuntimeError("audio separation result fields are invalid")
+    if result["sample_rate_hz"] != 44100 or result["channels"] != 2 or type(result["sample_count"]) is not int or not 0 < result["sample_count"] <= 300 * 44100:
+        raise RuntimeError("audio separation result dimensions are invalid")
+    output_dir = pathlib.Path(request_payload["output_dir"])
+    for name in ("vocals", "background"):
+        path = pathlib.Path(result[name + "_path"])
+        if path != output_dir / (name + ".wav") or path.is_symlink() or not path.is_file():
+            raise RuntimeError("audio separation output is outside its owned exchange")
+    return result
 
 
 def local_workflow_not_admitted_response(operation: str, workflow_family: str) -> JSONResponse:

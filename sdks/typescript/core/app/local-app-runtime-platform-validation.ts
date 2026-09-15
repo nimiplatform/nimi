@@ -203,6 +203,14 @@ export function assertNoAuthorityMaterial(value: unknown, seen = new Set<object>
   if (value instanceof Uint8Array) return;
   if (seen.has(value)) return;
   seen.add(value);
+  if (Array.isArray(value)) {
+    // JSON/native arrays carry indexed values, not named properties. Avoid
+    // allocating a key per byte and do not invoke a caller-supplied iterator.
+    for (let index = 0; index < value.length; index++) {
+      assertNoAuthorityMaterial(value[index], seen);
+    }
+    return;
+  }
   for (const key of Reflect.ownKeys(value)) {
     if (typeof key !== 'string') localAppProjectionError('symbol input field');
     if (FORBIDDEN_AUTHORITY_FIELDS.has(normalizeFieldName(key))) {

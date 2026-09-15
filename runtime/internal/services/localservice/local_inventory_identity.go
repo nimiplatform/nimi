@@ -73,7 +73,7 @@ func inferAssetKindFromCapabilities(capabilities []string) runtimev1.LocalAssetK
 			kind = runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE
 		case "video.generate":
 			kind = runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO
-		case "music.generate":
+		case "music.generate", "audio.separate":
 			kind = runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_MUSIC
 		case "audio.synthesize", "voice.create":
 			kind = runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS

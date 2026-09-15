@@ -464,7 +464,7 @@ func (host *localSpeechHostStub) ExecuteSpeechTranscription(ctx context.Context,
 			return localexecution.SpeechTranscriptionResult{}, &localexecution.ExecutionError{Kind: localexecution.FailureCanceled, Err: ctx.Err()}
 		}
 	}
-	return localexecution.SpeechTranscriptionResult{Text: "captured transcript", Usage: &runtimev1.UsageStats{InputTokens: 2, OutputTokens: 3, ComputeMs: 4}}, nil
+	return localexecution.SpeechTranscriptionResult{Transcript: &runtimev1.SpeechTranscript{Status: runtimev1.SpeechTranscriptStatus_SPEECH_TRANSCRIPT_STATUS_TRANSCRIBED, Text: "captured transcript"}, Usage: &runtimev1.UsageStats{InputTokens: 2, OutputTokens: 3, ComputeMs: 4}}, nil
 }
 
 func TestQwen3TTSAudioCppSpeechWAVValidationIsCapabilitySpecific(t *testing.T) {

@@ -1,3 +1,6 @@
+import { validateNimiLocalAppTextAnnotationResult, type NimiLocalAppTextAnnotationResult } from '@nimiplatform/kit/core/sdk-contract';
+import { validateNimiLocalAppSpeechTranscript, type NimiLocalAppSpeechTranscript } from '@nimiplatform/kit/core/sdk-contract';
+import { validateNimiLocalAppAudioSeparation, type NimiLocalAppAudioSeparation } from '@nimiplatform/kit/core/sdk-contract';
 import {
   NIMI_STANDARD_SHELL_COMMANDS,
   isNimiStandardShellErrorEnvelope,
@@ -187,6 +190,14 @@ export type NimiLocalAppScenarioJobSpec =
         | { readonly type: 'uri'; readonly uri: string };
     }
   | {
+      readonly type: 'text-annotate'; readonly language: string; readonly texts: readonly string[];
+    }
+  | {
+      readonly type: 'audio-separate'; readonly mimeType: string;
+      readonly audioSource: { readonly type: 'bytes'; readonly bytes: readonly number[] }
+        | { readonly type: 'uri'; readonly uri: string };
+    }
+  | {
       readonly type: 'voice-create'; readonly creationSource: 'reference-audio';
       readonly referenceAudio: { readonly type: 'bytes'; readonly bytes: readonly number[] }
         | { readonly type: 'uri'; readonly uri: string };
@@ -214,13 +225,16 @@ export type NimiLocalAppScenarioArtifact = {
 export type NimiLocalAppScenarioJob = {
   readonly videoFaceSwapSummary?: { readonly totalFrames: number; readonly transformedFrames: number; readonly preservedFrames: number; readonly durationUs: number; readonly frameRate: 24 | 25 | 30; readonly audioPreserved: boolean };
   readonly jobId: string;
-  readonly scenarioType: 'image-generate' | 'image-face-swap' | 'video-face-swap' | 'vision-locate' | 'video-generate' | 'speech-synthesize' | 'speech-transcribe' | 'voice-create' | 'music-generate' | 'world-generate';
+  readonly scenarioType: 'image-generate' | 'image-face-swap' | 'video-face-swap' | 'vision-locate' | 'video-generate' | 'speech-synthesize' | 'speech-transcribe' | 'text-annotate' | 'audio-separate' | 'voice-create' | 'music-generate' | 'world-generate';
   readonly status: 'submitted' | 'queued' | 'running' | 'completed' | 'failed' | 'canceled' | 'timeout';
   readonly progressPercent: number; readonly progressCurrentStep: number; readonly progressTotalSteps: number;
   readonly reasonCode: string; readonly reasonDetail: string;
   readonly artifacts: readonly NimiLocalAppScenarioArtifact[]; readonly traceId: string;
   readonly createdAt: NimiLocalAppScenarioTimestamp | null; readonly updatedAt: NimiLocalAppScenarioTimestamp | null;
   readonly transcriptionText: string;
+  readonly transcription?: NimiLocalAppSpeechTranscript;
+  readonly textAnnotation?: NimiLocalAppTextAnnotationResult;
+  readonly audioSeparation?: NimiLocalAppAudioSeparation;
   readonly interruption?: NimiLocalAppExecutionInterruption;
 };
 export type NimiLocalAppVoiceAsset = {
@@ -2265,10 +2279,13 @@ function parseScenarioJob(value: unknown, command: string): NimiLocalAppScenario
     'jobId', 'scenarioType', 'status', 'progressPercent', 'progressCurrentStep',
     'progressTotalSteps', 'reasonCode', 'reasonDetail', 'artifacts', 'traceId',
     'createdAt', 'updatedAt', 'transcriptionText',
+    ...(Object.hasOwn(record, 'transcription') ? ['transcription'] : []),
+    ...(Object.hasOwn(record, 'textAnnotation') ? ['textAnnotation'] : []),
+    ...(Object.hasOwn(record, 'audioSeparation') ? ['audioSeparation'] : []),
     ...(Object.hasOwn(record, 'interruption') ? ['interruption'] : []),
     ...(Object.hasOwn(record, 'videoFaceSwapSummary') ? ['videoFaceSwapSummary'] : []),
   ], command, 'scenario Job');
-  if (!['image-generate', 'image-face-swap', 'video-face-swap', 'vision-locate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'voice-create', 'music-generate', 'world-generate'].includes(String(record.scenarioType))
+  if (!['image-generate', 'image-face-swap', 'video-face-swap', 'vision-locate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'text-annotate', 'audio-separate', 'voice-create', 'music-generate', 'world-generate'].includes(String(record.scenarioType))
     || !['submitted', 'queued', 'running', 'completed', 'failed', 'canceled', 'timeout'].includes(String(record.status))) {
     throw new Error(`${command}: Job enum is invalid`);
   }
@@ -2284,7 +2301,17 @@ function parseScenarioJob(value: unknown, command: string): NimiLocalAppScenario
     assertProjectionKeys(cause, ['cause', 'resubmitDisposition'], command, 'Job interruption');
     if (cause.cause !== 'runtime-restart' || cause.resubmitDisposition !== 'caller-may-resubmit') throw new Error(`${command}: Job interruption is invalid`);
   }
+  const transcription = record.transcription === undefined ? undefined : validateNimiLocalAppSpeechTranscript(record.transcription);
+  if (transcription && (record.scenarioType !== 'speech-transcribe' || record.status !== 'completed' || transcription.text !== record.transcriptionText)) throw new Error(`${command}: speech transcription state is invalid`);
+  const artifacts = parseScenarioArtifacts(record.artifacts, command);
+  if ((record.audioSeparation !== undefined) !== (record.scenarioType === 'audio-separate' && record.status === 'completed')) throw new Error(`${command}: audio separation state is invalid`);
+  if ((record.textAnnotation !== undefined) !== (record.scenarioType === 'text-annotate' && record.status === 'completed')) throw new Error(`${command}: annotation state is invalid`);
+  const textAnnotation = record.textAnnotation === undefined ? undefined : validateNimiLocalAppTextAnnotationResult(record.textAnnotation);
+  const audioSeparation = record.audioSeparation === undefined ? undefined : validateNimiLocalAppAudioSeparation(record.audioSeparation, artifacts);
   return Object.freeze({
+    ...(textAnnotation ? { textAnnotation } : {}),
+    ...(audioSeparation ? { audioSeparation } : {}),
+    ...(transcription ? { transcription } : {}),
     ...(videoFaceSwapSummary ? { videoFaceSwapSummary } : {}),
     ...(interruption !== undefined ? { interruption: { ...(interruption as NimiLocalAppExecutionInterruption) } } : {}),
     jobId: requiredText(record.jobId, 'jobId', command, 128),
@@ -2295,11 +2322,11 @@ function parseScenarioJob(value: unknown, command: string): NimiLocalAppScenario
     progressTotalSteps,
     reasonCode: optionalProjectionText(record.reasonCode, 128, command),
     reasonDetail: optionalProjectionText(record.reasonDetail, 1024, command),
-    artifacts: parseScenarioArtifacts(record.artifacts, command),
+    artifacts,
     traceId: optionalProjectionText(record.traceId, 512, command),
     createdAt: parseScenarioTimestamp(record.createdAt, command),
     updatedAt: parseScenarioTimestamp(record.updatedAt, command),
-    transcriptionText: optionalProjectionText(record.transcriptionText, 256 * 1024, command),
+    transcriptionText: optionalProjectionText(record.transcriptionText, 1 << 20, command),
   }) as unknown as NimiLocalAppScenarioJob;
 }
 

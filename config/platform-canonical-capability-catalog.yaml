@@ -39,6 +39,24 @@ capabilities:
       revocation: change-runtime-route-or-revoke-connector
       auditSource: runtime-route-evidence
     source_rule: P-CAPCAT-001
+  - capabilityId: text.annotate
+    section: chat
+    editorKind: null
+    sourceRef:
+      table: local-adapter-routing
+      capability: text.annotate
+    i18nKeys:
+      title: AIConfig.capability.textAnnotate.title
+      subtitle: AIConfig.capability.textAnnotate.subtitle
+      detail: AIConfig.capability.textAnnotate.detail
+    runtimeEvidenceClass: job
+    governance:
+      owner: runtime-text-route
+      dataMovement: local-by-selected-route
+      retention: runtime-scenario-job-policy
+      revocation: route-or-job-owner
+      auditSource: runtime-scenario-job-evidence
+    source_rule: P-CAPCAT-001
   - capabilityId: text.embed
     section: embed
     editorKind: null
@@ -97,6 +115,24 @@ capabilities:
       dataMovement: local-or-cloud-by-selected-route
       retention: runtime-audio-policy
       revocation: route-or-connector-owner
+      auditSource: runtime-scenario-job-evidence
+    source_rule: P-CAPCAT-001
+  - capabilityId: audio.separate
+    section: music
+    editorKind: null
+    sourceRef:
+      table: local-adapter-routing
+      capability: audio.separate
+    i18nKeys:
+      title: AIConfig.capability.audioSeparate.title
+      subtitle: AIConfig.capability.audioSeparate.subtitle
+      detail: AIConfig.capability.audioSeparate.detail
+    runtimeEvidenceClass: job
+    governance:
+      owner: runtime-audio-route
+      dataMovement: local-by-selected-route
+      retention: runtime-audio-policy
+      revocation: route-owner
       auditSource: runtime-scenario-job-evidence
     source_rule: P-CAPCAT-001
   - capabilityId: voice.create

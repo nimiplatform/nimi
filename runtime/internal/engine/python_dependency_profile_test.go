@@ -41,6 +41,9 @@ func TestResolvePythonDependencyProfileIdentityUsesCompleteInputs(t *testing.T) 
 		{consumer: "speech.qwen3-tts.python", platform: "windows/amd64", plane: "cuda"},
 		{consumer: "speech.qwen3-asr.python", platform: "darwin/arm64", plane: "cpu"},
 		{consumer: "speech.qwen3-asr-transformers.python", platform: "darwin/arm64", plane: "cpu"},
+		{consumer: "speech.demucs.python", platform: "windows/amd64", plane: "cpu"},
+		{consumer: "speech.demucs.python", platform: "windows/amd64", plane: "cuda"},
+		{consumer: "speech.demucs.python", platform: "darwin/arm64", plane: "cpu"},
 	} {
 		identity, resolveErr := ResolvePythonDependencyProfileIdentity(request.consumer, request.platform, request.plane)
 		if resolveErr != nil {
@@ -52,6 +55,35 @@ func TestResolvePythonDependencyProfileIdentityUsesCompleteInputs(t *testing.T) 
 			}
 		}
 		identities = append(identities, identity)
+	}
+}
+
+func TestWhisperProfilesCarryTheirOwnDriverAndDependencies(t *testing.T) {
+	for _, plane := range []string{"cpu", "cuda"} {
+		identity, err := ResolvePythonDependencyProfileIdentity("speech.faster-whisper.python", "windows/amd64", plane)
+		if err != nil {
+			t.Fatal(err)
+		}
+		files, err := PythonDependencyProfileStaticFiles("speech.faster-whisper.python", identity)
+		if err != nil {
+			t.Fatal(err)
+		}
+		found := false
+		for _, file := range files {
+			if file.RelativePath == "faster_whisper_driver.py" {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatal("Whisper environment lacks its exact Driver")
+		}
+		if len(speechDriverCommandsForConsumer("managed-root", "speech.faster-whisper.python")) != 1 {
+			t.Fatal("Whisper command missing")
+		}
+		manifest, err := resolvePythonPackageSetManifest("speech.faster-whisper.python")
+		if err != nil || !strings.Contains(strings.Join(manifest.ImportProbes, " "), "silero_vad") {
+			t.Fatalf("Whisper dependency probe missing: %+v %v", manifest, err)
+		}
 	}
 }
 

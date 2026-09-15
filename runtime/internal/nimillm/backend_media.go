@@ -114,99 +114,106 @@ func (b *Backend) Transcribe(
 	audio []byte,
 	mimeType string,
 	scenarioExtensions map[string]any,
-) (string, *runtimev1.UsageStats, error) {
+) (*runtimev1.SpeechTranscript, *runtimev1.UsageStats, error) {
 	if len(audio) == 0 {
-		return "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+		return nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	if b.supportsMimoChatCompletions() || isMimoModelID(modelID) {
-		return b.transcribeMimoChat(ctx, modelID, spec, audio, mimeType)
+		text, usage, err := b.transcribeMimoChat(ctx, modelID, spec, audio, mimeType)
+		if err != nil {
+			return nil, nil, err
+		}
+		return &runtimev1.SpeechTranscript{Status: runtimev1.SpeechTranscriptStatus_SPEECH_TRANSCRIPT_STATUS_TRANSCRIBED, Text: text}, usage, nil
 	}
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	if err := writer.WriteField("model", modelID); err != nil {
-		return "", nil, MapProviderRequestError(err)
+		return nil, nil, MapProviderRequestError(err)
 	}
 	if strings.TrimSpace(mimeType) != "" {
 		if err := writer.WriteField("mime_type", strings.TrimSpace(mimeType)); err != nil {
-			return "", nil, MapProviderRequestError(err)
+			return nil, nil, MapProviderRequestError(err)
 		}
 	}
 	if spec != nil {
 		if language := strings.TrimSpace(spec.GetLanguage()); language != "" {
 			if err := writer.WriteField("language", language); err != nil {
-				return "", nil, MapProviderRequestError(err)
+				return nil, nil, MapProviderRequestError(err)
 			}
 		}
 		if prompt := strings.TrimSpace(spec.GetPrompt()); prompt != "" {
 			if err := writer.WriteField("prompt", prompt); err != nil {
-				return "", nil, MapProviderRequestError(err)
+				return nil, nil, MapProviderRequestError(err)
 			}
 		}
 		if format := strings.TrimSpace(spec.GetResponseFormat()); format != "" {
 			if err := writer.WriteField("response_format", format); err != nil {
-				return "", nil, MapProviderRequestError(err)
+				return nil, nil, MapProviderRequestError(err)
 			}
 		}
 		if spec.GetTimestamps() {
 			if err := writer.WriteField("timestamps", "true"); err != nil {
-				return "", nil, MapProviderRequestError(err)
+				return nil, nil, MapProviderRequestError(err)
 			}
 		}
 		if spec.GetDiarization() {
 			if err := writer.WriteField("diarization", "true"); err != nil {
-				return "", nil, MapProviderRequestError(err)
+				return nil, nil, MapProviderRequestError(err)
 			}
 		}
 		if spec.GetSpeakerCount() > 0 {
 			if err := writer.WriteField("speaker_count", strconv.FormatInt(int64(spec.GetSpeakerCount()), 10)); err != nil {
-				return "", nil, MapProviderRequestError(err)
+				return nil, nil, MapProviderRequestError(err)
 			}
 		}
 		if options := scenarioExtensions; len(options) > 0 {
 			raw, marshalErr := json.Marshal(options)
 			if marshalErr != nil {
-				return "", nil, MapProviderRequestError(marshalErr)
+				return nil, nil, MapProviderRequestError(marshalErr)
 			}
 			if err := writer.WriteField("extensions", string(raw)); err != nil {
-				return "", nil, MapProviderRequestError(err)
+				return nil, nil, MapProviderRequestError(err)
 			}
 		}
 	}
 	fileWriter, err := writer.CreateFormFile("file", transcriptionUploadFilename(mimeType))
 	if err != nil {
-		return "", nil, MapProviderRequestError(err)
+		return nil, nil, MapProviderRequestError(err)
 	}
 	if _, err := fileWriter.Write(audio); err != nil {
-		return "", nil, MapProviderRequestError(err)
+		return nil, nil, MapProviderRequestError(err)
 	}
 	if err := writer.Close(); err != nil {
-		return "", nil, MapProviderRequestError(err)
+		return nil, nil, MapProviderRequestError(err)
 	}
 
 	endpoint := b.baseURL + "/v1/audio/transcriptions"
 	request, err := b.newRequest(ctx, http.MethodPost, endpoint, body)
 	if err != nil {
-		return "", nil, err
+		return nil, nil, err
 	}
 	request.Header.Set("Content-Type", writer.FormDataContentType())
 
 	response, err := b.do(request)
 	if err != nil {
-		return "", nil, MapProviderRequestError(err)
+		return nil, nil, MapProviderRequestError(err)
 	}
 	defer func() { _ = response.Body.Close() }()
 
 	type transcriptionResponse struct {
-		Text string `json:"text"`
+		Text     string                            `json:"text"`
+		Language string                            `json:"language"`
+		Words    []*runtimev1.SpeechTranscriptWord `json:"words"`
+		NoSpeech bool                              `json:"no_speech"`
 	}
 	var out transcriptionResponse
 	if err := DecodeResponseJSON(response, &out); err != nil {
-		return "", nil, err
+		return nil, nil, err
 	}
 	text := strings.TrimSpace(out.Text)
-	if text == "" && !allowEmptyTranscript(scenarioExtensions) {
-		return "", nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	if text == "" && !out.NoSpeech && !allowEmptyTranscript(scenarioExtensions) {
+		return nil, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 
 	usage := &runtimev1.UsageStats{
@@ -214,7 +221,11 @@ func (b *Backend) Transcribe(
 		OutputTokens: EstimateTokens(text),
 		ComputeMs:    MaxInt64(10, int64(len(audio)/64)),
 	}
-	return text, usage, nil
+	status := runtimev1.SpeechTranscriptStatus_SPEECH_TRANSCRIPT_STATUS_TRANSCRIBED
+	if out.NoSpeech || text == "" {
+		status = runtimev1.SpeechTranscriptStatus_SPEECH_TRANSCRIPT_STATUS_NO_SPEECH
+	}
+	return &runtimev1.SpeechTranscript{Status: status, Text: text, Language: strings.TrimSpace(out.Language), Words: out.Words}, usage, nil
 }
 
 func allowEmptyTranscript(scenarioExtensions map[string]any) bool {

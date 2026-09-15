@@ -194,7 +194,7 @@ func verifiedAssetTags(capabilities []string, quant string) []string {
 			tags = append(tags, "image")
 		case "video.generate":
 			tags = append(tags, "video")
-		case "music.generate":
+		case "music.generate", "audio.separate":
 			tags = append(tags, "music")
 		}
 	}

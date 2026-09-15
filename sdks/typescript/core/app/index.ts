@@ -399,3 +399,10 @@ function appError(code: string, message: string, actionHint: string, cause?: unk
 }
 
 export type { NimiLocalAppWorldCharacterListInput, NimiLocalAppWorldEntityListInput, NimiLocalAppWorldRelationshipListInput } from './local-app-runtime-platform-world-creator.js';
+export { validateNimiLocalAppSpeechTranscript } from './local-app-transcription.js';
+export type { NimiLocalAppSpeechTranscript } from './local-app-transcription.js';
+export { validateNimiLocalAppAudioSeparation } from './local-app-audio-separation.js';
+export type { NimiLocalAppAudioSeparation } from './local-app-audio-separation.js';
+
+export { validateNimiLocalAppTextAnnotationResult } from './local-app-text-annotation.js';
+export type { NimiLocalAppTextAnnotationResult, NimiLocalAppTextAnnotationDocument, NimiLocalAppTextAnnotationToken } from './local-app-text-annotation.js';

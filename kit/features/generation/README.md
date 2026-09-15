@@ -38,6 +38,40 @@ must omit.
 App-specific artifact persistence, media decoding, and downstream domain writes
 remain app-owned.
 
+## Speech transcription
+
+SDK 0.14.0 / Kit 0.10.0 preserve optional `transcription` in speech-transcribe
+job and `runRuntimeSpeechTranscribe` results. It contains original text,
+model-reported language, ordered word/character times in seconds, and explicit
+`transcribed` or `no-speech` status. `text` remains convenient for text consumers.
+Use `timestamps: true` only with an aligned transcription resource; unsupported
+resources fail rather than synthesize timings. No-speech is distinct from a
+failed inference.
+
+The local Qwen3 Transformers aligned recipe needs both recognition and aligner
+assets in the selected Loadout and accepts up to 300 seconds per input. Times
+start at input zero; the App owns chunk offsets, subtitle assembly and export.
+See the SDK README for language and result bounds. This transcription recipe
+does not provide diarization or source separation.
+
+The Faster Whisper recipe captures a Whisper recognition model and a Silero
+voice activity detector instead. It returns actual word timestamps for inputs
+up to 300 seconds, with no diarization or prompt support. It uses the same
+typed result and App-owned chunk offsets; no alternate SDK call is needed.
+
+Choose the current transcription Loadout in Nimi's model configuration. App
+AIConfig declares `local: {}`; it does not name or choose another local resource.
+
+## Source separation
+
+Use the Host-bound Local App client's `ai.scenarioJobs.submit` with an
+`audio-separate` spec and its own `audio.separate` AIConfig intent. Completed Jobs
+carry `audioSeparation.vocalsArtifactId` and `backgroundArtifactId`; both identify
+owned audio artifacts with the same timeline. Receive large WAVs through
+`storage.assets.adoptArtifact` and read them with `storage.assets.read`.
+The SDK README documents the initial Driver's input limits and App chunking
+responsibility. A failed or canceled Job does not provide a successful pair.
+
 ## Verification
 
 - `pnpm --filter @nimiplatform/kit build`

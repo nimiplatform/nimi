@@ -189,11 +189,12 @@ RoutePolicy = Literal["ROUTE_POLICY_UNSPECIFIED", "ROUTE_POLICY_LOCAL", "ROUTE_P
 RuntimeHealthStatus = Literal["RUNTIME_HEALTH_STATUS_UNSPECIFIED", "RUNTIME_HEALTH_STATUS_STOPPED", "RUNTIME_HEALTH_STATUS_STARTING", "RUNTIME_HEALTH_STATUS_READY", "RUNTIME_HEALTH_STATUS_DEGRADED", "RUNTIME_HEALTH_STATUS_STOPPING"]
 ScenarioJobEventType = Literal["SCENARIO_JOB_EVENT_TYPE_UNSPECIFIED", "SCENARIO_JOB_EVENT_SUBMITTED", "SCENARIO_JOB_EVENT_QUEUED", "SCENARIO_JOB_EVENT_RUNNING", "SCENARIO_JOB_EVENT_COMPLETED", "SCENARIO_JOB_EVENT_FAILED", "SCENARIO_JOB_EVENT_CANCELED", "SCENARIO_JOB_EVENT_TIMEOUT"]
 ScenarioJobStatus = Literal["SCENARIO_JOB_STATUS_UNSPECIFIED", "SCENARIO_JOB_STATUS_SUBMITTED", "SCENARIO_JOB_STATUS_QUEUED", "SCENARIO_JOB_STATUS_RUNNING", "SCENARIO_JOB_STATUS_COMPLETED", "SCENARIO_JOB_STATUS_FAILED", "SCENARIO_JOB_STATUS_CANCELED", "SCENARIO_JOB_STATUS_TIMEOUT"]
-ScenarioType = Literal["SCENARIO_TYPE_UNSPECIFIED", "SCENARIO_TYPE_TEXT_GENERATE", "SCENARIO_TYPE_TEXT_EMBED", "SCENARIO_TYPE_IMAGE_GENERATE", "SCENARIO_TYPE_VIDEO_GENERATE", "SCENARIO_TYPE_SPEECH_SYNTHESIZE", "SCENARIO_TYPE_SPEECH_TRANSCRIBE", "SCENARIO_TYPE_MUSIC_GENERATE", "SCENARIO_TYPE_WORLD_GENERATE", "SCENARIO_TYPE_VOICE_CREATE", "SCENARIO_TYPE_VISION_LOCATE", "SCENARIO_TYPE_IMAGE_FACE_SWAP", "SCENARIO_TYPE_VIDEO_FACE_SWAP"]
+ScenarioType = Literal["SCENARIO_TYPE_UNSPECIFIED", "SCENARIO_TYPE_TEXT_GENERATE", "SCENARIO_TYPE_TEXT_EMBED", "SCENARIO_TYPE_IMAGE_GENERATE", "SCENARIO_TYPE_VIDEO_GENERATE", "SCENARIO_TYPE_SPEECH_SYNTHESIZE", "SCENARIO_TYPE_SPEECH_TRANSCRIBE", "SCENARIO_TYPE_MUSIC_GENERATE", "SCENARIO_TYPE_WORLD_GENERATE", "SCENARIO_TYPE_VOICE_CREATE", "SCENARIO_TYPE_VISION_LOCATE", "SCENARIO_TYPE_IMAGE_FACE_SWAP", "SCENARIO_TYPE_VIDEO_FACE_SWAP", "SCENARIO_TYPE_AUDIO_SEPARATE", "SCENARIO_TYPE_TEXT_ANNOTATE"]
 SchedulingState = Literal["SCHEDULING_STATE_UNSPECIFIED", "SCHEDULING_STATE_RUNNABLE", "SCHEDULING_STATE_QUEUE_REQUIRED", "SCHEDULING_STATE_PREEMPTION_RISK", "SCHEDULING_STATE_SLOWDOWN_RISK", "SCHEDULING_STATE_DENIED", "SCHEDULING_STATE_UNKNOWN"]
 SensitivityClass = Literal["SENSITIVITY_CLASS_UNSPECIFIED", "SENSITIVITY_CLASS_NONE", "SENSITIVITY_CLASS_USER_PRIVATE", "SENSITIVITY_CLASS_CREDENTIAL_LIKE", "SENSITIVITY_CLASS_ORG_PRIVATE", "SENSITIVITY_CLASS_REGULATED", "SENSITIVITY_CLASS_UNKNOWN_SENSITIVE"]
 SpeechAlignmentUnit = Literal["SPEECH_ALIGNMENT_UNIT_UNSPECIFIED", "SPEECH_ALIGNMENT_UNIT_WORD", "SPEECH_ALIGNMENT_UNIT_CHAR"]
 SpeechTimingMode = Literal["SPEECH_TIMING_MODE_UNSPECIFIED", "SPEECH_TIMING_MODE_NONE", "SPEECH_TIMING_MODE_WORD", "SPEECH_TIMING_MODE_CHAR"]
+SpeechTranscriptStatus = Literal["SPEECH_TRANSCRIPT_STATUS_UNSPECIFIED", "SPEECH_TRANSCRIPT_STATUS_TRANSCRIBED", "SPEECH_TRANSCRIPT_STATUS_NO_SPEECH"]
 StreamEventType = Literal["STREAM_EVENT_TYPE_UNSPECIFIED", "STREAM_EVENT_STARTED", "STREAM_EVENT_DELTA", "STREAM_EVENT_USAGE", "STREAM_EVENT_COMPLETED", "STREAM_EVENT_FAILED"]
 TextBehaviorConfigurationState = Literal["TEXT_BEHAVIOR_CONFIGURATION_STATE_UNSPECIFIED", "TEXT_BEHAVIOR_CONFIGURATION_STATE_UNAVAILABLE", "TEXT_BEHAVIOR_CONFIGURATION_STATE_CONFIGURED", "TEXT_BEHAVIOR_CONFIGURATION_STATE_AMBIGUOUS"]
 TextBehaviorKind = Literal["TEXT_BEHAVIOR_KIND_UNSPECIFIED", "TEXT_BEHAVIOR_KIND_TOOL_USE", "TEXT_BEHAVIOR_KIND_REASONING", "TEXT_BEHAVIOR_KIND_STRUCTURED_OUTPUT"]
@@ -1078,6 +1079,21 @@ class ArtifactStreamDelta:
 @dataclass(frozen=True)
 class AudioChunks:
     chunks: tuple[bytes, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class AudioSeparateResult:
+    artifacts: tuple[ScenarioArtifact, ...] = field(default_factory=tuple)
+    separation: AudioSeparation | None = None
+
+@dataclass(frozen=True)
+class AudioSeparateScenarioSpec:
+    mime_type: str | None = None
+    audio_source: SpeechTranscriptionAudioSource | None = None
+
+@dataclass(frozen=True)
+class AudioSeparation:
+    vocals_artifact_id: str | None = None
+    background_artifact_id: str | None = None
 
 @dataclass(frozen=True)
 class AuditEventRecord:
@@ -3819,6 +3835,9 @@ class LocalAppScenarioJob:
     transcription_text: str | None = None
     interruption: ExecutionInterruption | None = None
     video_face_swap_summary: VideoFaceSwapSummary | None = None
+    transcription: SpeechTranscript | None = None
+    audio_separation: AudioSeparation | None = None
+    text_annotation: TextAnnotationResult | None = None
 
 @dataclass(frozen=True)
 class LocalAppScenarioJobEvent:
@@ -5387,6 +5406,9 @@ class ScenarioJob:
     effective_input_identity: LoadoutEffectiveInputIdentity | None = None
     interruption: ExecutionInterruption | None = None
     video_face_swap_summary: VideoFaceSwapSummary | None = None
+    transcription: SpeechTranscript | None = None
+    audio_separation: AudioSeparation | None = None
+    text_annotation: TextAnnotationResult | None = None
 
 @dataclass(frozen=True)
 class ScenarioJobEvent:
@@ -5408,6 +5430,8 @@ class ScenarioOutput:
     world_generate: WorldGenerateResult | None = None
     image_face_swap: ImageFaceSwapResult | None = None
     video_face_swap: VideoFaceSwapResult | None = None
+    audio_separate: AudioSeparateResult | None = None
+    text_annotation: TextAnnotationResult | None = None
 
 @dataclass(frozen=True)
 class ScenarioProfile:
@@ -5435,6 +5459,8 @@ class ScenarioSpec:
     vision_locate: VisionLocateScenarioSpec | None = None
     image_face_swap: ImageFaceSwapScenarioSpec | None = None
     video_face_swap: VideoFaceSwapScenarioSpec | None = None
+    audio_separate: AudioSeparateScenarioSpec | None = None
+    text_annotate: TextAnnotateScenarioSpec | None = None
 
 @dataclass(frozen=True)
 class ScenarioStreamCompleted:
@@ -5660,6 +5686,7 @@ class SpeechSynthesizeScenarioSpec:
 class SpeechTranscribeResult:
     text: str | None = None
     artifacts: tuple[ScenarioArtifact, ...] = field(default_factory=tuple)
+    transcription: SpeechTranscript | None = None
 
 @dataclass(frozen=True)
 class SpeechTranscribeScenarioSpec:
@@ -5671,6 +5698,19 @@ class SpeechTranscribeScenarioSpec:
     prompt: str | None = None
     audio_source: SpeechTranscriptionAudioSource | None = None
     response_format: str | None = None
+
+@dataclass(frozen=True)
+class SpeechTranscript:
+    status: SpeechTranscriptStatus | None = None
+    text: str | None = None
+    language: str | None = None
+    words: tuple[SpeechTranscriptWord, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class SpeechTranscriptWord:
+    text: str | None = None
+    start_seconds: float | None = None
+    end_seconds: float | None = None
 
 @dataclass(frozen=True)
 class SpeechTranscriptionAudioSource:
@@ -5824,6 +5864,8 @@ class SubmitLocalAppScenarioJobRequest:
     vision_locate: VisionLocateScenarioSpec | None = None
     image_face_swap: ImageFaceSwapScenarioSpec | None = None
     video_face_swap: VideoFaceSwapScenarioSpec | None = None
+    audio_separate: AudioSeparateScenarioSpec | None = None
+    text_annotate: TextAnnotateScenarioSpec | None = None
 
 @dataclass(frozen=True)
 class SubmitLocalAppScenarioJobResponse:
@@ -5966,6 +6008,37 @@ class TestConnectorRequest:
 @dataclass(frozen=True)
 class TestConnectorResponse:
     ack: Ack | None = None
+
+@dataclass(frozen=True)
+class TextAnnotateScenarioSpec:
+    language: str | None = None
+    texts: tuple[str, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class TextAnnotationDocument:
+    text: str | None = None
+    language: str | None = None
+    tokens: tuple[TextAnnotationToken, ...] = field(default_factory=tuple)
+    sentences: tuple[TextAnnotationSentence, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class TextAnnotationResult:
+    documents: tuple[TextAnnotationDocument, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class TextAnnotationSentence:
+    start_token: int | None = None
+    end_token: int | None = None
+
+@dataclass(frozen=True)
+class TextAnnotationToken:
+    text: str | None = None
+    start: int | None = None
+    end: int | None = None
+    head_index: int | None = None
+    part_of_speech: str | None = None
+    dependency: str | None = None
+    is_punctuation: bool | None = None
 
 @dataclass(frozen=True)
 class TextBehaviorCapabilityProjection:

@@ -1,3 +1,6 @@
+import { validateNimiLocalAppTextAnnotationResult, type NimiLocalAppTextAnnotationResult } from './local-app-text-annotation.js';
+import { validateNimiLocalAppSpeechTranscript, type NimiLocalAppSpeechTranscript } from './local-app-transcription.js';
+import { validateNimiLocalAppAudioSeparation, type NimiLocalAppAudioSeparation } from './local-app-audio-separation.js';
 import {
   ChatContentPartType,
   ExecutionMode,
@@ -11,6 +14,7 @@ import {
   ScenarioJobStatus,
   ScenarioType,
   SpeechTimingMode,
+  SpeechTranscriptStatus,
   VideoContentRole,
   VideoContentType,
   VideoMode,
@@ -179,6 +183,16 @@ export type NimiLocalAppScenarioJobSpec =
         | { readonly type: 'uri'; readonly uri: string };
     }
   | {
+      readonly type: 'text-annotate'; readonly language: string; readonly texts: readonly string[];
+    }
+  | {
+      readonly type: 'audio-separate';
+      readonly mimeType: string;
+      readonly audioSource:
+        | { readonly type: 'bytes'; readonly bytes: readonly number[] }
+        | { readonly type: 'uri'; readonly uri: string };
+    }
+  | {
       readonly type: 'voice-create';
       readonly creationSource: 'reference-audio';
       readonly referenceAudio:
@@ -240,7 +254,7 @@ export type NimiLocalAppVideoFaceSwapSummary = {
 export type NimiLocalAppScenarioJob = {
   readonly videoFaceSwapSummary?: NimiLocalAppVideoFaceSwapSummary;
   readonly jobId: string;
-  readonly scenarioType: 'image-generate' | 'image-face-swap' | 'video-face-swap' | 'vision-locate' | 'video-generate' | 'speech-synthesize' | 'speech-transcribe' | 'voice-create' | 'music-generate' | 'world-generate';
+  readonly scenarioType: 'image-generate' | 'image-face-swap' | 'video-face-swap' | 'vision-locate' | 'video-generate' | 'speech-synthesize' | 'speech-transcribe' | 'text-annotate' | 'audio-separate' | 'voice-create' | 'music-generate' | 'world-generate';
   readonly status: 'submitted' | 'queued' | 'running' | 'completed' | 'failed' | 'canceled' | 'timeout';
   readonly progressPercent: number;
   readonly progressCurrentStep: number;
@@ -252,6 +266,9 @@ export type NimiLocalAppScenarioJob = {
   readonly createdAt: NimiLocalAppScenarioTimestamp | null;
   readonly updatedAt: NimiLocalAppScenarioTimestamp | null;
   readonly transcriptionText: string;
+  readonly transcription?: NimiLocalAppSpeechTranscript;
+  readonly textAnnotation?: NimiLocalAppTextAnnotationResult;
+  readonly audioSeparation?: NimiLocalAppAudioSeparation;
   readonly interruption?: NimiLocalAppExecutionInterruption;
 };
 
@@ -792,6 +809,20 @@ function validateScenarioSpec<T extends NimiLocalAppScenarioExecuteSpec | NimiLo
       if (execute) invalidAIInput('speech-transcribe is not a synchronous spec');
       validateSpeechTranscribeSpec(record);
       break;
+    case 'text-annotate':
+      if (execute) invalidAIInput('text-annotate is not a synchronous spec');
+      assertExactKeys(record, ['type', 'language', 'texts'], 'text annotation spec');
+      if (typeof record.language !== 'string' || !/^[a-z-]{2,16}$/.test(record.language)
+        || !Array.isArray(record.texts) || record.texts.length < 1 || record.texts.length > 64
+        || record.texts.some((text) => typeof text !== 'string' || /[\uD800-\uDFFF]/u.test(text))
+        || record.texts.reduce((sum, text) => sum + new TextEncoder().encode(text as string).byteLength, 0) > 524288) invalidAIInput('text annotation requires bounded Unicode documents');
+      break;
+    case 'audio-separate':
+      if (execute) invalidAIInput('audio-separate is not a synchronous spec');
+      assertExactKeys(record, ['type', 'mimeType', 'audioSource'], 'audio separation spec');
+      boundedToken(record.mimeType, 'audio separation mimeType', 128);
+      validateAudioSource(record.audioSource, MAX_ARTIFACT_BYTES, 'audio separation audioSource');
+      break;
     case 'voice-create':
       if (execute) invalidAIInput('voice-create is not a synchronous spec');
       validateVoiceCreateSpec(record);
@@ -1050,7 +1081,7 @@ function projectScenarioJobEnvelope(value: unknown): { readonly job: NimiLocalAp
 
 function projectScenarioJob(value: unknown): NimiLocalAppScenarioJob {
   const record = asRecord(value);
-  assertExactProjectionKeys(record, ['jobId', 'scenarioType', 'status', 'progressPercent', 'progressCurrentStep', 'progressTotalSteps', 'reasonCode', 'reasonDetail', 'artifacts', 'traceId', 'createdAt', 'updatedAt', 'transcriptionText', ...(record && Object.hasOwn(record, 'interruption') ? ['interruption'] : []), ...(record && Object.hasOwn(record, 'videoFaceSwapSummary') ? ['videoFaceSwapSummary'] : [])], 'scenario Job');
+  assertExactProjectionKeys(record, ['jobId', 'scenarioType', 'status', 'progressPercent', 'progressCurrentStep', 'progressTotalSteps', 'reasonCode', 'reasonDetail', 'artifacts', 'traceId', 'createdAt', 'updatedAt', 'transcriptionText', ...(record && Object.hasOwn(record, 'textAnnotation') ? ['textAnnotation'] : []), ...(record && Object.hasOwn(record, 'audioSeparation') ? ['audioSeparation'] : []), ...(record && Object.hasOwn(record, 'transcription') ? ['transcription'] : []), ...(record && Object.hasOwn(record, 'interruption') ? ['interruption'] : []), ...(record && Object.hasOwn(record, 'videoFaceSwapSummary') ? ['videoFaceSwapSummary'] : [])], 'scenario Job');
   assertSafeProjection(record);
   if (!LOCAL_SCENARIO_TYPES.includes(record.scenarioType as never) || !LOCAL_JOB_STATUSES.includes(record.status as never)) localAppProjectionError('scenario Job enum');
   const current = projectionInteger(record.progressCurrentStep, 'scenario Job current step', 0, Number.MAX_SAFE_INTEGER);
@@ -1060,8 +1091,18 @@ function projectScenarioJob(value: unknown): NimiLocalAppScenarioJob {
   const hasVideoSummary = record.videoFaceSwapSummary !== undefined;
   if (hasVideoSummary !== (record.scenarioType === 'video-face-swap' && record.status === 'completed')) localAppProjectionError('video face replacement summary state');
   const videoFaceSwapSummary = hasVideoSummary ? projectVideoFaceSwapSummary(record.videoFaceSwapSummary) : undefined;
+  const transcription = record.transcription === undefined ? undefined : validateNimiLocalAppSpeechTranscript(record.transcription);
+  if (transcription && (record.scenarioType !== 'speech-transcribe' || record.status !== 'completed' || transcription.text !== record.transcriptionText)) localAppProjectionError('speech transcription state');
+  const artifacts = projectArtifacts(record.artifacts);
+  if ((record.audioSeparation !== undefined) !== (record.scenarioType === 'audio-separate' && record.status === 'completed')) localAppProjectionError('audio separation state');
+  if ((record.textAnnotation !== undefined) !== (record.scenarioType === 'text-annotate' && record.status === 'completed')) localAppProjectionError('text annotation state');
+  const textAnnotation = record.textAnnotation === undefined ? undefined : validateNimiLocalAppTextAnnotationResult(record.textAnnotation);
+  const audioSeparation = record.audioSeparation === undefined ? undefined : validateNimiLocalAppAudioSeparation(record.audioSeparation, artifacts);
   return Object.freeze({
+    ...(textAnnotation ? { textAnnotation } : {}),
+    ...(audioSeparation ? { audioSeparation } : {}),
     ...(videoFaceSwapSummary ? { videoFaceSwapSummary } : {}),
+    ...(transcription ? { transcription } : {}),
     ...(interruption ? { interruption } : {}),
     jobId: boundedProjectionText(record.jobId, 'scenario Job id', MAX_IDENTIFIER_BYTES),
     scenarioType: record.scenarioType,
@@ -1071,11 +1112,11 @@ function projectScenarioJob(value: unknown): NimiLocalAppScenarioJob {
     progressTotalSteps: total,
     reasonCode: optionalProjectionText(record.reasonCode, 'scenario Job reasonCode', 128),
     reasonDetail: optionalProjectionText(record.reasonDetail, 'scenario Job reasonDetail', 1024),
-    artifacts: projectArtifacts(record.artifacts),
+    artifacts,
     traceId: optionalProjectionText(record.traceId, 'scenario Job traceId', 512),
     createdAt: projectTimestamp(record.createdAt, 'scenario Job createdAt'),
     updatedAt: projectTimestamp(record.updatedAt, 'scenario Job updatedAt'),
-    transcriptionText: optionalProjectionText(record.transcriptionText, 'scenario Job transcriptionText', MAX_RESULT_BYTES),
+    transcriptionText: optionalProjectionText(record.transcriptionText, 'scenario Job transcriptionText', 1 << 20),
   }) as NimiLocalAppScenarioJob;
 }
 
@@ -1324,6 +1365,12 @@ function runtimeLocalJobSpec(
           ...(spec.voiceRenderHints === null ? {} : { voiceRenderHints: { ...spec.voiceRenderHints } }),
         },
       };
+    case 'text-annotate':
+      return { oneofKind: 'textAnnotate', textAnnotate: { language: spec.language, texts: [...spec.texts] } };
+    case 'audio-separate':
+      return { oneofKind: 'audioSeparate', audioSeparate: { mimeType: spec.mimeType, audioSource: { source: spec.audioSource.type === 'bytes'
+        ? { oneofKind: 'audioBytes', audioBytes: Uint8Array.from(spec.audioSource.bytes) }
+        : { oneofKind: 'audioUri', audioUri: spec.audioSource.uri } } } };
     case 'speech-transcribe':
       return {
         oneofKind: 'speechTranscribe',
@@ -1531,6 +1578,9 @@ function projectRuntimeLocalJob(job: LocalAppScenarioJob): unknown {
     createdAt: plainRuntimeTimestamp(job.createdAt),
     updatedAt: plainRuntimeTimestamp(job.updatedAt),
     transcriptionText: job.transcriptionText,
+    ...(job.textAnnotation ? { textAnnotation: job.textAnnotation } : {}),
+    ...(job.audioSeparation ? { audioSeparation: job.audioSeparation } : {}),
+    ...(job.transcription ? { transcription: localTranscriptionFromRuntime(job.transcription) } : {}),
   };
 }
 
@@ -1579,6 +1629,8 @@ function runtimeScenarioTypeName(value: ScenarioType): NimiLocalAppScenarioJob['
     [ScenarioType.VIDEO_GENERATE]: 'video-generate',
     [ScenarioType.SPEECH_SYNTHESIZE]: 'speech-synthesize',
     [ScenarioType.SPEECH_TRANSCRIBE]: 'speech-transcribe',
+    [ScenarioType.TEXT_ANNOTATE]: 'text-annotate',
+    [ScenarioType.AUDIO_SEPARATE]: 'audio-separate',
     [ScenarioType.VOICE_CREATE]: 'voice-create',
     [ScenarioType.MUSIC_GENERATE]: 'music-generate',
     [ScenarioType.WORLD_GENERATE]: 'world-generate',
@@ -1661,7 +1713,7 @@ function localVoiceCreationSource(source: VoiceCreationSource): NimiLocalAppVoic
   return localAppProjectionError('voice asset creationSource');
 }
 
-const LOCAL_SCENARIO_TYPES = ['image-generate', 'image-face-swap', 'video-face-swap', 'vision-locate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'voice-create', 'music-generate', 'world-generate'] as const;
+const LOCAL_SCENARIO_TYPES = ['image-generate', 'image-face-swap', 'video-face-swap', 'vision-locate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'text-annotate', 'audio-separate', 'voice-create', 'music-generate', 'world-generate'] as const;
 const LOCAL_JOB_STATUSES = ['submitted', 'queued', 'running', 'completed', 'failed', 'canceled', 'timeout'] as const;
 
 function localJobSpecFromRuntimeRequest(request: SubmitScenarioJobRequest): NimiLocalAppScenarioJobSpec {
@@ -1707,6 +1759,16 @@ function localJobSpecFromRuntimeRequest(request: SubmitScenarioJobRequest): Nimi
     case 'speechTranscribe':
       requireScenarioType(request, ScenarioType.SPEECH_TRANSCRIBE);
       return validateScenarioSpec(runtimeSpeechTranscribeSpec(spec.speechTranscribe), false);
+    case 'textAnnotate':
+      requireScenarioType(request, ScenarioType.TEXT_ANNOTATE);
+      return validateScenarioSpec({ type: 'text-annotate', language: spec.textAnnotate.language, texts: [...spec.textAnnotate.texts] }, false);
+    case 'audioSeparate': {
+      requireScenarioType(request, ScenarioType.AUDIO_SEPARATE);
+      const source = spec.audioSeparate.audioSource?.source;
+      if (!source || source.oneofKind === undefined || source.oneofKind === 'audioChunks') adapterInputError('Local App separation requires bytes or URI audio');
+      return validateScenarioSpec({ type: 'audio-separate', mimeType: spec.audioSeparate.mimeType, audioSource: source.oneofKind === 'audioBytes'
+        ? { type: 'bytes', bytes: Array.from(source.audioBytes) } : { type: 'uri', uri: source.audioUri } }, false);
+    }
     case 'voiceCreate': {
       requireScenarioType(request, ScenarioType.VOICE_CREATE);
       if (spec.voiceCreate.targetModelId) adapterInputError('voice target model is Runtime-derived');
@@ -1831,6 +1893,9 @@ function runtimeJobFromLocal(job: NimiLocalAppScenarioJob): ScenarioJob {
     ignoredExtensions: [], reasonMetadata: undefined, progressPercent: job.progressPercent,
     progressCurrentStep: job.progressCurrentStep, progressTotalSteps: job.progressTotalSteps,
     transcriptionText: job.transcriptionText,
+    transcription: runtimeTranscriptionFromLocal(job.transcription),
+    audioSeparation: job.audioSeparation,
+    textAnnotation: runtimeAnnotationFromLocal(job.textAnnotation),
   };
 }
 
@@ -1854,11 +1919,11 @@ function runtimeJobEventFromLocal(event: NimiLocalAppScenarioJobEvent): Scenario
 }
 
 function runtimeArtifactResponse(job: NimiLocalAppScenarioJob, artifacts: ScenarioArtifact[]): GetScenarioArtifactsResponse {
-  const output = runtimeOutput(job.scenarioType, artifacts, job.transcriptionText, job.videoFaceSwapSummary);
+  const output = runtimeOutput(job.scenarioType, artifacts, job.transcriptionText, job.videoFaceSwapSummary, job.transcription, job.audioSeparation, job.textAnnotation);
   return { jobId: job.jobId, artifacts, traceId: job.traceId, output };
 }
 
-function runtimeOutput(type: NimiLocalAppScenarioJob['scenarioType'], artifacts: ScenarioArtifact[], transcriptionText: string, videoFaceSwapSummary?: NimiLocalAppVideoFaceSwapSummary): ScenarioOutput | undefined {
+function runtimeOutput(type: NimiLocalAppScenarioJob['scenarioType'], artifacts: ScenarioArtifact[], transcriptionText: string, videoFaceSwapSummary?: NimiLocalAppVideoFaceSwapSummary, transcription?: NimiLocalAppSpeechTranscript, audioSeparation?: NimiLocalAppAudioSeparation, textAnnotation?: NimiLocalAppTextAnnotationResult): ScenarioOutput | undefined {
   switch (type) {
     case 'video-face-swap': return videoFaceSwapSummary ? { output: { oneofKind: 'videoFaceSwap', videoFaceSwap: { artifacts, summary: { ...videoFaceSwapSummary, durationUs: String(videoFaceSwapSummary.durationUs) } } } } : undefined;
     case 'image-face-swap': return { output: { oneofKind: 'imageFaceSwap', imageFaceSwap: { artifacts } } };
@@ -1866,16 +1931,18 @@ function runtimeOutput(type: NimiLocalAppScenarioJob['scenarioType'], artifacts:
     case 'video-generate': return { output: { oneofKind: 'videoGenerate', videoGenerate: { artifacts } } };
     case 'speech-synthesize': return { output: { oneofKind: 'speechSynthesize', speechSynthesize: { artifacts } } };
     case 'speech-transcribe': {
-      if (!transcriptionText.trim() || utf8Length(transcriptionText) > MAX_RESULT_BYTES) localAppProjectionError('speech transcription text');
-      return { output: { oneofKind: 'speechTranscribe', speechTranscribe: { text: transcriptionText, artifacts } } };
+      if ((!transcriptionText.trim() && transcription?.status !== 'no-speech') || utf8Length(transcriptionText) > (1 << 20)) localAppProjectionError('speech transcription text');
+      return { output: { oneofKind: 'speechTranscribe', speechTranscribe: { text: transcriptionText, artifacts, transcription: runtimeTranscriptionFromLocal(transcription) } } };
     }
+    case 'text-annotate': return { output: { oneofKind: 'textAnnotation', textAnnotation: runtimeAnnotationFromLocal(textAnnotation)! } };
+    case 'audio-separate': return { output: { oneofKind: 'audioSeparate', audioSeparate: { artifacts, separation: audioSeparation } } };
     case 'music-generate': return { output: { oneofKind: 'musicGenerate', musicGenerate: { artifacts } } };
     default: return undefined;
   }
 }
 
 function runtimeScenarioType(type: NimiLocalAppScenarioJob['scenarioType']): ScenarioType {
-  return ({ 'image-generate': ScenarioType.IMAGE_GENERATE, 'image-face-swap': ScenarioType.IMAGE_FACE_SWAP, 'video-face-swap': ScenarioType.VIDEO_FACE_SWAP, 'vision-locate': ScenarioType.VISION_LOCATE, 'video-generate': ScenarioType.VIDEO_GENERATE, 'speech-synthesize': ScenarioType.SPEECH_SYNTHESIZE, 'speech-transcribe': ScenarioType.SPEECH_TRANSCRIBE, 'voice-create': ScenarioType.VOICE_CREATE, 'music-generate': ScenarioType.MUSIC_GENERATE, 'world-generate': ScenarioType.WORLD_GENERATE })[type];
+  return ({ 'image-generate': ScenarioType.IMAGE_GENERATE, 'image-face-swap': ScenarioType.IMAGE_FACE_SWAP, 'video-face-swap': ScenarioType.VIDEO_FACE_SWAP, 'vision-locate': ScenarioType.VISION_LOCATE, 'video-generate': ScenarioType.VIDEO_GENERATE, 'speech-synthesize': ScenarioType.SPEECH_SYNTHESIZE, 'speech-transcribe': ScenarioType.SPEECH_TRANSCRIBE, 'text-annotate': ScenarioType.TEXT_ANNOTATE, 'audio-separate': ScenarioType.AUDIO_SEPARATE, 'voice-create': ScenarioType.VOICE_CREATE, 'music-generate': ScenarioType.MUSIC_GENERATE, 'world-generate': ScenarioType.WORLD_GENERATE })[type];
 }
 
 function runtimeJobStatus(status: NimiLocalAppScenarioJob['status']): ScenarioJobStatus {
@@ -2068,4 +2135,18 @@ function invalidAIInput(reason: string): never {
 
 function adapterInputError(reason: string): never {
   return localAppError(`Runtime Scenario Job cannot use the Local App carrier: ${reason}.`, 'SDK_LOCAL_APP_INPUT_INVALID', 'use_admitted_local_app_scenario_fields');
+}
+
+function localTranscriptionFromRuntime(value: NonNullable<LocalAppScenarioJob['transcription']>): NimiLocalAppSpeechTranscript {
+  const status = value.status === SpeechTranscriptStatus.TRANSCRIBED ? 'transcribed' : value.status === SpeechTranscriptStatus.NO_SPEECH ? 'no-speech' : '';
+  return validateNimiLocalAppSpeechTranscript({ status, text: value.text, language: value.language, words: value.words.map((word) => ({ ...word })) });
+}
+
+function runtimeTranscriptionFromLocal(value: NimiLocalAppSpeechTranscript | undefined): LocalAppScenarioJob['transcription'] {
+  return value ? { status: value.status === 'transcribed' ? SpeechTranscriptStatus.TRANSCRIBED : SpeechTranscriptStatus.NO_SPEECH, text: value.text, language: value.language, words: value.words.map((word) => ({ ...word })) } : undefined;
+}
+
+function runtimeAnnotationFromLocal(value?: NimiLocalAppTextAnnotationResult) {
+  return value ? { documents: value.documents.map((doc) => ({ text: doc.text, language: doc.language,
+    tokens: doc.tokens.map((token) => ({ ...token })), sentences: doc.sentences.map((sentence) => ({ ...sentence })) })) } : undefined;
 }

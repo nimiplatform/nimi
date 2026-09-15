@@ -5,6 +5,7 @@ import {
   ScenarioJobEventType,
   ScenarioJobStatus,
   ScenarioType,
+  SpeechTranscriptStatus,
   createNimiError,
   type NimiRuntimeScenarioArtifact,
   type NimiRuntimeScenarioJobClient,
@@ -60,7 +61,7 @@ function fakeClient(config: {
   const getScenarioArtifacts = vi.fn<NimiRuntimeScenarioJobClient['getScenarioArtifacts']>(async () => ({
     jobId: 'job-transcribe-1', artifacts: [transcriptArtifact], traceId: 'trace-stt-1',
     output: { output: { oneofKind: 'speechTranscribe' as const, speechTranscribe: {
-      text: 'hello transcript', segments: [], language: 'en', artifacts: [transcriptArtifact],
+      text: 'hello transcript', artifacts: [transcriptArtifact], transcription: { status: SpeechTranscriptStatus.TRANSCRIBED, text: 'hello transcript', language: 'en', words: [{ text: 'hello', startSeconds: 0.1, endSeconds: 0.4 }, { text: 'transcript', startSeconds: 0.6, endSeconds: 1.2 }] },
     } } },
   }));
   return {
@@ -78,6 +79,11 @@ function input(client: NimiRuntimeScenarioJobClient, overrides: Partial<RuntimeS
 }
 
 describe('runRuntimeSpeechTranscribe', () => {
+  it('retains actual typed word timing in the feature result', async () => {
+    const result = await runRuntimeSpeechTranscribe(input(fakeClient().client, { timestamps: true }));
+    expect(result.ok && result.output.transcription?.words[1].startSeconds).toBe(0.6);
+    expect(result.ok && result.output.transcription?.language).toBe('en');
+  });
   it('submits owner-driven transcription and projects transcript text', async () => {
     const fake = fakeClient();
     const onJobUpdate = vi.fn();

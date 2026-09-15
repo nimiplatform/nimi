@@ -8,6 +8,13 @@ import {
 } from '../src/main/local-app-host.js';
 
 describe('Electron protected local-app host', () => {
+  it('preserves typed transcription through the native Host boundary', async () => {
+    const transcription = { status: 'transcribed', text: 'hello', language: 'en', words: [{ text: 'hello', startSeconds: 0.2, endSeconds: 0.8 }] };
+    const host = createNimiElectronLocalAppHostForBinding({ ...binding([]), localAppScenarioJobGet: async () => ({ status: 'ok', value: { job: scenarioJobProjection({ scenarioType: 'speech-transcribe', status: 'completed', transcriptionText: 'hello', transcription }), asset: null, voiceReference: null } }) });
+    const result = await host.scenarioJobGet({ jobId: 'job-1' });
+    expect((result.job as Record<string, unknown>).transcription).toEqual(transcription);
+  });
+
   it('preserves the embedding space through the Host projection and rejects an absent identity', async () => {
     const candidate = binding([]);
     const host = createNimiElectronLocalAppHostForBinding(candidate);
@@ -84,6 +91,49 @@ describe('Electron protected local-app host', () => {
         'localAppSessionRenew',
       ]);
     } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it.each(['status', 'read'] as const)('resumes maintenance after explicit %s recovery without retrying a failed session in the background', async (recovery) => {
+    vi.useFakeTimers();
+    const candidate = binding([]);
+    let available = false;
+    let renewals = 0;
+    candidate.localAppSessionRenew = async () => {
+      renewals++;
+      return available
+        ? { status: 'ok', value: statusProjection() }
+        : { status: 'error', reasonCode: 'runtime-service-unavailable', retryable: true };
+    };
+    let reads = 0;
+    candidate.localAppStorageReadJson = async () => ++reads === 1
+      ? { status: 'error', reasonCode: 'revoked', retryable: false }
+      : { status: 'ok', value: { value: { version: 1 }, sizeBytes: 13 } };
+    const onFailure = vi.fn();
+    const host = createNimiElectronLocalAppHostForBinding(candidate);
+    const maintenance = startNimiElectronLocalAppHostMaintenance(host, 1_000, onFailure);
+    try {
+      await maintenance.ready;
+      await vi.advanceTimersByTimeAsync(1_000);
+      expect(onFailure).toHaveBeenCalledWith({ reasonCode: 'runtime-service-unavailable', retryable: true });
+      await vi.advanceTimersByTimeAsync(10_000);
+      expect(renewals).toBe(1);
+
+      available = true;
+      if (recovery === 'status') await host.sessionStatus();
+      else await host.storageReadJson({ relativePath: 'config.json' });
+      const afterRecovery = renewals;
+      await vi.advanceTimersByTimeAsync(1_000);
+      expect(renewals).toBe(afterRecovery + 1);
+      expect(onFailure).toHaveBeenCalledTimes(1);
+
+      maintenance.close();
+      await host.sessionStatus();
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect(renewals).toBe(afterRecovery + 1);
+    } finally {
+      maintenance.close();
       vi.useRealTimers();
     }
   });

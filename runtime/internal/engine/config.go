@@ -46,6 +46,8 @@ const (
 	SpeechDriverQwen3TTS             SpeechDriver = "qwen3_tts"
 	SpeechDriverQwen3ASR             SpeechDriver = "qwen3_asr"
 	SpeechDriverQwen3ASRTransformers SpeechDriver = "qwen3_asr_transformers"
+	SpeechDriverFasterWhisper        SpeechDriver = "faster_whisper"
+	SpeechDriverDemucs               SpeechDriver = "demucs"
 	SpeechDriverVoxCPM               SpeechDriver = "voxcpm"
 )
 
@@ -252,6 +254,8 @@ type EngineConfig struct {
 	// Transformers-native Qwen3-ASR package-set root. It is intentionally
 	// separate from the package-native qwen_asr root.
 	SpeechQwen3ASRTransformersPackageSetRoot string
+	SpeechFasterWhisperPackageSetRoot        string
+	SpeechDemucsPackageSetRoot               string
 
 	// SpeechVoxCPMPackageSetRoot is the Runtime-verified VoxCPM package-set
 	// root. SpeechVoxCPMBackend is the host-derived private backend fixed by

@@ -102,6 +102,7 @@ export function createNimiLocalAppTextModel(ai: Pick<NimiLocalAppAIConsumptionCl
         else throw createNimiError({
           message: `Nimi text generation failed: ${event.reasonCode}.`,
           code: event.reasonCode, reasonCode: event.reasonCode, actionHint: event.actionHint,
+          traceId: event.traceId,
           source: 'runtime', interruption: event.interruption,
           retryable: event.interruption?.resubmitDisposition === 'caller-may-resubmit',
         });

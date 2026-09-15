@@ -8,6 +8,7 @@ import mimetypes
 import pathlib
 import re
 import threading
+import tempfile
 from typing import Any
 import uuid
 
@@ -41,6 +42,7 @@ from speech_server_runtime import (
     speech_model_registration_admitted,
     synthesize_with_driver,
     transcribe_with_driver,
+    separate_with_driver,
     truthy_form_value,
     voice_workflow_result_from_driver,
     workflow_execution_unavailable_response,
@@ -93,10 +95,14 @@ async def run_transcription_for_request(
     request: Request,
     model: SpeechModelState,
     request_payload: dict[str, Any],
-) -> str:
+) -> dict[str, Any]:
+    return await run_speech_request(request, transcribe_with_driver, model, request_payload)
+
+
+async def run_speech_request(request: Request, operation, model: SpeechModelState, request_payload: dict[str, Any]):
     cancel_event = threading.Event()
     task = asyncio.create_task(
-        run_in_threadpool(transcribe_with_driver, model, request_payload, cancel_event)
+        run_in_threadpool(operation, model, request_payload, cancel_event)
     )
     disconnected = False
     try:
@@ -288,6 +294,12 @@ def create_app() -> FastAPI:
                 "voxcpm_driver": state.voxcpm_configured,
                 "voxcpm_driver_ready": state.voxcpm_ready,
                 "voxcpm_driver_detail": state.voxcpm_detail,
+                "demucs_driver": state.demucs_configured,
+                "demucs_driver_ready": state.demucs_ready,
+                "demucs_driver_detail": state.demucs_detail,
+                "faster_whisper_driver": state.faster_whisper_configured,
+                "faster_whisper_driver_ready": state.faster_whisper_ready,
+                "faster_whisper_driver_detail": state.faster_whisper_detail,
                 "models_ready": len([model for model in state.models if model.ready]),
             },
         }
@@ -452,7 +464,52 @@ def create_app() -> FastAPI:
                 f"local supervised speech transcription failed: {error}",
                 "speech_driver_execution_failed",
             )
-        return {"text": text}
+        return text
+
+    @app.post("/nimi/audio/separate")
+    async def separate_audio(request: Request, model: str = Form(...), file: UploadFile = File(...), mime_type: str | None = Form(None)):
+        temporary = tempfile.TemporaryDirectory(prefix="nimi-separation-", dir=driver_work_root())
+        try:
+            active_model = find_ready_model(model.strip(), "audio.separate", registered_models_snapshot())
+            raw_audio = await file.read((32 << 20) + 1)
+            if not raw_audio or len(raw_audio) > 32 << 20:
+                raise ValueError("audio separation requires source audio within 32 MiB")
+            output_dir = pathlib.Path(temporary.name)
+            audio_path = safe_uploaded_audio_path(output_dir, file.filename, mime_type)
+            audio_path.write_bytes(raw_audio)
+            result = await run_speech_request(request, separate_with_driver, active_model, {
+                "operation": "audio.separate", "entry_path": active_model.entry_path,
+                "audio_path": str(audio_path), "output_dir": str(output_dir),
+            })
+        except Exception as error:
+            temporary.cleanup()
+            return plain_speech_unavailable_response("audio separation", f"local supervised audio separation failed: {error}", "speech_driver_execution_failed")
+        except BaseException:
+            temporary.cleanup()
+            raise
+
+        boundary = "nimi-separation-" + uuid.uuid4().hex
+
+        async def body():
+            try:
+                metadata = {key: result[key] for key in ("sample_rate_hz", "channels", "sample_count")}
+                yield (f'--{boundary}\r\nContent-Disposition: form-data; name="metadata"\r\nContent-Type: application/json\r\n\r\n').encode()
+                yield json.dumps(metadata).encode()
+                yield b"\r\n"
+                for name in ("vocals", "background"):
+                    yield (f'--{boundary}\r\nContent-Disposition: form-data; name="{name}"; filename="{name}.wav"\r\nContent-Type: audio/wav\r\n\r\n').encode()
+                    with pathlib.Path(result[name + "_path"]).open("rb") as handle:
+                        while True:
+                            chunk = await run_in_threadpool(handle.read, SPEECH_RESPONSE_CHUNK_BYTES)
+                            if not chunk:
+                                break
+                            yield chunk
+                    yield b"\r\n"
+                yield (f"--{boundary}--\r\n").encode()
+            finally:
+                temporary.cleanup()
+
+        return StreamingResponse(body(), media_type=f"multipart/mixed; boundary={boundary}", background=BackgroundTask(temporary.cleanup))
 
     @app.post("/v1/voice/create")
     def create_voice(payload: dict[str, Any]):

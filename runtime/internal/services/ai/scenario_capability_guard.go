@@ -24,6 +24,7 @@ func scenarioProviderTypeFromTarget(_ string, remoteTarget *nimillm.RemoteTarget
 func unsupportedCapabilityReasonCode(scenarioType runtimev1.ScenarioType) runtimev1.ReasonCode {
 	switch scenarioType {
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
+		runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SEPARATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
@@ -39,6 +40,8 @@ func unsupportedCapabilityReasonCode(scenarioType runtimev1.ScenarioType) runtim
 
 func localScenarioCapability(scenarioType runtimev1.ScenarioType) (string, bool) {
 	switch scenarioType {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_ANNOTATE:
+		return "text.annotate", true
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_FACE_SWAP:
 		return "video.face_swap", true
 	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_FACE_SWAP:
@@ -57,6 +60,8 @@ func localScenarioCapability(scenarioType runtimev1.ScenarioType) (string, bool)
 		return "audio.synthesize", true
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
 		return "audio.transcribe", true
+	case runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SEPARATE:
+		return "audio.separate", true
 	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
 		return "music.generate", true
 	case runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:

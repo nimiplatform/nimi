@@ -10,8 +10,10 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 func (s *Service) executeScenarioAsyncJob(
@@ -62,14 +64,14 @@ func (s *Service) executeScenarioAsyncJob(
 	if existing, ok := s.scenarioJobs.get(jobID); ok && isTerminalScenarioJobStatus(existing.GetStatus()) {
 		return
 	}
-	transcriptionText := ""
+	var transcription *runtimev1.SpeechTranscript
 	artifacts, custodyErr := bindRuntimeJobArtifacts(jobID, req.GetHead(), result.Artifacts)
 	var newCustodyIDs []string
 	if custodyErr == nil {
 		newCustodyIDs, custodyErr = s.storeRuntimeJobArtifacts(ctx, jobID, req.GetHead(), artifacts, result.ArtifactBodies)
 	}
 	if custodyErr == nil {
-		transcriptionText, custodyErr = s.captureScenarioTranscriptionText(ctx, req.GetScenarioType(), artifacts)
+		transcription, custodyErr = s.captureScenarioTranscriptionResult(ctx, req.GetScenarioType(), artifacts, req.GetSpec().GetSpeechTranscribe().GetTimestamps())
 	}
 	if custodyErr != nil {
 		capabilitydriver.CloseArtifactBodies(result.ArtifactBodies)
@@ -106,7 +108,8 @@ func (s *Service) executeScenarioAsyncJob(
 		}
 		job.ProgressPercent = 100
 		job.Artifacts = cloneScenarioArtifacts(artifacts)
-		job.TranscriptionText = transcriptionText
+		job.TranscriptionText = transcription.GetText()
+		job.Transcription = transcription
 		job.Usage = result.Usage
 	}); !ok {
 		for _, artifactID := range newCustodyIDs {
@@ -165,34 +168,53 @@ func (s *Service) finishScenarioAsyncJobFailure(ctx context.Context, jobID strin
 	}
 }
 
-func (s *Service) captureScenarioTranscriptionText(ctx context.Context, scenarioType runtimev1.ScenarioType, artifacts []*runtimev1.ScenarioArtifact) (string, error) {
+// @nimi-authority: rule.nimi.runtime.ai-provider.speech-transcription-result
+func (s *Service) captureScenarioTranscriptionResult(ctx context.Context, scenarioType runtimev1.ScenarioType, artifacts []*runtimev1.ScenarioArtifact, requireTiming bool) (*runtimev1.SpeechTranscript, error) {
 	if scenarioType != runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE {
-		return "", nil
+		return nil, nil
 	}
+	var transcript *runtimev1.SpeechTranscript
+	text := ""
 	for _, artifact := range artifacts {
-		if artifact == nil || !strings.HasPrefix(strings.ToLower(strings.TrimSpace(artifact.GetMimeType())), "text/plain") {
+		if artifact == nil {
 			continue
 		}
-		if s == nil || s.runtimeArtifacts == nil || artifact.GetSizeBytes() <= 0 || artifact.GetSizeBytes() > maxLocalAppTranscriptionTextBytes {
-			return "", fmt.Errorf("speech transcription result is not bounded UTF-8 text")
+		mime := strings.ToLower(strings.TrimSpace(strings.Split(artifact.GetMimeType(), ";")[0]))
+		if mime != "text/plain" && mime != localexecution.SpeechTranscriptMIME {
+			continue
+		}
+		if s == nil || s.runtimeArtifacts == nil || artifact.GetSizeBytes() <= 0 || artifact.GetSizeBytes() > localexecution.MaxSpeechTranscriptBytes {
+			return nil, fmt.Errorf("speech transcription artifact exceeds result bounds")
 		}
 		source, ok := s.runtimeArtifacts.Open(ctx, artifact.GetArtifactId())
 		if !ok {
-			return "", fmt.Errorf("speech transcription result custody is unavailable")
+			return nil, fmt.Errorf("speech transcription result custody is unavailable")
 		}
-		payload, err := io.ReadAll(io.LimitReader(source.Body, maxLocalAppTranscriptionTextBytes+1))
+		payload, err := io.ReadAll(io.LimitReader(source.Body, localexecution.MaxSpeechTranscriptBytes+1))
 		closeErr := source.Body.Close()
-		if err != nil || closeErr != nil || int64(len(payload)) != artifact.GetSizeBytes() {
-			return "", fmt.Errorf("speech transcription result custody could not be read")
+		if err != nil || closeErr != nil || int64(len(payload)) != artifact.GetSizeBytes() || !utf8.Valid(payload) {
+			return nil, fmt.Errorf("speech transcription result custody could not be read")
 		}
-		if len(payload) == 0 || len(payload) > maxLocalAppTranscriptionTextBytes || !utf8.Valid(payload) {
-			return "", fmt.Errorf("speech transcription result is not bounded UTF-8 text")
+		if mime == localexecution.SpeechTranscriptMIME {
+			if transcript != nil {
+				return nil, fmt.Errorf("speech transcription has duplicate typed results")
+			}
+			transcript = &runtimev1.SpeechTranscript{}
+			if err := protojson.Unmarshal(payload, transcript); err != nil {
+				return nil, fmt.Errorf("speech transcription result is invalid: %w", err)
+			}
+		} else {
+			text = strings.TrimSpace(string(payload))
 		}
-		text := strings.TrimSpace(string(payload))
-		if text == "" || len([]byte(text)) > maxLocalAppTranscriptionTextBytes {
-			return "", fmt.Errorf("speech transcription result is empty")
-		}
-		return text, nil
 	}
-	return "", fmt.Errorf("speech transcription result artifact is missing")
+	if transcript == nil {
+		transcript = &runtimev1.SpeechTranscript{Status: runtimev1.SpeechTranscriptStatus_SPEECH_TRANSCRIPT_STATUS_TRANSCRIBED, Text: text}
+	}
+	if text != "" && text != transcript.GetText() {
+		return nil, fmt.Errorf("speech transcription text artifacts disagree")
+	}
+	if err := localexecution.ValidateSpeechTranscript(transcript, requireTiming); err != nil {
+		return nil, err
+	}
+	return transcript, nil
 }

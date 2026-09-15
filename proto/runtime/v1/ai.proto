@@ -40,6 +40,8 @@ enum ScenarioType {
   SCENARIO_TYPE_VISION_LOCATE = 12;
   SCENARIO_TYPE_IMAGE_FACE_SWAP = 13;
   SCENARIO_TYPE_VIDEO_FACE_SWAP = 14;
+  SCENARIO_TYPE_AUDIO_SEPARATE = 15;
+  SCENARIO_TYPE_TEXT_ANNOTATE = 16;
 }
 
 enum ExecutionMode {
@@ -450,6 +452,20 @@ message MusicGenerateScenarioSpec {
   bool instrumental = 7;
 }
 
+// Source separation preserves the input timeline and returns vocals plus the
+// sum of all non-vocal sources. The selected implementation owns input limits.
+message AudioSeparateScenarioSpec {
+  string mime_type = 1;
+  SpeechTranscriptionAudioSource audio_source = 2;
+}
+
+// The identities refer to the two committed artifacts of this same Job.
+// Sample rate, channels and duration are carried by those artifact records.
+message AudioSeparation {
+  string vocals_artifact_id = 1;
+  string background_artifact_id = 2;
+}
+
 message WorldGenerateAssetSource {
   oneof source {
     string uri = 1;
@@ -609,6 +625,39 @@ message VideoFaceSwapSummary {
   bool audio_preserved = 6;
 }
 
+// Batch order is preserved. Offsets in results count Unicode scalar values,
+// not UTF-8 bytes or UTF-16 code units. Empty documents are valid.
+message TextAnnotateScenarioSpec {
+  string language = 1;
+  repeated string texts = 2;
+}
+
+message TextAnnotationToken {
+  string text = 1;
+  uint32 start = 2;
+  uint32 end = 3;
+  uint32 head_index = 4;
+  string part_of_speech = 5;
+  string dependency = 6;
+  bool is_punctuation = 7;
+}
+
+message TextAnnotationSentence {
+  uint32 start_token = 1;
+  uint32 end_token = 2;
+}
+
+message TextAnnotationDocument {
+  string text = 1;
+  string language = 2;
+  repeated TextAnnotationToken tokens = 3;
+  repeated TextAnnotationSentence sentences = 4;
+}
+
+message TextAnnotationResult {
+  repeated TextAnnotationDocument documents = 1;
+}
+
 message VisionLocateScenarioSpec {
   string image_artifact_id = 1;
   string query = 2;
@@ -658,6 +707,8 @@ message ScenarioSpec {
     VisionLocateScenarioSpec vision_locate = 12;
     ImageFaceSwapScenarioSpec image_face_swap = 13;
     VideoFaceSwapScenarioSpec video_face_swap = 14;
+    AudioSeparateScenarioSpec audio_separate = 15;
+    TextAnnotateScenarioSpec text_annotate = 16;
   }
   reserved 7, 8;
   reserved "voice_clone", "voice_design";
@@ -718,13 +769,40 @@ message SpeechSynthesizeResult {
   repeated ScenarioArtifact artifacts = 1;
 }
 
+enum SpeechTranscriptStatus {
+  SPEECH_TRANSCRIPT_STATUS_UNSPECIFIED = 0;
+  SPEECH_TRANSCRIPT_STATUS_TRANSCRIBED = 1;
+  SPEECH_TRANSCRIPT_STATUS_NO_SPEECH = 2;
+}
+
+message SpeechTranscriptWord {
+  string text = 1;
+  double start_seconds = 2;
+  double end_seconds = 3;
+}
+
+message SpeechTranscript {
+  SpeechTranscriptStatus status = 1;
+  string text = 2;
+  // Model-reported language code, empty when the execution did not report one.
+  string language = 3;
+  // Actual alignment units, relative to the submitted audio beginning.
+  repeated SpeechTranscriptWord words = 4;
+}
+
 message SpeechTranscribeResult {
   string text = 1;
   repeated ScenarioArtifact artifacts = 2;
+  SpeechTranscript transcription = 3;
 }
 
 message MusicGenerateResult {
   repeated ScenarioArtifact artifacts = 1;
+}
+
+message AudioSeparateResult {
+  repeated ScenarioArtifact artifacts = 1;
+  AudioSeparation separation = 2;
 }
 
 message WorldGenerateSemanticsMetadata {
@@ -759,6 +837,8 @@ message ScenarioOutput {
     WorldGenerateResult world_generate = 8;
     ImageFaceSwapResult image_face_swap = 9;
     VideoFaceSwapResult video_face_swap = 10;
+    AudioSeparateResult audio_separate = 11;
+    TextAnnotationResult text_annotation = 12;
   }
 }
 
@@ -971,6 +1051,8 @@ message SubmitLocalAppScenarioJobRequest {
     VisionLocateScenarioSpec vision_locate = 11;
     ImageFaceSwapScenarioSpec image_face_swap = 12;
     VideoFaceSwapScenarioSpec video_face_swap = 13;
+    AudioSeparateScenarioSpec audio_separate = 14;
+    TextAnnotateScenarioSpec text_annotate = 15;
   }
   // Canonical Job deadline in milliseconds. Zero keeps Runtime's
   // capability-owned default; no other ScenarioRequestHead field is exposed.
@@ -1003,6 +1085,12 @@ message LocalAppScenarioJob {
   ExecutionInterruption interruption = 14;
   // Present only for a completed VIDEO_FACE_SWAP Job.
   VideoFaceSwapSummary video_face_swap_summary = 15;
+  // Present only when a completed speech Job captured this typed result.
+  SpeechTranscript transcription = 16;
+  // Present only with both committed artifacts of a completed AUDIO_SEPARATE Job.
+  AudioSeparation audio_separation = 17;
+  // Present only for a completed TEXT_ANNOTATE Job.
+  TextAnnotationResult text_annotation = 18;
 }
 
 // Trimmed voice asset catalog projection. Provider, model, provider voice
@@ -1301,6 +1389,9 @@ message ScenarioJob {
   ExecutionInterruption interruption = 25;
   // Immutable per-frame outcome counts captured with the completed artifact.
   VideoFaceSwapSummary video_face_swap_summary = 26;
+  SpeechTranscript transcription = 27;
+  AudioSeparation audio_separation = 28;
+  TextAnnotationResult text_annotation = 29;
 }
 
 message SubmitScenarioJobRequest {

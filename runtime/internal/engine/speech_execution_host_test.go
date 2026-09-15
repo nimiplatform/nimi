@@ -22,6 +22,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
+	"google.golang.org/protobuf/proto"
 )
 
 type speechExecutionHostMaterializerStub struct {
@@ -240,7 +241,7 @@ func TestSpeechExecutionHostUsesExactPlanAssetIdentity(t *testing.T) {
 		t.Fatalf("read TTS body: payload=%q read=%v close=%v", ttsPayload, readErr, closeErr)
 	}
 	asrResult, err := host.ExecuteSpeechTranscription(context.Background(), asrPlan, nil)
-	if err != nil || asrResult.Text != "host transcript" {
+	if err != nil || asrResult.Transcript.GetText() != "host transcript" {
 		t.Fatalf("ASR result=%+v error=%v", asrResult, err)
 	}
 	voiceResult, err := host.ExecuteVoiceCreate(context.Background(), voicePlan, nil)
@@ -275,6 +276,86 @@ func TestSpeechExecutionHostUsesExactPlanAssetIdentity(t *testing.T) {
 }
 
 type speechZeroReader struct{}
+
+func TestSpeechWhisperRegistrationCapturesVADWithoutRereadingSelection(t *testing.T) {
+	main := speechBindingFixture(t, "model.bin", map[string][]byte{"model.bin": []byte("recognition fixture")})
+	main.RequirementID, main.ModelAssetID = capabilitydriver.Qwen3ASRModelRequirementID, "fixture/whisper"
+	vad := speechBindingFixture(t, "model.onnx", map[string][]byte{"model.onnx": []byte("VAD fixture")})
+	vad.RequirementID, vad.ModelAssetID = capabilitydriver.FasterWhisperVADRequirementID, "fixture/vad"
+	input := capabilitydriver.SpeechTranscribeInvocationInput{ExactBindings: []capabilitydriver.InvocationExactBinding{vad, main},
+		Request: &runtimev1.SpeechTranscribeScenarioSpec{Timestamps: proto.Bool(true)}, AudioBytes: []byte("audio fixture"), MIMEType: "audio/wav"}
+	plan, err := (capabilitydriver.FasterWhisperDriver{}).PlanSpeechTranscribeInvocation(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	input.ExactBindings[0].DeclaredFiles[0] = "changed-after-admission"
+	seals, err := sealInvocationModelContentContext(context.Background(), plan.ModelFiles())
+	if err != nil {
+		t.Fatal(err)
+	}
+	registration, err := speechExecutionModelRegistration(capabilitydriver.AudioTranscribeContract, plan.DriverID(), plan.ModelAssetID(), plan.ModelFiles(), seals, "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if registration.ModelAssetID != main.ModelAssetID || registration.Alignment != nil || registration.VAD == nil || registration.VAD.ModelAssetID != vad.ModelAssetID || registration.VAD.DeclaredFileSHA256["model.onnx"] != vad.EntrySHA256 {
+		t.Fatalf("captured Whisper registration: %+v", registration)
+	}
+	input.ExactBindings = []capabilitydriver.InvocationExactBinding{main}
+	if _, err := (capabilitydriver.FasterWhisperDriver{}).PlanSpeechTranscribeInvocation(input); err == nil {
+		t.Fatal("Whisper accepted missing captured VAD")
+	}
+}
+
+func TestSpeechTranscriptionHostCapturesAlignerAndPreservesTimedResult(t *testing.T) {
+	asr := speechBindingFixture(t, "model.safetensors", map[string][]byte{"model.safetensors": []byte("asr-unit-fixture")})
+	asr.RequirementID = capabilitydriver.Qwen3ASRModelRequirementID
+	asr.ModelAssetID = "fixture/asr"
+	aligner := speechBindingFixture(t, "model.safetensors", map[string][]byte{"model.safetensors": []byte("aligner-unit-fixture")})
+	aligner.RequirementID = capabilitydriver.Qwen3ASRAlignerRequirementID
+	aligner.ModelAssetID = "fixture/aligner"
+	input := capabilitydriver.SpeechTranscribeInvocationInput{
+		ExactBindings: []capabilitydriver.InvocationExactBinding{aligner, asr},
+		Request:       &runtimev1.SpeechTranscribeScenarioSpec{Timestamps: proto.Bool(true)},
+		AudioBytes:    []byte("unit-fixture-audio"), MIMEType: "audio/wav",
+	}
+	plan, err := (capabilitydriver.Qwen3ASRAlignedDriver{}).PlanSpeechTranscribeInvocation(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	input.ExactBindings[0].DeclaredFiles[0] = "changed-after-capture"
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if err := request.ParseMultipartForm(1 << 20); err != nil {
+			t.Error(err)
+		}
+		if request.FormValue("model") != asr.ModelAssetID || request.FormValue("timestamps") != "true" {
+			t.Errorf("aligned request lost captured model or timing request: %+v", request.MultipartForm)
+		}
+		writer.Header().Set("Content-Type", "application/json")
+		_, _ = writer.Write([]byte(`{"text":"Hello, world!","language":"en","words":[{"text":"Hello,","start_seconds":0.4,"end_seconds":0.9},{"text":"world!","start_seconds":2.1,"end_seconds":2.7}]}`))
+	}))
+	defer server.Close()
+	materializer := &speechExecutionHostMaterializerStub{endpoint: server.URL}
+	result, err := NewSpeechExecutionHost(materializer, 8330, 0).ExecuteSpeechTranscription(context.Background(), plan, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Transcript.GetLanguage() != "en" || len(result.Transcript.GetWords()) != 2 || result.Transcript.GetWords()[1].GetStartSeconds() != 2.1 {
+		t.Fatalf("timed result lost in Host transport: %+v", result.Transcript)
+	}
+	if len(materializer.registrations) != 1 {
+		t.Fatalf("registrations: %+v", materializer.registrations)
+	}
+	registration := materializer.registrations[0]
+	if registration.ModelAssetID != asr.ModelAssetID || registration.Alignment == nil ||
+		registration.Alignment.ModelAssetID != aligner.ModelAssetID || registration.Alignment.EntryPath != aligner.AbsolutePath ||
+		registration.Alignment.DeclaredFileSHA256["model.safetensors"] != aligner.EntrySHA256 {
+		t.Fatalf("paired captured registration: %+v", registration)
+	}
+	input.ExactBindings = []capabilitydriver.InvocationExactBinding{asr}
+	if _, err := (capabilitydriver.Qwen3ASRAlignedDriver{}).PlanSpeechTranscribeInvocation(input); err == nil {
+		t.Fatal("aligned invocation accepted a missing aligner")
+	}
+}
 
 func (speechZeroReader) Read(target []byte) (int, error) {
 	for index := range target {
@@ -521,8 +602,8 @@ func TestSpeechExecutionHostReleasesLeaseWhenTTSResponseIsEstablished(t *testing
 	secondDone := make(chan error, 1)
 	go func() {
 		result, secondErr := host.ExecuteSpeechTranscription(context.Background(), speechTranscriptionPlanForHostTest(t, "behind-slow-body"), nil)
-		if secondErr == nil && result.Text != "unexpected" {
-			secondErr = fmt.Errorf("second transcription text=%q", result.Text)
+		if secondErr == nil && result.Transcript.GetText() != "unexpected" {
+			secondErr = fmt.Errorf("second transcription text=%q", result.Transcript.GetText())
 		}
 		secondDone <- secondErr
 	}()
@@ -607,8 +688,8 @@ func TestSpeechExecutionHostCanceledTTSBodyDoesNotStopHost(t *testing.T) {
 	secondDone := make(chan error, 1)
 	go func() {
 		result, secondErr := host.ExecuteSpeechTranscription(context.Background(), speechTranscriptionPlanForHostTest(t, "after-cancel"), nil)
-		if secondErr == nil && result.Text != "after-cancel" {
-			secondErr = fmt.Errorf("second transcription text=%q", result.Text)
+		if secondErr == nil && result.Transcript.GetText() != "after-cancel" {
+			secondErr = fmt.Errorf("second transcription text=%q", result.Transcript.GetText())
 		}
 		secondDone <- secondErr
 	}()
@@ -677,8 +758,8 @@ func TestSpeechExecutionHostEarlyTTSBodyCloseDoesNotStopHost(t *testing.T) {
 	secondDone := make(chan error, 1)
 	go func() {
 		result, secondErr := host.ExecuteSpeechTranscription(context.Background(), speechTranscriptionPlanForHostTest(t, "after-close"), nil)
-		if secondErr == nil && result.Text != "after-close" {
-			secondErr = fmt.Errorf("second transcription text=%q", result.Text)
+		if secondErr == nil && result.Transcript.GetText() != "after-close" {
+			secondErr = fmt.Errorf("second transcription text=%q", result.Transcript.GetText())
 		}
 		secondDone <- secondErr
 	}()
@@ -718,7 +799,7 @@ func TestSpeechExecutionHostCompletedTTSBodyCloseDoesNotStopHost(t *testing.T) {
 		t.Fatalf("drain complete TTS body: payload=%q read=%v", payload, readErr)
 	}
 	result, err := host.ExecuteSpeechTranscription(context.Background(), speechTranscriptionPlanForHostTest(t, "after-complete"), nil)
-	if err != nil || result.Text != "after-complete" {
+	if err != nil || result.Transcript.GetText() != "after-complete" {
 		t.Fatalf("request after complete TTS body: result=%+v error=%v", result, err)
 	}
 	if closeErr := first.AudioBody.Close(); closeErr != nil {
@@ -771,7 +852,7 @@ func TestSpeechExecutionHostTTSBodyCloseDoesNotInvokeHostStop(t *testing.T) {
 		t.Fatalf("close TTS response body: %v", closeErr)
 	}
 	result, err := host.ExecuteSpeechTranscription(context.Background(), speechTranscriptionPlanForHostTest(t, "after-body-close"), nil)
-	if err != nil || result.Text != "after-body-close" {
+	if err != nil || result.Transcript.GetText() != "after-body-close" {
 		t.Fatalf("request after TTS body Close: result=%+v error=%v", result, err)
 	}
 	if got := len(materializer.capabilities); got != 2 {

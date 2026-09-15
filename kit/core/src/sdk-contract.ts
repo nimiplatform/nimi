@@ -358,3 +358,12 @@ export type {
   NimiRealtimeOperationResult,
   NimiRealtimeSubscription,
 } from '@nimiplatform/sdk/app';
+
+export { validateNimiLocalAppSpeechTranscript } from '@nimiplatform/sdk/app';
+export type { NimiLocalAppSpeechTranscript } from '@nimiplatform/sdk/app';
+export { validateNimiLocalAppAudioSeparation } from '@nimiplatform/sdk/app';
+export type { NimiLocalAppAudioSeparation } from '@nimiplatform/sdk/app';
+export { SpeechTranscriptStatus } from '@nimiplatform/sdk/runtime';
+
+export { validateNimiLocalAppTextAnnotationResult } from '@nimiplatform/sdk/app';
+export type { NimiLocalAppTextAnnotationResult, NimiLocalAppTextAnnotationDocument, NimiLocalAppTextAnnotationToken } from '@nimiplatform/sdk/app';

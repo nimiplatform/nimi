@@ -1,4 +1,33 @@
 models:
+  - model_id: htdemucs-local
+    model_type: music
+    family: demucs
+    updated_at: 2026-09-15
+    capabilities: [audio.separate]
+    source_ids: [demucs_official_checkpoint]
+    install:
+      repo: iBoostAI/Demucs-v4
+      revision: bffc1c135c7797974bfcb940f3a0ffe6ca793e35 # pragma: allowlist secret -- public immutable model revision
+      install_kind: weights
+      entry: 955717e8-8726e21a.th
+      artifact_roles: [audio_separation_model]
+      preferred_engine: speech
+      license: MIT
+      provenance: https://dl.fbaipublicfiles.com/demucs/hybrid_transformer/955717e8-8726e21a.th
+    variants:
+      - variant_id: local.music.htdemucs.pytorch
+        quant: F16
+        entry: 955717e8-8726e21a.th
+        files: [955717e8-8726e21a.th]
+        hashes:
+          955717e8-8726e21a.th: sha256:8726e21a993978c7ba086d3872e7608d7d5bfca646ca4aca459ffda844faa8b4
+        total_size_bytes: 84141911
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 8589934592
+    fitness:
+      param_count: 41984456
+      context_length: 0
   # MiniMax-H3 is a five-axis stable-diffusion.cpp recipe. FL2VA and Ref2VA
   # are independent video ModelAssets; the combined encoder is a reusable
   # chat-kind ModelAsset; both VAEs are passive assets. No version grouping is

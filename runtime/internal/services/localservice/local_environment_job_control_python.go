@@ -458,6 +458,8 @@ func pythonTorchWheelPrerequisiteConsumer(consumer string) string {
 
 func pythonSelectedConsumersForDependency(dependencyID string) []string {
 	switch {
+	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-speech-demucs."):
+		return []string{"speech.demucs.python"}
 	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-image-python."):
 		return []string{"media.diffusers.cpu", "media.diffusers.cuda"}
 	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-video-python."):
@@ -482,8 +484,10 @@ func pythonSelectedConsumersForDependency(dependencyID string) []string {
 			"media.video-python.cuda",
 			"speech.qwen3-asr.python",
 			"speech.qwen3-asr-transformers.python",
+			"speech.faster-whisper.python",
 			"speech.qwen3-tts.python",
 			"speech.voxcpm.python",
+			"speech.demucs.python",
 			engine.VisionLocateConsumerID + ".cuda",
 			engine.VisionLocateConsumerID + ".cpu",
 		}
@@ -494,14 +498,11 @@ func pythonSelectedConsumersForDependency(dependencyID string) []string {
 
 func resolvePythonDependencyProfileForJob(job localEnvironmentDependencyJobState, requireProfileDependencyID bool) (engine.PythonDependencyProfileIdentity, string, error) {
 	consumer := pythonTorchWheelPrerequisiteConsumer(pythonMaterializerConsumerForJob(job))
-	if !strings.HasPrefix(strings.TrimSpace(consumer), "speech.") && !strings.HasPrefix(strings.TrimSpace(consumer), "media.") && consumer != engine.VisionLocateConsumerID {
+	if !strings.HasPrefix(strings.TrimSpace(consumer), "speech.") && !strings.HasPrefix(strings.TrimSpace(consumer), "media.") && consumer != engine.VisionLocateConsumerID && consumer != engine.TextAnnotationConsumerID {
 		return engine.PythonDependencyProfileIdentity{}, "", fmt.Errorf("python dependency profile is not admitted for consumer %s", consumer)
 	}
 	hostState := localEnvironmentHostProfileFromDeviceProfile(hostProfileOrCollected(nil))
-	acceleratorPlane := "cpu"
-	if localEnvironmentHostSupportsCUDA(hostState) {
-		acceleratorPlane = "cuda"
-	}
+	acceleratorPlane := localPythonAcceleratorPlane(consumer, hostState)
 	identity, err := engine.ResolvePythonDependencyProfileIdentity(consumer, localEnvironmentPlatformTuple(hostState), acceleratorPlane)
 	if err != nil {
 		return engine.PythonDependencyProfileIdentity{}, "", err
@@ -519,7 +520,7 @@ func validatePythonDependencyProfileStatus(status engine.PythonDependencyProfile
 	if strings.TrimSpace(status.ProfileRoot) == "" || strings.TrimSpace(status.InterpreterPath) == "" || strings.TrimSpace(status.PackageCacheRoot) == "" {
 		return fmt.Errorf("python dependency profile status is missing canonical paths")
 	}
-	if status.ObservedPythonVersion != expected.PythonVersion || strings.SplitN(strings.TrimSpace(status.ObservedTorchVersion), "+", 2)[0] != expected.TorchVersion || status.ObservedCUDAABI == "" {
+	if status.ObservedPythonVersion != expected.PythonVersion || strings.SplitN(strings.TrimSpace(status.ObservedTorchVersion), "+", 2)[0] != expected.TorchVersion || (expected.CUDAABI != "" && status.ObservedCUDAABI == "") {
 		return fmt.Errorf("python dependency profile status version or accelerator proof is incomplete")
 	}
 	if len(status.InstalledDistributions) == 0 || len(status.ImportProbes) == 0 {
@@ -566,6 +567,8 @@ func localEnvironmentErrorDetail(err error, fallback string) string {
 
 func pythonMaterializerConsumerForDependency(dependencyID string) string {
 	switch {
+	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-speech-demucs."):
+		return "speech.demucs.python"
 	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-vision."):
 		return engine.VisionLocateConsumerID
 	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-image-python."):
@@ -599,7 +602,7 @@ func pythonMaterializerConsumerForJob(job localEnvironmentDependencyJobState) st
 
 func pythonMaterializerConsumerScope(consumer string) bool {
 	trimmed := strings.TrimSpace(consumer)
-	return trimmed == engine.VisionLocateConsumerID || trimmed == engine.VisionLocateConsumerID+".cpu" || trimmed == engine.VisionLocateConsumerID+".cuda" ||
+	return trimmed == engine.TextAnnotationConsumerID || trimmed == engine.VisionLocateConsumerID || trimmed == engine.VisionLocateConsumerID+".cpu" || trimmed == engine.VisionLocateConsumerID+".cuda" ||
 		strings.HasPrefix(trimmed, "stable-diffusion.cpp.") ||
 		strings.HasPrefix(trimmed, "media.") ||
 		strings.HasPrefix(trimmed, "speech.")

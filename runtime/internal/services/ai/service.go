@@ -75,6 +75,8 @@ type Service struct {
 	localVideoHost                         localexecution.VideoExecutionHost
 	localSpeechHost                        localexecution.SpeechExecutionHost
 	localVisionHost                        localexecution.VisionExecutionHost
+	localAnnotationHost                    localexecution.TextAnnotationExecutionHost
+	localAnnotationJobOrder                localMediaSubmissionOrder
 	localVisionJobOrder                    localMediaSubmissionOrder
 	localFaceSwapHost                      localexecution.FaceSwapExecutionHost
 	localFaceSwapJobOrder                  localMediaSubmissionOrder

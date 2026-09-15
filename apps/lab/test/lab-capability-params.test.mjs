@@ -83,33 +83,22 @@ test('Local text preserves admitted fields and image exposes only artifact custo
   });
 });
 
-test('Local synthesis exposes only preset voice references until Runtime owns voice asset resolution', () => {
+test('Local synthesis preserves supported carrier controls and voice assets', () => {
   const local = states('audio.synthesize', 'local');
-  assert.deepEqual(local.get('voiceKind'), { field: 'voiceKind', state: 'fixed', fixedValue: 'preset' });
-  assert.equal(local.get('voicePreset')?.state, 'enabled', 'audio.synthesize.voicePreset');
-  assert.deepEqual(local.get('voiceAssetId'), {
-    field: 'voiceAssetId',
-    state: 'disabled',
-    unavailableBecause: 'route',
-  });
-  assert.deepEqual(project('audio.synthesize', 'local', {
-    voiceKind: 'asset',
-    voicePreset: 'vivian',
-    voiceAssetId: 'voice-asset-1',
-    timingMode: 'word',
-  }), {
-    voiceKind: 'preset',
-    voicePreset: 'vivian',
-  });
+  for (const field of ['voiceKind', 'voicePreset', 'voiceAssetId', 'language', 'audioFormat', 'timingMode']) {
+    assert.equal(local.get(field)?.state, 'enabled', field);
+  }
+  const request = { voiceKind: 'asset', voiceAssetId: 'voice-asset-1', language: 'en', audioFormat: 'wav', timingMode: 'none' };
+  assert.deepEqual(project('audio.synthesize', 'local', request), request);
 });
 
 test('Local transcription admits its supported inputs and drops unsupported options', () => {
   const local = states('audio.transcribe', 'local');
-  for (const field of ['audioFile', 'mimeType', 'language']) {
+  for (const field of ['audioFile', 'mimeType', 'language', 'timestamps']) {
     assert.equal(local.get(field)?.state, 'enabled', `audio.transcribe.${field}`);
   }
   assert.deepEqual(local.get('responseFormat'), { field: 'responseFormat', state: 'fixed', fixedValue: 'text' });
-  for (const field of ['timestamps', 'diarization', 'speakerCount', 'prompt']) {
+  for (const field of ['diarization', 'speakerCount', 'prompt']) {
     assert.equal(local.get(field)?.state, 'disabled', `audio.transcribe.${field}`);
   }
   assert.deepEqual(project('audio.transcribe', 'local', {
@@ -124,6 +113,7 @@ test('Local transcription admits its supported inputs and drops unsupported opti
     mimeType: 'audio/wav',
     language: 'en',
     responseFormat: 'text',
+    timestamps: true,
   });
 });
 

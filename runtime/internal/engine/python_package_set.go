@@ -16,6 +16,8 @@ type pythonPackageSetManifest struct {
 func resolvePythonPackageSetManifest(consumer string) (pythonPackageSetManifest, error) {
 	trimmed := strings.TrimSpace(consumer)
 	switch {
+	case trimmed == TextAnnotationConsumerID:
+		return pythonPackageSetManifest{ID: "text-spacy-python-core", ImportProbes: []string{"spacy", "spacy_pkuseg", "sudachipy", "sudachidict_core", "pymorphy3", "fastapi", "uvicorn"}}, nil
 	case trimmed == FaceSwapConsumerID:
 		return pythonPackageSetManifest{ID: "face-swap-insightface-python-core", ImportProbes: []string{"insightface", "onnxruntime", "onnx", "cv2", "PIL", "av"}}, nil
 	case trimmed == VisionLocateConsumerID:
@@ -46,13 +48,17 @@ func resolvePythonPackageSetManifest(consumer string) (pythonPackageSetManifest,
 	case trimmed == "speech.qwen3-asr-transformers.python":
 		return pythonPackageSetManifest{
 			ID:           "speech-qwen3-asr-transformers-python-core",
-			ImportProbes: []string{"fastapi", "uvicorn", "multipart", "torch", "transformers", "accelerate", "imageio_ffmpeg", "librosa", "soundfile"},
+			ImportProbes: []string{"fastapi", "uvicorn", "multipart", "torch", "transformers", "accelerate", "imageio_ffmpeg", "librosa", "soundfile", "nagisa", "soynlp"},
 		}, nil
+	case trimmed == "speech.faster-whisper.python":
+		return pythonPackageSetManifest{ID: "speech-faster-whisper-python-core", ImportProbes: []string{"fastapi", "uvicorn", "multipart", "torch", "torchaudio", "ctranslate2", "faster_whisper", "silero_vad", "onnxruntime"}}, nil
 	case trimmed == "speech.voxcpm.python":
 		return pythonPackageSetManifest{
 			ID:           "speech-voxcpm-python-core",
 			ImportProbes: []string{"fastapi", "uvicorn", "multipart", "soundfile"},
 		}, nil
+	case trimmed == "speech.demucs.python":
+		return pythonPackageSetManifest{ID: "speech-demucs-python-core", ImportProbes: []string{"fastapi", "uvicorn", "multipart", "torch", "demucs.htdemucs", "demucs.apply", "soundfile", "imageio_ffmpeg"}}, nil
 	default:
 		return pythonPackageSetManifest{}, fmt.Errorf("python package set dependency is not admitted for consumer %s", consumer)
 	}
@@ -125,6 +131,15 @@ func speechPipelineFilesForConsumer(consumer string) []struct {
 	Script *string
 } {
 	switch strings.TrimSpace(consumer) {
+	case "speech.faster-whisper.python":
+		files := append([]struct {
+			Name   string
+			Script *string
+		}{}, speechServerScriptFiles...)
+		return append(files, struct {
+			Name   string
+			Script *string
+		}{Name: "faster_whisper_driver.py", Script: &speechFasterWhisperDriverScript})
 	case "speech.qwen3-tts.python":
 		files := append([]struct {
 			Name   string
@@ -146,6 +161,15 @@ func speechPipelineFilesForConsumer(consumer string) []struct {
 		}{}, speechServerScriptFiles...)
 		files = append(files, speechQwen3ASRTransformersDriverScriptFile, speechAudioScriptFile)
 		return files
+	case "speech.demucs.python":
+		files := append([]struct {
+			Name   string
+			Script *string
+		}{}, speechServerScriptFiles...)
+		return append(files, struct {
+			Name   string
+			Script *string
+		}{Name: "demucs_driver.py", Script: &speechDemucsDriverScript})
 	case "speech.voxcpm.python":
 		files := append([]struct {
 			Name   string
@@ -168,6 +192,14 @@ func SpeechQwen3ASRDriverPath(root string) string {
 
 func SpeechQwen3ASRTransformersDriverPath(root string) string {
 	return filepath.Join(strings.TrimSpace(root), "qwen3_asr_transformers_driver.py")
+}
+
+func SpeechFasterWhisperDriverPath(root string) string {
+	return filepath.Join(strings.TrimSpace(root), "faster_whisper_driver.py")
+}
+
+func SpeechDemucsDriverPath(root string) string {
+	return filepath.Join(strings.TrimSpace(root), "demucs_driver.py")
 }
 
 func SpeechVoxCPMDriverPath(root string) string {
@@ -218,6 +250,10 @@ func speechDriverCommandsForConsumer(root string, consumer string) map[string]st
 		return map[string]string{
 			"NIMI_RUNTIME_SPEECH_QWEN3_ASR_TRANSFORMERS_CMD": speechDriverCommand(trimmedRoot, SpeechQwen3ASRTransformersDriverPath),
 		}
+	case "speech.faster-whisper.python":
+		return map[string]string{"NIMI_RUNTIME_SPEECH_FASTER_WHISPER_CMD": speechDriverCommand(trimmedRoot, SpeechFasterWhisperDriverPath)}
+	case "speech.demucs.python":
+		return map[string]string{"NIMI_RUNTIME_SPEECH_DEMUCS_CMD": speechDriverCommand(trimmedRoot, SpeechDemucsDriverPath)}
 	default:
 		return nil
 	}
@@ -235,6 +271,10 @@ func speechDriverScriptsForConsumer(root string, consumer string) []string {
 		return []string{SpeechQwen3ASRDriverPath(trimmedRoot)}
 	case "speech.qwen3-asr-transformers.python":
 		return []string{SpeechQwen3ASRTransformersDriverPath(trimmedRoot)}
+	case "speech.faster-whisper.python":
+		return []string{SpeechFasterWhisperDriverPath(trimmedRoot)}
+	case "speech.demucs.python":
+		return []string{SpeechDemucsDriverPath(trimmedRoot)}
 	case "speech.voxcpm.python":
 		return []string{SpeechVoxCPMDriverPath(trimmedRoot), SpeechVoxCPMMLXDriverPath(trimmedRoot)}
 	default:
@@ -257,6 +297,13 @@ func materializePythonPipelineServerScript(root string, consumer string) error {
 		return nil
 	case strings.TrimSpace(consumer) == VisionLocateConsumerID:
 		return materializeVisionDriverBundle(trimmedRoot)
+	case strings.TrimSpace(consumer) == TextAnnotationConsumerID:
+		for _, file := range textAnnotationDriverStaticFiles() {
+			if err := os.WriteFile(filepath.Join(trimmedRoot, file.RelativePath), file.Content, 0o444); err != nil {
+				return fmt.Errorf("materialize annotation Driver: %w", err)
+			}
+		}
+		return nil
 	case strings.HasPrefix(strings.TrimSpace(consumer), "stable-diffusion.cpp."):
 		return os.WriteFile(filepath.Join(trimmedRoot, "media_server.py"), []byte(mediaServerScript), 0o755)
 	case strings.HasPrefix(strings.TrimSpace(consumer), "media."):

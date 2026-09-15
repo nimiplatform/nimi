@@ -181,6 +181,17 @@ test('abort closes the active carrier and does not return a partial success', as
   assert.equal(f.canceled(), 1);
 });
 
+test('failed Local App text generation preserves its Runtime trace', async () => {
+  const f = fixture(async function* () {
+    yield { type: 'delta', sequence: '1', traceId: 'trace-failed-json', itemIndex: 0, text: '{"partial":' };
+    yield { type: 'failed', sequence: '2', traceId: 'trace-failed-json', reasonCode: 'ai-output-invalid', actionHint: 'inspect_reason_code_and_retry_with_corrected_request' };
+  });
+  await assert.rejects(f.model.generateText({ messages: [user], responseFormat: { type: 'json-object' } }), {
+    reasonCode: 'ai-output-invalid', traceId: 'trace-failed-json', retryable: false,
+  });
+  assert.equal(f.canceled(), 1);
+});
+
 for (const scenario of ['sequence', 'terminal'] as const) {
   test(`Local App text stream rejects an invalid ${scenario}`, async () => {
     const f = fixture(async function* () {

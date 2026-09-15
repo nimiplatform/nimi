@@ -3,6 +3,35 @@
 These package-local notes cover the App-facing changes relevant to the current
 published baseline. They are not a complete reconstruction of older releases.
 
+## 0.14.0 (development)
+
+- Raise annotation capacity to 512 KiB input, 65536 tokens and a 16 MiB result
+  without splitting the caller's document. The matching Runtime also admits
+  DeepSeek V4 JSON-object generation through the existing App text interface.
+
+- Add the Local `text-annotate` Job and immutable `textAnnotation` result:
+  batch source documents, Unicode scalar token offsets, POS/dependency labels,
+  head indices and sentence spans. Requires the matching Runtime and Kit/native
+  candidate; older 0.14.0 development tarballs do not contain this addition.
+
+- Add the Local `audio-separate` Job and paired `audioSeparation` artifact
+  identities. Large output uses the existing owned artifact adoption and App
+  asset streams. The initial Runtime Driver is HTDemucs; read its documented
+  duration/input limits before composing long media.
+
+- Carry typed speech transcription through Local App jobs, Runtime scenario
+  adapters and generation results. Preserve original text, detected language,
+  actual alignment units and explicit no-speech results. See the package README
+  for resource limits, supported controls and chunk offsets.
+- Requires matching Runtime, Kit/native 0.10.0 and Rust shell crates 0.6.0.
+  Custom carriers must preserve the optional `transcription` projection. Empty
+  no-speech text is valid only with the explicit typed no-speech result; an
+  empty inference response is not success. `transcriptionText` remains derived
+  from the same result for existing text-only consumers.
+- These are local development package versions. Publication is a separate step
+  after consumer acceptance. Vercel adapter 0.2.0 updates its SDK peer to 0.14.0;
+  its text model behavior is unchanged.
+
 ## 0.13.0
 
 - Local App model turns accept ordered user text and image URL/artifact parts.

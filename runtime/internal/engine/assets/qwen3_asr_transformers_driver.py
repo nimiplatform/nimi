@@ -4,6 +4,8 @@ from __future__ import annotations
 import argparse
 import importlib.metadata
 import json
+import math
+import unicodedata
 import os
 import pathlib
 import sys
@@ -14,6 +16,12 @@ from speech_audio import normalized_audio_source
 
 DEFAULT_MAX_NEW_TOKENS = 256
 _MODEL_CACHE: dict[tuple[str, str, str], tuple[Any, Any]] = {}
+_ALIGNER_CACHE: dict[tuple[str, str, str], tuple[Any, Any]] = {}
+_ALIGNMENT_LANGUAGES = {"zh", "en", "yue", "fr", "de", "it", "ja", "ko", "pt", "ru", "es"}
+_LANGUAGE_CODES = dict(zip(
+    ["chinese", "english", "cantonese", "arabic", "german", "french", "spanish", "portuguese", "indonesian", "italian", "korean", "russian", "thai", "vietnamese", "japanese", "turkish", "hindi", "malay", "dutch", "swedish", "danish", "finnish", "polish", "czech", "filipino", "persian", "greek", "hungarian", "macedonian", "romanian"],
+    ["zh", "en", "yue", "ar", "de", "fr", "es", "pt", "id", "it", "ko", "ru", "th", "vi", "ja", "tr", "hi", "ms", "nl", "sv", "da", "fi", "pl", "cs", "fil", "fa", "el", "hu", "mk", "ro"],
+))
 
 
 def fail(message: str) -> None:
@@ -136,6 +144,25 @@ def normalized_language(value: str) -> str | None:
     }.get(text.lower(), text)
 
 
+# @nimi-authority: rule.nimi.runtime.ai-provider.qwen3-transformers-aligned-transcription
+def resolve_alignment_language(reported: str, requested: str | None) -> tuple[str, str]:
+    def code(value: str) -> str:
+        name = value.strip().lower()
+        return _LANGUAGE_CODES.get(name, name if name in _LANGUAGE_CODES.values() else "")
+
+    reported = reported.strip()
+    if reported:
+        detected = code(reported)
+        if detected not in _ALIGNMENT_LANGUAGES:
+            fail(f"recognized language is not supported by the captured forced aligner: {reported[:64]!r}")
+        return detected, detected
+    selected = code(requested or "")
+    if selected not in _ALIGNMENT_LANGUAGES:
+        fail("recognition did not report a language; an explicit supported source language is required for alignment")
+    # The request can guide real alignment, but cannot become a detected result.
+    return "", selected
+
+
 def bool_request(request: dict[str, Any], key: str) -> bool:
     value = request.get(key)
     if isinstance(value, bool):
@@ -183,12 +210,15 @@ def load_model(model_ref: str) -> tuple[Any, Any]:
         from transformers import AutoModelForMultimodalLM, AutoProcessor
 
         processor = AutoProcessor.from_pretrained(model_ref, local_files_only=True)
-        model = AutoModelForMultimodalLM.from_pretrained(
+        model, loading = AutoModelForMultimodalLM.from_pretrained(
             model_ref,
             device_map=transformers_device_map(),
             dtype=transformers_dtype(),
             local_files_only=True,
+            output_loading_info=True,
         )
+        if loading.get("missing_keys") or loading.get("mismatched_keys"):
+            fail("captured ASR weights do not completely match the execution model")
         model.eval()
     except Exception as error:
         fail(f"Transformers-native Qwen3-ASR model load failed: {error}")
@@ -213,9 +243,49 @@ def handle_preflight(model_ref: str) -> dict[str, Any]:
     return response
 
 
+def load_aligner(model_ref: str) -> tuple[Any, Any]:
+    key = cache_key(model_ref)
+    if key not in _ALIGNER_CACHE:
+        from transformers import AutoProcessor, AutoModelForTokenClassification
+        processor = AutoProcessor.from_pretrained(model_ref, local_files_only=True)
+        config = read_json(str(pathlib.Path(model_ref) / "config.json"))
+        if config.get("architectures") != ["Qwen3ASRForTokenClassification"]:
+            fail("captured alignment model has the wrong architecture")
+        model, loading = AutoModelForTokenClassification.from_pretrained(model_ref, device_map=transformers_device_map(), dtype=transformers_dtype(), local_files_only=True, output_loading_info=True)
+        if loading.get("missing_keys") or loading.get("mismatched_keys"):
+            fail("captured alignment weights do not completely match the execution model")
+        model.eval()
+        _ALIGNER_CACHE[key] = (processor, model)
+    return _ALIGNER_CACHE[key]
+
+
+def restore_alignment_words(text: str, rows: list[dict[str, Any]], duration: float, precision: float) -> list[dict[str, Any]]:
+    # The pinned aligner drops punctuation during tokenization. Retain the
+    # recognized text around those exact units without estimating new times.
+    kept = [(i, char) for i, char in enumerate(text) if char == "'" or unicodedata.category(char).startswith(("L", "N"))]
+    if not rows or "".join(str(row.get("text") or "") for row in rows) != "".join(char for _, char in kept):
+        fail("forced alignment units do not cover the recognized text")
+    result = []
+    cursor = 0
+    previous_char = 0
+    previous_start = 0.0
+    for row in rows:
+        start, end = float(row["start_time"]), float(row["end_time"])
+        if not math.isfinite(start) or not math.isfinite(end) or start < previous_start or end < start or end > duration + precision:
+            fail("forced alignment returned invalid source timing")
+        cursor += len(row["text"])
+        next_char = kept[cursor][0] if cursor < len(kept) else len(text)
+        result.append({"text": text[previous_char:next_char].strip(), "start_seconds": start, "end_seconds": end})
+        previous_char, previous_start = next_char, start
+    return result
+
+
+# @nimi-authority: rule.nimi.runtime.ai-provider.qwen3-transformers-aligned-transcription
 def handle_transcribe(request: dict[str, Any]) -> dict[str, Any]:
-    if bool_request(request, "timestamps"):
-        fail("Transformers-native Qwen3-ASR timestamps are not admitted")
+    alignment = request.get("alignment")
+    timed = bool_request(request, "timestamps")
+    if timed and not isinstance(alignment, dict):
+        fail("Transformers-native Qwen3-ASR timestamps require a captured aligner")
     if bool_request(request, "diarization") or int(request.get("speaker_count") or 0) != 0:
         fail("Transformers-native Qwen3-ASR diarization is not admitted")
     if optional_string(request, "prompt"):
@@ -228,22 +298,51 @@ def handle_transcribe(request: dict[str, Any]) -> dict[str, Any]:
     language = normalized_language(optional_string(request, "language"))
     try:
         with normalized_audio_source(audio_path) as normalized_audio_path:
+            duration = 0.0
+            if alignment is not None:
+                import soundfile as sf
+                duration = sf.info(normalized_audio_path).duration
+                if not math.isfinite(duration) or duration <= 0:
+                    fail("audio input has no valid duration")
+                if duration > 300:
+                    fail("aligned transcription accepts audio up to 300 seconds; split the source and retain its offset")
             inputs = processor.apply_transcription_request(audio=normalized_audio_path, language=language)
             inputs = inputs.to(model.device, model.dtype)
-            output_ids = model.generate(**inputs, max_new_tokens=max_new_tokens())
+            budget = max(max_new_tokens(), 8192) if alignment is not None else max_new_tokens()
+            output_ids = model.generate(**inputs, max_new_tokens=budget)
             generated_ids = output_ids[:, inputs["input_ids"].shape[1]:]
-            decoded = processor.decode(generated_ids, return_format="transcription_only")
+            if alignment is None:
+                decoded = processor.decode(generated_ids, return_format="transcription_only")
+                text = str(decoded[0] if isinstance(decoded, (list, tuple)) and decoded else decoded or "").strip()
+                if not text:
+                    if allow_empty_transcript(request): return {"text": "", "empty_transcript": True}
+                    fail("Transformers-native Qwen3-ASR returned no transcription")
+                return {"text": text}
+            if generated_ids.shape[-1] >= budget:
+                fail("aligned transcription reached the recognition token limit")
+            decoded = processor.decode(generated_ids, return_format="parsed")[0]
+            text = str(decoded.get("transcription") or "").strip()
+            language_name = str(decoded.get("language") or "").strip().lower()
+            if not text:
+                raw = str(processor.decode(generated_ids)[0]).strip().lower()
+                if "language none<asr_text>" in raw: return {"text": "", "no_speech": True}
+                fail("recognition returned empty text without a no-speech result")
+            language_code, alignment_language = resolve_alignment_language(language_name, language)
+            response = {"text": text, "language": language_code}
+            if timed:
+                import torch
+                aligner_processor, aligner_model = load_aligner(local_bundle_model_ref(alignment))
+                # The pinned processor normalizes language codes before
+                # selecting the managed nagisa/soynlp tokenizers for ja/ko.
+                aligner_inputs, word_lists = aligner_processor.prepare_forced_aligner_inputs(audio=normalized_audio_path, transcript=text, language=alignment_language)
+                aligner_inputs = aligner_inputs.to(aligner_model.device, aligner_model.dtype)
+                with torch.inference_mode():
+                    outputs = aligner_model(**aligner_inputs)
+                rows = aligner_processor.decode_forced_alignment(logits=outputs.logits, input_ids=aligner_inputs["input_ids"], word_lists=word_lists, timestamp_token_id=aligner_model.config.timestamp_token_id)[0]
+                response["words"] = restore_alignment_words(text, rows, duration, float(aligner_processor.timestamp_segment_time) / 1000)
+            return response
     except Exception as error:
         fail(f"Transformers-native Qwen3-ASR transcription failed: {error}")
-    if isinstance(decoded, (list, tuple)):
-        text = str(decoded[0] if decoded else "").strip()
-    else:
-        text = str(decoded or "").strip()
-    if not text:
-        if allow_empty_transcript(request):
-            return {"text": "", "empty_transcript": True}
-        fail("Transformers-native Qwen3-ASR returned no transcription")
-    return {"text": text}
 
 
 def handle_request(request: dict[str, Any]) -> dict[str, Any]:

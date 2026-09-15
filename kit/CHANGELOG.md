@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.10.0 (development)
+
+- Preserve annotation results up to 65536 tokens and 16 MiB through the native
+  and JavaScript boundaries with the matching SDK/Runtime candidate.
+
+- Carry `text-annotate` through native, Electron and renderer Job services.
+  Preserve completed-job `textAnnotation`, including exact source whitespace
+  and Unicode scalar offsets. Use the matching SDK 0.14.0 development candidate.
+
+- Carry Local `audio-separate` requests and complete vocals/background artifact
+  pairs through native, Electron and renderer services. App-specific media
+  assembly and final project commits remain with the App.
+
+- Preserve typed speech transcription through protected native, Electron and
+  renderer job results, and expose it in `runtimeSpeechTranscribe` results.
+  The projection carries original text, detected language, actual word/character
+  timing and explicit no-speech status. Requires SDK 0.14.0, native packages
+  0.10.0, Rust shell crates 0.6.0 and the matching Runtime.
+- Custom carriers must retain optional completed-job `transcription` data and
+  validate it consistently with `transcriptionText`. Consumers requiring word
+  alignment must request it from an eligible resource; text-only output is not
+  a timing fallback. No-speech results can have empty text.
+- Local development packages precede publication; real consumer acceptance
+  remains required before release.
+
 ## 0.9.0
 
 - Abort uncommitted renderer asset writes and close reads on document replacement,

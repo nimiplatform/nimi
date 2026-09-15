@@ -784,3 +784,5 @@ function runtimeHealthStatusLabel(status: GetRuntimeHealthResponse['status'] | u
   }
   return String(status ?? RuntimeHealthStatus.UNSPECIFIED);
 }
+export { SpeechTranscriptStatus } from '../core-generated/runtime-typed-client';
+export type { SpeechTranscript, SpeechTranscriptWord } from '../core-generated/runtime-typed-client';

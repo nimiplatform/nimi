@@ -10,7 +10,10 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 type custodyCountingSource struct {
@@ -209,7 +212,8 @@ func TestTranscriptionTextIsCapturedFromCommittedCustodyIntoJobState(t *testing.
 		[]*runtimev1.ScenarioArtifact{artifact}, map[string]*capabilitydriver.ArtifactBody{artifact.GetArtifactId(): body}); err != nil {
 		t.Fatal(err)
 	}
-	text, err := svc.captureScenarioTranscriptionText(context.Background(), runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE, []*runtimev1.ScenarioArtifact{artifact})
+	transcript, err := svc.captureScenarioTranscriptionResult(context.Background(), runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE, []*runtimev1.ScenarioArtifact{artifact}, false)
+	text := transcript.GetText()
 	if err != nil || text != string(payload) {
 		t.Fatalf("capture text=%q err=%v", text, err)
 	}
@@ -217,6 +221,7 @@ func TestTranscriptionTextIsCapturedFromCommittedCustodyIntoJobState(t *testing.
 		runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED, func(job *runtimev1.ScenarioJob) {
 			job.Artifacts = []*runtimev1.ScenarioArtifact{artifact}
 			job.TranscriptionText = text
+			job.Transcription = transcript
 		})
 	if transitionErr != nil || !ok {
 		t.Fatalf("complete transcription job: %v", transitionErr)
@@ -227,5 +232,50 @@ func TestTranscriptionTextIsCapturedFromCommittedCustodyIntoJobState(t *testing.
 	projected, err := projectLocalAppScenarioJob(job)
 	if err != nil || projected.GetTranscriptionText() != string(payload) {
 		t.Fatalf("immutable transcription projection=%+v err=%v", projected, err)
+	}
+}
+
+func TestTimedTranscriptionIsCapturedBeforeArtifactDeletion(t *testing.T) {
+	for _, transcript := range []*runtimev1.SpeechTranscript{
+		{Status: runtimev1.SpeechTranscriptStatus_SPEECH_TRANSCRIPT_STATUS_TRANSCRIBED, Text: "Hello, world!", Language: "en", Words: []*runtimev1.SpeechTranscriptWord{
+			{Text: "Hello,", StartSeconds: 0.4, EndSeconds: 0.9}, {Text: "world!", StartSeconds: 2.1, EndSeconds: 2.7},
+		}},
+		{Status: runtimev1.SpeechTranscriptStatus_SPEECH_TRANSCRIPT_STATUS_NO_SPEECH},
+	} {
+		t.Run(transcript.GetStatus().String(), func(t *testing.T) {
+			svc := newTestService(nil)
+			head := &runtimev1.ScenarioRequestHead{AppId: "producer-app", SubjectUserId: "account-1"}
+			svc.scenarioJobs.createOwned(&runtimev1.ScenarioJob{
+				JobId: "job-timed", Head: head, ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE,
+				Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING,
+			}, nil, &localAppJobOwner{AccountID: "account-1", RegisteredAppSubject: "subject-1", ProducerAppID: "producer-app"})
+			payload, err := protojson.Marshal(transcript)
+			if err != nil {
+				t.Fatal(err)
+			}
+			body, _ := capabilitydriver.NewBoundedArtifactBody(payload)
+			artifact := &runtimev1.ScenarioArtifact{ArtifactId: "artifact-timed", MimeType: localexecution.SpeechTranscriptMIME, SizeBytes: int64(len(payload))}
+			if _, err := svc.storeRuntimeJobArtifacts(context.Background(), "job-timed", head, []*runtimev1.ScenarioArtifact{artifact}, map[string]*capabilitydriver.ArtifactBody{artifact.GetArtifactId(): body}); err != nil {
+				t.Fatal(err)
+			}
+			captured, err := svc.captureScenarioTranscriptionResult(context.Background(), runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE, []*runtimev1.ScenarioArtifact{artifact}, true)
+			if err != nil {
+				t.Fatal(err)
+			}
+			job, ok, err := svc.transitionScenarioJob("job-timed", runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED, func(job *runtimev1.ScenarioJob) {
+				job.Artifacts = []*runtimev1.ScenarioArtifact{artifact}
+				job.Transcription, job.TranscriptionText = captured, captured.GetText()
+			})
+			if err != nil || !ok {
+				t.Fatalf("complete job: %v", err)
+			}
+			if err := svc.runtimeArtifacts.Delete(artifact.GetArtifactId()); err != nil {
+				t.Fatal(err)
+			}
+			projected, err := projectLocalAppScenarioJob(job)
+			if err != nil || !proto.Equal(projected.GetTranscription(), transcript) {
+				t.Fatalf("projected transcript=%+v err=%v", projected.GetTranscription(), err)
+			}
+		})
 	}
 }

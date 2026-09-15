@@ -433,7 +433,7 @@ func TestBackendTranscribeForwardsScenarioExtensions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Transcribe failed: %v", err)
 	}
-	if text != "transcribed text" {
+	if text.GetText() != "transcribed text" {
 		t.Fatalf("unexpected transcription text: %q", text)
 	}
 	if capturedFilename != "audio.wav" {
@@ -526,7 +526,7 @@ func TestBackendTranscribeAllowsEmptyTextForFirstRunProbeExtension(t *testing.T)
 	if err != nil {
 		t.Fatalf("Transcribe failed: %v", err)
 	}
-	if text != "" {
+	if text.GetText() != "" {
 		t.Fatalf("expected empty transcript to be preserved, got %q", text)
 	}
 	if !ValueAsBool(capturedExtensions["nimi_allow_empty_transcript"]) {

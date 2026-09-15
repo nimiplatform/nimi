@@ -312,10 +312,11 @@ func (p *CloudProvider) executeGenericMediaWithTarget(
 		if err != nil {
 			return nil, nil, "", err
 		}
-		text, usage, err := backend.Transcribe(ctx, backendModelID, spec, audioBytes, mimeType, extensions)
+		transcript, usage, err := backend.Transcribe(ctx, backendModelID, spec, audioBytes, mimeType, extensions)
 		if err != nil {
 			return nil, nil, "", err
 		}
+		text := transcript.GetText()
 		metadata := map[string]any{
 			"text":            text,
 			"adapter":         adapter,

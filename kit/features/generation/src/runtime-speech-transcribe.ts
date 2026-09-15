@@ -11,6 +11,7 @@ import {
   type NimiRuntimeSpeechTranscriptionAudioSource,
   type RuntimeTypedCallOptions,
   type ScenarioJob,
+  type NimiLocalAppSpeechTranscript,
 } from '@nimiplatform/kit/core/sdk-contract';
 import {
   runtimeScenarioJobNonSuccessReasonFromError,
@@ -27,6 +28,7 @@ export type RuntimeSpeechTranscribeAudioInput =
   | { readonly type: 'chunks'; readonly chunks: readonly Uint8Array[]; readonly mimeType: string };
 
 export type RuntimeSpeechTranscribeOutput = {
+  readonly transcription?: NimiLocalAppSpeechTranscript;
   readonly kind: 'transcript';
   readonly text: string;
   readonly jobId: string;
@@ -120,9 +122,10 @@ export async function runRuntimeSpeechTranscribe(
     return {
       ok: true,
       capabilityId: 'audio.transcribe',
-      message: result.text,
+      message: result.transcription?.status === 'no-speech' ? 'No speech detected.' : result.text,
       output: {
         kind: 'transcript',
+        ...(result.transcription ? { transcription: result.transcription } : {}),
         text: result.text,
         jobId: result.job.jobId,
         jobStatus: speechJobStatusName(result.job.status),

@@ -81,6 +81,9 @@ func PythonDependencyProfileStaticFiles(consumer string, identity PythonDependen
 	if strings.TrimSpace(consumer) == FaceSwapConsumerID {
 		return append(files, faceSwapDriverStaticFiles()...), nil
 	}
+	if strings.TrimSpace(consumer) == TextAnnotationConsumerID {
+		return append(files, textAnnotationDriverStaticFiles()...), nil
+	}
 	driverFiles := speechPipelineFilesForConsumer(consumer)
 	if len(driverFiles) == 0 && strings.HasPrefix(strings.TrimSpace(consumer), "media.") {
 		driverFiles = []struct {
@@ -137,8 +140,10 @@ func ResolvePythonDependencyProfileIdentity(consumer string, platformTuple strin
 	if err != nil {
 		return PythonDependencyProfileIdentity{}, err
 	}
-	torchIdentity := PythonTorchWheelDependencyIdentity{AcceleratorPlane: trimmedPlane, CUDAABI: "cu13"}
-	if trimmedConsumer != FaceSwapConsumerID {
+	torchIdentity := PythonTorchWheelDependencyIdentity{AcceleratorPlane: trimmedPlane}
+	if trimmedConsumer == FaceSwapConsumerID {
+		torchIdentity.CUDAABI = "cu13"
+	} else if trimmedConsumer != TextAnnotationConsumerID {
 		torchIdentity, err = ResolvePythonTorchWheelDependencyIdentity(trimmedConsumer + "." + trimmedPlane)
 		if err != nil {
 			return PythonDependencyProfileIdentity{}, err
@@ -208,6 +213,11 @@ func admitPythonDependencyProfilePlatform(platformTuple string, acceleratorPlane
 func pythonDependencyProfileSourceLabel(consumer string, platformTuple string, acceleratorPlane string) (string, error) {
 	line := ""
 	switch strings.TrimSpace(consumer) {
+	case TextAnnotationConsumerID:
+		if acceleratorPlane != "cpu" {
+			return "", fmt.Errorf("text annotation profile requires CPU")
+		}
+		return "text-spacy-cpu", nil
 	case FaceSwapConsumerID:
 		if platformTuple != "windows/amd64" || acceleratorPlane != "cuda" {
 			return "", fmt.Errorf("face replacement profile requires windows/amd64 NVIDIA CUDA")
@@ -228,6 +238,10 @@ func pythonDependencyProfileSourceLabel(consumer string, platformTuple string, a
 		line = "speech-asr-package"
 	case "speech.qwen3-asr-transformers.python":
 		line = "speech-asr-transformers"
+	case "speech.faster-whisper.python":
+		line = "speech-faster-whisper"
+	case "speech.demucs.python":
+		line = "speech-demucs"
 	case "speech.voxcpm.python":
 		switch strings.ToLower(strings.TrimSpace(platformTuple)) {
 		case "windows/amd64":
@@ -270,7 +284,7 @@ func pythonDependencyProfileInput(sourceLabel string, name string) ([]byte, erro
 }
 
 func pythonDependencyProfilePackageSource(consumer string, acceleratorPlane string) (string, error) {
-	if strings.TrimSpace(consumer) == FaceSwapConsumerID {
+	if strings.TrimSpace(consumer) == FaceSwapConsumerID || strings.TrimSpace(consumer) == TextAnnotationConsumerID {
 		return "pypi=https://pypi.org/simple", nil
 	}
 	manifest, err := resolvePythonTorchWheelManifest(strings.TrimSpace(consumer) + "." + strings.TrimSpace(acceleratorPlane))
@@ -281,6 +295,9 @@ func pythonDependencyProfilePackageSource(consumer string, acceleratorPlane stri
 }
 
 func pythonDependencyProfileDriverProtocol(consumer string) string {
+	if strings.TrimSpace(consumer) == TextAnnotationConsumerID {
+		return capabilitydriver.SpacyProtocol
+	}
 	if strings.TrimSpace(consumer) == FaceSwapConsumerID {
 		return capabilitydriver.InsightFaceProtocol
 	}
@@ -298,6 +315,13 @@ func speechDriverBundleDigest(consumer string) (string, error) {
 }
 
 func pythonDependencyProfileDriverBundleDigest(consumer string, driverProtocol string) (string, error) {
+	if strings.TrimSpace(consumer) == TextAnnotationConsumerID {
+		lines := []string{"driver_protocol=" + driverProtocol}
+		for _, file := range textAnnotationDriverStaticFiles() {
+			lines = append(lines, "file="+file.RelativePath, string(file.Content))
+		}
+		return sha256Hex([]byte(strings.Join(lines, "\n") + "\n")), nil
+	}
 	if strings.TrimSpace(consumer) == FaceSwapConsumerID {
 		lines := []string{"driver_protocol=" + driverProtocol}
 		for _, file := range faceSwapDriverStaticFiles() {

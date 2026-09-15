@@ -31,6 +31,8 @@ func validateSubmitScenarioAsyncJobRequest(req *runtimev1.SubmitScenarioJobReque
 	}
 
 	switch req.GetScenarioType() {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_ANNOTATE:
+		return validateTextAnnotationSpec(req.GetSpec().GetTextAnnotate())
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_FACE_SWAP:
 		return validateVideoFaceSwapSpec(req.GetSpec().GetVideoFaceSwap())
 	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_FACE_SWAP:
@@ -92,6 +94,11 @@ func validateSubmitScenarioAsyncJobRequest(req *runtimev1.SubmitScenarioJobReque
 		}
 		if _, _, err := resolveMusicGenerateExtensionPayload(req); err != nil {
 			return err
+		}
+	case runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SEPARATE:
+		spec := req.GetSpec().GetAudioSeparate()
+		if spec == nil || !hasTranscriptionAudioSource(&runtimev1.SpeechTranscribeScenarioSpec{AudioSource: spec.GetAudioSource()}) {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 		}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:
 		spec := req.GetSpec().GetWorldGenerate()
@@ -365,6 +372,8 @@ func defaultScenarioJobTimeout(scenarioType runtimev1.ScenarioType) time.Duratio
 		return defaultSynthesizeTimeout
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
 		return defaultTranscribeTimeout
+	case runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SEPARATE:
+		return defaultLocalSpeechJobTimeout
 	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
 		return defaultGenerateMusicTimeout
 	case runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:

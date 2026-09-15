@@ -96,7 +96,7 @@ func TestMimoTranscribeUsesChatInputAudio(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Transcribe failed: %v", err)
 	}
-	if text != "hello transcript" {
+	if text.GetText() != "hello transcript" {
 		t.Fatalf("unexpected transcript: %q", text)
 	}
 	if usage == nil || usage.GetInputTokens() != 8 || usage.GetOutputTokens() != 2 {

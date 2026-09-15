@@ -175,3 +175,19 @@ sources:
     url: https://huggingface.co/docs/diffusers/api/pipelines/wan
     retrieved_at: 2026-03-15
     note: Official Diffusers Wan text-to-video and image-to-video pipeline documentation.
+  - source_id: qwen3_forced_aligner_transformers_modelcard
+    url: https://huggingface.co/Qwen/Qwen3-ForcedAligner-0.6B-hf/blob/c07281df297b9905d24a508279258cccf987a064/README.md
+    retrieved_at: 2026-09-14
+    note: Exact Transformers-native forced aligner companion for captured Qwen3 ASR and alignment execution.
+  - source_id: demucs_official_checkpoint
+    url: https://github.com/facebookresearch/demucs/blob/main/demucs/remote/htdemucs.yaml
+    retrieved_at: 2026-09-15
+    note: The official HTDemucs single model. The mirrored checkpoint SHA256 matches the complete official download.
+  - source_id: faster_whisper_turbo_modelcard
+    url: https://huggingface.co/dropbox-dash/faster-whisper-large-v3-turbo/blob/0a363e9161cbc7ed1431c9597a8ceaf0c4f78fcf/README.md
+    retrieved_at: 2026-09-16
+    note: Pinned CTranslate2 conversion of OpenAI Whisper large-v3-turbo; model.bin matches the locally converted upstream weights.
+  - source_id: silero_vad_onnx_modelcard
+    url: https://huggingface.co/onnx-community/silero-vad/blob/e71cae966052b992a7eca6b17738916ce0eca4ec/README.md
+    retrieved_at: 2026-09-16
+    note: Pinned standard Silero ONNX VAD companion with explicit input, state and sample-rate tensors.

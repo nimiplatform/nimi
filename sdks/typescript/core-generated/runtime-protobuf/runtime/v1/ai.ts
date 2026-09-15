@@ -885,6 +885,38 @@ export interface MusicGenerateScenarioSpec {
     instrumental: boolean;
 }
 /**
+ * Source separation preserves the input timeline and returns vocals plus the
+ * sum of all non-vocal sources. The selected implementation owns input limits.
+ *
+ * @generated from protobuf message nimi.runtime.v1.AudioSeparateScenarioSpec
+ */
+export interface AudioSeparateScenarioSpec {
+    /**
+     * @generated from protobuf field: string mime_type = 1
+     */
+    mimeType: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.SpeechTranscriptionAudioSource audio_source = 2
+     */
+    audioSource?: SpeechTranscriptionAudioSource;
+}
+/**
+ * The identities refer to the two committed artifacts of this same Job.
+ * Sample rate, channels and duration are carried by those artifact records.
+ *
+ * @generated from protobuf message nimi.runtime.v1.AudioSeparation
+ */
+export interface AudioSeparation {
+    /**
+     * @generated from protobuf field: string vocals_artifact_id = 1
+     */
+    vocalsArtifactId: string;
+    /**
+     * @generated from protobuf field: string background_artifact_id = 2
+     */
+    backgroundArtifactId: string;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.WorldGenerateAssetSource
  */
 export interface WorldGenerateAssetSource {
@@ -1281,6 +1313,98 @@ export interface VideoFaceSwapSummary {
     audioPreserved: boolean;
 }
 /**
+ * Batch order is preserved. Offsets in results count Unicode scalar values,
+ * not UTF-8 bytes or UTF-16 code units. Empty documents are valid.
+ *
+ * @generated from protobuf message nimi.runtime.v1.TextAnnotateScenarioSpec
+ */
+export interface TextAnnotateScenarioSpec {
+    /**
+     * @generated from protobuf field: string language = 1
+     */
+    language: string;
+    /**
+     * @generated from protobuf field: repeated string texts = 2
+     */
+    texts: string[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.TextAnnotationToken
+ */
+export interface TextAnnotationToken {
+    /**
+     * @generated from protobuf field: string text = 1
+     */
+    text: string;
+    /**
+     * @generated from protobuf field: uint32 start = 2
+     */
+    start: number;
+    /**
+     * @generated from protobuf field: uint32 end = 3
+     */
+    end: number;
+    /**
+     * @generated from protobuf field: uint32 head_index = 4
+     */
+    headIndex: number;
+    /**
+     * @generated from protobuf field: string part_of_speech = 5
+     */
+    partOfSpeech: string;
+    /**
+     * @generated from protobuf field: string dependency = 6
+     */
+    dependency: string;
+    /**
+     * @generated from protobuf field: bool is_punctuation = 7
+     */
+    isPunctuation: boolean;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.TextAnnotationSentence
+ */
+export interface TextAnnotationSentence {
+    /**
+     * @generated from protobuf field: uint32 start_token = 1
+     */
+    startToken: number;
+    /**
+     * @generated from protobuf field: uint32 end_token = 2
+     */
+    endToken: number;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.TextAnnotationDocument
+ */
+export interface TextAnnotationDocument {
+    /**
+     * @generated from protobuf field: string text = 1
+     */
+    text: string;
+    /**
+     * @generated from protobuf field: string language = 2
+     */
+    language: string;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.TextAnnotationToken tokens = 3
+     */
+    tokens: TextAnnotationToken[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.TextAnnotationSentence sentences = 4
+     */
+    sentences: TextAnnotationSentence[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.TextAnnotationResult
+ */
+export interface TextAnnotationResult {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.TextAnnotationDocument documents = 1
+     */
+    documents: TextAnnotationDocument[];
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.VisionLocateScenarioSpec
  */
 export interface VisionLocateScenarioSpec {
@@ -1462,6 +1586,18 @@ export interface ScenarioSpec {
          */
         videoFaceSwap: VideoFaceSwapScenarioSpec;
     } | {
+        oneofKind: "audioSeparate";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AudioSeparateScenarioSpec audio_separate = 15
+         */
+        audioSeparate: AudioSeparateScenarioSpec;
+    } | {
+        oneofKind: "textAnnotate";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.TextAnnotateScenarioSpec text_annotate = 16
+         */
+        textAnnotate: TextAnnotateScenarioSpec;
+    } | {
         oneofKind: undefined;
     };
 }
@@ -1601,6 +1737,48 @@ export interface SpeechSynthesizeResult {
     artifacts: ScenarioArtifact[];
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.SpeechTranscriptWord
+ */
+export interface SpeechTranscriptWord {
+    /**
+     * @generated from protobuf field: string text = 1
+     */
+    text: string;
+    /**
+     * @generated from protobuf field: double start_seconds = 2
+     */
+    startSeconds: number;
+    /**
+     * @generated from protobuf field: double end_seconds = 3
+     */
+    endSeconds: number;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.SpeechTranscript
+ */
+export interface SpeechTranscript {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.SpeechTranscriptStatus status = 1
+     */
+    status: SpeechTranscriptStatus;
+    /**
+     * @generated from protobuf field: string text = 2
+     */
+    text: string;
+    /**
+     * Model-reported language code, empty when the execution did not report one.
+     *
+     * @generated from protobuf field: string language = 3
+     */
+    language: string;
+    /**
+     * Actual alignment units, relative to the submitted audio beginning.
+     *
+     * @generated from protobuf field: repeated nimi.runtime.v1.SpeechTranscriptWord words = 4
+     */
+    words: SpeechTranscriptWord[];
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.SpeechTranscribeResult
  */
 export interface SpeechTranscribeResult {
@@ -1612,6 +1790,10 @@ export interface SpeechTranscribeResult {
      * @generated from protobuf field: repeated nimi.runtime.v1.ScenarioArtifact artifacts = 2
      */
     artifacts: ScenarioArtifact[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.SpeechTranscript transcription = 3
+     */
+    transcription?: SpeechTranscript;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.MusicGenerateResult
@@ -1621,6 +1803,19 @@ export interface MusicGenerateResult {
      * @generated from protobuf field: repeated nimi.runtime.v1.ScenarioArtifact artifacts = 1
      */
     artifacts: ScenarioArtifact[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AudioSeparateResult
+ */
+export interface AudioSeparateResult {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.ScenarioArtifact artifacts = 1
+     */
+    artifacts: ScenarioArtifact[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AudioSeparation separation = 2
+     */
+    separation?: AudioSeparation;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.WorldGenerateSemanticsMetadata
@@ -1749,6 +1944,18 @@ export interface ScenarioOutput {
          * @generated from protobuf field: nimi.runtime.v1.VideoFaceSwapResult video_face_swap = 10
          */
         videoFaceSwap: VideoFaceSwapResult;
+    } | {
+        oneofKind: "audioSeparate";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AudioSeparateResult audio_separate = 11
+         */
+        audioSeparate: AudioSeparateResult;
+    } | {
+        oneofKind: "textAnnotation";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.TextAnnotationResult text_annotation = 12
+         */
+        textAnnotation: TextAnnotationResult;
     } | {
         oneofKind: undefined;
     };
@@ -2390,6 +2597,18 @@ export interface SubmitLocalAppScenarioJobRequest {
          */
         videoFaceSwap: VideoFaceSwapScenarioSpec;
     } | {
+        oneofKind: "audioSeparate";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AudioSeparateScenarioSpec audio_separate = 14
+         */
+        audioSeparate: AudioSeparateScenarioSpec;
+    } | {
+        oneofKind: "textAnnotate";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.TextAnnotateScenarioSpec text_annotate = 15
+         */
+        textAnnotate: TextAnnotateScenarioSpec;
+    } | {
         oneofKind: undefined;
     };
     /**
@@ -2476,6 +2695,24 @@ export interface LocalAppScenarioJob {
      * @generated from protobuf field: nimi.runtime.v1.VideoFaceSwapSummary video_face_swap_summary = 15
      */
     videoFaceSwapSummary?: VideoFaceSwapSummary;
+    /**
+     * Present only when a completed speech Job captured this typed result.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.SpeechTranscript transcription = 16
+     */
+    transcription?: SpeechTranscript;
+    /**
+     * Present only with both committed artifacts of a completed AUDIO_SEPARATE Job.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.AudioSeparation audio_separation = 17
+     */
+    audioSeparation?: AudioSeparation;
+    /**
+     * Present only for a completed TEXT_ANNOTATE Job.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.TextAnnotationResult text_annotation = 18
+     */
+    textAnnotation?: TextAnnotationResult;
 }
 /**
  * Trimmed voice asset catalog projection. Provider, model, provider voice
@@ -3263,6 +3500,18 @@ export interface ScenarioJob {
      * @generated from protobuf field: nimi.runtime.v1.VideoFaceSwapSummary video_face_swap_summary = 26
      */
     videoFaceSwapSummary?: VideoFaceSwapSummary;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.SpeechTranscript transcription = 27
+     */
+    transcription?: SpeechTranscript;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AudioSeparation audio_separation = 28
+     */
+    audioSeparation?: AudioSeparation;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.TextAnnotationResult text_annotation = 29
+     */
+    textAnnotation?: TextAnnotationResult;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.SubmitScenarioJobRequest
@@ -3898,7 +4147,15 @@ export enum ScenarioType {
     /**
      * @generated from protobuf enum value: SCENARIO_TYPE_VIDEO_FACE_SWAP = 14;
      */
-    VIDEO_FACE_SWAP = 14
+    VIDEO_FACE_SWAP = 14,
+    /**
+     * @generated from protobuf enum value: SCENARIO_TYPE_AUDIO_SEPARATE = 15;
+     */
+    AUDIO_SEPARATE = 15,
+    /**
+     * @generated from protobuf enum value: SCENARIO_TYPE_TEXT_ANNOTATE = 16;
+     */
+    TEXT_ANNOTATE = 16
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExecutionMode
@@ -4329,6 +4586,23 @@ export enum AiVideoPixelFormat {
      * @generated from protobuf enum value: AI_VIDEO_PIXEL_FORMAT_RGB8 = 1;
      */
     RGB8 = 1
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.SpeechTranscriptStatus
+ */
+export enum SpeechTranscriptStatus {
+    /**
+     * @generated from protobuf enum value: SPEECH_TRANSCRIPT_STATUS_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: SPEECH_TRANSCRIPT_STATUS_TRANSCRIBED = 1;
+     */
+    TRANSCRIBED = 1,
+    /**
+     * @generated from protobuf enum value: SPEECH_TRANSCRIPT_STATUS_NO_SPEECH = 2;
+     */
+    NO_SPEECH = 2
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ScenarioJobStatus
@@ -6793,6 +7067,115 @@ class MusicGenerateScenarioSpec$Type extends MessageType<MusicGenerateScenarioSp
  */
 export const MusicGenerateScenarioSpec = new MusicGenerateScenarioSpec$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class AudioSeparateScenarioSpec$Type extends MessageType<AudioSeparateScenarioSpec> {
+    constructor() {
+        super("nimi.runtime.v1.AudioSeparateScenarioSpec", [
+            { no: 1, name: "mime_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "audio_source", kind: "message", T: () => SpeechTranscriptionAudioSource }
+        ]);
+    }
+    create(value?: PartialMessage<AudioSeparateScenarioSpec>): AudioSeparateScenarioSpec {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.mimeType = "";
+        if (value !== undefined)
+            reflectionMergePartial<AudioSeparateScenarioSpec>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AudioSeparateScenarioSpec): AudioSeparateScenarioSpec {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string mime_type */ 1:
+                    message.mimeType = reader.string();
+                    break;
+                case /* nimi.runtime.v1.SpeechTranscriptionAudioSource audio_source */ 2:
+                    message.audioSource = SpeechTranscriptionAudioSource.internalBinaryRead(reader, reader.uint32(), options, message.audioSource);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AudioSeparateScenarioSpec, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string mime_type = 1; */
+        if (message.mimeType !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.mimeType);
+        /* nimi.runtime.v1.SpeechTranscriptionAudioSource audio_source = 2; */
+        if (message.audioSource)
+            SpeechTranscriptionAudioSource.internalBinaryWrite(message.audioSource, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AudioSeparateScenarioSpec
+ */
+export const AudioSeparateScenarioSpec = new AudioSeparateScenarioSpec$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AudioSeparation$Type extends MessageType<AudioSeparation> {
+    constructor() {
+        super("nimi.runtime.v1.AudioSeparation", [
+            { no: 1, name: "vocals_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "background_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AudioSeparation>): AudioSeparation {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.vocalsArtifactId = "";
+        message.backgroundArtifactId = "";
+        if (value !== undefined)
+            reflectionMergePartial<AudioSeparation>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AudioSeparation): AudioSeparation {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string vocals_artifact_id */ 1:
+                    message.vocalsArtifactId = reader.string();
+                    break;
+                case /* string background_artifact_id */ 2:
+                    message.backgroundArtifactId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AudioSeparation, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string vocals_artifact_id = 1; */
+        if (message.vocalsArtifactId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.vocalsArtifactId);
+        /* string background_artifact_id = 2; */
+        if (message.backgroundArtifactId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.backgroundArtifactId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AudioSeparation
+ */
+export const AudioSeparation = new AudioSeparation$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class WorldGenerateAssetSource$Type extends MessageType<WorldGenerateAssetSource> {
     constructor() {
         super("nimi.runtime.v1.WorldGenerateAssetSource", [
@@ -8156,6 +8539,329 @@ class VideoFaceSwapSummary$Type extends MessageType<VideoFaceSwapSummary> {
  */
 export const VideoFaceSwapSummary = new VideoFaceSwapSummary$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class TextAnnotateScenarioSpec$Type extends MessageType<TextAnnotateScenarioSpec> {
+    constructor() {
+        super("nimi.runtime.v1.TextAnnotateScenarioSpec", [
+            { no: 1, name: "language", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "texts", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<TextAnnotateScenarioSpec>): TextAnnotateScenarioSpec {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.language = "";
+        message.texts = [];
+        if (value !== undefined)
+            reflectionMergePartial<TextAnnotateScenarioSpec>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TextAnnotateScenarioSpec): TextAnnotateScenarioSpec {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string language */ 1:
+                    message.language = reader.string();
+                    break;
+                case /* repeated string texts */ 2:
+                    message.texts.push(reader.string());
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: TextAnnotateScenarioSpec, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string language = 1; */
+        if (message.language !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.language);
+        /* repeated string texts = 2; */
+        for (let i = 0; i < message.texts.length; i++)
+            writer.tag(2, WireType.LengthDelimited).string(message.texts[i]);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.TextAnnotateScenarioSpec
+ */
+export const TextAnnotateScenarioSpec = new TextAnnotateScenarioSpec$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class TextAnnotationToken$Type extends MessageType<TextAnnotationToken> {
+    constructor() {
+        super("nimi.runtime.v1.TextAnnotationToken", [
+            { no: 1, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "start", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 3, name: "end", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 4, name: "head_index", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 5, name: "part_of_speech", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "dependency", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "is_punctuation", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<TextAnnotationToken>): TextAnnotationToken {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.text = "";
+        message.start = 0;
+        message.end = 0;
+        message.headIndex = 0;
+        message.partOfSpeech = "";
+        message.dependency = "";
+        message.isPunctuation = false;
+        if (value !== undefined)
+            reflectionMergePartial<TextAnnotationToken>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TextAnnotationToken): TextAnnotationToken {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string text */ 1:
+                    message.text = reader.string();
+                    break;
+                case /* uint32 start */ 2:
+                    message.start = reader.uint32();
+                    break;
+                case /* uint32 end */ 3:
+                    message.end = reader.uint32();
+                    break;
+                case /* uint32 head_index */ 4:
+                    message.headIndex = reader.uint32();
+                    break;
+                case /* string part_of_speech */ 5:
+                    message.partOfSpeech = reader.string();
+                    break;
+                case /* string dependency */ 6:
+                    message.dependency = reader.string();
+                    break;
+                case /* bool is_punctuation */ 7:
+                    message.isPunctuation = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: TextAnnotationToken, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string text = 1; */
+        if (message.text !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.text);
+        /* uint32 start = 2; */
+        if (message.start !== 0)
+            writer.tag(2, WireType.Varint).uint32(message.start);
+        /* uint32 end = 3; */
+        if (message.end !== 0)
+            writer.tag(3, WireType.Varint).uint32(message.end);
+        /* uint32 head_index = 4; */
+        if (message.headIndex !== 0)
+            writer.tag(4, WireType.Varint).uint32(message.headIndex);
+        /* string part_of_speech = 5; */
+        if (message.partOfSpeech !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.partOfSpeech);
+        /* string dependency = 6; */
+        if (message.dependency !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.dependency);
+        /* bool is_punctuation = 7; */
+        if (message.isPunctuation !== false)
+            writer.tag(7, WireType.Varint).bool(message.isPunctuation);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.TextAnnotationToken
+ */
+export const TextAnnotationToken = new TextAnnotationToken$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class TextAnnotationSentence$Type extends MessageType<TextAnnotationSentence> {
+    constructor() {
+        super("nimi.runtime.v1.TextAnnotationSentence", [
+            { no: 1, name: "start_token", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 2, name: "end_token", kind: "scalar", T: 13 /*ScalarType.UINT32*/ }
+        ]);
+    }
+    create(value?: PartialMessage<TextAnnotationSentence>): TextAnnotationSentence {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.startToken = 0;
+        message.endToken = 0;
+        if (value !== undefined)
+            reflectionMergePartial<TextAnnotationSentence>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TextAnnotationSentence): TextAnnotationSentence {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* uint32 start_token */ 1:
+                    message.startToken = reader.uint32();
+                    break;
+                case /* uint32 end_token */ 2:
+                    message.endToken = reader.uint32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: TextAnnotationSentence, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* uint32 start_token = 1; */
+        if (message.startToken !== 0)
+            writer.tag(1, WireType.Varint).uint32(message.startToken);
+        /* uint32 end_token = 2; */
+        if (message.endToken !== 0)
+            writer.tag(2, WireType.Varint).uint32(message.endToken);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.TextAnnotationSentence
+ */
+export const TextAnnotationSentence = new TextAnnotationSentence$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class TextAnnotationDocument$Type extends MessageType<TextAnnotationDocument> {
+    constructor() {
+        super("nimi.runtime.v1.TextAnnotationDocument", [
+            { no: 1, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "language", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "tokens", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => TextAnnotationToken },
+            { no: 4, name: "sentences", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => TextAnnotationSentence }
+        ]);
+    }
+    create(value?: PartialMessage<TextAnnotationDocument>): TextAnnotationDocument {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.text = "";
+        message.language = "";
+        message.tokens = [];
+        message.sentences = [];
+        if (value !== undefined)
+            reflectionMergePartial<TextAnnotationDocument>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TextAnnotationDocument): TextAnnotationDocument {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string text */ 1:
+                    message.text = reader.string();
+                    break;
+                case /* string language */ 2:
+                    message.language = reader.string();
+                    break;
+                case /* repeated nimi.runtime.v1.TextAnnotationToken tokens */ 3:
+                    message.tokens.push(TextAnnotationToken.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated nimi.runtime.v1.TextAnnotationSentence sentences */ 4:
+                    message.sentences.push(TextAnnotationSentence.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: TextAnnotationDocument, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string text = 1; */
+        if (message.text !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.text);
+        /* string language = 2; */
+        if (message.language !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.language);
+        /* repeated nimi.runtime.v1.TextAnnotationToken tokens = 3; */
+        for (let i = 0; i < message.tokens.length; i++)
+            TextAnnotationToken.internalBinaryWrite(message.tokens[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.TextAnnotationSentence sentences = 4; */
+        for (let i = 0; i < message.sentences.length; i++)
+            TextAnnotationSentence.internalBinaryWrite(message.sentences[i], writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.TextAnnotationDocument
+ */
+export const TextAnnotationDocument = new TextAnnotationDocument$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class TextAnnotationResult$Type extends MessageType<TextAnnotationResult> {
+    constructor() {
+        super("nimi.runtime.v1.TextAnnotationResult", [
+            { no: 1, name: "documents", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => TextAnnotationDocument }
+        ]);
+    }
+    create(value?: PartialMessage<TextAnnotationResult>): TextAnnotationResult {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.documents = [];
+        if (value !== undefined)
+            reflectionMergePartial<TextAnnotationResult>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TextAnnotationResult): TextAnnotationResult {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.TextAnnotationDocument documents */ 1:
+                    message.documents.push(TextAnnotationDocument.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: TextAnnotationResult, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.TextAnnotationDocument documents = 1; */
+        for (let i = 0; i < message.documents.length; i++)
+            TextAnnotationDocument.internalBinaryWrite(message.documents[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.TextAnnotationResult
+ */
+export const TextAnnotationResult = new TextAnnotationResult$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class VisionLocateScenarioSpec$Type extends MessageType<VisionLocateScenarioSpec> {
     constructor() {
         super("nimi.runtime.v1.VisionLocateScenarioSpec", [
@@ -8497,7 +9203,9 @@ class ScenarioSpec$Type extends MessageType<ScenarioSpec> {
             { no: 11, name: "voice_create", kind: "message", oneof: "spec", T: () => VoiceCreateScenarioSpec },
             { no: 12, name: "vision_locate", kind: "message", oneof: "spec", T: () => VisionLocateScenarioSpec },
             { no: 13, name: "image_face_swap", kind: "message", oneof: "spec", T: () => ImageFaceSwapScenarioSpec },
-            { no: 14, name: "video_face_swap", kind: "message", oneof: "spec", T: () => VideoFaceSwapScenarioSpec }
+            { no: 14, name: "video_face_swap", kind: "message", oneof: "spec", T: () => VideoFaceSwapScenarioSpec },
+            { no: 15, name: "audio_separate", kind: "message", oneof: "spec", T: () => AudioSeparateScenarioSpec },
+            { no: 16, name: "text_annotate", kind: "message", oneof: "spec", T: () => TextAnnotateScenarioSpec }
         ]);
     }
     create(value?: PartialMessage<ScenarioSpec>): ScenarioSpec {
@@ -8584,6 +9292,18 @@ class ScenarioSpec$Type extends MessageType<ScenarioSpec> {
                         videoFaceSwap: VideoFaceSwapScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).videoFaceSwap)
                     };
                     break;
+                case /* nimi.runtime.v1.AudioSeparateScenarioSpec audio_separate */ 15:
+                    message.spec = {
+                        oneofKind: "audioSeparate",
+                        audioSeparate: AudioSeparateScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).audioSeparate)
+                    };
+                    break;
+                case /* nimi.runtime.v1.TextAnnotateScenarioSpec text_annotate */ 16:
+                    message.spec = {
+                        oneofKind: "textAnnotate",
+                        textAnnotate: TextAnnotateScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).textAnnotate)
+                    };
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -8632,6 +9352,12 @@ class ScenarioSpec$Type extends MessageType<ScenarioSpec> {
         /* nimi.runtime.v1.VideoFaceSwapScenarioSpec video_face_swap = 14; */
         if (message.spec.oneofKind === "videoFaceSwap")
             VideoFaceSwapScenarioSpec.internalBinaryWrite(message.spec.videoFaceSwap, writer.tag(14, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AudioSeparateScenarioSpec audio_separate = 15; */
+        if (message.spec.oneofKind === "audioSeparate")
+            AudioSeparateScenarioSpec.internalBinaryWrite(message.spec.audioSeparate, writer.tag(15, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.TextAnnotateScenarioSpec text_annotate = 16; */
+        if (message.spec.oneofKind === "textAnnotate")
+            TextAnnotateScenarioSpec.internalBinaryWrite(message.spec.textAnnotate, writer.tag(16, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -9159,11 +9885,146 @@ class SpeechSynthesizeResult$Type extends MessageType<SpeechSynthesizeResult> {
  */
 export const SpeechSynthesizeResult = new SpeechSynthesizeResult$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class SpeechTranscriptWord$Type extends MessageType<SpeechTranscriptWord> {
+    constructor() {
+        super("nimi.runtime.v1.SpeechTranscriptWord", [
+            { no: 1, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "start_seconds", kind: "scalar", T: 1 /*ScalarType.DOUBLE*/ },
+            { no: 3, name: "end_seconds", kind: "scalar", T: 1 /*ScalarType.DOUBLE*/ }
+        ]);
+    }
+    create(value?: PartialMessage<SpeechTranscriptWord>): SpeechTranscriptWord {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.text = "";
+        message.startSeconds = 0;
+        message.endSeconds = 0;
+        if (value !== undefined)
+            reflectionMergePartial<SpeechTranscriptWord>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SpeechTranscriptWord): SpeechTranscriptWord {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string text */ 1:
+                    message.text = reader.string();
+                    break;
+                case /* double start_seconds */ 2:
+                    message.startSeconds = reader.double();
+                    break;
+                case /* double end_seconds */ 3:
+                    message.endSeconds = reader.double();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SpeechTranscriptWord, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string text = 1; */
+        if (message.text !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.text);
+        /* double start_seconds = 2; */
+        if (message.startSeconds !== 0)
+            writer.tag(2, WireType.Bit64).double(message.startSeconds);
+        /* double end_seconds = 3; */
+        if (message.endSeconds !== 0)
+            writer.tag(3, WireType.Bit64).double(message.endSeconds);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SpeechTranscriptWord
+ */
+export const SpeechTranscriptWord = new SpeechTranscriptWord$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SpeechTranscript$Type extends MessageType<SpeechTranscript> {
+    constructor() {
+        super("nimi.runtime.v1.SpeechTranscript", [
+            { no: 1, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.SpeechTranscriptStatus", SpeechTranscriptStatus, "SPEECH_TRANSCRIPT_STATUS_"] },
+            { no: 2, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "language", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "words", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => SpeechTranscriptWord }
+        ]);
+    }
+    create(value?: PartialMessage<SpeechTranscript>): SpeechTranscript {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.status = 0;
+        message.text = "";
+        message.language = "";
+        message.words = [];
+        if (value !== undefined)
+            reflectionMergePartial<SpeechTranscript>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SpeechTranscript): SpeechTranscript {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.SpeechTranscriptStatus status */ 1:
+                    message.status = reader.int32();
+                    break;
+                case /* string text */ 2:
+                    message.text = reader.string();
+                    break;
+                case /* string language */ 3:
+                    message.language = reader.string();
+                    break;
+                case /* repeated nimi.runtime.v1.SpeechTranscriptWord words */ 4:
+                    message.words.push(SpeechTranscriptWord.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SpeechTranscript, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.SpeechTranscriptStatus status = 1; */
+        if (message.status !== 0)
+            writer.tag(1, WireType.Varint).int32(message.status);
+        /* string text = 2; */
+        if (message.text !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.text);
+        /* string language = 3; */
+        if (message.language !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.language);
+        /* repeated nimi.runtime.v1.SpeechTranscriptWord words = 4; */
+        for (let i = 0; i < message.words.length; i++)
+            SpeechTranscriptWord.internalBinaryWrite(message.words[i], writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SpeechTranscript
+ */
+export const SpeechTranscript = new SpeechTranscript$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class SpeechTranscribeResult$Type extends MessageType<SpeechTranscribeResult> {
     constructor() {
         super("nimi.runtime.v1.SpeechTranscribeResult", [
             { no: 1, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "artifacts", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ScenarioArtifact }
+            { no: 2, name: "artifacts", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ScenarioArtifact },
+            { no: 3, name: "transcription", kind: "message", T: () => SpeechTranscript }
         ]);
     }
     create(value?: PartialMessage<SpeechTranscribeResult>): SpeechTranscribeResult {
@@ -9185,6 +10046,9 @@ class SpeechTranscribeResult$Type extends MessageType<SpeechTranscribeResult> {
                 case /* repeated nimi.runtime.v1.ScenarioArtifact artifacts */ 2:
                     message.artifacts.push(ScenarioArtifact.internalBinaryRead(reader, reader.uint32(), options));
                     break;
+                case /* nimi.runtime.v1.SpeechTranscript transcription */ 3:
+                    message.transcription = SpeechTranscript.internalBinaryRead(reader, reader.uint32(), options, message.transcription);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -9203,6 +10067,9 @@ class SpeechTranscribeResult$Type extends MessageType<SpeechTranscribeResult> {
         /* repeated nimi.runtime.v1.ScenarioArtifact artifacts = 2; */
         for (let i = 0; i < message.artifacts.length; i++)
             ScenarioArtifact.internalBinaryWrite(message.artifacts[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.SpeechTranscript transcription = 3; */
+        if (message.transcription)
+            SpeechTranscript.internalBinaryWrite(message.transcription, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -9260,6 +10127,60 @@ class MusicGenerateResult$Type extends MessageType<MusicGenerateResult> {
  * @generated MessageType for protobuf message nimi.runtime.v1.MusicGenerateResult
  */
 export const MusicGenerateResult = new MusicGenerateResult$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AudioSeparateResult$Type extends MessageType<AudioSeparateResult> {
+    constructor() {
+        super("nimi.runtime.v1.AudioSeparateResult", [
+            { no: 1, name: "artifacts", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ScenarioArtifact },
+            { no: 2, name: "separation", kind: "message", T: () => AudioSeparation }
+        ]);
+    }
+    create(value?: PartialMessage<AudioSeparateResult>): AudioSeparateResult {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.artifacts = [];
+        if (value !== undefined)
+            reflectionMergePartial<AudioSeparateResult>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AudioSeparateResult): AudioSeparateResult {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.ScenarioArtifact artifacts */ 1:
+                    message.artifacts.push(ScenarioArtifact.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* nimi.runtime.v1.AudioSeparation separation */ 2:
+                    message.separation = AudioSeparation.internalBinaryRead(reader, reader.uint32(), options, message.separation);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AudioSeparateResult, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.ScenarioArtifact artifacts = 1; */
+        for (let i = 0; i < message.artifacts.length; i++)
+            ScenarioArtifact.internalBinaryWrite(message.artifacts[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AudioSeparation separation = 2; */
+        if (message.separation)
+            AudioSeparation.internalBinaryWrite(message.separation, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AudioSeparateResult
+ */
+export const AudioSeparateResult = new AudioSeparateResult$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class WorldGenerateSemanticsMetadata$Type extends MessageType<WorldGenerateSemanticsMetadata> {
     constructor() {
@@ -9462,7 +10383,9 @@ class ScenarioOutput$Type extends MessageType<ScenarioOutput> {
             { no: 7, name: "music_generate", kind: "message", oneof: "output", T: () => MusicGenerateResult },
             { no: 8, name: "world_generate", kind: "message", oneof: "output", T: () => WorldGenerateResult },
             { no: 9, name: "image_face_swap", kind: "message", oneof: "output", T: () => ImageFaceSwapResult },
-            { no: 10, name: "video_face_swap", kind: "message", oneof: "output", T: () => VideoFaceSwapResult }
+            { no: 10, name: "video_face_swap", kind: "message", oneof: "output", T: () => VideoFaceSwapResult },
+            { no: 11, name: "audio_separate", kind: "message", oneof: "output", T: () => AudioSeparateResult },
+            { no: 12, name: "text_annotation", kind: "message", oneof: "output", T: () => TextAnnotationResult }
         ]);
     }
     create(value?: PartialMessage<ScenarioOutput>): ScenarioOutput {
@@ -9537,6 +10460,18 @@ class ScenarioOutput$Type extends MessageType<ScenarioOutput> {
                         videoFaceSwap: VideoFaceSwapResult.internalBinaryRead(reader, reader.uint32(), options, (message.output as any).videoFaceSwap)
                     };
                     break;
+                case /* nimi.runtime.v1.AudioSeparateResult audio_separate */ 11:
+                    message.output = {
+                        oneofKind: "audioSeparate",
+                        audioSeparate: AudioSeparateResult.internalBinaryRead(reader, reader.uint32(), options, (message.output as any).audioSeparate)
+                    };
+                    break;
+                case /* nimi.runtime.v1.TextAnnotationResult text_annotation */ 12:
+                    message.output = {
+                        oneofKind: "textAnnotation",
+                        textAnnotation: TextAnnotationResult.internalBinaryRead(reader, reader.uint32(), options, (message.output as any).textAnnotation)
+                    };
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -9579,6 +10514,12 @@ class ScenarioOutput$Type extends MessageType<ScenarioOutput> {
         /* nimi.runtime.v1.VideoFaceSwapResult video_face_swap = 10; */
         if (message.output.oneofKind === "videoFaceSwap")
             VideoFaceSwapResult.internalBinaryWrite(message.output.videoFaceSwap, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AudioSeparateResult audio_separate = 11; */
+        if (message.output.oneofKind === "audioSeparate")
+            AudioSeparateResult.internalBinaryWrite(message.output.audioSeparate, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.TextAnnotationResult text_annotation = 12; */
+        if (message.output.oneofKind === "textAnnotation")
+            TextAnnotationResult.internalBinaryWrite(message.output.textAnnotation, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -11125,6 +12066,8 @@ class SubmitLocalAppScenarioJobRequest$Type extends MessageType<SubmitLocalAppSc
             { no: 11, name: "vision_locate", kind: "message", oneof: "spec", T: () => VisionLocateScenarioSpec },
             { no: 12, name: "image_face_swap", kind: "message", oneof: "spec", T: () => ImageFaceSwapScenarioSpec },
             { no: 13, name: "video_face_swap", kind: "message", oneof: "spec", T: () => VideoFaceSwapScenarioSpec },
+            { no: 14, name: "audio_separate", kind: "message", oneof: "spec", T: () => AudioSeparateScenarioSpec },
+            { no: 15, name: "text_annotate", kind: "message", oneof: "spec", T: () => TextAnnotateScenarioSpec },
             { no: 9, name: "timeout_ms", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
         ]);
     }
@@ -11201,6 +12144,18 @@ class SubmitLocalAppScenarioJobRequest$Type extends MessageType<SubmitLocalAppSc
                         videoFaceSwap: VideoFaceSwapScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).videoFaceSwap)
                     };
                     break;
+                case /* nimi.runtime.v1.AudioSeparateScenarioSpec audio_separate */ 14:
+                    message.spec = {
+                        oneofKind: "audioSeparate",
+                        audioSeparate: AudioSeparateScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).audioSeparate)
+                    };
+                    break;
+                case /* nimi.runtime.v1.TextAnnotateScenarioSpec text_annotate */ 15:
+                    message.spec = {
+                        oneofKind: "textAnnotate",
+                        textAnnotate: TextAnnotateScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).textAnnotate)
+                    };
+                    break;
                 case /* int32 timeout_ms */ 9:
                     message.timeoutMs = reader.int32();
                     break;
@@ -11249,6 +12204,12 @@ class SubmitLocalAppScenarioJobRequest$Type extends MessageType<SubmitLocalAppSc
         /* nimi.runtime.v1.VideoFaceSwapScenarioSpec video_face_swap = 13; */
         if (message.spec.oneofKind === "videoFaceSwap")
             VideoFaceSwapScenarioSpec.internalBinaryWrite(message.spec.videoFaceSwap, writer.tag(13, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AudioSeparateScenarioSpec audio_separate = 14; */
+        if (message.spec.oneofKind === "audioSeparate")
+            AudioSeparateScenarioSpec.internalBinaryWrite(message.spec.audioSeparate, writer.tag(14, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.TextAnnotateScenarioSpec text_annotate = 15; */
+        if (message.spec.oneofKind === "textAnnotate")
+            TextAnnotateScenarioSpec.internalBinaryWrite(message.spec.textAnnotate, writer.tag(15, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -11277,7 +12238,10 @@ class LocalAppScenarioJob$Type extends MessageType<LocalAppScenarioJob> {
             { no: 12, name: "updated_at", kind: "message", T: () => Timestamp },
             { no: 13, name: "transcription_text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 14, name: "interruption", kind: "message", T: () => ExecutionInterruption },
-            { no: 15, name: "video_face_swap_summary", kind: "message", T: () => VideoFaceSwapSummary }
+            { no: 15, name: "video_face_swap_summary", kind: "message", T: () => VideoFaceSwapSummary },
+            { no: 16, name: "transcription", kind: "message", T: () => SpeechTranscript },
+            { no: 17, name: "audio_separation", kind: "message", T: () => AudioSeparation },
+            { no: 18, name: "text_annotation", kind: "message", T: () => TextAnnotationResult }
         ]);
     }
     create(value?: PartialMessage<LocalAppScenarioJob>): LocalAppScenarioJob {
@@ -11347,6 +12311,15 @@ class LocalAppScenarioJob$Type extends MessageType<LocalAppScenarioJob> {
                 case /* nimi.runtime.v1.VideoFaceSwapSummary video_face_swap_summary */ 15:
                     message.videoFaceSwapSummary = VideoFaceSwapSummary.internalBinaryRead(reader, reader.uint32(), options, message.videoFaceSwapSummary);
                     break;
+                case /* nimi.runtime.v1.SpeechTranscript transcription */ 16:
+                    message.transcription = SpeechTranscript.internalBinaryRead(reader, reader.uint32(), options, message.transcription);
+                    break;
+                case /* nimi.runtime.v1.AudioSeparation audio_separation */ 17:
+                    message.audioSeparation = AudioSeparation.internalBinaryRead(reader, reader.uint32(), options, message.audioSeparation);
+                    break;
+                case /* nimi.runtime.v1.TextAnnotationResult text_annotation */ 18:
+                    message.textAnnotation = TextAnnotationResult.internalBinaryRead(reader, reader.uint32(), options, message.textAnnotation);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -11404,6 +12377,15 @@ class LocalAppScenarioJob$Type extends MessageType<LocalAppScenarioJob> {
         /* nimi.runtime.v1.VideoFaceSwapSummary video_face_swap_summary = 15; */
         if (message.videoFaceSwapSummary)
             VideoFaceSwapSummary.internalBinaryWrite(message.videoFaceSwapSummary, writer.tag(15, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.SpeechTranscript transcription = 16; */
+        if (message.transcription)
+            SpeechTranscript.internalBinaryWrite(message.transcription, writer.tag(16, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AudioSeparation audio_separation = 17; */
+        if (message.audioSeparation)
+            AudioSeparation.internalBinaryWrite(message.audioSeparation, writer.tag(17, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.TextAnnotationResult text_annotation = 18; */
+        if (message.textAnnotation)
+            TextAnnotationResult.internalBinaryWrite(message.textAnnotation, writer.tag(18, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -13446,7 +14428,10 @@ class ScenarioJob$Type extends MessageType<ScenarioJob> {
             { no: 23, name: "transcription_text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 24, name: "effective_input_identity", kind: "message", T: () => LoadoutEffectiveInputIdentity },
             { no: 25, name: "interruption", kind: "message", T: () => ExecutionInterruption },
-            { no: 26, name: "video_face_swap_summary", kind: "message", T: () => VideoFaceSwapSummary }
+            { no: 26, name: "video_face_swap_summary", kind: "message", T: () => VideoFaceSwapSummary },
+            { no: 27, name: "transcription", kind: "message", T: () => SpeechTranscript },
+            { no: 28, name: "audio_separation", kind: "message", T: () => AudioSeparation },
+            { no: 29, name: "text_annotation", kind: "message", T: () => TextAnnotationResult }
         ]);
     }
     create(value?: PartialMessage<ScenarioJob>): ScenarioJob {
@@ -13555,6 +14540,15 @@ class ScenarioJob$Type extends MessageType<ScenarioJob> {
                 case /* nimi.runtime.v1.VideoFaceSwapSummary video_face_swap_summary */ 26:
                     message.videoFaceSwapSummary = VideoFaceSwapSummary.internalBinaryRead(reader, reader.uint32(), options, message.videoFaceSwapSummary);
                     break;
+                case /* nimi.runtime.v1.SpeechTranscript transcription */ 27:
+                    message.transcription = SpeechTranscript.internalBinaryRead(reader, reader.uint32(), options, message.transcription);
+                    break;
+                case /* nimi.runtime.v1.AudioSeparation audio_separation */ 28:
+                    message.audioSeparation = AudioSeparation.internalBinaryRead(reader, reader.uint32(), options, message.audioSeparation);
+                    break;
+                case /* nimi.runtime.v1.TextAnnotationResult text_annotation */ 29:
+                    message.textAnnotation = TextAnnotationResult.internalBinaryRead(reader, reader.uint32(), options, message.textAnnotation);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -13645,6 +14639,15 @@ class ScenarioJob$Type extends MessageType<ScenarioJob> {
         /* nimi.runtime.v1.VideoFaceSwapSummary video_face_swap_summary = 26; */
         if (message.videoFaceSwapSummary)
             VideoFaceSwapSummary.internalBinaryWrite(message.videoFaceSwapSummary, writer.tag(26, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.SpeechTranscript transcription = 27; */
+        if (message.transcription)
+            SpeechTranscript.internalBinaryWrite(message.transcription, writer.tag(27, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AudioSeparation audio_separation = 28; */
+        if (message.audioSeparation)
+            AudioSeparation.internalBinaryWrite(message.audioSeparation, writer.tag(28, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.TextAnnotationResult text_annotation = 29; */
+        if (message.textAnnotation)
+            TextAnnotationResult.internalBinaryWrite(message.textAnnotation, writer.tag(29, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

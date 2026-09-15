@@ -39,6 +39,9 @@ Protected-session unavailability does not terminate the App, request a Host
 reopen, or unregister the renderer bridge. Protected calls continue to return
 bounded typed unavailable posture while Kit performs bounded same-Host session
 rebind. App code receives no session material or authority selector.
+After a maintenance failure, a successful session status read or same-Host
+rebind resumes periodic renewal. Failed sessions are not retried by that timer,
+and resuming maintenance does not replay interrupted business work.
 
 App-owned Node modules use `bridge.services.ai`, `bridge.services.aiConfig`
 and `bridge.services.storage`, which are SDK feature clients over this same
@@ -60,6 +63,28 @@ development host. Both use the current non-elevated Runtime peer checks,
 Desktop parent supervision, and Runtime-owned registration/session/App Access.
 This carrier does not enable Catalog or installed launch by itself, and does
 not claim compatibility with the separately governed production Runtime service.
+
+## Managed asset previews
+
+Renderer code can call `openNimiLocalAppAssetMediaUrl(relativePath)` from
+`@nimiplatform/kit/shell/renderer/bridge` to preview an App-managed asset.
+The Electron host must register the asset media platform shown above. The
+returned URL is scoped to that renderer and asset; call its `revoke()` method
+when the preview is released. It streams byte ranges without assembling the
+whole asset into a renderer Blob.
+
+Supported media types are PNG, JPEG, WebP and GIF images; WAV (`audio/wav` or
+`audio/x-wav`), MP3 (`audio/mpeg`) and Ogg Opus/Vorbis (`audio/ogg`); and MP4 (`video/mp4`) and WebM
+(`video/webm`) video. The host checks both the stored media type and the actual
+container signature. A supported container still needs codecs supported by the
+running browser.
+
+QuickTime/MOV (`video/quicktime`) is not accepted by this preview API. An App can
+keep that original asset for its own media processing and use FFmpeg or another
+deterministic media tool to create a compatible preview in managed storage.
+Changing only the filename or media type does not convert a container. Preview
+rejection with `invalid-payload` does not establish that the original input is
+invalid for processing or that a Runtime AI capability is unavailable.
 
 ## Boundary
 

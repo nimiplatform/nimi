@@ -65,6 +65,8 @@ type SpeechExecutionModelRegistration struct {
 	DeclaredFileSHA256  map[string]string
 	VerifiedContentID   string
 	EntrySHA256         string
+	Alignment           *SpeechExecutionModelRegistration
+	VAD                 *SpeechExecutionModelRegistration
 }
 
 // SpeechExecutionHostMaterializer lazily starts the private Host for exactly
@@ -143,7 +145,7 @@ func (host *SpeechExecutionHost) ExecuteSpeechTranscription(ctx context.Context,
 		}
 		return host.audioCppHost.ExecuteSpeechTranscription(ctx, plan, onStart)
 	}
-	if host == nil || host.materializer == nil || plan == nil || strings.TrimSpace(plan.ModelAssetID()) == "" || len(plan.ModelFiles()) != 1 {
+	if host == nil || host.materializer == nil || plan == nil || strings.TrimSpace(plan.ModelAssetID()) == "" || (len(plan.ModelFiles()) != 1 && plan.DriverID() != capabilitydriver.Qwen3ASRAlignedDriverID && plan.DriverID() != capabilitydriver.FasterWhisperDriverID) {
 		return localexecution.SpeechTranscriptionResult{}, speechHostError(localexecution.FailureLoad, fmt.Errorf("local speech transcription host is unavailable"))
 	}
 	release, err := host.lease.acquire(ctx)
@@ -169,14 +171,14 @@ func (host *SpeechExecutionHost) ExecuteSpeechTranscription(ctx context.Context,
 		}
 		return localexecution.SpeechTranscriptionResult{}, err
 	}
-	text, usage, err := backend.Transcribe(ctx, plan.ModelAssetID(), plan.Request(), plan.AudioBytes(), plan.MIMEType(), nil)
+	transcript, usage, err := backend.Transcribe(ctx, plan.ModelAssetID(), plan.Request(), plan.AudioBytes(), plan.MIMEType(), nil)
 	if err != nil {
 		return localexecution.SpeechTranscriptionResult{}, host.speechHostBackendError(ctx, err)
 	}
-	if strings.TrimSpace(text) == "" {
-		return localexecution.SpeechTranscriptionResult{}, speechHostError(localexecution.FailureInference, fmt.Errorf("local speech transcription returned empty text"))
+	if err := localexecution.ValidateSpeechTranscript(transcript, plan.Request().GetTimestamps()); err != nil {
+		return localexecution.SpeechTranscriptionResult{}, speechHostError(localexecution.FailureInference, err)
 	}
-	return localexecution.SpeechTranscriptionResult{Text: text, Usage: usage}, nil
+	return localexecution.SpeechTranscriptionResult{Transcript: transcript, Usage: usage}, nil
 }
 
 func (host *SpeechExecutionHost) ExecuteVoiceCreate(ctx context.Context, plan *capabilitydriver.VoiceCreateInvocationPlan, onStart localexecution.SpeechExecutionStartFunc) (localexecution.VoiceCreateResult, error) {
@@ -572,24 +574,27 @@ func (host *SpeechExecutionHost) materializeBackend(
 }
 
 func speechExecutionModelRegistration(
-	capabilityContract string,
-	driverID string,
-	modelAssetID string,
-	modelFiles []capabilitydriver.InvocationExactBinding,
-	seals []invocationModelContentSeal,
-	voiceCreationSource string,
-	workflowModelID string,
+	capabilityContract string, driverID string, modelAssetID string,
+	modelFiles []capabilitydriver.InvocationExactBinding, seals []invocationModelContentSeal,
+	voiceCreationSource string, workflowModelID string,
 ) (SpeechExecutionModelRegistration, error) {
-	if len(modelFiles) != 1 || len(seals) != 1 {
-		return SpeechExecutionModelRegistration{}, fmt.Errorf("exactly one captured model binding is required")
+	aligned := driverID == capabilitydriver.Qwen3ASRAlignedDriverID
+	withVAD := driverID == capabilitydriver.FasterWhisperDriverID
+	expected := 1
+	if aligned || withVAD {
+		expected = 2
 	}
-	binding := modelFiles[0]
-	if strings.TrimSpace(capabilityContract) == "" || strings.TrimSpace(driverID) == "" || strings.TrimSpace(modelAssetID) == "" ||
-		strings.TrimSpace(binding.ModelAssetID) != strings.TrimSpace(modelAssetID) ||
-		strings.TrimSpace(binding.BundleDir) == "" || strings.TrimSpace(binding.AbsolutePath) == "" || len(binding.DeclaredFiles) == 0 ||
-		len(seals[0].declaredFileSHA256) != len(binding.DeclaredFiles) || strings.TrimSpace(binding.VerifiedContentID) == "" ||
-		strings.TrimSpace(binding.EntrySHA256) == "" {
-		return SpeechExecutionModelRegistration{}, fmt.Errorf("captured ModelAsset binding and content seal are required")
+	if len(modelFiles) != expected || len(seals) != expected {
+		return SpeechExecutionModelRegistration{}, fmt.Errorf("captured speech model binding count is invalid")
+	}
+	if strings.TrimSpace(capabilityContract) == "" || strings.TrimSpace(driverID) == "" || strings.TrimSpace(modelAssetID) == "" || modelFiles[0].ModelAssetID != modelAssetID {
+		return SpeechExecutionModelRegistration{}, fmt.Errorf("captured primary speech model is invalid")
+	}
+	if aligned && (capabilityContract != capabilitydriver.AudioTranscribeContract || modelFiles[0].RequirementID != capabilitydriver.Qwen3ASRModelRequirementID || modelFiles[1].RequirementID != capabilitydriver.Qwen3ASRAlignerRequirementID) {
+		return SpeechExecutionModelRegistration{}, fmt.Errorf("aligned speech model slots are invalid")
+	}
+	if withVAD && (capabilityContract != capabilitydriver.AudioTranscribeContract || modelFiles[0].RequirementID != capabilitydriver.Qwen3ASRModelRequirementID || modelFiles[1].RequirementID != capabilitydriver.FasterWhisperVADRequirementID) {
+		return SpeechExecutionModelRegistration{}, fmt.Errorf("Whisper model slots are invalid")
 	}
 	voiceCreationSource = strings.TrimSpace(voiceCreationSource)
 	workflowModelID = strings.TrimSpace(workflowModelID)
@@ -597,26 +602,32 @@ func speechExecutionModelRegistration(
 		if (voiceCreationSource != "reference_audio" && voiceCreationSource != "text_description") || workflowModelID == "" {
 			return SpeechExecutionModelRegistration{}, fmt.Errorf("voice.create source and workflow model binding are required")
 		}
-		if (voiceCreationSource == "reference_audio" && workflowModelID != capabilitydriver.Qwen3VoiceCloneRecipeID) ||
-			(voiceCreationSource == "text_description" && workflowModelID != capabilitydriver.Qwen3VoiceDesignRecipeID) {
+		if (voiceCreationSource == "reference_audio" && workflowModelID != capabilitydriver.Qwen3VoiceCloneRecipeID) || (voiceCreationSource == "text_description" && workflowModelID != capabilitydriver.Qwen3VoiceDesignRecipeID) {
 			return SpeechExecutionModelRegistration{}, fmt.Errorf("voice.create source does not match its captured workflow model")
 		}
 	} else if voiceCreationSource != "" || workflowModelID != "" {
 		return SpeechExecutionModelRegistration{}, fmt.Errorf("voice.create binding is not admitted for %s", capabilityContract)
 	}
-	return SpeechExecutionModelRegistration{
-		CapabilityContract:  strings.TrimSpace(capabilityContract),
-		DriverID:            strings.TrimSpace(driverID),
-		ModelAssetID:        strings.TrimSpace(modelAssetID),
-		VoiceCreationSource: voiceCreationSource,
-		WorkflowModelID:     workflowModelID,
-		BundleDir:           binding.BundleDir,
-		EntryPath:           binding.AbsolutePath,
-		DeclaredFiles:       append([]string(nil), binding.DeclaredFiles...),
-		DeclaredFileSHA256:  cloneStringMap(seals[0].declaredFileSHA256),
-		VerifiedContentID:   binding.VerifiedContentID,
-		EntrySHA256:         binding.EntrySHA256,
-	}, nil
+	registrations := make([]SpeechExecutionModelRegistration, expected)
+	for i, binding := range modelFiles {
+		if strings.TrimSpace(binding.ModelAssetID) == "" || strings.TrimSpace(binding.BundleDir) == "" || strings.TrimSpace(binding.AbsolutePath) == "" || len(binding.DeclaredFiles) == 0 || len(seals[i].declaredFileSHA256) != len(binding.DeclaredFiles) || strings.TrimSpace(binding.VerifiedContentID) == "" || strings.TrimSpace(binding.EntrySHA256) == "" {
+			return SpeechExecutionModelRegistration{}, fmt.Errorf("captured ModelAsset binding and content seal are required")
+		}
+		registrations[i] = SpeechExecutionModelRegistration{
+			CapabilityContract: capabilityContract, DriverID: driverID, ModelAssetID: binding.ModelAssetID,
+			VoiceCreationSource: voiceCreationSource, WorkflowModelID: workflowModelID,
+			BundleDir: binding.BundleDir, EntryPath: binding.AbsolutePath,
+			DeclaredFiles: append([]string(nil), binding.DeclaredFiles...), DeclaredFileSHA256: cloneStringMap(seals[i].declaredFileSHA256),
+			VerifiedContentID: binding.VerifiedContentID, EntrySHA256: binding.EntrySHA256,
+		}
+	}
+	if aligned {
+		registrations[0].Alignment = &registrations[1]
+	}
+	if withVAD {
+		registrations[0].VAD = &registrations[1]
+	}
+	return registrations[0], nil
 }
 
 func (host *SpeechExecutionHost) speechHostBackendError(ctx context.Context, err error) error {

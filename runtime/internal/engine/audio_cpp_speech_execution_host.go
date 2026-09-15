@@ -343,7 +343,7 @@ func runAudioCppSpeechTranscriptionCLIProcess(ctx context.Context, plan capabili
 	if text == "" || !utf8.Valid(content) {
 		return localexecution.SpeechTranscriptionResult{}, executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("audio.cpp ASR transcript is empty or invalid UTF-8"))
 	}
-	return localexecution.SpeechTranscriptionResult{Text: text, Usage: &runtimev1.UsageStats{ComputeMs: outcome.computeMS}}, nil
+	return localexecution.SpeechTranscriptionResult{Transcript: &runtimev1.SpeechTranscript{Status: runtimev1.SpeechTranscriptStatus_SPEECH_TRANSCRIPT_STATUS_TRANSCRIBED, Text: text}, Usage: &runtimev1.UsageStats{ComputeMs: outcome.computeMS}}, nil
 }
 
 func runQwen3TTSAudioCppCLIProcess(ctx context.Context, plan *capabilitydriver.Qwen3TTSAudioCppInvocationPlan) (localexecution.SpeechSynthesisResult, error) {

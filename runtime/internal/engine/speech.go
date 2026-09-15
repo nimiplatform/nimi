@@ -58,10 +58,14 @@ func speechApplyDefaultEnv(cfg EngineConfig, root string) map[string]string {
 	env := speechCommandEnv()
 	switch strings.ToLower(strings.TrimSpace(cfg.SpeechHostAcceleratorPlane)) {
 	case "cpu":
+		env["NIMI_RUNTIME_SPEECH_FASTER_WHISPER_DEVICE"] = "cpu"
+		env["NIMI_RUNTIME_SPEECH_DEMUCS_DEVICE"] = "cpu"
 		env[speechQwen3TTSDeviceMapEnv] = "cpu"
 		env[speechQwen3ASRDeviceMapEnv] = "cpu"
 		env[speechQwen3ASRTransformersDeviceMapEnv] = "cpu"
 	case "cuda":
+		env["NIMI_RUNTIME_SPEECH_FASTER_WHISPER_DEVICE"] = "cuda"
+		env["NIMI_RUNTIME_SPEECH_DEMUCS_DEVICE"] = "cuda:0"
 		env[speechQwen3TTSDeviceMapEnv] = "cuda"
 		env[speechQwen3ASRDeviceMapEnv] = "cuda:0"
 		env[speechQwen3ASRTransformersDeviceMapEnv] = "cuda:0"
@@ -108,6 +112,12 @@ func speechApplyDefaultEnv(cfg EngineConfig, root string) map[string]string {
 			env["NIMI_RUNTIME_SPEECH_VOXCPM_CMD"] = shellQuote(managedPythonLaunchPath(voxcpmRoot)) + " " + shellQuote(driverPath)
 			env["NIMI_RUNTIME_SPEECH_VOXCPM_BACKEND"] = backend
 		}
+	}
+	if demucsRoot := strings.TrimSpace(cfg.SpeechDemucsPackageSetRoot); demucsRoot != "" {
+		env["NIMI_RUNTIME_SPEECH_DEMUCS_CMD"] = speechDriverCommand(demucsRoot, SpeechDemucsDriverPath)
+	}
+	if whisperRoot := strings.TrimSpace(cfg.SpeechFasterWhisperPackageSetRoot); whisperRoot != "" {
+		env["NIMI_RUNTIME_SPEECH_FASTER_WHISPER_CMD"] = speechDriverCommand(whisperRoot, SpeechFasterWhisperDriverPath)
 	}
 	return env
 }
@@ -158,13 +168,15 @@ func ensureSpeech(_ context.Context, _ string, cfg EngineConfig) (EngineConfig, 
 	asrTransformersRoot := strings.TrimSpace(cfg.SpeechQwen3ASRTransformersPackageSetRoot)
 	voxcpmRoot := strings.TrimSpace(cfg.SpeechVoxCPMPackageSetRoot)
 	hostRoot := strings.TrimSpace(cfg.SpeechHostPackageSetRoot)
+	demucsRoot := strings.TrimSpace(cfg.SpeechDemucsPackageSetRoot)
+	whisperRoot := strings.TrimSpace(cfg.SpeechFasterWhisperPackageSetRoot)
 	if hostRoot == "" {
 		hostRoot = ttsRoot
 	}
-	if hostRoot == "" || (ttsRoot == "" && asrRoot == "" && asrTransformersRoot == "" && voxcpmRoot == "") {
+	if hostRoot == "" || (ttsRoot == "" && asrRoot == "" && asrTransformersRoot == "" && voxcpmRoot == "" && demucsRoot == "" && whisperRoot == "") {
 		return cfg, fmt.Errorf("speech exact capability package-set selected source is required")
 	}
-	if hostRoot != ttsRoot && hostRoot != asrRoot && hostRoot != asrTransformersRoot && hostRoot != voxcpmRoot {
+	if hostRoot != ttsRoot && hostRoot != asrRoot && hostRoot != asrTransformersRoot && hostRoot != voxcpmRoot && hostRoot != demucsRoot && hostRoot != whisperRoot {
 		return cfg, fmt.Errorf("speech Host package-set root must own an exact configured speech Driver")
 	}
 	acceleratorPlane := strings.ToLower(strings.TrimSpace(cfg.SpeechHostAcceleratorPlane))
@@ -212,6 +224,11 @@ func ensureSpeech(_ context.Context, _ string, cfg EngineConfig) (EngineConfig, 
 			return cfg, fmt.Errorf("verify promoted speech qwen3_asr_transformers runtime scripts: %w", err)
 		}
 	}
+	if whisperRoot != "" {
+		if err := verifySpeechPipelineScripts(whisperRoot, "speech.faster-whisper.python"); err != nil {
+			return cfg, fmt.Errorf("verify promoted Faster Whisper runtime scripts: %w", err)
+		}
+	}
 	if voxcpmRoot != "" {
 		backend := strings.ToLower(strings.TrimSpace(cfg.SpeechVoxCPMBackend))
 		if _, err := SpeechVoxCPMDriverPathForBackend(voxcpmRoot, backend); err != nil {
@@ -229,6 +246,8 @@ func ensureSpeech(_ context.Context, _ string, cfg EngineConfig) (EngineConfig, 
 		{name: "qwen3_asr", root: asrRoot},
 		{name: "qwen3_asr_transformers", root: asrTransformersRoot},
 		{name: "voxcpm", root: voxcpmRoot},
+		{name: "demucs", root: demucsRoot},
+		{name: "faster_whisper", root: whisperRoot},
 	} {
 		trimmedRoot := strings.TrimSpace(driverRoot.root)
 		if trimmedRoot == "" {
@@ -240,6 +259,11 @@ func ensureSpeech(_ context.Context, _ string, cfg EngineConfig) (EngineConfig, 
 	}
 
 	cfg.BinaryPath = pythonPath
+	if demucsRoot != "" {
+		if err := verifySpeechPipelineScripts(demucsRoot, "speech.demucs.python"); err != nil {
+			return cfg, fmt.Errorf("verify promoted Demucs runtime scripts: %w", err)
+		}
+	}
 	cfg.CommandArgs = []string{
 		scriptPath,
 		"--host", "127.0.0.1",

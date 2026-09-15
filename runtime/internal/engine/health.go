@@ -22,6 +22,10 @@ type canonicalHealthPayload struct {
 		Qwen3ASRDetail             string `json:"qwen3_asr_driver_detail"`
 		Qwen3ASRTransformersReady  bool   `json:"qwen3_asr_transformers_driver_ready"`
 		Qwen3ASRTransformersDetail string `json:"qwen3_asr_transformers_driver_detail"`
+		FasterWhisperReady         bool   `json:"faster_whisper_driver_ready"`
+		FasterWhisperDetail        string `json:"faster_whisper_driver_detail"`
+		DemucsReady                bool   `json:"demucs_driver_ready"`
+		DemucsDetail               string `json:"demucs_driver_detail"`
 		VoxCPMReady                bool   `json:"voxcpm_driver_ready"`
 		VoxCPMDetail               string `json:"voxcpm_driver_detail"`
 	} `json:"checks"`
@@ -134,9 +138,15 @@ func probeCanonicalCatalogHealth(ctx context.Context, endpoint string, engineLab
 		case SpeechDriverQwen3ASRTransformers:
 			driverReady = healthPayload.Checks.Qwen3ASRTransformersReady
 			driverDetail = healthPayload.Checks.Qwen3ASRTransformersDetail
+		case SpeechDriverFasterWhisper:
+			driverReady = healthPayload.Checks.FasterWhisperReady
+			driverDetail = healthPayload.Checks.FasterWhisperDetail
 		case SpeechDriverVoxCPM:
 			driverReady = healthPayload.Checks.VoxCPMReady
 			driverDetail = healthPayload.Checks.VoxCPMDetail
+		case SpeechDriverDemucs:
+			driverReady = healthPayload.Checks.DemucsReady
+			driverDetail = healthPayload.Checks.DemucsDetail
 		default:
 			return fmt.Errorf("speech health probe required driver is unsupported: %s", requiredSpeechDriver)
 		}
@@ -160,6 +170,7 @@ func probeCanonicalCatalogHealth(ctx context.Context, endpoint string, engineLab
 			healthPayload.Checks.Qwen3TTSDetail,
 			healthPayload.Checks.Qwen3ASRDetail,
 			healthPayload.Checks.Qwen3ASRTransformersDetail,
+			healthPayload.Checks.FasterWhisperDetail,
 			healthPayload.Checks.VoxCPMDetail,
 		} {
 			trimmed := strings.TrimSpace(detail)

@@ -1,7 +1,9 @@
+import { validateNimiLocalAppSpeechTranscript, type NimiLocalAppSpeechTranscript } from '../../core/app/local-app-transcription.js';
 import {
   RoutePolicy,
   ScenarioJobEventType,
   ScenarioJobStatus,
+  SpeechTranscriptStatus,
   type CancelScenarioJobRequest,
   type CancelScenarioJobResponse,
   type GetScenarioArtifactsRequest,
@@ -253,6 +255,7 @@ export interface NimiRuntimeSpeechTranscriptionInput {
 }
 
 export interface NimiRuntimeSpeechTranscriptionOutput {
+  readonly transcription?: NimiLocalAppSpeechTranscript;
   readonly text: string;
   readonly artifacts: readonly ScenarioArtifact[];
 }
@@ -445,7 +448,11 @@ export async function runNimiRuntimeSpeechTranscription(
     onJobUpdate: input.onJobUpdate,
   });
   const transcription = extractNimiRuntimeSpeechTranscriptionOutput(result.output);
+  if (input.timestamps && transcription.transcription?.status !== 'no-speech' && !transcription.transcription?.words.length) {
+    throw generationError('SDK_RUNTIME_RESPONSE_DECODE_FAILED', 'Runtime transcription is missing requested word timing', 'inspect_speech_transcription_result');
+  }
   return {
+    ...(transcription.transcription ? { transcription: transcription.transcription } : {}),
     text: transcription.text,
     artifacts: result.artifacts.length > 0 ? result.artifacts : transcription.artifacts,
     job: result.job,
@@ -528,7 +535,10 @@ export function extractNimiRuntimeSpeechTranscriptionOutput(
     );
   }
   const text = normalizeText(variant.speechTranscribe.text);
-  if (!text) {
+  const source = variant.speechTranscribe.transcription;
+  const transcription = source ? validateNimiLocalAppSpeechTranscript({ status: source.status === SpeechTranscriptStatus.TRANSCRIBED ? 'transcribed' : source.status === SpeechTranscriptStatus.NO_SPEECH ? 'no-speech' : '', text: source.text, language: source.language, words: source.words.map((word) => ({ ...word })) }) : undefined;
+  if (transcription && transcription.text !== text) throw generationError('SDK_RUNTIME_RESPONSE_DECODE_FAILED', 'Runtime transcription texts disagree', 'inspect_speech_transcription_result');
+  if (!text && transcription?.status !== 'no-speech') {
     throw createNimiError({
       message: 'Runtime speech transcription returned no transcript text',
       reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
@@ -537,6 +547,7 @@ export function extractNimiRuntimeSpeechTranscriptionOutput(
     });
   }
   return {
+    ...(transcription ? { transcription } : {}),
     text,
     artifacts: Array.isArray(variant.speechTranscribe.artifacts)
       ? variant.speechTranscribe.artifacts

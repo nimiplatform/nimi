@@ -74,6 +74,29 @@ export interface CanonicalCapabilityDeferredEntry {
 
 export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDescriptor> = Object.freeze([
   Object.freeze({
+    capabilityId: 'audio.separate',
+    section: 'music',
+    editorKind: null,
+    sourceRef: Object.freeze({
+      table: 'local-adapter-routing',
+      capability: 'audio.separate',
+    }),
+    additionalRuntimeTables: Object.freeze([]),
+    i18nKeys: Object.freeze({
+      title: 'AIConfig.capability.audioSeparate.title',
+      subtitle: 'AIConfig.capability.audioSeparate.subtitle',
+      detail: 'AIConfig.capability.audioSeparate.detail',
+    }),
+    runtimeEvidenceClass: 'job',
+    governance: Object.freeze({
+      owner: 'runtime-audio-route',
+      dataMovement: 'local-by-selected-route',
+      retention: 'runtime-audio-policy',
+      revocation: 'route-owner',
+      auditSource: 'runtime-scenario-job-evidence',
+    }),
+  }),
+  Object.freeze({
     capabilityId: 'audio.synthesize',
     section: 'tts',
     editorKind: 'audio-synthesize',
@@ -229,6 +252,29 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
       retention: 'session-ephemeral',
       revocation: 'session-route-or-connector-owner',
       auditSource: 'runtime-realtime-lifecycle',
+    }),
+  }),
+  Object.freeze({
+    capabilityId: 'text.annotate',
+    section: 'chat',
+    editorKind: null,
+    sourceRef: Object.freeze({
+      table: 'local-adapter-routing',
+      capability: 'text.annotate',
+    }),
+    additionalRuntimeTables: Object.freeze([]),
+    i18nKeys: Object.freeze({
+      title: 'AIConfig.capability.textAnnotate.title',
+      subtitle: 'AIConfig.capability.textAnnotate.subtitle',
+      detail: 'AIConfig.capability.textAnnotate.detail',
+    }),
+    runtimeEvidenceClass: 'job',
+    governance: Object.freeze({
+      owner: 'runtime-text-route',
+      dataMovement: 'local-by-selected-route',
+      retention: 'runtime-scenario-job-policy',
+      revocation: 'route-or-job-owner',
+      auditSource: 'runtime-scenario-job-evidence',
     }),
   }),
   Object.freeze({

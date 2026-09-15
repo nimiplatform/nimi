@@ -208,9 +208,13 @@ func TestSpeechServerOffloadsBlockingDriverCallsFromAsyncEndpoints(t *testing.T)
 		!strings.Contains(speechServerScript, "artifact = await run_synthesis_for_request(") {
 		t.Fatal("speech synthesize endpoint must run blocking driver work in a cancellable threadpool helper")
 	}
-	if !strings.Contains(speechServerScript, "run_in_threadpool(transcribe_with_driver, model, request_payload, cancel_event)") ||
+	if !strings.Contains(speechServerScript, "run_in_threadpool(operation, model, request_payload, cancel_event)") ||
+		!strings.Contains(speechServerScript, "return await run_speech_request(request, transcribe_with_driver, model, request_payload)") ||
 		!strings.Contains(speechServerScript, "text = await run_transcription_for_request(") {
 		t.Fatal("speech transcribe endpoint must run blocking driver work in a cancellable threadpool helper")
+	}
+	if !strings.Contains(speechServerScript, "await run_speech_request(request, separate_with_driver, active_model") {
+		t.Fatal("separation must share the cancellable threadpool runner")
 	}
 }
 

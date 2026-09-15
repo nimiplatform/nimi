@@ -37,6 +37,8 @@ func scenarioAllowedModes(scenarioType runtimev1.ScenarioType) []runtimev1.Execu
 			runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
+		runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_ANNOTATE,
+		runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SEPARATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_FACE_SWAP,
 		runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_FACE_SWAP,
 		runtimev1.ScenarioType_SCENARIO_TYPE_VISION_LOCATE,
@@ -62,6 +64,8 @@ func scenarioAllowedModes(scenarioType runtimev1.ScenarioType) []runtimev1.Execu
 // markers and resolved by the catalog layer.
 func scenarioRequiredCapabilities(scenarioType runtimev1.ScenarioType) []string {
 	switch scenarioType {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_ANNOTATE:
+		return []string{aicapabilities.TextAnnotate}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_FACE_SWAP:
 		return []string{aicapabilities.VideoFaceSwap}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_FACE_SWAP:
@@ -80,6 +84,8 @@ func scenarioRequiredCapabilities(scenarioType runtimev1.ScenarioType) []string 
 		return []string{aicapabilities.AudioSynthesize}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
 		return []string{aicapabilities.AudioTranscribe}
+	case runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SEPARATE:
+		return []string{aicapabilities.AudioSeparate}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE:
 		return []string{aicapabilities.VoiceCreate}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:

@@ -1393,12 +1393,20 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 	}
 
 	all := list("")
-	if len(all) != 75 {
-		t.Fatalf("all Loadout recipes = %d, want 75", len(all))
+	if len(all) != 86 {
+		t.Fatalf("all Loadout recipes = %d, want 86", len(all))
 	}
 	byID := make(map[string]*runtimev1.LoadoutRecipeDescriptor, len(all))
 	for _, recipe := range all {
 		byID[recipe.GetRecipeId()] = recipe
+	}
+	whisper := byID[capabilitydriver.FasterWhisperRecipeID]
+	if whisper == nil || len(whisper.GetSlots()) != 2 || whisper.GetSlots()[1].GetSlotId() != capabilitydriver.FasterWhisperVADRequirementID || whisper.GetSlots()[1].GetPresence() != runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED {
+		t.Fatalf("Whisper transcription must expose captured VAD: %+v", whisper)
+	}
+	aligned := byID[capabilitydriver.Qwen3ASRAlignedRecipeID]
+	if aligned == nil || len(aligned.GetSlots()) != 2 || aligned.GetSlots()[0].GetSlotId() != capabilitydriver.Qwen3ASRModelRequirementID || aligned.GetSlots()[1].GetSlotId() != capabilitydriver.Qwen3ASRAlignerRequirementID || aligned.GetSlots()[1].GetPresence() != runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED {
+		t.Fatalf("aligned transcription must expose both required model slots: %+v", aligned)
 	}
 	for _, recipeID := range []string{
 		capabilitydriver.LlamaGemma4RecipeID,
@@ -1460,8 +1468,8 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 	synthesize := list(capabilitydriver.AudioSynthesizeContract)
 	transcribe := list(capabilitydriver.AudioTranscribeContract)
 	voiceCreate := list(capabilitydriver.VoiceCreateContract)
-	if len(synthesize) != 29 || len(transcribe) != 13 || len(voiceCreate) != 22 {
-		t.Fatalf("speech capability filters = synthesize:%d transcribe:%d voice.create:%d, want 29/13/22", len(synthesize), len(transcribe), len(voiceCreate))
+	if len(synthesize) != 29 || len(transcribe) != 15 || len(voiceCreate) != 22 {
+		t.Fatalf("speech capability filters = synthesize:%d transcribe:%d voice.create:%d, want 29/15/22", len(synthesize), len(transcribe), len(voiceCreate))
 	}
 	for _, registration := range append(capabilitydriver.AudioCppSpeechRegistrations(), capabilitydriver.AudioCppReferenceVoiceRegistrations()...) {
 		recipe := byID[registration.RecipeID]

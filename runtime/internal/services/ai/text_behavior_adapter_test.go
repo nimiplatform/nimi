@@ -14,13 +14,15 @@ import (
 
 func TestTextBehaviorAdapterResolutionIsExactAndClosed(t *testing.T) {
 	registrations := productionTextBehaviorAdapterRegistrations()
-	if len(registrations) != 12 {
-		t.Fatalf("production adapter registrations = %d, want nine Gemma mappings and three Cloud targets", len(registrations))
+	if len(registrations) != 14 {
+		t.Fatalf("production adapter registrations = %d, want nine Gemma mappings and five Cloud targets", len(registrations))
 	}
 	expectedCloudTargets := map[string]string{
 		"anthropic/claude-sonnet-4-6": "anthropic.sonnet46.messages",
 		"openai_codex/gpt-5.6-sol":    "openai_codex.sol.responses",
 		"openai_codex/gpt-6-astra":    "openai_codex.astra.responses",
+		"deepseek/deepseek-v4-flash":  "deepseek.v4-flash.chat-json",
+		"deepseek/deepseek-v4-pro":    "deepseek.v4-pro.chat-json",
 	}
 	seenContents := map[string]struct{}{}
 	for _, registration := range registrations {

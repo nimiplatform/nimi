@@ -62,18 +62,19 @@ func buildScenarioOutputFromArtifacts(
 		return &runtimev1.ScenarioOutput{
 			Output: &runtimev1.ScenarioOutput_SpeechTranscribe{
 				SpeechTranscribe: &runtimev1.SpeechTranscribeResult{
-					Text:      job.GetTranscriptionText(),
-					Artifacts: clonedArtifacts,
+					Text:          job.GetTranscriptionText(),
+					Artifacts:     clonedArtifacts,
+					Transcription: job.GetTranscription(),
 				},
 			},
 		}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
 		return &runtimev1.ScenarioOutput{
-			Output: &runtimev1.ScenarioOutput_MusicGenerate{
-				MusicGenerate: &runtimev1.MusicGenerateResult{
-					Artifacts: clonedArtifacts,
-				},
-			},
+			Output: &runtimev1.ScenarioOutput_MusicGenerate{MusicGenerate: &runtimev1.MusicGenerateResult{Artifacts: clonedArtifacts}},
+		}
+	case runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SEPARATE:
+		return &runtimev1.ScenarioOutput{
+			Output: &runtimev1.ScenarioOutput_AudioSeparate{AudioSeparate: &runtimev1.AudioSeparateResult{Artifacts: clonedArtifacts, Separation: job.GetAudioSeparation()}},
 		}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:
 		return &runtimev1.ScenarioOutput{

@@ -5267,6 +5267,24 @@ pub struct MusicGenerateScenarioSpec {
     #[prost(bool, tag = "7")]
     pub instrumental: bool,
 }
+/// Source separation preserves the input timeline and returns vocals plus the
+/// sum of all non-vocal sources. The selected implementation owns input limits.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AudioSeparateScenarioSpec {
+    #[prost(string, tag = "1")]
+    pub mime_type: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub audio_source: ::core::option::Option<SpeechTranscriptionAudioSource>,
+}
+/// The identities refer to the two committed artifacts of this same Job.
+/// Sample rate, channels and duration are carried by those artifact records.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AudioSeparation {
+    #[prost(string, tag = "1")]
+    pub vocals_artifact_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub background_artifact_id: ::prost::alloc::string::String,
+}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct WorldGenerateAssetSource {
     #[prost(oneof = "world_generate_asset_source::Source", tags = "1, 2")]
@@ -5481,6 +5499,55 @@ pub struct VideoFaceSwapSummary {
     #[prost(bool, tag = "6")]
     pub audio_preserved: bool,
 }
+/// Batch order is preserved. Offsets in results count Unicode scalar values,
+/// not UTF-8 bytes or UTF-16 code units. Empty documents are valid.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TextAnnotateScenarioSpec {
+    #[prost(string, tag = "1")]
+    pub language: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "2")]
+    pub texts: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TextAnnotationToken {
+    #[prost(string, tag = "1")]
+    pub text: ::prost::alloc::string::String,
+    #[prost(uint32, tag = "2")]
+    pub start: u32,
+    #[prost(uint32, tag = "3")]
+    pub end: u32,
+    #[prost(uint32, tag = "4")]
+    pub head_index: u32,
+    #[prost(string, tag = "5")]
+    pub part_of_speech: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub dependency: ::prost::alloc::string::String,
+    #[prost(bool, tag = "7")]
+    pub is_punctuation: bool,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TextAnnotationSentence {
+    #[prost(uint32, tag = "1")]
+    pub start_token: u32,
+    #[prost(uint32, tag = "2")]
+    pub end_token: u32,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TextAnnotationDocument {
+    #[prost(string, tag = "1")]
+    pub text: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub language: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "3")]
+    pub tokens: ::prost::alloc::vec::Vec<TextAnnotationToken>,
+    #[prost(message, repeated, tag = "4")]
+    pub sentences: ::prost::alloc::vec::Vec<TextAnnotationSentence>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TextAnnotationResult {
+    #[prost(message, repeated, tag = "1")]
+    pub documents: ::prost::alloc::vec::Vec<TextAnnotationDocument>,
+}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct VisionLocateScenarioSpec {
     #[prost(string, tag = "1")]
@@ -5542,7 +5609,7 @@ pub struct VisionLocateResult {
 pub struct ScenarioSpec {
     #[prost(
         oneof = "scenario_spec::Spec",
-        tags = "1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14"
+        tags = "1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14, 15, 16"
     )]
     pub spec: ::core::option::Option<scenario_spec::Spec>,
 }
@@ -5574,6 +5641,10 @@ pub mod scenario_spec {
         ImageFaceSwap(super::ImageFaceSwapScenarioSpec),
         #[prost(message, tag = "14")]
         VideoFaceSwap(super::VideoFaceSwapScenarioSpec),
+        #[prost(message, tag = "15")]
+        AudioSeparate(super::AudioSeparateScenarioSpec),
+        #[prost(message, tag = "16")]
+        TextAnnotate(super::TextAnnotateScenarioSpec),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -5650,16 +5721,47 @@ pub struct SpeechSynthesizeResult {
     pub artifacts: ::prost::alloc::vec::Vec<ScenarioArtifact>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SpeechTranscriptWord {
+    #[prost(string, tag = "1")]
+    pub text: ::prost::alloc::string::String,
+    #[prost(double, tag = "2")]
+    pub start_seconds: f64,
+    #[prost(double, tag = "3")]
+    pub end_seconds: f64,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SpeechTranscript {
+    #[prost(enumeration = "SpeechTranscriptStatus", tag = "1")]
+    pub status: i32,
+    #[prost(string, tag = "2")]
+    pub text: ::prost::alloc::string::String,
+    /// Model-reported language code, empty when the execution did not report one.
+    #[prost(string, tag = "3")]
+    pub language: ::prost::alloc::string::String,
+    /// Actual alignment units, relative to the submitted audio beginning.
+    #[prost(message, repeated, tag = "4")]
+    pub words: ::prost::alloc::vec::Vec<SpeechTranscriptWord>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SpeechTranscribeResult {
     #[prost(string, tag = "1")]
     pub text: ::prost::alloc::string::String,
     #[prost(message, repeated, tag = "2")]
     pub artifacts: ::prost::alloc::vec::Vec<ScenarioArtifact>,
+    #[prost(message, optional, tag = "3")]
+    pub transcription: ::core::option::Option<SpeechTranscript>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct MusicGenerateResult {
     #[prost(message, repeated, tag = "1")]
     pub artifacts: ::prost::alloc::vec::Vec<ScenarioArtifact>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AudioSeparateResult {
+    #[prost(message, repeated, tag = "1")]
+    pub artifacts: ::prost::alloc::vec::Vec<ScenarioArtifact>,
+    #[prost(message, optional, tag = "2")]
+    pub separation: ::core::option::Option<AudioSeparation>,
 }
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct WorldGenerateSemanticsMetadata {
@@ -5696,7 +5798,10 @@ pub struct WorldGenerateResult {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ScenarioOutput {
-    #[prost(oneof = "scenario_output::Output", tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10")]
+    #[prost(
+        oneof = "scenario_output::Output",
+        tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12"
+    )]
     pub output: ::core::option::Option<scenario_output::Output>,
 }
 /// Nested message and enum types in `ScenarioOutput`.
@@ -5723,6 +5828,10 @@ pub mod scenario_output {
         ImageFaceSwap(super::ImageFaceSwapResult),
         #[prost(message, tag = "10")]
         VideoFaceSwap(super::VideoFaceSwapResult),
+        #[prost(message, tag = "11")]
+        AudioSeparate(super::AudioSeparateResult),
+        #[prost(message, tag = "12")]
+        TextAnnotation(super::TextAnnotationResult),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -6037,7 +6146,7 @@ pub struct SubmitLocalAppScenarioJobRequest {
     pub timeout_ms: i32,
     #[prost(
         oneof = "submit_local_app_scenario_job_request::Spec",
-        tags = "1, 2, 3, 4, 7, 8, 10, 11, 12, 13"
+        tags = "1, 2, 3, 4, 7, 8, 10, 11, 12, 13, 14, 15"
     )]
     pub spec: ::core::option::Option<submit_local_app_scenario_job_request::Spec>,
 }
@@ -6065,6 +6174,10 @@ pub mod submit_local_app_scenario_job_request {
         ImageFaceSwap(super::ImageFaceSwapScenarioSpec),
         #[prost(message, tag = "13")]
         VideoFaceSwap(super::VideoFaceSwapScenarioSpec),
+        #[prost(message, tag = "14")]
+        AudioSeparate(super::AudioSeparateScenarioSpec),
+        #[prost(message, tag = "15")]
+        TextAnnotate(super::TextAnnotateScenarioSpec),
     }
 }
 /// Trimmed Job projection for Local App consumption: status, progress, typed
@@ -6107,6 +6220,15 @@ pub struct LocalAppScenarioJob {
     /// Present only for a completed VIDEO_FACE_SWAP Job.
     #[prost(message, optional, tag = "15")]
     pub video_face_swap_summary: ::core::option::Option<VideoFaceSwapSummary>,
+    /// Present only when a completed speech Job captured this typed result.
+    #[prost(message, optional, tag = "16")]
+    pub transcription: ::core::option::Option<SpeechTranscript>,
+    /// Present only with both committed artifacts of a completed AUDIO_SEPARATE Job.
+    #[prost(message, optional, tag = "17")]
+    pub audio_separation: ::core::option::Option<AudioSeparation>,
+    /// Present only for a completed TEXT_ANNOTATE Job.
+    #[prost(message, optional, tag = "18")]
+    pub text_annotation: ::core::option::Option<TextAnnotationResult>,
 }
 /// Trimmed voice asset catalog projection. Provider, model, provider voice
 /// ref, and owner identity fields are never projected.
@@ -6526,6 +6648,12 @@ pub struct ScenarioJob {
     /// Immutable per-frame outcome counts captured with the completed artifact.
     #[prost(message, optional, tag = "26")]
     pub video_face_swap_summary: ::core::option::Option<VideoFaceSwapSummary>,
+    #[prost(message, optional, tag = "27")]
+    pub transcription: ::core::option::Option<SpeechTranscript>,
+    #[prost(message, optional, tag = "28")]
+    pub audio_separation: ::core::option::Option<AudioSeparation>,
+    #[prost(message, optional, tag = "29")]
+    pub text_annotation: ::core::option::Option<TextAnnotationResult>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SubmitScenarioJobRequest {
@@ -6882,6 +7010,8 @@ pub enum ScenarioType {
     VisionLocate = 12,
     ImageFaceSwap = 13,
     VideoFaceSwap = 14,
+    AudioSeparate = 15,
+    TextAnnotate = 16,
 }
 impl ScenarioType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -6903,6 +7033,8 @@ impl ScenarioType {
             Self::VisionLocate => "SCENARIO_TYPE_VISION_LOCATE",
             Self::ImageFaceSwap => "SCENARIO_TYPE_IMAGE_FACE_SWAP",
             Self::VideoFaceSwap => "SCENARIO_TYPE_VIDEO_FACE_SWAP",
+            Self::AudioSeparate => "SCENARIO_TYPE_AUDIO_SEPARATE",
+            Self::TextAnnotate => "SCENARIO_TYPE_TEXT_ANNOTATE",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -6921,6 +7053,8 @@ impl ScenarioType {
             "SCENARIO_TYPE_VISION_LOCATE" => Some(Self::VisionLocate),
             "SCENARIO_TYPE_IMAGE_FACE_SWAP" => Some(Self::ImageFaceSwap),
             "SCENARIO_TYPE_VIDEO_FACE_SWAP" => Some(Self::VideoFaceSwap),
+            "SCENARIO_TYPE_AUDIO_SEPARATE" => Some(Self::AudioSeparate),
+            "SCENARIO_TYPE_TEXT_ANNOTATE" => Some(Self::TextAnnotate),
             _ => None,
         }
     }
@@ -7572,6 +7706,35 @@ impl AiVideoPixelFormat {
         match value {
             "AI_VIDEO_PIXEL_FORMAT_UNSPECIFIED" => Some(Self::Unspecified),
             "AI_VIDEO_PIXEL_FORMAT_RGB8" => Some(Self::Rgb8),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum SpeechTranscriptStatus {
+    Unspecified = 0,
+    Transcribed = 1,
+    NoSpeech = 2,
+}
+impl SpeechTranscriptStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "SPEECH_TRANSCRIPT_STATUS_UNSPECIFIED",
+            Self::Transcribed => "SPEECH_TRANSCRIPT_STATUS_TRANSCRIBED",
+            Self::NoSpeech => "SPEECH_TRANSCRIPT_STATUS_NO_SPEECH",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SPEECH_TRANSCRIPT_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+            "SPEECH_TRANSCRIPT_STATUS_TRANSCRIBED" => Some(Self::Transcribed),
+            "SPEECH_TRANSCRIPT_STATUS_NO_SPEECH" => Some(Self::NoSpeech),
             _ => None,
         }
     }

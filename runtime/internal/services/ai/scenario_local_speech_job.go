@@ -10,6 +10,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -176,9 +177,16 @@ func (s *Service) runLocalSpeechScenarioJob(ctx context.Context, jobID string, t
 	} else {
 		capabilitydriver.CloseArtifactBodies(bodies)
 	}
-	transcriptionText := ""
+	var transcription *runtimev1.SpeechTranscript
+	var separation *runtimev1.AudioSeparation
 	if err == nil {
-		transcriptionText, err = s.captureScenarioTranscriptionText(ctx, effective.scenarioType, bound)
+		transcription, err = s.captureScenarioTranscriptionResult(ctx, effective.scenarioType, bound, effective.transcribePlan != nil && effective.transcribePlan.Request().GetTimestamps())
+	}
+	if err == nil && effective.scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SEPARATE {
+		if len(bound) == 2 {
+			separation = &runtimev1.AudioSeparation{VocalsArtifactId: bound[0].GetArtifactId(), BackgroundArtifactId: bound[1].GetArtifactId()}
+		}
+		err = localexecution.ValidateAudioSeparation(separation, bound)
 	}
 	if err != nil {
 		for _, artifactID := range newCustodyIDs {
@@ -189,7 +197,9 @@ func (s *Service) runLocalSpeechScenarioJob(ctx context.Context, jobID string, t
 	}
 	if _, ok, _ := s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED, func(job *runtimev1.ScenarioJob) {
 		job.Artifacts = cloneScenarioArtifacts(bound)
-		job.TranscriptionText = transcriptionText
+		job.TranscriptionText = transcription.GetText()
+		job.Transcription = transcription
+		job.AudioSeparation = separation
 		job.Usage = usage
 		job.ProgressCurrentStep = 1
 		job.ProgressTotalSteps = 1

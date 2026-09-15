@@ -13,11 +13,13 @@ const (
 	FeatureInputText  = "input.text"
 	FeatureInputVideo = "input.video"
 	TextEmbed         = "text.embed"
+	TextAnnotate      = "text.annotate"
 	ImageGenerate     = "image.generate"
 	VideoGenerate     = "video.generate"
 	WorldGenerate     = "world.generate"
 	AudioSynthesize   = "audio.synthesize"
 	AudioTranscribe   = "audio.transcribe"
+	AudioSeparate     = "audio.separate"
 	VoiceCreate       = "voice.create"
 	MusicGenerate     = "music.generate"
 	RealtimeInteract  = "realtime.interact"
@@ -33,9 +35,11 @@ var ErrUnknownCatalogCapability = errors.New("unknown catalog capability")
 // maintaining feature-local capability lists.
 var canonicalCatalog = []string{
 	TextGenerate,
+	TextAnnotate,
 	TextEmbed,
 	AudioSynthesize,
 	AudioTranscribe,
+	AudioSeparate,
 	VoiceCreate,
 	ImageGenerate,
 	VideoGenerate,
@@ -96,6 +100,8 @@ func SupportsStandardizedFeature(capability string, feature string) bool {
 // Unknown values are rejected rather than auto-mapped to preserve hard-cut semantics.
 func NormalizeCatalogCapability(value string) (string, error) {
 	switch strings.ToLower(strings.TrimSpace(value)) {
+	case TextAnnotate:
+		return TextAnnotate, nil
 	case TextGenerate:
 		return TextGenerate, nil
 	case TextEmbed:
@@ -110,6 +116,8 @@ func NormalizeCatalogCapability(value string) (string, error) {
 		return AudioSynthesize, nil
 	case AudioTranscribe:
 		return AudioTranscribe, nil
+	case AudioSeparate:
+		return AudioSeparate, nil
 	case VoiceCreate:
 		return VoiceCreate, nil
 	case MusicGenerate:

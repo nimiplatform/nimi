@@ -2,6 +2,182 @@
 # parameters to exact slots projected by the versioned Driver dialect. It does
 # not own a second slot topology and never causes acquisition.
 loadout_recipes:
+  - recipe_id: faster-whisper-vad
+    revision: "1"
+    title: Whisper transcription with voice activity detection
+    capability_contract: audio.transcribe
+    implementation_id: local.audio.transcribe.faster-whisper
+    driver_id: nimi.runtime.driver.faster-whisper
+    driver_dialect: faster-whisper/audio-transcribe/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: stt.model
+        display_label: Whisper recognition model
+        recommended_variant_ids: [local.stt.whisper-large-v3-turbo.ct2]
+        model_contract:
+          format: ctranslate2
+          artifact_role: whisper_ct2_model
+      - slot_id: stt.vad
+        display_label: Voice activity detection model
+        recommended_variant_ids: [local.aux.silero-vad.onnx]
+        model_contract:
+          format: onnx
+          artifact_role: silero_vad_model
+  - recipe_id: spacy-md-en
+    revision: "1"
+    title: English language analysis
+    capability_contract: text.annotate
+    implementation_id: local.text.annotate.spacy
+    driver_id: nimi.runtime.driver.spacy
+    driver_dialect: spacy/text-annotate/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: text.model
+        display_label: English language analysis model
+        recommended_variant_ids: []
+        model_contract:
+          format: spacy
+          artifact_role: text_analysis_model
+  - recipe_id: spacy-md-de
+    revision: "1"
+    title: German language analysis
+    capability_contract: text.annotate
+    implementation_id: local.text.annotate.spacy
+    driver_id: nimi.runtime.driver.spacy
+    driver_dialect: spacy/text-annotate/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: text.model
+        display_label: German language analysis model
+        recommended_variant_ids: []
+        model_contract:
+          format: spacy
+          artifact_role: text_analysis_model
+  - recipe_id: spacy-md-es
+    revision: "1"
+    title: Spanish language analysis
+    capability_contract: text.annotate
+    implementation_id: local.text.annotate.spacy
+    driver_id: nimi.runtime.driver.spacy
+    driver_dialect: spacy/text-annotate/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: text.model
+        display_label: Spanish language analysis model
+        recommended_variant_ids: []
+        model_contract:
+          format: spacy
+          artifact_role: text_analysis_model
+  - recipe_id: spacy-md-fr
+    revision: "1"
+    title: French language analysis
+    capability_contract: text.annotate
+    implementation_id: local.text.annotate.spacy
+    driver_id: nimi.runtime.driver.spacy
+    driver_dialect: spacy/text-annotate/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: text.model
+        display_label: French language analysis model
+        recommended_variant_ids: []
+        model_contract:
+          format: spacy
+          artifact_role: text_analysis_model
+  - recipe_id: spacy-md-it
+    revision: "1"
+    title: Italian language analysis
+    capability_contract: text.annotate
+    implementation_id: local.text.annotate.spacy
+    driver_id: nimi.runtime.driver.spacy
+    driver_dialect: spacy/text-annotate/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: text.model
+        display_label: Italian language analysis model
+        recommended_variant_ids: []
+        model_contract:
+          format: spacy
+          artifact_role: text_analysis_model
+  - recipe_id: spacy-md-ru
+    revision: "1"
+    title: Russian language analysis
+    capability_contract: text.annotate
+    implementation_id: local.text.annotate.spacy
+    driver_id: nimi.runtime.driver.spacy
+    driver_dialect: spacy/text-annotate/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: text.model
+        display_label: Russian language analysis model
+        recommended_variant_ids: []
+        model_contract:
+          format: spacy
+          artifact_role: text_analysis_model
+  - recipe_id: spacy-md-zh
+    revision: "1"
+    title: Chinese language analysis
+    capability_contract: text.annotate
+    implementation_id: local.text.annotate.spacy
+    driver_id: nimi.runtime.driver.spacy
+    driver_dialect: spacy/text-annotate/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: text.model
+        display_label: Chinese language analysis model
+        recommended_variant_ids: []
+        model_contract:
+          format: spacy
+          artifact_role: text_analysis_model
+  - recipe_id: spacy-md-ja
+    revision: "1"
+    title: Japanese language analysis
+    capability_contract: text.annotate
+    implementation_id: local.text.annotate.spacy
+    driver_id: nimi.runtime.driver.spacy
+    driver_dialect: spacy/text-annotate/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: text.model
+        display_label: Japanese language analysis model
+        recommended_variant_ids: []
+        model_contract:
+          format: spacy
+          artifact_role: text_analysis_model
+  - recipe_id: demucs-vocals-background
+    revision: "1"
+    title: Demucs vocals and background separation
+    capability_contract: audio.separate
+    implementation_id: local.audio.separate.demucs
+    driver_id: nimi.runtime.driver.demucs
+    driver_dialect: demucs/audio-separate/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: separation.model
+        display_label: Source separation model
+        recommended_variant_ids: [local.music.htdemucs.pytorch]
+        model_contract:
+          format: pytorch
+          artifact_role: audio_separation_model
   - recipe_id: insightface.video-face-swap.v1
     revision: "1"
     title: Video face replacement
@@ -272,6 +448,29 @@ loadout_recipes:
         model_contract:
           format: safetensors
           artifact_role: stt_model
+  - recipe_id: qwen3-asr-transformers-aligned
+    revision: "1"
+    title: Qwen3 ASR with word alignment
+    capability_contract: audio.transcribe
+    implementation_id: local.audio.transcribe.qwen3-asr-transformers-aligned
+    driver_id: nimi.runtime.driver.qwen3-asr-transformers-aligned
+    driver_dialect: qwen3-asr-transformers/aligned-transcribe/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: stt.model
+        display_label: Speech recognition model
+        recommended_variant_ids: [local.stt.qwen3-asr-transformers-0.6b.safetensors]
+        model_contract:
+          format: safetensors
+          artifact_role: stt_transformers_model
+      - slot_id: stt.aligner
+        display_label: Forced alignment model
+        recommended_variant_ids: [local.stt.qwen3-forced-aligner-transformers-0.6b.safetensors]
+        model_contract:
+          format: safetensors
+          artifact_role: stt_transformers_aligner
   - recipe_id: qwen3-asr-transformers
     revision: "1"
     title: Qwen3 ASR Transformers transcription

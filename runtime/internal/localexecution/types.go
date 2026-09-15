@@ -290,8 +290,8 @@ type SpeechSynthesisResult struct {
 }
 
 type SpeechTranscriptionResult struct {
-	Text  string
-	Usage *runtimev1.UsageStats
+	Transcript *runtimev1.SpeechTranscript
+	Usage      *runtimev1.UsageStats
 }
 
 type VoiceCreateResult struct {

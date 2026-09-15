@@ -96,15 +96,16 @@ type localResolvedAssemblyProcessIdentity struct {
 }
 
 type localResolvedAssemblyLoadPlan struct {
-	Kind     string                             `json:"kind"`
-	Text     *localResolvedAssemblyTextPlan     `json:"text,omitempty"`
-	Embed    *localResolvedAssemblyEmbedPlan    `json:"embed,omitempty"`
-	Speech   *localResolvedAssemblySpeechPlan   `json:"speech,omitempty"`
-	Image    *localResolvedAssemblyImagePlan    `json:"image,omitempty"`
-	Video    *localResolvedAssemblyVideoPlan    `json:"video,omitempty"`
-	Music    *localResolvedAssemblyMusicPlan    `json:"music,omitempty"`
-	Vision   *localResolvedAssemblyVisionPlan   `json:"vision,omitempty"`
-	FaceSwap *localResolvedAssemblyFaceSwapPlan `json:"face_swap,omitempty"`
+	Annotation *localResolvedAssemblyAnnotationPlan `json:"annotation,omitempty"`
+	Kind       string                               `json:"kind"`
+	Text       *localResolvedAssemblyTextPlan       `json:"text,omitempty"`
+	Embed      *localResolvedAssemblyEmbedPlan      `json:"embed,omitempty"`
+	Speech     *localResolvedAssemblySpeechPlan     `json:"speech,omitempty"`
+	Image      *localResolvedAssemblyImagePlan      `json:"image,omitempty"`
+	Video      *localResolvedAssemblyVideoPlan      `json:"video,omitempty"`
+	Music      *localResolvedAssemblyMusicPlan      `json:"music,omitempty"`
+	Vision     *localResolvedAssemblyVisionPlan     `json:"vision,omitempty"`
+	FaceSwap   *localResolvedAssemblyFaceSwapPlan   `json:"face_swap,omitempty"`
 }
 
 type localResolvedAssemblyMusicPlan struct {
@@ -577,12 +578,19 @@ func localResolvedAssemblyForEmbed(selected *localexecution.SelectedLocalExecuti
 	return assembly, nil
 }
 
-func localResolvedAssemblyForSpeech(selected *localexecution.SelectedLocalExecution, synthesize capabilitydriver.SpeechSynthesizePlan, transcribe capabilitydriver.SpeechTranscribePlan) (*localResolvedAssembly, error) {
+func localResolvedAssemblyForSpeech(selected *localexecution.SelectedLocalExecution, synthesize capabilitydriver.SpeechSynthesizePlan, transcribe capabilitydriver.SpeechTranscribePlan, separate *capabilitydriver.AudioSeparateInvocationPlan) (*localResolvedAssembly, error) {
 	var request proto.Message
 	plan := &localResolvedAssemblySpeechPlan{}
 	var binaryInput []byte
 	var mimeType string
 	switch {
+	case separate != nil:
+		request = separate.Request()
+		plan.Operation = "separate"
+		plan.DriverID = separate.DriverID()
+		plan.ModelAssetID = separate.ModelAssetID()
+		plan.ModelFiles = resolvedAssemblyInvocationBindings(separate.ModelFiles())
+		binaryInput, mimeType = separate.AudioBytes(), separate.MIMEType()
 	case synthesize != nil:
 		request = synthesize.Request()
 		plan.Operation = "synthesize"
@@ -947,6 +955,10 @@ func validateLocalResolvedAssembly(assembly *localResolvedAssembly) error {
 		return fmt.Errorf("non-text ResolvedAssembly carries admitted text behaviors")
 	}
 	switch assembly.LoadPlan.Kind {
+	case "annotation":
+		if _, err := annotationPlanFromResolvedAssembly(assembly); err != nil {
+			return err
+		}
 	case "video-face-swap":
 		if _, err := videoFaceSwapPlanFromResolvedAssembly(assembly); err != nil {
 			return err
@@ -1008,7 +1020,7 @@ func validateLocalResolvedAssembly(assembly *localResolvedAssembly) error {
 		if assembly.LoadPlan.Speech == nil || strings.TrimSpace(assembly.LoadPlan.Speech.DriverID) == "" || strings.TrimSpace(assembly.LoadPlan.Speech.ModelAssetID) == "" {
 			return fmt.Errorf("local ResolvedAssembly speech load plan is incomplete")
 		}
-		if operation := strings.TrimSpace(assembly.LoadPlan.Speech.Operation); operation != "synthesize" && operation != "transcribe" && operation != "voice.create" {
+		if operation := strings.TrimSpace(assembly.LoadPlan.Speech.Operation); operation != "synthesize" && operation != "transcribe" && operation != "voice.create" && operation != "separate" {
 			return fmt.Errorf("local ResolvedAssembly speech operation %q is unsupported", operation)
 		}
 		if assembly.DriverIdentity.DriverID == capabilitydriver.Qwen3TTSAudioCppDriverID {

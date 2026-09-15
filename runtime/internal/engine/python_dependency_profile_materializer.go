@@ -604,6 +604,9 @@ func verifyPythonDependencyProfile(
 	if strings.TrimSpace(consumer) == FaceSwapConsumerID {
 		probeScript = "from face_swap import probe_environment; probe_environment()"
 	}
+	if strings.TrimSpace(consumer) == TextAnnotationConsumerID {
+		probeScript = "from spacy_text_annotation import probe_environment; probe_environment()"
+	}
 	torchProbe, err := run(
 		ctx,
 		profileRoot,
@@ -621,6 +624,8 @@ func verifyPythonDependencyProfile(
 	}
 	if strings.TrimSpace(consumer) == FaceSwapConsumerID {
 		err = verifyFaceSwapProfileProbe(observed, identity)
+	} else if strings.TrimSpace(consumer) == TextAnnotationConsumerID {
+		err = verifyTextAnnotationProfileProbe(observed, identity)
 	} else {
 		err = verifyPythonDependencyProfileTorchProbe(observed, identity)
 	}
@@ -806,6 +811,9 @@ func pythonDependencyProfileImportProbes(consumer string, identity PythonDepende
 	if strings.TrimSpace(consumer) == FaceSwapConsumerID {
 		return append(packageManifest.ImportProbes, "face_swap"), nil
 	}
+	if strings.TrimSpace(consumer) == TextAnnotationConsumerID {
+		return append(packageManifest.ImportProbes, "spacy_text_annotation"), nil
+	}
 	if strings.TrimSpace(consumer) == VisionLocateConsumerID {
 		backend, err := visionPythonBackend(identity.PlatformTuple, identity.AcceleratorPlane)
 		if err != nil {
@@ -848,6 +856,9 @@ func pythonDependencyProfileImportProbes(consumer string, identity PythonDepende
 
 func verifyPythonDependencyProfileDriverBundle(root string, consumer string) error {
 	trimmedConsumer := strings.TrimSpace(consumer)
+	if trimmedConsumer == TextAnnotationConsumerID {
+		return verifyTextAnnotationDriverBundle(root)
+	}
 	if trimmedConsumer == FaceSwapConsumerID {
 		return verifyFaceSwapDriverBundle(root)
 	}
@@ -872,6 +883,9 @@ func pythonDependencyProfileDriverCommands(root string, consumer string) map[str
 
 func pythonDependencyProfileDriverScripts(root string, consumer string) []string {
 	trimmedConsumer := strings.TrimSpace(consumer)
+	if trimmedConsumer == TextAnnotationConsumerID {
+		return []string{filepath.Join(root, "text_annotation_server.py")}
+	}
 	if trimmedConsumer == FaceSwapConsumerID {
 		return []string{filepath.Join(root, "face_swap_server.py")}
 	}

@@ -27,6 +27,8 @@ func isRetiredAmbientLocalProvider(providerID string) bool {
 
 func scenarioModalFromType(scenarioType runtimev1.ScenarioType) runtimev1.Modal {
 	switch scenarioType {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_ANNOTATE:
+		return runtimev1.Modal_MODAL_TEXT
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VISION_LOCATE:
 		return runtimev1.Modal_MODAL_VISION
 	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE, runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_FACE_SWAP:
@@ -41,7 +43,7 @@ func scenarioModalFromType(scenarioType runtimev1.ScenarioType) runtimev1.Modal 
 		// Voice creation targets a synthesis model while remaining separate
 		// from the audio.synthesize contract.
 		return runtimev1.Modal_MODAL_TTS
-	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
+	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE, runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SEPARATE:
 		return runtimev1.Modal_MODAL_MUSIC
 	case runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:
 		return runtimev1.Modal_MODAL_WORLD

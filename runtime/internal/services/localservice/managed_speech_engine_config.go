@@ -60,13 +60,22 @@ func (s *Service) configuredManagedSpeechEngineConfigForCapability(capabilityCon
 			consumer = "speech.qwen3-asr.python"
 			requiredDriver = engine.SpeechDriverQwen3ASR
 			driverPath = engine.SpeechQwen3ASRDriverPath
-		case capabilitydriver.Qwen3ASRTransformersDriverID:
+		case capabilitydriver.Qwen3ASRTransformersDriverID, capabilitydriver.Qwen3ASRAlignedDriverID:
 			consumer = "speech.qwen3-asr-transformers.python"
 			requiredDriver = engine.SpeechDriverQwen3ASRTransformers
 			driverPath = engine.SpeechQwen3ASRTransformersDriverPath
+		case capabilitydriver.FasterWhisperDriverID:
+			consumer = "speech.faster-whisper.python"
+			requiredDriver = engine.SpeechDriverFasterWhisper
+			driverPath = engine.SpeechFasterWhisperDriverPath
 		default:
 			return engine.EngineConfig{}, fmt.Errorf("speech transcription Driver is not admitted: %s", strings.TrimSpace(driverID))
 		}
+	case capabilitydriver.AudioSeparateContract:
+		if driverID != capabilitydriver.DemucsDriverID {
+			return engine.EngineConfig{}, fmt.Errorf("audio separation Driver is not admitted: %s", driverID)
+		}
+		consumer, requiredDriver, driverPath = "speech.demucs.python", engine.SpeechDriverDemucs, engine.SpeechDemucsDriverPath
 	default:
 		return engine.EngineConfig{}, fmt.Errorf("speech ExecutionHost capability is not admitted: %s", strings.TrimSpace(capabilityContract))
 	}
@@ -89,6 +98,10 @@ func (s *Service) configuredManagedSpeechEngineConfigForCapability(capabilityCon
 		cfg.SpeechQwen3ASRPackageSetRoot = root
 	} else if consumer == "speech.qwen3-asr-transformers.python" {
 		cfg.SpeechQwen3ASRTransformersPackageSetRoot = root
+	} else if consumer == "speech.faster-whisper.python" {
+		cfg.SpeechFasterWhisperPackageSetRoot = root
+	} else if consumer == "speech.demucs.python" {
+		cfg.SpeechDemucsPackageSetRoot = root
 	} else {
 		cfg.SpeechVoxCPMPackageSetRoot = root
 		cfg.SpeechVoxCPMBackend = voxcpmBackend
@@ -157,20 +170,22 @@ const (
 )
 
 type speechExecutionModelRegistrationPayload struct {
-	Model              string            `json:"model"`
-	Capability         string            `json:"capability"`
-	DriverID           string            `json:"driver_id"`
-	Driver             string            `json:"driver"`
-	Family             string            `json:"family"`
-	Backend            string            `json:"backend"`
-	CreationSource     string            `json:"creation_source,omitempty"`
-	WorkflowModelID    string            `json:"workflow_model_id,omitempty"`
-	BundleDir          string            `json:"bundle_dir"`
-	EntryPath          string            `json:"entry_path"`
-	DeclaredFiles      []string          `json:"declared_files"`
-	DeclaredFileSHA256 map[string]string `json:"declared_file_sha256"`
-	VerifiedContentID  string            `json:"verified_content_id"`
-	EntrySHA256        string            `json:"entry_sha256"`
+	Model              string                                   `json:"model"`
+	Capability         string                                   `json:"capability"`
+	DriverID           string                                   `json:"driver_id"`
+	Driver             string                                   `json:"driver"`
+	Family             string                                   `json:"family"`
+	Backend            string                                   `json:"backend"`
+	CreationSource     string                                   `json:"creation_source,omitempty"`
+	WorkflowModelID    string                                   `json:"workflow_model_id,omitempty"`
+	BundleDir          string                                   `json:"bundle_dir"`
+	EntryPath          string                                   `json:"entry_path"`
+	DeclaredFiles      []string                                 `json:"declared_files"`
+	DeclaredFileSHA256 map[string]string                        `json:"declared_file_sha256"`
+	VerifiedContentID  string                                   `json:"verified_content_id"`
+	EntrySHA256        string                                   `json:"entry_sha256"`
+	Alignment          *speechExecutionModelRegistrationPayload `json:"alignment,omitempty"`
+	VAD                *speechExecutionModelRegistrationPayload `json:"vad,omitempty"`
 }
 
 // RegisterSpeechExecutionModel publishes only the captured ResolvedAssembly
@@ -245,8 +260,32 @@ func (s *Service) speechExecutionModelRegistrationPayload(registration engine.Sp
 	} else if creationSource != "" || workflowModelID != "" {
 		return speechExecutionModelRegistrationPayload{}, fmt.Errorf("speech voice.create registration binding is not admitted for %s", capabilityContract)
 	}
+	var alignment *speechExecutionModelRegistrationPayload
+	if registration.Alignment != nil {
+		if driverID != capabilitydriver.Qwen3ASRAlignedDriverID || registration.Alignment.Alignment != nil || registration.Alignment.VAD != nil {
+			return speechExecutionModelRegistrationPayload{}, fmt.Errorf("speech alignment binding is not admitted")
+		}
+		value, err := s.speechExecutionModelRegistrationPayload(*registration.Alignment)
+		if err != nil {
+			return speechExecutionModelRegistrationPayload{}, err
+		}
+		alignment = &value
+	}
+	var vad *speechExecutionModelRegistrationPayload
+	if registration.VAD != nil {
+		if driverID != capabilitydriver.FasterWhisperDriverID || registration.VAD.Alignment != nil || registration.VAD.VAD != nil {
+			return speechExecutionModelRegistrationPayload{}, fmt.Errorf("speech VAD binding is not admitted")
+		}
+		value, err := s.speechExecutionModelRegistrationPayload(*registration.VAD)
+		if err != nil {
+			return speechExecutionModelRegistrationPayload{}, err
+		}
+		vad = &value
+	}
 	return speechExecutionModelRegistrationPayload{
-		Model: strings.TrimSpace(registration.ModelAssetID), Capability: capabilityContract,
+		Alignment: alignment,
+		VAD:       vad,
+		Model:     strings.TrimSpace(registration.ModelAssetID), Capability: capabilityContract,
 		DriverID: driverID, Driver: driver, Family: family, Backend: backend,
 		CreationSource: creationSource, WorkflowModelID: workflowModelID,
 		BundleDir: registration.BundleDir, EntryPath: registration.EntryPath,
@@ -258,6 +297,11 @@ func (s *Service) speechExecutionModelRegistrationPayload(registration engine.Sp
 
 func speechExecutionRegistrationDriverFacts(capabilityContract string, driverID string) (string, string, string, error) {
 	switch strings.TrimSpace(driverID) {
+	case capabilitydriver.DemucsDriverID:
+		if capabilityContract != capabilitydriver.AudioSeparateContract {
+			break
+		}
+		return "demucs", "demucs", "pytorch", nil
 	case capabilitydriver.Qwen3TTSDriverID:
 		if capabilityContract != capabilitydriver.AudioSynthesizeContract && capabilityContract != capabilitydriver.VoiceCreateContract {
 			break
@@ -268,11 +312,16 @@ func speechExecutionRegistrationDriverFacts(capabilityContract string, driverID 
 			break
 		}
 		return "qwen3_asr", "qwen3_asr", "qwen_asr", nil
-	case capabilitydriver.Qwen3ASRTransformersDriverID:
+	case capabilitydriver.Qwen3ASRTransformersDriverID, capabilitydriver.Qwen3ASRAlignedDriverID:
 		if capabilityContract != capabilitydriver.AudioTranscribeContract {
 			break
 		}
 		return "qwen3_asr_transformers", "qwen3_asr", "transformers", nil
+	case capabilitydriver.FasterWhisperDriverID:
+		if capabilityContract != capabilitydriver.AudioTranscribeContract {
+			break
+		}
+		return "faster_whisper", "whisper", "ctranslate2", nil
 	case capabilitydriver.VoxCPMDriverID:
 		if capabilityContract != capabilitydriver.AudioSynthesizeContract {
 			break
@@ -320,10 +369,7 @@ func (s *Service) selectedPythonPackageSetSourceForConsumer(consumer string, dri
 	}
 
 	hostState := localEnvironmentHostProfileFromDeviceProfile(hostProfileOrCollected(nil))
-	acceleratorPlane := "cpu"
-	if localEnvironmentHostSupportsCUDA(hostState) {
-		acceleratorPlane = "cuda"
-	}
+	acceleratorPlane := localPythonAcceleratorPlane(trimmedConsumer, hostState)
 	identity, err := engine.ResolvePythonDependencyProfileIdentity(trimmedConsumer, localEnvironmentPlatformTuple(hostState), acceleratorPlane)
 	if err != nil {
 		return localEnvironmentSelectedSourceRecordState{}, engine.PythonDependencyProfileIdentity{}, false, "resolve current dependency profile: " + err.Error()

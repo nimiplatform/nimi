@@ -257,6 +257,8 @@ func localEnvironmentActivationDependencyReason(state string) string {
 
 func localEnvironmentConsumerRequirementByID(consumerID string) (localEnvironmentConsumerRequirement, bool) {
 	switch strings.TrimSpace(consumerID) {
+	case engine.TextAnnotationConsumerID:
+		return localEnvironmentConsumerRequirement{ConsumerID: engine.TextAnnotationConsumerID, PackID: "local-nlp"}, true
 	case engine.FaceSwapConsumerID:
 		return localEnvironmentConsumerRequirement{ConsumerID: engine.FaceSwapConsumerID, PackID: "local-face-swap"}, true
 	case engine.VisionLocateConsumerID, engine.VisionLocateConsumerID + ".cuda", engine.VisionLocateConsumerID + ".cpu":
@@ -273,7 +275,7 @@ func localEnvironmentConsumerRequirementByID(consumerID string) (localEnvironmen
 		return localEnvironmentConsumerRequirement{ConsumerID: strings.TrimSpace(consumerID), PackID: "local-image-python"}, true
 	case "media.video-python.cpu", "media.video-python.cuda":
 		return localEnvironmentConsumerRequirement{ConsumerID: strings.TrimSpace(consumerID), PackID: "local-video-python"}, true
-	case "speech.qwen3-asr.python", "speech.qwen3-asr-transformers.python", "speech.qwen3-tts.python", "speech.voxcpm.python":
+	case "speech.qwen3-asr.python", "speech.qwen3-asr-transformers.python", "speech.qwen3-tts.python", "speech.voxcpm.python", "speech.demucs.python", "speech.faster-whisper.python":
 		return localEnvironmentConsumerRequirement{ConsumerID: strings.TrimSpace(consumerID), PackID: "local-speech"}, true
 	default:
 		if audioCppConsumerIDKnown(consumerID) {

@@ -43,6 +43,7 @@ type localSpeechEffectiveInputs struct {
 	streamMode             capabilitydriver.SpeechStreamMode
 	synthesizePlan         capabilitydriver.SpeechSynthesizePlan
 	transcribePlan         capabilitydriver.SpeechTranscribePlan
+	separatePlan           *capabilitydriver.AudioSeparateInvocationPlan
 	stagingWAVPath         string
 	stagingPaths           []string
 	resolvedAssembly       *localResolvedAssembly
@@ -63,7 +64,7 @@ func (s *Service) captureLocalSpeechEffectiveInputs(ctx context.Context, head *r
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	contract := scenarioTargetCapability(request.GetScenarioType())
-	if contract != capabilitydriver.AudioSynthesizeContract && contract != capabilitydriver.AudioTranscribeContract {
+	if contract != capabilitydriver.AudioSynthesizeContract && contract != capabilitydriver.AudioTranscribeContract && contract != capabilitydriver.AudioSeparateContract {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
 	intent, err := scenarioExecutionIntentFromContext(ctx, contract)
@@ -107,6 +108,26 @@ func (s *Service) captureLocalSpeechEffectiveInputs(ctx context.Context, head *r
 	}
 
 	switch contract {
+	case capabilitydriver.AudioSeparateContract:
+		if len(intent.Defaults.GetFields()) != 0 {
+			return nil, invalidAppAIConfigError()
+		}
+		spec := request.GetSpec().GetAudioSeparate()
+		if spec == nil {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+		}
+		audioBytes, mimeType, _, sourceErr := nimillm.ResolveTranscriptionAudioSource(ctx, &runtimev1.SpeechTranscribeScenarioSpec{MimeType: spec.GetMimeType(), AudioSource: spec.GetAudioSource()})
+		if sourceErr != nil {
+			return nil, sourceErr
+		}
+		separationDriver, ok := driver.(capabilitydriver.AudioSeparateInvocationDriver)
+		if !ok {
+			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE)
+		}
+		effective.separatePlan, err = separationDriver.PlanAudioSeparateInvocation(capabilitydriver.AudioSeparateInvocationInput{PortableConfig: portable, ExactBindings: exactBindings, Request: spec, AudioBytes: audioBytes, MIMEType: mimeType})
+		if err != nil {
+			return nil, localSpeechInvocationError(err)
+		}
 	case capabilitydriver.AudioSynthesizeContract:
 		spec, err := normalizeLocalSpeechSynthesizeRequest(request.GetSpec().GetSpeechSynthesize(), intent.Defaults)
 		if err != nil {
@@ -234,7 +255,7 @@ func (s *Service) captureLocalSpeechEffectiveInputs(ctx context.Context, head *r
 			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE)
 		}
 	}
-	resolvedAssembly, err := localResolvedAssemblyForSpeech(selected, effective.synthesizePlan, effective.transcribePlan)
+	resolvedAssembly, err := localResolvedAssemblyForSpeech(selected, effective.synthesizePlan, effective.transcribePlan, effective.separatePlan)
 	if err != nil {
 		cleanupLocalSpeechStagingPaths(effective.stagingPaths)
 		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{Message: "local speech ResolvedAssembly capture failed"})
@@ -331,6 +352,20 @@ func (s *Service) localSpeechEffectiveInputsFromResolvedAssembly(assembly *local
 			return nil, fmt.Errorf("captured local speech synthesis Driver has no invocation contract")
 		}
 		effective.scenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE
+	case "separate":
+		if assembly.CapabilityContract != capabilitydriver.AudioSeparateContract || assembly.Request.Kind != "speech.separate" {
+			return nil, fmt.Errorf("captured audio separation contract is mismatched")
+		}
+		request := &runtimev1.AudioSeparateScenarioSpec{}
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: false}).Unmarshal(assembly.Request.Payload, request); err != nil {
+			return nil, err
+		}
+		separationDriver, ok := driver.(capabilitydriver.AudioSeparateInvocationDriver)
+		if !ok {
+			return nil, fmt.Errorf("captured separation Driver has no invocation contract")
+		}
+		effective.separatePlan, err = separationDriver.PlanAudioSeparateInvocation(capabilitydriver.AudioSeparateInvocationInput{PortableConfig: portable, ExactBindings: bindings, Request: request, AudioBytes: assembly.Request.BinaryInput, MIMEType: assembly.Request.MIMEType})
+		effective.scenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SEPARATE
 	case "transcribe":
 		if assembly.CapabilityContract != capabilitydriver.AudioTranscribeContract || assembly.Request.Kind != "speech.transcribe" {
 			return nil, fmt.Errorf("local speech transcription ResolvedAssembly contract is mismatched")
@@ -369,7 +404,7 @@ func (s *Service) localSpeechEffectiveInputsFromResolvedAssembly(assembly *local
 	}
 	selected := selectedLocalExecutionFromResolvedAssembly(assembly)
 	selected.PortableConfig = portable
-	reprojected, err := localResolvedAssemblyForSpeech(selected, effective.synthesizePlan, effective.transcribePlan)
+	reprojected, err := localResolvedAssemblyForSpeech(selected, effective.synthesizePlan, effective.transcribePlan, effective.separatePlan)
 	if err != nil {
 		return nil, err
 	}
@@ -652,6 +687,8 @@ func (s *Service) executeCapturedLocalSpeech(ctx context.Context, effective *loc
 		return nil, nil, nil, localExecutionError(&localexecution.ExecutionError{Kind: localexecution.FailureLoad, Err: fmt.Errorf("local speech execution host is unavailable")})
 	}
 	switch effective.scenarioType {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SEPARATE:
+		return s.executeCapturedAudioSeparation(ctx, effective, onStart)
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE:
 		result, err := s.localSpeechHost.ExecuteSpeechSynthesis(ctx, effective.synthesizePlan, onStart)
 		if err != nil {
@@ -717,11 +754,17 @@ func (s *Service) executeCapturedLocalSpeech(ctx context.Context, effective *loc
 		if err != nil {
 			return nil, nil, nil, localExecutionError(err)
 		}
-		text := strings.TrimSpace(result.Text)
-		if text == "" {
-			return nil, nil, nil, localExecutionError(&localexecution.ExecutionError{Kind: localexecution.FailureInference, Err: fmt.Errorf("local speech transcription returned no text")})
+		if err := localexecution.ValidateSpeechTranscript(result.Transcript, effective.transcribePlan.Request().GetTimestamps()); err != nil {
+			return nil, nil, nil, localExecutionError(&localexecution.ExecutionError{Kind: localexecution.FailureInference, Err: err})
 		}
-		return []*runtimev1.ScenarioArtifact{nimillm.BinaryArtifact("text/plain; charset=utf-8", []byte(text), map[string]any{"loadout_id": effective.loadoutID})}, nil, result.Usage, nil
+		if result.Transcript.GetLanguage() == "" && len(result.Transcript.GetWords()) == 0 && result.Transcript.GetStatus() == runtimev1.SpeechTranscriptStatus_SPEECH_TRANSCRIPT_STATUS_TRANSCRIBED {
+			return []*runtimev1.ScenarioArtifact{nimillm.BinaryArtifact("text/plain; charset=utf-8", []byte(result.Transcript.GetText()), nil)}, nil, result.Usage, nil
+		}
+		encoded, err := protojson.Marshal(result.Transcript)
+		if err != nil {
+			return nil, nil, nil, localExecutionError(&localexecution.ExecutionError{Kind: localexecution.FailureInference, Err: err})
+		}
+		return []*runtimev1.ScenarioArtifact{nimillm.BinaryArtifact(localexecution.SpeechTranscriptMIME, encoded, nil)}, nil, result.Usage, nil
 	default:
 		return nil, nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}

@@ -1771,6 +1771,8 @@ const (
 	SCENARIOTYPEVISIONLOCATE     ScenarioType = "SCENARIO_TYPE_VISION_LOCATE"
 	SCENARIOTYPEIMAGEFACESWAP    ScenarioType = "SCENARIO_TYPE_IMAGE_FACE_SWAP"
 	SCENARIOTYPEVIDEOFACESWAP    ScenarioType = "SCENARIO_TYPE_VIDEO_FACE_SWAP"
+	SCENARIOTYPEAUDIOSEPARATE    ScenarioType = "SCENARIO_TYPE_AUDIO_SEPARATE"
+	SCENARIOTYPETEXTANNOTATE     ScenarioType = "SCENARIO_TYPE_TEXT_ANNOTATE"
 )
 
 type SchedulingState string
@@ -1812,6 +1814,14 @@ const (
 	SPEECHTIMINGMODENONE        SpeechTimingMode = "SPEECH_TIMING_MODE_NONE"
 	SPEECHTIMINGMODEWORD        SpeechTimingMode = "SPEECH_TIMING_MODE_WORD"
 	SPEECHTIMINGMODECHAR        SpeechTimingMode = "SPEECH_TIMING_MODE_CHAR"
+)
+
+type SpeechTranscriptStatus string
+
+const (
+	SPEECHTRANSCRIPTSTATUSUNSPECIFIED SpeechTranscriptStatus = "SPEECH_TRANSCRIPT_STATUS_UNSPECIFIED"
+	SPEECHTRANSCRIPTSTATUSTRANSCRIBED SpeechTranscriptStatus = "SPEECH_TRANSCRIPT_STATUS_TRANSCRIBED"
+	SPEECHTRANSCRIPTSTATUSNOSPEECH    SpeechTranscriptStatus = "SPEECH_TRANSCRIPT_STATUS_NO_SPEECH"
 )
 
 type StreamEventType string
@@ -2839,6 +2849,21 @@ type ArtifactStreamDelta struct {
 
 type AudioChunks struct {
 	Chunks [][]byte `json:"chunks,omitempty"`
+}
+
+type AudioSeparateResult struct {
+	Artifacts  []ScenarioArtifact `json:"artifacts,omitempty"`
+	Separation *AudioSeparation   `json:"separation,omitempty"`
+}
+
+type AudioSeparateScenarioSpec struct {
+	MimeType    string                          `json:"mime_type,omitempty"`
+	AudioSource *SpeechTranscriptionAudioSource `json:"audio_source,omitempty"`
+}
+
+type AudioSeparation struct {
+	VocalsArtifactId     string `json:"vocals_artifact_id,omitempty"`
+	BackgroundArtifactId string `json:"background_artifact_id,omitempty"`
 }
 
 type AuditEventRecord struct {
@@ -5558,6 +5583,9 @@ type LocalAppScenarioJob struct {
 	TranscriptionText    string                     `json:"transcription_text,omitempty"`
 	Interruption         *ExecutionInterruption     `json:"interruption,omitempty"`
 	VideoFaceSwapSummary *VideoFaceSwapSummary      `json:"video_face_swap_summary,omitempty"`
+	Transcription        *SpeechTranscript          `json:"transcription,omitempty"`
+	AudioSeparation      *AudioSeparation           `json:"audio_separation,omitempty"`
+	TextAnnotation       *TextAnnotationResult      `json:"text_annotation,omitempty"`
 }
 
 type LocalAppScenarioJobEvent struct {
@@ -7118,6 +7146,9 @@ type ScenarioJob struct {
 	EffectiveInputIdentity *LoadoutEffectiveInputIdentity `json:"effective_input_identity,omitempty"`
 	Interruption           *ExecutionInterruption         `json:"interruption,omitempty"`
 	VideoFaceSwapSummary   *VideoFaceSwapSummary          `json:"video_face_swap_summary,omitempty"`
+	Transcription          *SpeechTranscript              `json:"transcription,omitempty"`
+	AudioSeparation        *AudioSeparation               `json:"audio_separation,omitempty"`
+	TextAnnotation         *TextAnnotationResult          `json:"text_annotation,omitempty"`
 }
 
 type ScenarioJobEvent struct {
@@ -7139,6 +7170,8 @@ type ScenarioOutput struct {
 	WorldGenerate    *WorldGenerateResult    `json:"world_generate,omitempty"`
 	ImageFaceSwap    *ImageFaceSwapResult    `json:"image_face_swap,omitempty"`
 	VideoFaceSwap    *VideoFaceSwapResult    `json:"video_face_swap,omitempty"`
+	AudioSeparate    *AudioSeparateResult    `json:"audio_separate,omitempty"`
+	TextAnnotation   *TextAnnotationResult   `json:"text_annotation,omitempty"`
 }
 
 type ScenarioProfile struct {
@@ -7166,6 +7199,8 @@ type ScenarioSpec struct {
 	VisionLocate     *VisionLocateScenarioSpec     `json:"vision_locate,omitempty"`
 	ImageFaceSwap    *ImageFaceSwapScenarioSpec    `json:"image_face_swap,omitempty"`
 	VideoFaceSwap    *VideoFaceSwapScenarioSpec    `json:"video_face_swap,omitempty"`
+	AudioSeparate    *AudioSeparateScenarioSpec    `json:"audio_separate,omitempty"`
+	TextAnnotate     *TextAnnotateScenarioSpec     `json:"text_annotate,omitempty"`
 }
 
 type ScenarioStreamCompleted struct {
@@ -7387,8 +7422,9 @@ type SpeechSynthesizeScenarioSpec struct {
 }
 
 type SpeechTranscribeResult struct {
-	Text      string             `json:"text,omitempty"`
-	Artifacts []ScenarioArtifact `json:"artifacts,omitempty"`
+	Text          string             `json:"text,omitempty"`
+	Artifacts     []ScenarioArtifact `json:"artifacts,omitempty"`
+	Transcription *SpeechTranscript  `json:"transcription,omitempty"`
 }
 
 type SpeechTranscribeScenarioSpec struct {
@@ -7400,6 +7436,19 @@ type SpeechTranscribeScenarioSpec struct {
 	Prompt         string                          `json:"prompt,omitempty"`
 	AudioSource    *SpeechTranscriptionAudioSource `json:"audio_source,omitempty"`
 	ResponseFormat string                          `json:"response_format,omitempty"`
+}
+
+type SpeechTranscript struct {
+	Status   SpeechTranscriptStatus `json:"status,omitempty"`
+	Text     string                 `json:"text,omitempty"`
+	Language string                 `json:"language,omitempty"`
+	Words    []SpeechTranscriptWord `json:"words,omitempty"`
+}
+
+type SpeechTranscriptWord struct {
+	Text         string  `json:"text,omitempty"`
+	StartSeconds float64 `json:"start_seconds,omitempty"`
+	EndSeconds   float64 `json:"end_seconds,omitempty"`
 }
 
 type SpeechTranscriptionAudioSource struct {
@@ -7552,6 +7601,8 @@ type SubmitLocalAppScenarioJobRequest struct {
 	VisionLocate     *VisionLocateScenarioSpec          `json:"vision_locate,omitempty"`
 	ImageFaceSwap    *ImageFaceSwapScenarioSpec         `json:"image_face_swap,omitempty"`
 	VideoFaceSwap    *VideoFaceSwapScenarioSpec         `json:"video_face_swap,omitempty"`
+	AudioSeparate    *AudioSeparateScenarioSpec         `json:"audio_separate,omitempty"`
+	TextAnnotate     *TextAnnotateScenarioSpec          `json:"text_annotate,omitempty"`
 }
 
 type SubmitLocalAppScenarioJobResponse struct {
@@ -7693,6 +7744,37 @@ type TestConnectorRequest struct {
 
 type TestConnectorResponse struct {
 	Ack *Ack `json:"ack,omitempty"`
+}
+
+type TextAnnotateScenarioSpec struct {
+	Language string   `json:"language,omitempty"`
+	Texts    []string `json:"texts,omitempty"`
+}
+
+type TextAnnotationDocument struct {
+	Text      string                   `json:"text,omitempty"`
+	Language  string                   `json:"language,omitempty"`
+	Tokens    []TextAnnotationToken    `json:"tokens,omitempty"`
+	Sentences []TextAnnotationSentence `json:"sentences,omitempty"`
+}
+
+type TextAnnotationResult struct {
+	Documents []TextAnnotationDocument `json:"documents,omitempty"`
+}
+
+type TextAnnotationSentence struct {
+	StartToken uint32 `json:"start_token,omitempty"`
+	EndToken   uint32 `json:"end_token,omitempty"`
+}
+
+type TextAnnotationToken struct {
+	Text          string `json:"text,omitempty"`
+	Start         uint32 `json:"start,omitempty"`
+	End           uint32 `json:"end,omitempty"`
+	HeadIndex     uint32 `json:"head_index,omitempty"`
+	PartOfSpeech  string `json:"part_of_speech,omitempty"`
+	Dependency    string `json:"dependency,omitempty"`
+	IsPunctuation bool   `json:"is_punctuation,omitempty"`
 }
 
 type TextBehaviorCapabilityProjection struct {

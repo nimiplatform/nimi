@@ -335,6 +335,8 @@ export enum ScenarioType {
   VISION_LOCATE = 12,
   IMAGE_FACE_SWAP = 13,
   VIDEO_FACE_SWAP = 14,
+  AUDIO_SEPARATE = 15,
+  TEXT_ANNOTATE = 16,
 }
 
 export enum SchedulingState {
@@ -368,6 +370,12 @@ export enum SpeechTimingMode {
   NONE = 1,
   WORD = 2,
   CHAR = 3,
+}
+
+export enum SpeechTranscriptStatus {
+  UNSPECIFIED = 0,
+  TRANSCRIBED = 1,
+  NO_SPEECH = 2,
 }
 
 export enum StreamEventType {

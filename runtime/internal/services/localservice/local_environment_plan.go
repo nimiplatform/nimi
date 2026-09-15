@@ -133,8 +133,17 @@ func localEnvironmentTargetForDriver(driver capabilitydriver.Driver, host localE
 		return "local-speech", "speech.voxcpm.python", true
 	case capabilitydriver.Qwen3ASRDriver:
 		return "local-speech", "speech.qwen3-asr.python", true
-	case capabilitydriver.Qwen3ASRTransformersDriver:
+	case capabilitydriver.Qwen3ASRTransformersDriver, capabilitydriver.Qwen3ASRAlignedDriver:
 		return "local-speech", "speech.qwen3-asr-transformers.python", true
+	case capabilitydriver.FasterWhisperDriver:
+		return "local-speech", "speech.faster-whisper.python", true
+	case capabilitydriver.DemucsDriver:
+		return "local-speech", "speech.demucs.python", true
+	case capabilitydriver.SpacyDriver:
+		if strings.EqualFold(host.OS, "windows") && strings.EqualFold(host.Arch, "amd64") || strings.EqualFold(host.OS, "darwin") && strings.EqualFold(host.Arch, "arm64") {
+			return "local-nlp", engine.TextAnnotationConsumerID, true
+		}
+		return "", "", false
 	default:
 		return "", "", false
 	}
@@ -474,10 +483,7 @@ func (s *Service) resolveLocalEnvironmentDependencyWithID(def localComputePackDe
 			return dep
 		}
 		if family == localEnvironmentFamilyPythonPackageSet {
-			plane := "cpu"
-			if localEnvironmentHostSupportsCUDA(hostState) {
-				plane = "cuda"
-			}
+			plane := localPythonAcceleratorPlane(dep.ConsumerScope, hostState)
 			expectedProfile, err := engine.ResolvePythonDependencyProfileIdentity(dep.ConsumerScope, platformTuple, plane)
 			storedLockHash := strings.TrimSpace(record.Hashes["exact_lock_sha256"])
 			storedProfileDigest := strings.TrimSpace(record.Hashes["profile_digest"])
@@ -532,7 +538,7 @@ func (s *Service) resolveLocalEnvironmentDependencyWithID(def localComputePackDe
 }
 
 func (s *Service) resolveExpandedLocalEnvironmentDependencies(def localComputePackDefinition, family string, required bool, hostState localEnvironmentHostProfileState, platformTuple string, runtimeDataRoot string, consumerScope string) ([]localEnvironmentPlanDependency, bool) {
-	if def.PackID != "local-speech" && def.PackID != "local-vision" && def.PackID != "local-face-swap" {
+	if def.PackID != "local-speech" && def.PackID != "local-vision" && def.PackID != "local-face-swap" && def.PackID != "local-nlp" {
 		return nil, false
 	}
 	if family != localEnvironmentFamilyPythonUV &&
@@ -547,6 +553,9 @@ func (s *Service) resolveExpandedLocalEnvironmentDependencies(def localComputePa
 		return nil, false
 	}
 	consumers := localSpeechPlanConsumers(consumerScope)
+	if def.PackID == "local-nlp" {
+		consumers = []string{engine.TextAnnotationConsumerID}
+	}
 	if def.PackID == "local-vision" {
 		consumers = []string{engine.VisionLocateConsumerID}
 	}
@@ -557,10 +566,7 @@ func (s *Service) resolveExpandedLocalEnvironmentDependencies(def localComputePa
 	for _, consumer := range consumers {
 		dependencyID := defaultLocalEnvironmentDependencyID(def.PackID, family)
 		dependencyConsumer := consumer
-		plane := "cpu"
-		if localEnvironmentHostSupportsCUDA(hostState) {
-			plane = "cuda"
-		}
+		plane := localPythonAcceleratorPlane(consumer, hostState)
 		if family == localEnvironmentFamilyPythonVenv || family == localEnvironmentFamilyPythonPackageSet {
 			identity, err := engine.ResolvePythonDependencyProfileIdentity(consumer, platformTuple, plane)
 			if err != nil {
@@ -597,10 +603,14 @@ func localEnvironmentUnsupportedPythonProfileDependency(family string, required 
 
 func localSpeechPlanConsumers(consumerScope string) []string {
 	switch strings.TrimSpace(consumerScope) {
+	case "speech.demucs.python":
+		return []string{"speech.demucs.python"}
 	case "speech.qwen3-asr.python":
 		return []string{"speech.qwen3-asr.python"}
 	case "speech.qwen3-asr-transformers.python":
 		return []string{"speech.qwen3-asr-transformers.python"}
+	case "speech.faster-whisper.python":
+		return []string{"speech.faster-whisper.python"}
 	case "speech.qwen3-tts.python":
 		return []string{"speech.qwen3-tts.python"}
 	case "speech.voxcpm.python":
@@ -717,6 +727,11 @@ func localComputePackByID(packID string) (localComputePackDefinition, bool) {
 func localComputePackDefinitions() []localComputePackDefinition {
 	return []localComputePackDefinition{
 		{
+			PackID: "local-nlp", ProductLabel: "Language analysis",
+			RequiredDependencyFamilies: []string{localEnvironmentFamilyPythonUV, localEnvironmentFamilyPythonRuntime, localEnvironmentFamilyPythonVenv, localEnvironmentFamilyPythonPackageSet},
+			CloudOnlyImpact:            "none",
+		},
+		{
 			PackID: "local-face-swap", ProductLabel: "Face replacement",
 			RequiredDependencyFamilies: []string{localEnvironmentFamilyPythonUV, localEnvironmentFamilyPythonRuntime, localEnvironmentFamilyPythonVenv, localEnvironmentFamilyPythonPackageSet},
 			CloudOnlyImpact:            "none",
@@ -825,4 +840,11 @@ func defaultLocalEnvironmentDependencyID(packID string, family string) string {
 	default:
 		return strings.ReplaceAll(family, ".", "-")
 	}
+}
+
+func localPythonAcceleratorPlane(consumer string, host localEnvironmentHostProfileState) string {
+	if strings.TrimSpace(consumer) != engine.TextAnnotationConsumerID && localEnvironmentHostSupportsCUDA(host) {
+		return "cuda"
+	}
+	return "cpu"
 }

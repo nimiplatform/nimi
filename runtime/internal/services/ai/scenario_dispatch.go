@@ -68,6 +68,7 @@ func (s *Service) ListScenarioProfiles(_ context.Context, _ *runtimev1.ListScena
 	}{
 		{runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE, "Text generation"},
 		{runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED, "Text embedding"},
+		{runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_ANNOTATE, "Language analysis"},
 		{runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE, "Image generation"},
 		{runtimev1.ScenarioType_SCENARIO_TYPE_VISION_LOCATE, "Visual localization"},
 		{runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_FACE_SWAP, "Image face replacement"},
@@ -75,6 +76,7 @@ func (s *Service) ListScenarioProfiles(_ context.Context, _ *runtimev1.ListScena
 		{runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, "Video generation"},
 		{runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE, "Speech synthesis"},
 		{runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE, "Speech transcription"},
+		{runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SEPARATE, "Vocals and background separation"},
 		{runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE, "Voice creation"},
 		{runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE, "Music generation"},
 		{runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE, "World generation"},

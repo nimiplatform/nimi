@@ -13,6 +13,27 @@ import { dispatchElectronLocalAppCommand } from '../src/main/local-app-commands.
 import { FakeIpcMain, createInvokeEvent, invokeBridge } from './electron-shell-test-utils.js';
 
 describe('Electron local-app standard-shell operations', () => {
+  it('carries long annotation and separation through renderer command admission', async () => {
+    const calls: unknown[] = [];
+    const host = localAppHost(calls);
+    const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit'];
+    const annotation = { type: 'text-annotate', language: 'en', texts: [' annotation'.repeat(9000), '', ' 😀 '] };
+    const separation = { type: 'audio-separate', mimeType: 'audio/wav', audioSource: { type: 'bytes', bytes: Array(100001).fill(1) } };
+    for (const spec of [annotation, separation]) {
+      await dispatchElectronLocalAppCommand({ host, command, payload: { spec, timeoutMs: 0 } });
+    }
+    expect(calls).toHaveLength(2);
+    expect(calls[0]).toEqual(['scenarioJobSubmit', { spec: annotation, timeoutMs: 0 }]);
+    for (const spec of [
+      { ...annotation, texts: ['\ud800'] },
+      { ...annotation, texts: ['a'.repeat(512 * 1024 + 1)] },
+      { ...annotation, texts: Array(65).fill('') },
+      { ...annotation, provider: 'private' },
+    ]) {
+      await expect(dispatchElectronLocalAppCommand({ host, command, payload: { spec, timeoutMs: 0 } })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    }
+    expect(calls).toHaveLength(2);
+  });
   it('carries ordered tool transcripts through both text commands without treating business JSON as authority', async () => {
     const calls: unknown[] = [];
     const host = localAppHost(calls);

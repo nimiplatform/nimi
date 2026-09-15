@@ -1746,3 +1746,73 @@ test('local-app client rejects the retired host namespace instead of decoding it
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_CARRIER_REQUIRED',
   );
 });
+
+
+test('typed transcription timing and no-speech survive the Local App and Runtime projections', async () => {
+  const base = standardShell([]);
+  let transcription = { status: 'transcribed', text: 'Hello, world.', language: 'en', words: [{ text: 'Hello,', startSeconds: 0.2, endSeconds: 0.7 }, { text: 'world.', startSeconds: 1.1, endSeconds: 1.6 }] };
+  const client = createNimiLocalAppClient({ standardShell: { ...base, ai: { ...base.ai, scenarioJobs: { ...base.ai.scenarioJobs,
+    async get() { return { job: { jobId: 'transcribed-1', scenarioType: 'speech-transcribe', status: 'completed', progressPercent: 100, progressCurrentStep: 1, progressTotalSteps: 1, reasonCode: '', reasonDetail: '', artifacts: [], traceId: '', createdAt: null, updatedAt: null, transcriptionText: transcription.text, transcription }, asset: null, voiceReference: null }; },
+  } } } });
+  const result = await client.ai.scenarioJobs.get('transcribed-1');
+  assert.deepEqual(result.job.transcription, transcription);
+  const adapter = createNimiLocalAppRuntimeScenarioJobClient(client.ai);
+  const artifacts = await adapter.getScenarioArtifacts({ jobId: 'transcribed-1' });
+  assert.equal(artifacts.output?.output.oneofKind, 'speechTranscribe');
+  if (artifacts.output?.output.oneofKind === 'speechTranscribe') assert.equal(artifacts.output.output.speechTranscribe.transcription?.words[1].startSeconds, 1.1);
+  transcription = { status: 'no-speech', text: '', language: '', words: [] };
+  assert.equal((await client.ai.scenarioJobs.get('transcribed-1')).job.transcription?.status, 'no-speech');
+  assert.ok((await adapter.getScenarioArtifacts({ jobId: 'transcribed-1' })).output);
+  transcription = { status: 'transcribed', text: 'bad timing', language: 'en', words: [{ text: 'bad', startSeconds: 2, endSeconds: 1 }] };
+  await assert.rejects(() => client.ai.scenarioJobs.get('transcribed-1'));
+});
+
+test('large separation input reaches the carrier at the declared 32 MiB limit', async () => {
+  const base = standardShell([]);
+  const boundary = new Error('carrier intentionally refuses inference');
+  let calls = 0;
+  const client = createNimiLocalAppClient({ standardShell: { ...base, ai: { ...base.ai, scenarioJobs: { ...base.ai.scenarioJobs,
+    async submit() { calls++; throw boundary; },
+  } } } });
+  const bytes = new Array<number>(32 * 1024 * 1024).fill(255);
+  const spec = { type: 'audio-separate' as const, mimeType: 'audio/wav', audioSource: { type: 'bytes' as const, bytes } };
+  await assert.rejects(client.ai.scenarioJobs.submit(spec), error => error === boundary);
+  assert.equal(calls, 1);
+  bytes.length += 1;
+  await assert.rejects(client.ai.scenarioJobs.submit(spec), { reasonCode: 'SDK_LOCAL_APP_INPUT_INVALID' });
+  assert.equal(calls, 1);
+});
+
+test('array authority checks inspect indexed content instead of a caller supplied iterator', async () => {
+  const base = standardShell([]);
+  let calls = 0;
+  const client = createNimiLocalAppClient({ standardShell: { ...base, ai: { ...base.ai, scenarioJobs: { ...base.ai.scenarioJobs,
+    async submit() { calls++; throw new Error('carrier must not be reached'); },
+  } } } });
+  const bytes = [{ accountId: 'not-caller-authority' }];
+  bytes[Symbol.iterator] = function* () {};
+  await assert.rejects(client.ai.scenarioJobs.submit({ type: 'audio-separate', mimeType: 'audio/wav',
+    audioSource: { type: 'bytes', bytes: bytes as unknown as number[] } }), { reasonCode: 'SDK_LOCAL_APP_AUTHORITY_FIELD_FORBIDDEN' });
+  assert.equal(calls, 0);
+});
+
+test('audio separation retains both owned artifacts through submit and Runtime projections', async () => {
+  const base = standardShell([]);
+  const calls: unknown[] = [];
+  const artifacts = ['vocals-1', 'background-1'].map((artifactId) => ({ artifactId, mimeType: 'audio/wav', bytes: [], sizeBytes: 384044,
+    sha256: 'a'.repeat(64), durationMs: 1000, width: 0, height: 0, sampleRateHz: 48000, channels: 2 }));
+  let audioSeparation = { vocalsArtifactId: 'vocals-1', backgroundArtifactId: 'background-1' };
+  const result = () => ({ job: { jobId: 'separation-1', scenarioType: 'audio-separate', status: 'completed', progressPercent: 100,
+    progressCurrentStep: 1, progressTotalSteps: 1, reasonCode: '', reasonDetail: '', artifacts, traceId: '', createdAt: null,
+    updatedAt: null, transcriptionText: '', audioSeparation }, asset: null, voiceReference: null });
+  const client = createNimiLocalAppClient({ standardShell: { ...base, ai: { ...base.ai, scenarioJobs: { ...base.ai.scenarioJobs,
+    async submit(spec) { calls.push(spec); return { job: result().job }; }, async get() { return result(); },
+  } } } });
+  await client.ai.scenarioJobs.submit({ type: 'audio-separate', mimeType: 'audio/wav', audioSource: { type: 'bytes', bytes: [1, 2] } });
+  assert.deepEqual(calls, [{ type: 'audio-separate', mimeType: 'audio/wav', audioSource: { type: 'bytes', bytes: [1, 2] } }]);
+  const output = await createNimiLocalAppRuntimeScenarioJobClient(client.ai).getScenarioArtifacts({ jobId: 'separation-1' });
+  assert.equal(output.output?.output.oneofKind, 'audioSeparate');
+  if (output.output?.output.oneofKind === 'audioSeparate') assert.deepEqual(output.output.output.audioSeparate.separation, audioSeparation);
+  audioSeparation = { vocalsArtifactId: 'vocals-1', backgroundArtifactId: 'vocals-1' };
+  await assert.rejects(() => client.ai.scenarioJobs.get('separation-1'));
+});

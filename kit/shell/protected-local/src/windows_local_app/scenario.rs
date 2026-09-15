@@ -54,7 +54,7 @@ const MAX_PROMPT_BYTES: usize = 32 * 1024;
 const MAX_VIDEO_TEXT_BYTES: usize = 8 * 1024;
 const MAX_URI_BYTES: usize = 2048;
 const MAX_REFERENCE_AUDIO_BYTES: usize = 20 * 1024 * 1024;
-const MAX_TRANSCRIPTION_TEXT_BYTES: usize = 256 * 1024;
+const MAX_TRANSCRIPTION_TEXT_BYTES: usize = 1024 * 1024;
 
 pub(super) async fn execute(
     channel: Channel,
@@ -382,6 +382,18 @@ fn parse_execute_spec(value: JsonValue) -> Result<ExecuteSpec, LocalAppOperation
 fn parse_job_spec(value: JsonValue) -> Result<JobSpec, LocalAppOperationError> {
     let object = exact_object(value)?;
     match string_field(&object, "type")? {
+        "text-annotate" => {
+            exact_keys(&object, &["type", "language", "texts"])?;
+            let language = string_field(&object, "language")?;
+            if !(2..=16).contains(&language.len()) || !language.bytes().all(|c| c.is_ascii_lowercase() || c == b'-') {
+                return Err(invalid_payload());
+            }
+            let values = field(&object, "texts")?.as_array().ok_or_else(invalid_payload)?;
+            if values.is_empty() || values.len() > 64 { return Err(invalid_payload()); }
+            let texts: Vec<String> = values.iter().map(|v| v.as_str().map(String::from).ok_or_else(invalid_payload)).collect::<Result<_, _>>()?;
+            if texts.iter().map(String::len).sum::<usize>() > 524288 { return Err(invalid_payload()); }
+            Ok(JobSpec::TextAnnotate(crate::generated::TextAnnotateScenarioSpec { language: language.into(), texts }))
+        }
         "video-face-swap" => {
             exact_keys(&object, &["type", "referenceImageArtifactId", "targetVideoArtifactId", "noFacePolicy"])?;
             let reference_image_artifact_id = required_text_field(&object, "referenceImageArtifactId", MAX_IDENTIFIER_BYTES)?;
@@ -427,6 +439,17 @@ fn parse_job_spec(value: JsonValue) -> Result<JobSpec, LocalAppOperationError> {
         "speech-transcribe" => Ok(JobSpec::SpeechTranscribe(parse_speech_transcribe_spec(
             &object,
         )?)),
+        "audio-separate" => {
+            exact_keys(&object, &["type", "mimeType", "audioSource"])?;
+            let mut audio_input = object.clone();
+            for key in ["language", "prompt", "responseFormat"] {
+                audio_input.insert(key.into(), JsonValue::String(String::new()));
+            }
+            let audio = parse_speech_transcribe_spec(&audio_input)?;
+            Ok(JobSpec::AudioSeparate(crate::generated::AudioSeparateScenarioSpec {
+                mime_type: audio.mime_type, audio_source: audio.audio_source,
+            }))
+        }
         "voice-create" => Ok(JobSpec::VoiceCreate(parse_voice_create_spec(&object)?)),
         "music-generate" => Ok(JobSpec::MusicGenerate(parse_music_spec(&object)?)),
         "world-generate" => {
@@ -960,6 +983,8 @@ fn project_job(job: LocalAppScenarioJob) -> Result<JsonValue, LocalAppOperationE
         ScenarioType::VideoGenerate => "video-generate",
         ScenarioType::SpeechSynthesize => "speech-synthesize",
         ScenarioType::SpeechTranscribe => "speech-transcribe",
+        ScenarioType::AudioSeparate => "audio-separate",
+        ScenarioType::TextAnnotate => "text-annotate",
         ScenarioType::VoiceCreate => "voice-create",
         ScenarioType::MusicGenerate => "music-generate",
         ScenarioType::WorldGenerate => "world-generate",
@@ -999,6 +1024,29 @@ fn project_job(job: LocalAppScenarioJob) -> Result<JsonValue, LocalAppOperationE
     {
         return Err(untrusted());
     }
+    let transcription = if let Some(value) = &job.transcription {
+        if scenario_type != "speech-transcribe"
+            || status != "completed"
+            || value.text != job.transcription_text
+        {
+            return Err(untrusted());
+        }
+        Some(project_transcription(value)?)
+    } else {
+        None
+    };
+    let text_annotation = if scenario_type == "text-annotate" && status == "completed" {
+        Some(project_text_annotation(job.text_annotation.as_ref().ok_or_else(untrusted)?)?)
+    } else {
+        if job.text_annotation.is_some() { return Err(untrusted()); }
+        None
+    };
+    let audio_separation = if scenario_type == "audio-separate" && status == "completed" {
+        Some(project_audio_separation(job.audio_separation.as_ref().ok_or_else(untrusted)?, &job.artifacts)?)
+    } else {
+        if job.audio_separation.is_some() { return Err(untrusted()); }
+        None
+    };
     let mut projected = json!({
         "jobId": job.job_id,
         "scenarioType": scenario_type,
@@ -1014,6 +1062,18 @@ fn project_job(job: LocalAppScenarioJob) -> Result<JsonValue, LocalAppOperationE
         "updatedAt": project_timestamp(job.updated_at)?,
         "transcriptionText": job.transcription_text,
     });
+    if let Some(value) = transcription {
+        projected
+            .as_object_mut()
+            .ok_or_else(untrusted)?
+            .insert("transcription".to_string(), value);
+    }
+    if let Some(value) = text_annotation {
+        projected.as_object_mut().ok_or_else(untrusted)?.insert("textAnnotation".into(), value);
+    }
+    if let Some(value) = audio_separation {
+        projected.as_object_mut().ok_or_else(untrusted)?.insert("audioSeparation".into(), value);
+    }
     if job.video_face_swap_summary.is_some() != (scenario_type == "video-face-swap" && status == "completed") { return Err(untrusted()); }
     if let Some(summary) = job.video_face_swap_summary {
         if summary.total_frames == 0 || summary.total_frames > 9000 || summary.transformed_frames > summary.total_frames || summary.preserved_frames > summary.total_frames || summary.transformed_frames + summary.preserved_frames != summary.total_frames || summary.duration_us == 0 || summary.duration_us > 300000000 || ![24, 25, 30].contains(&summary.frame_rate) { return Err(untrusted()); }
@@ -1997,5 +2057,195 @@ mod tests {
         assert!(project_voice_asset(asset.clone()).is_ok());
         assert!(project_voice_asset_reference(reference.clone()).is_ok());
         assert!(validate_voice_asset_reference_pair(Some(&asset), Some(&reference)).is_ok());
+    }
+}
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.audio-separation
+// @nimi-authority: rule.nimi.runtime.ai-provider.text-annotation
+fn project_text_annotation(value: &crate::generated::TextAnnotationResult) -> Result<JsonValue, LocalAppOperationError> {
+    if value.documents.is_empty() || value.documents.len() > 64 { return Err(untrusted()); }
+    let mut bytes = 0usize;
+    let mut count = 0usize;
+    let language = &value.documents[0].language;
+    if !(2..=16).contains(&language.len()) || !language.bytes().all(|c| c.is_ascii_lowercase() || c == b'-') { return Err(untrusted()); }
+    let mut documents = Vec::new();
+    for doc in &value.documents {
+        bytes += doc.text.len();
+        count += doc.tokens.len();
+        if bytes > 524288 || count > 65536 || &doc.language != language || (!doc.text.is_empty() && doc.tokens.is_empty()) { return Err(untrusted()); }
+        let source: Vec<char> = doc.text.chars().collect();
+        let mut end = 0usize;
+        let mut tokens = Vec::new();
+        for token in &doc.tokens {
+            let start = token.start as usize;
+            let stop = token.end as usize;
+            if start < end || stop <= start || stop > source.len() || token.head_index as usize >= doc.tokens.len()
+                || token.part_of_speech.is_empty() || token.part_of_speech.len() > 128 || token.part_of_speech.trim() != token.part_of_speech
+                || token.dependency.is_empty() || token.dependency.len() > 128 || token.dependency.trim() != token.dependency {
+                return Err(untrusted());
+            }
+            if source[start..stop].iter().collect::<String>() != token.text || !source[end..start].iter().all(|c| c.is_whitespace()) { return Err(untrusted()); }
+            end = stop;
+            tokens.push(json!({"text": token.text, "start": token.start, "end": token.end, "headIndex": token.head_index,
+                "partOfSpeech": token.part_of_speech, "dependency": token.dependency, "isPunctuation": token.is_punctuation}));
+        }
+        if !source[end..].iter().all(|c| c.is_whitespace()) { return Err(untrusted()); }
+        let mut end = 0u32;
+        let mut sentences = Vec::new();
+        for sentence in &doc.sentences {
+            if sentence.start_token != end || sentence.end_token <= sentence.start_token || sentence.end_token as usize > doc.tokens.len() { return Err(untrusted()); }
+            end = sentence.end_token;
+            sentences.push(json!({"startToken": sentence.start_token, "endToken": sentence.end_token}));
+        }
+        if end as usize != doc.tokens.len() { return Err(untrusted()); }
+        documents.push(json!({"text": doc.text, "language": doc.language, "tokens": tokens, "sentences": sentences}));
+    }
+    let result = json!({"documents": documents});
+    if serde_json::to_vec(&result).map_err(|_| untrusted())?.len() > 16*1024*1024 { return Err(untrusted()); }
+    Ok(result)
+}
+
+#[cfg(test)]
+mod text_annotation_tests {
+    use super::*;
+
+    #[test]
+    fn long_annotation_document_is_not_cut_at_the_former_limits() {
+        let tokens: Vec<crate::generated::TextAnnotationToken> = (0..9000).map(|i| crate::generated::TextAnnotationToken {
+            text: "annotation".into(), start: i*11, end: i*11+10, head_index: 0,
+            part_of_speech: "NOUN".into(), dependency: "dep".into(), is_punctuation: false,
+        }).collect();
+        let text = vec!["annotation"; tokens.len()].join(" ");
+        let input = json!({"type":"text-annotate","language":"en","texts":[text]});
+        assert!(parse_job_spec(input).is_ok());
+        let result = crate::generated::TextAnnotationResult { documents: vec![crate::generated::TextAnnotationDocument {
+            text, language: "en".into(), sentences: vec![crate::generated::TextAnnotationSentence { start_token: 0, end_token: tokens.len() as u32 }], tokens,
+        }] };
+        assert!(project_text_annotation(&result).is_ok());
+    }
+
+    #[test]
+    fn text_annotation_keeps_unicode_source_and_validates_heads() {
+        let input = json!({"type": "text-annotate", "language": "en", "texts": [" 😀 hi ", ""]});
+        let JobSpec::TextAnnotate(spec) = parse_job_spec(input).unwrap() else { panic!("wrong spec"); };
+        assert_eq!(spec.texts, vec![" 😀 hi ", ""]);
+        let mut result = crate::generated::TextAnnotationResult { documents: vec![crate::generated::TextAnnotationDocument {
+            text: " 😀 hi ".into(), language: "en".into(),
+            tokens: vec![
+                crate::generated::TextAnnotationToken { text: "😀".into(), start: 1, end: 2, head_index: 1, part_of_speech: "INTJ".into(), dependency: "intj".into(), is_punctuation: false },
+                crate::generated::TextAnnotationToken { text: "hi".into(), start: 3, end: 5, head_index: 1, part_of_speech: "INTJ".into(), dependency: "ROOT".into(), is_punctuation: false },
+            ], sentences: vec![crate::generated::TextAnnotationSentence { start_token: 0, end_token: 2 }],
+        }] };
+        assert_eq!(project_text_annotation(&result).unwrap()["documents"][0]["text"], " 😀 hi ");
+        result.documents[0].tokens[0].head_index = 3;
+        assert!(project_text_annotation(&result).is_err());
+    }
+}
+
+fn project_audio_separation(value: &crate::generated::AudioSeparation, artifacts: &[LocalAppScenarioArtifact]) -> Result<JsonValue, LocalAppOperationError> {
+    if artifacts.len() != 2 || value.vocals_artifact_id.is_empty() || value.background_artifact_id.is_empty()
+        || value.vocals_artifact_id == value.background_artifact_id
+        || value.vocals_artifact_id != artifacts[0].artifact_id || value.background_artifact_id != artifacts[1].artifact_id {
+        return Err(untrusted());
+    }
+    for artifact in artifacts {
+        if !artifact.mime_type.starts_with("audio/") || artifact.size_bytes <= 0 || artifact.sample_rate_hz <= 0
+            || artifact.channels <= 0 || artifact.duration_ms < 0 { return Err(untrusted()); }
+    }
+    if artifacts[0].sample_rate_hz != artifacts[1].sample_rate_hz || artifacts[0].channels != artifacts[1].channels
+        || artifacts[0].duration_ms != artifacts[1].duration_ms { return Err(untrusted()); }
+    Ok(json!({"vocalsArtifactId": value.vocals_artifact_id, "backgroundArtifactId": value.background_artifact_id}))
+}
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.speech-transcription-result
+fn project_transcription(
+    value: &crate::generated::SpeechTranscript,
+) -> Result<JsonValue, LocalAppOperationError> {
+    let status = match crate::generated::SpeechTranscriptStatus::try_from(value.status)
+        .map_err(|_| untrusted())?
+    {
+        crate::generated::SpeechTranscriptStatus::Transcribed => "transcribed",
+        crate::generated::SpeechTranscriptStatus::NoSpeech => "no-speech",
+        _ => return Err(untrusted()),
+    };
+    if value.text.trim() != value.text
+        || value.language.trim() != value.language
+        || value.language.len() > 64
+        || value.words.len() > 16384
+    {
+        return Err(untrusted());
+    }
+    if status == "no-speech" {
+        if !value.text.is_empty() || !value.language.is_empty() || !value.words.is_empty() {
+            return Err(untrusted());
+        }
+    } else if value.text.is_empty() {
+        return Err(untrusted());
+    }
+    let mut previous_start = 0.0;
+    let mut words = Vec::with_capacity(value.words.len());
+    for word in &value.words {
+        if word.text.trim().is_empty()
+            || !word.start_seconds.is_finite()
+            || !word.end_seconds.is_finite()
+            || word.start_seconds < previous_start
+            || word.end_seconds < word.start_seconds
+        {
+            return Err(untrusted());
+        }
+        previous_start = word.start_seconds;
+        words.push(json!({"text": word.text, "startSeconds": word.start_seconds, "endSeconds": word.end_seconds}));
+    }
+    let result =
+        json!({"status": status, "text": value.text, "language": value.language, "words": words});
+    if serde_json::to_vec(&result).map_err(|_| untrusted())?.len() > MAX_TRANSCRIPTION_TEXT_BYTES {
+        return Err(untrusted());
+    }
+    Ok(result)
+}
+
+#[cfg(test)]
+mod transcription_tests {
+    use super::*;
+    #[test]
+    fn separation_input_and_pair_keep_only_their_admitted_shape() {
+        let input = json!({"type": "audio-separate", "mimeType": "audio/wav", "audioSource": {"type": "bytes", "bytes": [1, 2, 3]}});
+        assert!(matches!(parse_job_spec(input.clone()).unwrap(), JobSpec::AudioSeparate(_)));
+        let mut invalid_input = input;
+        invalid_input["provider"] = json!("private-provider");
+        assert!(parse_job_spec(invalid_input).is_err());
+        let mut artifacts: Vec<LocalAppScenarioArtifact> = ["vocals-1", "background-1"].into_iter().map(|id| LocalAppScenarioArtifact {
+            artifact_id: id.into(), mime_type: "audio/wav".into(), size_bytes: 192044, sample_rate_hz: 48000,
+            channels: 1, duration_ms: 1000, ..Default::default()
+        }).collect();
+        let value = crate::generated::AudioSeparation { vocals_artifact_id: "vocals-1".into(), background_artifact_id: "background-1".into() };
+        assert_eq!(project_audio_separation(&value, &artifacts).unwrap()["backgroundArtifactId"], "background-1");
+        artifacts[1].duration_ms = 900;
+        assert!(project_audio_separation(&value, &artifacts).is_err());
+    }
+    #[test]
+    fn typed_transcription_projects_real_seconds_and_rejects_invalid_timing() {
+        let mut value = crate::generated::SpeechTranscript {
+            status: crate::generated::SpeechTranscriptStatus::Transcribed as i32,
+            text: "hello".into(),
+            language: "en".into(),
+            words: vec![crate::generated::SpeechTranscriptWord {
+                text: "hello".into(),
+                start_seconds: 0.2,
+                end_seconds: 0.8,
+            }],
+        };
+        let result = project_transcription(&value).expect("typed transcript");
+        assert_eq!(result["words"][0]["startSeconds"], 0.2);
+        value.words[0].end_seconds = 0.1;
+        assert!(project_transcription(&value).is_err());
+        value = crate::generated::SpeechTranscript {
+            status: crate::generated::SpeechTranscriptStatus::NoSpeech as i32,
+            ..Default::default()
+        };
+        assert_eq!(
+            project_transcription(&value).unwrap()["status"],
+            "no-speech"
+        );
     }
 }

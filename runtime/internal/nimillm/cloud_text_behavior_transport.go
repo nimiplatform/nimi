@@ -17,6 +17,7 @@ import (
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.anthropic-sonnet46-text-behaviors
 // @nimi-authority: rule.nimi.runtime.ai-provider.codex-text-behaviors
+// @nimi-authority: rule.nimi.runtime.ai-provider.deepseek-v4-json-output
 // The Host supplies the exact credential-bearing target only for this call.
 // Hooks were selected and their request serialized before Job publication.
 func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
@@ -31,6 +32,7 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	wireStream := onDelta != nil
 	switch target.ProviderType {
 	case "anthropic":
+	case "deepseek":
 	case "openai_codex":
 		path, wireStream = codexResponsesPath, true
 	default:
@@ -39,6 +41,9 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	backend, resolvedModelID := p.resolveBackendForTarget(modelID, target)
 	if backend == nil {
 		return textbehavior.NormalizedResult{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+	if target.ProviderType == "deepseek" {
+		path = resolveOpenAICompatiblePath(backend.baseURL, "/chat/completions")
 	}
 	var body map[string]json.RawMessage
 	if json.Unmarshal(serialized.Payload, &body) != nil || body == nil {

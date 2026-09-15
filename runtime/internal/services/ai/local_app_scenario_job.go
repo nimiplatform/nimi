@@ -210,9 +210,11 @@ func projectLocalAppScenarioJob(job *runtimev1.ScenarioJob) (*runtimev1.LocalApp
 		runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_FACE_SWAP,
 		runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_FACE_SWAP,
 		runtimev1.ScenarioType_SCENARIO_TYPE_VISION_LOCATE,
+		runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_ANNOTATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE,
+		runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SEPARATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:
@@ -236,6 +238,23 @@ func projectLocalAppScenarioJob(job *runtimev1.ScenarioJob) (*runtimev1.LocalApp
 	if !localAppOptionalExactText(transcriptionText, maxLocalAppTranscriptionTextBytes) ||
 		(job.GetScenarioType() != runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE && transcriptionText != "") {
 		return invalid()
+	}
+	var transcription *runtimev1.SpeechTranscript
+	var separation *runtimev1.AudioSeparation
+	if job.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SEPARATE && job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		if localexecution.ValidateAudioSeparation(job.GetAudioSeparation(), job.GetArtifacts()) != nil {
+			return invalid()
+		}
+		separation = proto.Clone(job.GetAudioSeparation()).(*runtimev1.AudioSeparation)
+	} else if job.GetAudioSeparation() != nil {
+		return invalid()
+	}
+	if job.GetTranscription() != nil {
+		if job.GetScenarioType() != runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE || job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED ||
+			localexecution.ValidateSpeechTranscript(job.GetTranscription(), false) != nil || job.GetTranscription().GetText() != transcriptionText {
+			return invalid()
+		}
+		transcription = proto.Clone(job.GetTranscription()).(*runtimev1.SpeechTranscript)
 	}
 	var artifacts []*runtimev1.LocalAppScenarioArtifact
 	if len(job.GetArtifacts()) > 0 {
@@ -274,7 +293,28 @@ func projectLocalAppScenarioJob(job *runtimev1.ScenarioJob) (*runtimev1.LocalApp
 	} else if job.GetVideoFaceSwapSummary() != nil {
 		return invalid()
 	}
+	var annotation *runtimev1.TextAnnotationResult
+	if job.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_ANNOTATE && job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		if job.GetTextAnnotation() == nil {
+			return invalid()
+		}
+		annotation = cloneTextAnnotationResult(job.GetTextAnnotation())
+		spec := &runtimev1.TextAnnotateScenarioSpec{}
+		for _, doc := range annotation.Documents {
+			if doc == nil {
+				return invalid()
+			}
+			spec.Language = doc.Language
+			spec.Texts = append(spec.Texts, doc.Text)
+		}
+		if err := localexecution.ValidateTextAnnotationResult(annotation, spec); err != nil {
+			return invalid()
+		}
+	} else if job.GetTextAnnotation() != nil {
+		return invalid()
+	}
 	return &runtimev1.LocalAppScenarioJob{
+		TextAnnotation:       annotation,
 		VideoFaceSwapSummary: videoSummary,
 		JobId:                job.GetJobId(),
 		ScenarioType:         job.GetScenarioType(),
@@ -289,6 +329,8 @@ func projectLocalAppScenarioJob(job *runtimev1.ScenarioJob) (*runtimev1.LocalApp
 		CreatedAt:            job.GetCreatedAt(),
 		UpdatedAt:            job.GetUpdatedAt(),
 		TranscriptionText:    transcriptionText,
+		Transcription:        transcription,
+		AudioSeparation:      separation,
 		Interruption:         interruption,
 	}, nil
 }
@@ -362,6 +404,11 @@ func validateLocalAppScenarioJobRequest(req *runtimev1.SubmitLocalAppScenarioJob
 			return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, err
 		}
 		return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VisionLocate{VisionLocate: cloneVisionLocateSpec(spec.VisionLocate)}}, runtimev1.ScenarioType_SCENARIO_TYPE_VISION_LOCATE, nil
+	case *runtimev1.SubmitLocalAppScenarioJobRequest_TextAnnotate:
+		if err := validateTextAnnotationSpec(spec.TextAnnotate); err != nil {
+			return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, err
+		}
+		return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_TextAnnotate{TextAnnotate: cloneTextAnnotationSpec(spec.TextAnnotate)}}, runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_ANNOTATE, nil
 	case *runtimev1.SubmitLocalAppScenarioJobRequest_WorldGenerate:
 		world := spec.WorldGenerate
 		if world == nil || !localAppExactText(world.GetPrompt(), maxLocalAppScenarioPromptBytes) ||
@@ -403,6 +450,15 @@ func validateLocalAppScenarioJobRequest(req *runtimev1.SubmitLocalAppScenarioJob
 		return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechTranscribe{
 			SpeechTranscribe: transcribe,
 		}}, runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE, nil
+	case *runtimev1.SubmitLocalAppScenarioJobRequest_AudioSeparate:
+		if spec.AudioSeparate == nil {
+			return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+		}
+		audio, err := validateLocalAppSpeechTranscribeJobSpec(&runtimev1.LocalAppSpeechTranscribeJobSpec{MimeType: spec.AudioSeparate.GetMimeType(), AudioSource: spec.AudioSeparate.GetAudioSource()})
+		if err != nil {
+			return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, err
+		}
+		return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_AudioSeparate{AudioSeparate: &runtimev1.AudioSeparateScenarioSpec{MimeType: audio.GetMimeType(), AudioSource: audio.GetAudioSource()}}}, runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SEPARATE, nil
 	case *runtimev1.SubmitLocalAppScenarioJobRequest_VoiceCreate:
 		creation, err := validateLocalAppVoiceCreateJobSpec(spec.VoiceCreate)
 		if err != nil {

@@ -3320,6 +3320,8 @@ pub enum ScenarioType {
     SCENARIOTYPEVISIONLOCATE,
     SCENARIOTYPEIMAGEFACESWAP,
     SCENARIOTYPEVIDEOFACESWAP,
+    SCENARIOTYPEAUDIOSEPARATE,
+    SCENARIOTYPETEXTANNOTATE,
 }
 
 impl Default for ScenarioType {
@@ -3386,6 +3388,19 @@ pub enum SpeechTimingMode {
 impl Default for SpeechTimingMode {
     fn default() -> Self {
         Self::SPEECHTIMINGMODEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum SpeechTranscriptStatus {
+    SPEECHTRANSCRIPTSTATUSUNSPECIFIED,
+    SPEECHTRANSCRIPTSTATUSTRANSCRIBED,
+    SPEECHTRANSCRIPTSTATUSNOSPEECH,
+}
+
+impl Default for SpeechTranscriptStatus {
+    fn default() -> Self {
+        Self::SPEECHTRANSCRIPTSTATUSUNSPECIFIED
     }
 }
 
@@ -4672,6 +4687,24 @@ pub struct ArtifactStreamDelta {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct AudioChunks {
     pub chunks: Vec<Vec<u8>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AudioSeparateResult {
+    pub artifacts: Vec<Box<ScenarioArtifact>>,
+    pub separation: Option<Box<AudioSeparation>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AudioSeparateScenarioSpec {
+    pub mime_type: Option<String>,
+    pub audio_source: Option<Box<SpeechTranscriptionAudioSource>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AudioSeparation {
+    pub vocals_artifact_id: Option<String>,
+    pub background_artifact_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -8292,6 +8325,9 @@ pub struct LocalAppScenarioJob {
     pub transcription_text: Option<String>,
     pub interruption: Option<Box<ExecutionInterruption>>,
     pub video_face_swap_summary: Option<Box<VideoFaceSwapSummary>>,
+    pub transcription: Option<Box<SpeechTranscript>>,
+    pub audio_separation: Option<Box<AudioSeparation>>,
+    pub text_annotation: Option<Box<TextAnnotationResult>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10445,6 +10481,9 @@ pub struct ScenarioJob {
     pub effective_input_identity: Option<Box<LoadoutEffectiveInputIdentity>>,
     pub interruption: Option<Box<ExecutionInterruption>>,
     pub video_face_swap_summary: Option<Box<VideoFaceSwapSummary>>,
+    pub transcription: Option<Box<SpeechTranscript>>,
+    pub audio_separation: Option<Box<AudioSeparation>>,
+    pub text_annotation: Option<Box<TextAnnotationResult>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10468,6 +10507,8 @@ pub struct ScenarioOutput {
     pub world_generate: Option<Box<WorldGenerateResult>>,
     pub image_face_swap: Option<Box<ImageFaceSwapResult>>,
     pub video_face_swap: Option<Box<VideoFaceSwapResult>>,
+    pub audio_separate: Option<Box<AudioSeparateResult>>,
+    pub text_annotation: Option<Box<TextAnnotationResult>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10498,6 +10539,8 @@ pub struct ScenarioSpec {
     pub vision_locate: Option<Box<VisionLocateScenarioSpec>>,
     pub image_face_swap: Option<Box<ImageFaceSwapScenarioSpec>>,
     pub video_face_swap: Option<Box<VideoFaceSwapScenarioSpec>>,
+    pub audio_separate: Option<Box<AudioSeparateScenarioSpec>>,
+    pub text_annotate: Option<Box<TextAnnotateScenarioSpec>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10827,6 +10870,7 @@ pub struct SpeechSynthesizeScenarioSpec {
 pub struct SpeechTranscribeResult {
     pub text: Option<String>,
     pub artifacts: Vec<Box<ScenarioArtifact>>,
+    pub transcription: Option<Box<SpeechTranscript>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10839,6 +10883,21 @@ pub struct SpeechTranscribeScenarioSpec {
     pub prompt: Option<String>,
     pub audio_source: Option<Box<SpeechTranscriptionAudioSource>>,
     pub response_format: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SpeechTranscript {
+    pub status: Option<SpeechTranscriptStatus>,
+    pub text: Option<String>,
+    pub language: Option<String>,
+    pub words: Vec<Box<SpeechTranscriptWord>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SpeechTranscriptWord {
+    pub text: Option<String>,
+    pub start_seconds: Option<f64>,
+    pub end_seconds: Option<f64>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -11025,6 +11084,8 @@ pub struct SubmitLocalAppScenarioJobRequest {
     pub vision_locate: Option<Box<VisionLocateScenarioSpec>>,
     pub image_face_swap: Option<Box<ImageFaceSwapScenarioSpec>>,
     pub video_face_swap: Option<Box<VideoFaceSwapScenarioSpec>>,
+    pub audio_separate: Option<Box<AudioSeparateScenarioSpec>>,
+    pub text_annotate: Option<Box<TextAnnotateScenarioSpec>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -11200,6 +11261,42 @@ pub struct TestConnectorRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct TestConnectorResponse {
     pub ack: Option<Box<Ack>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct TextAnnotateScenarioSpec {
+    pub language: Option<String>,
+    pub texts: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct TextAnnotationDocument {
+    pub text: Option<String>,
+    pub language: Option<String>,
+    pub tokens: Vec<Box<TextAnnotationToken>>,
+    pub sentences: Vec<Box<TextAnnotationSentence>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct TextAnnotationResult {
+    pub documents: Vec<Box<TextAnnotationDocument>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct TextAnnotationSentence {
+    pub start_token: Option<u32>,
+    pub end_token: Option<u32>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct TextAnnotationToken {
+    pub text: Option<String>,
+    pub start: Option<u32>,
+    pub end: Option<u32>,
+    pub head_index: Option<u32>,
+    pub part_of_speech: Option<String>,
+    pub dependency: Option<String>,
+    pub is_punctuation: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

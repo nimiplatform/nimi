@@ -43,6 +43,8 @@ func validateBaseRequestWithOptions(appID string, subjectUserID string, modelID 
 
 func scenarioTargetCapability(scenarioType runtimev1.ScenarioType) string {
 	switch scenarioType {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_ANNOTATE:
+		return "text.annotate"
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_FACE_SWAP:
 		return "video.face_swap"
 	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_FACE_SWAP:
@@ -63,6 +65,8 @@ func scenarioTargetCapability(scenarioType runtimev1.ScenarioType) string {
 		return "voice.create"
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
 		return "audio.transcribe"
+	case runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SEPARATE:
+		return "audio.separate"
 	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
 		return "music.generate"
 	case runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:

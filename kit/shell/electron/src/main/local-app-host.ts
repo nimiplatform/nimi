@@ -1,3 +1,5 @@
+import { validateNimiLocalAppTextAnnotationResult } from '@nimiplatform/kit/core/sdk-contract';
+import { validateNimiLocalAppSpeechTranscript, validateNimiLocalAppAudioSeparation } from '@nimiplatform/kit/core/sdk-contract';
 import { loadNimiElectronProtectedLocalPackage } from './protected-local-binding-loader.js';
 
 const WINDOWS_X64_BINDING_PACKAGE = '@nimiplatform/kit-protected-local-win32-x64';
@@ -550,6 +552,12 @@ export type NimiElectronLocalAppMaintenanceFailure = {
 };
 
 const LOCAL_APP_SESSION_ROTATION_INTERVAL_MS = 5 * 60 * 1_000;
+const sessionReadyObservers = new WeakMap<NimiElectronLocalAppHost, Set<() => void>>();
+
+function notifySessionReady(host: NimiElectronLocalAppHost): void {
+  for (const notify of sessionReadyObservers.get(host) ?? []) notify();
+}
+
 const LOCAL_APP_SESSION_REBIND_TIMEOUT_MS = 2_000;
 const LOCAL_APP_SESSION_INVALID_REASONS: ReadonlySet<string> = new Set([
   'runtime-unauthenticated',
@@ -605,6 +613,7 @@ export class NimiElectronLocalAppHostError extends Error {
 function withBoundedSessionRebind(
   binding: NimiElectronProtectedLocalBinding,
   onSessionChange: () => void,
+  onSessionReady: () => void,
 ): NimiElectronProtectedLocalBinding {
   let rebindInFlight: Promise<NativeLocalAppOutcome> | undefined;
   const renew = (): Promise<NativeLocalAppOutcome> => {
@@ -629,12 +638,16 @@ function withBoundedSessionRebind(
         if (!isSessionInvalidOutcome(first)) {
           return first;
         }
+        console.warn('[nimi-shell] local App session invalidated', {
+          method: property, reasonCode: first.reasonCode, retryable: first.retryable,
+        });
         // Old App-owned work must stop even when the subsequent rebind fails.
         onSessionChange();
         const rebound = await renew();
         if (!isReadySessionOutcome(rebound)) {
           return rebound.status === 'error' ? rebound : untrustedNativeOutcome();
         }
+        onSessionReady();
         if (!LOCAL_APP_BINDING_RETRY_SAFE_METHODS.has(property)) {
           return first;
         }
@@ -663,7 +676,7 @@ async function boundedSessionRenew(
   }
 }
 
-function isSessionInvalidOutcome(outcome: NativeLocalAppOutcome): boolean {
+function isSessionInvalidOutcome(outcome: NativeLocalAppOutcome): outcome is Extract<NativeLocalAppOutcome, { status: 'error' }> {
   return outcome?.status === 'error' && LOCAL_APP_SESSION_INVALID_REASONS.has(outcome.reasonCode);
 }
 
@@ -694,21 +707,31 @@ function untrustedNativeOutcome(): NativeLocalAppOutcome {
 
 class ElectronLocalAppHost implements NimiElectronLocalAppHost {
   private readonly binding: NimiElectronProtectedLocalBinding;
+  private readonly onSessionReady: () => void;
   private readonly textTurnStreams = new Map<string, { sequence: bigint }>();
 
-  constructor(binding: NimiElectronProtectedLocalBinding, onSessionChange: () => void = () => undefined) {
-    this.binding = withBoundedSessionRebind(binding, onSessionChange);
+  constructor(
+    binding: NimiElectronProtectedLocalBinding,
+    onSessionChange: () => void = () => undefined,
+    onSessionReady: () => void = () => undefined,
+  ) {
+    this.onSessionReady = () => { notifySessionReady(this); onSessionReady(); };
+    this.binding = withBoundedSessionRebind(binding, onSessionChange, this.onSessionReady);
   }
 
-  sessionStatus(): Promise<NimiElectronLocalAppRecord> {
-    return invokeRecord(() => this.binding.localAppSessionStatus());
+  async sessionStatus(): Promise<NimiElectronLocalAppRecord> {
+    const status = await invokeRecord(() => this.binding.localAppSessionStatus());
+    if (status.state === 'ready') this.onSessionReady();
+    return status;
   }
 
   async renewTechnicalSession(): Promise<NimiElectronLocalAppRecord> {
     // @nimi-authority: rule.nimi.runtime.protected-session.r016
     // Runtime only renews a live session after revalidating the same context.
     // A successful renewal preserves resources and App-owned work.
-    return invokeRecord(() => this.binding.localAppSessionRenew());
+    const status = await invokeRecord(() => this.binding.localAppSessionRenew());
+    if (status.state === 'ready') this.onSessionReady();
+    return status;
   }
 
   aiConfigGet(): Promise<NimiElectronLocalAppRecord> {
@@ -1194,7 +1217,7 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
   constructor(private readonly onSessionChange: () => void = () => undefined) {}
 
   private resolve(): NimiElectronLocalAppHost {
-    this.host ??= new ElectronLocalAppHost(loadPlatformBinding(), this.onSessionChange);
+    this.host ??= new ElectronLocalAppHost(loadPlatformBinding(), this.onSessionChange, () => notifySessionReady(this));
     return this.host;
   }
 
@@ -1533,23 +1556,28 @@ export function startNimiElectronLocalAppHostMaintenance(
   let failed = false;
   let rotating = false;
   let timer: ReturnType<typeof setInterval> | undefined;
-  const close = () => {
-    closed = true;
+  const stopTimer = () => {
     if (timer !== undefined) clearInterval(timer);
     timer = undefined;
+  };
+  const close = () => {
+    closed = true;
+    stopTimer();
+    observers.delete(recover);
+    if (observers.size === 0) sessionReadyObservers.delete(host);
   };
   const fail = (error: unknown) => {
     if (failed) return;
     failed = true;
-    close();
+    stopTimer();
     const failure = error instanceof NimiElectronLocalAppHostError
       ? { reasonCode: error.reasonCode, retryable: error.retryable }
       : { reasonCode: 'runtime-service-untrusted', retryable: false };
+    console.warn('[nimi-shell] local App session maintenance paused', failure);
     try {
       onFailure(Object.freeze(failure));
     } catch {
-      // The protected bridge is already closed by the owner callback. A shell
-      // lifecycle callback cannot turn failed renewal back into a live session.
+      // Reporting failure cannot make the rejected session live again.
     }
   };
   const rotate = async () => {
@@ -1563,10 +1591,20 @@ export function startNimiElectronLocalAppHostMaintenance(
       rotating = false;
     }
   };
-  const ready = primeNimiElectronLocalAppHost(host).then(() => {
-    if (closed) return;
+  // @nimi-authority: rule.nimi.runtime.protected-session.r016
+  // A failed renewal pauses maintenance. Only a later successful Host session
+  // operation resumes it; no background retry or old App work is replayed.
+  const recover = () => {
+    if (closed || timer !== undefined) return;
+    failed = false;
     timer = setInterval(() => void rotate(), intervalMs);
     timer.unref?.();
+  };
+  const observers = sessionReadyObservers.get(host) ?? new Set<() => void>();
+  observers.add(recover);
+  sessionReadyObservers.set(host, observers);
+  const ready = primeNimiElectronLocalAppHost(host).then(() => {
+    recover();
   }, (error: unknown) => {
     fail(error);
     throw error;
@@ -1867,6 +1905,9 @@ function validateScenarioJob(value: unknown): NimiElectronLocalAppRecord {
     'jobId', 'scenarioType', 'status', 'progressPercent', 'progressCurrentStep',
     'progressTotalSteps', 'reasonCode', 'reasonDetail', 'artifacts', 'traceId',
     'createdAt', 'updatedAt', 'transcriptionText',
+    ...(Object.hasOwn(value, 'transcription') ? ['transcription'] : []),
+    ...(Object.hasOwn(value, 'textAnnotation') ? ['textAnnotation'] : []),
+    ...(Object.hasOwn(value, 'audioSeparation') ? ['audioSeparation'] : []),
     ...(Object.hasOwn(value, 'interruption') ? ['interruption'] : []),
     ...(Object.hasOwn(value, 'videoFaceSwapSummary') ? ['videoFaceSwapSummary'] : []),
   ])) throw untrustedRuntimeError();
@@ -1877,7 +1918,7 @@ function validateScenarioJob(value: unknown): NimiElectronLocalAppRecord {
     'image-generate',
     'video-generate',
     'speech-synthesize',
-    'speech-transcribe',
+    'speech-transcribe', 'text-annotate', 'audio-separate',
     'voice-create',
     'music-generate',
     'world-generate',
@@ -1895,7 +1936,17 @@ function validateScenarioJob(value: unknown): NimiElectronLocalAppRecord {
   const interruption = value.interruption;
   if ((interruption !== undefined) !== (value.reasonCode === 'ai-execution-interrupted') || (interruption !== undefined && value.status !== 'failed')) throw untrustedRuntimeError();
   if (interruption !== undefined && (!isPlainRecord(interruption) || !hasExactKeys(interruption, ['cause', 'resubmitDisposition']) || interruption.cause !== 'runtime-restart' || interruption.resubmitDisposition !== 'caller-may-resubmit')) throw untrustedRuntimeError();
+  const transcription = value.transcription === undefined ? undefined : validateNimiLocalAppSpeechTranscript(value.transcription);
+  if (transcription && (value.scenarioType !== 'speech-transcribe' || value.status !== 'completed' || transcription.text !== value.transcriptionText)) throw untrustedRuntimeError();
+  const artifacts = validateScenarioArtifacts(value.artifacts);
+  if ((value.audioSeparation !== undefined) !== (value.scenarioType === 'audio-separate' && value.status === 'completed')) throw untrustedRuntimeError();
+  if ((value.textAnnotation !== undefined) !== (value.scenarioType === 'text-annotate' && value.status === 'completed')) throw untrustedRuntimeError();
+  const textAnnotation = value.textAnnotation === undefined ? undefined : validateNimiLocalAppTextAnnotationResult(value.textAnnotation);
+  const audioSeparation = value.audioSeparation === undefined ? undefined : validateNimiLocalAppAudioSeparation(value.audioSeparation, artifacts);
   return Object.freeze({
+    ...(textAnnotation ? { textAnnotation } : {}),
+    ...(audioSeparation ? { audioSeparation } : {}),
+    ...(transcription ? { transcription } : {}),
     ...(videoFaceSwapSummary ? { videoFaceSwapSummary } : {}),
     ...(interruption !== undefined ? { interruption: Object.freeze({ ...(interruption as Record<string, unknown>) }) } : {}),
     jobId: boundedExactText(value.jobId, 128, false),
@@ -1906,11 +1957,11 @@ function validateScenarioJob(value: unknown): NimiElectronLocalAppRecord {
     progressTotalSteps,
     reasonCode: boundedExactText(value.reasonCode, 128, true),
     reasonDetail: boundedExactText(value.reasonDetail, 1024, true),
-    artifacts: validateScenarioArtifacts(value.artifacts),
+    artifacts,
     traceId: boundedExactText(value.traceId, 512, true),
     createdAt: validateTimestamp(value.createdAt),
     updatedAt: validateTimestamp(value.updatedAt),
-    transcriptionText: boundedUtf8Content(value.transcriptionText, 256 * 1024, true),
+    transcriptionText: boundedUtf8Content(value.transcriptionText, 1 << 20, true),
   }) as NimiElectronLocalAppRecord;
 }
 
