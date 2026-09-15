@@ -247,7 +247,10 @@ type ${base}Request struct {
   }).join('\n\n');
   const realmMethods = realm.operations.map((operation) => {
     const base = realmOperationTypeBase(operation.operation_id);
-    const responseType = goOpenApiType(openApiSuccessSchema(operation));
+    const responseSchema = openApiSuccessSchema(operation);
+    const responseType = responseSchema?.nullable === true
+      ? goOpenApiFieldType(responseSchema)
+      : goOpenApiType(responseSchema);
     return `func (c RealmTypedClient) ${pascalCase(operation.operation_id)}(ctx context.Context, request ${base}Request, metadata sdkstypes.CoreMetadata, timeoutMS int64) (${responseType}, error) {
 	raw, err := c.operationTyped(ctx, ${quote(operation.operation_id)}, request, metadata, timeoutMS)
 	if err != nil {

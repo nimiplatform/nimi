@@ -591,6 +591,12 @@ components:
         - assetId
         - sortOrder
       type: object
+    BundleStatus:
+      enum:
+        - DRAFT
+        - PUBLISHED
+        - ARCHIVED
+      type: string
     CanDmResultDto:
       properties:
         canDm:
@@ -1594,6 +1600,14 @@ components:
             - DENY
             - INHERIT
           type: string
+        operationId:
+          description: >-
+            Stable operation identity scoped to the authenticated account. Reuse
+            it to retry this clone; use a new identity to intentionally create
+            another clone.
+          maxLength: 128
+          minLength: 1
+          type: string
         ownerId:
           type: string
         transferPolicy:
@@ -1607,6 +1621,8 @@ components:
             - $ref: '#/components/schemas/UsePolicyDto'
           nullable: true
           type: object
+      required:
+        - operationId
       type: object
     ConnectDashboardLinkDto:
       properties:
@@ -1648,6 +1664,14 @@ components:
             - WORK
             - ITEM
           type: string
+        operationId:
+          description: >-
+            Stable operation identity scoped to the authenticated account. Reuse
+            it to retry this creation; use a new identity to intentionally
+            create another asset.
+          maxLength: 128
+          minLength: 1
+          type: string
         originKind:
           enum:
             - ORIGINAL
@@ -1682,6 +1706,7 @@ components:
           nullable: true
           type: object
       required:
+        - operationId
         - kind
         - originKind
         - transferPolicy
@@ -3682,6 +3707,18 @@ components:
         - display_name
         - realm_environment_id
       type: object
+    OwnableAssetKind:
+      enum:
+        - WORK
+        - ITEM
+      type: string
+    OwnableAssetStatus:
+      enum:
+        - DRAFT
+        - READY
+        - ARCHIVED
+        - DELETED
+      type: string
     PPSlotConfigDto:
       properties:
         slot1:
@@ -4489,6 +4526,11 @@ components:
         - bodyKind
         - contentType
       type: object
+    ResourceControllerKind:
+      enum:
+        - ACCOUNT
+        - WORLD
+      type: string
     ResourceDetailDto:
       properties:
         controllerId:
@@ -4679,8 +4721,13 @@ components:
           items:
             $ref: '#/components/schemas/ResourceDetailDto'
           type: array
+        nextCursor:
+          description: Opaque cursor for the next page.
+          nullable: true
+          type: string
       required:
         - items
+        - nextCursor
       type: object
     ResourceMultipartDirectUploadTransportDto:
       additionalProperties: false
@@ -4700,6 +4747,20 @@ components:
         - bodyKind
         - formField
       type: object
+    ResourceStatus:
+      enum:
+        - PENDING
+        - READY
+        - FAILED
+        - DELETED
+      type: string
+    ResourceType:
+      enum:
+        - IMAGE
+        - VIDEO
+        - AUDIO
+        - TEXT
+      type: string
     RevenueDistributionPreviewDto:
       properties:
         isWorldOwned:
@@ -5157,8 +5218,6 @@ components:
       type: object
     StartChatInputDto:
       properties:
-        asFriendRequest:
-          type: boolean
         payload:
           description: >-
             Canonical attachment writes use payload.attachment with targetType
@@ -7675,7 +7734,15 @@ components:
         iconUrl:
           nullable: true
           type: string
+        unavailableResourceRefs:
+          description: >-
+            Declared World Resource references that cannot currently be publicly
+            projected. Summary lists retain the World and its available media.
+          items:
+            type: string
+          type: array
       required:
+        - unavailableResourceRefs
         - highlightUrls
       type: object
     WorldPublicSceneCountsDto:
@@ -8204,7 +8271,26 @@ paths:
   /api/assets:
     get:
       operationId: listAssets
-      parameters: []
+      parameters:
+        - in: query
+          name: kind
+          required: false
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/OwnableAssetKind'
+        - in: query
+          name: status
+          required: false
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/OwnableAssetStatus'
+        - in: query
+          name: take
+          required: false
+          schema:
+            maximum: 100
+            minimum: 1
+            type: integer
       responses:
         '200':
           content:
@@ -8233,6 +8319,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/AssetDetailDto'
           description: ''
+        '409':
+          description: >-
+            The account operation identity was already used for a different
+            creation request
       security:
         - bearer: []
       summary: Create ownable asset
@@ -8328,6 +8418,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/AssetDetailDto'
           description: ''
+        '409':
+          description: >-
+            The account operation identity was already used for a different
+            creation request
       security:
         - bearer: []
       summary: Clone ownable asset
@@ -9473,7 +9567,20 @@ paths:
   /api/bundles:
     get:
       operationId: listBundles
-      parameters: []
+      parameters:
+        - in: query
+          name: status
+          required: false
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BundleStatus'
+        - in: query
+          name: take
+          required: false
+          schema:
+            maximum: 100
+            minimum: 1
+            type: integer
       responses:
         '200':
           content:
@@ -10716,8 +10823,8 @@ paths:
     get:
       description: >-
         Returns separate current-account capabilities: explicit administrator
-        authorization for world creation and subscription eligibility for
-        Persona creation.
+        authorization for world creation and Persona creation without a
+        subscription requirement.
       operationId: getMyCreatorEligibility
       parameters: []
       responses:
@@ -12164,7 +12271,54 @@ paths:
   /api/resources:
     get:
       operationId: listResources
-      parameters: []
+      parameters:
+        - in: query
+          name: resourceType
+          required: false
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ResourceType'
+        - in: query
+          name: worldId
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: sourceRef
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: controllerKind
+          required: false
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ResourceControllerKind'
+        - in: query
+          name: controllerId
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: status
+          required: false
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ResourceStatus'
+        - in: query
+          name: take
+          required: false
+          schema:
+            maximum: 100
+            minimum: 1
+            type: integer
+        - description: Opaque nextCursor from the preceding page.
+          in: query
+          name: cursor
+          required: false
+          schema:
+            maxLength: 2048
+            type: string
       responses:
         '200':
           content:
@@ -13057,7 +13211,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TransitDetailDto'
+                allOf:
+                  - $ref: '#/components/schemas/TransitDetailDto'
+                nullable: true
+                type: object
           description: ''
       security:
         - bearer: []

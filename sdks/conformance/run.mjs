@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { cpSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
@@ -89,7 +89,7 @@ function runGoBehavior() {
       'test',
       './coregenerated',
       '-run',
-      '^(TestGeneratedRuntimeOptionalScalarAndEnumPresence|TestRealmRequiredNullableScalarPreservesNullAndRejectsMissingOrWrongScalar|TestTypedRuntimeClientsPreserveRequestsAndTransportBehavior|TestSourceMaterializationPacketV3SemanticPayloadDiscriminatorFailsClosed)$',
+      '^(TestGeneratedRuntimeOptionalScalarAndEnumPresence|TestRealmRequiredNullableScalarPreservesNullAndRejectsMissingOrWrongScalar|TestRealmNullableResponsePreservesAbsentAndPresentTransit|TestTypedRuntimeClientsPreserveRequestsAndTransportBehavior|TestSourceMaterializationPacketV3SemanticPayloadDiscriminatorFailsClosed)$',
     ], {
       cwd: dir,
       stdio: 'inherit',
@@ -101,41 +101,7 @@ function runGoBehavior() {
 }
 
 function runRustBehavior() {
-  const dir = mkdtempSync(path.join(tmpdir(), 'sdks-rust-conformance-'));
-  try {
-    cpSync(path.join(repoRoot, 'sdks/rust/core_client'), path.join(dir, 'core_client'), { recursive: true });
-    cpSync(path.join(repoRoot, 'sdks/rust/core_generated'), path.join(dir, 'core_generated'), { recursive: true });
-    cpSync(path.join(repoRoot, 'sdks/rust/realm'), path.join(dir, 'realm'), { recursive: true });
-    cpSync(path.join(repoRoot, 'sdks/rust/runtime'), path.join(dir, 'runtime'), { recursive: true });
-    cpSync(path.join(repoRoot, 'sdks/rust/types'), path.join(dir, 'types'), { recursive: true });
-    cpSync(path.join(repoRoot, 'sdks/conformance/behavior/rust.rs'), path.join(dir, 'behavior.rs'));
-    writeFileSync(
-      path.join(dir, 'lib.rs'),
-      [
-        'pub mod core_client;',
-        'pub mod core_generated;',
-        'pub mod realm;',
-        'pub mod runtime;',
-        'pub mod types;',
-        '#[cfg(test)] mod behavior { include!("behavior.rs"); }',
-        '',
-      ].join('\n'),
-      'utf8',
-    );
-    const outputName = process.platform === 'win32' ? 'sdks_rust_behavior_test.exe' : 'sdks_rust_behavior_test';
-    const outputPath = path.join(dir, outputName);
-    execFileSync('rustc', ['--crate-type', 'lib', '--test', path.join(dir, 'lib.rs'), '-o', outputPath], {
-      cwd: dir,
-      stdio: 'inherit',
-    });
-    execFileSync(outputPath, [], {
-      cwd: dir,
-      stdio: 'inherit',
-      env: process.env,
-    });
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
+  run('cargo', ['test', '--manifest-path', 'sdks/rust/Cargo.toml']);
 }
 
 function runBehavior(language) {

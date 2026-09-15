@@ -90,6 +90,25 @@ test('Rust Realm required string path encoders reject empty values with a typed 
   assert.match(rendered, /operation_id: "readById"/u);
   assert.match(rendered, /field: "path\.id"/u);
   assert.doesNotMatch(rendered, /panic!/u);
+  assert.doesNotMatch(rendered, /pairs/u);
+});
+
+test('Rust Realm required query encoders reject missing values with a typed error', () => {
+  const lines = renderRustRealmRequestEncoders(operation('search', {
+    query_parameters: [{
+      name: 'handle',
+      required: true,
+      schema: { kind: 'scalar', type: 'string', nullable: false },
+    }],
+  }));
+
+  assert.ok(lines);
+  const rendered = lines.join('\n');
+  assert.match(rendered, /request\.query\.handle\.is_none\(\)/u);
+  assert.match(rendered, /RealmTypedClientError::RequestEncode/u);
+  assert.match(rendered, /operation_id: "search"/u);
+  assert.match(rendered, /field: "query\.handle"/u);
+  assert.doesNotMatch(rendered, /pairs/u);
 });
 
 test('Rust Runtime typed admission excludes unsupported fields and streaming kinds', () => {

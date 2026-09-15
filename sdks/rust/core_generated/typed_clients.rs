@@ -6,72 +6,42 @@ use std::collections::BTreeMap;
 use crate::core_client::{CoreClient, CoreTransport};
 use crate::types::{CoreMetadata, CoreStreamRequest, CoreUnaryRequest};
 
-fn parse_pairs(raw: &[u8]) -> BTreeMap<String, String> {
-    let text = String::from_utf8_lossy(raw);
-    let mut out = BTreeMap::new();
-    for pair in text.split(';') {
-        if pair.is_empty() {
-            continue;
-        }
-        if let Some((key, value)) = pair.split_once('=') {
-            out.insert(key.to_string(), value.to_string());
-        }
-    }
-    out
-}
-
-fn parse_repeated_string(raw: &[u8], target_key: &str) -> Vec<String> {
-    let text = String::from_utf8_lossy(raw);
-    let mut out = Vec::new();
-    for pair in text.split(';') {
-        if pair.is_empty() {
-            continue;
-        }
-        if let Some((key, value)) = pair.split_once('=') {
-            if key != target_key {
-                continue;
-            }
-            for item in value.split(',') {
-                let trimmed = item.trim();
-                if !trimmed.is_empty() {
-                    out.push(trimmed.to_string());
-                }
-            }
-        }
-    }
-    out
-}
-
-fn push_nested_pairs(out: &mut Vec<String>, field_name: &str, raw: &[u8]) {
-    let text = String::from_utf8_lossy(raw);
-    for pair in text.split(';') {
-        if !pair.is_empty() {
-            out.push(format!("{}.{}", field_name, pair));
-        }
+fn json_object<E>(raw: &[u8], error: E) -> Result<serde_json::Map<String, serde_json::Value>, E> {
+    match serde_json::from_slice::<serde_json::Value>(raw) {
+        Ok(serde_json::Value::Object(object)) => Ok(object),
+        _ => Err(error),
     }
 }
 
-fn extract_nested_pairs(raw: &[u8], field_name: &str) -> Option<Vec<u8>> {
-    let prefix = format!("{}.", field_name);
-    let text = String::from_utf8_lossy(raw);
-    let pairs: Vec<String> = text
-        .split(';')
-        .filter_map(|pair| pair.strip_prefix(&prefix).map(str::to_string))
-        .collect();
-    if pairs.is_empty() {
-        None
-    } else {
-        Some(pairs.join(";").into_bytes())
-    }
+#[derive(Clone, Debug, PartialEq)]
+pub struct RuntimeResponseDecodeError {
+    pub type_name: &'static str,
+    pub field: &'static str,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, PartialEq)]
+pub enum RuntimeTypedClientError<E> {
+    Transport(E),
+    ResponseDecode {
+        method_id: &'static str,
+        type_name: &'static str,
+        field: &'static str,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
 pub enum AccountCallerMode {
+    #[serde(rename = "ACCOUNT_CALLER_MODE_UNSPECIFIED")]
     ACCOUNTCALLERMODEUNSPECIFIED,
+    #[serde(rename = "ACCOUNT_CALLER_MODE_DESKTOP_SHELL")]
     ACCOUNTCALLERMODEDESKTOPSHELL,
+    #[serde(rename = "ACCOUNT_CALLER_MODE_AVATAR_NATIVE_HOST")]
     ACCOUNTCALLERMODEAVATARNATIVEHOST,
+    #[serde(rename = "ACCOUNT_CALLER_MODE_WEB_CLOUD")]
     ACCOUNTCALLERMODEWEBCLOUD,
+    #[serde(rename = "ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL")]
     ACCOUNTCALLERMODEEXTERNALPRINCIPAL,
+    #[serde(rename = "ACCOUNT_CALLER_MODE_LOCAL_APP")]
     ACCOUNTCALLERMODELOCALAPP,
 }
 
@@ -129,42 +99,77 @@ impl Default for AccountEventType {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
 pub enum AccountReasonCode {
+    #[serde(rename = "ACCOUNT_REASON_CODE_UNSPECIFIED")]
     ACCOUNTREASONCODEUNSPECIFIED,
+    #[serde(rename = "ACCOUNT_REASON_CODE_ACTION_EXECUTED")]
     ACCOUNTREASONCODEACTIONEXECUTED,
+    #[serde(rename = "ACCOUNT_REASON_CODE_INERT_NOT_ACTIVATED")]
     ACCOUNTREASONCODEINERTNOTACTIVATED,
+    #[serde(rename = "ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE")]
     ACCOUNTREASONCODECUSTODYUNAVAILABLE,
+    #[serde(rename = "ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE")]
     ACCOUNTREASONCODEACCOUNTUNAVAILABLE,
+    #[serde(rename = "ACCOUNT_REASON_CODE_PROOF_EXPIRED")]
     ACCOUNTREASONCODEPROOFEXPIRED,
+    #[serde(rename = "ACCOUNT_REASON_CODE_PROOF_MISMATCHED")]
     ACCOUNTREASONCODEPROOFMISMATCHED,
+    #[serde(rename = "ACCOUNT_REASON_CODE_PROOF_CONSUMED")]
     ACCOUNTREASONCODEPROOFCONSUMED,
+    #[serde(rename = "ACCOUNT_REASON_CODE_PROOF_UNSUPPORTED")]
     ACCOUNTREASONCODEPROOFUNSUPPORTED,
+    #[serde(rename = "ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED")]
     ACCOUNTREASONCODEREFRESHREUSEDETECTED,
+    #[serde(rename = "ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED")]
     ACCOUNTREASONCODECALLERUNAUTHORIZED,
+    #[serde(rename = "ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE")]
     ACCOUNTREASONCODELOGINEXCHANGEUNAVAILABLE,
+    #[serde(rename = "ACCOUNT_REASON_CODE_PRESENCE_VERIFICATION_UNAVAILABLE")]
     ACCOUNTREASONCODEPRESENCEVERIFICATIONUNAVAILABLE,
+    #[serde(rename = "ACCOUNT_REASON_CODE_BROKER_OPERATION_NOT_ADMITTED")]
     ACCOUNTREASONCODEBROKEROPERATIONNOTADMITTED,
+    #[serde(rename = "ACCOUNT_REASON_CODE_BROKER_CAPABILITY_MISSING")]
     ACCOUNTREASONCODEBROKERCAPABILITYMISSING,
+    #[serde(rename = "ACCOUNT_REASON_CODE_BROKER_REALM_BASE_DENIED")]
     ACCOUNTREASONCODEBROKERREALMBASEDENIED,
+    #[serde(rename = "ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID")]
     ACCOUNTREASONCODEBROKERREQUESTINVALID,
+    #[serde(rename = "ACCOUNT_REASON_CODE_BROKER_RESPONSE_TOO_LARGE")]
     ACCOUNTREASONCODEBROKERRESPONSETOOLARGE,
+    #[serde(rename = "ACCOUNT_REASON_CODE_BROKER_CREDENTIAL_RESPONSE_FORBIDDEN")]
     ACCOUNTREASONCODEBROKERCREDENTIALRESPONSEFORBIDDEN,
+    #[serde(rename = "ACCOUNT_REASON_CODE_CALLER_ENVELOPE_MISMATCH")]
     ACCOUNTREASONCODECALLERENVELOPEMISMATCH,
+    #[serde(rename = "ACCOUNT_REASON_CODE_LAUNCH_NONCE_REPLAY")]
     ACCOUNTREASONCODELAUNCHNONCEREPLAY,
+    #[serde(rename = "ACCOUNT_REASON_CODE_BROKER_REALM_UNAVAILABLE")]
     ACCOUNTREASONCODEBROKERREALMUNAVAILABLE,
+    #[serde(rename = "ACCOUNT_REASON_CODE_BROKER_AUTH_INVALID")]
     ACCOUNTREASONCODEBROKERAUTHINVALID,
+    #[serde(rename = "ACCOUNT_REASON_CODE_BROKER_FORBIDDEN")]
     ACCOUNTREASONCODEBROKERFORBIDDEN,
+    #[serde(rename = "ACCOUNT_REASON_CODE_BROKER_NOT_FOUND")]
     ACCOUNTREASONCODEBROKERNOTFOUND,
+    #[serde(rename = "ACCOUNT_REASON_CODE_BROKER_CONFLICT")]
     ACCOUNTREASONCODEBROKERCONFLICT,
+    #[serde(rename = "ACCOUNT_REASON_CODE_BROKER_RATE_LIMITED")]
     ACCOUNTREASONCODEBROKERRATELIMITED,
+    #[serde(rename = "ACCOUNT_REASON_CODE_BROKER_REQUEST_REJECTED")]
     ACCOUNTREASONCODEBROKERREQUESTREJECTED,
+    #[serde(rename = "ACCOUNT_REASON_CODE_BROKER_CONTRACT_FAILED")]
     ACCOUNTREASONCODEBROKERCONTRACTFAILED,
+    #[serde(rename = "ACCOUNT_REASON_CODE_BROKER_OPERATION_FAILED")]
     ACCOUNTREASONCODEBROKEROPERATIONFAILED,
+    #[serde(rename = "ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED")]
     ACCOUNTREASONCODEREFRESHRETRYDEFERRED,
+    #[serde(rename = "ACCOUNT_REASON_CODE_REFRESH_TOKEN_INVALID")]
     ACCOUNTREASONCODEREFRESHTOKENINVALID,
+    #[serde(rename = "ACCOUNT_REASON_CODE_REFRESH_CONTRACT_INVALID")]
     ACCOUNTREASONCODEREFRESHCONTRACTINVALID,
+    #[serde(rename = "ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS")]
     ACCOUNTREASONCODEREFRESHOUTCOMEAMBIGUOUS,
+    #[serde(rename = "ACCOUNT_REASON_CODE_ACCOUNT_DELETED")]
     ACCOUNTREASONCODEACCOUNTDELETED,
 }
 
@@ -266,17 +271,27 @@ impl Default for AccountSessionDeliveryKind {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
 pub enum AccountSessionState {
+    #[serde(rename = "ACCOUNT_SESSION_STATE_UNSPECIFIED")]
     ACCOUNTSESSIONSTATEUNSPECIFIED,
+    #[serde(rename = "ACCOUNT_SESSION_STATE_ANONYMOUS")]
     ACCOUNTSESSIONSTATEANONYMOUS,
+    #[serde(rename = "ACCOUNT_SESSION_STATE_LOGIN_PENDING")]
     ACCOUNTSESSIONSTATELOGINPENDING,
+    #[serde(rename = "ACCOUNT_SESSION_STATE_AUTHENTICATED")]
     ACCOUNTSESSIONSTATEAUTHENTICATED,
+    #[serde(rename = "ACCOUNT_SESSION_STATE_REFRESH_PENDING")]
     ACCOUNTSESSIONSTATEREFRESHPENDING,
+    #[serde(rename = "ACCOUNT_SESSION_STATE_EXPIRED")]
     ACCOUNTSESSIONSTATEEXPIRED,
+    #[serde(rename = "ACCOUNT_SESSION_STATE_REAUTH_REQUIRED")]
     ACCOUNTSESSIONSTATEREAUTHREQUIRED,
+    #[serde(rename = "ACCOUNT_SESSION_STATE_SWITCHING")]
     ACCOUNTSESSIONSTATESWITCHING,
+    #[serde(rename = "ACCOUNT_SESSION_STATE_LOGGING_OUT")]
     ACCOUNTSESSIONSTATELOGGINGOUT,
+    #[serde(rename = "ACCOUNT_SESSION_STATE_UNAVAILABLE")]
     ACCOUNTSESSIONSTATEUNAVAILABLE,
 }
 
@@ -1386,11 +1401,15 @@ impl Default for DelegatedTransportKind {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
 pub enum DeveloperModeState {
+    #[serde(rename = "DEVELOPER_MODE_STATE_UNSPECIFIED")]
     DEVELOPERMODESTATEUNSPECIFIED,
+    #[serde(rename = "DEVELOPER_MODE_STATE_DISABLED")]
     DEVELOPERMODESTATEDISABLED,
+    #[serde(rename = "DEVELOPER_MODE_STATE_ENABLED")]
     DEVELOPERMODESTATEENABLED,
+    #[serde(rename = "DEVELOPER_MODE_STATE_UNAVAILABLE")]
     DEVELOPERMODESTATEUNAVAILABLE,
 }
 
@@ -1470,11 +1489,15 @@ impl Default for ExecutionResubmitDisposition {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
 pub enum ExternalPrincipalType {
+    #[serde(rename = "EXTERNAL_PRINCIPAL_TYPE_UNSPECIFIED")]
     EXTERNALPRINCIPALTYPEUNSPECIFIED,
+    #[serde(rename = "EXTERNAL_PRINCIPAL_TYPE_AGENT")]
     EXTERNALPRINCIPALTYPEAGENT,
+    #[serde(rename = "EXTERNAL_PRINCIPAL_TYPE_APP")]
     EXTERNALPRINCIPALTYPEAPP,
+    #[serde(rename = "EXTERNAL_PRINCIPAL_TYPE_SERVICE")]
     EXTERNALPRINCIPALTYPESERVICE,
 }
 
@@ -1500,9 +1523,11 @@ impl ExternalPrincipalType {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
 pub enum ExternalProofType {
+    #[serde(rename = "EXTERNAL_PROOF_TYPE_UNSPECIFIED")]
     EXTERNALPROOFTYPEUNSPECIFIED,
+    #[serde(rename = "EXTERNAL_PROOF_TYPE_JWT")]
     EXTERNALPROOFTYPEJWT,
 }
 
@@ -2293,291 +2318,575 @@ impl Default for RealtimeTerminalReason {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
 pub enum ReasonCode {
+    #[serde(rename = "REASON_CODE_UNSPECIFIED")]
     REASONCODEUNSPECIFIED,
+    #[serde(rename = "ACTION_EXECUTED")]
     ACTIONEXECUTED,
+    #[serde(rename = "PROTOCOL_ENVELOPE_INVALID")]
     PROTOCOLENVELOPEINVALID,
+    #[serde(rename = "PROTOCOL_DOMAIN_FIELD_CONFLICT")]
     PROTOCOLDOMAINFIELDCONFLICT,
+    #[serde(rename = "CAPABILITY_CATALOG_MISMATCH")]
     CAPABILITYCATALOGMISMATCH,
+    #[serde(rename = "APP_NOT_REGISTERED")]
     APPNOTREGISTERED,
+    #[serde(rename = "EXTERNAL_PRINCIPAL_NOT_REGISTERED")]
     EXTERNALPRINCIPALNOTREGISTERED,
+    #[serde(rename = "SESSION_EXPIRED")]
     SESSIONEXPIRED,
+    #[serde(rename = "PRINCIPAL_UNAUTHORIZED")]
     PRINCIPALUNAUTHORIZED,
+    #[serde(rename = "APP_AUTHORIZATION_DENIED")]
     APPAUTHORIZATIONDENIED,
+    #[serde(rename = "APP_GRANT_INVALID")]
     APPGRANTINVALID,
+    #[serde(rename = "APP_TOKEN_EXPIRED")]
     APPTOKENEXPIRED,
+    #[serde(rename = "APP_TOKEN_REVOKED")]
     APPTOKENREVOKED,
+    #[serde(rename = "APP_SCOPE_CATALOG_UNPUBLISHED")]
     APPSCOPECATALOGUNPUBLISHED,
+    #[serde(rename = "APP_DELEGATION_FORBIDDEN")]
     APPDELEGATIONFORBIDDEN,
+    #[serde(rename = "APP_DELEGATION_DEPTH_EXCEEDED")]
     APPDELEGATIONDEPTHEXCEEDED,
+    #[serde(rename = "APP_RESOURCE_SELECTOR_INVALID")]
     APPRESOURCESELECTORINVALID,
+    #[serde(rename = "APP_RESOURCE_OUT_OF_SCOPE")]
     APPRESOURCEOUTOFSCOPE,
+    #[serde(rename = "APP_CONSENT_MISSING")]
     APPCONSENTMISSING,
+    #[serde(rename = "APP_CONSENT_INVALID")]
     APPCONSENTINVALID,
+    #[serde(rename = "EXTERNAL_PRINCIPAL_PROOF_MISSING")]
     EXTERNALPRINCIPALPROOFMISSING,
+    #[serde(rename = "EXTERNAL_PRINCIPAL_PROOF_INVALID")]
     EXTERNALPRINCIPALPROOFINVALID,
+    #[serde(rename = "AI_MODEL_NOT_FOUND")]
     AIMODELNOTFOUND,
+    #[serde(rename = "AI_MODEL_NOT_READY")]
     AIMODELNOTREADY,
+    #[serde(rename = "AI_PROVIDER_UNAVAILABLE")]
     AIPROVIDERUNAVAILABLE,
+    #[serde(rename = "AI_ROUTE_UNSUPPORTED")]
     AIROUTEUNSUPPORTED,
+    #[serde(rename = "AI_ROUTE_FALLBACK_DENIED")]
     AIROUTEFALLBACKDENIED,
+    #[serde(rename = "AI_INPUT_INVALID")]
     AIINPUTINVALID,
+    #[serde(rename = "AI_OUTPUT_INVALID")]
     AIOUTPUTINVALID,
+    #[serde(rename = "AI_STREAM_BROKEN")]
     AISTREAMBROKEN,
+    #[serde(rename = "AI_CONTENT_FILTER_BLOCKED")]
     AICONTENTFILTERBLOCKED,
+    #[serde(rename = "AI_REQUEST_CREDENTIAL_REQUIRED")]
     AIREQUESTCREDENTIALREQUIRED,
+    #[serde(rename = "AI_REQUEST_CREDENTIAL_MISSING")]
     AIREQUESTCREDENTIALMISSING,
+    #[serde(rename = "AI_REQUEST_CREDENTIAL_INVALID")]
     AIREQUESTCREDENTIALINVALID,
+    #[serde(rename = "AI_REQUEST_CREDENTIAL_SCOPE_FORBIDDEN")]
     AIREQUESTCREDENTIALSCOPEFORBIDDEN,
+    #[serde(rename = "AUTH_TOKEN_INVALID")]
     AUTHTOKENINVALID,
+    #[serde(rename = "AUTH_TOKEN_EXPIRED")]
     AUTHTOKENEXPIRED,
+    #[serde(rename = "AUTH_UNSUPPORTED_PROOF_TYPE")]
     AUTHUNSUPPORTEDPROOFTYPE,
+    #[serde(rename = "AUTH_REVOCATION_UNAVAILABLE")]
     AUTHREVOCATIONUNAVAILABLE,
+    #[serde(rename = "AI_CONNECTOR_NOT_FOUND")]
     AICONNECTORNOTFOUND,
+    #[serde(rename = "AI_CONNECTOR_DISABLED")]
     AICONNECTORDISABLED,
+    #[serde(rename = "AI_CONNECTOR_CREDENTIAL_MISSING")]
     AICONNECTORCREDENTIALMISSING,
+    #[serde(rename = "AI_CONNECTOR_INVALID")]
     AICONNECTORINVALID,
+    #[serde(rename = "AI_CONNECTOR_IMMUTABLE")]
     AICONNECTORIMMUTABLE,
+    #[serde(rename = "AI_CONNECTOR_LIMIT_EXCEEDED")]
     AICONNECTORLIMITEXCEEDED,
+    #[serde(rename = "AI_CONNECTOR_ID_REQUIRED")]
     AICONNECTORIDREQUIRED,
+    #[serde(rename = "AI_LOCAL_CONNECTOR_RETIRED")]
     AILOCALCONNECTORRETIRED,
+    #[serde(rename = "AI_REQUEST_CREDENTIAL_CONFLICT")]
     AIREQUESTCREDENTIALCONFLICT,
+    #[serde(rename = "AI_APP_ID_REQUIRED")]
     AIAPPIDREQUIRED,
+    #[serde(rename = "AI_APP_ID_CONFLICT")]
     AIAPPIDCONFLICT,
+    #[serde(rename = "AI_MODEL_ID_REQUIRED")]
     AIMODELIDREQUIRED,
+    #[serde(rename = "AI_MODALITY_NOT_SUPPORTED")]
     AIMODALITYNOTSUPPORTED,
+    #[serde(rename = "AI_LOCAL_MODEL_UNAVAILABLE")]
     AILOCALMODELUNAVAILABLE,
+    #[serde(rename = "AI_LOCAL_MODEL_PROFILE_MISSING")]
     AILOCALMODELPROFILEMISSING,
+    #[serde(rename = "AI_LOCAL_MODEL_ALREADY_INSTALLED")]
     AILOCALMODELALREADYINSTALLED,
+    #[serde(rename = "AI_LOCAL_ENDPOINT_REQUIRED")]
     AILOCALENDPOINTREQUIRED,
+    #[serde(rename = "AI_LOCAL_TEMPLATE_NOT_FOUND")]
     AILOCALTEMPLATENOTFOUND,
+    #[serde(rename = "AI_LOCAL_MANIFEST_INVALID")]
     AILOCALMANIFESTINVALID,
+    #[serde(rename = "AI_LOCAL_MODEL_INVALID_TRANSITION")]
     AILOCALMODELINVALIDTRANSITION,
+    #[serde(rename = "AI_LOCAL_DOWNLOAD_FAILED")]
     AILOCALDOWNLOADFAILED,
+    #[serde(rename = "AI_LOCAL_DOWNLOAD_HASH_MISMATCH")]
     AILOCALDOWNLOADHASHMISMATCH,
+    #[serde(rename = "AI_LOCAL_HF_REPO_INVALID")]
     AILOCALHFREPOINVALID,
+    #[serde(rename = "AI_LOCAL_HF_SEARCH_FAILED")]
     AILOCALHFSEARCHFAILED,
+    #[serde(rename = "AI_LOCAL_MANIFEST_SCHEMA_INVALID")]
     AILOCALMANIFESTSCHEMAINVALID,
+    #[serde(rename = "AI_LOCAL_SERVICE_UNAVAILABLE")]
     AILOCALSERVICEUNAVAILABLE,
+    #[serde(rename = "AI_LOCAL_SERVICE_ALREADY_INSTALLED")]
     AILOCALSERVICEALREADYINSTALLED,
+    #[serde(rename = "AI_LOCAL_SERVICE_INVALID_TRANSITION")]
     AILOCALSERVICEINVALIDTRANSITION,
+    #[serde(rename = "AI_LOCAL_ASSET_ALREADY_INSTALLED")]
     AILOCALASSETALREADYINSTALLED,
+    #[serde(rename = "AI_LOCAL_ASSET_SLOT_MISSING")]
     AILOCALASSETSLOTMISSING,
+    #[serde(rename = "AI_LOCAL_ASSET_SLOT_FORBIDDEN")]
     AILOCALASSETSLOTFORBIDDEN,
+    #[serde(rename = "AI_FINISH_LENGTH")]
     AIFINISHLENGTH,
+    #[serde(rename = "AI_FINISH_CONTENT_FILTER")]
     AIFINISHCONTENTFILTER,
+    #[serde(rename = "AI_LOCAL_PROFILE_SLOT_CONFLICT")]
     AILOCALPROFILESLOTCONFLICT,
+    #[serde(rename = "AI_LOCAL_PROFILE_OVERRIDE_FORBIDDEN")]
     AILOCALPROFILEOVERRIDEFORBIDDEN,
+    #[serde(rename = "AI_LOCAL_COMPONENT_COMPATIBILITY_UNKNOWN")]
     AILOCALCOMPONENTCOMPATIBILITYUNKNOWN,
+    #[serde(rename = "AI_LOCAL_COMPONENT_INCOMPATIBLE")]
     AILOCALCOMPONENTINCOMPATIBLE,
+    #[serde(rename = "AI_MODEL_PROVIDER_MISMATCH")]
     AIMODELPROVIDERMISMATCH,
+    #[serde(rename = "AI_REMOTE_MODEL_CATALOG_ID_REQUIRED")]
     AIREMOTEMODELCATALOGIDREQUIRED,
+    #[serde(rename = "AI_REMOTE_MODEL_CATALOG_STALE")]
     AIREMOTEMODELCATALOGSTALE,
+    #[serde(rename = "AI_PROVIDER_ENDPOINT_FORBIDDEN")]
     AIPROVIDERENDPOINTFORBIDDEN,
+    #[serde(rename = "AI_PROVIDER_AUTH_FAILED")]
     AIPROVIDERAUTHFAILED,
+    #[serde(rename = "AI_PROVIDER_INTERNAL")]
     AIPROVIDERINTERNAL,
+    #[serde(rename = "AI_PROVIDER_RATE_LIMITED")]
     AIPROVIDERRATELIMITED,
+    #[serde(rename = "AI_PROVIDER_TIMEOUT")]
     AIPROVIDERTIMEOUT,
+    #[serde(rename = "AI_TEXT_BEHAVIOR_UNSUPPORTED")]
     AITEXTBEHAVIORUNSUPPORTED,
+    #[serde(rename = "AI_TEXT_BEHAVIOR_AMBIGUOUS")]
     AITEXTBEHAVIORAMBIGUOUS,
+    #[serde(rename = "AI_TEXT_OUTPUT_INCOMPLETE")]
     AITEXTOUTPUTINCOMPLETE,
+    #[serde(rename = "AI_TOOL_CALL_INVALID")]
     AITOOLCALLINVALID,
+    #[serde(rename = "AI_REASONING_CONTINUITY_INVALID")]
     AIREASONINGCONTINUITYINVALID,
+    #[serde(rename = "AI_EXECUTION_INTERRUPTED")]
     AIEXECUTIONINTERRUPTED,
+    #[serde(rename = "AI_MEDIA_SPEC_INVALID")]
     AIMEDIASPECINVALID,
+    #[serde(rename = "AI_MEDIA_OPTION_UNSUPPORTED")]
     AIMEDIAOPTIONUNSUPPORTED,
+    #[serde(rename = "AI_MEDIA_JOB_NOT_FOUND")]
     AIMEDIAJOBNOTFOUND,
+    #[serde(rename = "AI_MEDIA_JOB_NOT_CANCELLABLE")]
     AIMEDIAJOBNOTCANCELLABLE,
+    #[serde(rename = "AI_MEDIA_IDEMPOTENCY_CONFLICT")]
     AIMEDIAIDEMPOTENCYCONFLICT,
+    #[serde(rename = "AI_ARTIFACT_UPLOAD_INVALID")]
     AIARTIFACTUPLOADINVALID,
+    #[serde(rename = "AI_ARTIFACT_UPLOAD_TOO_LARGE")]
     AIARTIFACTUPLOADTOOLARGE,
+    #[serde(rename = "AI_REALTIME_SESSION_NOT_FOUND")]
     AIREALTIMESESSIONNOTFOUND,
+    #[serde(rename = "AI_REALTIME_SESSION_CLOSED")]
     AIREALTIMESESSIONCLOSED,
+    #[serde(rename = "AI_AUDIO_INPUT_TOO_LARGE")]
     AIAUDIOINPUTTOOLARGE,
+    #[serde(rename = "AI_VOICE_INPUT_INVALID")]
     AIVOICEINPUTINVALID,
+    #[serde(rename = "AI_VOICE_WORKFLOW_UNSUPPORTED")]
     AIVOICEWORKFLOWUNSUPPORTED,
+    #[serde(rename = "AI_VOICE_ASSET_NOT_FOUND")]
     AIVOICEASSETNOTFOUND,
+    #[serde(rename = "AI_VOICE_ASSET_EXPIRED")]
     AIVOICEASSETEXPIRED,
+    #[serde(rename = "AI_VOICE_ASSET_SCOPE_FORBIDDEN")]
     AIVOICEASSETSCOPEFORBIDDEN,
+    #[serde(rename = "AI_VOICE_TARGET_MODEL_MISMATCH")]
     AIVOICETARGETMODELMISMATCH,
+    #[serde(rename = "AI_MODULE_CONFIG_INVALID")]
     AIMODULECONFIGINVALID,
+    #[serde(rename = "AI_MEMORY_EMBEDDING_TARGET_REF_INVALID")]
     AIMEMORYEMBEDDINGTARGETREFINVALID,
+    #[serde(rename = "APP_SCOPE_FORBIDDEN")]
     APPSCOPEFORBIDDEN,
+    #[serde(rename = "APP_SCOPE_REVOKED")]
     APPSCOPEREVOKED,
+    #[serde(rename = "APP_MESSAGE_PAYLOAD_TOO_LARGE")]
     APPMESSAGEPAYLOADTOOLARGE,
+    #[serde(rename = "APP_MESSAGE_RATE_LIMITED")]
     APPMESSAGERATELIMITED,
+    #[serde(rename = "APP_MESSAGE_LOOP_DETECTED")]
     APPMESSAGELOOPDETECTED,
+    #[serde(rename = "AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED")]
     AILOCALSPEECHPREFLIGHTBLOCKED,
+    #[serde(rename = "AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED")]
     AILOCALSPEECHDOWNLOADCONFIRMATIONREQUIRED,
+    #[serde(rename = "AI_LOCAL_SPEECH_ENV_INIT_FAILED")]
     AILOCALSPEECHENVINITFAILED,
+    #[serde(rename = "AI_LOCAL_SPEECH_HOST_INIT_FAILED")]
     AILOCALSPEECHHOSTINITFAILED,
+    #[serde(rename = "AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED")]
     AILOCALSPEECHCAPABILITYDOWNLOADFAILED,
+    #[serde(rename = "AI_LOCAL_SPEECH_BUNDLE_DEGRADED")]
     AILOCALSPEECHBUNDLEDEGRADED,
+    #[serde(rename = "APP_STORAGE_PATH_INVALID")]
     APPSTORAGEPATHINVALID,
+    #[serde(rename = "APP_STORAGE_ENTRY_NOT_FOUND")]
     APPSTORAGEENTRYNOTFOUND,
+    #[serde(rename = "APP_STORAGE_QUOTA_EXCEEDED")]
     APPSTORAGEQUOTAEXCEEDED,
+    #[serde(rename = "APP_STORAGE_UNAVAILABLE")]
     APPSTORAGEUNAVAILABLE,
+    #[serde(rename = "APP_STORAGE_ENTRY_ALREADY_EXISTS")]
     APPSTORAGEENTRYALREADYEXISTS,
+    #[serde(rename = "APP_STORAGE_OBJECT_TOO_LARGE")]
     APPSTORAGEOBJECTTOOLARGE,
+    #[serde(rename = "APP_STORAGE_RANGE_INVALID")]
     APPSTORAGERANGEINVALID,
+    #[serde(rename = "APP_STORAGE_CURSOR_INVALID")]
     APPSTORAGECURSORINVALID,
+    #[serde(rename = "APP_STORAGE_INTEGRITY_FAILURE")]
     APPSTORAGEINTEGRITYFAILURE,
+    #[serde(rename = "APP_STORAGE_ARTIFACT_UNAVAILABLE")]
     APPSTORAGEARTIFACTUNAVAILABLE,
+    #[serde(rename = "APP_PACKAGE_JOB_NOT_FOUND")]
     APPPACKAGEJOBNOTFOUND,
+    #[serde(rename = "APP_PACKAGE_JOB_PHASE_CONFLICT")]
     APPPACKAGEJOBPHASECONFLICT,
+    #[serde(rename = "APP_PACKAGE_JOB_NOT_CANCELABLE")]
     APPPACKAGEJOBNOTCANCELABLE,
+    #[serde(rename = "GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND")]
     GRANTTOKENCHAINROOTNOTFOUND,
+    #[serde(rename = "GRANT_TOKEN_CHAIN_ROOT_REQUIRED")]
     GRANTTOKENCHAINROOTREQUIRED,
+    #[serde(rename = "PAGE_TOKEN_INVALID")]
     PAGETOKENINVALID,
+    #[serde(rename = "KNOWLEDGE_BANK_ALREADY_EXISTS")]
     KNOWLEDGEBANKALREADYEXISTS,
+    #[serde(rename = "KNOWLEDGE_BANK_NOT_FOUND")]
     KNOWLEDGEBANKNOTFOUND,
+    #[serde(rename = "KNOWLEDGE_BANK_SCOPE_INVALID")]
     KNOWLEDGEBANKSCOPEINVALID,
+    #[serde(rename = "KNOWLEDGE_BANK_ACCESS_DENIED")]
     KNOWLEDGEBANKACCESSDENIED,
+    #[serde(rename = "KNOWLEDGE_PAGE_NOT_FOUND")]
     KNOWLEDGEPAGENOTFOUND,
+    #[serde(rename = "KNOWLEDGE_PAGE_SLUG_CONFLICT")]
     KNOWLEDGEPAGESLUGCONFLICT,
+    #[serde(rename = "KNOWLEDGE_PAGE_ACCESS_DENIED")]
     KNOWLEDGEPAGEACCESSDENIED,
+    #[serde(rename = "KNOWLEDGE_HYBRID_SEARCH_UNAVAILABLE")]
     KNOWLEDGEHYBRIDSEARCHUNAVAILABLE,
+    #[serde(rename = "KNOWLEDGE_EMBEDDING_PROFILE_UNAVAILABLE")]
     KNOWLEDGEEMBEDDINGPROFILEUNAVAILABLE,
+    #[serde(rename = "KNOWLEDGE_VECTOR_INDEX_NOT_READY")]
     KNOWLEDGEVECTORINDEXNOTREADY,
+    #[serde(rename = "KNOWLEDGE_INDEX_REFRESH_IN_PROGRESS")]
     KNOWLEDGEINDEXREFRESHINPROGRESS,
+    #[serde(rename = "KNOWLEDGE_LINK_NOT_FOUND")]
     KNOWLEDGELINKNOTFOUND,
+    #[serde(rename = "KNOWLEDGE_LINK_ALREADY_EXISTS")]
     KNOWLEDGELINKALREADYEXISTS,
+    #[serde(rename = "KNOWLEDGE_LINK_INVALID")]
     KNOWLEDGELINKINVALID,
+    #[serde(rename = "KNOWLEDGE_GRAPH_DEPTH_INVALID")]
     KNOWLEDGEGRAPHDEPTHINVALID,
+    #[serde(rename = "KNOWLEDGE_INGEST_TASK_NOT_FOUND")]
     KNOWLEDGEINGESTTASKNOTFOUND,
+    #[serde(rename = "ARTIFACT_INVALID_INPUT")]
     ARTIFACTINVALIDINPUT,
+    #[serde(rename = "ARTIFACT_NOT_FOUND")]
     ARTIFACTNOTFOUND,
+    #[serde(rename = "ARTIFACT_TOO_LARGE")]
     ARTIFACTTOOLARGE,
+    #[serde(rename = "ARTIFACT_FORBIDDEN")]
     ARTIFACTFORBIDDEN,
+    #[serde(rename = "ARTIFACT_MIME_MISMATCH")]
     ARTIFACTMIMEMISMATCH,
+    #[serde(rename = "APP_OPEN_SCOPE_REF_REQUIRED")]
     APPOPENSCOPEREFREQUIRED,
+    #[serde(rename = "APP_OPEN_SCOPE_REF_INVALID")]
     APPOPENSCOPEREFINVALID,
+    #[serde(rename = "APP_OPEN_PACKAGE_NOT_VERIFIED")]
     APPOPENPACKAGENOTVERIFIED,
+    #[serde(rename = "APP_OPEN_LIBRARY_STATE_INVALID")]
     APPOPENLIBRARYSTATEINVALID,
+    #[serde(rename = "APP_OPEN_APP_DATA_INVALID")]
     APPOPENAPPDATAINVALID,
+    #[serde(rename = "APP_OPEN_AICONFIG_UNRESOLVED")]
     APPOPENAICONFIGUNRESOLVED,
+    #[serde(rename = "APP_OPEN_MANIFEST_REQUIREMENT_UNSATISFIED")]
     APPOPENMANIFESTREQUIREMENTUNSATISFIED,
+    #[serde(rename = "APP_OPEN_LAUNCH_FAILED")]
     APPOPENLAUNCHFAILED,
+    #[serde(rename = "AGENT_PRESENTATION_REVISION_CONFLICT")]
     AGENTPRESENTATIONREVISIONCONFLICT,
+    #[serde(rename = "ARTIFACT_UPLOAD_MIME_UNSUPPORTED")]
     ARTIFACTUPLOADMIMEUNSUPPORTED,
+    #[serde(rename = "ARTIFACT_UPLOAD_TOO_LARGE")]
     ARTIFACTUPLOADTOOLARGE,
+    #[serde(rename = "ARTIFACT_UPLOAD_CONTENT_MISMATCH")]
     ARTIFACTUPLOADCONTENTMISMATCH,
+    #[serde(rename = "PROTECTED_LOCAL_TRANSPORT_UNSUPPORTED")]
     PROTECTEDLOCALTRANSPORTUNSUPPORTED,
+    #[serde(rename = "PROTECTED_LOCAL_ENDPOINT_OWNERSHIP_FAILED")]
     PROTECTEDLOCALENDPOINTOWNERSHIPFAILED,
+    #[serde(rename = "PROTECTED_LOCAL_SERVER_VERIFICATION_FAILED")]
     PROTECTEDLOCALSERVERVERIFICATIONFAILED,
+    #[serde(rename = "DESKTOP_CONTROL_TRANSPORT_REQUIRED")]
     DESKTOPCONTROLTRANSPORTREQUIRED,
+    #[serde(rename = "DESKTOP_PROCESS_VERIFICATION_UNAVAILABLE")]
     DESKTOPPROCESSVERIFICATIONUNAVAILABLE,
+    #[serde(rename = "DESKTOP_EXECUTABLE_TRUST_FAILED")]
     DESKTOPEXECUTABLETRUSTFAILED,
+    #[serde(rename = "DESKTOP_TEST_TRUST_FORBIDDEN")]
     DESKTOPTESTTRUSTFORBIDDEN,
+    #[serde(rename = "PROTECTED_ORIGIN_ROLE_MISMATCH")]
     PROTECTEDORIGINROLEMISMATCH,
+    #[serde(rename = "LIFECYCLE_CHALLENGE_REQUIRED")]
     LIFECYCLECHALLENGEREQUIRED,
+    #[serde(rename = "LIFECYCLE_CHALLENGE_MISMATCH")]
     LIFECYCLECHALLENGEMISMATCH,
+    #[serde(rename = "LIFECYCLE_CHALLENGE_REPLAY")]
     LIFECYCLECHALLENGEREPLAY,
+    #[serde(rename = "PROTECTED_LOCAL_LEDGER_UNAVAILABLE")]
     PROTECTEDLOCALLEDGERUNAVAILABLE,
+    #[serde(rename = "PROTECTED_LOCAL_LEDGER_ROLLBACK_DETECTED")]
     PROTECTEDLOCALLEDGERROLLBACKDETECTED,
+    #[serde(rename = "PROTECTED_LOCAL_BOOT_EPOCH_MISMATCH")]
     PROTECTEDLOCALBOOTEPOCHMISMATCH,
+    #[serde(rename = "PROTECTED_LOCAL_RUNTIME_PRINCIPAL_REQUIRED")]
     PROTECTEDLOCALRUNTIMEPRINCIPALREQUIRED,
+    #[serde(rename = "PROTECTED_LOCAL_CUSTODY_BOUNDARY_UNAVAILABLE")]
     PROTECTEDLOCALCUSTODYBOUNDARYUNAVAILABLE,
+    #[serde(rename = "PROTECTED_LOCAL_PRODUCTION_CONFIG_OVERRIDE_FORBIDDEN")]
     PROTECTEDLOCALPRODUCTIONCONFIGOVERRIDEFORBIDDEN,
+    #[serde(rename = "RUNTIME_EXECUTABLE_TRUST_INVALID")]
     RUNTIMEEXECUTABLETRUSTINVALID,
+    #[serde(rename = "LOCAL_APP_PRINCIPAL_REQUIRED")]
     LOCALAPPPRINCIPALREQUIRED,
+    #[serde(rename = "LOCAL_APP_RECORD_NOT_FOUND")]
     LOCALAPPRECORDNOTFOUND,
+    #[serde(rename = "LOCAL_APP_RECORD_TOMBSTONED")]
     LOCALAPPRECORDTOMBSTONED,
+    #[serde(rename = "LOCAL_APP_PROVENANCE_UNAVAILABLE")]
     LOCALAPPPROVENANCEUNAVAILABLE,
+    #[serde(rename = "LOCAL_APP_LAUNCH_LEASE_REQUIRED")]
     LOCALAPPLAUNCHLEASEREQUIRED,
+    #[serde(rename = "LOCAL_APP_LAUNCH_LEASE_MISMATCH")]
     LOCALAPPLAUNCHLEASEMISMATCH,
+    #[serde(rename = "LOCAL_APP_LAUNCH_LEASE_REPLAY")]
     LOCALAPPLAUNCHLEASEREPLAY,
+    #[serde(rename = "LOCAL_APP_PROCESS_MISMATCH")]
     LOCALAPPPROCESSMISMATCH,
+    #[serde(rename = "LOCAL_APP_SESSION_REVOKED")]
     LOCALAPPSESSIONREVOKED,
+    #[serde(rename = "LOCAL_APP_ACCOUNT_CHANGED")]
     LOCALAPPACCOUNTCHANGED,
+    #[serde(rename = "LOCAL_APP_OPERATION_UNAVAILABLE")]
     LOCALAPPOPERATIONUNAVAILABLE,
+    #[serde(rename = "LOCAL_APP_PRESENCE_REQUIRED")]
     LOCALAPPPRESENCEREQUIRED,
+    #[serde(rename = "LOCAL_APP_PRESENCE_EXPIRED")]
     LOCALAPPPRESENCEEXPIRED,
+    #[serde(rename = "LOCAL_APP_DEVELOPER_MODE_DISABLED")]
     LOCALAPPDEVELOPERMODEDISABLED,
+    #[serde(rename = "REALM_UNAVAILABLE")]
     REALMUNAVAILABLE,
+    #[serde(rename = "REALM_NOT_FOUND")]
     REALMNOTFOUND,
+    #[serde(rename = "REALM_CONFLICT")]
     REALMCONFLICT,
+    #[serde(rename = "REALM_RATE_LIMITED")]
     REALMRATELIMITED,
+    #[serde(rename = "REALM_REQUEST_REJECTED")]
     REALMREQUESTREJECTED,
+    #[serde(rename = "REALM_CONTRACT_INVALID")]
     REALMCONTRACTINVALID,
+    #[serde(rename = "REALM_OPERATION_FAILED")]
     REALMOPERATIONFAILED,
+    #[serde(rename = "AGENT_AI_CONFIG_REVISION_CONFLICT")]
     AGENTAICONFIGREVISIONCONFLICT,
+    #[serde(rename = "AGENT_AUTONOMY_REVISION_CONFLICT")]
     AGENTAUTONOMYREVISIONCONFLICT,
+    #[serde(rename = "AGENT_PRESENTATION_ASSET_TYPE_INVALID")]
     AGENTPRESENTATIONASSETTYPEINVALID,
+    #[serde(rename = "AGENT_PRESENTATION_ASSET_TOO_LARGE")]
     AGENTPRESENTATIONASSETTOOLARGE,
+    #[serde(rename = "AGENT_PRESENTATION_ASSET_STRUCTURE_INVALID")]
     AGENTPRESENTATIONASSETSTRUCTUREINVALID,
+    #[serde(rename = "AGENT_PRESENTATION_ASSET_DEPENDENCY_MISSING")]
     AGENTPRESENTATIONASSETDEPENDENCYMISSING,
+    #[serde(rename = "AGENT_PRESENTATION_ASSET_INTEGRITY_MISMATCH")]
     AGENTPRESENTATIONASSETINTEGRITYMISMATCH,
+    #[serde(rename = "AGENT_PRESENTATION_BACKEND_INCOMPATIBLE")]
     AGENTPRESENTATIONBACKENDINCOMPATIBLE,
+    #[serde(rename = "AGENT_PRESENTATION_ASSET_NOT_VALIDATED")]
     AGENTPRESENTATIONASSETNOTVALIDATED,
+    #[serde(rename = "AGENT_AI_CONFIG_INVALID")]
     AGENTAICONFIGINVALID,
+    #[serde(rename = "AGENT_AI_CONFIG_TARGET_REQUIRED")]
     AGENTAICONFIGTARGETREQUIRED,
+    #[serde(rename = "AGENT_AI_CONFIG_TARGET_INVALID")]
     AGENTAICONFIGTARGETINVALID,
+    #[serde(rename = "AGENT_AI_CONFIG_TARGET_UNAVAILABLE")]
     AGENTAICONFIGTARGETUNAVAILABLE,
+    #[serde(rename = "AGENT_AI_CONFIG_CAPABILITY_MISMATCH")]
     AGENTAICONFIGCAPABILITYMISMATCH,
+    #[serde(rename = "AGENT_AI_CONFIG_MODEL_TARGET_MISMATCH")]
     AGENTAICONFIGMODELTARGETMISMATCH,
+    #[serde(rename = "AI_LOCAL_CONFIGURATION_NOT_FOUND")]
     AILOCALCONFIGURATIONNOTFOUND,
+    #[serde(rename = "AI_LOCAL_REQUIREMENT_NOT_FOUND")]
     AILOCALREQUIREMENTNOTFOUND,
+    #[serde(rename = "AI_LOCAL_BINDING_CONFLICT")]
     AILOCALBINDINGCONFLICT,
+    #[serde(rename = "AI_LOCAL_DRIVER_UNAVAILABLE")]
     AILOCALDRIVERUNAVAILABLE,
+    #[serde(rename = "AI_LOCAL_ASSET_NOT_FOUND")]
     AILOCALASSETNOTFOUND,
+    #[serde(rename = "AI_LOCAL_ASSET_CONTENT_UNVERIFIED")]
     AILOCALASSETCONTENTUNVERIFIED,
+    #[serde(rename = "AI_LOCAL_ASSET_CONTENT_MISMATCH")]
     AILOCALASSETCONTENTMISMATCH,
+    #[serde(rename = "AI_LOCAL_ASSET_INCOMPATIBLE")]
     AILOCALASSETINCOMPATIBLE,
+    #[serde(rename = "AI_LOCAL_CONFIGURATION_PERSISTENCE_UNAVAILABLE")]
     AILOCALCONFIGURATIONPERSISTENCEUNAVAILABLE,
+    #[serde(rename = "AI_CONFIG_INVALID")]
     AICONFIGINVALID,
+    #[serde(rename = "AI_CONFIG_NOT_FOUND")]
     AICONFIGNOTFOUND,
+    #[serde(rename = "AI_CONFIG_PERSISTENCE_UNAVAILABLE")]
     AICONFIGPERSISTENCEUNAVAILABLE,
+    #[serde(rename = "AI_LOCAL_SELECTION_NOT_FOUND")]
     AILOCALSELECTIONNOTFOUND,
+    #[serde(rename = "AI_LOCAL_CAPABILITY_MISMATCH")]
     AILOCALCAPABILITYMISMATCH,
+    #[serde(rename = "AI_LOCAL_CONFIGURATION_NOT_CONFIGURED")]
     AILOCALCONFIGURATIONNOTCONFIGURED,
+    #[serde(rename = "AI_LOCAL_SELECTION_INVALID")]
     AILOCALSELECTIONINVALID,
+    #[serde(rename = "AI_LOCAL_EXECUTION_LOAD_FAILED")]
     AILOCALEXECUTIONLOADFAILED,
+    #[serde(rename = "AI_LOCAL_EXECUTION_INFERENCE_FAILED")]
     AILOCALEXECUTIONINFERENCEFAILED,
+    #[serde(rename = "AI_LOCAL_EXECUTION_CANCELED")]
     AILOCALEXECUTIONCANCELED,
+    #[serde(rename = "AI_LOCAL_EXECUTION_PROCESS_CRASHED")]
     AILOCALEXECUTIONPROCESSCRASHED,
+    #[serde(rename = "AI_LOCAL_EXECUTION_CONTENT_MISMATCH")]
     AILOCALEXECUTIONCONTENTMISMATCH,
+    #[serde(rename = "LOCAL_APP_SNAPSHOT_UNAVAILABLE")]
     LOCALAPPSNAPSHOTUNAVAILABLE,
+    #[serde(rename = "LOCAL_APP_ACCESS_DENIED")]
     LOCALAPPACCESSDENIED,
+    #[serde(rename = "LOCAL_APP_OPERATION_UNSUPPORTED")]
     LOCALAPPOPERATIONUNSUPPORTED,
+    #[serde(rename = "LOCAL_APP_OWNER_UNAVAILABLE")]
     LOCALAPPOWNERUNAVAILABLE,
+    #[serde(rename = "CURRENT_USER_DISPLAY_UNAVAILABLE")]
     CURRENTUSERDISPLAYUNAVAILABLE,
+    #[serde(rename = "AI_LOADOUT_NOT_FOUND")]
     AILOADOUTNOTFOUND,
+    #[serde(rename = "AI_LOADOUT_RECIPE_NOT_FOUND")]
     AILOADOUTRECIPENOTFOUND,
+    #[serde(rename = "AI_LOADOUT_DRIVER_UNAVAILABLE")]
     AILOADOUTDRIVERUNAVAILABLE,
+    #[serde(rename = "AI_LOADOUT_MODEL_ASSET_NOT_FOUND")]
     AILOADOUTMODELASSETNOTFOUND,
+    #[serde(rename = "AI_LOADOUT_MODEL_ASSET_CONTENT_MISMATCH")]
     AILOADOUTMODELASSETCONTENTMISMATCH,
+    #[serde(rename = "AI_LOADOUT_MODEL_CONTRACT_FAILED")]
     AILOADOUTMODELCONTRACTFAILED,
+    #[serde(rename = "AI_LOADOUT_PREPARE_NOT_FOUND")]
     AILOADOUTPREPARENOTFOUND,
+    #[serde(rename = "AI_LOADOUT_PREPARE_EXPIRED")]
     AILOADOUTPREPAREEXPIRED,
+    #[serde(rename = "AI_LOADOUT_PREPARE_OWNER_MISMATCH")]
     AILOADOUTPREPAREOWNERMISMATCH,
+    #[serde(rename = "AI_LOADOUT_COMMIT_CONFLICT")]
     AILOADOUTCOMMITCONFLICT,
+    #[serde(rename = "AI_LOADOUT_CONFIRMATION_REQUIRED")]
     AILOADOUTCONFIRMATIONREQUIRED,
+    #[serde(rename = "AI_LOADOUT_PERSISTENCE_UNAVAILABLE")]
     AILOADOUTPERSISTENCEUNAVAILABLE,
+    #[serde(rename = "AI_LOADOUT_NOT_CONFIGURED")]
     AILOADOUTNOTCONFIGURED,
+    #[serde(rename = "AI_LOADOUT_CATALOG_SCHEMA_INVALID")]
     AILOADOUTCATALOGSCHEMAINVALID,
+    #[serde(rename = "AI_LOCAL_EXECUTION_OUT_OF_MEMORY")]
     AILOCALEXECUTIONOUTOFMEMORY,
+    #[serde(rename = "AI_CONFIG_REVISION_CONFLICT")]
     AICONFIGREVISIONCONFLICT,
+    #[serde(rename = "APP_PACKAGE_SELECTION_INVALID")]
     APPPACKAGESELECTIONINVALID,
+    #[serde(rename = "APP_PACKAGE_SELECTION_STALE")]
     APPPACKAGESELECTIONSTALE,
+    #[serde(rename = "APP_PACKAGE_POLICY_BLOCKED")]
     APPPACKAGEPOLICYBLOCKED,
+    #[serde(rename = "APP_PACKAGE_ALREADY_INSTALLED")]
     APPPACKAGEALREADYINSTALLED,
+    #[serde(rename = "APP_PACKAGE_INSTALL_UNAVAILABLE")]
     APPPACKAGEINSTALLUNAVAILABLE,
+    #[serde(rename = "APP_PACKAGE_JOB_ACTIVE")]
     APPPACKAGEJOBACTIVE,
+    #[serde(rename = "APP_CATALOG_UNAVAILABLE")]
     APPCATALOGUNAVAILABLE,
+    #[serde(rename = "APP_PACKAGE_UNINSTALL_UNAVAILABLE")]
     APPPACKAGEUNINSTALLUNAVAILABLE,
+    #[serde(rename = "APP_PACKAGE_HOST_RUNNING")]
     APPPACKAGEHOSTRUNNING,
+    #[serde(rename = "APP_PACKAGE_UNINSTALL_FAILED")]
     APPPACKAGEUNINSTALLFAILED,
+    #[serde(rename = "APP_PACKAGE_UPDATE_UNAVAILABLE")]
     APPPACKAGEUPDATEUNAVAILABLE,
+    #[serde(rename = "APP_PACKAGE_INFO_UNAVAILABLE")]
     APPPACKAGEINFOUNAVAILABLE,
+    #[serde(rename = "AI_FACE_REFERENCE_MISSING")]
     AIFACEREFERENCEMISSING,
+    #[serde(rename = "AI_FACE_REFERENCE_AMBIGUOUS")]
     AIFACEREFERENCEAMBIGUOUS,
+    #[serde(rename = "AI_FACE_TARGET_MISSING")]
     AIFACETARGETMISSING,
+    #[serde(rename = "AI_FACE_TARGET_AMBIGUOUS")]
     AIFACETARGETAMBIGUOUS,
+    #[serde(rename = "AI_VIDEO_DECODE_FAILED")]
     AIVIDEODECODEFAILED,
+    #[serde(rename = "AI_VIDEO_ENCODE_FAILED")]
     AIVIDEOENCODEFAILED,
+    #[serde(rename = "AI_VIDEO_SESSION_OVERLOADED")]
     AIVIDEOSESSIONOVERLOADED,
+    #[serde(rename = "AI_VIDEO_SESSION_GENERATION_INVALID")]
     AIVIDEOSESSIONGENERATIONINVALID,
 }
 
@@ -3233,13 +3542,19 @@ impl Default for RoutePolicy {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
 pub enum RuntimeHealthStatus {
+    #[serde(rename = "RUNTIME_HEALTH_STATUS_UNSPECIFIED")]
     RUNTIMEHEALTHSTATUSUNSPECIFIED,
+    #[serde(rename = "RUNTIME_HEALTH_STATUS_STOPPED")]
     RUNTIMEHEALTHSTATUSSTOPPED,
+    #[serde(rename = "RUNTIME_HEALTH_STATUS_STARTING")]
     RUNTIMEHEALTHSTATUSSTARTING,
+    #[serde(rename = "RUNTIME_HEALTH_STATUS_READY")]
     RUNTIMEHEALTHSTATUSREADY,
+    #[serde(rename = "RUNTIME_HEALTH_STATUS_DEGRADED")]
     RUNTIMEHEALTHSTATUSDEGRADED,
+    #[serde(rename = "RUNTIME_HEALTH_STATUS_STOPPING")]
     RUNTIMEHEALTHSTATUSSTOPPING,
 }
 
@@ -3787,44 +4102,93 @@ pub struct AIConfigRuntimeLocalAgentSubsystemOwner {
 
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct AccountCaller {
+    #[serde(rename = "app_id", skip_serializing_if = "Option::is_none")]
     pub app_id: Option<String>,
+    #[serde(rename = "app_instance_id", skip_serializing_if = "Option::is_none")]
     pub app_instance_id: Option<String>,
+    #[serde(rename = "device_id", skip_serializing_if = "Option::is_none")]
     pub device_id: Option<String>,
+    #[serde(rename = "mode", skip_serializing_if = "Option::is_none")]
     pub mode: Option<AccountCallerMode>,
+    #[serde(rename = "scopes", skip_serializing_if = "Vec::is_empty")]
     pub scopes: Vec<String>,
+    #[serde(rename = "launch_host_id", skip_serializing_if = "Option::is_none")]
     pub launch_host_id: Option<String>,
+    #[serde(rename = "launch_nonce", skip_serializing_if = "Option::is_none")]
     pub launch_nonce: Option<String>,
+    #[serde(rename = "release_descriptor_ref", skip_serializing_if = "Option::is_none")]
     pub release_descriptor_ref: Option<String>,
 }
 
 impl AccountCaller {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
-        if let Some(value) = &self.app_instance_id { pairs.push(format!("app_instance_id={}", value)); }
-        if let Some(value) = &self.device_id { pairs.push(format!("device_id={}", value)); }
-        if let Some(value) = &self.mode { pairs.push(format!("mode={:?}", value)); }
-        for value in &self.scopes { pairs.push(format!("scopes={}", value)); }
-        if let Some(value) = &self.launch_host_id { pairs.push(format!("launch_host_id={}", value)); }
-        if let Some(value) = &self.launch_nonce { pairs.push(format!("launch_nonce={}", value)); }
-        if let Some(value) = &self.release_descriptor_ref { pairs.push(format!("release_descriptor_ref={}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "AccountCaller", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.app_id = pairs.get("app_id").cloned();
-        out.app_instance_id = pairs.get("app_instance_id").cloned();
-        out.device_id = pairs.get("device_id").cloned();
-        out.mode = pairs.get("mode").and_then(|value| AccountCallerMode::from_transport(value));
-        out.scopes = parse_repeated_string(raw, "scopes");
-        out.launch_host_id = pairs.get("launch_host_id").cloned();
-        out.launch_nonce = pairs.get("launch_nonce").cloned();
-        out.release_descriptor_ref = pairs.get("release_descriptor_ref").cloned();
-        out
+        out.app_id = match object.get("app_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("app_id"))?),
+            None => None,
+        };
+        out.app_instance_id = match object.get("app_instance_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("app_instance_id"))?),
+            None => None,
+        };
+        out.device_id = match object.get("device_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("device_id"))?),
+            None => None,
+        };
+        out.mode = match object.get("mode") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let raw = value.as_str().ok_or_else(|| Self::decode_error("mode"))?;
+                Some(AccountCallerMode::from_transport(raw).ok_or_else(|| Self::decode_error("mode"))?)
+            }
+            None => None,
+        };
+        out.scopes = match object.get("scopes") {
+            Some(value) if value.is_null() => Vec::new(),
+            Some(value) => {
+                let items = value.as_array().ok_or_else(|| Self::decode_error("scopes"))?;
+                let mut decoded = Vec::with_capacity(items.len());
+                for item in items {
+                    decoded.push(item.as_str().map(String::from).ok_or_else(|| Self::decode_error("scopes"))?);
+                }
+                decoded
+            }
+            None => Vec::new(),
+        };
+        out.launch_host_id = match object.get("launch_host_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("launch_host_id"))?),
+            None => None,
+        };
+        out.launch_nonce = match object.get("launch_nonce") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("launch_nonce"))?),
+            None => None,
+        };
+        out.release_descriptor_ref = match object.get("release_descriptor_ref") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("release_descriptor_ref"))?),
+            None => None,
+        };
+        Ok(out)
     }
 }
 
@@ -3856,29 +4220,51 @@ pub struct AccountSessionSnapshot {
     pub account_projection: Option<Box<AccountProjection>>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct Ack {
+    #[serde(rename = "ok", skip_serializing_if = "Option::is_none")]
     pub ok: Option<bool>,
+    #[serde(rename = "reason_code", skip_serializing_if = "Option::is_none")]
     pub reason_code: Option<ReasonCode>,
+    #[serde(rename = "action_hint", skip_serializing_if = "Option::is_none")]
     pub action_hint: Option<String>,
 }
 
 impl Ack {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.ok { pairs.push(format!("ok={}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        if let Some(value) = &self.action_hint { pairs.push(format!("action_hint={}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "Ack", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.ok = pairs.get("ok").and_then(|value| value.parse().ok());
-        out.reason_code = pairs.get("reason_code").and_then(|value| ReasonCode::from_transport(value));
-        out.action_hint = pairs.get("action_hint").cloned();
-        out
+        out.ok = match object.get("ok") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_bool().ok_or_else(|| Self::decode_error("ok"))?),
+            None => None,
+        };
+        out.reason_code = match object.get("reason_code") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let raw = value.as_str().ok_or_else(|| Self::decode_error("reason_code"))?;
+                Some(ReasonCode::from_transport(raw).ok_or_else(|| Self::decode_error("reason_code"))?)
+            }
+            None => None,
+        };
+        out.action_hint = match object.get("action_hint") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("action_hint"))?),
+            None => None,
+        };
+        Ok(out)
     }
 }
 
@@ -3894,18 +4280,23 @@ pub struct AckRealmRealtimeEventsResponse {
     pub ack: Option<Box<Ack>>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct AdmitProductControlReadyForUseRequest {
 
 }
 
 impl AdmitProductControlReadyForUseRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        Vec::new()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(_raw: &[u8]) -> Self {
-        Self::default()
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "AdmitProductControlReadyForUseRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        json_object(raw, Self::decode_error("<body>"))?;
+        Ok(Self::default())
     }
 }
 
@@ -4744,85 +5135,182 @@ pub struct AuditExportChunk {
     pub mime_type: Option<String>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct BeginLoginRequest {
+    #[serde(rename = "caller", skip_serializing_if = "Option::is_none")]
     pub caller: Option<Box<AccountCaller>>,
+    #[serde(rename = "redirect_uri", skip_serializing_if = "Option::is_none")]
     pub redirect_uri: Option<String>,
+    #[serde(rename = "callback_origin", skip_serializing_if = "Option::is_none")]
     pub callback_origin: Option<String>,
+    #[serde(rename = "requested_scopes", skip_serializing_if = "Vec::is_empty")]
     pub requested_scopes: Vec<String>,
+    #[serde(rename = "ttl_seconds", skip_serializing_if = "Option::is_none")]
     pub ttl_seconds: Option<i32>,
 }
 
 impl BeginLoginRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.caller { push_nested_pairs(&mut pairs, "caller", &value.to_transport()); }
-        if let Some(value) = &self.redirect_uri { pairs.push(format!("redirect_uri={}", value)); }
-        if let Some(value) = &self.callback_origin { pairs.push(format!("callback_origin={}", value)); }
-        for value in &self.requested_scopes { pairs.push(format!("requested_scopes={}", value)); }
-        if let Some(value) = &self.ttl_seconds { pairs.push(format!("ttl_seconds={}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "BeginLoginRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.caller = extract_nested_pairs(raw, "caller").map(|value| Box::new(AccountCaller::from_transport(&value)));
-        out.redirect_uri = pairs.get("redirect_uri").cloned();
-        out.callback_origin = pairs.get("callback_origin").cloned();
-        out.requested_scopes = parse_repeated_string(raw, "requested_scopes");
-        out.ttl_seconds = pairs.get("ttl_seconds").and_then(|value| value.parse().ok());
-        out
+        out.caller = match object.get("caller") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let nested = value.as_object().ok_or_else(|| Self::decode_error("caller"))?;
+                Some(Box::new(AccountCaller::from_json_object(nested)?))
+            }
+            None => None,
+        };
+        out.redirect_uri = match object.get("redirect_uri") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("redirect_uri"))?),
+            None => None,
+        };
+        out.callback_origin = match object.get("callback_origin") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("callback_origin"))?),
+            None => None,
+        };
+        out.requested_scopes = match object.get("requested_scopes") {
+            Some(value) if value.is_null() => Vec::new(),
+            Some(value) => {
+                let items = value.as_array().ok_or_else(|| Self::decode_error("requested_scopes"))?;
+                let mut decoded = Vec::with_capacity(items.len());
+                for item in items {
+                    decoded.push(item.as_str().map(String::from).ok_or_else(|| Self::decode_error("requested_scopes"))?);
+                }
+                decoded
+            }
+            None => Vec::new(),
+        };
+        out.ttl_seconds = match object.get("ttl_seconds") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let raw = value.as_i64().ok_or_else(|| Self::decode_error("ttl_seconds"))?;
+                Some(i32::try_from(raw).map_err(|_| Self::decode_error("ttl_seconds"))?)
+            }
+            None => None,
+        };
+        Ok(out)
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct BeginLoginResponse {
+    #[serde(rename = "accepted", skip_serializing_if = "Option::is_none")]
     pub accepted: Option<bool>,
+    #[serde(rename = "login_attempt_id", skip_serializing_if = "Option::is_none")]
     pub login_attempt_id: Option<String>,
+    #[serde(rename = "oauth_authorization_url", skip_serializing_if = "Option::is_none")]
     pub oauth_authorization_url: Option<String>,
+    #[serde(rename = "callback_origin", skip_serializing_if = "Option::is_none")]
     pub callback_origin: Option<String>,
+    #[serde(rename = "state", skip_serializing_if = "Option::is_none")]
     pub state: Option<String>,
+    #[serde(rename = "nonce", skip_serializing_if = "Option::is_none")]
     pub nonce: Option<String>,
+    #[serde(rename = "pkce_challenge", skip_serializing_if = "Option::is_none")]
     pub pkce_challenge: Option<String>,
+    #[serde(rename = "expires_at", skip_serializing_if = "Option::is_none")]
     pub expires_at: Option<String>,
+    #[serde(rename = "reason_code", skip_serializing_if = "Option::is_none")]
     pub reason_code: Option<ReasonCode>,
+    #[serde(rename = "account_reason_code", skip_serializing_if = "Option::is_none")]
     pub account_reason_code: Option<AccountReasonCode>,
+    #[serde(rename = "production_inert", skip_serializing_if = "Option::is_none")]
     pub production_inert: Option<bool>,
 }
 
 impl BeginLoginResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.accepted { pairs.push(format!("accepted={}", value)); }
-        if let Some(value) = &self.login_attempt_id { pairs.push(format!("login_attempt_id={}", value)); }
-        if let Some(value) = &self.oauth_authorization_url { pairs.push(format!("oauth_authorization_url={}", value)); }
-        if let Some(value) = &self.callback_origin { pairs.push(format!("callback_origin={}", value)); }
-        if let Some(value) = &self.state { pairs.push(format!("state={}", value)); }
-        if let Some(value) = &self.nonce { pairs.push(format!("nonce={}", value)); }
-        if let Some(value) = &self.pkce_challenge { pairs.push(format!("pkce_challenge={}", value)); }
-        if let Some(value) = &self.expires_at { pairs.push(format!("expires_at={}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        if let Some(value) = &self.account_reason_code { pairs.push(format!("account_reason_code={:?}", value)); }
-        if let Some(value) = &self.production_inert { pairs.push(format!("production_inert={}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "BeginLoginResponse", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.accepted = pairs.get("accepted").and_then(|value| value.parse().ok());
-        out.login_attempt_id = pairs.get("login_attempt_id").cloned();
-        out.oauth_authorization_url = pairs.get("oauth_authorization_url").cloned();
-        out.callback_origin = pairs.get("callback_origin").cloned();
-        out.state = pairs.get("state").cloned();
-        out.nonce = pairs.get("nonce").cloned();
-        out.pkce_challenge = pairs.get("pkce_challenge").cloned();
-        out.expires_at = pairs.get("expires_at").cloned();
-        out.reason_code = pairs.get("reason_code").and_then(|value| ReasonCode::from_transport(value));
-        out.account_reason_code = pairs.get("account_reason_code").and_then(|value| AccountReasonCode::from_transport(value));
-        out.production_inert = pairs.get("production_inert").and_then(|value| value.parse().ok());
-        out
+        out.accepted = match object.get("accepted") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_bool().ok_or_else(|| Self::decode_error("accepted"))?),
+            None => None,
+        };
+        out.login_attempt_id = match object.get("login_attempt_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("login_attempt_id"))?),
+            None => None,
+        };
+        out.oauth_authorization_url = match object.get("oauth_authorization_url") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("oauth_authorization_url"))?),
+            None => None,
+        };
+        out.callback_origin = match object.get("callback_origin") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("callback_origin"))?),
+            None => None,
+        };
+        out.state = match object.get("state") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("state"))?),
+            None => None,
+        };
+        out.nonce = match object.get("nonce") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("nonce"))?),
+            None => None,
+        };
+        out.pkce_challenge = match object.get("pkce_challenge") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("pkce_challenge"))?),
+            None => None,
+        };
+        out.expires_at = match object.get("expires_at") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("expires_at"))?),
+            None => None,
+        };
+        out.reason_code = match object.get("reason_code") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let raw = value.as_str().ok_or_else(|| Self::decode_error("reason_code"))?;
+                Some(ReasonCode::from_transport(raw).ok_or_else(|| Self::decode_error("reason_code"))?)
+            }
+            None => None,
+        };
+        out.account_reason_code = match object.get("account_reason_code") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let raw = value.as_str().ok_or_else(|| Self::decode_error("account_reason_code"))?;
+                Some(AccountReasonCode::from_transport(raw).ok_or_else(|| Self::decode_error("account_reason_code"))?)
+            }
+            None => None,
+        };
+        out.production_inert = match object.get("production_inert") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_bool().ok_or_else(|| Self::decode_error("production_inert"))?),
+            None => None,
+        };
+        Ok(out)
     }
 }
 
@@ -5078,69 +5566,120 @@ pub struct ChatMessage {
     pub turn_items: Vec<Box<TextTurnItem>>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct CheckSyncProjectionJson {
+    #[serde(rename = "json", skip_serializing_if = "Option::is_none")]
     pub json: Option<String>,
 }
 
 impl CheckSyncProjectionJson {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.json { pairs.push(format!("json={}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "CheckSyncProjectionJson", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.json = pairs.get("json").cloned();
-        out
+        out.json = match object.get("json") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("json"))?),
+            None => None,
+        };
+        Ok(out)
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct CleanupGeneratedVoiceArtifactsRequest {
+    #[serde(rename = "agent_id", skip_serializing_if = "Option::is_none")]
     pub agent_id: Option<String>,
+    #[serde(rename = "conversation_anchor_id", skip_serializing_if = "Option::is_none")]
     pub conversation_anchor_id: Option<String>,
 }
 
 impl CleanupGeneratedVoiceArtifactsRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.agent_id { pairs.push(format!("agent_id={}", value)); }
-        if let Some(value) = &self.conversation_anchor_id { pairs.push(format!("conversation_anchor_id={}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "CleanupGeneratedVoiceArtifactsRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.agent_id = pairs.get("agent_id").cloned();
-        out.conversation_anchor_id = pairs.get("conversation_anchor_id").cloned();
-        out
+        out.agent_id = match object.get("agent_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("agent_id"))?),
+            None => None,
+        };
+        out.conversation_anchor_id = match object.get("conversation_anchor_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("conversation_anchor_id"))?),
+            None => None,
+        };
+        Ok(out)
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct CleanupGeneratedVoiceArtifactsResponse {
+    #[serde(rename = "deleted_count", skip_serializing_if = "Option::is_none")]
     pub deleted_count: Option<i32>,
+    #[serde(rename = "deleted_artifact_ids", skip_serializing_if = "Vec::is_empty")]
     pub deleted_artifact_ids: Vec<String>,
 }
 
 impl CleanupGeneratedVoiceArtifactsResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.deleted_count { pairs.push(format!("deleted_count={}", value)); }
-        for value in &self.deleted_artifact_ids { pairs.push(format!("deleted_artifact_ids={}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "CleanupGeneratedVoiceArtifactsResponse", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.deleted_count = pairs.get("deleted_count").and_then(|value| value.parse().ok());
-        out.deleted_artifact_ids = parse_repeated_string(raw, "deleted_artifact_ids");
-        out
+        out.deleted_count = match object.get("deleted_count") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let raw = value.as_i64().ok_or_else(|| Self::decode_error("deleted_count"))?;
+                Some(i32::try_from(raw).map_err(|_| Self::decode_error("deleted_count"))?)
+            }
+            None => None,
+        };
+        out.deleted_artifact_ids = match object.get("deleted_artifact_ids") {
+            Some(value) if value.is_null() => Vec::new(),
+            Some(value) => {
+                let items = value.as_array().ok_or_else(|| Self::decode_error("deleted_artifact_ids"))?;
+                let mut decoded = Vec::with_capacity(items.len());
+                for item in items {
+                    decoded.push(item.as_str().map(String::from).ok_or_else(|| Self::decode_error("deleted_artifact_ids"))?);
+                }
+                decoded
+            }
+            None => Vec::new(),
+        };
+        Ok(out)
     }
 }
 
@@ -5195,46 +5734,72 @@ pub struct CloseRealtimeSessionResponse {
     pub control: Option<Box<RealtimeControlStatus>>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct CloseVideoSessionRequest {
+    #[serde(rename = "video_session_id", skip_serializing_if = "Option::is_none")]
     pub video_session_id: Option<String>,
+    #[serde(rename = "generation", skip_serializing_if = "Option::is_none")]
     pub generation: Option<u64>,
 }
 
 impl CloseVideoSessionRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.video_session_id { pairs.push(format!("video_session_id={}", value)); }
-        if let Some(value) = &self.generation { pairs.push(format!("generation={}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "CloseVideoSessionRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.video_session_id = pairs.get("video_session_id").cloned();
-        out.generation = pairs.get("generation").and_then(|value| value.parse().ok());
-        out
+        out.video_session_id = match object.get("video_session_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("video_session_id"))?),
+            None => None,
+        };
+        out.generation = match object.get("generation") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_u64().ok_or_else(|| Self::decode_error("generation"))?),
+            None => None,
+        };
+        Ok(out)
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct CloseVideoSessionResponse {
+    #[serde(rename = "closed", skip_serializing_if = "Option::is_none")]
     pub closed: Option<bool>,
 }
 
 impl CloseVideoSessionResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.closed { pairs.push(format!("closed={}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "CloseVideoSessionResponse", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.closed = pairs.get("closed").and_then(|value| value.parse().ok());
-        out
+        out.closed = match object.get("closed") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_bool().ok_or_else(|| Self::decode_error("closed"))?),
+            None => None,
+        };
+        Ok(out)
     }
 }
 
@@ -5622,18 +6187,23 @@ pub struct CompleteLoginResponse {
     pub production_inert: Option<bool>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct CompleteProductControlFirstRunDeviceEnvironmentScanRequest {
 
 }
 
 impl CompleteProductControlFirstRunDeviceEnvironmentScanRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        Vec::new()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(_raw: &[u8]) -> Self {
-        Self::default()
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "CompleteProductControlFirstRunDeviceEnvironmentScanRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        json_object(raw, Self::decode_error("<body>"))?;
+        Ok(Self::default())
     }
 }
 
@@ -5875,41 +6445,61 @@ pub struct DeleteConnectorResponse {
     pub ack: Option<Box<Ack>>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct DeleteLoadoutRequest {
+    #[serde(rename = "loadout_id", skip_serializing_if = "Option::is_none")]
     pub loadout_id: Option<String>,
+    #[serde(rename = "confirmed_machine_impact", skip_serializing_if = "Option::is_none")]
     pub confirmed_machine_impact: Option<bool>,
 }
 
 impl DeleteLoadoutRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.loadout_id { pairs.push(format!("loadout_id={}", value)); }
-        if let Some(value) = &self.confirmed_machine_impact { pairs.push(format!("confirmed_machine_impact={}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "DeleteLoadoutRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.loadout_id = pairs.get("loadout_id").cloned();
-        out.confirmed_machine_impact = pairs.get("confirmed_machine_impact").and_then(|value| value.parse().ok());
-        out
+        out.loadout_id = match object.get("loadout_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("loadout_id"))?),
+            None => None,
+        };
+        out.confirmed_machine_impact = match object.get("confirmed_machine_impact") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_bool().ok_or_else(|| Self::decode_error("confirmed_machine_impact"))?),
+            None => None,
+        };
+        Ok(out)
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct DeleteLoadoutResponse {
 
 }
 
 impl DeleteLoadoutResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        Vec::new()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(_raw: &[u8]) -> Self {
-        Self::default()
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "DeleteLoadoutResponse", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        json_object(raw, Self::decode_error("<body>"))?;
+        Ok(Self::default())
     }
 }
 
@@ -6005,18 +6595,23 @@ pub struct EndLocalDevelopmentRunResponse {
     pub reason_code: Option<ReasonCode>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct EnsureProductControlRecordCreatedRequest {
 
 }
 
 impl EnsureProductControlRecordCreatedRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        Vec::new()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(_raw: &[u8]) -> Self {
-        Self::default()
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "EnsureProductControlRecordCreatedRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        json_object(raw, Self::decode_error("<body>"))?;
+        Ok(Self::default())
     }
 }
 
@@ -6085,53 +6680,92 @@ pub struct ExternalAgentActionScope {
     pub ops: Vec<String>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct ExternalAgentGatewayStatusRequest {
 
 }
 
 impl ExternalAgentGatewayStatusRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        Vec::new()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(_raw: &[u8]) -> Self {
-        Self::default()
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "ExternalAgentGatewayStatusRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        json_object(raw, Self::decode_error("<body>"))?;
+        Ok(Self::default())
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct ExternalAgentGatewayStatusResponse {
+    #[serde(rename = "enabled", skip_serializing_if = "Option::is_none")]
     pub enabled: Option<bool>,
+    #[serde(rename = "bind_address", skip_serializing_if = "Option::is_none")]
     pub bind_address: Option<String>,
+    #[serde(rename = "issuer", skip_serializing_if = "Option::is_none")]
     pub issuer: Option<String>,
+    #[serde(rename = "action_count", skip_serializing_if = "Option::is_none")]
     pub action_count: Option<i32>,
+    #[serde(rename = "status", skip_serializing_if = "Option::is_none")]
     pub status: Option<String>,
+    #[serde(rename = "reason_code", skip_serializing_if = "Option::is_none")]
     pub reason_code: Option<String>,
 }
 
 impl ExternalAgentGatewayStatusResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.enabled { pairs.push(format!("enabled={}", value)); }
-        if let Some(value) = &self.bind_address { pairs.push(format!("bind_address={}", value)); }
-        if let Some(value) = &self.issuer { pairs.push(format!("issuer={}", value)); }
-        if let Some(value) = &self.action_count { pairs.push(format!("action_count={}", value)); }
-        if let Some(value) = &self.status { pairs.push(format!("status={}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "ExternalAgentGatewayStatusResponse", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.enabled = pairs.get("enabled").and_then(|value| value.parse().ok());
-        out.bind_address = pairs.get("bind_address").cloned();
-        out.issuer = pairs.get("issuer").cloned();
-        out.action_count = pairs.get("action_count").and_then(|value| value.parse().ok());
-        out.status = pairs.get("status").cloned();
-        out.reason_code = pairs.get("reason_code").cloned();
-        out
+        out.enabled = match object.get("enabled") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_bool().ok_or_else(|| Self::decode_error("enabled"))?),
+            None => None,
+        };
+        out.bind_address = match object.get("bind_address") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("bind_address"))?),
+            None => None,
+        };
+        out.issuer = match object.get("issuer") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("issuer"))?),
+            None => None,
+        };
+        out.action_count = match object.get("action_count") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let raw = value.as_i64().ok_or_else(|| Self::decode_error("action_count"))?;
+                Some(i32::try_from(raw).map_err(|_| Self::decode_error("action_count"))?)
+            }
+            None => None,
+        };
+        out.status = match object.get("status") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("status"))?),
+            None => None,
+        };
+        out.reason_code = match object.get("reason_code") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("reason_code"))?),
+            None => None,
+        };
+        Ok(out)
     }
 }
 
@@ -6173,23 +6807,34 @@ pub struct ExternalAgentListTokensResponse {
     pub next_page_token: Option<String>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct ExternalAgentRevokeTokenRequest {
+    #[serde(rename = "token_id", skip_serializing_if = "Option::is_none")]
     pub token_id: Option<String>,
 }
 
 impl ExternalAgentRevokeTokenRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.token_id { pairs.push(format!("token_id={}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "ExternalAgentRevokeTokenRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.token_id = pairs.get("token_id").cloned();
-        out
+        out.token_id = match object.get("token_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("token_id"))?),
+            None => None,
+        };
+        Ok(out)
     }
 }
 
@@ -6347,52 +6992,86 @@ pub struct GetAppStorageResponse {
     pub projection: Option<Box<AppStorageProjection>>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct GetCatalogModelCardRequest {
+    #[serde(rename = "model_locator", skip_serializing_if = "Option::is_none")]
     pub model_locator: Option<String>,
+    #[serde(rename = "offer_ref", skip_serializing_if = "Option::is_none")]
     pub offer_ref: Option<String>,
 }
 
 impl GetCatalogModelCardRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.model_locator { pairs.push(format!("model_locator={}", value)); }
-        if let Some(value) = &self.offer_ref { pairs.push(format!("offer_ref={}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "GetCatalogModelCardRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.model_locator = pairs.get("model_locator").cloned();
-        out.offer_ref = pairs.get("offer_ref").cloned();
-        out
+        out.model_locator = match object.get("model_locator") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("model_locator"))?),
+            None => None,
+        };
+        out.offer_ref = match object.get("offer_ref") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("offer_ref"))?),
+            None => None,
+        };
+        Ok(out)
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct GetCatalogModelCardResponse {
+    #[serde(rename = "markdown", skip_serializing_if = "Option::is_none")]
     pub markdown: Option<String>,
+    #[serde(rename = "source_url", skip_serializing_if = "Option::is_none")]
     pub source_url: Option<String>,
+    #[serde(rename = "base_url", skip_serializing_if = "Option::is_none")]
     pub base_url: Option<String>,
 }
 
 impl GetCatalogModelCardResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.markdown { pairs.push(format!("markdown={}", value)); }
-        if let Some(value) = &self.source_url { pairs.push(format!("source_url={}", value)); }
-        if let Some(value) = &self.base_url { pairs.push(format!("base_url={}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "GetCatalogModelCardResponse", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.markdown = pairs.get("markdown").cloned();
-        out.source_url = pairs.get("source_url").cloned();
-        out.base_url = pairs.get("base_url").cloned();
-        out
+        out.markdown = match object.get("markdown") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("markdown"))?),
+            None => None,
+        };
+        out.source_url = match object.get("source_url") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("source_url"))?),
+            None => None,
+        };
+        out.base_url = match object.get("base_url") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("base_url"))?),
+            None => None,
+        };
+        Ok(out)
     }
 }
 
@@ -6457,44 +7136,74 @@ pub struct GetDelegatedReplayTraceResponse {
     pub trace: Option<Box<DelegatedReplayTrace>>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct GetDeveloperModeStatusRequest {
 
 }
 
 impl GetDeveloperModeStatusRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        Vec::new()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(_raw: &[u8]) -> Self {
-        Self::default()
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "GetDeveloperModeStatusRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        json_object(raw, Self::decode_error("<body>"))?;
+        Ok(Self::default())
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct GetDeveloperModeStatusResponse {
+    #[serde(rename = "state", skip_serializing_if = "Option::is_none")]
     pub state: Option<DeveloperModeState>,
+    #[serde(rename = "revision", skip_serializing_if = "Option::is_none")]
     pub revision: Option<u64>,
+    #[serde(rename = "reason_code", skip_serializing_if = "Option::is_none")]
     pub reason_code: Option<ReasonCode>,
 }
 
 impl GetDeveloperModeStatusResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
-        if let Some(value) = &self.revision { pairs.push(format!("revision={}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "GetDeveloperModeStatusResponse", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.state = pairs.get("state").and_then(|value| DeveloperModeState::from_transport(value));
-        out.revision = pairs.get("revision").and_then(|value| value.parse().ok());
-        out.reason_code = pairs.get("reason_code").and_then(|value| ReasonCode::from_transport(value));
-        out
+        out.state = match object.get("state") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let raw = value.as_str().ok_or_else(|| Self::decode_error("state"))?;
+                Some(DeveloperModeState::from_transport(raw).ok_or_else(|| Self::decode_error("state"))?)
+            }
+            None => None,
+        };
+        out.revision = match object.get("revision") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_u64().ok_or_else(|| Self::decode_error("revision"))?),
+            None => None,
+        };
+        out.reason_code = match object.get("reason_code") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let raw = value.as_str().ok_or_else(|| Self::decode_error("reason_code"))?;
+                Some(ReasonCode::from_transport(raw).ok_or_else(|| Self::decode_error("reason_code"))?)
+            }
+            None => None,
+        };
+        Ok(out)
     }
 }
 
@@ -6617,48 +7326,63 @@ pub struct GetModelAssetResponse {
     pub asset: Option<Box<ModelAssetRecord>>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct GetProductControlCheckSyncRequest {
 
 }
 
 impl GetProductControlCheckSyncRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        Vec::new()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(_raw: &[u8]) -> Self {
-        Self::default()
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "GetProductControlCheckSyncRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        json_object(raw, Self::decode_error("<body>"))?;
+        Ok(Self::default())
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct GetProductControlRecordRequest {
 
 }
 
 impl GetProductControlRecordRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        Vec::new()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(_raw: &[u8]) -> Self {
-        Self::default()
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "GetProductControlRecordRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        json_object(raw, Self::decode_error("<body>"))?;
+        Ok(Self::default())
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct GetProductControlSelectedDataRootRequest {
 
 }
 
 impl GetProductControlSelectedDataRootRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        Vec::new()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(_raw: &[u8]) -> Self {
-        Self::default()
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "GetProductControlSelectedDataRootRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        json_object(raw, Self::decode_error("<body>"))?;
+        Ok(Self::default())
     }
 }
 
@@ -6676,59 +7400,112 @@ pub struct GetPublicChatSessionSnapshotResponse {
     pub snapshot: Option<BTreeMap<String, String>>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct GetRuntimeHealthRequest {
 
 }
 
 impl GetRuntimeHealthRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        Vec::new()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(_raw: &[u8]) -> Self {
-        Self::default()
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "GetRuntimeHealthRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        json_object(raw, Self::decode_error("<body>"))?;
+        Ok(Self::default())
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct GetRuntimeHealthResponse {
+    #[serde(rename = "status", skip_serializing_if = "Option::is_none")]
     pub status: Option<RuntimeHealthStatus>,
+    #[serde(rename = "reason", skip_serializing_if = "Option::is_none")]
     pub reason: Option<String>,
+    #[serde(rename = "queue_depth", skip_serializing_if = "Option::is_none")]
     pub queue_depth: Option<i32>,
+    #[serde(rename = "active_inference_jobs", skip_serializing_if = "Option::is_none")]
     pub active_inference_jobs: Option<i32>,
+    #[serde(rename = "cpu_milli", skip_serializing_if = "Option::is_none")]
     pub cpu_milli: Option<i64>,
+    #[serde(rename = "memory_bytes", skip_serializing_if = "Option::is_none")]
     pub memory_bytes: Option<i64>,
+    #[serde(rename = "vram_bytes", skip_serializing_if = "Option::is_none")]
     pub vram_bytes: Option<i64>,
+    #[serde(rename = "sampled_at", skip_serializing_if = "Option::is_none")]
     pub sampled_at: Option<String>,
 }
 
 impl GetRuntimeHealthResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.status { pairs.push(format!("status={:?}", value)); }
-        if let Some(value) = &self.reason { pairs.push(format!("reason={}", value)); }
-        if let Some(value) = &self.queue_depth { pairs.push(format!("queue_depth={}", value)); }
-        if let Some(value) = &self.active_inference_jobs { pairs.push(format!("active_inference_jobs={}", value)); }
-        if let Some(value) = &self.cpu_milli { pairs.push(format!("cpu_milli={}", value)); }
-        if let Some(value) = &self.memory_bytes { pairs.push(format!("memory_bytes={}", value)); }
-        if let Some(value) = &self.vram_bytes { pairs.push(format!("vram_bytes={}", value)); }
-        if let Some(value) = &self.sampled_at { pairs.push(format!("sampled_at={}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "GetRuntimeHealthResponse", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.status = pairs.get("status").and_then(|value| RuntimeHealthStatus::from_transport(value));
-        out.reason = pairs.get("reason").cloned();
-        out.queue_depth = pairs.get("queue_depth").and_then(|value| value.parse().ok());
-        out.active_inference_jobs = pairs.get("active_inference_jobs").and_then(|value| value.parse().ok());
-        out.cpu_milli = pairs.get("cpu_milli").and_then(|value| value.parse().ok());
-        out.memory_bytes = pairs.get("memory_bytes").and_then(|value| value.parse().ok());
-        out.vram_bytes = pairs.get("vram_bytes").and_then(|value| value.parse().ok());
-        out.sampled_at = pairs.get("sampled_at").cloned();
-        out
+        out.status = match object.get("status") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let raw = value.as_str().ok_or_else(|| Self::decode_error("status"))?;
+                Some(RuntimeHealthStatus::from_transport(raw).ok_or_else(|| Self::decode_error("status"))?)
+            }
+            None => None,
+        };
+        out.reason = match object.get("reason") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("reason"))?),
+            None => None,
+        };
+        out.queue_depth = match object.get("queue_depth") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let raw = value.as_i64().ok_or_else(|| Self::decode_error("queue_depth"))?;
+                Some(i32::try_from(raw).map_err(|_| Self::decode_error("queue_depth"))?)
+            }
+            None => None,
+        };
+        out.active_inference_jobs = match object.get("active_inference_jobs") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let raw = value.as_i64().ok_or_else(|| Self::decode_error("active_inference_jobs"))?;
+                Some(i32::try_from(raw).map_err(|_| Self::decode_error("active_inference_jobs"))?)
+            }
+            None => None,
+        };
+        out.cpu_milli = match object.get("cpu_milli") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_i64().ok_or_else(|| Self::decode_error("cpu_milli"))?),
+            None => None,
+        };
+        out.memory_bytes = match object.get("memory_bytes") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_i64().ok_or_else(|| Self::decode_error("memory_bytes"))?),
+            None => None,
+        };
+        out.vram_bytes = match object.get("vram_bytes") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_i64().ok_or_else(|| Self::decode_error("vram_bytes"))?),
+            None => None,
+        };
+        out.sampled_at = match object.get("sampled_at") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("sampled_at"))?),
+            None => None,
+        };
+        Ok(out)
     }
 }
 
@@ -6890,18 +7667,23 @@ pub struct ImportPortableAIProfileResponse {
     pub profile: Option<Box<PortableAIProfileRecord>>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct InitializeProductControlRootActivationRequest {
 
 }
 
 impl InitializeProductControlRootActivationRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        Vec::new()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(_raw: &[u8]) -> Self {
-        Self::default()
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "InitializeProductControlRootActivationRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        json_object(raw, Self::decode_error("<body>"))?;
+        Ok(Self::default())
     }
 }
 
@@ -6942,46 +7724,72 @@ pub struct InterruptLocalAppAgentRealtimeOutputResponse {
     pub control: Option<Box<RealtimeControlStatus>>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct InterruptLocalAppConversationTurnRequest {
+    #[serde(rename = "agent_handle", skip_serializing_if = "Option::is_none")]
     pub agent_handle: Option<String>,
+    #[serde(rename = "conversation_anchor_id", skip_serializing_if = "Option::is_none")]
     pub conversation_anchor_id: Option<String>,
 }
 
 impl InterruptLocalAppConversationTurnRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.agent_handle { pairs.push(format!("agent_handle={}", value)); }
-        if let Some(value) = &self.conversation_anchor_id { pairs.push(format!("conversation_anchor_id={}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "InterruptLocalAppConversationTurnRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.agent_handle = pairs.get("agent_handle").cloned();
-        out.conversation_anchor_id = pairs.get("conversation_anchor_id").cloned();
-        out
+        out.agent_handle = match object.get("agent_handle") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("agent_handle"))?),
+            None => None,
+        };
+        out.conversation_anchor_id = match object.get("conversation_anchor_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("conversation_anchor_id"))?),
+            None => None,
+        };
+        Ok(out)
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct InterruptLocalAppConversationTurnResponse {
+    #[serde(rename = "turn_id", skip_serializing_if = "Option::is_none")]
     pub turn_id: Option<String>,
 }
 
 impl InterruptLocalAppConversationTurnResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.turn_id { pairs.push(format!("turn_id={}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "InterruptLocalAppConversationTurnResponse", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.turn_id = pairs.get("turn_id").cloned();
-        out
+        out.turn_id = match object.get("turn_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("turn_id"))?),
+            None => None,
+        };
+        Ok(out)
     }
 }
 
@@ -6998,73 +7806,150 @@ pub struct InterruptRealtimeOutputResponse {
     pub control: Option<Box<RealtimeControlStatus>>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct InvokeRealmUnaryRequest {
+    #[serde(rename = "caller", skip_serializing_if = "Option::is_none")]
     pub caller: Option<Box<AccountCaller>>,
+    #[serde(rename = "method_id", skip_serializing_if = "Option::is_none")]
     pub method_id: Option<String>,
+    #[serde(rename = "realm_base_url", skip_serializing_if = "Option::is_none")]
     pub realm_base_url: Option<String>,
+    #[serde(rename = "request_json", skip_serializing_if = "Option::is_none")]
     pub request_json: Option<String>,
+    #[serde(rename = "timeout_ms", skip_serializing_if = "Option::is_none")]
     pub timeout_ms: Option<i32>,
 }
 
 impl InvokeRealmUnaryRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.caller { push_nested_pairs(&mut pairs, "caller", &value.to_transport()); }
-        if let Some(value) = &self.method_id { pairs.push(format!("method_id={}", value)); }
-        if let Some(value) = &self.realm_base_url { pairs.push(format!("realm_base_url={}", value)); }
-        if let Some(value) = &self.request_json { pairs.push(format!("request_json={}", value)); }
-        if let Some(value) = &self.timeout_ms { pairs.push(format!("timeout_ms={}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "InvokeRealmUnaryRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.caller = extract_nested_pairs(raw, "caller").map(|value| Box::new(AccountCaller::from_transport(&value)));
-        out.method_id = pairs.get("method_id").cloned();
-        out.realm_base_url = pairs.get("realm_base_url").cloned();
-        out.request_json = pairs.get("request_json").cloned();
-        out.timeout_ms = pairs.get("timeout_ms").and_then(|value| value.parse().ok());
-        out
+        out.caller = match object.get("caller") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let nested = value.as_object().ok_or_else(|| Self::decode_error("caller"))?;
+                Some(Box::new(AccountCaller::from_json_object(nested)?))
+            }
+            None => None,
+        };
+        out.method_id = match object.get("method_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("method_id"))?),
+            None => None,
+        };
+        out.realm_base_url = match object.get("realm_base_url") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("realm_base_url"))?),
+            None => None,
+        };
+        out.request_json = match object.get("request_json") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("request_json"))?),
+            None => None,
+        };
+        out.timeout_ms = match object.get("timeout_ms") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let raw = value.as_i64().ok_or_else(|| Self::decode_error("timeout_ms"))?;
+                Some(i32::try_from(raw).map_err(|_| Self::decode_error("timeout_ms"))?)
+            }
+            None => None,
+        };
+        Ok(out)
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct InvokeRealmUnaryResponse {
+    #[serde(rename = "accepted", skip_serializing_if = "Option::is_none")]
     pub accepted: Option<bool>,
+    #[serde(rename = "response_json", skip_serializing_if = "Option::is_none")]
     pub response_json: Option<String>,
+    #[serde(rename = "reason_code", skip_serializing_if = "Option::is_none")]
     pub reason_code: Option<ReasonCode>,
+    #[serde(rename = "account_reason_code", skip_serializing_if = "Option::is_none")]
     pub account_reason_code: Option<AccountReasonCode>,
+    #[serde(rename = "production_inert", skip_serializing_if = "Option::is_none")]
     pub production_inert: Option<bool>,
+    #[serde(rename = "http_status", skip_serializing_if = "Option::is_none")]
     pub http_status: Option<i32>,
+    #[serde(rename = "error_message", skip_serializing_if = "Option::is_none")]
     pub error_message: Option<String>,
 }
 
 impl InvokeRealmUnaryResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.accepted { pairs.push(format!("accepted={}", value)); }
-        if let Some(value) = &self.response_json { pairs.push(format!("response_json={}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        if let Some(value) = &self.account_reason_code { pairs.push(format!("account_reason_code={:?}", value)); }
-        if let Some(value) = &self.production_inert { pairs.push(format!("production_inert={}", value)); }
-        if let Some(value) = &self.http_status { pairs.push(format!("http_status={}", value)); }
-        if let Some(value) = &self.error_message { pairs.push(format!("error_message={}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "InvokeRealmUnaryResponse", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.accepted = pairs.get("accepted").and_then(|value| value.parse().ok());
-        out.response_json = pairs.get("response_json").cloned();
-        out.reason_code = pairs.get("reason_code").and_then(|value| ReasonCode::from_transport(value));
-        out.account_reason_code = pairs.get("account_reason_code").and_then(|value| AccountReasonCode::from_transport(value));
-        out.production_inert = pairs.get("production_inert").and_then(|value| value.parse().ok());
-        out.http_status = pairs.get("http_status").and_then(|value| value.parse().ok());
-        out.error_message = pairs.get("error_message").cloned();
-        out
+        out.accepted = match object.get("accepted") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_bool().ok_or_else(|| Self::decode_error("accepted"))?),
+            None => None,
+        };
+        out.response_json = match object.get("response_json") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("response_json"))?),
+            None => None,
+        };
+        out.reason_code = match object.get("reason_code") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let raw = value.as_str().ok_or_else(|| Self::decode_error("reason_code"))?;
+                Some(ReasonCode::from_transport(raw).ok_or_else(|| Self::decode_error("reason_code"))?)
+            }
+            None => None,
+        };
+        out.account_reason_code = match object.get("account_reason_code") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let raw = value.as_str().ok_or_else(|| Self::decode_error("account_reason_code"))?;
+                Some(AccountReasonCode::from_transport(raw).ok_or_else(|| Self::decode_error("account_reason_code"))?)
+            }
+            None => None,
+        };
+        out.production_inert = match object.get("production_inert") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_bool().ok_or_else(|| Self::decode_error("production_inert"))?),
+            None => None,
+        };
+        out.http_status = match object.get("http_status") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let raw = value.as_i64().ok_or_else(|| Self::decode_error("http_status"))?;
+                Some(i32::try_from(raw).map_err(|_| Self::decode_error("http_status"))?)
+            }
+            None => None,
+        };
+        out.error_message = match object.get("error_message") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("error_message"))?),
+            None => None,
+        };
+        Ok(out)
     }
 }
 
@@ -8785,68 +9670,139 @@ pub struct LocalPythonProfile {
     pub version: Option<String>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct LocalTransferProgressEvent {
+    #[serde(rename = "install_session_id", skip_serializing_if = "Option::is_none")]
     pub install_session_id: Option<String>,
+    #[serde(rename = "asset_id", skip_serializing_if = "Option::is_none")]
     pub asset_id: Option<String>,
+    #[serde(rename = "session_kind", skip_serializing_if = "Option::is_none")]
     pub session_kind: Option<String>,
+    #[serde(rename = "phase", skip_serializing_if = "Option::is_none")]
     pub phase: Option<String>,
+    #[serde(rename = "bytes_received", skip_serializing_if = "Option::is_none")]
     pub bytes_received: Option<i64>,
+    #[serde(rename = "bytes_total", skip_serializing_if = "Option::is_none")]
     pub bytes_total: Option<i64>,
+    #[serde(rename = "speed_bytes_per_sec", skip_serializing_if = "Option::is_none")]
     pub speed_bytes_per_sec: Option<i64>,
+    #[serde(rename = "eta_seconds", skip_serializing_if = "Option::is_none")]
     pub eta_seconds: Option<i64>,
+    #[serde(rename = "message", skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
+    #[serde(rename = "state", skip_serializing_if = "Option::is_none")]
     pub state: Option<String>,
+    #[serde(rename = "reason_code", skip_serializing_if = "Option::is_none")]
     pub reason_code: Option<String>,
+    #[serde(rename = "retryable", skip_serializing_if = "Option::is_none")]
     pub retryable: Option<bool>,
+    #[serde(rename = "done", skip_serializing_if = "Option::is_none")]
     pub done: Option<bool>,
+    #[serde(rename = "success", skip_serializing_if = "Option::is_none")]
     pub success: Option<bool>,
+    #[serde(rename = "created_at", skip_serializing_if = "Option::is_none")]
     pub created_at: Option<String>,
+    #[serde(rename = "updated_at", skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<String>,
 }
 
 impl LocalTransferProgressEvent {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.install_session_id { pairs.push(format!("install_session_id={}", value)); }
-        if let Some(value) = &self.asset_id { pairs.push(format!("asset_id={}", value)); }
-        if let Some(value) = &self.session_kind { pairs.push(format!("session_kind={}", value)); }
-        if let Some(value) = &self.phase { pairs.push(format!("phase={}", value)); }
-        if let Some(value) = &self.bytes_received { pairs.push(format!("bytes_received={}", value)); }
-        if let Some(value) = &self.bytes_total { pairs.push(format!("bytes_total={}", value)); }
-        if let Some(value) = &self.speed_bytes_per_sec { pairs.push(format!("speed_bytes_per_sec={}", value)); }
-        if let Some(value) = &self.eta_seconds { pairs.push(format!("eta_seconds={}", value)); }
-        if let Some(value) = &self.message { pairs.push(format!("message={}", value)); }
-        if let Some(value) = &self.state { pairs.push(format!("state={}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={}", value)); }
-        if let Some(value) = &self.retryable { pairs.push(format!("retryable={}", value)); }
-        if let Some(value) = &self.done { pairs.push(format!("done={}", value)); }
-        if let Some(value) = &self.success { pairs.push(format!("success={}", value)); }
-        if let Some(value) = &self.created_at { pairs.push(format!("created_at={}", value)); }
-        if let Some(value) = &self.updated_at { pairs.push(format!("updated_at={}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "LocalTransferProgressEvent", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.install_session_id = pairs.get("install_session_id").cloned();
-        out.asset_id = pairs.get("asset_id").cloned();
-        out.session_kind = pairs.get("session_kind").cloned();
-        out.phase = pairs.get("phase").cloned();
-        out.bytes_received = pairs.get("bytes_received").and_then(|value| value.parse().ok());
-        out.bytes_total = pairs.get("bytes_total").and_then(|value| value.parse().ok());
-        out.speed_bytes_per_sec = pairs.get("speed_bytes_per_sec").and_then(|value| value.parse().ok());
-        out.eta_seconds = pairs.get("eta_seconds").and_then(|value| value.parse().ok());
-        out.message = pairs.get("message").cloned();
-        out.state = pairs.get("state").cloned();
-        out.reason_code = pairs.get("reason_code").cloned();
-        out.retryable = pairs.get("retryable").and_then(|value| value.parse().ok());
-        out.done = pairs.get("done").and_then(|value| value.parse().ok());
-        out.success = pairs.get("success").and_then(|value| value.parse().ok());
-        out.created_at = pairs.get("created_at").cloned();
-        out.updated_at = pairs.get("updated_at").cloned();
-        out
+        out.install_session_id = match object.get("install_session_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("install_session_id"))?),
+            None => None,
+        };
+        out.asset_id = match object.get("asset_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("asset_id"))?),
+            None => None,
+        };
+        out.session_kind = match object.get("session_kind") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("session_kind"))?),
+            None => None,
+        };
+        out.phase = match object.get("phase") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("phase"))?),
+            None => None,
+        };
+        out.bytes_received = match object.get("bytes_received") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_i64().ok_or_else(|| Self::decode_error("bytes_received"))?),
+            None => None,
+        };
+        out.bytes_total = match object.get("bytes_total") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_i64().ok_or_else(|| Self::decode_error("bytes_total"))?),
+            None => None,
+        };
+        out.speed_bytes_per_sec = match object.get("speed_bytes_per_sec") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_i64().ok_or_else(|| Self::decode_error("speed_bytes_per_sec"))?),
+            None => None,
+        };
+        out.eta_seconds = match object.get("eta_seconds") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_i64().ok_or_else(|| Self::decode_error("eta_seconds"))?),
+            None => None,
+        };
+        out.message = match object.get("message") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("message"))?),
+            None => None,
+        };
+        out.state = match object.get("state") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("state"))?),
+            None => None,
+        };
+        out.reason_code = match object.get("reason_code") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("reason_code"))?),
+            None => None,
+        };
+        out.retryable = match object.get("retryable") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_bool().ok_or_else(|| Self::decode_error("retryable"))?),
+            None => None,
+        };
+        out.done = match object.get("done") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_bool().ok_or_else(|| Self::decode_error("done"))?),
+            None => None,
+        };
+        out.success = match object.get("success") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_bool().ok_or_else(|| Self::decode_error("success"))?),
+            None => None,
+        };
+        out.created_at = match object.get("created_at") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("created_at"))?),
+            None => None,
+        };
+        out.updated_at = match object.get("updated_at") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("updated_at"))?),
+            None => None,
+        };
+        Ok(out)
     }
 }
 
@@ -8897,58 +9853,112 @@ pub struct LocalVerifiedAssetDescriptor {
     pub host_requirements: Option<Box<LocalHostRequirements>>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct LogoutRequest {
+    #[serde(rename = "caller", skip_serializing_if = "Option::is_none")]
     pub caller: Option<Box<AccountCaller>>,
+    #[serde(rename = "reason", skip_serializing_if = "Option::is_none")]
     pub reason: Option<String>,
 }
 
 impl LogoutRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.caller { push_nested_pairs(&mut pairs, "caller", &value.to_transport()); }
-        if let Some(value) = &self.reason { pairs.push(format!("reason={}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "LogoutRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.caller = extract_nested_pairs(raw, "caller").map(|value| Box::new(AccountCaller::from_transport(&value)));
-        out.reason = pairs.get("reason").cloned();
-        out
+        out.caller = match object.get("caller") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let nested = value.as_object().ok_or_else(|| Self::decode_error("caller"))?;
+                Some(Box::new(AccountCaller::from_json_object(nested)?))
+            }
+            None => None,
+        };
+        out.reason = match object.get("reason") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("reason"))?),
+            None => None,
+        };
+        Ok(out)
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct LogoutResponse {
+    #[serde(rename = "accepted", skip_serializing_if = "Option::is_none")]
     pub accepted: Option<bool>,
+    #[serde(rename = "state", skip_serializing_if = "Option::is_none")]
     pub state: Option<AccountSessionState>,
+    #[serde(rename = "reason_code", skip_serializing_if = "Option::is_none")]
     pub reason_code: Option<ReasonCode>,
+    #[serde(rename = "account_reason_code", skip_serializing_if = "Option::is_none")]
     pub account_reason_code: Option<AccountReasonCode>,
+    #[serde(rename = "production_inert", skip_serializing_if = "Option::is_none")]
     pub production_inert: Option<bool>,
 }
 
 impl LogoutResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.accepted { pairs.push(format!("accepted={}", value)); }
-        if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        if let Some(value) = &self.account_reason_code { pairs.push(format!("account_reason_code={:?}", value)); }
-        if let Some(value) = &self.production_inert { pairs.push(format!("production_inert={}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "LogoutResponse", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.accepted = pairs.get("accepted").and_then(|value| value.parse().ok());
-        out.state = pairs.get("state").and_then(|value| AccountSessionState::from_transport(value));
-        out.reason_code = pairs.get("reason_code").and_then(|value| ReasonCode::from_transport(value));
-        out.account_reason_code = pairs.get("account_reason_code").and_then(|value| AccountReasonCode::from_transport(value));
-        out.production_inert = pairs.get("production_inert").and_then(|value| value.parse().ok());
-        out
+        out.accepted = match object.get("accepted") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_bool().ok_or_else(|| Self::decode_error("accepted"))?),
+            None => None,
+        };
+        out.state = match object.get("state") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let raw = value.as_str().ok_or_else(|| Self::decode_error("state"))?;
+                Some(AccountSessionState::from_transport(raw).ok_or_else(|| Self::decode_error("state"))?)
+            }
+            None => None,
+        };
+        out.reason_code = match object.get("reason_code") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let raw = value.as_str().ok_or_else(|| Self::decode_error("reason_code"))?;
+                Some(ReasonCode::from_transport(raw).ok_or_else(|| Self::decode_error("reason_code"))?)
+            }
+            None => None,
+        };
+        out.account_reason_code = match object.get("account_reason_code") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let raw = value.as_str().ok_or_else(|| Self::decode_error("account_reason_code"))?;
+                Some(AccountReasonCode::from_transport(raw).ok_or_else(|| Self::decode_error("account_reason_code"))?)
+            }
+            None => None,
+        };
+        out.production_inert = match object.get("production_inert") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_bool().ok_or_else(|| Self::decode_error("production_inert"))?),
+            None => None,
+        };
+        Ok(out)
     }
 }
 
@@ -9157,61 +10167,113 @@ pub struct OpenDesktopSessionResponse {
     pub runtime_boot_epoch: Option<Vec<u8>>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct OpenExternalPrincipalSessionRequest {
+    #[serde(rename = "app_id", skip_serializing_if = "Option::is_none")]
     pub app_id: Option<String>,
+    #[serde(rename = "external_principal_id", skip_serializing_if = "Option::is_none")]
     pub external_principal_id: Option<String>,
+    #[serde(rename = "proof", skip_serializing_if = "Option::is_none")]
     pub proof: Option<String>,
+    #[serde(rename = "ttl_seconds", skip_serializing_if = "Option::is_none")]
     pub ttl_seconds: Option<i32>,
 }
 
 impl OpenExternalPrincipalSessionRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
-        if let Some(value) = &self.external_principal_id { pairs.push(format!("external_principal_id={}", value)); }
-        if let Some(value) = &self.proof { pairs.push(format!("proof={}", value)); }
-        if let Some(value) = &self.ttl_seconds { pairs.push(format!("ttl_seconds={}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "OpenExternalPrincipalSessionRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.app_id = pairs.get("app_id").cloned();
-        out.external_principal_id = pairs.get("external_principal_id").cloned();
-        out.proof = pairs.get("proof").cloned();
-        out.ttl_seconds = pairs.get("ttl_seconds").and_then(|value| value.parse().ok());
-        out
+        out.app_id = match object.get("app_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("app_id"))?),
+            None => None,
+        };
+        out.external_principal_id = match object.get("external_principal_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("external_principal_id"))?),
+            None => None,
+        };
+        out.proof = match object.get("proof") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("proof"))?),
+            None => None,
+        };
+        out.ttl_seconds = match object.get("ttl_seconds") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let raw = value.as_i64().ok_or_else(|| Self::decode_error("ttl_seconds"))?;
+                Some(i32::try_from(raw).map_err(|_| Self::decode_error("ttl_seconds"))?)
+            }
+            None => None,
+        };
+        Ok(out)
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct OpenExternalPrincipalSessionResponse {
+    #[serde(rename = "external_session_id", skip_serializing_if = "Option::is_none")]
     pub external_session_id: Option<String>,
+    #[serde(rename = "expires_at", skip_serializing_if = "Option::is_none")]
     pub expires_at: Option<String>,
+    #[serde(rename = "session_token", skip_serializing_if = "Option::is_none")]
     pub session_token: Option<String>,
+    #[serde(rename = "reason_code", skip_serializing_if = "Option::is_none")]
     pub reason_code: Option<ReasonCode>,
 }
 
 impl OpenExternalPrincipalSessionResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.external_session_id { pairs.push(format!("external_session_id={}", value)); }
-        if let Some(value) = &self.expires_at { pairs.push(format!("expires_at={}", value)); }
-        if let Some(value) = &self.session_token { pairs.push(format!("session_token={}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "OpenExternalPrincipalSessionResponse", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.external_session_id = pairs.get("external_session_id").cloned();
-        out.expires_at = pairs.get("expires_at").cloned();
-        out.session_token = pairs.get("session_token").cloned();
-        out.reason_code = pairs.get("reason_code").and_then(|value| ReasonCode::from_transport(value));
-        out
+        out.external_session_id = match object.get("external_session_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("external_session_id"))?),
+            None => None,
+        };
+        out.expires_at = match object.get("expires_at") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("expires_at"))?),
+            None => None,
+        };
+        out.session_token = match object.get("session_token") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("session_token"))?),
+            None => None,
+        };
+        out.reason_code = match object.get("reason_code") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let raw = value.as_str().ok_or_else(|| Self::decode_error("reason_code"))?;
+                Some(ReasonCode::from_transport(raw).ok_or_else(|| Self::decode_error("reason_code"))?)
+            }
+            None => None,
+        };
+        Ok(out)
     }
 }
 
@@ -9234,46 +10296,72 @@ pub struct OpenLocalAppAgentRealtimeResponse {
     pub control: Option<Box<RealtimeControlStatus>>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct OpenLocalAppConversationRequest {
+    #[serde(rename = "agent_handle", skip_serializing_if = "Option::is_none")]
     pub agent_handle: Option<String>,
 }
 
 impl OpenLocalAppConversationRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.agent_handle { pairs.push(format!("agent_handle={}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "OpenLocalAppConversationRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.agent_handle = pairs.get("agent_handle").cloned();
-        out
+        out.agent_handle = match object.get("agent_handle") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("agent_handle"))?),
+            None => None,
+        };
+        Ok(out)
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct OpenLocalAppConversationResponse {
+    #[serde(rename = "conversation_anchor_id", skip_serializing_if = "Option::is_none")]
     pub conversation_anchor_id: Option<String>,
+    #[serde(rename = "active_turn_id", skip_serializing_if = "Option::is_none")]
     pub active_turn_id: Option<String>,
 }
 
 impl OpenLocalAppConversationResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.conversation_anchor_id { pairs.push(format!("conversation_anchor_id={}", value)); }
-        if let Some(value) = &self.active_turn_id { pairs.push(format!("active_turn_id={}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "OpenLocalAppConversationResponse", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.conversation_anchor_id = pairs.get("conversation_anchor_id").cloned();
-        out.active_turn_id = pairs.get("active_turn_id").cloned();
-        out
+        out.conversation_anchor_id = match object.get("conversation_anchor_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("conversation_anchor_id"))?),
+            None => None,
+        };
+        out.active_turn_id = match object.get("active_turn_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("active_turn_id"))?),
+            None => None,
+        };
+        Ok(out)
     }
 }
 
@@ -9512,23 +10600,34 @@ pub struct PreviewSharedLocalAgentAIProfileResponse {
     pub after: Option<Box<AIConfig>>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct ProductControlProjectionJson {
+    #[serde(rename = "json", skip_serializing_if = "Option::is_none")]
     pub json: Option<String>,
 }
 
 impl ProductControlProjectionJson {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.json { pairs.push(format!("json={}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "ProductControlProjectionJson", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.json = pairs.get("json").cloned();
-        out
+        out.json = match object.get("json") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("json"))?),
+            None => None,
+        };
+        Ok(out)
     }
 }
 
@@ -9920,79 +11019,143 @@ pub struct RebindLocalAppProcessResponse {
     pub reason_code: Option<ReasonCode>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct ReconcileProductControlFirstRunSetupStateRequest {
 
 }
 
 impl ReconcileProductControlFirstRunSetupStateRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        Vec::new()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(_raw: &[u8]) -> Self {
-        Self::default()
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "ReconcileProductControlFirstRunSetupStateRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        json_object(raw, Self::decode_error("<body>"))?;
+        Ok(Self::default())
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RegisterExternalPrincipalRequest {
+    #[serde(rename = "app_id", skip_serializing_if = "Option::is_none")]
     pub app_id: Option<String>,
+    #[serde(rename = "external_principal_id", skip_serializing_if = "Option::is_none")]
     pub external_principal_id: Option<String>,
+    #[serde(rename = "external_principal_type", skip_serializing_if = "Option::is_none")]
     pub external_principal_type: Option<ExternalPrincipalType>,
+    #[serde(rename = "issuer", skip_serializing_if = "Option::is_none")]
     pub issuer: Option<String>,
+    #[serde(rename = "client_id", skip_serializing_if = "Option::is_none")]
     pub client_id: Option<String>,
+    #[serde(rename = "signature_key_id", skip_serializing_if = "Option::is_none")]
     pub signature_key_id: Option<String>,
+    #[serde(rename = "proof_type", skip_serializing_if = "Option::is_none")]
     pub proof_type: Option<ExternalProofType>,
 }
 
 impl RegisterExternalPrincipalRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.app_id { pairs.push(format!("app_id={}", value)); }
-        if let Some(value) = &self.external_principal_id { pairs.push(format!("external_principal_id={}", value)); }
-        if let Some(value) = &self.external_principal_type { pairs.push(format!("external_principal_type={:?}", value)); }
-        if let Some(value) = &self.issuer { pairs.push(format!("issuer={}", value)); }
-        if let Some(value) = &self.client_id { pairs.push(format!("client_id={}", value)); }
-        if let Some(value) = &self.signature_key_id { pairs.push(format!("signature_key_id={}", value)); }
-        if let Some(value) = &self.proof_type { pairs.push(format!("proof_type={:?}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "RegisterExternalPrincipalRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.app_id = pairs.get("app_id").cloned();
-        out.external_principal_id = pairs.get("external_principal_id").cloned();
-        out.external_principal_type = pairs.get("external_principal_type").and_then(|value| ExternalPrincipalType::from_transport(value));
-        out.issuer = pairs.get("issuer").cloned();
-        out.client_id = pairs.get("client_id").cloned();
-        out.signature_key_id = pairs.get("signature_key_id").cloned();
-        out.proof_type = pairs.get("proof_type").and_then(|value| ExternalProofType::from_transport(value));
-        out
+        out.app_id = match object.get("app_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("app_id"))?),
+            None => None,
+        };
+        out.external_principal_id = match object.get("external_principal_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("external_principal_id"))?),
+            None => None,
+        };
+        out.external_principal_type = match object.get("external_principal_type") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let raw = value.as_str().ok_or_else(|| Self::decode_error("external_principal_type"))?;
+                Some(ExternalPrincipalType::from_transport(raw).ok_or_else(|| Self::decode_error("external_principal_type"))?)
+            }
+            None => None,
+        };
+        out.issuer = match object.get("issuer") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("issuer"))?),
+            None => None,
+        };
+        out.client_id = match object.get("client_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("client_id"))?),
+            None => None,
+        };
+        out.signature_key_id = match object.get("signature_key_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("signature_key_id"))?),
+            None => None,
+        };
+        out.proof_type = match object.get("proof_type") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let raw = value.as_str().ok_or_else(|| Self::decode_error("proof_type"))?;
+                Some(ExternalProofType::from_transport(raw).ok_or_else(|| Self::decode_error("proof_type"))?)
+            }
+            None => None,
+        };
+        Ok(out)
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RegisterExternalPrincipalResponse {
+    #[serde(rename = "accepted", skip_serializing_if = "Option::is_none")]
     pub accepted: Option<bool>,
+    #[serde(rename = "reason_code", skip_serializing_if = "Option::is_none")]
     pub reason_code: Option<ReasonCode>,
 }
 
 impl RegisterExternalPrincipalResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.accepted { pairs.push(format!("accepted={}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "RegisterExternalPrincipalResponse", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.accepted = pairs.get("accepted").and_then(|value| value.parse().ok());
-        out.reason_code = pairs.get("reason_code").and_then(|value| ReasonCode::from_transport(value));
-        out
+        out.accepted = match object.get("accepted") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_bool().ok_or_else(|| Self::decode_error("accepted"))?),
+            None => None,
+        };
+        out.reason_code = match object.get("reason_code") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let raw = value.as_str().ok_or_else(|| Self::decode_error("reason_code"))?;
+                Some(ReasonCode::from_transport(raw).ok_or_else(|| Self::decode_error("reason_code"))?)
+            }
+            None => None,
+        };
+        Ok(out)
     }
 }
 
@@ -10010,89 +11173,147 @@ pub struct RegisterLocalDevelopmentProjectResponse {
     pub reason_code: Option<ReasonCode>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RemoveLocalAppAssetRequest {
+    #[serde(rename = "relative_path", skip_serializing_if = "Option::is_none")]
     pub relative_path: Option<String>,
 }
 
 impl RemoveLocalAppAssetRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.relative_path { pairs.push(format!("relative_path={}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "RemoveLocalAppAssetRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.relative_path = pairs.get("relative_path").cloned();
-        out
+        out.relative_path = match object.get("relative_path") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("relative_path"))?),
+            None => None,
+        };
+        Ok(out)
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RemoveLocalAppAssetResponse {
+    #[serde(rename = "removed", skip_serializing_if = "Option::is_none")]
     pub removed: Option<bool>,
+    #[serde(rename = "reason_code", skip_serializing_if = "Option::is_none")]
     pub reason_code: Option<ReasonCode>,
 }
 
 impl RemoveLocalAppAssetResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.removed { pairs.push(format!("removed={}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "RemoveLocalAppAssetResponse", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.removed = pairs.get("removed").and_then(|value| value.parse().ok());
-        out.reason_code = pairs.get("reason_code").and_then(|value| ReasonCode::from_transport(value));
-        out
+        out.removed = match object.get("removed") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_bool().ok_or_else(|| Self::decode_error("removed"))?),
+            None => None,
+        };
+        out.reason_code = match object.get("reason_code") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let raw = value.as_str().ok_or_else(|| Self::decode_error("reason_code"))?;
+                Some(ReasonCode::from_transport(raw).ok_or_else(|| Self::decode_error("reason_code"))?)
+            }
+            None => None,
+        };
+        Ok(out)
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RemoveLocalAppStorageJsonRequest {
+    #[serde(rename = "relative_path", skip_serializing_if = "Option::is_none")]
     pub relative_path: Option<String>,
 }
 
 impl RemoveLocalAppStorageJsonRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.relative_path { pairs.push(format!("relative_path={}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "RemoveLocalAppStorageJsonRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.relative_path = pairs.get("relative_path").cloned();
-        out
+        out.relative_path = match object.get("relative_path") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("relative_path"))?),
+            None => None,
+        };
+        Ok(out)
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RemoveLocalAppStorageJsonResponse {
+    #[serde(rename = "removed", skip_serializing_if = "Option::is_none")]
     pub removed: Option<bool>,
+    #[serde(rename = "reason_code", skip_serializing_if = "Option::is_none")]
     pub reason_code: Option<ReasonCode>,
 }
 
 impl RemoveLocalAppStorageJsonResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.removed { pairs.push(format!("removed={}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "RemoveLocalAppStorageJsonResponse", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.removed = pairs.get("removed").and_then(|value| value.parse().ok());
-        out.reason_code = pairs.get("reason_code").and_then(|value| ReasonCode::from_transport(value));
-        out
+        out.removed = match object.get("removed") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_bool().ok_or_else(|| Self::decode_error("removed"))?),
+            None => None,
+        };
+        out.reason_code = match object.get("reason_code") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let raw = value.as_str().ok_or_else(|| Self::decode_error("reason_code"))?;
+                Some(ReasonCode::from_transport(raw).ok_or_else(|| Self::decode_error("reason_code"))?)
+            }
+            None => None,
+        };
+        Ok(out)
     }
 }
 
@@ -10165,23 +11386,34 @@ pub struct RepairLocalEnvironmentDependencyResponse {
     pub job: Option<Box<LocalEnvironmentDependencyJob>>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct ReplaceProductControlDataRootRequest {
+    #[serde(rename = "target_root", skip_serializing_if = "Option::is_none")]
     pub target_root: Option<String>,
 }
 
 impl ReplaceProductControlDataRootRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.target_root { pairs.push(format!("target_root={}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "ReplaceProductControlDataRootRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.target_root = pairs.get("target_root").cloned();
-        out
+        out.target_root = match object.get("target_root") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("target_root"))?),
+            None => None,
+        };
+        Ok(out)
     }
 }
 
@@ -10205,41 +11437,64 @@ pub struct RequestPresenceVerificationResponse {
     pub production_inert: Option<bool>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RequestRuntimeRestartRequest {
 
 }
 
 impl RequestRuntimeRestartRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        Vec::new()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(_raw: &[u8]) -> Self {
-        Self::default()
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "RequestRuntimeRestartRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        json_object(raw, Self::decode_error("<body>"))?;
+        Ok(Self::default())
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RequestRuntimeRestartResponse {
+    #[serde(rename = "accepted", skip_serializing_if = "Option::is_none")]
     pub accepted: Option<bool>,
+    #[serde(rename = "reason_code", skip_serializing_if = "Option::is_none")]
     pub reason_code: Option<ReasonCode>,
 }
 
 impl RequestRuntimeRestartResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.accepted { pairs.push(format!("accepted={}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "RequestRuntimeRestartResponse", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.accepted = pairs.get("accepted").and_then(|value| value.parse().ok());
-        out.reason_code = pairs.get("reason_code").and_then(|value| ReasonCode::from_transport(value));
-        out
+        out.accepted = match object.get("accepted") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_bool().ok_or_else(|| Self::decode_error("accepted"))?),
+            None => None,
+        };
+        out.reason_code = match object.get("reason_code") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let raw = value.as_str().ok_or_else(|| Self::decode_error("reason_code"))?;
+                Some(ReasonCode::from_transport(raw).ok_or_else(|| Self::decode_error("reason_code"))?)
+            }
+            None => None,
+        };
+        Ok(out)
     }
 }
 
@@ -10364,67 +11619,130 @@ pub struct RevealLocalAppAssetResponse {
     pub reason_code: Option<ReasonCode>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RevokeExternalPrincipalSessionRequest {
+    #[serde(rename = "external_session_id", skip_serializing_if = "Option::is_none")]
     pub external_session_id: Option<String>,
 }
 
 impl RevokeExternalPrincipalSessionRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.external_session_id { pairs.push(format!("external_session_id={}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "RevokeExternalPrincipalSessionRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.external_session_id = pairs.get("external_session_id").cloned();
-        out
+        out.external_session_id = match object.get("external_session_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("external_session_id"))?),
+            None => None,
+        };
+        Ok(out)
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RuntimeHealthEvent {
+    #[serde(rename = "sequence", skip_serializing_if = "Option::is_none")]
     pub sequence: Option<u64>,
+    #[serde(rename = "status", skip_serializing_if = "Option::is_none")]
     pub status: Option<RuntimeHealthStatus>,
+    #[serde(rename = "reason", skip_serializing_if = "Option::is_none")]
     pub reason: Option<String>,
+    #[serde(rename = "queue_depth", skip_serializing_if = "Option::is_none")]
     pub queue_depth: Option<i32>,
+    #[serde(rename = "active_inference_jobs", skip_serializing_if = "Option::is_none")]
     pub active_inference_jobs: Option<i32>,
+    #[serde(rename = "cpu_milli", skip_serializing_if = "Option::is_none")]
     pub cpu_milli: Option<i64>,
+    #[serde(rename = "memory_bytes", skip_serializing_if = "Option::is_none")]
     pub memory_bytes: Option<i64>,
+    #[serde(rename = "vram_bytes", skip_serializing_if = "Option::is_none")]
     pub vram_bytes: Option<i64>,
+    #[serde(rename = "sampled_at", skip_serializing_if = "Option::is_none")]
     pub sampled_at: Option<String>,
 }
 
 impl RuntimeHealthEvent {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.sequence { pairs.push(format!("sequence={}", value)); }
-        if let Some(value) = &self.status { pairs.push(format!("status={:?}", value)); }
-        if let Some(value) = &self.reason { pairs.push(format!("reason={}", value)); }
-        if let Some(value) = &self.queue_depth { pairs.push(format!("queue_depth={}", value)); }
-        if let Some(value) = &self.active_inference_jobs { pairs.push(format!("active_inference_jobs={}", value)); }
-        if let Some(value) = &self.cpu_milli { pairs.push(format!("cpu_milli={}", value)); }
-        if let Some(value) = &self.memory_bytes { pairs.push(format!("memory_bytes={}", value)); }
-        if let Some(value) = &self.vram_bytes { pairs.push(format!("vram_bytes={}", value)); }
-        if let Some(value) = &self.sampled_at { pairs.push(format!("sampled_at={}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "RuntimeHealthEvent", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.sequence = pairs.get("sequence").and_then(|value| value.parse().ok());
-        out.status = pairs.get("status").and_then(|value| RuntimeHealthStatus::from_transport(value));
-        out.reason = pairs.get("reason").cloned();
-        out.queue_depth = pairs.get("queue_depth").and_then(|value| value.parse().ok());
-        out.active_inference_jobs = pairs.get("active_inference_jobs").and_then(|value| value.parse().ok());
-        out.cpu_milli = pairs.get("cpu_milli").and_then(|value| value.parse().ok());
-        out.memory_bytes = pairs.get("memory_bytes").and_then(|value| value.parse().ok());
-        out.vram_bytes = pairs.get("vram_bytes").and_then(|value| value.parse().ok());
-        out.sampled_at = pairs.get("sampled_at").cloned();
-        out
+        out.sequence = match object.get("sequence") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_u64().ok_or_else(|| Self::decode_error("sequence"))?),
+            None => None,
+        };
+        out.status = match object.get("status") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let raw = value.as_str().ok_or_else(|| Self::decode_error("status"))?;
+                Some(RuntimeHealthStatus::from_transport(raw).ok_or_else(|| Self::decode_error("status"))?)
+            }
+            None => None,
+        };
+        out.reason = match object.get("reason") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("reason"))?),
+            None => None,
+        };
+        out.queue_depth = match object.get("queue_depth") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let raw = value.as_i64().ok_or_else(|| Self::decode_error("queue_depth"))?;
+                Some(i32::try_from(raw).map_err(|_| Self::decode_error("queue_depth"))?)
+            }
+            None => None,
+        };
+        out.active_inference_jobs = match object.get("active_inference_jobs") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let raw = value.as_i64().ok_or_else(|| Self::decode_error("active_inference_jobs"))?;
+                Some(i32::try_from(raw).map_err(|_| Self::decode_error("active_inference_jobs"))?)
+            }
+            None => None,
+        };
+        out.cpu_milli = match object.get("cpu_milli") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_i64().ok_or_else(|| Self::decode_error("cpu_milli"))?),
+            None => None,
+        };
+        out.memory_bytes = match object.get("memory_bytes") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_i64().ok_or_else(|| Self::decode_error("memory_bytes"))?),
+            None => None,
+        };
+        out.vram_bytes = match object.get("vram_bytes") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_i64().ok_or_else(|| Self::decode_error("vram_bytes"))?),
+            None => None,
+        };
+        out.sampled_at = match object.get("sampled_at") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("sampled_at"))?),
+            None => None,
+        };
+        Ok(out)
     }
 }
 
@@ -10638,23 +11956,34 @@ pub struct SelectLoadoutResponse {
     pub selection: Option<Box<LoadoutSelection>>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct SelectProductControlDataRootRequest {
+    #[serde(rename = "data_root", skip_serializing_if = "Option::is_none")]
     pub data_root: Option<String>,
 }
 
 impl SelectProductControlDataRootRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.data_root { pairs.push(format!("data_root={}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "SelectProductControlDataRootRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.data_root = pairs.get("data_root").cloned();
-        out
+        out.data_root = match object.get("data_root") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("data_root"))?),
+            None => None,
+        };
+        Ok(out)
     }
 }
 
@@ -10720,49 +12049,85 @@ pub struct SetAutonomyConfigResponse {
     pub autonomy: Option<Box<AgentAutonomyState>>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct SetDeveloperModeRequest {
+    #[serde(rename = "enabled", skip_serializing_if = "Option::is_none")]
     pub enabled: Option<bool>,
 }
 
 impl SetDeveloperModeRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.enabled { pairs.push(format!("enabled={}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "SetDeveloperModeRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.enabled = pairs.get("enabled").and_then(|value| value.parse().ok());
-        out
+        out.enabled = match object.get("enabled") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_bool().ok_or_else(|| Self::decode_error("enabled"))?),
+            None => None,
+        };
+        Ok(out)
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct SetDeveloperModeResponse {
+    #[serde(rename = "state", skip_serializing_if = "Option::is_none")]
     pub state: Option<DeveloperModeState>,
+    #[serde(rename = "revision", skip_serializing_if = "Option::is_none")]
     pub revision: Option<u64>,
+    #[serde(rename = "reason_code", skip_serializing_if = "Option::is_none")]
     pub reason_code: Option<ReasonCode>,
 }
 
 impl SetDeveloperModeResponse {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
-        if let Some(value) = &self.revision { pairs.push(format!("revision={}", value)); }
-        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "SetDeveloperModeResponse", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.state = pairs.get("state").and_then(|value| DeveloperModeState::from_transport(value));
-        out.revision = pairs.get("revision").and_then(|value| value.parse().ok());
-        out.reason_code = pairs.get("reason_code").and_then(|value| ReasonCode::from_transport(value));
-        out
+        out.state = match object.get("state") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let raw = value.as_str().ok_or_else(|| Self::decode_error("state"))?;
+                Some(DeveloperModeState::from_transport(raw).ok_or_else(|| Self::decode_error("state"))?)
+            }
+            None => None,
+        };
+        out.revision = match object.get("revision") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_u64().ok_or_else(|| Self::decode_error("revision"))?),
+            None => None,
+        };
+        out.reason_code = match object.get("reason_code") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let raw = value.as_str().ok_or_else(|| Self::decode_error("reason_code"))?;
+                Some(ReasonCode::from_transport(raw).ok_or_else(|| Self::decode_error("reason_code"))?)
+            }
+            None => None,
+        };
+        Ok(out)
     }
 }
 
@@ -10778,26 +12143,41 @@ pub struct SetLocalAppAgentMemoryEnabledResponse {
     pub projection: Option<Box<AgentMemoryProjection>>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct SetProductControlFirstRunInstallLevelRequest {
+    #[serde(rename = "install_level", skip_serializing_if = "Option::is_none")]
     pub install_level: Option<String>,
+    #[serde(rename = "ai_profile_alias", skip_serializing_if = "Option::is_none")]
     pub ai_profile_alias: Option<String>,
 }
 
 impl SetProductControlFirstRunInstallLevelRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        let mut pairs: Vec<String> = Vec::new();
-        if let Some(value) = &self.install_level { pairs.push(format!("install_level={}", value)); }
-        if let Some(value) = &self.ai_profile_alias { pairs.push(format!("ai_profile_alias={}", value)); }
-        pairs.join(";").into_bytes()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(raw: &[u8]) -> Self {
-        let pairs = parse_pairs(raw);
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "SetProductControlFirstRunInstallLevelRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
         let mut out = Self::default();
-        out.install_level = pairs.get("install_level").cloned();
-        out.ai_profile_alias = pairs.get("ai_profile_alias").cloned();
-        out
+        out.install_level = match object.get("install_level") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("install_level"))?),
+            None => None,
+        };
+        out.ai_profile_alias = match object.get("ai_profile_alias") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("ai_profile_alias"))?),
+            None => None,
+        };
+        Ok(out)
     }
 }
 
@@ -10981,18 +12361,23 @@ pub struct StartLocalEnvironmentDependencyJobResponse {
     pub job: Option<Box<LocalEnvironmentDependencyJob>>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct StartProductControlCheckSyncRequest {
 
 }
 
 impl StartProductControlCheckSyncRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        Vec::new()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(_raw: &[u8]) -> Self {
-        Self::default()
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "StartProductControlCheckSyncRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        json_object(raw, Self::decode_error("<body>"))?;
+        Ok(Self::default())
     }
 }
 
@@ -11205,18 +12590,23 @@ pub struct SubscribeRealmRealtimeEventsResponse {
     pub inbox: Option<Box<RealmChatInboxEvent>>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct SubscribeRuntimeHealthEventsRequest {
 
 }
 
 impl SubscribeRuntimeHealthEventsRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        Vec::new()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(_raw: &[u8]) -> Self {
-        Self::default()
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "SubscribeRuntimeHealthEventsRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        json_object(raw, Self::decode_error("<body>"))?;
+        Ok(Self::default())
     }
 }
 
@@ -11826,18 +13216,23 @@ pub struct VoiceV2VInput {
     pub text: Option<String>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct WatchLocalTransfersRequest {
 
 }
 
 impl WatchLocalTransfersRequest {
     pub fn to_transport(&self) -> Vec<u8> {
-        Vec::new()
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(_raw: &[u8]) -> Self {
-        Self::default()
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "WatchLocalTransfersRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        json_object(raw, Self::decode_error("<body>"))?;
+        Ok(Self::default())
     }
 }
 
@@ -11971,147 +13366,193 @@ where
 impl<S, R> RuntimeTypedStream<S, R>
 where
     S: CoreTypedStream,
-    R: From<Vec<u8>>,
+    R: TryFrom<Vec<u8>, Error = RuntimeResponseDecodeError>,
 {
-    pub fn recv(&mut self) -> Option<R> {
-        self.inner.recv_typed_payload().map(R::from)
+    pub fn recv(&mut self) -> Option<Result<R, RuntimeResponseDecodeError>> {
+        self.inner.recv_typed_payload().map(R::try_from)
     }
 }
 
-impl From<Vec<u8>> for BeginLoginResponse {
-    fn from(body: Vec<u8>) -> Self {
+impl TryFrom<Vec<u8>> for BeginLoginResponse {
+    type Error = RuntimeResponseDecodeError;
+
+    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
         Self::from_transport(&body)
     }
 }
 
-impl From<Vec<u8>> for InvokeRealmUnaryResponse {
-    fn from(body: Vec<u8>) -> Self {
+impl TryFrom<Vec<u8>> for InvokeRealmUnaryResponse {
+    type Error = RuntimeResponseDecodeError;
+
+    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
         Self::from_transport(&body)
     }
 }
 
-impl From<Vec<u8>> for LogoutResponse {
-    fn from(body: Vec<u8>) -> Self {
+impl TryFrom<Vec<u8>> for LogoutResponse {
+    type Error = RuntimeResponseDecodeError;
+
+    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
         Self::from_transport(&body)
     }
 }
 
-impl From<Vec<u8>> for InterruptLocalAppConversationTurnResponse {
-    fn from(body: Vec<u8>) -> Self {
+impl TryFrom<Vec<u8>> for InterruptLocalAppConversationTurnResponse {
+    type Error = RuntimeResponseDecodeError;
+
+    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
         Self::from_transport(&body)
     }
 }
 
-impl From<Vec<u8>> for OpenLocalAppConversationResponse {
-    fn from(body: Vec<u8>) -> Self {
+impl TryFrom<Vec<u8>> for OpenLocalAppConversationResponse {
+    type Error = RuntimeResponseDecodeError;
+
+    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
         Self::from_transport(&body)
     }
 }
 
-impl From<Vec<u8>> for CloseVideoSessionResponse {
-    fn from(body: Vec<u8>) -> Self {
+impl TryFrom<Vec<u8>> for CloseVideoSessionResponse {
+    type Error = RuntimeResponseDecodeError;
+
+    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
         Self::from_transport(&body)
     }
 }
 
-impl From<Vec<u8>> for RemoveLocalAppAssetResponse {
-    fn from(body: Vec<u8>) -> Self {
+impl TryFrom<Vec<u8>> for RemoveLocalAppAssetResponse {
+    type Error = RuntimeResponseDecodeError;
+
+    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
         Self::from_transport(&body)
     }
 }
 
-impl From<Vec<u8>> for RemoveLocalAppStorageJsonResponse {
-    fn from(body: Vec<u8>) -> Self {
+impl TryFrom<Vec<u8>> for RemoveLocalAppStorageJsonResponse {
+    type Error = RuntimeResponseDecodeError;
+
+    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
         Self::from_transport(&body)
     }
 }
 
-impl From<Vec<u8>> for CleanupGeneratedVoiceArtifactsResponse {
-    fn from(body: Vec<u8>) -> Self {
+impl TryFrom<Vec<u8>> for CleanupGeneratedVoiceArtifactsResponse {
+    type Error = RuntimeResponseDecodeError;
+
+    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
         Self::from_transport(&body)
     }
 }
 
-impl From<Vec<u8>> for GetRuntimeHealthResponse {
-    fn from(body: Vec<u8>) -> Self {
+impl TryFrom<Vec<u8>> for GetRuntimeHealthResponse {
+    type Error = RuntimeResponseDecodeError;
+
+    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
         Self::from_transport(&body)
     }
 }
 
-impl From<Vec<u8>> for RuntimeHealthEvent {
-    fn from(body: Vec<u8>) -> Self {
+impl TryFrom<Vec<u8>> for RuntimeHealthEvent {
+    type Error = RuntimeResponseDecodeError;
+
+    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
         Self::from_transport(&body)
     }
 }
 
-impl From<Vec<u8>> for OpenExternalPrincipalSessionResponse {
-    fn from(body: Vec<u8>) -> Self {
+impl TryFrom<Vec<u8>> for OpenExternalPrincipalSessionResponse {
+    type Error = RuntimeResponseDecodeError;
+
+    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
         Self::from_transport(&body)
     }
 }
 
-impl From<Vec<u8>> for RegisterExternalPrincipalResponse {
-    fn from(body: Vec<u8>) -> Self {
+impl TryFrom<Vec<u8>> for RegisterExternalPrincipalResponse {
+    type Error = RuntimeResponseDecodeError;
+
+    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
         Self::from_transport(&body)
     }
 }
 
-impl From<Vec<u8>> for Ack {
-    fn from(body: Vec<u8>) -> Self {
+impl TryFrom<Vec<u8>> for Ack {
+    type Error = RuntimeResponseDecodeError;
+
+    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
         Self::from_transport(&body)
     }
 }
 
-impl From<Vec<u8>> for GetDeveloperModeStatusResponse {
-    fn from(body: Vec<u8>) -> Self {
+impl TryFrom<Vec<u8>> for GetDeveloperModeStatusResponse {
+    type Error = RuntimeResponseDecodeError;
+
+    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
         Self::from_transport(&body)
     }
 }
 
-impl From<Vec<u8>> for SetDeveloperModeResponse {
-    fn from(body: Vec<u8>) -> Self {
+impl TryFrom<Vec<u8>> for SetDeveloperModeResponse {
+    type Error = RuntimeResponseDecodeError;
+
+    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
         Self::from_transport(&body)
     }
 }
 
-impl From<Vec<u8>> for ExternalAgentGatewayStatusResponse {
-    fn from(body: Vec<u8>) -> Self {
+impl TryFrom<Vec<u8>> for ExternalAgentGatewayStatusResponse {
+    type Error = RuntimeResponseDecodeError;
+
+    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
         Self::from_transport(&body)
     }
 }
 
-impl From<Vec<u8>> for ProductControlProjectionJson {
-    fn from(body: Vec<u8>) -> Self {
+impl TryFrom<Vec<u8>> for ProductControlProjectionJson {
+    type Error = RuntimeResponseDecodeError;
+
+    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
         Self::from_transport(&body)
     }
 }
 
-impl From<Vec<u8>> for DeleteLoadoutResponse {
-    fn from(body: Vec<u8>) -> Self {
+impl TryFrom<Vec<u8>> for DeleteLoadoutResponse {
+    type Error = RuntimeResponseDecodeError;
+
+    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
         Self::from_transport(&body)
     }
 }
 
-impl From<Vec<u8>> for GetCatalogModelCardResponse {
-    fn from(body: Vec<u8>) -> Self {
+impl TryFrom<Vec<u8>> for GetCatalogModelCardResponse {
+    type Error = RuntimeResponseDecodeError;
+
+    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
         Self::from_transport(&body)
     }
 }
 
-impl From<Vec<u8>> for CheckSyncProjectionJson {
-    fn from(body: Vec<u8>) -> Self {
+impl TryFrom<Vec<u8>> for CheckSyncProjectionJson {
+    type Error = RuntimeResponseDecodeError;
+
+    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
         Self::from_transport(&body)
     }
 }
 
-impl From<Vec<u8>> for LocalTransferProgressEvent {
-    fn from(body: Vec<u8>) -> Self {
+impl TryFrom<Vec<u8>> for LocalTransferProgressEvent {
+    type Error = RuntimeResponseDecodeError;
+
+    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
         Self::from_transport(&body)
     }
 }
 
-impl From<Vec<u8>> for RequestRuntimeRestartResponse {
-    fn from(body: Vec<u8>) -> Self {
+impl TryFrom<Vec<u8>> for RequestRuntimeRestartResponse {
+    type Error = RuntimeResponseDecodeError;
+
+    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
         Self::from_transport(&body)
     }
 }
@@ -12133,104 +13574,144 @@ where
         Self { core }
     }
 
-    pub fn begin_login(&self, request: BeginLoginRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<BeginLoginResponse, T::Error> {
+    pub fn begin_login(&self, request: BeginLoginRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<BeginLoginResponse, RuntimeTypedClientError<T::Error>> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAccountService/BeginLogin".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
-        })?;
-        Ok(BeginLoginResponse::from_transport(&raw))
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        BeginLoginResponse::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeAccountService/BeginLogin",
+            type_name: error.type_name,
+            field: error.field,
+        })
     }
 
-    pub fn invoke_realm_unary(&self, request: InvokeRealmUnaryRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<InvokeRealmUnaryResponse, T::Error> {
+    pub fn invoke_realm_unary(&self, request: InvokeRealmUnaryRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<InvokeRealmUnaryResponse, RuntimeTypedClientError<T::Error>> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
-        })?;
-        Ok(InvokeRealmUnaryResponse::from_transport(&raw))
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        InvokeRealmUnaryResponse::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary",
+            type_name: error.type_name,
+            field: error.field,
+        })
     }
 
-    pub fn logout(&self, request: LogoutRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<LogoutResponse, T::Error> {
+    pub fn logout(&self, request: LogoutRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<LogoutResponse, RuntimeTypedClientError<T::Error>> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAccountService/Logout".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
-        })?;
-        Ok(LogoutResponse::from_transport(&raw))
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        LogoutResponse::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeAccountService/Logout",
+            type_name: error.type_name,
+            field: error.field,
+        })
     }
 
-    pub fn interrupt_local_app_conversation_turn(&self, request: InterruptLocalAppConversationTurnRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<InterruptLocalAppConversationTurnResponse, T::Error> {
+    pub fn interrupt_local_app_conversation_turn(&self, request: InterruptLocalAppConversationTurnRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<InterruptLocalAppConversationTurnResponse, RuntimeTypedClientError<T::Error>> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
-        })?;
-        Ok(InterruptLocalAppConversationTurnResponse::from_transport(&raw))
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        InterruptLocalAppConversationTurnResponse::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn",
+            type_name: error.type_name,
+            field: error.field,
+        })
     }
 
-    pub fn open_local_app_conversation(&self, request: OpenLocalAppConversationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<OpenLocalAppConversationResponse, T::Error> {
+    pub fn open_local_app_conversation(&self, request: OpenLocalAppConversationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<OpenLocalAppConversationResponse, RuntimeTypedClientError<T::Error>> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
-        })?;
-        Ok(OpenLocalAppConversationResponse::from_transport(&raw))
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        OpenLocalAppConversationResponse::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation",
+            type_name: error.type_name,
+            field: error.field,
+        })
     }
 
-    pub fn close_video_session(&self, request: CloseVideoSessionRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CloseVideoSessionResponse, T::Error> {
+    pub fn close_video_session(&self, request: CloseVideoSessionRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CloseVideoSessionResponse, RuntimeTypedClientError<T::Error>> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAiVideoSessionService/CloseVideoSession".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
-        })?;
-        Ok(CloseVideoSessionResponse::from_transport(&raw))
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        CloseVideoSessionResponse::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeAiVideoSessionService/CloseVideoSession",
+            type_name: error.type_name,
+            field: error.field,
+        })
     }
 
-    pub fn remove_local_app_asset(&self, request: RemoveLocalAppAssetRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RemoveLocalAppAssetResponse, T::Error> {
+    pub fn remove_local_app_asset(&self, request: RemoveLocalAppAssetRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RemoveLocalAppAssetResponse, RuntimeTypedClientError<T::Error>> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAsset".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
-        })?;
-        Ok(RemoveLocalAppAssetResponse::from_transport(&raw))
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        RemoveLocalAppAssetResponse::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAsset",
+            type_name: error.type_name,
+            field: error.field,
+        })
     }
 
-    pub fn remove_local_app_storage_json(&self, request: RemoveLocalAppStorageJsonRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RemoveLocalAppStorageJsonResponse, T::Error> {
+    pub fn remove_local_app_storage_json(&self, request: RemoveLocalAppStorageJsonRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RemoveLocalAppStorageJsonResponse, RuntimeTypedClientError<T::Error>> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
-        })?;
-        Ok(RemoveLocalAppStorageJsonResponse::from_transport(&raw))
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        RemoveLocalAppStorageJsonResponse::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson",
+            type_name: error.type_name,
+            field: error.field,
+        })
     }
 
-    pub fn cleanup_generated_voice_artifacts(&self, request: CleanupGeneratedVoiceArtifactsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CleanupGeneratedVoiceArtifactsResponse, T::Error> {
+    pub fn cleanup_generated_voice_artifacts(&self, request: CleanupGeneratedVoiceArtifactsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CleanupGeneratedVoiceArtifactsResponse, RuntimeTypedClientError<T::Error>> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
-        })?;
-        Ok(CleanupGeneratedVoiceArtifactsResponse::from_transport(&raw))
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        CleanupGeneratedVoiceArtifactsResponse::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts",
+            type_name: error.type_name,
+            field: error.field,
+        })
     }
 
-    pub fn get_runtime_health(&self, request: GetRuntimeHealthRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetRuntimeHealthResponse, T::Error> {
+    pub fn get_runtime_health(&self, request: GetRuntimeHealthRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetRuntimeHealthResponse, RuntimeTypedClientError<T::Error>> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
-        })?;
-        Ok(GetRuntimeHealthResponse::from_transport(&raw))
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        GetRuntimeHealthResponse::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth",
+            type_name: error.type_name,
+            field: error.field,
+        })
     }
 
     pub fn subscribe_runtime_health_events(&self, request: SubscribeRuntimeHealthEventsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RuntimeTypedStream<T::Stream, RuntimeHealthEvent>, T::Error>
@@ -12246,214 +13727,298 @@ where
         Ok(RuntimeTypedStream { inner, _response: std::marker::PhantomData })
     }
 
-    pub fn open_external_principal_session(&self, request: OpenExternalPrincipalSessionRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<OpenExternalPrincipalSessionResponse, T::Error> {
+    pub fn open_external_principal_session(&self, request: OpenExternalPrincipalSessionRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<OpenExternalPrincipalSessionResponse, RuntimeTypedClientError<T::Error>> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAuthService/OpenExternalPrincipalSession".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
-        })?;
-        Ok(OpenExternalPrincipalSessionResponse::from_transport(&raw))
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        OpenExternalPrincipalSessionResponse::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeAuthService/OpenExternalPrincipalSession",
+            type_name: error.type_name,
+            field: error.field,
+        })
     }
 
-    pub fn register_external_principal(&self, request: RegisterExternalPrincipalRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RegisterExternalPrincipalResponse, T::Error> {
+    pub fn register_external_principal(&self, request: RegisterExternalPrincipalRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RegisterExternalPrincipalResponse, RuntimeTypedClientError<T::Error>> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAuthService/RegisterExternalPrincipal".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
-        })?;
-        Ok(RegisterExternalPrincipalResponse::from_transport(&raw))
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        RegisterExternalPrincipalResponse::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeAuthService/RegisterExternalPrincipal",
+            type_name: error.type_name,
+            field: error.field,
+        })
     }
 
-    pub fn revoke_external_principal_session(&self, request: RevokeExternalPrincipalSessionRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Ack, T::Error> {
+    pub fn revoke_external_principal_session(&self, request: RevokeExternalPrincipalSessionRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Ack, RuntimeTypedClientError<T::Error>> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAuthService/RevokeExternalPrincipalSession".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
-        })?;
-        Ok(Ack::from_transport(&raw))
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        Ack::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeAuthService/RevokeExternalPrincipalSession",
+            type_name: error.type_name,
+            field: error.field,
+        })
     }
 
-    pub fn get_developer_mode_status(&self, request: GetDeveloperModeStatusRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetDeveloperModeStatusResponse, T::Error> {
+    pub fn get_developer_mode_status(&self, request: GetDeveloperModeStatusRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetDeveloperModeStatusResponse, RuntimeTypedClientError<T::Error>> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeDevelopmentService/GetDeveloperModeStatus".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
-        })?;
-        Ok(GetDeveloperModeStatusResponse::from_transport(&raw))
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        GetDeveloperModeStatusResponse::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeDevelopmentService/GetDeveloperModeStatus",
+            type_name: error.type_name,
+            field: error.field,
+        })
     }
 
-    pub fn set_developer_mode(&self, request: SetDeveloperModeRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SetDeveloperModeResponse, T::Error> {
+    pub fn set_developer_mode(&self, request: SetDeveloperModeRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SetDeveloperModeResponse, RuntimeTypedClientError<T::Error>> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeDevelopmentService/SetDeveloperMode".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
-        })?;
-        Ok(SetDeveloperModeResponse::from_transport(&raw))
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        SetDeveloperModeResponse::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeDevelopmentService/SetDeveloperMode",
+            type_name: error.type_name,
+            field: error.field,
+        })
     }
 
-    pub fn get_external_agent_gateway_status(&self, request: ExternalAgentGatewayStatusRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ExternalAgentGatewayStatusResponse, T::Error> {
+    pub fn get_external_agent_gateway_status(&self, request: ExternalAgentGatewayStatusRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ExternalAgentGatewayStatusResponse, RuntimeTypedClientError<T::Error>> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeExternalAgentService/GetExternalAgentGatewayStatus".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
-        })?;
-        Ok(ExternalAgentGatewayStatusResponse::from_transport(&raw))
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        ExternalAgentGatewayStatusResponse::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeExternalAgentService/GetExternalAgentGatewayStatus",
+            type_name: error.type_name,
+            field: error.field,
+        })
     }
 
-    pub fn revoke_external_agent_token(&self, request: ExternalAgentRevokeTokenRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Ack, T::Error> {
+    pub fn revoke_external_agent_token(&self, request: ExternalAgentRevokeTokenRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Ack, RuntimeTypedClientError<T::Error>> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeExternalAgentService/RevokeExternalAgentToken".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
-        })?;
-        Ok(Ack::from_transport(&raw))
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        Ack::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeExternalAgentService/RevokeExternalAgentToken",
+            type_name: error.type_name,
+            field: error.field,
+        })
     }
 
-    pub fn admit_product_control_ready_for_use(&self, request: AdmitProductControlReadyForUseRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
+    pub fn admit_product_control_ready_for_use(&self, request: AdmitProductControlReadyForUseRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, RuntimeTypedClientError<T::Error>> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
-        })?;
-        Ok(ProductControlProjectionJson::from_transport(&raw))
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        ProductControlProjectionJson::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse",
+            type_name: error.type_name,
+            field: error.field,
+        })
     }
 
-    pub fn complete_product_control_first_run_device_environment_scan(&self, request: CompleteProductControlFirstRunDeviceEnvironmentScanRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
+    pub fn complete_product_control_first_run_device_environment_scan(&self, request: CompleteProductControlFirstRunDeviceEnvironmentScanRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, RuntimeTypedClientError<T::Error>> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
-        })?;
-        Ok(ProductControlProjectionJson::from_transport(&raw))
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        ProductControlProjectionJson::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan",
+            type_name: error.type_name,
+            field: error.field,
+        })
     }
 
-    pub fn delete_loadout(&self, request: DeleteLoadoutRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<DeleteLoadoutResponse, T::Error> {
+    pub fn delete_loadout(&self, request: DeleteLoadoutRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<DeleteLoadoutResponse, RuntimeTypedClientError<T::Error>> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeLocalService/DeleteLoadout".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
-        })?;
-        Ok(DeleteLoadoutResponse::from_transport(&raw))
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        DeleteLoadoutResponse::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/DeleteLoadout",
+            type_name: error.type_name,
+            field: error.field,
+        })
     }
 
-    pub fn ensure_product_control_record_created(&self, request: EnsureProductControlRecordCreatedRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
+    pub fn ensure_product_control_record_created(&self, request: EnsureProductControlRecordCreatedRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, RuntimeTypedClientError<T::Error>> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
-        })?;
-        Ok(ProductControlProjectionJson::from_transport(&raw))
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        ProductControlProjectionJson::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated",
+            type_name: error.type_name,
+            field: error.field,
+        })
     }
 
-    pub fn get_catalog_model_card(&self, request: GetCatalogModelCardRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetCatalogModelCardResponse, T::Error> {
+    pub fn get_catalog_model_card(&self, request: GetCatalogModelCardRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetCatalogModelCardResponse, RuntimeTypedClientError<T::Error>> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeLocalService/GetCatalogModelCard".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
-        })?;
-        Ok(GetCatalogModelCardResponse::from_transport(&raw))
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        GetCatalogModelCardResponse::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/GetCatalogModelCard",
+            type_name: error.type_name,
+            field: error.field,
+        })
     }
 
-    pub fn get_product_control_check_sync(&self, request: GetProductControlCheckSyncRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CheckSyncProjectionJson, T::Error> {
+    pub fn get_product_control_check_sync(&self, request: GetProductControlCheckSyncRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CheckSyncProjectionJson, RuntimeTypedClientError<T::Error>> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeLocalService/GetProductControlCheckSync".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
-        })?;
-        Ok(CheckSyncProjectionJson::from_transport(&raw))
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        CheckSyncProjectionJson::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/GetProductControlCheckSync",
+            type_name: error.type_name,
+            field: error.field,
+        })
     }
 
-    pub fn get_product_control_record(&self, request: GetProductControlRecordRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
+    pub fn get_product_control_record(&self, request: GetProductControlRecordRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, RuntimeTypedClientError<T::Error>> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
-        })?;
-        Ok(ProductControlProjectionJson::from_transport(&raw))
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        ProductControlProjectionJson::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord",
+            type_name: error.type_name,
+            field: error.field,
+        })
     }
 
-    pub fn get_product_control_selected_data_root(&self, request: GetProductControlSelectedDataRootRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
+    pub fn get_product_control_selected_data_root(&self, request: GetProductControlSelectedDataRootRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, RuntimeTypedClientError<T::Error>> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
-        })?;
-        Ok(ProductControlProjectionJson::from_transport(&raw))
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        ProductControlProjectionJson::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot",
+            type_name: error.type_name,
+            field: error.field,
+        })
     }
 
-    pub fn initialize_product_control_root_activation(&self, request: InitializeProductControlRootActivationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
+    pub fn initialize_product_control_root_activation(&self, request: InitializeProductControlRootActivationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, RuntimeTypedClientError<T::Error>> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeLocalService/InitializeProductControlRootActivation".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
-        })?;
-        Ok(ProductControlProjectionJson::from_transport(&raw))
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        ProductControlProjectionJson::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/InitializeProductControlRootActivation",
+            type_name: error.type_name,
+            field: error.field,
+        })
     }
 
-    pub fn reconcile_product_control_first_run_setup_state(&self, request: ReconcileProductControlFirstRunSetupStateRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
+    pub fn reconcile_product_control_first_run_setup_state(&self, request: ReconcileProductControlFirstRunSetupStateRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, RuntimeTypedClientError<T::Error>> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
-        })?;
-        Ok(ProductControlProjectionJson::from_transport(&raw))
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        ProductControlProjectionJson::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState",
+            type_name: error.type_name,
+            field: error.field,
+        })
     }
 
-    pub fn replace_product_control_data_root(&self, request: ReplaceProductControlDataRootRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
+    pub fn replace_product_control_data_root(&self, request: ReplaceProductControlDataRootRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, RuntimeTypedClientError<T::Error>> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeLocalService/ReplaceProductControlDataRoot".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
-        })?;
-        Ok(ProductControlProjectionJson::from_transport(&raw))
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        ProductControlProjectionJson::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/ReplaceProductControlDataRoot",
+            type_name: error.type_name,
+            field: error.field,
+        })
     }
 
-    pub fn select_product_control_data_root(&self, request: SelectProductControlDataRootRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
+    pub fn select_product_control_data_root(&self, request: SelectProductControlDataRootRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, RuntimeTypedClientError<T::Error>> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
-        })?;
-        Ok(ProductControlProjectionJson::from_transport(&raw))
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        ProductControlProjectionJson::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot",
+            type_name: error.type_name,
+            field: error.field,
+        })
     }
 
-    pub fn set_product_control_first_run_install_level(&self, request: SetProductControlFirstRunInstallLevelRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
+    pub fn set_product_control_first_run_install_level(&self, request: SetProductControlFirstRunInstallLevelRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, RuntimeTypedClientError<T::Error>> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
-        })?;
-        Ok(ProductControlProjectionJson::from_transport(&raw))
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        ProductControlProjectionJson::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel",
+            type_name: error.type_name,
+            field: error.field,
+        })
     }
 
-    pub fn start_product_control_check_sync(&self, request: StartProductControlCheckSyncRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CheckSyncProjectionJson, T::Error> {
+    pub fn start_product_control_check_sync(&self, request: StartProductControlCheckSyncRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CheckSyncProjectionJson, RuntimeTypedClientError<T::Error>> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeLocalService/StartProductControlCheckSync".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
-        })?;
-        Ok(CheckSyncProjectionJson::from_transport(&raw))
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        CheckSyncProjectionJson::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/StartProductControlCheckSync",
+            type_name: error.type_name,
+            field: error.field,
+        })
     }
 
     pub fn watch_local_transfers(&self, request: WatchLocalTransfersRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RuntimeTypedStream<T::Stream, LocalTransferProgressEvent>, T::Error>
@@ -12469,14 +14034,18 @@ where
         Ok(RuntimeTypedStream { inner, _response: std::marker::PhantomData })
     }
 
-    pub fn request_runtime_restart(&self, request: RequestRuntimeRestartRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RequestRuntimeRestartResponse, T::Error> {
+    pub fn request_runtime_restart(&self, request: RequestRuntimeRestartRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RequestRuntimeRestartResponse, RuntimeTypedClientError<T::Error>> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
-        })?;
-        Ok(RequestRuntimeRestartResponse::from_transport(&raw))
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        RequestRuntimeRestartResponse::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart",
+            type_name: error.type_name,
+            field: error.field,
+        })
     }
 }
 
@@ -12692,6 +14261,8 @@ pub struct BundleMemberDto {
     pub asset_id: String,
     pub sort_order: f64,
 }
+
+pub type BundleStatus = String;
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CanDmResultDto {
@@ -13042,6 +14613,7 @@ pub struct CheckEmailResponseDto {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CloneAssetDto {
     pub clone_policy: String,
+    pub operation_id: String,
     pub owner_id: String,
     pub transfer_policy: String,
     pub use_policy: Option<Box<UsePolicyDto>>,
@@ -13065,6 +14637,7 @@ pub struct CreateAssetDto {
     pub author_id: String,
     pub clone_policy: String,
     pub kind: String,
+    pub operation_id: String,
     pub origin_kind: String,
     pub owner_id: String,
     pub preview_resource_id: Option<String>,
@@ -13844,6 +15417,10 @@ pub struct OAuthTokenResponseDto {
     pub token_type: String,
 }
 
+pub type OwnableAssetKind = String;
+
+pub type OwnableAssetStatus = String;
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct PasswordLoginDto {
     pub identifier: String,
@@ -14161,6 +15738,8 @@ pub struct ResourceBinaryDirectUploadTransportDto {
     pub method: String,
 }
 
+pub type ResourceControllerKind = String;
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ResourceDetailDto {
     pub controller_id: String,
@@ -14234,6 +15813,7 @@ impl ResourceDirectUploadTransportDto {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ResourceListDto {
     pub items: Vec<ResourceDetailDto>,
+    pub next_cursor: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -14242,6 +15822,10 @@ pub struct ResourceMultipartDirectUploadTransportDto {
     pub form_field: String,
     pub method: String,
 }
+
+pub type ResourceStatus = String;
+
+pub type ResourceType = String;
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RevenueDistributionPreviewDto {
@@ -14422,7 +16006,6 @@ pub struct SparkPackageDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct StartChatInputDto {
-    pub as_friend_request: bool,
     pub payload: String,
     pub target_account_id: String,
     pub text: String,
@@ -15404,6 +16987,7 @@ pub struct WorldPublicMediaDto {
     pub hero_url: Option<String>,
     pub highlight_urls: Vec<String>,
     pub icon_url: Option<String>,
+    pub unavailable_resource_refs: Vec<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -15603,17 +17187,18 @@ pub struct WorldRuleDeclarationV1Dto {
     pub system_ref: String,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmCheckHandleOperationPath {
 
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmCheckHandleOperationQuery {
+    #[serde(rename = "handle", skip_serializing_if = "Option::is_none")]
     pub handle: Option<String>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmCheckHandleOperationHeaders {
 
 }
@@ -15626,17 +17211,18 @@ pub struct RealmCheckHandleOperationRequest {
     pub body: (),
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmEconomyControllerCalculateWithdrawalOperationPath {
 
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmEconomyControllerCalculateWithdrawalOperationQuery {
+    #[serde(rename = "amount", skip_serializing_if = "Option::is_none")]
     pub amount: Option<String>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmEconomyControllerCalculateWithdrawalOperationHeaders {
 
 }
@@ -15649,17 +17235,17 @@ pub struct RealmEconomyControllerCalculateWithdrawalOperationRequest {
     pub body: (),
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmEconomyControllerCreateConnectDashboardOperationPath {
 
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmEconomyControllerCreateConnectDashboardOperationQuery {
 
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmEconomyControllerCreateConnectDashboardOperationHeaders {
 
 }
@@ -15672,17 +17258,17 @@ pub struct RealmEconomyControllerCreateConnectDashboardOperationRequest {
     pub body: (),
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmEconomyControllerGetBalancesOperationPath {
 
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmEconomyControllerGetBalancesOperationQuery {
 
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmEconomyControllerGetBalancesOperationHeaders {
 
 }
@@ -15695,17 +17281,17 @@ pub struct RealmEconomyControllerGetBalancesOperationRequest {
     pub body: (),
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmEconomyControllerGetRevenueShareConfigOperationPath {
 
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmEconomyControllerGetRevenueShareConfigOperationQuery {
 
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmEconomyControllerGetRevenueShareConfigOperationHeaders {
 
 }
@@ -15718,17 +17304,17 @@ pub struct RealmEconomyControllerGetRevenueShareConfigOperationRequest {
     pub body: (),
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmEconomyControllerGetWithdrawalConfigOperationPath {
 
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmEconomyControllerGetWithdrawalConfigOperationQuery {
 
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmEconomyControllerGetWithdrawalConfigOperationHeaders {
 
 }
@@ -15741,17 +17327,18 @@ pub struct RealmEconomyControllerGetWithdrawalConfigOperationRequest {
     pub body: (),
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmGetMutualFriendsCountOperationPath {
+    #[serde(rename = "id")]
     pub id: String,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmGetMutualFriendsCountOperationQuery {
 
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmGetMutualFriendsCountOperationHeaders {
 
 }
@@ -15764,17 +17351,17 @@ pub struct RealmGetMutualFriendsCountOperationRequest {
     pub body: (),
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmGetMyCreatorEligibilityOperationPath {
 
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmGetMyCreatorEligibilityOperationQuery {
 
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmGetMyCreatorEligibilityOperationHeaders {
 
 }
@@ -15787,17 +17374,17 @@ pub struct RealmGetMyCreatorEligibilityOperationRequest {
     pub body: (),
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmGetMyTiersOperationPath {
 
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmGetMyTiersOperationQuery {
 
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmGetMyTiersOperationHeaders {
 
 }
@@ -15810,17 +17397,17 @@ pub struct RealmGetMyTiersOperationRequest {
     pub body: (),
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmPrepare2FaOperationPath {
 
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmPrepare2FaOperationQuery {
 
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmPrepare2FaOperationHeaders {
 
 }
@@ -15833,17 +17420,18 @@ pub struct RealmPrepare2FaOperationRequest {
     pub body: (),
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmVisibilityControllerCheckCanDmOperationPath {
 
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmVisibilityControllerCheckCanDmOperationQuery {
+    #[serde(rename = "targetId", skip_serializing_if = "Option::is_none")]
     pub target_id: Option<String>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmVisibilityControllerCheckCanDmOperationHeaders {
 
 }
@@ -15856,18 +17444,20 @@ pub struct RealmVisibilityControllerCheckCanDmOperationRequest {
     pub body: (),
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmVisibilityControllerCheckCanViewOperationPath {
 
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmVisibilityControllerCheckCanViewOperationQuery {
+    #[serde(rename = "scope", skip_serializing_if = "Option::is_none")]
     pub scope: Option<String>,
+    #[serde(rename = "targetId", skip_serializing_if = "Option::is_none")]
     pub target_id: Option<String>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmVisibilityControllerCheckCanViewOperationHeaders {
 
 }
@@ -15880,18 +17470,20 @@ pub struct RealmVisibilityControllerCheckCanViewOperationRequest {
     pub body: (),
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmVisibilityControllerCheckCanViewPublicOperationPath {
 
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmVisibilityControllerCheckCanViewPublicOperationQuery {
+    #[serde(rename = "scope", skip_serializing_if = "Option::is_none")]
     pub scope: Option<String>,
+    #[serde(rename = "targetId", skip_serializing_if = "Option::is_none")]
     pub target_id: Option<String>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmVisibilityControllerCheckCanViewPublicOperationHeaders {
 
 }
@@ -15904,17 +17496,17 @@ pub struct RealmVisibilityControllerCheckCanViewPublicOperationRequest {
     pub body: (),
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmVisibilityControllerGetUserSettingsOperationPath {
 
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmVisibilityControllerGetUserSettingsOperationQuery {
 
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmVisibilityControllerGetUserSettingsOperationHeaders {
 
 }
@@ -15927,17 +17519,17 @@ pub struct RealmVisibilityControllerGetUserSettingsOperationRequest {
     pub body: (),
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmWorldCoreControllerGetWorldCreationEligibilityOperationPath {
 
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmWorldCoreControllerGetWorldCreationEligibilityOperationQuery {
 
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmWorldCoreControllerGetWorldCreationEligibilityOperationHeaders {
 
 }
@@ -15981,144 +17573,197 @@ where
     }
 
     pub fn check_handle(&self, request: RealmCheckHandleOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<HandleAvailabilityDto, RealmTypedClientError<T::Error>> {
-        let mut pairs: Vec<String> = Vec::new();
-        let value = request.query.handle.as_ref().ok_or(RealmTypedClientError::RequestEncode {
-            operation_id: "checkHandle",
-            field: "query.handle",
-        })?;
-        pairs.push(format!("query.handle={}", value));
+        if request.query.handle.is_none() {
+            return Err(RealmTypedClientError::RequestEncode {
+                operation_id: "checkHandle",
+                field: "query.handle",
+            });
+        }
+        let body = serde_json::to_vec(&serde_json::json!({
+            "path": request.path,
+            "query": request.query,
+            "headers": request.headers,
+            "body": serde_json::json!({}),
+        })).expect("Realm typed request JSON serialization cannot fail");
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "checkHandle".to_string(),
             metadata,
-            body: pairs.join(";").into_bytes(),
+            body,
             timeout,
         }).map_err(RealmTypedClientError::Transport)?;
-        let pairs = parse_pairs(&raw);
+        let object = json_object(&raw, RealmTypedClientError::ResponseDecode {
+            operation_id: "checkHandle",
+            field: "<body>",
+        })?;
         Ok(HandleAvailabilityDto {
-            available: pairs.get("available").and_then(|value| value.parse().ok()).ok_or(RealmTypedClientError::ResponseDecode {
+            available: object.get("available").and_then(|value| value.as_bool()).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "checkHandle",
                 field: "available",
             })?,
-            message: pairs.get("message").cloned().unwrap_or_default(),
+            message: match object.get("message") {
+                Some(value) if value.is_null() => Default::default(),
+                Some(value) => value.as_str().map(String::from).ok_or(RealmTypedClientError::ResponseDecode {
+                operation_id: "checkHandle",
+                field: "message",
+            })?,
+                None => Default::default(),
+            },
         })
     }
 
     pub fn economy_controller_calculate_withdrawal(&self, request: RealmEconomyControllerCalculateWithdrawalOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WithdrawalSummaryDto, RealmTypedClientError<T::Error>> {
-        let mut pairs: Vec<String> = Vec::new();
-        let value = request.query.amount.as_ref().ok_or(RealmTypedClientError::RequestEncode {
-            operation_id: "EconomyController_calculateWithdrawal",
-            field: "query.amount",
-        })?;
-        pairs.push(format!("query.amount={}", value));
+        if request.query.amount.is_none() {
+            return Err(RealmTypedClientError::RequestEncode {
+                operation_id: "EconomyController_calculateWithdrawal",
+                field: "query.amount",
+            });
+        }
+        let body = serde_json::to_vec(&serde_json::json!({
+            "path": request.path,
+            "query": request.query,
+            "headers": request.headers,
+            "body": serde_json::json!({}),
+        })).expect("Realm typed request JSON serialization cannot fail");
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "EconomyController_calculateWithdrawal".to_string(),
             metadata,
-            body: pairs.join(";").into_bytes(),
+            body,
             timeout,
         }).map_err(RealmTypedClientError::Transport)?;
-        let pairs = parse_pairs(&raw);
+        let object = json_object(&raw, RealmTypedClientError::ResponseDecode {
+            operation_id: "EconomyController_calculateWithdrawal",
+            field: "<body>",
+        })?;
         Ok(WithdrawalSummaryDto {
-            fee_amount: pairs.get("feeAmount").cloned().ok_or(RealmTypedClientError::ResponseDecode {
+            fee_amount: object.get("feeAmount").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "EconomyController_calculateWithdrawal",
                 field: "feeAmount",
             })?,
-            gem_amount: pairs.get("gemAmount").cloned().ok_or(RealmTypedClientError::ResponseDecode {
+            gem_amount: object.get("gemAmount").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "EconomyController_calculateWithdrawal",
                 field: "gemAmount",
             })?,
-            net_amount: pairs.get("netAmount").cloned().ok_or(RealmTypedClientError::ResponseDecode {
+            net_amount: object.get("netAmount").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "EconomyController_calculateWithdrawal",
                 field: "netAmount",
             })?,
-            usd_amount: pairs.get("usdAmount").and_then(|value| value.parse().ok()).ok_or(RealmTypedClientError::ResponseDecode {
+            usd_amount: object.get("usdAmount").and_then(|value| value.as_f64()).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "EconomyController_calculateWithdrawal",
                 field: "usdAmount",
             })?,
         })
     }
 
-    pub fn economy_controller_create_connect_dashboard(&self, _request: RealmEconomyControllerCreateConnectDashboardOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ConnectDashboardLinkDto, RealmTypedClientError<T::Error>> {
-        let pairs: Vec<String> = Vec::new();
-
+    pub fn economy_controller_create_connect_dashboard(&self, request: RealmEconomyControllerCreateConnectDashboardOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ConnectDashboardLinkDto, RealmTypedClientError<T::Error>> {
+        let body = serde_json::to_vec(&serde_json::json!({
+            "path": request.path,
+            "query": request.query,
+            "headers": request.headers,
+            "body": serde_json::json!({}),
+        })).expect("Realm typed request JSON serialization cannot fail");
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "EconomyController_createConnectDashboard".to_string(),
             metadata,
-            body: pairs.join(";").into_bytes(),
+            body,
             timeout,
         }).map_err(RealmTypedClientError::Transport)?;
-        let pairs = parse_pairs(&raw);
+        let object = json_object(&raw, RealmTypedClientError::ResponseDecode {
+            operation_id: "EconomyController_createConnectDashboard",
+            field: "<body>",
+        })?;
         Ok(ConnectDashboardLinkDto {
-            url: pairs.get("url").cloned().ok_or(RealmTypedClientError::ResponseDecode {
+            url: object.get("url").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "EconomyController_createConnectDashboard",
                 field: "url",
             })?,
         })
     }
 
-    pub fn economy_controller_get_balances(&self, _request: RealmEconomyControllerGetBalancesOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CurrencyBalancesDto, RealmTypedClientError<T::Error>> {
-        let pairs: Vec<String> = Vec::new();
-
+    pub fn economy_controller_get_balances(&self, request: RealmEconomyControllerGetBalancesOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CurrencyBalancesDto, RealmTypedClientError<T::Error>> {
+        let body = serde_json::to_vec(&serde_json::json!({
+            "path": request.path,
+            "query": request.query,
+            "headers": request.headers,
+            "body": serde_json::json!({}),
+        })).expect("Realm typed request JSON serialization cannot fail");
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "EconomyController_getBalances".to_string(),
             metadata,
-            body: pairs.join(";").into_bytes(),
+            body,
             timeout,
         }).map_err(RealmTypedClientError::Transport)?;
-        let pairs = parse_pairs(&raw);
+        let object = json_object(&raw, RealmTypedClientError::ResponseDecode {
+            operation_id: "EconomyController_getBalances",
+            field: "<body>",
+        })?;
         Ok(CurrencyBalancesDto {
-            gem_balance: pairs.get("gemBalance").cloned().ok_or(RealmTypedClientError::ResponseDecode {
+            gem_balance: object.get("gemBalance").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "EconomyController_getBalances",
                 field: "gemBalance",
             })?,
-            spark_balance: pairs.get("sparkBalance").cloned().ok_or(RealmTypedClientError::ResponseDecode {
+            spark_balance: object.get("sparkBalance").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "EconomyController_getBalances",
                 field: "sparkBalance",
             })?,
         })
     }
 
-    pub fn economy_controller_get_revenue_share_config(&self, _request: RealmEconomyControllerGetRevenueShareConfigOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RevenueShareConfigDto, RealmTypedClientError<T::Error>> {
-        let pairs: Vec<String> = Vec::new();
-
+    pub fn economy_controller_get_revenue_share_config(&self, request: RealmEconomyControllerGetRevenueShareConfigOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RevenueShareConfigDto, RealmTypedClientError<T::Error>> {
+        let body = serde_json::to_vec(&serde_json::json!({
+            "path": request.path,
+            "query": request.query,
+            "headers": request.headers,
+            "body": serde_json::json!({}),
+        })).expect("Realm typed request JSON serialization cannot fail");
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "EconomyController_getRevenueShareConfig".to_string(),
             metadata,
-            body: pairs.join(";").into_bytes(),
+            body,
             timeout,
         }).map_err(RealmTypedClientError::Transport)?;
-        let pairs = parse_pairs(&raw);
+        let object = json_object(&raw, RealmTypedClientError::ResponseDecode {
+            operation_id: "EconomyController_getRevenueShareConfig",
+            field: "<body>",
+        })?;
         Ok(RevenueShareConfigDto {
-            min_share_threshold: pairs.get("minShareThreshold").cloned().ok_or(RealmTypedClientError::ResponseDecode {
+            min_share_threshold: object.get("minShareThreshold").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "EconomyController_getRevenueShareConfig",
                 field: "minShareThreshold",
             })?,
-            world_creator_share_percent: pairs.get("worldCreatorSharePercent").and_then(|value| value.parse().ok()).ok_or(RealmTypedClientError::ResponseDecode {
+            world_creator_share_percent: object.get("worldCreatorSharePercent").and_then(|value| value.as_f64()).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "EconomyController_getRevenueShareConfig",
                 field: "worldCreatorSharePercent",
             })?,
         })
     }
 
-    pub fn economy_controller_get_withdrawal_config(&self, _request: RealmEconomyControllerGetWithdrawalConfigOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WithdrawalConfigDto, RealmTypedClientError<T::Error>> {
-        let pairs: Vec<String> = Vec::new();
-
+    pub fn economy_controller_get_withdrawal_config(&self, request: RealmEconomyControllerGetWithdrawalConfigOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WithdrawalConfigDto, RealmTypedClientError<T::Error>> {
+        let body = serde_json::to_vec(&serde_json::json!({
+            "path": request.path,
+            "query": request.query,
+            "headers": request.headers,
+            "body": serde_json::json!({}),
+        })).expect("Realm typed request JSON serialization cannot fail");
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "EconomyController_getWithdrawalConfig".to_string(),
             metadata,
-            body: pairs.join(";").into_bytes(),
+            body,
             timeout,
         }).map_err(RealmTypedClientError::Transport)?;
-        let pairs = parse_pairs(&raw);
+        let object = json_object(&raw, RealmTypedClientError::ResponseDecode {
+            operation_id: "EconomyController_getWithdrawalConfig",
+            field: "<body>",
+        })?;
         Ok(WithdrawalConfigDto {
-            fee_percent: pairs.get("feePercent").and_then(|value| value.parse().ok()).ok_or(RealmTypedClientError::ResponseDecode {
+            fee_percent: object.get("feePercent").and_then(|value| value.as_f64()).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "EconomyController_getWithdrawalConfig",
                 field: "feePercent",
             })?,
-            gem_to_usd_rate: pairs.get("gemToUsdRate").and_then(|value| value.parse().ok()).ok_or(RealmTypedClientError::ResponseDecode {
+            gem_to_usd_rate: object.get("gemToUsdRate").and_then(|value| value.as_f64()).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "EconomyController_getWithdrawalConfig",
                 field: "gemToUsdRate",
             })?,
-            min_gem_amount: pairs.get("minGemAmount").cloned().ok_or(RealmTypedClientError::ResponseDecode {
+            min_gem_amount: object.get("minGemAmount").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "EconomyController_getWithdrawalConfig",
                 field: "minGemAmount",
             })?,
@@ -16126,125 +17771,156 @@ where
     }
 
     pub fn get_mutual_friends_count(&self, request: RealmGetMutualFriendsCountOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<MutualFriendCountDto, RealmTypedClientError<T::Error>> {
-        let mut pairs: Vec<String> = Vec::new();
         if request.path.id.is_empty() {
             return Err(RealmTypedClientError::RequestEncode {
                 operation_id: "getMutualFriendsCount",
                 field: "path.id",
             });
         }
-        pairs.push(format!("path.id={}", request.path.id));
+        let body = serde_json::to_vec(&serde_json::json!({
+            "path": request.path,
+            "query": request.query,
+            "headers": request.headers,
+            "body": serde_json::json!({}),
+        })).expect("Realm typed request JSON serialization cannot fail");
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "getMutualFriendsCount".to_string(),
             metadata,
-            body: pairs.join(";").into_bytes(),
+            body,
             timeout,
         }).map_err(RealmTypedClientError::Transport)?;
-        let pairs = parse_pairs(&raw);
+        let object = json_object(&raw, RealmTypedClientError::ResponseDecode {
+            operation_id: "getMutualFriendsCount",
+            field: "<body>",
+        })?;
         Ok(MutualFriendCountDto {
-            count: pairs.get("count").and_then(|value| value.parse().ok()).ok_or(RealmTypedClientError::ResponseDecode {
+            count: object.get("count").and_then(|value| value.as_f64()).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "getMutualFriendsCount",
                 field: "count",
             })?,
         })
     }
 
-    pub fn get_my_creator_eligibility(&self, _request: RealmGetMyCreatorEligibilityOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CreatorEligibilityResponseDto, RealmTypedClientError<T::Error>> {
-        let pairs: Vec<String> = Vec::new();
-
+    pub fn get_my_creator_eligibility(&self, request: RealmGetMyCreatorEligibilityOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CreatorEligibilityResponseDto, RealmTypedClientError<T::Error>> {
+        let body = serde_json::to_vec(&serde_json::json!({
+            "path": request.path,
+            "query": request.query,
+            "headers": request.headers,
+            "body": serde_json::json!({}),
+        })).expect("Realm typed request JSON serialization cannot fail");
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "getMyCreatorEligibility".to_string(),
             metadata,
-            body: pairs.join(";").into_bytes(),
+            body,
             timeout,
         }).map_err(RealmTypedClientError::Transport)?;
-        let pairs = parse_pairs(&raw);
+        let object = json_object(&raw, RealmTypedClientError::ResponseDecode {
+            operation_id: "getMyCreatorEligibility",
+            field: "<body>",
+        })?;
         Ok(CreatorEligibilityResponseDto {
-            can_create_persona_character: pairs.get("canCreatePersonaCharacter").and_then(|value| value.parse().ok()).ok_or(RealmTypedClientError::ResponseDecode {
+            can_create_persona_character: object.get("canCreatePersonaCharacter").and_then(|value| value.as_bool()).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "getMyCreatorEligibility",
                 field: "canCreatePersonaCharacter",
             })?,
-            can_create_world: pairs.get("canCreateWorld").and_then(|value| value.parse().ok()).ok_or(RealmTypedClientError::ResponseDecode {
+            can_create_world: object.get("canCreateWorld").and_then(|value| value.as_bool()).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "getMyCreatorEligibility",
                 field: "canCreateWorld",
             })?,
-            is_eligible: pairs.get("isEligible").and_then(|value| value.parse().ok()).ok_or(RealmTypedClientError::ResponseDecode {
+            is_eligible: object.get("isEligible").and_then(|value| value.as_bool()).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "getMyCreatorEligibility",
                 field: "isEligible",
             })?,
-            message: pairs.get("message").cloned().ok_or(RealmTypedClientError::ResponseDecode {
+            message: object.get("message").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "getMyCreatorEligibility",
                 field: "message",
             })?,
-            status: pairs.get("status").cloned().ok_or(RealmTypedClientError::ResponseDecode {
+            status: object.get("status").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "getMyCreatorEligibility",
                 field: "status",
             })?,
-            tier: pairs.get("tier").cloned().ok_or(RealmTypedClientError::ResponseDecode {
+            tier: object.get("tier").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "getMyCreatorEligibility",
                 field: "tier",
             })?,
         })
     }
 
-    pub fn get_my_tiers(&self, _request: RealmGetMyTiersOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<TierDetailDto, RealmTypedClientError<T::Error>> {
-        let pairs: Vec<String> = Vec::new();
-
+    pub fn get_my_tiers(&self, request: RealmGetMyTiersOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<TierDetailDto, RealmTypedClientError<T::Error>> {
+        let body = serde_json::to_vec(&serde_json::json!({
+            "path": request.path,
+            "query": request.query,
+            "headers": request.headers,
+            "body": serde_json::json!({}),
+        })).expect("Realm typed request JSON serialization cannot fail");
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "getMyTiers".to_string(),
             metadata,
-            body: pairs.join(";").into_bytes(),
+            body,
             timeout,
         }).map_err(RealmTypedClientError::Transport)?;
-        let pairs = parse_pairs(&raw);
+        let object = json_object(&raw, RealmTypedClientError::ResponseDecode {
+            operation_id: "getMyTiers",
+            field: "<body>",
+        })?;
         Ok(TierDetailDto {
-            asset_tier: pairs.get("assetTier").and_then(|value| value.parse().ok()).ok_or(RealmTypedClientError::ResponseDecode {
+            asset_tier: object.get("assetTier").and_then(|value| value.as_f64()).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "getMyTiers",
                 field: "assetTier",
             })?,
-            influence_tier: pairs.get("influenceTier").and_then(|value| value.parse().ok()).ok_or(RealmTypedClientError::ResponseDecode {
+            influence_tier: object.get("influenceTier").and_then(|value| value.as_f64()).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "getMyTiers",
                 field: "influenceTier",
             })?,
-            interaction_tier: pairs.get("interactionTier").and_then(|value| value.parse().ok()).ok_or(RealmTypedClientError::ResponseDecode {
+            interaction_tier: object.get("interactionTier").and_then(|value| value.as_f64()).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "getMyTiers",
                 field: "interactionTier",
             })?,
-            last_updated_at: match pairs.get("lastUpdatedAt") {
-                Some(value) if value == "null" => None,
-                Some(value) => Some(value.clone()),
+            last_updated_at: match object.get("lastUpdatedAt") {
+                Some(value) if value.is_null() => None,
+                Some(value) => Some(value.as_str().map(String::from).ok_or(RealmTypedClientError::ResponseDecode {
+                operation_id: "getMyTiers",
+                field: "lastUpdatedAt",
+            })?),
                 None => return Err(RealmTypedClientError::ResponseDecode {
                 operation_id: "getMyTiers",
                 field: "lastUpdatedAt",
             }),
             },
-            user_id: pairs.get("userId").cloned().ok_or(RealmTypedClientError::ResponseDecode {
+            user_id: object.get("userId").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "getMyTiers",
                 field: "userId",
             })?,
-            vitality_score: pairs.get("vitalityScore").and_then(|value| value.parse().ok()).ok_or(RealmTypedClientError::ResponseDecode {
+            vitality_score: object.get("vitalityScore").and_then(|value| value.as_f64()).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "getMyTiers",
                 field: "vitalityScore",
             })?,
         })
     }
 
-    pub fn prepare2_fa(&self, _request: RealmPrepare2FaOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Me2faPrepareResponseDto, RealmTypedClientError<T::Error>> {
-        let pairs: Vec<String> = Vec::new();
-
+    pub fn prepare2_fa(&self, request: RealmPrepare2FaOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<Me2faPrepareResponseDto, RealmTypedClientError<T::Error>> {
+        let body = serde_json::to_vec(&serde_json::json!({
+            "path": request.path,
+            "query": request.query,
+            "headers": request.headers,
+            "body": serde_json::json!({}),
+        })).expect("Realm typed request JSON serialization cannot fail");
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "prepare2Fa".to_string(),
             metadata,
-            body: pairs.join(";").into_bytes(),
+            body,
             timeout,
         }).map_err(RealmTypedClientError::Transport)?;
-        let pairs = parse_pairs(&raw);
+        let object = json_object(&raw, RealmTypedClientError::ResponseDecode {
+            operation_id: "prepare2Fa",
+            field: "<body>",
+        })?;
         Ok(Me2faPrepareResponseDto {
-            otpauth_uri: pairs.get("otpauthUri").cloned().ok_or(RealmTypedClientError::ResponseDecode {
+            otpauth_uri: object.get("otpauthUri").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "prepare2Fa",
                 field: "otpauthUri",
             })?,
-            secret: pairs.get("secret").cloned().ok_or(RealmTypedClientError::ResponseDecode {
+            secret: object.get("secret").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "prepare2Fa",
                 field: "secret",
             })?,
@@ -16252,150 +17928,214 @@ where
     }
 
     pub fn visibility_controller_check_can_dm(&self, request: RealmVisibilityControllerCheckCanDmOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CanDmResultDto, RealmTypedClientError<T::Error>> {
-        let mut pairs: Vec<String> = Vec::new();
-        let value = request.query.target_id.as_ref().ok_or(RealmTypedClientError::RequestEncode {
-            operation_id: "VisibilityController_checkCanDm",
-            field: "query.targetId",
-        })?;
-        pairs.push(format!("query.targetId={}", value));
+        if request.query.target_id.is_none() {
+            return Err(RealmTypedClientError::RequestEncode {
+                operation_id: "VisibilityController_checkCanDm",
+                field: "query.targetId",
+            });
+        }
+        let body = serde_json::to_vec(&serde_json::json!({
+            "path": request.path,
+            "query": request.query,
+            "headers": request.headers,
+            "body": serde_json::json!({}),
+        })).expect("Realm typed request JSON serialization cannot fail");
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "VisibilityController_checkCanDm".to_string(),
             metadata,
-            body: pairs.join(";").into_bytes(),
+            body,
             timeout,
         }).map_err(RealmTypedClientError::Transport)?;
-        let pairs = parse_pairs(&raw);
+        let object = json_object(&raw, RealmTypedClientError::ResponseDecode {
+            operation_id: "VisibilityController_checkCanDm",
+            field: "<body>",
+        })?;
         Ok(CanDmResultDto {
-            can_dm: pairs.get("canDm").and_then(|value| value.parse().ok()).ok_or(RealmTypedClientError::ResponseDecode {
+            can_dm: object.get("canDm").and_then(|value| value.as_bool()).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "VisibilityController_checkCanDm",
                 field: "canDm",
             })?,
-            reason: pairs.get("reason").cloned().unwrap_or_default(),
+            reason: match object.get("reason") {
+                Some(value) if value.is_null() => Default::default(),
+                Some(value) => value.as_str().map(String::from).ok_or(RealmTypedClientError::ResponseDecode {
+                operation_id: "VisibilityController_checkCanDm",
+                field: "reason",
+            })?,
+                None => Default::default(),
+            },
         })
     }
 
     pub fn visibility_controller_check_can_view(&self, request: RealmVisibilityControllerCheckCanViewOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<VisibilityCheckResultDto, RealmTypedClientError<T::Error>> {
-        let mut pairs: Vec<String> = Vec::new();
-        let value = request.query.scope.as_ref().ok_or(RealmTypedClientError::RequestEncode {
-            operation_id: "VisibilityController_checkCanView",
-            field: "query.scope",
-        })?;
-        pairs.push(format!("query.scope={}", value));
-        let value = request.query.target_id.as_ref().ok_or(RealmTypedClientError::RequestEncode {
-            operation_id: "VisibilityController_checkCanView",
-            field: "query.targetId",
-        })?;
-        pairs.push(format!("query.targetId={}", value));
+        if request.query.scope.is_none() {
+            return Err(RealmTypedClientError::RequestEncode {
+                operation_id: "VisibilityController_checkCanView",
+                field: "query.scope",
+            });
+        }
+        if request.query.target_id.is_none() {
+            return Err(RealmTypedClientError::RequestEncode {
+                operation_id: "VisibilityController_checkCanView",
+                field: "query.targetId",
+            });
+        }
+        let body = serde_json::to_vec(&serde_json::json!({
+            "path": request.path,
+            "query": request.query,
+            "headers": request.headers,
+            "body": serde_json::json!({}),
+        })).expect("Realm typed request JSON serialization cannot fail");
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "VisibilityController_checkCanView".to_string(),
             metadata,
-            body: pairs.join(";").into_bytes(),
+            body,
             timeout,
         }).map_err(RealmTypedClientError::Transport)?;
-        let pairs = parse_pairs(&raw);
+        let object = json_object(&raw, RealmTypedClientError::ResponseDecode {
+            operation_id: "VisibilityController_checkCanView",
+            field: "<body>",
+        })?;
         Ok(VisibilityCheckResultDto {
-            can_view: pairs.get("canView").and_then(|value| value.parse().ok()).ok_or(RealmTypedClientError::ResponseDecode {
+            can_view: object.get("canView").and_then(|value| value.as_bool()).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "VisibilityController_checkCanView",
                 field: "canView",
             })?,
-            reason: pairs.get("reason").cloned().unwrap_or_default(),
+            reason: match object.get("reason") {
+                Some(value) if value.is_null() => Default::default(),
+                Some(value) => value.as_str().map(String::from).ok_or(RealmTypedClientError::ResponseDecode {
+                operation_id: "VisibilityController_checkCanView",
+                field: "reason",
+            })?,
+                None => Default::default(),
+            },
         })
     }
 
     pub fn visibility_controller_check_can_view_public(&self, request: RealmVisibilityControllerCheckCanViewPublicOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<VisibilityCheckResultDto, RealmTypedClientError<T::Error>> {
-        let mut pairs: Vec<String> = Vec::new();
-        let value = request.query.scope.as_ref().ok_or(RealmTypedClientError::RequestEncode {
-            operation_id: "VisibilityController_checkCanViewPublic",
-            field: "query.scope",
-        })?;
-        pairs.push(format!("query.scope={}", value));
-        let value = request.query.target_id.as_ref().ok_or(RealmTypedClientError::RequestEncode {
-            operation_id: "VisibilityController_checkCanViewPublic",
-            field: "query.targetId",
-        })?;
-        pairs.push(format!("query.targetId={}", value));
+        if request.query.scope.is_none() {
+            return Err(RealmTypedClientError::RequestEncode {
+                operation_id: "VisibilityController_checkCanViewPublic",
+                field: "query.scope",
+            });
+        }
+        if request.query.target_id.is_none() {
+            return Err(RealmTypedClientError::RequestEncode {
+                operation_id: "VisibilityController_checkCanViewPublic",
+                field: "query.targetId",
+            });
+        }
+        let body = serde_json::to_vec(&serde_json::json!({
+            "path": request.path,
+            "query": request.query,
+            "headers": request.headers,
+            "body": serde_json::json!({}),
+        })).expect("Realm typed request JSON serialization cannot fail");
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "VisibilityController_checkCanViewPublic".to_string(),
             metadata,
-            body: pairs.join(";").into_bytes(),
+            body,
             timeout,
         }).map_err(RealmTypedClientError::Transport)?;
-        let pairs = parse_pairs(&raw);
+        let object = json_object(&raw, RealmTypedClientError::ResponseDecode {
+            operation_id: "VisibilityController_checkCanViewPublic",
+            field: "<body>",
+        })?;
         Ok(VisibilityCheckResultDto {
-            can_view: pairs.get("canView").and_then(|value| value.parse().ok()).ok_or(RealmTypedClientError::ResponseDecode {
+            can_view: object.get("canView").and_then(|value| value.as_bool()).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "VisibilityController_checkCanViewPublic",
                 field: "canView",
             })?,
-            reason: pairs.get("reason").cloned().unwrap_or_default(),
+            reason: match object.get("reason") {
+                Some(value) if value.is_null() => Default::default(),
+                Some(value) => value.as_str().map(String::from).ok_or(RealmTypedClientError::ResponseDecode {
+                operation_id: "VisibilityController_checkCanViewPublic",
+                field: "reason",
+            })?,
+                None => Default::default(),
+            },
         })
     }
 
-    pub fn visibility_controller_get_user_settings(&self, _request: RealmVisibilityControllerGetUserSettingsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UserVisibilitySettingsDto, RealmTypedClientError<T::Error>> {
-        let pairs: Vec<String> = Vec::new();
-
+    pub fn visibility_controller_get_user_settings(&self, request: RealmVisibilityControllerGetUserSettingsOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UserVisibilitySettingsDto, RealmTypedClientError<T::Error>> {
+        let body = serde_json::to_vec(&serde_json::json!({
+            "path": request.path,
+            "query": request.query,
+            "headers": request.headers,
+            "body": serde_json::json!({}),
+        })).expect("Realm typed request JSON serialization cannot fail");
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "VisibilityController_getUserSettings".to_string(),
             metadata,
-            body: pairs.join(";").into_bytes(),
+            body,
             timeout,
         }).map_err(RealmTypedClientError::Transport)?;
-        let pairs = parse_pairs(&raw);
+        let object = json_object(&raw, RealmTypedClientError::ResponseDecode {
+            operation_id: "VisibilityController_getUserSettings",
+            field: "<body>",
+        })?;
         Ok(UserVisibilitySettingsDto {
-            account_visibility: pairs.get("accountVisibility").cloned().ok_or(RealmTypedClientError::ResponseDecode {
+            account_visibility: object.get("accountVisibility").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "VisibilityController_getUserSettings",
                 field: "accountVisibility",
             })?,
-            default_post_visibility: pairs.get("defaultPostVisibility").cloned().ok_or(RealmTypedClientError::ResponseDecode {
+            default_post_visibility: object.get("defaultPostVisibility").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "VisibilityController_getUserSettings",
                 field: "defaultPostVisibility",
             })?,
-            dm_visibility: pairs.get("dmVisibility").cloned().ok_or(RealmTypedClientError::ResponseDecode {
+            dm_visibility: object.get("dmVisibility").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "VisibilityController_getUserSettings",
                 field: "dmVisibility",
             })?,
-            friend_list_visibility: pairs.get("friendListVisibility").cloned().ok_or(RealmTypedClientError::ResponseDecode {
+            friend_list_visibility: object.get("friendListVisibility").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "VisibilityController_getUserSettings",
                 field: "friendListVisibility",
             })?,
-            friend_request_visibility: pairs.get("friendRequestVisibility").cloned().ok_or(RealmTypedClientError::ResponseDecode {
+            friend_request_visibility: object.get("friendRequestVisibility").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "VisibilityController_getUserSettings",
                 field: "friendRequestVisibility",
             })?,
-            mention_visibility: pairs.get("mentionVisibility").cloned().ok_or(RealmTypedClientError::ResponseDecode {
+            mention_visibility: object.get("mentionVisibility").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "VisibilityController_getUserSettings",
                 field: "mentionVisibility",
             })?,
-            online_status_visibility: pairs.get("onlineStatusVisibility").cloned().ok_or(RealmTypedClientError::ResponseDecode {
+            online_status_visibility: object.get("onlineStatusVisibility").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "VisibilityController_getUserSettings",
                 field: "onlineStatusVisibility",
             })?,
-            profile_visibility: pairs.get("profileVisibility").cloned().ok_or(RealmTypedClientError::ResponseDecode {
+            profile_visibility: object.get("profileVisibility").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "VisibilityController_getUserSettings",
                 field: "profileVisibility",
             })?,
-            social_visibility: pairs.get("socialVisibility").cloned().ok_or(RealmTypedClientError::ResponseDecode {
+            social_visibility: object.get("socialVisibility").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "VisibilityController_getUserSettings",
                 field: "socialVisibility",
             })?,
-            wallet_visibility: pairs.get("walletVisibility").cloned().ok_or(RealmTypedClientError::ResponseDecode {
+            wallet_visibility: object.get("walletVisibility").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "VisibilityController_getUserSettings",
                 field: "walletVisibility",
             })?,
         })
     }
 
-    pub fn world_core_controller_get_world_creation_eligibility(&self, _request: RealmWorldCoreControllerGetWorldCreationEligibilityOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WorldCreationEligibilityDto, RealmTypedClientError<T::Error>> {
-        let pairs: Vec<String> = Vec::new();
-
+    pub fn world_core_controller_get_world_creation_eligibility(&self, request: RealmWorldCoreControllerGetWorldCreationEligibilityOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<WorldCreationEligibilityDto, RealmTypedClientError<T::Error>> {
+        let body = serde_json::to_vec(&serde_json::json!({
+            "path": request.path,
+            "query": request.query,
+            "headers": request.headers,
+            "body": serde_json::json!({}),
+        })).expect("Realm typed request JSON serialization cannot fail");
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "WorldCoreController_getWorldCreationEligibility".to_string(),
             metadata,
-            body: pairs.join(";").into_bytes(),
+            body,
             timeout,
         }).map_err(RealmTypedClientError::Transport)?;
-        let pairs = parse_pairs(&raw);
+        let object = json_object(&raw, RealmTypedClientError::ResponseDecode {
+            operation_id: "WorldCoreController_getWorldCreationEligibility",
+            field: "<body>",
+        })?;
         Ok(WorldCreationEligibilityDto {
-            can_create_world: pairs.get("canCreateWorld").and_then(|value| value.parse().ok()).ok_or(RealmTypedClientError::ResponseDecode {
+            can_create_world: object.get("canCreateWorld").and_then(|value| value.as_bool()).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "WorldCoreController_getWorldCreationEligibility",
                 field: "canCreateWorld",
             })?,

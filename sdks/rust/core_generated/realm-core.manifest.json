@@ -5116,9 +5116,81 @@
       "tags": [
         "Assets"
       ],
-      "parameters": [],
+      "parameters": [
+        {
+          "name": "kind",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/OwnableAssetKind",
+            "ref_name": "OwnableAssetKind"
+          }
+        },
+        {
+          "name": "status",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/OwnableAssetStatus",
+            "ref_name": "OwnableAssetStatus"
+          }
+        },
+        {
+          "name": "take",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "integer",
+            "format": null,
+            "minimum": 1,
+            "maximum": 100,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
       "path_parameters": [],
-      "query_parameters": [],
+      "query_parameters": [
+        {
+          "name": "kind",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/OwnableAssetKind",
+            "ref_name": "OwnableAssetKind"
+          }
+        },
+        {
+          "name": "status",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/OwnableAssetStatus",
+            "ref_name": "OwnableAssetStatus"
+          }
+        },
+        {
+          "name": "take",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "integer",
+            "format": null,
+            "minimum": 1,
+            "maximum": 100,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
       "header_parameters": [],
       "request_schema": {
         "kind": "unknown"
@@ -5151,9 +5223,61 @@
       "tags": [
         "Bundles"
       ],
-      "parameters": [],
+      "parameters": [
+        {
+          "name": "status",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/BundleStatus",
+            "ref_name": "BundleStatus"
+          }
+        },
+        {
+          "name": "take",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "integer",
+            "format": null,
+            "minimum": 1,
+            "maximum": 100,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
       "path_parameters": [],
-      "query_parameters": [],
+      "query_parameters": [
+        {
+          "name": "status",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/BundleStatus",
+            "ref_name": "BundleStatus"
+          }
+        },
+        {
+          "name": "take",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "integer",
+            "format": null,
+            "minimum": 1,
+            "maximum": 100,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
       "header_parameters": [],
       "request_schema": {
         "kind": "unknown"
@@ -5944,9 +6068,221 @@
       "tags": [
         "Resources"
       ],
-      "parameters": [],
+      "parameters": [
+        {
+          "name": "resourceType",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/ResourceType",
+            "ref_name": "ResourceType"
+          }
+        },
+        {
+          "name": "worldId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "sourceRef",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "controllerKind",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/ResourceControllerKind",
+            "ref_name": "ResourceControllerKind"
+          }
+        },
+        {
+          "name": "controllerId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "status",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/ResourceStatus",
+            "ref_name": "ResourceStatus"
+          }
+        },
+        {
+          "name": "take",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "integer",
+            "format": null,
+            "minimum": 1,
+            "maximum": 100,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": 2048,
+            "pattern": null
+          }
+        }
+      ],
       "path_parameters": [],
-      "query_parameters": [],
+      "query_parameters": [
+        {
+          "name": "resourceType",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/ResourceType",
+            "ref_name": "ResourceType"
+          }
+        },
+        {
+          "name": "worldId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "sourceRef",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "controllerKind",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/ResourceControllerKind",
+            "ref_name": "ResourceControllerKind"
+          }
+        },
+        {
+          "name": "controllerId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "status",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/ResourceStatus",
+            "ref_name": "ResourceStatus"
+          }
+        },
+        {
+          "name": "take",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "integer",
+            "format": null,
+            "minimum": 1,
+            "maximum": 100,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": 2048,
+            "pattern": null
+          }
+        }
+      ],
       "header_parameters": [],
       "request_schema": {
         "kind": "unknown"
@@ -9316,17 +9652,13 @@
           "schema": {
             "kind": "ref",
             "ref": "#/components/schemas/TransitDetailDto",
-            "ref_name": "TransitDetailDto"
+            "ref_name": "TransitDetailDto",
+            "nullable": true
           },
-          "schema_ref": "#/components/schemas/TransitDetailDto"
+          "schema_ref": null
         }
       ],
-      "response_schema_refs": [
-        {
-          "status": "200",
-          "schema_ref": "#/components/schemas/TransitDetailDto"
-        }
-      ]
+      "response_schema_refs": []
     },
     {
       "operation_id": "TransitController_getTransit",
@@ -15172,6 +15504,9 @@
       "name": "BundleMemberDto"
     },
     {
+      "name": "BundleStatus"
+    },
+    {
       "name": "CanDmResultDto"
     },
     {
@@ -15568,6 +15903,12 @@
       "name": "OAuthTokenResponseDto"
     },
     {
+      "name": "OwnableAssetKind"
+    },
+    {
+      "name": "OwnableAssetStatus"
+    },
+    {
       "name": "PasswordLoginDto"
     },
     {
@@ -15679,6 +16020,9 @@
       "name": "ResourceBinaryDirectUploadTransportDto"
     },
     {
+      "name": "ResourceControllerKind"
+    },
+    {
       "name": "ResourceDetailDto"
     },
     {
@@ -15692,6 +16036,12 @@
     },
     {
       "name": "ResourceMultipartDirectUploadTransportDto"
+    },
+    {
+      "name": "ResourceStatus"
+    },
+    {
+      "name": "ResourceType"
     },
     {
       "name": "RevenueDistributionPreviewDto"
@@ -18235,6 +18585,18 @@
         ],
         "closed": false,
         "additional_properties": null
+      }
+    },
+    {
+      "name": "BundleStatus",
+      "schema": {
+        "kind": "enum",
+        "values": [
+          "DRAFT",
+          "PUBLISHED",
+          "ARCHIVED"
+        ],
+        "type": "string"
       }
     },
     {
@@ -22116,6 +22478,20 @@
             }
           },
           {
+            "name": "operationId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": 1,
+              "max_length": 128,
+              "pattern": null
+            }
+          },
+          {
             "name": "ownerId",
             "required": false,
             "schema": {
@@ -22153,7 +22529,9 @@
             }
           }
         ],
-        "required_properties": [],
+        "required_properties": [
+          "operationId"
+        ],
         "closed": false,
         "additional_properties": null
       }
@@ -22286,6 +22664,20 @@
             }
           },
           {
+            "name": "operationId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": 1,
+              "max_length": 128,
+              "pattern": null
+            }
+          },
+          {
             "name": "originKind",
             "required": true,
             "schema": {
@@ -22412,6 +22804,7 @@
           }
         ],
         "required_properties": [
+          "operationId",
           "kind",
           "originKind",
           "transferPolicy",
@@ -29612,6 +30005,30 @@
       }
     },
     {
+      "name": "OwnableAssetKind",
+      "schema": {
+        "kind": "enum",
+        "values": [
+          "WORK",
+          "ITEM"
+        ],
+        "type": "string"
+      }
+    },
+    {
+      "name": "OwnableAssetStatus",
+      "schema": {
+        "kind": "enum",
+        "values": [
+          "DRAFT",
+          "READY",
+          "ARCHIVED",
+          "DELETED"
+        ],
+        "type": "string"
+      }
+    },
+    {
       "name": "PasswordLoginDto",
       "schema": {
         "kind": "object",
@@ -32430,6 +32847,17 @@
       }
     },
     {
+      "name": "ResourceControllerKind",
+      "schema": {
+        "kind": "enum",
+        "values": [
+          "ACCOUNT",
+          "WORLD"
+        ],
+        "type": "string"
+      }
+    },
+    {
       "name": "ResourceDetailDto",
       "schema": {
         "kind": "object",
@@ -33087,10 +33515,26 @@
               "min_items": null,
               "max_items": null
             }
+          },
+          {
+            "name": "nextCursor",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
           }
         ],
         "required_properties": [
-          "items"
+          "items",
+          "nextCursor"
         ],
         "closed": false,
         "additional_properties": null
@@ -33145,6 +33589,32 @@
         ],
         "closed": true,
         "additional_properties": null
+      }
+    },
+    {
+      "name": "ResourceStatus",
+      "schema": {
+        "kind": "enum",
+        "values": [
+          "PENDING",
+          "READY",
+          "FAILED",
+          "DELETED"
+        ],
+        "type": "string"
+      }
+    },
+    {
+      "name": "ResourceType",
+      "schema": {
+        "kind": "enum",
+        "values": [
+          "IMAGE",
+          "VIDEO",
+          "AUDIO",
+          "TEXT"
+        ],
+        "type": "string"
       }
     },
     {
@@ -34706,20 +35176,6 @@
       "schema": {
         "kind": "object",
         "properties": [
-          {
-            "name": "asFriendRequest",
-            "required": false,
-            "schema": {
-              "kind": "scalar",
-              "type": "boolean",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
           {
             "name": "payload",
             "required": false,
@@ -44202,9 +44658,29 @@
               "pattern": null,
               "nullable": true
             }
+          },
+          {
+            "name": "unavailableResourceRefs",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null,
+                "minimum": null,
+                "maximum": null,
+                "min_length": null,
+                "max_length": null,
+                "pattern": null
+              },
+              "min_items": null,
+              "max_items": null
+            }
           }
         ],
         "required_properties": [
+          "unavailableResourceRefs",
           "highlightUrls"
         ],
         "closed": false,

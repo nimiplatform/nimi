@@ -165,20 +165,14 @@ export function renderRustRealmRequestEncoders(operation) {
                 operation_id: ${quote(operation.operation_id)},
                 field: ${quote(key)},
             });
-        }
-        pairs.push(format!("${key}={}", request.${container}.${field}));`);
-        } else {
-          lines.push(`        pairs.push(format!("${key}={}", request.${container}.${field}));`);
+        }`);
         }
       } else if (parameter.required) {
-        lines.push(`        let value = request.${container}.${field}.as_ref().ok_or(RealmTypedClientError::RequestEncode {
-            operation_id: ${quote(operation.operation_id)},
-            field: ${quote(key)},
-        })?;
-        pairs.push(format!("${key}={}", value));`);
-      } else {
-        lines.push(`        if let Some(value) = &request.${container}.${field} {
-            pairs.push(format!("${key}={}", value));
+        lines.push(`        if request.${container}.${field}.is_none() {
+            return Err(RealmTypedClientError::RequestEncode {
+                operation_id: ${quote(operation.operation_id)},
+                field: ${quote(key)},
+            });
         }`);
       }
     }
@@ -187,31 +181,32 @@ export function renderRustRealmRequestEncoders(operation) {
 }
 
 function rustRealmScalarDecoder(schema, property, operationId) {
-  const lookup = `pairs.get(${quote(property.name)})`;
+  const lookup = `object.get(${quote(property.name)})`;
   const decodeError = `RealmTypedClientError::ResponseDecode {
                 operation_id: ${quote(operationId)},
                 field: ${quote(property.name)},
             }`;
-  const presentValue = schema.kind === 'enum' || schema.type === 'string'
-    ? 'value.clone()'
-    : `value.parse().map_err(|_| ${decodeError})?`;
+  const extract = schema.kind === 'enum' || schema.type === 'string'
+    ? 'value.as_str().map(String::from)'
+    : schema.type === 'boolean'
+      ? 'value.as_bool()'
+      : schema.type === 'integer'
+        ? 'value.as_i64()'
+        : 'value.as_f64()';
   if (schema.nullable === true) {
     const missingValue = property.required ? `return Err(${decodeError})` : 'None';
     return `match ${lookup} {
-                Some(value) if value == "null" => None,
-                Some(value) => Some(${presentValue}),
+                Some(value) if value.is_null() => None,
+                Some(value) => Some(${extract}.ok_or(${decodeError})?),
                 None => ${missingValue},
             }`;
   }
-  if (schema.kind === 'enum' || schema.type === 'string') {
-    return property.required
-      ? `${lookup}.cloned().ok_or(${decodeError})?`
-      : `${lookup}.cloned().unwrap_or_default()`;
+  if (property.required) {
+    return `${lookup}.and_then(|value| ${extract}).ok_or(${decodeError})?`;
   }
-  return property.required
-    ? `${lookup}.and_then(|value| value.parse().ok()).ok_or(${decodeError})?`
-    : `match ${lookup} {
-                Some(value) => value.parse().map_err(|_| ${decodeError})?,
+  return `match ${lookup} {
+                Some(value) if value.is_null() => Default::default(),
+                Some(value) => ${extract}.ok_or(${decodeError})?,
                 None => Default::default(),
             }`;
 }
@@ -270,7 +265,10 @@ export function writeRustTypedClients(runtime, realm) {
   );
   const runtimeEnums = runtimeEnumSchemas(runtime)
     .map((schema) => {
-      const variants = schema.values.map((value) => `    ${pascalCase(value)},`).join('\n') || '    Unspecified,';
+      const isCodecEnum = runtimeCodecEnumTypes.has(schema.name);
+      const variants = schema.values.map((value) => (isCodecEnum
+        ? `    #[serde(rename = ${quote(value)})]\n    ${pascalCase(value)},`
+        : `    ${pascalCase(value)},`)).join('\n') || '    Unspecified,';
       const defaultVariant = schema.values[0] ? pascalCase(schema.values[0]) : 'Unspecified';
       const decoders = schema.values.flatMap((value) => {
         const variant = pascalCase(value);
@@ -290,7 +288,7 @@ ${decoders}
     }
 }`
         : '';
-      return `#[derive(Clone, Debug, Eq, PartialEq)]
+      return `#[derive(Clone, Debug, Eq, PartialEq${isCodecEnum ? ', serde::Serialize' : ''})]
 pub enum ${schema.name} {
 ${variants}
 }
@@ -304,43 +302,67 @@ impl Default for ${schema.name} {
     .join('\n\n');
   const runtimeTypes = runtimeSchemas
     .map((schema) => {
-      const fields = schema.fields.map((field) => `    pub ${rustFieldName(field.name)}: ${rustProtoType(field, runtime)},`).join('\n');
-      const structSource = `#[derive(Clone, Debug, Default, PartialEq)]
+      const isCodec = runtimeCodecTypes.has(schema.name);
+      const fields = schema.fields.map((field) => {
+        const serde = isCodec
+          ? `    #[serde(rename = ${quote(field.name)}${field.repeated ? ', skip_serializing_if = "Vec::is_empty"' : ', skip_serializing_if = "Option::is_none"'})]\n`
+          : '';
+        return `${serde}    pub ${rustFieldName(field.name)}: ${rustProtoType(field, runtime)},`;
+      }).join('\n');
+      const structSource = `#[derive(Clone, Debug, Default, PartialEq${isCodec ? ', serde::Serialize' : ''})]
 pub struct ${schema.name} {
 ${fields}
 }`;
-      if (!runtimeCodecTypes.has(schema.name)) return structSource;
-      const encoders = schema.fields.map((field) => {
-        if (field.repeated && field.type === 'string') return `        for value in &self.${rustFieldName(field.name)} { pairs.push(format!("${field.name}={}", value)); }`;
-        if (field.repeated || field.type === 'map') {
-          throw new Error(`unsupported admitted Rust Runtime request field: ${schema.name}.${field.name}`);
-        }
-        const kind = protoTypeKind(field.type, runtime);
-        if (field.type === 'string' || field.type === 'google.protobuf.Timestamp' || field.type === 'google.protobuf.Duration') return `        if let Some(value) = &self.${rustFieldName(field.name)} { pairs.push(format!("${field.name}={}", value)); }`;
-        if (['bool', 'int32', 'int64', 'uint32', 'uint64', 'sint32', 'sint64', 'fixed32', 'fixed64', 'sfixed32', 'sfixed64', 'float', 'double'].includes(field.type)) return `        if let Some(value) = &self.${rustFieldName(field.name)} { pairs.push(format!("${field.name}={}", value)); }`;
-        if (kind === 'enum') return `        if let Some(value) = &self.${rustFieldName(field.name)} { pairs.push(format!("${field.name}={:?}", value)); }`;
-        if (kind === 'message' && field.type === 'AccountCaller') return `        if let Some(value) = &self.${rustFieldName(field.name)} { push_nested_pairs(&mut pairs, "${field.name}", &value.to_transport()); }`;
-        throw new Error(`unsupported admitted Rust Runtime request field: ${schema.name}.${field.name}`);
-      }).filter(Boolean).join('\n');
+      if (!isCodec) return structSource;
       const decoderEntries = schema.fields.map((field) => {
-        if (field.repeated && field.type === 'string') return `        out.${rustFieldName(field.name)} = parse_repeated_string(raw, "${field.name}");`;
+        const name = rustFieldName(field.name);
+        const lookup = `object.get("${field.name}")`;
+        const decodeError = `Self::decode_error("${field.name}")`;
+        if (field.repeated && field.type === 'string') return `        out.${name} = match ${lookup} {
+            Some(value) if value.is_null() => Vec::new(),
+            Some(value) => {
+                let items = value.as_array().ok_or_else(|| ${decodeError})?;
+                let mut decoded = Vec::with_capacity(items.len());
+                for item in items {
+                    decoded.push(item.as_str().map(String::from).ok_or_else(|| ${decodeError})?);
+                }
+                decoded
+            }
+            None => Vec::new(),
+        };`;
         if (field.repeated || field.type === 'map') return '';
-        if (field.type === 'string' || field.type === 'google.protobuf.Timestamp' || field.type === 'google.protobuf.Duration') return `        out.${rustFieldName(field.name)} = pairs.get("${field.name}").cloned();`;
-        if (field.type === 'bool') return `        out.${rustFieldName(field.name)} = pairs.get("${field.name}").and_then(|value| value.parse().ok());`;
-        if (['int32', 'int64', 'uint32', 'uint64', 'sint32', 'sint64', 'fixed32', 'fixed64', 'sfixed32', 'sfixed64', 'float', 'double'].includes(field.type)) return `        out.${rustFieldName(field.name)} = pairs.get("${field.name}").and_then(|value| value.parse().ok());`;
+        const scalarDecode = (extract) => `        out.${name} = match ${lookup} {
+            Some(value) if value.is_null() => None,
+            ${extract}
+            None => None,
+        };`;
+        if (field.type === 'string' || field.type === 'google.protobuf.Timestamp' || field.type === 'google.protobuf.Duration') return scalarDecode(`Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| ${decodeError})?),`);
+        if (field.type === 'bool') return scalarDecode(`Some(value) => Some(value.as_bool().ok_or_else(|| ${decodeError})?),`);
+        if (['int32', 'sint32', 'sfixed32'].includes(field.type)) return scalarDecode(`Some(value) => {
+                let raw = value.as_i64().ok_or_else(|| ${decodeError})?;
+                Some(i32::try_from(raw).map_err(|_| ${decodeError})?)
+            }`);
+        if (['uint32', 'fixed32'].includes(field.type)) return scalarDecode(`Some(value) => {
+                let raw = value.as_u64().ok_or_else(|| ${decodeError})?;
+                Some(u32::try_from(raw).map_err(|_| ${decodeError})?)
+            }`);
+        if (['int64', 'sint64', 'sfixed64'].includes(field.type)) return scalarDecode(`Some(value) => Some(value.as_i64().ok_or_else(|| ${decodeError})?),`);
+        if (['uint64', 'fixed64'].includes(field.type)) return scalarDecode(`Some(value) => Some(value.as_u64().ok_or_else(|| ${decodeError})?),`);
+        if (field.type === 'float') return scalarDecode(`Some(value) => Some(value.as_f64().ok_or_else(|| ${decodeError})? as f32),`);
+        if (field.type === 'double') return scalarDecode(`Some(value) => Some(value.as_f64().ok_or_else(|| ${decodeError})?),`);
         const kind = protoTypeKind(field.type, runtime);
-        if (kind === 'enum') return `        out.${rustFieldName(field.name)} = pairs.get("${field.name}").and_then(|value| ${field.type}::from_transport(value));`;
-        if (kind === 'message' && field.type === 'AccountCaller') return `        out.${rustFieldName(field.name)} = extract_nested_pairs(raw, "${field.name}").map(|value| Box::new(AccountCaller::from_transport(&value)));`;
+        if (kind === 'enum') return scalarDecode(`Some(value) => {
+                let raw = value.as_str().ok_or_else(|| ${decodeError})?;
+                Some(${field.type}::from_transport(raw).ok_or_else(|| ${decodeError})?)
+            }`);
+        if (kind === 'message' && field.type === 'AccountCaller') return scalarDecode(`Some(value) => {
+                let nested = value.as_object().ok_or_else(|| ${decodeError})?;
+                Some(Box::new(AccountCaller::from_json_object(nested)?))
+            }`);
         return '';
       }).map((code, index) => ({ field: schema.fields[index], code }));
       const decodedFields = new Set(decoderEntries.filter((entry) => entry.code).map((entry) => entry.field.name));
       const decoders = decoderEntries.map((entry) => entry.code).filter(Boolean).join('\n');
-      const encoderMutatesPairs = encoders.includes('pairs.push') || encoders.includes('push_nested_pairs');
-      const toTransportBody = encoders
-        ? `        let ${encoderMutatesPairs ? 'mut ' : ''}pairs: Vec<String> = Vec::new();
-${encoders}
-        pairs.join(";").into_bytes()`
-        : '        Vec::new()';
       const unsupportedFields = schema.fields
         .filter((field) => (field.repeated && field.type !== 'string') || field.type === 'map' || !decodedFields.has(field.name))
         .map((field) => field.name);
@@ -349,36 +371,51 @@ ${encoders}
           `unsupported admitted Rust Runtime response fields: ${schema.name}.${unsupportedFields.join(',')}`,
         );
       }
-      const decoderUsesPairs = decoders.includes('pairs.');
-      const fromTransportBody = decoders
-        ? `${decoderUsesPairs ? '        let pairs = parse_pairs(raw);\n' : ''}        let mut out = Self::default();
+      const fromTransportImpl = decoders
+        ? `    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
+        let mut out = Self::default();
 ${decoders}
-        out`
-        : '        Self::default()';
+        Ok(out)
+    }`
+        : `    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        json_object(raw, Self::decode_error("<body>"))?;
+        Ok(Self::default())
+    }`;
       return `${structSource}
 
 impl ${schema.name} {
     pub fn to_transport(&self) -> Vec<u8> {
-${toTransportBody}
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
-    pub fn from_transport(${decoders ? 'raw' : '_raw'}: &[u8]) -> Self {
-${fromTransportBody}
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: ${quote(schema.name)}, field }
     }
+
+${fromTransportImpl}
 }`;
     })
     .join('\n\n');
   const runtimeMethods = runtimeAdmissions.map((method) => {
     const name = snakeCase(method.method);
     if (method.kind === 'unary') {
-      return `    pub fn ${name}(&self, request: ${method.request_type}, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<${method.response_type}, T::Error> {
+      return `    pub fn ${name}(&self, request: ${method.request_type}, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<${method.response_type}, RuntimeTypedClientError<T::Error>> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: ${quote(method.method_id)}.to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
-        })?;
-        Ok(${method.response_type}::from_transport(&raw))
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        ${method.response_type}::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: ${quote(method.method_id)},
+            type_name: error.type_name,
+            field: error.field,
+        })
     }`;
     }
     if (method.kind === 'server_stream') {
@@ -406,16 +443,16 @@ pub struct ${model.name} {\n${fields}\n}`;
   }).join('\n\n');
   const realmTypes = realmAdmissions.map(({ operation }) => {
     const base = realmOperationTypeBase(operation.operation_id);
-    const pathFields = (operation.path_parameters || []).map((parameter) => `    pub ${rustFieldName(snakeCase(parameter.name))}: ${rustOpenApiType(parameter.schema)},`).join('\n');
-    const queryFields = (operation.query_parameters || []).map((parameter) => `    pub ${rustFieldName(snakeCase(parameter.name))}: Option<${rustOpenApiType(parameter.schema)}>,`).join('\n');
-    const headerFields = (operation.header_parameters || []).map((parameter) => `    pub ${rustFieldName(snakeCase(parameter.name))}: Option<${rustOpenApiType(parameter.schema)}>,`).join('\n');
-    return `#[derive(Clone, Debug, Default, PartialEq)]
+    const pathFields = (operation.path_parameters || []).map((parameter) => `    #[serde(rename = ${quote(parameter.name)})]\n    pub ${rustFieldName(snakeCase(parameter.name))}: ${rustOpenApiType(parameter.schema)},`).join('\n');
+    const queryFields = (operation.query_parameters || []).map((parameter) => `    #[serde(rename = ${quote(parameter.name)}, skip_serializing_if = "Option::is_none")]\n    pub ${rustFieldName(snakeCase(parameter.name))}: Option<${rustOpenApiType(parameter.schema)}>,`).join('\n');
+    const headerFields = (operation.header_parameters || []).map((parameter) => `    #[serde(rename = ${quote(parameter.name)}, skip_serializing_if = "Option::is_none")]\n    pub ${rustFieldName(snakeCase(parameter.name))}: Option<${rustOpenApiType(parameter.schema)}>,`).join('\n');
+    return `#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct ${base}Path {\n${pathFields}\n}
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct ${base}Query {\n${queryFields}\n}
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct ${base}Headers {\n${headerFields}\n}
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -429,18 +466,24 @@ pub struct ${base}Request {
   const realmMethods = realmAdmissions.map(({ operation, requestEncoders, responseDecoder }) => {
     const base = realmOperationTypeBase(operation.operation_id);
     const responseType = rustOpenApiType(openApiSuccessSchema(operation));
-    const pairsDeclaration = requestEncoders.length > 0 ? 'let mut pairs' : 'let pairs';
-    const requestName = requestEncoders.length > 0 ? 'request' : '_request';
-    return `    pub fn ${snakeCase(operation.operation_id)}(&self, ${requestName}: ${base}Request, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<${responseType}, RealmTypedClientError<T::Error>> {
-        ${pairsDeclaration}: Vec<String> = Vec::new();
-${requestEncoders.join('\n')}
+    const validations = requestEncoders.length > 0 ? `${requestEncoders.join('\n')}\n` : '';
+    return `    pub fn ${snakeCase(operation.operation_id)}(&self, request: ${base}Request, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<${responseType}, RealmTypedClientError<T::Error>> {
+${validations}        let body = serde_json::to_vec(&serde_json::json!({
+            "path": request.path,
+            "query": request.query,
+            "headers": request.headers,
+            "body": serde_json::json!({}),
+        })).expect("Realm typed request JSON serialization cannot fail");
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: ${quote(operation.operation_id)}.to_string(),
             metadata,
-            body: pairs.join(";").into_bytes(),
+            body,
             timeout,
         }).map_err(RealmTypedClientError::Transport)?;
-        let pairs = parse_pairs(&raw);
+        let object = json_object(&raw, RealmTypedClientError::ResponseDecode {
+            operation_id: ${quote(operation.operation_id)},
+            field: "<body>",
+        })?;
         Ok(${responseDecoder.typeName} {
 ${responseDecoder.fields}
         })
@@ -454,63 +497,27 @@ use std::collections::BTreeMap;
 use crate::core_client::{CoreClient, CoreTransport};
 use crate::types::{CoreMetadata, CoreStreamRequest, CoreUnaryRequest};
 
-fn parse_pairs(raw: &[u8]) -> BTreeMap<String, String> {
-    let text = String::from_utf8_lossy(raw);
-    let mut out = BTreeMap::new();
-    for pair in text.split(';') {
-        if pair.is_empty() {
-            continue;
-        }
-        if let Some((key, value)) = pair.split_once('=') {
-            out.insert(key.to_string(), value.to_string());
-        }
-    }
-    out
-}
-
-fn parse_repeated_string(raw: &[u8], target_key: &str) -> Vec<String> {
-    let text = String::from_utf8_lossy(raw);
-    let mut out = Vec::new();
-    for pair in text.split(';') {
-        if pair.is_empty() {
-            continue;
-        }
-        if let Some((key, value)) = pair.split_once('=') {
-            if key != target_key {
-                continue;
-            }
-            for item in value.split(',') {
-                let trimmed = item.trim();
-                if !trimmed.is_empty() {
-                    out.push(trimmed.to_string());
-                }
-            }
-        }
-    }
-    out
-}
-
-fn push_nested_pairs(out: &mut Vec<String>, field_name: &str, raw: &[u8]) {
-    let text = String::from_utf8_lossy(raw);
-    for pair in text.split(';') {
-        if !pair.is_empty() {
-            out.push(format!("{}.{}", field_name, pair));
-        }
+fn json_object<E>(raw: &[u8], error: E) -> Result<serde_json::Map<String, serde_json::Value>, E> {
+    match serde_json::from_slice::<serde_json::Value>(raw) {
+        Ok(serde_json::Value::Object(object)) => Ok(object),
+        _ => Err(error),
     }
 }
 
-fn extract_nested_pairs(raw: &[u8], field_name: &str) -> Option<Vec<u8>> {
-    let prefix = format!("{}.", field_name);
-    let text = String::from_utf8_lossy(raw);
-    let pairs: Vec<String> = text
-        .split(';')
-        .filter_map(|pair| pair.strip_prefix(&prefix).map(str::to_string))
-        .collect();
-    if pairs.is_empty() {
-        None
-    } else {
-        Some(pairs.join(";").into_bytes())
-    }
+#[derive(Clone, Debug, PartialEq)]
+pub struct RuntimeResponseDecodeError {
+    pub type_name: &'static str,
+    pub field: &'static str,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum RuntimeTypedClientError<E> {
+    Transport(E),
+    ResponseDecode {
+        method_id: &'static str,
+        type_name: &'static str,
+        field: &'static str,
+    },
 }
 
 ${runtimeEnums}
@@ -532,15 +539,17 @@ where
 impl<S, R> RuntimeTypedStream<S, R>
 where
     S: CoreTypedStream,
-    R: From<Vec<u8>>,
+    R: TryFrom<Vec<u8>, Error = RuntimeResponseDecodeError>,
 {
-    pub fn recv(&mut self) -> Option<R> {
-        self.inner.recv_typed_payload().map(R::from)
+    pub fn recv(&mut self) -> Option<Result<R, RuntimeResponseDecodeError>> {
+        self.inner.recv_typed_payload().map(R::try_from)
     }
 }
 
-${runtimeResponseTypes.map((name) => `impl From<Vec<u8>> for ${name} {
-    fn from(body: Vec<u8>) -> Self {
+${runtimeResponseTypes.map((name) => `impl TryFrom<Vec<u8>> for ${name} {
+    type Error = RuntimeResponseDecodeError;
+
+    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
         Self::from_transport(&body)
     }
 }`).join('\n\n')}

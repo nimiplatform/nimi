@@ -11154,6 +11154,22 @@ func (value *BundleMemberDto) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type BundleStatus string
+
+func (value *BundleStatus) UnmarshalJSON(data []byte) error {
+	var decoded string
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode BundleStatus: %w", err)
+	}
+	switch decoded {
+	case "DRAFT", "PUBLISHED", "ARCHIVED":
+		*value = BundleStatus(decoded)
+		return nil
+	default:
+		return fmt.Errorf("decode BundleStatus: unknown value %q", decoded)
+	}
+}
+
 type CanDmResultDto struct {
 	CanDm  bool   `json:"canDm"`
 	Reason string `json:"reason,omitempty"`
@@ -12405,6 +12421,7 @@ func (value *CheckEmailResponseDto) UnmarshalJSON(data []byte) error {
 
 type CloneAssetDto struct {
 	ClonePolicy    string        `json:"clonePolicy,omitempty"`
+	OperationId    string        `json:"operationId"`
 	OwnerId        string        `json:"ownerId,omitempty"`
 	TransferPolicy string        `json:"transferPolicy,omitempty"`
 	UsePolicy      *UsePolicyDto `json:"usePolicy,omitempty"`
@@ -12415,7 +12432,9 @@ func (value *CloneAssetDto) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return fmt.Errorf("decode CloneAssetDto: %w", err)
 	}
-
+	if err := requireRealmJSONField(raw, "operationId", false); err != nil {
+		return fmt.Errorf("decode CloneAssetDto: %w", err)
+	}
 	type modelAlias CloneAssetDto
 	var decoded modelAlias
 	if err := json.Unmarshal(data, &decoded); err != nil {
@@ -12491,6 +12510,7 @@ type CreateAssetDto struct {
 	AuthorId          string         `json:"authorId,omitempty"`
 	ClonePolicy       string         `json:"clonePolicy"`
 	Kind              string         `json:"kind"`
+	OperationId       string         `json:"operationId"`
 	OriginKind        string         `json:"originKind"`
 	OwnerId           string         `json:"ownerId,omitempty"`
 	PreviewResourceId *string        `json:"previewResourceId,omitempty"`
@@ -12511,6 +12531,9 @@ func (value *CreateAssetDto) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode CreateAssetDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "kind", false); err != nil {
+		return fmt.Errorf("decode CreateAssetDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "operationId", false); err != nil {
 		return fmt.Errorf("decode CreateAssetDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "originKind", false); err != nil {
@@ -15297,6 +15320,38 @@ func (value *OAuthTokenResponseDto) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type OwnableAssetKind string
+
+func (value *OwnableAssetKind) UnmarshalJSON(data []byte) error {
+	var decoded string
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode OwnableAssetKind: %w", err)
+	}
+	switch decoded {
+	case "WORK", "ITEM":
+		*value = OwnableAssetKind(decoded)
+		return nil
+	default:
+		return fmt.Errorf("decode OwnableAssetKind: unknown value %q", decoded)
+	}
+}
+
+type OwnableAssetStatus string
+
+func (value *OwnableAssetStatus) UnmarshalJSON(data []byte) error {
+	var decoded string
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode OwnableAssetStatus: %w", err)
+	}
+	switch decoded {
+	case "DRAFT", "READY", "ARCHIVED", "DELETED":
+		*value = OwnableAssetStatus(decoded)
+		return nil
+	default:
+		return fmt.Errorf("decode OwnableAssetStatus: unknown value %q", decoded)
+	}
+}
+
 type PasswordLoginDto struct {
 	Identifier string `json:"identifier"`
 	Password   string `json:"password"`
@@ -16535,6 +16590,22 @@ func (value *ResourceBinaryDirectUploadTransportDto) UnmarshalJSON(data []byte) 
 	return nil
 }
 
+type ResourceControllerKind string
+
+func (value *ResourceControllerKind) UnmarshalJSON(data []byte) error {
+	var decoded string
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ResourceControllerKind: %w", err)
+	}
+	switch decoded {
+	case "ACCOUNT", "WORLD":
+		*value = ResourceControllerKind(decoded)
+		return nil
+	default:
+		return fmt.Errorf("decode ResourceControllerKind: unknown value %q", decoded)
+	}
+}
+
 type ResourceDetailDto struct {
 	ControllerId      string          `json:"controllerId"`
 	ControllerKind    string          `json:"controllerKind"`
@@ -16722,7 +16793,8 @@ func (value *ResourceDirectUploadTransportDto) UnmarshalJSON(data []byte) error 
 }
 
 type ResourceListDto struct {
-	Items []ResourceDetailDto `json:"items"`
+	Items      []ResourceDetailDto `json:"items"`
+	NextCursor *string             `json:"nextCursor"`
 }
 
 func (value *ResourceListDto) UnmarshalJSON(data []byte) error {
@@ -16731,6 +16803,9 @@ func (value *ResourceListDto) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode ResourceListDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "items", false); err != nil {
+		return fmt.Errorf("decode ResourceListDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "nextCursor", true); err != nil {
 		return fmt.Errorf("decode ResourceListDto: %w", err)
 	}
 	type modelAlias ResourceListDto
@@ -16783,6 +16858,38 @@ func (value *ResourceMultipartDirectUploadTransportDto) UnmarshalJSON(data []byt
 	}
 	*value = ResourceMultipartDirectUploadTransportDto(decoded)
 	return nil
+}
+
+type ResourceStatus string
+
+func (value *ResourceStatus) UnmarshalJSON(data []byte) error {
+	var decoded string
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ResourceStatus: %w", err)
+	}
+	switch decoded {
+	case "PENDING", "READY", "FAILED", "DELETED":
+		*value = ResourceStatus(decoded)
+		return nil
+	default:
+		return fmt.Errorf("decode ResourceStatus: unknown value %q", decoded)
+	}
+}
+
+type ResourceType string
+
+func (value *ResourceType) UnmarshalJSON(data []byte) error {
+	var decoded string
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode ResourceType: %w", err)
+	}
+	switch decoded {
+	case "IMAGE", "VIDEO", "AUDIO", "TEXT":
+		*value = ResourceType(decoded)
+		return nil
+	default:
+		return fmt.Errorf("decode ResourceType: unknown value %q", decoded)
+	}
 }
 
 type RevenueDistributionPreviewDto struct {
@@ -17498,7 +17605,6 @@ func (value *SparkPackageDto) UnmarshalJSON(data []byte) error {
 }
 
 type StartChatInputDto struct {
-	AsFriendRequest bool         `json:"asFriendRequest,omitempty"`
 	Payload         any          `json:"payload,omitempty"`
 	TargetAccountId string       `json:"targetAccountId"`
 	Text            string       `json:"text,omitempty"`
@@ -20834,11 +20940,12 @@ func (value *WorldPublicMediaAssetsDto) UnmarshalJSON(data []byte) error {
 }
 
 type WorldPublicMediaDto struct {
-	Assets        *WorldPublicMediaAssetsDto `json:"assets,omitempty"`
-	BannerUrl     *string                    `json:"bannerUrl,omitempty"`
-	HeroUrl       *string                    `json:"heroUrl,omitempty"`
-	HighlightUrls []string                   `json:"highlightUrls"`
-	IconUrl       *string                    `json:"iconUrl,omitempty"`
+	Assets                  *WorldPublicMediaAssetsDto `json:"assets,omitempty"`
+	BannerUrl               *string                    `json:"bannerUrl,omitempty"`
+	HeroUrl                 *string                    `json:"heroUrl,omitempty"`
+	HighlightUrls           []string                   `json:"highlightUrls"`
+	IconUrl                 *string                    `json:"iconUrl,omitempty"`
+	UnavailableResourceRefs []string                   `json:"unavailableResourceRefs"`
 }
 
 func (value *WorldPublicMediaDto) UnmarshalJSON(data []byte) error {
@@ -20847,6 +20954,9 @@ func (value *WorldPublicMediaDto) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode WorldPublicMediaDto: %w", err)
 	}
 	if err := requireRealmJSONField(raw, "highlightUrls", false); err != nil {
+		return fmt.Errorf("decode WorldPublicMediaDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "unavailableResourceRefs", false); err != nil {
 		return fmt.Errorf("decode WorldPublicMediaDto: %w", err)
 	}
 	type modelAlias WorldPublicMediaDto
@@ -22891,6 +23001,9 @@ type RealmListAssetsOperationPath struct {
 }
 
 type RealmListAssetsOperationQuery struct {
+	Kind   OwnableAssetKind   `json:"kind,omitempty"`
+	Status OwnableAssetStatus `json:"status,omitempty"`
+	Take   int64              `json:"take,omitempty"`
 }
 
 type RealmListAssetsOperationHeaders struct {
@@ -22907,6 +23020,8 @@ type RealmListBundlesOperationPath struct {
 }
 
 type RealmListBundlesOperationQuery struct {
+	Status BundleStatus `json:"status,omitempty"`
+	Take   int64        `json:"take,omitempty"`
 }
 
 type RealmListBundlesOperationHeaders struct {
@@ -23052,6 +23167,14 @@ type RealmListResourcesOperationPath struct {
 }
 
 type RealmListResourcesOperationQuery struct {
+	ResourceType   ResourceType           `json:"resourceType,omitempty"`
+	WorldId        string                 `json:"worldId,omitempty"`
+	SourceRef      string                 `json:"sourceRef,omitempty"`
+	ControllerKind ResourceControllerKind `json:"controllerKind,omitempty"`
+	ControllerId   string                 `json:"controllerId,omitempty"`
+	Status         ResourceStatus         `json:"status,omitempty"`
+	Take           int64                  `json:"take,omitempty"`
+	Cursor         string                 `json:"cursor,omitempty"`
 }
 
 type RealmListResourcesOperationHeaders struct {
@@ -25524,12 +25647,12 @@ func (c RealmTypedClient) TransitControllerCreateTransit(ctx context.Context, re
 	return decodeTypedResponse[TransitDetailDto](raw)
 }
 
-func (c RealmTypedClient) TransitControllerGetActiveTransit(ctx context.Context, request RealmTransitControllerGetActiveTransitOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (TransitDetailDto, error) {
+func (c RealmTypedClient) TransitControllerGetActiveTransit(ctx context.Context, request RealmTransitControllerGetActiveTransitOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*TransitDetailDto, error) {
 	raw, err := c.operationTyped(ctx, "TransitController_getActiveTransit", request, metadata, timeoutMS)
 	if err != nil {
-		return TransitDetailDto{}, err
+		return nil, err
 	}
-	return decodeTypedResponse[TransitDetailDto](raw)
+	return decodeTypedResponse[*TransitDetailDto](raw)
 }
 
 func (c RealmTypedClient) TransitControllerGetTransit(ctx context.Context, request RealmTransitControllerGetTransitOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (TransitDetailDto, error) {

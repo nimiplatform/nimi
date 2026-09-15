@@ -276,6 +276,8 @@ class BundleMemberDto:
     assetId: str
     sortOrder: float
 
+BundleStatus = Literal["DRAFT", "PUBLISHED", "ARCHIVED"]
+
 @dataclass(frozen=True)
 class CanDmResultDto:
     canDm: bool
@@ -561,6 +563,7 @@ class CheckEmailResponseDto:
 
 @dataclass(frozen=True)
 class CloneAssetDto:
+    operationId: str
     clonePolicy: Literal["ALLOW", "DENY", "INHERIT"] | None = None
     ownerId: str | None = None
     transferPolicy: Literal["ALLOW", "DENY", "INHERIT"] | None = None
@@ -581,6 +584,7 @@ ContentRatingString = Literal["UNRATED", "G", "PG13", "R18", "EXPLICIT"]
 class CreateAssetDto:
     clonePolicy: Literal["ALLOW", "DENY", "INHERIT"]
     kind: Literal["WORK", "ITEM"]
+    operationId: str
     originKind: Literal["ORIGINAL", "CLONE", "DERIVED"]
     transferPolicy: Literal["ALLOW", "DENY", "INHERIT"]
     authorId: str | None = None
@@ -1259,6 +1263,10 @@ class OAuthTokenResponseDto:
     refresh_token: str
     token_type: str
 
+OwnableAssetKind = Literal["WORK", "ITEM"]
+
+OwnableAssetStatus = Literal["DRAFT", "READY", "ARCHIVED", "DELETED"]
+
 @dataclass(frozen=True)
 class PasswordLoginDto:
     identifier: str
@@ -1542,6 +1550,8 @@ class ResourceBinaryDirectUploadTransportDto:
     contentType: str
     method: Literal["PUT"]
 
+ResourceControllerKind = Literal["ACCOUNT", "WORLD"]
+
 @dataclass(frozen=True)
 class ResourceDetailDto:
     controllerId: str
@@ -1591,12 +1601,17 @@ class ResourceDirectUploadSessionDto:
 @dataclass(frozen=True)
 class ResourceListDto:
     items: tuple[ResourceDetailDto, ...]
+    nextCursor: str | None
 
 @dataclass(frozen=True)
 class ResourceMultipartDirectUploadTransportDto:
     bodyKind: Literal["MULTIPART_FORM_DATA"]
     formField: str
     method: Literal["POST"]
+
+ResourceStatus = Literal["PENDING", "READY", "FAILED", "DELETED"]
+
+ResourceType = Literal["IMAGE", "VIDEO", "AUDIO", "TEXT"]
 
 @dataclass(frozen=True)
 class RevenueDistributionPreviewDto:
@@ -1740,7 +1755,6 @@ class SparkPackageDto:
 @dataclass(frozen=True)
 class StartChatInputDto:
     targetAccountId: str
-    asFriendRequest: bool | None = None
     payload: ChatTextPayloadDto | Mapping[str, object] | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatFriendRequestPayloadDto | ChatSystemPayloadDto | None = None
     text: str | None = None
     type: MessageType | None = None
@@ -2617,6 +2631,7 @@ class WorldPublicMediaAssetsDto:
 @dataclass(frozen=True)
 class WorldPublicMediaDto:
     highlightUrls: tuple[str, ...]
+    unavailableResourceRefs: tuple[str, ...]
     assets: WorldPublicMediaAssetsDto | None = None
     bannerUrl: str | None = None
     heroUrl: str | None = None
@@ -4575,7 +4590,9 @@ class RealmListAssetsOperationPath:
 
 @dataclass(frozen=True)
 class RealmListAssetsOperationQuery:
-    pass
+    kind: OwnableAssetKind | None = None
+    status: OwnableAssetStatus | None = None
+    take: int | None = None
 
 
 @dataclass(frozen=True)
@@ -4597,7 +4614,8 @@ class RealmListBundlesOperationPath:
 
 @dataclass(frozen=True)
 class RealmListBundlesOperationQuery:
-    pass
+    status: BundleStatus | None = None
+    take: int | None = None
 
 
 @dataclass(frozen=True)
@@ -4784,7 +4802,14 @@ class RealmListResourcesOperationPath:
 
 @dataclass(frozen=True)
 class RealmListResourcesOperationQuery:
-    pass
+    resourceType: ResourceType | None = None
+    worldId: str | None = None
+    sourceRef: str | None = None
+    controllerKind: ResourceControllerKind | None = None
+    controllerId: str | None = None
+    status: ResourceStatus | None = None
+    take: int | None = None
+    cursor: str | None = None
 
 
 @dataclass(frozen=True)
@@ -7942,7 +7967,7 @@ class RealmTypedClient:
             "body": _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="TransitController_getActiveTransit", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(TransitDetailDto, raw)
+        return _decode_model(TransitDetailDto | None, raw)
 
     async def transit_controller_get_transit(self, request: RealmTransitControllerGetTransitOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmTransitControllerGetTransitOperationResponse:
         envelope: dict[str, object] = {
