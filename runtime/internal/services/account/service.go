@@ -72,7 +72,16 @@ func (s *Service) SubscribeAccountSessionEvents(req *runtimev1.SubscribeAccountS
 	}
 }
 
-func (s *Service) BeginLogin(ctx context.Context, req *runtimev1.BeginLoginRequest) (*runtimev1.BeginLoginResponse, error) {
+func (s *Service) BeginLogin(ctx context.Context, req *runtimev1.BeginLoginRequest) (response *runtimev1.BeginLoginResponse, err error) {
+	mutationLocked := false
+	defer func() {
+		if mutationLocked {
+			defer s.identityMutationMu.Unlock()
+		}
+		if response != nil && !response.GetAccepted() {
+			s.emitRejectedAudit(ctx, "account.login.begin_rejected", "", response.GetReasonCode(), response.GetAccountReasonCode(), "")
+		}
+	}()
 	if !s.isActivated() {
 		return &runtimev1.BeginLoginResponse{
 			Accepted:          false,
@@ -85,7 +94,7 @@ func (s *Service) BeginLogin(ctx context.Context, req *runtimev1.BeginLoginReque
 		return &runtimev1.BeginLoginResponse{ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: reason}, nil
 	}
 	s.identityMutationMu.Lock()
-	defer s.identityMutationMu.Unlock()
+	mutationLocked = true
 	now := s.now().UTC()
 	ttl := time.Duration(req.GetTtlSeconds()) * time.Second
 	if ttl <= 0 {
@@ -173,6 +182,9 @@ func (s *Service) BeginLogin(ctx context.Context, req *runtimev1.BeginLoginReque
 	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
 	s.mu.Unlock()
 
+	s.emitAudit(ctx, "account.login.begin", "", runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
+		"login_attempt_id": attempt.LoginAttemptID,
+	})
 	return &runtimev1.BeginLoginResponse{
 		Accepted:              true,
 		LoginAttemptId:        attempt.LoginAttemptID,
@@ -207,7 +219,17 @@ func (s *Service) loginExchangeUnavailableResponse() *runtimev1.BeginLoginRespon
 	}
 }
 
-func (s *Service) CompleteLogin(ctx context.Context, req *runtimev1.CompleteLoginRequest) (*runtimev1.CompleteLoginResponse, error) {
+func (s *Service) CompleteLogin(ctx context.Context, req *runtimev1.CompleteLoginRequest) (response *runtimev1.CompleteLoginResponse, err error) {
+	var auditAttemptID, auditSubjectID string
+	mutationLocked := false
+	defer func() {
+		if mutationLocked {
+			defer s.identityMutationMu.Unlock()
+		}
+		if response != nil && !response.GetAccepted() {
+			s.emitRejectedAudit(ctx, "account.login.rejected", auditSubjectID, response.GetReasonCode(), response.GetAccountReasonCode(), auditAttemptID)
+		}
+	}()
 	if !s.isActivated() {
 		return &runtimev1.CompleteLoginResponse{
 			Accepted:          false,
@@ -221,7 +243,7 @@ func (s *Service) CompleteLogin(ctx context.Context, req *runtimev1.CompleteLogi
 		return &runtimev1.CompleteLoginResponse{Accepted: false, State: s.currentState(), ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: reason}, nil
 	}
 	s.identityMutationMu.Lock()
-	defer s.identityMutationMu.Unlock()
+	mutationLocked = true
 	s.mu.RLock()
 	pendingRealmDeletion := s.material.pendingRealmDeletion != nil
 	s.mu.RUnlock()
@@ -253,6 +275,7 @@ func (s *Service) CompleteLogin(ctx context.Context, req *runtimev1.CompleteLogi
 		s.mu.Unlock()
 		return &runtimev1.CompleteLoginResponse{State: s.currentState(), ReasonCode: runtimev1.ReasonCode_AUTH_TOKEN_INVALID, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_PROOF_MISMATCHED}, nil
 	}
+	auditAttemptID = record.attempt.LoginAttemptID
 	if record.consumed {
 		s.mu.Unlock()
 		return &runtimev1.CompleteLoginResponse{State: s.currentState(), ReasonCode: runtimev1.ReasonCode_AUTH_TOKEN_INVALID, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_PROOF_CONSUMED}, nil
@@ -297,6 +320,7 @@ func (s *Service) CompleteLogin(ctx context.Context, req *runtimev1.CompleteLogi
 		s.transitionToReauthRequired(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE)
 		return &runtimev1.CompleteLoginResponse{Accepted: false, State: s.currentState(), ReasonCode: runtimev1.ReasonCode_AUTH_TOKEN_INVALID, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE}, nil
 	}
+	auditSubjectID = normalized.AccountID
 	if err := s.custody.Store(ctx, s.partition, normalized); err != nil {
 		s.markCustodyUnavailable()
 		return &runtimev1.CompleteLoginResponse{Accepted: false, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE}, nil
@@ -316,6 +340,7 @@ func (s *Service) CompleteLogin(ctx context.Context, req *runtimev1.CompleteLogi
 	projection := cloneProjection(s.projection)
 	s.mu.Unlock()
 
+	s.emitAudit(ctx, "account.login.complete", normalized.AccountID, runtimev1.ReasonCode_ACTION_EXECUTED, nil)
 	return &runtimev1.CompleteLoginResponse{
 		Accepted:          true,
 		State:             runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED,
@@ -325,17 +350,34 @@ func (s *Service) CompleteLogin(ctx context.Context, req *runtimev1.CompleteLogi
 	}, nil
 }
 
-func (s *Service) Logout(ctx context.Context, req *runtimev1.LogoutRequest) (*runtimev1.LogoutResponse, error) {
+func (s *Service) Logout(ctx context.Context, req *runtimev1.LogoutRequest) (response *runtimev1.LogoutResponse, err error) {
+	operationStarted := false
+	defer func() {
+		if !operationStarted && response != nil && !response.GetAccepted() {
+			s.emitRejectedAudit(ctx, "account.logout.rejected", "", response.GetReasonCode(), response.GetAccountReasonCode(), "")
+		}
+	}()
 	if !s.isActivated() {
 		return &runtimev1.LogoutResponse{Accepted: false, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_INERT_NOT_ACTIVATED, ProductionInert: true}, nil
 	}
 	if reason, ok := s.validateRuntimeAccountControlCaller(ctx, req.GetCaller()); !ok {
 		return &runtimev1.LogoutResponse{Accepted: false, State: s.currentState(), ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: reason}, nil
 	}
+	operationStarted = true
 	return s.logout(ctx, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
 }
 
-func (s *Service) SwitchAccount(ctx context.Context, req *runtimev1.SwitchAccountRequest) (*runtimev1.SwitchAccountResponse, error) {
+func (s *Service) SwitchAccount(ctx context.Context, req *runtimev1.SwitchAccountRequest) (response *runtimev1.SwitchAccountResponse, err error) {
+	var auditSubjectID string
+	mutationLocked := false
+	defer func() {
+		if mutationLocked {
+			defer s.identityMutationMu.Unlock()
+		}
+		if response != nil && !response.GetAccepted() {
+			s.emitRejectedAudit(ctx, "account.switch.rejected", auditSubjectID, response.GetReasonCode(), response.GetAccountReasonCode(), "")
+		}
+	}()
 	if !s.isActivated() {
 		return &runtimev1.SwitchAccountResponse{Accepted: false, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_INERT_NOT_ACTIVATED, ProductionInert: true}, nil
 	}
@@ -343,14 +385,16 @@ func (s *Service) SwitchAccount(ctx context.Context, req *runtimev1.SwitchAccoun
 		return &runtimev1.SwitchAccountResponse{Accepted: false, State: s.currentState(), ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: reason}, nil
 	}
 	s.identityMutationMu.Lock()
-	defer s.identityMutationMu.Unlock()
+	mutationLocked = true
 	s.mu.Lock()
+	auditSubjectID = s.material.AccountID
 	if s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED {
 		state := s.state
 		s.mu.Unlock()
 		return &runtimev1.SwitchAccountResponse{Accepted: false, State: state, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE}, nil
 	}
 	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_SWITCHING
+	accountID := strings.TrimSpace(s.material.AccountID)
 	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_SWITCH_STARTED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
 	s.mu.Unlock()
 	failureReason := s.clearCustody(ctx)
@@ -371,6 +415,7 @@ func (s *Service) SwitchAccount(ctx context.Context, req *runtimev1.SwitchAccoun
 	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_SWITCH_COMPLETED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
 	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
 	s.mu.Unlock()
+	s.emitAudit(ctx, "account.switch", accountID, runtimev1.ReasonCode_ACTION_EXECUTED, nil)
 	return &runtimev1.SwitchAccountResponse{Accepted: true, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED}, nil
 }
 
@@ -380,11 +425,30 @@ func (s *Service) accountMaterialExpiredLocked() bool {
 
 // @nimi-authority: rule.nimi.runtime.protected-session.r030
 func (s *Service) recoverFromCustody(ctx context.Context) {
+	s.identityMutationMu.Lock()
+	defer s.identityMutationMu.Unlock()
+	var auditSubjectID string
+	recordRecovery := true
+	defer func() {
+		if !recordRecovery {
+			return
+		}
+		s.mu.RLock()
+		reason := s.stateReason
+		authenticated := s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED
+		s.mu.RUnlock()
+		if authenticated {
+			s.emitAudit(ctx, "account.custody.recovered", auditSubjectID, runtimev1.ReasonCode_ACTION_EXECUTED, nil)
+		} else {
+			s.emitRejectedAudit(ctx, "account.custody.rejected", auditSubjectID, commonReason(reason), reason, "")
+		}
+	}()
 	material, err := s.custody.Load(ctx, s.partition)
 	if err != nil {
 		s.mu.Lock()
 		defer s.mu.Unlock()
 		if errors.Is(err, ErrNoStoredAccount) {
+			recordRecovery = false
 			s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS
 			s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE)
 			return
@@ -395,6 +459,7 @@ func (s *Service) recoverFromCustody(ctx context.Context) {
 		return
 	}
 	material = normalizeMaterial(material)
+	auditSubjectID = material.AccountID
 	if pending := material.pendingRealmDeletion; pending != nil {
 		if !pending.Observed() || pending.AccountID() != material.AccountID || pending.Reason() != RealmAccountDeletedReason {
 			_ = s.custody.Clear(ctx, s.partition)
@@ -465,10 +530,21 @@ func (s *Service) recoverFromCustody(ctx context.Context) {
 	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
 }
 
-func (s *Service) logout(ctx context.Context, reason runtimev1.AccountReasonCode) (*runtimev1.LogoutResponse, error) {
+func (s *Service) logout(ctx context.Context, reason runtimev1.AccountReasonCode) (response *runtimev1.LogoutResponse, err error) {
+	var auditSubjectID string
+	mutationLocked := false
+	defer func() {
+		if mutationLocked {
+			defer s.identityMutationMu.Unlock()
+		}
+		if response != nil && !response.GetAccepted() {
+			s.emitRejectedAudit(ctx, "account.logout.rejected", auditSubjectID, response.GetReasonCode(), response.GetAccountReasonCode(), "")
+		}
+	}()
 	s.identityMutationMu.Lock()
-	defer s.identityMutationMu.Unlock()
+	mutationLocked = true
 	s.mu.Lock()
+	auditSubjectID = s.material.AccountID
 	if s.material.pendingRealmDeletion != nil {
 		state := s.state
 		s.mu.Unlock()
@@ -479,6 +555,7 @@ func (s *Service) logout(ctx context.Context, reason runtimev1.AccountReasonCode
 		return &runtimev1.LogoutResponse{Accepted: true, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED}, nil
 	}
 	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_LOGGING_OUT
+	accountID := strings.TrimSpace(s.material.AccountID)
 	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGOUT_STARTED, reason)
 	s.mu.Unlock()
 	failureReason := s.clearCustody(ctx)
@@ -498,6 +575,7 @@ func (s *Service) logout(ctx context.Context, reason runtimev1.AccountReasonCode
 	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGOUT_COMPLETED, reason)
 	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, reason)
 	s.mu.Unlock()
+	s.emitAudit(ctx, "account.logout", accountID, runtimev1.ReasonCode_ACTION_EXECUTED, nil)
 	return &runtimev1.LogoutResponse{Accepted: true, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, AccountReasonCode: reason}, nil
 }
 

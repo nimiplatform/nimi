@@ -10,6 +10,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/health"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -177,7 +178,7 @@ func waitForRuntimeHealthEvents(stream *runtimeHealthStreamCollector, target int
 
 // --- Extended tests for coverage (K-STREAM-009, pagination, export) ---
 
-func TestListAuditEventsSyntheticBaseline(t *testing.T) {
+func TestListAuditEventsWithoutStoreReturnsEmptyPage(t *testing.T) {
 	state := health.NewState()
 	state.SetStatus(health.StatusReady, "ready")
 	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)))
@@ -186,18 +187,29 @@ func TestListAuditEventsSyntheticBaseline(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListAuditEvents: %v", err)
 	}
-	if len(resp.GetEvents()) == 0 {
-		t.Fatal("expected at least one synthetic audit event")
+	if len(resp.GetEvents()) != 0 {
+		t.Fatalf("expected no audit events without a store, got=%d", len(resp.GetEvents()))
 	}
-	event := resp.GetEvents()[0]
-	if event.GetAppId() != "runtime" {
-		t.Fatalf("app_id: got=%q want=%q", event.GetAppId(), "runtime")
+	if resp.GetNextPageToken() != "" {
+		t.Fatalf("expected no next page token, got=%q", resp.GetNextPageToken())
 	}
-	if event.GetDomain() != "runtime.health" {
-		t.Fatalf("domain: got=%q want=%q", event.GetDomain(), "runtime.health")
+}
+
+func TestListAuditEventsEmptyStoreReturnsEmptyPage(t *testing.T) {
+	state := health.NewState()
+	state.SetStatus(health.StatusReady, "ready")
+	state.SetActivity(2, 1)
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), auditlog.New(10, 10))
+
+	resp, err := svc.ListAuditEvents(context.Background(), &runtimev1.ListAuditEventsRequest{})
+	if err != nil {
+		t.Fatalf("ListAuditEvents: %v", err)
 	}
-	if event.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED {
-		t.Fatalf("reason_code: got=%v", event.GetReasonCode())
+	if len(resp.GetEvents()) != 0 {
+		t.Fatalf("expected no audit events from an empty store, got=%d", len(resp.GetEvents()))
+	}
+	if resp.GetNextPageToken() != "" {
+		t.Fatalf("expected no next page token, got=%q", resp.GetNextPageToken())
 	}
 }
 
@@ -218,7 +230,14 @@ func TestListAuditEventsFilterByAppId(t *testing.T) {
 
 func TestListAuditEventsFilterByDomain(t *testing.T) {
 	state := health.NewState()
-	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	store := auditlog.New(10, 10)
+	store.AppendEvent(&runtimev1.AuditEventRecord{
+		AppId:      "runtime",
+		Domain:     "runtime.health",
+		Operation:  "health.snapshot",
+		ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+	})
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), store)
 
 	resp, err := svc.ListAuditEvents(context.Background(), &runtimev1.ListAuditEventsRequest{
 		Domain: "runtime.health",
@@ -226,8 +245,18 @@ func TestListAuditEventsFilterByDomain(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListAuditEvents: %v", err)
 	}
-	if len(resp.GetEvents()) == 0 {
-		t.Fatal("expected events matching domain filter")
+	if len(resp.GetEvents()) != 1 {
+		t.Fatalf("expected the stored event matching domain filter, got=%d", len(resp.GetEvents()))
+	}
+
+	resp, err = svc.ListAuditEvents(context.Background(), &runtimev1.ListAuditEventsRequest{
+		Domain: "runtime.other",
+	})
+	if err != nil {
+		t.Fatalf("ListAuditEvents: %v", err)
+	}
+	if len(resp.GetEvents()) != 0 {
+		t.Fatalf("expected no events for unmatched domain, got=%d", len(resp.GetEvents()))
 	}
 }
 
@@ -246,25 +275,49 @@ func TestListAuditEventsPagination(t *testing.T) {
 	}
 }
 
-func TestListUsageStatsBaseline(t *testing.T) {
+func TestListUsageStatsEmptyStoreReturnsZeroStats(t *testing.T) {
 	state := health.NewState()
 	state.SetStatus(health.StatusReady, "ready")
-	state.SetActivity(2, 1)
-	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	state.SetActivity(2, 3)
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), auditlog.New(10, 10))
+
+	resp, err := svc.ListUsageStats(context.Background(), &runtimev1.ListUsageStatsRequest{})
+	if err != nil {
+		t.Fatalf("ListUsageStats: %v", err)
+	}
+	if len(resp.GetRecords()) != 0 {
+		t.Fatalf("expected zero usage records from an empty store, got=%d", len(resp.GetRecords()))
+	}
+	if resp.GetNextPageToken() != "" {
+		t.Fatalf("expected no next page token, got=%q", resp.GetNextPageToken())
+	}
+}
+
+func TestListUsageStatsReturnsStoredRecords(t *testing.T) {
+	state := health.NewState()
+	store := auditlog.New(10, 10)
+	store.RecordUsage(auditlog.UsageInput{
+		AppID:      "runtime",
+		CallerKind: runtimev1.CallerKind_CALLER_KIND_DESKTOP_CORE,
+		CallerID:   "runtime-daemon",
+		Capability: "runtime.health",
+		Success:    true,
+	})
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), store)
 
 	resp, err := svc.ListUsageStats(context.Background(), &runtimev1.ListUsageStatsRequest{})
 	if err != nil {
 		t.Fatalf("ListUsageStats: %v", err)
 	}
 	if len(resp.GetRecords()) != 1 {
-		t.Fatalf("expected 1 usage record, got=%d", len(resp.GetRecords()))
+		t.Fatalf("expected 1 aggregated usage record, got=%d", len(resp.GetRecords()))
 	}
 	record := resp.GetRecords()[0]
-	if record.GetAppId() != "runtime" {
-		t.Fatalf("app_id: got=%q", record.GetAppId())
-	}
 	if record.GetCapability() != "runtime.health" {
 		t.Fatalf("capability: got=%q", record.GetCapability())
+	}
+	if record.GetRequestCount() != 1 || record.GetSuccessCount() != 1 {
+		t.Fatalf("counts: requests=%d success=%d", record.GetRequestCount(), record.GetSuccessCount())
 	}
 }
 
@@ -421,27 +474,30 @@ func TestExportAuditEventsUsesZeroLengthChunkForEmptyPayload(t *testing.T) {
 	}
 }
 
-func TestSyntheticAuditEventsUseSnakeCaseInferenceKey(t *testing.T) {
+func TestExportAuditEventsIncludesStoredEvents(t *testing.T) {
 	state := health.NewState()
-	state.SetActivity(3, 0)
-	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	store := auditlog.New(10, 10)
+	store.AppendEvent(&runtimev1.AuditEventRecord{
+		AuditId:    "audit-stored-1",
+		AppId:      "runtime",
+		Domain:     "runtime.account",
+		Operation:  "account.login.complete",
+		ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+	})
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), store)
 
-	resp, err := svc.ListAuditEvents(context.Background(), &runtimev1.ListAuditEventsRequest{})
+	ctx := auditContext("runtime")
+	stream := &exportStreamCollector{ctx: ctx}
+	err := svc.ExportAuditEvents(&runtimev1.ExportAuditEventsRequest{}, stream)
 	if err != nil {
-		t.Fatalf("ListAuditEvents: %v", err)
+		t.Fatalf("ExportAuditEvents: %v", err)
 	}
-	if len(resp.GetEvents()) == 0 {
-		t.Fatal("expected synthetic audit event")
+	var payload []byte
+	for _, chunk := range stream.chunks {
+		payload = append(payload, chunk.GetChunk()...)
 	}
-	payloadJSON, err := resp.GetEvents()[0].GetPayload().MarshalJSON()
-	if err != nil {
-		t.Fatalf("marshal payload: %v", err)
-	}
-	if !bytes.Contains(payloadJSON, []byte(`"active_inference_jobs"`)) {
-		t.Fatalf("expected snake_case key in payload: %s", payloadJSON)
-	}
-	if bytes.Contains(payloadJSON, []byte(`"active_inferenceJobs"`)) {
-		t.Fatalf("unexpected legacy mixed-case key in payload: %s", payloadJSON)
+	if !bytes.Contains(payload, []byte("audit-stored-1")) {
+		t.Fatalf("expected export payload to contain the stored event, got=%s", payload)
 	}
 }
 

@@ -134,6 +134,9 @@ func (s *Service) replayPendingRealmAccountDeletedResult(ctx context.Context) er
 	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_REFRESH_FAILED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_DELETED)
 	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_DELETED)
 	s.mu.Unlock()
+	s.emitAudit(ctx, "account.realm_account_deleted", pending.AccountID(), runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
+		"operation_id": pending.OperationID(),
+	})
 	return nil
 }
 

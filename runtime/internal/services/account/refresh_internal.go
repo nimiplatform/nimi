@@ -33,9 +33,20 @@ func (s *Service) refreshAccountSessionForRejectedToken(
 	ctx context.Context,
 	force bool,
 	rejectedAccessToken string,
-) (*refreshAccountSessionResult, error) {
+) (result *refreshAccountSessionResult, err error) {
+	var auditSubjectID string
+	refreshAttempted := false
+	mutationLocked := false
+	defer func() {
+		if mutationLocked {
+			defer s.identityMutationMu.Unlock()
+		}
+		if refreshAttempted && result != nil && !result.accepted && result.accountReasonCode != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_DELETED {
+			s.emitRejectedAudit(ctx, "account.refresh.failed", auditSubjectID, result.reasonCode, result.accountReasonCode, "")
+		}
+	}()
 	s.identityMutationMu.Lock()
-	defer s.identityMutationMu.Unlock()
+	mutationLocked = true
 
 	s.mu.Lock()
 	if s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED &&
@@ -73,6 +84,8 @@ func (s *Service) refreshAccountSessionForRejectedToken(
 		}, nil
 	}
 	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REFRESH_PENDING
+	auditSubjectID = current.AccountID
+	refreshAttempted = true
 	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_REFRESH_STARTED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
 	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
 	s.mu.Unlock()
@@ -105,7 +118,13 @@ func (s *Service) refreshAccountSessionForRejectedToken(
 			if observer == nil || observer.ConsumeRealmAccountDeletedResult(ctx, deleted) != nil {
 				return s.failAccountDeletedObservationAndPreserveCustody(ctx, markedCurrent, deleted), nil
 			}
-			return s.failRefreshAndClearCustody(ctx, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_DELETED), nil
+			result := s.failRefreshAndClearCustody(ctx, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_DELETED)
+			if result.accountReasonCode == runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_DELETED {
+				s.emitAudit(ctx, "account.realm_account_deleted", deleted.AccountID(), runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
+					"operation_id": deleted.OperationID(),
+				})
+			}
+			return result, nil
 		}
 		switch refreshFailureDispositionOf(err) {
 		case refreshFailurePreDispatch:
@@ -142,6 +161,7 @@ func (s *Service) refreshAccountSessionForRejectedToken(
 	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
 	projection := cloneProjection(s.projection)
 	s.mu.Unlock()
+	s.emitAudit(ctx, "account.refresh.complete", next.AccountID, runtimev1.ReasonCode_ACTION_EXECUTED, nil)
 	return &refreshAccountSessionResult{accepted: true, state: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED, accountProjection: projection, reasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, accountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED}, nil
 }
 
