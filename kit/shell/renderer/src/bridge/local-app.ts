@@ -935,8 +935,24 @@ function canonicalScenarioSpec(spec: unknown, command: string): JsonObject {
     const { type, ...input } = record;
     return { type, ...canonicalTextTurnInput(input as unknown as NimiLocalAppTextTurnInput, command) };
   }
+  const audio = record.type === 'speech-transcribe' || record.type === 'audio-separate'
+    ? record.audioSource
+    : record.type === 'voice-create' ? record.referenceAudio : undefined;
+  const audioRecord = audio && typeof audio === 'object' && !Array.isArray(audio) ? audio as JsonObject : undefined;
+  let inlineBytes: readonly number[] | undefined;
+  if (audioRecord?.type === 'bytes') {
+    const limit = (record.type === 'voice-create' ? 20 : 32) * 1024 * 1024;
+    if (!Array.isArray(audioRecord.bytes) || audioRecord.bytes.length === 0 || audioRecord.bytes.length > limit
+      || audioRecord.bytes.some((value) => !Number.isInteger(value) || Number(value) < 0 || Number(value) > 255)) {
+      throw invalidInput(command, 'inline audio bytes are invalid');
+    }
+    inlineBytes = audioRecord.bytes as number[];
+  }
   validateProjectionValue(record as JsonValue, command);
-  const encoded = JSON.stringify(record);
+  // The declared audio bytes have their own bound. Measure the remaining JSON
+  // structure without charging decimal-array expansion against that budget.
+  const encoded = JSON.stringify(record, (_key, value: unknown) =>
+    inlineBytes && value === inlineBytes ? `[inline-bytes:${inlineBytes.length}]` : value);
   if (new TextEncoder().encode(encoded).byteLength > 40 * 1024 * 1024) {
     throw invalidInput(command, 'scenario spec exceeds the input bound');
   }
@@ -2326,7 +2342,7 @@ function parseScenarioJob(value: unknown, command: string): NimiLocalAppScenario
     traceId: optionalProjectionText(record.traceId, 512, command),
     createdAt: parseScenarioTimestamp(record.createdAt, command),
     updatedAt: parseScenarioTimestamp(record.updatedAt, command),
-    transcriptionText: optionalProjectionText(record.transcriptionText, 1 << 20, command),
+    transcriptionText: optionalProjectionContent(record.transcriptionText, 1 << 20, command),
   }) as unknown as NimiLocalAppScenarioJob;
 }
 
@@ -2540,6 +2556,13 @@ function boundedProjectionInteger(value: unknown, minimum: number, maximum: numb
 function optionalProjectionText(value: unknown, maximum: number, command: string): string {
   if (typeof value !== 'string' || value.trim() !== value || new TextEncoder().encode(value).byteLength > maximum
     || /[\u0000-\u001f\u007f]/u.test(value)) throw new Error(`${command}: text projection is invalid`);
+  return value;
+}
+
+function optionalProjectionContent(value: unknown, maximum: number, command: string): string {
+  if (typeof value !== 'string' || new TextEncoder().encode(value).byteLength > maximum || value.includes('\0')) {
+    throw new Error(`${command}: content projection is invalid`);
+  }
   return value;
 }
 

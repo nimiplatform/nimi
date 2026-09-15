@@ -1,17 +1,22 @@
 package ai
 
 import (
+	"context"
 	"errors"
+	"io"
+	"log/slog"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 )
 
-func TestAnnotationResultCommitIsAtomicAndRestoresAfterRestart(t *testing.T) {
+func annotationJobFixture(t *testing.T) (*scenarioJobStore, *runtimev1.ScenarioJob, string) {
+	t.Helper()
 	root := t.TempDir()
 	state := filepath.Join(root, "state.json")
 	store, err := newScenarioJobStoreForLocalStatePath(state)
@@ -44,6 +49,28 @@ func TestAnnotationResultCommitIsAtomicAndRestoresAfterRestart(t *testing.T) {
 	if _, _, err := store.createOwnedAndBindAssemblyChecked(job, nil, nil, "", assembly); err != nil {
 		t.Fatal(err)
 	}
+	return store, job, state
+}
+
+func TestAnnotationJobPreservesCapturedContentFailure(t *testing.T) {
+	store, job, _ := annotationJobFixture(t)
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc.scenarioJobs = store
+	// The real Host must reject the captured but absent model before starting Python.
+	svc.localAnnotationHost = engine.NewTextAnnotationExecutionHost(&engine.Manager{})
+	svc.runLocalAnnotationScenarioJob(context.Background(), job.JobId, svc.localAnnotationJobOrder.reserve())
+	failed, _ := store.get(job.JobId)
+	if failed.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED || failed.GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CONTENT_MISMATCH {
+		t.Fatalf("captured content failure became %s / %s", failed.GetStatus(), failed.GetReasonCode())
+	}
+	metadata := failed.GetReasonMetadata().AsMap()
+	if metadata["action_hint"] != "reverify_or_rebind_local_model_content" || metadata["retryable"] != false {
+		t.Fatalf("captured content failure metadata = %v", metadata)
+	}
+}
+
+func TestAnnotationResultCommitIsAtomicAndRestoresAfterRestart(t *testing.T) {
+	store, job, state := annotationJobFixture(t)
 	if _, _, err := store.transition(job.JobId, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING, nil); err != nil {
 		t.Fatal(err)
 	}

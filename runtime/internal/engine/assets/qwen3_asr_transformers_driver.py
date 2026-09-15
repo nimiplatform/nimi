@@ -259,6 +259,20 @@ def load_aligner(model_ref: str) -> tuple[Any, Any]:
     return _ALIGNER_CACHE[key]
 
 
+# @nimi-authority: rule.nimi.runtime.ai-provider.speech-transcription-result
+def alignment_words_from_predictions(text: str, words: list[str], predictions: list[int], segment_ms: float, duration: float) -> list[dict[str, Any]]:
+    precision = float(segment_ms) / 1000
+    if not math.isfinite(precision) or precision <= 0 or len(predictions) != 2 * len(words):
+        fail("forced alignment returned invalid timestamp predictions")
+    # Decode the actual timestamp classes. The upstream processor replaces
+    # contradictory predictions by snapping/interpolation before returning rows.
+    rows = [{"text": word,
+             "start_time": round(float(predictions[index * 2]) * precision, 3),
+             "end_time": round(float(predictions[index * 2 + 1]) * precision, 3)}
+            for index, word in enumerate(words)]
+    return restore_alignment_words(text, rows, duration, precision)
+
+
 def restore_alignment_words(text: str, rows: list[dict[str, Any]], duration: float, precision: float) -> list[dict[str, Any]]:
     # The pinned aligner drops punctuation during tokenization. Retain the
     # recognized text around those exact units without estimating new times.
@@ -338,8 +352,9 @@ def handle_transcribe(request: dict[str, Any]) -> dict[str, Any]:
                 aligner_inputs = aligner_inputs.to(aligner_model.device, aligner_model.dtype)
                 with torch.inference_mode():
                     outputs = aligner_model(**aligner_inputs)
-                rows = aligner_processor.decode_forced_alignment(logits=outputs.logits, input_ids=aligner_inputs["input_ids"], word_lists=word_lists, timestamp_token_id=aligner_model.config.timestamp_token_id)[0]
-                response["words"] = restore_alignment_words(text, rows, duration, float(aligner_processor.timestamp_segment_time) / 1000)
+                timestamp_mask = aligner_inputs["input_ids"][0] == aligner_model.config.timestamp_token_id
+                predictions = outputs.logits.argmax(dim=-1)[0][timestamp_mask].cpu().tolist()
+                response["words"] = alignment_words_from_predictions(text, word_lists[0], predictions, aligner_processor.timestamp_segment_time, duration)
             return response
     except Exception as error:
         fail(f"Transformers-native Qwen3-ASR transcription failed: {error}")

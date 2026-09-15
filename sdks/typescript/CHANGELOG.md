@@ -5,6 +5,10 @@ published baseline. They are not a complete reconstruction of older releases.
 
 ## 0.14.0 (development)
 
+- Preserve multiline transcription text through Local App Job projections,
+  including empty pending/no-speech content, without relaxing metadata or NUL
+  validation.
+
 - Raise annotation capacity to 512 KiB input, 65536 tokens and a 16 MiB result
   without splitting the caller's document. The matching Runtime also admits
   DeepSeek V4 JSON-object generation through the existing App text interface.

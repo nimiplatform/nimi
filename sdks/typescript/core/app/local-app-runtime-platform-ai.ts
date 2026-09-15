@@ -1116,7 +1116,7 @@ function projectScenarioJob(value: unknown): NimiLocalAppScenarioJob {
     traceId: optionalProjectionText(record.traceId, 'scenario Job traceId', 512),
     createdAt: projectTimestamp(record.createdAt, 'scenario Job createdAt'),
     updatedAt: projectTimestamp(record.updatedAt, 'scenario Job updatedAt'),
-    transcriptionText: optionalProjectionText(record.transcriptionText, 'scenario Job transcriptionText', 1 << 20),
+    transcriptionText: optionalProjectionContent(record.transcriptionText, 'scenario Job transcriptionText', 1 << 20),
   }) as NimiLocalAppScenarioJob;
 }
 
@@ -2105,9 +2105,13 @@ function optionalProjectionText(value: unknown, field: string, maximum: number):
 }
 
 function boundedProjectionContent(value: unknown, field: string, maximum: number): string {
-  if (typeof value !== 'string' || !value || utf8Length(value) > maximum || value.includes('\0')) {
-    localAppProjectionError(field);
-  }
+  const text = optionalProjectionContent(value, field, maximum);
+  if (!text) localAppProjectionError(field);
+  return text;
+}
+
+function optionalProjectionContent(value: unknown, field: string, maximum: number): string {
+  if (typeof value !== 'string' || utf8Length(value) > maximum || value.includes('\0')) localAppProjectionError(field);
   return value;
 }
 

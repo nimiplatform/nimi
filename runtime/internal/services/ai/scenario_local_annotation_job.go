@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -126,6 +127,10 @@ func (s *Service) runLocalAnnotationScenarioJob(ctx context.Context, jobID strin
 		err = localexecution.ValidateTextAnnotationResult(result, plan.Request)
 	}
 	if err != nil {
+		var executionErr *localexecution.ExecutionError
+		if errors.As(err, &executionErr) {
+			err = localExecutionError(err)
+		}
 		s.finishLocalSpeechJobFailure(ctx, jobID, err)
 		return
 	}

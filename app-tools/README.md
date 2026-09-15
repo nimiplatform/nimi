@@ -116,8 +116,11 @@ Override Kit's matching native optional package too when that component changes;
 keep the native carrier Kit-owned rather than adding it as an App dependency.
 Local archives may also use paths relative to the App. Install, run sync and
 check, then use the normal dev/test/build/pack loop. Sync retains these choices;
-check verifies the lock resolution and installed package name/version against
-the selected matrix. Directory links and source-workspace overrides stay invalid.
+check verifies matrix compatibility and compares the selected tarball version,
+source and integrity with pnpm's installed dependency lock and package manifest.
+Updating only the lockfile does not update installed packages: run `pnpm install`
+after selecting another local package combination. Directory links and
+source-workspace overrides stay invalid.
 The generated Electron packager rebases archive paths for its isolated dependency
 staging so a local build uses the same packages.
 

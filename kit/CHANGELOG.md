@@ -2,6 +2,10 @@
 
 ## 0.10.0 (development)
 
+- Apply declared inline-audio byte limits independently of decimal JSON
+  expansion in the renderer bridge. Preserve multiline transcription content
+  and empty pending/no-speech text while retaining content and metadata bounds.
+
 - Preserve annotation results up to 65536 tokens and 16 MiB through the native
   and JavaScript boundaries with the matching SDK/Runtime candidate.
 

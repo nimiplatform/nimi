@@ -443,6 +443,20 @@ class SpeechServerTests(unittest.TestCase):
                     {"text": "Hello", "start_time": start, "end_time": end},
                 ], 3, 0.08)
 
+    def test_alignment_uses_raw_predictions_without_interpolating_contradictions(self) -> None:
+        decode = QWEN3_ASR_TRANSFORMERS_DRIVER.alignment_words_from_predictions
+        with self.assertRaisesRegex(RuntimeError, "invalid source timing"):
+            decode("a b c", ["a", "b", "c"], [45, 40, 35, 30, 50, 55], 80, 5)
+        with self.assertRaisesRegex(RuntimeError, "invalid timestamp predictions"):
+            decode("a b", ["a", "b"], [1, 2, 3], 80, 5)
+
+    def test_raw_alignment_preserves_overlaps_zero_spans_and_punctuation(self) -> None:
+        decode = QWEN3_ASR_TRANSFORMERS_DRIVER.alignment_words_from_predictions
+        self.assertEqual(decode("Hello, world!", ["Hello", "world"], [5, 10, 8, 8], 80, 3), [
+            {"text": "Hello,", "start_seconds": 0.4, "end_seconds": 0.8},
+            {"text": "world!", "start_seconds": 0.64, "end_seconds": 0.64},
+        ])
+
     def test_qwen_asr_driver_decodes_webm_before_model_transcription(self) -> None:
         normalized_paths = []
         decoder_calls = []

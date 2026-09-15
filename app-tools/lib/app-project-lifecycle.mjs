@@ -485,6 +485,28 @@ function findLocalNimiResolution(value, currentPackage = '', pathParts = [], all
   return null;
 }
 
+function readInstalledPnpmLock(targetDir) {
+  const modulesPath = path.join(targetDir, 'node_modules', '.modules.yaml');
+  if (!existsSync(modulesPath)) throw installRequiredError('pnpm installation metadata is missing');
+  const modules = parseYamlFile(readFileSync(modulesPath, 'utf8'), modulesPath);
+  if (typeof modules?.virtualStoreDir !== 'string' || !modules.virtualStoreDir.trim()) {
+    throw installRequiredError('pnpm installation has no virtual store');
+  }
+  const installedLockPath = path.join(path.resolve(targetDir, 'node_modules', modules.virtualStoreDir), 'lock.yaml');
+  if (!existsSync(installedLockPath)) throw installRequiredError('pnpm installed dependency lock is missing');
+  return parseYamlFile(readFileSync(installedLockPath, 'utf8'), installedLockPath);
+}
+
+function selectedLocalPackageRecord(lock, name, selected, targetDir) {
+  const matches = Object.entries(lock?.packages || {}).filter(([key, entry]) =>
+    key.startsWith(name + '@') && archivePath(targetDir, entry?.resolution?.tarball) === archivePath(targetDir, selected));
+  if (matches.length !== 1 || typeof matches[0][1]?.version !== 'string'
+    || typeof matches[0][1]?.resolution?.integrity !== 'string' || !matches[0][1].resolution.integrity) {
+    throw installRequiredError(`Local Nimi package installation is stale or has no complete locked tarball resolution: ${name}`);
+  }
+  return matches[0][1];
+}
+
 function assertPnpmLockCurrent(targetDir, packageJson, localPackages = new Map(), versions) {
   const lockPath = path.join(targetDir, 'pnpm-lock.yaml');
   if (!existsSync(lockPath)) {
@@ -501,6 +523,7 @@ function assertPnpmLockCurrent(targetDir, packageJson, localPackages = new Map()
   if (!importer || typeof importer !== 'object' || Array.isArray(importer)) {
     throw installRequiredError('pnpm-lock.yaml root importer is missing');
   }
+  const installedLock = localPackages.size > 0 ? readInstalledPnpmLock(targetDir) : null;
   for (const [name, selected] of localPackages) {
     if (lock.overrides?.[name] !== selected) throw installRequiredError(`pnpm-lock.yaml local package override does not match pnpm-workspace.yaml: ${name}`);
     let manifestPath = path.join(targetDir, 'node_modules', ...name.split('/'), 'package.json');
@@ -518,6 +541,15 @@ function assertPnpmLockCurrent(targetDir, packageJson, localPackages = new Map()
     if (installed.name !== name || !satisfies(installed.version, expected, { includePrerelease: true })) {
       throw installRequiredError(`Installed local Nimi package must be ${name}@${expected}`);
     }
+    if (archivePath(targetDir, installedLock?.overrides?.[name]) !== archivePath(targetDir, selected)) {
+      throw installRequiredError(`Local Nimi package installation is stale: ${name}`);
+    }
+    const locked = selectedLocalPackageRecord(lock, name, selected, targetDir);
+    const installedResolution = selectedLocalPackageRecord(installedLock, name, selected, targetDir);
+    if (installed.version !== locked.version || installedResolution.version !== locked.version
+      || installedResolution.resolution.integrity !== locked.resolution.integrity) {
+      throw installRequiredError(`Local Nimi package installation is stale: ${name}`);
+    }
   }
   for (const sectionName of NPM_DEPENDENCY_SECTIONS) {
     const packageSection = dependencySection(packageJson, sectionName) || {};
@@ -526,6 +558,10 @@ function assertPnpmLockCurrent(targetDir, packageJson, localPackages = new Map()
       if (!name.startsWith('@nimiplatform/')) continue;
       if (lockSection?.[name]?.specifier !== (localPackages.get(name) || specifier)) {
         throw installRequiredError(`pnpm-lock.yaml ${sectionName}.${name} specifier does not match package.json`);
+      }
+      if (localPackages.has(name)
+        && installedLock?.importers?.['.']?.[sectionName]?.[name]?.version !== lockSection[name]?.version) {
+        throw installRequiredError(`Local Nimi package installation is stale: ${name}`);
       }
     }
     for (const name of Object.keys(lockSection || {})) {

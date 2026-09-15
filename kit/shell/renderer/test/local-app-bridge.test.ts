@@ -14,6 +14,7 @@ import {
   openNimiLocalAppAssetMediaUrl,
 } from '../src/bridge/index.js';
 import { resolveTauriStandardCommand } from '../src/bridge/tauri-api.js';
+import { getNimiLocalAppScenarioJob, submitNimiLocalAppScenarioJob } from '../src/bridge/local-app.js';
 
 afterEach(() => {
   delete (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__;
@@ -38,6 +39,47 @@ function managerActionAvailability() {
 }
 
 describe('renderer local-app standard-shell surface', () => {
+  it('budgets declared audio bytes separately from decimal JSON expansion', async () => {
+    let calls = 0;
+    const boundary = new Error('reached host transport');
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (_command: string, input: { payload: { spec: { audioSource: { bytes: number[] } } } }) => {
+        calls++;
+        expect(input.payload.spec.audioSource.bytes).toBe(bytes);
+        throw boundary;
+      },
+    };
+    const bytes = new Array<number>(11 * 1024 * 1024).fill(255);
+    const spec = { type: 'speech-transcribe' as const, mimeType: 'audio/wav', language: 'en',
+      prompt: '', responseFormat: '', audioSource: { type: 'bytes' as const, bytes } };
+    await expect(submitNimiLocalAppScenarioJob(spec)).rejects.toThrow('reached host transport');
+    expect(calls).toBe(1);
+    // These inputs must still fail before transport, independently of JSON size.
+    expect(() => submitNimiLocalAppScenarioJob({ ...spec, audioSource: { type: 'bytes', bytes: [256] } })).toThrow('inline audio bytes');
+    const oversized = new Array<number>(32 * 1024 * 1024 + 1).fill(0);
+    expect(() => submitNimiLocalAppScenarioJob({ ...spec, audioSource: { type: 'bytes', bytes: oversized } })).toThrow('inline audio bytes');
+    expect(() => submitNimiLocalAppScenarioJob({ type: 'text-annotate', language: 'en', texts: ['x'.repeat(40 * 1024 * 1024)] })).toThrow('scenario spec exceeds');
+    expect(calls).toBe(1);
+  });
+
+  it('preserves multiline and empty transcription content while bounding results and metadata', async () => {
+    const job = { jobId: 'transcript-1', scenarioType: 'speech-transcribe', status: 'completed',
+      progressPercent: 100, progressCurrentStep: 1, progressTotalSteps: 1, reasonCode: '', reasonDetail: '',
+      artifacts: [], traceId: '', createdAt: null, updatedAt: null, transcriptionText: 'Hello.\r\nWorld.' };
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async () => ({ job, asset: null, voiceReference: null }),
+    };
+    expect((await getNimiLocalAppScenarioJob(job.jobId)).job.transcriptionText).toBe(job.transcriptionText);
+    job.status = 'submitted'; job.transcriptionText = '';
+    expect((await getNimiLocalAppScenarioJob(job.jobId)).job.transcriptionText).toBe('');
+    for (const text of ['bad\0text', 'x'.repeat((1 << 20) + 1)]) {
+      job.transcriptionText = text;
+      await expect(getNimiLocalAppScenarioJob(job.jobId)).rejects.toThrow('content projection');
+    }
+    job.transcriptionText = 'valid'; job.reasonDetail = 'invalid\nmetadata';
+    await expect(getNimiLocalAppScenarioJob(job.jobId)).rejects.toThrow('text projection');
+  });
+
   it('round trips tool declarations, ordered output and typed termination through the public App client', async () => {
     let emit: ((event: { payload: unknown }) => void) | undefined;
     const requests: unknown[] = [];

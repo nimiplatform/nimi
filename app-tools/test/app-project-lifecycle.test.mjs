@@ -303,14 +303,52 @@ test('local Nimi tarball overrides survive sync and are checked without requirin
     const lock = parseYaml(readFileSync(lockPath, 'utf8'));
     lock.overrides = { '@nimiplatform/sdk': selected };
     lock.importers['.'].dependencies['@nimiplatform/sdk'] = { specifier: selected, version: relative };
-    lock.packages = { ['@nimiplatform/sdk@' + relative]: { resolution: { tarball: relative }, version: versions.sdkVersion.replace(/^\^/u, '') } };
+    lock.packages = { ['@nimiplatform/sdk@' + relative]: { resolution: { tarball: relative, integrity: 'sha512-sdk-fixture' }, version: versions.sdkVersion.replace(/^\^/u, '') } };
     writeFileSync(lockPath, stringifyYaml(lock));
     const installedPath = path.join(target, 'node_modules', '@nimiplatform', 'sdk');
     mkdirSync(installedPath, { recursive: true });
     writeFileSync(path.join(installedPath, 'package.json'), JSON.stringify({ name: '@nimiplatform/sdk', version: versions.sdkVersion.replace(/^\^/u, '') }));
+    const installedLockDir = path.join(target, 'node_modules', '.pnpm');
+    mkdirSync(installedLockDir, { recursive: true });
+    writeFileSync(path.join(target, 'node_modules', '.modules.yaml'), stringifyYaml({ virtualStoreDir: '.pnpm' }));
+    const recordInstalledLock = () => writeFileSync(path.join(installedLockDir, 'lock.yaml'), stringifyYaml(lock));
+    recordInstalledLock();
     result = runCli(['sync', '--dir', target, '--json'], tempRoot, env);
     assert.equal(result.status, 0, result.stderr || result.stdout);
     assert.equal(parseYaml(readFileSync(workspacePath, 'utf8')).overrides['@nimiplatform/sdk'], selected);
+    result = runCli(['check', '--dir', target, '--json'], tempRoot, env);
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    const sdkKey = '@nimiplatform/sdk@' + relative;
+    const originalResolution = structuredClone(lock.packages[sdkKey]);
+    const newerVersion = originalResolution.version.replace(/(\d+)$/u, (patch) => String(Number(patch) + 1));
+    for (const change of [
+      { version: newerVersion },
+      { resolution: { ...originalResolution.resolution, integrity: 'sha512-rebuilt-sdk-fixture' } },
+    ]) {
+      lock.packages[sdkKey] = { ...originalResolution, ...change };
+      writeFileSync(lockPath, stringifyYaml(lock));
+      result = runCli(['check', '--dir', target, '--json'], tempRoot, env);
+      assert.notEqual(result.status, 0, 'stale installed tarball passed the lifecycle check');
+      assert.match(jsonErrorMessage(result), /installation is stale/);
+    }
+    lock.packages[sdkKey] = originalResolution;
+    const replacementArchive = path.join(tempRoot, 'sdk-replacement.tgz');
+    writeFileSync(replacementArchive, 'same version, different local source');
+    const replacement = 'file:' + replacementArchive.split(path.sep).join('/');
+    const replacedLock = structuredClone(lock);
+    replacedLock.overrides['@nimiplatform/sdk'] = replacement;
+    replacedLock.importers['.'].dependencies['@nimiplatform/sdk'] = { specifier: replacement, version: replacement };
+    replacedLock.packages = { ['@nimiplatform/sdk@' + replacement]: { ...originalResolution, resolution: { tarball: replacement, integrity: 'sha512-replacement-sdk-fixture' } } };
+    writeFileSync(workspacePath, stringifyYaml({ ...workspace, overrides: { ...workspace.overrides, '@nimiplatform/sdk': replacement } }));
+    writeFileSync(lockPath, stringifyYaml(replacedLock));
+    result = runCli(['check', '--dir', target, '--json'], tempRoot, env);
+    assert.notEqual(result.status, 0, 'stale installed source passed the lifecycle check');
+    assert.match(jsonErrorMessage(result), /installation is stale/);
+    writeFileSync(workspacePath, stringifyYaml(workspace));
+    lock.packages[sdkKey] = { ...originalResolution, version: newerVersion };
+    writeFileSync(lockPath, stringifyYaml(lock));
+    recordInstalledLock();
+    writeFileSync(path.join(installedPath, 'package.json'), JSON.stringify({ name: '@nimiplatform/sdk', version: newerVersion }));
     result = runCli(['check', '--dir', target, '--json'], tempRoot, env);
     assert.equal(result.status, 0, result.stderr || result.stdout);
     result = runCli(['check', '--dir', target, '--production', '--json'], tempRoot, env);
@@ -322,8 +360,10 @@ test('local Nimi tarball overrides survive sync and are checked without requirin
     const nativeSelected = 'file:' + nativeArchive.split(path.sep).join('/');
     workspace.overrides[nativeName] = nativeSelected;
     lock.overrides[nativeName] = nativeSelected;
+    lock.packages[nativeName + '@' + nativeSelected] = { version: versions.kitVersion.replace(/^\^/u, ''), resolution: { tarball: nativeSelected, integrity: 'sha512-native-fixture' } };
     writeFileSync(workspacePath, stringifyYaml(workspace));
     writeFileSync(lockPath, stringifyYaml(lock));
+    recordInstalledLock();
     const kitPath = path.join(target, 'node_modules', '@nimiplatform', 'kit');
     const nativePath = path.join(kitPath, 'node_modules', ...nativeName.split('/'));
     mkdirSync(nativePath, { recursive: true });

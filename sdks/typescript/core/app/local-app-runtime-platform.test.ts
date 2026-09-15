@@ -1750,12 +1750,13 @@ test('local-app client rejects the retired host namespace instead of decoding it
 
 test('typed transcription timing and no-speech survive the Local App and Runtime projections', async () => {
   const base = standardShell([]);
-  let transcription = { status: 'transcribed', text: 'Hello, world.', language: 'en', words: [{ text: 'Hello,', startSeconds: 0.2, endSeconds: 0.7 }, { text: 'world.', startSeconds: 1.1, endSeconds: 1.6 }] };
+  let transcription = { status: 'transcribed', text: 'Hello,\nworld.', language: 'en', words: [{ text: 'Hello,', startSeconds: 0.2, endSeconds: 0.7 }, { text: 'world.', startSeconds: 1.1, endSeconds: 1.6 }] };
   const client = createNimiLocalAppClient({ standardShell: { ...base, ai: { ...base.ai, scenarioJobs: { ...base.ai.scenarioJobs,
     async get() { return { job: { jobId: 'transcribed-1', scenarioType: 'speech-transcribe', status: 'completed', progressPercent: 100, progressCurrentStep: 1, progressTotalSteps: 1, reasonCode: '', reasonDetail: '', artifacts: [], traceId: '', createdAt: null, updatedAt: null, transcriptionText: transcription.text, transcription }, asset: null, voiceReference: null }; },
   } } } });
   const result = await client.ai.scenarioJobs.get('transcribed-1');
   assert.deepEqual(result.job.transcription, transcription);
+  assert.equal(result.job.transcriptionText, 'Hello,\nworld.');
   const adapter = createNimiLocalAppRuntimeScenarioJobClient(client.ai);
   const artifacts = await adapter.getScenarioArtifacts({ jobId: 'transcribed-1' });
   assert.equal(artifacts.output?.output.oneofKind, 'speechTranscribe');
