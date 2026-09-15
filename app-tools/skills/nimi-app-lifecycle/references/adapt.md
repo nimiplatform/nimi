@@ -1,10 +1,14 @@
 # Existing project
 
+When starting from an earlier assessment, apply [Audit handoff](audit.md#handoff-to-implementation): reuse confirmed user decisions and sufficient evidence, and check the assumptions relevant to the next consequential change. An audit recommendation does not become a platform contract or a reason to preserve a disproved design.
+
 Before changing code, identify the upstream URL and baseline commit, license, user journeys, actual AI/auth/storage entry points, business services, helper processes and active instruction loaders. Record a short upstream/range note in the existing App README or product document; do not create another integration state file.
 
 For a complete App adaptation, account for the original product entry, business settings, input/output formats, recovery and editing handoffs. Restore the required original journeys on the Nimi integration. A capability demo or generated workbench is not a replacement for the existing product, and passing its sample task does not complete the App adaptation.
 
 Match the core journeys' required inputs and outputs against the selected SDK/Kit public contracts before substantial conversion. A request option or scaffold feature name does not prove that a usable result is supported. Consult the SDK README's support boundaries and the selected resource's capabilities; distinguish missing configuration, unclear documentation, an existing-contract defect, and a required new platform capability. Use a small real protected call only where it can resolve the remaining question. If the task excludes new platform capabilities, a required missing capability makes the candidate unsuitable; report it without shrinking the product or continuing with a private inference bypass. Code-level absence of a required operation does not need a running Desktop to be reported, while an unavailable Desktop is only a launch prerequisite failure.
+
+If the task includes Nimi expansion or repair and a required gap is found, follow [Platform gaps](platform-gaps.md), then return to the original App workflow with the delivered shared fix. Existing authorization covers that work; a missing capability is not automatically the end of adaptation.
 
 Install a selected app-tools package and read this package skill before init. For local SDK/Kit/app-tools iteration, use the complete tarball override workflow in its README; do not wait for publication or link to the source workspace. Install its matching SDK/Kit and exact nimi-coding. Follow the package's manifest version matrix and use the lockfile to pin actual resolutions.
 

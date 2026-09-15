@@ -9,11 +9,13 @@ For your first public release, start with [Publishing on GitHub](#publishing-on-
 ## AI development and existing projects
 
 The package includes one `skills/nimi-app-lifecycle/SKILL.md` with on-demand
-guides for creating, adapting, platform upgrades, upstream sync, releases and
+guides for adaptation audits, creating, adapting, platform gaps and upgrades, upstream sync, releases and
 acceptance. Read it inside the installed package before initializing an existing
 repository. `nimi-app --help` prints its resolved location. Installation does
 not activate instructions; explicit init/sync maintains the project skill under
 `.agents/skills/nimi-app-lifecycle/` and an independent AGENTS.md block.
+
+For a feasibility, capability-fit or cost decision, start with [Audit](skills/nimi-app-lifecycle/references/audit.md). It uses existing public consumption paths and the target's actual workflows without requiring adoption or a running reference App. When implementation follows a report, preserve its evidence and uncertainty boundaries through the guide's handoff.
 
 Install the selected app-tools and the exact nimi-coding version declared in
 its `nimiScaffoldVersions`. For first integration, generate a minimal reference

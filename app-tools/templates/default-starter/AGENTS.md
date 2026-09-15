@@ -11,7 +11,7 @@
 
 ## Hard Boundaries
 - Follow `Runtime / Realm truth -> @nimiplatform/sdk interface -> app consumer`.
-- Runtime owns local execution, capability, readiness, routing, model, and memory truth; Realm owns canonical cloud identity, relationships, entities, and shared persistence.
+- Runtime owns AI execution and its exact configuration/admission; Cognition owns canonical long-term Memory and Knowledge. Realm owns ecosystem identity, relationships and shared entities; App business state follows its declared storage boundary.
 - Use SDK typed projections for Runtime and Realm; do not call private endpoints or mirror their canonical truth locally.
 - Use `@nimiplatform/kit` for reusable controls, layout, accessibility, tokens, and interaction patterns; keep app CSS and composition product-specific.
 - Keep the base free of Lab-only product behavior. Feature implementations enter generated output only through the app-tools module registry and public admitted `--features` selection. Internal modules such as `ai-studio-core` enter only through dependency closure and are never selected directly.
@@ -25,6 +25,7 @@
 - Before durable storage, native commands, private calls, or registries, inspect the nearest contract and current consumer; ask only if multiple semantic owners remain plausible.
 
 ## Retrieval Defaults
+- Feasibility, capability-fit and cost requests use the lifecycle skill's audit guide before implementation setup. When following an audit, preserve confirmed user decisions and verify consequential assumptions against current owner contracts rather than treating the report as authority.
 - Start with the requested product route, its direct SDK/Kit surface, and the relevant scaffold-managed glue.
 - Read platform authority only when ownership or semantics remain ambiguous; skip unrelated platform packages and generated files.
 

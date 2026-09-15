@@ -17,3 +17,5 @@ With two separately admitted versions, verify N to N+1 and the promised data ret
 Runtime uninstall removes its exact managed package after Desktop stops the Host. App-owned OS storage remains untouched, including disclosed paths; explain the App's own cleanup action separately. Ordinary repair and arbitrary rollback remain outside this workflow.
 
 Report the tested App/version, target and result, plus relevant NOT-VERIFIED paths. Tool-core checks, a representative App slice, first release/install and a later update are separate completion levels. Keep necessary local output under `.nimi/local/`; do not create another task or proof ledger.
+
+Separate results obtained now from prior actual acceptance that still applies to the same behavior and combination. Reuse sufficient evidence until a change, failure or concrete risk invalidates it; not rerunning a journey does not mean it never passed. Keep contract correctness and the user's required business result distinct from model-content quality. Maintain a current summary in existing project notes, label historical stages, and do not promote a bounded platform fix into completion of an ongoing App adaptation.

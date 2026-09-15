@@ -5,13 +5,13 @@ import { assertProjectOutputPath, changedFiles, plannedFile } from './app-projec
 
 export const LIFECYCLE_SKILL_PATH = fileURLToPath(new URL('../skills/nimi-app-lifecycle/SKILL.md', import.meta.url));
 export const PROJECT_SKILL_DIR = '.agents/skills/nimi-app-lifecycle';
-const SKILL_FILES = ['SKILL.md', ...['create', 'adapt', 'upgrade-platform', 'sync-upstream', 'release', 'acceptance'].map((name) => `references/${name}.md`)];
+const SKILL_FILES = ['SKILL.md', ...['audit', 'create', 'adapt', 'platform-gaps', 'upgrade-platform', 'sync-upstream', 'release', 'acceptance'].map((name) => `references/${name}.md`)];
 const START = '<!-- nimi-app:managed:start -->';
 const END = '<!-- nimi-app:managed:end -->';
 const AGENTS_BLOCK = `${START}
 ## Nimi App development
 
-- For creating, adapting, upgrading or releasing this App, read [the lifecycle skill](.agents/skills/nimi-app-lifecycle/SKILL.md) and only the relevant scenario.
+- For auditing adaptation feasibility or cost, creating, adapting, upgrading or releasing this App, read [the lifecycle skill](.agents/skills/nimi-app-lifecycle/SKILL.md) and only the relevant scenario. Audit-only requests do not begin implementation; prior reports remain evidence-dependent.
 - For first integration or foundation wiring changes, use the selected app-tools package's generated reference and reuse its Host, preload, renderer, session, App Access, AIConfig and AI call wiring. Follow the adaptation guide's baseline checks and reuse passing results for ordinary business edits.
 - Keep App-owned product behavior, Host code, business accounts and non-AI services with this repository. Use the SDK/Kit Local App carrier for Nimi AI, configuration, storage and session access.
 - Development may consume complete local npm tarballs through the supported explicit overrides and version matrix; public-release preflight uses registry resolutions. Do not substitute source-workspace or directory links.
