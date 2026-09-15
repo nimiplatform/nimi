@@ -242,12 +242,12 @@ describe('Desktop approved App install intent', () => {
   it('ships truthful unsigned disclosure in both Desktop locales', () => {
     for (const locale of ['en', 'zh']) {
       const document = JSON.parse(readFileSync(new URL(`../src/shell/renderer/locales/${locale}/56-Apps.json`, import.meta.url), 'utf8')) as {
-        catalog: { unsignedConfirmMessage: string };
+        catalog: { unsignedConfirmMessage: string; unsignedConfirmInstall: string };
         sourceBadge: { verified: string };
       };
-      assert.match(document.catalog.unsignedConfirmMessage, /sandbox/iu);
+      assert.match(document.catalog.unsignedConfirmMessage, locale === 'en' ? /sandbox/iu : /沙盒/u);
       assert.match(document.catalog.unsignedConfirmMessage, locale === 'en' ? /neither .* guarantees safety/iu : /不保证安全/u);
-      assert.match(document.catalog.unsignedConfirmMessage, locale === 'en' ? /non-elevated|administrator/iu : /非提权|管理员/u);
+      assert.match(document.catalog.unsignedConfirmInstall, locale === 'en' ? /non-elevated|administrator/iu : /非提权|管理员/u);
       assert.doesNotMatch(document.sourceBadge.verified, /certif|认证/iu);
     }
   });

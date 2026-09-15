@@ -51,11 +51,11 @@
     "registryApproved": "This release was approved through the public Nimi App Registry. Its descriptor binds the exact Release asset, digest, and provenance, and Runtime verifies the downloaded package again. Approval and verification are not a malware-free or operating-system execution guarantee.",
     "policyBlocked": "New installation or launch is blocked by the current Registry policy (revision {{revision}}): {{reason}}",
     "policyBlockedFallback": "No reason was provided.",
-    "publisher": "Publisher on GitHub",
+    "publisher": "GitHub publisher",
     "sourceRepository": "Public source",
     "license": "Open-source license",
-    "target": "Exact target",
-    "asset": "Release asset",
+    "target": "Platform",
+    "asset": "Package file",
     "nativePosture": "Native signing posture",
     "executionProfile": "Execution profile",
     "appAccess": "Requested App Access",
@@ -65,7 +65,9 @@
     "storageDisclosures": "OS storage disclosures",
     "none": "None",
     "unsignedConfirmTitle": "Install an unsigned Windows App?",
-    "unsignedConfirmMessage": "This exact Registry-approved release was not signed by its publisher with Authenticode. Its Registry descriptor binds the exact asset digest and provenance, and Runtime verifies the download again, but neither that nor Nimi review guarantees safety or creates a sandbox. Windows or your organization may warn or block it. Continuing asks Runtime to install this exact package; it does not grant the App administrator access, and any later launch is a separate current-user, non-elevated action.",
+    "unsignedConfirmMessage": "This release has no publisher signature (Authenticode). Windows or your organization may warn or block it. Neither Nimi review nor package verification guarantees safety or provides a sandbox.",
+    "unsignedConfirmInstall": "Continuing installs the selected release without granting the app administrator access. After installation, open the app separately to run it with your current user permissions.",
+    "unsignedConfirmVerification": "Registry binds this package to its exact digest and provenance. Runtime verifies it again before installation.",
     "unsignedConfirmAction": "Continue and install",
     "macosConfirmTitle": "Install this macOS App?",
     "macosUnsignedConfirmMessage": "This app has no Developer ID publisher signature and has not been notarized by Apple. Nimi Registry review and download verification do not replace those checks, grant administrator access, or create an operating-system sandbox. Continue only if you trust this publisher.",
@@ -266,6 +268,14 @@
       "worldGenerate": {
         "label": "World generation",
         "description": "Choose how this app generates worlds."
+      },
+      "textAnnotate": {
+        "label": "Language analysis",
+        "description": "Identify tokens, parts of speech, dependencies, and sentence boundaries"
+      },
+      "audioSeparate": {
+        "label": "Vocals and background",
+        "description": "Separate vocals from background audio while preserving timing"
       }
     }
   },
@@ -398,7 +408,10 @@
     "toVersion": "Update to {{version}}",
     "stopRequired": "Stop the App before updating it.",
     "confirmTitle": "Update {{app}}?",
-    "confirmMessage": "Update version {{from}} to {{to}}. App data managed by Nimi will be retained."
+    "confirmMessage": "Update from {{from}} to {{to}}, keeping app data managed by Nimi.",
+    "confirmAvailability": "The app cannot open during the update, including while queued or paused. Once cancellation succeeds, you can use {{version}} again.",
+    "confirmAction": "Continue update",
+    "cancelAction": "Not now"
   },
   "packageAction": {
     "selectionChanged": "The Catalog release changed. Review the current version and try again.",
@@ -426,6 +439,8 @@
     "resumeNamed": "Resume {{app}}",
     "cancelNamed": "Cancel task for {{app}}",
     "detailsNamed": "View task for {{app}}",
+    "hideDetailsNamed": "Hide task details for {{app}}",
+    "hideDetails": "Hide details",
     "nextNamed": "Download {{app}} next",
     "upNamed": "Move {{app}} up",
     "downNamed": "Move {{app}} down",

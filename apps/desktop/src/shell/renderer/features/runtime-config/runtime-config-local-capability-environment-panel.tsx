@@ -29,6 +29,7 @@ import {
 
 export const RUNTIME_CONFIG_LOCAL_ENVIRONMENT_CAPABILITIES = [
   { slice: 'text', capabilityContract: 'text.generate' },
+  { slice: 'annotation', capabilityContract: 'text.annotate' },
   { slice: 'embed', capabilityContract: 'text.embed' },
   { slice: 'image', capabilityContract: 'image.generate' },
   { slice: 'faceSwap', capabilityContract: 'image.face_swap' },
@@ -37,6 +38,7 @@ export const RUNTIME_CONFIG_LOCAL_ENVIRONMENT_CAPABILITIES = [
   { slice: 'video', capabilityContract: 'video.generate' },
   { slice: 'tts', capabilityContract: 'audio.synthesize' },
   { slice: 'stt', capabilityContract: 'audio.transcribe' },
+  { slice: 'separation', capabilityContract: 'audio.separate' },
   { slice: 'voice', capabilityContract: 'voice.create' },
   { slice: 'music', capabilityContract: 'music.generate' },
 ] as const satisfies readonly {

@@ -51,11 +51,11 @@
     "registryApproved": "这个版本已通过公共 Nimi App Registry 审核。Descriptor 冻结准确的 Release asset、digest 和 provenance，Runtime 还会再次验证下载的包；审核和验证都不等于无恶意代码保证，也不保证操作系统一定允许执行。",
     "policyBlocked": "当前 Registry 策略已阻止新的安装或启动（修订 {{revision}}）：{{reason}}",
     "policyBlockedFallback": "未提供原因。",
-    "publisher": "GitHub Publisher",
+    "publisher": "GitHub 发布者",
     "sourceRepository": "公开源码",
     "license": "开源许可证",
-    "target": "准确目标",
-    "asset": "Release 资产",
+    "target": "适用平台",
+    "asset": "安装包",
     "nativePosture": "原生签名状态",
     "executionProfile": "执行配置",
     "appAccess": "请求的 App Access",
@@ -65,7 +65,9 @@
     "storageDisclosures": "系统存储披露",
     "none": "无",
     "unsignedConfirmTitle": "安装未签名的 Windows App？",
-    "unsignedConfirmMessage": "这个准确的 Registry-approved 版本没有由 publisher 使用 Authenticode 签名。Registry descriptor 冻结准确的 asset digest 和 provenance，Runtime 还会再次验证下载，但这些事实和 Nimi 审核都不保证安全，也不会创建 sandbox；Windows 或组织策略可能警告或直接阻止。继续会请求 Runtime 安装这个准确包，但不会向 App 授予管理员权限；之后的启动是另一个独立的当前用户、非提权操作。",
+    "unsignedConfirmMessage": "此版本未经发布者数字签名（Authenticode），Windows 或组织策略可能警告或阻止运行。Nimi 审核与安装包校验不保证安全，也不提供沙盒隔离。",
+    "unsignedConfirmInstall": "继续将安装所选版本，不会授予应用管理员权限。安装完成后需单独打开，应用以当前用户权限运行。",
+    "unsignedConfirmVerification": "Registry 已锁定此安装包的校验摘要与来源，Runtime 会在安装前再次核验。",
     "unsignedConfirmAction": "继续并安装",
     "macosConfirmTitle": "安装这个 macOS App？",
     "macosUnsignedConfirmMessage": "此应用没有发布者的 Developer ID 签名，也未经 Apple 公证。Nimi Registry 审核和下载校验不能替代这些检查，不会授予管理员权限或创建系统沙箱。请确认信任此发布者后再继续。",
@@ -266,6 +268,14 @@
       "worldGenerate": {
         "label": "世界生成",
         "description": "选择此 App 如何生成世界。"
+      },
+      "textAnnotate": {
+        "label": "语言分析",
+        "description": "识别词语、词性、依存关系和句子边界"
+      },
+      "audioSeparate": {
+        "label": "人声与背景分离",
+        "description": "分离人声和背景音，保留原有时间轴"
       }
     }
   },
@@ -398,7 +408,10 @@
     "toVersion": "更新至 {{version}}",
     "stopRequired": "请先停止应用，再执行更新。",
     "confirmTitle": "更新 {{app}}？",
-    "confirmMessage": "将版本 {{from}} 更新至 {{to}}。Nimi 管理的应用数据不会被删除。"
+    "confirmMessage": "从 {{from}} 更新至 {{to}}，保留 Nimi 管理的应用数据。",
+    "confirmAvailability": "更新期间（包括排队或暂停时）暂时无法打开应用。取消成功后，可继续使用 {{version}}。",
+    "confirmAction": "继续更新",
+    "cancelAction": "暂不更新"
   },
   "packageAction": {
     "selectionChanged": "目录中的版本已变化，请重新选择。",
@@ -426,6 +439,8 @@
     "resumeNamed": "继续 {{app}}",
     "cancelNamed": "取消 {{app}} 的任务",
     "detailsNamed": "查看 {{app}} 的任务",
+    "hideDetailsNamed": "收起 {{app}} 的任务详情",
+    "hideDetails": "收起详情",
     "nextNamed": "将 {{app}} 排到下一项",
     "upNamed": "上移 {{app}}",
     "downNamed": "下移 {{app}}",

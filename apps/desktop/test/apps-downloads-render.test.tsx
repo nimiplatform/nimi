@@ -34,6 +34,32 @@ test('downloads renders every queued job and names keyboard reorder controls', a
   assert.doesNotMatch(html, /Apps\.downloads\./);
 });
 
+test('a download has one progress display and one set of controls with details closed or open', async () => {
+  await initI18n(); await changeLocale('en');
+  for (const selected of [null, '01']) {
+    const html = render([job(1, AppPackageJobPhase.DOWNLOADING)], selected);
+    assert.equal((html.match(/role="progressbar"/g) ?? []).length, 1);
+    assert.equal((html.match(/aria-label="Pause Test App 1"/g) ?? []).length, 1);
+    assert.equal((html.match(/aria-label="Cancel task for Test App 1"/g) ?? []).length, 1);
+    assert.equal((html.match(/>Test App 1<\/h3>/g) ?? []).length, 1);
+    assert.doesNotMatch(html, /Pause all|Resume all/);
+    assert.match(html, /Update 1\.0\.0 → 2\.0\.0/);
+    assert.match(html, /cannot open while its update is active, queued, or paused/);
+    assert.equal(html.includes('data-testid="apps-download-detail"'), selected !== null);
+  }
+});
+
+test('opening a recent task keeps it in history and leaves the current download visible once', async () => {
+  await initI18n(); await changeLocale('en');
+  const html = render([job(1, AppPackageJobPhase.DOWNLOADING), job(2, AppPackageJobPhase.COMPLETED)], '02');
+  assert.equal((html.match(/data-testid="app-download-job-01"/g) ?? []).length, 1);
+  assert.equal((html.match(/data-testid="app-download-job-02"/g) ?? []).length, 1);
+  assert.match(html, /aria-expanded="true" aria-controls="app-download-recent"/);
+  assert.match(html, /aria-expanded="true" aria-controls="app-download-details-02"/);
+  assert.equal((html.match(/role="progressbar"/g) ?? []).length, 1);
+  assert.equal((html.match(/data-testid="apps-download-detail"/g) ?? []).length, 1);
+});
+
 test('completed and canceled detail does not retain update-in-progress instructions', async () => {
   await initI18n(); await changeLocale('en');
   const completed = render([job(1, AppPackageJobPhase.COMPLETED)], '01');

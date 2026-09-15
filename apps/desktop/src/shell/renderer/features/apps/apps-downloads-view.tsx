@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowDown, ArrowLeft, ArrowUp, Check, ChevronsUp, Download, GripVertical, Pause, Play } from 'lucide-react';
+import { ArrowDown, ArrowUp, Check, ChevronDown, ChevronUp, ChevronsUp, Download, GripVertical, Pause, Play } from 'lucide-react';
 import { Button, ConfirmDialog, EmptyState, IconButton, InlineAlert, ScrollArea, StatusBadge, Surface, Tooltip } from '@nimiplatform/kit/ui';
 import { AppPackageJobKind, AppPackageJobPhase, AppPackageSourceClass, type AppPackageJob, type ApprovedAppCatalogTarget } from '@nimiplatform/sdk/runtime/wire-types';
 import { openExternalUrl } from '@nimiplatform/kit/shell/renderer/bridge';
@@ -78,11 +78,9 @@ export function AppsDownloadsView({ downloads, entries, onViewApp, onRetry }: {
   const [phaseFeedback, setPhaseFeedback] = useState('');
   const [actionErrors, setActionErrors] = useState<string[]>([]);
   const [sourceError, setSourceError] = useState('');
-  const headingRef = useRef<HTMLHeadingElement>(null);
   const pageHeadingRef = useRef<HTMLHeadingElement>(null);
   const rowRefs = useRef(new Map<string, HTMLButtonElement>());
   const draggedJobId = useRef<string | null>(null);
-  const lastFocusedJob = useRef<string | null>(null);
   const focusRevision = useRef(0);
   const previousPhases = useRef(new Map<string, AppPackageJobPhase>());
   const jobs = downloads.jobs.filter(isAppDownloadJob);
@@ -94,14 +92,18 @@ export function AppsDownloadsView({ downloads, entries, onViewApp, onRetry }: {
   const processing = jobs.filter((job) => !packageJobIsTerminal(job) && (job.sourceClass === AppPackageSourceClass.USER_IMPORTED || ![AppPackageJobPhase.QUEUED, AppPackageJobPhase.DOWNLOADING, AppPackageJobPhase.PAUSED].includes(job.phase)));
   const recent = jobs.filter((job) => packageJobIsTerminal(job) && !failedDownloadNeedsAttention(job, jobs))
     .sort((a, b) => timestampMilliseconds(b.completedAt) - timestampMilliseconds(a.completedAt));
-  const detail = selected ?? (downloads.selectedJobId ? undefined : active[0] ?? processing[0] ?? failed[0] ?? queued[0] ?? paused[0] ?? recent[0]);
+  const selectedIsRecent = recent.some((job) => packageJobKey(job) === downloads.selectedJobId);
+  const showRecent = recentOpen || selectedIsRecent;
   const busy = downloads.pendingIds.length > 0;
   const unavailable = downloads.status !== 'ready';
   const blocked = busy || unavailable;
 
   useEffect(() => {
-    if (downloads.selectedJobId) headingRef.current?.focus();
-  }, [downloads.selectedJobId]);
+    if (!downloads.selectedJobId) return;
+    const control = rowRefs.current.get(downloads.selectedJobId);
+    control?.closest('li')?.scrollIntoView({ block: 'nearest' });
+    control?.focus({ preventScroll: true });
+  }, [downloads.selectedJobId, selected?.phase]);
 
   useEffect(() => {
     const changed = jobs.filter((job) => previousPhases.current.get(packageJobKey(job)) !== job.phase);
@@ -110,7 +112,7 @@ export function AppsDownloadsView({ downloads, entries, onViewApp, onRetry }: {
   }, [jobs, t]);
 
   const restoreFocus = (jobId: string | null) => requestAnimationFrame(() => {
-    const candidates = [downloads.selectedJobId === jobId ? headingRef.current : null, jobId ? rowRefs.current.get(jobId) : null, pageHeadingRef.current];
+    const candidates = [jobId ? rowRefs.current.get(jobId) : null, pageHeadingRef.current];
     for (const candidate of candidates) {
       if (candidate?.isConnected && candidate.getClientRects().length) { candidate.focus(); return; }
     }
@@ -118,15 +120,9 @@ export function AppsDownloadsView({ downloads, entries, onViewApp, onRetry }: {
 
   const select = (job: AppPackageJob) => {
     ++focusRevision.current;
-    lastFocusedJob.current = packageJobKey(job);
-    downloads.selectJob(packageJobKey(job));
-  };
-  const back = () => {
-    ++focusRevision.current;
-    const jobId = downloads.selectedJobId ?? lastFocusedJob.current;
-    if (selected && packageJobIsTerminal(selected)) setRecentOpen(true);
-    downloads.selectJob(null);
-    restoreFocus(jobId);
+    if (selectedIsRecent) setRecentOpen(true);
+    const id = packageJobKey(job);
+    downloads.selectJob(downloads.selectedJobId === id ? null : id);
   };
   const execute = async (command: AppDownloadCommand, targets: readonly AppPackageJob[], before?: Uint8Array) => {
     const focusAtStart = focusRevision.current;
@@ -160,10 +156,29 @@ export function AppsDownloadsView({ downloads, entries, onViewApp, onRetry }: {
     speed={Number(job.speedBytesPerSec)} eta={Number(job.etaSeconds)} observedAt={timestampMilliseconds(job.progressObservedAt)}
     available={!unavailable} transferring={job.phase === AppPackageJobPhase.DOWNLOADING}
     idleLabel={t('Apps.downloads.saved')} />;
+  const phaseHint = (job: AppPackageJob): string | null => {
+    switch (job.phase) {
+      case AppPackageJobPhase.DOWNLOADING: return t('Apps.downloads.afterDownload');
+      case AppPackageJobPhase.PAUSED: return t(['runtime-interrupted', 'download-interrupted'].includes(job.reasonCode) ? 'Apps.downloads.interruptedHint' : 'Apps.downloads.pausedHint');
+      case AppPackageJobPhase.VERIFYING: return t(job.sourceClass === AppPackageSourceClass.USER_IMPORTED ? 'Apps.localImport.verifyingHint' : 'Apps.downloads.verifyingHint');
+      case AppPackageJobPhase.STAGING: return t('Apps.downloads.stagingHint');
+      case AppPackageJobPhase.COMMITTING: return t('Apps.downloads.committingHint');
+      case AppPackageJobPhase.FAILED: return t(job.reasonCode === 'verification-failed' ? 'Apps.downloads.verificationFailed'
+        : job.reasonCode === 'stale-selection' ? 'Apps.downloads.staleSelection' : job.reasonCode === 'policy-blocked' ? 'Apps.downloads.policyBlocked' : 'Apps.downloads.failedHint');
+      case AppPackageJobPhase.COMPLETED: return t('Apps.downloads.completedHint', { version: job.targetVersion });
+      case AppPackageJobPhase.CANCELED: return t(job.sourceClass === AppPackageSourceClass.USER_IMPORTED ? 'Apps.localImport.canceledHint' : 'Apps.downloads.canceledHint');
+      default: return null;
+    }
+  };
   const row = (job: AppPackageJob, order = false) => {
     const id = packageJobKey(job);
+    const expanded = downloads.selectedJobId === id;
     const position = queued.findIndex((candidate) => packageJobKey(candidate) === id);
-    return <li key={id} data-testid={`app-download-job-${id}`} className="flex flex-wrap items-center gap-2 border-b border-[var(--nimi-border-subtle)] px-3 py-2 last:border-b-0"
+    const matchingEntry = entries.find((entry) => entry.identity.appId === job.appId && entry.identity.sourceClass === (job.sourceClass === AppPackageSourceClass.USER_IMPORTED ? 'user_imported' : 'verified'));
+    const catalog = catalogTargetMatchesJob(matchingEntry?.catalogTarget ?? null, job) ? matchingEntry?.catalogTarget : null;
+    const hint = phaseHint(job);
+    const showHint = hint && (!packageJobIsTerminal(job) || failedDownloadNeedsAttention(job, jobs) || expanded);
+    return <li key={id} data-testid={`app-download-job-${id}`} className="min-w-0 space-y-3 border-b border-[var(--nimi-border-subtle)] p-4 last:border-b-0"
       draggable={order && !blocked} onDragStart={() => { draggedJobId.current = id; }} onDragEnd={() => { draggedJobId.current = null; }}
       onDragOver={(event) => { if (order && !blocked) event.preventDefault(); }} onDrop={(event) => {
         event.preventDefault();
@@ -171,32 +186,70 @@ export function AppsDownloadsView({ downloads, entries, onViewApp, onRetry }: {
         draggedJobId.current = null;
         if (!blocked && order && dragged && packageJobKey(dragged) !== id) void execute('reorder', [dragged], job.jobId);
       }}>
-      {order ? <span className="flex items-center gap-1 text-xs tabular-nums text-[var(--nimi-text-muted)]"><GripVertical className="h-4 w-4" aria-hidden="true" />{job.queuePosition || '—'}</span> : null}
-      <AppArtworkIcon appId={job.appId} displayName={jobName(job)} size="sm" />
-      <Button tone="ghost" size="sm" className="min-w-0 flex-1 justify-start px-1 text-left"
-        ref={(node) => { if (node) rowRefs.current.set(id, node); else rowRefs.current.delete(id); }}
-        aria-label={t('Apps.downloads.detailsNamed', { app: jobName(job) })} onClick={() => select(job)}>
-        <span className="flex min-w-0 flex-col items-start"><span className="max-w-full truncate font-semibold">{jobName(job)}</span>
-          <span className="whitespace-normal text-xs font-normal text-[var(--nimi-text-secondary)]">{job.previousVersion ? `${job.previousVersion} → ` : ''}{job.targetVersion} · {job.sourceClass === AppPackageSourceClass.USER_IMPORTED ? `${t('Apps.localImport.localSource')} · ` : ''}{t(`Apps.downloads.phase.${appDownloadPhase(job)}`)}</span></span>
-      </Button>
-      {order ? <div className="flex items-center gap-1">
-        <IconButton size="sm" disabled={blocked || position <= 0} icon={<ChevronsUp className="h-4 w-4" aria-hidden="true" />} aria-label={t('Apps.downloads.nextNamed', { app: jobName(job) })}
-          onClick={() => void execute('reorder', [job], queued[0]?.jobId)} />
-        <IconButton size="sm" disabled={blocked || position <= 0} icon={<ArrowUp className="h-4 w-4" aria-hidden="true" />} aria-label={t('Apps.downloads.upNamed', { app: jobName(job) })}
-          onClick={() => void execute('reorder', [job], queued[position - 1]?.jobId)} />
-        <IconButton size="sm" disabled={blocked || position === queued.length - 1} icon={<ArrowDown className="h-4 w-4" aria-hidden="true" />} aria-label={t('Apps.downloads.downNamed', { app: jobName(job) })}
-          onClick={() => void execute('reorder', [job], queued[position + 2]?.jobId ?? new Uint8Array())} />
-      </div> : <StatusBadge tone={jobTone(job)}>{t(`Apps.downloads.phase.${appDownloadPhase(job)}`)}</StatusBadge>}
+      <div className="flex items-center gap-3">
+        {order ? <span className="flex items-center gap-1 text-xs tabular-nums text-[var(--nimi-text-muted)]" aria-label={t('Apps.downloads.position', { position: job.queuePosition || '—' })}><GripVertical className="h-4 w-4" aria-hidden="true" />{job.queuePosition || '—'}</span> : null}
+        <AppArtworkIcon appId={job.appId} displayName={jobName(job)} iconUrl={matchingEntry?.iconUrl} size="sm" />
+        <div className="min-w-0 flex-1">
+          <h3 id={`app-download-heading-${id}`} className="break-words text-sm font-semibold text-[var(--nimi-text-primary)]">{jobName(job)}</h3>
+          {job.targetVersion || job.sourceClass === AppPackageSourceClass.USER_IMPORTED ? <p className="mt-1 break-words text-xs text-[var(--nimi-text-secondary)]">
+            {job.targetVersion ? t(job.kind === AppPackageJobKind.UPDATE
+              ? job.previousVersion ? 'Apps.downloads.updateVersion' : 'Apps.update.toVersion'
+              : 'Apps.downloads.installVersion', { from: job.previousVersion, version: job.targetVersion }) : null}
+            {job.sourceClass === AppPackageSourceClass.USER_IMPORTED ? `${job.targetVersion ? ' · ' : ''}${t('Apps.localImport.localSource')}` : ''}
+          </p> : null}
+        </div>
+        <StatusBadge tone={jobTone(job)} className="shrink-0">{t(`Apps.downloads.phase.${appDownloadPhase(job)}`)}</StatusBadge>
+      </div>
+      {job.sourceClass === AppPackageSourceClass.VERIFIED && ([AppPackageJobPhase.DOWNLOADING, AppPackageJobPhase.PAUSED].includes(job.phase)
+        || (job.phase === AppPackageJobPhase.QUEUED && Number(job.bytesCompleted) > 0)) ? metrics(job) : null}
+      {showHint ? <p className="text-xs leading-5 text-[var(--nimi-text-secondary)]">{hint}</p> : null}
+      {job.kind === AppPackageJobKind.UPDATE && !packageJobIsTerminal(job) ? <p className="text-xs leading-5 text-[var(--nimi-text-secondary)]">{t(job.cancelable ? 'Apps.downloads.updateUnavailable' : 'Apps.downloads.updateCommitting', { version: job.previousVersion })}</p> : null}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {actions(job)}
+          {order ? <div className="flex items-center gap-1">
+            <IconButton size="sm" disabled={blocked || position <= 0} icon={<ChevronsUp className="h-4 w-4" aria-hidden="true" />} aria-label={t('Apps.downloads.nextNamed', { app: jobName(job) })}
+              onClick={() => void execute('reorder', [job], queued[0]?.jobId)} />
+            <IconButton size="sm" disabled={blocked || position <= 0} icon={<ArrowUp className="h-4 w-4" aria-hidden="true" />} aria-label={t('Apps.downloads.upNamed', { app: jobName(job) })}
+              onClick={() => void execute('reorder', [job], queued[position - 1]?.jobId)} />
+            <IconButton size="sm" disabled={blocked || position === queued.length - 1} icon={<ArrowDown className="h-4 w-4" aria-hidden="true" />} aria-label={t('Apps.downloads.downNamed', { app: jobName(job) })}
+              onClick={() => void execute('reorder', [job], queued[position + 2]?.jobId ?? new Uint8Array())} />
+          </div> : null}
+        </div>
+        <Button tone="ghost" size="sm" aria-expanded={expanded} aria-controls={`app-download-details-${id}`}
+          aria-label={t(expanded ? 'Apps.downloads.hideDetailsNamed' : 'Apps.downloads.detailsNamed', { app: jobName(job) })}
+          trailingIcon={expanded ? <ChevronUp className="h-4 w-4" aria-hidden="true" /> : <ChevronDown className="h-4 w-4" aria-hidden="true" />}
+          ref={(node) => { if (node) rowRefs.current.set(id, node); else rowRefs.current.delete(id); }} onClick={() => select(job)}>
+          {t(expanded ? 'Apps.downloads.hideDetails' : 'Apps.downloads.packageInfo')}
+        </Button>
+      </div>
+      <div id={`app-download-details-${id}`} hidden={!expanded} role="region" aria-labelledby={`app-download-heading-${id}`}
+        data-testid={expanded ? 'apps-download-detail' : undefined} className="border-t border-[var(--nimi-border-subtle)] pt-3">
+        {expanded ? <dl className="grid gap-x-6 gap-y-3 break-words text-xs leading-5 text-[var(--nimi-text-secondary)] sm:grid-cols-2">
+          <div><dt className="font-medium text-[var(--nimi-text-primary)]">{t('Apps.downloads.target')}</dt><dd>{job.targetOs} · {job.targetArch} · {job.targetVersion}</dd></div>
+          <div><dt className="font-medium text-[var(--nimi-text-primary)]">{t('Apps.catalog.asset')}</dt><dd>{job.bytesTotal ? formatBytes(Number(job.bytesTotal)) : t('Apps.downloads.bytesUnknown')}</dd></div>
+          {catalog ? <><div><dt className="font-medium text-[var(--nimi-text-primary)]">{t('Apps.catalog.publisher')}</dt><dd>@{catalog.publisherGithubNamespace}</dd></div>
+            <div><dt className="font-medium text-[var(--nimi-text-primary)]">{t('Apps.downloads.source')}</dt><dd className="break-all"><a href={catalog.sourceRepository} className="underline underline-offset-2" onClick={(event) => {
+              event.preventDefault(); setSourceError('');
+              void openExternalUrl(catalog.sourceRepository).catch((error: unknown) => setSourceError(error instanceof Error ? error.message : String(error)));
+            }}>{catalog.sourceRepository}</a></dd></div>
+            <div className="sm:col-span-2"><dt className="font-medium text-[var(--nimi-text-primary)]">{t('Apps.downloads.nativePosture')}</dt><dd>{catalog.os === 'macos' ? catalog.macosNotarization : catalog.windowsCodeSigning}{catalog.observedSigningSubject ? ` · ${catalog.observedSigningSubject}` : ''}</dd></div></> : null}
+          {job.sourceClass === AppPackageSourceClass.USER_IMPORTED ? <div><dt className="font-medium text-[var(--nimi-text-primary)]">{t('Apps.downloads.source')}</dt><dd>{t('Apps.localImport.localSource')}</dd></div> : null}
+          <div><dt className="font-medium text-[var(--nimi-text-primary)]">App ID</dt><dd className="break-all">{job.appId}</dd></div>
+          <div><dt className="font-medium text-[var(--nimi-text-primary)]">{t('Apps.downloads.jobId')}</dt><dd className="break-all">{id}</dd></div>
+          {job.reasonCode ? <div className="sm:col-span-2"><dt className="font-medium text-[var(--nimi-text-primary)]">{t('Apps.downloads.reason')}</dt><dd className="break-all">{job.reasonCode}</dd></div> : null}
+        </dl> : null}
+      </div>
     </li>;
   };
   const group = (label: string, groupJobs: readonly AppPackageJob[], order = false) => {
     if (groupJobs.length === 0) return null;
     return (
       <section>
-        <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-[var(--nimi-text-primary)]">
+        <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold text-[var(--nimi-text-primary)]">
           {t(`Apps.downloads.${label}`)}
           <span className="text-xs font-normal tabular-nums text-[var(--nimi-text-secondary)]">{groupJobs.length}</span>
-        </h3>
+        </h2>
         <Surface tone="card" padding="none" className="overflow-hidden rounded-lg">
           <ul>
             {groupJobs.map((job) => row(job, order))}
@@ -205,17 +258,15 @@ export function AppsDownloadsView({ downloads, entries, onViewApp, onRetry }: {
       </section>
     );
   };
-  const matchingEntry = detail ? entries.find((entry) => entry.identity.appId === detail.appId && entry.identity.sourceClass === (detail.sourceClass === AppPackageSourceClass.USER_IMPORTED ? 'user_imported' : 'verified')) : undefined;
-  const catalog = detail && catalogTargetMatchesJob(matchingEntry?.catalogTarget ?? null, detail) ? matchingEntry?.catalogTarget : null;
 
   return <div className="flex min-h-0 flex-1 flex-col" data-testid="apps-downloads-view">
     <header className="flex shrink-0 flex-wrap items-start justify-between gap-3 px-4 py-4">
       <div><h1 ref={pageHeadingRef} tabIndex={-1} className="text-xl font-semibold text-[var(--nimi-text-primary)] outline-none">{t('Apps.downloads.title')}</h1>
         <p className="mt-1 text-xs leading-5 text-[var(--nimi-text-secondary)]">{t('Apps.downloads.summary', { downloading: active.length, processing: processing.length, queued: queued.length })}</p></div>
-      <div className="flex flex-wrap gap-2">
-        <Button size="sm" disabled={blocked || active.length + queued.length === 0} onClick={() => void execute('pause', [...queued, ...active])}>{t('Apps.downloads.pauseAll')}</Button>
-        <Button size="sm" disabled={blocked || paused.length === 0} onClick={() => void execute('resume', paused)}>{t('Apps.downloads.resumeAll')}</Button>
-      </div>
+      {active.length + queued.length + paused.length > 1 ? <div className="flex flex-wrap gap-2">
+        {active.length + queued.length > 0 ? <Button size="sm" disabled={blocked} onClick={() => void execute('pause', [...queued, ...active])}>{t('Apps.downloads.pauseAll')}</Button> : null}
+        {paused.length > 0 ? <Button size="sm" disabled={blocked} onClick={() => void execute('resume', paused)}>{t('Apps.downloads.resumeAll')}</Button> : null}
+      </div> : null}
     </header>
     <ScrollArea className="min-h-0 flex-1" contentClassName="px-4 pb-4">
       {downloads.status === 'unavailable' ? <InlineAlert tone="warning" className="mb-4" action={<Button size="sm" onClick={() => void downloads.observer.refresh()}>{t('Apps.downloads.refresh')}</Button>}>{t('Apps.downloads.disconnected')}</InlineAlert> : null}
@@ -223,61 +274,28 @@ export function AppsDownloadsView({ downloads, entries, onViewApp, onRetry }: {
       {sourceError ? <InlineAlert tone="warning" className="mb-4">{sourceError}</InlineAlert> : null}
       <div className="sr-only" role="status" aria-live="polite">{feedback} {phaseFeedback}</div>
       {downloads.status === 'loading' ? <p className="py-4 text-sm text-[var(--nimi-text-secondary)]">{t('Apps.downloads.loading')}</p> : null}
-      <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(260px,.8fr)]">
-        <div className={`min-w-0 space-y-4 ${selected ? 'hidden xl:block' : ''}`}>
-          {active.length ? <section><h3 className="mb-2 text-sm font-semibold">{t('Apps.downloads.active')}</h3>{active.map((job) => <Surface key={packageJobKey(job)} tone="card" padding="none" className="space-y-3 rounded-lg p-4">
-            <div className="flex items-center gap-3"><AppArtworkIcon appId={job.appId} displayName={jobName(job)} size="sm" /><div className="min-w-0 flex-1"><h3 className="truncate text-sm font-semibold">{jobName(job)}</h3><p className="text-xs text-[var(--nimi-text-secondary)]">{job.targetVersion}</p></div><StatusBadge tone="info">{t('Apps.downloads.phase.downloading')}</StatusBadge></div>
-            {metrics(job)}<p className="text-xs leading-5 text-[var(--nimi-text-secondary)]">{t('Apps.downloads.afterDownload')}</p>
-            <div className="flex flex-wrap justify-between gap-2">{actions(job)}<Button tone="ghost" size="sm" ref={(node) => { if (node) rowRefs.current.set(packageJobKey(job), node); }} onClick={() => select(job)}>{t('Apps.downloads.details')}</Button></div>
-          </Surface>)}</section> : null}
-          {group('processing', processing)}{group('attention', failed)}{group('upNext', queued, true)}{group('paused', paused)}
-          {!active.length && !processing.length && !queued.length && !paused.length && !failed.length && downloads.status === 'ready' ? <EmptyState icon={<Check className="h-6 w-6" aria-hidden="true" />} title={t('Apps.downloads.empty')} description={t('Apps.downloads.emptyHint')} /> : null}
-          {recent.length ? <section><Button tone="ghost" size="sm" aria-expanded={recentOpen} onClick={() => setRecentOpen(!recentOpen)}>{t('Apps.downloads.recent', { count: recent.length })}</Button>
-            {recentOpen ? (
-              <Surface tone="card" padding="none" className="mt-2 overflow-hidden rounded-lg">
-                <ul>
-                  {recent.map((job) => row(job))}
-                </ul>
-              </Surface>
-            ) : null}
-          </section> : null}
-        </div>
-        {detail ? <Surface as="aside" tone="card" padding="none" className={`min-w-0 self-start rounded-lg p-4 ${selected ? '' : 'hidden xl:block'}`} data-testid="apps-download-detail">
-          <Button tone="ghost" size="sm" className="mb-3 xl:hidden" leadingIcon={<ArrowLeft className="h-4 w-4" aria-hidden="true" />} onClick={back}>{t('Apps.downloads.back')}</Button>
-          <h2 tabIndex={-1} ref={headingRef} className="break-words text-base font-semibold outline-none">{jobName(detail)}</h2>
-          <p className="mt-1 text-xs leading-5 text-[var(--nimi-text-secondary)]">{t(detail.kind === AppPackageJobKind.UPDATE ? 'Apps.downloads.updateVersion' : 'Apps.downloads.installVersion', { from: detail.previousVersion, version: detail.targetVersion })}</p>
-          <div className="my-3"><StatusBadge tone={jobTone(detail)}>{t(`Apps.downloads.phase.${appDownloadPhase(detail)}`)}</StatusBadge></div>
-          {detail.sourceClass === AppPackageSourceClass.VERIFIED && [AppPackageJobPhase.DOWNLOADING, AppPackageJobPhase.QUEUED, AppPackageJobPhase.PAUSED].includes(detail.phase) ? <div className="mb-3">{metrics(detail)}</div> : null}
-          {actions(detail)}
-          <div className="mt-4 space-y-2 text-xs leading-5 text-[var(--nimi-text-secondary)]">
-            {detail.sourceClass === AppPackageSourceClass.VERIFIED && detail.phase === AppPackageJobPhase.QUEUED ? <p>{t('Apps.downloads.position', { position: detail.queuePosition || '—' })}</p> : null}
-            {detail.phase === AppPackageJobPhase.PAUSED ? <p>{t(['runtime-interrupted', 'download-interrupted'].includes(detail.reasonCode) ? 'Apps.downloads.interruptedHint' : 'Apps.downloads.pausedHint')}</p> : null}
-            {detail.phase === AppPackageJobPhase.VERIFYING ? <p>{t(detail.sourceClass === AppPackageSourceClass.USER_IMPORTED ? 'Apps.localImport.verifyingHint' : 'Apps.downloads.verifyingHint')}</p> : null}
-            {detail.phase === AppPackageJobPhase.STAGING ? <p>{t('Apps.downloads.stagingHint')}</p> : null}
-            {detail.phase === AppPackageJobPhase.COMMITTING ? <p>{t('Apps.downloads.committingHint')}</p> : null}
-            {detail.phase === AppPackageJobPhase.FAILED ? <p>{t(detail.reasonCode === 'verification-failed' ? 'Apps.downloads.verificationFailed'
-              : detail.reasonCode === 'stale-selection' ? 'Apps.downloads.staleSelection' : detail.reasonCode === 'policy-blocked' ? 'Apps.downloads.policyBlocked' : 'Apps.downloads.failedHint')}</p> : null}
-            {detail.phase === AppPackageJobPhase.COMPLETED ? <p>{t('Apps.downloads.completedHint', { version: detail.targetVersion })}</p> : null}
-            {detail.phase === AppPackageJobPhase.CANCELED ? <p>{t(detail.sourceClass === AppPackageSourceClass.USER_IMPORTED ? 'Apps.localImport.canceledHint' : 'Apps.downloads.canceledHint')}</p> : null}
-            {detail.kind === AppPackageJobKind.UPDATE && !packageJobIsTerminal(detail) ? <p>{t(detail.cancelable ? 'Apps.downloads.updateUnavailable' : 'Apps.downloads.updateCommitting', { version: detail.previousVersion })}</p> : null}
+      <div className="min-w-0 space-y-4">
+        {group('active', active)}
+        {group('processing', processing)}{group('attention', failed)}{group('upNext', queued, true)}{group('paused', paused)}
+        {!active.length && !processing.length && !queued.length && !paused.length && !failed.length && downloads.status === 'ready' ? (
+          recent.length ? <p className="flex items-center gap-2 py-2 text-sm text-[var(--nimi-text-secondary)]"><Check className="h-4 w-4" aria-hidden="true" />{t('Apps.downloads.empty')}</p>
+            : <EmptyState icon={<Check className="h-6 w-6" aria-hidden="true" />} title={t('Apps.downloads.empty')} description={t('Apps.downloads.emptyHint')} />
+        ) : null}
+        {recent.length ? <section><h2><Button tone="ghost" size="sm" aria-expanded={showRecent} aria-controls="app-download-recent"
+          leadingIcon={showRecent ? <ChevronUp className="h-4 w-4" aria-hidden="true" /> : <ChevronDown className="h-4 w-4" aria-hidden="true" />}
+          onClick={() => {
+            ++focusRevision.current;
+            if (showRecent && selectedIsRecent) downloads.selectJob(null);
+            setRecentOpen(!showRecent);
+          }}>{t('Apps.downloads.recent', { count: recent.length })}</Button></h2>
+          <div id="app-download-recent" hidden={!showRecent}>
+            {showRecent ? <Surface tone="card" padding="none" className="mt-2 overflow-hidden rounded-lg">
+              <ul>
+                {recent.map((job) => row(job))}
+              </ul>
+            </Surface> : null}
           </div>
-          <details className="mt-4 border-t border-[var(--nimi-border-subtle)] pt-3">
-            <summary className="cursor-pointer text-xs font-semibold">{t('Apps.downloads.packageInfo')}</summary>
-            <dl className="mt-3 space-y-2 break-words text-xs leading-5 text-[var(--nimi-text-secondary)]">
-              <div><dt>{t('Apps.downloads.target')}</dt><dd>{detail.targetOs} · {detail.targetArch} · {detail.targetVersion}</dd></div>
-              <div><dt>{t('Apps.catalog.asset')}</dt><dd>{detail.bytesTotal ? formatBytes(Number(detail.bytesTotal)) : t('Apps.downloads.bytesUnknown')}</dd></div>
-              {catalog ? <><div><dt>{t('Apps.catalog.publisher')}</dt><dd>@{catalog.publisherGithubNamespace}</dd></div>
-                <div><dt>{t('Apps.downloads.source')}</dt><dd className="break-all"><a href={catalog.sourceRepository} className="underline underline-offset-2" onClick={(event) => {
-                  event.preventDefault(); setSourceError('');
-                  void openExternalUrl(catalog.sourceRepository).catch((error: unknown) => setSourceError(error instanceof Error ? error.message : String(error)));
-                }}>{catalog.sourceRepository}</a></dd></div>
-                <div><dt>{t('Apps.downloads.nativePosture')}</dt><dd>{catalog.os === 'macos' ? catalog.macosNotarization : catalog.windowsCodeSigning}{catalog.observedSigningSubject ? ` · ${catalog.observedSigningSubject}` : ''}</dd></div></> : null}
-              {detail.sourceClass === AppPackageSourceClass.USER_IMPORTED ? <div><dt>{t('Apps.downloads.source')}</dt><dd>{t('Apps.localImport.localSource')}</dd></div> : null}
-              <div><dt>App ID</dt><dd>{detail.appId}</dd></div><div><dt>{t('Apps.downloads.jobId')}</dt><dd className="break-all">{packageJobKey(detail)}</dd></div>
-              {detail.reasonCode ? <div><dt>{t('Apps.downloads.reason')}</dt><dd className="break-all">{detail.reasonCode}</dd></div> : null}
-            </dl>
-          </details>
-        </Surface> : null}
+        </section> : null}
       </div>
       <p className="mt-4 text-xs leading-5 text-[var(--nimi-text-secondary)]">{t('Apps.downloads.ownerHint')}</p>
     </ScrollArea>

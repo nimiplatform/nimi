@@ -269,7 +269,9 @@
       "voiceCreate": "声音创建",
       "videoGenerate": "视频生成",
       "musicGenerate": "音乐生成",
-      "other": "其他本地 AI 能力"
+      "other": "其他本地 AI 能力",
+      "textAnnotate": "语言分析",
+      "audioSeparate": "人声与背景分离"
     },
     "capabilityDescription": {
       "imageFaceSwap": "使用参考人脸替换目标图片中的单个人脸",
@@ -283,7 +285,9 @@
       "voiceCreate": "克隆或创建新的声音",
       "videoGenerate": "根据描述生成视频",
       "musicGenerate": "生成音乐与配乐",
-      "other": "其他本地 AI 能力"
+      "other": "其他本地 AI 能力",
+      "textAnnotate": "识别词语、词性、依存关系和句子边界",
+      "audioSeparate": "分离人声和背景音，保留原有时间轴"
     },
     "required": "必需",
     "optional": "可选",
@@ -344,7 +348,9 @@
     "localCapabilityAggregateSizeUnknown": "部分大小未知",
     "localCapabilityNoSystemMutation": "不会修改系统级环境。",
     "localCapabilitySystemMutationPolicyUnknown": "当前无法确认系统修改范围，因此已阻止安装。",
-    "localCapabilityConfirm": "安装并继续"
+    "localCapabilityConfirm": "安装并继续",
+    "localCapabilityANNOTATION": "语言分析",
+    "localCapabilitySEPARATION": "人声与背景分离"
   },
   "overview": {
     "installedAssets": "已安装资源",
@@ -1266,7 +1272,9 @@
     "imageGenerate": "图像生成",
     "videoGenerate": "视频生成",
     "musicGenerate": "音乐生成",
-    "voiceCreate": "声音创建"
+    "voiceCreate": "声音创建",
+    "textAnnotate": "语言分析",
+    "audioSeparate": "人声与背景分离"
   },
   "common": {
     "noModelsDiscovered": "尚未发现任何模型。",

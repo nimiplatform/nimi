@@ -466,19 +466,22 @@ export function LoadoutsPage(props: {
         </InlineAlert>
       ) : null}
       {loading ? <LoadingSkeleton lines={5} label={t('Common.loading', { defaultValue: 'Loading…' })} /> : capabilities.length > 0 ? (
-        <div className="grid gap-4" data-testid="machine-loadouts-list">
-          <PillTabs
-            size="sm"
-            ariaLabel={t('runtimeConfig.loadouts.title')}
-            items={capabilities.map((capability) => ({
-              value: capability,
-              label: `${capabilityLabel(capability)} (${(loadoutsByCapability.get(capability) ?? []).length})`,
-            }))}
-            value={activeCapability}
-            onValueChange={(value) => setActiveCapability(value)}
-          />
+        <div className="grid min-w-0 grid-cols-1 gap-4" data-testid="machine-loadouts-list">
+          <div className="min-w-0 overflow-x-auto pb-2">
+            <PillTabs
+              className="w-max"
+              size="sm"
+              ariaLabel={t('runtimeConfig.loadouts.title')}
+              items={capabilities.map((capability) => ({
+                value: capability,
+                label: `${capabilityLabel(capability)} (${(loadoutsByCapability.get(capability) ?? []).length})`,
+              }))}
+              value={activeCapability}
+              onValueChange={(value) => setActiveCapability(value)}
+            />
+          </div>
           {activeCapability ? (
-            <section className="grid gap-3" data-testid={`loadout-capability:${activeCapability}`}>
+            <section className="grid min-w-0 grid-cols-1 gap-3" data-testid={`loadout-capability:${activeCapability}`}>
               <LoadoutGroup
                 title={t('runtimeConfig.loadouts.currentTitle', { defaultValue: 'Current' })}
                 loadouts={currentLoadouts}
@@ -1506,6 +1509,8 @@ export function loadoutCapabilityLabelKey(capabilityContract: string): string {
     case 'image.generate': return 'runtimeConfig.loadouts.capability.imageGenerate';
     case 'audio.synthesize': return 'runtimeConfig.loadouts.capability.audioSynthesize';
     case 'audio.transcribe': return 'runtimeConfig.loadouts.capability.audioTranscribe';
+    case 'text.annotate': return 'runtimeConfig.loadouts.capability.textAnnotate';
+    case 'audio.separate': return 'runtimeConfig.loadouts.capability.audioSeparate';
     case 'voice.create': return 'runtimeConfig.loadouts.capability.voiceCreate';
     case 'video.generate': return 'runtimeConfig.loadouts.capability.videoGenerate';
     case 'music.generate': return 'runtimeConfig.loadouts.capability.musicGenerate';

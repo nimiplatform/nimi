@@ -103,6 +103,7 @@ function dependencyJob(input: {
 test('local environment service submits only the capability contract to Runtime', async () => {
   const capabilities = [
     'text.generate',
+    'text.annotate',
     'text.embed',
     'image.generate',
     'image.face_swap',
@@ -111,6 +112,7 @@ test('local environment service submits only the capability contract to Runtime'
     'video.generate',
     'audio.synthesize',
     'audio.transcribe',
+    'audio.separate',
     'voice.create',
     'music.generate',
   ] as const;
@@ -139,6 +141,7 @@ test('Desktop Local AI environment includes embedding and face replacement cards
     RUNTIME_CONFIG_LOCAL_ENVIRONMENT_CAPABILITIES.map(({ capabilityContract }) => capabilityContract),
     [
       'text.generate',
+    'text.annotate',
       'text.embed',
       'image.generate',
       'image.face_swap',
@@ -147,6 +150,7 @@ test('Desktop Local AI environment includes embedding and face replacement cards
       'video.generate',
       'audio.synthesize',
       'audio.transcribe',
+      'audio.separate',
       'voice.create',
       'music.generate',
     ],

@@ -90,9 +90,11 @@ test('Apps AIConfig owner copy covers every canonical capability in both locales
   const capabilityKeys = [
     'audioSynthesize',
     'audioTranscribe',
+    'audioSeparate',
     'imageGenerate',
     'musicGenerate',
     'textEmbed',
+    'textAnnotate',
     'textGenerate',
     'videoGenerate',
     'voiceCreate',

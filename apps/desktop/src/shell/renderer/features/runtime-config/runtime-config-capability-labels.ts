@@ -18,6 +18,8 @@ export function displayRuntimeConfigCapabilityLabel(
   if (capabilityContract === 'audio.transcribe') {
     return t('runtimeConfig.capabilityLabels.audioTranscribe');
   }
+  if (capabilityContract === 'text.annotate') return t('runtimeConfig.capabilityLabels.textAnnotate');
+  if (capabilityContract === 'audio.separate') return t('runtimeConfig.capabilityLabels.audioSeparate');
   if (capabilityContract === 'image.generate') {
     return t('runtimeConfig.capabilityLabels.imageGenerate');
   }

@@ -24,8 +24,11 @@ export function AppsInstallConfirmationDialog({
       message={intent ? (
         <div className="space-y-3">
           {intent.update ? <p>{t('Apps.update.confirmMessage', { from: intent.update.installedVersion, to: intent.version })}</p> : null}
-          {intent.update ? <p>{t('Apps.downloads.updateUnavailable', { version: intent.update.installedVersion })}</p> : null}
-          {intent.windowsCodeSigning === 'unsigned' ? <p>{t('Apps.catalog.unsignedConfirmMessage')}</p> : null}
+          {intent.update ? <p>{t('Apps.update.confirmAvailability', { version: intent.update.installedVersion })}</p> : null}
+          {intent.windowsCodeSigning === 'unsigned' ? <>
+            <p>{t('Apps.catalog.unsignedConfirmMessage')}</p>
+            <p>{t('Apps.catalog.unsignedConfirmInstall')}</p>
+          </> : null}
           {intent.os === 'macos' && intent.macosNotarization === 'absent' ? <p>{t(intent.observedSigningSubject ? 'Apps.catalog.macosUnnotarizedConfirmMessage' : 'Apps.catalog.macosUnsignedConfirmMessage')}</p> : null}
           <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 font-mono text-xs">
             <dt>{t('Apps.catalog.publisher')}</dt>
@@ -37,10 +40,11 @@ export function AppsInstallConfirmationDialog({
             <dt>{t('Apps.catalog.asset')}</dt>
             <dd className="break-all text-right">{intent.assetName} · {intent.assetSize} bytes</dd>
           </dl>
+          {intent.windowsCodeSigning === 'unsigned' ? <p className="text-xs">{t('Apps.catalog.unsignedConfirmVerification')}</p> : null}
         </div>
       ) : ''}
-      confirmLabel={t(intent?.update ? 'Apps.action.update' : 'Apps.catalog.unsignedConfirmAction')}
-      cancelLabel={t('Common.cancel')}
+      confirmLabel={t(intent?.update ? 'Apps.update.confirmAction' : 'Apps.catalog.unsignedConfirmAction')}
+      cancelLabel={t(intent?.update ? 'Apps.update.cancelAction' : 'Common.cancel')}
       pending={pending}
       onConfirm={onConfirm}
       onClose={onClose}

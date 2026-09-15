@@ -34,6 +34,10 @@ const CAPABILITY_COPY_KEYS: Readonly<Record<string, {
     label: 'Apps.aiConfig.capability.audioTranscribe.label',
     description: 'Apps.aiConfig.capability.audioTranscribe.description',
   },
+  'audio.separate': {
+    label: 'Apps.aiConfig.capability.audioSeparate.label',
+    description: 'Apps.aiConfig.capability.audioSeparate.description',
+  },
   'image.generate': {
     label: 'Apps.aiConfig.capability.imageGenerate.label',
     description: 'Apps.aiConfig.capability.imageGenerate.description',
@@ -45,6 +49,10 @@ const CAPABILITY_COPY_KEYS: Readonly<Record<string, {
   'text.embed': {
     label: 'Apps.aiConfig.capability.textEmbed.label',
     description: 'Apps.aiConfig.capability.textEmbed.description',
+  },
+  'text.annotate': {
+    label: 'Apps.aiConfig.capability.textAnnotate.label',
+    description: 'Apps.aiConfig.capability.textAnnotate.description',
   },
   'text.generate': {
     label: 'Apps.aiConfig.capability.textGenerate.label',

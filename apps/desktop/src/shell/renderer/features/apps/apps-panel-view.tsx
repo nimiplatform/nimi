@@ -511,7 +511,7 @@ function RailSourceGlyph({ source }: { readonly source: DesktopAppSourceClass })
   const meta = RAIL_SOURCE_GLYPH[source];
   const Icon = meta.icon;
   return (
-    <span title={t(meta.labelKey)} className={`inline-flex shrink-0 items-center ${meta.className}`}>
+    <span title={t(meta.labelKey)} className={`inline-flex h-6 w-6 shrink-0 items-center justify-center ${meta.className}`}>
       <Icon className="h-3 w-3" aria-hidden="true" />
       <span className="sr-only">{t(meta.labelKey)}</span>
     </span>
@@ -570,7 +570,7 @@ const RailGroupRow = memo(function RailGroupRow({
     onAction,
   });
   return (
-    <div className="group relative" data-rail-group={group.appId}>
+    <div className="group/rail-row relative" data-rail-group={group.appId}>
       <div className={`flex w-full min-w-0 items-center rounded-lg transition-colors ${active
         ? 'bg-[var(--nimi-surface-active)]'
         : 'hover:bg-[color-mix(in_srgb,var(--nimi-surface-active)_60%,transparent)]'
@@ -582,7 +582,7 @@ const RailGroupRow = memo(function RailGroupRow({
           tabIndex={tabIndex}
           onClick={() => onAction('details')}
           onKeyDown={onKeyDown}
-          className="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-1.5 text-left focus-visible:outline-none focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[var(--nimi-focus-ring-color)]"
+          className="flex min-w-0 flex-1 items-center gap-2 rounded-lg py-1.5 pl-2 pr-1 text-left focus-visible:outline-none focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[var(--nimi-focus-ring-color)]"
         >
           <AppArtworkIcon
             appId={group.appId}
@@ -611,13 +611,14 @@ const RailGroupRow = memo(function RailGroupRow({
               <span className="sr-only">{t('Apps.runState.failed')}</span>
             </span>
           ) : null}
-          {group.sourceClasses.length > 1 ? (
-            <span className="inline-flex shrink-0 items-center gap-1 group-hover:hidden group-focus-within:hidden">
-              {group.sourceClasses.map((source) => <RailSourceGlyph key={source} source={source} />)}
-            </span>
-          ) : null}
+          {/* Reserve the action slots so hover and keyboard focus never resize the label. */}
+          <span className="inline-flex min-w-12 shrink-0 items-center justify-end group-hover/rail-row:invisible group-focus-within/rail-row:invisible group-has-[[aria-expanded=true]]/rail-row:invisible">
+            {group.sourceClasses.length > 1
+              ? group.sourceClasses.map((source) => <RailSourceGlyph key={source} source={source} />)
+              : null}
+          </span>
         </button>
-        <span className="hidden shrink-0 items-center pr-1 group-hover:flex group-focus-within:flex">
+        <span className="invisible absolute right-1 top-1/2 inline-flex -translate-y-1/2 items-center group-hover/rail-row:visible group-focus-within/rail-row:visible group-has-[[aria-expanded=true]]/rail-row:visible">
           <RailQuickAction
             entry={primary}
             activeAction={activeAction}

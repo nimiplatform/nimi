@@ -269,7 +269,9 @@
       "voiceCreate": "Voice creation",
       "videoGenerate": "Video generation",
       "musicGenerate": "Music generation",
-      "other": "Other local AI capability"
+      "other": "Other local AI capability",
+      "textAnnotate": "Language analysis",
+      "audioSeparate": "Vocals and background"
     },
     "capabilityDescription": {
       "imageFaceSwap": "Replace one face in an image using a reference face",
@@ -283,7 +285,9 @@
       "voiceCreate": "Clone or create new voices",
       "videoGenerate": "Generate video from a prompt",
       "musicGenerate": "Generate music and soundtracks",
-      "other": "Other local AI capability"
+      "other": "Other local AI capability",
+      "textAnnotate": "Identify tokens, parts of speech, dependencies, and sentence boundaries",
+      "audioSeparate": "Separate vocals from background audio while preserving timing"
     },
     "required": "Required",
     "optional": "Optional",
@@ -344,7 +348,9 @@
     "localCapabilityAggregateSizeUnknown": "some sizes are unknown",
     "localCapabilityNoSystemMutation": "This will not modify the system-level environment.",
     "localCapabilitySystemMutationPolicyUnknown": "The system-level impact cannot be confirmed, so installation is blocked.",
-    "localCapabilityConfirm": "Install and continue"
+    "localCapabilityConfirm": "Install and continue",
+    "localCapabilityANNOTATION": "Language analysis",
+    "localCapabilitySEPARATION": "Vocals and background"
   },
   "overview": {
     "installedAssets": "Installed Assets",
@@ -1266,7 +1272,9 @@
     "imageGenerate": "Image generation",
     "videoGenerate": "Video generation",
     "musicGenerate": "Music generation",
-    "voiceCreate": "Voice creation"
+    "voiceCreate": "Voice creation",
+    "textAnnotate": "Language analysis",
+    "audioSeparate": "Vocals and background"
   },
   "common": {
     "noModelsDiscovered": "No models discovered yet.",
