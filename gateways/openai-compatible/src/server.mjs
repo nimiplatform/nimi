@@ -8,15 +8,30 @@ export function createOpenAICompatibleGatewayHttpServer(gateway, options = {}) {
   }
   const maxBodyBytes = normalizeMaxBodyBytes(options.maxBodyBytes);
   return http.createServer(async (incoming, outgoing) => {
+    const cancellation = new AbortController();
+    const abort = () => cancellation.abort(new Error('Gateway HTTP client disconnected'));
+    const onClose = () => { if (!outgoing.writableFinished) abort(); };
+    incoming.once('aborted', abort);
+    outgoing.once('close', onClose);
     try {
-      const request = await toWebRequest(incoming, { maxBodyBytes });
+      const request = await toWebRequest(incoming, { maxBodyBytes, signal: cancellation.signal });
+      cancellation.signal.throwIfAborted();
       const response = await gateway.fetch(request, {
         remoteAddress: incoming.socket.remoteAddress || '',
         gatewayOrigin: socketLoopbackOrigin(incoming.socket),
       });
+      if (cancellation.signal.aborted) {
+        await response.body?.cancel(cancellation.signal.reason);
+        return;
+      }
       outgoing.writeHead(response.status, Object.fromEntries(response.headers.entries()));
-      await writeWebResponseBody(response, outgoing);
+      await writeWebResponseBody(response, outgoing, cancellation.signal);
     } catch (error) {
+      if (outgoing.destroyed || cancellation.signal.aborted) return;
+      if (outgoing.headersSent) {
+        outgoing.destroy(error);
+        return;
+      }
       const status = error instanceof BodyTooLargeError ? 413 : 500;
       const code = error instanceof BodyTooLargeError
         ? 'NIMI_GATEWAY_REQUEST_TOO_LARGE'
@@ -32,17 +47,23 @@ export function createOpenAICompatibleGatewayHttpServer(gateway, options = {}) {
           code,
         },
       }));
+    } finally {
+      incoming.off('aborted', abort);
+      outgoing.off('close', onClose);
     }
   });
 }
 
-async function writeWebResponseBody(response, outgoing) {
+async function writeWebResponseBody(response, outgoing, signal) {
   if (!response.body) {
     outgoing.end();
     return;
   }
   const reader = response.body.getReader();
+  const onAbort = () => { void reader.cancel(signal.reason).catch(() => undefined); };
+  signal.addEventListener('abort', onAbort, { once: true });
   try {
+    signal.throwIfAborted();
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
@@ -50,31 +71,43 @@ async function writeWebResponseBody(response, outgoing) {
         await writeChunk(outgoing, Buffer.from(value));
       }
     }
-    outgoing.end();
+    if (!outgoing.destroyed) outgoing.end();
   } catch (error) {
+    await reader.cancel(error).catch(() => undefined);
     outgoing.destroy(error);
   } finally {
+    signal.removeEventListener('abort', onAbort);
     reader.releaseLock();
   }
 }
 
 function writeChunk(outgoing, chunk) {
   return new Promise((resolve, reject) => {
-    const onError = (error) => {
+    const cleanup = () => {
       outgoing.off('error', onError);
       outgoing.off('drain', onDrain);
+      outgoing.off('close', onClose);
+    };
+    const onError = (error) => {
+      cleanup();
       reject(error);
     };
+    const onClose = () => onError(new Error('Gateway HTTP response closed'));
     const onDrain = () => {
-      outgoing.off('error', onError);
+      cleanup();
       resolve();
     };
+    if (outgoing.destroyed) { onClose(); return; }
     outgoing.on('error', onError);
-    if (outgoing.write(chunk)) {
-      outgoing.off('error', onError);
-      resolve();
-    } else {
-      outgoing.once('drain', onDrain);
+    outgoing.once('close', onClose);
+    try {
+      if (outgoing.write(chunk)) {
+        onDrain();
+      } else {
+        outgoing.once('drain', onDrain);
+      }
+    } catch (error) {
+      onError(error);
     }
   });
 }
@@ -111,7 +144,7 @@ function normalizeMaxBodyBytes(value) {
   return number;
 }
 
-async function toWebRequest(incoming, { maxBodyBytes }) {
+async function toWebRequest(incoming, { maxBodyBytes, signal }) {
   const chunks = [];
   let totalBytes = 0;
   for await (const chunk of incoming) {
@@ -129,6 +162,7 @@ async function toWebRequest(incoming, { maxBodyBytes }) {
     method: incoming.method || 'GET',
     headers: incoming.headers,
     body: chunks.length > 0 ? Buffer.concat(chunks) : undefined,
+    signal,
   });
 }
 

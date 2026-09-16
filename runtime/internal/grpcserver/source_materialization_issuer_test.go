@@ -38,7 +38,7 @@ func TestNewAccountRealmSourceMaterializationIssuerRequiresExactDependencies(t *
 
 func TestAccountRealmSourceMaterializationIssuerContractIdentity(t *testing.T) {
 	var _ runtimeagentservice.RealmSourceMaterializationIssuer = (*accountRealmSourceMaterializationIssuer)(nil)
-	if sourceMaterializationAccessPolicyDigestV5 != "99c1c433dc75ac2312cbc6e8629fd8b4288ee4a4de21059de56a60561547a512" {
+	if sourceMaterializationAccessPolicyDigestV5 != "99c1c433dc75ac2312cbc6e8629fd8b4288ee4a4de21059de56a60561547a512" { // pragma: allowlist secret - public access-policy digest
 		t.Fatalf("access policy digest = %q", sourceMaterializationAccessPolicyDigestV5)
 	}
 }

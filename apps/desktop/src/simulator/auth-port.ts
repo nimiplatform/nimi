@@ -210,12 +210,12 @@ export function createDesktopSimulatorAuthSessionPort(
   const readPendingNotice = (): PendingLoginNotice | null => pendingRef.current;
   let personaShareInFlight = false;
   let personaShareSettled = false;
-  const oauthListeners = new Map<string, (result: {
+  const oauthListeners = new Map<string, { expectedState: string; resolve: (result: {
     readonly callbackUrl: string;
     readonly code?: string;
     readonly state?: string;
     readonly error?: string;
-  }) => void>();
+  }) => void }>();
 
   function readAuthProjection(): AuthProjectionSnapshot {
     const projection = record(context.projection.get(), 'AUTH_PROJECTION');
@@ -276,8 +276,9 @@ export function createDesktopSimulatorAuthSessionPort(
     const redirectUri = text(payload.redirectUri, 'AUTH_OAUTH_CALLBACK_EVENT');
     const listener = oauthListeners.get(redirectUri);
     if (!listener) return;
+    if (payload.state !== listener.expectedState) return;
     oauthListeners.delete(redirectUri);
-    listener({
+    listener.resolve({
       callbackUrl: redirectUri,
       code: text(payload.code, 'AUTH_OAUTH_CALLBACK_EVENT'),
       state: text(payload.state, 'AUTH_OAUTH_CALLBACK_EVENT'),
@@ -331,7 +332,7 @@ export function createDesktopSimulatorAuthSessionPort(
     const pending = [...oauthListeners.entries()];
     oauthListeners.clear();
     for (const [redirectUri, listener] of pending) {
-      listener({ callbackUrl: redirectUri, error: 'simulator_instance_disposed' });
+      listener.resolve({ callbackUrl: redirectUri, error: 'simulator_instance_disposed' });
     }
   });
   if (!cleanup.ok) throw new Error('DESKTOP_SIMULATOR_AUTH_CLEANUP_REJECTED');
@@ -510,7 +511,8 @@ export function createDesktopSimulatorAuthSessionPort(
     hasShellHostInvoke: () => true,
     oauthListenForCode: (payload) => new Promise((resolve) => {
       assertLoopbackCallback(payload.redirectUri);
-      oauthListeners.set(SIMULATOR_OAUTH_REDIRECT_URI, resolve);
+      const expectedState = text(payload.expectedState, 'AUTH_OAUTH_EXPECTED_STATE');
+      oauthListeners.set(SIMULATOR_OAUTH_REDIRECT_URI, { expectedState, resolve });
     }),
     openExternalUrl: async (url) => {
       const state = new URL(url).searchParams.get('state') || '';

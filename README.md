@@ -7,13 +7,17 @@ Nimi Home is its entry point, Realm owns ecosystem identity, and Runtime
 executes local and cloud AI capabilities across multiple providers. Characters,
 conversations, creations, stories, and worlds are experiences within Nimi;
 Nimi is not reducible to Runtime, a chat product, Avatar, or any one experience.
-Nimi Apps is the canonical product path for Registry-approved verified package
-catalog, installation, update, launch, repair, and uninstall semantics, with
-Developer Mode as a separate non-package local-development path. This pre-release
-currently exposes Developer Mode plus protected-tag GitHub Actions and immutable
-GitHub Release publication for explicitly configured pilot App repositories;
-public catalog, ordinary installation, update, installed launch, repair,
-uninstall, registry onboarding, and registry admission remain unavailable.
+Nimi Apps separates Registry-approved verified packages, explicitly selected
+immutable local-import packages, and non-package Developer Mode projects. The
+current pre-release admits protected Registry onboarding and human-approved
+descriptor admission, plus Catalog discovery, installation, update, installed
+launch/focus/stop, protected App session Access, and uninstall on Windows x86_64
+and macOS arm64 through their Runtime and Desktop owners. Local-import package
+management is implemented on those targets without Registry trust or Developer
+Mode. These entry points do not establish combined product acceptance or public
+release readiness. Ordinary repair and package lifecycle on other platforms
+remain unavailable. Configured pilot App repositories have protected-tag GitHub
+Actions and immutable GitHub Release publication.
 
 The broader project is an AI open world platform. It is built for long-lived
 worlds where people, AI agents, applications, and runtime services share the
@@ -118,7 +122,7 @@ memory, and the authority tooling used to maintain those boundaries.
 | **Nimi Home, Desktop, and Web** | First-party user surfaces. Nimi Home is the product contract; Desktop is its current replaceable native host, while Web is the standalone public account site. |
 | **Realm** | Semantic truth — world state, world history, chat, social and economy, asset binding, transit, creator economy. |
 | **Avatar** | An embodied LocalAgent projection; it does not own LocalAgent execution, Memory, Knowledge, or Conversation truth. |
-| **Cognition** | An independent capability domain whose complete product design is deferred. Runtime may consume it only through a public bridge; Cognition does not take over Runtime-owned LocalAgent truth. |
+| **Cognition** | Independent owner of canonical long-term Memory and Knowledge. V1 implements LocalAgent long-term Memory and bounded Agent Source custody; Knowledge has no active V1 execution path. Runtime mediates authorization and lifecycle intent through the public bridge and retains LocalAgent and Conversation truth. |
 | **Nimi Coding** | Host-agnostic canonical-authority tooling. It operates on project-owned `.nimi/spec/**`; it is not another product authority. |
 
 Each product has its own section in the docs.
@@ -139,8 +143,8 @@ than to mix together.
 |  Execution Substrate                                          |
 |    Runtime    : LocalAgent, Conversation, providers,          |
 |                 streaming, protected access                   |
-|    Cognition  : Memory, Knowledge; independent deferred       |
-|                 domain, public bridge                         |
+|    Cognition  : V1 long-term Memory, Agent Source custody;     |
+|                 independent owner, public bridge              |
 +---------------------------------------------------------------+
                               |
                               v

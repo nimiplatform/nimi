@@ -26,6 +26,7 @@ pub struct OpenExternalUrlResult {
 #[serde(rename_all = "camelCase")]
 pub struct OauthListenForCodePayload {
     pub redirect_uri: String,
+    pub expected_state: String,
     pub timeout_ms: Option<u64>,
 }
 
@@ -242,7 +243,7 @@ fn render_oauth_callback_page(success: bool) -> String {
     let logo_data_uri = oauth_result_logo_data_uri();
     if success {
         DESKTOP_OAUTH_RESULT_PAGE_TEMPLATE
-            .replace("__PAGE_TITLE__", "OAuth Complete - Nimi")
+            .replace("__PAGE_TITLE__", "Authorization received - Nimi")
             .replace("__BODY_BACKGROUND__", "#ffffff")
             .replace("__LOGO_ANIMATION_NAME__", "float")
             .replace("__LOGO_ANIMATION_DURATION__", "3s")
@@ -259,11 +260,11 @@ fn render_oauth_callback_page(success: bool) -> String {
                 "__STATUS_ICON_SVG__",
                 r#"<svg class="checkmark" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>"#,
             )
-            .replace("__HEADING__", "Authentication Complete!")
+            .replace("__HEADING__", "Authorization received")
             .replace("__HEADING_ANIMATION__", "fadeIn 0.5s ease-out 0.4s both")
             .replace(
                 "__MESSAGE_PRIMARY__",
-                "You have successfully signed in to Nimi.",
+                "Return to Nimi to finish signing in.",
             )
             .replace("__MESSAGE_ANIMATION__", "fadeIn 0.5s ease-out 0.5s both")
             .replace("__MESSAGE_SECONDARY_BLOCK__", "")
@@ -328,6 +329,9 @@ fn render_oauth_callback_page(success: bool) -> String {
 fn oauth_listen_for_code_blocking(
     payload: OauthListenForCodePayload,
 ) -> Result<OauthListenForCodeResult, String> {
+    if payload.expected_state.trim().is_empty() {
+        return Err("OAuth expectedState is required".to_string());
+    }
     let (host, port, expected_path) = parse_oauth_redirect_uri(payload.redirect_uri.as_str())?;
     let bind_host = if host == "localhost" {
         "127.0.0.1".to_string()
@@ -346,13 +350,22 @@ fn oauth_listen_for_code_blocking(
     let deadline = std::time::Instant::now() + std::time::Duration::from_millis(timeout_ms);
 
     loop {
+        if std::time::Instant::now() >= deadline {
+            return Err("OAuth callback timed out".to_string());
+        }
         match listener.accept() {
             Ok((mut stream, _peer)) => {
                 stream
                     .set_nonblocking(false)
                     .map_err(|error| error.to_string())?;
                 let _ = stream.set_read_timeout(Some(std::time::Duration::from_secs(5)));
-                let callback_request = read_oauth_callback_request(&mut stream)?;
+                let callback_request = match read_oauth_callback_request(&mut stream) {
+                    Ok(request) => request,
+                    Err(_) => {
+                        write_oauth_callback_page(&mut stream, false);
+                        continue;
+                    }
+                };
                 let normalized_target = match normalize_oauth_callback_target(
                     callback_request.target.as_str(),
                     expected_path.as_str(),
@@ -377,6 +390,14 @@ fn oauth_listen_for_code_blocking(
                 let code = callback_params.get("code").cloned();
                 let state = callback_params.get("state").cloned();
                 let error = callback_params.get("error").cloned();
+
+                if state.as_deref() != Some(payload.expected_state.trim())
+                    || (!code.as_ref().is_some_and(|value| !value.trim().is_empty())
+                        && !error.as_ref().is_some_and(|value| !value.trim().is_empty()))
+                {
+                    write_oauth_callback_page(&mut stream, false);
+                    continue;
+                }
 
                 write_oauth_callback_page(&mut stream, code.is_some() && error.is_none());
 
@@ -427,6 +448,39 @@ mod tests {
         DESKTOP_OAUTH_RESULT_LOGO_PNG,
     };
     use url::Url;
+
+    #[test]
+    fn unrelated_callbacks_do_not_consume_the_listener() {
+        use std::io::{Read, Write};
+        use std::net::{TcpListener, TcpStream};
+        use std::time::Duration;
+        let reservation = TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = reservation.local_addr().unwrap().port();
+        drop(reservation);
+        let listener = std::thread::spawn(move || {
+            super::oauth_listen_for_code_blocking(super::OauthListenForCodePayload {
+                redirect_uri: format!("http://127.0.0.1:{port}/oauth/callback"),
+                expected_state: "pending-state".to_string(),
+                timeout_ms: Some(10_000),
+            })
+        });
+        for query in ["code=x", "code=x&state=wrong", "state=pending-state", "code=valid&state=pending-state"] {
+            let mut stream = (0..100).find_map(|_| {
+                TcpStream::connect(("127.0.0.1", port)).ok().or_else(|| {
+                    std::thread::sleep(Duration::from_millis(10));
+                    None
+                })
+            }).expect("listener must bind");
+            stream.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+            write!(stream, "GET /oauth/callback?{query} HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n").unwrap();
+            let mut page = String::new();
+            stream.read_to_string(&mut page).unwrap();
+            assert_eq!(page.contains("Authorization received"), query.starts_with("code=valid"));
+        }
+        let result = listener.join().unwrap().unwrap();
+        assert_eq!(result.code.as_deref(), Some("valid"));
+        assert_eq!(result.state.as_deref(), Some("pending-state"));
+    }
 
     #[test]
     fn normalize_oauth_callback_target_requires_exact_callback_path() {

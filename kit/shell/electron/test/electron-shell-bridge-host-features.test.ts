@@ -317,11 +317,12 @@ describe('registerNimiElectronRuntimeBridge', () => {
       command: NIMI_STANDARD_SHELL_COMMANDS['oauth.listenForCode'],
       payload: {
         redirectUri: `http://127.0.0.1:${port}/oauth/callback`,
+        expectedState: 'state-456',
         timeoutMs: 5_000,
       },
     });
     const callbackPage = await fetchOkText(`http://127.0.0.1:${port}/oauth/callback?code=code-123&state=state-456`);
-    expect(callbackPage).toContain('Authentication Complete!');
+    expect(callbackPage).toContain('Authorization received');
     expect(callbackPage).toContain('setTimeout(function(){window.close();}, 3000);');
 
     await expect(resultPromise).resolves.toMatchObject({

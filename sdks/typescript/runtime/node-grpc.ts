@@ -267,11 +267,24 @@ export function createRuntimeNodeGrpcTransport(
       );
 
       call.on('metadata', (metadata: GrpcMetadataLike) => {
-        emitResponseMetadata(request.responseMetadataObserver, collectResponseMetadata(metadata));
+        if (settled) return;
+        try {
+          emitResponseMetadata(request.responseMetadataObserver, collectResponseMetadata(metadata));
+        } catch (error) {
+          rejectOnce(error);
+          call.cancel();
+        }
       });
       call.on('status', (status: GrpcStatusLike) => {
+        if (settled) return;
+        try {
+          emitResponseMetadata(request.responseMetadataObserver, collectStatusResponseMetadata(status));
+        } catch (error) {
+          rejectOnce(error);
+          call.cancel();
+          return;
+        }
         statusSeen = true;
-        emitResponseMetadata(request.responseMetadataObserver, collectStatusResponseMetadata(status));
         resolveAfterStatus();
       });
 
@@ -543,11 +556,23 @@ function nodeGrpcReadableStream(
     queue.push(chunk);
     flush();
   });
+  const observeMetadata = (metadata: CoreResponseMetadata) => {
+    if (pendingError) return;
+    try {
+      emitResponseMetadata(responseMetadataObserver, metadata);
+    } catch (error) {
+      pendingError = error;
+      queue.length = 0;
+      done = true;
+      call.cancel();
+      flush();
+    }
+  };
   call.on('metadata', (metadata: GrpcMetadataLike) => {
-    emitResponseMetadata(responseMetadataObserver, collectResponseMetadata(metadata));
+    observeMetadata(collectResponseMetadata(metadata));
   });
   call.on('status', (status: GrpcStatusLike) => {
-    emitResponseMetadata(responseMetadataObserver, collectStatusResponseMetadata(status));
+    observeMetadata(collectStatusResponseMetadata(status));
   });
   call.on('end', () => {
     done = true;

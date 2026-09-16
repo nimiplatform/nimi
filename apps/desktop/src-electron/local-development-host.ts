@@ -1256,8 +1256,12 @@ function randomIdentifier(): string {
 /** @internal Focused contract-test seam. */
 export function formatLocalDevelopmentWatchTrigger(eventType: string, filename: string | Buffer | null): string {
   const value = filename?.toString().replaceAll('\\', '/') || '';
+  const hasControlCharacter = [...value].some((character) => {
+    const code = character.charCodeAt(0);
+    return code < 0x20 || code === 0x7f;
+  });
   const safePath = value && !path.posix.isAbsolute(value) && !path.win32.isAbsolute(value)
-    && !value.split('/').includes('..') && !/[\u0000-\u001f\u007f]/u.test(value)
+    && !value.split('/').includes('..') && !hasControlCharacter
     ? value.slice(0, 200) : 'path unavailable';
   return `${eventType === 'rename' ? 'rename' : 'change'}:${safePath}`;
 }

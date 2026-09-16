@@ -51,14 +51,18 @@ func TestDeepseekAppNativeToolsRoundTripThroughCommittedCloudConfig(t *testing.T
 			if body["tool_choice"].(map[string]any)["function"].(map[string]any)["name"] != "lookup" {
 				t.Error("named tool choice lost")
 			}
-			fmt.Fprint(w, `{"choices":[{"index":0,"message":{"content":"Checking.\n","tool_calls":[{"id":"first","type":"function","function":{"name":"lookup","arguments":"{\"query\":\"first\"}"}},{"id":"second","type":"function","function":{"name":"lookup","arguments":"{\"query\":\"second\"}"}}]},"finish_reason":"tool_calls"}]}`)
+			if _, err := fmt.Fprint(w, `{"choices":[{"index":0,"message":{"content":"Checking.\n","tool_calls":[{"id":"first","type":"function","function":{"name":"lookup","arguments":"{\"query\":\"first\"}"}},{"id":"second","type":"function","function":{"name":"lookup","arguments":"{\"query\":\"second\"}"}}]},"finish_reason":"tool_calls"}]}`); err != nil {
+				t.Errorf("write provider response: %v", err)
+			}
 			return
 		}
 		msgs := body["messages"].([]any)
 		if body["tool_choice"] != "none" || len(msgs) != 4 || msgs[2].(map[string]any)["tool_call_id"] != "second" || msgs[3].(map[string]any)["tool_call_id"] != "first" || msgs[3].(map[string]any)["content"] != `{"error":"unavailable"}` {
 			t.Errorf("result chronology/failure lost: %v", msgs)
 		}
-		fmt.Fprint(w, `{"choices":[{"index":0,"message":{"content":"One source succeeded; the other failed."},"finish_reason":"stop"}]}`)
+		if _, err := fmt.Fprint(w, `{"choices":[{"index":0,"message":{"content":"One source succeeded; the other failed."},"finish_reason":"stop"}]}`); err != nil {
+			t.Errorf("write provider response: %v", err)
+		}
 	})
 	input := &runtimev1.StreamLocalAppTextTurnRequest{Messages: []*runtimev1.LocalAppTextCandidateMessage{{Role: "user", Text: "Research both sources."}}, Tools: []*runtimev1.ToolSpec{localAppLookupTool(t)}, ToolChoice: runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_TOOL, ToolChoiceName: "lookup"}
 	execute := func() (*runtimev1.ExecuteLocalAppScenarioResponse, error) {
@@ -97,9 +101,14 @@ func TestDeepseekAppStreamRequiresProviderDoneBeforeCompleted(t *testing.T) {
 	var omitDone atomic.Bool
 	fixture, decision := deepseekAppFixture(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
-		fmt.Fprintf(w, "data: %s\n\n", `{"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"call-1","type":"function","function":{"name":"lookup","arguments":"{\"query\":\"source\"}"}}]},"finish_reason":"tool_calls"}]}`)
+		if _, err := fmt.Fprintf(w, "data: %s\n\n", `{"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"call-1","type":"function","function":{"name":"lookup","arguments":"{\"query\":\"source\"}"}}]},"finish_reason":"tool_calls"}]}`); err != nil {
+			t.Errorf("write provider tool call: %v", err)
+			return
+		}
 		if !omitDone.Load() {
-			fmt.Fprint(w, "data: [DONE]\n\n")
+			if _, err := fmt.Fprint(w, "data: [DONE]\n\n"); err != nil {
+				t.Errorf("write provider response: %v", err)
+			}
 		}
 	})
 	input := &runtimev1.StreamLocalAppTextTurnRequest{Messages: []*runtimev1.LocalAppTextCandidateMessage{{Role: "user", Text: "Lookup"}}, Tools: []*runtimev1.ToolSpec{localAppLookupTool(t)}, ToolChoice: runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_REQUIRED}

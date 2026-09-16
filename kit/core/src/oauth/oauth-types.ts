@@ -4,6 +4,7 @@
 
 export type OauthListenForCodePayload = {
   redirectUri: string;
+  expectedState: string;
   timeoutMs?: number;
 };
 

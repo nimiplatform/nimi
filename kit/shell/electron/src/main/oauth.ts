@@ -128,24 +128,33 @@ export async function exchangeElectronOauthTokenInHost(
     scope: normalizeText(parsed.scope) || undefined,
   };
 }
+// @nimi-authority: rule.nimi.desktop.bridge-ipc.r021
 export async function listenElectronOauthForCode(
   payload: Readonly<Record<string, unknown>>,
   command: string,
 ): Promise<Record<string, unknown>> {
   const commandPayload = standardNestedPayload(payload, command);
   const redirect = parseElectronOauthRedirectUri(normalizeRequiredToken(commandPayload.redirectUri, 'redirectUri'), command);
+  const expectedState = normalizeRequiredToken(commandPayload.expectedState, 'expectedState');
   const timeoutMs = clampNumber(parseOptionalPositiveNumber(commandPayload.timeoutMs) ?? 180_000, 10_000, 600_000);
   return new Promise((resolve, reject) => {
     let settled = false;
     const server = createServer((request, response) => {
       void handleElectronOauthCallbackRequest(request, redirect)
         .then((result) => {
+          // Correlate carriage before consuming the listener. The Runtime
+          // broker still owns full attempt validation and code exchange.
+          if (result.state !== expectedState || (!result.code && !result.error)) {
+            throw new Error('OAuth callback does not match the pending authorization');
+          }
           response.writeHead(200, {
             'content-type': 'text/html; charset=utf-8',
             'cache-control': 'no-store',
             connection: 'close',
           });
-          response.end(renderElectronOauthSuccessPage());
+          response.end(result.error
+            ? '<!doctype html><title>Authorization failed</title><p>Authorization failed. Return to Nimi to try again.</p>'
+            : renderElectronOauthSuccessPage());
           settle(undefined, result);
         })
         .catch((error: unknown) => {
@@ -201,7 +210,7 @@ function renderElectronOauthSuccessPage(): string {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>OAuth Complete - Nimi</title>
+  <title>Authorization received - Nimi</title>
   <style>
     body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;display:grid;min-height:100vh;margin:0;place-items:center;background:#fff;color:#1f2937}
     main{text-align:center;padding:32px}
@@ -211,8 +220,8 @@ function renderElectronOauthSuccessPage(): string {
 </head>
 <body>
   <main>
-    <h1>Authentication Complete!</h1>
-    <p>You have successfully signed in to Nimi. This window will close shortly.</p>
+    <h1>Authorization received</h1>
+    <p>Return to Nimi to finish signing in. This window will close shortly.</p>
   </main>
   <script>setTimeout(function(){window.close();}, ${ELECTRON_OAUTH_SUCCESS_AUTO_CLOSE_MS});</script>
 </body>

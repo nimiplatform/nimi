@@ -272,6 +272,7 @@ async function driveSimulatedLogin(
   });
   const listen = auth.oauthBridge.oauthListenForCode({
     redirectUri: browserCallbackUrl,
+    expectedState: attempt.state,
     timeoutMs: 60_000,
   });
   const opened = await auth.oauthBridge.openExternalUrl(attempt.authorizationUrl);
@@ -548,7 +549,7 @@ test('Desktop Simulator auth port fails closed for out-of-order login steps', as
   // Token custody stays Runtime-owned in shape: the kit broker always sends the
   // sealed/empty-token completion payload, never app-held tokens.
   const attempt = await auth.runtimeAccountBroker.begin({ callbackUrl: LOGIN_CALLBACK_URL, timeoutMs: 60_000 });
-  const listen = auth.oauthBridge.oauthListenForCode({ redirectUri: LOGIN_CALLBACK_URL, timeoutMs: 60_000 });
+  const listen = auth.oauthBridge.oauthListenForCode({ redirectUri: LOGIN_CALLBACK_URL, expectedState: attempt.state, timeoutMs: 60_000 });
   await auth.oauthBridge.openExternalUrl(attempt.authorizationUrl);
   const callback = await listen;
   const completion = await auth.runtimeAccountBroker.complete({

@@ -138,7 +138,9 @@ test('image generation endpoint maps OpenAI request into a local Runtime image j
     ],
   });
   assert.equal(submitted.length, 1);
+  assert.ok(submitted[0].signal instanceof AbortSignal);
   assert.deepEqual(submitted[0], {
+    signal: submitted[0].signal,
     appId: 'nimi.gateway.openai-compatible',
     subjectUserId: 'local-user',
     requestId: 'imgjob-test',
@@ -599,7 +601,8 @@ test('b64_json response reads Runtime artifact bytes when inline bytes are not r
       },
     ],
   });
-  assert.deepEqual(reads, [{ artifactId: 'runtime-artifact-1' }]);
+  assert.ok(reads[0].signal instanceof AbortSignal);
+  assert.deepEqual(reads, [{ artifactId: 'runtime-artifact-1', signal: reads[0].signal }]);
 });
 
 test('namespaced OpenAI routes are not accepted after the standard v1 hardcut', async () => {

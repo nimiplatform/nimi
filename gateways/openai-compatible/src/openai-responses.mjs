@@ -43,18 +43,61 @@ export function chatCompletionStreamResponse(config, normalized) {
     throw unsupportedFeature('chat.completions.stream', 'Runtime chat streaming is not wired for this gateway.');
   }
   const encoder = new TextEncoder();
+  const cancellation = new AbortController();
+  const parentSignal = normalized.runtimeRequest.signal;
+  const signal = parentSignal
+    ? AbortSignal.any([parentSignal, cancellation.signal])
+    : cancellation.signal;
+  signal.throwIfAborted();
+  const iterator = config.runtime.streamChatCompletion({ ...normalized.runtimeRequest, signal })[Symbol.asyncIterator]();
+  let finished = false;
+  let onAbort;
+  const finish = () => {
+    finished = true;
+    signal.removeEventListener('abort', onAbort);
+  };
+  const returnIterator = () => {
+    // Cancellation must not wait for an uncooperative pending next(). The
+    // signal interrupts admitted execution; return releases iterator custody.
+    try { void Promise.resolve(iterator.return?.()).catch(() => undefined); } catch { /* already closing */ }
+  };
   const stream = new ReadableStream({
-    async start(controller) {
+    start(controller) {
+      onAbort = () => {
+        if (finished) return;
+        finish();
+        controller.error(signal.reason);
+        returnIterator();
+      };
+      signal.addEventListener('abort', onAbort, { once: true });
+      if (signal.aborted) onAbort();
+    },
+    async pull(controller) {
+      if (finished) return;
       try {
-        for await (const event of config.runtime.streamChatCompletion(normalized.runtimeRequest)) {
-          const chunk = chatStreamChunk(event, normalized);
+        const { value, done } = await iterator.next();
+        if (finished) return;
+        if (done) {
+          finish();
+          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+          controller.close();
+        } else {
+          const chunk = chatStreamChunk(value, normalized);
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
         }
-        controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-        controller.close();
       } catch (error) {
+        if (finished) return;
+        finish();
+        cancellation.abort(error);
         controller.error(error);
+        returnIterator();
       }
+    },
+    cancel(reason) {
+      if (finished) return;
+      finish();
+      cancellation.abort(reason);
+      returnIterator();
     },
   });
   return new Response(stream, {
@@ -111,7 +154,8 @@ export function embeddingResponse(runtimeResult, normalized) {
   };
 }
 
-export async function imageGenerationResponse(runtimeResult, responseFormat, config, artifactOrigin) {
+export async function imageGenerationResponse(runtimeResult, responseFormat, config, artifactOrigin, signal) {
+  signal?.throwIfAborted();
   if (!isRecord(runtimeResult) || !Array.isArray(runtimeResult.artifacts)) {
     throw new OpenAICompatibleGatewayError(
       'NIMI_GATEWAY_RUNTIME_RESPONSE_INVALID',
@@ -131,12 +175,14 @@ export async function imageGenerationResponse(runtimeResult, responseFormat, con
         index,
         config,
         artifactOrigin,
+        signal,
       )),
     ),
   };
 }
 
-export async function resolveAudioBytes(runtimeResult, config) {
+export async function resolveAudioBytes(runtimeResult, config, signal) {
+  signal?.throwIfAborted();
   if (isRecord(runtimeResult)) {
     if (runtimeResult.bytes instanceof Uint8Array && runtimeResult.bytes.length > 0) {
       return {
@@ -147,7 +193,7 @@ export async function resolveAudioBytes(runtimeResult, config) {
     if (Array.isArray(runtimeResult.artifacts) && runtimeResult.artifacts.length > 0) {
       const artifact = runtimeResult.artifacts.find((item) => normalizeText(item?.mimeType || item?.mime_type).startsWith('audio/'))
         || runtimeResult.artifacts[0];
-      const resolved = await resolveArtifactBytes(artifact, config, 0);
+      const resolved = await resolveArtifactBytes(artifact, config, 0, signal);
       return {
         bytes: resolved.bytes,
         mimeType: normalizeText(resolved.mimeType) || 'application/octet-stream',
@@ -181,7 +227,7 @@ function chatStreamChunk(event, normalized) {
   };
 }
 
-async function imageArtifactToOpenAIData(artifact, responseFormat, index, config, artifactOrigin) {
+async function imageArtifactToOpenAIData(artifact, responseFormat, index, config, artifactOrigin, signal) {
   if (!isRecord(artifact)) {
     throw new OpenAICompatibleGatewayError(
       'NIMI_GATEWAY_RUNTIME_RESPONSE_INVALID',
@@ -190,7 +236,8 @@ async function imageArtifactToOpenAIData(artifact, responseFormat, index, config
     );
   }
   if (responseFormat === 'url') {
-    const resolved = await resolveArtifactBytes(artifact, config, index);
+    const resolved = await resolveArtifactBytes(artifact, config, index, signal);
+    signal?.throwIfAborted();
     const artifactId = config.artifactIdGenerator();
     config.artifacts.set(artifactId, {
       bytes: resolved.bytes,
@@ -202,16 +249,19 @@ async function imageArtifactToOpenAIData(artifact, responseFormat, index, config
         .toString(),
     };
   }
-  const { bytes } = await resolveArtifactBytes(artifact, config, index);
+  const { bytes } = await resolveArtifactBytes(artifact, config, index, signal);
+  signal?.throwIfAborted();
   return { b64_json: Buffer.from(bytes).toString('base64') };
 }
 
-async function resolveArtifactBytes(artifact, config, index) {
+async function resolveArtifactBytes(artifact, config, index, signal) {
+  signal?.throwIfAborted();
   const bytes = artifact.bytes;
   if (!(bytes instanceof Uint8Array) || bytes.length === 0) {
     const artifactId = normalizeText(artifact.artifactId || artifact.artifact_id || artifact.id);
     if (artifactId && typeof config.runtime.readArtifactBytes === 'function') {
-      const resolved = await config.runtime.readArtifactBytes({ artifactId });
+      const resolved = await config.runtime.readArtifactBytes({ artifactId, ...(signal ? { signal } : {}) });
+      signal?.throwIfAborted();
       if (isRecord(resolved) && resolved.bytes instanceof Uint8Array && resolved.bytes.length > 0) {
         return {
           bytes: resolved.bytes,

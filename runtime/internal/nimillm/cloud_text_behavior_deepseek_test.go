@@ -29,12 +29,16 @@ func TestDeepseekJSONUsesExistingCredentialHostAndExactChatPath(t *testing.T) {
 			t.Error("captured target or behavior was lost")
 		}
 		w.Header().Set("Content-Type", "text/event-stream")
-		fmt.Fprintln(w, `data: {"choices":[{"index":0,"delta":{"content":"{\"ok\":true}"},"finish_reason":"stop"}]}`)
-		fmt.Fprintln(w)
-		fmt.Fprintln(w, `data: {"choices":[],"usage":{"prompt_tokens":7,"completion_tokens":4}}`)
-		fmt.Fprintln(w)
-		fmt.Fprintln(w, "data: [DONE]")
-		fmt.Fprintln(w)
+		for _, event := range []string{
+			`{"choices":[{"index":0,"delta":{"content":"{\"ok\":true}"},"finish_reason":"stop"}]}`,
+			`{"choices":[],"usage":{"prompt_tokens":7,"completion_tokens":4}}`,
+			"[DONE]",
+		} {
+			if _, err := fmt.Fprintf(w, "data: %s\n\n", event); err != nil {
+				t.Errorf("write provider event: %v", err)
+				return
+			}
+		}
 	}))
 	defer server.Close()
 	adapter, err := textbehavior.NewAdapter(textbehavior.AdapterCapture{AdapterID: "deepseek.v4-flash.chat", Version: "2", RequestSerializerID: "deepseek/chat/request/v2", NonStreamParserID: "deepseek/chat/response/v2", StreamAssemblerID: "deepseek/chat/stream/v2", ProcessIdentityImpact: textbehavior.ProcessIdentityUnaffected},
@@ -89,9 +93,16 @@ func TestDeepseekToolsTransportUsesExactModelAndCompleteNativeCall(t *testing.T)
 			t.Error("named tool lost")
 		}
 		w.Header().Set("Content-Type", "text/event-stream")
-		fmt.Fprint(w, "data: "+`{"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"call-1","type":"function","function":{"name":"lookup","arguments":"{\"query\":"}}]},"finish_reason":null}]}`+"\n\n")
-		fmt.Fprint(w, "data: "+`{"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\"论文\"}"}}]},"finish_reason":"tool_calls"}]}`+"\n\n")
-		fmt.Fprint(w, "data: [DONE]\n\n")
+		for _, event := range []string{
+			`{"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"call-1","type":"function","function":{"name":"lookup","arguments":"{\"query\":"}}]},"finish_reason":null}]}`,
+			`{"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\"论文\"}"}}]},"finish_reason":"tool_calls"}]}`,
+			"[DONE]",
+		} {
+			if _, err := fmt.Fprintf(w, "data: %s\n\n", event); err != nil {
+				t.Errorf("write provider event: %v", err)
+				return
+			}
+		}
 	}))
 	defer server.Close()
 	invocation := deepseekToolsInvocation(t)
@@ -120,7 +131,9 @@ func TestDeepseekToolsTransportCancellationDoesNotCompletePartialCall(t *testing
 	cancelled := make(chan struct{})
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
-		fmt.Fprint(w, "data: "+`{"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"pending","type":"function","function":{"name":"lookup","arguments":"{"}}]},"finish_reason":null}]}`+"\n\n")
+		if _, err := fmt.Fprint(w, "data: "+`{"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"pending","type":"function","function":{"name":"lookup","arguments":"{"}}]},"finish_reason":null}]}`+"\n\n"); err != nil {
+			t.Errorf("write provider response: %v", err)
+		}
 		w.(http.Flusher).Flush()
 		close(started)
 		<-r.Context().Done()

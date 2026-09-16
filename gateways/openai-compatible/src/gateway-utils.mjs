@@ -122,7 +122,7 @@ export function normalizeEmbeddingInput(value) {
     return [text];
   }
   if (Array.isArray(value)) {
-    const items = value.map((item) => normalizeText(item)).filter(Boolean);
+    const items = optionalStringArray(value, 'embeddings.input');
     if (items.length === 0) {
       throw new OpenAICompatibleGatewayError(
         'NIMI_GATEWAY_REQUEST_INVALID',

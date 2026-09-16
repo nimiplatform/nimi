@@ -14,7 +14,7 @@ source:
   identity_preservation_ref: upstream_identity_test
   content_admission_ref: upstream_content_test
 integrity:
-  package_digest_sha256: 94612e2d6f787bb4e39d39bd66816ba0dd8cf5472bb8f76914ab6e86b3d4fd25
+  package_digest_sha256: 94612e2d6f787bb4e39d39bd66816ba0dd8cf5472bb8f76914ab6e86b3d4fd25 # pragma: allowlist secret - public fixture digest
   asset_count: 5
 governance:
   base_body_renderable: false
@@ -331,7 +331,7 @@ assets:
   - asset_id: asset_layer_body
     asset_kind: base_body_layer
     ref: pixel.png
-    sha256: d5a51b6aed15684ec8c123e30fe5703155359d6543b6d7b47cb5766ef44939de
+    sha256: d5a51b6aed15684ec8c123e30fe5703155359d6543b6d7b47cb5766ef44939de # pragma: allowlist secret - public pixel fixture hash
     format: png
     width_px: 1
     height_px: 1
@@ -342,7 +342,7 @@ assets:
   - asset_id: asset_layer_head
     asset_kind: base_body_layer
     ref: pixel.png
-    sha256: d5a51b6aed15684ec8c123e30fe5703155359d6543b6d7b47cb5766ef44939de
+    sha256: d5a51b6aed15684ec8c123e30fe5703155359d6543b6d7b47cb5766ef44939de # pragma: allowlist secret - public pixel fixture hash
     format: png
     width_px: 1
     height_px: 1
@@ -353,7 +353,7 @@ assets:
   - asset_id: asset_layer_eye
     asset_kind: base_body_layer
     ref: pixel.png
-    sha256: d5a51b6aed15684ec8c123e30fe5703155359d6543b6d7b47cb5766ef44939de
+    sha256: d5a51b6aed15684ec8c123e30fe5703155359d6543b6d7b47cb5766ef44939de # pragma: allowlist secret - public pixel fixture hash
     format: png
     width_px: 1
     height_px: 1
@@ -364,7 +364,7 @@ assets:
   - asset_id: asset_layer_mouth
     asset_kind: base_body_layer
     ref: pixel.png
-    sha256: d5a51b6aed15684ec8c123e30fe5703155359d6543b6d7b47cb5766ef44939de
+    sha256: d5a51b6aed15684ec8c123e30fe5703155359d6543b6d7b47cb5766ef44939de # pragma: allowlist secret - public pixel fixture hash
     format: png
     width_px: 1
     height_px: 1
@@ -375,7 +375,7 @@ assets:
   - asset_id: asset_layer_outfit
     asset_kind: wardrobe_layer
     ref: pixel.png
-    sha256: d5a51b6aed15684ec8c123e30fe5703155359d6543b6d7b47cb5766ef44939de
+    sha256: d5a51b6aed15684ec8c123e30fe5703155359d6543b6d7b47cb5766ef44939de # pragma: allowlist secret - public pixel fixture hash
     format: png
     width_px: 1
     height_px: 1

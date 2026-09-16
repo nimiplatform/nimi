@@ -24,7 +24,7 @@ import (
 
 const (
 	compactRealmMaterializationBearer       = "compact-account-bearer"
-	compactRealmMaterializationPolicyDigest = "99c1c433dc75ac2312cbc6e8629fd8b4288ee4a4de21059de56a60561547a512"
+	compactRealmMaterializationPolicyDigest = "99c1c433dc75ac2312cbc6e8629fd8b4288ee4a4de21059de56a60561547a512" // pragma: allowlist secret - public access-policy digest
 )
 
 // TestRealmSourceMaterializationCompactHermeticProtocolFullChain is the

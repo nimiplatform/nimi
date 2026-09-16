@@ -36,7 +36,12 @@ Every route, including `/healthz`, requires verified loopback client evidence.
 `/healthz` does not require a local API key after loopback has been proven.
 
 `/v1/models` projects Runtime-supported OpenAI capability targets. The gateway
-does not keep a static provider or model registry.
+does not keep a static provider or model registry. The catalog must project the
+current Runtime execution target with at most one supported alias per capability.
+Multiple targets for one capability fail closed at discovery and submission;
+this gateway cannot carry per-request provider/model overrides. Catalog and
+execution must use the same Runtime configuration. Aliases are compatibility
+names, not immutable model pins.
 
 `/v1/chat/completions` supports non-streaming responses through
 `runtime.runChatCompletion()` and SSE streaming through
@@ -63,6 +68,12 @@ gateway emits artifact URLs only on numeric loopback origins and does not trust
 a caller-controlled `Host` header for remote-looking origins. The gateway never
 returns filesystem paths or managed-media backend URLs.
 
+URL bytes expire actively after `artifactTtlMs` (default 10 minutes), even if the
+URL is never requested again. FIFO eviction also limits `artifactMaxBytes`
+(default 64 MiB) and `artifactMaxEntries` (default 128). Expired or evicted URLs
+return 404. A single image above the byte budget returns a typed 503; callers
+can request `b64_json`. Eviction never deletes the Runtime-owned artifact.
+
 Companion models, local pipeline slots, raw file paths, and provider-specific
 execution knobs such as `seed` and `negative_prompt` are not OpenAI standard
 image fields. They remain outside this surface until admitted through a
@@ -83,7 +94,7 @@ at construction time and are checked at the endpoint boundary:
 - `runtime.runImageGenerationJob(request)`.
 - `runtime.runImageEditJob(request)` when image edit is admitted.
 - `runtime.runImageVariationJob(request)` when image variation is admitted.
-- `runtime.readArtifactBytes({ artifactId })` when Runtime returns artifact ids
+- `runtime.readArtifactBytes({ artifactId, signal })` when Runtime returns artifact ids
   without inline bytes.
 
 `createOpenAICompatibleRuntimeAdapter()` is the intended public-SDK seam for
@@ -91,6 +102,10 @@ real integrations. It does not import Runtime internals or SDK build artifacts;
 the owning process injects public SDK functions and clients. The current SDK
 adapter path is image-generation focused; unpreserved official image fields must
 fail closed rather than disappear.
+
+HTTP disconnects abort `request.signal`. Injected capability adapters must honor
+that signal, and streaming adapters must release resources on iterator return.
+SSE pulls follow consumer demand instead of eagerly draining the producer.
 
 The gateway package intentionally does not ship a fake Runtime transport.
 Runtime grant acquisition, protected `ai.spend.meter` token custody, Forge

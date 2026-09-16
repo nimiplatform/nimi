@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { GatewayArtifactCache } from './artifact-cache.mjs';
 
 import { OpenAICompatibleGatewayError } from './errors.mjs';
 import { listSupportedOpenAIModels } from './model-inventory.mjs';
@@ -49,6 +50,7 @@ class OpenAICompatibleGateway {
 
   async fetch(request, context = {}) {
     try {
+      request.signal.throwIfAborted();
       const url = new URL(request.url);
       const path = normalizeOpenAIPath(url.pathname);
       assertLoopbackRemoteAddress(context);
@@ -130,6 +132,8 @@ class OpenAICompatibleGateway {
   async #createChatCompletion(request) {
     const body = await readJsonBody(request);
     const normalized = await normalizeChatCompletionRequest(body, this.#config);
+    normalized.runtimeRequest.signal = request.signal;
+    request.signal.throwIfAborted();
     if (normalized.stream) {
       return chatCompletionStreamResponse(this.#config, normalized);
     }
@@ -145,6 +149,8 @@ class OpenAICompatibleGateway {
   async #createResponse(request) {
     const body = await readJsonBody(request);
     const normalized = await normalizeResponseRequest(body, this.#config);
+    normalized.runtimeRequest.signal = request.signal;
+    request.signal.throwIfAborted();
     if (normalized.stream) {
       throw unsupportedFeature('responses.stream', 'Runtime response streaming is not wired for this gateway.');
     }
@@ -160,6 +166,8 @@ class OpenAICompatibleGateway {
   async #createEmbedding(request) {
     const body = await readJsonBody(request);
     const normalized = await normalizeEmbeddingRequest(body, this.#config);
+    normalized.runtimeRequest.signal = request.signal;
+    request.signal.throwIfAborted();
     const runtimeResult = await callRequiredRuntimeMethod(
       this.#config.runtime,
       'runEmbedding',
@@ -172,13 +180,15 @@ class OpenAICompatibleGateway {
   async #createSpeech(request) {
     const body = await readJsonBody(request);
     const normalized = await normalizeSpeechRequest(body, this.#config);
+    normalized.runtimeRequest.signal = request.signal;
+    request.signal.throwIfAborted();
     const runtimeResult = await callRequiredRuntimeMethod(
       this.#config.runtime,
       'runSpeechSynthesis',
       'audio.speech.create',
       normalized.runtimeRequest,
     );
-    const audio = await resolveAudioBytes(runtimeResult, this.#config);
+    const audio = await resolveAudioBytes(runtimeResult, this.#config, request.signal);
     return new Response(audio.bytes, {
       status: 200,
       headers: {
@@ -195,7 +205,9 @@ class OpenAICompatibleGateway {
       ? resolveGatewayArtifactOrigin(this.#config, request.url, context)
       : undefined;
     const requestId = this.#config.idGenerator();
+    request.signal.throwIfAborted();
     const runtimeResult = await this.#config.runtime.runImageGenerationJob({
+      signal: request.signal,
       appId: this.#config.appId,
       subjectUserId: this.#config.subjectUserId,
       requestId,
@@ -211,6 +223,7 @@ class OpenAICompatibleGateway {
       normalized.responseFormat,
       this.#config,
       artifactOrigin,
+      request.signal,
     );
   }
 
@@ -280,12 +293,17 @@ function normalizeGatewayOptions(options) {
     );
   }
 
+  const nowMs = typeof options.nowMs === 'function' ? options.nowMs : () => Date.now();
   return {
     appId,
     subjectUserId: normalizeText(options.subjectUserId) || 'local-user',
     runtime: options.runtime,
     apiKeys: new Set(apiKeys),
-    artifacts: new Map(),
+    artifacts: new GatewayArtifactCache({
+      nowMs,
+      maxBytes: normalizePositiveInteger(options.artifactMaxBytes ?? 64 * 1024 * 1024, 'artifactMaxBytes'),
+      maxEntries: normalizePositiveInteger(options.artifactMaxEntries ?? 128, 'artifactMaxEntries'),
+    }),
     artifactTtlMs: normalizePositiveInteger(options.artifactTtlMs ?? DEFAULT_ARTIFACT_TTL_MS, 'artifactTtlMs'),
     publicBaseUrl: normalizePublicBaseUrl(options.publicBaseUrl),
     idGenerator: typeof options.idGenerator === 'function' ? options.idGenerator : () => `imgjob-${randomUUID()}`,
@@ -295,7 +313,7 @@ function normalizeGatewayOptions(options) {
     createdUnixSeconds: typeof options.createdUnixSeconds === 'function'
       ? options.createdUnixSeconds
       : () => Math.floor(Date.now() / 1000),
-    nowMs: typeof options.nowMs === 'function' ? options.nowMs : () => Date.now(),
+    nowMs,
   };
 }
 

@@ -15,6 +15,7 @@ export async function oauthListenForCode(
   return invokeChecked(NIMI_STANDARD_SHELL_COMMANDS['oauth.listenForCode'], {
     payload: {
       redirectUri: payload.redirectUri,
+      expectedState: payload.expectedState,
       timeoutMs: payload.timeoutMs,
     },
   }, parseOauthListenForCodeResult);

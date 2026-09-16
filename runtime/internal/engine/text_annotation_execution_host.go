@@ -87,7 +87,7 @@ func (host *TextAnnotationExecutionHost) ExecuteTextAnnotation(ctx context.Conte
 	if err != nil {
 		return nil, host.fail(ctx, err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	payload, err := io.ReadAll(io.LimitReader(response.Body, localexecution.MaxTextAnnotationResultBytes+1))
 	if err != nil || len(payload) > localexecution.MaxTextAnnotationResultBytes {
 		return nil, host.fail(ctx, fmt.Errorf("annotation Worker response is unreadable or oversized"))

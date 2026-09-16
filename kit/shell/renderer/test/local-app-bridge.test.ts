@@ -70,6 +70,8 @@ describe('renderer local-app standard-shell surface', () => {
     }
   });
 
+  // This case validates real 11/32/40 MiB bounds. Preserve the full payloads
+  // while allowing the same 15s budget on shared Linux runners as on Windows.
   it('budgets declared audio bytes separately from decimal JSON expansion', async () => {
     let calls = 0;
     const boundary = new Error('reached host transport');
@@ -91,7 +93,7 @@ describe('renderer local-app standard-shell surface', () => {
     expect(() => submitNimiLocalAppScenarioJob({ ...spec, audioSource: { type: 'bytes', bytes: oversized } })).toThrow('inline audio bytes');
     expect(() => submitNimiLocalAppScenarioJob({ type: 'text-annotate', language: 'en', texts: ['x'.repeat(40 * 1024 * 1024)] })).toThrow('scenario spec exceeds');
     expect(calls).toBe(1);
-  });
+  }, 15_000);
 
   it('preserves multiline and empty transcription content while bounding results and metadata', async () => {
     const job = { jobId: 'transcript-1', scenarioType: 'speech-transcribe', status: 'completed',

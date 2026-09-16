@@ -161,7 +161,7 @@ func TestDashScopeFiniteASRValidatesActualWAV(t *testing.T) {
 func finiteASRTestServer(t *testing.T, expected []byte, respond func(*websocket.Conn, string)) *httptest.Server {
 	t.Helper()
 	return httptest.NewServer(websocket.Handler(func(conn *websocket.Conn) {
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 		var start map[string]any
 		if err := websocket.JSON.Receive(conn, &start); err != nil {
 			t.Error(err)

@@ -144,7 +144,9 @@ function assertSdkImageScenarioPreservesFields(scenario) {
 
 function readArtifactBytes(config, request) {
   const artifactId = requiredText(request?.artifactId, 'Runtime adapter artifact reads require artifactId.');
-  return config.readArtifactBytes({ artifactId }, config.callOptions);
+  return config.readArtifactBytes({ artifactId }, request.signal
+    ? { ...config.callOptions, signal: request.signal }
+    : config.callOptions);
 }
 
 function normalizeOptionalPositiveInteger(value, label) {

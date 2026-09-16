@@ -27,7 +27,7 @@ func TestSocketIOWebsocketURLIsExact(t *testing.T) {
 func newSocketIOServer(t *testing.T, connected func(*websocket.Conn, string)) *httptest.Server {
 	t.Helper()
 	server := httptest.NewServer(websocket.Handler(func(conn *websocket.Conn) {
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 		_ = conn.SetDeadline(time.Now().Add(5 * time.Second))
 		if err := websocket.Message.Send(conn, `0{"sid":"engine-1","upgrades":[],"pingInterval":25000,"pingTimeout":20000}`); err != nil {
 			t.Error(err)

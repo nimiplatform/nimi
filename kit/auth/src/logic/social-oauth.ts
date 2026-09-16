@@ -196,7 +196,9 @@ export async function startSocialOauth(
 
   const listenTask = bridge.oauthListenForCode({
     redirectUri: callbackUrl,
+    expectedState: callbackState,
   });
+  void listenTask.catch(() => undefined);
 
   try {
     const launchResult = await bridge.openExternalUrl(authorizeUrl);

@@ -15,14 +15,14 @@ MAX_RESULT_BYTES = 16 * 1024 * 1024
 # Runtime-admitted spaCy 3.8 model configurations. Model packages are loaded
 # as data directories; their Python package entry points are never imported.
 MODEL_CONFIGS: dict[str, tuple[str, str]] = {
-    'de': ('core_news_md', 'f9429742959c513a99a35e9607d2c2eebdf4a15a8fc6a6c97cd6a3aaab874d04'),
-    'en': ('core_web_md', '24b1b17065a74a6a3f999dd9c722f5532dc6bb5994b6a7ba5aa4f2ce09d434cc'),
-    'es': ('core_news_md', '0287eff7a5b4e86c91d59629a3e039a159bf232c03352ebd56579af59aa3d5e9'),
-    'fr': ('core_news_md', '64a5ed369a003285fc526180d901aacc628db7295f81a93d4c23ef60aad790aa'),
-    'it': ('core_news_md', 'f27f6fe74a49b625079cb176f1ea226a712781b6b2ee02301303088c1c67c75f'),
-    'ja': ('core_news_md', 'c64179403c2f1b0a679c70da7a33f6c29dc98397b4730fa4bf8f2a62e42b895b'),
-    'ru': ('core_news_md', '83e10820566c18ec311f3c5e8d0465a22a791f443aa33cb31e788458d94bf779'),
-    'zh': ('core_web_md', '93bd171ad59dba9100f085ef5855c1069e0d09c042b01f52cf748cc5f9e4a5c5'),
+    'de': ('core_news_md', 'f9429742959c513a99a35e9607d2c2eebdf4a15a8fc6a6c97cd6a3aaab874d04'),  # pragma: allowlist secret - pinned model configuration digest
+    'en': ('core_web_md', '24b1b17065a74a6a3f999dd9c722f5532dc6bb5994b6a7ba5aa4f2ce09d434cc'),  # pragma: allowlist secret - pinned model configuration digest
+    'es': ('core_news_md', '0287eff7a5b4e86c91d59629a3e039a159bf232c03352ebd56579af59aa3d5e9'),  # pragma: allowlist secret - pinned model configuration digest
+    'fr': ('core_news_md', '64a5ed369a003285fc526180d901aacc628db7295f81a93d4c23ef60aad790aa'),  # pragma: allowlist secret - pinned model configuration digest
+    'it': ('core_news_md', 'f27f6fe74a49b625079cb176f1ea226a712781b6b2ee02301303088c1c67c75f'),  # pragma: allowlist secret - pinned model configuration digest
+    'ja': ('core_news_md', 'c64179403c2f1b0a679c70da7a33f6c29dc98397b4730fa4bf8f2a62e42b895b'),  # pragma: allowlist secret - pinned model configuration digest
+    'ru': ('core_news_md', '83e10820566c18ec311f3c5e8d0465a22a791f443aa33cb31e788458d94bf779'),  # pragma: allowlist secret - pinned model configuration digest
+    'zh': ('core_web_md', '93bd171ad59dba9100f085ef5855c1069e0d09c042b01f52cf748cc5f9e4a5c5'),  # pragma: allowlist secret - pinned model configuration digest
 }
 
 

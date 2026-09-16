@@ -157,7 +157,7 @@ func newCapturedLocalMemoryTest(t *testing.T, ctx context.Context) (*Service, *m
 		t.Fatal(err)
 	}
 	s.speechCatalog = catalog
-	digest := "d4e388894e09cf3816e8b0896d81d265b55e7a9fff9ab03fe8bf4ef5e11295ac"
+	digest := "d4e388894e09cf3816e8b0896d81d265b55e7a9fff9ab03fe8bf4ef5e11295ac" // pragma: allowlist secret - fixture model content digest
 	dir := t.TempDir()
 	resolver := &mutableLocalExecutionResolver{projection: &localexecution.SelectedLocalExecution{LoadoutID: "old-loadout", CapabilityContract: capabilitydriver.TextEmbedCapabilityContract, RecipeID: capabilitydriver.LlamaEmbedGGUFRecipeID, RecipeRevision: "1", DriverIdentity: (&capabilitydriver.Identity{ImplementationID: capabilitydriver.LlamaEmbedImplementationID, DriverID: capabilitydriver.LlamaDriverID, DriverDialect: capabilitydriver.LlamaEmbedDriverDialect}).Proto(), ModelContextWindowTokens: 8192, EmbeddingDimension: 768, Requirements: []*runtimev1.LocalCapabilityRequirement{{RequirementId: capabilitydriver.EmbeddingGGUFRequirementID}}, ExactBindings: []localexecution.ExactBinding{{RequirementID: capabilitydriver.EmbeddingGGUFRequirementID, ModelAssetID: "old-asset", AbsolutePath: filepath.Join(dir, "embedding.gguf"), BundleDir: dir, DeclaredFiles: []string{"embedding.gguf"}, VerifiedContentID: "sha256:" + digest, EntrySHA256: digest}}, Configured: true}}
 	s.SetLocalExecutionResolver(resolver)

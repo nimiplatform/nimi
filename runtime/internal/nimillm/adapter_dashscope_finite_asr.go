@@ -64,7 +64,7 @@ func executeDashScopeFiniteASR(ctx context.Context, cfg MediaAdapterConfig, req 
 		}
 		return nil, nil, "", MapProviderRequestError(err)
 	}
-	defer connection.Close()
+	defer func() { _ = connection.Close() }()
 	connection.MaxPayloadBytes = localexecution.MaxSpeechTranscriptBytes + 65536
 	if deadline, ok := ctx.Deadline(); ok {
 		_ = connection.SetDeadline(deadline)

@@ -47,6 +47,7 @@ function normalizeRuntimeModelInventory(value) {
     );
   }
   const seen = new Set();
+  const capabilityOwners = new Map();
   const supported = [];
   for (const [index, model] of value.entries()) {
     if (!isRecord(model)) {
@@ -75,6 +76,19 @@ function normalizeRuntimeModelInventory(value) {
     seen.add(id);
     if (!isRuntimeSupportedOpenAIModel(model, capabilities)) {
       continue;
+    }
+    // Execution consumes Runtime-owned configuration, never a caller model
+    // override. This adapter can expose only one current alias per capability.
+    for (const capability of capabilities) {
+      if (!OPENAI_MODEL_CAPABILITIES.has(capability)) continue;
+      if (capabilityOwners.has(capability)) {
+        throw new OpenAICompatibleGatewayError(
+          'NIMI_GATEWAY_MODEL_CATALOG_AMBIGUOUS',
+          `Runtime compatibility catalog exposes multiple targets for ${capability}; project only the configured execution target.`,
+          502,
+        );
+      }
+      capabilityOwners.set(capability, id);
     }
     supported.push({ id, capabilities });
   }

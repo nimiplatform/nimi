@@ -10,7 +10,7 @@ import (
 	runtimeagentservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeagent"
 )
 
-const sourceMaterializationAccessPolicyDigestV5 = "99c1c433dc75ac2312cbc6e8629fd8b4288ee4a4de21059de56a60561547a512"
+const sourceMaterializationAccessPolicyDigestV5 = "99c1c433dc75ac2312cbc6e8629fd8b4288ee4a4de21059de56a60561547a512" // pragma: allowlist secret - public access-policy digest
 
 type accountRealmSourceMaterializationIssuer struct {
 	account        *accountservice.Service

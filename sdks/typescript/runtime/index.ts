@@ -502,7 +502,7 @@ export class Runtime {
     if (!runtimeVersion) {
       return;
     }
-    const shouldCheck = runtimeVersion !== this.#runtimeVersion || !this.#versionCompatibility.checked;
+    const shouldCheck = runtimeVersion !== this.#runtimeVersion || !this.#versionCompatibility.compatible;
     this.#runtimeVersion = runtimeVersion;
     if (shouldCheck) {
       this.#checkVersionCompatibility(runtimeVersion);

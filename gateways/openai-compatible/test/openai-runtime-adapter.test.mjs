@@ -86,7 +86,9 @@ test('runtime adapter runs the public SDK image helper with request identity and
     created: 999,
     data: [{ b64_json: Buffer.from([137, 80, 78, 71]).toString('base64') }],
   });
+  assert.ok(sdkRuns[0].signal instanceof AbortSignal);
   assert.deepEqual(sdkRuns, [{
+    signal: sdkRuns[0].signal,
     runtime: runtimeClient,
     head: {
       appId: 'nimi.gateway.openai-compatible',

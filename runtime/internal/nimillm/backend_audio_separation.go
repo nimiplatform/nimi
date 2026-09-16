@@ -38,7 +38,7 @@ func (b *Backend) OpenAudioSeparation(ctx context.Context, modelID string, audio
 		return nil, MapProviderRequestError(err)
 	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		defer response.Body.Close()
+		defer func() { _ = response.Body.Close() }()
 		_, mapped := providerHTTPErrorFromResponse(response, endpoint)
 		return nil, mapped
 	}

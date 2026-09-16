@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased (next 0.x minor)
+
+- Breaking: `OauthListenForCodePayload` now requires `expectedState`. Pass the
+  Runtime-issued attempt state (or the state of the specific social OAuth
+  attempt) with `redirectUri`. Upgrade renderer and Electron/Tauri host glue
+  together. Missing, unrelated or incomplete callbacks no longer consume the
+  listener. Runtime retains final authorization and code-exchange ownership.
+- Callback pages report receipt of authorization, not completed account login.
+
 ## 0.11.0 (development)
 
 - Read the current Local resource through formal options when switching from
@@ -13,7 +22,6 @@
 - Use SDK 0.15.0 with native 0.11.0 and the matching Runtime for this field.
   App code should read these conditions instead of testing model names.
   No AIConfig storage migration or new App permission is introduced.
-
 
 ## 0.10.1 (development)
 

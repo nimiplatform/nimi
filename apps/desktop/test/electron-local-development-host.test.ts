@@ -1078,6 +1078,9 @@ describe('Desktop Electron local-development registration host', () => {
     for (const value of [null, '../secret', 'C:\\private\\file', '/private/file', 'main.ts\nforged log']) {
       assert.equal(formatLocalDevelopmentWatchTrigger('change', value), 'change:path unavailable');
     }
+    for (const code of [...Array.from({ length: 32 }, (_, index) => index), 0x7f]) {
+      assert.equal(formatLocalDevelopmentWatchTrigger('change', `main${String.fromCharCode(code)}.ts`), 'change:path unavailable');
+    }
     assert.equal(formatLocalDevelopmentWatchTrigger('change', 'a'.repeat(500)).length, 207);
   });
 

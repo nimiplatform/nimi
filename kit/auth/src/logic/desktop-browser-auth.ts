@@ -120,8 +120,12 @@ export async function performDesktopBrowserAuth(
 
   const listenTask = bridge.oauthListenForCode({
     redirectUri: callbackUrl,
+    expectedState,
     timeoutMs,
   });
+  // Browser launch can fail before the listener is awaited. Its eventual
+  // timeout must still be handled; the owner remains responsible for expiry.
+  void listenTask.catch(() => undefined);
 
   const launchResult = await bridge.openExternalUrl(launchUrl);
   if (!launchResult.opened) {

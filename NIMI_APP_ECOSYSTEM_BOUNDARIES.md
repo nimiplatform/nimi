@@ -15,7 +15,8 @@ ledger.
 | --- | --- |
 | Durable Character identity, world truth, history, account/social truth | Realm |
 | LocalAgent materialization and lifecycle | Runtime |
-| Conversation, operational Memory, Knowledge, provider routing, jobs | Runtime |
+| Conversation, committed events, Memory authorization and lifecycle mediation, provider routing, jobs | Runtime |
+| Canonical long-term Memory and Knowledge, provenance, ranking, correction, forgetting and deletion | Cognition |
 | Typed App-facing access and transport projection | SDK |
 | Reusable UI, shell, accessibility, tokens, and headless primitives | Kit |
 | Product-specific screens, user-intent wiring, and ephemeral UI state | App |
@@ -44,9 +45,12 @@ user-facing product profiles.
 
 ## Consumer Boundaries
 
-- Runtime owns execution, readiness, LocalAgent, Conversation, Memory,
-  Knowledge, provider/model routing, audit outcomes, and fail-closed
-  enforcement.
+- Runtime owns execution, readiness, LocalAgent, Conversation, committed events,
+  Memory authorization and lifecycle mediation, provider/model routing, audit
+  outcomes, and fail-closed enforcement.
+- Cognition owns canonical long-term Memory and Knowledge. V1 implements
+  long-term Memory and bounded Agent Source custody; Knowledge has no active
+  V1 execution path. Runtime and Apps do not maintain parallel long-term stores.
 - Realm owns durable world and Character truth. Runtime and Apps use
   admitted Realm consumer surfaces.
 - SDK owns typed access and developer ergonomics, never platform truth.
@@ -63,11 +67,14 @@ user-facing product profiles.
 
 ## Deferred And Isolated Capabilities
 
-General Workflow, MCP, World Evolution, Marketplace, public Registry,
-Trust Tier, distribution, and commercial settlement are not current
-Runtime or Windows-loop prerequisites. Existing public-distribution
-design remains isolated unless it directly conflicts with the owner map
-above.
+General Workflow, MCP, World Evolution, Marketplace, Trust Tier, and commercial
+settlement are not current Runtime-core prerequisites. App package lifecycle is
+source-specific: verified packages use approved Registry descriptors, immutable
+local imports do not acquire Registry trust, and Developer Mode remains a
+non-package path. The current Windows x86_64 and macOS arm64 package entry points
+are governed by P-NAPP-040a; implementation does not establish combined product
+acceptance or public release readiness. Ordinary repair and package lifecycle
+on other platforms remain unavailable.
 
 ## Implementation Rules
 
