@@ -76,11 +76,17 @@ test('local speech recipes and empty executable custody are propagated', () => {
     'providers',
     'local',
   ), { merge: true });
+  const expectedSpeechIDs = source.loadout_recipes
+    .filter((recipe) => ['audio.synthesize', 'audio.transcribe'].includes(recipe.capability_contract))
+    .map((recipe) => recipe.recipe_id)
+    .sort();
   const generated = generateProviderCatalog(source);
   const speech = generated.loadout_recipes.filter((recipe) => (
     recipe.capability_contract === 'audio.synthesize' || recipe.capability_contract === 'audio.transcribe'
   ));
-  assert.equal(speech.length, 42);
+  // Verify every declared recipe survives projection, including additions,
+  // without treating a historical catalog size as a product constraint.
+  assert.deepEqual(speech.map((recipe) => recipe.recipe_id).sort(), expectedSpeechIDs);
   const byID = new Map(speech.map((recipe) => [recipe.recipe_id, recipe]));
   for (const recipeID of ['voxcpm2', 'qwen3-tts-customvoice', 'qwen3-tts-base', 'qwen3-tts-voicedesign', 'qwen3-asr', 'qwen3-asr-transformers']) {
     assert.deepEqual(byID.get(recipeID).custody, []);
