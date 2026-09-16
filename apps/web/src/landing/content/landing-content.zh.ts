@@ -153,6 +153,8 @@ export const landingContentZh: LandingContent = {
       'video.generate': '视频生成',
       'audio.synthesize': '语音合成',
       'audio.transcribe': '语音转写',
+      'audio.separate': '音频分离',
+      'vision.locate': '视觉定位',
       'music.generate': '音乐生成',
       'realtime.interact': '实时交互',
       'voice.create': '声音创建',

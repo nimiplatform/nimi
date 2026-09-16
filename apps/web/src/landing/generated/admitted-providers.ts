@@ -1,7 +1,7 @@
 /**
  * @generated
  * Source: config/runtime-provider-catalog.yaml
- *   sha256: a8eeb769a28f8b9b0fa9a141280dd81940363714467ede4f664bee88ebb937b8
+ *   sha256: ae802b6d8446fcaad2a20695434360f111824317538d29e5f72c2b441aa86f7f
  * Generator: apps/web/scripts/generate-landing-data.mjs
  * DO NOT EDIT MANUALLY. Re-run generator (`pnpm prebuild` or
  * `node scripts/generate-landing-data.mjs` from apps/web/) to refresh.
@@ -78,7 +78,7 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   {
     provider: "deepseek",
     defaultEndpoint: "https://api.deepseek.com/v1",
-    defaultTextModel: "deepseek-v4-flash",
+    defaultTextModel: "deepseek-flash",
     requiresExplicitEndpoint: false,
     inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",

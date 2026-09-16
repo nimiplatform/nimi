@@ -45,6 +45,7 @@ const CAPABILITIES_ONLY_PROVIDERS = new Set(['local']);
 // value here, regenerate, and ensure both en + zh content tree dicts include
 // the matching label key in modelCatalog.capabilityLabels.
 const ADMITTED_CAPABILITIES_ALLOWLIST = new Set([
+  'audio.separate',
   'audio.synthesize',
   'audio.transcribe',
   'image.generate',
@@ -53,6 +54,7 @@ const ADMITTED_CAPABILITIES_ALLOWLIST = new Set([
   'text.embed',
   'text.generate',
   'video.generate',
+  'vision.locate',
   'voice.create',
   'world.generate',
 ]);

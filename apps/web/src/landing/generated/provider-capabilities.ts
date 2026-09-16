@@ -2,9 +2,9 @@
  * @generated
  * Sources:
  *   config/runtime-provider-capabilities.yaml
- *     sha256: 9ed4cfa772d23f7364150844e5cc4988555cf4f6057952a2dc021ee0d03a1648
+ *     sha256: d5330844a7afb051c41a1e40fc348ccb2749192a9a24f8d9f233d29c9007bbe7
  *   config/runtime-provider-catalog.yaml
- *     sha256: a8eeb769a28f8b9b0fa9a141280dd81940363714467ede4f664bee88ebb937b8
+ *     sha256: ae802b6d8446fcaad2a20695434360f111824317538d29e5f72c2b441aa86f7f
  * Generator: apps/web/scripts/generate-landing-data.mjs
  * DO NOT EDIT MANUALLY. Re-run generator (`pnpm prebuild` or
  * `node scripts/generate-landing-data.mjs` from apps/web/) to refresh.
@@ -25,6 +25,7 @@ export type AdmittedEndpointRequirement =
 // provider-capabilities.yaml plus any future-admitted capabilities not yet
 // shipping. Generator fail-closes if YAML adds a value not in this union.
 export type AdmittedCapability =
+  | "audio.separate"
   | "audio.synthesize"
   | "audio.transcribe"
   | "image.generate"
@@ -33,12 +34,14 @@ export type AdmittedCapability =
   | "text.embed"
   | "text.generate"
   | "video.generate"
+  | "vision.locate"
   | "voice.create"
   | "world.generate";
 
 // r5 also exported as readonly tuple for runtime iteration (e.g., to drive
 // content-tree label coverage checks):
 export const ADMITTED_CAPABILITIES = [
+  "audio.separate",
   "audio.synthesize",
   "audio.transcribe",
   "image.generate",
@@ -47,6 +50,7 @@ export const ADMITTED_CAPABILITIES = [
   "text.embed",
   "text.generate",
   "video.generate",
+  "vision.locate",
   "voice.create",
   "world.generate",
 ] as const satisfies readonly AdmittedCapability[];
@@ -303,7 +307,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: false,
     endpointRequirement: "empty_string_only",
     inventoryMode: "static_source",
-    capabilities: ["audio.synthesize", "audio.transcribe", "image.generate", "music.generate", "text.embed", "text.generate", "video.generate", "voice.create"],
+    capabilities: ["audio.separate", "audio.synthesize", "audio.transcribe", "image.generate", "music.generate", "text.embed", "text.generate", "video.generate", "vision.locate", "voice.create"],
     sources: ["K-LOCAL-001", "K-LOCAL-002", "K-MCAT-027"],
   },
   {

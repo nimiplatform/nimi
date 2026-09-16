@@ -140,6 +140,8 @@ export const landingContentEn: LandingContent = {
       'video.generate': 'Video generation',
       'audio.synthesize': 'Speech synthesis',
       'audio.transcribe': 'Speech transcription',
+      'audio.separate': 'Audio separation',
+      'vision.locate': 'Visual localization',
       'music.generate': 'Music generation',
       'realtime.interact': 'Realtime interaction',
       'voice.create': 'Voice creation',
