@@ -2243,7 +2243,11 @@ function parseScenarioExecute(value: unknown, command: string): NimiLocalAppScen
     validateNimiLocalAppTextOutputItems(output.items);
     if (!['stop', 'length', 'tool-calls', 'content-filter'].includes(String(output.finishReason))) throw new Error(`${command}: finishReason is invalid`);
   } else if (output.type === 'text-embed') {
-    assertProjectionKeys(output, ['type', 'vectors'], command, 'embed output');
+    // @nimi-authority: rule.nimi.runtime.ai-provider.embedding-space-identity
+    assertProjectionKeys(output, ['type', 'vectors', 'spaceId'], command, 'embed output');
+    if (!optionalProjectionText(output.spaceId, 128, command)) {
+      throw new Error(`${command}: embedding spaceId is invalid`);
+    }
     if (!Array.isArray(output.vectors) || output.vectors.length === 0 || output.vectors.length > 16
       || output.vectors.some((vector) => !Array.isArray(vector) || vector.length === 0 || vector.length > 8192
         || vector.some((entry) => typeof entry !== 'number' || !Number.isFinite(entry)))) {

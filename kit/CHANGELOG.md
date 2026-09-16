@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.1 (development)
+
+- Preserve and validate the Runtime-issued `spaceId` in renderer Local App
+  embedding results. The public SDK contract already requires this identity;
+  the renderer no longer rejects a valid result as an unknown field. Keep
+  rejecting missing, invalid, or privileged result fields. SDK 0.14.0 and
+  native 0.10.0 remain compatible; no Runtime protocol change is required.
+
 ## 0.10.0 (development)
 
 - Apply declared inline-audio byte limits independently of decimal JSON
