@@ -453,14 +453,19 @@ func TestRejectedAuditPrecedesNextAccountMutation(t *testing.T) {
 		beginDone <- result
 	}()
 	var begin *runtimev1.BeginLoginResponse
+	overtookAudit := false
 	select {
 	case begin = <-beginDone:
+		overtookAudit = true
 	case <-time.After(100 * time.Millisecond):
 	}
 	close(ctx.release)
 	refresh := <-refreshDone
 	if begin == nil {
 		begin = <-beginDone
+	}
+	if overtookAudit {
+		t.Fatal("replacement login completed before the refresh audit was released")
 	}
 	if refresh.accepted || !begin.GetAccepted() {
 		t.Fatalf("unexpected results: refresh=%+v begin=%+v", refresh, begin)
@@ -471,7 +476,11 @@ func TestRejectedAuditPrecedesNextAccountMutation(t *testing.T) {
 	if failed == nil || started == nil {
 		t.Fatalf("missing expected audits")
 	}
-	if !failed.GetTimestamp().AsTime().Before(started.GetTimestamp().AsTime()) {
+	failedAt := failed.GetTimestamp().AsTime()
+	startedAt := started.GetTimestamp().AsTime()
+	// The wall clock can return equal timestamps on Windows. The audit store
+	// orders ties by its monotonically generated ULIDs.
+	if failedAt.After(startedAt) || (failedAt.Equal(startedAt) && failed.GetAuditId() >= started.GetAuditId()) {
 		t.Fatalf("audit chronology reversed: refresh failure=%s, replacement login begin=%s", failed.GetTimestamp().AsTime(), started.GetTimestamp().AsTime())
 	}
 }
