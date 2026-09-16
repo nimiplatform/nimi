@@ -62,6 +62,8 @@ func (p *CloudProvider) ExecuteMediaAdapter(
 		artifacts, usage, providerJobID, err = ExecuteGeminiOperation(ctx, cfg, updater, privateJobID, request, modelID, mediaExecutionExtensions)
 	case "dashscope_chat_transcribe_adapter":
 		artifacts, usage, providerJobID, err = ExecuteDashScopeTranscribe(ctx, cfg, request, modelID)
+	case "dashscope_finite_asr_adapter":
+		artifacts, usage, providerJobID, err = executeDashScopeFiniteASR(ctx, cfg, request, modelID)
 	case "gemini_chat_transcribe_adapter":
 		artifacts, usage, providerJobID, err = ExecuteGeminiTranscribe(ctx, cfg, request, modelID)
 	case "minimax_task_adapter":

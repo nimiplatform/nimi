@@ -277,6 +277,34 @@ func TestSpeechExecutionHostUsesExactPlanAssetIdentity(t *testing.T) {
 
 type speechZeroReader struct{}
 
+func TestSpeechVoiceLibraryRegistrationCapturesBothModels(t *testing.T) {
+	base := speechBindingFixture(t, "model.safetensors", map[string][]byte{"model.safetensors": []byte("base fixture")})
+	base.RequirementID, base.ModelAssetID = capabilitydriver.Qwen3VoiceLibraryBaseRequirementID, "fixture/base"
+	design := speechBindingFixture(t, "model.safetensors", map[string][]byte{"model.safetensors": []byte("design fixture")})
+	design.RequirementID, design.ModelAssetID = capabilitydriver.Qwen3VoiceLibraryDesignRequirementID, "fixture/design"
+	input := capabilitydriver.VoiceCreateInvocationInput{ExactBindings: []capabilitydriver.InvocationExactBinding{design, base}, SupportedFeatures: []string{"input.audio", "input.text"}, Request: &runtimev1.VoiceCreateScenarioSpec{Source: &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{InstructionText: "warm narrator", PreviewText: "hello"}}}}
+	plan, err := (capabilitydriver.Qwen3VoiceLibraryDriver{}).PlanVoiceCreateInvocation(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	input.ExactBindings[0].DeclaredFiles[0] = "changed-after-admission"
+	seals, err := sealInvocationModelContentContext(context.Background(), plan.ModelFiles())
+	if err != nil {
+		t.Fatal(err)
+	}
+	registration, err := speechExecutionModelRegistration(capabilitydriver.VoiceCreateContract, plan.DriverID(), plan.ModelAssetID(), plan.ModelFiles(), seals, "text_description", plan.WorkflowModelID())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if registration.ModelAssetID != base.ModelAssetID || registration.VoiceDesign == nil || registration.VoiceDesign.ModelAssetID != design.ModelAssetID || registration.VoiceDesign.DeclaredFileSHA256["model.safetensors"] != design.EntrySHA256 || registration.VoiceDesign.CapabilityContract != capabilitydriver.AudioSynthesizeContract {
+		t.Fatalf("voice library registration: %+v", registration)
+	}
+	input.ExactBindings = []capabilitydriver.InvocationExactBinding{base}
+	if _, err := (capabilitydriver.Qwen3VoiceLibraryDriver{}).PlanVoiceCreateInvocation(input); err == nil {
+		t.Fatal("accepted missing captured design model")
+	}
+}
+
 func TestSpeechWhisperRegistrationCapturesVADWithoutRereadingSelection(t *testing.T) {
 	main := speechBindingFixture(t, "model.bin", map[string][]byte{"model.bin": []byte("recognition fixture")})
 	main.RequirementID, main.ModelAssetID = capabilitydriver.Qwen3ASRModelRequirementID, "fixture/whisper"

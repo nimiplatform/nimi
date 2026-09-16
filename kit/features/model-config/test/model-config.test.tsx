@@ -336,7 +336,8 @@ describe('public Model Config contract', () => {
     await flush();
 
     expect(document.body.textContent).not.toContain('Cloud');
-    expect(listOptions).not.toHaveBeenCalled();
+    expect(listOptions).toHaveBeenCalledTimes(1);
+    expect(listOptions).toHaveBeenCalledWith({ kind: 'local-loadouts', capabilityContract: 'text.generate' });
     expect(node.querySelector('[data-testid="model-config-current-machine-local-action"]')).toBeTruthy();
   });
 
@@ -356,8 +357,9 @@ describe('public Model Config contract', () => {
     expect(cloud.querySelector('[data-testid="model-config-current-machine-local-action"]')).toBeNull();
   });
 
-  it('keeps a new Local route neutral until its committed effective projection exists', async () => {
-    const node = await renderSurface(committedOverwrite(), vi.fn(), {
+  it('previews the current Local resource without committing a new route', async () => {
+    const onOverwrite = committedOverwrite();
+    const node = await renderSurface(onOverwrite, vi.fn(), {
       initialCapabilityContract: 'text.generate',
       allowedRoutes: ['local'],
       capabilities: [],
@@ -371,7 +373,7 @@ describe('public Model Config contract', () => {
     const picker = document.body.querySelector(
       '[data-nimi-model-picker-presentation="route"]',
     ) as HTMLElement;
-    expect(picker.textContent).toContain('Use the model selected under On-device models.');
+    expect(picker.textContent).toContain('Machine text model');
     expect(picker.textContent).not.toContain('The on-device model selection could not be loaded.');
 
     const local = picker.querySelector('[data-nimi-model-picker-source="local"]') as HTMLButtonElement;
@@ -383,8 +385,9 @@ describe('public Model Config contract', () => {
     await act(async () => { confirm.click(); await Promise.resolve(); });
     await flush();
 
-    expect(node.textContent).toContain('Use the model selected under On-device models.');
+    expect(node.textContent).toContain('Machine text model');
     expect(node.textContent).not.toContain('The on-device model selection could not be loaded.');
+    expect(onOverwrite).not.toHaveBeenCalled();
   });
 
   it('commits canonical App AIConfig intent through the owner callback', async () => {
@@ -702,6 +705,31 @@ describe('public Model Config contract', () => {
 
     expect(onOpenMachineLoadout).toHaveBeenCalledTimes(1);
     expect(onOverwrite).not.toHaveBeenCalled();
+  });
+
+  it('reads current Local options when switching from a committed Cloud route', async () => {
+    const onOverwrite = committedOverwrite();
+    const intent = createNimiCloudAIConfigCapabilityIntent({ capabilityContract:'text.generate', connectorRef:'connector-test', implementation:{implementationId:'cloud-test',driverId:'nimillm',driverDialect:'openai'}, providerModelTarget:{provider:'provider-test',providerModelId:'cloud-model',remoteModelCatalogId:'rmc-cloud-model'} });
+    const node = await renderSurface(onOverwrite, vi.fn(), { initialCapabilityContract:'text.generate', capabilities:[intent], effectiveSelections:[{capabilityContract:'text.generate',state:'ready',resource:{oneofKind:'cloud',cloud:{connector:{connectorRef:'connector-test',label:'Test account',provider:'provider-test',state:'ready',reasons:[]},target:{connectorRef:'connector-test',label:'Cloud Model',capabilityContract:'text.generate',implementation:{implementationId:'cloud-test',driverId:'nimillm',driverDialect:'openai'},providerModelTarget:{provider:'provider-test',providerModelId:'cloud-model',remoteModelCatalogId:'rmc-cloud-model'},supportedFeatures:[],state:'ready',reasons:[]}}},reasons:[]}] });
+    act(()=>{ (node.querySelector('[data-testid="model-config-model-trigger:text.generate"]') as HTMLButtonElement).click(); });
+    await flush();
+    const dialog = document.body.querySelector('[data-testid="nimi-model-picker-dialog"]') as HTMLElement;
+    const localTab = Array.from(dialog.querySelectorAll('button')).find(b=>b.textContent?.trim()==='On-device') as HTMLButtonElement;
+    act(()=>localTab.click()); await flush();
+    expect(dialog.querySelector('[data-nimi-model-picker-source="cloud"]')).toBeNull();
+    const local = dialog.querySelector('[data-nimi-model-picker-source="local"]') as HTMLButtonElement;
+    expect(local.textContent).toContain('Machine text model');
+    expect(local.textContent).not.toContain('could not be loaded');
+    act(()=>local.click()); await flush();
+    const confirm = Array.from(dialog.querySelectorAll('button')).find(b=>b.textContent?.trim()==='Use selection') as HTMLButtonElement;
+    act(()=>confirm.click()); await flush();
+    expect(node.querySelector('[data-testid="model-config-model-trigger:text.generate"]')?.textContent).toContain('Machine text model');
+    expect(node.textContent).not.toContain('could not be loaded');
+    expect(onOverwrite).not.toHaveBeenCalled();
+    await act(async()=>{ (node.querySelector('[data-testid="model-config-save:text.generate"]') as HTMLButtonElement).click(); await Promise.resolve(); });
+    expect(onOverwrite).toHaveBeenCalledTimes(1);
+    expect(onOverwrite.mock.calls[0]?.[0].capabilities[0]?.route).toEqual({oneofKind:'local',local:{}});
+    expect(JSON.stringify(onOverwrite.mock.calls[0])).not.toContain('machine-text');
   });
 
   it('loads Cloud targets only after choosing a configured Connector', async () => {

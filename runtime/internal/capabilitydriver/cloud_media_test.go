@@ -10,6 +10,27 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+func TestDashScopeFiniteASRCapturesExactTransport(t *testing.T) {
+	for _, model := range []string{"qwen-audio-3.0-asr-flash-streaming", "fun-asr-realtime", "fun-asr-realtime-2026-02-28", "fun-asr-realtime-2025-09-15"} {
+		driver, target := cloudMediaDriverTarget(t, "dashscope", model, "audio.transcribe")
+		request := &runtimev1.SubmitScenarioJobRequest{
+			ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE,
+			Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechTranscribe{SpeechTranscribe: &runtimev1.SpeechTranscribeScenarioSpec{
+				MimeType: "audio/wav", Timestamps: testBool(true),
+				AudioSource: &runtimev1.SpeechTranscriptionAudioSource{Source: &runtimev1.SpeechTranscriptionAudioSource_AudioBytes{AudioBytes: []byte("audio")}},
+			}}},
+		}
+		mapped, err := driver.MapRequest(target, request, nil, CloudMediaStreamNone)
+		if err != nil || mapped.Adapter() != "dashscope_finite_asr_adapter" || mapped.ProviderModelID() != model {
+			t.Fatalf("exact ASR mapping %s: %+v %v", model, mapped, err)
+		}
+		request.GetSpec().GetSpeechTranscribe().Diarization = testBool(true)
+		if _, err := driver.MapRequest(target, request, nil, CloudMediaStreamNone); err == nil {
+			t.Fatal("finite ASR accepted unsupported diarization")
+		}
+	}
+}
+
 func TestApplyCloudMediaDefaultsExplicitZeroOverridesDefaults(t *testing.T) {
 	request := &runtimev1.SubmitScenarioJobRequest{
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,

@@ -485,6 +485,18 @@ describe('renderer local-app standard-shell surface', () => {
     await expect(createNimiLocalAppStandardShellSurface().aiConfig.get()).resolves.toEqual(snapshot);
   });
 
+  it('preserves reference input capabilities without model-name inference', async () => {
+    const input = { supportsBytes: false, supportsUri: true, textMode: 'unsupported', mimeTypes: ['audio/wav'] };
+    const target = { connectorRef:'connector',label:'Voice',capabilityContract:'voice.create',implementation:{implementationId:'cloud.voice',driverId:'voice',driverDialect:'media-v1'},providerModelTarget:{providerModelId:'voice'},supportedFeatures:['input.audio'],state:'ready',reasons:[],referenceAudioInput:input };
+    let result: unknown = { kind:'cloud-targets',options:[target],truncated:false };
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = { invoke:async()=>structuredClone(result),listen:()=>()=>{} };
+    const query = { kind:'cloud-targets' as const,capabilityContract:'voice.create',connectorRef:'connector' };
+    const client = createNimiLocalAppStandardShellSurface().aiConfig;
+    await expect(client.listOptions(query)).resolves.toEqual(result);
+    result = {kind:'cloud-targets',options:[{...target,referenceAudioInput:{...input,textMode:'guess'}}],truncated:false};
+    await expect(client.listOptions(query)).rejects.toThrow();
+  });
+
   it('accepts canonical Local Loadout behaviors with Tool-Use-only fields omitted', async () => {
     const option = {
       loadoutRef: 'loadout-gemma',

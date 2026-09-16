@@ -473,6 +473,7 @@ import type {
   ToolUseCapabilityProjection,
   UpdateLoadoutRequest,
   UpdateLoadoutResponse,
+  VoiceReferenceInputCapabilities,
 } from "../../core-generated/runtime-protobuf/runtime/v1/capability_configuration";
 
 export type {
@@ -537,6 +538,7 @@ export type {
   ToolUseCapabilityProjection,
   UpdateLoadoutRequest,
   UpdateLoadoutResponse,
+  VoiceReferenceInputCapabilities,
 };
 
 import type {

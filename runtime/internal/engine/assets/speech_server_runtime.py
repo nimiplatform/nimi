@@ -111,6 +111,7 @@ class SpeechModelState:
     workflow_model_bindings: dict[str, list[str]] = dataclasses.field(default_factory=dict)
     alignment: SpeechModelState | None = None
     vad: SpeechModelState | None = None
+    voice_design: SpeechModelState | None = None
 
 
 @dataclasses.dataclass
@@ -208,6 +209,8 @@ def driver_command_for_kind(driver_kind: str) -> list[str]:
 
 def create_voice_with_driver(model: SpeechModelState, request_payload: dict[str, Any]) -> dict[str, Any]:
     assert_registered_model_content(model)
+    if model.voice_design is not None:
+        request_payload = {**request_payload, "voice_design": {"bundle_dir": model.voice_design.bundle_dir, "entry_path": model.voice_design.entry_path, "declared_files": model.voice_design.declared_files}}
     driver_kind = model.capability_drivers.get("voice.create", "").strip()
     response = run_driver_command(driver_command_for_kind(driver_kind), request_payload)
     if not isinstance(response, dict):
@@ -459,14 +462,23 @@ def registered_speech_model_state(payload: dict[str, Any]) -> SpeechModelState:
     )
     alignment = None
     if payload.get("alignment") is not None:
-        if driver_id != "nimi.runtime.driver.qwen3-asr-transformers-aligned" or not isinstance(payload["alignment"], dict) or payload["alignment"].get("alignment") is not None or payload["alignment"].get("vad") is not None:
+        if driver_id != "nimi.runtime.driver.qwen3-asr-transformers-aligned" or not isinstance(payload["alignment"], dict) or any(payload["alignment"].get(key) is not None for key in ("alignment", "vad", "voice_design")):
             raise ValueError("speech alignment binding is not admitted")
         alignment = registered_speech_model_state(payload["alignment"])
     vad = None
     if payload.get("vad") is not None:
-        if driver_id != "nimi.runtime.driver.faster-whisper" or not isinstance(payload["vad"], dict) or payload["vad"].get("alignment") is not None or payload["vad"].get("vad") is not None:
+        if driver_id != "nimi.runtime.driver.faster-whisper" or not isinstance(payload["vad"], dict) or any(payload["vad"].get(key) is not None for key in ("alignment", "vad", "voice_design")):
             raise ValueError("speech VAD binding is not admitted")
         vad = registered_speech_model_state(payload["vad"])
+    voice_design = None
+    voice_library = capability == VOICE_CREATE_CAPABILITY and driver_id == "nimi.runtime.driver.qwen3-tts" and workflow_model_id == "qwen3-local-voice-library"
+    if voice_library != (payload.get("voice_design") is not None):
+        raise ValueError("voice library requires its captured design companion")
+    if voice_library:
+        companion = payload["voice_design"]
+        if not isinstance(companion, dict) or any(companion.get(key) is not None for key in ("alignment", "vad", "voice_design")) or companion.get("capability") != "audio.synthesize" or companion.get("driver_id") != driver_id:
+            raise ValueError("voice design companion is not admitted")
+        voice_design = registered_speech_model_state(companion)
     return SpeechModelState(
         model_id=model_id,
         declared_capabilities=[capability],
@@ -486,6 +498,7 @@ def registered_speech_model_state(payload: dict[str, Any]) -> SpeechModelState:
         workflow_model_bindings=workflow_model_bindings,
         alignment=alignment,
         vad=vad,
+        voice_design=voice_design,
     )
 
 
@@ -498,6 +511,8 @@ def sha256_file(path: pathlib.Path) -> str:
 
 
 def assert_registered_model_content(model: SpeechModelState) -> None:
+    if model.voice_design is not None:
+        assert_registered_model_content(model.voice_design)
     if model.vad is not None:
         assert_registered_model_content(model.vad)
     if model.alignment is not None:

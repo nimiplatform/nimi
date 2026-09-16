@@ -123,6 +123,9 @@ capabilities:
     sourceRef:
       table: local-adapter-routing
       capability: audio.separate
+    additionalRuntimeTables:
+      - table: provider-capabilities
+        capability: audio.separate
     i18nKeys:
       title: AIConfig.capability.audioSeparate.title
       subtitle: AIConfig.capability.audioSeparate.subtitle
@@ -259,6 +262,9 @@ capabilities:
     sourceRef:
       table: local-adapter-routing
       capability: vision.locate
+    additionalRuntimeTables:
+      - table: provider-capabilities
+        capability: vision.locate
     i18nKeys:
       title: AIConfig.capability.visionLocate.title
       subtitle: AIConfig.capability.visionLocate.subtitle

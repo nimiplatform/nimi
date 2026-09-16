@@ -1,3 +1,4 @@
+import { projectVoiceReferenceInput } from '../core/ai/voice-reference-input.js';
 import type { AgentRequestContext } from '../core-generated/runtime-protobuf/runtime/v1/agent_common';
 import type {
   AIConfig,
@@ -415,6 +416,7 @@ function projectCloudTargetOption(value: AIConfigCloudTargetProjection): NimiAIC
     implementation: Object.freeze({ ...value.implementation }),
     providerModelTarget: RuntimeStruct.toJson(value.providerModelTarget) as NimiAIConfigCloudTargetOption['providerModelTarget'],
 		supportedFeatures: Object.freeze([...value.supportedFeatures]),
+    ...(value.referenceAudioInput ? { referenceAudioInput: projectVoiceReferenceInput(value.referenceAudioInput) } : {}),
     state,
     reasons: Object.freeze([...value.reasons]),
   });
@@ -434,6 +436,7 @@ function projectLocalOption(value: AIConfigLocalResourceProjection): NimiAIConfi
     implementationSupportedFeatures: Object.freeze([...value.implementationSupportedFeatures]),
     configuredFeatures: Object.freeze([...value.configuredFeatures]),
     textBehaviors: projectNimiTextBehaviorCapabilities(value.textBehaviors),
+    ...(value.referenceAudioInput ? { referenceAudioInput: projectVoiceReferenceInput(value.referenceAudioInput) } : {}),
     state,
     reasons: Object.freeze([...value.reasons]),
   });

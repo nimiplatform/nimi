@@ -1491,6 +1491,16 @@ units:
         target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+  - id: rule.nimi.runtime.ai-provider.qwen3-reference-voice-library
+    kind: rule
+    title: Explicit Qwen3 voice library captures design and reference models
+    modality: must
+    statement: The local Qwen3 reference voice library is an explicit voice.create implementation with required independent Base and VoiceDesign ModelAsset bindings and both input.audio and input.text source features. Runtime captures both exact models and their managed speech dependency context in the existing Job ResolvedAssembly before admission. Reference-audio creation preserves the supplied reference; text-description creation requires nonempty preview text and uses the captured VoiceDesign model to generate actual reference audio with that transcript. Both branches return an owned VoiceAsset bound to the captured Base model for subsequent compatible audio.synthesize calls. The source selects only the declared behavior inside this captured implementation, never another Loadout, route, provider, model or current configuration. Design inference and temporary reference audio remain Runtime-owned, cancellation cannot publish a voice, and neither the description nor its reference becomes a permanent App voice-library record. Apps own audition, locking actual sample audio, business names, project persistence and later reuse; existing separate voice recipes retain their declared behavior.
+    condition: Whenever the Qwen3 reference voice library is configured, captured, executed or consumed.
+    failure: Reject missing or incompatible captured models, absent preview text, invalid or oversized generated reference audio, model inference failure and cancellation without a synthetic voice result, model substitution or configuration switching.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
   - id: rule.nimi.runtime.ai-provider.speech-transcription-result
     kind: rule
     title: Speech transcription preserves actual language and alignment results
@@ -1561,5 +1571,15 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+  - id: rule.nimi.runtime.ai-provider.voice-reference-input-projection
+    kind: rule
+    title: Voice reference input capabilities follow the exact selected resource
+    modality: must
+    statement: Runtime may project bounded voice.create reference-audio input capabilities on current Local resource and Cloud target options and effective selected resources, deriving supported byte and URI carriers, reference-text mode unsupported or optional or required, and allowed MIME types from the exact Driver and captured workflow metadata. The projection contains no reference content, provider payload, endpoint, credential or execution override; absence means unknown or inapplicable rather than inferred support. It does not grant coverage, replace Job admission, select another resource, or authorize publishing private audio. Apps may retain a reference transcript as business data and submit it only when the projected mode admits it; an unsupported supplied reference text fails before provider dispatch rather than being silently discarded. Runtime revalidates actual input and current committed configuration at admission.
+    condition: Whenever voice.create input conditions are projected or a reference-audio Job is admitted.
+    failure: Reject inconsistent or unbounded metadata, model-name heuristics outside the Driver, unsupported input fields and private-audio publication as an implicit URI conversion; preserve committed configuration without fallback or fabricated readiness.
+    relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane

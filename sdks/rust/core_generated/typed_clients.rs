@@ -4051,6 +4051,7 @@ pub struct AIConfigCloudTargetProjection {
     pub supported_features: Vec<String>,
     pub state: Option<AIConfigEffectiveState>,
     pub reasons: Vec<String>,
+    pub reference_audio_input: Option<Box<VoiceReferenceInputCapabilities>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -4089,6 +4090,7 @@ pub struct AIConfigLocalResourceProjection {
     pub implementation_supported_features: Vec<String>,
     pub configured_features: Vec<String>,
     pub text_behaviors: Vec<Box<TextBehaviorCapabilityProjection>>,
+    pub reference_audio_input: Option<Box<VoiceReferenceInputCapabilities>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -13187,6 +13189,14 @@ pub struct VoiceReference {
     pub preset_voice_id: Option<String>,
     pub voice_asset_id: Option<String>,
     pub provider_voice_ref: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct VoiceReferenceInputCapabilities {
+    pub supports_bytes: Option<bool>,
+    pub supports_uri: Option<bool>,
+    pub text_mode: Option<String>,
+    pub mime_types: Vec<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

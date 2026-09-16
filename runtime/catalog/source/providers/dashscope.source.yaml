@@ -1,6 +1,6 @@
 schema_version: 3
 provider: dashscope
-catalog_version: 2026-08-26-dashscope-realtime-v1
+catalog_version: 2026-09-16-dashscope-qwen-audio-v3
 generated_target: runtime/catalog/providers/dashscope.yaml
 runtime:
   inventory_mode: static_source
@@ -130,12 +130,43 @@ sources:
     retrieved_at: 2026-04-18
     note: Wan 2.7 video editing API reference.
 
+  - source_id: dashscope_qwen_audio_tts_http_doc
+    url: https://help.aliyun.com/zh/model-studio/cosyvoice-tts-http-api
+    retrieved_at: 2026-09-16
+    note: Qwen-Audio 3.0 TTS SpeechSynthesizer HTTP contract.
+  - source_id: dashscope_qwen_audio_tts_ws_doc
+    url: https://help.aliyun.com/zh/model-studio/cosyvoice-client-events
+    retrieved_at: 2026-09-16
+    note: Qwen-Audio 3.0 TTS duplex task protocol.
+  - source_id: dashscope_qwen_audio_clone_doc
+    url: https://help.aliyun.com/zh/model-studio/voice-clone-design-http-api
+    retrieved_at: 2026-09-16
+    note: Qwen-Audio 3.0 voice enrollment requires a public HTTP audio URL.
+  - source_id: dashscope_qwen_audio_design_doc
+    url: https://help.aliyun.com/zh/model-studio/voice-design-api-references
+    retrieved_at: 2026-09-16
+    note: Voice design input and preview limits for Qwen-Audio 3.0.
+  - source_id: dashscope_qwen_audio_asr_client_doc
+    url: https://help.aliyun.com/zh/model-studio/fun-asr-client-events
+    retrieved_at: 2026-09-16
+    note: Qwen-Audio 3.0 and Fun-ASR finite audio over duplex WebSocket.
+  - source_id: dashscope_qwen_audio_asr_server_doc
+    url: https://help.aliyun.com/zh/model-studio/fun-asr-server-events
+    retrieved_at: 2026-09-16
+    note: Final sentence events carry real word timestamps; task-finished is required.
+
+  - source_id: dashscope_qwen_audio_clone_guide
+    url: https://help.aliyun.com/zh/model-studio/voice-cloning-user-guide
+    retrieved_at: 2026-09-16
+    note: Reference audio formats, duration, sample rate, size and content requirements.
+
 language_profiles:
   region_v1: [zh-cn, en-us, fr-fr, de-de, ru-ru, it-it, es-es, pt-pt, ja-jp, ko-kr]
   short_v1: [zh, en, de, it, pt, es, ja, ko, fr, ru]
   cosyvoice_v3_multi: [zh, en, fr, de, ja, ko, ru, pt, th, id, vi]
   cosyvoice_v3_system: [zh, en, ja, ko]
   cosyvoice_design_v1: [zh, en]
+  qwen_audio_v3_multi: [zh, en, fr, de, ja, ko, ru, pt, th, id, vi, es, it, ms, fil, ar]
 
 selection_profiles:
   - profile_id: text.general
@@ -316,6 +347,42 @@ voice_sets:
         name: 龙安欢
 
 models:
+  - model_id: qwen-audio-3.0-tts-plus
+    updated_at: 2026-09-16
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio, input.text]
+    source_ids: [dashscope_qwen_audio_tts_http_doc, dashscope_qwen_audio_tts_ws_doc, dashscope_qwen_audio_clone_doc, dashscope_qwen_audio_design_doc]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
+      langs_ref: qwen_audio_v3_multi
+      request_options:
+        timing_modes: [none]
+        audio_formats: [mp3, pcm, wav, opus]
+        supports_language: true
+        supports_native_stream_tts: true
+        provider_extensions:
+          namespace: nimi.scenario.speech_synthesize.request
+          schema_version: dashscope-cosyvoice-v1
+
+  - model_id: qwen-audio-3.0-tts-flash
+    updated_at: 2026-09-16
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio, input.text]
+    source_ids: [dashscope_qwen_audio_tts_http_doc, dashscope_qwen_audio_tts_ws_doc, dashscope_qwen_audio_clone_doc, dashscope_qwen_audio_design_doc]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
+      langs_ref: qwen_audio_v3_multi
+      request_options:
+        timing_modes: [none]
+        audio_formats: [mp3, pcm, wav, opus]
+        supports_language: true
+        supports_native_stream_tts: true
+        provider_extensions:
+          namespace: nimi.scenario.speech_synthesize.request
+          schema_version: dashscope-cosyvoice-v1
+
   - model_id: cosyvoice-v3.5-plus
     updated_at: 2026-03-02
     capabilities: [audio.synthesize, voice.create]
@@ -998,6 +1065,19 @@ models:
     aliases:
       - fun-asr-2025-11-07
 
+  - model_id: qwen-audio-3.0-asr-flash-streaming
+    model_type: stt
+    updated_at: 2026-09-16
+    capabilities: [audio.transcribe]
+    source_ids: [dashscope_qwen_audio_asr_client_doc, dashscope_qwen_audio_asr_server_doc]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-09-16
+      notes: Finite mono PCM WAV requests up to 300 seconds and 32 MiB; real word timestamps, no diarization. Billing depends on audio duration.
+
   - model_id: fun-asr-realtime
     model_type: stt
     updated_at: 2026-04-18
@@ -1398,6 +1478,26 @@ voice_workflow_models:
       - qwen3-tts-vd-realtime-2026-01-15
     langs_ref: short_v1
     source_ids: [dashscope_voice_design_doc, dashscope_qwen_realtime_tts_doc]
+  - workflow_model_id: voice-enrollment-qwen-audio-clone
+    workflow_type: reference_audio
+    workflow_family: cosyvoice
+    input_contract_ref: dashscope_cosyvoice_voice_clone_input_v1
+    output_persistence: provider_persistent
+    request_options:
+      text_prompt_mode: unsupported
+      supports_language_hints: true
+      supports_preferred_name: true
+      reference_audio_uri_input: true
+      reference_audio_bytes_input: false
+      allowed_reference_audio_mime_types: [audio/wav, audio/mpeg, audio/mp4, audio/m4a]
+      provider_extensions:
+        namespace: nimi.scenario.voice_create.request
+        schema_version: dashscope-cosyvoice-voice-enrollment-v1
+    target_model_refs:
+      - qwen-audio-3.0-tts-plus
+      - qwen-audio-3.0-tts-flash
+    langs_ref: qwen_audio_v3_multi
+    source_ids: [dashscope_qwen_audio_clone_doc, dashscope_qwen_audio_clone_guide]
   - workflow_model_id: voice-enrollment-clone
     workflow_type: reference_audio
     workflow_family: cosyvoice
@@ -1434,14 +1534,22 @@ voice_workflow_models:
         namespace: nimi.scenario.voice_create.request
         schema_version: dashscope-cosyvoice-voice-enrollment-v1
     target_model_refs:
+      - qwen-audio-3.0-tts-plus
+      - qwen-audio-3.0-tts-flash
       - cosyvoice-v3.5-plus
       - cosyvoice-v3.5-flash
       - cosyvoice-v3-plus
       - cosyvoice-v3-flash
     langs_ref: cosyvoice_design_v1
-    source_ids: [dashscope_cosyvoice_clone_design_doc, dashscope_speech_synthesis_doc]
+    source_ids: [dashscope_cosyvoice_clone_design_doc, dashscope_speech_synthesis_doc, dashscope_qwen_audio_design_doc]
 
 model_workflow_bindings:
+  - model_id: qwen-audio-3.0-tts-plus
+    workflow_model_refs: [voice-enrollment-qwen-audio-clone, voice-enrollment-design]
+    workflow_types: [reference_audio, text_description]
+  - model_id: qwen-audio-3.0-tts-flash
+    workflow_model_refs: [voice-enrollment-qwen-audio-clone, voice-enrollment-design]
+    workflow_types: [reference_audio, text_description]
   - model_id: qwen3-tts-vc
     workflow_model_refs: [qwen-voice-enrollment]
     workflow_types: [reference_audio]

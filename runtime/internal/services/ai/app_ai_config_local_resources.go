@@ -127,7 +127,7 @@ func (s *Service) projectAppAIConfigEffectiveSelections(
 			selection.Reasons = appendReasonStringOnce(selection.Reasons, runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH.String())
 		}
 		if option.Implementation != nil && strings.TrimSpace(option.DisplayName) != "" {
-			selection.Resource = &runtimev1.AIConfigEffectiveSelection_Local{Local: projectLocalResourceProjection(option)}
+			selection.Resource = &runtimev1.AIConfigEffectiveSelection_Local{Local: s.projectLocalResourceProjection(option)}
 		}
 		result = append(result, selection)
 	}
@@ -155,7 +155,7 @@ func (s *Service) projectCloudEffectiveSelection(
 		return selection
 	}
 	target := cloud.GetProviderModelTarget().GetFields()
-	record, _, err := connector.ValidateAIConfigCloudSelection(
+	record, binding, err := connector.ValidateAIConfigCloudSelection(
 		s.connStore, s.speechCatalog, accountNamespace, capabilityContract, cloud.GetImplementation(),
 		connector.RemoteModelCatalogRef{
 			ConnectorID: cloud.GetConnectorRef(), Provider: target["provider"].GetStringValue(),
@@ -186,6 +186,8 @@ func (s *Service) projectCloudEffectiveSelection(
 			ConnectorRef: cloud.GetConnectorRef(), Label: target["providerModelId"].GetStringValue(),
 			CapabilityContract: capabilityContract, Implementation: implementation,
 			ProviderModelTarget: providerTarget, State: runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_READY,
+			SupportedFeatures:   append([]string(nil), binding.Features...),
+			ReferenceAudioInput: connector.VoiceReferenceInputProjection(s.speechCatalog, accountNamespace, binding.Provider, binding.ProviderModelID, capabilityContract),
 		},
 	}}
 	return selection
@@ -229,7 +231,7 @@ func (s *Service) ListAppAIConfigOptions(
 		search := strings.ToLower(query.LocalLoadouts.GetSearch())
 		if found && (search == "" || strings.Contains(strings.ToLower(option.LoadoutID), search) || strings.Contains(strings.ToLower(option.DisplayName), search)) &&
 			option.Implementation != nil && strings.TrimSpace(option.DisplayName) != "" {
-			projected = append(projected, projectLocalResourceProjection(option))
+			projected = append(projected, s.projectLocalResourceProjection(option))
 		}
 		return &runtimev1.ListAppAIConfigOptionsResponse{
 			Result:    &runtimev1.ListAppAIConfigOptionsResponse_LocalLoadouts{LocalLoadouts: &runtimev1.AIConfigLocalLoadoutOptions{Options: projected}},
@@ -404,10 +406,11 @@ func projectCloudTargetOption(option connector.AIConfigCloudTargetOption) *runti
 		ConnectorRef: option.ConnectorRef, Label: option.Label, CapabilityContract: option.Capability,
 		Implementation: implementation, ProviderModelTarget: target,
 		SupportedFeatures: append([]string(nil), option.SupportedFeatures...), State: option.State, Reasons: reasons,
+		ReferenceAudioInput: option.ReferenceAudioInput,
 	}
 }
 
-func projectLocalResourceProjection(option localexecution.LoadoutOption) *runtimev1.AIConfigLocalResourceProjection {
+func (s *Service) projectLocalResourceProjection(option localexecution.LoadoutOption) *runtimev1.AIConfigLocalResourceProjection {
 	implementation, _ := proto.Clone(option.Implementation).(*runtimev1.CapabilityImplementationIdentity)
 	state := runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED
 	if option.ValidationState == runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED {
@@ -417,12 +420,20 @@ func projectLocalResourceProjection(option localexecution.LoadoutOption) *runtim
 	for _, reason := range option.Reasons {
 		reasons = append(reasons, reason.String())
 	}
+	var referenceInput *runtimev1.VoiceReferenceInputCapabilities
+	if option.CapabilityContract == capabilitydriver.VoiceCreateContract && s.capabilityDrivers != nil {
+		driver, _ := s.capabilityDrivers.Resolve(option.CapabilityContract, capabilitydriver.IdentityFromProto(option.Implementation))
+		if projector, ok := driver.(capabilitydriver.VoiceReferenceInputProjector); ok {
+			referenceInput = projector.ReferenceAudioInputCapabilities(option.ConfiguredFeatures)
+		}
+	}
 	return &runtimev1.AIConfigLocalResourceProjection{
 		LoadoutRef: option.LoadoutID, Label: option.DisplayName,
 		CapabilityContract: option.CapabilityContract, Implementation: implementation,
 		ImplementationSupportedFeatures: append([]string(nil), option.ImplementationSupportedFeatures...),
 		ConfiguredFeatures:              append([]string(nil), option.ConfiguredFeatures...),
 		TextBehaviors:                   cloneAITextBehaviorCapabilityProjections(option.TextBehaviors),
+		ReferenceAudioInput:             referenceInput,
 		State:                           state, Reasons: reasons,
 	}
 }

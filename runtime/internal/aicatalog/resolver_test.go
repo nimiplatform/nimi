@@ -496,6 +496,34 @@ func TestResolveVoiceWorkflowDashScopeDesign(t *testing.T) {
 	}
 }
 
+func TestDashScopeQwenAudioVoiceWorkflowKeepsInputAndSynthesisCompatibility(t *testing.T) {
+	resolver, err := NewResolver(ResolverConfig{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, model := range []string{"qwen-audio-3.0-tts-plus", "qwen-audio-3.0-tts-flash"} {
+		clone, err := resolver.ResolveVoiceWorkflow("dashscope", model, "reference_audio")
+		if err != nil {
+			t.Fatal(err)
+		}
+		options := clone.RequestOptions
+		if clone.ModelID != model || clone.APIModelID != "" || clone.WorkflowModelID != "voice-enrollment-qwen-audio-clone" || options == nil || options.ReferenceAudioURIInput == nil || !*options.ReferenceAudioURIInput || options.ReferenceAudioBytesInput == nil || *options.ReferenceAudioBytesInput || options.TextPromptMode != "unsupported" {
+			t.Fatalf("clone must preserve exact target and URL-only admission: %+v", clone)
+		}
+		if slices.Contains(options.AllowedReferenceAudioMimeTypes, "audio/flac") {
+			t.Fatal("latest clone does not admit FLAC")
+		}
+		design, err := resolver.ResolveVoiceWorkflow("dashscope", model, "text_description")
+		if err != nil || design.ModelID != model || design.APIModelID != "" || design.WorkflowModelID != "voice-enrollment-design" {
+			t.Fatalf("design target: %+v %v", design, err)
+		}
+		entry, err := resolver.ResolveModelEntry("dashscope", model)
+		if err != nil || entry.VoiceRequestOptions == nil || !entry.VoiceRequestOptions.SupportsNativeStreamTTS {
+			t.Fatalf("synthesis target: %+v %v", entry, err)
+		}
+	}
+}
+
 func TestResolveVoiceWorkflowElevenLabsClone(t *testing.T) {
 	resolver, err := NewResolver(ResolverConfig{})
 	if err != nil {

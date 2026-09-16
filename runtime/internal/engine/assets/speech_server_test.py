@@ -970,6 +970,42 @@ class SpeechServerTests(unittest.TestCase):
             )
         self.assertNotIn("generate", vars(model.model.talker))
 
+    def test_voice_library_design_returns_reference_handle_for_captured_base(self) -> None:
+        reference = b"RIFF" + b"reference-audio-unit-fixture" * 4
+        fake_soundfile = types.SimpleNamespace(write=lambda target, wav, rate, **kwargs: target.write(reference))
+        payload = {"creation_source": "text_description", "target_model_id": "captured-base", "voice_design": {"bundle_dir": "captured-design"}, "input": {"preview_text": "A real preview.", "instruction_text": "Warm narrator", "language": "en", "preferred_name": "Narrator"}}
+        model = object()
+        with mock.patch.object(QWEN3_TTS_DRIVER, "local_bundle_model_ref", return_value="captured-design"), \
+            mock.patch.object(QWEN3_TTS_DRIVER, "load_qwen_tts_model", return_value=model) as load, \
+            mock.patch.object(QWEN3_TTS_DRIVER, "generate_voice_design_batch", return_value=([object()], 24000)) as generate, \
+            mock.patch.dict(sys.modules, {"soundfile": fake_soundfile}):
+            result = QWEN3_TTS_DRIVER.create_library_voice(payload)
+        load.assert_called_once_with("captured-design")
+        self.assertEqual(generate.call_args.args[1], ["A real preview."])
+        kind, handle = QWEN3_TTS_DRIVER.decode_voice_handle(result["voice_id"])
+        self.assertEqual(kind, "reference_audio")
+        self.assertEqual(base64.b64decode(handle["reference_audio_base64"]), reference)
+        self.assertEqual(handle["reference_text"], "A real preview.")
+        self.assertEqual(handle["target_model_id"], "captured-base")
+        self.assertEqual(result["metadata"]["creation_source"], "text_description")
+
+    def test_voice_library_reference_does_not_run_design_and_design_fails_closed(self) -> None:
+        payload = {"creation_source": "reference_audio", "target_model_id": "captured-base", "voice_design": {"bundle_dir": "captured-design"}, "input": {"reference_audio_base64": base64.b64encode(b"original audio").decode(), "reference_audio_mime": "audio/wav", "text": "original transcript"}}
+        with mock.patch.object(QWEN3_TTS_DRIVER, "load_qwen_tts_model") as load:
+            result = QWEN3_TTS_DRIVER.create_library_voice(payload)
+            load.assert_not_called()
+        kind, handle = QWEN3_TTS_DRIVER.decode_voice_handle(result["voice_id"])
+        self.assertEqual(kind, "reference_audio")
+        self.assertEqual(base64.b64decode(handle["reference_audio_base64"]), b"original audio")
+        payload["creation_source"] = "text_description"
+        with self.assertRaisesRegex(RuntimeError, "preview_text"):
+            QWEN3_TTS_DRIVER.create_library_voice(payload)
+        payload["input"] = {"preview_text": "hello", "instruction_text": "warm"}
+        with mock.patch.object(QWEN3_TTS_DRIVER, "local_bundle_model_ref", return_value="captured-design"), \
+            mock.patch.object(QWEN3_TTS_DRIVER, "load_qwen_tts_model", side_effect=RuntimeError("design unavailable")):
+            with self.assertRaisesRegex(RuntimeError, "design unavailable"):
+                QWEN3_TTS_DRIVER.create_library_voice(payload)
+
     def test_qwen3_tts_long_voice_design_reuses_instruction_across_bounded_batches(self) -> None:
         model = FakeQwen3TTSModel()
         long_text = "A designed voice must preserve every bounded sentence. " * 80

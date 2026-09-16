@@ -67,6 +67,7 @@ type SpeechExecutionModelRegistration struct {
 	EntrySHA256         string
 	Alignment           *SpeechExecutionModelRegistration
 	VAD                 *SpeechExecutionModelRegistration
+	VoiceDesign         *SpeechExecutionModelRegistration
 }
 
 // SpeechExecutionHostMaterializer lazily starts the private Host for exactly
@@ -185,7 +186,7 @@ func (host *SpeechExecutionHost) ExecuteVoiceCreate(ctx context.Context, plan *c
 	if plan != nil && plan.AudioCppProviderVoiceRef() != "" {
 		return host.executeAudioCppReferenceVoiceCreate(ctx, plan, onStart)
 	}
-	if host == nil || host.materializer == nil || plan == nil || strings.TrimSpace(plan.ModelAssetID()) == "" || len(plan.ModelFiles()) != 1 {
+	if host == nil || host.materializer == nil || plan == nil || strings.TrimSpace(plan.ModelAssetID()) == "" || (len(plan.ModelFiles()) != 1 && plan.WorkflowModelID() != capabilitydriver.Qwen3VoiceLibraryRecipeID) {
 		return localexecution.VoiceCreateResult{}, speechHostError(localexecution.FailureLoad, fmt.Errorf("local voice.create host is unavailable"))
 	}
 	release, err := host.lease.acquire(ctx)
@@ -580,8 +581,9 @@ func speechExecutionModelRegistration(
 ) (SpeechExecutionModelRegistration, error) {
 	aligned := driverID == capabilitydriver.Qwen3ASRAlignedDriverID
 	withVAD := driverID == capabilitydriver.FasterWhisperDriverID
+	voiceLibrary := capabilityContract == capabilitydriver.VoiceCreateContract && driverID == capabilitydriver.Qwen3TTSDriverID && workflowModelID == capabilitydriver.Qwen3VoiceLibraryRecipeID
 	expected := 1
-	if aligned || withVAD {
+	if aligned || withVAD || voiceLibrary {
 		expected = 2
 	}
 	if len(modelFiles) != expected || len(seals) != expected {
@@ -596,13 +598,16 @@ func speechExecutionModelRegistration(
 	if withVAD && (capabilityContract != capabilitydriver.AudioTranscribeContract || modelFiles[0].RequirementID != capabilitydriver.Qwen3ASRModelRequirementID || modelFiles[1].RequirementID != capabilitydriver.FasterWhisperVADRequirementID) {
 		return SpeechExecutionModelRegistration{}, fmt.Errorf("Whisper model slots are invalid")
 	}
+	if voiceLibrary && (modelFiles[0].RequirementID != capabilitydriver.Qwen3VoiceLibraryBaseRequirementID || modelFiles[1].RequirementID != capabilitydriver.Qwen3VoiceLibraryDesignRequirementID) {
+		return SpeechExecutionModelRegistration{}, fmt.Errorf("voice library model slots are invalid")
+	}
 	voiceCreationSource = strings.TrimSpace(voiceCreationSource)
 	workflowModelID = strings.TrimSpace(workflowModelID)
 	if capabilityContract == capabilitydriver.VoiceCreateContract {
 		if (voiceCreationSource != "reference_audio" && voiceCreationSource != "text_description") || workflowModelID == "" {
 			return SpeechExecutionModelRegistration{}, fmt.Errorf("voice.create source and workflow model binding are required")
 		}
-		if (voiceCreationSource == "reference_audio" && workflowModelID != capabilitydriver.Qwen3VoiceCloneRecipeID) || (voiceCreationSource == "text_description" && workflowModelID != capabilitydriver.Qwen3VoiceDesignRecipeID) {
+		if !voiceLibrary && ((voiceCreationSource == "reference_audio" && workflowModelID != capabilitydriver.Qwen3VoiceCloneRecipeID) || (voiceCreationSource == "text_description" && workflowModelID != capabilitydriver.Qwen3VoiceDesignRecipeID)) {
 			return SpeechExecutionModelRegistration{}, fmt.Errorf("voice.create source does not match its captured workflow model")
 		}
 	} else if voiceCreationSource != "" || workflowModelID != "" {
@@ -626,6 +631,13 @@ func speechExecutionModelRegistration(
 	}
 	if withVAD {
 		registrations[0].VAD = &registrations[1]
+	}
+	if voiceLibrary {
+		// The companion is a captured design model, not a second voice.create registration.
+		registrations[1].CapabilityContract = capabilitydriver.AudioSynthesizeContract
+		registrations[1].VoiceCreationSource = ""
+		registrations[1].WorkflowModelID = ""
+		registrations[0].VoiceDesign = &registrations[1]
 	}
 	return registrations[0], nil
 }

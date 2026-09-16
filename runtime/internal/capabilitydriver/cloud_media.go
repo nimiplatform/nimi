@@ -46,6 +46,7 @@ const (
 	CloudMediaAdapterGeminiOperation         = "gemini_operation_adapter"
 	CloudMediaAdapterGeminiChatSTT           = "gemini_chat_transcribe_adapter"
 	CloudMediaAdapterDashScopeChatSTT        = "dashscope_chat_transcribe_adapter"
+	CloudMediaAdapterDashScopeFiniteASR      = "dashscope_finite_asr_adapter"
 	CloudMediaAdapterMimoChatTTS             = "mimo_chat_synthesize_adapter"
 	CloudMediaAdapterMimoChatSTT             = "mimo_chat_transcribe_adapter"
 	CloudMediaAdapterMiniMaxTask             = "minimax_task_adapter"
@@ -577,6 +578,13 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 		return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("provider does not support music iteration mapping"))
 	}
 	adapter := cloudMediaAdapterFor(d.provider, target.capabilityContract)
+	// @nimi-authority: rule.nimi.runtime.ai-provider.speech-transcription-result
+	if d.provider == "dashscope" && target.capabilityContract == "audio.transcribe" && dashScopeFiniteASRTarget(target.providerModelID) {
+		if err := validateDashScopeFiniteASRRequest(mapped.GetSpec().GetSpeechTranscribe(), target.providerModelID); err != nil {
+			return nil, err
+		}
+		adapter = CloudMediaAdapterDashScopeFiniteASR
+	}
 	if adapter == "" {
 		return nil, cloudInvocationError(CloudInvocationFailureTarget, fmt.Errorf("provider %q has no %s transport dialect", d.provider, target.capabilityContract))
 	}
@@ -721,7 +729,8 @@ func scenarioCapabilityContract(scenarioType runtimev1.ScenarioType) string {
 }
 
 // ResolveCloudMediaAdapter exposes Driver-owned dialect resolution to bounded
-// diagnostics and tests. Execution captures the same value through MapRequest.
+// diagnostics and tests. MapRequest additionally resolves exact model-specific
+// dialects; provider-level support alone does not establish target behavior.
 func ResolveCloudMediaAdapter(provider string, capability string) string {
 	return cloudMediaAdapterFor(provider, capability)
 }

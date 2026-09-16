@@ -58,6 +58,7 @@ type ModelConfigRouteChoice =
       readonly route: 'local';
       readonly label: string;
       readonly description: string;
+      readonly state?: ModelConfigEffectiveSelectionProjection['state'];
     }
   | {
       readonly id: string;
@@ -208,6 +209,7 @@ function localChoice(
     route: 'local',
     label: local?.label || copy.localLabel,
     description,
+    state: selection?.state,
   };
 }
 
@@ -591,6 +593,7 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
   const [connectorRef, setConnectorRef] = useState(currentChoice?.route === 'cloud' ? currentChoice.connectorRef : '');
   const [pickerConnectorRef, setPickerConnectorRef] = useState(currentChoice?.route === 'cloud' ? currentChoice.connectorRef : '');
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerLocalSelection, setPickerLocalSelection] = useState<ModelConfigEffectiveSelectionProjection>();
   const [saving, setSaving] = useState(false);
   const [mutationKind, setMutationKind] = useState<'save' | 'clear' | null>(null);
   const [cloudError, setCloudError] = useState('');
@@ -618,9 +621,31 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
   }, [currentChoice, currentDefaults, draftChoice, syncKey]);
 
   const listChoices = useCallback(async (): Promise<readonly ModelConfigRouteChoice[]> => {
+    let localSelection: ModelConfigEffectiveSelectionProjection | undefined;
+    if (props.allowedRoutes.includes('local')) {
+      try {
+        const result = await props.listOptions!({ kind: 'local-loadouts', capabilityContract: props.capabilityContract });
+        if (result.kind !== 'local-loadouts' || result.truncated || result.options.length > 1) {
+          throw new Error('Current Local selection projection is incomplete');
+        }
+        const local = result.options[0];
+        if (local && (local.capabilityContract !== props.capabilityContract || !['ready', 'blocked'].includes(local.state))) {
+          throw new Error('Current Local selection does not match the capability');
+        }
+        localSelection = {
+          capabilityContract: props.capabilityContract,
+          state: local?.state || 'missing',
+          resource: local ? { oneofKind: 'local', local } : null,
+          reasons: local?.reasons || [],
+        };
+      } catch {
+        localSelection = { capabilityContract: props.capabilityContract, state: 'unavailable', resource: null, reasons: [] };
+      }
+      setPickerLocalSelection(localSelection);
+    }
     const locals: readonly Extract<ModelConfigRouteChoice, { readonly route: 'local' }>[] = props.allowedRoutes.includes('local')
       ? [localChoice(
-          props.selection,
+          localSelection,
           props.copy,
           props.currentIntent?.route.oneofKind === 'local',
         )]
@@ -657,7 +682,7 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
     getSource: (choice) => choice.route,
     getBadges: (choice) => [{
       label: choice.route === 'cloud' ? choice.provider : props.copy.localLabel,
-      tone: choice.route === 'cloud' ? 'neutral' : props.selection?.state === 'ready' ? 'success' : 'warning',
+      tone: choice.route === 'cloud' ? 'neutral' : choice.state === 'ready' ? 'success' : 'warning',
     }],
     getSearchText: (choice) => choice.route === 'cloud'
       ? JSON.stringify(choice.target.providerModelTarget)
@@ -668,7 +693,7 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
           value: typeof value === 'string' ? value : JSON.stringify(value),
         }))
       : [],
-  }), [listChoices, props.copy.localLabel, props.selection?.state]);
+  }), [listChoices, props.copy.localLabel]);
 
   const selectedConnector = draftChoice?.route === 'cloud'
     ? connectors.find((entry) => entry.connectorRef === draftChoice.connectorRef) || {
@@ -681,8 +706,14 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
     : null;
   const exactCloudSelection = draftChoice?.route === 'cloud'
     && modelConfigJsonHasExactCloudTarget(draftChoice.target.providerModelTarget);
+  const localDraftSelection = props.currentIntent?.route.oneofKind === 'local' ? props.selection : pickerLocalSelection;
+  const localDraftIntent = draftChoice?.route === 'local'
+    ? props.currentIntent?.route.oneofKind === 'local' ? props.currentIntent : createNimiLocalAIConfigCapabilityIntent({
+      capabilityContract: props.capabilityContract,
+      requiredFeatures: [...(props.currentIntent?.requiredFeatures || [])],
+    }) : null;
   const missingFeatures = draftChoice?.route === 'local'
-    ? modelConfigMissingRequiredFeatures(props.currentIntent, props.selection)
+    ? modelConfigMissingRequiredFeatures(localDraftIntent, localDraftSelection)
     : [];
 
   const commit = async () => {
@@ -788,11 +819,8 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
 
   const draftPosture = draftChoice?.route === 'local'
     ? modelConfigCapabilityPosture(
-        props.currentIntent?.route.oneofKind === 'local' ? props.currentIntent : createNimiLocalAIConfigCapabilityIntent({
-          capabilityContract: props.capabilityContract,
-          requiredFeatures: [...(props.currentIntent?.requiredFeatures || [])],
-        }),
-        props.selection,
+        localDraftIntent,
+        localDraftSelection,
       )
     : draftChoice?.route === 'cloud'
       ? currentChoice?.id === draftChoice.id
@@ -810,7 +838,7 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
     : null;
   const displayedChoice = draftChoice?.route === 'local'
     ? localChoice(
-        props.selection,
+        localDraftSelection,
         props.copy,
         props.currentIntent?.route.oneofKind === 'local',
       )
@@ -924,7 +952,7 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
 
       {draftChoice?.route === 'local' ? (
         <LocalSelectionSummary
-          selection={props.selection}
+          selection={localDraftSelection}
           missingFeatures={missingFeatures}
           copy={props.copy}
           hasCommittedLocalIntent={props.currentIntent?.route.oneofKind === 'local'}

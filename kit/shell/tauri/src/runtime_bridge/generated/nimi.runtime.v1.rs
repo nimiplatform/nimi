@@ -3870,6 +3870,20 @@ pub struct AiConfig {
     #[prost(message, repeated, tag = "2")]
     pub capabilities: ::prost::alloc::vec::Vec<AiConfigCapabilityIntent>,
 }
+/// Safe input capabilities of the exact voice.create resource. Absence means
+/// unknown or not applicable, never inferred support. This is not Job admission.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct VoiceReferenceInputCapabilities {
+    #[prost(bool, tag = "1")]
+    pub supports_bytes: bool,
+    #[prost(bool, tag = "2")]
+    pub supports_uri: bool,
+    /// unsupported | optional | required
+    #[prost(string, tag = "3")]
+    pub text_mode: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "4")]
+    pub mime_types: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AiConfigLocalResourceProjection {
     #[prost(string, tag = "1")]
@@ -3892,6 +3906,8 @@ pub struct AiConfigLocalResourceProjection {
     pub configured_features: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(message, repeated, tag = "10")]
     pub text_behaviors: ::prost::alloc::vec::Vec<TextBehaviorCapabilityProjection>,
+    #[prost(message, optional, tag = "11")]
+    pub reference_audio_input: ::core::option::Option<VoiceReferenceInputCapabilities>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AiConfigCloudConnectorProjection {
@@ -3924,6 +3940,8 @@ pub struct AiConfigCloudTargetProjection {
     pub state: i32,
     #[prost(string, repeated, tag = "8")]
     pub reasons: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, optional, tag = "9")]
+    pub reference_audio_input: ::core::option::Option<VoiceReferenceInputCapabilities>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AiConfigCloudResourceProjection {

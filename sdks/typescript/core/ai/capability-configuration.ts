@@ -1,3 +1,4 @@
+import { projectVoiceReferenceInput, type NimiVoiceReferenceInputCapabilities } from './voice-reference-input.js';
 import type {
   AIConfig,
   AIConfigCapabilityIntent,
@@ -114,6 +115,7 @@ export type NimiSharedLocalAgentAIConfigOptionsQuery =
   | { readonly kind: 'voice-assets' };
 
 export type NimiAIConfigLocalLoadoutOption = {
+  readonly referenceAudioInput?: NimiVoiceReferenceInputCapabilities;
   readonly loadoutRef: string;
   readonly label: string;
   readonly capabilityContract: string;
@@ -138,6 +140,7 @@ export type NimiAIConfigCloudConnectorOption = {
 };
 
 export type NimiAIConfigCloudTargetOption = {
+  readonly referenceAudioInput?: NimiVoiceReferenceInputCapabilities;
   readonly connectorRef: string;
   readonly label: string;
   readonly capabilityContract: string;
@@ -431,6 +434,7 @@ function projectCloudTargetResource(value: AIConfigCloudTargetProjection): NimiA
 		}),
 		providerModelTarget: RuntimeStruct.toJson(value.providerModelTarget) as NimiJsonObject,
 		supportedFeatures: Object.freeze([...value.supportedFeatures]),
+    ...(value.referenceAudioInput ? { referenceAudioInput: projectVoiceReferenceInput(value.referenceAudioInput) } : {}),
     state: value.state === AIConfigEffectiveState.AI_CONFIG_EFFECTIVE_STATE_READY ? 'ready' : 'blocked',
     reasons: Object.freeze([...value.reasons]),
   });
@@ -450,6 +454,7 @@ function projectLocalResource(value: AIConfigLocalResourceProjection): NimiAICon
     implementationSupportedFeatures: Object.freeze([...value.implementationSupportedFeatures]),
     configuredFeatures: Object.freeze([...value.configuredFeatures]),
     textBehaviors: projectNimiTextBehaviorCapabilities(value.textBehaviors),
+    ...(value.referenceAudioInput ? { referenceAudioInput: projectVoiceReferenceInput(value.referenceAudioInput) } : {}),
     state: value.state === AIConfigEffectiveState.AI_CONFIG_EFFECTIVE_STATE_READY ? 'ready' : 'blocked',
     reasons: Object.freeze([...value.reasons]),
   });

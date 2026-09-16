@@ -161,6 +161,12 @@ func TestExecuteAlibabaNativeTTSPreservesRequestedVoice(t *testing.T) {
 }
 
 func TestExecuteAlibabaNativeCosyVoiceTTSUsesSpeechSynthesizerContract(t *testing.T) {
+	for _, model := range []string{"cosyvoice-v3-flash", "qwen-audio-3.0-tts-plus", "qwen-audio-3.0-tts-flash"} {
+		t.Run(model, func(t *testing.T) { testExecuteAlibabaNativeCosyVoiceTTSUsesSpeechSynthesizerContract(t, model) })
+	}
+}
+
+func testExecuteAlibabaNativeCosyVoiceTTSUsesSpeechSynthesizerContract(t *testing.T, model string) {
 	var capturedPayload map[string]any
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost || r.URL.Path != "/api/v1/services/audio/tts/SpeechSynthesizer" {
@@ -224,7 +230,7 @@ func TestExecuteAlibabaNativeCosyVoiceTTSUsesSpeechSynthesizerContract(t *testin
 				},
 			},
 		},
-		"cosyvoice-v3-flash",
+		model,
 	)
 	if err != nil {
 		t.Fatalf("ExecuteAlibabaNative cosyvoice tts failed: %v", err)
@@ -235,7 +241,7 @@ func TestExecuteAlibabaNativeCosyVoiceTTSUsesSpeechSynthesizerContract(t *testin
 	if got := string(artifacts[0].GetBytes()); got != "cosyvoice-tts-bytes" {
 		t.Fatalf("unexpected artifact bytes: %q", got)
 	}
-	if got := strings.TrimSpace(toString(capturedPayload["model"])); got != "cosyvoice-v3-flash" {
+	if got := strings.TrimSpace(toString(capturedPayload["model"])); got != model {
 		t.Fatalf("unexpected model: %q", got)
 	}
 	input, ok := capturedPayload["input"].(map[string]any)
@@ -279,6 +285,12 @@ func TestExecuteAlibabaNativeCosyVoiceTTSUsesSpeechSynthesizerContract(t *testin
 }
 
 func TestBackendStreamSynthesizeSpeechDashScopeCosyVoiceUsesWebSocketProtocol(t *testing.T) {
+	for _, model := range []string{"cosyvoice-v3-flash", "qwen-audio-3.0-tts-plus", "qwen-audio-3.0-tts-flash"} {
+		t.Run(model, func(t *testing.T) { testBackendStreamSynthesizeSpeechDashScopeCosyVoiceUsesWebSocketProtocol(t, model) })
+	}
+}
+
+func testBackendStreamSynthesizeSpeechDashScopeCosyVoiceUsesWebSocketProtocol(t *testing.T, model string) {
 	type capture struct {
 		authHeader string
 		actions    []string
@@ -362,7 +374,7 @@ func TestBackendStreamSynthesizeSpeechDashScopeCosyVoiceUsesWebSocketProtocol(t 
 
 	backend := newBackend("cloud-dashscope", server.URL, "test-api-key", nil, 10*time.Second, nil, false, true)
 	var chunks [][]byte
-	usage, finish, err := backend.StreamSynthesizeSpeech(context.Background(), "cosyvoice-v3-flash", &runtimev1.SpeechSynthesizeScenarioSpec{
+	usage, finish, err := backend.StreamSynthesizeSpeech(context.Background(), model, &runtimev1.SpeechSynthesizeScenarioSpec{
 		Text:         "你好，Nimi。",
 		Language:     "zh",
 		AudioFormat:  "mp3",
@@ -420,7 +432,7 @@ func TestBackendStreamSynthesizeSpeechDashScopeCosyVoiceUsesWebSocketProtocol(t 
 	}
 	runPayload, _ := got.run["payload"].(map[string]any)
 	params, _ := runPayload["parameters"].(map[string]any)
-	if gotModel := strings.TrimSpace(ValueAsString(runPayload["model"])); gotModel != "cosyvoice-v3-flash" {
+	if gotModel := strings.TrimSpace(ValueAsString(runPayload["model"])); gotModel != model {
 		t.Fatalf("run model=%q", gotModel)
 	}
 	if gotVoice := strings.TrimSpace(ValueAsString(params["voice"])); gotVoice != "dashscope-custom-voice" {
@@ -1086,6 +1098,16 @@ func TestExecuteDashScopeVoiceWorkflowUsesCustomizationContractForDesign(t *test
 }
 
 func TestExecuteDashScopeVoiceWorkflowUsesCosyVoiceEnrollmentContractForClone(t *testing.T) {
+	for _, model := range []string{"cosyvoice-v3-flash", "qwen-audio-3.0-tts-plus", "qwen-audio-3.0-tts-flash"} {
+		t.Run(model, func(t *testing.T) { testExecuteDashScopeVoiceWorkflowUsesCosyVoiceEnrollmentContractForClone(t, model) })
+	}
+}
+
+func testExecuteDashScopeVoiceWorkflowUsesCosyVoiceEnrollmentContractForClone(t *testing.T, model string) {
+	workflow := "voice-enrollment-clone"
+	if strings.HasPrefix(model, "qwen-audio-3.0-") {
+		workflow = "voice-enrollment-qwen-audio-clone"
+	}
 	var capturedPayload map[string]any
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost || r.URL.Path != "/api/v1/services/audio/tts/customization" {
@@ -1105,10 +1127,10 @@ func TestExecuteDashScopeVoiceWorkflowUsesCosyVoiceEnrollmentContractForClone(t 
 	result, err := executeDashScopeVoiceWorkflow(context.Background(), VoiceWorkflowRequest{
 		Provider:        "dashscope",
 		WorkflowType:    "reference_audio",
-		WorkflowModelID: "voice-enrollment-clone",
-		ModelID:         "cosyvoice-v3-flash",
+		WorkflowModelID: workflow,
+		ModelID:         model,
 		Payload: map[string]any{
-			"target_model_id": "cosyvoice-v3-flash",
+			"target_model_id": model,
 			"input": map[string]any{
 				"reference_audio_uri": "https://example.com/reference.wav",
 				"preferred_name":      "Nimi Voice 123",
@@ -1138,7 +1160,7 @@ func TestExecuteDashScopeVoiceWorkflowUsesCosyVoiceEnrollmentContractForClone(t 
 	if got := strings.TrimSpace(toString(input["action"])); got != "create_voice" {
 		t.Fatalf("unexpected action: %q", got)
 	}
-	if got := strings.TrimSpace(toString(input["target_model"])); got != "cosyvoice-v3-flash" {
+	if got := strings.TrimSpace(toString(input["target_model"])); got != model {
 		t.Fatalf("unexpected target model: %q", got)
 	}
 	if got := strings.TrimSpace(toString(input["url"])); got != "https://example.com/reference.wav" {
@@ -1170,6 +1192,14 @@ func TestExecuteDashScopeVoiceWorkflowUsesCosyVoiceEnrollmentContractForClone(t 
 }
 
 func TestExecuteDashScopeVoiceWorkflowUsesCosyVoiceEnrollmentContractForDesign(t *testing.T) {
+	for _, model := range []string{"cosyvoice-v3.5-plus", "qwen-audio-3.0-tts-plus", "qwen-audio-3.0-tts-flash"} {
+		t.Run(model, func(t *testing.T) {
+			testExecuteDashScopeVoiceWorkflowUsesCosyVoiceEnrollmentContractForDesign(t, model)
+		})
+	}
+}
+
+func testExecuteDashScopeVoiceWorkflowUsesCosyVoiceEnrollmentContractForDesign(t *testing.T, model string) {
 	var capturedPayload map[string]any
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost || r.URL.Path != "/api/v1/services/audio/tts/customization" {
@@ -1190,9 +1220,9 @@ func TestExecuteDashScopeVoiceWorkflowUsesCosyVoiceEnrollmentContractForDesign(t
 		Provider:        "dashscope",
 		WorkflowType:    "text_description",
 		WorkflowModelID: "voice-enrollment-design",
-		ModelID:         "cosyvoice-v3.5-plus",
+		ModelID:         model,
 		Payload: map[string]any{
-			"target_model_id": "cosyvoice-v3.5-plus",
+			"target_model_id": model,
 			"input": map[string]any{
 				"instruction_text": "Warm documentary announcer with clear pacing.",
 				"preview_text":     "Hello from the CosyVoice design contract.",
@@ -1223,7 +1253,7 @@ func TestExecuteDashScopeVoiceWorkflowUsesCosyVoiceEnrollmentContractForDesign(t
 	if got := strings.TrimSpace(toString(input["action"])); got != "create_voice" {
 		t.Fatalf("unexpected action: %q", got)
 	}
-	if got := strings.TrimSpace(toString(input["target_model"])); got != "cosyvoice-v3.5-plus" {
+	if got := strings.TrimSpace(toString(input["target_model"])); got != model {
 		t.Fatalf("unexpected target model: %q", got)
 	}
 	if got := strings.TrimSpace(toString(input["voice_prompt"])); got != "Warm documentary announcer with clear pacing." {

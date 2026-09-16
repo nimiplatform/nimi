@@ -41,6 +41,7 @@ fn generate_runtime_proto_client() {
         "runtime/v1/runtime_service_control.proto",
         "runtime/v1/account.proto",
         "runtime/v1/ai.proto",
+        "runtime/v1/capability_configuration.proto",
         "runtime/v1/local_runtime_asset_catalog.proto",
         "runtime/v1/local_runtime_device_environment.proto",
         "runtime/v1/local_runtime_execution_profile.proto",

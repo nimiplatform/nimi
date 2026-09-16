@@ -716,7 +716,7 @@ importers:
         specifier: ^1.14.4
         version: 1.14.4
       '@nimiplatform/sdk':
-        specifier: workspace:^0.14.0
+        specifier: workspace:^0.15.0
         version: link:../sdks/typescript
       '@radix-ui/react-avatar':
         specifier: ^1.2.6

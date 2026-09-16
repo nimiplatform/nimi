@@ -12,6 +12,11 @@ surfaces. Every mount declares exactly one owner and consumer context.
 - `@nimiplatform/kit/features/model-config/headless`
 - `@nimiplatform/kit/features/model-config/ui`
 
+The UI requires Kit's Tailwind 4 stylesheet and a foundation theme in the same
+CSS compilation entry as `@import 'tailwindcss'`; see the package README's
+Themes section. Importing Kit CSS through a separate JavaScript entry can leave
+model-picker layout utilities uncompiled, even when ordinary App styles work.
+
 ## Ownership Boundary
 
 Kit owns controlled presentation, draft interaction, and effective-resource

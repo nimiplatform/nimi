@@ -50,6 +50,7 @@ func TestLocalEnvironmentTargetForDriverUsesRuntimeDriverContract(t *testing.T) 
 		{name: "qwen tts", driver: capabilitydriver.Qwen3TTSDriver{}, wantPack: "local-speech", wantConsumer: "speech.qwen3-tts.python", wantOK: true},
 		{name: "qwen tts audio.cpp", driver: capabilitydriver.Qwen3TTSAudioCppDriver{}, host: localEnvironmentHostProfileState{OS: "windows", GPUAvailable: true, GPUVendor: "nvidia"}, wantPack: "local-speech-native", wantConsumer: audioCppQwen3TTSCUDAConsumerID, wantOK: true},
 		{name: "qwen voice create", driver: capabilitydriver.Qwen3VoiceCreateDriver{}, wantPack: "local-speech", wantConsumer: "speech.qwen3-tts.python", wantOK: true},
+		{name: "qwen voice library", driver: capabilitydriver.Qwen3VoiceLibraryDriver{}, wantPack: "local-speech", wantConsumer: "speech.qwen3-tts.python", wantOK: true},
 		{name: "voxcpm", driver: capabilitydriver.VoxCPMDriver{}, wantPack: "local-speech", wantConsumer: "speech.voxcpm.python", wantOK: true},
 		{name: "qwen asr", driver: capabilitydriver.Qwen3ASRDriver{}, wantPack: "local-speech", wantConsumer: "speech.qwen3-asr.python", wantOK: true},
 		{name: "qwen transformers asr", driver: capabilitydriver.Qwen3ASRTransformersDriver{}, wantPack: "local-speech", wantConsumer: "speech.qwen3-asr-transformers.python", wantOK: true},

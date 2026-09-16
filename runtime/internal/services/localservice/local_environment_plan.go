@@ -127,7 +127,7 @@ func localEnvironmentTargetForDriver(driver capabilitydriver.Driver, host localE
 	case capabilitydriver.AudioCppSpeechRegisteredDriver:
 		registration := driver.(capabilitydriver.AudioCppSpeechRegisteredDriver).AudioCppSpeechRegistration()
 		return "local-speech-native", registration.ConsumerID, true
-	case capabilitydriver.Qwen3TTSDriver, capabilitydriver.Qwen3VoiceCreateDriver:
+	case capabilitydriver.Qwen3TTSDriver, capabilitydriver.Qwen3VoiceCreateDriver, capabilitydriver.Qwen3VoiceLibraryDriver:
 		return "local-speech", "speech.qwen3-tts.python", true
 	case capabilitydriver.VoxCPMDriver:
 		return "local-speech", "speech.voxcpm.python", true

@@ -279,6 +279,7 @@ class AIConfigCloudTargetProjection:
     supported_features: tuple[str, ...] = field(default_factory=tuple)
     state: AIConfigEffectiveState | None = None
     reasons: tuple[str, ...] = field(default_factory=tuple)
+    reference_audio_input: VoiceReferenceInputCapabilities | None = None
 
 @dataclass(frozen=True)
 class AIConfigEffectiveSelection:
@@ -312,6 +313,7 @@ class AIConfigLocalResourceProjection:
     implementation_supported_features: tuple[str, ...] = field(default_factory=tuple)
     configured_features: tuple[str, ...] = field(default_factory=tuple)
     text_behaviors: tuple[TextBehaviorCapabilityProjection, ...] = field(default_factory=tuple)
+    reference_audio_input: VoiceReferenceInputCapabilities | None = None
 
 @dataclass(frozen=True)
 class AIConfigOwner:
@@ -6479,6 +6481,13 @@ class VoiceReference:
     preset_voice_id: str | None = None
     voice_asset_id: str | None = None
     provider_voice_ref: str | None = None
+
+@dataclass(frozen=True)
+class VoiceReferenceInputCapabilities:
+    supports_bytes: bool | None = None
+    supports_uri: bool | None = None
+    text_mode: str | None = None
+    mime_types: tuple[str, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class VoiceRenderHints:

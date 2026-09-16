@@ -918,6 +918,32 @@ export interface AIConfig {
     capabilities: AIConfigCapabilityIntent[];
 }
 /**
+ * Safe input capabilities of the exact voice.create resource. Absence means
+ * unknown or not applicable, never inferred support. This is not Job admission.
+ *
+ * @generated from protobuf message nimi.runtime.v1.VoiceReferenceInputCapabilities
+ */
+export interface VoiceReferenceInputCapabilities {
+    /**
+     * @generated from protobuf field: bool supports_bytes = 1
+     */
+    supportsBytes: boolean;
+    /**
+     * @generated from protobuf field: bool supports_uri = 2
+     */
+    supportsUri: boolean;
+    /**
+     * unsupported | optional | required
+     *
+     * @generated from protobuf field: string text_mode = 3
+     */
+    textMode: string;
+    /**
+     * @generated from protobuf field: repeated string mime_types = 4
+     */
+    mimeTypes: string[];
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.AIConfigLocalResourceProjection
  */
 export interface AIConfigLocalResourceProjection {
@@ -957,6 +983,10 @@ export interface AIConfigLocalResourceProjection {
      * @generated from protobuf field: repeated nimi.runtime.v1.TextBehaviorCapabilityProjection text_behaviors = 10
      */
     textBehaviors: TextBehaviorCapabilityProjection[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.VoiceReferenceInputCapabilities reference_audio_input = 11
+     */
+    referenceAudioInput?: VoiceReferenceInputCapabilities;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AIConfigCloudConnectorProjection
@@ -1019,6 +1049,10 @@ export interface AIConfigCloudTargetProjection {
      * @generated from protobuf field: repeated string reasons = 8
      */
     reasons: string[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.VoiceReferenceInputCapabilities reference_audio_input = 9
+     */
+    referenceAudioInput?: VoiceReferenceInputCapabilities;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AIConfigCloudResourceProjection
@@ -4446,6 +4480,77 @@ class AIConfig$Type extends MessageType<AIConfig> {
  */
 export const AIConfig = new AIConfig$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class VoiceReferenceInputCapabilities$Type extends MessageType<VoiceReferenceInputCapabilities> {
+    constructor() {
+        super("nimi.runtime.v1.VoiceReferenceInputCapabilities", [
+            { no: 1, name: "supports_bytes", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 2, name: "supports_uri", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 3, name: "text_mode", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "mime_types", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<VoiceReferenceInputCapabilities>): VoiceReferenceInputCapabilities {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.supportsBytes = false;
+        message.supportsUri = false;
+        message.textMode = "";
+        message.mimeTypes = [];
+        if (value !== undefined)
+            reflectionMergePartial<VoiceReferenceInputCapabilities>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: VoiceReferenceInputCapabilities): VoiceReferenceInputCapabilities {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bool supports_bytes */ 1:
+                    message.supportsBytes = reader.bool();
+                    break;
+                case /* bool supports_uri */ 2:
+                    message.supportsUri = reader.bool();
+                    break;
+                case /* string text_mode */ 3:
+                    message.textMode = reader.string();
+                    break;
+                case /* repeated string mime_types */ 4:
+                    message.mimeTypes.push(reader.string());
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: VoiceReferenceInputCapabilities, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bool supports_bytes = 1; */
+        if (message.supportsBytes !== false)
+            writer.tag(1, WireType.Varint).bool(message.supportsBytes);
+        /* bool supports_uri = 2; */
+        if (message.supportsUri !== false)
+            writer.tag(2, WireType.Varint).bool(message.supportsUri);
+        /* string text_mode = 3; */
+        if (message.textMode !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.textMode);
+        /* repeated string mime_types = 4; */
+        for (let i = 0; i < message.mimeTypes.length; i++)
+            writer.tag(4, WireType.LengthDelimited).string(message.mimeTypes[i]);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.VoiceReferenceInputCapabilities
+ */
+export const VoiceReferenceInputCapabilities = new VoiceReferenceInputCapabilities$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class AIConfigLocalResourceProjection$Type extends MessageType<AIConfigLocalResourceProjection> {
     constructor() {
         super("nimi.runtime.v1.AIConfigLocalResourceProjection", [
@@ -4457,7 +4562,8 @@ class AIConfigLocalResourceProjection$Type extends MessageType<AIConfigLocalReso
             { no: 7, name: "reasons", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 8, name: "implementation_supported_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 9, name: "configured_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 10, name: "text_behaviors", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => TextBehaviorCapabilityProjection }
+            { no: 10, name: "text_behaviors", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => TextBehaviorCapabilityProjection },
+            { no: 11, name: "reference_audio_input", kind: "message", T: () => VoiceReferenceInputCapabilities }
         ]);
     }
     create(value?: PartialMessage<AIConfigLocalResourceProjection>): AIConfigLocalResourceProjection {
@@ -4506,6 +4612,9 @@ class AIConfigLocalResourceProjection$Type extends MessageType<AIConfigLocalReso
                 case /* repeated nimi.runtime.v1.TextBehaviorCapabilityProjection text_behaviors */ 10:
                     message.textBehaviors.push(TextBehaviorCapabilityProjection.internalBinaryRead(reader, reader.uint32(), options));
                     break;
+                case /* nimi.runtime.v1.VoiceReferenceInputCapabilities reference_audio_input */ 11:
+                    message.referenceAudioInput = VoiceReferenceInputCapabilities.internalBinaryRead(reader, reader.uint32(), options, message.referenceAudioInput);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -4545,6 +4654,9 @@ class AIConfigLocalResourceProjection$Type extends MessageType<AIConfigLocalReso
         /* repeated nimi.runtime.v1.TextBehaviorCapabilityProjection text_behaviors = 10; */
         for (let i = 0; i < message.textBehaviors.length; i++)
             TextBehaviorCapabilityProjection.internalBinaryWrite(message.textBehaviors[i], writer.tag(10, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.VoiceReferenceInputCapabilities reference_audio_input = 11; */
+        if (message.referenceAudioInput)
+            VoiceReferenceInputCapabilities.internalBinaryWrite(message.referenceAudioInput, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -4645,7 +4757,8 @@ class AIConfigCloudTargetProjection$Type extends MessageType<AIConfigCloudTarget
             { no: 5, name: "provider_model_target", kind: "message", T: () => Struct },
             { no: 6, name: "supported_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 7, name: "state", kind: "enum", T: () => ["nimi.runtime.v1.AIConfigEffectiveState", AIConfigEffectiveState] },
-            { no: 8, name: "reasons", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+            { no: 8, name: "reasons", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "reference_audio_input", kind: "message", T: () => VoiceReferenceInputCapabilities }
         ]);
     }
     create(value?: PartialMessage<AIConfigCloudTargetProjection>): AIConfigCloudTargetProjection {
@@ -4689,6 +4802,9 @@ class AIConfigCloudTargetProjection$Type extends MessageType<AIConfigCloudTarget
                 case /* repeated string reasons */ 8:
                     message.reasons.push(reader.string());
                     break;
+                case /* nimi.runtime.v1.VoiceReferenceInputCapabilities reference_audio_input */ 9:
+                    message.referenceAudioInput = VoiceReferenceInputCapabilities.internalBinaryRead(reader, reader.uint32(), options, message.referenceAudioInput);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -4725,6 +4841,9 @@ class AIConfigCloudTargetProjection$Type extends MessageType<AIConfigCloudTarget
         /* repeated string reasons = 8; */
         for (let i = 0; i < message.reasons.length; i++)
             writer.tag(8, WireType.LengthDelimited).string(message.reasons[i]);
+        /* nimi.runtime.v1.VoiceReferenceInputCapabilities reference_audio_input = 9; */
+        if (message.referenceAudioInput)
+            VoiceReferenceInputCapabilities.internalBinaryWrite(message.referenceAudioInput, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

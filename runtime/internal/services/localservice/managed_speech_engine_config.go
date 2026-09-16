@@ -186,6 +186,7 @@ type speechExecutionModelRegistrationPayload struct {
 	EntrySHA256        string                                   `json:"entry_sha256"`
 	Alignment          *speechExecutionModelRegistrationPayload `json:"alignment,omitempty"`
 	VAD                *speechExecutionModelRegistrationPayload `json:"vad,omitempty"`
+	VoiceDesign        *speechExecutionModelRegistrationPayload `json:"voice_design,omitempty"`
 }
 
 // RegisterSpeechExecutionModel publishes only the captured ResolvedAssembly
@@ -262,7 +263,7 @@ func (s *Service) speechExecutionModelRegistrationPayload(registration engine.Sp
 	}
 	var alignment *speechExecutionModelRegistrationPayload
 	if registration.Alignment != nil {
-		if driverID != capabilitydriver.Qwen3ASRAlignedDriverID || registration.Alignment.Alignment != nil || registration.Alignment.VAD != nil {
+		if driverID != capabilitydriver.Qwen3ASRAlignedDriverID || registration.Alignment.Alignment != nil || registration.Alignment.VAD != nil || registration.Alignment.VoiceDesign != nil {
 			return speechExecutionModelRegistrationPayload{}, fmt.Errorf("speech alignment binding is not admitted")
 		}
 		value, err := s.speechExecutionModelRegistrationPayload(*registration.Alignment)
@@ -273,7 +274,7 @@ func (s *Service) speechExecutionModelRegistrationPayload(registration engine.Sp
 	}
 	var vad *speechExecutionModelRegistrationPayload
 	if registration.VAD != nil {
-		if driverID != capabilitydriver.FasterWhisperDriverID || registration.VAD.Alignment != nil || registration.VAD.VAD != nil {
+		if driverID != capabilitydriver.FasterWhisperDriverID || registration.VAD.Alignment != nil || registration.VAD.VAD != nil || registration.VAD.VoiceDesign != nil {
 			return speechExecutionModelRegistrationPayload{}, fmt.Errorf("speech VAD binding is not admitted")
 		}
 		value, err := s.speechExecutionModelRegistrationPayload(*registration.VAD)
@@ -282,10 +283,27 @@ func (s *Service) speechExecutionModelRegistrationPayload(registration engine.Sp
 		}
 		vad = &value
 	}
+	var voiceDesign *speechExecutionModelRegistrationPayload
+	voiceLibrary := capabilityContract == capabilitydriver.VoiceCreateContract && driverID == capabilitydriver.Qwen3TTSDriverID && workflowModelID == capabilitydriver.Qwen3VoiceLibraryRecipeID
+	if voiceLibrary != (registration.VoiceDesign != nil) {
+		return speechExecutionModelRegistrationPayload{}, fmt.Errorf("voice library requires its captured design companion")
+	}
+	if registration.VoiceDesign != nil {
+		companion := registration.VoiceDesign
+		if companion.Alignment != nil || companion.VAD != nil || companion.VoiceDesign != nil || companion.CapabilityContract != capabilitydriver.AudioSynthesizeContract || companion.DriverID != capabilitydriver.Qwen3TTSDriverID {
+			return speechExecutionModelRegistrationPayload{}, fmt.Errorf("voice design companion is not admitted")
+		}
+		value, err := s.speechExecutionModelRegistrationPayload(*companion)
+		if err != nil {
+			return speechExecutionModelRegistrationPayload{}, err
+		}
+		voiceDesign = &value
+	}
 	return speechExecutionModelRegistrationPayload{
-		Alignment: alignment,
-		VAD:       vad,
-		Model:     strings.TrimSpace(registration.ModelAssetID), Capability: capabilityContract,
+		VoiceDesign: voiceDesign,
+		Alignment:   alignment,
+		VAD:         vad,
+		Model:       strings.TrimSpace(registration.ModelAssetID), Capability: capabilityContract,
 		DriverID: driverID, Driver: driver, Family: family, Backend: backend,
 		CreationSource: creationSource, WorkflowModelID: workflowModelID,
 		BundleDir: registration.BundleDir, EntryPath: registration.EntryPath,

@@ -46,14 +46,34 @@ func TestLocalVoiceCreateTypedSourcesProduceReusableVoiceAssets(t *testing.T) {
 	for _, test := range []struct {
 		name    string
 		feature string
+		library bool
 		source  runtimev1.VoiceCreationSource
 		request *runtimev1.VoiceCreateScenarioSpec
 	}{
 		{name: "reference-audio", feature: "input.audio", source: runtimev1.VoiceCreationSource_VOICE_CREATION_SOURCE_REFERENCE_AUDIO, request: &runtimev1.VoiceCreateScenarioSpec{Source: &runtimev1.VoiceCreateScenarioSpec_ReferenceAudio{ReferenceAudio: &runtimev1.VoiceV2VInput{ReferenceAudioBytes: []byte("RIFF-reference"), ReferenceAudioMime: "audio/wav", Text: "hello"}}}},
 		{name: "text-description", feature: "input.text", source: runtimev1.VoiceCreationSource_VOICE_CREATION_SOURCE_TEXT_DESCRIPTION, request: &runtimev1.VoiceCreateScenarioSpec{Source: &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{InstructionText: "warm narrator", PreviewText: "hello"}}}},
+		{name: "library-reference", library: true, feature: "input.audio", source: runtimev1.VoiceCreationSource_VOICE_CREATION_SOURCE_REFERENCE_AUDIO, request: &runtimev1.VoiceCreateScenarioSpec{Source: &runtimev1.VoiceCreateScenarioSpec_ReferenceAudio{ReferenceAudio: &runtimev1.VoiceV2VInput{ReferenceAudioBytes: []byte("RIFF-reference"), ReferenceAudioMime: "audio/wav", Text: "hello"}}}},
+		{name: "library-design", library: true, feature: "input.text", source: runtimev1.VoiceCreationSource_VOICE_CREATION_SOURCE_TEXT_DESCRIPTION, request: &runtimev1.VoiceCreateScenarioSpec{Source: &runtimev1.VoiceCreateScenarioSpec_TextDescription{TextDescription: &runtimev1.VoiceT2VInput{InstructionText: "warm narrator", PreviewText: "hello"}}}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			voiceSelection := selectedLocalVoiceCreateExecutionForTest(t, "voice-"+test.name, test.feature)
+			if test.library {
+				voiceSelection = selectedLocalVoiceCreateExecutionForTest(t, "voice-base-"+test.name, "input.audio")
+				design := selectedLocalVoiceCreateExecutionForTest(t, "voice-design-"+test.name, "input.text")
+				voiceSelection.RecipeID = capabilitydriver.Qwen3VoiceLibraryRecipeID
+				voiceSelection.DriverIdentity = (&capabilitydriver.Identity{ImplementationID: capabilitydriver.Qwen3VoiceLibraryImplementationID, DriverID: capabilitydriver.Qwen3TTSDriverID, DriverDialect: capabilitydriver.Qwen3VoiceLibraryDriverDialect}).Proto()
+				voiceSelection.ConfiguredFeatures = []string{"input.audio", "input.text"}
+				voiceSelection.ImplementationSupportedFeatures = []string{"input.audio", "input.text"}
+				var reason runtimev1.LocalCapabilityReason
+				voiceSelection.Requirements, reason = (capabilitydriver.Qwen3VoiceLibraryDriver{}).ProjectRecipe(voiceSelection.RecipeID, nil, voiceSelection.ConfiguredFeatures)
+				if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
+					t.Fatal(reason)
+				}
+				voiceSelection.ExactBindings[0].RequirementID = capabilitydriver.Qwen3VoiceLibraryBaseRequirementID
+				design.ExactBindings[0].RequirementID = capabilitydriver.Qwen3VoiceLibraryDesignRequirementID
+				design.ExactBindings[0].RequirementRole = runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_COMPANION
+				voiceSelection.ExactBindings = append(voiceSelection.ExactBindings, design.ExactBindings...)
+			}
 			expectedVoiceIdentity := projectLoadoutEffectiveInputIdentity(voiceSelection, test.feature)
 			synthSelection := selectedSpeechExecutionForTest(t, capabilitydriver.AudioSynthesizeContract, "synth-"+test.name)
 			synthSelection.ExecutionTarget = voiceSelection.ExecutionTarget.Clone()

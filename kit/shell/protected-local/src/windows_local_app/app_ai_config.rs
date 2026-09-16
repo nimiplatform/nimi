@@ -254,7 +254,11 @@ pub(super) fn project_cloud_connector(
 pub(super) fn project_cloud_target(
     resource: AiConfigCloudTargetProjection,
 ) -> Result<JsonValue, LocalAppOperationError> {
-    Ok(json!({
+    let reference_input = resource
+        .reference_audio_input
+        .map(project_reference_audio_input)
+        .transpose()?;
+    let mut projected = json!({
         "connectorRef": required_text_value(&resource.connector_ref)?,
         "label": required_text_value(&resource.label)?,
         "capabilityContract": required_text_value(&resource.capability_contract)?,
@@ -263,7 +267,11 @@ pub(super) fn project_cloud_target(
         "supportedFeatures": resource.supported_features,
         "state": project_effective_state(resource.state)?,
         "reasons": resource.reasons,
-    }))
+    });
+    if let Some(input) = reference_input {
+        projected["referenceAudioInput"] = input;
+    }
+    Ok(projected)
 }
 
 pub(super) fn project_local_resource(
@@ -274,7 +282,11 @@ pub(super) fn project_local_resource(
         .map(project_implementation)
         .transpose()?
         .unwrap_or(JsonValue::Null);
-    Ok(json!({
+    let reference_input = resource
+        .reference_audio_input
+        .map(project_reference_audio_input)
+        .transpose()?;
+    let mut projected = json!({
         "loadoutRef": required_text_value(&resource.loadout_ref)?,
         "label": required_text_value(&resource.label)?,
         "capabilityContract": required_text_value(&resource.capability_contract)?,
@@ -284,7 +296,11 @@ pub(super) fn project_local_resource(
         "textBehaviors": resource.text_behaviors.into_iter().map(project_text_behavior).collect::<Result<Vec<_>, _>>()?,
         "state": project_effective_state(resource.state)?,
         "reasons": resource.reasons,
-    }))
+    });
+    if let Some(input) = reference_input {
+        projected["referenceAudioInput"] = input;
+    }
+    Ok(projected)
 }
 
 fn project_text_behavior(
@@ -706,9 +722,13 @@ pub(super) fn project_capability(
 // Options expose the SDK's plain JSON target. Committed portable intent below
 // retains its generated Struct representation; the two are distinct contracts.
 fn project_target_json(value: ProtoStruct) -> Result<JsonValue, LocalAppOperationError> {
-    Ok(JsonValue::Object(value.fields.into_iter()
-        .map(|(key, value)| Ok((key, project_target_value(value)?)))
-        .collect::<Result<Map<_, _>, LocalAppOperationError>>()?))
+    Ok(JsonValue::Object(
+        value
+            .fields
+            .into_iter()
+            .map(|(key, value)| Ok((key, project_target_value(value)?)))
+            .collect::<Result<Map<_, _>, LocalAppOperationError>>()?,
+    ))
 }
 
 fn project_target_value(value: ProtoValue) -> Result<JsonValue, LocalAppOperationError> {
@@ -718,7 +738,13 @@ fn project_target_value(value: ProtoValue) -> Result<JsonValue, LocalAppOperatio
         ProtoValueKind::StringValue(value) => Ok(JsonValue::String(value)),
         ProtoValueKind::BoolValue(value) => Ok(JsonValue::Bool(value)),
         ProtoValueKind::StructValue(value) => project_target_json(value),
-        ProtoValueKind::ListValue(value) => Ok(JsonValue::Array(value.values.into_iter().map(project_target_value).collect::<Result<Vec<_>, _>>()?)),
+        ProtoValueKind::ListValue(value) => Ok(JsonValue::Array(
+            value
+                .values
+                .into_iter()
+                .map(project_target_value)
+                .collect::<Result<Vec<_>, _>>()?,
+        )),
         _ => Err(untrusted()),
     }
 }
@@ -823,17 +849,46 @@ mod tests {
 
     #[test]
     fn cloud_options_project_plain_target_json_for_model_selection() {
-        let target = ProtoStruct { fields: BTreeMap::from([
-            ("provider".into(), ProtoValue { kind: Some(ProtoValueKind::StringValue("provider-test".into())) }),
-            ("providerModelId".into(), ProtoValue { kind: Some(ProtoValueKind::StringValue("model-1".into())) }),
-            ("remoteModelCatalogId".into(), ProtoValue { kind: Some(ProtoValueKind::StringValue("catalog-1".into())) }),
-        ]) };
+        let target = ProtoStruct {
+            fields: BTreeMap::from([
+                (
+                    "provider".into(),
+                    ProtoValue {
+                        kind: Some(ProtoValueKind::StringValue("provider-test".into())),
+                    },
+                ),
+                (
+                    "providerModelId".into(),
+                    ProtoValue {
+                        kind: Some(ProtoValueKind::StringValue("model-1".into())),
+                    },
+                ),
+                (
+                    "remoteModelCatalogId".into(),
+                    ProtoValue {
+                        kind: Some(ProtoValueKind::StringValue("catalog-1".into())),
+                    },
+                ),
+            ]),
+        };
         let projected = project_cloud_target(AiConfigCloudTargetProjection {
-            connector_ref: "connector-1".into(), label: "model-1".into(), capability_contract: "text.generate".into(),
-            implementation: Some(CapabilityImplementationIdentity { implementation_id: "provider-test".into(), driver_id: "nimillm".into(), driver_dialect: "provider-test".into() }),
-            provider_model_target: Some(target), state: AiConfigEffectiveState::Ready as i32, ..Default::default()
-        }).unwrap();
-        assert_eq!(projected["providerModelTarget"], json!({"provider":"provider-test", "providerModelId":"model-1", "remoteModelCatalogId":"catalog-1"}));
+            connector_ref: "connector-1".into(),
+            label: "model-1".into(),
+            capability_contract: "text.generate".into(),
+            implementation: Some(CapabilityImplementationIdentity {
+                implementation_id: "provider-test".into(),
+                driver_id: "nimillm".into(),
+                driver_dialect: "provider-test".into(),
+            }),
+            provider_model_target: Some(target),
+            state: AiConfigEffectiveState::Ready as i32,
+            ..Default::default()
+        })
+        .unwrap();
+        assert_eq!(
+            projected["providerModelTarget"],
+            json!({"provider":"provider-test", "providerModelId":"model-1", "remoteModelCatalogId":"catalog-1"})
+        );
     }
     use crate::generated::{AiConfigAppOwner, AiConfigOwner};
 
@@ -967,6 +1022,7 @@ mod tests {
             }),
             implementation_supported_features: vec!["input.image".to_string()],
             configured_features: vec!["input.image".to_string()],
+            reference_audio_input: None,
             text_behaviors: vec![TextBehaviorCapabilityProjection {
                 kind: TextBehaviorKind::ToolUse as i32,
                 implementation_supported: false,
@@ -988,6 +1044,30 @@ mod tests {
         );
         assert_eq!(projected["configuredFeatures"], json!(["input.image"]));
         assert_eq!(projected["textBehaviors"][0]["kind"], "tool-use");
+    }
+
+    #[test]
+    fn voice_reference_input_is_bounded_and_not_inferred() {
+        let input = crate::generated::VoiceReferenceInputCapabilities {
+            supports_bytes: false,
+            supports_uri: true,
+            text_mode: "unsupported".into(),
+            mime_types: vec!["audio/wav".into()],
+        };
+        let output = project_reference_audio_input(input.clone()).unwrap();
+        assert_eq!(
+            output,
+            json!({"supportsBytes":false,"supportsUri":true,"textMode":"unsupported","mimeTypes":["audio/wav"]})
+        );
+        let mut bad = input.clone();
+        bad.text_mode = "auto".into();
+        assert!(project_reference_audio_input(bad).is_err());
+        let mut bad = input.clone();
+        bad.supports_uri = false;
+        assert!(project_reference_audio_input(bad).is_err());
+        let mut bad = input;
+        bad.mime_types = vec!["audio/wav".into(); 17];
+        assert!(project_reference_audio_input(bad).is_err());
     }
 
     #[test]
@@ -1019,4 +1099,26 @@ mod tests {
         .unwrap_err();
         assert_eq!(error.reason_code(), LocalAppReasonCode::InvalidPayload);
     }
+}
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.voice-reference-input-projection
+fn project_reference_audio_input(
+    value: crate::generated::VoiceReferenceInputCapabilities,
+) -> Result<JsonValue, LocalAppOperationError> {
+    if (!value.supports_bytes && !value.supports_uri)
+        || !matches!(
+            value.text_mode.as_str(),
+            "unsupported" | "optional" | "required"
+        )
+        || value.mime_types.len() > 16
+        || value
+            .mime_types
+            .iter()
+            .any(|m| m.is_empty() || m.len() > 64 || m.trim() != m)
+    {
+        return Err(untrusted());
+    }
+    Ok(
+        json!({"supportsBytes":value.supports_bytes, "supportsUri":value.supports_uri,"textMode":value.text_mode,"mimeTypes":value.mime_types}),
+    )
 }

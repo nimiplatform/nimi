@@ -156,7 +156,7 @@ func (s *Service) captureLocalVoiceCreateEffectiveInputs(
 func validSelectedLocalVoiceCreateExecution(selected *localexecution.SelectedLocalExecution) bool {
 	return selected != nil && selected.Configured && strings.TrimSpace(selected.LoadoutID) != "" &&
 		selected.CapabilityContract == capabilitydriver.VoiceCreateContract && selected.DriverIdentity != nil &&
-		len(selected.Requirements) == 1 && len(selected.ExactBindings) == 1 &&
+		len(selected.Requirements) > 0 && len(selected.ExactBindings) == len(selected.Requirements) &&
 		selected.ExecutionTarget != nil && selected.ExecutionTarget.Valid()
 }
 

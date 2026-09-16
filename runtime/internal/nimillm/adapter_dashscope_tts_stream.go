@@ -28,8 +28,7 @@ func (b *Backend) shouldUseDashScopeRealtimeTTS(modelID string) bool {
 	if b == nil || !b.isDashScopeBackend() {
 		return false
 	}
-	normalized := strings.ToLower(strings.TrimSpace(modelID))
-	return strings.HasPrefix(normalized, "cosyvoice-")
+	return resolveDashScopeTTSRequestContract(modelID) == dashScopeTTSRequestContractCosyVoiceSpeechSynthesizer
 }
 
 func (b *Backend) isDashScopeBackend() bool {

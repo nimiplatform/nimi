@@ -2055,6 +2055,7 @@ type AIConfigCloudTargetProjection struct {
 	SupportedFeatures   []string                          `json:"supported_features,omitempty"`
 	State               AIConfigEffectiveState            `json:"state,omitempty"`
 	Reasons             []string                          `json:"reasons,omitempty"`
+	ReferenceAudioInput *VoiceReferenceInputCapabilities  `json:"reference_audio_input,omitempty"`
 }
 
 type AIConfigEffectiveSelection struct {
@@ -2087,6 +2088,7 @@ type AIConfigLocalResourceProjection struct {
 	ImplementationSupportedFeatures []string                           `json:"implementation_supported_features,omitempty"`
 	ConfiguredFeatures              []string                           `json:"configured_features,omitempty"`
 	TextBehaviors                   []TextBehaviorCapabilityProjection `json:"text_behaviors,omitempty"`
+	ReferenceAudioInput             *VoiceReferenceInputCapabilities   `json:"reference_audio_input,omitempty"`
 }
 
 type AIConfigOwner struct {
@@ -8215,6 +8217,13 @@ type VoiceReference struct {
 	PresetVoiceId    string             `json:"preset_voice_id,omitempty"`
 	VoiceAssetId     string             `json:"voice_asset_id,omitempty"`
 	ProviderVoiceRef string             `json:"provider_voice_ref,omitempty"`
+}
+
+type VoiceReferenceInputCapabilities struct {
+	SupportsBytes bool     `json:"supports_bytes,omitempty"`
+	SupportsUri   bool     `json:"supports_uri,omitempty"`
+	TextMode      string   `json:"text_mode,omitempty"`
+	MimeTypes     []string `json:"mime_types,omitempty"`
 }
 
 type VoiceRenderHints struct {

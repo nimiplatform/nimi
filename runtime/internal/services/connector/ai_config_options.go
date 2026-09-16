@@ -22,14 +22,15 @@ type AIConfigCloudConnectorOption struct {
 }
 
 type AIConfigCloudTargetOption struct {
-	ConnectorRef      string
-	Label             string
-	Capability        string
-	Implementation    *runtimev1.CapabilityImplementationIdentity
-	ProviderTarget    *structpb.Struct
-	SupportedFeatures []string
-	State             runtimev1.AIConfigEffectiveState
-	Reasons           []runtimev1.ReasonCode
+	ConnectorRef        string
+	Label               string
+	Capability          string
+	Implementation      *runtimev1.CapabilityImplementationIdentity
+	ProviderTarget      *structpb.Struct
+	SupportedFeatures   []string
+	ReferenceAudioInput *runtimev1.VoiceReferenceInputCapabilities
+	State               runtimev1.AIConfigEffectiveState
+	Reasons             []runtimev1.ReasonCode
 }
 
 // @nimi-authority: rule.nimi.platform.core-protocol.p-caiex-006
@@ -235,7 +236,8 @@ func ListAIConfigCloudTargetOptions(
 			ConnectorRef: connectorRef, Label: label, Capability: capabilityContract,
 			Implementation: implementation,
 			ProviderTarget: target, SupportedFeatures: append([]string(nil), model.Model.Features...),
-			State: state, Reasons: append([]runtimev1.ReasonCode(nil), reasons...),
+			ReferenceAudioInput: VoiceReferenceInputProjection(modelCatalog, accountID, provider, model.Model.ModelID, capabilityContract),
+			State:               state, Reasons: append([]runtimev1.ReasonCode(nil), reasons...),
 		})
 	}
 	sort.Slice(options, func(i, j int) bool { return options[i].Label < options[j].Label })
@@ -243,6 +245,27 @@ func ListAIConfigCloudTargetOptions(
 		return options[:limit], true, nil
 	}
 	return options, false, nil
+}
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.voice-reference-input-projection
+func VoiceReferenceInputProjection(resolver *aicatalog.Resolver, accountID, provider, model, capability string) *runtimev1.VoiceReferenceInputCapabilities {
+	if capability != "voice.create" {
+		return nil
+	}
+	workflow, err := resolver.ResolveVoiceWorkflowForSubject(accountID, provider, model, "reference_audio")
+	if err != nil || workflow.RequestOptions == nil {
+		return nil
+	}
+	options := workflow.RequestOptions
+	if options.TextPromptMode != "unsupported" && options.TextPromptMode != "optional" && options.TextPromptMode != "required" {
+		return nil
+	}
+	return &runtimev1.VoiceReferenceInputCapabilities{
+		SupportsBytes: options.ReferenceAudioBytesInput != nil && *options.ReferenceAudioBytesInput,
+		SupportsUri:   options.ReferenceAudioURIInput != nil && *options.ReferenceAudioURIInput,
+		TextMode:      options.TextPromptMode,
+		MimeTypes:     append([]string(nil), options.AllowedReferenceAudioMimeTypes...),
+	}
 }
 
 func containsExact(values []string, expected string) bool {

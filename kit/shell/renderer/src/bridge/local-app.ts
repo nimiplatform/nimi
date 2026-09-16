@@ -3410,7 +3410,9 @@ function parseCloudTargetResource(value: unknown, command: string): void {
   assertProjectionKeys(resource, [
     'connectorRef', 'label', 'capabilityContract', 'implementation', 'providerModelTarget',
     'supportedFeatures', 'state', 'reasons',
+    ...(Object.hasOwn(resource, 'referenceAudioInput') ? ['referenceAudioInput'] : []),
   ], command, 'Cloud target resource');
+  if (Object.hasOwn(resource, 'referenceAudioInput')) parseReferenceAudioInput(resource.referenceAudioInput, command);
   requiredText(resource.connectorRef, 'connectorRef', command, MAX_IDENTIFIER_LENGTH);
   requiredText(resource.label, 'label', command, MAX_IDENTIFIER_LENGTH);
   requiredText(resource.capabilityContract, 'capabilityContract', command, MAX_IDENTIFIER_LENGTH);
@@ -3435,7 +3437,9 @@ function parseLocalResource(value: unknown, command: string): void {
   assertProjectionKeys(resource, [
     'loadoutRef', 'label', 'capabilityContract', 'implementation',
     'implementationSupportedFeatures', 'configuredFeatures', 'textBehaviors', 'state', 'reasons',
+    ...(Object.hasOwn(resource, 'referenceAudioInput') ? ['referenceAudioInput'] : []),
   ], command, 'Local resource');
+  if (Object.hasOwn(resource, 'referenceAudioInput')) parseReferenceAudioInput(resource.referenceAudioInput, command);
   requiredText(resource.loadoutRef, 'loadoutRef', command, MAX_IDENTIFIER_LENGTH);
   requiredText(resource.label, 'label', command, MAX_IDENTIFIER_LENGTH);
   requiredText(resource.capabilityContract, 'capabilityContract', command, MAX_IDENTIFIER_LENGTH);
@@ -4126,4 +4130,12 @@ export function getNimiLocalAppWorldCreationEligibility(): Promise<JsonObject> {
     if (typeof record.canCreateWorld !== 'boolean') throw new Error(command + ': canCreateWorld must be boolean');
     return Object.freeze({canCreateWorld: record.canCreateWorld});
   });
+}
+
+function parseReferenceAudioInput(value: unknown, command: string): void {
+ const row = assertRecord(value, `${command}: reference audio input is invalid`);
+ assertProjectionKeys(row, ['supportsBytes', 'supportsUri', 'textMode', 'mimeTypes'], command, 'reference audio input');
+ if (typeof row.supportsBytes !== 'boolean' || typeof row.supportsUri !== 'boolean' || (!row.supportsBytes && !row.supportsUri) || !['unsupported', 'optional', 'required'].includes(String(row.textMode)) || !Array.isArray(row.mimeTypes) || row.mimeTypes.length > 16 || row.mimeTypes.some(m => typeof m !== 'string' || !m || m.length > 64 || m.trim() !== m)) {
+ throw new Error(`${command}: reference audio input is invalid`);
+ }
 }

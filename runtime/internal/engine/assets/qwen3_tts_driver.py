@@ -748,6 +748,49 @@ def handle_synthesize(request: dict[str, Any], cli_default_model: str) -> dict[s
     return {"audio_path": audio_path, "content_type": content_type}
 
 
+# @nimi-authority: rule.nimi.runtime.ai-provider.qwen3-reference-voice-library
+def create_library_voice(request: dict[str, Any]) -> dict[str, Any]:
+    companion = request.get("voice_design")
+    if not isinstance(companion, dict):
+        fail("voice library requires its captured design model")
+    source = require_string(request, "creation_source")
+    if source == "reference_audio":
+        return build_reference_audio_handle(request)
+    if source != "text_description":
+        fail("voice library source is invalid")
+    input_payload = request.get("input")
+    if not isinstance(input_payload, dict):
+        fail("voice library requires typed creation input")
+    text = require_string(input_payload, "preview_text")
+    instruction = require_string(input_payload, "instruction_text")
+    language = optional_string(input_payload, "language")
+    # This directory comes only from the Job-captured, content-verified companion.
+    design_ref = local_bundle_model_ref(companion)
+    if not design_ref:
+        fail("voice library design model is not materialized")
+    model = load_qwen_tts_model(design_ref)
+    wavs, sample_rate = generate_voice_design_batch(model, [text], normalized_language(language), instruction, max_new_tokens())
+    import io
+    import soundfile as sf
+    audio = io.BytesIO()
+    sf.write(audio, wavs[0], int(sample_rate), format="WAV")
+    reference = audio.getvalue()
+    if len(reference) <= 44 or len(reference) > 32 * 1024 * 1024:
+        fail("voice library generated reference is empty or exceeds the reference audio limit")
+    result = build_reference_audio_handle({
+        **request,
+        "input": {
+            "reference_audio_base64": base64.b64encode(reference).decode("ascii"),
+            "reference_audio_mime": "audio/wav",
+            "text": text,
+            "language_hints": [language] if language else [],
+            "preferred_name": optional_string(input_payload, "preferred_name"),
+        },
+    })
+    result["metadata"]["creation_source"] = "text_description"
+    return result
+
+
 def handle_request(request: dict[str, Any], cli_default_model: str) -> dict[str, Any]:
     operation = require_string(request, "operation")
     model_ref = resolve_model_ref(request, cli_default_model)
@@ -756,6 +799,8 @@ def handle_request(request: dict[str, Any], cli_default_model: str) -> dict[str,
     if operation == "audio.synthesize":
         return handle_synthesize(request, cli_default_model)
     if operation == "voice.create":
+        if optional_string(request, "workflow_model_id") == "qwen3-local-voice-library":
+            return create_library_voice(request)
         creation_source = require_string(request, "creation_source")
         if creation_source == "text_description":
             return build_text_description_handle(request)

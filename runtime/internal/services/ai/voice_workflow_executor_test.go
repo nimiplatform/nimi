@@ -244,6 +244,22 @@ func TestVoiceWorkflowMetadataValidationRejectsUnsupportedReferenceAudioMIME(t *
 	}
 }
 
+func TestVoiceWorkflowRejectsUnsupportedReferenceTextBeforeDispatch(t *testing.T) {
+	req := voiceReferenceAudioRequest()
+	req.Spec.GetVoiceCreate().GetReferenceAudio().Text = "Business transcript must not silently become a prompt."
+	resolution := catalog.ResolveVoiceWorkflowResult{RequestOptions: &catalog.VoiceWorkflowRequestOptions{
+		TextPromptMode: "unsupported", ReferenceAudioURIInput: boolPtr(true),
+	}}
+	err := validateVoiceWorkflowRequestAgainstMetadata(req, resolution)
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+		t.Fatalf("unsupported transcript accepted: %v", err)
+	}
+	req.Spec.GetVoiceCreate().GetReferenceAudio().Text = ""
+	if err := validateVoiceWorkflowRequestAgainstMetadata(req, resolution); err != nil {
+		t.Fatalf("explicit empty text rejected: %v", err)
+	}
+}
+
 func TestVoiceWorkflowMetadataValidationRejectsMissingRequiredInstruction(t *testing.T) {
 	req := voiceTextDescriptionRequest()
 	req.Spec.GetVoiceCreate().TargetModelId = "qwen3-tts-vd"

@@ -391,6 +391,16 @@ enum AIConfigEffectiveState {
   AI_CONFIG_EFFECTIVE_STATE_UNAVAILABLE = 4;
 }
 
+// Safe input capabilities of the exact voice.create resource. Absence means
+// unknown or not applicable, never inferred support. This is not Job admission.
+message VoiceReferenceInputCapabilities {
+  bool supports_bytes = 1;
+  bool supports_uri = 2;
+  // unsupported | optional | required
+  string text_mode = 3;
+  repeated string mime_types = 4;
+}
+
 message AIConfigLocalResourceProjection {
   string loadout_ref = 1;
   string label = 2;
@@ -403,6 +413,7 @@ message AIConfigLocalResourceProjection {
   repeated string implementation_supported_features = 8;
   repeated string configured_features = 9;
   repeated TextBehaviorCapabilityProjection text_behaviors = 10;
+  VoiceReferenceInputCapabilities reference_audio_input = 11;
 }
 
 message AIConfigCloudConnectorProjection {
@@ -422,6 +433,7 @@ message AIConfigCloudTargetProjection {
   repeated string supported_features = 6;
   AIConfigEffectiveState state = 7;
   repeated string reasons = 8;
+  VoiceReferenceInputCapabilities reference_audio_input = 9;
 }
 
 message AIConfigCloudResourceProjection {

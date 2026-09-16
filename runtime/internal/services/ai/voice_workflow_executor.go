@@ -342,6 +342,9 @@ func validateVoiceWorkflowRequestAgainstMetadata(
 		if voiceWorkflowFieldModeRequired(options.TextPromptMode) && strings.TrimSpace(input.GetText()) == "" {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
 		}
+		if options.TextPromptMode == "unsupported" && strings.TrimSpace(input.GetText()) != "" {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+		}
 	case *runtimev1.VoiceCreateScenarioSpec_TextDescription:
 		input := source.TextDescription
 		if input == nil {

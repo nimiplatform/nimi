@@ -122,7 +122,14 @@ import { FOCUS_RING_CLASS_NAME, VISUALLY_HIDDEN_CLASS_NAME, VISUALLY_HIDDEN_STYL
 
 ### Themes
 
+Kit's stylesheet is Tailwind 4 source CSS. Import it in the **same CSS entry**
+that imports Tailwind, so its `@source` directives contribute component classes
+to that entry's utilities. A separate JavaScript stylesheet import alongside an
+unrelated Tailwind entry does not compile those classes. Include a foundation
+theme as well; `styles.css` alone does not select surface/text colors.
+
 ```css
+@import 'tailwindcss';
 @import '@nimiplatform/kit/ui/styles.css';
 @import '@nimiplatform/kit/ui/themes/light.css';
 /* swap or layer accent themes */
@@ -132,6 +139,11 @@ import { FOCUS_RING_CLASS_NAME, VISUALLY_HIDDEN_CLASS_NAME, VISUALLY_HIDDEN_STYL
 Available themes: `light`, `dark`, `nimi-accent`, and the
 `nimi-density-compact` density overlay (P-DESIGN-028). Theme tokens are
 projected from `config/platform-nimi-ui-themes.yaml`.
+
+For an adopted App, verify the real model picker with a long list: the list
+scrolls, confirmation stays in the viewport, and foreground/background tokens
+resolve. Missing theme values or uncompiled utilities are integration failures;
+do not hide them with App-local dialog height or z-index overrides.
 
 ### Auth
 

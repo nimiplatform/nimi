@@ -1393,14 +1393,23 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 	}
 
 	all := list("")
-	if len(all) != 86 {
-		t.Fatalf("all Loadout recipes = %d, want 86", len(all))
+	if len(all) != 87 {
+		t.Fatalf("all Loadout recipes = %d, want 87", len(all))
 	}
 	byID := make(map[string]*runtimev1.LoadoutRecipeDescriptor, len(all))
 	for _, recipe := range all {
 		byID[recipe.GetRecipeId()] = recipe
 	}
 	whisper := byID[capabilitydriver.FasterWhisperRecipeID]
+	library := byID[capabilitydriver.Qwen3VoiceLibraryRecipeID]
+	if library == nil || len(library.GetSlots()) != 2 || library.GetSlots()[0].GetSlotId() != capabilitydriver.Qwen3VoiceLibraryBaseRequirementID || library.GetSlots()[1].GetSlotId() != capabilitydriver.Qwen3VoiceLibraryDesignRequirementID || !slices.Equal(library.GetImplementationSupportedFeatures(), []string{"input.audio", "input.text"}) {
+		t.Fatalf("voice library must expose both models and source features: %+v", library)
+	}
+	for _, slot := range library.GetSlots() {
+		if slot.GetPresence() != runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED || len(slot.GetOffers()) == 0 {
+			t.Fatalf("voice library required model offer is missing: %+v", slot)
+		}
+	}
 	if whisper == nil || len(whisper.GetSlots()) != 2 || whisper.GetSlots()[1].GetSlotId() != capabilitydriver.FasterWhisperVADRequirementID || whisper.GetSlots()[1].GetPresence() != runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED {
 		t.Fatalf("Whisper transcription must expose captured VAD: %+v", whisper)
 	}
@@ -1468,8 +1477,8 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 	synthesize := list(capabilitydriver.AudioSynthesizeContract)
 	transcribe := list(capabilitydriver.AudioTranscribeContract)
 	voiceCreate := list(capabilitydriver.VoiceCreateContract)
-	if len(synthesize) != 29 || len(transcribe) != 15 || len(voiceCreate) != 22 {
-		t.Fatalf("speech capability filters = synthesize:%d transcribe:%d voice.create:%d, want 29/15/22", len(synthesize), len(transcribe), len(voiceCreate))
+	if len(synthesize) != 29 || len(transcribe) != 15 || len(voiceCreate) != 23 {
+		t.Fatalf("speech capability filters = synthesize:%d transcribe:%d voice.create:%d, want 29/15/23", len(synthesize), len(transcribe), len(voiceCreate))
 	}
 	for _, registration := range append(capabilitydriver.AudioCppSpeechRegistrations(), capabilitydriver.AudioCppReferenceVoiceRegistrations()...) {
 		recipe := byID[registration.RecipeID]

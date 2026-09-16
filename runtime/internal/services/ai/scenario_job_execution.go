@@ -152,6 +152,7 @@ func (s *Service) finishScenarioAsyncJobFailure(ctx context.Context, jobID strin
 			"driver_dialect", strings.TrimSpace(effective.mapped.Adapter()),
 			"status", statusValue.String(),
 			"reason_code", reasonCode.String(),
+			"action_hint", reasonMetadata.GetFields()["action_hint"].GetStringValue(),
 			"trace_id", strings.TrimSpace(effective.traceID),
 			"message", reasonDetail,
 		)

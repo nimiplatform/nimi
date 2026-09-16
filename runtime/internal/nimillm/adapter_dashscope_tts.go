@@ -24,7 +24,7 @@ func (contract dashScopeTTSRequestContract) String() string {
 
 func resolveDashScopeTTSRequestContract(modelResolved string) dashScopeTTSRequestContract {
 	normalized := strings.ToLower(strings.TrimSpace(modelResolved))
-	if strings.HasPrefix(normalized, "cosyvoice-") {
+	if strings.HasPrefix(normalized, "cosyvoice-") || normalized == "qwen-audio-3.0-tts-plus" || normalized == "qwen-audio-3.0-tts-flash" {
 		return dashScopeTTSRequestContractCosyVoiceSpeechSynthesizer
 	}
 	return dashScopeTTSRequestContractQwenMultimodal

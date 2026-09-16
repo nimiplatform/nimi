@@ -8712,6 +8712,37 @@ loadout_recipes:
         model_contract:
           format: safetensors
           artifact_role: tts_model
+  - recipe_id: qwen3-local-voice-library
+    revision: "1"
+    title: Qwen3 design and reference voice library
+    capability_contract: voice.create
+    implementation_id: local.voice.create.qwen3-tts-library
+    driver_id: nimi.runtime.driver.qwen3-tts
+    driver_dialect: qwen3-tts/voice-library/v1
+    default_options: {}
+    supported_features:
+      - input.audio
+      - input.text
+    custody: []
+    slot_metadata:
+      - slot_id: voice.base
+        display_label: Reference synthesis model
+        recommended_variant_ids:
+          - local.voice.qwen3-tts-base-0.6b.safetensors
+        recommended_content_ids:
+          - sha256:121345dd05106a89df64676c7632528bb89c19cc5f3c70387a009466f21c6f8d
+        model_contract:
+          format: safetensors
+          artifact_role: tts_voice_clone_model
+      - slot_id: voice.design
+        display_label: Voice design model
+        recommended_variant_ids:
+          - local.voice.qwen3-tts-voicedesign-1.7b.safetensors
+        recommended_content_ids:
+          - sha256:6a6be9af7e60cfd1bd8ff01a5a5648fb42a77aa4dd605ef59532dd3247b013b7
+        model_contract:
+          format: safetensors
+          artifact_role: tts_voice_design_model
   - recipe_id: qwen3-local-voice-clone
     revision: "1"
     title: Qwen3 local voice clone
