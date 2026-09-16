@@ -4,8 +4,18 @@ import {
   filterSecretScanFiles,
   excludedArtifactBaselineEntries,
   secretScanExclusion,
+  scannerFilePaths,
 } from './lib/secret-scan-scope.mjs';
 import { shouldApplySecretBaselineUpdate } from './lib/secret-scan-result.mjs';
+
+test('scanner file lists match native baseline keys when pruning allowlisted findings', () => {
+  const file = 'runtime/internal/grpcserver/source_materialization_issuer.go';
+  const windowsBaselineKey = 'runtime\\internal\\grpcserver\\source_materialization_issuer.go';
+  // The scanner's trim uses exact membership even for files with zero findings.
+  assert.equal(new Set(scannerFilePaths([file], '\\')).has(windowsBaselineKey), true);
+  assert.equal(new Set(scannerFilePaths([windowsBaselineKey], '/')).has(file), true);
+  assert.deepEqual(scannerFilePaths([file], '/'), [file]);
+});
 
 test('explicit baseline update never applies a partial scanner result', () => {
   assert.equal(shouldApplySecretBaselineUpdate({ status: 3, baselineUpdated: true }, true), true);

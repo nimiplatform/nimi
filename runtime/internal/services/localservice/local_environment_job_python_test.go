@@ -964,7 +964,7 @@ func TestPythonPrerequisiteOrderingConvergesUnderConcurrentUnorderedStart(t *tes
 			ExecutablePath:   uvExecutable,
 			SourceRoot:       filepath.Join(svc.runtimeDataRoot, "dependencies", "uv"),
 			ArchiveURL:       "https://releases.astral.sh/github/uv/releases/download/0.11.8/uv-x86_64-pc-windows-msvc.zip",
-			ArchiveSHA256:    "c84629a56e0706b69a47ea35862208af827cb6fbfa1d0ca763c52c67594637e8",
+			ArchiveSHA256:    "c84629a56e0706b69a47ea35862208af827cb6fbfa1d0ca763c52c67594637e8", // pragma: allowlist secret - public uv archive checksum
 			ArchiveAssetName: "uv-x86_64-pc-windows-msvc.zip",
 			Platform:         "windows/amd64",
 			Detail:           "Runtime-managed uv tool verified from pinned official archive",

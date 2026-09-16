@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import {
   filterSecretScanFiles,
   excludedArtifactBaselineEntries,
+  scannerFilePaths,
 } from './lib/secret-scan-scope.mjs';
 import { shouldApplySecretBaselineUpdate } from './lib/secret-scan-result.mjs';
 
@@ -123,7 +124,7 @@ function runDetectSecretsHook(args) {
 function runDetectSecrets(scannedFiles, scannerBaselinePath) {
   let baselineUpdated = false;
   for (let index = 0; index < scannedFiles.length; index += chunkSize) {
-    const chunk = scannedFiles.slice(index, index + chunkSize);
+    const chunk = scannerFilePaths(scannedFiles.slice(index, index + chunkSize), path.sep);
     const result = runDetectSecretsHook(['--baseline', scannerBaselinePath, ...chunk]);
     process.stdout.write(result.stdout || '');
     process.stderr.write(result.stderr || '');

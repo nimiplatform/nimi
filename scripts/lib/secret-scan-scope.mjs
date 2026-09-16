@@ -53,6 +53,12 @@ export function normalizeRepoPath(filePath) {
   return filePath.replace(/\\/g, '/').replace(/^\.\//u, '');
 }
 
+export function scannerFilePaths(files, separator) {
+  // detect-secrets normalizes baseline keys to native paths, but trim compares
+  // its CLI file list verbatim. Both must match to remove obsolete findings.
+  return files.map((filePath) => normalizeRepoPath(filePath).replaceAll('/', separator));
+}
+
 export function secretScanExclusion(filePath) {
   const normalized = normalizeRepoPath(filePath);
   return secretScanExcludes.find((entry) => entry.pattern.test(normalized)) || null;
