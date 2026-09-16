@@ -43,5 +43,11 @@ For an existing App, a generic `/api/...` route or provider `/v1/...` URL alone
 does not prove a Nimi Realm/Runtime bypass. The checker retains explicit
 protected-custody/private-import checks; review actual product call paths to
 establish Nimi AI routing. Do not edit vendor code just to remove a keyword.
+App-owned login and refresh route literals are not Realm identity evidence.
+Python virtual environments identified by `pyvenv.cfg` are installed dependency
+trees, not App source; their bundled web clients do not establish App custody.
+Custom `.next-*` output trees with Next build/routes manifests and server/static
+directories (including the `dev` layout) are also excluded. A similarly named
+App source directory without those output markers remains checked.
 
 Separate development instructions from product-operation guides, including other host entry files actually used by the repository. Upstream supplier examples may remain as knowledge; check the active product/agent route instead of deleting by keyword. Keep unimplemented original workflows explicit rather than counting a visible menu or retained source as completion.

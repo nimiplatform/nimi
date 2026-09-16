@@ -1,6 +1,7 @@
 import { PNG } from 'pngjs';
 import assert from 'node:assert/strict';
-import { chmodSync, cpSync, existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { chmodSync, cpSync, existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdtemp, realpath } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -282,6 +283,67 @@ function writePublicRegistryLock(target) {
   }));
 }
 
+test('workspace importers resolve tarball specifiers locally and reject stale child installations', () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-workspace-archives-'));
+  const target = writeExistingSubmittedApp(tempRoot, { buildProfileRef: 'electron-pnpm' });
+  const env = fakeNimicodingEnv(tempRoot);
+  try {
+    let result = runCli(['sync', '--dir', target, '--json'], tempRoot, env);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    writePublicRegistryLock(target);
+    const name = '@nimiplatform/sdk';
+    const selected = 'file:.nimi/local/packages/sdk.tgz';
+    const archive = path.join(target, '.nimi/local/packages/sdk.tgz');
+    mkdirSync(path.dirname(archive), { recursive: true });
+    writeFileSync(archive, 'lock validation fixture; consumer performs real installation');
+    const workspacePath = path.join(target, 'pnpm-workspace.yaml');
+    const workspace = parseYaml(readFileSync(workspacePath, 'utf8'));
+    workspace.packages = ['.', 'web', 'tools/css'];
+    workspace.overrides[name] = selected;
+    writeFileSync(workspacePath, stringifyYaml(workspace));
+    const lockPath = path.join(target, 'pnpm-lock.yaml');
+    const lock = parseYaml(readFileSync(lockPath, 'utf8'));
+    lock.overrides = { [name]: selected };
+    lock.importers['.'].dependencies[name] = { specifier: selected, version: selected + '(peer@root)' };
+    for (const importer of ['web', 'tools/css']) {
+      const directory = path.join(target, importer);
+      mkdirSync(directory, { recursive: true });
+      writeFileSync(path.join(directory, 'package.json'), JSON.stringify({ name: importer.replace('/', '-'), private: true, dependencies: { [name]: versions.sdkVersion } }));
+      lock.importers[importer] = { dependencies: { [name]: {
+        specifier: 'file:' + path.relative(directory, archive).split(path.sep).join('/'),
+        version: selected + '(peer@child)',
+      } } };
+    }
+    lock.packages = { [name + '@' + selected]: { version: versions.sdkVersion.slice(1), resolution: { tarball: selected, integrity: 'sha512-workspace-fixture' } } };
+    const sdkDirectory = path.join(target, 'node_modules', ...name.split('/'));
+    mkdirSync(sdkDirectory, { recursive: true });
+    writeFileSync(path.join(sdkDirectory, 'package.json'), JSON.stringify({ name, version: versions.sdkVersion.slice(1) }));
+    const virtualStore = path.join(target, 'node_modules', '.pnpm');
+    mkdirSync(virtualStore, { recursive: true });
+    writeFileSync(path.join(target, 'node_modules', '.modules.yaml'), stringifyYaml({ virtualStoreDir: '.pnpm' }));
+    writeFileSync(lockPath, stringifyYaml(lock));
+    writeFileSync(path.join(virtualStore, 'lock.yaml'), stringifyYaml(lock));
+    result = runCli(['check', '--dir', target, '--json'], tempRoot, env);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+
+    for (const specifier of ['file:../.nimi/local/packages/other-sdk.tgz', 'link:../source-sdk']) {
+      const invalid = structuredClone(lock);
+      invalid.importers.web.dependencies[name].specifier = specifier;
+      writeFileSync(lockPath, stringifyYaml(invalid));
+      result = runCli(['check', '--dir', target, '--json'], tempRoot, env);
+      assert.notEqual(result.status, 0);
+      assert.match(jsonErrorMessage(result), /retains a local Nimi resolution at importers.web/);
+    }
+    writeFileSync(lockPath, stringifyYaml(lock));
+    const stale = structuredClone(lock);
+    stale.importers.web.dependencies[name].version = selected + '(peer@old)';
+    writeFileSync(path.join(virtualStore, 'lock.yaml'), stringifyYaml(stale));
+    result = runCli(['check', '--dir', target, '--json'], tempRoot, env);
+    assert.notEqual(result.status, 0);
+    assert.match(jsonErrorMessage(result), /installation is stale.*importers.web/);
+  } finally { rmSync(tempRoot, { recursive: true, force: true }); }
+});
+
 test('local Nimi tarball overrides survive sync and are checked without requiring publication', () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-local-packages-'));
   const target = writeExistingSubmittedApp(tempRoot, { buildProfileRef: 'electron-packager-pnpm-vite' });
@@ -418,6 +480,38 @@ test('production staging preserves parentheses in archive paths and nested local
   assert.deepEqual(embeddedRebase(original, source, staged), rebased);
 });
 
+test('generated production staging preserves archive identity when the temp root is a symlink', async () => {
+  const temp = realpathSync(mkdtempSync(path.join(os.tmpdir(), 'nimi-app-staging-alias-')));
+  try {
+    const physicalTemp = path.join(temp, 'physical', 'nested-temp');
+    const aliasTemp = path.join(temp, 'temp-alias');
+    mkdirSync(physicalTemp, { recursive: true });
+    symlinkSync(physicalTemp, aliasTemp, process.platform === 'win32' ? 'junction' : 'dir');
+    const appRoot = path.join(temp, 'consumer');
+    const archive = path.join(temp, 'packages', 'sdk.tgz');
+    mkdirSync(appRoot);
+    mkdirSync(path.dirname(archive));
+    writeFileSync(archive, 'the selected archive');
+    const snapshot = buildAppScaffoldSnapshot({
+      profile: 'standalone', versions, targetDir: appRoot,
+      appId: 'example.staging', appTitle: 'Staging', packageName: 'example-staging', features: [],
+    });
+    const packager = snapshot.filesByPath.get('scripts/package-electron-production.mjs').content;
+    const declaration = packager.match(/^const stagingRoot = .+;$/mu)?.[0];
+    assert.ok(declaration, 'generated packager must allocate its staging root');
+    const stagingRoot = await new Function('path', 'mkdtemp', 'realpath', 'tmpdir',
+      `return (async () => { ${declaration} return stagingRoot; })();`)(path, mkdtemp, realpath, () => aliasTemp);
+    const productionSourceRoot = path.join(stagingRoot, 'app');
+    mkdirSync(productionSourceRoot);
+    const selected = 'file:' + path.relative(appRoot, archive).split(path.sep).join('/');
+    const rebased = rebaseLocalPackagePaths(selected, appRoot, productionSourceRoot);
+    // pnpm executes with a physical cwd, even if mkdtemp returned an alias.
+    const actualArchive = path.resolve(await realpath(productionSourceRoot), rebased.slice(5));
+    assert.equal(readFileSync(actualArchive, 'utf8'), 'the selected archive');
+    assert.equal(await realpath(actualArchive), await realpath(archive));
+  } finally { rmSync(temp, { recursive: true, force: true }); }
+});
+
 function snapshotTree(rootDir) {
   const snapshot = {};
   const walk = (currentDir) => {
@@ -547,6 +641,96 @@ test('existing Next adoption and sync preserve the App renderer and production o
     assert.equal(existsSync(path.join(target, SCAFFOLD_LOCK_PATH)), false);
     assert.equal(readFileSync(path.join(target, 'app/api/example/route.ts'), 'utf8'), source);
     assert.equal(readFileSync(path.join(target, 'public/editor/editor.js'), 'utf8'), vendor);
+  } finally { rmSync(temp, { recursive: true, force: true }); }
+});
+
+test('existing Next sync excludes marked custom build outputs while retaining source checks', () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-next-output-'));
+  const target = writeExistingSubmittedApp(tempRoot, { buildProfileRef: 'electron-pnpm' });
+  const env = fakeNimicodingEnv(tempRoot);
+  try {
+    let result = runCli(['sync', '--dir', target, '--json'], tempRoot, env);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    writePublicRegistryLock(target);
+    for (const relative of ['web/.next-nimi/dev', 'web/.next-nimi-production']) {
+      const output = path.join(target, relative);
+      for (const subdir of ['server/chunks/ssr', 'static/chunks']) {
+        mkdirSync(path.join(output, subdir), { recursive: true });
+        writeFileSync(path.join(output, subdir, 'sdk-bundle.js'), 'export const message = { launchBinding: null };\n');
+      }
+      writeFileSync(path.join(output, 'build-manifest.json'), '{"pages":{}}\n');
+      writeFileSync(path.join(output, 'routes-manifest.json'), '{"version":3}\n');
+    }
+    const before = snapshotTree(target);
+    for (const args of [['sync', '--dry-run', '--json'], ['check', '--json']]) {
+      result = runCli([...args, '--dir', target], tempRoot, env);
+      assert.equal(result.status, 0, result.stdout + result.stderr);
+      assert.deepEqual(snapshotTree(target), before);
+    }
+    // A similarly named source folder has no output markers and is still scanned.
+    for (const relative of ['web/src/caller.ts', 'web/.next-business/caller.ts']) {
+      const source = path.join(target, relative);
+      mkdirSync(path.dirname(source), { recursive: true });
+      writeFileSync(source, 'export const state = { launchBinding: value };\n');
+      result = runCli(['sync', '--dir', target, '--dry-run', '--json'], tempRoot, env);
+      assert.notEqual(result.status, 0);
+      assert.ok(jsonErrorMessage(result).includes(`${relative}: renderer launch binding custody`));
+      rmSync(source);
+    }
+  } finally { rmSync(tempRoot, { recursive: true, force: true }); }
+});
+
+test('adoption keeps App-owned login and refresh routes without claiming Realm authority', () => {
+  const temp = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-business-auth-'));
+  try {
+    const target = writeExistingSubmittedApp(temp, { buildProfileRef: 'electron-pnpm' });
+    const input = rawAppInput(target);
+    const sources = {
+      'web/lib/auth.ts': "export const login = body => fetch('/api/auth/login', { method: 'POST', body });\nexport const refresh = () => fetch('/api/auth/refresh', { method: 'POST' });\n",
+      'web/contracts/generated/api.ts': 'export interface Paths { "/api/auth/login": unknown; "/api/auth/refresh": unknown; }\n',
+    };
+    for (const [relative, source] of Object.entries(sources)) {
+      mkdirSync(path.dirname(path.join(target, relative)), { recursive: true });
+      writeFileSync(path.join(target, relative), source);
+    }
+    const env = fakeNimicodingEnv(temp);
+    for (const args of [
+      ['init', '--adopt', '--input', input, '--dry-run', '--json'],
+      ['init', '--adopt', '--input', input, '--json'],
+      ['sync', '--dry-run', '--json'],
+    ]) {
+      const result = runCli(args, target, env);
+      assert.equal(result.status, 0, result.stdout + result.stderr);
+      for (const [relative, source] of Object.entries(sources)) {
+        assert.equal(readFileSync(path.join(target, relative), 'utf8'), source);
+      }
+    }
+  } finally { rmSync(temp, { recursive: true, force: true }); }
+});
+
+test('adoption excludes Python virtual environments but still rejects protected App custody', () => {
+  const temp = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-python-env-'));
+  try {
+    const target = writeExistingSubmittedApp(temp, { buildProfileRef: 'electron-pnpm' });
+    const input = rawAppInput(target);
+    for (const directory of ['.venv', 'python-tools']) {
+      const environment = path.join(target, directory);
+      const vendor = path.join(environment, 'lib/python3.14/site-packages/vendor/web');
+      mkdirSync(vendor, { recursive: true });
+      writeFileSync(path.join(environment, 'pyvenv.cfg'), 'include-system-site-packages = false\n');
+      writeFileSync(path.join(vendor, 'bundle.js'), "localStorage.setItem('access_token', value);\n");
+    }
+    const env = fakeNimicodingEnv(temp);
+    let result = runCli(['init', '--adopt', '--input', input, '--dry-run', '--json'], target, env);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    const before = snapshotTree(target);
+    writeFileSync(path.join(target, 'src/product/leak.ts'), "localStorage.setItem('nimi-access-token', value);\nimport { privateCall } from '../runtime/internal/client';\n");
+    result = runCli(['init', '--adopt', '--input', input, '--dry-run', '--json'], target, env);
+    assert.notEqual(result.status, 0);
+    assert.match(jsonErrorMessage(result), /src\/product\/leak\.ts: renderer or app storage of protected material/);
+    assert.match(jsonErrorMessage(result), /src\/product\/leak\.ts: Runtime private import/);
+    rmSync(path.join(target, 'src/product/leak.ts'));
+    assert.deepEqual(snapshotTree(target), before);
   } finally { rmSync(temp, { recursive: true, force: true }); }
 });
 

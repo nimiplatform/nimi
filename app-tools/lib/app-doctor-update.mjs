@@ -85,11 +85,10 @@ const PROVIDER_MODEL_HARDCODING_MODEL_FAMILIES = Object.freeze([
 ]);
 const LOCAL_DEVELOPMENT_BYPASS_LABELS = new Set([
   'generic platform auth helper in scaffold',
-  'Realm login bypass endpoint',
-  'Realm refresh bypass endpoint',
   'Realm permission grant REST bypass endpoint',
   'Realm raw request bypass',
   // Existing Apps own ordinary HTTP routes and may retain vendor sources.
+  // Their login/refresh paths also do not identify Nimi Realm authority.
   // A bare /api or /v1 URL does not identify Nimi Realm/Runtime authority.
   // Those broad patterns remain applicable to our generated scaffold only.
   'app-owned session store',
@@ -260,6 +259,18 @@ function isScannedTextPath(relativePath) {
     && TEXT_EXTENSIONS.has(path.extname(relativePath));
 }
 
+function isNextBuildOutputDirectory(directory) {
+  if (!path.basename(directory).startsWith('.next-')) return false;
+  // Next can separate dev and production distDir outputs. Exclude an actual
+  // output tree, not every similarly named source directory or ignored file.
+  return [directory, path.join(directory, 'dev')].some((output) => (
+    statSync(path.join(output, 'build-manifest.json'), { throwIfNoEntry: false })?.isFile()
+    && statSync(path.join(output, 'routes-manifest.json'), { throwIfNoEntry: false })?.isFile()
+    && statSync(path.join(output, 'server'), { throwIfNoEntry: false })?.isDirectory()
+    && statSync(path.join(output, 'static'), { throwIfNoEntry: false })?.isDirectory()
+  ));
+}
+
 function collectTextFiles(rootDir) {
   const results = [];
   const walk = (currentDir) => {
@@ -269,6 +280,11 @@ function collectTextFiles(rootDir) {
       }
       const fullPath = path.join(currentDir, entry.name);
       if (entry.isDirectory()) {
+        if (isNextBuildOutputDirectory(fullPath)) continue;
+        // Python environments can contain bundled JS applications. Like
+        // node_modules, these installed dependencies are not App source.
+        // Use the environment marker, not a project-specific directory name.
+        if (existsSync(path.join(fullPath, 'pyvenv.cfg'))) continue;
         walk(fullPath);
         continue;
       }

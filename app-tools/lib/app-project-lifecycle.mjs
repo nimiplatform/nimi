@@ -472,11 +472,11 @@ function findLocalNimiResolution(value, currentPackage = '', pathParts = [], all
       packageName
       && normalizedKey.startsWith(`${packageName}@`)
       && isLocalDependencySpec(normalizedKey.slice(packageName.length + 1))
-      && !allowedArchive(packageName, normalizedKey.slice(packageName.length + 1))
+      && !allowedArchive(packageName, normalizedKey.slice(packageName.length + 1), [...pathParts, key])
     ) {
       return [...pathParts, key].join('.');
     }
-    if (packageName && typeof child === 'string' && isLocalDependencySpec(child) && !allowedArchive(packageName, child)) {
+    if (packageName && typeof child === 'string' && isLocalDependencySpec(child) && !allowedArchive(packageName, child, [...pathParts, key])) {
       return [...pathParts, key].join('.');
     }
     const finding = findLocalNimiResolution(child, packageName, [...pathParts, key], allowedArchive);
@@ -513,8 +513,21 @@ function assertPnpmLockCurrent(targetDir, packageJson, localPackages = new Map()
     throw installRequiredError('pnpm-lock.yaml is missing');
   }
   const lock = parseYamlFile(readFileSync(lockPath, 'utf8'), lockPath);
-  const allowedArchive = (name, value) => localPackageArchive(value) && localPackages.has(name)
-    && archivePath(targetDir, value) === archivePath(targetDir, localPackages.get(name));
+  const allowedArchive = (name, value, location = []) => {
+    // pnpm rebases importer specifiers to the member directory; resolved
+    // versions and package/snapshot keys stay relative to the workspace root.
+    let base = targetDir;
+    if (location.length === 5 && location[0] === 'importers'
+      && NPM_DEPENDENCY_SECTIONS.includes(location[2]) && location[4] === 'specifier') {
+      base = path.resolve(targetDir, location[1]);
+      const relative = path.relative(targetDir, base);
+      if (path.isAbsolute(location[1]) || relative === '..' || relative.startsWith(`..${path.sep}`)) {
+        throw installRequiredError(`pnpm-lock.yaml importer is outside the App workspace: ${location[1]}`);
+      }
+    }
+    return localPackageArchive(value) && localPackages.has(name)
+      && archivePath(base, value) === archivePath(targetDir, localPackages.get(name));
+  };
   const finding = findLocalNimiResolution(lock, '', [], allowedArchive);
   if (finding) {
     throw installRequiredError(`pnpm-lock.yaml retains a local Nimi resolution at ${finding}`);
@@ -567,6 +580,21 @@ function assertPnpmLockCurrent(targetDir, packageJson, localPackages = new Map()
     for (const name of Object.keys(lockSection || {})) {
       if (name.startsWith('@nimiplatform/') && !Object.hasOwn(packageSection, name)) {
         throw installRequiredError(`pnpm-lock.yaml retains stale Nimi dependency: ${sectionName}.${name}`);
+      }
+    }
+  }
+  for (const [importerName, child] of Object.entries(lock.importers)) {
+    if (importerName === '.') continue;
+    for (const sectionName of NPM_DEPENDENCY_SECTIONS) {
+      for (const [name, dependency] of Object.entries(child?.[sectionName] || {})) {
+        if (!localPackages.has(name)) continue;
+        const location = ['importers', importerName, sectionName, name, 'specifier'];
+        const installed = installedLock?.importers?.[importerName]?.[sectionName]?.[name];
+        if (typeof dependency?.version !== 'string' || installed?.version !== dependency.version
+          || !allowedArchive(name, dependency?.specifier, location)
+          || !allowedArchive(name, installed?.specifier, location)) {
+          throw installRequiredError(`Local Nimi package installation is stale: importers.${importerName}.${sectionName}.${name}`);
+        }
       }
     }
   }
