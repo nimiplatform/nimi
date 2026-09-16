@@ -402,7 +402,7 @@ var Records = map[string]ProviderRecord{
 		ManagedConnectorSupported:     true,
 		InlineSupported:               true,
 		DefaultEndpoint:               "https://api.deepseek.com/v1",
-		DefaultTextModel:              "deepseek-v4-flash",
+		DefaultTextModel:              "deepseek-flash",
 		RequiresExplicitEndpoint:      false,
 		InventoryMode:                 "static_source",
 		DynamicDiscoveryTransport:     "",

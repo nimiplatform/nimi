@@ -359,6 +359,7 @@ providers:
     endpoint_requirement: empty_string_only
     inventory_mode: static_source
     capabilities:
+      - audio.separate
       - audio.synthesize
       - audio.transcribe
       - image.generate
@@ -366,6 +367,7 @@ providers:
       - text.embed
       - text.generate
       - video.generate
+      - vision.locate
       - voice.create
     sources:
       - K-MCAT-027

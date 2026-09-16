@@ -14,7 +14,7 @@ func deepseekJSONSpec() *runtimev1.TextGenerateScenarioSpec {
 
 func TestDeepseekJSONSerializerPreservesInputAndDisablesThinking(t *testing.T) {
 	spec := deepseekJSONSpec()
-	serialized, err := DeepseekJSONRequestSerializer(spec, true)
+	serialized, err := DeepseekChatRequestSerializer(spec, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -33,13 +33,13 @@ func TestDeepseekJSONSerializerPreservesInputAndDisablesThinking(t *testing.T) {
 		t.Fatal("serializer selected a model")
 	}
 	spec.TopK = proto.Int32(10)
-	if _, err := DeepseekJSONRequestSerializer(spec, true); err == nil {
+	if _, err := DeepseekChatRequestSerializer(spec, true); err == nil {
 		t.Fatal("unsupported top_k admitted")
 	}
 }
 
 func TestDeepseekJSONStreamRequiresValidCompleteObjectAndDone(t *testing.T) {
-	stream, err := DeepseekJSONStreamAssembler(deepseekJSONSpec())
+	stream, err := DeepseekChatStreamAssembler(deepseekJSONSpec())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,13 +71,13 @@ func TestDeepseekJSONStreamRequiresValidCompleteObjectAndDone(t *testing.T) {
 
 func TestDeepseekJSONDoesNotRepairInvalidProviderOutput(t *testing.T) {
 	valid := []byte(`{"choices":[{"index":0,"message":{"content":"{\"ok\":true}"},"finish_reason":"stop"}],"usage":{"prompt_tokens":3,"completion_tokens":2}}`)
-	result, err := DeepseekJSONNonStreamParser(valid, deepseekJSONSpec())
+	result, err := DeepseekChatNonStreamParser(valid, deepseekJSONSpec())
 	if err != nil || result.Items[0].Text != `{"ok":true}` || result.Usage.GetOutputTokens() != 2 {
 		t.Fatalf("valid JSON rejected: %+v %v", result, err)
 	}
 	for _, content := range []string{"", "[]", "null", "not JSON", "{broken"} {
 		payload, _ := json.Marshal(map[string]any{"choices": []any{map[string]any{"index": 0, "message": map[string]any{"content": content}, "finish_reason": "stop"}}})
-		_, err := DeepseekJSONNonStreamParser(payload, deepseekJSONSpec())
+		_, err := DeepseekChatNonStreamParser(payload, deepseekJSONSpec())
 		reason, _ := grpcerr.ExtractReasonCode(err)
 		if reason != runtimev1.ReasonCode_AI_OUTPUT_INVALID {
 			t.Fatalf("content %q err=%v", content, err)

@@ -1,6 +1,6 @@
 schema_version: 3
 provider: deepseek
-catalog_version: 2026-08-25-deepseek-v4
+catalog_version: 2026-09-16-deepseek-flash
 generated_target: runtime/catalog/providers/deepseek.yaml
 runtime:
   inventory_mode: static_source
@@ -11,7 +11,7 @@ runtime:
   requires_explicit_endpoint: false
 defaults:
   provider: deepseek
-  default_text_model: deepseek-v4-flash
+  default_text_model: deepseek-flash
   model_type: chat
   capabilities: []
   context_window_tokens: 1000000
@@ -30,8 +30,8 @@ sources:
     note: DeepSeek API documentation home and model matrix.
   - source_id: deepseek_pricing_doc
     url: https://api-docs.deepseek.com/quick_start/pricing
-    retrieved_at: 2026-08-25
-    note: DeepSeek V4 model IDs, limits, prices, and legacy-alias retirement notice.
+    retrieved_at: 2026-09-16
+    note: Current deepseek-flash serves V4.1 Flash; old Flash API names remain provider-served aliases. V4 Pro remains available; prices distinguish peak and off-peak.
   - source_id: deepseek_v4_release_doc
     url: https://api-docs.deepseek.com/news/news260424/
     retrieved_at: 2026-08-25
@@ -44,10 +44,10 @@ sources:
 selection_profiles:
   - profile_id: text.general
     capability: text.generate
-    model_id: deepseek-v4-flash
-    reviewed_at: 2026-07-20
+    model_id: deepseek-flash
+    reviewed_at: 2026-09-16
     freshness_sla_days: 21
-    rationale: Current lower-latency and cost-efficient V4 route supporting both non-thinking and thinking modes.
+    rationale: Current official Flash API target, served by DeepSeek V4.1 Flash; exact behavior support remains Runtime adapter-owned.
   - profile_id: text.reasoning
     capability: text.generate
     model_id: deepseek-v4-pro
@@ -56,17 +56,30 @@ selection_profiles:
     rationale: Current highest-capability V4 route for reasoning-heavy workloads.
 
 models:
+  - model_id: deepseek-flash
+    model_type: chat
+    updated_at: 2026-09-16
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: "0.3"
+      output: "1.2"
+      currency: USD
+      as_of: 2026-09-16
+      notes: Current API target for DeepSeek V4.1 Flash. Per 1M tokens at peak cache-miss rates; off-peak input/output are $0.15/$0.6. Provider model aliases do not pin immutable weights; exact text behavior support is Runtime-owned.
+    source_ids: [deepseek_pricing_doc]
+
   - model_id: deepseek-v4-flash
     model_type: chat
     updated_at: 2026-04-24
     capabilities: [text.generate]
     pricing:
       unit: token
-      input: "0.14"
-      output: "0.28"
+      input: "0.3"
+      output: "1.2"
       currency: USD
-      as_of: 2026-07-20
-      notes: Per 1M tokens at cache-miss input rate; cache-hit input is $0.0028. Supports both non-thinking and thinking modes with 1M context and up to 384K output.
+      as_of: 2026-09-16
+      notes: Legacy API alias still accepted by the provider and now served by DeepSeek V4.1 Flash, not a V4 Flash version pin. Per 1M tokens at peak cache-miss rates; off-peak input/output are $0.15/$0.6. Prefer the current deepseek-flash target for new selection.
     source_ids: [deepseek_pricing_doc, deepseek_v4_release_doc, deepseek_home_doc, deepseek_updates_doc]
 
   - model_id: deepseek-v4-pro
@@ -75,9 +88,9 @@ models:
     capabilities: [text.generate]
     pricing:
       unit: token
-      input: "0.435"
-      output: "0.87"
+      input: "1.32"
+      output: "3.96"
       currency: USD
-      as_of: 2026-07-20
-      notes: Per 1M tokens at cache-miss input rate; cache-hit input is $0.003625. Supports both non-thinking and thinking modes with 1M context and up to 384K output.
+      as_of: 2026-09-16
+      notes: Current API target for DeepSeek V4 Pro 0813; official API availability continues after September 14. Per 1M tokens at peak cache-miss rates; off-peak input/output are $0.66/$1.98. Exact behavior support is Runtime-owned.
     source_ids: [deepseek_pricing_doc, deepseek_v4_release_doc, deepseek_home_doc, deepseek_updates_doc]

@@ -97,7 +97,7 @@ providers:
     source_rule: K-MCAT-027
   - provider: deepseek
     default_endpoint: https://api.deepseek.com/v1
-    default_text_model: deepseek-v4-flash
+    default_text_model: deepseek-flash
     requires_explicit_endpoint: false
     inventory_mode: static_source
     source_rule: K-MCAT-027

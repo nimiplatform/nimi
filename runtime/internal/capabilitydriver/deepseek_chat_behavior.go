@@ -12,60 +12,35 @@ import (
 )
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.deepseek-v4-json-output
-func DeepseekJSONRequestSerializer(spec *runtimev1.TextGenerateScenarioSpec, stream bool) (textbehavior.SerializedRequest, error) {
-	if spec == nil || spec.GetResponseFormat().GetKind() != runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_OBJECT ||
-		spec.GetResponseFormat().GetJsonSchema() != nil || spec.GetResponseFormat().GetStrict() ||
-		len(spec.GetTools()) != 0 || spec.GetToolChoiceName() != "" ||
-		(spec.GetToolChoice() != runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_UNSPECIFIED && spec.GetToolChoice() != runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_NONE) ||
-		llamaBehaviorReasoningEnabled(spec) || spec.TopK != nil || spec.Seed != nil {
-		return textbehavior.SerializedRequest{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED)
+func DeepseekChatRequestSerializer(spec *runtimev1.TextGenerateScenarioSpec, stream bool) (textbehavior.SerializedRequest, error) {
+	if err := validateDeepseekChatSpec(spec); err != nil {
+		return textbehavior.SerializedRequest{}, err
 	}
-	messages := make([]map[string]string, 0, len(spec.GetInput())+2)
-	jsonCue := false
-	appendText := func(role, text string) {
-		jsonCue = jsonCue || strings.Contains(strings.ToLower(text), "json")
-		messages = append(messages, map[string]string{"role": role, "content": text})
+	messages, err := deepseekChatMessages(spec)
+	if err != nil {
+		return textbehavior.SerializedRequest{}, err
 	}
-	if spec.GetSystemPrompt() != "" {
-		appendText("system", spec.GetSystemPrompt())
-	}
-	for _, message := range spec.GetInput() {
-		if message == nil || (message.Role != "system" && message.Role != "user" && message.Role != "assistant") {
-			return textbehavior.SerializedRequest{}, deepseekJSONInputError("unsupported message role")
-		}
-		if len(message.GetTurnItems()) > 0 {
-			for _, item := range message.GetTurnItems() {
-				value := item.GetOutput().GetText()
-				if value == nil || message.Role != "assistant" {
-					return textbehavior.SerializedRequest{}, deepseekJSONInputError("unsupported ordered content")
-				}
-				appendText("assistant", value.GetText())
+	jsonMode := spec.GetResponseFormat().GetKind() == runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_OBJECT
+	if jsonMode {
+		cue := false
+		for _, m := range messages {
+			if value, ok := m["content"].(string); ok {
+				cue = cue || strings.Contains(strings.ToLower(value), "json")
 			}
-			continue
 		}
-		content := message.GetContent()
-		if len(message.GetParts()) > 0 {
-			if content != "" {
-				return textbehavior.SerializedRequest{}, deepseekJSONInputError("conflicting message content")
-			}
-			var text strings.Builder
-			for _, part := range message.GetParts() {
-				if part.GetType() != runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT {
-					return textbehavior.SerializedRequest{}, deepseekJSONInputError("JSON behavior requires text input")
-				}
-				text.WriteString(part.GetText())
-			}
-			content = text.String()
+		if !cue {
+			messages = append([]map[string]any{{"role": "system", "content": "Return a JSON object."}}, messages...)
 		}
-		appendText(message.Role, content)
 	}
-	if len(messages) == 0 {
-		return textbehavior.SerializedRequest{}, deepseekJSONInputError("missing text input")
+	body := map[string]any{"messages": messages, "stream": stream, "thinking": map[string]string{"type": "disabled"}}
+	if jsonMode {
+		body["response_format"] = map[string]string{"type": "json_object"}
 	}
-	if !jsonCue {
-		messages = append([]map[string]string{{"role": "system", "content": "Return a JSON object."}}, messages...)
+	if len(spec.GetTools()) > 0 {
+		if err := deepseekChatTools(body, spec); err != nil {
+			return textbehavior.SerializedRequest{}, err
+		}
 	}
-	body := map[string]any{"messages": messages, "stream": stream, "thinking": map[string]string{"type": "disabled"}, "response_format": map[string]string{"type": "json_object"}}
 	if stream {
 		body["stream_options"] = map[string]bool{"include_usage": true}
 	}
@@ -95,11 +70,12 @@ type deepseekJSONMessage struct {
 	Content          *string         `json:"content"`
 	ReasoningContent *string         `json:"reasoning_content"`
 	ToolCalls        json.RawMessage `json:"tool_calls"`
+	Refusal          *string         `json:"refusal"`
 }
 
 type deepseekJSONEnvelope struct {
 	Choices []struct {
-		Index        int                  `json:"index"`
+		Index        *int                 `json:"index"`
 		Message      *deepseekJSONMessage `json:"message"`
 		Delta        *deepseekJSONMessage `json:"delta"`
 		FinishReason *string              `json:"finish_reason"`
@@ -124,6 +100,9 @@ func decodeDeepseekJSONEnvelope(payload []byte) (deepseekJSONEnvelope, error) {
 func deepseekJSONMessageText(message *deepseekJSONMessage) (string, error) {
 	if message == nil {
 		return "", deepseekJSONOutputError()
+	}
+	if message.Refusal != nil && *message.Refusal != "" {
+		return "", deepseekRefused()
 	}
 	calls := strings.TrimSpace(string(message.ToolCalls))
 	if (message.ReasoningContent != nil && *message.ReasoningContent != "") || (calls != "" && calls != "null" && calls != "[]") {
@@ -166,7 +145,13 @@ func deepseekJSONUsage(value deepseekJSONEnvelope) *runtimev1.UsageStats {
 	return &runtimev1.UsageStats{InputTokens: value.Usage.PromptTokens, OutputTokens: value.Usage.CompletionTokens}
 }
 
-func DeepseekJSONNonStreamParser(payload []byte, spec *runtimev1.TextGenerateScenarioSpec) (textbehavior.NormalizedResult, error) {
+func DeepseekChatNonStreamParser(payload []byte, spec *runtimev1.TextGenerateScenarioSpec) (textbehavior.NormalizedResult, error) {
+	if err := validateDeepseekChatSpec(spec); err != nil {
+		return textbehavior.NormalizedResult{}, err
+	}
+	if len(spec.GetTools()) > 0 {
+		return parseDeepseekToolResponse(payload, spec)
+	}
 	if spec == nil || spec.GetResponseFormat().GetKind() != runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_OBJECT {
 		return textbehavior.NormalizedResult{}, deepseekJSONInputError("JSON-object request is required")
 	}
@@ -174,7 +159,7 @@ func DeepseekJSONNonStreamParser(payload []byte, spec *runtimev1.TextGenerateSce
 	if err != nil {
 		return textbehavior.NormalizedResult{}, err
 	}
-	if len(value.Choices) != 1 || value.Choices[0].Index != 0 {
+	if len(value.Choices) != 1 || (value.Choices[0].Index == nil || *value.Choices[0].Index != 0) {
 		return textbehavior.NormalizedResult{}, deepseekJSONOutputError()
 	}
 	choice := value.Choices[0]
@@ -191,7 +176,13 @@ func DeepseekJSONNonStreamParser(payload []byte, spec *runtimev1.TextGenerateSce
 	return textbehavior.NormalizedResult{Items: []textbehavior.OrderedItem{{Kind: textbehavior.OrderedItemText, Text: text}}, FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP, Usage: deepseekJSONUsage(value)}, nil
 }
 
-func DeepseekJSONStreamAssembler(spec *runtimev1.TextGenerateScenarioSpec) (textbehavior.StreamFragmentAssembler, error) {
+func DeepseekChatStreamAssembler(spec *runtimev1.TextGenerateScenarioSpec) (textbehavior.StreamFragmentAssembler, error) {
+	if err := validateDeepseekChatSpec(spec); err != nil {
+		return nil, err
+	}
+	if len(spec.GetTools()) > 0 {
+		return newDeepseekToolStream(spec), nil
+	}
 	if spec == nil || spec.GetResponseFormat().GetKind() != runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_OBJECT {
 		return nil, deepseekJSONInputError("JSON-object request is required")
 	}
@@ -229,7 +220,7 @@ func (stream *deepseekJSONStream) Append(payload []byte) ([]textbehavior.Ordered
 		stream.usageTail = true
 		return nil, nil
 	}
-	if len(value.Choices) != 1 || value.Choices[0].Index != 0 {
+	if len(value.Choices) != 1 || (value.Choices[0].Index == nil || *value.Choices[0].Index != 0) {
 		return nil, deepseekJSONOutputError()
 	}
 	choice := value.Choices[0]
