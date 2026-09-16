@@ -60,7 +60,13 @@ export function createAppBusinessServices(host: NimiElectronLocalAppHost) {
               check(expected);
               const result = await request(next, { streamId });
               check(expected);
-              if (stopped || result.completed === true) return;
+              if (stopped) return;
+              if (result.completed === true) {
+                // The scoped Host retires ownership at EOF; closing again is not-found.
+                stopped = true;
+                resources.delete(cancel);
+                return;
+              }
               yield result.event;
             }
           } finally {
@@ -141,7 +147,12 @@ export function createAppBusinessServices(host: NimiElectronLocalAppHost) {
                 check(expected);
                 const result = await request('assetReadNext', { streamId: opened.streamId });
                 check(expected);
-                if (stopped || result.completed === true) return;
+                if (stopped) return;
+                if (result.completed === true) {
+                  stopped = true;
+                  resources.delete(cancel);
+                  return;
+                }
                 yield result.bodyChunk;
               }
             } finally {

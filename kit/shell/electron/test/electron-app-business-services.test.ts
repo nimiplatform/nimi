@@ -4,6 +4,45 @@ import { createAppBusinessServices } from '../src/main/app-business-services.js'
 import type { NimiElectronLocalAppHost } from '../src/main/local-app-host.js';
 
 describe('App-owned Node services on the existing protected Host', () => {
+  it('finishes an asset read without closing an EOF-retired Host resource', async () => {
+    let next = 0;
+    let closes = 0;
+    const owner = createAppBusinessServices({
+      assetReadOpen: async () => ({ streamId: 'read-1',
+        asset: { relativePath: 'audio/result.wav', mediaType: 'audio/wav', sizeBytes: 3,
+          sha256: `sha256:${'a'.repeat(64)}`, createdAt: '2026-09-12T00:00:00Z', updatedAt: '2026-09-12T00:00:00Z' },
+        range: { offset: 0, length: 3, totalSize: 3 } }),
+      assetReadNext: async () => next++ === 0
+        ? { completed: false, bodyChunk: new Uint8Array([1, 2, 3]) }
+        : { completed: true },
+      // Scoped Host ownership retires the stream when next returns EOF.
+      assetReadClose: async () => { closes++; throw new Error('not-found'); },
+    } as unknown as NimiElectronLocalAppHost);
+    const read = await owner.services.storage.assets.read({ relativePath: 'audio/result.wav' });
+    const received: number[] = [];
+    for await (const chunk of read.body) received.push(...chunk);
+    expect(received).toEqual([1, 2, 3]);
+    owner.invalidate();
+    owner.close();
+    expect(closes).toBe(0);
+  });
+
+  it('does not close a subscription whose Host has already returned EOF', async () => {
+    let closes = 0;
+    const owner = createAppBusinessServices({
+      scenarioJobSubscribe: async () => ({ streamId: 'job-stream-1' }),
+      scenarioJobStreamNext: async () => ({ completed: true }),
+      scenarioJobStreamClose: async () => { closes++; throw new Error('not-found'); },
+    } as unknown as NimiElectronLocalAppHost);
+    const subscription = await owner.services.ai.scenarioJobs.subscribe('job-1');
+    const events = [];
+    for await (const event of subscription) events.push(event);
+    await subscription.cancel();
+    owner.close();
+    expect(events).toEqual([]);
+    expect(closes).toBe(0);
+  });
+
   it('maps SDK asset move paths to the native Host contract', async () => {
     const requests: unknown[] = [];
     const owner = createAppBusinessServices({
@@ -42,7 +81,7 @@ describe('App-owned Node services on the existing protected Host', () => {
       { type: 'tool-call', toolCall: { id: 'call-1', name: 'search', arguments: { subject: 'trees' } } },
     ]);
     expect(requests).toHaveLength(1);
-    expect(closed).toBe(1);
+    expect(closed).toBe(0); // The Host already retired this stream when it returned EOF.
     owner.close();
   });
 

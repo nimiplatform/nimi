@@ -26,6 +26,31 @@ const bridge = registerNimiElectronAppBridge({
 });
 ```
 
+For installed custom-protocol renderers, pass the actual entry URL, such as
+`app://example/index.html`, in `allowedRendererUrls`. Kit derives the matching
+Electron scheme-and-host origin and still checks the exact document URL;
+hash navigation does not grant access to another document. Do not pass Node's
+`new URL(customUrl).origin` (`null`) as an origin or widen the App's allowlist.
+
+Electron permits `registerSchemesAsPrivileged` only once, before `app.ready`.
+If the App has its own renderer protocol, include the public
+`NIMI_ELECTRON_APP_ASSET_PROTOCOL_REGISTRATION` descriptor in that same call:
+
+```ts
+import { NIMI_ELECTRON_APP_ASSET_PROTOCOL_REGISTRATION } from '@nimiplatform/kit/shell/electron/main';
+
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } },
+  NIMI_ELECTRON_APP_ASSET_PROTOCOL_REGISTRATION,
+]);
+```
+
+In that composition, do not also call `registerNimiElectronAppAssetProtocolScheme`.
+The helper is for Hosts with no other privileged scheme registration. Separate
+registration calls can leave the App renderer unable to fetch its own API even
+while IPC and the business worker work. Keep the App's own protocol privileges
+appropriate to its actual resources; do not copy or alter Kit's descriptor.
+
 The admitted Agent configuration carrier is the canonical `agent.configure`
 family: bounded Manager snapshot, shared AIConfig, autonomy, presentation, and
 Memory operations. It is identical for every equally covered protected App;

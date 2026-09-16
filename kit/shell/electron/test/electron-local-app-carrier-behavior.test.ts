@@ -99,6 +99,40 @@ function createBridge() {
 }
 
 describe('Electron local-app carrier behavior', () => {
+  it('admits exact custom-scheme App renderers without admitting null or foreign origins', async () => {
+    const ipcMain = new FakeIpcMain();
+    const bridge = registerNimiElectronAppBridge({
+      appId: 'nimi.thirdparty.fixture',
+      allowedRendererUrls: ['app://fixture/index.html'],
+      assetMediaPlatform: {
+        protocol: ASSET_MEDIA_PLATFORM.protocol,
+        webRequest: ASSET_MEDIA_PLATFORM.session.defaultSession.webRequest,
+        webContents: ASSET_MEDIA_PLATFORM.webContents,
+      },
+      ipcMain,
+      appCommandHandlers: { 'fixture.app.alive': () => ({ running: true }) },
+    });
+    const { event } = createInvokeEvent('app://fixture');
+    const invoke = (origin: string | undefined, url: string) => invokeBridge(ipcMain, {
+      ...event, senderFrame: { origin, url },
+    }, { command: 'fixture.app.alive', payload: {} });
+    try {
+      await expect(invoke('app://fixture', 'app://fixture/index.html#/voices')).resolves.toEqual({ running: true });
+      await expect(invoke(undefined, 'app://fixture/index.html')).resolves.toEqual({ running: true });
+      await expect(invoke('null', 'app://fixture/index.html')).rejects.toMatchObject({
+        reasonCode: 'electron-renderer-origin-not-allowed',
+      });
+      await expect(invoke('app://foreign', 'app://foreign/index.html')).rejects.toMatchObject({
+        reasonCode: 'electron-renderer-origin-not-allowed',
+      });
+      await expect(invoke('app://fixture', 'app://fixture/other.html')).rejects.toMatchObject({
+        reasonCode: 'electron-renderer-url-not-allowed',
+      });
+    } finally {
+      bridge.unregister();
+    }
+  });
+
   it('keeps Agent Center selection Host-native without opening generic file-dialog to the renderer', async () => {
     const ipcMain = new FakeIpcMain();
     const dialogCalls: unknown[] = [];

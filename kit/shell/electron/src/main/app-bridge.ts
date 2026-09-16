@@ -1,5 +1,6 @@
 import { NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID } from '@nimiplatform/kit/shell/capabilities';
 import { registerNimiElectronRuntimeBridge } from './host.js';
+import { rendererOriginFromUrl } from './diagnostics.js';
 import { createAppBusinessServices, type NimiElectronAppBusinessServices } from './app-business-services.js';
 import { requestElectronAgentCenterResourcePackPlacement } from './agent-center-resource-pack-placement.js';
 import {
@@ -92,7 +93,7 @@ export function registerNimiElectronAppBridge(
   const registered = registerNimiElectronRuntimeBridge({
     appId: input.appId,
     runtimeEndpoint: LOCAL_APP_PROTECTED_CARRIER_SENTINEL,
-    allowedOrigins: [...new Set(allowedRendererUrls.map(rendererOrigin))],
+    allowedOrigins: [...new Set(allowedRendererUrls.map(rendererOriginFromUrl))],
     allowedRendererUrls,
     ipcMain: input.ipcMain,
     createGrpcClient: () => {
@@ -271,11 +272,6 @@ function normalizeRendererUrl(value: unknown): string {
       'provide_exact_local_app_renderer_url',
     );
   }
-}
-
-function rendererOrigin(url: string): string {
-  const parsed = new URL(url);
-  return parsed.protocol === 'file:' ? 'file://' : parsed.origin;
 }
 
 function appBridgeInputError(

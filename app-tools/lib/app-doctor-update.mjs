@@ -337,7 +337,6 @@ function buildForbiddenPatterns() {
     ['direct Realm permission grant module access', /\.permissionGrants\./],
     ['direct Realm permission grant method', /\b(?:listMyAppPermissionGrants|getMyAppPermissionGrant(?:Status|Projection)?|requestMyAppPermissionGrant|revokeMyAppPermissionGrant)\s*\(/],
     ['OpenAI-compatible Runtime REST endpoint assumption', /\/v1\/(?:chat\/completions|responses|embeddings|audio|images|models)\b/],
-    ['app-owned session store', /sessionStore/],
     ['app-owned refresh token provider', /refreshTokenProvider/],
     ['app-owned protected Runtime gRPC client', /@grpc\/grpc-js|\bgrpc\.credentials\.createInsecure\s*\(/],
     ['app-owned Runtime endpoint custody', /\b(?:NIMI_RUNTIME_ENDPOINT|runtimeEndpoint)\b/],

@@ -1,7 +1,6 @@
 import { createDefaultRuntimeGrpcBridgeClient } from './grpc-client.js';
 import { createElectronLocalAppAssetStreamLifecycle } from './local-app-asset-stream-lifecycle.js';
 import {
-  rendererOriginFromUrl,
   rendererUrlsEqualExact,
   resolveBundledAvatarRendererUrl,
 } from './bundled-avatar-sender.js';
@@ -27,7 +26,7 @@ import {
   resolveElectronStandardDataPath,
   writeElectronStandardStorageJson,
 } from './data-storage.js';
-import { resolveElectronDiagnosticsRendererEntryProbe, resolveElectronRendererOrigin } from './diagnostics.js';
+import { rendererOriginFromUrl, resolveElectronDiagnosticsRendererEntryProbe, resolveElectronRendererOrigin } from './diagnostics.js';
 import {
   createNimiElectronDeveloperModeHost,
   isElectronDeveloperModeCommand,

@@ -1,6 +1,16 @@
 import type { NimiElectronIpcMainInvokeEvent } from './types.js';
 import { normalizeText } from './paths.js';
 
+export function rendererOriginFromUrl(value: string): string {
+  const parsed = new URL(value);
+  if (parsed.protocol === 'file:') return 'file://';
+  // Node does not know Electron's registered standard schemes. Match the
+  // exact scheme and host that Electron reports, never the opaque "null" origin.
+  return parsed.origin === 'null' && parsed.host
+    ? `${parsed.protocol}//${parsed.host}`
+    : parsed.origin;
+}
+
 export function resolveElectronRendererOrigin(event: NimiElectronIpcMainInvokeEvent): string {
   const explicitOrigin = normalizeText(event.senderFrame?.origin);
   if (explicitOrigin) {
@@ -11,7 +21,7 @@ export function resolveElectronRendererOrigin(event: NimiElectronIpcMainInvokeEv
     return '';
   }
   try {
-    return new URL(url).origin;
+    return rendererOriginFromUrl(url);
   } catch {
     return '';
   }

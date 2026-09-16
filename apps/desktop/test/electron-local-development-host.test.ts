@@ -1,5 +1,6 @@
 import { PNG } from 'pngjs';
 import assert from 'node:assert/strict';
+import { EventEmitter } from 'node:events';
 import { mkdir, mkdtemp, rm, utimes, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -10,6 +11,7 @@ import type {
 } from '@nimiplatform/kit/shell/electron/main';
 import {
   captureLocalDevelopmentElectronSourceFingerprint,
+  formatLocalDevelopmentWatchTrigger,
   ElectronLocalDevelopmentHost,
   isLocalDevelopmentRuntimeTransportFailure,
   localDevelopmentFailureMessage,
@@ -89,6 +91,7 @@ function activeRun() {
     supervising: false,
     rebuilding: false,
     rebuildRequested: false,
+    electronSourceWatchTriggers: new Set<string>(),
     refreshingRegistration: false,
     refreshRegistrationPromise: undefined as Promise<void> | undefined,
     recoveringRuntimeTransport: false,
@@ -118,6 +121,29 @@ function activeRun() {
 }
 
 describe('Desktop Electron local-development registration host', () => {
+  it('reports build launcher failures without exposing error payloads or requiring another supervisor', async () => {
+    for (const asynchronous of [false, true]) {
+      const host = new ElectronLocalDevelopmentHost(control(), '/tmp');
+      const internal = host as unknown as {
+        spawnPackageScript(): EventEmitter;
+        runPackageScript(run: unknown, script: string): Promise<void>;
+      };
+      const failure = Object.assign(new Error('private environment payload'), { code: 'EINVAL' });
+      internal.spawnPackageScript = () => {
+        if (!asynchronous) throw failure;
+        const child = new EventEmitter();
+        queueMicrotask(() => child.emit('error', failure));
+        return child;
+      };
+      const run = { ...activeRun(), buildChild: undefined };
+      await assert.rejects(internal.runPackageScript(run, 'build:electron'), {
+        message: 'local-development-build-spawn-failed',
+      });
+      assert.deepEqual(run.status.logs.map((entry) => entry.message), ['build:electron launcher failed (EINVAL)']);
+      assert.equal(run.buildChild, undefined);
+    }
+  });
+
   it('accepts the internal automatic CDP selector without admitting privileged fixed ports', () => {
     assert.equal(localDevelopmentCdpPort(0), 0);
     assert.equal(localDevelopmentCdpPort(19483), 19483);
@@ -961,6 +987,7 @@ describe('Desktop Electron local-development registration host', () => {
       run.plan = { ...run.plan, projectRoot, hostSourceDirectory: sourceRoot };
       run.renderer = {};
       run.electronSourceFingerprint = 'previous-source';
+      run.electronSourceWatchTriggers = new Set(['change:main.ts']);
       const order: string[] = [];
       let completeRefresh!: () => void;
       run.refreshRegistrationPromise = new Promise<void>((resolve) => { completeRefresh = resolve; });
@@ -978,6 +1005,7 @@ describe('Desktop Electron local-development registration host', () => {
       await rebuilding;
       assert.deepEqual(order, ['build', 'replace']);
       assert.equal(run.status.state, 'restarting');
+      assert.ok(run.status.logs.some((entry) => entry.message.includes('observed watch triggers: change:main.ts')));
     } finally {
       await rm(projectRoot, { recursive: true, force: true });
     }
@@ -1042,6 +1070,15 @@ describe('Desktop Electron local-development registration host', () => {
     } finally {
       await rm(projectRoot, { recursive: true, force: true });
     }
+  });
+
+  it('reports bounded relative watch paths without logging private file content or escaping the source root', () => {
+    assert.equal(formatLocalDevelopmentWatchTrigger('change', 'renderer\\main.tsx'), 'change:renderer/main.tsx');
+    assert.equal(formatLocalDevelopmentWatchTrigger('rename', Buffer.from('preload.ts')), 'rename:preload.ts');
+    for (const value of [null, '../secret', 'C:\\private\\file', '/private/file', 'main.ts\nforged log']) {
+      assert.equal(formatLocalDevelopmentWatchTrigger('change', value), 'change:path unavailable');
+    }
+    assert.equal(formatLocalDevelopmentWatchTrigger('change', 'a'.repeat(500)).length, 207);
   });
 
   it('ends the run when its supervised Host exits instead of launching a replacement', async () => {

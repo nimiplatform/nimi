@@ -117,6 +117,7 @@ type RunContext = {
   refreshRegistrationPromise?: Promise<void>;
   recoveringRuntimeTransport: boolean;
   electronSourceFingerprint?: string;
+  electronSourceWatchTriggers?: Set<string>;
 };
 
 type RendererRegistration = {
@@ -692,8 +693,12 @@ export class ElectronLocalDevelopmentHost {
       run.electronSourceFingerprint = await captureLocalDevelopmentElectronSourceFingerprint(electronSourceRoot);
       await this.launchHost(run);
       if (run.stopped) return;
-      run.watcher = watch(electronSourceRoot, { recursive: true }, () => {
+      run.watcher = watch(electronSourceRoot, { recursive: true }, (eventType, filename) => {
         if (run.stopped) return;
+        run.electronSourceWatchTriggers ??= new Set();
+        if (run.electronSourceWatchTriggers.size < 16) {
+          run.electronSourceWatchTriggers.add(formatLocalDevelopmentWatchTrigger(eventType, filename));
+        }
         run.rebuildRequested = true;
         if (run.rebuildTimer) clearTimeout(run.rebuildTimer);
         run.rebuildTimer = setTimeout(() => {
@@ -730,6 +735,8 @@ export class ElectronLocalDevelopmentHost {
       }
       do {
         run.rebuildRequested = false;
+        const watchTriggers = [...(run.electronSourceWatchTriggers ?? [])];
+        run.electronSourceWatchTriggers?.clear();
         const electronSourceFingerprint = await captureLocalDevelopmentElectronSourceFingerprint(
           run.plan.hostSourceDirectory,
         );
@@ -738,6 +745,7 @@ export class ElectronLocalDevelopmentHost {
           continue;
         }
         setRunState(run, 'restarting', 'Rebuilding Electron main and preload', undefined, true);
+        appendLog(run, 'supervisor', `Electron source content changed; observed watch triggers: ${watchTriggers.join(', ') || 'path unavailable'}`);
         await this.runPackageScript(run, 'build:electron');
         if (run.stopped) return;
         run.electronSourceFingerprint = electronSourceFingerprint;
@@ -952,14 +960,21 @@ export class ElectronLocalDevelopmentHost {
   }
 
   private async runPackageScript(run: RunContext, script: LocalDevelopmentPackageScript): Promise<void> {
-    const child = this.spawnPackageScript(run, script);
-    run.buildChild = child;
+    let child: ChildProcessWithoutNullStreams | undefined;
     let code: number | null;
     try {
+      child = this.spawnPackageScript(run, script);
+      run.buildChild = child;
       code = await new Promise<number | null>((resolve, reject) => {
-        child.once('error', reject);
-        child.once('exit', resolve);
+        child!.once('error', reject);
+        child!.once('exit', resolve);
       });
+    } catch (error) {
+      const rawCode = error && typeof error === 'object' && 'code' in error ? error.code : undefined;
+      const diagnostic = typeof rawCode === 'string' && /^[A-Z][A-Z0-9_]{0,63}$/u.test(rawCode)
+        ? rawCode : 'UNKNOWN';
+      appendLog(run, 'supervisor', `${script} launcher failed (${diagnostic})`);
+      throw new Error('local-development-build-spawn-failed', { cause: error });
     } finally {
       if (run.buildChild === child) run.buildChild = undefined;
     }
@@ -1236,6 +1251,15 @@ function randomIdentifier(): string {
   const value = randomBytes(32).toString('hex');
   if (/^0+$/u.test(value)) throw new Error('local-development-supervisor-required');
   return value;
+}
+
+/** @internal Focused contract-test seam. */
+export function formatLocalDevelopmentWatchTrigger(eventType: string, filename: string | Buffer | null): string {
+  const value = filename?.toString().replaceAll('\\', '/') || '';
+  const safePath = value && !path.posix.isAbsolute(value) && !path.win32.isAbsolute(value)
+    && !value.split('/').includes('..') && !/[\u0000-\u001f\u007f]/u.test(value)
+    ? value.slice(0, 200) : 'path unavailable';
+  return `${eventType === 'rename' ? 'rename' : 'change'}:${safePath}`;
 }
 
 /** @internal Focused contract-test seam. */

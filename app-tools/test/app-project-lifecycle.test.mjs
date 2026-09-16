@@ -813,6 +813,25 @@ test('authoring input files do not establish ownership of an unknown adoption wo
   } finally { rmSync(temp, { recursive: true, force: true }); }
 });
 
+test('adoption permits business session stores but rejects concrete Nimi session custody', () => {
+  const temp = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-business-session-'));
+  try {
+    const target = writeExistingSubmittedApp(temp, { buildProfileRef: 'electron-packager-pnpm-vite' });
+    const source = path.join(target, 'frontend/src/api/client.ts');
+    mkdirSync(path.dirname(source), { recursive: true });
+    writeFileSync(source, `let sessionStore: Storage = sessionStorage;\nexport function savePin(pin: string) { sessionStore.setItem('ov_pin', pin); }\n`);
+    const env = fakeNimicodingEnv(temp);
+    const before = snapshotTree(target);
+    let result = runCli(['init', '--adopt', '--dry-run', '--json'], target, env);
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    assert.deepEqual(snapshotTree(target), before);
+    writeFileSync(source, `const custodyKey = 'NIMI_RUNTIME_SESSION';\nsessionStore.setItem(custodyKey, session);\n`);
+    result = runCli(['init', '--adopt', '--dry-run', '--json'], target, env);
+    assert.notEqual(result.status, 0);
+    assert.match(jsonErrorMessage(result), /environment custody of protected material/);
+  } finally { rmSync(temp, { recursive: true, force: true }); }
+});
+
 test('adoption scans a manifest supplied only by the plan before any owner writes', () => {
   const temp = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-adopt-new-source-'));
   try {

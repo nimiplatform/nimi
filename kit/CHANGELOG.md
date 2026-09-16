@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.11.0 (development)
+
+- Read the current Local resource through formal options when switching from
+  Cloud. The picker and draft show that Local resource; saving still commits
+  only route intent and never changes the machine's Loadout selection.
+
+- Carry optional typed `referenceAudioInput` on AIConfig Local resources and
+  Cloud targets through the native and renderer boundaries. It reports exact
+  byte/URI support, reference-text mode and MIME types without exposing
+  credentials, content or an execution override. Missing metadata is unknown.
+- Use SDK 0.15.0 with native 0.11.0 and the matching Runtime for this field.
+  App code should read these conditions instead of testing model names.
+  No AIConfig storage migration or new App permission is introduced.
+
+
 ## 0.10.1 (development)
 
 - Preserve and validate the Runtime-issued `spaceId` in renderer Local App
@@ -9,6 +24,15 @@
   native 0.10.0 remain compatible; no Runtime protocol change is required.
 
 ## 0.10.0 (development)
+
+- Derive installed App custom-protocol origins using Electron's exact scheme
+  and host, consistently with other shell renderers. Keep exact renderer URL
+  checks and reject opaque `null` and foreign origins.
+
+- Finish Node business-service asset reads and subscriptions at Host EOF without
+  closing the retired handle again. Successful audio retrieval and completed
+  text streams no longer fail with a spurious `not-found`; explicit cancellation
+  still closes active resources.
 
 - Apply declared inline-audio byte limits independently of decimal JSON
   expansion in the renderer bridge. Preserve multiline transcription content

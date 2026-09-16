@@ -108,9 +108,9 @@ overrides in the App's own `pnpm-workspace.yaml`:
 packages:
   - .
 overrides:
-  '@nimiplatform/app-tools': file:D:/nimi-packages/nimiplatform-app-tools-0.6.1.tgz
-  '@nimiplatform/sdk': file:D:/nimi-packages/nimiplatform-sdk-0.13.0.tgz
-  '@nimiplatform/kit': file:D:/nimi-packages/nimiplatform-kit-0.9.0.tgz
+  '@nimiplatform/app-tools': file:D:/nimi-packages/nimiplatform-app-tools-0.7.0.tgz
+  '@nimiplatform/sdk': file:D:/nimi-packages/nimiplatform-sdk-0.14.0.tgz
+  '@nimiplatform/kit': file:D:/nimi-packages/nimiplatform-kit-0.10.0.tgz
 ```
 
 These are example artifact locations; use the complete packages you were given.
