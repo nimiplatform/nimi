@@ -263,6 +263,7 @@ func gemma4ApplyTools(body map[string]any, spec *runtimev1.TextGenerateScenarioS
 	return nil
 }
 
+// @nimi-authority: rule.nimi.runtime.ai-provider.r123
 func gemma4ApplyResponseFormat(body map[string]any, spec *runtimev1.TextGenerateScenarioSpec) error {
 	format := spec.GetResponseFormat()
 	if format == nil {
@@ -275,7 +276,12 @@ func gemma4ApplyResponseFormat(body map[string]any, spec *runtimev1.TextGenerate
 		if format.GetJsonSchema() != nil || format.GetStrict() {
 			return gemma4InvalidRequest("JSON object response format cannot carry a schema or strictness")
 		}
-		body["response_format"] = map[string]any{"type": "json_object"}
+		// llama.cpp b8645's autoparser skips structured grammar for the empty
+		// schema implied by bare json_object. State the public object constraint
+		// explicitly so generation and final validation enforce the same shape.
+		body["response_format"] = map[string]any{
+			"type": "json_object", "schema": map[string]any{"type": "object"},
+		}
 		return nil
 	case runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_SCHEMA:
 		if format.GetJsonSchema() == nil || len(format.GetJsonSchema().GetFields()) == 0 {

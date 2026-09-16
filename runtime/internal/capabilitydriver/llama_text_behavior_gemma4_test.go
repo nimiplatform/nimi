@@ -273,6 +273,37 @@ func TestGemma4BehaviorStreamPreservesWhitespaceAcrossTokenBoundaries(t *testing
 	}
 }
 
+func TestGemma4JSONObjectActivatesObjectGrammar(t *testing.T) {
+	spec := &runtimev1.TextGenerateScenarioSpec{
+		Input:          []*runtimev1.ChatMessage{{Role: "user", Content: "Extract terms as JSON."}},
+		ResponseFormat: &runtimev1.ResponseFormat{Kind: runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_OBJECT},
+	}
+	for _, stream := range []bool{false, true} {
+		serialized, err := Gemma4TextBehaviorRequestSerializer(spec, stream)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var body struct {
+			ResponseFormat struct {
+				Type   string         `json:"type"`
+				Schema map[string]any `json:"schema"`
+			} `json:"response_format"`
+		}
+		if err := json.Unmarshal(serialized.Payload, &body); err != nil {
+			t.Fatal(err)
+		}
+		// llama.cpp b8645 treats an empty schema as no structured grammar.
+		if body.ResponseFormat.Type != "json_object" || body.ResponseFormat.Schema["type"] != "object" {
+			t.Fatalf("JSON-object must activate an object grammar (stream=%v): %s", stream, serialized.Payload)
+		}
+	}
+	for _, invalid := range []string{"```json\n{\"terms\":[]}\n```", `[]`} {
+		if _, err := Gemma4TextBehaviorNonStreamParser(gemma4CompletionForTest(t, invalid, "stop"), spec); textBehaviorReasonForDriverTest(err) != runtimev1.ReasonCode_AI_OUTPUT_INVALID {
+			t.Fatalf("invalid JSON-object output %q was accepted: %v", invalid, err)
+		}
+	}
+}
+
 func TestGemma4StructuredOutputValidatesCapturedSchema(t *testing.T) {
 	schema, err := structpb.NewStruct(map[string]any{
 		"type": "object", "properties": map[string]any{"city": map[string]any{"type": "string"}},
