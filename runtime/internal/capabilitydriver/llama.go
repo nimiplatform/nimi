@@ -363,6 +363,10 @@ func (driver LlamaTextDriver) PlanTextInvocation(input TextInvocationInput) (*Te
 		reasoningArgs = []string{"--reasoning", "on", "--reasoning-format", "deepseek"}
 	}
 	processArgs := append(reasoningArgs,
+		// @nimi-authority: rule.nimi.runtime.ai-provider.local-app-text-behaviors
+		// Assistant input is completed transcript, not an unfinished response.
+		// llama.cpp otherwise reinterprets a final assistant message as prefill.
+		"--no-prefill-assistant",
 		"--model", bindings[MainGGUFRequirementID].AbsolutePath,
 		"--alias", modelAlias,
 		"--ctx-size", strconv.FormatUint(contextWindow, 10),

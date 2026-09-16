@@ -1012,3 +1012,54 @@ func TestLlamaValidateBindingAcceptsEngineIndependentPassiveMMProj(t *testing.T)
 		t.Fatalf("runnable mmproj kind reason = %v", reason)
 	}
 }
+
+// A completed assistant model step is history, never an engine prefill prefix.
+func TestLlamaInvocationPreservesCompletedAssistantHistory(t *testing.T) {
+	templateIdentity := "sha256:" + strings.Repeat("c", 64)
+	binding := InvocationExactBinding{
+		RequirementID: MainGGUFRequirementID, ModelAssetID: "main", AbsolutePath: filepath.Join(t.TempDir(), "main.gguf"),
+		VerifiedContentID: "sha256:" + strings.Repeat("a", 64), EntrySHA256: strings.Repeat("b", 64), TemplateIdentity: templateIdentity,
+	}
+	adapter, err := textbehavior.NewAdapter(textbehavior.AdapterCapture{
+		AdapterID: "gemma4", Version: "1", RequestSerializerID: "request/v1", NonStreamParserID: "sync/v1", StreamAssemblerID: "stream/v1",
+		RequiredTemplateIdentity: templateIdentity, ProcessIdentityImpact: textbehavior.ProcessIdentityAdapterAndTemplate,
+	}, Gemma4TextBehaviorRequestSerializer, Gemma4TextBehaviorNonStreamParser, Gemma4TextBehaviorStreamAssembler)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, stream := range []bool{false, true} {
+		for _, ordered := range []bool{false, true} {
+			priorText := "THINK\nI will inspect the source next."
+			assistant := &runtimev1.ChatMessage{Role: "assistant", Content: priorText}
+			var selected *textbehavior.Adapter
+			if ordered {
+				selected = adapter
+				assistant.Content = ""
+				assistant.TurnItems = []*runtimev1.TextTurnItem{{Item: &runtimev1.TextTurnItem_Output{Output: &runtimev1.TextOutputItem{Item: &runtimev1.TextOutputItem_Text{Text: &runtimev1.TextOutputText{Text: priorText}}}}}}
+			}
+			plan, err := (LlamaTextDriver{}).PlanTextInvocation(TextInvocationInput{
+				ModelContextWindowTokens: 32768, ExactBindings: []InvocationExactBinding{binding},
+				BehaviorMatch: llamaBehaviorMatchFactsForTest(binding), BehaviorAdapter: selected, Stream: stream,
+				Request: &runtimev1.TextGenerateScenarioSpec{Input: []*runtimev1.ChatMessage{{Role: "user", Content: "Research the source."}, assistant}},
+			})
+			if err != nil {
+				t.Fatalf("stream=%t ordered=%t: %v", stream, ordered, err)
+			}
+			if !slices.Contains(plan.ProcessArgs(), "--no-prefill-assistant") || slices.Contains(plan.ProcessArgs(), "--prefill-assistant") {
+				t.Fatalf("completed history would be reinterpreted as prefill: stream=%t ordered=%t args=%v", stream, ordered, plan.ProcessArgs())
+			}
+			var body struct {
+				Messages []struct {
+					Role    string `json:"role"`
+					Content string `json:"content"`
+				} `json:"messages"`
+			}
+			if err := json.Unmarshal(plan.RequestBody(), &body); err != nil {
+				t.Fatal(err)
+			}
+			if len(body.Messages) != 2 || body.Messages[1].Role != "assistant" || body.Messages[1].Content != priorText {
+				t.Fatalf("completed transcript changed or synthetic continuation added: %+v", body.Messages)
+			}
+		}
+	}
+}
