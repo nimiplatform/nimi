@@ -43,7 +43,7 @@ catalog of platform completeness.
 Nimi Home is the current first-party product host. It may compose
 Runtime, Realm, SDK, Kit, and Avatar surfaces, but it does not replace
 their authority. The same rule applies to Desktop shell state,
-Avatar projections, simulator reports, and generated configuration:
+Avatar projections, and generated configuration:
 they are consumers or projections of owner truth.
 
 Existing public-distribution and App-world binding designs remain

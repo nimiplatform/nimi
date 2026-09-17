@@ -22,7 +22,7 @@ function parseArgs(argv) {
   const [command = '', ...rest] = argv;
   const values = {
     dir: '', profile: '', appId: '', version: '', title: '', packageName: '', author: '',
-    features: undefined, shell: '', cdpPort: undefined, noCdp: false, listRegistrations: false, resume: '', conformance: '', target: '', aggregate: false, production: false, json: false,
+    features: undefined, shell: '', cdpPort: undefined, noCdp: false, listRegistrations: false, resume: '', target: '', aggregate: false, production: false, json: false,
     adopt: false, dryRun: false, input: '',
   };
   const seen = new Set();
@@ -109,10 +109,6 @@ function parseArgs(argv) {
       values.noCdp = true;
       continue;
     }
-    if (rest[index] === '--conformance') {
-      index = readValue(index, '--conformance', 'conformance');
-      continue;
-    }
     if (rest[index] === '--target') {
       index = readValue(index, '--target', 'target');
       continue;
@@ -149,7 +145,7 @@ function assertCommandOptions(command, providedOptions) {
     create: new Set(['dir', 'profile', 'appId', 'version', 'title', 'packageName', 'author', 'features', 'json']),
     init: new Set(['dir', 'json', 'adopt', 'input', 'dryRun']),
     sync: new Set(['dir', 'json', 'dryRun']),
-    check: new Set(['dir', 'json', 'conformance', 'production']),
+    check: new Set(['dir', 'json', 'production']),
     dev: new Set(['dir', 'shell', 'cdpPort', 'noCdp', 'listRegistrations', 'resume']),
     test: new Set(['dir', 'json']),
     build: new Set(['dir', 'target', 'production', 'json']),
@@ -180,7 +176,7 @@ function printUsage() {
       '  nimi-app create [--dir path] [--profile standalone] [--features admitted-ids|all] [--app-id dotted.id] [--version semver] [--title title] [--package-name name] [--author person-or-team] [--json]',
       '  nimi-app init [--adopt [--input json-path]] [--dry-run] [--dir path] [--json]',
       '  nimi-app sync [--dry-run] [--dir path] [--json]',
-      '  nimi-app check [--dir path] [--conformance simulator | --production] [--json]',
+      '  nimi-app check [--dir path] [--production] [--json]',
       '  nimi-app dev [--dir path] [--shell electron] [--list-registrations | --resume <selector>] [--cdp-port 1024..65535 | --no-cdp]',
       '  nimi-app test [--dir path] [--json]',
       '  nimi-app build [--dir path] [--target target-id] [--production] [--json]',
@@ -217,7 +213,6 @@ function printUsage() {
       '  App-owned: workbench-core and selected module product code under src/capabilities/**.',
       '  Scaffold-managed: carrier, identity, manifest/native wiring, and generated composition glue.',
       '  sync refreshes only scaffold-managed files; check is non-mutating.',
-      '  Simulator conformance remains an explicit check mode for existing Simulator Apps; this scaffold does not generate one.',
       '',
       'Required order:',
       '  create -> dependency install -> init -> sync -> check -> dev/test/build -> pack',
@@ -321,7 +316,6 @@ try {
     noCdp,
     listRegistrations,
     resume,
-    conformance,
     target,
     aggregate,
     production,
@@ -394,7 +388,6 @@ try {
     case 'check':
       await checkApp(process.cwd(), {
         dir,
-        conformance,
         production,
         json,
       });

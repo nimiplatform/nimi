@@ -14,7 +14,6 @@ combine them, but it cannot silently take ownership of them.
 | Current first-party home and product UI | Nimi Home / Desktop |
 | Embodiment presentation | Avatar |
 | Reusable consumer UI | Kit |
-| Developer qualification surfaces | Simulator |
 
 Character and LocalAgent form the clearest example. Realm owns the
 durable Character. Runtime materializes that Character as a LocalAgent

@@ -4,269 +4,161 @@ scope: platform.simulator
 units:
   - id: definition.nimi.platform.simulator.product
     kind: definition
+    lifecycle: removed
     title: Independent Simulator product
-    meaning: Simulator is the lower-priority public Nimi ecosystem website and browser preview product for selected App experiences using clearly disclosed Mock or Deterministic Data with no real Realm, Runtime, account, owner-authorization, credential, or LocalAgent side effects.
+    reason: Removed because Simulator is archived and no longer an active product, App conformance requirement, or development, CI, or release prerequisite.
   - id: definition.nimi.platform.simulator.selected-source-protocol
     kind: definition
+    lifecycle: removed
     title: Selected App preview boundary
-    meaning: Simulator previews only explicitly selected, reviewed, host-neutral App presentation sources required by current product journeys and does not become a public source registry, arbitrary hosting platform, or distribution authority.
+    reason: Removed because Simulator is archived and no longer an active product, App conformance requirement, or development, CI, or release prerequisite.
   - id: definition.nimi.platform.simulator.renderer-factory
     kind: definition
+    lifecycle: removed
     title: App-owned preview renderer
-    meaning: Each selected App owns its renderer, resources, routes, presentation, and product semantics; Simulator supplies only the bounded preview host context.
+    reason: Removed because Simulator is archived and no longer an active product, App conformance requirement, or development, CI, or release prerequisite.
   - id: definition.nimi.platform.simulator.adapter
     kind: definition
+    lifecycle: removed
     title: App-owned Simulator adapter
-    meaning: A selected App may provide the minimal adapter needed to construct its host-neutral preview without transferring App or product authority to Simulator.
+    reason: Removed because Simulator is archived and no longer an active product, App conformance requirement, or development, CI, or release prerequisite.
   - id: definition.nimi.platform.simulator.state-engine
     kind: definition
+    lifecycle: removed
     title: Deterministic Simulator state
-    meaning: Simulator may own deterministic, session-ephemeral presentation scenarios, logical ordering, seeded randomness, reset, and replay for preview only.
+    reason: Removed because Simulator is archived and no longer an active product, App conformance requirement, or development, CI, or release prerequisite.
   - id: definition.nimi.platform.simulator.session-projection
     kind: definition
+    lifecycle: removed
     title: Simulated session projection
-    meaning: A simulated session is clearly labeled deterministic presentation state and never a real or inferred Nimi account, Runtime session, protected App access state, or persistent identity.
+    reason: Removed because Simulator is archived and no longer an active product, App conformance requirement, or development, CI, or release prerequisite.
   - id: definition.nimi.platform.simulator.interaction-protocol
     kind: definition
+    lifecycle: removed
     title: Simulated presentation interaction
-    meaning: Simulated interactions coordinate selected preview instances through typed presentation-only intent and events without creating real App-to-App, Runtime, Realm, owner-authorization, or messaging authority.
+    reason: Removed because Simulator is archived and no longer an active product, App conformance requirement, or development, CI, or release prerequisite.
   - id: definition.nimi.platform.simulator.effect-boundary
     kind: definition
+    lifecycle: removed
     title: Simulator effect boundary
-    meaning: Simulator admits only reviewed presentation effects required for preview and excludes real authentication, credentials, product mutation, provider execution, local host control, installation, and persistent side effects.
+    reason: Removed because Simulator is archived and no longer an active product, App conformance requirement, or development, CI, or release prerequisite.
   - id: definition.nimi.platform.simulator.owner-boundary
     kind: definition
+    lifecycle: removed
     title: Simulator owner boundary
-    meaning: Simulator owns its public website, preview shell, disclosure, deterministic presentation scenarios, and session-local controls while Realm, Runtime, SDK, Kit, Apps, LocalAgent, Avatar, authorization, and distribution semantics remain with their existing owners.
+    reason: Removed because Simulator is archived and no longer an active product, App conformance requirement, or development, CI, or release prerequisite.
   - id: definition.nimi.platform.simulator.failure-model
     kind: definition
+    lifecycle: removed
     title: Simulator failure model
-    meaning: Simulator exposes explicit typed preview, adapter, instance, scenario, and session failure without retries or fallbacks that imply real product success.
+    reason: Removed because Simulator is archived and no longer an active product, App conformance requirement, or development, CI, or release prerequisite.
   - id: rule.nimi.platform.simulator.p-sim-001a
     kind: rule
+    lifecycle: removed
     title: Simulator retains its current core position
-    modality: must
-    statement: Simulator remains the public Nimi ecosystem website and a browser preview and check surface for selected current App experiences.
-    condition: Whenever Simulator product scope is planned or presented.
-    failure: Reject a new product category unrelated to the current public website and bounded preview role.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.product
+    reason: Removed because Simulator is archived and no longer an active product, App conformance requirement, or development, CI, or release prerequisite.
   - id: rule.nimi.platform.simulator.p-sim-001b
     kind: rule
+    lifecycle: removed
     title: Simulation is always disclosed
-    modality: must
-    statement: Every Simulator preview clearly and accessibly discloses that displayed identity, account, access availability, data, LocalAgent, Conversation, and product state is simulated or deterministic.
-    condition: Whenever a Simulator preview is visible.
-    failure: Treat an undisclosed preview as invalid.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.product
+    reason: Removed because Simulator is archived and no longer an active product, App conformance requirement, or development, CI, or release prerequisite.
   - id: rule.nimi.platform.simulator.p-sim-001c
     kind: rule
+    lifecycle: removed
     title: Simulator is lower priority and non-blocking
-    modality: must
-    statement: Simulator work and completeness do not block the current Windows Nimi Home, Runtime, Local AI, Character materialization, LocalAgent, Memory, Knowledge, Avatar, SDK, Kit, or Third-party Local App closure.
-    condition: Whenever Simulator readiness is related to current product closure.
-    failure: Remove Simulator as a prerequisite and report its own state separately.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.product
+    reason: Removed because Simulator is archived and no longer an active product, App conformance requirement, or development, CI, or release prerequisite.
   - id: rule.nimi.platform.simulator.p-sim-002
     kind: rule
+    lifecycle: removed
     title: Simulator creates no real side effects
-    modality: must_not
-    statement: Simulator creates, changes, deletes, or authorizes a real Realm record, Runtime resource, account, owner-authorization decision, credential, LocalAgent, Conversation, Memory, Knowledge, App installation, Avatar state, provider job, or host operation.
-    condition: Whenever a preview interaction is executed.
-    failure: Keep the effect in deterministic session-local presentation state.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.effect-boundary
+    reason: Removed because Simulator is archived and no longer an active product, App conformance requirement, or development, CI, or release prerequisite.
   - id: rule.nimi.platform.simulator.p-sim-003
     kind: rule
+    lifecycle: removed
     title: Simulator receives no real credentials
-    modality: must_not
-    statement: Simulator requests, stores, forwards, or derives Realm JWT, Provider Credential, Runtime proof, account bearer, protected endpoint, host session, or real App authorization.
-    condition: Whenever Simulator loads or runs a preview.
-    failure: Reject the credential path and keep the preview deterministic and credential free.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.effect-boundary
+    reason: Removed because Simulator is archived and no longer an active product, App conformance requirement, or development, CI, or release prerequisite.
   - id: rule.nimi.platform.simulator.p-sim-004
     kind: rule
+    lifecycle: removed
     title: App renderers remain App owned
-    modality: must
-    statement: A selected App owns its renderer, routes, resources, product copy, and presentation behavior, while Simulator supplies only the bounded preview host and mock inputs.
-    condition: Whenever Simulator renders a selected App.
-    failure: Reject a Simulator-owned fork of App product behavior.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.renderer-factory
+    reason: Removed because Simulator is archived and no longer an active product, App conformance requirement, or development, CI, or release prerequisite.
   - id: rule.nimi.platform.simulator.p-sim-005
     kind: rule
+    lifecycle: removed
     title: Preview adapters are minimal and demand driven
-    modality: must
-    statement: A Simulator adapter exists only for a concrete selected App preview journey, remains host neutral and presentation-only, and does not become a mandatory App framework, SDK layer, capability catalog, or lifecycle owner.
-    condition: Whenever a selected App needs Simulator integration.
-    failure: Reject speculative adapter surface without a current preview consumer.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.adapter
+    reason: Removed because Simulator is archived and no longer an active product, App conformance requirement, or development, CI, or release prerequisite.
   - id: rule.nimi.platform.simulator.p-sim-006
     kind: rule
+    lifecycle: removed
     title: Selected sources do not create a registry product
-    modality: must_not
-    statement: A selected preview source list, generated import map, renderer descriptor, fixture catalog, or build input is treated as public distribution, Marketplace, Registry, Trust Tier, installation, or product admission authority.
-    condition: Whenever Simulator selects preview sources.
-    failure: Keep source selection internal to the bounded current preview build.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.selected-source-protocol
+    reason: Removed because Simulator is archived and no longer an active product, App conformance requirement, or development, CI, or release prerequisite.
   - id: rule.nimi.platform.simulator.p-sim-007
     kind: rule
+    lifecycle: removed
     title: Arbitrary source hosting is out of scope
-    modality: must_not
-    statement: Simulator accepts arbitrary source repositories, unreviewed code, user uploads, package installation, general remote execution, or public App hosting.
-    condition: Whenever Simulator source intake is proposed.
-    failure: Keep the source unavailable until a separate product and security authority admits it.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.selected-source-protocol
+    reason: Removed because Simulator is archived and no longer an active product, App conformance requirement, or development, CI, or release prerequisite.
   - id: rule.nimi.platform.simulator.p-sim-current-008
     kind: rule
+    lifecycle: removed
     title: Simulated state is deterministic and ephemeral
-    modality: must
-    statement: Preview scenarios use explicit deterministic fixtures, seeded variation, ordered operations, and session-local state that resets without becoming account, App, Realm, Runtime, or LocalAgent persistence.
-    condition: Whenever Simulator produces or restores scenario state.
-    failure: Reject hidden nondeterminism and persistent product truth.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.state-engine
+    reason: Removed because Simulator is archived and no longer an active product, App conformance requirement, or development, CI, or release prerequisite.
   - id: rule.nimi.platform.simulator.p-sim-009
     kind: rule
+    lifecycle: removed
     title: Reset restores the selected fixture
-    modality: must
-    statement: Simulator reset discards session-local mutations and returns each selected preview to its declared deterministic starting state without contacting product owners.
-    condition: Whenever a user resets a preview or session.
-    failure: Report reset failure rather than retain hidden state.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.state-engine
+    reason: Removed because Simulator is archived and no longer an active product, App conformance requirement, or development, CI, or release prerequisite.
   - id: rule.nimi.platform.simulator.p-sim-010
     kind: rule
+    lifecycle: removed
     title: Simulated sessions never become identity
-    modality: must_not
-    statement: A simulated persona, account label, App session, protected-App access posture, LocalAgent selector, or route is accepted as real identity or authorization by any product owner.
-    condition: Whenever simulated session data crosses a preview boundary.
-    failure: Keep the data inside the Simulator presentation session.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.session-projection
+    reason: Removed because Simulator is archived and no longer an active product, App conformance requirement, or development, CI, or release prerequisite.
   - id: rule.nimi.platform.simulator.p-sim-010a
     kind: rule
+    lifecycle: removed
     title: Preview workspace starts home first
-    modality: must
-    statement: Scenario launch may mount and run its declared selected App instances for readiness, but the Shell initially presents the home workspace with every App window closed, only an explicit user App-window action or instance deep link opens or raises an App surface, simulated login never opens an App window, and reset restores the same home-first state.
-    condition: Whenever a Simulator scenario launches, commits simulated login, opens an App window, or resets.
-    failure: Keep readiness-mounted App surfaces below the home workspace and reject any implicit window-open transition.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.session-projection
-      - type: applies_to
-        target: definition.nimi.platform.simulator.state-engine
+    reason: Removed because Simulator is archived and no longer an active product, App conformance requirement, or development, CI, or release prerequisite.
   - id: rule.nimi.platform.simulator.p-sim-011
     kind: rule
+    lifecycle: removed
     title: Instance state is isolated
-    modality: must
-    statement: Each preview instance has isolated App resources and session-local presentation state, and one instance cannot mutate another except through an explicitly simulated presentation interaction.
-    condition: Whenever multiple preview instances are visible.
-    failure: Reject hidden shared mutable state.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.session-projection
+    reason: Removed because Simulator is archived and no longer an active product, App conformance requirement, or development, CI, or release prerequisite.
   - id: rule.nimi.platform.simulator.p-sim-012
     kind: rule
+    lifecycle: removed
     title: Simulated interactions create no platform bus
-    modality: must_not
-    statement: Simulator interaction events become a Runtime, Realm, SDK, Kit, App-to-App, LocalAgent, or public platform event protocol.
-    condition: Whenever selected preview instances coordinate.
-    failure: Keep the event typed, presentation-only, and local to the simulated session.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.interaction-protocol
+    reason: Removed because Simulator is archived and no longer an active product, App conformance requirement, or development, CI, or release prerequisite.
   - id: rule.nimi.platform.simulator.p-sim-013
     kind: rule
+    lifecycle: removed
     title: Product owners remain authoritative
-    modality: must
-    statement: Simulator projections of Realm, Runtime, LocalAgent, Avatar, App, owner authorization, AI, SDK, and Kit concepts follow their public semantics but never claim current owner state or implementation acceptance.
-    condition: Whenever Simulator presents a Nimi domain concept.
-    failure: Label the projection simulated and reject owner claims.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.owner-boundary
+    reason: Removed because Simulator is archived and no longer an active product, App conformance requirement, or development, CI, or release prerequisite.
   - id: rule.nimi.platform.simulator.p-sim-014
     kind: rule
+    lifecycle: removed
     title: Future platform expansion is deferred
-    modality: must
-    statement: Marketplace, public App distribution, Registry, Trust Tier, arbitrary source hosting, cross-product platform orchestration, real authentication, real Runtime connectivity, and any new Simulator product class remain outside the current Simulator scope.
-    condition: Whenever Simulator expansion is proposed.
-    failure: Isolate the proposal until separate product authority admits it.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.owner-boundary
+    reason: Removed because Simulator is archived and no longer an active product, App conformance requirement, or development, CI, or release prerequisite.
   - id: rule.nimi.platform.simulator.p-sim-015
     kind: rule
+    lifecycle: removed
     title: Failures remain visible and local
-    modality: must
-    statement: Adapter, renderer, fixture, scenario, interaction, and instance failures are typed, visible, and isolated to the affected preview when possible.
-    condition: Whenever a Simulator component fails.
-    failure: Do not convert failure into empty success or a claim about real product state.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.failure-model
+    reason: Removed because Simulator is archived and no longer an active product, App conformance requirement, or development, CI, or release prerequisite.
   - id: rule.nimi.platform.simulator.p-sim-016
     kind: rule
+    lifecycle: removed
     title: Simulator checks do not prove product connectivity
-    modality: must_not
-    statement: A deterministic preview, visual check, fixture test, build, source registry, or replay is reported as successful Realm, Runtime, LocalAgent, Avatar, account, owner-authorization, or Third-party App product connectivity.
-    condition: Whenever Simulator acceptance is summarized.
-    failure: Report only preview behavior and classify real connectivity as not verified.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.failure-model
+    reason: Removed because Simulator is archived and no longer an active product, App conformance requirement, or development, CI, or release prerequisite.
   - id: rule.nimi.platform.simulator.p-sim-025
     kind: rule
+    lifecycle: removed
     title: Simulator owns its scenic environment
-    modality: must
-    statement: The Simulator Shell exclusively owns its fixed lunar-viewpoint scenic composition of a photographic lunar plate and independently rendered Earth as presentation truth, and the composition does not become Kit, App, State Engine, Runtime, Realm, astronomical, or physically reversible lighting truth.
-    condition: Whenever Simulator presents or controls its scenic environment.
-    failure: Reject a scenic path that transfers ownership or claims astronomical, product-state, or physically reversible lighting truth.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.effect-boundary
-      - type: applies_to
-        target: definition.nimi.platform.simulator.owner-boundary
+    reason: Removed because Simulator is archived and no longer an active product, App conformance requirement, or development, CI, or release prerequisite.
   - id: rule.nimi.platform.simulator.p-sim-025a
     kind: rule
+    lifecycle: removed
     title: Live lunar composition preserves authored art direction
-    modality: must
-    statement: The live scenic path uses one full-frame photographic lunar plate without baked Earth as the sole lunar landscape source, renders Earth from separate surface and cloud image inputs, derives plate modulation and Earth lighting from one normalized presentation-only scene time and off-camera light projection, preserves an unbiased physical phase while showing a same-light-state twenty-to-thirty-percent crescent when physical phase is at or below thirty percent, keeps textured non-pure-black dark-side detail and a thin illuminated-side atmosphere, retains the established upper-right Earth position and normalized radius 0.0531, and excludes a rendered Sun, procedural lunar terrain, procedural clouds, and full-frame beauty-frame cross-fading presented as live lighting.
-    condition: Whenever the live lunar scenic path renders a frame.
-    failure: Reject a frame path that replaces the authored sources, introduces another light authority, loses the bounded crescent and dark-side art direction, changes the established Earth framing, or presents a forbidden substitute as live lighting.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.effect-boundary
-      - type: applies_to
-        target: definition.nimi.platform.simulator.owner-boundary
+    reason: Removed because Simulator is archived and no longer an active product, App conformance requirement, or development, CI, or release prerequisite.
   - id: rule.nimi.platform.simulator.p-sim-025b
     kind: rule
+    lifecycle: removed
     title: Scenic availability and motion fail closed
-    modality: must
-    statement: The live scene remains unready until the lunar plate and both Earth image inputs decode and upload successfully, WebGL unavailability, context loss, software rendering, or required-resource failure selects a representative static fallback with no live-lighting claim, automation identity alone never selects that fallback, and reduced motion freezes continuous playback while retaining manual scene-time, phase-preset, and intensity controls on the live path.
-    condition: Whenever Simulator initializes, loses, falls back from, or animates its scenic renderer.
-    failure: Keep the live scene unready or enter the explicit static fallback, expose no live-lighting claim, and preserve the required reduced-motion controls.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.simulator.effect-boundary
-      - type: applies_to
-        target: definition.nimi.platform.simulator.failure-model
+    reason: Removed because Simulator is archived and no longer an active product, App conformance requirement, or development, CI, or release prerequisite.

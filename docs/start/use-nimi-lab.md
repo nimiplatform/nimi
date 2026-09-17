@@ -56,7 +56,7 @@ as `NOT-VERIFIED`; do not infer runnable Realm access from the visible UI.
 ## What Not To Copy Blindly
 
 - Nimi Lab identity (`nimi.lab`) belongs only to Nimi Lab.
-- Lab-only diagnostics, Simulator adapters, fixtures, and demo data are not
+- Lab-only diagnostics, fixtures, and demo data are not
   scaffold or production data contracts.
 - A capability being present in Lab does not make it selectable in App Tools.
 - Lab acceptance tests are examples of app-owned checks, not a substitute for

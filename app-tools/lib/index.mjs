@@ -20,10 +20,6 @@ import {
 } from './app-project-lifecycle.mjs';
 import { aggregateAppTargetCandidates, packAppTarget } from './app-pack.mjs';
 export { runDevShell } from '../scripts/dev-shell.mjs';
-export {
-  validateSimulatorAppSource,
-  validateSimulatorAppSourceWithCanonicalKitExports,
-} from './simulator-conformance.mjs';
 export { APP_SCAFFOLD_FEATURE_IDS } from './app-scaffold-capabilities.mjs';
 
 const APP_TOOLS_PACKAGE_MANIFEST = JSON.parse(

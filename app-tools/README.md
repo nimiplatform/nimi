@@ -6,6 +6,12 @@ It does not own GitHub publisher or repository truth, registry review/main, Runt
 
 For your first public release, start with [Publishing on GitHub](#publishing-on-github), including the read-only repository-settings credential.
 
+Simulator integration is retired. Remove `nimi-app check --conformance simulator`
+and imports of `@nimiplatform/app-tools/simulator-conformance` or
+`@nimiplatform/app-tools/simulator-css-profile` from active projects. Use the
+normal App lifecycle checks and Desktop-supervised development for current
+Apps; the archived preview implementation is no longer a release prerequisite.
+
 ## AI development and existing projects
 
 The package includes one `skills/nimi-app-lifecycle/SKILL.md` with on-demand

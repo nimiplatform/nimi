@@ -47,10 +47,7 @@
   "bin": {
     "nimi-app": "./bin/nimi-app.mjs"
   },
-  "exports": {
-    "./simulator-conformance": "./lib/simulator-conformance.mjs",
-    "./simulator-css-profile": "./lib/simulator-css-profile.mjs"
-  },
+  "exports": {},
   "scripts": {
     "build": "node scripts/sync-scaffold-versions.mjs --apply && node scripts/sync-app-source.mjs --apply",
     "sync:versions": "node scripts/sync-scaffold-versions.mjs --apply",
@@ -58,7 +55,7 @@
     "prepack": "pnpm run build",
     "prepublishOnly": "pnpm run build",
     "test": "node ../scripts/with-workspace-surfaces.mjs -- pnpm run test:prepared",
-    "test:prepared": "node scripts/sync-scaffold-versions.mjs --check && node --test test/simulator-conformance.test.mjs test/dev-shell.test.mjs && node --test test/app-project-lifecycle.test.mjs test/app-pack.test.mjs test/app-scaffold.test.mjs"
+    "test:prepared": "node scripts/sync-scaffold-versions.mjs --check && node --test test/dev-shell.test.mjs && node --test test/app-project-lifecycle.test.mjs test/app-pack.test.mjs test/app-scaffold.test.mjs"
   },
   "files": [
     "bin",
@@ -70,8 +67,6 @@
   ],
   "dependencies": {
     "pngjs": "7.0.0",
-    "postcss": "^8.5.26",
-    "postcss-selector-parser": "^7.1.5",
     "semver": "^7.8.5",
     "typescript": "^5.9.3",
     "yaml": "^2.9.0"

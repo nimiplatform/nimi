@@ -12,7 +12,6 @@ import {
   SUPPORTED_APP_SCAFFOLD_PROFILES,
 } from './app-scaffold.mjs';
 import { assertManifestAppAccessDeclaration } from './app-access-declaration.mjs';
-import { validateSimulatorAppSourceWithCanonicalKitExports } from './simulator-conformance.mjs';
 import { assertLifecycleGuidanceCurrent, LIFECYCLE_SKILL_PATH, lifecycleOwnerSteps, planLifecycleGuidance } from './app-lifecycle-guidance.mjs';
 import { applyProjectFiles, describeChanges, plannedFile } from './app-project-files.mjs';
 
@@ -730,18 +729,6 @@ export function initApp(cwd, options = {}, versions, runners = {}) {
 
 export function validateAppProject(cwd, options = {}, versions, runners = {}) {
   const targetDir = resolveTargetDir(cwd, options);
-  if (options.conformance) {
-    if (options.conformance !== 'simulator') {
-      throw new Error(`Unsupported conformance target: ${options.conformance}`);
-    }
-    if (options.json) {
-      throw new Error('--json is not supported for Simulator source validation');
-    }
-    return validateSimulatorAppSourceWithCanonicalKitExports(targetDir).then((result) => {
-      process.stdout.write(`[nimi-app] Simulator source validation passed for ${targetDir}\n`);
-      return result;
-    });
-  }
   const result = validateAppProjectState(targetDir, versions, runners);
   const payload = {
     ok: true,

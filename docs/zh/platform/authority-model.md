@@ -38,7 +38,7 @@ profile。Kit 只在真实 consumer 需要时提供可复用产品面，不为�
 
 Nimi Home 是当前第一方产品宿主。它可以组合 Runtime、Realm、SDK、
 Kit 与 Avatar，但不会替代这些 owner。Desktop shell state、Avatar
-projection、Simulator 报告和生成配置同样只是 owner truth 的
+projection 和生成配置同样只是 owner truth 的
 consumer 或 projection。
 
 既有公共分发和 App-world binding 设计在不直接冲突时保持隔离，

@@ -36,8 +36,8 @@ LocalAgent。
 **Avatar。** 角色的具身外壳：按 Runtime 发来的强类型呈现内容渲染角色，
 并管理自己 renderer 本地的行为。
 
-**Simulator。** 给选定 App 模块用的开发与验证工具，不是当前的产品平
-台，也不是产品宿主。
+**Simulator（已归档）。** 曾用于在浏览器中预览选定 App 的体验，现已退役，
+不再参与 App 开发、验证或发布流程。
 
 ## 访问与失败
 
@@ -69,6 +69,7 @@ App 身份、授权、目标 LocalAgent 或范围，以及操作。
 
 ## 来源依据
 
+- [`.nimi/spec/platform/product-lifecycle.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/product-lifecycle.authority.yaml)
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
 - [`.nimi/spec/runtime/agent-service.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-service.authority.yaml)
 - [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)

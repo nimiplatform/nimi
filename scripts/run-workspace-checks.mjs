@@ -30,7 +30,6 @@ const names = packages.map((pkg) => pkg.name);
 process.stdout.write(`Workspace checks: ${names.join(', ')}\n`);
 await withWorkspaceSurfaces({ repoRoot, label: 'selected workspace tests and builds' }, () => {
   run('pnpm', ['--recursive', ...filterArgs, '--if-present', 'test']);
-  run('pnpm', ['--recursive', ...filterArgs, '--if-present', 'test:full:prepared']);
   run('pnpm', [
     '--recursive', ...filterArgs,
     '--filter=!@nimiplatform/sdk', '--filter=!@nimiplatform/kit',

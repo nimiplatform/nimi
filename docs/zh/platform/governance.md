@@ -13,7 +13,6 @@ Nimi 把持久身份、世界真相、AI 执行、呈现与 App 组合交给不�
 | 当前第一方 home 与产品 UI | Nimi Home / Desktop |
 | 形体呈现 | Avatar |
 | 可复用 consumer UI | Kit |
-| 开发者验证表面 | Simulator |
 
 Character 与 LocalAgent 最能说明这条边界。Realm 持有持久 Character，
 Runtime 为执行物化 LocalAgent。Desktop store、Avatar instance 或 App

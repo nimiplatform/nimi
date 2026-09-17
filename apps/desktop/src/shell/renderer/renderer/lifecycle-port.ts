@@ -9,7 +9,7 @@ import type {
 import type { InlineFeedbackState } from '../ui/feedback/inline-feedback.js';
 
 /**
- * Narrow mutation surface used by production bootstrap and Simulator
+ * Narrow mutation surface used by production bootstrap and renderer hosts
  * projection subscriptions. It deliberately exposes neither the Zustand
  * store nor QueryClient ownership to an Adapter.
  */

@@ -37,8 +37,9 @@ Hosting the experience does not make it the keeper of Realm or Runtime.
 **Avatar.** The embodiment shell: it renders a character from the typed
 presentation Runtime sends and manages its own renderer-local behavior.
 
-**Simulator.** A development and qualification tool for selected App modules,
-not a current product platform or product host.
+**Simulator (archived).** The retired browser preview for selected App
+experiences. It is no longer part of App development, validation, or release
+workflows.
 
 ## Access and failure
 
@@ -77,6 +78,7 @@ scoped operation.
 
 ## Source Basis
 
+- [`.nimi/spec/platform/product-lifecycle.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/product-lifecycle.authority.yaml)
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
 - [`.nimi/spec/runtime/agent-service.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-service.authority.yaml)
 - [`.nimi/spec/runtime/agent-participation.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/agent-participation.authority.yaml)

@@ -59,8 +59,9 @@ distribution, and commercial settlement are not prerequisites for that loop.
 Designs for future distribution stay separate unless they would conflict with
 these boundaries.
 
-Simulator is a development and qualification tool for selected App modules. It
-is not a current product platform, and it does not replace a product host.
+Simulator is archived and no longer participates in App development,
+validation, or release workflows. For current App development, follow
+[Create an App](/start/create-an-app).
 
 ## Source Basis
 

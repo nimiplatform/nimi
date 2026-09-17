@@ -2,6 +2,10 @@
 
 ## Unreleased (next 0.x minor)
 
+- Breaking (0.x minor): retire the archived Simulator-only `scrollLock:
+  'simulator-root'` overlay option. Active renderer hosts use `scrollLock:
+  'none'`; Simulator integrations are archived rather than migrated.
+
 - Model Config accepts optional host-owned capability sections with localized
   headings and collapsible groups through `ModelConfigCapabilitySection` and
   `capabilitySections`. This compatible public input widening is a minor

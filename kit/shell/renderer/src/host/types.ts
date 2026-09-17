@@ -132,7 +132,7 @@ export interface NimiRendererOverlayOptions {
   readonly returnFocus: boolean;
   readonly initialFocusSemanticId: string | null;
   readonly returnFocusSemanticId: string | null;
-  readonly scrollLock: 'none' | 'simulator-root';
+  readonly scrollLock: 'none';
   readonly ariaLabel: string;
 }
 

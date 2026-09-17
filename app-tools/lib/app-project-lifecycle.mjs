@@ -1335,9 +1335,6 @@ export function adoptAppProject(cwd, options = {}, versions, runners = {}) {
 
 export function checkAppProject(cwd, options = {}, versions, runners = {}) {
   const targetDir = resolveTargetDir(cwd, options);
-  if (options.conformance) {
-    return validateAppProject(cwd, { dir: targetDir, conformance: options.conformance, json: options.json }, versions, runners);
-  }
   assertNoRetiredScaffoldState(targetDir);
   const managed = existsSync(path.join(targetDir, SCAFFOLD_LOCK_PATH));
   const existingState = managed ? null : assertProjectLifecycleCurrent(targetDir, versions, { requireInstalledLock: true, production: options.production === true });

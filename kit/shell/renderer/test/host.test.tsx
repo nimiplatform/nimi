@@ -477,7 +477,7 @@ function modalOptions() {
     returnFocus: true,
     initialFocusSemanticId: null,
     returnFocusSemanticId: null,
-    scrollLock: 'simulator-root' as const,
+    scrollLock: 'none' as const,
     ariaLabel: 'Fixture dialog',
   };
 }

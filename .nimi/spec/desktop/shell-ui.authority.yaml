@@ -124,9 +124,9 @@ units:
     kind: rule
     title: Shell mode is a closed host projection
     modality: must
-    statement: Desktop resolves shell mode as exactly desktop or web from VITE_NIMI_SHELL_MODE, then the Electron preload bridge, then desktop for server rendering; Simulator is never a shell mode and canonical renderer hosts instead receive the opaque host binding.
+    statement: Desktop resolves shell mode as exactly desktop or web from VITE_NIMI_SHELL_MODE, then the Electron preload bridge, then desktop for server rendering; canonical renderer hosts receive the opaque host binding.
     condition: Whenever shell mode or host-specific feature defaults are resolved.
-    failure: Reject unknown modes, global-probe Simulator detection, and a third shell branch.
+    failure: Reject unknown modes, global-probe host detection, and a third shell branch.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-ui.shell-plane
@@ -232,7 +232,7 @@ units:
     kind: rule
     title: Canonical renderer hosts share one current surface tree
     modality: must
-    statement: Desktop production and Simulator use the same canonical renderer component tree and style closure for current surfaces, while host bindings may alter data and supported operations but never substitute simplified pages, alternate copy, or forked CSS.
+    statement: Supported Desktop hosts use the same canonical renderer component tree and style closure for current surfaces, while host bindings may alter data and supported operations but never substitute simplified pages, alternate copy, or forked CSS.
     condition: Whenever a canonical renderer instance is constructed.
     failure: Reject host-specific UI forks and preserve the current shared surface with explicit unavailable operations.
     relations:
@@ -820,7 +820,7 @@ units:
     kind: rule
     title: Bootstrap errors stay production-bound and redacted
     modality: must
-    statement: Desktop production bootstrap failure keeps bootstrapReady false, records redacted bootstrapError, clears only the renderer redacted account projection, emits phase:bootstrap:failed at error severity, rethrows the structured failure, and never mutates Runtime custody; Simulator never manufactures this state or leaks Simulator codes into Desktop errors.
+    statement: Desktop production bootstrap failure keeps bootstrapReady false, records redacted bootstrapError, clears only the renderer redacted account projection, emits phase:bootstrap:failed at error severity, rethrows the structured failure, and never mutates Runtime custody.
     condition: Whenever production bootstrap terminates with failure.
     failure: Keep shell bootstrap failed and observable without credential, account, native, or Runtime-owned mutation.
     relations:

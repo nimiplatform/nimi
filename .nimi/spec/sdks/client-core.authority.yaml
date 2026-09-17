@@ -270,10 +270,10 @@ units:
         target: definition.nimi.sdks.client-core.boundary-plane
   - id: rule.nimi.sdks.client-core.r026
     kind: rule
-    title: Simulator testing is non-authoritative
+    title: SDK testing is non-authoritative
     modality: must
-    statement: A deterministic SDK testing helper may support Simulator and consumer tests using public SDK types, but it creates no network or protected carrier, Realm or Runtime side effect, account, permission, credential, LocalAgent, or alternate product contract.
-    condition: Whenever an SDK testing helper or Simulator adapter is used.
+    statement: A deterministic SDK testing helper may support consumer tests using public SDK types, but it creates no network or protected carrier, Realm or Runtime side effect, account, permission, credential, LocalAgent, or alternate product contract.
+    condition: Whenever an SDK testing helper is used.
     failure: Reject production selection, authority creation, or product-readiness claims.
     relations:
       - type: applies_to

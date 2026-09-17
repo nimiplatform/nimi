@@ -566,9 +566,9 @@ units:
     kind: rule
     title: P-AGENT-CENTER-006 single canonical Manager Session and factory
     modality: must
-    statement: Each mounted AgentCenter has exactly one canonical factory and Manager Session that own its snapshot, refresh, mutation, typed action availability, commit, bounded preset and current-session-owned bindable custom voice option reads, one Appearance Resource Pack card, and one section model and bind the same agentHandle-addressed agent.configure App client for bounded manager snapshot, shared AIConfig, autonomy, presentation, and Memory operations; Desktop, protected Apps, production, and Simulator use that same factory, canonical Pack selection and Clear semantics, operation semantics, state logic, and result or error mapping, and no first-party factory may add inspect, Memory, Cognition, Diagnostics or Advanced, a top-level Pack section, a target-owned extension, appearance product transports, or a separately injected runtime.consume VoiceAsset client; Host mechanics may only select and read files, deliver an identity-free immutable byte snapshot, resolve native Avatar preview, and perform admitted native placement or navigation beneath the same Manager action without owning review lifetime, Agent or account identity, product state, eligibility, availability, commit, or result truth; a non-Zhiyu Pack entry uses the canonical targeted-App placement result and begins file selection only after destination Zhiyu reports its current Agent Conversation and AgentCenter ready, while React props remain limited to UI and UX inputs for chrome, layout, density, active section, locale, and typed placement callbacks; and the pre-1.0 hard cut admits no legacy seed authority, per-adapter AIConfig props, compatibility copy objects, caller-owned access posture, raw identity, per-Agent AIConfig, carrier branch inside presentation state, or parallel state path.
+    statement: Each mounted AgentCenter has exactly one canonical factory and Manager Session that own its snapshot, refresh, mutation, typed action availability, commit, bounded preset and current-session-owned bindable custom voice option reads, one Appearance Resource Pack card, and one section model and bind the same agentHandle-addressed agent.configure App client for bounded manager snapshot, shared AIConfig, autonomy, presentation, and Memory operations; Desktop and protected Apps use that same factory, canonical Pack selection and Clear semantics, operation semantics, state logic, and result or error mapping, and no first-party factory may add inspect, Memory, Cognition, Diagnostics or Advanced, a top-level Pack section, a target-owned extension, appearance product transports, or a separately injected runtime.consume VoiceAsset client; Host mechanics may only select and read files, deliver an identity-free immutable byte snapshot, resolve native Avatar preview, and perform admitted native placement or navigation beneath the same Manager action without owning review lifetime, Agent or account identity, product state, eligibility, availability, commit, or result truth; a non-Zhiyu Pack entry uses the canonical targeted-App placement result and begins file selection only after destination Zhiyu reports its current Agent Conversation and AgentCenter ready, while React props remain limited to UI and UX inputs for chrome, layout, density, active section, locale, and typed placement callbacks; and the pre-1.0 hard cut admits no legacy seed authority, per-adapter AIConfig props, compatibility copy objects, caller-owned access posture, raw identity, per-Agent AIConfig, carrier branch inside presentation state, or parallel state path.
     condition: Whenever AgentCenter state, sections, sessions, transports, factories, or React props are constructed.
-    failure: Reject a missing or second factory or Manager Session, divergent Pack card or selection store, Desktop-only or Simulator-only product transport, stateful Host review or candidate adapter, target-owned extension, capability loss, authority-bearing placement prop, file selection before destination ready, caller-assembled authority, legacy compatibility input, or carrier distinction implemented inside presentation state.
+    failure: Reject a missing or second factory or Manager Session, divergent Pack card or selection store, host-specific product transport, stateful Host review or candidate adapter, target-owned extension, capability loss, authority-bearing placement prop, file selection before destination ready, caller-assembled authority, legacy compatibility input, or carrier distinction implemented inside presentation state.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.agent-center-resource-pack-placement
@@ -845,7 +845,7 @@ units:
   - id: definition.nimi.platform.ui-design-system.kit-module-family
     kind: definition
     title: Kit module family
-    meaning: A Kit module is a demand-driven integration above the SDK with a bounded owner and dependency direction, admitted only for a concrete Nimi Home, Avatar, Simulator, or Third-party reference App consumer and real journey rather than to complete a catalog or framework taxonomy.
+    meaning: A Kit module is a demand-driven integration above the SDK with a bounded owner and dependency direction, admitted only for a concrete Nimi Home, Avatar, or Third-party reference App consumer and real journey rather than to complete a catalog or framework taxonomy.
   - id: definition.nimi.platform.ui-design-system.kit-public-surface
     kind: definition
     title: Kit public surface
@@ -1076,7 +1076,7 @@ units:
     kind: rule
     title: P-KIT-050 reusable module admission
     modality: must
-    statement: A new capability module enters Kit only for a concrete Nimi Home, Avatar, Simulator, or Third-party reference App requirement with a real journey, bounded owner, public surface, and dependency direction; one real consumer is sufficient and speculative multi-App planning is not admission.
+    statement: A new capability module enters Kit only for a concrete Nimi Home, Avatar, or Third-party reference App requirement with a real journey, bounded owner, public surface, and dependency direction; one real consumer is sufficient and speculative multi-App planning is not admission.
     condition: Whenever a new Kit module family is proposed.
     failure: Keep the capability App-owned until a concrete integration need and bounded public boundary exist.
     relations:
@@ -1166,9 +1166,9 @@ units:
     kind: rule
     title: P-KIT-080 typed adapters and host-neutral construction
     modality: must
-    statement: Feature modules expose obvious typed adapters as the sole seam for app data, mutations, and platform capability; bind public SDK Runtime or Realm services only from the matching integration surface; avoid direct app, host bridge, Runtime-internal, or injectable SDK-service imports; and app renderer factories use identical provider, store, route, and UI construction for production-host and Simulator bindings without host discrimination while Simulator reducers, scenarios, fixtures, and selection remain app-owned.
+    statement: Feature modules expose obvious typed adapters as the sole seam for app data, mutations, and platform capability; bind public SDK Runtime or Realm services only from the matching integration surface; avoid direct app, host bridge, Runtime-internal, or injectable SDK-service imports; and app renderer factories use identical provider, store, route, and UI construction for supported host bindings without host discrimination.
     condition: Whenever a feature receives app or first-party capability or an app constructs its canonical renderer.
-    failure: Reject an implicit, mislabeled, private, direct, or host-discriminated integration or transfer of Simulator app truth into Kit.
+    failure: Reject an implicit, mislabeled, private, direct, or host-discriminated integration or transfer of App product truth into Kit.
     relations:
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.kit-dependency-boundary

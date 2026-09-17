@@ -362,12 +362,6 @@ scopes:
         value: "kit/tailwind-theme.css"
       - kind: path_glob
         value: "config/desktop-shell-ui-*.yaml"
-  - scope: platform.simulator
-    bindings:
-      - kind: path_glob
-        value: "apps/simulator/**"
-      - kind: path_glob
-        value: "app-tools/lib/simulator-*"
   - scope: platform.app-ecosystem
     bindings:
       - kind: path_glob

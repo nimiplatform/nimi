@@ -108,7 +108,7 @@ units:
     kind: rule
     title: Apps are Memory and Knowledge consumers
     modality: must_not
-    statement: Nimi Home, Desktop, Zhiyu, Avatar, Simulator, SDK, Kit, or a Third-party App turns UI state, chat cache, local database, summary, embedding status, displayed source, or model output into Cognition Memory or Knowledge truth.
+    statement: Nimi Home, Desktop, Zhiyu, Avatar, SDK, Kit, or a Third-party App turns UI state, chat cache, local database, summary, embedding status, displayed source, or model output into Cognition Memory or Knowledge truth.
     condition: Whenever a consumer displays, caches, or submits Memory or Knowledge intent.
     failure: Use the typed Runtime projection and keep consumer state non-authoritative.
     relations:

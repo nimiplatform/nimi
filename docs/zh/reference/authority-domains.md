@@ -13,7 +13,6 @@ Nimi 按 owner 分离产品真相。Projection、host、package、App、docs pag
 | Nimi Home / Desktop | 当前产品 home、native host、产品 UI 与 interaction | Realm 或 Runtime authority |
 | Avatar | Embodiment shell、renderer execution、playback 与 renderer-local state | LocalAgent、Conversation、Memory、Knowledge、AI routing |
 | App | 自身产品行为与私有数据 | Account、grant、session、LocalAgent、Provider 或 Realm truth |
-| Simulator | Selected App module 的开发 qualification | 产品 hosting、平台 readiness 或 App truth |
 
 ## 主要 Owner 转换
 

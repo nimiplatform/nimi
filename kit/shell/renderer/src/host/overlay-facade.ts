@@ -154,8 +154,7 @@ function validOptions(value: unknown): value is NimiRendererOverlayOptions {
     && typeof value.returnFocus === 'boolean'
     && validSemanticId(value.initialFocusSemanticId)
     && validSemanticId(value.returnFocusSemanticId)
-    && (value.scrollLock === 'none' || value.scrollLock === 'simulator-root')
-    && (value.modal || value.scrollLock === 'none')
+    && value.scrollLock === 'none'
     && typeof value.ariaLabel === 'string'
     && value.ariaLabel === value.ariaLabel.trim()
     && value.ariaLabel.length > 0

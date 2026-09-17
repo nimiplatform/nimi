@@ -23,8 +23,7 @@ demand-driven Kit surfaces. A scaffolded App receives session-derived access,
 not protected credentials or Runtime proof.
 
 Avatar consumes typed Runtime presentation input and keeps renderer-local
-state. Simulator qualifies selected App modules for development; neither
-surface becomes a platform owner.
+state without taking ownership of Runtime execution or Realm identity.
 
 ## Architecture rules
 

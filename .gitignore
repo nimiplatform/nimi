@@ -3,10 +3,6 @@ dist/
 dist-electron/
 **/.dist.staging-*/
 **/.dist.previous-*/
-/apps/simulator/.generated/
-/apps/simulator/.generated-stage-*/
-/apps/simulator/.generated-backup-*/
-/apps/.simulator-product-fixture-*/
 .next/
 coverage/
 .DS_Store
@@ -81,8 +77,6 @@ __pycache__/
 .coverage.*
 htmlcov/
 build/
-!/apps/simulator/build/
-!/apps/simulator/build/**
 site/
 .eggs/
 *.egg
@@ -99,3 +93,7 @@ output/
 tmp/
 docs/superpowers
 design-qa.md
+
+# Preserve the archived Simulator build sources, not generated output.
+!/archive/simulator/apps/simulator/build/
+!/archive/simulator/apps/simulator/build/**

@@ -54,8 +54,8 @@ MCP、World Evolution、Marketplace、Registry、Trust Tier、公共分发和商
 业结算都不是这个闭环的前置条件。面向未来的分发设计保持隔离，除非与这
 些边界冲突。
 
-Simulator 是给选定 App 模块用的开发与验证工具。它不是当前的产品平台，
-也替代不了产品宿主。
+Simulator 已归档，不再用于 App 开发、验证或发布流程。开发新 App 请参阅
+[创建 App](/zh/start/create-an-app)。
 
 ## 来源依据
 

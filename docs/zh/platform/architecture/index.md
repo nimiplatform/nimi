@@ -22,8 +22,8 @@ Nimi Home 承载当前本地 App 流程，并组合公共 SDK 与 demand-driven 
 surface。Scaffolded App 获得 session-derived access，而不是 protected
 Credential 或 Runtime proof。
 
-Avatar 消费强类型 Runtime presentation input，并保留 renderer-local state。
-Simulator 用于 selected App module 的开发 qualification；两者都不是平台 owner。
+Avatar 根据 Runtime 提供的强类型呈现内容渲染角色，并管理渲染器本地状态；
+Runtime 执行和 Realm 身份仍由各自的 owner 负责。
 
 ## 架构规则
 

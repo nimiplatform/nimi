@@ -14,7 +14,6 @@ truth.
 | Nimi Home / Desktop | Current product home, native host, product UI and interaction | Realm or Runtime authority |
 | Avatar | Embodiment shell, renderer execution, playback, and renderer-local state | LocalAgent, Conversation, Memory, Knowledge, AI routing |
 | App | Its product behavior and private data | Account, grant, session, LocalAgent, provider, or Realm truth |
-| Simulator | Development qualification of selected App modules | Product hosting, platform readiness, or App truth |
 
 ## Main owner transitions
 

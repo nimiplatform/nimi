@@ -22,7 +22,6 @@ ledger.
 | Product-specific screens, user-intent wiring, and ephemeral UI state | App |
 | Current first-party home and native host composition | Nimi Home / Desktop |
 | Embodiment presentation | Avatar |
-| Developer qualification and deterministic effects | Simulator |
 
 Character and LocalAgent are related but distinct. Realm owns the
 durable Character. Runtime materializes that Character as a LocalAgent
@@ -62,8 +61,8 @@ user-facing product profiles.
   authority.
 - Avatar renders owner projections; it does not directly drive or take
   ownership of Character/LocalAgent execution.
-- Simulator qualifies developer-facing modules; it is not the current
-  core platform or a production authority.
+- Simulator is archived under `archive/simulator` and is no longer an active
+  workspace, App qualification surface, or CI/release prerequisite.
 
 ## Deferred And Isolated Capabilities
 

@@ -1036,7 +1036,7 @@ test('cli help projects the current registry lifecycle and honest workflow witho
     'Candidate features (not public-selectable): (none)',
     'Internal modules (dependency-only): ai-studio-core',
     '--features all expands in order to: studio-create, studio-media, studio-voice, kit-recipes, agent-center, agent-conversation, agent-realtime',
-    'nimi-app check [--dir path] [--conformance simulator | --production] [--json]',
+    'nimi-app check [--dir path] [--production] [--json]',
     '--author person-or-team',
     'identity-neutral Lab-derived workbench-core',
     'standalone: any empty target directory using public dependency version declarations.',
@@ -1056,6 +1056,9 @@ test('cli help projects the current registry lifecycle and honest workflow witho
   const starterAgents = readFileSync(path.join(testDir, '..', 'templates', 'default-starter', 'AGENTS.md'), 'utf8');
   for (const content of [readme, starterReadme, starterAgents]) {
     assert.match(content, /NOT-VERIFIED/u);
+  }
+  assert.match(readme, /Simulator integration is retired/u);
+  for (const content of [starterReadme, starterAgents]) {
     assert.doesNotMatch(content, /conformance simulator|Simulator/u);
   }
   assert.match(readme, /author.*person.*team/isu);
@@ -2177,12 +2180,17 @@ test('unsupported previous app scaffold lock and intent fail closed', () => {
   }
 });
 
-test('unknown create flags are rejected', () => {
+test('unknown flags and retired Simulator conformance are rejected', () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-scaffold-cli-test-'));
   try {
-    const result = runNimiApp(['create', '--dir', path.join(tempRoot, 'app'), '--unsupported', 'standalone'], tempRoot);
-    assert.notEqual(result.status, 0);
-    assert.match(result.stderr, /Unknown option/);
+    for (const args of [
+      ['create', '--dir', path.join(tempRoot, 'app'), '--unsupported', 'standalone'],
+      ['check', '--dir', tempRoot, '--conformance', 'simulator'],
+    ]) {
+      const result = runNimiApp(args, tempRoot);
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /Unknown option/);
+    }
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });
   }

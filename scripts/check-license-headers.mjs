@@ -44,7 +44,6 @@ const LICENSE_MAP = [
       'apps/install-gateway',
       'apps/lab',
       'apps/prototype2',
-      'apps/simulator',
       'apps/web',
       'apps/zhiyu',
       'kit',

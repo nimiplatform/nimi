@@ -885,7 +885,7 @@ units:
   - id: definition.nimi.platform.product-lifecycle.public-account-web-surface
     kind: definition
     title: Public and account Web surface
-    meaning: The Web release surface consists of the first-party public Nimi site, Realm-backed account authentication and account-security interaction pages, Nimi Home and App informational pages, static legal and navigation pages, Cloudflare function adapters, and the release-distribution gateway under apps/install-gateway, while Desktop remains the current Nimi Home host and the independently owned Simulator remains a separate product and artifact.
+    meaning: The Web release surface consists of the first-party public Nimi site, Realm-backed account authentication and account-security interaction pages, Nimi Home and App informational pages, static legal and navigation pages, Cloudflare function adapters, and the release-distribution gateway under apps/install-gateway, while Desktop remains the current Nimi Home host; Simulator is archived and has no active workspace, conformance, deployment, or release role.
     relations:
       - type: supersedes
         target: definition.nimi.platform.product-lifecycle.web-release-surface
@@ -1110,14 +1110,9 @@ units:
     reason: Removed because it includes the retired web-shell adapters; the replacement rule preserves Platform ownership without retaining Web Shell semantics.
   - id: rule.nimi.platform.product-lifecycle.p-web-001b
     kind: rule
+    lifecycle: removed
     title: P-WEB-001 Simulator remains independent
-    modality: must_not
-    statement: Web becomes the Simulator shell, module registry, state engine, source materializer, build owner, or evidence owner instead of exposing only a typed navigation link to the independent deployment.
-    condition: When Web links to or integrates with the Simulator.
-    failure: Reject the ownership merge and preserve separate products and artifacts.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.public-account-web-surface
+    reason: Removed because Simulator is archived and no longer an active product, App conformance requirement, or development, CI, or release prerequisite.
   - id: rule.nimi.platform.product-lifecycle.p-web-002a
     kind: rule
     lifecycle: removed
@@ -1142,7 +1137,7 @@ units:
     kind: rule
     title: P-WEB-005 standalone public and account surface
     modality: must
-    statement: Platform owns the standalone first-party Web site, account authentication and account-security interaction pages, landing, Nimi Home and App informational pages, static legal and navigation pages, Cloudflare function adapters, install gateway, and typed Simulator navigation link without hosting Nimi Home or a Desktop renderer.
+    statement: Platform owns the standalone first-party Web site, account authentication and account-security interaction pages, landing, Nimi Home and App informational pages, static legal and navigation pages, Cloudflare function adapters, and install gateway without hosting Nimi Home or a Desktop renderer.
     condition: Whenever the Web release surface is built, routed, or described.
     failure: Reject a Web Shell, browser-hosted Nimi Home, Desktop renderer, or app-local parallel release owner.
     relations:
@@ -1208,9 +1203,9 @@ units:
     kind: rule
     title: P-WEB-005 shell identity is retired
     modality: must_not
-    statement: Web or Simulator is added to a Desktop shell-mode identity, imports Desktop or Simulator product source into one module graph, or restores hash-shell routing, Web Shell bootstrap, adapter stubs, forwarding facades, or compatibility redirects.
+    statement: Web is added to a Desktop shell-mode identity, imports Desktop product source into one module graph, or restores hash-shell routing, Web Shell bootstrap, adapter stubs, forwarding facades, or compatibility redirects.
     condition: Whenever Web build inputs, routes, or shell modes are defined.
-    failure: Reject the merged identity or compatibility path and preserve standalone Web, Desktop, and Simulator artifacts.
+    failure: Reject the merged identity or compatibility path and preserve standalone Web and Desktop artifacts.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.public-account-web-surface
@@ -1238,14 +1233,9 @@ units:
         target: definition.nimi.platform.product-lifecycle.public-account-web-surface
   - id: rule.nimi.platform.product-lifecycle.p-web-004b
     kind: rule
+    lifecycle: removed
     title: P-WEB-004 Simulator deployment separation
-    modality: must_not
-    statement: Simulator relies on a Cloudflare function as a hidden real-capability backend, or cross-origin navigation merges its build, credentials, content-security policy, environment schema, or release evidence with Web.
-    condition: When Simulator and Web are deployed or linked.
-    failure: Reject the hidden backend or merged deployment authority and preserve independent artifacts.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.product-lifecycle.public-account-web-surface
+    reason: Removed because Simulator is archived and no longer an active product, App conformance requirement, or development, CI, or release prerequisite.
   - id: rule.nimi.platform.product-lifecycle.p-fpi-001
     kind: rule
     lifecycle: removed

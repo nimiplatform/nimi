@@ -42,7 +42,7 @@ Realm-backed settings 当前作为已集成的 Lab 表面保留，但 local-app 
 ## 使用边界
 
 - Nimi Lab identity (`nimi.lab`) 只属于 Nimi Lab。
-- Lab 专属 diagnostics、Simulator adapter、fixture 和 demo data 不是脚手架或生产数据契约。
+- Lab 专属 diagnostics、fixture 和 demo data 不是脚手架或生产数据契约。
 - 能力已经进入 Lab，不代表 App Tools 已允许用户选择它。
 - Lab acceptance tests 是 app-owned checks 的示例，不能替代你的 App requirements。
 - Runtime execution diagnostic 只是证据，不要把 implementation、route、connector 或 target 细节复制到 App 请求中。
