@@ -6,6 +6,8 @@ export type LocalDevelopmentRegistration = {
   readonly shell: 'electron';
   readonly appAccess: readonly string[];
   readonly aiConfigAllowedRoutes: readonly ('local' | 'cloud')[];
+  /** App-declared capability_contract_refs from nimi.app.yaml; presentation grouping only. */
+  readonly capabilityContractRefs: readonly string[];
   readonly sourceGeneration: number;
   readonly declarationGeneration: number;
   readonly registeredAtUnixMs: number;

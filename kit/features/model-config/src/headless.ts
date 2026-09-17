@@ -1,6 +1,7 @@
 export type {
   ModelConfigAIConfigOwnerContext,
   ModelConfigCapabilityPosture,
+  ModelConfigCapabilitySection,
   ModelConfigCopy,
   ModelConfigEffectiveSelectionProjection,
   ModelConfigFormattedError,

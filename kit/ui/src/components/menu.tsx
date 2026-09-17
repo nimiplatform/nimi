@@ -1,7 +1,6 @@
 import React, { type ReactNode } from 'react';
 import { cn } from '../design-tokens.js';
 import { FOCUS_RING_CLASS_NAME } from '../a11y/focus.js';
-import { Surface } from './surface.js';
 
 export type NimiMenuItem = {
   id: string;
@@ -24,8 +23,11 @@ export function ActionMenu({
   ariaLabel,
   className,
 }: ActionMenuProps) {
+  // Chromeless by design: ActionMenu is overlay content composed inside
+  // PopoverContent, which already owns the panel boundary, material, and
+  // elevation. Rendering a second Surface here produced a panel-in-panel.
   return (
-    <Surface tone="overlay" material="glass-regular" elevation="floating" padding="sm" className={cn('nimi-action-menu min-w-40', className)} role="menu" aria-label={ariaLabel}>
+    <div className={cn('nimi-action-menu flex min-w-40 flex-col', className)} role="menu" aria-label={ariaLabel}>
       {items.map((item) => (
         <button
           key={item.id}
@@ -44,6 +46,6 @@ export function ActionMenu({
           {item.trailingIcon ? <span className="nimi-action-menu__trailing-icon inline-flex shrink-0 items-center justify-center">{item.trailingIcon}</span> : null}
         </button>
       ))}
-    </Surface>
+    </div>
   );
 }

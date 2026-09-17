@@ -100,8 +100,8 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
   } = props;
 
   return (
-    <PrimitiveCard className="h-[600px] overflow-hidden" hoverMotion={false}>
-      <ScrollArea className="h-full" contentClassName="p-5">
+    <PrimitiveCard className="overflow-hidden xl:h-[600px]" hoverMotion={false}>
+      <ScrollArea className="xl:h-[600px]" contentClassName="p-5">
         {selectedConnector ? (
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -341,7 +341,7 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
             </div>
           </div>
         ) : (
-          <div className="flex h-full flex-col items-center justify-center text-center">
+          <div className="flex h-full min-h-[160px] flex-col items-center justify-center text-center">
             <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--nimi-surface-panel)] ring-1 ring-[var(--nimi-border-subtle)]">
               <CloudIcon className="h-6 w-6 text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]" />
             </div>

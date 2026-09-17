@@ -20,6 +20,7 @@ import {
   canonicalElectronMain,
   ElectronLocalDevelopmentPlanError,
   readElectronAIConfigAllowedRoutes,
+  readElectronCapabilityContractRefs,
   resolveElectronLocalDevelopmentPlan,
   type ElectronAIConfigAllowedRoute,
   type ElectronLocalDevelopmentPlan,
@@ -128,6 +129,7 @@ type RendererRegistration = {
   readonly shell: 'electron';
   readonly appAccess: readonly string[];
   readonly aiConfigAllowedRoutes: readonly ElectronAIConfigAllowedRoute[];
+  readonly capabilityContractRefs: readonly string[];
   readonly sourceGeneration: number;
   readonly declarationGeneration: number;
   readonly registeredAtUnixMs: number;
@@ -500,14 +502,15 @@ export class ElectronLocalDevelopmentHost {
     }
     const projected = await Promise.all(rows.map(async (registration) => {
       try {
-        const aiConfigAllowedRoutes = await readElectronAIConfigAllowedRoutes(
-          registration.project.canonicalManifestPath,
-        );
+        const [aiConfigAllowedRoutes, capabilityContractRefs] = await Promise.all([
+          readElectronAIConfigAllowedRoutes(registration.project.canonicalManifestPath),
+          readElectronCapabilityContractRefs(registration.project.canonicalManifestPath),
+        ]);
         let selectorValue = [...this.registrationSelectors]
           .find(([, handle]) => handle === registration.registrationHandle)?.[0];
         selectorValue ??= randomSelector('dev-project');
         this.registrationSelectors.set(selectorValue, registration.registrationHandle);
-        return projectRegistration(selectorValue, registration, aiConfigAllowedRoutes);
+        return projectRegistration(selectorValue, registration, aiConfigAllowedRoutes, capabilityContractRefs);
       } catch (error) {
         if (error instanceof ElectronLocalDevelopmentPlanError) return null;
         throw error;
@@ -1162,6 +1165,7 @@ function projectRegistration(
   selectorValue: string,
   registration: NimiElectronLocalDevelopmentRegistration,
   aiConfigAllowedRoutes: readonly ElectronAIConfigAllowedRoute[],
+  capabilityContractRefs: readonly string[],
 ): RendererRegistration {
   if (registration.project.shell !== 'electron') {
     throw new Error('local-development-registration-shell-unsupported');
@@ -1174,6 +1178,7 @@ function projectRegistration(
     shell: registration.project.shell,
     appAccess: [...registration.project.appAccess],
     aiConfigAllowedRoutes: [...aiConfigAllowedRoutes],
+    capabilityContractRefs: [...capabilityContractRefs],
     sourceGeneration: registration.project.sourceGeneration,
     declarationGeneration: registration.project.declarationGeneration,
     registeredAtUnixMs: registration.registeredAtUnixMs,

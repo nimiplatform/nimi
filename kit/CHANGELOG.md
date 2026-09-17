@@ -2,6 +2,19 @@
 
 ## Unreleased (next 0.x minor)
 
+- Model Config accepts optional host-owned capability sections with localized
+  headings and collapsible groups through `ModelConfigCapabilitySection` and
+  `capabilitySections`. This compatible public input widening is a minor
+  change; existing ungrouped surfaces and AIConfig mutation scope are unchanged.
+
+- Restyled the built-in current-machine Local action in Model Config as a
+  titled quick-setup card with an explicit description, and clarified its
+  Kit-owned base English and Chinese title, label, and hint copy. Action
+  semantics, the state catalog, and mutation scope are unchanged.
+- Breaking (0.x minor): custom `ModelConfigCurrentMachineLocalActionCopy`
+  objects must now include `title` for the quick-setup card heading. Hosts
+  using the built-in English or Chinese copy need no changes.
+
 - Breaking: `OauthListenForCodePayload` now requires `expectedState`. Pass the
   Runtime-issued attempt state (or the state of the specific social OAuth
   attempt) with `redirectUri`. Upgrade renderer and Electron/Tauri host glue

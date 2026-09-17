@@ -123,6 +123,11 @@ export function Tooltip({
     <TooltipPrimitive.Root
       open={open}
       defaultOpen={defaultOpen}
+      // Label bubbles are non-interactive: close on trigger leave instead of
+      // Radix's hoverable-content grace area, which can wedge open when the
+      // pointer comes to rest inside the grace polygon or document
+      // pointermove stops reaching the window (embedded app surfaces).
+      disableHoverableContent
       onOpenChange={(next) => {
         setInternalOpen(next);
         onOpenChange?.(next);

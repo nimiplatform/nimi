@@ -35,6 +35,7 @@ import {
 } from '../projection.js';
 import type {
   ModelConfigAIConfigOwnerContext,
+  ModelConfigCapabilitySection,
   ModelConfigCopy,
   ModelConfigEffectiveSelectionProjection,
   ModelConfigFormattedError,
@@ -73,11 +74,19 @@ type ModelConfigRouteChoice =
 
 export type ModelConfigAllowedRoute = ModelConfigRouteChoice['route'];
 
+export type { ModelConfigCapabilitySection } from '../types.js';
+
 const DEFAULT_ALLOWED_ROUTES: readonly ModelConfigAllowedRoute[] = ['local', 'cloud'];
 
 export type ModelConfigAIConfigSurfaceProps = {
   readonly context: ModelConfigAIConfigOwnerContext;
   readonly capabilityContracts: readonly string[];
+  /**
+   * Optional presentation grouping for the capability list. Row behavior,
+   * editing, and overwrite scope are unchanged; contracts not covered by any
+   * section render unsectioned after the last section.
+   */
+  readonly capabilitySections?: readonly ModelConfigCapabilitySection[];
   /** App product policy may narrow the editor without changing AIConfig authority or wire shape. */
   readonly allowedRoutes?: readonly ModelConfigAllowedRoute[];
   /** Opens one requested capability detail on first mount when it is in capabilityContracts. */
@@ -355,6 +364,94 @@ function defaultFormatError(error: unknown, fallback: string): ModelConfigFormat
   };
 }
 
+type CapabilityEntry = {
+  readonly contract: string;
+  readonly descriptor: CanonicalCapabilityDescriptor | undefined;
+  readonly intent: NimiPortableAppAIConfigIntent | null;
+  readonly selection: ModelConfigEffectiveSelectionProjection | null | undefined;
+  readonly badge: PostureBadge;
+};
+
+function CapabilityRowButton(props: {
+  readonly entry: CapabilityEntry;
+  readonly copy: ResolvedCopy;
+  readonly onOpen: (contract: string) => void;
+}) {
+  const { entry, copy } = props;
+  return (
+    <button
+      type="button"
+      onClick={() => props.onOpen(entry.contract)}
+      className={cn(
+        'flex w-full min-w-0 items-center gap-3 rounded-[var(--nimi-radius-md)] border p-3 text-left transition-colors',
+        FOCUS_RING_CLASS_NAME,
+        entry.badge.tone === 'warning'
+          ? 'border-[color-mix(in_srgb,var(--nimi-status-warning)_35%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-warning)_5%,var(--nimi-surface-card))] hover:border-[var(--nimi-status-warning)]'
+          : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] hover:border-[var(--nimi-border-strong)]',
+      )}
+      data-nimi-model-config-capability={entry.contract}
+    >
+      <CapabilityIcon descriptor={entry.descriptor} tone={entry.badge.tone} />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-text-primary)]">
+          {descriptorLabel(entry.contract, entry.descriptor, copy)}
+        </span>
+        <span className={cn(
+          'mt-1 flex items-center gap-1.5 truncate text-[length:var(--nimi-type-caption-size)]',
+          entry.badge.tone === 'success'
+            ? 'text-[var(--nimi-status-success)]'
+            : entry.badge.tone === 'warning'
+              ? 'text-[var(--nimi-status-warning)]'
+              : 'text-[var(--nimi-text-muted)]',
+        )}>
+          <span className={cn('h-[5px] w-[5px] shrink-0 rounded-[var(--nimi-radius-full)]', statusDotClass(entry.badge.tone))} />
+          <span className="truncate">{capabilitySummary(entry.intent, entry.selection, entry.descriptor, copy)}</span>
+        </span>
+      </span>
+      <svg className="h-4 w-4 shrink-0 text-[var(--nimi-text-muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>
+    </button>
+  );
+}
+
+function CapabilitySectionGroup(props: {
+  readonly section: ModelConfigCapabilitySection;
+  readonly entries: readonly CapabilityEntry[];
+  readonly expanded: boolean;
+  readonly onToggle: () => void;
+  readonly copy: ResolvedCopy;
+  readonly onOpen: (contract: string) => void;
+}) {
+  return (
+    <section className="space-y-2" data-nimi-model-config-section={props.section.id}>
+      <button
+        type="button"
+        onClick={props.onToggle}
+        aria-expanded={props.expanded}
+        data-nimi-model-config-section-toggle={props.section.id}
+        className={cn('flex w-full min-w-0 items-center gap-2 rounded-[var(--nimi-radius-sm)] py-1 text-left', FOCUS_RING_CLASS_NAME)}
+      >
+        <svg
+          className={cn('h-3.5 w-3.5 shrink-0 text-[var(--nimi-text-muted)] transition-transform', props.expanded ? 'rotate-90' : '')}
+          viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+        ><path d="m9 5 7 7-7 7" /></svg>
+        <span className="min-w-0 flex-1 truncate text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-text-primary)]">
+          {props.section.title}
+        </span>
+      </button>
+      {props.expanded && props.section.description ? (
+        <p className="m-0 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">{props.section.description}</p>
+      ) : null}
+      {props.expanded ? (
+        <div className="space-y-2">
+          {props.entries.map((entry) => (
+            <CapabilityRowButton key={entry.contract} entry={entry} copy={props.copy} onOpen={props.onOpen} />
+          ))}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 export function ModelConfigAIConfigSurface(props: ModelConfigAIConfigSurfaceProps) {
   const copy = useMemo(() => resolveModelConfigCopy(props.copy), [props.copy]);
   const contracts = useMemo(
@@ -370,7 +467,7 @@ export function ModelConfigAIConfigSurface(props: ModelConfigAIConfigSurfaceProp
     if (activeContract && !contracts.includes(activeContract)) setActiveContract(null);
   }, [activeContract, contracts]);
 
-  const entries = contracts.map((contract) => {
+  const entries: readonly CapabilityEntry[] = contracts.map((contract) => {
     const descriptor = CANONICAL_CAPABILITY_CATALOG_BY_ID[contract];
     const intent = props.capabilities?.find((entry) => entry.capabilityContract === contract) ?? null;
     const selection = props.effectiveSelections === undefined
@@ -393,6 +490,23 @@ export function ModelConfigAIConfigSurface(props: ModelConfigAIConfigSurfaceProp
   const currentMachineOwnerKey = props.context.owner === 'app-ai-config'
     ? `app-ai-config:${props.context.appId}`
     : 'shared-local-agent-ai-config';
+  const sections = props.capabilitySections && props.capabilitySections.length > 0
+    ? props.capabilitySections
+    : null;
+  const [sectionExpandedOverrides, setSectionExpandedOverrides] = useState<Readonly<Record<string, boolean>>>({});
+  const sectionedGroups = sections
+    ? (() => {
+        const assigned = new Set<string>();
+        const groups = sections.map((section) => {
+          const wanted = new Set(section.contracts.map((entry) => entry.trim()).filter(Boolean));
+          const sectionEntries = entries.filter((entry) => wanted.has(entry.contract));
+          for (const entry of sectionEntries) assigned.add(entry.contract);
+          return { section, entries: sectionEntries };
+        }).filter((group) => group.entries.length > 0);
+        const leftover = entries.filter((entry) => !assigned.has(entry.contract));
+        return { groups, leftover };
+      })()
+    : null;
 
   return (
     <ModelConfigOwnerBoundary context={props.context} className={cn('min-w-0 space-y-5', props.className)}>
@@ -464,49 +578,50 @@ export function ModelConfigAIConfigSurface(props: ModelConfigAIConfigSurfaceProp
         <div className="space-y-4">
           <div className="flex min-w-0 items-baseline justify-between gap-4">
             <h2 id={props.titleId} className="m-0 text-[length:var(--nimi-type-body-size)] font-semibold tracking-tight text-[var(--nimi-text-primary)]">{copy.title}</h2>
-            <div className="flex shrink-0 items-center gap-1.5 text-xs text-[var(--nimi-text-secondary)]">
-              <span className={cn('h-1.5 w-1.5 rounded-[var(--nimi-radius-full)]', statusDotClass(aggregateBadge.tone))} />
-              <span>{aggregateBadge.label}</span>
-            </div>
+            {sectionedGroups ? null : (
+              <div className="flex shrink-0 items-center gap-1.5 text-xs text-[var(--nimi-text-secondary)]">
+                <span className={cn('h-1.5 w-1.5 rounded-[var(--nimi-radius-full)]', statusDotClass(aggregateBadge.tone))} />
+                <span>{aggregateBadge.label}</span>
+              </div>
+            )}
           </div>
 
           {props.capabilities !== undefined ? (
-            <div className="space-y-2" data-nimi-model-config-capability-grid="true">
-              {entries.map((entry) => (
-                <button
-                  type="button"
-                  key={entry.contract}
-                  onClick={() => setActiveContract(entry.contract)}
-                  className={cn(
-                    'flex w-full min-w-0 items-center gap-3 rounded-[var(--nimi-radius-md)] border p-3 text-left transition-colors',
-                    FOCUS_RING_CLASS_NAME,
-                    entry.badge.tone === 'warning'
-                      ? 'border-[color-mix(in_srgb,var(--nimi-status-warning)_35%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-status-warning)_5%,var(--nimi-surface-card))] hover:border-[var(--nimi-status-warning)]'
-                      : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] hover:border-[var(--nimi-border-strong)]',
-                  )}
-                  data-nimi-model-config-capability={entry.contract}
-                >
-                  <CapabilityIcon descriptor={entry.descriptor} tone={entry.badge.tone} />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-text-primary)]">
-                      {descriptorLabel(entry.contract, entry.descriptor, copy)}
-                    </span>
-                    <span className={cn(
-                      'mt-1 flex items-center gap-1.5 truncate text-[length:var(--nimi-type-caption-size)]',
-                      entry.badge.tone === 'success'
-                        ? 'text-[var(--nimi-status-success)]'
-                        : entry.badge.tone === 'warning'
-                          ? 'text-[var(--nimi-status-warning)]'
-                          : 'text-[var(--nimi-text-muted)]',
-                    )}>
-                      <span className={cn('h-[5px] w-[5px] shrink-0 rounded-[var(--nimi-radius-full)]', statusDotClass(entry.badge.tone))} />
-                      <span className="truncate">{capabilitySummary(entry.intent, entry.selection, entry.descriptor, copy)}</span>
-                    </span>
-                  </span>
-                  <svg className="h-4 w-4 shrink-0 text-[var(--nimi-text-muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>
-                </button>
-              ))}
-            </div>
+            sectionedGroups ? (
+              <div className="space-y-4" data-nimi-model-config-capability-grid="true">
+                {sectionedGroups.groups.map((group) => {
+                  const expanded = sectionExpandedOverrides[group.section.id]
+                    ?? group.section.defaultExpanded !== false;
+                  return (
+                    <CapabilitySectionGroup
+                      key={group.section.id}
+                      section={group.section}
+                      entries={group.entries}
+                      expanded={expanded}
+                      onToggle={() => setSectionExpandedOverrides((current) => ({
+                        ...current,
+                        [group.section.id]: !expanded,
+                      }))}
+                      copy={copy}
+                      onOpen={setActiveContract}
+                    />
+                  );
+                })}
+                {sectionedGroups.leftover.length > 0 ? (
+                  <div className="space-y-2">
+                    {sectionedGroups.leftover.map((entry) => (
+                      <CapabilityRowButton key={entry.contract} entry={entry} copy={copy} onOpen={setActiveContract} />
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <div className="space-y-2" data-nimi-model-config-capability-grid="true">
+                {entries.map((entry) => (
+                  <CapabilityRowButton key={entry.contract} entry={entry} copy={copy} onOpen={setActiveContract} />
+                ))}
+              </div>
+            )
           ) : null}
         </div>
       )}

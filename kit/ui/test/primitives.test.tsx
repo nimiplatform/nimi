@@ -585,6 +585,43 @@ test('number stepper step buttons keep default labels, accept overrides, and car
   expect(hasClass(html, 'focus-visible:outline-none')).toBe(true);
 });
 
+test('tooltip closes when the pointer leaves the trigger', async () => {
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+
+  await act(async () => {
+    root?.render(
+      <TooltipProvider delayDuration={0}>
+        <Tooltip content="Runtime hint">
+          <button type="button">Runtime</button>
+        </Tooltip>
+      </TooltipProvider>,
+    );
+    await flush();
+  });
+
+  const trigger = container.querySelector('button') as HTMLButtonElement | null;
+  expect(trigger).toBeTruthy();
+
+  await act(async () => {
+    trigger?.dispatchEvent(new MouseEvent('pointermove', { bubbles: true }));
+    await flush();
+    await flush();
+  });
+
+  expect(trigger?.getAttribute('aria-describedby')).toBeTruthy();
+  expect(document.body.querySelector('[role="tooltip"]')?.textContent).toContain('Runtime hint');
+
+  await act(async () => {
+    trigger?.dispatchEvent(new MouseEvent('pointerout', { bubbles: true, relatedTarget: document.body }));
+    await flush();
+    await flush();
+  });
+
+  expect(trigger?.getAttribute('aria-describedby')).toBeNull();
+});
+
 test('tooltip trigger is keyboard focusable and focus opens the tooltip', async () => {
   container = document.createElement('div');
   document.body.appendChild(container);

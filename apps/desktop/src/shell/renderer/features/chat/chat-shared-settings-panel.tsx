@@ -203,7 +203,7 @@ function AiModeSettings(props: {
 }) {
   const runtimeConfigNavigation = useDesktopRendererCommands().runtimeConfigNavigation;
   const sdk = useDesktopRendererSdk();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const copy = useNimiChatModelConfigCopy();
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const appAIConfig = useDesktopNimiAppAIConfig(DESKTOP_NIMI_APP_ID);
@@ -267,6 +267,7 @@ function AiModeSettings(props: {
             };
           }}
           copy={copy}
+          language={i18n.resolvedLanguage || i18n.language}
           footer={footer}
         />
       </div>

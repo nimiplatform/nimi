@@ -34,6 +34,7 @@ function registration(
     shell: 'electron',
     appAccess: [],
     aiConfigAllowedRoutes: ['local', 'cloud'],
+    capabilityContractRefs: [],
     sourceGeneration: 1,
     declarationGeneration: 2,
     registeredAtUnixMs: 1_721_000_000_000,

@@ -23,6 +23,7 @@ export function AppsInstallConfirmationDialog({
       title={intent?.update ? t('Apps.update.confirmTitle', { app: intent.displayName }) : t(intent?.os === 'macos' ? 'Apps.catalog.macosConfirmTitle' : 'Apps.catalog.unsignedConfirmTitle')}
       message={intent ? (
         <div className="space-y-3">
+          <p>{t('Apps.catalog.registryApproved')}</p>
           {intent.update ? <p>{t('Apps.update.confirmMessage', { from: intent.update.installedVersion, to: intent.version })}</p> : null}
           {intent.update ? <p>{t('Apps.update.confirmAvailability', { version: intent.update.installedVersion })}</p> : null}
           {intent.windowsCodeSigning === 'unsigned' ? <>

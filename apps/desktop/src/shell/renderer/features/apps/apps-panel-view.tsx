@@ -11,7 +11,6 @@ import { useTranslation } from 'react-i18next';
 import type { NimiDesktopOpenAppsSection } from '@nimiplatform/kit/core/desktop-open';
 import type { NimiAIConfigOverwriteResult } from '@nimiplatform/kit/core/sdk-contract';
 import {
-  BadgeCheck,
   Box,
   Check,
   Code2,
@@ -51,7 +50,6 @@ import {
   appRunVisualState,
   entryNeedsAttention,
   sortAppsEntries,
-  type AppsSortId,
 } from './apps-card-fields.js';
 import { AppArtworkIcon } from './apps-card-visuals.js';
 import { AppListRow } from './apps-list-row.js';
@@ -61,19 +59,27 @@ import type { AppsInstallIntentSnapshot } from './apps-install-intent.js';
 import { useAppEntryMenu } from './apps-entry-menu.js';
 import {
   filterAppGroups,
+  filterAppGroupsByState,
   groupAppsEntries,
   reconcileAppGroups,
   siblingSourceEntries,
   sortAppGroups,
   splitRunningGroups,
+  type AppsRailFilterId,
   type DesktopAppGroup,
 } from './apps-entry-groups.js';
 import type {
   DesktopAppsCatalogProjection,
   DesktopAppsEntry,
   DesktopAppsPanelProjection,
+  DesktopAppsProjectionSource,
   DesktopAppSourceClass,
 } from './apps-panel-projection.js';
+import {
+  markAppUpdateAutoPrompted,
+  planAppUpdateAutoPrompt,
+  subscribeAppUpdatePreferences,
+} from './apps-update-preferences.js';
 import type { AppPackageJob } from '@nimiplatform/sdk/runtime/wire-types';
 import type { AppsDownloadsContextValue } from './apps-downloads-context.js';
 import { AppsDownloadsView, isAppDownloadJob } from './apps-downloads-view.js';
@@ -102,13 +108,15 @@ export interface AppsPanelViewProps {
   readonly installConfirmation: AppsInstallIntentSnapshot | null;
   readonly onConfirmInstall: () => void;
   readonly onCancelInstall: () => void;
+  readonly readPackageInfo?: DesktopAppsProjectionSource['readPackageInfo'];
 }
 
-const SORT_IDS: readonly AppsSortId[] = ['updated', 'name', 'activity'];
-const SORT_LABEL_KEYS: Readonly<Record<AppsSortId, string>> = {
-  updated: 'Apps.library.sortUpdated',
-  name: 'Apps.library.sortName',
-  activity: 'Apps.library.sortActivity',
+const FILTER_IDS: readonly AppsRailFilterId[] = ['all', 'running', 'updates', 'attention'];
+const FILTER_LABEL_KEYS: Readonly<Record<AppsRailFilterId, string>> = {
+  all: 'Apps.library.filterAll',
+  running: 'Apps.library.filterRunning',
+  updates: 'Apps.library.filterUpdates',
+  attention: 'Apps.library.filterAttention',
 };
 
 /** The home 最近活跃 section stays a quick-launch subset, not a second list. */
@@ -135,9 +143,10 @@ export function AppsPanelView({
   installConfirmation,
   onConfirmInstall,
   onCancelInstall,
+  readPackageInfo,
 }: AppsPanelViewProps): ReactElement {
   const { t } = useTranslation();
-  const [sortId, setSortId] = useState<AppsSortId>('updated');
+  const [filterId, setFilterId] = useState<AppsRailFilterId>('all');
   const railSearchRef = useRef<HTMLInputElement>(null);
 
   const loadedEntries = projection?.status === 'loaded' ? projection.entries : [];
@@ -163,15 +172,16 @@ export function AppsPanelView({
     return dispatcher;
   };
   const searching = searchQuery.trim() !== '';
+  const filtering = filterId !== 'all';
   const sortedGroups = useMemo(
-    () => sortAppGroups(filterAppGroups(groups, searchQuery), sortId),
-    [groups, searchQuery, sortId],
+    () => sortAppGroups(filterAppGroupsByState(filterAppGroups(groups, searchQuery), filterId), 'updated'),
+    [groups, searchQuery, filterId],
   );
   // Steam-style rail: a 运行中 section on top, one flat list below; searching
-  // collapses the sections into a single result set.
+  // or filtering collapses the sections into a single result set.
   const { running: runningGroups, rest: restGroups } = useMemo(
-    () => (searching ? { running: [] as readonly DesktopAppGroup[], rest: sortedGroups } : splitRunningGroups(sortedGroups)),
-    [searching, sortedGroups],
+    () => (searching || filtering ? { running: [] as readonly DesktopAppGroup[], rest: sortedGroups } : splitRunningGroups(sortedGroups)),
+    [searching, filtering, sortedGroups],
   );
   const attentionEntries = useMemo(
     () => sortAppsEntries(loadedEntries.filter(entryNeedsAttention), 'updated'),
@@ -207,11 +217,32 @@ export function AppsPanelView({
     return () => window.removeEventListener('keydown', focusAppsSearch);
   }, []);
 
-  const sortMenuItems: NimiMenuItem[] = SORT_IDS.map((id) => ({
+  // Per-app 自动更新 policy: start the standard update flow once per newly
+  // available Registry version; the install confirmation still gates install.
+  const [updatePreferenceRevision, setUpdatePreferenceRevision] = useState(0);
+  useEffect(
+    () => subscribeAppUpdatePreferences(() => setUpdatePreferenceRevision((value) => value + 1)),
+    [],
+  );
+  useEffect(() => {
+    if (projection?.status !== 'loaded' || activeAction || installConfirmation) return;
+    const candidate = planAppUpdateAutoPrompt(projection.entries);
+    if (!candidate) return;
+    try {
+      markAppUpdateAutoPrompted(candidate.appId, candidate.version);
+    } catch {
+      // Without persistence the prompt record cannot be kept; fail closed
+      // instead of re-prompting on every poll.
+      return;
+    }
+    onCardActionRef.current(candidate.entryKey, 'update');
+  }, [activeAction, installConfirmation, projection, updatePreferenceRevision]);
+
+  const filterMenuItems: NimiMenuItem[] = FILTER_IDS.map((id) => ({
     id,
-    label: t(SORT_LABEL_KEYS[id]),
-    trailingIcon: id === sortId ? <Check className="h-4 w-4" aria-hidden="true" /> : undefined,
-    onSelect: () => setSortId(id),
+    label: t(FILTER_LABEL_KEYS[id]),
+    trailingIcon: id === filterId ? <Check className="h-4 w-4" aria-hidden="true" /> : undefined,
+    onSelect: () => setFilterId(id),
   }));
 
   return (
@@ -226,8 +257,8 @@ export function AppsPanelView({
         onSearchChange={onSearchChange}
         onClearSearch={() => onSearchChange('')}
         searchInputRef={railSearchRef}
-        sortId={sortId}
-        sortMenuItems={sortMenuItems}
+        filterId={filterId}
+        filterMenuItems={filterMenuItems}
         downloads={downloads}
         activeAction={activeAction}
         actionDispatcherFor={actionDispatcherFor}
@@ -265,6 +296,7 @@ export function AppsPanelView({
               actionsDisabled={activeAction !== null}
               actionError={actionError}
               onAIConfigChanged={(result) => onAIConfigChanged(selectedEntry.identity.entryKey, result)}
+              readPackageInfo={readPackageInfo}
             />
           </>
         ) : (
@@ -303,8 +335,8 @@ function AppsRail({
   onSearchChange,
   onClearSearch,
   searchInputRef,
-  sortId,
-  sortMenuItems,
+  filterId,
+  filterMenuItems,
   downloads,
   activeAction,
   actionDispatcherFor,
@@ -320,8 +352,8 @@ function AppsRail({
   readonly onSearchChange: (value: string) => void;
   readonly onClearSearch: () => void;
   readonly searchInputRef: React.RefObject<HTMLInputElement | null>;
-  readonly sortId: AppsSortId;
-  readonly sortMenuItems: NimiMenuItem[];
+  readonly filterId: AppsRailFilterId;
+  readonly filterMenuItems: NimiMenuItem[];
   readonly downloads?: AppsDownloadsContextValue;
   readonly activeAction: Readonly<{ entryKey: string; action: AppCardActionId }> | null;
   readonly actionDispatcherFor: (entryKey: string) => (action: AppCardActionId) => void;
@@ -372,23 +404,23 @@ function AppsRail({
           trailing={searchQuery ? <SearchClearButton testId="apps-search-clear" onClear={onClearSearch} /> : undefined}
           placeholder={t('Apps.sidebar.searchPlaceholder')}
           aria-label={t('Apps.sidebar.searchLabel')}
-          className="min-h-8 flex-1"
+          className="min-h-8 min-w-0 flex-1"
           inputClassName="text-xs"
         />
         <Popover>
           <PopoverTrigger asChild>
             <IconButton
-              data-testid="apps-sort-menu"
+              data-testid="apps-filter-menu"
               icon={<ListFilter className="h-3.5 w-3.5" aria-hidden="true" />}
               tone="ghost"
               size="sm"
-              aria-label={t('Apps.library.sortLabel')}
-              title={`${t('Apps.library.sortLabel')} · ${t(SORT_LABEL_KEYS[sortId])}`}
-              className="h-8 w-8 shrink-0"
+              aria-label={t('Apps.library.filterLabel')}
+              title={`${t('Apps.library.filterLabel')} · ${t(FILTER_LABEL_KEYS[filterId])}`}
+              className="mr-2 h-8 w-8 shrink-0"
             />
           </PopoverTrigger>
           <PopoverContent align="end" sideOffset={6} className="p-1">
-            <ActionMenu items={sortMenuItems} ariaLabel={t('Apps.library.sortLabel')} />
+            <ActionMenu items={filterMenuItems} ariaLabel={t('Apps.library.filterLabel')} />
           </PopoverContent>
         </Popover>
       </div>
@@ -484,7 +516,7 @@ function RailDownloadsEntry({
   );
 }
 
-const RAIL_SOURCE_GLYPH: Readonly<Record<DesktopAppSourceClass, {
+const RAIL_SOURCE_GLYPH: Readonly<Record<Exclude<DesktopAppSourceClass, 'verified'>, {
   readonly icon: typeof Code2;
   readonly labelKey: string;
   readonly className: string;
@@ -499,14 +531,9 @@ const RAIL_SOURCE_GLYPH: Readonly<Record<DesktopAppSourceClass, {
     labelKey: 'Apps.sourceBadge.userImported',
     className: 'text-[var(--nimi-status-info-soft-text)]',
   },
-  verified: {
-    icon: BadgeCheck,
-    labelKey: 'Apps.sourceBadge.verified',
-    className: 'text-[var(--nimi-status-success-soft-text)]',
-  },
 });
 
-function RailSourceGlyph({ source }: { readonly source: DesktopAppSourceClass }): ReactElement {
+function RailSourceGlyph({ source }: { readonly source: Exclude<DesktopAppSourceClass, 'verified'> }): ReactElement {
   const { t } = useTranslation();
   const meta = RAIL_SOURCE_GLYPH[source];
   const Icon = meta.icon;
@@ -614,7 +641,7 @@ const RailGroupRow = memo(function RailGroupRow({
           {/* Reserve the action slots so hover and keyboard focus never resize the label. */}
           <span className="inline-flex min-w-12 shrink-0 items-center justify-end group-hover/rail-row:invisible group-focus-within/rail-row:invisible group-has-[[aria-expanded=true]]/rail-row:invisible">
             {group.sourceClasses.length > 1
-              ? group.sourceClasses.map((source) => <RailSourceGlyph key={source} source={source} />)
+              ? group.sourceClasses.filter((source) => source !== 'verified').map((source) => <RailSourceGlyph key={source} source={source} />)
               : null}
           </span>
         </button>

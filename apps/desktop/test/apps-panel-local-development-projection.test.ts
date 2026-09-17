@@ -19,7 +19,7 @@ function registration(overrides: Partial<LocalDevelopmentRegistration> = {}): Lo
   return {
     selector: 'dev-example-shared', appId: 'example.shared', displayName: 'Example development App',
     canonicalProjectRoot: '/projects/example.shared', shell: 'electron', appAccess: ['runtime.consume'],
-    aiConfigAllowedRoutes: ['local', 'cloud'], sourceGeneration: 1, declarationGeneration: 1,
+    aiConfigAllowedRoutes: ['local', 'cloud'], capabilityContractRefs: [], sourceGeneration: 1, declarationGeneration: 1,
     registeredAtUnixMs: 1_700_000_000_000, updatedAtUnixMs: 1_700_000_001_000,
     ...overrides,
   };

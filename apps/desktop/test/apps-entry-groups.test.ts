@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   filterAppGroups,
+  filterAppGroupsByState,
   groupAppsEntries,
   siblingSourceEntries,
   sortAppGroups,
@@ -14,6 +15,7 @@ import type { DesktopAppsEntry } from '../src/shell/renderer/features/apps/apps-
 import type { LocalDevelopmentRegistration } from '../src/shell/renderer/features/local-development/local-development-types';
 import {
   AppPackageSourceClass,
+  type ApprovedAppCatalogTarget,
   type CommittedAppRelease,
 } from '@nimiplatform/sdk/runtime/wire-types';
 
@@ -35,6 +37,7 @@ function devEntry(overrides: {
     shell: 'electron',
     appAccess: ['runtime.consume'],
     aiConfigAllowedRoutes: ['local', 'cloud'],
+    capabilityContractRefs: [],
     sourceGeneration: 1,
     declarationGeneration: 1,
     registeredAtUnixMs: 1_721_000_000_000,
@@ -188,6 +191,25 @@ test('rail sorting and running sectioning stay stable', () => {
   const sections = splitRunningGroups(byUpdated);
   assert.deepEqual(sections.running.map((group) => group.appId), ['nimi.running']);
   assert.deepEqual(sections.rest.map((group) => group.appId), ['nimi.newer', 'nimi.older']);
+});
+
+test('rail state filter narrows groups to running, updatable, or attention Apps', () => {
+  const running = groupAppsEntries([devEntry({ appId: 'nimi.running', runState: 'running' })])[0]!;
+  const idle = groupAppsEntries([devEntry({ appId: 'nimi.idle' })])[0]!;
+  const updatable = groupAppsEntries([{
+    ...installedEntry({ appId: 'nimi.updatable' }),
+    catalogTarget: { version: '2.0.0', policyBlocked: false } as ApprovedAppCatalogTarget,
+  }])[0]!;
+  const failed = groupAppsEntries([devEntry({ appId: 'nimi.failed', runState: 'crashed' })])[0]!;
+  const groups = [running, idle, updatable, failed];
+  assert.deepEqual(
+    filterAppGroupsByState(groups, 'all').map((group) => group.appId),
+    ['nimi.running', 'nimi.idle', 'nimi.updatable', 'nimi.failed'],
+    'all keeps every group in place',
+  );
+  assert.deepEqual(filterAppGroupsByState(groups, 'running').map((group) => group.appId), ['nimi.running']);
+  assert.deepEqual(filterAppGroupsByState(groups, 'updates').map((group) => group.appId), ['nimi.updatable']);
+  assert.deepEqual(filterAppGroupsByState(groups, 'attention').map((group) => group.appId), ['nimi.failed']);
 });
 
 test('detail sibling sources exclude the open entry and keep primary order', () => {

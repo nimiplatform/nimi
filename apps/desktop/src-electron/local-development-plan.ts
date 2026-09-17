@@ -108,6 +108,22 @@ export async function readElectronAIConfigAllowedRoutes(
   return parseAIConfigAllowedRoutes(document.ai_config_ui);
 }
 
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-004
+export async function readElectronCapabilityContractRefs(
+  manifestPath: string,
+): Promise<readonly string[]> {
+  const document = record(parseYaml(await readFile(await canonicalFile(manifestPath), 'utf8')) as unknown);
+  return parseCapabilityContractRefs(document.capability_contract_refs);
+}
+
+function parseCapabilityContractRefs(value: unknown): readonly string[] {
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) fail('local-development-project-changed');
+  const refs = value.map((entry) => text(entry));
+  if (new Set(refs).size !== refs.length) fail('local-development-project-changed');
+  return refs;
+}
+
 function parseAIConfigAllowedRoutes(value: unknown): readonly ElectronAIConfigAllowedRoute[] {
   if (value === undefined) return ['local', 'cloud'];
   const ui = record(value);

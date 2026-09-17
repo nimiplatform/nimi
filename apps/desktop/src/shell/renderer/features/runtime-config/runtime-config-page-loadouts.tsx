@@ -34,12 +34,26 @@ import {
   createRuntimeConfigLoadoutImpactState,
   type RuntimeConfigLoadoutPendingImpact,
 } from './runtime-config-loadout-impact-state.js';
+import {
+  loadoutAssetLabel,
+  loadoutSlotLabelKey,
+  runtimeConfigLoadoutCandidateAssets,
+} from './runtime-config-loadout-model-display.js';
+import {
+  LoadoutSelectedModelCard,
+  LoadoutSlotModelPicker,
+} from './runtime-config-loadout-model-picker.js';
 import { RuntimePageHeader, RuntimePageShell } from './runtime-config-page-shell.js';
 import { localizedAssetUnhealthyReason } from './runtime-config-reason-messages.js';
 import type {
   RuntimeConfigLoadoutNavigationContext,
   RuntimeConfigModelMarketContext,
 } from './runtime-config-panel-types.js';
+
+export {
+  loadoutAssetLabel,
+  runtimeConfigLoadoutCandidateAssets,
+} from './runtime-config-loadout-model-display.js';
 
 type EditDraft = { readonly modelAssetIds: Readonly<Record<string, string>>; readonly displayName: string };
 
@@ -85,6 +99,7 @@ export function LoadoutsPage(props: {
   const [recipeId, setRecipeId] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [createAxes, setCreateAxes] = useState<Record<string, string>>({});
+  const [pickerSlotId, setPickerSlotId] = useState<string | null>(null);
   const [edits, setEdits] = useState<Record<string, EditDraft>>({});
   const [manageLoadoutId, setManageLoadoutId] = useState<string | null>(null);
   const [, setImpactRevision] = useState(0);
@@ -210,6 +225,7 @@ export function LoadoutsPage(props: {
     setRecipeId('');
     setDisplayName('');
     setCreateAxes({});
+    setPickerSlotId(null);
     if (capability) {
       setCreateCapability(capability);
       setCreateStep(2);
@@ -225,6 +241,7 @@ export function LoadoutsPage(props: {
     setRecipeId('');
     setDisplayName('');
     setCreateAxes({});
+    setPickerSlotId(null);
     setCreateStep(2);
   }, []);
 
@@ -235,6 +252,7 @@ export function LoadoutsPage(props: {
     });
     setDisplayName(`${capabilityLabel} · ${recipe.title}`);
     setCreateAxes(recommendedAxisSelections(recipe, assets));
+    setPickerSlotId(null);
     setCreateStep(3);
     setShowCreate(true);
   }, [assets, t]);
@@ -259,7 +277,8 @@ export function LoadoutsPage(props: {
       setRecipeId(recipe.recipeId);
       setCreateCapability(recipe.capabilityContract);
       setDisplayName(context.draft.displayName);
-      setCreateAxes({ ...context.draft.modelAssetIds });
+      setCreateAxes(resolveLoadoutReturnedDraftAxes(recipe, context));
+      setPickerSlotId(null);
       setCreateStep(3);
       setShowCreate(true);
     } else {
@@ -467,7 +486,7 @@ export function LoadoutsPage(props: {
       ) : null}
       {loading ? <LoadingSkeleton lines={5} label={t('Common.loading', { defaultValue: 'Loading…' })} /> : capabilities.length > 0 ? (
         <div className="grid min-w-0 grid-cols-1 gap-4" data-testid="machine-loadouts-list">
-          <div className="min-w-0 overflow-x-auto pb-2">
+          <div className="min-w-0 overflow-x-auto py-1" data-testid="loadout-capability-tabs-scroll">
             <PillTabs
               className="w-max"
               size="sm"
@@ -658,59 +677,43 @@ export function LoadoutsPage(props: {
                 <div
                   key={slot.slotId}
                   data-testid={`recipe-slot:${selectedRecipe.recipeId}:${slot.slotId}`}
-                  className={`grid gap-1 rounded-lg p-2 text-sm ${props.navigationContext?.slotId === slot.slotId
+                  className={`grid gap-2 rounded-lg p-2 text-sm ${props.navigationContext?.slotId === slot.slotId
                     ? 'ring-2 ring-[var(--nimi-action-primary-bg)]'
                     : ''}`}
                 >
                   <LoadoutSlotLabel slot={slot} />
-                  <SelectField
-                    value={createAxes[slot.slotId] || LOADOUT_UNSET_MODEL_OPTION_VALUE}
-                    options={[
-                      { value: LOADOUT_UNSET_MODEL_OPTION_VALUE, label: t('runtimeConfig.loadouts.unresolved') },
-                      ...runtimeConfigLoadoutCandidateAssets(slot, assets).map((asset) => ({
-                        value: asset.modelAssetId,
-                        label: loadoutAssetLabel(asset, verifiedAssets),
-                      })),
-                    ]}
-                    onValueChange={(value) => setCreateAxes((current) => ({
-                      ...current,
-                      [slot.slotId]: value === LOADOUT_UNSET_MODEL_OPTION_VALUE ? '' : value,
-                    }))}
-                    contentLayer="dialog"
+                  <LoadoutSelectedModelCard
+                    slot={slot}
+                    asset={assets.find((asset) => asset.modelAssetId === createAxes[slot.slotId]) ?? null}
+                    verifiedAssets={verifiedAssets}
+                    onOpenPicker={() => setPickerSlotId(slot.slotId)}
                   />
-                  <div className="flex flex-wrap gap-2">
-                    {slot.offers.map((offer) => (
-                      <div key={offer.candidate.offerRef} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--nimi-border-subtle)] px-3 py-2 text-xs">
-                        <span className="min-w-0 text-[var(--nimi-text-secondary)]">
-                          <span className="font-medium text-[var(--nimi-text-primary)]">{offer.candidate.title}</span>
-                          {' · '}{offer.candidate.variantLabel}
-                          {' · '}{offer.candidate.totalSizeBytes ? formatBytes(offer.candidate.totalSizeBytes) : t('runtimeConfig.loadouts.downloadSizeUnknown', { defaultValue: 'size unknown' })}
-                        </span>
-                        {offer.installedModelAssetId ? (
-                          <StatusBadge tone="success" shape="soft">{t('runtimeConfig.loadouts.installed', { defaultValue: 'Installed' })}</StatusBadge>
-                        ) : offer.applicability !== 'unsupported' && offer.candidate.installable ? (
-                          <Button
-                            size="sm"
-                            tone="secondary"
-                            onClick={() => props.onOpenModelMarket({
-                              capabilityContract: selectedRecipe.capabilityContract,
-                              recipeId: selectedRecipe.recipeId,
-                              recipeRevision: selectedRecipe.revision,
-                              slotId: slot.slotId,
-                              candidate: offer.candidate,
-                              draft: { displayName, modelAssetIds: { ...createAxes } },
-                            })}
-                          >
-                            {t('runtimeConfig.loadouts.openMarketOffer', { defaultValue: 'View in Model Market' })}
-                          </Button>
-                        ) : (
-                          <StatusBadge tone="warning" shape="soft">{t(`runtimeConfig.loadouts.applicability.${offer.applicability}`, { defaultValue: offer.applicability })}</StatusBadge>
-                        )}
-                      </div>
-                    ))}
-                  </div>
                 </div>
               ))}
+              <LoadoutSlotModelPicker
+                key={pickerSlotId ?? 'closed'}
+                slot={selectedRecipe.slots.find((slot) => slot.slotId === pickerSlotId) ?? null}
+                assets={assets}
+                verifiedAssets={verifiedAssets}
+                selectedAssetId={pickerSlotId ? createAxes[pickerSlotId] ?? '' : ''}
+                onSelect={(modelAssetId) => {
+                  if (!pickerSlotId) return;
+                  setCreateAxes((current) => ({ ...current, [pickerSlotId]: modelAssetId }));
+                }}
+                onOpenOffer={(offer) => {
+                  const slot = selectedRecipe.slots.find((item) => item.slotId === pickerSlotId);
+                  if (!slot) return;
+                  props.onOpenModelMarket({
+                    capabilityContract: selectedRecipe.capabilityContract,
+                    recipeId: selectedRecipe.recipeId,
+                    recipeRevision: selectedRecipe.revision,
+                    slotId: slot.slotId,
+                    candidate: offer.candidate,
+                    draft: { displayName, modelAssetIds: { ...createAxes } },
+                  });
+                }}
+                onClose={() => setPickerSlotId(null)}
+              />
               {missingRequiredSlots.length > 0 ? (
                 <InlineAlert tone="warning">
                   <p>{t('runtimeConfig.loadouts.missingSlots', {
@@ -1250,10 +1253,13 @@ export function RuntimeConfigLoadoutTextBehaviors(props: {
 }
 
 export function LoadoutSlotLabel({ slot }: {
-  readonly slot: Pick<NimiLoadoutRecipe['slots'][number], 'displayLabel' | 'presence' | 'conditionalFeatures'>;
+  readonly slot: Pick<NimiLoadoutRecipe['slots'][number], 'displayLabel' | 'presence' | 'conditionalFeatures'>
+    & Partial<Pick<NimiLoadoutRecipe['slots'][number], 'slotId'>>;
 }) {
   const { t, i18n } = useTranslation();
   const optional = slot.presence === 'optional-conditional';
+  const slotLabelKey = slot.slotId ? loadoutSlotLabelKey(slot.slotId) : null;
+  const displayLabel = slotLabelKey ? t(slotLabelKey, { defaultValue: slot.displayLabel }) : slot.displayLabel;
   const features = new Intl.ListFormat(i18n.resolvedLanguage || i18n.language || 'en').format(
     slot.conditionalFeatures.map((feature) => feature === 'input.image'
       ? t('runtimeConfig.loadouts.imageInput')
@@ -1261,7 +1267,7 @@ export function LoadoutSlotLabel({ slot }: {
   );
   return (
     <span className="inline-flex min-w-0 flex-wrap items-baseline gap-x-2 text-xs" data-requirement-presence={slot.presence}>
-      <span className="font-medium text-[var(--nimi-text-primary)]">{slot.displayLabel}</span>
+      <span className="font-medium text-[var(--nimi-text-primary)]" title={displayLabel !== slot.displayLabel ? slot.displayLabel : undefined}>{displayLabel}</span>
       <span className="text-[var(--nimi-text-muted)]">
         {optional
           ? features ? t('runtimeConfig.loadouts.optionalFor', { features }) : t('runtimeConfig.loadouts.optional')
@@ -1285,6 +1291,23 @@ function recommendedAxisSelections(recipe: NimiLoadoutRecipe | undefined, assets
   }));
 }
 
+/**
+ * Restores the create-draft axes after a Model Market detour. When the detour
+ * installed the exact offer the user picked for a slot, that fresh
+ * ModelAsset becomes the slot selection; otherwise the draft is kept as-is.
+ */
+export function resolveLoadoutReturnedDraftAxes(
+  recipe: NimiLoadoutRecipe,
+  context: Pick<RuntimeConfigLoadoutNavigationContext, 'slotId' | 'autoSelectOfferRef' | 'draft'>,
+): Record<string, string> {
+  const axes: Record<string, string> = { ...context.draft?.modelAssetIds };
+  if (!context.slotId || !context.autoSelectOfferRef) return axes;
+  const slot = recipe.slots.find((item) => item.slotId === context.slotId);
+  const offer = slot?.offers.find((item) => item.candidate.offerRef === context.autoSelectOfferRef);
+  if (offer?.installedModelAssetId) axes[context.slotId] = offer.installedModelAssetId;
+  return axes;
+}
+
 export function recommendedInstallItems(
   recipe: NimiLoadoutRecipe,
   selectedModelAssetIds: Readonly<Record<string, string>> = {},
@@ -1303,35 +1326,6 @@ export function recommendedInstallItems(
       installed: Boolean(offer.installedModelAssetId),
     }];
   });
-}
-
-/**
- * Runtime recommendations, offers and the current validated binding order the
- * installed choices; they do not exclude other manually selected ModelAssets.
- * Prepare performs the authoritative Model Contract evaluation. The opaque
- * Model Contract and ModelAsset fingerprint are never reinterpreted here.
- */
-// @nimi-authority: rule.nimi.runtime.local-compute.r107
-export function runtimeConfigLoadoutCandidateAssets(
-  slot: (Pick<NimiLoadoutRecipe['slots'][number], 'recommendedContentIds'> & Partial<Pick<NimiLoadoutRecipe['slots'][number], 'offers'>>) | undefined,
-  assets: readonly NimiRuntimeModelAssetRecord[],
-  currentAxis?: Pick<NimiMachineLoadout['modelAxes'][number], 'modelAssetId' | 'recipeCompatible'>,
-): readonly NimiRuntimeModelAssetRecord[] {
-  if (!slot) {
-    return currentAxis?.recipeCompatible
-      ? assets.filter((asset) => asset.modelAssetId === currentAxis.modelAssetId)
-      : [];
-  }
-  const recommendedContentIds = new Set(slot.recommendedContentIds);
-  const installedOfferIds = new Set((slot.offers ?? [])
-    .filter(offer => offer.applicability !== 'unsupported' && offer.installedModelAssetId)
-    .map(offer => offer.installedModelAssetId));
-  const preferred = (asset: NimiRuntimeModelAssetRecord) => (
-    recommendedContentIds.has(asset.contentId)
-    || installedOfferIds.has(asset.modelAssetId)
-    || (currentAxis?.recipeCompatible === true && asset.modelAssetId === currentAxis.modelAssetId)
-  );
-  return [...assets.filter(preferred), ...assets.filter(asset => !preferred(asset))];
 }
 
 export function runtimeConfigRecommendedLoadoutModelAxes(
@@ -1520,14 +1514,6 @@ export function loadoutCapabilityLabelKey(capabilityContract: string): string {
 
 export function loadoutCapabilityDescriptionKey(capabilityContract: string): string {
   return loadoutCapabilityLabelKey(capabilityContract).replace('.capability.', '.capabilityDescription.');
-}
-
-export function loadoutAssetLabel(
-  asset: NimiRuntimeModelAssetRecord,
-  verifiedAssets: readonly NimiRuntimeLocalVerifiedAssetDescriptor[],
-): string {
-  const catalogTitle = verifiedAssets.find((item) => item.contentId === asset.contentId)?.title?.trim();
-  return catalogTitle || asset.displayName.trim() || asset.entry.trim() || asset.modelAssetId;
 }
 
 function formatBytes(value: number): string {

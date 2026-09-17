@@ -129,7 +129,7 @@ describe('Model Config current-machine Local action candidate', () => {
     await clickAction(node);
     expect(listOptions).toHaveBeenCalledTimes(2);
     expect(onOverwrite).toHaveBeenCalledTimes(1);
-    expect(node.textContent).toContain('Current on-device models are now used.');
+    expect(node.textContent).toContain('Selected on-device models are now in use.');
   });
 
   it('presents no-selection without mutation', async () => {
@@ -153,13 +153,13 @@ describe('Model Config current-machine Local action candidate', () => {
     const onOverwrite = committedOverwrite();
     const node = await renderAction(baseProps({ listOptions, onOverwrite }));
     await clickAction(node);
-    expect(node.textContent).toContain('Current on-device models could not be applied.');
+    expect(node.textContent).toContain('Selected on-device models could not be applied.');
     expect(node.textContent).toContain('Retry');
     expect(onOverwrite).not.toHaveBeenCalled();
     await clickAction(node);
     expect(listOptions).toHaveBeenCalledTimes(2);
     expect(onOverwrite).toHaveBeenCalledTimes(1);
-    expect(node.textContent).toContain('Current on-device models are now used.');
+    expect(node.textContent).toContain('Selected on-device models are now in use.');
   });
 
   it('preserves and presents returned conflict current state without retry', async () => {

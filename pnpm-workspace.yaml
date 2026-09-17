@@ -39,3 +39,10 @@ packageExtensions:
     peerDependenciesMeta:
       '@types/react':
         optional: true
+  # Router children must use the same React types as the consuming app.
+  'react-router@7':
+    peerDependencies:
+      '@types/react': '^18.0.0 || ^19.0.0'
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true

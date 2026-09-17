@@ -134,6 +134,7 @@ function parseRegistration(value: unknown): LocalDevelopmentRegistration {
     'aiConfigAllowedRoutes',
     'appId',
     'canonicalProjectRoot',
+    'capabilityContractRefs',
     'declarationGeneration',
     'displayName',
     'registeredAtUnixMs',
@@ -142,7 +143,7 @@ function parseRegistration(value: unknown): LocalDevelopmentRegistration {
     'sourceGeneration',
     'updatedAtUnixMs',
   ]);
-  if (record.shell !== 'electron' || !Array.isArray(record.appAccess)) {
+  if (record.shell !== 'electron' || !Array.isArray(record.appAccess) || !Array.isArray(record.capabilityContractRefs)) {
     throw new Error('Local development registration response is invalid');
   }
   return {
@@ -153,6 +154,7 @@ function parseRegistration(value: unknown): LocalDevelopmentRegistration {
     shell: 'electron',
     appAccess: record.appAccess.map(requireText),
     aiConfigAllowedRoutes: requireAIConfigAllowedRoutes(record.aiConfigAllowedRoutes),
+    capabilityContractRefs: record.capabilityContractRefs.map(requireText),
     sourceGeneration: requireInteger(record.sourceGeneration, 1),
     declarationGeneration: requireInteger(record.declarationGeneration, 1),
     registeredAtUnixMs: requireInteger(record.registeredAtUnixMs, 1),

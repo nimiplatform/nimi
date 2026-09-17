@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { mkdtemp, mkdir, rm, symlink, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, realpath, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { assertLocalDevelopmentPackageScripts, resolveLocalDevelopmentHostSourceDirectory } from '../src-electron/local-development-plan.js';
@@ -36,8 +36,8 @@ test('resolves an App-owned Host source directory before launch and keeps the sc
   const root = await mkdtemp(path.join(os.tmpdir(), 'nimi-host-source-'));
   try {
     for (const name of ['src-electron', 'electron']) await mkdir(path.join(root, name));
-    assert.match(await resolveLocalDevelopmentHostSourceDirectory(root, undefined), /\/src-electron$/);
-    assert.match(await resolveLocalDevelopmentHostSourceDirectory(root, 'electron'), /\/electron$/);
+    assert.equal(await resolveLocalDevelopmentHostSourceDirectory(root, undefined), await realpath(path.join(root, 'src-electron')));
+    assert.equal(await resolveLocalDevelopmentHostSourceDirectory(root, 'electron'), await realpath(path.join(root, 'electron')));
     await writeFile(path.join(root, 'file.ts'), 'export {};');
     for (const invalid of ['missing', 'file.ts', '../other', '/tmp', '.', 'electron/../src-electron', 'electron\\main']) {
       await assert.rejects(resolveLocalDevelopmentHostSourceDirectory(root, invalid), /local-development-host-source-unavailable/);

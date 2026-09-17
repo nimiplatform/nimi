@@ -17,6 +17,8 @@ export type RuntimeConfigLoadoutNavigationContext = {
   readonly recipeRevision?: string;
   readonly slotId?: string;
   readonly draft?: RuntimeConfigLoadoutCreateDraft;
+  /** Offer the user installed during a Model Market detour; auto-selected for slotId on return. */
+  readonly autoSelectOfferRef?: string;
 };
 
 export type RuntimeConfigLoadoutCreateDraft = {

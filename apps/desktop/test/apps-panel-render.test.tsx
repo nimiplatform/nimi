@@ -11,8 +11,9 @@
 
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import React from 'react';
+import React, { act } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { TooltipProvider } from '@nimiplatform/kit/ui';
 
 // ScrollArea / radix CJS primitives expect a global `React`.
 (globalThis as { React?: typeof React }).React = React;
@@ -30,6 +31,7 @@ import {
   AppPackageProgressBasis,
   AppPackageSourceClass,
   AppPackageTerminalResult,
+  type AppPackageInfo,
   type AppPackageJob,
   type ApprovedAppCatalogTarget,
   type CommittedAppRelease,
@@ -46,6 +48,7 @@ function registration(
     shell: 'electron',
     appAccess: ['realm.data', 'runtime.consume'],
     aiConfigAllowedRoutes: ['local', 'cloud'],
+    capabilityContractRefs: [],
     sourceGeneration: 1,
     declarationGeneration: 2,
     registeredAtUnixMs: 1_721_000_000_000,
@@ -207,8 +210,60 @@ function baseProps(overrides: Partial<AppsPanelViewProps> = {}): AppsPanelViewPr
 }
 
 function renderView(props: AppsPanelViewProps): string {
-  return renderToStaticMarkup(<AppsPanelView {...props} />);
+  return renderToStaticMarkup(<TooltipProvider><AppsPanelView {...props} /></TooltipProvider>);
 }
+
+test('automatic update prompts wait until the current install confirmation closes', async () => {
+  const { JSDOM } = await import('jsdom');
+  const dom = new JSDOM('<!doctype html><div id="root"></div>', { url: 'http://localhost', pretendToBeVisual: true });
+  const values = {
+    window: dom.window, document: dom.window.document, navigator: dom.window.navigator,
+    HTMLElement: dom.window.HTMLElement, HTMLButtonElement: dom.window.HTMLButtonElement,
+    HTMLInputElement: dom.window.HTMLInputElement, Element: dom.window.Element,
+    Node: dom.window.Node, NodeFilter: dom.window.NodeFilter,
+    DocumentFragment: dom.window.DocumentFragment, MutationObserver: dom.window.MutationObserver,
+    CustomEvent: dom.window.CustomEvent, Event: dom.window.Event,
+    getComputedStyle: dom.window.getComputedStyle,
+    requestAnimationFrame: dom.window.requestAnimationFrame.bind(dom.window),
+    cancelAnimationFrame: dom.window.cancelAnimationFrame.bind(dom.window),
+    IS_REACT_ACT_ENVIRONMENT: true,
+  };
+  const previous = new Map(Object.keys(values).map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  for (const [key, value] of Object.entries(values)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
+  const { createRoot } = await import('react-dom/client');
+  const { snapshotAppsInstallIntent } = await import('../src/shell/renderer/features/apps/apps-install-intent.js');
+  const { writeAppUpdatePolicy, readAppUpdatePreference } = await import('../src/shell/renderer/features/apps/apps-update-preferences.js');
+  await initI18n();
+  const catalog = catalogRuntimeEntry();
+  const entry: DesktopAppsEntry = {
+    ...catalog,
+    catalogTarget: { ...catalog.catalogTarget!, version: '2.0.0' },
+    committedRelease: installedRuntimeEntry().committedRelease,
+  };
+  writeAppUpdatePolicy(entry.identity.appId, 'auto');
+  const calls: string[] = [];
+  const props = baseProps({
+    projection: { status: 'loaded', entries: [entry], catalogStatus: 'loaded', runtimeError: null },
+    onCardAction: (entryKey, action) => calls.push(`${entryKey}:${action}`),
+    installConfirmation: snapshotAppsInstallIntent(catalog.catalogTarget!),
+  });
+  const root = createRoot(dom.window.document.getElementById('root')!);
+  try {
+    await act(async () => root.render(<TooltipProvider><AppsPanelView {...props} /></TooltipProvider>));
+    assert.deepEqual(calls, []);
+    assert.equal(readAppUpdatePreference(entry.identity.appId).lastAutoPromptedVersion, null);
+    await act(async () => root.render(<TooltipProvider><AppsPanelView {...props} installConfirmation={null} /></TooltipProvider>));
+    assert.deepEqual(calls, [`${entry.identity.entryKey}:update`]);
+    assert.equal(readAppUpdatePreference(entry.identity.appId).lastAutoPromptedVersion, '2.0.0');
+  } finally {
+    await act(async () => root.unmount());
+    dom.window.close();
+    for (const [key, descriptor] of previous) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else Reflect.deleteProperty(globalThis, key);
+    }
+  }
+});
 
 test('installed AI model tabs follow installed access, independently of Catalog access', async () => {
   await initI18n();
@@ -289,7 +344,7 @@ test('Apps home renders the header, recent rows, and the merged rail with resolv
   assert.ok(markup.includes('2 个 App'), 'expected merged rail count copy');
   assert.ok(markup.includes('搜索 App 或 App ID'), 'expected rail search placeholder');
   assert.equal(markup.includes('搜索应用'), false, 'the rail is the only search');
-  assert.ok(markup.includes('最近更新'), 'expected default sort copy');
+  assert.ok(markup.includes('全部 App'), 'expected default filter copy');
   assert.equal(markup.includes('-installed-version"'), false, 'local-development rows have no package state');
   assert.equal(markup.includes('Apps.library.'), false, 'no raw i18n keys');
   assert.equal(markup.includes('Apps.sourceBadge.'), false, 'no raw i18n keys');
@@ -303,9 +358,13 @@ test('sources of one App merge into a single rail row with source glyphs', async
   }));
   const railRows = markup.match(/data-rail-group="nimi\.lab"/g) ?? [];
   assert.equal(railRows.length, 1, 'two sources produce one merged rail row');
+  const railButton = markup.match(/<button[^>]*data-testid="apps-rail-app-nimi\.lab"[\s\S]*?<\/button>/)?.[0];
+  assert.ok(railButton, 'the merged App remains in the middle rail');
+  assert.ok(!railButton.includes('已审核') && !railButton.includes('badge-check'), 'the middle rail omits review icons');
   assert.ok(markup.includes('1 个 App'), 'rail count follows the merged identity');
   assert.ok(markup.includes('本地开发'), 'multi-source row shows the development glyph');
-  assert.ok(markup.includes('已通过 Registry 审核'), 'multi-source row shows the verified glyph');
+  assert.ok(markup.includes('aria-label="已审核"'), 'reviewed App names retain an accessible review icon');
+  assert.ok(!markup.includes('已通过 Registry 审核'), 'reviewed Apps omit the technical review sentence');
   assert.ok(markup.includes('data-testid="apps-entry-verified:nimi.lab"'), 'home recent row uses the installed primary');
   assert.equal(markup.includes('data-testid="apps-entry-local_development:nimi.lab:dev-project-example"'), false, 'duplicate source does not repeat on home');
 });
@@ -459,7 +518,7 @@ test('Apps home surfaces entries needing attention in their own section', async 
   assert.equal(calm.includes('data-testid="apps-home-attention"'), false, 'attention section hidden when nothing needs it');
 });
 
-test('Apps detail mode renders the header, tabs, and overview about card', async () => {
+test('Apps detail mode renders the header, tabs, and overview', async () => {
   await initI18n();
   await changeLocale('zh');
   const markup = renderView(baseProps({ selectedEntryKey: 'local_development:nimi.lab:dev-project-example' }));
@@ -468,12 +527,50 @@ test('Apps detail mode renders the header, tabs, and overview about card', async
   assert.ok(markup.includes('Nimi Lab'), 'expected detail name');
   assert.ok(markup.includes('返回应用库'), 'expected back-to-library copy');
   assert.ok(markup.includes('概览'), 'expected overview tab');
-  assert.ok(markup.includes('关于此 App'), 'expected overview about card');
-  assert.equal(markup.includes('data-testid="apps-readme-loading"'), false, 'README moved out of the overview tab');
+  assert.equal(markup.includes('关于此 App'), false, 'the about heading uses the App name');
+  assert.ok(markup.includes('data-testid="apps-about-section"'), 'expected the about section in the overview tab');
+  assert.ok(markup.includes('关于 Nimi Lab'), 'expected the named about heading');
+  assert.ok(markup.includes('已注册到当前 Nimi 的本地开发 App。'), 'about section falls back to the local summary copy when the project has none');
+  assert.equal(markup.includes('开发者</dt>'), false, 'local registration does not supply a developer');
+  assert.equal(markup.includes('来源</dt>'), false, 'unreviewed sources do not add an about fact');
+  assert.equal(markup.includes('版本</dt>'), false, 'missing versions do not add an about fact');
+  assert.equal(markup.includes('未提供'), false, 'missing metadata has no placeholder');
+  assert.ok(markup.includes('最近更新'), 'expected the last-updated fact');
+  assert.ok(markup.includes('data-testid="apps-about-more"'), 'expected the more-info entry into the properties dialog');
+  assert.ok(markup.includes('更多信息'), 'expected more-info copy');
+  assert.equal(markup.includes('注册时间'), false, 'registered-at stays in the properties dialog, not the about strip');
+  assert.equal(markup.includes('Shell 类型'), false, 'shell type stays in the properties dialog, not the info panel');
+  assert.equal(markup.includes('data-app-access-feature'), false, 'access features live in the Nimi Access tab, not the overview');
+  assert.equal(markup.includes('Realm 数据'), false, 'access feature copy stays in the Nimi Access tab');
+  assert.equal(markup.includes('AI 运行时'), false, 'runtime access is not an overview feature');
+  assert.ok(markup.includes('data-testid="apps-documents-section"'), 'expected the documents section');
+  assert.equal(markup.includes('应用文档'), false, 'overview content needs no extra document heading');
+  assert.equal(markup.includes('>README<'), false, 'overview content needs no README kind tag');
+  assert.ok(markup.includes('data-testid="apps-readme-loading"'), 'README renders in the overview tab');
+  assert.equal(markup.includes('开发排查'), false, 'no developer-diagnostics copy in the overview README');
+  assert.equal(markup.includes('data-testid="apps-detail-properties"'), false, 'properties action lives in the overflow menu, not next to launch');
+  assert.ok(markup.includes('data-testid="apps-detail-more"'), 'expected the overflow menu carrying the properties action');
+  assert.equal(markup.includes('开发者信息'), false, 'developer info lives behind the properties dialog, not a tab');
   assert.ok(markup.includes('data-testid="apps-detail-launch"'), 'expected primary launch action');
   assert.equal(markup.includes('-installed-version"'), false, 'local-development detail has no package state');
   assert.ok(markup.includes('data-testid="apps-sidebar"'), 'expected permanent rail');
   assert.ok(markup.includes('data-testid="apps-rail-app-nimi.zhiyu"'), 'expected rail rows');
+});
+
+test('Apps detail header carries the host-read project summary as the tagline', async () => {
+  await initI18n();
+  await changeLocale('zh');
+  const withSummary = {
+    ...entry(),
+    summary: '面向本地项目的示例 App，演示 Nimi 平台能力。',
+  };
+  const markup = renderView(baseProps({
+    projection: { status: 'loaded', entries: [withSummary], catalogStatus: 'not-implemented', runtimeError: null },
+    selectedEntryKey: withSummary.identity.entryKey,
+  }));
+  assert.ok(markup.includes('data-testid="apps-detail-summary"'), 'expected the header tagline element');
+  assert.ok(markup.includes('面向本地项目的示例 App，演示 Nimi 平台能力。'), 'expected summary copy in the header');
+  assert.equal(markup.includes('已注册到当前 Nimi 的本地开发 App。'), false, 'no fallback about copy when the project provides a summary');
 });
 
 test('Apps detail lists the other sources of the same App', async () => {
@@ -484,16 +581,20 @@ test('Apps detail lists the other sources of the same App', async () => {
     projection: { status: 'loaded', entries, catalogStatus: 'not-implemented', runtimeError: null },
     selectedEntryKey: 'local_development:nimi.lab:dev-project-example',
   }));
-  assert.ok(devDetail.includes('其他来源'), 'expected other-sources card');
+  assert.ok(devDetail.includes('data-testid="apps-other-sources"'), 'expected the other-sources banner');
+  assert.ok(devDetail.includes('其他来源'), 'expected the other-sources accessible label');
+  assert.ok(devDetail.includes('线上版本已安装'), 'expected the registry-installed headline');
+  assert.ok(!devDetail.includes('已通过 Registry 审核'), 'other sources omit the technical review sentence');
   assert.ok(devDetail.includes('data-testid="apps-source-entry-verified:nimi.lab"'), 'expected the installed source link');
   assert.ok(devDetail.includes('已安装 1.0.0'), 'expected the installed source version');
   const installedDetail = renderView(baseProps({
     projection: { status: 'loaded', entries, catalogStatus: 'not-implemented', runtimeError: null },
     selectedEntryKey: 'verified:nimi.lab',
   }));
+  assert.ok(installedDetail.includes('已注册本地开发来源'), 'expected the local-development headline');
   assert.ok(installedDetail.includes('data-testid="apps-source-entry-local_development:nimi.lab:dev-project-example"'), 'expected the development source link');
   const single = renderView(baseProps({ selectedEntryKey: 'local_development:nimi.lab:dev-project-example' }));
-  assert.equal(single.includes('其他来源'), false, 'single-source Apps render no sources card');
+  assert.equal(single.includes('data-testid="apps-other-sources"'), false, 'single-source Apps render no sources banner');
 });
 
 test('Apps home exposes public catalog search as not implemented without fabricated entries', async () => {
@@ -523,8 +624,8 @@ test('Runtime committed version and cancelable package job render without enabli
     projection: { status: 'loaded', entries: [installed], catalogStatus: 'not-implemented', runtimeError: null },
     selectedEntryKey: installed.identity.entryKey,
   }));
-  assert.ok(detailMarkup.includes('data-testid="apps-detail-cancel-job"'));
-  assert.equal(detailMarkup.includes('data-testid="apps-detail-launch"'), false);
+  assert.ok(detailMarkup.includes('data-testid="apps-detail-more"'), 'cancel-job lives in the detail overflow menu');
+  assert.equal(detailMarkup.includes('data-testid="apps-installed-launch"'), false);
   await changeLocale('zh');
 });
 
@@ -634,7 +735,7 @@ test('Apps home renders with resolved en copy after locale switch', async () => 
   assert.ok(markup.includes('Add App'), 'expected en add-app action copy');
   assert.ok(markup.includes('Search apps or App ID'), 'expected en rail search placeholder');
   assert.ok(markup.includes('Recent Activity'), 'expected en recent section copy');
-  assert.ok(markup.includes('Recently updated'), 'expected en sort copy');
+  assert.ok(markup.includes('All apps'), 'expected en filter copy');
   assert.ok(markup.includes('Not running'), 'expected en stopped status copy on rows');
   assert.equal(markup.includes('All Apps'), false, 'no second all-apps list on home');
   await changeLocale('zh');
@@ -648,20 +749,25 @@ test('approved Catalog facts render an install intent without claiming certifica
     projection: { status: 'loaded', entries: [catalog], catalogStatus: 'loaded', runtimeError: null },
   }));
   assert.equal(cardMarkup.includes(`data-testid="apps-entry-${catalog.identity.entryKey}-install"`), false);
-  assert.ok(cardMarkup.includes('Registry approved'));
+  assert.ok(cardMarkup.includes('aria-label="Reviewed"'));
+  assert.ok(!cardMarkup.includes('Registry approved'));
   assert.equal(cardMarkup.includes('Nimi certified'), false);
 
   const detailMarkup = renderView(baseProps({
     projection: { status: 'loaded', entries: [catalog], catalogStatus: 'loaded', runtimeError: null },
     selectedEntryKey: catalog.identity.entryKey,
   }));
-  assert.ok(detailMarkup.includes('data-testid="apps-catalog-approved"'));
+  assert.match(detailMarkup, /<h1[^>]*data-testid="apps-detail-title"[^>]*>[^<]+<span[^>]*data-source-badge="verified"[^>]*aria-label="Reviewed"[^>]*><svg[\s\S]*?<\/svg><\/span><\/h1>/, 'the review icon belongs to the App heading without visible review text');
+  assert.equal(detailMarkup.includes('data-testid="apps-catalog-approved"'), false);
+  assert.equal(detailMarkup.includes('Approval and verification do not guarantee'), false);
   assert.ok(detailMarkup.includes('data-testid="apps-detail-install"'));
-  assert.ok(detailMarkup.includes('@publisher'));
-  assert.ok(detailMarkup.includes('MIT'));
-  assert.ok(detailMarkup.includes('unsigned'));
-  assert.ok(detailMarkup.includes('Registry target · 1.0.0'));
-  assert.ok(detailMarkup.includes('Expected size: 1–10 MiB'));
+  assert.ok(detailMarkup.includes('@publisher'), 'the about strip keeps the Registry publisher as the developer');
+  assert.equal(detailMarkup.includes('data-testid="apps-catalog-target-facts"'), false, 'registry facts leave the overview for the properties dialog');
+  assert.equal(detailMarkup.includes('Online version'), false, 'the registry card title stays behind the properties dialog');
+  assert.ok(detailMarkup.includes('Version</dt>'), 'the about section displays the source version');
+  assert.equal(detailMarkup.includes('MIT'), false, 'the license stays behind the properties dialog');
+  assert.equal(detailMarkup.includes('unsigned'), false, 'the signing posture stays behind the properties dialog');
+  assert.equal(detailMarkup.includes('Expected size: 1–10 MiB'), false, 'storage disclosures stay behind the properties dialog');
 
   const blocked = catalogRuntimeEntry(true);
   const blockedMarkup = renderView(baseProps({
@@ -671,6 +777,45 @@ test('approved Catalog facts render an install intent without claiming certifica
   assert.ok(blockedMarkup.includes('data-testid="apps-catalog-policy-blocked"'));
   assert.ok(blockedMarkup.includes('security-review-revoked'));
   assert.equal(blockedMarkup.includes('data-testid="apps-detail-install"'), false);
+  await changeLocale('zh');
+});
+
+test('installed App detail moves Registry and release facts into the properties dialog', async () => {
+  await initI18n();
+  await changeLocale('en');
+  const catalog = catalogRuntimeEntry();
+  const installed = installedRuntimeEntry();
+  const appInfo = {
+    version: '1.0.0', displayName: 'Example Catalog App', summary: 'Summary', iconPngBase64: '',
+    readmeMarkdown: '# How to use\n\nCreate things.', releaseNotesMarkdown: '', licenseIdentifier: 'MIT', licenseText: '',
+    appAccess: ['runtime.consume'], capabilityContractRefs: ['text.generate'], requiredStandardizedFeatureRefs: ['app.storage'],
+    storagePolicyKind: 'app-owned-os-storage',
+    osStorageDisclosure: [{ pathPattern: '%LOCALAPPDATA%/Example', purpose: 'cache', expectedSizeBand: '1–10 MiB' }],
+    author: 'Publisher', homepageUrl: 'https://example.com', supportUrl: 'https://example.com/support',
+  } as AppPackageInfo;
+  const entry: DesktopAppsEntry = { ...catalog, committedRelease: installed.committedRelease, appInfo };
+  const markup = renderView(baseProps({
+    projection: { status: 'loaded', entries: [entry], catalogStatus: 'loaded', runtimeError: null },
+    selectedEntryKey: entry.identity.entryKey,
+  }));
+  assert.ok(markup.includes('data-testid="apps-about-section"'), 'the installed overview keeps the shared about section');
+  assert.equal(markup.includes('data-testid="apps-catalog-approved"'), false);
+  assert.equal(markup.includes('Approval and verification do not guarantee'), false);
+  assert.ok(markup.includes('About Example Catalog App'), 'expected the named about heading');
+  assert.ok(markup.includes('Developer'), 'expected the developer fact');
+  assert.ok(markup.includes('Publisher'), 'expected the declared author as the developer');
+  assert.equal(markup.includes('Last updated'), false, 'local installation time is not an online update date');
+  assert.ok(markup.includes('data-testid="apps-about-more"'), 'expected the more-info entry into the properties dialog');
+  assert.ok(markup.includes('https://example.com/support'), 'expected the support link under the about strip');
+  assert.ok(markup.includes('data-testid="apps-documents-section"'), 'expected the documents section');
+  assert.ok(markup.includes('data-testid="apps-readme"'), 'README renders inline in the overview');
+  assert.ok(markup.includes('Create things.'), 'expected the README content');
+  assert.equal(markup.includes('runtime.consume'), false, 'app access leaves the overview for the Nimi Access tab');
+  assert.equal(markup.includes('data-testid="apps-catalog-target-facts"'), false, 'registry facts leave the overview once installed');
+  assert.equal(markup.includes('Online version'), false, 'the registry card title stays behind the properties dialog');
+  assert.equal(markup.includes('release:example:1.0.0'), false, 'the release reference leaves the overview');
+  assert.equal(markup.includes('text.generate'), false, 'capability refs move to the properties dialog');
+  assert.equal(markup.includes('%LOCALAPPDATA%/Example'), false, 'storage disclosures move to the properties dialog');
   await changeLocale('zh');
 });
 

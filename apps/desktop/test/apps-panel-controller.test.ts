@@ -255,6 +255,7 @@ it('shows inventory on retry before project content loads, then fills in that co
       listRegistrations: async () => [{
         selector: 'dev-project-example', appId: 'example.app', displayName: 'Example',
         canonicalProjectRoot: '/example', shell: 'electron', appAccess: [], aiConfigAllowedRoutes: ['local'],
+        capabilityContractRefs: [],
         sourceGeneration: 1, declarationGeneration: 1, registeredAtUnixMs: 1, updatedAtUnixMs: 1,
       }],
       readAppIcon: () => icon,

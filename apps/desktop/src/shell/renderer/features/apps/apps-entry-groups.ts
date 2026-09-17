@@ -3,7 +3,8 @@
 // entries stay intact on the group so actions remain source-exact.
 
 import type { DesktopAppsEntry, DesktopAppSourceClass } from './apps-panel-projection.js';
-import { appRunVisualState, isEntryRunActive, type AppsSortId } from './apps-card-fields.js';
+import { hasAvailableCatalogUpdate } from './apps-card-actions.js';
+import { appRunVisualState, entryNeedsAttention, isEntryRunActive, type AppsSortId } from './apps-card-fields.js';
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-001a
 
@@ -110,8 +111,26 @@ export function sortAppGroups(
 }
 
 /**
+ * Rail filter options follow the states a user actually looks for: what is
+ * running, what has an update, and what needs attention. `all` leaves the
+ * rail untouched.
+ */
+export type AppsRailFilterId = 'all' | 'running' | 'updates' | 'attention';
+
+export function filterAppGroupsByState(
+  groups: readonly DesktopAppGroup[],
+  filter: AppsRailFilterId,
+): readonly DesktopAppGroup[] {
+  if (filter === 'running') return groups.filter((group) => group.active);
+  if (filter === 'updates') return groups.filter((group) => group.entries.some(hasAvailableCatalogUpdate));
+  if (filter === 'attention') return groups.filter((group) => group.entries.some(entryNeedsAttention));
+  return groups;
+}
+
+/**
  * Steam-style rail sectioning: a 运行中 strip on top, the remaining Apps as
- * one unlabeled list. While searching the rail stays a single flat result set.
+ * one unlabeled list. Searching or filtering collapses the rail into a single
+ * flat result set.
  */
 export function splitRunningGroups(
   groups: readonly DesktopAppGroup[],

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowDown, ArrowUp, Check, ChevronDown, ChevronUp, ChevronsUp, Download, GripVertical, Pause, Play } from 'lucide-react';
+import { ArrowDown, ArrowUp, Check, ChevronDown, ChevronUp, ChevronsUp, Download, GripVertical, Info, Pause, Play, X } from 'lucide-react';
 import { Button, ConfirmDialog, EmptyState, IconButton, InlineAlert, ScrollArea, StatusBadge, Surface, Tooltip } from '@nimiplatform/kit/ui';
 import { AppPackageJobKind, AppPackageJobPhase, AppPackageSourceClass, type AppPackageJob, type ApprovedAppCatalogTarget } from '@nimiplatform/sdk/runtime/wire-types';
 import { openExternalUrl } from '@nimiplatform/kit/shell/renderer/bridge';
@@ -8,6 +8,7 @@ import { DownloadMetrics } from '../../components/download-metrics.js';
 import { formatBytes } from '../../components/download-format.js';
 import { useAppsDownloads, type AppsDownloadsContextValue } from './apps-downloads-context.js';
 import { packageJobIsTerminal, packageJobKey, timestampMilliseconds, type AppDownloadCommand } from './apps-downloads-observer.js';
+import { dismissDownloadsHint, readDownloadsHintDismissed } from './apps-downloads-hint-preferences.js';
 import { AppArtworkIcon } from './apps-card-visuals.js';
 import type { DesktopAppsEntry } from './apps-panel-projection.js';
 
@@ -78,6 +79,7 @@ export function AppsDownloadsView({ downloads, entries, onViewApp, onRetry }: {
   const [phaseFeedback, setPhaseFeedback] = useState('');
   const [actionErrors, setActionErrors] = useState<string[]>([]);
   const [sourceError, setSourceError] = useState('');
+  const [hintDismissed, setHintDismissed] = useState(() => readDownloadsHintDismissed());
   const pageHeadingRef = useRef<HTMLHeadingElement>(null);
   const rowRefs = useRef(new Map<string, HTMLButtonElement>());
   const draggedJobId = useRef<string | null>(null);
@@ -97,6 +99,7 @@ export function AppsDownloadsView({ downloads, entries, onViewApp, onRetry }: {
   const busy = downloads.pendingIds.length > 0;
   const unavailable = downloads.status !== 'ready';
   const blocked = busy || unavailable;
+  const inFlight = active.length + processing.length + queued.length + paused.length > 0;
 
   useEffect(() => {
     if (!downloads.selectedJobId) return;
@@ -235,7 +238,7 @@ export function AppsDownloadsView({ downloads, entries, onViewApp, onRetry }: {
             }}>{catalog.sourceRepository}</a></dd></div>
             <div className="sm:col-span-2"><dt className="font-medium text-[var(--nimi-text-primary)]">{t('Apps.downloads.nativePosture')}</dt><dd>{catalog.os === 'macos' ? catalog.macosNotarization : catalog.windowsCodeSigning}{catalog.observedSigningSubject ? ` · ${catalog.observedSigningSubject}` : ''}</dd></div></> : null}
           {job.sourceClass === AppPackageSourceClass.USER_IMPORTED ? <div><dt className="font-medium text-[var(--nimi-text-primary)]">{t('Apps.downloads.source')}</dt><dd>{t('Apps.localImport.localSource')}</dd></div> : null}
-          <div><dt className="font-medium text-[var(--nimi-text-primary)]">App ID</dt><dd className="break-all">{job.appId}</dd></div>
+          <div><dt className="font-medium text-[var(--nimi-text-primary)]">{t('LocalDevelopment.field.app')}</dt><dd className="break-all">{job.appId}</dd></div>
           <div><dt className="font-medium text-[var(--nimi-text-primary)]">{t('Apps.downloads.jobId')}</dt><dd className="break-all">{id}</dd></div>
           {job.reasonCode ? <div className="sm:col-span-2"><dt className="font-medium text-[var(--nimi-text-primary)]">{t('Apps.downloads.reason')}</dt><dd className="break-all">{job.reasonCode}</dd></div> : null}
         </dl> : null}
@@ -272,6 +275,11 @@ export function AppsDownloadsView({ downloads, entries, onViewApp, onRetry }: {
       {downloads.status === 'unavailable' ? <InlineAlert tone="warning" className="mb-4" action={<Button size="sm" onClick={() => void downloads.observer.refresh()}>{t('Apps.downloads.refresh')}</Button>}>{t('Apps.downloads.disconnected')}</InlineAlert> : null}
       {actionErrors.length ? <InlineAlert tone="danger" className="mb-4"><p>{t('Apps.downloads.controlFailed')}</p><ul>{actionErrors.map((error, index) => <li className="break-words text-xs" key={index}>{error}</li>)}</ul></InlineAlert> : null}
       {sourceError ? <InlineAlert tone="warning" className="mb-4">{sourceError}</InlineAlert> : null}
+      {inFlight && !hintDismissed ? <InlineAlert tone="info" className="mb-4" icon={<Info className="h-4 w-4" aria-hidden="true" />}
+        action={<IconButton size="sm" aria-label={t('Apps.downloads.hintDismiss')} icon={<X className="h-4 w-4" aria-hidden="true" />}
+          onClick={() => { dismissDownloadsHint(); setHintDismissed(true); }} />}>
+        {t('Apps.downloads.hint')}
+      </InlineAlert> : null}
       <div className="sr-only" role="status" aria-live="polite">{feedback} {phaseFeedback}</div>
       {downloads.status === 'loading' ? <p className="py-4 text-sm text-[var(--nimi-text-secondary)]">{t('Apps.downloads.loading')}</p> : null}
       <div className="min-w-0 space-y-4">
@@ -297,7 +305,6 @@ export function AppsDownloadsView({ downloads, entries, onViewApp, onRetry }: {
           </div>
         </section> : null}
       </div>
-      <p className="mt-4 text-xs leading-5 text-[var(--nimi-text-secondary)]">{t('Apps.downloads.ownerHint')}</p>
     </ScrollArea>
     <ConfirmDialog open={cancelJob !== null} title={t(cancelJob?.sourceClass === AppPackageSourceClass.USER_IMPORTED ? 'Apps.localImport.cancelTitle' : 'Apps.downloads.cancelTitle')} confirmTone="danger"
       message={cancelJob ? t(cancelJob.sourceClass === AppPackageSourceClass.USER_IMPORTED ? 'Apps.localImport.cancelMessage' : 'Apps.downloads.cancelMessage', { app: jobName(cancelJob), size: formatBytes(Number(cancelJob.bytesCompleted)) }) : ''}

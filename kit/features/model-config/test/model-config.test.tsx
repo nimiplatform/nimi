@@ -10,7 +10,11 @@ import {
 } from '@nimiplatform/kit/core/sdk-contract';
 import { CAPABILITY_DEFAULT_FIELDS } from '../src/capability-defaults.js';
 import { ModelConfigAIConfigSurface } from '../src/components/model-config-ai-config-surface.js';
-import type { ModelConfigListOptions, ModelConfigOverwrite } from '../src/types.js';
+import type {
+  ModelConfigCapabilitySection,
+  ModelConfigListOptions,
+  ModelConfigOverwrite,
+} from '../src/types.js';
 import {
   modelConfigCapabilityPosture,
   modelConfigMissingRequiredFeatures,
@@ -51,6 +55,7 @@ async function renderSurface(
     readonly initialCapabilityContract?: string;
     readonly onOpenOwnerConfiguration?: () => void;
     readonly capabilityContracts?: readonly string[];
+    readonly capabilitySections?: readonly ModelConfigCapabilitySection[];
     readonly allowedRoutes?: readonly ('local' | 'cloud')[];
     readonly capabilities?: readonly NimiCapabilityAIConfigIntent[];
     readonly effectiveSelections?: readonly NimiAIConfigEffectiveSelection[] | null;
@@ -67,6 +72,7 @@ async function renderSurface(
       <ModelConfigAIConfigSurface
         context={{ owner: 'app-ai-config', appId: 'test.app' }}
         capabilityContracts={options.capabilityContracts || ['text.generate']}
+        capabilitySections={options.capabilitySections}
         allowedRoutes={options.allowedRoutes}
         initialCapabilityContract={options.initialCapabilityContract}
         capabilities={options.capabilitiesUnavailable ? undefined : options.capabilities || [{
@@ -929,5 +935,88 @@ describe('public Model Config contract', () => {
       .find((button) => button.textContent?.trim() === 'Open on-device models') as HTMLButtonElement;
     expect(openMachine).toBeTruthy();
     expect(openMachine.className).toContain('focus-visible:ring');
+  });
+});
+
+describe('Model Config capability sections', () => {
+  const sectionContracts = ['text.generate', 'image.generate'] as const;
+  const sectionIntents = [{
+    capabilityContract: 'text.generate',
+    requiredFeatures: [],
+    defaults: undefined,
+    route: { oneofKind: 'local', local: {} },
+  }] as const;
+
+  it('renders declared sections with their rows and keeps uncovered contracts flat', async () => {
+    const node = await renderSurface(committedOverwrite(), vi.fn(), {
+      capabilityContracts: sectionContracts,
+      capabilities: [...sectionIntents],
+      capabilitySections: [{
+        id: 'declared',
+        title: 'Required by this app (1)',
+        contracts: ['text.generate'],
+      }],
+    });
+
+    const section = node.querySelector('[data-nimi-model-config-section="declared"]');
+    expect(section).toBeTruthy();
+    expect(section?.textContent).toContain('Required by this app (1)');
+    expect(section?.querySelector('[data-nimi-model-config-capability="text.generate"]')).toBeTruthy();
+    expect(section?.querySelector('[data-nimi-model-config-capability="image.generate"]')).toBeNull();
+    // Uncovered contracts render unsectioned and stay reachable.
+    expect(node.querySelector('[data-nimi-model-config-capability="image.generate"]')).toBeTruthy();
+    // The flat-mode aggregate count is not presented in sectioned mode.
+    expect(node.textContent).not.toContain('1/2');
+  });
+
+  it('collapses a section by default when defaultExpanded is false and expands on toggle', async () => {
+    const node = await renderSurface(committedOverwrite(), vi.fn(), {
+      capabilityContracts: sectionContracts,
+      capabilities: [...sectionIntents],
+      capabilitySections: [
+        { id: 'declared', title: 'Required by this app (1)', contracts: ['text.generate'] },
+        { id: 'rest', title: 'All capabilities (1)', contracts: ['image.generate'], defaultExpanded: false },
+      ],
+    });
+
+    const toggle = node.querySelector('[data-nimi-model-config-section-toggle="rest"]') as HTMLButtonElement;
+    expect(toggle).toBeTruthy();
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(node.querySelector('[data-nimi-model-config-capability="image.generate"]')).toBeNull();
+    expect(node.querySelector('[data-nimi-model-config-capability="text.generate"]')).toBeTruthy();
+
+    act(() => { toggle.click(); });
+    await flush();
+
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    const revealed = node.querySelector('[data-nimi-model-config-capability="image.generate"]') as HTMLButtonElement;
+    expect(revealed).toBeTruthy();
+
+    act(() => { revealed.click(); });
+    await flush();
+    expect(node.querySelector('[data-nimi-model-config-detail="image.generate"]')).toBeTruthy();
+  });
+
+  it('keeps section rows interactive through the same editor pipeline', async () => {
+    const onOverwrite = committedOverwrite();
+    const node = await renderSurface(onOverwrite, vi.fn(), {
+      capabilityContracts: sectionContracts,
+      capabilities: [...sectionIntents],
+      capabilitySections: [{
+        id: 'declared',
+        title: 'Required by this app (1)',
+        contracts: ['text.generate'],
+      }],
+    });
+
+    const row = node.querySelector('[data-nimi-model-config-capability="text.generate"]') as HTMLButtonElement;
+    act(() => { row.click(); });
+    await flush();
+    expect(node.querySelector('[data-nimi-model-config-detail="text.generate"]')).toBeTruthy();
+
+    const save = node.querySelector('[data-testid="model-config-save:text.generate"]') as HTMLButtonElement;
+    act(() => { save.click(); });
+    await flush();
+    expect(onOverwrite).toHaveBeenCalled();
   });
 });

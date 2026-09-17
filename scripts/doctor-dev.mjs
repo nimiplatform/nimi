@@ -15,6 +15,7 @@ import {
   findBlockingElectronCarriers,
   normalizedProcessRows,
 } from './lib/electron-carrier-processes.mjs';
+import { resolveWindowsPowerShell7 } from './lib/windows-powershell.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PRESENCE_MAX_AGE_MS = 12_000;
@@ -212,7 +213,7 @@ async function queryFixedRuntimeService() {
     'windows-runtime-service-installer',
     'install-nimi-runtime.ps1',
   );
-  const result = await collectCommandResult('powershell.exe', [
+  const result = await collectCommandResult(resolveWindowsPowerShell7(), [
     '-NoProfile',
     '-ExecutionPolicy',
     'Bypass',

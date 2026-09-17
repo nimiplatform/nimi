@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { AppPackageJobKind, AppPackageJobPhase, AppPackageSourceClass, type AppPackageJob } from '@nimiplatform/sdk/runtime/wire-types';
 import { initI18n, changeLocale } from '../src/shell/renderer/i18n';
 import { AppsDownloadsView, failedDownloadNeedsAttention } from '../src/shell/renderer/features/apps/apps-downloads-view.js';
+import { dismissDownloadsHint, readDownloadsHintDismissed } from '../src/shell/renderer/features/apps/apps-downloads-hint-preferences.js';
 import type { AppsDownloadsContextValue } from '../src/shell/renderer/features/apps/apps-downloads-context.js';
 import { DownloadMetrics } from '../src/shell/renderer/components/download-metrics.js';
 
@@ -58,6 +59,26 @@ test('opening a recent task keeps it in history and leaves the current download 
   assert.match(html, /aria-expanded="true" aria-controls="app-download-details-02"/);
   assert.equal((html.match(/role="progressbar"/g) ?? []).length, 1);
   assert.equal((html.match(/data-testid="apps-download-detail"/g) ?? []).length, 1);
+});
+
+test('in-flight tasks surface the dismissible background hint while settled history does not', async () => {
+  await initI18n(); await changeLocale('en');
+  const html = render([job(1)]);
+  assert.match(html, /Closing this window will not interrupt them/);
+  assert.match(html, /aria-label="Dismiss"/);
+  const settled = render([job(1, AppPackageJobPhase.COMPLETED)]);
+  assert.doesNotMatch(settled, /Closing this window will not interrupt them/);
+});
+
+test('downloads hint dismissal persists through device storage', () => {
+  const map = new Map<string, string>();
+  const storage = {
+    getItem: (key: string) => map.get(key) ?? null,
+    setItem: (key: string, value: string) => { map.set(key, value); },
+  } as unknown as Storage;
+  assert.equal(readDownloadsHintDismissed(storage), false);
+  dismissDownloadsHint(storage);
+  assert.equal(readDownloadsHintDismissed(storage), true);
 });
 
 test('completed and canceled detail does not retain update-in-progress instructions', async () => {

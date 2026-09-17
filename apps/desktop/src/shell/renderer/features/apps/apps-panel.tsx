@@ -246,6 +246,7 @@ export function AppsPanel(): ReactElement {
         installConfirmation={installConfirmation}
         onConfirmInstall={confirmInstall}
         onCancelInstall={cancelInstall}
+        readPackageInfo={readPackageInfo}
       />
     </div>
   );

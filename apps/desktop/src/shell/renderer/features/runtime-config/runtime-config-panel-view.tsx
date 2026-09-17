@@ -9,6 +9,7 @@ import {
   SidebarSection,
   SidebarShell,
   Surface,
+  cn,
 } from '@nimiplatform/kit/ui';
 import { E2E_IDS } from '../../testability/e2e-ids';
 import { RUNTIME_SIDEBAR_ITEMS } from './runtime-config-sidebar';
@@ -116,12 +117,12 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
 
   if (!state) {
     return (
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 px-3 pb-3 pt-2 xl:flex-row">
-        <aside className="flex max-h-[min(44vh,360px)] w-full shrink-0 flex-col bg-[var(--nimi-surface-card)] px-3 py-2 xl:max-h-none xl:w-[216px]">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 px-3 pb-3 pt-2 lg:flex-row">
+        <aside className="flex max-h-[min(44vh,360px)] w-full shrink-0 flex-col bg-[var(--nimi-surface-card)] px-3 py-2 lg:max-h-none lg:w-[216px]">
           <RuntimeSkeletonBlock className="h-9 w-32 rounded-xl" />
-          <div className="mt-3 space-y-2">
+          <div className="mt-3 flex flex-wrap gap-2 lg:block lg:space-y-2">
             {Array.from({ length: 7 }).map((_, index) => (
-              <RuntimeSkeletonBlock key={index} className="h-9 w-full" />
+              <RuntimeSkeletonBlock key={index} className="h-9 w-9 lg:w-full" />
             ))}
           </div>
         </aside>
@@ -156,9 +157,9 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
   }, {});
 
   return (
-    <div ref={containerRef} className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 px-3 pb-3 pt-2 xl:flex-row">
+    <div ref={containerRef} className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 px-3 pb-3 pt-2 lg:flex-row">
       <SidebarShell
-        className="max-h-[min(44vh,360px)] w-full xl:max-h-none xl:w-[var(--runtime-sidebar-width)]"
+        className="max-h-[min(44vh,360px)] w-full lg:max-h-none lg:w-[var(--runtime-sidebar-width)]"
         style={sidebarStyle}
         data-testid={E2E_IDS.panel('runtime-sidebar')}
       >
@@ -175,7 +176,37 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
           </div>
         </div>
         <ScrollArea className="flex-1" contentClassName="px-2 pb-2 pt-1">
-          <div className="space-y-3">
+          <div
+            role="group"
+            aria-label={t(RUNTIME_SECTION_LABEL_KEY.Runtime, { defaultValue: 'Runtime' })}
+            className="flex items-center gap-1 overflow-x-auto lg:hidden"
+          >
+            {RUNTIME_SIDEBAR_ITEMS.map((item) => {
+              const active = item.id === activePage;
+              const label = t(`runtimeConfig.sidebar.${item.id}`, { defaultValue: item.label });
+              return (
+                <button
+                  key={`sidebar-compact-${item.id}`}
+                  type="button"
+                  data-testid={`${E2E_IDS.runtimeSidebarPage(item.id)}:compact`}
+                  aria-current={active ? 'page' : undefined}
+                  aria-label={label}
+                  title={label}
+                  onClick={() => model.onChangePage(item.id)}
+                  className={cn(
+                    'flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-[var(--nimi-radius-sidebar-item)] transition-[background-color,color] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)]',
+                    'focus-visible:outline-none focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[color:var(--nimi-focus-ring-color)] focus-visible:ring-offset-[length:var(--nimi-focus-ring-offset)] focus-visible:ring-offset-[color:transparent]',
+                    active
+                      ? 'bg-[var(--nimi-sidebar-item-active)] text-[var(--nimi-action-primary-bg)]'
+                      : 'text-[var(--nimi-text-muted)] hover:bg-[var(--nimi-sidebar-item-hover)] hover:text-[var(--nimi-text-primary)]',
+                  )}
+                >
+                  {item.icon}
+                </button>
+              );
+            })}
+          </div>
+          <div className="hidden space-y-3 lg:block">
             {Object.entries(sidebarSections).map(([section, items]) => (
               <SidebarSection
                 key={section}
@@ -207,7 +238,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
           onPointerDown={startResize}
           onPointerMove={continueResize}
           onPointerUp={stopResize}
-          className="hidden xl:block"
+          className="hidden lg:block"
         />
       </SidebarShell>
 

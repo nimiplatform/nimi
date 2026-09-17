@@ -1,7 +1,7 @@
 import { useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BadgeCheck, Code2, LoaderCircle, PackageOpen } from 'lucide-react';
-import { Button, StatusBadge, type StatusBadgeShape } from '@nimiplatform/kit/ui';
+import { Button, StatusBadge, Tooltip, type StatusBadgeShape } from '@nimiplatform/kit/ui';
 import { AppPackageJobPhase } from '@nimiplatform/sdk/runtime/wire-types';
 import { formatBytes } from '../../components/download-format.js';
 import { useAppsDownloads } from './apps-downloads-context.js';
@@ -99,20 +99,21 @@ export function AppPackageStatusLine({ entry }: { readonly entry: DesktopAppsEnt
   const downloads = useAppsDownloads();
   if (entry.localDevelopment) return null;
   const job = entry.packageJob;
+  if (!entry.committedRelease && !job) return null;
   const progress = job && [AppPackageJobPhase.DOWNLOADING, AppPackageJobPhase.PAUSED].includes(job.phase)
     ? `${formatBytes(Number(job.bytesCompleted))}${job.bytesTotal ? ` / ${formatBytes(Number(job.bytesTotal))}` : ''}`
     : job ? appPackageProgressText(job) : null;
   const failureReason = job ? appPackageFailureReason(job) : null;
   const versionLabel = entry.committedRelease
     ? t('Apps.version.installed', { version: entry.committedRelease.version })
-    : t('Apps.version.notInstalled');
+    : null;
   const phaseLocaleKey = job ? appPackagePhaseLocaleKey(job) : null;
   const phaseLabel = job
     ? phaseLocaleKey ? t(`Apps.phase.${phaseLocaleKey}`) : String(job.phase)
     : null;
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[color:var(--nimi-text-secondary)]">
-      <span data-testid={`apps-entry-${entry.identity.entryKey}-installed-version`}>{versionLabel}</span>
+      {versionLabel ? <span data-testid={`apps-entry-${entry.identity.entryKey}-installed-version`}>{versionLabel}</span> : null}
       {hasAvailableCatalogUpdate(entry) ? <span className="text-[var(--nimi-status-info)]" data-testid={`apps-entry-${entry.identity.entryKey}-available-version`}>{t('Apps.update.available', { version: entry.catalogTarget?.version })}</span> : null}
       {phaseLabel ? (
         <span data-testid={`apps-entry-${entry.identity.entryKey}-package-job`} data-package-job-phase={job?.phase}>
@@ -154,14 +155,33 @@ export function AppSourceBadge({
   source,
   variant = 'pill',
   className = '',
+  description,
 }: {
   readonly source: AppSourceId;
   readonly variant?: 'pill' | 'quiet';
   readonly className?: string;
+  readonly description?: string;
 }): ReactElement {
   const { t } = useTranslation();
   const meta = SOURCE_BADGE_META[source];
   const Icon = meta.icon;
+  if (source === 'verified') {
+    const badge = (
+      <span
+        data-source-badge={source}
+        role="img"
+        aria-label={t(meta.labelKey)}
+        className={`inline-flex shrink-0 self-start text-[var(--nimi-status-success-soft-text)] ${className}`}
+      >
+        <Icon className="h-3 w-3" aria-hidden="true" />
+      </span>
+    );
+    return description ? (
+      <Tooltip content={description} contentClassName="max-w-xs font-normal">
+        {badge}
+      </Tooltip>
+    ) : badge;
+  }
   // Source is static provenance, not a live status: the quiet variant keeps
   // the same icon and copy as inline metadata so status pills stand out.
   const variantClassName = variant === 'quiet'

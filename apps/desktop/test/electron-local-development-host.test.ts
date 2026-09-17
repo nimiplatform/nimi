@@ -1353,6 +1353,94 @@ describe('Desktop local-development project README', () => {
   });
 });
 
+describe('Desktop local-development capability contract refs', () => {
+  it('projects declared capability_contract_refs from the project manifest', async () => {
+    const projectRoot = await mkdtemp(path.join(os.tmpdir(), 'nimi-capability-refs-'));
+    try {
+      await writeFile(
+        path.join(projectRoot, 'nimi.app.yaml'),
+        'capability_contract_refs:\n  - text.generate\n  - audio.synthesize\n',
+        'utf8',
+      );
+      const appControl = control({
+        listRegistrations: async () => [registration({
+          project: {
+            appId: 'example.local-app',
+            displayName: 'Example Local App',
+            canonicalProjectRoot: projectRoot,
+            canonicalManifestPath: path.join(projectRoot, 'nimi.app.yaml'),
+            shell: 'electron',
+            appAccess: [],
+            sourceGeneration: 3,
+            declarationGeneration: 4,
+          },
+        })],
+      });
+      const host = new ElectronLocalDevelopmentHost(appControl, '/tmp');
+      const [row] = await host.invoke('local_development_registrations_list', {}) as Array<{ capabilityContractRefs: readonly string[] }>;
+      assert.deepEqual(row?.capabilityContractRefs, ['text.generate', 'audio.synthesize']);
+    } finally {
+      await rm(projectRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('defaults to no declared refs when the manifest omits them', async () => {
+    const projectRoot = await mkdtemp(path.join(os.tmpdir(), 'nimi-capability-refs-'));
+    try {
+      await writeFile(path.join(projectRoot, 'nimi.app.yaml'), 'app_id: example.local-app\n', 'utf8');
+      const appControl = control({
+        listRegistrations: async () => [registration({
+          project: {
+            appId: 'example.local-app',
+            displayName: 'Example Local App',
+            canonicalProjectRoot: projectRoot,
+            canonicalManifestPath: path.join(projectRoot, 'nimi.app.yaml'),
+            shell: 'electron',
+            appAccess: [],
+            sourceGeneration: 3,
+            declarationGeneration: 4,
+          },
+        })],
+      });
+      const host = new ElectronLocalDevelopmentHost(appControl, '/tmp');
+      const [row] = await host.invoke('local_development_registrations_list', {}) as Array<{ capabilityContractRefs: readonly string[] }>;
+      assert.deepEqual(row?.capabilityContractRefs, []);
+    } finally {
+      await rm(projectRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('fails closed on malformed capability_contract_refs', async () => {
+    const projectRoot = await mkdtemp(path.join(os.tmpdir(), 'nimi-capability-refs-'));
+    try {
+      await writeFile(
+        path.join(projectRoot, 'nimi.app.yaml'),
+        'capability_contract_refs:\n  - text.generate\n  - text.generate\n',
+        'utf8',
+      );
+      const appControl = control({
+        listRegistrations: async () => [registration({
+          project: {
+            appId: 'example.local-app',
+            displayName: 'Example Local App',
+            canonicalProjectRoot: projectRoot,
+            canonicalManifestPath: path.join(projectRoot, 'nimi.app.yaml'),
+            shell: 'electron',
+            appAccess: [],
+            sourceGeneration: 3,
+            declarationGeneration: 4,
+          },
+        })],
+      });
+      const host = new ElectronLocalDevelopmentHost(appControl, '/tmp');
+      const rows = await host.invoke('local_development_registrations_list', {}) as Array<unknown>;
+      assert.deepEqual(rows, []);
+    } finally {
+      await rm(projectRoot, { recursive: true, force: true });
+    }
+  });
+});
+
 describe('Desktop local-development project icon', () => {
   const PNG_BYTES = PNG.sync.write(Object.assign(new PNG({ width: 128, height: 128 }), { data: Buffer.alloc(128 * 128 * 4, 255) }));
 

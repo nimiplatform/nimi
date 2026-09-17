@@ -143,7 +143,35 @@
     "openTemplate": "View plan",
     "useTemplate": "Use this plan",
     "offerCount": "{{count}} candidate(s)",
-    "openMarketOffer": "View in Model Market",
+    "slotLabels": {
+      "mainModel": "Main model",
+      "visionProjector": "Vision model",
+      "visionModel": "Vision model",
+      "embeddingModel": "Embedding model",
+      "ttsModel": "Speech model",
+      "sttModel": "Transcription model",
+      "voiceModel": "Voice model",
+      "textEncoder": "Text encoder",
+      "vae": "VAE"
+    },
+    "quantSemantic": {
+      "spaceSaving": "Smallest size",
+      "lightweight": "Light",
+      "balanced": "Balanced",
+      "highQuality": "High quality",
+      "maxQuality": "Best quality"
+    },
+    "picker": {
+      "title": "Choose {{slot}}",
+      "change": "Change",
+      "choose": "Choose model",
+      "current": "Current",
+      "inspect": "View details",
+      "installedSection": "Installed",
+      "installableSection": "Available to install",
+      "installAndUse": "Install and use",
+      "unsupportedToggle": "{{count}} version(s) not compatible with this device"
+    },
     "missingSlots": "{{count}} required model(s) still need to be selected. Choose installed models, or download or import them.",
     "recipeManualModels": "Choose existing models or import them in Local Assets. This plan has no recommended downloads.",
     "downloadSizeUnknown": "size unknown",

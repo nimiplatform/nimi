@@ -32,10 +32,11 @@
   },
   "library": {
     "pageTitle": "App Center",
-    "sortLabel": "Sort apps",
-    "sortUpdated": "Recently updated",
-    "sortName": "Name",
-    "sortActivity": "Running first",
+    "filterLabel": "Filter apps",
+    "filterAll": "All apps",
+    "filterRunning": "Running",
+    "filterUpdates": "Updates available",
+    "filterAttention": "Needs attention",
     "backToLibrary": "Back to Apps",
     "connectLocalTitle": "Add App",
     "cardMenuLabel": "App actions",
@@ -44,11 +45,12 @@
   "sourceBadge": {
     "userImported": "Imported",
     "localDevelopment": "Local development",
-    "verified": "Registry approved"
+    "verified": "Reviewed",
+    "verifiedDescription": "This app has passed review for publication."
   },
   "catalog": {
     "loading": "Loading the App Catalog…",
-    "registryApproved": "This release was approved through the public Nimi App Registry. Its descriptor binds the exact Release asset, digest, and provenance, and Runtime verifies the downloaded package again. Approval and verification are not a malware-free or operating-system execution guarantee.",
+    "registryApproved": "This release was approved through the public Nimi App Registry, and the download is verified again so you receive exactly the reviewed file. Approval and verification do not guarantee it is free of malware, or that your operating system will allow it to run.",
     "policyBlocked": "New installation or launch is blocked by the current Registry policy (revision {{revision}}): {{reason}}",
     "policyBlockedFallback": "No reason was provided.",
     "publisher": "GitHub publisher",
@@ -232,6 +234,11 @@
     "openSettings": "Open AI model settings",
     "loadFailed": "This app's AI configuration could not be loaded from Runtime.",
     "saveFailed": "Runtime could not save this app's AI configuration.",
+    "sections": {
+      "declared": "Required by this app ({{count}})",
+      "configuredOthers": "Other configured capabilities ({{count}})",
+      "rest": "All capabilities ({{count}})"
+    },
     "capability": {
       "audioSynthesize": {
         "label": "Speech synthesis",
@@ -241,6 +248,10 @@
         "label": "Speech transcription",
         "description": "Choose how this app turns speech into text."
       },
+      "imageFaceSwap": {
+        "label": "Image face swap",
+        "description": "Choose how this app swaps faces in images."
+      },
       "imageGenerate": {
         "label": "Image generation",
         "description": "Choose how this app generates images."
@@ -248,6 +259,10 @@
       "musicGenerate": {
         "label": "Music generation",
         "description": "Choose how this app generates music."
+      },
+      "realtimeInteract": {
+        "label": "Realtime interaction",
+        "description": "Choose how this app runs realtime interactions."
       },
       "textEmbed": {
         "label": "Text embedding",
@@ -257,9 +272,17 @@
         "label": "Text generation",
         "description": "Choose how this app generates text."
       },
+      "videoFaceSwap": {
+        "label": "Video face swap",
+        "description": "Choose how this app swaps faces in videos."
+      },
       "videoGenerate": {
         "label": "Video generation",
         "description": "Choose how this app generates video."
+      },
+      "visionLocate": {
+        "label": "Vision locate",
+        "description": "Choose how this app locates elements in images."
       },
       "voiceCreate": {
         "label": "Voice creation",
@@ -309,10 +332,13 @@
     "overviewTab": "Overview",
     "accessTab": "Nimi Access",
     "aiModelsTab": "AI models",
-    "developerTab": "Developer info",
     "localSummary": "A local development app registered with Nimi.",
-    "aboutTitle": "About this app",
+    "infoPanelLabel": "App information",
+    "developer": "Developer",
+    "aboutAppTitle": "About {{name}}",
+    "moreInfo": "More info",
     "catalogVersion": "Version",
+    "versionNotProvided": "Not provided",
     "releaseRef": "Release reference",
     "aboutDescription": "Registration and source information currently available for this local development app.",
     "registrationState": "Registration",
@@ -328,26 +354,48 @@
     "accessDeclarationNote": "App Access is a project declaration, not a user permission, approval, or consent setting.",
     "noAccessTitle": "No App Access declared",
     "noAccessDescription": "This project registered without declaring any App Access domains.",
+    "runRequirementsTitle": "Run requirements",
+    "runRequirementsLocalDescription": "This App comes from a local development project connected on this device. Nimi builds, launches, and supervises its runs; the status badge at the top of this page and Nimi's own records are the source of truth for run state and failure reasons.",
+    "runRequirementsInstalledDescription": "Nimi installs, launches, and supervises this App's runs; the status badge at the top of this page and Nimi's own records are the source of truth for run state and failure reasons.",
+    "runRequirementsAiNote": "Configure this App's models in the “AI Models” tab before using AI features. When a required model or capability is missing, the feature reports unavailable instead of producing substitute results.",
     "developerInfoTitle": "Developer information",
     "developerInfoDescription": "Exact local source and generation details for troubleshooting this registration.",
+    "propertiesTitle": "Properties",
+    "generalSectionTitle": "General",
+    "documentsSectionTitle": "Documents",
+    "updateSectionTitle": "Updates",
+    "autoUpdateLabel": "Automatic updates",
+    "autoUpdateDescription": "Choose what happens when an update is available. Automatic start still asks for your confirmation before downloading.",
+    "autoUpdateManual": "Notify me when an update is available",
+    "autoUpdateAuto": "Start updates automatically (I still confirm)",
+    "autoUpdateSaveFailed": "This setting could not be saved right now.",
+    "updateStatusLabel": "Update status",
+    "updateStatusUpToDate": "This app is up to date",
+    "installedVersionLabel": "Installed version",
+    "latestRegistryVersionLabel": "Latest online version",
+    "installedContentUpdatedAtLabel": "Installed content updated",
+    "updateNotesTitle": "What's new in {{version}}",
+    "updateNotesUnavailable": "Update notes could not be loaded right now.",
+    "importedUpdateNote": "This app was imported from a local package. Update it with “Update from local file”.",
     "moreActions": "More actions",
     "copyAppId": "Copy App ID",
     "appIdCopied": "Copied",
     "runCardTitle": "Run status",
-    "readmeTruncated": "This document is long. Only the beginning is shown; open the project file to read the rest.",
-    "readmeError": "Could not read the project documentation. Check the file contents and access permissions.",
-    "readmeEmptyTitle": "No README yet",
-    "readmeEmptyDescription": "Add a README.md to the project root and it will appear here.",
+    "readmeTruncated": "This document is long. Only the beginning is shown.",
+    "readmeError": "The usage guide could not be loaded right now.",
     "runDiagnosticsDescription": "Latest supervised run detail reported by the Desktop host.",
     "runMessage": "Message",
     "runReasonCode": "Reason code",
-    "otherSourcesTitle": "Other sources",
-    "otherSourcesDescription": "Other sources of this App on this device. Install, run, and removal stay independent for each source.",
+    "otherSourcesLabel": "Other sources",
+    "otherSourcesDownloadTitle": "Online version available",
+    "otherSourcesRegistryInstalledTitle": "Online version installed",
+    "otherSourcesLocalDevTitle": "Local development source registered",
+    "otherSourcesImportedTitle": "Imported copy on this device",
+    "otherSourcesIndependenceNote": "Install, run, and removal stay independent for each source.",
     "viewSource": "View",
-    "catalogTargetTitle": "Registry target · {{version}}",
+    "catalogTargetTitle": "Online version",
     "technicalTitle": "Technical details",
-    "readmeTitle": "README",
-    "readmeDescription": "The project root README.md rendered as-is for development diagnostics.",
+    "readmeTitle": "How to use",
     "selectTitle": "Select an app",
     "selectDescription": "Choose a registered app from the list to inspect its details.",
     "loadFailedTitle": "Apps could not be loaded",
@@ -482,7 +530,8 @@
     "reason": "Reason code",
     "notNotarized": "Not notarized by Apple",
     "notarized": "Notarized by Apple",
-    "ownerHint": "Tasks continue while Runtime is running, even after Home closes. A completed task does not mean the App is running.",
+    "hint": "Downloads and installs continue in the background. Closing this window will not interrupt them.",
+    "hintDismiss": "Dismiss",
     "cancelTitle": "Cancel this download task?",
     "cancelMessage": "Remove {{size}} downloaded for {{app}}. The installed App version, App data, shared models, and account data are retained.",
     "confirmCancel": "Cancel download",

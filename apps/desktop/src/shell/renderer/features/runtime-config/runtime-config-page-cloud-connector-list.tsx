@@ -18,10 +18,10 @@ export function CloudConnectorListPanel(props: {
 }) {
   const { connectors, t } = props;
   return (
-    <PrimitiveCard className="h-[600px] overflow-hidden" hoverMotion={false}>
-      <ScrollArea className="h-full" contentClassName="p-4">
+    <PrimitiveCard className="overflow-hidden xl:h-[600px]" hoverMotion={false}>
+      <ScrollArea className="max-h-[300px] xl:h-[600px] xl:max-h-none" contentClassName="p-4">
         {connectors.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center text-center">
+          <div className="flex h-full min-h-[160px] flex-col items-center justify-center text-center">
             <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))]">
               <CloudIcon className="h-6 w-6 text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]" />
             </div>

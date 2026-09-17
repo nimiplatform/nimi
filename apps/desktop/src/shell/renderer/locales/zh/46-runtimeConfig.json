@@ -143,7 +143,35 @@
     "openTemplate": "查看方案",
     "useTemplate": "使用此方案",
     "offerCount": "{{count}} 个候选",
-    "openMarketOffer": "在模型市场中查看",
+    "slotLabels": {
+      "mainModel": "主模型",
+      "visionProjector": "视觉模型",
+      "visionModel": "视觉模型",
+      "embeddingModel": "嵌入模型",
+      "ttsModel": "语音模型",
+      "sttModel": "语音转写模型",
+      "voiceModel": "声音模型",
+      "textEncoder": "文本编码器",
+      "vae": "VAE"
+    },
+    "quantSemantic": {
+      "spaceSaving": "最省空间",
+      "lightweight": "轻量",
+      "balanced": "均衡",
+      "highQuality": "高质量",
+      "maxQuality": "最高质量"
+    },
+    "picker": {
+      "title": "选择{{slot}}",
+      "change": "更换",
+      "choose": "选择模型",
+      "current": "当前",
+      "inspect": "查看详情",
+      "installedSection": "已安装",
+      "installableSection": "可安装",
+      "installAndUse": "安装并使用",
+      "unsupportedToggle": "{{count}} 个版本与当前设备不兼容"
+    },
     "missingSlots": "还有 {{count}} 个必需模型未选择。请选择已有模型，或先下载、导入所需模型。",
     "recipeManualModels": "请选择已有模型，或在本地资产中导入。此方案没有推荐下载项。",
     "downloadSizeUnknown": "大小未知",

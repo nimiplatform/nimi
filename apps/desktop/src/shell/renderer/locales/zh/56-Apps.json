@@ -32,10 +32,11 @@
   },
   "library": {
     "pageTitle": "应用中心",
-    "sortLabel": "排序方式",
-    "sortUpdated": "最近更新",
-    "sortName": "名称",
-    "sortActivity": "运行优先",
+    "filterLabel": "筛选",
+    "filterAll": "全部 App",
+    "filterRunning": "运行中",
+    "filterUpdates": "有更新",
+    "filterAttention": "需处理",
     "backToLibrary": "返回应用库",
     "connectLocalTitle": "添加应用",
     "cardMenuLabel": "App 操作",
@@ -44,11 +45,12 @@
   "sourceBadge": {
     "userImported": "本地导入",
     "localDevelopment": "本地开发",
-    "verified": "已通过 Registry 审核"
+    "verified": "已审核",
+    "verifiedDescription": "此应用已通过上架审核。"
   },
   "catalog": {
     "loading": "正在加载应用目录…",
-    "registryApproved": "这个版本已通过公共 Nimi App Registry 审核。Descriptor 冻结准确的 Release asset、digest 和 provenance，Runtime 还会再次验证下载的包；审核和验证都不等于无恶意代码保证，也不保证操作系统一定允许执行。",
+    "registryApproved": "这个版本已通过公共 Nimi App Registry 审核，下载时还会再次校验，确保你拿到的就是审核过的文件。但审核和校验都不等于保证没有恶意行为，也不保证你的操作系统一定允许它运行。",
     "policyBlocked": "当前 Registry 策略已阻止新的安装或启动（修订 {{revision}}）：{{reason}}",
     "policyBlockedFallback": "未提供原因。",
     "publisher": "GitHub 发布者",
@@ -232,6 +234,11 @@
     "openSettings": "打开 AI 模型设置",
     "loadFailed": "无法从 Runtime 加载此 App 的 AI 配置。",
     "saveFailed": "Runtime 无法保存此 App 的 AI 配置。",
+    "sections": {
+      "declared": "此 App 需要的能力（{{count}}）",
+      "configuredOthers": "已配置的其他能力（{{count}}）",
+      "rest": "全部能力（{{count}}）"
+    },
     "capability": {
       "audioSynthesize": {
         "label": "语音合成",
@@ -241,6 +248,10 @@
         "label": "语音转写",
         "description": "选择此 App 如何将语音转换为文本。"
       },
+      "imageFaceSwap": {
+        "label": "图片换脸",
+        "description": "选择此 App 如何替换图片中的人脸。"
+      },
       "imageGenerate": {
         "label": "图像生成",
         "description": "选择此 App 如何生成图像。"
@@ -248,6 +259,10 @@
       "musicGenerate": {
         "label": "音乐生成",
         "description": "选择此 App 如何生成音乐。"
+      },
+      "realtimeInteract": {
+        "label": "实时交互",
+        "description": "选择此 App 如何进行实时交互。"
       },
       "textEmbed": {
         "label": "文本嵌入",
@@ -257,9 +272,17 @@
         "label": "文本生成",
         "description": "选择此 App 如何生成文本。"
       },
+      "videoFaceSwap": {
+        "label": "视频换脸",
+        "description": "选择此 App 如何替换视频中的人脸。"
+      },
       "videoGenerate": {
         "label": "视频生成",
         "description": "选择此 App 如何生成视频。"
+      },
+      "visionLocate": {
+        "label": "图像定位",
+        "description": "选择此 App 如何在图像中定位元素。"
       },
       "voiceCreate": {
         "label": "声音创建",
@@ -309,10 +332,13 @@
     "overviewTab": "概览",
     "accessTab": "Nimi Access",
     "aiModelsTab": "AI 模型",
-    "developerTab": "开发者信息",
     "localSummary": "已注册到当前 Nimi 的本地开发 App。",
-    "aboutTitle": "关于此 App",
+    "infoPanelLabel": "App 信息",
+    "developer": "开发者",
+    "aboutAppTitle": "关于 {{name}}",
+    "moreInfo": "更多信息",
     "catalogVersion": "版本",
+    "versionNotProvided": "未提供",
     "releaseRef": "发布引用",
     "aboutDescription": "当前可用于这个本地开发 App 的注册与来源信息。",
     "registrationState": "注册状态",
@@ -328,26 +354,48 @@
     "accessDeclarationNote": "App Access 是项目声明，不是用户权限、批准或同意设置。",
     "noAccessTitle": "未声明 App Access",
     "noAccessDescription": "此项目注册时没有声明任何 App Access 域。",
+    "runRequirementsTitle": "运行条件",
+    "runRequirementsLocalDescription": "此 App 来自本机接入的本地开发项目，由 Nimi 构建、启动并监督运行；运行状态与失败原因以页面顶部的状态徽章和 Nimi 的实际记录为准。",
+    "runRequirementsInstalledDescription": "此 App 由 Nimi 安装、启动并监督运行；运行状态与失败原因以页面顶部的状态徽章和 Nimi 的实际记录为准。",
+    "runRequirementsAiNote": "使用 AI 功能前，在“AI 模型”标签页完成此应用的模型配置。缺少所需模型或能力时，相关功能会报告不可用，不会生成替代结果。",
     "developerInfoTitle": "开发者信息",
     "developerInfoDescription": "用于排查此注册的精确本地来源和 generation 信息。",
+    "propertiesTitle": "属性",
+    "generalSectionTitle": "通用",
+    "documentsSectionTitle": "文档",
+    "updateSectionTitle": "更新",
+    "autoUpdateLabel": "自动更新",
+    "autoUpdateDescription": "有可用更新时的行为。“自动开始”仍会在下载安装前请你确认。",
+    "autoUpdateManual": "有可用更新时提醒我",
+    "autoUpdateAuto": "自动开始更新（仍需我确认）",
+    "autoUpdateSaveFailed": "暂时无法保存此设置。",
+    "updateStatusLabel": "更新状态",
+    "updateStatusUpToDate": "已是最新版本",
+    "installedVersionLabel": "当前版本",
+    "latestRegistryVersionLabel": "线上最新版本",
+    "installedContentUpdatedAtLabel": "已安装内容更新于",
+    "updateNotesTitle": "{{version}} 的更新说明",
+    "updateNotesUnavailable": "暂时无法加载更新说明。",
+    "importedUpdateNote": "此 App 来自本地导入的安装包，可通过“从本地文件更新”升级。",
     "moreActions": "更多操作",
     "copyAppId": "复制 App ID",
     "appIdCopied": "已复制",
     "runCardTitle": "运行状态",
-    "readmeTruncated": "文档较长，仅展示开头部分。完整内容请在项目中查看。",
-    "readmeError": "无法读取项目说明，请检查文件内容与访问权限。",
-    "readmeEmptyTitle": "暂无 README",
-    "readmeEmptyDescription": "在项目根目录添加 README.md 后，它会显示在这里。",
+    "readmeTruncated": "内容较长，仅展示开头部分。",
+    "readmeError": "暂时无法加载使用说明。",
     "runDiagnosticsDescription": "Desktop 宿主报告的最近一次受监督运行详情。",
     "runMessage": "消息",
     "runReasonCode": "原因码",
-    "otherSourcesTitle": "其他来源",
-    "otherSourcesDescription": "同一 App 在本机的其他来源；每个来源的安装、运行与移除互不影响。",
+    "otherSourcesLabel": "其他来源",
+    "otherSourcesDownloadTitle": "线上版本可下载",
+    "otherSourcesRegistryInstalledTitle": "线上版本已安装",
+    "otherSourcesLocalDevTitle": "已注册本地开发来源",
+    "otherSourcesImportedTitle": "本机有本地导入的版本",
+    "otherSourcesIndependenceNote": "每个来源的安装、运行与移除互不影响。",
     "viewSource": "查看",
-    "catalogTargetTitle": "Registry 版本 · {{version}}",
+    "catalogTargetTitle": "线上版本",
     "technicalTitle": "技术信息",
-    "readmeTitle": "README",
-    "readmeDescription": "项目根目录 README.md 的原文渲染，用于开发排查。",
+    "readmeTitle": "使用说明",
     "selectTitle": "选择一个 App",
     "selectDescription": "从列表中选择已注册 App 以查看详情。",
     "loadFailedTitle": "无法加载 Apps",
@@ -482,7 +530,8 @@
     "reason": "原因代码",
     "notNotarized": "未经 Apple 公证",
     "notarized": "已通过 Apple 公证",
-    "ownerHint": "Runtime 运行时，关闭 Home 不影响任务。完成记录不代表 App 已运行。",
+    "hint": "下载与安装会在后台继续，关闭窗口不会中断任务。",
+    "hintDismiss": "关闭提示",
     "cancelTitle": "取消这项下载任务？",
     "cancelMessage": "将移除 {{app}} 已下载的 {{size}}。现有 App 版本、App 数据、共享模型和账户数据保留。",
     "confirmCancel": "取消下载",

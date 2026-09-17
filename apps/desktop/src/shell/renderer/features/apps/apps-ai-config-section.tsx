@@ -8,6 +8,7 @@ import {
 } from '@nimiplatform/kit/core/sdk-contract';
 import {
   ModelConfigAIConfigSurface,
+  type ModelConfigCapabilitySection,
   type ModelConfigCopy,
 } from '@nimiplatform/kit/features/model-config';
 import { useAppStore } from '../../app-shell/providers/app-store';
@@ -70,6 +71,22 @@ const CAPABILITY_COPY_KEYS: Readonly<Record<string, {
     label: 'Apps.aiConfig.capability.worldGenerate.label',
     description: 'Apps.aiConfig.capability.worldGenerate.description',
   },
+  'image.face_swap': {
+    label: 'Apps.aiConfig.capability.imageFaceSwap.label',
+    description: 'Apps.aiConfig.capability.imageFaceSwap.description',
+  },
+  'video.face_swap': {
+    label: 'Apps.aiConfig.capability.videoFaceSwap.label',
+    description: 'Apps.aiConfig.capability.videoFaceSwap.description',
+  },
+  'realtime.interact': {
+    label: 'Apps.aiConfig.capability.realtimeInteract.label',
+    description: 'Apps.aiConfig.capability.realtimeInteract.description',
+  },
+  'vision.locate': {
+    label: 'Apps.aiConfig.capability.visionLocate.label',
+    description: 'Apps.aiConfig.capability.visionLocate.description',
+  },
 });
 
 export function appsAIConfigCapabilityContracts(
@@ -78,6 +95,40 @@ export function appsAIConfigCapabilityContracts(
   return appAccess.includes(APPS_AI_CONFIG_APP_ACCESS_DOMAIN)
     ? CANONICAL_CAPABILITY_IDS
     : [];
+}
+
+export type AppsAIConfigCapabilitySectionPlan = {
+  /** Canonical capabilities the App declares in capability_contract_refs. */
+  readonly declared: readonly string[];
+  /** Saved per-app intents outside the declared set, including non-canonical contracts. */
+  readonly configuredOthers: readonly string[];
+  /** Everything else; collapsed by default unless it is the only group. */
+  readonly rest: readonly string[];
+};
+
+/**
+ * Presentation grouping for the Apps AI models tab: declared capabilities
+ * first, saved overrides visible, the remaining catalog out of the way, all
+ * in canonical catalog order. Pure presentation; editing scope is unchanged.
+ */
+export function partitionAppsAIConfigCapabilities(input: {
+  readonly declaredRefs: readonly string[];
+  readonly configuredContracts: readonly string[];
+}): AppsAIConfigCapabilitySectionPlan {
+  const declaredRefs = new Set(input.declaredRefs.map((entry) => entry.trim()).filter(Boolean));
+  const configured = new Set(input.configuredContracts.map((entry) => entry.trim()).filter(Boolean));
+  const declared: string[] = [];
+  const configuredOthers: string[] = [];
+  const rest: string[] = [];
+  for (const contract of CANONICAL_CAPABILITY_IDS) {
+    if (declaredRefs.has(contract)) declared.push(contract);
+    else if (configured.has(contract)) configuredOthers.push(contract);
+    else rest.push(contract);
+  }
+  for (const contract of configured) {
+    if (!CANONICAL_CAPABILITY_IDS.includes(contract)) configuredOthers.push(contract);
+  }
+  return { declared, configuredOthers, rest };
 }
 
 function useAppsModelConfigCopy(appDisplayName: string): ModelConfigCopy {
@@ -233,6 +284,8 @@ export interface AppsAIConfigSectionProps {
   readonly appId: string;
   readonly appDisplayName: string;
   readonly allowedRoutes: readonly ('local' | 'cloud')[];
+  /** App-declared capability_contract_refs; empty means the App declares none. */
+  readonly declaredCapabilityRefs?: readonly string[];
   readonly onAIConfigChanged: (result: NimiAIConfigOverwriteResult) => void;
 }
 
@@ -241,6 +294,7 @@ export function AppsAIConfigSection({
   appId,
   appDisplayName,
   allowedRoutes,
+  declaredCapabilityRefs = [],
   onAIConfigChanged,
 }: AppsAIConfigSectionProps) {
   const runtimeConfigNavigation = useDesktopRendererCommands().runtimeConfigNavigation;
@@ -248,7 +302,49 @@ export function AppsAIConfigSection({
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const appAIConfig = useDesktopNimiAppAIConfig(appId);
   const overwriteAppAIConfig = useOverwriteDesktopNimiAppAIConfig(appId);
+  const { t, i18n } = useTranslation();
   const copy = useAppsModelConfigCopy(appDisplayName);
+  const capabilities = appAIConfig.data?.config?.capabilities ?? (appAIConfig.isPending ? undefined : null);
+  const capabilitySections = useMemo<readonly ModelConfigCapabilitySection[] | undefined>(() => {
+    if (capabilities === undefined) return undefined;
+    const plan = partitionAppsAIConfigCapabilities({
+      declaredRefs: declaredCapabilityRefs,
+      configuredContracts: (capabilities ?? []).map((entry) => entry.capabilityContract),
+    });
+    const sections: ModelConfigCapabilitySection[] = [];
+    if (plan.declared.length > 0) {
+      sections.push({
+        id: 'declared',
+        title: t('Apps.aiConfig.sections.declared', {
+          count: plan.declared.length,
+          defaultValue: 'Required by this app ({{count}})',
+        }),
+        contracts: plan.declared,
+      });
+    }
+    if (plan.configuredOthers.length > 0) {
+      sections.push({
+        id: 'configured-others',
+        title: t('Apps.aiConfig.sections.configuredOthers', {
+          count: plan.configuredOthers.length,
+          defaultValue: 'Other configured capabilities ({{count}})',
+        }),
+        contracts: plan.configuredOthers,
+      });
+    }
+    if (plan.rest.length > 0) {
+      sections.push({
+        id: 'rest',
+        title: t('Apps.aiConfig.sections.rest', {
+          count: plan.rest.length,
+          defaultValue: 'All capabilities ({{count}})',
+        }),
+        contracts: plan.rest,
+        defaultExpanded: plan.declared.length === 0 && plan.configuredOthers.length === 0,
+      });
+    }
+    return sections;
+  }, [capabilities, declaredCapabilityRefs, t]);
   const overwriteAndRefreshSummary = useCallback(async (
     input: Parameters<typeof overwriteAppAIConfig.mutateAsync>[0],
   ) => {
@@ -270,6 +366,7 @@ export function AppsAIConfigSection({
       <ModelConfigAIConfigSurface
         context={{ owner: 'app-ai-config', appId }}
         capabilityContracts={CANONICAL_CAPABILITY_IDS}
+        capabilitySections={capabilitySections}
         allowedRoutes={allowedRoutes}
         capabilities={appAIConfig.data?.config?.capabilities ?? (appAIConfig.isPending ? undefined : null)}
         revision={appAIConfig.data?.revision}
@@ -287,6 +384,7 @@ export function AppsAIConfigSection({
           technicalDetail: error instanceof Error ? error.message : String(error || ''),
         })}
         copy={copy}
+        language={i18n.resolvedLanguage || i18n.language}
       />
     </section>
   );

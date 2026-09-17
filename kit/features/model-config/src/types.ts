@@ -43,6 +43,21 @@ export type ModelConfigFormattedError = {
   readonly technicalDetail?: string;
 };
 
+/**
+ * Optional list grouping for the AIConfig surface. The host owns the grouping
+ * policy and localized titles; each contract still renders through the same
+ * row/editor pipeline. Sections render expanded unless defaultExpanded is
+ * false. Contracts absent from every section render unsectioned after the
+ * last section.
+ */
+export type ModelConfigCapabilitySection = {
+  readonly id: string;
+  readonly title: string;
+  readonly description?: string;
+  readonly contracts: readonly string[];
+  readonly defaultExpanded?: boolean;
+};
+
 export type ModelConfigCopy = Partial<{
   readonly title: string;
   readonly description: string;
@@ -131,6 +146,7 @@ export type ModelConfigListOptions = (
 ) => Promise<NimiAIConfigOptionsResult>;
 
 export type ModelConfigCurrentMachineLocalActionCopy = Readonly<{
+  readonly title: string;
   readonly label: string;
   readonly hint: string;
   readonly loadingLabel: string;
