@@ -8,6 +8,9 @@
   together. Missing, unrelated or incomplete callbacks no longer consume the
   listener. Runtime retains final authorization and code-exchange ownership.
 - Callback pages report receipt of authorization, not completed account login.
+- Electron OAuth callback completion no longer waits for unrelated active HTTP
+  connections to close. POST bodies are limited to 16 KiB and 10 seconds;
+  responses have a bounded one-second flush window before socket cleanup.
 
 ## 0.11.0 (development)
 

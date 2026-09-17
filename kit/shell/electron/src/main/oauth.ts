@@ -1,9 +1,13 @@
-import { createServer, type IncomingMessage } from 'node:http';
+import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import type { Socket } from 'node:net';
 import { NimiElectronShellHostError, type NimiElectronStandardShellHost } from './types.js';
 import { createElectronCapabilityUnavailableError, errorMessage } from './errors.js';
 import { asRecord, normalizeRequiredToken, normalizeText, parseOptionalPositiveNumber, standardNestedPayload } from './paths.js';
 
 const ELECTRON_OAUTH_SUCCESS_AUTO_CLOSE_MS = 3000;
+const ELECTRON_OAUTH_MAX_BODY_BYTES = 16 * 1024;
+const ELECTRON_OAUTH_REQUEST_TIMEOUT_MS = 10_000;
+const ELECTRON_OAUTH_RESPONSE_GRACE_MS = 1000;
 
 export async function openElectronExternalUrl(
   host: NimiElectronStandardShellHost | undefined,
@@ -139,32 +143,45 @@ export async function listenElectronOauthForCode(
   const timeoutMs = clampNumber(parseOptionalPositiveNumber(commandPayload.timeoutMs) ?? 180_000, 10_000, 600_000);
   return new Promise((resolve, reject) => {
     let settled = false;
-    const server = createServer((request, response) => {
+    const sockets = new Set<Socket>();
+    const server = createServer({
+      headersTimeout: ELECTRON_OAUTH_REQUEST_TIMEOUT_MS,
+      requestTimeout: ELECTRON_OAUTH_REQUEST_TIMEOUT_MS,
+      connectionsCheckingInterval: 1000,
+    }, (request, response) => {
+      // Teardown can abort another request, including a pipelined request on
+      // the winning socket. Such late stream errors are connection-local.
+      request.on('error', () => undefined);
+      response.on('error', () => response.destroy());
+      if (settled) return;
       void handleElectronOauthCallbackRequest(request, redirect)
         .then((result) => {
+          if (settled) return;
           // Correlate carriage before consuming the listener. The Runtime
           // broker still owns full attempt validation and code exchange.
           if (result.state !== expectedState || (!result.code && !result.error)) {
             throw new Error('OAuth callback does not match the pending authorization');
           }
-          response.writeHead(200, {
-            'content-type': 'text/html; charset=utf-8',
-            'cache-control': 'no-store',
-            connection: 'close',
-          });
-          response.end(result.error
+          const acceptedSocket = response.socket ?? undefined;
+          sendElectronOauthResponse(response, 200, 'text/html; charset=utf-8', result.error
             ? '<!doctype html><title>Authorization failed</title><p>Authorization failed. Return to Nimi to try again.</p>'
             : renderElectronOauthSuccessPage());
-          settle(undefined, result);
+          settle(undefined, result, acceptedSocket);
         })
         .catch((error: unknown) => {
-          response.writeHead(400, {
-            'content-type': 'text/plain; charset=utf-8',
-            'cache-control': 'no-store',
-            connection: 'close',
-          });
-          response.end(errorMessage(error));
+          if (settled) return;
+          sendElectronOauthResponse(response,
+            error instanceof ElectronOauthRequestError ? error.status : 400,
+            'text/plain; charset=utf-8', errorMessage(error));
         });
+    });
+    server.on('connection', (socket) => {
+      if (settled) {
+        socket.destroy();
+        return;
+      }
+      sockets.add(socket);
+      socket.once('close', () => sockets.delete(socket));
     });
     const timer = setTimeout(() => {
       settle(new NimiElectronShellHostError({
@@ -176,19 +193,20 @@ export async function listenElectronOauthForCode(
       }));
     }, timeoutMs);
 
-    const settle = (error?: unknown, value?: Record<string, unknown>) => {
+    const settle = (error?: unknown, value?: Record<string, unknown>, acceptedSocket?: Socket) => {
       if (settled) {
         return;
       }
       settled = true;
       clearTimeout(timer);
-      server.close(() => {
-        if (error) {
-          reject(error);
-          return;
-        }
-        resolve(value ?? {});
-      });
+      // The caller's result must never depend on another HTTP peer finishing.
+      // Preserve only the accepted response's bounded flush window.
+      server.close();
+      for (const socket of sockets) {
+        if (socket !== acceptedSocket) socket.destroy();
+      }
+      if (error) reject(error);
+      else resolve(value ?? {});
     };
 
     server.once('error', (error) => {
@@ -202,6 +220,20 @@ export async function listenElectronOauthForCode(
     });
     server.listen(redirect.port, redirect.bindHost);
   });
+}
+
+function sendElectronOauthResponse(response: ServerResponse, status: number, contentType: string, body: string): void {
+  if (response.destroyed || response.writableEnded) return;
+  const socket = response.socket;
+  const cleanupTimer = setTimeout(() => socket?.destroy(), ELECTRON_OAUTH_RESPONSE_GRACE_MS);
+  cleanupTimer.unref();
+  socket?.once('close', () => clearTimeout(cleanupTimer));
+  response.writeHead(status, {
+    'content-type': contentType,
+    'cache-control': 'no-store',
+    connection: 'close',
+  });
+  response.end(body);
 }
 
 function renderElectronOauthSuccessPage(): string {
@@ -423,12 +455,59 @@ async function handleElectronOauthCallbackRequest(
   return result;
 }
 
-async function readRequestBody(request: IncomingMessage): Promise<string> {
-  const chunks: Buffer[] = [];
-  for await (const chunk of request) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+class ElectronOauthRequestError extends Error {
+  constructor(readonly status: 408 | 413, message: string) {
+    super(message);
   }
-  return Buffer.concat(chunks).toString('utf8');
+}
+
+function readRequestBody(request: IncomingMessage): Promise<string> {
+  if (Number(request.headers['content-length']) > ELECTRON_OAUTH_MAX_BODY_BYTES) {
+    request.pause();
+    return Promise.reject(new ElectronOauthRequestError(413, 'OAuth callback body exceeds 16 KiB'));
+  }
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    let totalBytes = 0;
+    let finished = false;
+    const finish = (error?: Error) => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer);
+      request.off('data', onData);
+      request.off('end', onEnd);
+      request.off('aborted', onAborted);
+      request.off('error', onError);
+      request.off('close', onAborted);
+      if (error) {
+        // Do not destroy the socket before its 408/413 response can flush.
+        request.pause();
+        reject(error);
+      } else {
+        resolve(Buffer.concat(chunks, totalBytes).toString('utf8'));
+      }
+    };
+    const onData = (chunk: Buffer | string) => {
+      const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      totalBytes += bytes.length;
+      if (totalBytes > ELECTRON_OAUTH_MAX_BODY_BYTES) {
+        finish(new ElectronOauthRequestError(413, 'OAuth callback body exceeds 16 KiB'));
+        return;
+      }
+      chunks.push(bytes);
+    };
+    const onEnd = () => finish();
+    const onAborted = () => finish(new Error('OAuth callback request was closed before completion'));
+    const onError = (error: Error) => finish(error);
+    // An absolute deadline: receiving another byte must not extend it.
+    const timer = setTimeout(() => finish(new ElectronOauthRequestError(408, 'OAuth callback body read timed out')),
+      ELECTRON_OAUTH_REQUEST_TIMEOUT_MS);
+    request.on('data', onData);
+    request.once('end', onEnd);
+    request.once('aborted', onAborted);
+    request.once('error', onError);
+    request.once('close', onAborted);
+  });
 }
 
 function addOptionalField(target: Record<string, unknown>, key: string, value: unknown): void {
