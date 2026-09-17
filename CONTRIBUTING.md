@@ -74,13 +74,17 @@ Compatibility files such as `CLAUDE.md`, `.github/copilot-instructions.md`, and 
 - Docs updated if API/behavior changed
 - No unrelated file changes
 - Commit messages are descriptive
-- DCO sign-off included (`git commit -s`)
+- DCO sign-off included for PRs targeting branches other than `main` (`git commit -s`)
 
 ## DCO
 
-This repository uses Developer Certificate of Origin sign-off.
+Commit-signature and Developer Certificate of Origin (DCO) sign-off requirements
+are temporarily suspended for `main`, including direct pushes and PRs targeting
+`main`. Neither `git commit -S` nor `git commit -s` is required for that branch.
 
-By contributing, you certify your commits with:
+PRs targeting other branches still require DCO sign-off. DCO is a
+`Signed-off-by` commit-message trailer, not a cryptographic Git signature.
+To include it, use:
 
 ```bash
 git commit -s -m "feat: your change"

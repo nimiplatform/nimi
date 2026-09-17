@@ -43,4 +43,6 @@ Commands used:
 
 ## DCO
 
-- [ ] Commits are signed off (`git commit -s`)
+Sign-off is temporarily optional for PRs targeting `main`.
+
+- [ ] For another target branch, commits are signed off (`git commit -s`)

@@ -2,15 +2,15 @@ name: dco
 
 on:
   pull_request:
+    # Sign-off enforcement for main is temporarily suspended.
+    branches-ignore: [main]
     types: [opened, synchronize, reopened]
-  push:
-    branches: [main]
 
 permissions:
   contents: read
 
 concurrency:
-  group: dco-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  group: dco-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -34,8 +34,8 @@ jobs:
       - name: Check contribution sign-offs on every new commit
         env:
           GH_TOKEN: ${{ github.token }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           node --input-type=module <<'NODE'
           import { dcoFailures } from './scripts/lib/dco.mjs';
