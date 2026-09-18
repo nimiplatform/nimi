@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { landingLinkDefaults, resolveLandingLinks } from '../src/landing/config/landing-links.js';
+import {
+  buildAppDetailUrl,
+  landingLinkDefaults,
+  resolveLandingLinks,
+  resolveLocalizedLinks,
+  withLocaleQuery,
+} from '../src/landing/config/landing-links.js';
 
 test('landing links use defaults when env is empty', () => {
   const links = resolveLandingLinks({});
@@ -37,4 +43,29 @@ test('landing links include desktopDownloadUrl default', () => {
   assert.equal(links.webAppUrl, '/home');
   assert.equal(links.downloadUrl, '/download');
   assert.equal(links.desktopDownloadUrl, 'https://docs.nimi.ai/desktop/');
+});
+
+test('withLocaleQuery keeps other parameters and hash on internal links', () => {
+  assert.equal(withLocaleQuery('/apps', 'zh'), '/apps?lang=zh');
+  assert.equal(withLocaleQuery('/apps#create-your-own', 'zh'), '/apps?lang=zh#create-your-own');
+  assert.equal(withLocaleQuery('/home?from=landing', 'en'), '/home?from=landing&lang=en');
+});
+
+test('buildAppDetailUrl keeps the locale query ahead of the app id', () => {
+  assert.equal(buildAppDetailUrl('/apps?lang=zh', 'nimi.parentos'), '/apps/nimi.parentos?lang=zh');
+  assert.equal(buildAppDetailUrl('/apps', 'nimi.parentos'), '/apps/nimi.parentos');
+});
+
+test('resolveLocalizedLinks carries the active locale into site entries', () => {
+  const localized = resolveLocalizedLinks(landingLinkDefaults, 'zh');
+  assert.equal(localized.downloadUrl, '/download?lang=zh');
+  assert.equal(localized.appsUrl, '/apps?lang=zh');
+  assert.equal(localized.worldsUrl, '/home?lang=zh');
+  assert.equal(localized.createAppUrl, '/apps?lang=zh#create-your-own');
+  assert.equal(localized.createGuideUrl, 'https://docs.nimi.ai/zh/start/create-an-app');
+  assert.equal(localized.appUrl, 'https://docs.nimi.ai/zh/start/');
+
+  const en = resolveLocalizedLinks(landingLinkDefaults, 'en');
+  assert.equal(en.downloadUrl, '/download?lang=en');
+  assert.equal(en.createGuideUrl, 'https://docs.nimi.ai/start/create-an-app');
 });

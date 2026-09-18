@@ -23,8 +23,10 @@
 
 :root {
   color-scheme: light;
-  --font-heading: "Sora", "IBM Plex Sans", "Segoe UI", sans-serif;
-  --font-body: "IBM Plex Sans", "Segoe UI", sans-serif;
+  --font-heading: "Sora", "IBM Plex Sans", "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", sans-serif;
+  /* Hero display type references raycast.com: Inter at a 64px desktop scale. */
+  --font-display: "Inter", "Sora", "IBM Plex Sans", "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", sans-serif;
+  --font-body: "IBM Plex Sans", "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", "SFMono-Regular", monospace;
   --surface: #ffffff;
   --surface-border: #e2e8f0; /* slate-200 */
@@ -37,20 +39,31 @@ body,
   min-height: 100%;
 }
 
-html {
-  scroll-behavior: smooth;
+main > section[id] {
+  scroll-margin-top: 0;
 }
 
-main > section[id] {
-  scroll-margin-top: 5rem;
+/* One screen per narrative step (forced paging). A section is exactly one
+ * viewport tall; when its content exceeds the screen it scrolls internally,
+ * so forced paging never locks future expanded content away. */
+.screen-section {
+  height: 100vh;
+  height: 100svh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+}
+
+/* `auto` margins center the content while keeping the top reachable when the
+ * content is taller than the section (the classic safe centering pattern). */
+.screen-section > * {
+  margin-block: auto;
 }
 
 body {
   font-family: var(--font-body);
-  background:
-    radial-gradient(ellipse at 15% -10%, rgba(56, 214, 163, 0.08), transparent 50%),
-    radial-gradient(ellipse at 85% 5%, rgba(14, 165, 233, 0.06), transparent 50%),
-    #f8fafc;
+  background: #f8fafc;
   color: #0f172a;
 }
 
@@ -58,26 +71,46 @@ body {
   font-family: var(--font-heading);
 }
 
+.font-display {
+  font-family: var(--font-display);
+}
+
 .container-nimi {
   margin-inline: auto;
   width: min(1200px, calc(100% - 2rem));
 }
 
+/* Hero canvas is wider than text sections (.container-nimi); the demo window
+ * itself is further capped in hero-section.tsx so it keeps a normal screen
+ * proportion on wide monitors. */
+.container-hero {
+  margin-inline: auto;
+  width: min(1440px, calc(100% - 2rem));
+}
+
+/* Hero demo density: the mockup reads as a real desktop window when its icons
+ * and text render smaller than landing body copy. zoom reflows the mockup at
+ * 85% inside an unchanged frame, so the fixed body heights in hero-demo.tsx
+ * and hero-demo-static.tsx are pre-compensated (rendered height / 0.85).
+ * Browsers without zoom support render the mockup at natural size. */
+.hero-demo-frame {
+  zoom: 0.85;
+}
+
 .section-pad {
-  padding-top: 4rem;
-  padding-bottom: 4rem;
+  padding-top: 3rem;
+  padding-bottom: 3rem;
 }
 
 @media (min-width: 768px) {
   .section-pad {
-    padding-top: 5rem;
-    padding-bottom: 5rem;
+    padding-top: 4rem;
+    padding-bottom: 4rem;
   }
 }
 
 .landing-shell {
   position: relative;
-  overflow-x: clip;
 }
 
 .landing-header {
@@ -86,6 +119,77 @@ body {
   z-index: 50;
   background: rgba(255, 255, 255, 0.8);
   border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+/* The inner wrapper always carries the content width (the header bar used to
+ * use .container-hero directly), so the scrolled "pill" chrome can fade in
+ * around an unchanged layout. */
+.landing-header-inner {
+  margin-inline: auto;
+  width: min(1440px, calc(100% - 2rem));
+  border: 1px solid transparent;
+  border-radius: 2rem;
+}
+
+/* Scrolled (deepseek-style floating pill): the full-width header chrome fades
+ * out and the inner bar floats as a rounded, frosted-glass pill. The float
+ * offset uses transform so the sticky box height never changes and the toggle
+ * cannot feed back into scroll position. */
+.landing-header--scrolled {
+  background: transparent;
+  border-bottom-color: transparent;
+  pointer-events: none;
+}
+
+.landing-header--scrolled .landing-header-inner {
+  transform: translateY(0.75rem);
+  padding-inline: 0.75rem;
+  background: rgba(255, 255, 255, 0.72);
+  -webkit-backdrop-filter: blur(16px) saturate(1.6);
+  backdrop-filter: blur(16px) saturate(1.6);
+  border-color: rgba(15, 23, 42, 0.08);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.1), 0 2px 8px rgba(15, 23, 42, 0.05);
+  pointer-events: auto;
+}
+
+/* Slimmer pill while scrolled: tighter bar padding and smaller round icon
+ * buttons (40px -> 36px) bring the bar from ~64px to ~48px tall. */
+.landing-header--scrolled .landing-header-bar {
+  padding-block: 0.375rem;
+}
+
+.landing-header--scrolled .landing-header-icon {
+  height: 2.25rem;
+  width: 2.25rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .landing-header {
+    transition: background-color 240ms ease, border-color 240ms ease;
+  }
+
+  .landing-header-inner {
+    transition: transform 240ms ease, background-color 240ms ease,
+      border-color 240ms ease, box-shadow 240ms ease, padding-inline 240ms ease;
+  }
+
+  .landing-header-bar {
+    transition: padding-block 240ms ease;
+  }
+
+  /* Extends the Tailwind `transition` utility on the icon buttons (same
+   * properties/timing) with the size morph, instead of replacing it. */
+  .landing-header-icon {
+    transition:
+      height 240ms ease,
+      width 240ms ease,
+      color 150ms cubic-bezier(0.4, 0, 0.2, 1),
+      background-color 150ms cubic-bezier(0.4, 0, 0.2, 1),
+      border-color 150ms cubic-bezier(0.4, 0, 0.2, 1),
+      box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1),
+      transform 150ms cubic-bezier(0.4, 0, 0.2, 1),
+      translate 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
 }
 
 .skip-link {
@@ -125,14 +229,6 @@ body {
   outline: none;
 }
 
-.card-surface {
-  border-radius: 1.15rem;
-  border: 1px solid var(--surface-border);
-  background: var(--surface);
-  padding: 1.15rem;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
-}
-
 .cta-primary,
 .cta-ghost {
   display: inline-flex;
@@ -148,9 +244,9 @@ body {
 }
 
 .cta-primary {
-  background: linear-gradient(130deg, #38d6a3, #0ea5e9);
+  background: linear-gradient(130deg, #0f766e, #0369a1);
   color: #ffffff;
-  box-shadow: 0 16px 26px rgba(14, 165, 233, 0.2);
+  box-shadow: 0 16px 26px rgba(3, 105, 161, 0.25);
 }
 
 .cta-ghost {
@@ -172,55 +268,7 @@ body {
   box-shadow: 0 0 0 2px rgba(56, 214, 163, 0.66);
 }
 
-.reveal {
-  animation: reveal-up 560ms ease both;
-}
-
 pre,
 code {
   font-family: var(--font-mono);
-}
-
-@keyframes slide-in-right {
-  from {
-    opacity: 0;
-    transform: translateX(18px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes reveal-up {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.model-catalog-mask {
-  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
-  -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
-}
-
-.model-catalog-marquee {
-  animation: model-catalog-marquee 20s linear infinite;
-}
-
-.model-catalog-marquee:hover {
-  animation-play-state: paused;
-}
-
-@keyframes model-catalog-marquee {
-  0% {
-    transform: translateX(0%);
-  }
-  100% {
-    transform: translateX(-50%);
-  }
 }

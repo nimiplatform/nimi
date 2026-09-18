@@ -1,5 +1,9 @@
 # Release Process
 
+Current user-visible release status is canonical at <https://nimi.ai/download>.
+This document is the maintainer release process; it does not restate user-facing
+status.
+
 This repository has three distinct release identities. They must not be merged:
 
 - Nimi installable product releases coordinate Desktop, Runtime, signing, update,

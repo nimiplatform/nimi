@@ -14,7 +14,7 @@ export type LanguageToggleProps = {
 
 export function LanguageToggle(props: LanguageToggleProps) {
   return (
-    <fieldset className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-slate-950/70 p-1 shadow-lg shadow-slate-900/30">
+    <fieldset className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-100 p-1">
       <legend className="sr-only">{props.label}</legend>
       {(['en', 'zh'] as const).map((item) => {
         const active = props.locale === item;
@@ -27,8 +27,8 @@ export function LanguageToggle(props: LanguageToggleProps) {
             onClick={() => props.onChange(item)}
             className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
               active
-                ? 'bg-mint-400 text-slate-950 shadow-sm shadow-mint-500/40'
-                : 'text-slate-200 hover:bg-white/10'
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-500 hover:text-slate-800'
             }`}
           >
             {props.options[item]}

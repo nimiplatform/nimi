@@ -2,6 +2,11 @@
 
 ## Unreleased (next 0.x minor)
 
+- CanonicalComposer accepts optional `sendLabel` and `copy` props and forwards
+  them to the inner ChatComposer, so hosts can localize the send button's
+  accessible label and composer copy through the canonical surface. Compatible
+  public input widening (minor); existing callers are unchanged.
+
 - Breaking (0.x minor): retire the archived Simulator-only `scrollLock:
   'simulator-root'` overlay option. Active renderer hosts use `scrollLock:
   'none'`; Simulator integrations are archived rather than migrated.

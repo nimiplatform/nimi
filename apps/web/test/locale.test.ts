@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   LANDING_LOCALE_STORAGE_KEY,
+  applyLocaleToLocation,
+  buildLocaleSearch,
   normalizeLocale,
   persistLocale,
   resolveLocaleFromUrl,
@@ -56,4 +58,21 @@ test('persistLocale writes storage key and normalizeLocale trims values', () => 
   assert.equal(storage.getItem(LANDING_LOCALE_STORAGE_KEY), 'zh');
   assert.equal(normalizeLocale(' EN '), 'en');
   assert.equal(normalizeLocale('unknown'), null);
+});
+
+test('buildLocaleSearch preserves unrelated query parameters', () => {
+  assert.equal(buildLocaleSearch('', 'en'), 'lang=en');
+  assert.equal(buildLocaleSearch('?lang=zh', 'en'), 'lang=en');
+  assert.equal(buildLocaleSearch('?from=landing&lang=zh', 'en'), 'from=landing&lang=en');
+});
+
+test('applyLocaleToLocation keeps path, other parameters, and hash', () => {
+  assert.equal(
+    applyLocaleToLocation({ pathname: '/', search: '?from=landing', hash: '#apps' }, 'zh'),
+    '/?from=landing&lang=zh#apps',
+  );
+  assert.equal(
+    applyLocaleToLocation({ pathname: '/download', search: '', hash: '' }, 'en'),
+    '/download?lang=en',
+  );
 });

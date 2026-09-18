@@ -29,9 +29,11 @@ test('public release pages retain platform status and required signing disclosur
 
 test('download copy identifies the complete product and independently released components', () => {
   const page = PUBLIC_PAGE_CONTENT.en.download;
-  assert.match(page.statusTitle, /Not yet available/);
-  assert.match(page.statusBody, /no stable Nimi release or Nimi Home installer/i);
-  assert.match(page.statusBody, /Desktop, Runtime, and Avatar/);
+  assert.match(page.statusTitle, /GitHub Releases/);
+  assert.match(page.statusBody, /per version/i);
+  assert.match(page.versions.title, /by version/i);
+  assert.match(page.versions.cta, /GitHub Releases/);
+  assert.ok((page.versions.items?.length ?? 0) >= 3);
   assert.match(page.preview.title, /withdrawn/i);
   assert.match(JSON.stringify(page), /NOT PROMOTABLE/);
   assert.match(page.release.paragraphs.join('\n'), /conversations, characters, creations, stories, worlds/);
@@ -43,11 +45,11 @@ test('download copy identifies the complete product and independently released c
   assert.match(page.sourceBuild.paragraphs.join('\n'), /never included in the GitHub unsigned-preview assets/);
 
   const windows = page.platforms.find((item) => item.name === 'Windows');
-  assert.match(windows?.status ?? '', /No current product or preview download/);
-  assert.match(windows?.detail ?? '', /replacement has not been published/);
+  assert.match(windows?.status ?? '', /See GitHub Releases/);
+  assert.match(windows?.detail ?? '', /listed per version/);
   const macos = page.platforms.find((item) => item.name === 'macOS');
-  assert.match(macos?.status ?? '', /No current product or preview download/);
-  assert.match(macos?.detail ?? '', /withdrawn/);
+  assert.match(macos?.status ?? '', /See GitHub Releases/);
+  assert.match(macos?.detail ?? '', /listed per version/);
   const linux = page.platforms.find((item) => item.name === 'Linux');
   assert.match(linux?.detail ?? '', /no official Nimi product or developer-preview download/);
   assert.match(page.preview.warning, /Do not disable Windows security controls/);
@@ -112,6 +114,17 @@ test('withdrawn previews are not advertised as available downloads in either loc
     RELEASE_PAGES_SOURCE,
     /releases\/(?:tag|download)\/v\d/,
   );
+});
+
+test('app lifecycle copy matches the current supported platform scope', () => {
+  for (const locale of ['en', 'zh'] as const) {
+    const page = PUBLIC_PAGE_CONTENT[locale].download;
+    const paragraphs = page.release.paragraphs.join('\n');
+    assert.match(paragraphs, /macOS arm64/);
+    assert.match(paragraphs, /Windows x86_64/);
+    assert.match(paragraphs, locale === 'zh' ? /更新/ : /update/i);
+    assert.match(paragraphs, locale === 'zh' ? /普通修复仍不可用/ : /ordinary repair remain unavailable/i);
+  }
 });
 
 test('clean public routes have route declarations, crawlable metadata, and sitemap entries', () => {

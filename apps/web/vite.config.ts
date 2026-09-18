@@ -48,12 +48,10 @@ function manualChunks(id: string): string | undefined {
     return 'vendor-nimi-sdk';
   }
 
-  if (
-    normalized.includes('/node_modules/@nimiplatform/kit/')
-    || normalized.startsWith(`${repoRootNormalized}/kit/`)
-  ) {
-    return 'vendor-nimi-kit';
-  }
+  // Kit modules chunk by their real import graph. A unified vendor-nimi-kit
+  // chunk would collapse kit's internal lazy boundaries (e.g. the auth
+  // particle background's dynamic three import) into static edges and force
+  // every kit consumer to load unrelated heavy modules.
   return undefined;
 }
 

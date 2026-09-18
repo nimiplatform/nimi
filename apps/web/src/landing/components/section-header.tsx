@@ -13,12 +13,12 @@ export function SectionHeader(props: SectionHeaderProps) {
   const withActions = props.actions ? 'items-start gap-4 md:flex md:items-end md:justify-between' : '';
 
   return (
-    <div className={`reveal ${withActions}`.trim()}>
+    <div className={withActions}>
       <div className={alignClass}>
         {props.kicker ? (
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#2ba980]">{props.kicker}</p>
         ) : null}
-        <h2 className="mt-3 text-balance text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">{props.title}</h2>
+        <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">{props.title}</h2>
         <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">{props.subtitle}</p>
       </div>
       {props.actions ? <div className="mt-4 md:mt-0">{props.actions}</div> : null}

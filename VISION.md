@@ -1,23 +1,39 @@
 # Nimi Vision
 
-Nimi is an AI-native runtime and developer platform for building open, persistent worlds.
+Nimi is a personal AI product you install on your own computer. It brings AI apps,
+AI characters, worlds, local or cloud AI choice, and continuity across apps into
+one place — so the AI you use stays yours: your device, your choice of models,
+your apps, and an AI that remembers you across them.
+
+The longer-term direction is an open world platform: long-lived worlds where
+people, AI characters, apps, and runtime services share the same social and
+semantic environment, instead of meeting only inside one isolated chat box or one
+isolated app. That direction is a product experience inside Nimi; it does not
+replace the personal AI product described above.
 
 ## Product Direction
 
-1. Local-first execution: user-critical AI execution runs in local runtime by default when admitted routes support it.
-2. Contract-first interoperability: runtime, sdk, apps/desktop, apps/web, and docs are governed by SSOT contracts.
-3. No-legacy by default: pre-launch architecture uses hard-cut evolution, no dual-path compatibility debt.
-4. AI-first developer workflow: SDK + runtime contracts are designed for human + AI coding collaboration.
+1. Local-first execution: user-critical AI execution runs on the local runtime by
+   default where supported.
+2. Apps you can use and build: the same platform supports ready-made apps and
+   tools you create for yourself.
+3. Continuity: identity and memory follow the same AI across the apps it is
+   connected to.
+4. Open by default: the platform core is open source, and every admitted app has
+   a public source repository and an explicit open-source license.
 
-## Open Source Direction
+## How the Platform Holds Together
 
-1. Open platform core: runtime, sdk, kit, proto, active apps (desktop/avatar/web/install-gateway), and docs are open by default.
-2. Industrial-grade release gates: reproducible CI, supply-chain verification, and auditable release process.
-3. Developer trust: explicit boundaries, stable contracts, and fail-fast behavior over hidden fallback.
+Nimi Home is the product entry. Realm owns world and identity truth. Runtime
+executes local and cloud AI capabilities across supported providers. The SDK is
+the single app boundary, and Cognition owns long-term memory. Desktop is the
+current native host; Web is the standalone public account site. These ownership
+boundaries are documented under `.nimi/spec/**` and explained for readers at
+[docs.nimi.ai](https://docs.nimi.ai).
 
-## Platform Principles
+## Principles
 
 1. Explicit contracts over implicit conventions.
-2. Deterministic runtime behavior over convenience fallback.
+2. Deterministic behavior over convenience fallback.
 3. Single source of truth over duplicated docs.
 4. Security and auditability are product features, not optional add-ons.

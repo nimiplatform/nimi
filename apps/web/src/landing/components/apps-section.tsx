@@ -1,5 +1,5 @@
 import type { LandingContent } from '../content/landing-content.js';
-import type { LandingLinks } from '../config/landing-links.js';
+import { buildAppDetailUrl, type LandingLinks } from '../config/landing-links.js';
 import { SectionHeader } from './section-header.js';
 
 export type AppsSectionProps = {
@@ -7,90 +7,78 @@ export type AppsSectionProps = {
   links: LandingLinks;
 };
 
-function AppsIcon(props: { index: number }) {
-  const common = {
-    fill: 'none',
-    stroke: 'currentColor',
-    strokeLinecap: 'round' as const,
-    strokeLinejoin: 'round' as const,
-    strokeWidth: 1.8,
-    viewBox: '0 0 24 24',
-    className: 'h-6 w-6',
-    'aria-hidden': true,
-  };
-
-  if (props.index === 1) {
-    return (
-      <svg {...common}>
-        <path d="M12 3v18" />
-        <path d="m5 8 7-5 7 5" />
-        <path d="M5 16h14" />
-        <path d="M7 12h10" />
-      </svg>
-    );
-  }
-
-  if (props.index === 2) {
-    return (
-      <svg {...common}>
-        <path d="M4 7h16" />
-        <path d="M4 17h16" />
-        <path d="M7 4v16" />
-        <path d="M17 4v16" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg {...common}>
-      <rect x="4" y="4" width="7" height="7" rx="1.5" />
-      <rect x="13" y="4" width="7" height="7" rx="1.5" />
-      <rect x="4" y="13" width="7" height="7" rx="1.5" />
-      <rect x="13" y="13" width="7" height="7" rx="1.5" />
-    </svg>
-  );
+function monogram(name: string): string {
+  return Array.from(name)[0] ?? '•';
 }
 
 export function AppsSection({ content, links }: AppsSectionProps) {
   return (
-    <section id="apps" className="section-pad bg-white">
+    <section id="apps" className="section-pad screen-section bg-white">
       <div className="container-nimi">
         <SectionHeader
-          kicker={content.eyebrow}
           title={content.title}
           subtitle={content.subtitle}
           actions={
-            <a className="cta-primary" href={links.desktopDownloadUrl} target="_blank" rel="noreferrer">
-              {content.cta}
+            <a className="cta-primary" href={links.appsUrl}>
+              {content.listCta}
             </a>
           }
         />
 
-        <div className="mt-10 grid gap-4 lg:grid-cols-3">
-          {content.cards.map((card, index) => (
-            <article
-              key={card.title}
-              className="reveal rounded-[1.5rem] border border-slate-200 bg-slate-50 p-6 shadow-[0_16px_42px_-28px_rgba(15,23,42,0.45)]"
-            >
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-[#0ea5e9] shadow-sm ring-1 ring-slate-200">
-                <AppsIcon index={index} />
+        <p className="mt-6 max-w-3xl text-base leading-7 text-slate-600">{content.body}</p>
+
+        <div className="mt-8 space-y-8">
+          {content.groups.map((group) => (
+            <section key={group.id} aria-labelledby={`apps-group-${group.id}`}>
+              <h3
+                id={`apps-group-${group.id}`}
+                className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400"
+              >
+                {group.label}
+              </h3>
+              <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {group.items.map((item) => (
+                  <article
+                    key={item.id}
+                    className="flex flex-col rounded-[1.35rem] border border-slate-200 bg-slate-50 p-5 shadow-[0_16px_42px_-32px_rgba(15,23,42,0.5)] transition hover:-translate-y-0.5 hover:border-emerald-200 hover:bg-white"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span
+                        aria-hidden="true"
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#e8fbf3] to-[#eaf5fe] text-base font-bold text-[#0f766e] ring-1 ring-slate-200"
+                      >
+                        {monogram(item.name)}
+                      </span>
+                      <h4 className="text-lg font-semibold tracking-tight text-slate-900">{item.name}</h4>
+                    </div>
+                    <p className="mt-3 flex-1 text-sm leading-6 text-slate-600">{item.task}</p>
+                    {item.capabilities.length > 0 ? (
+                      <ul className="mt-4 flex flex-wrap gap-2" aria-label={item.name}>
+                        {item.capabilities.map((capability) => (
+                          <li
+                            key={capability}
+                            className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600"
+                          >
+                            {content.capabilityLabels[capability] ?? capability}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    <a
+                      href={buildAppDetailUrl(links.appsUrl, item.id)}
+                      className="mt-5 inline-flex w-fit items-center gap-1 text-sm font-semibold text-[#2ba980] transition hover:text-[#1f8a68]"
+                    >
+                      {content.itemCta}
+                      <span aria-hidden="true">→</span>
+                    </a>
+                  </article>
+                ))}
               </div>
-              <p className="mt-6 text-xs font-bold uppercase tracking-[0.2em] text-[#2ba980]">
-                {card.label}
-              </p>
-              <h3 className="mt-3 text-xl font-bold tracking-tight text-slate-900">{card.title}</h3>
-              <p className="mt-3 text-sm leading-7 text-slate-600">{card.description}</p>
-            </article>
+            </section>
           ))}
         </div>
 
-        <div className="mt-6 grid gap-3 rounded-[1.25rem] border border-slate-200 bg-slate-950 p-5 text-sm text-slate-200 md:grid-cols-3">
-          {content.notes.map((note) => (
-            <p key={note} className="leading-6">
-              {note}
-            </p>
-          ))}
-        </div>
+        <p className="mt-8 max-w-3xl text-sm leading-6 text-slate-500">{content.availabilityNote}</p>
       </div>
     </section>
   );

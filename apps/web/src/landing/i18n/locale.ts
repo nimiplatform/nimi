@@ -73,3 +73,26 @@ export function persistLocale(locale: LandingLocale, storage?: StorageLike | nul
   }
   storage.setItem(LANDING_LOCALE_STORAGE_KEY, locale);
 }
+
+/**
+ * Return the query string for a locale switch while preserving unrelated
+ * parameters, so a shared URL keeps pointing at the language actually shown.
+ */
+export function buildLocaleSearch(search: string, locale: LandingLocale): string {
+  const query = search.startsWith('?') ? search.slice(1) : search;
+  const params = new URLSearchParams(query);
+  params.set('lang', locale);
+  return params.toString();
+}
+
+/**
+ * Build the full path after a locale switch, preserving the current route,
+ * other query parameters, and the location hash.
+ */
+export function applyLocaleToLocation(
+  location: { pathname: string; search: string; hash: string },
+  locale: LandingLocale,
+): string {
+  const search = buildLocaleSearch(location.search, locale);
+  return `${location.pathname}${search ? `?${search}` : ''}${location.hash}`;
+}

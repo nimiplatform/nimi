@@ -1,130 +1,115 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { Suspense, lazy } from 'react';
 import type { LandingContent } from '../content/landing-content.js';
 import type { LandingLinks } from '../config/landing-links.js';
+import { GradientText } from './gradient-text.js';
+import { DemoErrorBoundary } from './demo-error-boundary.js';
+import { HeroDemoStatic } from './hero-demo-static.js';
 
-// Lazy-load Three.js hero scene so its bundle stays out of the initial entry
-// chain. Per W2 design + L11 + D3.5 perf budget.
-const HeroScene = lazy(() =>
-  import('./hero-scene.js').then((module) => ({ default: module.HeroScene })),
-);
+const HeroDemoView = lazy(async () => ({
+  default: (await import('./hero-demo.js')).HeroDemoView,
+}));
 
 export type HeroSectionProps = {
   content: LandingContent['hero'];
   links: LandingLinks;
 };
 
-/**
- * Detect whether the ambient hero scene should be mounted.
- * Returns false on:
- *  - mobile viewports (<768px) → static gradient is enough
- *  - prefers-reduced-motion: reduce → respect motion preference
- *  - no window (SSR / initial render) → wait for client mount
- */
-function useShouldMountHeroScene(): boolean {
-  const [enabled, setEnabled] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
-      return;
-    }
-
-    const desktopQuery = window.matchMedia('(min-width: 768px)');
-    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-
-    const evaluate = () => {
-      setEnabled(desktopQuery.matches && !motionQuery.matches);
-    };
-
-    evaluate();
-    desktopQuery.addEventListener('change', evaluate);
-    motionQuery.addEventListener('change', evaluate);
-
-    return () => {
-      desktopQuery.removeEventListener('change', evaluate);
-      motionQuery.removeEventListener('change', evaluate);
-    };
-  }, []);
-
-  return enabled;
-}
-
 export function HeroSection(props: HeroSectionProps) {
-  const sceneEnabled = useShouldMountHeroScene();
+  const { content, links } = props;
+  const sloganAccent = content.sloganAccent;
+  const hasAccent = sloganAccent.length > 0 && content.slogan.endsWith(sloganAccent);
+  const sloganLead = hasAccent
+    ? content.slogan.slice(0, content.slogan.length - sloganAccent.length).trimEnd()
+    : '';
 
   return (
-    <section
-      id="hero"
-      className="relative overflow-hidden bg-transparent pb-36 pt-24 text-slate-900 md:pb-40 md:pt-32"
-    >
-      {/* Layer z=0: ambient background. Three.js scene on desktop+motion;
-          static gradient on mobile / reduced-motion / pre-mount. Scene is
-          positioned upper-right outside the centered content column so dark
-          galaxy contrast doesn't interfere with the headline copy. */}
-      <div
-        className="pointer-events-none absolute inset-0 -z-0 overflow-hidden"
-        aria-hidden="true"
+    <>
+      <section
+        id="hero"
+        className="screen-section relative overflow-hidden bg-transparent pb-16 pt-24 text-slate-900 md:pb-20 md:pt-28"
       >
-        <div className="absolute inset-0 bg-gradient-to-br from-[#e8fbf3] via-[#eaf5fe] to-[#f4ecff]" />
-        <div className="absolute left-[-10rem] top-[-8rem] h-72 w-72 rounded-full bg-[#38d6a3]/10 blur-3xl" />
-        <div className="absolute right-[-6rem] top-16 h-64 w-64 rounded-full bg-[#0ea5e9]/10 blur-3xl" />
-        {sceneEnabled ? (
-          <Suspense fallback={null}>
-            <div className="absolute right-[-30%] top-[-40%] h-[110%] w-[55%] overflow-hidden opacity-50 [mask-image:radial-gradient(closest-side,black_30%,transparent_75%)]">
-              <div className="absolute inset-0 bg-[radial-gradient(closest-side,#040c1c_50%,transparent_100%)]" />
-              <div className="absolute inset-0">
-                <HeroScene />
-              </div>
-            </div>
-          </Suspense>
-        ) : null}
-      </div>
-
-      {/* Layer z=10: content */}
-      <div className="container-nimi relative z-10">
-        <div className="reveal mx-auto max-w-[1200px] text-center">
-          <h1 className="font-heading text-5xl font-semibold leading-[0.95] tracking-tight text-slate-900 md:text-7xl">
-            <span className="block text-balance text-slate-900">
-              {props.content.title}
-            </span>
-            <span className="mt-2 block text-balance">
-              <span className="bg-gradient-to-r from-[#38d6a3] to-[#0ea5e9] bg-clip-text text-transparent">
-                {props.content.titleAccent}
-              </span>
-            </span>
-          </h1>
-          <p className="mx-auto mt-8 max-w-4xl text-xl leading-9 text-slate-600 md:text-[2rem] md:leading-[1.45]">
-            {props.content.subtitle}
-          </p>
-
-          <p id="hero-availability" className="mx-auto mt-8 max-w-xl text-sm leading-6 text-slate-700">
-            {props.content.availability}
-          </p>
-          <div className="mt-4 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <a
-              href={props.links.downloadUrl}
-              aria-describedby="hero-availability"
-              className="inline-flex min-w-44 items-center justify-center rounded-full bg-gradient-to-r from-[#38d6a3] to-[#0ea5e9] px-7 py-3.5 text-base font-bold text-white shadow-[0_16px_34px_-14px_rgba(14,165,233,0.7)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_40px_-14px_rgba(14,165,233,0.8)]"
-            >
-              {props.content.primaryCta}
-            </a>
-            <a
-              href="#experiences"
-              className="inline-flex min-w-44 items-center justify-center rounded-full border border-slate-300 bg-white/75 px-7 py-3.5 text-base font-bold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-white"
-            >
-              {props.content.secondaryCta}
-            </a>
-          </div>
-
-          <ul className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm font-semibold text-slate-600">
-            {props.content.proofPoints.map((point) => (
-              <li key={point} className="inline-flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden="true" />
-                {point}
-              </li>
-            ))}
-          </ul>
+        <div className="pointer-events-none absolute inset-0 -z-0 overflow-hidden" aria-hidden="true">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#e8fbf3] via-[#eaf5fe] to-[#f4ecff]" />
+          <div className="absolute left-[-10rem] top-[-8rem] h-96 w-96 rounded-full bg-[radial-gradient(closest-side,rgba(56,214,163,0.18),transparent)]" />
+          <div className="absolute right-[-6rem] top-8 h-80 w-80 rounded-full bg-[radial-gradient(closest-side,rgba(14,165,233,0.14),transparent)]" />
         </div>
-      </div>
-    </section>
+
+        <div className="container-hero relative z-10">
+          <div className="mx-auto max-w-3xl text-center">
+            <h1
+              aria-label={content.slogan}
+              className="font-display whitespace-nowrap text-[clamp(2.25rem,4.5vw,4rem)] font-semibold leading-[1.1] tracking-tight text-slate-900"
+            >
+              {hasAccent ? (
+                <>
+                  {sloganLead ? (
+                    <>
+                      <span>{sloganLead}</span>{' '}
+                    </>
+                  ) : null}
+                  <GradientText text={sloganAccent} />
+                </>
+              ) : (
+                content.slogan
+              )}
+            </h1>
+            <p className="mt-4 text-base font-medium leading-7 text-slate-600 md:text-lg">
+              {content.subSlogan}
+            </p>
+            {content.paragraphs.map((paragraph) => (
+              <p key={paragraph} className="mx-auto mt-4 max-w-2xl text-base leading-7 text-slate-600">
+                {paragraph}
+              </p>
+            ))}
+
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-center">
+              <a
+                href={links.downloadUrl}
+                className="inline-flex min-w-44 items-center justify-center rounded-full bg-gradient-to-r from-[#38d6a3] to-[#0ea5e9] px-7 py-3.5 text-base font-bold text-white shadow-[0_16px_34px_-14px_rgba(14,165,233,0.7)] transition hover:-translate-y-0.5"
+              >
+                {content.downloadCta}
+              </a>
+              <a
+                href={links.docsUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex min-w-44 items-center justify-center rounded-full border border-slate-300 bg-white/75 px-7 py-3.5 text-base font-bold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-white"
+              >
+                {content.docsCta}
+              </a>
+            </div>
+            <p className="mt-3 text-sm leading-6 text-slate-700">{content.availableNote}</p>
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="demo"
+        className="screen-section relative overflow-hidden bg-transparent py-10 text-slate-900"
+      >
+        <div className="pointer-events-none absolute inset-0 -z-0 overflow-hidden" aria-hidden="true">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#e8fbf3] via-[#eaf5fe] to-[#f4ecff]" />
+          <div className="absolute right-[-8rem] bottom-[-6rem] h-96 w-96 rounded-full bg-[radial-gradient(closest-side,rgba(56,214,163,0.14),transparent)]" />
+          <div className="absolute left-[-6rem] top-10 h-80 w-80 rounded-full bg-[radial-gradient(closest-side,rgba(14,165,233,0.12),transparent)]" />
+        </div>
+
+        {/*
+          Interactive desktop-app preview composed from public Kit components
+          and local sample data: it does not import Desktop renderer source,
+          start any process, call any backend, or represent a working product
+          session. Loads as its own chunk; failures degrade to a static frame.
+        */}
+        {/* Cap the demo window width so the mockup keeps a normal ~3:2
+            screen proportion: rendered height is fixed (~703px at lg after
+            the frame's 0.85 zoom), so 1064px lands at 3:2. */}
+        <div className="container-hero relative z-10 w-full max-w-[1064px]">
+          <DemoErrorBoundary fallback={<HeroDemoStatic demo={content.demo} />}>
+            <Suspense fallback={<HeroDemoStatic demo={content.demo} />}>
+              <HeroDemoView demo={content.demo} />
+            </Suspense>
+          </DemoErrorBoundary>
+        </div>
+      </section>
+    </>
   );
 }

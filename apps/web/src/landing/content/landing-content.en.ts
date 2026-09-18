@@ -1,526 +1,396 @@
 import type { LandingContent } from './landing-content.js';
 
-export const landingPositioningEn = {
-  hero: {
-    title: 'Make AI',
-    titleAccent: 'truly yours.',
-    subtitle:
-      'Talk, create, and explore in Nimi—where your conversations, characters, creations, and worlds come together in one personal space.',
-  },
-  desktop: {
-    title: 'Nimi, closer to you.',
-    description:
-      'Bring your conversations, creations, characters, and worlds together in one seamless desktop experience.',
-  },
-} as const;
-
 export const landingContentEn: LandingContent = {
   skipToContent: 'Skip to main content',
   nav: {
-    experiences: 'Experiences',
-    catalog: 'Your AI',
-    desktop: 'Nimi Home',
     apps: 'Apps',
-    sdk: 'Builders',
-    security: 'Trust',
-    faq: 'FAQ',
+    worlds: 'Characters & Worlds',
+    create: 'Create apps',
+    developers: 'Developers',
     docs: 'Docs',
-    download: 'Download',
+    discord: 'Discord',
+    menu: 'Page navigation',
+    openMenu: 'Open navigation menu',
+    closeMenu: 'Close navigation menu',
   },
   hero: {
-    title: landingPositioningEn.hero.title,
-    titleAccent: landingPositioningEn.hero.titleAccent,
-    subtitle: landingPositioningEn.hero.subtitle,
-    primaryCta: 'See download options',
-    availability: 'Nimi Home is not available to install yet. Earlier developer preview downloads are withdrawn; source code remains available.',
-    secondaryCta: 'See what Nimi can do',
-    proofPoints: ['Open source', 'Local-first', 'Choose your AI'],
-  },
-  experiences: {
-    eyebrow: 'Beyond a single conversation',
-    title: 'It remembers you, and has a rhythm of its own.',
-    subtitle:
-      'Conversations continue, and you control the memories. Turn on proactive companionship to let it reach out first.',
-    cards: [
-      {
-        id: 'conversation',
-        label: 'Continuing conversations',
-        title: 'Pick up where you left off',
-        description: 'Each companion keeps its own conversation. Come back and continue from last time.',
-        scenario: 'No need to start with hello every time.',
-        points: ['Revisit past conversations', 'Continue with the existing context', 'Text and voice supported'],
-      },
-      {
-        id: 'memory',
-        label: 'Memory management',
-        title: 'You decide what stays',
-        description: 'With memory enabled, you can inspect it, correct it, or ask it to forget.',
-        scenario: 'Correct what is wrong. Delete what you no longer want to keep.',
-        points: ['Inspect current memories', 'Correct inaccurate information', 'Forget one item or clear everything'],
-      },
-      {
-        id: 'proactive-companion',
-        label: 'Proactive companionship',
-        title: 'Let it speak first this time',
-        description: 'Enable proactive companionship and keep Nimi running. Your companion will reach out according to your settings.',
-        scenario: 'Pause whenever you want some quiet.',
-        points: ['Adjust how proactive it is', 'Greetings after time apart', 'Control daily and per-interaction usage'],
-      },
+    slogan: 'MAKE AI TRULY YOURS',
+    sloganAccent: 'TRULY YOURS',
+    subSlogan: 'Open in code. Local in data. An AI you shape.',
+    paragraphs: [
+      'Nimi is an open-source, local-first home for your AI. Talk, write, research, and create with AI that gets to know you—and stays with you across apps and worlds.',
+      'Choose local or cloud models, stay in control of your data, and use the apps you love—or build your own with AI. Change the model. Change the app. Your AI stays yours.',
     ],
-  },
-  architecture: {
-    title: 'One Nimi, many possibilities.',
-    subtitle: 'How Nimi comes together',
-    description:
-      'Nimi brings personal AI experiences into one product. Realm keeps ecosystem identity consistent, while Runtime runs AI capabilities locally or in the cloud.',
-    devTitle: 'For builders',
-    devText:
-      'Integrate through the typed SDK. Compose character-backed agents, capabilities, conversations, and memory while Runtime owns Local or Cloud implementation selection.',
-    userTitle: 'For you',
-    userText:
-      'Talk, create, meet characters, and explore worlds without treating each experience as a separate product. Nimi brings them together through one home.',
-    conclusion: 'One product, open by design, ready for many experiences.',
-    slogan: 'Your AI. Your choices. Your Nimi.',
-    diagram: {
-      appLabel: 'YOUR AI APP',
-      realm: 'REALM',
-      runtime: 'RUNTIME',
-      cloudContextPlane: 'Cloud Context Plane',
-      localExecutionPlane: 'Local Execution Plane',
-      cloudContext: 'Cloud Context',
-      localCompute: 'Local Compute',
-      realmDomains: [
-        { id: 'worlds', label: 'Worlds', icon: '\u{1F310}' },
-        { id: 'agents', label: 'Agents', icon: '\u{1F916}' },
-        { id: 'social', label: 'Social', icon: '\u{1F465}' },
-        { id: 'economy', label: 'Economy', icon: '\u{1F4B0}' },
-        { id: 'memory', label: 'Memory', icon: '\u{1F9E0}' },
-        { id: 'identity', label: 'Identity', icon: '\u{1F464}' },
-      ],
-      runtimeCapabilities: [
-        { id: 'ai-models', label: 'AI Capabilities', icon: '\u{1F9E0}' },
-        { id: 'conversations', label: 'Conversations', icon: '\u{26A1}' },
-        { id: 'knowledge', label: 'Knowledge', icon: '\u{1F4DA}' },
-      ],
-      crossCutting: [
-        { id: 'unified-account', label: 'Unified Account', icon: '\u{1F464}' },
-        { id: 'shared-data', label: 'Shared Data', icon: '\u{1F4BE}' },
-        { id: 'shared-auth', label: 'Shared Authorization', icon: '\u{1F512}' },
-        { id: 'persistent-presence', label: 'Persistent Cross-World Presence', icon: '\u{1F310}' },
-        { id: 'multi-world-exploration', label: 'Multi-World Exploration', icon: '\u{1F9ED}' },
-        { id: 'seamless-ai', label: 'Seamless AI Experience', icon: '\u{2728}' },
-      ],
-      transportLabels: { rest: 'REST + WebSocket', grpc: 'gRPC' },
-      mobileFallback: {
-        sdkLabel: '@nimi/sdk',
-        sdkDescription: 'Single surface connecting to local and cloud intelligence.',
+    downloadCta: 'Download Nimi',
+    docsCta: 'Read the docs',
+    availableNote: 'Available for macOS and Windows.',
+    demo: {
+      windowTitle: 'Nimi',
+      nav: { chat: 'Chat', explore: 'Explore', apps: 'Apps', runtime: 'Runtime', settings: 'Settings' },
+      chat: {
+        greeting: 'Hi, Halliday! Where would you like to start?',
+        inputPlaceholder: 'Ask Nimi…',
+        inputNote: 'Preview only; real conversations happen in the Nimi desktop app.',
+        sendLabel: 'Send',
+        backLabel: 'Back',
+        userName: 'Halliday',
+        defaultTargetId: 'agent-a',
+        scriptedReply: 'This is a sample reply to preview the conversation style; real answers are generated in the Nimi desktop app.',
+        dateLocale: 'en-US',
+        dateLabels: { today: 'Today', yesterday: 'Yesterday' },
+        copy: {
+          bubbleUserLabel: 'You',
+          bubbleAssistantLabel: 'Agent',
+          markdownCopyLabel: 'Copy',
+          markdownCopiedLabel: 'Copied',
+          typingAgentRoleLabel: 'Agent',
+          typingThinkingLabel: 'Thinking',
+          typingStopLabel: 'Stop',
+        },
+        agents: [
+          {
+            id: 'agent-a',
+            name: 'Sample character A',
+            initial: 'A',
+            messages: [
+              { id: 'a-m1', role: 'user', text: 'Turn this week’s meeting notes into key points.', minutesAgo: 8 },
+              { id: 'a-m2', role: 'assistant', text: 'Done: five key points, two of them need your confirmation.', minutesAgo: 7 },
+              { id: 'a-m3', role: 'user', text: 'Show me the ones that need confirmation first.', minutesAgo: 6 },
+              { id: 'a-m4', role: 'assistant', text: 'The first is the budget basis; the second is the release date. Once confirmed, I will sync them to the notes.', minutesAgo: 5 },
+            ],
+          },
+          {
+            id: 'agent-e',
+            name: 'Sample character E',
+            initial: 'E',
+            messages: [
+              { id: 'e-m1', role: 'assistant', text: 'Welcome back. Shall we pick up the character setup from last time?', minutesAgo: 1560 },
+              { id: 'e-m2', role: 'user', text: 'Yes — tighten the protagonist’s motivation one more layer.', minutesAgo: 1558 },
+            ],
+          },
+          {
+            id: 'agent-k',
+            name: 'Sample character K',
+            initial: 'K',
+            messages: [
+              { id: 'k-m1', role: 'assistant', text: 'This week’s exploration notes are organized and ready to review.', minutesAgo: 3000 },
+            ],
+          },
+        ],
+      },
+      explore: {
+        title: 'Explore',
+        searchPlaceholder: 'Search characters, worlds, and apps',
+        sections: [
+          {
+            label: 'Characters',
+            items: [
+              { name: 'Sample character A', meta: 'Character · sample data' },
+              { name: 'Sample character E', meta: 'Character · sample data' },
+            ],
+          },
+          { label: 'Worlds', items: [{ name: 'Sample world', meta: 'World · sample data' }] },
+          {
+            label: 'Apps',
+            items: [
+              { name: 'ParentOS', meta: 'Keep a child’s growth journal' },
+              { name: 'Storybook', meta: 'Read and create interactive stories' },
+            ],
+          },
+        ],
+      },
+      apps: {
+        title: 'Apps',
+        countSuffix: ' Apps',
+        searchPlaceholder: 'Search apps or App IDs',
+        backLabel: 'Back to app library',
+        launchLabel: 'Launch',
+        tabs: ['Overview', 'Nimi Access', 'AI Models'],
+        tabPlaceholderNote: 'This panel is not included in the sample data.',
+        aboutTitle: 'About',
+        updatedLabel: 'Last updated',
+        moreInfoLabel: 'More info',
+        previewBadge: 'Interactive preview · sample data',
+        previewUnavailableTitle: 'Preview not connected',
+        previewUnavailableBody: 'This App has no interactive preview yet; only Zhiyu provides a demo today.',
+        closeLabel: 'Close',
+        items: [
+          { id: 'nimi.zhiyu', name: '织羽 Zhiyu', task: 'Incubate local AI companions: chat, companionship, and growing together.', tags: ['Text', 'Speech'], updatedAt: 'September 17, 2026', localDev: true },
+          { id: 'nimi.parentos', name: 'ParentOS', task: `Keep a child's growth journal and family observations.`, tags: ['Text', 'Transcription'], updatedAt: 'September 15, 2026', localDev: true },
+          { id: 'nimi.overtone', name: 'Nimi Overtone', task: 'Organize music projects, lyrics, and versions.', tags: ['Text', 'Music'], updatedAt: 'September 12, 2026', localDev: true },
+          { id: 'nimi.storybook', name: 'Storybook', task: 'Read and create interactive stories.', tags: ['Text'], updatedAt: 'September 10, 2026', localDev: false },
+          { id: 'nimi.realm-persona-studio', name: 'Realm Persona Studio', task: 'Create and manage your own Realm Personas.', tags: ['Image'], updatedAt: 'September 8, 2026', localDev: true },
+          { id: 'nimi.shijing', name: 'ShiJing', task: 'Personal rhythm readings.', tags: ['Text'], updatedAt: 'September 5, 2026', localDev: true },
+          { id: 'nimi.inscape', name: 'Inscape', task: 'Personality exploration and everyday reflection.', tags: ['Text'], updatedAt: 'September 1, 2026', localDev: false },
+        ],
+      },
+      appPreview: {
+        // Zhiyu is a zh-CN-first app; its in-preview UI intentionally stays zh.
+        zhiyu: {
+          appName: '织羽 Zhiyu',
+          partnersLabel: '本地伙伴',
+          emptyTitle: '选择一位本地伙伴，开始对话',
+          emptyDescription: '提个问题、分享想法，或者告诉这个伙伴你想探索什么。',
+          composerPlaceholder: '和这个伙伴聊点什么...',
+          sendLabel: '发送',
+          streamReplyText: '我在认真听。再多说一点，我们就能一起把想法往前推一步。',
+          sessionChipLabel: '会话',
+          replyChipLabel: '回复',
+          rapportChipLabel: '相处',
+          readyChipLabel: '已就绪',
+          streamingChipLabel: '回复中',
+          rapportChipText: '相处愉快',
+          stopLabel: '停止回复',
+          panelTitle: '织羽伙伴中心',
+          panelCloseLabel: '收起',
+          panelRows: [
+            { label: '形象', value: '未配置' },
+            { label: '主动陪伴', value: '安静' },
+            { label: '模型', value: '本地演示' },
+            { label: '记忆', value: '已开启' },
+          ],
+          partners: [
+            {
+              id: 'p-ben',
+              name: '本本',
+              cue: '陪伴中',
+              messages: [
+                { id: 'zb1', role: 'assistant', text: '今天想从哪里开始？我还在琢磨上次你提到的那个故事。', minutesAgo: 12 },
+                { id: 'zb2', role: 'user', text: '先聊聊主角为什么离开家。', minutesAgo: 11 },
+                { id: 'zb3', role: 'assistant', text: '好。他离开不是因为厌倦，而是因为听不见家里的声音了——这能成为他回来的理由。', minutesAgo: 10 },
+              ],
+            },
+            {
+              id: 'p-qing',
+              name: '青梧',
+              cue: '思考中',
+              messages: [
+                { id: 'zq1', role: 'assistant', text: '我把你昨天的灵感碎片整理成三条线索了，随时可以展开。', minutesAgo: 1560 },
+              ],
+            },
+            {
+              id: 'p-sui',
+              name: '岁岁',
+              cue: '在线',
+              messages: [
+                { id: 'zs1', role: 'assistant', text: '岁岁在。要记录今天的一件小事吗？', minutesAgo: 3000 },
+              ],
+            },
+          ],
+        },
+      },
+      runtime: {
+        title: 'Runtime',
+        subtitle: 'Local runtime and AI supply status · sample data',
+        groups: [
+          { label: 'Service', rows: [{ label: 'Runtime status', value: 'Running' }, { label: 'Version', value: 'Preview build' }] },
+          { label: 'Model supply', rows: [{ label: 'Local models', value: '1 ready' }, { label: 'Cloud connections', value: '2' }] },
+          { label: 'Data', rows: [{ label: 'Data folder', value: 'This device' }] },
+        ],
+      },
+      settings: {
+        title: 'Settings',
+        groups: [
+          { label: 'Account', rows: [{ label: 'Profile', value: 'Halliday' }, { label: 'Language', value: 'English' }] },
+          { label: 'Appearance', rows: [{ label: 'Theme', value: 'Light' }, { label: 'Density', value: 'Comfortable' }] },
+          { label: 'Notifications', rows: [{ label: 'Desktop notifications', value: 'On' }, { label: 'Sounds', value: 'Off' }] },
+          { label: 'About', rows: [{ label: 'Version', value: 'Preview build' }] },
+        ],
       },
     },
-  },
-  modelCatalog: {
-    title: 'Your AI, your choice',
-    subtitle:
-      'Cloud models, local models—use whichever you like, switch anytime',
-    overview: {
-      searchPlaceholder: 'Search providers and capabilities',
-      cloudProvidersLabel: 'Cloud providers',
-      localModelsLabel: 'Local models',
-      modalitiesLabel: 'Capabilities',
-      modalitiesDescription: 'Text · Embeddings · Image · Video · Audio · Music · Voice · World',
-      shortcutLabel: '⌘K',
-      clearSearchLabel: 'Clear',
-      matchingProvidersLabel: 'matching catalog entries',
-      liveCatalogLabel: 'Live catalog',
-      supportedByLabel: 'Provider families',
-    },
-    capabilityLabels: {
-      'text.generate': 'Text generation',
-      'text.embed': 'Embeddings',
-      'image.generate': 'Image generation',
-      'video.generate': 'Video generation',
-      'audio.synthesize': 'Speech synthesis',
-      'audio.transcribe': 'Speech transcription',
-      'audio.separate': 'Audio separation',
-      'vision.locate': 'Visual localization',
-      'music.generate': 'Music generation',
-      'realtime.interact': 'Realtime interaction',
-      'voice.create': 'Voice creation',
-      'world.generate': 'World generation',
-    },
-    providerDetailSuffix: 'capabilities',
-    noResultsTitle: 'No catalog entries match.',
-    noResultsDescription:
-      'Try a provider or capability name.',
-    providerDisplayNames: {
-      anthropic: 'Anthropic',
-      aws_polly: 'AWS Polly',
-      azure: 'Azure',
-      azure_speech: 'Azure Speech',
-      bedrock: 'AWS Bedrock',
-      cohere: 'Cohere',
-      dashscope: 'DashScope',
-      deepseek: 'DeepSeek',
-      elevenlabs: 'ElevenLabs',
-      fireworks: 'Fireworks',
-      fish_audio: 'Fish Audio',
-      flux: 'FLUX',
-      gemini: 'Gemini',
-      glm: 'GLM',
-      kimi: 'Kimi',
-      luma: 'Luma',
-      mistral: 'Mistral',
-      mochi: 'Mochi',
-      moonshot: 'Moonshot',
-      openai: 'OpenAI',
-      openai_compatible: 'OpenAI Compatible',
-      perplexity: 'Perplexity',
-      pika: 'Pika',
-      qwen: 'Qwen',
-      replicate: 'Replicate',
-      runway: 'Runway',
-      sora: 'Sora',
-      stability: 'Stability',
-      suno: 'Suno',
-      together: 'Together',
-      udio: 'Udio',
-      veo: 'Veo',
-      viggle: 'Viggle',
-      volcengine: 'Volcengine',
-      x_ai: 'xAI',
-      xai: 'xAI',
-      yi: 'Yi',
-    },
-    marqueeProviderOrder: ['openai', 'anthropic', 'gemini', 'deepseek', 'dashscope', 'volcengine'],
-  },
-  sdk: {
-    eyebrow: 'For builders',
-    title: 'One SDK.',
-    titleAccent: 'Multiple ways to run AI.',
-    subtitle:
-      'Compose character-backed agents, capabilities, conversations, and shared environments through one typed integration surface. Runtime owns Local or Cloud execution.',
-    callout: 'Explore the SDK reference',
-    primaryCta: 'Read SDK Docs',
-    secondaryCta: 'View Source',
-    codeWindowTitle: 'Nimi SDK / agent runtime',
-    codeWindowCaption: 'One typed call surface for agent context, Runtime tasks, and Local or Cloud capability intent.',
-    matrixEyebrow: 'SDK capability matrix',
-    matrixTitle: 'The full SDK surface, scannable.',
-    matrixSubtitle:
-      'Every SDK capability area, with a direct link into the reference docs.',
-    runtimeBadges: ['Type-safe SDK', 'Runtime-backed', 'Local-first', 'Agent Context'],
-    heroHighlights: [
-      {
-        title: 'Realm and Runtime clients',
-        description:
-          'Use typed owner APIs for Realm product data and Runtime-owned LocalAgent behavior.',
-      },
-      {
-        title: 'Task & state sync',
-        description:
-          'Coordinate work handoffs, world events, and status updates through typed streams.',
-      },
-      {
-        title: 'Local / cloud runtime',
-        description:
-          'Use the same capability contract while Runtime interprets Local or Cloud owner intent.',
-      },
-    ],
-    tabs: [
-      {
-        id: 'delegation',
-        label: 'Delegation',
-        description:
-          'Hand off tasks between agents and humans with typed context handoff and audit trail.',
-        docsPath: 'sdk/delegation-client',
-        previewMediaId: 'runtime',
-      },
-      {
-        id: 'local-environment',
-        label: 'Local Environment',
-        description:
-          'Project shared environments into local sessions — files, tools, and runtime state.',
-        docsPath: 'sdk/local-environment-projection',
-        previewMediaId: 'runtime',
-      },
-      {
-        id: 'ai-config',
-        label: 'AI Config',
-        description:
-          'Owner-scoped Local or Cloud intent for each admitted capability; Runtime selects the implementation.',
-        docsPath: 'sdk/ai-config-surface',
-        previewMediaId: 'sdk',
-      },
-      {
-        id: 'wee-projection',
-        label: 'World Events',
-        description: 'Stream live world execution events as typed data for product consumers.',
-        docsPath: 'sdk/wee-projection',
-        previewMediaId: 'streamJob',
-      },
-      {
-        id: 'wee-consumer',
-        label: 'WEE Consumer',
-        description:
-          'Subscribe to world execution events with backpressure-safe consumption.',
-        docsPath: 'sdk/wee-consumer',
-        previewMediaId: 'streamJob',
-      },
-      {
-        id: 'transport-error',
-        label: 'Transport & Error',
-        description:
-          'Typed transport contracts plus structured error semantics across the whole SDK.',
-        docsPath: 'sdk/transport-and-error',
-        previewMediaId: 'runtime',
-      },
-    ],
-    capabilityMatrix: [
-      {
-        title: 'Delegation',
-        description:
-          'Hand off tasks between agents and humans with typed context handoff and audit trail.',
-        docsPath: 'sdk/delegation-client',
-      },
-      {
-        title: 'Local Environment',
-        description:
-          'Project shared environments into local sessions - files, tools, and runtime state.',
-        docsPath: 'sdk/local-environment-projection',
-      },
-      {
-        title: 'AI Config',
-        description:
-          'Owner-scoped Local or Cloud intent for each admitted capability; Runtime selects the implementation.',
-        docsPath: 'sdk/ai-config-surface',
-      },
-      {
-        title: 'World Events',
-        description: 'Stream live world execution events as typed data for product consumers.',
-        docsPath: 'sdk/wee-projection',
-      },
-      {
-        title: 'WEE Consumer',
-        description:
-          'Subscribe to world execution events with backpressure-safe consumption.',
-        docsPath: 'sdk/wee-consumer',
-      },
-      {
-        title: 'Transport & Error',
-        description:
-          'Typed transport contracts plus structured error semantics across the whole SDK.',
-        docsPath: 'sdk/transport-and-error',
-      },
-    ],
-    previewMedia: {
-      sdk: { alt: 'Nimi SDK quickstart preview' },
-      multimodal: { alt: 'Nimi multimodal client preview' },
-      streamJob: { alt: 'Nimi stream job preview' },
-      runtime: { alt: 'Nimi typed Runtime client preview' },
-    },
-  },
-  desktop: {
-    title: landingPositioningEn.desktop.title,
-    subtitle: landingPositioningEn.desktop.description,
-    chromeLabels: {
-      appName: 'Nimi',
-      runtime: 'AI engine',
-      workspace: 'Workspace',
-      capabilities: 'What runs where',
-      localIntent: 'On this device',
-      cloudIntent: 'In the cloud',
-    },
-    capabilitiesList: [
-      { name: 'Chat & text', intent: 'local' },
-      { name: 'Image creation', intent: 'cloud' },
-      { name: 'Voice & speech', intent: 'local' },
-    ],
-    features: [
-      {
-        icon: 'dashboard',
-        title: 'One calm overview',
-        description: 'See active sessions, AI usage, and device load at a glance.',
-      },
-      {
-        icon: 'chat',
-        title: 'Chat, built in',
-        description: 'Talk to people, AI assistants, and Nimi agents from the same window.',
-      },
-      {
-        icon: 'models',
-        title: 'Local AI, managed',
-        description: 'Install and update on-device AI models from one place.'
-      },
-      {
-        icon: 'apps',
-        title: 'Apps in one place',
-        description: 'Open available Nimi Apps and your connected local apps from one workspace.',
-      },
-    ],
-    downloadCta: 'View download status',
   },
   apps: {
-    eyebrow: 'Nimi Apps',
-    title: 'Bring new abilities into Nimi.',
-    subtitle:
-      'Nimi Apps are small apps you can open inside Nimi. They can add tools, scenes, or local AI experiences. Nimi Home shows what is available for your account and local workspace; developers build with the SDK and ship through clear product rules.',
-    cta: 'Read Nimi App docs',
-    cards: [
+    title: 'From work to interests, explore different AI apps.',
+    subtitle: 'Use free Nimi apps for everyday work, and for the interests and needs in your life.',
+    body: `Write, organize, generate images, work with audio — or keep a child's growth journal, explore your personality, and follow personal rhythms. Pick the apps you need and use AI your way.`,
+    listCta: 'Browse all apps',
+    itemCta: 'View app',
+    capabilityLabels: {
+      'text.generate': 'Text',
+      'text.embed': 'Embeddings',
+      'image.generate': 'Image',
+      'video.generate': 'Video',
+      'music.generate': 'Music',
+      'audio.synthesize': 'Speech synthesis',
+      'audio.transcribe': 'Transcription',
+      'audio.separate': 'Audio separation',
+      'vision.locate': 'Vision locating',
+      'realtime.interact': 'Realtime',
+      'voice.create': 'Voice creation',
+    },
+    availabilityNote:
+      'This section introduces the catalog. Install, update, and access are provided by the Nimi product on macOS arm64 and Windows x86_64, depending on the current Runtime and account state.',
+    groups: [
       {
-        label: 'Use',
-        title: 'Open apps in one place',
-        description:
-          'Use the Apps area in Nimi Home to open the tools, scenes, or local AI experiences that are available in your current product context.',
-      },
-      {
-        label: 'Build',
-        title: 'Build with the SDK',
-        description:
-          'Developers can turn product ideas into Nimi Apps and invoke Runtime capabilities through the SDK without choosing an implementation.',
-      },
-      {
-        label: 'Local',
-        title: 'Connect your own app',
-        description:
-          'Local apps can be connected to Nimi for team testing, personal tools, or work that is not ready for a public release yet.',
-      },
-    ],
-    notes: [
-      'New product work uses the Nimi Apps path.',
-      'Nimi Apps has separate Registry-approved package, explicit immutable local-package import, and Developer Mode paths. This pre-release supports verified Catalog discovery, installation, launch and uninstall on Windows x86_64, plus local development. The local-package import entry, other-platform package lifecycle, update and repair remain unavailable.',
-      'Catalog actions reflect the current platform and Runtime state; an installed App and its Nimi access are separate facts.',
-      'To build an app, start with the SDK and Nimi App docs.',
-    ],
-  },
-  faq: {
-    eyebrow: 'FAQ',
-    title: 'Common questions',
-    description:
-      'What people usually ask before they dive in—the docs have the full picture.',
-    communityCta: 'Join Discord',
-    items: [
-      {
-        question: 'What is Nimi?',
-        answer:
-          'Nimi is an open-source, local-first personal AI product—one home where you talk, create, meet characters, and explore worlds, with the freedom to use local or cloud AI.',
-      },
-      {
-        question: 'Can I download Nimi today?',
-        answer:
-          'No stable Nimi release or installer is currently published. The complete product includes Desktop, Runtime, and Avatar; Zhiyu and Nimi Lab are independently released Apps. The earlier mixed developer previews are being withdrawn. Source code remains available; see Download for current status.',
-      },
-      {
-        question: 'Is my data private?',
-        answer:
-          'Nimi is local-first: conversations and AI work can run entirely on your own device with local models. Cloud providers are only used when you choose them.',
-      },
-      {
-        question: 'Which AI providers does Nimi work with?',
-        answer:
-          'Dozens of cloud providers—OpenAI, Anthropic, Gemini, DeepSeek, and more—plus models that run fully on your own machine. You choose per capability, and Runtime executes your choice.',
-      },
-      {
-        question: 'Is Nimi open source?',
-        answer:
-          'Yes. Runtime and SDK ship under Apache-2.0; the app layer ships under MIT. The full source tree is on GitHub.',
-      },
-      {
-        question: 'I’m a developer. Where do I start?',
-        answer:
-          'Start with the Create a Nimi App guide and run your project locally in Developer Mode. Distribution is a separate step: the current pilot uses protected Git tags, GitHub Actions and Releases, followed by human admission to the static Registry. Package discovery and installation currently support Windows x86_64; other platforms, local-package import, update, and repair remain unavailable.',
-      },
-    ],
-  },
-  security: {
-    title: 'Trust, security, and release integrity.',
-    subtitle: 'Review the source, report concerns privately, and verify release status before downloading.',
-    intro:
-      'Nimi keeps public source, security reporting, release availability, and code-signing status directly accessible. Pending work stays visibly pending.',
-    linksAriaLabel: 'Nimi trust and security links',
-    pillars: [
-      {
-        label: 'Source and docs',
-        title: 'Inspect how Nimi is built',
-        points: [
-          'Source code is public at github.com/nimiplatform/nimi.',
-          'Product and developer documentation is published at docs.nimi.ai.',
+        id: 'creation',
+        label: 'Work & creation',
+        items: [
+          {
+            id: 'nimi.overtone',
+            name: 'Nimi Overtone',
+            task: 'Organize music projects, lyrics, and audio takes, and compare creative versions.',
+            capabilities: ['text.generate', 'music.generate'],
+          },
+          {
+            id: 'nimi.storybook',
+            name: 'Storybook',
+            task: 'Read and create interactive stories where characters, choices, and narrative move together.',
+            capabilities: ['text.generate'],
+          },
+          {
+            id: 'nimi.realm-persona-studio',
+            name: 'Realm Persona Studio',
+            task: 'Create and manage your own Realm Personas, keeping profiles and drafts in one place.',
+            capabilities: ['text.generate', 'image.generate', 'audio.synthesize'],
+          },
         ],
       },
       {
-        label: 'Security',
-        title: 'Report concerns privately',
-        points: [
-          'Use GitHub Security Advisories for private vulnerability reports.',
-          'Security email: security@nimi.ai.',
+        id: 'life',
+        label: 'Life & interests',
+        items: [
+          {
+            id: 'nimi.parentos',
+            name: 'ParentOS',
+            task: `Keep a child's growth journal and family observations, organized into records and stage reminders.`,
+            capabilities: ['text.generate', 'audio.transcribe'],
+          },
+          {
+            id: 'nimi.shijing',
+            name: 'ShiJing',
+            task: 'A personal rhythm companion built on deterministic traditional calendar charting, with readings to reflect on.',
+            capabilities: ['text.generate'],
+          },
+          {
+            id: 'nimi.inscape',
+            name: 'Inscape',
+            task: 'A local tool for adults exploring personality and everyday reflection through a cognitive-function lens.',
+            capabilities: ['text.generate'],
+          },
         ],
       },
-      {
-        label: 'Code signing',
-        title: 'Verify the release, not the promise',
-        points: [
-          'The earlier mixed preview is being withdrawn and no replacement Runtime preview has been published. The SignPath Foundation application has not yet been submitted.',
-          'No current Nimi artifact should be treated as SignPath-signed without valid Authenticode verification.',
-        ],
-      },
-    ],
-    statuses: [
-      {
-        label: 'Windows',
-        value: 'Preview downloads withdrawn; signed RC and Stable not yet available',
-      },
-      {
-        label: 'SignPath Foundation',
-        value: 'Application not submitted; bootstrap prerequisite published',
-      },
-    ],
-    links: [
-      { label: 'Download', detail: 'Stable and unsigned-preview status', href: '/download' },
-      { label: 'Download status', detail: 'Product composition and current availability', href: 'https://nimi.ai/download' },
-      { label: 'Code signing policy', detail: 'Scope, controls, and verification', href: '/code-signing' },
-      { label: 'Source code', detail: 'github.com/nimiplatform/nimi', href: 'https://github.com/nimiplatform/nimi' },
-      { label: 'Documentation', detail: 'docs.nimi.ai', href: 'https://docs.nimi.ai' },
-      { label: 'GitHub Security Advisories', detail: 'Private vulnerability report', href: 'https://github.com/nimiplatform/nimi/security/advisories/new' },
-      { label: 'security@nimi.ai', detail: 'Private security email', href: 'mailto:security@nimi.ai' },
     ],
   },
-  openSource: {
-    title: 'Open source. End to end.',
-    subtitle: 'Read the runtime. Read the SDK. Read the spec.',
-    description:
-      'Nimi ships under permissive licenses across the runtime, SDK, and app layers — built on contracts you can read, fork, and extend.',
-    githubCta: 'View on GitHub',
-    docsCta: 'Read Docs',
-    roadmapCta: 'Read Roadmap',
-    proofItems: [
+  worlds: {
+    title: 'Meet AI characters and step into their worlds.',
+    subtitle: 'Find characters that interest you, talk with them, and explore different worlds.',
+    body: 'Start with a conversation, get to know a character, and learn about the world they belong to. Come with a question, or just to meet a new conversation partner.',
+    exampleTitle: 'A typical start',
+    exampleSteps: [
+      'Pick a character that interests you in Nimi.',
+      'Start with one conversation and get to know the character and their world.',
+      'Keep the conversation going, or go back to the world to see who else is there.',
+    ],
+    cta: 'Explore characters & worlds',
+  },
+  capabilities: {
+    title: 'Local or cloud — choose what fits.',
+    subtitle: 'Pick the AI runtime that matches your task, your device, and your costs.',
+    tasks: [
       {
-        label: 'Runtime + SDK',
-        value: 'Apache-2.0',
-        detail:
-          'Core runtime and SDK are open and inspectable — clone, build, and run them locally.',
-        icon: 'runtime',
+        id: 'writing',
+        title: 'Writing & organizing',
+        description: 'Draft, rewrite, summarize, and turn scattered material into something usable.',
       },
       {
-        label: 'Apps',
-        value: 'MIT',
-        detail: 'Desktop and app-layer code ships with permissive licensing — fork, ship, embed.',
-        icon: 'apps',
+        id: 'image',
+        title: 'Image creation',
+        description: 'Generate and adjust images for your projects and notes.',
       },
       {
-        label: 'Contracts',
-        value: 'Public',
-        detail: 'Managed cloud surfaces stay visible through the public SDK boundary.',
-        icon: 'contracts',
-        featured: true,
+        id: 'media',
+        title: 'Video & audio',
+        description: 'Work with video, transcribe speech, and separate or organize audio tracks.',
+      },
+      {
+        id: 'music',
+        title: 'Music',
+        description: 'Generate music, and keep lyrics and versions organized.',
+      },
+      {
+        id: 'conversation',
+        title: 'Conversation & realtime',
+        description: 'Talk in text or voice, and pick up a live conversation where you left it.',
+      },
+      {
+        id: 'vision',
+        title: 'Vision & locating',
+        description: 'Recognize objects and positions in an image for apps that need to see.',
       },
     ],
+    localTitle: 'Local AI',
+    localText: 'Models run on your computer and incur no cloud model-call fees. What you can run depends on your device and the model requirements.',
+    cloudTitle: 'Cloud AI',
+    cloudText: 'Connect supported cloud capabilities. Terms and fees are set by the corresponding provider.',
+    costNote: 'Nimi itself is free. Cloud calls may cost money, and whether a third-party app charges is up to its publisher.',
+    cta: 'Understand model support and requirements',
+  },
+  create: {
+    title: 'Turn your idea into your own app.',
+    subtitle: 'Build a local AI tool around your tasks and habits.',
+    body: 'Start from one concrete need: what it handles, the steps it follows, and the result it returns. Connect the AI capabilities it needs so the app works your way.',
+    steps: [
+      {
+        title: 'Describe the need',
+        description: 'Write down what it handles, the steps it follows, and the result you want.',
+      },
+      {
+        title: 'Create the project',
+        description: 'Scaffold a local project with Nimi App tools. Node and a local development environment are required.',
+      },
+      {
+        title: 'Connect capabilities',
+        description: 'Use the Nimi SDK to connect the AI capabilities and organize your workflow.',
+      },
+      {
+        title: 'Run it locally',
+        description: 'Run and iterate locally until it fits your habits.',
+      },
+    ],
+    caveat: 'Creating a personal app currently requires developer tools and local development mode; it is not a no-code flow.',
+    cta: 'Learn how to create a personal app',
+  },
+  continuity: {
+    title: 'A different app, the same AI that knows you.',
+    subtitle: 'One AI that keeps its identity, memory, and shared history across the apps it is connected to.',
+    body: 'Preferences you talked about and memories it built can carry into the next interaction. From conversation to creation, you do not have to introduce yourself again.',
+    supports: ['Apps access your AI with your authorization.', 'Different AIs keep separate memories.'],
+  },
+  developers: {
+    eyebrow: 'For developers',
+    title: 'Bring your app to Nimi.',
+    subtitle: 'Use supported local and cloud AI capabilities through the Nimi SDK — build something new, or adapt an existing project.',
+    body: 'Start with the integration path, capability support, and examples to learn how Nimi Apps are developed and run.',
+    points: [
+      'Nimi SDK: one interface to local and cloud AI capabilities.',
+      'Adapters: Vercel AI SDK and Mastra adapters are available for existing projects.',
+      'Scaffold: create a local app project with app-tools and iterate at your own pace.',
+    ],
+    primaryCta: 'Read the developer guide',
+    secondaryCta: 'View source',
+  },
+  getStarted: {
+    title: 'Start using AI your way today.',
+    subtitle: 'Download Nimi, find the apps you need, or meet an AI character that interests you. Choose your AI and start with what you want to do.',
+    primaryCta: 'Check download status',
+    availability: 'There is no stable public installer yet; the download page describes the real status for each platform.',
+    secondaryCta: 'Explore apps',
   },
   footer: {
-    line1: `${landingPositioningEn.hero.title} ${landingPositioningEn.hero.titleAccent}`,
-    line2: 'Read the docs to see what ships today and what is on the roadmap.',
-    termsLabel: 'Terms',
-    privacyLabel: 'Privacy',
-    downloadLabel: 'Download',
+    line1: 'MAKE AI TRULY YOURS',
+    line2: 'Use free apps, meet AI characters, explore different worlds.',
+    navLabel: 'Pages',
+    appsLabel: 'Apps',
+    worldsLabel: 'Characters & Worlds',
+    createLabel: 'Create apps',
+    developersLabel: 'Developers',
+    docsLabel: 'Docs',
+    githubLabel: 'GitHub',
+    downloadLabel: 'Download Nimi',
     codeSigningLabel: 'Code signing policy',
-    securityLabel: 'Security',
+    securityLabel: 'Security report',
+    termsLabel: 'Terms of Service',
+    privacyLabel: 'Privacy Policy',
   },
   localeToggleLabel: 'Language',
   localeOptions: {

@@ -1,12 +1,9 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { LanguageToggle } from '../landing/components/language-toggle.js';
-import {
-  persistLocale,
-  resolveInitialLocale,
-  type LandingLocale,
-  type StorageLike,
-} from '../landing/i18n/locale.js';
+import { withLocaleQuery } from '../landing/config/landing-links.js';
+import type { LandingLocale } from '../landing/i18n/locale.js';
+import { usePublicPageLocale } from './use-page-locale.js';
 
 // @nimi-authority: rule.nimi.platform.core-protocol.p-arch-001a
 // @nimi-authority: rule.nimi.platform.governance-release.p-gov-026-positioning
@@ -60,6 +57,7 @@ type DownloadCopy = {
   statusTitle: string;
   statusBody: string;
   releaseAction: string;
+  versions: TextSection & { cta: string };
   preview: {
     title: string;
     scope: string;
@@ -155,10 +153,22 @@ const EN_COPY: PublicPageCopy = {
     title: 'Download Nimi',
     intro:
       'Check what you can download today, which platforms it works on, and what to expect before you run it.',
-    statusTitle: 'Stable release: Not yet available',
+    statusTitle: 'Downloads by version on GitHub Releases',
     statusBody:
-      'The complete Nimi product includes Desktop, Runtime, and Avatar. There is no stable Nimi release or Nimi Home installer to download yet. Earlier mixed developer previews are being withdrawn while release identities are corrected. Source code remains available for development.',
+      'Nimi product artifacts are published per version on GitHub Releases. Each release page lists its available artifacts for Windows x86_64 and macOS arm64 together with that release’s notes and verification material. Earlier mixed developer previews were withdrawn; cleanup guidance remains below.',
     releaseAction: 'Browse source code',
+    versions: {
+      title: 'Download by version',
+      paragraphs: [
+        'Release tags name their owner: nimi/v<version> for the complete Desktop + Runtime + Avatar product, desktop/v<version> for a Desktop-only delivery, and runtime/v<version> for a Runtime-only delivery. Open the release whose version and owner match what you want to install, then choose the asset for your platform.',
+      ],
+      items: [
+        'Windows x86_64: choose the matching Windows asset on the release page.',
+        'macOS arm64: choose the matching macOS asset on the release page.',
+        'Verify before running: compare the release-owned checksum material and signing status described on the release page and in the code signing policy.',
+      ],
+      cta: 'Open GitHub Releases',
+    },
     preview: {
       title: 'Developer preview downloads withdrawn',
       scope: 'The earlier releases grouped different components under a repository-wide version. They are being withdrawn and are not replaced by a new product or component release.',
@@ -173,22 +183,20 @@ const EN_COPY: PublicPageCopy = {
         'Nimi is an open-source, local-first personal AI product comprising Desktop, Runtime, and Avatar. Nimi Home is its Desktop-hosted entry for conversations, characters, creations, stories, worlds, settings, and Nimi Apps. Runtime executes local or cloud AI capabilities; Avatar provides the desktop embodiment. Realm owns account and ecosystem identity.',
         'The ordinary latest path is stable-only. It never treats a release candidate as the latest stable release.',
         'The complete product uses nimi/v<version> releases. Desktop-only and Runtime-only deliveries use desktop/v<version> and runtime/v<version>; libraries retain their own package versions. Zhiyu and Nimi Lab are independently published Third-party Apps, not components of the Nimi installation.',
-        'Nimi Apps have three separate lifecycle paths: Registry-approved packages, explicit immutable local-package import, and Developer Mode. The current pilot uses protected Git tags, GitHub Actions and Releases, followed by human admission to a static Registry. Windows x86_64 supports Registry discovery, installation, launch, focus, stop, Access management, and uninstall; local development is also supported. The local-package import entry, other platforms’ package lifecycle, update, and repair remain unavailable. Installing an App does not grant Nimi access; account and Runtime conditions still apply.',
+        'Nimi Apps have three separate lifecycle paths: Registry-approved packages, explicit immutable local-package import, and Developer Mode. Verified Catalog discovery, installation, update, launch, focus, stop, Access management, and uninstall are available on Windows x86_64 and macOS arm64 through the protected Desktop path; local development is also supported. The local-package import entry, package lifecycle on other platforms, and ordinary repair remain unavailable. Installing an App does not grant Nimi access; account and Runtime conditions still apply.',
       ],
     },
     platformTitle: 'Platform availability',
     platforms: [
       {
         name: 'Windows',
-        status: 'No current product or preview download',
-        detail:
-          'The former unsigned Runtime bootstrap and source-local Kit package are being withdrawn. Neither was a complete Desktop + Runtime + Avatar product. A replacement has not been published.',
+        status: 'See GitHub Releases',
+        detail: 'Windows x86_64 artifacts are listed per version on the matching release page; signing and verification material is release-owned.',
       },
       {
         name: 'macOS',
-        status: 'No current product or preview download',
-        detail:
-          'The former repo-assisted macOS candidate is being withdrawn with the mixed preview release. Local development builds remain available from source; there is no standalone installer, signed RC, or stable release to download.',
+        status: 'See GitHub Releases',
+        detail: 'macOS arm64 artifacts are listed per version on the matching release page; notarization and signing status is recorded per release.',
       },
       {
         name: 'Linux',
@@ -437,10 +445,22 @@ const ZH_COPY: PublicPageCopy = {
     title: '下载 Nimi',
     intro:
       '查看今天能下载什么、适用哪些平台，以及运行前需要了解的限制。',
-    statusTitle: '稳定版：尚未提供',
+    statusTitle: '按版本在 GitHub Releases 下载',
     statusBody:
-      '完整 Nimi 产品包含 Desktop、Runtime 和 Avatar。目前还没有可下载的 Nimi 稳定版或 Nimi Home 安装包。旧的混合开发者预览正在撤回，以纠正发布对象与版本归属；源代码仍可用于开发。',
+      'Nimi 产品制品按版本发布在 GitHub Releases；每个版本页列出该版本的 Windows x86_64 与 macOS arm64 制品、版本说明与校验材料。旧的混合开发者预览已撤下，清理说明保留在下方。',
     releaseAction: '查看源代码',
+    versions: {
+      title: '按版本下载',
+      paragraphs: [
+        'Release 标签标明归属：完整 Desktop + Runtime + Avatar 产品使用 nimi/v<版本>，仅 Desktop 使用 desktop/v<版本>，仅 Runtime 使用 runtime/v<版本>。打开与你想要安装的版本与归属一致的 Release，然后在版本页选择对应平台的制品。',
+      ],
+      items: [
+        'Windows x86_64：在版本页选择对应的 Windows 制品。',
+        'macOS arm64：在版本页选择对应的 macOS 制品。',
+        '运行前先验证：对照版本页与代码签名政策中的校验材料与签名状态。',
+      ],
+      cta: '打开 GitHub Releases',
+    },
     preview: {
       title: '开发者预览下载已撤下',
       scope: '旧 Release 把不同组件放在同一个仓库整体版本下，目前正在撤回；尚未发布新的产品或组件版本来替代。',
@@ -455,20 +475,20 @@ const ZH_COPY: PublicPageCopy = {
         'Nimi 是由 Desktop、Runtime 和 Avatar 组成的开源、本地优先个人 AI 产品。Nimi Home 是由 Desktop 承载的入口，将对话、角色、创作、故事、世界、设置与 Nimi Apps 连接在一起。Runtime 执行本地或云端 AI 能力，Avatar 提供桌面形象，Realm 负责账号与生态身份。',
         '普通 latest 路径只表示稳定版，不会把 RC 当作最新稳定版。',
         '完整产品使用 nimi/v<版本> 发布；单独的 Desktop 和 Runtime 分别使用 desktop/v<版本>、runtime/v<版本>，各库保持自己的包版本。Zhiyu 和 Nimi Lab 是独立发布的第三方 App，不属于 Nimi 安装包。',
-        'Nimi Apps 保留 Registry 已验证安装包、明确选择的不可变本地包导入和 Developer Mode 三条独立路径。当前试点通过受保护 Git tag、GitHub Actions 和 Releases 交付，再由人工准入静态 Registry。Windows x86_64 支持目录发现、安装、启动、聚焦、停止、Access 管理与卸载，也支持本地开发；本地包导入入口、其他平台的包生命周期、更新与修复仍不可用。安装 App 不等于授予 Nimi 访问能力，相关操作仍需满足账号与 Runtime 条件。',
+        'Nimi Apps 保留 Registry 已验证安装包、明确选择的不可变本地包导入和 Developer Mode 三条独立路径。在当前产品环境中，Windows x86_64 与 macOS arm64 支持经验证的目录发现、安装、更新、启动、聚焦、停止、Access 管理与卸载，也支持本地开发；本地包导入入口、其他平台的包生命周期与普通修复仍不可用。安装 App 不等于授予 Nimi 访问能力，相关操作仍需满足账号与 Runtime 条件。',
       ],
     },
     platformTitle: '平台可用性',
     platforms: [
       {
         name: 'Windows',
-        status: '暂无产品或预览下载',
-        detail: '旧的未签名 Runtime 启动包与 source-local Kit 包正在撤回。它们都不是完整的 Desktop + Runtime + Avatar 产品，目前尚未发布替代版本。',
+        status: '见 GitHub Releases',
+        detail: 'Windows x86_64 制品按版本列在对应 Release 页；签名与校验材料由该版本提供。',
       },
       {
         name: 'macOS',
-        status: '暂无产品或预览下载',
-        detail: '旧的、需要仓库协助安装的 macOS 候选随混合预览一同撤回。仍可从源码进行本地开发；目前没有可下载的独立安装包、已签名 RC 或稳定版。',
+        status: '见 GitHub Releases',
+        detail: 'macOS arm64 制品按版本列在对应 Release 页；公证与签名状态按版本记录。',
       },
       {
         name: 'Linux',
@@ -678,27 +698,6 @@ export const PUBLIC_PAGE_CONTENT: Readonly<Record<LandingLocale, PublicPageCopy>
   zh: ZH_COPY,
 };
 
-function browserStorage(): StorageLike | null {
-  return typeof window === 'undefined' ? null : window.localStorage;
-}
-
-function initialLocale(): LandingLocale {
-  return resolveInitialLocale({
-    storage: browserStorage(),
-    search: typeof window === 'undefined' ? '' : window.location.search,
-    navigatorLanguage: typeof navigator === 'undefined' ? '' : navigator.language,
-    defaultLocale: import.meta.env.VITE_LANDING_DEFAULT_LOCALE,
-  });
-}
-
-function usePublicPageLocale(): [LandingLocale, (locale: LandingLocale) => void] {
-  const [locale, setLocale] = useState<LandingLocale>(initialLocale);
-  return [locale, (nextLocale) => {
-    setLocale(nextLocale);
-    persistLocale(nextLocale, browserStorage());
-  }];
-}
-
 function usePageMetadata(meta: PageMeta, locale: LandingLocale): void {
   useEffect(() => {
     const previousTitle = document.title;
@@ -790,18 +789,23 @@ function PageShell(props: {
   usePageMetadata(props.meta, props.locale);
 
   return (
-    <div className="release-page-shell">
+    <div
+      className="release-page-shell"
+      // See landing App.tsx: suppress native drag of selected text, which
+      // hangs software-rendered environments. Selection and copy are intact.
+      onDragStart={(event) => event.preventDefault()}
+    >
       <a href="#release-main" className="skip-link">{copy.skipToContent}</a>
       <header className="release-header">
         <div className="release-container release-header-inner">
-          <Link to="/" className="release-brand">
+          <Link to={withLocaleQuery('/', props.locale)} className="release-brand">
             <img src="/logo.svg" alt="" width="32" height="32" />
             <span>Nimi</span>
           </Link>
           <nav aria-label="Nimi public pages">
-            <Link to="/">{copy.backHome}</Link>
-            <Link to="/download">{copy.download}</Link>
-            <Link to="/code-signing">{copy.policy}</Link>
+            <Link to={withLocaleQuery('/', props.locale)}>{copy.backHome}</Link>
+            <Link to={withLocaleQuery('/download', props.locale)}>{copy.download}</Link>
+            <Link to={withLocaleQuery('/code-signing', props.locale)}>{copy.policy}</Link>
           </nav>
           <LanguageToggle
             locale={props.locale}
@@ -840,8 +844,8 @@ function PageShell(props: {
             <a href={REPOSITORY_URL}>{copy.source}</a>
             <a href={DOCS_URL}>{copy.docs}</a>
             <a href={SECURITY_ADVISORY_URL}>{copy.security}</a>
-            <Link to="/privacy">{copy.privacy}</Link>
-            <Link to="/terms">{copy.terms}</Link>
+            <Link to={withLocaleQuery('/privacy', props.locale)}>{copy.privacy}</Link>
+            <Link to={withLocaleQuery('/terms', props.locale)}>{copy.terms}</Link>
           </nav>
         </div>
       </footer>
@@ -899,11 +903,16 @@ export function DownloadPageView({ locale, onLocaleChange }: {
         </div>
       </PageSection>
 
+      <PageSection title={page.versions.title}>
+        <TextSectionContent section={page.versions} />
+        <a className="release-primary-action" href={RELEASES_URL}>{page.versions.cta}</a>
+      </PageSection>
+
       <PageSection title={page.providerTitle}>
         <p className="release-label">{page.providerLabel}</p>
         <p><strong>{page.attribution}</strong></p>
         <p className="release-warning">{page.disclaimer}</p>
-        <p><Link to="/code-signing">{shared.policy}</Link></p>
+        <p><Link to={withLocaleQuery('/code-signing', locale)}>{shared.policy}</Link></p>
       </PageSection>
 
       <details className="release-details">
@@ -991,7 +1000,7 @@ export function CodeSigningPolicyPage() {
 
       <PageSection id="privacy" title={page.privacy.title}>
         <TextSectionContent section={page.privacy} />
-        <p><Link to="/privacy">https://nimi.ai/privacy</Link></p>
+        <p><Link to={withLocaleQuery('/privacy', locale)}>https://nimi.ai/privacy</Link></p>
       </PageSection>
 
       <PageSection id="system-changes" title={page.system.title}>

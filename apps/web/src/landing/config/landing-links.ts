@@ -7,6 +7,11 @@ export type LandingLinks = {
   protocolUrl: string;
   downloadUrl: string;
   desktopDownloadUrl: string;
+  appsUrl: string;
+  worldsUrl: string;
+  createAppUrl: string;
+  createGuideUrl: string;
+  modelsUrl: string;
 };
 
 // Docs site is deployed at the docs.nimi.ai subdomain (VitePress with
@@ -22,6 +27,11 @@ const DEFAULT_LINKS: LandingLinks = {
   protocolUrl: 'https://docs.nimi.ai/platform/protocol',
   downloadUrl: '/download',
   desktopDownloadUrl: 'https://docs.nimi.ai/desktop/',
+  appsUrl: '/apps',
+  worldsUrl: '/home',
+  createAppUrl: '/apps#create-your-own',
+  createGuideUrl: 'https://docs.nimi.ai/start/create-an-app',
+  modelsUrl: 'https://docs.nimi.ai/runtime/connectors-and-providers',
 };
 
 /**
@@ -48,17 +58,54 @@ function localizeDocsUrl(url: string, locale: 'en' | 'zh'): string {
 }
 
 /**
- * Apply locale prefix to all docs-pointing fields in a LandingLinks bundle.
- * Non-docs fields (webAppUrl / discordUrl / githubUrl) pass through.
+ * Append the active locale to a same-origin site URL so receiving pages keep
+ * the language named by the current URL. Existing query parameters and the
+ * hash are preserved.
+ */
+export function withLocaleQuery(href: string, locale: 'en' | 'zh'): string {
+  const hashIndex = href.indexOf('#');
+  const beforeHash = hashIndex >= 0 ? href.slice(0, hashIndex) : href;
+  const hash = hashIndex >= 0 ? href.slice(hashIndex + 1) : null;
+  const queryIndex = beforeHash.indexOf('?');
+  const path = queryIndex >= 0 ? beforeHash.slice(0, queryIndex) : beforeHash;
+  const query = queryIndex >= 0 ? beforeHash.slice(queryIndex + 1) : '';
+  const params = new URLSearchParams(query);
+  params.set('lang', locale);
+  const search = params.toString();
+  return `${path}${search ? `?${search}` : ''}${hash !== null ? `#${hash}` : ''}`;
+}
+
+/**
+ * Build an app detail URL from the localized apps base (`/apps?lang=zh`),
+ * keeping the query ahead of the path segment.
+ */
+export function buildAppDetailUrl(appsBase: string, appId: string): string {
+  const hashIndex = appsBase.indexOf('#');
+  const beforeHash = hashIndex >= 0 ? appsBase.slice(0, hashIndex) : appsBase;
+  const hash = hashIndex >= 0 ? appsBase.slice(hashIndex + 1) : null;
+  const queryIndex = beforeHash.indexOf('?');
+  const path = queryIndex >= 0 ? beforeHash.slice(0, queryIndex) : beforeHash;
+  const query = queryIndex >= 0 ? beforeHash.slice(queryIndex + 1) : '';
+  return `${path}/${appId}${query ? `?${query}` : ''}${hash !== null ? `#${hash}` : ''}`;
+}
+
+/**
+ * Apply locale prefix to docs URLs and locale parameter to internal site
+ * URLs. External non-docs URLs pass through unchanged.
  */
 export function resolveLocalizedLinks(links: LandingLinks, locale: 'en' | 'zh'): LandingLinks {
-  if (locale === 'en') return links;
   return {
     ...links,
     appUrl: localizeDocsUrl(links.appUrl, locale),
     docsUrl: localizeDocsUrl(links.docsUrl, locale),
     protocolUrl: localizeDocsUrl(links.protocolUrl, locale),
     desktopDownloadUrl: localizeDocsUrl(links.desktopDownloadUrl, locale),
+    createGuideUrl: localizeDocsUrl(links.createGuideUrl, locale),
+    modelsUrl: localizeDocsUrl(links.modelsUrl, locale),
+    downloadUrl: withLocaleQuery(links.downloadUrl, locale),
+    appsUrl: withLocaleQuery(links.appsUrl, locale),
+    worldsUrl: withLocaleQuery(links.worldsUrl, locale),
+    createAppUrl: withLocaleQuery(links.createAppUrl, locale),
   };
 }
 
@@ -93,6 +140,11 @@ export function resolveLandingLinks(env: Record<string, unknown> = {}): LandingL
       env.VITE_LANDING_DESKTOP_DOWNLOAD_URL,
       DEFAULT_LINKS.desktopDownloadUrl,
     ),
+    appsUrl: DEFAULT_LINKS.appsUrl,
+    worldsUrl: DEFAULT_LINKS.worldsUrl,
+    createAppUrl: DEFAULT_LINKS.createAppUrl,
+    createGuideUrl: DEFAULT_LINKS.createGuideUrl,
+    modelsUrl: normalizeUrl(env.VITE_LANDING_MODELS_URL, DEFAULT_LINKS.modelsUrl),
   };
 }
 

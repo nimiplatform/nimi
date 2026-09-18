@@ -1,374 +1,84 @@
 # Nimi
 
-**Nimi is an open-source, local-first, installable personal AI product.**
-The complete product contains Desktop, Runtime, and Avatar. Zhiyu and Nimi Lab
-are independently released Third-party Apps and are not included in this bundle.
-Nimi Home is its entry point, Realm owns ecosystem identity, and Runtime
-executes local and cloud AI capabilities across multiple providers. Characters,
-conversations, creations, stories, and worlds are experiences within Nimi;
-Nimi is not reducible to Runtime, a chat product, Avatar, or any one experience.
-Nimi Apps separates Registry-approved verified packages, explicitly selected
-immutable local-import packages, and non-package Developer Mode projects. The
-current pre-release admits protected Registry onboarding and human-approved
-descriptor admission, plus Catalog discovery, installation, update, installed
-launch/focus/stop, protected App session Access, and uninstall on Windows x86_64
-and macOS arm64 through their Runtime and Desktop owners. Local-import package
-management is implemented on those targets without Registry trust or Developer
-Mode. These entry points do not establish combined product acceptance or public
-release readiness. Ordinary repair and package lifecycle on other platforms
-remain unavailable. Configured pilot App repositories have protected-tag GitHub
-Actions and immutable GitHub Release publication.
+**让 AI 真正属于你。** Make AI truly yours.
 
-The broader project is an AI open world platform. It is built for long-lived
-worlds where people, AI agents, applications, and runtime services share the
-same social and semantic environment, instead of meeting only inside one
-isolated chat box or one isolated app.
+Nimi is an installable, open-source, local-first personal AI product: use AI apps, talk with AI characters, and explore different worlds in one place — choose local or cloud AI, and build apps of your own.
 
-In most AI products today, an agent is a one-shot completion endpoint:
-you ask, it answers, the conversation ends. Nimi treats an agent as a
-participant. A participant carries identity, memory, relationships,
-appearance, and capability limits with it from one world to another. And
-a world here isn't just a chat room — it is a long-lived environment
-with its own rules, its own history, its own presence model, and its own
-economy.
+[Download status](https://nimi.ai/download) · [Website](https://nimi.ai) · [Documentation](https://docs.nimi.ai) · [Releases](https://github.com/nimiplatform/nimi/releases) · [Discord](https://discord.gg/BQwHJvPn)
 
-The platform freezes a small cross-world contract surface so that very
-different worlds can still interoperate. Inside any one world, the
-creator sets the rules. Across worlds, only the protocol primitives are
-fixed. Underneath all of it, Realm holds the world's truth — so one
-surface can't quietly invent a version of the world that doesn't match
-what Realm says.
+A stable public installer is not available yet. The earlier developer previews were withdrawn; the source remains available for development. The [Download page](https://nimi.ai/download) always carries the current per-platform status.
 
-## Public Project Links and Release Status
+## What you can do with Nimi
 
-- [Download](https://nimi.ai/download)
-- [Code signing policy](https://nimi.ai/code-signing)
-- [Documentation](https://docs.nimi.ai)
-- [Source code](https://github.com/nimiplatform/nimi)
-- [Security advisories](https://github.com/nimiplatform/nimi/security/advisories) and [`security@nimi.ai`](mailto:security@nimi.ai)
+- **Use apps.** Free Nimi apps cover work and creation, life management, and interests — writing, organizing, images, audio, family records, personality exploration, and personal rhythms.
+- **Meet characters and worlds.** Talk with AI characters and explore the worlds they belong to.
+- **Choose your AI.** Run models locally on your computer, or connect supported cloud capabilities. What you use is your choice.
+- **Create your own app.** Build a local AI tool around your own tasks, steps, and results.
+- **Keep the same AI.** The AI you talk to keeps its identity and memory across the apps it is connected to, so you do not start over each time.
 
-**Windows production signing is pending.** Windows is not yet available as a
-production download, and no current Nimi Windows artifact should be treated as
-production signed or SignPath-signed. The old mixed-component developer
-previews are being withdrawn; no replacement preview has been published.
-The SignPath Foundation application has not yet been submitted. Local
-development self-signing is never a production-signing claim.
+See [nimi.ai](https://nimi.ai) for the product tour.
 
-The Download and Code signing policy links above are the live canonical public
-routes. Changes in a source checkout do not change those pages until the website
-is deployed.
+## Apps in the ecosystem
 
-Every release tag identifies its product or component owner, including previews
-and release candidates:
+Every admitted app has a public source repository and an explicit open-source license. The current catalog includes:
 
-| Delivery | Tag identity |
-| --- | --- |
-| Complete Desktop + Runtime + Avatar product | `nimi/v<product SemVer>` |
-| Desktop only | `desktop/v<Desktop SemVer>` |
-| Runtime only | `runtime/v<Runtime SemVer>` |
-| Public libraries | Their own component prefix and canonical package version |
-| Zhiyu and Nimi Lab | Independent publisher-owned App releases and Registry admission |
+| App | What it does | Platforms |
+| --- | --- | --- |
+| ParentOS | Keeps a child's growth journal and family observations, with records and stage reminders. | macOS arm64 · Windows x86_64 |
+| Nimi Overtone | Organizes music projects, lyrics, and audio takes, and compares versions. | macOS arm64 · Windows x86_64 |
+| Storybook | Reads and creates interactive stories where characters and choices move the narrative. | macOS arm64 · Windows x86_64 |
+| Realm Persona Studio | Creates and manages your own Realm Personas, profiles, and drafts. | macOS arm64 · Windows x86_64 |
+| 时镜 ShiJing | A personal rhythm companion built on deterministic traditional calendar charting. | macOS arm64 · Windows x86_64 |
+| Inscape 心相 | A local tool for adults exploring personality and everyday reflection. | macOS arm64 · Windows x86_64 |
+| Realm World Studio | Creation and maintenance for Realm world content. | macOS arm64 · Windows x86_64 |
+| Vane | Admitted catalog app (text and embeddings). | macOS arm64 · Windows x86_64 |
+| OpenMontage | Admitted catalog app (text, image, video, audio, and music capabilities). | macOS arm64 · Windows x86_64 |
+| Next AI Draw.io | Admitted catalog app (text). | macOS arm64 · Windows x86_64 |
 
-For example, `nimi/v0.2.0-preview.1` identifies a complete product preview,
-whereas `runtime/v0.2.0-preview.1` identifies only Runtime. A bare `v0.2.0` or
-`v0.2.0-preview.1` does not identify a repository-wide release. These examples
-are naming rules, not currently available downloads.
+Verified Catalog discovery, installation, update, launch, focus, stop, access management, and uninstall are provided on Windows x86_64 and macOS arm64 through the protected Desktop path. The local-package import entry, package lifecycle on other platforms, and ordinary repair remain unavailable. Installing an app does not grant Nimi access; account and Runtime conditions still apply. The catalog page is informational: [nimi.ai/apps](https://nimi.ai/apps).
 
-Unsigned artifacts are marked **UNSIGNED PREVIEW — NOT PROMOTABLE**. They do not
-update stable `latest` or become signed RC/Stable assets. The mixed preview
-publisher has been retired; a future public Runtime bootstrap needs its own
-release identity and accepted artifacts before the separate SignPath application
-and production-signing steps. Local source builds remain available for development.
+## For developers
 
-If you previously downloaded the portable Runtime bootstrap, close any running
-`nimi.exe` and delete the extracted directory to remove it. Its documented
-`version --json` command did not install a service, modify `PATH`, or add a
-certificate. The [Download page](https://nimi.ai/download) retains cleanup
-guidance for previously installed development previews.
+Build something new, or adapt an existing project.
 
-## The Six Protocol Primitives
-
-The platform spec freezes six fixed cross-world primitives. They are
-deliberately small so worlds can be very different internally while
-still interoperating.
-
-| Primitive | What it covers |
-| --- | --- |
-| **Timeflow** | Progression, timing, and temporal meaning |
-| **Social** | Relationships and social graph semantics |
-| **Economy** | Value, exchange, and economic state |
-| **Transit** | Movement between worlds or contexts |
-| **Context** | Shared situational meaning |
-| **Presence** | Who or what is present, and under what conditions |
-
-A world is free to define its own internal rules. Its economy can be
-barter, points, or a regulated currency. Its social graph can be flat,
-hierarchical, or guild-shaped. What no world can do is invent its own
-version of the cross-world contract — the meaning that crosses worlds
-must fit these six.
-
-## What Nimi Contains
-
-Nimi is one open world platform with several products inside it. The
-platform defines the world model and the rules; the products inside
-cover execution, integration, surfaces, world truth, embodiment,
-memory, and the authority tooling used to maintain those boundaries.
-
-| Product | What it owns |
-| --- | --- |
-| **Platform** | The open world model, the six protocol primitives, the cross-domain authority rules. |
-| **Runtime** | LocalAgent execution and lifecycle, Conversation continuity, providers, model catalogs, streaming, multimodal output, local routing, protected access, and audit. Workflow, MCP, and World Evolution are not Runtime-core prerequisites. |
-| **SDK** | The public app boundary into Runtime and Realm without importing private internals. Scaffolded local apps use Runtime-mediated Realm access; direct SDK consumers retain the standard Auth path. |
-| **Nimi Home, Desktop, and Web** | First-party user surfaces. Nimi Home is the product contract; Desktop is its current replaceable native host, while Web is the standalone public account site. |
-| **Realm** | Semantic truth — world state, world history, chat, social and economy, asset binding, transit, creator economy. |
-| **Avatar** | An embodied LocalAgent projection; it does not own LocalAgent execution, Memory, Knowledge, or Conversation truth. |
-| **Cognition** | Independent owner of canonical long-term Memory and Knowledge. V1 implements LocalAgent long-term Memory and bounded Agent Source custody; Knowledge has no active V1 execution path. Runtime mediates authorization and lifecycle intent through the public bridge and retains LocalAgent and Conversation truth. |
-| **Nimi Coding** | Host-agnostic canonical-authority tooling. It operates on project-owned `.nimi/spec/**`; it is not another product authority. |
-
-Each product has its own section in the docs.
-
-## The Three Layers
-
-The platform splits into three layers that are easier to keep distinct
-than to mix together.
-
-```
-+---------------------------------------------------------------+
-|  Platform Model                                               |
-|    World, Character / LocalAgent, protocol primitives, rules  |
-+---------------------------------------------------------------+
-                              |
-                              v
-+---------------------------------------------------------------+
-|  Execution Substrate                                          |
-|    Runtime    : LocalAgent, Conversation, providers,          |
-|                 streaming, protected access                   |
-|    Cognition  : V1 long-term Memory, Agent Source custody;     |
-|                 independent owner, public bridge              |
-+---------------------------------------------------------------+
-                              |
-                              v
-+---------------------------------------------------------------+
-|  Public Surfaces                                              |
-|    SDK app boundary           Desktop native shell            |
-|    Web public account site     Realm public read path           |
-|    Avatar embodiment authority                                |
-+---------------------------------------------------------------+
-```
-
-Runtime executes local and cloud AI capabilities across providers. SDK gives
-apps the integration boundary.
-Desktop carries native and local behavior; Web is the standalone public
-account site. Realm owns world truth. Avatar owns embodied presentation.
-Cognition owns memory and knowledge as a standalone authority that
-Runtime can bridge to but cannot absorb.
-
-## Apps That Showcase The Platform
-
-The `apps/` directory contains first-party and reference apps that demonstrate what the
-platform can do. They consume Runtime, Realm, SDK, and the public
-surfaces; they do not extend the platform's authority. If you are
-reading an `apps/<name>/` directory, you are looking at a Nimi-powered
-app, not the platform itself.
-
-| App | What it explores |
-| --- | --- |
-| [`apps/desktop/`](apps/desktop/) | Native first-party shell — agent chat, local AI, voice |
-| [`apps/web/`](apps/web/) | Standalone public account site |
-| [`apps/avatar/`](apps/avatar/) | Live2D embodied carrier for Nimi agents (floating desktop avatar) |
-| [`apps/lab/`](apps/lab/) | Nimi Lab capability integration and incubation app for SDK, Kit, app-tools, Runtime auth, and AI capability lanes |
-| [`apps/install-gateway/`](apps/install-gateway/) | Cloudflare Worker for release distribution |
-
-## What's Installable Today
-
-The current public installable surface includes authority and app-authoring
-tooling. Nimi Coding is distributed as the host-agnostic npm package
-[`@nimiplatform/nimi-coding`](https://www.npmjs.com/package/@nimiplatform/nimi-coding).
-It provides deterministic canonical-authority products. Version 0.6.1 provides
-request-local, bounded TypeScript/TSX context reads and optional exact
-authority links in TypeScript, TSX, Go, Python, and Rust source. These code reads do not
-intercept host tasks, evaluate unannotated code, or prove implementation
-conformance. Adoption guidance lives in
-[docs/nimicoding/installation.md](docs/nimicoding/installation.md).
-
-`@nimiplatform/app-tools` is the app-authoring CLI for generated Nimi App
-developer repositories. It creates scaffold inputs and local checks only; it
-does not create public app admission, permission grants, release descriptors,
-registry visibility, or installed-app update truth.
+- **Nimi SDK** — one typed interface to local and cloud AI capabilities.
+- **Adapters** — `@nimiplatform/sdk-adapter-vercel-ai` and `@nimiplatform/sdk-adapter-mastra` connect existing frameworks.
+- **Scaffold** — create a local app project:
 
 ```bash
 pnpm dlx --package @nimiplatform/app-tools nimi-app create --profile standalone
 ```
 
-The Platform, Runtime, SDK, Desktop, Web, Realm, Avatar, and Cognition
-surfaces are documented at the contract level under `docs/` and authored
-under `.nimi/spec/`. Their stable public product release channels remain
-separate from the source checkout itself. Cloning the repo does not make those
-products publicly installable.
+Start with the [Create a Nimi App guide](https://docs.nimi.ai/start/create-an-app) and the [first AI call](https://docs.nimi.ai/sdk/first-ai-call). Adapter notes live in [sdks/typescript](sdks/typescript/README.md).
 
-## Source Checkout Quickstart
+## Open source and trust
 
-These commands are for a source checkout or locally built runtime binary.
-Once the runtime CLI is on `PATH`, initialize config and run the daemon in the
-foreground. Use background commands only on a build with an admitted manager or
-service controller:
+- **Source** — the platform core (runtime, SDK, Kit, Proto) is open; the Realm implementation is not part of the public distribution. See [LICENSE](LICENSE) for the per-component map.
+- **Security** — report vulnerabilities through [GitHub Security Advisories](https://github.com/nimiplatform/nimi/security/advisories/new) or `security@nimi.ai`. See [SECURITY.md](SECURITY.md).
+- **Code signing** — the current signing scope and status are recorded in the [Code signing policy](https://nimi.ai/code-signing).
+- **Local-first** — conversations and AI work can run on your own machine with local models; cloud capabilities are used only when you choose them.
 
-```sh
-# Create runtime config if it is missing.
-nimi init
+## Platform
 
-# Run the local runtime daemon in the foreground.
-nimi serve
-```
+Nimi Home is the product entry. Realm owns world and identity truth. Runtime executes local and cloud AI capabilities across supported providers. The full architecture, protocol primitives, and ownership model are documented at [docs.nimi.ai/platform](https://docs.nimi.ai/platform).
 
-Connector custody and ModelAsset/Loadout selection are managed through the
-Desktop protected Runtime surface. App-facing AI execution uses the SDK rather
-than a parallel CLI configuration owner.
+## Release and versioning
 
-## Documentation
+Product and component releases are separate and always name their owner: `nimi/v<version>` for the complete product, `desktop/v<version>` and `runtime/v<version>` for component deliveries, and per-package prefixes for libraries. Third-party apps release from their own repositories. See [RELEASE.md](RELEASE.md) and the [Download page](https://nimi.ai/download).
 
-Reader docs live under [`docs/`](docs/) (built with VitePress) and are
-organized by product.
+## Working in this repository
 
-| If you want to understand... | Start here |
-| --- | --- |
-| The product, the world model, why it exists | [docs/platform/index.md](docs/platform/index.md) |
-| The current setup and availability posture | [docs/start/index.md](docs/start/index.md) |
-| Find the reading path for your role | [docs/start/personas.md](docs/start/personas.md) |
-| How AI execution is governed | [docs/runtime/index.md](docs/runtime/index.md) |
-| How apps integrate without crossing internal boundaries | [docs/sdk/index.md](docs/sdk/index.md) |
-| How a TypeScript app makes its first Runtime AI call | [docs/sdk/first-ai-call.md](docs/sdk/first-ai-call.md) |
-| How apps reuse shared UI, shell, auth, model config, and feature modules | [docs/platform/kit/use-kit-in-app.md](docs/platform/kit/use-kit-in-app.md), [kit/README.md](kit/README.md) |
-| How to create a Nimi App scaffold | [docs/start/create-an-app.md](docs/start/create-an-app.md) |
-| How to work with Nimi Lab | [docs/start/use-nimi-lab.md](docs/start/use-nimi-lab.md) |
-| How to interpret Runtime, SDK, Nimi Lab, and scaffold failures | [docs/start/troubleshooting.md](docs/start/troubleshooting.md) |
-| Why Desktop and Web are not equivalent | [docs/desktop/index.md](docs/desktop/index.md) |
-| Where world truth and history live | [docs/realm/index.md](docs/realm/index.md) |
-| How embodied AI presentation is scoped | [docs/avatar/index.md](docs/avatar/index.md) |
-| Where memory and knowledge authority live | [docs/cognition/index.md](docs/cognition/index.md) |
-| The canonical-authority tooling and its package | [docs/nimicoding/index.md](docs/nimicoding/index.md) |
-| Cross-domain vocabulary | [docs/reference/glossary.md](docs/reference/glossary.md) |
-| Reference tables (six primitives, authority domains, fields) | [docs/reference/index.md](docs/reference/index.md) |
-
-To preview the docs site locally:
-
-```bash
-pnpm install
-pnpm --filter @nimiplatform/docs dev
-```
-
-Chinese-language docs are mirrored under [`docs/zh/`](docs/zh/) as
-original Chinese content, not sentence-by-sentence translation.
-
-## Repository Map
-
-| Area | Purpose |
-| --- | --- |
-| `.nimi/spec/` | Active product, architecture, and behavior contracts |
-| `.nimi/methodology/` | Managed canonical-authority authoring instructions |
-| `runtime/` | Go runtime daemon and CLI (`runtime/cmd/nimi`) |
-| `sdks/` | SDK family root; TypeScript vNext package target is `@nimiplatform/sdk` |
-| `kit/` | Cross-app design system, auth, telemetry, and feature modules |
-| `app-tools/` | Public app-authoring CLI (`nimi-app`) and scaffold templates |
-| `proto/` | Protocol Buffers and gRPC definitions |
-| `apps/` | Active apps (Desktop, Web, Avatar, Nimi Lab, install gateway) |
-| `nimi-cognition/` | Cognition implementation workspace |
-| `docs/` | Public documentation source (VitePress) |
-| `examples/` | SDK / runtime / app scaffold templates |
-| `scripts/` | Build, generate, validate, and audit scripts |
-
-The full module ownership map is described in per-module `AGENTS.md`
-files; each top-level directory has its own.
-
-## Building From Source
-
-Prerequisites:
-
-- Node.js `>=24`
-- pnpm `>=10`
-- Go `1.26.5+`
-- Rust toolchain (for Tauri-based apps)
-- Buf CLI (for proto changes)
-
-Bootstrap:
-
-```bash
-pnpm install
-```
-
-Common commands:
-
-```bash
-pnpm build                          # SDK + install-gateway + desktop + web build
-pnpm --filter @nimiplatform/sdk build
-pnpm runtime:cmd                    # invoke the runtime CLI
-pnpm runtime:health                 # query manager-owned runtime health
-cd runtime && go test ./... -count=1
-```
-
-For first-day setup, including the `.env` template, runtime
-initialization, and per-app dev commands, see
-[ONBOARDING.md](ONBOARDING.md).
-
-For the test strategy, see [TESTING.md](TESTING.md). For the release
-model, see [RELEASE.md](RELEASE.md).
-
-## Contributing
-
-Contributions are welcome. Before opening a PR:
-
-1. Read the nearest `AGENTS.md` to the directory you are touching — it
-   is the authoritative module rule source.
-2. Follow [CONTRIBUTING.md](CONTRIBUTING.md) for branch flow, test
-   requirements, and DCO sign-off (`git commit -s`).
-3. If you are using AI coding tools, follow the AGENTS hierarchy as the
-   single rule source; `CLAUDE.md`, `.github/copilot-instructions.md`,
-   and other host shims are navigation only.
-
-The contributor code of conduct lives in
-[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). Project governance lives in
-[GOVERNANCE.md](GOVERNANCE.md).
-
-## Security
-
-Do not open public issues for security reports. Use the GitHub Security
-Advisory (preferred) or email `security@nimi.ai`. Full reporting
-guidance, signed-artifact verification status, and supported-version policy live
-in [SECURITY.md](SECURITY.md). The canonical public
-[Code signing policy](https://nimi.ai/code-signing) records the Windows signing
-scope and current approval status once deployed.
-
-## License
-
-Nimi is multi-licensed by component:
-
-| Path | License |
-| --- | --- |
-| `runtime/`, `sdks/`, `proto/` | Apache-2.0 |
-| `apps/desktop/`, `apps/web/`, `apps/_libs/` | MIT |
-| `docs/` | CC-BY-4.0 |
-
-Canonical license texts are in [`licenses/`](licenses/). The full
-per-component map is in [LICENSE](LICENSE).
+- [CONTRIBUTING.md](CONTRIBUTING.md) — branch flow, tests, and DCO sign-off (`git commit -s`).
+- [ONBOARDING.md](ONBOARDING.md) — first-day setup.
+- [TESTING.md](TESTING.md) — test strategy.
+- Per-directory `AGENTS.md` files are the module rule sources.
 
 ## Community
 
 - GitHub: [github.com/nimiplatform/nimi](https://github.com/nimiplatform/nimi)
 - Discord: [discord.gg/BQwHJvPn](https://discord.gg/BQwHJvPn)
-- Maintainer and trusted committer: [@snowzane](https://github.com/snowzane),
-  who also reviews external contributions and is the planned signing approver
-- Working entity: Nimi Network Limited, the registered company supporting the
-  project
+- Working entity: Nimi Network Limited
 
-The GitHub organization enforces MFA. Production signing remains unavailable
-until the protected signing workflow and approval permission are configured;
-no future SignPath access may be granted without MFA.
+## License
 
-## A Word On OASIS
-
-You'll see "OASIS" mentioned in some docs. The comparison is about
-*shape*, not content. OASIS-style engines are physical-world engines;
-Nimi is a social-and-semantic world engine. Inside any one Nimi world,
-the creator sets the rules. Across worlds, only the six protocol
-primitives are fixed. Underneath all of it, Realm holds the world's
-truth.
+Nimi is multi-licensed by component: runtime, SDK, and Proto under Apache-2.0; apps and Kit under MIT; docs under CC-BY-4.0. Canonical license texts live in [licenses/](licenses/) and the full map is in [LICENSE](LICENSE).

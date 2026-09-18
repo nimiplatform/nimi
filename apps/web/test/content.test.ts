@@ -2,110 +2,126 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { loadLandingContent } from '../src/landing/content/landing-content.js';
 
-test('content keeps the consumer hero and SDK paths complete in both locales', async () => {
+const SECTION_KEYS = [
+  'hero',
+  'apps',
+  'worlds',
+  'capabilities',
+  'create',
+  'continuity',
+  'developers',
+  'getStarted',
+] as const;
+
+test('content exposes the full user journey in both locales', async () => {
   for (const locale of ['en', 'zh'] as const) {
     const content = await loadLandingContent(locale);
-    assert.ok(content.hero.title.length > 0);
-    assert.ok(content.hero.titleAccent.length > 0);
-    assert.match(content.hero.primaryCta, /download|下载/i);
-    assert.ok(content.hero.secondaryCta.length > 0);
-    assert.ok(content.hero.proofPoints.every((point) => point.length > 0));
-    assert.match(content.hero.availability, /Nimi Home/);
-    assert.match(content.hero.availability, /not available to install|暂未提供安装包/);
-    assert.match(content.hero.availability, /developer preview|开发者/);
-    assert.match(content.hero.availability, /withdrawn|撤下/);
-    assert.ok(content.hero.subtitle.length > 0);
-    assert.ok(!JSON.stringify(content.hero).includes('pnpm install'));
-    assert.ok(!JSON.stringify(content.hero).includes('nimi doctor'));
-    assert.ok(content.sdk.tabs.length >= 3);
-    assert.ok(content.sdk.tabs.every((tab) => tab.label.length > 0));
-    assert.ok(content.sdk.tabs.every((tab) => tab.description.length > 0));
-    assert.ok(content.sdk.tabs.every((tab) => tab.docsPath.startsWith('sdk/')));
-    assert.ok(content.desktop.features.length >= 4);
-    assert.ok(content.hero.title.length > 0);
-    assert.ok(content.modelCatalog.title.length > 0);
-    assert.ok(content.modelCatalog.overview.modalitiesDescription.length > 0);
-    assert.ok(content.sdk.tabs.some((tab) => tab.docsPath === 'sdk/ai-config-surface'));
-    assert.equal(content.security.statuses.length, 2);
-    assert.ok(content.security.links.some((link) => link.href === '/download'));
-    assert.ok(content.security.links.some((link) => link.href === '/code-signing'));
-    assert.ok(content.security.links.some((link) => link.href === 'mailto:security@nimi.ai'));
-  }
-});
 
-test('homepage lifecycle disclosures and developer FAQ agree on current distribution', async () => {
-  for (const locale of ['en', 'zh'] as const) {
-    const content = await loadLandingContent(locale);
-    const notes = content.apps.notes.join('\n');
-    assert.match(notes, /Registry/);
-    assert.match(notes, /immutable local-package import|不可变本地包导入/);
-    assert.match(notes, /Developer Mode/);
-    assert.match(notes, /Windows x86_64/);
-    assert.match(notes, /remain unavailable|仍待实现/);
-    const developerFaq = content.faq.items.find((item) => /developer|开发者/i.test(item.question));
-    assert.ok(developerFaq);
-    assert.match(developerFaq.answer, /Developer Mode/);
-    assert.match(developerFaq.answer, /pilot|试点/);
-    assert.match(developerFaq.answer, /Windows x86_64/);
-    assert.match(developerFaq.answer, /human admission|人工准入/);
-    assert.match(developerFaq.answer, /remain unavailable|仍不可用/);
-  }
-});
+    for (const key of SECTION_KEYS) {
+      assert.ok(content[key], `${locale}.${key} is missing`);
+    }
 
-test('SDK landing content separates hero highlights from the full capability matrix', async () => {
-  for (const locale of ['en', 'zh'] as const) {
-    const content = await loadLandingContent(locale);
-    const sdk = content.sdk as typeof content.sdk & {
-      heroHighlights?: ReadonlyArray<{ title: string; description: string }>;
-      runtimeBadges?: ReadonlyArray<string>;
-      capabilityMatrix?: ReadonlyArray<{ title: string; description: string; docsPath: string }>;
-    };
+    assert.ok(content.hero.slogan.length > 0);
+    assert.ok(content.hero.sloganAccent.length > 0);
+    assert.ok(content.hero.slogan.endsWith(content.hero.sloganAccent));
+    assert.ok(content.hero.subSlogan.length > 0);
+    assert.ok(content.hero.paragraphs.length > 0);
+    assert.ok(content.hero.paragraphs.every((paragraph) => paragraph.length > 0));
+    assert.ok(content.hero.downloadCta.length > 0);
+    assert.ok(content.hero.docsCta.length > 0);
+    assert.ok(content.hero.availableNote.length > 0);
+    assert.ok(content.hero.demo.nav.chat.length > 0);
+    assert.ok(content.hero.demo.nav.explore.length > 0);
+    assert.ok(content.hero.demo.nav.apps.length > 0);
+    assert.ok(content.hero.demo.nav.runtime.length > 0);
+    assert.ok(content.hero.demo.nav.settings.length > 0);
+    assert.ok(content.hero.demo.chat.greeting.length > 0);
+    assert.ok(content.hero.demo.chat.sendLabel.length > 0);
+    assert.ok(content.hero.demo.chat.scriptedReply.length > 0);
+    assert.ok(content.hero.demo.chat.agents.length >= 2);
+    assert.ok(content.hero.demo.chat.agents.every((agent) => agent.messages.length >= 1));
+    assert.ok(content.hero.demo.chat.agents.some((agent) => agent.id === content.hero.demo.chat.defaultTargetId));
+    assert.ok(content.hero.demo.explore.sections.length >= 2);
+    assert.ok(content.hero.demo.apps.items.length >= 3);
+    assert.ok(content.hero.demo.settings.groups.length >= 2);
 
-    assert.equal(sdk.heroHighlights?.length, 3);
-    assert.ok(sdk.heroHighlights.every((item) => item.title.length > 0 && item.description.length > 0));
-    assert.ok(sdk.runtimeBadges?.includes('Type-safe SDK'));
-    assert.ok(sdk.runtimeBadges?.includes('Runtime-backed'));
-    assert.ok(sdk.runtimeBadges?.includes('Local-first'));
-    assert.ok(sdk.runtimeBadges?.includes('Agent Context'));
-    assert.equal(sdk.capabilityMatrix?.length, content.sdk.tabs.length);
-    assert.deepEqual(
-      sdk.capabilityMatrix?.map((item) => item.docsPath),
-      content.sdk.tabs.map((tab) => tab.docsPath),
+    assert.equal(
+      content.apps.title,
+      locale === 'zh'
+        ? '从工作到兴趣，探索不同的 AI 应用。'
+        : 'From work to interests, explore different AI apps.',
     );
+    assert.ok(content.apps.groups.length >= 2);
+    assert.ok(content.apps.groups.every((group) => group.label.length > 0 && group.items.length > 0));
+    assert.ok(
+      content.apps.groups
+        .flatMap((group) => group.items)
+        .every((item) => item.name.length > 0 && item.task.length > 0),
+    );
+    assert.ok(content.apps.availabilityNote.length > 0);
+
+    assert.ok(content.worlds.title.length > 0);
+    assert.ok(content.capabilities.tasks.length >= 4);
+    assert.ok(content.create.steps.length >= 3);
+    assert.ok(content.continuity.supports.length >= 2);
+    assert.ok(content.developers.points.length >= 3);
+    assert.ok(content.getStarted.primaryCta.length > 0);
+    assert.ok(content.footer.line1.length > 0);
+    assert.ok(content.localeOptions.en.length > 0 && content.localeOptions.zh.length > 0);
   }
 });
 
-test('homepage leads with consumer experiences and keeps download honesty', async () => {
+test('landing copy stays capability-first without provider names or deferred capabilities', async () => {
+  const banned = [
+    /OpenAI/i,
+    /Anthropic/i,
+    /Claude/i,
+    /Gemini/i,
+    /DeepSeek/i,
+    /Mistral/i,
+    /Qwen/i,
+    /Ollama/i,
+    /vLLM/i,
+    /Cohere/i,
+    /Bedrock/i,
+    /world\.generate/i,
+    /世界生成/,
+  ];
+
   for (const locale of ['en', 'zh'] as const) {
     const content = await loadLandingContent(locale);
+    const serialized = JSON.stringify(content);
+    for (const pattern of banned) {
+      assert.doesNotMatch(serialized, pattern, `${locale} contains ${pattern}`);
+    }
+  }
+});
 
-    assert.equal(content.experiences.cards.length, 3);
-    assert.deepEqual(content.experiences.cards.map((card) => card.id), ['conversation', 'memory', 'proactive-companion']);
-    assert.ok(content.experiences.cards.every((card) => (
-      card.title.length > 0
-      && card.description.length > 0
-      && card.scenario.length > 0
-      && card.points.length >= 3
-    )));
+test('landing copy keeps the cost and open-source boundaries honest', async () => {
+  for (const locale of ['en', 'zh'] as const) {
+    const content = await loadLandingContent(locale);
+    const serialized = JSON.stringify(content);
 
-    assert.ok(content.nav.experiences.length > 0);
-    assert.ok(content.nav.docs.length > 0);
-    assert.ok(content.nav.download.length > 0);
-
-    const downloadFaq = content.faq.items.find((item) => (
-      item.question === (locale === 'zh' ? '今天能下载 Nimi 吗？' : 'Can I download Nimi today?')
-    ));
-    assert.ok(downloadFaq);
+    assert.match(serialized, locale === 'zh' ? /Nimi 本身免费/ : /Nimi itself is free/);
     assert.match(
-      downloadFaq.answer,
-      locale === 'zh' ? /没有已发布的 Nimi 稳定版/ : /No stable Nimi release or installer is currently published/,
+      serialized,
+      locale === 'zh' ? /第三方 App 是否收费由发布者决定/ : /third-party app charges is up to its publisher/,
     );
-    assert.match(downloadFaq.answer, /withdrawn|撤回/);
-    assert.match(downloadFaq.answer, /Desktop/);
-    assert.match(downloadFaq.answer, /Runtime/);
-    assert.match(downloadFaq.answer, /Avatar/);
-    assert.match(downloadFaq.answer, /Zhiyu/);
-    assert.match(downloadFaq.answer, /Nimi Lab/);
-    assert.ok(!content.security.links.some((link) => /releases\/(?:tag|download)\/v\d/.test(link.href)));
+    assert.doesNotMatch(serialized, /从头到尾，全部开源|everything is open source/i);
+    assert.doesNotMatch(serialized, /完整源码|complete source code/i);
+  }
+});
+
+test('navigation and menu labels support keyboard-accessible section routing', async () => {
+  for (const locale of ['en', 'zh'] as const) {
+    const content = await loadLandingContent(locale);
+    assert.ok(content.nav.apps.length > 0);
+    assert.ok(content.nav.worlds.length > 0);
+    assert.ok(content.nav.create.length > 0);
+    assert.ok(content.nav.developers.length > 0);
+    assert.ok(content.nav.docs.length > 0);
+    assert.ok(content.nav.menu.length > 0);
+    assert.ok(content.nav.openMenu.length > 0);
+    assert.ok(content.nav.closeMenu.length > 0);
   }
 });

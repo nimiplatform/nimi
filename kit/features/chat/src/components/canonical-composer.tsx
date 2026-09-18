@@ -1,5 +1,6 @@
 import React, { type ReactNode } from 'react';
 import { cn } from '@nimiplatform/kit/ui';
+import type { ChatCopy } from '../copy.js';
 import type {
   AttachmentAdapter,
   ChatComposerAdapter,
@@ -24,6 +25,10 @@ export type CanonicalComposerProps<TAttachment = never> = {
   toolbarSlot?: ReactNode;
   trailingSlot?: ReactNode;
   sendHint?: ReactNode;
+  /** Accessible label for the send button; forwarded to the inner ChatComposer. */
+  sendLabel?: string;
+  /** Optional copy overrides merged over the default English strings; forwarded to the inner ChatComposer. */
+  copy?: ChatCopy;
   intentLabel?: ReactNode;
   onInputCaptureText?: (text: string) => void;
   onTextChange?: (text: string) => void;
@@ -51,6 +56,8 @@ export function CanonicalComposer<TAttachment = never>({
   toolbarSlot,
   trailingSlot,
   sendHint,
+  sendLabel,
+  copy,
   intentLabel,
   onInputCaptureText,
   onTextChange,
@@ -91,6 +98,8 @@ export function CanonicalComposer<TAttachment = never>({
               trailingSlot={trailingSlot}
               intentLabel={intentLabel}
               sendHint={sendHint}
+              sendLabel={sendLabel}
+              copy={copy}
               attachmentAdapter={attachmentAdapter}
               attachments={attachments}
               onAttachmentsChange={onAttachmentsChange}
