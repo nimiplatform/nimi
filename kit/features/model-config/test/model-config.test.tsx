@@ -62,6 +62,7 @@ async function renderSurface(
     readonly loading?: boolean;
     readonly loadError?: string | null;
     readonly capabilitiesUnavailable?: boolean;
+    readonly showTitle?: boolean;
   } = {},
 ) {
   container = document.createElement('div');
@@ -141,6 +142,7 @@ async function renderSurface(
         onOpenMachineLoadout={onOpenMachineLoadout}
         onOpenOwnerConfiguration={options.onOpenOwnerConfiguration}
         onOverwrite={onOverwrite}
+        showTitle={options.showTitle}
       />,
     );
     await Promise.resolve();
@@ -1018,5 +1020,27 @@ describe('Model Config capability sections', () => {
     act(() => { save.click(); });
     await flush();
     expect(onOverwrite).toHaveBeenCalled();
+  });
+
+  it('renders a non-collapsible section always expanded without a toggle', async () => {
+    const node = await renderSurface(committedOverwrite(), vi.fn(), {
+      capabilityContracts: sectionContracts,
+      capabilitySections: [
+        { id: 'declared', title: 'Required by this app (1)', contracts: ['text.generate'], collapsible: false, defaultExpanded: false },
+        { id: 'rest', title: 'All capabilities (1)', contracts: ['image.generate'], defaultExpanded: false },
+      ],
+    });
+
+    expect(node.querySelector('[data-nimi-model-config-section="declared"]')?.textContent).toContain('Required by this app (1)');
+    expect(node.querySelector('[data-nimi-model-config-section-toggle="declared"]')).toBeNull();
+    expect(node.querySelector('[data-nimi-model-config-capability="text.generate"]')).toBeTruthy();
+    expect(node.querySelector('[data-nimi-model-config-section-toggle="rest"]')).toBeTruthy();
+    expect(node.querySelector('[data-nimi-model-config-capability="image.generate"]')).toBeNull();
+  });
+
+  it('hides the surface heading when the host already labels it', async () => {
+    const node = await renderSurface(committedOverwrite(), vi.fn(), { showTitle: false });
+
+    expect(node.querySelector('h2')).toBeNull();
   });
 });

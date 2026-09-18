@@ -107,7 +107,6 @@ export function Card({
     <motion.div
       layout
       whileHover={cardMotion.whileHover}
-      whileTap={cardMotion.whileTap}
       transition={cardMotion.transition}
     >
       <AppCardSurface kind="operational-solid" className={cn('p-4', className)} style={style}>

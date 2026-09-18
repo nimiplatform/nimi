@@ -630,9 +630,7 @@ function InstalledAppsDetailView({
               </div>
             ) : null}
             {release || entry.packageJob ? (
-              <div className="mt-1.5">
-                <AppPackageStatusLine entry={entry} />
-              </div>
+              <AppPackageStatusLine entry={entry} showInstalledVersion={false} className="mt-1.5" />
             ) : null}
           </div>
           <div className="flex shrink-0 items-center gap-2">
@@ -877,7 +875,6 @@ function AppsAboutSection({ entry, developer, fact, fallbackSummary = null, link
 }): ReactElement {
   const { t } = useTranslation();
   const { identity } = entry;
-  const source = appSourceForEntry(entry);
   const version = entry.localDevelopment
     ? null
     : entry.committedRelease?.version?.trim() || entry.catalogTarget?.version?.trim();
@@ -885,7 +882,6 @@ function AppsAboutSection({ entry, developer, fact, fallbackSummary = null, link
   // A local installation commit is not the App's online update date.
   const facts = [
     ...(developer ? [{ label: t('Apps.detail.developer'), value: developer }] : []),
-    ...(source === 'verified' ? [{ label: t('Apps.detail.source'), value: t('Apps.sourceBadge.verified') }] : []),
     ...(version ? [{ label: t('Apps.detail.catalogVersion'), value: version }] : []),
     ...(fact ? [fact] : []),
   ];

@@ -320,6 +320,7 @@ export function AppsAIConfigSection({
           defaultValue: 'Required by this app ({{count}})',
         }),
         contracts: plan.declared,
+        collapsible: false,
       });
     }
     if (plan.configuredOthers.length > 0) {
@@ -330,6 +331,7 @@ export function AppsAIConfigSection({
           defaultValue: 'Other configured capabilities ({{count}})',
         }),
         contracts: plan.configuredOthers,
+        collapsible: false,
       });
     }
     if (plan.rest.length > 0) {
@@ -385,6 +387,7 @@ export function AppsAIConfigSection({
         })}
         copy={copy}
         language={i18n.resolvedLanguage || i18n.language}
+        showTitle={false}
       />
     </section>
   );

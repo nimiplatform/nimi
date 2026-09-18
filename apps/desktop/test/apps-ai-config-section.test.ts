@@ -41,6 +41,9 @@ test('an observed empty AIConfig still shows declared capabilities before the co
     assert.match(html, /data-nimi-model-config-section="declared"/u);
     assert.match(html, /data-nimi-model-config-capability="text.generate"/u);
     assert.doesNotMatch(html, /data-nimi-model-config-capability="image.generate"/u);
+    assert.doesNotMatch(html, /data-nimi-model-config-section-toggle="declared"/u);
+    assert.match(html, /data-nimi-model-config-section-toggle="rest"/u);
+    assert.doesNotMatch(html, /AI 模型/u);
   } finally {
     queryClient.clear();
   }

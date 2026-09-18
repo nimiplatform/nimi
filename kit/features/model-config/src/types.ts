@@ -47,8 +47,10 @@ export type ModelConfigFormattedError = {
  * Optional list grouping for the AIConfig surface. The host owns the grouping
  * policy and localized titles; each contract still renders through the same
  * row/editor pipeline. Sections render expanded unless defaultExpanded is
- * false. Contracts absent from every section render unsectioned after the
- * last section.
+ * false, and stay collapsible unless collapsible is false; a non-collapsible
+ * section renders its heading as a static label with the rows always visible.
+ * Contracts absent from every section render unsectioned after the last
+ * section.
  */
 export type ModelConfigCapabilitySection = {
   readonly id: string;
@@ -56,6 +58,7 @@ export type ModelConfigCapabilitySection = {
   readonly description?: string;
   readonly contracts: readonly string[];
   readonly defaultExpanded?: boolean;
+  readonly collapsible?: boolean;
 };
 
 export type ModelConfigCopy = Partial<{

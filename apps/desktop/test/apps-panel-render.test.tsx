@@ -626,6 +626,8 @@ test('Runtime committed version and cancelable package job render without enabli
   }));
   assert.ok(detailMarkup.includes('data-testid="apps-detail-more"'), 'cancel-job lives in the detail overflow menu');
   assert.equal(detailMarkup.includes('data-testid="apps-installed-launch"'), false);
+  assert.equal(detailMarkup.includes(`apps-entry-${installed.identity.entryKey}-installed-version`), false, 'the detail header does not repeat the installed version');
+  assert.ok(detailMarkup.includes('>Version</dt>'), 'the About band keeps the version fact');
   await changeLocale('zh');
 });
 

@@ -109,6 +109,11 @@ export type ModelConfigAIConfigSurfaceProps = {
   readonly copy?: ModelConfigCopy;
   readonly language?: string | null;
   readonly className?: string;
+  /**
+   * Hides the surface heading when the surrounding host already labels the
+   * surface, such as a tab that carries the same name. Defaults to true.
+   */
+  readonly showTitle?: boolean;
   readonly titleId?: string;
   readonly headerSlot?: ReactNode;
   readonly footer?: ReactNode;
@@ -421,27 +426,37 @@ function CapabilitySectionGroup(props: {
   readonly copy: ResolvedCopy;
   readonly onOpen: (contract: string) => void;
 }) {
+  const collapsible = props.section.collapsible !== false;
+  const expanded = collapsible ? props.expanded : true;
   return (
     <section className="space-y-2" data-nimi-model-config-section={props.section.id}>
-      <button
-        type="button"
-        onClick={props.onToggle}
-        aria-expanded={props.expanded}
-        data-nimi-model-config-section-toggle={props.section.id}
-        className={cn('flex w-full min-w-0 items-center gap-2 rounded-[var(--nimi-radius-sm)] py-1 text-left', FOCUS_RING_CLASS_NAME)}
-      >
-        <svg
-          className={cn('h-3.5 w-3.5 shrink-0 text-[var(--nimi-text-muted)] transition-transform', props.expanded ? 'rotate-90' : '')}
-          viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
-        ><path d="m9 5 7 7-7 7" /></svg>
-        <span className="min-w-0 flex-1 truncate text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-text-primary)]">
-          {props.section.title}
-        </span>
-      </button>
-      {props.expanded && props.section.description ? (
+      {collapsible ? (
+        <button
+          type="button"
+          onClick={props.onToggle}
+          aria-expanded={expanded}
+          data-nimi-model-config-section-toggle={props.section.id}
+          className={cn('flex w-full min-w-0 items-center gap-2 rounded-[var(--nimi-radius-sm)] py-1 text-left', FOCUS_RING_CLASS_NAME)}
+        >
+          <svg
+            className={cn('h-3.5 w-3.5 shrink-0 text-[var(--nimi-text-muted)] transition-transform', expanded ? 'rotate-90' : '')}
+            viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+          ><path d="m9 5 7 7-7 7" /></svg>
+          <span className="min-w-0 flex-1 truncate text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-text-primary)]">
+            {props.section.title}
+          </span>
+        </button>
+      ) : (
+        <div className="flex w-full min-w-0 items-center gap-2 py-1">
+          <span className="min-w-0 flex-1 truncate text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-text-primary)]">
+            {props.section.title}
+          </span>
+        </div>
+      )}
+      {expanded && props.section.description ? (
         <p className="m-0 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">{props.section.description}</p>
       ) : null}
-      {props.expanded ? (
+      {expanded ? (
         <div className="space-y-2">
           {props.entries.map((entry) => (
             <CapabilityRowButton key={entry.contract} entry={entry} copy={props.copy} onOpen={props.onOpen} />
@@ -576,15 +591,19 @@ export function ModelConfigAIConfigSurface(props: ModelConfigAIConfigSurfaceProp
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="flex min-w-0 items-baseline justify-between gap-4">
-            <h2 id={props.titleId} className="m-0 text-[length:var(--nimi-type-body-size)] font-semibold tracking-tight text-[var(--nimi-text-primary)]">{copy.title}</h2>
-            {sectionedGroups ? null : (
-              <div className="flex shrink-0 items-center gap-1.5 text-xs text-[var(--nimi-text-secondary)]">
-                <span className={cn('h-1.5 w-1.5 rounded-[var(--nimi-radius-full)]', statusDotClass(aggregateBadge.tone))} />
-                <span>{aggregateBadge.label}</span>
-              </div>
-            )}
-          </div>
+          {props.showTitle === false && sectionedGroups ? null : (
+            <div className="flex min-w-0 items-baseline justify-between gap-4">
+              {props.showTitle === false ? null : (
+                <h2 id={props.titleId} className="m-0 text-[length:var(--nimi-type-body-size)] font-semibold tracking-tight text-[var(--nimi-text-primary)]">{copy.title}</h2>
+              )}
+              {sectionedGroups ? null : (
+                <div className="ml-auto flex shrink-0 items-center gap-1.5 text-xs text-[var(--nimi-text-secondary)]">
+                  <span className={cn('h-1.5 w-1.5 rounded-[var(--nimi-radius-full)]', statusDotClass(aggregateBadge.tone))} />
+                  <span>{aggregateBadge.label}</span>
+                </div>
+              )}
+            </div>
+          )}
 
           {props.capabilities !== undefined ? (
             sectionedGroups ? (

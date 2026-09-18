@@ -94,7 +94,15 @@ export function AppRunStatusBadge({
   );
 }
 
-export function AppPackageStatusLine({ entry }: { readonly entry: DesktopAppsEntry }): ReactElement | null {
+export function AppPackageStatusLine({
+  entry,
+  showInstalledVersion = true,
+  className = '',
+}: {
+  readonly entry: DesktopAppsEntry;
+  readonly showInstalledVersion?: boolean;
+  readonly className?: string;
+}): ReactElement | null {
   const { t } = useTranslation();
   const downloads = useAppsDownloads();
   if (entry.localDevelopment) return null;
@@ -104,17 +112,19 @@ export function AppPackageStatusLine({ entry }: { readonly entry: DesktopAppsEnt
     ? `${formatBytes(Number(job.bytesCompleted))}${job.bytesTotal ? ` / ${formatBytes(Number(job.bytesTotal))}` : ''}`
     : job ? appPackageProgressText(job) : null;
   const failureReason = job ? appPackageFailureReason(job) : null;
-  const versionLabel = entry.committedRelease
+  const versionLabel = showInstalledVersion && entry.committedRelease
     ? t('Apps.version.installed', { version: entry.committedRelease.version })
     : null;
+  const updateAvailable = hasAvailableCatalogUpdate(entry);
   const phaseLocaleKey = job ? appPackagePhaseLocaleKey(job) : null;
   const phaseLabel = job
     ? phaseLocaleKey ? t(`Apps.phase.${phaseLocaleKey}`) : String(job.phase)
     : null;
+  if (!versionLabel && !updateAvailable && !phaseLabel && !failureReason) return null;
   return (
-    <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[color:var(--nimi-text-secondary)]">
+    <div className={`flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[color:var(--nimi-text-secondary)] ${className}`}>
       {versionLabel ? <span data-testid={`apps-entry-${entry.identity.entryKey}-installed-version`}>{versionLabel}</span> : null}
-      {hasAvailableCatalogUpdate(entry) ? <span className="text-[var(--nimi-status-info)]" data-testid={`apps-entry-${entry.identity.entryKey}-available-version`}>{t('Apps.update.available', { version: entry.catalogTarget?.version })}</span> : null}
+      {updateAvailable ? <span className="text-[var(--nimi-status-info)]" data-testid={`apps-entry-${entry.identity.entryKey}-available-version`}>{t('Apps.update.available', { version: entry.catalogTarget?.version })}</span> : null}
       {phaseLabel ? (
         <span data-testid={`apps-entry-${entry.identity.entryKey}-package-job`} data-package-job-phase={job?.phase}>
           {phaseLabel}{progress ? ` · ${progress}` : ''}

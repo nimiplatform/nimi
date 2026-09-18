@@ -11,6 +11,11 @@
   'simulator-root'` overlay option. Active renderer hosts use `scrollLock:
   'none'`; Simulator integrations are archived rather than migrated.
 
+- Model Config sections accept `collapsible: false` for a static heading with
+  always-visible rows, and the surface accepts `showTitle: false` when the
+  host chrome already labels the surface. Both are compatible optional
+  presentation inputs (minor type widening); editing and mutation scope are unchanged.
+
 - Model Config accepts optional host-owned capability sections with localized
   headings and collapsible groups through `ModelConfigCapabilitySection` and
   `capabilitySections`. This compatible public input widening is a minor
