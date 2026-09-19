@@ -140,6 +140,8 @@ type Service struct {
 	approvedAppCatalog         ApprovedAppCatalogProvider
 	appInstallCoordinator      *nimiappinstall.Coordinator
 	formalAppReleaseResolver   FormalAppReleaseResolver
+	formalAppSourceDevelopment bool
+	sourceDevelopmentHosts     map[string]protectedlocal.Identifier // guarded by installedAppRegistrationMu
 	localAppStorageMu          sync.RWMutex
 	localAppAssetStoreOnce     sync.Once
 	localAppAssetStore         *appstorage.AssetStore
@@ -233,6 +235,16 @@ func WithAppInstallCoordinator(coordinator *nimiappinstall.Coordinator) Option {
 func WithFormalAppReleaseResolver(resolver FormalAppReleaseResolver) Option {
 	return func(s *Service) {
 		s.formalAppReleaseResolver = resolver
+		s.formalAppSourceDevelopment = false
+	}
+}
+
+// WithSourceDevelopmentAppResolver is supplied only by the verified source
+// Runtime composition. It changes platform input, never App access semantics.
+func WithSourceDevelopmentAppResolver(resolver FormalAppReleaseResolver) Option {
+	return func(s *Service) {
+		s.formalAppReleaseResolver = resolver
+		s.formalAppSourceDevelopment = true
 	}
 }
 

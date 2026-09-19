@@ -288,6 +288,7 @@ func newProtectedFromWindowsSourceLocalDevelopmentState(cfg config.Config, logge
 			AccountTokenURL: cfg.AccountTokenURL, LocalOSUserIdentity: localOSUserIdentity,
 			ConnectorSecrets: connectorSecrets, DesktopSessions: sessions,
 			DirectLocalAppLaunches: directLaunches, PerUserRuntime: true,
+			SourceLocalDevelopment:  true,
 			RuntimeRestartRequester: requestRestart,
 		},
 		Close: state.Close,

@@ -13,9 +13,11 @@ import (
 
 var errFormalAppReleaseUnavailable = errors.New("formal App release registration is unavailable")
 
-// FormalAppRelease is canonical lifecycle-owner input for one installed,
-// bundled, or platform App release. Protected transport contributes only the
-// exact executable witness; it never supplies declaration coverage.
+// FormalAppRelease is canonical lifecycle-owner input for one platform App.
+// An immutable release includes package facts; verified source-development
+// composition supplies only the manifest fields and never manufactures those
+// facts. Protected transport contributes the exact executable witness, not
+// declaration coverage.
 type FormalAppRelease struct {
 	AppID                     string
 	DisplayName               string
@@ -47,6 +49,9 @@ func (s *Service) registerFormalAppRelease(
 	if s == nil || s.localAppKernel == nil || s.formalAppReleaseResolver == nil || appID == "" || bindingSlot == "" ||
 		process.ExecutableDigest == (protectedlocal.Identifier{}) {
 		return localappkernel.Registration{}, errFormalAppReleaseUnavailable
+	}
+	if s.formalAppSourceDevelopment {
+		return s.registerSourceDevelopmentPlatformApp(ctx, appID, bindingSlot, process)
 	}
 	release, err := s.formalAppReleaseResolver.ResolveFormalAppRelease(ctx, appID)
 	if err != nil {

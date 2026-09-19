@@ -13,8 +13,8 @@ import (
 // sourceLocalDevelopmentPlatformAppResources binds the exact workspace
 // selected and canonicalized by nimi-source-supervisor. It is compiled only
 // into the isolated source-development Runtime and never into an installed
-// Runtime service. The returned path locates registered App release inputs;
-// it does not add App declaration coverage.
+// Runtime service. The returned path locates platform App source manifests,
+// never immutable package payloads or additional App declaration coverage.
 func sourceLocalDevelopmentPlatformAppResources() (string, error) {
 	root := strings.TrimSpace(os.Getenv("NIMI_SOURCE_RUNTIME_REPO_ROOT"))
 	if root == "" || !filepath.IsAbs(root) {

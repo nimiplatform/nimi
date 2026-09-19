@@ -17,6 +17,7 @@ import (
 type RegistrationStore struct{ kernel *Kernel }
 
 type registrationMutation struct {
+	platformSourceDevelopment bool
 	existingHandle            string
 	bindingSlot               string
 	appID                     string
@@ -33,6 +34,33 @@ type registrationMutation struct {
 	executionProfileRef       string
 	hostExecutableFact        string
 	payloadRootFact           string
+}
+
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-appacc-001
+// RegisterPlatformSourceDevelopment uses the same subject and generation
+// owner as package registration, but accepts no package evidence. Only the
+// verified source Runtime composition supplies this platform-owned input.
+func (store *RegistrationStore) RegisterPlatformSourceDevelopment(ctx context.Context, input RegisterPlatformSourceInput) (Registration, error) {
+	if store == nil || store.kernel == nil {
+		return Registration{}, ErrInvalidArgument
+	}
+	if err := validateOptionalRegistrationHandle(input.ExistingRegistrationHandle); err != nil {
+		return Registration{}, err
+	}
+	if err := requireExactText("binding_slot", input.BindingSlot); err != nil {
+		return Registration{}, err
+	}
+	sourceRef := "platform-app:" + input.AppID
+	if err := validateRegistrationInput(input.AppID, input.DisplayName, sourceRef, input.ProjectRoot, input.ManifestPath, input.HostExecutableDigest); err != nil {
+		return Registration{}, err
+	}
+	return store.register(ctx, registrationMutation{
+		platformSourceDevelopment: true, existingHandle: input.ExistingRegistrationHandle,
+		bindingSlot: input.BindingSlot, appID: input.AppID, displayName: input.DisplayName,
+		sourceClass: SourceClassVerified, sourceRef: sourceRef,
+		projectRoot: input.ProjectRoot, manifestPath: input.ManifestPath,
+		rawDeclaration: input.RawDeclaration, hostExecutableFact: input.HostExecutableDigest,
+	})
 }
 
 type currentHostBinding struct {
@@ -151,6 +179,9 @@ func (store *RegistrationStore) registerTx(ctx context.Context, tx *sql.Tx, inpu
 			canonical.ProvenanceRevision != input.provenanceRevision ||
 			canonical.ExecutionProfileRef != input.executionProfileRef ||
 			binding.HostExecutableDigest != input.hostExecutableFact || binding.PayloadRootDigest != input.payloadRootFact
+		if input.platformSourceDevelopment {
+			sourceChanged = sourceChanged || binding.ProjectRoot != input.projectRoot || binding.ManifestPath != input.manifestPath
+		}
 		if input.sourceClass == SourceClassLocalDevelopment {
 			sourceChanged = canonical.ShellKind != input.shellKind ||
 				binding.ProjectRoot != input.projectRoot || binding.ManifestPath != input.manifestPath ||
@@ -347,11 +378,14 @@ func (store *RegistrationStore) Status(ctx context.Context, handle string) (Regi
 	if err != nil {
 		return RegistrationStatus{}, err
 	}
-	_, bindingErr := store.loadCurrentHostBinding(ctx, store.kernel.db, handle)
+	binding, bindingErr := store.loadCurrentHostBinding(ctx, store.kernel.db, handle)
 	if bindingErr != nil && !errors.Is(bindingErr, ErrRegistrationUnavailable) {
 		return RegistrationStatus{}, bindingErr
 	}
 	bound := bindingErr == nil
+	if bound {
+		canonical = registrationFromCanonicalAndBinding(canonical, binding)
+	}
 	return registrationStatusFromCanonical(canonical, bound), nil
 }
 
@@ -381,9 +415,12 @@ func (store *RegistrationStore) ListStatuses(ctx context.Context) ([]Registratio
 	}
 	statuses := make([]RegistrationStatus, 0, len(canonicals))
 	for _, canonical := range canonicals {
-		_, bindingErr := store.loadCurrentHostBinding(ctx, store.kernel.db, canonical.RegistrationHandle)
+		binding, bindingErr := store.loadCurrentHostBinding(ctx, store.kernel.db, canonical.RegistrationHandle)
 		if bindingErr != nil && !errors.Is(bindingErr, ErrRegistrationUnavailable) {
 			return nil, bindingErr
+		}
+		if bindingErr == nil {
+			canonical = registrationFromCanonicalAndBinding(canonical, binding)
 		}
 		statuses = append(statuses, registrationStatusFromCanonical(canonical, bindingErr == nil))
 	}
@@ -601,7 +638,7 @@ func registrationFromCanonicalAndBinding(canonical Registration, binding current
 }
 
 func registrationStatusFromCanonical(canonical Registration, bound bool) RegistrationStatus {
-	sourceReady := canonical.SourceClass == SourceClassLocalDevelopment || canonical.ImmutablePackageFactsComplete()
+	sourceReady := canonical.SourceClass == SourceClassLocalDevelopment || canonical.ImmutablePackageFactsComplete() || canonical.IsPlatformSourceDevelopment()
 	return RegistrationStatus{
 		RegistrationHandle: canonical.RegistrationHandle, RegisteredAppSubject: canonical.RegisteredAppSubject,
 		AppID: canonical.AppID, SourceClass: canonical.SourceClass, State: canonical.State,

@@ -311,8 +311,10 @@ func (s *Service) deriveLocalAppRuntimeSession(ctx context.Context, connection *
 			return localAppRuntimeSession{}, errLocalAppRegistrationGenerationChanged
 		}
 		expectedSource, sourceOK := installedSourceClass(connection.TrustClass())
+		platformSource := s.formalAppSourceDevelopment && connection.TrustClass() == protectedlocal.LocalAppTrustBuiltIn &&
+			registration.IsPlatformSourceDevelopment()
 		if !sourceOK || installedHandle != registration.RegistrationHandle || registration.SourceClass != expectedSource ||
-			!registration.ImmutablePackageFactsComplete() || strings.TrimSpace(registration.PayloadRootDigest) == "" ||
+			(!platformSource && (!registration.ImmutablePackageFactsComplete() || strings.TrimSpace(registration.PayloadRootDigest) == "")) ||
 			registration.HostExecutableDigest != protectedExecutableDigestRef(connection.Process().ExecutableDigest) {
 			return localAppRuntimeSession{}, errLocalDevelopmentSessionRevoked
 		}

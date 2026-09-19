@@ -85,6 +85,31 @@ func (registration Registration) ImmutablePackageFactsComplete() bool {
 	return true
 }
 
+// IsPlatformSourceDevelopment identifies the platform owner's non-package
+// input on an exact current-host slot. The internal verified storage tag is
+// shared with platform releases; it does not grant catalog/package provenance.
+// Installed package launch must still require ImmutablePackageFactsComplete.
+func (registration Registration) IsPlatformSourceDevelopment() bool {
+	return registration.SourceClass == SourceClassVerified && registration.BindingSlot != "" &&
+		registration.SourceRef == "platform-app:"+registration.AppID && registration.ShellKind == 0 &&
+		registration.ProjectRoot != "" && registration.ManifestPath != "" && registration.HostExecutableDigest != "" &&
+		registration.ImmutableLineageID == "" && len(registration.ProvenanceAttestationRefs) == 0 &&
+		registration.ProvenanceRevision == 0 && registration.ExecutionProfileRef == "" && registration.PayloadRootDigest == ""
+}
+
+// RegisterPlatformSourceInput contains current platform-development facts,
+// without pretending that a mutable workspace is an immutable release.
+type RegisterPlatformSourceInput struct {
+	ExistingRegistrationHandle string
+	BindingSlot                string
+	AppID                      string
+	DisplayName                string
+	ProjectRoot                string
+	ManifestPath               string
+	RawDeclaration             []string
+	HostExecutableDigest       string
+}
+
 type RegisterDevelopmentInput struct {
 	ExistingRegistrationHandle string
 	AppID                      string

@@ -354,6 +354,19 @@ func TestProtectedServiceRejectsRelativeBundledAppsRoot(t *testing.T) {
 	}
 }
 
+func TestSourceDevelopmentAppInputsRequireCurrentUserDirectComposition(t *testing.T) {
+	for _, perUser := range []bool{false, true} {
+		root := t.TempDir()
+		_, err := NewProtectedService(config.Config{}, health.NewState(), slog.New(slog.NewTextHandler(io.Discard, nil)), "test", ProtectedServiceBindings{
+			ServiceStateRoot: root, ProductControlRoot: filepath.Join(root, ".nimi"),
+			SourceLocalDevelopment: true, PerUserRuntime: perUser,
+		})
+		if err == nil || !strings.Contains(err.Error(), "source-development platform Apps require the verified current-user direct Runtime composition") {
+			t.Fatalf("source platform input accepted without its composition (per-user=%v): %v", perUser, err)
+		}
+	}
+}
+
 func TestProtectedServiceRejectsMissingDesktopSessionAuthority(t *testing.T) {
 	authorities := newProtectedAuthoritiesForServerTest(t)
 	for name, manager := range map[string]*protectedlocal.DesktopSessionManager{

@@ -155,6 +155,7 @@ type ProtectedServiceBindings struct {
 	RuntimeServiceSID                string
 	RuntimeServiceUID                uint32
 	PerUserRuntime                   bool
+	SourceLocalDevelopment           bool
 	LocalDevelopmentConsentStorePath string
 	PlatformBundledAppsRoot          string
 	AccountCustody                   accountservice.Custody
@@ -220,6 +221,9 @@ func NewProtectedService(cfg config.Config, state *health.State, logger *slog.Lo
 	}
 	sessionScopedLocalApp := bindings.LocalAppLaunches != nil && bindings.LocalDevelopmentVerifier != nil && bindings.DirectLocalAppLaunches == nil
 	directLocalApp := bindings.LocalAppLaunches == nil && bindings.LocalDevelopmentVerifier == nil && bindings.DirectLocalAppLaunches != nil
+	if bindings.SourceLocalDevelopment && (!bindings.PerUserRuntime || !directLocalApp) {
+		return nil, fmt.Errorf("source-development platform Apps require the verified current-user direct Runtime composition")
+	}
 	if bindings.AccountCustody == nil || strings.TrimSpace(bindings.AccountPartition) == "" || bindings.ConnectorSecrets == nil || bindings.DesktopSessions == nil ||
 		(!sessionScopedLocalApp && !directLocalApp) || bindings.RuntimeRestartRequester == nil {
 		return nil, fmt.Errorf("protected service custody, verified account partition, Desktop transport, and matching local-app transport authority are required")
@@ -876,11 +880,24 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		}
 	}
 	if bundledRoot := strings.TrimSpace(cfg.AppBundledArtifactsRoot); bundledRoot != "" {
-		formalAppReleases, releaseErr := appservice.NewManifestFormalAppReleaseResolver(bundledRoot)
+		loadStarted := time.Now()
+		var formalAppReleases appservice.FormalAppReleaseResolver
+		var releaseErr error
+		sourceDevelopment := protected != nil && protected.SourceLocalDevelopment
+		if sourceDevelopment {
+			formalAppReleases, releaseErr = appservice.NewSourceDevelopmentAppResolver(bundledRoot)
+		} else {
+			formalAppReleases, releaseErr = appservice.NewManifestFormalAppReleaseResolver(bundledRoot)
+		}
 		if releaseErr != nil {
 			return nil, fmt.Errorf("load formal App registered releases: %w", releaseErr)
 		}
-		appOptions = append(appOptions, appservice.WithFormalAppReleaseResolver(formalAppReleases))
+		logger.Info("platform App inputs loaded", "source_development", sourceDevelopment, "duration_ms", time.Since(loadStarted).Milliseconds())
+		if sourceDevelopment {
+			appOptions = append(appOptions, appservice.WithSourceDevelopmentAppResolver(formalAppReleases))
+		} else {
+			appOptions = append(appOptions, appservice.WithFormalAppReleaseResolver(formalAppReleases))
+		}
 	}
 	if protected != nil {
 		if protected.PerUserRuntime {
