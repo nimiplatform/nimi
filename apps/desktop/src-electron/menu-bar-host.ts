@@ -17,9 +17,9 @@ export const MENU_BAR_RENDERER_FRESHNESS_MS = 15_000;
 
 export const MENU_BAR_ITEM_IDS = Object.freeze({
   openNimi: 'menu-bar-open-nimi',
-  openRuntimeDashboard: 'menu-bar-open-runtime-dashboard',
-  openModelMarket: 'menu-bar-open-model-market',
-  openCloudConnectors: 'menu-bar-open-cloud-connectors',
+  openAiSettings: 'menu-bar-open-ai-settings',
+  openModelLibrary: 'menu-bar-open-model-library',
+  openCloudServices: 'menu-bar-open-cloud-services',
   openSettings: 'menu-bar-open-settings',
   startRuntime: 'menu-bar-start-runtime',
   restartRuntime: 'menu-bar-restart-runtime',
@@ -226,14 +226,14 @@ export function createDesktopElectronMenuBarHost(
         state.windowVisible = true;
         applyMenu();
         return;
-      case MENU_BAR_ITEM_IDS.openRuntimeDashboard:
-        await dispatchOpenTab({ tab: 'runtime', page: 'overview' });
+      case MENU_BAR_ITEM_IDS.openAiSettings:
+        await dispatchOpenTab({ tab: 'runtime', page: 'aiSettings' });
         return;
-      case MENU_BAR_ITEM_IDS.openModelMarket:
-        await dispatchOpenTab({ tab: 'runtime', page: 'modelMarket' });
+      case MENU_BAR_ITEM_IDS.openModelLibrary:
+        await dispatchOpenTab({ tab: 'runtime', page: 'modelLibrary' });
         return;
-      case MENU_BAR_ITEM_IDS.openCloudConnectors:
-        await dispatchOpenTab({ tab: 'runtime', page: 'cloud' });
+      case MENU_BAR_ITEM_IDS.openCloudServices:
+        await dispatchOpenTab({ tab: 'runtime', page: 'cloudServices' });
         return;
       case MENU_BAR_ITEM_IDS.openSettings:
         await dispatchOpenTab({ tab: 'settings' });
@@ -345,19 +345,19 @@ function buildMenuTemplate(
     { type: 'separator' },
     { id: MENU_BAR_ITEM_IDS.openNimi, label: 'Open Nimi', click: action(MENU_BAR_ITEM_IDS.openNimi) },
     {
-      id: MENU_BAR_ITEM_IDS.openRuntimeDashboard,
-      label: 'Runtime Dashboard',
-      click: action(MENU_BAR_ITEM_IDS.openRuntimeDashboard),
+      id: MENU_BAR_ITEM_IDS.openAiSettings,
+      label: 'AI Settings',
+      click: action(MENU_BAR_ITEM_IDS.openAiSettings),
     },
     {
-      id: MENU_BAR_ITEM_IDS.openModelMarket,
-      label: 'Model Market',
-      click: action(MENU_BAR_ITEM_IDS.openModelMarket),
+      id: MENU_BAR_ITEM_IDS.openModelLibrary,
+      label: 'Model Library',
+      click: action(MENU_BAR_ITEM_IDS.openModelLibrary),
     },
     {
-      id: MENU_BAR_ITEM_IDS.openCloudConnectors,
-      label: 'Cloud Connectors',
-      click: action(MENU_BAR_ITEM_IDS.openCloudConnectors),
+      id: MENU_BAR_ITEM_IDS.openCloudServices,
+      label: 'Cloud Services',
+      click: action(MENU_BAR_ITEM_IDS.openCloudServices),
     },
     {
       id: MENU_BAR_ITEM_IDS.openSettings,

@@ -19,15 +19,12 @@ import {
 } from '@nimiplatform/sdk/runtime';
 
 export type SourceIdV11 = 'local' | 'cloud';
-/** Runtime top-level pages, split by product owner. */
+/** Runtime top-level destinations after the four-navigation hard cut. */
 export type RuntimePageIdV11 =
-  | 'overview'
-  | 'profiles'
-  | 'modelMarket'
-  | 'localAssets'
-  | 'loadouts'
-  | 'cloud'
-  | 'environment';
+  | 'aiSettings'
+  | 'modelLibrary'
+  | 'cloudServices'
+  | 'advancedDiagnostics';
 export type UiModeV11 = 'simple' | 'advanced';
 export type RuntimeConfigStatusV11 = NimiRuntimeConfigProviderStatus;
 export type ApiConnectorScopeV11 = 'user' | 'machine-global' | 'runtime-system';
@@ -35,14 +32,19 @@ export type ApiVendor = string;
 export type ApiConnectorAuthModeV11 = 'api_key' | 'oauth_managed';
 export type RuntimeConfigActionFocus =
   | {
-    page: 'cloud';
+    page: 'cloudServices';
     action: 'add-connector';
     focus: 'runtime-config-action-focus.cloud-connector-draft';
   }
   | {
-    page: 'loadouts';
-    action: 'open-loadouts';
-    focus: 'runtime-config-action-focus.loadouts';
+    page: 'aiSettings';
+    action: 'open-saved-configs';
+    focus: 'runtime-config-action-focus.saved-configs';
+  }
+  | {
+    page: 'modelLibrary';
+    action: 'install-model';
+    focus: 'runtime-config-action-focus.model-library-install';
   };
 
 export type LocalStateV11 = {
@@ -54,7 +56,7 @@ export type LocalStateV11 = {
 export type ApiConnector = NimiRuntimeConfigConnectorProjection;
 
 export type RuntimeConfigStateV11 = {
-  version: 13;
+  version: 15;
   initializedByV11: boolean;
   activePage: RuntimePageIdV11;
   actionFocus: RuntimeConfigActionFocus | null;
@@ -74,17 +76,14 @@ export function normalizeSourceV11(value: unknown): SourceIdV11 {
 
 export function normalizePageIdV11(value: unknown): RuntimePageIdV11 {
   if (
-    value === 'overview'
-    || value === 'profiles'
-    || value === 'modelMarket'
-    || value === 'localAssets'
-    || value === 'loadouts'
-    || value === 'cloud'
-    || value === 'environment'
+    value === 'aiSettings'
+    || value === 'modelLibrary'
+    || value === 'cloudServices'
+    || value === 'advancedDiagnostics'
   ) {
     return value;
   }
-  return 'overview';
+  return 'aiSettings';
 }
 
 export function normalizeRuntimeConfigActionFocus(value: unknown): RuntimeConfigActionFocus | null {
@@ -93,25 +92,35 @@ export function normalizeRuntimeConfigActionFocus(value: unknown): RuntimeConfig
   }
   const record = value as Record<string, unknown>;
   if (
-    record.page === 'cloud'
+    record.page === 'cloudServices'
     && record.action === 'add-connector'
     && record.focus === 'runtime-config-action-focus.cloud-connector-draft'
   ) {
     return {
-      page: 'cloud',
+      page: 'cloudServices',
       action: 'add-connector',
       focus: 'runtime-config-action-focus.cloud-connector-draft',
     };
   }
   if (
-    record.page === 'loadouts'
-    && record.action === 'open-loadouts'
-    && record.focus === 'runtime-config-action-focus.loadouts'
+    record.page === 'aiSettings' && record.action === 'open-saved-configs'
+    && record.focus === 'runtime-config-action-focus.saved-configs'
   ) {
     return {
-      page: 'loadouts',
-      action: 'open-loadouts',
-      focus: 'runtime-config-action-focus.loadouts',
+      page: 'aiSettings',
+      action: 'open-saved-configs',
+      focus: 'runtime-config-action-focus.saved-configs',
+    };
+  }
+  if (
+    record.page === 'modelLibrary'
+    && record.action === 'install-model'
+    && record.focus === 'runtime-config-action-focus.model-library-install'
+  ) {
+    return {
+      page: 'modelLibrary',
+      action: 'install-model',
+      focus: 'runtime-config-action-focus.model-library-install',
     };
   }
   return null;

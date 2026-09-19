@@ -12,8 +12,13 @@ import { formatKnownDownloadSize, isRuntimeInstallCancellation } from './runtime
 import type { SetRuntimeConfigBanner } from './runtime-config-panel-controller-utils';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
+export type RuntimeConfigInstallResult =
+  | { readonly status: 'completed' }
+  | { readonly status: 'cancelled' }
+  | { readonly status: 'failed'; readonly error: unknown };
+
 export type RuntimeConfigInstallActions = {
-  installResolvedModelPlan: (plan: NimiRuntimeLocalInstallPlanDescriptor) => Promise<void>;
+  installResolvedModelPlan: (plan: NimiRuntimeLocalInstallPlanDescriptor) => Promise<RuntimeConfigInstallResult>;
 };
 
 export type RuntimeConfigInstallConfirmationRequest = {
@@ -27,7 +32,7 @@ export type UseRuntimeConfigInstallActionsResult = RuntimeConfigInstallActions &
 
 export type UseRuntimeConfigInstallActionsInput = {
   setStatusBanner: SetRuntimeConfigBanner;
-  onOpenLoadouts: () => void;
+  onOpenSavedConfigs: () => void;
 };
 
 export function runtimeConfigInstallConfirmationMessage(input: {
@@ -57,7 +62,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
   const localEnvironmentClient = useRuntimeConfigLocalEnvironmentClient();
   const { t } = useTranslation();
   const bindings = useDesktopRendererBindings();
-  const { onOpenLoadouts, setStatusBanner } = input;
+  const { onOpenSavedConfigs, setStatusBanner } = input;
   const [installConfirmation, setInstallConfirmation] = useState<RuntimeConfigInstallConfirmationRequest | null>(null);
   const installConfirmationResolverRef = useRef<((confirmed: boolean) => void) | null>(null);
 
@@ -100,7 +105,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
 
   const runInstallPlanLifecycle = useCallback(async (
     plan: NimiRuntimeLocalInstallPlanDescriptor,
-  ): Promise<void> => {
+  ): Promise<'completed' | 'cancelled'> => {
     assertRuntimeWriteAllowed();
     const installLabel = String(plan.entry || plan.modelId || plan.templateId || 'model asset').trim();
     const sizeLabel = formatKnownDownloadSize(
@@ -118,7 +123,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       translate: translateRuntimeLocalText,
     }));
     if (!confirmed) {
-      return;
+      return 'cancelled';
     }
     await localEnvironmentClient.install(plan.planId, { caller: 'core' });
     setStatusBanner({
@@ -132,28 +137,34 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
         'runtimeConfig.local.setModelUse',
         'Set use',
       ),
-      onAction: onOpenLoadouts,
+      onAction: onOpenSavedConfigs,
     });
-  }, [assertRuntimeWriteAllowed, onOpenLoadouts, requestInstallConfirmation, setStatusBanner, translateRuntimeLocalText]);
+    return 'completed';
+  }, [assertRuntimeWriteAllowed, onOpenSavedConfigs, requestInstallConfirmation, setStatusBanner, translateRuntimeLocalText]);
 
-  const installResolvedModelPlan = useCallback(async (plan: NimiRuntimeLocalInstallPlanDescriptor) => {
+  // Cancellation is a first-class outcome, not a thrown ambiguity: the user
+  // declining the confirmation dialog and Runtime reporting
+  // AI_LOCAL_EXECUTION_CANCELED both resolve as 'cancelled'.
+  const installResolvedModelPlan = useCallback(async (
+    plan: NimiRuntimeLocalInstallPlanDescriptor,
+  ): Promise<RuntimeConfigInstallResult> => {
     try {
-      await runInstallPlanLifecycle(plan);
+      return { status: await runInstallPlanLifecycle(plan) };
     } catch (error) {
       if (isRuntimeInstallCancellation(error)) {
         setStatusBanner({
           kind: 'info',
           message: translateRuntimeLocalText('runtimeConfig.local.installCanceled', 'Download canceled.'),
         });
-        return;
+        return { status: 'cancelled' };
       }
       setStatusBanner({
         kind: 'error',
         message: `Catalog model install failed: ${error instanceof Error ? error.message : String(error || '')}`,
       });
-      throw error;
+      return { status: 'failed', error };
     }
-  }, [runInstallPlanLifecycle, setStatusBanner]);
+  }, [runInstallPlanLifecycle, setStatusBanner, translateRuntimeLocalText]);
 
   return {
     installResolvedModelPlan,

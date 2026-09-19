@@ -1,54 +1,38 @@
-import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
+// @nimi-authority: rule.nimi.desktop.shell-ui.r023
+
+import { lazy, Suspense, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ConfirmDialog,
+  NimiTabs,
   ScrollArea,
-  SidebarAffordanceChevron,
-  SidebarItem,
-  SidebarResizeHandle,
-  SidebarSection,
-  SidebarShell,
   Surface,
-  cn,
 } from '@nimiplatform/kit/ui';
 import { E2E_IDS } from '../../testability/e2e-ids';
-import { RUNTIME_SIDEBAR_ITEMS } from './runtime-config-sidebar';
+import { RUNTIME_NAV_DESTINATIONS } from './runtime-config-nav';
 import { RuntimeHealthBadge } from './runtime-config-primitives';
 import { resetRuntimePageViewport } from './runtime-config-page-shell';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { useRuntimeConfigPanelController } from './runtime-config-panel-controller';
 
-const OverviewPage = lazy(async () => ({
-  default: (await import('./runtime-config-page-overview')).OverviewPage,
+const AiSettingsPage = lazy(async () => ({
+  default: (await import('./runtime-config-page-ai-settings')).AiSettingsPage,
 }));
-const CloudPage = lazy(async () => ({
-  default: (await import('./runtime-config-page-cloud')).CloudPage,
+const ModelLibraryPage = lazy(async () => ({
+  default: (await import('./runtime-config-page-model-library')).ModelLibraryPage,
 }));
-// Hoisted so the panel can warm the model-market chunk before first open.
-const importRecommendPageModule = () => import('./runtime-config-page-recommend');
-const RecommendPage = lazy(async () => ({
-  default: (await importRecommendPageModule()).RecommendPage,
+// Hoisted so the panel can warm the model-library discover chunk before first open.
+const importDiscoverChunk = () => import('./runtime-config-page-recommend');
+const CloudServicesPage = lazy(async () => ({
+  default: (await import('./runtime-config-page-cloud')).CloudServicesPage,
 }));
-const LocalAssetsPage = lazy(async () => ({
-  default: (await import('./runtime-config-page-local')).LocalAssetsPage,
-}));
-const LoadoutsPage = lazy(async () => ({
-  default: (await import('./runtime-config-page-loadouts.js')).LoadoutsPage,
-}));
-const EnvironmentPage = lazy(async () => ({
-  default: (await import('./runtime-config-page-environment')).EnvironmentPage,
-}));
-const ProfileCatalogPage = lazy(async () => ({
-  default: (await import('./runtime-config-page-profiles')).ProfileCatalogPage,
+const AdvancedDiagnosticsPage = lazy(async () => ({
+  default: (await import('./runtime-config-page-advanced-diagnostics')).AdvancedDiagnosticsPage,
 }));
 
 function RuntimeSkeletonBlock({ className }: { className: string }) {
   return <div className={`animate-pulse rounded-2xl bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,white)] ${className}`} />;
 }
-
-const RUNTIME_SECTION_LABEL_KEY: Record<(typeof RUNTIME_SIDEBAR_ITEMS)[number]['section'], string> = {
-  Runtime: 'runtimeConfig.sidebar.section.runtime',
-};
 
 export function RuntimeConfigPanelBody() {
   const model = useRuntimeConfigPanelController();
@@ -57,14 +41,9 @@ export function RuntimeConfigPanelBody() {
 
 export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControllerModel }) {
   const { t } = useTranslation();
-  const MIN_SIDEBAR_WIDTH = 192;
-  const MAX_SIDEBAR_WIDTH = 340;
   const { model } = props;
   const { state } = model;
-  const [sidebarWidth, setSidebarWidth] = useState(216);
-  const containerRef = useRef<HTMLDivElement>(null);
   const pageViewportRef = useRef<HTMLDivElement>(null);
-  const resizePointerIdRef = useRef<number | null>(null);
 
   const daemonRunning = model.runtimeDaemonStatus?.running === true;
   const activePage = model.activePage;
@@ -73,59 +52,15 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
     resetRuntimePageViewport(pageViewportRef.current);
   }, [activePage]);
 
-  const startResize = (event: PointerEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    resizePointerIdRef.current = event.pointerId;
-    event.currentTarget.setPointerCapture(event.pointerId);
-  };
-
-  const continueResize = (event: PointerEvent<HTMLDivElement>) => {
-    if (resizePointerIdRef.current !== event.pointerId || !containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    setSidebarWidth(Math.min(
-      MAX_SIDEBAR_WIDTH,
-      Math.max(MIN_SIDEBAR_WIDTH, Math.round(event.clientX - rect.left)),
-    ));
-  };
-
-  const stopResize = (event: PointerEvent<HTMLDivElement>) => {
-    if (resizePointerIdRef.current !== event.pointerId) return;
-    resizePointerIdRef.current = null;
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-  };
-
-  // Cloud consumes its own action focus after applying the requested UI state.
-  // Loadouts only needs page selection, so clear it here.
-  const actionFocus = state?.actionFocus;
-  const { updateState } = model;
+  // Warm only the discover chunk. Data ownership and source status stay with
+  // the page's scoped Runtime queries.
   useEffect(() => {
-    if (
-      actionFocus?.focus !== 'runtime-config-action-focus.loadouts'
-    ) {
-      return;
-    }
-    updateState((prev) => (prev.actionFocus ? { ...prev, actionFocus: null } : prev));
-  }, [updateState, actionFocus]);
-
-  // Warm only the page chunk. Data ownership and source status stay with the
-  // page's scoped Runtime queries.
-  useEffect(() => {
-    void importRecommendPageModule();
+    void importDiscoverChunk();
   }, []);
 
   if (!state) {
     return (
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 px-3 pb-3 pt-2 lg:flex-row">
-        <aside className="flex max-h-[min(44vh,360px)] w-full shrink-0 flex-col bg-[var(--nimi-surface-card)] px-3 py-2 lg:max-h-none lg:w-[216px]">
-          <RuntimeSkeletonBlock className="h-9 w-32 rounded-xl" />
-          <div className="mt-3 flex flex-wrap gap-2 lg:block lg:space-y-2">
-            {Array.from({ length: 7 }).map((_, index) => (
-              <RuntimeSkeletonBlock key={index} className="h-9 w-9 lg:w-full" />
-            ))}
-          </div>
-        </aside>
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col px-3 pb-3 pt-2">
         <Surface
           as="main"
           tone="panel"
@@ -133,35 +68,35 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
           padding="none"
           className="flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden rounded-xl border-[var(--nimi-border-subtle)] shadow-[var(--nimi-elevation-base)]"
         >
-          <ScrollArea className="min-w-0 flex-1" viewportClassName="bg-transparent" contentClassName="mx-auto min-w-0 w-full max-w-5xl space-y-4 px-4 pb-4 pt-6">
+          <div className="flex min-h-[var(--nimi-sidebar-header-height)] shrink-0 items-center justify-between gap-2 px-4">
+            <RuntimeSkeletonBlock className="h-7 w-32 rounded-xl" />
+            <RuntimeSkeletonBlock className="h-6 w-24 rounded-xl" />
+          </div>
+          <div className="px-4 pb-2">
+            <RuntimeSkeletonBlock className="h-9 w-full max-w-xl rounded-xl" />
+          </div>
+          <div className="mx-auto min-w-0 w-full max-w-5xl space-y-4 px-4 pb-4 pt-6">
             <RuntimeSkeletonBlock className="h-32 w-full" />
             <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
               <RuntimeSkeletonBlock className="h-44 w-full" />
               <RuntimeSkeletonBlock className="h-44 w-full" />
             </div>
-            <RuntimeSkeletonBlock className="h-64 w-full" />
-          </ScrollArea>
+          </div>
         </Surface>
       </div>
     );
   }
 
   const runtimeStatus = model.runtimeStatus || state.local.status;
-  const sidebarStyle = { '--runtime-sidebar-width': `${sidebarWidth}px` } as CSSProperties;
-  const sidebarSections = RUNTIME_SIDEBAR_ITEMS.reduce<Record<string, typeof RUNTIME_SIDEBAR_ITEMS>>((acc, item) => {
-    if (!acc[item.section]) {
-      acc[item.section] = [];
-    }
-    acc[item.section]?.push(item);
-    return acc;
-  }, {});
 
   return (
-    <div ref={containerRef} className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 px-3 pb-3 pt-2 lg:flex-row">
-      <SidebarShell
-        className="max-h-[min(44vh,360px)] w-full lg:max-h-none lg:w-[var(--runtime-sidebar-width)]"
-        style={sidebarStyle}
-        data-testid={E2E_IDS.panel('runtime-sidebar')}
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col px-3 pb-3 pt-2">
+      <Surface
+        as="main"
+        tone="panel"
+        material="glass-regular"
+        padding="none"
+        className="flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden rounded-xl border-[var(--nimi-border-subtle)] shadow-[var(--nimi-elevation-base)]"
       >
         <div className="flex min-h-[var(--nimi-sidebar-header-height)] shrink-0 items-center justify-between gap-2 px-4">
           <h1 className="text-xl font-semibold leading-7 text-[color:var(--nimi-text-primary)]">{t('runtimeConfig.panel.title', { defaultValue: 'Runtime' })}</h1>
@@ -175,128 +110,55 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
             )}
           </div>
         </div>
-        <ScrollArea className="flex-1" contentClassName="px-2 pb-2 pt-1">
-          <div
-            role="group"
-            aria-label={t(RUNTIME_SECTION_LABEL_KEY.Runtime, { defaultValue: 'Runtime' })}
-            className="flex items-center gap-1 overflow-x-auto lg:hidden"
-          >
-            {RUNTIME_SIDEBAR_ITEMS.map((item) => {
-              const active = item.id === activePage;
-              const label = t(`runtimeConfig.sidebar.${item.id}`, { defaultValue: item.label });
-              return (
-                <button
-                  key={`sidebar-compact-${item.id}`}
-                  type="button"
-                  data-testid={`${E2E_IDS.runtimeSidebarPage(item.id)}:compact`}
-                  aria-current={active ? 'page' : undefined}
-                  aria-label={label}
-                  title={label}
-                  onClick={() => model.onChangePage(item.id)}
-                  className={cn(
-                    'flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-[var(--nimi-radius-sidebar-item)] transition-[background-color,color] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)]',
-                    'focus-visible:outline-none focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[color:var(--nimi-focus-ring-color)] focus-visible:ring-offset-[length:var(--nimi-focus-ring-offset)] focus-visible:ring-offset-[color:transparent]',
-                    active
-                      ? 'bg-[var(--nimi-sidebar-item-active)] text-[var(--nimi-action-primary-bg)]'
-                      : 'text-[var(--nimi-text-muted)] hover:bg-[var(--nimi-sidebar-item-hover)] hover:text-[var(--nimi-text-primary)]',
-                  )}
-                >
-                  {item.icon}
-                </button>
-              );
-            })}
-          </div>
-          <div className="hidden space-y-3 lg:block">
-            {Object.entries(sidebarSections).map(([section, items]) => (
-              <SidebarSection
-                key={section}
-                label={t(RUNTIME_SECTION_LABEL_KEY[section as keyof typeof RUNTIME_SECTION_LABEL_KEY], { defaultValue: section })}
-              >
-                {items.map((item) => {
-                  const active = item.id === activePage;
-                  return (
-                    <SidebarItem
-                      key={`sidebar-${item.id}`}
-                      kind="nav-row"
-                      data-testid={E2E_IDS.runtimeSidebarPage(item.id)}
-                      active={active}
-                      onClick={() => model.onChangePage(item.id)}
-                      className="text-[length:var(--nimi-type-body-sm-size)]"
-                      label={t(`runtimeConfig.sidebar.${item.id}`, { defaultValue: item.label })}
-                      icon={<span className={active ? 'text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-muted)]'}>{item.icon}</span>}
-                      trailing={active ? <SidebarAffordanceChevron /> : undefined}
-                    />
-                  );
-                })}
-              </SidebarSection>
-            ))}
-          </div>
-        </ScrollArea>
-        <SidebarResizeHandle
-          ariaLabel={t('runtimeConfig.panel.resizeSidebar', { defaultValue: 'Resize runtime sidebar' })}
-          onPointerCancel={stopResize}
-          onPointerDown={startResize}
-          onPointerMove={continueResize}
-          onPointerUp={stopResize}
-          className="hidden lg:block"
-        />
-      </SidebarShell>
-
-      <Surface
-        as="main"
-        tone="panel"
-        material="glass-regular"
-        padding="none"
-        className="flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden rounded-xl border-[var(--nimi-border-subtle)] shadow-[var(--nimi-elevation-base)]"
-      >
+        <div className="shrink-0 overflow-x-auto px-2">
+          <NimiTabs
+            ariaLabel={t('runtimeConfig.panel.navLabel', { defaultValue: 'Runtime destinations' })}
+            value={activePage}
+            onValueChange={(value) => model.onChangePage(value as typeof activePage)}
+            items={RUNTIME_NAV_DESTINATIONS.map((destination) => ({
+              value: destination.id,
+              label: t(destination.labelKey, { defaultValue: destination.label }),
+            }))}
+          />
+        </div>
         <ScrollArea viewportRef={pageViewportRef} className="min-w-0 flex-1" viewportClassName="bg-transparent [&>div]:!block [&>div]:!min-w-0 [&>div]:!w-full [&>div]:!max-w-full" contentClassName="min-w-0 w-full max-w-full overflow-x-hidden pt-6">
           <Suspense fallback={<div className="p-4"><RuntimeSkeletonBlock className="h-64 w-full" /></div>}>
-            {activePage === 'overview' && (
-              <div data-testid={E2E_IDS.runtimePageRoot('overview')} className="min-w-0">
-                <OverviewPage model={model} state={state} />
-              </div>
-            )}
-            {activePage === 'profiles' && (
-              <div data-testid={E2E_IDS.runtimePageRoot('profiles')} className="min-w-0">
-                <ProfileCatalogPage
-                  onOpenLoadouts={(capabilityContract) => model.onOpenLoadouts(
-                    capabilityContract ? { capabilityContract } : undefined,
-                  )}
-                  onOpenCloudConnectors={() => model.onChangePage('cloud')}
-                />
-              </div>
-            )}
-            {activePage === 'modelMarket' && (
-              <div data-testid={E2E_IDS.runtimePageRoot('modelMarket')} className="min-w-0">
-                <RecommendPage
-                  model={model}
-                  context={model.modelMarketContext}
-                  onReturnToLoadout={model.onReturnToContextualLoadout}
-                />
-              </div>
-            )}
-            {activePage === 'localAssets' && (
-              <div data-testid={E2E_IDS.runtimePageRoot('localAssets')} className="flex min-h-0 min-w-0 flex-1 flex-col">
-                <LocalAssetsPage model={model} />
-              </div>
-            )}
-            {activePage === 'loadouts' && (
-              <div data-testid={E2E_IDS.runtimePageRoot('loadouts')} className="min-w-0">
-                <LoadoutsPage
-                  navigationContext={model.loadoutNavigationContext}
-                  onOpenEnvironment={() => model.onChangePage('environment')}
+            {activePage === 'aiSettings' && (
+              <div data-testid={E2E_IDS.runtimePageRoot('aiSettings')} className="min-w-0">
+                <AiSettingsPage
+                  runtimeWritesDisabled={model.runtimeWritesDisabled}
+                  focusedTaskId={model.setupTaskFocus?.taskId ?? null}
+                  actionFocus={state.actionFocus}
+                  savedConfigsContext={model.loadoutNavigationContext}
+                  profileUseOwner={model.profileUseOwner}
+                  onOpenSetupTask={model.onOpenSetupTask}
+                  onCloseSetupTask={model.onCloseSetupTask}
+                  onOpenSavedConfigs={model.onOpenSavedConfigs}
                   onOpenModelMarket={model.onOpenModelMarket}
+                  onOpenAdvancedDiagnostics={() => model.onChangePage('advancedDiagnostics')}
+                  onOpenCloudServices={() => model.onChangePage('cloudServices')}
+                  onClearActionFocus={() => model.updateState((prev) => (prev.actionFocus ? { ...prev, actionFocus: null } : prev))}
+                  onCloseProfileUseOwner={model.onCloseProfileUseOwner}
+                  onCloseSavedConfigs={model.onCloseSavedConfigs}
                 />
               </div>
             )}
-            {activePage === 'cloud' && (
-              <div data-testid={E2E_IDS.runtimePageRoot('cloud')} className="min-w-0">
-                <CloudPage model={model} state={state} />
+            {activePage === 'modelLibrary' && (
+              <div data-testid={E2E_IDS.runtimePageRoot('modelLibrary')} className="min-w-0">
+                <ModelLibraryPage
+                  model={model}
+                  onClearActionFocus={() => model.updateState((prev) => (prev.actionFocus ? { ...prev, actionFocus: null } : prev))}
+                />
               </div>
             )}
-            {activePage === 'environment' && (
-              <div data-testid={E2E_IDS.runtimePageRoot('environment')} className="flex min-h-0 min-w-0 flex-1 flex-col">
-                <EnvironmentPage model={model} />
+            {activePage === 'cloudServices' && (
+              <div data-testid={E2E_IDS.runtimePageRoot('cloudServices')} className="min-w-0">
+                <CloudServicesPage model={model} state={state} />
+              </div>
+            )}
+            {activePage === 'advancedDiagnostics' && (
+              <div data-testid={E2E_IDS.runtimePageRoot('advancedDiagnostics')} className="flex min-h-0 min-w-0 flex-1 flex-col">
+                <AdvancedDiagnosticsPage model={model} />
               </div>
             )}
           </Suspense>

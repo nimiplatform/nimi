@@ -8,7 +8,7 @@ import type {
   NimiRuntimeLocalInstallPlanDescriptor,
   NimiRuntimeModelAssetMarketCandidate,
 } from '@nimiplatform/sdk/runtime';
-import type { RuntimeConfigInstallConfirmationRequest } from './runtime-config-panel-controller-install-actions';
+import type { RuntimeConfigInstallConfirmationRequest, RuntimeConfigInstallResult } from './runtime-config-panel-controller-install-actions';
 
 // @nimi-authority: rule.nimi.runtime.model-catalog.r037
 export type RuntimeConfigLoadoutNavigationContext = {
@@ -35,6 +35,11 @@ export type RuntimeConfigModelMarketContext = {
   readonly draft: RuntimeConfigLoadoutCreateDraft;
 };
 
+/** Owner context when the profile library runs "use profile" for a consumer. */
+export type RuntimeConfigProfileUseOwner =
+  | { readonly kind: 'app'; readonly ownerAppId: string; readonly returnFocus?: string }
+  | { readonly kind: 'local-agent'; readonly returnFocus?: string };
+
 export type RuntimeConfigPanelControllerModel = {
   state: RuntimeConfigStateV11 | null;
   hydrated: boolean;
@@ -56,17 +61,24 @@ export type RuntimeConfigPanelControllerModel = {
   runtimeDaemonUpdatedAt: string | null;
   loadoutNavigationContext: RuntimeConfigLoadoutNavigationContext | null;
   modelMarketContext: RuntimeConfigModelMarketContext | null;
+  setupTaskFocus: { readonly taskId: string } | null;
+  profileUseOwner: RuntimeConfigProfileUseOwner | null;
   setShowCloudApiKey: (value: boolean | ((prev: boolean) => boolean)) => void;
   setConnectorModelQuery: (value: string) => void;
   setPageFeedback: (value: InlineFeedbackState | null) => void;
   onChangePage: (pageId: RuntimeConfigStateV11['activePage']) => void;
-  onOpenLoadouts: (context?: RuntimeConfigLoadoutNavigationContext) => void;
+  onOpenSavedConfigs: (context?: RuntimeConfigLoadoutNavigationContext) => void;
   onOpenModelMarket: (context: RuntimeConfigModelMarketContext) => void;
+  onOpenSetupTask: (taskId: string) => void;
+  onCloseSetupTask: () => void;
   onReturnToContextualLoadout: () => void;
+  onOpenProfileUseForOwner: (owner: RuntimeConfigProfileUseOwner) => void;
+  onCloseProfileUseOwner: () => void;
+  onCloseSavedConfigs: () => void;
   updateState: (updater: (prev: RuntimeConfigStateV11) => RuntimeConfigStateV11) => void;
   runLocalHealthCheck: () => Promise<void>;
   testSelectedConnector: () => Promise<void>;
-  installResolvedModelPlan: (plan: NimiRuntimeLocalInstallPlanDescriptor) => Promise<void>;
+  installResolvedModelPlan: (plan: NimiRuntimeLocalInstallPlanDescriptor) => Promise<RuntimeConfigInstallResult>;
   installConfirmation: RuntimeConfigInstallConfirmationRequest | null;
   resolveInstallConfirmation: (confirmed: boolean) => void;
   refreshRuntimeDaemonStatus: () => Promise<void>;

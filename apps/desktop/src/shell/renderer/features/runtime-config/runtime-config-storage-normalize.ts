@@ -34,7 +34,7 @@ export function normalizeStoredStateV11(parsed: StoredStateV11): RuntimeConfigSt
   // Runtime bridge config and Runtime SDK projections are the single source of
   // truth. Renderer storage keeps UI preferences only.
   return {
-    version: 13,
+    version: 15,
     initializedByV11: Boolean(parsed.initializedByV11),
     activePage: normalizePageIdV11(rawActivePage),
     actionFocus: normalizeRuntimeConfigActionFocus(parsedRecord.actionFocus),

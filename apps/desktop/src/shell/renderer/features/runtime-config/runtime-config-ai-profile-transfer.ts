@@ -63,7 +63,15 @@ export type RuntimeConfigAIProfileTransferResult = {
   readonly profile: NimiPortableAIProfile;
   readonly capabilities: readonly RuntimeConfigAIProfileTransferCapabilityResult[];
   readonly installedModelAssetIds: readonly string[];
-  readonly appAIConfigApplied: boolean;
+  /**
+   * The only App AI config channel available to a transfer is a read-only
+   * prefill: `prefilled` means the profile parsed and the current App AI
+   * config was read for staging. No App AI config is written or overwritten.
+   */
+  readonly appAIConfig: {
+    readonly mode: 'prefill';
+    readonly prefilled: boolean;
+  };
 };
 
 type RuntimeConfigAIProfileDownloadGroup = {
@@ -95,30 +103,40 @@ export function exportRuntimeConfigAIProfileFromLoadouts(input: {
     if (capabilities[loadout.capabilityContract]) {
       throw new Error(`Only one Loadout per capability can be exported: ${loadout.capabilityContract}.`);
     }
-    const axes = loadout.modelAxes.map((axis) => {
-      const asset = assets.get(axis.modelAssetId);
-      if (!asset || asset.contentId !== axis.expectedContentId) {
-        throw new Error(`${loadout.displayName}: ${axis.slotId} has no matching verified ModelAsset.`);
-      }
-      const entry = asset.files.find((file) => file.relativePath === asset.entry) ?? asset.files[0];
-      if (!entry) throw new Error(`${loadout.displayName}: ${axis.slotId} has no verified payload file.`);
-      const repo = textFact(asset.provenance?.source_repo);
-      const revision = textFact(asset.provenance?.source_revision);
-      const portableSource = Boolean(repo && revision);
-      return Object.freeze({
-        slotId: axis.slotId,
-        contentId: asset.contentId as `sha256:${string}`,
-        expectedHash: exactSHA256(entry.sha256, `${loadout.displayName}: ${axis.slotId}`),
-        ...(portableSource ? {
-          source: Object.freeze({
-            repo,
-            revision,
-            file: entry.relativePath,
-            sizeBytes: asset.totalSizeBytes,
-          }),
-        } : {}),
+    const axes = loadout.modelAxes
+      .filter((axis) => {
+        if (axis.resolution === 'not-configured') return false;
+        // An optional-conditional slot that stays unbound is legally absent
+        // from the export; a required slot without a binding fails below.
+        return axis.presence !== 'optional-conditional' || Boolean(axis.modelAssetId);
+      })
+      .map((axis) => {
+        if (!axis.modelAssetId) {
+          throw new Error(`${loadout.displayName}: ${axis.slotId} requires a bound model but has none.`);
+        }
+        const asset = assets.get(axis.modelAssetId);
+        if (!asset || asset.contentId !== axis.expectedContentId) {
+          throw new Error(`${loadout.displayName}: ${axis.slotId} has no matching verified ModelAsset.`);
+        }
+        const entry = asset.files.find((file) => file.relativePath === asset.entry) ?? asset.files[0];
+        if (!entry) throw new Error(`${loadout.displayName}: ${axis.slotId} has no verified payload file.`);
+        const repo = textFact(asset.provenance?.source_repo);
+        const revision = textFact(asset.provenance?.source_revision);
+        const portableSource = Boolean(repo && revision);
+        return Object.freeze({
+          slotId: axis.slotId,
+          contentId: asset.contentId as `sha256:${string}`,
+          expectedHash: exactSHA256(entry.sha256, `${loadout.displayName}: ${axis.slotId}`),
+          ...(portableSource ? {
+            source: Object.freeze({
+              repo,
+              revision,
+              file: entry.relativePath,
+              sizeBytes: asset.totalSizeBytes,
+            }),
+          } : {}),
+        });
       });
-    });
     capabilities[loadout.capabilityContract] = Object.freeze({
       route: 'local',
       requiredFeatures: Object.freeze([...loadout.configuredFeatures]),
@@ -148,7 +166,6 @@ export async function planRuntimeConfigAIProfileTransfer(input: {
   readonly recipes: readonly NimiLoadoutRecipe[];
   readonly verifiedAssets: readonly NimiRuntimeLocalVerifiedAssetDescriptor[];
   readonly loadouts?: readonly NimiMachineLoadout[];
-  readonly selectedLoadoutIds?: readonly string[];
 }): Promise<RuntimeConfigAIProfileTransferPlan> {
   const profile = parseNimiPortableAIProfile(input.profile);
   const assetsByContent = new Map(input.assets.map((asset) => [asset.contentId, asset]));
@@ -156,11 +173,14 @@ export async function planRuntimeConfigAIProfileTransfer(input: {
   for (const [capabilityContract, capability] of Object.entries(profile.capabilities)) {
     if (capability.route !== 'local' || !capability.loadout) continue;
     const recipe = input.recipes.find((item) => item.recipeId === capability.loadout?.recipeId);
-    const selectedLoadoutIds = new Set(input.selectedLoadoutIds ?? []);
+    // Reimport never reuses an existing configured or blocked Loadout: the
+    // default outcome is an independent candidate. Only an unresolved draft
+    // created by an earlier import of this same profile is resumed, so an
+    // interrupted transfer can be continued instead of piling up duplicates.
     const existingLoadout = [...(input.loadouts ?? [])]
       .filter((loadout) => loadout.capabilityContract === capabilityContract)
       .filter((loadout) => textFact(loadout.provenance.source_profile_id) === profile.profileId)
-      .filter((loadout) => !selectedLoadoutIds.has(loadout.loadoutId))
+      .filter((loadout) => loadout.validationState === 'unresolved')
       .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))[0];
     const existingLoadoutId = existingLoadout?.loadoutId;
     if (!recipe || recipe.capabilityContract !== capabilityContract ||
@@ -306,7 +326,10 @@ export async function executeRuntimeConfigAIProfileTransfer(input: {
   // Persist an ordinary unresolved Loadout before starting a confirmed
   // transfer. If Desktop exits mid-transfer, the downloaded ModelAssets and
   // this visible Loadout are sufficient for the next import to resume or for
-  // the user to discard it explicitly.
+  // the user to discard it explicitly. Unresolved axes stay out of modelAxes
+  // entirely: Runtime only accepts (modelAssetId, expectedContentId) pairs,
+  // and the pending content intent remains on the plan axes and provenance
+  // until a later Prepare binds the real pair.
   const draftLoadoutIds = new Map<string, string>();
   const draftLoadouts = new Map<string, NimiMachineLoadout>();
   const draftFailures = new Set<string>();
@@ -325,12 +348,7 @@ export async function executeRuntimeConfigAIProfileTransfer(input: {
         capabilityContract: capability.capabilityContract,
         recipeId: capability.recipeId,
         options: source.loadout.options,
-        modelAxes: capability.axes.map((axis) => {
-          const asset = resolved.get(axisKey(capability.capabilityContract, axis.slotId));
-          return asset
-            ? { slotId: axis.slotId, modelAssetId: asset.modelAssetId, expectedContentId: asset.contentId }
-            : { slotId: axis.slotId, expectedContentId: axis.contentId };
-        }),
+        modelAxes: transferableModelAxes(capability, resolved),
         displayName: `${input.plan.profile.title} · ${capability.recipe.title}`,
         provenance: { source_profile_id: input.plan.profile.profileId },
       });
@@ -416,12 +434,7 @@ export async function executeRuntimeConfigAIProfileTransfer(input: {
     const unresolvedSlotIds = capability.axes
       .filter((axis) => !resolved.has(axisKey(capability.capabilityContract, axis.slotId)))
       .map((axis) => axis.slotId);
-    const modelAxes = capability.axes.map((axis) => {
-      const asset = resolved.get(axisKey(capability.capabilityContract, axis.slotId));
-      return asset
-        ? { slotId: axis.slotId, modelAssetId: asset.modelAssetId, expectedContentId: asset.contentId }
-        : { slotId: axis.slotId, expectedContentId: axis.contentId };
-    });
+    const modelAxes = transferableModelAxes(capability, resolved);
     try {
       const prepared = await input.loadouts.prepare({
         ...((draftLoadoutIds.get(capability.capabilityContract) ?? capability.existingLoadoutId)
@@ -462,16 +475,19 @@ export async function executeRuntimeConfigAIProfileTransfer(input: {
       }));
     }
   }
-  let appAIConfigApplied = false;
+  // The applyAIProfile channel is a read-only prefill (it parses the profile
+  // and reads the current App AI config); a resolved promise never means App
+  // AI config was written.
+  let appAIConfigPrefilled = false;
   try {
     await input.applyAIProfile(input.plan.profile);
-    appAIConfigApplied = true;
+    appAIConfigPrefilled = true;
   } catch (error) {
     results.push(Object.freeze({
       capabilityContract: 'AIConfig',
       state: 'failed' as const,
       unresolvedSlotIds: Object.freeze([]),
-      reasonCode: 'AI_PROFILE_APPLY_FAILED',
+      reasonCode: 'AI_PROFILE_PREFILL_FAILED',
       detail: errorMessage(error),
     }));
   }
@@ -479,7 +495,7 @@ export async function executeRuntimeConfigAIProfileTransfer(input: {
     profile: input.plan.profile,
     capabilities: Object.freeze(results),
     installedModelAssetIds: Object.freeze(installedModelAssetIds),
-    appAIConfigApplied,
+    appAIConfig: Object.freeze({ mode: 'prefill' as const, prefilled: appAIConfigPrefilled }),
   });
 }
 
@@ -523,12 +539,31 @@ export function runtimeConfigAIProfileDiscardableLoadouts(
   )));
 }
 
+/**
+ * Builds the Prepare/Commit model_axes for one capability. Only fully
+ * resolved (modelAssetId, expectedContentId) pairs are emitted; unresolved
+ * axes stay absent, which is the legal unresolved state — Runtime rejects a
+ * half-bound axis that carries expectedContentId without a modelAssetId.
+ */
+function transferableModelAxes(
+  capability: RuntimeConfigAIProfileTransferCapability,
+  resolved: ReadonlyMap<string, NimiRuntimeModelAssetRecord>,
+): Array<{ slotId: string; modelAssetId: string; expectedContentId: string }> {
+  return capability.axes.flatMap((axis) => {
+    const asset = resolved.get(axisKey(capability.capabilityContract, axis.slotId));
+    return asset
+      ? [{ slotId: axis.slotId, modelAssetId: asset.modelAssetId, expectedContentId: asset.contentId }]
+      : [];
+  });
+}
+
 async function installCatalogTemplate(
   assets: LocalEnvironmentClient,
   templateId: string,
 ): Promise<NimiRuntimeModelAssetRecord> {
   const plan = await assets.resolveInstallPlan({ templateId });
-  return assets.install(plan.planId, { caller: 'core' });
+  const result = await assets.install(plan.planId, { caller: 'core' });
+  return result.modelAsset;
 }
 
 async function installRecommendedSource(
@@ -546,7 +581,8 @@ async function installRecommendedSource(
     files: [axis.source.file],
     hashes: { [axis.source.file]: normalizeHash(axis.expectedHash) },
   });
-  return assets.install(plan.planId, { caller: 'core' });
+  const result = await assets.install(plan.planId, { caller: 'core' });
+  return result.modelAsset;
 }
 
 function groupRuntimeConfigAIProfileDownloads(

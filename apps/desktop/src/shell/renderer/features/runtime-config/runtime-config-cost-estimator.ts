@@ -28,6 +28,8 @@ export type UsageEstimate = {
   totalQueueWaitMs: number;
   totalEstimatedCost: number | null;
   costCurrency: string;
+  /** True when at least one usage group could not be priced (no catalog price, unknown unit, or unknown price value). */
+  hasUnpricedUsage: boolean;
   pricingLoading: boolean;
   breakdown: UsageEstimateBreakdownEntry[];
 };
@@ -57,35 +59,36 @@ export function calculateModelCost(
   const inputPrice = parsePriceValue(pricing.input);
   const outputPrice = parsePriceValue(pricing.output);
 
-  if (inputPrice === null && outputPrice === null) {
-    return { cost: null, currency: pricing.currency };
-  }
-
-  const safeInput = inputPrice ?? 0;
-  const safeOutput = outputPrice ?? 0;
-
-  let cost: number;
+  let cost: number | null;
   switch (pricing.unit) {
+    // Catalog pricing is normalized by rule.nimi.runtime.model-catalog.r004:
+    // token per 1M tokens, char per 1M characters, second per sixty seconds,
+    // request per single request. A participating price that is unknown never
+    // counts as zero — the entry is unpriced instead.
     case 'token':
-      cost = (usage.inputTokens * safeInput + usage.outputTokens * safeOutput) / 1_000_000;
+      cost = inputPrice !== null && outputPrice !== null
+        ? (usage.inputTokens * inputPrice + usage.outputTokens * outputPrice) / 1_000_000
+        : null;
       break;
     case 'char':
-      cost = (usage.inputTokens * 4 * safeInput + usage.outputTokens * 4 * safeOutput) / 1_000_000;
+      cost = inputPrice !== null && outputPrice !== null
+        ? (usage.inputTokens * 4 * inputPrice + usage.outputTokens * 4 * outputPrice) / 1_000_000
+        : null;
       break;
     case 'request':
-      cost = usage.requests * safeInput;
+      cost = inputPrice !== null ? usage.requests * inputPrice : null;
       break;
     case 'second':
-      cost = (usage.computeMs / 60_000) * safeInput;
+      cost = inputPrice !== null ? (usage.computeMs / 60_000) * inputPrice : null;
       break;
     default:
-      return { cost: null, currency: pricing.currency };
+      cost = null;
   }
 
   return { cost, currency: pricing.currency };
 }
 
-export function mapUsageRecordsToEstimate(records: UsageStatRecord[]): Omit<UsageEstimate, 'loading' | 'error' | 'updatedAt' | 'totalEstimatedCost' | 'costCurrency' | 'pricingLoading'> {
+export function mapUsageRecordsToEstimate(records: UsageStatRecord[]): Omit<UsageEstimate, 'loading' | 'error' | 'updatedAt' | 'totalEstimatedCost' | 'costCurrency' | 'hasUnpricedUsage' | 'pricingLoading'> {
   let totalRequests = 0;
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
@@ -125,9 +128,10 @@ export function mapUsageRecordsToEstimate(records: UsageStatRecord[]): Omit<Usag
     grouped.set(label, existing);
   }
 
+  // The full group list feeds pricing and totals. The top-N cap is applied
+  // only where the breakdown is displayed, never to cost aggregation.
   const breakdown = [...grouped.values()]
-    .sort((left, right) => right.requests - left.requests)
-    .slice(0, 6);
+    .sort((left, right) => right.requests - left.requests);
 
   return {
     totalRequests,
@@ -160,19 +164,31 @@ async function loadUsageRecords(
   return output;
 }
 
-function applyPricingToEstimate(
+export function applyPricingToEstimate(
   estimate: ReturnType<typeof mapUsageRecordsToEstimate>,
   pricingIndex: Map<string, PricingEntry>,
-): { breakdown: UsageEstimateBreakdownEntry[]; totalEstimatedCost: number | null; costCurrency: string } {
+): {
+  breakdown: UsageEstimateBreakdownEntry[];
+  totalEstimatedCost: number | null;
+  costCurrency: string;
+  hasUnpricedUsage: boolean;
+} {
   let totalCost: number | null = 0;
   let detectedCurrency = '';
+  let hasUnpricedUsage = false;
 
   const breakdown = estimate.breakdown.map((entry) => {
     const pricingEntry = pricingIndex.get(entry.modelId);
     if (!pricingEntry) {
+      hasUnpricedUsage = true;
       return { ...entry, estimatedCost: null, costCurrency: '' };
     }
     const { cost, currency } = calculateModelCost(entry, pricingEntry.pricing);
+    if (cost === null) {
+      hasUnpricedUsage = true;
+    }
+    // Unpriced usage is excluded from the total instead of counting as zero.
+    // A mixed-currency window has no single honest total: it stays null.
     if (cost !== null && currency !== 'none') {
       if (!detectedCurrency) detectedCurrency = currency;
       if (detectedCurrency === currency && totalCost !== null) {
@@ -184,7 +200,7 @@ function applyPricingToEstimate(
     return { ...entry, estimatedCost: cost, costCurrency: currency };
   });
 
-  return { breakdown, totalEstimatedCost: totalCost, costCurrency: detectedCurrency || 'USD' };
+  return { breakdown, totalEstimatedCost: totalCost, costCurrency: detectedCurrency || 'USD', hasUnpricedUsage };
 }
 
 export function useUsageEstimate(
@@ -262,7 +278,8 @@ export function useUsageEstimate(
     totalQueueWaitMs: baseEstimate.totalQueueWaitMs,
     totalEstimatedCost: withPricing.totalEstimatedCost,
     costCurrency: withPricing.costCurrency,
+    hasUnpricedUsage: withPricing.hasUnpricedUsage,
     pricingLoading: pricingState.loading,
-    breakdown: withPricing.breakdown,
+    breakdown: withPricing.breakdown.slice(0, 6),
   };
 }

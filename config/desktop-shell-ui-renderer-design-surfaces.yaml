@@ -198,9 +198,9 @@ surfaces:
     exception_policy: none
     testid_required: false
     source_rule: D-SHELL-029
-  - id: runtime_config.operational.page_overview
-    module: features/runtime-config/runtime-config-page-overview.tsx
-    role: runtime_config_operational_page_overview
+  - id: runtime_config.operational.page_ai_settings
+    module: features/runtime-config/runtime-config-page-ai-settings.tsx
+    role: runtime_config_operational_page_ai_settings
     surface_profile: secondary
     density_mode: compact
     exception_policy: none

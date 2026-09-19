@@ -176,7 +176,7 @@ export function isRuntimeConfigLocalCapabilitySelectionMissing(error: unknown): 
 
 export function RuntimeConfigLocalCapabilityEnvironmentPanel(props: {
   readonly writesDisabled: boolean;
-  readonly onOpenLoadouts: () => void;
+  readonly onOpenAiSettings: () => void;
 }) {
   const { t } = useTranslation();
   const setActiveTab = useAppStore((state) => state.setActiveTab);
@@ -338,7 +338,7 @@ export function RuntimeConfigLocalCapabilityEnvironmentPanel(props: {
             </div>
             {selectionMissing ? (
               <div className="mt-2">
-                <Button size="sm" onClick={props.onOpenLoadouts}>
+                <Button size="sm" onClick={props.onOpenAiSettings}>
                   {t('runtimeConfig.environment.localCapabilityChooseModel')}
                 </Button>
               </div>

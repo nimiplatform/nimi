@@ -63,7 +63,7 @@ export function EnvironmentDataTab() {
       <Surface tone="card" padding="none" className="p-4">
         <div className="flex items-start justify-between gap-3">
           <NimiText as="h3" role="card-title">
-            {t('runtimeConfig.environment.dataStorageTitle', { defaultValue: 'Storage Usage' })}
+            {t('runtimeConfig.environment.dataStorageTitle', { defaultValue: 'App data storage (this shell)' })}
           </NimiText>
           <button
             type="button"
@@ -76,7 +76,7 @@ export function EnvironmentDataTab() {
         <div className="mt-3 space-y-2">
           <div className="flex items-center justify-between">
             <NimiText as="span" role="body">
-              {t('runtimeConfig.environment.dataStorageUsed', { defaultValue: 'Estimated used' })}
+              {t('runtimeConfig.environment.dataStorageUsed', { defaultValue: 'Estimated used by this app' })}
             </NimiText>
             <NimiText as="span" role="label" className="text-[var(--nimi-text-primary)]">
               {usage ? formatBytes(usage.estimatedUsageBytes) : '-'}

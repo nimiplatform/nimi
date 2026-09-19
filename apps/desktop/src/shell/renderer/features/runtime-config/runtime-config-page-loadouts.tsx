@@ -73,9 +73,10 @@ type PendingRecommendedInstall = {
   readonly items: readonly RecommendedInstallItem[];
   readonly loadout?: NimiMachineLoadout;
 };
-export function LoadoutsPage(props: {
+export function SavedConfigsView(props: {
   readonly navigationContext: RuntimeConfigLoadoutNavigationContext | null;
-  readonly onOpenEnvironment?: () => void;
+  readonly onBack: () => void;
+  readonly onOpenAdvancedDiagnostics?: () => void;
   readonly onOpenModelMarket: (context: RuntimeConfigModelMarketContext) => void;
 }) {
   const { t } = useTranslation();
@@ -352,7 +353,8 @@ export function LoadoutsPage(props: {
         assets,
         installOffer: async (offerRef) => {
           const plan = await modelAssetsClient.resolveOfferInstallPlan(offerRef);
-          return modelAssetsClient.install(plan.planId, { caller: 'core' });
+          const result = await modelAssetsClient.install(plan.planId, { caller: 'core' });
+          return result.modelAsset;
         },
         updateLoadout: (next) => loadoutsClient.update(next, false),
       });
@@ -468,9 +470,16 @@ export function LoadoutsPage(props: {
   return (
     <RuntimePageShell>
       <RuntimePageHeader
-        title={t('runtimeConfig.loadouts.title')}
+        title={t('runtimeConfig.aiSettings.savedConfigsTitle', { defaultValue: 'Saved configurations' })}
         description={t('runtimeConfig.loadouts.description')}
-        actions={<Button size="sm" tone="primary" onClick={() => beginCreate(activeCapability || undefined)}>{t('runtimeConfig.loadouts.create')}</Button>}
+        actions={(
+          <>
+            <Button size="sm" tone="ghost" data-testid="saved-configs-back" onClick={props.onBack}>
+              {t('runtimeConfig.aiSettings.savedConfigsBack', { defaultValue: 'Back to AI Settings' })}
+            </Button>
+            <Button size="sm" tone="primary" onClick={() => beginCreate(activeCapability || undefined)}>{t('runtimeConfig.loadouts.create')}</Button>
+          </>
+        )}
       />
       {technicalError ? (
         <InlineAlert tone="danger">
@@ -490,7 +499,7 @@ export function LoadoutsPage(props: {
             <PillTabs
               className="w-max"
               size="sm"
-              ariaLabel={t('runtimeConfig.loadouts.title')}
+              ariaLabel={t('runtimeConfig.aiSettings.savedConfigsTitle', { defaultValue: 'Saved configurations' })}
               items={capabilities.map((capability) => ({
                 value: capability,
                 label: `${capabilityLabel(capability)} (${(loadoutsByCapability.get(capability) ?? []).length})`,
@@ -857,8 +866,8 @@ export function LoadoutsPage(props: {
               </div>
             </details>
 
-            {props.onOpenEnvironment ? (
-              <div><Button size="sm" tone="ghost" onClick={props.onOpenEnvironment}>{t('runtimeConfig.loadouts.viewInEnvironment')}</Button></div>
+            {props.onOpenAdvancedDiagnostics ? (
+              <div><Button size="sm" tone="ghost" onClick={props.onOpenAdvancedDiagnostics}>{t('runtimeConfig.loadouts.viewInEnvironment')}</Button></div>
             ) : null}
 
             <div className="flex justify-end border-t border-[var(--nimi-border-subtle)] pt-4">
@@ -1340,13 +1349,10 @@ export function runtimeConfigRecommendedLoadoutModelAxes(
     const current = loadout.modelAxes.find((axis) => axis.slotId === slot.slotId);
     if (current?.modelAssetId) {
       const asset = assetsById.get(current.modelAssetId);
-      modelAxes.push({
-        slotId: slot.slotId,
-        modelAssetId: current.modelAssetId,
-        ...(asset?.contentId || current.expectedContentId
-          ? { expectedContentId: asset?.contentId || current.expectedContentId }
-          : {}),
-      });
+      const expectedContentId = asset?.contentId || current.expectedContentId;
+      if (expectedContentId) {
+        modelAxes.push({ slotId: slot.slotId, modelAssetId: current.modelAssetId, expectedContentId });
+      }
       continue;
     }
     const resolved = resolvedBySlot.get(slot.slotId);
@@ -1356,11 +1362,11 @@ export function runtimeConfigRecommendedLoadoutModelAxes(
     const asset = resolved ?? recommended;
     if (asset) {
       modelAxes.push({ slotId: slot.slotId, modelAssetId: asset.modelAssetId, expectedContentId: asset.contentId });
-      continue;
     }
-    if (slot.presence === 'optional-conditional') continue;
-    const expectedContentId = current?.expectedContentId || slot.recommendedContentIds[0];
-    if (expectedContentId) modelAxes.push({ slotId: slot.slotId, expectedContentId });
+    // An unbound slot stays absent from modelAxes: Runtime only accepts
+    // (modelAssetId, expectedContentId) pairs and treats a missing slot as a
+    // legal unresolved axis. The pending content intent stays on the stored
+    // Loadout axis until a real ModelAsset is bound.
   }
   return modelAxes;
 }
@@ -1485,11 +1491,14 @@ export function runtimeConfigLoadoutUpdateModelAxes(
     if (asset) {
       return { slotId: axis.slotId, modelAssetId: asset.modelAssetId, expectedContentId: asset.contentId };
     }
-    return {
-      slotId: axis.slotId,
-      ...(axis.modelAssetId ? { modelAssetId: axis.modelAssetId } : {}),
-      ...(axis.expectedContentId ? { expectedContentId: axis.expectedContentId } : {}),
-    };
+    // Runtime only accepts (modelAssetId, expectedContentId) pairs. An
+    // unresolved or inventory-missing axis stays absent from modelAxes — a
+    // legal unresolved state — instead of sending a half-bound axis. The
+    // stored Loadout keeps its own axis projection until a real pair binds.
+    if (axis.modelAssetId && axis.expectedContentId) {
+      return { slotId: axis.slotId, modelAssetId: axis.modelAssetId, expectedContentId: axis.expectedContentId };
+    }
+    return [];
   });
 }
 

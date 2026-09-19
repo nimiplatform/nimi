@@ -40,7 +40,6 @@ export async function prepareRuntimeConfigAIProfilePreview(input: {
     recipes,
     verifiedAssets,
     loadouts: machine.loadouts,
-    selectedLoadoutIds: machine.selections.map((selection) => selection.loadoutId),
   });
   return Object.freeze({ summary, plan });
 }

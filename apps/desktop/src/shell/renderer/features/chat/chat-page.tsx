@@ -6,6 +6,16 @@ import { useDesktopRendererCommands, useDesktopRendererSdk } from '../../rendere
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { E2E_IDS } from '../../testability/e2e-ids';
 import { ChatRelationshipRail } from './chat-relationship-rail';
+import { DESKTOP_NIMI_APP_ID } from './chat-nimi-app-ai-config';
+import {
+  getRuntimeSetupTaskStore,
+} from '../runtime-config/runtime-setup-task-store.js';
+import {
+  openOrCreateRuntimeSetupTask,
+} from '../runtime-config/runtime-setup-task-open.js';
+import {
+  currentDesktopAccountIdForSetup,
+} from '../runtime-config/runtime-setup-task-ports.js';
 import {
   openAgentTargetSnapshotFromSummary,
   useChatTargetsForSidebar,
@@ -249,8 +259,24 @@ export function ChatPage() {
       return;
     }
     setChatMode(action.returnToMode || chatMode);
-    setActiveTab('runtime');
-    runtimeConfigNavigation.openPage('overview');
+    // The conversation setup action opens the shared setup task for the exact
+    // Nimi app owner instead of the legacy overview page; the original input
+    // is never re-sent.
+    void currentDesktopAccountIdForSetup().then((accountId) => {
+      openOrCreateRuntimeSetupTask(getRuntimeSetupTaskStore(), {
+        capabilityContract: 'text.generate',
+        source: {
+          kind: 'app',
+          ownerAppId: DESKTOP_NIMI_APP_ID,
+          accountId,
+          returnFocus: 'chat',
+        },
+        openTask: (taskId) => {
+          setActiveTab('runtime');
+          runtimeConfigNavigation.openSetupTask(taskId);
+        },
+      });
+    });
   }, [chatMode, navigate, runtimeConfigNavigation, setActiveTab, setChatMode]);
 
   const handleSelectTarget = useCallback((targetId: string) => {

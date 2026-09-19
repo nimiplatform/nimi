@@ -1,9 +1,9 @@
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 
-export const RUNTIME_CONFIG_STORAGE_KEY_V13 = 'nimi:runtime-config:v13';
+export const RUNTIME_CONFIG_STORAGE_KEY_V15 = 'nimi:runtime-config:v15';
 
 export type StoredStateV11 = {
-  version: 13;
+  version: 15;
   initializedByV11: boolean;
   activePage: RuntimeConfigStateV11['activePage'];
   actionFocus?: RuntimeConfigStateV11['actionFocus'];
@@ -15,9 +15,9 @@ export type StoredStateV11 = {
 
 export function createDefaultStateV11(): RuntimeConfigStateV11 {
   return {
-    version: 13,
+    version: 15,
     initializedByV11: false,
-    activePage: 'overview',
+    activePage: 'aiSettings',
     actionFocus: null,
     diagnosticsCollapsed: true,
     uiMode: 'simple',

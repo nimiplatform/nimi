@@ -8,6 +8,7 @@ import type {
   RuntimeConfigLoadoutNavigationContext,
   RuntimeConfigModelMarketContext,
   RuntimeConfigPanelControllerModel,
+  RuntimeConfigProfileUseOwner,
 } from './runtime-config-panel-types';
 import { createRuntimeConfigPanelCommands } from './runtime-config-panel-commands';
 import { useRuntimeConfigPanelDerived } from './runtime-config-panel-derived';
@@ -24,6 +25,8 @@ const RUNTIME_DAEMON_STATUS_POLL_INTERVAL_MS = 30_000;
 export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerModel {
   const [loadoutNavigationContext, setLoadoutNavigationContext] = useState<RuntimeConfigLoadoutNavigationContext | null>(null);
   const [modelMarketContext, setModelMarketContext] = useState<RuntimeConfigModelMarketContext | null>(null);
+  const [setupTaskFocus, setSetupTaskFocus] = useState<{ readonly taskId: string } | null>(null);
+  const [profileUseOwner, setProfileUseOwner] = useState<RuntimeConfigProfileUseOwner | null>(null);
   const bindings = useDesktopRendererBindings();
   const runtimeConnectorSdk = useRuntimeConfigConnectorSdk();
   const runtimeConfigNavigation = bindings.app.commands.runtimeConfigNavigation;
@@ -106,27 +109,52 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
   const onChangePage = useCallback((pageId: RuntimePageIdV11) => {
     setLoadoutNavigationContext(null);
     setModelMarketContext(null);
+    setSetupTaskFocus(null);
+    setProfileUseOwner(null);
     panelState.updateState((prev) => ({
       ...prev,
       activePage: pageId,
     }));
   }, [panelState.updateState]);
 
-  const onOpenLoadouts = useCallback((context?: RuntimeConfigLoadoutNavigationContext) => {
+  const onOpenSetupTask = useCallback((taskId: string) => {
+    setLoadoutNavigationContext(null);
+    setModelMarketContext(null);
+    setSetupTaskFocus({ taskId });
+    panelState.updateState((previous) => ({ ...previous, activePage: 'aiSettings', actionFocus: null }));
+  }, [panelState.updateState]);
+
+  const onCloseSetupTask = useCallback(() => {
+    setSetupTaskFocus(null);
+  }, []);
+
+  // Saved configurations live inside AI Settings; the action focus carries
+  // deep links across page switches (the view consumes and clears it).
+  const onOpenSavedConfigs = useCallback((context?: RuntimeConfigLoadoutNavigationContext) => {
     setLoadoutNavigationContext(context ?? null);
     setModelMarketContext(null);
-    panelState.updateState((previous) => ({ ...previous, activePage: 'loadouts', actionFocus: null }));
+    setSetupTaskFocus(null);
+    setProfileUseOwner(null);
+    panelState.updateState((previous) => ({
+      ...previous,
+      activePage: 'aiSettings',
+      actionFocus: {
+        page: 'aiSettings',
+        action: 'open-saved-configs',
+        focus: 'runtime-config-action-focus.saved-configs',
+      },
+    }));
   }, [panelState.updateState]);
 
   const onOpenModelMarket = useCallback((context: RuntimeConfigModelMarketContext) => {
     setModelMarketContext(context);
-    panelState.updateState((previous) => ({ ...previous, activePage: 'modelMarket', actionFocus: null }));
+    panelState.updateState((previous) => ({ ...previous, activePage: 'modelLibrary', actionFocus: null }));
   }, [panelState.updateState]);
 
   const onReturnToContextualLoadout = useCallback(() => {
     const context = modelMarketContext;
     setModelMarketContext(null);
-    onOpenLoadouts(context ? {
+    onOpenSavedConfigs(context ? {
       capabilityContract: context.capabilityContract,
       recipeId: context.recipeId,
       recipeRevision: context.recipeRevision,
@@ -134,11 +162,27 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
       draft: context.draft,
       autoSelectOfferRef: context.candidate.offerRef,
     } : undefined);
-  }, [modelMarketContext, onOpenLoadouts]);
+  }, [modelMarketContext, onOpenSavedConfigs]);
+
+  const onOpenProfileUseForOwner = useCallback((owner: RuntimeConfigProfileUseOwner) => {
+    setLoadoutNavigationContext(null);
+    setModelMarketContext(null);
+    setSetupTaskFocus(null);
+    setProfileUseOwner(owner);
+    panelState.updateState((previous) => ({ ...previous, activePage: 'aiSettings', actionFocus: null }));
+  }, [panelState.updateState]);
+
+  const onCloseProfileUseOwner = useCallback(() => {
+    setProfileUseOwner(null);
+  }, []);
+
+  const onCloseSavedConfigs = useCallback(() => {
+    setLoadoutNavigationContext(null);
+  }, []);
 
   const installActions = useRuntimeConfigInstallActions({
     setStatusBanner: setPageFeedback,
-    onOpenLoadouts: () => onOpenLoadouts(),
+    onOpenSavedConfigs: () => onOpenSavedConfigs(),
   });
 
   useRuntimeConfigPanelEffects({
@@ -190,13 +234,35 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
       const intent = navigation.intent;
       setLoadoutNavigationContext(null);
       setModelMarketContext(null);
+      setProfileUseOwner(null);
       if (intent.kind === 'open-page') {
+        setSetupTaskFocus(null);
         panelState.updateState((prev) => ({
           ...prev,
           activePage: intent.page,
         }));
         return;
       }
+      if (intent.kind === 'open-setup-task') {
+        setSetupTaskFocus({ taskId: intent.taskId });
+        panelState.updateState((prev) => ({
+          ...prev,
+          activePage: 'aiSettings',
+          actionFocus: null,
+        }));
+        return;
+      }
+      if (intent.kind === 'open-profile-use') {
+        setSetupTaskFocus(null);
+        setProfileUseOwner(intent.owner);
+        panelState.updateState((prev) => ({
+          ...prev,
+          activePage: 'aiSettings',
+          actionFocus: null,
+        }));
+        return;
+      }
+      setSetupTaskFocus(null);
       panelState.updateState((prev) => ({
         ...prev,
         activePage: intent.actionFocus.page,
@@ -211,7 +277,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     state: panelState.state,
     hydrated: panelState.hydrated,
     runtimeStatus: derived.runtimeStatus,
-    activePage: panelState.state?.activePage || 'overview',
+    activePage: panelState.state?.activePage || 'aiSettings',
     showCloudApiKey: panelState.showCloudApiKey,
     connectorModelQuery: panelState.connectorModelQuery,
     vaultEntryCount: panelState.vaultEntryCount,
@@ -228,13 +294,20 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     runtimeDaemonUpdatedAt: daemon.runtimeDaemonUpdatedAt,
     loadoutNavigationContext,
     modelMarketContext,
+    setupTaskFocus,
+    profileUseOwner,
     setShowCloudApiKey: panelState.setShowCloudApiKey,
     setConnectorModelQuery: panelState.setConnectorModelQuery,
     setPageFeedback,
     onChangePage,
-    onOpenLoadouts,
+    onOpenSavedConfigs,
     onOpenModelMarket,
+    onOpenSetupTask,
+    onCloseSetupTask,
     onReturnToContextualLoadout,
+    onOpenProfileUseForOwner,
+    onCloseProfileUseOwner,
+    onCloseSavedConfigs,
     updateState: panelState.updateState,
     runLocalHealthCheck: commands.runLocalHealthCheck,
     testSelectedConnector: commands.testSelectedConnector,

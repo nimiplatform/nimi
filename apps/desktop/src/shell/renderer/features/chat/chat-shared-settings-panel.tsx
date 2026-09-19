@@ -15,6 +15,19 @@ import {
   useDesktopNimiAppAIConfig,
   useOverwriteDesktopNimiAppAIConfig,
 } from './chat-nimi-app-ai-config.js';
+import {
+  getRuntimeSetupTaskStore,
+} from '../runtime-config/runtime-setup-task-store.js';
+import {
+  openOrCreateRuntimeSetupTask,
+} from '../runtime-config/runtime-setup-task-open.js';
+import {
+  currentDesktopAccountIdForSetup,
+} from '../runtime-config/runtime-setup-task-ports.js';
+import {
+  resolveChatSettingsCapabilityDescription,
+  resolveChatSettingsCapabilityLabel,
+} from './chat-model-config-copy.js';
 import { toChatUserFacingRuntimeError } from './chat-runtime-error-message.js';
 
 export type ChatSettingsPanelProps = {
@@ -185,10 +198,12 @@ function useNimiChatModelConfigCopy(): ModelConfigCopy {
     mismatchLabel: t('Chat.settingsModelFeatureMismatch', { defaultValue: 'Feature mismatch' }),
     cancelLabel: t('Chat.settingsModelPickerCancel', { defaultValue: 'Cancel' }),
     confirmSelectionLabel: t('Chat.settingsUseModelSelection', { defaultValue: 'Use selection' }),
-    capabilityLabel: () => t('Chat.settingsTextCapability', { defaultValue: 'Text generation' }),
-    capabilityDescription: () => t('Chat.settingsTextCapabilityDescription', {
-      defaultValue: 'Controls how Nimi Chat resolves text generation.',
-    }),
+    capabilityLabel: (capabilityContract: string, fallback?: string) => (
+      resolveChatSettingsCapabilityLabel(capabilityContract, fallback, t)
+    ),
+    capabilityDescription: (capabilityContract: string, fallback?: string) => (
+      resolveChatSettingsCapabilityDescription(capabilityContract, fallback, t)
+    ),
   }), [t]);
 }
 
@@ -215,12 +230,21 @@ function AiModeSettings(props: {
   }, [props.onDiagnosticsVisibilityChange]);
 
 
-  const openMachineLoadout = useCallback(() => {
-    setActiveTab('runtime');
-    runtimeConfigNavigation.focusAction({
-      page: 'loadouts',
-      action: 'open-loadouts',
-      focus: 'runtime-config-action-focus.loadouts',
+  const openMachineLoadout = useCallback((capabilityContract: string) => {
+    void currentDesktopAccountIdForSetup().then((accountId) => {
+      openOrCreateRuntimeSetupTask(getRuntimeSetupTaskStore(), {
+        capabilityContract,
+        source: {
+          kind: 'app',
+          ownerAppId: DESKTOP_NIMI_APP_ID,
+          accountId,
+          returnFocus: 'chat',
+        },
+        openTask: (taskId) => {
+          setActiveTab('runtime');
+          runtimeConfigNavigation.openSetupTask(taskId);
+        },
+      });
     });
   }, [runtimeConfigNavigation, setActiveTab]);
 

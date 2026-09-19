@@ -21,6 +21,7 @@ import {
   recommendedInstallItems,
   recommendedInstallMessage,
   runtimeConfigLoadoutCandidateAssets,
+  runtimeConfigRecommendedLoadoutModelAxes,
   summarizeRuntimeConfigRecipeDownloads,
   runtimeConfigLoadoutUpdateModelAxes,
   runtimeConfigLoadoutErrorMessage,
@@ -461,7 +462,31 @@ test('rapid Loadout updates use one last-write-wins impact slot for cancel and c
   assert.deepEqual(persisted, ['last']);
 });
 
-test('Loadout axis update preserves unresolved and inventory-missing sibling intent', () => {
+test('recommended Loadout model axes only carry fully bound pairs', () => {
+  const recommendedContentId = `sha256:${'f'.repeat(64)}`;
+  const recipe = {
+    slots: [
+      { slotId: 'main', displayLabel: 'Main', recommendedContentIds: [recommendedContentId], presence: 'required' },
+      { slotId: 'projector', displayLabel: 'Projector', recommendedContentIds: [], presence: 'optional-conditional' },
+    ],
+  } as unknown as NimiLoadoutRecipe;
+  const loadout = {
+    modelAxes: [
+      { slotId: 'main', modelAssetId: '', expectedContentId: recommendedContentId },
+    ],
+  } as unknown as Pick<NimiMachineLoadout, 'modelAxes'>;
+
+  // Nothing installed or resolved: the required slot stays absent from
+  // modelAxes instead of sending an expectedContentId-only half binding.
+  assert.deepEqual(runtimeConfigRecommendedLoadoutModelAxes(loadout, recipe, []), []);
+
+  const installed = { modelAssetId: 'asset-main', contentId: recommendedContentId } as NimiRuntimeModelAssetRecord;
+  assert.deepEqual(runtimeConfigRecommendedLoadoutModelAxes(loadout, recipe, [installed]), [
+    { slotId: 'main', modelAssetId: 'asset-main', expectedContentId: recommendedContentId },
+  ]);
+});
+
+test('Loadout axis update omits unresolved axes and preserves inventory-missing sibling bindings', () => {
   const currentContentId = `sha256:${'a'.repeat(64)}`;
   const nextContentId = `sha256:${'b'.repeat(64)}`;
   const unresolvedContentId = `sha256:${'c'.repeat(64)}`;
@@ -475,11 +500,13 @@ test('Loadout axis update preserves unresolved and inventory-missing sibling int
   } satisfies Pick<NimiMachineLoadout, 'modelAxes'>;
   const assets = [{ modelAssetId: 'asset-next', contentId: nextContentId }] as NimiRuntimeModelAssetRecord[];
 
+  // Runtime rejects a half-bound axis (expectedContentId without
+  // modelAssetId), so the unresolved companion slot stays out of modelAxes;
+  // the stored Loadout keeps its own unresolved axis projection.
   assert.deepEqual(
     runtimeConfigLoadoutUpdateModelAxes(loadout, {}, assets, 'main', 'asset-next'),
     [
       { slotId: 'main', modelAssetId: 'asset-next', expectedContentId: nextContentId },
-      { slotId: 'companion', expectedContentId: unresolvedContentId },
       { slotId: 'custom', modelAssetId: 'asset-stale', expectedContentId: staleContentId },
     ],
   );

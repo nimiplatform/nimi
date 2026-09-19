@@ -20,6 +20,15 @@ import {
   useDesktopNimiAppAIConfig,
   useOverwriteDesktopNimiAppAIConfig,
 } from '../chat/chat-nimi-app-ai-config.js';
+import {
+  getRuntimeSetupTaskStore,
+} from '../runtime-config/runtime-setup-task-store.js';
+import {
+  openOrCreateRuntimeSetupTask,
+} from '../runtime-config/runtime-setup-task-open.js';
+import {
+  currentDesktopAccountIdForSetup,
+} from '../runtime-config/runtime-setup-task-ports.js';
 
 export const APPS_AI_CONFIG_APP_ACCESS_DOMAIN = 'runtime.consume';
 
@@ -354,17 +363,50 @@ export function AppsAIConfigSection({
     onAIConfigChanged(result);
     return result;
   }, [onAIConfigChanged, overwriteAppAIConfig]);
-  const openMachineLoadout = useCallback(() => {
-    setActiveTab('runtime');
-    runtimeConfigNavigation.focusAction({
-      page: 'loadouts',
-      action: 'open-loadouts',
-      focus: 'runtime-config-action-focus.loadouts',
+  const openMachineLoadout = useCallback((capabilityContract: string) => {
+    // Consumer entries open the shared setup task with the exact owner,
+    // account snapshot, and return handle; the task view owns the route from
+    // here and never re-sends app input.
+    void currentDesktopAccountIdForSetup().then((accountId) => {
+      openOrCreateRuntimeSetupTask(getRuntimeSetupTaskStore(), {
+        capabilityContract,
+        source: {
+          kind: 'app',
+          ownerAppId: appId,
+          accountId,
+          returnFocus: `apps:${appId}`,
+        },
+        openTask: (taskId) => {
+          setActiveTab('runtime');
+          runtimeConfigNavigation.openSetupTask(taskId);
+        },
+      });
     });
-  }, [runtimeConfigNavigation, setActiveTab]);
+  }, [appId, runtimeConfigNavigation, setActiveTab]);
+
+  const openProfileUse = useCallback(() => {
+    // The profile library opens in this app's owner context: the selected
+    // capabilities prepare on this machine and the app routes save once.
+    setActiveTab('runtime');
+    runtimeConfigNavigation.openProfileUse({
+      kind: 'app',
+      ownerAppId: appId,
+      returnFocus: `apps:${appId}`,
+    });
+  }, [appId, runtimeConfigNavigation, setActiveTab]);
 
   return (
     <section data-testid={`apps-ai-config-${appId}`}>
+      <div className="mb-3 flex justify-end">
+        <button
+          type="button"
+          data-testid={`apps-ai-config-use-profile:${appId}`}
+          onClick={openProfileUse}
+          className="text-[length:var(--nimi-type-body-sm-size)] font-medium text-[var(--nimi-action-primary-bg)] hover:underline"
+        >
+          {t('Apps.aiConfig.useProfile', { defaultValue: 'Use a profile' })}
+        </button>
+      </div>
       <ModelConfigAIConfigSurface
         context={{ owner: 'app-ai-config', appId }}
         capabilityContracts={CANONICAL_CAPABILITY_IDS}

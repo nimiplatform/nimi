@@ -63,11 +63,11 @@ export function applyDesktopOpenIntentToAppStore(
 function resolveRuntimePageForIntent(
   intent: Extract<NimiDesktopOpenIntent, { kind: 'open-runtime-config' }>,
 ): RuntimePageIdV11 {
-  // Model discovery and acquisition have one owner surface.
+  // Model discovery and acquisition live in the Model Library destination.
   if (intent.page === 'models') {
-    return 'modelMarket';
+    return 'modelLibrary';
   }
-  return 'cloud';
+  return 'cloudServices';
 }
 
 function runtimeConfigActionFocusForIntent(
@@ -75,9 +75,18 @@ function runtimeConfigActionFocusForIntent(
 ) {
   if (intent.page === 'cloud' && intent.action === 'add-connector') {
     return {
-      page: 'cloud',
+      page: 'cloudServices',
       action: 'add-connector',
       focus: 'runtime-config-action-focus.cloud-connector-draft',
+    } as const;
+  }
+  // The install-model intent focuses the Model Library discovery surface, the
+  // single acquisition entry.
+  if (intent.page === 'models' && intent.action === 'install-model') {
+    return {
+      page: 'modelLibrary',
+      action: 'install-model',
+      focus: 'runtime-config-action-focus.model-library-install',
     } as const;
   }
   return null;

@@ -79,15 +79,35 @@ test('menu-bar Runtime sync dedupes unchanged payloads until the 10s heartbeat',
 
 test('menu-bar navigation accepts only the closed runtime pages and Settings shape', () => {
   assert.deepEqual(
-    parseMenuBarOpenTabPayload({ tab: 'runtime', page: 'environment' }),
-    { tab: 'runtime', page: 'environment' },
+    parseMenuBarOpenTabPayload({ tab: 'runtime', page: 'advancedDiagnostics' }),
+    { tab: 'runtime', page: 'advancedDiagnostics' },
   );
   assert.deepEqual(
-    parseMenuBarOpenTabPayload({ tab: 'runtime', page: 'modelMarket' }),
-    { tab: 'runtime', page: 'modelMarket' },
+    parseMenuBarOpenTabPayload({ tab: 'runtime', page: 'modelLibrary' }),
+    { tab: 'runtime', page: 'modelLibrary' },
+  );
+  assert.deepEqual(
+    parseMenuBarOpenTabPayload({ tab: 'runtime', page: 'aiSettings' }),
+    { tab: 'runtime', page: 'aiSettings' },
+  );
+  assert.deepEqual(
+    parseMenuBarOpenTabPayload({ tab: 'runtime', page: 'cloudServices' }),
+    { tab: 'runtime', page: 'cloudServices' },
   );
   assert.throws(
     () => parseMenuBarOpenTabPayload({ tab: 'runtime', page: 'models' }),
+    /menu-bar-open-tab-payload-invalid/u,
+  );
+  assert.throws(
+    () => parseMenuBarOpenTabPayload({ tab: 'runtime', page: 'modelMarket' }),
+    /menu-bar-open-tab-payload-invalid/u,
+  );
+  assert.throws(
+    () => parseMenuBarOpenTabPayload({ tab: 'runtime', page: 'overview' }),
+    /menu-bar-open-tab-payload-invalid/u,
+  );
+  assert.throws(
+    () => parseMenuBarOpenTabPayload({ tab: 'runtime', page: 'environment' }),
     /menu-bar-open-tab-payload-invalid/u,
   );
   assert.throws(

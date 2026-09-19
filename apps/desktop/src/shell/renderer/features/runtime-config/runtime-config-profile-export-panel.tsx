@@ -38,19 +38,24 @@ export function ProfileExportPanel() {
   const [selectedExportIds, setSelectedExportIds] = useState<readonly string[]>([]);
   const [exportName, setExportName] = useState('');
   const [feedback, setFeedback] = useState<ProfileExportFeedback | null>(null);
+  const [loadError, setLoadError] = useState('');
+  const [retryNonce, setRetryNonce] = useState(0);
 
   useEffect(() => {
     let active = true;
+    setLoadError('');
     void Promise.all([loadoutsClient.get(), modelAssetsClient.listModelAssets()]).then(([machine, assets]) => {
       if (!active) return;
       setAvailableLoadouts(machine.loadouts);
       setAvailableAssets(assets);
       setSelectedExportIds(machine.selections.map((selection) => selection.loadoutId));
-    }).catch(() => {
-      // The panel stays empty-but-safe when Runtime inventory is offline.
+    }).catch((error) => {
+      // A read failure is not an empty inventory: surface it with a retry so
+      // the exportable set is only empty when nothing is actually configured.
+      if (active) setLoadError(exportErrorMessage(error));
     });
     return () => { active = false; };
-  }, [loadoutsClient, modelAssetsClient]);
+  }, [loadoutsClient, modelAssetsClient, retryNonce]);
 
   const exportGroups = useMemo(() => {
     const grouped = new Map<string, NimiMachineLoadout[]>();
@@ -80,9 +85,9 @@ export function ProfileExportPanel() {
   const openLoadoutRepair = () => {
     setActiveTab('runtime');
     runtimeConfigNavigation.focusAction({
-      page: 'loadouts',
-      action: 'open-loadouts',
-      focus: 'runtime-config-action-focus.loadouts',
+      page: 'aiSettings',
+      action: 'open-saved-configs',
+      focus: 'runtime-config-action-focus.saved-configs',
     });
   };
 
@@ -110,6 +115,18 @@ export function ProfileExportPanel() {
         />
       </div>
       <div className="grid gap-3">
+        {loadError ? (
+          <InlineAlert tone="danger">
+            <p>{t('runtimeConfig.profiles.exportInventoryLoadFailed', { defaultValue: 'Your current model setup could not be loaded.' })}</p>
+            <Button size="sm" className="mt-2" onClick={() => setRetryNonce((current) => current + 1)}>
+              {t('Common.retry', { defaultValue: 'Retry' })}
+            </Button>
+            <details className="mt-2 text-xs">
+              <summary className="cursor-pointer font-semibold">{t('runtimeConfig.profiles.technicalDetails', { defaultValue: 'Technical details' })}</summary>
+              <p className="mt-2 break-all">{loadError}</p>
+            </details>
+          </InlineAlert>
+        ) : null}
         {exportGroups.map(([capabilityContract, loadouts]) => {
           const groupIds = new Set(loadouts.map((item) => item.loadoutId));
           const groupHasSelection = selectedExportIds.some((id) => groupIds.has(id));

@@ -335,18 +335,18 @@ test('Electron menu bar bounds navigation and keeps close-hide distinct from exp
   const host = createDesktopElectronMenuBarHost(fixture.input);
   await host.initialize();
 
-  await host.activate(MENU_BAR_ITEM_IDS.openRuntimeDashboard);
-  await host.activate(MENU_BAR_ITEM_IDS.openModelMarket);
+  await host.activate(MENU_BAR_ITEM_IDS.openAiSettings);
+  await host.activate(MENU_BAR_ITEM_IDS.openModelLibrary);
   await host.activate(MENU_BAR_ITEM_IDS.openSettings);
   assert.equal(fixture.calls.focus, 3);
   assert.deepEqual(fixture.calls.events, [
     {
       eventName: MENU_BAR_OPEN_TAB_EVENT,
-      payload: { tab: 'runtime', page: 'overview' },
+      payload: { tab: 'runtime', page: 'aiSettings' },
     },
     {
       eventName: MENU_BAR_OPEN_TAB_EVENT,
-      payload: { tab: 'runtime', page: 'modelMarket' },
+      payload: { tab: 'runtime', page: 'modelLibrary' },
     },
     {
       eventName: MENU_BAR_OPEN_TAB_EVENT,

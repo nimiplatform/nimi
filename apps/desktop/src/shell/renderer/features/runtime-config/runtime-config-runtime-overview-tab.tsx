@@ -46,18 +46,6 @@ export function RuntimeOverviewTab({ model }: RuntimeOverviewTabProps) {
                 </p>
               ) : null}
             </div>
-            <div className="flex flex-wrap items-center gap-1.5">
-              {/* Daemon lifecycle actions are single-homed on the Overview
-                  page; this tab keeps the read-only projection and routes. */}
-              <button
-                type="button"
-                data-testid="runtime-service-manage"
-                onClick={() => model.onChangePage('overview')}
-                className="text-[length:var(--nimi-type-body-sm-size)] font-medium text-[var(--nimi-action-primary-bg)] hover:underline"
-              >
-                {t('runtimeConfig.runtime.manageDaemon', { defaultValue: 'Manage in Overview' })}
-              </button>
-            </div>
           </div>
 
           {(() => {

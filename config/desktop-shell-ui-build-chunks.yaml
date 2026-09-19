@@ -16,8 +16,6 @@ entries:
   - chunks_9
   - chunks_10
   - chunks_11
-  - chunks_12
-  - chunks_13
 # Desktop Vite Build Chunks
 # Source: apps/desktop/vite.config.ts (manualChunks / lazy imports in main-layout-view.tsx)
 
@@ -67,57 +65,41 @@ chunks:
     description: User profile view
     source_rule: D-SHELL-004
 
-  - chunk: runtime-config-overview
+  - chunk: runtime-config-ai-settings
     includes:
-      - features/runtime-config/runtime-config-page-overview
-      - features/runtime-config/runtime-config-usage-stats-section
-      - features/runtime-config/runtime-config-global-audit-
+      - features/runtime-config/runtime-config-page-ai-settings
+      - features/runtime-config/runtime-config-ai-settings-profiles
+      - features/runtime-config/runtime-config-setup-task-
     lazy: true
-    description: Runtime Config overview and audit summary
+    description: Runtime AI settings, saved configurations, profiles, and setup tasks
     source_rule: D-SHELL-004
 
-  - chunk: runtime-config-cloud
+  - chunk: runtime-config-cloud-services
     includes:
       - features/runtime-config/runtime-config-page-cloud
       - features/runtime-config/runtime-config-provider-
       - features/runtime-config/runtime-config-pricing-
+    lazy: true
+    description: Runtime cloud services and connector configuration
+    source_rule: D-SHELL-004
+
+  - chunk: runtime-config-model-library
+    includes:
+      - features/runtime-config/runtime-config-page-model-library
+      - features/runtime-config/runtime-config-local-model-center
+    lazy: true
+    description: Runtime installed models and discovery entry point
+    source_rule: D-SHELL-004
+
+  - chunk: runtime-config-advanced-diagnostics
+    includes:
+      - features/runtime-config/runtime-config-page-advanced-diagnostics
+      - features/runtime-config/runtime-config-daemon-service-card
+      - features/runtime-config/runtime-config-diagnostics-
       - features/runtime-config/runtime-config-external-agent-access
+      - features/runtime-config/runtime-config-global-audit-
     lazy: true
-    description: Runtime Config cloud provider and external-agent projection UI
-    source_rule: D-SHELL-004
-
-  - chunk: runtime-config-local
-    includes:
-      - features/runtime-config/runtime-config-page-local
-      - features/runtime-config/runtime-config-local-
-      - features/runtime-config/runtime-config-memory-embedding-
-    lazy: true
-    description: Runtime Config local model center and memory embedding projection UI
-    source_rule: D-SHELL-004
-
-  - chunk: runtime-config-runtime
-    includes:
-      - features/runtime-config/runtime-config-page-runtime
-      - features/runtime-config/runtime-daemon-
-      - features/runtime-config/runtime-health-
-      - features/runtime-config/runtime-config-runtime-
-    lazy: true
-    description: Runtime Config daemon/runtime status UI
-    source_rule: D-SHELL-004
-
-  - chunk: runtime-config-catalog
-    includes:
-      - features/runtime-config/runtime-config-catalog-
-    lazy: true
-    description: Runtime Config catalog browser
-    source_rule: D-SHELL-004
-
-  - chunk: runtime-config-profiles
-    includes:
-      - features/runtime-config/runtime-config-page-profiles
-      - features/runtime-config/runtime-config-profile-
-    lazy: true
-    description: Runtime Config profile library
+    description: Runtime services, activity, access, and storage diagnostics
     source_rule: D-SHELL-004
 
   - chunk: runtime-config-recommend
@@ -125,5 +107,5 @@ chunks:
       - features/runtime-config/runtime-config-page-recommend
       - features/runtime-config/runtime-config-page-recommend-
     lazy: true
-    description: Runtime Config recommendation feed
+    description: Runtime model discovery and recommendation feed
     source_rule: D-SHELL-004

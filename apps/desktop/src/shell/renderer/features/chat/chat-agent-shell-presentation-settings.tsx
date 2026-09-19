@@ -8,6 +8,15 @@ import {
 } from '@nimiplatform/kit/features/agent-center';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
+import {
+  getRuntimeSetupTaskStore,
+} from '../runtime-config/runtime-setup-task-store.js';
+import {
+  openOrCreateRuntimeSetupTask,
+} from '../runtime-config/runtime-setup-task-open.js';
+import {
+  currentDesktopAccountIdForSetup,
+} from '../runtime-config/runtime-setup-task-ports.js';
 import type { UseAgentConversationPresentationInput } from './chat-agent-shell-presentation-types';
 
 type AgentConversationSettingsContentProps = {
@@ -45,14 +54,24 @@ export function AgentConversationSettingsContent({ input }: AgentConversationSet
     close: input.onCloseAgentCenter,
     openRuntimeSettings: () => {
       setActiveTab('runtime');
-      runtimeConfigNavigation.openPage('localAssets');
+      runtimeConfigNavigation.openPage('aiSettings');
     },
     openMachineLoadout: () => {
-      setActiveTab('runtime');
-      runtimeConfigNavigation.focusAction({
-        page: 'loadouts',
-        action: 'open-loadouts',
-        focus: 'runtime-config-action-focus.loadouts',
+      // The shared LocalAgent owner opens its own setup task; the exact
+      // conversation-primary capability is the agent's text route.
+      void currentDesktopAccountIdForSetup().then((accountId) => {
+        openOrCreateRuntimeSetupTask(getRuntimeSetupTaskStore(), {
+          capabilityContract: 'text.generate',
+          source: {
+            kind: 'local-agent',
+            accountId,
+            returnFocus: 'chat:agent',
+          },
+          openTask: (taskId) => {
+            setActiveTab('runtime');
+            runtimeConfigNavigation.openSetupTask(taskId);
+          },
+        });
       });
     },
   }), [input.onCloseAgentCenter, runtimeConfigNavigation, setActiveTab]);

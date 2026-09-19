@@ -19,9 +19,12 @@ test('runtime config storage normalization drops retired local node state', () =
         available: true,
       }],
     } as never,
-  });
+  } as never);
 
   assert.equal('endpoint' in normalized.local, false);
   assert.equal('nodeMatrix' in normalized.local, false);
   assert.deepEqual(normalized.connectors, []);
+  // Retired page values reset rather than preserving a compatibility mapping.
+  assert.equal(normalized.activePage, 'aiSettings');
+  assert.equal(normalized.version, 15);
 });

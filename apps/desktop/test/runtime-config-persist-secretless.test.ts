@@ -3,7 +3,7 @@ import test from 'node:test';
 
 import {
   createDefaultStateV11,
-  RUNTIME_CONFIG_STORAGE_KEY_V13,
+  RUNTIME_CONFIG_STORAGE_KEY_V15,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-storage-defaults';
 import { persistRuntimeConfigStateV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-storage-persist';
 import { createConnectorV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-state-types';
@@ -33,11 +33,11 @@ test('persistRuntimeConfigStateV11 does not persist connectors to localStorage',
 
     persistRuntimeConfigStateV11(state);
 
-    const raw = store.get(RUNTIME_CONFIG_STORAGE_KEY_V13);
+    const raw = store.get(RUNTIME_CONFIG_STORAGE_KEY_V15);
     assert.ok(raw, 'localStorage should contain persisted state');
 
     const parsed = JSON.parse(raw);
-    assert.equal(parsed.version, 13, 'persisted snapshot should use the current schema');
+    assert.equal(parsed.version, 15, 'persisted snapshot should use the current schema');
     assert.equal(parsed.connectors, undefined, 'connectors must not be persisted to localStorage');
     assert.equal(parsed.selectedConnectorId, undefined, 'selectedConnectorId must not be persisted');
   } finally {

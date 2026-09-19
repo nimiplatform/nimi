@@ -1,4 +1,4 @@
-﻿import assert from 'node:assert/strict';
+import assert from 'node:assert/strict';
 import { readdir, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
@@ -15,9 +15,9 @@ import {
 import { readDesktopLocale } from './helpers/read-desktop-locale';
 
 const RENDERER_ROOT = resolve(import.meta.dirname, '../src/shell/renderer');
-const RUNTIME_CONFIG_PANEL_VIEW_PATH = resolve(
+const RUNTIME_CONFIG_NAV_PATH = resolve(
   import.meta.dirname,
-  '../src/shell/renderer/features/runtime-config/runtime-config-panel-view.tsx',
+  '../src/shell/renderer/features/runtime-config/runtime-config-nav.ts',
 );
 
 function flattenLocaleKeys(input: unknown, prefix = ''): string[] {
@@ -282,19 +282,23 @@ test('known dynamic desktop locale keys exist in both locales', async () => {
   }
 });
 
-test('runtime config sidebar section keys are defined in en locale', async () => {
-  const panelViewSource = await readFile(RUNTIME_CONFIG_PANEL_VIEW_PATH, 'utf8');
+test('runtime config navigation keys are defined in en locale', async () => {
+  const navSource = await readFile(RUNTIME_CONFIG_NAV_PATH, 'utf8');
   const en = readDesktopLocale('en');
-  // T2.4 six-section IA: a single canonical "Runtime" sidebar group.
+  // S4 four-destination IA: AI Settings, Model Library, Cloud Services,
+  // Advanced & Diagnostics render through the Kit navigation primitive.
   const requiredKeys = [
-    'runtimeConfig.sidebar.section.runtime',
+    'runtimeConfig.nav.aiSettings',
+    'runtimeConfig.nav.modelLibrary',
+    'runtimeConfig.nav.cloudServices',
+    'runtimeConfig.nav.advancedDiagnostics',
   ];
 
   for (const key of requiredKeys) {
     assert.match(
-      panelViewSource,
+      navSource,
       new RegExp(key.replaceAll('.', '\\.')),
-      `runtime config panel must reference ${key}`,
+      `runtime config navigation must reference ${key}`,
     );
     const value = getValueAtKey(en, key);
     assert.equal(typeof value, 'string', `en locale is missing ${key}`);

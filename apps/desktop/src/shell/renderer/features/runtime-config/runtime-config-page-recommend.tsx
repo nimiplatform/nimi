@@ -37,7 +37,6 @@ import type {
   RuntimeConfigModelMarketContext,
   RuntimeConfigPanelControllerModel,
 } from './runtime-config-panel-types';
-import { RuntimePageHeader, RuntimePageShell } from './runtime-config-page-shell';
 
 const MARKET_CATEGORIES = ['all', 'chat', 'image', 'video'] as const;
 type MarketCategory = typeof MARKET_CATEGORIES[number];
@@ -65,6 +64,8 @@ type RecommendPageProps = {
   readonly model: RuntimeConfigPanelControllerModel;
   readonly context: RuntimeConfigModelMarketContext | null;
   readonly onReturnToLoadout: () => void;
+  /** Opens the Model Library downloaded tab (installed inventory). */
+  readonly onOpenDownloaded: () => void;
 };
 
 export function RecommendPage(props: RecommendPageProps) {
@@ -105,6 +106,7 @@ export function RecommendPage(props: RecommendPageProps) {
         context={props.context}
         model={props.model}
         onBack={props.onReturnToLoadout}
+        onOpenDownloaded={props.onOpenDownloaded}
       />
     );
   }
@@ -114,6 +116,7 @@ export function RecommendPage(props: RecommendPageProps) {
         candidate={selectedCandidate}
         model={props.model}
         onBack={() => setSelectedCandidate(null)}
+        onOpenDownloaded={props.onOpenDownloaded}
       />
     );
   }
@@ -141,13 +144,9 @@ export function RecommendPage(props: RecommendPageProps) {
     : new Set((rows as readonly NimiRuntimeModelAssetMarketCandidate[]).map((candidate) => candidate.sourceLabel)).size;
 
   return (
-    <RuntimePageShell>
-      <RuntimePageHeader
-        title={t('runtimeConfig.sidebar.modelMarket', { defaultValue: 'Model Market' })}
-        description={t('runtimeConfig.recommend.marketDescription', {
-          defaultValue: 'Discover ModelAssets, inspect an exact variant, then review its Runtime-owned install plan.',
-        })}
-        actions={showStaleSnapshot ? (
+    <div className="space-y-4">
+      {showStaleSnapshot ? (
+        <div>
           <StatusBadge
             tone="warning"
             shape="soft"
@@ -155,8 +154,8 @@ export function RecommendPage(props: RecommendPageProps) {
           >
             {t('runtimeConfig.recommend.staleBadge', { defaultValue: 'Snapshot' })}
           </StatusBadge>
-        ) : undefined}
-      />
+        </div>
+      ) : null}
       <div className="flex flex-wrap items-center gap-2">
         <div className="inline-flex h-9 items-center rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-0.5">
           {MARKET_CATEGORIES.map((value) => (
@@ -240,7 +239,7 @@ export function RecommendPage(props: RecommendPageProps) {
             ))}
         </div>
       )}
-    </RuntimePageShell>
+    </div>
   );
 }
 
@@ -348,7 +347,7 @@ function CatalogSearchDetail(props: {
   });
   const result = props.result;
   return (
-    <RuntimePageShell>
+    <div className="space-y-4">
       <Button size="sm" tone="ghost" onClick={props.onBack}>{t('Common.back', { defaultValue: 'Back' })}</Button>
       <ModelIdentityHeader author={result.author} title={result.title} verified={result.verified} />
       <MarketMeta categories={result.categories} license={result.license} updatedAt={result.lastModified} downloads={result.downloads} likes={result.likes} />
@@ -380,7 +379,7 @@ function CatalogSearchDetail(props: {
           </>
         )}
       />
-    </RuntimePageShell>
+    </div>
   );
 }
 
@@ -388,6 +387,7 @@ function MarketCandidateDetail(props: {
   readonly candidate: NimiRuntimeModelAssetMarketCandidate;
   readonly model: RuntimeConfigPanelControllerModel;
   readonly onBack: () => void;
+  readonly onOpenDownloaded: () => void;
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -412,7 +412,15 @@ function MarketCandidateDetail(props: {
     if (!plan) return;
     setBusy(true);
     try {
-      await props.model.installResolvedModelPlan(plan);
+      const result = await props.model.installResolvedModelPlan(plan);
+      if (result.status === 'cancelled') {
+        return;
+      }
+      if (result.status === 'failed') {
+        setPlan(null);
+        setError(errorMessage(result.error));
+        return;
+      }
       await queryClient.invalidateQueries({ queryKey: ['model-market'] });
       props.onBack();
     } catch (reason) {
@@ -425,7 +433,7 @@ function MarketCandidateDetail(props: {
 
   const candidate = props.candidate;
   return (
-    <RuntimePageShell>
+    <div className="space-y-4">
       <Button size="sm" tone="ghost" onClick={props.onBack}>{t('Common.back', { defaultValue: 'Back' })}</Button>
       <ModelIdentityHeader author={candidate.author} title={candidate.title} verified={candidate.verified} />
       <MarketMeta categories={candidate.categories} format={candidate.format} size={candidate.totalSizeBytes} license={candidate.license} updatedAt={candidate.lastModified} downloads={candidate.downloads} likes={candidate.likes} />
@@ -444,7 +452,7 @@ function MarketCandidateDetail(props: {
               runtimeWritesDisabled={props.model.runtimeWritesDisabled}
               onReview={() => { void review(); }}
               onInstall={() => { void install(); }}
-              onOpenLocalAssets={() => props.model.onChangePage('localAssets')}
+              onOpenLocalAssets={props.onOpenDownloaded}
             />
           </>
         )}
@@ -458,7 +466,7 @@ function MarketCandidateDetail(props: {
           </>
         )}
       />
-    </RuntimePageShell>
+    </div>
   );
 }
 
@@ -466,6 +474,7 @@ function ContextualMarketDetail(props: {
   readonly context: RuntimeConfigModelMarketContext;
   readonly model: RuntimeConfigPanelControllerModel;
   readonly onBack: () => void;
+  readonly onOpenDownloaded: () => void;
 }) {
   const { t } = useTranslation();
   const sdk = useDesktopRendererSdk();
@@ -511,7 +520,15 @@ function ContextualMarketDetail(props: {
     if (!plan) return;
     setBusy(true);
     try {
-      await props.model.installResolvedModelPlan(plan);
+      const result = await props.model.installResolvedModelPlan(plan);
+      if (result.status === 'cancelled') {
+        return;
+      }
+      if (result.status === 'failed') {
+        setPlan(null);
+        setPlanError(errorMessage(result.error));
+        return;
+      }
       await Promise.all([
         recipesQuery.refetch(),
         queryClient.invalidateQueries({ queryKey: ['model-market', 'featured'] }),
@@ -527,7 +544,7 @@ function ContextualMarketDetail(props: {
 
   const candidate = props.context.candidate;
   return (
-    <RuntimePageShell>
+    <div className="space-y-4">
       <Button size="sm" tone="ghost" onClick={props.onBack}>{t('runtimeConfig.recommend.backToPlan', { defaultValue: 'Back to capability plan' })}</Button>
       <ModelIdentityHeader
         author={candidate.author}
@@ -568,7 +585,7 @@ function ContextualMarketDetail(props: {
                 runtimeWritesDisabled={props.model.runtimeWritesDisabled}
                 onReview={() => { void review(); }}
                 onInstall={() => { void install(); }}
-                onOpenLocalAssets={() => props.model.onChangePage('localAssets')}
+                onOpenLocalAssets={props.onOpenDownloaded}
               />
             </>
           )}
@@ -588,7 +605,7 @@ function ContextualMarketDetail(props: {
           )}
         />
       ) : null}
-    </RuntimePageShell>
+    </div>
   );
 }
 
@@ -623,7 +640,7 @@ export function InstallPlanPanel(props: {
     return (
       <Surface tone="card" className="flex items-center justify-between gap-3 p-4">
         <span className="text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.recommend.alreadyInstalled', { defaultValue: 'This exact ModelAsset is installed.' })}</span>
-        <Button size="sm" tone="secondary" onClick={props.onOpenLocalAssets}>{t('runtimeConfig.recommend.openLocalAssets', { defaultValue: 'Open Local Assets' })}</Button>
+        <Button size="sm" tone="secondary" onClick={props.onOpenLocalAssets}>{t('runtimeConfig.recommend.openLocalAssets', { defaultValue: 'Open Downloaded' })}</Button>
       </Surface>
     );
   }

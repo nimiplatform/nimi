@@ -84,7 +84,7 @@ units:
     kind: rule
     title: Build chunks preserve shell readiness and lazy boundaries
     modality: must
-    statement: Desktop loads shell-core and bridge with the first screen and lazy-loads Chat, Explore, Settings, Profile, and Runtime Config overview, cloud, local, runtime, catalog, profiles, and recommendation feature chunks behind Suspense without changing product semantics.
+    statement: Desktop loads shell-core and bridge with the first screen and lazy-loads Chat, Explore, Settings, Profile, and the Runtime AI-settings, model-library, cloud-services, and advanced-diagnostics feature chunks behind Suspense without changing product semantics.
     condition: Whenever the Desktop renderer build or route loader is assembled.
     failure: Reject a build that omits first-screen shell dependencies, eagerly collapses the bounded feature set without an admitted replacement, or reports a failed lazy load as successful content.
     relations:
@@ -276,7 +276,7 @@ units:
     kind: rule
     title: Runtime and Settings share one sidebar family
     modality: must
-    statement: Runtime Config and Settings use desktop-sidebar-v1 with container, header, section labels, one or more item lists, and optional resize handle, while the outer Chat relationship rail remains an app-owned shell composition outside that family.
+    statement: Settings uses desktop-sidebar-v1 with container, header, section labels, one or more item lists, and optional resize handle, the Runtime surface renders its four text destinations through the registered Kit navigation primitives instead of a second sidebar family, and the outer Chat relationship rail remains an app-owned shell composition outside that family.
     condition: Whenever Desktop renders an internal feature sidebar.
     failure: Reject an unregistered sidebar family or misclassification of the Chat rail.
     relations:
@@ -723,7 +723,7 @@ units:
     kind: rule
     title: Menu-bar structure and actions are closed
     modality: must
-    statement: The menu bar contains a state header, Open Nimi, Runtime Dashboard, Local Models, Cloud Connectors, Settings, Runtime and verified-release summary, Start Runtime, Restart Runtime, Refresh Status, and Quit Nimi; it exposes no provider-health summary, stop, external-daemon, binary selector, endpoint, process identifier, or path and enables service actions only after fixed-service and signing verification.
+    statement: The menu bar contains a state header, Open Nimi, Runtime AI Settings, Model Library, Cloud Services, Settings, Runtime and verified-release summary, Start Runtime, Restart Runtime, Refresh Status, and Quit Nimi; it exposes no provider-health summary, stop, external-daemon, binary selector, endpoint, process identifier, or path and enables service actions only after fixed-service and signing verification.
     condition: Whenever Desktop builds the menu-bar menu.
     failure: Disable unsafe actions and route unverified or hung service state to signed repair.
     relations:
@@ -733,7 +733,7 @@ units:
     kind: rule
     title: Menu-bar navigation is event-dispatched
     modality: must
-    statement: Menu-bar navigation first shows and focuses the main window, emits menu-bar://open-tab with only Runtime overview, profiles, models, cloud, or environment page selection or Settings selection, and lets renderer state apply the route without coupling native code to React instances.
+    statement: Menu-bar navigation first shows and focuses the main window, emits menu-bar://open-tab with only Runtime AI-settings, model-library, cloud-services, or advanced-diagnostics destination selection or Settings selection, and lets renderer state apply the route without coupling native code to React instances.
     condition: Whenever a menu-bar navigation item is activated.
     failure: Reject invalid payloads and report navigation failure without mutating a React component directly.
     relations:

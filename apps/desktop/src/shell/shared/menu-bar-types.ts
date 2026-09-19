@@ -2,11 +2,10 @@ export const MENU_BAR_RUNTIME_HEALTH_SYNC_COMMAND = 'menu_bar_sync_runtime_healt
 export const MENU_BAR_OPEN_TAB_EVENT = 'menu-bar://open-tab';
 
 export const MENU_BAR_RUNTIME_PAGES = [
-  'overview',
-  'profiles',
-  'modelMarket',
-  'cloud',
-  'environment',
+  'aiSettings',
+  'modelLibrary',
+  'cloudServices',
+  'advancedDiagnostics',
 ] as const;
 
 export type MenuBarRuntimePage = typeof MENU_BAR_RUNTIME_PAGES[number];

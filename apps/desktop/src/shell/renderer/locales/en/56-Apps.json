@@ -300,7 +300,8 @@
         "label": "Vocals and background",
         "description": "Separate vocals from background audio while preserving timing"
       }
-    }
+    },
+    "useProfile": "Use a profile"
   },
   "version": {
     "installed": "Installed {{version}}",

@@ -25,7 +25,7 @@
 - Settings (account menu) owns end-user account and preference content: profile, language, appearance, privacy, security, notifications, the single Developer Mode entry with local-development registration and activity, data management, legal.
 - Support (account menu) owns guided repair, diagnostics, logs, and recovery; its section set is contract-fixed (`rule.nimi.desktop.product-surfaces.r023`).
 - Runtime (primary rail, `nav_group: core`) owns AI/runtime operations: profiles, models, connectors, environment, access tokens.
-- Authorization/Grant split: account projection and Web account-management handoff → Settings > Security; local-development project registrations and activity → Settings > Developer; external-agent tokens and delegated approvals → Runtime > Environment > Access.
+- Authorization/Grant split: account projection and Web account-management handoff → Settings > Security; local-development project registrations and activity → Settings > Developer; external-agent tokens and delegated approvals → Runtime > Advanced & Diagnostics > Permissions & Access.
 - Never embed a whole settings page inside another surface (or vice versa); deep-link via `settings.openSection(id)` / `setActiveTab` instead. Single-home every control exactly once.
 
 ## Verification Commands

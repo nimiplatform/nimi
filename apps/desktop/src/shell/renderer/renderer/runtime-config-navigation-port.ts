@@ -2,12 +2,15 @@ import type {
   RuntimeConfigActionFocus,
   RuntimePageIdV11,
 } from '../features/runtime-config/runtime-config-state-types.js';
+import type { RuntimeConfigProfileUseOwner } from '../features/runtime-config/runtime-config-panel-types.js';
 
 export type DesktopRendererRuntimeConfigNavigationView = {
   readonly revision: number;
   readonly intent:
     | { readonly kind: 'open-page'; readonly page: RuntimePageIdV11 }
     | { readonly kind: 'focus-action'; readonly actionFocus: RuntimeConfigActionFocus }
+    | { readonly kind: 'open-setup-task'; readonly taskId: string }
+    | { readonly kind: 'open-profile-use'; readonly owner: RuntimeConfigProfileUseOwner }
     | null;
 };
 
@@ -15,6 +18,10 @@ export interface DesktopRendererRuntimeConfigNavigationPort {
   get(): DesktopRendererRuntimeConfigNavigationView;
   openPage(page: RuntimePageIdV11): void;
   focusAction(actionFocus: RuntimeConfigActionFocus): void;
+  /** Opens the AI Settings page focused on one shell-lifetime setup task. */
+  openSetupTask(taskId: string): void;
+  /** Opens the AI Settings profile library in an exact consumer-owner context. */
+  openProfileUse(owner: RuntimeConfigProfileUseOwner): void;
   subscribe(listener: () => void): () => void;
 }
 
@@ -41,6 +48,22 @@ export function createDesktopRendererRuntimeConfigNavigationPort(): DesktopRende
       view = Object.freeze({
         revision: view.revision + 1,
         intent: Object.freeze({ kind: 'focus-action', actionFocus }),
+      });
+      publish();
+    },
+    openSetupTask(taskId: string) {
+      const normalized = String(taskId || '').trim();
+      if (!normalized) return;
+      view = Object.freeze({
+        revision: view.revision + 1,
+        intent: Object.freeze({ kind: 'open-setup-task', taskId: normalized }),
+      });
+      publish();
+    },
+    openProfileUse(owner: RuntimeConfigProfileUseOwner) {
+      view = Object.freeze({
+        revision: view.revision + 1,
+        intent: Object.freeze({ kind: 'open-profile-use', owner }),
       });
       publish();
     },

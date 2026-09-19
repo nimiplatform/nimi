@@ -7,6 +7,7 @@ import type {
   NimiRuntimeLocalVerifiedAssetDescriptor,
   NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
+import { parseNimiPortableAIProfile } from '@nimiplatform/sdk/ai';
 import { createNimiError } from '@nimiplatform/sdk/types';
 import {
   executeRuntimeConfigAIProfileTransfer,
@@ -165,6 +166,7 @@ function committedLoadout(capability: string, id: string, configured = true): Ni
     provenance: {},
     createdAt: '2026-08-16T00:00:00Z',
     updatedAt: '2026-08-16T00:00:00Z',
+    revision: '1',
   };
 }
 
@@ -237,7 +239,7 @@ test('AIProfile cleanup only includes unfinished Loadouts created by this transf
       { capabilityContract: 'image.generate', state: 'committed' as const, loadout: reused, unresolvedSlotIds: ['main'], createdByTransfer: false },
     ],
     installedModelAssetIds: [],
-    appAIConfigApplied: true,
+    appAIConfig: { mode: 'prefill' as const, prefilled: true },
   };
 
   assert.deepEqual(runtimeConfigAIProfileDiscardableLoadouts(result), [created]);
@@ -318,7 +320,7 @@ test('AIProfile transfer acquires one exact content identity once and binds ever
         resolveCapabilities.push([...(input.capabilities ?? [])]);
         return { planId: 'plan:shared-content' } as never;
       },
-      async install() { installCalls += 1; return installed; },
+      async install() { installCalls += 1; return { modelAsset: installed, installSessionId: 'test-install-shared' }; },
     },
     loadouts: {
       async listRecipes() { return recipes; },
@@ -438,8 +440,13 @@ test('confirmed AIProfile transfer reuses content, installs missing content, com
   const prepared = new Map<string, string>();
   const loadouts = {
     async listRecipes() { return RECIPES; },
-    async prepare(input: { capabilityContract: string }) {
+    async prepare(input: { capabilityContract: string; modelAxes?: readonly { readonly modelAssetId?: string; readonly expectedContentId?: string }[] }) {
       calls.push(`prepare:${input.capabilityContract}`);
+      for (const axis of input.modelAxes ?? []) {
+        // Runtime rejects half-bound axes: every prepared axis carries both
+        // modelAssetId and expectedContentId, or stays out of modelAxes.
+        assert.equal(Boolean(axis.modelAssetId), Boolean(axis.expectedContentId));
+      }
       const id = `prepare:${input.capabilityContract}`;
       prepared.set(id, input.capabilityContract);
       return { prepareId: id };
@@ -460,7 +467,7 @@ test('confirmed AIProfile transfer reuses content, installs missing content, com
       async listModelAssets() { calls.push('list-assets'); return [textAsset, imageAsset]; },
       async listVerifiedAssets() { return VERIFIED; },
       async resolveInstallPlan(input) { return { planId: `plan:${input.templateId}` } as never; },
-      async install() { calls.push('install:image-v1'); return imageAsset; },
+      async install() { calls.push('install:image-v1'); return { modelAsset: imageAsset, installSessionId: 'test-install-image' }; },
     },
     loadouts: loadouts as never,
     async applyAIProfile() { calls.push('apply-ai-config'); },
@@ -512,8 +519,8 @@ test('source-backed acquisition preserves recipe capability and starts confirmed
         installStarted.push(planId);
         await new Promise<void>((resolve) => releaseInstall.set(planId, resolve));
         return planId.endsWith('example/text')
-          ? asset({ id: 'downloaded-text', contentId: A, hash: A })
-          : asset({ id: 'downloaded-image', contentId: B, hash: B });
+          ? { modelAsset: asset({ id: 'downloaded-text', contentId: A, hash: A }), installSessionId: 'test-install-text' }
+          : { modelAsset: asset({ id: 'downloaded-image', contentId: B, hash: B }), installSessionId: 'test-install-image' };
       },
     },
     loadouts: {
@@ -649,6 +656,41 @@ test('interrupted acquisition keeps a visible unresolved Loadout that the next i
     loadouts: [interrupted!.loadout!],
   });
   assert.equal(resumed.capabilities.find((item) => item.capabilityContract === 'image.generate')?.existingLoadoutId, 'draft-image');
+
+  // The resumed transfer rebinds the visible draft through a full Prepare
+  // carrying the real (modelAssetId, expectedContentId) pair — never the
+  // half-bound expectedContentId-only axis.
+  const imageAsset = asset({ id: 'image-model', contentId: B, hash: B });
+  const resumePrepared = new Map<string, {
+    readonly loadoutId?: string;
+    readonly modelAxes: readonly { readonly slotId: string; readonly modelAssetId?: string; readonly expectedContentId?: string }[];
+  }>();
+  const resumedResult = await executeRuntimeConfigAIProfileTransfer({
+    plan: resumed,
+    assets: {
+      async listModelAssets() { return [textAsset]; },
+      async listVerifiedAssets() { return VERIFIED; },
+      async resolveInstallPlan(input) { return { planId: `plan:${input.templateId}` } as never; },
+      async install() { return { modelAsset: imageAsset, installSessionId: 'test-install-resume' }; },
+    },
+    loadouts: {
+      async listRecipes() { return RECIPES; },
+      async prepare(input: { capabilityContract: string; loadoutId?: string; modelAxes?: readonly { readonly slotId: string; readonly modelAssetId?: string; readonly expectedContentId?: string }[] }) {
+        resumePrepared.set(input.capabilityContract, { loadoutId: input.loadoutId, modelAxes: input.modelAxes ?? [] });
+        return { prepareId: input.capabilityContract };
+      },
+      async commit(id: string) { return committedLoadout(id, `loadout:${id}`); },
+      async select() { return null; },
+    } as never,
+    async applyAIProfile() {},
+  });
+  assert.deepEqual(resumePrepared.get('image.generate'), {
+    loadoutId: 'draft-image',
+    modelAxes: [{ slotId: 'main', modelAssetId: 'image-model', expectedContentId: B }],
+  });
+  const resumedImage = resumedResult.capabilities.find((item) => item.capabilityContract === 'image.generate');
+  assert.equal(resumedImage?.state, 'committed');
+  assert.deepEqual(resumedImage?.unresolvedSlotIds, []);
 });
 
 test('Runtime hash mismatch is classified by its exact structured reason', async () => {
@@ -687,7 +729,7 @@ test('Runtime hash mismatch is classified by its exact structured reason', async
   );
 });
 
-test('unknown recipe produces typed upgrade result and never prepares a half Loadout', async () => {
+test('unknown recipe produces typed upgrade result and Prepare only receives fully bound axis pairs', async () => {
   const profile = loadoutProfile(B) as unknown as { capabilities: Record<string, Record<string, unknown>> };
   profile.capabilities['image.generate']!.loadout = {
     ...(profile.capabilities['image.generate']!.loadout as object),
@@ -695,6 +737,7 @@ test('unknown recipe produces typed upgrade result and never prepares a half Loa
   };
   const plan = await planRuntimeConfigAIProfileTransfer({ profile: profile as never, assets: [], recipes: RECIPES, verifiedAssets: VERIFIED });
   const prepared: string[] = [];
+  const preparedAxes = new Map<string, readonly { readonly modelAssetId?: string; readonly expectedContentId?: string }[]>();
   const result = await executeRuntimeConfigAIProfileTransfer({
     plan,
     assets: {
@@ -705,7 +748,15 @@ test('unknown recipe produces typed upgrade result and never prepares a half Loa
     },
     loadouts: {
       async listRecipes() { return RECIPES; },
-      async prepare(input: { capabilityContract: string }) { prepared.push(input.capabilityContract); return { prepareId: input.capabilityContract }; },
+      async prepare(input: { capabilityContract: string; modelAxes?: readonly { readonly modelAssetId?: string; readonly expectedContentId?: string }[] }) {
+        prepared.push(input.capabilityContract);
+        preparedAxes.set(input.capabilityContract, input.modelAxes ?? []);
+        for (const axis of input.modelAxes ?? []) {
+          // Runtime rejects a half-bound axis: each entry carries both or none.
+          assert.equal(Boolean(axis.modelAssetId), Boolean(axis.expectedContentId));
+        }
+        return { prepareId: input.capabilityContract };
+      },
       async commit(id: string) { return committedLoadout(id, id); },
       async select() { return null; },
     } as never,
@@ -713,6 +764,9 @@ test('unknown recipe produces typed upgrade result and never prepares a half Loa
   });
   assert.equal(result.capabilities.find((item) => item.capabilityContract === 'image.generate')?.reasonCode, 'AI_PROFILE_RECIPE_UPGRADE_REQUIRED');
   assert.equal(prepared.includes('image.generate'), false);
+  // The content-only text axis is unresolved, so it stays out of modelAxes
+  // entirely — a legal empty binding instead of an expectedContentId-only axis.
+  assert.deepEqual(preparedAxes.get('text.generate'), []);
 });
 
 test('Profile supportedFeatures drift from the current Recipe fails closed', async () => {
@@ -780,7 +834,10 @@ test('content-only axis commits as unresolved and becomes matched on a later inv
   const unresolvedImage = result.capabilities.find((item) => item.capabilityContract === 'image.generate');
   assert.deepEqual(unresolvedImage?.unresolvedSlotIds, ['main']);
   assert.equal(unresolvedImage?.reasonCode, 'AI_PROFILE_MODEL_SOURCE_REQUIRED');
-  assert.deepEqual(preparedAxes.get('image.generate'), [{ slotId: 'main', expectedContentId: B }]);
+  // An unresolved axis stays out of modelAxes entirely: Runtime only accepts
+  // (modelAssetId, expectedContentId) pairs, and the pending content intent
+  // remains on the plan axis and provenance until a real pair binds.
+  assert.deepEqual(preparedAxes.get('image.generate'), []);
   assert.equal(result.capabilities.find((item) => item.capabilityContract === 'text.generate')?.loadout?.validationState, 'configured');
   const selected: string[] = [];
   await selectRuntimeConfigAIProfileLoadouts({
@@ -817,14 +874,16 @@ test('content-only axis commits as unresolved and becomes matched on a later inv
   );
 });
 
-test('reimport prepares an independent candidate instead of mutating the selected Loadout', async () => {
+test('reimport prepares an independent candidate instead of mutating a configured Loadout', async () => {
   const profile = loadoutProfile(B) as unknown as {
     capabilities: Record<string, unknown>;
   };
   delete profile.capabilities['image.generate'];
   const textAsset = asset({ id: 'text-model', contentId: A, hash: A });
-  const selectedLoadout = {
-    ...committedLoadout('text.generate', 'selected-profile-loadout'),
+  // A configured Loadout from an earlier import of this same profile is a
+  // working setup, not a draft: reimport must not match or mutate it.
+  const configuredLoadout = {
+    ...committedLoadout('text.generate', 'configured-profile-loadout'),
     provenance: { source_profile_id: 'profile.transfer.test' },
   };
   const plan = await planRuntimeConfigAIProfileTransfer({
@@ -832,8 +891,7 @@ test('reimport prepares an independent candidate instead of mutating the selecte
     assets: [textAsset],
     recipes: RECIPES,
     verifiedAssets: VERIFIED,
-    loadouts: [selectedLoadout],
-    selectedLoadoutIds: [selectedLoadout.loadoutId],
+    loadouts: [configuredLoadout],
   });
   assert.equal(plan.capabilities[0]?.existingLoadoutId, undefined);
   const confirmations: boolean[] = [];
@@ -1136,3 +1194,90 @@ test('Loadout export strips machine ids and emits provenance-backed or content-o
   assert.ok(textCapability?.route === 'local' && textCapability.loadout?.axes[0]?.source);
   assert.ok(imageCapability?.route === 'local' && !imageCapability.loadout?.axes[0]?.source);
 });
+
+test('Loadout export omits not-configured optional axes but still fails on a configured axis without a verified asset', () => {
+  const main = asset({
+    id: 'machine-private-main',
+    contentId: A,
+    hash: A,
+    provenance: { source_repo: 'example/text', source_revision: 'main' },
+  });
+  const withEmptyOptional = {
+    ...committedLoadout('text.generate', 'private-loadout-text-only'),
+    modelAxes: [
+      { slotId: 'main.gguf', displayLabel: 'Main model', modelAssetId: main.modelAssetId, expectedContentId: A, recipeCompatible: true, reasons: [], presence: 'required' as const, conditionalFeatures: [], resolution: 'configured' as const },
+      { slotId: 'companion.mmproj', displayLabel: 'Vision projector', modelAssetId: '', expectedContentId: '', recipeCompatible: true, reasons: [], presence: 'optional-conditional' as const, conditionalFeatures: ['input.image'], resolution: 'not-configured' as const },
+    ],
+  };
+  const exported = exportRuntimeConfigAIProfileFromLoadouts({ profileId: 'profile.text-only', title: 'Text only', loadouts: [withEmptyOptional], assets: [main] });
+  const capability = exported.profile.capabilities['text.generate'];
+  assert.ok(capability?.route === 'local');
+  assert.deepEqual(capability.loadout?.axes.map((axis) => axis.slotId), ['main.gguf']);
+
+  const missingAsset = {
+    ...committedLoadout('text.generate', 'private-loadout-missing-asset'),
+    modelAxes: [{ slotId: 'main.gguf', displayLabel: 'Main model', modelAssetId: 'asset_gone', expectedContentId: A, recipeCompatible: true, reasons: [], presence: 'required' as const, conditionalFeatures: [], resolution: 'configured' as const }],
+  };
+  assert.throws(
+    () => exportRuntimeConfigAIProfileFromLoadouts({ profileId: 'profile.broken', title: 'Broken', loadouts: [missingAsset], assets: [main] }),
+    /no matching verified ModelAsset/u,
+  );
+});
+
+test('Loadout export skips an unbound optional slot and fails clearly on an unbound required slot', () => {
+  const main = asset({
+    id: 'machine-private-main',
+    contentId: A,
+    hash: A,
+    provenance: { source_repo: 'example/text', source_revision: 'main' },
+  });
+  // An optional slot can stay unbound with a resolution other than
+  // 'not-configured' (e.g. 'unresolved'); it is legally absent from the
+  // export instead of failing it.
+  const withUnboundOptional = {
+    ...committedLoadout('text.generate', 'private-loadout-optional-unbound'),
+    modelAxes: [
+      { slotId: 'main.gguf', displayLabel: 'Main model', modelAssetId: main.modelAssetId, expectedContentId: A, recipeCompatible: true, reasons: [], presence: 'required' as const, conditionalFeatures: [], resolution: 'configured' as const },
+      { slotId: 'companion.mmproj', displayLabel: 'Vision projector', modelAssetId: '', expectedContentId: '', recipeCompatible: true, reasons: [], presence: 'optional-conditional' as const, conditionalFeatures: ['input.image'], resolution: 'unresolved' as const },
+    ],
+  };
+  const exported = exportRuntimeConfigAIProfileFromLoadouts({
+    profileId: 'profile.optional-unbound',
+    title: 'Optional unbound',
+    loadouts: [withUnboundOptional],
+    assets: [main],
+  });
+  const capability = exported.profile.capabilities['text.generate'];
+  assert.ok(capability?.route === 'local');
+  assert.deepEqual(capability.loadout?.axes.map((axis) => axis.slotId), ['main.gguf']);
+
+  // The exported profile parses and round-trips cleanly.
+  const reparsed = parseNimiPortableAIProfile(JSON.parse(exported.artifactJson));
+  assert.deepEqual(
+    reparsed.capabilities['text.generate']?.route === 'local'
+      ? reparseAxes(reparsed.capabilities['text.generate'])
+      : [],
+    ['main.gguf'],
+  );
+
+  // A required slot without a binding fails explicitly.
+  const withUnboundRequired = {
+    ...committedLoadout('text.generate', 'private-loadout-required-unbound'),
+    modelAxes: [
+      { slotId: 'main.gguf', displayLabel: 'Main model', modelAssetId: '', expectedContentId: '', recipeCompatible: true, reasons: [], presence: 'required' as const, conditionalFeatures: [], resolution: 'unresolved' as const },
+    ],
+  };
+  assert.throws(
+    () => exportRuntimeConfigAIProfileFromLoadouts({
+      profileId: 'profile.required-unbound',
+      title: 'Required unbound',
+      loadouts: [withUnboundRequired],
+      assets: [main],
+    }),
+    /requires a bound model but has none/u,
+  );
+});
+
+function reparseAxes(capability: { loadout?: { axes: readonly { slotId: string }[] } }): string[] {
+  return capability.loadout?.axes.map((axis) => axis.slotId) ?? [];
+}

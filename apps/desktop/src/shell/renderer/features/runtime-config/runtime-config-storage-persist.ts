@@ -5,7 +5,7 @@ import {
 } from '@nimiplatform/kit/core/storage-json';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import {
-  RUNTIME_CONFIG_STORAGE_KEY_V13,
+  RUNTIME_CONFIG_STORAGE_KEY_V15,
   createDefaultStateV11,
   type StoredStateV11,
 } from './runtime-config-storage-defaults';
@@ -13,11 +13,12 @@ import { normalizeStoredStateV11 } from './runtime-config-storage-normalize';
 
 export function loadRuntimeConfigStateV11(): RuntimeConfigStateV11 {
   const storage = resolveBrowserStorage('local');
-  const stored = readStorageJsonFrom<StoredStateV11>(storage, RUNTIME_CONFIG_STORAGE_KEY_V13);
-  if (stored.state === 'ready' && stored.value && typeof stored.value === 'object') {
-    const parsed = stored.value;
-    if (parsed.version === 13) return normalizeStoredStateV11(parsed);
+  const current = readStorageJsonFrom<StoredStateV11>(storage, RUNTIME_CONFIG_STORAGE_KEY_V15);
+  if (current.state === 'ready' && current.value && typeof current.value === 'object') {
+    if (current.value.version === 15) return normalizeStoredStateV11(current.value);
   }
+  // Hard cut: only the current v15 snapshot is read. Older payloads are never
+  // migrated; the preference resets safely to the default (AI Settings).
   return createDefaultStateV11();
 }
 
@@ -26,7 +27,7 @@ export function persistRuntimeConfigStateV11(state: RuntimeConfigStateV11): void
   // Runtime bridge config / Runtime SDK projections are the single source of
   // truth. Renderer storage keeps UI preferences only.
   const payload: StoredStateV11 = {
-    version: 13,
+    version: 15,
     initializedByV11: Boolean(state.initializedByV11),
     activePage: state.activePage,
     actionFocus: state.actionFocus,
@@ -41,7 +42,7 @@ export function persistRuntimeConfigStateV11(state: RuntimeConfigStateV11): void
   };
   writeStorageJsonTo(
     resolveBrowserStorage('local'),
-    RUNTIME_CONFIG_STORAGE_KEY_V13,
+    RUNTIME_CONFIG_STORAGE_KEY_V15,
     payload,
   );
 }

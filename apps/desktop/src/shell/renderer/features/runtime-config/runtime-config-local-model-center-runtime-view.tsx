@@ -1,17 +1,21 @@
-import { useState, type ReactNode, type RefObject } from 'react';
+import { useState } from 'react';
+import type { ReactNode, RefObject } from 'react';
 import type {
   NimiRuntimeLocalTransferProgressEvent,
   NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
-import { ScrollArea, SearchField } from '@nimiplatform/kit/ui';
+import { SearchField } from '@nimiplatform/kit/ui';
 
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { LocalModelCenterImportControls } from './runtime-config-local-model-center-import-controls';
 import { LocalModelCenterInstalledAssetsSection } from './runtime-config-local-model-center-installed-section';
 import { LocalModelCenterInProgressSection } from './runtime-config-local-model-center-progress-sections';
-import { RUNTIME_PAGE_WIDTH_CLASS, RuntimePageHeader } from './runtime-config-page-shell';
+
+/** Model Library sub-pages: discovery catalog, downloaded inventory, transfers. */
+export type LocalModelCenterSection = 'discover' | 'downloaded' | 'transfers';
 
 type LocalAssetsRuntimeViewProps = {
+  readonly activeSection: LocalModelCenterSection;
   readonly catalogContent: ReactNode;
   readonly assetBusy: boolean;
   readonly assetImportError: string;
@@ -43,70 +47,74 @@ type LocalAssetsRuntimeViewProps = {
 export function LocalModelCenterRuntimeView(props: LocalAssetsRuntimeViewProps) {
   const i18n = useDesktopI18nResource().instance;
   const [query, setQuery] = useState('');
+
+  if (props.activeSection === 'discover') {
+    return <>{props.catalogContent}</>;
+  }
+
+  if (props.activeSection === 'transfers') {
+    return (
+      <LocalModelCenterInProgressSection
+        downloads={[...props.downloads]}
+        observedAtBySessionId={props.observedAtBySessionId}
+        imports={[...props.imports]}
+        terminalDownloads={[...props.terminalDownloads]}
+        terminalImports={[...props.terminalImports]}
+        runtimeWritesDisabled={props.runtimeWritesDisabled}
+        onPause={props.onPauseDownload}
+        onResume={props.onResumeDownload}
+        onCancel={props.onCancelDownload}
+        onDismiss={props.onDismissSession}
+      />
+    );
+  }
+
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <ScrollArea className="flex-1" contentClassName={`mx-auto ${RUNTIME_PAGE_WIDTH_CLASS} space-y-4 px-4 pb-4`}>
-        <RuntimePageHeader
-          title={i18n.t('runtimeConfig.sidebar.localAssets', { defaultValue: 'Local Assets' })}
-          actions={(
-            <LocalModelCenterImportControls
-              refreshing={props.loadingInstalledAssets}
-              importMenuRef={props.importMenuRef}
-              showImportMenu={props.showImportMenu}
-              runtimeWritesDisabled={props.runtimeWritesDisabled}
-              onRefresh={props.onRefreshAssets}
-              onOpenModelsFolder={props.onOpenModelsFolder}
-              onToggleImportMenu={props.onToggleImportMenu}
-              onImportFile={props.onImportFile}
-              onImportDirectory={props.onImportDirectory}
-            />
-          )}
-        />
-        {props.runtimeInventoryError ? (
-          <div className="rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,transparent)] px-4 py-3 text-sm text-[var(--nimi-status-danger)]">
-            {props.runtimeInventoryError}
-          </div>
-        ) : null}
-        {props.assetImportError ? (
-          <div className="flex items-start justify-between gap-2 rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,transparent)] px-4 py-3 text-sm text-[var(--nimi-status-danger)]">
-            <span>{props.assetImportError}</span>
-            <button
-              type="button"
-              aria-label={i18n.t('runtimeConfig.localModelCenter.dismissImportError', { defaultValue: 'Dismiss import error' })}
-              className="rounded-md px-1.5 py-0.5 text-xs text-[var(--nimi-status-danger)] hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)]"
-              onClick={props.onDismissImportError}
-            >
-              {'\u00d7'}
-            </button>
-          </div>
-        ) : null}
-        <LocalModelCenterInProgressSection
-          downloads={[...props.downloads]}
-          observedAtBySessionId={props.observedAtBySessionId}
-          imports={[...props.imports]}
-          terminalDownloads={[...props.terminalDownloads]}
-          terminalImports={[...props.terminalImports]}
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <LocalModelCenterImportControls
+          refreshing={props.loadingInstalledAssets}
+          importMenuRef={props.importMenuRef}
+          showImportMenu={props.showImportMenu}
           runtimeWritesDisabled={props.runtimeWritesDisabled}
-          onPause={props.onPauseDownload}
-          onResume={props.onResumeDownload}
-          onCancel={props.onCancelDownload}
-          onDismiss={props.onDismissSession}
+          onRefresh={props.onRefreshAssets}
+          onOpenModelsFolder={props.onOpenModelsFolder}
+          onToggleImportMenu={props.onToggleImportMenu}
+          onImportFile={props.onImportFile}
+          onImportDirectory={props.onImportDirectory}
         />
-        <SearchField value={query} onChange={(event) => setQuery(event.currentTarget.value)}
-          aria-label={i18n.t('runtimeConfig.localModelCenter.searchInstalled')}
-          placeholder={i18n.t('runtimeConfig.localModelCenter.searchInstalled')} />
-        <LocalModelCenterInstalledAssetsSection
-          modelAssets={[...props.modelAssets]}
-          query={query}
-          loadingInstalledAssets={props.loadingInstalledAssets}
-          assetBusy={props.assetBusy}
-          runtimeWritesDisabled={props.runtimeWritesDisabled}
-          onRefreshAssets={props.onRefreshAssets}
-          onInspectRemoval={props.onInspectRemoval}
-          onRemoveAsset={props.onRemoveAsset}
-        />
-        {props.catalogContent}
-      </ScrollArea>
+      </div>
+      {props.runtimeInventoryError ? (
+        <div className="rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,transparent)] px-4 py-3 text-sm text-[var(--nimi-status-danger)]">
+          {props.runtimeInventoryError}
+        </div>
+      ) : null}
+      {props.assetImportError ? (
+        <div className="flex items-start justify-between gap-2 rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,transparent)] px-4 py-3 text-sm text-[var(--nimi-status-danger)]">
+          <span>{props.assetImportError}</span>
+          <button
+            type="button"
+            aria-label={i18n.t('runtimeConfig.localModelCenter.dismissImportError', { defaultValue: 'Dismiss import error' })}
+            className="rounded-md px-1.5 py-0.5 text-xs text-[var(--nimi-status-danger)] hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)]"
+            onClick={props.onDismissImportError}
+          >
+            {'\u00d7'}
+          </button>
+        </div>
+      ) : null}
+      <SearchField value={query} onChange={(event) => setQuery(event.currentTarget.value)}
+        aria-label={i18n.t('runtimeConfig.localModelCenter.searchInstalled')}
+        placeholder={i18n.t('runtimeConfig.localModelCenter.searchInstalled')} />
+      <LocalModelCenterInstalledAssetsSection
+        modelAssets={[...props.modelAssets]}
+        query={query}
+        loadingInstalledAssets={props.loadingInstalledAssets}
+        assetBusy={props.assetBusy}
+        runtimeWritesDisabled={props.runtimeWritesDisabled}
+        onRefreshAssets={props.onRefreshAssets}
+        onInspectRemoval={props.onInspectRemoval}
+        onRemoveAsset={props.onRemoveAsset}
+      />
     </div>
   );
 }

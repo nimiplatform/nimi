@@ -300,7 +300,8 @@
         "label": "人声与背景分离",
         "description": "分离人声和背景音，保留原有时间轴"
       }
-    }
+    },
+    "useProfile": "使用 Profile"
   },
   "version": {
     "installed": "已安装 {{version}}",

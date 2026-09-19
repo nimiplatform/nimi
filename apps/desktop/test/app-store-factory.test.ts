@@ -496,10 +496,10 @@ test('runtime config navigation retains pre-subscription intent and isolates ren
   const second = createDesktopRendererRuntimeConfigNavigationPort();
   const revisions: number[] = [];
 
-  first.openPage('profiles');
+  first.openPage('aiSettings');
   const unsubscribe = first.subscribe(() => revisions.push(first.get().revision));
   first.focusAction({
-    page: 'cloud',
+    page: 'cloudServices',
     action: 'add-connector',
     focus: 'runtime-config-action-focus.cloud-connector-draft',
   });
@@ -509,7 +509,7 @@ test('runtime config navigation retains pre-subscription intent and isolates ren
     intent: {
       kind: 'focus-action',
       actionFocus: {
-        page: 'cloud',
+        page: 'cloudServices',
         action: 'add-connector',
         focus: 'runtime-config-action-focus.cloud-connector-draft',
       },
@@ -522,6 +522,6 @@ test('runtime config navigation retains pre-subscription intent and isolates ren
   assert.deepEqual(revisions, [2]);
 
   unsubscribe();
-  first.openPage('localAssets');
+  first.openPage('modelLibrary');
   assert.deepEqual(revisions, [2]);
 });

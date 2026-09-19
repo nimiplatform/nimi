@@ -5,21 +5,6 @@ import { useDesktopReducedMotion } from '../../ui/motion/desktop-motion';
 
 const EASE_EMPHASIZED = [0.05, 0.7, 0.1, 1] as const;
 
-// Staggered section reveal for the overview dashboard. Returns props ready to
-// spread onto a motion.div; honors the app/OS reduced-motion preference.
-export function useOverviewReveal() {
-  const reduced = useDesktopReducedMotion();
-  return (order: number) => ({
-    initial: reduced ? false : { opacity: 0, y: 14 },
-    animate: { opacity: 1, y: 0 },
-    transition: {
-      duration: reduced ? 0 : 0.4,
-      delay: reduced ? 0 : order * 0.06,
-      ease: EASE_EMPHASIZED,
-    },
-  });
-}
-
 // Animates a numeric value from its previous rendered value to the next one.
 // Falls back to an immediate jump under reduced motion or non-finite input.
 export function useCountUp(value: number): number {

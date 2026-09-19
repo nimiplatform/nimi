@@ -10,9 +10,9 @@ rows:
   - bootstrap
   - theme_provider
   - desktop.app_shell.routes
-  - desktop.runtime.sidebar
+  - desktop.runtime.navigation
   - desktop.runtime.shared
-  - desktop.runtime.overview.page
+  - desktop.runtime.ai_settings.page
   - desktop.runtime.runtime.page
   - desktop.runtime.audit.section
   - desktop.runtime.debug.section
@@ -48,12 +48,12 @@ modules:
       - dark
     default_scheme: light
     accent_pack: nimi-accent
-  - id: desktop.runtime.sidebar
+  - id: desktop.runtime.navigation
     app: desktop
     module: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-panel-view.tsx
     families:
       - surface
-      - sidebar
+      - navigation
     testid_required: true
     exception_policy: none
     source_rule: P-DESIGN-020
@@ -78,9 +78,9 @@ modules:
       - dark
     default_scheme: light
     accent_pack: nimi-accent
-  - id: desktop.runtime.overview.page
+  - id: desktop.runtime.ai_settings.page
     app: desktop
-    module: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-page-overview.tsx
+    module: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-page-ai-settings.tsx
     families:
       - surface
       - action

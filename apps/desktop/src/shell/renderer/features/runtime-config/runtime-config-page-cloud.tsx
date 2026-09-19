@@ -5,20 +5,18 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import { type ProviderCatalogEntry } from '@nimiplatform/sdk/runtime/wire-types';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
-import { getVendorLabelV11, randomIdV11, type ApiVendor } from './runtime-config-state-types';
+import { getVendorLabelV11, type ApiVendor } from './runtime-config-state-types';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { connectorAuthProfileForId, defaultConnectorAuthOptionForProvider, listConnectorAuthOptionsForProvider, providerToVendor, resolveProviderEndpoint, vendorToProvider } from './runtime-config-connector-sdk-service';
 import { useRuntimeConfigConnectorSdk } from './runtime-config-connector-sdk-context.js';
-import { addConnectorToState, removeConnectorFromState, replaceConnectorsInState, updateConnectorField } from './runtime-config-connector-actions';
+import { removeConnectorFromState, replaceConnectorsInState, updateConnectorField } from './runtime-config-connector-actions';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { RuntimePageHeader, RuntimePageShell } from './runtime-config-page-shell';
 import {
-  acquireCodexManagedCredential,
-  createCodexOAuthConnectorOperationSnapshot,
-  isCodexOAuthConnectorOperationCurrent,
-  type CodexOAuthPendingState,
-} from './runtime-config-codex-oauth';
+  useConnectorOAuthAcquisition,
+} from './runtime-config-connector-oauth-session';
+import { RuntimeConfigConnectorCreateDialog } from './runtime-config-connector-create-form';
 import { BoltIcon, Button, PlusIcon } from './runtime-config-page-cloud-primitives';
 import { CloudConnectorListPanel } from './runtime-config-page-cloud-connector-list';
 import { CloudConnectorDetailPanel } from './runtime-config-page-cloud-detail-panel';
@@ -27,7 +25,7 @@ type CloudPageProps = { model: RuntimeConfigPanelControllerModel; state: Runtime
 const PROVIDER_CATALOG_ERROR_LABEL = 'Load provider catalog failed';
 const CONNECTORS_LOAD_ERROR_LABEL = 'Load connectors failed';
 
-export function CloudPage({ model, state }: CloudPageProps) {
+export function CloudServicesPage({ model, state }: CloudPageProps) {
   const { t } = useTranslation();
   const bindings = useDesktopRendererBindings();
   const {
@@ -46,14 +44,78 @@ export function CloudPage({ model, state }: CloudPageProps) {
   const [tokenSaveError, setTokenSaveError] = useState('');
   const [tokenSavedConnectorId, setTokenSavedConnectorId] = useState('');
   const [deletingConnectorId, setDeletingConnectorId] = useState('');
-  const [codexOAuthPending, setCodexOAuthPending] = useState<CodexOAuthPendingState | null>(null);
-  const [codexOAuthBusy, setCodexOAuthBusy] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [catalogOverrideProviderId, setCatalogOverrideProviderId] = useState('');
-  const codexOAuthAbortRef = useRef<AbortController | null>(null);
-  const codexOAuthGenerationRef = useRef(0);
   const connectorsRef = useRef(state.connectors);
   connectorsRef.current = state.connectors;
   const consumedActionFocusRef = useRef('');
+  const reportError = useCallback((label: string, error: unknown) => {
+    model.setPageFeedback({
+      kind: 'error',
+      message: formatRuntimeConfigErrorBanner(label, error),
+    });
+  }, [model]);
+  // Shared managed-OAuth orchestration: the same hook backs the in-task
+  // connector creation form; generation + snapshot guards make a stale
+  // completion after a page switch, cancel, or account change a no-op.
+  const connectorOAuth = useConnectorOAuthAcquisition({
+    host: bindings.app.commands.connectorAuth,
+    findConnector: (connectorId) => connectorsRef.current.find((connector) => connector.id === connectorId) ?? null,
+    onError: (message) => setTokenSaveError(message),
+    onAcquired: async (acquired, operation, isCurrent) => {
+      setTokenDraft('');
+      const acquiredConnectorId = acquired.connectorId;
+      setTokenSavedConnectorId(acquiredConnectorId);
+      if (operation.connector.isDraft) {
+        try {
+          const connectors = await sdkListConnectors();
+          updateState((prev) => {
+            const currentConnector = prev.connectors.find((connector) => connector.id === operation.connector.id);
+            if (!isCurrent(currentConnector ?? null)) {
+              return prev;
+            }
+            const drafts = prev.connectors.filter((connector) => (
+              connector.isDraft && connector.id !== operation.connector.id
+            ));
+            const next = replaceConnectorsInState(prev, [...connectors, ...drafts]);
+            return { ...next, selectedConnectorId: acquiredConnectorId };
+          });
+        } catch (error) {
+          if (!isCurrent()) {
+            return;
+          }
+          updateState((prev) => {
+            const currentConnector = prev.connectors.find((connector) => connector.id === operation.connector.id);
+            if (!isCurrent(currentConnector ?? null)) {
+              return prev;
+            }
+            return {
+              ...prev,
+              connectors: prev.connectors.map((connector) => (
+                connector.id === operation.connector.id
+                  ? { ...connector, id: acquiredConnectorId, isDraft: false, hasCredential: true }
+                  : connector
+              )),
+              selectedConnectorId: acquiredConnectorId,
+            };
+          });
+          reportError(CONNECTORS_LOAD_ERROR_LABEL, error);
+        }
+      } else {
+        updateState((prev) => {
+          const currentConnector = prev.connectors.find((connector) => connector.id === operation.connector.id);
+          return isCurrent(currentConnector ?? null)
+            ? updateConnectorField(prev, acquiredConnectorId, { hasCredential: true })
+            : prev;
+        });
+      }
+      if (isCurrent()) {
+        model.onVaultChanged();
+      }
+    },
+  });
+  const codexOAuthBusy = connectorOAuth.busy;
+  const codexOAuthPending = connectorOAuth.pending;
   const selectedConnectorId = selectedConnector?.id || '';
   const connectorScope = selectedConnector?.scope || 'user';
   const isRuntimeSystem = connectorScope === 'runtime-system';
@@ -84,28 +146,28 @@ export function CloudPage({ model, state }: CloudPageProps) {
     && !savingToken
     && !codexOAuthBusy;
   const invalidateCodexOAuth = useCallback((message: string) => {
-    codexOAuthGenerationRef.current += 1;
-    codexOAuthAbortRef.current?.abort(new DOMException(message, 'AbortError'));
-    codexOAuthAbortRef.current = null;
-    setCodexOAuthPending(null);
-    setCodexOAuthBusy(false);
+    connectorOAuth.invalidate(message);
     setTokenSavedConnectorId('');
-  }, []);
+  }, [connectorOAuth.invalidate]);
   useEffect(() => {
     invalidateCodexOAuth('Managed connector selection changed');
     setTokenDraft('');
     setTokenSaveError('');
   }, [invalidateCodexOAuth, selectedConnectorId]);
-  useEffect(() => () => {
-    codexOAuthGenerationRef.current += 1;
-    codexOAuthAbortRef.current?.abort(new DOMException('Managed connector page closed', 'AbortError'));
-    codexOAuthAbortRef.current = null;
-  }, []);
+  // An account switch invalidates any in-flight OAuth operation.
+  const oauthAuthStatusRef = useRef(authStatus);
   useEffect(() => {
-    if (codexOAuthAbortRef.current) {
+    if (oauthAuthStatusRef.current !== authStatus) {
+      oauthAuthStatusRef.current = authStatus;
+      invalidateCodexOAuth('Account changed');
+    }
+  }, [authStatus, invalidateCodexOAuth]);
+  useEffect(() => {
+    if (codexOAuthBusy) {
       invalidateCodexOAuth('Managed connector configuration changed');
     }
   }, [
+    codexOAuthBusy,
     invalidateCodexOAuth,
     selectedConnector?.authMode,
     selectedConnector?.endpoint,
@@ -140,12 +202,6 @@ export function CloudPage({ model, state }: CloudPageProps) {
     () => providerCatalog.filter((entry) => entry.managedSupported && entry.provider !== 'local'),
     [providerCatalog],
   );
-  const reportError = useCallback((label: string, error: unknown) => {
-    model.setPageFeedback({
-      kind: 'error',
-      message: formatRuntimeConfigErrorBanner(label, error),
-    });
-  }, [model]);
   const loadProviderCatalog = useCallback(async () => {
     const providers = await sdkListProviderCatalog();
     setProviderCatalog(Array.isArray(providers) ? providers : []);
@@ -215,36 +271,11 @@ export function CloudPage({ model, state }: CloudPageProps) {
       cancelled = true;
     };
   }, [loadProviderCatalog, reportError]);
-  const onAddConnector = useCallback(async () => {
-    const runtimeCatalog = await sdkListProviderCatalog();
-    const providerEntry = runtimeCatalog.find((entry) => entry.managedSupported && entry.provider !== 'local');
-    if (!providerEntry?.provider) {
-      throw new Error('Runtime provider catalog returned no managed cloud providers.');
-    }
-    const provider = providerEntry.provider;
-    const vendor: ApiVendor = providerToVendor(provider);
-    const defaultAuthOption = defaultConnectorAuthOptionForProvider(provider, runtimeCatalog);
-    const endpoint = resolveProviderEndpoint(provider, runtimeCatalog);
-    const draft = {
-      id: randomIdV11('draft'),
-      label: `API Connector ${state.connectors.length + 1}`,
-      vendor,
-      provider,
-      authMode: defaultAuthOption.authMode,
-      providerAuthProfile: defaultAuthOption.providerAuthProfile,
-      endpoint,
-      scope: authStatus === 'authenticated' ? 'user' as const : 'machine-global' as const,
-      hasCredential: false,
-      isSystemOwned: false,
-      models: [],
-      status: 'idle' as const,
-      lastCheckedAt: null,
-      lastDetail: '',
-      isDraft: true,
-    };
-    setConnectorLabelDraft(draft.label);
-    updateState((prev) => addConnectorToState(prev, draft));
-  }, [authStatus, state.connectors.length, updateState]);
+  const onAddConnector = useCallback(() => {
+    // The Add journey is the shared creation form; the Cloud page and the
+    // in-task entry render the same implementation.
+    setCreateDialogOpen(true);
+  }, []);
   useEffect(() => {
     const actionFocus = state.actionFocus;
     if (actionFocus?.focus !== 'runtime-config-action-focus.cloud-connector-draft') {
@@ -255,17 +286,16 @@ export function CloudPage({ model, state }: CloudPageProps) {
       return;
     }
     consumedActionFocusRef.current = focusKey;
-    void onAddConnector().finally(() => {
-      updateState((prev) => ({
-        ...prev,
-        actionFocus: null,
-      }));
-    });
-  }, [onAddConnector, state.actionFocus, state.connectors.length, updateState]);
+    setCreateDialogOpen(true);
+    updateState((prev) => ({
+      ...prev,
+      actionFocus: null,
+    }));
+  }, [state.actionFocus, state.connectors.length, updateState]);
   const onDeleteConnector = useCallback(async (connectorId: string) => {
     const connector = state.connectors.find((item) => item.id === connectorId) || null;
     if (!connector || connector.scope === 'runtime-system' || connector.isSystemOwned || deletingConnectorId) return;
-    if (connectorId === selectedConnectorId && codexOAuthAbortRef.current) {
+    if (connectorId === selectedConnectorId && codexOAuthBusy) {
       invalidateCodexOAuth('Managed connector was deleted');
     }
     setDeletingConnectorId(connectorId);
@@ -281,7 +311,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
     }
   }, [deletingConnectorId, invalidateCodexOAuth, refreshConnectorsFromSdk, selectedConnectorId, state.connectors, updateState]);
   const onSelectConnector = useCallback((connectorId: string) => {
-    if (connectorId !== selectedConnectorId && codexOAuthAbortRef.current) {
+    if (connectorId !== selectedConnectorId && codexOAuthBusy) {
       invalidateCodexOAuth('Managed connector selection changed');
     }
     const connector = state.connectors.find((item) => item.id === connectorId) || null;
@@ -292,7 +322,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
   }, [invalidateCodexOAuth, selectedConnectorId, state.connectors, updateState]);
   const onRenameSelectedConnector = useCallback((label: string) => {
     if (isRuntimeSystem) return;
-    if (codexOAuthAbortRef.current) {
+    if (codexOAuthBusy) {
       invalidateCodexOAuth('Managed connector label changed');
     }
     const previousLabel = String(selectedConnector?.label || '');
@@ -314,7 +344,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
   }, [connectorLabelDraft, isRuntimeSystem, onRenameSelectedConnector, selectedConnector]);
   const onChangeConnectorEndpoint = useCallback((endpoint: string) => {
     if (!selectedConnector || isRuntimeSystem) return;
-    if (codexOAuthAbortRef.current) {
+    if (codexOAuthBusy) {
       invalidateCodexOAuth('Managed connector endpoint changed');
     }
     const previousConnector = selectedConnector;
@@ -369,124 +399,14 @@ export function CloudPage({ model, state }: CloudPageProps) {
     model.onVaultChanged();
     return selectedConnectorId;
   }, [selectedConnectorId, selectedConnector, updateState, model]);
-  const onAcquireCodexOAuth = useCallback(async () => {
+  const onAcquireCodexOAuth = useCallback(() => {
     if (!selectedConnector || !selectedConnectorId || !isCodexManagedConnector) {
       return;
     }
-    const profileId = String(selectedConnector.providerAuthProfile || '').trim();
-    if (!profileId) {
-      setTokenSaveError('Managed OAuth connector is missing provider auth profile.');
-      return;
-    }
-    setCodexOAuthBusy(true);
     setTokenSaveError('');
     setTokenSavedConnectorId('');
-    codexOAuthAbortRef.current?.abort(new DOMException('Managed connector acquisition was replaced', 'AbortError'));
-    const abortController = new AbortController();
-    codexOAuthAbortRef.current = abortController;
-    const generation = codexOAuthGenerationRef.current + 1;
-    codexOAuthGenerationRef.current = generation;
-    const operation = createCodexOAuthConnectorOperationSnapshot(generation, selectedConnector);
-    const operationIsCurrent = () => {
-      const currentConnector = connectorsRef.current.find((connector) => connector.id === operation.connector.id);
-      return codexOAuthAbortRef.current === abortController
-        && !abortController.signal.aborted
-        && isCodexOAuthConnectorOperationCurrent(
-          operation,
-          codexOAuthGenerationRef.current,
-          currentConnector,
-        );
-    };
-    try {
-      const acquired = await acquireCodexManagedCredential({
-        profileId,
-        connectorId: operation.connector.isDraft ? undefined : operation.connector.id,
-        provider: operation.connector.provider,
-        endpoint: operation.connector.endpoint,
-        label: operation.connector.label,
-        onPending: (pending) => {
-          if (operationIsCurrent()) {
-            setCodexOAuthPending(pending);
-          }
-        },
-        signal: abortController.signal,
-      }, bindings.app.commands.connectorAuth);
-      if (!operationIsCurrent()) {
-        return;
-      }
-      setTokenDraft('');
-      setCodexOAuthPending(null);
-      const acquiredConnectorId = acquired.connectorId;
-      setTokenSavedConnectorId(acquiredConnectorId);
-      if (operation.connector.isDraft) {
-        try {
-          const connectors = await sdkListConnectors();
-          updateState((prev) => {
-            const currentConnector = prev.connectors.find((connector) => connector.id === operation.connector.id);
-            if (!isCodexOAuthConnectorOperationCurrent(
-              operation,
-              codexOAuthGenerationRef.current,
-              currentConnector,
-            )) {
-              return prev;
-            }
-            const drafts = prev.connectors.filter((connector) => (
-              connector.isDraft && connector.id !== operation.connector.id
-            ));
-            const next = replaceConnectorsInState(prev, [...connectors, ...drafts]);
-            return { ...next, selectedConnectorId: acquiredConnectorId };
-          });
-        } catch (error) {
-          if (!operationIsCurrent()) {
-            return;
-          }
-          updateState((prev) => {
-            const currentConnector = prev.connectors.find((connector) => connector.id === operation.connector.id);
-            if (!isCodexOAuthConnectorOperationCurrent(
-              operation,
-              codexOAuthGenerationRef.current,
-              currentConnector,
-            )) {
-              return prev;
-            }
-            return {
-              ...prev,
-              connectors: prev.connectors.map((connector) => (
-                connector.id === operation.connector.id
-                  ? { ...connector, id: acquiredConnectorId, isDraft: false, hasCredential: true }
-                  : connector
-              )),
-              selectedConnectorId: acquiredConnectorId,
-            };
-          });
-          reportError(CONNECTORS_LOAD_ERROR_LABEL, error);
-        }
-      } else {
-        updateState((prev) => {
-          const currentConnector = prev.connectors.find((connector) => connector.id === operation.connector.id);
-          return isCodexOAuthConnectorOperationCurrent(
-            operation,
-            codexOAuthGenerationRef.current,
-            currentConnector,
-          )
-            ? updateConnectorField(prev, acquiredConnectorId, { hasCredential: true })
-            : prev;
-        });
-      }
-      if (operationIsCurrent()) {
-        model.onVaultChanged();
-      }
-    } catch (error) {
-      if (!abortController.signal.aborted) {
-        setTokenSaveError(error instanceof Error ? error.message : String(error || 'Codex sign-in failed'));
-      }
-    } finally {
-      if (codexOAuthAbortRef.current === abortController) {
-        codexOAuthAbortRef.current = null;
-        setCodexOAuthBusy(false);
-      }
-    }
-  }, [bindings, isCodexManagedConnector, model, reportError, sdkListConnectors, selectedConnector, selectedConnectorId, updateState]);
+    void connectorOAuth.start(selectedConnector);
+  }, [connectorOAuth, isCodexManagedConnector, selectedConnector, selectedConnectorId]);
   const onChangeConnectorVendor = useCallback(async (vendor: string) => {
     if (!selectedConnector || !canEditVendor) return;
     const previousConnector = selectedConnector;
@@ -495,7 +415,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
     const runtimeCatalog = await sdkListProviderCatalog();
     const defaultAuthOption = defaultConnectorAuthOptionForProvider(provider, runtimeCatalog);
     const endpoint = resolveProviderEndpoint(provider, runtimeCatalog);
-    if (codexOAuthAbortRef.current) {
+    if (codexOAuthBusy) {
       invalidateCodexOAuth('Managed connector vendor changed');
     }
     updateState((prev) => updateConnectorField(prev, selectedConnectorId, {
@@ -525,7 +445,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
     if (!selectedConnector || isRuntimeSystem || !isDraft) return;
     const nextOption = authOptions.find((option) => option.value === nextValue) || null;
     if (!nextOption) return;
-    if (codexOAuthAbortRef.current) {
+    if (codexOAuthBusy) {
       invalidateCodexOAuth('Managed connector credential type changed');
     }
     updateState((prev) => updateConnectorField(prev, selectedConnectorId, {
@@ -563,13 +483,13 @@ export function CloudPage({ model, state }: CloudPageProps) {
   return (
     <RuntimePageShell className="space-y-4">
       <RuntimePageHeader
-        title={t('runtimeConfig.sidebar.cloud')}
+        title={t('runtimeConfig.nav.cloudServices', { defaultValue: 'Cloud Services' })}
         actions={(
           <>
             <Button
               variant="primary"
               size="sm"
-              onClick={() => { void onAddConnector().catch((e) => reportError('Add connector failed', e)); }}
+              onClick={onAddConnector}
               icon={<PlusIcon />}
             >
               {t('runtimeConfig.cloud.addConnector', { defaultValue: 'Add' })}
@@ -643,6 +563,26 @@ export function CloudPage({ model, state }: CloudPageProps) {
         open={Boolean(catalogOverrideProviderId)}
         providerId={catalogOverrideProviderId}
         onClose={() => setCatalogOverrideProviderId('')}
+      />
+      <RuntimeConfigConnectorCreateDialog
+        open={createDialogOpen}
+        onClose={() => setCreateDialogOpen(false)}
+        onCreated={(connectorId) => {
+          setCreateDialogOpen(false);
+          void (async () => {
+            try {
+              const connectors = await sdkListConnectors();
+              updateState((prev) => {
+                const drafts = prev.connectors.filter((connector) => connector.isDraft);
+                const next = replaceConnectorsInState(prev, [...connectors, ...drafts]);
+                return { ...next, selectedConnectorId: connectorId };
+              });
+            } catch (error) {
+              reportError(CONNECTORS_LOAD_ERROR_LABEL, error);
+            }
+            model.onVaultChanged();
+          })();
+        }}
       />
     </RuntimePageShell>
   );

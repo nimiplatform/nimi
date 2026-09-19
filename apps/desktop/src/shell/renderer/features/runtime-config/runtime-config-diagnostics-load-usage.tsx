@@ -23,8 +23,8 @@ import {
   MemoryStickIcon,
   ThermometerIcon,
   TimerIcon,
-} from './runtime-config-overview-icons';
-import { GaugeRing, useCountUp } from './runtime-config-overview-motion';
+} from './runtime-config-diagnostics-icons';
+import { GaugeRing, useCountUp } from './runtime-config-diagnostics-motion';
 import { useDesktopReducedMotion } from '../../ui/motion/desktop-motion';
 
 const METRIC_CARD_CLASS = 'rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3';
@@ -163,11 +163,11 @@ function TokenSplitBar({ inputTokens, outputTokens, inputLabel, outputLabel }: {
   );
 }
 
-export function OverviewLoadUsageSection() {
+/** Device resources (CPU / memory / disk / temperature) polled by the shell. */
+export function SystemResourcesSection() {
   const i18n = useDesktopI18nResource();
   const { t } = useTranslation();
   const sysResources = useSystemResources();
-  const usageEstimate = useUsageEstimate();
   const resourceSnapshot = sysResources.snapshot;
   const memoryPercent = resourceSnapshot && resourceSnapshot.memoryTotalBytes > 0
     ? (resourceSnapshot.memoryUsedBytes / resourceSnapshot.memoryTotalBytes) * 100
@@ -176,15 +176,12 @@ export function OverviewLoadUsageSection() {
     ? (resourceSnapshot.diskUsedBytes / resourceSnapshot.diskTotalBytes) * 100
     : 0;
 
-  const inputTokensLabel = t('runtimeConfig.overview.inputTokens', { defaultValue: 'Input Tokens' });
-  const outputTokensLabel = t('runtimeConfig.overview.outputTokens', { defaultValue: 'Output Tokens' });
-
   return (
     <section>
       <SectionTitle>
-        {t('runtimeConfig.overview.runtimeLoadTitle', { defaultValue: 'Runtime Load & Usage' })}
+        {t('runtimeConfig.overview.systemResources', { defaultValue: 'System Resources' })}
       </SectionTitle>
-      <div className="mt-2 grid grid-cols-1 gap-3 lg:grid-cols-2">
+      <div className="mt-2">
         <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'flex flex-col p-4')}>
           <div className="mb-4 flex items-center justify-between gap-2">
             <p className={cn('text-sm font-semibold', TOKEN_TEXT_PRIMARY)}>{t('runtimeConfig.overview.systemResources', { defaultValue: 'System Resources' })}</p>
@@ -248,7 +245,26 @@ export function OverviewLoadUsageSection() {
             />
           )}
         </Surface>
+      </div>
+    </section>
+  );
+}
 
+/** Usage estimate and cost projection (unknown pricing stays explicit). */
+export function UsageEstimateSection() {
+  const i18n = useDesktopI18nResource();
+  const { t } = useTranslation();
+  const usageEstimate = useUsageEstimate();
+
+  const inputTokensLabel = t('runtimeConfig.overview.inputTokens', { defaultValue: 'Input Tokens' });
+  const outputTokensLabel = t('runtimeConfig.overview.outputTokens', { defaultValue: 'Output Tokens' });
+
+  return (
+    <section>
+      <SectionTitle>
+        {t('runtimeConfig.overview.usageEstimate', { defaultValue: 'Usage Estimate' })}
+      </SectionTitle>
+      <div className="mt-2">
         <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'flex flex-col p-4')}>
           <div className="mb-3">
             <p className={cn('text-sm font-semibold', TOKEN_TEXT_PRIMARY)}>{t('runtimeConfig.overview.usageEstimate', { defaultValue: 'Usage Estimate' })}</p>
@@ -295,7 +311,7 @@ export function OverviewLoadUsageSection() {
               displayValue={usageEstimate.pricingLoading ? '...' : formatCost(usageEstimate.totalEstimatedCost, usageEstimate.costCurrency)}
               emphasize
               className="col-span-2"
-              title={usageEstimate.totalEstimatedCost === null ? t('runtimeConfig.overview.costTooltipUnknown', { defaultValue: 'Some models have unknown pricing' }) : ''}
+              title={usageEstimate.totalEstimatedCost === null || usageEstimate.hasUnpricedUsage ? t('runtimeConfig.overview.costTooltipUnknown', { defaultValue: 'Some models have unknown pricing' }) : ''}
             />
           </div>
           {usageEstimate.error ? (
