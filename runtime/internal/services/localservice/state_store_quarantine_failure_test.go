@@ -165,7 +165,7 @@ func TestLoadoutStoreQuarantineFailurePreservesOriginal(t *testing.T) {
 		writeStoreAndBlockQuarantineForTest(t, path, payload)
 		store := &diskLoadoutStore{path: path}
 
-		loadouts, selections, err := store.Load()
+		loadouts, selections, selectionRevisions, err := store.Load()
 		if err != nil {
 			t.Fatalf("load record-isolated Loadout store: %v", err)
 		}
@@ -178,13 +178,13 @@ func TestLoadoutStoreQuarantineFailurePreservesOriginal(t *testing.T) {
 			t.Fatalf("retained Loadout records = %d, want 1", len(store.retainedRecords))
 		}
 		retained := append([]byte(nil), store.retainedRecords[0].Payload...)
-		if err := store.Save(loadouts, selections); err != nil {
+		if err := store.Save(loadouts, selections, selectionRevisions); err != nil {
 			t.Fatalf("persist healthy Loadout mutation: %v", err)
 		}
 		assertStoreContainsRecordForTest(t, path, retained, true)
 
 		unblockQuarantineForTest(t, path)
-		loadouts, selections, err = store.Load()
+		loadouts, selections, _, err = store.Load()
 		if err != nil || len(loadouts) != 0 || len(selections) != 0 || len(store.retainedRecords) != 0 {
 			t.Fatalf("recovered Loadout isolation = loadouts:%d selections:%d retained:%d err:%v", len(loadouts), len(selections), len(store.retainedRecords), err)
 		}
@@ -197,7 +197,7 @@ func TestLoadoutStoreQuarantineFailurePreservesOriginal(t *testing.T) {
 		writeStoreAndBlockQuarantineForTest(t, path, payload)
 		store := &diskLoadoutStore{path: path}
 
-		_, _, err := store.Load()
+		_, _, _, err := store.Load()
 		if err == nil {
 			t.Fatal("document quarantine failure did not fail closed")
 		}

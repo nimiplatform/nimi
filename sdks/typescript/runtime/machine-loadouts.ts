@@ -69,6 +69,7 @@ export interface NimiMachineLoadout {
   readonly provenance: Readonly<JsonObject>;
   readonly createdAt: string;
   readonly updatedAt: string;
+  readonly revision: string;
 }
 
 export interface NimiLoadoutSelection {
@@ -80,6 +81,7 @@ export interface NimiLoadoutSelection {
 export interface NimiMachineLoadouts {
   readonly loadouts: readonly NimiMachineLoadout[];
   readonly selections: readonly NimiLoadoutSelection[];
+  readonly selectionRevisions: Readonly<Record<string, string>>;
 }
 
 export interface NimiLoadoutRecipe {
@@ -114,6 +116,7 @@ export interface NimiPrepareLoadoutInput {
   readonly modelAxes?: readonly { readonly slotId: string; readonly modelAssetId?: string; readonly expectedContentId?: string }[];
   readonly displayName: string;
   readonly provenance?: Readonly<JsonObject>;
+  readonly expectedLoadoutRevision?: string;
 }
 
 export interface NimiPreparedLoadout {
@@ -126,6 +129,21 @@ export interface NimiPreparedLoadout {
     readonly changesFutureLocalExecution: boolean;
     readonly confirmationRequired: boolean;
   };
+}
+
+export interface NimiSelectLoadoutConditions {
+  readonly expectedSelectionRevision?: string;
+  readonly expectedCandidateRevision?: string;
+  // Assert that the capability has never been selected or cleared. Mutually
+  // exclusive with expectedSelectionRevision.
+  readonly expectNoPriorSelection?: boolean;
+}
+
+export interface NimiSelectLoadoutResult {
+  readonly selection: NimiLoadoutSelection | null;
+  readonly applied: boolean;
+  readonly reasonCode: string;
+  readonly selectionRevision: string;
 }
 
 export type NimiMachineLoadoutRpcClient = Pick<RuntimeTypedClient,
@@ -146,7 +164,7 @@ export interface NimiMachineLoadoutClient {
   prepare(input: NimiPrepareLoadoutInput, options?: RuntimeTypedCallOptions): Promise<NimiPreparedLoadout>;
   commit(prepareId: string, confirmedMachineImpact?: boolean, options?: RuntimeTypedCallOptions): Promise<NimiMachineLoadout>;
   update(input: NimiPrepareLoadoutInput, confirmedMachineImpact?: boolean, options?: RuntimeTypedCallOptions): Promise<NimiMachineLoadout>;
-  select(capabilityContract: string, loadoutId: string | null, confirmedMachineImpact: boolean, options?: RuntimeTypedCallOptions): Promise<NimiLoadoutSelection | null>;
+  select(capabilityContract: string, loadoutId: string | null, confirmedMachineImpact: boolean, conditions?: NimiSelectLoadoutConditions, options?: RuntimeTypedCallOptions): Promise<NimiSelectLoadoutResult>;
   delete(loadoutId: string, confirmedMachineImpact: boolean, options?: RuntimeTypedCallOptions): Promise<void>;
 }
 
@@ -173,6 +191,7 @@ export function createNimiMachineLoadoutClient(input: {
       return Object.freeze({
         loadouts: Object.freeze(response.aggregate.loadouts.map(projectLoadout)),
         selections: Object.freeze(response.aggregate.selections.map(projectSelection)),
+        selectionRevisions: Object.freeze({ ...response.aggregate.selectionRevisions }),
       });
     },
     async getLoadout(loadoutId, options) {
@@ -207,13 +226,21 @@ export function createNimiMachineLoadoutClient(input: {
       if (!response.loadout) throw responseError('UpdateLoadout returned no Loadout');
       return projectLoadout(response.loadout);
     },
-    async select(capabilityContract, loadoutId, confirmedMachineImpact, options) {
+    async select(capabilityContract, loadoutId, confirmedMachineImpact, conditions, options) {
       const response = await runtime.selectLoadout({
         capabilityContract: required(capabilityContract, 'capabilityContract'),
         loadoutId: loadoutId === null ? '' : required(loadoutId, 'loadoutId'),
         confirmedMachineImpact,
+        expectedSelectionRevision: text(conditions?.expectedSelectionRevision),
+        expectedCandidateRevision: text(conditions?.expectedCandidateRevision),
+        expectNoPriorSelection: conditions?.expectNoPriorSelection === true,
       }, write('select', options));
-      return response.selection ? projectSelection(response.selection) : null;
+      return Object.freeze({
+        selection: response.selection ? projectSelection(response.selection) : null,
+        applied: Boolean(response.applied),
+        reasonCode: RuntimeGeneratedReasonCode[response.reasonCode] || 'REASON_CODE_UNSPECIFIED',
+        selectionRevision: text(response.selectionRevision),
+      });
     },
     async delete(loadoutId, confirmedMachineImpact, options) {
       await runtime.deleteLoadout({ loadoutId: required(loadoutId, 'loadoutId'), confirmedMachineImpact }, write('delete', options));
@@ -236,6 +263,7 @@ function prepareRequest(value: NimiPrepareLoadoutInput) {
     })),
     displayName: required(value.displayName, 'displayName'),
     provenance: value.provenance ? toNimiRuntimeProtoStruct(value.provenance) : undefined,
+    expectedLoadoutRevision: text(value.expectedLoadoutRevision),
   };
 }
 
@@ -263,6 +291,7 @@ function projectLoadout(value: Loadout): NimiMachineLoadout {
     provenance: Object.freeze(fromNimiRuntimeProtoStruct(value.provenance) as JsonObject),
     createdAt: requiredResponse(value.createdAt, 'created_at'),
     updatedAt: requiredResponse(value.updatedAt, 'updated_at'),
+    revision: text(value.revision),
   });
 }
 

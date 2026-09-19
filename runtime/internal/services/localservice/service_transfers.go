@@ -179,6 +179,7 @@ func cloneLocalTransferSummary(summary *runtimev1.LocalTransferSessionSummary) *
 		Retryable:        summary.GetRetryable(),
 		CreatedAt:        summary.GetCreatedAt(),
 		UpdatedAt:        summary.GetUpdatedAt(),
+		PlanId:           strings.TrimSpace(summary.GetPlanId()),
 	}
 }
 
@@ -204,6 +205,7 @@ func localTransferEventFromSummary(summary *runtimev1.LocalTransferSessionSummar
 		Success:          success,
 		CreatedAt:        summary.GetCreatedAt(),
 		UpdatedAt:        summary.GetUpdatedAt(),
+		PlanId:           strings.TrimSpace(summary.GetPlanId()),
 	}
 }
 
@@ -238,6 +240,7 @@ func (s *Service) createLocalTransfer(
 		Retryable:        input.Retryable,
 		CreatedAt:        now,
 		UpdatedAt:        now,
+		PlanId:           strings.TrimSpace(input.PlanID),
 	}
 
 	s.mu.Lock()
@@ -273,6 +276,7 @@ type localTransferMutation struct {
 	Message          string
 	ReasonCode       string
 	Retryable        bool
+	PlanID           string
 }
 
 func (s *Service) mutateLocalTransfer(sessionID string, persist bool, mutate func(summary *runtimev1.LocalTransferSessionSummary)) (*runtimev1.LocalTransferSessionSummary, error) {
@@ -444,6 +448,7 @@ func (s *Service) publishTransferEventLocked(event *runtimev1.LocalTransferProgr
 			Retryable:        event.GetRetryable(),
 			CreatedAt:        event.GetCreatedAt(),
 			UpdatedAt:        event.GetUpdatedAt(),
+			PlanId:           event.GetPlanId(),
 		})
 		select {
 		case ch <- clone:
@@ -656,7 +661,7 @@ func (s *Service) startRestoredManagedModelDownload(
 
 	go func() {
 		defer s.transferWorkerWG.Done()
-		_, runErr := s.installManagedDownloadedModelWithTransfer(parent, plan.spec, sessionID)
+		_, _, runErr := s.installManagedDownloadedModelWithTransfer(parent, plan.spec, sessionID)
 		if runErr != nil {
 			s.logger.Debug("restored managed model transfer ended with error",
 				"install_session_id", sessionID,

@@ -74,6 +74,7 @@ function toGeneratedNimiRuntimeLocalEnvironmentPlanResolution(
   return {
     capabilityContract: requireLocalText(input.capabilityContract, 'Runtime local environment capability contract is required', 'provide_local_environment_capability_contract'),
     runtimeDataRoot: normalizeText(input.runtimeDataRoot),
+    candidateLoadoutId: normalizeText(input.candidateLoadoutId),
   };
 }
 
@@ -278,12 +279,15 @@ export function createNimiRuntimeLocalEnvironmentClient(
       const response = await resolveLocal().installModelFromPlan({
         planId: requireLocalText(planId, 'Runtime local install plan id is required', 'provide_install_plan_id'),
       }, callOptions(writeOptions));
-      return projectRequiredLocal(
-        response.modelAsset,
-        projectNimiRuntimeModelAssetRecord,
-        'Runtime local install response is missing ModelAsset',
-        'check_runtime_local_install_response',
-      );
+      return {
+        modelAsset: projectRequiredLocal(
+          response.modelAsset,
+          projectNimiRuntimeModelAssetRecord,
+          'Runtime local install response is missing ModelAsset',
+          'check_runtime_local_install_response',
+        ),
+        installSessionId: normalizeText(response.installSessionId),
+      };
     },
     async listTransfers() {
       const response = await resolveLocal().listLocalTransfers({}, defaultCallOptions);

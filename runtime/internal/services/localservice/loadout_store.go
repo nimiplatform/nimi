@@ -23,8 +23,8 @@ const (
 )
 
 type loadoutStore interface {
-	Load() ([]*runtimev1.Loadout, []*runtimev1.LoadoutSelection, error)
-	Save([]*runtimev1.Loadout, []*runtimev1.LoadoutSelection) error
+	Load() ([]*runtimev1.Loadout, []*runtimev1.LoadoutSelection, map[string]string, error)
+	Save([]*runtimev1.Loadout, []*runtimev1.LoadoutSelection, map[string]string) error
 }
 
 // @nimi-authority: rule.nimi.runtime.local-compute.r096
@@ -36,11 +36,12 @@ type diskLoadoutStore struct {
 }
 
 type loadoutStoreSnapshot struct {
-	SchemaVersion   int               `json:"schemaVersion"`
-	SavedAt         string            `json:"savedAt"`
-	Loadouts        []json.RawMessage `json:"loadouts"`
-	Selections      []json.RawMessage `json:"selections"`
-	retainedRecords []quarantinedStateRecord
+	SchemaVersion      int               `json:"schemaVersion"`
+	SavedAt            string            `json:"savedAt"`
+	Loadouts           []json.RawMessage `json:"loadouts"`
+	Selections         []json.RawMessage `json:"selections"`
+	SelectionRevisions map[string]string `json:"selectionRevisions,omitempty"`
+	retainedRecords    []quarantinedStateRecord
 }
 
 func newDiskLoadoutStore(localStatePath string) loadoutStore {
@@ -51,18 +52,18 @@ func newDiskLoadoutStore(localStatePath string) loadoutStore {
 	return &diskLoadoutStore{path: path}
 }
 
-func (store *diskLoadoutStore) Load() ([]*runtimev1.Loadout, []*runtimev1.LoadoutSelection, error) {
+func (store *diskLoadoutStore) Load() ([]*runtimev1.Loadout, []*runtimev1.LoadoutSelection, map[string]string, error) {
 	if store == nil || strings.TrimSpace(store.path) == "" {
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	}
 	store.diagnostics = nil
 	store.retainedRecords = nil
 	payload, err := os.ReadFile(store.path)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return nil, nil, nil
+			return nil, nil, nil, nil
 		}
-		return nil, nil, fmt.Errorf("read Loadout store: %w", err)
+		return nil, nil, nil, fmt.Errorf("read Loadout store: %w", err)
 	}
 	var snapshot loadoutStoreSnapshot
 	documentErr := error(nil)
@@ -85,10 +86,11 @@ func (store *diskLoadoutStore) Load() ([]*runtimev1.Loadout, []*runtimev1.Loadou
 			QuarantinePath: quarantinePath, RecordIndex: -1,
 		})
 		if quarantineErr != nil {
-			return nil, nil, fmt.Errorf("isolate %s document after %v: %w", loadoutStoreFileName, documentErr, quarantineErr)
+			return nil, nil, nil, fmt.Errorf("isolate %s document after %v: %w", loadoutStoreFileName, documentErr, quarantineErr)
 		}
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	}
+	selectionRevisions := sanitizeLoadoutSelectionRevisions(snapshot.SelectionRevisions)
 
 	loadouts := make([]*runtimev1.Loadout, 0, len(snapshot.Loadouts))
 	loadoutsByID := make(map[string]*runtimev1.Loadout, len(snapshot.Loadouts))
@@ -167,7 +169,7 @@ func (store *diskLoadoutStore) Load() ([]*runtimev1.Loadout, []*runtimev1.Loadou
 		if quarantineErr != nil {
 			store.retainedRecords = cloneQuarantinedStateRecords(quarantined)
 		} else {
-			if err := store.Save(loadouts, selections); err != nil {
+			if err := store.Save(loadouts, selections, selectionRevisions); err != nil {
 				store.diagnostics = append(store.diagnostics, stateIsolationDiagnostic{
 					Store: loadoutStoreFileName, Level: stateIsolationLevelRecord,
 					ReasonCode:     loadoutRecordQuarantinedReason,
@@ -177,7 +179,7 @@ func (store *diskLoadoutStore) Load() ([]*runtimev1.Loadout, []*runtimev1.Loadou
 			}
 		}
 	}
-	return loadouts, selections, nil
+	return loadouts, selections, selectionRevisions, nil
 }
 
 func (store *diskLoadoutStore) TakeIsolationDiagnostics() []stateIsolationDiagnostic {
@@ -189,7 +191,7 @@ func (store *diskLoadoutStore) TakeIsolationDiagnostics() []stateIsolationDiagno
 	return diagnostics
 }
 
-func (store *diskLoadoutStore) Save(loadouts []*runtimev1.Loadout, selections []*runtimev1.LoadoutSelection) error {
+func (store *diskLoadoutStore) Save(loadouts []*runtimev1.Loadout, selections []*runtimev1.LoadoutSelection, selectionRevisions map[string]string) error {
 	if store == nil || strings.TrimSpace(store.path) == "" {
 		return nil
 	}
@@ -200,11 +202,12 @@ func (store *diskLoadoutStore) Save(loadouts []*runtimev1.Loadout, selections []
 		return orderedSelections[i].GetCapabilityContract() < orderedSelections[j].GetCapabilityContract()
 	})
 	snapshot := loadoutStoreSnapshot{
-		SchemaVersion:   loadoutStoreSchemaVersion,
-		SavedAt:         time.Now().UTC().Format(time.RFC3339Nano),
-		Loadouts:        make([]json.RawMessage, 0, len(orderedLoadouts)),
-		Selections:      make([]json.RawMessage, 0, len(orderedSelections)),
-		retainedRecords: cloneQuarantinedStateRecords(store.retainedRecords),
+		SchemaVersion:      loadoutStoreSchemaVersion,
+		SavedAt:            time.Now().UTC().Format(time.RFC3339Nano),
+		Loadouts:           make([]json.RawMessage, 0, len(orderedLoadouts)),
+		Selections:         make([]json.RawMessage, 0, len(orderedSelections)),
+		SelectionRevisions: sanitizeLoadoutSelectionRevisions(selectionRevisions),
+		retainedRecords:    cloneQuarantinedStateRecords(store.retainedRecords),
 	}
 	for _, loadout := range orderedLoadouts {
 		canonicalizeLoadout(loadout)
@@ -243,6 +246,25 @@ func (store *diskLoadoutStore) Save(loadouts []*runtimev1.Loadout, selections []
 		return fmt.Errorf("persist Loadout store: %w", err)
 	}
 	return nil
+}
+
+func sanitizeLoadoutSelectionRevisions(input map[string]string) map[string]string {
+	if len(input) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(input))
+	for capability, revision := range input {
+		capability = strings.TrimSpace(capability)
+		revision = strings.TrimSpace(revision)
+		if capability == "" || revision == "" {
+			continue
+		}
+		out[capability] = revision
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }
 
 func cloneLoadout(input *runtimev1.Loadout) *runtimev1.Loadout {

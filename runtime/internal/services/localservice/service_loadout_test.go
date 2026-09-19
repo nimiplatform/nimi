@@ -223,7 +223,7 @@ func TestStoredLoadoutSurvivesCatalogRecipeRevisionUpgradeAndRemovalWithoutExecu
 	// recipe revision is immutable input; the current catalog must not rewrite it.
 	svc.mu.Lock()
 	svc.loadouts[committed.GetLoadoutId()].RecipeRevision = "previous-revision"
-	persistErr := svc.loadoutStore.Save(svc.loadoutRowsLocked(), svc.loadoutSelectionRowsLocked())
+	persistErr := svc.loadoutStore.Save(svc.loadoutRowsLocked(), svc.loadoutSelectionRowsLocked(), svc.loadoutSelectionRevisions)
 	svc.mu.Unlock()
 	if persistErr != nil {
 		t.Fatalf("persist previous-revision Loadout: %v", persistErr)
@@ -1664,10 +1664,10 @@ func TestProjectRecipeUsesDriverFeatureDeclarationAndRejectsCatalogDrift(t *test
 
 type failingLoadoutStore struct{ err error }
 
-func (store failingLoadoutStore) Load() ([]*runtimev1.Loadout, []*runtimev1.LoadoutSelection, error) {
-	return nil, nil, store.err
+func (store failingLoadoutStore) Load() ([]*runtimev1.Loadout, []*runtimev1.LoadoutSelection, map[string]string, error) {
+	return nil, nil, nil, store.err
 }
-func (store failingLoadoutStore) Save([]*runtimev1.Loadout, []*runtimev1.LoadoutSelection) error {
+func (store failingLoadoutStore) Save([]*runtimev1.Loadout, []*runtimev1.LoadoutSelection, map[string]string) error {
 	return store.err
 }
 

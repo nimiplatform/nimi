@@ -38,10 +38,12 @@ const (
 )
 
 type localEnvironmentPlanRequest struct {
-	PackID          string
-	ConsumerScope   string
-	HostProfile     *runtimev1.LocalDeviceProfile
-	RuntimeDataRoot string
+	PackID             string
+	ConsumerScope      string
+	HostProfile        *runtimev1.LocalDeviceProfile
+	RuntimeDataRoot    string
+	CandidateLoadoutID string
+	CandidateRevision  string
 }
 
 type localEnvironmentPlan struct {
@@ -62,6 +64,8 @@ type localEnvironmentPlan struct {
 	StorageCategories          []string
 	SourceOwners               []string
 	NoSystemMutation           bool
+	CandidateLoadoutID         string
+	CandidateRevision          string
 }
 
 type localEnvironmentPlanDependency struct {
@@ -232,13 +236,20 @@ func (s *Service) resolveLocalEnvironmentPlan(req localEnvironmentPlanRequest) l
 		StorageCategories:          storageCategories,
 		SourceOwners:               sourceOwners,
 		NoSystemMutation:           true,
+		CandidateLoadoutID:         strings.TrimSpace(req.CandidateLoadoutID),
+		CandidateRevision:          strings.TrimSpace(req.CandidateRevision),
 	}
 	plan.PlanID = localEnvironmentPlanIdentity(plan)
 	return plan
 }
 
+// localEnvironmentPlanIdentity binds the plan to the candidate execution
+// identity when one was resolved, so a material candidate change (a committed
+// candidate revision rotation) invalidates the plan and forces recomputation.
+// Selection state is never an input, so selecting or clearing a Loadout does
+// not disturb a candidate plan.
 func localEnvironmentPlanIdentity(plan localEnvironmentPlan) string {
-	parts := make([]string, 0, 16+len(plan.Dependencies)*6)
+	parts := make([]string, 0, 18+len(plan.Dependencies)*6)
 	appendPart := func(value string) {
 		parts = append(parts, strconv.Itoa(len(value))+":"+value)
 	}
@@ -249,6 +260,8 @@ func localEnvironmentPlanIdentity(plan localEnvironmentPlan) string {
 		plan.RuntimeDataRoot,
 		plan.ConsumerScope,
 		plan.CloudOnlyImpact,
+		plan.CandidateLoadoutID,
+		plan.CandidateRevision,
 	} {
 		appendPart(strings.TrimSpace(value))
 	}

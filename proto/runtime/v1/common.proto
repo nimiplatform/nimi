@@ -449,6 +449,11 @@ enum ReasonCode {
   APP_PACKAGE_UPDATE_UNAVAILABLE = 737;
   APP_PACKAGE_INFO_UNAVAILABLE = 746;
 
+  // A caller-held expected candidate or selection revision no longer matched
+  // at the mutation boundary. The response carries the unchanged current
+  // state; no write was applied.
+  AI_LOADOUT_CONDITION_CONFLICT = 747;
+
   AI_FACE_REFERENCE_MISSING = 738;
   AI_FACE_REFERENCE_AMBIGUOUS = 739;
   AI_FACE_TARGET_MISSING = 740;

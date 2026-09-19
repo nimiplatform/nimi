@@ -2872,6 +2872,8 @@ pub enum ReasonCode {
     APPPACKAGEUPDATEUNAVAILABLE,
     #[serde(rename = "APP_PACKAGE_INFO_UNAVAILABLE")]
     APPPACKAGEINFOUNAVAILABLE,
+    #[serde(rename = "AI_LOADOUT_CONDITION_CONFLICT")]
+    AILOADOUTCONDITIONCONFLICT,
     #[serde(rename = "AI_FACE_REFERENCE_MISSING")]
     AIFACEREFERENCEMISSING,
     #[serde(rename = "AI_FACE_REFERENCE_AMBIGUOUS")]
@@ -3451,6 +3453,8 @@ impl ReasonCode {
             "APPPACKAGEUPDATEUNAVAILABLE" => Some(Self::APPPACKAGEUPDATEUNAVAILABLE),
             "APP_PACKAGE_INFO_UNAVAILABLE" => Some(Self::APPPACKAGEINFOUNAVAILABLE),
             "APPPACKAGEINFOUNAVAILABLE" => Some(Self::APPPACKAGEINFOUNAVAILABLE),
+            "AI_LOADOUT_CONDITION_CONFLICT" => Some(Self::AILOADOUTCONDITIONCONFLICT),
+            "AILOADOUTCONDITIONCONFLICT" => Some(Self::AILOADOUTCONDITIONCONFLICT),
             "AI_FACE_REFERENCE_MISSING" => Some(Self::AIFACEREFERENCEMISSING),
             "AIFACEREFERENCEMISSING" => Some(Self::AIFACEREFERENCEMISSING),
             "AI_FACE_REFERENCE_AMBIGUOUS" => Some(Self::AIFACEREFERENCEAMBIGUOUS),
@@ -7709,6 +7713,7 @@ pub struct InstallModelFromPlanRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct InstallModelFromPlanResponse {
     pub model_asset: Option<Box<ModelAssetRecord>>,
+    pub install_session_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -8501,6 +8506,7 @@ pub struct Loadout {
     pub implementation_supported_features: Vec<String>,
     pub configured_features: Vec<String>,
     pub text_behaviors: Vec<Box<TextBehaviorCapabilityProjection>>,
+    pub revision: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -9522,6 +9528,8 @@ pub struct LocalEnvironmentPlan {
     pub storage_categories: Vec<String>,
     pub source_owners: Vec<String>,
     pub no_system_mutation: Option<bool>,
+    pub candidate_loadout_id: Option<String>,
+    pub candidate_revision: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -9706,6 +9714,8 @@ pub struct LocalTransferProgressEvent {
     pub created_at: Option<String>,
     #[serde(rename = "updated_at", skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<String>,
+    #[serde(rename = "plan_id", skip_serializing_if = "Option::is_none")]
+    pub plan_id: Option<String>,
 }
 
 impl LocalTransferProgressEvent {
@@ -9804,6 +9814,11 @@ impl LocalTransferProgressEvent {
             Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("updated_at"))?),
             None => None,
         };
+        out.plan_id = match object.get("plan_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("plan_id"))?),
+            None => None,
+        };
         Ok(out)
     }
 }
@@ -9824,6 +9839,7 @@ pub struct LocalTransferSessionSummary {
     pub retryable: Option<bool>,
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
+    pub plan_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -9968,6 +9984,7 @@ impl LogoutResponse {
 pub struct MachineLoadouts {
     pub loadouts: Vec<Box<Loadout>>,
     pub selections: Vec<Box<LoadoutSelection>>,
+    pub selection_revisions: BTreeMap<String, String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10556,6 +10573,7 @@ pub struct PrepareLoadoutRequest {
     pub model_axes: Vec<Box<LoadoutModelAxisInput>>,
     pub display_name: Option<String>,
     pub provenance: Option<BTreeMap<String, String>>,
+    pub expected_loadout_revision: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -11528,6 +11546,7 @@ pub struct ResolveLocalEnvironmentPlanRequest {
     pub capability_contract: Option<String>,
     pub host_profile: Option<Box<LocalDeviceProfile>>,
     pub runtime_data_root: Option<String>,
+    pub candidate_loadout_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -11951,11 +11970,17 @@ pub struct SelectLoadoutRequest {
     pub capability_contract: Option<String>,
     pub loadout_id: Option<String>,
     pub confirmed_machine_impact: Option<bool>,
+    pub expected_selection_revision: Option<String>,
+    pub expected_candidate_revision: Option<String>,
+    pub expect_no_prior_selection: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct SelectLoadoutResponse {
     pub selection: Option<Box<LoadoutSelection>>,
+    pub applied: Option<bool>,
+    pub reason_code: Option<ReasonCode>,
+    pub selection_revision: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
@@ -12903,6 +12928,7 @@ pub struct UpdateLoadoutRequest {
     pub display_name: Option<String>,
     pub provenance: Option<BTreeMap<String, String>>,
     pub confirmed_machine_impact: Option<bool>,
+    pub expected_loadout_revision: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

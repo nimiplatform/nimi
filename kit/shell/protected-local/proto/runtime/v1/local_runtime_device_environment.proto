@@ -89,6 +89,12 @@ message LocalEnvironmentPlan {
   repeated string storage_categories = 15;
   repeated string source_owners = 16;
   bool no_system_mutation = 17;
+  // The exact saved candidate this plan targets when resolved through
+  // ResolveLocalEnvironmentPlanRequest.candidate_loadout_id, together with
+  // the candidate revision observed at resolution. Empty for a plan resolved
+  // from the current machine selection.
+  string candidate_loadout_id = 18;
+  string candidate_revision = 19;
 }
 
 message LocalEnvironmentSelectedSourceRecord {

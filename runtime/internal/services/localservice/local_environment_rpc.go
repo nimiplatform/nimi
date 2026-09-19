@@ -20,31 +20,53 @@ func (s *Service) ResolveLocalEnvironmentPlan(_ context.Context, req *runtimev1.
 	}, nil
 }
 
+// @nimi-authority: rule.nimi.runtime.local-compute.r118
 func (s *Service) resolveLocalEnvironmentPlanResolution(req *runtimev1.ResolveLocalEnvironmentPlanRequest) (localEnvironmentPlan, error) {
 	runtimeDataRoot, err := s.requireCanonicalLocalEnvironmentDataRoot(req.GetRuntimeDataRoot())
 	if err != nil {
 		return localEnvironmentPlan{}, err
 	}
 	capabilityContract := strings.TrimSpace(req.GetCapabilityContract())
-	if capabilityContract == "" {
-		return localEnvironmentPlan{}, loadoutError(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_SELECTION_INVALID, "local environment capability contract is required", nil)
-	}
+	candidateLoadoutID := strings.TrimSpace(req.GetCandidateLoadoutId())
 
-	s.mu.RLock()
-	selection := cloneLoadoutSelection(s.loadoutSelections[capabilityContract])
 	var loadout *runtimev1.Loadout
-	if selection != nil {
-		loadout = cloneLoadout(s.loadouts[selection.GetLoadoutId()])
-	}
-	s.mu.RUnlock()
-	if selection == nil {
-		return localEnvironmentPlan{}, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND, "no Loadout is selected for the local environment capability", map[string]string{"capability_contract": capabilityContract})
-	}
-	if loadout == nil {
-		return localEnvironmentPlan{}, loadoutError(codes.NotFound, runtimev1.ReasonCode_AI_LOADOUT_NOT_FOUND, "selected Loadout was not found", map[string]string{"loadout_id": selection.GetLoadoutId()})
-	}
-	if loadout.GetCapabilityContract() != capabilityContract {
-		return localEnvironmentPlan{}, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH, "selected Loadout capability is mismatched", map[string]string{"loadout_id": loadout.GetLoadoutId()})
+	candidateRevision := ""
+	if candidateLoadoutID != "" {
+		// A saved candidate Loadout is planned by exact reference: it is never
+		// required to be selected, machine selection is never mutated, and legal
+		// unresolved model slots stay unresolved because every environment
+		// dependency derives from the committed Driver dialect, recipe, options,
+		// and custody rather than from validation_state.
+		s.mu.RLock()
+		loadout = cloneLoadout(s.loadouts[candidateLoadoutID])
+		s.mu.RUnlock()
+		if loadout == nil {
+			return localEnvironmentPlan{}, loadoutError(codes.NotFound, runtimev1.ReasonCode_AI_LOADOUT_NOT_FOUND, "candidate Loadout was not found", map[string]string{"loadout_id": candidateLoadoutID})
+		}
+		if capabilityContract != "" && loadout.GetCapabilityContract() != capabilityContract {
+			return localEnvironmentPlan{}, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH, "candidate Loadout capability is mismatched", map[string]string{"loadout_id": loadout.GetLoadoutId()})
+		}
+		capabilityContract = loadout.GetCapabilityContract()
+		candidateRevision = loadout.GetRevision()
+	} else {
+		if capabilityContract == "" {
+			return localEnvironmentPlan{}, loadoutError(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_SELECTION_INVALID, "local environment capability contract is required", nil)
+		}
+		s.mu.RLock()
+		selection := cloneLoadoutSelection(s.loadoutSelections[capabilityContract])
+		if selection != nil {
+			loadout = cloneLoadout(s.loadouts[selection.GetLoadoutId()])
+		}
+		s.mu.RUnlock()
+		if selection == nil {
+			return localEnvironmentPlan{}, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND, "no Loadout is selected for the local environment capability", map[string]string{"capability_contract": capabilityContract})
+		}
+		if loadout == nil {
+			return localEnvironmentPlan{}, loadoutError(codes.NotFound, runtimev1.ReasonCode_AI_LOADOUT_NOT_FOUND, "selected Loadout was not found", map[string]string{"loadout_id": selection.GetLoadoutId()})
+		}
+		if loadout.GetCapabilityContract() != capabilityContract {
+			return localEnvironmentPlan{}, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH, "selected Loadout capability is mismatched", map[string]string{"loadout_id": loadout.GetLoadoutId()})
+		}
 	}
 	driver, _, err := s.projectStoredLoadout(loadout)
 	if err != nil {
@@ -55,17 +77,19 @@ func (s *Service) resolveLocalEnvironmentPlanResolution(req *runtimev1.ResolveLo
 	packID, consumerScope, ok := localEnvironmentTargetForDriver(driver, localEnvironmentHostProfileFromDeviceProfile(hostProfile))
 	if !ok {
 		identity := capabilitydriver.IdentityFromProto(loadout.GetImplementation())
-		return localEnvironmentPlan{}, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOADOUT_DRIVER_UNAVAILABLE, "selected Loadout Driver has no local environment contract", map[string]string{
+		return localEnvironmentPlan{}, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOADOUT_DRIVER_UNAVAILABLE, "Loadout Driver has no local environment contract", map[string]string{
 			"capability_contract": capabilityContract,
 			"driver_id":           identity.DriverID,
 			"driver_dialect":      identity.DriverDialect,
 		})
 	}
 	return s.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
-		PackID:          packID,
-		ConsumerScope:   consumerScope,
-		HostProfile:     hostProfile,
-		RuntimeDataRoot: runtimeDataRoot,
+		PackID:             packID,
+		ConsumerScope:      consumerScope,
+		HostProfile:        hostProfile,
+		RuntimeDataRoot:    runtimeDataRoot,
+		CandidateLoadoutID: candidateLoadoutID,
+		CandidateRevision:  candidateRevision,
 	}), nil
 }
 
@@ -168,6 +192,8 @@ func localEnvironmentPlanToProto(plan localEnvironmentPlan) *runtimev1.LocalEnvi
 		StorageCategories:          append([]string(nil), plan.StorageCategories...),
 		SourceOwners:               append([]string(nil), plan.SourceOwners...),
 		NoSystemMutation:           plan.NoSystemMutation,
+		CandidateLoadoutId:         plan.CandidateLoadoutID,
+		CandidateRevision:          plan.CandidateRevision,
 	}
 	for _, dep := range plan.Dependencies {
 		out.Dependencies = append(out.Dependencies, localEnvironmentPlanDependencyToProto(dep))

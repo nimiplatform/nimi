@@ -376,6 +376,13 @@ export interface InstallModelFromPlanResponse {
      * @generated from protobuf field: nimi.runtime.v1.ModelAssetRecord model_asset = 2
      */
     modelAsset?: ModelAssetRecord;
+    /**
+     * The transfer session that carried this install, so the caller can
+     * correlate progress and recovery without guessing from model names.
+     *
+     * @generated from protobuf field: string install_session_id = 3
+     */
+    installSessionId: string;
 }
 // === Transfers ===
 
@@ -439,6 +446,15 @@ export interface LocalTransferSessionSummary {
      * @generated from protobuf field: string updated_at = 17
      */
     updatedAt: string;
+    /**
+     * The install plan this transfer carries when it originated from
+     * InstallModelFromPlan; empty for imports. Lets a caller that lost the
+     * unary response or restarted find its exact in-flight or completed
+     * acquisition without name or inventory-order guessing.
+     *
+     * @generated from protobuf field: string plan_id = 18
+     */
+    planId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalTransferProgressEvent
@@ -508,6 +524,13 @@ export interface LocalTransferProgressEvent {
      * @generated from protobuf field: string updated_at = 19
      */
     updatedAt: string;
+    /**
+     * The install plan this transfer carries when it originated from
+     * InstallModelFromPlan; empty for imports.
+     *
+     * @generated from protobuf field: string plan_id = 20
+     */
+    planId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListLocalTransfersRequest
@@ -600,6 +623,17 @@ export interface ResolveLocalEnvironmentPlanRequest {
      * @generated from protobuf field: string runtime_data_root = 4
      */
     runtimeDataRoot: string;
+    /**
+     * Optional exact saved candidate Loadout. When set, Runtime resolves the
+     * non-model dependencies for that candidate's committed Driver dialect,
+     * recipe, and options without requiring or mutating machine selection; the
+     * candidate may carry legal unresolved model slots. The candidate's
+     * execution-relevant identity and revision bind the resulting plan, so a
+     * material candidate change invalidates it.
+     *
+     * @generated from protobuf field: string candidate_loadout_id = 10
+     */
+    candidateLoadoutId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ResolveLocalEnvironmentPlanResponse
@@ -2274,11 +2308,13 @@ export const InstallModelFromPlanRequest = new InstallModelFromPlanRequest$Type(
 class InstallModelFromPlanResponse$Type extends MessageType<InstallModelFromPlanResponse> {
     constructor() {
         super("nimi.runtime.v1.InstallModelFromPlanResponse", [
-            { no: 2, name: "model_asset", kind: "message", T: () => ModelAssetRecord }
+            { no: 2, name: "model_asset", kind: "message", T: () => ModelAssetRecord },
+            { no: 3, name: "install_session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<InstallModelFromPlanResponse>): InstallModelFromPlanResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
+        message.installSessionId = "";
         if (value !== undefined)
             reflectionMergePartial<InstallModelFromPlanResponse>(this, message, value);
         return message;
@@ -2290,6 +2326,9 @@ class InstallModelFromPlanResponse$Type extends MessageType<InstallModelFromPlan
             switch (fieldNo) {
                 case /* nimi.runtime.v1.ModelAssetRecord model_asset */ 2:
                     message.modelAsset = ModelAssetRecord.internalBinaryRead(reader, reader.uint32(), options, message.modelAsset);
+                    break;
+                case /* string install_session_id */ 3:
+                    message.installSessionId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2306,6 +2345,9 @@ class InstallModelFromPlanResponse$Type extends MessageType<InstallModelFromPlan
         /* nimi.runtime.v1.ModelAssetRecord model_asset = 2; */
         if (message.modelAsset)
             ModelAssetRecord.internalBinaryWrite(message.modelAsset, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* string install_session_id = 3; */
+        if (message.installSessionId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.installSessionId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2333,7 +2375,8 @@ class LocalTransferSessionSummary$Type extends MessageType<LocalTransferSessionS
             { no: 14, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 15, name: "retryable", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 16, name: "created_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 17, name: "updated_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 17, name: "updated_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 18, name: "plan_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<LocalTransferSessionSummary>): LocalTransferSessionSummary {
@@ -2352,6 +2395,7 @@ class LocalTransferSessionSummary$Type extends MessageType<LocalTransferSessionS
         message.retryable = false;
         message.createdAt = "";
         message.updatedAt = "";
+        message.planId = "";
         if (value !== undefined)
             reflectionMergePartial<LocalTransferSessionSummary>(this, message, value);
         return message;
@@ -2402,6 +2446,9 @@ class LocalTransferSessionSummary$Type extends MessageType<LocalTransferSessionS
                     break;
                 case /* string updated_at */ 17:
                     message.updatedAt = reader.string();
+                    break;
+                case /* string plan_id */ 18:
+                    message.planId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2457,6 +2504,9 @@ class LocalTransferSessionSummary$Type extends MessageType<LocalTransferSessionS
         /* string updated_at = 17; */
         if (message.updatedAt !== "")
             writer.tag(17, WireType.LengthDelimited).string(message.updatedAt);
+        /* string plan_id = 18; */
+        if (message.planId !== "")
+            writer.tag(18, WireType.LengthDelimited).string(message.planId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2486,7 +2536,8 @@ class LocalTransferProgressEvent$Type extends MessageType<LocalTransferProgressE
             { no: 16, name: "done", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 17, name: "success", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 18, name: "created_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 19, name: "updated_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 19, name: "updated_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 20, name: "plan_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<LocalTransferProgressEvent>): LocalTransferProgressEvent {
@@ -2507,6 +2558,7 @@ class LocalTransferProgressEvent$Type extends MessageType<LocalTransferProgressE
         message.success = false;
         message.createdAt = "";
         message.updatedAt = "";
+        message.planId = "";
         if (value !== undefined)
             reflectionMergePartial<LocalTransferProgressEvent>(this, message, value);
         return message;
@@ -2563,6 +2615,9 @@ class LocalTransferProgressEvent$Type extends MessageType<LocalTransferProgressE
                     break;
                 case /* string updated_at */ 19:
                     message.updatedAt = reader.string();
+                    break;
+                case /* string plan_id */ 20:
+                    message.planId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2624,6 +2679,9 @@ class LocalTransferProgressEvent$Type extends MessageType<LocalTransferProgressE
         /* string updated_at = 19; */
         if (message.updatedAt !== "")
             writer.tag(19, WireType.LengthDelimited).string(message.updatedAt);
+        /* string plan_id = 20; */
+        if (message.planId !== "")
+            writer.tag(20, WireType.LengthDelimited).string(message.planId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -3042,13 +3100,15 @@ class ResolveLocalEnvironmentPlanRequest$Type extends MessageType<ResolveLocalEn
         super("nimi.runtime.v1.ResolveLocalEnvironmentPlanRequest", [
             { no: 1, name: "capability_contract", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "host_profile", kind: "message", T: () => LocalDeviceProfile },
-            { no: 4, name: "runtime_data_root", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 4, name: "runtime_data_root", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "candidate_loadout_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ResolveLocalEnvironmentPlanRequest>): ResolveLocalEnvironmentPlanRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.capabilityContract = "";
         message.runtimeDataRoot = "";
+        message.candidateLoadoutId = "";
         if (value !== undefined)
             reflectionMergePartial<ResolveLocalEnvironmentPlanRequest>(this, message, value);
         return message;
@@ -3066,6 +3126,9 @@ class ResolveLocalEnvironmentPlanRequest$Type extends MessageType<ResolveLocalEn
                     break;
                 case /* string runtime_data_root */ 4:
                     message.runtimeDataRoot = reader.string();
+                    break;
+                case /* string candidate_loadout_id */ 10:
+                    message.candidateLoadoutId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3088,6 +3151,9 @@ class ResolveLocalEnvironmentPlanRequest$Type extends MessageType<ResolveLocalEn
         /* string runtime_data_root = 4; */
         if (message.runtimeDataRoot !== "")
             writer.tag(4, WireType.LengthDelimited).string(message.runtimeDataRoot);
+        /* string candidate_loadout_id = 10; */
+        if (message.candidateLoadoutId !== "")
+            writer.tag(10, WireType.LengthDelimited).string(message.candidateLoadoutId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

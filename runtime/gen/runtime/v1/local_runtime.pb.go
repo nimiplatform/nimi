@@ -1135,10 +1135,13 @@ func (x *InstallModelFromPlanRequest) GetPlanId() string {
 }
 
 type InstallModelFromPlanResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ModelAsset    *ModelAssetRecord      `protobuf:"bytes,2,opt,name=model_asset,json=modelAsset,proto3" json:"model_asset,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	ModelAsset *ModelAssetRecord      `protobuf:"bytes,2,opt,name=model_asset,json=modelAsset,proto3" json:"model_asset,omitempty"`
+	// The transfer session that carried this install, so the caller can
+	// correlate progress and recovery without guessing from model names.
+	InstallSessionId string `protobuf:"bytes,3,opt,name=install_session_id,json=installSessionId,proto3" json:"install_session_id,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *InstallModelFromPlanResponse) Reset() {
@@ -1178,6 +1181,13 @@ func (x *InstallModelFromPlanResponse) GetModelAsset() *ModelAssetRecord {
 	return nil
 }
 
+func (x *InstallModelFromPlanResponse) GetInstallSessionId() string {
+	if x != nil {
+		return x.InstallSessionId
+	}
+	return ""
+}
+
 type LocalTransferSessionSummary struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	InstallSessionId string                 `protobuf:"bytes,1,opt,name=install_session_id,json=installSessionId,proto3" json:"install_session_id,omitempty"`
@@ -1194,8 +1204,13 @@ type LocalTransferSessionSummary struct {
 	Retryable        bool                   `protobuf:"varint,15,opt,name=retryable,proto3" json:"retryable,omitempty"`
 	CreatedAt        string                 `protobuf:"bytes,16,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt        string                 `protobuf:"bytes,17,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// The install plan this transfer carries when it originated from
+	// InstallModelFromPlan; empty for imports. Lets a caller that lost the
+	// unary response or restarted find its exact in-flight or completed
+	// acquisition without name or inventory-order guessing.
+	PlanId        string `protobuf:"bytes,18,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *LocalTransferSessionSummary) Reset() {
@@ -1326,6 +1341,13 @@ func (x *LocalTransferSessionSummary) GetUpdatedAt() string {
 	return ""
 }
 
+func (x *LocalTransferSessionSummary) GetPlanId() string {
+	if x != nil {
+		return x.PlanId
+	}
+	return ""
+}
+
 type LocalTransferProgressEvent struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	InstallSessionId string                 `protobuf:"bytes,1,opt,name=install_session_id,json=installSessionId,proto3" json:"install_session_id,omitempty"`
@@ -1344,8 +1366,11 @@ type LocalTransferProgressEvent struct {
 	Success          bool                   `protobuf:"varint,17,opt,name=success,proto3" json:"success,omitempty"`
 	CreatedAt        string                 `protobuf:"bytes,18,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt        string                 `protobuf:"bytes,19,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// The install plan this transfer carries when it originated from
+	// InstallModelFromPlan; empty for imports.
+	PlanId        string `protobuf:"bytes,20,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *LocalTransferProgressEvent) Reset() {
@@ -1486,6 +1511,13 @@ func (x *LocalTransferProgressEvent) GetCreatedAt() string {
 func (x *LocalTransferProgressEvent) GetUpdatedAt() string {
 	if x != nil {
 		return x.UpdatedAt
+	}
+	return ""
+}
+
+func (x *LocalTransferProgressEvent) GetPlanId() string {
+	if x != nil {
+		return x.PlanId
 	}
 	return ""
 }
@@ -1875,6 +1907,13 @@ type ResolveLocalEnvironmentPlanRequest struct {
 	CapabilityContract string                 `protobuf:"bytes,1,opt,name=capability_contract,json=capabilityContract,proto3" json:"capability_contract,omitempty"`
 	HostProfile        *LocalDeviceProfile    `protobuf:"bytes,3,opt,name=host_profile,json=hostProfile,proto3" json:"host_profile,omitempty"`
 	RuntimeDataRoot    string                 `protobuf:"bytes,4,opt,name=runtime_data_root,json=runtimeDataRoot,proto3" json:"runtime_data_root,omitempty"`
+	// Optional exact saved candidate Loadout. When set, Runtime resolves the
+	// non-model dependencies for that candidate's committed Driver dialect,
+	// recipe, and options without requiring or mutating machine selection; the
+	// candidate may carry legal unresolved model slots. The candidate's
+	// execution-relevant identity and revision bind the resulting plan, so a
+	// material candidate change invalidates it.
+	CandidateLoadoutId string `protobuf:"bytes,10,opt,name=candidate_loadout_id,json=candidateLoadoutId,proto3" json:"candidate_loadout_id,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -1926,6 +1965,13 @@ func (x *ResolveLocalEnvironmentPlanRequest) GetHostProfile() *LocalDeviceProfil
 func (x *ResolveLocalEnvironmentPlanRequest) GetRuntimeDataRoot() string {
 	if x != nil {
 		return x.RuntimeDataRoot
+	}
+	return ""
+}
+
+func (x *ResolveLocalEnvironmentPlanRequest) GetCandidateLoadoutId() string {
+	if x != nil {
+		return x.CandidateLoadoutId
 	}
 	return ""
 }
@@ -3938,10 +3984,11 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\x1fResolveModelInstallPlanResponse\x12?\n" +
 	"\x04plan\x18\x01 \x01(\v2+.nimi.runtime.v1.LocalInstallPlanDescriptorR\x04plan\"B\n" +
 	"\x1bInstallModelFromPlanRequest\x12\x17\n" +
-	"\aplan_id\x18\x02 \x01(\tR\x06planIdJ\x04\b\x01\x10\x02R\x04plan\"o\n" +
+	"\aplan_id\x18\x02 \x01(\tR\x06planIdJ\x04\b\x01\x10\x02R\x04plan\"\x9d\x01\n" +
 	"\x1cInstallModelFromPlanResponse\x12B\n" +
 	"\vmodel_asset\x18\x02 \x01(\v2!.nimi.runtime.v1.ModelAssetRecordR\n" +
-	"modelAssetJ\x04\b\x01\x10\x02R\x05asset\"\x86\x04\n" +
+	"modelAsset\x12,\n" +
+	"\x12install_session_id\x18\x03 \x01(\tR\x10installSessionIdJ\x04\b\x01\x10\x02R\x05asset\"\x9f\x04\n" +
 	"\x1bLocalTransferSessionSummary\x12,\n" +
 	"\x12install_session_id\x18\x01 \x01(\tR\x10installSessionId\x12\x19\n" +
 	"\basset_id\x18\x02 \x01(\tR\aassetId\x12!\n" +
@@ -3962,7 +4009,8 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x10 \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\x11 \x01(\tR\tupdatedAtJ\x04\b\x03\x10\x04J\x04\b\x04\x10\x05J\x04\b\x05\x10\x06R\x0elocal_asset_id\"\xb3\x04\n" +
+	"updated_at\x18\x11 \x01(\tR\tupdatedAt\x12\x17\n" +
+	"\aplan_id\x18\x12 \x01(\tR\x06planIdJ\x04\b\x03\x10\x04J\x04\b\x04\x10\x05J\x04\b\x05\x10\x06R\x0elocal_asset_id\"\xcc\x04\n" +
 	"\x1aLocalTransferProgressEvent\x12,\n" +
 	"\x12install_session_id\x18\x01 \x01(\tR\x10installSessionId\x12\x19\n" +
 	"\basset_id\x18\x02 \x01(\tR\aassetId\x12!\n" +
@@ -3985,7 +4033,8 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x12 \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\x13 \x01(\tR\tupdatedAtJ\x04\b\x03\x10\x04J\x04\b\x04\x10\x05J\x04\b\x05\x10\x06R\x0elocal_asset_id\"\x1b\n" +
+	"updated_at\x18\x13 \x01(\tR\tupdatedAt\x12\x17\n" +
+	"\aplan_id\x18\x14 \x01(\tR\x06planIdJ\x04\b\x03\x10\x04J\x04\b\x04\x10\x05J\x04\b\x05\x10\x06R\x0elocal_asset_id\"\x1b\n" +
 	"\x19ListLocalTransfersRequest\"h\n" +
 	"\x1aListLocalTransfersResponse\x12J\n" +
 	"\ttransfers\x18\x01 \x03(\v2,.nimi.runtime.v1.LocalTransferSessionSummaryR\ttransfers\"I\n" +
@@ -4001,11 +4050,13 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\x12install_session_id\x18\x01 \x01(\tR\x10installSessionId\"g\n" +
 	"\x1bCancelLocalTransferResponse\x12H\n" +
 	"\btransfer\x18\x01 \x01(\v2,.nimi.runtime.v1.LocalTransferSessionSummaryR\btransfer\"\x1c\n" +
-	"\x1aWatchLocalTransfersRequest\"\xd4\x02\n" +
+	"\x1aWatchLocalTransfersRequest\"\x86\x03\n" +
 	"\"ResolveLocalEnvironmentPlanRequest\x12/\n" +
 	"\x13capability_contract\x18\x01 \x01(\tR\x12capabilityContract\x12F\n" +
 	"\fhost_profile\x18\x03 \x01(\v2#.nimi.runtime.v1.LocalDeviceProfileR\vhostProfile\x12*\n" +
-	"\x11runtime_data_root\x18\x04 \x01(\tR\x0fruntimeDataRootJ\x04\b\x02\x10\x03J\x04\b\x05\x10\x06J\x04\b\x06\x10\aJ\x04\b\a\x10\bJ\x04\b\b\x10\tJ\x04\b\t\x10\n" +
+	"\x11runtime_data_root\x18\x04 \x01(\tR\x0fruntimeDataRoot\x120\n" +
+	"\x14candidate_loadout_id\x18\n" +
+	" \x01(\tR\x12candidateLoadoutIdJ\x04\b\x02\x10\x03J\x04\b\x05\x10\x06J\x04\b\x06\x10\aJ\x04\b\a\x10\bJ\x04\b\b\x10\tJ\x04\b\t\x10\n" +
 	"R\apack_idR\x0econsumer_scopeR\basset_idR\x0elocal_asset_idR\x12companion_asset_idR\x0fparent_asset_idR\rinstall_level\"`\n" +
 	"#ResolveLocalEnvironmentPlanResponse\x129\n" +
 	"\x04plan\x18\x01 \x01(\v2%.nimi.runtime.v1.LocalEnvironmentPlanR\x04plan\"\xbf\x01\n" +

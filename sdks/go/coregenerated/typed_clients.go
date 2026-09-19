@@ -1663,6 +1663,7 @@ const (
 	APPPACKAGEUNINSTALLFAILED                       ReasonCode = "APP_PACKAGE_UNINSTALL_FAILED"
 	APPPACKAGEUPDATEUNAVAILABLE                     ReasonCode = "APP_PACKAGE_UPDATE_UNAVAILABLE"
 	APPPACKAGEINFOUNAVAILABLE                       ReasonCode = "APP_PACKAGE_INFO_UNAVAILABLE"
+	AILOADOUTCONDITIONCONFLICT                      ReasonCode = "AI_LOADOUT_CONDITION_CONFLICT"
 	AIFACEREFERENCEMISSING                          ReasonCode = "AI_FACE_REFERENCE_MISSING"
 	AIFACEREFERENCEAMBIGUOUS                        ReasonCode = "AI_FACE_REFERENCE_AMBIGUOUS"
 	AIFACETARGETMISSING                             ReasonCode = "AI_FACE_TARGET_MISSING"
@@ -4439,7 +4440,8 @@ type InstallModelFromPlanRequest struct {
 }
 
 type InstallModelFromPlanResponse struct {
-	ModelAsset *ModelAssetRecord `json:"model_asset,omitempty"`
+	ModelAsset       *ModelAssetRecord `json:"model_asset,omitempty"`
+	InstallSessionId string            `json:"install_session_id,omitempty"`
 }
 
 type InterruptLocalAppAgentRealtimeOutputRequest struct {
@@ -4952,6 +4954,7 @@ type Loadout struct {
 	ImplementationSupportedFeatures []string                           `json:"implementation_supported_features,omitempty"`
 	ConfiguredFeatures              []string                           `json:"configured_features,omitempty"`
 	TextBehaviors                   []TextBehaviorCapabilityProjection `json:"text_behaviors,omitempty"`
+	Revision                        string                             `json:"revision,omitempty"`
 }
 
 type LoadoutEffectiveInputIdentity struct {
@@ -5867,6 +5870,8 @@ type LocalEnvironmentPlan struct {
 	StorageCategories          []string                         `json:"storage_categories,omitempty"`
 	SourceOwners               []string                         `json:"source_owners,omitempty"`
 	NoSystemMutation           bool                             `json:"no_system_mutation,omitempty"`
+	CandidateLoadoutId         string                           `json:"candidate_loadout_id,omitempty"`
+	CandidateRevision          string                           `json:"candidate_revision,omitempty"`
 }
 
 type LocalEnvironmentPlanDependency struct {
@@ -6021,6 +6026,7 @@ type LocalTransferProgressEvent struct {
 	Success          bool   `json:"success,omitempty"`
 	CreatedAt        string `json:"created_at,omitempty"`
 	UpdatedAt        string `json:"updated_at,omitempty"`
+	PlanId           string `json:"plan_id,omitempty"`
 }
 
 type LocalTransferSessionSummary struct {
@@ -6038,6 +6044,7 @@ type LocalTransferSessionSummary struct {
 	Retryable        bool   `json:"retryable,omitempty"`
 	CreatedAt        string `json:"created_at,omitempty"`
 	UpdatedAt        string `json:"updated_at,omitempty"`
+	PlanId           string `json:"plan_id,omitempty"`
 }
 
 type LocalVerifiedAssetDescriptor struct {
@@ -6082,8 +6089,9 @@ type LogoutResponse struct {
 }
 
 type MachineLoadouts struct {
-	Loadouts   []Loadout          `json:"loadouts,omitempty"`
-	Selections []LoadoutSelection `json:"selections,omitempty"`
+	Loadouts           []Loadout          `json:"loadouts,omitempty"`
+	Selections         []LoadoutSelection `json:"selections,omitempty"`
+	SelectionRevisions map[string]string  `json:"selection_revisions,omitempty"`
 }
 
 type MaterializeRealmSourceRequest struct {
@@ -6459,13 +6467,14 @@ type PrepareInstalledAppLaunchResponse struct {
 }
 
 type PrepareLoadoutRequest struct {
-	LoadoutId          string                  `json:"loadout_id,omitempty"`
-	CapabilityContract string                  `json:"capability_contract,omitempty"`
-	RecipeId           string                  `json:"recipe_id,omitempty"`
-	Options            map[string]any          `json:"options,omitempty"`
-	ModelAxes          []LoadoutModelAxisInput `json:"model_axes,omitempty"`
-	DisplayName        string                  `json:"display_name,omitempty"`
-	Provenance         map[string]any          `json:"provenance,omitempty"`
+	LoadoutId               string                  `json:"loadout_id,omitempty"`
+	CapabilityContract      string                  `json:"capability_contract,omitempty"`
+	RecipeId                string                  `json:"recipe_id,omitempty"`
+	Options                 map[string]any          `json:"options,omitempty"`
+	ModelAxes               []LoadoutModelAxisInput `json:"model_axes,omitempty"`
+	DisplayName             string                  `json:"display_name,omitempty"`
+	Provenance              map[string]any          `json:"provenance,omitempty"`
+	ExpectedLoadoutRevision string                  `json:"expected_loadout_revision,omitempty"`
 }
 
 type PrepareLoadoutResponse struct {
@@ -7002,6 +7011,7 @@ type ResolveLocalEnvironmentPlanRequest struct {
 	CapabilityContract string              `json:"capability_contract,omitempty"`
 	HostProfile        *LocalDeviceProfile `json:"host_profile,omitempty"`
 	RuntimeDataRoot    string              `json:"runtime_data_root,omitempty"`
+	CandidateLoadoutId string              `json:"candidate_loadout_id,omitempty"`
 }
 
 type ResolveLocalEnvironmentPlanResponse struct {
@@ -7278,13 +7288,19 @@ type SearchCatalogModelsResponse struct {
 }
 
 type SelectLoadoutRequest struct {
-	CapabilityContract     string `json:"capability_contract,omitempty"`
-	LoadoutId              string `json:"loadout_id,omitempty"`
-	ConfirmedMachineImpact bool   `json:"confirmed_machine_impact,omitempty"`
+	CapabilityContract        string `json:"capability_contract,omitempty"`
+	LoadoutId                 string `json:"loadout_id,omitempty"`
+	ConfirmedMachineImpact    bool   `json:"confirmed_machine_impact,omitempty"`
+	ExpectedSelectionRevision string `json:"expected_selection_revision,omitempty"`
+	ExpectedCandidateRevision string `json:"expected_candidate_revision,omitempty"`
+	ExpectNoPriorSelection    bool   `json:"expect_no_prior_selection,omitempty"`
 }
 
 type SelectLoadoutResponse struct {
-	Selection *LoadoutSelection `json:"selection,omitempty"`
+	Selection         *LoadoutSelection `json:"selection,omitempty"`
+	Applied           bool              `json:"applied,omitempty"`
+	ReasonCode        ReasonCode        `json:"reason_code,omitempty"`
+	SelectionRevision string            `json:"selection_revision,omitempty"`
 }
 
 type SelectProductControlDataRootRequest struct {
@@ -7959,14 +7975,15 @@ type UpdateConnectorResponse struct {
 }
 
 type UpdateLoadoutRequest struct {
-	LoadoutId              string                  `json:"loadout_id,omitempty"`
-	CapabilityContract     string                  `json:"capability_contract,omitempty"`
-	RecipeId               string                  `json:"recipe_id,omitempty"`
-	Options                map[string]any          `json:"options,omitempty"`
-	ModelAxes              []LoadoutModelAxisInput `json:"model_axes,omitempty"`
-	DisplayName            string                  `json:"display_name,omitempty"`
-	Provenance             map[string]any          `json:"provenance,omitempty"`
-	ConfirmedMachineImpact bool                    `json:"confirmed_machine_impact,omitempty"`
+	LoadoutId               string                  `json:"loadout_id,omitempty"`
+	CapabilityContract      string                  `json:"capability_contract,omitempty"`
+	RecipeId                string                  `json:"recipe_id,omitempty"`
+	Options                 map[string]any          `json:"options,omitempty"`
+	ModelAxes               []LoadoutModelAxisInput `json:"model_axes,omitempty"`
+	DisplayName             string                  `json:"display_name,omitempty"`
+	Provenance              map[string]any          `json:"provenance,omitempty"`
+	ConfirmedMachineImpact  bool                    `json:"confirmed_machine_impact,omitempty"`
+	ExpectedLoadoutRevision string                  `json:"expected_loadout_revision,omitempty"`
 }
 
 type UpdateLoadoutResponse struct {

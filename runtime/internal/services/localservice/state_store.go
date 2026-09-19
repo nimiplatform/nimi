@@ -63,6 +63,7 @@ type localStateTransferState struct {
 	Retryable           bool                                `json:"retryable,omitempty"`
 	CreatedAt           string                              `json:"createdAt"`
 	UpdatedAt           string                              `json:"updatedAt"`
+	PlanID              string                              `json:"planId,omitempty"`
 	ManagedDownloadSpec *localStateManagedModelDownloadSpec `json:"managedDownloadSpec,omitempty"`
 }
 
@@ -158,6 +159,7 @@ func (s *Service) restoreState() error {
 			Retryable:        item.Retryable,
 			CreatedAt:        item.CreatedAt,
 			UpdatedAt:        item.UpdatedAt,
+			PlanId:           item.PlanID,
 		}
 		if summary.GetInstallSessionId() == "" {
 			continue
@@ -277,6 +279,7 @@ func (s *Service) persistStateLocked() error {
 			Retryable:        transfer.GetRetryable(),
 			CreatedAt:        transfer.GetCreatedAt(),
 			UpdatedAt:        transfer.GetUpdatedAt(),
+			PlanID:           transfer.GetPlanId(),
 		}
 		if spec, exists := s.managedModelDownloadSpecs[transfer.GetInstallSessionId()]; exists {
 			row.ManagedDownloadSpec = localStateManagedDownloadSpec(spec)

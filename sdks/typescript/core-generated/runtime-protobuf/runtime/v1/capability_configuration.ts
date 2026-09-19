@@ -322,6 +322,14 @@ export interface Loadout {
      * @generated from protobuf field: repeated nimi.runtime.v1.TextBehaviorCapabilityProjection text_behaviors = 18
      */
     textBehaviors: TextBehaviorCapabilityProjection[];
+    /**
+     * Runtime-issued opaque per-record revision rotated on every committed
+     * write. Never accepted from a caller; consumed only as an expected
+     * condition for candidate updates and selection.
+     *
+     * @generated from protobuf field: string revision = 19
+     */
+    revision: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LoadoutSelection
@@ -352,6 +360,17 @@ export interface MachineLoadouts {
      * @generated from protobuf field: repeated nimi.runtime.v1.LoadoutSelection selections = 2
      */
     selections: LoadoutSelection[];
+    /**
+     * Per-capability opaque selection revision, rotated on every selection set
+     * or clear. Entries survive explicit clearing so change-away-and-back is
+     * distinguishable; a capability never selected has no entry and compares
+     * equal to an empty expected revision.
+     *
+     * @generated from protobuf field: map<string, string> selection_revisions = 3
+     */
+    selectionRevisions: {
+        [key: string]: string;
+    };
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LoadoutModelAxisInput
@@ -588,6 +607,15 @@ export interface PrepareLoadoutRequest {
      * @generated from protobuf field: google.protobuf.Struct provenance = 8
      */
     provenance?: Struct;
+    /**
+     * When loadout_id names an existing saved Loadout, Runtime verifies at the
+     * mutation boundary that the record still carries this revision, covering
+     * external edits made after the caller's observation (for example during a
+     * download). Empty performs no caller condition check.
+     *
+     * @generated from protobuf field: string expected_loadout_revision = 9
+     */
+    expectedLoadoutRevision: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.PrepareLoadoutResponse
@@ -671,6 +699,12 @@ export interface UpdateLoadoutRequest {
      * @generated from protobuf field: bool confirmed_machine_impact = 9
      */
     confirmedMachineImpact: boolean;
+    /**
+     * Same expected-condition semantics as PrepareLoadoutRequest.
+     *
+     * @generated from protobuf field: string expected_loadout_revision = 10
+     */
+    expectedLoadoutRevision: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.UpdateLoadoutResponse
@@ -699,6 +733,32 @@ export interface SelectLoadoutRequest {
      * @generated from protobuf field: bool confirmed_machine_impact = 3
      */
     confirmedMachineImpact: boolean;
+    /**
+     * Runtime verifies at the mutation boundary that the current selection
+     * revision for this capability still matches, recognizing
+     * change-away-and-back. Empty performs no caller condition check; use
+     * expect_no_prior_selection to assert that no selection ever existed.
+     *
+     * @generated from protobuf field: string expected_selection_revision = 4
+     */
+    expectedSelectionRevision: string;
+    /**
+     * When loadout_id is non-empty, Runtime verifies the candidate still
+     * carries this revision. Empty performs no caller condition check.
+     *
+     * @generated from protobuf field: string expected_candidate_revision = 5
+     */
+    expectedCandidateRevision: string;
+    /**
+     * When true, Runtime verifies at the mutation boundary that this capability
+     * has never been selected or cleared (no selection revision record exists),
+     * which protects a first-ever selection from a racing first selection by
+     * another client. Mutually exclusive with a non-empty
+     * expected_selection_revision.
+     *
+     * @generated from protobuf field: bool expect_no_prior_selection = 6
+     */
+    expectNoPriorSelection: boolean;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.SelectLoadoutResponse
@@ -708,6 +768,24 @@ export interface SelectLoadoutResponse {
      * @generated from protobuf field: nimi.runtime.v1.LoadoutSelection selection = 1
      */
     selection?: LoadoutSelection;
+    /**
+     * False when an expected condition no longer matches; selection then
+     * projects the unchanged current state.
+     *
+     * @generated from protobuf field: bool applied = 2
+     */
+    applied: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 3
+     */
+    reasonCode: ReasonCode;
+    /**
+     * The current selection revision after this call: the rotated value on
+     * success, the observed unchanged value on conflict.
+     *
+     * @generated from protobuf field: string selection_revision = 4
+     */
+    selectionRevision: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.DeleteLoadoutRequest
@@ -2271,7 +2349,8 @@ class Loadout$Type extends MessageType<Loadout> {
             { no: 15, name: "updated_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 16, name: "implementation_supported_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 17, name: "configured_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 18, name: "text_behaviors", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => TextBehaviorCapabilityProjection }
+            { no: 18, name: "text_behaviors", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => TextBehaviorCapabilityProjection },
+            { no: 19, name: "revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<Loadout>): Loadout {
@@ -2290,6 +2369,7 @@ class Loadout$Type extends MessageType<Loadout> {
         message.implementationSupportedFeatures = [];
         message.configuredFeatures = [];
         message.textBehaviors = [];
+        message.revision = "";
         if (value !== undefined)
             reflectionMergePartial<Loadout>(this, message, value);
         return message;
@@ -2353,6 +2433,9 @@ class Loadout$Type extends MessageType<Loadout> {
                     break;
                 case /* repeated nimi.runtime.v1.TextBehaviorCapabilityProjection text_behaviors */ 18:
                     message.textBehaviors.push(TextBehaviorCapabilityProjection.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string revision */ 19:
+                    message.revision = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2421,6 +2504,9 @@ class Loadout$Type extends MessageType<Loadout> {
         /* repeated nimi.runtime.v1.TextBehaviorCapabilityProjection text_behaviors = 18; */
         for (let i = 0; i < message.textBehaviors.length; i++)
             TextBehaviorCapabilityProjection.internalBinaryWrite(message.textBehaviors[i], writer.tag(18, WireType.LengthDelimited).fork(), options).join();
+        /* string revision = 19; */
+        if (message.revision !== "")
+            writer.tag(19, WireType.LengthDelimited).string(message.revision);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2498,13 +2584,15 @@ class MachineLoadouts$Type extends MessageType<MachineLoadouts> {
     constructor() {
         super("nimi.runtime.v1.MachineLoadouts", [
             { no: 1, name: "loadouts", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => Loadout },
-            { no: 2, name: "selections", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LoadoutSelection }
+            { no: 2, name: "selections", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LoadoutSelection },
+            { no: 3, name: "selection_revisions", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } }
         ]);
     }
     create(value?: PartialMessage<MachineLoadouts>): MachineLoadouts {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.loadouts = [];
         message.selections = [];
+        message.selectionRevisions = {};
         if (value !== undefined)
             reflectionMergePartial<MachineLoadouts>(this, message, value);
         return message;
@@ -2520,6 +2608,9 @@ class MachineLoadouts$Type extends MessageType<MachineLoadouts> {
                 case /* repeated nimi.runtime.v1.LoadoutSelection selections */ 2:
                     message.selections.push(LoadoutSelection.internalBinaryRead(reader, reader.uint32(), options));
                     break;
+                case /* map<string, string> selection_revisions */ 3:
+                    this.binaryReadMap3(message.selectionRevisions, reader, options);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -2531,6 +2622,22 @@ class MachineLoadouts$Type extends MessageType<MachineLoadouts> {
         }
         return message;
     }
+    private binaryReadMap3(map: MachineLoadouts["selectionRevisions"], reader: IBinaryReader, options: BinaryReadOptions): void {
+        let len = reader.uint32(), end = reader.pos + len, key: keyof MachineLoadouts["selectionRevisions"] | undefined, val: MachineLoadouts["selectionRevisions"][any] | undefined;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case 1:
+                    key = reader.string();
+                    break;
+                case 2:
+                    val = reader.string();
+                    break;
+                default: throw new globalThis.Error("unknown map entry field for nimi.runtime.v1.MachineLoadouts.selection_revisions");
+            }
+        }
+        map[key ?? ""] = val ?? "";
+    }
     internalBinaryWrite(message: MachineLoadouts, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* repeated nimi.runtime.v1.Loadout loadouts = 1; */
         for (let i = 0; i < message.loadouts.length; i++)
@@ -2538,6 +2645,9 @@ class MachineLoadouts$Type extends MessageType<MachineLoadouts> {
         /* repeated nimi.runtime.v1.LoadoutSelection selections = 2; */
         for (let i = 0; i < message.selections.length; i++)
             LoadoutSelection.internalBinaryWrite(message.selections[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* map<string, string> selection_revisions = 3; */
+        for (let k of globalThis.Object.keys(message.selectionRevisions))
+            writer.tag(3, WireType.LengthDelimited).fork().tag(1, WireType.LengthDelimited).string(k).tag(2, WireType.LengthDelimited).string(message.selectionRevisions[k]).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -3300,7 +3410,8 @@ class PrepareLoadoutRequest$Type extends MessageType<PrepareLoadoutRequest> {
             { no: 4, name: "options", kind: "message", T: () => Struct },
             { no: 6, name: "model_axes", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LoadoutModelAxisInput },
             { no: 7, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 8, name: "provenance", kind: "message", T: () => Struct }
+            { no: 8, name: "provenance", kind: "message", T: () => Struct },
+            { no: 9, name: "expected_loadout_revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<PrepareLoadoutRequest>): PrepareLoadoutRequest {
@@ -3310,6 +3421,7 @@ class PrepareLoadoutRequest$Type extends MessageType<PrepareLoadoutRequest> {
         message.recipeId = "";
         message.modelAxes = [];
         message.displayName = "";
+        message.expectedLoadoutRevision = "";
         if (value !== undefined)
             reflectionMergePartial<PrepareLoadoutRequest>(this, message, value);
         return message;
@@ -3339,6 +3451,9 @@ class PrepareLoadoutRequest$Type extends MessageType<PrepareLoadoutRequest> {
                     break;
                 case /* google.protobuf.Struct provenance */ 8:
                     message.provenance = Struct.internalBinaryRead(reader, reader.uint32(), options, message.provenance);
+                    break;
+                case /* string expected_loadout_revision */ 9:
+                    message.expectedLoadoutRevision = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3373,6 +3488,9 @@ class PrepareLoadoutRequest$Type extends MessageType<PrepareLoadoutRequest> {
         /* google.protobuf.Struct provenance = 8; */
         if (message.provenance)
             Struct.internalBinaryWrite(message.provenance, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        /* string expected_loadout_revision = 9; */
+        if (message.expectedLoadoutRevision !== "")
+            writer.tag(9, WireType.LengthDelimited).string(message.expectedLoadoutRevision);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -3564,7 +3682,8 @@ class UpdateLoadoutRequest$Type extends MessageType<UpdateLoadoutRequest> {
             { no: 6, name: "model_axes", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LoadoutModelAxisInput },
             { no: 7, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 8, name: "provenance", kind: "message", T: () => Struct },
-            { no: 9, name: "confirmed_machine_impact", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 9, name: "confirmed_machine_impact", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 10, name: "expected_loadout_revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<UpdateLoadoutRequest>): UpdateLoadoutRequest {
@@ -3575,6 +3694,7 @@ class UpdateLoadoutRequest$Type extends MessageType<UpdateLoadoutRequest> {
         message.modelAxes = [];
         message.displayName = "";
         message.confirmedMachineImpact = false;
+        message.expectedLoadoutRevision = "";
         if (value !== undefined)
             reflectionMergePartial<UpdateLoadoutRequest>(this, message, value);
         return message;
@@ -3607,6 +3727,9 @@ class UpdateLoadoutRequest$Type extends MessageType<UpdateLoadoutRequest> {
                     break;
                 case /* bool confirmed_machine_impact */ 9:
                     message.confirmedMachineImpact = reader.bool();
+                    break;
+                case /* string expected_loadout_revision */ 10:
+                    message.expectedLoadoutRevision = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3644,6 +3767,9 @@ class UpdateLoadoutRequest$Type extends MessageType<UpdateLoadoutRequest> {
         /* bool confirmed_machine_impact = 9; */
         if (message.confirmedMachineImpact !== false)
             writer.tag(9, WireType.Varint).bool(message.confirmedMachineImpact);
+        /* string expected_loadout_revision = 10; */
+        if (message.expectedLoadoutRevision !== "")
+            writer.tag(10, WireType.LengthDelimited).string(message.expectedLoadoutRevision);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -3706,7 +3832,10 @@ class SelectLoadoutRequest$Type extends MessageType<SelectLoadoutRequest> {
         super("nimi.runtime.v1.SelectLoadoutRequest", [
             { no: 1, name: "capability_contract", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "loadout_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "confirmed_machine_impact", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 3, name: "confirmed_machine_impact", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 4, name: "expected_selection_revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "expected_candidate_revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "expect_no_prior_selection", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
     create(value?: PartialMessage<SelectLoadoutRequest>): SelectLoadoutRequest {
@@ -3714,6 +3843,9 @@ class SelectLoadoutRequest$Type extends MessageType<SelectLoadoutRequest> {
         message.capabilityContract = "";
         message.loadoutId = "";
         message.confirmedMachineImpact = false;
+        message.expectedSelectionRevision = "";
+        message.expectedCandidateRevision = "";
+        message.expectNoPriorSelection = false;
         if (value !== undefined)
             reflectionMergePartial<SelectLoadoutRequest>(this, message, value);
         return message;
@@ -3731,6 +3863,15 @@ class SelectLoadoutRequest$Type extends MessageType<SelectLoadoutRequest> {
                     break;
                 case /* bool confirmed_machine_impact */ 3:
                     message.confirmedMachineImpact = reader.bool();
+                    break;
+                case /* string expected_selection_revision */ 4:
+                    message.expectedSelectionRevision = reader.string();
+                    break;
+                case /* string expected_candidate_revision */ 5:
+                    message.expectedCandidateRevision = reader.string();
+                    break;
+                case /* bool expect_no_prior_selection */ 6:
+                    message.expectNoPriorSelection = reader.bool();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3753,6 +3894,15 @@ class SelectLoadoutRequest$Type extends MessageType<SelectLoadoutRequest> {
         /* bool confirmed_machine_impact = 3; */
         if (message.confirmedMachineImpact !== false)
             writer.tag(3, WireType.Varint).bool(message.confirmedMachineImpact);
+        /* string expected_selection_revision = 4; */
+        if (message.expectedSelectionRevision !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.expectedSelectionRevision);
+        /* string expected_candidate_revision = 5; */
+        if (message.expectedCandidateRevision !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.expectedCandidateRevision);
+        /* bool expect_no_prior_selection = 6; */
+        if (message.expectNoPriorSelection !== false)
+            writer.tag(6, WireType.Varint).bool(message.expectNoPriorSelection);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -3767,11 +3917,17 @@ export const SelectLoadoutRequest = new SelectLoadoutRequest$Type();
 class SelectLoadoutResponse$Type extends MessageType<SelectLoadoutResponse> {
     constructor() {
         super("nimi.runtime.v1.SelectLoadoutResponse", [
-            { no: 1, name: "selection", kind: "message", T: () => LoadoutSelection }
+            { no: 1, name: "selection", kind: "message", T: () => LoadoutSelection },
+            { no: 2, name: "applied", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 3, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 4, name: "selection_revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<SelectLoadoutResponse>): SelectLoadoutResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
+        message.applied = false;
+        message.reasonCode = 0;
+        message.selectionRevision = "";
         if (value !== undefined)
             reflectionMergePartial<SelectLoadoutResponse>(this, message, value);
         return message;
@@ -3783,6 +3939,15 @@ class SelectLoadoutResponse$Type extends MessageType<SelectLoadoutResponse> {
             switch (fieldNo) {
                 case /* nimi.runtime.v1.LoadoutSelection selection */ 1:
                     message.selection = LoadoutSelection.internalBinaryRead(reader, reader.uint32(), options, message.selection);
+                    break;
+                case /* bool applied */ 2:
+                    message.applied = reader.bool();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 3:
+                    message.reasonCode = reader.int32();
+                    break;
+                case /* string selection_revision */ 4:
+                    message.selectionRevision = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3799,6 +3964,15 @@ class SelectLoadoutResponse$Type extends MessageType<SelectLoadoutResponse> {
         /* nimi.runtime.v1.LoadoutSelection selection = 1; */
         if (message.selection)
             LoadoutSelection.internalBinaryWrite(message.selection, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* bool applied = 2; */
+        if (message.applied !== false)
+            writer.tag(2, WireType.Varint).bool(message.applied);
+        /* nimi.runtime.v1.ReasonCode reason_code = 3; */
+        if (message.reasonCode !== 0)
+            writer.tag(3, WireType.Varint).int32(message.reasonCode);
+        /* string selection_revision = 4; */
+        if (message.selectionRevision !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.selectionRevision);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

@@ -1400,6 +1400,14 @@ export enum ReasonCode {
      */
     APP_PACKAGE_INFO_UNAVAILABLE = 746,
     /**
+     * A caller-held expected candidate or selection revision no longer matched
+     * at the mutation boundary. The response carries the unchanged current
+     * state; no write was applied.
+     *
+     * @generated from protobuf enum value: AI_LOADOUT_CONDITION_CONFLICT = 747;
+     */
+    AI_LOADOUT_CONDITION_CONFLICT = 747,
+    /**
      * @generated from protobuf enum value: AI_FACE_REFERENCE_MISSING = 738;
      */
     AI_FACE_REFERENCE_MISSING = 738,

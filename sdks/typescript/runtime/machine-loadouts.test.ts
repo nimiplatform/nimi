@@ -7,6 +7,7 @@ import {
   LocalCapabilityRequirementPresence,
   LocalCapabilityRequirementResolution,
   LocalRecommendationApplicability,
+  ReasonCode,
   TextBehaviorConfigurationState,
   TextBehaviorKind,
   ToolChoiceMode,
@@ -69,6 +70,7 @@ const loadout = {
   validationState: LoadoutValidationState.CONFIGURED,
   reasons: [], displayName: 'Gemma', provenance: undefined,
   createdAt: '2026-08-15T00:00:00Z', updatedAt: '2026-08-15T00:00:00Z',
+  revision: 'rev_loadout_1',
 };
 
 const recipe = {
@@ -107,12 +109,12 @@ test('Loadout SDK exposes only prepare/commit/update/select/delete mutation sema
   const calls: Array<{ method: string; request: Record<string, unknown>; options?: RuntimeTypedCallOptions }> = [];
   const rpc = {
     async listLoadoutRecipes(request: Record<string, unknown>) { calls.push({ method: 'listLoadoutRecipes', request }); return { recipes: [recipe] }; },
-    async getMachineLoadouts(request: Record<string, unknown>) { calls.push({ method: 'getMachineLoadouts', request }); return { aggregate: { loadouts: [loadout], selections: [] } }; },
+    async getMachineLoadouts(request: Record<string, unknown>) { calls.push({ method: 'getMachineLoadouts', request }); return { aggregate: { loadouts: [loadout], selections: [{ capabilityContract: 'text.generate', loadoutId: 'loadout_1', effectiveDefaults: undefined }], selectionRevisions: { 'text.generate': 'sel_rev_1' } } }; },
     async getLoadout(request: Record<string, unknown>) { calls.push({ method: 'getLoadout', request }); return { loadout }; },
     async prepareLoadout(request: Record<string, unknown>, options?: RuntimeTypedCallOptions) { calls.push({ method: 'prepareLoadout', request, options }); return { prepareId: 'prepare_1', proposedLoadout: loadout, expiresAt: '2026-08-15T00:10:00Z', impact: { capabilityContract: 'text.generate', loadoutId: 'loadout_1', changesFutureLocalExecution: false, confirmationRequired: false } }; },
     async commitLoadout(request: Record<string, unknown>, options?: RuntimeTypedCallOptions) { calls.push({ method: 'commitLoadout', request, options }); return { loadout }; },
     async updateLoadout(request: Record<string, unknown>, options?: RuntimeTypedCallOptions) { calls.push({ method: 'updateLoadout', request, options }); return { loadout }; },
-    async selectLoadout(request: Record<string, unknown>, options?: RuntimeTypedCallOptions) { calls.push({ method: 'selectLoadout', request, options }); return (request.loadoutId ? { selection: { capabilityContract: 'text.generate', loadoutId: 'loadout_1', effectiveDefaults: undefined } } : { selection: undefined }); },
+    async selectLoadout(request: Record<string, unknown>, options?: RuntimeTypedCallOptions) { calls.push({ method: 'selectLoadout', request, options }); return (request.loadoutId ? { selection: { capabilityContract: 'text.generate', loadoutId: 'loadout_1', effectiveDefaults: undefined }, applied: true, reasonCode: ReasonCode.REASON_CODE_UNSPECIFIED, selectionRevision: 'sel_rev_2' } : { selection: undefined, applied: true, reasonCode: ReasonCode.REASON_CODE_UNSPECIFIED, selectionRevision: 'sel_rev_3' }); },
     async deleteLoadout(request: Record<string, unknown>, options?: RuntimeTypedCallOptions) { calls.push({ method: 'deleteLoadout', request, options }); return {}; },
   } as unknown as NimiMachineLoadoutRpcClient;
   const client = createNimiMachineLoadoutClient({ runtime: rpc });
@@ -168,6 +170,10 @@ test('Loadout SDK exposes only prepare/commit/update/select/delete mutation sema
     conditionalFeatures: ['input.image'],
   });
   const projectedLoadout = await client.getLoadout('loadout_1');
+  assert.equal(projectedLoadout.revision, 'rev_loadout_1');
+  const machine = await client.get();
+  assert.deepEqual(machine.selectionRevisions, { 'text.generate': 'sel_rev_1' });
+  assert.equal(machine.selections[0]?.loadoutId, 'loadout_1');
   assert.deepEqual(projectedLoadout.modelAxes[0], {
     slotId: 'main.gguf',
     displayLabel: 'Main model',
@@ -228,11 +234,86 @@ test('Loadout SDK exposes only prepare/commit/update/select/delete mutation sema
   assert.deepEqual((prepareCall?.request.modelAxes as unknown[]).length, 1);
   assert.equal('path' in prepareCall!.request, false);
   assert.equal('engine' in prepareCall!.request, false);
+  assert.equal(prepareCall?.request.expectedLoadoutRevision, '');
 
   await client.commit('prepare_1');
   assert.deepEqual(calls.find((call) => call.method === 'commitLoadout')?.request, { prepareId: 'prepare_1', confirmedMachineImpact: false });
-  await client.select('text.generate', 'loadout_1', true);
-  await client.select('text.generate', null, true);
+  const applied = await client.select('text.generate', 'loadout_1', true, { expectedSelectionRevision: 'sel_rev_1', expectedCandidateRevision: 'rev_loadout_1' });
+  assert.equal(applied.applied, true);
+  assert.equal(applied.reasonCode, 'REASON_CODE_UNSPECIFIED');
+  assert.equal(applied.selectionRevision, 'sel_rev_2');
+  assert.equal(applied.selection?.loadoutId, 'loadout_1');
+  const cleared = await client.select('text.generate', null, true);
+  assert.equal(cleared.applied, true);
+  assert.equal(cleared.selection, null);
+  assert.equal(cleared.selectionRevision, 'sel_rev_3');
   await client.delete('loadout_1', true);
   assert.deepEqual(calls.filter((call) => call.method === 'selectLoadout').map((call) => call.request.loadoutId), ['loadout_1', '']);
+  const selectRequest = calls.find((call) => call.method === 'selectLoadout')?.request;
+  assert.equal(selectRequest?.expectedSelectionRevision, 'sel_rev_1');
+  assert.equal(selectRequest?.expectedCandidateRevision, 'rev_loadout_1');
+  const clearedRequest = calls.filter((call) => call.method === 'selectLoadout')[1]?.request;
+  assert.equal(clearedRequest?.expectedSelectionRevision, '');
+  assert.equal(clearedRequest?.expectedCandidateRevision, '');
+});
+
+test('Loadout SDK forwards expected revisions and projects condition conflicts without an RPC error', async () => {
+  const calls: Array<{ method: string; request: Record<string, unknown> }> = [];
+  const rpc = {
+    async prepareLoadout(request: Record<string, unknown>) {
+      calls.push({ method: 'prepareLoadout', request });
+      return {
+        prepareId: 'prepare_1',
+        proposedLoadout: { ...loadout, revision: '' },
+        expiresAt: '2026-08-15T00:10:00Z',
+        impact: { capabilityContract: 'text.generate', loadoutId: 'loadout_1', changesFutureLocalExecution: false, confirmationRequired: false },
+      };
+    },
+    async updateLoadout(request: Record<string, unknown>) {
+      calls.push({ method: 'updateLoadout', request });
+      return { loadout: { ...loadout, revision: 'rev_loadout_2' } };
+    },
+    async selectLoadout(request: Record<string, unknown>) {
+      calls.push({ method: 'selectLoadout', request });
+      return {
+        selection: { capabilityContract: 'text.generate', loadoutId: 'loadout_1', effectiveDefaults: undefined },
+        applied: false,
+        reasonCode: ReasonCode.AI_LOADOUT_CONDITION_CONFLICT,
+        selectionRevision: 'sel_rev_9',
+      };
+    },
+  } as unknown as NimiMachineLoadoutRpcClient;
+  const client = createNimiMachineLoadoutClient({ runtime: rpc });
+
+  const prepared = await client.prepare({
+    loadoutId: 'loadout_1',
+    capabilityContract: 'text.generate',
+    recipeId: recipe.recipeId,
+    displayName: 'Gemma',
+    expectedLoadoutRevision: 'rev_loadout_1',
+  });
+  assert.equal(calls.find((call) => call.method === 'prepareLoadout')?.request.expectedLoadoutRevision, 'rev_loadout_1');
+  assert.equal(prepared.proposedLoadout.revision, '');
+
+  const updated = await client.update({
+    loadoutId: 'loadout_1',
+    capabilityContract: 'text.generate',
+    recipeId: recipe.recipeId,
+    displayName: 'Gemma',
+    expectedLoadoutRevision: 'rev_loadout_2',
+  }, true);
+  assert.equal(calls.find((call) => call.method === 'updateLoadout')?.request.expectedLoadoutRevision, 'rev_loadout_2');
+  assert.equal(updated.revision, 'rev_loadout_2');
+
+  const conflicted = await client.select('text.generate', 'loadout_1', true, {
+    expectedSelectionRevision: 'sel_rev_1',
+    expectedCandidateRevision: 'rev_loadout_2',
+  });
+  assert.equal(conflicted.applied, false);
+  assert.equal(conflicted.reasonCode, 'AI_LOADOUT_CONDITION_CONFLICT');
+  assert.equal(conflicted.selectionRevision, 'sel_rev_9');
+  assert.equal(conflicted.selection?.loadoutId, 'loadout_1');
+  const selectRequest = calls.find((call) => call.method === 'selectLoadout')?.request;
+  assert.equal(selectRequest?.expectedSelectionRevision, 'sel_rev_1');
+  assert.equal(selectRequest?.expectedCandidateRevision, 'rev_loadout_2');
 });

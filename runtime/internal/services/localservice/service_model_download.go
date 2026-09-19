@@ -63,6 +63,7 @@ type managedDownloadedModelSpec struct {
 	hashes            map[string]string
 	totalSizeBytes    int64
 	engineConfig      *structpb.Struct
+	planID            string
 }
 
 type managedModelDownloadResumePlan struct {
@@ -188,7 +189,8 @@ func (s *Service) installManagedDownloadedModel(
 	ctx context.Context,
 	spec managedDownloadedModelSpec,
 ) (*runtimev1.ModelAssetRecord, error) {
-	return s.installManagedDownloadedModelWithTransfer(ctx, spec, "")
+	record, _, err := s.installManagedDownloadedModelWithTransfer(ctx, spec, "")
+	return record, err
 }
 
 func managedModelTransferTerminalError(cause error, persistenceErr error) error {
@@ -200,15 +202,16 @@ func managedModelTransferTerminalError(cause error, persistenceErr error) error 
 
 // installManagedDownloadedModelWithTransfer runs the managed download/install
 // pipeline either with a new transfer session or with an explicitly restored
-// session whose executor was rebuilt by ResumeLocalTransfer.
+// session whose executor was rebuilt by ResumeLocalTransfer. It returns the
+// install session identity so plan-driven callers can correlate the transfer.
 func (s *Service) installManagedDownloadedModelWithTransfer(
 	ctx context.Context,
 	spec managedDownloadedModelSpec,
 	restoredTransferID string,
-) (modelAssetResult *runtimev1.ModelAssetRecord, resultErr error) {
+) (modelAssetResult *runtimev1.ModelAssetRecord, installSessionID string, resultErr error) {
 	canonicalSpec, err := canonicalManagedDownloadedModelSpec(spec)
 	if err != nil {
-		return nil, grpcerr.WrapWithReasonCode(
+		return nil, "", grpcerr.WrapWithReasonCode(
 			codes.InvalidArgument,
 			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
 			err,
@@ -218,10 +221,10 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 	spec = canonicalSpec
 	modelID := strings.TrimSpace(spec.modelID)
 	if modelID == "" {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
+		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
 	}
 	if strings.TrimSpace(spec.repo) == "" {
-		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{
+		return nil, "", grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{
 			Message: "downloaded model requires repo",
 		})
 	}
@@ -232,7 +235,7 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 		kind = inferAssetKindFromCapabilities(capabilities)
 	}
 	if !isRunnableKind(kind) && (strings.TrimSpace(spec.engine) != "" || spec.engineConfig != nil) {
-		return nil, grpcerr.WithReasonCodeOptions(
+		return nil, "", grpcerr.WithReasonCodeOptions(
 			codes.InvalidArgument,
 			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
 			grpcerr.ReasonOptions{Message: "downloaded passive asset cannot declare execution engine fields"},
@@ -242,13 +245,13 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 		files = []string{strings.TrimSpace(spec.entry)}
 	}
 	if len(files) == 0 {
-		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{
+		return nil, "", grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{
 			Message: "downloaded model requires at least one file",
 		})
 	}
 	modelsRoot, err := s.resolveManagedBundleModelsRoot()
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	transferID := strings.TrimSpace(restoredTransferID)
 	if transferID == "" {
@@ -259,9 +262,10 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 			BytesTotal: clampInt64Minimum(spec.totalSizeBytes, 0),
 			Message:    "downloading managed model bundle",
 			Retryable:  true,
+			PlanID:     spec.planID,
 		}, spec)
 		if createErr != nil {
-			return nil, grpcerr.WrapWithReasonCode(
+			return nil, "", grpcerr.WrapWithReasonCode(
 				codes.Unavailable,
 				runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
 				createErr,
@@ -273,7 +277,7 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 		transfer := s.localTransferSummary(transferID)
 		if transfer.GetInstallSessionId() == "" || normalizeTransferKind(transfer.GetSessionKind()) != localTransferKindDownload ||
 			strings.TrimSpace(transfer.GetAssetId()) != modelID || isTerminalTransferState(transfer.GetState()) {
-			return nil, fmt.Errorf("restored managed model transfer %q is unavailable", transferID)
+			return nil, transferID, fmt.Errorf("restored managed model transfer %q is unavailable", transferID)
 		}
 		if _, persistErr := s.mutateLocalTransfer(transferID, true, func(summary *runtimev1.LocalTransferSessionSummary) {
 			summary.Phase = "download"
@@ -282,12 +286,12 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 			summary.ReasonCode = ""
 			summary.Retryable = true
 		}); persistErr != nil {
-			return nil, localTransferPersistenceError(persistErr)
+			return nil, transferID, localTransferPersistenceError(persistErr)
 		}
 	}
 	executorControl := s.transferControl(transferID)
 	if executorControl == nil {
-		return nil, fmt.Errorf("managed model transfer %q has no executor control", transferID)
+		return nil, transferID, fmt.Errorf("managed model transfer %q has no executor control", transferID)
 	}
 	defer func() {
 		s.finishManagedModelDownloadExecutor(transferID, executorControl, resultErr)
@@ -302,11 +306,11 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 			err,
 			grpcerr.ReasonOptions{Message: "downloaded model storage identity is invalid"},
 		)
-		return nil, managedModelTransferTerminalError(failure, s.failTransfer(transferID, err.Error(), false))
+		return nil, transferID, managedModelTransferTerminalError(failure, s.failTransfer(transferID, err.Error(), false))
 	}
 	stagingDir, err := prepareManagedModelDownloadStageDir(modelsRoot, storageID)
 	if err != nil {
-		return nil, managedModelTransferTerminalError(err, s.failTransfer(transferID, err.Error(), false))
+		return nil, transferID, managedModelTransferTerminalError(err, s.failTransfer(transferID, err.Error(), false))
 	}
 
 	success := false
@@ -325,12 +329,12 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 	for index, file := range files {
 		relativeFile, err := normalizeArtifactRelativeFile(file)
 		if err != nil {
-			return nil, managedModelTransferTerminalError(err, s.failTransfer(transferID, err.Error(), false))
+			return nil, transferID, managedModelTransferTerminalError(err, s.failTransfer(transferID, err.Error(), false))
 		}
 		targetPath := filepath.Join(stagingDir, filepath.FromSlash(relativeFile))
 		if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
 			failure := fmt.Errorf("create model file dir %q: %w", relativeFile, err)
-			return nil, managedModelTransferTerminalError(failure, s.failTransfer(transferID, failure.Error(), false))
+			return nil, transferID, managedModelTransferTerminalError(failure, s.failTransfer(transferID, failure.Error(), false))
 		}
 		completedSize, completed, completedErr := inspectCompletedManagedModelDownloadFile(targetPath, expectedModelSHA256(spec.hashes, relativeFile))
 		if completedErr != nil {
@@ -338,7 +342,7 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 			if retryable {
 				preserveStaging = true
 			}
-			return nil, managedModelTransferTerminalError(completedErr, s.failTransfer(transferID, completedErr.Error(), retryable))
+			return nil, transferID, managedModelTransferTerminalError(completedErr, s.failTransfer(transferID, completedErr.Error(), retryable))
 		}
 		if completed {
 			completedBytes += completedSize
@@ -377,7 +381,7 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 			default:
 				persistenceErr = s.failTransfer(transferID, err.Error(), false)
 			}
-			return nil, managedModelTransferTerminalError(err, persistenceErr)
+			return nil, transferID, managedModelTransferTerminalError(err, persistenceErr)
 		}
 		info, statErr := os.Lstat(targetPath)
 		if statErr != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 {
@@ -386,13 +390,13 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 			}
 			preserveStaging = true
 			failure := fmt.Errorf("inspect downloaded model file %q: %w", relativeFile, statErr)
-			return nil, managedModelTransferTerminalError(failure, s.failTransfer(transferID, statErr.Error(), true))
+			return nil, transferID, managedModelTransferTerminalError(failure, s.failTransfer(transferID, statErr.Error(), true))
 		}
 		completedBytes += info.Size()
 	}
 	if bundleTotal > 0 && completedBytes != bundleTotal {
 		err := fmt.Errorf("managed model bundle size mismatch: expected=%d actual=%d", bundleTotal, completedBytes)
-		return nil, managedModelTransferTerminalError(err, s.failTransfer(transferID, err.Error(), false))
+		return nil, transferID, managedModelTransferTerminalError(err, s.failTransfer(transferID, err.Error(), false))
 	}
 	entryFile := strings.TrimSpace(spec.entry)
 	if entryFile == "" && len(files) > 0 {
@@ -406,7 +410,7 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 			err,
 			grpcerr.ReasonOptions{Message: "downloaded model entry is invalid"},
 		)
-		return nil, managedModelTransferTerminalError(failure, s.failTransfer(transferID, err.Error(), false))
+		return nil, transferID, managedModelTransferTerminalError(failure, s.failTransfer(transferID, err.Error(), false))
 	}
 	activation, err := activateManagedModelBundle(modelDir, stagingDir)
 	if err != nil {
@@ -420,13 +424,13 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 		)
 		if quarantineErr != nil {
 			failure := fmt.Errorf("activate managed model bundle: %v; quarantine=%w", err, quarantineErr)
-			return nil, managedModelTransferTerminalError(failure, s.failTransfer(transferID, failure.Error(), false))
+			return nil, transferID, managedModelTransferTerminalError(failure, s.failTransfer(transferID, failure.Error(), false))
 		}
 		failureMessage := fmt.Sprintf("activate managed model bundle: %v", err)
 		if strings.TrimSpace(quarantinePath) != "" {
 			failureMessage = fmt.Sprintf("%s; quarantine=%s", failureMessage, quarantinePath)
 		}
-		return nil, managedModelTransferTerminalError(fmt.Errorf("activate managed model bundle: %w", err), s.failTransfer(transferID, failureMessage, false))
+		return nil, transferID, managedModelTransferTerminalError(fmt.Errorf("activate managed model bundle: %w", err), s.failTransfer(transferID, failureMessage, false))
 	}
 	success = true
 
@@ -483,17 +487,17 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 			}
 		}
 		if rollbackErr != nil {
-			return nil, managedModelTransferTerminalError(err, s.failTransfer(transferID, fmt.Sprintf("%s; rollback=%v", err.Error(), rollbackErr), false))
+			return nil, transferID, managedModelTransferTerminalError(err, s.failTransfer(transferID, fmt.Sprintf("%s; rollback=%v", err.Error(), rollbackErr), false))
 		}
 		if strings.TrimSpace(quarantinePath) != "" {
-			return nil, managedModelTransferTerminalError(err, s.failTransfer(transferID, fmt.Sprintf("%s; quarantine=%s", err.Error(), quarantinePath), false))
+			return nil, transferID, managedModelTransferTerminalError(err, s.failTransfer(transferID, fmt.Sprintf("%s; quarantine=%s", err.Error(), quarantinePath), false))
 		}
-		return nil, managedModelTransferTerminalError(err, s.failTransfer(transferID, err.Error(), false))
+		return nil, transferID, managedModelTransferTerminalError(err, s.failTransfer(transferID, err.Error(), false))
 	}
 	if commitErr := activation.Commit(); commitErr != nil {
 		s.logger.Warn("cleanup managed bundle backup failed after download install", "logical_model_id", logicalModelID, "error", commitErr)
 	}
-	return modelAsset, nil
+	return modelAsset, transferID, nil
 }
 
 func inspectCompletedManagedModelDownloadFile(targetPath string, expectedSHA256 string) (int64, bool, error) {
@@ -553,6 +557,7 @@ func canonicalManagedDownloadedModelSpec(input managedDownloadedModelSpec) (mana
 		hashes:            make(map[string]string),
 		totalSizeBytes:    clampInt64Minimum(input.totalSizeBytes, 0),
 		engineConfig:      toStruct(structToMap(input.engineConfig)),
+		planID:            strings.TrimSpace(input.planID),
 	}
 	if result.modelID == "" || result.repo == "" {
 		return managedDownloadedModelSpec{}, errors.New("managed download spec requires model and repository identity")
@@ -622,6 +627,7 @@ func cloneManagedDownloadedModelSpec(input managedDownloadedModelSpec) managedDo
 		hashes:            cloneStringMap(input.hashes),
 		totalSizeBytes:    input.totalSizeBytes,
 		engineConfig:      toStruct(structToMap(input.engineConfig)),
+		planID:            input.planID,
 	}
 }
 

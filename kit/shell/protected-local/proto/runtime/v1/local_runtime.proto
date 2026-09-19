@@ -140,6 +140,9 @@ message InstallModelFromPlanResponse {
   reserved 1;
   reserved "asset";
   ModelAssetRecord model_asset = 2;
+  // The transfer session that carried this install, so the caller can
+  // correlate progress and recovery without guessing from model names.
+  string install_session_id = 3;
 }
 
 // === Transfers ===
@@ -161,6 +164,11 @@ message LocalTransferSessionSummary {
   bool retryable            = 15;
   string created_at         = 16;
   string updated_at         = 17;
+  // The install plan this transfer carries when it originated from
+  // InstallModelFromPlan; empty for imports. Lets a caller that lost the
+  // unary response or restarted find its exact in-flight or completed
+  // acquisition without name or inventory-order guessing.
+  string plan_id            = 18;
 }
 
 message LocalTransferProgressEvent {
@@ -182,6 +190,9 @@ message LocalTransferProgressEvent {
   bool success              = 17;
   string created_at         = 18;
   string updated_at         = 19;
+  // The install plan this transfer carries when it originated from
+  // InstallModelFromPlan; empty for imports.
+  string plan_id            = 20;
 }
 
 message ListLocalTransfersRequest {}
@@ -225,6 +236,13 @@ message ResolveLocalEnvironmentPlanRequest {
   string runtime_data_root = 4;
   reserved 5, 6, 7, 8, 9;
   reserved "pack_id", "consumer_scope", "asset_id", "local_asset_id", "companion_asset_id", "parent_asset_id", "install_level";
+  // Optional exact saved candidate Loadout. When set, Runtime resolves the
+  // non-model dependencies for that candidate's committed Driver dialect,
+  // recipe, and options without requiring or mutating machine selection; the
+  // candidate may carry legal unresolved model slots. The candidate's
+  // execution-relevant identity and revision bind the resulting plan, so a
+  // material candidate change invalidates it.
+  string candidate_loadout_id = 10;
 }
 
 message ResolveLocalEnvironmentPlanResponse {

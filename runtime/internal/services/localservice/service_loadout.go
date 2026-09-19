@@ -106,7 +106,7 @@ func validateLocalCatalogLoadoutRecipes(local *catalog.LocalProviderCatalog, dri
 }
 
 func (s *Service) restoreLoadouts() error {
-	loadouts, selections, err := s.loadoutStore.Load()
+	loadouts, selections, selectionRevisions, err := s.loadoutStore.Load()
 	if err != nil {
 		return err
 	}
@@ -131,6 +131,10 @@ func (s *Service) restoreLoadouts() error {
 	}
 	s.loadouts = byID
 	s.loadoutSelections = byContract
+	s.loadoutSelectionRevisions = sanitizeLoadoutSelectionRevisions(selectionRevisions)
+	if s.loadoutSelectionRevisions == nil {
+		s.loadoutSelectionRevisions = make(map[string]string)
+	}
 	return nil
 }
 
@@ -470,6 +474,7 @@ func (s *Service) GetMachineLoadouts(_ context.Context, _ *runtimev1.GetMachineL
 	for _, selection := range s.loadoutSelections {
 		selections = append(selections, cloneLoadoutSelection(selection))
 	}
+	selectionRevisions := cloneStringMap(s.loadoutSelectionRevisions)
 	s.mu.RUnlock()
 	rows := make([]*runtimev1.Loadout, 0, len(stored))
 	for _, loadout := range stored {
@@ -491,7 +496,7 @@ func (s *Service) GetMachineLoadouts(_ context.Context, _ *runtimev1.GetMachineL
 			}
 		}
 	}
-	return &runtimev1.GetMachineLoadoutsResponse{Aggregate: &runtimev1.MachineLoadouts{Loadouts: rows, Selections: selections}}, nil
+	return &runtimev1.GetMachineLoadoutsResponse{Aggregate: &runtimev1.MachineLoadouts{Loadouts: rows, Selections: selections, SelectionRevisions: selectionRevisions}}, nil
 }
 
 func (s *Service) GetLoadout(_ context.Context, request *runtimev1.GetLoadoutRequest) (*runtimev1.GetLoadoutResponse, error) {
@@ -542,6 +547,14 @@ func (s *Service) PrepareLoadout(ctx context.Context, request *runtimev1.Prepare
 	if existing != nil && existing.GetCapabilityContract() != contract {
 		return nil, loadoutError(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH, "Loadout capability cannot change", nil)
 	}
+	if expectedRevision := strings.TrimSpace(request.GetExpectedLoadoutRevision()); expectedRevision != "" {
+		if existing == nil {
+			return nil, loadoutError(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONFIG_INVALID, "expected_loadout_revision requires an existing Loadout", nil)
+		}
+		if existing.GetRevision() != expectedRevision {
+			return nil, loadoutError(codes.Aborted, runtimev1.ReasonCode_AI_LOADOUT_CONDITION_CONFLICT, "Loadout revision changed after the caller observed it", map[string]string{"loadout_id": existing.GetLoadoutId()})
+		}
+	}
 	options := cloneStruct(request.GetOptions())
 	if options == nil {
 		options, _ = structpb.NewStruct(recipe.DefaultOptions)
@@ -575,6 +588,11 @@ func (s *Service) PrepareLoadout(ctx context.Context, request *runtimev1.Prepare
 		DisplayName:                     displayName, Provenance: cloneStruct(request.GetProvenance()),
 		CreatedAt: createdAt, UpdatedAt: now.Format(time.RFC3339Nano),
 		RecipeCustody: loadoutRecipeCustodyReferences(recipe),
+	}
+	if existing != nil {
+		// Project the revision the prepare was based on so the caller can bind
+		// its own condition to this exact observed record; Commit rotates it.
+		proposal.Revision = existing.GetRevision()
 	}
 	textBehaviors, behaviorErr := projectLoadoutTextBehaviors(driver, recipe.RecipeID)
 	if behaviorErr != nil {
@@ -673,13 +691,14 @@ func (s *Service) CommitLoadout(ctx context.Context, request *runtimev1.CommitLo
 		}
 	}
 	held.proposal.UpdatedAt = now.Format(time.RFC3339Nano)
+	held.proposal.Revision = "loadout-rev_" + ulid.Make().String()
 	if err := validateStoredLoadout(held.proposal); err != nil {
 		return nil, loadoutError(codes.Internal, runtimev1.ReasonCode_AI_CONFIG_INVALID, err.Error(), nil)
 	}
 	s.mu.Lock()
 	next := s.loadoutRowsReplacingLocked(held.proposal)
 	selections := s.loadoutSelectionRowsLocked()
-	if err := s.loadoutStore.Save(next, selections); err != nil {
+	if err := s.loadoutStore.Save(next, selections, s.loadoutSelectionRevisions); err != nil {
 		s.mu.Unlock()
 		return nil, loadoutPersistenceError(err)
 	}
@@ -697,6 +716,7 @@ func (s *Service) UpdateLoadout(ctx context.Context, request *runtimev1.UpdateLo
 		LoadoutId: request.GetLoadoutId(), CapabilityContract: request.GetCapabilityContract(), RecipeId: request.GetRecipeId(),
 		Options: request.GetOptions(), ModelAxes: request.GetModelAxes(),
 		DisplayName: request.GetDisplayName(), Provenance: request.GetProvenance(),
+		ExpectedLoadoutRevision: request.GetExpectedLoadoutRevision(),
 	})
 	if err != nil {
 		return nil, err
@@ -714,6 +734,9 @@ func (s *Service) SelectLoadout(_ context.Context, request *runtimev1.SelectLoad
 	if contract == "" || !aicapabilities.IsCanonicalCatalogCapability(contract) {
 		return nil, loadoutError(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_SELECTION_INVALID, "capability_contract is required and canonical", nil)
 	}
+	if request.GetExpectNoPriorSelection() && strings.TrimSpace(request.GetExpectedSelectionRevision()) != "" {
+		return nil, loadoutError(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_SELECTION_INVALID, "expect_no_prior_selection and expected_selection_revision are mutually exclusive", nil)
+	}
 	if !request.GetConfirmedMachineImpact() {
 		return nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOADOUT_CONFIRMATION_REQUIRED, "machine-wide impact confirmation is required", nil)
 	}
@@ -721,7 +744,41 @@ func (s *Service) SelectLoadout(_ context.Context, request *runtimev1.SelectLoad
 	defer s.loadoutMutationMu.Unlock()
 	s.mu.RLock()
 	loadout := cloneLoadout(s.loadouts[loadoutID])
+	currentSelection := cloneLoadoutSelection(s.loadoutSelections[contract])
+	currentSelectionRevision := strings.TrimSpace(s.loadoutSelectionRevisions[contract])
 	s.mu.RUnlock()
+	if request.GetExpectNoPriorSelection() && currentSelectionRevision != "" {
+		// A selection revision record exists only after a committed selection,
+		// explicit clear, or selected-Loadout deletion, so its presence means
+		// this capability is no longer first-ever.
+		return &runtimev1.SelectLoadoutResponse{
+			Applied:           false,
+			ReasonCode:        runtimev1.ReasonCode_AI_LOADOUT_CONDITION_CONFLICT,
+			Selection:         currentSelection,
+			SelectionRevision: currentSelectionRevision,
+		}, nil
+	}
+	if expected := strings.TrimSpace(request.GetExpectedSelectionRevision()); expected != "" && expected != currentSelectionRevision {
+		return &runtimev1.SelectLoadoutResponse{
+			Applied:           false,
+			ReasonCode:        runtimev1.ReasonCode_AI_LOADOUT_CONDITION_CONFLICT,
+			Selection:         currentSelection,
+			SelectionRevision: currentSelectionRevision,
+		}, nil
+	}
+	if expected := strings.TrimSpace(request.GetExpectedCandidateRevision()); expected != "" && loadoutID != "" {
+		if loadout == nil {
+			return nil, loadoutError(codes.NotFound, runtimev1.ReasonCode_AI_LOADOUT_NOT_FOUND, "Loadout was not found", nil)
+		}
+		if expected != loadout.GetRevision() {
+			return &runtimev1.SelectLoadoutResponse{
+				Applied:           false,
+				ReasonCode:        runtimev1.ReasonCode_AI_LOADOUT_CONDITION_CONFLICT,
+				Selection:         currentSelection,
+				SelectionRevision: currentSelectionRevision,
+			}, nil
+		}
+	}
 	var selection *runtimev1.LoadoutSelection
 	if loadoutID != "" {
 		if loadout == nil {
@@ -746,7 +803,13 @@ func (s *Service) SelectLoadout(_ context.Context, request *runtimev1.SelectLoad
 	if selection != nil {
 		nextSelections = append(nextSelections, cloneLoadoutSelection(selection))
 	}
-	if err := s.loadoutStore.Save(s.loadoutRowsLocked(), nextSelections); err != nil {
+	// The per-capability selection revision rotates on every committed set and
+	// survives explicit clearing, so a change away and back to the same Loadout
+	// stays distinguishable from no change at all.
+	nextRevision := "loadout-selection-rev_" + ulid.Make().String()
+	nextRevisions := cloneStringMap(s.loadoutSelectionRevisions)
+	nextRevisions[contract] = nextRevision
+	if err := s.loadoutStore.Save(s.loadoutRowsLocked(), nextSelections, nextRevisions); err != nil {
 		s.mu.Unlock()
 		return nil, loadoutPersistenceError(err)
 	}
@@ -755,9 +818,10 @@ func (s *Service) SelectLoadout(_ context.Context, request *runtimev1.SelectLoad
 	} else {
 		s.loadoutSelections[contract] = cloneLoadoutSelection(selection)
 	}
+	s.loadoutSelectionRevisions = nextRevisions
 	s.loadoutCASToken = "loadout-cas_" + ulid.Make().String()
 	s.mu.Unlock()
-	return &runtimev1.SelectLoadoutResponse{Selection: selection}, nil
+	return &runtimev1.SelectLoadoutResponse{Selection: selection, Applied: true, SelectionRevision: nextRevision}, nil
 }
 
 func (s *Service) DeleteLoadout(_ context.Context, request *runtimev1.DeleteLoadoutRequest) (*runtimev1.DeleteLoadoutResponse, error) {
@@ -778,13 +842,20 @@ func (s *Service) DeleteLoadout(_ context.Context, request *runtimev1.DeleteLoad
 	}
 	nextRows := s.loadoutRowsExcludingLocked(loadoutID)
 	nextSelections := s.loadoutSelectionRowsExcludingLocked("", loadoutID)
-	if err := s.loadoutStore.Save(nextRows, nextSelections); err != nil {
+	nextRevisions := cloneStringMap(s.loadoutSelectionRevisions)
+	if selected != "" {
+		// Deleting the selected Loadout clears the selection; the per-capability
+		// revision still rotates so observers can distinguish this change.
+		nextRevisions[selected] = "loadout-selection-rev_" + ulid.Make().String()
+	}
+	if err := s.loadoutStore.Save(nextRows, nextSelections, nextRevisions); err != nil {
 		return nil, loadoutPersistenceError(err)
 	}
 	delete(s.loadouts, loadoutID)
 	if selected != "" {
 		delete(s.loadoutSelections, selected)
 	}
+	s.loadoutSelectionRevisions = nextRevisions
 	s.loadoutCASToken = "loadout-cas_" + ulid.Make().String()
 	return &runtimev1.DeleteLoadoutResponse{}, nil
 }

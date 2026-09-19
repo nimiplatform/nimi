@@ -501,6 +501,10 @@ pub enum ReasonCode {
     AppPackageUninstallFailed = 736,
     AppPackageUpdateUnavailable = 737,
     AppPackageInfoUnavailable = 746,
+    /// A caller-held expected candidate or selection revision no longer matched
+    /// at the mutation boundary. The response carries the unchanged current
+    /// state; no write was applied.
+    AiLoadoutConditionConflict = 747,
     AiFaceReferenceMissing = 738,
     AiFaceReferenceAmbiguous = 739,
     AiFaceTargetMissing = 740,
@@ -861,6 +865,7 @@ impl ReasonCode {
             Self::AppPackageUninstallFailed => "APP_PACKAGE_UNINSTALL_FAILED",
             Self::AppPackageUpdateUnavailable => "APP_PACKAGE_UPDATE_UNAVAILABLE",
             Self::AppPackageInfoUnavailable => "APP_PACKAGE_INFO_UNAVAILABLE",
+            Self::AiLoadoutConditionConflict => "AI_LOADOUT_CONDITION_CONFLICT",
             Self::AiFaceReferenceMissing => "AI_FACE_REFERENCE_MISSING",
             Self::AiFaceReferenceAmbiguous => "AI_FACE_REFERENCE_AMBIGUOUS",
             Self::AiFaceTargetMissing => "AI_FACE_TARGET_MISSING",
@@ -1290,6 +1295,7 @@ impl ReasonCode {
             "APP_PACKAGE_UNINSTALL_FAILED" => Some(Self::AppPackageUninstallFailed),
             "APP_PACKAGE_UPDATE_UNAVAILABLE" => Some(Self::AppPackageUpdateUnavailable),
             "APP_PACKAGE_INFO_UNAVAILABLE" => Some(Self::AppPackageInfoUnavailable),
+            "AI_LOADOUT_CONDITION_CONFLICT" => Some(Self::AiLoadoutConditionConflict),
             "AI_FACE_REFERENCE_MISSING" => Some(Self::AiFaceReferenceMissing),
             "AI_FACE_REFERENCE_AMBIGUOUS" => Some(Self::AiFaceReferenceAmbiguous),
             "AI_FACE_TARGET_MISSING" => Some(Self::AiFaceTargetMissing),
@@ -3543,6 +3549,11 @@ pub struct Loadout {
     pub configured_features: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(message, repeated, tag = "18")]
     pub text_behaviors: ::prost::alloc::vec::Vec<TextBehaviorCapabilityProjection>,
+    /// Runtime-issued opaque per-record revision rotated on every committed
+    /// write. Never accepted from a caller; consumed only as an expected
+    /// condition for candidate updates and selection.
+    #[prost(string, tag = "19")]
+    pub revision: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LoadoutSelection {
@@ -3559,6 +3570,15 @@ pub struct MachineLoadouts {
     pub loadouts: ::prost::alloc::vec::Vec<Loadout>,
     #[prost(message, repeated, tag = "2")]
     pub selections: ::prost::alloc::vec::Vec<LoadoutSelection>,
+    /// Per-capability opaque selection revision, rotated on every selection set
+    /// or clear. Entries survive explicit clearing so change-away-and-back is
+    /// distinguishable; a capability never selected has no entry and compares
+    /// equal to an empty expected revision.
+    #[prost(map = "string, string", tag = "3")]
+    pub selection_revisions: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LoadoutModelAxisInput {
@@ -3688,6 +3708,12 @@ pub struct PrepareLoadoutRequest {
     pub display_name: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "8")]
     pub provenance: ::core::option::Option<::prost_types::Struct>,
+    /// When loadout_id names an existing saved Loadout, Runtime verifies at the
+    /// mutation boundary that the record still carries this revision, covering
+    /// external edits made after the caller's observation (for example during a
+    /// download). Empty performs no caller condition check.
+    #[prost(string, tag = "9")]
+    pub expected_loadout_revision: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PrepareLoadoutResponse {
@@ -3732,6 +3758,9 @@ pub struct UpdateLoadoutRequest {
     pub provenance: ::core::option::Option<::prost_types::Struct>,
     #[prost(bool, tag = "9")]
     pub confirmed_machine_impact: bool,
+    /// Same expected-condition semantics as PrepareLoadoutRequest.
+    #[prost(string, tag = "10")]
+    pub expected_loadout_revision: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateLoadoutResponse {
@@ -3747,11 +3776,38 @@ pub struct SelectLoadoutRequest {
     pub loadout_id: ::prost::alloc::string::String,
     #[prost(bool, tag = "3")]
     pub confirmed_machine_impact: bool,
+    /// Runtime verifies at the mutation boundary that the current selection
+    /// revision for this capability still matches, recognizing
+    /// change-away-and-back. Empty performs no caller condition check; use
+    /// expect_no_prior_selection to assert that no selection ever existed.
+    #[prost(string, tag = "4")]
+    pub expected_selection_revision: ::prost::alloc::string::String,
+    /// When loadout_id is non-empty, Runtime verifies the candidate still
+    /// carries this revision. Empty performs no caller condition check.
+    #[prost(string, tag = "5")]
+    pub expected_candidate_revision: ::prost::alloc::string::String,
+    /// When true, Runtime verifies at the mutation boundary that this capability
+    /// has never been selected or cleared (no selection revision record exists),
+    /// which protects a first-ever selection from a racing first selection by
+    /// another client. Mutually exclusive with a non-empty
+    /// expected_selection_revision.
+    #[prost(bool, tag = "6")]
+    pub expect_no_prior_selection: bool,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SelectLoadoutResponse {
     #[prost(message, optional, tag = "1")]
     pub selection: ::core::option::Option<LoadoutSelection>,
+    /// False when an expected condition no longer matches; selection then
+    /// projects the unchanged current state.
+    #[prost(bool, tag = "2")]
+    pub applied: bool,
+    #[prost(enumeration = "ReasonCode", tag = "3")]
+    pub reason_code: i32,
+    /// The current selection revision after this call: the rotated value on
+    /// success, the observed unchanged value on conflict.
+    #[prost(string, tag = "4")]
+    pub selection_revision: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct DeleteLoadoutRequest {
@@ -9482,6 +9538,14 @@ pub struct LocalEnvironmentPlan {
     pub source_owners: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(bool, tag = "17")]
     pub no_system_mutation: bool,
+    /// The exact saved candidate this plan targets when resolved through
+    /// ResolveLocalEnvironmentPlanRequest.candidate_loadout_id, together with
+    /// the candidate revision observed at resolution. Empty for a plan resolved
+    /// from the current machine selection.
+    #[prost(string, tag = "18")]
+    pub candidate_loadout_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "19")]
+    pub candidate_revision: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalEnvironmentSelectedSourceRecord {
@@ -9839,6 +9903,10 @@ pub struct InstallModelFromPlanRequest {
 pub struct InstallModelFromPlanResponse {
     #[prost(message, optional, tag = "2")]
     pub model_asset: ::core::option::Option<ModelAssetRecord>,
+    /// The transfer session that carried this install, so the caller can
+    /// correlate progress and recovery without guessing from model names.
+    #[prost(string, tag = "3")]
+    pub install_session_id: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalTransferSessionSummary {
@@ -9870,6 +9938,12 @@ pub struct LocalTransferSessionSummary {
     pub created_at: ::prost::alloc::string::String,
     #[prost(string, tag = "17")]
     pub updated_at: ::prost::alloc::string::String,
+    /// The install plan this transfer carries when it originated from
+    /// InstallModelFromPlan; empty for imports. Lets a caller that lost the
+    /// unary response or restarted find its exact in-flight or completed
+    /// acquisition without name or inventory-order guessing.
+    #[prost(string, tag = "18")]
+    pub plan_id: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalTransferProgressEvent {
@@ -9905,6 +9979,10 @@ pub struct LocalTransferProgressEvent {
     pub created_at: ::prost::alloc::string::String,
     #[prost(string, tag = "19")]
     pub updated_at: ::prost::alloc::string::String,
+    /// The install plan this transfer carries when it originated from
+    /// InstallModelFromPlan; empty for imports.
+    #[prost(string, tag = "20")]
+    pub plan_id: ::prost::alloc::string::String,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListLocalTransfersRequest {}
@@ -9953,6 +10031,14 @@ pub struct ResolveLocalEnvironmentPlanRequest {
     pub host_profile: ::core::option::Option<LocalDeviceProfile>,
     #[prost(string, tag = "4")]
     pub runtime_data_root: ::prost::alloc::string::String,
+    /// Optional exact saved candidate Loadout. When set, Runtime resolves the
+    /// non-model dependencies for that candidate's committed Driver dialect,
+    /// recipe, and options without requiring or mutating machine selection; the
+    /// candidate may carry legal unresolved model slots. The candidate's
+    /// execution-relevant identity and revision bind the resulting plan, so a
+    /// material candidate change invalidates it.
+    #[prost(string, tag = "10")]
+    pub candidate_loadout_id: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ResolveLocalEnvironmentPlanResponse {

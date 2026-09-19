@@ -19350,6 +19350,13 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "install_session_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime.proto"
@@ -21621,6 +21628,13 @@
             "repeated": true,
             "optional": false,
             "number": 18
+          },
+          {
+            "name": "revision",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 19
           }
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
@@ -26437,6 +26451,20 @@
             "repeated": false,
             "optional": false,
             "number": 17
+          },
+          {
+            "name": "candidate_loadout_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 18
+          },
+          {
+            "name": "candidate_revision",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 19
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime_device_environment.proto"
@@ -27308,6 +27336,13 @@
             "repeated": false,
             "optional": false,
             "number": 19
+          },
+          {
+            "name": "plan_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 20
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime.proto"
@@ -27412,6 +27447,13 @@
             "repeated": false,
             "optional": false,
             "number": 17
+          },
+          {
+            "name": "plan_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 18
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime.proto"
@@ -27675,6 +27717,14 @@
             "repeated": true,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "selection_revisions",
+            "type": "map",
+            "map_key_type": "string",
+            "map_value_type": "string",
+            "repeated": false,
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
@@ -29581,6 +29631,13 @@
             "repeated": false,
             "optional": false,
             "number": 8
+          },
+          {
+            "name": "expected_loadout_revision",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 9
           }
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
@@ -32026,6 +32083,13 @@
             "repeated": false,
             "optional": false,
             "number": 4
+          },
+          {
+            "name": "candidate_loadout_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 10
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime.proto"
@@ -33482,6 +33546,27 @@
             "repeated": false,
             "optional": false,
             "number": 3
+          },
+          {
+            "name": "expected_selection_revision",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "expected_candidate_revision",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "expect_no_prior_selection",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 6
           }
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
@@ -33495,6 +33580,27 @@
             "repeated": false,
             "optional": false,
             "number": 1
+          },
+          {
+            "name": "applied",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "selection_revision",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
           }
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
@@ -36721,6 +36827,13 @@
             "repeated": false,
             "optional": false,
             "number": 9
+          },
+          {
+            "name": "expected_loadout_revision",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 10
           }
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
@@ -40344,6 +40457,7 @@
           "APP_PACKAGE_UNINSTALL_FAILED",
           "APP_PACKAGE_UPDATE_UNAVAILABLE",
           "APP_PACKAGE_INFO_UNAVAILABLE",
+          "AI_LOADOUT_CONDITION_CONFLICT",
           "AI_FACE_REFERENCE_MISSING",
           "AI_FACE_REFERENCE_AMBIGUOUS",
           "AI_FACE_TARGET_MISSING",

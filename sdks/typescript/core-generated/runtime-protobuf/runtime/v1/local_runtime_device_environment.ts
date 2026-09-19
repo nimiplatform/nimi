@@ -263,6 +263,19 @@ export interface LocalEnvironmentPlan {
      * @generated from protobuf field: bool no_system_mutation = 17
      */
     noSystemMutation: boolean;
+    /**
+     * The exact saved candidate this plan targets when resolved through
+     * ResolveLocalEnvironmentPlanRequest.candidate_loadout_id, together with
+     * the candidate revision observed at resolution. Empty for a plan resolved
+     * from the current machine selection.
+     *
+     * @generated from protobuf field: string candidate_loadout_id = 18
+     */
+    candidateLoadoutId: string;
+    /**
+     * @generated from protobuf field: string candidate_revision = 19
+     */
+    candidateRevision: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalEnvironmentSelectedSourceRecord
@@ -1031,7 +1044,9 @@ class LocalEnvironmentPlan$Type extends MessageType<LocalEnvironmentPlan> {
             { no: 14, name: "aggregate_size_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
             { no: 15, name: "storage_categories", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 16, name: "source_owners", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 17, name: "no_system_mutation", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 17, name: "no_system_mutation", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 18, name: "candidate_loadout_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 19, name: "candidate_revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<LocalEnvironmentPlan>): LocalEnvironmentPlan {
@@ -1053,6 +1068,8 @@ class LocalEnvironmentPlan$Type extends MessageType<LocalEnvironmentPlan> {
         message.storageCategories = [];
         message.sourceOwners = [];
         message.noSystemMutation = false;
+        message.candidateLoadoutId = "";
+        message.candidateRevision = "";
         if (value !== undefined)
             reflectionMergePartial<LocalEnvironmentPlan>(this, message, value);
         return message;
@@ -1112,6 +1129,12 @@ class LocalEnvironmentPlan$Type extends MessageType<LocalEnvironmentPlan> {
                     break;
                 case /* bool no_system_mutation */ 17:
                     message.noSystemMutation = reader.bool();
+                    break;
+                case /* string candidate_loadout_id */ 18:
+                    message.candidateLoadoutId = reader.string();
+                    break;
+                case /* string candidate_revision */ 19:
+                    message.candidateRevision = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1176,6 +1199,12 @@ class LocalEnvironmentPlan$Type extends MessageType<LocalEnvironmentPlan> {
         /* bool no_system_mutation = 17; */
         if (message.noSystemMutation !== false)
             writer.tag(17, WireType.Varint).bool(message.noSystemMutation);
+        /* string candidate_loadout_id = 18; */
+        if (message.candidateLoadoutId !== "")
+            writer.tag(18, WireType.LengthDelimited).string(message.candidateLoadoutId);
+        /* string candidate_revision = 19; */
+        if (message.candidateRevision !== "")
+            writer.tag(19, WireType.LengthDelimited).string(message.candidateRevision);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

@@ -110,6 +110,7 @@ type Service struct {
 	loadoutMutationMu                       sync.Mutex
 	loadouts                                map[string]*runtimev1.Loadout
 	loadoutSelections                       map[string]*runtimev1.LoadoutSelection
+	loadoutSelectionRevisions               map[string]string
 	loadoutStore                            loadoutStore
 	heldLoadoutPrepares                     map[string]heldLoadoutPrepare
 	loadoutCASToken                         string
@@ -273,6 +274,7 @@ func newService(logger *slog.Logger, store *auditlog.Store, stateStorePath strin
 		localEnvironmentJobCancels:              make(map[string]context.CancelFunc),
 		loadouts:                                make(map[string]*runtimev1.Loadout),
 		loadoutSelections:                       make(map[string]*runtimev1.LoadoutSelection),
+		loadoutSelectionRevisions:              make(map[string]string),
 		loadoutStore:                            newDiskLoadoutStore(resolvedStateStorePath),
 		heldLoadoutPrepares:                     make(map[string]heldLoadoutPrepare),
 		loadoutCASToken:                         "loadout-cas_" + ulid.Make().String(),

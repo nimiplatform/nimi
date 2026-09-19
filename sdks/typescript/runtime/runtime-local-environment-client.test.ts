@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  ModelAssetCatalogVerification,
   ModelAssetSourceAvailability,
   ModelAssetSourceFreshness,
   ReasonCode,
@@ -184,4 +185,86 @@ test('model card reads preserve Runtime content and propagate read failures', as
     getCatalogModelCard: async () => { throw failure; },
   } as unknown as NimiRuntimeLocalEnvironmentRpc });
   await assert.rejects(failed.getCatalogModelCard({ modelLocator: 'model_ref' }), failure);
+});
+
+test('environment plan resolution forwards the saved candidate selector and projects candidate identity', async () => {
+  const requests: Record<string, unknown>[] = [];
+  const local = {
+    async resolveLocalEnvironmentPlan(request: Record<string, unknown>) {
+      requests.push(request);
+      return {
+        plan: {
+          planId: 'plan_env_1', packId: 'pack_1', productLabel: '', hostProfileId: 'host_1',
+          platformTuple: 'windows/amd64', runtimeDataRoot: '', consumerScope: '', cloudOnlyImpact: '',
+          state: 'ready', reasonCode: '', dependencies: [], requiredDependencyFamilies: [],
+          aggregateSizeKnown: false, aggregateSizeBytes: '0', storageCategories: [], sourceOwners: [],
+          noSystemMutation: true,
+          candidateLoadoutId: typeof request.candidateLoadoutId === 'string' ? request.candidateLoadoutId : '',
+          candidateRevision: request.candidateLoadoutId ? 'rev_loadout_1' : '',
+        },
+      };
+    },
+  } as unknown as NimiRuntimeLocalEnvironmentRpc;
+  const client = createNimiRuntimeLocalEnvironmentClient({ local });
+
+  const candidatePlan = await client.resolveEnvironmentPlan({
+    capabilityContract: 'text.generate',
+    candidateLoadoutId: 'loadout_1',
+  });
+  assert.equal(requests[0]?.candidateLoadoutId, 'loadout_1');
+  assert.equal(candidatePlan.candidateLoadoutId, 'loadout_1');
+  assert.equal(candidatePlan.candidateRevision, 'rev_loadout_1');
+
+  const machinePlan = await client.resolveEnvironmentPlan({ capabilityContract: 'text.generate' });
+  assert.equal(requests[1]?.candidateLoadoutId, '');
+  assert.equal(machinePlan.candidateLoadoutId, undefined);
+  assert.equal(machinePlan.candidateRevision, undefined);
+});
+
+test('transfer projections carry plan identity and install returns its transfer session', async () => {
+  const summary = {
+    installSessionId: 'session_1', assetId: 'model_01', sessionKind: 'download', phase: 'downloading',
+    state: 'running', bytesReceived: '10', bytesTotal: '42', speedBytesPerSec: '5', etaSeconds: '6',
+    message: '', reasonCode: '', retryable: false,
+    createdAt: '2026-08-15T00:00:00Z', updatedAt: '2026-08-15T00:01:00Z',
+    planId: 'plan_1',
+  };
+  const modelAsset = {
+    modelAssetId: 'model_01', contentId: `sha256:${'a'.repeat(64)}`, displayName: 'Model', entry: 'model.gguf',
+    files: [], totalSizeBytes: '42', contentVerified: true,
+    catalogVerification: ModelAssetCatalogVerification.MATCHED, unclassified: false,
+    boundedFingerprint: undefined, provenance: undefined,
+    createdAt: '2026-08-15T00:00:00Z', updatedAt: '2026-08-15T00:00:00Z',
+    latestIntegrityCheckedAt: '2026-08-15T00:00:00Z', duplicateContent: false, containsNonExecutableCode: false,
+  };
+  const local = {
+    async listLocalTransfers() {
+      return { transfers: [summary, { ...summary, installSessionId: 'session_2', planId: '' }] };
+    },
+    async watchLocalTransfers() {
+      return (async function* () {
+        yield { ...summary, done: false, success: false };
+      })();
+    },
+    async installModelFromPlan() {
+      return { modelAsset, installSessionId: 'session_install_1' };
+    },
+  } as unknown as NimiRuntimeLocalEnvironmentRpc;
+  const client = createNimiRuntimeLocalEnvironmentClient({ local });
+
+  const transfers = await client.listTransfers();
+  assert.equal(transfers[0]?.planId, 'plan_1');
+  assert.equal(transfers[1]?.planId, undefined);
+
+  const events: Array<{ installSessionId: string; planId?: string }> = [];
+  const stop = await client.watchTransferProgress((event) => { events.push(event); });
+  await new Promise((resolve) => setImmediate(resolve));
+  await new Promise((resolve) => setImmediate(resolve));
+  stop();
+  assert.equal(events[0]?.installSessionId, 'session_1');
+  assert.equal(events[0]?.planId, 'plan_1');
+
+  const installed = await client.install('plan_1', { caller: 'core' });
+  assert.equal(installed.modelAsset.modelAssetId, 'model_01');
+  assert.equal(installed.installSessionId, 'session_install_1');
 });

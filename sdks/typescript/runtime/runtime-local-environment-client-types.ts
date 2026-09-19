@@ -192,6 +192,7 @@ export interface NimiRuntimeLocalTransferProgressEvent {
   readonly success: boolean;
   readonly createdAt?: string;
   readonly updatedAt?: string;
+  readonly planId?: string;
 }
 
 export interface NimiRuntimeLocalTransferSessionSummary {
@@ -209,11 +210,17 @@ export interface NimiRuntimeLocalTransferSessionSummary {
   readonly retryable: boolean;
   readonly createdAt: string;
   readonly updatedAt: string;
+  readonly planId?: string;
 }
 
 export interface NimiRuntimeLocalTransferAccepted {
   readonly installSessionId: string;
   readonly modelId: string;
+}
+
+export interface NimiRuntimeLocalInstallResult {
+  readonly modelAsset: NimiRuntimeModelAssetRecord;
+  readonly installSessionId: string;
 }
 
 export interface NimiRuntimeLocalEnvironmentPlanDependency {
@@ -249,6 +256,8 @@ export interface NimiRuntimeLocalEnvironmentPlan {
   readonly storageCategories: readonly string[];
   readonly sourceOwners: readonly string[];
   readonly noSystemMutation: boolean;
+  readonly candidateLoadoutId?: string;
+  readonly candidateRevision?: string;
 }
 
 export interface NimiRuntimeLocalEnvironmentDependencyJob {
@@ -307,6 +316,7 @@ export interface NimiRuntimeLocalResolveInstallPlanInput {
 export interface NimiRuntimeLocalEnvironmentPlanInput {
   readonly capabilityContract: string;
   readonly runtimeDataRoot?: string;
+  readonly candidateLoadoutId?: string;
 }
 
 export interface NimiRuntimeLocalEnvironmentPlanApplyInput {
@@ -389,7 +399,7 @@ export interface NimiRuntimeLocalEnvironmentClient {
   resolveInstallPlan(input: NimiRuntimeLocalResolveInstallPlanInput): Promise<NimiRuntimeLocalInstallPlanDescriptor>;
   resolveOfferInstallPlan(offerRef: string): Promise<NimiRuntimeLocalInstallPlanDescriptor>;
   install(planId: string, options?: NimiRuntimeLocalWriteOptions):
-    Promise<NimiRuntimeModelAssetRecord>;
+    Promise<NimiRuntimeLocalInstallResult>;
   listTransfers(): Promise<readonly NimiRuntimeLocalTransferSessionSummary[]>;
   pauseTransfer(installSessionId: string, options?: NimiRuntimeLocalWriteOptions):
     Promise<NimiRuntimeLocalTransferSessionSummary>;

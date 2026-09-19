@@ -1153,8 +1153,12 @@ type Loadout struct {
 	ImplementationSupportedFeatures []string                            `protobuf:"bytes,16,rep,name=implementation_supported_features,json=implementationSupportedFeatures,proto3" json:"implementation_supported_features,omitempty"`
 	ConfiguredFeatures              []string                            `protobuf:"bytes,17,rep,name=configured_features,json=configuredFeatures,proto3" json:"configured_features,omitempty"`
 	TextBehaviors                   []*TextBehaviorCapabilityProjection `protobuf:"bytes,18,rep,name=text_behaviors,json=textBehaviors,proto3" json:"text_behaviors,omitempty"`
-	unknownFields                   protoimpl.UnknownFields
-	sizeCache                       protoimpl.SizeCache
+	// Runtime-issued opaque per-record revision rotated on every committed
+	// write. Never accepted from a caller; consumed only as an expected
+	// condition for candidate updates and selection.
+	Revision      string `protobuf:"bytes,19,opt,name=revision,proto3" json:"revision,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Loadout) Reset() {
@@ -1306,6 +1310,13 @@ func (x *Loadout) GetTextBehaviors() []*TextBehaviorCapabilityProjection {
 	return nil
 }
 
+func (x *Loadout) GetRevision() string {
+	if x != nil {
+		return x.Revision
+	}
+	return ""
+}
+
 type LoadoutSelection struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
 	CapabilityContract string                 `protobuf:"bytes,1,opt,name=capability_contract,json=capabilityContract,proto3" json:"capability_contract,omitempty"`
@@ -1367,11 +1378,16 @@ func (x *LoadoutSelection) GetEffectiveDefaults() *structpb.Struct {
 }
 
 type MachineLoadouts struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Loadouts      []*Loadout             `protobuf:"bytes,1,rep,name=loadouts,proto3" json:"loadouts,omitempty"`
-	Selections    []*LoadoutSelection    `protobuf:"bytes,2,rep,name=selections,proto3" json:"selections,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	Loadouts   []*Loadout             `protobuf:"bytes,1,rep,name=loadouts,proto3" json:"loadouts,omitempty"`
+	Selections []*LoadoutSelection    `protobuf:"bytes,2,rep,name=selections,proto3" json:"selections,omitempty"`
+	// Per-capability opaque selection revision, rotated on every selection set
+	// or clear. Entries survive explicit clearing so change-away-and-back is
+	// distinguishable; a capability never selected has no entry and compares
+	// equal to an empty expected revision.
+	SelectionRevisions map[string]string `protobuf:"bytes,3,rep,name=selection_revisions,json=selectionRevisions,proto3" json:"selection_revisions,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *MachineLoadouts) Reset() {
@@ -1414,6 +1430,13 @@ func (x *MachineLoadouts) GetLoadouts() []*Loadout {
 func (x *MachineLoadouts) GetSelections() []*LoadoutSelection {
 	if x != nil {
 		return x.Selections
+	}
+	return nil
+}
+
+func (x *MachineLoadouts) GetSelectionRevisions() map[string]string {
+	if x != nil {
+		return x.SelectionRevisions
 	}
 	return nil
 }
@@ -2119,8 +2142,13 @@ type PrepareLoadoutRequest struct {
 	ModelAxes          []*LoadoutModelAxisInput `protobuf:"bytes,6,rep,name=model_axes,json=modelAxes,proto3" json:"model_axes,omitempty"`
 	DisplayName        string                   `protobuf:"bytes,7,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	Provenance         *structpb.Struct         `protobuf:"bytes,8,opt,name=provenance,proto3" json:"provenance,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	// When loadout_id names an existing saved Loadout, Runtime verifies at the
+	// mutation boundary that the record still carries this revision, covering
+	// external edits made after the caller's observation (for example during a
+	// download). Empty performs no caller condition check.
+	ExpectedLoadoutRevision string `protobuf:"bytes,9,opt,name=expected_loadout_revision,json=expectedLoadoutRevision,proto3" json:"expected_loadout_revision,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *PrepareLoadoutRequest) Reset() {
@@ -2200,6 +2228,13 @@ func (x *PrepareLoadoutRequest) GetProvenance() *structpb.Struct {
 		return x.Provenance
 	}
 	return nil
+}
+
+func (x *PrepareLoadoutRequest) GetExpectedLoadoutRevision() string {
+	if x != nil {
+		return x.ExpectedLoadoutRevision
+	}
+	return ""
 }
 
 type PrepareLoadoutResponse struct {
@@ -2378,8 +2413,10 @@ type UpdateLoadoutRequest struct {
 	DisplayName            string                   `protobuf:"bytes,7,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	Provenance             *structpb.Struct         `protobuf:"bytes,8,opt,name=provenance,proto3" json:"provenance,omitempty"`
 	ConfirmedMachineImpact bool                     `protobuf:"varint,9,opt,name=confirmed_machine_impact,json=confirmedMachineImpact,proto3" json:"confirmed_machine_impact,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	// Same expected-condition semantics as PrepareLoadoutRequest.
+	ExpectedLoadoutRevision string `protobuf:"bytes,10,opt,name=expected_loadout_revision,json=expectedLoadoutRevision,proto3" json:"expected_loadout_revision,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *UpdateLoadoutRequest) Reset() {
@@ -2468,6 +2505,13 @@ func (x *UpdateLoadoutRequest) GetConfirmedMachineImpact() bool {
 	return false
 }
 
+func (x *UpdateLoadoutRequest) GetExpectedLoadoutRevision() string {
+	if x != nil {
+		return x.ExpectedLoadoutRevision
+	}
+	return ""
+}
+
 type UpdateLoadoutResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Loadout       *Loadout               `protobuf:"bytes,1,opt,name=loadout,proto3" json:"loadout,omitempty"`
@@ -2518,6 +2562,20 @@ type SelectLoadoutRequest struct {
 	// Empty explicitly clears this contract's selected relation.
 	LoadoutId              string `protobuf:"bytes,2,opt,name=loadout_id,json=loadoutId,proto3" json:"loadout_id,omitempty"`
 	ConfirmedMachineImpact bool   `protobuf:"varint,3,opt,name=confirmed_machine_impact,json=confirmedMachineImpact,proto3" json:"confirmed_machine_impact,omitempty"`
+	// Runtime verifies at the mutation boundary that the current selection
+	// revision for this capability still matches, recognizing
+	// change-away-and-back. Empty performs no caller condition check; use
+	// expect_no_prior_selection to assert that no selection ever existed.
+	ExpectedSelectionRevision string `protobuf:"bytes,4,opt,name=expected_selection_revision,json=expectedSelectionRevision,proto3" json:"expected_selection_revision,omitempty"`
+	// When loadout_id is non-empty, Runtime verifies the candidate still
+	// carries this revision. Empty performs no caller condition check.
+	ExpectedCandidateRevision string `protobuf:"bytes,5,opt,name=expected_candidate_revision,json=expectedCandidateRevision,proto3" json:"expected_candidate_revision,omitempty"`
+	// When true, Runtime verifies at the mutation boundary that this capability
+	// has never been selected or cleared (no selection revision record exists),
+	// which protects a first-ever selection from a racing first selection by
+	// another client. Mutually exclusive with a non-empty
+	// expected_selection_revision.
+	ExpectNoPriorSelection bool `protobuf:"varint,6,opt,name=expect_no_prior_selection,json=expectNoPriorSelection,proto3" json:"expect_no_prior_selection,omitempty"`
 	unknownFields          protoimpl.UnknownFields
 	sizeCache              protoimpl.SizeCache
 }
@@ -2573,11 +2631,39 @@ func (x *SelectLoadoutRequest) GetConfirmedMachineImpact() bool {
 	return false
 }
 
+func (x *SelectLoadoutRequest) GetExpectedSelectionRevision() string {
+	if x != nil {
+		return x.ExpectedSelectionRevision
+	}
+	return ""
+}
+
+func (x *SelectLoadoutRequest) GetExpectedCandidateRevision() string {
+	if x != nil {
+		return x.ExpectedCandidateRevision
+	}
+	return ""
+}
+
+func (x *SelectLoadoutRequest) GetExpectNoPriorSelection() bool {
+	if x != nil {
+		return x.ExpectNoPriorSelection
+	}
+	return false
+}
+
 type SelectLoadoutResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Selection     *LoadoutSelection      `protobuf:"bytes,1,opt,name=selection,proto3" json:"selection,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Selection *LoadoutSelection      `protobuf:"bytes,1,opt,name=selection,proto3" json:"selection,omitempty"`
+	// False when an expected condition no longer matches; selection then
+	// projects the unchanged current state.
+	Applied    bool       `protobuf:"varint,2,opt,name=applied,proto3" json:"applied,omitempty"`
+	ReasonCode ReasonCode `protobuf:"varint,3,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
+	// The current selection revision after this call: the rotated value on
+	// success, the observed unchanged value on conflict.
+	SelectionRevision string `protobuf:"bytes,4,opt,name=selection_revision,json=selectionRevision,proto3" json:"selection_revision,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *SelectLoadoutResponse) Reset() {
@@ -2615,6 +2701,27 @@ func (x *SelectLoadoutResponse) GetSelection() *LoadoutSelection {
 		return x.Selection
 	}
 	return nil
+}
+
+func (x *SelectLoadoutResponse) GetApplied() bool {
+	if x != nil {
+		return x.Applied
+	}
+	return false
+}
+
+func (x *SelectLoadoutResponse) GetReasonCode() ReasonCode {
+	if x != nil {
+		return x.ReasonCode
+	}
+	return ReasonCode_REASON_CODE_UNSPECIFIED
+}
+
+func (x *SelectLoadoutResponse) GetSelectionRevision() string {
+	if x != nil {
+		return x.SelectionRevision
+	}
+	return ""
 }
 
 type DeleteLoadoutRequest struct {
@@ -4884,7 +4991,7 @@ const file_runtime_v1_capability_configuration_proto_rawDesc = "" +
 	"\x1dLoadoutRecipeCustodyReference\x12\x1d\n" +
 	"\n" +
 	"custody_id\x18\x01 \x01(\tR\tcustodyId\x12.\n" +
-	"\x13expected_content_id\x18\x02 \x01(\tR\x11expectedContentId\"\xdc\a\n" +
+	"\x13expected_content_id\x18\x02 \x01(\tR\x11expectedContentId\"\xf8\a\n" +
 	"\aLoadout\x12\x1d\n" +
 	"\n" +
 	"loadout_id\x18\x01 \x01(\tR\tloadoutId\x12/\n" +
@@ -4909,18 +5016,23 @@ const file_runtime_v1_capability_configuration_proto_rawDesc = "" +
 	"updated_at\x18\x0f \x01(\tR\tupdatedAt\x12J\n" +
 	"!implementation_supported_features\x18\x10 \x03(\tR\x1fimplementationSupportedFeatures\x12/\n" +
 	"\x13configured_features\x18\x11 \x03(\tR\x12configuredFeatures\x12X\n" +
-	"\x0etext_behaviors\x18\x12 \x03(\v21.nimi.runtime.v1.TextBehaviorCapabilityProjectionR\rtextBehaviorsJ\x04\b\t\x10\n" +
+	"\x0etext_behaviors\x18\x12 \x03(\v21.nimi.runtime.v1.TextBehaviorCapabilityProjectionR\rtextBehaviors\x12\x1a\n" +
+	"\brevision\x18\x13 \x01(\tR\brevisionJ\x04\b\t\x10\n" +
 	"R\x12supported_features\"\xaa\x01\n" +
 	"\x10LoadoutSelection\x12/\n" +
 	"\x13capability_contract\x18\x01 \x01(\tR\x12capabilityContract\x12\x1d\n" +
 	"\n" +
 	"loadout_id\x18\x02 \x01(\tR\tloadoutId\x12F\n" +
-	"\x12effective_defaults\x18\x03 \x01(\v2\x17.google.protobuf.StructR\x11effectiveDefaults\"\x8a\x01\n" +
+	"\x12effective_defaults\x18\x03 \x01(\v2\x17.google.protobuf.StructR\x11effectiveDefaults\"\xbc\x02\n" +
 	"\x0fMachineLoadouts\x124\n" +
 	"\bloadouts\x18\x01 \x03(\v2\x18.nimi.runtime.v1.LoadoutR\bloadouts\x12A\n" +
 	"\n" +
 	"selections\x18\x02 \x03(\v2!.nimi.runtime.v1.LoadoutSelectionR\n" +
-	"selections\"\x86\x01\n" +
+	"selections\x12i\n" +
+	"\x13selection_revisions\x18\x03 \x03(\v28.nimi.runtime.v1.MachineLoadouts.SelectionRevisionsEntryR\x12selectionRevisions\x1aE\n" +
+	"\x17SelectionRevisionsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x86\x01\n" +
 	"\x15LoadoutModelAxisInput\x12\x17\n" +
 	"\aslot_id\x18\x01 \x01(\tR\x06slotId\x12$\n" +
 	"\x0emodel_asset_id\x18\x02 \x01(\tR\fmodelAssetId\x12.\n" +
@@ -4972,7 +5084,7 @@ const file_runtime_v1_capability_configuration_proto_rawDesc = "" +
 	"\n" +
 	"loadout_id\x18\x01 \x01(\tR\tloadoutId\"H\n" +
 	"\x12GetLoadoutResponse\x122\n" +
-	"\aloadout\x18\x01 \x01(\v2\x18.nimi.runtime.v1.LoadoutR\aloadout\"\xf4\x02\n" +
+	"\aloadout\x18\x01 \x01(\v2\x18.nimi.runtime.v1.LoadoutR\aloadout\"\xb0\x03\n" +
 	"\x15PrepareLoadoutRequest\x12\x1d\n" +
 	"\n" +
 	"loadout_id\x18\x01 \x01(\tR\tloadoutId\x12/\n" +
@@ -4984,7 +5096,8 @@ const file_runtime_v1_capability_configuration_proto_rawDesc = "" +
 	"\fdisplay_name\x18\a \x01(\tR\vdisplayName\x127\n" +
 	"\n" +
 	"provenance\x18\b \x01(\v2\x17.google.protobuf.StructR\n" +
-	"provenanceJ\x04\b\x05\x10\x06R\x12supported_features\"\xdd\x01\n" +
+	"provenance\x12:\n" +
+	"\x19expected_loadout_revision\x18\t \x01(\tR\x17expectedLoadoutRevisionJ\x04\b\x05\x10\x06R\x12supported_features\"\xdd\x01\n" +
 	"\x16PrepareLoadoutResponse\x12\x1d\n" +
 	"\n" +
 	"prepare_id\x18\x01 \x01(\tR\tprepareId\x12C\n" +
@@ -4997,7 +5110,7 @@ const file_runtime_v1_capability_configuration_proto_rawDesc = "" +
 	"prepare_id\x18\x01 \x01(\tR\tprepareId\x128\n" +
 	"\x18confirmed_machine_impact\x18\x02 \x01(\bR\x16confirmedMachineImpact\"K\n" +
 	"\x15CommitLoadoutResponse\x122\n" +
-	"\aloadout\x18\x01 \x01(\v2\x18.nimi.runtime.v1.LoadoutR\aloadout\"\xad\x03\n" +
+	"\aloadout\x18\x01 \x01(\v2\x18.nimi.runtime.v1.LoadoutR\aloadout\"\xe9\x03\n" +
 	"\x14UpdateLoadoutRequest\x12\x1d\n" +
 	"\n" +
 	"loadout_id\x18\x01 \x01(\tR\tloadoutId\x12/\n" +
@@ -5010,16 +5123,25 @@ const file_runtime_v1_capability_configuration_proto_rawDesc = "" +
 	"\n" +
 	"provenance\x18\b \x01(\v2\x17.google.protobuf.StructR\n" +
 	"provenance\x128\n" +
-	"\x18confirmed_machine_impact\x18\t \x01(\bR\x16confirmedMachineImpactJ\x04\b\x05\x10\x06R\x12supported_features\"K\n" +
+	"\x18confirmed_machine_impact\x18\t \x01(\bR\x16confirmedMachineImpact\x12:\n" +
+	"\x19expected_loadout_revision\x18\n" +
+	" \x01(\tR\x17expectedLoadoutRevisionJ\x04\b\x05\x10\x06R\x12supported_features\"K\n" +
 	"\x15UpdateLoadoutResponse\x122\n" +
-	"\aloadout\x18\x01 \x01(\v2\x18.nimi.runtime.v1.LoadoutR\aloadout\"\xa0\x01\n" +
+	"\aloadout\x18\x01 \x01(\v2\x18.nimi.runtime.v1.LoadoutR\aloadout\"\xdb\x02\n" +
 	"\x14SelectLoadoutRequest\x12/\n" +
 	"\x13capability_contract\x18\x01 \x01(\tR\x12capabilityContract\x12\x1d\n" +
 	"\n" +
 	"loadout_id\x18\x02 \x01(\tR\tloadoutId\x128\n" +
-	"\x18confirmed_machine_impact\x18\x03 \x01(\bR\x16confirmedMachineImpact\"X\n" +
+	"\x18confirmed_machine_impact\x18\x03 \x01(\bR\x16confirmedMachineImpact\x12>\n" +
+	"\x1bexpected_selection_revision\x18\x04 \x01(\tR\x19expectedSelectionRevision\x12>\n" +
+	"\x1bexpected_candidate_revision\x18\x05 \x01(\tR\x19expectedCandidateRevision\x129\n" +
+	"\x19expect_no_prior_selection\x18\x06 \x01(\bR\x16expectNoPriorSelection\"\xdf\x01\n" +
 	"\x15SelectLoadoutResponse\x12?\n" +
-	"\tselection\x18\x01 \x01(\v2!.nimi.runtime.v1.LoadoutSelectionR\tselection\"o\n" +
+	"\tselection\x18\x01 \x01(\v2!.nimi.runtime.v1.LoadoutSelectionR\tselection\x12\x18\n" +
+	"\aapplied\x18\x02 \x01(\bR\aapplied\x12<\n" +
+	"\vreason_code\x18\x03 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
+	"reasonCode\x12-\n" +
+	"\x12selection_revision\x18\x04 \x01(\tR\x11selectionRevision\"o\n" +
 	"\x14DeleteLoadoutRequest\x12\x1d\n" +
 	"\n" +
 	"loadout_id\x18\x01 \x01(\tR\tloadoutId\x128\n" +
@@ -5238,7 +5360,7 @@ func file_runtime_v1_capability_configuration_proto_rawDescGZIP() []byte {
 }
 
 var file_runtime_v1_capability_configuration_proto_enumTypes = make([]protoimpl.EnumInfo, 9)
-var file_runtime_v1_capability_configuration_proto_msgTypes = make([]protoimpl.MessageInfo, 62)
+var file_runtime_v1_capability_configuration_proto_msgTypes = make([]protoimpl.MessageInfo, 63)
 var file_runtime_v1_capability_configuration_proto_goTypes = []any{
 	(LocalCapabilityInterpretability)(0),            // 0: nimi.runtime.v1.LocalCapabilityInterpretability
 	(LocalCapabilityRequirementResolution)(0),       // 1: nimi.runtime.v1.LocalCapabilityRequirementResolution
@@ -5311,121 +5433,124 @@ var file_runtime_v1_capability_configuration_proto_goTypes = []any{
 	(*OverwriteAppAIConfigRequest)(nil),             // 68: nimi.runtime.v1.OverwriteAppAIConfigRequest
 	(*OverwriteAppAIConfigResponse)(nil),            // 69: nimi.runtime.v1.OverwriteAppAIConfigResponse
 	(*LoadoutRecipeCustodyDescriptor)(nil),          // 70: nimi.runtime.v1.LoadoutRecipeCustodyDescriptor
-	(ToolSpecKind)(0),                               // 71: nimi.runtime.v1.ToolSpecKind
-	(ToolChoiceMode)(0),                             // 72: nimi.runtime.v1.ToolChoiceMode
-	(TextBehaviorKind)(0),                           // 73: nimi.runtime.v1.TextBehaviorKind
-	(*structpb.Struct)(nil),                         // 74: google.protobuf.Struct
-	(ReasonCode)(0),                                 // 75: nimi.runtime.v1.ReasonCode
-	(*ModelAssetMarketCandidate)(nil),               // 76: nimi.runtime.v1.ModelAssetMarketCandidate
-	(LocalRecommendationApplicability)(0),           // 77: nimi.runtime.v1.LocalRecommendationApplicability
+	nil,                                             // 71: nimi.runtime.v1.MachineLoadouts.SelectionRevisionsEntry
+	(ToolSpecKind)(0),                               // 72: nimi.runtime.v1.ToolSpecKind
+	(ToolChoiceMode)(0),                             // 73: nimi.runtime.v1.ToolChoiceMode
+	(TextBehaviorKind)(0),                           // 74: nimi.runtime.v1.TextBehaviorKind
+	(*structpb.Struct)(nil),                         // 75: google.protobuf.Struct
+	(ReasonCode)(0),                                 // 76: nimi.runtime.v1.ReasonCode
+	(*ModelAssetMarketCandidate)(nil),               // 77: nimi.runtime.v1.ModelAssetMarketCandidate
+	(LocalRecommendationApplicability)(0),           // 78: nimi.runtime.v1.LocalRecommendationApplicability
 }
 var file_runtime_v1_capability_configuration_proto_depIdxs = []int32{
-	71,  // 0: nimi.runtime.v1.ToolUseCapabilityProjection.supported_tool_spec_kinds:type_name -> nimi.runtime.v1.ToolSpecKind
-	72,  // 1: nimi.runtime.v1.ToolUseCapabilityProjection.supported_tool_choice_modes:type_name -> nimi.runtime.v1.ToolChoiceMode
-	73,  // 2: nimi.runtime.v1.TextBehaviorCapabilityProjection.kind:type_name -> nimi.runtime.v1.TextBehaviorKind
+	72,  // 0: nimi.runtime.v1.ToolUseCapabilityProjection.supported_tool_spec_kinds:type_name -> nimi.runtime.v1.ToolSpecKind
+	73,  // 1: nimi.runtime.v1.ToolUseCapabilityProjection.supported_tool_choice_modes:type_name -> nimi.runtime.v1.ToolChoiceMode
+	74,  // 2: nimi.runtime.v1.TextBehaviorCapabilityProjection.kind:type_name -> nimi.runtime.v1.TextBehaviorKind
 	6,   // 3: nimi.runtime.v1.TextBehaviorCapabilityProjection.configuration_state:type_name -> nimi.runtime.v1.TextBehaviorConfigurationState
 	5,   // 4: nimi.runtime.v1.TextBehaviorCapabilityProjection.reasons:type_name -> nimi.runtime.v1.LocalCapabilityReason
 	10,  // 5: nimi.runtime.v1.TextBehaviorCapabilityProjection.implementation_tool_use:type_name -> nimi.runtime.v1.ToolUseCapabilityProjection
 	10,  // 6: nimi.runtime.v1.TextBehaviorCapabilityProjection.configured_tool_use:type_name -> nimi.runtime.v1.ToolUseCapabilityProjection
 	4,   // 7: nimi.runtime.v1.LocalCapabilityRequirement.role:type_name -> nimi.runtime.v1.LocalCapabilityRequirementRole
 	2,   // 8: nimi.runtime.v1.LocalCapabilityRequirement.policy:type_name -> nimi.runtime.v1.LocalCapabilityRequirementPolicy
-	74,  // 9: nimi.runtime.v1.LocalCapabilityRequirement.compatibility_constraints:type_name -> google.protobuf.Struct
+	75,  // 9: nimi.runtime.v1.LocalCapabilityRequirement.compatibility_constraints:type_name -> google.protobuf.Struct
 	3,   // 10: nimi.runtime.v1.LocalCapabilityRequirement.presence:type_name -> nimi.runtime.v1.LocalCapabilityRequirementPresence
-	75,  // 11: nimi.runtime.v1.LoadoutModelAxis.reasons:type_name -> nimi.runtime.v1.ReasonCode
+	76,  // 11: nimi.runtime.v1.LoadoutModelAxis.reasons:type_name -> nimi.runtime.v1.ReasonCode
 	3,   // 12: nimi.runtime.v1.LoadoutModelAxis.presence:type_name -> nimi.runtime.v1.LocalCapabilityRequirementPresence
 	1,   // 13: nimi.runtime.v1.LoadoutModelAxis.resolution:type_name -> nimi.runtime.v1.LocalCapabilityRequirementResolution
 	9,   // 14: nimi.runtime.v1.Loadout.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
-	74,  // 15: nimi.runtime.v1.Loadout.options:type_name -> google.protobuf.Struct
+	75,  // 15: nimi.runtime.v1.Loadout.options:type_name -> google.protobuf.Struct
 	14,  // 16: nimi.runtime.v1.Loadout.model_axes:type_name -> nimi.runtime.v1.LoadoutModelAxis
 	15,  // 17: nimi.runtime.v1.Loadout.recipe_custody:type_name -> nimi.runtime.v1.LoadoutRecipeCustodyReference
 	7,   // 18: nimi.runtime.v1.Loadout.validation_state:type_name -> nimi.runtime.v1.LoadoutValidationState
-	75,  // 19: nimi.runtime.v1.Loadout.reasons:type_name -> nimi.runtime.v1.ReasonCode
-	74,  // 20: nimi.runtime.v1.Loadout.provenance:type_name -> google.protobuf.Struct
+	76,  // 19: nimi.runtime.v1.Loadout.reasons:type_name -> nimi.runtime.v1.ReasonCode
+	75,  // 20: nimi.runtime.v1.Loadout.provenance:type_name -> google.protobuf.Struct
 	11,  // 21: nimi.runtime.v1.Loadout.text_behaviors:type_name -> nimi.runtime.v1.TextBehaviorCapabilityProjection
-	74,  // 22: nimi.runtime.v1.LoadoutSelection.effective_defaults:type_name -> google.protobuf.Struct
+	75,  // 22: nimi.runtime.v1.LoadoutSelection.effective_defaults:type_name -> google.protobuf.Struct
 	16,  // 23: nimi.runtime.v1.MachineLoadouts.loadouts:type_name -> nimi.runtime.v1.Loadout
 	17,  // 24: nimi.runtime.v1.MachineLoadouts.selections:type_name -> nimi.runtime.v1.LoadoutSelection
-	76,  // 25: nimi.runtime.v1.LoadoutRecipeOfferDescriptor.candidate:type_name -> nimi.runtime.v1.ModelAssetMarketCandidate
-	77,  // 26: nimi.runtime.v1.LoadoutRecipeOfferDescriptor.applicability:type_name -> nimi.runtime.v1.LocalRecommendationApplicability
-	75,  // 27: nimi.runtime.v1.LoadoutRecipeOfferDescriptor.reasons:type_name -> nimi.runtime.v1.ReasonCode
-	74,  // 28: nimi.runtime.v1.LoadoutRecipeSlotDescriptor.model_contract:type_name -> google.protobuf.Struct
-	3,   // 29: nimi.runtime.v1.LoadoutRecipeSlotDescriptor.presence:type_name -> nimi.runtime.v1.LocalCapabilityRequirementPresence
-	21,  // 30: nimi.runtime.v1.LoadoutRecipeSlotDescriptor.offers:type_name -> nimi.runtime.v1.LoadoutRecipeOfferDescriptor
-	77,  // 31: nimi.runtime.v1.LoadoutRecipeSlotDescriptor.applicability:type_name -> nimi.runtime.v1.LocalRecommendationApplicability
-	75,  // 32: nimi.runtime.v1.LoadoutRecipeSlotDescriptor.reasons:type_name -> nimi.runtime.v1.ReasonCode
-	9,   // 33: nimi.runtime.v1.LoadoutRecipeDescriptor.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
-	74,  // 34: nimi.runtime.v1.LoadoutRecipeDescriptor.default_options:type_name -> google.protobuf.Struct
-	22,  // 35: nimi.runtime.v1.LoadoutRecipeDescriptor.slots:type_name -> nimi.runtime.v1.LoadoutRecipeSlotDescriptor
-	70,  // 36: nimi.runtime.v1.LoadoutRecipeDescriptor.custody:type_name -> nimi.runtime.v1.LoadoutRecipeCustodyDescriptor
-	77,  // 37: nimi.runtime.v1.LoadoutRecipeDescriptor.applicability:type_name -> nimi.runtime.v1.LocalRecommendationApplicability
-	75,  // 38: nimi.runtime.v1.LoadoutRecipeDescriptor.reasons:type_name -> nimi.runtime.v1.ReasonCode
-	23,  // 39: nimi.runtime.v1.ListLoadoutRecipesResponse.recipes:type_name -> nimi.runtime.v1.LoadoutRecipeDescriptor
-	18,  // 40: nimi.runtime.v1.GetMachineLoadoutsResponse.aggregate:type_name -> nimi.runtime.v1.MachineLoadouts
-	16,  // 41: nimi.runtime.v1.GetLoadoutResponse.loadout:type_name -> nimi.runtime.v1.Loadout
-	74,  // 42: nimi.runtime.v1.PrepareLoadoutRequest.options:type_name -> google.protobuf.Struct
-	19,  // 43: nimi.runtime.v1.PrepareLoadoutRequest.model_axes:type_name -> nimi.runtime.v1.LoadoutModelAxisInput
-	74,  // 44: nimi.runtime.v1.PrepareLoadoutRequest.provenance:type_name -> google.protobuf.Struct
-	16,  // 45: nimi.runtime.v1.PrepareLoadoutResponse.proposed_loadout:type_name -> nimi.runtime.v1.Loadout
-	20,  // 46: nimi.runtime.v1.PrepareLoadoutResponse.impact:type_name -> nimi.runtime.v1.LoadoutImpactProjection
-	16,  // 47: nimi.runtime.v1.CommitLoadoutResponse.loadout:type_name -> nimi.runtime.v1.Loadout
-	74,  // 48: nimi.runtime.v1.UpdateLoadoutRequest.options:type_name -> google.protobuf.Struct
-	19,  // 49: nimi.runtime.v1.UpdateLoadoutRequest.model_axes:type_name -> nimi.runtime.v1.LoadoutModelAxisInput
-	74,  // 50: nimi.runtime.v1.UpdateLoadoutRequest.provenance:type_name -> google.protobuf.Struct
-	16,  // 51: nimi.runtime.v1.UpdateLoadoutResponse.loadout:type_name -> nimi.runtime.v1.Loadout
-	17,  // 52: nimi.runtime.v1.SelectLoadoutResponse.selection:type_name -> nimi.runtime.v1.LoadoutSelection
-	3,   // 53: nimi.runtime.v1.LoadoutEffectiveModelAxisIdentity.presence:type_name -> nimi.runtime.v1.LocalCapabilityRequirementPresence
-	9,   // 54: nimi.runtime.v1.LoadoutEffectiveInputIdentity.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
-	74,  // 55: nimi.runtime.v1.LoadoutEffectiveInputIdentity.options:type_name -> google.protobuf.Struct
-	40,  // 56: nimi.runtime.v1.LoadoutEffectiveInputIdentity.model_axes:type_name -> nimi.runtime.v1.LoadoutEffectiveModelAxisIdentity
-	15,  // 57: nimi.runtime.v1.LoadoutEffectiveInputIdentity.recipe_custody:type_name -> nimi.runtime.v1.LoadoutRecipeCustodyReference
-	73,  // 58: nimi.runtime.v1.LoadoutEffectiveInputIdentity.admitted_text_behaviors:type_name -> nimi.runtime.v1.TextBehaviorKind
-	42,  // 59: nimi.runtime.v1.AIConfigOwner.app:type_name -> nimi.runtime.v1.AIConfigAppOwner
-	43,  // 60: nimi.runtime.v1.AIConfigOwner.runtime_local_agent_subsystem:type_name -> nimi.runtime.v1.AIConfigRuntimeLocalAgentSubsystemOwner
-	9,   // 61: nimi.runtime.v1.AIConfigCloudIntent.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
-	74,  // 62: nimi.runtime.v1.AIConfigCloudIntent.provider_model_target:type_name -> google.protobuf.Struct
-	74,  // 63: nimi.runtime.v1.AIConfigCapabilityIntent.defaults:type_name -> google.protobuf.Struct
-	45,  // 64: nimi.runtime.v1.AIConfigCapabilityIntent.local:type_name -> nimi.runtime.v1.AIConfigLocalIntent
-	46,  // 65: nimi.runtime.v1.AIConfigCapabilityIntent.cloud:type_name -> nimi.runtime.v1.AIConfigCloudIntent
-	44,  // 66: nimi.runtime.v1.AIConfig.owner:type_name -> nimi.runtime.v1.AIConfigOwner
-	47,  // 67: nimi.runtime.v1.AIConfig.capabilities:type_name -> nimi.runtime.v1.AIConfigCapabilityIntent
-	9,   // 68: nimi.runtime.v1.AIConfigLocalResourceProjection.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
-	8,   // 69: nimi.runtime.v1.AIConfigLocalResourceProjection.state:type_name -> nimi.runtime.v1.AIConfigEffectiveState
-	11,  // 70: nimi.runtime.v1.AIConfigLocalResourceProjection.text_behaviors:type_name -> nimi.runtime.v1.TextBehaviorCapabilityProjection
-	49,  // 71: nimi.runtime.v1.AIConfigLocalResourceProjection.reference_audio_input:type_name -> nimi.runtime.v1.VoiceReferenceInputCapabilities
-	8,   // 72: nimi.runtime.v1.AIConfigCloudConnectorProjection.state:type_name -> nimi.runtime.v1.AIConfigEffectiveState
-	9,   // 73: nimi.runtime.v1.AIConfigCloudTargetProjection.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
-	74,  // 74: nimi.runtime.v1.AIConfigCloudTargetProjection.provider_model_target:type_name -> google.protobuf.Struct
-	8,   // 75: nimi.runtime.v1.AIConfigCloudTargetProjection.state:type_name -> nimi.runtime.v1.AIConfigEffectiveState
-	49,  // 76: nimi.runtime.v1.AIConfigCloudTargetProjection.reference_audio_input:type_name -> nimi.runtime.v1.VoiceReferenceInputCapabilities
-	51,  // 77: nimi.runtime.v1.AIConfigCloudResourceProjection.connector:type_name -> nimi.runtime.v1.AIConfigCloudConnectorProjection
-	52,  // 78: nimi.runtime.v1.AIConfigCloudResourceProjection.target:type_name -> nimi.runtime.v1.AIConfigCloudTargetProjection
-	8,   // 79: nimi.runtime.v1.AIConfigEffectiveSelection.state:type_name -> nimi.runtime.v1.AIConfigEffectiveState
-	50,  // 80: nimi.runtime.v1.AIConfigEffectiveSelection.local:type_name -> nimi.runtime.v1.AIConfigLocalResourceProjection
-	53,  // 81: nimi.runtime.v1.AIConfigEffectiveSelection.cloud:type_name -> nimi.runtime.v1.AIConfigCloudResourceProjection
-	50,  // 82: nimi.runtime.v1.AIConfigLocalLoadoutOptions.options:type_name -> nimi.runtime.v1.AIConfigLocalResourceProjection
-	51,  // 83: nimi.runtime.v1.AIConfigCloudConnectorOptions.options:type_name -> nimi.runtime.v1.AIConfigCloudConnectorProjection
-	52,  // 84: nimi.runtime.v1.AIConfigCloudTargetOptions.options:type_name -> nimi.runtime.v1.AIConfigCloudTargetProjection
-	62,  // 85: nimi.runtime.v1.AppAIConfigPresetVoiceOptions.options:type_name -> nimi.runtime.v1.AppAIConfigPresetVoiceOption
-	55,  // 86: nimi.runtime.v1.ListAppAIConfigOptionsRequest.local_loadouts:type_name -> nimi.runtime.v1.AIConfigLocalLoadoutOptionsQuery
-	57,  // 87: nimi.runtime.v1.ListAppAIConfigOptionsRequest.cloud_connectors:type_name -> nimi.runtime.v1.AIConfigCloudConnectorOptionsQuery
-	59,  // 88: nimi.runtime.v1.ListAppAIConfigOptionsRequest.cloud_targets:type_name -> nimi.runtime.v1.AIConfigCloudTargetOptionsQuery
-	61,  // 89: nimi.runtime.v1.ListAppAIConfigOptionsRequest.preset_voices:type_name -> nimi.runtime.v1.AppAIConfigPresetVoiceOptionsQuery
-	44,  // 90: nimi.runtime.v1.ListAppAIConfigOptionsRequest.owner:type_name -> nimi.runtime.v1.AIConfigOwner
-	56,  // 91: nimi.runtime.v1.ListAppAIConfigOptionsResponse.local_loadouts:type_name -> nimi.runtime.v1.AIConfigLocalLoadoutOptions
-	58,  // 92: nimi.runtime.v1.ListAppAIConfigOptionsResponse.cloud_connectors:type_name -> nimi.runtime.v1.AIConfigCloudConnectorOptions
-	60,  // 93: nimi.runtime.v1.ListAppAIConfigOptionsResponse.cloud_targets:type_name -> nimi.runtime.v1.AIConfigCloudTargetOptions
-	63,  // 94: nimi.runtime.v1.ListAppAIConfigOptionsResponse.preset_voices:type_name -> nimi.runtime.v1.AppAIConfigPresetVoiceOptions
-	44,  // 95: nimi.runtime.v1.GetAppAIConfigRequest.owner:type_name -> nimi.runtime.v1.AIConfigOwner
-	48,  // 96: nimi.runtime.v1.GetAppAIConfigResponse.config:type_name -> nimi.runtime.v1.AIConfig
-	54,  // 97: nimi.runtime.v1.GetAppAIConfigResponse.effective_selections:type_name -> nimi.runtime.v1.AIConfigEffectiveSelection
-	48,  // 98: nimi.runtime.v1.OverwriteAppAIConfigRequest.config:type_name -> nimi.runtime.v1.AIConfig
-	48,  // 99: nimi.runtime.v1.OverwriteAppAIConfigResponse.config:type_name -> nimi.runtime.v1.AIConfig
-	75,  // 100: nimi.runtime.v1.OverwriteAppAIConfigResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	101, // [101:101] is the sub-list for method output_type
-	101, // [101:101] is the sub-list for method input_type
-	101, // [101:101] is the sub-list for extension type_name
-	101, // [101:101] is the sub-list for extension extendee
-	0,   // [0:101] is the sub-list for field type_name
+	71,  // 25: nimi.runtime.v1.MachineLoadouts.selection_revisions:type_name -> nimi.runtime.v1.MachineLoadouts.SelectionRevisionsEntry
+	77,  // 26: nimi.runtime.v1.LoadoutRecipeOfferDescriptor.candidate:type_name -> nimi.runtime.v1.ModelAssetMarketCandidate
+	78,  // 27: nimi.runtime.v1.LoadoutRecipeOfferDescriptor.applicability:type_name -> nimi.runtime.v1.LocalRecommendationApplicability
+	76,  // 28: nimi.runtime.v1.LoadoutRecipeOfferDescriptor.reasons:type_name -> nimi.runtime.v1.ReasonCode
+	75,  // 29: nimi.runtime.v1.LoadoutRecipeSlotDescriptor.model_contract:type_name -> google.protobuf.Struct
+	3,   // 30: nimi.runtime.v1.LoadoutRecipeSlotDescriptor.presence:type_name -> nimi.runtime.v1.LocalCapabilityRequirementPresence
+	21,  // 31: nimi.runtime.v1.LoadoutRecipeSlotDescriptor.offers:type_name -> nimi.runtime.v1.LoadoutRecipeOfferDescriptor
+	78,  // 32: nimi.runtime.v1.LoadoutRecipeSlotDescriptor.applicability:type_name -> nimi.runtime.v1.LocalRecommendationApplicability
+	76,  // 33: nimi.runtime.v1.LoadoutRecipeSlotDescriptor.reasons:type_name -> nimi.runtime.v1.ReasonCode
+	9,   // 34: nimi.runtime.v1.LoadoutRecipeDescriptor.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
+	75,  // 35: nimi.runtime.v1.LoadoutRecipeDescriptor.default_options:type_name -> google.protobuf.Struct
+	22,  // 36: nimi.runtime.v1.LoadoutRecipeDescriptor.slots:type_name -> nimi.runtime.v1.LoadoutRecipeSlotDescriptor
+	70,  // 37: nimi.runtime.v1.LoadoutRecipeDescriptor.custody:type_name -> nimi.runtime.v1.LoadoutRecipeCustodyDescriptor
+	78,  // 38: nimi.runtime.v1.LoadoutRecipeDescriptor.applicability:type_name -> nimi.runtime.v1.LocalRecommendationApplicability
+	76,  // 39: nimi.runtime.v1.LoadoutRecipeDescriptor.reasons:type_name -> nimi.runtime.v1.ReasonCode
+	23,  // 40: nimi.runtime.v1.ListLoadoutRecipesResponse.recipes:type_name -> nimi.runtime.v1.LoadoutRecipeDescriptor
+	18,  // 41: nimi.runtime.v1.GetMachineLoadoutsResponse.aggregate:type_name -> nimi.runtime.v1.MachineLoadouts
+	16,  // 42: nimi.runtime.v1.GetLoadoutResponse.loadout:type_name -> nimi.runtime.v1.Loadout
+	75,  // 43: nimi.runtime.v1.PrepareLoadoutRequest.options:type_name -> google.protobuf.Struct
+	19,  // 44: nimi.runtime.v1.PrepareLoadoutRequest.model_axes:type_name -> nimi.runtime.v1.LoadoutModelAxisInput
+	75,  // 45: nimi.runtime.v1.PrepareLoadoutRequest.provenance:type_name -> google.protobuf.Struct
+	16,  // 46: nimi.runtime.v1.PrepareLoadoutResponse.proposed_loadout:type_name -> nimi.runtime.v1.Loadout
+	20,  // 47: nimi.runtime.v1.PrepareLoadoutResponse.impact:type_name -> nimi.runtime.v1.LoadoutImpactProjection
+	16,  // 48: nimi.runtime.v1.CommitLoadoutResponse.loadout:type_name -> nimi.runtime.v1.Loadout
+	75,  // 49: nimi.runtime.v1.UpdateLoadoutRequest.options:type_name -> google.protobuf.Struct
+	19,  // 50: nimi.runtime.v1.UpdateLoadoutRequest.model_axes:type_name -> nimi.runtime.v1.LoadoutModelAxisInput
+	75,  // 51: nimi.runtime.v1.UpdateLoadoutRequest.provenance:type_name -> google.protobuf.Struct
+	16,  // 52: nimi.runtime.v1.UpdateLoadoutResponse.loadout:type_name -> nimi.runtime.v1.Loadout
+	17,  // 53: nimi.runtime.v1.SelectLoadoutResponse.selection:type_name -> nimi.runtime.v1.LoadoutSelection
+	76,  // 54: nimi.runtime.v1.SelectLoadoutResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	3,   // 55: nimi.runtime.v1.LoadoutEffectiveModelAxisIdentity.presence:type_name -> nimi.runtime.v1.LocalCapabilityRequirementPresence
+	9,   // 56: nimi.runtime.v1.LoadoutEffectiveInputIdentity.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
+	75,  // 57: nimi.runtime.v1.LoadoutEffectiveInputIdentity.options:type_name -> google.protobuf.Struct
+	40,  // 58: nimi.runtime.v1.LoadoutEffectiveInputIdentity.model_axes:type_name -> nimi.runtime.v1.LoadoutEffectiveModelAxisIdentity
+	15,  // 59: nimi.runtime.v1.LoadoutEffectiveInputIdentity.recipe_custody:type_name -> nimi.runtime.v1.LoadoutRecipeCustodyReference
+	74,  // 60: nimi.runtime.v1.LoadoutEffectiveInputIdentity.admitted_text_behaviors:type_name -> nimi.runtime.v1.TextBehaviorKind
+	42,  // 61: nimi.runtime.v1.AIConfigOwner.app:type_name -> nimi.runtime.v1.AIConfigAppOwner
+	43,  // 62: nimi.runtime.v1.AIConfigOwner.runtime_local_agent_subsystem:type_name -> nimi.runtime.v1.AIConfigRuntimeLocalAgentSubsystemOwner
+	9,   // 63: nimi.runtime.v1.AIConfigCloudIntent.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
+	75,  // 64: nimi.runtime.v1.AIConfigCloudIntent.provider_model_target:type_name -> google.protobuf.Struct
+	75,  // 65: nimi.runtime.v1.AIConfigCapabilityIntent.defaults:type_name -> google.protobuf.Struct
+	45,  // 66: nimi.runtime.v1.AIConfigCapabilityIntent.local:type_name -> nimi.runtime.v1.AIConfigLocalIntent
+	46,  // 67: nimi.runtime.v1.AIConfigCapabilityIntent.cloud:type_name -> nimi.runtime.v1.AIConfigCloudIntent
+	44,  // 68: nimi.runtime.v1.AIConfig.owner:type_name -> nimi.runtime.v1.AIConfigOwner
+	47,  // 69: nimi.runtime.v1.AIConfig.capabilities:type_name -> nimi.runtime.v1.AIConfigCapabilityIntent
+	9,   // 70: nimi.runtime.v1.AIConfigLocalResourceProjection.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
+	8,   // 71: nimi.runtime.v1.AIConfigLocalResourceProjection.state:type_name -> nimi.runtime.v1.AIConfigEffectiveState
+	11,  // 72: nimi.runtime.v1.AIConfigLocalResourceProjection.text_behaviors:type_name -> nimi.runtime.v1.TextBehaviorCapabilityProjection
+	49,  // 73: nimi.runtime.v1.AIConfigLocalResourceProjection.reference_audio_input:type_name -> nimi.runtime.v1.VoiceReferenceInputCapabilities
+	8,   // 74: nimi.runtime.v1.AIConfigCloudConnectorProjection.state:type_name -> nimi.runtime.v1.AIConfigEffectiveState
+	9,   // 75: nimi.runtime.v1.AIConfigCloudTargetProjection.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
+	75,  // 76: nimi.runtime.v1.AIConfigCloudTargetProjection.provider_model_target:type_name -> google.protobuf.Struct
+	8,   // 77: nimi.runtime.v1.AIConfigCloudTargetProjection.state:type_name -> nimi.runtime.v1.AIConfigEffectiveState
+	49,  // 78: nimi.runtime.v1.AIConfigCloudTargetProjection.reference_audio_input:type_name -> nimi.runtime.v1.VoiceReferenceInputCapabilities
+	51,  // 79: nimi.runtime.v1.AIConfigCloudResourceProjection.connector:type_name -> nimi.runtime.v1.AIConfigCloudConnectorProjection
+	52,  // 80: nimi.runtime.v1.AIConfigCloudResourceProjection.target:type_name -> nimi.runtime.v1.AIConfigCloudTargetProjection
+	8,   // 81: nimi.runtime.v1.AIConfigEffectiveSelection.state:type_name -> nimi.runtime.v1.AIConfigEffectiveState
+	50,  // 82: nimi.runtime.v1.AIConfigEffectiveSelection.local:type_name -> nimi.runtime.v1.AIConfigLocalResourceProjection
+	53,  // 83: nimi.runtime.v1.AIConfigEffectiveSelection.cloud:type_name -> nimi.runtime.v1.AIConfigCloudResourceProjection
+	50,  // 84: nimi.runtime.v1.AIConfigLocalLoadoutOptions.options:type_name -> nimi.runtime.v1.AIConfigLocalResourceProjection
+	51,  // 85: nimi.runtime.v1.AIConfigCloudConnectorOptions.options:type_name -> nimi.runtime.v1.AIConfigCloudConnectorProjection
+	52,  // 86: nimi.runtime.v1.AIConfigCloudTargetOptions.options:type_name -> nimi.runtime.v1.AIConfigCloudTargetProjection
+	62,  // 87: nimi.runtime.v1.AppAIConfigPresetVoiceOptions.options:type_name -> nimi.runtime.v1.AppAIConfigPresetVoiceOption
+	55,  // 88: nimi.runtime.v1.ListAppAIConfigOptionsRequest.local_loadouts:type_name -> nimi.runtime.v1.AIConfigLocalLoadoutOptionsQuery
+	57,  // 89: nimi.runtime.v1.ListAppAIConfigOptionsRequest.cloud_connectors:type_name -> nimi.runtime.v1.AIConfigCloudConnectorOptionsQuery
+	59,  // 90: nimi.runtime.v1.ListAppAIConfigOptionsRequest.cloud_targets:type_name -> nimi.runtime.v1.AIConfigCloudTargetOptionsQuery
+	61,  // 91: nimi.runtime.v1.ListAppAIConfigOptionsRequest.preset_voices:type_name -> nimi.runtime.v1.AppAIConfigPresetVoiceOptionsQuery
+	44,  // 92: nimi.runtime.v1.ListAppAIConfigOptionsRequest.owner:type_name -> nimi.runtime.v1.AIConfigOwner
+	56,  // 93: nimi.runtime.v1.ListAppAIConfigOptionsResponse.local_loadouts:type_name -> nimi.runtime.v1.AIConfigLocalLoadoutOptions
+	58,  // 94: nimi.runtime.v1.ListAppAIConfigOptionsResponse.cloud_connectors:type_name -> nimi.runtime.v1.AIConfigCloudConnectorOptions
+	60,  // 95: nimi.runtime.v1.ListAppAIConfigOptionsResponse.cloud_targets:type_name -> nimi.runtime.v1.AIConfigCloudTargetOptions
+	63,  // 96: nimi.runtime.v1.ListAppAIConfigOptionsResponse.preset_voices:type_name -> nimi.runtime.v1.AppAIConfigPresetVoiceOptions
+	44,  // 97: nimi.runtime.v1.GetAppAIConfigRequest.owner:type_name -> nimi.runtime.v1.AIConfigOwner
+	48,  // 98: nimi.runtime.v1.GetAppAIConfigResponse.config:type_name -> nimi.runtime.v1.AIConfig
+	54,  // 99: nimi.runtime.v1.GetAppAIConfigResponse.effective_selections:type_name -> nimi.runtime.v1.AIConfigEffectiveSelection
+	48,  // 100: nimi.runtime.v1.OverwriteAppAIConfigRequest.config:type_name -> nimi.runtime.v1.AIConfig
+	48,  // 101: nimi.runtime.v1.OverwriteAppAIConfigResponse.config:type_name -> nimi.runtime.v1.AIConfig
+	76,  // 102: nimi.runtime.v1.OverwriteAppAIConfigResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	103, // [103:103] is the sub-list for method output_type
+	103, // [103:103] is the sub-list for method input_type
+	103, // [103:103] is the sub-list for extension type_name
+	103, // [103:103] is the sub-list for extension extendee
+	0,   // [0:103] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_capability_configuration_proto_init() }
@@ -5465,7 +5590,7 @@ func file_runtime_v1_capability_configuration_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_capability_configuration_proto_rawDesc), len(file_runtime_v1_capability_configuration_proto_rawDesc)),
 			NumEnums:      9,
-			NumMessages:   62,
+			NumMessages:   63,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

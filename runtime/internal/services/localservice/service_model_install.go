@@ -388,7 +388,7 @@ func (s *Service) InstallModelFromPlan(ctx context.Context, req *runtimev1.Insta
 			return nil, grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, err, grpcerr.ReasonOptions{Message: "install plan model_type is invalid"})
 		}
 	}
-	record, err := s.installManagedDownloadedModel(ctx, managedDownloadedModelSpec{
+	record, installSessionID, err := s.installManagedDownloadedModelWithTransfer(ctx, managedDownloadedModelSpec{
 		modelID:           defaultString(plan.GetTemplateId(), defaultString(plan.GetItemId(), plan.GetModelId())),
 		displayName:       plan.GetModelId(),
 		catalogAssetID:    plan.GetItemId(),
@@ -403,7 +403,8 @@ func (s *Service) InstallModelFromPlan(ctx context.Context, req *runtimev1.Insta
 		revision:          plan.GetRevision(),
 		hashes:            cloneStringMap(plan.GetHashes()),
 		totalSizeBytes:    plan.GetTotalSizeBytes(),
-	})
+		planID:            plan.GetPlanId(),
+	}, "")
 	if err != nil {
 		return nil, modelInstallRPCError(err)
 	}
@@ -412,7 +413,7 @@ func (s *Service) InstallModelFromPlan(ctx context.Context, req *runtimev1.Insta
 			Message: "install plan produced no ModelAsset payload",
 		})
 	}
-	return &runtimev1.InstallModelFromPlanResponse{ModelAsset: record}, nil
+	return &runtimev1.InstallModelFromPlanResponse{ModelAsset: record, InstallSessionId: installSessionID}, nil
 }
 
 func modelInstallRPCError(err error) error {

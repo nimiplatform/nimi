@@ -596,8 +596,14 @@ type LocalEnvironmentPlan struct {
 	StorageCategories          []string                          `protobuf:"bytes,15,rep,name=storage_categories,json=storageCategories,proto3" json:"storage_categories,omitempty"`
 	SourceOwners               []string                          `protobuf:"bytes,16,rep,name=source_owners,json=sourceOwners,proto3" json:"source_owners,omitempty"`
 	NoSystemMutation           bool                              `protobuf:"varint,17,opt,name=no_system_mutation,json=noSystemMutation,proto3" json:"no_system_mutation,omitempty"`
-	unknownFields              protoimpl.UnknownFields
-	sizeCache                  protoimpl.SizeCache
+	// The exact saved candidate this plan targets when resolved through
+	// ResolveLocalEnvironmentPlanRequest.candidate_loadout_id, together with
+	// the candidate revision observed at resolution. Empty for a plan resolved
+	// from the current machine selection.
+	CandidateLoadoutId string `protobuf:"bytes,18,opt,name=candidate_loadout_id,json=candidateLoadoutId,proto3" json:"candidate_loadout_id,omitempty"`
+	CandidateRevision  string `protobuf:"bytes,19,opt,name=candidate_revision,json=candidateRevision,proto3" json:"candidate_revision,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *LocalEnvironmentPlan) Reset() {
@@ -747,6 +753,20 @@ func (x *LocalEnvironmentPlan) GetNoSystemMutation() bool {
 		return x.NoSystemMutation
 	}
 	return false
+}
+
+func (x *LocalEnvironmentPlan) GetCandidateLoadoutId() string {
+	if x != nil {
+		return x.CandidateLoadoutId
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentPlan) GetCandidateRevision() string {
+	if x != nil {
+		return x.CandidateRevision
+	}
+	return ""
 }
 
 type LocalEnvironmentSelectedSourceRecord struct {
@@ -1264,7 +1284,7 @@ const file_runtime_v1_local_runtime_device_environment_proto_rawDesc = "" +
 	" \x01(\tR\n" +
 	"reasonCode\x12\x16\n" +
 	"\x06detail\x18\v \x01(\tR\x06detail\x12%\n" +
-	"\x0econsumer_scope\x18\f \x01(\tR\rconsumerScope\"\xef\x05\n" +
+	"\x0econsumer_scope\x18\f \x01(\tR\rconsumerScope\"\xd0\x06\n" +
 	"\x14LocalEnvironmentPlan\x12\x17\n" +
 	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12\x17\n" +
 	"\apack_id\x18\x02 \x01(\tR\x06packId\x12#\n" +
@@ -1284,7 +1304,9 @@ const file_runtime_v1_local_runtime_device_environment_proto_rawDesc = "" +
 	"\x14aggregate_size_bytes\x18\x0e \x01(\x03R\x12aggregateSizeBytes\x12-\n" +
 	"\x12storage_categories\x18\x0f \x03(\tR\x11storageCategories\x12#\n" +
 	"\rsource_owners\x18\x10 \x03(\tR\fsourceOwners\x12,\n" +
-	"\x12no_system_mutation\x18\x11 \x01(\bR\x10noSystemMutation\"\x97\x06\n" +
+	"\x12no_system_mutation\x18\x11 \x01(\bR\x10noSystemMutation\x120\n" +
+	"\x14candidate_loadout_id\x18\x12 \x01(\tR\x12candidateLoadoutId\x12-\n" +
+	"\x12candidate_revision\x18\x13 \x01(\tR\x11candidateRevision\"\x97\x06\n" +
 	"$LocalEnvironmentSelectedSourceRecord\x12\x1b\n" +
 	"\trecord_id\x18\x01 \x01(\tR\brecordId\x12+\n" +
 	"\x11dependency_family\x18\x02 \x01(\tR\x10dependencyFamily\x12#\n" +

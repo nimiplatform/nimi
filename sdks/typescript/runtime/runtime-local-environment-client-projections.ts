@@ -280,6 +280,7 @@ export function projectNimiRuntimeLocalTransferSessionSummary(
     retryable: Boolean(value.retryable),
     createdAt: normalizeText(value.createdAt),
     updatedAt: normalizeText(value.updatedAt),
+    planId: normalizeText(value.planId) || undefined,
   };
 }
 
@@ -303,6 +304,7 @@ export function projectNimiRuntimeLocalTransferProgressEvent(
     success: Boolean(value.success),
     createdAt: normalizeText(value.createdAt) || undefined,
     updatedAt: normalizeText(value.updatedAt) || undefined,
+    planId: normalizeText(value.planId) || undefined,
   };
 }
 
@@ -327,6 +329,8 @@ export function projectNimiRuntimeLocalEnvironmentPlan(
     storageCategories: value.storageCategories.map(normalizeText).filter(Boolean),
     sourceOwners: value.sourceOwners.map(normalizeText).filter(Boolean),
     noSystemMutation: Boolean(value.noSystemMutation),
+    candidateLoadoutId: normalizeText(value.candidateLoadoutId) || undefined,
+    candidateRevision: normalizeText(value.candidateRevision) || undefined,
   };
 }
 
