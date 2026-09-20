@@ -303,21 +303,24 @@ func (s *Service) settleFailedAcquisition(transferID string, runErr error, prese
 	var conflict *modelObjectConflict
 	switch {
 	case errors.Is(runErr, errLocalTransferCancelled) || errors.Is(runErr, context.Canceled):
-		s.discardAcquisitionMaterial(transferID)
 		if persistErr := s.cancelTransfer(transferID, "ModelAsset acquisition cancelled"); persistErr != nil {
 			s.logger.Error("persist cancelled ModelAsset acquisition", "transfer_id", transferID, "error", persistErr)
+			return
 		}
-	case errors.As(runErr, &conflict):
 		s.discardAcquisitionMaterial(transferID)
+	case errors.As(runErr, &conflict):
 		if persistErr := s.failTransferWithConflict(transferID, conflict); persistErr != nil {
 			s.logger.Error("persist conflicting ModelAsset acquisition", "transfer_id", transferID, "error", persistErr)
+			return
 		}
+		s.discardAcquisitionMaterial(transferID)
 	default:
-		if !preserveStaging {
-			s.discardAcquisitionMaterial(transferID)
-		}
 		if persistErr := s.failTransfer(transferID, runErr.Error(), preserveStaging); persistErr != nil {
 			s.logger.Error("persist failed ModelAsset acquisition", "transfer_id", transferID, "error", persistErr)
+			return
+		}
+		if !preserveStaging {
+			s.discardAcquisitionMaterial(transferID)
 		}
 	}
 }
@@ -327,7 +330,7 @@ func (s *Service) settleFailedAcquisition(transferID string, runErr error, prese
 // survive is the reclamation owner's decision against every live root.
 func (s *Service) discardAcquisitionMaterial(transferID string) {
 	modelsRoot := strings.TrimSpace(s.resolvedLocalModelsPath())
-	cleanupPending := false
+	cleanupPending := !s.discardCancelledIntentView(transferID)
 	if modelsRoot != "" && filepath.IsAbs(modelsRoot) {
 		for _, directory := range []string{managedModelDownloadStageDir(modelsRoot, transferID), managedModelImportStageDir(modelsRoot, transferID)} {
 			if err := os.RemoveAll(directory); err != nil {
@@ -338,6 +341,10 @@ func (s *Service) discardAcquisitionMaterial(transferID string) {
 	}
 	if !cleanupPending {
 		s.releaseModelObjectHolds(transferID)
+		if err := s.reclaimUnreferencedModelObjects(); err != nil {
+			cleanupPending = true
+			s.logger.Warn("acquisition object cleanup pending", "transfer_id", transferID, "error", err)
+		}
 	}
 	s.setTransferCleanupPending(transferID, cleanupPending)
 }
@@ -609,6 +616,10 @@ func (s *Service) importModelAssetContent(ctx context.Context, transferID string
 		if err := checkActive(); err != nil {
 			return nil, errLocalTransferCancelled
 		}
+		s.holdModelObjectForVerification(entry.digest, transferID)
+		if err := s.persistModelObjectHolds(transferID); err != nil {
+			return nil, err
+		}
 		present, _, err := modelObjectPresent(modelsRoot, entry.digest)
 		if err != nil {
 			return nil, err
@@ -630,6 +641,9 @@ func (s *Service) importModelAssetContent(ctx context.Context, transferID string
 		}
 		if conflict := s.acquireModelObjectWriter(entry.digest, transferID); conflict != nil {
 			return nil, conflict
+		}
+		if err := s.persistModelObjectHolds(transferID); err != nil {
+			return nil, err
 		}
 		target := filepath.Join(stageDir, filepath.FromSlash(entry.relative))
 		if !pathWithinBase(stageDir, target, false) {
@@ -709,6 +723,18 @@ func (s *Service) tryReuseEquivalentModelAsset(ctx context.Context, transferID s
 		return nil, &modelAssetReconciliationError{Reason: fmt.Sprintf("inventory holds %d equivalent ModelAssets; offline merge is required", len(exact))}
 	}
 	candidate := exact[0]
+	s.modelAssetMutationMu.Lock()
+	s.mu.RLock()
+	current := s.modelAssets[candidate.GetModelAssetId()]
+	live := current != nil && current.GetCreatedAt() == candidate.GetCreatedAt()
+	s.mu.RUnlock()
+	if !live {
+		s.modelAssetMutationMu.Unlock()
+		return nil, &modelAssetReconciliationError{Reason: "equivalent ModelAsset was removed before verification"}
+	}
+	release := s.acquireModelAssetUse(candidate.GetModelAssetId(), "acquisition:"+transferID)
+	s.modelAssetMutationMu.Unlock()
+	defer release()
 	if err := s.verifyManagedModelAssetView(ctx, modelsRoot, candidate, directories[candidate.GetModelAssetId()], func(delta int64) error {
 		s.addTransferVerifiedBytes(transferID, delta)
 		if checkActive != nil {
@@ -1015,10 +1041,14 @@ func (s *Service) registerCreatedModelAssetView(transferID string, asset *runtim
 		summary.BytesReused = reusedBytes
 		summary.BytesTotal = asset.GetTotalSizeBytes()
 	})
+	committedIntent := private.commitIntent
 	private.commitIntent = nil
 	private.result = &localTransferResult{Disposition: "created", ModelAssetID: id}
 	if staged != nil && staged.changed {
 		if err := s.persistStateLocked(); err != nil {
+			// The inventory commit is real, but the result is not yet durable.
+			// Keep its target discoverable by removal/recovery settlement.
+			private.commitIntent = committedIntent
 			s.logger.Warn("ModelAsset committed but transfer result persistence failed; result will be reconciled from the durable create intent", "transfer_id", transferID, "model_asset_id", id, "error", err)
 		}
 		s.publishTransferEventLocked(localTransferEventFromSummary(staged.current))
@@ -1457,7 +1487,6 @@ func (s *Service) RemoveModelAsset(_ context.Context, req *runtimev1.RemoveModel
 		s.modelAssets[id] = asset
 		s.modelAssetDirectories[id] = directory
 		delete(s.modelAssetCleanupObligations, id)
-		settled.rollbackLocked(s)
 		s.mu.Unlock()
 		return nil, grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_PERSISTENCE_UNAVAILABLE, err, grpcerr.ReasonOptions{Message: "ModelAsset removal could not be committed"})
 	}
@@ -1534,6 +1563,10 @@ func (s *Service) completeModelAssetCleanup(modelAssetID string) bool {
 // finished (or terminal). Caller holds modelAssetMutationMu.
 func (s *Service) completeModelAssetCleanupLocked(modelAssetID string) bool {
 	s.mu.RLock()
+	if s.jobLifetimeCancel == nil {
+		s.mu.RUnlock()
+		return false
+	}
 	obligation, exists := s.modelAssetCleanupObligations[modelAssetID]
 	gcOpen := s.modelAssetReclamationOpen && s.modelAssetStoreRestriction == nil && !s.modelAssetInventoryReconciliationRequired
 	liveOwnerID := ""
@@ -1567,6 +1600,17 @@ func (s *Service) completeModelAssetCleanupLocked(modelAssetID string) bool {
 			if s.transferPinsAssetLocked(modelAssetID) {
 				s.markModelAssetCleanupPendingLocked(modelAssetID, modelAssetCleanupPendingUsersReason+": acquisition")
 				return false
+			}
+			for _, host := range s.modelAssetHosts {
+				retired, err := host.RetireModelAsset(modelAssetID)
+				if err != nil || !retired {
+					detail := "resident Host is still using captured files"
+					if err != nil {
+						detail = err.Error()
+					}
+					s.markModelAssetCleanupPendingLocked(modelAssetID, modelAssetCleanupPendingUsersReason+": "+detail)
+					return false
+				}
 			}
 			if !s.advanceModelAssetCleanupPhaseLocked(modelAssetID, modelAssetCleanupPhaseRemoveView) {
 				return false
@@ -1681,6 +1725,10 @@ func removeModelAssetView(obligation modelAssetCleanupObligation) error {
 // current physical identity differs from every captured identity belongs to a
 // newer generation and is left alone; a missing object is a completed step.
 func (s *Service) reclaimModelAssetObjects(modelsRoot string, modelAssetID string, obligation modelAssetCleanupObligation) error {
+	manifestRoots, err := modelObjectManifestRoots(modelsRoot)
+	if err != nil {
+		return err
+	}
 	captured := make(map[string]map[modelFileIdentity]struct{}, len(obligation.Files))
 	for _, file := range obligation.Files {
 		if file.Identity == nil {
@@ -1692,75 +1740,48 @@ func (s *Service) reclaimModelAssetObjects(modelsRoot string, modelAssetID strin
 		captured[file.SHA256][*file.Identity] = struct{}{}
 	}
 	for _, digest := range obligation.ObjectCandidates {
-		if s.modelObjectReferencedByLiveRoots(digest, modelAssetID) {
+		if manifestRoots[digest] {
 			continue
 		}
-		objectPath, err := modelObjectPath(modelsRoot, digest)
-		if err != nil {
+		if err := s.reclaimCapturedModelObject(modelsRoot, modelAssetID, digest, captured[digest]); err != nil {
 			return err
 		}
-		identity, info, err := modelFileIdentityOf(objectPath)
-		if errors.Is(err, os.ErrNotExist) {
-			continue
-		}
-		if err != nil {
-			return err
-		}
-		if !info.Mode().IsRegular() {
-			continue
-		}
-		if identities := captured[digest]; len(identities) > 0 {
-			if _, ours := identities[identity]; !ours {
-				continue
-			}
-		}
-		if err := os.Remove(objectPath); err != nil && !errors.Is(err, os.ErrNotExist) {
-			return err
-		}
-		_ = os.Remove(filepath.Dir(objectPath))
 	}
 	return nil
 }
 
-// modelObjectReferencedByLiveRoots reports whether any live root other than
-// the excluded obligation references digest: a committed view, a pending
-// wait_users/remove_view obligation, an acquisition hold, or a Job/Host use
-// of an asset that carries the digest.
-func (s *Service) modelObjectReferencedByLiveRoots(digest string, excludeObligationID string) bool {
-	key := normalizeExactSHA256Hex(digest)
-	if s.modelObjectHeldByOthers(key, "") {
-		return true
-	}
+func (s *Service) reclaimCapturedModelObject(modelsRoot, modelAssetID, digest string, captured map[modelFileIdentity]struct{}) error {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	for _, asset := range s.modelAssets {
-		if asset == nil {
-			continue
-		}
-		for _, file := range asset.GetFiles() {
-			if file != nil && normalizeExactSHA256Hex(file.GetSha256()) == key {
-				return true
-			}
+	s.modelObjectMu.Lock()
+	defer s.modelObjectMu.Unlock()
+	if s.modelObjectReferencedLocked(digest, modelAssetID) {
+		return nil
+	}
+	objectPath, err := modelObjectPath(modelsRoot, digest)
+	if err != nil {
+		return err
+	}
+	identity, info, err := modelFileIdentityOf(objectPath)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if !info.Mode().IsRegular() {
+		return nil
+	}
+	if len(captured) > 0 {
+		if _, ours := captured[identity]; !ours {
+			return nil
 		}
 	}
-	for id, other := range s.modelAssetCleanupObligations {
-		if id == excludeObligationID || other.Terminal || other.Phase == modelAssetCleanupPhaseReclaimObjects {
-			continue
-		}
-		for _, candidate := range other.ObjectCandidates {
-			if candidate == key {
-				return true
-			}
-		}
+	if err := os.Remove(objectPath); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
 	}
-	for _, intent := range s.transferCommitIntentsLocked() {
-		for _, file := range intent.Files {
-			if file.SHA256 == key {
-				return true
-			}
-		}
-	}
-	return false
+	_ = os.Remove(filepath.Dir(objectPath))
+	return nil
 }
 
 func (s *Service) advanceModelAssetCleanupPhaseLocked(modelAssetID string, phase string) bool {
@@ -1865,6 +1886,10 @@ func (s *Service) retryModelAssetCleanupObligation(modelAssetID string) {
 
 func (s *Service) retryModelAssetCleanupObligations() {
 	s.mu.RLock()
+	if !s.modelAssetReclamationOpen {
+		s.mu.RUnlock()
+		return
+	}
 	ids := make([]string, 0, len(s.modelAssetCleanupObligations))
 	for id := range s.modelAssetCleanupObligations {
 		if _, pending := s.modelAssetPendingCleanupRebases[id]; pending {
@@ -1980,6 +2005,10 @@ func (s *Service) OpenModelAssetReclamation() {
 	s.modelAssetReclamationOpen = true
 	s.mu.Unlock()
 	s.retryModelAssetCleanupObligations()
+	s.retryAcquisitionMaterialCleanup()
+	if err := s.reclaimUnreferencedModelObjects(); err != nil {
+		s.logger.Warn("unreferenced model object cleanup pending", "error", err)
+	}
 }
 
 // IsRegisteredModelAssetDirectory reports whether the directory is the
@@ -2142,6 +2171,9 @@ func (s *Service) commitAdoptedModelAssetView(asset *runtimev1.ModelAssetRecord,
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	id := asset.GetModelAssetId()
+	if reason := s.modelAssetRecoveryBlockedReasonLocked(id, absolute); reason != "" {
+		return nil, false, &modelAssetReconciliationError{Reason: reason}
+	}
 	if existing := s.modelAssets[id]; existing != nil {
 		if canonicalReportPath(s.modelAssetDirectories[id]) == canonicalReportPath(absolute) {
 			// A concurrent recovery of the same view already committed.
@@ -2177,15 +2209,35 @@ func (s *Service) commitAdoptedModelAssetView(asset *runtimev1.ModelAssetRecord,
 		})
 		if staged != nil && staged.changed {
 			private := s.transferPrivateLocked(options.transferCompletion.sessionID)
+			committedIntent := private.commitIntent
 			private.commitIntent = nil
 			private.result = &localTransferResult{Disposition: "created", ModelAssetID: id}
 			if err := s.persistStateLocked(); err != nil {
+				private.commitIntent = committedIntent
 				s.logger.Warn("ModelAsset adopted but transfer result persistence failed", "model_asset_id", id, "error", err)
 			}
 			s.publishTransferEventLocked(localTransferEventFromSummary(staged.current))
 		}
 	}
 	return cloneModelAsset(asset), false, nil
+}
+
+// A valid manifest is not permission to undo a durable removal or cancel.
+// Both the optimistic CheckSync projection and the final adoption commit use
+// this decision; the latter is serialized with the corresponding mutation.
+func (s *Service) modelAssetRecoveryBlockedReasonLocked(id, directory string) string {
+	for removedID, obligation := range s.modelAssetCleanupObligations {
+		if removedID == id || (!obligation.Terminal && canonicalReportPath(obligation.ManagedDirectory) == canonicalReportPath(directory)) {
+			return "MODEL_ASSET_REMOVAL_PENDING"
+		}
+	}
+	for _, private := range s.transferPrivate {
+		if private != nil && private.cancelRequested && private.commitIntent != nil &&
+			(private.commitIntent.ModelAssetID == id || canonicalReportPath(private.commitIntent.ManagedDirectory) == canonicalReportPath(directory)) {
+			return "MODEL_ACQUISITION_CANCELLED_CLEANUP_PENDING"
+		}
+	}
+	return ""
 }
 
 // hashResolvedPayloadDetailed reads every payload file under directory and

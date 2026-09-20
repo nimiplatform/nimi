@@ -11,11 +11,13 @@ import (
 
 // CloneSelectedLocalExecution copies one Runtime-private immutable execution
 // snapshot. It never resolves current machine state or exposes a public target.
+// The use handle is borrowed; only an execution owner explicitly retains it.
 func CloneSelectedLocalExecution(input *SelectedLocalExecution) *SelectedLocalExecution {
 	if input == nil {
 		return nil
 	}
 	out := &SelectedLocalExecution{
+		ModelAssetUse:                   input.ModelAssetUse,
 		LoadoutID:                       input.LoadoutID,
 		CapabilityContract:              input.CapabilityContract,
 		DisplayName:                     input.DisplayName,

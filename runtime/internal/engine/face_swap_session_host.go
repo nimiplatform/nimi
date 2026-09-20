@@ -35,6 +35,7 @@ func (host *FaceSwapExecutionHost) OpenVideoFaceSwapSession(ctx context.Context,
 	defer func() {
 		if !retained {
 			release()
+			host.residentModelAssets.notifyIdle()
 		}
 	}()
 	if host.poisoned != nil {
@@ -129,7 +130,11 @@ func (session *faceSwapSessionHost) ReplaceFrame(ctx context.Context, frame []by
 }
 
 func (session *faceSwapSessionHost) Close() error {
-	session.closeOnce.Do(func() { session.closeErr = session.host.stop(); session.release() })
+	session.closeOnce.Do(func() {
+		session.closeErr = session.host.stop()
+		session.release()
+		session.host.residentModelAssets.notifyIdle()
+	})
 	return session.closeErr
 }
 

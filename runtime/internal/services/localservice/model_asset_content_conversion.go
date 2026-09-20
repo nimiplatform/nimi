@@ -13,7 +13,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -132,9 +131,10 @@ type legacyStoreRow struct {
 }
 
 type legacyStoreDocument struct {
-	SchemaVersion      int                           `json:"schemaVersion"`
-	Assets             []legacyStoreRow              `json:"assets"`
-	CleanupObligations []modelAssetCleanupObligation `json:"cleanupObligations"`
+	SchemaVersion      int                               `json:"schemaVersion"`
+	Assets             []legacyStoreRow                  `json:"assets"`
+	CleanupObligations []modelAssetCleanupObligation     `json:"cleanupObligations"`
+	ObjectQuarantines  []modelObjectQuarantineObligation `json:"objectQuarantines"`
 }
 
 // ConvertModelStorageToContentAddressed plans and optionally applies the
@@ -156,8 +156,15 @@ func (s *Service) ConvertModelStorageToContentAddressed(ctx context.Context, opt
 	if err != nil {
 		return nil, err
 	}
-	if err := s.ensureModelObjectLinkSupport(modelsRoot); err != nil {
-		return nil, err
+	// A preview must not create probe files or model subtrees. Actual link
+	// capability is probed only when the exclusive conversion is applied.
+	if options.Apply {
+		if s.stateProcessLock == nil {
+			return nil, errors.New("content-addressed apply requires the state owner lock")
+		}
+		if err := s.ensureModelObjectLinkSupport(modelsRoot); err != nil {
+			return nil, err
+		}
 	}
 	report := &ModelStorageConversionReport{Mode: "dry-run", PreviewUnlocked: options.PreviewUnlocked, ModelsRoot: modelsRoot, StateStore: s.stateStorePath}
 	if options.Apply {
@@ -224,19 +231,30 @@ func (s *Service) ConvertModelStorageToContentAddressed(ctx context.Context, opt
 
 	// 4a. Old cleanup obligations: a removed asset whose directory is still
 	//     present with matching identity is disposed, never kept or grouped.
+	conversionCleanup := make(map[string]modelAssetCleanupObligation)
 	for _, obligation := range legacyCleanup {
 		directory := filepath.Clean(strings.TrimSpace(obligation.ManagedDirectory))
 		if !filepath.IsAbs(directory) {
 			directory = filepath.Join(modelsRoot, filepath.FromSlash(obligation.ManagedDirectory))
 		}
+		if !pathWithinBase(resolvedRoot, directory, false) {
+			return report, fmt.Errorf("cleanup directory escapes resolved models: %s", directory)
+		}
+		obligation.ManagedDirectory = directory
 		if _, err := os.Lstat(directory); errors.Is(err, os.ErrNotExist) {
 			report.OldCleanupObligations = append(report.OldCleanupObligations, ModelStorageConversionEntry{Path: directory, Reason: "removed ModelAsset " + obligation.ModelAssetID + ": directory already gone; obligation dropped"})
 			continue
 		}
 		matched := false
 		for _, candidate := range candidates {
-			if canonicalReportPath(candidate.directory) == canonicalReportPath(directory) && candidate.manifest.ModelAssetID == obligation.ModelAssetID && candidate.contentID == obligation.ContentID {
+			if candidate.problem == "" && canonicalReportPath(candidate.directory) == canonicalReportPath(directory) && candidate.manifest.ModelAssetID == obligation.ModelAssetID && candidate.contentID == obligation.ContentID {
 				matched = true
+				if len(obligation.Files) == 0 {
+					for _, file := range candidate.files {
+						identity := candidate.fileIdentities[file.GetRelativePath()]
+						obligation.Files = append(obligation.Files, modelAssetCleanupFile{RelativePath: file.GetRelativePath(), SHA256: file.GetSha256(), SizeBytes: file.GetSizeBytes(), Identity: &identity})
+					}
+				}
 				candidate.problem = "explicitly removed ModelAsset whose cleanup never completed; deleted by the conversion"
 			}
 		}
@@ -244,8 +262,11 @@ func (s *Service) ConvertModelStorageToContentAddressed(ctx context.Context, opt
 			report.OldCleanupObligations = append(report.OldCleanupObligations, ModelStorageConversionEntry{Path: directory, Reason: "removed ModelAsset " + obligation.ModelAssetID + " still on disk with matching identity; deleted on apply"})
 			report.DirectoriesToDelete = append(report.DirectoriesToDelete, directory)
 		} else {
+			obligation.Terminal = true
+			obligation.TerminalReason = modelAssetCleanupGenerationChangedReason
 			report.OldCleanupObligations = append(report.OldCleanupObligations, ModelStorageConversionEntry{Path: directory, Reason: "removed ModelAsset " + obligation.ModelAssetID + ": directory content no longer matches; left for manual review"})
 		}
+		conversionCleanup[obligation.ModelAssetID] = obligation
 	}
 	// 4. Group by exact distribution.
 	groups := make(map[string][]*conversionCandidate)
@@ -346,9 +367,15 @@ func (s *Service) ConvertModelStorageToContentAddressed(ctx context.Context, opt
 				source = &conversionFileSource{digest: digest, size: file.GetSizeBytes(), sourcePath: viewPath, identity: identity}
 				sourceByDigest[digest] = source
 				objectPath, _ := modelObjectPath(modelsRoot, digest)
-				if objectIdentity, info, err := modelFileIdentityOf(objectPath); err == nil && info.Mode().IsRegular() {
+				if _, statErr := os.Lstat(objectPath); statErr == nil {
+					objectIdentity, _, verifyErr := verifyModelObject(modelsRoot, digest, source.size, func(int64) error { return ctx.Err() })
+					if verifyErr != nil {
+						return report, fmt.Errorf("existing object must be repaired before conversion %s: %w", objectPath, verifyErr)
+					}
 					source.objectPublished = true
 					source.objectIdentity = objectIdentity
+				} else if !errors.Is(statErr, os.ErrNotExist) {
+					return report, fmt.Errorf("inspect conversion object %s: %w", objectPath, statErr)
 				}
 			}
 			source.views = append(source.views, viewPath)
@@ -413,7 +440,12 @@ func (s *Service) ConvertModelStorageToContentAddressed(ctx context.Context, opt
 	}
 	prefixGroups := make(map[string][]*ModelStoragePrefixDisposition)
 	prefixOrder := make([]string, 0)
+	allTransfersCurrent := true
 	for _, row := range legacyTransfers {
+		if row.SpecVersion == localStateTransferSpecVersion {
+			continue
+		}
+		allTransfersCurrent = false
 		if normalizeTransferKind(row.SessionKind) != localTransferKindDownload || row.ManagedDownloadSpec == nil {
 			continue
 		}
@@ -421,11 +453,18 @@ func (s *Service) ConvertModelStorageToContentAddressed(ctx context.Context, opt
 			continue
 		}
 		spec := row.ManagedDownloadSpec
-		if _, err := os.Lstat(managedModelDownloadStageDir(modelsRoot, row.InstallSessionID)); err == nil {
-			// Already keyed by its own transfer identity: nothing to convert.
-			continue
-		}
 		legacyDirectory := legacyManagedModelDownloadStageDir(modelsRoot, spec.ModelID, row.InstallSessionID)
+		targetDirectory := managedModelDownloadStageDir(modelsRoot, row.InstallSessionID)
+		if info, err := os.Lstat(targetDirectory); err == nil {
+			if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+				return report, fmt.Errorf("converted prefix is not a plain directory: %s", targetDirectory)
+			}
+			// An interrupted apply can move the prefix before saving its row.
+			// Keep the original immutable spec and finish that same conversion.
+			legacyDirectory = targetDirectory
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return report, fmt.Errorf("inspect converted prefix: %w", err)
+		}
 		if _, err := os.Lstat(legacyDirectory); errors.Is(err, os.ErrNotExist) {
 			// No material anywhere: the row alone converts as non-resumable.
 			continue
@@ -480,13 +519,13 @@ func (s *Service) ConvertModelStorageToContentAddressed(ctx context.Context, opt
 		}
 	}
 	sort.Strings(report.DirectoriesToDelete)
-	if schemaVersion == modelAssetStoreSchemaVersion && report.ObjectsToPublish == 0 && report.ViewsToRelink == 0 && len(report.DirectoriesToDelete) == 0 && report.AssetCountAfter == report.AssetCountBefore {
+	if schemaVersion == modelAssetStoreSchemaVersion && allTransfersCurrent && report.ObjectsToPublish == 0 && report.ViewsToRelink == 0 && len(report.DirectoriesToDelete) == 0 && report.AssetCountAfter == report.AssetCountBefore {
 		report.AlreadyConverted = true
 	}
-	if !options.Apply {
+	if !options.Apply || report.AlreadyConverted {
 		return report, nil
 	}
-	if err := s.applyModelStorageConversion(ctx, modelsRoot, report, keeps, sourceByDigest, keepByMerged, loadouts, legacyTransfers, stateDocument); err != nil {
+	if err := s.applyModelStorageConversion(ctx, modelsRoot, report, keeps, sourceByDigest, keepByMerged, loadouts, legacyTransfers, stateDocument, conversionCleanup); err != nil {
 		return report, err
 	}
 	return report, nil
@@ -518,6 +557,8 @@ func readLegacyModelAssetStore(path string) ([]legacyStoreRow, []modelAssetClean
 }
 
 type legacyTransferRow struct {
+	SpecVersion         int `json:"specVersion"`
+	current             json.RawMessage
 	InstallSessionID    string                              `json:"installSessionId"`
 	AssetID             string                              `json:"assetId"`
 	SessionKind         string                              `json:"sessionKind"`
@@ -556,7 +597,13 @@ func readLegacyLocalStateTransfers(path string) ([]legacyTransferRow, map[string
 	for _, raw := range rows {
 		var row legacyTransferRow
 		if json.Unmarshal(raw, &row) != nil || strings.TrimSpace(row.InstallSessionID) == "" {
-			continue
+			return nil, nil, errors.New("conversion requires each transfer row to have a readable identity")
+		}
+		if row.SpecVersion != 0 && row.SpecVersion != localStateTransferSpecVersion {
+			return nil, nil, fmt.Errorf("transfer %s has unsupported specVersion %d", row.InstallSessionID, row.SpecVersion)
+		}
+		if row.SpecVersion == localStateTransferSpecVersion {
+			row.current = append(json.RawMessage(nil), raw...)
 		}
 		transfers = append(transfers, row)
 	}
@@ -646,13 +693,32 @@ func (s *Service) collectConversionCandidates(ctx context.Context, modelsRoot st
 
 // applyModelStorageConversion performs the planned conversion. Every step is
 // idempotent against the current disk state.
-func (s *Service) applyModelStorageConversion(ctx context.Context, modelsRoot string, report *ModelStorageConversionReport, keeps []*conversionCandidate, sources map[string]*conversionFileSource, keepByMerged map[string]*conversionCandidate, loadouts []*runtimev1.Loadout, legacyTransfers []legacyTransferRow, stateDocument map[string]json.RawMessage) error {
+func (s *Service) applyModelStorageConversion(ctx context.Context, modelsRoot string, report *ModelStorageConversionReport, keeps []*conversionCandidate, sources map[string]*conversionFileSource, keepByMerged map[string]*conversionCandidate, loadouts []*runtimev1.Loadout, legacyTransfers []legacyTransferRow, stateDocument map[string]json.RawMessage, cleanup map[string]modelAssetCleanupObligation) error {
 	resolvedRoot := filepath.Join(modelsRoot, "resolved")
 	step := func(name string) { report.AppliedSteps = append(report.AppliedSteps, name) }
+	quarantines := make(map[string]modelObjectQuarantineObligation)
+	if raw, err := os.ReadFile(s.modelAssetStorePath); err == nil {
+		var previous legacyStoreDocument
+		if err := json.Unmarshal(raw, &previous); err != nil {
+			return err
+		}
+		for _, item := range previous.ObjectQuarantines {
+			if !filepath.IsAbs(item.QuarantinePath) {
+				item.QuarantinePath = filepath.Join(modelsRoot, filepath.FromSlash(item.QuarantinePath))
+			}
+			quarantines[item.ID] = item
+		}
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
 
 	// a. Small metadata backup.
-	backupDirectory := filepath.Join(stateQuarantineDirectory(s.stateStorePath), "content-addressed-conversion-"+time.Now().UTC().Format("20060102T150405Z"))
-	if err := os.MkdirAll(backupDirectory, 0o700); err != nil {
+	backupRoot := stateQuarantineDirectory(s.stateStorePath)
+	if err := os.MkdirAll(backupRoot, 0o700); err != nil {
+		return fmt.Errorf("prepare conversion backup: %w", err)
+	}
+	backupDirectory, err := os.MkdirTemp(backupRoot, "content-addressed-conversion-")
+	if err != nil {
 		return fmt.Errorf("prepare conversion backup: %w", err)
 	}
 	for _, path := range []string{s.modelAssetStorePath, s.stateStorePath, filepath.Join(filepath.Dir(s.stateStorePath), loadoutStoreFileName)} {
@@ -660,14 +726,20 @@ func (s *Service) applyModelStorageConversion(ctx context.Context, modelsRoot st
 			if err := os.WriteFile(filepath.Join(backupDirectory, filepath.Base(path)), payload, 0o600); err != nil {
 				return fmt.Errorf("back up %s: %w", filepath.Base(path), err)
 			}
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("read conversion backup %s: %w", filepath.Base(path), err)
 		}
 	}
 	manifestBackups := make([]map[string]any, 0, len(keeps))
 	for _, keep := range keeps {
 		manifestBackups = append(manifestBackups, map[string]any{"directory": keep.directory, "manifest": json.RawMessage(keep.manifestRaw)})
 	}
-	if payload, err := json.MarshalIndent(manifestBackups, "", "  "); err == nil {
-		_ = os.WriteFile(filepath.Join(backupDirectory, "manifests.json"), payload, 0o600)
+	payload, err := json.MarshalIndent(manifestBackups, "", "  ")
+	if err != nil {
+		return fmt.Errorf("encode manifest backup: %w", err)
+	}
+	if err := os.WriteFile(filepath.Join(backupDirectory, "manifests.json"), payload, 0o600); err != nil {
+		return fmt.Errorf("write manifest backup: %w", err)
 	}
 	report.BackupDirectory = backupDirectory
 	step("metadata backed up to " + backupDirectory)
@@ -704,19 +776,11 @@ func (s *Service) applyModelStorageConversion(ctx context.Context, modelsRoot st
 			if linked {
 				continue
 			}
-			// Same verified bytes under a separate inode: replace the view file
-			// with a link to the published object, keeping the layout.
-			replacement := viewPath + ".relink"
-			_ = os.Remove(replacement)
-			if err := os.Link(objectPath, replacement); err != nil {
-				return fmt.Errorf("link object into %s: %w", viewPath, err)
-			}
-			if err := os.Remove(viewPath); err != nil {
-				_ = os.Remove(replacement)
-				return fmt.Errorf("replace view file %s: %w", viewPath, err)
-			}
-			if err := os.Rename(replacement, viewPath); err != nil {
-				return fmt.Errorf("finish relink of %s: %w", viewPath, err)
+			// Stage outside the payload tree: a real distribution may contain
+			// a file named *.relink. Atomic replacement keeps the healthy view
+			// present even if the process stops before the rename completes.
+			if err := replaceConversionViewFile(modelsRoot, objectPath, viewPath); err != nil {
+				return fmt.Errorf("relink view file %s: %w", viewPath, err)
 			}
 		}
 	}
@@ -780,7 +844,9 @@ func (s *Service) applyModelStorageConversion(ctx context.Context, modelsRoot st
 	step("kept views relocated and manifests upgraded")
 
 	// d. Inventory schema 2.
-	snapshot, err := buildModelAssetStoreSnapshot(assets, directories, map[string]modelAssetCleanupObligation{}, map[string]modelObjectQuarantineObligation{}, modelsRoot)
+	// Keep existing deletion decisions durable until their files are actually
+	// gone. A crash after this save must never turn a removed view into an import.
+	snapshot, err := buildModelAssetStoreSnapshot(assets, directories, cleanup, quarantines, modelsRoot)
 	if err != nil {
 		return err
 	}
@@ -828,8 +894,12 @@ func (s *Service) applyModelStorageConversion(ctx context.Context, modelsRoot st
 			keptPrefixes[prefix.TransferID] = prefix
 		}
 	}
-	convertedRows := make([]localStateTransferState, 0, len(legacyTransfers))
+	convertedRows := make([]json.RawMessage, 0, len(legacyTransfers))
 	for _, row := range legacyTransfers {
+		if row.SpecVersion == localStateTransferSpecVersion {
+			convertedRows = append(convertedRows, row.current)
+			continue
+		}
 		converted := localStateTransferState{
 			SpecVersion: localStateTransferSpecVersion, InstallSessionID: row.InstallSessionID, SessionKind: normalizeTransferKind(row.SessionKind),
 			Phase: row.Phase, State: normalizeTransferState(row.State), BytesReceived: row.BytesReceived, BytesTotal: row.BytesTotal,
@@ -859,13 +929,29 @@ func (s *Service) applyModelStorageConversion(ctx context.Context, modelsRoot st
 			converted.Retryable = false
 			converted.ReasonCode = localTransferInterruptionReason
 		}
-		convertedRows = append(convertedRows, converted)
+		encoded, err := json.Marshal(converted)
+		if err != nil {
+			return fmt.Errorf("encode converted transfer: %w", err)
+		}
+		convertedRows = append(convertedRows, encoded)
 	}
 	rowsPayload, err := json.Marshal(convertedRows)
 	if err != nil {
 		return err
 	}
 	stateDocument["transfers"] = rowsPayload
+	// Dispose rejected prefixes while their original rows still describe them.
+	// Re-entry can recompute a failed deletion; no migration ledger is needed.
+	for _, prefix := range report.Prefixes {
+		if prefix.Disposition == "keep" {
+			continue
+		}
+		size := conversionDirectoryUniqueBytes(prefix.Directory, sources)
+		if err := os.RemoveAll(prefix.Directory); err != nil {
+			return fmt.Errorf("discard prefix %s: %w", prefix.Directory, err)
+		}
+		report.ReclaimedBytes += size
+	}
 	if _, ok := stateDocument["schemaVersion"]; !ok {
 		stateDocument["schemaVersion"] = json.RawMessage(fmt.Sprintf("%d", localStateSchemaVersion))
 	}
@@ -878,25 +964,7 @@ func (s *Service) applyModelStorageConversion(ctx context.Context, modelsRoot st
 	}
 	step("transfer rows converted and kept prefix re-keyed")
 
-	// g. Delete merged views, disposed obligations, and discarded prefixes.
-	var reclaimed int64
-	for _, directory := range report.DirectoriesToDelete {
-		for _, keep := range keeps {
-			if canonicalReportPath(keep.directory) == canonicalReportPath(directory) {
-				return fmt.Errorf("refusing to delete kept view %s", directory)
-			}
-		}
-		size := conversionDirectoryUniqueBytes(directory, sources)
-		if err := os.RemoveAll(directory); err != nil {
-			return fmt.Errorf("delete %s: %w", directory, err)
-		}
-		reclaimed += size
-	}
-	report.ReclaimedBytes = reclaimed
-	removeEmptyConversionParents(resolvedRoot)
-	step("merged views, discarded prefixes, and removed-asset directories deleted")
-
-	// h. Verify the converted inventory loads and every kept view is linked.
+	// g. Verify the converted inventory loads and every kept view is linked.
 	decoded, err := loadModelAssetStore(s.modelAssetStorePath, modelsRoot)
 	if err != nil {
 		return fmt.Errorf("verify converted inventory: %w", err)
@@ -909,9 +977,57 @@ func (s *Service) applyModelStorageConversion(ctx context.Context, modelsRoot st
 			return fmt.Errorf("converted view %s: %w", id, err)
 		}
 	}
+
+	// h. Delete merged views, disposed obligations, and discarded prefixes.
+	var reclaimed int64
+	for _, directory := range report.DirectoriesToDelete {
+		for _, keep := range keeps {
+			if canonicalReportPath(keep.directory) == canonicalReportPath(directory) {
+				return fmt.Errorf("refusing to delete kept view %s", directory)
+			}
+		}
+		size := conversionDirectoryUniqueBytes(directory, sources)
+		if err := os.RemoveAll(directory); err != nil {
+			return fmt.Errorf("delete %s: %w", directory, err)
+		}
+		reclaimed += size
+		for id, obligation := range cleanup {
+			if canonicalReportPath(obligation.ManagedDirectory) == canonicalReportPath(directory) {
+				delete(cleanup, id)
+			}
+		}
+	}
+	if len(report.OldCleanupObligations) > 0 {
+		snapshot, err := buildModelAssetStoreSnapshot(assets, directories, cleanup, quarantines, modelsRoot)
+		if err != nil {
+			return err
+		}
+		if err := saveModelAssetStore(s.modelAssetStorePath, snapshot); err != nil {
+			return err
+		}
+	}
+	report.ReclaimedBytes += reclaimed
+	removeEmptyConversionParents(resolvedRoot)
+	step("merged views, discarded prefixes, and removed-asset directories deleted")
+
 	report.Applied = true
 	step("converted inventory verified")
 	return nil
+}
+
+// replaceConversionViewFile never removes the original before a replacement
+// is ready, and its scratch name cannot collide with a distribution payload.
+func replaceConversionViewFile(modelsRoot, objectPath, viewPath string) error {
+	work, err := os.MkdirTemp(filepath.Join(modelsRoot, "quarantine"), ".conversion-relink-")
+	if err != nil {
+		return err
+	}
+	defer func() { _ = os.RemoveAll(work) }()
+	replacement := filepath.Join(work, "payload")
+	if err := os.Link(objectPath, replacement); err != nil {
+		return err
+	}
+	return replaceLocalStateFileAtomically(replacement, viewPath)
 }
 
 // conversionDirectoryUniqueBytes sums the sizes of regular files under the

@@ -6,10 +6,14 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"google.golang.org/grpc/codes"
 )
 
 func (s *Service) ExecuteScenario(ctx context.Context, req *runtimev1.ExecuteScenarioRequest) (*runtimev1.ExecuteScenarioResponse, error) {
+	ctx, releaseModelAssets := localexecution.WithModelAssetUseScope(ctx)
+	defer releaseModelAssets()
+
 	if req == nil || req.GetHead() == nil || req.GetSpec() == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}

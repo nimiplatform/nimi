@@ -2174,6 +2174,9 @@
     "retryDownload": "重新下载",
     "retryCleanup": "重试清理",
     "reimportHint": "请重新导入来源以继续。",
+    "viewRelatedTransfer": "查看关联任务",
+    "relatedTransferUnavailable": "关联任务已不可用，请刷新下载列表查看最新状态。",
+    "checkSyncStarted": "已启动检查与同步，请稍后刷新任务状态。",
     "setupGroup": "设置任务",
     "stage": {
       "queued": "排队中",

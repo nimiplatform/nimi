@@ -2174,6 +2174,9 @@
     "retryDownload": "Download again",
     "retryCleanup": "Retry cleanup",
     "reimportHint": "Import the source again to continue.",
+    "viewRelatedTransfer": "View related task",
+    "relatedTransferUnavailable": "The related task is no longer available. Refresh downloads to check its current state.",
+    "checkSyncStarted": "Check & Sync has started. Refresh downloads shortly to see the updated task state.",
     "setupGroup": "Setup",
     "stage": {
       "queued": "Queued",

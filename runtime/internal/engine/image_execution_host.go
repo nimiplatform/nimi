@@ -62,6 +62,7 @@ type imageExecutionOutcome struct {
 // callers observe queued jobs through their scenario Job state until the
 // factual Host start callback.
 type ImageExecutionHost struct {
+	residentModelAssets
 	logger    *slog.Logger
 	substrate imageInvocationSubstrate
 	admit     func(*capabilitydriver.ImageInvocationPlan) error
@@ -247,6 +248,7 @@ func (h *ImageExecutionHost) dequeue() *imageExecutionRequest {
 }
 
 func (h *ImageExecutionHost) clearActive(request *imageExecutionRequest) {
+	defer h.residentModelAssets.notifyIdle()
 	h.mu.Lock()
 	if h.active == request {
 		h.active = nil
@@ -311,6 +313,7 @@ func beginImageExecution(ctx context.Context, onStart localexecution.ImageExecut
 
 func (h *ImageExecutionHost) execute(request *imageExecutionRequest) (localexecution.ImageResult, error) {
 	startedAt := time.Now()
+	h.residentModelAssets.capture(request.plan.ModelFiles())
 	_, err := h.substrate.Ensure(request.ctx, request.plan, func() error {
 		if err := validateInvocationDependencySources(h.substrate, request.plan.DependencySources()); err != nil {
 			return err

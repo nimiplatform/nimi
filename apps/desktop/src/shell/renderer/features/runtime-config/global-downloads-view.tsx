@@ -14,10 +14,11 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import { AppPackageJobPhase, AppPackageSourceClass } from '@nimiplatform/sdk/runtime/wire-types';
 import { Download } from 'lucide-react';
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
 import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
+import { formatBytes } from '../../components/download-format.js';
 import { AppArtworkIcon } from '../apps/apps-card-visuals.js';
 import { appPackageFailureReason } from '../apps/apps-card-fields.js';
 import { useAppsDownloads } from '../apps/apps-downloads-context.js';
@@ -27,7 +28,6 @@ import { useAppsOverview } from '../apps/use-apps-overview.js';
 import { useGlobalDownloads } from './global-downloads-context.js';
 import {
   appJobLane,
-  downloadModelName,
   DownloadTaskRow,
   environmentLane,
   environmentStage,
@@ -43,7 +43,7 @@ import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
 import { isDownloadTerminal } from './runtime-config-model-center-utils.js';
 import { getRuntimeSetupTaskStore, useRuntimeSetupTasks } from './runtime-setup-task-store.js';
-import { useRuntimeModelLibrary } from './use-runtime-model-library.js';
+import { ModelTransferRecoveryActions } from './model-transfer-recovery-actions.js';
 
 const AppDownloadsDetail = lazy(async () => ({ default: (await import('../apps/apps-panel.js')).AppsPanel }));
 
@@ -75,7 +75,7 @@ export function GlobalDownloadsNavigation({ onOpen }: { readonly onOpen: () => v
     && !downloads?.environments.some((job) => isNimiRuntimeLocalEnvironmentDependencyJobActiveState(job.state))
     && activeTransfers.every((item) => typeof item.bytesTotal === 'number' && item.bytesTotal > 0)
     && activeAppJobs.every((job) => Number(job.bytesTotal) > 0);
-  const received = activeTransfers.reduce((total, item) => total + item.bytesReceived, 0)
+  const received = activeTransfers.reduce((total, item) => total + item.bytesReceived + item.bytesReused, 0)
     + activeAppJobs.reduce((total, job) => total + Number(job.bytesCompleted), 0);
   const total = activeTransfers.reduce((sum, item) => sum + (item.bytesTotal ?? 0), 0)
     + activeAppJobs.reduce((sum, job) => sum + Number(job.bytesTotal ?? 0), 0);
@@ -135,7 +135,6 @@ export function GlobalDownloadsView() {
   const downloads = useGlobalDownloads();
   const apps = useAppsDownloads();
   const local = useRuntimeConfigLocalEnvironmentClient();
-  const library = useRuntimeModelLibrary();
   const appInventory = useAppsOverview();
   const appEntries = new Map(
     appInventory.data?.status === 'loaded'
@@ -150,6 +149,25 @@ export function GlobalDownloadsView() {
   const [busy, setBusy] = useState(false);
   const [lane, setLane] = useState<DownloadsLane>('active');
   const [appDetails, setAppDetails] = useState(false);
+  const handledSelection = useRef(0);
+  const [focusedTransferId, setFocusedTransferId] = useState('');
+  useEffect(() => {
+    const selection = downloads?.selectedTransfer;
+    if (!selection || downloads.loading || handledSelection.current === selection.revision) return;
+    handledSelection.current = selection.revision;
+    const target = downloads.transfers.find((item) => item.installSessionId === selection.id);
+    if (!target) { setError(t('runtimeConfig.downloads.relatedTransferUnavailable')); return; }
+    setError('');
+    setLane(transferLane(target.state));
+    setAppDetails(false);
+    setFocusedTransferId(target.installSessionId);
+  }, [downloads?.selectedTransfer, downloads?.transfers, downloads?.loading, t]);
+  useEffect(() => {
+    if (!focusedTransferId || appDetails) return;
+    const row = document.getElementById(`download-model:${focusedTransferId}`);
+    row?.focus({ preventScroll: true });
+    row?.scrollIntoView({ block: 'center' });
+  }, [focusedTransferId, lane, appDetails, downloads?.selectedTransfer]);
   useEffect(() => {
     if (apps?.view !== 'downloads') return;
     if (apps.selectedJobId) setAppDetails(true);
@@ -202,11 +220,11 @@ export function GlobalDownloadsView() {
       <DownloadTaskRow
         key={item.installSessionId}
         testId={`download-model:${item.installSessionId}`}
-        title={downloadModelName(item.sourceLabel, library.data?.catalog ?? []) ?? item.sourceLabel ?? item.installSessionId}
+        title={item.sourceLabel || item.modelAssetId || item.installSessionId}
         kind="model"
         lane={transferLane(item.state)}
         stage={stage}
-        bytes={item.bytesReceived}
+        bytes={item.bytesReceived + item.bytesReused}
         total={item.bytesTotal}
         speedBytesPerSec={item.speedBytesPerSec}
         etaSeconds={item.etaSeconds}
@@ -215,7 +233,10 @@ export function GlobalDownloadsView() {
         reason={stage === 'interrupted' ? t(interruptionReasonKey(`${item.message ?? ''} ${item.reasonCode ?? ''}`)) : undefined}
         technical={[item.sourceLabel, item.modelAssetId, item.message, item.reasonCode, item.relatedInstallSessionId ? `related=${item.relatedInstallSessionId}` : ''].filter(Boolean).join(' · ')}
       >
-        <div className="flex gap-2">
+        {item.bytesReused > 0 ? <p className="text-xs text-[var(--nimi-text-secondary)]">
+          {t('runtimeConfig.localModelCenter.reusedBytes', { size: formatBytes(item.bytesReused) })}
+        </p> : null}
+        <div className="flex flex-wrap gap-2">
           {item.availableActions.includes('pause') ? (
             <Button
               size="sm"
@@ -252,16 +273,14 @@ export function GlobalDownloadsView() {
               {item.cleanupPending ? t('runtimeConfig.downloads.retryCleanup') : t('Common.cancel')}
             </Button>
           ) : null}
-          {item.availableActions.includes('reimport') ? (
-            <span className="self-center text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.downloads.reimportHint')}</span>
-          ) : null}
+          <ModelTransferRecoveryActions event={item} disabled={busy} />
         </div>
       </DownloadTaskRow>
     );
   };
   const transferGroup = (group: ReturnType<typeof groupTransferAttempts>[number]) => (
     group.attempts.length > 1 ? (
-      <div key={`group:${group.latest.sessionKind}:${group.latest.sourceLabel || group.latest.installSessionId}`}>
+      <div key={`group:${group.latest.installSessionId}`}>
         {transferRow(group.latest, group.attempts.length)}
         <details className="-mt-2 mb-2 pl-14 text-xs text-[var(--nimi-text-secondary)]">
           <summary className="cursor-pointer">{t('runtimeConfig.downloads.showAttempts', { count: group.attempts.length - 1 })}</summary>

@@ -900,61 +900,43 @@ func TestModelAssetCleanupObligationRetriesAfterServiceRestart(t *testing.T) {
 	}
 }
 
-func TestModelAssetCleanupObligationNeverDeletesReplacementDirectoryOwner(t *testing.T) {
+func TestModelAssetCleanupObligationRejectsRemovedIdentityRecovery(t *testing.T) {
 	svc := newTestService(t)
 	svc.adoptResolvedModelImports = true
 	source := filepath.Join(t.TempDir(), "cleanup-generation.bin")
 	if err := os.WriteFile(source, []byte("old-generation"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	removedAsset := importModelAssetForTest(t, svc, source, "cleanup-generation")
+	asset := importModelAssetForTest(t, svc, source, "cleanup-generation")
 	svc.mu.RLock()
-	managedDirectory := svc.modelAssetDirectories[removedAsset.GetModelAssetId()]
+	directory := svc.modelAssetDirectories[asset.GetModelAssetId()]
 	svc.mu.RUnlock()
-	release := svc.acquireModelAssetUse(removedAsset.GetModelAssetId(), "job:hold")
-	removed, err := svc.RemoveModelAsset(context.Background(), &runtimev1.RemoveModelAssetRequest{ModelAssetId: removedAsset.GetModelAssetId(), Force: true})
+	release := svc.acquireModelAssetUse(asset.GetModelAssetId(), "job:hold")
+	removed, err := svc.RemoveModelAsset(context.Background(), &runtimev1.RemoveModelAssetRequest{ModelAssetId: asset.GetModelAssetId(), Force: true})
 	if err != nil || !removed.GetCleanupPending() {
-		t.Fatalf("force removal = %+v err=%v", removed, err)
+		t.Fatalf("removal = %+v err=%v", removed, err)
 	}
-
-	// Explicit recovery re-registers the view's manifest identity as the
-	// directory's owner before the old obligation could remove it.
-	replacement, skipped, err := svc.adoptResolvedModelAssetDirectory(context.Background(), managedDirectory, "replacement generation")
-	if err != nil || skipped || replacement.GetModelAssetId() != removedAsset.GetModelAssetId() {
-		t.Fatalf("recover directory owner = %+v skipped=%v err=%v", replacement, skipped, err)
+	if _, _, err := svc.adoptResolvedModelAssetDirectory(context.Background(), directory, "recovery"); err == nil {
+		t.Fatal("recovery resurrected the identity awaiting cleanup")
+	}
+	entryPath := filepath.Join(directory, filepath.FromSlash(asset.GetEntry()))
+	if _, err := os.Stat(entryPath); err != nil {
+		t.Fatalf("pinned view disappeared: %v", err)
 	}
 	release()
-	if completed := svc.completeModelAssetCleanup(removedAsset.GetModelAssetId()); !completed {
-		t.Fatal("superseded cleanup obligation did not terminalize")
+	if _, err := os.Stat(directory); !os.IsNotExist(err) {
+		t.Fatalf("released view remains: %v", err)
 	}
-	entryPath := filepath.Join(managedDirectory, filepath.FromSlash(removedAsset.GetEntry()))
-	if _, err := os.Stat(entryPath); err != nil {
-		t.Fatalf("superseded cleanup deleted the recovered owner's view: %v", err)
-	}
-	svc.mu.RLock()
-	obligation, exists := svc.modelAssetCleanupObligations[removedAsset.GetModelAssetId()]
-	svc.mu.RUnlock()
-	if !exists || !obligation.Terminal || obligation.TerminalReason != modelAssetCleanupOwnerChangedReason {
-		t.Fatalf("superseded cleanup diagnostic = %+v, exists=%v", obligation, exists)
-	}
-
-	statePath := svc.stateStorePath
-	runtimeRoot := filepath.Dir(svc.localModelsPath)
+	statePath, runtimeRoot := svc.stateStorePath, filepath.Dir(svc.localModelsPath)
 	svc.Close()
-	restarted, err := NewWithProductControlDataRoot(
-		slog.New(slog.NewTextHandler(io.Discard, nil)), nil, statePath, 0,
-		filepath.Join(runtimeRoot, "models"), runtimeRoot,
-	)
+	restarted, err := NewWithProductControlDataRoot(slog.New(slog.NewTextHandler(io.Discard, nil)), nil, statePath, 0, filepath.Join(runtimeRoot, "models"), runtimeRoot)
 	if err != nil {
-		t.Fatalf("restart local service: %v", err)
+		t.Fatal(err)
 	}
 	defer restarted.Close()
 	restarted.OpenModelAssetReclamation()
-	if _, err := os.Stat(entryPath); err != nil {
-		t.Fatalf("restart cleanup deleted the recovered owner's view: %v", err)
-	}
-	if current, err := restarted.GetModelAsset(context.Background(), &runtimev1.GetModelAssetRequest{ModelAssetId: replacement.GetModelAssetId()}); err != nil || current.GetAsset().GetContentId() != replacement.GetContentId() {
-		t.Fatalf("restart replacement owner changed: %+v err=%v", current, err)
+	if _, err := restarted.GetModelAsset(context.Background(), &runtimev1.GetModelAssetRequest{ModelAssetId: asset.GetModelAssetId()}); err == nil {
+		t.Fatal("restart recovered a removed identity")
 	}
 }
 

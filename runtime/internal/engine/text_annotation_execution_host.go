@@ -26,6 +26,7 @@ const engineTextAnnotationHost EngineKind = "text-annotation-host"
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.spacy-local-annotation
 type TextAnnotationExecutionHost struct {
+	residentModelAssets
 	manager  *Manager
 	lease    speechExecutionLease
 	identity string
@@ -49,7 +50,8 @@ func (host *TextAnnotationExecutionHost) ExecuteTextAnnotation(ctx context.Conte
 	if err != nil {
 		return nil, err
 	}
-	defer release()
+	defer func() { release(); host.residentModelAssets.notifyIdle() }()
+	host.residentModelAssets.capture([]capabilitydriver.InvocationExactBinding{plan.Binding})
 	if host.poisoned != nil {
 		return nil, executionFailure(localexecution.FailureProcessCrash, host.poisoned)
 	}

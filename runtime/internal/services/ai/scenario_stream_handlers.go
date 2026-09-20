@@ -5,6 +5,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 )
@@ -48,7 +49,9 @@ func (s *Service) StreamScenario(req *runtimev1.StreamScenarioRequest, stream gr
 		s.logScenarioStreamFailure("extensions", req, err)
 		return err
 	}
-	capturedCtx, _, err := s.captureScenarioExecutionIntent(stream.Context(), req.GetHead(), scenarioTargetCapability(req.GetScenarioType()))
+	useCtx, releaseModelAssets := localexecution.WithModelAssetUseScope(stream.Context())
+	defer releaseModelAssets()
+	capturedCtx, _, err := s.captureScenarioExecutionIntent(useCtx, req.GetHead(), scenarioTargetCapability(req.GetScenarioType()))
 	if err != nil {
 		s.logScenarioStreamFailure("execution-intent", req, err)
 		return err

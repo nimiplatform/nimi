@@ -53,7 +53,7 @@ func (host *FaceSwapExecutionHost) ExecuteVideoFaceSwap(ctx context.Context, pla
 	if err != nil {
 		return nil, err
 	}
-	defer release()
+	defer func() { release(); host.residentModelAssets.notifyIdle() }()
 	if host.poisoned != nil {
 		return nil, executionFailure(localexecution.FailureProcessCrash, host.poisoned)
 	}

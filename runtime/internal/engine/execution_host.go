@@ -36,6 +36,7 @@ type llamaInvocationSubstrate interface {
 // never resolves a model, companion, portable option, request route, or
 // selection: those semantics arrive flattened in the captured Driver plan.
 type ExecutionHost struct {
+	residentModelAssets
 	logger    *slog.Logger
 	substrate llamaInvocationSubstrate
 	client    *http.Client
@@ -145,7 +146,8 @@ func (h *ExecutionHost) ExecuteEmbed(
 		return localexecution.EmbedResult{}, executionFailure(localexecution.FailureCanceled, ctx.Err())
 	case <-h.lease:
 	}
-	defer func() { h.lease <- struct{}{} }()
+	defer func() { h.lease <- struct{}{}; h.residentModelAssets.notifyIdle() }()
+	h.residentModelAssets.capture(plan.ModelFiles())
 
 	endpoint, _, err := h.substrate.Ensure(ctx, plan.ProcessKey(), plan.ProcessArgs(), func() error {
 		if err := validateInvocationDependencySources(h.substrate, plan.DependencySources()); err != nil {
@@ -247,7 +249,8 @@ func (h *ExecutionHost) execute(
 		return localexecution.TextResult{}, executionFailure(localexecution.FailureCanceled, ctx.Err())
 	case <-h.lease:
 	}
-	defer func() { h.lease <- struct{}{} }()
+	defer func() { h.lease <- struct{}{}; h.residentModelAssets.notifyIdle() }()
+	h.residentModelAssets.capture(plan.ModelFiles())
 
 	endpoint, _, err := h.substrate.Ensure(ctx, plan.ProcessKey(), plan.ProcessArgs(), func() error {
 		if err := validateInvocationDependencySources(h.substrate, plan.DependencySources()); err != nil {

@@ -26,6 +26,7 @@ import (
 const localResolvedAssemblyVersion = 4
 
 type localResolvedAssembly struct {
+	modelAssetUse                   *localexecution.ModelAssetUse
 	EmbeddingDimension              int                                     `json:"embedding_dimension,omitempty"`
 	AIConfigRevision                uint64                                  `json:"ai_config_revision,omitempty"`
 	Version                         int                                     `json:"version"`
@@ -427,6 +428,7 @@ func newLocalResolvedAssembly(selected *localexecution.SelectedLocalExecution, r
 	}
 	assembly := &localResolvedAssembly{
 		Version:            localResolvedAssemblyVersion,
+		modelAssetUse:      selected.ModelAssetUse,
 		LoadoutID:          strings.TrimSpace(selected.LoadoutID),
 		CapabilityContract: strings.TrimSpace(selected.CapabilityContract), RecipeID: strings.TrimSpace(selected.RecipeID),
 		RecipeRevision:                  strings.TrimSpace(selected.RecipeRevision),

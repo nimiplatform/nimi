@@ -54,17 +54,15 @@ export function downloadModelName(
 }
 
 /**
- * Attempts of the same source are one story. Grouping uses the bounded
- * source label the Runtime carries for the immutable acquisition source
- * (the final asset identity exists only after commit) and keeps the newest
- * attempt as the representative.
+ * Only revisions of one operation share an identity. A source label, final
+ * asset or conflict relationship never merges independent operations.
  */
 export function groupTransferAttempts(
   transfers: readonly NimiRuntimeLocalTransferSessionSummary[],
 ): readonly { latest: NimiRuntimeLocalTransferSessionSummary; attempts: readonly NimiRuntimeLocalTransferSessionSummary[] }[] {
   const byModel = new Map<string, NimiRuntimeLocalTransferSessionSummary[]>();
   for (const item of transfers) {
-    const key = `${item.sessionKind}:${item.sourceLabel || item.installSessionId}`;
+    const key = item.installSessionId;
     byModel.set(key, [...(byModel.get(key) ?? []), item]);
   }
   return [...byModel.values()].map((attempts) => {
@@ -81,7 +79,8 @@ export function transferStage(item: Pick<NimiRuntimeLocalTransferSessionSummary,
   if (item.state === 'failed') return 'interrupted';
   if (item.state === 'paused') return 'paused';
   if (item.state === 'queued') return 'queued';
-  return item.phase === 'verify' ? 'verifying' : 'downloading';
+  if (item.phase === 'verify' || item.phase === 'scan') return 'verifying';
+  return item.phase === 'register' ? 'installing' : 'downloading';
 }
 
 export function environmentStage(item: Pick<NimiRuntimeLocalEnvironmentDependencyJob, 'state'>): DownloadStage {
@@ -136,6 +135,8 @@ export function DownloadTaskRow(
   const known = typeof props.total === 'number' && props.total > 0;
   return (
     <article
+      id={props.testId}
+      tabIndex={-1}
       className="flex gap-3 border-b border-[var(--nimi-border-subtle)] py-4 last:border-b-0 sm:gap-4"
       data-testid={props.testId}
     >

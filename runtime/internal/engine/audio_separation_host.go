@@ -24,7 +24,7 @@ func (host *SpeechExecutionHost) ExecuteAudioSeparation(ctx context.Context, pla
 	if err != nil {
 		return localexecution.AudioSeparationResult{}, speechHostError(localexecution.FailureCanceled, err)
 	}
-	defer release()
+	defer func() { release(); host.residentModelAssets.notifyIdle() }()
 	if host.poisoned != nil {
 		return localexecution.AudioSeparationResult{}, speechHostError(localexecution.FailureProcessCrash, host.poisoned)
 	}
@@ -45,9 +45,10 @@ func (host *SpeechExecutionHost) ExecuteAudioSeparation(ctx context.Context, pla
 	if err != nil {
 		return localexecution.AudioSeparationResult{}, host.speechHostBackendError(ctx, err)
 	}
-	result, err := decodeAudioSeparation(response.Body, response.Header.Get("Content-Type"))
+	body := host.residentModelAssets.holdOutput(response.Body)
+	result, err := decodeAudioSeparation(body, response.Header.Get("Content-Type"))
 	if err != nil {
-		_ = response.Body.Close()
+		_ = body.Close()
 		return localexecution.AudioSeparationResult{}, speechHostError(localexecution.FailureInference, err)
 	}
 	result.Usage = &runtimev1.UsageStats{ComputeMs: time.Since(started).Milliseconds()}

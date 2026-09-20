@@ -10,6 +10,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/realtimecore"
 	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
@@ -33,6 +34,9 @@ const (
 // @nimi-authority: rule.nimi.runtime.ai-provider.r113
 // @nimi-authority: rule.nimi.runtime.ai-provider.r114
 func (s *Service) OpenRealtimeSession(ctx context.Context, req *runtimev1.OpenRealtimeSessionRequest) (*runtimev1.OpenRealtimeSessionResponse, error) {
+	ctx, releaseModelAssets := localexecution.WithModelAssetUseScope(ctx)
+	defer releaseModelAssets()
+
 	inputFormat, outputFormat, turnDetection, err := validateRealtimeOpen(req)
 	if err != nil {
 		return nil, err

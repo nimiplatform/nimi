@@ -29,6 +29,8 @@ type GlobalDownloadsContextValue = {
   readonly errors: readonly string[];
   readonly activeCount: number;
   readonly refresh: () => Promise<void>;
+  readonly selectedTransfer: { readonly id: string; readonly revision: number } | null;
+  readonly selectTransfer: (id: string) => void;
 };
 const GlobalDownloadsContext = createContext<GlobalDownloadsContextValue | null>(null);
 
@@ -46,6 +48,10 @@ export function GlobalDownloadsProvider({ children }: PropsWithChildren) {
   const [environments, setEnvironments] = useState<readonly NimiRuntimeLocalEnvironmentDependencyJob[]>([]);
   const [errors, setErrors] = useState<readonly string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedTransfer, setSelectedTransfer] = useState<GlobalDownloadsContextValue['selectedTransfer']>(null);
+  const selectTransfer = useCallback((id: string) => {
+    setSelectedTransfer((previous) => ({ id, revision: (previous?.revision ?? 0) + 1 }));
+  }, []);
   const [refreshRevision, setRefreshRevision] = useState(0);
   const activation = useRef('');
   const appPhases = apps?.jobs.map((job) => `${job.jobId}:${job.phase}`).join('|') ?? '';
@@ -125,7 +131,7 @@ export function GlobalDownloadsProvider({ children }: PropsWithChildren) {
     environments.filter((item) => isNimiRuntimeLocalEnvironmentDependencyJobActiveState(item.state)).length +
     (apps?.jobs.filter((item) => !packageJobIsTerminal(item)).length ?? 0);
   return (
-    <GlobalDownloadsContext.Provider value={{ transfers, environments, errors, activeCount, refresh, loading }}>
+    <GlobalDownloadsContext.Provider value={{ transfers, environments, errors, activeCount, refresh, loading, selectedTransfer, selectTransfer }}>
       {children}
     </GlobalDownloadsContext.Provider>
   );

@@ -11,6 +11,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
+	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/proto"
 )
@@ -170,6 +171,64 @@ func (s *Service) resolveLocalExecutionLocked(capabilityContract string, loadout
 		TextBehaviors:                   cloneTextBehaviorCapabilityProjections(loadout.GetTextBehaviors()),
 		ExecutionTarget:                 executionTarget, Configured: true,
 	}, nil
+}
+
+func (s *Service) CaptureLocalExecution(capabilityContract, loadoutRef string) (*localexecution.SelectedLocalExecution, error) {
+	s.loadoutMutationMu.Lock()
+	defer s.loadoutMutationMu.Unlock()
+	s.modelAssetMutationMu.Lock()
+	defer s.modelAssetMutationMu.Unlock()
+	if strings.TrimSpace(loadoutRef) == "" {
+		s.mu.RLock()
+		loadoutRef = s.loadoutSelections[capabilityContract].GetLoadoutId()
+		s.mu.RUnlock()
+		if loadoutRef == "" {
+			return nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND, "no Loadout is selected for the capability contract", nil)
+		}
+	}
+	selected, err := s.resolveLocalExecutionLocked(capabilityContract, loadoutRef)
+	if err != nil {
+		return nil, err
+	}
+	selected.ModelAssetUse, err = s.holdCapturedLocalExecutionLocked(selected)
+	return selected, err
+}
+
+func (s *Service) HoldCapturedLocalExecution(selected *localexecution.SelectedLocalExecution) (*localexecution.ModelAssetUse, error) {
+	s.modelAssetMutationMu.Lock()
+	defer s.modelAssetMutationMu.Unlock()
+	return s.holdCapturedLocalExecutionLocked(selected)
+}
+
+func (s *Service) holdCapturedLocalExecutionLocked(selected *localexecution.SelectedLocalExecution) (*localexecution.ModelAssetUse, error) {
+	if selected == nil {
+		return nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, "captured local execution is missing", nil)
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for _, binding := range selected.ExactBindings {
+		asset := s.modelAssets[binding.ModelAssetID]
+		directory := s.modelAssetDirectories[binding.ModelAssetID]
+		if asset == nil || asset.GetContentId() != binding.VerifiedContentID ||
+			canonicalReportPath(directory) != canonicalReportPath(binding.BundleDir) ||
+			canonicalReportPath(filepath.Join(directory, filepath.FromSlash(asset.GetEntry()))) != canonicalReportPath(binding.AbsolutePath) {
+			return nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, "captured ModelAsset was removed or changed before admission", nil)
+		}
+	}
+	holder := "admission:" + strings.ToLower(ulid.Make().String())
+	releases := make([]func(), 0, len(selected.ExactBindings))
+	seen := make(map[string]bool)
+	for _, binding := range selected.ExactBindings {
+		if !seen[binding.ModelAssetID] {
+			seen[binding.ModelAssetID] = true
+			releases = append(releases, s.acquireModelAssetUse(binding.ModelAssetID, holder))
+		}
+	}
+	return localexecution.NewModelAssetUse(func() {
+		for _, release := range releases {
+			release()
+		}
+	}), nil
 }
 
 func cloneTextBehaviorCapabilityProjections(values []*runtimev1.TextBehaviorCapabilityProjection) []*runtimev1.TextBehaviorCapabilityProjection {

@@ -86,8 +86,17 @@ func (record *scenarioJobRecord) releaseModelAssetUses() {
 	if record == nil {
 		return
 	}
+	runModelAssetReleases(record.takeModelAssetUses())
+}
+
+// Caller owns the unpublished record or holds the Job store mutex.
+func (record *scenarioJobRecord) takeModelAssetUses() []func() {
 	releases := record.modelAssetUses
 	record.modelAssetUses = nil
+	return releases
+}
+
+func runModelAssetReleases(releases []func()) {
 	for _, release := range releases {
 		if release != nil {
 			release()
@@ -247,7 +256,25 @@ func (s *scenarioJobStore) createOwnedAndBindCapturedInputsChecked(
 		createdAt:        nowTime,
 		updatedAt:        nowTime,
 	}
-	record.modelAssetUses = s.acquireModelAssetUsesFor(id, capturedAssembly)
+	if resolvedAssembly != nil && resolvedAssembly.modelAssetUse != nil {
+		use, err := resolvedAssembly.modelAssetUse.Retain()
+		if err != nil {
+			return nil, false, fmt.Errorf("retain captured ModelAsset use: %w", err)
+		}
+		record.modelAssetUses = []func(){use.Release}
+	} else {
+		var err error
+		record.modelAssetUses, err = s.acquireModelAssetUsesFor(id, capturedAssembly)
+		if err != nil {
+			return nil, false, err
+		}
+	}
+	published := false
+	defer func() {
+		if !published {
+			record.releaseModelAssetUses()
+		}
+	}()
 	key := strings.TrimSpace(idempotencyScope)
 
 	s.mu.Lock()
@@ -304,6 +331,7 @@ func (s *scenarioJobStore) createOwnedAndBindCapturedInputsChecked(
 		return nil, false, fmt.Errorf("persist scenario job %q creation: %w", id, err)
 	}
 	s.mu.Unlock()
+	published = true
 	return cloneScenarioJob(record.job), true, nil
 }
 
@@ -660,11 +688,12 @@ func (s *scenarioJobStore) transitionWithResults(
 		s.mu.Unlock()
 		return job, false, fmt.Errorf("persist scenario job %q transition to %s: %w", id, status.String(), err)
 	}
+	var releases []func()
 	if becameTerminal {
 		record.doneClosed = true
 		close(record.done)
 		if !record.executionStarted {
-			record.releaseModelAssetUses()
+			releases = record.takeModelAssetUses()
 		}
 	}
 	if eventType != runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_TYPE_UNSPECIFIED {
@@ -673,6 +702,7 @@ func (s *scenarioJobStore) transitionWithResults(
 	s.pruneLocked(nowTime)
 	job := cloneScenarioJob(record.job)
 	s.mu.Unlock()
+	runModelAssetReleases(releases)
 	return job, true, nil
 }
 
@@ -715,7 +745,8 @@ func (s *scenarioJobStore) forceFailedInMemory(jobID string, reason string) (*ru
 		return nil, false
 	}
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	var releases []func()
+	defer func() { s.mu.Unlock(); runModelAssetReleases(releases) }()
 	record := s.jobs[id]
 	if record == nil || record.job == nil {
 		return nil, false
@@ -741,7 +772,7 @@ func (s *scenarioJobStore) forceFailedInMemory(jobID string, reason string) (*ru
 		close(record.done)
 	}
 	if !record.executionStarted {
-		record.releaseModelAssetUses()
+		releases = record.takeModelAssetUses()
 	}
 	s.publishLocked(record, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_FAILED)
 	return cloneScenarioJob(record.job), true
@@ -1004,15 +1035,15 @@ func (s *scenarioJobStore) setModelAssetUseHolder(holder localexecution.ModelAss
 	s.mu.Unlock()
 }
 
-func (s *scenarioJobStore) acquireModelAssetUsesFor(jobID string, assembly *localResolvedAssembly) []func() {
+func (s *scenarioJobStore) acquireModelAssetUsesFor(jobID string, assembly *localResolvedAssembly) ([]func(), error) {
 	if assembly == nil {
-		return nil
+		return nil, nil
 	}
 	s.mu.Lock()
 	holder := s.modelAssetUseHolder
 	s.mu.Unlock()
 	if holder == nil {
-		return nil
+		return nil, nil
 	}
 	seen := make(map[string]struct{}, len(assembly.ModelAxes))
 	releases := make([]func(), 0, len(assembly.ModelAxes))
@@ -1025,9 +1056,16 @@ func (s *scenarioJobStore) acquireModelAssetUsesFor(jobID string, assembly *loca
 			continue
 		}
 		seen[id] = struct{}{}
-		releases = append(releases, holder.AcquireModelAssetUse(id, "job:"+strings.TrimSpace(jobID)))
+		release := holder.AcquireModelAssetUse(id, "job:"+strings.TrimSpace(jobID))
+		if release == nil {
+			for _, prior := range releases {
+				prior()
+			}
+			return nil, fmt.Errorf("captured ModelAsset %s was removed before Job publication", id)
+		}
+		releases = append(releases, release)
 	}
-	return releases
+	return releases, nil
 }
 
 func (s *scenarioJobStore) startExecution(jobID string) bool {
@@ -1106,13 +1144,6 @@ func (s *scenarioJobStore) finishExecution(jobID string) (bool, error) {
 	record.executionStarted = false
 	cancel := record.cancel
 	record.cancel = nil
-	// The executor has really exited: once the record is terminal (now, or
-	// after the cancellation below persists) the captured files are free.
-	defer func() {
-		if isTerminalScenarioJobStatus(record.job.GetStatus()) {
-			record.releaseModelAssetUses()
-		}
-	}()
 	if record.cancelRequested && !isTerminalScenarioJobStatus(record.job.GetStatus()) {
 		previousJob := cloneScenarioJob(record.job)
 		previousUpdatedAt := record.updatedAt
@@ -1143,7 +1174,12 @@ func (s *scenarioJobStore) finishExecution(jobID string) (bool, error) {
 		s.publishLocked(record, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_CANCELED)
 		s.pruneLocked(nowTime)
 	}
+	var releases []func()
+	if isTerminalScenarioJobStatus(record.job.GetStatus()) {
+		releases = record.takeModelAssetUses()
+	}
 	s.mu.Unlock()
+	runModelAssetReleases(releases)
 	if cancel != nil {
 		cancel()
 	}

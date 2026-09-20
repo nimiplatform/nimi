@@ -102,8 +102,18 @@ func (s *Service) captureReferencedLocalExecution(
 		return ctx, nil
 	}
 	if captured, ok := localexecution.SelectedLocalExecutionFromContext(ctx, intent.CapabilityContract); ok {
+		if owner, holdsFiles := s.localExecution.(localexecution.ModelAssetCaptureResolver); holdsFiles && captured.ModelAssetUse == nil {
+			use, err := owner.HoldCapturedLocalExecution(captured)
+			if err != nil {
+				return ctx, err
+			}
+			captured.ModelAssetUse = use
+		}
+		if err := localexecution.TrackModelAssetUse(ctx, captured.ModelAssetUse); err != nil {
+			return ctx, grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, err, grpcerr.ReasonOptions{})
+		}
 		intent.LocalLoadoutRef = captured.LoadoutID
-		return executionintent.WithIntent(ctx, intent), nil
+		return localexecution.WithSelectedLocalExecution(executionintent.WithIntent(ctx, intent), captured), nil
 	}
 	if s == nil || s.localExecution == nil {
 		return ctx, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED)
@@ -112,13 +122,18 @@ func (s *Service) captureReferencedLocalExecution(
 		resolved *localexecution.SelectedLocalExecution
 		err      error
 	)
-	if strings.TrimSpace(intent.LocalLoadoutRef) != "" {
+	if owner, holdsFiles := s.localExecution.(localexecution.ModelAssetCaptureResolver); holdsFiles {
+		resolved, err = owner.CaptureLocalExecution(intent.CapabilityContract, intent.LocalLoadoutRef)
+	} else if strings.TrimSpace(intent.LocalLoadoutRef) != "" {
 		resolved, err = s.localExecution.ResolveLocalExecution(intent.CapabilityContract, intent.LocalLoadoutRef)
 	} else {
 		resolved, err = s.localExecution.ResolveSelectedLocalExecution(intent.CapabilityContract)
 	}
 	if err != nil {
 		return ctx, err
+	}
+	if err := localexecution.TrackModelAssetUse(ctx, resolved.ModelAssetUse); err != nil {
+		return ctx, grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, err, grpcerr.ReasonOptions{})
 	}
 	intent.LocalLoadoutRef = resolved.LoadoutID
 	return localexecution.WithSelectedLocalExecution(executionintent.WithIntent(ctx, intent), resolved), nil

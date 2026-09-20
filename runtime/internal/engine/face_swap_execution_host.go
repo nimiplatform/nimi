@@ -30,6 +30,7 @@ const maxFaceSwapResponseBytes = 96 * 1024 * 1024
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.face-swap-host
 type FaceSwapExecutionHost struct {
+	residentModelAssets
 	manager                   *Manager
 	lease                     speechExecutionLease
 	identity, endpoint, token string
@@ -83,7 +84,7 @@ func (host *FaceSwapExecutionHost) ExecuteImageFaceSwap(ctx context.Context, pla
 	if err != nil {
 		return localexecution.ImageArtifact{}, err
 	}
-	defer release()
+	defer func() { release(); host.residentModelAssets.notifyIdle() }()
 	if host.poisoned != nil {
 		return localexecution.ImageArtifact{}, executionFailure(localexecution.FailureProcessCrash, host.poisoned)
 	}
@@ -200,6 +201,7 @@ func faceSwapWorkerReason(value string) runtimev1.ReasonCode {
 }
 
 func (host *FaceSwapExecutionHost) start(ctx context.Context, plan capabilitydriver.FaceSwapModelPlan) error {
+	host.residentModelAssets.capture(plan.Bindings)
 	parts := []string{plan.ProfileRoot, plan.ProfileDigest, plan.DriverBundleDigest}
 	for _, binding := range plan.Bindings {
 		parts = append(parts, binding.RequirementID, binding.AbsolutePath, binding.VerifiedContentID)

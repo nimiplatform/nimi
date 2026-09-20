@@ -49,6 +49,7 @@ type ExactDependencySource struct {
 // machine selection. Configured is true for every successful resolution;
 // incomplete configurations return a typed error instead of a partial value.
 type SelectedLocalExecution struct {
+	ModelAssetUse *ModelAssetUse `json:"-"`
 	// EmbeddingDimension is verified by the exact Driver Model Contract.
 	EmbeddingDimension int
 	LoadoutID          string
@@ -98,12 +99,28 @@ type Resolver interface {
 	ResolveLocalExecution(capabilityContract string, loadoutRef string) (*SelectedLocalExecution, error)
 }
 
+// ModelAssetCaptureResolver is implemented by the mutable inventory owner.
+// Projection-only resolvers do not own model files. Actual inventory capture
+// returns a use while its lookup is still serialized with removal.
+type ModelAssetCaptureResolver interface {
+	CaptureLocalExecution(capabilityContract, loadoutRef string) (*SelectedLocalExecution, error)
+	HoldCapturedLocalExecution(*SelectedLocalExecution) (*ModelAssetUse, error)
+}
+
 // ModelAssetUseHolder is the optional inventory-owner surface a Resolver may
 // implement so a Job owner can keep a captured ModelAsset's files alive from
 // admission until its executor has really exited. The returned release is
 // idempotent. Holding a use never binds, selects, or routes anything.
+// A nil function means the asset was removed before a new use could be acquired.
 type ModelAssetUseHolder interface {
 	AcquireModelAssetUse(modelAssetID string, holder string) func()
+}
+
+// RetireModelAsset confirms that this Host no longer retains the asset. Busy
+// Hosts return false and notify after their existing execution lease is free.
+type ModelAssetHostRetirer interface {
+	RetireModelAsset(modelAssetID string) (bool, error)
+	SetModelAssetCleanupCallback(func())
 }
 
 // TextExecutionProgress reports private host lifecycle progress to the job or

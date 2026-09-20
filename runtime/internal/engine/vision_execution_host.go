@@ -34,6 +34,7 @@ const maxVisionLocateJSONBytes = 2 * 1024 * 1024
 // VisionExecutionHost owns one supervised resident Worker and serial lease.
 // All model/profile inputs come from the captured plan, including on cold start.
 type VisionExecutionHost struct {
+	residentModelAssets
 	manager  *Manager
 	lease    speechExecutionLease
 	identity string
@@ -57,7 +58,8 @@ func (host *VisionExecutionHost) ExecuteVisionLocate(ctx context.Context, plan *
 	if err != nil {
 		return nil, err
 	}
-	defer release()
+	defer func() { release(); host.residentModelAssets.notifyIdle() }()
+	host.residentModelAssets.capture([]capabilitydriver.InvocationExactBinding{plan.Binding})
 	if host.poisoned != nil {
 		return nil, executionFailure(localexecution.FailureProcessCrash, host.poisoned)
 	}

@@ -572,6 +572,7 @@ func (s *Service) reconcileTransferCommitIntents() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	changed := false
+	clearedIntents := make(map[string]*localTransferCommitIntent)
 	for key, private := range s.transferPrivate {
 		summary := s.transfers[key]
 		if summary == nil {
@@ -594,13 +595,15 @@ func (s *Service) reconcileTransferCommitIntents() {
 					delete(s.transferControls, key)
 					delete(s.managedModelDownloadSpecs, key)
 				}
+				clearedIntents[key] = private.commitIntent
 				private.commitIntent = nil
 				private.result = &localTransferResult{Disposition: "created", ModelAssetID: intent.ModelAssetID}
 				changed = true
 				continue
 			}
 			if private.cancelRequested {
-				private.commitIntent = nil
+				// Keep the cleanup target durable until the view is really gone.
+				summary.CleanupPending = true
 				changed = true
 				continue
 			}
@@ -623,6 +626,9 @@ func (s *Service) reconcileTransferCommitIntents() {
 	}
 	if changed {
 		if err := s.persistStateLocked(); err != nil {
+			for key, intent := range clearedIntents {
+				s.transferPrivate[key].commitIntent = intent
+			}
 			s.logger.Warn("persist reconciled transfer results failed", "error", err)
 		}
 	}
@@ -664,8 +670,8 @@ func (s *Service) transferPinsAssetLocked(modelAssetID string) bool {
 }
 
 // settledTransferResults captures the staged completions and previous
-// private states settlePendingTransferResultsForAssetLocked changed, so a
-// failed inventory persistence can roll every one of them back.
+// private states changed during result settlement. Rollback is only for a
+// failed result save; a later removal failure cannot undo a durable result.
 type settledTransferResults struct {
 	completions []*stagedTransferCompletion
 	previous    map[string]localTransferPrivateState
@@ -1236,12 +1242,6 @@ func (s *Service) CancelLocalTransfer(_ context.Context, req *runtimev1.CancelLo
 	if persistErr != nil {
 		return nil, localTransferPersistenceError(persistErr)
 	}
-	s.mu.Lock()
-	if private := s.transferPrivateLocked(sessionID); private.commitIntent != nil {
-		private.commitIntent = nil
-		_ = s.persistStateLocked()
-	}
-	s.mu.Unlock()
 	s.discardCancelledIntentView(sessionID)
 	s.discardAcquisitionMaterial(sessionID)
 	s.retryModelAssetCleanupObligations()

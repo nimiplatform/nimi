@@ -26,6 +26,7 @@ type videoSessionRecord struct {
 	ctx                         context.Context
 	cancel                      context.CancelFunc
 	host                        localexecution.VideoFaceSwapSession
+	modelAssetUse               *localexecution.ModelAssetUse
 	pending                     chan *runtimev1.SubmitVideoSessionFrameRequest
 	results                     *realtimecore.Stream[*runtimev1.AiVideoSessionResult]
 	lastSequence, lastTimestamp uint64
@@ -70,6 +71,9 @@ func (store *videoSessionStore) all() []*videoSessionRecord {
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.face-swap-session-operations
 func (s *Service) OpenVideoSession(ctx context.Context, req *runtimev1.OpenVideoSessionRequest) (*runtimev1.OpenVideoSessionResponse, error) {
+	ctx, releaseModelAssets := localexecution.WithModelAssetUseScope(ctx)
+	defer releaseModelAssets()
+
 	if req == nil || len(req.ProtoReflect().GetUnknown()) != 0 || !localAppBoundedIdentifier(req.ReferenceImageArtifactId) || req.Format == nil || len(req.Format.ProtoReflect().GetUnknown()) != 0 || req.Format.Width != 1280 || req.Format.Height != 720 || req.Format.PixelFormat != runtimev1.AiVideoPixelFormat_AI_VIDEO_PIXEL_FORMAT_RGB8 {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
@@ -129,8 +133,14 @@ func (s *Service) OpenVideoSession(ctx context.Context, req *runtimev1.OpenVideo
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	_ = results.Transition(1, realtimecore.LifecycleReady)
+	modelAssetUse, err := selected.ModelAssetUse.Retain()
+	if err != nil {
+		_ = host.Close()
+		return nil, localImageExecutionError(err)
+	}
 	life, stop := context.WithCancel(context.Background())
 	record := &videoSessionRecord{id: id, accountID: decision.AccountID, subject: decision.RegisteredAppSubject, generation: 1, format: proto.Clone(req.Format).(*runtimev1.AiVideoSessionFormat), ctx: life, cancel: stop, host: host, pending: make(chan *runtimev1.SubmitVideoSessionFrameRequest, 1), results: results, lastConsumption: time.Now()}
+	record.modelAssetUse = modelAssetUse
 	s.videoSessions.add(record)
 	go s.runVideoSession(record)
 	go s.watchVideoSessionConsumer(record)
@@ -241,6 +251,7 @@ func (s *Service) CloseVideoSession(ctx context.Context, req *runtimev1.CloseVid
 }
 
 func (s *Service) runVideoSession(record *videoSessionRecord) {
+	defer record.modelAssetUse.Release()
 	for {
 		select {
 		case <-record.ctx.Done():

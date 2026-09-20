@@ -22,6 +22,7 @@ import (
 // speech process. Selection and model identity are fixed in the Driver plan;
 // this Host supplies only the configured loopback endpoint.
 type SpeechExecutionHost struct {
+	residentModelAssets
 	materializer SpeechExecutionHostMaterializer
 	audioCppHost localexecution.SpeechExecutionHost
 	port         int
@@ -104,7 +105,7 @@ func (host *SpeechExecutionHost) ExecuteSpeechSynthesis(ctx context.Context, pla
 	if err != nil {
 		return localexecution.SpeechSynthesisResult{}, speechHostError(localexecution.FailureCanceled, err)
 	}
-	defer release()
+	defer func() { release(); host.residentModelAssets.notifyIdle() }()
 	if host.poisoned != nil {
 		return localexecution.SpeechSynthesisResult{}, speechHostError(localexecution.FailureProcessCrash, host.poisoned)
 	}
@@ -132,7 +133,7 @@ func (host *SpeechExecutionHost) ExecuteSpeechSynthesis(ctx context.Context, pla
 		return localexecution.SpeechSynthesisResult{}, speechHostError(localexecution.FailureInference, fmt.Errorf("local speech synthesis returned empty audio"))
 	}
 	return localexecution.SpeechSynthesisResult{
-		AudioBody: artifactBody.Body,
+		AudioBody: host.residentModelAssets.holdOutput(artifactBody.Body),
 		SizeBytes: artifactBody.SizeBytes,
 		MIMEType:  artifactBody.MIMEType,
 		Usage:     usage,
@@ -153,7 +154,7 @@ func (host *SpeechExecutionHost) ExecuteSpeechTranscription(ctx context.Context,
 	if err != nil {
 		return localexecution.SpeechTranscriptionResult{}, speechHostError(localexecution.FailureCanceled, err)
 	}
-	defer release()
+	defer func() { release(); host.residentModelAssets.notifyIdle() }()
 	if host.poisoned != nil {
 		return localexecution.SpeechTranscriptionResult{}, speechHostError(localexecution.FailureProcessCrash, host.poisoned)
 	}
@@ -193,7 +194,7 @@ func (host *SpeechExecutionHost) ExecuteVoiceCreate(ctx context.Context, plan *c
 	if err != nil {
 		return localexecution.VoiceCreateResult{}, speechHostError(localexecution.FailureCanceled, err)
 	}
-	defer release()
+	defer func() { release(); host.residentModelAssets.notifyIdle() }()
 	if host.poisoned != nil {
 		return localexecution.VoiceCreateResult{}, speechHostError(localexecution.FailureProcessCrash, host.poisoned)
 	}
@@ -250,7 +251,7 @@ func (host *SpeechExecutionHost) executeAudioCppReferenceVoiceCreate(ctx context
 	if err != nil {
 		return localexecution.VoiceCreateResult{}, speechHostError(localexecution.FailureCanceled, err)
 	}
-	defer release()
+	defer func() { release(); host.residentModelAssets.notifyIdle() }()
 	if err := beginSpeechExecution(ctx, onStart); err != nil {
 		return localexecution.VoiceCreateResult{}, err
 	}
@@ -564,6 +565,7 @@ func (host *SpeechExecutionHost) materializeBackend(
 	if endpoint == "" {
 		return nil, speechHostError(localexecution.FailureLoad, fmt.Errorf("local speech ExecutionHost endpoint is unavailable"))
 	}
+	host.residentModelAssets.capture(modelFiles)
 	if err := host.materializer.RegisterSpeechExecutionModel(ctx, endpoint, registration); err != nil {
 		return nil, speechHostError(localexecution.FailureLoad, fmt.Errorf("register local speech model %s: %w", modelAssetID, err))
 	}

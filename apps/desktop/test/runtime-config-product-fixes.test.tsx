@@ -56,6 +56,27 @@ async function withRenderer(run: (ui: {
   }
 }
 
+test('transfer recovery exposes only advertised actions and reports rejected commands', async () => {
+  await withRenderer(async (ui) => {
+    const { TransferRecoveryControls } = await import('../src/shell/renderer/features/runtime-config/model-transfer-recovery-actions.js');
+    const calls: string[] = [];
+    const event = { availableActions: ['check_sync', 'view_related_transfer', 'reimport'] as const, relatedInstallSessionId: 'specific-owner' };
+    const onAction = async (action: string) => { calls.push(action); if (action === 'check_sync') throw Error('owner unavailable'); };
+    await ui.render(<TransferRecoveryControls event={{ ...event, availableActions: [...event.availableActions] }} onAction={onAction} />);
+    await ui.click('[data-transfer-recovery="check_sync"]');
+    assert.match(ui.document.body.textContent ?? '', /owner unavailable/);
+    await ui.click('[data-transfer-recovery="view_related_transfer"]');
+    await ui.click('[data-transfer-recovery="import_file"]');
+    await ui.click('[data-transfer-recovery="import_directory"]');
+    assert.deepEqual(calls, ['check_sync', 'view_related_transfer', 'import_file', 'import_directory']);
+    await ui.render(<TransferRecoveryControls event={{ availableActions: ['check_sync'] }} disabled onAction={onAction} />);
+    assert.equal(ui.document.querySelector('[data-transfer-recovery="view_related_transfer"]'), null);
+    assert.equal(ui.document.querySelector('[data-transfer-recovery="import_file"]'), null);
+    await ui.click('[data-transfer-recovery="check_sync"]');
+    assert.equal(calls.length, 4);
+  });
+});
+
 test('import previews and retries library save without any machine operation, then offers use', async () => {
   await withRenderer(async (ui) => {
     const { ProfileImportWizard } = await import('../src/shell/renderer/features/runtime-config/runtime-config-profile-import-wizard.js');

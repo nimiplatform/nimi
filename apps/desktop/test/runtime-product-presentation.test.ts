@@ -4,7 +4,7 @@ import type { NimiLoadoutRecipe, NimiMachineLoadout, NimiRuntimeLocalVerifiedAss
 import { AppPackageJobPhase } from '@nimiplatform/sdk/runtime/wire-types';
 import { capabilityModelIdentity, recipeResourceSummary, setupPlanNeedsPreparation } from '../src/shell/renderer/features/runtime-config/runtime-capability-presentation.js';
 import type { RuntimeSetupPreparationPlan } from '../src/shell/renderer/features/runtime-config/runtime-setup-task-runner.js';
-import { appJobLane, transferLane } from '../src/shell/renderer/features/runtime-config/global-downloads-presentation.js';
+import { appJobLane, groupTransferAttempts, transferLane } from '../src/shell/renderer/features/runtime-config/global-downloads-presentation.js';
 
 const recipe = (contents: string[]) => ({
   recipeId: 'recipe', title: 'Readable model',
@@ -48,6 +48,16 @@ test('downloads separate interrupted work from canceled history and resumable wo
   assert.equal(transferLane('paused'), 'active');
   assert.equal(appJobLane(AppPackageJobPhase.FAILED), 'attention');
   assert.equal(appJobLane(AppPackageJobPhase.CANCELED), 'history');
+});
+
+test('identical source labels and related content never merge independent acquisition identities', () => {
+  const common = { modelAssetId: '', phase: 'download', bytesReceived: 0, bytesReused: 0, bytesVerified: 0,
+    state: 'failed' as const, availableActions: [], cleanupPending: false, retryable: false, createdAt: '2026-09-20T00:00:00Z' };
+  const rows = [
+    { ...common, installSessionId: 'first', sourceLabel: 'same/name', sessionKind: 'download', updatedAt: '2026-09-20T00:00:00Z' },
+    { ...common, installSessionId: 'second', sourceLabel: 'same/name', sessionKind: 'download', relatedInstallSessionId: 'first', updatedAt: '2026-09-20T00:01:00Z' },
+  ] satisfies Parameters<typeof groupTransferAttempts>[0];
+  assert.deepEqual(groupTransferAttempts(rows).map((group) => group.latest.installSessionId), ['first', 'second']);
 });
 
 test('the use action only skips preparation wording when chosen files and required environment are already available', () => {

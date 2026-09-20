@@ -21,6 +21,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/health"
 	"github.com/nimiplatform/nimi/runtime/internal/httpserver"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	connectorservice "github.com/nimiplatform/nimi/runtime/internal/services/connector"
@@ -674,6 +675,11 @@ func (d *Daemon) startSupervisedEngines(_ context.Context) {
 	)
 	onState := func(kind engine.EngineKind, status engine.EngineStatus, detail string) {
 		d.onEngineStateChange(string(kind), string(status), detail)
+		if svc != nil && status == engine.StatusStopped {
+			// Stop can be called from cleanup while its metadata mutex is held.
+			// Re-enter only after returning to the supervisor's ordinary owner.
+			go svc.RetryModelAssetCleanupAfterHostExit()
+		}
 	}
 	managerFactory := d.newEngineManager
 	if managerFactory == nil {
@@ -714,6 +720,7 @@ func (d *Daemon) startSupervisedEngines(_ context.Context) {
 		mgr.SetRuntimeWorkRoot(filepath.Join(filepath.Dir(localStatePath), "engine-work"))
 	}
 	if aiSvc := d.grpc.AIService(); aiSvc != nil {
+		var modelAssetHosts []localexecution.ModelAssetHostRetirer
 		if llamaConfig, enabled := llamaExecutionHostConfig(d.cfg); enabled {
 			llamaHost, hostErr := engine.NewExecutionHostWithLlamaConfig(mgr, d.logger, llamaConfig)
 			if hostErr != nil {
@@ -723,6 +730,7 @@ func (d *Daemon) startSupervisedEngines(_ context.Context) {
 				appendStartupFailureAudit(d.auditStore, reason)
 			} else {
 				aiSvc.SetLocalTextExecutionHost(llamaHost)
+				modelAssetHosts = append(modelAssetHosts, llamaHost)
 				d.logger.Info("llama execution host configured",
 					"version", llamaConfig.Version,
 					"port", llamaConfig.Port,
@@ -733,20 +741,29 @@ func (d *Daemon) startSupervisedEngines(_ context.Context) {
 			PackageSource: strings.TrimSpace(d.cfg.EngineManagedImageBackendSource),
 		})
 		aiSvc.SetLocalImageExecutionHost(d.imageExecutionHost)
-		aiSvc.SetLocalVisionExecutionHost(engine.NewVisionExecutionHost(mgr))
-		aiSvc.SetLocalTextAnnotationExecutionHost(engine.NewTextAnnotationExecutionHost(mgr))
-		aiSvc.SetLocalFaceSwapExecutionHost(engine.NewFaceSwapExecutionHost(mgr))
+		visionHost := engine.NewVisionExecutionHost(mgr)
+		annotationHost := engine.NewTextAnnotationExecutionHost(mgr)
+		faceSwapHost := engine.NewFaceSwapExecutionHost(mgr)
+		aiSvc.SetLocalVisionExecutionHost(visionHost)
+		aiSvc.SetLocalTextAnnotationExecutionHost(annotationHost)
+		aiSvc.SetLocalFaceSwapExecutionHost(faceSwapHost)
+		modelAssetHosts = append(modelAssetHosts, d.imageExecutionHost, visionHost, annotationHost, faceSwapHost)
 		d.audioCppExecutionHost = engine.NewAudioCppExecutionHost(d.logger)
 		aiSvc.SetLocalMusicExecutionHost(d.audioCppExecutionHost)
 		d.videoExecutionHost = engine.NewVideoExecutionHost(mgr, d.logger, engine.VideoExecutionHostConfig{
 			PackageSource: strings.TrimSpace(d.cfg.EngineManagedImageBackendSource),
 		})
 		aiSvc.SetLocalVideoExecutionHost(d.videoExecutionHost)
+		modelAssetHosts = append(modelAssetHosts, d.videoExecutionHost)
 		if svc != nil {
 			speechHost := engine.NewSpeechExecutionHost(svc, d.cfg.EngineSpeechPort, 0)
 			d.audioCppSpeechHost = engine.NewAudioCppSpeechExecutionHost(d.logger)
 			speechHost.SetAudioCppExecutionHost(d.audioCppSpeechHost)
 			aiSvc.SetLocalSpeechExecutionHost(speechHost)
+			if speechHost != nil {
+				modelAssetHosts = append(modelAssetHosts, speechHost)
+			}
+			svc.SetModelAssetHostRetirers(modelAssetHosts...)
 		}
 		if videoMedia, err := videomedia.NewFromDependenciesRoot(engineRoots.Dependencies); err != nil {
 			// Local video submits fail closed with a typed unavailable reason

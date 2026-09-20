@@ -360,6 +360,9 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 		bundleTotal = clampInt64Minimum(s.localTransferSummary(transferID).GetBytesTotal(), 0)
 	}
 	var received, reusedBytes int64
+	// Resume this operation's own prefixes before competing for another
+	// digest; otherwise two interrupted bundles can block each other forever.
+	files = prioritizeManagedModelDownloadPrefixes(stagingDir, files)
 	// pendingStaged is this transfer's own prefix material for files not yet
 	// processed; it keeps the received projection monotonic across resume.
 	pendingStaged := managedModelDownloadPendingStagedBytes(stagingDir, files)
@@ -381,6 +384,12 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 		pendingStaged -= managedModelDownloadStagedFileBytes(targetPath)
 
 		// A published object for this digest is reused after verification.
+		// Pin before looking at it, not after hash I/O: GC uses the same
+		// digest mutex for its final check and unlink.
+		s.holdModelObjectForVerification(expected, transferID)
+		if err := s.persistModelObjectHolds(transferID); err != nil {
+			return nil, transferID, fail(err, false)
+		}
 		present, _, presentErr := modelObjectPresent(modelsRoot, expected)
 		if presentErr != nil {
 			return nil, transferID, fail(presentErr, false)
@@ -417,6 +426,9 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 		// Missing object: this transfer must be the single writer for the digest.
 		if conflict := s.acquireModelObjectWriter(expected, transferID); conflict != nil {
 			return nil, transferID, fail(conflict, false)
+		}
+		if err := s.persistModelObjectHolds(transferID); err != nil {
+			return nil, transferID, fail(err, false)
 		}
 		if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
 			return nil, transferID, fail(fmt.Errorf("create model file dir %q: %w", relativeFile, err), false)
@@ -552,6 +564,18 @@ func managedModelDownloadPendingStagedBytes(stagingDir string, files []string) i
 		total += managedModelDownloadStagedFileBytes(filepath.Join(stagingDir, filepath.FromSlash(relativeFile)))
 	}
 	return total
+}
+
+func prioritizeManagedModelDownloadPrefixes(stagingDir string, files []string) []string {
+	owned, fresh := make([]string, 0, len(files)), make([]string, 0, len(files))
+	for _, file := range files {
+		if managedModelDownloadStagedFileBytes(filepath.Join(stagingDir, filepath.FromSlash(file))) > 0 {
+			owned = append(owned, file)
+		} else {
+			fresh = append(fresh, file)
+		}
+	}
+	return append(owned, fresh...)
 }
 
 // classifyDownloadInterruption maps a context or control interruption to the

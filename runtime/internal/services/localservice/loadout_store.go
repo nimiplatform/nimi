@@ -31,6 +31,7 @@ type loadoutStore interface {
 // @nimi-authority: rule.nimi.runtime.local-compute.r111
 type diskLoadoutStore struct {
 	path            string
+	readOnlyLoad    bool
 	diagnostics     []stateIsolationDiagnostic
 	retainedRecords []quarantinedStateRecord
 }
@@ -75,6 +76,9 @@ func (store *diskLoadoutStore) Load() ([]*runtimev1.Loadout, []*runtimev1.Loadou
 		documentErr = fmt.Errorf("unsupported schemaVersion=%d (expected %d)", snapshot.SchemaVersion, loadoutStoreSchemaVersion)
 	}
 	if documentErr != nil {
+		if store.readOnlyLoad {
+			return nil, nil, nil, fmt.Errorf("inspect Loadout document without mutation: %w", documentErr)
+		}
 		quarantinePath, quarantineErr := quarantineStateDocument(store.path, payload)
 		message := "loadouts.json document was isolated: " + documentErr.Error()
 		if quarantineErr != nil {
@@ -154,6 +158,9 @@ func (store *diskLoadoutStore) Load() ([]*runtimev1.Loadout, []*runtimev1.Loadou
 	}
 
 	if len(quarantined) > 0 {
+		if store.readOnlyLoad {
+			return nil, nil, nil, fmt.Errorf("inspect Loadout records without mutation: %s", quarantined[0].Reason)
+		}
 		quarantinePath, quarantineErr := writeQuarantinedStateRecords(store.path, quarantined)
 		for _, record := range quarantined {
 			message := record.Reason

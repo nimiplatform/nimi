@@ -126,6 +126,15 @@ func (s *Service) reconcileProductControlCheckSyncModelAssets(ctx context.Contex
 		id := asset.GetModelAssetId()
 		seen[id] = struct{}{}
 		reference := id
+		s.mu.RLock()
+		blockedReason := s.modelAssetRecoveryBlockedReasonLocked(id, directory)
+		s.mu.RUnlock()
+		if blockedReason != "" {
+			result.Resources = append(result.Resources, ProductControlCheckSyncResourceResult{
+				Kind: "model_asset_cleanup", Reference: &reference, Status: "unavailable", Reason: blockedReason,
+			})
+			continue
+		}
 		if ambiguousManifestIDs[id] {
 			result.Resources = append(result.Resources, ProductControlCheckSyncResourceResult{
 				Kind: "model_asset", Reference: &reference, Status: "conflict", Reason: "MODEL_MANIFEST_ID_AMBIGUOUS",

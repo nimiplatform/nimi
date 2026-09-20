@@ -36,6 +36,9 @@ const (
 // tool, stream, idempotency, or label field. Voice creation target model
 // identity is derived from the committed AIConfig intent, never from the App.
 func (s *Service) SubmitLocalAppScenarioJob(ctx context.Context, req *runtimev1.SubmitLocalAppScenarioJobRequest) (*runtimev1.SubmitLocalAppScenarioJobResponse, error) {
+	ctx, releaseModelAssets := localexecution.WithModelAssetUseScope(ctx)
+	defer releaseModelAssets()
+
 	decision, err := localAppScenarioDecision(ctx, accountservice.LocalAppOperationScenarioJobSubmit, localappop.AppOperationIDScenarioJobSubmit)
 	if err != nil {
 		return nil, err

@@ -294,23 +294,27 @@ func (s *Service) interruptTransfer(sessionID string, message string) error {
 // the executor's or CancelLocalTransfer's responsibility, so a busy file can
 // keep cleanup pending without hiding the terminal state.
 func (s *Service) cancelTransfer(sessionID string, message string) error {
-	_, err := s.mutateLocalTransfer(sessionID, true, func(summary *runtimev1.LocalTransferSessionSummary) {
-		if normalizeTransferState(summary.GetState()) == localTransferStateCompleted {
-			return
-		}
-		summary.State = localTransferStateCancelled
-		summary.Message = message
-		summary.ReasonCode = "LOCAL_TRANSFER_CANCELLED"
-		summary.Retryable = false
-	})
-	if err != nil {
+	s.mu.Lock()
+	summary := s.transfers[sessionID]
+	if summary == nil || normalizeTransferState(summary.GetState()) == localTransferStateCompleted {
+		s.mu.Unlock()
+		return nil
+	}
+	previous := cloneLocalTransferSummary(summary)
+	private := s.transferPrivateLocked(sessionID)
+	previousCancel := private.cancelRequested
+	private.cancelRequested = true
+	summary.State = localTransferStateCancelled
+	summary.Message = message
+	summary.ReasonCode = "LOCAL_TRANSFER_CANCELLED"
+	summary.Retryable = false
+	if err := s.persistStateLocked(); err != nil {
+		s.transfers[sessionID] = previous
+		private.cancelRequested = previousCancel
+		s.mu.Unlock()
 		return err
 	}
-	s.mu.Lock()
-	if private := s.transferPrivateLocked(sessionID); private.commitIntent != nil {
-		private.commitIntent = nil
-		_ = s.persistStateLocked()
-	}
+	s.publishTransferEventLocked(localTransferEventFromSummary(s.projectedTransferSummaryLocked(summary)))
 	s.mu.Unlock()
 	s.discardCancelledIntentView(sessionID)
 	return nil
@@ -319,27 +323,49 @@ func (s *Service) cancelTransfer(sessionID string, message string) error {
 // discardCancelledIntentView removes the uncommitted view directory of a
 // cancelled create intent. It only touches a directory no committed asset
 // owns; committed inventory is never rolled back by a cancel.
-func (s *Service) discardCancelledIntentView(sessionID string) {
+func (s *Service) discardCancelledIntentView(sessionID string) bool {
+	s.modelAssetMutationMu.Lock()
+	defer s.modelAssetMutationMu.Unlock()
 	s.mu.RLock()
 	private := s.transferPrivate[strings.TrimSpace(sessionID)]
 	var directory string
+	var intent *localTransferCommitIntent
 	if private != nil && private.commitIntent != nil {
-		directory = private.commitIntent.ManagedDirectory
+		intent = private.commitIntent
+		directory = intent.ManagedDirectory
 	}
 	s.mu.RUnlock()
 	if directory == "" {
-		return
+		return true
 	}
 	s.mu.RLock()
 	_, owned := s.modelAssetForManagedDirectoryLocked(directory)
 	s.mu.RUnlock()
-	if owned || !s.validModelAssetManagedDirectory(directory) {
-		return
+	if owned {
+		return true
+	}
+	if !s.validModelAssetManagedDirectory(directory) {
+		return false
 	}
 	if err := os.RemoveAll(directory); err != nil && !errors.Is(err, os.ErrNotExist) {
 		s.logger.Warn("uncommitted ModelAsset view cleanup pending", "transfer_id", sessionID, "directory", directory, "error", err)
 		s.setTransferCleanupPending(sessionID, true)
+		return false
 	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	private = s.transferPrivateLocked(sessionID)
+	if private.commitIntent == intent {
+		private.commitIntent = nil
+		if err := s.persistStateLocked(); err != nil {
+			private.commitIntent = intent
+			if summary := s.transfers[sessionID]; summary != nil {
+				summary.CleanupPending = true
+			}
+			return false
+		}
+	}
+	return true
 }
 
 // downloadToFileWithTransfer downloads sourceURL to targetPath through the

@@ -511,6 +511,34 @@ func (s *Service) pinModelObject(digest string, transferID string) {
 	s.addModelObjectHoldLocked(key, transferID, modelObjectHoldObject)
 }
 
+// Guard a potentially published object before inspecting its path. Preserve
+// an existing prefix/writer claim until publication is actually verified.
+func (s *Service) holdModelObjectForVerification(digest string, transferID string) {
+	key := normalizeExactSHA256Hex(digest)
+	s.modelObjectMu.Lock()
+	defer s.modelObjectMu.Unlock()
+	if _, held := s.modelObjectHolds[key][transferID]; !held {
+		s.addModelObjectHoldLocked(key, transferID, modelObjectHoldObject)
+	}
+}
+
+// Persist the claim before writing a prefix or exposing a published object.
+// A restart must not lose the only owner of partially acquired content.
+func (s *Service) persistModelObjectHolds(transferID string) error {
+	if strings.TrimSpace(transferID) == "" {
+		return nil
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.transferPrivateLocked(transferID).cancelRequested {
+		return errLocalTransferCancelled
+	}
+	if err := s.persistStateLocked(); err != nil {
+		return localTransferPersistenceError(err)
+	}
+	return nil
+}
+
 // releaseModelObjectWriters drops only the active writer grants of a transfer
 // whose executor exited; its prefix holds stay durable for an explicit resume
 // and a concurrent acquisition of the same digest now sees resume-required.
@@ -593,6 +621,14 @@ func (s *Service) modelObjectHeldByOthers(digest string, exclude string) bool {
 
 // AcquireModelAssetUse is the localexecution.ModelAssetUseHolder surface.
 func (s *Service) AcquireModelAssetUse(modelAssetID string, holder string) func() {
+	s.modelAssetMutationMu.Lock()
+	defer s.modelAssetMutationMu.Unlock()
+	s.mu.RLock()
+	asset := s.modelAssets[strings.TrimSpace(modelAssetID)]
+	s.mu.RUnlock()
+	if asset == nil {
+		return nil
+	}
 	return s.acquireModelAssetUse(modelAssetID, holder)
 }
 

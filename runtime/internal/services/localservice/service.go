@@ -16,6 +16,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/filedownload"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/oklog/ulid/v2"
 )
 
@@ -116,6 +117,7 @@ type Service struct {
 	loadoutCASToken                           string
 	loadoutNow                                func() time.Time
 	modelAssetMutationMu                      sync.Mutex
+	modelAssetHosts                           []localexecution.ModelAssetHostRetirer
 	modelAssets                               map[string]*runtimev1.ModelAssetRecord
 	modelAssetDirectories                     map[string]string
 	modelAssetCleanupObligations              map[string]modelAssetCleanupObligation
@@ -184,6 +186,7 @@ type entryHashCacheState struct {
 type serviceConstructionMode struct {
 	exclusiveStateAccess      bool
 	adoptResolvedModelImports bool
+	inspectConversionState    bool
 }
 
 func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, localAuditCapacity int, localModelsPathOverride ...string) (*Service, error) {
@@ -207,14 +210,14 @@ func NewForLocalModelRecovery(logger *slog.Logger, store *auditlog.Store, stateS
 	})
 }
 
-// NewForLocalModelRecoveryPreview opens state for a read-only conversion
-// preview without the exclusive owner lock. A running daemon may change state
-// underneath it, so its results are a preview; every write mode reopens under
-// the lock.
-func NewForLocalModelRecoveryPreview(logger *slog.Logger, store *auditlog.Store, stateStorePath string, localAuditCapacity int, localModelsPath string) (*Service, error) {
+// NewForLocalModelConversion reads the conversion inputs without startup
+// isolation or repair writes. Apply still requires the exclusive owner lock;
+// an unlocked instance can only produce a clearly marked preview.
+func NewForLocalModelConversion(logger *slog.Logger, store *auditlog.Store, stateStorePath string, localAuditCapacity int, localModelsPath string, previewUnlocked bool) (*Service, error) {
 	return newService(logger, store, stateStorePath, localAuditCapacity, localModelsPath, "", serviceConstructionMode{
-		exclusiveStateAccess:      false,
+		exclusiveStateAccess:      !previewUnlocked,
 		adoptResolvedModelImports: true,
+		inspectConversionState:    true,
 	})
 }
 
@@ -342,13 +345,20 @@ func newService(logger *slog.Logger, store *auditlog.Store, stateStorePath strin
 	jobCtx, jobCancel := context.WithCancel(context.Background())
 	svc.jobLifetimeCtx = jobCtx
 	svc.jobLifetimeCancel = jobCancel
+	if mode.inspectConversionState {
+		// Reuse the Loadout decoder/validator, but invalid input must be
+		// reported to the offline operator without modifying its source.
+		svc.loadoutStore.(*diskLoadoutStore).readOnlyLoad = true
+	}
 	if err := svc.restoreLoadouts(); err != nil {
 		jobCancel()
 		return nil, fmt.Errorf("local service: restore Loadouts: %w", err)
 	}
-	if err := svc.restoreModelAssetStore(); err != nil {
-		jobCancel()
-		return nil, fmt.Errorf("local service: restore ModelAsset inventory: %w", err)
+	if !mode.inspectConversionState {
+		if err := svc.restoreModelAssetStore(); err != nil {
+			jobCancel()
+			return nil, fmt.Errorf("local service: restore ModelAsset inventory: %w", err)
+		}
 	}
 	if !mode.adoptResolvedModelImports {
 		if err := svc.restoreState(); err != nil {
@@ -426,6 +436,7 @@ func (s *Service) Close() {
 	s.mu.Lock()
 	jobCancel := s.jobLifetimeCancel
 	s.jobLifetimeCancel = nil
+	s.modelAssetReclamationOpen = false
 	s.mu.Unlock()
 	// Abort any in-flight local-environment dependency-job goroutines and wait
 	// for them to reach a terminal transition before the service is torn down.
@@ -435,6 +446,8 @@ func (s *Service) Close() {
 	s.localEnvironmentJobWG.Wait()
 	s.transferWorkerWG.Wait()
 
+	s.modelAssetMutationMu.Lock()
+	defer s.modelAssetMutationMu.Unlock()
 	s.mu.Lock()
 	stateProcessLock := s.stateProcessLock
 	s.stateProcessLock = nil

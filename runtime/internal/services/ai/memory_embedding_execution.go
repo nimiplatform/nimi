@@ -52,6 +52,9 @@ type memoryEmbeddingExecution struct {
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.embedding-space-identity
 func (s *Service) DescribeMemoryEmbedding(ctx context.Context) (MemoryEmbeddingDescription, error) {
+	ctx, releaseModelAssets := localexecution.WithModelAssetUseScope(ctx)
+	defer releaseModelAssets()
+
 	selected, err := s.resolveMemoryEmbeddingSelection(ctx)
 	if err != nil {
 		return MemoryEmbeddingDescription{}, err
@@ -108,6 +111,9 @@ func memoryEmbeddingUnavailable() error {
 // Capture persists canonical ScenarioJobs and their complete assemblies before
 // returning the private delivery references. No provider I/O occurs here.
 func (s *Service) CaptureMemoryEmbedding(ctx context.Context, inputs []string, expectedSpaceID string, owner EmbeddingOwner) (_ MemoryEmbeddingDescription, _ []byte, resultErr error) {
+	ctx, releaseModelAssets := localexecution.WithModelAssetUseScope(ctx)
+	defer releaseModelAssets()
+
 	if len(inputs) == 0 || strings.TrimSpace(expectedSpaceID) == "" || !owner.valid() {
 		return MemoryEmbeddingDescription{}, nil, memoryEmbeddingUnavailable()
 	}
@@ -173,6 +179,9 @@ func (s *Service) CaptureMemoryEmbedding(ctx context.Context, inputs []string, e
 // A retry uses these exact jobs or fails; it never publishes replacement jobs.
 // ScenarioJob restart policy already makes interrupted execution terminal.
 func (s *Service) ExecuteMemoryEmbedding(ctx context.Context, raw []byte) (result MemoryEmbeddingResult, resultErr error) {
+	ctx, releaseModelAssets := localexecution.WithModelAssetUseScope(ctx)
+	defer releaseModelAssets()
+
 	if s == nil || s.scenarioJobs == nil {
 		return MemoryEmbeddingResult{}, memoryEmbeddingUnavailable()
 	}

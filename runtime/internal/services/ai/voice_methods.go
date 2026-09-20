@@ -534,6 +534,9 @@ func summarizeVoiceDeleteError(err error) string {
 }
 
 func (s *Service) ListPresetVoices(ctx context.Context, req *runtimev1.ListPresetVoicesRequest) (*runtimev1.ListPresetVoicesResponse, error) {
+	ctx, releaseModelAssets := localexecution.WithModelAssetUseScope(ctx)
+	defer releaseModelAssets()
+
 	appID, subjectUserID, err := validateListPresetVoicesRequest(req)
 	if err != nil {
 		return nil, err
@@ -553,6 +556,9 @@ func (s *Service) ListPresetVoices(ctx context.Context, req *runtimev1.ListPrese
 // delegation seam. The caller must place its canonical audio.synthesize intent
 // on the in-process context; this method never consults an App AIConfig.
 func (s *Service) ListPresetVoicesForCapturedIntent(ctx context.Context, req *runtimev1.ListPresetVoicesRequest) (*runtimev1.ListPresetVoicesResponse, error) {
+	ctx, releaseModelAssets := localexecution.WithModelAssetUseScope(ctx)
+	defer releaseModelAssets()
+
 	appID, subjectUserID, err := validateListPresetVoicesRequest(req)
 	if err != nil {
 		return nil, err

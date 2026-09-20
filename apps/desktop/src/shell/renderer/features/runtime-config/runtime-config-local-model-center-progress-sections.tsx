@@ -11,7 +11,7 @@ import { DownloadMetrics } from '../../components/download-metrics.js';
 import { Button } from './runtime-config-primitives';
 import { downloadStateLabel, formatDownloadPhaseLabel, formatImportPhaseLabel, transferDisplayLabel } from './runtime-config-model-center-utils';
 import { formatBytes } from '../../components/download-format.js';
-import { desktopBridge } from '../../bridge.js';
+import { ModelTransferRecoveryActions } from './model-transfer-recovery-actions.js';
 
 type TransferCardProps = {
   event: NimiRuntimeLocalTransferProgressEvent;
@@ -57,7 +57,6 @@ function LocalTransferDownloadCard(props: TransferCardProps) {
   const canPause = hasTransferAction(event, 'pause');
   const canResume = hasTransferAction(event, 'resume');
   const canCancel = hasTransferAction(event, 'cancel');
-  const canCheckSync = hasTransferAction(event, 'check_sync');
   const phaseLabel = formatDownloadPhaseLabel(event.phase, t);
   return (
     <div className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 shadow-[var(--nimi-elevation-base)]">
@@ -97,10 +96,10 @@ function LocalTransferDownloadCard(props: TransferCardProps) {
           idleLabel={isPaused ? t('runtimeConfig.localModelCenter.downloadState.paused') : undefined} />
       </div>
       <TransferReuseNote event={event} t={t} />
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {canPause ? <button type="button" disabled={props.runtimeWritesDisabled} onClick={() => props.onPause(event.installSessionId)} className="rounded border border-[var(--nimi-border-subtle)] px-2 py-1 text-xs text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] disabled:opacity-50">{t('runtimeConfig.localModelCenter.pause', { defaultValue: 'Pause' })}</button> : null}
         {canResume ? <Button size="sm" disabled={props.runtimeWritesDisabled} onClick={() => props.onResume(event.installSessionId)}>{t('runtimeConfig.localModelCenter.resume', { defaultValue: 'Resume' })}</Button> : null}
-        {canCheckSync ? <Button size="sm" disabled={props.runtimeWritesDisabled} onClick={() => { void desktopBridge.startProductControlCheckSync(); }}>{t('runtimeConfig.localModelCenter.checkSync', { defaultValue: 'Check & Sync' })}</Button> : null}
+        <ModelTransferRecoveryActions event={event} disabled={props.runtimeWritesDisabled} />
         {canCancel ? <button type="button" disabled={props.runtimeWritesDisabled} onClick={() => props.onCancel(event.installSessionId)} className="rounded border border-[var(--nimi-border-subtle)] px-2 py-1 text-xs text-[var(--nimi-text-secondary)] hover:border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] hover:text-[var(--nimi-status-danger)] disabled:opacity-50">{t('Common.cancel', { defaultValue: 'Cancel' })}</button> : null}
       </div>
     </div>
@@ -116,8 +115,6 @@ function LocalTransferImportCard(props: TransferCardProps) {
   const canPause = hasTransferAction(event, 'pause');
   const canResume = hasTransferAction(event, 'resume');
   const canCancel = hasTransferAction(event, 'cancel');
-  const canReimport = hasTransferAction(event, 'reimport');
-  const canCheckSync = hasTransferAction(event, 'check_sync');
   const phaseLabel = formatImportPhaseLabel(event.phase, t);
   return (
     <div className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 shadow-[var(--nimi-elevation-base)]">
@@ -165,16 +162,7 @@ function LocalTransferImportCard(props: TransferCardProps) {
             {t('runtimeConfig.localModelCenter.resume', { defaultValue: 'Resume' })}
           </Button>
         ) : null}
-        {canCheckSync ? (
-          <Button size="sm" disabled={props.runtimeWritesDisabled} onClick={() => { void desktopBridge.startProductControlCheckSync(); }}>
-            {t('runtimeConfig.localModelCenter.checkSync', { defaultValue: 'Check & Sync' })}
-          </Button>
-        ) : null}
-        {canReimport && props.onReimport ? (
-          <Button size="sm" disabled={props.runtimeWritesDisabled} onClick={() => props.onReimport?.()}>
-            {t('runtimeConfig.localModelCenter.reimport', { defaultValue: 'Import again' })}
-          </Button>
-        ) : null}
+        <ModelTransferRecoveryActions event={event} disabled={props.runtimeWritesDisabled} />
         {canCancel ? (
           <button
             type="button"

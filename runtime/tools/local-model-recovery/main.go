@@ -250,11 +250,7 @@ func convertContentAddressed(root string, statePath string, apply bool, previewU
 	logger := slog.New(slog.NewTextHandler(stderr, nil))
 	var svc *localservice.Service
 	var err error
-	if previewUnlocked {
-		svc, err = localservice.NewForLocalModelRecoveryPreview(logger, auditlog.New(5000, 5000), statePath, 5000, root)
-	} else {
-		svc, err = localservice.NewForLocalModelRecovery(logger, auditlog.New(5000, 5000), statePath, 5000, root)
-	}
+	svc, err = localservice.NewForLocalModelConversion(logger, auditlog.New(5000, 5000), statePath, 5000, root, previewUnlocked)
 	if err != nil {
 		return fmt.Errorf("open Runtime local state: %w", err)
 	}

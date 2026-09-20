@@ -57,6 +57,7 @@ type videoGenerateOutcome struct {
 
 // VideoExecutionHost owns one private FIFO and one video execution lease.
 type VideoExecutionHost struct {
+	residentModelAssets
 	logger      *slog.Logger
 	substrate   videoInvocationSubstrate
 	cancelGrace time.Duration
@@ -225,6 +226,7 @@ func (h *VideoExecutionHost) dequeue() *videoExecutionRequest {
 }
 
 func (h *VideoExecutionHost) clearActive(request *videoExecutionRequest) {
+	defer h.residentModelAssets.notifyIdle()
 	h.mu.Lock()
 	if h.active == request {
 		h.active = nil
@@ -288,6 +290,7 @@ func beginVideoExecution(ctx context.Context, onStart localexecution.VideoExecut
 
 func (h *VideoExecutionHost) execute(request *videoExecutionRequest) (localexecution.RawAVCandidate, error) {
 	startedAt := time.Now()
+	h.residentModelAssets.capture(request.plan.ExactBindings())
 	_, err := h.substrate.Ensure(request.ctx, request.plan, func() error {
 		if err := validateInvocationDependencySources(h.substrate, request.plan.DependencySources()); err != nil {
 			return err
