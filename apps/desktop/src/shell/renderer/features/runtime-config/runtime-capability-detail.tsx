@@ -18,7 +18,6 @@ import {
   Search,
   Settings2,
   SlidersHorizontal,
-  Sparkles,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';

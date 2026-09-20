@@ -542,6 +542,15 @@ function rawAppInput(target) {
   return inputPath;
 }
 
+test('lifecycle projection includes the safety declaration guide and every linked scenario', () => {
+  const files = new Map(lifecycleSkillFiles().map((file) => [file.path, file.content]));
+  const root = '.agents/skills/nimi-app-lifecycle';
+  assert.match(files.get(`${root}/references/safety-declaration.md`) ?? '', /nimi\.app\.yaml/);
+  for (const match of files.get(`${root}/SKILL.md`).matchAll(/\]\((references\/[^)#]+\.md)\)/g)) {
+    assert.ok(files.has(`${root}/${match[1]}`), `Missing projected guide: ${match[1]}`);
+  }
+});
+
 test('raw adoption previews without writes, keeps product ownership and repeats without changes', () => {
   const temp = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-raw-adopt-'));
   try {

@@ -5,7 +5,7 @@ import { assertProjectOutputPath, changedFiles, plannedFile } from './app-projec
 
 export const LIFECYCLE_SKILL_PATH = fileURLToPath(new URL('../skills/nimi-app-lifecycle/SKILL.md', import.meta.url));
 export const PROJECT_SKILL_DIR = '.agents/skills/nimi-app-lifecycle';
-const SKILL_FILES = ['SKILL.md', ...['audit', 'create', 'adapt', 'platform-gaps', 'upgrade-platform', 'sync-upstream', 'release', 'acceptance'].map((name) => `references/${name}.md`)];
+const SKILL_FILES = ['SKILL.md', ...['audit', 'create', 'adapt', 'platform-gaps', 'upgrade-platform', 'sync-upstream', 'safety-declaration', 'release', 'acceptance'].map((name) => `references/${name}.md`)];
 const START = '<!-- nimi-app:managed:start -->';
 const END = '<!-- nimi-app:managed:end -->';
 const AGENTS_BLOCK = `${START}
