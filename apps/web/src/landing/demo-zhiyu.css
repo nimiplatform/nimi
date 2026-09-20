@@ -1,0 +1,943 @@
+/* Landing-owned port of the Zhiyu shell stylesheet
+ * (apps/zhiyu/src/shell/app/home-surface.css). The interactive app preview
+ * mounts the same class names and data attributes as the real Zhiyu shell so
+ * the two render through identical layout rules. Keep this file in sync with
+ * the app when its shell CSS changes; Web must not import app source directly.
+ *
+ * Demo-only additions live at the bottom under "Demo host".
+ */
+
+@scope (.nimi-ui-module--zhiyu) {
+
+.zhiyu-agent-chat {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 26% 42%, rgba(214, 228, 248, 0.55), transparent 34%),
+    radial-gradient(circle at 79% 68%, rgba(244, 224, 252, 0.38), transparent 32%),
+    radial-gradient(circle at 18% 88%, rgba(216, 248, 234, 0.62), transparent 34%),
+    linear-gradient(135deg, rgba(232, 242, 255, 0.82), rgba(252, 252, 255, 0.98) 45%, rgba(244, 240, 255, 0.72));
+  color: var(--nimi-text-primary, #17211c);
+  font-family: var(--nimi-font-sans, "Inter", "Noto Sans SC", "Microsoft YaHei UI", system-ui, sans-serif);
+}
+
+.zhiyu-agent-chat,
+.zhiyu-agent-chat * {
+  box-sizing: border-box;
+}
+
+/* Keep the blanket button chrome out of the canonical composer subtree;
+   the composer buttons own their styling (ghost toolbar, emerald send). */
+:where(.zhiyu-agent-chat) :where(button):not(:where([data-chat-agent-center="true"], [data-chat-agent-center="true"] *, [data-canonical-composer-root="true"] *)) {
+  min-width: 34px;
+  min-height: 32px;
+  border: 1px solid var(--nimi-border-subtle, rgba(15, 23, 42, 0.1));
+  border-radius: 8px;
+  background: var(--nimi-surface-card, #fff);
+  color: var(--nimi-text-primary, #17211c);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+:where(.zhiyu-agent-chat) :where(button:not(:disabled):hover):not(:where([data-chat-agent-center="true"], [data-chat-agent-center="true"] *, [data-canonical-composer-root="true"] *)) {
+  border-color: color-mix(in srgb, var(--nimi-action-primary-bg, #45B8D6) 46%, var(--nimi-border-subtle, rgba(15, 23, 42, 0.12)));
+  background: color-mix(in srgb, var(--nimi-surface-card, #fff) 86%, var(--nimi-action-primary-bg, #45B8D6) 14%);
+}
+
+:where(.zhiyu-agent-chat) :where(button:disabled):not(:where([data-chat-agent-center="true"], [data-chat-agent-center="true"] *, [data-canonical-composer-root="true"] *)) {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+:where(.zhiyu-agent-chat) :where(textarea) {
+  font: inherit;
+  letter-spacing: 0;
+}
+
+.zhiyu-agent-chat__workspace {
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+}
+
+.zhiyu-agent-chat__layout {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 500px;
+  grid-template-areas: "presence conversation side";
+  gap: 0;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.zhiyu-agent-chat__layout.is-side-closed {
+  grid-template-columns: 64px minmax(0, 1fr);
+  grid-template-areas: "presence conversation";
+}
+
+.zhiyu-agent-rail {
+  grid-area: presence;
+  display: flex;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 0 12px;
+}
+
+.zhiyu-agent-rail__logo {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 14px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.zhiyu-agent-rail__logo img {
+  display: block;
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.zhiyu-agent-rail__agents {
+  display: flex;
+  width: 100%;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 2px 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.zhiyu-agent-rail__agents::-webkit-scrollbar {
+  display: none;
+}
+
+.zhiyu-agent-rail__separator {
+  width: 28px;
+  height: 1px;
+  margin: 6px auto;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: rgba(226, 232, 240, 0.8);
+}
+
+.zhiyu-agent-rail__agent-row {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 44px;
+  flex: 0 0 44px;
+  align-items: center;
+  justify-content: center;
+}
+
+.zhiyu-agent-rail__agent-indicator {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 3px;
+  height: 0;
+  transform: translateY(-50%);
+  border-radius: 0 999px 999px 0;
+  background: #10b981;
+  opacity: 0;
+  transition: height 200ms ease, opacity 200ms ease;
+}
+
+.zhiyu-agent-rail__agent-row:hover .zhiyu-agent-rail__agent-indicator {
+  height: 16px;
+  opacity: 1;
+}
+
+.zhiyu-agent-rail__agent-row .zhiyu-agent-rail__agent-indicator.is-active {
+  height: 32px;
+  opacity: 1;
+}
+
+.zhiyu-agent-rail__agent {
+  position: relative;
+  display: inline-grid;
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  place-items: center;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 999px;
+  box-shadow: none;
+  transition: border-radius 200ms ease, box-shadow 200ms ease, transform 200ms ease, background 200ms ease;
+}
+
+.zhiyu-agent-rail__agent {
+  background: linear-gradient(135deg, #34d399, #0d9488);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.zhiyu-agent-rail__agent > img,
+.zhiyu-home__composer-avatar > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.zhiyu-agent-rail__agent:not(.is-active):hover {
+  border-radius: 16px;
+}
+
+.zhiyu-agent-rail__agent.is-active {
+  border-radius: 16px;
+}
+
+.zhiyu-agent-rail__tools {
+  display: grid;
+  width: 100%;
+  gap: 8px;
+  align-self: end;
+  justify-items: center;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+.zhiyu-agent-rail__tools button {
+  position: relative;
+  display: inline-grid;
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--nimi-border-subtle, rgba(15, 23, 42, 0.1));
+  border-radius: 16px;
+  background: var(--nimi-surface-card, #fff);
+  color: var(--nimi-text-secondary, #475569);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+}
+
+.zhiyu-chat-canvas {
+  grid-area: conversation;
+  display: grid;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 26px;
+  position: relative;
+  padding: 12px 12px 12px 60px !important;
+  overflow: hidden;
+  isolation: isolate;
+  container-type: inline-size;
+}
+
+.zhiyu-resource-pack-surface__visual {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.zhiyu-resource-pack-status {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  z-index: 3;
+  display: inline-flex;
+  width: min(720px, calc(100% - 112px));
+  align-items: center;
+  gap: 8px;
+  transform: translateX(-50%);
+  padding: 7px 12px;
+  border: 1px solid color-mix(in srgb, var(--nimi-action-primary-bg) 16%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--nimi-surface-card) 88%, transparent);
+  color: var(--nimi-text-secondary);
+  box-shadow: var(--nimi-elevation-base);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+  font-size: var(--nimi-type-caption-size);
+  line-height: 1.4;
+}
+
+.zhiyu-resource-pack-status strong {
+  color: var(--nimi-text-primary);
+  font-weight: 650;
+}
+
+.zhiyu-resource-pack-status.is-warning {
+  border-color: color-mix(in srgb, var(--nimi-status-warning-text) 20%, transparent);
+  color: var(--nimi-status-warning-soft-text);
+}
+
+.zhiyu-chat-canvas__shell {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 26px;
+  position: relative;
+  z-index: 1;
+}
+
+.zhiyu-chat-canvas__transcript {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.zhiyu-chat-canvas__transcript [data-canonical-transcript-root="true"] {
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  /* both-edges keeps the message column centered with the composer column
+     instead of shifting left when the gutter is reserved. Inherit the global
+     thin scrollbar so the gutter matches desktop (auto would reserve ~15px). */
+  scrollbar-gutter: stable both-edges;
+}
+
+/* Keep a 48px horizontal reserve inside the scroll viewport so floating
+   elevations (e.g. the empty-state card's --nimi-elevation-floating) are not
+   hard-clipped into rectangular slabs when the column fills the viewport. */
+.zhiyu-chat-canvas__transcript [data-canonical-transcript-width],
+.zhiyu-chat-canvas__composer [data-canonical-composer-width],
+.zhiyu-home__chat-failure-notice {
+  width: min(720px, calc(100% - 48px));
+  max-width: min(720px, calc(100% - 48px));
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.zhiyu-agent-chat__layout.is-side-closed .zhiyu-chat-canvas__transcript [data-canonical-transcript-width],
+.zhiyu-agent-chat__layout.is-side-closed .zhiyu-chat-canvas__composer [data-canonical-composer-width],
+.zhiyu-agent-chat__layout.is-side-closed .zhiyu-home__chat-failure-notice {
+  width: min(720px, calc(100% - 48px));
+  max-width: min(720px, calc(100% - 48px));
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.zhiyu-chat-canvas__composer {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Floating composer + status strip, mirroring the desktop conversation pane's
+   overlay composer: the transcript scrolls full height underneath. Geometry so
+   the composer column edges equal the message column edges at any width:
+   transcript total insets are 92/28 (canvas 60/12 + kit outer 24/8 + gutter 8/8);
+   composer matches via overlay 60/8 + overlay padding 12/0 + kit composer px 20/20. */
+.zhiyu-chat-canvas__overlay {
+  position: absolute;
+  left: 60px;
+  right: 10px;
+  bottom: 12px;
+  z-index: 2;
+  isolation: isolate;
+  padding-left: 14px;
+  pointer-events: none;
+}
+
+.zhiyu-chat-canvas__overlay::before {
+  position: absolute;
+  inset: -72px 0 -12px;
+  z-index: 0;
+  content: "";
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(247, 250, 255, 0) 0%,
+    rgba(247, 250, 255, 0.08) 22%,
+    rgba(249, 251, 255, 0.68) 62%,
+    rgba(250, 251, 255, 0.98) 100%
+  );
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  -webkit-mask-image:
+    linear-gradient(
+      180deg,
+      transparent 0%,
+      rgba(0, 0, 0, 0.14) 24%,
+      rgba(0, 0, 0, 0.78) 68%,
+      #000 100%
+    ),
+    linear-gradient(
+      90deg,
+      transparent 0%,
+      #000 56px,
+      #000 calc(100% - 56px),
+      transparent 100%
+    );
+  mask-image:
+    linear-gradient(
+      180deg,
+      transparent 0%,
+      rgba(0, 0, 0, 0.14) 24%,
+      rgba(0, 0, 0, 0.78) 68%,
+      #000 100%
+    ),
+    linear-gradient(
+      90deg,
+      transparent 0%,
+      #000 56px,
+      #000 calc(100% - 56px),
+      transparent 100%
+    );
+  /* The wash fades vertically into the transcript and horizontally into the
+     canvas background; without the horizontal fade its left/right edges render
+     as hard band lines. */
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+}
+
+.zhiyu-chat-canvas__overlay-inner {
+  display: grid;
+  gap: 8px;
+  position: relative;
+  z-index: 1;
+  pointer-events: auto;
+}
+
+.zhiyu-chat-canvas__canonical-composer[data-canonical-composer-root="true"],
+.zhiyu-chat-canvas__composer [data-chat-composer-surface="true"] {
+  width: 100%;
+  min-width: 0;
+  border-radius: 26px;
+}
+
+.zhiyu-chat-canvas__composer [data-chat-composer-textarea="true"] {
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.zhiyu-home__composer-avatar,
+.zhiyu-agent-chat [data-chat-composer-toolbar-slot="true"] button,
+.zhiyu-agent-chat [data-chat-composer-toolbar-trailing-slot="true"] button {
+  display: inline-grid;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #64748b;
+  box-shadow: none;
+}
+
+.zhiyu-agent-chat [data-chat-composer-toolbar-slot="true"] button:not(:disabled):hover,
+.zhiyu-agent-chat [data-chat-composer-toolbar-trailing-slot="true"] button:not(:disabled):hover {
+  background: rgba(15, 23, 42, 0.06);
+  color: #334155;
+}
+
+.zhiyu-agent-chat [data-zhiyu-composer-agent-center-state="open"],
+.zhiyu-agent-chat [data-zhiyu-composer-agent-center-state="open"]:not(:disabled):hover {
+  background: var(--nimi-surface-active);
+  color: var(--nimi-action-primary-bg);
+}
+
+.zhiyu-home__composer-avatar {
+  overflow: hidden;
+  background: transparent;
+  color: #64748b;
+  font-weight: 600;
+  transition: transform 120ms ease;
+}
+
+.zhiyu-home__composer-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.zhiyu-home__composer-avatar:not(:disabled):hover {
+  transform: scale(1.05);
+}
+
+.zhiyu-agent-chat [data-chat-composer-toolbar-slot="true"] button:disabled {
+  box-shadow: none;
+}
+
+.zhiyu-chat-canvas__stream-footer {
+  display: grid;
+  gap: 8px;
+  padding: 10px 0 0;
+}
+
+.zhiyu-chat-canvas__stop-button {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 6px;
+  justify-self: center;
+  padding: 6px 10px;
+}
+
+.zhiyu-chat-canvas__status {
+  display: none;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.zhiyu-no-local-partner-empty {
+  display: grid;
+  min-height: min(520px, calc(100cqh - 280px));
+  align-content: center;
+  justify-items: center;
+  padding: 24px 0 8px;
+  text-align: center;
+}
+
+.zhiyu-no-local-partner-empty__inner {
+  display: grid;
+  width: min(520px, 100%);
+  justify-items: center;
+  gap: 14px;
+}
+
+.zhiyu-no-local-partner-empty__eyebrow {
+  margin: 0;
+  color: #25a982;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.zhiyu-no-local-partner-empty h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1.2;
+}
+
+.zhiyu-no-local-partner-empty__copy,
+.zhiyu-no-local-partner-empty__assurance,
+.zhiyu-no-local-partner-empty__handoff {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.zhiyu-no-local-partner-empty__copy,
+.zhiyu-no-local-partner-empty__handoff {
+  max-width: 460px;
+}
+
+.zhiyu-no-local-partner-empty__action {
+  display: inline-flex;
+  width: min(212px, 100%);
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 6px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #49c99f, #22af8c);
+  color: #fff;
+  box-shadow: 0 16px 34px rgba(34, 175, 140, 0.28);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.zhiyu-no-local-partner-empty__action:not(:disabled):hover {
+  background: linear-gradient(135deg, #55d2aa, #24b994);
+  transform: translateY(-1px);
+}
+
+.zhiyu-no-local-partner-empty__assurance {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: #94a3b8;
+}
+
+.zhiyu-no-local-partner-empty__handoff {
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.56);
+  color: #475569;
+}
+
+.zhiyu-chat-canvas__labeled-chip {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+.zhiyu-chat-canvas__chip-label {
+  color: var(--nimi-text-muted, #64748b);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.zhiyu-home__chat-failure-notice {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 12px 14px;
+  border: 1px solid rgba(248, 113, 113, 0.24);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.68);
+  color: #334155;
+  font-size: 12px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+}
+
+.zhiyu-home__chat-failure-mark {
+  display: inline-grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(254, 226, 226, 0.86);
+  color: #b91c1c;
+}
+
+.zhiyu-home__chat-failure-copy {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.zhiyu-home__chat-failure-copy :where(span, strong, p, small) {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.zhiyu-home__chat-failure-copy span {
+  color: #991b1b;
+  font-weight: 800;
+}
+
+.zhiyu-home__chat-failure-copy strong {
+  color: #1f2937;
+  font-size: 12px;
+}
+
+.zhiyu-home__chat-failure-copy p,
+.zhiyu-home__chat-failure-copy small {
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.zhiyu-agent-center > section[data-chat-agent-center] {
+  min-height: 0;
+  flex: 1 1 0%;
+  align-content: start;
+  grid-auto-rows: max-content;
+  overflow-y: auto;
+}
+
+.zhiyu-home__identity-grid,
+.zhiyu-home__avatar-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.zhiyu-home__identity-item,
+.zhiyu-home__avatar-item {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--nimi-border-subtle, rgba(15, 23, 42, 0.08));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--nimi-surface-card, #fff) 68%, transparent);
+}
+
+.zhiyu-home__identity-summary,
+.zhiyu-home__avatar-summary {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+@container nimi-ui-module-zhiyu-surface (max-width: 1320px) {
+  .zhiyu-agent-chat__layout {
+    grid-template-columns: 64px minmax(0, 1fr) 500px;
+    grid-template-areas: "presence conversation side";
+    gap: 0;
+  }
+
+  .zhiyu-agent-chat__layout.is-side-closed {
+    grid-template-columns: 64px minmax(0, 1fr);
+    grid-template-areas: "presence conversation";
+    gap: 0;
+  }
+
+  .zhiyu-chat-canvas {
+    padding-left: 34px !important;
+  }
+
+  .zhiyu-chat-canvas__overlay {
+    left: 34px;
+  }
+
+  .zhiyu-agent-chat__layout.is-side-closed .zhiyu-chat-canvas {
+    padding-right: 12px !important;
+    padding-left: 34px !important;
+  }
+
+}
+
+@container nimi-ui-module-zhiyu-surface (max-width: 980px) {
+  .zhiyu-agent-chat__workspace {
+    padding: 10px;
+  }
+
+  .zhiyu-agent-chat__layout,
+  .zhiyu-agent-chat__layout.is-side-closed {
+    grid-template-columns: 58px minmax(0, 1fr);
+    grid-template-areas:
+      "presence conversation"
+      "presence side";
+    gap: 10px;
+    overflow-y: auto;
+  }
+
+  .zhiyu-agent-chat__layout.is-side-closed {
+    grid-template-areas: "presence conversation";
+  }
+
+  .zhiyu-agent-rail {
+    padding: 10px 0;
+  }
+
+  .zhiyu-agent-rail__agent-row {
+    height: 42px;
+    flex-basis: 42px;
+  }
+
+  .zhiyu-agent-rail__agent,
+  .zhiyu-agent-rail__tools button {
+    width: 38px;
+    height: 38px;
+    min-height: 38px;
+  }
+
+  .zhiyu-chat-canvas {
+    min-height: calc(100cqh - 20px);
+    padding: 12px !important;
+  }
+
+  .zhiyu-chat-canvas__overlay {
+    left: 12px;
+    right: 10px;
+  }
+
+  .zhiyu-chat-canvas__transcript [data-canonical-transcript-width],
+  .zhiyu-chat-canvas__composer [data-canonical-composer-width] {
+    width: calc(100% - 48px);
+  }
+}
+
+@container nimi-ui-module-zhiyu-surface (max-width: 640px) {
+  .zhiyu-agent-chat__workspace {
+    padding: 0;
+  }
+
+  .zhiyu-agent-chat__layout,
+  .zhiyu-agent-chat__layout.is-side-closed {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 52px auto;
+    grid-template-areas:
+      "presence"
+      "conversation";
+    gap: 0;
+  }
+
+  .zhiyu-agent-chat__layout:not(.is-side-closed) {
+    grid-template-rows: 52px auto auto;
+    grid-template-areas:
+      "presence"
+      "conversation"
+      "side";
+  }
+
+  .zhiyu-agent-chat__layout:not(.is-side-closed) .zhiyu-agent-center {
+    position: relative;
+    inset: auto;
+    z-index: auto;
+    height: auto;
+    width: 100%;
+    max-width: 100%;
+    min-height: min(640px, calc(100cqh - 20px));
+    margin: 0;
+  }
+
+  .zhiyu-agent-chat__layout:not(.is-side-closed) .zhiyu-agent-center > section[data-chat-agent-center] {
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .zhiyu-agent-rail {
+    width: 100%;
+    height: 52px;
+    min-height: 52px;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 8px;
+    padding: 6px 8px;
+    overflow: hidden;
+  }
+
+  .zhiyu-agent-rail__agents {
+    flex: 1;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .zhiyu-agent-rail__separator {
+    width: 1px;
+    height: 28px;
+    margin: auto 3px;
+  }
+
+  .zhiyu-agent-rail__agent-row {
+    width: 44px;
+    height: 40px;
+    flex: 0 0 44px;
+  }
+
+  .zhiyu-agent-rail__tools {
+    display: flex;
+    width: auto;
+    flex: 0 0 auto;
+    padding-top: 0;
+    padding-left: 8px;
+    border-top: 0;
+    border-left: 1px solid rgba(255, 255, 255, 0.7);
+  }
+
+  .zhiyu-chat-canvas {
+    height: calc(100cqh - 52px);
+    min-height: calc(100cqh - 52px);
+    padding: 4px !important;
+    border-radius: 0;
+  }
+
+  .zhiyu-no-local-partner-empty {
+    min-height: calc(100cqh - 260px);
+    padding: 18px 10px 8px;
+  }
+
+  .zhiyu-no-local-partner-empty h2 {
+    font-size: 24px;
+  }
+}
+
+}
+
+/* ---------------------------------------------------------------------- */
+/* Demo host                                                               */
+/* ---------------------------------------------------------------------- */
+
+/* Root sizing and the container the Zhiyu shell queries against; mirrors
+ * apps/zhiyu/src/renderer/styles.css. The demo root also carries the accent
+ * pack Zhiyu mounts through NimiThemeProvider ("nimi-accent"); the landing
+ * page keeps its own root theme, so those tokens are scoped here instead of
+ * applied to <html>. Values mirror kit/ui/src/generated/themes/nimi-accent.css. */
+.nimi-ui-module--zhiyu[data-demo-zhiyu-root="true"] {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 100%;
+  overflow: clip;
+  container: nimi-ui-module-zhiyu-surface / size;
+  --nimi-surface-active: rgba(69, 184, 214, 0.16);
+  --nimi-action-primary-bg: #45B8D6;
+  --nimi-action-primary-bg-hover: #35A7C4;
+  --nimi-action-primary-text: #111827;
+  --nimi-action-ghost-hover: rgba(69, 184, 214, 0.10);
+  --nimi-sidebar-item-active: rgba(69, 184, 214, 0.16);
+  --nimi-sidebar-item-hover: rgba(69, 184, 214, 0.08);
+  --nimi-field-focus: #45B8D6;
+  --nimi-focus-ring-color: rgba(69, 184, 214, 0.28);
+}
+
+/* The real controller paints a pack's scoped CSS onto the canvas; the demo
+ * only signals that a pack is in effect with a soft wash, so Apply / Clear
+ * remain visible on the surface. */
+.nimi-ui-module--zhiyu[data-demo-zhiyu-root="true"] [data-zhiyu-resource-pack-effective-source="preview"] .zhiyu-resource-pack-surface__visual,
+.nimi-ui-module--zhiyu[data-demo-zhiyu-root="true"] [data-zhiyu-resource-pack-effective-source="selected"] .zhiyu-resource-pack-surface__visual {
+  background:
+    radial-gradient(circle at 18% 22%, rgba(255, 214, 165, 0.42), transparent 42%),
+    radial-gradient(circle at 82% 78%, rgba(186, 230, 253, 0.5), transparent 40%),
+    linear-gradient(160deg, rgba(255, 247, 237, 0.7), rgba(240, 253, 250, 0.55));
+  transition: opacity 320ms ease;
+}
+
+.nimi-ui-module--zhiyu[data-demo-zhiyu-root="true"] [data-zhiyu-resource-pack-effective-source="preview"] .zhiyu-resource-pack-surface__visual {
+  opacity: 0.7;
+}
+
+/* Transient notice for host-only actions (runtime settings, avatar launch)
+ * that the preview cannot perform. Sits where Zhiyu shows its Resource Pack
+ * status notice. */
+.demo-zhiyu-notice {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  z-index: 3;
+  display: inline-flex;
+  width: min(720px, calc(100% - 112px));
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  transform: translateX(-50%);
+  padding: 8px 8px 8px 14px;
+  border: 1px solid color-mix(in srgb, var(--nimi-action-primary-bg) 22%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--nimi-surface-card) 92%, transparent);
+  color: var(--nimi-text-secondary);
+  box-shadow: var(--nimi-elevation-base);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.demo-zhiyu-notice button {
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 8px;
+  font-size: 11px;
+}

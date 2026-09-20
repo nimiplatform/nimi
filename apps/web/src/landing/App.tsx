@@ -11,6 +11,7 @@ import { WorldsSection } from './components/worlds-section.js';
 import { loadLandingContent, type LandingContent } from './content/landing-content.js';
 import { resolveLandingLinks, resolveLocalizedLinks } from './config/landing-links.js';
 import { useSectionPaging } from './hooks/use-section-paging.js';
+import { useHeroAppsMorph } from './hooks/use-hero-apps-morph.js';
 import {
   applyLocaleToLocation,
   persistLocale,
@@ -76,6 +77,7 @@ export function App() {
     VITE_LANDING_DISCORD_URL: import.meta.env.VITE_LANDING_DISCORD_URL,
     VITE_LANDING_DOCS_URL: import.meta.env.VITE_LANDING_DOCS_URL,
     VITE_LANDING_GITHUB_URL: import.meta.env.VITE_LANDING_GITHUB_URL,
+    VITE_LANDING_DOCS_SOURCE_URL: import.meta.env.VITE_LANDING_DOCS_SOURCE_URL,
     VITE_LANDING_PROTOCOL_URL: import.meta.env.VITE_LANDING_PROTOCOL_URL,
     VITE_LANDING_DESKTOP_DOWNLOAD_URL: import.meta.env.VITE_LANDING_DESKTOP_DOWNLOAD_URL,
     VITE_LANDING_MODELS_URL: import.meta.env.VITE_LANDING_MODELS_URL,
@@ -95,7 +97,8 @@ export function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
-  useSectionPaging(Boolean(content));
+  const heroAppsMorph = useHeroAppsMorph();
+  useSectionPaging(Boolean(content), { onFlip: heroAppsMorph.handleFlip, onNavigate: heroAppsMorph.cancel });
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -134,7 +137,7 @@ export function App() {
     if (typeof document !== 'undefined') {
       document.documentElement.lang = locale;
       const isZh = locale === 'zh';
-      const title = isZh ? 'Nimi｜MAKE AI TRULY YOURS' : 'Nimi | MAKE AI TRULY YOURS';
+      const title = isZh ? 'Nimi｜你的 AI，由你定义。' : 'Nimi | Your AI, Your way.';
       const description = isZh
         ? 'Nimi 是一款开源、本地优先的个人 AI 软件。与你的 AI 交流，用应用写作、研究和创作，让熟悉你的 AI 跨越应用与世界，延续记忆与陪伴。'
         : 'Nimi is an open-source, local-first home for your AI. Talk, write, research, and create with AI that gets to know you—and stays with you across apps and worlds.';
@@ -238,18 +241,21 @@ export function App() {
 
       <header className={scrolled ? 'landing-header landing-header--scrolled' : 'landing-header'}>
         <div className="landing-header-inner">
-          <div className="landing-header-bar relative flex items-center justify-start py-3">
+          <div className="landing-header-bar relative flex items-center justify-start py-3.5">
             <a
               href="#top"
-              className="flex items-center gap-3 rounded-xl px-2 py-1 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38d6a3]"
+              className="flex items-center gap-2.5 rounded-control-sm px-2 py-1 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38d6a3]"
             >
               <img src="/logo.svg" alt="Nimi" className="h-8 w-8" />
-              <span className="font-heading text-lg font-semibold tracking-tight text-slate-900">
+              <span className="font-heading text-xl font-semibold tracking-tight text-ink">
                 Nimi
               </span>
             </a>
 
-            <nav aria-label={content.nav.menu} className="absolute left-1/2 hidden -translate-x-1/2 lg:block">
+            <nav
+              aria-label={content.nav.menu}
+              className="hidden lg:ml-3 lg:block xl:absolute xl:left-1/2 xl:ml-0 xl:-translate-x-1/2"
+            >
               <ul className="flex items-center justify-center gap-1 text-slate-900">
                 {sectionNavItems.map((item) => (
                   <li key={`${item.label}-${item.href}`}>
@@ -266,11 +272,13 @@ export function App() {
               </ul>
             </nav>
 
-            <div className="ml-auto flex items-center gap-2">
+            {/* Utilities (language, community links) stay quiet and grouped;
+                the download action is the only element with visual weight. */}
+            <div className="ml-auto flex items-center gap-1">
               <button
                 ref={menuButtonRef}
                 type="button"
-                className="landing-header-icon inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-700 transition hover:border-[#38d6a3]/40 hover:bg-[#38d6a3]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38d6a3] lg:hidden"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-control-sm text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38d6a3] lg:hidden"
                 aria-expanded={menuOpen}
                 aria-controls="landing-nav-menu"
                 aria-label={menuOpen ? content.nav.closeMenu : content.nav.openMenu}
@@ -304,7 +312,7 @@ export function App() {
                 target="_blank"
                 rel="noreferrer"
                 aria-label={content.nav.discord}
-                className="landing-header-icon hidden h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-700 transition hover:-translate-y-0.5 hover:border-[#38d6a3]/40 hover:bg-[#38d6a3]/10 hover:text-[#2ba980] sm:inline-flex"
+                className="hidden h-8 w-8 items-center justify-center rounded-control-sm text-slate-400 transition hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38d6a3] sm:inline-flex"
               >
                 <DiscordIcon />
               </a>
@@ -313,9 +321,16 @@ export function App() {
                 target="_blank"
                 rel="noreferrer"
                 aria-label={content.footer.githubLabel}
-                className="landing-header-icon hidden h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-700 transition hover:-translate-y-0.5 hover:border-[#38d6a3]/40 hover:bg-[#38d6a3]/10 hover:text-[#2ba980] sm:inline-flex"
+                className="hidden h-8 w-8 items-center justify-center rounded-control-sm text-slate-400 transition hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38d6a3] sm:inline-flex"
               >
                 <GithubIcon />
+              </a>
+              <span aria-hidden="true" className="mx-2 hidden h-5 w-px bg-slate-200 sm:block" />
+              <a
+                href={links.downloadUrl}
+                className="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-full bg-gradient-to-r from-[#38d6a3] to-[#0ea5e9] px-5 text-base font-semibold text-white shadow-[0_4px_12px_-6px_rgba(14,165,233,0.5)] transition hover:brightness-[1.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38d6a3] focus-visible:ring-offset-1"
+              >
+                {content.hero.downloadCta}
               </a>
             </div>
           </div>
@@ -356,8 +371,13 @@ export function App() {
       </header>
 
       <main id="main-content">
-        <HeroSection content={content.hero} links={links} />
-        <AppsSection content={content.apps} links={links} />
+        <HeroSection
+          content={content.hero}
+          links={links}
+          demoSurfaceOverride={heroAppsMorph.heroSurfaceOverride}
+          demoExpanded={heroAppsMorph.heroDemoExpanded}
+        />
+        <AppsSection content={content.apps} demo={content.hero.demo} />
         <WorldsSection content={content.worlds} links={links} />
         <CapabilitiesSection content={content.capabilities} links={links} />
         <CreateSection content={content.create} links={links} />

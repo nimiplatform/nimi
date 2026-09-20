@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" role="img" aria-label="天文社天台的胶片照片">
+  <defs>
+    <linearGradient id="skyNight" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0b1030"/>
+      <stop offset="0.6" stop-color="#1b2352"/>
+      <stop offset="1" stop-color="#3a2f52"/>
+    </linearGradient>
+    <radialGradient id="vignette" cx="0.5" cy="0.5" r="0.75">
+      <stop offset="0.55" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.75"/>
+    </radialGradient>
+    <filter id="blur"><feGaussianBlur stdDeviation="26"/></filter>
+    <filter id="filmGrain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="2" seed="3"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.18"/></feComponentTransfer>
+    </filter>
+  </defs>
+  <rect width="960" height="640" fill="#f3efe6"/>
+  <g transform="translate(24 24)">
+    <rect width="912" height="592" fill="url(#skyNight)"/>
+    <ellipse cx="560" cy="200" rx="420" ry="90" fill="#8ea2ff" opacity="0.28" filter="url(#blur)" transform="rotate(-18 560 200)"/>
+    <g fill="#ffffff">
+      <circle cx="60" cy="70" r="1.6"/><circle cx="130" cy="140" r="1.1"/><circle cx="210" cy="60" r="2"/><circle cx="290" cy="180" r="1.3"/>
+      <circle cx="350" cy="90" r="1.5"/><circle cx="420" cy="230" r="1"/><circle cx="470" cy="50" r="1.8"/><circle cx="540" cy="150" r="1.2"/>
+      <circle cx="600" cy="80" r="2.2"/><circle cx="660" cy="220" r="1"/><circle cx="720" cy="120" r="1.6"/><circle cx="790" cy="60" r="1.3"/>
+      <circle cx="850" cy="170" r="1.9"/><circle cx="880" cy="260" r="1.1"/><circle cx="100" cy="260" r="1.4"/><circle cx="180" cy="320" r="1"/>
+      <circle cx="260" cy="280" r="1.7"/><circle cx="380" cy="330" r="1.2"/><circle cx="500" cy="290" r="1"/><circle cx="580" cy="340" r="1.5"/>
+      <circle cx="700" cy="300" r="1.3"/><circle cx="760" cy="360" r="1"/><circle cx="830" cy="320" r="1.8"/><circle cx="40" cy="380" r="1.2"/>
+      <circle cx="330" cy="30" r="1"/><circle cx="640" cy="30" r="1.4"/><circle cx="905" cy="90" r="1"/><circle cx="450" cy="160" r="2.4"/>
+    </g>
+    <path d="M300 100 L380 150" stroke="#fff2b0" stroke-width="1.6" stroke-linecap="round" opacity="0.85"/>
+    <rect x="0" y="440" width="912" height="152" fill="#0a0a14"/>
+    <path d="M560 440 h200 v-60 h-200 z" fill="#0a0a14"/>
+    <path d="M580 380 a80 80 0 0 1 160 0 z" fill="#0f1020"/>
+    <path d="M660 300 v80" stroke="#f6d36b" stroke-width="3" opacity="0.7"/>
+    <rect x="0" y="436" width="912" height="6" fill="#161628"/>
+    <g stroke="#161628" stroke-width="4">
+      <path d="M40 436 v-40 M120 436 v-40 M200 436 v-40 M280 436 v-40 M360 436 v-40 M440 436 v-40"/>
+      <path d="M40 400 h400"/>
+    </g>
+    <circle cx="820" cy="470" r="6" fill="#ffb86b" opacity="0.9"/>
+    <rect width="912" height="592" fill="url(#vignette)"/>
+    <rect width="912" height="592" filter="url(#filmGrain)" opacity="0.9"/>
+    <text x="700" y="560" font-family="'Courier New', monospace" font-size="26" fill="#ff9a3c" opacity="0.9" style="letter-spacing:2px">'16 10 23</text>
+  </g>
+</svg>

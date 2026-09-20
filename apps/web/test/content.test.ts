@@ -25,11 +25,8 @@ test('content exposes the full user journey in both locales', async () => {
     assert.ok(content.hero.sloganAccent.length > 0);
     assert.ok(content.hero.slogan.endsWith(content.hero.sloganAccent));
     assert.ok(content.hero.subSlogan.length > 0);
-    assert.ok(content.hero.paragraphs.length > 0);
-    assert.ok(content.hero.paragraphs.every((paragraph) => paragraph.length > 0));
     assert.ok(content.hero.downloadCta.length > 0);
     assert.ok(content.hero.docsCta.length > 0);
-    assert.ok(content.hero.availableNote.length > 0);
     assert.ok(content.hero.demo.nav.chat.length > 0);
     assert.ok(content.hero.demo.nav.explore.length > 0);
     assert.ok(content.hero.demo.nav.apps.length > 0);
@@ -45,20 +42,14 @@ test('content exposes the full user journey in both locales', async () => {
     assert.ok(content.hero.demo.apps.items.length >= 3);
     assert.ok(content.hero.demo.settings.groups.length >= 2);
 
+    // The apps screen is the demo window under a centered section header.
     assert.equal(
       content.apps.title,
       locale === 'zh'
         ? '从工作到兴趣，探索不同的 AI 应用。'
         : 'From work to interests, explore different AI apps.',
     );
-    assert.ok(content.apps.groups.length >= 2);
-    assert.ok(content.apps.groups.every((group) => group.label.length > 0 && group.items.length > 0));
-    assert.ok(
-      content.apps.groups
-        .flatMap((group) => group.items)
-        .every((item) => item.name.length > 0 && item.task.length > 0),
-    );
-    assert.ok(content.apps.availabilityNote.length > 0);
+    assert.ok(content.apps.subtitle.length > 0);
 
     assert.ok(content.worlds.title.length > 0);
     assert.ok(content.capabilities.tasks.length >= 4);

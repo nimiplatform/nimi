@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="潮">
+  <defs>
+    <linearGradient id="sea" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0f3d5c"/>
+      <stop offset="1" stop-color="#0d7c86"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" fill="url(#sea)"/>
+  <g fill="none" stroke="#9ee7f0" stroke-width="1.6" opacity="0.85">
+    <ellipse cx="80" cy="44" rx="14" ry="10"/>
+    <ellipse cx="80" cy="44" rx="28" ry="20"/>
+    <ellipse cx="80" cy="44" rx="42" ry="31"/>
+    <ellipse cx="80" cy="44" rx="56" ry="42"/>
+  </g>
+  <circle cx="80" cy="44" r="3" fill="#ffffff"/>
+  <path d="M8 98 C22 86 32 86 46 98 C60 110 70 110 84 98 C98 86 108 86 122 98" fill="none" stroke="#e0fbff" stroke-width="4" stroke-linecap="round"/>
+  <path d="M8 112 C22 100 32 100 46 112 C60 124 70 124 84 112 C98 100 108 100 122 112" fill="none" stroke="#7fd9e3" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+</svg>

@@ -1,9 +1,9 @@
 import type { ModelConfigCurrentMachineLocalActionCopy } from './types.js';
 
 const ENGLISH_CURRENT_MACHINE_LOCAL_ACTION_COPY: ModelConfigCurrentMachineLocalActionCopy = Object.freeze({
-  title: 'On-device quick setup',
-  label: 'Use this device\'s models',
-  hint: 'Applies the models already selected on this device to this app. Only capabilities with an on-device selection change.',
+  title: 'On-device models',
+  label: 'Apply',
+  hint: 'Apply this device\'s selected models to this app.',
   loadingLabel: 'Checking on-device models…',
   retryLabel: 'Retry',
   noSelectionLabel: 'No on-device model is selected for these capabilities.',
@@ -21,9 +21,9 @@ const ENGLISH_CURRENT_MACHINE_LOCAL_ACTION_COPY: ModelConfigCurrentMachineLocalA
 });
 
 const CHINESE_CURRENT_MACHINE_LOCAL_ACTION_COPY: ModelConfigCurrentMachineLocalActionCopy = Object.freeze({
-  title: '本机模型快速配置',
-  label: '使用本机已选模型',
-  hint: '把本机已选好的模型一键应用到此 App，仅影响已在本机选择模型的能力。',
+  title: '本机模型',
+  label: '一键应用',
+  hint: '将本机已选的模型应用到此 App。',
   loadingLabel: '正在检查本机模型…',
   retryLabel: '重试',
   noSelectionLabel: '本机尚未为这些能力选择模型。',

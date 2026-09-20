@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" role="img" aria-label="黄昏的湖面">
+  <defs>
+    <linearGradient id="dusk" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3b2a63"/>
+      <stop offset="0.45" stop-color="#b8556b"/>
+      <stop offset="0.72" stop-color="#f2a35a"/>
+      <stop offset="1" stop-color="#fbd38d"/>
+    </linearGradient>
+    <linearGradient id="water" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f0b06a"/>
+      <stop offset="0.35" stop-color="#b8687a"/>
+      <stop offset="1" stop-color="#2e2650"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#fff4d6" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#fff4d6" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="960" height="380" fill="url(#dusk)"/>
+  <circle cx="600" cy="340" r="120" fill="url(#glow)"/>
+  <circle cx="600" cy="352" r="46" fill="#fff1c9"/>
+  <path d="M0 372 C120 340 200 330 320 352 C420 370 470 330 560 344 C660 360 720 322 820 346 C880 360 920 358 960 350 L960 380 L0 380Z" fill="#4a3462"/>
+  <path d="M0 378 C160 360 260 372 380 366 C500 360 560 350 700 362 C820 372 900 366 960 360 L960 382 L0 382Z" fill="#2b2140"/>
+  <rect y="380" width="960" height="260" fill="url(#water)"/>
+  <g fill="#ffe9b8" opacity="0.55">
+    <ellipse cx="600" cy="398" rx="60" ry="3"/>
+    <ellipse cx="596" cy="412" rx="84" ry="3.4"/>
+    <ellipse cx="606" cy="428" rx="70" ry="3"/>
+    <ellipse cx="590" cy="446" rx="110" ry="3.6"/>
+    <ellipse cx="612" cy="468" rx="86" ry="3"/>
+    <ellipse cx="600" cy="494" rx="150" ry="4"/>
+    <ellipse cx="588" cy="524" rx="120" ry="3.4"/>
+    <ellipse cx="610" cy="556" rx="180" ry="4"/>
+  </g>
+  <g stroke="#1b1630" stroke-linecap="round" fill="none">
+    <path d="M80 640 C86 590 84 560 98 520" stroke-width="5"/>
+    <path d="M118 640 C112 600 124 570 120 536" stroke-width="4"/>
+    <path d="M150 640 C158 596 150 566 166 528" stroke-width="5"/>
+    <path d="M196 640 C190 606 202 580 194 552" stroke-width="4"/>
+    <path d="M860 640 C868 600 856 572 874 540" stroke-width="5"/>
+    <path d="M898 640 C892 606 906 584 900 556" stroke-width="4"/>
+    <path d="M930 640 C938 604 928 580 944 548" stroke-width="4"/>
+  </g>
+  <g fill="#1b1630">
+    <ellipse cx="98" cy="518" rx="5" ry="16" transform="rotate(8 98 518)"/>
+    <ellipse cx="166" cy="526" rx="5" ry="16" transform="rotate(10 166 526)"/>
+    <ellipse cx="874" cy="538" rx="5" ry="16" transform="rotate(12 874 538)"/>
+  </g>
+  <g stroke="#2b2140" stroke-width="3" fill="none" stroke-linecap="round">
+    <path d="M300 150 q10 -8 20 0 q10 -8 20 0"/>
+    <path d="M340 128 q8 -7 16 0 q8 -7 16 0"/>
+    <path d="M760 190 q9 -8 18 0 q9 -8 18 0"/>
+  </g>
+</svg>

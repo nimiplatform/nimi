@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" role="img" aria-label="徐霞客手绘的黄山后山路线">
+  <defs>
+    <linearGradient id="parchment" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f3e7cb"/>
+      <stop offset="1" stop-color="#e2cfa6"/>
+    </linearGradient>
+    <filter id="grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.12"/></feComponentTransfer>
+      <feBlend in="SourceGraphic" mode="multiply"/>
+    </filter>
+    <style>
+      .ink { font-family: 'KaiTi', 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif; fill: #3a2b1a; }
+    </style>
+  </defs>
+  <rect width="960" height="640" fill="url(#parchment)"/>
+  <rect width="960" height="640" fill="#000" opacity="0.12" filter="url(#grain)"/>
+  <rect x="28" y="28" width="904" height="584" fill="none" stroke="#7a6142" stroke-width="2" opacity="0.6"/>
+  <g fill="none" stroke="#4a3822" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.9">
+    <path d="M120 520 L170 440 L210 500"/>
+    <path d="M260 470 L310 380 L350 450 L380 400 L420 470"/>
+    <path d="M470 330 L520 230 L560 300 L600 250 L650 340"/>
+    <path d="M700 300 L740 220 L780 290"/>
+    <path d="M560 470 L610 400 L650 460"/>
+    <path d="M760 420 L800 350 L850 430"/>
+    <path d="M150 300 L190 240 L230 310"/>
+  </g>
+  <g fill="none" stroke="#4a3822" stroke-width="2" stroke-linecap="round" opacity="0.8">
+    <path d="M520 232 v-22 M512 218 h16 M508 208 q12 -8 24 0"/>
+    <path d="M740 222 v-20 M732 210 h16 M728 200 q12 -8 24 0"/>
+  </g>
+  <path d="M150 560 C210 540 250 520 300 505 C350 490 380 470 440 430 C500 390 560 380 610 345 C660 310 700 300 730 260 C760 220 790 200 830 190"
+        fill="none" stroke="#9a2f2a" stroke-width="4" stroke-dasharray="14 9" stroke-linecap="round"/>
+  <g fill="#9a2f2a">
+    <circle cx="150" cy="560" r="7"/>
+    <circle cx="300" cy="505" r="6"/>
+    <circle cx="440" cy="430" r="6"/>
+    <circle cx="610" cy="345" r="6"/>
+    <circle cx="830" cy="190" r="7"/>
+  </g>
+  <path d="M598 350 h24 v22 h-24 z M596 350 l14 -12 l14 12" fill="none" stroke="#3a2b1a" stroke-width="2.5" stroke-linejoin="round"/>
+  <g class="ink" font-size="26">
+    <text x="118" y="596">汤口</text>
+    <text x="272" y="540">云谷寺</text>
+    <text x="392" y="464">白鹅岭</text>
+    <text x="632" y="372">宿·北海</text>
+    <text x="846" y="176">始信峰</text>
+  </g>
+  <g class="ink" font-size="20" opacity="0.85">
+    <text x="452" y="404">此处见松，歇</text>
+    <text x="704" y="248">石缝路，不在图上</text>
+  </g>
+  <text class="ink" x="116" y="82" font-size="32" style="letter-spacing:6px">黄山后山 · 一日</text>
+  <g transform="translate(70 70)">
+    <circle r="26" fill="none" stroke="#3a2b1a" stroke-width="2"/>
+    <path d="M0 -22 L6 0 L0 22 L-6 0 Z" fill="#3a2b1a"/>
+    <text class="ink" x="-8" y="-32" font-size="18">北</text>
+  </g>
+  <g transform="translate(846 540)">
+    <rect x="0" y="0" width="52" height="52" fill="#b2352c" opacity="0.9"/>
+    <text x="8" y="24" font-size="20" fill="#f7e9d0" font-family="'KaiTi','STKaiti',serif">霞</text>
+    <text x="28" y="46" font-size="20" fill="#f7e9d0" font-family="'KaiTi','STKaiti',serif">客</text>
+  </g>
+</svg>

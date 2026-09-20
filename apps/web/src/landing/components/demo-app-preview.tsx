@@ -1,4 +1,4 @@
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, type ReactNode } from 'react';
 import { Dialog, DialogBody, DialogContent, DialogTitle, EmptyState, IconButton } from '@nimiplatform/kit/ui';
 import type { HeroDemo } from '../content/landing-content.js';
 import { CloseIcon } from './demo-icons.js';
@@ -8,6 +8,33 @@ import { CloseIcon } from './demo-icons.js';
 const DemoZhiyuPreview = lazy(async () => ({
   default: (await import('./demo-zhiyu-preview.js')).DemoZhiyuPreview,
 }));
+const DemoShijingPreview = lazy(async () => ({
+  default: (await import('./demo-shijing-preview.js')).DemoShijingPreview,
+}));
+const DemoParentosPreview = lazy(async () => ({
+  default: (await import('./demo-parentos-preview.js')).DemoParentosPreview,
+}));
+const DemoStorybookPreview = lazy(async () => ({
+  default: (await import('./demo-storybook-preview.js')).DemoStorybookPreview,
+}));
+
+/** App ids with an interactive preview replica. */
+export const DEMO_PREVIEW_APP_IDS = ['nimi.zhiyu', 'nimi.shijing', 'nimi.parentos', 'nimi.storybook'] as const;
+
+function previewFor(appId: string, preview: HeroDemo['appPreview']): ReactNode | null {
+  switch (appId) {
+    case 'nimi.zhiyu':
+      return <DemoZhiyuPreview content={preview.zhiyu} />;
+    case 'nimi.shijing':
+      return <DemoShijingPreview content={preview.shijing} />;
+    case 'nimi.parentos':
+      return <DemoParentosPreview content={preview.parentos} />;
+    case 'nimi.storybook':
+      return <DemoStorybookPreview content={preview.storybook} />;
+    default:
+      return null;
+  }
+}
 
 /**
  * App interactive-preview modal. Opening "启动" on an app never starts a real
@@ -25,12 +52,14 @@ export function DemoAppPreview({
   onClose: () => void;
 }) {
   const app = apps.items.find((item) => item.id === appId) ?? null;
+  const replica = app ? previewFor(app.id, preview) : null;
   return (
     <Dialog open={app !== null} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent
         onClose={onClose}
-        className="flex h-[82vh] w-[94vw] max-w-5xl flex-col overflow-hidden p-0"
+        className="flex h-[88vh] w-[96vw] max-w-[1360px] flex-col overflow-hidden p-0"
         data-testid="demo-app-preview"
+        data-demo-app-id={app?.id ?? ''}
       >
         <div className="flex shrink-0 items-center gap-2 border-b border-[var(--nimi-border-subtle)] px-5 py-3">
           <DialogTitle className="text-sm font-semibold text-[var(--nimi-text-primary)]">
@@ -43,9 +72,9 @@ export function DemoAppPreview({
           <IconButton aria-label={apps.closeLabel} icon={<CloseIcon />} size="sm" onClick={onClose} />
         </div>
         <DialogBody className="min-h-0 flex-1 p-0">
-          {app?.id === 'nimi.zhiyu' ? (
+          {replica ? (
             <Suspense fallback={<div className="flex h-full items-center justify-center text-xs text-[var(--nimi-text-muted)]" />}>
-              <DemoZhiyuPreview content={preview.zhiyu} />
+              {replica}
             </Suspense>
           ) : (
             <div className="flex h-full items-center justify-center p-6">

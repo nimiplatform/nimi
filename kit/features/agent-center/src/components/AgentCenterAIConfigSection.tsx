@@ -166,7 +166,7 @@ function aiConfigCopy(i18n: AgentCenterI18n | undefined): ModelConfigCopy {
     capabilityLabel: (capabilityContract: string, fallback: string) => translateAgentCenter(
       i18n,
       `AgentCenter.capability.${capabilityContract}.label`,
-      capabilityContract === 'text.embed' ? `${fallback} · Internal` : fallback,
+      fallback,
     ),
     capabilityDescription: (capabilityContract: string, fallback: string) => translateAgentCenter(
       i18n,
@@ -208,6 +208,7 @@ export function AgentCenterAIConfigSection({
     <SectionShell labelledBy="agent-center-ai-config-title">
       <ModelConfigAIConfigSurface
         titleId="agent-center-ai-config-title"
+        language={i18n?.language}
         context={{ owner: 'shared-local-agent-ai-config' }}
         capabilityContracts={snapshot.state.participation.map((row) => row.capabilityContract)}
         capabilities={snapshot.state.sharedAIConfig?.aiConfig.capabilities ?? null}

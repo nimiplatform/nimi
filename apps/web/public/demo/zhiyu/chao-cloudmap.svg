@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" role="img" aria-label="新厦门今晚的风场云图">
+  <defs>
+    <linearGradient id="deep" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#07182e"/>
+      <stop offset="1" stop-color="#0b2a44"/>
+    </linearGradient>
+    <filter id="soft"><feGaussianBlur stdDeviation="30"/></filter>
+    <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
+      <path d="M60 0 H0 V60" fill="none" stroke="#7dd3fc" stroke-width="0.6" opacity="0.18"/>
+    </pattern>
+    <style>
+      .lbl { font-family: 'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif; fill: #dff6ff; }
+    </style>
+  </defs>
+  <rect width="960" height="640" fill="url(#deep)"/>
+  <rect width="960" height="640" fill="url(#grid)"/>
+  <ellipse cx="720" cy="150" rx="260" ry="130" fill="#cbd5e1" opacity="0.32" filter="url(#soft)"/>
+  <ellipse cx="820" cy="110" rx="150" ry="90" fill="#e2e8f0" opacity="0.28" filter="url(#soft)"/>
+  <g fill="#134e6a" stroke="#38bdf8" stroke-width="1.5" opacity="0.95">
+    <path d="M300 330 C340 300 400 300 430 330 C470 320 520 340 520 380 C540 420 500 450 460 440 C420 470 340 460 320 420 C290 400 280 360 300 330Z"/>
+    <path d="M560 300 C600 280 650 300 660 330 C690 350 680 400 640 410 C600 430 560 400 550 370 C540 340 540 320 560 300Z"/>
+    <path d="M220 440 C250 420 300 430 310 460 C320 490 290 520 250 520 C220 520 200 470 220 440Z"/>
+  </g>
+  <g fill="none" stroke="#7dd3fc" stroke-width="1.2" opacity="0.75">
+    <path d="M120 120 C300 60 520 90 700 60 C860 40 940 80 980 60"/>
+    <path d="M60 220 C260 150 520 190 720 140 C880 100 960 150 990 130"/>
+    <path d="M20 330 C220 260 520 300 740 240 C900 200 970 250 1000 220"/>
+    <path d="M0 460 C200 380 520 420 760 350 C920 300 980 340 1010 310"/>
+    <path d="M0 580 C200 500 520 540 780 460 C940 410 990 440 1020 410"/>
+  </g>
+  <g class="lbl" font-size="13" opacity="0.7">
+    <text x="20" y="116">1004</text><text x="20" y="216">1000</text><text x="20" y="326">996</text><text x="20" y="456">992</text><text x="20" y="576">988</text>
+  </g>
+  <g stroke="#a5f3fc" stroke-width="2.5" stroke-linecap="round" fill="#a5f3fc" opacity="0.9">
+    <g transform="translate(780 260) rotate(215)"><path d="M0 0 L46 0"/><path d="M46 0 L36 -6 M46 0 L36 6"/></g>
+    <g transform="translate(860 380) rotate(215)"><path d="M0 0 L46 0"/><path d="M46 0 L36 -6 M46 0 L36 6"/></g>
+    <g transform="translate(700 470) rotate(215)"><path d="M0 0 L40 0"/><path d="M40 0 L30 -6 M40 0 L30 6"/></g>
+    <g transform="translate(600 520) rotate(215)"><path d="M0 0 L34 0"/><path d="M34 0 L24 -6 M34 0 L24 6"/></g>
+    <g transform="translate(880 520) rotate(215)"><path d="M0 0 L40 0"/><path d="M40 0 L30 -6 M40 0 L30 6"/></g>
+    <g transform="translate(160 560) rotate(215)"><path d="M0 0 L26 0"/><path d="M26 0 L16 -6 M26 0 L16 6"/></g>
+  </g>
+  <g transform="translate(470 372)">
+    <circle r="26" fill="none" stroke="#fb7185" stroke-width="2" opacity="0.9">
+      <animate attributeName="r" values="18;30;18" dur="2.6s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.9;0.2;0.9" dur="2.6s" repeatCount="indefinite"/>
+    </circle>
+    <circle r="11" fill="#ef4444"/>
+    <path d="M-3 -10 C-2 -16 4 -16 6 -12 C2 -12 0 -10 -3 -10Z" fill="#4ade80"/>
+    <text class="lbl" x="18" y="-14" font-size="18" font-weight="600">47F 阳台</text>
+  </g>
+  <g class="lbl">
+    <text x="36" y="52" font-size="26" font-weight="600">新厦门 · 浮城 A 区</text>
+    <text x="36" y="80" font-size="16" opacity="0.8">2077-06-14 · 21:00 预报 · 潮</text>
+  </g>
+  <g transform="translate(36 560)">
+    <rect x="0" y="0" width="330" height="52" rx="10" fill="#0f2f4a" opacity="0.85" stroke="#1e5a7a"/>
+    <path d="M18 26 L54 26 M54 26 L46 21 M54 26 L46 31" stroke="#a5f3fc" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <text class="lbl" x="66" y="32" font-size="16">东北风 6 级 · 阵风 8 级 · 21:00 后</text>
+  </g>
+</svg>

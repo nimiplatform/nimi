@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 export type PagingDirection = -1 | 1;
 
@@ -22,7 +22,9 @@ export function resolvePagingDecision(input: {
   slack?: number;
 }): PagingDecision {
   const { direction, index, sectionCount, sectionScrollTop, sectionMaxScroll } = input;
-  const slack = input.slack ?? 1;
+  // A few px of rounding overflow (borderline hero fit at some viewport
+  // heights) must not swallow a gesture into an invisible 2px inner scroll.
+  const slack = input.slack ?? 8;
 
   if (sectionCount <= 0 || index < 0 || index >= sectionCount) {
     return { kind: 'none' };
@@ -79,9 +81,9 @@ export type PagingEventTarget = {
 } | null;
 
 /**
- * A demo region owns every wheel/touch gesture that starts inside it — even
- * when an inner scroller sits at its top or bottom edge. Page paging only
- * owns gestures that start outside the region.
+ * A demo region owns keys while focus is inside it, and owns wheel/touch
+ * gestures only while an inner scroller can actually move (scroll chaining,
+ * see demoRegionInnerCanScroll).
  */
 export function isEventOwnedByDemoRegion(target: PagingEventTarget): boolean {
   return Boolean(
@@ -89,6 +91,102 @@ export function isEventOwnedByDemoRegion(target: PagingEventTarget): boolean {
     && typeof target.closest === 'function'
     && target.closest(DEMO_OWNS_SCROLL_SELECTOR),
   );
+}
+
+/**
+ * Structural probe for scroll-chaining checks inside a demo region. Real
+ * HTMLElements satisfy this shape; node tests provide plain mocks.
+ */
+export type DemoScrollProbe = {
+  readonly closest?: (selector: string) => unknown;
+  readonly parentElement?: DemoScrollProbe | null;
+  readonly scrollTop?: number;
+  readonly scrollHeight?: number;
+  readonly clientHeight?: number;
+} | null;
+
+const SCROLL_EDGE_SLACK = 1;
+
+function probeScrollsOnWheel(probe: DemoScrollProbe): boolean {
+  // Browser-only refinement: boxes with overflow hidden/visible can overflow
+  // their metrics without ever scrolling on wheel, so only real scroll boxes
+  // (auto/scroll) may own the gesture. Node tests have no layout engine and
+  // stay metrics-only.
+  if (
+    typeof window === 'undefined'
+    || typeof window.getComputedStyle !== 'function'
+    || typeof window.Element !== 'function'
+    || !(probe instanceof window.Element)
+  ) {
+    return true;
+  }
+  const overflowY = window.getComputedStyle(probe).overflowY;
+  return overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'overlay';
+}
+
+/**
+ * Scroll chaining inside a demo region: the demo keeps a wheel/touch gesture
+ * only while an inner scroller between the event target and the demo root can
+ * still move in the gesture direction. Once every inner scroller sits at its
+ * edge — or none exists — the gesture chains outward so page paging (or the
+ * enclosing section's own scroll) can consume it. This keeps full-screen demo
+ * sections escapable by wheel alone.
+ */
+export function demoRegionInnerCanScroll(target: DemoScrollProbe, direction: PagingDirection): boolean {
+  if (!target || typeof target.closest !== 'function') {
+    return false;
+  }
+  const demoRoot = target.closest(DEMO_OWNS_SCROLL_SELECTOR);
+  if (!demoRoot) {
+    return false;
+  }
+  let probe: DemoScrollProbe = target;
+  while (probe && probe !== demoRoot) {
+    const maxScroll = (probe.scrollHeight ?? 0) - (probe.clientHeight ?? 0);
+    if (maxScroll > SCROLL_EDGE_SLACK) {
+      const scrollTop = probe.scrollTop ?? 0;
+      const canScroll = direction === 1
+        ? scrollTop < maxScroll - SCROLL_EDGE_SLACK
+        : scrollTop > SCROLL_EDGE_SLACK;
+      if (canScroll && probeScrollsOnWheel(probe)) {
+        return true;
+      }
+    }
+    probe = probe.parentElement ?? null;
+  }
+  return false;
+}
+
+/**
+ * Structural view of the paging root, so containment stays testable without
+ * a DOM. Real HTMLElements satisfy this shape.
+ */
+export type PagingRootProbe = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural
+  // match for both HTMLElement.contains(Node | null) and plain test mocks.
+  readonly contains?: (target: any) => boolean;
+} | null;
+
+/**
+ * Overlay layers (app preview dialogs and other portals) render outside the
+ * landing root. Gestures there belong to the overlay: once its inner scroller
+ * reaches an edge the gesture must die, never chain into page paging behind
+ * the modal (the body scroll lock cannot stop a programmatic scrollTo).
+ */
+export function isEventOutsidePagingRoot(root: PagingRootProbe, target: unknown): boolean {
+  if (!root || typeof root.contains !== 'function') {
+    return false;
+  }
+  if (target === null || target === undefined) {
+    return false;
+  }
+  // With no focused control, keyboard events target body (an ancestor of
+  // the landing root), not a portal. Keep ordinary page keys available.
+  const ancestor = target as PagingRootProbe;
+  if (typeof ancestor?.contains === 'function' && ancestor.contains(root)) {
+    return false;
+  }
+  return !root.contains(target);
 }
 
 /**
@@ -109,13 +207,31 @@ export function isPagingKeyExcludedTarget(target: PagingEventTarget): boolean {
   return isEventOwnedByDemoRegion(target);
 }
 
+export type SectionPagingOptions = {
+  /**
+   * Intercepts a flip between two adjacent sections. Return a lock duration
+   * in milliseconds when the option runs its own transition animation (the
+   * option then owns scrolling); return nothing to keep the default smooth
+   * scroll flip.
+   */
+  onFlip?: (fromIndex: number, targetIndex: number, direction: PagingDirection) => number | void;
+  /** Explicit navigation supersedes any in-flight custom transition. */
+  onNavigate?: () => void;
+};
+
 /**
  * Forced full-page paging without a dependency: one wheel/swipe/key gesture
  * moves exactly one screen, while a screen taller than the viewport scrolls
  * internally first (future-proof for expanded content). Scrollbar dragging,
- * find-in-page, and programmatic scrolls stay untouched.
+ * find-in-page, and programmatic scrolls stay untouched. Gestures inside a
+ * demo region chain outward once its inner scrollers reach their edge.
  */
-export function useSectionPaging(enabled: boolean): void {
+export function useSectionPaging(enabled: boolean, options?: SectionPagingOptions): void {
+  const optionsRef = useRef(options);
+  useEffect(() => {
+    optionsRef.current = options;
+  }, [options]);
+
   useEffect(() => {
     if (!enabled || typeof window === 'undefined') {
       return;
@@ -133,6 +249,8 @@ export function useSectionPaging(enabled: boolean): void {
     let touchStartY: number | null = null;
     let touchFlipped = false;
     let touchOwnedByDemo = false;
+    let touchStartTarget: DemoScrollProbe = null;
+    let touchChain: 'pending' | 'inner' | 'page' = 'pending';
 
     const now = () => window.performance.now();
     const locked = () => now() < lockUntil;
@@ -144,6 +262,7 @@ export function useSectionPaging(enabled: boolean): void {
     };
 
     const goTo = (index: number, instant = false) => {
+      optionsRef.current?.onNavigate?.();
       const { sections, starts } = current();
       if (sections.length === 0) {
         return;
@@ -155,8 +274,8 @@ export function useSectionPaging(enabled: boolean): void {
       window.scrollTo({ top, behavior: skipAnimation ? 'auto' : 'smooth' });
     };
 
-    const decide = (direction: PagingDirection): PagingDecision => {
-      const { sections, index } = current();
+    const decideAt = (index: number, direction: PagingDirection): PagingDecision => {
+      const { sections } = current();
       const section = sections[index];
       if (!section) {
         return { kind: 'none' };
@@ -170,30 +289,47 @@ export function useSectionPaging(enabled: boolean): void {
       });
     };
 
+    const flip = (fromIndex: number, targetIndex: number, direction: PagingDirection) => {
+      const lockMs = optionsRef.current?.onFlip?.(fromIndex, targetIndex, direction);
+      if (typeof lockMs === 'number' && lockMs > 0) {
+        lockUntil = now() + lockMs;
+        return;
+      }
+      goTo(targetIndex);
+    };
+
     const onWheel = (event: WheelEvent) => {
       if (event.ctrlKey || event.deltaY === 0) {
         return;
       }
-      if (isEventOwnedByDemoRegion(event.target as PagingEventTarget)) {
+      const direction: PagingDirection = event.deltaY > 0 ? 1 : -1;
+      const target = event.target as DemoScrollProbe;
+      if (isEventOutsidePagingRoot(root, target)) {
         return;
       }
-      const direction: PagingDirection = event.deltaY > 0 ? 1 : -1;
+      if (isEventOwnedByDemoRegion(target) && demoRegionInnerCanScroll(target, direction)) {
+        return;
+      }
       if (locked()) {
         event.preventDefault();
         return;
       }
-      const decision = decide(direction);
+      const { index } = current();
+      const decision = decideAt(index, direction);
       if (decision.kind === 'inner') {
         return;
       }
       event.preventDefault();
       if (decision.kind === 'flip') {
-        goTo(decision.targetIndex);
+        flip(index, decision.targetIndex, direction);
       }
     };
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) {
+        return;
+      }
+      if (isEventOutsidePagingRoot(root, event.target)) {
         return;
       }
       if (isPagingKeyExcludedTarget(event.target as PagingEventTarget)) {
@@ -218,13 +354,17 @@ export function useSectionPaging(enabled: boolean): void {
       } else if (event.key === 'ArrowUp' || event.key === 'PageUp') {
         direction = -1;
       }
-      if (direction === null || locked()) {
+      if (direction === null) {
+        return;
+      }
+      if (locked()) {
+        event.preventDefault();
         return;
       }
 
-      const decision = decide(direction);
+      const { sections, index } = current();
+      const decision = decideAt(index, direction);
       if (decision.kind === 'inner') {
-        const { sections, index } = current();
         const section = sections[index];
         if (section) {
           event.preventDefault();
@@ -237,12 +377,18 @@ export function useSectionPaging(enabled: boolean): void {
       }
       event.preventDefault();
       if (decision.kind === 'flip') {
-        goTo(decision.targetIndex);
+        flip(index, decision.targetIndex, direction);
       }
     };
 
     const onTouchStart = (event: TouchEvent) => {
+      if (isEventOutsidePagingRoot(root, event.target)) {
+        touchStartY = null;
+        return;
+      }
       touchOwnedByDemo = isEventOwnedByDemoRegion(event.target as PagingEventTarget);
+      touchStartTarget = event.target as DemoScrollProbe;
+      touchChain = 'pending';
       if (event.touches.length !== 1) {
         touchStartY = null;
         return;
@@ -252,9 +398,6 @@ export function useSectionPaging(enabled: boolean): void {
     };
 
     const onTouchMove = (event: TouchEvent) => {
-      if (touchOwnedByDemo) {
-        return;
-      }
       if (touchStartY === null || event.touches.length !== 1) {
         return;
       }
@@ -264,18 +407,28 @@ export function useSectionPaging(enabled: boolean): void {
         return;
       }
       const direction: PagingDirection = delta > 0 ? 1 : -1;
+      if (touchOwnedByDemo) {
+        // Resolve chaining once per swipe so a gesture never hands off midway.
+        if (touchChain === 'pending') {
+          touchChain = demoRegionInnerCanScroll(touchStartTarget, direction) ? 'inner' : 'page';
+        }
+        if (touchChain === 'inner') {
+          return;
+        }
+      }
       if (locked()) {
         event.preventDefault();
         return;
       }
-      const decision = decide(direction);
+      const { index } = current();
+      const decision = decideAt(index, direction);
       if (decision.kind === 'inner') {
         return;
       }
       event.preventDefault();
       if (!touchFlipped && Math.abs(delta) > 50 && decision.kind === 'flip') {
         touchFlipped = true;
-        goTo(decision.targetIndex);
+        flip(index, decision.targetIndex, direction);
       }
     };
 
@@ -283,6 +436,8 @@ export function useSectionPaging(enabled: boolean): void {
       touchStartY = null;
       touchFlipped = false;
       touchOwnedByDemo = false;
+      touchStartTarget = null;
+      touchChain = 'pending';
     };
 
     const onAnchorClick = (event: MouseEvent) => {

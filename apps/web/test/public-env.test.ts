@@ -12,6 +12,7 @@ test('Web public env resolver admits only exact non-secret client keys', () => {
   const resolved = resolveWebPublicEnv({
     source: {
       VITE_NIMI_GOOGLE_CLIENT_ID: allowedCanary,
+      VITE_LANDING_DOCS_SOURCE_URL: 'https://github.com/example/project/tree/main/docs',
       NIMI_FIRST_PARTY_ACCOUNT_PASSWORD: forbiddenCanary,
       NIMI_ACCESS_TOKEN: forbiddenCanary,
       VITE_NIMI_ACCESS_TOKEN: forbiddenCanary,
@@ -23,6 +24,10 @@ test('Web public env resolver admits only exact non-secret client keys', () => {
 
   assert.equal(resolved.VITE_NIMI_REALM_BASE_URL, 'http://localhost:3002');
   assert.equal(resolved.VITE_NIMI_GOOGLE_CLIENT_ID, allowedCanary);
+  assert.equal(
+    createWebPublicEnvDefines(resolved)['import.meta.env.VITE_LANDING_DOCS_SOURCE_URL'],
+    JSON.stringify('https://github.com/example/project/tree/main/docs'),
+  );
   assert.deepEqual(
     Object.keys(resolved).filter((key) => !WEB_PUBLIC_ENV_KEYS.includes(key as never)),
     [],

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="李清照">
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f7e9d2"/>
+      <stop offset="1" stop-color="#e6c79c"/>
+    </linearGradient>
+    <radialGradient id="petal" cx="0.4" cy="0.35" r="0.8">
+      <stop offset="0" stop-color="#f9a8b8"/>
+      <stop offset="1" stop-color="#c2415f"/>
+    </radialGradient>
+  </defs>
+  <rect width="128" height="128" fill="url(#paper)"/>
+  <path d="M28 108 C44 84 52 70 72 62" fill="none" stroke="#5b4a35" stroke-width="3" stroke-linecap="round"/>
+  <path d="M46 88 C40 78 46 66 58 66 C56 78 52 84 46 88Z" fill="#5f8f5a"/>
+  <g transform="translate(76 52)">
+    <circle cx="0" cy="-15" r="11" fill="url(#petal)"/>
+    <circle cx="14" cy="-5" r="11" fill="url(#petal)"/>
+    <circle cx="9" cy="12" r="11" fill="url(#petal)"/>
+    <circle cx="-9" cy="12" r="11" fill="url(#petal)"/>
+    <circle cx="-14" cy="-5" r="11" fill="url(#petal)"/>
+    <circle cx="0" cy="0" r="5" fill="#f5d67a"/>
+  </g>
+  <circle cx="96" cy="94" r="9" fill="#a3262f"/>
+</svg>

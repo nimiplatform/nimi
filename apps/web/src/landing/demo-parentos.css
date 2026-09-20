@@ -1,0 +1,264 @@
+/* Landing-owned port of the ParentOS (成长底稿) renderer stylesheet rules the
+ * preview relies on (nimiapp-parentos src/shell/renderer/styles.css: dashboard
+ * insets, quick links, advisor panels and message cards, journal hero title,
+ * radius helpers). The app composes its screens with Tailwind utilities on
+ * kit surfaces; the preview does the same, so only these named rules are
+ * ported. Rules marked "demo" are landing-owned. */
+
+@scope (.demo-parentos-root) {
+
+:scope {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 100%;
+  overflow: clip;
+  font-family: "Inter", "PingFang SC", "Noto Sans SC", "Microsoft YaHei UI", system-ui, sans-serif;
+  color: var(--nimi-text-primary, #0f172a);
+  /* ParentOS mounts the "nimi-accent" pack; scoped here like the other previews. */
+  --nimi-surface-active: rgba(69, 184, 214, 0.16);
+  --nimi-action-primary-bg: #45B8D6;
+  --nimi-action-primary-bg-hover: #35A7C4;
+  --nimi-action-primary-text: #111827;
+  --nimi-action-ghost-hover: rgba(69, 184, 214, 0.10);
+  --nimi-field-focus: #45B8D6;
+  --nimi-focus-ring-color: rgba(69, 184, 214, 0.28);
+}
+
+:scope * {
+  box-sizing: border-box;
+}
+
+:scope button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.parentos-radius-sm { border-radius: var(--nimi-radius-sm); }
+.parentos-radius-md { border-radius: var(--nimi-radius-md); }
+.parentos-radius-lg { border-radius: var(--nimi-radius-lg); }
+.parentos-radius-xl { border-radius: var(--nimi-radius-xl); }
+.parentos-radius-full { border-radius: var(--nimi-radius-full); }
+
+.hide-scrollbar {
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.dashboard-inset {
+  border: 1px solid transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.dashboard-inset--interactive:hover {
+  border-color: color-mix(in srgb, var(--nimi-border-subtle) 55%, transparent);
+  background: color-mix(in srgb, var(--nimi-surface-card) 48%, transparent);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.03);
+}
+
+.dashboard-quick-link {
+  border: 1px solid transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.dashboard-quick-link:hover {
+  border-color: color-mix(in srgb, var(--nimi-border-subtle) 58%, transparent);
+  background: color-mix(in srgb, var(--nimi-surface-card) 68%, transparent);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03), 0 6px 18px rgba(15, 23, 42, 0.04);
+}
+
+/* ----- Advisor (顾问) ----- */
+
+.advisor-page-shell {
+  background: transparent;
+}
+
+.advisor-sidebar-panel {
+  border: 1px solid var(--nimi-material-glass-regular-border);
+  border-radius: var(--nimi-radius-xl);
+  background: var(--nimi-material-glass-regular-bg);
+  box-shadow: var(--nimi-elevation-base);
+}
+
+.advisor-main-panel {
+  border-radius: var(--nimi-radius-xl);
+  background: color-mix(in srgb, var(--nimi-surface-card) 28%, transparent);
+}
+
+.advisor-transcript {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--nimi-text-primary) 8%, transparent) transparent;
+}
+
+.advisor-message-card {
+  max-width: min(760px, 100%);
+  border-radius: var(--nimi-radius-xl);
+  padding: 16px 18px;
+  font-size: 14px;
+  line-height: 1.85;
+  box-shadow: var(--nimi-elevation-base);
+}
+
+.advisor-message-card--user {
+  width: min(680px, 92%);
+  border: 1px solid color-mix(in srgb, var(--nimi-action-primary-bg) 22%, var(--nimi-border-subtle));
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--nimi-action-primary-bg) 8%, var(--nimi-surface-card)) 0%,
+    color-mix(in srgb, var(--nimi-surface-card) 92%, transparent) 100%
+  );
+  color: var(--nimi-text-primary);
+}
+
+.advisor-message-card--assistant {
+  width: min(760px, 100%);
+  border: 1px solid color-mix(in srgb, var(--nimi-border-subtle) 70%, transparent);
+  background: color-mix(in srgb, var(--nimi-surface-card) 74%, transparent);
+  color: var(--nimi-text-primary);
+}
+
+.advisor-message-content p {
+  margin: 0;
+}
+
+.advisor-message-content p + p,
+.advisor-message-content ul + p,
+.advisor-message-content p + ul {
+  margin-top: 0.85em;
+}
+
+.advisor-message-content ul {
+  margin-bottom: 0;
+}
+
+.advisor-message-content li {
+  line-height: 1.8;
+}
+
+.advisor-message-content strong {
+  color: var(--nimi-status-success);
+  font-weight: 650;
+}
+
+.advisor-thinking-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: var(--nimi-action-primary-bg);
+  animation: advisor-thinking-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes advisor-thinking-pulse {
+  0%, 100% { opacity: 0.5; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+.advisor-composer-shell {
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in srgb, var(--nimi-surface-canvas) 52%, transparent) 42%,
+    color-mix(in srgb, var(--nimi-surface-canvas) 78%, transparent) 100%
+  );
+}
+
+.advisor-composer-box {
+  border: 1px solid var(--nimi-material-glass-regular-border);
+  border-radius: var(--nimi-radius-xl);
+  background: var(--nimi-material-glass-regular-bg);
+  box-shadow: var(--nimi-elevation-raised);
+}
+
+.advisor-composer-textarea {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+/* ----- Journal (成长随记) ----- */
+
+.parentos-journal-hero-title {
+  font-family:
+    "Source Han Serif SC", "Noto Serif SC", "Songti SC", "STSong",
+    "SimSun", Georgia, "Times New Roman", serif;
+}
+
+.parentos-journal-hero-title__bold {
+  font-weight: 700;
+}
+
+.parentos-journal-hero-title__tail {
+  position: relative;
+  display: inline-block;
+}
+
+.parentos-journal-hero-title__dot {
+  position: absolute;
+  right: -10px;
+  bottom: 4px;
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: var(--nimi-action-primary-bg);
+}
+
+.journal-capture-glow {
+  background:
+    radial-gradient(ellipse at 30% 50%, color-mix(in srgb, var(--nimi-status-info) 14%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse at 70% 60%, color-mix(in srgb, var(--nimi-status-warning) 10%, transparent) 0%, transparent 55%);
+  filter: blur(40px);
+  z-index: 0;
+}
+
+.journal-capture-surface {
+  z-index: 1;
+}
+
+@keyframes customTodoSlideDown {
+  0% { opacity: 0; transform: translateY(-10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ----- demo: transient notice for host-only actions ----- */
+
+.demo-parentos-notice {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  z-index: 40;
+  display: inline-flex;
+  width: min(640px, calc(100% - 96px));
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  transform: translateX(-50%);
+  padding: 8px 8px 8px 14px;
+  border: 1px solid color-mix(in srgb, var(--nimi-action-primary-bg) 22%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--nimi-surface-card) 92%, transparent);
+  color: var(--nimi-text-secondary);
+  box-shadow: var(--nimi-elevation-base);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.demo-parentos-notice button {
+  min-height: 26px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--nimi-surface-active);
+  color: var(--nimi-text-primary);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+}

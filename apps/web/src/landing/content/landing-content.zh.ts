@@ -1,4 +1,8 @@
 import type { LandingContent } from './landing-content.js';
+import { zhiyuPreviewContent } from './landing-content.zhiyu.js';
+import { shijingPreviewContent } from './landing-content.shijing.js';
+import { parentosPreviewContent } from './landing-content.parentos.js';
+import { storybookPreviewContent } from './landing-content.storybook.js';
 
 export const landingContentZh: LandingContent = {
   skipToContent: '跳转到主要内容',
@@ -14,16 +18,13 @@ export const landingContentZh: LandingContent = {
     closeMenu: '关闭导航菜单',
   },
   hero: {
-    slogan: 'MAKE AI TRULY YOURS',
-    sloganAccent: 'TRULY YOURS',
-    subSlogan: 'Open in code. Local in data. An AI you shape.',
-    paragraphs: [
-      'Nimi 是一款开源、本地优先的个人 AI 软件。与你的 AI 交流，用应用写作、研究和创作，让熟悉你的 AI 跨越应用与世界，延续记忆与陪伴。',
-      '选择本地或云端模型，掌握自己的数据，使用喜欢的应用，或借助 AI 打造自己的应用。模型可以换，应用可以换，你的 AI 依然属于你。',
-    ],
+    slogan: '你的 AI 由你定义',
+    sloganAccent: '由你定义',
+    subSlogan: '本地或云端，模型由你选择。\n角色由你塑造，应用与世界由你开启。',
+    subSloganNote: '应用可以切换，AI 与记忆始终如一。',
     downloadCta: '下载 Nimi',
-    docsCta: '阅读文档',
-    availableNote: '适用于 macOS 与 Windows。',
+    downloadNote: '支持 macOS 与 Windows。',
+    docsCta: '查看文档',
     demo: {
       windowTitle: 'Nimi',
       nav: { chat: '聊天', explore: '探索', apps: '应用', runtime: '运行时', settings: '设置' },
@@ -112,71 +113,23 @@ export const landingContentZh: LandingContent = {
         moreInfoLabel: '更多信息',
         previewBadge: '交互预览 · 演示数据',
         previewUnavailableTitle: '预览暂未接入',
-        previewUnavailableBody: '该 App 的交互预览尚未提供；当前仅织羽 Zhiyu 提供演示。',
+        previewUnavailableBody: '该 App 的交互预览尚未提供；当前提供演示的有织羽 Zhiyu、时镜 ShiJing、ParentOS 与 Storybook。',
         closeLabel: '关闭',
         items: [
           { id: 'nimi.zhiyu', name: '织羽 Zhiyu', task: '孵化本地 AI 伙伴：与它对话、陪伴与共同成长。', tags: ['文字生成', '语音合成'], updatedAt: '2026年9月17日', localDev: true },
-          { id: 'nimi.parentos', name: 'ParentOS', task: '记录孩子的成长与家庭观察，整理成长档案。', tags: ['文字生成', '语音转写'], updatedAt: '2026年9月15日', localDev: true },
+          { id: 'nimi.parentos', name: 'ParentOS', task: '记录孩子的成长与家庭观察，整理成长档案。', tags: ['文字生成', '语音转写'], updatedAt: '2026年9月15日', localDev: true, iconSrc: '/demo/parentos-icon.png' },
           { id: 'nimi.overtone', name: 'Nimi Overtone', task: '整理音乐项目、歌词与创作版本。', tags: ['文字生成', '音乐生成'], updatedAt: '2026年9月12日', localDev: true },
-          { id: 'nimi.storybook', name: 'Storybook', task: '阅读和创作互动故事。', tags: ['文字生成'], updatedAt: '2026年9月10日', localDev: false },
+          { id: 'nimi.storybook', name: 'Storybook', task: '阅读和创作互动故事。', tags: ['文字生成'], updatedAt: '2026年9月10日', localDev: false, iconSrc: '/demo/storybook-icon.png' },
           { id: 'nimi.realm-persona-studio', name: 'Realm Persona Studio', task: '创建和管理自己的 Realm Persona。', tags: ['图像生成'], updatedAt: '2026年9月8日', localDev: true },
           { id: 'nimi.shijing', name: '时镜 ShiJing', task: '个人节律观察与解读。', tags: ['文字生成'], updatedAt: '2026年9月5日', localDev: true },
           { id: 'nimi.inscape', name: 'Inscape 心相', task: '性格探索与日常反思。', tags: ['文字生成'], updatedAt: '2026年9月1日', localDev: false },
         ],
       },
       appPreview: {
-        zhiyu: {
-          appName: '织羽 Zhiyu',
-          partnersLabel: '本地伙伴',
-          emptyTitle: '选择一位本地伙伴，开始对话',
-          emptyDescription: '提个问题、分享想法，或者告诉这个伙伴你想探索什么。',
-          composerPlaceholder: '和这个伙伴聊点什么...',
-          sendLabel: '发送',
-          streamReplyText: '我在认真听。再多说一点，我们就能一起把想法往前推一步。',
-          sessionChipLabel: '会话',
-          replyChipLabel: '回复',
-          rapportChipLabel: '相处',
-          readyChipLabel: '已就绪',
-          streamingChipLabel: '回复中',
-          rapportChipText: '相处愉快',
-          stopLabel: '停止回复',
-          panelTitle: '织羽伙伴中心',
-          panelCloseLabel: '收起',
-          panelRows: [
-            { label: '形象', value: '未配置' },
-            { label: '主动陪伴', value: '安静' },
-            { label: '模型', value: '本地演示' },
-            { label: '记忆', value: '已开启' },
-          ],
-          partners: [
-            {
-              id: 'p-ben',
-              name: '本本',
-              cue: '陪伴中',
-              messages: [
-                { id: 'zb1', role: 'assistant', text: '今天想从哪里开始？我还在琢磨上次你提到的那个故事。', minutesAgo: 12 },
-                { id: 'zb2', role: 'user', text: '先聊聊主角为什么离开家。', minutesAgo: 11 },
-                { id: 'zb3', role: 'assistant', text: '好。他离开不是因为厌倦，而是因为听不见家里的声音了——这能成为他回来的理由。', minutesAgo: 10 },
-              ],
-            },
-            {
-              id: 'p-qing',
-              name: '青梧',
-              cue: '思考中',
-              messages: [
-                { id: 'zq1', role: 'assistant', text: '我把你昨天的灵感碎片整理成三条线索了，随时可以展开。', minutesAgo: 1560 },
-              ],
-            },
-            {
-              id: 'p-sui',
-              name: '岁岁',
-              cue: '在线',
-              messages: [
-                { id: 'zs1', role: 'assistant', text: '岁岁在。要记录今天的一件小事吗？', minutesAgo: 3000 },
-              ],
-            },
-          ],
-        },
+        zhiyu: zhiyuPreviewContent,
+        shijing: shijingPreviewContent,
+        parentos: parentosPreviewContent,
+        storybook: storybookPreviewContent,
       },
       runtime: {
         title: '运行时',
@@ -201,74 +154,6 @@ export const landingContentZh: LandingContent = {
   apps: {
     title: '从工作到兴趣，探索不同的 AI 应用。',
     subtitle: '使用免费的 Nimi 应用，处理日常工作，也照顾生活中的兴趣与需要。',
-    body: '写作、整理资料、生成图像、处理音频，也可以记录孩子的成长、进行性格探索，或了解自己的节律。选择你需要的应用，按自己的方式使用 AI。',
-    listCta: '浏览全部应用',
-    itemCta: '了解应用',
-    capabilityLabels: {
-      'text.generate': '文字生成',
-      'text.embed': '文本嵌入',
-      'image.generate': '图像生成',
-      'video.generate': '视频生成',
-      'music.generate': '音乐生成',
-      'audio.synthesize': '语音合成',
-      'audio.transcribe': '语音转写',
-      'audio.separate': '音频分离',
-      'vision.locate': '视觉定位',
-      'realtime.interact': '实时交互',
-      'voice.create': '声音创建',
-    },
-    availabilityNote:
-      '这里介绍应用与用途；安装、更新与访问由 Nimi 产品在 macOS arm64 与 Windows x86_64 上提供，具体取决于当前 Runtime 与账号状态。',
-    groups: [
-      {
-        id: 'creation',
-        label: '工作与创作',
-        items: [
-          {
-            id: 'nimi.overtone',
-            name: 'Nimi Overtone',
-            task: '整理音乐创作项目、歌词与音频候选，比较和管理创作版本。',
-            capabilities: ['text.generate', 'music.generate'],
-          },
-          {
-            id: 'nimi.storybook',
-            name: 'Storybook',
-            task: '阅读和创作互动故事，让角色、选择与叙事共同推进故事体验。',
-            capabilities: ['text.generate'],
-          },
-          {
-            id: 'nimi.realm-persona-studio',
-            name: 'Realm Persona Studio',
-            task: '创建和管理自己的 Realm Persona，维护角色资料与创作草稿。',
-            capabilities: ['text.generate', 'image.generate', 'audio.synthesize'],
-          },
-        ],
-      },
-      {
-        id: 'life',
-        label: '生活与兴趣',
-        items: [
-          {
-            id: 'nimi.parentos',
-            name: 'ParentOS',
-            task: '记录孩子的成长与家庭观察，整理成长档案和阶段提醒。',
-            capabilities: ['text.generate', 'audio.transcribe'],
-          },
-          {
-            id: 'nimi.shijing',
-            name: '时镜 ShiJing',
-            task: '结合四柱与节气等确定性排盘，提供个人节律观察与解读。',
-            capabilities: ['text.generate'],
-          },
-          {
-            id: 'nimi.inscape',
-            name: 'Inscape 心相',
-            task: '面向成年人的本地性格探索与日常反思工具，用认知功能视角理解自己和关系。',
-            capabilities: ['text.generate'],
-          },
-        ],
-      },
-    ],
   },
   worlds: {
     title: '遇见 AI 角色，走进他们的世界。',
@@ -283,8 +168,8 @@ export const landingContentZh: LandingContent = {
     cta: '探索角色与世界',
   },
   capabilities: {
-    title: '本地还是云端，按你的需要选。',
-    subtitle: '根据任务、设备和费用需求，选择合适的 AI 运行方式。',
+    title: '本地或云端，由你决定。',
+    subtitle: '根据任务、设备与成本，选择适合你的 AI 运行方式。',
     tasks: [
       {
         id: 'writing',

@@ -1,4 +1,8 @@
 import type { LandingContent } from './landing-content.js';
+import { zhiyuPreviewContent } from './landing-content.zhiyu.js';
+import { shijingPreviewContent } from './landing-content.shijing.js';
+import { parentosPreviewContent } from './landing-content.parentos.js';
+import { storybookPreviewContent } from './landing-content.storybook.js';
 
 export const landingContentEn: LandingContent = {
   skipToContent: 'Skip to main content',
@@ -14,16 +18,13 @@ export const landingContentEn: LandingContent = {
     closeMenu: 'Close navigation menu',
   },
   hero: {
-    slogan: 'MAKE AI TRULY YOURS',
-    sloganAccent: 'TRULY YOURS',
-    subSlogan: 'Open in code. Local in data. An AI you shape.',
-    paragraphs: [
-      'Nimi is an open-source, local-first home for your AI. Talk, write, research, and create with AI that gets to know you—and stays with you across apps and worlds.',
-      'Choose local or cloud models, stay in control of your data, and use the apps you love—or build your own with AI. Change the model. Change the app. Your AI stays yours.',
-    ],
+    slogan: 'Your AI, Your way.',
+    sloganAccent: 'Your way.',
+    subSlogan: 'Local or cloud, the model is yours to choose.\nThe character is yours to shape, the apps and worlds yours to open.',
+    subSloganNote: 'Apps can change. Your AI and its memory stay the same.',
     downloadCta: 'Download Nimi',
-    docsCta: 'Read the docs',
-    availableNote: 'Available for macOS and Windows.',
+    downloadNote: 'Available for macOS and Windows.',
+    docsCta: 'View docs',
     demo: {
       windowTitle: 'Nimi',
       nav: { chat: 'Chat', explore: 'Explore', apps: 'Apps', runtime: 'Runtime', settings: 'Settings' },
@@ -112,13 +113,13 @@ export const landingContentEn: LandingContent = {
         moreInfoLabel: 'More info',
         previewBadge: 'Interactive preview · sample data',
         previewUnavailableTitle: 'Preview not connected',
-        previewUnavailableBody: 'This App has no interactive preview yet; only Zhiyu provides a demo today.',
+        previewUnavailableBody: 'This App has no interactive preview yet; Zhiyu, ShiJing, ParentOS, and Storybook provide demos today.',
         closeLabel: 'Close',
         items: [
           { id: 'nimi.zhiyu', name: '织羽 Zhiyu', task: 'Incubate local AI companions: chat, companionship, and growing together.', tags: ['Text', 'Speech'], updatedAt: 'September 17, 2026', localDev: true },
-          { id: 'nimi.parentos', name: 'ParentOS', task: `Keep a child's growth journal and family observations.`, tags: ['Text', 'Transcription'], updatedAt: 'September 15, 2026', localDev: true },
+          { id: 'nimi.parentos', name: 'ParentOS', task: `Keep a child's growth journal and family observations.`, tags: ['Text', 'Transcription'], updatedAt: 'September 15, 2026', localDev: true, iconSrc: '/demo/parentos-icon.png' },
           { id: 'nimi.overtone', name: 'Nimi Overtone', task: 'Organize music projects, lyrics, and versions.', tags: ['Text', 'Music'], updatedAt: 'September 12, 2026', localDev: true },
-          { id: 'nimi.storybook', name: 'Storybook', task: 'Read and create interactive stories.', tags: ['Text'], updatedAt: 'September 10, 2026', localDev: false },
+          { id: 'nimi.storybook', name: 'Storybook', task: 'Read and create interactive stories.', tags: ['Text'], updatedAt: 'September 10, 2026', localDev: false, iconSrc: '/demo/storybook-icon.png' },
           { id: 'nimi.realm-persona-studio', name: 'Realm Persona Studio', task: 'Create and manage your own Realm Personas.', tags: ['Image'], updatedAt: 'September 8, 2026', localDev: true },
           { id: 'nimi.shijing', name: 'ShiJing', task: 'Personal rhythm readings.', tags: ['Text'], updatedAt: 'September 5, 2026', localDev: true },
           { id: 'nimi.inscape', name: 'Inscape', task: 'Personality exploration and everyday reflection.', tags: ['Text'], updatedAt: 'September 1, 2026', localDev: false },
@@ -126,58 +127,10 @@ export const landingContentEn: LandingContent = {
       },
       appPreview: {
         // Zhiyu is a zh-CN-first app; its in-preview UI intentionally stays zh.
-        zhiyu: {
-          appName: '织羽 Zhiyu',
-          partnersLabel: '本地伙伴',
-          emptyTitle: '选择一位本地伙伴，开始对话',
-          emptyDescription: '提个问题、分享想法，或者告诉这个伙伴你想探索什么。',
-          composerPlaceholder: '和这个伙伴聊点什么...',
-          sendLabel: '发送',
-          streamReplyText: '我在认真听。再多说一点，我们就能一起把想法往前推一步。',
-          sessionChipLabel: '会话',
-          replyChipLabel: '回复',
-          rapportChipLabel: '相处',
-          readyChipLabel: '已就绪',
-          streamingChipLabel: '回复中',
-          rapportChipText: '相处愉快',
-          stopLabel: '停止回复',
-          panelTitle: '织羽伙伴中心',
-          panelCloseLabel: '收起',
-          panelRows: [
-            { label: '形象', value: '未配置' },
-            { label: '主动陪伴', value: '安静' },
-            { label: '模型', value: '本地演示' },
-            { label: '记忆', value: '已开启' },
-          ],
-          partners: [
-            {
-              id: 'p-ben',
-              name: '本本',
-              cue: '陪伴中',
-              messages: [
-                { id: 'zb1', role: 'assistant', text: '今天想从哪里开始？我还在琢磨上次你提到的那个故事。', minutesAgo: 12 },
-                { id: 'zb2', role: 'user', text: '先聊聊主角为什么离开家。', minutesAgo: 11 },
-                { id: 'zb3', role: 'assistant', text: '好。他离开不是因为厌倦，而是因为听不见家里的声音了——这能成为他回来的理由。', minutesAgo: 10 },
-              ],
-            },
-            {
-              id: 'p-qing',
-              name: '青梧',
-              cue: '思考中',
-              messages: [
-                { id: 'zq1', role: 'assistant', text: '我把你昨天的灵感碎片整理成三条线索了，随时可以展开。', minutesAgo: 1560 },
-              ],
-            },
-            {
-              id: 'p-sui',
-              name: '岁岁',
-              cue: '在线',
-              messages: [
-                { id: 'zs1', role: 'assistant', text: '岁岁在。要记录今天的一件小事吗？', minutesAgo: 3000 },
-              ],
-            },
-          ],
-        },
+        zhiyu: zhiyuPreviewContent,
+        shijing: shijingPreviewContent,
+        parentos: parentosPreviewContent,
+        storybook: storybookPreviewContent,
       },
       runtime: {
         title: 'Runtime',
@@ -202,74 +155,6 @@ export const landingContentEn: LandingContent = {
   apps: {
     title: 'From work to interests, explore different AI apps.',
     subtitle: 'Use free Nimi apps for everyday work, and for the interests and needs in your life.',
-    body: `Write, organize, generate images, work with audio — or keep a child's growth journal, explore your personality, and follow personal rhythms. Pick the apps you need and use AI your way.`,
-    listCta: 'Browse all apps',
-    itemCta: 'View app',
-    capabilityLabels: {
-      'text.generate': 'Text',
-      'text.embed': 'Embeddings',
-      'image.generate': 'Image',
-      'video.generate': 'Video',
-      'music.generate': 'Music',
-      'audio.synthesize': 'Speech synthesis',
-      'audio.transcribe': 'Transcription',
-      'audio.separate': 'Audio separation',
-      'vision.locate': 'Vision locating',
-      'realtime.interact': 'Realtime',
-      'voice.create': 'Voice creation',
-    },
-    availabilityNote:
-      'This section introduces the catalog. Install, update, and access are provided by the Nimi product on macOS arm64 and Windows x86_64, depending on the current Runtime and account state.',
-    groups: [
-      {
-        id: 'creation',
-        label: 'Work & creation',
-        items: [
-          {
-            id: 'nimi.overtone',
-            name: 'Nimi Overtone',
-            task: 'Organize music projects, lyrics, and audio takes, and compare creative versions.',
-            capabilities: ['text.generate', 'music.generate'],
-          },
-          {
-            id: 'nimi.storybook',
-            name: 'Storybook',
-            task: 'Read and create interactive stories where characters, choices, and narrative move together.',
-            capabilities: ['text.generate'],
-          },
-          {
-            id: 'nimi.realm-persona-studio',
-            name: 'Realm Persona Studio',
-            task: 'Create and manage your own Realm Personas, keeping profiles and drafts in one place.',
-            capabilities: ['text.generate', 'image.generate', 'audio.synthesize'],
-          },
-        ],
-      },
-      {
-        id: 'life',
-        label: 'Life & interests',
-        items: [
-          {
-            id: 'nimi.parentos',
-            name: 'ParentOS',
-            task: `Keep a child's growth journal and family observations, organized into records and stage reminders.`,
-            capabilities: ['text.generate', 'audio.transcribe'],
-          },
-          {
-            id: 'nimi.shijing',
-            name: 'ShiJing',
-            task: 'A personal rhythm companion built on deterministic traditional calendar charting, with readings to reflect on.',
-            capabilities: ['text.generate'],
-          },
-          {
-            id: 'nimi.inscape',
-            name: 'Inscape',
-            task: 'A local tool for adults exploring personality and everyday reflection through a cognitive-function lens.',
-            capabilities: ['text.generate'],
-          },
-        ],
-      },
-    ],
   },
   worlds: {
     title: 'Meet AI characters and step into their worlds.',

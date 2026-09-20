@@ -4,6 +4,8 @@ export type LandingLinks = {
   discordUrl: string;
   docsUrl: string;
   githubUrl: string;
+  /** The docs folder in the GitHub repository (en at docs/, zh at docs/zh/). */
+  docsSourceUrl: string;
   protocolUrl: string;
   downloadUrl: string;
   desktopDownloadUrl: string;
@@ -24,6 +26,7 @@ const DEFAULT_LINKS: LandingLinks = {
   discordUrl: 'https://discord.gg/BQwHJvPn',
   docsUrl: 'https://docs.nimi.ai/',
   githubUrl: 'https://github.com/nimiplatform/nimi',
+  docsSourceUrl: 'https://github.com/nimiplatform/nimi/tree/main/docs',
   protocolUrl: 'https://docs.nimi.ai/platform/protocol',
   downloadUrl: '/download',
   desktopDownloadUrl: 'https://docs.nimi.ai/desktop/',
@@ -55,6 +58,18 @@ function localizeDocsUrl(url: string, locale: 'en' | 'zh'): string {
     if (url.startsWith('/docs/')) return '/docs/zh/' + url.slice('/docs/'.length);
     return url;
   }
+}
+
+/**
+ * Point the GitHub docs folder link at the locale's subfolder: en stays at
+ * `docs`, zh becomes `docs/zh`. Any other URL passes through unchanged.
+ */
+function localizeDocsSourceUrl(url: string, locale: 'en' | 'zh'): string {
+  if (locale === 'en') return url;
+  if (url.endsWith('/docs/zh') || url.endsWith('/docs/zh/')) return url;
+  if (url.endsWith('/docs')) return `${url}/zh`;
+  if (url.endsWith('/docs/')) return `${url}zh`;
+  return url;
 }
 
 /**
@@ -98,6 +113,7 @@ export function resolveLocalizedLinks(links: LandingLinks, locale: 'en' | 'zh'):
     ...links,
     appUrl: localizeDocsUrl(links.appUrl, locale),
     docsUrl: localizeDocsUrl(links.docsUrl, locale),
+    docsSourceUrl: localizeDocsSourceUrl(links.docsSourceUrl, locale),
     protocolUrl: localizeDocsUrl(links.protocolUrl, locale),
     desktopDownloadUrl: localizeDocsUrl(links.desktopDownloadUrl, locale),
     createGuideUrl: localizeDocsUrl(links.createGuideUrl, locale),
@@ -134,6 +150,7 @@ export function resolveLandingLinks(env: Record<string, unknown> = {}): LandingL
     discordUrl: normalizeUrl(env.VITE_LANDING_DISCORD_URL, DEFAULT_LINKS.discordUrl),
     docsUrl: normalizeUrl(env.VITE_LANDING_DOCS_URL, DEFAULT_LINKS.docsUrl),
     githubUrl: normalizeUrl(env.VITE_LANDING_GITHUB_URL, DEFAULT_LINKS.githubUrl),
+    docsSourceUrl: normalizeUrl(env.VITE_LANDING_DOCS_SOURCE_URL, DEFAULT_LINKS.docsSourceUrl),
     protocolUrl: normalizeUrl(env.VITE_LANDING_PROTOCOL_URL, DEFAULT_LINKS.protocolUrl),
     downloadUrl: DEFAULT_LINKS.downloadUrl,
     desktopDownloadUrl: normalizeUrl(

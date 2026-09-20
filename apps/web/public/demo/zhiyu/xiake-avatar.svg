@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="徐霞客">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#dfe9ea"/>
+      <stop offset="1" stop-color="#9fb8bd"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" fill="url(#sky)"/>
+  <circle cx="92" cy="34" r="12" fill="#f3f0e6" opacity="0.9"/>
+  <path d="M-4 104 L30 54 L52 84 L70 46 L96 88 L134 104 Z" fill="#3f5a5e"/>
+  <path d="M-4 118 L26 82 L48 104 L74 74 L104 110 L134 118 Z" fill="#26383b"/>
+  <path d="M20 122 C40 108 42 96 60 92 C78 88 80 70 100 60" fill="none" stroke="#f5e6c8" stroke-width="3" stroke-dasharray="6 5" stroke-linecap="round"/>
+  <circle cx="100" cy="60" r="4.5" fill="#e0533a"/>
+</svg>

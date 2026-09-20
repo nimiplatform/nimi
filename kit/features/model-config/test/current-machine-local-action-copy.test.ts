@@ -14,10 +14,10 @@ describe('Model Config current-machine Local action copy', () => {
   });
 
   it('resolves Chinese language tags and the English base', () => {
-    expect(resolveModelConfigCurrentMachineLocalActionCopy('zh-CN').label).toBe('使用本机已选模型');
-    expect(resolveModelConfigCurrentMachineLocalActionCopy('zh-CN').title).toBe('本机模型快速配置');
-    expect(resolveModelConfigCurrentMachineLocalActionCopy('en-US').label).toBe('Use this device\'s models');
-    expect(resolveModelConfigCurrentMachineLocalActionCopy('en-US').title).toBe('On-device quick setup');
+    expect(resolveModelConfigCurrentMachineLocalActionCopy('zh-CN').label).toBe('一键应用');
+    expect(resolveModelConfigCurrentMachineLocalActionCopy('zh-CN').title).toBe('本机模型');
+    expect(resolveModelConfigCurrentMachineLocalActionCopy('en-US').label).toBe('Apply');
+    expect(resolveModelConfigCurrentMachineLocalActionCopy('en-US').title).toBe('On-device models');
     expect(resolveModelConfigCurrentMachineLocalActionCopy('zh').retryLabel).toBe('重试');
   });
 });
