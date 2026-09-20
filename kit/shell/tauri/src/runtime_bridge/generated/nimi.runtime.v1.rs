@@ -516,6 +516,21 @@ pub enum ReasonCode {
     AiVideoEncodeFailed = 743,
     AiVideoSessionOverloaded = 744,
     AiVideoSessionGenerationInvalid = 745,
+    /// Content-addressed ModelAsset acquisition and storage. An acquisition that
+    /// needs a file another transfer is actively fetching is refused with the
+    /// related transfer; one that needs a file whose durable prefix belongs to a
+    /// paused or retryable transfer requires that original transfer's explicit
+    /// resume. A parseable but incompatible ModelAsset inventory or manifest
+    /// version keeps its files and restricts the model domain until an explicit
+    /// offline conversion; a models root that cannot create same-volume file links
+    /// fails before any payload transfer; inventory state that needs explicit
+    /// reconciliation (missing inventory over a non-empty root, duplicate
+    /// equivalent distributions, unlinked or unverifiable views) refuses writes.
+    AiLocalTransferInProgress = 753,
+    AiLocalTransferResumeRequired = 749,
+    AiLocalModelStateOfflineConversionRequired = 750,
+    AiLocalModelStorageLinkUnsupported = 751,
+    AiLocalModelInventoryReconciliationRequired = 752,
 }
 impl ReasonCode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -879,6 +894,17 @@ impl ReasonCode {
             Self::AiVideoSessionOverloaded => "AI_VIDEO_SESSION_OVERLOADED",
             Self::AiVideoSessionGenerationInvalid => {
                 "AI_VIDEO_SESSION_GENERATION_INVALID"
+            }
+            Self::AiLocalTransferInProgress => "AI_LOCAL_TRANSFER_IN_PROGRESS",
+            Self::AiLocalTransferResumeRequired => "AI_LOCAL_TRANSFER_RESUME_REQUIRED",
+            Self::AiLocalModelStateOfflineConversionRequired => {
+                "AI_LOCAL_MODEL_STATE_OFFLINE_CONVERSION_REQUIRED"
+            }
+            Self::AiLocalModelStorageLinkUnsupported => {
+                "AI_LOCAL_MODEL_STORAGE_LINK_UNSUPPORTED"
+            }
+            Self::AiLocalModelInventoryReconciliationRequired => {
+                "AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED"
             }
         }
     }
@@ -1310,6 +1336,19 @@ impl ReasonCode {
             "AI_VIDEO_SESSION_OVERLOADED" => Some(Self::AiVideoSessionOverloaded),
             "AI_VIDEO_SESSION_GENERATION_INVALID" => {
                 Some(Self::AiVideoSessionGenerationInvalid)
+            }
+            "AI_LOCAL_TRANSFER_IN_PROGRESS" => Some(Self::AiLocalTransferInProgress),
+            "AI_LOCAL_TRANSFER_RESUME_REQUIRED" => {
+                Some(Self::AiLocalTransferResumeRequired)
+            }
+            "AI_LOCAL_MODEL_STATE_OFFLINE_CONVERSION_REQUIRED" => {
+                Some(Self::AiLocalModelStateOfflineConversionRequired)
+            }
+            "AI_LOCAL_MODEL_STORAGE_LINK_UNSUPPORTED" => {
+                Some(Self::AiLocalModelStorageLinkUnsupported)
+            }
+            "AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED" => {
+                Some(Self::AiLocalModelInventoryReconciliationRequired)
             }
             _ => None,
         }
@@ -9906,17 +9945,24 @@ pub struct InstallModelFromPlanRequest {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct InstallModelFromPlanResponse {
+    /// The committed final ModelAsset. Equivalent distributions return the
+    /// existing asset with disposition REUSED; a new asset is created only when
+    /// no equivalent committed distribution exists.
     #[prost(message, optional, tag = "2")]
     pub model_asset: ::core::option::Option<ModelAssetRecord>,
     /// The transfer session that carried this install, so the caller can
     /// correlate progress and recovery without guessing from model names.
     #[prost(string, tag = "3")]
     pub install_session_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalTransferDisposition", tag = "4")]
+    pub disposition: i32,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalTransferSessionSummary {
     #[prost(string, tag = "1")]
     pub install_session_id: ::prost::alloc::string::String,
+    /// The committed final model_asset_id only. Empty until the acquisition has
+    /// committed a created or reused result; never the source identity.
     #[prost(string, tag = "2")]
     pub asset_id: ::prost::alloc::string::String,
     #[prost(string, tag = "6")]
@@ -9925,8 +9971,11 @@ pub struct LocalTransferSessionSummary {
     pub phase: ::prost::alloc::string::String,
     #[prost(string, tag = "8")]
     pub state: ::prost::alloc::string::String,
+    /// Payload bytes this transfer itself fetched or copied, including a
+    /// retained resumable prefix. Never includes reused managed content.
     #[prost(int64, tag = "9")]
     pub bytes_received: i64,
+    /// Complete distribution logical size, or 0 when unknown.
     #[prost(int64, tag = "10")]
     pub bytes_total: i64,
     #[prost(int64, tag = "11")]
@@ -9949,6 +9998,33 @@ pub struct LocalTransferSessionSummary {
     /// acquisition without name or inventory-order guessing.
     #[prost(string, tag = "18")]
     pub plan_id: ::prost::alloc::string::String,
+    /// Verified managed content this distribution references without a new
+    /// fetch or copy, measured by distribution position. When bytes_total is
+    /// known and the transfer completes, bytes_received + bytes_reused ==
+    /// bytes_total; one position is never counted twice.
+    #[prost(int64, tag = "19")]
+    pub bytes_reused: i64,
+    /// Bytes read only to identify or verify content (import source scanning,
+    /// reuse verification). Never network payload and never managed content.
+    #[prost(int64, tag = "20")]
+    pub bytes_verified: i64,
+    /// Bounded display label of the immutable acquisition source (catalog model
+    /// id, repository, or import source name). Display only; never an identity.
+    #[prost(string, tag = "21")]
+    pub source_label: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalTransferDisposition", tag = "22")]
+    pub disposition: i32,
+    #[prost(enumeration = "LocalTransferAction", repeated, tag = "23")]
+    pub available_actions: ::prost::alloc::vec::Vec<i32>,
+    /// The transfer that owns the active fetch or durable prefix this transfer
+    /// needed, when reason_code is AI_LOCAL_TRANSFER_IN_PROGRESS or
+    /// AI_LOCAL_TRANSFER_RESUME_REQUIRED.
+    #[prost(string, tag = "24")]
+    pub related_install_session_id: ::prost::alloc::string::String,
+    /// A terminal transfer whose exclusive staging or holds could not be
+    /// released yet; a repeated cancel retries the cleanup.
+    #[prost(bool, tag = "25")]
+    pub cleanup_pending: bool,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalTransferProgressEvent {
@@ -9988,6 +10064,23 @@ pub struct LocalTransferProgressEvent {
     /// InstallModelFromPlan; empty for imports.
     #[prost(string, tag = "20")]
     pub plan_id: ::prost::alloc::string::String,
+    /// See LocalTransferSessionSummary for the byte, source, disposition,
+    /// action, related-transfer, and cleanup semantics. asset_id is the
+    /// committed final ModelAsset only.
+    #[prost(int64, tag = "21")]
+    pub bytes_reused: i64,
+    #[prost(int64, tag = "22")]
+    pub bytes_verified: i64,
+    #[prost(string, tag = "23")]
+    pub source_label: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalTransferDisposition", tag = "24")]
+    pub disposition: i32,
+    #[prost(enumeration = "LocalTransferAction", repeated, tag = "25")]
+    pub available_actions: ::prost::alloc::vec::Vec<i32>,
+    #[prost(string, tag = "26")]
+    pub related_install_session_id: ::prost::alloc::string::String,
+    #[prost(bool, tag = "27")]
+    pub cleanup_pending: bool,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListLocalTransfersRequest {}
@@ -10302,6 +10395,89 @@ pub struct AdmitProductControlReadyForUseRequest {}
 /// and activation evidence, then owns the product-control record write.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ReconcileProductControlFirstRunSetupStateRequest {}
+/// Whether a completed acquisition created a new ModelAsset or committed a
+/// reuse of an existing equivalent distribution. Unspecified before commit.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalTransferDisposition {
+    Unspecified = 0,
+    Created = 1,
+    Reused = 2,
+}
+impl LocalTransferDisposition {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_TRANSFER_DISPOSITION_UNSPECIFIED",
+            Self::Created => "LOCAL_TRANSFER_DISPOSITION_CREATED",
+            Self::Reused => "LOCAL_TRANSFER_DISPOSITION_REUSED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_TRANSFER_DISPOSITION_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_TRANSFER_DISPOSITION_CREATED" => Some(Self::Created),
+            "LOCAL_TRANSFER_DISPOSITION_REUSED" => Some(Self::Reused),
+            _ => None,
+        }
+    }
+}
+/// Runtime-projected control actions currently valid for a transfer. Callers
+/// render and invoke only these; every action re-authorizes and re-checks
+/// state when invoked.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalTransferAction {
+    Unspecified = 0,
+    Pause = 1,
+    Resume = 2,
+    Cancel = 3,
+    /// The interrupted import cannot be resumed; the source must be imported
+    /// again through a new ImportModelAsset call.
+    Reimport = 4,
+    /// A complete managed view exists but its inventory commit is pending; an
+    /// explicit Check & Sync commits or reports it.
+    CheckSync = 5,
+    /// Another transfer (related_install_session_id) owns the file this
+    /// transfer needed; view that transfer.
+    ViewRelatedTransfer = 6,
+}
+impl LocalTransferAction {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_TRANSFER_ACTION_UNSPECIFIED",
+            Self::Pause => "LOCAL_TRANSFER_ACTION_PAUSE",
+            Self::Resume => "LOCAL_TRANSFER_ACTION_RESUME",
+            Self::Cancel => "LOCAL_TRANSFER_ACTION_CANCEL",
+            Self::Reimport => "LOCAL_TRANSFER_ACTION_REIMPORT",
+            Self::CheckSync => "LOCAL_TRANSFER_ACTION_CHECK_SYNC",
+            Self::ViewRelatedTransfer => "LOCAL_TRANSFER_ACTION_VIEW_RELATED_TRANSFER",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_TRANSFER_ACTION_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_TRANSFER_ACTION_PAUSE" => Some(Self::Pause),
+            "LOCAL_TRANSFER_ACTION_RESUME" => Some(Self::Resume),
+            "LOCAL_TRANSFER_ACTION_CANCEL" => Some(Self::Cancel),
+            "LOCAL_TRANSFER_ACTION_REIMPORT" => Some(Self::Reimport),
+            "LOCAL_TRANSFER_ACTION_CHECK_SYNC" => Some(Self::CheckSync),
+            "LOCAL_TRANSFER_ACTION_VIEW_RELATED_TRANSFER" => {
+                Some(Self::ViewRelatedTransfer)
+            }
+            _ => None,
+        }
+    }
+}
 /// Generated client implementations.
 pub mod runtime_local_service_client {
     #![allow(

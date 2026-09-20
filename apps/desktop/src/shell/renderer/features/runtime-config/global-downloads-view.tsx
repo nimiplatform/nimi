@@ -258,7 +258,7 @@ export function GlobalDownloadsView() {
                 void action(() => local.resumeTransfer(item.installSessionId, { caller: 'core' }));
               }}
             >
-              {t(item.state === 'paused' ? 'Apps.downloads.resume' : 'runtimeConfig.downloads.retryDownload')}
+              {t('Apps.downloads.resume')}
             </Button>
           ) : null}
           {item.availableActions.includes('cancel') ? (

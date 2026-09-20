@@ -474,6 +474,7 @@ describe('Electron protected local-app host', () => {
       'ai-local-execution-canceled',
       'ai-local-execution-process-crashed',
       'ai-local-execution-content-mismatch',
+      'ai-loadout-model-asset-content-mismatch',
       'ai-local-execution-out-of-memory',
     ]) {
       const candidate = {

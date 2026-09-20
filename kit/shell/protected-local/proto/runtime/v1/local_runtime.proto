@@ -139,23 +139,59 @@ message InstallModelFromPlanRequest {
 message InstallModelFromPlanResponse {
   reserved 1;
   reserved "asset";
+  // The committed final ModelAsset. Equivalent distributions return the
+  // existing asset with disposition REUSED; a new asset is created only when
+  // no equivalent committed distribution exists.
   ModelAssetRecord model_asset = 2;
   // The transfer session that carried this install, so the caller can
   // correlate progress and recovery without guessing from model names.
   string install_session_id = 3;
+  LocalTransferDisposition disposition = 4;
 }
 
 // === Transfers ===
 
+// Whether a completed acquisition created a new ModelAsset or committed a
+// reuse of an existing equivalent distribution. Unspecified before commit.
+enum LocalTransferDisposition {
+  LOCAL_TRANSFER_DISPOSITION_UNSPECIFIED = 0;
+  LOCAL_TRANSFER_DISPOSITION_CREATED = 1;
+  LOCAL_TRANSFER_DISPOSITION_REUSED = 2;
+}
+
+// Runtime-projected control actions currently valid for a transfer. Callers
+// render and invoke only these; every action re-authorizes and re-checks
+// state when invoked.
+enum LocalTransferAction {
+  LOCAL_TRANSFER_ACTION_UNSPECIFIED = 0;
+  LOCAL_TRANSFER_ACTION_PAUSE = 1;
+  LOCAL_TRANSFER_ACTION_RESUME = 2;
+  LOCAL_TRANSFER_ACTION_CANCEL = 3;
+  // The interrupted import cannot be resumed; the source must be imported
+  // again through a new ImportModelAsset call.
+  LOCAL_TRANSFER_ACTION_REIMPORT = 4;
+  // A complete managed view exists but its inventory commit is pending; an
+  // explicit Check & Sync commits or reports it.
+  LOCAL_TRANSFER_ACTION_CHECK_SYNC = 5;
+  // Another transfer (related_install_session_id) owns the file this
+  // transfer needed; view that transfer.
+  LOCAL_TRANSFER_ACTION_VIEW_RELATED_TRANSFER = 6;
+}
+
 message LocalTransferSessionSummary {
   string install_session_id = 1;
+  // The committed final model_asset_id only. Empty until the acquisition has
+  // committed a created or reused result; never the source identity.
   string asset_id           = 2;
   reserved 3, 4, 5;
   reserved "local_asset_id";
   string session_kind       = 6;
   string phase              = 7;
   string state              = 8;
+  // Payload bytes this transfer itself fetched or copied, including a
+  // retained resumable prefix. Never includes reused managed content.
   int64 bytes_received      = 9;
+  // Complete distribution logical size, or 0 when unknown.
   int64 bytes_total         = 10;
   int64 speed_bytes_per_sec = 11;
   int64 eta_seconds         = 12;
@@ -169,6 +205,26 @@ message LocalTransferSessionSummary {
   // unary response or restarted find its exact in-flight or completed
   // acquisition without name or inventory-order guessing.
   string plan_id            = 18;
+  // Verified managed content this distribution references without a new
+  // fetch or copy, measured by distribution position. When bytes_total is
+  // known and the transfer completes, bytes_received + bytes_reused ==
+  // bytes_total; one position is never counted twice.
+  int64 bytes_reused        = 19;
+  // Bytes read only to identify or verify content (import source scanning,
+  // reuse verification). Never network payload and never managed content.
+  int64 bytes_verified      = 20;
+  // Bounded display label of the immutable acquisition source (catalog model
+  // id, repository, or import source name). Display only; never an identity.
+  string source_label       = 21;
+  LocalTransferDisposition disposition = 22;
+  repeated LocalTransferAction available_actions = 23;
+  // The transfer that owns the active fetch or durable prefix this transfer
+  // needed, when reason_code is AI_LOCAL_TRANSFER_IN_PROGRESS or
+  // AI_LOCAL_TRANSFER_RESUME_REQUIRED.
+  string related_install_session_id = 24;
+  // A terminal transfer whose exclusive staging or holds could not be
+  // released yet; a repeated cancel retries the cleanup.
+  bool cleanup_pending      = 25;
 }
 
 message LocalTransferProgressEvent {
@@ -193,6 +249,16 @@ message LocalTransferProgressEvent {
   // The install plan this transfer carries when it originated from
   // InstallModelFromPlan; empty for imports.
   string plan_id            = 20;
+  // See LocalTransferSessionSummary for the byte, source, disposition,
+  // action, related-transfer, and cleanup semantics. asset_id is the
+  // committed final ModelAsset only.
+  int64 bytes_reused        = 21;
+  int64 bytes_verified      = 22;
+  string source_label       = 23;
+  LocalTransferDisposition disposition = 24;
+  repeated LocalTransferAction available_actions = 25;
+  string related_install_session_id = 26;
+  bool cleanup_pending      = 27;
 }
 
 message ListLocalTransfersRequest {}

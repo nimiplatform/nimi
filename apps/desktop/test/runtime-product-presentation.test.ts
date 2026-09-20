@@ -4,7 +4,7 @@ import type { NimiLoadoutRecipe, NimiMachineLoadout, NimiRuntimeLocalVerifiedAss
 import { AppPackageJobPhase } from '@nimiplatform/sdk/runtime/wire-types';
 import { capabilityModelIdentity, recipeResourceSummary, setupPlanNeedsPreparation } from '../src/shell/renderer/features/runtime-config/runtime-capability-presentation.js';
 import type { RuntimeSetupPreparationPlan } from '../src/shell/renderer/features/runtime-config/runtime-setup-task-runner.js';
-import { appJobLane, groupTransferAttempts, transferLane } from '../src/shell/renderer/features/runtime-config/global-downloads-presentation.js';
+import { appJobLane, groupTransferAttempts, interruptionReasonKey, transferLane } from '../src/shell/renderer/features/runtime-config/global-downloads-presentation.js';
 
 const recipe = (contents: string[]) => ({
   recipeId: 'recipe', title: 'Readable model',
@@ -58,6 +58,11 @@ test('identical source labels and related content never merge independent acquis
     { ...common, installSessionId: 'second', sourceLabel: 'same/name', sessionKind: 'download', relatedInstallSessionId: 'first', updatedAt: '2026-09-20T00:01:00Z' },
   ] satisfies Parameters<typeof groupTransferAttempts>[0];
   assert.deepEqual(groupTransferAttempts(rows).map((group) => group.latest.installSessionId), ['first', 'second']);
+});
+
+test('content conflicts direct the user to the existing operation instead of retrying a new download', () => {
+  assert.equal(interruptionReasonKey('AI_LOCAL_TRANSFER_RESUME_REQUIRED'), 'runtimeConfig.downloads.reason.resumeRequired');
+  assert.equal(interruptionReasonKey('AI_LOCAL_TRANSFER_IN_PROGRESS'), 'runtimeConfig.downloads.reason.inProgress');
 });
 
 test('the use action only skips preparation wording when chosen files and required environment are already available', () => {

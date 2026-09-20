@@ -642,7 +642,7 @@
     "greetingWithName": "{{greeting}}, {{name}}"
   },
   "local": {
-    "confirmModelInstall": "Download and install “{{name}}”? Download size: {{size}}. No download starts until you confirm.",
+    "confirmModelInstall": "Install “{{name}}”? Model size: {{size}}. Existing content will be verified and reused; only missing files will be downloaded after confirmation.",
     "confirmInstallTitle": "Install model",
     "confirmInstallConfirm": "Install",
     "confirmInstallCancel": "Cancel",
@@ -1862,7 +1862,7 @@
     "latestIntegrityCheck": "Latest integrity check",
     "fileDetails": "Content files",
     "files": "files",
-    "confirmRemoveModelAsset": "Remove this model? Its disk space will be freed.",
+    "confirmRemoveModelAsset": "Remove this model from the library? Files still used by other models or running tasks will be kept until those uses end.",
     "cleanupPending": "The model was removed; some files are pending cleanup and will retry automatically.",
     "modelTypeLabel": "Type:",
     "myModels": "Installed Assets",
@@ -2189,6 +2189,8 @@
       "cancelled": "Cancelled"
     },
     "reason": {
+      "resumeRequired": "Another task holds resumable content. Open the related task and continue it first.",
+      "inProgress": "Another task is acquiring this content. Open the related task to follow its progress.",
       "network": "The connection dropped before the download finished.",
       "disk": "There was not enough disk space to finish.",
       "verify": "The downloaded file failed verification.",

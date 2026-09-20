@@ -176,6 +176,7 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'ai-local-execution-canceled',
   'ai-local-execution-process-crashed',
   'ai-local-execution-content-mismatch',
+  'ai-loadout-model-asset-content-mismatch',
   'ai-local-execution-out-of-memory',
   'ai-voice-input-invalid',
   'ai-voice-workflow-unsupported',

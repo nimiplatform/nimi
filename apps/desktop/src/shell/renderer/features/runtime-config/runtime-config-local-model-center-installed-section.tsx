@@ -221,7 +221,7 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
                 {confirmationVisible ? (
                   <div className="mt-3 rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,transparent)] px-4 py-3">
                     <p className="text-xs text-[var(--nimi-status-danger)]">
-                      {t('runtimeConfig.localModelCenter.confirmRemoveModelAsset', { defaultValue: 'Remove this model? Its disk space will be freed.' })}
+                      {t('runtimeConfig.localModelCenter.confirmRemoveModelAsset', { defaultValue: 'Remove this model from the library? Files still used by other models or running tasks will be kept until those uses end.' })}
                       {removeReferences.length > 0
                         ? ` ${t('runtimeConfig.localModelCenter.removeAssetReferences', { defaultValue: 'Referenced by Loadouts: {{references}}.', references: removeReferences.join(', ') })}`
                         : ''}

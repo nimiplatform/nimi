@@ -96,6 +96,8 @@ export function environmentStage(item: Pick<NimiRuntimeLocalEnvironmentDependenc
 /** Plain-language reason for an interrupted transfer; raw text stays in details. */
 export function interruptionReasonKey(raw: string | undefined): string {
   const text = (raw ?? '').toLowerCase();
+  if (text.includes('ai_local_transfer_resume_required')) return 'runtimeConfig.downloads.reason.resumeRequired';
+  if (text.includes('ai_local_transfer_in_progress')) return 'runtimeConfig.downloads.reason.inProgress';
   if (!text) return 'runtimeConfig.downloads.reason.unknown';
   if (text.includes('no space') || text.includes('enospc') || text.includes('disk full')) return 'runtimeConfig.downloads.reason.disk';
   if (text.includes('checksum') || text.includes('hash') || text.includes('verif')) return 'runtimeConfig.downloads.reason.verify';

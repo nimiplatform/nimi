@@ -253,6 +253,9 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "AI_LOCAL_EXECUTION_CONTENT_MISMATCH" => {
             LocalAppReasonCode::AiLocalExecutionContentMismatch
         }
+        "AI_LOADOUT_MODEL_ASSET_CONTENT_MISMATCH" => {
+            LocalAppReasonCode::AiLoadoutModelAssetContentMismatch
+        }
         "AI_LOCAL_EXECUTION_OUT_OF_MEMORY" => LocalAppReasonCode::AiLocalExecutionOutOfMemory,
         "AI_VOICE_INPUT_INVALID" => LocalAppReasonCode::AiVoiceInputInvalid,
         "AI_VOICE_WORKFLOW_UNSUPPORTED" => LocalAppReasonCode::AiVoiceWorkflowUnsupported,
@@ -588,6 +591,31 @@ mod tests {
                 Some(expected)
             );
         }
+    }
+
+    #[test]
+    fn model_content_admission_failure_keeps_reason_without_private_binding() {
+        let info = GoogleRpcErrorInfo {
+            reason: "AI_LOADOUT_MODEL_ASSET_CONTENT_MISMATCH".to_string(),
+            domain: ERROR_INFO_DOMAIN.to_string(),
+            metadata: HashMap::from([("loadout_id".to_string(), "private-binding".to_string())]),
+        };
+        let details = GoogleRpcStatus {
+            code: Code::FailedPrecondition as i32,
+            message: "private model path".to_string(),
+            details: vec![prost_types::Any {
+                type_url: ERROR_INFO_TYPE_URL.to_string(),
+                value: info.encode_to_vec(),
+            }],
+        };
+        let error = local_app_error_from_status(Status::with_details(
+            Code::FailedPrecondition,
+            "private model path",
+            details.encode_to_vec().into(),
+        ));
+        assert_eq!(error.reason_code(), LocalAppReasonCode::AiLoadoutModelAssetContentMismatch);
+        assert_eq!(error.reason_code().as_str(), "ai-loadout-model-asset-content-mismatch");
+        assert!(error.reason_metadata().is_empty());
     }
 
     #[test]

@@ -47,7 +47,7 @@ export function runtimeConfigInstallConfirmationMessage(input: {
 }): string {
   const base = input.translate(
     'runtimeConfig.local.confirmModelInstall',
-    'Download and install “{{name}}”? Download size: {{size}}. No download starts until you confirm.',
+    'Install “{{name}}”? Model size: {{size}}. Existing content will be verified and reused; only missing files will be downloaded after confirmation.',
     { name: input.name, size: input.size },
   );
   const warnings = input.warnings.map((warning) => warning.trim()).filter(Boolean);

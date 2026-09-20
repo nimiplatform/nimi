@@ -63,6 +63,25 @@ function diffSnapshots(before, after) {
 }
 
 async function main() {
+  // The native carrier compiles a packaged copy. Go regeneration alone cannot
+  // detect a stale copy, which otherwise first fails at Electron startup.
+  const canonicalRoot = path.join(repoRoot, 'proto/runtime/v1');
+  const packagedRoot = path.join(repoRoot, 'kit/shell/protected-local/proto/runtime/v1');
+  const protoNames = async (root) => (await fs.readdir(root)).filter((name) => name.endsWith('.proto')).sort();
+  const canonicalNames = await protoNames(canonicalRoot);
+  const packagedNames = await protoNames(packagedRoot);
+  if (JSON.stringify(canonicalNames) !== JSON.stringify(packagedNames)) {
+    throw new Error('native carrier packaged Runtime proto inventory differs from canonical inputs');
+  }
+  for (const name of canonicalNames) {
+    const [canonical, packaged] = await Promise.all([
+      fs.readFile(path.join(canonicalRoot, name)), fs.readFile(path.join(packagedRoot, name)),
+    ]);
+    if (!canonical.equals(packaged)) {
+      throw new Error(`native carrier packaged Runtime proto drifted: ${name}; synchronize it from proto/runtime/v1`);
+    }
+  }
+
   for (const target of forbiddenTargets) {
     try {
       await fs.access(path.join(repoRoot, target));
