@@ -21,7 +21,7 @@ units:
   - id: definition.nimi.runtime.ai-provider.model-service-plane
     kind: definition
     title: Runtime ModelAsset service plane
-    meaning: The Runtime ModelAsset service plane provides per-import ModelAsset inventory, immutable content identity and integrity, bounded fingerprints and provenance, explicit catalog install and unclassified import, transfer and removal truth, duplicate-content hints, and non-binding catalog recommendations without owning capability, engine, Driver, recipe, Loadout, binding, selection, readiness, or route truth.
+    meaning: The Runtime ModelAsset service plane provides one committed ModelAsset per distinct distribution, immutable content identity and integrity, bounded fingerprints and provenance, explicit catalog install and unclassified import that return the equivalent existing asset or create one, transfer, result, and removal truth, and non-binding catalog recommendations without owning capability, engine, Driver, recipe, Loadout, binding, selection, readiness, or route truth.
   - id: definition.nimi.runtime.ai-provider.multimodal-provider-plane
     kind: definition
     title: Runtime multimodal provider plane
@@ -474,11 +474,11 @@ units:
         target: definition.nimi.runtime.ai-provider.model-service-plane
   - id: rule.nimi.runtime.ai-provider.r045
     kind: rule
-    title: Registry identity is per import while content identity is immutable
+    title: Registry identity is per distribution while content identity is immutable
     modality: must
-    statement: Runtime computes immutable content_id before inserting a ModelAsset, mints a unique model_asset_id for every successful catalog install or manual import, permits multiple records with the same content_id and surfaces only a non-blocking duplicate-content hint, rebuilds indexes from Runtime registry truth excluding removed records, and preserves ordered file, digest, manifest, fingerprint, trust, and provenance evidence; content equality, model name, engine, label, filename, path, prefix, slot label, and similarity never reuse instance identity, inherit a Loadout binding, or become route identity.
+    statement: Runtime computes immutable content_id before inserting a ModelAsset, keeps exactly one committed model_asset_id per distinct verified distribution so a catalog install or manual import equivalent to a committed distribution returns that existing identity with a reused result and mints a new model_asset_id only when no equivalent distribution is committed, rebuilds indexes from Runtime registry truth excluding removed records, and preserves ordered file, digest, size, manifest, fingerprint, trust, and provenance evidence of the first committing acquisition; equivalence is established only by the complete verified distribution, so content_id alone, model name, engine, label, filename, path, prefix, slot label, and similarity never reuse or merge identity, a removed identity is never revived by a later equivalent acquisition, and no acquisition inherits a Loadout binding or becomes route identity.
     condition: Whenever ModelAsset registry identity is created, imported, installed, indexed, or repaired.
-    failure: Reject per-import identity reuse, forced content deduplication, heuristic identity writes, and binding or route inference outside Runtime registry truth.
+    failure: Reject a second identity for an equivalent committed distribution, equivalence inferred from content_id or names alone, revival of a removed identity, heuristic identity writes, and binding or route inference outside Runtime registry truth.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.model-service-plane

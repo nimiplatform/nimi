@@ -126,7 +126,7 @@ func TestModelAssetStoreQuarantineFailurePreservesOriginal(t *testing.T) {
 		if err != nil || !recovered.RewriteRequired || len(recovered.retainedRecords) != 0 {
 			t.Fatalf("recovered ModelAsset isolation = rewrite:%t retained:%d err:%v", recovered.RewriteRequired, len(recovered.retainedRecords), err)
 		}
-		recoveredSnapshot, err := buildModelAssetStoreSnapshot(recovered.Assets, recovered.Directories, recovered.CleanupObligations, filepath.Join(root, "models"))
+		recoveredSnapshot, err := buildModelAssetStoreSnapshot(recovered.Assets, recovered.Directories, recovered.CleanupObligations, recovered.ObjectQuarantines, filepath.Join(root, "models"))
 		if err != nil {
 			t.Fatalf("build recovered ModelAsset snapshot: %v assets=%+v directories=%+v cleanup=%+v", err, recovered.Assets, recovered.Directories, recovered.CleanupObligations)
 		}

@@ -33,22 +33,36 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 	commitConfiguration := flags.String("commit-configuration", "", "explicitly commit the migration draft for one configuration_id without selecting it")
 	retireLegacyState := flags.Bool("retire-legacy-state", false, "explicitly quarantine retired machine configuration and remove retired non-model state after LocalAsset migration")
 	stateStore := flags.String("state-store", "", "Runtime local state path whose parent owns model-assets.json; required with a write mode")
+	convert := flags.Bool("convert-content-addressed", false, "plan the one-time conversion of the models root to the content-addressed layout (dry-run unless --apply)")
+	applyConversion := flags.Bool("apply", false, "with --convert-content-addressed: perform the planned conversion after an explicit review of the dry-run report")
+	reportPath := flags.String("report", "", "with --convert-content-addressed: also write the JSON report to this path")
+	previewUnlocked := flags.Bool("preview-unlocked", false, "with --convert-content-addressed and without --apply: compute the read-only plan without the exclusive state owner lock while a daemon may still run; the report is marked previewUnlocked")
 	if err := flags.Parse(args); err != nil {
 		return 2
 	}
 	writeConfiguration := strings.TrimSpace(*commitConfiguration) != ""
 	modeCount := 0
-	for _, active := range []bool{*adopt, *migrateLegacy, *migrateConfigurations, writeConfiguration, *retireLegacyState} {
+	for _, active := range []bool{*adopt, *migrateLegacy, *migrateConfigurations, writeConfiguration, *retireLegacyState, *convert} {
 		if active {
 			modeCount++
 		}
 	}
 	if modeCount > 1 {
-		return writeFailure(stderr, 2, "--adopt, --migrate-legacy-state-assets, --migrate-configurations, --commit-configuration, and --retire-legacy-state are mutually exclusive")
+		return writeFailure(stderr, 2, "--adopt, --migrate-legacy-state-assets, --migrate-configurations, --commit-configuration, --retire-legacy-state, and --convert-content-addressed are mutually exclusive")
 	}
 	root := filepath.Clean(strings.TrimSpace(*modelsRoot))
 	if root == "." || strings.TrimSpace(*modelsRoot) == "" {
 		return writeFailure(stderr, 2, "--models-root is required; recovery never infers or mutates user state")
+	}
+	if *convert {
+		statePath, ok := requiredStatePath(*stateStore, "--convert-content-addressed", stderr)
+		if !ok {
+			return 2
+		}
+		if err := convertContentAddressed(root, statePath, *applyConversion, *previewUnlocked, strings.TrimSpace(*reportPath), stdout, stderr); err != nil {
+			return writeFailure(stderr, 1, err)
+		}
+		return 0
 	}
 	if *migrateLegacy {
 		statePath, ok := requiredStatePath(*stateStore, "--migrate-legacy-state-assets", stderr)
@@ -162,6 +176,10 @@ func adoptResolvedDirectories(root string, statePath string, items []*localservi
 	failedCount := 0
 	for _, item := range items {
 		directory := strings.TrimSpace(item.GetPath())
+		if directory != "" && svc.IsRegisteredModelAssetDirectory(directory) {
+			// Already a committed view of the current inventory; nothing to adopt.
+			continue
+		}
 		if directory == "" || !item.GetManagedManifestDirectory() || item.GetRecoveryStatus() != "reimportable" {
 			failedCount++
 			results = append(results, map[string]any{
@@ -218,6 +236,46 @@ func adoptResolvedDirectories(root string, statePath string, items []*localservi
 	}
 	if failedCount > 0 {
 		return fmt.Errorf("adoption completed with %d failed item(s); inspect adoptionResults", failedCount)
+	}
+	return nil
+}
+
+// convertContentAddressed runs the explicit one-time layout conversion. The
+// dry-run report is the review artifact; --apply performs exactly what the
+// same planning derives from the current disk state at apply time.
+func convertContentAddressed(root string, statePath string, apply bool, previewUnlocked bool, reportPath string, stdout io.Writer, stderr io.Writer) error {
+	if apply && previewUnlocked {
+		return fmt.Errorf("--preview-unlocked cannot be combined with --apply")
+	}
+	logger := slog.New(slog.NewTextHandler(stderr, nil))
+	var svc *localservice.Service
+	var err error
+	if previewUnlocked {
+		svc, err = localservice.NewForLocalModelRecoveryPreview(logger, auditlog.New(5000, 5000), statePath, 5000, root)
+	} else {
+		svc, err = localservice.NewForLocalModelRecovery(logger, auditlog.New(5000, 5000), statePath, 5000, root)
+	}
+	if err != nil {
+		return fmt.Errorf("open Runtime local state: %w", err)
+	}
+	defer svc.Close()
+	report, convertErr := svc.ConvertModelStorageToContentAddressed(context.Background(), localservice.ModelStorageConversionOptions{Apply: apply, PreviewUnlocked: previewUnlocked})
+	if report != nil {
+		if reportPath != "" {
+			payload, marshalErr := json.MarshalIndent(report, "", "  ")
+			if marshalErr == nil {
+				marshalErr = os.WriteFile(reportPath, payload, 0o600)
+			}
+			if marshalErr != nil {
+				return fmt.Errorf("write conversion report: %w", marshalErr)
+			}
+		}
+		if err := writeJSON(stdout, report); err != nil {
+			return err
+		}
+	}
+	if convertErr != nil {
+		return fmt.Errorf("content-addressed conversion: %w", convertErr)
 	}
 	return nil
 }

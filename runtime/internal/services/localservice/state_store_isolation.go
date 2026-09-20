@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
 const (
@@ -127,13 +129,25 @@ func loadLocalStateSnapshotIsolated(path string) (localStateSnapshot, []stateIso
 			if strings.TrimSpace(row.InstallSessionID) == "" {
 				return errors.New("install session id is required")
 			}
+			if row.SpecVersion != localStateTransferSpecVersion {
+				return fmt.Errorf("transfer row specVersion=%d is not the content-addressed acquisition shape (%d)", row.SpecVersion, localStateTransferSpecVersion)
+			}
 			if row.ManagedDownloadSpec != nil {
-				spec, err := managedDownloadedModelSpecFromLocalState(row.ManagedDownloadSpec)
-				if err != nil {
+				if _, err := managedDownloadedModelSpecFromLocalState(row.ManagedDownloadSpec); err != nil {
 					return err
 				}
-				if spec.modelID != strings.TrimSpace(row.AssetID) {
-					return errors.New("managed download spec model identity does not match transfer")
+			}
+			if row.CommitIntent != nil {
+				if strings.TrimSpace(row.CommitIntent.ModelAssetID) == "" || strings.TrimSpace(row.CommitIntent.ManagedDirectory) == "" || len(row.CommitIntent.Files) == 0 {
+					return errors.New("transfer commit intent is incomplete")
+				}
+			}
+			if row.Result != nil && (strings.TrimSpace(row.Result.ModelAssetID) == "" || transferDispositionFromState(row.Result.Disposition) == runtimev1.LocalTransferDisposition_LOCAL_TRANSFER_DISPOSITION_UNSPECIFIED) {
+				return errors.New("transfer result is incomplete")
+			}
+			for _, hold := range row.ObjectHolds {
+				if normalizeExactSHA256Hex(hold.Digest) == "" {
+					return errors.New("transfer object hold digest is invalid")
 				}
 			}
 			requiresDownloadSpec := normalizeTransferKind(row.SessionKind) == localTransferKindDownload &&

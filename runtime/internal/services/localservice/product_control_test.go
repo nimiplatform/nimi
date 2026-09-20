@@ -849,17 +849,11 @@ func TestRuntimeProductControlCheckSyncAdoptsManifestIdentityAndCompletesWithOwn
 	service := newTestService(t)
 	root := filepath.Join(home, "check-sync-root")
 	readyProductControlForReplacementTest(t, service, root)
-	resolved := filepath.Join(root, "models", "resolved", "copied-model")
-	if err := os.MkdirAll(resolved, 0o755); err != nil {
+	copiedSource := filepath.Join(t.TempDir(), "model.gguf")
+	if err := os.WriteFile(copiedSource, validTestGGUF(), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(resolved, "model.gguf"), validTestGGUF(), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	asset, _, err := service.adoptResolvedModelAssetDirectory(context.Background(), resolved, "copied model")
-	if err != nil {
-		t.Fatal(err)
-	}
+	asset := importModelAssetForTest(t, service, copiedSource, "copied model")
 	service.modelAssetMutationMu.Lock()
 	service.mu.Lock()
 	service.modelAssets = make(map[string]*runtimev1.ModelAssetRecord)

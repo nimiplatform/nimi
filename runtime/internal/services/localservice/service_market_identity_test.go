@@ -11,10 +11,15 @@ import (
 
 func TestCatalogOfferInstalledAssetProjectionIsExactAndDeterministic(t *testing.T) {
 	contentID := "sha256:" + strings.Repeat("a", 64)
+	sameFiles := func() []*runtimev1.ModelAssetFile {
+		return []*runtimev1.ModelAssetFile{{RelativePath: "model.gguf", Sha256: strings.Repeat("a", 64), SizeBytes: 4}}
+	}
 	svc := &Service{modelAssets: map[string]*runtimev1.ModelAssetRecord{
-		"model_z": {ModelAssetId: "model_z", ContentId: contentID},
-		"model_a": {ModelAssetId: "model_a", ContentId: contentID},
-		"other":   {ModelAssetId: "other", ContentId: "sha256:" + strings.Repeat("b", 64)},
+		"model_z": {ModelAssetId: "model_z", ContentId: contentID, Entry: "model.gguf", Files: sameFiles()},
+		"model_a": {ModelAssetId: "model_a", ContentId: contentID, Entry: "model.gguf", Files: sameFiles()},
+		"other":   {ModelAssetId: "other", ContentId: "sha256:" + strings.Repeat("b", 64), Entry: "model.gguf", Files: []*runtimev1.ModelAssetFile{{RelativePath: "model.gguf", Sha256: strings.Repeat("b", 64), SizeBytes: 4}}},
+		// Same bytes under another layout are a different distribution.
+		"layout": {ModelAssetId: "layout", ContentId: contentID, Entry: "weights/model.gguf", Files: []*runtimev1.ModelAssetFile{{RelativePath: "weights/model.gguf", Sha256: strings.Repeat("a", 64), SizeBytes: 4}}},
 	}}
 	offer := catalogOffer{identity: modelAssetOfferIdentity{
 		sourceKind: "huggingface",
@@ -45,11 +50,13 @@ func TestRecipeSlotOfferCarriesRuntimeOwnedInstalledModelAssetID(t *testing.T) {
 	}
 	files := make([]*runtimev1.ModelAssetFile, 0, len(offer.files))
 	for _, path := range offer.files {
-		files = append(files, &runtimev1.ModelAssetFile{RelativePath: path, Sha256: offer.hashes[path]})
+		files = append(files, &runtimev1.ModelAssetFile{RelativePath: path, Sha256: normalizeExactSHA256Hex(offer.hashes[path]), NonExecutableContent: modelDistributionFileNonExecutable(path)})
 	}
 	svc.modelAssets["model_installed"] = &runtimev1.ModelAssetRecord{
 		ModelAssetId: "model_installed",
 		ContentId:    modelAssetContentID(files),
+		Entry:        offer.entryPath,
+		Files:        files,
 	}
 	projected := svc.projectRecipeSlotOffers([]string{variantID}, collectDeviceProfile())
 	if len(projected) != 1 || !projected[0].GetCandidate().GetInstalled() || projected[0].GetInstalledModelAssetId() != "model_installed" {

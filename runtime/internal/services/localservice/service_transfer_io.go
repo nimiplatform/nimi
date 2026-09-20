@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -46,15 +47,82 @@ func (s *Service) updateTransferProgress(
 		}
 		if speedKnown {
 			summary.SpeedBytesPerSec = maxInt64(speed, 0)
-			if summary.GetBytesTotal() <= 0 || summary.GetBytesReceived() >= summary.GetBytesTotal() {
+			remaining := summary.GetBytesTotal() - summary.GetBytesReceived() - summary.GetBytesReused()
+			if summary.GetBytesTotal() <= 0 || remaining <= 0 {
 				summary.EtaSeconds = 0
 			} else if rateUpdated && speed > 0 {
-				summary.EtaSeconds = filedownload.RemainingSeconds(summary.GetBytesReceived(), summary.GetBytesTotal(), speed)
+				summary.EtaSeconds = filedownload.RemainingSeconds(summary.GetBytesReceived()+summary.GetBytesReused(), summary.GetBytesTotal(), speed)
 			}
 		} else {
 			summary.SpeedBytesPerSec = 0
 			summary.EtaSeconds = 0
 		}
+	})
+}
+
+// updateTransferReuse records a position-based projection: bytes this
+// transfer fetched or copied, and bytes it references from verified managed
+// content. Reused bytes never drive speed or ETA.
+func (s *Service) updateTransferReuse(sessionID string, phase string, bytesReceived int64, bytesReused int64, message string) {
+	_, _ = s.mutateLocalTransfer(sessionID, false, func(summary *runtimev1.LocalTransferSessionSummary) {
+		if isTerminalTransferState(summary.GetState()) {
+			return
+		}
+		summary.Phase = phase
+		if normalizeTransferState(summary.GetState()) != localTransferStatePaused {
+			summary.State = localTransferStateRunning
+		}
+		summary.BytesReceived = maxInt64(bytesReceived, 0)
+		summary.BytesReused = maxInt64(bytesReused, 0)
+		if strings.TrimSpace(message) != "" {
+			summary.Message = message
+		}
+		summary.SpeedBytesPerSec = 0
+		summary.EtaSeconds = 0
+	})
+}
+
+// updateTransferVerification reports identification or verification reads.
+// They are neither payload nor managed content and never fake a download.
+func (s *Service) updateTransferVerification(sessionID string, phase string, bytesVerified int64, message string) {
+	_, _ = s.mutateLocalTransfer(sessionID, false, func(summary *runtimev1.LocalTransferSessionSummary) {
+		if isTerminalTransferState(summary.GetState()) {
+			return
+		}
+		summary.Phase = phase
+		if normalizeTransferState(summary.GetState()) != localTransferStatePaused {
+			summary.State = localTransferStateRunning
+		}
+		summary.BytesVerified = maxInt64(bytesVerified, 0)
+		if strings.TrimSpace(message) != "" {
+			summary.Message = message
+		}
+		summary.SpeedBytesPerSec = 0
+		summary.EtaSeconds = 0
+	})
+}
+
+func (s *Service) addTransferVerifiedBytes(sessionID string, delta int64) {
+	if delta <= 0 {
+		return
+	}
+	_, _ = s.mutateLocalTransfer(sessionID, false, func(summary *runtimev1.LocalTransferSessionSummary) {
+		if isTerminalTransferState(summary.GetState()) {
+			return
+		}
+		summary.Phase = "verify"
+		summary.BytesVerified += delta
+		summary.SpeedBytesPerSec = 0
+		summary.EtaSeconds = 0
+	})
+}
+
+func (s *Service) setTransferBytesTotal(sessionID string, bytesTotal int64) {
+	_, _ = s.mutateLocalTransfer(sessionID, false, func(summary *runtimev1.LocalTransferSessionSummary) {
+		if isTerminalTransferState(summary.GetState()) || bytesTotal <= 0 {
+			return
+		}
+		summary.BytesTotal = bytesTotal
 	})
 }
 
@@ -88,12 +156,9 @@ func (s *Service) observeTransferRate(sessionID string, bytesReceived int64, now
 	return tracker.ObserveProjection(bytesReceived, now)
 }
 
-func (s *Service) completeTransfer(
-	sessionID string,
-	phase string,
-	message string,
-	apply func(summary *runtimev1.LocalTransferSessionSummary),
-) error {
+// completeTransfer records a completed terminal state for in-process callers
+// that carry no acquisition result of their own.
+func (s *Service) completeTransfer(sessionID string, phase string, message string, apply func(summary *runtimev1.LocalTransferSessionSummary)) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	staged := s.stageTransferCompletionLocked(sessionID, phase, message, apply)
@@ -123,7 +188,8 @@ type stagedTransferCompletion struct {
 
 // stageTransferCompletionLocked mutates only in-memory transfer state. The
 // caller owns s.mu and must either persist and publish the result or roll it
-// back before releasing the lock.
+// back before releasing the lock. It never fabricates received bytes: a
+// completion reports exactly what the transfer fetched and what it reused.
 func (s *Service) stageTransferCompletionLocked(
 	sessionID string,
 	phase string,
@@ -154,9 +220,8 @@ func (s *Service) stageTransferCompletionLocked(
 	staged.current.Message = message
 	staged.current.ReasonCode = ""
 	staged.current.Retryable = false
-	if staged.current.GetBytesTotal() > 0 && staged.current.GetBytesReceived() < staged.current.GetBytesTotal() {
-		staged.current.BytesReceived = staged.current.GetBytesTotal()
-	}
+	staged.current.RelatedInstallSessionId = ""
+	staged.current.CleanupPending = false
 	staged.current.SpeedBytesPerSec = 0
 	staged.current.EtaSeconds = 0
 	if apply != nil {
@@ -164,11 +229,13 @@ func (s *Service) stageTransferCompletionLocked(
 	}
 	staged.current.InstallSessionId = previous.GetInstallSessionId()
 	staged.current.SessionKind = normalizeTransferKind(staged.current.GetSessionKind())
+	staged.current.SourceLabel = previous.GetSourceLabel()
 	staged.current.UpdatedAt = nowISO()
 	s.transfers[key] = cloneLocalTransferSummary(staged.current)
 	delete(s.transferControls, key)
 	delete(s.transferRates, key)
 	delete(s.managedModelDownloadSpecs, key)
+	staged.current.AvailableActions = s.projectTransferActionsLocked(staged.current)
 	staged.changed = true
 	return staged
 }
@@ -223,8 +290,14 @@ func (s *Service) interruptTransfer(sessionID string, message string) error {
 	return err
 }
 
+// cancelTransfer records the cancelled terminal state. Material discard is
+// the executor's or CancelLocalTransfer's responsibility, so a busy file can
+// keep cleanup pending without hiding the terminal state.
 func (s *Service) cancelTransfer(sessionID string, message string) error {
-	summary, err := s.mutateLocalTransfer(sessionID, true, func(summary *runtimev1.LocalTransferSessionSummary) {
+	_, err := s.mutateLocalTransfer(sessionID, true, func(summary *runtimev1.LocalTransferSessionSummary) {
+		if normalizeTransferState(summary.GetState()) == localTransferStateCompleted {
+			return
+		}
 		summary.State = localTransferStateCancelled
 		summary.Message = message
 		summary.ReasonCode = "LOCAL_TRANSFER_CANCELLED"
@@ -233,10 +306,40 @@ func (s *Service) cancelTransfer(sessionID string, message string) error {
 	if err != nil {
 		return err
 	}
-	if summary != nil && normalizeTransferKind(summary.GetSessionKind()) == localTransferKindDownload {
-		s.discardManagedModelDownloadStaging(managedModelAcquisitionStorageID(summary.GetAssetId(), summary.GetInstallSessionId()))
+	s.mu.Lock()
+	if private := s.transferPrivateLocked(sessionID); private.commitIntent != nil {
+		private.commitIntent = nil
+		_ = s.persistStateLocked()
 	}
+	s.mu.Unlock()
+	s.discardCancelledIntentView(sessionID)
 	return nil
+}
+
+// discardCancelledIntentView removes the uncommitted view directory of a
+// cancelled create intent. It only touches a directory no committed asset
+// owns; committed inventory is never rolled back by a cancel.
+func (s *Service) discardCancelledIntentView(sessionID string) {
+	s.mu.RLock()
+	private := s.transferPrivate[strings.TrimSpace(sessionID)]
+	var directory string
+	if private != nil && private.commitIntent != nil {
+		directory = private.commitIntent.ManagedDirectory
+	}
+	s.mu.RUnlock()
+	if directory == "" {
+		return
+	}
+	s.mu.RLock()
+	_, owned := s.modelAssetForManagedDirectoryLocked(directory)
+	s.mu.RUnlock()
+	if owned || !s.validModelAssetManagedDirectory(directory) {
+		return
+	}
+	if err := os.RemoveAll(directory); err != nil && !errors.Is(err, os.ErrNotExist) {
+		s.logger.Warn("uncommitted ModelAsset view cleanup pending", "transfer_id", sessionID, "directory", directory, "error", err)
+		s.setTransferCleanupPending(sessionID, true)
+	}
 }
 
 // downloadToFileWithTransfer downloads sourceURL to targetPath through the

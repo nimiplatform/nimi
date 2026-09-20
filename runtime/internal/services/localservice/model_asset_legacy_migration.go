@@ -175,16 +175,10 @@ func (s *Service) MigrateLegacyResolvedAssetsToModelAssetStore(ctx context.Conte
 		if displayName == "" {
 			displayName = filepath.Base(directory)
 		}
-		adopted, _, err := s.adoptResolvedModelAssetDirectoryWithOptions(ctx, directory, modelAssetAdoptionOptions{
-			displayName:    displayName,
-			preferredEntry: strings.TrimSpace(record.Entry),
-			provenance: map[string]any{
-				"source_kind":           "legacy_local_asset_migration",
-				"source_name":           filepath.Base(directory),
-				"legacy_local_asset_id": record.LocalAssetID,
-				"distribution":          "directory",
-			},
-		})
+		// A retired LocalAsset directory carries no managed manifest, so it is
+		// taken in as an import source: its bytes become published objects
+		// and a linked view; the retired directory is left for offline cleanup.
+		adopted, err := s.migrateLegacyResolvedDirectory(ctx, directory, displayName, record)
 		if err != nil {
 			result.Disposition = LegacyAssetMigrationLeftWithWarning
 			result.Warning = err.Error()
@@ -382,4 +376,59 @@ func (s *Service) rederiveStoredModelAssetCatalogVerification(modelAssetID strin
 		return err
 	}
 	return nil
+}
+
+func (s *Service) migrateLegacyResolvedDirectory(ctx context.Context, directory string, displayName string, record legacyLocalAssetState) (*runtimev1.ModelAssetRecord, error) {
+	source, err := inspectModelAssetSource(directory, displayName)
+	if err != nil {
+		return nil, err
+	}
+	modelsRoot, err := s.resolveManagedBundleModelsRoot()
+	if err != nil {
+		return nil, err
+	}
+	if err := s.ensureModelObjectLinkSupport(modelsRoot); err != nil {
+		return nil, err
+	}
+	asset, err := s.importModelAssetContent(ctx, "", modelsRoot, source)
+	if err != nil {
+		return nil, err
+	}
+	provenance := structToMap(asset.GetProvenance())
+	if provenance == nil {
+		provenance = map[string]any{}
+	}
+	provenance["source_kind"] = "legacy_local_asset_migration"
+	provenance["legacy_local_asset_id"] = record.LocalAssetID
+	s.modelAssetMutationMu.Lock()
+	defer s.modelAssetMutationMu.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	current := s.modelAssets[asset.GetModelAssetId()]
+	if current == nil || current.GetCreatedAt() != asset.GetCreatedAt() {
+		return cloneModelAsset(asset), nil
+	}
+	if kind, _ := structToMap(current.GetProvenance())["source_kind"].(string); kind != "local_import" {
+		// An already committed equivalent keeps its original provenance.
+		return cloneModelAsset(current), nil
+	}
+	updated := cloneModelAsset(current)
+	updated.Provenance = toStruct(provenance)
+	// Provenance is a manifest fact: the canonical manifest and the inventory
+	// row stay one identity, so the manifest is rewritten first.
+	manifestPayload, err := json.MarshalIndent(modelAssetManifestFromRecord(updated), "", "  ")
+	if err != nil {
+		return nil, err
+	}
+	directoryPath := s.modelAssetDirectories[asset.GetModelAssetId()]
+	if err := writeFileAtomically(filepath.Join(directoryPath, localAssetManifestFileName), manifestPayload, 0o600); err != nil {
+		return nil, fmt.Errorf("rewrite migrated ModelAsset manifest: %w", err)
+	}
+	previous := s.modelAssets[asset.GetModelAssetId()]
+	s.modelAssets[asset.GetModelAssetId()] = updated
+	if err := s.persistModelAssetStoreLocked(); err != nil {
+		s.modelAssets[asset.GetModelAssetId()] = previous
+		return nil, err
+	}
+	return cloneModelAsset(updated), nil
 }

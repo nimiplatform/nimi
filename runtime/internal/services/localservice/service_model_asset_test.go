@@ -131,7 +131,7 @@ func TestImportModelAssetDirectoryPreservesDistributionAndMarksCodeNonExecutable
 	}
 }
 
-func TestImportModelAssetDuplicateContentCreatesDistinctInstances(t *testing.T) {
+func TestImportModelAssetEquivalentDistributionReusesAsset(t *testing.T) {
 	svc := newTestService(t)
 	source := filepath.Join(t.TempDir(), "model.bin")
 	if err := os.WriteFile(source, []byte("same distribution"), 0o600); err != nil {
@@ -139,11 +139,60 @@ func TestImportModelAssetDuplicateContentCreatesDistinctInstances(t *testing.T) 
 	}
 	first := importModelAssetForTest(t, svc, source, "first")
 	second := importModelAssetForTest(t, svc, source, "second")
-	if first.GetModelAssetId() == second.GetModelAssetId() || first.GetContentId() != second.GetContentId() {
-		t.Fatalf("duplicate identities = first=%+v second=%+v", first, second)
+	if first.GetModelAssetId() != second.GetModelAssetId() || first.GetContentId() != second.GetContentId() {
+		t.Fatalf("equivalent import minted a second identity: first=%+v second=%+v", first, second)
 	}
-	if first.GetDuplicateContent() || !second.GetDuplicateContent() {
-		t.Fatalf("duplicate hints = first=%v second=%v", first.GetDuplicateContent(), second.GetDuplicateContent())
+	if second.GetDisplayName() != "first" {
+		t.Fatalf("repeat import overwrote the original display name: %q", second.GetDisplayName())
+	}
+	if len(svc.modelAssets) != 1 {
+		t.Fatalf("inventory count = %d, want 1", len(svc.modelAssets))
+	}
+	entries, err := os.ReadDir(filepath.Join(svc.localModelsPath, "resolved"))
+	if err != nil || len(entries) != 1 {
+		t.Fatalf("resolved views = %v err=%v, want exactly one", entries, err)
+	}
+}
+
+func TestImportModelAssetDifferentLayoutSharesObjectButKeepsOwnView(t *testing.T) {
+	svc := newTestService(t)
+	payload := []byte("shared bytes, different names")
+	sourceA := filepath.Join(t.TempDir(), "a.bin")
+	sourceB := filepath.Join(t.TempDir(), "b.bin")
+	if err := os.WriteFile(sourceA, payload, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(sourceB, payload, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	first := importModelAssetForTest(t, svc, sourceA, "a")
+	second := importModelAssetForTest(t, svc, sourceB, "b")
+	if first.GetModelAssetId() == second.GetModelAssetId() {
+		t.Fatal("different layouts were merged into one asset")
+	}
+	if first.GetContentId() != second.GetContentId() {
+		t.Fatalf("public content ids differ for identical bytes: %q vs %q", first.GetContentId(), second.GetContentId())
+	}
+	viewA := filepath.Join(svc.modelAssetDirectories[first.GetModelAssetId()], "a.bin")
+	viewB := filepath.Join(svc.modelAssetDirectories[second.GetModelAssetId()], "b.bin")
+	identityA, _, err := modelFileIdentityOf(viewA)
+	if err != nil {
+		t.Fatal(err)
+	}
+	identityB, _, err := modelFileIdentityOf(viewB)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if identityA != identityB {
+		t.Fatalf("views do not share one physical object: %s vs %s", identityA, identityB)
+	}
+	objectPath, err := modelObjectPath(svc.localModelsPath, first.GetFiles()[0].GetSha256())
+	if err != nil {
+		t.Fatal(err)
+	}
+	objectIdentity, _, err := modelFileIdentityOf(objectPath)
+	if err != nil || objectIdentity != identityA {
+		t.Fatalf("published object identity = %s err=%v, want %s", objectIdentity, err, identityA)
 	}
 }
 
@@ -159,7 +208,7 @@ func TestImportModelAssetCancelledLeavesNoResolvedResidue(t *testing.T) {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	if _, err := svc.importModelAssetSync(ctx, "", "model_cancel", source); !errors.Is(err, errLocalTransferCancelled) {
+	if _, err := svc.importModelAssetSync(ctx, "", source); !errors.Is(err, errLocalTransferCancelled) {
 		t.Fatalf("cancel error = %v", err)
 	}
 	resolvedEntries, err := os.ReadDir(filepath.Join(svc.localModelsPath, "resolved"))
@@ -169,9 +218,8 @@ func TestImportModelAssetCancelledLeavesNoResolvedResidue(t *testing.T) {
 	if len(resolvedEntries) != 0 {
 		t.Fatalf("resolved residue = %v", resolvedEntries)
 	}
-	quarantineEntries, err := os.ReadDir(filepath.Join(svc.localModelsPath, "quarantine"))
-	if err != nil || len(quarantineEntries) == 0 {
-		t.Fatalf("quarantine evidence missing: entries=%v err=%v", quarantineEntries, err)
+	if len(svc.modelAssets) != 0 {
+		t.Fatalf("cancelled import wrote inventory: %d", len(svc.modelAssets))
 	}
 }
 
@@ -188,7 +236,7 @@ func TestImportModelAssetInventoryFailureLeavesNoResolvedResidue(t *testing.T) {
 	svc.saveModelAssetStore = func(string, modelAssetStoreSnapshot) error {
 		return errors.New("injected inventory persistence failure")
 	}
-	if _, err := svc.importModelAssetSync(context.Background(), "", "model_inventory_failure", source); err == nil {
+	if _, err := svc.importModelAssetSync(context.Background(), "", source); err == nil {
 		t.Fatal("expected inventory persistence failure")
 	}
 	resolvedEntries, err := os.ReadDir(filepath.Join(svc.localModelsPath, "resolved"))
@@ -197,10 +245,6 @@ func TestImportModelAssetInventoryFailureLeavesNoResolvedResidue(t *testing.T) {
 	}
 	if len(resolvedEntries) != 0 {
 		t.Fatalf("resolved residue = %v", resolvedEntries)
-	}
-	quarantineEntries, err := os.ReadDir(filepath.Join(svc.localModelsPath, "quarantine"))
-	if err != nil || len(quarantineEntries) == 0 {
-		t.Fatalf("quarantine evidence missing: entries=%v err=%v", quarantineEntries, err)
 	}
 	if len(svc.modelAssets) != 0 {
 		t.Fatalf("failed import wrote inventory: %d", len(svc.modelAssets))
@@ -217,12 +261,7 @@ func TestImportModelAssetCompletionPersistenceFailurePublishesNoModelAsset(t *te
 	if err != nil {
 		t.Fatal(err)
 	}
-	transfer := svc.newLocalTransfer(localTransferKindImport, localTransferMutation{
-		ModelID:    "model_terminal_persistence_failure",
-		Phase:      "copy",
-		State:      localTransferStateRunning,
-		BytesTotal: source.SizeBytes,
-	})
+	transfer := newImportTransferForTest(t, svc, source)
 	if err := os.Remove(svc.stateStorePath); err != nil && !os.IsNotExist(err) {
 		t.Fatal(err)
 	}
@@ -230,7 +269,7 @@ func TestImportModelAssetCompletionPersistenceFailurePublishesNoModelAsset(t *te
 		t.Fatal(err)
 	}
 
-	svc.runImportModelAsset(context.Background(), transfer.GetInstallSessionId(), "model_terminal_persistence_failure", source)
+	svc.runImportModelAsset(context.Background(), transfer.GetInstallSessionId(), source)
 	svc.mu.RLock()
 	assetCount := len(svc.modelAssets)
 	svc.mu.RUnlock()
@@ -269,65 +308,63 @@ func TestImportModelAssetRejectsSymlinkWithoutStateWrite(t *testing.T) {
 	}
 }
 
-func TestAdoptResolvedModelAssetIsAtomicAndIdempotentWithoutPayloadCopy(t *testing.T) {
+func TestAdoptResolvedModelAssetRecoversManagedViewWithoutPayloadCopy(t *testing.T) {
 	svc := newTestService(t)
 	svc.adoptResolvedModelImports = true
-	directory := filepath.Join(svc.localModelsPath, "resolved", "legacy-model")
-	if err := os.MkdirAll(directory, 0o700); err != nil {
+	source := filepath.Join(t.TempDir(), "recover.bin")
+	payload := []byte("managed view payload remains in place")
+	if err := os.WriteFile(source, payload, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	payloadPath := filepath.Join(directory, "model.bin")
-	payload := []byte("legacy payload remains in place")
-	if err := os.WriteFile(payloadPath, payload, 0o600); err != nil {
-		t.Fatal(err)
-	}
-	beforeInfo, _ := os.Stat(payloadPath)
-	beforeHash, _ := computeImportFileSHA256(payloadPath)
-	source, err := inspectModelAssetSource(directory, "legacy")
+	asset := importModelAssetForTest(t, svc, source, "recover")
+	directory := svc.modelAssetDirectories[asset.GetModelAssetId()]
+	payloadPath := filepath.Join(directory, "recover.bin")
+	beforeIdentity, beforeInfo, err := modelFileIdentityOf(payloadPath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	asset, err := svc.importModelAssetSync(context.Background(), "", "model_must_not_replace_adopted_identity", source)
-	if err != nil || asset == nil || asset.GetModelAssetId() == "model_must_not_replace_adopted_identity" {
-		t.Fatalf("import adoption = asset=%+v err=%v", asset, err)
+	forgetModelAssetInventoryForTest(t, svc, asset.GetModelAssetId())
+
+	recovered, skipped, err := svc.adoptResolvedModelAssetDirectory(context.Background(), directory, "ignored display name")
+	if err != nil || skipped || recovered.GetModelAssetId() != asset.GetModelAssetId() {
+		t.Fatalf("recover managed view = asset=%+v skipped=%v err=%v", recovered, skipped, err)
 	}
-	skipped := false
-	again, skipped, err := svc.adoptResolvedModelAssetDirectory(context.Background(), directory, "legacy")
+	if recovered.GetDisplayName() != "recover" {
+		t.Fatalf("recovery replaced the manifest display name: %q", recovered.GetDisplayName())
+	}
+	again, skipped, err := svc.adoptResolvedModelAssetDirectory(context.Background(), directory, "recover")
 	if err != nil || !skipped || again.GetModelAssetId() != asset.GetModelAssetId() {
-		t.Fatalf("idempotent adopt = asset=%+v skipped=%v err=%v", again, skipped, err)
+		t.Fatalf("idempotent recovery = asset=%+v skipped=%v err=%v", again, skipped, err)
 	}
-	afterInfo, _ := os.Stat(payloadPath)
-	afterHash, _ := computeImportFileSHA256(payloadPath)
-	if beforeInfo.Size() != afterInfo.Size() || beforeHash != afterHash {
-		t.Fatalf("payload changed: size %d->%d hash %s->%s", beforeInfo.Size(), afterInfo.Size(), beforeHash, afterHash)
+	afterIdentity, afterInfo, err := modelFileIdentityOf(payloadPath)
+	if err != nil || afterIdentity != beforeIdentity || afterInfo.Size() != beforeInfo.Size() {
+		t.Fatalf("recovery changed the view file: before=%s after=%s err=%v", beforeIdentity, afterIdentity, err)
+	}
+	source2, err := inspectModelAssetSource(directory, "resolved-dir-import")
+	if err != nil {
+		t.Fatal(err)
+	}
+	viaImport, err := svc.importModelAssetSync(context.Background(), "", source2)
+	if err != nil || viaImport.GetModelAssetId() != asset.GetModelAssetId() {
+		t.Fatalf("recovery import of a managed view = %+v err=%v, want the manifest identity", viaImport, err)
 	}
 }
 
-func TestImportRegisteredResolvedDirectoryMintsNewModelAssetInstance(t *testing.T) {
+func TestImportRegisteredViewDirectoryReturnsEquivalentAsset(t *testing.T) {
 	svc := newTestService(t)
-	directory := filepath.Join(svc.localModelsPath, "resolved", "existing-transformers-bundle")
-	if err := os.MkdirAll(directory, 0o700); err != nil {
-		t.Fatal(err)
-	}
-	modelPath := filepath.Join(directory, "model.safetensors")
+	sourceRoot := t.TempDir()
 	modelPayload := []byte("safe model payload")
-	if err := os.WriteFile(modelPath, modelPayload, 0o600); err != nil {
-		t.Fatal(err)
-	}
-	templatePath := filepath.Join(directory, "chat_template.jinja")
 	templatePayload := []byte("safe template payload")
-	if err := os.WriteFile(templatePath, templatePayload, 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(sourceRoot, "model.safetensors"), modelPayload, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	existing, skipped, err := svc.adoptResolvedModelAssetDirectory(context.Background(), directory, "existing")
-	if err != nil || skipped || existing == nil {
-		t.Fatalf("seed existing ModelAsset: asset=%+v skipped=%v err=%v", existing, skipped, err)
+	if err := os.WriteFile(filepath.Join(sourceRoot, "chat_template.jinja"), templatePayload, 0o600); err != nil {
+		t.Fatal(err)
 	}
+	existing := importModelAssetForTest(t, svc, sourceRoot, "existing")
+	directory := svc.modelAssetDirectories[existing.GetModelAssetId()]
+	modelPath := filepath.Join(directory, "model.safetensors")
 	beforeModelHash, err := computeImportFileSHA256(modelPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	beforeTemplateHash, err := computeImportFileSHA256(templatePath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -340,49 +377,59 @@ func TestImportRegisteredResolvedDirectoryMintsNewModelAssetInstance(t *testing.
 	if source.SizeBytes != wantPayloadBytes {
 		t.Fatalf("source bytes = %d, want payload-only %d", source.SizeBytes, wantPayloadBytes)
 	}
-	imported, err := svc.importModelAssetSync(context.Background(), "", "model_fresh_import", source)
+	imported, err := svc.importModelAssetSync(context.Background(), "", source)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if imported.GetModelAssetId() == existing.GetModelAssetId() {
-		t.Fatalf("ordinary ImportModelAsset reused existing identity %q", existing.GetModelAssetId())
+	if imported.GetModelAssetId() != existing.GetModelAssetId() {
+		t.Fatalf("importing a committed view produced a second asset %q", imported.GetModelAssetId())
 	}
-	if imported.GetContentId() != existing.GetContentId() || !imported.GetDuplicateContent() {
-		t.Fatalf("duplicate content projection = imported:%+v existing:%+v", imported, existing)
-	}
-	if imported.GetEntry() != "model.safetensors" {
-		t.Fatalf("fresh import entry = %q, want model.safetensors", imported.GetEntry())
-	}
-	if len(imported.GetFiles()) != 2 {
-		t.Fatalf("fresh import files = %+v, want only two payload files", imported.GetFiles())
+	if imported.GetEntry() != "model.safetensors" || len(imported.GetFiles()) != 2 {
+		t.Fatalf("equivalent import projection = %+v", imported)
 	}
 	for _, file := range imported.GetFiles() {
 		if file.GetRelativePath() == localAssetManifestFileName {
-			t.Fatal("Runtime manifest was re-imported as model payload")
+			t.Fatal("Runtime manifest was treated as model payload")
 		}
 	}
 	afterModelHash, _ := computeImportFileSHA256(modelPath)
-	afterTemplateHash, _ := computeImportFileSHA256(templatePath)
-	if afterModelHash != beforeModelHash || afterTemplateHash != beforeTemplateHash {
-		t.Fatal("ordinary ImportModelAsset modified the source payload")
+	if afterModelHash != beforeModelHash {
+		t.Fatal("equivalent import modified the managed view")
+	}
+	if len(svc.modelAssets) != 1 {
+		t.Fatalf("inventory count = %d, want 1", len(svc.modelAssets))
 	}
 }
 
 func TestAdoptResolvedModelAssetFailureBoundariesConverge(t *testing.T) {
-	t.Run("manifest failure writes no record", func(t *testing.T) {
+	t.Run("unlinked view is a reconciliation conflict", func(t *testing.T) {
 		svc := newTestService(t)
-		directory := makeAdoptionDirectory(t, svc, "manifest-failure")
-		svc.writeModelAssetManifest = func(string, []byte) error { return errors.New("injected manifest failure") }
-		if _, _, err := svc.adoptResolvedModelAssetDirectory(context.Background(), directory, "failed"); err == nil {
-			t.Fatal("expected manifest failure")
+		directory, asset := makeAdoptionDirectory(t, svc, "unlinked")
+		viewPath := filepath.Join(directory, "model.bin")
+		payload, err := os.ReadFile(viewPath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		// Expand the link: same bytes, new inode, object still present.
+		if err := os.Remove(viewPath); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(viewPath, payload, 0o600); err != nil {
+			t.Fatal(err)
+		}
+		_, _, err = svc.adoptResolvedModelAssetDirectory(context.Background(), directory, "failed")
+		var reconciliation *modelAssetReconciliationError
+		if !errors.As(err, &reconciliation) {
+			t.Fatalf("unlinked view adoption error = %v, want reconciliation conflict", err)
 		}
 		if len(svc.modelAssets) != 0 {
 			t.Fatalf("half record persisted: %d", len(svc.modelAssets))
 		}
+		_ = asset
 	})
 	t.Run("inventory failure reruns to one record", func(t *testing.T) {
 		svc := newTestService(t)
-		directory := makeAdoptionDirectory(t, svc, "inventory-failure")
+		directory, asset := makeAdoptionDirectory(t, svc, "inventory-failure")
 		realSave := svc.saveModelAssetStore
 		svc.saveModelAssetStore = func(string, modelAssetStoreSnapshot) error { return errors.New("injected inventory failure") }
 		if _, _, err := svc.adoptResolvedModelAssetDirectory(context.Background(), directory, "failed"); err == nil {
@@ -392,9 +439,32 @@ func TestAdoptResolvedModelAssetFailureBoundariesConverge(t *testing.T) {
 			t.Fatalf("half record persisted: %d", len(svc.modelAssets))
 		}
 		svc.saveModelAssetStore = realSave
-		asset, skipped, err := svc.adoptResolvedModelAssetDirectory(context.Background(), directory, "recovered")
-		if err != nil || skipped || asset == nil || len(svc.modelAssets) != 1 {
-			t.Fatalf("rerun did not converge: asset=%+v skipped=%v count=%d err=%v", asset, skipped, len(svc.modelAssets), err)
+		recovered, skipped, err := svc.adoptResolvedModelAssetDirectory(context.Background(), directory, "recovered")
+		if err != nil || skipped || recovered == nil || recovered.GetModelAssetId() != asset.GetModelAssetId() || len(svc.modelAssets) != 1 {
+			t.Fatalf("rerun did not converge: asset=%+v skipped=%v count=%d err=%v", recovered, skipped, len(svc.modelAssets), err)
+		}
+	})
+	t.Run("missing object is taken over from the view without copying", func(t *testing.T) {
+		svc := newTestService(t)
+		directory, asset := makeAdoptionDirectory(t, svc, "missing-object")
+		objectPath, err := modelObjectPath(svc.localModelsPath, asset.GetFiles()[0].GetSha256())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Remove(objectPath); err != nil {
+			t.Fatal(err)
+		}
+		viewIdentity, _, err := modelFileIdentityOf(filepath.Join(directory, "model.bin"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		recovered, skipped, err := svc.adoptResolvedModelAssetDirectory(context.Background(), directory, "recovered")
+		if err != nil || skipped || recovered.GetModelAssetId() != asset.GetModelAssetId() {
+			t.Fatalf("takeover adoption = asset=%+v skipped=%v err=%v", recovered, skipped, err)
+		}
+		objectIdentity, _, err := modelFileIdentityOf(objectPath)
+		if err != nil || objectIdentity != viewIdentity {
+			t.Fatalf("takeover published object identity = %s err=%v, want view identity %s", objectIdentity, err, viewIdentity)
 		}
 	})
 }
@@ -656,7 +726,7 @@ func TestImportModelAssetRejectsMissingModelsRootBeforeWriting(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = svc.importModelAssetSync(context.Background(), "", "model_missing_root", source)
+	_, err = svc.importModelAssetSync(context.Background(), "", source)
 	if grpcReasonForTest(err) != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
 		t.Fatalf("missing models root import error = %v", err)
 	}
@@ -722,13 +792,65 @@ func TestRemoveModelAssetEnumeratesReferencesAndPersistsCleanup(t *testing.T) {
 	if _, err := svc.GetModelAsset(context.Background(), &runtimev1.GetModelAssetRequest{ModelAssetId: asset.GetModelAssetId()}); err != nil {
 		t.Fatalf("inspection removed asset: %v", err)
 	}
-	svc.removeModelAssetDirectory = func(string) error { return errors.New("injected cleanup failure") }
+	release := svc.acquireModelAssetUse(asset.GetModelAssetId(), "job:test")
 	removed, err := svc.RemoveModelAsset(context.Background(), &runtimev1.RemoveModelAssetRequest{ModelAssetId: asset.GetModelAssetId(), Force: true})
 	if err != nil || !removed.GetCleanupPending() {
 		t.Fatalf("force removal = %+v err=%v", removed, err)
 	}
-	if _, exists := svc.modelAssetCleanupObligations[asset.GetModelAssetId()]; !exists {
-		t.Fatal("durable cleanup obligation missing")
+	obligation, exists := svc.modelAssetCleanupObligations[asset.GetModelAssetId()]
+	if !exists || obligation.Phase != modelAssetCleanupPhaseWaitUsers || len(obligation.Files) != 1 || obligation.Files[0].Identity == nil {
+		t.Fatalf("durable cleanup obligation = %+v exists=%v", obligation, exists)
+	}
+	directory := obligation.ManagedDirectory
+	if _, err := os.Stat(filepath.Join(directory, "shared.bin")); err != nil {
+		t.Fatalf("view removed while a user still held it: %v", err)
+	}
+	release()
+	if _, exists := svc.modelAssetCleanupObligations[asset.GetModelAssetId()]; exists {
+		t.Fatalf("cleanup obligation survived release: %+v", svc.modelAssetCleanupObligations[asset.GetModelAssetId()])
+	}
+	if _, err := os.Stat(directory); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("view directory survived cleanup: %v", err)
+	}
+	objectPath, _ := modelObjectPath(svc.localModelsPath, asset.GetFiles()[0].GetSha256())
+	if _, err := os.Stat(objectPath); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("unreferenced object survived reclamation: %v", err)
+	}
+}
+
+func TestRemoveModelAssetKeepsObjectSharedByAnotherDistribution(t *testing.T) {
+	svc := newTestService(t)
+	payload := []byte("shared object bytes")
+	sourceA := filepath.Join(t.TempDir(), "a.bin")
+	sourceB := filepath.Join(t.TempDir(), "b.bin")
+	for _, path := range []string{sourceA, sourceB} {
+		if err := os.WriteFile(path, payload, 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	first := importModelAssetForTest(t, svc, sourceA, "a")
+	second := importModelAssetForTest(t, svc, sourceB, "b")
+	removed, err := svc.RemoveModelAsset(context.Background(), &runtimev1.RemoveModelAssetRequest{ModelAssetId: first.GetModelAssetId(), Force: true})
+	if err != nil || removed.GetCleanupPending() {
+		t.Fatalf("remove first distribution = %+v err=%v", removed, err)
+	}
+	objectPath, _ := modelObjectPath(svc.localModelsPath, second.GetFiles()[0].GetSha256())
+	if _, err := os.Stat(objectPath); err != nil {
+		t.Fatalf("shared object was reclaimed while another distribution references it: %v", err)
+	}
+	viewB := filepath.Join(svc.modelAssetDirectories[second.GetModelAssetId()], "b.bin")
+	got, err := os.ReadFile(viewB)
+	if err != nil || !bytes.Equal(got, payload) {
+		t.Fatalf("surviving distribution unreadable: bytes=%q err=%v", got, err)
+	}
+	if err := svc.verifyManagedModelAssetView(context.Background(), svc.localModelsPath, second, svc.modelAssetDirectories[second.GetModelAssetId()], nil); err != nil {
+		t.Fatalf("surviving view failed verification: %v", err)
+	}
+	if removed, err := svc.RemoveModelAsset(context.Background(), &runtimev1.RemoveModelAssetRequest{ModelAssetId: second.GetModelAssetId(), Force: true}); err != nil || removed.GetCleanupPending() {
+		t.Fatalf("remove last distribution = %+v err=%v", removed, err)
+	}
+	if _, err := os.Stat(objectPath); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("object survived after its last reference was released: %v", err)
 	}
 }
 
@@ -742,7 +864,7 @@ func TestModelAssetCleanupObligationRetriesAfterServiceRestart(t *testing.T) {
 	svc.mu.RLock()
 	managedDirectory := svc.modelAssetDirectories[asset.GetModelAssetId()]
 	svc.mu.RUnlock()
-	svc.removeModelAssetDirectory = func(string) error { return errors.New("injected cleanup failure") }
+	_ = svc.acquireModelAssetUse(asset.GetModelAssetId(), "host:test")
 	removed, err := svc.RemoveModelAsset(context.Background(), &runtimev1.RemoveModelAssetRequest{ModelAssetId: asset.GetModelAssetId(), Force: true})
 	if err != nil || !removed.GetCleanupPending() {
 		t.Fatalf("force removal = %+v err=%v", removed, err)
@@ -763,6 +885,10 @@ func TestModelAssetCleanupObligationRetriesAfterServiceRestart(t *testing.T) {
 		t.Fatalf("restart local service: %v", err)
 	}
 	defer restarted.Close()
+	if _, err := os.Stat(managedDirectory); err != nil {
+		t.Fatalf("reclamation ran before the composition root opened it: %v", err)
+	}
+	restarted.OpenModelAssetReclamation()
 	if _, err := os.Stat(managedDirectory); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("cleanup directory survived restart: %v", err)
 	}
@@ -776,6 +902,7 @@ func TestModelAssetCleanupObligationRetriesAfterServiceRestart(t *testing.T) {
 
 func TestModelAssetCleanupObligationNeverDeletesReplacementDirectoryOwner(t *testing.T) {
 	svc := newTestService(t)
+	svc.adoptResolvedModelImports = true
 	source := filepath.Join(t.TempDir(), "cleanup-generation.bin")
 	if err := os.WriteFile(source, []byte("old-generation"), 0o600); err != nil {
 		t.Fatal(err)
@@ -784,39 +911,30 @@ func TestModelAssetCleanupObligationNeverDeletesReplacementDirectoryOwner(t *tes
 	svc.mu.RLock()
 	managedDirectory := svc.modelAssetDirectories[removedAsset.GetModelAssetId()]
 	svc.mu.RUnlock()
-	svc.removeModelAssetDirectory = func(string) error { return errors.New("injected first cleanup failure") }
+	release := svc.acquireModelAssetUse(removedAsset.GetModelAssetId(), "job:hold")
 	removed, err := svc.RemoveModelAsset(context.Background(), &runtimev1.RemoveModelAssetRequest{ModelAssetId: removedAsset.GetModelAssetId(), Force: true})
 	if err != nil || !removed.GetCleanupPending() {
 		t.Fatalf("force removal = %+v err=%v", removed, err)
 	}
 
-	entryPath := filepath.Join(managedDirectory, filepath.FromSlash(removedAsset.GetEntry()))
-	replacementBytes := []byte("new-generation")
-	if err := os.WriteFile(entryPath, replacementBytes, 0o600); err != nil {
-		t.Fatal(err)
-	}
+	// Explicit recovery re-registers the view's manifest identity as the
+	// directory's owner before the old obligation could remove it.
 	replacement, skipped, err := svc.adoptResolvedModelAssetDirectory(context.Background(), managedDirectory, "replacement generation")
-	if err != nil || skipped || replacement.GetModelAssetId() == removedAsset.GetModelAssetId() {
-		t.Fatalf("adopt replacement generation = %+v skipped=%v err=%v", replacement, skipped, err)
+	if err != nil || skipped || replacement.GetModelAssetId() != removedAsset.GetModelAssetId() {
+		t.Fatalf("recover directory owner = %+v skipped=%v err=%v", replacement, skipped, err)
 	}
-	svc.removeModelAssetDirectory = os.RemoveAll
+	release()
 	if completed := svc.completeModelAssetCleanup(removedAsset.GetModelAssetId()); !completed {
 		t.Fatal("superseded cleanup obligation did not terminalize")
 	}
-	if _, err := os.Stat(managedDirectory); err != nil {
-		t.Fatalf("superseded cleanup deleted replacement directory: %v", err)
-	}
-	preserved, err := os.ReadFile(entryPath)
-	if err != nil || !bytes.Equal(preserved, replacementBytes) {
-		t.Fatalf("replacement payload changed: bytes=%q err=%v", preserved, err)
-	}
-	if current, err := svc.GetModelAsset(context.Background(), &runtimev1.GetModelAssetRequest{ModelAssetId: replacement.GetModelAssetId()}); err != nil || current.GetAsset().GetContentId() != replacement.GetContentId() {
-		t.Fatalf("replacement owner changed: %+v err=%v", current, err)
+	entryPath := filepath.Join(managedDirectory, filepath.FromSlash(removedAsset.GetEntry()))
+	if _, err := os.Stat(entryPath); err != nil {
+		t.Fatalf("superseded cleanup deleted the recovered owner's view: %v", err)
 	}
 	svc.mu.RLock()
 	obligation, exists := svc.modelAssetCleanupObligations[removedAsset.GetModelAssetId()]
 	svc.mu.RUnlock()
-	if !exists || !obligation.Terminal || obligation.TerminalReason != modelAssetCleanupOwnerChangedReason || obligation.Attempts != 1 {
+	if !exists || !obligation.Terminal || obligation.TerminalReason != modelAssetCleanupOwnerChangedReason {
 		t.Fatalf("superseded cleanup diagnostic = %+v, exists=%v", obligation, exists)
 	}
 
@@ -831,18 +949,12 @@ func TestModelAssetCleanupObligationNeverDeletesReplacementDirectoryOwner(t *tes
 		t.Fatalf("restart local service: %v", err)
 	}
 	defer restarted.Close()
-	preserved, err = os.ReadFile(entryPath)
-	if err != nil || !bytes.Equal(preserved, replacementBytes) {
-		t.Fatalf("restart cleanup changed replacement payload: bytes=%q err=%v", preserved, err)
+	restarted.OpenModelAssetReclamation()
+	if _, err := os.Stat(entryPath); err != nil {
+		t.Fatalf("restart cleanup deleted the recovered owner's view: %v", err)
 	}
 	if current, err := restarted.GetModelAsset(context.Background(), &runtimev1.GetModelAssetRequest{ModelAssetId: replacement.GetModelAssetId()}); err != nil || current.GetAsset().GetContentId() != replacement.GetContentId() {
 		t.Fatalf("restart replacement owner changed: %+v err=%v", current, err)
-	}
-	restarted.mu.RLock()
-	persistedObligation := restarted.modelAssetCleanupObligations[removedAsset.GetModelAssetId()]
-	restarted.mu.RUnlock()
-	if !persistedObligation.Terminal || persistedObligation.TerminalReason != modelAssetCleanupOwnerChangedReason {
-		t.Fatalf("restart lost superseded cleanup diagnostic: %+v", persistedObligation)
 	}
 }
 
@@ -856,16 +968,20 @@ func TestModelAssetCleanupObligationPreservesChangedUnownedGeneration(t *testing
 	svc.mu.RLock()
 	managedDirectory := svc.modelAssetDirectories[asset.GetModelAssetId()]
 	svc.mu.RUnlock()
-	svc.removeModelAssetDirectory = func(string) error { return errors.New("injected first cleanup failure") }
+	release := svc.acquireModelAssetUse(asset.GetModelAssetId(), "job:hold")
 	if removed, err := svc.RemoveModelAsset(context.Background(), &runtimev1.RemoveModelAssetRequest{ModelAssetId: asset.GetModelAssetId(), Force: true}); err != nil || !removed.GetCleanupPending() {
 		t.Fatalf("force removal = %+v err=%v", removed, err)
 	}
 	entryPath := filepath.Join(managedDirectory, filepath.FromSlash(asset.GetEntry()))
+	// A new physical generation at the captured path: remove and recreate.
+	if err := os.Remove(entryPath); err != nil {
+		t.Fatal(err)
+	}
 	changed := []byte("new-content")
 	if err := os.WriteFile(entryPath, changed, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	svc.removeModelAssetDirectory = os.RemoveAll
+	release()
 	if completed := svc.completeModelAssetCleanup(asset.GetModelAssetId()); !completed {
 		t.Fatal("changed cleanup generation did not terminalize")
 	}
@@ -878,6 +994,41 @@ func TestModelAssetCleanupObligationPreservesChangedUnownedGeneration(t *testing
 	svc.mu.RUnlock()
 	if !obligation.Terminal || obligation.TerminalReason != modelAssetCleanupGenerationChangedReason {
 		t.Fatalf("changed generation cleanup diagnostic = %+v", obligation)
+	}
+}
+
+func TestModelAssetStoreParseableOlderVersionRestrictsDomainWithoutRewriting(t *testing.T) {
+	svc := newTestService(t)
+	statePath := svc.stateStorePath
+	modelsPath := svc.localModelsPath
+	storePath := svc.modelAssetStorePath
+	svc.Close()
+	legacy := []byte(`{"schemaVersion":1,"savedAt":"2026-01-01T00:00:00Z","assets":[]}`)
+	if err := os.WriteFile(storePath, legacy, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	restarted := restartModelAssetServiceForTest(t, statePath, modelsPath)
+	if restriction := restarted.ModelAssetInventoryRestriction(); restriction == nil || restriction.SchemaVersion != 1 {
+		t.Fatalf("restriction = %+v, want schema 1 offline conversion", restriction)
+	}
+	_, err := restarted.ListModelAssets(context.Background(), &runtimev1.ListModelAssetsRequest{})
+	if grpcReasonForTest(err) != runtimev1.ReasonCode_AI_LOCAL_MODEL_STATE_OFFLINE_CONVERSION_REQUIRED {
+		t.Fatalf("restricted inventory list error = %v", err)
+	}
+	source := filepath.Join(t.TempDir(), "blocked.bin")
+	if err := os.WriteFile(source, []byte("blocked"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := restarted.ImportModelAsset(context.Background(), &runtimev1.ImportModelAssetRequest{SourcePath: source}); grpcReasonForTest(err) != runtimev1.ReasonCode_AI_LOCAL_MODEL_STATE_OFFLINE_CONVERSION_REQUIRED {
+		t.Fatalf("restricted import error = %v", err)
+	}
+	after, err := os.ReadFile(storePath)
+	if err != nil || !bytes.Equal(after, legacy) {
+		t.Fatalf("restricted inventory was rewritten or isolated: err=%v same=%v", err, bytes.Equal(after, legacy))
+	}
+	quarantinePaths, _ := filepath.Glob(filepath.Join(stateQuarantineDirectory(storePath), filepath.Base(storePath)+".*"))
+	if len(quarantinePaths) != 0 {
+		t.Fatalf("restricted inventory produced quarantine artifacts: %v", quarantinePaths)
 	}
 }
 
@@ -918,7 +1069,7 @@ func importModelAssetForTest(t *testing.T, svc *Service, sourcePath string, disp
 	if err != nil {
 		t.Fatal(err)
 	}
-	asset, err := svc.importModelAssetSync(context.Background(), "", "model_"+strings.ToLower(strings.ReplaceAll(displayName, " ", "_"))+"_"+strings.ToLower(ulidSuffixForTest(t)), source)
+	asset, err := svc.importModelAssetSync(context.Background(), "", source)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -960,16 +1111,44 @@ func minimalSafeTensorsPayload() []byte {
 	return payload
 }
 
-func makeAdoptionDirectory(t *testing.T, svc *Service, name string) string {
+// makeAdoptionDirectory creates a committed managed view and then forgets
+// its inventory row, leaving a valid manifest directory for recovery tests.
+func makeAdoptionDirectory(t *testing.T, svc *Service, name string) (string, *runtimev1.ModelAssetRecord) {
 	t.Helper()
-	directory := filepath.Join(svc.localModelsPath, "resolved", name)
-	if err := os.MkdirAll(directory, 0o700); err != nil {
+	source := filepath.Join(t.TempDir(), "model.bin")
+	if err := os.WriteFile(source, []byte(name), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(directory, "model.bin"), []byte(name), 0o600); err != nil {
+	asset := importModelAssetForTest(t, svc, source, name)
+	directory := svc.modelAssetDirectories[asset.GetModelAssetId()]
+	forgetModelAssetInventoryForTest(t, svc, asset.GetModelAssetId())
+	return directory, asset
+}
+
+// forgetModelAssetInventoryForTest drops the inventory row (as a lost or
+// rebuilt inventory would) while leaving the view directory untouched.
+func forgetModelAssetInventoryForTest(t *testing.T, svc *Service, modelAssetID string) {
+	t.Helper()
+	svc.modelAssetMutationMu.Lock()
+	defer svc.modelAssetMutationMu.Unlock()
+	svc.mu.Lock()
+	defer svc.mu.Unlock()
+	delete(svc.modelAssets, modelAssetID)
+	delete(svc.modelAssetDirectories, modelAssetID)
+	if err := svc.persistModelAssetStoreLocked(); err != nil {
 		t.Fatal(err)
 	}
-	return directory
+}
+
+func newImportTransferForTest(t *testing.T, svc *Service, source modelAssetSource) *runtimev1.LocalTransferSessionSummary {
+	t.Helper()
+	transfer, err := svc.createLocalTransfer(localTransferKindImport, localTransferMutation{
+		Phase: "scan", State: localTransferStateRunning, BytesTotal: source.SizeBytes, SourceLabel: source.DisplayName,
+	}, nil, &localTransferImportSpec{SourcePath: source.Path, DisplayName: source.DisplayName, IsDir: source.IsDir, SizeBytes: source.SizeBytes}, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return transfer
 }
 
 func TestModelAssetContentIDUsesCanonicalRelativePathOrderForQwenSpeechBundle(t *testing.T) {

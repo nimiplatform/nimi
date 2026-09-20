@@ -15,6 +15,7 @@ func TestCheckSyncRejectsDuplicateCanonicalModelAssetManifestIdentityBeforeAdopt
 	resolved := filepath.Join(root, "models", "resolved")
 	manifest := modelAssetManifest{
 		SchemaVersion: modelAssetManifestSchemaVersion,
+		StorageLayout: modelAssetManifestStorageLayoutObjectLinked,
 		ModelAssetID:  "model_asset_duplicate",
 		ContentID:     "content_duplicate",
 		DisplayName:   "Duplicate",

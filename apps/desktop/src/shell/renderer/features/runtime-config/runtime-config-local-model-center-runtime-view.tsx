@@ -65,6 +65,7 @@ export function LocalModelCenterRuntimeView(props: LocalAssetsRuntimeViewProps) 
         onResume={props.onResumeDownload}
         onCancel={props.onCancelDownload}
         onDismiss={props.onDismissSession}
+        onReimport={props.onToggleImportMenu}
       />
     );
   }

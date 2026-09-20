@@ -389,7 +389,7 @@ function PreparationProgress(props: {
         <ul className="space-y-1 text-xs text-[var(--nimi-text-secondary)]">
           {active.map((event) => (
             <li key={event.installSessionId} className="flex justify-between gap-3">
-              <span className="min-w-0 truncate">{event.modelId}</span>
+              <span className="min-w-0 truncate">{event.sourceLabel || event.modelAssetId || event.installSessionId}</span>
               <span className="shrink-0 tabular-nums">{formatBytes(event.bytesReceived)}{event.bytesTotal ? ` / ${formatBytes(event.bytesTotal)}` : ''}</span>
             </li>
           ))}

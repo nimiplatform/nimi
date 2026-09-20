@@ -48,23 +48,62 @@ type localStateAuditState struct {
 	SubjectUserID string         `json:"subjectUserId,omitempty"`
 }
 
+// localStateTransferSpecVersion is the transfer row shape of the
+// content-addressed acquisition owner. A row of another shape is an invalid
+// record and is isolated per r111; it is never read through a fallback.
+const localStateTransferSpecVersion = 2
+
 type localStateTransferState struct {
-	InstallSessionID    string                              `json:"installSessionId"`
-	AssetID             string                              `json:"assetId"`
-	SessionKind         string                              `json:"sessionKind"`
-	Phase               string                              `json:"phase"`
-	State               string                              `json:"state"`
-	BytesReceived       int64                               `json:"bytesReceived"`
-	BytesTotal          int64                               `json:"bytesTotal,omitempty"`
-	SpeedBytesPerSec    int64                               `json:"speedBytesPerSec,omitempty"`
-	EtaSeconds          int64                               `json:"etaSeconds,omitempty"`
-	Message             string                              `json:"message,omitempty"`
-	ReasonCode          string                              `json:"reasonCode,omitempty"`
-	Retryable           bool                                `json:"retryable,omitempty"`
-	CreatedAt           string                              `json:"createdAt"`
-	UpdatedAt           string                              `json:"updatedAt"`
-	PlanID              string                              `json:"planId,omitempty"`
-	ManagedDownloadSpec *localStateManagedModelDownloadSpec `json:"managedDownloadSpec,omitempty"`
+	SpecVersion             int                                 `json:"specVersion"`
+	InstallSessionID        string                              `json:"installSessionId"`
+	AssetID                 string                              `json:"assetId"`
+	SessionKind             string                              `json:"sessionKind"`
+	Phase                   string                              `json:"phase"`
+	State                   string                              `json:"state"`
+	BytesReceived           int64                               `json:"bytesReceived"`
+	BytesTotal              int64                               `json:"bytesTotal,omitempty"`
+	BytesReused             int64                               `json:"bytesReused,omitempty"`
+	BytesVerified           int64                               `json:"bytesVerified,omitempty"`
+	SpeedBytesPerSec        int64                               `json:"speedBytesPerSec,omitempty"`
+	EtaSeconds              int64                               `json:"etaSeconds,omitempty"`
+	Message                 string                              `json:"message,omitempty"`
+	ReasonCode              string                              `json:"reasonCode,omitempty"`
+	Retryable               bool                                `json:"retryable,omitempty"`
+	CreatedAt               string                              `json:"createdAt"`
+	UpdatedAt               string                              `json:"updatedAt"`
+	PlanID                  string                              `json:"planId,omitempty"`
+	SourceLabel             string                              `json:"sourceLabel,omitempty"`
+	Disposition             string                              `json:"disposition,omitempty"`
+	RelatedInstallSessionID string                              `json:"relatedInstallSessionId,omitempty"`
+	CleanupPending          bool                                `json:"cleanupPending,omitempty"`
+	CancelRequested         bool                                `json:"cancelRequested,omitempty"`
+	ManagedDownloadSpec     *localStateManagedModelDownloadSpec `json:"managedDownloadSpec,omitempty"`
+	ImportSpec              *localTransferImportSpec            `json:"importSpec,omitempty"`
+	CommitIntent            *localTransferCommitIntent          `json:"commitIntent,omitempty"`
+	Result                  *localTransferResult                `json:"result,omitempty"`
+	ObjectHolds             []modelObjectHold                   `json:"objectHolds,omitempty"`
+}
+
+func transferDispositionFromState(value string) runtimev1.LocalTransferDisposition {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "created":
+		return runtimev1.LocalTransferDisposition_LOCAL_TRANSFER_DISPOSITION_CREATED
+	case "reused":
+		return runtimev1.LocalTransferDisposition_LOCAL_TRANSFER_DISPOSITION_REUSED
+	default:
+		return runtimev1.LocalTransferDisposition_LOCAL_TRANSFER_DISPOSITION_UNSPECIFIED
+	}
+}
+
+func transferDispositionToState(value runtimev1.LocalTransferDisposition) string {
+	switch value {
+	case runtimev1.LocalTransferDisposition_LOCAL_TRANSFER_DISPOSITION_CREATED:
+		return "created"
+	case runtimev1.LocalTransferDisposition_LOCAL_TRANSFER_DISPOSITION_REUSED:
+		return "reused"
+	default:
+		return ""
+	}
 }
 
 type localStateManagedModelDownloadSpec struct {
@@ -143,34 +182,58 @@ func (s *Service) restoreState() error {
 	s.transfers = make(map[string]*runtimev1.LocalTransferSessionSummary, len(snapshot.Transfers))
 	s.managedModelDownloadSpecs = make(map[string]managedDownloadedModelSpec)
 	s.transferControls = make(map[string]*localTransferControl)
+	s.transferPrivate = make(map[string]*localTransferPrivateState, len(snapshot.Transfers))
 	for _, item := range snapshot.Transfers {
 		summary := &runtimev1.LocalTransferSessionSummary{
-			InstallSessionId: item.InstallSessionID,
-			AssetId:          item.AssetID,
-			SessionKind:      normalizeTransferKind(item.SessionKind),
-			Phase:            item.Phase,
-			State:            normalizeTransferState(item.State),
-			BytesReceived:    item.BytesReceived,
-			BytesTotal:       item.BytesTotal,
-			SpeedBytesPerSec: item.SpeedBytesPerSec,
-			EtaSeconds:       item.EtaSeconds,
-			Message:          item.Message,
-			ReasonCode:       item.ReasonCode,
-			Retryable:        item.Retryable,
-			CreatedAt:        item.CreatedAt,
-			UpdatedAt:        item.UpdatedAt,
-			PlanId:           item.PlanID,
+			InstallSessionId:        item.InstallSessionID,
+			AssetId:                 item.AssetID,
+			SessionKind:             normalizeTransferKind(item.SessionKind),
+			Phase:                   item.Phase,
+			State:                   normalizeTransferState(item.State),
+			BytesReceived:           item.BytesReceived,
+			BytesTotal:              item.BytesTotal,
+			BytesReused:             item.BytesReused,
+			BytesVerified:           item.BytesVerified,
+			SpeedBytesPerSec:        item.SpeedBytesPerSec,
+			EtaSeconds:              item.EtaSeconds,
+			Message:                 item.Message,
+			ReasonCode:              item.ReasonCode,
+			Retryable:               item.Retryable,
+			CreatedAt:               item.CreatedAt,
+			UpdatedAt:               item.UpdatedAt,
+			PlanId:                  item.PlanID,
+			SourceLabel:             item.SourceLabel,
+			Disposition:             transferDispositionFromState(item.Disposition),
+			RelatedInstallSessionId: item.RelatedInstallSessionID,
+			CleanupPending:          item.CleanupPending,
 		}
 		if summary.GetInstallSessionId() == "" {
 			continue
 		}
-		s.transfers[summary.GetInstallSessionId()] = summary
+		key := summary.GetInstallSessionId()
+		s.transfers[key] = summary
+		private := &localTransferPrivateState{cancelRequested: item.CancelRequested}
+		if item.ImportSpec != nil {
+			copied := *item.ImportSpec
+			private.importSpec = &copied
+		}
+		if item.CommitIntent != nil {
+			copied := *item.CommitIntent
+			copied.Files = append([]modelDistributionFile(nil), item.CommitIntent.Files...)
+			private.commitIntent = &copied
+		}
+		if item.Result != nil {
+			copied := *item.Result
+			private.result = &copied
+		}
+		s.transferPrivate[key] = private
+		s.restoreModelObjectHolds(key, item.ObjectHolds)
 		if item.ManagedDownloadSpec != nil {
 			spec, specErr := managedDownloadedModelSpecFromLocalState(item.ManagedDownloadSpec)
-			if specErr != nil || spec.modelID != summary.GetAssetId() {
+			if specErr != nil {
 				continue
 			}
-			s.managedModelDownloadSpecs[summary.GetInstallSessionId()] = spec
+			s.managedModelDownloadSpecs[key] = spec
 		}
 	}
 	s.localEnvironmentHostProfiles = make(map[string]localEnvironmentHostProfileState, len(snapshot.LocalEnvironmentHostProfiles))
@@ -265,25 +328,49 @@ func (s *Service) persistStateLocked() error {
 			continue
 		}
 		row := localStateTransferState{
-			InstallSessionID: transfer.GetInstallSessionId(),
-			AssetID:          transfer.GetAssetId(),
-			SessionKind:      normalizeTransferKind(transfer.GetSessionKind()),
-			Phase:            transfer.GetPhase(),
-			State:            normalizeTransferState(transfer.GetState()),
-			BytesReceived:    transfer.GetBytesReceived(),
-			BytesTotal:       transfer.GetBytesTotal(),
-			SpeedBytesPerSec: transfer.GetSpeedBytesPerSec(),
-			EtaSeconds:       transfer.GetEtaSeconds(),
-			Message:          transfer.GetMessage(),
-			ReasonCode:       transfer.GetReasonCode(),
-			Retryable:        transfer.GetRetryable(),
-			CreatedAt:        transfer.GetCreatedAt(),
-			UpdatedAt:        transfer.GetUpdatedAt(),
-			PlanID:           transfer.GetPlanId(),
+			SpecVersion:             localStateTransferSpecVersion,
+			InstallSessionID:        transfer.GetInstallSessionId(),
+			AssetID:                 transfer.GetAssetId(),
+			SessionKind:             normalizeTransferKind(transfer.GetSessionKind()),
+			Phase:                   transfer.GetPhase(),
+			State:                   normalizeTransferState(transfer.GetState()),
+			BytesReceived:           transfer.GetBytesReceived(),
+			BytesTotal:              transfer.GetBytesTotal(),
+			BytesReused:             transfer.GetBytesReused(),
+			BytesVerified:           transfer.GetBytesVerified(),
+			SpeedBytesPerSec:        transfer.GetSpeedBytesPerSec(),
+			EtaSeconds:              transfer.GetEtaSeconds(),
+			Message:                 transfer.GetMessage(),
+			ReasonCode:              transfer.GetReasonCode(),
+			Retryable:               transfer.GetRetryable(),
+			CreatedAt:               transfer.GetCreatedAt(),
+			UpdatedAt:               transfer.GetUpdatedAt(),
+			PlanID:                  transfer.GetPlanId(),
+			SourceLabel:             transfer.GetSourceLabel(),
+			Disposition:             transferDispositionToState(transfer.GetDisposition()),
+			RelatedInstallSessionID: transfer.GetRelatedInstallSessionId(),
+			CleanupPending:          transfer.GetCleanupPending(),
 		}
 		if spec, exists := s.managedModelDownloadSpecs[transfer.GetInstallSessionId()]; exists {
 			row.ManagedDownloadSpec = localStateManagedDownloadSpec(spec)
 		}
+		if private := s.transferPrivate[transfer.GetInstallSessionId()]; private != nil {
+			row.CancelRequested = private.cancelRequested
+			if private.importSpec != nil {
+				copied := *private.importSpec
+				row.ImportSpec = &copied
+			}
+			if private.commitIntent != nil {
+				copied := *private.commitIntent
+				copied.Files = append([]modelDistributionFile(nil), private.commitIntent.Files...)
+				row.CommitIntent = &copied
+			}
+			if private.result != nil {
+				copied := *private.result
+				row.Result = &copied
+			}
+		}
+		row.ObjectHolds = s.modelObjectHoldsForTransfer(transfer.GetInstallSessionId())
 		snapshot.Transfers = append(snapshot.Transfers, row)
 	}
 

@@ -388,6 +388,9 @@ func (s *Service) InstallModelFromPlan(ctx context.Context, req *runtimev1.Insta
 			return nil, grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, err, grpcerr.ReasonOptions{Message: "install plan model_type is invalid"})
 		}
 	}
+	if err := s.requireModelAssetWrites(); err != nil {
+		return nil, err
+	}
 	record, installSessionID, err := s.installManagedDownloadedModelWithTransfer(ctx, managedDownloadedModelSpec{
 		modelID:           defaultString(plan.GetTemplateId(), defaultString(plan.GetItemId(), plan.GetModelId())),
 		displayName:       plan.GetModelId(),
@@ -413,10 +416,17 @@ func (s *Service) InstallModelFromPlan(ctx context.Context, req *runtimev1.Insta
 			Message: "install plan produced no ModelAsset payload",
 		})
 	}
-	return &runtimev1.InstallModelFromPlanResponse{ModelAsset: record, InstallSessionId: installSessionID}, nil
+	return &runtimev1.InstallModelFromPlanResponse{
+		ModelAsset: record, InstallSessionId: installSessionID,
+		Disposition: s.localTransferSummary(installSessionID).GetDisposition(),
+	}, nil
 }
 
 func modelInstallRPCError(err error) error {
+	var conflict *modelObjectConflict
+	if errors.As(err, &conflict) {
+		return modelObjectConflictRPCError(conflict)
+	}
 	if errors.Is(err, errLocalTransferCancelled) {
 		return grpcerr.WrapWithReasonCode(codes.Canceled, runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CANCELED, err, grpcerr.ReasonOptions{
 			Message:    "model install cancelled",

@@ -54,16 +54,18 @@ export function downloadModelName(
 }
 
 /**
- * Attempts of the same resource are one story. Grouping uses the transfer's
- * real model identity, never its display name, and keeps the newest attempt
- * as the representative.
+ * Attempts of the same source are one story. Grouping uses the bounded
+ * source label the Runtime carries for the immutable acquisition source
+ * (the final asset identity exists only after commit) and keeps the newest
+ * attempt as the representative.
  */
 export function groupTransferAttempts(
   transfers: readonly NimiRuntimeLocalTransferSessionSummary[],
 ): readonly { latest: NimiRuntimeLocalTransferSessionSummary; attempts: readonly NimiRuntimeLocalTransferSessionSummary[] }[] {
   const byModel = new Map<string, NimiRuntimeLocalTransferSessionSummary[]>();
   for (const item of transfers) {
-    byModel.set(item.modelId, [...(byModel.get(item.modelId) ?? []), item]);
+    const key = `${item.sessionKind}:${item.sourceLabel || item.installSessionId}`;
+    byModel.set(key, [...(byModel.get(key) ?? []), item]);
   }
   return [...byModel.values()].map((attempts) => {
     const sorted = [...attempts].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));

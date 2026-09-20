@@ -84,11 +84,13 @@ func TestInstallManagedDownloadedModelCreatesContentOnlyModelAsset(t *testing.T)
 	}
 }
 
-func TestManagedDownloadMintsIndependentDuplicateContentInstances(t *testing.T) {
+func TestManagedDownloadReturnsExistingAssetForEquivalentDistribution(t *testing.T) {
 	svc := newTestService(t)
 	payload := validTestGGUF()
 	sum := sha256.Sum256(payload)
+	var requests int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		atomic.AddInt32(&requests, 1)
 		_, _ = w.Write(payload)
 	}))
 	defer server.Close()
@@ -98,26 +100,98 @@ func TestManagedDownloadMintsIndependentDuplicateContentInstances(t *testing.T) 
 		entry: "model.gguf", files: []string{"model.gguf"}, repo: "owner/repo", revision: "main",
 		hashes: map[string]string{"model.gguf": "sha256:" + hex.EncodeToString(sum[:])},
 	}
-	first, err := svc.installManagedDownloadedModel(context.Background(), spec)
+	first, firstTransfer, err := svc.installManagedDownloadedModelWithTransfer(context.Background(), spec, "")
 	if err != nil {
 		t.Fatalf("first acquisition: %v", err)
 	}
-	second, err := svc.installManagedDownloadedModel(context.Background(), spec)
+	renamed := spec
+	renamed.displayName = "Another display name"
+	second, secondTransfer, err := svc.installManagedDownloadedModelWithTransfer(context.Background(), renamed, "")
 	if err != nil {
 		t.Fatalf("second acquisition: %v", err)
 	}
-	if first.GetModelAssetId() == second.GetModelAssetId() || first.GetContentId() != second.GetContentId() || !second.GetDuplicateContent() {
-		t.Fatalf("duplicate acquisitions did not mint independent identities: first=%+v second=%+v", first, second)
+	if first.GetModelAssetId() != second.GetModelAssetId() {
+		t.Fatalf("equivalent acquisitions minted independent identities: first=%+v second=%+v", first, second)
 	}
-	firstDir := svc.modelAssetDirectories[first.GetModelAssetId()]
-	secondDir := svc.modelAssetDirectories[second.GetModelAssetId()]
-	if firstDir == "" || secondDir == "" || canonicalReportPath(firstDir) == canonicalReportPath(secondDir) {
-		t.Fatalf("duplicate acquisitions reused resolved-directory custody: first=%q second=%q", firstDir, secondDir)
+	if second.GetDisplayName() != first.GetDisplayName() || second.GetCreatedAt() != first.GetCreatedAt() {
+		t.Fatalf("repeat acquisition rewrote the existing asset: first=%+v second=%+v", first, second)
 	}
-	for _, directory := range []string{firstDir, secondDir} {
-		if _, err := os.Stat(filepath.Join(directory, "model.gguf")); err != nil {
-			t.Fatalf("acquisition payload missing from %q: %v", directory, err)
-		}
+	if got := atomic.LoadInt32(&requests); got != 1 {
+		t.Fatalf("payload requests = %d, want exactly one network fetch", got)
+	}
+	if len(svc.modelAssets) != 1 {
+		t.Fatalf("inventory count = %d, want 1", len(svc.modelAssets))
+	}
+	entries, err := os.ReadDir(filepath.Join(svc.resolvedLocalModelsPath(), "resolved"))
+	if err != nil || len(entries) != 1 {
+		t.Fatalf("resolved views = %v err=%v, want one", entries, err)
+	}
+	firstSummary := svc.localTransferSummary(firstTransfer)
+	secondSummary := svc.localTransferSummary(secondTransfer)
+	if firstSummary.GetDisposition() != runtimev1.LocalTransferDisposition_LOCAL_TRANSFER_DISPOSITION_CREATED || firstSummary.GetAssetId() != first.GetModelAssetId() {
+		t.Fatalf("first transfer result = %+v", firstSummary)
+	}
+	if secondSummary.GetDisposition() != runtimev1.LocalTransferDisposition_LOCAL_TRANSFER_DISPOSITION_REUSED || secondSummary.GetAssetId() != first.GetModelAssetId() {
+		t.Fatalf("second transfer result = %+v", secondSummary)
+	}
+	if secondSummary.GetBytesReceived() != 0 || secondSummary.GetBytesReused() != int64(len(payload)) || secondSummary.GetBytesVerified() != int64(len(payload)) {
+		t.Fatalf("reused transfer byte projection = received=%d reused=%d verified=%d", secondSummary.GetBytesReceived(), secondSummary.GetBytesReused(), secondSummary.GetBytesVerified())
+	}
+	if secondSummary.GetSourceLabel() != "Another display name" || firstSummary.GetSourceLabel() != "local/duplicate-content" {
+		t.Fatalf("source labels = first=%q second=%q", firstSummary.GetSourceLabel(), secondSummary.GetSourceLabel())
+	}
+	if _, err := os.Stat(managedModelDownloadStageDir(svc.resolvedLocalModelsPath(), secondTransfer)); !os.IsNotExist(err) {
+		t.Fatalf("reused acquisition created payload staging: %v", err)
+	}
+}
+
+func TestManagedDownloadDifferentLayoutReusesObjectWithoutFetch(t *testing.T) {
+	svc := newTestService(t)
+	payload := validTestGGUF()
+	sum := sha256.Sum256(payload)
+	var requests int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		atomic.AddInt32(&requests, 1)
+		_, _ = w.Write(payload)
+	}))
+	defer server.Close()
+	svc.hfDownloadBaseURL = server.URL
+	first, err := svc.installManagedDownloadedModel(context.Background(), managedDownloadedModelSpec{
+		modelID: "local/layout-a", capabilities: []string{"text.embed"}, entry: "model.gguf", files: []string{"model.gguf"},
+		repo: "owner/repo", revision: "main", hashes: map[string]string{"model.gguf": "sha256:" + hex.EncodeToString(sum[:])},
+	})
+	if err != nil {
+		t.Fatalf("first acquisition: %v", err)
+	}
+	second, secondTransfer, err := svc.installManagedDownloadedModelWithTransfer(context.Background(), managedDownloadedModelSpec{
+		modelID: "local/layout-b", capabilities: []string{"text.embed"}, entry: "weights/model.gguf", files: []string{"weights/model.gguf"},
+		repo: "owner/repo", revision: "main", hashes: map[string]string{"weights/model.gguf": "sha256:" + hex.EncodeToString(sum[:])},
+	}, "")
+	if err != nil {
+		t.Fatalf("second acquisition: %v", err)
+	}
+	if first.GetModelAssetId() == second.GetModelAssetId() {
+		t.Fatal("different layouts were merged into one asset")
+	}
+	if got := atomic.LoadInt32(&requests); got != 1 {
+		t.Fatalf("payload requests = %d, want the second layout to reuse the published object", got)
+	}
+	summary := svc.localTransferSummary(secondTransfer)
+	if summary.GetDisposition() != runtimev1.LocalTransferDisposition_LOCAL_TRANSFER_DISPOSITION_CREATED || summary.GetBytesReceived() != 0 || summary.GetBytesReused() != int64(len(payload)) {
+		t.Fatalf("created-with-reuse projection = %+v", summary)
+	}
+	viewA := filepath.Join(svc.modelAssetDirectories[first.GetModelAssetId()], "model.gguf")
+	viewB := filepath.Join(svc.modelAssetDirectories[second.GetModelAssetId()], "weights", "model.gguf")
+	identityA, _, err := modelFileIdentityOf(viewA)
+	if err != nil {
+		t.Fatal(err)
+	}
+	identityB, _, err := modelFileIdentityOf(viewB)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if identityA != identityB {
+		t.Fatalf("views do not share one physical object: %s vs %s", identityA, identityB)
 	}
 }
 
@@ -470,7 +544,7 @@ func TestManagedModelDownloadShutdownRestoresPausedWithStaging(t *testing.T) {
 	}
 
 	transfer := transferForAssetForTest(t, svc, modelID)
-	stageDir := managedModelDownloadStageDir(svc.resolvedLocalModelsPath(), managedModelAcquisitionStorageID(modelID, transfer.GetInstallSessionId()))
+	stageDir := managedModelDownloadStageDir(svc.resolvedLocalModelsPath(), transfer.GetInstallSessionId())
 	if !pathWithinBase(filepath.Join(svc.resolvedLocalModelsPath(), "quarantine", "downloads"), stageDir, false) {
 		t.Fatalf("download staging escaped the exact resolved/quarantine models topology: %s", stageDir)
 	}
@@ -731,7 +805,7 @@ func TestResumeRestoredMultiFileDownloadSkipsCompletedFilesAndKeepsAggregateProg
 	}
 	stageDir := managedModelDownloadStageDir(
 		svc.resolvedLocalModelsPath(),
-		managedModelAcquisitionStorageID(modelID, transfer.GetInstallSessionId()),
+		transfer.GetInstallSessionId(),
 	)
 	if err := os.MkdirAll(stageDir, 0o755); err != nil {
 		t.Fatal(err)
@@ -980,7 +1054,7 @@ func TestResumeRestoredManagedModelDownloadRebuildsExecutorAndRangePrefix(t *tes
 	if err != nil {
 		t.Fatalf("capture managed download transfer: %v", err)
 	}
-	stageDir := managedModelDownloadStageDir(svc.resolvedLocalModelsPath(), managedModelAcquisitionStorageID(modelID, transfer.GetInstallSessionId()))
+	stageDir := managedModelDownloadStageDir(svc.resolvedLocalModelsPath(), transfer.GetInstallSessionId())
 	if err := os.MkdirAll(stageDir, 0o755); err != nil {
 		t.Fatalf("create restored staging: %v", err)
 	}
@@ -1177,7 +1251,7 @@ func TestManagedModelDownloadNetworkFailurePreservesRetryableStaging(t *testing.
 	if transfer.GetState() != localTransferStateFailed || !transfer.GetRetryable() {
 		t.Fatalf("network failure transfer = %+v, want failed/retryable", transfer)
 	}
-	partialPath := filepath.Join(managedModelDownloadStageDir(svc.resolvedLocalModelsPath(), managedModelAcquisitionStorageID(modelID, transfer.GetInstallSessionId())), "model.bin.download")
+	partialPath := filepath.Join(managedModelDownloadStageDir(svc.resolvedLocalModelsPath(), transfer.GetInstallSessionId()), "model.bin.download")
 	if info, err := os.Stat(partialPath); err != nil || info.Size() == 0 {
 		t.Fatalf("network failure partial = %+v, err=%v", info, err)
 	}
@@ -1273,7 +1347,7 @@ func TestManagedModelDownloadExplicitCancelClearsStaging(t *testing.T) {
 	if cancelled.GetState() != localTransferStateCancelled || cancelled.GetRetryable() {
 		t.Fatalf("cancelled transfer = %+v", cancelled)
 	}
-	stageDir := managedModelDownloadStageDir(svc.resolvedLocalModelsPath(), managedModelAcquisitionStorageID(modelID, transfer.GetInstallSessionId()))
+	stageDir := managedModelDownloadStageDir(svc.resolvedLocalModelsPath(), transfer.GetInstallSessionId())
 	if _, err := os.Stat(stageDir); !os.IsNotExist(err) {
 		t.Fatalf("cancelled staging still exists: %s err=%v", stageDir, err)
 	}
@@ -1299,7 +1373,7 @@ func TestManagedModelDownloadHashMismatchClearsStagingAndIsNotRetryable(t *testi
 	if transfer.GetState() != localTransferStateFailed || transfer.GetRetryable() {
 		t.Fatalf("hash mismatch transfer = %+v, want failed/non-retryable", transfer)
 	}
-	stageDir := managedModelDownloadStageDir(svc.resolvedLocalModelsPath(), managedModelAcquisitionStorageID(modelID, transfer.GetInstallSessionId()))
+	stageDir := managedModelDownloadStageDir(svc.resolvedLocalModelsPath(), transfer.GetInstallSessionId())
 	if _, err := os.Stat(stageDir); !os.IsNotExist(err) {
 		t.Fatalf("hash-mismatch staging still exists: %s err=%v", stageDir, err)
 	}
@@ -1320,13 +1394,21 @@ func transferForAssetForTest(t *testing.T, svc *Service, modelID string) *runtim
 	t.Helper()
 	svc.mu.RLock()
 	defer svc.mu.RUnlock()
-	for _, summary := range svc.transfers {
-		if summary != nil && summary.GetAssetId() == modelID {
-			return cloneLocalTransferSummary(summary)
+	for id, summary := range svc.transfers {
+		if summary != nil && transferMatchesSourceForTest(svc, id, summary, modelID) {
+			return svc.projectedTransferSummaryLocked(summary)
 		}
 	}
-	t.Fatalf("transfer for asset %q not found", modelID)
+	t.Fatalf("transfer for source %q not found", modelID)
 	return nil
+}
+
+func transferMatchesSourceForTest(svc *Service, id string, summary *runtimev1.LocalTransferSessionSummary, modelID string) bool {
+	if summary.GetSourceLabel() == modelID {
+		return true
+	}
+	spec, exists := svc.managedModelDownloadSpecs[id]
+	return exists && spec.modelID == modelID
 }
 
 func awaitTransferBytesForTest(t *testing.T, svc *Service, modelID string) *runtimev1.LocalTransferSessionSummary {
@@ -1334,9 +1416,9 @@ func awaitTransferBytesForTest(t *testing.T, svc *Service, modelID string) *runt
 	deadline := time.Now().Add(3 * time.Second)
 	for time.Now().Before(deadline) {
 		svc.mu.RLock()
-		for _, summary := range svc.transfers {
-			if summary != nil && summary.GetAssetId() == modelID && summary.GetBytesReceived() > 0 {
-				cloned := cloneLocalTransferSummary(summary)
+		for id, summary := range svc.transfers {
+			if summary != nil && transferMatchesSourceForTest(svc, id, summary, modelID) && summary.GetBytesReceived() > 0 {
+				cloned := svc.projectedTransferSummaryLocked(summary)
 				svc.mu.RUnlock()
 				return cloned
 			}

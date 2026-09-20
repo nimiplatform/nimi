@@ -17,16 +17,57 @@ import (
 )
 
 const (
-	modelAssetStoreSchemaVersion = 1
+	// Schema 2 is the content-addressed inventory: every committed view links
+	// its payload files to published objects, cleanup obligations progress
+	// through recoverable phases with captured physical identities, and
+	// isolated object generations are tracked as their own obligations. A
+	// parseable document of another version is preserved untouched and puts
+	// the model domain into the typed offline-conversion-required restriction.
+	modelAssetStoreSchemaVersion = 2
 	modelAssetStoreFileName      = "model-assets.json"
+
+	modelAssetStoreRestrictedReason = "LOCAL_MODEL_STATE_OFFLINE_CONVERSION_REQUIRED"
+	stateIsolationLevelRestricted   = "restricted"
+)
+
+// Cleanup phases. wait_users keeps the view intact until every Job, Host,
+// acquisition pin, and pending result on the asset is released; remove_view
+// unlinks the view files by their captured identities; reclaim_objects
+// unlinks published objects no other live root references. A candidate in
+// reclaim_objects never counts as its own live root.
+const (
+	modelAssetCleanupPhaseWaitUsers      = "wait_users"
+	modelAssetCleanupPhaseRemoveView     = "remove_view"
+	modelAssetCleanupPhaseReclaimObjects = "reclaim_objects"
+
+	modelObjectQuarantinePhaseIsolate = "isolate"
+	modelObjectQuarantinePhaseReclaim = "reclaim"
 )
 
 type modelAssetStoreSnapshot struct {
-	SchemaVersion      int                           `json:"schemaVersion"`
-	SavedAt            string                        `json:"savedAt"`
-	Assets             []json.RawMessage             `json:"assets"`
-	CleanupObligations []modelAssetCleanupObligation `json:"cleanupObligations,omitempty"`
+	SchemaVersion      int                               `json:"schemaVersion"`
+	SavedAt            string                            `json:"savedAt"`
+	Assets             []json.RawMessage                 `json:"assets"`
+	CleanupObligations []modelAssetCleanupObligation     `json:"cleanupObligations,omitempty"`
+	ObjectQuarantines  []modelObjectQuarantineObligation `json:"objectQuarantines,omitempty"`
 	retainedRecords    []quarantinedStateRecord
+}
+
+// modelAssetStoreRestriction is the typed r111 third outcome: a parseable but
+// incompatible inventory version. The source file is never rewritten,
+// quarantined, or cleared; inventory writes, execution over inventory, and
+// reclamation stay blocked until an explicit offline conversion.
+type modelAssetStoreRestriction struct {
+	Path          string
+	SchemaVersion int
+	Reason        string
+}
+
+func (r *modelAssetStoreRestriction) Error() string {
+	if r == nil {
+		return modelAssetStoreRestrictedReason
+	}
+	return fmt.Sprintf("%s: %s (schemaVersion=%d)", modelAssetStoreRestrictedReason, r.Reason, r.SchemaVersion)
 }
 
 type modelAssetStoreRecord struct {
@@ -37,25 +78,59 @@ type modelAssetStoreRecord struct {
 }
 
 type modelAssetCleanupObligation struct {
-	ModelAssetID     string `json:"modelAssetId"`
-	ContentID        string `json:"contentId"`
-	Generation       string `json:"generation,omitempty"`
-	ManagedDirectory string `json:"managedDirectory"`
-	Reason           string `json:"reason"`
-	Attempts         int    `json:"attempts"`
-	Terminal         bool   `json:"terminal,omitempty"`
-	TerminalReason   string `json:"terminalReason,omitempty"`
-	CreatedAt        string `json:"createdAt"`
-	UpdatedAt        string `json:"updatedAt"`
+	ModelAssetID     string                  `json:"modelAssetId"`
+	ContentID        string                  `json:"contentId"`
+	Generation       string                  `json:"generation,omitempty"`
+	ManagedDirectory string                  `json:"managedDirectory"`
+	Reason           string                  `json:"reason"`
+	Phase            string                  `json:"phase,omitempty"`
+	Files            []modelAssetCleanupFile `json:"files,omitempty"`
+	ObjectCandidates []string                `json:"objectCandidates,omitempty"`
+	PendingReason    string                  `json:"pendingReason,omitempty"`
+	Attempts         int                     `json:"attempts"`
+	Terminal         bool                    `json:"terminal,omitempty"`
+	TerminalReason   string                  `json:"terminalReason,omitempty"`
+	CreatedAt        string                  `json:"createdAt"`
+	UpdatedAt        string                  `json:"updatedAt"`
+}
+
+// modelAssetCleanupFile is one view file captured at removal time: its path,
+// declared digest and size, and the physical identity it had when the asset
+// was removed. Later phases delete only a file that still carries this
+// identity; a missing file means that step already happened.
+type modelAssetCleanupFile struct {
+	RelativePath string             `json:"relativePath"`
+	SHA256       string             `json:"sha256"`
+	SizeBytes    int64              `json:"sizeBytes"`
+	Identity     *modelFileIdentity `json:"identity,omitempty"`
+}
+
+// modelObjectQuarantineObligation isolates one corrupt object generation.
+// The old physical identity and quarantine target are persisted before the
+// object leaves its canonical hash path, so a healthy replacement published
+// later at the same path is never mistaken for the isolated generation.
+type modelObjectQuarantineObligation struct {
+	ID             string             `json:"id"`
+	Digest         string             `json:"digest"`
+	ObjectIdentity *modelFileIdentity `json:"objectIdentity,omitempty"`
+	QuarantinePath string             `json:"quarantinePath"`
+	Reason         string             `json:"reason"`
+	Phase          string             `json:"phase"`
+	PendingReason  string             `json:"pendingReason,omitempty"`
+	Attempts       int                `json:"attempts"`
+	CreatedAt      string             `json:"createdAt"`
+	UpdatedAt      string             `json:"updatedAt"`
 }
 
 type decodedModelAssetStore struct {
 	Assets                  map[string]*runtimev1.ModelAssetRecord
 	Directories             map[string]string
 	CleanupObligations      map[string]modelAssetCleanupObligation
+	ObjectQuarantines       map[string]modelObjectQuarantineObligation
 	PendingDirectoryRebases map[string]string
 	PendingCleanupRebases   map[string]modelAssetCleanupObligation
 	Diagnostics             []stateIsolationDiagnostic
+	Restriction             *modelAssetStoreRestriction
 	RewriteRequired         bool
 	retainedRecords         []quarantinedStateRecord
 }
@@ -91,6 +166,7 @@ func emptyDecodedModelAssetStore() decodedModelAssetStore {
 		Assets:                  make(map[string]*runtimev1.ModelAssetRecord),
 		Directories:             make(map[string]string),
 		CleanupObligations:      make(map[string]modelAssetCleanupObligation),
+		ObjectQuarantines:       make(map[string]modelObjectQuarantineObligation),
 		PendingDirectoryRebases: make(map[string]string),
 		PendingCleanupRebases:   make(map[string]modelAssetCleanupObligation),
 	}
@@ -113,7 +189,18 @@ func loadModelAssetStore(path string, modelsRoot string) (decodedModelAssetStore
 		return isolateModelAssetStoreDocument(path, payload, err)
 	}
 	if raw.SchemaVersion != modelAssetStoreSchemaVersion {
-		return isolateModelAssetStoreDocument(path, payload, fmt.Errorf("unsupported schemaVersion=%d", raw.SchemaVersion))
+		// A parseable document of another version is an offline conversion
+		// obligation, never corruption: the file stays exactly as written and
+		// the model domain is restricted until the explicit conversion runs.
+		result.Restriction = &modelAssetStoreRestriction{
+			Path: path, SchemaVersion: raw.SchemaVersion,
+			Reason: fmt.Sprintf("ModelAsset inventory schemaVersion=%d requires explicit offline conversion to schemaVersion=%d", raw.SchemaVersion, modelAssetStoreSchemaVersion),
+		}
+		result.Diagnostics = []stateIsolationDiagnostic{{
+			Store: modelAssetStoreFileName, Level: stateIsolationLevelRestricted,
+			ReasonCode: modelAssetStoreRestrictedReason, Message: result.Restriction.Reason, RecordIndex: -1,
+		}}
+		return result, nil
 	}
 	quarantined := make([]quarantinedStateRecord, 0)
 	seenDirectories := make(map[string]struct{}, len(raw.Assets))
@@ -198,6 +285,25 @@ func loadModelAssetStore(path string, modelsRoot string) (decodedModelAssetStore
 			obligation.ManagedDirectory = directory
 			result.CleanupObligations[id] = obligation
 		}
+	}
+
+	seenObjectQuarantines := make(map[string]struct{}, len(raw.ObjectQuarantines))
+	for index, obligation := range raw.ObjectQuarantines {
+		id := strings.TrimSpace(obligation.ID)
+		if id == "" || normalizeExactSHA256Hex(obligation.Digest) == "" || strings.TrimSpace(obligation.QuarantinePath) == "" {
+			encoded, _ := json.Marshal(obligation)
+			quarantined = append(quarantined, quarantinedStateRecord{Store: modelAssetStoreFileName, Section: "objectQuarantines", RecordIndex: index, Reason: "object quarantine identity is incomplete", Payload: encoded})
+			continue
+		}
+		if _, exists := seenObjectQuarantines[id]; exists {
+			encoded, _ := json.Marshal(obligation)
+			quarantined = append(quarantined, quarantinedStateRecord{Store: modelAssetStoreFileName, Section: "objectQuarantines", RecordIndex: index, Reason: "duplicate object quarantine identity", Payload: encoded})
+			continue
+		}
+		seenObjectQuarantines[id] = struct{}{}
+		obligation.Digest = normalizeExactSHA256Hex(obligation.Digest)
+		obligation.QuarantinePath = filepath.Join(resolveLocalModelsPath(modelsRoot), filepath.FromSlash(obligation.QuarantinePath))
+		result.ObjectQuarantines[id] = obligation
 	}
 
 	if len(quarantined) > 0 {
@@ -508,7 +614,7 @@ func isolateModelAssetStoreDocument(path string, payload []byte, cause error) (d
 	return result, nil
 }
 
-func buildModelAssetStoreSnapshot(assets map[string]*runtimev1.ModelAssetRecord, directories map[string]string, cleanup map[string]modelAssetCleanupObligation, modelsRoot string) (modelAssetStoreSnapshot, error) {
+func buildModelAssetStoreSnapshot(assets map[string]*runtimev1.ModelAssetRecord, directories map[string]string, cleanup map[string]modelAssetCleanupObligation, quarantines map[string]modelObjectQuarantineObligation, modelsRoot string) (modelAssetStoreSnapshot, error) {
 	snapshot := modelAssetStoreSnapshot{
 		SchemaVersion: modelAssetStoreSchemaVersion,
 		SavedAt:       time.Now().UTC().Format(time.RFC3339Nano),
@@ -552,7 +658,36 @@ func buildModelAssetStoreSnapshot(assets map[string]*runtimev1.ModelAssetRecord,
 		obligation.ManagedDirectory = locator
 		snapshot.CleanupObligations = append(snapshot.CleanupObligations, obligation)
 	}
+	quarantineIDs := make([]string, 0, len(quarantines))
+	for id := range quarantines {
+		quarantineIDs = append(quarantineIDs, id)
+	}
+	sort.Strings(quarantineIDs)
+	for _, id := range quarantineIDs {
+		obligation := quarantines[id]
+		locator, err := modelStoreRelativeLocator(modelsRoot, obligation.QuarantinePath)
+		if err != nil {
+			return modelAssetStoreSnapshot{}, err
+		}
+		obligation.QuarantinePath = locator
+		snapshot.ObjectQuarantines = append(snapshot.ObjectQuarantines, obligation)
+	}
 	return snapshot, nil
+}
+
+// modelStoreRelativeLocator makes any models-root path root-relative for
+// persistence; it accepts objects and quarantine paths, not only resolved/.
+func modelStoreRelativeLocator(modelsRoot string, path string) (string, error) {
+	root := resolveLocalModelsPath(modelsRoot)
+	path = filepath.Clean(strings.TrimSpace(path))
+	if root == "" || path == "." || !filepath.IsAbs(root) || !filepath.IsAbs(path) {
+		return "", errors.New("models root path cannot be made root-relative")
+	}
+	relative, err := filepath.Rel(root, path)
+	if err != nil || filepath.IsAbs(relative) || relative == "." || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+		return "", errors.New("models root path escaped models root")
+	}
+	return filepath.ToSlash(relative), nil
 }
 
 func modelAssetStoreRelativeLocator(modelsRoot string, directory string) (string, error) {

@@ -46,6 +46,10 @@ var localModelDownloadRetryDelays = []time.Duration{
 // the caller must discard the `.download` partial.
 var errModelDownloadHashMismatch = errors.New("model file hash mismatch")
 
+// managedDownloadedModelSpec is the immutable source of a catalog
+// acquisition. It never changes once the transfer is durable; the acquisition
+// result (created or reused, final model_asset_id) lives separately on the
+// transfer.
 type managedDownloadedModelSpec struct {
 	modelID           string
 	displayName       string
@@ -77,12 +81,12 @@ type managedModelDownloadResumePlan struct {
 // fact from the immutable spec captured in the durable transfer row. It never
 // re-reads the current catalog or a process-local install plan. The measured
 // staging bytes are the fetched on-disk prefix projected before the worker starts.
-func (s *Service) rebuildManagedModelDownloadResumePlan(assetID string, transferID string) (managedModelDownloadResumePlan, string, error) {
+func (s *Service) rebuildManagedModelDownloadResumePlan(transferID string) (managedModelDownloadResumePlan, string, error) {
 	s.mu.RLock()
 	spec, exists := s.managedModelDownloadSpecs[strings.TrimSpace(transferID)]
 	summary := cloneLocalTransferSummary(s.transfers[strings.TrimSpace(transferID)])
 	s.mu.RUnlock()
-	if !exists || summary == nil || strings.TrimSpace(spec.modelID) != strings.TrimSpace(assetID) {
+	if !exists || summary == nil {
 		reason := runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID.String()
 		return managedModelDownloadResumePlan{}, reason, grpcerr.WithReasonCodeOptions(
 			codes.FailedPrecondition,
@@ -95,7 +99,7 @@ func (s *Service) rebuildManagedModelDownloadResumePlan(assetID string, transfer
 	if err != nil {
 		return managedModelDownloadResumePlan{}, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE.String(), err
 	}
-	bytesReceived, err := managedModelDownloadStagedBytes(modelsRoot, managedModelAcquisitionStorageID(spec.modelID, transferID), spec.files)
+	bytesReceived, err := managedModelDownloadStagedBytes(modelsRoot, transferID, spec.files)
 	if err != nil {
 		reason := runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE.String()
 		return managedModelDownloadResumePlan{}, reason, grpcerr.WrapWithReasonCode(
@@ -117,15 +121,14 @@ func (s *Service) rebuildManagedModelDownloadResumePlan(assetID string, transfer
 	}, "", nil
 }
 
-// managedModelDownloadStagedBytes measures bytes fetched into one asset's
-// stable staging custody. Known catalog files include already-verified files
-// plus a current `.download` prefix; without a descriptor (startup healing
-// before a later typed resume failure), only resumable `.download` files count.
-func managedModelDownloadStagedBytes(modelsRoot string, storageID string, files []string) (int64, error) {
+// managedModelDownloadStagedBytes measures bytes fetched into one transfer's
+// own staging: completed files not yet published plus a current `.download`
+// prefix. It never counts another transfer's material.
+func managedModelDownloadStagedBytes(modelsRoot string, transferID string, files []string) (int64, error) {
 	if strings.TrimSpace(modelsRoot) == "" || !filepath.IsAbs(modelsRoot) {
 		return 0, fmt.Errorf("managed model staging requires an absolute models root")
 	}
-	stageDir := managedModelDownloadStageDir(modelsRoot, storageID)
+	stageDir := managedModelDownloadStageDir(modelsRoot, transferID)
 	var total int64
 	if len(files) > 0 {
 		for _, file := range files {
@@ -200,15 +203,37 @@ func managedModelTransferTerminalError(cause error, persistenceErr error) error 
 	return cause
 }
 
-// installManagedDownloadedModelWithTransfer runs the managed download/install
+// managedModelDownloadDistribution derives the acquisition's distribution
+// from the immutable spec. Sizes are unknown (0) until each object is
+// verified; the commit compares complete, verified distributions.
+func managedModelDownloadDistribution(spec managedDownloadedModelSpec) (modelDistribution, error) {
+	files := make([]modelDistributionFile, 0, len(spec.files))
+	for _, file := range spec.files {
+		files = append(files, modelDistributionFile{
+			RelativePath: file, SHA256: expectedModelSHA256(spec.hashes, file), SizeBytes: 0,
+			NonExecutableContent: modelDistributionFileNonExecutable(file),
+		})
+	}
+	return newModelDistribution(spec.entry, files)
+}
+
+// installManagedDownloadedModelWithTransfer runs the managed acquisition
 // pipeline either with a new transfer session or with an explicitly restored
-// session whose executor was rebuilt by ResumeLocalTransfer. It returns the
-// install session identity so plan-driven callers can correlate the transfer.
+// session whose executor was rebuilt by ResumeLocalTransfer.
+//
+// Order: durable transfer → link-support probe → equivalent committed asset
+// (verified by reading, committed as reused) → per file: verified published
+// object (reused) or single-writer fetch into this transfer's own staging,
+// publish-if-absent, pin → view creation with a durable create intent →
+// inventory commit (created) with a concurrent-winner re-check.
 func (s *Service) installManagedDownloadedModelWithTransfer(
 	ctx context.Context,
 	spec managedDownloadedModelSpec,
 	restoredTransferID string,
 ) (modelAssetResult *runtimev1.ModelAssetRecord, installSessionID string, resultErr error) {
+	if restriction := s.ModelAssetInventoryRestriction(); restriction != nil {
+		return nil, "", modelAssetRestrictionRPCError(restriction)
+	}
 	canonicalSpec, err := canonicalManagedDownloadedModelSpec(spec)
 	if err != nil {
 		return nil, "", grpcerr.WrapWithReasonCode(
@@ -242,12 +267,13 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 		)
 	}
 	if len(files) == 0 {
-		files = []string{strings.TrimSpace(spec.entry)}
-	}
-	if len(files) == 0 {
 		return nil, "", grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{
 			Message: "downloaded model requires at least one file",
 		})
+	}
+	distribution, err := managedModelDownloadDistribution(spec)
+	if err != nil {
+		return nil, "", grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, err, grpcerr.ReasonOptions{Message: "managed download distribution is invalid"})
 	}
 	modelsRoot, err := s.resolveManagedBundleModelsRoot()
 	if err != nil {
@@ -256,13 +282,13 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 	transferID := strings.TrimSpace(restoredTransferID)
 	if transferID == "" {
 		transfer, createErr := s.newManagedModelDownloadTransfer(localTransferMutation{
-			ModelID:    modelID,
-			Phase:      "download",
-			State:      localTransferStateRunning,
-			BytesTotal: clampInt64Minimum(spec.totalSizeBytes, 0),
-			Message:    "downloading managed model bundle",
-			Retryable:  true,
-			PlanID:     spec.planID,
+			Phase:       "download",
+			State:       localTransferStateRunning,
+			BytesTotal:  clampInt64Minimum(spec.totalSizeBytes, 0),
+			Message:     "acquiring managed model bundle",
+			Retryable:   true,
+			PlanID:      spec.planID,
+			SourceLabel: defaultString(strings.TrimSpace(spec.displayName), modelID),
 		}, spec)
 		if createErr != nil {
 			return nil, "", grpcerr.WrapWithReasonCode(
@@ -275,14 +301,13 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 		transferID = transfer.GetInstallSessionId()
 	} else {
 		transfer := s.localTransferSummary(transferID)
-		if transfer.GetInstallSessionId() == "" || normalizeTransferKind(transfer.GetSessionKind()) != localTransferKindDownload ||
-			strings.TrimSpace(transfer.GetAssetId()) != modelID || isTerminalTransferState(transfer.GetState()) {
+		if transfer.GetInstallSessionId() == "" || normalizeTransferKind(transfer.GetSessionKind()) != localTransferKindDownload || isTerminalTransferState(transfer.GetState()) {
 			return nil, transferID, fmt.Errorf("restored managed model transfer %q is unavailable", transferID)
 		}
 		if _, persistErr := s.mutateLocalTransfer(transferID, true, func(summary *runtimev1.LocalTransferSessionSummary) {
 			summary.Phase = "download"
 			summary.State = localTransferStateRunning
-			summary.Message = "resuming managed model bundle download"
+			summary.Message = "resuming managed model bundle acquisition"
 			summary.ReasonCode = ""
 			summary.Retryable = true
 		}); persistErr != nil {
@@ -296,113 +321,166 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 	defer func() {
 		s.finishManagedModelDownloadExecutor(transferID, executorControl, resultErr)
 	}()
-	storageID := managedModelAcquisitionStorageID(modelID, transferID)
-	logicalModelID := storageID
-	modelDir, err := resolveRuntimeManagedModelBundleDir(modelsRoot, logicalModelID)
-	if err != nil {
-		failure := grpcerr.WrapWithReasonCode(
-			codes.InvalidArgument,
-			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
-			err,
-			grpcerr.ReasonOptions{Message: "downloaded model storage identity is invalid"},
-		)
-		return nil, transferID, managedModelTransferTerminalError(failure, s.failTransfer(transferID, err.Error(), false))
-	}
-	stagingDir, err := prepareManagedModelDownloadStageDir(modelsRoot, storageID)
-	if err != nil {
-		return nil, transferID, managedModelTransferTerminalError(err, s.failTransfer(transferID, err.Error(), false))
-	}
-
-	success := false
-	preserveStaging := false
-	defer func() {
-		if !success && !preserveStaging {
-			_ = os.RemoveAll(stagingDir)
+	fail := func(cause error, retryable bool) error {
+		if retryable {
+			// Retryable failures keep this transfer's staging and holds; only
+			// the terminal state is recorded.
+			return managedModelTransferTerminalError(cause, s.failTransfer(transferID, cause.Error(), true))
 		}
-	}()
+		s.settleFailedAcquisition(transferID, cause, false)
+		return cause
+	}
+	if err := s.ensureModelObjectLinkSupport(modelsRoot); err != nil {
+		return nil, transferID, fail(modelObjectLinkSupportRPCError(err), false)
+	}
+	checkActive := func() error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		return executorControl.wait(ctx)
+	}
 
+	// Phase 1: an equivalent committed distribution is reused after a real
+	// read verification of its view; nothing is fetched and no view is added.
+	reused, reuseErr := s.tryReuseEquivalentModelAsset(ctx, transferID, modelsRoot, distribution, checkActive)
+	if reuseErr != nil {
+		return nil, transferID, fail(classifyAcquisitionFailure(reuseErr), false)
+	}
+	if reused != nil {
+		s.releaseModelObjectHolds(transferID)
+		return reused, transferID, nil
+	}
+
+	stagingDir, err := prepareManagedModelDownloadStageDir(modelsRoot, transferID)
+	if err != nil {
+		return nil, transferID, fail(err, false)
+	}
 	bundleTotal := clampInt64Minimum(spec.totalSizeBytes, 0)
 	if bundleTotal == 0 {
 		bundleTotal = clampInt64Minimum(s.localTransferSummary(transferID).GetBytesTotal(), 0)
 	}
-	var completedBytes int64
+	var received, reusedBytes int64
+	// pendingStaged is this transfer's own prefix material for files not yet
+	// processed; it keeps the received projection monotonic across resume.
+	pendingStaged := managedModelDownloadPendingStagedBytes(stagingDir, files)
+	verifiedFiles := make([]modelDistributionFile, 0, len(files))
 	for index, file := range files {
+		if err := checkActive(); err != nil {
+			return nil, transferID, fail(classifyDownloadInterruption(ctx, err, s, transferID), errors.Is(err, context.Canceled) && !errors.Is(err, errLocalTransferCancelled))
+		}
 		relativeFile, err := normalizeArtifactRelativeFile(file)
 		if err != nil {
-			return nil, transferID, managedModelTransferTerminalError(err, s.failTransfer(transferID, err.Error(), false))
+			return nil, transferID, fail(err, false)
 		}
+		expected := expectedModelSHA256(spec.hashes, relativeFile)
+		if expected == "" {
+			return nil, transferID, fail(fmt.Errorf("model file %q requires admitted expected sha256 before download", relativeFile), false)
+		}
+		nonExecutable := modelDistributionFileNonExecutable(relativeFile)
 		targetPath := filepath.Join(stagingDir, filepath.FromSlash(relativeFile))
-		if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
-			failure := fmt.Errorf("create model file dir %q: %w", relativeFile, err)
-			return nil, transferID, managedModelTransferTerminalError(failure, s.failTransfer(transferID, failure.Error(), false))
+		pendingStaged -= managedModelDownloadStagedFileBytes(targetPath)
+
+		// A published object for this digest is reused after verification.
+		present, _, presentErr := modelObjectPresent(modelsRoot, expected)
+		if presentErr != nil {
+			return nil, transferID, fail(presentErr, false)
 		}
-		completedSize, completed, completedErr := inspectCompletedManagedModelDownloadFile(targetPath, expectedModelSHA256(spec.hashes, relativeFile))
-		if completedErr != nil {
-			retryable := isRetryableManagedModelDownloadError(completedErr)
-			if retryable {
-				preserveStaging = true
-			}
-			return nil, transferID, managedModelTransferTerminalError(completedErr, s.failTransfer(transferID, completedErr.Error(), retryable))
-		}
-		if completed {
-			completedBytes += completedSize
-			continue
-		}
-		_, err = s.downloadManagedModelFile(
-			ctx,
-			transferID,
-			spec.repo,
-			spec.revision,
-			relativeFile,
-			targetPath,
-			spec.hashes,
-			completedBytes,
-			bundleTotal,
-			index == len(files)-1,
-		)
-		if err != nil {
-			var persistenceErr error
+		if present {
+			_, size, verifyErr := verifyModelObject(modelsRoot, expected, -1, func(delta int64) error {
+				s.addTransferVerifiedBytes(transferID, delta)
+				return checkActive()
+			})
 			switch {
-			case errors.Is(err, errLocalTransferCancelled):
-				persistenceErr = s.cancelTransfer(transferID, "transfer cancelled")
-			case errors.Is(err, errModelDownloadHashMismatch):
-				persistenceErr = s.failTransfer(transferID, err.Error(), false)
-			case errors.Is(err, context.Canceled) && rpcctx.WasServerShutdown(ctx):
-				preserveStaging = true
-				persistenceErr = s.interruptTransfer(transferID, "transfer interrupted by runtime shutdown")
-			case errors.Is(err, context.Canceled) && normalizeTransferState(s.localTransferSummary(transferID).GetState()) == localTransferStatePaused:
-				preserveStaging = true
-			case errors.Is(err, context.Canceled):
-				preserveStaging = true
-				persistenceErr = s.failTransfer(transferID, err.Error(), true)
-			case isRetryableManagedModelDownloadError(err):
-				preserveStaging = true
-				persistenceErr = s.failTransfer(transferID, err.Error(), true)
+			case verifyErr == nil:
+				// Drop any prefix this transfer fetched for the same digest: the
+				// object already exists, so this position is reused, not received.
+				_ = os.Remove(targetPath + ".download")
+				_ = os.Remove(targetPath)
+				s.pinModelObject(expected, transferID)
+				reusedBytes += size
+				verifiedFiles = append(verifiedFiles, modelDistributionFile{RelativePath: relativeFile, SHA256: expected, SizeBytes: size, NonExecutableContent: nonExecutable})
+				s.updateTransferReuse(transferID, "verify", received+pendingStaged, reusedBytes, "reusing verified local content for "+relativeFile)
+				continue
+			case errors.Is(verifyErr, errLocalTransferCancelled) || errors.Is(verifyErr, context.Canceled):
+				return nil, transferID, fail(classifyDownloadInterruption(ctx, verifyErr, s, transferID), errors.Is(verifyErr, context.Canceled) && !errors.Is(verifyErr, errLocalTransferCancelled))
 			default:
-				persistenceErr = s.failTransfer(transferID, err.Error(), false)
+				// An explicit acquisition met a corrupt published generation: its
+				// identity and quarantine target are persisted first, then it
+				// leaves the canonical path so a verified replacement can be
+				// published. Views still linking the old inode stay unavailable.
+				if _, isolateErr := s.isolateModelObjectGeneration(modelsRoot, expected, "published object failed verification during explicit acquisition: "+verifyErr.Error()); isolateErr != nil {
+					return nil, transferID, fail(&modelAssetReconciliationError{Reason: "corrupt published model object could not be isolated", Cause: isolateErr}, false)
+				}
 			}
-			return nil, transferID, managedModelTransferTerminalError(err, persistenceErr)
 		}
-		info, statErr := os.Lstat(targetPath)
-		if statErr != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 {
-			if statErr == nil {
-				statErr = errors.New("downloaded target is not a direct regular file")
+
+		// Missing object: this transfer must be the single writer for the digest.
+		if conflict := s.acquireModelObjectWriter(expected, transferID); conflict != nil {
+			return nil, transferID, fail(conflict, false)
+		}
+		if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
+			return nil, transferID, fail(fmt.Errorf("create model file dir %q: %w", relativeFile, err), false)
+		}
+		completedSize, completed, completedErr := inspectCompletedManagedModelDownloadFile(targetPath, expected)
+		if completedErr != nil {
+			return nil, transferID, fail(completedErr, isRetryableManagedModelDownloadError(completedErr))
+		}
+		size := completedSize
+		if !completed {
+			_, err = s.downloadManagedModelFile(ctx, transferID, spec.repo, spec.revision, relativeFile, targetPath, spec.hashes, received, bundleTotal, index == len(files)-1)
+			if err != nil {
+				switch {
+				case errors.Is(err, errLocalTransferCancelled):
+					return nil, transferID, fail(err, false)
+				case errors.Is(err, errModelDownloadHashMismatch):
+					return nil, transferID, fail(err, false)
+				case errors.Is(err, context.Canceled) && rpcctx.WasServerShutdown(ctx):
+					return nil, transferID, managedModelTransferTerminalError(err, s.interruptTransfer(transferID, "transfer interrupted by runtime shutdown"))
+				case errors.Is(err, context.Canceled) && normalizeTransferState(s.localTransferSummary(transferID).GetState()) == localTransferStatePaused:
+					return nil, transferID, err
+				case errors.Is(err, context.Canceled), isRetryableManagedModelDownloadError(err):
+					return nil, transferID, fail(err, true)
+				default:
+					return nil, transferID, fail(err, false)
+				}
 			}
-			preserveStaging = true
-			failure := fmt.Errorf("inspect downloaded model file %q: %w", relativeFile, statErr)
-			return nil, transferID, managedModelTransferTerminalError(failure, s.failTransfer(transferID, statErr.Error(), true))
+			info, statErr := os.Lstat(targetPath)
+			if statErr != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 {
+				if statErr == nil {
+					statErr = errors.New("downloaded target is not a direct regular file")
+				}
+				return nil, transferID, fail(fmt.Errorf("inspect downloaded model file %q: %w", relativeFile, statErr), true)
+			}
+			size = info.Size()
 		}
-		completedBytes += info.Size()
+		if _, err := normalizeModelPayloadPermissionsBeforePublish(targetPath, relativeFile); err != nil {
+			return nil, transferID, fail(err, false)
+		}
+		if _, _, err := publishModelObjectIfAbsent(modelsRoot, expected, targetPath); err != nil {
+			return nil, transferID, fail(err, false)
+		}
+		s.pinModelObject(expected, transferID)
+		received += size
+		verifiedFiles = append(verifiedFiles, modelDistributionFile{RelativePath: relativeFile, SHA256: expected, SizeBytes: size, NonExecutableContent: nonExecutable})
+		s.updateTransferReuse(transferID, "download", received+pendingStaged, reusedBytes, "verified "+relativeFile)
 	}
-	if bundleTotal > 0 && completedBytes != bundleTotal {
-		err := fmt.Errorf("managed model bundle size mismatch: expected=%d actual=%d", bundleTotal, completedBytes)
-		return nil, transferID, managedModelTransferTerminalError(err, s.failTransfer(transferID, err.Error(), false))
+	// Every file is a published, pinned object now; the transfer's exclusive
+	// staging holds nothing a resume would need.
+	if err := os.RemoveAll(stagingDir); err != nil {
+		s.logger.Warn("acquisition staging cleanup pending after publish", "transfer_id", transferID, "directory", stagingDir, "error", err)
 	}
-	entryFile := strings.TrimSpace(spec.entry)
-	if entryFile == "" && len(files) > 0 {
-		entryFile = files[0]
+	if bundleTotal > 0 && received+reusedBytes != bundleTotal {
+		err := fmt.Errorf("managed model bundle size mismatch: expected=%d actual=%d", bundleTotal, received+reusedBytes)
+		return nil, transferID, fail(err, false)
 	}
-	entryPath := filepath.Join(stagingDir, filepath.FromSlash(entryFile))
+	verifiedDistribution, err := newModelDistribution(spec.entry, verifiedFiles)
+	if err != nil {
+		return nil, transferID, fail(err, false)
+	}
+	entryPath, entryErr := modelObjectPath(modelsRoot, expectedModelSHA256(spec.hashes, spec.entry))
+	if entryErr != nil {
+		return nil, transferID, fail(entryErr, false)
+	}
 	if err := validateManagedModelEntryFile(entryPath); err != nil {
 		failure := grpcerr.WrapWithReasonCode(
 			codes.InvalidArgument,
@@ -410,35 +488,12 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 			err,
 			grpcerr.ReasonOptions{Message: "downloaded model entry is invalid"},
 		)
-		return nil, transferID, managedModelTransferTerminalError(failure, s.failTransfer(transferID, err.Error(), false))
+		return nil, transferID, fail(failure, false)
 	}
-	activation, err := activateManagedModelBundle(modelDir, stagingDir)
-	if err != nil {
-		quarantinePath, quarantineErr := s.quarantineManagedModelBundle(
-			modelsRoot,
-			logicalModelID,
-			stagingDir,
-			"managed_model_download_install",
-			fmt.Sprintf("activate bundle: %v", err),
-			modelID,
-		)
-		if quarantineErr != nil {
-			failure := fmt.Errorf("activate managed model bundle: %v; quarantine=%w", err, quarantineErr)
-			return nil, transferID, managedModelTransferTerminalError(failure, s.failTransfer(transferID, failure.Error(), false))
-		}
-		failureMessage := fmt.Sprintf("activate managed model bundle: %v", err)
-		if strings.TrimSpace(quarantinePath) != "" {
-			failureMessage = fmt.Sprintf("%s; quarantine=%s", failureMessage, quarantinePath)
-		}
-		return nil, transferID, managedModelTransferTerminalError(fmt.Errorf("activate managed model bundle: %w", err), s.failTransfer(transferID, failureMessage, false))
+	if err := checkActive(); err != nil {
+		return nil, transferID, fail(classifyDownloadInterruption(ctx, err, s, transferID), errors.Is(err, context.Canceled) && !errors.Is(err, errLocalTransferCancelled))
 	}
-	success = true
 
-	finalTotal := bundleTotal
-	if finalTotal == 0 {
-		finalTotal = completedBytes
-	}
-	s.updateTransferProgress(transferID, "register", completedBytes, finalTotal, "registering ModelAsset")
 	provenance := map[string]any{
 		"source_kind":     "managed_download",
 		"source_repo":     strings.TrimSpace(spec.repo),
@@ -456,48 +511,107 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 		provenance["catalog_asset_id"] = catalogAssetID
 		provenance["catalog_template_id"] = defaultString(strings.TrimSpace(spec.catalogTemplateID), catalogAssetID)
 	}
-	modelAsset, _, err := s.adoptResolvedModelAssetDirectoryWithOptions(ctx, modelDir, modelAssetAdoptionOptions{
-		displayName:    defaultString(strings.TrimSpace(spec.displayName), modelID),
-		preferredEntry: entryFile,
-		provenance:     provenance,
-		expectedHashes: normalizedManagedDownloadHashes(files, spec.hashes),
-		transferCompletion: &modelAssetTransferCompletion{
-			sessionID: transferID,
-			phase:     "register",
-			message:   "ModelAsset installed",
-		},
-	})
+	fingerprint, unclassified := managedDownloadFingerprint(modelsRoot, verifiedDistribution)
+	containsCode := false
+	for _, file := range verifiedDistribution.Files {
+		containsCode = containsCode || file.NonExecutableContent
+	}
+	s.updateTransferReuse(transferID, "register", received, reusedBytes, "registering ModelAsset")
+	record, _, err := s.commitManagedModelAssetView(ctx, transferID, modelsRoot, modelAssetIntake{
+		distribution: verifiedDistribution, displayName: defaultString(strings.TrimSpace(spec.displayName), modelID),
+		provenance: provenance, fingerprint: fingerprint, unclassified: unclassified, containsCode: containsCode,
+		catalogMatched: s.modelAssetCatalogMatch(normalizedManagedDownloadHashes(files, spec.hashes)),
+		completion:     modelAssetTransferCompletion{sessionID: transferID, phase: "register", message: "ModelAsset installed"},
+	}, received, reusedBytes)
 	if err != nil {
-		quarantinePath, rollbackErr := activation.Rollback(
-			s,
-			modelsRoot,
-			logicalModelID,
-			"managed_model_download_install",
-			err.Error(),
-			modelID,
-		)
-		s.mu.RLock()
-		_, restoredOwner := s.modelAssetForManagedDirectoryLocked(modelDir)
-		s.mu.RUnlock()
-		if !restoredOwner {
-			// No durable ModelAsset owns this destination. A successful rollback
-			// must not leave the current transfer's payload active under resolved/.
-			if cleanupErr := os.RemoveAll(modelDir); cleanupErr != nil {
-				rollbackErr = joinManagedModelSafetyErrors(rollbackErr, fmt.Errorf("remove uncommitted resolved bundle: %w", cleanupErr))
+		return nil, transferID, fail(classifyAcquisitionFailure(err), false)
+	}
+	s.releaseModelObjectHolds(transferID)
+	return record, transferID, nil
+}
+
+// managedModelDownloadStagedFileBytes measures one file's material in this
+// transfer's staging: a `.download` prefix or a completed but unpublished file.
+func managedModelDownloadStagedFileBytes(targetPath string) int64 {
+	for _, candidate := range []string{targetPath + ".download", targetPath} {
+		info, err := os.Lstat(candidate)
+		if err == nil && info.Mode().IsRegular() {
+			return info.Size()
+		}
+	}
+	return 0
+}
+
+func managedModelDownloadPendingStagedBytes(stagingDir string, files []string) int64 {
+	var total int64
+	for _, file := range files {
+		relativeFile, err := normalizeArtifactRelativeFile(file)
+		if err != nil {
+			continue
+		}
+		total += managedModelDownloadStagedFileBytes(filepath.Join(stagingDir, filepath.FromSlash(relativeFile)))
+	}
+	return total
+}
+
+// classifyDownloadInterruption maps a context or control interruption to the
+// executor's terminal cause without inventing a network failure.
+func classifyDownloadInterruption(ctx context.Context, err error, s *Service, transferID string) error {
+	if errors.Is(err, errLocalTransferCancelled) {
+		return errLocalTransferCancelled
+	}
+	if errors.Is(err, context.Canceled) && rpcctx.WasServerShutdown(ctx) {
+		_ = s.interruptTransfer(transferID, "transfer interrupted by runtime shutdown")
+	}
+	return err
+}
+
+// classifyAcquisitionFailure gives reconciliation and conflict causes their
+// typed public form while preserving the cause chain.
+func classifyAcquisitionFailure(err error) error {
+	var conflict *modelObjectConflict
+	if errors.As(err, &conflict) {
+		return conflict
+	}
+	var reconciliation *modelAssetReconciliationError
+	if errors.As(err, &reconciliation) {
+		return grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED, err, grpcerr.ReasonOptions{
+			Message: reconciliation.Reason, ActionHint: "run_product_control_check_sync",
+		})
+	}
+	return err
+}
+
+// managedDownloadFingerprint derives bounded facts from the published objects
+// of a verified distribution.
+func managedDownloadFingerprint(modelsRoot string, distribution modelDistribution) (map[string]any, bool) {
+	extensions := make(map[string]struct{})
+	formats := make(map[string]struct{})
+	fileFingerprints := make([]any, 0)
+	for _, file := range distribution.Files {
+		extension := strings.ToLower(filepath.Ext(file.RelativePath))
+		if extension != "" {
+			extensions[extension] = struct{}{}
+		}
+		objectPath, err := modelObjectPath(modelsRoot, file.SHA256)
+		if err != nil {
+			continue
+		}
+		if format, facts := boundedModelAssetFileFingerprint(objectPath, extension); format != "" {
+			formats[format] = struct{}{}
+			fileFingerprint := map[string]any{"relative_path": file.RelativePath, "format": format}
+			for key, value := range facts {
+				fileFingerprint[key] = value
 			}
+			fileFingerprints = append(fileFingerprints, fileFingerprint)
 		}
-		if rollbackErr != nil {
-			return nil, transferID, managedModelTransferTerminalError(err, s.failTransfer(transferID, fmt.Sprintf("%s; rollback=%v", err.Error(), rollbackErr), false))
-		}
-		if strings.TrimSpace(quarantinePath) != "" {
-			return nil, transferID, managedModelTransferTerminalError(err, s.failTransfer(transferID, fmt.Sprintf("%s; quarantine=%s", err.Error(), quarantinePath), false))
-		}
-		return nil, transferID, managedModelTransferTerminalError(err, s.failTransfer(transferID, err.Error(), false))
 	}
-	if commitErr := activation.Commit(); commitErr != nil {
-		s.logger.Warn("cleanup managed bundle backup failed after download install", "logical_model_id", logicalModelID, "error", commitErr)
+	formatList := sortedStringSet(formats)
+	fingerprint := map[string]any{"file_count": len(distribution.Files), "extensions": sortedStringSet(extensions), "formats": formatList}
+	if len(fileFingerprints) > 0 {
+		fingerprint["file_fingerprints"] = fileFingerprints
 	}
-	return modelAsset, transferID, nil
+	return fingerprint, len(formatList) == 0
 }
 
 func inspectCompletedManagedModelDownloadFile(targetPath string, expectedSHA256 string) (int64, bool, error) {
@@ -783,14 +897,6 @@ func isRetryableManagedModelDownloadError(err error) bool {
 	}
 	var pathErr *os.PathError
 	return errors.As(err, &pathErr) || isTransientModelDownloadError(err)
-}
-
-func (s *Service) discardManagedModelDownloadStaging(storageID string) {
-	modelsRoot := strings.TrimSpace(s.resolvedLocalModelsPath())
-	if modelsRoot == "" || !filepath.IsAbs(modelsRoot) || strings.TrimSpace(storageID) == "" {
-		return
-	}
-	_ = os.RemoveAll(managedModelDownloadStageDir(modelsRoot, storageID))
 }
 
 func isTransientModelDownloadError(err error) bool {

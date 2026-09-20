@@ -71,6 +71,9 @@ func newTestService(t *testing.T) *Service {
 	svc.hfCatalogSearch = func(_ context.Context, _ hfCatalogSearchRequest) ([]*runtimev1.LocalCatalogModelDescriptor, error) {
 		return []*runtimev1.LocalCatalogModelDescriptor{}, nil
 	}
+	// Tests stand in for the composition root: every reference owner is
+	// already recovered, so reclamation is open.
+	svc.OpenModelAssetReclamation()
 	t.Cleanup(func() {
 		svc.Close()
 	})

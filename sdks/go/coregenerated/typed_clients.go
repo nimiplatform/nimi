@@ -1199,6 +1199,26 @@ const (
 	LOCALRECOMMENDATIONAPPLICABILITYUNSUPPORTED LocalRecommendationApplicability = "LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED"
 )
 
+type LocalTransferAction string
+
+const (
+	LOCALTRANSFERACTIONUNSPECIFIED         LocalTransferAction = "LOCAL_TRANSFER_ACTION_UNSPECIFIED"
+	LOCALTRANSFERACTIONPAUSE               LocalTransferAction = "LOCAL_TRANSFER_ACTION_PAUSE"
+	LOCALTRANSFERACTIONRESUME              LocalTransferAction = "LOCAL_TRANSFER_ACTION_RESUME"
+	LOCALTRANSFERACTIONCANCEL              LocalTransferAction = "LOCAL_TRANSFER_ACTION_CANCEL"
+	LOCALTRANSFERACTIONREIMPORT            LocalTransferAction = "LOCAL_TRANSFER_ACTION_REIMPORT"
+	LOCALTRANSFERACTIONCHECKSYNC           LocalTransferAction = "LOCAL_TRANSFER_ACTION_CHECK_SYNC"
+	LOCALTRANSFERACTIONVIEWRELATEDTRANSFER LocalTransferAction = "LOCAL_TRANSFER_ACTION_VIEW_RELATED_TRANSFER"
+)
+
+type LocalTransferDisposition string
+
+const (
+	LOCALTRANSFERDISPOSITIONUNSPECIFIED LocalTransferDisposition = "LOCAL_TRANSFER_DISPOSITION_UNSPECIFIED"
+	LOCALTRANSFERDISPOSITIONCREATED     LocalTransferDisposition = "LOCAL_TRANSFER_DISPOSITION_CREATED"
+	LOCALTRANSFERDISPOSITIONREUSED      LocalTransferDisposition = "LOCAL_TRANSFER_DISPOSITION_REUSED"
+)
+
 type MemoryDistanceMetric string
 
 const (
@@ -1673,6 +1693,11 @@ const (
 	AIVIDEOENCODEFAILED                             ReasonCode = "AI_VIDEO_ENCODE_FAILED"
 	AIVIDEOSESSIONOVERLOADED                        ReasonCode = "AI_VIDEO_SESSION_OVERLOADED"
 	AIVIDEOSESSIONGENERATIONINVALID                 ReasonCode = "AI_VIDEO_SESSION_GENERATION_INVALID"
+	AILOCALTRANSFERINPROGRESS                       ReasonCode = "AI_LOCAL_TRANSFER_IN_PROGRESS"
+	AILOCALTRANSFERRESUMEREQUIRED                   ReasonCode = "AI_LOCAL_TRANSFER_RESUME_REQUIRED"
+	AILOCALMODELSTATEOFFLINECONVERSIONREQUIRED      ReasonCode = "AI_LOCAL_MODEL_STATE_OFFLINE_CONVERSION_REQUIRED"
+	AILOCALMODELSTORAGELINKUNSUPPORTED              ReasonCode = "AI_LOCAL_MODEL_STORAGE_LINK_UNSUPPORTED"
+	AILOCALMODELINVENTORYRECONCILIATIONREQUIRED     ReasonCode = "AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED"
 )
 
 type ReasoningActivation string
@@ -4469,8 +4494,9 @@ type InstallModelFromPlanRequest struct {
 }
 
 type InstallModelFromPlanResponse struct {
-	ModelAsset       *ModelAssetRecord `json:"model_asset,omitempty"`
-	InstallSessionId string            `json:"install_session_id,omitempty"`
+	ModelAsset       *ModelAssetRecord        `json:"model_asset,omitempty"`
+	InstallSessionId string                   `json:"install_session_id,omitempty"`
+	Disposition      LocalTransferDisposition `json:"disposition,omitempty"`
 }
 
 type InterruptLocalAppAgentRealtimeOutputRequest struct {
@@ -6039,41 +6065,55 @@ type LocalPythonProfile struct {
 }
 
 type LocalTransferProgressEvent struct {
-	InstallSessionId string `json:"install_session_id,omitempty"`
-	AssetId          string `json:"asset_id,omitempty"`
-	SessionKind      string `json:"session_kind,omitempty"`
-	Phase            string `json:"phase,omitempty"`
-	BytesReceived    int64  `json:"bytes_received,omitempty"`
-	BytesTotal       int64  `json:"bytes_total,omitempty"`
-	SpeedBytesPerSec int64  `json:"speed_bytes_per_sec,omitempty"`
-	EtaSeconds       int64  `json:"eta_seconds,omitempty"`
-	Message          string `json:"message,omitempty"`
-	State            string `json:"state,omitempty"`
-	ReasonCode       string `json:"reason_code,omitempty"`
-	Retryable        bool   `json:"retryable,omitempty"`
-	Done             bool   `json:"done,omitempty"`
-	Success          bool   `json:"success,omitempty"`
-	CreatedAt        string `json:"created_at,omitempty"`
-	UpdatedAt        string `json:"updated_at,omitempty"`
-	PlanId           string `json:"plan_id,omitempty"`
+	InstallSessionId        string                   `json:"install_session_id,omitempty"`
+	AssetId                 string                   `json:"asset_id,omitempty"`
+	SessionKind             string                   `json:"session_kind,omitempty"`
+	Phase                   string                   `json:"phase,omitempty"`
+	BytesReceived           int64                    `json:"bytes_received,omitempty"`
+	BytesTotal              int64                    `json:"bytes_total,omitempty"`
+	SpeedBytesPerSec        int64                    `json:"speed_bytes_per_sec,omitempty"`
+	EtaSeconds              int64                    `json:"eta_seconds,omitempty"`
+	Message                 string                   `json:"message,omitempty"`
+	State                   string                   `json:"state,omitempty"`
+	ReasonCode              string                   `json:"reason_code,omitempty"`
+	Retryable               bool                     `json:"retryable,omitempty"`
+	Done                    bool                     `json:"done,omitempty"`
+	Success                 bool                     `json:"success,omitempty"`
+	CreatedAt               string                   `json:"created_at,omitempty"`
+	UpdatedAt               string                   `json:"updated_at,omitempty"`
+	PlanId                  string                   `json:"plan_id,omitempty"`
+	BytesReused             int64                    `json:"bytes_reused,omitempty"`
+	BytesVerified           int64                    `json:"bytes_verified,omitempty"`
+	SourceLabel             string                   `json:"source_label,omitempty"`
+	Disposition             LocalTransferDisposition `json:"disposition,omitempty"`
+	AvailableActions        []LocalTransferAction    `json:"available_actions,omitempty"`
+	RelatedInstallSessionId string                   `json:"related_install_session_id,omitempty"`
+	CleanupPending          bool                     `json:"cleanup_pending,omitempty"`
 }
 
 type LocalTransferSessionSummary struct {
-	InstallSessionId string `json:"install_session_id,omitempty"`
-	AssetId          string `json:"asset_id,omitempty"`
-	SessionKind      string `json:"session_kind,omitempty"`
-	Phase            string `json:"phase,omitempty"`
-	State            string `json:"state,omitempty"`
-	BytesReceived    int64  `json:"bytes_received,omitempty"`
-	BytesTotal       int64  `json:"bytes_total,omitempty"`
-	SpeedBytesPerSec int64  `json:"speed_bytes_per_sec,omitempty"`
-	EtaSeconds       int64  `json:"eta_seconds,omitempty"`
-	Message          string `json:"message,omitempty"`
-	ReasonCode       string `json:"reason_code,omitempty"`
-	Retryable        bool   `json:"retryable,omitempty"`
-	CreatedAt        string `json:"created_at,omitempty"`
-	UpdatedAt        string `json:"updated_at,omitempty"`
-	PlanId           string `json:"plan_id,omitempty"`
+	InstallSessionId        string                   `json:"install_session_id,omitempty"`
+	AssetId                 string                   `json:"asset_id,omitempty"`
+	SessionKind             string                   `json:"session_kind,omitempty"`
+	Phase                   string                   `json:"phase,omitempty"`
+	State                   string                   `json:"state,omitempty"`
+	BytesReceived           int64                    `json:"bytes_received,omitempty"`
+	BytesTotal              int64                    `json:"bytes_total,omitempty"`
+	SpeedBytesPerSec        int64                    `json:"speed_bytes_per_sec,omitempty"`
+	EtaSeconds              int64                    `json:"eta_seconds,omitempty"`
+	Message                 string                   `json:"message,omitempty"`
+	ReasonCode              string                   `json:"reason_code,omitempty"`
+	Retryable               bool                     `json:"retryable,omitempty"`
+	CreatedAt               string                   `json:"created_at,omitempty"`
+	UpdatedAt               string                   `json:"updated_at,omitempty"`
+	PlanId                  string                   `json:"plan_id,omitempty"`
+	BytesReused             int64                    `json:"bytes_reused,omitempty"`
+	BytesVerified           int64                    `json:"bytes_verified,omitempty"`
+	SourceLabel             string                   `json:"source_label,omitempty"`
+	Disposition             LocalTransferDisposition `json:"disposition,omitempty"`
+	AvailableActions        []LocalTransferAction    `json:"available_actions,omitempty"`
+	RelatedInstallSessionId string                   `json:"related_install_session_id,omitempty"`
+	CleanupPending          bool                     `json:"cleanup_pending,omitempty"`
 }
 
 type LocalVerifiedAssetDescriptor struct {

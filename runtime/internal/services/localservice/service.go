@@ -89,49 +89,59 @@ type Service struct {
 	runtimeDataRoot                       string
 	llamaEngineVersion                    string
 
-	mu                                      sync.RWMutex
-	productControlReplacementMu             sync.Mutex
-	productControlCheckSyncStartMu          sync.Mutex
-	localEnvironmentPlanApplyMu             sync.Mutex
-	managedSpeechMu                         sync.Mutex
-	managedSpeechAdmissionToken             string
-	audits                                  []*runtimev1.LocalAuditEvent
-	verified                                []*runtimev1.LocalVerifiedAssetDescriptor
-	catalog                                 []*runtimev1.LocalCatalogModelDescriptor
-	engineMgr                               EngineManager
-	localEnvironmentHostProfiles            map[string]localEnvironmentHostProfileState
-	localEnvironmentSelectedSources         map[string]localEnvironmentSelectedSourceRecordState
-	localEnvironmentDependencyJobs          map[string]localEnvironmentDependencyJobState
-	localEnvironmentPlanDependencyContracts map[string]localEnvironmentPlanDependencyContractState
-	localEnvironmentJobCancels              map[string]context.CancelFunc
-	localEnvironmentJobWG                   sync.WaitGroup
-	transferWorkerWG                        sync.WaitGroup
-	localEnvironmentPrerequisiteWaitTimeout time.Duration
-	loadoutMutationMu                       sync.Mutex
-	loadouts                                map[string]*runtimev1.Loadout
-	loadoutSelections                       map[string]*runtimev1.LoadoutSelection
-	loadoutSelectionRevisions               map[string]string
-	loadoutStore                            loadoutStore
-	heldLoadoutPrepares                     map[string]heldLoadoutPrepare
-	loadoutCASToken                         string
-	loadoutNow                              func() time.Time
-	modelAssetMutationMu                    sync.Mutex
-	modelAssets                             map[string]*runtimev1.ModelAssetRecord
-	modelAssetDirectories                   map[string]string
-	modelAssetCleanupObligations            map[string]modelAssetCleanupObligation
-	modelAssetPendingDirectoryRebases       map[string]string
-	modelAssetPendingCleanupRebases         map[string]modelAssetCleanupObligation
-	modelAssetStorePath                     string
-	saveModelAssetStore                     func(string, modelAssetStoreSnapshot) error
-	writeModelAssetManifest                 func(string, []byte) error
-	removeModelAssetDirectory               func(string) error
-	localStateRetainedRecords               []quarantinedStateRecord
-	modelAssetRetainedRecords               []quarantinedStateRecord
-	heldModelInstallPlans                   map[string]heldModelInstallPlan
-	modelInstallPlanNow                     func() time.Time
-	capabilityDrivers                       *capabilitydriver.Registry
-	jobLifetimeCtx                          context.Context
-	jobLifetimeCancel                       context.CancelFunc
+	mu                                        sync.RWMutex
+	productControlReplacementMu               sync.Mutex
+	productControlCheckSyncStartMu            sync.Mutex
+	localEnvironmentPlanApplyMu               sync.Mutex
+	managedSpeechMu                           sync.Mutex
+	managedSpeechAdmissionToken               string
+	audits                                    []*runtimev1.LocalAuditEvent
+	verified                                  []*runtimev1.LocalVerifiedAssetDescriptor
+	catalog                                   []*runtimev1.LocalCatalogModelDescriptor
+	engineMgr                                 EngineManager
+	localEnvironmentHostProfiles              map[string]localEnvironmentHostProfileState
+	localEnvironmentSelectedSources           map[string]localEnvironmentSelectedSourceRecordState
+	localEnvironmentDependencyJobs            map[string]localEnvironmentDependencyJobState
+	localEnvironmentPlanDependencyContracts   map[string]localEnvironmentPlanDependencyContractState
+	localEnvironmentJobCancels                map[string]context.CancelFunc
+	localEnvironmentJobWG                     sync.WaitGroup
+	transferWorkerWG                          sync.WaitGroup
+	localEnvironmentPrerequisiteWaitTimeout   time.Duration
+	loadoutMutationMu                         sync.Mutex
+	loadouts                                  map[string]*runtimev1.Loadout
+	loadoutSelections                         map[string]*runtimev1.LoadoutSelection
+	loadoutSelectionRevisions                 map[string]string
+	loadoutStore                              loadoutStore
+	heldLoadoutPrepares                       map[string]heldLoadoutPrepare
+	loadoutCASToken                           string
+	loadoutNow                                func() time.Time
+	modelAssetMutationMu                      sync.Mutex
+	modelAssets                               map[string]*runtimev1.ModelAssetRecord
+	modelAssetDirectories                     map[string]string
+	modelAssetCleanupObligations              map[string]modelAssetCleanupObligation
+	modelAssetPendingDirectoryRebases         map[string]string
+	modelAssetPendingCleanupRebases           map[string]modelAssetCleanupObligation
+	modelObjectQuarantines                    map[string]modelObjectQuarantineObligation
+	modelAssetStoreRestriction                *modelAssetStoreRestriction
+	modelAssetInventoryReconciliationRequired bool
+	modelAssetReclamationOpen                 bool
+	modelObjectMu                             sync.Mutex
+	modelObjectWriters                        map[string]string
+	modelObjectHolds                          map[string]map[string]string
+	modelAssetUses                            map[string]map[string]int
+	modelObjectLinkProbe                      map[string]error
+	transferPrivate                           map[string]*localTransferPrivateState
+	modelAssetStorePath                       string
+	saveModelAssetStore                       func(string, modelAssetStoreSnapshot) error
+	writeModelAssetManifest                   func(string, []byte) error
+	removeModelAssetDirectory                 func(string) error
+	localStateRetainedRecords                 []quarantinedStateRecord
+	modelAssetRetainedRecords                 []quarantinedStateRecord
+	heldModelInstallPlans                     map[string]heldModelInstallPlan
+	modelInstallPlanNow                       func() time.Time
+	capabilityDrivers                         *capabilitydriver.Registry
+	jobLifetimeCtx                            context.Context
+	jobLifetimeCancel                         context.CancelFunc
 
 	hfCatalogSearch               hfCatalogSearchFunc
 	hfCatalogVariants             hfCatalogVariantsFunc
@@ -193,6 +203,17 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, loca
 func NewForLocalModelRecovery(logger *slog.Logger, store *auditlog.Store, stateStorePath string, localAuditCapacity int, localModelsPath string) (*Service, error) {
 	return newService(logger, store, stateStorePath, localAuditCapacity, localModelsPath, "", serviceConstructionMode{
 		exclusiveStateAccess:      true,
+		adoptResolvedModelImports: true,
+	})
+}
+
+// NewForLocalModelRecoveryPreview opens state for a read-only conversion
+// preview without the exclusive owner lock. A running daemon may change state
+// underneath it, so its results are a preview; every write mode reopens under
+// the lock.
+func NewForLocalModelRecoveryPreview(logger *slog.Logger, store *auditlog.Store, stateStorePath string, localAuditCapacity int, localModelsPath string) (*Service, error) {
+	return newService(logger, store, stateStorePath, localAuditCapacity, localModelsPath, "", serviceConstructionMode{
+		exclusiveStateAccess:      false,
 		adoptResolvedModelImports: true,
 	})
 }
@@ -274,7 +295,7 @@ func newService(logger *slog.Logger, store *auditlog.Store, stateStorePath strin
 		localEnvironmentJobCancels:              make(map[string]context.CancelFunc),
 		loadouts:                                make(map[string]*runtimev1.Loadout),
 		loadoutSelections:                       make(map[string]*runtimev1.LoadoutSelection),
-		loadoutSelectionRevisions:              make(map[string]string),
+		loadoutSelectionRevisions:               make(map[string]string),
 		loadoutStore:                            newDiskLoadoutStore(resolvedStateStorePath),
 		heldLoadoutPrepares:                     make(map[string]heldLoadoutPrepare),
 		loadoutCASToken:                         "loadout-cas_" + ulid.Make().String(),
@@ -284,6 +305,12 @@ func newService(logger *slog.Logger, store *auditlog.Store, stateStorePath strin
 		modelAssetCleanupObligations:            make(map[string]modelAssetCleanupObligation),
 		modelAssetPendingDirectoryRebases:       make(map[string]string),
 		modelAssetPendingCleanupRebases:         make(map[string]modelAssetCleanupObligation),
+		modelObjectQuarantines:                  make(map[string]modelObjectQuarantineObligation),
+		modelObjectWriters:                      make(map[string]string),
+		modelObjectHolds:                        make(map[string]map[string]string),
+		modelAssetUses:                          make(map[string]map[string]int),
+		modelObjectLinkProbe:                    make(map[string]error),
+		transferPrivate:                         make(map[string]*localTransferPrivateState),
 		modelAssetStorePath:                     resolveModelAssetStorePath(resolvedStateStorePath, resolveLocalModelsPath(localModelsPath)),
 		saveModelAssetStore:                     saveModelAssetStore,
 		writeModelAssetManifest: func(path string, payload []byte) error {

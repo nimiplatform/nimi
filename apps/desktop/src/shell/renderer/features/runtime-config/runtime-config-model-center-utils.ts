@@ -40,20 +40,37 @@ export function toProgressEventFromSummary(
   const terminal = deriveDoneSuccessFromState(summary.state);
   return {
     installSessionId: summary.installSessionId,
-    modelId: summary.modelId,
+    modelAssetId: summary.modelAssetId,
+    sourceLabel: summary.sourceLabel,
     sessionKind: summary.sessionKind,
     phase: summary.phase,
     bytesReceived: summary.bytesReceived,
+    bytesReused: summary.bytesReused,
+    bytesVerified: summary.bytesVerified,
     bytesTotal: summary.bytesTotal,
     speedBytesPerSec: summary.speedBytesPerSec,
     etaSeconds: summary.etaSeconds,
     message: summary.message,
     state: summary.state,
     reasonCode: summary.reasonCode,
+    disposition: summary.disposition,
+    availableActions: summary.availableActions,
+    relatedInstallSessionId: summary.relatedInstallSessionId,
+    cleanupPending: summary.cleanupPending,
+    planId: summary.planId,
     retryable: summary.retryable,
     done: terminal.done,
     success: terminal.success,
+    createdAt: summary.createdAt,
+    updatedAt: summary.updatedAt,
   };
+}
+
+/** Display title of a transfer: the Runtime's bounded source label, never an identity guess. */
+export function transferDisplayLabel(
+  event: Pick<NimiRuntimeLocalTransferProgressEvent, 'sourceLabel' | 'modelAssetId' | 'installSessionId'>,
+): string {
+  return event.sourceLabel || event.modelAssetId || event.installSessionId;
 }
 
 export function downloadStateLabel(state: NimiRuntimeLocalDownloadState, t: TFunction): string {

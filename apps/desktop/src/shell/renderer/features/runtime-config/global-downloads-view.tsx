@@ -202,7 +202,7 @@ export function GlobalDownloadsView() {
       <DownloadTaskRow
         key={item.installSessionId}
         testId={`download-model:${item.installSessionId}`}
-        title={downloadModelName(item.modelId, library.data?.catalog ?? []) ?? item.modelId}
+        title={downloadModelName(item.sourceLabel, library.data?.catalog ?? []) ?? item.sourceLabel ?? item.installSessionId}
         kind="model"
         lane={transferLane(item.state)}
         stage={stage}
@@ -213,10 +213,10 @@ export function GlobalDownloadsView() {
         at={item.updatedAt}
         attempts={attempts}
         reason={stage === 'interrupted' ? t(interruptionReasonKey(`${item.message ?? ''} ${item.reasonCode ?? ''}`)) : undefined}
-        technical={[item.modelId, item.message, item.reasonCode].filter(Boolean).join(' · ')}
+        technical={[item.sourceLabel, item.modelAssetId, item.message, item.reasonCode, item.relatedInstallSessionId ? `related=${item.relatedInstallSessionId}` : ''].filter(Boolean).join(' · ')}
       >
         <div className="flex gap-2">
-          {item.sessionKind === 'download' && ['running', 'queued'].includes(item.state) ? (
+          {item.availableActions.includes('pause') ? (
             <Button
               size="sm"
               tone="secondary"
@@ -228,8 +228,7 @@ export function GlobalDownloadsView() {
               {t('Apps.downloads.pause')}
             </Button>
           ) : null}
-          {item.sessionKind === 'download' &&
-          (item.state === 'paused' || (['failed', 'cancelled'].includes(item.state) && item.retryable)) ? (
+          {item.availableActions.includes('resume') ? (
             <Button
               size="sm"
               tone={item.state === 'paused' ? 'primary' : 'secondary'}
@@ -241,7 +240,7 @@ export function GlobalDownloadsView() {
               {t(item.state === 'paused' ? 'Apps.downloads.resume' : 'runtimeConfig.downloads.retryDownload')}
             </Button>
           ) : null}
-          {!isDownloadTerminal(item.state) ? (
+          {item.availableActions.includes('cancel') ? (
             <Button
               size="sm"
               tone="ghost"
@@ -250,8 +249,11 @@ export function GlobalDownloadsView() {
                 void action(() => local.cancelTransfer(item.installSessionId, { caller: 'core' }));
               }}
             >
-              {t('Common.cancel')}
+              {item.cleanupPending ? t('runtimeConfig.downloads.retryCleanup') : t('Common.cancel')}
             </Button>
+          ) : null}
+          {item.availableActions.includes('reimport') ? (
+            <span className="self-center text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.downloads.reimportHint')}</span>
           ) : null}
         </div>
       </DownloadTaskRow>
@@ -259,7 +261,7 @@ export function GlobalDownloadsView() {
   };
   const transferGroup = (group: ReturnType<typeof groupTransferAttempts>[number]) => (
     group.attempts.length > 1 ? (
-      <div key={`group:${group.latest.modelId}`}>
+      <div key={`group:${group.latest.sessionKind}:${group.latest.sourceLabel || group.latest.installSessionId}`}>
         {transferRow(group.latest, group.attempts.length)}
         <details className="-mt-2 mb-2 pl-14 text-xs text-[var(--nimi-text-secondary)]">
           <summary className="cursor-pointer">{t('runtimeConfig.downloads.showAttempts', { count: group.attempts.length - 1 })}</summary>

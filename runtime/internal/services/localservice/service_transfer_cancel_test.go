@@ -60,8 +60,11 @@ func TestRestoreStateFailsOrphanedTransfers(t *testing.T) {
 	if summary := restored.localTransferSummary(orphan.GetInstallSessionId()); summary.GetState() != localTransferStateFailed {
 		t.Fatalf("orphan transfer state = %q, want failed", summary.GetState())
 	} else {
-		if summary.GetReasonCode() != "LOCAL_TRANSFER_INTERRUPTED" {
-			t.Fatalf("orphan reason = %q, want LOCAL_TRANSFER_INTERRUPTED", summary.GetReasonCode())
+		if summary.GetReasonCode() != localTransferReimportReason {
+			t.Fatalf("orphan reason = %q, want %s", summary.GetReasonCode(), localTransferReimportReason)
+		}
+		if actions := summary.GetAvailableActions(); len(actions) == 0 || actions[0] != runtimev1.LocalTransferAction_LOCAL_TRANSFER_ACTION_REIMPORT {
+			t.Fatalf("orphan import actions = %v, want reimport", actions)
 		}
 		if summary.GetRetryable() {
 			t.Fatal("orphan transfer must not be retryable in place: no driver survives the restart")
@@ -134,7 +137,7 @@ func TestCancelLocalTransferLeavesActiveDownloadCleanupToExecutor(t *testing.T) 
 	}
 	stageDir := managedModelDownloadStageDir(
 		svc.resolvedLocalModelsPath(),
-		managedModelAcquisitionStorageID(transfer.GetAssetId(), sessionID),
+		sessionID,
 	)
 	partialPath := filepath.Join(stageDir, "model.bin.download")
 	if err := os.MkdirAll(stageDir, 0o755); err != nil {
@@ -340,7 +343,7 @@ func TestCancelLocalTransferPersistenceFailurePreservesControlAndStaging(t *test
 	}
 	stageDir := managedModelDownloadStageDir(
 		svc.resolvedLocalModelsPath(),
-		managedModelAcquisitionStorageID(transfer.GetAssetId(), transfer.GetInstallSessionId()),
+		transfer.GetInstallSessionId(),
 	)
 	if err := os.MkdirAll(stageDir, 0o755); err != nil {
 		t.Fatal(err)
@@ -449,7 +452,7 @@ func TestCancelTransferClearsManagedDownloadStagingBySession(t *testing.T) {
 		Phase:   "download",
 		State:   localTransferStateRunning,
 	})
-	storageID := managedModelAcquisitionStorageID(transfer.GetAssetId(), transfer.GetInstallSessionId())
+	storageID := transfer.GetInstallSessionId()
 	stageDir := managedModelDownloadStageDir(svc.resolvedLocalModelsPath(), storageID)
 	if err := os.MkdirAll(stageDir, 0o700); err != nil {
 		t.Fatal(err)
@@ -458,8 +461,9 @@ func TestCancelTransferClearsManagedDownloadStagingBySession(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := svc.cancelTransfer(transfer.GetInstallSessionId(), "transfer cancelled"); err != nil {
-		t.Fatalf("cancel managed download transfer: %v", err)
+	svc.settleFailedAcquisition(transfer.GetInstallSessionId(), errLocalTransferCancelled, false)
+	if summary := svc.localTransferSummary(transfer.GetInstallSessionId()); summary.GetState() != localTransferStateCancelled || summary.GetCleanupPending() {
+		t.Fatalf("worker cancellation summary = %+v", summary)
 	}
 	if _, err := os.Stat(stageDir); !os.IsNotExist(err) {
 		t.Fatalf("worker cancellation retained per-session staging: %s err=%v", stageDir, err)

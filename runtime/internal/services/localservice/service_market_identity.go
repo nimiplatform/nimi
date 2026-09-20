@@ -197,33 +197,29 @@ func (s *Service) catalogOfferInstalled(offer catalogOffer) bool {
 	return s.catalogOfferInstalledAssetID(offer) != ""
 }
 
+// catalogOfferInstalledAssetID resolves the committed ModelAsset whose
+// complete distribution (entry, normalized paths, digests, safety facts)
+// equals the offer. content_id alone never establishes installation.
 func (s *Service) catalogOfferInstalledAssetID(offer catalogOffer) string {
-	files := make([]*runtimev1.ModelAssetFile, 0, len(offer.files))
+	files := make([]modelDistributionFile, 0, len(offer.files))
 	for _, path := range offer.files {
 		hash := normalizeExactSHA256Hex(offer.hashes[path])
 		if hash == "" {
 			return ""
 		}
-		files = append(files, &runtimev1.ModelAssetFile{RelativePath: path, Sha256: hash})
+		files = append(files, modelDistributionFile{RelativePath: path, SHA256: hash, NonExecutableContent: modelDistributionFileNonExecutable(path)})
 	}
-	if len(files) == 0 {
+	distribution, err := newModelDistribution(offer.entryPath, files)
+	if err != nil {
 		return ""
 	}
-	contentID := modelAssetContentID(files)
-	if contentID == "" {
-		return ""
-	}
-	matches := make([]string, 0)
-	for _, asset := range s.installedModelAssetsSnapshot() {
-		if asset != nil && strings.EqualFold(strings.TrimSpace(asset.GetContentId()), contentID) {
-			matches = append(matches, strings.TrimSpace(asset.GetModelAssetId()))
-		}
-	}
-	sort.Strings(matches)
+	s.mu.RLock()
+	matches := s.equivalentModelAssetsLocked(distribution)
+	s.mu.RUnlock()
 	if len(matches) == 0 {
 		return ""
 	}
-	return matches[0]
+	return strings.TrimSpace(matches[0].GetModelAssetId())
 }
 
 func (s *Service) installedModelAssetsSnapshot() []*runtimev1.ModelAssetRecord {

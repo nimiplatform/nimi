@@ -9,7 +9,9 @@ import {
 } from './runtime-config-local-model-center-helpers';
 import { DownloadMetrics } from '../../components/download-metrics.js';
 import { Button } from './runtime-config-primitives';
-import { downloadStateLabel, formatDownloadPhaseLabel, formatImportPhaseLabel } from './runtime-config-model-center-utils';
+import { downloadStateLabel, formatDownloadPhaseLabel, formatImportPhaseLabel, transferDisplayLabel } from './runtime-config-model-center-utils';
+import { formatBytes } from '../../components/download-format.js';
+import { desktopBridge } from '../../bridge.js';
 
 type TransferCardProps = {
   event: NimiRuntimeLocalTransferProgressEvent;
@@ -20,7 +22,31 @@ type TransferCardProps = {
   onResume: (installSessionId: string) => void;
   onCancel: (installSessionId: string) => void;
   onDismiss: (installSessionId: string) => void;
+  onReimport?: () => void;
 };
+
+// Every control is rendered only from the Runtime's typed available_actions;
+// paused/retryable alone never implies that a task can continue.
+function hasTransferAction(event: NimiRuntimeLocalTransferProgressEvent, action: NimiRuntimeLocalTransferProgressEvent['availableActions'][number]): boolean {
+  return event.availableActions.includes(action);
+}
+
+function TransferReuseNote({ event, t }: { event: NimiRuntimeLocalTransferProgressEvent; t: TFunction }) {
+  if (!event.bytesReused && !event.relatedInstallSessionId && !event.cleanupPending) return null;
+  return (
+    <div className="mb-2 space-y-0.5 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
+      {event.bytesReused ? (
+        <p>{t('runtimeConfig.localModelCenter.reusedBytes', { size: formatBytes(event.bytesReused), defaultValue: '{{size}} reused from local content' })}</p>
+      ) : null}
+      {event.relatedInstallSessionId ? (
+        <p>{t('runtimeConfig.localModelCenter.relatedTransfer', { defaultValue: 'Another task already owns this content; continue that task first.' })}</p>
+      ) : null}
+      {event.cleanupPending ? (
+        <p>{t('runtimeConfig.localModelCenter.cleanupPending', { defaultValue: 'Temporary files are still being released.' })}</p>
+      ) : null}
+    </div>
+  );
+}
 
 function LocalTransferDownloadCard(props: TransferCardProps) {
   const { event, t } = props;
@@ -28,9 +54,10 @@ function LocalTransferDownloadCard(props: TransferCardProps) {
   const isPaused = event.state === 'paused';
   const isFailed = event.state === 'failed';
   const isCancelled = event.state === 'cancelled';
-  const canPause = event.state === 'queued' || isRunning;
-  const canResume = isPaused || (isFailed && event.retryable);
-  const canCancel = event.state !== 'completed' && event.state !== 'cancelled';
+  const canPause = hasTransferAction(event, 'pause');
+  const canResume = hasTransferAction(event, 'resume');
+  const canCancel = hasTransferAction(event, 'cancel');
+  const canCheckSync = hasTransferAction(event, 'check_sync');
   const phaseLabel = formatDownloadPhaseLabel(event.phase, t);
   return (
     <div className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 shadow-[var(--nimi-elevation-base)]">
@@ -39,7 +66,7 @@ function LocalTransferDownloadCard(props: TransferCardProps) {
           <DownloadIcon className="h-4 w-4" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{event.modelId}</p>
+          <p className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{transferDisplayLabel(event)}</p>
           <p className="text-xs text-[var(--nimi-text-muted)]">{phaseLabel}</p>
           {event.phase !== 'download' && event.message ? <p className="truncate text-[length:var(--nimi-type-caption-size)] text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">{event.message}</p> : null}
         </div>
@@ -63,15 +90,17 @@ function LocalTransferDownloadCard(props: TransferCardProps) {
         ) : null}
       </div>
       <div className="mb-3">
-        <DownloadMetrics name={event.modelId} received={event.bytesReceived} total={event.bytesTotal}
+        <DownloadMetrics name={transferDisplayLabel(event)} received={event.bytesReceived + event.bytesReused} total={event.bytesTotal}
           speed={event.speedBytesPerSec} eta={event.etaSeconds} observedAt={props.observedAt}
-          available={!props.runtimeWritesDisabled} transferring={isRunning && !['upsert', 'register', 'manifest'].includes(event.phase)}
-          activity={event.phase === 'verify' ? 'verify' : event.sessionKind === 'import' ? 'local' : 'download'}
+          available={!props.runtimeWritesDisabled} transferring={isRunning && event.phase === 'download'}
+          activity={event.phase === 'verify' || event.phase === 'scan' ? 'verify' : event.sessionKind === 'import' ? 'local' : 'download'}
           idleLabel={isPaused ? t('runtimeConfig.localModelCenter.downloadState.paused') : undefined} />
       </div>
+      <TransferReuseNote event={event} t={t} />
       <div className="flex items-center gap-2">
         {canPause ? <button type="button" disabled={props.runtimeWritesDisabled} onClick={() => props.onPause(event.installSessionId)} className="rounded border border-[var(--nimi-border-subtle)] px-2 py-1 text-xs text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] disabled:opacity-50">{t('runtimeConfig.localModelCenter.pause', { defaultValue: 'Pause' })}</button> : null}
         {canResume ? <Button size="sm" disabled={props.runtimeWritesDisabled} onClick={() => props.onResume(event.installSessionId)}>{t('runtimeConfig.localModelCenter.resume', { defaultValue: 'Resume' })}</Button> : null}
+        {canCheckSync ? <Button size="sm" disabled={props.runtimeWritesDisabled} onClick={() => { void desktopBridge.startProductControlCheckSync(); }}>{t('runtimeConfig.localModelCenter.checkSync', { defaultValue: 'Check & Sync' })}</Button> : null}
         {canCancel ? <button type="button" disabled={props.runtimeWritesDisabled} onClick={() => props.onCancel(event.installSessionId)} className="rounded border border-[var(--nimi-border-subtle)] px-2 py-1 text-xs text-[var(--nimi-text-secondary)] hover:border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] hover:text-[var(--nimi-status-danger)] disabled:opacity-50">{t('Common.cancel', { defaultValue: 'Cancel' })}</button> : null}
       </div>
     </div>
@@ -84,7 +113,11 @@ function LocalTransferImportCard(props: TransferCardProps) {
   const isPaused = event.state === 'paused';
   const isFailed = event.state === 'failed';
   const isCancelled = event.state === 'cancelled';
-  const canCancel = event.state === 'queued' || isRunning || isPaused;
+  const canPause = hasTransferAction(event, 'pause');
+  const canResume = hasTransferAction(event, 'resume');
+  const canCancel = hasTransferAction(event, 'cancel');
+  const canReimport = hasTransferAction(event, 'reimport');
+  const canCheckSync = hasTransferAction(event, 'check_sync');
   const phaseLabel = formatImportPhaseLabel(event.phase, t);
   return (
     <div className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 shadow-[var(--nimi-elevation-base)]">
@@ -93,7 +126,7 @@ function LocalTransferImportCard(props: TransferCardProps) {
           <FolderOpenIcon className="h-4 w-4" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{event.modelId}</p>
+          <p className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{transferDisplayLabel(event)}</p>
           <p className="text-xs text-[var(--nimi-text-muted)]">{phaseLabel}</p>
           <p className="truncate text-[length:var(--nimi-type-caption-size)] text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">
             {event.message || t('runtimeConfig.localModelCenter.localImportSession', { defaultValue: 'Importing local file into managed storage.' })}
@@ -117,7 +150,7 @@ function LocalTransferImportCard(props: TransferCardProps) {
             {'\u00d7'}
           </button>
         ) : null}
-        {isRunning ? (
+        {canPause ? (
           <button
             type="button"
             disabled={props.runtimeWritesDisabled}
@@ -127,9 +160,19 @@ function LocalTransferImportCard(props: TransferCardProps) {
             {t('runtimeConfig.localModelCenter.pause', { defaultValue: 'Pause' })}
           </button>
         ) : null}
-        {isPaused ? (
+        {canResume ? (
           <Button size="sm" disabled={props.runtimeWritesDisabled} onClick={() => props.onResume(event.installSessionId)}>
             {t('runtimeConfig.localModelCenter.resume', { defaultValue: 'Resume' })}
+          </Button>
+        ) : null}
+        {canCheckSync ? (
+          <Button size="sm" disabled={props.runtimeWritesDisabled} onClick={() => { void desktopBridge.startProductControlCheckSync(); }}>
+            {t('runtimeConfig.localModelCenter.checkSync', { defaultValue: 'Check & Sync' })}
+          </Button>
+        ) : null}
+        {canReimport && props.onReimport ? (
+          <Button size="sm" disabled={props.runtimeWritesDisabled} onClick={() => props.onReimport?.()}>
+            {t('runtimeConfig.localModelCenter.reimport', { defaultValue: 'Import again' })}
           </Button>
         ) : null}
         {canCancel ? (
@@ -144,12 +187,13 @@ function LocalTransferImportCard(props: TransferCardProps) {
         ) : null}
       </div>
       <div className="mb-3">
-        <DownloadMetrics name={event.modelId} received={event.bytesReceived} total={event.bytesTotal}
+        <DownloadMetrics name={transferDisplayLabel(event)} received={event.phase === 'scan' || event.phase === 'verify' ? event.bytesVerified : event.bytesReceived + event.bytesReused} total={event.bytesTotal}
           speed={event.speedBytesPerSec} eta={event.etaSeconds} observedAt={props.observedAt}
-          available={!props.runtimeWritesDisabled} transferring={isRunning && !['upsert', 'register', 'manifest'].includes(event.phase)}
-          activity={event.phase === 'verify' ? 'verify' : event.sessionKind === 'import' ? 'local' : 'download'}
+          available={!props.runtimeWritesDisabled} transferring={isRunning && event.phase === 'copy'}
+          activity={event.phase === 'verify' || event.phase === 'scan' ? 'verify' : 'local'}
           idleLabel={isPaused ? t('runtimeConfig.localModelCenter.downloadState.paused') : undefined} />
       </div>
+      <TransferReuseNote event={event} t={t} />
     </div>
   );
 }
@@ -165,6 +209,7 @@ type InProgressSectionProps = {
   onResume: (installSessionId: string) => void;
   onCancel: (installSessionId: string) => void;
   onDismiss: (installSessionId: string) => void;
+  onReimport?: () => void;
 };
 
 function LocalModelCenterInProgressSection(props: InProgressSectionProps) {
@@ -190,6 +235,7 @@ function LocalModelCenterInProgressSection(props: InProgressSectionProps) {
     onResume: props.onResume,
     onCancel: props.onCancel,
     onDismiss: props.onDismiss,
+    onReimport: props.onReimport,
   };
 
   return (

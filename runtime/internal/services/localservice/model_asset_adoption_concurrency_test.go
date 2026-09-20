@@ -13,7 +13,7 @@ import (
 
 func TestConcurrentAdoptionOfSameResolvedDirectoryConvergesToOneModelAsset(t *testing.T) {
 	svc := newTestService(t)
-	directory := makeAdoptionDirectory(t, svc, "concurrent-adoption")
+	directory, _ := makeAdoptionDirectory(t, svc, "concurrent-adoption")
 	ready := make(chan struct{}, 2)
 	release := make(chan struct{})
 	type adoptionResult struct {

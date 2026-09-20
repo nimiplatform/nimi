@@ -18,7 +18,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/oklog/ulid/v2"
 )
 
 // Opt-in real ModelAsset import, managed profile and supervised Host test.
@@ -68,7 +67,7 @@ func TestFaceSwapManagedExecution(t *testing.T) {
 			}
 		}
 		if asset == nil {
-			asset, err = service.importModelAssetSync(ctx, "", "model_"+strings.ToLower(ulid.Make().String()), source)
+			asset, err = service.importModelAssetSync(ctx, "", source)
 			if err != nil {
 				t.Fatal(err)
 			}

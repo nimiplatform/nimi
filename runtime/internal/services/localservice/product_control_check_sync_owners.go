@@ -3,6 +3,7 @@ package localservice
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -24,6 +25,12 @@ func (s *Service) reconcileProductControlCheckSyncModelAssets(ctx context.Contex
 	if ctx.Err() != nil {
 		return failedProductControlCheckSyncOwner(result.OwnerID, "RUN_INTERRUPTED")
 	}
+	if restriction := s.ModelAssetInventoryRestriction(); restriction != nil {
+		// A parseable older inventory is preserved untouched; nothing here may
+		// adopt, rebase, or reclaim until the explicit offline conversion runs.
+		return failedProductControlCheckSyncOwner(result.OwnerID, "MODEL_INVENTORY_OFFLINE_CONVERSION_REQUIRED")
+	}
+	defer s.finishProductControlCheckSyncModelAssets()
 	rebasedAssets, rebasedCleanup, commitErr := s.commitProductControlCheckSyncModelAssetRebases()
 	if commitErr != nil {
 		return failedProductControlCheckSyncOwner(result.OwnerID, "MODEL_INVENTORY_REBASE_FAILED")
@@ -97,6 +104,17 @@ func (s *Service) reconcileProductControlCheckSyncModelAssets(ctx context.Contex
 			})
 			continue
 		}
+		if modelAssetManifestIncompatible(manifest) {
+			// A valid distribution of another manifest version: never orphan
+			// content, never adopted into the current layout automatically.
+			locator := filepath.ToSlash(filepath.Join("models", "resolved", entry.Name()))
+			nextAction := "run_local_model_offline_conversion"
+			result.Resources = append(result.Resources, ProductControlCheckSyncResourceResult{
+				Kind: "model_asset", Locator: &locator, Reference: optionalProductControlCheckSyncText(strings.TrimSpace(manifest.ModelAssetID)),
+				Status: "incompatible", Reason: "MODEL_MANIFEST_VERSION_INCOMPATIBLE", NextAction: &nextAction,
+			})
+			continue
+		}
 		asset, convertErr := modelAssetRecordFromCanonicalManifest(manifest)
 		if convertErr != nil {
 			reference := strings.TrimSpace(manifest.ModelAssetID)
@@ -126,6 +144,13 @@ func (s *Service) reconcileProductControlCheckSyncModelAssets(ctx context.Contex
 			if validateStoredModelAssetRecord(modelsRoot, row) != nil {
 				result.Resources = append(result.Resources, ProductControlCheckSyncResourceResult{
 					Kind: "model_asset", Reference: &reference, Status: "unavailable", Reason: "MODEL_PAYLOAD_OR_MANIFEST_UNAVAILABLE",
+				})
+				continue
+			}
+			if linkErr := verifyModelAssetViewLinks(modelsRoot, existing, directory); linkErr != nil {
+				nextAction := "run_local_model_offline_conversion"
+				result.Resources = append(result.Resources, ProductControlCheckSyncResourceResult{
+					Kind: "model_asset", Reference: &reference, Status: "conflict", Reason: "MODEL_VIEW_UNLINKED_OFFLINE_CONVERSION_REQUIRED", NextAction: &nextAction,
 				})
 				continue
 			}
@@ -162,18 +187,33 @@ func (s *Service) reconcileProductControlCheckSyncModelAssets(ctx context.Contex
 			})
 			continue
 		}
-		if verifyErr := s.verifyProductControlCheckSyncManifestPayload(ctx, directory, manifest); verifyErr != nil {
-			result.Resources = append(result.Resources, ProductControlCheckSyncResourceResult{
-				Kind: "model_asset", Reference: &reference, Status: "conflict", Reason: "MODEL_MANIFEST_CONTENT_MISMATCH",
-			})
-			continue
-		}
 		if ctx.Err() != nil {
 			return failedProductControlCheckSyncOwner(result.OwnerID, "RUN_INTERRUPTED")
 		}
-		if persistErr := s.adoptProductControlCheckSyncModelAsset(asset, directory); persistErr != nil {
+		// Adoption verifies the payload by reading, establishes or verifies
+		// object linkage without copying, refuses an equivalent duplicate, and
+		// keeps the manifest identity. A transfer whose durable create intent
+		// targets this directory is committed through the same path.
+		options := modelAssetAdoptionOptions{}
+		if intentTransferID := s.transferCommitIntentForDirectory(directory); intentTransferID != "" {
+			options.transferCompletion = &modelAssetTransferCompletion{sessionID: intentTransferID, phase: "register", message: "ModelAsset committed by Check & Sync"}
+		}
+		if _, _, adoptErr := s.adoptResolvedModelAssetDirectoryWithOptions(ctx, directory, options); adoptErr != nil {
+			var reconciliation *modelAssetReconciliationError
+			reason := "MODEL_INVENTORY_ADOPTION_FAILED"
+			status := "failed"
+			if errors.As(adoptErr, &reconciliation) {
+				status = "conflict"
+				reason = "MODEL_MANIFEST_CONTENT_MISMATCH"
+				if strings.Contains(reconciliation.Reason, "equivalent") {
+					reason = "MODEL_DISTRIBUTION_DUPLICATE_OFFLINE_MERGE_REQUIRED"
+				} else if strings.Contains(reconciliation.Reason, "not linked") {
+					reason = "MODEL_VIEW_UNLINKED_OFFLINE_CONVERSION_REQUIRED"
+				}
+			}
+			nextAction := "run_local_model_offline_conversion"
 			result.Resources = append(result.Resources, ProductControlCheckSyncResourceResult{
-				Kind: "model_asset", Reference: &reference, Status: "failed", Reason: "MODEL_INVENTORY_ADOPTION_FAILED",
+				Kind: "model_asset", Reference: &reference, Status: status, Reason: reason, NextAction: &nextAction,
 			})
 			continue
 		}
@@ -426,18 +466,49 @@ func (s *Service) verifyProductControlCheckSyncManifestPayload(ctx context.Conte
 	return nil
 }
 
-func (s *Service) adoptProductControlCheckSyncModelAsset(asset *runtimev1.ModelAssetRecord, directory string) error {
-	s.modelAssetMutationMu.Lock()
-	defer s.modelAssetMutationMu.Unlock()
+// finishProductControlCheckSyncModelAssets closes the reconciliation guard
+// raised for a missing inventory over a non-empty root and retries any
+// cleanup that was waiting on it.
+func (s *Service) finishProductControlCheckSyncModelAssets() {
 	s.mu.Lock()
-	defer s.mu.Unlock()
-	id := asset.GetModelAssetId()
-	if existing := s.modelAssets[id]; existing != nil && existing.GetContentId() != asset.GetContentId() {
-		return errors.New("ModelAsset identity already belongs to different content")
+	s.modelAssetInventoryReconciliationRequired = false
+	s.mu.Unlock()
+	s.retryModelAssetCleanupObligations()
+}
+
+// verifyModelAssetViewLinks proves every declared file of a committed view is
+// the published object for its digest, without reading payload bytes.
+func verifyModelAssetViewLinks(modelsRoot string, asset *runtimev1.ModelAssetRecord, directory string) error {
+	for _, file := range asset.GetFiles() {
+		if file == nil {
+			continue
+		}
+		viewPath := filepath.Join(directory, filepath.FromSlash(file.GetRelativePath()))
+		linked, _, err := viewFileLinkedToObject(modelsRoot, file.GetSha256(), viewPath)
+		if err != nil {
+			return fmt.Errorf("inspect view file %q: %w", file.GetRelativePath(), err)
+		}
+		if !linked {
+			return fmt.Errorf("view file %q is not linked to its published object", file.GetRelativePath())
+		}
 	}
-	s.modelAssets[id] = cloneModelAsset(asset)
-	s.modelAssetDirectories[id] = filepath.Clean(directory)
-	return s.persistModelAssetStoreLocked()
+	return nil
+}
+
+// transferCommitIntentForDirectory returns the transfer whose durable create
+// intent targets the directory, when it is neither cancelled nor completed.
+func (s *Service) transferCommitIntentForDirectory(directory string) string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for key, private := range s.transferPrivate {
+		if private.commitIntent == nil || private.cancelRequested || canonicalReportPath(private.commitIntent.ManagedDirectory) != canonicalReportPath(directory) {
+			continue
+		}
+		if summary := s.transfers[key]; summary != nil && !isTerminalTransferState(summary.GetState()) {
+			return key
+		}
+	}
+	return ""
 }
 
 func (s *Service) rebaseProductControlCheckSyncModelAsset(id string, directory string) error {

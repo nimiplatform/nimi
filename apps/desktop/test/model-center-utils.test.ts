@@ -292,7 +292,12 @@ describe('pruneProgressSessions', () => {
   const makeSession = (done: boolean, updatedAtMs: number): ProgressSessionState => ({
     event: {
       installSessionId: `session-${updatedAtMs}`,
-      modelId: 'test-model',
+      modelAssetId: '',
+      sourceLabel: 'test-model',
+      bytesReused: 0,
+      bytesVerified: 0,
+      availableActions: [],
+      cleanupPending: false,
       sessionKind: 'download',
       phase: 'download' as const,
       state: done ? 'completed' : 'running',
@@ -370,7 +375,12 @@ describe('sortProgressSessions', () => {
   ): ProgressSessionState => ({
     event: {
       installSessionId,
-      modelId: installSessionId,
+      modelAssetId: '',
+      sourceLabel: installSessionId,
+      bytesReused: 0,
+      bytesVerified: 0,
+      availableActions: [],
+      cleanupPending: false,
       sessionKind: 'download',
       phase: 'download' as const,
       state,
@@ -437,7 +447,12 @@ describe('partitionTransferSessionsByDisplayState', () => {
   ): ProgressSessionState => ({
     event: {
       installSessionId,
-      modelId: installSessionId,
+      modelAssetId: '',
+      sourceLabel: installSessionId,
+      bytesReused: 0,
+      bytesVerified: 0,
+      availableActions: [],
+      cleanupPending: false,
       sessionKind,
       phase: 'download' as const,
       state,

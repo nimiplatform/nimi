@@ -1445,7 +1445,38 @@ export enum ReasonCode {
     /**
      * @generated from protobuf enum value: AI_VIDEO_SESSION_GENERATION_INVALID = 745;
      */
-    AI_VIDEO_SESSION_GENERATION_INVALID = 745
+    AI_VIDEO_SESSION_GENERATION_INVALID = 745,
+    /**
+     * Content-addressed ModelAsset acquisition and storage. An acquisition that
+     * needs a file another transfer is actively fetching is refused with the
+     * related transfer; one that needs a file whose durable prefix belongs to a
+     * paused or retryable transfer requires that original transfer's explicit
+     * resume. A parseable but incompatible ModelAsset inventory or manifest
+     * version keeps its files and restricts the model domain until an explicit
+     * offline conversion; a models root that cannot create same-volume file links
+     * fails before any payload transfer; inventory state that needs explicit
+     * reconciliation (missing inventory over a non-empty root, duplicate
+     * equivalent distributions, unlinked or unverifiable views) refuses writes.
+     *
+     * @generated from protobuf enum value: AI_LOCAL_TRANSFER_IN_PROGRESS = 753;
+     */
+    AI_LOCAL_TRANSFER_IN_PROGRESS = 753,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_TRANSFER_RESUME_REQUIRED = 749;
+     */
+    AI_LOCAL_TRANSFER_RESUME_REQUIRED = 749,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_MODEL_STATE_OFFLINE_CONVERSION_REQUIRED = 750;
+     */
+    AI_LOCAL_MODEL_STATE_OFFLINE_CONVERSION_REQUIRED = 750,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_MODEL_STORAGE_LINK_UNSUPPORTED = 751;
+     */
+    AI_LOCAL_MODEL_STORAGE_LINK_UNSUPPORTED = 751,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED = 752;
+     */
+    AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED = 752
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

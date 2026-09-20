@@ -19,6 +19,16 @@ export type NimiRuntimeLocalAssetKind = NimiRuntimeLocalAssetKindId;
 export type NimiRuntimeLocalCapabilityToken = NimiRuntimeLocalRunnableAssetKindId | string;
 export type NimiRuntimeLocalDownloadState = 'queued' | 'running' | 'paused' | 'failed' | 'completed' | 'cancelled';
 export type NimiRuntimeLocalTransferSessionKind = 'download' | 'import' | string;
+/**
+ * Whether a completed acquisition created a new ModelAsset or committed a
+ * reuse of the existing equivalent distribution. Undefined until committed.
+ */
+export type NimiRuntimeLocalTransferDisposition = 'created' | 'reused';
+/**
+ * Runtime-projected control actions valid for a transfer right now. Only
+ * these are rendered; every invocation re-authorizes and re-checks state.
+ */
+export type NimiRuntimeLocalTransferAction = 'pause' | 'resume' | 'cancel' | 'reimport' | 'check_sync' | 'view_related_transfer';
 
 export interface NimiRuntimeLocalProviderHints {
   readonly llama?: {
@@ -175,52 +185,59 @@ export interface NimiRuntimeLocalDeviceProfile {
   };
 }
 
-export interface NimiRuntimeLocalTransferProgressEvent {
+/**
+ * Shared acquisition facts of a transfer. `modelAssetId` is the committed
+ * final ModelAsset only (empty before commit); `sourceLabel` is a bounded
+ * display label of the immutable source and never an identity.
+ * `bytesReceived` is payload this transfer fetched or copied itself,
+ * `bytesReused` is verified managed content it references by position, and
+ * `bytesVerified` is bytes read only to identify or verify content.
+ */
+export interface NimiRuntimeLocalTransferAcquisition {
   readonly installSessionId: string;
-  readonly modelId: string;
+  readonly modelAssetId: string;
+  readonly sourceLabel: string;
   readonly sessionKind: NimiRuntimeLocalTransferSessionKind;
   readonly phase: string;
   readonly bytesReceived: number;
+  readonly bytesReused: number;
+  readonly bytesVerified: number;
   readonly bytesTotal?: number;
   readonly speedBytesPerSec?: number;
   readonly etaSeconds?: number;
   readonly message?: string;
   readonly state: NimiRuntimeLocalDownloadState;
   readonly reasonCode?: string;
+  readonly disposition?: NimiRuntimeLocalTransferDisposition;
+  readonly availableActions: readonly NimiRuntimeLocalTransferAction[];
+  readonly relatedInstallSessionId?: string;
+  readonly cleanupPending: boolean;
+  readonly planId?: string;
+}
+
+export interface NimiRuntimeLocalTransferProgressEvent extends NimiRuntimeLocalTransferAcquisition {
   readonly retryable?: boolean;
   readonly done: boolean;
   readonly success: boolean;
   readonly createdAt?: string;
   readonly updatedAt?: string;
-  readonly planId?: string;
 }
 
-export interface NimiRuntimeLocalTransferSessionSummary {
-  readonly installSessionId: string;
-  readonly modelId: string;
-  readonly sessionKind: NimiRuntimeLocalTransferSessionKind;
-  readonly phase: string;
-  readonly state: NimiRuntimeLocalDownloadState;
-  readonly bytesReceived: number;
-  readonly bytesTotal?: number;
-  readonly speedBytesPerSec?: number;
-  readonly etaSeconds?: number;
-  readonly message?: string;
-  readonly reasonCode?: string;
+export interface NimiRuntimeLocalTransferSessionSummary extends NimiRuntimeLocalTransferAcquisition {
   readonly retryable: boolean;
   readonly createdAt: string;
   readonly updatedAt: string;
-  readonly planId?: string;
 }
 
 export interface NimiRuntimeLocalTransferAccepted {
   readonly installSessionId: string;
-  readonly modelId: string;
+  readonly sourceLabel: string;
 }
 
 export interface NimiRuntimeLocalInstallResult {
   readonly modelAsset: NimiRuntimeModelAssetRecord;
   readonly installSessionId: string;
+  readonly disposition?: NimiRuntimeLocalTransferDisposition;
 }
 
 export interface NimiRuntimeLocalEnvironmentPlanDependency {

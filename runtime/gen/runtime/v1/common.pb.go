@@ -544,6 +544,21 @@ const (
 	ReasonCode_AI_VIDEO_ENCODE_FAILED              ReasonCode = 743
 	ReasonCode_AI_VIDEO_SESSION_OVERLOADED         ReasonCode = 744
 	ReasonCode_AI_VIDEO_SESSION_GENERATION_INVALID ReasonCode = 745
+	// Content-addressed ModelAsset acquisition and storage. An acquisition that
+	// needs a file another transfer is actively fetching is refused with the
+	// related transfer; one that needs a file whose durable prefix belongs to a
+	// paused or retryable transfer requires that original transfer's explicit
+	// resume. A parseable but incompatible ModelAsset inventory or manifest
+	// version keeps its files and restricts the model domain until an explicit
+	// offline conversion; a models root that cannot create same-volume file links
+	// fails before any payload transfer; inventory state that needs explicit
+	// reconciliation (missing inventory over a non-empty root, duplicate
+	// equivalent distributions, unlinked or unverifiable views) refuses writes.
+	ReasonCode_AI_LOCAL_TRANSFER_IN_PROGRESS                    ReasonCode = 753
+	ReasonCode_AI_LOCAL_TRANSFER_RESUME_REQUIRED                ReasonCode = 749
+	ReasonCode_AI_LOCAL_MODEL_STATE_OFFLINE_CONVERSION_REQUIRED ReasonCode = 750
+	ReasonCode_AI_LOCAL_MODEL_STORAGE_LINK_UNSUPPORTED          ReasonCode = 751
+	ReasonCode_AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED ReasonCode = 752
 )
 
 // Enum value maps for ReasonCode.
@@ -835,6 +850,11 @@ var (
 		743: "AI_VIDEO_ENCODE_FAILED",
 		744: "AI_VIDEO_SESSION_OVERLOADED",
 		745: "AI_VIDEO_SESSION_GENERATION_INVALID",
+		753: "AI_LOCAL_TRANSFER_IN_PROGRESS",
+		749: "AI_LOCAL_TRANSFER_RESUME_REQUIRED",
+		750: "AI_LOCAL_MODEL_STATE_OFFLINE_CONVERSION_REQUIRED",
+		751: "AI_LOCAL_MODEL_STORAGE_LINK_UNSUPPORTED",
+		752: "AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED",
 	}
 	ReasonCode_value = map[string]int32{
 		"REASON_CODE_UNSPECIFIED":                              0,
@@ -1123,6 +1143,11 @@ var (
 		"AI_VIDEO_ENCODE_FAILED":                               743,
 		"AI_VIDEO_SESSION_OVERLOADED":                          744,
 		"AI_VIDEO_SESSION_GENERATION_INVALID":                  745,
+		"AI_LOCAL_TRANSFER_IN_PROGRESS":                        753,
+		"AI_LOCAL_TRANSFER_RESUME_REQUIRED":                    749,
+		"AI_LOCAL_MODEL_STATE_OFFLINE_CONVERSION_REQUIRED":     750,
+		"AI_LOCAL_MODEL_STORAGE_LINK_UNSUPPORTED":              751,
+		"AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED":     752,
 	}
 )
 
@@ -1636,7 +1661,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x15TOOL_CHOICE_MODE_AUTO\x10\x01\x12\x19\n" +
 	"\x15TOOL_CHOICE_MODE_NONE\x10\x02\x12\x1d\n" +
 	"\x19TOOL_CHOICE_MODE_REQUIRED\x10\x03\x12\x19\n" +
-	"\x15TOOL_CHOICE_MODE_TOOL\x10\x04*\xe0Y\n" +
+	"\x15TOOL_CHOICE_MODE_TOOL\x10\x04*\xc8[\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -1924,7 +1949,12 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x16AI_VIDEO_DECODE_FAILED\x10\xe6\x05\x12\x1b\n" +
 	"\x16AI_VIDEO_ENCODE_FAILED\x10\xe7\x05\x12 \n" +
 	"\x1bAI_VIDEO_SESSION_OVERLOADED\x10\xe8\x05\x12(\n" +
-	"#AI_VIDEO_SESSION_GENERATION_INVALID\x10\xe9\x05\"\x04\bu\x10u\"\x06\b\xbe\x02\x10\xbe\x02\"\x06\b\xbf\x02\x10\xbf\x02\"\x06\b\xaa\x03\x10\xaa\x03\"\x06\b\xab\x03\x10\xab\x03\"\x06\b\xb8\x03\x10\xbb\x03\"\x06\b\xf4\x03\x10\xf6\x03\"\x06\b\xa9\x04\x10\xaf\x04\"\x06\b\xce\x04\x10\xd5\x04\"\x06\b\xba\x04\x10\xc4\x04\"\x06\b\xe2\x04\x10\xe2\x04\"\x06\b\xfe\x04\x10\x81\x05\"\x06\b\x8b\x05\x10\x8d\x05\"\x06\b\x93\x05\x10\x93\x05\"\x06\b\x94\x05\x10\x94\x05\"\x06\b\x9c\x05\x10\x9c\x05\"\x06\b\x9d\x05\x10\x9d\x05\"\x04\bh\x10h\"\x04\bj\x10j\"\x04\bs\x10s\"\x04\bt\x10t\"\x04\bv\x10v\"\x06\b\xcb\x01\x10\xcb\x01\"\x06\b\x90\x03\x10\x90\x03\"\x06\b\x91\x03\x10\x91\x03*%AI_CONNECTOR_GRANT_SELECTION_REQUIRED*\x1aAI_CONNECTOR_GRANT_REVOKED*\x16AI_VOICE_JOB_NOT_FOUND*\x1cAI_VOICE_JOB_NOT_CANCELLABLE*\x0eWF_DAG_INVALID*\x17WF_NODE_CONFIG_MISMATCH*\n" +
+	"#AI_VIDEO_SESSION_GENERATION_INVALID\x10\xe9\x05\x12\"\n" +
+	"\x1dAI_LOCAL_TRANSFER_IN_PROGRESS\x10\xf1\x05\x12&\n" +
+	"!AI_LOCAL_TRANSFER_RESUME_REQUIRED\x10\xed\x05\x125\n" +
+	"0AI_LOCAL_MODEL_STATE_OFFLINE_CONVERSION_REQUIRED\x10\xee\x05\x12,\n" +
+	"'AI_LOCAL_MODEL_STORAGE_LINK_UNSUPPORTED\x10\xef\x05\x125\n" +
+	"0AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED\x10\xf0\x05\"\x04\bu\x10u\"\x06\b\xbe\x02\x10\xbe\x02\"\x06\b\xbf\x02\x10\xbf\x02\"\x06\b\xaa\x03\x10\xaa\x03\"\x06\b\xab\x03\x10\xab\x03\"\x06\b\xb8\x03\x10\xbb\x03\"\x06\b\xf4\x03\x10\xf6\x03\"\x06\b\xa9\x04\x10\xaf\x04\"\x06\b\xce\x04\x10\xd5\x04\"\x06\b\xba\x04\x10\xc4\x04\"\x06\b\xe2\x04\x10\xe2\x04\"\x06\b\xfe\x04\x10\x81\x05\"\x06\b\x8b\x05\x10\x8d\x05\"\x06\b\x93\x05\x10\x93\x05\"\x06\b\x94\x05\x10\x94\x05\"\x06\b\x9c\x05\x10\x9c\x05\"\x06\b\x9d\x05\x10\x9d\x05\"\x04\bh\x10h\"\x04\bj\x10j\"\x04\bs\x10s\"\x04\bt\x10t\"\x04\bv\x10v\"\x06\b\xcb\x01\x10\xcb\x01\"\x06\b\x90\x03\x10\x90\x03\"\x06\b\x91\x03\x10\x91\x03*%AI_CONNECTOR_GRANT_SELECTION_REQUIRED*\x1aAI_CONNECTOR_GRANT_REVOKED*\x16AI_VOICE_JOB_NOT_FOUND*\x1cAI_VOICE_JOB_NOT_CANCELLABLE*\x0eWF_DAG_INVALID*\x17WF_NODE_CONFIG_MISMATCH*\n" +
 	"WF_TIMEOUT*\x11WF_TASK_NOT_FOUND* APP_INSTALL_DESCRIPTOR_NOT_FOUND*\x1bAPP_INSTALL_DIGEST_MISMATCH*\x1cAPP_INSTALL_MANIFEST_INVALID*\x1dAPP_INSTALL_STORAGE_VIOLATION*\x1bAPP_INSTALL_DOWNLOAD_FAILED*\x19APP_INSTALL_UNPACK_FAILED*\x14APP_INSTALL_INTERNAL*\x18APP_UPDATE_NOT_AVAILABLE*\x18APP_UPDATE_NOT_INSTALLED* APP_UPDATE_CONFIRMATION_REQUIRED*\x16APP_UPDATE_SWAP_FAILED*\x19APP_REPAIR_ACTION_INVALID*\x1dAPP_REPAIR_NO_RECOVERABLE_JOB*\x19APP_REPAIR_NOT_REPAIRABLE*\x1bAPP_LIFECYCLE_JOB_CANCELLED*\x19WORKSPACE_BINDING_MISSING*\x1bWORKSPACE_BINDING_MALFORMED*\x1bWORKSPACE_BINDING_NOT_FOUND*\x19WORKSPACE_BINDING_REVOKED*\x19WORKSPACE_BINDING_EXPIRED*\x18WORKSPACE_BINDING_REPLAY*%WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE*!WORKSPACE_BINDING_CALLER_MISMATCH*$WORKSPACE_BINDING_WORKSPACE_MISMATCH*%WORKSPACE_BINDING_ENV_DEVICE_MISMATCH*\x1fWORKSPACE_BINDING_SCOPE_MISSING*\x1fAPP_OPEN_PERMISSION_NOT_GRANTED*\x19LIFECYCLE_INTENT_REQUIRED*\x19LIFECYCLE_INTENT_MISMATCH*\x17LIFECYCLE_INTENT_REPLAY*\x18LIFECYCLE_INTENT_EXPIRED*\x1dLOCAL_APP_PERMISSION_REQUIRED*\x1bLOCAL_APP_PERMISSION_DENIED*\x1cLOCAL_APP_PERMISSION_REVOKED*$LOCAL_APP_REMEMBERED_PROJECT_DORMANT*\"LOCAL_APP_RISK_DISCLOSURE_REQUIRED**LOCAL_APP_PERMISSION_RESERVED_NOT_ADMITTED*\x1cLOCAL_APP_PERMISSION_UNKNOWN*\xa9\x01\n" +
 	"\x15ExternalPrincipalType\x12'\n" +
 	"#EXTERNAL_PRINCIPAL_TYPE_UNSPECIFIED\x10\x00\x12!\n" +

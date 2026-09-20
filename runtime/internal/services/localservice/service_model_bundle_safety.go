@@ -1,8 +1,6 @@
 package localservice
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -30,23 +28,17 @@ func prepareManagedModelBundleStageDir(destDir string, purpose string) (string, 
 	return stageDir, nil
 }
 
-func managedModelAcquisitionStorageID(modelID string, transferID string) string {
-	return slugifyLocalModelID(modelID) + "-" + strings.ToLower(strings.TrimSpace(transferID))
-}
-
 // @nimi-authority: rule.nimi.runtime.local-compute.r029
-// managedModelDownloadStageDir is stable for one transfer so explicit resume
-// reuses only that acquisition's valid prefix. Separate acquisitions of the
-// same content never share staging or resolved-directory custody.
-func managedModelDownloadStageDir(modelsRoot string, storageID string) string {
-	normalizedID := strings.TrimSpace(storageID)
-	digest := sha256.Sum256([]byte(normalizedID))
-	identity := fmt.Sprintf("%s-%s", slugifyLocalModelID(normalizedID), hex.EncodeToString(digest[:8]))
-	return filepath.Join(modelsRoot, "quarantine", "downloads", identity)
+// managedModelDownloadStageDir is owned by exactly one transfer: its prefix
+// files are that transfer's resumable material and nothing else. Which
+// content the prefix carries is coordinated per digest through the object
+// writer grant, never through directory naming.
+func managedModelDownloadStageDir(modelsRoot string, transferID string) string {
+	return filepath.Join(modelsRoot, "quarantine", "downloads", strings.ToLower(strings.TrimSpace(transferID)))
 }
 
-func prepareManagedModelDownloadStageDir(modelsRoot string, storageID string) (string, error) {
-	stageDir := managedModelDownloadStageDir(modelsRoot, storageID)
+func prepareManagedModelDownloadStageDir(modelsRoot string, transferID string) (string, error) {
+	stageDir := managedModelDownloadStageDir(modelsRoot, transferID)
 	if err := os.MkdirAll(stageDir, 0o755); err != nil {
 		return "", fmt.Errorf("create managed model download stage dir: %w", err)
 	}

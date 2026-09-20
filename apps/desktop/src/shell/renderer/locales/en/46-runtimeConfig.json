@@ -1783,6 +1783,12 @@
   "localModelCenter": {
     "activeDownloads": "Download Tasks ({{count}})",
     "dismissTransfer": "Dismiss transfer",
+    "reimport": "Import again",
+    "checkSync": "Check & Sync",
+    "reusedBytes": "{{size}} reused from local content",
+    "relatedTransfer": "Another task already owns this content; continue that task first.",
+    "cleanupPending": "Temporary files are still being released.",
+    "reusedExisting": "Using existing model",
     "activeImports": "Import Tasks ({{count}})",
     "aiCapabilityStatus": "AI Capability Status",
     "allKinds": "All Kinds",
@@ -2166,6 +2172,8 @@
     "attempts": "{{count}} attempts",
     "showAttempts": "Earlier attempts ({{count}})",
     "retryDownload": "Download again",
+    "retryCleanup": "Retry cleanup",
+    "reimportHint": "Import the source again to continue.",
     "setupGroup": "Setup",
     "stage": {
       "queued": "Queued",

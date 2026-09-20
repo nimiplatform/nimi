@@ -9,7 +9,7 @@ units:
   - id: definition.nimi.runtime.local-compute.asset-storage-manifest-plane
     kind: definition
     title: Runtime ModelAsset storage and manifest plane
-    meaning: The Runtime ModelAsset storage and manifest plane owns the resolved and quarantine layout, per-import ModelAsset records, immutable content identity, file integrity, bounded content fingerprints, provenance, import safety, and manifest validation without interpreting capability, engine, Driver, recipe, slot, or execution semantics.
+    meaning: The Runtime ModelAsset storage and manifest plane owns the objects, resolved, and quarantine layout, one committed ModelAsset record per distinct distribution, published SHA-256 file objects shared by every distribution view through Runtime-created same-volume links, immutable content identity, file integrity, physical file identity, bounded content fingerprints, provenance, import safety, manifest validation, and phased view and object reclamation without interpreting capability, engine, Driver, recipe, slot, or execution semantics.
   - id: definition.nimi.runtime.local-compute.catalog-recommendation-plane
     kind: definition
     title: Runtime local catalog recommendation plane
@@ -17,7 +17,7 @@ units:
   - id: definition.nimi.runtime.local-compute.category-capability-plane
     kind: definition
     title: Runtime ModelAsset inventory plane
-    meaning: The Runtime ModelAsset inventory plane owns concrete per-import ModelAsset records, immutable content identity, local catalog installation and unclassified import semantics, verified content projection, duplicate-content hints, and private Service and Node execution projections without owning capability, engine, Driver, recipe, Loadout, binding, machine selection, route, feature support, or admission.
+    meaning: The Runtime ModelAsset inventory plane owns one committed ModelAsset record per distinct managed distribution, immutable content identity, exact distribution equivalence that returns the existing asset to a repeated catalog install or import, acquisition transfer identity and typed created or reused results, unclassified import semantics, verified content projection, and private Service and Node execution projections without owning capability, engine, Driver, recipe, Loadout, binding, machine selection, route, feature support, or admission.
   - id: definition.nimi.runtime.local-compute.local-engine-plane
     kind: definition
     title: Runtime local engine plane
@@ -100,9 +100,9 @@ units:
     kind: rule
     title: ModelAsset storage layout is fixed
     modality: must
-    statement: The Runtime managed models root contains exactly the resolved and quarantine subtrees, resolved holds one directory per committed ModelAsset instance with its canonical manifest and original nested payload names, quarantine holds failed intake and isolated snapshots, and no objects, sources, recipes, cache, model-resource store, or other model subtree is created; RecipeCustody and engine or dependency materialization remain under their separately owned Runtime data-plane roots.
-    condition: Whenever ModelAsset storage is laid out, imported, installed, recovered, or scanned.
-    failure: Reject an undeclared model subtree, model content outside resolved or quarantine, recipe or custody ownership in the models root, and orphan classification of a valid resolved manifest.
+    statement: The Runtime managed models root contains exactly the objects, resolved, and quarantine subtrees on one real volume; objects holds at most one healthy published plain file per complete SHA-256 keyed by that digest, resolved holds one directory per committed ModelAsset distribution with its canonical manifest and original nested payload names whose payload files are Runtime-created same-volume links to the published objects, quarantine holds transfer-owned unverified prefixes and import staging keyed by transfer identity plus isolated object generations and failed intake snapshots, and no sources, recipes, cache, model-resource store, or other model subtree is created; a user import source is never linked, a published object or view is never overwritten in place, and RecipeCustody and engine or dependency materialization remain under their separately owned Runtime data-plane roots.
+    condition: Whenever ModelAsset storage is laid out, imported, installed, recovered, reclaimed, or scanned.
+    failure: Reject an undeclared model subtree, model content outside objects, resolved, or quarantine, a view payload that is not the published object of its digest, a link to an external source, in-place overwrite of published content, recipe or custody ownership in the models root, and orphan classification of a valid resolved manifest.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.asset-storage-manifest-plane
@@ -110,7 +110,7 @@ units:
     kind: rule
     title: ModelAsset manifest contains content facts only
     modality: must
-    statement: A committed ModelAsset manifest contains one Runtime-generated per-import model_asset_id, immutable content_id, entry, ordered files with per-file digests, aggregate size, content_verified identity fact, optional catalog_verified fact, bounded raw content fingerprints, provenance, display metadata, and import safety facts; it contains no kind, CapabilityContract, standardized feature, engine, CapabilityImplementation, Driver, dialect, recipe, companion, slot, Loadout, binding, selection, route, residency, readiness, or execution option, and derived display labels remain non-authoritative and may be unclassified.
+    statement: A committed ModelAsset manifest contains one Runtime-generated model_asset_id that stably identifies its distribution, the storage layout version, immutable content_id, entry, ordered files with per-file digests and verified sizes, aggregate size, content_verified identity fact, optional catalog_verified fact, bounded raw content fingerprints, the provenance and display metadata of the acquisition that first committed the distribution, and import safety facts; it contains no kind, CapabilityContract, standardized feature, engine, CapabilityImplementation, Driver, dialect, recipe, companion, slot, Loadout, binding, selection, route, residency, readiness, or execution option, a repeated acquisition of the same distribution never rewrites its provenance, display name, or creation time, and derived display labels remain non-authoritative and may be unclassified.
     condition: Whenever a ModelAsset manifest is authored, imported, installed, emitted, or repaired.
     failure: Fail closed on missing identity or integrity facts and reject every interpretation or execution-selection fact in the manifest.
     relations:
@@ -158,11 +158,11 @@ units:
         target: definition.nimi.runtime.local-compute.category-capability-plane
   - id: rule.nimi.runtime.local-compute.r014
     kind: rule
-    title: Every acquisition mints one ModelAsset instance
+    title: Equivalent distributions share one ModelAsset
     modality: must
-    statement: Catalog installation and ImportModelAsset each mint a unique Runtime-generated model_asset_id for one per-import ModelAsset instance, compute and persist its immutable content_id and complete file integrity, retain bounded provenance, fingerprints, trust facts, and install metadata, and never create or update a Loadout, binding, selection, Driver, recipe, route, feature claim, readiness, or engine fact; multiple ModelAsset instances with the same content_id are legal and produce a non-blocking duplicate-content hint rather than identity reuse.
+    statement: Catalog installation and ImportModelAsset are idempotent per distribution, so after Runtime verifies the complete entry, the normalized unique relative payload paths, every file digest and real size, and the import safety facts, an acquisition equivalent to a committed ModelAsset returns that existing model_asset_id with a reused result and adds no inventory record or resolved view, and only an acquisition with no equivalent committed distribution mints a new Runtime-generated model_asset_id with a created result; distributions that differ in entry, layout, or safety facts keep distinct assets while sharing identical file objects, acquisition count, source, display name, App, or configuration purpose never creates an asset, content_id, model name, file name, mtime, or a previous verification fact alone never establishes equivalence, and no acquisition creates or updates a Loadout, binding, selection, Driver, recipe, route, feature claim, readiness, or engine fact.
     condition: Whenever model content is installed or imported.
-    failure: Reject acquisition missing verified content identity, reuse of an existing per-import identity, forced content deduplication, or any acquisition promoted to configuration or execution success.
+    failure: Reject acquisition missing verified content identity, a second asset or view for an equivalent distribution, equivalence inferred from content_id or names alone, merging of distributions whose entry, layout, or safety facts differ, and any acquisition promoted to configuration or execution success.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.category-capability-plane
@@ -170,9 +170,9 @@ units:
     kind: rule
     title: Catalog install descriptors project catalog truth
     modality: must
-    statement: Every catalog install descriptor derives its exact entry-level offer, files, per-file hashes, total size, host recommendation inputs, non-binding content reference, and provenance from an adopted Runtime catalog source; the public Market projection exposes a Runtime-issued opaque offer_ref and display-safe metadata, while the existing catalog and portable-source acquisition input remains an independently validated non-Market entry. Runtime keeps no parallel hardcoded verified offer metadata, a catalog offer missing complete integrity hashes fails closed without an install action or placeholder descriptor, and a successful install mints a separate per-import ModelAsset identity.
+    statement: Every catalog install descriptor derives its exact entry-level offer, files, per-file hashes, total size, host recommendation inputs, non-binding content reference, and provenance from an adopted Runtime catalog source; the public Market projection exposes a Runtime-issued opaque offer_ref and display-safe metadata, while the existing catalog and portable-source acquisition input remains an independently validated non-Market entry. Runtime keeps no parallel hardcoded verified offer metadata, a catalog offer missing complete integrity hashes fails closed without an install action or placeholder descriptor, an offer is projected as installed only when a committed ModelAsset's complete distribution equals the offer, and a successful install returns the equivalent existing ModelAsset or a newly minted one.
     condition: Whenever catalog ModelAsset offers are projected or listed.
-    failure: Fail closed on missing transfer-integrity material, unvalidated caller-carried acquisition facts, parallel hardcoded catalog truth, or conflation of offer_ref with a plan or installed ModelAsset instance.
+    failure: Fail closed on missing transfer-integrity material, unvalidated caller-carried acquisition facts, parallel hardcoded catalog truth, installed status derived from content_id or names alone, or conflation of offer_ref with a plan or installed ModelAsset instance.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.category-capability-plane
@@ -180,7 +180,7 @@ units:
     kind: rule
     title: Server-held install plans gate catalog installation only
     modality: must
-    statement: ResolveModelInstallPlan preserves the existing validated catalog and Hugging Face acquisition input and also accepts a Runtime-issued opaque offer_ref from the currently adopted catalog or its active last-known-good source for recommendation-driven Market acquisition; the two input forms are mutually exclusive and both resolve into the same complete plan descriptor, owner-session scope, bounded TTL, single-use, daemon-restart invalidation, and InstallModelFromPlan lifecycle. Runtime revalidates source revision, entry, files, hashes, size, provenance, and non-binding host warnings before holding the plan; InstallModelFromPlan accepts only plan_id, revalidates the held plan and per-file integrity, and atomically commits one ModelAsset, while ImportModelAsset remains a separate safe intake path that never requires or accepts a catalog install plan.
+    statement: ResolveModelInstallPlan preserves the existing validated catalog and Hugging Face acquisition input and also accepts a Runtime-issued opaque offer_ref from the currently adopted catalog or its active last-known-good source for recommendation-driven Market acquisition; the two input forms are mutually exclusive and both resolve into the same complete plan descriptor, owner-session scope, bounded TTL, single-use, daemon-restart invalidation, and InstallModelFromPlan lifecycle. Runtime revalidates source revision, entry, files, hashes, size, provenance, and non-binding host warnings before holding the plan; InstallModelFromPlan accepts only plan_id, consumes the held plan once, revalidates per-file integrity, and atomically commits one result that is either the equivalent existing ModelAsset or one new ModelAsset; a typed in-progress or resume-required outcome never replays the consumed plan and a later retry resolves a new plan, while ImportModelAsset remains a separate safe intake path that never requires or accepts a catalog install plan.
     condition: Whenever a catalog ModelAsset install plan is resolved or consumed.
     failure: Reject mixed acquisition and offer_ref inputs, missing, removed, changed, or caller-fabricated offer_ref values, unvalidated acquisition input, and expired, replayed, foreign-owner, foreign-session, restart-stale, caller-reconstructed, hash-mismatched, or non-catalog plans without partial commit, and reject install-plan gating of manual import.
     relations:
@@ -303,21 +303,21 @@ units:
         target: definition.nimi.runtime.local-compute.catalog-recommendation-plane
   - id: rule.nimi.runtime.local-compute.r029
     kind: rule
-    title: Download sessions are resumable and explicit
+    title: Acquisition sessions are resumable, single-writer, and explicit
     modality: must
-    statement: Local downloads resume with HTTP range requests skipping completed byte ranges, retry with exponential backoff capped at eight attempts stepping from three hundred milliseconds through one, five, fifteen, thirty, sixty, one hundred twenty, and one hundred eighty seconds, move through queued, running, paused, failed, completed, and cancelled states driven only by explicit control commands without UI pseudo-pause, convert residual running or queued sessions to paused with an interruption reason after process restart requiring manual resume, verify per-file SHA-256 with an optional prefix and return AI_LOCAL_DOWNLOAD_HASH_MISMATCH on mismatch, and stage files under a per-asset staging directory committed by atomic rename with rollback on failure.
-    condition: Whenever a model asset download session runs.
-    failure: Reject implicit state transitions, automatic post-restart resumption, and unverified commits.
+    statement: A transfer records one acquisition with an immutable source spec and a bounded source label, fetches or copies only the files whose published object is missing and reuses each verified published object by distribution position, holds the single active writer for a digest so a concurrent acquisition of the same content receives a typed in-progress outcome naming the owning transfer and a paused or retryable-failed prefix owned by another transfer yields a typed resume-required outcome, stages each fetched file under staging keyed by its own transfer identity, verifies per-file SHA-256 and returns AI_LOCAL_DOWNLOAD_HASH_MISMATCH on mismatch, normalizes non-executable permissions once before publishing the object, publishes each object if absent without overwriting a healthy occupant and releases its writer per file so a resume first advances its own prefix, resumes with HTTP range requests and retries with exponential backoff capped at eight attempts stepping from three hundred milliseconds through one, five, fifteen, thirty, sixty, one hundred twenty, and one hundred eighty seconds, moves through queued, running, paused, failed, completed, and cancelled states driven only by explicit control commands, and after process restart converts residual running or queued downloads to paused with an interruption reason requiring the original transfer's explicit resume, ends an import whose source was not fully taken over as failed and non-retryable requiring a new ImportModelAsset, and keeps an import holding a complete uncommitted view paused in commit_pending until explicit Check & Sync commits it or an explicit cancel discards it.
+    condition: Whenever a ModelAsset acquisition session runs, is interrupted, or is resumed.
+    failure: Reject a second concurrent writer or prefix for one digest, cross-transfer token or prefix sharing, implicit state transitions, automatic post-restart resumption, rebuilt import executors, an in-place published object overwrite, and unverified commits.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.catalog-recommendation-plane
   - id: rule.nimi.runtime.local-compute.r030
     kind: rule
-    title: Download progress and failure classes are typed
+    title: Acquisition progress, results, and failure classes are typed
     modality: must
-    statement: Download progress events carry install session identity, phase, received and total bytes, speed, eta, message, state, optional reason code and retryability, and done plus success flags, network, timeout, and disk failures mark the session failed and retryable while preserving partial staging for resume, hash mismatches mark it failed and non-retryable while clearing staging and forbidding resume, and cancellation marks it cancelled while clearing staging.
-    condition: Whenever download progress or failure is reported.
-    failure: Reject untyped progress, resumable hash failures, and retained staging after cancel.
+    statement: Transfer summaries and progress events carry install session identity, the bounded source label, phase, bytes received by this transfer itself, bytes reused from verified managed content by distribution position, bytes read only for identification or verification, total bytes, speed, eta, message, state, optional reason code and retryability, done plus success flags, the Runtime-projected available actions, an optional related transfer identity, and cleanup-pending; asset_id is the committed final model_asset_id and stays empty before commit, a completion never fabricates received bytes, a created result commits when the inventory save succeeds and a reused result commits when the transfer's reused result save succeeds while the equivalent asset is still committed with the same generation, a durable cancel persisted before commit prevents any later commit and a cancel after commit returns the completed result without removing the asset, network, timeout, and disk failures mark the session failed and retryable while preserving the transfer's own staging, hash mismatches mark it failed and non-retryable while clearing staging, cancellation marks it cancelled and clears only the transfer's exclusive material after its executor really stopped with cleanup-pending kept until a busy file is released, and a repeated acquisition of the same distribution reports reused without a second view, payload staging, or resident copy.
+    condition: Whenever acquisition progress, result, or failure is reported.
+    failure: Reject untyped progress or actions, asset identity reported before commit, received bytes inflated by reused or verification reads, a commit that raced a durable cancel, a reused result reported before its save, resumable hash failures, and retained exclusive staging after cancel completed.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.catalog-recommendation-plane
@@ -1132,9 +1132,9 @@ units:
     kind: rule
     title: Local state isolation is record scoped then document scoped
     modality: must
-    statement: When a ModelAsset inventory or Loadout document is syntactically parseable and one locatable record has an invalid payload or schema, Runtime preserves every valid record, copies the exact invalid record and bounded source context to quarantine, emits a typed record-isolation diagnostic, and starts normally; when the whole document is invalid JSON, truncated, or otherwise not structurally parseable, Runtime preserves a complete raw snapshot in quarantine, starts from an empty state for that document, emits a prominent typed document-isolation diagnostic, and never silently clears or rewrites the source before the snapshot is durable.
-    condition: Whenever persisted ModelAsset inventory or Loadout state is opened, parsed, validated, or recovered.
-    failure: Reject daemon blockage by isolatable state, one bad record discarding valid siblings, partial salvage of an unparseable document presented as truth, silent empty state, missing quarantine evidence, or an untyped diagnostic.
+    statement: When a ModelAsset inventory or Loadout document is syntactically parseable and one locatable record has an invalid payload or schema, Runtime preserves every valid record, copies the exact invalid record and bounded source context to quarantine, emits a typed record-isolation diagnostic, and starts normally; when the whole document is invalid JSON, truncated, or otherwise not structurally parseable, Runtime preserves a complete raw snapshot in quarantine, starts from an empty state for that document, emits a prominent typed document-isolation diagnostic, and never silently clears or rewrites the source before the snapshot is durable; when a ModelAsset inventory document or a resolved manifest is parseable but carries another schema or storage-layout version, Runtime preserves the file untouched, emits a typed offline-conversion-required diagnostic, restricts the model domain by refusing inventory writes, execution over that inventory, and reclamation while every other available domain starts, and Check & Sync reports the version as incompatible rather than orphan or corrupt; when the inventory document is absent while the resolved root holds managed views, Runtime never initializes an empty inventory and refuses inventory-changing operations and reclamation until explicit Check & Sync reconciles them.
+    condition: Whenever persisted ModelAsset inventory, resolved manifests, or Loadout state is opened, parsed, validated, or recovered.
+    failure: Reject daemon blockage by isolatable state, one bad record discarding valid siblings, partial salvage of an unparseable document presented as truth, silent empty state, automatic conversion of an incompatible version, isolation or clearing of a parseable incompatible document, Loadout state cleared because the model domain is restricted, missing quarantine evidence, or an untyped diagnostic.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.asset-storage-manifest-plane

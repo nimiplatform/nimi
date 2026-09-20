@@ -7496,6 +7496,8 @@
       "LocalDevelopmentShellKind",
       "LocalEngineRuntimeMode",
       "LocalRecommendationApplicability",
+      "LocalTransferAction",
+      "LocalTransferDisposition",
       "MemoryDistanceMetric",
       "MemoryMigrationPolicy",
       "Modal",
@@ -19470,6 +19472,13 @@
             "repeated": false,
             "optional": false,
             "number": 3
+          },
+          {
+            "name": "disposition",
+            "type": "LocalTransferDisposition",
+            "repeated": false,
+            "optional": false,
+            "number": 4
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime.proto"
@@ -27456,6 +27465,55 @@
             "repeated": false,
             "optional": false,
             "number": 20
+          },
+          {
+            "name": "bytes_reused",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 21
+          },
+          {
+            "name": "bytes_verified",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 22
+          },
+          {
+            "name": "source_label",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 23
+          },
+          {
+            "name": "disposition",
+            "type": "LocalTransferDisposition",
+            "repeated": false,
+            "optional": false,
+            "number": 24
+          },
+          {
+            "name": "available_actions",
+            "type": "LocalTransferAction",
+            "repeated": true,
+            "optional": false,
+            "number": 25
+          },
+          {
+            "name": "related_install_session_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 26
+          },
+          {
+            "name": "cleanup_pending",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 27
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime.proto"
@@ -27567,6 +27625,55 @@
             "repeated": false,
             "optional": false,
             "number": 18
+          },
+          {
+            "name": "bytes_reused",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 19
+          },
+          {
+            "name": "bytes_verified",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 20
+          },
+          {
+            "name": "source_label",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 21
+          },
+          {
+            "name": "disposition",
+            "type": "LocalTransferDisposition",
+            "repeated": false,
+            "optional": false,
+            "number": 22
+          },
+          {
+            "name": "available_actions",
+            "type": "LocalTransferAction",
+            "repeated": true,
+            "optional": false,
+            "number": 23
+          },
+          {
+            "name": "related_install_session_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 24
+          },
+          {
+            "name": "cleanup_pending",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 25
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime.proto"
@@ -40031,6 +40138,28 @@
         "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
       },
       {
+        "name": "LocalTransferAction",
+        "values": [
+          "LOCAL_TRANSFER_ACTION_UNSPECIFIED",
+          "LOCAL_TRANSFER_ACTION_PAUSE",
+          "LOCAL_TRANSFER_ACTION_RESUME",
+          "LOCAL_TRANSFER_ACTION_CANCEL",
+          "LOCAL_TRANSFER_ACTION_REIMPORT",
+          "LOCAL_TRANSFER_ACTION_CHECK_SYNC",
+          "LOCAL_TRANSFER_ACTION_VIEW_RELATED_TRANSFER"
+        ],
+        "source_file": "proto/runtime/v1/local_runtime.proto"
+      },
+      {
+        "name": "LocalTransferDisposition",
+        "values": [
+          "LOCAL_TRANSFER_DISPOSITION_UNSPECIFIED",
+          "LOCAL_TRANSFER_DISPOSITION_CREATED",
+          "LOCAL_TRANSFER_DISPOSITION_REUSED"
+        ],
+        "source_file": "proto/runtime/v1/local_runtime.proto"
+      },
+      {
         "name": "MemoryDistanceMetric",
         "values": [
           "MEMORY_DISTANCE_METRIC_UNSPECIFIED",
@@ -40520,7 +40649,12 @@
           "AI_VIDEO_DECODE_FAILED",
           "AI_VIDEO_ENCODE_FAILED",
           "AI_VIDEO_SESSION_OVERLOADED",
-          "AI_VIDEO_SESSION_GENERATION_INVALID"
+          "AI_VIDEO_SESSION_GENERATION_INVALID",
+          "AI_LOCAL_TRANSFER_IN_PROGRESS",
+          "AI_LOCAL_TRANSFER_RESUME_REQUIRED",
+          "AI_LOCAL_MODEL_STATE_OFFLINE_CONVERSION_REQUIRED",
+          "AI_LOCAL_MODEL_STORAGE_LINK_UNSUPPORTED",
+          "AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED"
         ],
         "source_file": "proto/runtime/v1/common.proto"
       },

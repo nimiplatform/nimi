@@ -373,6 +373,10 @@ export interface InstallModelFromPlanRequest {
  */
 export interface InstallModelFromPlanResponse {
     /**
+     * The committed final ModelAsset. Equivalent distributions return the
+     * existing asset with disposition REUSED; a new asset is created only when
+     * no equivalent committed distribution exists.
+     *
      * @generated from protobuf field: nimi.runtime.v1.ModelAssetRecord model_asset = 2
      */
     modelAsset?: ModelAssetRecord;
@@ -383,9 +387,11 @@ export interface InstallModelFromPlanResponse {
      * @generated from protobuf field: string install_session_id = 3
      */
     installSessionId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalTransferDisposition disposition = 4
+     */
+    disposition: LocalTransferDisposition;
 }
-// === Transfers ===
-
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalTransferSessionSummary
  */
@@ -395,6 +401,9 @@ export interface LocalTransferSessionSummary {
      */
     installSessionId: string;
     /**
+     * The committed final model_asset_id only. Empty until the acquisition has
+     * committed a created or reused result; never the source identity.
+     *
      * @generated from protobuf field: string asset_id = 2
      */
     assetId: string;
@@ -411,10 +420,15 @@ export interface LocalTransferSessionSummary {
      */
     state: string;
     /**
+     * Payload bytes this transfer itself fetched or copied, including a
+     * retained resumable prefix. Never includes reused managed content.
+     *
      * @generated from protobuf field: int64 bytes_received = 9
      */
     bytesReceived: string;
     /**
+     * Complete distribution logical size, or 0 when unknown.
+     *
      * @generated from protobuf field: int64 bytes_total = 10
      */
     bytesTotal: string;
@@ -455,6 +469,52 @@ export interface LocalTransferSessionSummary {
      * @generated from protobuf field: string plan_id = 18
      */
     planId: string;
+    /**
+     * Verified managed content this distribution references without a new
+     * fetch or copy, measured by distribution position. When bytes_total is
+     * known and the transfer completes, bytes_received + bytes_reused ==
+     * bytes_total; one position is never counted twice.
+     *
+     * @generated from protobuf field: int64 bytes_reused = 19
+     */
+    bytesReused: string;
+    /**
+     * Bytes read only to identify or verify content (import source scanning,
+     * reuse verification). Never network payload and never managed content.
+     *
+     * @generated from protobuf field: int64 bytes_verified = 20
+     */
+    bytesVerified: string;
+    /**
+     * Bounded display label of the immutable acquisition source (catalog model
+     * id, repository, or import source name). Display only; never an identity.
+     *
+     * @generated from protobuf field: string source_label = 21
+     */
+    sourceLabel: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalTransferDisposition disposition = 22
+     */
+    disposition: LocalTransferDisposition;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalTransferAction available_actions = 23
+     */
+    availableActions: LocalTransferAction[];
+    /**
+     * The transfer that owns the active fetch or durable prefix this transfer
+     * needed, when reason_code is AI_LOCAL_TRANSFER_IN_PROGRESS or
+     * AI_LOCAL_TRANSFER_RESUME_REQUIRED.
+     *
+     * @generated from protobuf field: string related_install_session_id = 24
+     */
+    relatedInstallSessionId: string;
+    /**
+     * A terminal transfer whose exclusive staging or holds could not be
+     * released yet; a repeated cancel retries the cleanup.
+     *
+     * @generated from protobuf field: bool cleanup_pending = 25
+     */
+    cleanupPending: boolean;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalTransferProgressEvent
@@ -531,6 +591,38 @@ export interface LocalTransferProgressEvent {
      * @generated from protobuf field: string plan_id = 20
      */
     planId: string;
+    /**
+     * See LocalTransferSessionSummary for the byte, source, disposition,
+     * action, related-transfer, and cleanup semantics. asset_id is the
+     * committed final ModelAsset only.
+     *
+     * @generated from protobuf field: int64 bytes_reused = 21
+     */
+    bytesReused: string;
+    /**
+     * @generated from protobuf field: int64 bytes_verified = 22
+     */
+    bytesVerified: string;
+    /**
+     * @generated from protobuf field: string source_label = 23
+     */
+    sourceLabel: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalTransferDisposition disposition = 24
+     */
+    disposition: LocalTransferDisposition;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalTransferAction available_actions = 25
+     */
+    availableActions: LocalTransferAction[];
+    /**
+     * @generated from protobuf field: string related_install_session_id = 26
+     */
+    relatedInstallSessionId: string;
+    /**
+     * @generated from protobuf field: bool cleanup_pending = 27
+     */
+    cleanupPending: boolean;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListLocalTransfersRequest
@@ -1127,6 +1219,74 @@ export interface AdmitProductControlReadyForUseRequest {
  * @generated from protobuf message nimi.runtime.v1.ReconcileProductControlFirstRunSetupStateRequest
  */
 export interface ReconcileProductControlFirstRunSetupStateRequest {
+}
+// === Transfers ===
+
+/**
+ * Whether a completed acquisition created a new ModelAsset or committed a
+ * reuse of an existing equivalent distribution. Unspecified before commit.
+ *
+ * @generated from protobuf enum nimi.runtime.v1.LocalTransferDisposition
+ */
+export enum LocalTransferDisposition {
+    /**
+     * @generated from protobuf enum value: LOCAL_TRANSFER_DISPOSITION_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: LOCAL_TRANSFER_DISPOSITION_CREATED = 1;
+     */
+    CREATED = 1,
+    /**
+     * @generated from protobuf enum value: LOCAL_TRANSFER_DISPOSITION_REUSED = 2;
+     */
+    REUSED = 2
+}
+/**
+ * Runtime-projected control actions currently valid for a transfer. Callers
+ * render and invoke only these; every action re-authorizes and re-checks
+ * state when invoked.
+ *
+ * @generated from protobuf enum nimi.runtime.v1.LocalTransferAction
+ */
+export enum LocalTransferAction {
+    /**
+     * @generated from protobuf enum value: LOCAL_TRANSFER_ACTION_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: LOCAL_TRANSFER_ACTION_PAUSE = 1;
+     */
+    PAUSE = 1,
+    /**
+     * @generated from protobuf enum value: LOCAL_TRANSFER_ACTION_RESUME = 2;
+     */
+    RESUME = 2,
+    /**
+     * @generated from protobuf enum value: LOCAL_TRANSFER_ACTION_CANCEL = 3;
+     */
+    CANCEL = 3,
+    /**
+     * The interrupted import cannot be resumed; the source must be imported
+     * again through a new ImportModelAsset call.
+     *
+     * @generated from protobuf enum value: LOCAL_TRANSFER_ACTION_REIMPORT = 4;
+     */
+    REIMPORT = 4,
+    /**
+     * A complete managed view exists but its inventory commit is pending; an
+     * explicit Check & Sync commits or reports it.
+     *
+     * @generated from protobuf enum value: LOCAL_TRANSFER_ACTION_CHECK_SYNC = 5;
+     */
+    CHECK_SYNC = 5,
+    /**
+     * Another transfer (related_install_session_id) owns the file this
+     * transfer needed; view that transfer.
+     *
+     * @generated from protobuf enum value: LOCAL_TRANSFER_ACTION_VIEW_RELATED_TRANSFER = 6;
+     */
+    VIEW_RELATED_TRANSFER = 6
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class ListVerifiedAssetsRequest$Type extends MessageType<ListVerifiedAssetsRequest> {
@@ -2309,12 +2469,14 @@ class InstallModelFromPlanResponse$Type extends MessageType<InstallModelFromPlan
     constructor() {
         super("nimi.runtime.v1.InstallModelFromPlanResponse", [
             { no: 2, name: "model_asset", kind: "message", T: () => ModelAssetRecord },
-            { no: 3, name: "install_session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 3, name: "install_session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "disposition", kind: "enum", T: () => ["nimi.runtime.v1.LocalTransferDisposition", LocalTransferDisposition, "LOCAL_TRANSFER_DISPOSITION_"] }
         ]);
     }
     create(value?: PartialMessage<InstallModelFromPlanResponse>): InstallModelFromPlanResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.installSessionId = "";
+        message.disposition = 0;
         if (value !== undefined)
             reflectionMergePartial<InstallModelFromPlanResponse>(this, message, value);
         return message;
@@ -2329,6 +2491,9 @@ class InstallModelFromPlanResponse$Type extends MessageType<InstallModelFromPlan
                     break;
                 case /* string install_session_id */ 3:
                     message.installSessionId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.LocalTransferDisposition disposition */ 4:
+                    message.disposition = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2348,6 +2513,9 @@ class InstallModelFromPlanResponse$Type extends MessageType<InstallModelFromPlan
         /* string install_session_id = 3; */
         if (message.installSessionId !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.installSessionId);
+        /* nimi.runtime.v1.LocalTransferDisposition disposition = 4; */
+        if (message.disposition !== 0)
+            writer.tag(4, WireType.Varint).int32(message.disposition);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2376,7 +2544,14 @@ class LocalTransferSessionSummary$Type extends MessageType<LocalTransferSessionS
             { no: 15, name: "retryable", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 16, name: "created_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 17, name: "updated_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 18, name: "plan_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 18, name: "plan_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 19, name: "bytes_reused", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 20, name: "bytes_verified", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 21, name: "source_label", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 22, name: "disposition", kind: "enum", T: () => ["nimi.runtime.v1.LocalTransferDisposition", LocalTransferDisposition, "LOCAL_TRANSFER_DISPOSITION_"] },
+            { no: 23, name: "available_actions", kind: "enum", repeat: 1 /*RepeatType.PACKED*/, T: () => ["nimi.runtime.v1.LocalTransferAction", LocalTransferAction, "LOCAL_TRANSFER_ACTION_"] },
+            { no: 24, name: "related_install_session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 25, name: "cleanup_pending", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
     create(value?: PartialMessage<LocalTransferSessionSummary>): LocalTransferSessionSummary {
@@ -2396,6 +2571,13 @@ class LocalTransferSessionSummary$Type extends MessageType<LocalTransferSessionS
         message.createdAt = "";
         message.updatedAt = "";
         message.planId = "";
+        message.bytesReused = "0";
+        message.bytesVerified = "0";
+        message.sourceLabel = "";
+        message.disposition = 0;
+        message.availableActions = [];
+        message.relatedInstallSessionId = "";
+        message.cleanupPending = false;
         if (value !== undefined)
             reflectionMergePartial<LocalTransferSessionSummary>(this, message, value);
         return message;
@@ -2449,6 +2631,31 @@ class LocalTransferSessionSummary$Type extends MessageType<LocalTransferSessionS
                     break;
                 case /* string plan_id */ 18:
                     message.planId = reader.string();
+                    break;
+                case /* int64 bytes_reused */ 19:
+                    message.bytesReused = reader.int64().toString();
+                    break;
+                case /* int64 bytes_verified */ 20:
+                    message.bytesVerified = reader.int64().toString();
+                    break;
+                case /* string source_label */ 21:
+                    message.sourceLabel = reader.string();
+                    break;
+                case /* nimi.runtime.v1.LocalTransferDisposition disposition */ 22:
+                    message.disposition = reader.int32();
+                    break;
+                case /* repeated nimi.runtime.v1.LocalTransferAction available_actions */ 23:
+                    if (wireType === WireType.LengthDelimited)
+                        for (let e = reader.int32() + reader.pos; reader.pos < e;)
+                            message.availableActions.push(reader.int32());
+                    else
+                        message.availableActions.push(reader.int32());
+                    break;
+                case /* string related_install_session_id */ 24:
+                    message.relatedInstallSessionId = reader.string();
+                    break;
+                case /* bool cleanup_pending */ 25:
+                    message.cleanupPending = reader.bool();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2507,6 +2714,31 @@ class LocalTransferSessionSummary$Type extends MessageType<LocalTransferSessionS
         /* string plan_id = 18; */
         if (message.planId !== "")
             writer.tag(18, WireType.LengthDelimited).string(message.planId);
+        /* int64 bytes_reused = 19; */
+        if (message.bytesReused !== "0")
+            writer.tag(19, WireType.Varint).int64(message.bytesReused);
+        /* int64 bytes_verified = 20; */
+        if (message.bytesVerified !== "0")
+            writer.tag(20, WireType.Varint).int64(message.bytesVerified);
+        /* string source_label = 21; */
+        if (message.sourceLabel !== "")
+            writer.tag(21, WireType.LengthDelimited).string(message.sourceLabel);
+        /* nimi.runtime.v1.LocalTransferDisposition disposition = 22; */
+        if (message.disposition !== 0)
+            writer.tag(22, WireType.Varint).int32(message.disposition);
+        /* repeated nimi.runtime.v1.LocalTransferAction available_actions = 23; */
+        if (message.availableActions.length) {
+            writer.tag(23, WireType.LengthDelimited).fork();
+            for (let i = 0; i < message.availableActions.length; i++)
+                writer.int32(message.availableActions[i]);
+            writer.join();
+        }
+        /* string related_install_session_id = 24; */
+        if (message.relatedInstallSessionId !== "")
+            writer.tag(24, WireType.LengthDelimited).string(message.relatedInstallSessionId);
+        /* bool cleanup_pending = 25; */
+        if (message.cleanupPending !== false)
+            writer.tag(25, WireType.Varint).bool(message.cleanupPending);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2537,7 +2769,14 @@ class LocalTransferProgressEvent$Type extends MessageType<LocalTransferProgressE
             { no: 17, name: "success", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 18, name: "created_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 19, name: "updated_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 20, name: "plan_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 20, name: "plan_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 21, name: "bytes_reused", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 22, name: "bytes_verified", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 23, name: "source_label", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 24, name: "disposition", kind: "enum", T: () => ["nimi.runtime.v1.LocalTransferDisposition", LocalTransferDisposition, "LOCAL_TRANSFER_DISPOSITION_"] },
+            { no: 25, name: "available_actions", kind: "enum", repeat: 1 /*RepeatType.PACKED*/, T: () => ["nimi.runtime.v1.LocalTransferAction", LocalTransferAction, "LOCAL_TRANSFER_ACTION_"] },
+            { no: 26, name: "related_install_session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 27, name: "cleanup_pending", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
     create(value?: PartialMessage<LocalTransferProgressEvent>): LocalTransferProgressEvent {
@@ -2559,6 +2798,13 @@ class LocalTransferProgressEvent$Type extends MessageType<LocalTransferProgressE
         message.createdAt = "";
         message.updatedAt = "";
         message.planId = "";
+        message.bytesReused = "0";
+        message.bytesVerified = "0";
+        message.sourceLabel = "";
+        message.disposition = 0;
+        message.availableActions = [];
+        message.relatedInstallSessionId = "";
+        message.cleanupPending = false;
         if (value !== undefined)
             reflectionMergePartial<LocalTransferProgressEvent>(this, message, value);
         return message;
@@ -2618,6 +2864,31 @@ class LocalTransferProgressEvent$Type extends MessageType<LocalTransferProgressE
                     break;
                 case /* string plan_id */ 20:
                     message.planId = reader.string();
+                    break;
+                case /* int64 bytes_reused */ 21:
+                    message.bytesReused = reader.int64().toString();
+                    break;
+                case /* int64 bytes_verified */ 22:
+                    message.bytesVerified = reader.int64().toString();
+                    break;
+                case /* string source_label */ 23:
+                    message.sourceLabel = reader.string();
+                    break;
+                case /* nimi.runtime.v1.LocalTransferDisposition disposition */ 24:
+                    message.disposition = reader.int32();
+                    break;
+                case /* repeated nimi.runtime.v1.LocalTransferAction available_actions */ 25:
+                    if (wireType === WireType.LengthDelimited)
+                        for (let e = reader.int32() + reader.pos; reader.pos < e;)
+                            message.availableActions.push(reader.int32());
+                    else
+                        message.availableActions.push(reader.int32());
+                    break;
+                case /* string related_install_session_id */ 26:
+                    message.relatedInstallSessionId = reader.string();
+                    break;
+                case /* bool cleanup_pending */ 27:
+                    message.cleanupPending = reader.bool();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2682,6 +2953,31 @@ class LocalTransferProgressEvent$Type extends MessageType<LocalTransferProgressE
         /* string plan_id = 20; */
         if (message.planId !== "")
             writer.tag(20, WireType.LengthDelimited).string(message.planId);
+        /* int64 bytes_reused = 21; */
+        if (message.bytesReused !== "0")
+            writer.tag(21, WireType.Varint).int64(message.bytesReused);
+        /* int64 bytes_verified = 22; */
+        if (message.bytesVerified !== "0")
+            writer.tag(22, WireType.Varint).int64(message.bytesVerified);
+        /* string source_label = 23; */
+        if (message.sourceLabel !== "")
+            writer.tag(23, WireType.LengthDelimited).string(message.sourceLabel);
+        /* nimi.runtime.v1.LocalTransferDisposition disposition = 24; */
+        if (message.disposition !== 0)
+            writer.tag(24, WireType.Varint).int32(message.disposition);
+        /* repeated nimi.runtime.v1.LocalTransferAction available_actions = 25; */
+        if (message.availableActions.length) {
+            writer.tag(25, WireType.LengthDelimited).fork();
+            for (let i = 0; i < message.availableActions.length; i++)
+                writer.int32(message.availableActions[i]);
+            writer.join();
+        }
+        /* string related_install_session_id = 26; */
+        if (message.relatedInstallSessionId !== "")
+            writer.tag(26, WireType.LengthDelimited).string(message.relatedInstallSessionId);
+        /* bool cleanup_pending = 27; */
+        if (message.cleanupPending !== false)
+            writer.tag(27, WireType.Varint).bool(message.cleanupPending);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

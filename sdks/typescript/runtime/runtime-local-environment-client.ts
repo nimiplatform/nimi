@@ -37,6 +37,7 @@ import {
   normalizePageSize,
   normalizeText,
   projectRequiredLocal,
+  normalizeNimiRuntimeLocalTransferDisposition,
   requireLocalText,
   stringRecord,
   textList,
@@ -287,6 +288,7 @@ export function createNimiRuntimeLocalEnvironmentClient(
           'check_runtime_local_install_response',
         ),
         installSessionId: normalizeText(response.installSessionId),
+        disposition: normalizeNimiRuntimeLocalTransferDisposition(response.disposition),
       };
     },
     async listTransfers() {

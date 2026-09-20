@@ -228,6 +228,22 @@ export enum LocalRecommendationApplicability {
   UNSUPPORTED = 3,
 }
 
+export enum LocalTransferAction {
+  UNSPECIFIED = 0,
+  PAUSE = 1,
+  RESUME = 2,
+  CANCEL = 3,
+  REIMPORT = 4,
+  CHECK_SYNC = 5,
+  VIEW_RELATED_TRANSFER = 6,
+}
+
+export enum LocalTransferDisposition {
+  UNSPECIFIED = 0,
+  CREATED = 1,
+  REUSED = 2,
+}
+
 export enum ModelAssetCatalogVerification {
   UNSPECIFIED = 0,
   MATCHED = 1,

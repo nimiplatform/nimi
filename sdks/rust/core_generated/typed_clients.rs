@@ -2049,6 +2049,36 @@ impl Default for LocalRecommendationApplicability {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LocalTransferAction {
+    LOCALTRANSFERACTIONUNSPECIFIED,
+    LOCALTRANSFERACTIONPAUSE,
+    LOCALTRANSFERACTIONRESUME,
+    LOCALTRANSFERACTIONCANCEL,
+    LOCALTRANSFERACTIONREIMPORT,
+    LOCALTRANSFERACTIONCHECKSYNC,
+    LOCALTRANSFERACTIONVIEWRELATEDTRANSFER,
+}
+
+impl Default for LocalTransferAction {
+    fn default() -> Self {
+        Self::LOCALTRANSFERACTIONUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LocalTransferDisposition {
+    LOCALTRANSFERDISPOSITIONUNSPECIFIED,
+    LOCALTRANSFERDISPOSITIONCREATED,
+    LOCALTRANSFERDISPOSITIONREUSED,
+}
+
+impl Default for LocalTransferDisposition {
+    fn default() -> Self {
+        Self::LOCALTRANSFERDISPOSITIONUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum MemoryDistanceMetric {
     MEMORYDISTANCEMETRICUNSPECIFIED,
     MEMORYDISTANCEMETRICCOSINE,
@@ -2892,6 +2922,16 @@ pub enum ReasonCode {
     AIVIDEOSESSIONOVERLOADED,
     #[serde(rename = "AI_VIDEO_SESSION_GENERATION_INVALID")]
     AIVIDEOSESSIONGENERATIONINVALID,
+    #[serde(rename = "AI_LOCAL_TRANSFER_IN_PROGRESS")]
+    AILOCALTRANSFERINPROGRESS,
+    #[serde(rename = "AI_LOCAL_TRANSFER_RESUME_REQUIRED")]
+    AILOCALTRANSFERRESUMEREQUIRED,
+    #[serde(rename = "AI_LOCAL_MODEL_STATE_OFFLINE_CONVERSION_REQUIRED")]
+    AILOCALMODELSTATEOFFLINECONVERSIONREQUIRED,
+    #[serde(rename = "AI_LOCAL_MODEL_STORAGE_LINK_UNSUPPORTED")]
+    AILOCALMODELSTORAGELINKUNSUPPORTED,
+    #[serde(rename = "AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED")]
+    AILOCALMODELINVENTORYRECONCILIATIONREQUIRED,
 }
 
 impl Default for ReasonCode {
@@ -3475,6 +3515,16 @@ impl ReasonCode {
             "AIVIDEOSESSIONOVERLOADED" => Some(Self::AIVIDEOSESSIONOVERLOADED),
             "AI_VIDEO_SESSION_GENERATION_INVALID" => Some(Self::AIVIDEOSESSIONGENERATIONINVALID),
             "AIVIDEOSESSIONGENERATIONINVALID" => Some(Self::AIVIDEOSESSIONGENERATIONINVALID),
+            "AI_LOCAL_TRANSFER_IN_PROGRESS" => Some(Self::AILOCALTRANSFERINPROGRESS),
+            "AILOCALTRANSFERINPROGRESS" => Some(Self::AILOCALTRANSFERINPROGRESS),
+            "AI_LOCAL_TRANSFER_RESUME_REQUIRED" => Some(Self::AILOCALTRANSFERRESUMEREQUIRED),
+            "AILOCALTRANSFERRESUMEREQUIRED" => Some(Self::AILOCALTRANSFERRESUMEREQUIRED),
+            "AI_LOCAL_MODEL_STATE_OFFLINE_CONVERSION_REQUIRED" => Some(Self::AILOCALMODELSTATEOFFLINECONVERSIONREQUIRED),
+            "AILOCALMODELSTATEOFFLINECONVERSIONREQUIRED" => Some(Self::AILOCALMODELSTATEOFFLINECONVERSIONREQUIRED),
+            "AI_LOCAL_MODEL_STORAGE_LINK_UNSUPPORTED" => Some(Self::AILOCALMODELSTORAGELINKUNSUPPORTED),
+            "AILOCALMODELSTORAGELINKUNSUPPORTED" => Some(Self::AILOCALMODELSTORAGELINKUNSUPPORTED),
+            "AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED" => Some(Self::AILOCALMODELINVENTORYRECONCILIATIONREQUIRED),
+            "AILOCALMODELINVENTORYRECONCILIATIONREQUIRED" => Some(Self::AILOCALMODELINVENTORYRECONCILIATIONREQUIRED),
             _ => None,
         }
     }
@@ -7748,6 +7798,7 @@ pub struct InstallModelFromPlanRequest {
 pub struct InstallModelFromPlanResponse {
     pub model_asset: Option<Box<ModelAssetRecord>>,
     pub install_session_id: Option<String>,
+    pub disposition: Option<LocalTransferDisposition>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -9714,147 +9765,32 @@ pub struct LocalPythonProfile {
     pub version: Option<String>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalTransferProgressEvent {
-    #[serde(rename = "install_session_id", skip_serializing_if = "Option::is_none")]
     pub install_session_id: Option<String>,
-    #[serde(rename = "asset_id", skip_serializing_if = "Option::is_none")]
     pub asset_id: Option<String>,
-    #[serde(rename = "session_kind", skip_serializing_if = "Option::is_none")]
     pub session_kind: Option<String>,
-    #[serde(rename = "phase", skip_serializing_if = "Option::is_none")]
     pub phase: Option<String>,
-    #[serde(rename = "bytes_received", skip_serializing_if = "Option::is_none")]
     pub bytes_received: Option<i64>,
-    #[serde(rename = "bytes_total", skip_serializing_if = "Option::is_none")]
     pub bytes_total: Option<i64>,
-    #[serde(rename = "speed_bytes_per_sec", skip_serializing_if = "Option::is_none")]
     pub speed_bytes_per_sec: Option<i64>,
-    #[serde(rename = "eta_seconds", skip_serializing_if = "Option::is_none")]
     pub eta_seconds: Option<i64>,
-    #[serde(rename = "message", skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
-    #[serde(rename = "state", skip_serializing_if = "Option::is_none")]
     pub state: Option<String>,
-    #[serde(rename = "reason_code", skip_serializing_if = "Option::is_none")]
     pub reason_code: Option<String>,
-    #[serde(rename = "retryable", skip_serializing_if = "Option::is_none")]
     pub retryable: Option<bool>,
-    #[serde(rename = "done", skip_serializing_if = "Option::is_none")]
     pub done: Option<bool>,
-    #[serde(rename = "success", skip_serializing_if = "Option::is_none")]
     pub success: Option<bool>,
-    #[serde(rename = "created_at", skip_serializing_if = "Option::is_none")]
     pub created_at: Option<String>,
-    #[serde(rename = "updated_at", skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<String>,
-    #[serde(rename = "plan_id", skip_serializing_if = "Option::is_none")]
     pub plan_id: Option<String>,
-}
-
-impl LocalTransferProgressEvent {
-    pub fn to_transport(&self) -> Vec<u8> {
-        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
-    }
-
-    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
-        RuntimeResponseDecodeError { type_name: "LocalTransferProgressEvent", field }
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
-        let object = json_object(raw, Self::decode_error("<body>"))?;
-        Self::from_json_object(&object)
-    }
-
-    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
-        let mut out = Self::default();
-        out.install_session_id = match object.get("install_session_id") {
-            Some(value) if value.is_null() => None,
-            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("install_session_id"))?),
-            None => None,
-        };
-        out.asset_id = match object.get("asset_id") {
-            Some(value) if value.is_null() => None,
-            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("asset_id"))?),
-            None => None,
-        };
-        out.session_kind = match object.get("session_kind") {
-            Some(value) if value.is_null() => None,
-            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("session_kind"))?),
-            None => None,
-        };
-        out.phase = match object.get("phase") {
-            Some(value) if value.is_null() => None,
-            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("phase"))?),
-            None => None,
-        };
-        out.bytes_received = match object.get("bytes_received") {
-            Some(value) if value.is_null() => None,
-            Some(value) => Some(value.as_i64().ok_or_else(|| Self::decode_error("bytes_received"))?),
-            None => None,
-        };
-        out.bytes_total = match object.get("bytes_total") {
-            Some(value) if value.is_null() => None,
-            Some(value) => Some(value.as_i64().ok_or_else(|| Self::decode_error("bytes_total"))?),
-            None => None,
-        };
-        out.speed_bytes_per_sec = match object.get("speed_bytes_per_sec") {
-            Some(value) if value.is_null() => None,
-            Some(value) => Some(value.as_i64().ok_or_else(|| Self::decode_error("speed_bytes_per_sec"))?),
-            None => None,
-        };
-        out.eta_seconds = match object.get("eta_seconds") {
-            Some(value) if value.is_null() => None,
-            Some(value) => Some(value.as_i64().ok_or_else(|| Self::decode_error("eta_seconds"))?),
-            None => None,
-        };
-        out.message = match object.get("message") {
-            Some(value) if value.is_null() => None,
-            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("message"))?),
-            None => None,
-        };
-        out.state = match object.get("state") {
-            Some(value) if value.is_null() => None,
-            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("state"))?),
-            None => None,
-        };
-        out.reason_code = match object.get("reason_code") {
-            Some(value) if value.is_null() => None,
-            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("reason_code"))?),
-            None => None,
-        };
-        out.retryable = match object.get("retryable") {
-            Some(value) if value.is_null() => None,
-            Some(value) => Some(value.as_bool().ok_or_else(|| Self::decode_error("retryable"))?),
-            None => None,
-        };
-        out.done = match object.get("done") {
-            Some(value) if value.is_null() => None,
-            Some(value) => Some(value.as_bool().ok_or_else(|| Self::decode_error("done"))?),
-            None => None,
-        };
-        out.success = match object.get("success") {
-            Some(value) if value.is_null() => None,
-            Some(value) => Some(value.as_bool().ok_or_else(|| Self::decode_error("success"))?),
-            None => None,
-        };
-        out.created_at = match object.get("created_at") {
-            Some(value) if value.is_null() => None,
-            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("created_at"))?),
-            None => None,
-        };
-        out.updated_at = match object.get("updated_at") {
-            Some(value) if value.is_null() => None,
-            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("updated_at"))?),
-            None => None,
-        };
-        out.plan_id = match object.get("plan_id") {
-            Some(value) if value.is_null() => None,
-            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("plan_id"))?),
-            None => None,
-        };
-        Ok(out)
-    }
+    pub bytes_reused: Option<i64>,
+    pub bytes_verified: Option<i64>,
+    pub source_label: Option<String>,
+    pub disposition: Option<LocalTransferDisposition>,
+    pub available_actions: Vec<LocalTransferAction>,
+    pub related_install_session_id: Option<String>,
+    pub cleanup_pending: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -9874,6 +9810,13 @@ pub struct LocalTransferSessionSummary {
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
     pub plan_id: Option<String>,
+    pub bytes_reused: Option<i64>,
+    pub bytes_verified: Option<i64>,
+    pub source_label: Option<String>,
+    pub disposition: Option<LocalTransferDisposition>,
+    pub available_actions: Vec<LocalTransferAction>,
+    pub related_install_session_id: Option<String>,
+    pub cleanup_pending: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -13286,24 +13229,9 @@ pub struct VoiceV2VInput {
     pub text: Option<String>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct WatchLocalTransfersRequest {
 
-}
-
-impl WatchLocalTransfersRequest {
-    pub fn to_transport(&self) -> Vec<u8> {
-        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
-    }
-
-    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
-        RuntimeResponseDecodeError { type_name: "WatchLocalTransfersRequest", field }
-    }
-
-    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
-        json_object(raw, Self::decode_error("<body>"))?;
-        Ok(Self::default())
-    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -13604,14 +13532,6 @@ impl TryFrom<Vec<u8>> for GetCatalogModelCardResponse {
 }
 
 impl TryFrom<Vec<u8>> for CheckSyncProjectionJson {
-    type Error = RuntimeResponseDecodeError;
-
-    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
-        Self::from_transport(&body)
-    }
-}
-
-impl TryFrom<Vec<u8>> for LocalTransferProgressEvent {
     type Error = RuntimeResponseDecodeError;
 
     fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
@@ -14089,19 +14009,6 @@ where
             type_name: error.type_name,
             field: error.field,
         })
-    }
-
-    pub fn watch_local_transfers(&self, request: WatchLocalTransfersRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RuntimeTypedStream<T::Stream, LocalTransferProgressEvent>, T::Error>
-    where
-        T::Stream: CoreTypedStream,
-    {
-        let inner = self.core.server_stream(CoreStreamRequest {
-            method_id: "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers".to_string(),
-            metadata,
-            body: request.to_transport(),
-            timeout,
-        })?;
-        Ok(RuntimeTypedStream { inner, _response: std::marker::PhantomData })
     }
 
     pub fn request_runtime_restart(&self, request: RequestRuntimeRestartRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RequestRuntimeRestartResponse, RuntimeTypedClientError<T::Error>> {

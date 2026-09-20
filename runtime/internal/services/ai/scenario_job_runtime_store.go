@@ -3,6 +3,7 @@ package ai
 import (
 	"context"
 	"fmt"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"log/slog"
 	"sort"
 	"strings"
@@ -74,6 +75,24 @@ type scenarioJobRecord struct {
 	createdAt        time.Time
 	updatedAt        time.Time
 	terminalAt       time.Time
+	// modelAssetUses keeps every captured ModelAsset's files alive until the
+	// job is terminal and its executor has exited. Released exactly once.
+	modelAssetUses []func()
+}
+
+// releaseModelAssetUses releases the captured ModelAsset uses once. It is
+// called only when the record is terminal and no executor still runs.
+func (record *scenarioJobRecord) releaseModelAssetUses() {
+	if record == nil {
+		return
+	}
+	releases := record.modelAssetUses
+	record.modelAssetUses = nil
+	for _, release := range releases {
+		if release != nil {
+			release()
+		}
+	}
 }
 
 type uploadedArtifactRecord struct {
@@ -97,6 +116,7 @@ type scenarioPendingCloudCustody struct {
 
 // @nimi-authority: definition.nimi.runtime.service-operations.scenario-job-plane
 type scenarioJobStore struct {
+	modelAssetUseHolder  localexecution.ModelAssetUseHolder
 	mu                   sync.RWMutex
 	durablePath          string
 	jobs                 map[string]*scenarioJobRecord
@@ -227,6 +247,7 @@ func (s *scenarioJobStore) createOwnedAndBindCapturedInputsChecked(
 		createdAt:        nowTime,
 		updatedAt:        nowTime,
 	}
+	record.modelAssetUses = s.acquireModelAssetUsesFor(id, capturedAssembly)
 	key := strings.TrimSpace(idempotencyScope)
 
 	s.mu.Lock()
@@ -642,6 +663,9 @@ func (s *scenarioJobStore) transitionWithResults(
 	if becameTerminal {
 		record.doneClosed = true
 		close(record.done)
+		if !record.executionStarted {
+			record.releaseModelAssetUses()
+		}
 	}
 	if eventType != runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_TYPE_UNSPECIFIED {
 		s.publishLocked(record, eventType)
@@ -715,6 +739,9 @@ func (s *scenarioJobStore) forceFailedInMemory(jobID string, reason string) (*ru
 	if !record.doneClosed {
 		record.doneClosed = true
 		close(record.done)
+	}
+	if !record.executionStarted {
+		record.releaseModelAssetUses()
 	}
 	s.publishLocked(record, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_FAILED)
 	return cloneScenarioJob(record.job), true
@@ -969,6 +996,40 @@ func (s *scenarioJobStore) commitArtifact(
 	return job, true, nil
 }
 
+// setModelAssetUseHolder installs the inventory owner's use surface. Jobs
+// created afterwards keep their captured ModelAssets alive until terminal.
+func (s *scenarioJobStore) setModelAssetUseHolder(holder localexecution.ModelAssetUseHolder) {
+	s.mu.Lock()
+	s.modelAssetUseHolder = holder
+	s.mu.Unlock()
+}
+
+func (s *scenarioJobStore) acquireModelAssetUsesFor(jobID string, assembly *localResolvedAssembly) []func() {
+	if assembly == nil {
+		return nil
+	}
+	s.mu.Lock()
+	holder := s.modelAssetUseHolder
+	s.mu.Unlock()
+	if holder == nil {
+		return nil
+	}
+	seen := make(map[string]struct{}, len(assembly.ModelAxes))
+	releases := make([]func(), 0, len(assembly.ModelAxes))
+	for _, axis := range assembly.ModelAxes {
+		id := strings.TrimSpace(axis.ModelAssetID)
+		if id == "" {
+			continue
+		}
+		if _, duplicate := seen[id]; duplicate {
+			continue
+		}
+		seen[id] = struct{}{}
+		releases = append(releases, holder.AcquireModelAssetUse(id, "job:"+strings.TrimSpace(jobID)))
+	}
+	return releases
+}
+
 func (s *scenarioJobStore) startExecution(jobID string) bool {
 	id := strings.TrimSpace(jobID)
 	if id == "" {
@@ -1045,6 +1106,13 @@ func (s *scenarioJobStore) finishExecution(jobID string) (bool, error) {
 	record.executionStarted = false
 	cancel := record.cancel
 	record.cancel = nil
+	// The executor has really exited: once the record is terminal (now, or
+	// after the cancellation below persists) the captured files are free.
+	defer func() {
+		if isTerminalScenarioJobStatus(record.job.GetStatus()) {
+			record.releaseModelAssetUses()
+		}
+	}()
 	if record.cancelRequested && !isTerminalScenarioJobStatus(record.job.GetStatus()) {
 		previousJob := cloneScenarioJob(record.job)
 		previousUpdatedAt := record.updatedAt

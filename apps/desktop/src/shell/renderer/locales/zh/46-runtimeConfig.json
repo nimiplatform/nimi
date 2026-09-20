@@ -1783,6 +1783,12 @@
   "localModelCenter": {
     "activeDownloads": "下载任务（{{count}}）",
     "dismissTransfer": "关闭传输记录",
+    "reimport": "重新导入",
+    "checkSync": "检查与同步",
+    "reusedBytes": "已复用本地内容 {{size}}",
+    "relatedTransfer": "另一个任务已经拥有这份内容，请先继续该任务。",
+    "cleanupPending": "临时文件仍在释放中。",
+    "reusedExisting": "使用已有模型",
     "activeImports": "导入任务（{{count}}）",
     "aiCapabilityStatus": "AI 能力状态",
     "allKinds": "全部类型",
@@ -2166,6 +2172,8 @@
     "attempts": "{{count}} 次尝试",
     "showAttempts": "之前的尝试（{{count}}）",
     "retryDownload": "重新下载",
+    "retryCleanup": "重试清理",
+    "reimportHint": "请重新导入来源以继续。",
     "setupGroup": "设置任务",
     "stage": {
       "queued": "排队中",

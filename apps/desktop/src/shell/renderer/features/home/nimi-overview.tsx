@@ -138,7 +138,7 @@ export function NimiOverview() {
     ...activeTransfers.slice(0, 2).map((item) => ({
       key: `transfer:${item.installSessionId}`,
       icon: <Download size={17} className="text-[var(--nimi-status-info)]" />,
-      title: downloadModelName(item.modelId, library.data?.catalog ?? []) ?? item.modelId,
+      title: downloadModelName(item.sourceLabel, library.data?.catalog ?? []) ?? item.sourceLabel ?? item.installSessionId,
       detail: [
         item.bytesTotal ? `${formatBytes(item.bytesReceived)} / ${formatBytes(item.bytesTotal)}` : formatBytes(item.bytesReceived),
         formatTransferRate(item.speedBytesPerSec),

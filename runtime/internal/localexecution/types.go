@@ -98,6 +98,14 @@ type Resolver interface {
 	ResolveLocalExecution(capabilityContract string, loadoutRef string) (*SelectedLocalExecution, error)
 }
 
+// ModelAssetUseHolder is the optional inventory-owner surface a Resolver may
+// implement so a Job owner can keep a captured ModelAsset's files alive from
+// admission until its executor has really exited. The returned release is
+// idempotent. Holding a use never binds, selects, or routes anything.
+type ModelAssetUseHolder interface {
+	AcquireModelAssetUse(modelAssetID string, holder string) func()
+}
+
 // TextExecutionProgress reports private host lifecycle progress to the job or
 // stream owner. It is execution lifecycle, never selected/configured truth.
 type TextExecutionProgress string

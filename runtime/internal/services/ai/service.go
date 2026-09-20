@@ -291,6 +291,10 @@ func newFromProviderConfig(logger *slog.Logger, auditStore *auditlog.Store, conn
 func (s *Service) SetLocalExecutionResolver(resolver localexecution.Resolver) {
 	if s != nil {
 		s.localExecution = resolver
+		if s.scenarioJobs != nil {
+			holder, _ := resolver.(localexecution.ModelAssetUseHolder)
+			s.scenarioJobs.setModelAssetUseHolder(holder)
+		}
 	}
 }
 

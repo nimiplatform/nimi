@@ -1066,8 +1066,10 @@ func TestLegacyAbsoluteModelAssetLocatorDetachesInMemoryBeforeOwnerCheckSyncDura
 	service.mu.RUnlock()
 	service.Close()
 
+	// A same-volume move keeps every object link intact; an expanded copy
+	// would be an offline-conversion case, not a locator rebase.
 	rootTwo := filepath.Join(t.TempDir(), "model-owner-root-two")
-	if err := os.CopyFS(rootTwo, os.DirFS(rootOne)); err != nil {
+	if err := os.Rename(rootOne, rootTwo); err != nil {
 		t.Fatal(err)
 	}
 	copiedByBasename := filepath.Join(rootTwo, "models", "resolved", filepath.Base(legacyDirectory))

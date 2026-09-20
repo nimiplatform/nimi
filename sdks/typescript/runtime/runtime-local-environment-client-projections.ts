@@ -25,6 +25,7 @@ import type {
   NimiRuntimeLocalInstallPlanDescriptor,
   NimiRuntimeLocalProviderHints,
   NimiRuntimeLocalTransferAccepted,
+  NimiRuntimeLocalTransferAcquisition,
   NimiRuntimeLocalTransferProgressEvent,
   NimiRuntimeLocalTransferSessionSummary,
   NimiRuntimeLocalVerifiedAssetDescriptor,
@@ -35,6 +36,8 @@ import {
   nonEmptyRecord,
   nonNegativeNumber,
   normalizeNimiRuntimeLocalDownloadState,
+  normalizeNimiRuntimeLocalTransferActions,
+  normalizeNimiRuntimeLocalTransferDisposition,
   normalizeNimiRuntimeLocalState,
   normalizeText,
   numberFromInt64,
@@ -261,26 +264,40 @@ export function projectNimiRuntimeLocalDeviceProfile(
   };
 }
 
-export function projectNimiRuntimeLocalTransferSessionSummary(
-  value: GeneratedLocalTransferSessionSummary,
-): NimiRuntimeLocalTransferSessionSummary {
-  const state = normalizeNimiRuntimeLocalDownloadState(value.state);
+function projectNimiRuntimeLocalTransferAcquisition(
+  value: GeneratedLocalTransferSessionSummary | GeneratedLocalTransferProgressEvent,
+): NimiRuntimeLocalTransferAcquisition {
   return {
     installSessionId: normalizeText(value.installSessionId),
-    modelId: normalizeText(value.assetId),
+    modelAssetId: normalizeText(value.assetId),
+    sourceLabel: normalizeText(value.sourceLabel),
     sessionKind: normalizeText(value.sessionKind) || 'download',
     phase: normalizeText(value.phase),
-    state,
     bytesReceived: numberFromInt64(value.bytesReceived),
+    bytesReused: numberFromInt64(value.bytesReused),
+    bytesVerified: numberFromInt64(value.bytesVerified),
     bytesTotal: positiveNumber(value.bytesTotal),
     speedBytesPerSec: positiveNumber(value.speedBytesPerSec),
     etaSeconds: positiveNumber(value.etaSeconds),
     message: normalizeText(value.message) || undefined,
+    state: normalizeNimiRuntimeLocalDownloadState(value.state),
     reasonCode: normalizeText(value.reasonCode) || undefined,
+    disposition: normalizeNimiRuntimeLocalTransferDisposition(value.disposition),
+    availableActions: normalizeNimiRuntimeLocalTransferActions(value.availableActions),
+    relatedInstallSessionId: normalizeText(value.relatedInstallSessionId) || undefined,
+    cleanupPending: Boolean(value.cleanupPending),
+    planId: normalizeText(value.planId) || undefined,
+  };
+}
+
+export function projectNimiRuntimeLocalTransferSessionSummary(
+  value: GeneratedLocalTransferSessionSummary,
+): NimiRuntimeLocalTransferSessionSummary {
+  return {
+    ...projectNimiRuntimeLocalTransferAcquisition(value),
     retryable: Boolean(value.retryable),
     createdAt: normalizeText(value.createdAt),
     updatedAt: normalizeText(value.updatedAt),
-    planId: normalizeText(value.planId) || undefined,
   };
 }
 
@@ -288,23 +305,12 @@ export function projectNimiRuntimeLocalTransferProgressEvent(
   value: GeneratedLocalTransferProgressEvent,
 ): NimiRuntimeLocalTransferProgressEvent {
   return {
-    installSessionId: normalizeText(value.installSessionId),
-    modelId: normalizeText(value.assetId),
-    sessionKind: normalizeText(value.sessionKind) || 'download',
-    phase: normalizeText(value.phase),
-    bytesReceived: numberFromInt64(value.bytesReceived),
-    bytesTotal: positiveNumber(value.bytesTotal),
-    speedBytesPerSec: positiveNumber(value.speedBytesPerSec),
-    etaSeconds: positiveNumber(value.etaSeconds),
-    message: normalizeText(value.message) || undefined,
-    state: normalizeNimiRuntimeLocalDownloadState(value.state),
-    reasonCode: normalizeText(value.reasonCode) || undefined,
+    ...projectNimiRuntimeLocalTransferAcquisition(value),
     retryable: Boolean(value.retryable),
     done: Boolean(value.done),
     success: Boolean(value.success),
     createdAt: normalizeText(value.createdAt) || undefined,
     updatedAt: normalizeText(value.updatedAt) || undefined,
-    planId: normalizeText(value.planId) || undefined,
   };
 }
 
@@ -472,6 +478,6 @@ export function projectNimiRuntimeLocalTransferAccepted(
 ): NimiRuntimeLocalTransferAccepted {
   return {
     installSessionId: normalizeText(value.installSessionId),
-    modelId: normalizeText(value.assetId),
+    sourceLabel: normalizeText(value.sourceLabel),
   };
 }

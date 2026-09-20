@@ -84,6 +84,7 @@ export { CallerKind, ExternalPrincipalType, ReasonCode, TextBehaviorKind, ToolCh
 export { CatalogModelSource, CatalogSourceKind, ConnectorAuthKind, ConnectorKind, ConnectorOwnerType, ConnectorStatus, ModelCatalogProviderSource } from "./runtime-protobuf/runtime/v1/connector";
 export { DelegatedApprovalDecision, DelegatedApprovalMode, DelegatedApprovalRequestState, DelegatedProviderKind, DelegatedProviderState, DelegatedProviderTrustTier, DelegatedReplayOutcome, DelegatedTraceStageKind, DelegatedTransportKind, EffectClass, SensitivityClass } from "./runtime-protobuf/runtime/v1/delegated_control";
 export { DeveloperModeState, LocalDevelopmentShellKind } from "./runtime-protobuf/runtime/v1/development";
+export { LocalTransferAction, LocalTransferDisposition } from "./runtime-protobuf/runtime/v1/local_runtime";
 export { LocalAssetKind, LocalEngineRuntimeMode, ModelAssetCatalogVerification } from "./runtime-protobuf/runtime/v1/local_runtime_asset_catalog";
 export { GpuMemoryModel } from "./runtime-protobuf/runtime/v1/local_runtime_device_environment";
 export { LocalRecommendationApplicability, ModelAssetSourceAvailability, ModelAssetSourceFreshness } from "./runtime-protobuf/runtime/v1/local_runtime_recommendation";

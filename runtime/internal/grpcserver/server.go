@@ -977,6 +977,11 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	if err := localSvc.RecoverProductControlCheckSync(); err != nil {
 		logger.Warn("automatic Product Control Check & Sync admission failed", "error", err)
 	}
+	// Every reference owner has recovered: transfer intents were reconciled
+	// from durable state, Scenario Jobs interrupted by the restart were
+	// terminated by their owner, and Check & Sync has admitted the inventory.
+	// Only now may ModelAsset reclamation run.
+	localSvc.OpenModelAssetReclamation()
 
 	s := &Server{
 		addr:                  addr,
