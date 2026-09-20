@@ -1040,6 +1040,102 @@ export interface ApprovedAppCatalogStorageDisclosure {
     expectedSizeBand: string;
 }
 /**
+ * One declared AI output modality of a publisher safety declaration.
+ *
+ * @generated from protobuf message nimi.runtime.v1.AppSafetyOutputDeclaration
+ */
+export interface AppSafetyOutputDeclaration {
+    /**
+     * @generated from protobuf field: string modality = 1
+     */
+    modality: string;
+    /**
+     * @generated from protobuf field: string exposure = 2
+     */
+    exposure: string;
+    /**
+     * @generated from protobuf field: string publication_control = 3
+     */
+    publicationControl: string;
+    /**
+     * @generated from protobuf field: string in_product_notice = 4
+     */
+    inProductNotice: string;
+    /**
+     * @generated from protobuf field: string export_visible_marking = 5
+     */
+    exportVisibleMarking: string;
+    /**
+     * @generated from protobuf field: string machine_readable_marking = 6
+     */
+    machineReadableMarking: string;
+}
+/**
+ * Publisher-authored safety declaration for one exact App version, carried as
+ * declared from nimi.app.yaml safety_profile. Absence means undeclared. It is
+ * never a Nimi certification, App Access, session condition or eligibility.
+ *
+ * @generated from protobuf message nimi.runtime.v1.AppSafetyDeclaration
+ */
+export interface AppSafetyDeclaration {
+    /**
+     * @generated from protobuf field: string intended_audience = 1
+     */
+    intendedAudience: string;
+    /**
+     * @generated from protobuf field: repeated string content_descriptors = 2
+     */
+    contentDescriptors: string[];
+    /**
+     * @generated from protobuf field: bool ai_direct_interaction = 3
+     */
+    aiDirectInteraction: boolean;
+    /**
+     * @generated from protobuf field: string ai_interaction_notice = 4
+     */
+    aiInteractionNotice: string;
+    /**
+     * @generated from protobuf field: repeated string ai_risk_features = 5
+     */
+    aiRiskFeatures: string[];
+    /**
+     * @generated from protobuf field: string ai_subject_notice = 6
+     */
+    aiSubjectNotice: string;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.AppSafetyOutputDeclaration ai_outputs = 7
+     */
+    aiOutputs: AppSafetyOutputDeclaration[];
+    /**
+     * @generated from protobuf field: bool publisher_direct_external_network = 8
+     */
+    publisherDirectExternalNetwork: boolean;
+    /**
+     * @generated from protobuf field: repeated string telemetry = 9
+     */
+    telemetry: string[];
+    /**
+     * @generated from protobuf field: string third_party_account = 10
+     */
+    thirdPartyAccount: string;
+    /**
+     * @generated from protobuf field: string user_content_sharing = 11
+     */
+    userContentSharing: string;
+    /**
+     * @generated from protobuf field: repeated string commercial_features = 12
+     */
+    commercialFeatures: string[];
+    /**
+     * @generated from protobuf field: repeated string sensitive_data_categories = 13
+     */
+    sensitiveDataCategories: string[];
+    /**
+     * @generated from protobuf field: repeated string high_impact_decision_uses = 14
+     */
+    highImpactDecisionUses: string[];
+}
+/**
  * Runtime projects one target from one immutable Registry snapshot. The
  * selector is opaque to Desktop and is the only input accepted by install
  * start; display fields never authorize a package mutation by themselves.
@@ -1155,6 +1251,12 @@ export interface ApprovedAppCatalogTarget {
      * @generated from protobuf field: optional string macos_developer_id_subject = 27
      */
     macosDeveloperIdSubject?: string;
+    /**
+     * Absent when the admitted release carries no declaration (undeclared).
+     *
+     * @generated from protobuf field: nimi.runtime.v1.AppSafetyDeclaration safety_declaration = 28
+     */
+    safetyDeclaration?: AppSafetyDeclaration;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListApprovedAppCatalogTargetsRequest
@@ -1425,6 +1527,12 @@ export interface AppPackageInfo {
      * @generated from protobuf field: string support_url = 18
      */
     supportUrl: string;
+    /**
+     * Absent when the information document carries no declaration (undeclared).
+     *
+     * @generated from protobuf field: nimi.runtime.v1.AppSafetyDeclaration safety_declaration = 19
+     */
+    safetyDeclaration?: AppSafetyDeclaration;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.GetAppPackageInfoRequest
@@ -5241,6 +5349,244 @@ class ApprovedAppCatalogStorageDisclosure$Type extends MessageType<ApprovedAppCa
  */
 export const ApprovedAppCatalogStorageDisclosure = new ApprovedAppCatalogStorageDisclosure$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class AppSafetyOutputDeclaration$Type extends MessageType<AppSafetyOutputDeclaration> {
+    constructor() {
+        super("nimi.runtime.v1.AppSafetyOutputDeclaration", [
+            { no: 1, name: "modality", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "exposure", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "publication_control", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "in_product_notice", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "export_visible_marking", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "machine_readable_marking", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AppSafetyOutputDeclaration>): AppSafetyOutputDeclaration {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.modality = "";
+        message.exposure = "";
+        message.publicationControl = "";
+        message.inProductNotice = "";
+        message.exportVisibleMarking = "";
+        message.machineReadableMarking = "";
+        if (value !== undefined)
+            reflectionMergePartial<AppSafetyOutputDeclaration>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AppSafetyOutputDeclaration): AppSafetyOutputDeclaration {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string modality */ 1:
+                    message.modality = reader.string();
+                    break;
+                case /* string exposure */ 2:
+                    message.exposure = reader.string();
+                    break;
+                case /* string publication_control */ 3:
+                    message.publicationControl = reader.string();
+                    break;
+                case /* string in_product_notice */ 4:
+                    message.inProductNotice = reader.string();
+                    break;
+                case /* string export_visible_marking */ 5:
+                    message.exportVisibleMarking = reader.string();
+                    break;
+                case /* string machine_readable_marking */ 6:
+                    message.machineReadableMarking = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AppSafetyOutputDeclaration, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string modality = 1; */
+        if (message.modality !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.modality);
+        /* string exposure = 2; */
+        if (message.exposure !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.exposure);
+        /* string publication_control = 3; */
+        if (message.publicationControl !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.publicationControl);
+        /* string in_product_notice = 4; */
+        if (message.inProductNotice !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.inProductNotice);
+        /* string export_visible_marking = 5; */
+        if (message.exportVisibleMarking !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.exportVisibleMarking);
+        /* string machine_readable_marking = 6; */
+        if (message.machineReadableMarking !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.machineReadableMarking);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AppSafetyOutputDeclaration
+ */
+export const AppSafetyOutputDeclaration = new AppSafetyOutputDeclaration$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AppSafetyDeclaration$Type extends MessageType<AppSafetyDeclaration> {
+    constructor() {
+        super("nimi.runtime.v1.AppSafetyDeclaration", [
+            { no: 1, name: "intended_audience", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "content_descriptors", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "ai_direct_interaction", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 4, name: "ai_interaction_notice", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "ai_risk_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "ai_subject_notice", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "ai_outputs", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AppSafetyOutputDeclaration },
+            { no: 8, name: "publisher_direct_external_network", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 9, name: "telemetry", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "third_party_account", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 11, name: "user_content_sharing", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 12, name: "commercial_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 13, name: "sensitive_data_categories", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 14, name: "high_impact_decision_uses", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AppSafetyDeclaration>): AppSafetyDeclaration {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.intendedAudience = "";
+        message.contentDescriptors = [];
+        message.aiDirectInteraction = false;
+        message.aiInteractionNotice = "";
+        message.aiRiskFeatures = [];
+        message.aiSubjectNotice = "";
+        message.aiOutputs = [];
+        message.publisherDirectExternalNetwork = false;
+        message.telemetry = [];
+        message.thirdPartyAccount = "";
+        message.userContentSharing = "";
+        message.commercialFeatures = [];
+        message.sensitiveDataCategories = [];
+        message.highImpactDecisionUses = [];
+        if (value !== undefined)
+            reflectionMergePartial<AppSafetyDeclaration>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AppSafetyDeclaration): AppSafetyDeclaration {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string intended_audience */ 1:
+                    message.intendedAudience = reader.string();
+                    break;
+                case /* repeated string content_descriptors */ 2:
+                    message.contentDescriptors.push(reader.string());
+                    break;
+                case /* bool ai_direct_interaction */ 3:
+                    message.aiDirectInteraction = reader.bool();
+                    break;
+                case /* string ai_interaction_notice */ 4:
+                    message.aiInteractionNotice = reader.string();
+                    break;
+                case /* repeated string ai_risk_features */ 5:
+                    message.aiRiskFeatures.push(reader.string());
+                    break;
+                case /* string ai_subject_notice */ 6:
+                    message.aiSubjectNotice = reader.string();
+                    break;
+                case /* repeated nimi.runtime.v1.AppSafetyOutputDeclaration ai_outputs */ 7:
+                    message.aiOutputs.push(AppSafetyOutputDeclaration.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* bool publisher_direct_external_network */ 8:
+                    message.publisherDirectExternalNetwork = reader.bool();
+                    break;
+                case /* repeated string telemetry */ 9:
+                    message.telemetry.push(reader.string());
+                    break;
+                case /* string third_party_account */ 10:
+                    message.thirdPartyAccount = reader.string();
+                    break;
+                case /* string user_content_sharing */ 11:
+                    message.userContentSharing = reader.string();
+                    break;
+                case /* repeated string commercial_features */ 12:
+                    message.commercialFeatures.push(reader.string());
+                    break;
+                case /* repeated string sensitive_data_categories */ 13:
+                    message.sensitiveDataCategories.push(reader.string());
+                    break;
+                case /* repeated string high_impact_decision_uses */ 14:
+                    message.highImpactDecisionUses.push(reader.string());
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AppSafetyDeclaration, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string intended_audience = 1; */
+        if (message.intendedAudience !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.intendedAudience);
+        /* repeated string content_descriptors = 2; */
+        for (let i = 0; i < message.contentDescriptors.length; i++)
+            writer.tag(2, WireType.LengthDelimited).string(message.contentDescriptors[i]);
+        /* bool ai_direct_interaction = 3; */
+        if (message.aiDirectInteraction !== false)
+            writer.tag(3, WireType.Varint).bool(message.aiDirectInteraction);
+        /* string ai_interaction_notice = 4; */
+        if (message.aiInteractionNotice !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.aiInteractionNotice);
+        /* repeated string ai_risk_features = 5; */
+        for (let i = 0; i < message.aiRiskFeatures.length; i++)
+            writer.tag(5, WireType.LengthDelimited).string(message.aiRiskFeatures[i]);
+        /* string ai_subject_notice = 6; */
+        if (message.aiSubjectNotice !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.aiSubjectNotice);
+        /* repeated nimi.runtime.v1.AppSafetyOutputDeclaration ai_outputs = 7; */
+        for (let i = 0; i < message.aiOutputs.length; i++)
+            AppSafetyOutputDeclaration.internalBinaryWrite(message.aiOutputs[i], writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* bool publisher_direct_external_network = 8; */
+        if (message.publisherDirectExternalNetwork !== false)
+            writer.tag(8, WireType.Varint).bool(message.publisherDirectExternalNetwork);
+        /* repeated string telemetry = 9; */
+        for (let i = 0; i < message.telemetry.length; i++)
+            writer.tag(9, WireType.LengthDelimited).string(message.telemetry[i]);
+        /* string third_party_account = 10; */
+        if (message.thirdPartyAccount !== "")
+            writer.tag(10, WireType.LengthDelimited).string(message.thirdPartyAccount);
+        /* string user_content_sharing = 11; */
+        if (message.userContentSharing !== "")
+            writer.tag(11, WireType.LengthDelimited).string(message.userContentSharing);
+        /* repeated string commercial_features = 12; */
+        for (let i = 0; i < message.commercialFeatures.length; i++)
+            writer.tag(12, WireType.LengthDelimited).string(message.commercialFeatures[i]);
+        /* repeated string sensitive_data_categories = 13; */
+        for (let i = 0; i < message.sensitiveDataCategories.length; i++)
+            writer.tag(13, WireType.LengthDelimited).string(message.sensitiveDataCategories[i]);
+        /* repeated string high_impact_decision_uses = 14; */
+        for (let i = 0; i < message.highImpactDecisionUses.length; i++)
+            writer.tag(14, WireType.LengthDelimited).string(message.highImpactDecisionUses[i]);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AppSafetyDeclaration
+ */
+export const AppSafetyDeclaration = new AppSafetyDeclaration$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class ApprovedAppCatalogTarget$Type extends MessageType<ApprovedAppCatalogTarget> {
     constructor() {
         super("nimi.runtime.v1.ApprovedAppCatalogTarget", [
@@ -5270,7 +5616,8 @@ class ApprovedAppCatalogTarget$Type extends MessageType<ApprovedAppCatalogTarget
             { no: 24, name: "policy_reason", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 25, name: "policy_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
             { no: 26, name: "macos_notarization", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 27, name: "macos_developer_id_subject", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
+            { no: 27, name: "macos_developer_id_subject", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 28, name: "safety_declaration", kind: "message", T: () => AppSafetyDeclaration }
         ]);
     }
     create(value?: PartialMessage<ApprovedAppCatalogTarget>): ApprovedAppCatalogTarget {
@@ -5389,6 +5736,9 @@ class ApprovedAppCatalogTarget$Type extends MessageType<ApprovedAppCatalogTarget
                 case /* optional string macos_developer_id_subject */ 27:
                     message.macosDeveloperIdSubject = reader.string();
                     break;
+                case /* nimi.runtime.v1.AppSafetyDeclaration safety_declaration */ 28:
+                    message.safetyDeclaration = AppSafetyDeclaration.internalBinaryRead(reader, reader.uint32(), options, message.safetyDeclaration);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -5482,6 +5832,9 @@ class ApprovedAppCatalogTarget$Type extends MessageType<ApprovedAppCatalogTarget
         /* optional string macos_developer_id_subject = 27; */
         if (message.macosDeveloperIdSubject !== undefined)
             writer.tag(27, WireType.LengthDelimited).string(message.macosDeveloperIdSubject);
+        /* nimi.runtime.v1.AppSafetyDeclaration safety_declaration = 28; */
+        if (message.safetyDeclaration)
+            AppSafetyDeclaration.internalBinaryWrite(message.safetyDeclaration, writer.tag(28, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -6258,7 +6611,8 @@ class AppPackageInfo$Type extends MessageType<AppPackageInfo> {
             { no: 15, name: "os_storage_disclosure", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ApprovedAppCatalogStorageDisclosure },
             { no: 16, name: "author", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 17, name: "homepage_url", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 18, name: "support_url", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 18, name: "support_url", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 19, name: "safety_declaration", kind: "message", T: () => AppSafetyDeclaration }
         ]);
     }
     create(value?: PartialMessage<AppPackageInfo>): AppPackageInfo {
@@ -6344,6 +6698,9 @@ class AppPackageInfo$Type extends MessageType<AppPackageInfo> {
                 case /* string support_url */ 18:
                     message.supportUrl = reader.string();
                     break;
+                case /* nimi.runtime.v1.AppSafetyDeclaration safety_declaration */ 19:
+                    message.safetyDeclaration = AppSafetyDeclaration.internalBinaryRead(reader, reader.uint32(), options, message.safetyDeclaration);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -6410,6 +6767,9 @@ class AppPackageInfo$Type extends MessageType<AppPackageInfo> {
         /* string support_url = 18; */
         if (message.supportUrl !== "")
             writer.tag(18, WireType.LengthDelimited).string(message.supportUrl);
+        /* nimi.runtime.v1.AppSafetyDeclaration safety_declaration = 19; */
+        if (message.safetyDeclaration)
+            AppSafetyDeclaration.internalBinaryWrite(message.safetyDeclaration, writer.tag(19, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

@@ -2,6 +2,7 @@ package publicappregistry
 
 import (
 	"fmt"
+	"github.com/nimiplatform/nimi/runtime/internal/appsafety"
 	"net/url"
 	"strings"
 )
@@ -85,6 +86,9 @@ func validateCandidateFacts(candidate approvedCandidate) error {
 	}
 	if candidate.Release.ReleaseURL != candidate.Source.Repository+"/releases/tag/"+candidate.Release.Tag {
 		return fmt.Errorf("validate approved App Release locator: %w", ErrInvalidRegistrySnapshot)
+	}
+	if err := appsafety.Validate(candidate.SafetyProfile); err != nil {
+		return fmt.Errorf("validate approved App safety declaration %v: %w", err, ErrInvalidRegistrySnapshot)
 	}
 	if err := validateAsset(candidate.Aggregate.AssetID, candidate.Aggregate.AssetName, candidate.Aggregate.AssetURL,
 		candidate.Aggregate.Size, candidate.Aggregate.SHA256, candidate.Source.Repository, candidate.Release.Tag); err != nil {

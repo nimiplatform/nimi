@@ -6,7 +6,7 @@ Install the target app-tools and its exact nimi-coding first. The App-local nimi
 
 Review App-owned instructions outside managed blocks when the upgrade changes an ownership boundary or command. Correct obsolete routing against the current owner; adding another conflicting paragraph is not a migration of those instructions.
 
-Migrate the affected App-owned API uses, run sync, then install the full normalized dependency set and regenerate the package-manager lockfile. Run check and the relevant tests/build and real journey. Fresh scaffold identity and direct features remain fixed; the tool updates derived version/matrix projections. Existing Apps continue without a fresh lock.
+Upgrading app-tools does not by itself move an existing App's SDK/Kit combination: sync preserves a supported combination and check rejects an unlisted SDK x Kit pairing rather than normalizing it. Selecting a new SDK/Kit combination is a deliberate App decision. When it is made, migrate the affected App-owned API uses, run sync, then install the full normalized dependency set and regenerate the package-manager lockfile. Run check and the relevant tests/build and real journey. Fresh scaffold identity and direct features remain fixed; the tool updates derived version/matrix projections. Existing Apps continue without a fresh lock.
 
 For existing Apps, sync preserves the exact `package.json` text when its managed values are already current. A project formatter's whitespace or key ordering alone is not drift; actual managed value changes are still synchronized.
 

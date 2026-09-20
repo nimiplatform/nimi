@@ -48,6 +48,7 @@ import {
 } from './apps-ai-config-section.js';
 import { AppsPropertiesDialog, type AppsPropertiesRow, type AppsPropertiesSection } from './apps-properties-dialog.js';
 import { AppsUpdateSection } from './apps-update-section.js';
+import { AppsSafetyDeclarationSection, resolveSafetyDeclarationState, type AppsSafetyDeclarationSource } from './apps-safety-declaration.js';
 import type { DesktopAppsEntry, DesktopAppsProjectionSource } from './apps-panel-projection.js';
 import {
   actionPlanForEntry,
@@ -445,6 +446,25 @@ function InstalledAppsDetailView({
   const actionPlan = actionPlanForEntry(entry);
 
   const declaredAppAccess = release?.appAccess ?? catalog?.appAccess ?? [];
+  // The installed information snapshot is the exact installed version; the
+  // Catalog declaration substitutes only for the same release, and a failed
+  // read is shown as unavailable rather than undeclared.
+  const safetyDeclarationState = resolveSafetyDeclarationState({
+    installedVersion: release?.version ?? null,
+    installedInfo: entry.appInfo,
+    installedInfoError: entry.appInfoError,
+    catalog,
+  });
+  const safetyDeclarationSource: AppsSafetyDeclarationSource = appSourceForEntry(entry) === 'user_imported' ? 'local' : 'registry';
+  const safetyDeclarationSection = (compact: boolean): ReactElement => (
+    <AppsSafetyDeclarationSection
+      declaration={safetyDeclarationState.status === 'loaded' ? safetyDeclarationState.declaration : null}
+      source={safetyDeclarationSource}
+      version={safetyDeclarationState.status === 'loaded' ? safetyDeclarationState.version : null}
+      state={safetyDeclarationState.status}
+      compact={compact}
+    />
+  );
   const readme: ProjectReadmeState = entry.appInfoError
     ? { status: 'error' }
     : entry.appInfo
@@ -556,6 +576,11 @@ function InstalledAppsDetailView({
           ] : [])),
       ],
     }] : []),
+    {
+      id: 'safety',
+      label: t('Apps.safety.sectionTitle'),
+      content: safetyDeclarationSection(false),
+    },
     ...(catalog ? [{
       id: 'registry',
       label: t('Apps.detail.catalogTargetTitle'),
@@ -675,10 +700,7 @@ function InstalledAppsDetailView({
         </div>
         {catalog?.policyBlocked ? (
           <InlineAlert tone="danger" className="mt-3" data-testid="apps-catalog-policy-blocked">
-            {t('Apps.catalog.policyBlocked', {
-              reason: catalog.policyReason ?? t('Apps.catalog.policyBlockedFallback'),
-              revision: catalog.policyRevision,
-            })}
+            {t('Apps.catalog.policyBlocked', { reason: catalog.policyReason ?? t('Apps.catalog.policyBlockedFallback') })}
           </InlineAlert>
         ) : null}
         {release && installedRun?.message ? <InlineAlert tone="danger" className="mt-3">{installedRun.message}</InlineAlert> : null}
@@ -705,13 +727,18 @@ function InstalledAppsDetailView({
                 onOpenEntry={onOpenEntry}
                 readme={readme}
                 about={(
-                  <AppsAboutSection
-                    entry={entry}
-                    developer={aboutDeveloper}
-                    fact={null}
-                    links={aboutLinks}
-                    onOpenProperties={() => setPropertiesOpen(true)}
-                  />
+                  <>
+                    <AppsAboutSection
+                      entry={entry}
+                      developer={aboutDeveloper}
+                      fact={null}
+                      links={aboutLinks}
+                      onOpenProperties={() => setPropertiesOpen(true)}
+                    />
+                    <div className="mt-7" data-testid="apps-detail-safety-overview">
+                      {safetyDeclarationSection(true)}
+                    </div>
+                  </>
                 )}
               />
             </div>
@@ -1109,6 +1136,8 @@ function catalogRegistryFactRows(catalog: AppsCatalogTargetFacts, t: TFunction):
     { label: t('Apps.catalog.target'), value: `${catalog.targetId} · ${catalog.os}/${catalog.arch}`, mono: true },
     { label: t('Apps.catalog.asset'), value: `${catalog.assetName} · ${catalog.assetSize} bytes`, mono: true },
     { label: t('Apps.catalog.executionProfile'), value: catalog.executionProfileRef, mono: true },
+    // Policy revision is a technical fact; the reason stays in the primary message.
+    ...(catalog.policyBlocked ? [{ label: t('Apps.catalog.policyRevision'), value: String(catalog.policyRevision), mono: true }] : []),
   ];
 }
 

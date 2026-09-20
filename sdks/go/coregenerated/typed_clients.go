@@ -1663,6 +1663,7 @@ const (
 	APPPACKAGEUNINSTALLFAILED                       ReasonCode = "APP_PACKAGE_UNINSTALL_FAILED"
 	APPPACKAGEUPDATEUNAVAILABLE                     ReasonCode = "APP_PACKAGE_UPDATE_UNAVAILABLE"
 	APPPACKAGEINFOUNAVAILABLE                       ReasonCode = "APP_PACKAGE_INFO_UNAVAILABLE"
+	APPCATALOGROWABSENT                             ReasonCode = "APP_CATALOG_ROW_ABSENT"
 	AILOADOUTCONDITIONCONFLICT                      ReasonCode = "AI_LOADOUT_CONDITION_CONFLICT"
 	AIFACEREFERENCEMISSING                          ReasonCode = "AI_FACE_REFERENCE_MISSING"
 	AIFACEREFERENCEAMBIGUOUS                        ReasonCode = "AI_FACE_REFERENCE_AMBIGUOUS"
@@ -2686,6 +2687,7 @@ type AppPackageInfo struct {
 	Author                          string                                `json:"author,omitempty"`
 	HomepageUrl                     string                                `json:"homepage_url,omitempty"`
 	SupportUrl                      string                                `json:"support_url,omitempty"`
+	SafetyDeclaration               *AppSafetyDeclaration                 `json:"safety_declaration,omitempty"`
 }
 
 type AppPackageJob struct {
@@ -2715,6 +2717,32 @@ type AppPackageJob struct {
 	PreviousVersion    string                   `json:"previous_version,omitempty"`
 	TargetOs           string                   `json:"target_os,omitempty"`
 	TargetArch         string                   `json:"target_arch,omitempty"`
+}
+
+type AppSafetyDeclaration struct {
+	IntendedAudience               string                       `json:"intended_audience,omitempty"`
+	ContentDescriptors             []string                     `json:"content_descriptors,omitempty"`
+	AiDirectInteraction            bool                         `json:"ai_direct_interaction,omitempty"`
+	AiInteractionNotice            string                       `json:"ai_interaction_notice,omitempty"`
+	AiRiskFeatures                 []string                     `json:"ai_risk_features,omitempty"`
+	AiSubjectNotice                string                       `json:"ai_subject_notice,omitempty"`
+	AiOutputs                      []AppSafetyOutputDeclaration `json:"ai_outputs,omitempty"`
+	PublisherDirectExternalNetwork bool                         `json:"publisher_direct_external_network,omitempty"`
+	Telemetry                      []string                     `json:"telemetry,omitempty"`
+	ThirdPartyAccount              string                       `json:"third_party_account,omitempty"`
+	UserContentSharing             string                       `json:"user_content_sharing,omitempty"`
+	CommercialFeatures             []string                     `json:"commercial_features,omitempty"`
+	SensitiveDataCategories        []string                     `json:"sensitive_data_categories,omitempty"`
+	HighImpactDecisionUses         []string                     `json:"high_impact_decision_uses,omitempty"`
+}
+
+type AppSafetyOutputDeclaration struct {
+	Modality               string `json:"modality,omitempty"`
+	Exposure               string `json:"exposure,omitempty"`
+	PublicationControl     string `json:"publication_control,omitempty"`
+	InProductNotice        string `json:"in_product_notice,omitempty"`
+	ExportVisibleMarking   string `json:"export_visible_marking,omitempty"`
+	MachineReadableMarking string `json:"machine_readable_marking,omitempty"`
 }
 
 type AppStorageProjection struct {
@@ -2831,6 +2859,7 @@ type ApprovedAppCatalogTarget struct {
 	PolicyRevision                  uint64                                `json:"policy_revision,omitempty"`
 	MacosNotarization               string                                `json:"macos_notarization,omitempty"`
 	MacosDeveloperIdSubject         *string                               `json:"macos_developer_id_subject,omitempty"`
+	SafetyDeclaration               *AppSafetyDeclaration                 `json:"safety_declaration,omitempty"`
 }
 
 type ArtifactChunk struct {

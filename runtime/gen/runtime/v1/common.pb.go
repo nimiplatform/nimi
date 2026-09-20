@@ -529,6 +529,9 @@ const (
 	ReasonCode_APP_PACKAGE_UNINSTALL_FAILED      ReasonCode = 736
 	ReasonCode_APP_PACKAGE_UPDATE_UNAVAILABLE    ReasonCode = 737
 	ReasonCode_APP_PACKAGE_INFO_UNAVAILABLE      ReasonCode = 746
+	// The current Registry was read successfully and confirms no Catalog row for
+	// the App; distinct from APP_CATALOG_UNAVAILABLE (read or validation failure).
+	ReasonCode_APP_CATALOG_ROW_ABSENT ReasonCode = 748
 	// A caller-held expected candidate or selection revision no longer matched
 	// at the mutation boundary. The response carries the unchanged current
 	// state; no write was applied.
@@ -822,6 +825,7 @@ var (
 		736: "APP_PACKAGE_UNINSTALL_FAILED",
 		737: "APP_PACKAGE_UPDATE_UNAVAILABLE",
 		746: "APP_PACKAGE_INFO_UNAVAILABLE",
+		748: "APP_CATALOG_ROW_ABSENT",
 		747: "AI_LOADOUT_CONDITION_CONFLICT",
 		738: "AI_FACE_REFERENCE_MISSING",
 		739: "AI_FACE_REFERENCE_AMBIGUOUS",
@@ -1109,6 +1113,7 @@ var (
 		"APP_PACKAGE_UNINSTALL_FAILED":                         736,
 		"APP_PACKAGE_UPDATE_UNAVAILABLE":                       737,
 		"APP_PACKAGE_INFO_UNAVAILABLE":                         746,
+		"APP_CATALOG_ROW_ABSENT":                               748,
 		"AI_LOADOUT_CONDITION_CONFLICT":                        747,
 		"AI_FACE_REFERENCE_MISSING":                            738,
 		"AI_FACE_REFERENCE_AMBIGUOUS":                          739,
@@ -1631,7 +1636,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x15TOOL_CHOICE_MODE_AUTO\x10\x01\x12\x19\n" +
 	"\x15TOOL_CHOICE_MODE_NONE\x10\x02\x12\x1d\n" +
 	"\x19TOOL_CHOICE_MODE_REQUIRED\x10\x03\x12\x19\n" +
-	"\x15TOOL_CHOICE_MODE_TOOL\x10\x04*\xc3Y\n" +
+	"\x15TOOL_CHOICE_MODE_TOOL\x10\x04*\xe0Y\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -1909,7 +1914,8 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x18APP_PACKAGE_HOST_RUNNING\x10\xdf\x05\x12!\n" +
 	"\x1cAPP_PACKAGE_UNINSTALL_FAILED\x10\xe0\x05\x12#\n" +
 	"\x1eAPP_PACKAGE_UPDATE_UNAVAILABLE\x10\xe1\x05\x12!\n" +
-	"\x1cAPP_PACKAGE_INFO_UNAVAILABLE\x10\xea\x05\x12\"\n" +
+	"\x1cAPP_PACKAGE_INFO_UNAVAILABLE\x10\xea\x05\x12\x1b\n" +
+	"\x16APP_CATALOG_ROW_ABSENT\x10\xec\x05\x12\"\n" +
 	"\x1dAI_LOADOUT_CONDITION_CONFLICT\x10\xeb\x05\x12\x1e\n" +
 	"\x19AI_FACE_REFERENCE_MISSING\x10\xe2\x05\x12 \n" +
 	"\x1bAI_FACE_REFERENCE_AMBIGUOUS\x10\xe3\x05\x12\x1b\n" +

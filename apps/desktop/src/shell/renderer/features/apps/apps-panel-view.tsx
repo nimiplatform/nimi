@@ -61,6 +61,7 @@ import {
   filterAppGroups,
   filterAppGroupsByState,
   groupAppsEntries,
+  hideBlockedDiscoveryEntries,
   reconcileAppGroups,
   siblingSourceEntries,
   sortAppGroups,
@@ -152,14 +153,17 @@ export function AppsPanelView({
   const railSearchRef = useRef<HTMLInputElement>(null);
 
   const loadedEntries = projection?.status === 'loaded' ? projection.entries : [];
+  // Ordinary discovery lists hide Catalog-only rows blocked by current policy;
+  // the projection keeps them so detail and installed joins stay exact.
+  const discoveryEntries = useMemo(() => hideBlockedDiscoveryEntries(loadedEntries), [loadedEntries]);
   // Group-level structural sharing: quiet polls keep group identity so the
   // memoized rail rows skip re-rendering.
   const reconciledGroupsRef = useRef<readonly DesktopAppGroup[]>([]);
   const groups = useMemo(() => {
-    const next = reconcileAppGroups(reconciledGroupsRef.current, groupAppsEntries(loadedEntries));
+    const next = reconcileAppGroups(reconciledGroupsRef.current, groupAppsEntries(discoveryEntries));
     reconciledGroupsRef.current = next;
     return next;
-  }, [loadedEntries]);
+  }, [discoveryEntries]);
   // Stable per-entry dispatchers keep memoized rows referentially quiet even
   // though `onCardAction` itself is re-created around each new projection.
   const onCardActionRef = useRef(onCardAction);
@@ -186,12 +190,12 @@ export function AppsPanelView({
     [searching, filtering, sortedGroups],
   );
   const attentionEntries = useMemo(
-    () => sortAppsEntries(loadedEntries.filter(entryNeedsAttention), 'updated'),
-    [loadedEntries],
+    () => sortAppsEntries(discoveryEntries.filter(entryNeedsAttention), 'updated'),
+    [discoveryEntries],
   );
   const updateEntries = useMemo(
-    () => sortAppsEntries(loadedEntries.filter(hasAvailableCatalogUpdate), 'updated'),
-    [loadedEntries],
+    () => sortAppsEntries(discoveryEntries.filter(hasAvailableCatalogUpdate), 'updated'),
+    [discoveryEntries],
   );
   const recentGroups = useMemo(
     () => sortAppGroups(groups, 'activity').slice(0, RECENT_GROUPS_LIMIT),

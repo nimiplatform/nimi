@@ -2872,6 +2872,8 @@ pub enum ReasonCode {
     APPPACKAGEUPDATEUNAVAILABLE,
     #[serde(rename = "APP_PACKAGE_INFO_UNAVAILABLE")]
     APPPACKAGEINFOUNAVAILABLE,
+    #[serde(rename = "APP_CATALOG_ROW_ABSENT")]
+    APPCATALOGROWABSENT,
     #[serde(rename = "AI_LOADOUT_CONDITION_CONFLICT")]
     AILOADOUTCONDITIONCONFLICT,
     #[serde(rename = "AI_FACE_REFERENCE_MISSING")]
@@ -3453,6 +3455,8 @@ impl ReasonCode {
             "APPPACKAGEUPDATEUNAVAILABLE" => Some(Self::APPPACKAGEUPDATEUNAVAILABLE),
             "APP_PACKAGE_INFO_UNAVAILABLE" => Some(Self::APPPACKAGEINFOUNAVAILABLE),
             "APPPACKAGEINFOUNAVAILABLE" => Some(Self::APPPACKAGEINFOUNAVAILABLE),
+            "APP_CATALOG_ROW_ABSENT" => Some(Self::APPCATALOGROWABSENT),
+            "APPCATALOGROWABSENT" => Some(Self::APPCATALOGROWABSENT),
             "AI_LOADOUT_CONDITION_CONFLICT" => Some(Self::AILOADOUTCONDITIONCONFLICT),
             "AILOADOUTCONDITIONCONFLICT" => Some(Self::AILOADOUTCONDITIONCONFLICT),
             "AI_FACE_REFERENCE_MISSING" => Some(Self::AIFACEREFERENCEMISSING),
@@ -4901,6 +4905,7 @@ pub struct AppPackageInfo {
     pub author: Option<String>,
     pub homepage_url: Option<String>,
     pub support_url: Option<String>,
+    pub safety_declaration: Option<Box<AppSafetyDeclaration>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -4931,6 +4936,34 @@ pub struct AppPackageJob {
     pub previous_version: Option<String>,
     pub target_os: Option<String>,
     pub target_arch: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppSafetyDeclaration {
+    pub intended_audience: Option<String>,
+    pub content_descriptors: Vec<String>,
+    pub ai_direct_interaction: Option<bool>,
+    pub ai_interaction_notice: Option<String>,
+    pub ai_risk_features: Vec<String>,
+    pub ai_subject_notice: Option<String>,
+    pub ai_outputs: Vec<Box<AppSafetyOutputDeclaration>>,
+    pub publisher_direct_external_network: Option<bool>,
+    pub telemetry: Vec<String>,
+    pub third_party_account: Option<String>,
+    pub user_content_sharing: Option<String>,
+    pub commercial_features: Vec<String>,
+    pub sensitive_data_categories: Vec<String>,
+    pub high_impact_decision_uses: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppSafetyOutputDeclaration {
+    pub modality: Option<String>,
+    pub exposure: Option<String>,
+    pub publication_control: Option<String>,
+    pub in_product_notice: Option<String>,
+    pub export_visible_marking: Option<String>,
+    pub machine_readable_marking: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -5060,6 +5093,7 @@ pub struct ApprovedAppCatalogTarget {
     pub policy_revision: Option<u64>,
     pub macos_notarization: Option<String>,
     pub macos_developer_id_subject: Option<String>,
+    pub safety_declaration: Option<Box<AppSafetyDeclaration>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

@@ -100,9 +100,15 @@ commands; older Desktop versions enforcing Vite reject this project even after
 app-tools validation passes. Do not introduce a Vite placeholder to bypass it.
 
 Use the selected package's `nimiScaffoldVersions` declarations in `package.json`
-and commit the matching lockfile to pin resolved versions. A matrix range in the
-manifest does not require an automatic upgrade; install with the frozen lockfile
-until deliberately selecting and synchronizing a new component combination.
+and commit the matching lockfile to pin resolved versions. Fresh `create` uses
+the tool default SDK/Kit combination. An existing App keeps its current SDK/Kit
+combination when it is one of the supported combinations app-tools declares:
+`sync` preserves it, `check` verifies the same combination in the manifest,
+lockfile and Cargo inputs, and only the app-tools and nimi-coding tool
+dependencies follow the selected tool version. An unlisted SDK x Kit pairing is
+rejected rather than normalized. A matrix range in the manifest does not
+require an automatic upgrade; install with the frozen lockfile until
+deliberately selecting and synchronizing a new component combination.
 
 ### Local development packages
 
@@ -436,7 +442,11 @@ pnpm dlx --package @nimiplatform/app-tools nimi-app --help
 ## Portable App information (package v2)
 
 A distribution package includes `app-info.json`, containing its actual icon,
-summary, available usage guide and version notes, license and portable requirements.
+summary, available usage guide and version notes, license, portable requirements
+and, when declared, the publisher safety declaration from `nimi.app.yaml`
+`safety_profile` (see the lifecycle skill's safety-declaration reference). An
+undeclared `safety_profile` stays absent and blocks nothing locally; new public
+Registry admission requires the complete declaration.
 Every `pack`, including development-mode packaging and non-release CI, requires
 valid App information. Complete `nimi.app.yaml` and its resources before packing;
 production check/build validates them before the build starts:

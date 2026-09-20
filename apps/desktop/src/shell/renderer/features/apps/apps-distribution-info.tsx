@@ -3,14 +3,17 @@ import { useTranslation } from 'react-i18next';
 import { InlineAlert } from '@nimiplatform/kit/ui';
 import type { AppPackageInfo } from '@nimiplatform/sdk/runtime/wire-types';
 import { AppsReadmeMarkdown } from './apps-readme-markdown.js';
+import { AppsSafetyDeclarationSection, type AppsSafetyDeclarationSource } from './apps-safety-declaration.js';
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-042c
-export function AppsDistributionInfo({ info, error, showDocuments = true, showTechnicalDetails = true }: {
+export function AppsDistributionInfo({ info, error, showDocuments = true, showTechnicalDetails = true, declarationSource = 'local' }: {
   readonly info?: AppPackageInfo | null;
   readonly error?: string | null;
   readonly showDocuments?: boolean;
   /** Raw declaration refs and storage disclosures; pre-install surfaces keep them, the installed overview leaves them to the properties dialog. */
   readonly showTechnicalDetails?: boolean;
+  /** Where the safety declaration came from; a local package was never reviewed by the Registry. */
+  readonly declarationSource?: AppsSafetyDeclarationSource;
 }): ReactElement {
   const { t } = useTranslation();
   if (error) return <InlineAlert tone="warning" data-testid="apps-info-unavailable">{t('Apps.info.unavailable')}</InlineAlert>;
@@ -27,6 +30,7 @@ export function AppsDistributionInfo({ info, error, showDocuments = true, showTe
       {info.homepageUrl ? <div><dt>{t('Apps.info.homepage')}</dt><dd><AppsReadmeMarkdown content={`[${t('Apps.info.homepage')}](${info.homepageUrl})`} /></dd></div> : null}
       {info.supportUrl ? <div><dt>{t('Apps.info.support')}</dt><dd><AppsReadmeMarkdown content={`[${t('Apps.info.support')}](${info.supportUrl})`} /></dd></div> : null}
     </dl>
+    <AppsSafetyDeclarationSection declaration={info.safetyDeclaration ?? null} source={declarationSource} version={info.version} compact />
     {showDocuments ? <AppsDistributionDocuments info={info} /> : null}
   </section>;
 }

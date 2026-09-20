@@ -1,5 +1,5 @@
 import { PNG } from 'pngjs';
-import { readAppInfo, validateAppIcon } from '../lib/app-info.mjs';
+import { readAppInfo, validateAppIcon, validateAppInfo } from '../lib/app-info.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
@@ -7,6 +7,7 @@ import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, 
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { parse as parseYaml } from 'yaml';
 
 import {
   aggregateAppTargetCandidates,
@@ -723,5 +724,115 @@ test('local distribution omits optional documents and preserves exact UTF-8 lice
     assert.deepEqual(Buffer.from(info.license.text), license);
     const archive = readNimiAppArchive(readFileSync(packed.artifactPath));
     assert.deepEqual(archive.get('LICENSE').bytes, license);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+const SAFETY_PROFILE_YAML = [
+  'safety_profile:',
+  '  intended_audience: general',
+  '  content_descriptors: [violence, sexual-content]',
+  '  ai:',
+  '    direct_interaction: true',
+  '    interaction_notice: absent',
+  '    risk_features: []',
+  '    subject_notice: not-applicable',
+  '    outputs:',
+  '      - modality: image',
+  '        exposure: publishable',
+  '        publication_control: user-confirmed',
+  '        in_product_notice: present',
+  '        export_visible_marking: absent',
+  '        machine_readable_marking: absent',
+  '      - modality: text',
+  '        exposure: exportable',
+  '        publication_control: not-applicable',
+  '        in_product_notice: absent',
+  '        export_visible_marking: absent',
+  '        machine_readable_marking: absent',
+  '  data_practices:',
+  '    publisher_direct_external_network: false',
+  '    telemetry: []',
+  '    third_party_account: none',
+  '    user_content_sharing: none',
+  '    commercial_features: []',
+  '    sensitive_data_categories: []',
+  '  high_impact_decision_uses: []',
+  '',
+].join('\n');
+
+function declareSafetyProfile(root, yamlBlock = SAFETY_PROFILE_YAML) {
+  const manifest = path.join(root, 'nimi.app.yaml');
+  writeFileSync(manifest, `${readFileSync(manifest, 'utf8')}${yamlBlock}`);
+}
+
+test('an undeclared safety_profile stays absent from info, declaration and sidecar rather than becoming an empty risk list', () => {
+  const root = fixture();
+  try {
+    const info = readAppInfo(root, 'windows-x86_64');
+    assert.equal(Object.hasOwn(info, 'safety_profile'), false);
+    const packed = packAppTarget(root, { target: 'windows-x86_64' });
+    const entries = readNimiAppArchive(readFileSync(packed.artifactPath));
+    assert.equal(Object.hasOwn(JSON.parse(entries.get('app-info.json').bytes.toString('utf8')), 'safety_profile'), false);
+    assert.doesNotMatch(entries.get('nimi.app.yaml').bytes.toString('utf8'), /safety_profile/u);
+    assert.equal(aggregateAppTargetCandidates(root).targets.length, 1);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('a declared safety_profile is projected one way into info, archive declaration and exact sidecar with tool-owned order', () => {
+  const root = fixture();
+  try {
+    const before = packAppTarget(root, { target: 'windows-x86_64' });
+    declareSafetyProfile(root);
+    const info = readAppInfo(root, 'windows-x86_64');
+    assert.deepEqual(info.safety_profile.content_descriptors, ['sexual-content', 'violence'], 'vocabulary order, not author order');
+    assert.deepEqual(info.safety_profile.ai.outputs.map((entry) => entry.modality), ['text', 'image']);
+    assert.equal(info.safety_profile.ai.outputs[1].export_visible_marking, 'absent', 'absent marking is preserved as a fact');
+    const packed = packAppTarget(root, { target: 'windows-x86_64' });
+    assert.notEqual(packed.sha256, before.sha256);
+    const entries = readNimiAppArchive(readFileSync(packed.artifactPath));
+    const sidecar = JSON.parse(readFileSync(packed.appInfoPath, 'utf8'));
+    assert.deepEqual(sidecar.safety_profile, info.safety_profile);
+    assert.deepEqual(JSON.parse(entries.get('app-info.json').bytes.toString('utf8')).safety_profile, info.safety_profile);
+    const declaration = parseYaml(entries.get('nimi.app.yaml').bytes.toString('utf8'));
+    assert.deepEqual(declaration.safety_profile, info.safety_profile);
+    assert.deepEqual(Object.keys(declaration).sort(), ['app_access', 'app_id', 'capability_contract_refs', 'display_name', 'required_standardized_feature_refs', 'safety_profile', 'storage_policy', 'version']);
+    const aggregate = aggregateAppTargetCandidates(root);
+    assert.equal(aggregate.targets[0].sha256, packed.sha256);
+    // The business payload and every other App file are untouched by the declaration.
+    assert.deepEqual(entries.get('payload/example-app.exe').bytes, Buffer.from([0, 1, 2, 3, 4]));
+    // A hand-edited sidecar with a non-canonical or unknown declaration key is rejected at aggregate.
+    const tampered = { ...sidecar, safety_profile: { ...sidecar.safety_profile, intended_audience: 'adult' } };
+    writeFileSync(packed.appInfoPath, `${JSON.stringify(tampered, null, 2)}\n`);
+    assert.throws(() => aggregateAppTargetCandidates(root), /App info changed or differs from archive/u);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('an invalid declaration names the field and does not block dev-only inputs, while unknown info keys are rejected', () => {
+  const root = fixture();
+  try {
+    declareSafetyProfile(root, SAFETY_PROFILE_YAML.replace('intended_audience: general', 'intended_audience: everyone'));
+    assert.throws(() => readAppInfo(root, 'windows-x86_64'), /safety_profile\.intended_audience must be one of children, general, teen, adult/u);
+    assert.throws(() => packAppTarget(root, { target: 'windows-x86_64' }), /safety_profile\.intended_audience/u);
+    const manifest = path.join(root, 'nimi.app.yaml');
+    writeFileSync(manifest, readFileSync(manifest, 'utf8').replace('intended_audience: everyone', 'intended_audience: general').replace('  high_impact_decision_uses: []\n', '  high_impact_decision_uses: []\n  certified_safe: true\n'));
+    assert.throws(() => readAppInfo(root, 'windows-x86_64'), /safety_profile\.certified_safe is not a supported safety_profile field/u);
+    // A voice capability never implies an audio output entry.
+    writeFileSync(manifest, readFileSync(manifest, 'utf8').replace('  certified_safe: true\n', '').replace('capability_contract_refs: []', 'capability_contract_refs: [voice.create]'));
+    const info = readAppInfo(root, 'windows-x86_64');
+    assert.deepEqual(info.capability_contract_refs, ['voice.create']);
+    assert.deepEqual(info.safety_profile.ai.outputs.map((entry) => entry.modality), ['text', 'image']);
+    assert.deepEqual(info.safety_profile.ai.risk_features, []);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('the info document rejects unsupported top-level keys and a non-canonical declaration copy', () => {
+  const root = fixture();
+  try {
+    declareSafetyProfile(root);
+    const info = readAppInfo(root, 'windows-x86_64');
+    assert.throws(() => validateAppInfo({ ...info, safety_score: 1 }), /App info contains unsupported field: safety_score/u);
+    const reordered = { ...info, safety_profile: { intended_audience: 'general', ...info.safety_profile } };
+    assert.throws(() => validateAppInfo(reordered), /safety_profile is not canonical; run nimi-app sync/u);
+    assert.deepEqual(validateAppInfo(info), info);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

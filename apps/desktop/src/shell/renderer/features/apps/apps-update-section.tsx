@@ -11,6 +11,7 @@ import { AppsDistributionDocuments } from './apps-distribution-info.js';
 import type { DesktopAppsEntry } from './apps-panel-projection.js';
 import { AppsPropertiesRowItem, type AppsPropertiesRow } from './apps-properties-dialog.js';
 import { AppsReadmeMarkdown } from './apps-readme-markdown.js';
+import { AppsSafetyDeclarationDiff } from './apps-safety-declaration.js';
 import {
   readAppUpdatePreference,
   subscribeAppUpdatePreferences,
@@ -164,11 +165,11 @@ export function AppsUpdateSection({ entry, readPackageInfo, onAction, actionsDis
       </div>
       {catalog?.policyBlocked ? (
         <InlineAlert tone="danger" data-testid="apps-update-policy-blocked">
-          {t('Apps.catalog.policyBlocked', {
-            reason: catalog.policyReason ?? t('Apps.catalog.policyBlockedFallback'),
-            revision: catalog.policyRevision,
-          })}
+          {t('Apps.catalog.policyBlocked', { reason: catalog.policyReason ?? t('Apps.catalog.policyBlockedFallback') })}
         </InlineAlert>
+      ) : null}
+      {updateAvailable && catalog && entry.appInfo ? (
+        <AppsSafetyDeclarationDiff before={entry.appInfo.safetyDeclaration ?? null} after={catalog.safetyDeclaration ?? null} afterVersion={catalog.version} />
       ) : null}
       {!registryApp && release ? (
         <InlineAlert tone="info" data-testid="apps-update-imported-note">

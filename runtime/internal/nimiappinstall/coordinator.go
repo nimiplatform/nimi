@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/nimiplatform/nimi/runtime/internal/appsafety"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -550,7 +551,7 @@ func packageExpectation(resolved publicappregistry.ResolvedApprovedTarget) nimia
 		storage.OSStorageDisclosure = append(storage.OSStorageDisclosure, nimiapppackage.AppInfoStorageDisclosure{PathPattern: item.PathPattern, Purpose: item.Purpose, ExpectedSizeBand: item.ExpectedSizeBand})
 	}
 	return nimiapppackage.Expected{
-		AppInfo:     &nimiapppackage.AppInfoExpectation{SHA256: resolved.Target.AppInfo.SHA256, DisplayName: resolved.DisplayName, LicenseIdentifier: resolved.Source.License.SPDXExpression, CapabilityContractRefs: resolved.CapabilityContractRefs, RequiredStandardizedFeatureRefs: resolved.RequiredStandardizedFeatureRefs, StoragePolicy: storage},
+		AppInfo:     &nimiapppackage.AppInfoExpectation{SHA256: resolved.Target.AppInfo.SHA256, DisplayName: resolved.DisplayName, LicenseIdentifier: resolved.Source.License.SPDXExpression, CapabilityContractRefs: resolved.CapabilityContractRefs, RequiredStandardizedFeatureRefs: resolved.RequiredStandardizedFeatureRefs, StoragePolicy: storage, SafetyProfile: appsafety.Clone(resolved.SafetyProfile)},
 		ArchiveSize: resolved.Target.Size, ArchiveSHA256: resolved.Target.SHA256,
 		AppID: resolved.AppID, Version: resolved.Version, TargetID: resolved.Target.TargetID,
 		OS: resolved.Target.OS, Arch: resolved.Target.Arch, RuntimeEntry: resolved.Target.RuntimeEntry,

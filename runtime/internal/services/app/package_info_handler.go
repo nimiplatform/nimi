@@ -58,6 +58,7 @@ func appPackageInfoProjection(info nimiapppackage.AppInfo) *runtimev1.AppPackage
 		IconPngBase64: info.Icon.DataBase64, ReadmeMarkdown: info.ReadmeMarkdown, ReleaseNotesMarkdown: info.ReleaseNotesMarkdown,
 		LicenseIdentifier: info.License.Identifier, LicenseText: info.License.Text, Author: info.Author, HomepageUrl: info.HomepageURL, SupportUrl: info.SupportURL,
 		AppAccess: append([]string{}, info.AppAccess...), CapabilityContractRefs: append([]string{}, info.CapabilityContractRefs...), RequiredStandardizedFeatureRefs: append([]string{}, info.RequiredStandardizedFeatureRefs...), StoragePolicyKind: info.StoragePolicy.Kind,
+		SafetyDeclaration: appSafetyDeclarationProjection(info.SafetyProfile),
 	}
 	for _, item := range info.StoragePolicy.OSStorageDisclosure {
 		result.OsStorageDisclosure = append(result.OsStorageDisclosure, &runtimev1.ApprovedAppCatalogStorageDisclosure{PathPattern: item.PathPattern, Purpose: item.Purpose, ExpectedSizeBand: item.ExpectedSizeBand})

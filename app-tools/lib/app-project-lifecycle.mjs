@@ -1,6 +1,7 @@
 import { readAppInfo } from './app-info.mjs';
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-018c
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-009b
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-043a
 
 import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -9,6 +10,8 @@ import { satisfies } from 'semver';
 import { parse as parseYaml, parseDocument as parseYamlDocument, stringify as stringifyYaml } from 'yaml';
 
 import { assertManifestAppAccessDeclaration } from './app-access-declaration.mjs';
+import { defaultDependencyCombination, resolveDependencyCombination } from './app-dependency-combinations.mjs';
+import { SAFETY_PROFILE_FIELD, normalizeSafetyProfile } from './app-safety-profile.mjs';
 import { planManagedAppSync, validateAppProject, validateAppProjectInputs, validateManagedAppFiles } from './app-doctor-update.mjs';
 import { LIFECYCLE_SKILL_PATH, hasLifecycleGuidanceOwner, lifecycleOwnerSteps, planLifecycleGuidance } from './app-lifecycle-guidance.mjs';
 import { applyProjectFiles, describeChanges, plannedFile } from './app-project-files.mjs';
@@ -134,7 +137,15 @@ function readSubmittedManifest(targetDir, sources) {
   if (!SEMVER_PATTERN.test(version) || version !== document.version) {
     throw new Error('Existing submitted app version must be an exact semantic version');
   }
-  return Object.freeze({ appId, displayName, profile, version, rendererOrigin: parsedOrigin.origin, capabilityContractRefs: document.capability_contract_refs, requiredStandardizedFeatureRefs: document.required_standardized_feature_refs, storagePolicy: document.storage_policy });
+  let safetyProfile;
+  if (document[SAFETY_PROFILE_FIELD] !== undefined) {
+    try {
+      safetyProfile = normalizeSafetyProfile(document[SAFETY_PROFILE_FIELD]);
+    } catch (error) {
+      throw new Error(`nimi.app.yaml ${error instanceof Error ? error.message : String(error)}`, { cause: error });
+    }
+  }
+  return Object.freeze({ appId, displayName, profile, version, rendererOrigin: parsedOrigin.origin, capabilityContractRefs: document.capability_contract_refs, requiredStandardizedFeatureRefs: document.required_standardized_feature_refs, storagePolicy: document.storage_policy, safetyProfile });
 }
 
 function assertNoRetiredScaffoldState(targetDir) {
@@ -149,13 +160,40 @@ function assertNoRetiredScaffoldState(targetDir) {
   }
 }
 
-function expectedNimiDependencies(versions) {
+// The SDK/Kit pair comes from the App's resolved combination; the tool
+// dependencies come from the selected tool version. Both are one judgment
+// shared by manifest, lock, Cargo and workflow checks.
+function expectedNimiDependencies(versions, combination) {
   return Object.freeze([
-    Object.freeze({ name: '@nimiplatform/sdk', section: 'dependencies', version: versions.sdkVersion }),
-    Object.freeze({ name: '@nimiplatform/kit', section: 'dependencies', version: versions.kitVersion }),
+    Object.freeze({ name: '@nimiplatform/sdk', section: 'dependencies', version: combination.sdkVersion }),
+    Object.freeze({ name: '@nimiplatform/kit', section: 'dependencies', version: combination.kitVersion }),
     Object.freeze({ name: '@nimiplatform/app-tools', section: 'devDependencies', version: versions.appToolsVersion }),
     Object.freeze({ name: '@nimiplatform/nimi-coding', section: 'devDependencies', version: versions.nimicodingVersion }),
   ]);
+}
+
+// Managed (scaffold-locked) projects derive glue, matrix and package fields
+// from `versions`; `managedProjectVersions` has already pinned those to the
+// project's own supported combination, so the default of the effective
+// versions is that combination. Existing submitted Apps resolve theirs directly.
+function selectDependencyCombination(packageJson, versions, managed) {
+  return managed ? defaultDependencyCombination(versions) : resolveDependencyCombination(packageJson, versions);
+}
+
+// An existing managed project keeps its current supported SDK/Kit combination:
+// the generator recomputes derived projections for that combination, while the
+// app-tools and nimi-coding tool dependencies still follow the selected tool.
+// Only a fresh create starts from the tool default. An unlisted pairing fails.
+function managedProjectVersions(targetDir, versions) {
+  const packagePath = path.join(targetDir, 'package.json');
+  if (!existsSync(packagePath)) return versions;
+  const combination = resolveDependencyCombination(readJsonFile(packagePath, 'package.json'), versions);
+  return Object.freeze({ ...versions, sdkVersion: combination.sdkVersion, kitVersion: combination.kitVersion, nimiShellTauriVersion: combination.nimiShellTauriVersion });
+}
+
+function describeCombination(combination, toolVersions) {
+  const isDefault = combination.sdkVersion === toolVersions.sdkVersion && combination.kitVersion === toolVersions.kitVersion;
+  return { sdk: combination.sdkVersion, kit: combination.kitVersion, source: isDefault ? 'default' : 'existing' };
 }
 
 function dependencySection(packageJson, sectionName) {
@@ -213,7 +251,7 @@ function assertPublicNimiDependencySpecs(packageJson) {
   }
 }
 
-function assertPackageManifestCurrent(packageJson, versions) {
+function assertPackageManifestCurrent(packageJson, versions, combination) {
   if (packageJson.private !== true || Object.hasOwn(packageJson, 'publishConfig')) {
     throw new Error('Nimi App package.json must be private and must not declare npm publishConfig');
   }
@@ -221,7 +259,7 @@ function assertPackageManifestCurrent(packageJson, versions) {
     throw new Error(`package.json packageManager must be ${versions.packageManager}`);
   }
   assertPublicNimiDependencySpecs(packageJson);
-  for (const expected of expectedNimiDependencies(versions)) {
+  for (const expected of expectedNimiDependencies(versions, combination)) {
     const section = dependencySection(packageJson, expected.section);
     if (section?.[expected.name] !== expected.version) {
       throw new Error(`package.json ${expected.section}.${expected.name} must be ${expected.version}`);
@@ -260,9 +298,10 @@ function assertPackageManifestCurrent(packageJson, versions) {
   if (scripts.publish !== undefined) {
     throw new Error('package.json scripts.publish is unavailable until publisher GitHub and registry orchestration is implemented');
   }
+  return combination;
 }
 
-function normalizePackageManifest(packageJson, descriptor, versions, buildProfileRef, packageSource) {
+function normalizePackageManifest(packageJson, descriptor, versions, buildProfileRef, packageSource, combination) {
   if (!packageJson || typeof packageJson !== 'object' || Array.isArray(packageJson)) {
     throw new Error('package.json must contain an object');
   }
@@ -270,7 +309,7 @@ function normalizePackageManifest(packageJson, descriptor, versions, buildProfil
   normalized.private = true;
   delete normalized.publishConfig;
   for (const sectionName of NPM_DEPENDENCY_SECTIONS) dependencySection(normalized, sectionName);
-  for (const expected of expectedNimiDependencies(versions)) {
+  for (const expected of expectedNimiDependencies(versions, combination)) {
     for (const sectionName of NPM_DEPENDENCY_SECTIONS) {
       const section = dependencySection(normalized, sectionName);
       if (section) delete section[expected.name];
@@ -312,7 +351,7 @@ function normalizePackageManifest(packageJson, descriptor, versions, buildProfil
       .replace(/\bpnpm\s+run\s+doctor\s*&&\s*/gu, '')
       .replace(/\bnimi-app\s+doctor\s*&&\s*/gu, '');
   }
-  assertPackageManifestCurrent(normalized, versions);
+  assertPackageManifestCurrent(normalized, versions, combination);
   // Project formatters may use different whitespace or key order. Only managed
   // value changes require rewriting this App-owned manifest.
   if (stableInputJson(normalized) === stableInputJson(packageJson)) return packageSource;
@@ -507,7 +546,7 @@ function selectedLocalPackageRecord(lock, name, selected, targetDir) {
   return matches[0][1];
 }
 
-function assertPnpmLockCurrent(targetDir, packageJson, localPackages = new Map(), versions) {
+function assertPnpmLockCurrent(targetDir, packageJson, localPackages, versions, combination) {
   const lockPath = path.join(targetDir, 'pnpm-lock.yaml');
   if (!existsSync(lockPath)) {
     throw installRequiredError('pnpm-lock.yaml is missing');
@@ -550,7 +589,7 @@ function assertPnpmLockCurrent(targetDir, packageJson, localPackages = new Map()
     }
     if (!existsSync(manifestPath)) throw installRequiredError(`Local Nimi package is not installed: ${name}`);
     const installed = readJsonFile(manifestPath, name);
-    const expected = expectedNimiDependencies(versions).find((entry) => entry.name === name)?.version || versions.kitVersion;
+    const expected = expectedNimiDependencies(versions, combination).find((entry) => entry.name === name)?.version || combination.kitVersion;
     if (installed.name !== name || !satisfies(installed.version, expected, { includePrerelease: true })) {
       throw installRequiredError(`Installed local Nimi package must be ${name}@${expected}`);
     }
@@ -865,7 +904,7 @@ function assertCanonicalAuthoringInputs(targetDir, descriptor, files, version, n
     'support_manifest',
     'review_inputs',
     'admission_truth',
-  ], ['ai_profile_recommendation_ref']);
+  ], ['ai_profile_recommendation_ref', SAFETY_PROFILE_FIELD]);
   const expectedSubmissionIdentity = {
     app_id: descriptor.appId,
     display_name: descriptor.displayName,
@@ -888,6 +927,11 @@ function assertCanonicalAuthoringInputs(targetDir, descriptor, files, version, n
   }
   normalizeStorageInput(submission.storage_policy, `${SUBMISSION_PATH} storage_policy`);
   normalizeSupportInput(submission.support_manifest, `${SUBMISSION_PATH} support_manifest`);
+  // nimi.app.yaml is the only declaration author; the submission copy must be
+  // the tool projection of it, never an independently edited second source.
+  if (JSON.stringify(submission[SAFETY_PROFILE_FIELD]) !== JSON.stringify(descriptor.safetyProfile)) {
+    throw new Error(`${SUBMISSION_PATH} ${SAFETY_PROFILE_FIELD} must match the nimi.app.yaml declaration; run nimi-app sync to project it`);
+  }
   const reviewInputs = assertExactKeys(submission.review_inputs, `${SUBMISSION_PATH} review_inputs`, ['manifest', 'build_profile', 'scaffold_boundary']);
   const expectedReviewInputs = {
     manifest: 'nimi.app.yaml',
@@ -1053,14 +1097,15 @@ function assertProjectLifecycleCurrent(targetDir, versions, options = {}) {
   const descriptor = readSubmittedManifest(targetDir, sources);
   const buildProfile = readBuildProfile(targetDir, sources);
   const files = readProjectLifecycleFiles(targetDir, buildProfile.buildProfileRef, sources);
-  assertPackageManifestCurrent(files.packageJson, versions);
+  const combination = selectDependencyCombination(files.packageJson, versions, options.managed === true);
+  assertPackageManifestCurrent(files.packageJson, versions, combination);
   const version = assertVersionLockstep(files, descriptor, buildProfile.buildProfileRef);
   let nativeIdentity = {
     cargoPackageName: cargoPackageNameFromNpmPackageName(files.packageJson.name),
     tauriIdentifier: tauriIdentifierFromAppId(descriptor.appId),
   };
   if (buildProfile.buildProfileRef === TAURI_BUILD_PROFILE_REF) {
-    assertCargoManifestCurrent(files.cargoSource, versions.nimiShellTauriVersion);
+    assertCargoManifestCurrent(files.cargoSource, combination.nimiShellTauriVersion);
     assertTauriConfigCurrent(files.tauriConfig, descriptor.appId);
     nativeIdentity = {
       cargoPackageName: readCargoPackageName(files.cargoSource),
@@ -1072,15 +1117,15 @@ function assertProjectLifecycleCurrent(targetDir, versions, options = {}) {
   assertManagedWorkflowCurrent(targetDir, sources);
   const localPackages = assertPnpmWorkspaceCurrent(targetDir, sources, options.production === true);
   if (options.requireInstalledLock === true) {
-    assertPnpmLockCurrent(targetDir, files.packageJson, localPackages, versions);
+    assertPnpmLockCurrent(targetDir, files.packageJson, localPackages, versions, combination);
     if (buildProfile.buildProfileRef === TAURI_BUILD_PROFILE_REF) {
-      assertCargoLockCurrent(targetDir, versions.nimiShellTauriVersion);
+      assertCargoLockCurrent(targetDir, combination.nimiShellTauriVersion);
     }
   }
-  return { descriptor, files, version, buildProfile, authoring };
+  return { descriptor, files, version, buildProfile, authoring, combination };
 }
 
-function buildExistingSubmittedAppSyncPlan(targetDir, versions, sources) {
+function buildExistingSubmittedAppSyncPlan(targetDir, versions, sources, managed = false) {
   const descriptor = readSubmittedManifest(targetDir, sources);
   const buildProfile = readBuildProfile(targetDir, sources);
   const files = readProjectLifecycleFiles(targetDir, buildProfile.buildProfileRef, sources);
@@ -1089,6 +1134,7 @@ function buildExistingSubmittedAppSyncPlan(targetDir, versions, sources) {
     throw new Error('package.json version must be an exact semantic version before sync');
   }
   const requiresTauri = buildProfile.buildProfileRef === TAURI_BUILD_PROFILE_REF;
+  const combination = selectDependencyCombination(files.packageJson, versions, managed);
   const identity = {
     appId: descriptor.appId,
     appTitle: descriptor.displayName,
@@ -1104,11 +1150,11 @@ function buildExistingSubmittedAppSyncPlan(targetDir, versions, sources) {
     author: typeof files.packageJson.author === 'string' ? files.packageJson.author : '',
   };
   const planned = [
-    { path: files.packagePath, content: normalizePackageManifest(files.packageJson, descriptor, versions, buildProfile.buildProfileRef, files.packageSource), previous: files.packageSource },
+    { path: files.packagePath, content: normalizePackageManifest(files.packageJson, descriptor, versions, buildProfile.buildProfileRef, files.packageSource, combination), previous: files.packageSource },
   ];
   if (requiresTauri) {
     planned.push(
-      { path: files.cargoPath, content: normalizeCargoManifest(files.cargoSource, versions.nimiShellTauriVersion), previous: files.cargoSource },
+      { path: files.cargoPath, content: normalizeCargoManifest(files.cargoSource, combination.nimiShellTauriVersion), previous: files.cargoSource },
       { path: files.tauriPath, content: normalizeTauriConfig(files.tauriConfig, descriptor.appId), previous: files.tauriSource },
     );
     identity.tauriIdentifier = tauriIdentifierFromAppId(descriptor.appId);
@@ -1141,7 +1187,7 @@ function buildExistingSubmittedAppSyncPlan(targetDir, versions, sources) {
       'support_manifest',
       'review_inputs',
       'admission_truth',
-    ], ['ai_profile_recommendation_ref']);
+    ], ['ai_profile_recommendation_ref', SAFETY_PROFILE_FIELD]);
     canonicalInputList(currentSubmission.capability_contract_refs, `${SUBMISSION_PATH} capability_contract_refs`);
     canonicalInputList(currentSubmission.required_standardized_feature_refs, `${SUBMISSION_PATH} required_standardized_feature_refs`);
     normalizeStorageInput(currentSubmission.storage_policy, `${SUBMISSION_PATH} storage_policy`);
@@ -1152,6 +1198,7 @@ function buildExistingSubmittedAppSyncPlan(targetDir, versions, sources) {
     requiredStandardizedFeatureRefs: descriptor.requiredStandardizedFeatureRefs ?? currentSubmission?.required_standardized_feature_refs ?? [],
     aiProfileRecommendationRef: currentSubmission?.ai_profile_recommendation_ref,
     storagePolicy: descriptor.storagePolicy ?? currentSubmission?.storage_policy ?? { kind: 'nimi-mediated-default' },
+    safetyProfile: descriptor.safetyProfile,
     supportManifest,
   });
   planned.push({ path: submissionPath, content: submissionContent, previous: currentSubmissionSource });
@@ -1191,14 +1238,14 @@ function buildExistingSubmittedAppSyncPlan(targetDir, versions, sources) {
   });
   const workspace = normalizePnpmWorkspace(targetDir);
   if (workspace) planned.push(workspace);
-  return { descriptor, planned: planned.map((file) => plannedFile(targetDir, path.relative(targetDir, file.path), file.content)), buildProfileRef: buildProfile.buildProfileRef };
+  return { descriptor, planned: planned.map((file) => plannedFile(targetDir, path.relative(targetDir, file.path), file.content)), buildProfileRef: buildProfile.buildProfileRef, combination };
 }
 
-function lifecycleNextSteps(buildProfileRef, versions) {
+function lifecycleNextSteps(buildProfileRef, combination) {
   return [
     'pnpm install',
     ...(buildProfileRef === TAURI_BUILD_PROFILE_REF
-      ? [`cargo update -p nimi-shell-tauri --precise ${versions.nimiShellTauriVersion}`]
+      ? [`cargo update -p nimi-shell-tauri --precise ${combination.nimiShellTauriVersion}`]
       : []),
     'nimi-app sync',
     'nimi-app check',
@@ -1226,18 +1273,18 @@ function planSources(targetDir, planned) {
 
 function validateProjectPlan(targetDir, versions, planned, managed) {
   const sources = planSources(targetDir, planned);
-  const current = assertProjectLifecycleCurrent(targetDir, versions, { sources });
+  const current = assertProjectLifecycleCurrent(targetDir, versions, { sources, managed });
   for (const target of Object.keys(current.buildProfile.targets)) selectBuildOwner(current.buildProfile, target);
   validateAppProjectInputs(targetDir, parseYaml(readProjectText(targetDir, 'nimi.app.yaml', sources)), current.files.packageJson, managed, sources);
   return current;
 }
 
 export function validateAppInitialization(targetDir, versions) {
-  const current = assertProjectLifecycleCurrent(targetDir, versions);
+  const current = assertProjectLifecycleCurrent(targetDir, versions, { managed: true });
   for (const target of Object.keys(current.buildProfile.targets)) selectBuildOwner(current.buildProfile, target);
 }
 
-function executeProjectPlan(targetDir, options, versions, runners, plan, scaffold) {
+function executeProjectPlan(targetDir, options, versions, runners, plan, scaffold, toolVersions = versions) {
   if (scaffold) validateManagedAppFiles(targetDir, scaffold.snapshot.lock, planSources(targetDir, plan.planned));
   validateProjectPlan(targetDir, versions, plan.planned, Boolean(scaffold));
   const preview = {
@@ -1245,7 +1292,8 @@ function executeProjectPlan(targetDir, options, versions, runners, plan, scaffol
     managed: Boolean(scaffold), appId: plan.descriptor.appId,
     dryRun: options.dryRun === true, skillPath: LIFECYCLE_SKILL_PATH,
     changes: describeChanges(targetDir, plan.planned), ownerSteps: lifecycleOwnerSteps(versions),
-    nextSteps: lifecycleNextSteps(plan.buildProfileRef, versions),
+    nextSteps: lifecycleNextSteps(plan.buildProfileRef, plan.combination),
+    dependencyCombination: describeCombination(plan.combination, toolVersions),
   };
   if (options.dryRun) return emitResult(preview, options, `${preview.command} preview: ${preview.changes.map((file) => `${file.action} ${file.path}`).join(', ') || 'no app-tools changes'}`);
   const nimicoding = runNimicodingSync(targetDir, 'apply', runners);
@@ -1255,7 +1303,7 @@ function executeProjectPlan(targetDir, options, versions, runners, plan, scaffol
     ...plan.planned.filter((file) => file !== lockFile),
     ...planLifecycleGuidance(targetDir),
   ]);
-  assertProjectLifecycleCurrent(targetDir, versions);
+  assertProjectLifecycleCurrent(targetDir, versions, { managed: Boolean(scaffold) });
   if (scaffold) {
     validateManagedAppFiles(targetDir, scaffold.snapshot.lock);
     synchronizedFiles.push(...applyProjectFiles(targetDir, [lockFile]));
@@ -1269,12 +1317,13 @@ export function syncAppProject(cwd, options = {}, versions, runners = {}) {
   const targetDir = resolveTargetDir(cwd, options);
   assertNoRetiredScaffoldState(targetDir);
   const guidance = planLifecycleGuidance(targetDir);
-  const scaffold = existsSync(path.join(targetDir, SCAFFOLD_LOCK_PATH))
-    ? planManagedAppSync(targetDir, {}, versions) : null;
+  const managed = existsSync(path.join(targetDir, SCAFFOLD_LOCK_PATH));
+  const effective = managed ? managedProjectVersions(targetDir, versions) : versions;
+  const scaffold = managed ? planManagedAppSync(targetDir, {}, effective) : null;
   const base = scaffold?.planned || [];
-  const plan = buildExistingSubmittedAppSyncPlan(targetDir, versions, planSources(targetDir, base));
+  const plan = buildExistingSubmittedAppSyncPlan(targetDir, effective, planSources(targetDir, base), managed);
   plan.planned = [...base, ...plan.planned, ...guidance];
-  return executeProjectPlan(targetDir, options, versions, runners, plan, scaffold);
+  return executeProjectPlan(targetDir, options, effective, runners, plan, scaffold, versions);
 }
 
 function adoptionSources(targetDir, options) {
@@ -1337,13 +1386,18 @@ export function checkAppProject(cwd, options = {}, versions, runners = {}) {
   const targetDir = resolveTargetDir(cwd, options);
   assertNoRetiredScaffoldState(targetDir);
   const managed = existsSync(path.join(targetDir, SCAFFOLD_LOCK_PATH));
-  const existingState = managed ? null : assertProjectLifecycleCurrent(targetDir, versions, { requireInstalledLock: true, production: options.production === true });
-  const validation = validateAppProject(cwd, { dir: targetDir, silent: true }, versions, runners);
+  const effective = managed ? managedProjectVersions(targetDir, versions) : versions;
+  const existingState = managed ? null : assertProjectLifecycleCurrent(targetDir, effective, { requireInstalledLock: true, production: options.production === true, managed });
+  const validation = validateAppProject(cwd, { dir: targetDir, silent: true }, effective, runners);
   let nimicoding = null;
   if (!managed) nimicoding = runNimicodingSync(targetDir, 'check', runners);
-  const { descriptor, buildProfile } = existingState || assertProjectLifecycleCurrent(targetDir, versions, { requireInstalledLock: true, production: options.production === true });
+  const { descriptor, buildProfile, combination } = existingState || assertProjectLifecycleCurrent(targetDir, effective, { requireInstalledLock: true, production: options.production === true, managed });
   if (options.production === true) {
     for (const target of Object.keys(buildProfile.targets)) readAppInfo(targetDir, target);
+  }
+  const safetyProfile = descriptor.safetyProfile ? 'declared' : 'undeclared';
+  if (options.production === true && !options.json && safetyProfile === 'undeclared') {
+    process.stdout.write('[nimi-app] safety_profile is not declared in nimi.app.yaml; local builds and private packages remain usable, while new public Registry admission requires the declaration.\n');
   }
   return emitResult({
     ok: true,
@@ -1353,6 +1407,8 @@ export function checkAppProject(cwd, options = {}, versions, runners = {}) {
     managed,
     appId: descriptor.appId,
     profile: descriptor.profile,
+    safetyProfile,
+    dependencyCombination: describeCombination(combination, versions),
     targets: Object.keys(buildProfile.targets).sort(),
     checkedManagedFiles: validation.checkedManagedFiles,
     checkedExistingFiles: validation.checkedExistingFiles,

@@ -14,6 +14,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/nimiplatform/nimi/runtime/internal/appaccess"
+	"github.com/nimiplatform/nimi/runtime/internal/appsafety"
 	"github.com/nimiplatform/nimi/runtime/internal/jsonstrict"
 	"gopkg.in/yaml.v3"
 )
@@ -21,6 +22,7 @@ import (
 const MaxAppInfoBytes = 1024 * 1024
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-042a
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-043c
 type AppInfo struct {
 	Format                          string               `json:"format"`
 	AppID                           string               `json:"app_id"`
@@ -39,6 +41,9 @@ type AppInfo struct {
 	Author                          string               `json:"author"`
 	HomepageURL                     string               `json:"homepage_url"`
 	SupportURL                      string               `json:"support_url"`
+	// Optional publisher safety declaration; nil means undeclared. The same v1
+	// parser reads documents with and without it.
+	SafetyProfile *appsafety.Profile `json:"safety_profile,omitempty"`
 }
 
 type AppInfoIcon struct {
@@ -65,6 +70,7 @@ type AppInfoExpectation struct {
 	CapabilityContractRefs          []string
 	RequiredStandardizedFeatureRefs []string
 	StoragePolicy                   AppInfoStoragePolicy
+	SafetyProfile                   *appsafety.Profile
 }
 
 func ParseAppInfo(raw []byte) (AppInfo, error) {
@@ -119,6 +125,9 @@ func ParseAppInfo(raw []byte) (AppInfo, error) {
 	}
 	if (info.Author != "" && !infoText(info.Author, 200)) || !infoURL(info.HomepageURL) || !infoURL(info.SupportURL) {
 		return invalid("author or links")
+	}
+	if err := appsafety.Validate(info.SafetyProfile); err != nil {
+		return invalid(err.Error())
 	}
 	return info, nil
 }
@@ -199,7 +208,7 @@ func ValidateAppInfoSelection(info AppInfo, raw []byte, expected Expected) error
 	}
 	if approved := expected.AppInfo; approved != nil {
 		digest := sha256.Sum256(raw)
-		if hex.EncodeToString(digest[:]) != approved.SHA256 || info.DisplayName != approved.DisplayName || info.License.Identifier != approved.LicenseIdentifier || !equalStrings(info.CapabilityContractRefs, approved.CapabilityContractRefs) || !equalStrings(info.RequiredStandardizedFeatureRefs, approved.RequiredStandardizedFeatureRefs) || !reflect.DeepEqual(info.StoragePolicy, approved.StoragePolicy) {
+		if hex.EncodeToString(digest[:]) != approved.SHA256 || info.DisplayName != approved.DisplayName || info.License.Identifier != approved.LicenseIdentifier || !equalStrings(info.CapabilityContractRefs, approved.CapabilityContractRefs) || !equalStrings(info.RequiredStandardizedFeatureRefs, approved.RequiredStandardizedFeatureRefs) || !reflect.DeepEqual(info.StoragePolicy, approved.StoragePolicy) || !appsafety.Equal(info.SafetyProfile, approved.SafetyProfile) {
 			return fmt.Errorf("App info differs from reviewed target: %w", ErrPackageIntegrity)
 		}
 	}
@@ -212,8 +221,9 @@ func validateAppInfoDeclaration(info AppInfo, declarationRaw, licenseRaw []byte)
 		CapabilityContractRefs          []string             `yaml:"capability_contract_refs"`
 		RequiredStandardizedFeatureRefs []string             `yaml:"required_standardized_feature_refs"`
 		StoragePolicy                   AppInfoStoragePolicy `yaml:"storage_policy"`
+		SafetyProfile                   *appsafety.Profile   `yaml:"safety_profile"`
 	}
-	if yaml.Unmarshal(declarationRaw, &declaration) != nil || declaration.CapabilityContractRefs == nil || declaration.RequiredStandardizedFeatureRefs == nil || declaration.DisplayName != info.DisplayName || !equalStrings(declaration.CapabilityContractRefs, info.CapabilityContractRefs) || !equalStrings(declaration.RequiredStandardizedFeatureRefs, info.RequiredStandardizedFeatureRefs) || !reflect.DeepEqual(declaration.StoragePolicy, info.StoragePolicy) || string(licenseRaw) != info.License.Text {
+	if yaml.Unmarshal(declarationRaw, &declaration) != nil || declaration.CapabilityContractRefs == nil || declaration.RequiredStandardizedFeatureRefs == nil || declaration.DisplayName != info.DisplayName || !equalStrings(declaration.CapabilityContractRefs, info.CapabilityContractRefs) || !equalStrings(declaration.RequiredStandardizedFeatureRefs, info.RequiredStandardizedFeatureRefs) || !reflect.DeepEqual(declaration.StoragePolicy, info.StoragePolicy) || !appsafety.Equal(declaration.SafetyProfile, info.SafetyProfile) || string(licenseRaw) != info.License.Text {
 		return fmt.Errorf("App info differs from packaged declaration or LICENSE: %w", ErrInvalidPackage)
 	}
 	return nil

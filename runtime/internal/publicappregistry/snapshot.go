@@ -21,6 +21,7 @@ import (
 	"github.com/dlclark/regexp2"
 	jsonschema "github.com/santhosh-tekuri/jsonschema/v6"
 
+	"github.com/nimiplatform/nimi/runtime/internal/appsafety"
 	"github.com/nimiplatform/nimi/runtime/internal/jsonstrict"
 )
 
@@ -418,6 +419,8 @@ type ResolvedApprovedTarget struct {
 	RollbackMarker                  string
 	Support                         Support
 	Target                          Target
+	// Publisher safety declaration as admitted; nil means undeclared.
+	SafetyProfile *appsafety.Profile
 }
 
 type registryIndexDocument struct {
@@ -469,6 +472,8 @@ type approvedCandidate struct {
 	RollbackMarker                  string         `json:"rollback_marker"`
 	Support                         Support        `json:"support"`
 	Targets                         []Target       `json:"targets"`
+	// Optional in the shared schema_version 1 descriptor; historical descriptors omit it.
+	SafetyProfile *appsafety.Profile `json:"safety_profile,omitempty"`
 }
 
 type approvedDescriptorDocument struct {
@@ -716,6 +721,7 @@ func resolvedApprovedTarget(selector ApprovedTargetSelector, descriptor approved
 		RequiredStandardizedFeatureRefs: append([]string(nil), candidate.RequiredStandardizedFeatureRefs...),
 		StoragePolicy:                   cloneStoragePolicy(candidate.StoragePolicy), UpdateChannel: candidate.UpdateChannel,
 		RollbackMarker: candidate.RollbackMarker, Support: cloneSupport(candidate.Support), Target: cloneTarget(target),
+		SafetyProfile: appsafety.Clone(candidate.SafetyProfile),
 	}
 }
 

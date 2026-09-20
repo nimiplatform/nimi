@@ -252,3 +252,34 @@ describe('Desktop approved App install intent', () => {
     }
   });
 });
+
+describe('Desktop install intent carries the publisher safety declaration', () => {
+  const declaration = {
+    intendedAudience: 'teen', contentDescriptors: ['violence'], aiDirectInteraction: true, aiInteractionNotice: 'present', aiRiskFeatures: [], aiSubjectNotice: 'not-applicable',
+    aiOutputs: [], publisherDirectExternalNetwork: false, telemetry: [], thirdPartyAccount: 'none', userContentSharing: 'none', commercialFeatures: [], sensitiveDataCategories: [], highImpactDecisionUses: [],
+  };
+  it('snapshots the admitted declaration or null when undeclared without adding a confirmation', async () => {
+    assert.equal(snapshotAppsInstallIntent(catalogTarget()).safetyDeclaration, null);
+    assert.deepEqual(snapshotAppsInstallIntent(catalogTarget({ safetyDeclaration: declaration })).safetyDeclaration, declaration);
+    let starts = 0;
+    const controller = createAppsInstallIntentController({ startInstall: async () => { starts += 1; return { kind: 'started' }; }, refresh: () => undefined });
+    const signed = catalogTarget({ windowsCodeSigning: 'signed', observedSigningSubject: 'CN=Publisher', safetyDeclaration: declaration });
+    assert.equal((await controller.requestInstall(signed)).kind, 'start-result', 'a declaration never adds a confirmation for a signed target');
+    assert.equal(starts, 1);
+  });
+  it('keeps the installed declaration on an update intent so the confirmation can show the difference', async () => {
+    const controller = createAppsInstallIntentController({
+      startInstall: async () => ({ kind: 'started' }),
+      startUpdate: async () => ({ kind: 'started' }),
+      refresh: () => undefined,
+    });
+    const installed = { appId: 'publisher.example', version: '1.0.0', launchSelector: new Uint8Array([9, 9]) } as unknown as Parameters<typeof controller.requestUpdate>[1];
+    const result = await controller.requestUpdate(catalogTarget({ safetyDeclaration: declaration }), installed, null);
+    assert.equal(result.kind, 'confirmation-required');
+    assert.equal(controller.pending()?.update?.installedSafetyDeclaration, null);
+    assert.deepEqual(controller.pending()?.safetyDeclaration, declaration);
+    const unknown = await controller.requestUpdate(catalogTarget({ safetyDeclaration: declaration }), installed);
+    assert.equal(unknown.kind, 'confirmation-required');
+    assert.equal(controller.pending()?.update?.installedSafetyDeclaration, undefined, 'an unread installed declaration stays unknown rather than undeclared');
+  });
+});

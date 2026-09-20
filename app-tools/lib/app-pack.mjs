@@ -4,6 +4,7 @@
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-024a
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-024b
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-034a
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-043a
 
 import { createHash } from 'node:crypto';
 import {
@@ -17,7 +18,7 @@ import {
 } from 'node:fs';
 import path from 'node:path';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
-import { APP_INFO_MAX_BYTES, readAppInfo, validateAppInfo } from './app-info.mjs';
+import { APP_INFO_DECLARATION_FIELDS, APP_INFO_MAX_BYTES, readAppInfo, validateAppInfo } from './app-info.mjs';
 import { observeWindowsExecutableFacts } from './windows-powershell.mjs';
 import { SYMBOLIC_LINK_MODE, validatePayloadLinks } from './payload-links.mjs';
 import { observeMacOSExecutableFacts } from './macos-native.mjs';
@@ -467,7 +468,9 @@ export function packAppTarget(cwd, options = {}) {
   };
   const infoBytes = Buffer.from(canonicalJson(input.appInfo));
   if (infoBytes.length > APP_INFO_MAX_BYTES) throw new Error('App info exceeds 1 MiB');
-  const declaration = Object.fromEntries(['app_id', 'display_name', 'version', 'app_access', 'capability_contract_refs', 'required_standardized_feature_refs', 'storage_policy'].map((key) => [key, input.appInfo[key]]));
+  // An undeclared safety_profile stays absent from the declaration copy; it is
+  // never serialized as an empty or default declaration.
+  const declaration = Object.fromEntries(APP_INFO_DECLARATION_FIELDS.filter((key) => input.appInfo[key] !== undefined).map((key) => [key, input.appInfo[key]]));
   const archive = writeNimiAppArchive([
     { name: 'LICENSE', bytes: readFileSync(input.licensePath), mode: 0o644 },
     { name: 'manifest.json', bytes: canonicalJson(packageManifest), mode: 0o644 },

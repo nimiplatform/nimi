@@ -1400,6 +1400,13 @@ export enum ReasonCode {
      */
     APP_PACKAGE_INFO_UNAVAILABLE = 746,
     /**
+     * The current Registry was read successfully and confirms no Catalog row for
+     * the App; distinct from APP_CATALOG_UNAVAILABLE (read or validation failure).
+     *
+     * @generated from protobuf enum value: APP_CATALOG_ROW_ABSENT = 748;
+     */
+    APP_CATALOG_ROW_ABSENT = 748,
+    /**
      * A caller-held expected candidate or selection revision no longer matched
      * at the mutation boundary. The response carries the unchanged current
      * state; no write was applied.

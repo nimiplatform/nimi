@@ -1087,6 +1087,7 @@ export function renderAppSubmissionInput(identity, options = {}) {
     required_standardized_feature_refs: options.requiredStandardizedFeatureRefs || [],
     ...(options.aiProfileRecommendationRef ? { ai_profile_recommendation_ref: options.aiProfileRecommendationRef } : {}),
     storage_policy: options.storagePolicy || { kind: 'nimi-mediated-default' },
+    ...(options.safetyProfile ? { safety_profile: options.safetyProfile } : {}),
     support_manifest: supportManifest,
     review_inputs: {
       manifest: 'nimi.app.yaml',
@@ -1594,7 +1595,7 @@ export function createAppScaffoldCandidate(input) {
   return createAppScaffold({ ...input, plan });
 }
 
-export const APP_AUTHOR_DECLARATION_FIELDS = Object.freeze(['metadata', 'capability_contract_refs', 'required_standardized_feature_refs', 'storage_policy']);
+export const APP_AUTHOR_DECLARATION_FIELDS = Object.freeze(['metadata', 'capability_contract_refs', 'required_standardized_feature_refs', 'storage_policy', 'safety_profile']);
 
 // Source configuration is editable; existing scaffold checks still cover identity and carrier fields.
 export function hashScaffoldManagedContent(relativePath, content) {

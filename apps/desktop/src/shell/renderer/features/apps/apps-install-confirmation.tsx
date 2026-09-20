@@ -2,6 +2,7 @@ import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ConfirmDialog } from '@nimiplatform/kit/ui';
 import type { AppsInstallIntentSnapshot } from './apps-install-intent.js';
+import { AppsSafetyDeclarationDiff, AppsSafetyDeclarationSummary } from './apps-safety-declaration.js';
 
 // @nimi-authority: rule.nimi.desktop.shell-ui.r053
 
@@ -42,6 +43,9 @@ export function AppsInstallConfirmationDialog({
             <dd className="break-all text-right">{intent.assetName} · {intent.assetSize} bytes</dd>
           </dl>
           {intent.windowsCodeSigning === 'unsigned' ? <p className="text-xs">{t('Apps.catalog.unsignedConfirmVerification')}</p> : null}
+          {intent.update && intent.update.installedSafetyDeclaration !== undefined
+            ? <AppsSafetyDeclarationDiff before={intent.update.installedSafetyDeclaration} after={intent.safetyDeclaration ?? null} afterVersion={intent.version} />
+            : <AppsSafetyDeclarationSummary declaration={intent.safetyDeclaration ?? null} source="registry" version={intent.version} />}
         </div>
       ) : ''}
       confirmLabel={t(intent?.update ? 'Apps.update.confirmAction' : 'Apps.catalog.unsignedConfirmAction')}

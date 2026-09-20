@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/nimiplatform/nimi/runtime/internal/appsafety"
 	"strconv"
 	"strings"
 
@@ -266,6 +267,9 @@ func approvedAppCatalogError(err error) error {
 		return status.Error(codes.Canceled, "public App Catalog read canceled")
 	case errors.Is(err, context.DeadlineExceeded):
 		return status.Error(codes.DeadlineExceeded, "public App Catalog read deadline exceeded")
+	case errors.Is(err, publicappregistry.ErrCatalogAppNotFound):
+		// The Registry was read and confirms no row: not a read failure and not a retirement state.
+		return grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_CATALOG_ROW_ABSENT, err, grpcerr.ReasonOptions{})
 	case errors.Is(err, publicappregistry.ErrCatalogTargetNotFound):
 		return grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_CATALOG_UNAVAILABLE, err, grpcerr.ReasonOptions{})
 	case errors.Is(err, publicappregistry.ErrRegistryUnavailable), errors.Is(err, publicappregistry.ErrInvalidRegistrySnapshot):
@@ -370,7 +374,40 @@ func approvedAppCatalogTargetProjection(target publicappregistry.ResolvedApprove
 		PolicyBlocked:                   target.KillSwitch.Active,
 		PolicyReason:                    cloneStringPointer(target.KillSwitch.Reason),
 		PolicyRevision:                  target.KillSwitch.Revision,
+		SafetyDeclaration:               appSafetyDeclarationProjection(target.SafetyProfile),
 	}, nil
+}
+
+// Projects the declaration as declared; nil stays nil (undeclared), never an
+// empty declaration.
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-043c
+func appSafetyDeclarationProjection(profile *appsafety.Profile) *runtimev1.AppSafetyDeclaration {
+	if profile == nil {
+		return nil
+	}
+	outputs := make([]*runtimev1.AppSafetyOutputDeclaration, 0, len(profile.AI.Outputs))
+	for _, output := range profile.AI.Outputs {
+		outputs = append(outputs, &runtimev1.AppSafetyOutputDeclaration{
+			Modality: output.Modality, Exposure: output.Exposure, PublicationControl: output.PublicationControl,
+			InProductNotice: output.InProductNotice, ExportVisibleMarking: output.ExportVisibleMarking, MachineReadableMarking: output.MachineReadableMarking,
+		})
+	}
+	return &runtimev1.AppSafetyDeclaration{
+		IntendedAudience:               profile.IntendedAudience,
+		ContentDescriptors:             append([]string{}, profile.ContentDescriptors...),
+		AiDirectInteraction:            profile.AI.DirectInteraction != nil && *profile.AI.DirectInteraction,
+		AiInteractionNotice:            profile.AI.InteractionNotice,
+		AiRiskFeatures:                 append([]string{}, profile.AI.RiskFeatures...),
+		AiSubjectNotice:                profile.AI.SubjectNotice,
+		AiOutputs:                      outputs,
+		PublisherDirectExternalNetwork: profile.DataPractices.PublisherDirectExternalNetwork != nil && *profile.DataPractices.PublisherDirectExternalNetwork,
+		Telemetry:                      append([]string{}, profile.DataPractices.Telemetry...),
+		ThirdPartyAccount:              profile.DataPractices.ThirdPartyAccount,
+		UserContentSharing:             profile.DataPractices.UserContentSharing,
+		CommercialFeatures:             append([]string{}, profile.DataPractices.CommercialFeatures...),
+		SensitiveDataCategories:        append([]string{}, profile.DataPractices.SensitiveDataCategories...),
+		HighImpactDecisionUses:         append([]string{}, profile.HighImpactDecisionUses...),
+	}
 }
 
 func cloneStringPointer(value *string) *string {

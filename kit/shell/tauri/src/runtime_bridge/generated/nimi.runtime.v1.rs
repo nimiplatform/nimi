@@ -501,6 +501,9 @@ pub enum ReasonCode {
     AppPackageUninstallFailed = 736,
     AppPackageUpdateUnavailable = 737,
     AppPackageInfoUnavailable = 746,
+    /// The current Registry was read successfully and confirms no Catalog row for
+    /// the App; distinct from APP_CATALOG_UNAVAILABLE (read or validation failure).
+    AppCatalogRowAbsent = 748,
     /// A caller-held expected candidate or selection revision no longer matched
     /// at the mutation boundary. The response carries the unchanged current
     /// state; no write was applied.
@@ -865,6 +868,7 @@ impl ReasonCode {
             Self::AppPackageUninstallFailed => "APP_PACKAGE_UNINSTALL_FAILED",
             Self::AppPackageUpdateUnavailable => "APP_PACKAGE_UPDATE_UNAVAILABLE",
             Self::AppPackageInfoUnavailable => "APP_PACKAGE_INFO_UNAVAILABLE",
+            Self::AppCatalogRowAbsent => "APP_CATALOG_ROW_ABSENT",
             Self::AiLoadoutConditionConflict => "AI_LOADOUT_CONDITION_CONFLICT",
             Self::AiFaceReferenceMissing => "AI_FACE_REFERENCE_MISSING",
             Self::AiFaceReferenceAmbiguous => "AI_FACE_REFERENCE_AMBIGUOUS",
@@ -1295,6 +1299,7 @@ impl ReasonCode {
             "APP_PACKAGE_UNINSTALL_FAILED" => Some(Self::AppPackageUninstallFailed),
             "APP_PACKAGE_UPDATE_UNAVAILABLE" => Some(Self::AppPackageUpdateUnavailable),
             "APP_PACKAGE_INFO_UNAVAILABLE" => Some(Self::AppPackageInfoUnavailable),
+            "APP_CATALOG_ROW_ABSENT" => Some(Self::AppCatalogRowAbsent),
             "AI_LOADOUT_CONDITION_CONFLICT" => Some(Self::AiLoadoutConditionConflict),
             "AI_FACE_REFERENCE_MISSING" => Some(Self::AiFaceReferenceMissing),
             "AI_FACE_REFERENCE_AMBIGUOUS" => Some(Self::AiFaceReferenceAmbiguous),
@@ -12423,6 +12428,60 @@ pub struct ApprovedAppCatalogStorageDisclosure {
     #[prost(string, tag = "5")]
     pub expected_size_band: ::prost::alloc::string::String,
 }
+/// One declared AI output modality of a publisher safety declaration.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AppSafetyOutputDeclaration {
+    #[prost(string, tag = "1")]
+    pub modality: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub exposure: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub publication_control: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub in_product_notice: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub export_visible_marking: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub machine_readable_marking: ::prost::alloc::string::String,
+}
+/// Publisher-authored safety declaration for one exact App version, carried as
+/// declared from nimi.app.yaml safety_profile. Absence means undeclared. It is
+/// never a Nimi certification, App Access, session condition or eligibility.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AppSafetyDeclaration {
+    #[prost(string, tag = "1")]
+    pub intended_audience: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "2")]
+    pub content_descriptors: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(bool, tag = "3")]
+    pub ai_direct_interaction: bool,
+    #[prost(string, tag = "4")]
+    pub ai_interaction_notice: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "5")]
+    pub ai_risk_features: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "6")]
+    pub ai_subject_notice: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "7")]
+    pub ai_outputs: ::prost::alloc::vec::Vec<AppSafetyOutputDeclaration>,
+    #[prost(bool, tag = "8")]
+    pub publisher_direct_external_network: bool,
+    #[prost(string, repeated, tag = "9")]
+    pub telemetry: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "10")]
+    pub third_party_account: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub user_content_sharing: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "12")]
+    pub commercial_features: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag = "13")]
+    pub sensitive_data_categories: ::prost::alloc::vec::Vec<
+        ::prost::alloc::string::String,
+    >,
+    #[prost(string, repeated, tag = "14")]
+    pub high_impact_decision_uses: ::prost::alloc::vec::Vec<
+        ::prost::alloc::string::String,
+    >,
+}
 /// Runtime projects one target from one immutable Registry snapshot. The
 /// selector is opaque to Desktop and is the only input accepted by install
 /// start; display fields never authorize a package mutation by themselves.
@@ -12490,6 +12549,9 @@ pub struct ApprovedAppCatalogTarget {
     pub macos_developer_id_subject: ::core::option::Option<
         ::prost::alloc::string::String,
     >,
+    /// Absent when the admitted release carries no declaration (undeclared).
+    #[prost(message, optional, tag = "28")]
+    pub safety_declaration: ::core::option::Option<AppSafetyDeclaration>,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListApprovedAppCatalogTargetsRequest {}
@@ -12637,6 +12699,9 @@ pub struct AppPackageInfo {
     pub homepage_url: ::prost::alloc::string::String,
     #[prost(string, tag = "18")]
     pub support_url: ::prost::alloc::string::String,
+    /// Absent when the information document carries no declaration (undeclared).
+    #[prost(message, optional, tag = "19")]
+    pub safety_declaration: ::core::option::Option<AppSafetyDeclaration>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetAppPackageInfoRequest {

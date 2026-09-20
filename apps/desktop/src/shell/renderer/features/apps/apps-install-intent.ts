@@ -1,4 +1,4 @@
-import type { ApprovedAppCatalogTarget, CommittedAppRelease } from '@nimiplatform/sdk/runtime/wire-types';
+import type { AppSafetyDeclaration, ApprovedAppCatalogTarget, CommittedAppRelease } from '@nimiplatform/sdk/runtime/wire-types';
 
 // @nimi-authority: rule.nimi.desktop.shell-ui.r053
 
@@ -17,7 +17,14 @@ export interface AppsInstallIntentSnapshot {
   readonly windowsCodeSigning: 'signed' | 'unsigned' | 'not-applicable';
   readonly macosNotarization: 'notarized' | 'absent' | 'not-applicable';
   readonly observedSigningSubject: string | null;
-  readonly update?: { readonly launchSelector: Uint8Array; readonly installedVersion: string };
+  /** Publisher safety declaration of the selected target as admitted; null means undeclared. */
+  readonly safetyDeclaration?: AppSafetyDeclaration | null;
+  readonly update?: {
+    readonly launchSelector: Uint8Array;
+    readonly installedVersion: string;
+    /** Installed version's declaration when its information was readable; undefined when not loaded. */
+    readonly installedSafetyDeclaration?: AppSafetyDeclaration | null;
+  };
 }
 
 export type AppsInstallStartResult =
@@ -37,7 +44,7 @@ export type AppsInstallIntentResult =
 
 export interface AppsInstallIntentController {
   requestInstall(target: ApprovedAppCatalogTarget): Promise<AppsInstallIntentResult>;
-  requestUpdate(target: ApprovedAppCatalogTarget, installed: CommittedAppRelease): Promise<AppsInstallIntentResult>;
+  requestUpdate(target: ApprovedAppCatalogTarget, installed: CommittedAppRelease, installedSafetyDeclaration?: AppSafetyDeclaration | null): Promise<AppsInstallIntentResult>;
   confirm(): Promise<AppsInstallIntentResult>;
   cancel(): void;
   pending(): AppsInstallIntentSnapshot | null;
@@ -67,14 +74,14 @@ export function createAppsInstallIntentController(input: {
   };
 
   return Object.freeze({
-    async requestUpdate(target: ApprovedAppCatalogTarget, installed: CommittedAppRelease): Promise<AppsInstallIntentResult> {
+    async requestUpdate(target: ApprovedAppCatalogTarget, installed: CommittedAppRelease, installedSafetyDeclaration?: AppSafetyDeclaration | null): Promise<AppsInstallIntentResult> {
       pending = null;
       if (!input.startUpdate || installed.appId !== target.appId || !installed.launchSelector.length) throw new Error('App update is unavailable');
       if (target.policyBlocked) {
         await input.refresh();
         return { kind: 'policy-blocked', reason: target.policyReason ?? 'policy-blocked', revision: target.policyRevision };
       }
-      pending = { ...snapshotAppsInstallIntent(target), update: { launchSelector: installed.launchSelector.slice(), installedVersion: installed.version } };
+      pending = { ...snapshotAppsInstallIntent(target), update: { launchSelector: installed.launchSelector.slice(), installedVersion: installed.version, installedSafetyDeclaration } };
       return { kind: 'confirmation-required', intent: cloneIntent(pending) };
     },
     async requestInstall(target: ApprovedAppCatalogTarget): Promise<AppsInstallIntentResult> {
@@ -158,6 +165,7 @@ export function snapshotAppsInstallIntent(target: ApprovedAppCatalogTarget): App
     windowsCodeSigning: macos ? 'not-applicable' : target.windowsCodeSigning as 'signed' | 'unsigned',
     macosNotarization: macos ? target.macosNotarization as 'absent' | 'notarized' : 'not-applicable',
     observedSigningSubject: target.observedSigningSubject ?? null,
+    safetyDeclaration: target.safetyDeclaration ?? null,
   };
 }
 

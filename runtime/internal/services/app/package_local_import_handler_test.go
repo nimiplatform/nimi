@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"github.com/nimiplatform/nimi/runtime/internal/appsafety"
 	"image"
 	"image/color"
 	"image/png"
@@ -143,7 +144,9 @@ func TestPackageInfoSelectorsAndInstalledSnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 	info := nimiapppackage.AppInfo{Format: "nimi.app-info/v1", AppID: "test.info", Version: "1.0.0", TargetID: "macos-aarch64", DisplayName: "Info App", Summary: "Installed snapshot",
-		Icon: nimiapppackage.AppInfoIcon{MediaType: "image/png", DataBase64: base64.StdEncoding.EncodeToString(imageBytes.Bytes())}, License: nimiapppackage.AppInfoLicense{Identifier: "MIT", Text: "MIT\n"}, AppAccess: []string{}, CapabilityContractRefs: []string{}, RequiredStandardizedFeatureRefs: []string{}, StoragePolicy: nimiapppackage.AppInfoStoragePolicy{Kind: "nimi-mediated-default"}}
+		Icon: nimiapppackage.AppInfoIcon{MediaType: "image/png", DataBase64: base64.StdEncoding.EncodeToString(imageBytes.Bytes())}, License: nimiapppackage.AppInfoLicense{Identifier: "MIT", Text: "MIT\n"}, AppAccess: []string{}, CapabilityContractRefs: []string{}, RequiredStandardizedFeatureRefs: []string{}, StoragePolicy: nimiapppackage.AppInfoStoragePolicy{Kind: "nimi-mediated-default"},
+		// The installed snapshot carries the declaration as declared and reads it back typed.
+		SafetyProfile: &appsafety.Profile{IntendedAudience: "adult", ContentDescriptors: []string{"strong-language"}, AI: appsafety.AI{DirectInteraction: appsafety.Bool(false), InteractionNotice: "not-applicable", RiskFeatures: []string{}, SubjectNotice: "not-applicable", Outputs: []appsafety.Output{}}, DataPractices: appsafety.DataPractices{PublisherDirectExternalNetwork: appsafety.Bool(false), Telemetry: []string{}, ThirdPartyAccount: "none", UserContentSharing: "none", CommercialFeatures: []string{}, SensitiveDataCategories: []string{}}, HighImpactDecisionUses: []string{}}}
 	raw, err := json.Marshal(info)
 	if err != nil {
 		t.Fatal(err)
@@ -170,6 +173,9 @@ func TestPackageInfoSelectorsAndInstalledSnapshot(t *testing.T) {
 	response, err := service.GetAppPackageInfo(ctx, req)
 	if err != nil || response.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED || !reflect.DeepEqual(response.Info, appPackageInfoProjection(info)) {
 		t.Fatalf("stored info projection: %+v %v", response, err)
+	}
+	if response.Info.GetSafetyDeclaration().GetIntendedAudience() != "adult" || response.Info.GetSafetyDeclaration().GetAiDirectInteraction() || len(response.Info.GetSafetyDeclaration().GetContentDescriptors()) != 1 {
+		t.Fatalf("installed snapshot lost the declaration: %+v", response.Info.GetSafetyDeclaration())
 	}
 	req.InstalledReleaseRef = "old-release"
 	_, err = service.GetAppPackageInfo(ctx, req)

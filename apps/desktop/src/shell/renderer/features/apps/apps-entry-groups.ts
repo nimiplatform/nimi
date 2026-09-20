@@ -37,6 +37,21 @@ function realDisplayName(entry: DesktopAppsEntry): string | null {
   return name !== '' && name !== entry.identity.appId ? name : null;
 }
 
+/**
+ * A Catalog-only row whose current Registry policy blocks it is hidden from the
+ * ordinary discovery view. The Runtime carrier keeps its block facts, and an
+ * installed or local-development entry for the same App keeps its row and
+ * shows the reason, so the installed join is never lost.
+ */
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-043c
+export function isBlockedDiscoveryOnlyEntry(entry: DesktopAppsEntry): boolean {
+  return Boolean(entry.catalogTarget?.policyBlocked) && !entry.committedRelease && !entry.localDevelopment;
+}
+
+export function hideBlockedDiscoveryEntries(entries: readonly DesktopAppsEntry[]): readonly DesktopAppsEntry[] {
+  return entries.filter((entry) => !isBlockedDiscoveryOnlyEntry(entry));
+}
+
 export function groupAppsEntries(entries: readonly DesktopAppsEntry[]): readonly DesktopAppGroup[] {
   const byAppId = new Map<string, DesktopAppsEntry[]>();
   for (const entry of entries) {

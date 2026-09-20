@@ -858,3 +858,73 @@ test('imported package details never claim Registry approval', async () => {
   assert.ok(!markup.includes('Registry approved'));
   await changeLocale('zh');
 });
+
+test('policy-blocked Catalog-only rows are hidden from the ordinary discovery view but installed blocked Apps keep the reason without the revision', async () => {
+  await initI18n();
+  await changeLocale('en');
+  const hidden = catalogRuntimeEntry(true);
+  const hiddenEntry: DesktopAppsEntry = {
+    ...hidden,
+    identity: { ...hidden.identity, entryKey: 'verified:publisher.hidden', appId: 'publisher.hidden', displayName: 'Hidden Blocked App' },
+    catalogTarget: { ...hidden.catalogTarget!, appId: 'publisher.hidden', displayName: 'Hidden Blocked App', policyReason: 'v1.0.0 declares content_descriptors as empty; the App provides gambling content' },
+  };
+  const visible = catalogRuntimeEntry();
+  const installedBlocked: DesktopAppsEntry = {
+    ...catalogRuntimeEntry(true),
+    identity: { ...visible.identity, entryKey: 'verified:publisher.installed-blocked', appId: 'publisher.installed-blocked', displayName: 'Installed Blocked App' },
+    catalogTarget: { ...catalogRuntimeEntry(true).catalogTarget!, appId: 'publisher.installed-blocked', displayName: 'Installed Blocked App' },
+    committedRelease: { ...installedRuntimeEntry().committedRelease!, appId: 'publisher.installed-blocked' },
+  };
+  const home = renderView(baseProps({
+    projection: { status: 'loaded', entries: [hiddenEntry, visible, installedBlocked], catalogStatus: 'loaded', runtimeError: null },
+  }));
+  assert.equal(home.includes('Hidden Blocked App'), false, 'a blocked Catalog-only row is not discoverable');
+  assert.ok(home.includes('Example Catalog App'), 'an unblocked Catalog row stays discoverable');
+  assert.ok(home.includes('Installed Blocked App'), 'an installed App keeps its row even while blocked');
+
+  const detail = renderView(baseProps({
+    projection: { status: 'loaded', entries: [hiddenEntry, visible, installedBlocked], catalogStatus: 'loaded', runtimeError: null },
+    selectedEntryKey: installedBlocked.identity.entryKey,
+  }));
+  assert.ok(detail.includes('data-testid="apps-catalog-policy-blocked"'));
+  assert.ok(detail.includes('blocked by the current Registry policy: security-review-revoked'), 'the reason is the primary message');
+  assert.equal(/policy \(revision 7\)|revision 7\)/u.test(detail), false, 'the revision leaves the primary message for technical details');
+  await changeLocale('zh');
+});
+
+test('App detail shows the publisher safety declaration or its undeclared state without a certification claim', async () => {
+  await initI18n();
+  await changeLocale('en');
+  const undeclared = catalogRuntimeEntry();
+  const undeclaredMarkup = renderView(baseProps({
+    projection: { status: 'loaded', entries: [undeclared], catalogStatus: 'loaded', runtimeError: null },
+    selectedEntryKey: undeclared.identity.entryKey,
+  }));
+  assert.ok(undeclaredMarkup.includes('data-testid="apps-detail-safety-overview"'));
+  assert.ok(undeclaredMarkup.includes('data-declared="false"'));
+  assert.ok(undeclaredMarkup.includes('has not declared audience, content, AI output or data facts'));
+  assert.ok(undeclaredMarkup.includes('data-testid="apps-detail-install"'), 'an undeclared Catalog target stays installable');
+
+  const declared: DesktopAppsEntry = {
+    ...undeclared,
+    catalogTarget: {
+      ...undeclared.catalogTarget!,
+      safetyDeclaration: {
+        intendedAudience: 'teen', contentDescriptors: ['violence'], aiDirectInteraction: true, aiInteractionNotice: 'absent', aiRiskFeatures: [], aiSubjectNotice: 'not-applicable',
+        aiOutputs: [{ modality: 'image', exposure: 'publishable', publicationControl: 'user-confirmed', inProductNotice: 'present', exportVisibleMarking: 'absent', machineReadableMarking: 'absent' }],
+        publisherDirectExternalNetwork: false, telemetry: [], thirdPartyAccount: 'none', userContentSharing: 'none', commercialFeatures: [], sensitiveDataCategories: [], highImpactDecisionUses: [],
+      },
+    },
+  };
+  const declaredMarkup = renderView(baseProps({
+    projection: { status: 'loaded', entries: [declared], catalogStatus: 'loaded', runtimeError: null },
+    selectedEntryKey: declared.identity.entryKey,
+  }));
+  assert.ok(declaredMarkup.includes('data-declared="true"'));
+  assert.ok(declaredMarkup.includes('data-declaration-source="registry"'));
+  assert.ok(declaredMarkup.includes('Teens'));
+  assert.ok(declaredMarkup.includes('Violence'));
+  assert.ok(declaredMarkup.includes('Images (can be published from the App)'));
+  assert.ok(declaredMarkup.includes('Nimi does not certify these statements'));
+  await changeLocale('zh');
+});

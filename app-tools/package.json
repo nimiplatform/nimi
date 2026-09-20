@@ -55,7 +55,7 @@
     "prepack": "pnpm run build",
     "prepublishOnly": "pnpm run build",
     "test": "node ../scripts/with-workspace-surfaces.mjs -- pnpm run test:prepared",
-    "test:prepared": "node scripts/sync-scaffold-versions.mjs --check && node --test test/dev-shell.test.mjs && node --test test/app-project-lifecycle.test.mjs test/app-pack.test.mjs test/app-scaffold.test.mjs"
+    "test:prepared": "node scripts/sync-scaffold-versions.mjs --check && node --test test/dev-shell.test.mjs && node --test test/app-safety-profile.test.mjs test/app-project-lifecycle.test.mjs test/app-pack.test.mjs test/app-scaffold.test.mjs"
   },
   "files": [
     "bin",

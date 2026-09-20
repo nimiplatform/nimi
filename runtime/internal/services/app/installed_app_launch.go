@@ -340,6 +340,14 @@ func installedLaunchError(err error) error {
 	if errors.Is(err, nimiapppackage.ErrPackageIntegrity) || errors.Is(err, nimiappnative.ErrNativeVerification) || errors.Is(err, nimiappnative.ErrNativePostureMismatch) {
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE)
 	}
+	// A confirmed absent Catalog row and a Registry read failure are different
+	// facts; neither is a retirement state.
+	if errors.Is(err, publicappregistry.ErrCatalogAppNotFound) {
+		return grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_CATALOG_ROW_ABSENT, err, grpcerr.ReasonOptions{})
+	}
+	if errors.Is(err, publicappregistry.ErrRegistryUnavailable) || errors.Is(err, publicappregistry.ErrInvalidRegistrySnapshot) {
+		return grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_APP_CATALOG_UNAVAILABLE, err, grpcerr.ReasonOptions{})
+	}
 	if errors.Is(err, nimiappinstall.ErrInstalledLaunch) {
 		return installedLaunchUnavailable()
 	}

@@ -1,11 +1,21 @@
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-042a
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-043a
 import { existsSync, lstatSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { PNG } from 'pngjs';
 import { parse as parseYaml } from 'yaml';
 import { normalizeAppAccessItems } from './app-access-declaration.mjs';
+import { SAFETY_PROFILE_FIELD, normalizeSafetyProfile } from './app-safety-profile.mjs';
 
 export const APP_INFO_MAX_BYTES = 1024 * 1024;
+export const APP_INFO_FIELDS = Object.freeze([
+  'format', 'app_id', 'version', 'target_id', 'display_name', 'summary', 'icon', 'readme_markdown', 'release_notes_markdown',
+  'license', 'app_access', 'capability_contract_refs', 'required_standardized_feature_refs', 'storage_policy', 'author',
+  'homepage_url', 'support_url', SAFETY_PROFILE_FIELD,
+]);
+// Declaration fields that App Tools projects from nimi.app.yaml into the
+// archive declaration and that Registry compares against the candidate.
+export const APP_INFO_DECLARATION_FIELDS = Object.freeze(['app_id', 'display_name', 'version', 'app_access', 'capability_contract_refs', 'required_standardized_feature_refs', 'storage_policy', SAFETY_PROFILE_FIELD]);
 const PNG_SIGNATURE = Buffer.from('89504e470d0a1a0a', 'hex');
 
 function text(value, label, max, multiline = false) {
@@ -77,8 +87,19 @@ function https(value, field) {
   return value;
 }
 
+// A declared safety_profile must already be canonical (tool-serialized); an
+// absent field means undeclared and is never filled in.
+function safetyProfile(value, label) {
+  if (value === undefined) return undefined;
+  const normalized = normalizeSafetyProfile(value);
+  if (JSON.stringify(normalized) !== JSON.stringify(value)) throw new Error(`${label} safety_profile is not canonical; run nimi-app sync to project the declaration`);
+  return normalized;
+}
+
 export function validateAppInfo(info) {
-  if (!info || info.format !== 'nimi.app-info/v1') throw new Error('Unsupported App info format');
+  if (!info || typeof info !== 'object' || Array.isArray(info)) throw new Error('Unsupported App info format');
+  for (const key of Object.keys(info)) if (!APP_INFO_FIELDS.includes(key)) throw new Error(`App info contains unsupported field: ${key}`);
+  if (info.format !== 'nimi.app-info/v1') throw new Error('Unsupported App info format');
   for (const key of ['app_id', 'version', 'target_id']) text(info[key], key, 200);
   text(info.display_name, 'display_name', 120);
   text(info.summary, 'summary', 280);
@@ -98,6 +119,7 @@ export function validateAppInfo(info) {
   if (info.author) text(info.author, 'author', 200);
   https(info.homepage_url, 'homepage_url');
   https(info.support_url, 'support_url');
+  safetyProfile(info[SAFETY_PROFILE_FIELD], 'App info');
   if (Buffer.byteLength(JSON.stringify(info)) > APP_INFO_MAX_BYTES) throw new Error('App info exceeds 1 MiB');
   return info;
 }
@@ -136,11 +158,12 @@ export function readAppInfo(root, targetId) {
     required_standardized_feature_refs: refs(manifest.required_standardized_feature_refs, 'required_standardized_feature_refs'),
     storage_policy: storage(manifest.storage_policy),
     author: metadata.author || '', homepage_url: https(metadata.homepage_url, 'homepage_url'), support_url: https(metadata.support_url, 'support_url'),
+    ...(manifest[SAFETY_PROFILE_FIELD] === undefined ? {} : { [SAFETY_PROFILE_FIELD]: normalizeSafetyProfile(manifest[SAFETY_PROFILE_FIELD]) }),
   });
   const submissionPath = path.join(root, '.nimi/admission/submission.yaml');
   if (existsSync(submissionPath)) {
     const submission = parseYaml(readFileSync(submissionPath, 'utf8'));
-    for (const field of ['app_id', 'version', 'display_name', 'capability_contract_refs', 'required_standardized_feature_refs']) {
+    for (const field of ['app_id', 'version', 'display_name', 'capability_contract_refs', 'required_standardized_feature_refs', SAFETY_PROFILE_FIELD]) {
       if (JSON.stringify(info[field]) !== JSON.stringify(submission[field])) throw new Error(`App info differs from submission ${field}; run nimi-app sync to project the declaration`);
     }
     if (JSON.stringify(storage(submission.storage_policy)) !== JSON.stringify(info.storage_policy)) throw new Error('App info differs from submission storage_policy; run nimi-app sync to project the declaration');

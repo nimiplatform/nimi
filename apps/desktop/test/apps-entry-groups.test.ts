@@ -222,3 +222,18 @@ test('detail sibling sources exclude the open entry and keep primary order', () 
   assert.deepEqual(siblingsOfDev.map((entry) => entry.identity.entryKey), [installed.identity.entryKey]);
   assert.deepEqual(siblingSourceEntries(entries, devEntry({ appId: 'nimi.alone' })), [], 'unknown entry has no siblings');
 });
+
+test('policy-blocked Catalog-only rows leave the ordinary discovery view while installed and local rows keep their block facts', async () => {
+  const { hideBlockedDiscoveryEntries, isBlockedDiscoveryOnlyEntry } = await import('../src/shell/renderer/features/apps/apps-entry-groups');
+  const blockedCatalog = { ...installedEntry({ appId: 'publisher.blocked' }), committedRelease: null, catalogTarget: { policyBlocked: true, policyReason: 'v1.0.0 declares content_descriptors as empty; the App provides gambling content', policyRevision: '3' } as unknown as ApprovedAppCatalogTarget };
+  const blockedInstalled = { ...installedEntry({ appId: 'publisher.installed' }), catalogTarget: { policyBlocked: true, policyReason: 'misstated', policyRevision: '3' } as unknown as ApprovedAppCatalogTarget };
+  const blockedDev = { ...devEntry({ appId: 'publisher.dev' }), catalogTarget: { policyBlocked: true, policyReason: 'misstated', policyRevision: '3' } as unknown as ApprovedAppCatalogTarget };
+  const openCatalog = { ...installedEntry({ appId: 'publisher.open' }), committedRelease: null, catalogTarget: { policyBlocked: false, policyRevision: '0' } as unknown as ApprovedAppCatalogTarget };
+  assert.equal(isBlockedDiscoveryOnlyEntry(blockedCatalog), true);
+  assert.equal(isBlockedDiscoveryOnlyEntry(blockedInstalled), false, 'the installed join keeps its row');
+  assert.equal(isBlockedDiscoveryOnlyEntry(blockedDev), false);
+  assert.equal(isBlockedDiscoveryOnlyEntry(openCatalog), false);
+  const visible = hideBlockedDiscoveryEntries([blockedCatalog, blockedInstalled, blockedDev, openCatalog]);
+  assert.deepEqual(visible.map((entry) => entry.identity.appId), ['publisher.installed', 'publisher.dev', 'publisher.open']);
+  assert.equal(blockedInstalled.catalogTarget?.policyReason, 'misstated', 'block facts are retained on the carrier');
+});

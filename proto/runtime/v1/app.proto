@@ -456,6 +456,36 @@ message ApprovedAppCatalogStorageDisclosure {
   string expected_size_band = 5;
 }
 
+// One declared AI output modality of a publisher safety declaration.
+message AppSafetyOutputDeclaration {
+  string modality = 1;
+  string exposure = 2;
+  string publication_control = 3;
+  string in_product_notice = 4;
+  string export_visible_marking = 5;
+  string machine_readable_marking = 6;
+}
+
+// Publisher-authored safety declaration for one exact App version, carried as
+// declared from nimi.app.yaml safety_profile. Absence means undeclared. It is
+// never a Nimi certification, App Access, session condition or eligibility.
+message AppSafetyDeclaration {
+  string intended_audience = 1;
+  repeated string content_descriptors = 2;
+  bool ai_direct_interaction = 3;
+  string ai_interaction_notice = 4;
+  repeated string ai_risk_features = 5;
+  string ai_subject_notice = 6;
+  repeated AppSafetyOutputDeclaration ai_outputs = 7;
+  bool publisher_direct_external_network = 8;
+  repeated string telemetry = 9;
+  string third_party_account = 10;
+  string user_content_sharing = 11;
+  repeated string commercial_features = 12;
+  repeated string sensitive_data_categories = 13;
+  repeated string high_impact_decision_uses = 14;
+}
+
 // Runtime projects one target from one immutable Registry snapshot. The
 // selector is opaque to Desktop and is the only input accepted by install
 // start; display fields never authorize a package mutation by themselves.
@@ -487,6 +517,8 @@ message ApprovedAppCatalogTarget {
   uint64 policy_revision = 25;
   string macos_notarization = 26;
   optional string macos_developer_id_subject = 27;
+  // Absent when the admitted release carries no declaration (undeclared).
+  AppSafetyDeclaration safety_declaration = 28;
 }
 
 message ListApprovedAppCatalogTargetsRequest {}
@@ -577,6 +609,8 @@ message AppPackageInfo {
   string author = 16;
   string homepage_url = 17;
   string support_url = 18;
+  // Absent when the information document carries no declaration (undeclared).
+  AppSafetyDeclaration safety_declaration = 19;
 }
 
 message GetAppPackageInfoRequest {

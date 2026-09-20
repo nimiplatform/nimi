@@ -154,7 +154,7 @@ export function requestAppsInstallFromDetail(
 
 export function requestAppsUpdateFromDetail(entry: DesktopAppsEntry, controller: AppsInstallIntentController): Promise<AppsInstallIntentResult> {
   if (!canRequestCatalogUpdate(entry) || !entry.catalogTarget || !entry.committedRelease) throw new Error('App update is unavailable');
-  return controller.requestUpdate(entry.catalogTarget, entry.committedRelease);
+  return controller.requestUpdate(entry.catalogTarget, entry.committedRelease, entry.appInfo ? entry.appInfo.safetyDeclaration ?? null : undefined);
 }
 
 export function createAppsPanelProjectionReloader(input: {
@@ -359,7 +359,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
           if (entry.localDevelopment) await liveBridge.startRegistration(entry.localDevelopment.selector);
           else if (entry.committedRelease && liveBridge.launchInstalled) {
             const run = await liveBridge.launchInstalled(entry.committedRelease.launchSelector.slice());
-            if (run.state === 'crashed') setActionError(run.message || run.reasonCode || 'Installed App launch failed');
+            if (run.state === 'crashed') setActionError(installedLaunchFailureMessage(run, t));
           } else throw new Error('Installed App launch is unavailable');
         } else if (action === 'stop') {
           if (entry.localDevelopment) await liveBridge.stopRun(entry.localDevelopment.selector);
@@ -437,6 +437,19 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
     confirmInstall,
     cancelInstall,
   };
+}
+
+/**
+ * A confirmed absent Catalog row and a Registry read failure are different
+ * facts from the Runtime carrier; neither is a retirement of the installed
+ * copy. Other failures keep the owner-projected message.
+ */
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-043c
+export function installedLaunchFailureMessage(run: { readonly message: string; readonly reasonCode?: string }, t: TFunction): string {
+  const carrier = `${run.reasonCode ?? ''} ${run.message}`;
+  if (carrier.includes('APP_CATALOG_ROW_ABSENT')) return t('Apps.catalog.rowAbsent');
+  if (carrier.includes('APP_CATALOG_UNAVAILABLE')) return t('Apps.catalog.readFailed');
+  return run.message || run.reasonCode || 'Installed App launch failed';
 }
 
 function appsInstallIntentFailure(result: AppsInstallIntentResult, t: TFunction): string | null {
