@@ -942,12 +942,12 @@ describe('public Model Config contract', () => {
 
 describe('Model Config capability sections', () => {
   const sectionContracts = ['text.generate', 'image.generate'] as const;
-  const sectionIntents = [{
+  const sectionIntents: NimiCapabilityAIConfigIntent[] = [{
     capabilityContract: 'text.generate',
     requiredFeatures: [],
     defaults: undefined,
     route: { oneofKind: 'local', local: {} },
-  }] as const;
+  }];
 
   it('renders declared sections with their rows and keeps uncovered contracts flat', async () => {
     const node = await renderSurface(committedOverwrite(), vi.fn(), {

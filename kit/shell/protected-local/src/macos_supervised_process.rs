@@ -173,7 +173,10 @@ impl SupervisedDevelopmentProcess {
         // until scope cleanup, including while descendant processes exit.
         match unsafe { nimi_macos_child_exit_code(self.pid, &mut code) } {
             1 => Ok(Some(code)),
-            0 if self.running() => Ok(None),
+            // waitid successfully observed no terminal status. A second
+            // liveness read can race with exit (or consume a NOTE_EXEC event)
+            // and must not turn that valid observation into a trust failure.
+            0 => Ok(None),
             _ => Err(untrusted()),
         }
     }
@@ -432,6 +435,8 @@ mod tests {
         }
         assert_eq!(process.exit_code().unwrap(), Some(17));
         process.terminate().unwrap();
+        // Successful nonterminal observation is distinct from a reaped child.
+        assert!(process.exit_code().is_err());
     }
     #[cfg(feature = "macos-source-local-development")]
     use std::os::unix::fs::PermissionsExt;
