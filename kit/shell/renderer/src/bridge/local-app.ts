@@ -1,6 +1,8 @@
 import { validateNimiLocalAppTextAnnotationResult, type NimiLocalAppTextAnnotationResult } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppSpeechTranscript, type NimiLocalAppSpeechTranscript } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppAudioSeparation, type NimiLocalAppAudioSeparation } from '@nimiplatform/kit/core/sdk-contract';
+import { validateNimiLocalAppArtifactUploadShellInput, validateNimiLocalAppArtifactUploadResult,
+  type NimiLocalAppArtifactUploadShellInput, type NimiLocalAppArtifactUploadResult as SdkArtifactUploadResult } from '@nimiplatform/kit/core/sdk-contract';
 import {
   NIMI_STANDARD_SHELL_COMMANDS,
   isNimiStandardShellErrorEnvelope,
@@ -256,11 +258,7 @@ export type NimiLocalAppScenarioJobGetResult = {
   readonly asset: NimiLocalAppVoiceAsset | null;
   readonly voiceReference: { readonly kind: 'voice_asset_id'; readonly voiceAssetId: string } | null;
 };
-export type NimiLocalAppArtifactUploadResult = {
-  readonly artifactId: string;
-  readonly sizeBytes: number;
-  readonly mimeType: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif' | 'audio/wav' | 'audio/mpeg' | 'video/mp4';
-};
+export type NimiLocalAppArtifactUploadResult = SdkArtifactUploadResult;
 export type NimiLocalAppTextTurnEvent = SdkLocalAppTextTurnEvent;
 export type NimiLocalAppScenarioJobEvent = {
   readonly eventType: 'submitted' | 'queued' | 'running' | 'completed' | 'failed' | 'canceled' | 'timeout';
@@ -447,7 +445,7 @@ export type NimiLocalAppStandardShellSurface = {
     };
     readonly artifacts: {
       readonly read: (artifactId: string) => Promise<{ readonly bytes: readonly number[]; readonly mimeType: string; readonly sizeBytes: number }>;
-      readonly upload: (input: { readonly bytes: readonly number[]; readonly mimeType: NimiLocalAppArtifactUploadResult['mimeType'] }) => Promise<NimiLocalAppArtifactUploadResult>;
+      readonly upload: (input: NimiLocalAppArtifactUploadShellInput) => Promise<NimiLocalAppArtifactUploadResult>;
     };
     readonly voiceAssets: {
       readonly list: (input?: { readonly pageSize?: number; readonly pageToken?: string }) => Promise<{ readonly assets: readonly NimiLocalAppVoiceAsset[]; readonly nextPageToken: string }>;
@@ -902,19 +900,10 @@ export function readNimiLocalAppScenarioArtifact(artifactId: string): Promise<{ 
   } }, (value) => parseArtifactRead(value, command));
 }
 
-export function uploadNimiLocalAppScenarioArtifact(input: {
-  readonly bytes: readonly number[];
-  readonly mimeType: NimiLocalAppArtifactUploadResult['mimeType'];
-}): Promise<NimiLocalAppArtifactUploadResult> {
+export function uploadNimiLocalAppScenarioArtifact(input: NimiLocalAppArtifactUploadShellInput): Promise<NimiLocalAppArtifactUploadResult> {
   const command = AIC_COMMANDS.artifactUpload;
-  assertAllowedInputKeys(input, ['bytes', 'mimeType'], ['bytes', 'mimeType'], command);
-  if (!Array.isArray(input.bytes) || input.bytes.length === 0 || input.bytes.length > 32 * 1024 * 1024
-    || input.bytes.some((entry) => !Number.isInteger(entry) || entry < 0 || entry > 255)
-    || !['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'audio/wav', 'audio/mpeg', 'video/mp4'].includes(input.mimeType)) {
-    throw invalidInput(command, 'artifact upload is invalid');
-  }
-  return invokeChecked(command, { payload: { bytes: [...input.bytes], mimeType: input.mimeType } },
-    (value) => parseArtifactUpload(value, command, input.bytes.length, input.mimeType));
+  const prepared = validateNimiLocalAppArtifactUploadShellInput(input);
+  return invokeChecked(command, { payload: prepared }, (value) => validateNimiLocalAppArtifactUploadResult(value, prepared));
 }
 
 export function listNimiLocalAppVoiceAssets(
@@ -2385,7 +2374,7 @@ function parseScenarioArtifacts(value: unknown, command: string): readonly NimiL
     const hasSeed = Object.hasOwn(record, 'seed');
     assertProjectionKeys(record, [
       'artifactId', 'mimeType', 'bytes', 'sizeBytes', 'sha256', 'durationMs',
-      'width', 'height', 'sampleRateHz', 'channels', ...(hasSeed ? ['seed'] : []),
+      'width', 'height', 'sampleRateHz', 'channels', ...(Object.hasOwn(record, 'frameCount') ? ['frameCount'] : []), ...(hasSeed ? ['seed'] : []),
     ], command, 'scenario artifact');
     const bytes = parseProjectionBytes(record.bytes, command);
     const sizeBytes = boundedProjectionInteger(record.sizeBytes, 0, Number.MAX_SAFE_INTEGER, command);
@@ -2396,6 +2385,8 @@ function parseScenarioArtifacts(value: unknown, command: string): readonly NimiL
       ? boundedProjectionInteger(record.seed, -2_147_483_648, 2_147_483_647, command)
       : undefined;
     if (hasSeed && !mimeType.startsWith('image/')) throw new Error(`${command}: artifact seed is invalid`);
+    const frameCount = record.frameCount === undefined ? undefined : boundedProjectionInteger(record.frameCount, 1, Number.MAX_SAFE_INTEGER, command);
+    if (frameCount !== undefined && (!mimeType.startsWith('audio/') || !(Number(record.sampleRateHz) > 0) || !(Number(record.channels) > 0))) throw new Error(`${command}: audio frame format is invalid`);
     return Object.freeze({
       artifactId: requiredText(record.artifactId, 'artifactId', command, 128), mimeType, bytes,
       sizeBytes, sha256: optionalProjectionText(record.sha256, 128, command),
@@ -2404,26 +2395,10 @@ function parseScenarioArtifacts(value: unknown, command: string): readonly NimiL
       height: boundedProjectionInteger(record.height, 0, Number.MAX_SAFE_INTEGER, command),
       sampleRateHz: boundedProjectionInteger(record.sampleRateHz, 0, Number.MAX_SAFE_INTEGER, command),
       channels: boundedProjectionInteger(record.channels, 0, Number.MAX_SAFE_INTEGER, command),
+      ...(frameCount !== undefined ? { frameCount } : {}),
       ...(seed !== undefined ? { seed } : {}),
     }) as NimiLocalAppScenarioArtifact;
   }));
-}
-
-function parseArtifactUpload(
-  value: unknown,
-  command: string,
-  expectedSize: number,
-  expectedMimeType: string,
-): NimiLocalAppArtifactUploadResult {
-  const record = assertRecord(value, `${command}: artifact upload is invalid`);
-  assertProjectionKeys(record, ['artifactId', 'sizeBytes', 'mimeType'], command, 'artifact upload');
-  const artifactId = requiredText(record.artifactId, 'artifactId', command, 128);
-  const sizeBytes = boundedProjectionInteger(record.sizeBytes, 1, 32 * 1024 * 1024, command);
-  if (sizeBytes !== expectedSize || record.mimeType !== expectedMimeType
-    || !['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'audio/wav', 'audio/mpeg', 'video/mp4'].includes(String(record.mimeType))) {
-    throw new Error(`${command}: artifact upload result is invalid`);
-  }
-  return Object.freeze({ artifactId, sizeBytes, mimeType: record.mimeType }) as NimiLocalAppArtifactUploadResult;
 }
 
 function parseArtifactRead(value: unknown, command: string): { readonly bytes: readonly number[]; readonly mimeType: string; readonly sizeBytes: number } {

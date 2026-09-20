@@ -621,6 +621,21 @@ describe('renderer local-app standard-shell surface', () => {
     }]);
   });
 
+  it('carries an owned audio reference and large canonical metadata without inline audio', async () => {
+    const invocations: unknown[] = [];
+    const metadata = { artifactId: 'canonical-1', sizeBytes: 73588090, mimeType: 'audio/wav',
+      audioInfo: { sampleRateHz: 48000, channels: 2, frameCount: 9198504, durationMs: 191635 } };
+    // Carrier projection fixture only; real codec/body evidence lives in the Runtime integration test.
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (command: string, payload: unknown) => { invocations.push({ command, payload }); return metadata; },
+      listen: () => () => {},
+    };
+    const input = { source: { kind: 'app-asset' as const, relativePath: 'sources/原曲.mp3' },
+      mimeType: 'audio/mpeg' as const, audioPreparation: { profile: 'canonical-pcm-v1' as const } };
+    await expect(createNimiLocalAppStandardShellSurface().ai.artifacts.upload(input)).resolves.toEqual(metadata);
+    expect(invocations).toEqual([{ command: 'nimi.shell.localApp.artifactUpload', payload: { payload: input } }]);
+  });
+
   it('projects canonical voice-create requests, Jobs, and VoiceAsset creation sources', async () => {
     const invocations: Array<{ command: string; payload: unknown }> = [];
     const asset = {

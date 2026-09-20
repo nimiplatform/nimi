@@ -377,6 +377,18 @@ func (s *Service) localAppAssets() (*appstorage.AssetStore, error) {
 	return s.localAppAssetStore, s.localAppAssetStoreErr
 }
 
+// @nimi-authority: rule.nimi.runtime.ai-provider.canonical-audio-upload
+// OpenOwnedAudioPreparationSource is a private Runtime composition seam. The
+// AI ingress has already derived owner from the protected upload decision; it
+// must not call a differently classified protected App RPC to open the source.
+func (s *Service) OpenOwnedAudioPreparationSource(ctx context.Context, owner appstorage.ManagedOwner, relativePath string) (*appstorage.AssetSource, error) {
+	store, err := s.localAppAssets()
+	if err != nil {
+		return nil, err
+	}
+	return store.Open(ctx, owner, relativePath)
+}
+
 func localAppAssetOwner(decision accountservice.LocalAppCallerDecision) appstorage.ManagedOwner {
 	return appstorage.ManagedOwner{AccountID: decision.AccountID, RegisteredAppSubject: decision.RegisteredAppSubject}
 }

@@ -240,6 +240,7 @@ export type NimiLocalAppScenarioArtifact = {
   readonly sampleRateHz: number;
   readonly channels: number;
   readonly seed?: number;
+  readonly frameCount?: number;
 };
 
 export type NimiLocalAppVideoFaceSwapSummary = {
@@ -297,11 +298,37 @@ export type NimiLocalAppScenarioJobGetResult = {
   readonly voiceReference: { readonly kind: 'voice_asset_id'; readonly voiceAssetId: string } | null;
 };
 
-export type NimiLocalAppArtifactUploadMime = 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif' | 'audio/wav' | 'audio/mpeg' | 'video/mp4';
+export type NimiLocalAppArtifactUploadMime = 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif' | 'audio/wav' | 'audio/mpeg' | 'audio/flac' | 'video/mp4';
+export type NimiLocalAppAudioInfo = {
+  readonly sampleRateHz: number;
+  readonly channels: number;
+  readonly frameCount: number;
+  readonly durationMs: number;
+};
+export type NimiLocalAppCanonicalAudioPreparation = {
+  readonly profile: 'canonical-pcm-v1';
+  readonly targetSampleRateHz?: number;
+};
+export type NimiLocalAppArtifactUploadSource =
+  | { readonly kind: 'app-asset'; readonly relativePath: string }
+  | { readonly kind: 'artifact'; readonly artifactId: string };
+export type NimiLocalAppArtifactUploadInput = {
+  readonly mimeType: NimiLocalAppArtifactUploadMime;
+} & (
+  | { readonly bytes: Uint8Array; readonly source?: never; readonly audioPreparation?: NimiLocalAppCanonicalAudioPreparation }
+  | { readonly source: NimiLocalAppArtifactUploadSource; readonly bytes?: never; readonly audioPreparation: NimiLocalAppCanonicalAudioPreparation }
+);
+export type NimiLocalAppArtifactUploadShellInput = {
+  readonly bytes?: readonly number[];
+  readonly source?: NimiLocalAppArtifactUploadSource;
+  readonly mimeType: NimiLocalAppArtifactUploadMime;
+  readonly audioPreparation?: NimiLocalAppCanonicalAudioPreparation;
+};
 export type NimiLocalAppArtifactUploadResult = {
   readonly artifactId: string;
   readonly sizeBytes: number;
   readonly mimeType: NimiLocalAppArtifactUploadMime;
+  readonly audioInfo?: NimiLocalAppAudioInfo;
 };
 
 export type NimiLocalAppTextTurnEvent =
@@ -346,7 +373,7 @@ export type NimiLocalAppAIConsumptionShell = {
   };
   readonly artifacts: {
     readonly read: (artifactId: string) => Promise<unknown>;
-    readonly upload: (input: { readonly bytes: readonly number[]; readonly mimeType: NimiLocalAppArtifactUploadMime }) => Promise<unknown>;
+    readonly upload: (input: NimiLocalAppArtifactUploadShellInput) => Promise<unknown>;
   };
   readonly voiceAssets: NimiLocalAppVoiceAssetsShell;
 };
@@ -394,7 +421,7 @@ export type NimiLocalAppAIConsumptionClient = {
   };
   readonly artifacts: {
     readonly read: (artifactId: string) => Promise<{ readonly bytes: Uint8Array; readonly mimeType: string; readonly sizeBytes: number }>;
-    readonly upload: (input: { readonly bytes: Uint8Array; readonly mimeType: NimiLocalAppArtifactUploadMime }) => Promise<NimiLocalAppArtifactUploadResult>;
+    readonly upload: (input: NimiLocalAppArtifactUploadInput) => Promise<NimiLocalAppArtifactUploadResult>;
   };
   readonly voiceAssets: NimiLocalAppVoiceAssetsClient;
 };
@@ -512,16 +539,12 @@ export function createNimiLocalAppAIConsumptionClient(
         await shell.artifacts.read(boundedIdentifier(artifactId, 'artifactId')),
       ),
       upload: async (input) => {
-        assertExactKeys(input, ['bytes', 'mimeType'], 'artifact upload input');
-        assertNoAuthorityMaterial(input);
-        if (!(input.bytes instanceof Uint8Array) || input.bytes.byteLength === 0
-          || input.bytes.byteLength > MAX_ARTIFACT_BYTES || !isArtifactUploadMime(input.mimeType)) {
-          invalidAIInput('artifact upload is invalid');
-        }
+        const prepared = prepareArtifactUploadInput(input);
         return projectArtifactUpload(
-          await shell.artifacts.upload({ bytes: [...input.bytes], mimeType: input.mimeType }),
-          input.bytes.byteLength,
-          input.mimeType,
+          await shell.artifacts.upload(prepared),
+          prepared.bytes?.length,
+          prepared.mimeType,
+          prepared.audioPreparation,
         );
       },
     }),
@@ -606,13 +629,22 @@ export function createNimiLocalAppAIConsumptionRuntimeClient(
       },
       async upload(input) {
         const response = await runtime.uploadLocalAppArtifact({
-          bytes: Uint8Array.from(input.bytes),
+          bytes: Uint8Array.from(input.bytes ?? []),
           mimeType: input.mimeType,
+          appAssetRelativePath: input.source?.kind === 'app-asset' ? input.source.relativePath : '',
+          sourceArtifactId: input.source?.kind === 'artifact' ? input.source.artifactId : '',
+          audioPreparation: input.audioPreparation ? { targetSampleRateHz: input.audioPreparation.targetSampleRateHz ?? 0 } : undefined,
         });
         return {
           artifactId: response.artifactId,
           sizeBytes: runtimeSafeInteger(response.sizeBytes, 'artifact size'),
           mimeType: response.mimeType,
+          ...(response.audioInfo ? { audioInfo: {
+            sampleRateHz: response.audioInfo.sampleRateHz,
+            channels: response.audioInfo.channels,
+            frameCount: runtimeSafeInteger(response.audioInfo.frameCount, 'audio frames'),
+            durationMs: runtimeSafeInteger(response.audioInfo.durationMs, 'audio duration'),
+          } } : {}),
         };
       },
     },
@@ -1138,7 +1170,7 @@ function projectArtifacts(value: unknown): readonly NimiLocalAppScenarioArtifact
     const hasSeed = Boolean(record && Object.hasOwn(record, 'seed'));
     assertExactProjectionKeys(record, [
       'artifactId', 'mimeType', 'bytes', 'sizeBytes', 'sha256', 'durationMs',
-      'width', 'height', 'sampleRateHz', 'channels', ...(hasSeed ? ['seed'] : []),
+      'width', 'height', 'sampleRateHz', 'channels', ...(record && Object.hasOwn(record, 'frameCount') ? ['frameCount'] : []), ...(hasSeed ? ['seed'] : []),
     ], 'scenario artifact');
     const bytes = validateProjectionBytes(record.bytes, 'scenario artifact bytes');
     const sizeBytes = projectionInteger(record.sizeBytes, 'scenario artifact sizeBytes', 0, Number.MAX_SAFE_INTEGER);
@@ -1148,6 +1180,8 @@ function projectArtifacts(value: unknown): readonly NimiLocalAppScenarioArtifact
       ? projectionInteger(record.seed, 'scenario artifact seed', -2_147_483_648, 2_147_483_647)
       : undefined;
     if (hasSeed && !mimeType.startsWith('image/')) localAppProjectionError('scenario artifact seed mime');
+    const frameCount = record.frameCount === undefined ? undefined : projectionInteger(record.frameCount, 'audio frame count', 1, Number.MAX_SAFE_INTEGER);
+    if (frameCount !== undefined && (!mimeType.startsWith('audio/') || !(Number(record.sampleRateHz) > 0) || !(Number(record.channels) > 0))) localAppProjectionError('audio frame count requires an audio format');
     return Object.freeze({
       artifactId: boundedProjectionText(record.artifactId, 'scenario artifact id', MAX_IDENTIFIER_BYTES),
       mimeType,
@@ -1159,6 +1193,7 @@ function projectArtifacts(value: unknown): readonly NimiLocalAppScenarioArtifact
       height: projectionInteger(record.height, 'scenario artifact height', 0, Number.MAX_SAFE_INTEGER),
       sampleRateHz: projectionInteger(record.sampleRateHz, 'scenario artifact sampleRateHz', 0, Number.MAX_SAFE_INTEGER),
       channels: projectionInteger(record.channels, 'scenario artifact channels', 0, Number.MAX_SAFE_INTEGER),
+      ...(frameCount !== undefined ? { frameCount } : {}),
       ...(seed !== undefined ? { seed } : {}),
     });
   }));
@@ -1166,24 +1201,101 @@ function projectArtifacts(value: unknown): readonly NimiLocalAppScenarioArtifact
 
 function projectArtifactUpload(
   value: unknown,
-  expectedSize: number,
+  expectedSize: number | undefined,
   expectedMimeType: NimiLocalAppArtifactUploadMime,
+  preparation?: NimiLocalAppCanonicalAudioPreparation,
 ): NimiLocalAppArtifactUploadResult {
   const record = asRecord(value);
-  assertExactProjectionKeys(record, ['artifactId', 'sizeBytes', 'mimeType'], 'artifact upload result');
+  assertExactProjectionKeys(record, ['artifactId', 'sizeBytes', 'mimeType', ...(preparation ? ['audioInfo'] : [])], 'artifact upload result');
   assertNoAuthorityMaterial(record);
   const artifactId = projectionText(record.artifactId, 'artifact upload artifactId');
   if (utf8Length(artifactId) > MAX_IDENTIFIER_BYTES
-    || !Number.isSafeInteger(record.sizeBytes) || record.sizeBytes !== expectedSize
-    || record.sizeBytes < 1 || record.sizeBytes > MAX_ARTIFACT_BYTES
-    || record.mimeType !== expectedMimeType || !isArtifactUploadMime(record.mimeType)) {
+    || typeof record.sizeBytes !== 'number' || !Number.isSafeInteger(record.sizeBytes)
+    || record.sizeBytes < 1 || record.sizeBytes > (preparation ? 512 * 1024 * 1024 : MAX_ARTIFACT_BYTES)
+    || record.mimeType !== (preparation ? 'audio/wav' : expectedMimeType)
+    || !isArtifactUploadMime(record.mimeType)) {
     localAppProjectionError('artifact upload result');
   }
-  return Object.freeze({ artifactId, sizeBytes: record.sizeBytes as number, mimeType: record.mimeType });
+  if (!preparation) {
+    if (record.sizeBytes !== expectedSize || record.audioInfo !== undefined) localAppProjectionError('artifact upload result');
+    return Object.freeze({ artifactId, sizeBytes: record.sizeBytes as number, mimeType: record.mimeType });
+  }
+  const audio = asRecord(record.audioInfo);
+  assertExactProjectionKeys(audio, ['sampleRateHz', 'channels', 'frameCount', 'durationMs'], 'canonical audio facts');
+  const sampleRateHz = projectionInteger(audio.sampleRateHz, 'sampleRateHz', 8000, 96000);
+  const channels = projectionInteger(audio.channels, 'channels', 1, 2);
+  const frameCount = projectionInteger(audio.frameCount, 'frameCount', 1, sampleRateHz * 600);
+  const durationMs = projectionInteger(audio.durationMs, 'durationMs', 0, 600000);
+  if (durationMs !== Math.floor(frameCount * 1000 / sampleRateHz)
+    || Number(record.sizeBytes) < frameCount * channels * 4 + 44
+    || (preparation.targetSampleRateHz !== undefined && preparation.targetSampleRateHz !== sampleRateHz)) {
+    localAppProjectionError('canonical audio facts');
+  }
+  return Object.freeze({ artifactId, sizeBytes: record.sizeBytes as number, mimeType: record.mimeType,
+    audioInfo: Object.freeze({ sampleRateHz, channels, frameCount, durationMs }) });
+}
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.canonical-audio-upload
+function prepareArtifactUploadInput(input: NimiLocalAppArtifactUploadInput): NimiLocalAppArtifactUploadShellInput {
+  assertExactKeys(input, ['bytes', 'source', 'mimeType', 'audioPreparation'], 'artifact upload input');
+  assertNoAuthorityMaterial(input);
+  if (!isArtifactUploadMime(input.mimeType) || (input.bytes !== undefined) === (input.source !== undefined)) {
+    invalidAIInput('artifact upload requires exactly one source');
+  }
+  let source: NimiLocalAppArtifactUploadSource | undefined;
+  if (input.source !== undefined) {
+    if (!input.source || typeof input.source !== 'object') invalidAIInput('artifact source is invalid');
+    if (input.source.kind === 'app-asset') {
+      assertExactKeys(input.source, ['kind', 'relativePath'], 'artifact source');
+      const relativePath = input.source.relativePath;
+      if (typeof relativePath !== 'string' || !relativePath || utf8Length(relativePath) > 4096 || relativePath.includes('\0')) invalidAIInput('artifact source path is invalid');
+      source = { kind: 'app-asset', relativePath };
+    } else if (input.source.kind === 'artifact') {
+      assertExactKeys(input.source, ['kind', 'artifactId'], 'artifact source');
+      source = { kind: 'artifact', artifactId: boundedIdentifier(input.source.artifactId, 'artifactId') };
+    } else invalidAIInput('artifact source kind is invalid');
+  } else if (!(input.bytes instanceof Uint8Array) || input.bytes.byteLength === 0 || input.bytes.byteLength > MAX_ARTIFACT_BYTES) {
+    invalidAIInput('artifact upload bytes are invalid');
+  }
+  let audioPreparation: NimiLocalAppCanonicalAudioPreparation | undefined;
+  if (input.audioPreparation !== undefined) {
+    const candidate = input.audioPreparation;
+    if (!candidate || typeof candidate !== 'object') invalidAIInput('audio preparation is invalid');
+    assertExactKeys(candidate, ['profile', 'targetSampleRateHz'], 'audio preparation');
+    if (candidate.profile !== 'canonical-pcm-v1' || !['audio/wav', 'audio/mpeg', 'audio/flac'].includes(input.mimeType)
+      || (candidate.targetSampleRateHz !== undefined && (!Number.isInteger(candidate.targetSampleRateHz) || candidate.targetSampleRateHz < 8000 || candidate.targetSampleRateHz > 96000 || input.mimeType !== 'audio/wav'))) {
+      invalidAIInput('audio preparation is unsupported');
+    }
+    audioPreparation = { profile: 'canonical-pcm-v1', ...(candidate.targetSampleRateHz !== undefined ? { targetSampleRateHz: candidate.targetSampleRateHz } : {}) };
+  }
+  if ((source || input.mimeType === 'audio/flac') && !audioPreparation) invalidAIInput('this source requires canonical audio preparation');
+  if (source?.kind === 'artifact' && input.mimeType !== 'audio/wav') invalidAIInput('artifact source must already be canonical WAV');
+  return { mimeType: input.mimeType, ...(source ? { source } : { bytes: [...input.bytes!] }), ...(audioPreparation ? { audioPreparation } : {}) };
+}
+
+// Shared protected-carrier validation; this projects no ownership or readiness.
+export function validateNimiLocalAppArtifactUploadShellInput(value: unknown): NimiLocalAppArtifactUploadShellInput {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) invalidAIInput('artifact upload input is invalid');
+  const record = value as Record<string, unknown>;
+  let copied: Uint8Array | undefined;
+  if (record.bytes !== undefined) {
+    if (!Array.isArray(record.bytes) || record.bytes.length === 0 || record.bytes.length > MAX_ARTIFACT_BYTES) invalidAIInput('artifact upload bytes are invalid');
+    copied = new Uint8Array(record.bytes.length);
+    for (let index = 0; index < record.bytes.length; index += 1) {
+      const byte = record.bytes[index];
+      if (!Number.isInteger(byte) || byte < 0 || byte > 255) invalidAIInput('artifact upload bytes are invalid');
+      copied[index] = byte;
+    }
+  }
+  return prepareArtifactUploadInput({ ...record, ...(copied ? { bytes: copied } : {}) } as NimiLocalAppArtifactUploadInput);
+}
+
+export function validateNimiLocalAppArtifactUploadResult(value: unknown, input: NimiLocalAppArtifactUploadShellInput): NimiLocalAppArtifactUploadResult {
+  return projectArtifactUpload(value, input.bytes?.length, input.mimeType, input.audioPreparation);
 }
 
 function isArtifactUploadMime(value: unknown): value is NimiLocalAppArtifactUploadMime {
-  return value === 'image/png' || value === 'image/jpeg' || value === 'image/webp' || value === 'image/gif' || value === 'audio/wav' || value === 'audio/mpeg' || value === 'video/mp4';
+  return value === 'image/png' || value === 'image/jpeg' || value === 'image/webp' || value === 'image/gif' || value === 'audio/wav' || value === 'audio/mpeg' || value === 'audio/flac' || value === 'video/mp4';
 }
 
 function projectArtifactRead(value: unknown): { readonly bytes: Uint8Array; readonly mimeType: string; readonly sizeBytes: number } {
@@ -1598,6 +1710,7 @@ function projectRuntimeLocalArtifact(
     height: artifact.height,
     sampleRateHz: artifact.sampleRateHz,
     channels: artifact.channels,
+    ...(BigInt(artifact.frameCount ?? '0') > 0n ? { frameCount: runtimeSafeInteger(artifact.frameCount, 'audio frames') } : {}),
     ...(artifact.seed !== undefined ? { seed: artifact.seed } : {}),
   };
 }
@@ -1911,7 +2024,7 @@ function runtimeVoiceAssetFromLocal(asset: NimiLocalAppVoiceAsset): NimiProtecte
 }
 
 function runtimeArtifactFromLocal(artifact: NimiLocalAppScenarioArtifact, bytes: Uint8Array = Uint8Array.from(artifact.bytes), mimeType = artifact.mimeType, sizeBytes = artifact.sizeBytes): ScenarioArtifact {
-  return { artifactId: artifact.artifactId, mimeType, bytes, uri: '', sha256: artifact.sha256, sizeBytes: String(sizeBytes), durationMs: String(artifact.durationMs), fps: 0, width: artifact.width, height: artifact.height, sampleRateHz: artifact.sampleRateHz, channels: artifact.channels, speechAlignment: undefined, metadata: undefined, seed: artifact.seed };
+  return { artifactId: artifact.artifactId, mimeType, bytes, uri: '', sha256: artifact.sha256, sizeBytes: String(sizeBytes), durationMs: String(artifact.durationMs), fps: 0, width: artifact.width, height: artifact.height, sampleRateHz: artifact.sampleRateHz, channels: artifact.channels, frameCount: String(artifact.frameCount ?? 0), speechAlignment: undefined, metadata: undefined, seed: artifact.seed };
 }
 
 function runtimeJobEventFromLocal(event: NimiLocalAppScenarioJobEvent): ScenarioJobEvent {

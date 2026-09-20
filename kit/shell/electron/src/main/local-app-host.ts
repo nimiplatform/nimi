@@ -1,5 +1,7 @@
 import { validateNimiLocalAppTextAnnotationResult } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppSpeechTranscript, validateNimiLocalAppAudioSeparation } from '@nimiplatform/kit/core/sdk-contract';
+import { validateNimiLocalAppArtifactUploadShellInput, validateNimiLocalAppArtifactUploadResult,
+  type NimiLocalAppArtifactUploadShellInput } from '@nimiplatform/kit/core/sdk-contract';
 import { loadNimiElectronProtectedLocalPackage } from './protected-local-binding-loader.js';
 
 const WINDOWS_X64_BINDING_PACKAGE = '@nimiplatform/kit-protected-local-win32-x64';
@@ -283,8 +285,10 @@ export type NimiElectronLocalAppRecord = {
 };
 
 type NimiElectronLocalAppArtifactUploadBindingInput = {
-  readonly bytes: Buffer;
+  readonly bytes?: Buffer;
   readonly mimeType: string;
+  readonly source?: NimiLocalAppArtifactUploadShellInput['source'];
+  readonly audioPreparation?: NimiLocalAppArtifactUploadShellInput['audioPreparation'];
 };
 
 type NimiElectronLocalAppConversationAttachmentUploadBindingInput = {
@@ -818,13 +822,15 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
   }
 
   artifactUpload(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    const bytes = validateByteArray(input.bytes);
-    const mimeType = boundedArtifactUploadMime(input.mimeType);
-    if (bytes.length === 0) throw untrustedRuntimeError();
+    let prepared: NimiLocalAppArtifactUploadShellInput;
+    try { prepared = validateNimiLocalAppArtifactUploadShellInput(input); }
+    catch { throw untrustedRuntimeError(); }
     return invokeArtifactUpload(
-      () => this.binding.localAppArtifactUpload({ bytes: Buffer.from(bytes), mimeType }),
-      bytes.length,
-      mimeType,
+      () => this.binding.localAppArtifactUpload({ mimeType: prepared.mimeType,
+        ...(prepared.bytes ? { bytes: Buffer.from(prepared.bytes) } : {}),
+        ...(prepared.source ? { source: prepared.source } : {}),
+        ...(prepared.audioPreparation ? { audioPreparation: prepared.audioPreparation } : {}) }),
+      prepared,
     );
   }
 
@@ -1825,18 +1831,11 @@ async function invokeArtifactRead(
 
 async function invokeArtifactUpload(
   call: () => Promise<NativeLocalAppOutcome>,
-  expectedSize: number,
-  expectedMimeType: string,
+  input: NimiLocalAppArtifactUploadShellInput,
 ): Promise<NimiElectronLocalAppRecord> {
   const value = await invoke(call);
-  if (!isPlainRecord(value) || !hasExactKeys(value, ['artifactId', 'sizeBytes', 'mimeType'])) {
-    throw untrustedRuntimeError();
-  }
-  const artifactId = boundedExactText(value.artifactId, 128, false);
-  const sizeBytes = boundedInteger(value.sizeBytes, 1, 32 * 1024 * 1024);
-  const mimeType = boundedArtifactUploadMime(value.mimeType);
-  if (sizeBytes !== expectedSize || mimeType !== expectedMimeType) throw untrustedRuntimeError();
-  return Object.freeze({ artifactId, sizeBytes, mimeType });
+  try { return validateNimiLocalAppArtifactUploadResult(value, input) as NimiElectronLocalAppRecord; }
+  catch { throw untrustedRuntimeError(); }
 }
 
 async function invokeConversationAttachmentUpload(
@@ -1997,7 +1996,7 @@ function validateScenarioArtifacts(value: unknown): readonly NimiElectronLocalAp
     const hasSeed = Object.hasOwn(entry, 'seed');
     if (!hasExactKeys(entry, [
       'artifactId', 'mimeType', 'bytes', 'sizeBytes', 'sha256', 'durationMs',
-      'width', 'height', 'sampleRateHz', 'channels', ...(hasSeed ? ['seed'] : []),
+      'width', 'height', 'sampleRateHz', 'channels', ...(Object.hasOwn(entry, 'frameCount') ? ['frameCount'] : []), ...(hasSeed ? ['seed'] : []),
     ])) throw untrustedRuntimeError();
     const bytes = validateByteArray(entry.bytes);
     const sizeBytes = boundedInteger(entry.sizeBytes, 0, Number.MAX_SAFE_INTEGER);
@@ -2005,6 +2004,8 @@ function validateScenarioArtifacts(value: unknown): readonly NimiElectronLocalAp
     const mimeType = boundedMime(entry.mimeType);
     const seed = hasSeed ? boundedInteger(entry.seed, -2_147_483_648, 2_147_483_647) : undefined;
     if (hasSeed && !mimeType.startsWith('image/')) throw untrustedRuntimeError();
+    const frameCount = entry.frameCount === undefined ? undefined : boundedInteger(entry.frameCount, 1, Number.MAX_SAFE_INTEGER);
+    if (frameCount !== undefined && (!mimeType.startsWith('audio/') || !(Number(entry.sampleRateHz) > 0) || !(Number(entry.channels) > 0))) throw untrustedRuntimeError();
     return Object.freeze({
       artifactId: boundedExactText(entry.artifactId, 128, false),
       mimeType,
@@ -2016,6 +2017,7 @@ function validateScenarioArtifacts(value: unknown): readonly NimiElectronLocalAp
       height: boundedInteger(entry.height, 0, Number.MAX_SAFE_INTEGER),
       sampleRateHz: boundedInteger(entry.sampleRateHz, 0, Number.MAX_SAFE_INTEGER),
       channels: boundedInteger(entry.channels, 0, Number.MAX_SAFE_INTEGER),
+      ...(frameCount !== undefined ? { frameCount } : {}),
       ...(seed !== undefined ? { seed } : {}),
     }) as NimiElectronLocalAppRecord;
   }));
@@ -2166,12 +2168,6 @@ function boundedImageMime(value: unknown): string {
   if (!['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(mime)) {
     throw untrustedRuntimeError();
   }
-  return mime;
-}
-
-function boundedArtifactUploadMime(value: unknown): string {
-  const mime = boundedMime(value);
-  if (!['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'audio/wav', 'audio/mpeg', 'video/mp4'].includes(mime)) throw untrustedRuntimeError();
   return mime;
 }
 

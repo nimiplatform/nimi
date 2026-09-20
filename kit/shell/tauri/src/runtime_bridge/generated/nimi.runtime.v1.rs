@@ -6039,6 +6039,9 @@ pub struct LocalAppScenarioArtifact {
     /// is absent for non-image artifacts and does not expose free-form metadata.
     #[prost(int32, optional, tag = "11")]
     pub seed: ::core::option::Option<i32>,
+    /// Actual per-channel sample frames; zero means not observed or not audio.
+    #[prost(uint64, tag = "12")]
+    pub frame_count: u64,
 }
 /// Synchronous closed-set scenario specs admitted for ExecuteLocalAppScenario.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -6532,12 +6535,40 @@ pub struct ReadLocalAppArtifactResponse {
 /// protected Local App transport reserves enough receive capacity for this
 /// exact 32 MiB operation; the trimmed unary shape avoids caller-supplied owner
 /// metadata and chunk state while preserving UploadArtifact owner custody.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppCanonicalAudioPreparation {
+    /// Zero preserves the source rate. A nonzero value is an explicit conversion
+    /// of an already canonical source into a new artifact, never an overwrite.
+    #[prost(uint32, tag = "1")]
+    pub target_sample_rate_hz: u32,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAudioInfo {
+    #[prost(uint32, tag = "1")]
+    pub sample_rate_hz: u32,
+    #[prost(uint32, tag = "2")]
+    pub channels: u32,
+    #[prost(uint64, tag = "3")]
+    pub frame_count: u64,
+    #[prost(int64, tag = "4")]
+    pub duration_ms: i64,
+}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct UploadLocalAppArtifactRequest {
     #[prost(bytes = "vec", tag = "1")]
     pub bytes: ::prost::alloc::vec::Vec<u8>,
     #[prost(string, tag = "2")]
     pub mime_type: ::prost::alloc::string::String,
+    /// Exactly one source is admitted. Paths are relative to the current
+    /// protected App's storage and never identify a host filesystem path.
+    #[prost(string, tag = "3")]
+    pub app_asset_relative_path: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub source_artifact_id: ::prost::alloc::string::String,
+    /// Required for the two reference carriers. Inline audio may request the
+    /// same canonical preparation without increasing the inline byte limit.
+    #[prost(message, optional, tag = "5")]
+    pub audio_preparation: ::core::option::Option<LocalAppCanonicalAudioPreparation>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct UploadLocalAppArtifactResponse {
@@ -6547,6 +6578,8 @@ pub struct UploadLocalAppArtifactResponse {
     pub size_bytes: i64,
     #[prost(string, tag = "3")]
     pub mime_type: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub audio_info: ::core::option::Option<LocalAppAudioInfo>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListLocalAppVoiceAssetsRequest {
@@ -6704,6 +6737,8 @@ pub struct ScenarioArtifact {
     /// non-image artifacts and is the canonical seed result, not metadata.
     #[prost(int32, optional, tag = "15")]
     pub seed: ::core::option::Option<i32>,
+    #[prost(uint64, tag = "16")]
+    pub frame_count: u64,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ScenarioJob {

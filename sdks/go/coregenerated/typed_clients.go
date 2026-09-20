@@ -5354,6 +5354,17 @@ type LocalAppAssetRecord struct {
 	UpdatedAt    string `json:"updated_at,omitempty"`
 }
 
+type LocalAppAudioInfo struct {
+	SampleRateHz uint32 `json:"sample_rate_hz,omitempty"`
+	Channels     uint32 `json:"channels,omitempty"`
+	FrameCount   uint64 `json:"frame_count,omitempty"`
+	DurationMs   int64  `json:"duration_ms,omitempty"`
+}
+
+type LocalAppCanonicalAudioPreparation struct {
+	TargetSampleRateHz uint32 `json:"target_sample_rate_hz,omitempty"`
+}
+
 type LocalAppConversationAction struct {
 	ActionId            string                           `json:"action_id,omitempty"`
 	TurnId              string                           `json:"turn_id,omitempty"`
@@ -5625,6 +5636,7 @@ type LocalAppScenarioArtifact struct {
 	SampleRateHz int32  `json:"sample_rate_hz,omitempty"`
 	Channels     int32  `json:"channels,omitempty"`
 	Seed         *int32 `json:"seed,omitempty"`
+	FrameCount   uint64 `json:"frame_count,omitempty"`
 }
 
 type LocalAppScenarioJob struct {
@@ -7193,6 +7205,7 @@ type ScenarioArtifact struct {
 	SpeechAlignment *SpeechAlignment `json:"speech_alignment,omitempty"`
 	Metadata        map[string]any   `json:"metadata,omitempty"`
 	Seed            *int32           `json:"seed,omitempty"`
+	FrameCount      uint64           `json:"frame_count,omitempty"`
 }
 
 type ScenarioExtension struct {
@@ -8088,14 +8101,18 @@ type UploadArtifactResponse struct {
 }
 
 type UploadLocalAppArtifactRequest struct {
-	Bytes    []byte `json:"bytes,omitempty"`
-	MimeType string `json:"mime_type,omitempty"`
+	Bytes                []byte                             `json:"bytes,omitempty"`
+	MimeType             string                             `json:"mime_type,omitempty"`
+	AppAssetRelativePath string                             `json:"app_asset_relative_path,omitempty"`
+	SourceArtifactId     string                             `json:"source_artifact_id,omitempty"`
+	AudioPreparation     *LocalAppCanonicalAudioPreparation `json:"audio_preparation,omitempty"`
 }
 
 type UploadLocalAppArtifactResponse struct {
-	ArtifactId string `json:"artifact_id,omitempty"`
-	SizeBytes  int64  `json:"size_bytes,omitempty"`
-	MimeType   string `json:"mime_type,omitempty"`
+	ArtifactId string             `json:"artifact_id,omitempty"`
+	SizeBytes  int64              `json:"size_bytes,omitempty"`
+	MimeType   string             `json:"mime_type,omitempty"`
+	AudioInfo  *LocalAppAudioInfo `json:"audio_info,omitempty"`
 }
 
 type UploadLocalAppConversationAttachmentRequest struct {

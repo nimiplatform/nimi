@@ -38,7 +38,7 @@ use crate::{
     LocalAppScenarioGetRequest, LocalAppScenarioJobSubscribeRequest,
     LocalAppScenarioListVoiceAssetsRequest, LocalAppScenarioReadArtifactRequest,
     LocalAppScenarioStreamReceiver, LocalAppScenarioSubmitRequest,
-    LocalAppScenarioUploadArtifactRequest, LocalAppTextTurnRequest,
+    LocalAppScenarioUploadArtifactRequest, LocalAppArtifactUploadSource, LocalAppTextTurnRequest,
 };
 
 use super::{invalid_payload, text_behavior, untrusted};
@@ -297,7 +297,7 @@ pub(super) async fn upload_artifact(
     channel: Channel,
     request: LocalAppScenarioUploadArtifactRequest,
 ) -> Result<JsonValue, LocalAppOperationError> {
-    if request.bytes.is_empty()
+    if request.bytes.is_empty() == request.source.is_none()
         || request.bytes.len() > MAX_ARTIFACT_BYTES
         || !valid_upload_mime(&request.mime_type)
     {
@@ -305,9 +305,48 @@ pub(super) async fn upload_artifact(
     }
     let expected_size = request.bytes.len();
     let expected_mime = request.mime_type.clone();
+    let canonical = request.audio_preparation.is_some();
+    if (request.source.is_some() || expected_mime == "audio/flac") && !canonical {
+        return Err(invalid_payload());
+    }
+    let mut target_rate = 0;
+    let preparation = match request.audio_preparation {
+        Some(value) => {
+            if value.profile != "canonical-pcm-v1"
+                || !matches!(expected_mime.as_str(), "audio/wav" | "audio/mpeg" | "audio/flac")
+                || value.target_sample_rate_hz.is_some_and(|rate| !(8000..=96000).contains(&rate) || expected_mime != "audio/wav")
+            {
+                return Err(invalid_payload());
+            }
+            target_rate = value.target_sample_rate_hz.unwrap_or(0);
+            Some(crate::generated::LocalAppCanonicalAudioPreparation {
+                target_sample_rate_hz: target_rate,
+            })
+        }
+        None => None,
+    };
+    let (app_asset_relative_path, source_artifact_id) = match request.source {
+        Some(LocalAppArtifactUploadSource::AppAsset { relative_path }) => {
+            if relative_path.is_empty() || relative_path.len() > 4096 || relative_path.contains('\0') {
+                return Err(invalid_payload());
+            }
+            (relative_path, String::new())
+        }
+        Some(LocalAppArtifactUploadSource::Artifact { artifact_id }) => {
+            require_identifier(&artifact_id).map_err(|_| invalid_payload())?;
+            if expected_mime != "audio/wav" {
+                return Err(invalid_payload());
+            }
+            (String::new(), artifact_id)
+        }
+        None => (String::new(), String::new()),
+    };
     let mut grpc_request = Request::new(ProtoUploadArtifactRequest {
         bytes: request.bytes,
         mime_type: request.mime_type,
+        app_asset_relative_path,
+        source_artifact_id,
+        audio_preparation: preparation,
     });
     grpc_request.set_timeout(std::time::Duration::from_secs(UNARY_TIMEOUT_SECONDS));
     let response = crate::grpc_limits::runtime_ai_client(channel)
@@ -316,17 +355,33 @@ pub(super) async fn upload_artifact(
         .map_err(local_app_error_from_status)?
         .into_inner();
     require_identifier(&response.artifact_id).map_err(|_| untrusted())?;
-    if response.size_bytes != expected_size as i64
-        || response.mime_type != expected_mime
-        || !valid_upload_mime(&response.mime_type)
-    {
-        return Err(untrusted());
-    }
-    Ok(json!({
+    let mut projected = json!({
         "artifactId": response.artifact_id,
         "sizeBytes": response.size_bytes,
         "mimeType": response.mime_type,
-    }))
+    });
+    if canonical {
+        let info = response.audio_info.ok_or_else(untrusted)?;
+        if response.mime_type != "audio/wav"
+            || !(1..=512 * 1024 * 1024).contains(&response.size_bytes)
+            || !(8000..=96000).contains(&info.sample_rate_hz)
+            || !(1..=2).contains(&info.channels)
+            || info.frame_count == 0
+            || info.frame_count > u64::from(info.sample_rate_hz) * 600
+            || info.duration_ms != (info.frame_count * 1000 / u64::from(info.sample_rate_hz)) as i64
+            || response.size_bytes < (info.frame_count * u64::from(info.channels) * 4 + 44) as i64
+            || (target_rate != 0 && target_rate != info.sample_rate_hz)
+        {
+            return Err(untrusted());
+        }
+        projected["audioInfo"] = json!({"sampleRateHz": info.sample_rate_hz, "channels": info.channels,
+            "frameCount": info.frame_count, "durationMs": info.duration_ms});
+    } else if response.size_bytes != expected_size as i64
+        || response.mime_type != expected_mime || response.audio_info.is_some()
+    {
+        return Err(untrusted());
+    }
+    Ok(projected)
 }
 
 pub(super) async fn list_voice_assets(
@@ -1153,6 +1208,7 @@ fn project_artifacts(
                 || artifact.height < 0
                 || artifact.sample_rate_hz < 0
                 || artifact.channels < 0
+                || (artifact.frame_count > 0 && (!artifact.mime_type.starts_with("audio/") || artifact.sample_rate_hz <= 0 || artifact.channels <= 0 || artifact.frame_count > 9_007_199_254_740_991))
                 || artifact.sha256.len() > 128
                 || artifact.sha256.trim() != artifact.sha256
                 || (artifact.seed.is_some() && !artifact.mime_type.starts_with("image/"))
@@ -1178,6 +1234,9 @@ fn project_artifacts(
                     .as_object_mut()
                     .ok_or_else(untrusted)?
                     .insert("seed".to_string(), json!(seed));
+            }
+            if artifact.frame_count > 0 {
+                projected["frameCount"] = json!(artifact.frame_count);
             }
             Ok(projected)
         })
@@ -1652,7 +1711,7 @@ fn valid_mime(value: &str) -> bool {
 fn valid_upload_mime(value: &str) -> bool {
     matches!(
         value,
-        "image/png" | "image/jpeg" | "image/webp" | "image/gif" | "audio/wav" | "audio/mpeg" | "video/mp4"
+        "image/png" | "image/jpeg" | "image/webp" | "image/gif" | "audio/wav" | "audio/mpeg" | "audio/flac" | "video/mp4"
     )
 }
 
@@ -1663,6 +1722,41 @@ fn valid_page_token(value: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn canonical_audio_source_is_a_closed_owned_reference() {
+        let parsed: crate::LocalAppArtifactUploadSource = serde_json::from_value(json!({
+            "kind": "app-asset", "relativePath": "sources/原曲.mp3"
+        })).unwrap();
+        assert!(matches!(parsed, crate::LocalAppArtifactUploadSource::AppAsset { relative_path } if relative_path == "sources/原曲.mp3"));
+        for value in [
+            json!({"kind": "host-path", "path": "C:/private.wav"}),
+            json!({"kind": "artifact", "artifactId": "a", "accountId": "another-owner"}),
+            json!({"kind": "app-asset", "relativePath": "a.wav", "modelId": "override"}),
+        ] {
+            assert!(serde_json::from_value::<crate::LocalAppArtifactUploadSource>(value).is_err());
+        }
+        assert!(serde_json::from_value::<crate::LocalAppCanonicalAudioPreparation>(json!({
+            "profile": "canonical-pcm-v1", "targetSampleRateHz": 48000, "decoderPath": "private"
+        })).is_err());
+    }
+
+    #[tokio::test]
+    async fn invalid_audio_preparation_is_rejected_before_transport() {
+        let channel = Channel::from_static("http://127.0.0.1:9").connect_lazy();
+        for (bytes, preparation) in [
+            (vec![1], Some(crate::LocalAppCanonicalAudioPreparation { profile: "canonical-pcm-v1".into(), target_sample_rate_hz: None })),
+            (vec![], None),
+            (vec![], Some(crate::LocalAppCanonicalAudioPreparation { profile: "other".into(), target_sample_rate_hz: None })),
+        ] {
+            let error = upload_artifact(channel.clone(), LocalAppScenarioUploadArtifactRequest {
+                bytes, mime_type: "audio/wav".into(),
+                source: Some(crate::LocalAppArtifactUploadSource::Artifact { artifact_id: "source-1".into() }),
+                audio_preparation: preparation,
+            }).await.unwrap_err();
+            assert_eq!(error.reason_code(), invalid_payload().reason_code());
+        }
+    }
 
     #[test]
     fn text_stream_budget_counts_content_before_json_expansion() {

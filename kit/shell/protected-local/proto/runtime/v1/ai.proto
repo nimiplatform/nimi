@@ -908,6 +908,8 @@ message LocalAppScenarioArtifact {
   // Concrete image seed selected by the admitted Driver/ExecutionHost. This
   // is absent for non-image artifacts and does not expose free-form metadata.
   optional int32 seed = 11;
+  // Actual per-channel sample frames; zero means not observed or not audio.
+  uint64 frame_count = 12;
 }
 
 // Synchronous closed-set scenario specs admitted for ExecuteLocalAppScenario.
@@ -1220,15 +1222,36 @@ message ReadLocalAppArtifactResponse {
 // protected Local App transport reserves enough receive capacity for this
 // exact 32 MiB operation; the trimmed unary shape avoids caller-supplied owner
 // metadata and chunk state while preserving UploadArtifact owner custody.
+message LocalAppCanonicalAudioPreparation {
+  // Zero preserves the source rate. A nonzero value is an explicit conversion
+  // of an already canonical source into a new artifact, never an overwrite.
+  uint32 target_sample_rate_hz = 1;
+}
+
+message LocalAppAudioInfo {
+  uint32 sample_rate_hz = 1;
+  uint32 channels = 2;
+  uint64 frame_count = 3;
+  int64 duration_ms = 4;
+}
+
 message UploadLocalAppArtifactRequest {
   bytes bytes = 1;
   string mime_type = 2;
+  // Exactly one source is admitted. Paths are relative to the current
+  // protected App's storage and never identify a host filesystem path.
+  string app_asset_relative_path = 3;
+  string source_artifact_id = 4;
+  // Required for the two reference carriers. Inline audio may request the
+  // same canonical preparation without increasing the inline byte limit.
+  LocalAppCanonicalAudioPreparation audio_preparation = 5;
 }
 
 message UploadLocalAppArtifactResponse {
   string artifact_id = 1;
   int64 size_bytes = 2;
   string mime_type = 3;
+  LocalAppAudioInfo audio_info = 4;
 }
 
 message ListLocalAppVoiceAssetsRequest {
@@ -1353,6 +1376,7 @@ message ScenarioArtifact {
   // Concrete seed used to produce an image artifact. This is absent for
   // non-image artifacts and is the canonical seed result, not metadata.
   optional int32 seed = 15;
+  uint64 frame_count = 16;
 }
 
 message ScenarioJob {

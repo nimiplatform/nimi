@@ -8979,6 +8979,19 @@ pub struct LocalAppAssetRecord {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAudioInfo {
+    pub sample_rate_hz: Option<u32>,
+    pub channels: Option<u32>,
+    pub frame_count: Option<u64>,
+    pub duration_ms: Option<i64>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppCanonicalAudioPreparation {
+    pub target_sample_rate_hz: Option<u32>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppConversationAction {
     pub action_id: Option<String>,
     pub turn_id: Option<String>,
@@ -9284,6 +9297,7 @@ pub struct LocalAppScenarioArtifact {
     pub sample_rate_hz: Option<i32>,
     pub channels: Option<i32>,
     pub seed: Option<i32>,
+    pub frame_count: Option<u64>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -11761,6 +11775,7 @@ pub struct ScenarioArtifact {
     pub speech_alignment: Option<Box<SpeechAlignment>>,
     pub metadata: Option<BTreeMap<String, String>>,
     pub seed: Option<i32>,
+    pub frame_count: Option<u64>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -12950,6 +12965,9 @@ pub struct UploadArtifactResponse {
 pub struct UploadLocalAppArtifactRequest {
     pub bytes: Option<Vec<u8>>,
     pub mime_type: Option<String>,
+    pub app_asset_relative_path: Option<String>,
+    pub source_artifact_id: Option<String>,
+    pub audio_preparation: Option<Box<LocalAppCanonicalAudioPreparation>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -12957,6 +12975,7 @@ pub struct UploadLocalAppArtifactResponse {
     pub artifact_id: Option<String>,
     pub size_bytes: Option<i64>,
     pub mime_type: Option<String>,
+    pub audio_info: Option<Box<LocalAppAudioInfo>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

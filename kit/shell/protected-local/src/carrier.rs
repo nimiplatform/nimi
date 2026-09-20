@@ -420,6 +420,30 @@ pub struct LocalAppScenarioReadArtifactRequest {
 pub struct LocalAppScenarioUploadArtifactRequest {
     pub bytes: Vec<u8>,
     pub mime_type: String,
+    pub source: Option<LocalAppArtifactUploadSource>,
+    pub audio_preparation: Option<LocalAppCanonicalAudioPreparation>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize)]
+#[serde(tag = "kind", deny_unknown_fields)]
+pub enum LocalAppArtifactUploadSource {
+    #[serde(rename = "app-asset")]
+    AppAsset {
+        #[serde(rename = "relativePath")]
+        relative_path: String,
+    },
+    #[serde(rename = "artifact")]
+    Artifact {
+        #[serde(rename = "artifactId")]
+        artifact_id: String,
+    },
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppCanonicalAudioPreparation {
+    pub profile: String,
+    pub target_sample_rate_hz: Option<u32>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]

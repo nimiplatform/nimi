@@ -263,6 +263,11 @@ export type {
   NimiLocalAppTextCandidateResult,
   NimiLocalAppTextTurnInput,
   NimiLocalAppArtifactUploadMime,
+  NimiLocalAppArtifactUploadInput,
+  NimiLocalAppArtifactUploadSource,
+  NimiLocalAppArtifactUploadShellInput,
+  NimiLocalAppCanonicalAudioPreparation,
+  NimiLocalAppAudioInfo,
   NimiLocalAppVideoFaceSwapSummary,
   NimiVideoSessionClient, NimiVideoSessionFormat, NimiVideoSessionOpened, NimiVideoSessionResult, NimiVideoSessionScope,
   NimiLocalAppArtifactUploadResult,
@@ -402,6 +407,7 @@ export type { NimiLocalAppWorldCharacterListInput, NimiLocalAppWorldEntityListIn
 export { validateNimiLocalAppSpeechTranscript } from './local-app-transcription.js';
 export type { NimiLocalAppSpeechTranscript } from './local-app-transcription.js';
 export { validateNimiLocalAppAudioSeparation } from './local-app-audio-separation.js';
+export { validateNimiLocalAppArtifactUploadShellInput, validateNimiLocalAppArtifactUploadResult } from './local-app-runtime-platform-ai.js';
 export type { NimiLocalAppAudioSeparation } from './local-app-audio-separation.js';
 
 export { validateNimiLocalAppTextAnnotationResult } from './local-app-text-annotation.js';

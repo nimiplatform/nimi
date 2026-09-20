@@ -1252,6 +1252,7 @@ test('local-app artifact upload validates the closed media input and exact custo
         ...base.ai.artifacts,
         async upload(input) {
           calls.push(input);
+          assert.ok(input.bytes, 'this fixture models only inline uploads');
           return { artifactId: 'artifact-upload-1', sizeBytes: input.bytes.length, mimeType: input.mimeType };
         },
       },

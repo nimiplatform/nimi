@@ -1,6 +1,7 @@
 import { Buffer } from 'node:buffer';
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 import { validateNimiLocalAppTextInput } from '@nimiplatform/kit/core/sdk-contract';
+import { validateNimiLocalAppArtifactUploadShellInput } from '@nimiplatform/kit/core/sdk-contract';
 import {
   NimiElectronLocalAppHostError,
   type NimiElectronLocalAppHost,
@@ -386,13 +387,11 @@ function validatePayload(
     case 'artifactRead':
       return identifiers(payload, ['artifactId'], command);
     case 'artifactUpload': {
-      assertExactKeys(payload, ['bytes', 'mimeType'], command);
-      if (!Array.isArray(payload.bytes) || payload.bytes.length === 0 || payload.bytes.length > 32 * 1024 * 1024
-        || payload.bytes.some((entry) => !Number.isInteger(entry) || Number(entry) < 0 || Number(entry) > 255)
-        || !['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'audio/wav', 'audio/mpeg', 'video/mp4'].includes(String(payload.mimeType))) {
+      try {
+        return validateNimiLocalAppArtifactUploadShellInput(payload) as NimiElectronLocalAppRecord;
+      } catch {
         throw invalidPayload(command, 'artifact upload is invalid');
       }
-      return { bytes: [...payload.bytes] as NimiElectronLocalAppJson, mimeType: String(payload.mimeType) };
     }
     case 'voiceAssetsList': {
       assertExactKeys(payload, ['pageSize', 'pageToken'], command);

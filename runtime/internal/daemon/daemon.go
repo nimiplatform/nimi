@@ -14,6 +14,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/nimiplatform/nimi/runtime/internal/audiomedia"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
@@ -764,6 +765,13 @@ func (d *Daemon) startSupervisedEngines(_ context.Context) {
 				modelAssetHosts = append(modelAssetHosts, speechHost)
 			}
 			svc.SetModelAssetHostRetirers(modelAssetHosts...)
+		}
+		if codec, probe, err := videomedia.ManagedCodecExecutablePaths(engineRoots.Dependencies); err == nil {
+			if processor, err := audiomedia.New(codec, probe); err == nil {
+				aiSvc.SetCanonicalAudioPreparation(processor, filepath.Join(filepath.Dir(d.cfg.LocalStatePath), "audio-preparation-staging"))
+			} else {
+				d.logger.Warn("pinned audio codec dependency unavailable; canonical audio preparation not wired", "error", err)
+			}
 		}
 		if videoMedia, err := videomedia.NewFromDependenciesRoot(engineRoots.Dependencies); err != nil {
 			// Local video submits fail closed with a typed unavailable reason

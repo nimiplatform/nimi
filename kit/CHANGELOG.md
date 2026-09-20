@@ -2,6 +2,13 @@
 
 ## Unreleased (next 0.x minor)
 
+- Carry canonical audio preparation and owned audio source references through
+  the renderer, Electron, Node native and protected Runtime projections.
+  Preserve measured frame counts and large-output metadata without expanding
+  inline audio or exposing host paths. Shared SDK validators retain carrier
+  error ownership. This minor API widening requires the matching SDK/Runtime
+  and a rebuilt native package; it is not an engine or App acceptance claim.
+
 - CanonicalComposer accepts optional `sendLabel` and `copy` props and forwards
   them to the inner ChatComposer, so hosts can localize the send button's
   accessible label and composer copy through the canonical surface. Compatible

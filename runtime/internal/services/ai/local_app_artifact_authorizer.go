@@ -13,9 +13,10 @@ import (
 type localAppArtifactOperation = runtimeartifact.LocalAppArtifactUse
 
 const (
-	localAppArtifactOperationInlineRead = runtimeartifact.LocalAppArtifactUseInlineRead
-	localAppArtifactOperationInput      = runtimeartifact.LocalAppArtifactUseScenarioInput
-	localAppArtifactOperationAdoption   = runtimeartifact.LocalAppArtifactUseAdoption
+	localAppArtifactOperationInlineRead       = runtimeartifact.LocalAppArtifactUseInlineRead
+	localAppArtifactOperationInput            = runtimeartifact.LocalAppArtifactUseScenarioInput
+	localAppArtifactOperationAdoption         = runtimeartifact.LocalAppArtifactUseAdoption
+	localAppArtifactOperationAudioPreparation = runtimeartifact.LocalAppArtifactUseAudioPreparation
 )
 
 // openAuthorizedLocalAppArtifact is the single account-plus-registration

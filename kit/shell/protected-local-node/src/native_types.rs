@@ -252,8 +252,10 @@ pub struct NativeScenarioArtifactInput {
 
 #[napi(object)]
 pub struct NativeScenarioArtifactUploadInput {
-    pub bytes: Buffer,
+    pub bytes: Option<Buffer>,
     pub mime_type: String,
+    pub source: Option<serde_json::Value>,
+    pub audio_preparation: Option<serde_json::Value>,
 }
 
 #[napi(object)]

@@ -120,6 +120,9 @@ func projectLocalAppScenarioArtifact(artifact *runtimev1.ScenarioArtifact) (*run
 		return invalid()
 	}
 	var seed *int32
+	if artifact.GetFrameCount() > 0 && (!strings.HasPrefix(mimeType, "audio/") || artifact.GetSampleRateHz() <= 0 || artifact.GetChannels() <= 0 || artifact.GetFrameCount() > 1<<53-1) {
+		return invalid()
+	}
 	if artifact.Seed != nil {
 		if !strings.HasPrefix(strings.ToLower(mimeType), "image/") {
 			return invalid()
@@ -137,6 +140,7 @@ func projectLocalAppScenarioArtifact(artifact *runtimev1.ScenarioArtifact) (*run
 		Height:       artifact.GetHeight(),
 		SampleRateHz: artifact.GetSampleRateHz(),
 		Channels:     artifact.GetChannels(),
+		FrameCount:   artifact.GetFrameCount(),
 		Seed:         seed,
 	}, nil
 }

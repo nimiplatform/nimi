@@ -3581,6 +3581,17 @@ class LocalAppAssetRecord:
     updated_at: str | None = None
 
 @dataclass(frozen=True)
+class LocalAppAudioInfo:
+    sample_rate_hz: int | None = None
+    channels: int | None = None
+    frame_count: int | None = None
+    duration_ms: int | None = None
+
+@dataclass(frozen=True)
+class LocalAppCanonicalAudioPreparation:
+    target_sample_rate_hz: int | None = None
+
+@dataclass(frozen=True)
 class LocalAppConversationAction:
     action_id: str | None = None
     turn_id: str | None = None
@@ -3852,6 +3863,7 @@ class LocalAppScenarioArtifact:
     sample_rate_hz: int | None = None
     channels: int | None = None
     seed: int | None = None
+    frame_count: int | None = None
 
 @dataclass(frozen=True)
 class LocalAppScenarioJob:
@@ -5428,6 +5440,7 @@ class ScenarioArtifact:
     speech_alignment: SpeechAlignment | None = None
     metadata: Mapping[str, object] | None = None
     seed: int | None = None
+    frame_count: int | None = None
 
 @dataclass(frozen=True)
 class ScenarioExtension:
@@ -6329,12 +6342,16 @@ class UploadArtifactResponse:
 class UploadLocalAppArtifactRequest:
     bytes: bytes | None = None
     mime_type: str | None = None
+    app_asset_relative_path: str | None = None
+    source_artifact_id: str | None = None
+    audio_preparation: LocalAppCanonicalAudioPreparation | None = None
 
 @dataclass(frozen=True)
 class UploadLocalAppArtifactResponse:
     artifact_id: str | None = None
     size_bytes: int | None = None
     mime_type: str | None = None
+    audio_info: LocalAppAudioInfo | None = None
 
 @dataclass(frozen=True)
 class UploadLocalAppConversationAttachmentRequest:

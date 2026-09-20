@@ -135,15 +135,21 @@ const (
 // NewFromDependenciesRoot resolves the pinned codec executables under the
 // managed dependencies root and fails closed when they are absent.
 func NewFromDependenciesRoot(dependenciesRoot string) (*Processor, error) {
-	root := strings.TrimSpace(dependenciesRoot)
-	if root == "" {
-		return nil, &Error{Kind: FailureUnavailable, Op: "resolve codec dependency", Err: fmt.Errorf("dependencies root is empty")}
-	}
-	ffmpegPath, ffprobePath, err := codecExecutablePaths(root, runtime.GOOS, runtime.GOARCH)
+	ffmpegPath, ffprobePath, err := ManagedCodecExecutablePaths(dependenciesRoot)
 	if err != nil {
 		return nil, err
 	}
 	return New(ffmpegPath, ffprobePath)
+}
+
+// ManagedCodecExecutablePaths shares the exact admitted codec dependency with
+// the audio preparation owner without creating another package/version truth.
+func ManagedCodecExecutablePaths(dependenciesRoot string) (string, string, error) {
+	root := strings.TrimSpace(dependenciesRoot)
+	if root == "" {
+		return "", "", &Error{Kind: FailureUnavailable, Op: "resolve codec dependency", Err: fmt.Errorf("dependencies root is empty")}
+	}
+	return codecExecutablePaths(root, runtime.GOOS, runtime.GOARCH)
 }
 
 func codecExecutablePaths(dependenciesRoot string, goos string, goarch string) (string, string, error) {

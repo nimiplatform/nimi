@@ -343,10 +343,14 @@ pub async fn local_app_artifact_upload(
     input: NativeScenarioArtifactUploadInput,
 ) -> NativeJsonOutcome {
     invoke_agent(|session| async move {
+        let source = input.source.map(serde_json::from_value).transpose().map_err(|_| native_invalid_payload())?;
+        let audio_preparation = input.audio_preparation.map(serde_json::from_value).transpose().map_err(|_| native_invalid_payload())?;
         session
             .upload_scenario_artifact(LocalAppScenarioUploadArtifactRequest {
-                bytes: input.bytes.to_vec(),
+                bytes: input.bytes.map(|bytes| bytes.to_vec()).unwrap_or_default(),
                 mime_type: input.mime_type,
+                source,
+                audio_preparation,
             })
             .await
     })

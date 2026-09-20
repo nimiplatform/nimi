@@ -78,8 +78,11 @@ pub struct LocalAppAIConfigLocalOptionsPayload {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct LocalAppArtifactUploadPayload {
+    #[serde(default)]
     bytes: Vec<u8>,
     mime_type: String,
+    source: Option<nimi_shell_protected_local::LocalAppArtifactUploadSource>,
+    audio_preparation: Option<nimi_shell_protected_local::LocalAppCanonicalAudioPreparation>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -440,7 +443,7 @@ fn artifact_upload_request(
 ) -> Result<LocalAppScenarioUploadArtifactRequest, String> {
     let payload: LocalAppArtifactUploadPayload =
         parse_payload(payload, "local_app_artifact_upload")?;
-    if payload.bytes.is_empty()
+    if payload.bytes.is_empty() == payload.source.is_none()
         || payload.bytes.len() > nimi_shell_protected_local::RUNTIME_MAX_INLINE_PAYLOAD_BYTES
         || !matches!(
             payload.mime_type.as_str(),
@@ -450,6 +453,7 @@ fn artifact_upload_request(
                 | "image/gif"
                 | "audio/wav"
                 | "audio/mpeg"
+                | "audio/flac"
                 | "video/mp4"
         )
     {
@@ -458,6 +462,8 @@ fn artifact_upload_request(
     Ok(LocalAppScenarioUploadArtifactRequest {
         bytes: payload.bytes,
         mime_type: payload.mime_type,
+        source: payload.source,
+        audio_preparation: payload.audio_preparation,
     })
 }
 

@@ -916,6 +916,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		}
 	}
 	appSvc := appservice.New(logger, appOptions...)
+	aiSvc.SetLocalAppAudioSource(appSvc.OpenOwnedAudioPreparationSource)
 	if protected != nil && localAppKernel != nil {
 		if err := appSvc.ReconcileLocalDevelopmentKernel(context.Background()); err != nil {
 			return nil, fmt.Errorf("reconcile local-development authority with local-app kernel: %w", err)

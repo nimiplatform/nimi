@@ -1583,3 +1583,33 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+  - id: definition.nimi.runtime.ai-provider.canonical-audio
+    kind: definition
+    title: Canonical audio editing source
+    meaning: A canonical audio editing source is an immutable Runtime-prepared WAV artifact containing finite IEEE float32 little-endian samples, one or two channels and an observed sample rate from 8000 through 96000 Hz. Its per-channel frame count and zero-based sample timeline are measured from the complete decoded payload, not inferred from a compressed duration, requested generation budget or renderer playback buffer. App project composition may retain the original imported file and a protected copy of this artifact without acquiring execution or media-authority ownership.
+  - id: rule.nimi.runtime.ai-provider.canonical-audio-preparation
+    kind: rule
+    title: Runtime prepares one bounded PCM editing timeline
+    modality: must
+    statement: Runtime alone prepares canonical audio through its exact managed codec dependency and an immutable owned input snapshot, admits WAV, MP3 and FLAC input up to 512 MiB, rejects missing or multiple audio streams and inputs exceeding 600 seconds of decoded frames, and preserves source channel order and sample rate unless an explicit supported target sample rate creates a separate derived canonical source. Preparation has one 60-second deadline covering probe, decode and complete payload inspection, uses bounded streaming buffers, validates finite samples and exact whole-frame length, and publishes no artifact before all bytes and facts are committed. It never normalizes loudness, removes silence, guesses padding, silently truncates, implicitly downmixes, resolves a codec from PATH or fetches media or dependencies while decoding. Cancellation stops its private codec process and cleans incomplete output. Already canonical samples can be copied and verified without a second lossy decode; a decoder upgrade never reinterprets an existing canonical artifact.
+    condition: Whenever Runtime prepares, validates or reuses a canonical audio editing source.
+    failure: Fail the exact preparation on unsupported input, resource or codec absence, non-finite samples, incomplete frames, excessive decoded duration or bytes, timeout, cancellation or incomplete output; never publish a truncated or synthetic successful source or substitute a renderer timeline.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.canonical-audio
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+  - id: rule.nimi.runtime.ai-provider.canonical-audio-upload
+    kind: rule
+    title: Protected audio preparation imports only the current App owned source
+    modality: must
+    statement: The existing runtime.ai.artifact.upload operation may prepare a canonical audio source from exactly one of bounded inline bytes, a relative path in the current App owned asset store, or an existing canonical artifact reference authorized through the common artifact authorizer. The reference carriers require canonical preparation and admit audio only; they do not widen the 32 MiB inline ceiling. Runtime derives account and Registered App Subject from protected ingress, opens the immutable source through its existing owner store, bounds and snapshots input before codec use, validates actual source MIME and complete sample facts, and commits the resulting WAV through existing streamed artifact custody before returning its id, byte size and typed sample rate, channel count, frame count and duration. An explicit rate conversion of an artifact source requires the source to already be canonical. No request carries a host path, decoder path, source owner, model selection or generic media command, and artifact facts do not confer access or prove model or App task completion.
+    condition: Whenever a protected App uploads an audio source with canonical preparation or a reference carrier.
+    failure: Reject mixed or missing sources, unowned or malformed references, source paths outside the App owner, unsupported MIME, unbounded bytes, invalid preparation options, unavailable codec, cancellation and incomplete custody without publishing an artifact or reclassifying the protected operation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.canonical-audio

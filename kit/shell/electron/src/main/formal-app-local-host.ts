@@ -1,3 +1,4 @@
+import { validateNimiLocalAppArtifactUploadShellInput } from '@nimiplatform/kit/core/sdk-contract';
 import {
   createNimiAgentRealtimeRuntimeClient,
   createNimiAiRealtimeRuntimeClient,
@@ -218,10 +219,13 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
       const result = await ai.artifacts.read(requiredText(record.artifactId));
       return { ...result, bytes: Array.from(result.bytes) };
     },
-    artifactUpload: (record) => ai.artifacts.upload({
-      bytes: Uint8Array.from(record.bytes as readonly number[]),
-      mimeType: requiredText(record.mimeType) as never,
-    }) as Promise<NimiElectronLocalAppRecord>,
+    artifactUpload: (record) => {
+      const prepared = validateNimiLocalAppArtifactUploadShellInput(record);
+      return ai.artifacts.upload(prepared.source
+        ? { source: prepared.source, mimeType: prepared.mimeType, audioPreparation: prepared.audioPreparation! }
+        : { bytes: Uint8Array.from(prepared.bytes!), mimeType: prepared.mimeType, ...(prepared.audioPreparation ? { audioPreparation: prepared.audioPreparation } : {}) }
+      ) as Promise<NimiElectronLocalAppRecord>;
+    },
     voiceAssetsList: (record) => voiceAssets.list(record as never) as Promise<NimiElectronLocalAppRecord>,
     async storageReadJson(record) {
       const response = await runtime.readLocalAppStorageJson({ relativePath: requiredText(record.relativePath) });

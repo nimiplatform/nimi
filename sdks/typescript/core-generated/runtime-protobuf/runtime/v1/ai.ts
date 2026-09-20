@@ -2129,6 +2129,12 @@ export interface LocalAppScenarioArtifact {
      * @generated from protobuf field: optional int32 seed = 11
      */
     seed?: number;
+    /**
+     * Actual per-channel sample frames; zero means not observed or not audio.
+     *
+     * @generated from protobuf field: uint64 frame_count = 12
+     */
+    frameCount: string;
 }
 /**
  * Synchronous closed-set scenario specs admitted for ExecuteLocalAppScenario.
@@ -3058,6 +3064,39 @@ export interface ReadLocalAppArtifactResponse {
  * exact 32 MiB operation; the trimmed unary shape avoids caller-supplied owner
  * metadata and chunk state while preserving UploadArtifact owner custody.
  *
+ * @generated from protobuf message nimi.runtime.v1.LocalAppCanonicalAudioPreparation
+ */
+export interface LocalAppCanonicalAudioPreparation {
+    /**
+     * Zero preserves the source rate. A nonzero value is an explicit conversion
+     * of an already canonical source into a new artifact, never an overwrite.
+     *
+     * @generated from protobuf field: uint32 target_sample_rate_hz = 1
+     */
+    targetSampleRateHz: number;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppAudioInfo
+ */
+export interface LocalAppAudioInfo {
+    /**
+     * @generated from protobuf field: uint32 sample_rate_hz = 1
+     */
+    sampleRateHz: number;
+    /**
+     * @generated from protobuf field: uint32 channels = 2
+     */
+    channels: number;
+    /**
+     * @generated from protobuf field: uint64 frame_count = 3
+     */
+    frameCount: string;
+    /**
+     * @generated from protobuf field: int64 duration_ms = 4
+     */
+    durationMs: string;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.UploadLocalAppArtifactRequest
  */
 export interface UploadLocalAppArtifactRequest {
@@ -3069,6 +3108,24 @@ export interface UploadLocalAppArtifactRequest {
      * @generated from protobuf field: string mime_type = 2
      */
     mimeType: string;
+    /**
+     * Exactly one source is admitted. Paths are relative to the current
+     * protected App's storage and never identify a host filesystem path.
+     *
+     * @generated from protobuf field: string app_asset_relative_path = 3
+     */
+    appAssetRelativePath: string;
+    /**
+     * @generated from protobuf field: string source_artifact_id = 4
+     */
+    sourceArtifactId: string;
+    /**
+     * Required for the two reference carriers. Inline audio may request the
+     * same canonical preparation without increasing the inline byte limit.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppCanonicalAudioPreparation audio_preparation = 5
+     */
+    audioPreparation?: LocalAppCanonicalAudioPreparation;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.UploadLocalAppArtifactResponse
@@ -3086,6 +3143,10 @@ export interface UploadLocalAppArtifactResponse {
      * @generated from protobuf field: string mime_type = 3
      */
     mimeType: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppAudioInfo audio_info = 4
+     */
+    audioInfo?: LocalAppAudioInfo;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListLocalAppVoiceAssetsRequest
@@ -3380,6 +3441,10 @@ export interface ScenarioArtifact {
      * @generated from protobuf field: optional int32 seed = 15
      */
     seed?: number;
+    /**
+     * @generated from protobuf field: uint64 frame_count = 16
+     */
+    frameCount: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ScenarioJob
@@ -10846,7 +10911,8 @@ class LocalAppScenarioArtifact$Type extends MessageType<LocalAppScenarioArtifact
             { no: 8, name: "height", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 9, name: "sample_rate_hz", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 10, name: "channels", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
-            { no: 11, name: "seed", kind: "scalar", opt: true, T: 5 /*ScalarType.INT32*/ }
+            { no: 11, name: "seed", kind: "scalar", opt: true, T: 5 /*ScalarType.INT32*/ },
+            { no: 12, name: "frame_count", kind: "scalar", T: 4 /*ScalarType.UINT64*/ }
         ]);
     }
     create(value?: PartialMessage<LocalAppScenarioArtifact>): LocalAppScenarioArtifact {
@@ -10861,6 +10927,7 @@ class LocalAppScenarioArtifact$Type extends MessageType<LocalAppScenarioArtifact
         message.height = 0;
         message.sampleRateHz = 0;
         message.channels = 0;
+        message.frameCount = "0";
         if (value !== undefined)
             reflectionMergePartial<LocalAppScenarioArtifact>(this, message, value);
         return message;
@@ -10902,6 +10969,9 @@ class LocalAppScenarioArtifact$Type extends MessageType<LocalAppScenarioArtifact
                     break;
                 case /* optional int32 seed */ 11:
                     message.seed = reader.int32();
+                    break;
+                case /* uint64 frame_count */ 12:
+                    message.frameCount = reader.uint64().toString();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -10948,6 +11018,9 @@ class LocalAppScenarioArtifact$Type extends MessageType<LocalAppScenarioArtifact
         /* optional int32 seed = 11; */
         if (message.seed !== undefined)
             writer.tag(11, WireType.Varint).int32(message.seed);
+        /* uint64 frame_count = 12; */
+        if (message.frameCount !== "0")
+            writer.tag(12, WireType.Varint).uint64(message.frameCount);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -13489,17 +13562,140 @@ class ReadLocalAppArtifactResponse$Type extends MessageType<ReadLocalAppArtifact
  */
 export const ReadLocalAppArtifactResponse = new ReadLocalAppArtifactResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class LocalAppCanonicalAudioPreparation$Type extends MessageType<LocalAppCanonicalAudioPreparation> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppCanonicalAudioPreparation", [
+            { no: 1, name: "target_sample_rate_hz", kind: "scalar", T: 13 /*ScalarType.UINT32*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppCanonicalAudioPreparation>): LocalAppCanonicalAudioPreparation {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.targetSampleRateHz = 0;
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppCanonicalAudioPreparation>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppCanonicalAudioPreparation): LocalAppCanonicalAudioPreparation {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* uint32 target_sample_rate_hz */ 1:
+                    message.targetSampleRateHz = reader.uint32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppCanonicalAudioPreparation, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* uint32 target_sample_rate_hz = 1; */
+        if (message.targetSampleRateHz !== 0)
+            writer.tag(1, WireType.Varint).uint32(message.targetSampleRateHz);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppCanonicalAudioPreparation
+ */
+export const LocalAppCanonicalAudioPreparation = new LocalAppCanonicalAudioPreparation$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppAudioInfo$Type extends MessageType<LocalAppAudioInfo> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppAudioInfo", [
+            { no: 1, name: "sample_rate_hz", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 2, name: "channels", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 3, name: "frame_count", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 4, name: "duration_ms", kind: "scalar", T: 3 /*ScalarType.INT64*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppAudioInfo>): LocalAppAudioInfo {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.sampleRateHz = 0;
+        message.channels = 0;
+        message.frameCount = "0";
+        message.durationMs = "0";
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppAudioInfo>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppAudioInfo): LocalAppAudioInfo {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* uint32 sample_rate_hz */ 1:
+                    message.sampleRateHz = reader.uint32();
+                    break;
+                case /* uint32 channels */ 2:
+                    message.channels = reader.uint32();
+                    break;
+                case /* uint64 frame_count */ 3:
+                    message.frameCount = reader.uint64().toString();
+                    break;
+                case /* int64 duration_ms */ 4:
+                    message.durationMs = reader.int64().toString();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppAudioInfo, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* uint32 sample_rate_hz = 1; */
+        if (message.sampleRateHz !== 0)
+            writer.tag(1, WireType.Varint).uint32(message.sampleRateHz);
+        /* uint32 channels = 2; */
+        if (message.channels !== 0)
+            writer.tag(2, WireType.Varint).uint32(message.channels);
+        /* uint64 frame_count = 3; */
+        if (message.frameCount !== "0")
+            writer.tag(3, WireType.Varint).uint64(message.frameCount);
+        /* int64 duration_ms = 4; */
+        if (message.durationMs !== "0")
+            writer.tag(4, WireType.Varint).int64(message.durationMs);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppAudioInfo
+ */
+export const LocalAppAudioInfo = new LocalAppAudioInfo$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class UploadLocalAppArtifactRequest$Type extends MessageType<UploadLocalAppArtifactRequest> {
     constructor() {
         super("nimi.runtime.v1.UploadLocalAppArtifactRequest", [
             { no: 1, name: "bytes", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
-            { no: 2, name: "mime_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 2, name: "mime_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "app_asset_relative_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "source_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "audio_preparation", kind: "message", T: () => LocalAppCanonicalAudioPreparation }
         ]);
     }
     create(value?: PartialMessage<UploadLocalAppArtifactRequest>): UploadLocalAppArtifactRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.bytes = new Uint8Array(0);
         message.mimeType = "";
+        message.appAssetRelativePath = "";
+        message.sourceArtifactId = "";
         if (value !== undefined)
             reflectionMergePartial<UploadLocalAppArtifactRequest>(this, message, value);
         return message;
@@ -13514,6 +13710,15 @@ class UploadLocalAppArtifactRequest$Type extends MessageType<UploadLocalAppArtif
                     break;
                 case /* string mime_type */ 2:
                     message.mimeType = reader.string();
+                    break;
+                case /* string app_asset_relative_path */ 3:
+                    message.appAssetRelativePath = reader.string();
+                    break;
+                case /* string source_artifact_id */ 4:
+                    message.sourceArtifactId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.LocalAppCanonicalAudioPreparation audio_preparation */ 5:
+                    message.audioPreparation = LocalAppCanonicalAudioPreparation.internalBinaryRead(reader, reader.uint32(), options, message.audioPreparation);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -13533,6 +13738,15 @@ class UploadLocalAppArtifactRequest$Type extends MessageType<UploadLocalAppArtif
         /* string mime_type = 2; */
         if (message.mimeType !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.mimeType);
+        /* string app_asset_relative_path = 3; */
+        if (message.appAssetRelativePath !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.appAssetRelativePath);
+        /* string source_artifact_id = 4; */
+        if (message.sourceArtifactId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.sourceArtifactId);
+        /* nimi.runtime.v1.LocalAppCanonicalAudioPreparation audio_preparation = 5; */
+        if (message.audioPreparation)
+            LocalAppCanonicalAudioPreparation.internalBinaryWrite(message.audioPreparation, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -13549,7 +13763,8 @@ class UploadLocalAppArtifactResponse$Type extends MessageType<UploadLocalAppArti
         super("nimi.runtime.v1.UploadLocalAppArtifactResponse", [
             { no: 1, name: "artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "size_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
-            { no: 3, name: "mime_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 3, name: "mime_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "audio_info", kind: "message", T: () => LocalAppAudioInfo }
         ]);
     }
     create(value?: PartialMessage<UploadLocalAppArtifactResponse>): UploadLocalAppArtifactResponse {
@@ -13575,6 +13790,9 @@ class UploadLocalAppArtifactResponse$Type extends MessageType<UploadLocalAppArti
                 case /* string mime_type */ 3:
                     message.mimeType = reader.string();
                     break;
+                case /* nimi.runtime.v1.LocalAppAudioInfo audio_info */ 4:
+                    message.audioInfo = LocalAppAudioInfo.internalBinaryRead(reader, reader.uint32(), options, message.audioInfo);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -13596,6 +13814,9 @@ class UploadLocalAppArtifactResponse$Type extends MessageType<UploadLocalAppArti
         /* string mime_type = 3; */
         if (message.mimeType !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.mimeType);
+        /* nimi.runtime.v1.LocalAppAudioInfo audio_info = 4; */
+        if (message.audioInfo)
+            LocalAppAudioInfo.internalBinaryWrite(message.audioInfo, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -14261,7 +14482,8 @@ class ScenarioArtifact$Type extends MessageType<ScenarioArtifact> {
             { no: 12, name: "channels", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 13, name: "speech_alignment", kind: "message", T: () => SpeechAlignment },
             { no: 14, name: "metadata", kind: "message", T: () => Struct },
-            { no: 15, name: "seed", kind: "scalar", opt: true, T: 5 /*ScalarType.INT32*/ }
+            { no: 15, name: "seed", kind: "scalar", opt: true, T: 5 /*ScalarType.INT32*/ },
+            { no: 16, name: "frame_count", kind: "scalar", T: 4 /*ScalarType.UINT64*/ }
         ]);
     }
     create(value?: PartialMessage<ScenarioArtifact>): ScenarioArtifact {
@@ -14278,6 +14500,7 @@ class ScenarioArtifact$Type extends MessageType<ScenarioArtifact> {
         message.height = 0;
         message.sampleRateHz = 0;
         message.channels = 0;
+        message.frameCount = "0";
         if (value !== undefined)
             reflectionMergePartial<ScenarioArtifact>(this, message, value);
         return message;
@@ -14331,6 +14554,9 @@ class ScenarioArtifact$Type extends MessageType<ScenarioArtifact> {
                     break;
                 case /* optional int32 seed */ 15:
                     message.seed = reader.int32();
+                    break;
+                case /* uint64 frame_count */ 16:
+                    message.frameCount = reader.uint64().toString();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -14389,6 +14615,9 @@ class ScenarioArtifact$Type extends MessageType<ScenarioArtifact> {
         /* optional int32 seed = 15; */
         if (message.seed !== undefined)
             writer.tag(15, WireType.Varint).int32(message.seed);
+        /* uint64 frame_count = 16; */
+        if (message.frameCount !== "0")
+            writer.tag(16, WireType.Varint).uint64(message.frameCount);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

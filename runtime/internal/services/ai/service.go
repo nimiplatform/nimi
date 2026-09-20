@@ -17,6 +17,8 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/aiconfig"
+	"github.com/nimiplatform/nimi/runtime/internal/appstorage"
+	"github.com/nimiplatform/nimi/runtime/internal/audiomedia"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
@@ -64,6 +66,9 @@ type Service struct {
 	videoSessions                          *videoSessionStore
 	voiceAssets                            *voiceAssetStore
 	runtimeArtifacts                       runtimeartifact.Store
+	canonicalAudio                         *audiomedia.Processor
+	canonicalAudioStagingRoot              string
+	localAppAudioSource                    func(context.Context, appstorage.ManagedOwner, string) (*appstorage.AssetSource, error)
 	runtimeCustodyIssuer                   *capabilitydriver.RuntimeCustodyIssuer
 	aiConfigStore                          aiconfig.Store
 	spendDisclosureReporter                SpendDisclosureReporter

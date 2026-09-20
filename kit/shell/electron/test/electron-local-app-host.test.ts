@@ -593,6 +593,23 @@ describe('Electron protected local-app host', () => {
     expect(calls).toEqual([{ bytes: Buffer.from([1, 2]), mimeType }]);
   });
 
+  it('passes canonical audio references and validates the native sample facts', async () => {
+    const calls: unknown[] = [];
+    const metadata = { artifactId: 'canonical-1', sizeBytes: 73588090, mimeType: 'audio/wav',
+      audioInfo: { sampleRateHz: 48000, channels: 2, frameCount: 9198504, durationMs: 191635 } };
+    const host = createNimiElectronLocalAppHostForBinding({ ...binding([]),
+      localAppArtifactUpload: async (input) => { calls.push(input); return { status: 'ok' as const, value: metadata }; },
+    });
+    const input = { source: { kind: 'app-asset', relativePath: 'sources/原曲.mp3' }, mimeType: 'audio/mpeg',
+      audioPreparation: { profile: 'canonical-pcm-v1' } };
+    await expect(host.artifactUpload(input)).resolves.toEqual(metadata);
+    expect(calls).toEqual([input]);
+    const invalid = createNimiElectronLocalAppHostForBinding({ ...binding([]),
+      localAppArtifactUpload: async () => ({ status: 'ok' as const, value: { ...metadata, audioInfo: { ...metadata.audioInfo, frameCount: 1 } } }),
+    });
+    await expect(invalid.artifactUpload(input)).rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
+  });
+
   it('strictly validates scenario Job and artifact projections', async () => {
     const calls: Array<{ method: string; input?: unknown }> = [];
     const host = createNimiElectronLocalAppHostForBinding(binding(calls));

@@ -14,6 +14,7 @@ const (
 	LocalAppArtifactUseInlineRead LocalAppArtifactUse = iota + 1
 	LocalAppArtifactUseScenarioInput
 	LocalAppArtifactUseAdoption
+	LocalAppArtifactUseAudioPreparation
 )
 
 type LocalAppArtifactOwner struct {
@@ -36,7 +37,7 @@ func OpenAuthorizedLocalAppArtifact(
 	owner.RegisteredAppSubject = strings.TrimSpace(owner.RegisteredAppSubject)
 	if ctx == nil || store == nil || artifactID == "" || len([]byte(artifactID)) > 512 ||
 		owner.AccountID == "" || owner.RegisteredAppSubject == "" ||
-		(use != LocalAppArtifactUseInlineRead && use != LocalAppArtifactUseScenarioInput && use != LocalAppArtifactUseAdoption) {
+		(use != LocalAppArtifactUseInlineRead && use != LocalAppArtifactUseScenarioInput && use != LocalAppArtifactUseAdoption && use != LocalAppArtifactUseAudioPreparation) {
 		return nil, ErrLocalAppArtifactUnavailable
 	}
 	source, ok := store.Open(ctx, artifactID)

@@ -3,6 +3,21 @@
 These package-local notes cover the App-facing changes relevant to the current
 published baseline. They are not a complete reconstruction of older releases.
 
+## Unreleased (next 0.x minor)
+
+- Add canonical audio preparation to the existing protected artifact upload.
+  Apps may supply inline audio or an owned App asset / canonical artifact
+  reference, receive measured sample-rate, channel, frame-count and duration
+  facts, and use artifact adoption for results larger than the inline limit.
+  Reference carriers require `audioPreparation: { profile: 'canonical-pcm-v1' }`;
+  explicit resampling requires an already canonical WAV source. Basic inline
+  uploads retain their existing size and MIME semantics.
+- Export the finite upload carrier validators and audio input/result types.
+  This compatible public API widening requires a minor release and matching
+  Runtime plus Kit/native delivery. Source builds do not make older published
+  packages support these inputs. Job retention and music model capabilities
+  are separate changes, not implied by audio preparation.
+
 ## 0.14.0 (development)
 
 - Preserve multiline transcription text through Local App Job projections,
