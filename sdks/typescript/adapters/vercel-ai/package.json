@@ -33,7 +33,7 @@
     "ai": "6.0.190",
     "tsx": "^4.23.13",
     "typescript": "^5.9.3",
-    "zod": "4.5.4"
+    "zod": "4.6.4"
   },
   "scripts": {
     "build": "node ../../../../scripts/with-workspace-surfaces.mjs -- pnpm run build:prepared",
