@@ -316,14 +316,14 @@ func (s *Service) cancelTransfer(sessionID string, message string) error {
 	}
 	s.publishTransferEventLocked(localTransferEventFromSummary(s.projectedTransferSummaryLocked(summary)))
 	s.mu.Unlock()
-	s.discardCancelledIntentView(sessionID)
+	s.discardUncommittedIntentView(sessionID)
 	return nil
 }
 
-// discardCancelledIntentView removes the uncommitted view directory of a
-// cancelled create intent. It only touches a directory no committed asset
-// owns; committed inventory is never rolled back by a cancel.
-func (s *Service) discardCancelledIntentView(sessionID string) bool {
+// discardUncommittedIntentView removes an unpublished create view before
+// cancellation or an explicit acquisition retry. It only touches a directory
+// no committed asset owns; committed inventory is never rolled back.
+func (s *Service) discardUncommittedIntentView(sessionID string) bool {
 	s.modelAssetMutationMu.Lock()
 	defer s.modelAssetMutationMu.Unlock()
 	s.mu.RLock()

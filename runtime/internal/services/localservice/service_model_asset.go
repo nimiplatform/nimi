@@ -19,10 +19,12 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/ggufmeta"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/modelassetintegrity"
 	"github.com/nimiplatform/nimi/runtime/internal/pagination"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -330,7 +332,7 @@ func (s *Service) settleFailedAcquisition(transferID string, runErr error, prese
 // survive is the reclamation owner's decision against every live root.
 func (s *Service) discardAcquisitionMaterial(transferID string) {
 	modelsRoot := strings.TrimSpace(s.resolvedLocalModelsPath())
-	cleanupPending := !s.discardCancelledIntentView(transferID)
+	cleanupPending := !s.discardUncommittedIntentView(transferID)
 	if modelsRoot != "" && filepath.IsAbs(modelsRoot) {
 		for _, directory := range []string{managedModelDownloadStageDir(modelsRoot, transferID), managedModelImportStageDir(modelsRoot, transferID)} {
 			if err := os.RemoveAll(directory); err != nil {
@@ -761,7 +763,7 @@ func (s *Service) tryReuseEquivalentModelAsset(ctx context.Context, transferID s
 
 func distributionSizesKnown(distribution modelDistribution) bool {
 	for _, file := range distribution.Files {
-		if file.SizeBytes <= 0 {
+		if file.SizeBytes < 0 {
 			return false
 		}
 	}
@@ -774,6 +776,20 @@ func distributionSizesKnown(distribution modelDistribution) bool {
 func (s *Service) verifyManagedModelAssetView(ctx context.Context, modelsRoot string, asset *runtimev1.ModelAssetRecord, directory string, onProgress func(int64) error) error {
 	if asset == nil || strings.TrimSpace(directory) == "" || !s.validModelAssetManagedDirectory(directory) {
 		return errors.New("ModelAsset view directory is unavailable")
+	}
+	assetPayload, err := protojson.Marshal(asset)
+	if err != nil {
+		return err
+	}
+	if err := validateStoredModelAssetRecord(modelsRoot, &modelAssetStoreRecord{Asset: assetPayload, ManagedDirectory: directory}); err != nil {
+		return err
+	}
+	paths := make([]string, 0, len(asset.GetFiles()))
+	for _, file := range asset.GetFiles() {
+		paths = append(paths, file.GetRelativePath())
+	}
+	if err := modelassetintegrity.ValidateDeclaredPayloadSet(directory, paths); err != nil {
+		return err
 	}
 	for _, file := range asset.GetFiles() {
 		if err := ctx.Err(); err != nil {

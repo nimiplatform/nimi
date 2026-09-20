@@ -204,7 +204,7 @@ func managedModelTransferTerminalError(cause error, persistenceErr error) error 
 }
 
 // managedModelDownloadDistribution derives the acquisition's distribution
-// from the immutable spec. Sizes are unknown (0) until each object is
+// from the immutable spec. Sizes are unknown (-1) until each object is
 // verified; the commit compares complete, verified distributions.
 func managedModelDownloadDistribution(spec managedDownloadedModelSpec) (modelDistribution, error) {
 	files := make([]modelDistributionFile, 0, len(spec.files))
@@ -214,7 +214,14 @@ func managedModelDownloadDistribution(spec managedDownloadedModelSpec) (modelDis
 			NonExecutableContent: modelDistributionFileNonExecutable(file),
 		})
 	}
-	return newModelDistribution(spec.entry, files)
+	distribution, err := newModelDistribution(spec.entry, files)
+	if err != nil {
+		return modelDistribution{}, err
+	}
+	for index := range distribution.Files {
+		distribution.Files[index].SizeBytes = -1
+	}
+	return distribution, nil
 }
 
 // installManagedDownloadedModelWithTransfer runs the managed acquisition
@@ -338,6 +345,12 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 			return err
 		}
 		return executorControl.wait(ctx)
+	}
+	// An interrupted create may have written some or all of its view before
+	// the inventory committed. Discard that unpublished view before retrying;
+	// retain the transfer's object holds so verified bytes stay reusable.
+	if restoredTransferID != "" && !s.discardUncommittedIntentView(transferID) {
+		return nil, transferID, fail(errors.New("uncommitted ModelAsset view cleanup must finish before resuming"), true)
 	}
 
 	// Phase 1: an equivalent committed distribution is reused after a real

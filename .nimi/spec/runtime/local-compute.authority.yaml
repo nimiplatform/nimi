@@ -140,7 +140,7 @@ units:
     kind: rule
     title: ModelAsset is content custody only
     modality: must
-    statement: A ModelAssetRecord identifies one per-import distribution instance containing one to many files, immutable content identity, integrity, bounded content fingerprints, provenance, install or import evidence, and display metadata; it owns no capability, kind, family, engine, Driver, recipe, companion, slot, execution option, readiness, or promotion-on-reference semantics, while Service and Node remain Runtime-private ExecutionHost projections and never become ModelAsset, Loadout, binding, selection, route, or execution authority.
+    statement: A ModelAssetRecord identifies one distinct managed distribution containing one to many files, immutable content identity, integrity, bounded content fingerprints, provenance, install or import evidence, and display metadata; it owns no capability, kind, family, engine, Driver, recipe, companion, slot, execution option, readiness, or promotion-on-reference semantics, while Service and Node remain Runtime-private ExecutionHost projections and never become ModelAsset, Loadout, binding, selection, route, or execution authority.
     condition: Whenever ModelAsset, Service, or Node abstractions are stored or projected.
     failure: Reject an abstract or unverified ModelAsset, content interpretation stored as asset truth, persisted Node routing truth, or any asset or service field used as selection or routing authority.
     relations:

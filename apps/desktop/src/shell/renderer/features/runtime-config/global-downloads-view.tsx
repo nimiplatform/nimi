@@ -233,6 +233,9 @@ export function GlobalDownloadsView() {
         reason={stage === 'interrupted' ? t(interruptionReasonKey(`${item.message ?? ''} ${item.reasonCode ?? ''}`)) : undefined}
         technical={[item.sourceLabel, item.modelAssetId, item.message, item.reasonCode, item.relatedInstallSessionId ? `related=${item.relatedInstallSessionId}` : ''].filter(Boolean).join(' · ')}
       >
+        {item.state === 'completed' && item.disposition ? <p className="text-xs text-[var(--nimi-text-secondary)]">
+          {t(item.disposition === 'reused' ? 'runtimeConfig.localModelCenter.reusedExisting' : 'runtimeConfig.localModelCenter.createdNew')}
+        </p> : null}
         {item.bytesReused > 0 ? <p className="text-xs text-[var(--nimi-text-secondary)]">
           {t('runtimeConfig.localModelCenter.reusedBytes', { size: formatBytes(item.bytesReused) })}
         </p> : null}

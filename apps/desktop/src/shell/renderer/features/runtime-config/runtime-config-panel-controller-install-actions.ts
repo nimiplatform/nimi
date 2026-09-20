@@ -125,12 +125,14 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     if (!confirmed) {
       return 'cancelled';
     }
-    await localEnvironmentClient.install(plan.planId, { caller: 'core' });
+    const result = await localEnvironmentClient.install(plan.planId, { caller: 'core' });
     setStatusBanner({
       kind: 'success',
       message: translateRuntimeLocalText(
-        'runtimeConfig.local.assetInstalled',
-        '“{{name}}” is installed. Choose what you want to use it for.',
+        result.disposition === 'reused' ? 'runtimeConfig.local.assetReused' : 'runtimeConfig.local.assetInstalled',
+        result.disposition === 'reused'
+          ? 'Using the existing “{{name}}”. Choose what you want to use it for.'
+          : '“{{name}}” is installed. Choose what you want to use it for.',
         { name: installLabel },
       ),
       actionLabel: translateRuntimeLocalText(

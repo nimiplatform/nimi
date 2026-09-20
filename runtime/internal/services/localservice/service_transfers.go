@@ -1242,7 +1242,7 @@ func (s *Service) CancelLocalTransfer(_ context.Context, req *runtimev1.CancelLo
 	if persistErr != nil {
 		return nil, localTransferPersistenceError(persistErr)
 	}
-	s.discardCancelledIntentView(sessionID)
+	s.discardUncommittedIntentView(sessionID)
 	s.discardAcquisitionMaterial(sessionID)
 	s.retryModelAssetCleanupObligations()
 	return &runtimev1.CancelLocalTransferResponse{Transfer: s.localTransferSummary(sessionID)}, nil

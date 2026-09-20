@@ -175,7 +175,7 @@ units:
     kind: rule
     title: Configuration asset assembly Job and private source identities stay distinct
     modality: must
-    statement: AIProfile portable intent, canonical App or shared LocalAgent AIConfig intent, the machine Loadout store, each Loadout identity, each per-import ModelAsset identity and immutable content_id, catalog recipe identity, Runtime-private dependency or RecipeCustody evidence, Job-captured ResolvedAssembly, private ExecutionHost process identity, and Job identity remain distinct; content equality never collapses ModelAsset instances, and neither ResolvedAssembly, process, CAS, nor selected-source identity enters Profile, AIConfig, public Loadout identity, or selection.
+    statement: AIProfile portable intent, canonical App or shared LocalAgent AIConfig intent, the machine Loadout store, each Loadout identity, each distinct-distribution ModelAsset identity and immutable content_id, catalog recipe identity, Runtime-private dependency or RecipeCustody evidence, Job-captured ResolvedAssembly, private ExecutionHost process identity, and Job identity remain distinct; content_id equality alone never establishes distribution equivalence, while acquisitions of the same fully verified distribution reuse its committed ModelAsset identity, and neither ResolvedAssembly, process, CAS, nor selected-source identity enters Profile, AIConfig, public Loadout identity, or selection.
     condition: Whenever local execution identities are created, stored, or projected.
     failure: Reject identity collapse, revision-like CAS projection, or leakage across canonical owners and portable payloads.
     relations:
@@ -369,7 +369,7 @@ units:
     kind: rule
     title: ModelAsset descriptors expose content custody only
     modality: must
-    statement: A ModelAsset descriptor exposes its Runtime-generated per-import model_asset_id, immutable content_id, ordered files and per-file integrity, aggregate size, bounded raw fingerprints, provenance, display metadata, content_verified and optional catalog_verified facts, latest bounded integrity diagnostic, and install or import state; it exposes no capability, kind, family, engine, Driver, dialect, recipe, companion, slot, Model Contract result, execution option, Loadout, binding, selection, route, readiness, or process truth.
+    statement: A ModelAsset descriptor exposes its Runtime-generated per-distinct-distribution model_asset_id, immutable content_id, ordered files and per-file integrity, aggregate size, bounded raw fingerprints, provenance, display metadata, content_verified and optional catalog_verified facts, latest bounded integrity diagnostic, and install or import state; it exposes no capability, kind, family, engine, Driver, dialect, recipe, companion, slot, Model Contract result, execution option, Loadout, binding, selection, route, readiness, or process truth.
     condition: Whenever Runtime projects a ModelAsset descriptor.
     failure: Reject descriptors missing identity or integrity facts, collapsing content and instance identity, or carrying interpretation, configuration, or execution truth.
     relations:
@@ -409,7 +409,7 @@ units:
     kind: rule
     title: ModelAsset transfer and install status is content scoped
     modality: must
-    statement: ModelAsset transfer and install transitions admit only queued, transferring, verifying, installed, failed, canceled, retrying, and removed for one acquisition instance, catalog install hard-verifies every declared file hash before atomic commit, manual import computes every digest before commit without catalog admission, and installed proves only a committed per-import identity and content_verified fact rather than catalog verification, capability, Driver, recipe compatibility, Loadout validity, selection, admission, Host state, or Job success.
+    statement: ModelAsset transfer and install transitions admit only queued, transferring, verifying, installed, failed, canceled, retrying, and removed for one acquisition instance, catalog install hard-verifies every declared file hash before atomic commit, manual import computes every digest before commit without catalog admission, and installed proves only a committed distribution identity and content_verified fact rather than catalog verification, capability, Driver, recipe compatibility, Loadout validity, selection, admission, Host state, or Job success.
     condition: Whenever a ModelAsset transfer, import, or install status transition is applied.
     failure: Reject transitions outside the content lifecycle, partial or hash-mismatched catalog commit, and every promotion of installed into interpretation or execution readiness.
     relations:

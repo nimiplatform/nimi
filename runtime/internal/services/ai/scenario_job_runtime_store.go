@@ -1397,6 +1397,11 @@ func (s *scenarioJobStore) pruneJobsLocked(now time.Time) {
 		if !isTerminalScenarioJobStatus(record.job.GetStatus()) {
 			continue
 		}
+		// Terminal delivery can outlive inference. Keep its owner record until
+		// finishExecution has returned every captured ModelAsset use.
+		if record.executionStarted || len(record.modelAssetUses) > 0 {
+			continue
+		}
 		if record.cloudAssembly != nil && strings.TrimSpace(record.cloudAssembly.CredentialCustodyRef) != "" {
 			continue
 		}
