@@ -42,7 +42,7 @@ units:
     kind: rule
     title: Primary navigation and tab groups are closed
     modality: must
-    statement: Desktop ordinary primary navigation is exactly Home, Chat, Explore, Apps, and Runtime in that order; Settings and Support are secondary, Profile, Source Detail, World Detail, Notification, Privacy Policy, and Terms of Service are detail surfaces, World and PersonaCharacter catalog browsing are folded into Explore, and Runtime is never hidden by enableRuntimeTab.
+    statement: Desktop ordinary primary navigation is Home, Chat, Explore, Apps, AI Capabilities and Cloud Services in that order. Home is the Nimi personal AI overview and the Logo destination; Downloads is a persistent global utility above the account entry, while Settings, Support and Advanced and Diagnostics remain secondary. Capability setup is never hidden by enableRuntimeTab, and the former four-tab Runtime navigation is not a parallel ordinary entry.
     condition: Whenever Desktop constructs navigation, tab identity, labels, or route groups.
     failure: Reject missing, extra, reordered, wrongly grouped, or feature-flag-hidden ordinary navigation entries.
     relations:
@@ -114,7 +114,7 @@ units:
     kind: rule
     title: Shell icons use the closed familiar set
     modality: must
-    statement: Desktop shell navigation icons use home, chat, explore, runtime, profile, settings, store, globe, wallet, agent-family, terms-family, privacy, and logout identities, use a familiar app, grid, or store icon for Apps, and use the puzzle icon only for an unknown identity.
+    statement: Desktop shell navigation icons use home, chat, explore, runtime, cloud, download, profile, settings, store, globe, wallet, agent-family, terms-family, privacy, and logout identities, use a familiar app, grid, or store icon for Apps, a cloud for Cloud Services and a download arrow for global Downloads, and use the puzzle icon only for an unknown identity.
     condition: Whenever Desktop renders a shell navigation icon.
     failure: Render the prescribed icon or the explicit puzzle fallback without treating an unknown icon as close evidence.
     relations:
@@ -274,9 +274,9 @@ units:
         target: definition.nimi.desktop.shell-ui.shell-plane
   - id: rule.nimi.desktop.shell-ui.r023
     kind: rule
-    title: Runtime and Settings share one sidebar family
+    title: Capability and settings sidebars reuse the shared family
     modality: must
-    statement: Settings uses desktop-sidebar-v1 with container, header, section labels, one or more item lists, and optional resize handle, the Runtime surface renders its four text destinations through the registered Kit navigation primitives instead of a second sidebar family, and the outer Chat relationship rail remains an app-owned shell composition outside that family.
+    statement: "AI Capabilities uses the Apps-style master-detail composition through existing Kit sidebar primitives: the left capability list stays navigable in every preparation state, the default right pane hosts Profile quick start, and selection opens a stable capability detail. Settings keeps its shared sidebar family; capability details expose model choices and advanced controls in context without a new sidebar or visual system."
     condition: Whenever Desktop renders an internal feature sidebar.
     failure: Reject an unregistered sidebar family or misclassification of the Chat rail.
     relations:
@@ -723,7 +723,7 @@ units:
     kind: rule
     title: Menu-bar structure and actions are closed
     modality: must
-    statement: The menu bar contains a state header, Open Nimi, Runtime AI Settings, Model Library, Cloud Services, Settings, Runtime and verified-release summary, Start Runtime, Restart Runtime, Refresh Status, and Quit Nimi; it exposes no provider-health summary, stop, external-daemon, binary selector, endpoint, process identifier, or path and enables service actions only after fixed-service and signing verification.
+    statement: The menu bar contains a state header, Open Nimi, AI Capabilities, Downloads, Cloud Services, Advanced and Diagnostics, Settings, Runtime and verified-release summary, Start Runtime, Restart Runtime, Refresh Status, and Quit Nimi; it exposes no provider-health summary, stop, external-daemon, binary selector, endpoint, process identifier, or path and enables service actions only after fixed-service and signing verification.
     condition: Whenever Desktop builds the menu-bar menu.
     failure: Disable unsafe actions and route unverified or hung service state to signed repair.
     relations:

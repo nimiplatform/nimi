@@ -89,6 +89,8 @@ export function SetupTaskAdvancedSection(props: {
     ?? (recipe.defaultOptions as JsonObject | undefined)
     ?? {}
   ), [candidate?.options, draft?.options, recipe.defaultOptions]);
+  const [optionsJson, setOptionsJson] = useState(() => JSON.stringify(baseOptions, null, 2));
+  useEffect(() => setOptionsJson(JSON.stringify(baseOptions, null, 2)), [baseOptions]);
 
   const boundAxes: readonly RuntimeSetupTaskDraftAxis[] = draft?.axes
     ?? (candidate?.modelAxes ?? [])
@@ -155,10 +157,19 @@ export function SetupTaskAdvancedSection(props: {
 
   const onApply = useCallback(() => {
     if (!candidate) return;
+    let options: NimiJsonObject;
+    try {
+      const value: unknown = JSON.parse(optionsJson);
+      if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('object required');
+      options = value as NimiJsonObject;
+    } catch {
+      setApplyError(t('runtimeConfig.setupTask.advanced.optionsInvalid'));
+      return;
+    }
     setApplying(true);
     setApplyError('');
     void updateRuntimeSetupCandidate(props.store, task.taskId, props.ports, {
-      options: baseOptions,
+      options,
       axes: boundAxes,
     }).then((result) => {
       if (result.status === 'ok') {
@@ -170,7 +181,7 @@ export function SetupTaskAdvancedSection(props: {
       }
       // needs-attention/failed are projected from the task status by the view.
     }).finally(() => setApplying(false));
-  }, [baseOptions, boundAxes, candidate, props, task.taskId]);
+  }, [optionsJson, boundAxes, candidate, props, task.taskId, t]);
 
   const optionKeys = Object.keys(baseOptions);
   const pickerSlot = pickerSlotId ? recipe.slots.find((slot) => slot.slotId === pickerSlotId) ?? null : null;
@@ -283,6 +294,13 @@ export function SetupTaskAdvancedSection(props: {
             );
           })}
         </div>
+      ) : null}
+      {candidate ? (
+        <details className="space-y-2 text-sm" data-testid="runtime-setup-options-json">
+          <summary className="cursor-pointer font-medium">{t('runtimeConfig.setupTask.advanced.optionsJson')}</summary>
+          <p className="text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.setupTask.advanced.optionsJsonHelp')}</p>
+          <textarea aria-label={t('runtimeConfig.setupTask.advanced.optionsJson')} className="min-h-32 w-full rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] p-3 font-mono text-xs text-[var(--nimi-text-primary)]" value={optionsJson} onChange={event => setOptionsJson(event.currentTarget.value)} />
+        </details>
       ) : null}
       {candidate ? (
         <div className="flex flex-wrap items-center gap-2">

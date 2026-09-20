@@ -18,8 +18,8 @@ units:
     meaning: Desktop Explore is the ordinary Realm discovery surface for admitted Worlds, PersonaCharacter sources, World-bound WorldCharacter sources, and public Realm activity without owning Realm, source, Runtime, LocalAgent, shell, or AI-execution truth.
   - id: definition.nimi.desktop.product-surfaces.home-feed
     kind: definition
-    title: Desktop Home feed product surface
-    meaning: The Desktop Home tab is the Realm feed presentation and Create Post affordance inside the installed Nimi Home shell and is distinct from the enclosing shell, its ready entry, and Realm feed truth.
+    title: Desktop activity feed
+    meaning: The activity feed is the Realm feed presentation and Create Post affordance reached through an explicit Activity entry from the Nimi overview. It remains separate from the overview, the enclosing shell and Realm feed truth.
   - id: definition.nimi.desktop.product-surfaces.support
     kind: definition
     title: Desktop Support product surface
@@ -174,50 +174,50 @@ units:
         target: definition.nimi.desktop.product-surfaces.explore
   - id: rule.nimi.desktop.product-surfaces.r015
     kind: rule
-    title: Home is the Realm feed surface
+    title: Home presents the personal AI overview
     modality: must
-    statement: The Desktop primary-navigation Home tab renders Realm public activity feed and the Create Post entry as its product responsibility and does not absorb Chat, Explore discovery, Apps, or Runtime responsibilities or degrade into a feed-less landing or dashboard screen.
+    statement: Home presents quick start or continue-use actions, current machine AI preparation and Runtime availability, download progress or failures, available App updates, and an explicit Activity entry to the preserved feed and Create Post surface. Optional usage, cost and Agent activity appear only with trustworthy scoped data; missing data is not zero and raw maintenance panels are not embedded as the overview.
     condition: Whenever Desktop renders or routes the Home primary-navigation tab.
-    failure: Reject a Home tab without Realm feed semantics or with another primary product responsibility.
+    failure: Keep independent sections usable when a projection is unavailable, omit unsupported optional statistics, and preserve access to the activity feed and existing use surfaces.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.product-surfaces.home-feed
+        target: definition.nimi.desktop.product-surfaces.home-overview
   - id: rule.nimi.desktop.product-surfaces.r016
     kind: rule
-    title: Home feed is not the ready entry
-    modality: must_not
-    statement: Desktop treats the Home feed surface as Nimi's ready entry or lands the first ready_for_use screen on Home after login and initialization instead of Chat and Nimi Chat.
+    title: Ordinary ready entry opens the Nimi overview
+    modality: must
+    statement: After canonical Product Control ready_for_use, ordinary first and return entry and the Nimi Logo open the Home overview; explicit App, Chat or other admitted direct-open intents retain their requested destination. Optional overview reads are independent of startup admission and do not block ordinary use.
     condition: Whenever Desktop selects the post-initialization ready destination.
-    failure: Route the ready entry to Chat and Nimi Chat while keeping Home available only as an actively selected primary destination.
+    failure: Open the overview for ordinary entry, honor an explicit destination, and never revoke product readiness because optional overview data failed.
     relations:
       - type: applies_to
-        target: definition.nimi.desktop.product-surfaces.home-feed
+        target: definition.nimi.desktop.product-surfaces.home-overview
   - id: rule.nimi.desktop.product-surfaces.r017
     kind: rule
-    title: Home feed and Nimi Home do not overlap
+    title: Activity feed and Nimi Home do not overlap
     modality: must
-    statement: Home remains the Realm feed and Create Post surface inside Nimi Home, while the enclosing installed Nimi Home shell retains hosted-shell information architecture, navigation, windowing, first-run and return-run state, surface registry, Apps placement, LocalAgent conversation placement, and failure-projection ownership.
+    statement: The activity feed remains the Realm feed and Create Post surface inside Nimi Home, while the enclosing installed Nimi Home shell retains hosted-shell information architecture, navigation, windowing, first-run and return-run state, surface registry, Apps placement, LocalAgent conversation placement, and failure-projection ownership.
     condition: Whenever Desktop composes, names, or assigns ownership to Home or Nimi Home.
-    failure: Reject an interpretation that equates the two objects, gives shell ownership to Home feed, or lets Home feed redefine or narrow enclosing shell authority.
+    failure: Reject an interpretation that equates the two objects, gives shell ownership to Activity feed, or lets Activity feed redefine or narrow enclosing shell authority.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.product-surfaces.home-feed
   - id: rule.nimi.desktop.product-surfaces.r018
     kind: rule
-    title: Home feed scopes are closed
+    title: Activity feed scopes are closed
     modality: must
-    statement: Home presents and distinguishes exactly personal for viewer-authored Posts, friends for visible Posts from the viewer's ACTIVE human friends, persona_activity for public-activity Posts from PersonaCharacter sources, and world_character_activity for public-activity Posts from explicitly admitted WorldCharacter sources, while Realm owns scope semantics, visibility, and author attribution.
-    condition: Whenever Home configures, reads, labels, filters, or renders Realm feed scope.
+    statement: The activity feed presents and distinguishes exactly personal for viewer-authored Posts, friends for visible Posts from the viewer's ACTIVE human friends, persona_activity for public-activity Posts from PersonaCharacter sources, and world_character_activity for public-activity Posts from explicitly admitted WorldCharacter sources, while Realm owns scope semantics, visibility, and author attribution.
+    condition: Whenever the activity feed configures, reads, labels, filters, or renders Realm feed scope.
     failure: Reject a missing, additional, renamed, or semantically collapsed scope and never present LocalAgent private activity as Realm feed content.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.product-surfaces.home-feed
   - id: rule.nimi.desktop.product-surfaces.r019
     kind: rule
-    title: Home provides a typed Create Post affordance
+    title: The activity feed provides a typed Create Post affordance
     modality: must
-    statement: Home provides a Create Post affordance and submits publication intent through the SDK-typed Realm path, while Realm retains author attribution, attachment envelope, worldId and visibility resolution, content moderation, and truth-write admission; Desktop supplies no client-authoritative authorId, postId, worldId, or contentRating.
-    condition: Whenever Home presents or submits Create Post.
+    statement: The activity feed provides a Create Post affordance and submits publication intent through the SDK-typed Realm path, while Realm retains author attribution, attachment envelope, worldId and visibility resolution, content moderation, and truth-write admission; Desktop supplies no client-authoritative authorId, postId, worldId, or contentRating.
+    condition: Whenever The activity feed presents or submits Create Post.
     failure: Present the typed fail-closed state for attachment, moderation, or Realm-write failure and reject client-owned identifiers, generic success, and synthetic success.
     relations:
       - type: applies_to
@@ -226,19 +226,19 @@ units:
     kind: rule
     title: Home consumes SDK-typed Realm feed projection
     modality: must
-    statement: Home feed reads and Create Post consume the SDK-typed Realm PostDto and FeedResponseDto path, and pagination consumes Realm cursor-paginated projection without renderer-direct Realm REST, shell-local Post or Feed truth, or placeholder Posts, attachments, counts, and success.
-    condition: Whenever Home reads, paginates, or writes Realm feed content.
+    statement: Activity feed reads and Create Post consume the SDK-typed Realm PostDto and FeedResponseDto path, and pagination consumes Realm cursor-paginated projection without renderer-direct Realm REST, shell-local Post or Feed truth, or placeholder Posts, attachments, counts, and success.
+    condition: Whenever the activity feed reads, paginates, or writes Realm feed content.
     failure: Fail closed or shrink the affected presentation when the typed projection is absent or failed and reject REST bypass, parallel truth, and fabricated content.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.product-surfaces.home-feed
   - id: rule.nimi.desktop.product-surfaces.r021
     kind: rule
-    title: Home feed performs no AI execution
+    title: Activity feed performs no AI execution
     modality: must_not
-    statement: Home feed carries AIConfig owner identity, CapabilityContract, prompt text, provider or model selection, Runtime turn payload, or Runtime AI execution on feed read or Create Post paths.
-    condition: Whenever Home presents, reads, or publishes Realm social content.
-    failure: Reject the AI payload or execution call and preserve Home as a Realm social projection and publication surface only.
+    statement: Activity feed carries AIConfig owner identity, CapabilityContract, prompt text, provider or model selection, Runtime turn payload, or Runtime AI execution on feed read or Create Post paths.
+    condition: Whenever The activity feed presents, reads, or publishes Realm social content.
+    failure: Reject the AI payload or execution call and preserve the activity feed as a Realm social projection and publication surface only.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.product-surfaces.home-feed
@@ -375,3 +375,21 @@ units:
         target: definition.nimi.platform.product-lifecycle.data-root-replacement
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.owner-aware-check-sync
+  - id: definition.nimi.desktop.product-surfaces.home-overview
+    kind: definition
+    title: Nimi personal AI overview
+    meaning: The Home default pane is a Desktop-owned personal AI overview of existing usage entry points, machine preparation, downloads, App updates and Runtime availability. Each section consumes its existing owner projection independently; optional activity or usage summaries create no new execution, billing, social or readiness truth.
+  - id: definition.nimi.desktop.product-surfaces.global-downloads
+    kind: definition
+    title: Global preparation and downloads surface
+    meaning: Downloads is the shell-lifetime combined presentation of existing App package jobs, model transfers, environment dependency jobs and their explicit setup-task associations; operation and durable execution truth stay with each existing owner.
+  - id: rule.nimi.desktop.product-surfaces.global-downloads
+    kind: rule
+    title: Downloads is a persistent cross-surface utility
+    modality: must
+    statement: Downloads stays reachable from ordinary navigation with an activity indicator, includes App, model and environment preparation, and returns to its source capability or App. Existing job identities and explicit associations determine grouping and deduplication; unsupported pause, cancel or retry operations are not offered. Closing a page does not stop work; stopping one setup does not delete resources or implicitly cancel shared dependencies. Per-module views link to this utility instead of keeping parallel complete managers.
+    condition: Whenever Desktop displays or controls downloads or setup progress.
+    failure: Display the actual stage or owner failure, retain completed effects, and reject duplicate queues, guessed association, fabricated progress or cross-owner controls.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.global-downloads

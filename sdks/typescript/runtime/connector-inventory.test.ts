@@ -41,6 +41,24 @@ const PROVIDER_CATALOG: ProviderCatalogEntry[] = [
   },
 ];
 
+test('connector edits preserve absent fields so a metadata update never clears the stored credential', async () => {
+  const requests: Parameters<NimiRuntimeConnectorClient['updateConnector']>[0][] = [];
+  const inventory = createNimiRuntimeConnectorInventoryClient({
+    connectors: {
+      async updateConnector(request) { requests.push(request); return { connector: undefined }; },
+    } as NimiRuntimeConnectorClient,
+  });
+  await inventory.updateConnector({ connectorId: 'saved-connection', label: 'Renamed' });
+  assert.equal(requests[0]!.label, 'Renamed');
+  assert.equal(requests[0]!.apiKey, undefined);
+  assert.equal(requests[0]!.endpoint, undefined);
+  assert.equal(requests[0]!.authKind, undefined);
+  await inventory.updateConnector({ connectorId: 'saved-connection', credentialValue: ' replacement-key ', authMode: 'api_key' });
+  assert.equal(requests[1]!.apiKey, 'replacement-key');
+  assert.equal(requests[1]!.label, undefined);
+  assert.equal(requests[1]!.authKind, ConnectorAuthKind.API_KEY);
+});
+
 test('Nimi Runtime connector projection normalizes scope, auth, endpoint, and models', () => {
   const projection = nimiRuntimeConnectorToProjection({
     connectorId: 'conn-1',

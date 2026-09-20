@@ -1,3 +1,6 @@
+import { Button } from '@nimiplatform/kit/ui';
+import { useTranslation } from 'react-i18next';
+import { useAppStore } from '../providers/app-store';
 import { Suspense, lazy, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import type { AppTab } from '../providers/app-store';
@@ -50,6 +53,12 @@ const WorldDetailPanel = lazy(async () => {
   const mod = await loadWorldDetailPanelModule();
   return { default: mod.WorldDetailActivePanel };
 });
+const GlobalDownloadsView = lazy(async () => ({
+  default: (await import('../../features/runtime-config/global-downloads-view')).GlobalDownloadsView,
+}));
+const NimiOverview = lazy(async () => ({
+  default: (await import('../../features/home/nimi-overview')).NimiOverview,
+}));
 const HomePanel = lazy(async () => {
   const mod = await import('../../features/home/home-panel');
   return { default: mod.HomePanel };
@@ -112,6 +121,8 @@ export function MainLayoutPanelStack({
   onExploreSectionChange,
   onExploreSearchTextChange,
 }: MainLayoutPanelStackProps) {
+  const { t } = useTranslation();
+  const setActiveTab = useAppStore((state) => state.setActiveTab);
   return (
     <>
       {runtimeEverMounted ? (
@@ -125,87 +136,101 @@ export function MainLayoutPanelStack({
         </Suspense>
       ) : null}
 
-      <Suspense fallback={activeTab === 'world-detail' ? <WorldDetailRouteLoading /> : <div className="flex min-h-0 flex-1" />}>
+      <Suspense
+        fallback={
+          activeTab === 'world-detail' ? <WorldDetailRouteLoading /> : <div className="flex min-h-0 flex-1" />
+        }
+      >
         <AnimatePresence mode="wait" initial={false}>
-        {activeTab === 'home' ? (
-          <MotionPanelFrame panelId="home">
-            <HomePanel
-              feedScope={homeFeedScope}
-              onFeedScopeChange={onHomeFeedScopeChange}
-            />
-          </MotionPanelFrame>
-        ) : null}
+          {activeTab === 'downloads' ? (
+            <MotionPanelFrame panelId="downloads">
+              <GlobalDownloadsView />
+            </MotionPanelFrame>
+          ) : null}
+          {activeTab === 'home' ? (
+            <MotionPanelFrame panelId="home">
+              <NimiOverview />
+            </MotionPanelFrame>
+          ) : null}
+          {activeTab === 'activity' ? (
+            <MotionPanelFrame panelId="activity">
+              <Button tone="ghost" className="self-start" onClick={() => setActiveTab('home')}>
+                {t('runtimeConfig.overview.back')}
+              </Button>
+              <HomePanel feedScope={homeFeedScope} onFeedScopeChange={onHomeFeedScopeChange} />
+            </MotionPanelFrame>
+          ) : null}
 
-        {activeTab === 'chat' ? (
-          <MotionPanelFrame panelId="chat" className="flex h-full min-h-0 flex-1">
-            <ChatPage />
-          </MotionPanelFrame>
-        ) : null}
+          {activeTab === 'chat' ? (
+            <MotionPanelFrame panelId="chat" className="flex h-full min-h-0 flex-1">
+              <ChatPage />
+            </MotionPanelFrame>
+          ) : null}
 
-        {activeTab === 'explore' ? (
-          <MotionPanelFrame panelId="explore">
-            <ExplorePanel
-              activeSection={exploreActiveSection}
-              searchText={exploreSearchText}
-              onSectionChange={onExploreSectionChange}
-              onSearchTextChange={onExploreSearchTextChange}
-            />
-          </MotionPanelFrame>
-        ) : null}
+          {activeTab === 'explore' ? (
+            <MotionPanelFrame panelId="explore">
+              <ExplorePanel
+                activeSection={exploreActiveSection}
+                searchText={exploreSearchText}
+                onSectionChange={onExploreSectionChange}
+                onSearchTextChange={onExploreSearchTextChange}
+              />
+            </MotionPanelFrame>
+          ) : null}
 
-        {activeTab === 'apps' ? (
-          <MotionPanelFrame panelId="apps">
-            <AppsPanel />
-          </MotionPanelFrame>
-        ) : null}
+          {activeTab === 'apps' ? (
+            <MotionPanelFrame panelId="apps">
+              <AppsPanel />
+            </MotionPanelFrame>
+          ) : null}
 
-        {activeTab === 'notification' ? (
-          <MotionPanelFrame panelId="notification">
-            <NotificationPanel />
-          </MotionPanelFrame>
-        ) : null}
+          {activeTab === 'notification' ? (
+            <MotionPanelFrame panelId="notification">
+              <NotificationPanel />
+            </MotionPanelFrame>
+          ) : null}
 
-        {activeTab === 'settings' ? (
-          <MotionPanelFrame panelId="settings">
-            <SettingsPanelBody />
-          </MotionPanelFrame>
-        ) : null}
+          {activeTab === 'settings' ? (
+            <MotionPanelFrame panelId="settings">
+              <SettingsPanelBody />
+            </MotionPanelFrame>
+          ) : null}
 
-        {activeTab === 'support' ? (
-          <MotionPanelFrame panelId="support">
-            <SupportPanel />
-          </MotionPanelFrame>
-        ) : null}
+          {activeTab === 'support' ? (
+            <MotionPanelFrame panelId="support">
+              <SupportPanel />
+            </MotionPanelFrame>
+          ) : null}
 
-        {activeTab === 'profile' ? (
-          <MotionPanelFrame panelId="profile">
-            <ProfilePanel />
-          </MotionPanelFrame>
-        ) : null}
+          {activeTab === 'profile' ? (
+            <MotionPanelFrame panelId="profile">
+              <ProfilePanel />
+            </MotionPanelFrame>
+          ) : null}
 
-        {activeTab === 'source-detail' ? (
-          <MotionPanelFrame panelId="source-detail">
-            <SourceDetailPanel />
-          </MotionPanelFrame>
-        ) : null}
+          {activeTab === 'source-detail' ? (
+            <MotionPanelFrame panelId="source-detail">
+              <SourceDetailPanel />
+            </MotionPanelFrame>
+          ) : null}
 
-        {activeTab === 'world-detail' ? (
-          <MotionPanelFrame panelId="world-detail">
-            <WorldDetailPanel />
-          </MotionPanelFrame>
-        ) : null}
+          {activeTab === 'world-detail' ? (
+            <MotionPanelFrame panelId="world-detail">
+              <WorldDetailPanel />
+            </MotionPanelFrame>
+          ) : null}
 
-        {activeTab === 'privacy-policy' ? (
-          <MotionPanelFrame panelId="privacy-policy">
-            <PrivacyPolicyView />
-          </MotionPanelFrame>
-        ) : null}
+          {activeTab === 'privacy-policy' ? (
+            <MotionPanelFrame panelId="privacy-policy">
+              <PrivacyPolicyView />
+            </MotionPanelFrame>
+          ) : null}
 
-        {activeTab === 'terms-of-service' ? (
-          <MotionPanelFrame panelId="terms-of-service">
-            <TermsOfServiceView />
-          </MotionPanelFrame>
-        ) : null}
+          {activeTab === 'terms-of-service' ? (
+            <MotionPanelFrame panelId="terms-of-service">
+              <TermsOfServiceView />
+            </MotionPanelFrame>
+          ) : null}
         </AnimatePresence>
       </Suspense>
     </>

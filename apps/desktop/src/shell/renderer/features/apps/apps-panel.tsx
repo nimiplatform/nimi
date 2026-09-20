@@ -59,7 +59,9 @@ export function dispatchAppsPanelCardAction(input: {
   input.runCardAction(input.entryKey, input.action);
 }
 
-export function AppsPanel(): ReactElement {
+export function AppsPanel({
+  downloadsOnly = false,
+}: { readonly downloadsOnly?: boolean } = {}): ReactElement {
   const downloads = useAppsDownloads();
   if (!downloads) throw new Error('APPS_DOWNLOADS_PROVIDER_MISSING');
   const settings = useDesktopRendererCommands().settings;
@@ -209,8 +211,12 @@ export function AppsPanel(): ReactElement {
     <div data-testid="apps-panel" className="flex min-h-0 flex-1 flex-col">
       <AppsLocalImportFeedback state={localImport} />
       <AppsPanelView
+        downloadsOnly={downloadsOnly}
         downloads={downloads}
-        onViewDownloadApp={viewDownloadApp}
+        onViewDownloadApp={(job) => {
+          viewDownloadApp(job);
+          if (downloadsOnly) setActiveTab('apps');
+        }}
         onRetryDownload={(job) => {
           if (job.sourceClass === AppPackageSourceClass.USER_IMPORTED) {
             const installed = projection?.status === 'loaded' ? projection.entries.find((entry) => entry.identity.sourceClass === 'user_imported' && entry.identity.appId === job.appId)?.committedRelease ?? null : null;
@@ -227,7 +233,9 @@ export function AppsPanel(): ReactElement {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         selectedEntryKey={detailEntryKey}
-        requestedDetailSection={requestedDetailAppId === selectedEntry?.identity.appId ? requestedDetailSection : null}
+        requestedDetailSection={
+          requestedDetailAppId === selectedEntry?.identity.appId ? requestedDetailSection : null
+        }
         requestedDetailNavigationRevision={requestedDetailNavigationRevision}
         onCardAction={handleCardAction}
         onBack={() => {

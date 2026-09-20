@@ -1,3 +1,4 @@
+import { useAppStore } from '../../app-shell/providers/app-store.js';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type PropsWithChildren } from 'react';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { createAppsJobsObserver, type AppsJobsSnapshot } from './apps-downloads-observer.js';
@@ -16,10 +17,15 @@ const AppsDownloadsContext = createContext<AppsDownloadsContextValue | null>(nul
 // @nimi-authority: rule.nimi.platform.product-lifecycle.p-home-009a
 export function AppsDownloadsProvider({ children }: PropsWithChildren) {
   const bindings = useDesktopRendererBindings();
+  const setActiveTab = useAppStore((state) => state.setActiveTab);
   const [snapshot, setSnapshot] = useState<AppsJobsSnapshot>({ jobs: [], status: 'loading', pendingIds: [], error: null });
   const [view, setView] = useState<'library' | 'downloads'>('library');
   const [selectedJobId, selectJob] = useState<string | null>(null);
-  const openDownloads = useCallback((jobId?: string) => { setView('downloads'); selectJob(jobId ?? null); }, []);
+  const openDownloads = useCallback((jobId?: string) => { setView('downloads'); selectJob(jobId ?? null);
+      setActiveTab('downloads');
+    },
+    [setActiveTab],
+  );
   const showLibrary = useCallback(() => setView('library'), []);
   const observer = useMemo(() => createAppsJobsObserver(bindings.sdk.machineProduct().apps, setSnapshot, async () => {
     const projection = await bindings.app.commands.firstRun.getRecord();

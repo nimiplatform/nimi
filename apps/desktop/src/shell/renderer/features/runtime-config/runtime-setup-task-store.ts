@@ -108,6 +108,9 @@ export type RuntimeSetupTaskDraft = {
   readonly cloudRecommendation?: RuntimeSetupCloudRecommendation;
   /** Source profile when the task was created from a portable AIProfile. */
   readonly profileId?: string;
+  /** One explicitly reviewed use of a portable Profile; UI task association only. */
+  readonly profileUseId?: string;
+  readonly profileTitle?: string;
 };
 
 export type RuntimeSetupCloudRecommendation = {
@@ -435,6 +438,8 @@ function normalizeDraft(raw: unknown): RuntimeSetupTaskDraft | undefined {
     ...(normalizeText(record.cloudTargetKey) ? { cloudTargetKey: normalizeText(record.cloudTargetKey) } : {}),
     ...(cloudRecommendation ? { cloudRecommendation } : {}),
     ...(normalizeText(record.profileId) ? { profileId: normalizeText(record.profileId) } : {}),
+    ...(normalizeText(record.profileUseId) ? { profileUseId: normalizeText(record.profileUseId) } : {}),
+    ...(normalizeText(record.profileTitle) ? { profileTitle: normalizeText(record.profileTitle) } : {}),
   };
   return Object.keys(draft).length > 0 ? draft : undefined;
 }

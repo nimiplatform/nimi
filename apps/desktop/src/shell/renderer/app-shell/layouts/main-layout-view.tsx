@@ -38,7 +38,7 @@ import {
 import { E2E_IDS } from '../../testability/e2e-ids';
 import { useDesktopRendererBindings } from '../../renderer/binding-context';
 import { resolveMainLayoutTitlebarFrame } from './main-layout-titlebar-frame';
-import { AppsDownloadsNavigation } from '../../features/apps/apps-downloads-view.js';
+import { GlobalDownloadsNavigation } from '../../features/runtime-config/global-downloads-view.js';
 
 /** Track window focus so polling queries can pause when the app is not focused. */
 function useWindowFocused(
@@ -106,7 +106,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
 
   // Keep-alive: once the runtime tab is visited, keep the component mounted (display:none
   // when inactive) so that subsequent visits are instant — no re-init, no re-hydration.
-  const runtimeActive = props.activeTab === 'runtime';
+  const runtimeActive = ['runtime', 'cloud', 'diagnostics'].includes(props.activeTab);
   const runtimeEverMountedRef = useRef(false);
   if (runtimeActive) runtimeEverMountedRef.current = true;
   const runtimeEverMounted = runtimeEverMountedRef.current;
@@ -267,19 +267,21 @@ export function MainLayoutView(props: MainLayoutViewProps) {
           />
         ) : null
       ) : (
-      <MainLayoutTopBar
-        authStatus={props.authStatus}
-        titlebarTopInsetClass={titlebarTopInsetClass}
-        titlebarLeftInsetClass={titlebarLeftInsetClass}
-        activeTab={props.activeTab}
-        onLogin={props.onLogin}
-        onOpenChat={() => props.onNav('chat')}
-        onOpenRuntimeConfig={() => props.onNav('runtime')}
-        onMouseDown={props.onTitlebarMouseDown}
-      />
+        <MainLayoutTopBar
+          authStatus={props.authStatus}
+          titlebarTopInsetClass={titlebarTopInsetClass}
+          titlebarLeftInsetClass={titlebarLeftInsetClass}
+          activeTab={props.activeTab}
+          onLogin={props.onLogin}
+          onOpenChat={() => props.onNav('chat')}
+          onOpenRuntimeConfig={() => props.onNav('diagnostics')}
+          onMouseDown={props.onTitlebarMouseDown}
+        />
       )}
 
-      <div className={`relative z-10 flex min-h-0 flex-1 gap-3 px-3 pb-3 ${collapseTopbar ? (titlebarDragEnabled ? 'pt-14' : 'pt-3') : shellContentTopPaddingClass}`}>
+      <div
+        className={`relative z-10 flex min-h-0 flex-1 gap-3 px-3 pb-3 ${collapseTopbar ? (titlebarDragEnabled ? 'pt-14' : 'pt-3') : shellContentTopPaddingClass}`}
+      >
         {hidePrimaryRail || isAnonymousShell ? null : (
           <aside
             data-testid={E2E_IDS.shellSidebarRail}
@@ -301,7 +303,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                   className={`flex h-11 w-11 items-center justify-center transition-transform duration-150 hover:-translate-y-0.5 ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS}`}
                   aria-label={t('Navigation.home', { defaultValue: 'Home' })}
                   onClick={() => {
-                    setSettingsMenuOpen(false);
+              setSettingsMenuOpen(false);
                     props.onNav('home');
                   }}
                 >
@@ -334,7 +336,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
               </ScrollArea>
             </nav>
             <div className="flex shrink-0 flex-col items-center gap-2 pb-3">
-              <AppsDownloadsNavigation onOpen={() => props.onNav('apps')} />
+              <GlobalDownloadsNavigation onOpen={() => props.onNav('downloads')} />
               <Tooltip
                 content={t('Navigation.notifications')}
                 placement="right"
@@ -353,7 +355,16 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                   }`}
                   aria-label={t('Common.openNotifications')}
                 >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
                     <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
                   </svg>
@@ -412,56 +423,67 @@ export function MainLayoutView(props: MainLayoutViewProps) {
       </div>
 
       <AnimatePresence initial={false}>
-      {settingsMenuOpen ? (
-        <motion.div
-          key="settings-menu"
-          ref={settingsMenuRef}
-          custom={reducedMotion}
-          variants={DESKTOP_MENU_VARIANTS}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-          className="fixed z-[11010]"
-          style={{
-            bottom: settingsMenuPosition.bottom,
-            left: settingsMenuPosition.left,
-          }}
-        >
-          <MainLayoutSettingsMenu
-            userAvatarUrl={props.userAvatarUrl}
-            displayName={props.displayName}
-            userEmail={props.userEmail}
-            isItemActive={isSettingsMenuItemActive}
-            onOpenItem={openSettingsSubmenuItem}
-            onEditProfile={() => {
+        {settingsMenuOpen ? (
+          <motion.div
+            key="settings-menu"
+            ref={settingsMenuRef}
+            custom={reducedMotion}
+            variants={DESKTOP_MENU_VARIANTS}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="fixed z-[11010]"
+            style={{
+              bottom: settingsMenuPosition.bottom,
+              left: settingsMenuPosition.left,
+            }}
+          >
+            <MainLayoutSettingsMenu
+              userAvatarUrl={props.userAvatarUrl}
+              displayName={props.displayName}
+              userEmail={props.userEmail}
+              isItemActive={isSettingsMenuItemActive}
+              onOpenItem={openSettingsSubmenuItem}
+              onEditProfile={() => {
               bindings.app.commands.settings.persistSelected('profile');
               props.onNav('settings');
               setSettingsMenuOpen(false);
-            }}
-            onSwitchAccount={() => {
+              }}
+              onSwitchAccount={() => {
               setPendingAccountAction('switch-account');
               setSettingsMenuOpen(false);
-            }}
-            onLogout={() => {
+              }}
+              onLogout={() => {
               setPendingAccountAction('logout');
               setSettingsMenuOpen(false);
-            }}
-          />
-        </motion.div>
-      ) : null}
+              }}
+            />
+          </motion.div>
+        ) : null}
       </AnimatePresence>
 
       <ConfirmDialog
         open={pendingAccountAction !== null}
-        title={pendingAccountAction === 'switch-account'
-          ? t('Menu.switchAccountConfirmTitle', { defaultValue: 'Switch account?' })
-          : t('Menu.logoutConfirmTitle', { defaultValue: 'Log out?' })}
-        message={pendingAccountAction === 'switch-account'
-          ? t('Menu.switchAccountConfirmBody', { defaultValue: 'You will be signed out of the current account and returned to the sign-in screen.' })
-          : t('Menu.logoutConfirmBody', { defaultValue: 'You will need to sign in again to continue using Nimi.' })}
-        confirmLabel={pendingAccountAction === 'switch-account'
-          ? t('Menu.switchAccountConfirmAction', { defaultValue: 'Switch account' })
-          : t('Menu.logoutConfirmAction', { defaultValue: 'Log Out' })}
+        title={
+          pendingAccountAction === 'switch-account'
+            ? t('Menu.switchAccountConfirmTitle', { defaultValue: 'Switch account?' })
+            : t('Menu.logoutConfirmTitle', { defaultValue: 'Log out?' })
+        }
+        message={
+          pendingAccountAction === 'switch-account'
+            ? t('Menu.switchAccountConfirmBody', {
+                defaultValue:
+                  'You will be signed out of the current account and returned to the sign-in screen.',
+              })
+            : t('Menu.logoutConfirmBody', {
+                defaultValue: 'You will need to sign in again to continue using Nimi.',
+              })
+        }
+        confirmLabel={
+          pendingAccountAction === 'switch-account'
+            ? t('Menu.switchAccountConfirmAction', { defaultValue: 'Switch account' })
+            : t('Menu.logoutConfirmAction', { defaultValue: 'Log Out' })
+        }
         cancelLabel={t('Common.cancel', { defaultValue: 'Cancel' })}
         confirmTone="primary"
         onConfirm={() => {

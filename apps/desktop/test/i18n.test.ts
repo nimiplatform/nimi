@@ -15,10 +15,6 @@ import {
 import { readDesktopLocale } from './helpers/read-desktop-locale';
 
 const RENDERER_ROOT = resolve(import.meta.dirname, '../src/shell/renderer');
-const RUNTIME_CONFIG_NAV_PATH = resolve(
-  import.meta.dirname,
-  '../src/shell/renderer/features/runtime-config/runtime-config-nav.ts',
-);
 
 function flattenLocaleKeys(input: unknown, prefix = ''): string[] {
   if (!input || typeof input !== 'object' || Array.isArray(input)) {
@@ -282,26 +278,17 @@ test('known dynamic desktop locale keys exist in both locales', async () => {
   }
 });
 
-test('runtime config navigation keys are defined in en locale', async () => {
-  const navSource = await readFile(RUNTIME_CONFIG_NAV_PATH, 'utf8');
-  const en = readDesktopLocale('en');
-  // S4 four-destination IA: AI Settings, Model Library, Cloud Services,
-  // Advanced & Diagnostics render through the Kit navigation primitive.
-  const requiredKeys = [
-    'runtimeConfig.nav.aiSettings',
-    'runtimeConfig.nav.modelLibrary',
-    'runtimeConfig.nav.cloudServices',
-    'runtimeConfig.nav.advancedDiagnostics',
-  ];
-
-  for (const key of requiredKeys) {
-    assert.match(
-      navSource,
-      new RegExp(key.replaceAll('.', '\\.')),
-      `runtime config navigation must reference ${key}`,
-    );
-    const value = getValueAtKey(en, key);
-    assert.equal(typeof value, 'string', `en locale is missing ${key}`);
-    assert.match(String(value || ''), /\S/, `en locale has empty ${key}`);
+test('capability and global navigation labels exist in both locales', () => {
+  for (const locale of ['en', 'zh']) {
+    const data = readDesktopLocale(locale);
+    for (const key of [
+      'Navigation.runtime',
+      'Navigation.cloud',
+      'runtimeConfig.capabilities.title',
+      'runtimeConfig.downloads.title',
+      'runtimeConfig.overview.title',
+    ]) {
+      assert.equal(typeof getValueAtKey(data, key), 'string', key);
+    }
   }
 });

@@ -2,11 +2,7 @@ export const MENU_BAR_RUNTIME_HEALTH_SYNC_COMMAND = 'menu_bar_sync_runtime_healt
 export const MENU_BAR_OPEN_TAB_EVENT = 'menu-bar://open-tab';
 
 export const MENU_BAR_RUNTIME_PAGES = [
-  'aiSettings',
-  'modelLibrary',
-  'cloudServices',
-  'advancedDiagnostics',
-] as const;
+  'aiSettings', 'cloudServices', 'advancedDiagnostics'] as const;
 
 export type MenuBarRuntimePage = typeof MENU_BAR_RUNTIME_PAGES[number];
 
@@ -18,7 +14,7 @@ export type MenuBarRuntimeHealthSyncPayload = {
 
 export type MenuBarOpenTabPayload =
   | { readonly tab: 'runtime'; readonly page: MenuBarRuntimePage }
-  | { readonly tab: 'settings' };
+  | { readonly tab: 'settings' | 'downloads' | 'home' };
 
 export type MenuBarRuntimeHealthSyncResult = {
   readonly synced: true;
@@ -83,11 +79,11 @@ export function parseMenuBarRuntimeHealthSyncResult(
 export function parseMenuBarOpenTabPayload(value: unknown): MenuBarOpenTabPayload {
   const record = recordValue(value, 'menu-bar-open-tab-payload-invalid');
   const tab = requiredText(record.tab, 16, 'menu-bar-open-tab-payload-invalid');
-  if (tab === 'settings') {
+  if (tab === 'settings' || tab === 'downloads' || tab === 'home') {
     if (!hasExactKeys(record, ['tab'])) {
       throw new Error('menu-bar-open-tab-payload-invalid');
     }
-    return { tab: 'settings' };
+    return { tab };
   }
   if (tab !== 'runtime' || !hasExactKeys(record, ['tab', 'page'])) {
     throw new Error('menu-bar-open-tab-payload-invalid');

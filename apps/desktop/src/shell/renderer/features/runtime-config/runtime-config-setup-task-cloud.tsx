@@ -66,6 +66,7 @@ export function RuntimeSetupTaskCloudPanel(props: {
   readonly store: RuntimeSetupTaskStore;
   readonly ports: RuntimeSetupRunnerPorts;
   readonly onBusyChange: (busy: boolean) => void;
+  readonly selectionOnly?: boolean;
 }) {
   const { t } = useTranslation();
   const { task } = props;
@@ -401,6 +402,7 @@ export function RuntimeSetupTaskCloudPanel(props: {
         </p>
       ) : null}
       <p className="text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.setupTask.cloud.executionNote', { defaultValue: 'Requests use this cloud service and may incur provider charges.' })}</p>
+      {!props.selectionOnly ? (
       <div className="flex flex-wrap items-center gap-2">
         <Button
           tone="primary"
@@ -413,6 +415,7 @@ export function RuntimeSetupTaskCloudPanel(props: {
             : t('runtimeConfig.setupTask.cloud.saveRoute', { defaultValue: "Save and use this model" })}
         </Button>
       </div>
+      ) : null}
     </div>
   );
 }

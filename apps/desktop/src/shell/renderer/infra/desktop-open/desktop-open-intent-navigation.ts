@@ -44,7 +44,7 @@ export function applyDesktopOpenIntentToAppStore(
       if (actionFocus) {
         runtimeConfigNavigation.focusAction(actionFocus);
       }
-      store.setActiveTab('runtime');
+      store.setActiveTab(page === 'cloudServices' ? 'cloud' : 'runtime');
       return;
     }
     case 'open-apps': {

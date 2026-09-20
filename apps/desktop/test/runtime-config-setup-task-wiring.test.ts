@@ -97,17 +97,12 @@ test('the app-owner profile use defers route saves to the per-task commit', asyn
   assert.match(navPort, /openProfileUse/u);
 });
 
-test('the runtime panel renders the four destinations through the Kit tabs primitive', async () => {
-  const [panelView, nav] = await Promise.all([
+test('AI capabilities use a master-detail workspace without the retired four-tab shell', async () => {
+  const [panel, workspace] = await Promise.all([
     readFeature('runtime-config/runtime-config-panel-view.tsx'),
-    readFeature('runtime-config/runtime-config-nav.ts'),
+    readFeature('runtime-config/runtime-config-page-ai-settings.tsx'),
   ]);
-  assert.match(panelView, /NimiTabs/u);
-  assert.doesNotMatch(panelView, /SidebarShell|SidebarItem|SidebarSection/u);
-  for (const id of ['aiSettings', 'modelLibrary', 'cloudServices', 'advancedDiagnostics']) {
-    assert.ok(nav.includes(`id: '${id}'`), `navigation must include ${id}`);
-  }
-  for (const retired of ['overview', 'profiles', 'loadouts', 'modelMarket', 'localAssets', 'cloud', 'environment']) {
-    assert.equal(nav.includes(`id: '${retired}'`), false, `retired id ${retired} must not be a destination`);
-  }
+  assert.doesNotMatch(panel, /RUNTIME_NAV_DESTINATIONS/);
+  assert.match(workspace, /SidebarShell/);
+  assert.match(workspace, /ai-capabilities-home/);
 });

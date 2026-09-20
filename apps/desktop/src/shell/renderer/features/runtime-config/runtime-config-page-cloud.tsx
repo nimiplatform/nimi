@@ -1,40 +1,42 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import {
   formatNimiRuntimeErrorBanner as formatRuntimeConfigErrorBanner,
 } from '@nimiplatform/sdk/runtime';
 import { type ProviderCatalogEntry } from '@nimiplatform/sdk/runtime/wire-types';
-import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
-import { getVendorLabelV11, type ApiVendor } from './runtime-config-state-types';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
-import { connectorAuthProfileForId, defaultConnectorAuthOptionForProvider, listConnectorAuthOptionsForProvider, providerToVendor, resolveProviderEndpoint, vendorToProvider } from './runtime-config-connector-sdk-service';
-import { useRuntimeConfigConnectorSdk } from './runtime-config-connector-sdk-context.js';
+import { CatalogOverridesDrawer } from './runtime-config-catalog-overrides-drawer';
 import { removeConnectorFromState, replaceConnectorsInState, updateConnectorField } from './runtime-config-connector-actions';
-import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
-import { RuntimePageHeader, RuntimePageShell } from './runtime-config-page-shell';
+import { RuntimeConfigConnectorCreateDialog } from './runtime-config-connector-create-form';
 import {
   useConnectorOAuthAcquisition,
 } from './runtime-config-connector-oauth-session';
-import { RuntimeConfigConnectorCreateDialog } from './runtime-config-connector-create-form';
-import { BoltIcon, Button, PlusIcon } from './runtime-config-page-cloud-primitives';
+import { useRuntimeConfigConnectorSdk } from './runtime-config-connector-sdk-context.js';
+import { connectorAuthProfileForId, defaultConnectorAuthOptionForProvider, listConnectorAuthOptionsForProvider, providerToVendor, resolveProviderEndpoint, vendorToProvider } from './runtime-config-connector-sdk-service';
 import { CloudConnectorListPanel } from './runtime-config-page-cloud-connector-list';
 import { CloudConnectorDetailPanel } from './runtime-config-page-cloud-detail-panel';
-import { CatalogOverridesDrawer } from './runtime-config-catalog-overrides-drawer';
-type CloudPageProps = { model: RuntimeConfigPanelControllerModel; state: RuntimeConfigStateV11 };
+import { Button, PlusIcon } from './runtime-config-page-cloud-primitives';
+import { RuntimePageHeader, RuntimePageShell } from './runtime-config-page-shell';
+import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
+import { testSelectedConnectorCommand } from './runtime-config-provider-commands.js';
+import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
+import { getVendorLabelV11, type ApiVendor } from './runtime-config-state-types';
+type CloudPageProps = { model: RuntimeConfigPanelControllerModel; state: RuntimeConfigStateV11; };
 const PROVIDER_CATALOG_ERROR_LABEL = 'Load provider catalog failed';
 const CONNECTORS_LOAD_ERROR_LABEL = 'Load connectors failed';
 
 export function CloudServicesPage({ model, state }: CloudPageProps) {
   const { t } = useTranslation();
   const bindings = useDesktopRendererBindings();
+  const connectorSdk = useRuntimeConfigConnectorSdk();
   const {
     sdkCreateConnector,
     sdkDeleteConnector,
     sdkListConnectors,
     sdkListProviderCatalog,
     sdkUpdateConnector,
-  } = useRuntimeConfigConnectorSdk();
+  } = connectorSdk;
   const { selectedConnector, orderedConnectors, updateState } = model;
   const authStatus = useAppStore((s) => s.auth.status);
   const [providerCatalog, setProviderCatalog] = useState<ProviderCatalogEntry[]>([]);
@@ -180,16 +182,6 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
   useEffect(() => {
     setConnectorLabelDraft(String(selectedConnector?.label || ''));
   }, [selectedConnectorId, selectedConnector?.label]);
-  const canSaveToken = useMemo(
-    () => (
-      Boolean(selectedConnectorId)
-      && selectedConnector?.authMode !== 'oauth_managed'
-      && tokenDraft.trim().length > 0
-      && !savingToken
-      && !codexOAuthBusy
-    ),
-    [codexOAuthBusy, savingToken, selectedConnector?.authMode, tokenDraft, selectedConnectorId],
-  );
   const selectedProviderCatalogEntry = useMemo(
     () => providerCatalog.find((entry) => entry.provider === selectedConnector?.provider) || null,
     [providerCatalog, selectedConnector?.provider],
@@ -320,85 +312,6 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
     }
     updateState((prev) => ({ ...prev, selectedConnectorId: connectorId }));
   }, [invalidateCodexOAuth, selectedConnectorId, state.connectors, updateState]);
-  const onRenameSelectedConnector = useCallback((label: string) => {
-    if (isRuntimeSystem) return;
-    if (codexOAuthBusy) {
-      invalidateCodexOAuth('Managed connector label changed');
-    }
-    const previousLabel = String(selectedConnector?.label || '');
-    updateState((prev) => updateConnectorField(prev, selectedConnectorId, { label }));
-    if (selectedConnectorId && !selectedConnector?.isDraft) {
-      void (async () => {
-        try { await sdkUpdateConnector({ connectorId: selectedConnectorId, label }); }
-        catch (error) {
-          updateState((prev) => updateConnectorField(prev, selectedConnectorId, { label: previousLabel }));
-          reportError('Update connector failed', error);
-        }
-      })();
-    }
-  }, [invalidateCodexOAuth, isRuntimeSystem, selectedConnector, selectedConnectorId, updateState, reportError]);
-  const commitConnectorLabelDraft = useCallback(() => {
-    if (!selectedConnector || isRuntimeSystem) return;
-    if (connectorLabelDraft === selectedConnector.label) return;
-    onRenameSelectedConnector(connectorLabelDraft);
-  }, [connectorLabelDraft, isRuntimeSystem, onRenameSelectedConnector, selectedConnector]);
-  const onChangeConnectorEndpoint = useCallback((endpoint: string) => {
-    if (!selectedConnector || isRuntimeSystem) return;
-    if (codexOAuthBusy) {
-      invalidateCodexOAuth('Managed connector endpoint changed');
-    }
-    const previousConnector = selectedConnector;
-    updateState((prev) => updateConnectorField(prev, selectedConnectorId, { endpoint }));
-    if (selectedConnectorId && !selectedConnector?.isDraft) {
-      void (async () => {
-        try { await sdkUpdateConnector({ connectorId: selectedConnectorId, endpoint }); }
-        catch (error) {
-          updateState((prev) => updateConnectorField(prev, selectedConnectorId, {
-            vendor: previousConnector.vendor,
-            endpoint: previousConnector.endpoint,
-            models: previousConnector.models,
-            provider: previousConnector.provider,
-          }));
-          reportError('Update connector failed', error);
-        }
-      })();
-    }
-  }, [invalidateCodexOAuth, isRuntimeSystem, selectedConnector, selectedConnectorId, updateState, reportError]);
-  const onSaveConnectorCredential = useCallback(async (input: {
-    credentialValue?: string;
-    label?: string;
-  }) => {
-    if (!selectedConnectorId || !selectedConnector) return '';
-    if (selectedConnector.authMode === 'oauth_managed') {
-      throw new Error('Managed OAuth credentials must be acquired by the Desktop native host.');
-    }
-    const normalizedSecret = String(input.credentialValue || '').trim();
-    if (!normalizedSecret) return '';
-    if (selectedConnector.isDraft) {
-      const created = await sdkCreateConnector({
-        provider: selectedConnector.provider,
-        endpoint: selectedConnector.endpoint,
-        label: input.label ?? selectedConnector.label,
-        credentialValue: normalizedSecret,
-        authMode: selectedConnector.authMode,
-      });
-      if (!created) throw new Error('create connector returned empty payload');
-      updateState((prev) => {
-        const withoutDraft = prev.connectors.filter((c) => c.id !== selectedConnectorId);
-        return { ...prev, connectors: [...withoutDraft, created], selectedConnectorId: created.id };
-      });
-      model.onVaultChanged();
-      return created.id;
-    }
-    await sdkUpdateConnector({
-      connectorId: selectedConnectorId,
-      credentialValue: normalizedSecret,
-      authMode: selectedConnector.authMode,
-    });
-    updateState((prev) => updateConnectorField(prev, selectedConnectorId, { hasCredential: true }));
-    model.onVaultChanged();
-    return selectedConnectorId;
-  }, [selectedConnectorId, selectedConnector, updateState, model]);
   const onAcquireCodexOAuth = useCallback(() => {
     if (!selectedConnector || !selectedConnectorId || !isCodexManagedConnector) {
       return;
@@ -457,35 +370,61 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
     setTokenSaveError('');
     setTokenSavedConnectorId('');
   }, [authOptions, invalidateCodexOAuth, isDraft, isRuntimeSystem, selectedConnector, selectedConnectorId, updateState]);
-  const saveTokenToVault = async () => {
-    if (!selectedConnectorId) return;
-    if (selectedConnector?.authMode === 'oauth_managed') {
-      setTokenSaveError('Managed OAuth credentials must be acquired by the Desktop native host.');
-      return;
-    }
-    const secret = tokenDraft.trim();
-    if (!secret) return;
+  const saveConnectionDetails = async (draft: { label: string; endpoint: string; credentialValue: string; }) => {
+    const selected = selectedConnector;
+    if (!selected || isSystemOwned || codexOAuthBusy) return;
     setSavingToken(true);
     setTokenSaveError('');
     try {
-      const persistedConnectorId = await onSaveConnectorCredential({
-        credentialValue: secret,
-        label: connectorLabelDraft,
-      });
+      if (selected.isDraft && selected.authMode !== 'api_key') throw new Error(t('runtimeConfig.cloud.managedOAuthHostOwned'));
+      const credentialValue = selected.authMode === 'api_key' ? draft.credentialValue.trim() : '';
+      const saved = selected.isDraft
+        ? await sdkCreateConnector({ provider: selected.provider, endpoint: draft.endpoint.trim(), label: draft.label.trim() || selected.label, credentialValue, authMode: 'api_key' })
+        : await sdkUpdateConnector({ connectorId: selected.id, label: draft.label.trim() || selected.label, endpoint: draft.endpoint.trim(), ...(credentialValue ? { credentialValue, authMode: 'api_key' as const } : {}) });
+      if (!saved) throw new Error(t('runtimeConfig.product.connectionSaveFailed'));
+      updateState(prev => ({ ...prev, connectors: prev.connectors.map(item => item.id === selected.id ? saved : item), selectedConnectorId: prev.selectedConnectorId === selected.id ? saved.id : prev.selectedConnectorId }));
       setTokenDraft('');
-      setTokenSavedConnectorId(persistedConnectorId || selectedConnectorId);
+      setTokenSavedConnectorId(saved.id);
+      model.onVaultChanged();
+      await testSelectedConnectorCommand({ state, selectedConnector: saved, connectorSdk, now: bindings.clock.now, testingConnector: false, updateState, setStatusBanner: model.setPageFeedback, setControlFeedback: model.setPageFeedback });
     } catch (error) {
-      setTokenSaveError(error instanceof Error ? error.message : String(error || 'Save failed'));
-    } finally {
-      setSavingToken(false);
-    }
+      setTokenSaveError(error instanceof Error ? error.message : String(error));
+      throw error;
+    } finally { setSavingToken(false); }
   };
+  const uncheckedConnectors = state.connectors.filter((connector) => connector.hasCredential && !connector.isDraft && connector.status === 'idle');
+  const [checkingAll, setCheckingAll] = useState(false);
+  const onCheckAll = useCallback(async () => {
+    if (checkingAll) return;
+    setCheckingAll(true);
+    try {
+      for (const connector of uncheckedConnectors) {
+        await testSelectedConnectorCommand({ state, selectedConnector: connector, connectorSdk, now: bindings.clock.now, testingConnector: false, updateState, setStatusBanner: model.setPageFeedback, setControlFeedback: model.setPageFeedback });
+      }
+    } finally {
+      setCheckingAll(false);
+    }
+  }, [bindings.clock.now, checkingAll, connectorSdk, model.setPageFeedback, state, uncheckedConnectors, updateState]);
+  const healthyCount = state.connectors.filter((connector) => connector.status === 'healthy').length;
+  const statusLine = state.connectors.length === 0
+    ? t('runtimeConfig.product.cloudLead')
+    : [
+        t('runtimeConfig.product.cloudSummaryConnected', { count: state.connectors.length }),
+        healthyCount ? t('runtimeConfig.product.cloudSummaryChecked', { count: healthyCount }) : '',
+        uncheckedConnectors.length ? t('runtimeConfig.product.cloudSummaryUnchecked', { count: uncheckedConnectors.length }) : '',
+      ].filter(Boolean).join(' · ');
   return (
     <RuntimePageShell className="space-y-4">
       <RuntimePageHeader
         title={t('runtimeConfig.nav.cloudServices', { defaultValue: 'Cloud Services' })}
+        description={statusLine}
         actions={(
           <>
+            {uncheckedConnectors.length > 1 ? (
+              <Button variant="secondary" size="sm" disabled={checkingAll || model.testingConnector} onClick={() => { void onCheckAll(); }}>
+                {t(checkingAll ? 'runtimeConfig.cloud.testing' : 'runtimeConfig.product.checkAll', { count: uncheckedConnectors.length })}
+              </Button>
+            ) : null}
             <Button
               variant="primary"
               size="sm"
@@ -494,22 +433,11 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
             >
               {t('runtimeConfig.cloud.addConnector', { defaultValue: 'Add' })}
             </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={model.testingConnector || !selectedConnector}
-              onClick={() => void model.testSelectedConnector()}
-              icon={<BoltIcon className="text-[var(--nimi-action-primary-bg)]" />}
-            >
-              {model.testingConnector
-                ? t('runtimeConfig.cloud.testing', { defaultValue: 'Testing...' })
-                : t('runtimeConfig.cloud.testConnector', { defaultValue: 'Test' })}
-            </Button>
           </>
         )}
       />
       {/* Split panel: connector list (left) + config (right) */}
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+      <div className="grid items-start gap-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-8">
         <CloudConnectorListPanel
           connectors={orderedConnectors}
           deletingConnectorId={deletingConnectorId}
@@ -519,11 +447,12 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
           t={t}
         />
         <CloudConnectorDetailPanel
+          key={selectedConnector?.id ?? 'empty'}
+          onSaveConnection={saveConnectionDetails}
           authOptions={authOptions}
           authStatus={authStatus}
           canEditCredentialMode={canEditCredentialMode}
           canEditVendor={canEditVendor}
-          canSaveToken={canSaveToken}
           canStartCodexOAuth={canStartCodexOAuth}
           canManageCatalogOverrides={canManageCatalogOverrides}
           codexOAuthBusy={codexOAuthBusy}
@@ -538,15 +467,12 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
           model={model}
           onAcquireCodexOAuth={onAcquireCodexOAuth}
           onManageCatalogOverrides={() => setCatalogOverrideProviderId(selectedConnector?.provider || '')}
-          onCommitConnectorLabelDraft={commitConnectorLabelDraft}
           onConnectorLabelDraftChange={(label) => {
             if (!codexOAuthBusy) setConnectorLabelDraft(label);
           }}
           onChangeConnectorAuthOption={onChangeConnectorAuthOption}
-          onChangeConnectorEndpoint={onChangeConnectorEndpoint}
           onChangeConnectorVendor={onChangeConnectorVendor}
           reportError={reportError}
-          saveTokenToVault={saveTokenToVault}
           savingToken={savingToken}
           selectedAuthOptionValue={selectedAuthOptionValue}
           selectedConnector={selectedConnector}
@@ -565,11 +491,14 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
         onClose={() => setCatalogOverrideProviderId('')}
       />
       <RuntimeConfigConnectorCreateDialog
+        submitLabel={t('runtimeConfig.product.saveAndCheck')}
         open={createDialogOpen}
+        connectedProviders={state.connectors.map((connector) => connector.provider)}
         onClose={() => setCreateDialogOpen(false)}
         onCreated={(connectorId) => {
           setCreateDialogOpen(false);
           void (async () => {
+            setSavingToken(true);
             try {
               const connectors = await sdkListConnectors();
               updateState((prev) => {
@@ -577,9 +506,11 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
                 const next = replaceConnectorsInState(prev, [...connectors, ...drafts]);
                 return { ...next, selectedConnectorId: connectorId };
               });
+              const created = connectors.find(connector => connector.id === connectorId);
+              if (created) await testSelectedConnectorCommand({ state, selectedConnector: created, connectorSdk, now: bindings.clock.now, testingConnector: false, updateState, setStatusBanner: model.setPageFeedback, setControlFeedback: model.setPageFeedback });
             } catch (error) {
               reportError(CONNECTORS_LOAD_ERROR_LABEL, error);
-            }
+            } finally { setSavingToken(false); }
             model.onVaultChanged();
           })();
         }}

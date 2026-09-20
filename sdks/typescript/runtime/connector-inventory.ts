@@ -439,9 +439,9 @@ export function createNimiRuntimeConnectorInventoryClient(
     const credentialValue = normalizeText(input.credentialValue ?? input.apiKey);
     const response = await connectors().updateConnector({
       connectorId: input.connectorId,
-      label: normalizeText(input.label),
-      endpoint: normalizeText(input.endpoint),
-      apiKey: credentialValue,
+      label: input.label === undefined ? undefined : normalizeText(input.label),
+      endpoint: input.endpoint === undefined ? undefined : normalizeText(input.endpoint),
+      apiKey: input.credentialValue === undefined && input.apiKey === undefined ? undefined : credentialValue,
       status: ConnectorStatus.UNSPECIFIED,
       authKind: input.authMode
         ? ConnectorAuthKind.API_KEY

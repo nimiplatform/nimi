@@ -1,47 +1,55 @@
+import { RuntimeProfileQuickStart } from './runtime-profile-quick-start.js';
 // @nimi-authority: rule.nimi.desktop.ai-consumption.r023
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { Button, IconButton, InlineAlert, LoadingSkeleton, SelectField } from '@nimiplatform/kit/ui';
 import type {
   NimiDesktopPortableAIProfileCatalogRecord,
 } from '@nimiplatform/sdk/runtime';
-import { Button, InlineAlert, LoadingSkeleton, Surface } from '@nimiplatform/kit/ui';
+import { ArrowRight, Download, FileUp, Plus } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
-import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability-labels.js';
-import { downloadRuntimeConfigProfileArtifact } from './runtime-config-profile-presentation.js';
-import { ProfileImportWizard } from './runtime-config-profile-import-wizard.js';
-import { ProfileExportPanel } from './runtime-config-profile-export-panel.js';
-import { AIProfileAuthoringPage } from './runtime-config-page-profile-authoring.js';
-import { ProfileRecommendationsPage } from './runtime-config-profile-recommendations.js';
+import { useAppsOverview } from '../apps/use-apps-overview.js';
+import { capabilityIcon } from './runtime-capability-presentation.js';
 import { prepareRuntimeConfigAIProfilePreview } from './runtime-config-ai-profile-preview.js';
-import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
-import {
-  planRuntimeSetupProfileUse,
-} from './runtime-config-profile-use.js';
-import {
-  createRuntimeSetupCandidate,
-  type RuntimeSetupRunnerPorts,
-} from './runtime-setup-task-runner.js';
-import {
-  currentDesktopAccountIdForSetup,
-} from './runtime-setup-task-ports.js';
-import type {
-  RuntimeSetupTaskSource,
-  RuntimeSetupTaskStore,
-} from './runtime-setup-task-store.js';
 import type { RuntimeConfigAIProfileTransferPlan } from './runtime-config-ai-profile-transfer.js';
+import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability-labels.js';
+import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
+import { AIProfileAuthoringPage } from './runtime-config-page-profile-authoring.js';
 import type {
   RuntimeConfigLoadoutNavigationContext,
   RuntimeConfigProfileUseOwner,
 } from './runtime-config-panel-types.js';
+import { ProfileExportPanel } from './runtime-config-profile-export-panel.js';
+import { ProfileImportWizard } from './runtime-config-profile-import-wizard.js';
+import { downloadRuntimeConfigProfileArtifact } from './runtime-config-profile-presentation.js';
+import { ProfileRecommendationsPage } from './runtime-config-profile-recommendations.js';
+import {
+  planRuntimeSetupProfileUse,
+} from './runtime-config-profile-use.js';
+import {
+  currentDesktopAccountIdForSetup,
+} from './runtime-setup-task-ports.js';
+import {
+  createRuntimeSetupCandidate,
+  type RuntimeSetupRunnerPorts,
+} from './runtime-setup-task-runner.js';
+import type {
+  RuntimeSetupTaskSource,
+  RuntimeSetupTaskStore,
+} from './runtime-setup-task-store.js';
 
 type ProfilesSectionMode =
-  | { readonly kind: 'list' }
-  | { readonly kind: 'recommended' }
-  | { readonly kind: 'import' }
-  | { readonly kind: 'create' }
-  | { readonly kind: 'export' }
-  | { readonly kind: 'use'; readonly profile: NimiDesktopPortableAIProfileCatalogRecord };
+  | { readonly kind: 'list'; }
+  | { readonly kind: 'recommended'; }
+  | { readonly kind: 'import'; }
+  | { readonly kind: 'create'; }
+  | { readonly kind: 'export'; }
+  | {
+    readonly kind: 'use'; readonly owner?: RuntimeConfigProfileUseOwner;
+    readonly autoReview?: boolean;
+    readonly profile: Pick<NimiDesktopPortableAIProfileCatalogRecord, 'source' | 'artifactJson'>;
+  };
 
 function profileUseOwnerLabel(
   owner: RuntimeConfigProfileUseOwner,
@@ -75,6 +83,7 @@ export function RuntimeConfigAiSettingsProfilesSection(props: {
   const [records, setRecords] = useState<readonly NimiDesktopPortableAIProfileCatalogRecord[] | null>(null);
   const [loadError, setLoadError] = useState('');
   const [refreshNonce, setRefreshNonce] = useState(0);
+  const [showAll, setShowAll] = useState(false);
   const sectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -100,159 +109,239 @@ export function RuntimeConfigAiSettingsProfilesSection(props: {
   }, [profileCatalog, refreshNonce]);
 
   const sortedRecords = useMemo(
-    () => [...(records ?? [])].sort((left, right) => left.source.title.localeCompare(right.source.title)),
+    () => [...(records ?? [])].sort((left, right) => Number(right.record.updatedAt?.seconds ?? 0) - Number(left.record.updatedAt?.seconds ?? 0) || left.source.title.localeCompare(right.source.title)),
     [records],
   );
 
   return (
     <div ref={sectionRef} tabIndex={-1} className="min-w-0" data-testid="runtime-ai-settings-profiles">
-    <Surface tone="card" material="glass-thin" padding="md" className="min-w-0">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-[length:var(--nimi-type-label-size)] font-semibold text-[var(--nimi-text-primary)]">
-            {t('runtimeConfig.aiSettings.profilesTitle', { defaultValue: 'Profile library' })}
-          </div>
-          <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
-            {t('runtimeConfig.aiSettings.profilesDescription', {
-              defaultValue: 'Saved, shareable setup descriptions. Using one prepares models on this machine; storing one never applies it.',
-            })}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button tone="secondary" size="sm" onClick={() => setMode(mode.kind === 'recommended' ? { kind: 'list' } : { kind: 'recommended' })} data-testid="runtime-ai-settings-profile-recommended">
-            {t('runtimeConfig.aiSettings.profileRecommended', { defaultValue: 'Recommended' })}
-          </Button>
-          <Button tone="secondary" size="sm" onClick={() => setMode({ kind: 'import' })} data-testid="runtime-ai-settings-profile-import">
-            {t('runtimeConfig.aiSettings.profileImport', { defaultValue: 'Import' })}
-          </Button>
-          <Button tone="secondary" size="sm" onClick={() => setMode(mode.kind === 'create' ? { kind: 'list' } : { kind: 'create' })} data-testid="runtime-ai-settings-profile-create">
-            {t('runtimeConfig.aiSettings.profileCreate', { defaultValue: 'Create' })}
-          </Button>
-          <Button tone="secondary" size="sm" onClick={() => setMode(mode.kind === 'export' ? { kind: 'list' } : { kind: 'export' })} data-testid="runtime-ai-settings-profile-export">
-            {t('runtimeConfig.aiSettings.profileExport', { defaultValue: 'Export' })}
-          </Button>
-        </div>
-      </div>
+      <div className="space-y-5">
 
-      {props.owner ? (
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] px-3 py-2" data-testid="runtime-ai-settings-profile-owner-banner">
-          <p className="text-xs text-[var(--nimi-text-secondary)]">
-            {t('runtimeConfig.aiSettings.profileOwnerContext', {
-              owner: profileUseOwnerLabel(props.owner, t),
-              defaultValue: 'Using a profile for {{owner}}: selected capabilities are prepared on this machine; each capability saves the app route when its setup is used.',
-            })}
-          </p>
-          <Button tone="ghost" size="sm" onClick={props.onCloseOwner} data-testid="runtime-ai-settings-profile-owner-close">
-            {t('runtimeConfig.aiSettings.profileOwnerClose', { defaultValue: 'Exit app context' })}
-          </Button>
-        </div>
-      ) : null}
-
-      {mode.kind === 'recommended' ? (
-        <div className="mt-3" data-testid="runtime-ai-settings-profile-recommendations">
-          <ProfileRecommendationsPage
-            onOpenLoadouts={(capabilityContract) => props.onOpenSavedConfigs({ capabilityContract })}
-            onOpenCloudConnectors={props.onOpenCloudServices}
-          />
-        </div>
-      ) : null}
-      {mode.kind === 'import' ? (
-        <div className="mt-3">
-          <ProfileImportWizard
-            initialSourceText={null}
-            onClose={() => setMode({ kind: 'list' })}
-            onCatalogChanged={() => setRefreshNonce((value) => value + 1)}
-            onUseImported={(profile) => setMode({ kind: 'use', profile })}
-          />
-        </div>
-      ) : null}
-      {mode.kind === 'create' ? (
-        <div className="mt-3" data-testid="runtime-ai-settings-profile-authoring">
-          <AIProfileAuthoringPage />
-        </div>
-      ) : null}
-      {mode.kind === 'export' ? (
-        <div className="mt-3" data-testid="runtime-ai-settings-profile-export-panel">
-          <ProfileExportPanel />
-        </div>
-      ) : null}
-      {mode.kind === 'use' ? (
-        <div className="mt-3">
-          <ProfileUsePanel
-            profile={mode.profile}
-            store={props.store}
-            ports={props.ports}
-            runtimeWritesDisabled={props.runtimeWritesDisabled}
-            owner={props.owner}
-            onBack={() => setMode({ kind: 'list' })}
-            onOpenSetupTask={props.onOpenSetupTask}
-          />
-        </div>
-      ) : null}
-
-      {mode.kind === 'list' ? (
-        <div className="mt-3 space-y-2">
-          {loadError ? (
-            <InlineAlert tone="danger">
-              <div>{t('runtimeConfig.profiles.libraryLoadFailed', { defaultValue: 'Saved setup files could not be loaded.' })}</div>
-              <Button size="sm" tone="secondary" className="mt-2" onClick={() => setRefreshNonce((value) => value + 1)}>
-                {t('Common.retry', { defaultValue: 'Retry' })}
-              </Button>
-            </InlineAlert>
-          ) : null}
-          {records === null && !loadError ? <LoadingSkeleton className="h-16 w-full" /> : null}
-          {records !== null && sortedRecords.length === 0 ? (
-            <p className="text-xs text-[var(--nimi-text-muted)]" data-testid="runtime-ai-settings-profiles-empty">
-              {t('runtimeConfig.profiles.libraryEmptyTitle', { defaultValue: 'No profiles yet' })}
+        {props.owner ? (
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] px-3 py-2" data-testid="runtime-ai-settings-profile-owner-banner">
+            <p className="text-xs text-[var(--nimi-text-secondary)]">
+              {t('runtimeConfig.aiSettings.profileOwnerContext', {
+                owner: profileUseOwnerLabel(props.owner, t),
+                defaultValue: 'Using a profile for {{owner}}: selected capabilities are prepared on this machine; each capability saves the app route when its setup is used.',
+              })}
             </p>
-          ) : null}
-          {sortedRecords.map((record) => (
-            <div
-              key={record.source.profileId}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] px-3 py-2"
-              data-testid={`runtime-ai-settings-profile:${record.source.profileId}`}
+            <Button tone="ghost" size="sm" onClick={props.onCloseOwner} data-testid="runtime-ai-settings-profile-owner-close">
+              {t('runtimeConfig.aiSettings.profileOwnerClose', { defaultValue: 'Exit app context' })}
+            </Button>
+          </div>
+        ) : null}
+
+        {mode.kind === 'list' || mode.kind === 'recommended' ? (
+          <div className="mt-2">
+            <RuntimeProfileQuickStart
+              disabled={props.runtimeWritesDisabled}
+              onUse={(source) =>
+                setMode({
+                  kind: 'use',
+                  autoReview: true,
+                  profile: { source, artifactJson: JSON.stringify(source) },
+                  owner: props.owner ?? { kind: 'app', ownerAppId: sdk.appId(), returnFocus: 'chat' },
+                })
+              }
+            />
+          </div>
+        ) : null}
+        {mode.kind === 'list' ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 px-1">
+            <p className="flex items-center gap-2 text-sm text-[var(--nimi-text-secondary)]">
+              <FileUp size={16} strokeWidth={1.7} />
+              {t('runtimeConfig.quickStart.sharedDescription')}
+            </p>
+            <Button
+              tone="ghost"
+              size="sm"
+              onClick={() => setMode({ kind: 'import' })}
+              data-testid="runtime-ai-settings-profile-import"
             >
-              <div className="min-w-0">
-                <div className="truncate text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-text-primary)]">
-                  {record.source.title}
-                </div>
-                <div className="mt-0.5 flex flex-wrap gap-1">
-                  {Object.keys(record.source.capabilities).sort().map((contract) => (
-                    <span key={contract} className="rounded-full border border-[var(--nimi-border-subtle)] px-2 py-0.5 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-secondary)]">
-                      {displayRuntimeConfigCapabilityLabel(contract, t)}
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <div className="flex shrink-0 gap-2">
-                <Button
-                  size="sm"
-                  tone="primary"
-                  disabled={props.runtimeWritesDisabled}
-                  onClick={() => setMode({ kind: 'use', profile: record })}
-                  data-testid={`runtime-ai-settings-profile-use:${record.source.profileId}`}
-                >
-                  {t('runtimeConfig.aiSettings.profileUse', { defaultValue: 'Use' })}
-                </Button>
-                <Button
-                  size="sm"
-                  tone="secondary"
-                  onClick={() => downloadRuntimeConfigProfileArtifact(record.artifactJson, `${record.source.profileId}.ai-profile.json`)}
-                >
-                  {t('runtimeConfig.profiles.savedProfileExport', { defaultValue: 'Export' })}
-                </Button>
-              </div>
+              {t('runtimeConfig.quickStart.loadShared')}
+              <ArrowRight size={14} />
+            </Button>
+          </div>
+        ) : null}
+        {mode.kind !== 'list' && mode.kind !== 'use' ? (
+          <Button tone="ghost" size="sm" onClick={() => setMode({ kind: 'list' })}>
+            {t('runtimeConfig.capabilities.backHome')}
+          </Button>
+        ) : null}
+
+        {mode.kind === 'recommended' ? (
+          <div className="mt-3" data-testid="runtime-ai-settings-profile-recommendations">
+            <ProfileRecommendationsPage
+              onOpenLoadouts={(capabilityContract) => props.onOpenSavedConfigs({ capabilityContract })}
+              onOpenCloudConnectors={props.onOpenCloudServices}
+            />
+          </div>
+        ) : null}
+        {mode.kind === 'import' ? (
+          <div className="mt-3">
+            <ProfileImportWizard
+              initialSourceText={null}
+              onClose={() => setMode({ kind: 'list' })}
+              onCatalogChanged={() => setRefreshNonce((value) => value + 1)}
+              onUseImported={(profile) => setMode({ kind: 'use', profile })}
+            />
+          </div>
+        ) : null}
+        {mode.kind === 'create' ? (
+          <div className="mt-3" data-testid="runtime-ai-settings-profile-authoring">
+            <AIProfileAuthoringPage />
+          </div>
+        ) : null}
+        {mode.kind === 'export' ? (
+          <div className="mt-3" data-testid="runtime-ai-settings-profile-export-panel">
+            <ProfileExportPanel />
+          </div>
+        ) : null}
+        {mode.kind === 'use' ? (
+          <div className="mt-3">
+            <ProfileUsePanel
+              profile={mode.profile}
+              store={props.store}
+              ports={props.ports}
+              runtimeWritesDisabled={props.runtimeWritesDisabled}
+              owner={mode.owner ?? props.owner}
+              autoReview={mode.autoReview}
+              onBack={() => setMode({ kind: 'list' })}
+              onOpenSetupTask={props.onOpenSetupTask}
+            />
+          </div>
+        ) : null}
+
+        {mode.kind === 'list' ? (
+          <section className="mt-4 space-y-1">
+            <div className="flex flex-wrap items-center justify-between gap-2 py-2">
+              <h2 className="text-base font-semibold">
+                {t('runtimeConfig.quickStart.saved')}
+                {sortedRecords.length ? (
+                  <span className="ml-2 text-sm font-normal text-[var(--nimi-text-muted)]">{sortedRecords.length}</span>
+                ) : null}
+              </h2>
+              <Button tone="ghost" size="sm" onClick={() => setMode({ kind: 'export' })} data-testid="runtime-ai-settings-profile-export">
+                <Plus size={14} />
+                {t('runtimeConfig.product.saveCurrentSetup')}
+              </Button>
             </div>
-          ))}
-        </div>
-      ) : null}
-    </Surface>
+            {loadError ? (
+              <InlineAlert tone="danger">
+                <div>{t('runtimeConfig.profiles.libraryLoadFailed', {
+                  defaultValue: 'Saved setup files could not be loaded.',
+                })}</div>
+                <Button size="sm" tone="secondary" className="mt-2" onClick={() => setRefreshNonce((value) => value + 1)}>
+                  {t('Common.retry', { defaultValue: 'Retry' })}
+                </Button>
+              </InlineAlert>
+            ) : null}
+            {records === null && !loadError ? <LoadingSkeleton className="h-16 w-full" /> : null}
+            {records !== null && sortedRecords.length === 0 ? (
+              <p className="text-xs text-[var(--nimi-text-muted)]" data-testid="runtime-ai-settings-profiles-empty">
+                {t('runtimeConfig.profiles.libraryEmptyTitle', { defaultValue: 'No profiles yet' })}
+              </p>
+            ) : null}
+            {(showAll || props.owner ? sortedRecords : sortedRecords.slice(0, 3)).map((record) => (
+              <div
+                key={record.source.profileId}
+                className="flex flex-wrap items-center gap-3 border-b border-[var(--nimi-border-subtle)] px-1 py-3"
+                data-testid={`runtime-ai-settings-profile:${record.source.profileId}`}
+              >
+                <div className="flex shrink-0 -space-x-1.5">
+                  {Object.keys(record.source.capabilities)
+                    .sort()
+                    .slice(0, 3)
+                    .map((contract) => {
+                      const Icon = capabilityIcon(contract);
+                      return (
+                        <span
+                          key={contract}
+                          title={displayRuntimeConfigCapabilityLabel(contract, t)}
+                          className="flex size-8 items-center justify-center rounded-lg bg-[var(--nimi-surface-active)] text-[var(--nimi-text-secondary)] ring-2 ring-[var(--nimi-surface-panel)]"
+                        >
+                          <Icon size={15} strokeWidth={1.7} aria-hidden="true" />
+                        </span>
+                      );
+                    })}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-semibold text-[var(--nimi-text-primary)]">
+                    {record.source.title}
+                  </div>
+                  <div className="mt-0.5 truncate text-xs text-[var(--nimi-text-secondary)]">
+                    {Object.keys(record.source.capabilities)
+                      .sort()
+                      .slice(0, 3)
+                      .map((contract) => displayRuntimeConfigCapabilityLabel(contract, t))
+                      .join(' · ')}
+                    {Object.keys(record.source.capabilities).length > 3
+                      ? ` · ${t('runtimeConfig.product.moreCapabilities', { count: Object.keys(record.source.capabilities).length - 3 })}`
+                      : ''}
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  <Button
+                    size="sm"
+                    tone="secondary"
+                    disabled={props.runtimeWritesDisabled}
+                    onClick={() => setMode({ kind: 'use', profile: record })}
+                    data-testid={`runtime-ai-settings-profile-use:${record.source.profileId}`}
+                  >
+                    {t('runtimeConfig.aiSettings.profileUse', { defaultValue: 'Use' })}
+                  </Button>
+                  <IconButton
+                    size="sm"
+                    tone="ghost"
+                    aria-label={t('runtimeConfig.profiles.savedProfileExport', { defaultValue: 'Export' })}
+                    title={t('runtimeConfig.profiles.savedProfileExport', { defaultValue: 'Export' })}
+                    icon={<Download size={15} />}
+                    onClick={() =>
+                      downloadRuntimeConfigProfileArtifact(
+                        record.artifactJson,
+                        `${record.source.profileId}.ai-profile.json`,
+                      )
+                    }
+                  />
+                </div>
+              </div>
+            ))}
+            {sortedRecords.length > 3 && !props.owner ? <Button tone="ghost" size="sm" onClick={() => setShowAll(value => !value)}>{t(showAll ? 'runtimeConfig.product.showLess' : 'runtimeConfig.product.allSaved', { count: sortedRecords.length })}</Button> : null}
+          </section>
+        ) : null}
+        {mode.kind === 'list' ? (
+          <details className="border-t border-[var(--nimi-border-subtle)] pt-3">
+            <summary className="cursor-pointer text-sm text-[var(--nimi-text-secondary)]">
+              {t('runtimeConfig.quickStart.shareTools')}
+            </summary>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button
+                tone="secondary"
+                size="sm"
+                onClick={() => setMode({ kind: 'create' })}
+                data-testid="runtime-ai-settings-profile-create"
+              >
+                {t('runtimeConfig.aiSettings.profileCreate')}
+              </Button>
+              <Button
+                tone="ghost"
+                size="sm"
+                onClick={() => setMode({ kind: 'recommended' })}
+                data-testid="runtime-ai-settings-profile-recommended"
+              >
+                {t('runtimeConfig.quickStart.compatibility')}
+              </Button>
+            </div>
+          </details>
+        ) : null}
+      </div>
     </div>
   );
 }
 
 function ProfileUsePanel(props: {
-  readonly profile: NimiDesktopPortableAIProfileCatalogRecord;
+  readonly autoReview?: boolean;
+  readonly profile: Pick<NimiDesktopPortableAIProfileCatalogRecord, 'source' | 'artifactJson'>;
   readonly store: RuntimeSetupTaskStore;
   readonly ports: RuntimeSetupRunnerPorts;
   readonly runtimeWritesDisabled: boolean;
@@ -261,13 +350,17 @@ function ProfileUsePanel(props: {
   readonly onOpenSetupTask: (taskId: string) => void;
 }) {
   const { t } = useTranslation();
+  const sdk = useDesktopRendererSdk();
+  const apps = useAppsOverview();
+  const [destination, setDestination] = useState('machine');
   const { profile } = props;
   const localEnvironment = useRuntimeConfigLocalEnvironmentClient();
   const [transferPlan, setTransferPlan] = useState<RuntimeConfigAIProfileTransferPlan | null>(null);
   const [previewError, setPreviewError] = useState('');
   const [subset, setSubset] = useState<readonly string[]>([]);
   const [busy, setBusy] = useState(false);
-  const [outcomes, setOutcomes] = useState<readonly { readonly capabilityContract: string; readonly taskId?: string; readonly error?: string }[]>([]);
+  const autoReviewStarted = useRef(false);
+  const [outcomes, setOutcomes] = useState<readonly { readonly capabilityContract: string; readonly taskId?: string; readonly error?: string; }[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -301,12 +394,26 @@ function ProfileUsePanel(props: {
     });
   }, [transferPlan]);
 
-  const owner = props.owner;
+  const owner: RuntimeConfigProfileUseOwner | null =
+    props.owner ??
+    (destination === 'local-agent'
+      ? { kind: 'local-agent', returnFocus: 'chat' }
+      : destination.startsWith('app:')
+        ? {
+          kind: 'app',
+          ownerAppId: destination.slice(4),
+          returnFocus: destination.slice(4) === sdk.appId() ? 'chat' : `apps:${destination.slice(4)}`,
+        }
+        : null);
+  const appEntries = apps.data?.status === 'loaded' ? apps.data.entries : [];
+  const destinations = [
+    ...new Map(appEntries.map((entry) => [entry.identity.appId, entry.identity.displayName])).entries(),
+  ].filter(([id]) => id !== sdk.appId());
   const selectedPlans = useMemo(
     () => capabilityPlans.filter((plan) => subset.includes(plan.capabilityContract)),
     [capabilityPlans, subset],
   );
-  const isStartable = useCallback((plan: { readonly state: string }) => (
+  const isStartable = useCallback((plan: { readonly state: string; }) => (
     plan.state === 'ready'
     || plan.state === 'needs-acquisition'
     // A cloud route is startable when an owner exists: the task view owns the
@@ -330,13 +437,14 @@ function ProfileUsePanel(props: {
       const accountId = await currentDesktopAccountIdForSetup();
       const source: RuntimeSetupTaskSource = owner
         ? {
-            kind: owner.kind,
-            ...(owner.kind === 'app' ? { ownerAppId: owner.ownerAppId } : {}),
-            accountId,
-            ...(owner.returnFocus ? { returnFocus: owner.returnFocus } : {}),
-          }
+          kind: owner.kind,
+          ...(owner.kind === 'app' ? { ownerAppId: owner.ownerAppId } : {}),
+          accountId,
+          ...(owner.returnFocus ? { returnFocus: owner.returnFocus } : {}),
+        }
         : { kind: 'runtime', accountId, returnFocus: 'runtime.aiSettings' };
-      const nextOutcomes: { capabilityContract: string; taskId?: string; error?: string }[] = [];
+      const profileUseId = `profile-use-${crypto.randomUUID()}`;
+      const nextOutcomes: { capabilityContract: string; taskId?: string; error?: string; }[] = [];
       for (const plan of startablePlans) {
         // One task per capability; each keeps the exact owner/account context
         // and walks the shared preparation flow.
@@ -347,7 +455,13 @@ function ProfileUsePanel(props: {
         if (plan.state === 'cloud-requires-owner') {
           // Cloud routes finish in the task view (connector + target choice).
           props.store.updateTask(task.taskId, () => ({
-            draft: { route: 'cloud', profileId: profile.source.profileId, cloudRecommendation: plan.cloudRecommendation },
+            draft: {
+              route: 'cloud',
+              profileId: profile.source.profileId,
+              profileUseId,
+              profileTitle: profile.source.title,
+              cloudRecommendation: plan.cloudRecommendation,
+            },
           }));
           nextOutcomes.push({ capabilityContract: plan.capabilityContract, taskId: task.taskId });
           continue;
@@ -355,6 +469,8 @@ function ProfileUsePanel(props: {
         if (!plan.candidate) continue;
         props.store.updateTask(task.taskId, () => ({
           draft: {
+            profileUseId,
+            profileTitle: profile.source.title,
             recipeId: plan.candidate!.recipeId,
             route: 'local',
             options: plan.candidate!.options,
@@ -385,24 +501,38 @@ function ProfileUsePanel(props: {
       if (firstTaskId) {
         props.onOpenSetupTask(firstTaskId);
       }
-    })().finally(() => setBusy(false));
+    })().catch((error: unknown) => setPreviewError(error instanceof Error ? error.message : String(error))).finally(() => setBusy(false));
   }, [busy, owner, profile.source.profileId, props, startablePlans]);
 
+  useEffect(() => {
+    if (!props.autoReview || autoReviewStarted.current || !transferPlan || busy || previewError || startablePlans.length !== selectedPlans.length || !startablePlans.length) return;
+    autoReviewStarted.current = true;
+    onStart();
+  }, [props.autoReview, transferPlan, busy, previewError, startablePlans.length, selectedPlans.length, onStart]);
+
   return (
-    <div className="space-y-3 rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] p-3" data-testid="runtime-ai-settings-profile-use-panel">
+    <div
+      className="space-y-3 rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] p-3"
+      data-testid="runtime-ai-settings-profile-use-panel"
+    >
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
           <div className="truncate text-[length:var(--nimi-type-label-size)] font-semibold text-[var(--nimi-text-primary)]">
-            {t('runtimeConfig.aiSettings.profileUseTitle', { defaultValue: 'Use {{title}}', title: profile.source.title })}
+            {t('runtimeConfig.aiSettings.profileUseTitle', {
+              defaultValue: 'Use {{title}}',
+              title: profile.source.title,
+            })}
           </div>
           <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
             {owner
               ? t('runtimeConfig.aiSettings.profileUseDescriptionOwner', {
-                  defaultValue: "Choose the capabilities to set up. App settings are saved when you choose to use each one.",
-                })
+                defaultValue:
+                  'Choose the capabilities to set up. App settings are saved when you choose to use each one.',
+              })
               : t('runtimeConfig.aiSettings.profileUseDescription', {
-                  defaultValue: "Choose the capabilities to prepare on this device. You can review and use each one separately.",
-                })}
+                defaultValue:
+                  'Choose the capabilities to prepare on this device. You can review and use each one separately.',
+              })}
           </p>
         </div>
         <Button tone="ghost" size="sm" onClick={props.onBack}>
@@ -411,11 +541,30 @@ function ProfileUsePanel(props: {
       </div>
       {previewError ? (
         <InlineAlert tone="danger">
-          <div>{t('runtimeConfig.profiles.feedbackPreviewFailed', { defaultValue: 'This portable AIProfile could not be previewed.' })}</div>
+          <div>
+            {t('runtimeConfig.profiles.feedbackPreviewFailed', {
+              defaultValue: 'This portable AIProfile could not be previewed.',
+            })}
+          </div>
           <div className="mt-1 text-xs">{previewError}</div>
         </InlineAlert>
       ) : null}
       {!transferPlan && !previewError ? <LoadingSkeleton className="h-20 w-full" /> : null}
+      {!props.owner ? (
+        <label className="block space-y-2 text-sm">
+          <span>{t('runtimeConfig.profileRun.destination')}</span>
+          <SelectField
+            value={destination}
+            onValueChange={setDestination}
+            options={[
+              { value: 'machine', label: t('runtimeConfig.profileRun.machine') },
+              { value: `app:${sdk.appId()}`, label: 'Nimi Chat' },
+              { value: 'local-agent', label: t('runtimeConfig.setupTask.sourceLocalAgent') },
+              ...destinations.map(([id, label]) => ({ value: `app:${id}`, label })),
+            ]}
+          />
+        </label>
+      ) : null}
       {capabilityPlans.map((plan) => {
         const selectable = isStartable(plan);
         return (
@@ -437,8 +586,8 @@ function ProfileUsePanel(props: {
               {owner && plan.state === 'cloud-requires-owner'
                 ? t('runtimeConfig.aiSettings.profileUseState.cloud-owner-choice', { defaultValue: 'Cloud · choose the connection in the task' })
                 : t(`runtimeConfig.aiSettings.profileUseState.${plan.state}`, {
-                    defaultValue: plan.state,
-                  })}
+                  defaultValue: plan.state,
+                })}
             </span>
             {plan.state === 'missing-source' ? (
               <p className="w-full text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.aiSettings.profileMissingSourceHelp', {
@@ -454,7 +603,8 @@ function ProfileUsePanel(props: {
       {!owner && selectedPlans.some((plan) => plan.state === 'cloud-requires-owner') ? (
         <p className="text-xs text-[var(--nimi-text-muted)]">
           {t('runtimeConfig.aiSettings.profileUseCloudNote', {
-            defaultValue: 'Cloud routes are saved from the app that uses them; a machine-wide task never sets a global cloud default.',
+            defaultValue:
+              'Cloud routes are saved from the app that uses them; a machine-wide task never sets a global cloud default.',
           })}
         </p>
       ) : null}
@@ -462,7 +612,9 @@ function ProfileUsePanel(props: {
         <div className="space-y-1" data-testid="runtime-ai-settings-profile-outcomes">
           {outcomes.map((outcome) => (
             <div key={outcome.capabilityContract} className="flex items-center justify-between gap-2 text-xs">
-              <span className="text-[var(--nimi-text-secondary)]">{displayRuntimeConfigCapabilityLabel(outcome.capabilityContract, t)}</span>
+              <span className="text-[var(--nimi-text-secondary)]">
+                {displayRuntimeConfigCapabilityLabel(outcome.capabilityContract, t)}
+              </span>
               {outcome.taskId ? (
                 <Button size="sm" tone="secondary" onClick={() => props.onOpenSetupTask(outcome.taskId!)}>
                   {t('runtimeConfig.aiSettings.continueTask', { defaultValue: 'Continue' })}
@@ -484,7 +636,7 @@ function ProfileUsePanel(props: {
         >
           {busy
             ? t('runtimeConfig.aiSettings.profileUseStarting', { defaultValue: 'Starting…' })
-            : t('runtimeConfig.aiSettings.profileUseStart', { defaultValue: 'Start preparation' })}
+            : t('runtimeConfig.product.reviewPreparation')}
         </Button>
       </div>
     </div>

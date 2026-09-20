@@ -235,9 +235,9 @@ units:
     kind: rule
     title: P-COLD-012 ready entry target
     modality: must
-    statement: After ready_for_use, Desktop opens ordinary product use at Chat to Nimi Chat while Home remains the feed surface rather than the ready entry target.
+    statement: After ready_for_use, Desktop opens ordinary product use at the Nimi Home personal AI overview, with an explicit Activity entry to the Realm feed. A pending admitted direct-open destination is honored, and optional overview data does not form another product admission gate.
     condition: When first run completes successfully.
-    failure: Keep the product out of ordinary entry until the canonical target can open.
+    failure: Preserve Product Control admission, open the canonical ordinary or explicitly requested target, and degrade only the failed optional overview projection.
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.first-run-lifecycle

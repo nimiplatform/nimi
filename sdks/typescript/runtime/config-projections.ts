@@ -142,6 +142,33 @@ export function normalizeNimiRuntimeConfigStringList(values: readonly unknown[])
   return dedupeProjectionStrings(values);
 }
 
+/**
+ * Orthography for vendor tokens whose brand spelling is not plain title case.
+ * Spelling only: it carries no capability, endpoint or provider semantics,
+ * and an unknown token simply falls back to title case.
+ */
+const VENDOR_TOKEN_ORTHOGRAPHY: Readonly<Record<string, string>> = Object.freeze({
+  ai: 'AI',
+  api: 'API',
+  aws: 'AWS',
+  dashscope: 'DashScope',
+  deepseek: 'DeepSeek',
+  elevenlabs: 'ElevenLabs',
+  glm: 'GLM',
+  llm: 'LLM',
+  minimax: 'MiniMax',
+  mimo: 'MiMo',
+  nimillm: 'NimiLLM',
+  openai: 'OpenAI',
+  openrouter: 'OpenRouter',
+  openspeech: 'OpenSpeech',
+  siliconflow: 'SiliconFlow',
+  stepfun: 'StepFun',
+  tts: 'TTS',
+  worldlabs: 'World Labs',
+  xai: 'xAI',
+});
+
 export function nimiRuntimeConfigConnectorVendorLabel(vendor: string): string {
   const normalized = normalizeText(vendor);
   if (!normalized) {
@@ -151,7 +178,12 @@ export function nimiRuntimeConfigConnectorVendorLabel(vendor: string): string {
     .replace(/[_-]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
-    .replace(/\b\w/g, (segment) => segment.toUpperCase());
+    .split(' ')
+    .map((token) => (
+      VENDOR_TOKEN_ORTHOGRAPHY[token.toLowerCase()]
+      ?? token.replace(/^\w/, (segment) => segment.toUpperCase())
+    ))
+    .join(' ');
 }
 
 export function normalizeNimiRuntimeConfigConnectorVendor(value: unknown): string {

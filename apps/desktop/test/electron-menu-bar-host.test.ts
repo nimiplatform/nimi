@@ -336,7 +336,7 @@ test('Electron menu bar bounds navigation and keeps close-hide distinct from exp
   await host.initialize();
 
   await host.activate(MENU_BAR_ITEM_IDS.openAiSettings);
-  await host.activate(MENU_BAR_ITEM_IDS.openModelLibrary);
+  await host.activate(MENU_BAR_ITEM_IDS.openDownloads);
   await host.activate(MENU_BAR_ITEM_IDS.openSettings);
   assert.equal(fixture.calls.focus, 3);
   assert.deepEqual(fixture.calls.events, [
@@ -346,7 +346,7 @@ test('Electron menu bar bounds navigation and keeps close-hide distinct from exp
     },
     {
       eventName: MENU_BAR_OPEN_TAB_EVENT,
-      payload: { tab: 'runtime', page: 'modelLibrary' },
+      payload: { tab: 'downloads' },
     },
     {
       eventName: MENU_BAR_OPEN_TAB_EVENT,

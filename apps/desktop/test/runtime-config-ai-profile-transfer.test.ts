@@ -18,12 +18,24 @@ import {
   selectRuntimeConfigAIProfileLoadouts,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-ai-profile-transfer.js';
 import { prepareRuntimeConfigAIProfilePreview } from '../src/shell/renderer/features/runtime-config/runtime-config-ai-profile-preview.js';
+import { recommendedPortableProfile } from '../src/shell/renderer/features/runtime-config/runtime-profile-quick-start.js';
 
 const A = `sha256:${'a'.repeat(64)}`;
 const B = `sha256:${'b'.repeat(64)}`;
 const C = `sha256:${'c'.repeat(64)}`;
 const D = `sha256:${'d'.repeat(64)}`;
 const E = `sha256:${'e'.repeat(64)}`;
+
+test('official quick start remains acquirable on a device without installed assets', async () => {
+  const selected = recipe({ id: 'image-recipe', capability: 'image.generate', slots: [{ id: 'main', contentId: B, variantId: 'image-v1' }] });
+  const profile = recommendedPortableProfile(selected, VERIFIED);
+  const plan = await planRuntimeConfigAIProfileTransfer({ profile, assets: [], recipes: [selected], verifiedAssets: VERIFIED });
+  assert.equal(plan.capabilities[0]?.axes[0]?.state, 'download-required');
+  assert.equal(plan.downloads[0]?.templateId, 'image-v1');
+  const capability = profile.capabilities['image.generate'];
+  assert.equal(capability?.route, 'local');
+  assert.deepEqual(capability?.route === 'local' ? capability.loadout?.axes[0]?.source : undefined, { repo: 'example/image', revision: 'main', file: 'model.gguf', sizeBytes: 200 });
+});
 
 function asset(input: {
   readonly id: string;

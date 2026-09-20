@@ -3,9 +3,13 @@
   "chat": "Chat",
   "explore": "Explore",
   "apps": "Apps",
-  "runtime": "Runtime",
+  "runtime": "AI Capabilities",
   "settings": "Settings",
   "support": "Support",
   "notifications": "Notifications",
-  "profile": "Profile"
+  "profile": "Profile",
+  "cloud": "Cloud Services",
+  "downloads": "Downloads",
+  "diagnostics": "Advanced & Diagnostics",
+  "activity": "Activity"
 }

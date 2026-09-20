@@ -83,9 +83,8 @@ test('menu-bar navigation accepts only the closed runtime pages and Settings sha
     { tab: 'runtime', page: 'advancedDiagnostics' },
   );
   assert.deepEqual(
-    parseMenuBarOpenTabPayload({ tab: 'runtime', page: 'modelLibrary' }),
-    { tab: 'runtime', page: 'modelLibrary' },
-  );
+    parseMenuBarOpenTabPayload({ tab: 'downloads' }),
+    { tab: 'downloads' });
   assert.deepEqual(
     parseMenuBarOpenTabPayload({ tab: 'runtime', page: 'aiSettings' }),
     { tab: 'runtime', page: 'aiSettings' },

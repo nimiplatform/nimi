@@ -138,7 +138,10 @@ for (const target of DESKTOP_OPEN_TARGETS) {
     applyDesktopOpenIntentToAppStore(target.intent);
 
     const appState = productionAppStore.getState();
-    assert.equal(appState.activeTab, target.expected.activeTab);
+    assert.equal(
+      appState.activeTab,
+      target.rowId === 'target.runtime-connector' ? 'cloud' : target.expected.activeTab,
+    );
 
     if (target.expected.activeTab === 'explore') {
       assert.equal(appState.exploreActiveSection, target.expected.section);
@@ -182,7 +185,7 @@ test('Desktop Open Intent maps runtime connector actions to Runtime Cloud Servic
     action: 'add-connector',
   });
 
-  assert.equal(productionAppStore.getState().activeTab, 'runtime');
+  assert.equal(productionAppStore.getState().activeTab, 'cloud');
   assert.equal(loadRuntimeConfigStateV11().activePage, 'cloudServices');
   assert.deepEqual(loadRuntimeConfigStateV11().actionFocus, {
     page: 'cloudServices',

@@ -15,7 +15,7 @@ import {
   loadRuntimeConfigStateV11,
   persistRuntimeConfigStateV11,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-storage-persist';
-import { RUNTIME_NAV_DESTINATIONS } from '../src/shell/renderer/features/runtime-config/runtime-config-nav';
+import { getCoreNavItems } from '../src/shell/renderer/app-shell/layouts/navigation-config';
 import { resetRuntimePageViewport } from '../src/shell/renderer/features/runtime-config/runtime-config-page-shell';
 import { createDesktopRendererRuntimeConfigNavigationPort } from '../src/shell/renderer/renderer/runtime-config-navigation-port';
 
@@ -65,6 +65,18 @@ test('page navigation resets the shared Runtime viewport to the start', () => {
   assert.deepEqual(requested, { top: 0, left: 0 });
 });
 
+test('Home opens the exact capability and repeated navigation still publishes a new intent', () => {
+  const port = createDesktopRendererRuntimeConfigNavigationPort();
+  let notifications = 0;
+  port.subscribe(() => { notifications++; });
+  port.openCapability('image.generate');
+  assert.deepEqual(port.get().intent, { kind: 'open-capability', capabilityContract: 'image.generate' });
+  port.openCapability('image.generate');
+  assert.equal(notifications, 2);
+  port.openCapability('');
+  assert.equal(notifications, 2);
+});
+
 // ---------------------------------------------------------------------------
 // createDefaultStateV11
 // ---------------------------------------------------------------------------
@@ -81,23 +93,12 @@ test('createDefaultStateV11: activePage defaults to "aiSettings"', () => {
 // RUNTIME_NAV_DESTINATIONS
 // ---------------------------------------------------------------------------
 
-test('the Runtime navigation lists exactly the four text destinations in order', () => {
-  const pageIds = RUNTIME_NAV_DESTINATIONS.map((item) => item.id);
-
-  assert.deepEqual(pageIds, [
-    'aiSettings',
-    'modelLibrary',
-    'cloudServices',
-    'advancedDiagnostics',
-  ]);
-  // Retired top-level entries must not survive the S4 hard cut.
-  for (const retired of ['overview', 'profiles', 'loadouts', 'modelMarket', 'localAssets', 'cloud', 'environment', 'recommend', 'catalog', 'data-management', 'performance', 'local', 'runtime', 'mods', 'mod-developer', 'advanced', 'models', 'localModels', 'localAiConfig']) {
-    assert.equal((pageIds as string[]).includes(retired), false, `retired id "${retired}" must not be a destination`);
-  }
-  for (const item of RUNTIME_NAV_DESTINATIONS) {
-    assert.equal(typeof item.label, 'string');
-    assert.notEqual(item.label.trim(), '');
-  }
+test('ordinary navigation exposes AI capabilities and cloud independently', () => {
+  assert.deepEqual(
+    getCoreNavItems().map((item) => item.id),
+    ['home', 'chat', 'explore', 'apps', 'runtime', 'cloud'],
+  );
+  assert.equal(getCoreNavItems().find((item) => item.id === 'runtime')?.label, 'AI Capabilities');
 });
 
 test('normalizeStoredStateV11: connectors always empty (bridge is source of truth)', () => {

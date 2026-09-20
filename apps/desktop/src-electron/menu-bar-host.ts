@@ -18,7 +18,8 @@ export const MENU_BAR_RENDERER_FRESHNESS_MS = 15_000;
 export const MENU_BAR_ITEM_IDS = Object.freeze({
   openNimi: 'menu-bar-open-nimi',
   openAiSettings: 'menu-bar-open-ai-settings',
-  openModelLibrary: 'menu-bar-open-model-library',
+  openDownloads: 'menu-bar-open-downloads',
+  openDiagnostics: 'menu-bar-open-diagnostics',
   openCloudServices: 'menu-bar-open-cloud-services',
   openSettings: 'menu-bar-open-settings',
   startRuntime: 'menu-bar-start-runtime',
@@ -219,18 +220,21 @@ export function createDesktopElectronMenuBarHost(
   };
 
   async function activate(itemId: string): Promise<void> {
-    requireEnabled(enabled);
+      requireEnabled(enabled);
     switch (itemId) {
       case MENU_BAR_ITEM_IDS.openNimi:
-        await input.focusMainWindow();
+        await dispatchOpenTab({ tab: 'home' });
         state.windowVisible = true;
-        applyMenu();
+      applyMenu();
         return;
       case MENU_BAR_ITEM_IDS.openAiSettings:
         await dispatchOpenTab({ tab: 'runtime', page: 'aiSettings' });
         return;
-      case MENU_BAR_ITEM_IDS.openModelLibrary:
-        await dispatchOpenTab({ tab: 'runtime', page: 'modelLibrary' });
+      case MENU_BAR_ITEM_IDS.openDownloads:
+        await dispatchOpenTab({ tab: 'downloads' });
+        return;
+      case MENU_BAR_ITEM_IDS.openDiagnostics:
+        await dispatchOpenTab({ tab: 'runtime', page: 'advancedDiagnostics' });
         return;
       case MENU_BAR_ITEM_IDS.openCloudServices:
         await dispatchOpenTab({ tab: 'runtime', page: 'cloudServices' });
@@ -249,7 +253,7 @@ export function createDesktopElectronMenuBarHost(
         return;
       case MENU_BAR_ITEM_IDS.quitNimi:
         state.quitRequested = true;
-        applyMenu();
+      applyMenu();
         try {
           input.quit();
         } catch (error) {
@@ -346,13 +350,13 @@ function buildMenuTemplate(
     { id: MENU_BAR_ITEM_IDS.openNimi, label: 'Open Nimi', click: action(MENU_BAR_ITEM_IDS.openNimi) },
     {
       id: MENU_BAR_ITEM_IDS.openAiSettings,
-      label: 'AI Settings',
+      label: 'AI Capabilities',
       click: action(MENU_BAR_ITEM_IDS.openAiSettings),
     },
     {
-      id: MENU_BAR_ITEM_IDS.openModelLibrary,
-      label: 'Model Library',
-      click: action(MENU_BAR_ITEM_IDS.openModelLibrary),
+      id: MENU_BAR_ITEM_IDS.openDownloads,
+      label: 'Downloads',
+      click: action(MENU_BAR_ITEM_IDS.openDownloads),
     },
     {
       id: MENU_BAR_ITEM_IDS.openCloudServices,
@@ -363,6 +367,11 @@ function buildMenuTemplate(
       id: MENU_BAR_ITEM_IDS.openSettings,
       label: 'Settings',
       click: action(MENU_BAR_ITEM_IDS.openSettings),
+    },
+    {
+      id: MENU_BAR_ITEM_IDS.openDiagnostics,
+      label: 'Advanced & Diagnostics',
+      click: action(MENU_BAR_ITEM_IDS.openDiagnostics),
     },
     { type: 'separator' },
     { id: 'menu-bar-runtime-line', label: projection.runtimeLine, enabled: false },

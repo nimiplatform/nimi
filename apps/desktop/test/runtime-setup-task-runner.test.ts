@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { isRuntimeProfileRunning, runRuntimeProfileTasks } from '../src/shell/renderer/features/runtime-config/runtime-profile-task-runner.js';
 
 import type {
   NimiLoadoutRecipe,
@@ -32,6 +33,52 @@ import {
 
 const CAPABILITY = 'image.generate';
 const ACCOUNT = 'acct-1';
+
+test('Profile execution stays live outside its view and a second invocation cannot duplicate it', async () => {
+  const store = makeStore();
+  const calls: CallLog = [];
+  const ports = createPorts(baseState(), calls);
+  const id = await createAppTask(store);
+  store.updateTask(id, () => ({ draft: { profileUseId: 'group-liveness' } }));
+  const plan = await reachReview(store, id, ports);
+  let release!: () => void;
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  const guarded = { ...ports, account: { currentAccountId: async () => { await gate; return ACCOUNT; } } };
+  const input = { store, taskIds: [id], ports: guarded, plans: { [id]: plan }, choices: {}, mode: 'prepare-and-use' as const };
+  const first = runRuntimeProfileTasks(input);
+  assert.equal(isRuntimeProfileRunning('group-liveness'), true);
+  await runRuntimeProfileTasks(input);
+  assert.equal(isRuntimeProfileRunning('group-liveness'), true);
+  release();
+  await first;
+  assert.equal(isRuntimeProfileRunning('group-liveness'), false);
+  assert.equal(store.getTask(id)?.status, 'done');
+});
+
+test('Profile group projects missing reviews and invalid cloud selections onto the affected tasks', async () => {
+    const store = makeStore();
+  const local = await createAppTask(store);
+  const cloud = await createAppTask(store);
+  store.updateTask(cloud, () => ({ draft: { route: 'cloud', cloudTargetKey: '{invalid' } }));
+  await runRuntimeProfileTasks({ store, taskIds: [local, cloud], ports: createPorts(baseState(), []), plans: {}, choices: {}, mode: 'prepare-and-use' });
+  assert.equal(store.getTask(local)?.status, 'needs-attention');
+  assert.equal(store.getTask(cloud)?.status, 'needs-attention');
+  assert.ok(store.getTask(local)?.failure?.message);
+  assert.ok(store.getTask(cloud)?.failure?.message);
+});
+
+test('Profile group stop leaves completed effects intact and never starts stopped members', async () => {
+    const store = makeStore();
+  const done = await createAppTask(store);
+  const stopped = await createAppTask(store);
+  store.updateTask(done, () => ({ status: 'done' }));
+  store.stopTask(stopped);
+    const calls: CallLog = [];
+  await runRuntimeProfileTasks({ store, taskIds: [done, stopped], ports: createPorts(baseState(), calls), plans: {}, choices: {}, mode: 'prepare-and-use' });
+  assert.equal(store.getTask(done)?.status, 'done');
+  assert.equal(store.getTask(stopped)?.status, 'stopped');
+  assert.equal(calls.length, 0);
+});
 
 function createMemoryStorage() {
   const map = new Map<string, string>();
@@ -2007,7 +2054,6 @@ test('an explicitly chosen optional-slot variant is acquired and replaces its ol
   assert.deepEqual((rebound?.args as { modelAxes: unknown }).modelAxes, [{ slotId: 'main.diffusion', modelAssetId: INSTALLED_ASSET.modelAssetId, expectedContentId: INSTALLED_ASSET.contentId }]);
 });
 
-
 test('a multi-capability owner save rechecks all participants after asynchronous admissions', async () => {
   const store = makeStore();
   const calls: CallLog = [];
@@ -2152,3 +2198,107 @@ for (const choice of ['recommended', 'manual', 'installed-recommendation'] as co
     }
   });
 }
+
+test('shared environment preparation progress can reduce a later reviewed plan without another authorization', async () => {
+    const store = makeStore();
+    const calls: CallLog = [];
+    const state = baseState();
+  const ports = createPorts(state, calls);
+    const taskId = await createAppTask(store);
+    const plan = await reachReview(store, taskId, ports);
+  state.plan = environmentPlan({
+    planId: 'now-ready',
+    dependencies: state.plan.dependencies.map((dependency) => ({ ...dependency, state: 'ready_managed' })),
+  });
+  const result = await runRuntimeSetupPreparation(store, taskId, ports, { mode: 'prepare-only', reviewedPlan: plan });
+    assert.equal(result.status, 'ok');
+  assert.equal(
+    calls.some((call) => call.method === 'environment.applyEnvironmentPlan'),
+    false,
+  );
+});
+
+test('a changed environment scope cannot be accepted as preparation progress', async () => {
+    const store = makeStore();
+    const calls: CallLog = [];
+    const state = baseState();
+  const ports = createPorts(state, calls);
+    const taskId = await createAppTask(store);
+    const plan = await reachReview(store, taskId, ports);
+  state.plan = environmentPlan({
+    planId: 'another-root',
+    runtimeDataRoot: 'D:\\OtherRoot',
+    dependencies: state.plan.dependencies.map((dependency) => ({ ...dependency, state: 'ready_managed' })),
+  });
+  const result = await runRuntimeSetupPreparation(store, taskId, ports, { mode: 'prepare-only', reviewedPlan: plan });
+    assert.equal(result.status, 'needs-attention');
+  assert.equal(
+    calls.some((call) => call.method === 'install.install'),
+    false,
+  );
+});
+
+for (const initiallyInstalled of [true, false]) {
+  test(`Profile resource revalidation ${initiallyInstalled ? 'rejects a new download' : 'accepts newly reusable content'}`, async () => {
+    const store = makeStore();
+    const calls: CallLog = [];
+    const state = baseState({ assets: initiallyInstalled ? [INSTALLED_ASSET] : [] });
+    const ports = createPorts(state, calls);
+    const taskId = await createAppTask(store);
+    store.updateTask(taskId, () => ({ draft: { pendingAxes: [{
+      slotId: 'main.diffusion',
+      contentId: INSTALLED_ASSET.contentId,
+      templateId: 'reviewed-template',
+    }] } }));
+    const plan = await reachReview(store, taskId, ports);
+    assert.equal(Boolean(plan.acquire[0]?.offer.installedModelAssetId), initiallyInstalled);
+    state.assets = initiallyInstalled ? [] : [INSTALLED_ASSET];
+    calls.length = 0;
+    const result = await runRuntimeSetupPreparation(store, taskId, ports, {
+      mode: 'prepare-only', reviewedPlan: plan,
+    });
+    assert.equal(result.status, initiallyInstalled ? 'needs-attention' : 'ok');
+    assert.equal(calls.some((call) => call.method === 'install.install'), false);
+    if (initiallyInstalled) {
+      assert.equal(calls.some((call) => call.method === 'loadouts.prepare'), false);
+      assert.equal(calls.some((call) => call.method === 'environment.applyEnvironmentPlan'), false);
+    }
+  });
+}
+
+test('choosing a recipe binds its single installed offer without downloading it again', async () => {
+    const store = makeStore();
+    const calls: CallLog = [];
+    const modelRecipe = recipe();
+  const state = baseState({
+    recipes: [
+      {
+        ...modelRecipe,
+        slots: modelRecipe.slots.map((slot) => ({
+          ...slot,
+          offers: slot.offers.map((offer) => ({
+            ...offer,
+            installedModelAssetId: INSTALLED_ASSET.modelAssetId,
+          })),
+        })),
+      },
+    ],
+  });
+  const ports = createPorts(state, calls);
+    const taskId = await createAppTask(store);
+    const plan = await reachReview(store, taskId, ports);
+  assert.equal(plan.reuse.length, 1);
+  assert.equal(
+    (await runRuntimeSetupPreparation(store, taskId, ports, { mode: 'prepare-only', reviewedPlan: plan }))
+      .status,
+    'ok',
+  );
+  const last = calls.filter((call) => call.method === 'loadouts.prepare').at(-1)!.args as {
+    modelAxes: { modelAssetId: string }[];
+  };
+  assert.equal(last.modelAxes[0]!.modelAssetId, INSTALLED_ASSET.modelAssetId);
+  assert.equal(
+    calls.some((call) => call.method === 'install.install'),
+    false,
+  );
+});

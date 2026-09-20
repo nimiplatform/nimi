@@ -79,7 +79,7 @@ test('createAppStore owns independent state and injected effects per renderer in
   first.getState().setChatMode('agent');
 
   assert.equal(first.getState().activeTab, 'explore');
-  assert.equal(second.getState().activeTab, 'chat');
+  assert.equal(second.getState().activeTab, 'home');
   assert.equal(first.getState().chatThinkingPreference, 'on');
   assert.equal(second.getState().chatThinkingPreference, 'off');
   assert.deepEqual(firstEffects.preferences, ['on']);
@@ -228,8 +228,8 @@ test('AppProviders owns independent route, store, query, and i18n resources', as
     createElement(InstanceSnapshot),
   ));
 
-  assert.match(render('/first', firstStore, firstQueryClient, firstI18n), /\/first\|chat\|en/);
-  assert.match(render('/second', secondStore, secondQueryClient, secondI18n), /\/second\|chat\|zh/);
+  assert.match(render('/first', firstStore, firstQueryClient, firstI18n), /\/first\|home\|en/);
+  assert.match(render('/second', secondStore, secondQueryClient, secondI18n), /\/second\|home\|zh/);
   firstQueryClient.clear();
   secondQueryClient.clear();
 });
@@ -449,7 +449,7 @@ test('canonical Desktop resources are fresh for every factory invocation', async
   assert.notEqual(first.Router, second.Router);
   assert.notEqual(first.streamController, second.streamController);
   assert.equal(first.store.getState().activeTab, 'explore');
-  assert.equal(second.store.getState().activeTab, 'chat');
+  assert.equal(second.store.getState().activeTab, 'home');
   assert.equal(first.queryClient.getQueryData(['instance']), 'first');
   assert.equal(second.queryClient.getQueryData(['instance']), undefined);
   assert.equal(first.streamController.getStreamState('shared-chat').phase, 'waiting');

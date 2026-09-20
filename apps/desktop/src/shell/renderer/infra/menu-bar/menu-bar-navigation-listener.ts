@@ -32,8 +32,8 @@ export function connectMenuBarNavigation(
     if (!active) return;
     try {
       const payload = parseMenuBarOpenTabPayload(event.payload);
-      if (payload.tab === 'settings') {
-        port.setActiveTab('settings');
+      if (payload.tab !== 'runtime') {
+        port.setActiveTab(payload.tab);
         return;
       }
       const state = loadRuntimeConfigStateV11();
@@ -43,7 +43,9 @@ export function connectMenuBarNavigation(
         activePage: page,
       });
       runtimeConfigNavigation.openPage(page);
-      port.setActiveTab('runtime');
+      port.setActiveTab(
+          page === 'cloudServices' ? 'cloud' : page === 'advancedDiagnostics' ? 'diagnostics' : 'runtime',
+        );
     } catch {
       logRendererEvent({
         level: 'warn',
@@ -52,7 +54,8 @@ export function connectMenuBarNavigation(
         details: { event: MENU_BAR_OPEN_TAB_EVENT },
       });
     }
-  }));
+  }),
+  );
   void unsubscribePromise.catch(() => {
     if (!active) return;
     logRendererEvent({

@@ -19,6 +19,25 @@ export function formatSpeed(value: number | undefined): string {
   return `${formatBytes(safe)}/s`;
 }
 
+/** "3.1 MB/s"; empty when the rate is unknown so callers can omit it. */
+export function formatTransferRate(bytesPerSecond: number | undefined): string {
+  const safe = Number(bytesPerSecond);
+  if (!Number.isFinite(safe) || safe <= 0) return '';
+  return `${formatBytes(safe)}/s`;
+}
+
+/** Compact remaining-time label: "45s", "12m", "1h 40m". Empty when unknown. */
+export function formatDurationShort(seconds: number | undefined): string {
+  const safe = Number(seconds);
+  if (!Number.isFinite(safe) || safe <= 0) return '';
+  if (safe < 60) return `${Math.ceil(safe)}s`;
+  const minutes = Math.round(safe / 60);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  const remain = minutes % 60;
+  return remain ? `${hours}h ${remain}m` : `${hours}h`;
+}
+
 export function formatEta(seconds: number | undefined): string {
   const safe = Number(seconds);
   if (!Number.isFinite(safe) || safe < 0) return '-';

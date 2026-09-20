@@ -6,7 +6,7 @@ import type {
   NimiRuntimeLocalVerifiedAssetDescriptor,
   NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
-import { Button, OverlayShell, StatusBadge } from '@nimiplatform/kit/ui';
+import { Button, OverlayShell, ScrollArea, StatusBadge, TextField } from '@nimiplatform/kit/ui';
 import { formatBytes } from '../../components/download-format.js';
 import {
   groupLoadoutModelPresentations,
@@ -112,13 +112,20 @@ export function LoadoutSlotModelPicker(props: {
 }) {
   const { t } = useTranslation();
   const [showIncompatible, setShowIncompatible] = useState(false);
+  const [showOtherFiles, setShowOtherFiles] = useState(false);
+  const [query, setQuery] = useState('');
   const slot = props.slot;
   const slotLabel = useSlotDisplayLabel(slot ?? { slotId: '', displayLabel: '' });
   if (!slot) return null;
 
-  const installedAssets = runtimeConfigLoadoutCandidateAssets(slot, props.assets);
+  const allAssets = runtimeConfigLoadoutCandidateAssets(slot, props.assets);
+  const relatedIds = new Set(slot.offers.filter(offer => offer.applicability !== 'unsupported').map(offer => offer.installedModelAssetId));
+  const isRelated = (asset: NimiRuntimeModelAssetRecord) => asset.modelAssetId === props.selectedAssetId || relatedIds.has(asset.modelAssetId) || slot.recommendedContentIds.includes(asset.contentId);
+  const otherCount = allAssets.filter(asset => !isRelated(asset)).length;
+  const search = query.trim().toLocaleLowerCase();
+  const installedAssets = allAssets.filter(asset => (showOtherFiles || !!search || isRelated(asset)) && `${loadoutAssetLabel(asset, props.verifiedAssets)} ${asset.entry}`.toLocaleLowerCase().includes(search));
   const { installable, incompatible } = partitionLoadoutSlotOffers(slot.offers);
-  const installableGroups = groupLoadoutModelPresentations(installable, (offer) => loadoutCandidatePresentation(offer.candidate));
+  const installableGroups = groupLoadoutModelPresentations(installable.filter(offer => `${offer.candidate.title} ${offer.candidate.variantLabel}`.toLocaleLowerCase().includes(search)), (offer) => loadoutCandidatePresentation(offer.candidate));
   const unknownSize = t('runtimeConfig.loadouts.downloadSizeUnknown');
   const select = (modelAssetId: string) => {
     props.onSelect(modelAssetId);
@@ -132,9 +139,12 @@ export function LoadoutSlotModelPicker(props: {
       size="md"
       title={t('runtimeConfig.loadouts.picker.title', { slot: slotLabel })}
       onClose={props.onClose}
+      footer={<Button tone="secondary" onClick={props.onClose}>{t('Common.close')}</Button>}
       data-testid={`loadout-model-picker:${slot.slotId}`}
     >
-      <div className="grid gap-5 py-2">
+      <TextField aria-label={t('runtimeConfig.product.searchModels')} placeholder={t('runtimeConfig.product.searchModels')} value={query} onChange={event => setQuery(event.currentTarget.value)} />
+      <ScrollArea className="mt-3 h-[min(55vh,480px)]">
+      <div className="grid gap-5 py-2 pr-3">
         <section className="grid gap-2" data-testid="loadout-model-picker:installed-section">
           <h4 className="text-xs font-medium text-[var(--nimi-text-muted)]">{t('runtimeConfig.loadouts.picker.installedSection')}</h4>
           <div className="grid gap-2">
@@ -171,6 +181,9 @@ export function LoadoutSlotModelPicker(props: {
             })}
           </div>
         </section>
+
+        {otherCount > 0 && !search ? <Button tone="ghost" size="sm" onClick={() => setShowOtherFiles(value => !value)}>{t(showOtherFiles ? 'runtimeConfig.product.hideOtherModelFiles' : 'runtimeConfig.product.showOtherModelFiles', { count: otherCount })}</Button> : null}
+        {search && !installedAssets.length && !installableGroups.length ? <p className="text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.product.noModelsMatch')}</p> : null}
 
         {installableGroups.length > 0 ? (
           <section className="grid gap-2" data-testid="loadout-model-picker:installable-section">
@@ -261,6 +274,7 @@ export function LoadoutSlotModelPicker(props: {
           <p className="text-sm text-[var(--nimi-text-muted)]">{t('runtimeConfig.loadouts.noAdmittedOffer')}</p>
         ) : null}
       </div>
+      </ScrollArea>
     </OverlayShell>
   );
 }

@@ -1,3 +1,4 @@
+import { useGlobalDownloads } from './global-downloads-context.js';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { NimiRuntimeLocalTransferProgressEvent } from '@nimiplatform/sdk/runtime';
 import { emitRuntimeLog } from '@nimiplatform/kit/telemetry';
@@ -18,6 +19,7 @@ type UseLocalModelCenterDownloadsInput = {
 
 export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloadsInput) {
   const localEnvironmentClient = useRuntimeConfigLocalEnvironmentClient();
+  const sharedDownloads = useGlobalDownloads();
   const progressCache = useLocalModelCenterProgressCache();
   const bindings = useDesktopRendererBindings();
   const initialProgressBySessionIdRef = useRef<Record<string, ProgressSessionState> | null>(null);
@@ -53,86 +55,24 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
   }, [progressBySessionId]);
 
   useEffect(() => {
-    let disposed = false;
-    let unsubscribe: (() => void) | null = null;
-    const effectStartedMs = bindings.clock.now();
-
-    void localEnvironmentClient.listTransfers()
-      .then((sessions) => {
-        if (disposed) {
-          return;
-        }
+    if (!sharedDownloads) return;
         const nowMs = bindings.clock.now();
-        setProgressBySessionId((prev) => {
-          const next = pruneProgressSessions(prev, nowMs);
-          const merged: Record<string, ProgressSessionState> = { ...next };
-          for (const session of sessions) {
-            if (dismissedSessionIdsRef.current.has(session.installSessionId)) {
-              continue;
-            }
-            const sessionEvent = toProgressEventFromSummary(session);
-            const updatedAtMs = parseTimestamp(session.updatedAt);
-            if (sessionEvent.done && updatedAtMs > 0 && updatedAtMs < effectStartedMs) {
-              seenTerminalSessionIdsRef.current.add(session.installSessionId);
-            }
-            const previous = next[session.installSessionId];
-            merged[session.installSessionId] = {
-              event: sessionEvent,
-              updatedAtMs: updatedAtMs || nowMs,
-              createdAtMs: previous?.createdAtMs || parseTimestamp(session.createdAt) || nowMs,
+    const next: Record<string, ProgressSessionState> = {};
+          for (const summary of sharedDownloads.transfers) {
+            if (dismissedSessionIdsRef.current.has(summary.installSessionId)) continue;
+      const event = toProgressEventFromSummary(summary);
+      next[summary.installSessionId] = {
+              event,
+        updatedAtMs: parseTimestamp(summary.updatedAt) || nowMs,
+              createdAtMs: parseTimestamp(summary.createdAt) || nowMs,
             };
-          }
-          return progressCache.cacheProgressSessions(merged);
-        });
-      })
-      .catch((err) => {
-        emitRuntimeLog({
-          level: 'warn',
-          area: 'local-ai',
-          message: 'action:listTransfers:failed',
-          details: { error: err instanceof Error ? err.message : String(err) },
-        });
-      });
-
-    void localEnvironmentClient.watchTransferProgress((event) => {
-      if (disposed) {
-        return;
-      }
-      if (dismissedSessionIdsRef.current.has(event.installSessionId)) {
-        return;
-      }
-      const nowMs = bindings.clock.now();
-      setProgressBySessionId((prev) => {
-        const next = pruneProgressSessions(prev, nowMs);
-        const previous = next[event.installSessionId];
-        return progressCache.cacheProgressSessions({
-          ...next,
-          [event.installSessionId]: {
-            event,
-            updatedAtMs: nowMs,
-            createdAtMs: previous?.createdAtMs || nowMs,
-          },
-        });
-      });
       if (event.done && !seenTerminalSessionIdsRef.current.has(event.installSessionId)) {
         seenTerminalSessionIdsRef.current.add(event.installSessionId);
         onProgressSettledRef.current?.(event);
       }
-    }).then((off) => {
-      if (disposed) {
-        off();
-        return;
-      }
-      unsubscribe = off;
-    });
-
-    return () => {
-      disposed = true;
-      if (unsubscribe) {
-        unsubscribe();
-      }
-    };
-  }, []);
+    }
+    setProgressBySessionId(progressCache.cacheProgressSessions(next));
+  }, [sharedDownloads?.transfers, bindings.clock, progressCache]);
 
   const mergeSessionSummary = useCallback((
     installSessionId: string,

@@ -14,7 +14,7 @@ test('Runtime config connector projection normalizes draft and connector evidenc
     vendor: 'openai_compatible',
   });
   assert.equal(draft.id, 'connector-draft');
-  assert.equal(draft.label, 'Openai Compatible Connector');
+  assert.equal(draft.label, 'OpenAI Compatible Connector');
   assert.equal(draft.status, 'idle');
 
   const connector = runtimeConnectorProjectionToNimiRuntimeConfigConnector({

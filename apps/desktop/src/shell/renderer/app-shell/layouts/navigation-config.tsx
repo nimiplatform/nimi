@@ -1,3 +1,4 @@
+import { Cloud } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Tooltip } from '@nimiplatform/kit/ui';
@@ -141,6 +142,7 @@ export function renderShellNavIcon(icon: string): ReactNode {
   if (normalized === 'chat') return ICON_CHAT;
   if (normalized === 'explore') return ICON_EXPLORE;
   if (normalized === 'runtime') return ICON_RUNTIME;
+  if (normalized === 'cloud') return <Cloud size={18} />;
   if (normalized === 'profile') return ICON_PROFILE;
   if (normalized === 'settings') return ICON_SETTINGS;
   if (normalized === 'support' || normalized === 'help' || normalized === 'circle-help') return ICON_SUPPORT;
@@ -163,7 +165,8 @@ const BASE_CORE_NAV_ITEMS: NavItem[] = [
   { id: 'chat', label: 'Chat', icon: renderShellNavIcon('chat') },
   { id: 'explore', label: 'Explore', icon: renderShellNavIcon('explore') },
   { id: 'apps', label: 'Apps', icon: renderShellNavIcon('apps') },
-  { id: 'runtime', label: 'Runtime', icon: renderShellNavIcon('runtime') },
+  { id: 'runtime', label: 'AI Capabilities', icon: renderShellNavIcon('runtime') },
+  { id: 'cloud', label: 'Cloud Services', icon: renderShellNavIcon('cloud') },
 ];
 
 export function getCoreNavItems(): NavItem[] {

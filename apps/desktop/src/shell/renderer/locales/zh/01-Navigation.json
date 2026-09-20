@@ -3,9 +3,13 @@
   "chat": "聊天",
   "explore": "探索",
   "apps": "应用",
-  "runtime": "运行时",
+  "runtime": "AI 能力",
   "settings": "设置",
   "support": "支持",
   "notifications": "通知",
-  "profile": "个人主页"
+  "profile": "个人主页",
+  "cloud": "云服务",
+  "downloads": "下载",
+  "diagnostics": "高级与诊断",
+  "activity": "动态"
 }

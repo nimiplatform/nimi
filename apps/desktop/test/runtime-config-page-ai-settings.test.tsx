@@ -1,154 +1,104 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import React from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
-
-import { DesktopI18nResourceProvider } from '../src/shell/renderer/i18n/i18n-context';
 import {
-  buildRuntimeSetupCapabilityCards,
-  RuntimeConfigAiSettingsView,
-  runtimeSetupTaskIsActive,
-} from '../src/shell/renderer/features/runtime-config/runtime-config-page-ai-settings';
-import type { RuntimeSetupTask } from '../src/shell/renderer/features/runtime-config/runtime-setup-task-store';
+  capabilityPreparationState,
+  type CapabilityInventory,
+} from '../src/shell/renderer/features/runtime-config/runtime-capability-inventory.js';
+import type { RuntimeSetupTask } from '../src/shell/renderer/features/runtime-config/runtime-setup-task-store.js';
 
-(globalThis as { React?: typeof React }).React = React;
-
-const I18N_RESOURCE = { instance: { t: (key: string) => key } } as never;
-
-function renderView(element: React.ReactElement): string {
-  return renderToStaticMarkup(
-    <DesktopI18nResourceProvider resource={I18N_RESOURCE}>
-      {element}
-    </DesktopI18nResourceProvider>,
-  );
+const capability = 'image.generate';
+function inventory(selected = true, ready = true): CapabilityInventory {
+  return {
+    aggregate: {
+      loadouts: [{ loadoutId: 'A', capabilityContract: capability, validationState: 'configured' }],
+      selections: selected ? [{ capabilityContract: capability, loadoutId: 'A' }] : [],
+      selectionRevisions: {},
+    },
+    recipes: [],
+    environments: {
+      [capability]: {
+        state: 'ready',
+        dependencies: [{ required: true, state: ready ? 'ready_managed' : 'needs_confirmation' }],
+      },
+    },
+  } as unknown as CapabilityInventory;
 }
 
-function task(overrides: Partial<RuntimeSetupTask> & { readonly taskId: string }): RuntimeSetupTask {
+function task(status: RuntimeSetupTask['status'], candidate = 'B'): RuntimeSetupTask {
   return {
-    capabilityContract: 'image.generate',
-    source: { kind: 'runtime', accountId: 'acct-1', returnFocus: 'runtime.aiSettings' },
+    taskId: 'task',
+    capabilityContract: capability,
+    status,
+    candidateLoadoutId: candidate,
+    source: { kind: 'runtime', accountId: 'a' },
     refs: { installPlanIds: [], transferIds: [], dependencyJobIds: [] },
-    status: 'review',
-    nextAction: 'confirm-preparation',
-    createdAt: '2026-09-18T00:00:00.000Z',
-    updatedAt: '2026-09-18T00:00:00.000Z',
-    ...overrides,
+    nextAction: 'choose-model',
+    createdAt: '1',
+    updatedAt: '1',
   };
 }
 
-test('capability cards merge recipe capabilities, selections, and active tasks', () => {
-  const cards = buildRuntimeSetupCapabilityCards({
-    aggregate: {
-      loadouts: [{
-        loadoutId: 'loadout-1',
-        capabilityContract: 'image.generate',
-        displayName: 'Image Model',
-      }],
-      selections: [{ capabilityContract: 'image.generate', loadoutId: 'loadout-1', effectiveDefaults: {} }],
-      selectionRevisions: {},
-    } as never,
-    recipes: [
-      { capabilityContract: 'image.generate' },
-      { capabilityContract: 'audio.transcribe' },
-    ] as never,
-    tasks: [task({ taskId: 'task-1', capabilityContract: 'audio.transcribe' })],
+test('saved resources without a current selection are not prepared for use', () => {
+  assert.equal(
+    capabilityPreparationState({ capability, inventory: inventory(false), tasks: [] }).state,
+    'unset',
+  );
+});
+test('a configured selection still requires its environment', () => {
+  assert.equal(
+    capabilityPreparationState({ capability, inventory: inventory(true, false), tasks: [] }).state,
+    'attention',
+  );
+  assert.equal(capabilityPreparationState({ capability, inventory: inventory(), tasks: [] }).state, 'ready');
+});
+test('preparing or failing B preserves ready A and exposes the replacement', () => {
+  for (const status of ['preparing', 'failed'] as const) {
+    const result = capabilityPreparationState({ capability, inventory: inventory(), tasks: [task(status)] });
+    assert.equal(result.state, 'ready');
+    assert.equal(result.replacement, true);
+    assert.equal(result.task?.status, status);
+  }
+});
+test('after selection changed, partial consumer failure describes the actual current model', () => {
+  const current = inventory();
+  const result = capabilityPreparationState({
+    capability,
+    inventory: current,
+    tasks: [
+      {
+        ...task('failed', 'A'),
+        failure: { stage: 'save-route', message: 'save failed', machineSelected: true },
+      },
+    ],
   });
-
-  assert.deepEqual(cards, [
-    {
-      capabilityContract: 'image.generate',
-      selectedLoadoutLabel: 'Image Model',
-      activeTaskId: null,
-      activeTaskStatus: null,
-    },
-    {
-      capabilityContract: 'audio.transcribe',
-      selectedLoadoutLabel: null,
-      activeTaskId: 'task-1',
-      activeTaskStatus: 'review',
-    },
-  ]);
+  assert.equal(result.state, 'ready');
+  assert.equal(result.replacement, false);
+  assert.equal(result.task?.failure?.machineSelected, true);
 });
 
-test('terminal tasks are not active tasks', () => {
-  assert.equal(runtimeSetupTaskIsActive(task({ taskId: 'a', status: 'done' })), false);
-  assert.equal(runtimeSetupTaskIsActive(task({ taskId: 'b', status: 'failed' })), false);
-  assert.equal(runtimeSetupTaskIsActive(task({ taskId: 'c', status: 'stopped' })), false);
-  assert.equal(runtimeSetupTaskIsActive(task({ taskId: 'd', status: 'preparing' })), true);
-  assert.equal(runtimeSetupTaskIsActive(task({ taskId: 'e', status: 'needs-attention' })), true);
-});
-
-test('AI settings view renders the machine scope, cards, and task entry strip', () => {
-  const markup = renderView(
-    <RuntimeConfigAiSettingsView
-      cards={[{
-        capabilityContract: 'image.generate',
-        selectedLoadoutLabel: 'Image Model',
-        activeTaskId: null,
-        activeTaskStatus: null,
-      }, {
-        capabilityContract: 'audio.transcribe',
-        selectedLoadoutLabel: null,
-        activeTaskId: 'task-1',
-        activeTaskStatus: 'preparing',
-      }]}
-      tasks={[task({ taskId: 'task-1', capabilityContract: 'audio.transcribe', status: 'preparing' })]}
-      loading={false}
-      loadError={null}
-      runtimeWritesDisabled={false}
-      busyCapability={null}
-      onStartTask={() => {}}
-      onContinueTask={() => {}}
-      onOpenSavedConfigs={() => {}}
-      profilesSection={<div data-testid="runtime-ai-settings-profiles" />}
-    />,
+test('offline and unread state never become unset or a false ready claim', () => {
+  assert.equal(
+    capabilityPreparationState({ capability, inventory: inventory(), tasks: [], unavailable: true }).state,
+    'unknown',
   );
 
-  assert.match(markup, /runtime-ai-settings-active-tasks/);
-  assert.match(markup, /runtime-ai-settings-capability:image\.generate/);
-  assert.match(markup, /runtime-ai-settings-capability:audio\.transcribe/);
-  // The configured card offers Change; the unset card offers its in-progress task.
-  assert.match(markup, /runtime-ai-settings-start:image\.generate/);
-  assert.match(markup, /runtime-ai-settings-continue:audio\.transcribe/);
-  assert.match(markup, /Image Model/);
-  assert.match(markup, /runtime-ai-settings-saved-configs/);
-  assert.match(markup, /runtime-ai-settings-profiles/);
+  assert.equal(capabilityPreparationState({ capability, inventory: undefined, tasks: [] }).state, 'unknown');
 });
 
-test('AI settings view shows the read-only banner when runtime writes are disabled', () => {
-  const markup = renderView(
-    <RuntimeConfigAiSettingsView
-      cards={[]}
-      tasks={[]}
-      loading={false}
-      loadError={null}
-      runtimeWritesDisabled={true}
-      busyCapability={null}
-      onStartTask={() => {}}
-      onContinueTask={() => {}}
-      onOpenSavedConfigs={() => {}}
-      profilesSection={<div data-testid="runtime-ai-settings-profiles" />}
-    />,
+test('a draft or prepare-only result does not mean a download is in progress', () => {
+  for (const status of ['draft', 'review', 'prepared'] as const)
+    assert.equal(
+      capabilityPreparationState({ capability, inventory: inventory(false), tasks: [task(status)] }).state,
+      'unset',
   );
-  assert.match(markup, /runtime-ai-settings-readonly/);
+  assert.equal(
+    capabilityPreparationState({ capability, inventory: inventory(false), tasks: [task('preparing')] }).state,
+    'preparing',
+  );
 });
 
-test('AI settings view renders load failures without pretending there is nothing configured', () => {
-  const markup = renderView(
-    <RuntimeConfigAiSettingsView
-      cards={[]}
-      tasks={[]}
-      loading={false}
-      loadError="runtime read failed"
-      runtimeWritesDisabled={false}
-      busyCapability={null}
-      onStartTask={() => {}}
-      onContinueTask={() => {}}
-      onOpenSavedConfigs={() => {}}
-      profilesSection={<div data-testid="runtime-ai-settings-profiles" />}
-    />,
-  );
-  assert.match(markup, /runtime-ai-settings-load-error/);
-  assert.match(markup, /runtime read failed/);
-  assert.doesNotMatch(markup, /nimi-empty-state__title/);
+test('completed replacement does not resurrect an older unfinished draft in the capability rail', () => {
+  const result = capabilityPreparationState({ capability, inventory: inventory(), tasks: [task('draft'), task('done', 'A')] });
+  assert.equal(result.state, 'ready');
+  assert.equal(result.task, undefined);
 });

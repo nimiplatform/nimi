@@ -27,8 +27,11 @@ import {
   getChatThinkingUnsupportedCopy,
 } from './chat-shared-thinking';
 import { type InlineFeedbackState } from '../../ui/feedback/inline-feedback';
+import { createNimiClientId } from '@nimiplatform/sdk';
+import { AI_NEW_CONVERSATION_TITLE } from './chat-nimi-thread-model';
 import {
   bundleQueryKey,
+  createEmptyBundle,
   isEmptyPendingAssistantMessage,
   sortThreadSummaries,
   THREADS_QUERY_KEY,
@@ -228,6 +231,30 @@ export function useAiConversationModeHost(
     syncSelectionToThread,
     threads,
   });
+
+  // Home hands over typed text: open a fresh ephemeral thread whose draft is
+  // that text. Nothing is persisted until the person actually sends.
+  const pendingNimiPrefill = useAppStore((state) => state.pendingNimiComposerPrefill);
+  const clearPendingNimiPrefill = useAppStore((state) => state.clearPendingNimiComposerPrefill);
+  useEffect(() => {
+    if (!pendingNimiPrefill || submittingThreadId) return;
+    const timestampMs = bindings.clock.now();
+    const thread: ChatAiThreadRecord = {
+      id: createNimiClientId('ai-thread'),
+      title: AI_NEW_CONVERSATION_TITLE,
+      createdAtMs: timestampMs,
+      updatedAtMs: timestampMs,
+      lastMessageAtMs: null,
+    };
+    setEphemeralThread(thread);
+    queryClient.setQueryData(bundleQueryKey(thread.id), {
+      ...createEmptyBundle(thread),
+      draft: { threadId: thread.id, text: pendingNimiPrefill.text, attachments: [], updatedAtMs: timestampMs },
+    });
+    currentDraftTextRef.current = pendingNimiPrefill.text;
+    syncSelectionToThread(thread.id);
+    clearPendingNimiPrefill(pendingNimiPrefill.requestId);
+  }, [bindings.clock, clearPendingNimiPrefill, pendingNimiPrefill, queryClient, submittingThreadId, syncSelectionToThread]);
 
   const intentSummary = useMemo(() => ({
     label: textIntent?.route.oneofKind === 'local'

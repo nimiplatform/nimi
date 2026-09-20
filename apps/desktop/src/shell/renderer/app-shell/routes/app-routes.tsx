@@ -275,12 +275,8 @@ function DesktopFirstRunGate(props: {
 }
 
 function ReadyDesktopShell() {
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
-
-  useEffect(() => {
-    setActiveTab('chat');
-  }, [setActiveTab]);
-
+  // The ordinary UI slice starts at Home. Do not overwrite an explicit App or
+  // Chat intent already admitted while this shell was mounting.
   return <MainLayout />;
 }
 

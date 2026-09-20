@@ -1,12 +1,24 @@
+import { ConfirmDialog, IconButton, ScrollArea } from '@nimiplatform/kit/ui';
+import { CircleAlert, KeyRound, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { IdentityTile } from '../../components/identity-tile.js';
+import { E2E_IDS } from '../../testability/e2e-ids';
+import { CloudIcon } from './runtime-config-page-cloud-primitives';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import { getVendorLabelV11 } from './runtime-config-state-types';
-import { ScrollArea } from '@nimiplatform/kit/ui';
-import { E2E_IDS } from '../../testability/e2e-ids';
-import { Card as PrimitiveCard } from './runtime-config-primitives';
-import { CloudIcon, TrashIcon } from './runtime-config-page-cloud-primitives';
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 type Connector = RuntimeConfigStateV11['connectors'][number];
+
+export type ConnectorPresentationState = 'healthy' | 'unchecked' | 'needs-credential' | 'attention';
+
+/** One reading of a connection's state shared by the list and the detail header. */
+export function connectorPresentationState(connector: Pick<Connector, 'hasCredential' | 'status'>): ConnectorPresentationState {
+  if (!connector.hasCredential) return 'needs-credential';
+  if (connector.status === 'healthy') return 'healthy';
+  if (connector.status === 'idle') return 'unchecked';
+  return 'attention';
+}
 
 export function CloudConnectorListPanel(props: {
   connectors: Connector[];
@@ -17,9 +29,11 @@ export function CloudConnectorListPanel(props: {
   t: Translate;
 }) {
   const { connectors, t } = props;
+  const [pendingDelete, setPendingDelete] = useState<Connector | null>(null);
   return (
-    <PrimitiveCard className="overflow-hidden xl:h-[600px]" hoverMotion={false}>
-      <ScrollArea className="max-h-[300px] xl:h-[600px] xl:max-h-none" contentClassName="p-4">
+    <div className="min-w-0">
+      <h2 className="mb-3 text-sm font-semibold text-[var(--nimi-text-secondary)]">{t('runtimeConfig.product.yourConnections', { count: connectors.length })}</h2>
+      <ScrollArea className="max-h-[540px]" contentClassName="space-y-1">
         {connectors.length === 0 ? (
           <div className="flex h-full min-h-[160px] flex-col items-center justify-center text-center">
             <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))]">
@@ -31,14 +45,14 @@ export function CloudConnectorListPanel(props: {
             </p>
           </div>
         ) : (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-1">
             {connectors.map((connector) => (
               <CloudConnectorListItem
                 key={connector.id}
                 active={connector.id === props.selectedConnectorId}
                 connector={connector}
                 deleting={connector.id === props.deletingConnectorId}
-                onDeleteConnector={props.onDeleteConnector}
+                onDeleteConnector={async () => setPendingDelete(connector)}
                 onSelectConnector={props.onSelectConnector}
                 t={t}
               />
@@ -46,7 +60,8 @@ export function CloudConnectorListPanel(props: {
           </div>
         )}
       </ScrollArea>
-    </PrimitiveCard>
+      <ConfirmDialog open={pendingDelete !== null} title={t('runtimeConfig.product.removeConnectionTitle', { name: pendingDelete?.label ?? '' })} message={t('runtimeConfig.product.removeConnectionHelp')} confirmLabel={t('runtimeConfig.cloud.deleteConnector')} cancelLabel={t('Common.cancel')} confirmTone="danger" onClose={() => setPendingDelete(null)} onConfirm={() => { if (!pendingDelete) return; void props.onDeleteConnector(pendingDelete.id).finally(() => setPendingDelete(null)); }} />
+    </div>
   );
 }
 
@@ -59,47 +74,69 @@ function CloudConnectorListItem(props: {
   t: Translate;
 }) {
   const { active, connector, t } = props;
-  const isHealthy = connector.status === 'healthy';
+  const presentation = connectorPresentationState(connector);
   const canDelete = !connector.isSystemOwned && connector.scope !== 'runtime-system';
-  const deleteLabel = props.deleting
-    ? t('runtimeConfig.cloud.deletingConnector', { defaultValue: 'Deleting...' })
-    : t('runtimeConfig.cloud.deleteConnector', { defaultValue: 'Delete' });
+  const vendorLabel = getVendorLabelV11(connector.vendor);
+  const showVendor = vendorLabel.toLowerCase() !== connector.label.toLowerCase();
+  // Only exceptions get words. A checked connection shows a green dot on its
+  // tile and nothing else; "not checked" stays quiet and muted.
+  const exception =
+    presentation === 'needs-credential'
+      ? { text: t('runtimeConfig.product.credentialMissing'), className: 'text-[var(--nimi-status-warning)]', Icon: KeyRound }
+      : presentation === 'attention'
+        ? { text: t('runtimeConfig.product.attentionBadge'), className: 'text-[var(--nimi-status-danger)]', Icon: CircleAlert }
+        : presentation === 'unchecked'
+          ? { text: t('runtimeConfig.product.uncheckedBadge'), className: 'text-[var(--nimi-text-muted)]', Icon: null }
+          : null;
   return (
     <div
-      className={`w-full rounded-xl border px-4 py-3 text-left text-xs transition-all ${
-        active
-          ? 'border-transparent bg-[var(--nimi-sidebar-item-active)] text-[var(--nimi-text-primary)]'
-          : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]/30'
-      }`}
+      className={`group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-xs transition-colors ${active
+        ? 'bg-[var(--nimi-sidebar-item-active)] text-[var(--nimi-text-primary)]'
+        : 'hover:bg-[var(--nimi-surface-active)]'
+        }`}
     >
-      <div className="flex items-start gap-2">
-        <button
-          type="button"
-          onClick={() => props.onSelectConnector(connector.id)}
-          className="min-w-0 flex-1 text-left focus:outline-none"
-        >
-          <div className="flex items-center gap-2">
-            <span className={`inline-block h-2 w-2 shrink-0 rounded-full ${
-              isHealthy ? 'bg-[var(--nimi-status-success)]' : connector.status === 'unreachable' || connector.status === 'degraded' || connector.status === 'unsupported' ? 'bg-[var(--nimi-status-danger)]' : 'bg-[var(--nimi-text-muted)]'
-            }`} />
-            <p className="truncate font-semibold text-[var(--nimi-text-primary)]">{connector.label}</p>
+      <button
+        type="button"
+        onClick={() => props.onSelectConnector(connector.id)}
+        aria-current={active ? 'page' : undefined}
+        className="flex min-w-0 flex-1 items-center gap-2.5 rounded-md text-left focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+      >
+        <IdentityTile seed={connector.provider || connector.vendor} label={vendorLabel} size="sm">
+          {presentation === 'healthy' ? (
+            <span className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-[var(--nimi-surface-panel)] bg-[var(--nimi-status-success)]" />
+          ) : null}
+        </IdentityTile>
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-2">
+            <span className="truncate text-sm font-semibold text-[var(--nimi-text-primary)]">{connector.label}</span>
             <CloudConnectorScopeBadge connector={connector} t={t} />
-          </div>
-          <p className="mt-0.5 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">{getVendorLabelV11(connector.vendor)}</p>
-        </button>
-        {canDelete ? (
-          <button
-            type="button"
-            onClick={() => { void props.onDeleteConnector(connector.id); }}
-            disabled={props.deleting}
-            aria-label={deleteLabel}
-            title={deleteLabel}
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[var(--nimi-status-danger)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] focus:outline-none focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <TrashIcon />
-          </button>
-        ) : null}
-      </div>
+          </span>
+          {showVendor || exception ? (
+            <span className="mt-0.5 flex items-center gap-1.5 text-xs text-[var(--nimi-text-secondary)]">
+              {showVendor ? <span className="truncate">{vendorLabel}</span> : null}
+              {showVendor && exception ? <span aria-hidden="true">·</span> : null}
+              {exception ? (
+                <span className={`flex items-center gap-1 ${exception.className}`}>
+                  {exception.Icon ? <exception.Icon size={12} /> : null}
+                  {exception.text}
+                </span>
+              ) : null}
+            </span>
+          ) : null}
+        </span>
+      </button>
+      {canDelete && active ? (
+        <IconButton
+          size="sm"
+          tone="ghost"
+          aria-label={t('runtimeConfig.cloud.deleteConnector')}
+          title={t('runtimeConfig.cloud.deleteConnector')}
+          disabled={props.deleting}
+          icon={<Trash2 size={15} />}
+          className="shrink-0 text-[var(--nimi-text-muted)] hover:text-[var(--nimi-status-danger)]"
+          onClick={() => { void props.onDeleteConnector(connector.id); }}
+        />
+      ) : null}
     </div>
   );
 }

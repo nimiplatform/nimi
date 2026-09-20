@@ -47,6 +47,10 @@ export type AppTab =
   | 'explore'
   | 'apps'
   | 'runtime'
+  | 'cloud'
+  | 'downloads'
+  | 'diagnostics'
+  | 'activity'
   | 'settings'
   | 'support'
   | 'profile'
@@ -105,6 +109,8 @@ export type AppStoreState = {
   agentConversationTargetByHandle: Record<string, AgentLocalTargetSnapshot>;
   pendingAgentComposerPrefill: AgentComposerPrefill | null;
   agentComposerPrefillSerial: number;
+  /** Text typed on Home that Nimi Chat opens a new conversation with. */
+  pendingNimiComposerPrefill: { text: string; requestId: number } | null;
   chatSetupState: ChatSetupStateByMode;
   selectedChatId: string | null;
   selectedProfileId: string | null;
@@ -146,6 +152,8 @@ export type AppStoreState = {
   setAgentConversationTargetSnapshot: (target: AgentLocalTargetSnapshot) => void;
   setPendingAgentComposerPrefill: (input: { agentHandle?: string | null; sourceKey?: string | null; text: string }) => void;
   clearPendingAgentComposerPrefill: (requestId: number) => void;
+  setPendingNimiComposerPrefill: (text: string) => void;
+  clearPendingNimiComposerPrefill: (requestId: number) => void;
   setChatSetupState: (mode: ConversationMode, setupState: ConversationSetupState | null) => void;
   setSelectedChatId: (chatId: string | null) => void;
   setSelectedProfileId: (profileId: string | null) => void;

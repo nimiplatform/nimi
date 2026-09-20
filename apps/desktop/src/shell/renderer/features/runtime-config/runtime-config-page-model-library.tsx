@@ -16,7 +16,6 @@ const MODEL_LIBRARY_SECTIONS: ReadonlyArray<{
 }> = [
   { id: 'discover', labelKey: 'runtimeConfig.modelLibrary.discoverTab', defaultLabel: 'Discover' },
   { id: 'downloaded', labelKey: 'runtimeConfig.modelLibrary.downloadedTab', defaultLabel: 'Downloaded' },
-  { id: 'transfers', labelKey: 'runtimeConfig.modelLibrary.transfersTab', defaultLabel: 'Transfers' },
 ];
 
 /**

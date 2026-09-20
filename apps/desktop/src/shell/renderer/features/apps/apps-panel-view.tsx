@@ -88,6 +88,7 @@ import { packageJobIsTerminal } from './apps-downloads-observer.js';
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-001a
 
 export interface AppsPanelViewProps {
+  readonly downloadsOnly?: boolean;
   readonly downloads?: AppsDownloadsContextValue;
   readonly onViewDownloadApp?: (job: AppPackageJob) => void;
   readonly onRetryDownload?: (job: AppPackageJob) => void;
@@ -123,6 +124,7 @@ const FILTER_LABEL_KEYS: Readonly<Record<AppsRailFilterId, string>> = {
 const RECENT_GROUPS_LIMIT = 6;
 
 export function AppsPanelView({
+  downloadsOnly = false,
   downloads,
   onViewDownloadApp,
   onRetryDownload,
@@ -247,7 +249,8 @@ export function AppsPanelView({
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 px-3 pb-3 pt-2 lg:flex-row">
-      <AppsRail
+      {!downloadsOnly ? (
+        <AppsRail
         projection={projection}
         groupsCount={groups.length}
         runningGroups={runningGroups}
@@ -265,6 +268,7 @@ export function AppsPanelView({
         onLeaveDownloads={onBack}
         onRetry={onRetry}
       />
+      ) : null}
 
       <Surface
         as="main"
@@ -273,7 +277,7 @@ export function AppsPanelView({
         padding="none"
         className="flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden rounded-xl border-[var(--nimi-border-subtle)] shadow-[var(--nimi-elevation-base)]"
       >
-        {downloads?.view === 'downloads' && onViewDownloadApp && onRetryDownload ? (
+        {downloadsOnly && downloads && onViewDownloadApp && onRetryDownload ? (
           <AppsDownloadsView downloads={downloads} entries={loadedEntries} onViewApp={onViewDownloadApp} onRetry={onRetryDownload} />
         ) : detailMode ? (
           <>

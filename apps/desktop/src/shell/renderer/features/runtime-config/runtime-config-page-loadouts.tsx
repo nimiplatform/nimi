@@ -28,6 +28,7 @@ import {
 } from '@nimiplatform/kit/ui';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast.js';
+import { CAPABILITY_INVENTORY_KEY } from './runtime-capability-inventory.js';
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
 import { runtimeConfigLoadoutCatalogBadge } from './runtime-config-loadout-catalog-badge.js';
 import {
@@ -74,6 +75,8 @@ type PendingRecommendedInstall = {
   readonly loadout?: NimiMachineLoadout;
 };
 export function SavedConfigsView(props: {
+  readonly contextual?: boolean;
+  readonly capabilityContract?: string;
   readonly navigationContext: RuntimeConfigLoadoutNavigationContext | null;
   readonly onBack: () => void;
   readonly onOpenAdvancedDiagnostics?: () => void;
@@ -143,6 +146,7 @@ export function SavedConfigsView(props: {
   const refreshAIConfigProjections = useCallback(() => {
     void Promise.all([
       queryClient.invalidateQueries({ queryKey: ['app-ai-config'] }),
+      queryClient.invalidateQueries({ queryKey: CAPABILITY_INVENTORY_KEY }),
       queryClient.invalidateQueries({ queryKey: ['desktop', 'machine-local-ai-config-selections'] }),
     ]);
   }, [queryClient]);
@@ -150,12 +154,13 @@ export function SavedConfigsView(props: {
   const capabilities = useMemo(() => {
     const contracts: string[] = [];
     const append = (value: string) => {
+      if (props.capabilityContract && value !== props.capabilityContract) return;
       if (value && !contracts.includes(value)) contracts.push(value);
     };
     for (const recipe of recipes) append(recipe.capabilityContract);
     for (const loadout of aggregate?.loadouts ?? []) append(loadout.capabilityContract);
     return contracts;
-  }, [aggregate, recipes]);
+  }, [aggregate, recipes, props.capabilityContract]);
 
   const loadoutsByCapability = useMemo(() => {
     const grouped = new Map<string, NimiMachineLoadout[]>();
@@ -475,7 +480,7 @@ export function SavedConfigsView(props: {
         actions={(
           <>
             <Button size="sm" tone="ghost" data-testid="saved-configs-back" onClick={props.onBack}>
-              {t('runtimeConfig.aiSettings.savedConfigsBack', { defaultValue: 'Back to AI Settings' })}
+              {props.contextual ? t('runtimeConfig.product.backToCustomization') : t('runtimeConfig.aiSettings.savedConfigsBack', { defaultValue: 'Back to AI Settings' })}
             </Button>
             <Button size="sm" tone="primary" onClick={() => beginCreate(activeCapability || undefined)}>{t('runtimeConfig.loadouts.create')}</Button>
           </>
@@ -495,7 +500,7 @@ export function SavedConfigsView(props: {
       ) : null}
       {loading ? <LoadingSkeleton lines={5} label={t('Common.loading', { defaultValue: 'Loading…' })} /> : capabilities.length > 0 ? (
         <div className="grid min-w-0 grid-cols-1 gap-4" data-testid="machine-loadouts-list">
-          <div className="min-w-0 overflow-x-auto py-1" data-testid="loadout-capability-tabs-scroll">
+          {!props.contextual ? <div className="min-w-0 overflow-x-auto py-1" data-testid="loadout-capability-tabs-scroll">
             <PillTabs
               className="w-max"
               size="sm"
@@ -507,7 +512,7 @@ export function SavedConfigsView(props: {
               value={activeCapability}
               onValueChange={(value) => setActiveCapability(value)}
             />
-          </div>
+          </div> : null}
           {activeCapability ? (
             <section className="grid min-w-0 grid-cols-1 gap-3" data-testid={`loadout-capability:${activeCapability}`}>
               <LoadoutGroup
@@ -523,13 +528,13 @@ export function SavedConfigsView(props: {
                 onInstallRecommended={requestRecommendedInstallForRecipe}
                 onManage={(loadout) => setManageLoadoutId(loadout.loadoutId)}
               />
-              <RecipeTemplateGroup
+              {!props.contextual ? <RecipeTemplateGroup
                 title={t('runtimeConfig.loadouts.recommendedTemplates', { defaultValue: 'Recommended plans' })}
                 recipes={recommendedRecipes}
                 emptyLabel={t('runtimeConfig.loadouts.noRecommendedTemplates', { defaultValue: 'No supported plan is currently recommended.' })}
                 onOpen={selectCreateRecipe}
-              />
-              {unknownRecipes.length > 0 ? (
+              /> : null}
+              {!props.contextual && unknownRecipes.length > 0 ? (
                 <CollapsibleRecipeSection
                   title={t('runtimeConfig.loadouts.unknownTemplates', { defaultValue: 'Needs host information' })}
                   count={unknownRecipes.length}
@@ -540,7 +545,7 @@ export function SavedConfigsView(props: {
                   />
                 </CollapsibleRecipeSection>
               ) : null}
-              {unsupportedRecipes.length > 0 ? (
+              {!props.contextual && unsupportedRecipes.length > 0 ? (
                 <CollapsibleRecipeSection
                   title={t('runtimeConfig.loadouts.unsupportedTemplates', { defaultValue: "Plans this device can't run" })}
                   count={unsupportedRecipes.length}

@@ -1,3 +1,4 @@
+import { GlobalDownloadsProvider } from '../../features/runtime-config/global-downloads-context.js';
 import React, { Suspense, lazy, useEffect, useRef, type MouseEvent, type PropsWithChildren } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore, useAppStoreApi, type AppTab } from '../providers/app-store';
@@ -141,7 +142,8 @@ export function MainLayout() {
 
   return (
     <AppsDownloadsProvider>
-      <MainLayoutView
+      <GlobalDownloadsProvider>
+        <MainLayoutView
         activeTab={activeTab}
         authStatus={authStatus}
         displayName={displayName}
@@ -168,6 +170,7 @@ export function MainLayout() {
           <ScenarioJobStatusHost />
         </Suspense>
       </NonCriticalStartupBoundary>
+    </GlobalDownloadsProvider>
     </AppsDownloadsProvider>
   );
 }

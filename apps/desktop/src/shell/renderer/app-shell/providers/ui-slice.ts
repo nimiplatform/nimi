@@ -63,7 +63,7 @@ function pushNavigationBackStack(
 }
 
 const DEFAULT_BACK_ROUTE: NavigationRouteSnapshot = {
-  activeTab: 'chat',
+  activeTab: 'home',
   selectedProfileId: null,
   selectedSourceRef: null,
   selectedWorldId: null,
@@ -86,6 +86,7 @@ type UiSlice = Pick<AppStoreState,
   | 'agentConversationTargetByHandle'
   | 'pendingAgentComposerPrefill'
   | 'agentComposerPrefillSerial'
+  | 'pendingNimiComposerPrefill'
   | 'chatSetupState'
   | 'selectedChatId'
   | 'selectedProfileId'
@@ -116,6 +117,8 @@ type UiSlice = Pick<AppStoreState,
   | 'setAgentConversationTargetSnapshot'
   | 'setPendingAgentComposerPrefill'
   | 'clearPendingAgentComposerPrefill'
+  | 'setPendingNimiComposerPrefill'
+  | 'clearPendingNimiComposerPrefill'
   | 'setChatSetupState'
   | 'setSelectedChatId'
   | 'setSelectedProfileId'
@@ -135,12 +138,11 @@ type UiSlice = Pick<AppStoreState,
 
 export function createUiSlice(
   set: AppStoreSet,
-  dependencies: UiSliceDependencies,
-): UiSlice {
+  dependencies: UiSliceDependencies): UiSlice {
   return {
     bootstrapReady: false,
     bootstrapError: null,
-    activeTab: 'chat',
+    activeTab: 'home',
     navigationBackStack: [],
     chatMode: 'ai',
     chatThinkingPreference: dependencies.initialChatThinkingPreference,
@@ -152,6 +154,7 @@ export function createUiSlice(
     agentConversationSelection: { ...EMPTY_AGENT_CONVERSATION_SELECTION },
     agentConversationTargetByHandle: {},
     pendingAgentComposerPrefill: null,
+    pendingNimiComposerPrefill: null,
     agentComposerPrefillSerial: 0,
     chatSetupState: { ...DEFAULT_CHAT_SETUP_STATE },
     selectedChatId: null,
@@ -289,11 +292,26 @@ export function createUiSlice(
         };
       }),
     clearPendingAgentComposerPrefill: (requestId) =>
-      set((state) => (
+      set((state) =>
         state.pendingAgentComposerPrefill?.requestId === requestId
           ? { pendingAgentComposerPrefill: null }
-          : {}
-      )),
+          : {},
+      ),
+    setPendingNimiComposerPrefill: (input) =>
+      set((state) => {
+        const text = String(input || '').trim();
+        const requestId = state.agentComposerPrefillSerial + 1;
+        return {
+          agentComposerPrefillSerial: requestId,
+          pendingNimiComposerPrefill: text ? { text, requestId } : null,
+        };
+      }),
+    clearPendingNimiComposerPrefill: (requestId) =>
+      set((state) =>
+        state.pendingNimiComposerPrefill?.requestId === requestId
+          ? { pendingNimiComposerPrefill: null }
+          : {},
+      ),
     setChatSetupState: (mode, setupState) =>
       set((state) => ({
         chatSetupState: {

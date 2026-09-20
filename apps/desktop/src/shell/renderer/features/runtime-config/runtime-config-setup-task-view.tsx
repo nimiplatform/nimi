@@ -7,10 +7,13 @@ import type {
   NimiMachineLoadout,
   NimiRuntimeLocalTransferProgressEvent,
 } from '@nimiplatform/sdk/runtime';
-import { Button, InlineAlert, LoadingSkeleton, StatusBadge } from '@nimiplatform/kit/ui';
+import { Button, InlineAlert, LoadingSkeleton, ProgressIndicator, StatusBadge } from '@nimiplatform/kit/ui';
+import { CheckCircle2, LoaderCircle } from 'lucide-react';
+import { formatBytes, formatDurationShort, formatTransferRate } from '../../components/download-format.js';
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
 import { formatKnownDownloadSize } from './runtime-config-model-center-utils.js';
-import { loadoutCandidatePresentation } from './runtime-config-loadout-model-display.js';
+import { loadoutCandidatePresentation, loadoutSlotLabelKey } from './runtime-config-loadout-model-display.js';
+import { setupPlanNeedsPreparation } from './runtime-capability-presentation.js';
 import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability-labels.js';
 import {
   useRuntimeSetupTasks,
@@ -121,6 +124,7 @@ function installedRebindLabel(t: (key: string, options?: Record<string, unknown>
  * the awaiting-choice pickers and the installed-rebind honesty label.
  */
 export function SetupTaskPlanReview(props: {
+  readonly choiceGroup?: string;
   readonly plan: RuntimeSetupPreparationPlan;
   readonly choices: Readonly<Record<string, string>>;
   readonly onChoiceChange: (slotId: string, offerRef: string) => void;
@@ -130,21 +134,76 @@ export function SetupTaskPlanReview(props: {
   const { t } = useTranslation();
   const unknownSize = t('runtimeConfig.setupTask.unknownSize', { defaultValue: 'size unknown' });
   const installedLabel = installedRebindLabel(t);
+  const partLabel = (item: { slotId: string; label: string }) => {
+    const key = loadoutSlotLabelKey(item.slotId);
+    return key ? t(key) : item.label;
+  };
+  const needsPreparation = setupPlanNeedsPreparation(props.plan, props.choices);
+  const downloadItems = props.plan.acquire.filter((item) => !item.offer.installedModelAssetId);
+  const downloadBytes = downloadItems.reduce<number | null>((total, item) => (
+    total === null || typeof item.offer.sizeBytes !== 'number' || item.offer.sizeBytes <= 0 ? null : total + item.offer.sizeBytes
+  ), 0);
+  const chosenDownloads = props.plan.awaitingChoice.filter((choice) => {
+    const option = choice.options.find((entry) => entry.offerRef === props.choices[choice.slotId]);
+    return option && !option.installedModelAssetId;
+  }).length;
+  const receiptRows: readonly { key: string; label: string; value: string; tone?: 'warning' }[] = [
+    {
+      key: 'download',
+      label: t('runtimeConfig.setupTask.receipt.download'),
+      value: downloadItems.length + chosenDownloads === 0
+        ? t('runtimeConfig.setupTask.receipt.nothing')
+        : downloadBytes !== null && chosenDownloads === 0
+          ? t('runtimeConfig.setupTask.receipt.downloadCount', { count: downloadItems.length, size: scopeSizeLabel(downloadBytes, unknownSize) })
+          : t('runtimeConfig.setupTask.receipt.downloadCountUnknown', { count: downloadItems.length + chosenDownloads }),
+      ...(downloadItems.length + chosenDownloads > 0 ? { tone: 'warning' as const } : {}),
+    },
+    ...(props.plan.reuse.length + props.plan.acquire.length - downloadItems.length > 0
+      ? [{
+        key: 'reuse',
+        label: t('runtimeConfig.setupTask.receipt.reuse'),
+        value: t('runtimeConfig.setupTask.receipt.reuseCount', { count: props.plan.reuse.length + props.plan.acquire.length - downloadItems.length }),
+      }]
+      : []),
+    ...(props.plan.components.some((item) => item.required)
+      ? [{
+        key: 'components',
+        label: t('runtimeConfig.setupTask.receipt.components'),
+        value: t('runtimeConfig.setupTask.receipt.componentsCount', { count: props.plan.components.filter((item) => item.required).length }),
+      }]
+      : []),
+  ];
   return (
     <div className="space-y-3" data-testid="runtime-setup-task-plan">
+      <div className="rounded-xl bg-[var(--nimi-surface-card)] px-4 py-3">
+        {!needsPreparation && !props.plan.unavailable.length ? (
+          <p className="mb-2 flex items-center gap-2 text-sm font-medium text-[var(--nimi-text-primary)]">
+            <CheckCircle2 size={15} className="text-[var(--nimi-status-success)]" />
+            {t('runtimeConfig.product.readyToUseSettings')}
+          </p>
+        ) : null}
+        <dl className="grid gap-x-4 gap-y-1.5 text-sm sm:grid-cols-[120px_minmax(0,1fr)]">
+          {receiptRows.map((row) => (
+            <div key={row.key} className="contents">
+              <dt className="text-[var(--nimi-text-secondary)]">{row.label}</dt>
+              <dd className={row.tone === 'warning' ? 'font-medium text-[var(--nimi-status-warning)]' : 'text-[var(--nimi-text-primary)]'}>{row.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
       {props.plan.reuse.length > 0 ? (
-        <div>
-          <div className="text-[length:var(--nimi-type-label-size)] font-semibold text-[var(--nimi-text-primary)]">
+        <details>
+          <summary className="cursor-pointer text-sm text-[var(--nimi-text-secondary)]">
             {t('runtimeConfig.setupTask.scope.reuse', { defaultValue: 'Reused resources' })}
-          </div>
+          </summary>
           <ul className="mt-1 space-y-1">
             {props.plan.reuse.map((item) => (
               <li key={item.slotId} className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-secondary)]">
-                {item.label}
+                {partLabel(item)}
               </li>
             ))}
           </ul>
-        </div>
+        </details>
       ) : null}
       {props.plan.acquire.length > 0 ? (
         <div>
@@ -174,7 +233,7 @@ export function SetupTaskPlanReview(props: {
                 <label key={option.offerRef} className="flex cursor-pointer items-center gap-2 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-secondary)]">
                   <input
                     type="radio"
-                    name={`runtime-setup-choice-${choice.slotId}`}
+                    name={`runtime-setup-choice-${props.choiceGroup ?? 'task'}-${choice.slotId}`}
                     checked={selected}
                     onChange={() => props.onChoiceChange(choice.slotId, option.offerRef)}
                   />
@@ -219,20 +278,20 @@ export function SetupTaskPlanReview(props: {
         </div>
       ) : null}
       {props.plan.options.length > 0 ? (
-        <div>
-          <div className="text-[length:var(--nimi-type-label-size)] font-semibold text-[var(--nimi-text-primary)]">
+        <details>
+          <summary className="cursor-pointer text-sm text-[var(--nimi-text-secondary)]">
             {t('runtimeConfig.setupTask.scope.options', { defaultValue: 'Optional features' })}
-          </div>
+          </summary>
           <ul className="mt-1 space-y-1">
             {props.plan.options.map((item) => (
               <li key={item.slotId} className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-secondary)]">
-                {item.label}
+                {partLabel(item)}
               </li>
             ))}
           </ul>
-        </div>
+        </details>
       ) : null}
-      <div className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-secondary)]">
+      <p className="text-xs text-[var(--nimi-text-muted)]">
         {t('runtimeConfig.setupTask.scope.reviewModes', { defaultValue: "Prepare and use makes this the current model on this device. Prepare only keeps the current model unchanged." })}
         {props.ownerLabel ? (
           <span>
@@ -243,7 +302,99 @@ export function SetupTaskPlanReview(props: {
             })}
           </span>
         ) : null}
-      </div>
+      </p>
+    </div>
+  );
+}
+
+const PREPARATION_STAGES = ['download', 'verify', 'components', 'finish'] as const;
+type PreparationStage = (typeof PREPARATION_STAGES)[number];
+
+/**
+ * Stage of a running preparation derived from observed transfer events and
+ * the task's own status. Nothing is guessed: with no events yet the first
+ * stage is simply "current".
+ */
+export function preparationStage(input: {
+  readonly status: RuntimeSetupTask['status'];
+  readonly events: readonly NimiRuntimeLocalTransferProgressEvent[];
+  readonly hasComponents: boolean;
+}): PreparationStage {
+  if (input.status === 'committing') return 'finish';
+  const active = input.events.filter((event) => !event.done);
+  if (active.length > 0) {
+    return active.some((event) => event.phase !== 'verify') ? 'download' : 'verify';
+  }
+  if (input.hasComponents) return 'components';
+  return input.events.length > 0 ? 'finish' : 'download';
+}
+
+function PreparationProgress(props: {
+  readonly task: RuntimeSetupTask;
+  readonly progress: Readonly<Record<string, NimiRuntimeLocalTransferProgressEvent>>;
+}) {
+  const { t } = useTranslation();
+  const events = props.task.refs.installPlanIds.map((planId) => props.progress[planId]).filter((event): event is NimiRuntimeLocalTransferProgressEvent => !!event);
+  const stage = preparationStage({ status: props.task.status, events, hasComponents: props.task.refs.dependencyJobIds.length > 0 });
+  const stageIndex = PREPARATION_STAGES.indexOf(stage);
+  const active = events.filter((event) => !event.done);
+  const bytesReceived = active.reduce((total, event) => total + event.bytesReceived, 0);
+  const bytesTotal = active.every((event) => typeof event.bytesTotal === 'number' && event.bytesTotal > 0)
+    ? active.reduce((total, event) => total + (event.bytesTotal ?? 0), 0)
+    : null;
+  const speed = active.reduce((total, event) => total + (event.speedBytesPerSec ?? 0), 0);
+  const eta = active.reduce<number | null>((longest, event) => (
+    typeof event.etaSeconds === 'number' ? Math.max(longest ?? 0, event.etaSeconds) : longest
+  ), null);
+  return (
+    <div className="space-y-4 rounded-xl bg-[var(--nimi-surface-card)] p-4" data-testid="runtime-setup-task-stages">
+      <ol className="flex flex-wrap items-center gap-2 text-xs" aria-label={t('runtimeConfig.setupTask.stages.title')}>
+        {PREPARATION_STAGES.map((item, index) => {
+          const tone = index < stageIndex ? 'done' : index === stageIndex ? 'current' : 'pending';
+          const toneClass = tone === 'current'
+            ? 'bg-[var(--nimi-action-primary-bg)] font-medium text-[var(--nimi-action-primary-text)]'
+            : tone === 'done'
+              ? 'bg-[var(--nimi-status-success-soft-bg)] text-[var(--nimi-status-success-soft-text)]'
+              : 'bg-[var(--nimi-surface-active)] text-[var(--nimi-text-muted)]';
+          const toneIcon = tone === 'done'
+            ? <CheckCircle2 size={12} />
+            : tone === 'current'
+              ? <LoaderCircle size={12} className="animate-spin" />
+              : null;
+          return (
+            <li key={item} className="flex items-center gap-2">
+              <span
+                className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 ${toneClass}`}
+                aria-current={tone === 'current' ? 'step' : undefined}
+              >
+                {toneIcon}
+                {t(`runtimeConfig.setupTask.stages.${item}`)}
+              </span>
+              {index < PREPARATION_STAGES.length - 1 ? <span className="text-[var(--nimi-text-muted)]">›</span> : null}
+            </li>
+          );
+        })}
+      </ol>
+      {active.length > 0 ? (
+        <div className="space-y-1.5">
+          <ProgressIndicator value={bytesTotal ? bytesReceived : undefined} max={bytesTotal ?? undefined} showValue aria-label={t('runtimeConfig.setupTask.stages.download')} />
+          <p className="flex flex-wrap gap-x-3 text-xs tabular-nums text-[var(--nimi-text-secondary)]">
+            <span>{formatBytes(bytesReceived)}{bytesTotal ? ` / ${formatBytes(bytesTotal)}` : ''}</span>
+            {speed > 0 ? <span>{formatTransferRate(speed)}</span> : null}
+            {eta !== null && eta > 0 ? <span>{t('runtimeConfig.setupTask.stages.eta', { time: formatDurationShort(eta) })}</span> : null}
+          </p>
+        </div>
+      ) : null}
+      {active.length > 1 ? (
+        <ul className="space-y-1 text-xs text-[var(--nimi-text-secondary)]">
+          {active.map((event) => (
+            <li key={event.installSessionId} className="flex justify-between gap-3">
+              <span className="min-w-0 truncate">{event.modelId}</span>
+              <span className="shrink-0 tabular-nums">{formatBytes(event.bytesReceived)}{event.bytesTotal ? ` / ${formatBytes(event.bytesTotal)}` : ''}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   );
 }
@@ -263,6 +414,7 @@ function sourceOwnerLabel(task: RuntimeSetupTask, t: (key: string, options?: Rec
  * affordance. Advanced editing persists to the task draft.
  */
 export function RuntimeConfigSetupTaskView(props: {
+  readonly initialAdvancedOpen?: boolean;
   readonly taskId: string;
   readonly store: RuntimeSetupTaskStore;
   readonly ports: RuntimeSetupRunnerPorts;
@@ -283,7 +435,7 @@ export function RuntimeConfigSetupTaskView(props: {
   const [busy, setBusy] = useState(false);
   const [reuseMessage, setReuseMessage] = useState('');
   const [actionError, setActionError] = useState('');
-  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(props.initialAdvancedOpen ?? false);
   const [candidateInfo, setCandidateInfo] = useState<{
     readonly candidate: NimiMachineLoadout | null;
     readonly recipe: NimiLoadoutRecipe | null;
@@ -362,6 +514,13 @@ export function RuntimeConfigSetupTaskView(props: {
     });
     if (result.status === 'ok') {
       setPlan(result.value);
+      setChoices(previous => ({
+        ...Object.fromEntries(result.value.awaitingChoice.flatMap(choice => {
+          const recommendation = choice.options.find(option => option.recommended);
+          return recommendation ? [[choice.slotId, recommendation.offerRef]] : [];
+        })),
+        ...previous,
+      }));
       return true;
     }
     if (result.status === 'blocked') setActionError(result.failure.message);
@@ -666,16 +825,22 @@ export function RuntimeConfigSetupTaskView(props: {
                 onClick={() => onConfirm('prepare-and-use')}
                 data-testid="runtime-setup-task-prepare-and-use"
               >
-                {t('runtimeConfig.setupTask.prepareAndUse', { defaultValue: 'Prepare and use' })}
+                {t(plan && !setupPlanNeedsPreparation(plan, choices) ? 'runtimeConfig.product.useTheseSettings' : 'runtimeConfig.setupTask.prepareAndUse')}
               </Button>
-              <Button
-                tone="secondary"
-                disabled={busy || !plan || plan.unavailable.length > 0 || plan.awaitingChoice.some((choice) => !choices[choice.slotId])}
-                onClick={() => onConfirm('prepare-only')}
-                data-testid="runtime-setup-task-prepare-only"
-              >
-                {t('runtimeConfig.setupTask.prepareOnly', { defaultValue: 'Prepare only' })}
-              </Button>
+              {plan && setupPlanNeedsPreparation(plan, choices) ? (
+                <Button
+                  tone="secondary"
+                  disabled={busy || plan.unavailable.length > 0 || plan.awaitingChoice.some((choice) => !choices[choice.slotId])}
+                  onClick={() => onConfirm('prepare-only')}
+                  data-testid="runtime-setup-task-prepare-only"
+                >
+                  {t('runtimeConfig.setupTask.prepareOnly', { defaultValue: 'Prepare only' })}
+                </Button>
+              ) : null}
+              <Button tone="ghost" size="sm" disabled={busy} onClick={() => {
+                props.store.updateTask(task.taskId, () => ({ status: 'draft', nextAction: 'review-preparation' }));
+                setAdvancedOpen(true);
+              }}>{t('runtimeConfig.product.customize')}</Button>
               {plan && plan.unavailable.length > 0 ? (
                 <Button tone="ghost" disabled={busy} onClick={() => {
                   props.store.updateTask(task.taskId, () => ({
@@ -692,27 +857,21 @@ export function RuntimeConfigSetupTaskView(props: {
       }
       case 'preparing':
       case 'committing': {
-        const planIds = new Set(task.refs.installPlanIds);
         return (
           <div className="space-y-3" data-testid="runtime-setup-task-progress">
-            <SetupTaskScopeList task={task} />
-            {[...planIds].map((planId) => {
-              const event = progress[planId];
-              return (
-                <div key={planId} className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-secondary)]">
-                  {event
-                    ? `${event.phase || event.state}: ${formatKnownDownloadSize(event.bytesReceived, '')}${typeof event.bytesTotal === 'number' && event.bytesTotal > 0 ? ` / ${formatKnownDownloadSize(event.bytesTotal, '')}` : ''}`
-                    : planId}
-                </div>
-              );
-            })}
-            <p className="text-xs text-[var(--nimi-text-muted)]">
-              {t('runtimeConfig.setupTask.closingKeepsRunning', { defaultValue: 'Closing this page does not cancel the task.' })}
-            </p>
-            <Button tone="secondary" onClick={() => stopRuntimeSetupTask(props.store, props.taskId)} data-testid="runtime-setup-task-stop">
-              {t('runtimeConfig.setupTask.stop', { defaultValue: 'Stop' })}
-            </Button>
-            <p className="text-xs text-[var(--nimi-text-muted)]">{stopInfo}</p>
+            <PreparationProgress task={task} progress={progress} />
+            <details className="text-sm">
+              <summary className="cursor-pointer text-[var(--nimi-text-secondary)]">{t('runtimeConfig.setupTask.receipt.scopeDetails')}</summary>
+              <div className="mt-2"><SetupTaskScopeList task={task} /></div>
+            </details>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button tone="secondary" size="sm" onClick={() => stopRuntimeSetupTask(props.store, props.taskId)} data-testid="runtime-setup-task-stop">
+                {t('runtimeConfig.setupTask.stop', { defaultValue: 'Stop' })}
+              </Button>
+              <span className="text-xs text-[var(--nimi-text-muted)]">
+                {t('runtimeConfig.setupTask.closingKeepsRunning', { defaultValue: 'Closing this page does not cancel the task.' })}
+              </span>
+            </div>
           </div>
         );
       }

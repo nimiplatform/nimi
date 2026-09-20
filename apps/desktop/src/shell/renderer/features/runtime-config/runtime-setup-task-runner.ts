@@ -112,14 +112,18 @@ export type RuntimeSetupAcquireOption = {
 };
 
 export type RuntimeSetupPreparationPlan = {
-  readonly reuse: readonly { readonly slotId: string; readonly label: string; readonly modelAssetId: string }[];
-  readonly acquire: readonly { readonly slotId: string; readonly label: string; readonly offer: RuntimeSetupAcquireOption }[];
+  readonly reuse: readonly { readonly slotId: string; readonly label: string; readonly modelAssetId: string;
+    readonly expectedContentId?: string;
+  }[];
+  readonly acquire: readonly { readonly slotId: string; readonly label: string; readonly offer: RuntimeSetupAcquireOption;
+  }[];
   readonly awaitingChoice: readonly {
     readonly slotId: string;
     readonly label: string;
     readonly options: readonly RuntimeSetupAcquireOption[];
   }[];
-  readonly unavailable: readonly { readonly slotId: string; readonly label: string; readonly reasonCode?: string }[];
+  readonly unavailable: readonly { readonly slotId: string; readonly label: string; readonly reasonCode?: string;
+  }[];
   readonly components: readonly {
     readonly dependencyFamily: string;
     readonly dependencyId: string;
@@ -129,6 +133,8 @@ export type RuntimeSetupPreparationPlan = {
   }[];
   readonly options: readonly { readonly slotId: string; readonly label: string }[];
   readonly environmentPlanId: string;
+  readonly environmentScope?: string;
+  readonly environmentDependencies?: NimiRuntimeLocalEnvironmentPlan['dependencies'];
   readonly candidateRevision: string;
   /** Whether the machine had any selection record for the capability at review. */
   readonly selectionRevisionPresent: boolean;
@@ -647,7 +653,7 @@ async function computePreparation(
       candidateLoadoutId: task.candidateLoadoutId,
     }),
   ]);
-  const candidate = aggregate.loadouts.find((loadout) => loadout.loadoutId === task.candidateLoadoutId);
+    const candidate = aggregate.loadouts.find((loadout) => loadout.loadoutId === task.candidateLoadoutId);
   if (!candidate) {
     throw new Error('Runtime setup candidate Loadout no longer exists.');
   }
@@ -741,34 +747,92 @@ async function computePreparation(
     candidate,
     environmentPlan,
     plan: {
-      reuse,
+      reuse: reuse.map((item) => ({
+        ...item,
+        expectedContentId:
+          candidate.modelAxes.find((axis) => axis.slotId === item.slotId)?.expectedContentId ||
+          pendingAxes.find((axis) => axis.slotId === item.slotId)?.contentId,
+      })),
       acquire,
       awaitingChoice,
       unavailable,
       components,
       options,
       environmentPlanId: environmentPlan.planId,
+      environmentScope: JSON.stringify([
+        environmentPlan.packId,
+        environmentPlan.hostProfileId,
+        environmentPlan.platformTuple,
+        environmentPlan.runtimeDataRoot,
+        environmentPlan.consumerScope,
+      ]),
+      environmentDependencies: environmentPlan.dependencies,
       candidateRevision: candidate.revision,
       selectionRevisionPresent: Boolean(selectionRevision),
-      ...(selectionRevision
-        ? { selectionRevision }
-        : {}),
+      ...(selectionRevision ? { selectionRevision } : {}),
       ...(ownerSnapshot ? { ownerAIConfigRevision: ownerSnapshot.revision } : {}),
     },
   };
 }
 
 function samePlan(left: RuntimeSetupPreparationPlan, right: RuntimeSetupPreparationPlan): boolean {
+  const acquisitionIdentity = (offer: RuntimeSetupAcquireOption) => JSON.stringify([
+    offer.offerRef,
+    offer.expectedContentId,
+    offer.templateId,
+    offer.portableSource,
+  ]);
+  // A newly missing asset adds work even when its content identity is unchanged.
+  // Only downloads already reviewed from the same source may still be dispatched.
+  if (right.acquire.some((item) => {
+    if (item.offer.installedModelAssetId) return false;
+    const reviewed = left.acquire.find((entry) => entry.slotId === item.slotId);
+    return !reviewed || Boolean(reviewed.offer.installedModelAssetId)
+      || acquisitionIdentity(reviewed.offer) !== acquisitionIdentity(item.offer);
+  })) return false;
   const normalize = (plan: RuntimeSetupPreparationPlan) => JSON.stringify({
-    reuse: plan.reuse.map((item) => [item.slotId, item.modelAssetId]),
-    acquire: plan.acquire.map((item) => [item.slotId, item.offer.offerRef]),
+    reuse: plan.reuse.map((item) => [item.slotId, item.modelAssetId, item.expectedContentId]),
+    acquire: plan.acquire.map((item) => [item.slotId, acquisitionIdentity(item.offer), item.offer.installedModelAssetId]),
     awaitingChoice: plan.awaitingChoice.map((item) => [item.slotId, item.options.map((option) => option.offerRef)]),
     unavailable: plan.unavailable.map((item) => item.slotId),
     components: plan.components.map((item) => [item.dependencyFamily, item.dependencyId, item.state]),
     options: plan.options.map((item) => item.slotId),
     environmentPlanId: plan.environmentPlanId,
   });
-  return normalize(left) === normalize(right);
+  if (normalize(left) === normalize(right)) return true;
+  if (
+    !left.environmentScope ||
+    left.environmentScope !== right.environmentScope ||
+    !left.environmentDependencies ||
+    !right.environmentDependencies
+  )
+    return false;
+  if (environmentPlanRequiredDependencyChange(left.environmentDependencies, right.environmentDependencies))
+    return false;
+  const optional = (plan: RuntimeSetupPreparationPlan) =>
+    JSON.stringify(
+      plan.environmentDependencies
+        ?.filter((item) => !item.required)
+        .map((item) => [item.dependencyFamily, item.dependencyId, item.state])
+        .sort(),
+    );
+  if (optional(left) !== optional(right)) return false;
+  const resources = (plan: RuntimeSetupPreparationPlan) =>
+    JSON.stringify({
+      targets: [
+        ...plan.reuse.map((item) => [item.slotId, item.expectedContentId || `asset:${item.modelAssetId}`]),
+        ...plan.acquire.map((item) => [
+          item.slotId,
+          item.offer.expectedContentId || `offer:${item.offer.offerRef}`,
+        ]),
+      ].sort((a, b) => a[0]!.localeCompare(b[0]!)),
+      choices: plan.awaitingChoice,
+      unavailable: plan.unavailable.map((item) => item.slotId),
+      options: plan.options.map((item) => item.slotId),
+    });
+  // Reuse gained by another task is progress under the same scope, not a new
+  // acquisition. Selection/candidate/owner CAS conditions remain unchanged.
+  return resources(left) === resources(right);
 }
 
 /**
@@ -1346,6 +1410,23 @@ export async function runRuntimeSetupPreparation(
   task = prepareAdmission.task;
   try {
     const candidate = computed.candidate;
+    const reusesToBind = computed.plan.reuse.filter(
+      (item) =>
+        !candidate.modelAxes.some(
+          (axis) => axis.slotId === item.slotId && axis.modelAssetId === item.modelAssetId,
+        ),
+    );
+    if (reusesToBind.length > 0) {
+        const assets = await ports.install.listModelAssets();
+      for (const item of reusesToBind) {
+        const asset = assets.find((asset) => asset.modelAssetId === item.modelAssetId);
+        if (!asset) throw new Error(`The model to reuse is no longer present: ${item.label}`);
+        bindings.set(item.slotId, {
+          modelAssetId: asset.modelAssetId,
+          expectedContentId: item.expectedContentId || asset.contentId,
+        });
+      }
+    }
     const modelAxes = candidate.modelAxes
       .filter((axis) => axis.modelAssetId && axis.expectedContentId)
       .map((axis) => ({ slotId: axis.slotId, modelAssetId: axis.modelAssetId, expectedContentId: axis.expectedContentId }))

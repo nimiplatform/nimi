@@ -11,6 +11,7 @@ export type DesktopRendererRuntimeConfigNavigationView = {
     | { readonly kind: 'focus-action'; readonly actionFocus: RuntimeConfigActionFocus }
     | { readonly kind: 'open-setup-task'; readonly taskId: string }
     | { readonly kind: 'open-profile-use'; readonly owner: RuntimeConfigProfileUseOwner }
+    | { readonly kind: 'open-capability'; readonly capabilityContract: string }
     | null;
 };
 
@@ -22,6 +23,7 @@ export interface DesktopRendererRuntimeConfigNavigationPort {
   openSetupTask(taskId: string): void;
   /** Opens the AI Settings profile library in an exact consumer-owner context. */
   openProfileUse(owner: RuntimeConfigProfileUseOwner): void;
+  openCapability(capabilityContract: string): void;
   subscribe(listener: () => void): () => void;
 }
 
@@ -65,6 +67,11 @@ export function createDesktopRendererRuntimeConfigNavigationPort(): DesktopRende
         revision: view.revision + 1,
         intent: Object.freeze({ kind: 'open-profile-use', owner }),
       });
+      publish();
+    },
+    openCapability(capabilityContract: string) {
+      if (!capabilityContract.trim()) return;
+      view = Object.freeze({ revision: view.revision + 1, intent: Object.freeze({ kind: 'open-capability', capabilityContract }) });
       publish();
     },
     subscribe(listener: () => void) {

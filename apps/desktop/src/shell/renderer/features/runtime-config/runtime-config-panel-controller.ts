@@ -31,7 +31,10 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
   const runtimeConnectorSdk = useRuntimeConfigConnectorSdk();
   const runtimeConfigNavigation = bindings.app.commands.runtimeConfigNavigation;
   const activeTab = useAppStore((state) => state.activeTab);
-  const runtimeTabActive = activeTab === 'runtime';
+  const runtimeTabActive = ['runtime', 'cloud', 'diagnostics'].includes(activeTab);
+  const setActiveTab = useAppStore((state) => state.setActiveTab);
+  const [navigationRevision, setNavigationRevision] = useState(0);
+  const navigationSeen = useRef(0);
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
   const offlineTier = useAppStore((state) => state.offlineTier);
   const setPageFeedback = emitFeedbackToast;
@@ -107,15 +110,19 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
   }, [panelState.setVaultVersion]);
 
   const onChangePage = useCallback((pageId: RuntimePageIdV11) => {
-    setLoadoutNavigationContext(null);
-    setModelMarketContext(null);
-    setSetupTaskFocus(null);
-    setProfileUseOwner(null);
+      setActiveTab(
+        pageId === 'cloudServices' ? 'cloud' : pageId === 'advancedDiagnostics' ? 'diagnostics' : 'runtime',
+      );
+      setLoadoutNavigationContext(null);
+      setModelMarketContext(null);
+      setSetupTaskFocus(null);
+      setProfileUseOwner(null);
     panelState.updateState((prev) => ({
       ...prev,
       activePage: pageId,
     }));
-  }, [panelState.updateState]);
+  }, [panelState.updateState, setActiveTab],
+  );
 
   const onOpenSetupTask = useCallback((taskId: string) => {
     setLoadoutNavigationContext(null);
@@ -228,6 +235,25 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
   }, [panelState.hydrated, panelState.state]);
 
   useEffect(() => {
+    if (!panelState.hydrated) return;
+    const navigation = runtimeConfigNavigation.get();
+    if (!navigation.intent || navigation.revision === navigationSeen.current) {
+      panelState.updateState((prev) => {
+        const page =
+          activeTab === 'cloud'
+            ? 'cloudServices'
+            : activeTab === 'diagnostics'
+              ? 'advancedDiagnostics'
+              : activeTab === 'runtime'
+                ? prev.activePage === 'modelLibrary'
+                  ? 'modelLibrary'
+                  : 'aiSettings'
+                : null;
+        return !page || prev.activePage === page ? prev : { ...prev, activePage: page };
+      });
+      return;
+    }
+    navigationSeen.current = navigation.revision;
     const applyNavigation = () => {
       const navigation = runtimeConfigNavigation.get();
       if (navigation.revision === 0 || !navigation.intent) return;
@@ -235,6 +261,19 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
       setLoadoutNavigationContext(null);
       setModelMarketContext(null);
       setProfileUseOwner(null);
+      const targetPage =
+        intent.kind === 'open-page'
+          ? intent.page
+          : intent.kind === 'focus-action'
+            ? intent.actionFocus.page
+            : 'aiSettings';
+      setActiveTab(
+        targetPage === 'cloudServices'
+          ? 'cloud'
+          : targetPage === 'advancedDiagnostics'
+            ? 'diagnostics'
+            : 'runtime',
+      );
       if (intent.kind === 'open-page') {
         setSetupTaskFocus(null);
         panelState.updateState((prev) => ({
@@ -262,6 +301,12 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
         }));
         return;
       }
+      if (intent.kind === 'open-capability') {
+        setSetupTaskFocus(null);
+        setLoadoutNavigationContext({ capabilityContract: intent.capabilityContract });
+        panelState.updateState(prev => ({ ...prev, activePage: 'aiSettings', actionFocus: null }));
+        return;
+      }
       setSetupTaskFocus(null);
       panelState.updateState((prev) => ({
         ...prev,
@@ -270,8 +315,19 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
       }));
     };
     applyNavigation();
-    return runtimeConfigNavigation.subscribe(applyNavigation);
-  }, [panelState.updateState, runtimeConfigNavigation]);
+  }, [panelState.updateState,
+    panelState.hydrated,
+    activeTab,
+    runtimeConfigNavigation,
+    navigationRevision,
+    setActiveTab,
+  ]);
+
+  useEffect(
+    () =>
+      runtimeConfigNavigation.subscribe(() => setNavigationRevision(runtimeConfigNavigation.get().revision)),
+    [runtimeConfigNavigation],
+  );
 
   return {
     state: panelState.state,
