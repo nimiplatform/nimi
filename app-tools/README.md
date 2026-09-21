@@ -268,6 +268,8 @@ pnpm dev
 
 `dev` uses the Desktop supervisor. Direct Electron, Tauri or renderer launch cannot claim protected Nimi access. Process running and Nimi Access ready remain separate states.
 
+Use `nimi-app dev --list-registrations` and `--resume <selector>` to continue an existing development registration and its App data. Refresh the list after Desktop restarts: selectors belong to that Desktop session. A plain `dev` launch creates a separate registration and storage audience, even when the App ID and project path match an older registration.
+
 Every `build`, including non-production builds, requires the selected target's
 declared payload and exact Runtime entry to exist after its owner command exits
 successfully. Building a macOS payload cannot report success for a missing

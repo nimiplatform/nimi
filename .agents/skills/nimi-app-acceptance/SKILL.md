@@ -13,6 +13,7 @@ Verify the requested behavior in the real supported App. Start from the affected
 - Generic `nimi-app dev` selects and prints an ephemeral loopback CDP port. When a stable port is needed, use `pnpm --filter <app-package> dev -- --cdp-port <free-port>` with the actual package and an available port.
 - Root `pnpm dev:desktop`, `dev:zhiyu`, `dev:lab`, and `dev:avatar` own deterministic default ports. Generic dev may read the exact `NIMI_APP_DEV_CDP_PORT` override from the project `.env`; `--cdp-port` overrides either path and `--no-cdp` disables CDP.
 - Keep CDP loopback-only, development-only, and ephemeral. Native and owner UI remain outside CDP; use their supported owner paths when the task requires them.
+- To resume existing development data, use the exact registration selected from Desktop's current registration list. After Desktop restarts, refresh that list to obtain its new selector; an expired selector does not mean the registration is gone. Do not fall back to a plain `dev` launch: it creates a separate registration and storage audience even for the same App ID and project path.
 
 ## Observe and complete
 
