@@ -94,6 +94,9 @@ func (MiniMaxMusic3AudioCppDriver) EffectiveRequestDefaults(string, *structpb.St
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.r109
 func (MiniMaxMusic3AudioCppDriver) PlanMusicInvocation(input MusicInvocationInput) (*MusicInvocationPlan, error) {
+	if input.Package.AudioCppVersion != AudioCppMusicPackageVersion {
+		return nil, invocationError(InvocationFailureUnsupported, fmt.Errorf("music float32 output requires audio.cpp %s", AudioCppMusicPackageVersion))
+	}
 	if input.RecipeID != MiniMaxMusic3RecipeID || !musicStructIsEmpty(input.PortableConfig) {
 		return nil, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("MiniMax-Music3 recipe or portable config is invalid"))
 	}

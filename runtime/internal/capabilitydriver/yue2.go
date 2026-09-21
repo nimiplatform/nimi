@@ -17,13 +17,13 @@ import (
 )
 
 const (
-	YuE2ImplementationID  = "local.music.generate.yue2.audio-cpp"
-	YuE2DriverID          = "nimi.runtime.driver.audio-cpp.yue2"
-	YuE2DriverDialect     = "audio.cpp/yue2/music-generate/v1"
-	YuE2RecipeID          = "yue2.audio-cpp.v1"
-	YuE2RequirementID     = "music.bundle"
-	YuE2VerifiedContentID = "sha256:5c23e6c01d468f3cd18068fd94bff0a6b22cca62846ae15015e7400754f65e94"
-	YuE2AudioCppVersion   = "0.8.1"
+	YuE2ImplementationID        = "local.music.generate.yue2.audio-cpp"
+	YuE2DriverID                = "nimi.runtime.driver.audio-cpp.yue2"
+	YuE2DriverDialect           = "audio.cpp/yue2/music-generate/v1"
+	YuE2RecipeID                = "yue2.audio-cpp.v1"
+	YuE2RequirementID           = "music.bundle"
+	YuE2VerifiedContentID       = "sha256:5c23e6c01d468f3cd18068fd94bff0a6b22cca62846ae15015e7400754f65e94"
+	AudioCppMusicPackageVersion = "0.8.1"
 )
 
 var yue2Files = map[string]int64{
@@ -35,9 +35,9 @@ var yue2Files = map[string]int64{
 	"sidecars/yue2-vae-config.json":        1378,
 }
 
-// YuE2AudioCppDriver is the exact verified Q8/F16 candidate. It is deliberately
-// not in the production registry until typed multi-artifact Job publication,
-// the package/catalog cohort and protected consumer have been delivered.
+// YuE2AudioCppDriver admits only the verified Q8/F16 bundle. It requires the
+// typed result carrier and exact v0.8.1 executable cohort; registration does
+// not imply commercial permission or subjective music-quality acceptance.
 // @nimi-authority: definition.nimi.runtime.ai-provider.multimodal-provider-plane
 type YuE2AudioCppDriver struct{}
 
@@ -130,7 +130,7 @@ func (YuE2AudioCppDriver) PlanMusicInvocation(input MusicInvocationInput) (*Musi
 		return bad(InvocationFailureInvalidBinding, "bundle entry is invalid")
 	}
 	pkg := input.Package
-	if pkg.AudioCppVersion != YuE2AudioCppVersion || pkg.AudioCppPackageID != AudioCppWindowsCUDA13PackageID || pkg.CUDA13DependencyID != AudioCppCUDA13RuntimeDependencyID || strings.TrimSpace(pkg.AudioCppSelectedSourceRecordID) == "" || strings.TrimSpace(pkg.CUDA13SelectedSourceRecordID) == "" || !filepath.IsAbs(pkg.AudioCppRoot) || !filepath.IsAbs(pkg.AudioCppExecutablePath) || !filepath.IsAbs(pkg.CUDA13Root) || !musicPathWithin(pkg.AudioCppRoot, pkg.AudioCppExecutablePath) || !strings.EqualFold(filepath.Base(pkg.AudioCppExecutablePath), "audiocpp_cli.exe") {
+	if pkg.AudioCppVersion != AudioCppMusicPackageVersion || pkg.AudioCppPackageID != AudioCppWindowsCUDA13PackageID || pkg.CUDA13DependencyID != AudioCppCUDA13RuntimeDependencyID || strings.TrimSpace(pkg.AudioCppSelectedSourceRecordID) == "" || strings.TrimSpace(pkg.CUDA13SelectedSourceRecordID) == "" || !filepath.IsAbs(pkg.AudioCppRoot) || !filepath.IsAbs(pkg.AudioCppExecutablePath) || !filepath.IsAbs(pkg.CUDA13Root) || !musicPathWithin(pkg.AudioCppRoot, pkg.AudioCppExecutablePath) || !strings.EqualFold(filepath.Base(pkg.AudioCppExecutablePath), "audiocpp_cli.exe") {
 		return bad(InvocationFailureInvalidConfig, "requires the captured audio.cpp 0.8.1 CUDA package")
 	}
 	r := input.Request

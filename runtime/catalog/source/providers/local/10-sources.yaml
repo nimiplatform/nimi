@@ -191,3 +191,11 @@ sources:
     url: https://huggingface.co/onnx-community/silero-vad/blob/e71cae966052b992a7eca6b17738916ce0eca4ec/README.md
     retrieved_at: 2026-09-16
     note: Pinned standard Silero ONNX VAD companion with explicit input, state and sample-rate tensors.
+  - source_id: yue2_audio_cpp_gguf_modelcard
+    url: https://huggingface.co/audio-cpp/Yue2-3B-GGUF/tree/eb116220931de5f373d024d48800338178c7de51
+    retrieved_at: 2026-09-21
+    note: Fixed six-file Q8 and F16 VAE bundle, tested with audio.cpp v0.8.1. Upstream YuE2 is CC-BY-NC-4.0; local experimental use does not establish commercial permission.
+  - source_id: yue2_upstream_modelcard
+    url: https://huggingface.co/m-a-p/YuE2-3B
+    retrieved_at: 2026-09-21
+    note: Upstream score-conditioned music semantics and CC-BY-NC-4.0 notice; Python-only features are not audio.cpp support claims.

@@ -1395,8 +1395,8 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 	}
 
 	all := list("")
-	if len(all) != 87 {
-		t.Fatalf("all Loadout recipes = %d, want 87", len(all))
+	if len(all) != 88 {
+		t.Fatalf("all Loadout recipes = %d, want 88", len(all))
 	}
 	byID := make(map[string]*runtimev1.LoadoutRecipeDescriptor, len(all))
 	for _, recipe := range all {
@@ -1470,10 +1470,21 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 		}
 	}
 	music := list(capabilitydriver.MiniMaxMusic3CapabilityContract)
-	if len(music) != 1 || music[0].GetRecipeId() != capabilitydriver.MiniMaxMusic3RecipeID ||
-		music[0].GetImplementation().GetImplementationId() != capabilitydriver.MiniMaxMusic3ImplementationID ||
-		len(music[0].GetSlots()) != 1 || music[0].GetSlots()[0].GetSlotId() != capabilitydriver.MiniMaxMusic3RequirementID {
+	if len(music) != 2 {
 		t.Fatalf("music recipes = %+v", music)
+	}
+	for _, expected := range []struct{ recipe, implementation, content string }{
+		{capabilitydriver.MiniMaxMusic3RecipeID, capabilitydriver.MiniMaxMusic3ImplementationID, capabilitydriver.MiniMaxMusic3VerifiedContentID},
+		{capabilitydriver.YuE2RecipeID, capabilitydriver.YuE2ImplementationID, capabilitydriver.YuE2VerifiedContentID},
+	} {
+		item := byID[expected.recipe]
+		if item == nil || item.GetImplementation().GetImplementationId() != expected.implementation || len(item.GetSlots()) != 1 || item.GetSlots()[0].GetSlotId() != "music.bundle" {
+			t.Fatalf("music recipe missing: %s", expected.recipe)
+		}
+		metadata, ok := svc.localProviderCatalog.LoadoutRecipe(expected.recipe)
+		if !ok || len(metadata.SlotMetadata) != 1 || len(metadata.SlotMetadata[0].RecommendedContentIDs) != 1 || metadata.SlotMetadata[0].RecommendedContentIDs[0] != expected.content {
+			t.Fatalf("music catalog digest drift: %s %+v", expected.recipe, metadata)
+		}
 	}
 
 	synthesize := list(capabilitydriver.AudioSynthesizeContract)

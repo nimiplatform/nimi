@@ -271,3 +271,45 @@ models:
     aliases:
       - sidecar/stable-audio-open
       - sidecar/stable-audio-open-default
+
+  - model_id: yue2-audio-cpp-local
+    model_type: music
+    family: yue2
+    updated_at: 2026-09-21
+    capabilities: [music.generate]
+    source_ids: [yue2_audio_cpp_gguf_modelcard, yue2_upstream_modelcard]
+    install:
+      repo: audio-cpp/Yue2-3B-GGUF
+      revision: eb116220931de5f373d024d48800338178c7de51 # pragma: allowlist secret -- public immutable model revision
+      license: CC-BY-NC-4.0
+      provenance: m-a-p/YuE2-3B converted by audio-cpp; non-commercial research use
+      install_kind: verified-hf-multi-file
+      entry: yue2-3b-q8_0.gguf
+      artifact_roles: [music_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.music.yue2.audio-cpp.q8-f16.cuda
+        quant: Q8_0/F16
+        entry: yue2-3b-q8_0.gguf
+        files:
+          - sidecars/yue2-generation-config.json
+          - sidecars/yue2-model-config.json
+          - sidecars/yue2-qwen.tiktoken
+          - sidecars/yue2-vae-config.json
+          - yue2-3b-q8_0.gguf
+          - yue2-vae-f16.gguf
+        hashes:
+          sidecars/yue2-generation-config.json: sha256:203830cebde6e3644eb291925362990d198e66c3b6006cd11f1aaa21904bcc61
+          sidecars/yue2-model-config.json: sha256:ad3477bbef890bf98ae196c1e4b44779494a6231c4ab66f32708eabadf265329
+          sidecars/yue2-qwen.tiktoken: sha256:b2b1b8dfb5cc5f024bafc373121c6aba3f66f9a5a0269e243470a1de16a33186
+          sidecars/yue2-vae-config.json: sha256:f0191bb9694009956de44e0c361a6f1334760be4c8f848e599bde242a54a0970
+          yue2-3b-q8_0.gguf: sha256:f3a9e3b197bfd05aa4ae6ab2d4b93f6d57c8cc0ea39a4af7d151f58697c7cfb6
+          yue2-vae-f16.gguf: sha256:d4f4a05d8f291ae820cd1e43609da3fa91b56465810091a2b08c3350b751719d
+        total_size_bytes: 4531969109
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 25769803776
+          min_vram_bytes: 17179869184
+    fitness:
+      param_count: 3000000000
+      context_length: 24576

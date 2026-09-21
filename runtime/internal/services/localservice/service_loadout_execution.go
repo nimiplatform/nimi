@@ -301,7 +301,7 @@ func (s *Service) resolveSelectedLocalExecutionDependencySources(capabilityContr
 		}
 	default:
 		switch {
-		case strings.TrimSpace(capabilityContract) == capabilitydriver.MiniMaxMusic3CapabilityContract && identity.GetDriverId() == capabilitydriver.MiniMaxMusic3DriverID:
+		case strings.TrimSpace(capabilityContract) == capabilitydriver.MiniMaxMusic3CapabilityContract && (identity.GetDriverId() == capabilitydriver.MiniMaxMusic3DriverID || identity.GetDriverId() == capabilitydriver.YuE2DriverID):
 			consumer = audioCppCUDAConsumerID
 		case strings.TrimSpace(capabilityContract) == capabilitydriver.AudioSynthesizeContract && identity.GetDriverId() == capabilitydriver.Qwen3TTSAudioCppDriverID:
 			consumer = audioCppQwen3TTSCUDAConsumerID

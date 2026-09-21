@@ -23,7 +23,7 @@ const (
 	Qwen3TTSAudioCppModelSizeBytes     = int64(2817044064)
 	Qwen3TTSAudioCppVerifiedContentID  = "sha256:3cfaac8e9f13554f6daea3c5e0c53fede71ef5500cbaae7445e5fc3a5bb12e72"
 	Qwen3TTSAudioCppPresetVoiceVivian  = "Vivian"
-	AudioCppWindowsCUDA13PackageID     = "audio-cpp-0.6.1-windows-amd64-cuda13-balance"
+	AudioCppWindowsCUDA13PackageID     = "audio-cpp-0.8.1-windows-amd64-cuda13.3"
 	AudioCppCUDA13RuntimeDependencyID  = "nvidia-cuda13-user-space-runtime"
 	qwen3TTSAudioCppExpectedSampleRate = 24000
 	qwen3TTSAudioCppExpectedChannels   = 1

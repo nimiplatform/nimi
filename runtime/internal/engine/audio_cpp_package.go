@@ -12,22 +12,23 @@ import (
 )
 
 const (
-	AudioCppPackageVersion       = "0.6.1"
-	AudioCppPackageCommit        = "26dcb5c4cf5aa016ae6285096a7b45f2671e5d17" // pragma: allowlist secret -- public source commit
-	AudioCppPackageAssetName     = "audiocpp-windows-cuda-balance-26dcb5c4.zip"
-	AudioCppPackageArchiveURL    = "https://github.com/0xShug0/audio.cpp/releases/download/release-0.6.1/audiocpp-windows-cuda-balance-26dcb5c4.zip"
-	AudioCppPackageArchiveSHA256 = "5e6b6389a05be228f89ba15c5f5f037351a8e2d2be82d1bec363d26dfa55b373" // pragma: allowlist secret -- public archive checksum
-	AudioCppPackageArchiveBytes  = int64(257604825)
+	AudioCppPackageVersion       = "0.8.1"
+	AudioCppPackageCommit        = "f2b4937306daa25f5c78520f3c626ed31495a37a" // pragma: allowlist secret -- public source commit
+	AudioCppPackageAssetName     = "audio-v0.8.1-bin-windows-x64-cuda13.3.zip"
+	AudioCppPackageArchiveURL    = "https://github.com/0xShug0/audio.cpp/releases/download/v0.8.1/audio-v0.8.1-bin-windows-x64-cuda13.3.zip"
+	AudioCppPackageArchiveSHA256 = "aad5dffe4398b325018cf38e58e6555998ef97948a72ac7582de46e91155ca24" // pragma: allowlist secret -- public archive checksum
+	AudioCppPackageArchiveBytes  = int64(269917950)
 	AudioCppCLIExecutableName    = "audiocpp_cli.exe"
 )
 
+// Admit the exact dynamic CLI runtime, excluding the upstream server and tools.
 var audioCppPackageAdmittedFiles = []string{
-	AudioCppCLIExecutableName,
-	"MSVCP140.dll",
-	"VCRUNTIME140.dll",
-	"VCRUNTIME140_1.dll",
-	"VCOMP140.DLL",
-	"README.md",
+	AudioCppCLIExecutableName, "LICENSE",
+	"msvcp140.dll", "msvcp140_1.dll", "msvcp140_2.dll", "msvcp140_atomic_wait.dll", "msvcp140_codecvt_ids.dll",
+	"vcruntime140.dll", "vcruntime140_1.dll", "vcruntime140_threads.dll",
+	"ggml.dll", "ggml-base.dll", "ggml-cuda.dll", "ggml-cpu-x64.dll", "ggml-cpu-sse42.dll",
+	"ggml-cpu-sandybridge.dll", "ggml-cpu-haswell.dll", "ggml-cpu-skylakex.dll", "ggml-cpu-cascadelake.dll",
+	"ggml-cpu-cannonlake.dll", "ggml-cpu-icelake.dll", "ggml-cpu-alderlake.dll",
 }
 
 func (m *Manager) ensureAudioCppBinaryDependency(ctx context.Context, cfg EngineConfig) (EngineBinaryDependencyStatus, error) {
@@ -251,7 +252,7 @@ func (m *Manager) audioCppStatusFromRegistryEntry(entry *RegistryEntry) (EngineB
 		Platform:         "windows/amd64",
 		AssetName:        AudioCppPackageAssetName,
 		AcceleratorPlane: "cuda13",
-		Detail:           "audio.cpp release-0.6.1 official CLI package verified and promoted",
+		Detail:           "audio.cpp v0.8.1 official CUDA 13.3 CLI package verified and promoted",
 	}, nil
 }
 

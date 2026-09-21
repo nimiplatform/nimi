@@ -1618,6 +1618,7 @@ func NewProductionRegistry() *Registry {
 		{CapabilityContract: AudioTranscribeContract, Identity: Identity{ImplementationID: FasterWhisperImplementationID, DriverID: FasterWhisperDriverID, DriverDialect: FasterWhisperDriverDialect}}:                                     FasterWhisperDriver{},
 		{CapabilityContract: AudioTranscribeContract, Identity: Identity{ImplementationID: Qwen3ASRImplementationID, DriverID: Qwen3ASRDriverID, DriverDialect: Qwen3ASRDriverDialect}}:                                                    Qwen3ASRDriver{},
 		{CapabilityContract: AudioTranscribeContract, Identity: Identity{ImplementationID: Qwen3ASRTransformersImplementationID, DriverID: Qwen3ASRTransformersDriverID, DriverDialect: Qwen3ASRTransformersDriverDialect}}:                Qwen3ASRTransformersDriver{},
+		{CapabilityContract: MiniMaxMusic3CapabilityContract, Identity: Identity{ImplementationID: YuE2ImplementationID, DriverID: YuE2DriverID, DriverDialect: YuE2DriverDialect}}:                                                        YuE2AudioCppDriver{},
 		{CapabilityContract: MiniMaxMusic3CapabilityContract, Identity: Identity{ImplementationID: MiniMaxMusic3ImplementationID, DriverID: MiniMaxMusic3DriverID, DriverDialect: MiniMaxMusic3DriverDialect}}:                             MiniMaxMusic3AudioCppDriver{},
 	}
 	for key, driver := range audioCppSpeechProductionDrivers() {

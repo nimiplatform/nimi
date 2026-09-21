@@ -631,6 +631,23 @@ loadout_recipes:
         model_contract:
           format: safetensors
           tensor_contract: minimax-h3-audio-vae
+  - recipe_id: yue2.audio-cpp.v1
+    revision: "1"
+    title: YuE2 score-guided music (non-commercial)
+    capability_contract: music.generate
+    implementation_id: local.music.generate.yue2.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.yue2
+    driver_dialect: audio.cpp/yue2/music-generate/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: music.bundle
+        display_label: YuE2 Q8 with F16 VAE (CC-BY-NC-4.0)
+        recommended_variant_ids: [local.music.yue2.audio-cpp.q8-f16.cuda]
+        model_contract:
+          format: gguf-bundle
+          model_family: yue2
+          artifact_role: music_model
   - recipe_id: minimax-music3.audio-cpp.v1
     revision: "1"
     title: MiniMax-Music3 audio.cpp music generation

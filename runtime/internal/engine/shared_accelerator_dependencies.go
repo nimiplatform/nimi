@@ -64,14 +64,15 @@ var nvidiaCUDA13UserSpaceRuntimeRequiredArtifacts = []string{
 	"cublas64_13.dll",
 	"cublasLt64_13.dll",
 	"cufft64_12.dll",
+	"cudart64_13.dll",
 }
 
 var nvidiaCUDA13UserSpaceRuntimeManagedSource = sharedAcceleratorDependencyManagedSource{
-	SourceID:       "audiocpp-0.6.1-cuda13-win-x64-runtime",
-	ArchiveURL:     "https://github.com/0xShug0/audio.cpp/releases/download/release-0.6.1/audiocpp-windows-cuda-runtime.zip",
-	ArchiveSHA256:  "4104167de457dd3d20bd6e2de172c41f84cd15d0b3e8835649849710a863d10d", // pragma: allowlist secret -- public archive checksum
-	ReleaseVersion: "release-0.6.1",
-	ReleaseAsset:   "audiocpp-windows-cuda-runtime.zip",
+	SourceID:       "audiocpp-0.8.1-cuda13.3-win-x64-runtime",
+	ArchiveURL:     "https://github.com/0xShug0/audio.cpp/releases/download/v0.8.1/audio-v0.8.1-cudart-windows-x64-cuda13.3.zip",
+	ArchiveSHA256:  "5c0a8b1022500b2df2062b7215584408ad07d43358f38a1a3ace0ac6daa441a9", // pragma: allowlist secret -- public archive checksum
+	ReleaseVersion: "v0.8.1",
+	ReleaseAsset:   "audio-v0.8.1-cudart-windows-x64-cuda13.3.zip",
 	InstallDirName: NVIDIACUDA13UserSpaceRuntimeDependencyID,
 }
 
@@ -106,7 +107,7 @@ func sharedAcceleratorDependencySpecForID(raw string) (sharedAcceleratorDependen
 	case NVIDIACUDA13UserSpaceRuntimeDependencyID:
 		return sharedAcceleratorDependencySpec{
 			DependencyID:      NVIDIACUDA13UserSpaceRuntimeDependencyID,
-			Version:           "cuda_major=13;audio.cpp=release-0.6.1",
+			Version:           "cuda_major=13;audio.cpp=v0.8.1;cuda_minor=3",
 			RequiredArtifacts: append([]string(nil), nvidiaCUDA13UserSpaceRuntimeRequiredArtifacts...),
 			ManagedSource:     nvidiaCUDA13UserSpaceRuntimeManagedSource,
 		}, true

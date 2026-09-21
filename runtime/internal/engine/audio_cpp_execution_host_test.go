@@ -33,7 +33,7 @@ func audioCppTestPlan(t *testing.T, name string) *capabilitydriver.MusicInvocati
 		ExactBindings: []capabilitydriver.InvocationExactBinding{{
 			RequirementID: capabilitydriver.MiniMaxMusic3RequirementID, ModelAssetID: "asset", AbsolutePath: filepath.Join(root, "model", "language_model_q4_0.gguf"), BundleDir: filepath.Join(root, "model"), DeclaredFiles: append([]string(nil), audioCppTestDeclaredFiles...), VerifiedContentID: capabilitydriver.MiniMaxMusic3VerifiedContentID,
 		}},
-		Package: capabilitydriver.MusicRuntimePackageInput{
+		Package: capabilitydriver.MusicRuntimePackageInput{AudioCppVersion: "0.8.1",
 			AudioCppPackageID: capabilitydriver.MiniMaxMusic3AudioCppPackageID, AudioCppSelectedSourceRecordID: "audio-selected", AudioCppRoot: filepath.Join(root, "audio-cpp"), AudioCppExecutablePath: filepath.Join(root, "audio-cpp", "audiocpp_cli.exe"),
 			CUDA13DependencyID: capabilitydriver.MiniMaxMusic3CUDA13DependencyID, CUDA13SelectedSourceRecordID: "cuda-selected", CUDA13Root: filepath.Join(root, "cuda13"),
 		},

@@ -6081,6 +6081,60 @@ models:
       url: https://stability.ai/news/introducing-stable-audio-open
       retrieved_at: 2026-03-13
       note: Stable Audio Open announcement and positioning.
+  - model_id: yue2-audio-cpp-local
+    provider: local
+    model_type: music
+    updated_at: 2026-09-21
+    capabilities:
+      - music.generate
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/audio-cpp/Yue2-3B-GGUF/tree/eb116220931de5f373d024d48800338178c7de51
+      retrieved_at: 2026-09-21
+      note: Fixed six-file Q8 and F16 VAE bundle, tested with audio.cpp v0.8.1. Upstream YuE2 is CC-BY-NC-4.0; local experimental use does not establish commercial permission.
+    family: yue2
+    install:
+      repo: audio-cpp/Yue2-3B-GGUF
+      revision: eb116220931de5f373d024d48800338178c7de51
+      install_kind: verified-hf-multi-file
+      entry: yue2-3b-q8_0.gguf
+      artifact_roles:
+        - music_model
+      license: CC-BY-NC-4.0
+      provenance: m-a-p/YuE2-3B converted by audio-cpp; non-commercial research use
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.music.yue2.audio-cpp.q8-f16.cuda
+        quant: Q8_0/F16
+        entry: yue2-3b-q8_0.gguf
+        files:
+          - sidecars/yue2-generation-config.json
+          - sidecars/yue2-model-config.json
+          - sidecars/yue2-qwen.tiktoken
+          - sidecars/yue2-vae-config.json
+          - yue2-3b-q8_0.gguf
+          - yue2-vae-f16.gguf
+        hashes:
+          sidecars/yue2-generation-config.json: sha256:203830cebde6e3644eb291925362990d198e66c3b6006cd11f1aaa21904bcc61
+          sidecars/yue2-model-config.json: sha256:ad3477bbef890bf98ae196c1e4b44779494a6231c4ab66f32708eabadf265329
+          sidecars/yue2-qwen.tiktoken: sha256:b2b1b8dfb5cc5f024bafc373121c6aba3f66f9a5a0269e243470a1de16a33186
+          sidecars/yue2-vae-config.json: sha256:f0191bb9694009956de44e0c361a6f1334760be4c8f848e599bde242a54a0970
+          yue2-3b-q8_0.gguf: sha256:f3a9e3b197bfd05aa4ae6ab2d4b93f6d57c8cc0ea39a4af7d151f58697c7cfb6
+          yue2-vae-f16.gguf: sha256:d4f4a05d8f291ae820cd1e43609da3fa91b56465810091a2b08c3350b751719d
+        total_size_bytes: 4531969109
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 25769803776
+          min_vram_bytes: 17179869184
+    fitness:
+      param_count: 3000000000
+      context_length: 24576
 voices:
   - voice_id: Vivian
     voice_set_id: local:qwen3-tts-audio-cpp-v1
@@ -9009,6 +9063,26 @@ loadout_recipes:
         model_contract:
           format: safetensors
           tensor_contract: minimax-h3-audio-vae
+  - recipe_id: yue2.audio-cpp.v1
+    revision: "1"
+    title: YuE2 score-guided music (non-commercial)
+    capability_contract: music.generate
+    implementation_id: local.music.generate.yue2.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.yue2
+    driver_dialect: audio.cpp/yue2/music-generate/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: music.bundle
+        display_label: YuE2 Q8 with F16 VAE (CC-BY-NC-4.0)
+        recommended_variant_ids:
+          - local.music.yue2.audio-cpp.q8-f16.cuda
+        recommended_content_ids:
+          - sha256:5c23e6c01d468f3cd18068fd94bff0a6b22cca62846ae15015e7400754f65e94
+        model_contract:
+          format: gguf-bundle
+          model_family: yue2
+          artifact_role: music_model
   - recipe_id: minimax-music3.audio-cpp.v1
     revision: "1"
     title: MiniMax-Music3 audio.cpp music generation

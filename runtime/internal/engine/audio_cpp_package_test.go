@@ -87,7 +87,7 @@ func TestAudioCppRegistryEvidenceRejectsCorruptedRuntimeDLL(t *testing.T) {
 	if err := adapter.VerifyEngineBinaryDependency("audio-cpp", AudioCppPackageVersion, filepath.Join(t.TempDir(), AudioCppCLIExecutableName)); err == nil || !strings.Contains(err.Error(), "does not match") {
 		t.Fatalf("different selected-source path passed owner verification: %v", err)
 	}
-	corrupted := "MSVCP140.dll"
+	corrupted := "msvcp140.dll"
 	if err := os.WriteFile(filepath.Join(root, corrupted), []byte("corrupted runtime bytes"), 0o600); err != nil {
 		t.Fatal(err)
 	}

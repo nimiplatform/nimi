@@ -124,7 +124,7 @@ func localEnvironmentTargetForDriver(driver capabilitydriver.Driver, host localE
 			return "local-image-native", "stable-diffusion.cpp.metal", true
 		}
 		return "", "", false
-	case capabilitydriver.MiniMaxMusic3AudioCppDriver:
+	case capabilitydriver.MiniMaxMusic3AudioCppDriver, capabilitydriver.YuE2AudioCppDriver:
 		return "local-music-native", audioCppCUDAConsumerID, true
 	case capabilitydriver.Qwen3TTSAudioCppDriver:
 		return "local-speech-native", audioCppQwen3TTSCUDAConsumerID, true
