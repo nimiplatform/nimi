@@ -596,6 +596,7 @@ describe('Electron protected local-app host', () => {
   it('passes canonical audio references and validates the native sample facts', async () => {
     const calls: unknown[] = [];
     const metadata = { artifactId: 'canonical-1', sizeBytes: 73588090, mimeType: 'audio/wav',
+      expiresAt: { seconds: '2000000000', nanos: 0 },
       audioInfo: { sampleRateHz: 48000, channels: 2, frameCount: 9198504, durationMs: 191635 } };
     const host = createNimiElectronLocalAppHostForBinding({ ...binding([]),
       localAppArtifactUpload: async (input) => { calls.push(input); return { status: 'ok' as const, value: metadata }; },

@@ -482,6 +482,9 @@ enum ReasonCode {
   AI_LOCAL_MODEL_STORAGE_LINK_UNSUPPORTED = 751;
   AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED = 752;
 
+  // Protected music recovery slots, resident bytes or disk headroom exhausted.
+  AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED = 754;
+
   // Reserved: old values of renumbered codes.
   // 104=APP_SCOPE_FORBIDDEN→503, 106=APP_SCOPE_REVOKED→504,
   // 203=AI_PROVIDER_TIMEOUT→394,

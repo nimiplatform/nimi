@@ -372,6 +372,8 @@ pub(super) async fn upload_artifact(
         "mimeType": response.mime_type,
     });
     if canonical {
+        if response.expires_at.is_none() { return Err(untrusted()); }
+        projected["expiresAt"] = project_timestamp(response.expires_at)?;
         let info = response.audio_info.ok_or_else(untrusted)?;
         if response.mime_type != "audio/wav"
             || !(1..=512 * 1024 * 1024).contains(&response.size_bytes)
@@ -388,7 +390,7 @@ pub(super) async fn upload_artifact(
         projected["audioInfo"] = json!({"sampleRateHz": info.sample_rate_hz, "channels": info.channels,
             "frameCount": info.frame_count, "durationMs": info.duration_ms});
     } else if response.size_bytes != expected_size as i64
-        || response.mime_type != expected_mime || response.audio_info.is_some()
+        || response.mime_type != expected_mime || response.audio_info.is_some() || response.expires_at.is_some()
     {
         return Err(untrusted());
     }
@@ -1146,6 +1148,10 @@ fn project_job(job: LocalAppScenarioJob) -> Result<JsonValue, LocalAppOperationE
     }
     if let Some(value) = audio_separation {
         projected.as_object_mut().ok_or_else(untrusted)?.insert("audioSeparation".into(), value);
+    }
+    if job.recovery_expires_at.is_some() {
+        if scenario_type != "music-generate" || !matches!(status, "completed" | "failed" | "canceled" | "timeout") { return Err(untrusted()); }
+        projected["recoveryExpiresAt"] = project_timestamp(job.recovery_expires_at)?;
     }
     if job.video_face_swap_summary.is_some() != (scenario_type == "video-face-swap" && status == "completed") { return Err(untrusted()); }
     if let Some(summary) = job.video_face_swap_summary {

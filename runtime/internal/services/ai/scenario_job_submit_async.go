@@ -108,7 +108,7 @@ func (s *Service) submitScenarioAsyncJob(
 	if persistErr != nil {
 		cancel()
 		_ = s.discardPendingCloudCredentialCustody(jobID, effective.resolvedAssembly.CredentialCustodyRef)
-		if persistErr == errLocalAppSubmissionConflict {
+		if persistErr == errLocalAppSubmissionConflict || persistErr == errMusicRecoveryCapacity || persistErr == errMusicRecoveryExpired {
 			return fail(localAppSubmissionError(persistErr))
 		}
 		return fail(grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, persistErr, grpcerr.ReasonOptions{

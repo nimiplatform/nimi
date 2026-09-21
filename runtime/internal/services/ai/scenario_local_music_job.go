@@ -57,7 +57,7 @@ func (s *Service) submitLocalMusicScenarioJob(ctx context.Context, req *runtimev
 		cancel()
 		cleanupAudioMusicStaging(effective.plan.StagingWAVPath())
 		if persistErr != nil {
-			if errors.Is(persistErr, errLocalAppSubmissionConflict) {
+			if errors.Is(persistErr, errLocalAppSubmissionConflict) || errors.Is(persistErr, errMusicRecoveryCapacity) || errors.Is(persistErr, errMusicRecoveryExpired) {
 				return nil, localAppSubmissionError(persistErr)
 			}
 			return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, persistErr, grpcerr.ReasonOptions{})

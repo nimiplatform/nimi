@@ -11,6 +11,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -53,29 +54,30 @@ type scenarioJobPersistenceAttempt struct {
 }
 
 type scenarioJobRecord struct {
-	payload          *embeddingPayload
-	executionDone    chan struct{}
-	job              *runtimev1.ScenarioJob
-	resolvedAssembly *localResolvedAssembly
-	cloudAssembly    *cloudResolvedAssembly
-	localAppOwner    *localAppJobOwner
-	musicSubmission  *localAppMusicSubmission
-	voiceAsset       *runtimev1.VoiceAsset
-	voiceReference   *runtimev1.VoiceReference
-	visionLocate     *runtimev1.VisionLocateResult
-	events           []*runtimev1.ScenarioJobEvent
-	subscribers      map[uint64]chan *runtimev1.ScenarioJobEvent
-	nextSubID        uint64
-	nextSeq          uint64
-	done             chan struct{}
-	doneClosed       bool
-	cancel           context.CancelFunc
-	cancelRequested  bool
-	cancelReason     string
-	executionStarted bool
-	createdAt        time.Time
-	updatedAt        time.Time
-	terminalAt       time.Time
+	payload                 *embeddingPayload
+	executionDone           chan struct{}
+	job                     *runtimev1.ScenarioJob
+	resolvedAssembly        *localResolvedAssembly
+	cloudAssembly           *cloudResolvedAssembly
+	localAppOwner           *localAppJobOwner
+	musicSubmission         *localAppMusicSubmission
+	musicOutputReservations map[string]int64
+	voiceAsset              *runtimev1.VoiceAsset
+	voiceReference          *runtimev1.VoiceReference
+	visionLocate            *runtimev1.VisionLocateResult
+	events                  []*runtimev1.ScenarioJobEvent
+	subscribers             map[uint64]chan *runtimev1.ScenarioJobEvent
+	nextSubID               uint64
+	nextSeq                 uint64
+	done                    chan struct{}
+	doneClosed              bool
+	cancel                  context.CancelFunc
+	cancelRequested         bool
+	cancelReason            string
+	executionStarted        bool
+	createdAt               time.Time
+	updatedAt               time.Time
+	terminalAt              time.Time
 	// modelAssetUses keeps every captured ModelAsset's files alive until the
 	// job is terminal and its executor has exited. Released exactly once.
 	modelAssetUses []func()
@@ -126,6 +128,8 @@ type scenarioPendingCloudCustody struct {
 
 // @nimi-authority: definition.nimi.runtime.service-operations.scenario-job-plane
 type scenarioJobStore struct {
+	musicArtifacts       runtimeartifact.MusicRecoveryStore
+	musicPreparations    map[string]int64
 	modelAssetUseHolder  localexecution.ModelAssetUseHolder
 	mu                   sync.RWMutex
 	durablePath          string
@@ -140,6 +144,8 @@ type scenarioJobStore struct {
 
 func newScenarioJobStore() *scenarioJobStore {
 	return &scenarioJobStore{
+		musicArtifacts:      runtimeartifact.NewMemoryStore(),
+		musicPreparations:   make(map[string]int64),
 		jobs:                make(map[string]*scenarioJobRecord),
 		artifactJobs:        make(map[string]string),
 		idempotency:         make(map[string]scenarioIdempotencyBinding),
@@ -286,6 +292,10 @@ func (s *scenarioJobStore) createOwnedAndBindCapturedInputsChecked(
 	s.mu.Lock()
 	if submission != nil {
 		if existing := s.musicSubmissionLocked(owner, submission.ID); existing != nil {
+			if musicRecoveryExpired(existing, nowTime) {
+				s.mu.Unlock()
+				return nil, false, errMusicRecoveryExpired
+			}
 			if existing.musicSubmission.RequestSHA256 != submission.RequestSHA256 {
 				s.mu.Unlock()
 				return nil, false, errLocalAppSubmissionConflict
@@ -293,6 +303,10 @@ func (s *scenarioJobStore) createOwnedAndBindCapturedInputsChecked(
 			snapshot := cloneScenarioJob(existing.job)
 			s.mu.Unlock()
 			return snapshot, false, nil
+		}
+		if err := s.admitMusicRecoveryLocked(submission.ReservedBytes, true); err != nil {
+			s.mu.Unlock()
+			return nil, false, err
 		}
 	}
 	var pendingCustody scenarioPendingCloudCustody
@@ -505,7 +519,7 @@ func (s *scenarioJobStore) get(jobID string) (*runtimev1.ScenarioJob, bool) {
 	}
 	s.mu.RLock()
 	record, ok := s.jobs[id]
-	if !ok {
+	if !ok || musicRecoveryExpired(record, time.Now()) {
 		s.mu.RUnlock()
 		return nil, false
 	}
@@ -681,7 +695,11 @@ func (s *scenarioJobStore) transitionWithResults(
 	if becameTerminal {
 		record.terminalAt = nowTime
 	}
-	if err := validateScenarioJobTerminalResults(record); err != nil {
+	validationErr := validateScenarioJobTerminalResults(record)
+	if validationErr == nil {
+		validationErr = s.retainTerminalMusicLocked(record)
+	}
+	if err := validationErr; err != nil {
 		record.job = previousJob
 		record.visionLocate = previousVisionLocate
 		record.voiceAsset = previousVoiceAsset
@@ -784,6 +802,7 @@ func (s *scenarioJobStore) forceFailedInMemory(jobID string, reason string) (*ru
 	record.job.UpdatedAt = timestamppb.New(nowTime)
 	record.updatedAt = nowTime
 	record.terminalAt = nowTime
+	projectMusicRecoveryExpiry(record)
 	if !record.doneClosed {
 		record.doneClosed = true
 		close(record.done)
@@ -1173,7 +1192,11 @@ func (s *scenarioJobStore) finishExecution(jobID string) (bool, error) {
 		record.updatedAt = nowTime
 		record.terminalAt = nowTime
 		record.job.UpdatedAt = timestamppb.New(nowTime)
-		if err := s.persistDurableJobsLocked(scenarioJobPersistenceAttempt{Operation: scenarioJobPersistCancellation, JobID: id, Status: record.job.GetStatus()}); err != nil {
+		persistErr := s.retainTerminalMusicLocked(record)
+		if persistErr == nil {
+			persistErr = s.persistDurableJobsLocked(scenarioJobPersistenceAttempt{Operation: scenarioJobPersistCancellation, JobID: id, Status: record.job.GetStatus()})
+		}
+		if err := persistErr; err != nil {
 			record.job = previousJob
 			record.updatedAt = previousUpdatedAt
 			record.terminalAt = previousTerminalAt
@@ -1427,6 +1450,12 @@ func (s *scenarioJobStore) pruneJobsLocked(now time.Time) {
 			continue
 		}
 		terminalAt := scenarioJobRecordTimestamp(record)
+		if record.musicSubmission != nil {
+			if !terminalAt.IsZero() && !now.Before(terminalAt.Add(musicRecoveryRetention)) {
+				s.deleteJobLocked(jobID)
+			}
+			continue
+		}
 		if !terminalAt.IsZero() && terminalAt.Before(cutoff) {
 			s.deleteJobLocked(jobID)
 			continue

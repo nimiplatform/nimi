@@ -82,6 +82,13 @@ func (s *Service) storeRuntimeJobArtifact(
 	artifact *runtimev1.ScenarioArtifact,
 	body *capabilitydriver.ArtifactBody,
 ) (bool, error) {
+	defer func() {
+		if body != nil {
+			if unconsumed := body.TakeIncrementalStream(); unconsumed != nil {
+				_ = unconsumed.Close()
+			}
+		}
+	}()
 	if s == nil || s.runtimeArtifacts == nil || head == nil || artifact == nil {
 		return false, fmt.Errorf("Runtime artifact custody store is unavailable")
 	}
@@ -90,6 +97,15 @@ func (s *Service) storeRuntimeJobArtifact(
 	owner := s.runtimeArtifactOwnerForJob(jobID, head)
 	if jobID == "" || artifactID == "" || owner == nil {
 		return false, fmt.Errorf("store Runtime job artifact: producer binding is incomplete")
+	}
+	var musicUntil time.Time
+	if s.scenarioJobs != nil {
+		until, release, err := s.scenarioJobs.musicArtifactAdmission(jobID, artifactID, artifact.GetSizeBytes())
+		if err != nil {
+			return false, fmt.Errorf("admit music output custody: %w", err)
+		}
+		defer release()
+		musicUntil = until
 	}
 	if body != nil && body.Kind() == capabilitydriver.ArtifactBodyCommittedReference {
 		metadata, err := s.resolveRuntimeCustodyReference(ctx, body.CommittedReference(), owner, runtimeCustodyOperationScenarioOutputAttach)
@@ -127,12 +143,16 @@ func (s *Service) storeRuntimeJobArtifact(
 	default:
 		return false, fmt.Errorf("store Runtime job artifact %s: body handoff is invalid", artifactID)
 	}
+	if !musicUntil.IsZero() {
+		source = &boundedMusicArtifactSource{Reader: io.LimitReader(source, artifact.GetSizeBytes()+1), Closer: source}
+	}
 	if err := s.runtimeArtifacts.PutStream(ctx, artifactID, runtimeartifact.ArtifactRecord{
-		MimeType:      artifact.GetMimeType(),
-		SizeBytes:     artifact.GetSizeBytes(),
-		ContentSHA256: scenarioArtifactDigest(artifact),
-		ProducerJobID: jobID,
-		Owner:         owner,
+		MimeType:           artifact.GetMimeType(),
+		SizeBytes:          artifact.GetSizeBytes(),
+		ContentSHA256:      scenarioArtifactDigest(artifact),
+		ProducerJobID:      jobID,
+		Owner:              owner,
+		MusicRecoveryUntil: musicUntil,
 	}, source); err != nil {
 		return false, fmt.Errorf("store Runtime job artifact %s: %w", artifactID, err)
 	}
@@ -142,6 +162,11 @@ func (s *Service) storeRuntimeJobArtifact(
 	}
 	projectCommittedArtifactMetadata(artifact, metadata)
 	return true, nil
+}
+
+type boundedMusicArtifactSource struct {
+	io.Reader
+	io.Closer
 }
 
 func (s *Service) storeAndAttachRuntimeJobArtifact(

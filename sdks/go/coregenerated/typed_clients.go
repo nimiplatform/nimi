@@ -1698,6 +1698,7 @@ const (
 	AILOCALMODELSTATEOFFLINECONVERSIONREQUIRED      ReasonCode = "AI_LOCAL_MODEL_STATE_OFFLINE_CONVERSION_REQUIRED"
 	AILOCALMODELSTORAGELINKUNSUPPORTED              ReasonCode = "AI_LOCAL_MODEL_STORAGE_LINK_UNSUPPORTED"
 	AILOCALMODELINVENTORYRECONCILIATIONREQUIRED     ReasonCode = "AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED"
+	AIMUSICRECOVERYCAPACITYEXCEEDED                 ReasonCode = "AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED"
 )
 
 type ReasoningActivation string
@@ -5659,6 +5660,7 @@ type LocalAppScenarioJob struct {
 	Transcription        *SpeechTranscript          `json:"transcription,omitempty"`
 	AudioSeparation      *AudioSeparation           `json:"audio_separation,omitempty"`
 	TextAnnotation       *TextAnnotationResult      `json:"text_annotation,omitempty"`
+	RecoveryExpiresAt    string                     `json:"recovery_expires_at,omitempty"`
 }
 
 type LocalAppScenarioJobEvent struct {
@@ -7244,6 +7246,7 @@ type ScenarioJob struct {
 	Transcription          *SpeechTranscript              `json:"transcription,omitempty"`
 	AudioSeparation        *AudioSeparation               `json:"audio_separation,omitempty"`
 	TextAnnotation         *TextAnnotationResult          `json:"text_annotation,omitempty"`
+	RecoveryExpiresAt      string                         `json:"recovery_expires_at,omitempty"`
 }
 
 type ScenarioJobEvent struct {
@@ -8115,6 +8118,7 @@ type UploadLocalAppArtifactResponse struct {
 	SizeBytes  int64              `json:"size_bytes,omitempty"`
 	MimeType   string             `json:"mime_type,omitempty"`
 	AudioInfo  *LocalAppAudioInfo `json:"audio_info,omitempty"`
+	ExpiresAt  string             `json:"expires_at,omitempty"`
 }
 
 type UploadLocalAppConversationAttachmentRequest struct {

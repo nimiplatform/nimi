@@ -209,6 +209,7 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "AI_ROUTE_FALLBACK_DENIED" => LocalAppReasonCode::AiRouteFallbackDenied,
         "AI_INPUT_INVALID" => LocalAppReasonCode::AiInputInvalid,
         "AI_MEDIA_IDEMPOTENCY_CONFLICT" => LocalAppReasonCode::AiMediaIdempotencyConflict,
+        "AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED" => LocalAppReasonCode::AiMusicRecoveryCapacityExceeded,
         "AI_OUTPUT_INVALID" => LocalAppReasonCode::AiOutputInvalid,
         "AI_TEXT_BEHAVIOR_UNSUPPORTED" => LocalAppReasonCode::AiTextBehaviorUnsupported,
         "AI_TEXT_BEHAVIOR_AMBIGUOUS" => LocalAppReasonCode::AiTextBehaviorAmbiguous,

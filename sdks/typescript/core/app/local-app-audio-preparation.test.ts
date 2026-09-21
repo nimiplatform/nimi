@@ -14,6 +14,7 @@ const canonicalInput = {
 };
 const metadata = {
   artifactId: 'artifact-canonical-1', sizeBytes: 73588090, mimeType: 'audio/wav',
+  expiresAt: { seconds: '2000000000', nanos: 0 },
   audioInfo: { sampleRateHz: 48000, channels: 2, frameCount: 9198504, durationMs: 191635 },
 };
 
@@ -40,6 +41,8 @@ test('canonical result requires observed consistent audio facts', () => {
   const input = validateNimiLocalAppArtifactUploadShellInput(canonicalInput);
   for (const invalid of [
     { ...metadata, audioInfo: undefined },
+    { ...metadata, expiresAt: undefined },
+    { ...metadata, expiresAt: null },
     { ...metadata, mimeType: 'audio/mpeg' },
     { ...metadata, sizeBytes: 100 },
     { ...metadata, audioInfo: { ...metadata.audioInfo, frameCount: 0 } },

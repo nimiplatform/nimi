@@ -254,6 +254,7 @@ export type NimiLocalAppVideoFaceSwapSummary = {
 };
 
 export type NimiLocalAppScenarioJob = {
+	readonly recoveryExpiresAt?: NimiLocalAppScenarioTimestamp;
   readonly videoFaceSwapSummary?: NimiLocalAppVideoFaceSwapSummary;
   readonly jobId: string;
   readonly scenarioType: 'image-generate' | 'image-face-swap' | 'video-face-swap' | 'vision-locate' | 'video-generate' | 'speech-synthesize' | 'speech-transcribe' | 'text-annotate' | 'audio-separate' | 'voice-create' | 'music-generate' | 'world-generate';
@@ -330,6 +331,7 @@ export type NimiLocalAppArtifactUploadResult = {
   readonly sizeBytes: number;
   readonly mimeType: NimiLocalAppArtifactUploadMime;
   readonly audioInfo?: NimiLocalAppAudioInfo;
+  readonly expiresAt?: NimiLocalAppScenarioTimestamp;
 };
 
 export type NimiLocalAppTextTurnEvent =
@@ -645,6 +647,7 @@ export function createNimiLocalAppAIConsumptionRuntimeClient(
           artifactId: response.artifactId,
           sizeBytes: runtimeSafeInteger(response.sizeBytes, 'artifact size'),
           mimeType: response.mimeType,
+          ...(response.expiresAt ? { expiresAt: plainRuntimeTimestamp(response.expiresAt) } : {}),
           ...(response.audioInfo ? { audioInfo: {
             sampleRateHz: response.audioInfo.sampleRateHz,
             channels: response.audioInfo.channels,
@@ -1127,7 +1130,7 @@ function projectScenarioJobEnvelope(value: unknown): { readonly job: NimiLocalAp
 
 function projectScenarioJob(value: unknown): NimiLocalAppScenarioJob {
   const record = asRecord(value);
-  assertExactProjectionKeys(record, ['jobId', 'scenarioType', 'status', 'progressPercent', 'progressCurrentStep', 'progressTotalSteps', 'reasonCode', 'reasonDetail', 'artifacts', 'traceId', 'createdAt', 'updatedAt', 'transcriptionText', ...(record && Object.hasOwn(record, 'textAnnotation') ? ['textAnnotation'] : []), ...(record && Object.hasOwn(record, 'audioSeparation') ? ['audioSeparation'] : []), ...(record && Object.hasOwn(record, 'transcription') ? ['transcription'] : []), ...(record && Object.hasOwn(record, 'interruption') ? ['interruption'] : []), ...(record && Object.hasOwn(record, 'videoFaceSwapSummary') ? ['videoFaceSwapSummary'] : [])], 'scenario Job');
+  assertExactProjectionKeys(record, [...(record && Object.hasOwn(record, 'recoveryExpiresAt') ? ['recoveryExpiresAt'] : []), 'jobId', 'scenarioType', 'status', 'progressPercent', 'progressCurrentStep', 'progressTotalSteps', 'reasonCode', 'reasonDetail', 'artifacts', 'traceId', 'createdAt', 'updatedAt', 'transcriptionText', ...(record && Object.hasOwn(record, 'textAnnotation') ? ['textAnnotation'] : []), ...(record && Object.hasOwn(record, 'audioSeparation') ? ['audioSeparation'] : []), ...(record && Object.hasOwn(record, 'transcription') ? ['transcription'] : []), ...(record && Object.hasOwn(record, 'interruption') ? ['interruption'] : []), ...(record && Object.hasOwn(record, 'videoFaceSwapSummary') ? ['videoFaceSwapSummary'] : [])], 'scenario Job');
   assertSafeProjection(record);
   if (!LOCAL_SCENARIO_TYPES.includes(record.scenarioType as never) || !LOCAL_JOB_STATUSES.includes(record.status as never)) localAppProjectionError('scenario Job enum');
   const current = projectionInteger(record.progressCurrentStep, 'scenario Job current step', 0, Number.MAX_SAFE_INTEGER);
@@ -1144,7 +1147,10 @@ function projectScenarioJob(value: unknown): NimiLocalAppScenarioJob {
   if ((record.textAnnotation !== undefined) !== (record.scenarioType === 'text-annotate' && record.status === 'completed')) localAppProjectionError('text annotation state');
   const textAnnotation = record.textAnnotation === undefined ? undefined : validateNimiLocalAppTextAnnotationResult(record.textAnnotation);
   const audioSeparation = record.audioSeparation === undefined ? undefined : validateNimiLocalAppAudioSeparation(record.audioSeparation, artifacts);
+  const recoveryExpiresAt = record.recoveryExpiresAt === undefined ? undefined : projectTimestamp(record.recoveryExpiresAt, 'music recovery expiry');
+  if (record.recoveryExpiresAt !== undefined && (!recoveryExpiresAt || record.scenarioType !== 'music-generate' || !['completed', 'failed', 'canceled', 'timeout'].includes(String(record.status)))) localAppProjectionError('music recovery expiry state');
   return Object.freeze({
+    ...(recoveryExpiresAt ? { recoveryExpiresAt } : {}),
     ...(textAnnotation ? { textAnnotation } : {}),
     ...(audioSeparation ? { audioSeparation } : {}),
     ...(videoFaceSwapSummary ? { videoFaceSwapSummary } : {}),
@@ -1220,7 +1226,7 @@ function projectArtifactUpload(
   preparation?: NimiLocalAppCanonicalAudioPreparation,
 ): NimiLocalAppArtifactUploadResult {
   const record = asRecord(value);
-  assertExactProjectionKeys(record, ['artifactId', 'sizeBytes', 'mimeType', ...(preparation ? ['audioInfo'] : [])], 'artifact upload result');
+  assertExactProjectionKeys(record, ['artifactId', 'sizeBytes', 'mimeType', ...(preparation ? ['audioInfo', 'expiresAt'] : [])], 'artifact upload result');
   assertNoAuthorityMaterial(record);
   const artifactId = projectionText(record.artifactId, 'artifact upload artifactId');
   if (utf8Length(artifactId) > MAX_IDENTIFIER_BYTES
@@ -1235,6 +1241,8 @@ function projectArtifactUpload(
     return Object.freeze({ artifactId, sizeBytes: record.sizeBytes as number, mimeType: record.mimeType });
   }
   const audio = asRecord(record.audioInfo);
+  const expiresAt = projectTimestamp(record.expiresAt, 'canonical audio expiry');
+  if (!expiresAt) localAppProjectionError('canonical audio expiry');
   assertExactProjectionKeys(audio, ['sampleRateHz', 'channels', 'frameCount', 'durationMs'], 'canonical audio facts');
   const sampleRateHz = projectionInteger(audio.sampleRateHz, 'sampleRateHz', 8000, 96000);
   const channels = projectionInteger(audio.channels, 'channels', 1, 2);
@@ -1246,6 +1254,7 @@ function projectArtifactUpload(
     localAppProjectionError('canonical audio facts');
   }
   return Object.freeze({ artifactId, sizeBytes: record.sizeBytes as number, mimeType: record.mimeType,
+    expiresAt,
     audioInfo: Object.freeze({ sampleRateHz, channels, frameCount, durationMs }) });
 }
 
@@ -1703,6 +1712,7 @@ function projectRuntimeLocalJob(job: LocalAppScenarioJob): unknown {
     traceId: job.traceId,
     createdAt: plainRuntimeTimestamp(job.createdAt),
     updatedAt: plainRuntimeTimestamp(job.updatedAt),
+    ...(job.recoveryExpiresAt ? { recoveryExpiresAt: plainRuntimeTimestamp(job.recoveryExpiresAt) } : {}),
     transcriptionText: job.transcriptionText,
     ...(job.textAnnotation ? { textAnnotation: job.textAnnotation } : {}),
     ...(job.audioSeparation ? { audioSeparation: job.audioSeparation } : {}),
@@ -2016,6 +2026,7 @@ function runtimeJobFromLocal(job: NimiLocalAppScenarioJob): ScenarioJob {
     routeDecision: RoutePolicy.UNSPECIFIED, modelResolved: '', status: runtimeJobStatus(job.status), providerJobId: '',
     reasonCode: runtimeReasonCode(job.reasonCode), reasonDetail: job.reasonDetail, retryCount: 0,
     createdAt: runtimeTimestamp(job.createdAt), updatedAt: runtimeTimestamp(job.updatedAt), nextPollAt: undefined,
+    recoveryExpiresAt: runtimeTimestamp(job.recoveryExpiresAt ?? null),
     artifacts: job.artifacts.map((artifact) => runtimeArtifactFromLocal(artifact)), usage: undefined, traceId: job.traceId,
     ignoredExtensions: [], reasonMetadata: undefined, progressPercent: job.progressPercent,
     progressCurrentStep: job.progressCurrentStep, progressTotalSteps: job.progressTotalSteps,

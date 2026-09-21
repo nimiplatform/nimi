@@ -1361,6 +1361,7 @@ function formalLocalAppReasonCode(reasonCode: string): string {
     case 'LOCAL_APP_OPERATION_UNAVAILABLE': return 'local-app-operation-unavailable';
     case 'LOCAL_APP_OWNER_UNAVAILABLE': return 'local-app-owner-unavailable';
     case 'AI_MEDIA_IDEMPOTENCY_CONFLICT': return 'ai-media-idempotency-conflict';
+    case 'AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED': return 'ai-music-recovery-capacity-exceeded';
     default: return reasonCode;
   }
 }

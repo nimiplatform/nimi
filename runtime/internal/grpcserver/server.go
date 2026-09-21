@@ -636,6 +636,9 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	if err != nil {
 		return nil, fmt.Errorf("init runtime artifact store: %w", err)
 	}
+	if err := artifactStore.ReconcileAbandonedWrites(); err != nil {
+		return nil, fmt.Errorf("reconcile interrupted artifact writes: %w", err)
+	}
 	var aiSvc *aiservice.Service
 	if protected != nil {
 		aiSvc, err = aiservice.NewProtected(logger, auditStore, connStore, cfg)

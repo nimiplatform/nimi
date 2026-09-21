@@ -349,6 +349,7 @@ func projectLocalAppScenarioJob(job *runtimev1.ScenarioJob) (*runtimev1.LocalApp
 		TraceId:              job.GetTraceId(),
 		CreatedAt:            job.GetCreatedAt(),
 		UpdatedAt:            job.GetUpdatedAt(),
+		RecoveryExpiresAt:    job.GetRecoveryExpiresAt(),
 		TranscriptionText:    transcriptionText,
 		Transcription:        transcription,
 		AudioSeparation:      separation,

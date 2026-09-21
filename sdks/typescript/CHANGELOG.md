@@ -10,7 +10,11 @@ published baseline. They are not a complete reconstruction of older releases.
   without resubmitting. Runtime binds the full request to the current account
   and registered App, rejects conflicting reuse, and persists that binding
   with the Job. This minor widening requires matching Kit/native and Runtime;
-  it does not by itself extend the existing Job retention window.
+  terminal music Jobs carrying this identity expose `recoveryExpiresAt` and
+  retain the Job and actual outputs for 24 hours. Canonical audio uploads now
+  require an `expiresAt` result from the matching Runtime. New work fails with
+  `AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED` when the 1024-record, 16-GiB temporary
+  budget or disk headroom is exhausted; reads do not renew either lifetime.
 
 - Add canonical audio preparation to the existing protected artifact upload.
   Apps may supply inline audio or an owned App asset / canonical artifact

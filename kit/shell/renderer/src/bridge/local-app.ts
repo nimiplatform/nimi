@@ -226,6 +226,7 @@ export type NimiLocalAppScenarioArtifact = {
   readonly width: number; readonly height: number; readonly sampleRateHz: number; readonly channels: number;
 };
 export type NimiLocalAppScenarioJob = {
+  readonly recoveryExpiresAt?: NimiLocalAppScenarioTimestamp;
   readonly videoFaceSwapSummary?: { readonly totalFrames: number; readonly transformedFrames: number; readonly preservedFrames: number; readonly durationUs: number; readonly frameRate: 24 | 25 | 30; readonly audioPreserved: boolean };
   readonly jobId: string;
   readonly scenarioType: 'image-generate' | 'image-face-swap' | 'video-face-swap' | 'vision-locate' | 'video-generate' | 'speech-synthesize' | 'speech-transcribe' | 'text-annotate' | 'audio-separate' | 'voice-create' | 'music-generate' | 'world-generate';
@@ -2294,6 +2295,7 @@ function parseScenarioJobEnvelope(value: unknown, command: string): { readonly j
 function parseScenarioJob(value: unknown, command: string): NimiLocalAppScenarioJob {
   const record = assertRecord(value, `${command}: Job is invalid`);
   assertProjectionKeys(record, [
+    ...(Object.hasOwn(record, 'recoveryExpiresAt') ? ['recoveryExpiresAt'] : []),
     'jobId', 'scenarioType', 'status', 'progressPercent', 'progressCurrentStep',
     'progressTotalSteps', 'reasonCode', 'reasonDetail', 'artifacts', 'traceId',
     'createdAt', 'updatedAt', 'transcriptionText',
@@ -2326,7 +2328,10 @@ function parseScenarioJob(value: unknown, command: string): NimiLocalAppScenario
   if ((record.textAnnotation !== undefined) !== (record.scenarioType === 'text-annotate' && record.status === 'completed')) throw new Error(`${command}: annotation state is invalid`);
   const textAnnotation = record.textAnnotation === undefined ? undefined : validateNimiLocalAppTextAnnotationResult(record.textAnnotation);
   const audioSeparation = record.audioSeparation === undefined ? undefined : validateNimiLocalAppAudioSeparation(record.audioSeparation, artifacts);
+  const recoveryExpiresAt = record.recoveryExpiresAt === undefined ? undefined : parseScenarioTimestamp(record.recoveryExpiresAt, command);
+  if (record.recoveryExpiresAt !== undefined && (!recoveryExpiresAt || record.scenarioType !== 'music-generate' || !['completed', 'failed', 'canceled', 'timeout'].includes(String(record.status)))) throw new Error(`${command}: music recovery expiry is invalid`);
   return Object.freeze({
+    ...(recoveryExpiresAt ? { recoveryExpiresAt } : {}),
     ...(textAnnotation ? { textAnnotation } : {}),
     ...(audioSeparation ? { audioSeparation } : {}),
     ...(transcription ? { transcription } : {}),

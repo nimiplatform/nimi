@@ -4,8 +4,10 @@
 
 - Carry an optional music `clientSubmissionId` through protected Job submit
   and its mutually exclusive read-only Get selector. Requires the matching
-  SDK and rebuilt native package; it adds neither an App operation nor
-  automatic resubmission or a longer retention guarantee.
+  SDK and rebuilt native package. Carry Runtime-owned `recoveryExpiresAt` for
+  terminal music Jobs and `expiresAt` for canonical imports, with the typed
+  temporary-capacity failure. These reuse existing operations and never
+  automatically resubmit an author's work.
 
 - Carry canonical audio preparation and owned audio source references through
   the renderer, Electron, Node native and protected Runtime projections.

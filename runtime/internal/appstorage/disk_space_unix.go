@@ -7,7 +7,8 @@ import (
 	"syscall"
 )
 
-func availableDiskBytes(path string) (int64, error) {
+// AvailableDiskBytes reports physical free space to Runtime-owned storage admission.
+func AvailableDiskBytes(path string) (int64, error) {
 	var stat syscall.Statfs_t
 	if err := syscall.Statfs(path, &stat); err != nil {
 		return 0, err

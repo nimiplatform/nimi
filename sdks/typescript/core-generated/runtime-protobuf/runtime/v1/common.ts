@@ -1476,7 +1476,13 @@ export enum ReasonCode {
     /**
      * @generated from protobuf enum value: AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED = 752;
      */
-    AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED = 752
+    AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED = 752,
+    /**
+     * Protected music recovery slots, resident bytes or disk headroom exhausted.
+     *
+     * @generated from protobuf enum value: AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED = 754;
+     */
+    AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED = 754
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

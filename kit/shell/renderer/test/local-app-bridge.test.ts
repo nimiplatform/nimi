@@ -624,6 +624,7 @@ describe('renderer local-app standard-shell surface', () => {
   it('carries an owned audio reference and large canonical metadata without inline audio', async () => {
     const invocations: unknown[] = [];
     const metadata = { artifactId: 'canonical-1', sizeBytes: 73588090, mimeType: 'audio/wav',
+      expiresAt: { seconds: '2000000000', nanos: 0 },
       audioInfo: { sampleRateHz: 48000, channels: 2, frameCount: 9198504, durationMs: 191635 } };
     // Carrier projection fixture only; real codec/body evidence lives in the Runtime integration test.
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {

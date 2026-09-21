@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appstorage"
@@ -18,6 +19,7 @@ import (
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func (s *Service) SetCanonicalAudioPreparation(processor *audiomedia.Processor, stagingRoot string) {
@@ -58,11 +60,20 @@ func (s *Service) prepareLocalAppAudioArtifact(ctx context.Context, decision acc
 	if req.GetSourceArtifactId() != "" && !localAppBoundedIdentifier(req.GetSourceArtifactId()) {
 		return invalid()
 	}
-	if s.canonicalAudio == nil || s.runtimeArtifacts == nil || !filepath.IsAbs(s.canonicalAudioStagingRoot) {
+	if s.canonicalAudio == nil || s.runtimeArtifacts == nil || s.scenarioJobs == nil || !filepath.IsAbs(s.canonicalAudioStagingRoot) {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	ctx, cancel := context.WithTimeout(ctx, audiomedia.PreparationTimeout)
 	defer cancel()
+	artifactID := "artifact_" + ulid.Make().String()
+	release, err := s.scenarioJobs.beginMusicPreparation(artifactID)
+	if err != nil {
+		if errors.Is(err, errMusicRecoveryCapacity) {
+			return nil, localAppSubmissionError(err)
+		}
+		return nil, canonicalAudioInternalError(err)
+	}
+	defer release()
 	var source io.ReadCloser
 	var expectedSize int64
 	switch {
@@ -109,6 +120,11 @@ func (s *Service) prepareLocalAppAudioArtifact(ctx context.Context, decision acc
 		}
 		return invalid()
 	}
+	// Disk custody holds a read pin until Close. Release it before the prepared
+	// output needs the same store's commit lock; inference uses our snapshot.
+	if err := source.Close(); err != nil {
+		return nil, canonicalAudioInternalError(err)
+	}
 	if err := snapshot.Close(); err != nil {
 		return nil, canonicalAudioInternalError(err)
 	}
@@ -133,12 +149,24 @@ func (s *Service) prepareLocalAppAudioArtifact(ctx context.Context, decision acc
 		return nil, canonicalAudioInternalError(err)
 	}
 	defer body.Close()
-	artifactID := "artifact_" + ulid.Make().String()
+	expiresAt := time.Now().UTC().Add(musicRecoveryRetention)
 	record := runtimeartifact.ArtifactRecord{
 		MimeType: "audio/wav", SizeBytes: prepared.Facts.SizeBytes,
-		Owner: &runtimeartifact.ArtifactOwner{SubjectUserID: decision.AccountID, RegisteredAppSubject: decision.RegisteredAppSubject, AppID: decision.AppID},
+		Owner:              &runtimeartifact.ArtifactOwner{SubjectUserID: decision.AccountID, RegisteredAppSubject: decision.RegisteredAppSubject, AppID: decision.AppID},
+		MusicRecoveryUntil: expiresAt,
+		CanonicalAudio:     &runtimeartifact.CanonicalAudioInfo{SampleRateHz: prepared.Facts.SampleRateHz, Channels: prepared.Facts.Channels, FrameCount: prepared.Facts.FrameCount, DataOffset: prepared.Facts.DataOffset},
 	}
 	if err := s.runtimeArtifacts.PutStream(ctx, artifactID, record, body); err != nil {
+		return nil, canonicalAudioInternalError(err)
+	}
+	expiresAt = time.Now().UTC().Add(musicRecoveryRetention)
+	recoveryStore, ok := s.runtimeArtifacts.(runtimeartifact.MusicRecoveryStore)
+	if !ok {
+		_ = s.runtimeArtifacts.Delete(artifactID)
+		return nil, canonicalAudioInternalError(fmt.Errorf("music recovery custody is unavailable"))
+	}
+	if err := recoveryStore.ExtendMusicRecovery("", []string{artifactID}, expiresAt); err != nil {
+		_ = s.runtimeArtifacts.Delete(artifactID)
 		return nil, canonicalAudioInternalError(err)
 	}
 	if err := ctx.Err(); err != nil {
@@ -148,6 +176,7 @@ func (s *Service) prepareLocalAppAudioArtifact(ctx context.Context, decision acc
 	return &runtimev1.UploadLocalAppArtifactResponse{
 		ArtifactId: artifactID, SizeBytes: prepared.Facts.SizeBytes, MimeType: "audio/wav",
 		AudioInfo: &runtimev1.LocalAppAudioInfo{SampleRateHz: prepared.Facts.SampleRateHz, Channels: uint32(prepared.Facts.Channels), FrameCount: prepared.Facts.FrameCount, DurationMs: int64(prepared.Facts.DurationMilliseconds())},
+		ExpiresAt: timestamppb.New(expiresAt),
 	}, nil
 }
 

@@ -1133,6 +1133,20 @@ units:
         target: definition.nimi.platform.core-protocol.app-operation-contract
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+  - id: rule.nimi.runtime.ai-provider.music-recovery
+    kind: rule
+    title: Bounded protected music recovery retains actual media
+    modality: must
+    statement: A protected music creation carrying clientSubmissionId reserves one of 1024 machine-local recovery records at admission and retains its immutable Job and binding while executing and for 24 hours after the terminal timestamp. Terminal snapshots expose recoveryExpiresAt derived from that timestamp; observation never renews it. Runtime retains each corresponding committed output body and its exact owner audience through that window. Canonical audio imports retain their committed body for 24 hours after preparation and may be adopted into independent App assets. Runtime admits new music work only while canonical imports, retained output bodies and bounded in-flight output reservations together fit a 16 GiB machine-local temporary budget and available disk headroom; already adopted Runtime copies still count until physically removed. The initial music.generate output set reserves at most 512 MiB including its audio and score, and audio preparation reserves at most 512 MiB of committed output. Existing Job and artifact metadata own accounting, expiration and cleanup, without another quota service, ledger or workflow. Unexpired music records are excluded from other Jobs' count-based eviction; capacity failure rejects new work instead of evicting them. Expired body reads and submission lookups fail closed. Input snapshots and active authorized readers remain valid until capture completes; inference input pins are owned by the capturing Job until termination. Session interruption and restart never gain background execution or automatic replay from recovery. App completion handling adopts every required result before atomically saving project references, and long-lived App projects do not depend on Job retention.
+    condition: Whenever Runtime admits, retains, reads, adopts or expires protected music recovery content or canonical audio imports.
+    failure: Reject new work on exhausted recovery slots, byte budget, disk headroom or unverifiable accounting; reject expired or foreign references; never return a retained result whose body was prematurely removed or silently change the promised lifetime.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.canonical-audio
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.artifact-plane
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.scenario-job-plane
   - id: rule.nimi.runtime.ai-provider.r110
     kind: rule
     title: Voice creation source preflight is deterministic and non-switching

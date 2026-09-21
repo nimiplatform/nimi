@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appstorage"
@@ -53,6 +54,36 @@ func canonicalCopyTestService(t *testing.T) *Service {
 	}
 	svc.SetCanonicalAudioPreparation(processor, t.TempDir())
 	return svc
+}
+
+func TestCanonicalAudioArtifactRecopyReleasesDiskReadPin(t *testing.T) {
+	svc := canonicalCopyTestService(t)
+	store, err := runtimeartifact.NewDiskStore(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	svc.SetRuntimeArtifactStore(store)
+	first, err := svc.UploadLocalAppArtifact(localAppArtifactUploadContext(), &runtimev1.UploadLocalAppArtifactRequest{Bytes: canonicalUploadFixture(t), MimeType: "audio/wav", AudioPreparation: &runtimev1.LocalAppCanonicalAudioPreparation{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(localAppArtifactUploadContext(), 5*time.Second)
+	defer cancel()
+	second, err := svc.UploadLocalAppArtifact(ctx, &runtimev1.UploadLocalAppArtifactRequest{SourceArtifactId: first.GetArtifactId(), MimeType: "audio/wav", AudioPreparation: &runtimev1.LocalAppCanonicalAudioPreparation{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	left, _ := store.Get(first.GetArtifactId())
+	right, _ := store.Get(second.GetArtifactId())
+	if first.GetArtifactId() == second.GetArtifactId() || !bytes.Equal(left.Bytes, right.Bytes) || second.GetAudioInfo().GetFrameCount() != 2 {
+		t.Fatal("canonical recopy changed the source or aliased its identity")
+	}
+	if right.CanonicalAudio == nil || right.CanonicalAudio.FrameCount != 2 || right.CanonicalAudio.DataOffset != 56 {
+		t.Fatal("canonical frame coordinates were not persisted")
+	}
+	if second.GetExpiresAt() == nil || !right.MusicRecoveryUntil.Equal(second.GetExpiresAt().AsTime()) || time.Until(right.MusicRecoveryUntil) < 24*time.Hour-time.Minute {
+		t.Fatal("canonical lifetime was not committed with the actual body")
+	}
 }
 
 func TestCanonicalAudioUploadPersistsOnlyDerivedOwnerAndActualFacts(t *testing.T) {

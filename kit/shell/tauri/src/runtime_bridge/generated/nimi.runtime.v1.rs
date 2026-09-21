@@ -531,6 +531,8 @@ pub enum ReasonCode {
     AiLocalModelStateOfflineConversionRequired = 750,
     AiLocalModelStorageLinkUnsupported = 751,
     AiLocalModelInventoryReconciliationRequired = 752,
+    /// Protected music recovery slots, resident bytes or disk headroom exhausted.
+    AiMusicRecoveryCapacityExceeded = 754,
 }
 impl ReasonCode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -905,6 +907,9 @@ impl ReasonCode {
             }
             Self::AiLocalModelInventoryReconciliationRequired => {
                 "AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED"
+            }
+            Self::AiMusicRecoveryCapacityExceeded => {
+                "AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED"
             }
         }
     }
@@ -1349,6 +1354,9 @@ impl ReasonCode {
             }
             "AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED" => {
                 Some(Self::AiLocalModelInventoryReconciliationRequired)
+            }
+            "AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED" => {
+                Some(Self::AiMusicRecoveryCapacityExceeded)
             }
             _ => None,
         }
@@ -6354,6 +6362,9 @@ pub struct LocalAppScenarioJob {
     /// Present only for a completed TEXT_ANNOTATE Job.
     #[prost(message, optional, tag = "18")]
     pub text_annotation: ::core::option::Option<TextAnnotationResult>,
+    /// Present only for a terminal protected music Job with recovery identity.
+    #[prost(message, optional, tag = "19")]
+    pub recovery_expires_at: ::core::option::Option<::prost_types::Timestamp>,
 }
 /// Trimmed voice asset catalog projection. Provider, model, provider voice
 /// ref, and owner identity fields are never projected.
@@ -6587,6 +6598,9 @@ pub struct UploadLocalAppArtifactResponse {
     pub mime_type: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "4")]
     pub audio_info: ::core::option::Option<LocalAppAudioInfo>,
+    /// Present only for canonical audio preparation; observation does not renew it.
+    #[prost(message, optional, tag = "5")]
+    pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListLocalAppVoiceAssetsRequest {
@@ -6814,6 +6828,8 @@ pub struct ScenarioJob {
     pub audio_separation: ::core::option::Option<AudioSeparation>,
     #[prost(message, optional, tag = "29")]
     pub text_annotation: ::core::option::Option<TextAnnotationResult>,
+    #[prost(message, optional, tag = "30")]
+    pub recovery_expires_at: ::core::option::Option<::prost_types::Timestamp>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SubmitScenarioJobRequest {

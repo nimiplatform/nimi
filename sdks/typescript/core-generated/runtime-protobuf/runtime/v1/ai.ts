@@ -2726,6 +2726,12 @@ export interface LocalAppScenarioJob {
      * @generated from protobuf field: nimi.runtime.v1.TextAnnotationResult text_annotation = 18
      */
     textAnnotation?: TextAnnotationResult;
+    /**
+     * Present only for a terminal protected music Job with recovery identity.
+     *
+     * @generated from protobuf field: google.protobuf.Timestamp recovery_expires_at = 19
+     */
+    recoveryExpiresAt?: Timestamp;
 }
 /**
  * Trimmed voice asset catalog projection. Provider, model, provider voice
@@ -3160,6 +3166,12 @@ export interface UploadLocalAppArtifactResponse {
      * @generated from protobuf field: nimi.runtime.v1.LocalAppAudioInfo audio_info = 4
      */
     audioInfo?: LocalAppAudioInfo;
+    /**
+     * Present only for canonical audio preparation; observation does not renew it.
+     *
+     * @generated from protobuf field: google.protobuf.Timestamp expires_at = 5
+     */
+    expiresAt?: Timestamp;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListLocalAppVoiceAssetsRequest
@@ -3590,6 +3602,10 @@ export interface ScenarioJob {
      * @generated from protobuf field: nimi.runtime.v1.TextAnnotationResult text_annotation = 29
      */
     textAnnotation?: TextAnnotationResult;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp recovery_expires_at = 30
+     */
+    recoveryExpiresAt?: Timestamp;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.SubmitScenarioJobRequest
@@ -12335,7 +12351,8 @@ class LocalAppScenarioJob$Type extends MessageType<LocalAppScenarioJob> {
             { no: 15, name: "video_face_swap_summary", kind: "message", T: () => VideoFaceSwapSummary },
             { no: 16, name: "transcription", kind: "message", T: () => SpeechTranscript },
             { no: 17, name: "audio_separation", kind: "message", T: () => AudioSeparation },
-            { no: 18, name: "text_annotation", kind: "message", T: () => TextAnnotationResult }
+            { no: 18, name: "text_annotation", kind: "message", T: () => TextAnnotationResult },
+            { no: 19, name: "recovery_expires_at", kind: "message", T: () => Timestamp }
         ]);
     }
     create(value?: PartialMessage<LocalAppScenarioJob>): LocalAppScenarioJob {
@@ -12414,6 +12431,9 @@ class LocalAppScenarioJob$Type extends MessageType<LocalAppScenarioJob> {
                 case /* nimi.runtime.v1.TextAnnotationResult text_annotation */ 18:
                     message.textAnnotation = TextAnnotationResult.internalBinaryRead(reader, reader.uint32(), options, message.textAnnotation);
                     break;
+                case /* google.protobuf.Timestamp recovery_expires_at */ 19:
+                    message.recoveryExpiresAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.recoveryExpiresAt);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -12480,6 +12500,9 @@ class LocalAppScenarioJob$Type extends MessageType<LocalAppScenarioJob> {
         /* nimi.runtime.v1.TextAnnotationResult text_annotation = 18; */
         if (message.textAnnotation)
             TextAnnotationResult.internalBinaryWrite(message.textAnnotation, writer.tag(18, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp recovery_expires_at = 19; */
+        if (message.recoveryExpiresAt)
+            Timestamp.internalBinaryWrite(message.recoveryExpiresAt, writer.tag(19, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -13793,7 +13816,8 @@ class UploadLocalAppArtifactResponse$Type extends MessageType<UploadLocalAppArti
             { no: 1, name: "artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "size_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
             { no: 3, name: "mime_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "audio_info", kind: "message", T: () => LocalAppAudioInfo }
+            { no: 4, name: "audio_info", kind: "message", T: () => LocalAppAudioInfo },
+            { no: 5, name: "expires_at", kind: "message", T: () => Timestamp }
         ]);
     }
     create(value?: PartialMessage<UploadLocalAppArtifactResponse>): UploadLocalAppArtifactResponse {
@@ -13822,6 +13846,9 @@ class UploadLocalAppArtifactResponse$Type extends MessageType<UploadLocalAppArti
                 case /* nimi.runtime.v1.LocalAppAudioInfo audio_info */ 4:
                     message.audioInfo = LocalAppAudioInfo.internalBinaryRead(reader, reader.uint32(), options, message.audioInfo);
                     break;
+                case /* google.protobuf.Timestamp expires_at */ 5:
+                    message.expiresAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.expiresAt);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -13846,6 +13873,9 @@ class UploadLocalAppArtifactResponse$Type extends MessageType<UploadLocalAppArti
         /* nimi.runtime.v1.LocalAppAudioInfo audio_info = 4; */
         if (message.audioInfo)
             LocalAppAudioInfo.internalBinaryWrite(message.audioInfo, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp expires_at = 5; */
+        if (message.expiresAt)
+            Timestamp.internalBinaryWrite(message.expiresAt, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -14689,7 +14719,8 @@ class ScenarioJob$Type extends MessageType<ScenarioJob> {
             { no: 26, name: "video_face_swap_summary", kind: "message", T: () => VideoFaceSwapSummary },
             { no: 27, name: "transcription", kind: "message", T: () => SpeechTranscript },
             { no: 28, name: "audio_separation", kind: "message", T: () => AudioSeparation },
-            { no: 29, name: "text_annotation", kind: "message", T: () => TextAnnotationResult }
+            { no: 29, name: "text_annotation", kind: "message", T: () => TextAnnotationResult },
+            { no: 30, name: "recovery_expires_at", kind: "message", T: () => Timestamp }
         ]);
     }
     create(value?: PartialMessage<ScenarioJob>): ScenarioJob {
@@ -14807,6 +14838,9 @@ class ScenarioJob$Type extends MessageType<ScenarioJob> {
                 case /* nimi.runtime.v1.TextAnnotationResult text_annotation */ 29:
                     message.textAnnotation = TextAnnotationResult.internalBinaryRead(reader, reader.uint32(), options, message.textAnnotation);
                     break;
+                case /* google.protobuf.Timestamp recovery_expires_at */ 30:
+                    message.recoveryExpiresAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.recoveryExpiresAt);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -14906,6 +14940,9 @@ class ScenarioJob$Type extends MessageType<ScenarioJob> {
         /* nimi.runtime.v1.TextAnnotationResult text_annotation = 29; */
         if (message.textAnnotation)
             TextAnnotationResult.internalBinaryWrite(message.textAnnotation, writer.tag(29, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp recovery_expires_at = 30; */
+        if (message.recoveryExpiresAt)
+            Timestamp.internalBinaryWrite(message.recoveryExpiresAt, writer.tag(30, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

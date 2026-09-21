@@ -142,6 +142,7 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'ai-route-fallback-denied',
   'ai-input-invalid',
   'ai-media-idempotency-conflict',
+  'ai-music-recovery-capacity-exceeded',
   'ai-output-invalid',
   'ai-text-behavior-unsupported',
   'ai-text-behavior-ambiguous',
@@ -1903,6 +1904,7 @@ async function invokeScenarioStreamNext(
 
 function validateScenarioJob(value: unknown): NimiElectronLocalAppRecord {
   if (!isPlainRecord(value) || !hasExactKeys(value, [
+    ...(Object.hasOwn(value, 'recoveryExpiresAt') ? ['recoveryExpiresAt'] : []),
     'jobId', 'scenarioType', 'status', 'progressPercent', 'progressCurrentStep',
     'progressTotalSteps', 'reasonCode', 'reasonDetail', 'artifacts', 'traceId',
     'createdAt', 'updatedAt', 'transcriptionText',
@@ -1944,7 +1946,10 @@ function validateScenarioJob(value: unknown): NimiElectronLocalAppRecord {
   if ((value.textAnnotation !== undefined) !== (value.scenarioType === 'text-annotate' && value.status === 'completed')) throw untrustedRuntimeError();
   const textAnnotation = value.textAnnotation === undefined ? undefined : validateNimiLocalAppTextAnnotationResult(value.textAnnotation);
   const audioSeparation = value.audioSeparation === undefined ? undefined : validateNimiLocalAppAudioSeparation(value.audioSeparation, artifacts);
+  const recoveryExpiresAt = value.recoveryExpiresAt === undefined ? undefined : validateTimestamp(value.recoveryExpiresAt);
+  if (value.recoveryExpiresAt !== undefined && (!recoveryExpiresAt || value.scenarioType !== 'music-generate' || !['completed', 'failed', 'canceled', 'timeout'].includes(String(value.status)))) throw untrustedRuntimeError();
   return Object.freeze({
+    ...(recoveryExpiresAt ? { recoveryExpiresAt } : {}),
     ...(textAnnotation ? { textAnnotation } : {}),
     ...(audioSeparation ? { audioSeparation } : {}),
     ...(transcription ? { transcription } : {}),

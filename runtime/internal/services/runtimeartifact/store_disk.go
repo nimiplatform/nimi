@@ -42,6 +42,8 @@ type diskArtifactRecord struct {
 	CreatedAt              time.Time                               `json:"created_at"`
 	GeneratedVoice         *GeneratedVoiceArtifactMetadata         `json:"generated_voice,omitempty"`
 	ConversationAttachment *ConversationAttachmentArtifactMetadata `json:"conversation_attachment,omitempty"`
+	MusicRecoveryUntil     time.Time                               `json:"music_recovery_until,omitzero"`
+	CanonicalAudio         *CanonicalAudioInfo                     `json:"canonical_audio,omitempty"`
 	Owner                  *diskArtifactOwner                      `json:"owner,omitempty"`
 }
 
@@ -104,6 +106,8 @@ func (s *DiskStore) Put(artifactID string, record ArtifactRecord) error {
 		CreatedAt:              normalized.CreatedAt,
 		GeneratedVoice:         normalized.GeneratedVoice,
 		ConversationAttachment: normalized.ConversationAttachment,
+		MusicRecoveryUntil:     normalized.MusicRecoveryUntil,
+		CanonicalAudio:         normalized.CanonicalAudio,
 		Owner:                  diskArtifactOwnerFromRecord(normalized.Owner),
 	}
 	metadata, err := json.MarshalIndent(diskRecord, "", "  ")
@@ -139,6 +143,8 @@ func (s *DiskStore) Put(artifactID string, record ArtifactRecord) error {
 			CreatedAt:              existing.CreatedAt,
 			GeneratedVoice:         merged.GeneratedVoice,
 			ConversationAttachment: merged.ConversationAttachment,
+			MusicRecoveryUntil:     merged.MusicRecoveryUntil,
+			CanonicalAudio:         merged.CanonicalAudio,
 			Owner:                  diskArtifactOwnerFromRecord(merged.Owner),
 		}
 		mergedMetadata, err := json.MarshalIndent(mergedDisk, "", "  ")
@@ -210,6 +216,8 @@ func (s *DiskStore) PutStream(ctx context.Context, artifactID string, record Art
 		CreatedAt:              normalized.CreatedAt,
 		GeneratedVoice:         normalized.GeneratedVoice,
 		ConversationAttachment: normalized.ConversationAttachment,
+		MusicRecoveryUntil:     normalized.MusicRecoveryUntil,
+		CanonicalAudio:         normalized.CanonicalAudio,
 		Owner:                  diskArtifactOwnerFromRecord(normalized.Owner),
 	}
 	metadata, err := json.MarshalIndent(diskRecord, "", "  ")
@@ -241,6 +249,8 @@ func (s *DiskStore) PutStream(ctx context.Context, artifactID string, record Art
 			MimeInferred: merged.MimeInferred, CreatedAt: existing.CreatedAt,
 			GeneratedVoice:         merged.GeneratedVoice,
 			ConversationAttachment: merged.ConversationAttachment,
+			MusicRecoveryUntil:     merged.MusicRecoveryUntil,
+			CanonicalAudio:         merged.CanonicalAudio,
 			Owner:                  diskArtifactOwnerFromRecord(merged.Owner),
 		}
 		mergedMetadata, marshalErr := json.MarshalIndent(mergedDisk, "", "  ")
@@ -349,6 +359,8 @@ func (s *DiskStore) artifactFromDiskRecordLocked(diskRecord diskArtifactRecord) 
 		CreatedAt:              diskRecord.CreatedAt,
 		GeneratedVoice:         diskRecord.GeneratedVoice,
 		ConversationAttachment: diskRecord.ConversationAttachment,
+		MusicRecoveryUntil:     diskRecord.MusicRecoveryUntil,
+		CanonicalAudio:         diskRecord.CanonicalAudio,
 		Owner:                  artifactOwnerFromDisk(diskRecord.Owner),
 	})
 	if err != nil {
@@ -557,6 +569,19 @@ func normalizeStreamedArtifactRecord(record ArtifactRecord, observedSize int64, 
 		}
 		record.Owner = &owner
 	}
+	if !record.MusicRecoveryUntil.IsZero() {
+		if record.Owner == nil {
+			return ArtifactRecord{}, ErrInvalidArtifactRecord
+		}
+		record.MusicRecoveryUntil = record.MusicRecoveryUntil.UTC()
+	}
+	if !validCanonicalAudioMetadata(record) {
+		return ArtifactRecord{}, ErrInvalidArtifactRecord
+	}
+	if record.CanonicalAudio != nil {
+		facts := *record.CanonicalAudio
+		record.CanonicalAudio = &facts
+	}
 	return record, nil
 }
 
@@ -570,7 +595,9 @@ func artifactMetadataFromDiskRecord(record diskArtifactRecord) (ArtifactRecord, 
 		SizeBytes: record.SizeBytes, ContentSHA256: record.ContentSHA256,
 		MimeInferred: record.MimeInferred, CreatedAt: record.CreatedAt,
 		GeneratedVoice: record.GeneratedVoice, ConversationAttachment: record.ConversationAttachment,
-		Owner: artifactOwnerFromDisk(record.Owner),
+		MusicRecoveryUntil: record.MusicRecoveryUntil,
+		CanonicalAudio:     record.CanonicalAudio,
+		Owner:              artifactOwnerFromDisk(record.Owner),
 	}
 	if metadata.Owner != nil {
 		owner, err := normalizeArtifactOwner(*metadata.Owner)
@@ -578,6 +605,12 @@ func artifactMetadataFromDiskRecord(record diskArtifactRecord) (ArtifactRecord, 
 			return ArtifactRecord{}, false
 		}
 		metadata.Owner = &owner
+	}
+	if !metadata.MusicRecoveryUntil.IsZero() && metadata.Owner == nil {
+		return ArtifactRecord{}, false
+	}
+	if !validCanonicalAudioMetadata(metadata) {
+		return ArtifactRecord{}, false
 	}
 	return metadata, true
 }

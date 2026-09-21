@@ -25102,6 +25102,13 @@
             "repeated": false,
             "optional": false,
             "number": 18
+          },
+          {
+            "name": "recovery_expires_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 19
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -33122,6 +33129,13 @@
             "repeated": false,
             "optional": false,
             "number": 29
+          },
+          {
+            "name": "recovery_expires_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 30
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -37281,6 +37295,13 @@
             "repeated": false,
             "optional": false,
             "number": 4
+          },
+          {
+            "name": "expires_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 5
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -40759,7 +40780,8 @@
           "AI_LOCAL_TRANSFER_RESUME_REQUIRED",
           "AI_LOCAL_MODEL_STATE_OFFLINE_CONVERSION_REQUIRED",
           "AI_LOCAL_MODEL_STORAGE_LINK_UNSUPPORTED",
-          "AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED"
+          "AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED",
+          "AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED"
         ],
         "source_file": "proto/runtime/v1/common.proto"
       },

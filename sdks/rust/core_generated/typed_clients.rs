@@ -2932,6 +2932,8 @@ pub enum ReasonCode {
     AILOCALMODELSTORAGELINKUNSUPPORTED,
     #[serde(rename = "AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED")]
     AILOCALMODELINVENTORYRECONCILIATIONREQUIRED,
+    #[serde(rename = "AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED")]
+    AIMUSICRECOVERYCAPACITYEXCEEDED,
 }
 
 impl Default for ReasonCode {
@@ -3525,6 +3527,8 @@ impl ReasonCode {
             "AILOCALMODELSTORAGELINKUNSUPPORTED" => Some(Self::AILOCALMODELSTORAGELINKUNSUPPORTED),
             "AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED" => Some(Self::AILOCALMODELINVENTORYRECONCILIATIONREQUIRED),
             "AILOCALMODELINVENTORYRECONCILIATIONREQUIRED" => Some(Self::AILOCALMODELINVENTORYRECONCILIATIONREQUIRED),
+            "AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED" => Some(Self::AIMUSICRECOVERYCAPACITYEXCEEDED),
+            "AIMUSICRECOVERYCAPACITYEXCEEDED" => Some(Self::AIMUSICRECOVERYCAPACITYEXCEEDED),
             _ => None,
         }
     }
@@ -9321,6 +9325,7 @@ pub struct LocalAppScenarioJob {
     pub transcription: Option<Box<SpeechTranscript>>,
     pub audio_separation: Option<Box<AudioSeparation>>,
     pub text_annotation: Option<Box<TextAnnotationResult>>,
+    pub recovery_expires_at: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -11816,6 +11821,7 @@ pub struct ScenarioJob {
     pub transcription: Option<Box<SpeechTranscript>>,
     pub audio_separation: Option<Box<AudioSeparation>>,
     pub text_annotation: Option<Box<TextAnnotationResult>>,
+    pub recovery_expires_at: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -12978,6 +12984,7 @@ pub struct UploadLocalAppArtifactResponse {
     pub size_bytes: Option<i64>,
     pub mime_type: Option<String>,
     pub audio_info: Option<Box<LocalAppAudioInfo>>,
+    pub expires_at: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

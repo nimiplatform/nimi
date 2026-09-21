@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"time"
 )
 
 var ErrLocalAppArtifactUnavailable = errors.New("local App artifact is unavailable")
@@ -45,6 +46,10 @@ func OpenAuthorizedLocalAppArtifact(
 		return nil, ErrLocalAppArtifactUnavailable
 	}
 	artifactOwner := source.Record.Owner
+	if !source.Record.MusicRecoveryUntil.IsZero() && !time.Now().Before(source.Record.MusicRecoveryUntil) {
+		_ = source.Body.Close()
+		return nil, ErrLocalAppArtifactUnavailable
+	}
 	if strings.TrimSpace(artifactOwner.SubjectUserID) != owner.AccountID ||
 		strings.TrimSpace(artifactOwner.RegisteredAppSubject) != owner.RegisteredAppSubject {
 		_ = source.Body.Close()

@@ -302,7 +302,7 @@ func (store *AssetStore) write(
 	if usageBytes-existingBytes+sizeBytes > store.policy.MaxOwnerBytes || newObjects > store.policy.MaxOwnerObjects {
 		return AssetRecord{}, ErrAssetQuota
 	}
-	availableBytes, freeErr := availableDiskBytes(store.dataRoot)
+	availableBytes, freeErr := AvailableDiskBytes(store.dataRoot)
 	if freeErr != nil || availableBytes < store.policy.MinFreeBytes {
 		return AssetRecord{}, ErrAssetUnavailable
 	}

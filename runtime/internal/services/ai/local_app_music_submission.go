@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -20,6 +21,7 @@ import (
 type localAppMusicSubmission struct {
 	ID            string `json:"id"`
 	RequestSHA256 string `json:"request_sha256"`
+	ReservedBytes int64  `json:"reserved_bytes"`
 }
 
 type localAppMusicSubmissionContextKey struct{}
@@ -53,7 +55,7 @@ func captureLocalAppMusicSubmission(req *runtimev1.SubmitLocalAppScenarioJobRequ
 		return nil, err
 	}
 	digest := sha256.Sum256(encoded)
-	return &localAppMusicSubmission{ID: req.GetClientSubmissionId(), RequestSHA256: hex.EncodeToString(digest[:])}, nil
+	return &localAppMusicSubmission{ID: req.GetClientSubmissionId(), RequestSHA256: hex.EncodeToString(digest[:]), ReservedBytes: maxMusicRecoveryOutputBytes}, nil
 }
 
 func localAppMusicSubmissionFromContext(ctx context.Context) *localAppMusicSubmission {
@@ -74,7 +76,7 @@ func validateLocalAppMusicSubmission(value *localAppMusicSubmission, owner *loca
 		return nil
 	}
 	digest, err := hex.DecodeString(value.RequestSHA256)
-	if !owner.valid() || job.GetScenarioType() != runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE || !validClientSubmissionID(value.ID) || err != nil || len(digest) != sha256.Size || strings.ToLower(value.RequestSHA256) != value.RequestSHA256 {
+	if !owner.valid() || job.GetScenarioType() != runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE || value.ReservedBytes != maxMusicRecoveryOutputBytes || !validClientSubmissionID(value.ID) || err != nil || len(digest) != sha256.Size || strings.ToLower(value.RequestSHA256) != value.RequestSHA256 {
 		return fmt.Errorf("invalid protected music submission binding")
 	}
 	return nil
@@ -104,6 +106,9 @@ func (s *scenarioJobStore) getMusicSubmission(owner *localAppJobOwner, id string
 	if record == nil {
 		return nil, nil
 	}
+	if musicRecoveryExpired(record, time.Now()) {
+		return nil, errMusicRecoveryExpired
+	}
 	if requestHash != "" && record.musicSubmission.RequestSHA256 != requestHash {
 		return nil, errLocalAppSubmissionConflict
 	}
@@ -113,6 +118,12 @@ func (s *scenarioJobStore) getMusicSubmission(owner *localAppJobOwner, id string
 func localAppSubmissionError(err error) error {
 	if errors.Is(err, errLocalAppSubmissionConflict) {
 		return grpcerr.WithReasonCode(codes.AlreadyExists, runtimev1.ReasonCode_AI_MEDIA_IDEMPOTENCY_CONFLICT)
+	}
+	if errors.Is(err, errMusicRecoveryExpired) {
+		return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_FOUND)
+	}
+	if errors.Is(err, errMusicRecoveryCapacity) {
+		return grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED)
 	}
 	return err
 }
@@ -126,7 +137,7 @@ func (s *Service) localAppScenarioJobSelector(ctx context.Context, req *runtimev
 	}
 	job, err := s.scenarioJobs.getMusicSubmission(localAppJobOwnerFromContext(ctx), req.GetClientSubmissionId(), "")
 	if err != nil {
-		return "", err
+		return "", localAppSubmissionError(err)
 	}
 	if job == nil {
 		return "", grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_FOUND)

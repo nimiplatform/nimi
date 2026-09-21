@@ -180,7 +180,11 @@ func newService(logger *slog.Logger, auditStore *auditlog.Store, connStore *conn
 		return nil, fmt.Errorf("init scenario job store: %w", err)
 	}
 	svc.scenarioJobs = scenarioJobs
+	svc.scenarioJobs.setMusicArtifactStore(svc.runtimeArtifacts)
 	if localStatePath := strings.TrimSpace(daemonCfg.LocalStatePath); localStatePath != "" {
+		if err := cleanupMusicStagingAtStartup(filepath.Dir(localStatePath)); err != nil {
+			return nil, fmt.Errorf("cleanup interrupted music staging: %w", err)
+		}
 		svc.localMusicStagingRoot = filepath.Join(filepath.Dir(localStatePath), "music-staging")
 		svc.localSpeechStagingRoot = filepath.Join(filepath.Dir(localStatePath), "speech-staging")
 		if err := svc.cleanupAudioCppReferenceVoicesAtStartup(); err != nil {
@@ -282,6 +286,7 @@ func newFromProviderConfig(logger *slog.Logger, auditStore *auditlog.Store, conn
 		voiceAssetDeleteReconciliationInterval: defaultVoiceAssetDeleteReconciliationInterval,
 		textBehaviorAdapters:                   productionTextBehaviorAdapterRegistrations(),
 	}
+	svc.scenarioJobs.setMusicArtifactStore(svc.runtimeArtifacts)
 	voiceCatalog, err := catalog.NewResolver(catalog.ResolverConfig{Logger: logger})
 	if err != nil {
 		return nil, fmt.Errorf("init default speech catalog: %w", err)
@@ -392,6 +397,9 @@ func (s *Service) SetRemoteMediaExecutionHost(host remoteexecution.MediaHost) {
 // RuntimeArtifactService. Producers write before emitting ids to consumers.
 func (s *Service) SetRuntimeArtifactStore(store runtimeartifact.Store) {
 	s.runtimeArtifacts = store
+	if s.scenarioJobs != nil {
+		s.scenarioJobs.setMusicArtifactStore(store)
+	}
 }
 
 // SetAIConfigStore replaces the constructor's process-local store with the

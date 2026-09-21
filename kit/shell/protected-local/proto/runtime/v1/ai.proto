@@ -1096,6 +1096,8 @@ message LocalAppScenarioJob {
   AudioSeparation audio_separation = 17;
   // Present only for a completed TEXT_ANNOTATE Job.
   TextAnnotationResult text_annotation = 18;
+  // Present only for a terminal protected music Job with recovery identity.
+  google.protobuf.Timestamp recovery_expires_at = 19;
 }
 
 // Trimmed voice asset catalog projection. Provider, model, provider voice
@@ -1257,6 +1259,8 @@ message UploadLocalAppArtifactResponse {
   int64 size_bytes = 2;
   string mime_type = 3;
   LocalAppAudioInfo audio_info = 4;
+  // Present only for canonical audio preparation; observation does not renew it.
+  google.protobuf.Timestamp expires_at = 5;
 }
 
 message ListLocalAppVoiceAssetsRequest {
@@ -1421,6 +1425,7 @@ message ScenarioJob {
   SpeechTranscript transcription = 27;
   AudioSeparation audio_separation = 28;
   TextAnnotationResult text_annotation = 29;
+  google.protobuf.Timestamp recovery_expires_at = 30;
 }
 
 message SubmitScenarioJobRequest {

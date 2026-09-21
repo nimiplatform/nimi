@@ -225,6 +225,7 @@ func (s *scenarioJobStore) loadDurableJobs(prune bool) error {
 			musicSubmission: cloneLocalAppMusicSubmission(item.MusicSubmission),
 			done:            make(chan struct{}), createdAt: item.CreatedAt.UTC(), updatedAt: item.UpdatedAt.UTC(), terminalAt: item.TerminalAt.UTC(),
 		}
+		projectMusicRecoveryExpiry(record)
 		if isTerminalScenarioJobStatus(job.GetStatus()) {
 			record.doneClosed = true
 			close(record.done)

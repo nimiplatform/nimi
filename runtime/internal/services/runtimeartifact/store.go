@@ -41,6 +41,8 @@ type ArtifactRecord struct {
 	CreatedAt              time.Time
 	GeneratedVoice         *GeneratedVoiceArtifactMetadata
 	ConversationAttachment *ConversationAttachmentArtifactMetadata
+	MusicRecoveryUntil     time.Time
+	CanonicalAudio         *CanonicalAudioInfo
 	Owner                  *ArtifactOwner
 }
 
@@ -50,6 +52,15 @@ type ArtifactOwner struct {
 	SubjectUserID        string
 	RegisteredAppSubject string
 	AppID                string
+}
+
+// CanonicalAudioInfo is captured by Runtime's complete PCM inspection. The
+// data offset supports frame-based reads without another compressed decode.
+type CanonicalAudioInfo struct {
+	SampleRateHz uint32 `json:"sample_rate_hz"`
+	Channels     uint16 `json:"channels"`
+	FrameCount   uint64 `json:"frame_count"`
+	DataOffset   int64  `json:"data_offset"`
 }
 
 // ArtifactSource is one immutable committed source held through Close.
@@ -298,11 +309,28 @@ func normalizeArtifactRecord(record ArtifactRecord) (ArtifactRecord, error) {
 		}
 		record.Owner = &owner
 	}
+	if !record.MusicRecoveryUntil.IsZero() {
+		if record.Owner == nil {
+			return ArtifactRecord{}, ErrInvalidArtifactRecord
+		}
+		record.MusicRecoveryUntil = record.MusicRecoveryUntil.UTC()
+	}
+	if !validCanonicalAudioMetadata(record) {
+		return ArtifactRecord{}, ErrInvalidArtifactRecord
+	}
+	if record.CanonicalAudio != nil {
+		facts := *record.CanonicalAudio
+		record.CanonicalAudio = &facts
+	}
 	return record, nil
 }
 
 func cloneArtifactRecord(record ArtifactRecord) ArtifactRecord {
 	record.Bytes = bytes.Clone(record.Bytes)
+	if record.CanonicalAudio != nil {
+		facts := *record.CanonicalAudio
+		record.CanonicalAudio = &facts
+	}
 	if record.GeneratedVoice != nil {
 		metadata := *record.GeneratedVoice
 		record.GeneratedVoice = &metadata
@@ -397,6 +425,12 @@ func artifactRecordIntegrityValid(record ArtifactRecord) bool {
 }
 
 func mergeArtifactRecords(existing, incoming ArtifactRecord) (ArtifactRecord, bool, bool) {
+	if (existing.CanonicalAudio == nil) != (incoming.CanonicalAudio == nil) || (existing.CanonicalAudio != nil && *existing.CanonicalAudio != *incoming.CanonicalAudio) {
+		return ArtifactRecord{}, false, false
+	}
+	if !existing.MusicRecoveryUntil.Equal(incoming.MusicRecoveryUntil) {
+		return ArtifactRecord{}, false, false
+	}
 	if existing.ContentSHA256 != incoming.ContentSHA256 || existing.SizeBytes != incoming.SizeBytes || existing.MimeType != incoming.MimeType || existing.MimeInferred != incoming.MimeInferred || existing.ProducerJobID != incoming.ProducerJobID || !artifactOwnersEqual(existing.Owner, incoming.Owner) || !conversationAttachmentMetadataEqual(existing.ConversationAttachment, incoming.ConversationAttachment) {
 		return ArtifactRecord{}, false, false
 	}
