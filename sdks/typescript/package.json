@@ -113,7 +113,7 @@
     "@protobuf-ts/runtime": "2.11.1"
   },
   "peerDependencies": {
-    "@grpc/grpc-js": "^1.14.4"
+    "@grpc/grpc-js": "^1.14.5"
   },
   "peerDependenciesMeta": {
     "@grpc/grpc-js": {
@@ -126,7 +126,7 @@
     "test": "node ../../scripts/run-sdk-vnext-typescript-tests.mjs"
   },
   "devDependencies": {
-    "@grpc/grpc-js": "^1.14.4",
+    "@grpc/grpc-js": "^1.14.5",
     "@types/node": "^24.13.3",
     "tsx": "^4.23.13",
     "typescript": "^5.9.3"
