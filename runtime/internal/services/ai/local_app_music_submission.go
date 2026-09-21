@@ -45,17 +45,27 @@ func captureLocalAppMusicSubmission(req *runtimev1.SubmitLocalAppScenarioJobRequ
 	if req.GetClientSubmissionId() == "" {
 		return nil, nil
 	}
-	if req.GetMusicGenerate() == nil || !validClientSubmissionID(req.GetClientSubmissionId()) {
+	if (req.GetMusicGenerate() == nil && req.GetMusicTranscribe() == nil) || !validClientSubmissionID(req.GetClientSubmissionId()) {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	// Includes every closed author input and the timeout; excludes no user field.
 	// Deterministic protobuf encoding avoids map ordering changing the identity.
-	encoded, err := (proto.MarshalOptions{Deterministic: true}).Marshal(req)
+	canonical := req
+	reservation := maxMusicRecoveryOutputBytes
+	if spec := req.GetMusicTranscribe(); spec != nil {
+		if err := validateMusicTranscriptionSpec(spec); err != nil {
+			return nil, err
+		}
+		canonical = proto.Clone(req).(*runtimev1.SubmitLocalAppScenarioJobRequest)
+		canonical.Spec = &runtimev1.SubmitLocalAppScenarioJobRequest_MusicTranscribe{MusicTranscribe: canonicalMusicTranscriptionSpec(spec)}
+		reservation = 64 << 20
+	}
+	encoded, err := (proto.MarshalOptions{Deterministic: true}).Marshal(canonical)
 	if err != nil {
 		return nil, err
 	}
 	digest := sha256.Sum256(encoded)
-	return &localAppMusicSubmission{ID: req.GetClientSubmissionId(), RequestSHA256: hex.EncodeToString(digest[:]), ReservedBytes: maxMusicRecoveryOutputBytes}, nil
+	return &localAppMusicSubmission{ID: req.GetClientSubmissionId(), RequestSHA256: hex.EncodeToString(digest[:]), ReservedBytes: reservation}, nil
 }
 
 func localAppMusicSubmissionFromContext(ctx context.Context) *localAppMusicSubmission {
@@ -76,7 +86,14 @@ func validateLocalAppMusicSubmission(value *localAppMusicSubmission, owner *loca
 		return nil
 	}
 	digest, err := hex.DecodeString(value.RequestSHA256)
-	if !owner.valid() || job.GetScenarioType() != runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE || value.ReservedBytes != maxMusicRecoveryOutputBytes || !validClientSubmissionID(value.ID) || err != nil || len(digest) != sha256.Size || strings.ToLower(value.RequestSHA256) != value.RequestSHA256 {
+	reservation := int64(0)
+	switch job.GetScenarioType() {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
+		reservation = maxMusicRecoveryOutputBytes
+	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_TRANSCRIBE:
+		reservation = 64 << 20
+	}
+	if !owner.valid() || reservation == 0 || value.ReservedBytes != reservation || !validClientSubmissionID(value.ID) || err != nil || len(digest) != sha256.Size || strings.ToLower(value.RequestSHA256) != value.RequestSHA256 {
 		return fmt.Errorf("invalid protected music submission binding")
 	}
 	return nil

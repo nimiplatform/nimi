@@ -1,0 +1,34 @@
+format: nimicoding.authority/v2
+owner: team.runtime
+scope: runtime.ai-provider
+units:
+  - id: definition.nimi.runtime.ai-provider.music-transcription
+    kind: definition
+    title: Music transcription is an estimate of an existing recording
+    meaning: music.transcribe estimates symbolic musical structure from an owned canonical audio source or its explicit half-open frame range. It is distinct from lyric or speech recognition, new music composition, deterministic ABC or MIDI conversion, and faithful singing synthesis. Its estimated scores and timeline never replace the original audio or assert acoustically verified melody, harmony or singer identity.
+  - id: rule.nimi.runtime.ai-provider.music-transcription
+    kind: rule
+    title: Music transcription has bounded typed inputs and complete owned outputs
+    modality: must
+    statement: MUSIC_TRANSCRIBE uses music.transcribe and MODAL_MUSIC with ASYNC_JOB through the existing protected ScenarioJob operation family. Input contains exactly sourceAudio as an owned canonical MusicAudioInput, a nonempty duplicate-free requestedFormats set drawn from abc, midi and timeline, and a nonempty duplicate-free requestedParts set drawn from vocal-melody, lead-sheet and full-arrangement. Runtime authorizes and captures the immutable audio, source frame facts, requested range, selected exact Driver and complete ResolvedAssembly before publication; no prompt, lyrics, model, path, tokenizer option or output conversion is accepted as a substitute. Exact Driver profiles admit only implemented combinations, with canonical audio bounded to 600 seconds and 512 MiB, and missing input-capability projection means unknown. Success atomically commits every requested score format and part, plus the requested timeline, and returns their references with transcribed-estimate origin, original source artifact identity and AudioInfo, the analyzed input frame range and explicit completeness of unknown, complete or truncated from real engine evidence. A processed input window or last event timestamp never establishes complete transcription; missing evidence remains unknown. ABC is at most 1 MiB, MIDI and timeline each at most 16 MiB, and unsupported requested output fails rather than silently converting or omitting it. The original audio is unchanged; outputs contain no generated audio or invented confidence, lyrics, voice identity or expressive-control claim.
+    condition: Whenever Runtime, SDK, Kit or a protected App admits, executes or projects music.transcribe.
+    failure: Reject unowned or noncanonical input, invalid ranges or closed-set fields, unsupported format and part combinations, malformed output, missing requested artifacts or invalid captured state; publish no partial success or pseudo-transcription.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.capability-contract
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.canonical-audio
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.music-transcription
+  - id: rule.nimi.runtime.ai-provider.music-transcription-timeline
+    kind: rule
+    title: Estimated music timelines use source frames and normalized musical events
+    modality: must
+    statement: A requested music timeline is one application/vnd.nimi.music-timeline+json artifact using schema version 1, original source artifact identity, measured source AudioInfo and analyzed half-open input range, with at most 100000 ordered events on that source frame timeline. Event kinds are note, beat, chord, key and section. Notes contain integer MIDI pitch, nonnegative track index and start and exclusive end frames; beat markers contain source frame and a reported position in eighth notes from the downbeat with meter only when observed; chord and key labels use bounded normalized musical notation and section labels use bounded text decoded by the exact Driver. The Driver translates actual model timestamps and symbolic vocabulary, applies the captured source-range offset once, bounds events to the analyzed source interval and validates finite timing, legal pitches and field-specific shapes. Native tokenizer ids, duration bins, provider payloads, local paths, free-form metadata and fabricated velocity or confidence are excluded. Deterministic note-time rounding is a frame projection of an estimate, not a sample-preserving audio edit.
+    condition: When a music transcription requests or consumes a timeline artifact.
+    failure: Reject unversioned or oversized timelines, unknown fields or event kinds, invalid source facts, nonmonotonic or out-of-range times, incomplete note spans and undeclared native vocabulary instead of forwarding raw model JSON.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.canonical-audio
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.music-transcription

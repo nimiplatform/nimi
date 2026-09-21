@@ -2,6 +2,8 @@ import {
   runRuntimeAIConsumeCapability,
   runRuntimeImageGenerate,
   runRuntimeMusicGenerate,
+  runRuntimeMusicTranscribe,
+  observeRuntimeMusicTranscription,
   observeRuntimeMusicGeneration,
   runRuntimeSpeechSynthesize,
   runRuntimeSpeechTranscribe,
@@ -18,6 +20,7 @@ import type {
   StudioCapabilityRunResult,
   StudioManagedArtifact,
   StudioMusicGeneration,
+  StudioMusicTranscription,
   StudioNonSuccess,
   StudioNonSuccessDiagnostics,
   StudioNonSuccessReason,
@@ -35,6 +38,8 @@ export type StudioRuntimeRunnerSet = {
   readonly aiConsume: typeof runRuntimeAIConsumeCapability;
   readonly imageGenerate: typeof runRuntimeImageGenerate;
   readonly musicGenerate: typeof runRuntimeMusicGenerate;
+  readonly musicTranscribe: typeof runRuntimeMusicTranscribe;
+  readonly musicTranscriptionObserve: typeof observeRuntimeMusicTranscription;
   readonly musicObserve: typeof observeRuntimeMusicGeneration;
   readonly videoGenerate: typeof runRuntimeVideoGenerate;
   readonly speechSynthesize: typeof runRuntimeSpeechSynthesize;
@@ -61,6 +66,7 @@ export type StudioRuntimeHost = {
 };
 
 export type StudioCapabilityRuntimeContext = {
+  readonly musicSourceAudio?: StudioManagedArtifact;
   readonly capability: StudioRuntimeCapabilityDescriptor;
   readonly input: StudioCapabilityRunInput;
   readonly prompt: string;
@@ -90,6 +96,8 @@ export const DEFAULT_STUDIO_RUNTIME_RUNNERS: StudioRuntimeRunnerSet = Object.fre
   aiConsume: runRuntimeAIConsumeCapability,
   imageGenerate: runRuntimeImageGenerate,
   musicGenerate: runRuntimeMusicGenerate,
+  musicTranscribe: runRuntimeMusicTranscribe,
+  musicTranscriptionObserve: observeRuntimeMusicTranscription,
   musicObserve: observeRuntimeMusicGeneration,
   videoGenerate: runRuntimeVideoGenerate,
   speechSynthesize: runRuntimeSpeechSynthesize,
@@ -162,6 +170,7 @@ export function createStudioScenarioJobClient(context: StudioCapabilityRuntimeCo
 type ArtifactRunnerResult = Awaited<ReturnType<
   | typeof runRuntimeImageGenerate
   | typeof runRuntimeMusicGenerate
+  | typeof runRuntimeMusicTranscribe
   | typeof runRuntimeVideoGenerate
   | typeof runRuntimeSpeechSynthesize
 >>;
@@ -171,6 +180,7 @@ export async function projectStudioArtifactRunnerResult(
   result: ArtifactRunnerResult,
 ): Promise<StudioCapabilityRunResult> {
   if (result.ok === false) return projectStudioRunnerNonSuccess(context, result);
+  if (result.output.kind === 'music-transcription-artifacts' && !context.musicSourceAudio) throw new Error('Music transcription omitted the saved canonical input.');
   const artifacts: StudioManagedArtifact[] = [];
   const adoptedPaths: string[] = [];
   try {
@@ -184,9 +194,9 @@ export async function projectStudioArtifactRunnerResult(
         index,
       );
       let adopted: Awaited<ReturnType<NimiLocalAppClient['storage']['assets']['stat']>> | undefined;
-      const expectedHash = result.output.kind === 'music-artifacts' && 'sha256' in sourceArtifact && typeof sourceArtifact.sha256 === 'string'
+      const expectedHash = (result.output.kind === 'music-artifacts' || result.output.kind === 'music-transcription-artifacts') && 'sha256' in sourceArtifact && typeof sourceArtifact.sha256 === 'string'
         ? `sha256:${sourceArtifact.sha256.replace(/^sha256:/u, '')}` : undefined;
-      if (result.output.kind === 'music-artifacts' && (!expectedHash || !/^sha256:[0-9a-f]{64}$/u.test(expectedHash))) throw new Error('Music artifact omitted its content digest.');
+      if ((result.output.kind === 'music-artifacts' || result.output.kind === 'music-transcription-artifacts') && (!expectedHash || !/^sha256:[0-9a-f]{64}$/u.test(expectedHash))) throw new Error('Music artifact omitted its content digest.');
       if (expectedHash) {
         // Runtime owns the adopted extension. Each music artifact has its own
         // deterministic directory, so recovery uses returned metadata instead.
@@ -228,6 +238,19 @@ export async function projectStudioArtifactRunnerResult(
     throw error;
   }
   let musicGeneration: StudioMusicGeneration | undefined;
+  let musicTranscription: StudioMusicTranscription | undefined;
+  if (result.output.kind === 'music-transcription-artifacts') {
+    if (!context.musicSourceAudio) throw new Error('Music transcription omitted the saved canonical input.');
+    const pathFor = (id: string) => {
+      const index = result.output.artifacts.findIndex(artifact => artifact.artifactId === id);
+      if (index < 0 || !artifacts[index]) throw new Error('Transcription result references an unadopted output.');
+      return artifacts[index]!.relativePath;
+    };
+    const value = result.output.transcription;
+    musicTranscription = { sourceAudio: context.musicSourceAudio, sourceInfo: value.sourceInfo, inputRange: value.inputRange,
+      completeness: value.completeness, origin: value.origin, scores: value.scores.map(score => ({ relativePath: pathFor(score.artifactId), format: score.format, part: score.part })),
+      ...(value.timelineArtifactId ? { timelineRelativePath: pathFor(value.timelineArtifactId) } : {}) };
+  }
   if (result.output.kind === 'music-artifacts') {
     const generation = result.output.generation;
     const pathFor = (artifactId: string) => {
@@ -251,6 +274,7 @@ export async function projectStudioArtifactRunnerResult(
     output: {
       kind: 'artifacts',
       ...(musicGeneration ? { musicGeneration } : {}),
+      ...(musicTranscription ? { musicTranscription } : {}),
       jobId: result.output.jobId,
       jobState: result.output.jobStatus,
       artifactCount: result.output.artifactCount,
@@ -345,5 +369,5 @@ async function managedStudioAssetPath(
   const bytes = new TextEncoder().encode(identity);
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
   const token = Array.from(digest, (byte) => byte.toString(16).padStart(2, '0')).join('');
-  return `media/${capabilityId.replaceAll('.', '-')}/${token}${capabilityId === 'music.generate' ? '/result' : ''}.asset`;
+  return `media/${capabilityId.replaceAll('.', '-')}/${token}${['music.generate', 'music.transcribe'].includes(capabilityId) ? '/result' : ''}.asset`;
 }

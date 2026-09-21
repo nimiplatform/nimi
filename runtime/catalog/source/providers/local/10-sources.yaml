@@ -191,6 +191,10 @@ sources:
     url: https://huggingface.co/onnx-community/silero-vad/blob/e71cae966052b992a7eca6b17738916ce0eca4ec/README.md
     retrieved_at: 2026-09-16
     note: Pinned standard Silero ONNX VAD companion with explicit input, state and sample-rate tensors.
+  - source_id: sheetsage2_audio_cpp_gguf_modelcard
+    url: https://huggingface.co/audio-cpp/SheetSage2-GGUF/blob/6dd648b0acf1ba9e662d8509a3eabcb201911c2c/README.md
+    retrieved_at: 2026-09-22
+    note: Fixed original-FP32 merged MERT-v2 and SheetSage2 GGUF, CC-BY-NC-4.0. Native output is estimated ABC and events, not a MIDI file; no separate backbone is required.
   - source_id: yue2_audio_cpp_gguf_modelcard
     url: https://huggingface.co/audio-cpp/Yue2-3B-GGUF/tree/eb116220931de5f373d024d48800338178c7de51
     retrieved_at: 2026-09-21

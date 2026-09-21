@@ -4,10 +4,20 @@ import type { AIStudioModuleRegistration } from '../../ai-studio-core/module-reg
 import { studioMediaDescriptors, type StudioMediaCapabilityId } from './descriptors.js';
 import { studioImageGenerateParameters, studioMusicGenerateParameters, studioVideoGenerateParameters } from './parameters.js';
 import { StudioMediaParameterPanel } from './parameter-panel.js';
+import { MusicTranscriptionFields } from './music-transcription-parameters.js';
+import { studioMusicTranscribeParameters } from './parameters.js';
 
 export const studioMediaModule = Object.freeze({
   id: 'studio-media', navigationLabel: 'Media', order: 20,
   capabilities: [
+    {
+      descriptor: studioMediaDescriptors[4], icon: Music2,
+      profile: {
+        studioTag: 'Music', inputTitleKey: 'Studio.profiles.musicTranscribe.inputTitle', inputPlaceholderKey: 'Studio.profiles.musicTranscribe.inputPlaceholder', inputKind: 'none', supportsAttachments: false, controls: [], primaryLabelKey: 'Studio.profiles.musicTranscribe.primaryLabel', primaryRunningLabelKey: 'Studio.profiles.musicTranscribe.primaryRunningLabel', resultTitle: 'Estimated score', emptyTitleKey: 'Studio.profiles.musicTranscribe.emptyTitle', emptyHintKey: 'Studio.profiles.musicTranscribe.emptyHint', resultKind: 'artifacts', footnoteKey: 'Studio.profiles.musicTranscribe.footnote',
+      },
+      preset: { id: 'transcribe-recording', label: 'Transcribe a recording', prompt: '' },
+      runtimeMethod: 'kit.generation.runRuntimeMusicTranscribe', parameters: studioMusicTranscribeParameters, parameterPanel: MusicTranscriptionFields,
+    },
     {
       descriptor: studioMediaDescriptors[3], icon: ScanSearch,
       profile: {

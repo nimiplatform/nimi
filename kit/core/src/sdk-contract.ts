@@ -141,6 +141,7 @@ export {
 export {
   ExecutionMode,
   MusicScoreFormat, MusicScoreConditioning, MusicGenerationTermination, MusicScoreOrigin,
+  MusicTranscriptionFormat, MusicTranscriptionPart, MusicTranscriptionCompleteness,
   FinishReason,
   LocalAppSessionState,
   ScenarioJobEventType,
@@ -374,4 +375,5 @@ export type { NimiLocalAppTextAnnotationResult, NimiLocalAppTextAnnotationDocume
 
 export { validateNimiLocalAppMusicGenerateSpec, validateNimiLocalAppMusicGeneration, type NimiLocalAppMusicGenerateSpec, type NimiLocalAppMusicGeneration } from '@nimiplatform/sdk/app';
 
-export { projectMusicInputCapabilities, type NimiMusicInputCapabilities, type NimiMusicGenerationInputProfile } from '@nimiplatform/sdk/app';
+export { projectMusicInputCapabilities, type NimiMusicInputCapabilities, type NimiMusicGenerationInputProfile, type NimiMusicTranscriptionInputProfile } from '@nimiplatform/sdk/app';
+export { validateNimiLocalAppMusicTranscribeSpec, validateNimiLocalAppMusicTranscription, type NimiLocalAppMusicTranscribeSpec, type NimiLocalAppMusicTranscription } from '@nimiplatform/sdk/app';

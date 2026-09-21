@@ -58,6 +58,9 @@ func TestCanonicalCatalogMatchesPlatformCatalog(t *testing.T) {
 	want := make([]string, 0, len(source.Capabilities))
 	for _, item := range source.Capabilities {
 		want = append(want, item.CapabilityID)
+		if !IsCanonicalCatalogCapability(item.CapabilityID) {
+			t.Errorf("published capability %q cannot pass storage/admission", item.CapabilityID)
+		}
 	}
 	if got := CanonicalCatalog(); !reflect.DeepEqual(got, want) {
 		t.Fatalf("Runtime canonical capability registry = %v, want config catalog %v", got, want)

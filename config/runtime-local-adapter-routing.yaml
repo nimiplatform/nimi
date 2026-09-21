@@ -15,6 +15,10 @@ surfaces:
   - routes_7
   - routes_8
 routes:
+  - provider: sidecar
+    capability: music.transcribe
+    adapter: sidecar_music_adapter
+    source_rule: rule.nimi.runtime.ai-provider.music-transcription
   - provider: speech
     capability: audio.separate
     adapter: speech_native_adapter

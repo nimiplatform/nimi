@@ -263,6 +263,10 @@
         "label": "Music generation",
         "description": "Choose how this app generates music."
       },
+      "musicTranscribe": {
+        "label": "Music transcription",
+        "description": "Choose how this app estimates scores from recordings."
+      },
       "realtimeInteract": {
         "label": "Realtime interaction",
         "description": "Choose how this app runs realtime interactions."

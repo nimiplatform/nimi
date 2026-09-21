@@ -1101,6 +1101,39 @@ export interface MusicInputCapabilities {
      * @generated from protobuf field: repeated nimi.runtime.v1.MusicGenerationInputProfile generation = 1
      */
     generation: MusicGenerationInputProfile[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.MusicTranscriptionInputProfile transcription = 2
+     */
+    transcription: MusicTranscriptionInputProfile[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.MusicTranscriptionInputProfile
+ */
+export interface MusicTranscriptionInputProfile {
+    /**
+     * abc | midi | timeline
+     *
+     * @generated from protobuf field: repeated string formats = 1
+     */
+    formats: string[];
+    /**
+     * vocal-melody | lead-sheet | full-arrangement
+     *
+     * @generated from protobuf field: repeated string parts = 2
+     */
+    parts: string[];
+    /**
+     * @generated from protobuf field: uint32 max_duration_seconds = 3
+     */
+    maxDurationSeconds: number;
+    /**
+     * @generated from protobuf field: uint32 max_source_bytes = 4
+     */
+    maxSourceBytes: number;
+    /**
+     * @generated from protobuf field: bool supports_range = 5
+     */
+    supportsRange: boolean;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AIConfigLocalResourceProjection
@@ -4968,12 +5001,14 @@ export const MusicGenerationInputProfile = new MusicGenerationInputProfile$Type(
 class MusicInputCapabilities$Type extends MessageType<MusicInputCapabilities> {
     constructor() {
         super("nimi.runtime.v1.MusicInputCapabilities", [
-            { no: 1, name: "generation", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => MusicGenerationInputProfile }
+            { no: 1, name: "generation", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => MusicGenerationInputProfile },
+            { no: 2, name: "transcription", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => MusicTranscriptionInputProfile }
         ]);
     }
     create(value?: PartialMessage<MusicInputCapabilities>): MusicInputCapabilities {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.generation = [];
+        message.transcription = [];
         if (value !== undefined)
             reflectionMergePartial<MusicInputCapabilities>(this, message, value);
         return message;
@@ -4985,6 +5020,9 @@ class MusicInputCapabilities$Type extends MessageType<MusicInputCapabilities> {
             switch (fieldNo) {
                 case /* repeated nimi.runtime.v1.MusicGenerationInputProfile generation */ 1:
                     message.generation.push(MusicGenerationInputProfile.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated nimi.runtime.v1.MusicTranscriptionInputProfile transcription */ 2:
+                    message.transcription.push(MusicTranscriptionInputProfile.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -5001,6 +5039,9 @@ class MusicInputCapabilities$Type extends MessageType<MusicInputCapabilities> {
         /* repeated nimi.runtime.v1.MusicGenerationInputProfile generation = 1; */
         for (let i = 0; i < message.generation.length; i++)
             MusicGenerationInputProfile.internalBinaryWrite(message.generation[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.MusicTranscriptionInputProfile transcription = 2; */
+        for (let i = 0; i < message.transcription.length; i++)
+            MusicTranscriptionInputProfile.internalBinaryWrite(message.transcription[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -5011,6 +5052,85 @@ class MusicInputCapabilities$Type extends MessageType<MusicInputCapabilities> {
  * @generated MessageType for protobuf message nimi.runtime.v1.MusicInputCapabilities
  */
 export const MusicInputCapabilities = new MusicInputCapabilities$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class MusicTranscriptionInputProfile$Type extends MessageType<MusicTranscriptionInputProfile> {
+    constructor() {
+        super("nimi.runtime.v1.MusicTranscriptionInputProfile", [
+            { no: 1, name: "formats", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "parts", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "max_duration_seconds", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 4, name: "max_source_bytes", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 5, name: "supports_range", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<MusicTranscriptionInputProfile>): MusicTranscriptionInputProfile {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.formats = [];
+        message.parts = [];
+        message.maxDurationSeconds = 0;
+        message.maxSourceBytes = 0;
+        message.supportsRange = false;
+        if (value !== undefined)
+            reflectionMergePartial<MusicTranscriptionInputProfile>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: MusicTranscriptionInputProfile): MusicTranscriptionInputProfile {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated string formats */ 1:
+                    message.formats.push(reader.string());
+                    break;
+                case /* repeated string parts */ 2:
+                    message.parts.push(reader.string());
+                    break;
+                case /* uint32 max_duration_seconds */ 3:
+                    message.maxDurationSeconds = reader.uint32();
+                    break;
+                case /* uint32 max_source_bytes */ 4:
+                    message.maxSourceBytes = reader.uint32();
+                    break;
+                case /* bool supports_range */ 5:
+                    message.supportsRange = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: MusicTranscriptionInputProfile, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated string formats = 1; */
+        for (let i = 0; i < message.formats.length; i++)
+            writer.tag(1, WireType.LengthDelimited).string(message.formats[i]);
+        /* repeated string parts = 2; */
+        for (let i = 0; i < message.parts.length; i++)
+            writer.tag(2, WireType.LengthDelimited).string(message.parts[i]);
+        /* uint32 max_duration_seconds = 3; */
+        if (message.maxDurationSeconds !== 0)
+            writer.tag(3, WireType.Varint).uint32(message.maxDurationSeconds);
+        /* uint32 max_source_bytes = 4; */
+        if (message.maxSourceBytes !== 0)
+            writer.tag(4, WireType.Varint).uint32(message.maxSourceBytes);
+        /* bool supports_range = 5; */
+        if (message.supportsRange !== false)
+            writer.tag(5, WireType.Varint).bool(message.supportsRange);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.MusicTranscriptionInputProfile
+ */
+export const MusicTranscriptionInputProfile = new MusicTranscriptionInputProfile$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class AIConfigLocalResourceProjection$Type extends MessageType<AIConfigLocalResourceProjection> {
     constructor() {

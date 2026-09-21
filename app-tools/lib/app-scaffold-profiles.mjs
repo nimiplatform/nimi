@@ -917,7 +917,7 @@ function renderGeneratedAIStudioHostAdapter(resolution) {
     '    return { ok: true as const, projection: await appendRecord(record) };',
     '  } catch (error) {',
     '    const paths = studioHistoryArtifactPaths(record);',
-    '    if (result.ok && result.output.kind === \'artifacts\' && result.output.musicGeneration) {',
+    '    if (result.ok && result.output.kind === \'artifacts\' && (result.output.musicGeneration || result.output.musicTranscription)) {',
     '      // Music recovery already owns these assets; history is an additional index.',
     '      return { ok: false as const, message: error instanceof Error ? error.message : String(error), retryRecord: true, remainingCleanupPaths: [] };',
     '    }',

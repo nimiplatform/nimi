@@ -1,6 +1,6 @@
 import { validateNimiLocalAppTextAnnotationResult } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppSpeechTranscript, validateNimiLocalAppAudioSeparation } from '@nimiplatform/kit/core/sdk-contract';
-import { validateNimiLocalAppMusicGeneration } from '@nimiplatform/kit/core/sdk-contract';
+import { validateNimiLocalAppMusicGeneration, validateNimiLocalAppMusicTranscription } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppArtifactUploadShellInput, validateNimiLocalAppArtifactUploadResult,
   type NimiLocalAppArtifactUploadShellInput } from '@nimiplatform/kit/core/sdk-contract';
 import { loadNimiElectronProtectedLocalPackage } from './protected-local-binding-loader.js';
@@ -1913,6 +1913,7 @@ function validateScenarioJob(value: unknown): NimiElectronLocalAppRecord {
     ...(Object.hasOwn(value, 'textAnnotation') ? ['textAnnotation'] : []),
     ...(Object.hasOwn(value, 'audioSeparation') ? ['audioSeparation'] : []),
     ...(Object.hasOwn(value, 'musicGeneration') ? ['musicGeneration'] : []),
+    ...(Object.hasOwn(value, 'musicTranscription') ? ['musicTranscription'] : []),
     ...(Object.hasOwn(value, 'interruption') ? ['interruption'] : []),
     ...(Object.hasOwn(value, 'videoFaceSwapSummary') ? ['videoFaceSwapSummary'] : []),
   ])) throw untrustedRuntimeError();
@@ -1925,7 +1926,7 @@ function validateScenarioJob(value: unknown): NimiElectronLocalAppRecord {
     'speech-synthesize',
     'speech-transcribe', 'text-annotate', 'audio-separate',
     'voice-create',
-    'music-generate',
+    'music-generate', 'music-transcribe',
     'world-generate',
   ];
   const statuses = ['submitted', 'queued', 'running', 'completed', 'failed', 'canceled', 'timeout'];
@@ -1949,14 +1950,17 @@ function validateScenarioJob(value: unknown): NimiElectronLocalAppRecord {
   const textAnnotation = value.textAnnotation === undefined ? undefined : validateNimiLocalAppTextAnnotationResult(value.textAnnotation);
   const audioSeparation = value.audioSeparation === undefined ? undefined : validateNimiLocalAppAudioSeparation(value.audioSeparation, artifacts);
   if ((value.musicGeneration !== undefined) !== (value.scenarioType === 'music-generate' && value.status === 'completed')) throw untrustedRuntimeError();
+  if ((value.musicTranscription !== undefined) !== (value.scenarioType === 'music-transcribe' && value.status === 'completed')) throw untrustedRuntimeError();
+  const musicTranscription = value.musicTranscription === undefined ? undefined : validateNimiLocalAppMusicTranscription(value.musicTranscription, artifacts);
   const musicGeneration = value.musicGeneration === undefined ? undefined : validateNimiLocalAppMusicGeneration(value.musicGeneration, artifacts);
   const recoveryExpiresAt = value.recoveryExpiresAt === undefined ? undefined : validateTimestamp(value.recoveryExpiresAt);
-  if (value.recoveryExpiresAt !== undefined && (!recoveryExpiresAt || value.scenarioType !== 'music-generate' || !['completed', 'failed', 'canceled', 'timeout'].includes(String(value.status)))) throw untrustedRuntimeError();
+  if (value.recoveryExpiresAt !== undefined && (!recoveryExpiresAt || !['music-generate', 'music-transcribe'].includes(String(value.scenarioType)) || !['completed', 'failed', 'canceled', 'timeout'].includes(String(value.status)))) throw untrustedRuntimeError();
   return Object.freeze({
     ...(recoveryExpiresAt ? { recoveryExpiresAt } : {}),
     ...(textAnnotation ? { textAnnotation } : {}),
     ...(audioSeparation ? { audioSeparation } : {}),
     ...(musicGeneration ? { musicGeneration } : {}),
+    ...(musicTranscription ? { musicTranscription } : {}),
     ...(transcription ? { transcription } : {}),
     ...(videoFaceSwapSummary ? { videoFaceSwapSummary } : {}),
     ...(interruption !== undefined ? { interruption: Object.freeze({ ...(interruption as Record<string, unknown>) }) } : {}),

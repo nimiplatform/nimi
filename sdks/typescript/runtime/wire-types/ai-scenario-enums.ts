@@ -203,6 +203,27 @@ export enum MusicScoreOrigin {
   TRANSCRIBED_ESTIMATE = 2,
 }
 
+export enum MusicTranscriptionCompleteness {
+  UNSPECIFIED = 0,
+  UNKNOWN = 1,
+  COMPLETE = 2,
+  TRUNCATED = 3,
+}
+
+export enum MusicTranscriptionFormat {
+  UNSPECIFIED = 0,
+  ABC = 1,
+  MIDI = 2,
+  TIMELINE = 3,
+}
+
+export enum MusicTranscriptionPart {
+  UNSPECIFIED = 0,
+  VOCAL_MELODY = 1,
+  LEAD_SHEET = 2,
+  FULL_ARRANGEMENT = 3,
+}
+
 export enum RealmAttachmentDisplayKind {
   UNSPECIFIED = 0,
   IMAGE = 1,
@@ -362,6 +383,7 @@ export enum ScenarioType {
   VIDEO_FACE_SWAP = 14,
   AUDIO_SEPARATE = 15,
   TEXT_ANNOTATE = 16,
+  MUSIC_TRANSCRIBE = 17,
 }
 
 export enum SchedulingState {

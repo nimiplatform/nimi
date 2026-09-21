@@ -32,5 +32,6 @@ export function displayRuntimeConfigCapabilityLabel(
   if (capabilityContract === 'music.generate') {
     return t('runtimeConfig.capabilityLabels.musicGenerate');
   }
+  if (capabilityContract === 'music.transcribe') return t('runtimeConfig.capabilityLabels.musicTranscribe');
   return capabilityContract;
 }

@@ -1025,6 +1025,7 @@ type ImageInvocationDriver interface {
 // MusicInvocationPlan is the immutable private Music Driver/Host seam. CLI
 // options are translated by the exact Driver, never selected by the Host.
 type MusicInvocationPlan struct {
+	transcription                  *musicTranscriptionPlan
 	requestJSON                    []byte
 	requestJSONPath                string
 	scoreInput                     []byte
@@ -1619,6 +1620,7 @@ func NewProductionRegistry() *Registry {
 		{CapabilityContract: AudioTranscribeContract, Identity: Identity{ImplementationID: Qwen3ASRImplementationID, DriverID: Qwen3ASRDriverID, DriverDialect: Qwen3ASRDriverDialect}}:                                                    Qwen3ASRDriver{},
 		{CapabilityContract: AudioTranscribeContract, Identity: Identity{ImplementationID: Qwen3ASRTransformersImplementationID, DriverID: Qwen3ASRTransformersDriverID, DriverDialect: Qwen3ASRTransformersDriverDialect}}:                Qwen3ASRTransformersDriver{},
 		{CapabilityContract: MiniMaxMusic3CapabilityContract, Identity: Identity{ImplementationID: YuE2ImplementationID, DriverID: YuE2DriverID, DriverDialect: YuE2DriverDialect}}:                                                        YuE2AudioCppDriver{},
+		{CapabilityContract: MusicTranscribeCapabilityContract, Identity: Identity{ImplementationID: SheetSage2ImplementationID, DriverID: SheetSage2DriverID, DriverDialect: SheetSage2DriverDialect}}:                                    SheetSage2AudioCppDriver{},
 		{CapabilityContract: MiniMaxMusic3CapabilityContract, Identity: Identity{ImplementationID: MiniMaxMusic3ImplementationID, DriverID: MiniMaxMusic3DriverID, DriverDialect: MiniMaxMusic3DriverDialect}}:                             MiniMaxMusic3AudioCppDriver{},
 	}
 	for key, driver := range audioCppSpeechProductionDrivers() {

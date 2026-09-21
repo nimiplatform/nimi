@@ -1,3 +1,4 @@
+import { validateNimiLocalAppMusicTranscribeSpec, validateNimiLocalAppMusicTranscription, type NimiLocalAppMusicTranscribeSpec, type NimiLocalAppMusicTranscription } from '@nimiplatform/kit/core/sdk-contract';
 import { projectMusicInputCapabilities } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppMusicGenerateSpec, validateNimiLocalAppMusicGeneration, type NimiLocalAppMusicGenerateSpec, type NimiLocalAppMusicGeneration } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppTextAnnotationResult, type NimiLocalAppTextAnnotationResult } from '@nimiplatform/kit/core/sdk-contract';
@@ -214,6 +215,7 @@ export type NimiLocalAppScenarioJobSpec =
       readonly language: string; readonly preferredName: string;
     }
   | NimiLocalAppMusicGenerateSpec
+  | NimiLocalAppMusicTranscribeSpec
   | { readonly type: 'world-generate'; readonly prompt: string; readonly displayName: string };
 
 export type NimiLocalAppScenarioJobSubmitOptions = {
@@ -231,7 +233,7 @@ export type NimiLocalAppScenarioJob = {
   readonly recoveryExpiresAt?: NimiLocalAppScenarioTimestamp;
   readonly videoFaceSwapSummary?: { readonly totalFrames: number; readonly transformedFrames: number; readonly preservedFrames: number; readonly durationUs: number; readonly frameRate: 24 | 25 | 30; readonly audioPreserved: boolean };
   readonly jobId: string;
-  readonly scenarioType: 'image-generate' | 'image-face-swap' | 'video-face-swap' | 'vision-locate' | 'video-generate' | 'speech-synthesize' | 'speech-transcribe' | 'text-annotate' | 'audio-separate' | 'voice-create' | 'music-generate' | 'world-generate';
+  readonly scenarioType: 'image-generate' | 'image-face-swap' | 'video-face-swap' | 'vision-locate' | 'video-generate' | 'speech-synthesize' | 'speech-transcribe' | 'text-annotate' | 'audio-separate' | 'voice-create' | 'music-generate' | 'music-transcribe' | 'world-generate';
   readonly status: 'submitted' | 'queued' | 'running' | 'completed' | 'failed' | 'canceled' | 'timeout';
   readonly progressPercent: number; readonly progressCurrentStep: number; readonly progressTotalSteps: number;
   readonly reasonCode: string; readonly reasonDetail: string;
@@ -242,6 +244,7 @@ export type NimiLocalAppScenarioJob = {
   readonly textAnnotation?: NimiLocalAppTextAnnotationResult;
   readonly audioSeparation?: NimiLocalAppAudioSeparation;
   readonly musicGeneration?: NimiLocalAppMusicGeneration;
+  readonly musicTranscription?: NimiLocalAppMusicTranscription;
   readonly interruption?: NimiLocalAppExecutionInterruption;
 };
 export type NimiLocalAppVoiceAsset = {
@@ -862,7 +865,7 @@ export function submitNimiLocalAppScenarioJob(
   const command = AIC_COMMANDS.scenarioJobSubmit;
   const timeoutMs = options.timeoutMs ?? 0;
   const clientSubmissionId = options.clientSubmissionId;
-  if (clientSubmissionId !== undefined && (spec.type !== 'music-generate' || typeof clientSubmissionId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(clientSubmissionId))) {
+  if (clientSubmissionId !== undefined && (!['music-generate', 'music-transcribe'].includes(spec.type) || typeof clientSubmissionId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(clientSubmissionId))) {
     throw invalidInput(command, 'clientSubmissionId requires music-generate and a bounded action id');
   }
   return invokeChecked(command, { payload: {
@@ -933,6 +936,10 @@ export function listNimiLocalAppVoiceAssets(
 
 function canonicalScenarioSpec(spec: unknown, command: string): JsonObject {
   const record = assertRecord(spec, `${command}: scenario spec must be an object`);
+  if (record.type === 'music-transcribe') {
+    try { validateNimiLocalAppMusicTranscribeSpec(record); }
+    catch { throw invalidInput(command, 'Music transcription input is invalid'); }
+  }
   if (record.type === 'music-generate') {
     try { validateNimiLocalAppMusicGenerateSpec(record); }
     catch { throw invalidInput(command, 'Music generation input is invalid'); }
@@ -2322,10 +2329,11 @@ function parseScenarioJob(value: unknown, command: string): NimiLocalAppScenario
     ...(Object.hasOwn(record, 'textAnnotation') ? ['textAnnotation'] : []),
     ...(Object.hasOwn(record, 'audioSeparation') ? ['audioSeparation'] : []),
     ...(Object.hasOwn(record, 'musicGeneration') ? ['musicGeneration'] : []),
+    ...(Object.hasOwn(record, 'musicTranscription') ? ['musicTranscription'] : []),
     ...(Object.hasOwn(record, 'interruption') ? ['interruption'] : []),
     ...(Object.hasOwn(record, 'videoFaceSwapSummary') ? ['videoFaceSwapSummary'] : []),
   ], command, 'scenario Job');
-  if (!['image-generate', 'image-face-swap', 'video-face-swap', 'vision-locate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'text-annotate', 'audio-separate', 'voice-create', 'music-generate', 'world-generate'].includes(String(record.scenarioType))
+  if (!['image-generate', 'image-face-swap', 'video-face-swap', 'vision-locate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'text-annotate', 'audio-separate', 'voice-create', 'music-generate', 'music-transcribe', 'world-generate'].includes(String(record.scenarioType))
     || !['submitted', 'queued', 'running', 'completed', 'failed', 'canceled', 'timeout'].includes(String(record.status))) {
     throw new Error(`${command}: Job enum is invalid`);
   }
@@ -2349,14 +2357,17 @@ function parseScenarioJob(value: unknown, command: string): NimiLocalAppScenario
   const textAnnotation = record.textAnnotation === undefined ? undefined : validateNimiLocalAppTextAnnotationResult(record.textAnnotation);
   const audioSeparation = record.audioSeparation === undefined ? undefined : validateNimiLocalAppAudioSeparation(record.audioSeparation, artifacts);
   if ((record.musicGeneration !== undefined) !== (record.scenarioType === 'music-generate' && record.status === 'completed')) throw new Error(`${command}: music generation state is invalid`);
+  if ((record.musicTranscription !== undefined) !== (record.scenarioType === 'music-transcribe' && record.status === 'completed')) throw new Error(command + ': music transcription state is invalid');
+  const musicTranscription = record.musicTranscription === undefined ? undefined : validateNimiLocalAppMusicTranscription(record.musicTranscription, artifacts);
   const musicGeneration = record.musicGeneration === undefined ? undefined : validateNimiLocalAppMusicGeneration(record.musicGeneration, artifacts);
   const recoveryExpiresAt = record.recoveryExpiresAt === undefined ? undefined : parseScenarioTimestamp(record.recoveryExpiresAt, command);
-  if (record.recoveryExpiresAt !== undefined && (!recoveryExpiresAt || record.scenarioType !== 'music-generate' || !['completed', 'failed', 'canceled', 'timeout'].includes(String(record.status)))) throw new Error(`${command}: music recovery expiry is invalid`);
+  if (record.recoveryExpiresAt !== undefined && (!recoveryExpiresAt || !['music-generate', 'music-transcribe'].includes(String(record.scenarioType)) || !['completed', 'failed', 'canceled', 'timeout'].includes(String(record.status)))) throw new Error(`${command}: music recovery expiry is invalid`);
   return Object.freeze({
     ...(recoveryExpiresAt ? { recoveryExpiresAt } : {}),
     ...(textAnnotation ? { textAnnotation } : {}),
     ...(audioSeparation ? { audioSeparation } : {}),
     ...(musicGeneration ? { musicGeneration } : {}),
+    ...(musicTranscription ? { musicTranscription } : {}),
     ...(transcription ? { transcription } : {}),
     ...(videoFaceSwapSummary ? { videoFaceSwapSummary } : {}),
     ...(interruption !== undefined ? { interruption: { ...(interruption as NimiLocalAppExecutionInterruption) } } : {}),
@@ -3426,7 +3437,7 @@ function parseCloudTargetResource(value: unknown, command: string): void {
     ...(Object.hasOwn(resource, 'musicInput') ? ['musicInput'] : []),
   ], command, 'Cloud target resource');
   if (Object.hasOwn(resource, 'musicInput')) {
-    if (resource.capabilityContract !== 'music.generate') throw new Error(`${command}: invalid music input capability contract`);
+    if (!['music.generate', 'music.transcribe'].includes(String(resource.capabilityContract))) throw new Error(`${command}: invalid music input capability contract`);
     projectMusicInputCapabilities(resource.musicInput);
   }
   if (Object.hasOwn(resource, 'referenceAudioInput')) parseReferenceAudioInput(resource.referenceAudioInput, command);
@@ -3458,7 +3469,7 @@ function parseLocalResource(value: unknown, command: string): void {
     ...(Object.hasOwn(resource, 'musicInput') ? ['musicInput'] : []),
   ], command, 'Local resource');
   if (Object.hasOwn(resource, 'musicInput')) {
-    if (resource.capabilityContract !== 'music.generate') throw new Error(`${command}: invalid music input capability contract`);
+    if (!['music.generate', 'music.transcribe'].includes(String(resource.capabilityContract))) throw new Error(`${command}: invalid music input capability contract`);
     projectMusicInputCapabilities(resource.musicInput);
   }
   if (Object.hasOwn(resource, 'referenceAudioInput')) parseReferenceAudioInput(resource.referenceAudioInput, command);

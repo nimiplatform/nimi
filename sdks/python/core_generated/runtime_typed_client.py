@@ -176,6 +176,9 @@ MusicGenerationTermination = Literal["MUSIC_GENERATION_TERMINATION_UNSPECIFIED",
 MusicScoreConditioning = Literal["MUSIC_SCORE_CONDITIONING_UNSPECIFIED", "MUSIC_SCORE_CONDITIONING_MELODY_ONLY", "MUSIC_SCORE_CONDITIONING_MELODY_AND_HARMONY"]
 MusicScoreFormat = Literal["MUSIC_SCORE_FORMAT_UNSPECIFIED", "MUSIC_SCORE_FORMAT_ABC", "MUSIC_SCORE_FORMAT_MIDI"]
 MusicScoreOrigin = Literal["MUSIC_SCORE_ORIGIN_UNSPECIFIED", "MUSIC_SCORE_ORIGIN_GENERATED_PLAN", "MUSIC_SCORE_ORIGIN_TRANSCRIBED_ESTIMATE"]
+MusicTranscriptionCompleteness = Literal["MUSIC_TRANSCRIPTION_COMPLETENESS_UNSPECIFIED", "MUSIC_TRANSCRIPTION_COMPLETENESS_UNKNOWN", "MUSIC_TRANSCRIPTION_COMPLETENESS_COMPLETE", "MUSIC_TRANSCRIPTION_COMPLETENESS_TRUNCATED"]
+MusicTranscriptionFormat = Literal["MUSIC_TRANSCRIPTION_FORMAT_UNSPECIFIED", "MUSIC_TRANSCRIPTION_FORMAT_ABC", "MUSIC_TRANSCRIPTION_FORMAT_MIDI", "MUSIC_TRANSCRIPTION_FORMAT_TIMELINE"]
+MusicTranscriptionPart = Literal["MUSIC_TRANSCRIPTION_PART_UNSPECIFIED", "MUSIC_TRANSCRIPTION_PART_VOCAL_MELODY", "MUSIC_TRANSCRIPTION_PART_LEAD_SHEET", "MUSIC_TRANSCRIPTION_PART_FULL_ARRANGEMENT"]
 PresenceVerificationMethod = Literal["PRESENCE_VERIFICATION_METHOD_UNSPECIFIED", "PRESENCE_VERIFICATION_METHOD_OS_CREDENTIAL", "PRESENCE_VERIFICATION_METHOD_NIMI_REAUTH", "PRESENCE_VERIFICATION_METHOD_TEST_HARNESS"]
 PresenceVerificationState = Literal["PRESENCE_VERIFICATION_STATE_UNSPECIFIED", "PRESENCE_VERIFICATION_STATE_REJECTED", "PRESENCE_VERIFICATION_STATE_VERIFIED", "PRESENCE_VERIFICATION_STATE_UNAVAILABLE"]
 RealmAttachmentDisplayKind = Literal["REALM_ATTACHMENT_DISPLAY_KIND_UNSPECIFIED", "REALM_ATTACHMENT_DISPLAY_KIND_IMAGE", "REALM_ATTACHMENT_DISPLAY_KIND_VIDEO", "REALM_ATTACHMENT_DISPLAY_KIND_AUDIO", "REALM_ATTACHMENT_DISPLAY_KIND_TEXT", "REALM_ATTACHMENT_DISPLAY_KIND_CARD"]
@@ -195,7 +198,7 @@ RoutePolicy = Literal["ROUTE_POLICY_UNSPECIFIED", "ROUTE_POLICY_LOCAL", "ROUTE_P
 RuntimeHealthStatus = Literal["RUNTIME_HEALTH_STATUS_UNSPECIFIED", "RUNTIME_HEALTH_STATUS_STOPPED", "RUNTIME_HEALTH_STATUS_STARTING", "RUNTIME_HEALTH_STATUS_READY", "RUNTIME_HEALTH_STATUS_DEGRADED", "RUNTIME_HEALTH_STATUS_STOPPING"]
 ScenarioJobEventType = Literal["SCENARIO_JOB_EVENT_TYPE_UNSPECIFIED", "SCENARIO_JOB_EVENT_SUBMITTED", "SCENARIO_JOB_EVENT_QUEUED", "SCENARIO_JOB_EVENT_RUNNING", "SCENARIO_JOB_EVENT_COMPLETED", "SCENARIO_JOB_EVENT_FAILED", "SCENARIO_JOB_EVENT_CANCELED", "SCENARIO_JOB_EVENT_TIMEOUT"]
 ScenarioJobStatus = Literal["SCENARIO_JOB_STATUS_UNSPECIFIED", "SCENARIO_JOB_STATUS_SUBMITTED", "SCENARIO_JOB_STATUS_QUEUED", "SCENARIO_JOB_STATUS_RUNNING", "SCENARIO_JOB_STATUS_COMPLETED", "SCENARIO_JOB_STATUS_FAILED", "SCENARIO_JOB_STATUS_CANCELED", "SCENARIO_JOB_STATUS_TIMEOUT"]
-ScenarioType = Literal["SCENARIO_TYPE_UNSPECIFIED", "SCENARIO_TYPE_TEXT_GENERATE", "SCENARIO_TYPE_TEXT_EMBED", "SCENARIO_TYPE_IMAGE_GENERATE", "SCENARIO_TYPE_VIDEO_GENERATE", "SCENARIO_TYPE_SPEECH_SYNTHESIZE", "SCENARIO_TYPE_SPEECH_TRANSCRIBE", "SCENARIO_TYPE_MUSIC_GENERATE", "SCENARIO_TYPE_WORLD_GENERATE", "SCENARIO_TYPE_VOICE_CREATE", "SCENARIO_TYPE_VISION_LOCATE", "SCENARIO_TYPE_IMAGE_FACE_SWAP", "SCENARIO_TYPE_VIDEO_FACE_SWAP", "SCENARIO_TYPE_AUDIO_SEPARATE", "SCENARIO_TYPE_TEXT_ANNOTATE"]
+ScenarioType = Literal["SCENARIO_TYPE_UNSPECIFIED", "SCENARIO_TYPE_TEXT_GENERATE", "SCENARIO_TYPE_TEXT_EMBED", "SCENARIO_TYPE_IMAGE_GENERATE", "SCENARIO_TYPE_VIDEO_GENERATE", "SCENARIO_TYPE_SPEECH_SYNTHESIZE", "SCENARIO_TYPE_SPEECH_TRANSCRIBE", "SCENARIO_TYPE_MUSIC_GENERATE", "SCENARIO_TYPE_WORLD_GENERATE", "SCENARIO_TYPE_VOICE_CREATE", "SCENARIO_TYPE_VISION_LOCATE", "SCENARIO_TYPE_IMAGE_FACE_SWAP", "SCENARIO_TYPE_VIDEO_FACE_SWAP", "SCENARIO_TYPE_AUDIO_SEPARATE", "SCENARIO_TYPE_TEXT_ANNOTATE", "SCENARIO_TYPE_MUSIC_TRANSCRIBE"]
 SchedulingState = Literal["SCHEDULING_STATE_UNSPECIFIED", "SCHEDULING_STATE_RUNNABLE", "SCHEDULING_STATE_QUEUE_REQUIRED", "SCHEDULING_STATE_PREEMPTION_RISK", "SCHEDULING_STATE_SLOWDOWN_RISK", "SCHEDULING_STATE_DENIED", "SCHEDULING_STATE_UNKNOWN"]
 SensitivityClass = Literal["SENSITIVITY_CLASS_UNSPECIFIED", "SENSITIVITY_CLASS_NONE", "SENSITIVITY_CLASS_USER_PRIVATE", "SENSITIVITY_CLASS_CREDENTIAL_LIKE", "SENSITIVITY_CLASS_ORG_PRIVATE", "SENSITIVITY_CLASS_REGULATED", "SENSITIVITY_CLASS_UNKNOWN_SENSITIVE"]
 SpeechAlignmentUnit = Literal["SPEECH_ALIGNMENT_UNIT_UNSPECIFIED", "SPEECH_ALIGNMENT_UNIT_WORD", "SPEECH_ALIGNMENT_UNIT_CHAR"]
@@ -3905,6 +3908,7 @@ class LocalAppScenarioJob:
     text_annotation: TextAnnotationResult | None = None
     recovery_expires_at: str | None = None
     music_generation: MusicGeneration | None = None
+    music_transcription: MusicTranscription | None = None
 
 @dataclass(frozen=True)
 class LocalAppScenarioJobEvent:
@@ -4617,6 +4621,7 @@ class MusicGenerationInputProfile:
 @dataclass(frozen=True)
 class MusicInputCapabilities:
     generation: tuple[MusicGenerationInputProfile, ...] = field(default_factory=tuple)
+    transcription: tuple[MusicTranscriptionInputProfile, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class MusicScoreArtifact:
@@ -4629,6 +4634,41 @@ class MusicScoreArtifact:
 class MusicScoreReference:
     artifact_id: str | None = None
     format: MusicScoreFormat | None = None
+
+@dataclass(frozen=True)
+class MusicTranscribeResult:
+    artifacts: tuple[ScenarioArtifact, ...] = field(default_factory=tuple)
+    transcription: MusicTranscription | None = None
+
+@dataclass(frozen=True)
+class MusicTranscribeScenarioSpec:
+    source_audio: MusicAudioInput | None = None
+    requested_formats: tuple[MusicTranscriptionFormat, ...] = field(default_factory=tuple)
+    requested_parts: tuple[MusicTranscriptionPart, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class MusicTranscribedScore:
+    artifact_id: str | None = None
+    format: MusicScoreFormat | None = None
+    part: MusicTranscriptionPart | None = None
+
+@dataclass(frozen=True)
+class MusicTranscription:
+    scores: tuple[MusicTranscribedScore, ...] = field(default_factory=tuple)
+    timeline_artifact_id: str | None = None
+    origin: MusicScoreOrigin | None = None
+    source_artifact_id: str | None = None
+    source_info: LocalAppAudioInfo | None = None
+    input_range: AudioFrameRange | None = None
+    completeness: MusicTranscriptionCompleteness | None = None
+
+@dataclass(frozen=True)
+class MusicTranscriptionInputProfile:
+    formats: tuple[str, ...] = field(default_factory=tuple)
+    parts: tuple[str, ...] = field(default_factory=tuple)
+    max_duration_seconds: int | None = None
+    max_source_bytes: int | None = None
+    supports_range: bool | None = None
 
 @dataclass(frozen=True)
 class OpenConversationAnchorRequest:
@@ -5552,6 +5592,7 @@ class ScenarioJob:
     text_annotation: TextAnnotationResult | None = None
     recovery_expires_at: str | None = None
     music_generation: MusicGeneration | None = None
+    music_transcription: MusicTranscription | None = None
 
 @dataclass(frozen=True)
 class ScenarioJobEvent:
@@ -5575,6 +5616,7 @@ class ScenarioOutput:
     video_face_swap: VideoFaceSwapResult | None = None
     audio_separate: AudioSeparateResult | None = None
     text_annotation: TextAnnotationResult | None = None
+    music_transcribe: MusicTranscribeResult | None = None
 
 @dataclass(frozen=True)
 class ScenarioProfile:
@@ -5604,6 +5646,7 @@ class ScenarioSpec:
     video_face_swap: VideoFaceSwapScenarioSpec | None = None
     audio_separate: AudioSeparateScenarioSpec | None = None
     text_annotate: TextAnnotateScenarioSpec | None = None
+    music_transcribe: MusicTranscribeScenarioSpec | None = None
 
 @dataclass(frozen=True)
 class ScenarioStreamCompleted:
@@ -6016,6 +6059,7 @@ class SubmitLocalAppScenarioJobRequest:
     audio_separate: AudioSeparateScenarioSpec | None = None
     text_annotate: TextAnnotateScenarioSpec | None = None
     client_submission_id: str | None = None
+    music_transcribe: MusicTranscribeScenarioSpec | None = None
 
 @dataclass(frozen=True)
 class SubmitLocalAppScenarioJobResponse:

@@ -237,6 +237,29 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
     }),
   }),
   Object.freeze({
+    capabilityId: 'music.transcribe',
+    section: 'music',
+    editorKind: null,
+    sourceRef: Object.freeze({
+      table: 'local-adapter-routing',
+      capability: 'music.transcribe',
+    }),
+    additionalRuntimeTables: Object.freeze([]),
+    i18nKeys: Object.freeze({
+      title: 'AIConfig.capability.musicTranscribe.title',
+      subtitle: 'AIConfig.capability.musicTranscribe.subtitle',
+      detail: 'AIConfig.capability.musicTranscribe.detail',
+    }),
+    runtimeEvidenceClass: 'job',
+    governance: Object.freeze({
+      owner: 'runtime-music-route',
+      dataMovement: 'local-only',
+      retention: 'runtime-artifact-policy',
+      revocation: 'route-or-artifact-owner',
+      auditSource: 'runtime-scenario-job-evidence',
+    }),
+  }),
+  Object.freeze({
     capabilityId: 'realtime.interact',
     section: 'realtime',
     editorKind: null,

@@ -4033,6 +4033,23 @@ pub struct MusicGenerationInputProfile {
 pub struct MusicInputCapabilities {
     #[prost(message, repeated, tag = "1")]
     pub generation: ::prost::alloc::vec::Vec<MusicGenerationInputProfile>,
+    #[prost(message, repeated, tag = "2")]
+    pub transcription: ::prost::alloc::vec::Vec<MusicTranscriptionInputProfile>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MusicTranscriptionInputProfile {
+    /// abc | midi | timeline
+    #[prost(string, repeated, tag = "1")]
+    pub formats: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// vocal-melody | lead-sheet | full-arrangement
+    #[prost(string, repeated, tag = "2")]
+    pub parts: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(uint32, tag = "3")]
+    pub max_duration_seconds: u32,
+    #[prost(uint32, tag = "4")]
+    pub max_source_bytes: u32,
+    #[prost(bool, tag = "5")]
+    pub supports_range: bool,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AiConfigLocalResourceProjection {
@@ -5471,6 +5488,15 @@ pub struct MusicGenerateScenarioSpec {
     #[prost(message, optional, tag = "12")]
     pub audio_reference: ::core::option::Option<MusicAudioInput>,
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MusicTranscribeScenarioSpec {
+    #[prost(message, optional, tag = "1")]
+    pub source_audio: ::core::option::Option<MusicAudioInput>,
+    #[prost(enumeration = "MusicTranscriptionFormat", repeated, tag = "2")]
+    pub requested_formats: ::prost::alloc::vec::Vec<i32>,
+    #[prost(enumeration = "MusicTranscriptionPart", repeated, tag = "3")]
+    pub requested_parts: ::prost::alloc::vec::Vec<i32>,
+}
 /// Source separation preserves the input timeline and returns vocals plus the
 /// sum of all non-vocal sources. The selected implementation owns input limits.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -5813,7 +5839,7 @@ pub struct VisionLocateResult {
 pub struct ScenarioSpec {
     #[prost(
         oneof = "scenario_spec::Spec",
-        tags = "1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14, 15, 16"
+        tags = "1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14, 15, 16, 17"
     )]
     pub spec: ::core::option::Option<scenario_spec::Spec>,
 }
@@ -5849,6 +5875,8 @@ pub mod scenario_spec {
         AudioSeparate(super::AudioSeparateScenarioSpec),
         #[prost(message, tag = "16")]
         TextAnnotate(super::TextAnnotateScenarioSpec),
+        #[prost(message, tag = "17")]
+        MusicTranscribe(super::MusicTranscribeScenarioSpec),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -5987,6 +6015,40 @@ pub struct MusicGeneration {
     #[prost(message, optional, tag = "5")]
     pub audio_info: ::core::option::Option<LocalAppAudioInfo>,
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MusicTranscribedScore {
+    #[prost(string, tag = "1")]
+    pub artifact_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "MusicScoreFormat", tag = "2")]
+    pub format: i32,
+    #[prost(enumeration = "MusicTranscriptionPart", tag = "3")]
+    pub part: i32,
+}
+/// Estimated symbolic results; references identify committed outputs of this Job.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MusicTranscription {
+    #[prost(message, repeated, tag = "1")]
+    pub scores: ::prost::alloc::vec::Vec<MusicTranscribedScore>,
+    #[prost(string, tag = "2")]
+    pub timeline_artifact_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "MusicScoreOrigin", tag = "3")]
+    pub origin: i32,
+    #[prost(string, tag = "4")]
+    pub source_artifact_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "5")]
+    pub source_info: ::core::option::Option<LocalAppAudioInfo>,
+    #[prost(message, optional, tag = "6")]
+    pub input_range: ::core::option::Option<AudioFrameRange>,
+    #[prost(enumeration = "MusicTranscriptionCompleteness", tag = "7")]
+    pub completeness: i32,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MusicTranscribeResult {
+    #[prost(message, repeated, tag = "1")]
+    pub artifacts: ::prost::alloc::vec::Vec<ScenarioArtifact>,
+    #[prost(message, optional, tag = "2")]
+    pub transcription: ::core::option::Option<MusicTranscription>,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AudioSeparateResult {
     #[prost(message, repeated, tag = "1")]
@@ -6031,7 +6093,7 @@ pub struct WorldGenerateResult {
 pub struct ScenarioOutput {
     #[prost(
         oneof = "scenario_output::Output",
-        tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12"
+        tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13"
     )]
     pub output: ::core::option::Option<scenario_output::Output>,
 }
@@ -6063,6 +6125,8 @@ pub mod scenario_output {
         AudioSeparate(super::AudioSeparateResult),
         #[prost(message, tag = "12")]
         TextAnnotation(super::TextAnnotationResult),
+        #[prost(message, tag = "13")]
+        MusicTranscribe(super::MusicTranscribeResult),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -6390,13 +6454,13 @@ pub struct SubmitLocalAppScenarioJobRequest {
     /// capability-owned default; no other ScenarioRequestHead field is exposed.
     #[prost(int32, tag = "9")]
     pub timeout_ms: i32,
-    /// Optional owner-scoped identity for a music.generate creation action.
+    /// Optional owner-scoped identity for music generation or transcription.
     /// Reuse with different input is rejected; lookup never executes work.
     #[prost(string, tag = "16")]
     pub client_submission_id: ::prost::alloc::string::String,
     #[prost(
         oneof = "submit_local_app_scenario_job_request::Spec",
-        tags = "1, 2, 3, 4, 7, 8, 10, 11, 12, 13, 14, 15"
+        tags = "1, 2, 3, 4, 7, 8, 10, 11, 12, 13, 14, 15, 17"
     )]
     pub spec: ::core::option::Option<submit_local_app_scenario_job_request::Spec>,
 }
@@ -6428,6 +6492,8 @@ pub mod submit_local_app_scenario_job_request {
         AudioSeparate(super::AudioSeparateScenarioSpec),
         #[prost(message, tag = "15")]
         TextAnnotate(super::TextAnnotateScenarioSpec),
+        #[prost(message, tag = "17")]
+        MusicTranscribe(super::MusicTranscribeScenarioSpec),
     }
 }
 /// Trimmed Job projection for Local App consumption: status, progress, typed
@@ -6484,6 +6550,8 @@ pub struct LocalAppScenarioJob {
     pub recovery_expires_at: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(message, optional, tag = "20")]
     pub music_generation: ::core::option::Option<MusicGeneration>,
+    #[prost(message, optional, tag = "21")]
+    pub music_transcription: ::core::option::Option<MusicTranscription>,
 }
 /// Trimmed voice asset catalog projection. Provider, model, provider voice
 /// ref, and owner identity fields are never projected.
@@ -6951,6 +7019,8 @@ pub struct ScenarioJob {
     pub recovery_expires_at: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(message, optional, tag = "31")]
     pub music_generation: ::core::option::Option<MusicGeneration>,
+    #[prost(message, optional, tag = "32")]
+    pub music_transcription: ::core::option::Option<MusicTranscription>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SubmitScenarioJobRequest {
@@ -7309,6 +7379,7 @@ pub enum ScenarioType {
     VideoFaceSwap = 14,
     AudioSeparate = 15,
     TextAnnotate = 16,
+    MusicTranscribe = 17,
 }
 impl ScenarioType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -7332,6 +7403,7 @@ impl ScenarioType {
             Self::VideoFaceSwap => "SCENARIO_TYPE_VIDEO_FACE_SWAP",
             Self::AudioSeparate => "SCENARIO_TYPE_AUDIO_SEPARATE",
             Self::TextAnnotate => "SCENARIO_TYPE_TEXT_ANNOTATE",
+            Self::MusicTranscribe => "SCENARIO_TYPE_MUSIC_TRANSCRIBE",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -7352,6 +7424,7 @@ impl ScenarioType {
             "SCENARIO_TYPE_VIDEO_FACE_SWAP" => Some(Self::VideoFaceSwap),
             "SCENARIO_TYPE_AUDIO_SEPARATE" => Some(Self::AudioSeparate),
             "SCENARIO_TYPE_TEXT_ANNOTATE" => Some(Self::TextAnnotate),
+            "SCENARIO_TYPE_MUSIC_TRANSCRIBE" => Some(Self::MusicTranscribe),
             _ => None,
         }
     }
@@ -7983,6 +8056,70 @@ impl MusicScoreConditioning {
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
+pub enum MusicTranscriptionFormat {
+    Unspecified = 0,
+    Abc = 1,
+    Midi = 2,
+    Timeline = 3,
+}
+impl MusicTranscriptionFormat {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "MUSIC_TRANSCRIPTION_FORMAT_UNSPECIFIED",
+            Self::Abc => "MUSIC_TRANSCRIPTION_FORMAT_ABC",
+            Self::Midi => "MUSIC_TRANSCRIPTION_FORMAT_MIDI",
+            Self::Timeline => "MUSIC_TRANSCRIPTION_FORMAT_TIMELINE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "MUSIC_TRANSCRIPTION_FORMAT_UNSPECIFIED" => Some(Self::Unspecified),
+            "MUSIC_TRANSCRIPTION_FORMAT_ABC" => Some(Self::Abc),
+            "MUSIC_TRANSCRIPTION_FORMAT_MIDI" => Some(Self::Midi),
+            "MUSIC_TRANSCRIPTION_FORMAT_TIMELINE" => Some(Self::Timeline),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum MusicTranscriptionPart {
+    Unspecified = 0,
+    VocalMelody = 1,
+    LeadSheet = 2,
+    FullArrangement = 3,
+}
+impl MusicTranscriptionPart {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "MUSIC_TRANSCRIPTION_PART_UNSPECIFIED",
+            Self::VocalMelody => "MUSIC_TRANSCRIPTION_PART_VOCAL_MELODY",
+            Self::LeadSheet => "MUSIC_TRANSCRIPTION_PART_LEAD_SHEET",
+            Self::FullArrangement => "MUSIC_TRANSCRIPTION_PART_FULL_ARRANGEMENT",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "MUSIC_TRANSCRIPTION_PART_UNSPECIFIED" => Some(Self::Unspecified),
+            "MUSIC_TRANSCRIPTION_PART_VOCAL_MELODY" => Some(Self::VocalMelody),
+            "MUSIC_TRANSCRIPTION_PART_LEAD_SHEET" => Some(Self::LeadSheet),
+            "MUSIC_TRANSCRIPTION_PART_FULL_ARRANGEMENT" => Some(Self::FullArrangement),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
 pub enum VisionLocateGeometry {
     Unspecified = 0,
     Box = 1,
@@ -8151,6 +8288,38 @@ impl MusicScoreOrigin {
             "MUSIC_SCORE_ORIGIN_UNSPECIFIED" => Some(Self::Unspecified),
             "MUSIC_SCORE_ORIGIN_GENERATED_PLAN" => Some(Self::GeneratedPlan),
             "MUSIC_SCORE_ORIGIN_TRANSCRIBED_ESTIMATE" => Some(Self::TranscribedEstimate),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum MusicTranscriptionCompleteness {
+    Unspecified = 0,
+    Unknown = 1,
+    Complete = 2,
+    Truncated = 3,
+}
+impl MusicTranscriptionCompleteness {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "MUSIC_TRANSCRIPTION_COMPLETENESS_UNSPECIFIED",
+            Self::Unknown => "MUSIC_TRANSCRIPTION_COMPLETENESS_UNKNOWN",
+            Self::Complete => "MUSIC_TRANSCRIPTION_COMPLETENESS_COMPLETE",
+            Self::Truncated => "MUSIC_TRANSCRIPTION_COMPLETENESS_TRUNCATED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "MUSIC_TRANSCRIPTION_COMPLETENESS_UNSPECIFIED" => Some(Self::Unspecified),
+            "MUSIC_TRANSCRIPTION_COMPLETENESS_UNKNOWN" => Some(Self::Unknown),
+            "MUSIC_TRANSCRIPTION_COMPLETENESS_COMPLETE" => Some(Self::Complete),
+            "MUSIC_TRANSCRIPTION_COMPLETENESS_TRUNCATED" => Some(Self::Truncated),
             _ => None,
         }
     }

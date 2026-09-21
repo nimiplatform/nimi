@@ -1,4 +1,5 @@
 import { MusicGenerationNotice } from './section-ai-testing-music-result.js';
+import { MusicTranscriptionNotice } from './section-ai-testing-transcription-result.js';
 import { useState, type ReactNode } from 'react';
 import { IconButton, nimiToast, StatusBadge, Tooltip } from '@nimiplatform/kit/ui';
 import { AlertTriangle, ChevronRight, Copy as CopyIcon, Download as DownloadIcon, FileText, FolderOpen, MessageSquare, RefreshCw, SlidersHorizontal, SquarePen } from 'lucide-react';
@@ -291,7 +292,8 @@ function TextStudioHistorySnapshotBody({ snapshot }: { snapshot: Extract<StudioR
     return (
       <div className="studio-result__rich">
         <MusicGenerationNotice value={snapshot.musicGeneration} />
-        {artifacts.filter((artifact) => artifact.relativePath !== snapshot.musicGeneration?.generatedScore?.relativePath).map((artifact, index) => (
+        <MusicTranscriptionNotice value={snapshot.musicTranscription} />
+        {artifacts.filter((artifact) => !snapshot.musicTranscription && artifact.relativePath !== snapshot.musicGeneration?.generatedScore?.relativePath).map((artifact, index) => (
           <ArtifactMediaResult
             key={artifact.relativePath}
             artifact={artifact}
@@ -378,18 +380,18 @@ export function TextStudioResultState({
   return (
     <section className="studio-thread" aria-label={t('StudioShell.resultAriaLabel', { capability: t(capability.labelKey) })}>
       <div className="studio-thread__scroll">
-        <article className="studio-turn studio-turn--user">
+        {registration.profile.inputKind !== 'none' ? <article className="studio-turn studio-turn--user">
           <div className="studio-turn__label">
             <MessageSquare size={14} aria-hidden="true" />
             <span>{t('StudioShell.promptLabel')}</span>
           </div>
           <p>{activeRun.prompt}</p>
           <TextStudioPromptSettings activeRun={activeRun} />
-        </article>
+        </article> : null}
         <article className="studio-turn studio-turn--assistant">
           <div className="studio-turn__label">
             <FileText size={14} aria-hidden="true" />
-            <span>{t('StudioShell.generationLabel')}</span>
+            <span>{t(capability.id === 'music.transcribe' ? 'Transcription.result' : 'StudioShell.generationLabel')}</span>
           </div>
           {activeRun.error ? (
             <TextStudioRunError message={activeRun.error} />

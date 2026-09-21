@@ -80,6 +80,7 @@ func prepareFailedScenarioJobProjection(job *runtimev1.ScenarioJob) error {
 		return validateFailedScenarioJobProjection(job)
 	}
 	job.MusicGeneration = nil
+	job.MusicTranscription = nil
 	detail := strings.TrimSpace(job.GetReasonDetail())
 	if detail == "" {
 		detail = stableScenarioJobReasonDetail(job.GetReasonCode())

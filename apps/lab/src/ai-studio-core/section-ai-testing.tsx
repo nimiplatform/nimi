@@ -161,6 +161,7 @@ function TextStudioShell({
     if (abortControllerRef.current) return;
     const displayPrompt = nextPrompt.trim();
     if (!hasStudioCapabilityRunInput({ requiresPrompt, prompt: displayPrompt, hasAlternativeInput })) return;
+    if (capability.id === 'music.transcribe' && !hasAlternativeInput) return;
     if (!hasRequiredImage) return;
     if (!runTarget.canDispatch) return;
     const runSeq = runSeqRef.current + 1;

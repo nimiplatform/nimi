@@ -153,6 +153,7 @@ test('Desktop Local AI environment includes embedding and face replacement cards
       'audio.separate',
       'voice.create',
       'music.generate',
+      'music.transcribe',
     ],
   );
 });

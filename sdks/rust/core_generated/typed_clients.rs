@@ -2232,6 +2232,48 @@ impl Default for MusicScoreOrigin {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum MusicTranscriptionCompleteness {
+    MUSICTRANSCRIPTIONCOMPLETENESSUNSPECIFIED,
+    MUSICTRANSCRIPTIONCOMPLETENESSUNKNOWN,
+    MUSICTRANSCRIPTIONCOMPLETENESSCOMPLETE,
+    MUSICTRANSCRIPTIONCOMPLETENESSTRUNCATED,
+}
+
+impl Default for MusicTranscriptionCompleteness {
+    fn default() -> Self {
+        Self::MUSICTRANSCRIPTIONCOMPLETENESSUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum MusicTranscriptionFormat {
+    MUSICTRANSCRIPTIONFORMATUNSPECIFIED,
+    MUSICTRANSCRIPTIONFORMATABC,
+    MUSICTRANSCRIPTIONFORMATMIDI,
+    MUSICTRANSCRIPTIONFORMATTIMELINE,
+}
+
+impl Default for MusicTranscriptionFormat {
+    fn default() -> Self {
+        Self::MUSICTRANSCRIPTIONFORMATUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum MusicTranscriptionPart {
+    MUSICTRANSCRIPTIONPARTUNSPECIFIED,
+    MUSICTRANSCRIPTIONPARTVOCALMELODY,
+    MUSICTRANSCRIPTIONPARTLEADSHEET,
+    MUSICTRANSCRIPTIONPARTFULLARRANGEMENT,
+}
+
+impl Default for MusicTranscriptionPart {
+    fn default() -> Self {
+        Self::MUSICTRANSCRIPTIONPARTUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PresenceVerificationMethod {
     PRESENCEVERIFICATIONMETHODUNSPECIFIED,
     PRESENCEVERIFICATIONMETHODOSCREDENTIAL,
@@ -3752,6 +3794,7 @@ pub enum ScenarioType {
     SCENARIOTYPEVIDEOFACESWAP,
     SCENARIOTYPEAUDIOSEPARATE,
     SCENARIOTYPETEXTANNOTATE,
+    SCENARIOTYPEMUSICTRANSCRIBE,
 }
 
 impl Default for ScenarioType {
@@ -9394,6 +9437,7 @@ pub struct LocalAppScenarioJob {
     pub text_annotation: Option<Box<TextAnnotationResult>>,
     pub recovery_expires_at: Option<String>,
     pub music_generation: Option<Box<MusicGeneration>>,
+    pub music_transcription: Option<Box<MusicTranscription>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10266,6 +10310,7 @@ pub struct MusicGenerationInputProfile {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct MusicInputCapabilities {
     pub generation: Vec<Box<MusicGenerationInputProfile>>,
+    pub transcription: Vec<Box<MusicTranscriptionInputProfile>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10280,6 +10325,46 @@ pub struct MusicScoreArtifact {
 pub struct MusicScoreReference {
     pub artifact_id: Option<String>,
     pub format: Option<MusicScoreFormat>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct MusicTranscribeResult {
+    pub artifacts: Vec<Box<ScenarioArtifact>>,
+    pub transcription: Option<Box<MusicTranscription>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct MusicTranscribeScenarioSpec {
+    pub source_audio: Option<Box<MusicAudioInput>>,
+    pub requested_formats: Vec<MusicTranscriptionFormat>,
+    pub requested_parts: Vec<MusicTranscriptionPart>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct MusicTranscribedScore {
+    pub artifact_id: Option<String>,
+    pub format: Option<MusicScoreFormat>,
+    pub part: Option<MusicTranscriptionPart>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct MusicTranscription {
+    pub scores: Vec<Box<MusicTranscribedScore>>,
+    pub timeline_artifact_id: Option<String>,
+    pub origin: Option<MusicScoreOrigin>,
+    pub source_artifact_id: Option<String>,
+    pub source_info: Option<Box<LocalAppAudioInfo>>,
+    pub input_range: Option<Box<AudioFrameRange>>,
+    pub completeness: Option<MusicTranscriptionCompleteness>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct MusicTranscriptionInputProfile {
+    pub formats: Vec<String>,
+    pub parts: Vec<String>,
+    pub max_duration_seconds: Option<u32>,
+    pub max_source_bytes: Option<u32>,
+    pub supports_range: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -11949,6 +12034,7 @@ pub struct ScenarioJob {
     pub text_annotation: Option<Box<TextAnnotationResult>>,
     pub recovery_expires_at: Option<String>,
     pub music_generation: Option<Box<MusicGeneration>>,
+    pub music_transcription: Option<Box<MusicTranscription>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -11974,6 +12060,7 @@ pub struct ScenarioOutput {
     pub video_face_swap: Option<Box<VideoFaceSwapResult>>,
     pub audio_separate: Option<Box<AudioSeparateResult>>,
     pub text_annotation: Option<Box<TextAnnotationResult>>,
+    pub music_transcribe: Option<Box<MusicTranscribeResult>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -12006,6 +12093,7 @@ pub struct ScenarioSpec {
     pub video_face_swap: Option<Box<VideoFaceSwapScenarioSpec>>,
     pub audio_separate: Option<Box<AudioSeparateScenarioSpec>>,
     pub text_annotate: Option<Box<TextAnnotateScenarioSpec>>,
+    pub music_transcribe: Option<Box<MusicTranscribeScenarioSpec>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -12625,6 +12713,7 @@ pub struct SubmitLocalAppScenarioJobRequest {
     pub audio_separate: Option<Box<AudioSeparateScenarioSpec>>,
     pub text_annotate: Option<Box<TextAnnotateScenarioSpec>>,
     pub client_submission_id: Option<String>,
+    pub music_transcribe: Option<Box<MusicTranscribeScenarioSpec>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

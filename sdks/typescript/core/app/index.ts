@@ -415,5 +415,7 @@ export type { NimiLocalAppTextAnnotationResult, NimiLocalAppTextAnnotationDocume
 
 export { validateNimiLocalAppMusicGenerateSpec, validateNimiLocalAppMusicGeneration } from './local-app-music.js';
 export type { NimiLocalAppMusicGenerateSpec, NimiLocalAppMusicGeneration } from './local-app-music.js';
+export { validateNimiLocalAppMusicTranscribeSpec, validateNimiLocalAppMusicTranscription } from './local-app-music-transcription.js';
+export type { NimiLocalAppMusicTranscribeSpec, NimiLocalAppMusicTranscription, NimiMusicTranscriptionFormat, NimiMusicTranscriptionPart } from './local-app-music-transcription.js';
 
-export { projectMusicInputCapabilities, type NimiMusicInputCapabilities, type NimiMusicGenerationInputProfile } from '../ai/music-input.js';
+export { projectMusicInputCapabilities, type NimiMusicInputCapabilities, type NimiMusicGenerationInputProfile, type NimiMusicTranscriptionInputProfile } from '../ai/music-input.js';

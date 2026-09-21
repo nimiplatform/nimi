@@ -39,6 +39,17 @@ function managerActionAvailability() {
 }
 
 describe('renderer local-app standard-shell surface', () => {
+  it('preserves transcription-only music profiles when the App selects its Local configuration', async () => {
+    const option = { loadoutRef: 'loadout-transcribe-1', label: 'Music transcription', capabilityContract: 'music.transcribe',
+      implementation: { implementationId: 'transcription.impl', driverId: 'transcription.driver', driverDialect: 'transcription/v1' },
+      implementationSupportedFeatures: [], configuredFeatures: [], textBehaviors: [], state: 'ready', reasons: [],
+      musicInput: { generation: [], transcription: [{ formats: ['abc', 'timeline'], parts: ['lead-sheet'], maxDurationSeconds: 600, maxSourceBytes: 536870912, supportsRange: true }] } };
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = { invoke: async () => ({ kind: 'local-loadouts', options: [option], truncated: false }) };
+    const client = createNimiClient({ localApp: { standardShell: createNimiLocalAppStandardShellSurface() } });
+    await expect(client.aiConfig.listOptions({ kind: 'local-loadouts', capabilityContract: 'music.transcribe' })).resolves.toEqual({ kind: 'local-loadouts', options: [option], truncated: false });
+    option.musicInput.transcription[0]!.maxSourceBytes++;
+    await expect(client.aiConfig.listOptions({ kind: 'local-loadouts', capabilityContract: 'music.transcribe' })).rejects.toBeDefined();
+  });
   it('preserves the Runtime embedding space through the public App client and rejects invalid projections', async () => {
     let output: Record<string, unknown> = {
       type: 'text-embed', vectors: [[0.25, 0.75]], spaceId: 'space-runtime-1',

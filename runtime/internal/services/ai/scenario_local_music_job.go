@@ -40,7 +40,15 @@ func (s *Service) submitLocalMusicScenarioJob(ctx context.Context, req *runtimev
 			return &runtimev1.SubmitScenarioJobResponse{Job: existing}, nil
 		}
 	}
-	effective, err := s.captureLocalMusicEffectiveInputs(ctx, req.GetHead(), req.GetSpec().GetMusicGenerate(), req.GetExtensions())
+	deadline := time.Now().Add(timeout)
+	captureCtx, cancelCapture := context.WithDeadline(ctx, deadline)
+	defer cancelCapture()
+	var effective *localMusicEffectiveInputs
+	if req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_TRANSCRIBE {
+		effective, err = s.captureLocalMusicTranscription(captureCtx, req.GetHead(), req.GetSpec().GetMusicTranscribe())
+	} else {
+		effective, err = s.captureLocalMusicEffectiveInputs(captureCtx, req.GetHead(), req.GetSpec().GetMusicGenerate(), req.GetExtensions())
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -48,14 +56,14 @@ func (s *Service) submitLocalMusicScenarioJob(ctx context.Context, req *runtimev
 	if identity := authn.IdentityFromContext(ctx); identity != nil {
 		jobCtx = authn.WithIdentity(jobCtx, identity)
 	}
-	jobCtx, cancel := context.WithTimeout(jobCtx, timeout)
+	jobCtx, cancel := context.WithDeadline(jobCtx, deadline)
 	now := timestamppb.New(time.Now().UTC())
 	jobID := ulid.Make().String()
 	job := &runtimev1.ScenarioJob{JobId: jobID, ScenarioType: req.GetScenarioType(), Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED, CreatedAt: now, UpdatedAt: now, ModelResolved: effective.modelResolved(), ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, ExecutionMode: mode, Head: cloneScenarioHead(effective.head), TraceId: ulid.Make().String(), IgnoredExtensions: cloneIgnoredScenarioExtensions(ignored), EffectiveInputIdentity: cloneLoadoutEffectiveInputIdentity(effective.effectiveInputIdentity)}
 	stored, created, persistErr := s.scenarioJobs.createOwnedAndBindCapturedInputsChecked(job, cancel, localAppJobOwnerFromContext(ctx), idempotencyScope, effective.resolvedAssembly, nil, false, localAppMusicSubmissionFromContext(ctx))
 	if persistErr != nil || stored == nil {
 		cancel()
-		cleanupAudioMusicStaging(effective.plan.StagingWAVPath())
+		cleanupLocalMusicPlan(effective.plan)
 		if persistErr != nil {
 			if errors.Is(persistErr, errLocalAppSubmissionConflict) || errors.Is(persistErr, errMusicRecoveryCapacity) || errors.Is(persistErr, errMusicRecoveryExpired) {
 				return nil, localAppSubmissionError(persistErr)
@@ -66,7 +74,7 @@ func (s *Service) submitLocalMusicScenarioJob(ctx context.Context, req *runtimev
 	}
 	if !created {
 		cancel()
-		cleanupAudioMusicStaging(effective.plan.StagingWAVPath())
+		cleanupLocalMusicPlan(effective.plan)
 		return &runtimev1.SubmitScenarioJobResponse{Job: stored}, nil
 	}
 	ticket := s.localMusicJobOrder.reserve()
@@ -103,7 +111,7 @@ func (s *Service) runLocalMusicScenarioJob(ctx context.Context, jobID string, ti
 		return
 	}
 	effective.head = cloneScenarioHead(job.GetHead())
-	defer cleanupAudioMusicStaging(effective.plan.StagingWAVPath())
+	defer cleanupLocalMusicPlan(effective.plan)
 	if err := ticket.wait(ctx); err != nil {
 		s.finishLocalMusicJobFailure(ctx, jobID, err)
 		return
@@ -134,6 +142,12 @@ func (s *Service) runLocalMusicScenarioJob(ctx context.Context, jobID string, ti
 	result, err := s.executeCapturedLocalMusic(ctx, effective, onStart)
 	if err != nil {
 		s.finishLocalMusicJobFailure(ctx, jobID, err)
+		return
+	}
+	if effective.plan.IsTranscription() {
+		if err := s.commitLocalMusicTranscription(ctx, jobID, effective, result); err != nil {
+			s.finishLocalMusicJobFailure(ctx, jobID, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{}))
+		}
 		return
 	}
 	validated, err := validateLocalMusicWAV(ctx, result, effective.plan)

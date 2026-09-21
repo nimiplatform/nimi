@@ -43,6 +43,62 @@ func TestCanonicalFactsUseActualCompleteFrames(t *testing.T) {
 	}
 }
 
+func TestCopyCanonicalRangePreservesBitsAndProtectsDestination(t *testing.T) {
+	sourcePath := writeTestWAV(t, []float32{0.5, -0.5, float32(math.Copysign(0, -1)), 1.25, -1.25, 0.125, 0.75, -0.75}, 2)
+	facts, err := InspectCanonical(context.Background(), sourcePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	source, err := os.Open(sourcePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer source.Close()
+	destination := filepath.Join(t.TempDir(), "selection.wav")
+	got, err := CopyCanonicalRange(context.Background(), source, facts, 1, 3, destination)
+	if err != nil {
+		t.Fatal(err)
+	}
+	checked, err := InspectCanonical(context.Background(), destination)
+	if err != nil || checked != got || got.FrameCount != 2 {
+		t.Fatalf("invalid selection facts: %+v %v", got, err)
+	}
+	before, err := os.ReadFile(destination)
+	if err != nil {
+		t.Fatal(err)
+	}
+	original, err := os.ReadFile(sourcePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(before[got.DataOffset:], original[facts.DataOffset+8:facts.DataOffset+24]) {
+		t.Fatal("selected PCM bits changed")
+	}
+	if _, err := CopyCanonicalRange(context.Background(), source, facts, 0, 4, destination); err == nil {
+		t.Fatal("overwrote an existing selection")
+	}
+	after, err := os.ReadFile(destination)
+	if err != nil || !bytes.Equal(before, after) {
+		t.Fatal("existing destination changed")
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	canceled := filepath.Join(t.TempDir(), "canceled.wav")
+	if _, err := CopyCanonicalRange(ctx, source, facts, 0, 2, canceled); !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected cancellation: %v", err)
+	}
+	if _, err := os.Stat(canceled); !errors.Is(err, os.ErrNotExist) {
+		t.Fatal("canceled operation left an output")
+	}
+	truncated := filepath.Join(t.TempDir(), "truncated.wav")
+	if _, err := CopyCanonicalRange(context.Background(), bytes.NewReader(original[:len(original)-8]), facts, 0, 4, truncated); err == nil {
+		t.Fatal("accepted truncated source")
+	}
+	if _, err := os.Stat(truncated); !errors.Is(err, os.ErrNotExist) {
+		t.Fatal("failed operation left an output")
+	}
+}
+
 func TestCanonicalRejectsCorruptContainerAndSamples(t *testing.T) {
 	for _, test := range []struct {
 		name   string

@@ -1,4 +1,26 @@
 {
+  "Transcription": {
+    "estimateLabel": "Model estimate",
+    "running": "Preparing the recording or estimating its score…",
+    "configureInputs": "Choose a ready music transcription configuration, import audio, and select a supported output.",
+    "inputHint": "MP3, WAV or FLAC · Up to {{seconds}} seconds and {{mib}} MiB",
+    "fileInvalid": "Choose an MP3, WAV or FLAC file within the selected configuration's size limit.",
+    "source": "Original recording",
+    "chooseSource": "Import recording",
+    "part": "Score content",
+    "parts": { "vocal-melody": "Vocal melody", "lead-sheet": "Lead sheet", "full-arrangement": "Full arrangement" },
+    "formats": "Output files",
+    "timeline": "Musical timeline",
+    "start": "Start (seconds, optional)",
+    "end": "End (seconds, optional)",
+    "rangeHint": "Leave both blank for the whole recording. Event positions always refer to the original recording.",
+    "preparationHint": "Audio is decoded before submission. Stopping during preparation prevents the Job from starting once decoding finishes.",
+    "result": "Estimated transcription",
+    "estimate": "This is a model estimate, not an authoritative score. Compare it with the original recording before editing or generating music.",
+    "completeness": { "unknown": "The model does not report whether transcription is complete.", "complete": "The engine reports complete processing; musical accuracy still needs review.", "truncated": "The transcription is truncated." },
+    "range": "Original recording {{start}}–{{end}} s · {{hz}} Hz frame basis",
+    "export": "Export selected file"
+  },
   "VisionLocate": {
     "chooseImage": "Choose image",
     "replaceImage": "Replace image",
@@ -30,6 +52,7 @@
     "running": "Loading the model or locating targets…"
   },
   "Capabilities": {
+    "musicTranscribe": { "label": "Music transcription", "summary": "Estimate a score and musical events from an existing recording." },
     "visionLocate": {
       "label": "Visual localization",
       "summary": "Describe an object or control in one image to get boxes or points."
@@ -49,6 +72,13 @@
   },
   "Studio": {
     "profiles": {
+      "musicTranscribe": {
+        "inputTitle": "Transcribe a recording", "inputPlaceholder": "",
+        "primaryLabel": "Transcribe recording", "primaryRunningLabel": "Preparing or transcribing…",
+        "emptyTitle": "Turn a recording into a draft score",
+        "emptyHint": "Open input settings, import a recording, and choose the score content and output files.",
+        "footnote": "The original audio and estimated score are saved together for comparison."
+      },
       "visionLocate": {
         "inputTitle": "Test visual localization",
         "inputPlaceholder": "For example: the search button at the top right, or the red cup on the desk…",

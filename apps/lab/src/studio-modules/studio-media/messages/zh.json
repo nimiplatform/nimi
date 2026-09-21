@@ -1,4 +1,26 @@
 {
+  "Transcription": {
+    "estimateLabel": "模型估计",
+    "running": "正在准备录音或估计谱面…",
+    "configureInputs": "请选择已就绪的音乐转谱配置，导入音频，并选择受支持的输出。",
+    "inputHint": "MP3、WAV 或 FLAC · 最长 {{seconds}} 秒，最大 {{mib}} MiB",
+    "fileInvalid": "请选择 MP3、WAV 或 FLAC，大小不得超过当前配置的限制。",
+    "source": "原始录音",
+    "chooseSource": "导入录音",
+    "part": "谱面内容",
+    "parts": { "vocal-melody": "人声旋律", "lead-sheet": "旋律与和弦简谱", "full-arrangement": "完整编配" },
+    "formats": "输出文件",
+    "timeline": "音乐事件时间线",
+    "start": "起点（秒，可留空）",
+    "end": "终点（秒，可留空）",
+    "rangeHint": "全部留空即处理整段录音。事件位置始终对应原始录音。",
+    "preparationHint": "提交前先解码音频。此时停止操作，会在解码结束后放弃启动任务。",
+    "result": "转谱估计结果",
+    "estimate": "这是模型估计，并非权威谱面。编辑或生成音乐前，请与原始录音对照。",
+    "completeness": { "unknown": "模型未提供识别是否完整的信号。", "complete": "引擎报告处理完整，音符准确性仍需核对。", "truncated": "转谱结果存在截断。" },
+    "range": "原始录音 {{start}}–{{end}} 秒 · 帧坐标基于 {{hz}} Hz",
+    "export": "导出选中文件"
+  },
   "VisionLocate": {
     "chooseImage": "选择图片",
     "replaceImage": "更换图片",
@@ -30,6 +52,7 @@
     "running": "正在加载模型或定位目标…"
   },
   "Capabilities": {
+    "musicTranscribe": { "label": "音乐转谱", "summary": "从已有录音估计谱面与音乐事件。" },
     "visionLocate": {
       "label": "图像定位",
       "summary": "描述单张图片中的物体或控件，获取边界框或定位点。"
@@ -49,6 +72,13 @@
   },
   "Studio": {
     "profiles": {
+      "musicTranscribe": {
+        "inputTitle": "录音转谱", "inputPlaceholder": "",
+        "primaryLabel": "开始转谱", "primaryRunningLabel": "正在准备或转谱…",
+        "emptyTitle": "从录音得到谱面草稿",
+        "emptyHint": "打开输入设置，导入录音，并选择谱面内容与输出文件。",
+        "footnote": "原始音频与转谱估计结果会一起保存，便于对照。"
+      },
       "visionLocate": {
         "inputTitle": "测试图像定位",
         "inputPlaceholder": "例如：右上角的搜索按钮，或桌上的红色杯子…",

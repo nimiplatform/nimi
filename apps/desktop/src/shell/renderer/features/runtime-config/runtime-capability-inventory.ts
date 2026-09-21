@@ -19,6 +19,7 @@ const CAPABILITY_PRESENTATION_ORDER = [
   'audio.transcribe',
   'video.generate',
   'music.generate',
+  'music.transcribe',
   'voice.create',
   'audio.separate',
   'text.annotate',

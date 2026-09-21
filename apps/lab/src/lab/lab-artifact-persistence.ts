@@ -17,6 +17,7 @@ export type LabArtifactPersistenceCandidate = {
     jobId?: string;
     jobState?: string;
     musicGeneration?: { readonly mixRelativePath: string };
+    musicTranscription?: { readonly origin: 'transcribed-estimate' };
   };
 };
 
@@ -119,7 +120,8 @@ export async function persistLabRunHistoryWithArtifactCompensation<T>(
     // A successful music result is already committed to the music recovery
     // document. Failure to index it in history must not delete its assets.
     if (!shouldPersistLabArtifactRecord(result)
-      || (result.capabilityId === 'music.generate' && result.output.musicGeneration)) {
+      || (result.capabilityId === 'music.generate' && result.output.musicGeneration)
+      || (result.capabilityId === 'music.transcribe' && result.output.musicTranscription)) {
       return {
         ok: false,
         message: persistenceMessage,

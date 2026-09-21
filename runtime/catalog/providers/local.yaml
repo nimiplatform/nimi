@@ -6081,6 +6081,50 @@ models:
       url: https://stability.ai/news/introducing-stable-audio-open
       retrieved_at: 2026-03-13
       note: Stable Audio Open announcement and positioning.
+  - model_id: sheetsage2-audio-cpp-local
+    provider: local
+    model_type: music
+    updated_at: 2026-09-22
+    capabilities:
+      - music.transcribe
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/audio-cpp/SheetSage2-GGUF/blob/6dd648b0acf1ba9e662d8509a3eabcb201911c2c/README.md
+      retrieved_at: 2026-09-22
+      note: Fixed original-FP32 merged MERT-v2 and SheetSage2 GGUF, CC-BY-NC-4.0. Native output is estimated ABC and events, not a MIDI file; no separate backbone is required.
+    family: sheetsage2
+    install:
+      repo: audio-cpp/SheetSage2-GGUF
+      revision: 6dd648b0acf1ba9e662d8509a3eabcb201911c2c
+      install_kind: verified-hf-multi-file
+      entry: sheetsage2-orig.gguf
+      artifact_roles:
+        - music_model
+      license: CC-BY-NC-4.0
+      provenance: m-a-p/SheetSage2 with MERT-v2-FullSong backbone and merged LoRA, converted by audio-cpp; non-commercial research use
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.music.sheetsage2.audio-cpp.orig.cuda
+        quant: F32
+        entry: sheetsage2-orig.gguf
+        files:
+          - sheetsage2-orig.gguf
+        hashes:
+          sheetsage2-orig.gguf: sha256:52bb5846c452037d39931aa8050885b6c751b9c7afcc8ef6d6d3067d241731a4
+        total_size_bytes: 2708224512
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 17179869184
+          min_vram_bytes: 17179869184
+    fitness:
+      param_count: 677020953
+      context_length: 5120
   - model_id: yue2-audio-cpp-local
     provider: local
     model_type: music
@@ -9063,6 +9107,26 @@ loadout_recipes:
         model_contract:
           format: safetensors
           tensor_contract: minimax-h3-audio-vae
+  - recipe_id: sheetsage2.audio-cpp.v1
+    revision: "1"
+    title: SheetSage2 music transcription (non-commercial)
+    capability_contract: music.transcribe
+    implementation_id: local.music.transcribe.sheetsage2.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.sheetsage2
+    driver_dialect: audio.cpp/sheetsage2/music-transcribe/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: music.model
+        display_label: SheetSage2 original FP32 (CC-BY-NC-4.0)
+        recommended_variant_ids:
+          - local.music.sheetsage2.audio-cpp.orig.cuda
+        recommended_content_ids:
+          - sha256:52bb5846c452037d39931aa8050885b6c751b9c7afcc8ef6d6d3067d241731a4
+        model_contract:
+          format: gguf
+          model_family: sheetsage2
+          artifact_role: music_model
   - recipe_id: yue2.audio-cpp.v1
     revision: "1"
     title: YuE2 score-guided music (non-commercial)

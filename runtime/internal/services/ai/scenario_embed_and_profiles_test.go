@@ -15,15 +15,21 @@ func TestListScenarioProfiles(t *testing.T) {
 	if err != nil {
 		t.Fatalf("list scenario profiles: %v", err)
 	}
-	if len(resp.GetProfiles()) != 14 {
-		t.Fatalf("expected 14 scenario profiles, got %d", len(resp.GetProfiles()))
+	if len(resp.GetProfiles()) != 15 {
+		t.Fatalf("expected 15 scenario profiles, got %d", len(resp.GetProfiles()))
 	}
 	var foundTextGenerate bool
 	var foundImageGenerate bool
 	var foundWorldGenerate bool
 	var foundFaceSwap bool
+	var foundMusicTranscription bool
 	for _, profile := range resp.GetProfiles() {
 		switch profile.GetScenarioType() {
+		case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_TRANSCRIBE:
+			foundMusicTranscription = true
+			if modes := profile.GetSupportedExecutionModes(); len(modes) != 1 || modes[0] != runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB {
+				t.Fatalf("music transcription modes: %v", modes)
+			}
 		case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_FACE_SWAP:
 			foundFaceSwap = true
 			if modes := profile.GetSupportedExecutionModes(); len(modes) != 1 || modes[0] != runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB {
@@ -50,6 +56,9 @@ func TestListScenarioProfiles(t *testing.T) {
 	}
 	if !foundTextGenerate {
 		t.Fatalf("text generate profile not found")
+	}
+	if !foundMusicTranscription {
+		t.Fatal("music transcription profile not found")
 	}
 	if !foundFaceSwap {
 		t.Fatal("image face replacement profile not found")

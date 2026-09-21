@@ -31,6 +31,11 @@ func validateSubmitScenarioAsyncJobRequest(req *runtimev1.SubmitScenarioJobReque
 	}
 
 	switch req.GetScenarioType() {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_TRANSCRIBE:
+		if len(req.GetExtensions()) != 0 {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+		}
+		return validateMusicTranscriptionSpec(req.GetSpec().GetMusicTranscribe())
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_ANNOTATE:
 		return validateTextAnnotationSpec(req.GetSpec().GetTextAnnotate())
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_FACE_SWAP:
@@ -370,6 +375,8 @@ func defaultScenarioJobTimeout(scenarioType runtimev1.ScenarioType) time.Duratio
 		return defaultLocalSpeechJobTimeout
 	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
 		return defaultGenerateMusicTimeout
+	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_TRANSCRIBE:
+		return defaultLocalMusicJobTimeout
 	case runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:
 		return defaultWorldJobTimeout
 	default:

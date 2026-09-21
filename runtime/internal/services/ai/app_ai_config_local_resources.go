@@ -428,7 +428,7 @@ func (s *Service) projectLocalResourceProjection(option localexecution.LoadoutOp
 		}
 	}
 	var musicInput *runtimev1.MusicInputCapabilities
-	if option.CapabilityContract == capabilitydriver.MiniMaxMusic3CapabilityContract && s.capabilityDrivers != nil {
+	if (option.CapabilityContract == capabilitydriver.MiniMaxMusic3CapabilityContract || option.CapabilityContract == capabilitydriver.MusicTranscribeCapabilityContract) && s.capabilityDrivers != nil {
 		driver, _ := s.capabilityDrivers.Resolve(option.CapabilityContract, capabilitydriver.IdentityFromProto(option.Implementation))
 		if projector, ok := driver.(capabilitydriver.MusicInputProjector); ok {
 			musicInput = projector.MusicInputCapabilities()

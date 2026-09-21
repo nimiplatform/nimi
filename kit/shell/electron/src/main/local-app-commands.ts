@@ -1,4 +1,4 @@
-import { validateNimiLocalAppMusicGenerateSpec } from '@nimiplatform/kit/core/sdk-contract';
+import { validateNimiLocalAppMusicGenerateSpec, validateNimiLocalAppMusicTranscribeSpec } from '@nimiplatform/kit/core/sdk-contract';
 import { Buffer } from 'node:buffer';
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 import { validateNimiLocalAppTextInput } from '@nimiplatform/kit/core/sdk-contract';
@@ -361,7 +361,7 @@ function validatePayload(
       assertExactKeys(payload, ['spec', 'timeoutMs', ...(Object.hasOwn(payload, 'clientSubmissionId') ? ['clientSubmissionId'] : [])], command);
       validateScenarioSpec(payload.spec, command, false);
       const clientSubmissionId = payload.clientSubmissionId;
-      if (clientSubmissionId !== undefined && ((payload.spec as { type: string }).type !== 'music-generate' || typeof clientSubmissionId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(clientSubmissionId))) {
+      if (clientSubmissionId !== undefined && (!['music-generate', 'music-transcribe'].includes((payload.spec as { type: string }).type) || typeof clientSubmissionId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(clientSubmissionId))) {
         throw invalidPayload(command, 'invalid music clientSubmissionId');
       }
       return {
@@ -1129,6 +1129,9 @@ function validateScenarioSpec(value: unknown, command: string, execute: boolean)
     case 'speech-synthesize': validateSpeechSynthesizeSpec(value, command); return;
     case 'speech-transcribe': validateSpeechTranscribeSpec(value, command); return;
     case 'voice-create': validateVoiceCreateSpec(value, command); return;
+    case 'music-transcribe':
+      try { validateNimiLocalAppMusicTranscribeSpec(value); } catch { throw invalidPayload(command, 'Music transcription input is invalid'); }
+      return;
     case 'music-generate': validateMusicSpec(value, command); return;
     case 'world-generate':
       assertExactKeys(value, ['type', 'prompt', 'displayName'], command);

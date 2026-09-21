@@ -1,6 +1,6 @@
 import type { BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/headless';
 import type { StudioParameterValue } from './parameters.js';
-import type { NimiLocalAppVisionLocateResult, NimiLocalAppMusicGeneration } from '@nimiplatform/sdk/app';
+import type { NimiLocalAppVisionLocateResult, NimiLocalAppMusicGeneration, NimiLocalAppMusicTranscription } from '@nimiplatform/sdk/app';
 import type { NimiRuntimeScenarioJob } from '@nimiplatform/sdk/runtime';
 
 export type StudioRuntimeCapabilityDescriptor = {
@@ -32,11 +32,17 @@ export type StudioMusicGeneration = Pick<NimiLocalAppMusicGeneration, 'terminati
   };
 };
 
+export type StudioMusicTranscription = Pick<NimiLocalAppMusicTranscription, 'sourceInfo' | 'inputRange' | 'completeness' | 'origin'> & {
+  readonly sourceAudio: StudioManagedArtifact;
+  readonly scores: readonly { readonly relativePath: string; readonly format: 'abc' | 'midi'; readonly part: string }[];
+  readonly timelineRelativePath?: string;
+};
+
 export type StudioTypedOutput =
   | { readonly kind: 'vision-locate'; readonly jobId: string; readonly result: NimiLocalAppVisionLocateResult; readonly imagePreviewUrl?: string }
   | { readonly kind: 'text'; readonly text: string; readonly finishReason: string; readonly inputTokens?: number; readonly outputTokens?: number; readonly totalTokens?: number; readonly streamed: boolean }
   | { readonly kind: 'embedding'; readonly vectorCount: number; readonly dimensions: number; readonly sample: number[]; readonly totalTokens?: number }
-  | { readonly kind: 'artifacts'; readonly musicGeneration?: StudioMusicGeneration; readonly jobId: string; readonly jobState: string; readonly artifactCount: number; readonly artifacts: StudioManagedArtifact[]; readonly firstArtifact?: StudioManagedArtifact }
+  | { readonly kind: 'artifacts'; readonly musicGeneration?: StudioMusicGeneration; readonly musicTranscription?: StudioMusicTranscription; readonly jobId: string; readonly jobState: string; readonly artifactCount: number; readonly artifacts: StudioManagedArtifact[]; readonly firstArtifact?: StudioManagedArtifact }
   | { readonly kind: 'transcript'; readonly text: string; readonly jobId: string; readonly jobState: string; readonly artifactCount: number }
   | { readonly kind: 'voice-asset'; readonly jobId: string; readonly jobState: string; readonly voiceAssetId: string; readonly creationSource: 'reference-audio' | 'text-description'; readonly assetStatus: string; readonly voiceReference: { readonly kind: 'voice_asset_id'; readonly voiceAssetId: string } }
   | { readonly kind: 'voice-catalog'; readonly voiceCount: number; readonly sample: Array<{ readonly voiceId: string; readonly creationSource: string; readonly status: string }> };

@@ -1,4 +1,4 @@
-import type { StudioMusicGeneration } from './runtime-types.js';
+import type { StudioMusicGeneration, StudioMusicTranscription } from './runtime-types.js';
 import { isJsonObject } from '@nimiplatform/sdk/types';
 import type { NimiLocalAppVisionLocateResult } from '@nimiplatform/sdk/app';
 import type {
@@ -80,6 +80,7 @@ export type StudioRunHistoryResultSnapshot =
       ok: true;
       kind: 'artifacts';
       musicGeneration?: StudioMusicGeneration;
+      musicTranscription?: StudioMusicTranscription;
       summary: string;
       jobId: string;
       jobState: string;
@@ -495,6 +496,7 @@ export function createStudioRunHistoryResultSnapshot(result: StudioCapabilityRun
       ok: true,
       kind: 'artifacts',
       ...(output.musicGeneration ? { musicGeneration: output.musicGeneration } : {}),
+      ...(output.musicTranscription ? { musicTranscription: output.musicTranscription } : {}),
       summary: `${output.jobState || 'unknown'} / ${output.artifactCount} artifact${output.artifactCount === 1 ? '' : 's'}${firstArtifact?.mediaType ? ` / ${firstArtifact.mediaType}` : ''}`,
       jobId: output.jobId,
       jobState: output.jobState,
@@ -610,6 +612,7 @@ export function restoreStudioCapabilityRunResult(
       output: {
         kind: 'artifacts',
         ...(snapshot.musicGeneration ? { musicGeneration: snapshot.musicGeneration } : {}),
+        ...(snapshot.musicTranscription ? { musicTranscription: snapshot.musicTranscription } : {}),
         jobId: snapshot.jobId,
         jobState: snapshot.jobState,
         artifactCount: snapshot.artifactCount,

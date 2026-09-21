@@ -22,6 +22,7 @@ const (
 	AudioSeparate     = "audio.separate"
 	VoiceCreate       = "voice.create"
 	MusicGenerate     = "music.generate"
+	MusicTranscribe   = "music.transcribe"
 	RealtimeInteract  = "realtime.interact"
 	VisionLocate      = "vision.locate"
 	ImageFaceSwap     = "image.face_swap"
@@ -44,6 +45,7 @@ var canonicalCatalog = []string{
 	ImageGenerate,
 	VideoGenerate,
 	WorldGenerate,
+	MusicTranscribe,
 	MusicGenerate,
 	RealtimeInteract,
 	VisionLocate,
@@ -99,40 +101,13 @@ func SupportsStandardizedFeature(capability string, feature string) bool {
 // NormalizeCatalogCapability returns the canonical catalog capability token.
 // Unknown values are rejected rather than auto-mapped to preserve hard-cut semantics.
 func NormalizeCatalogCapability(value string) (string, error) {
-	switch strings.ToLower(strings.TrimSpace(value)) {
-	case TextAnnotate:
-		return TextAnnotate, nil
-	case TextGenerate:
-		return TextGenerate, nil
-	case TextEmbed:
-		return TextEmbed, nil
-	case ImageGenerate:
-		return ImageGenerate, nil
-	case VideoGenerate:
-		return VideoGenerate, nil
-	case WorldGenerate:
-		return WorldGenerate, nil
-	case AudioSynthesize:
-		return AudioSynthesize, nil
-	case AudioTranscribe:
-		return AudioTranscribe, nil
-	case AudioSeparate:
-		return AudioSeparate, nil
-	case VoiceCreate:
-		return VoiceCreate, nil
-	case MusicGenerate:
-		return MusicGenerate, nil
-	case RealtimeInteract:
-		return RealtimeInteract, nil
-	case VisionLocate:
-		return VisionLocate, nil
-	case ImageFaceSwap:
-		return ImageFaceSwap, nil
-	case VideoFaceSwap:
-		return VideoFaceSwap, nil
-	default:
-		return "", ErrUnknownCatalogCapability
+	normalized := strings.ToLower(strings.TrimSpace(value))
+	for _, capability := range canonicalCatalog {
+		if normalized == capability {
+			return capability, nil
+		}
 	}
+	return "", ErrUnknownCatalogCapability
 }
 
 // HasCatalogCapability reports whether capabilities contains the expected

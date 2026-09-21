@@ -631,6 +631,23 @@ loadout_recipes:
         model_contract:
           format: safetensors
           tensor_contract: minimax-h3-audio-vae
+  - recipe_id: sheetsage2.audio-cpp.v1
+    revision: "1"
+    title: SheetSage2 music transcription (non-commercial)
+    capability_contract: music.transcribe
+    implementation_id: local.music.transcribe.sheetsage2.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.sheetsage2
+    driver_dialect: audio.cpp/sheetsage2/music-transcribe/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: music.model
+        display_label: SheetSage2 original FP32 (CC-BY-NC-4.0)
+        recommended_variant_ids: [local.music.sheetsage2.audio-cpp.orig.cuda]
+        model_contract:
+          format: gguf
+          model_family: sheetsage2
+          artifact_role: music_model
   - recipe_id: yue2.audio-cpp.v1
     revision: "1"
     title: YuE2 score-guided music (non-commercial)

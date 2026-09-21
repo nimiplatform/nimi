@@ -83,6 +83,7 @@ func (s *Service) ListScenarioProfiles(_ context.Context, _ *runtimev1.ListScena
 		{runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SEPARATE, "Vocals and background separation"},
 		{runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE, "Voice creation"},
 		{runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE, "Music generation"},
+		{runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_TRANSCRIBE, "Music transcription"},
 		{runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE, "World generation"},
 	}
 	profiles := make([]*runtimev1.ScenarioProfile, 0, len(entries))

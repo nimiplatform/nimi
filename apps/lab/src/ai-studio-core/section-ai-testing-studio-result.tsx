@@ -1,4 +1,5 @@
 import { MusicGenerationNotice } from './section-ai-testing-music-result.js';
+import { MusicTranscriptionNotice } from './section-ai-testing-transcription-result.js';
 import { useEffect, useState, type ReactNode } from 'react';
 import { EmptyState, IconButton, StatusBadge, Surface, Tooltip } from '@nimiplatform/kit/ui';
 import { AlertTriangle, ChevronRight, Clock, Copy as CopyIcon, Download as DownloadIcon, FileText, FolderOpen, Loader2, RefreshCw, Sparkles, Square } from 'lucide-react';
@@ -26,7 +27,8 @@ function ReadyBody({ result }: { result: StudioCapabilityRunResult & { ok: true 
     return (
       <div className="studio-result__rich">
         <MusicGenerationNotice value={output.musicGeneration} />
-        {output.artifacts.filter((artifact) => artifact.relativePath !== output.musicGeneration?.generatedScore?.relativePath).map((artifact, index) => (
+        <MusicTranscriptionNotice value={output.musicTranscription} />
+        {output.artifacts.filter((artifact) => !output.musicTranscription && artifact.relativePath !== output.musicGeneration?.generatedScore?.relativePath).map((artifact, index) => (
           <ArtifactMediaResult
             key={artifact.relativePath}
             artifact={artifact}
@@ -275,7 +277,7 @@ export function StudioResult({
     if (output.kind === 'artifacts') {
       return [
         { label: t('Studio.result.statArtifacts'), value: String(output.artifactCount) },
-        { label: t('Studio.result.statState'), value: output.jobState === 'COMPLETED' ? t('Studio.result.statCompleted') : output.jobState || t('Studio.result.stateUnknown') },
+        { label: t('Studio.result.statState'), value: output.jobState.toUpperCase() === 'COMPLETED' ? t('Studio.result.statCompleted') : output.jobState || t('Studio.result.stateUnknown') },
       ];
     }
     if (output.kind === 'voice-asset') {
@@ -312,6 +314,7 @@ export function StudioResult({
           <Loader2 size={15} aria-hidden="true" className="studio-spin" />
           <span>{cancelRequested
             ? t('Studio.result.pendingCancel')
+            : capability.id === 'music.transcribe' ? t('Transcription.running')
             : capability.id === 'vision.locate' && jobStatus ? t(`VisionLocate.${jobStatus}`)
             : profile.pendingLabelKey
             ? t(profile.pendingLabelKey)
@@ -421,7 +424,7 @@ export function StudioResult({
       <div className="studio-result__meta">
         <StatusBadge tone={statusTone} shape="soft" className="min-h-[30px] shrink-0 gap-[7px] px-3 text-sm font-[var(--nimi-type-page-title-weight)]">
           <Sparkles size={14} aria-hidden="true" />
-          <span>{t('Studio.result.runtimeChip')}</span>
+          <span>{t(capability.id === 'music.transcribe' ? 'Transcription.estimateLabel' : 'Studio.result.runtimeChip')}</span>
         </StatusBadge>
         <div className="studio-result__stats studio-result__stats--top" aria-label={t('Studio.result.generationMetrics')}>
           {stats.map((stat) => (

@@ -339,7 +339,7 @@ func defaultLocalEngine(raw string, capabilities []string) string {
 			return "llama"
 		case "image.generate", "video.generate", "world.generate":
 			return "media"
-		case "audio.synthesize", "audio.transcribe", "music.generate", "voice.create", "realtime.interact":
+		case "audio.synthesize", "audio.transcribe", "music.generate", "music.transcribe", "voice.create", "realtime.interact":
 			return "speech"
 		}
 	}

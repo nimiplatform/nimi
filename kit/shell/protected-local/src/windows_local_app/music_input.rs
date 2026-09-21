@@ -4,7 +4,7 @@ use super::untrusted;
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.music-generation
 pub(super) fn project(value: MusicInputCapabilities) -> Result<Value, LocalAppOperationError> {
-    if value.generation.is_empty() || value.generation.len() > 16 { return Err(untrusted()); }
+    if value.generation.len() > 16 || value.transcription.len() > 16 || (value.generation.is_empty() && value.transcription.is_empty()) { return Err(untrusted()); }
     let mut profiles = Vec::new();
     for row in value.generation {
         if !matches!(row.lyrics_mode.as_str(), "unsupported" | "optional" | "required")
@@ -27,7 +27,19 @@ pub(super) fn project(value: MusicInputCapabilities) -> Result<Value, LocalAppOp
             "maxPromptBytes":row.max_prompt_bytes,"maxLyricsBytes":row.max_lyrics_bytes,"maxScoreBytes":row.max_score_bytes,
             "maxAudioReferenceBytes":row.max_audio_reference_bytes}));
     }
-    Ok(json!({"generation":profiles}))
+    let mut transcription = Vec::new();
+    for row in value.transcription {
+        if row.formats.is_empty() || row.parts.is_empty()
+            || !tokens(&row.formats, &["abc", "midi", "timeline"])
+            || !tokens(&row.parts, &["vocal-melody", "lead-sheet", "full-arrangement"])
+            || row.max_duration_seconds == 0 || row.max_duration_seconds > 600
+            || row.max_source_bytes == 0 || row.max_source_bytes > 512 * 1024 * 1024 { return Err(untrusted()); }
+        transcription.push(json!({"formats":row.formats,"parts":row.parts,"maxDurationSeconds":row.max_duration_seconds,
+            "maxSourceBytes":row.max_source_bytes,"supportsRange":row.supports_range}));
+    }
+    let mut result = json!({"generation":profiles});
+    if !transcription.is_empty() { result["transcription"] = json!(transcription); }
+    Ok(result)
 }
 
 fn tokens(values: &[String], allowed: &[&str]) -> bool {
@@ -44,7 +56,7 @@ mod tests {
             supports_generated_score:true, max_duration_seconds:600, default_duration_seconds:20,
             max_prompt_bytes:32768, max_lyrics_bytes:32768, ..Default::default()
         };
-        let value = MusicInputCapabilities { generation:vec![profile.clone()] };
+        let value = MusicInputCapabilities { generation:vec![profile.clone()], ..Default::default() };
         assert_eq!(project(value.clone()).unwrap()["generation"][0]["maxDurationSeconds"],600);
         let mut contradictory=value.clone();contradictory.generation[0].supports_audio_reference=true;
         assert!(project(contradictory).is_err());

@@ -1361,6 +1361,61 @@ test('Lab records the music author action before Submit and recovers it without 
   assert.equal(submitted, 1); assert.equal(observed, 1); assert.equal(adopted, 1); assert.equal(configured, 1);
 });
 
+test('Lab transcription retains its canonical source and complete result across lost Submit and reopen', async () => {
+  // Fault injection verifies recovery semantics; this is not model acceptance.
+  const { runLabCapability } = await importLabRuntime();
+  let entries = []; let submits = 0; let observations = 0; let preparations = 0; let capturedAI;
+  const adoptions = [];
+  const metadata = { sampleRateHz: 48000, channels: 2, frameCount: 960000, durationMs: 20000 };
+  const output = { ok: true, capabilityId: 'music.transcribe', message: 'estimated score', output: {
+    kind: 'music-transcription-artifacts', jobId: 'original-transcription-job', jobStatus: 'completed', artifactCount: 2,
+    artifacts: [{ artifactId: 'score-1', mimeType: 'text/vnd.abc', sizeBytes: 512, sha256: 'b'.repeat(64) },
+      { artifactId: 'timeline-1', mimeType: 'application/vnd.nimi.music-timeline+json', sizeBytes: 1024, sha256: 'c'.repeat(64) }],
+    transcription: { sourceArtifactId: 'source-canonical', sourceInfo: metadata, inputRange: { startFrame: 48000, endFrame: 480000 },
+      origin: 'transcribed-estimate', completeness: 'unknown', scores: [{ artifactId: 'score-1', format: 'abc', part: 'lead-sheet' }], timelineArtifactId: 'timeline-1' },
+  } };
+  const client = fakeLocalAppClient({
+    async submitScenarioJob(_spec, options) {
+      submits++; assert.equal(entries[0].sourceAudio.mediaType, 'audio/wav');
+      assert.equal(options.clientSubmissionId, entries[0].clientSubmissionId); throw new Error('lost Submit response');
+    },
+    async adoptArtifact(input) {
+      adoptions.push(input.artifactId);
+      const original = input.artifactId === 'source-canonical';
+      const artifact = output.output.artifacts.find(item => item.artifactId === input.artifactId);
+      return { relativePath: input.relativePath.replace(/\.asset$/u, '.bin'), mediaType: original ? 'audio/wav' : artifact.mimeType,
+        sizeBytes: original ? 7680058 : artifact.sizeBytes, sha256: `sha256:${original ? 'a'.repeat(64) : artifact.sha256}` };
+    },
+  });
+  client.storage.assets.stat = async () => ({ relativePath: 'input/song.mp3', mediaType: 'audio/mpeg', sizeBytes: 1000 });
+  client.storage.assets.list = async () => ({ assets: [], nextCursor: '' });
+  client.storage.readJson = async path => { assert.equal(path, 'studio/music-transcription-recovery.json'); return { value: entries }; };
+  client.storage.writeJson = async (path, value) => { assert.equal(path, 'studio/music-transcription-recovery.json'); entries = structuredClone(value); return { value }; };
+  client.ai.artifacts.upload = async input => { preparations++; assert.equal(preparations, 1); assert.deepEqual(input.audioPreparation, { profile: 'canonical-pcm-v1' }); return { artifactId: 'source-canonical', mimeType: 'audio/wav', sizeBytes: 7680058, audioInfo: metadata }; };
+  client.aiConfig = { get: async () => ({ effectiveSelections: [{ capabilityContract: 'music.transcribe', state: 'ready', resource: { oneofKind: 'local', local: { musicInput: { generation: [], transcription: [{ formats: ['abc','timeline'], parts: ['lead-sheet'], supportsRange: true, maxDurationSeconds: 600, maxSourceBytes: 536870912 }] } } } }] }) };
+  client.ai.scenarioJobs.lookupSubmission = async () => ({ job: { jobId: 'original-transcription-job' } });
+  const dependencies = readyRuntimeDependencies(client, {
+    createScenarioJobClient(ai) { capturedAI = ai; return {}; },
+    runners: {
+      async musicTranscribe(input) { assert.deepEqual(input.sourceAudio.range, { startFrame: 48000, endFrame: 480000 }); await capturedAI.scenarioJobs.submit({}, {}); },
+      async musicTranscriptionObserve(input) { observations++; assert.equal(input.jobId, 'original-transcription-job'); return output; },
+    },
+  });
+  const failed = await runLabCapability({ capabilityId: 'music.transcribe', prompt: '', parameters: { sourceRelativePath: 'input/song.mp3', sourceMimeType: 'audio/mpeg', requestedFormats: ['abc','timeline'], requestedPart: 'lead-sheet', startSeconds: 1, endSeconds: 10 } }, dependencies);
+  assert.equal(failed.ok, false); assert.equal(submits, 1);
+  const recovery = { capabilityId: 'music.transcribe', prompt: '', parameters: { recoverySubmissionId: entries[0].clientSubmissionId } };
+  const recovered = await runLabCapability(recovery, dependencies);
+  assert.equal(recovered.ok, true, recovered.message);
+  assert.equal(recovered.output.artifacts.length, 2);
+  assert.deepEqual(recovered.output.musicTranscription.inputRange, { startFrame: 48000, endFrame: 480000 });
+  assert.equal(recovered.output.musicTranscription.sourceAudio.relativePath, entries[0].sourceAudio.relativePath);
+  const reopened = await runLabCapability(recovery, dependencies);
+  assert.equal(reopened.ok, true, reopened.message);
+  assert.deepEqual(reopened.output.musicTranscription, recovered.output.musicTranscription);
+  assert.equal(submits, 1); assert.equal(preparations, 1); assert.equal(observations, 1);
+  assert.deepEqual(adoptions, ['source-canonical', 'score-1', 'timeline-1']);
+});
+
 for (const corruptRetainedAsset of [false, true]) {
   test(`Lab recovers canonical audio and score paths after result persistence fails (corrupt=${corruptRetainedAsset})`, async () => {
     // Inject the storage failure after adoption, without claiming model acceptance.

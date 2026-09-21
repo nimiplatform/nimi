@@ -56,6 +56,10 @@ const CAPABILITY_COPY_KEYS: Readonly<Record<string, {
     label: 'Apps.aiConfig.capability.musicGenerate.label',
     description: 'Apps.aiConfig.capability.musicGenerate.description',
   },
+  'music.transcribe': {
+    label: 'Apps.aiConfig.capability.musicTranscribe.label',
+    description: 'Apps.aiConfig.capability.musicTranscribe.description',
+  },
   'text.embed': {
     label: 'Apps.aiConfig.capability.textEmbed.label',
     description: 'Apps.aiConfig.capability.textEmbed.description',

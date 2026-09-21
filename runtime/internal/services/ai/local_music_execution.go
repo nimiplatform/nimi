@@ -23,6 +23,7 @@ import (
 )
 
 type localMusicEffectiveInputs struct {
+	transcriptionRequest   *runtimev1.MusicTranscribeScenarioSpec
 	head                   *runtimev1.ScenarioRequestHead
 	intent                 executionintent.Intent
 	loadoutID              string
@@ -114,6 +115,9 @@ func (s *Service) captureLocalMusicEffectiveInputs(ctx context.Context, head *ru
 }
 
 func (s *Service) localMusicEffectiveInputsFromResolvedAssembly(assembly *localResolvedAssembly) (*localMusicEffectiveInputs, error) {
+	if assembly != nil && assembly.Request.Kind == capabilitydriver.MusicTranscribeCapabilityContract {
+		return s.localMusicTranscriptionFromResolvedAssembly(assembly)
+	}
 	if err := validateLocalResolvedAssembly(assembly); err != nil {
 		return nil, err
 	}
@@ -222,7 +226,7 @@ func cleanupAudioMusicStaging(path string) {
 		_ = os.Remove(path + ".tmp")
 		directory := filepath.Dir(path)
 		if filepath.Base(path) == "music.wav" && numericTemporaryName(filepath.Base(directory), "music-") {
-			for _, name := range []string{"request.json", "input.abc", "music/score.abc"} {
+			for _, name := range []string{"request.json", "input.abc", "music/score.abc", "source.wav", "score.abc", "events.json", "timeline.json"} {
 				_ = os.Remove(filepath.Join(directory, name))
 			}
 			_ = os.Remove(filepath.Join(directory, "music"))

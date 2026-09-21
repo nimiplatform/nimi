@@ -42,6 +42,7 @@ enum ScenarioType {
   SCENARIO_TYPE_VIDEO_FACE_SWAP = 14;
   SCENARIO_TYPE_AUDIO_SEPARATE = 15;
   SCENARIO_TYPE_TEXT_ANNOTATE = 16;
+  SCENARIO_TYPE_MUSIC_TRANSCRIBE = 17;
 }
 
 enum ExecutionMode {
@@ -485,6 +486,26 @@ message MusicGenerateScenarioSpec {
   MusicAudioInput audio_reference = 12;
 }
 
+enum MusicTranscriptionFormat {
+  MUSIC_TRANSCRIPTION_FORMAT_UNSPECIFIED = 0;
+  MUSIC_TRANSCRIPTION_FORMAT_ABC = 1;
+  MUSIC_TRANSCRIPTION_FORMAT_MIDI = 2;
+  MUSIC_TRANSCRIPTION_FORMAT_TIMELINE = 3;
+}
+
+enum MusicTranscriptionPart {
+  MUSIC_TRANSCRIPTION_PART_UNSPECIFIED = 0;
+  MUSIC_TRANSCRIPTION_PART_VOCAL_MELODY = 1;
+  MUSIC_TRANSCRIPTION_PART_LEAD_SHEET = 2;
+  MUSIC_TRANSCRIPTION_PART_FULL_ARRANGEMENT = 3;
+}
+
+message MusicTranscribeScenarioSpec {
+  MusicAudioInput source_audio = 1;
+  repeated MusicTranscriptionFormat requested_formats = 2;
+  repeated MusicTranscriptionPart requested_parts = 3;
+}
+
 // Source separation preserves the input timeline and returns vocals plus the
 // sum of all non-vocal sources. The selected implementation owns input limits.
 message AudioSeparateScenarioSpec {
@@ -742,6 +763,7 @@ message ScenarioSpec {
     VideoFaceSwapScenarioSpec video_face_swap = 14;
     AudioSeparateScenarioSpec audio_separate = 15;
     TextAnnotateScenarioSpec text_annotate = 16;
+    MusicTranscribeScenarioSpec music_transcribe = 17;
   }
   reserved 7, 8;
   reserved "voice_clone", "voice_design";
@@ -863,6 +885,35 @@ message MusicGeneration {
   LocalAppAudioInfo audio_info = 5;
 }
 
+enum MusicTranscriptionCompleteness {
+  MUSIC_TRANSCRIPTION_COMPLETENESS_UNSPECIFIED = 0;
+  MUSIC_TRANSCRIPTION_COMPLETENESS_UNKNOWN = 1;
+  MUSIC_TRANSCRIPTION_COMPLETENESS_COMPLETE = 2;
+  MUSIC_TRANSCRIPTION_COMPLETENESS_TRUNCATED = 3;
+}
+
+message MusicTranscribedScore {
+  string artifact_id = 1;
+  MusicScoreFormat format = 2;
+  MusicTranscriptionPart part = 3;
+}
+
+// Estimated symbolic results; references identify committed outputs of this Job.
+message MusicTranscription {
+  repeated MusicTranscribedScore scores = 1;
+  string timeline_artifact_id = 2;
+  MusicScoreOrigin origin = 3;
+  string source_artifact_id = 4;
+  LocalAppAudioInfo source_info = 5;
+  AudioFrameRange input_range = 6;
+  MusicTranscriptionCompleteness completeness = 7;
+}
+
+message MusicTranscribeResult {
+  repeated ScenarioArtifact artifacts = 1;
+  MusicTranscription transcription = 2;
+}
+
 message AudioSeparateResult {
   repeated ScenarioArtifact artifacts = 1;
   AudioSeparation separation = 2;
@@ -902,6 +953,7 @@ message ScenarioOutput {
     VideoFaceSwapResult video_face_swap = 10;
     AudioSeparateResult audio_separate = 11;
     TextAnnotationResult text_annotation = 12;
+    MusicTranscribeResult music_transcribe = 13;
   }
 }
 
@@ -1124,11 +1176,12 @@ message SubmitLocalAppScenarioJobRequest {
     VideoFaceSwapScenarioSpec video_face_swap = 13;
     AudioSeparateScenarioSpec audio_separate = 14;
     TextAnnotateScenarioSpec text_annotate = 15;
+    MusicTranscribeScenarioSpec music_transcribe = 17;
   }
   // Canonical Job deadline in milliseconds. Zero keeps Runtime's
   // capability-owned default; no other ScenarioRequestHead field is exposed.
   int32 timeout_ms = 9;
-  // Optional owner-scoped identity for a music.generate creation action.
+  // Optional owner-scoped identity for music generation or transcription.
   // Reuse with different input is rejected; lookup never executes work.
   string client_submission_id = 16;
   reserved 5, 6;
@@ -1168,6 +1221,7 @@ message LocalAppScenarioJob {
   // Present only for a terminal protected music Job with recovery identity.
   google.protobuf.Timestamp recovery_expires_at = 19;
   MusicGeneration music_generation = 20;
+  MusicTranscription music_transcription = 21;
 }
 
 // Trimmed voice asset catalog projection. Provider, model, provider voice
@@ -1497,6 +1551,7 @@ message ScenarioJob {
   TextAnnotationResult text_annotation = 29;
   google.protobuf.Timestamp recovery_expires_at = 30;
   MusicGeneration music_generation = 31;
+  MusicTranscription music_transcription = 32;
 }
 
 message SubmitScenarioJobRequest {

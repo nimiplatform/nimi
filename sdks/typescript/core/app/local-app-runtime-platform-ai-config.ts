@@ -299,7 +299,7 @@ function projectCloudConnectorOption(value: unknown, index: number): void {
 function projectCloudTargetOption(value: unknown, index: number): void {
   const option = asRecord(value);
   if (option && Object.hasOwn(option, 'musicInput')) {
-    if (option.capabilityContract !== 'music.generate') localAppProjectionError('music input capability contract');
+    if (!['music.generate', 'music.transcribe'].includes(String(option.capabilityContract))) localAppProjectionError('music input capability contract');
     projectMusicInputCapabilities(option.musicInput);
   }
   if (option && Object.hasOwn(option, 'referenceAudioInput')) projectVoiceReferenceInput(option.referenceAudioInput);
@@ -326,7 +326,7 @@ function projectCloudTargetOption(value: unknown, index: number): void {
 function projectLocalOption(value: unknown, index: number): void {
   const option = asRecord(value);
   if (option && Object.hasOwn(option, 'musicInput')) {
-    if (option.capabilityContract !== 'music.generate') localAppProjectionError('music input capability contract');
+    if (!['music.generate', 'music.transcribe'].includes(String(option.capabilityContract))) localAppProjectionError('music input capability contract');
     projectMusicInputCapabilities(option.musicInput);
   }
   if (option && Object.hasOwn(option, 'referenceAudioInput')) projectVoiceReferenceInput(option.referenceAudioInput);

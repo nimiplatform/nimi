@@ -216,6 +216,24 @@ capabilities:
       revocation: route-or-artifact-owner
       auditSource: runtime-scenario-job-evidence
     source_rule: P-CAPCAT-001
+  - capabilityId: music.transcribe
+    section: music
+    editorKind: null
+    sourceRef:
+      table: local-adapter-routing
+      capability: music.transcribe
+    i18nKeys:
+      title: AIConfig.capability.musicTranscribe.title
+      subtitle: AIConfig.capability.musicTranscribe.subtitle
+      detail: AIConfig.capability.musicTranscribe.detail
+    runtimeEvidenceClass: job
+    governance:
+      owner: runtime-music-route
+      dataMovement: local-only
+      retention: runtime-artifact-policy
+      revocation: route-or-artifact-owner
+      auditSource: runtime-scenario-job-evidence
+    source_rule: P-CAPCAT-001
   - capabilityId: music.generate
     section: music
     editorKind: null

@@ -229,6 +229,7 @@ type MusicExecutionStartFunc func() error
 // MusicResult contains factual private staging output and Driver-interpreted
 // inference facts. Runtime Job validation and artifact custody stay above it.
 type MusicResult struct {
+	Transcription    *capabilitydriver.MusicTranscriptionOutput
 	StagingScorePath string
 	InferenceFacts   capabilitydriver.MusicInferenceFacts
 	StagingWAVPath   string

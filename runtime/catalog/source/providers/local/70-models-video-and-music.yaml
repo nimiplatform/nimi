@@ -272,6 +272,37 @@ models:
       - sidecar/stable-audio-open
       - sidecar/stable-audio-open-default
 
+  - model_id: sheetsage2-audio-cpp-local
+    model_type: music
+    family: sheetsage2
+    updated_at: 2026-09-22
+    capabilities: [music.transcribe]
+    source_ids: [sheetsage2_audio_cpp_gguf_modelcard]
+    install:
+      repo: audio-cpp/SheetSage2-GGUF
+      revision: 6dd648b0acf1ba9e662d8509a3eabcb201911c2c # pragma: allowlist secret -- public immutable model revision
+      license: CC-BY-NC-4.0
+      provenance: m-a-p/SheetSage2 with MERT-v2-FullSong backbone and merged LoRA, converted by audio-cpp; non-commercial research use
+      install_kind: verified-hf-multi-file
+      entry: sheetsage2-orig.gguf
+      artifact_roles: [music_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.music.sheetsage2.audio-cpp.orig.cuda
+        quant: F32
+        entry: sheetsage2-orig.gguf
+        files: [sheetsage2-orig.gguf]
+        hashes:
+          sheetsage2-orig.gguf: sha256:52bb5846c452037d39931aa8050885b6c751b9c7afcc8ef6d6d3067d241731a4
+        total_size_bytes: 2708224512
+        host_requirement:
+          accelerator: cuda
+          # Conservative initial profile, not a measured universal minimum.
+          min_ram_bytes: 17179869184
+          min_vram_bytes: 17179869184
+    fitness:
+      param_count: 677020953
+      context_length: 5120
   - model_id: yue2-audio-cpp-local
     model_type: music
     family: yue2

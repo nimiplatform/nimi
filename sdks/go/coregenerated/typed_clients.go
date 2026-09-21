@@ -1317,6 +1317,33 @@ const (
 	MUSICSCOREORIGINTRANSCRIBEDESTIMATE MusicScoreOrigin = "MUSIC_SCORE_ORIGIN_TRANSCRIBED_ESTIMATE"
 )
 
+type MusicTranscriptionCompleteness string
+
+const (
+	MUSICTRANSCRIPTIONCOMPLETENESSUNSPECIFIED MusicTranscriptionCompleteness = "MUSIC_TRANSCRIPTION_COMPLETENESS_UNSPECIFIED"
+	MUSICTRANSCRIPTIONCOMPLETENESSUNKNOWN     MusicTranscriptionCompleteness = "MUSIC_TRANSCRIPTION_COMPLETENESS_UNKNOWN"
+	MUSICTRANSCRIPTIONCOMPLETENESSCOMPLETE    MusicTranscriptionCompleteness = "MUSIC_TRANSCRIPTION_COMPLETENESS_COMPLETE"
+	MUSICTRANSCRIPTIONCOMPLETENESSTRUNCATED   MusicTranscriptionCompleteness = "MUSIC_TRANSCRIPTION_COMPLETENESS_TRUNCATED"
+)
+
+type MusicTranscriptionFormat string
+
+const (
+	MUSICTRANSCRIPTIONFORMATUNSPECIFIED MusicTranscriptionFormat = "MUSIC_TRANSCRIPTION_FORMAT_UNSPECIFIED"
+	MUSICTRANSCRIPTIONFORMATABC         MusicTranscriptionFormat = "MUSIC_TRANSCRIPTION_FORMAT_ABC"
+	MUSICTRANSCRIPTIONFORMATMIDI        MusicTranscriptionFormat = "MUSIC_TRANSCRIPTION_FORMAT_MIDI"
+	MUSICTRANSCRIPTIONFORMATTIMELINE    MusicTranscriptionFormat = "MUSIC_TRANSCRIPTION_FORMAT_TIMELINE"
+)
+
+type MusicTranscriptionPart string
+
+const (
+	MUSICTRANSCRIPTIONPARTUNSPECIFIED     MusicTranscriptionPart = "MUSIC_TRANSCRIPTION_PART_UNSPECIFIED"
+	MUSICTRANSCRIPTIONPARTVOCALMELODY     MusicTranscriptionPart = "MUSIC_TRANSCRIPTION_PART_VOCAL_MELODY"
+	MUSICTRANSCRIPTIONPARTLEADSHEET       MusicTranscriptionPart = "MUSIC_TRANSCRIPTION_PART_LEAD_SHEET"
+	MUSICTRANSCRIPTIONPARTFULLARRANGEMENT MusicTranscriptionPart = "MUSIC_TRANSCRIPTION_PART_FULL_ARRANGEMENT"
+)
+
 type PresenceVerificationMethod string
 
 const (
@@ -1834,6 +1861,7 @@ const (
 	SCENARIOTYPEVIDEOFACESWAP    ScenarioType = "SCENARIO_TYPE_VIDEO_FACE_SWAP"
 	SCENARIOTYPEAUDIOSEPARATE    ScenarioType = "SCENARIO_TYPE_AUDIO_SEPARATE"
 	SCENARIOTYPETEXTANNOTATE     ScenarioType = "SCENARIO_TYPE_TEXT_ANNOTATE"
+	SCENARIOTYPEMUSICTRANSCRIBE  ScenarioType = "SCENARIO_TYPE_MUSIC_TRANSCRIBE"
 )
 
 type SchedulingState string
@@ -5708,6 +5736,7 @@ type LocalAppScenarioJob struct {
 	TextAnnotation       *TextAnnotationResult      `json:"text_annotation,omitempty"`
 	RecoveryExpiresAt    string                     `json:"recovery_expires_at,omitempty"`
 	MusicGeneration      *MusicGeneration           `json:"music_generation,omitempty"`
+	MusicTranscription   *MusicTranscription        `json:"music_transcription,omitempty"`
 }
 
 type LocalAppScenarioJobEvent struct {
@@ -6419,7 +6448,8 @@ type MusicGenerationInputProfile struct {
 }
 
 type MusicInputCapabilities struct {
-	Generation []MusicGenerationInputProfile `json:"generation,omitempty"`
+	Generation    []MusicGenerationInputProfile    `json:"generation,omitempty"`
+	Transcription []MusicTranscriptionInputProfile `json:"transcription,omitempty"`
 }
 
 type MusicScoreArtifact struct {
@@ -6432,6 +6462,41 @@ type MusicScoreArtifact struct {
 type MusicScoreReference struct {
 	ArtifactId string           `json:"artifact_id,omitempty"`
 	Format     MusicScoreFormat `json:"format,omitempty"`
+}
+
+type MusicTranscribeResult struct {
+	Artifacts     []ScenarioArtifact  `json:"artifacts,omitempty"`
+	Transcription *MusicTranscription `json:"transcription,omitempty"`
+}
+
+type MusicTranscribeScenarioSpec struct {
+	SourceAudio      *MusicAudioInput           `json:"source_audio,omitempty"`
+	RequestedFormats []MusicTranscriptionFormat `json:"requested_formats,omitempty"`
+	RequestedParts   []MusicTranscriptionPart   `json:"requested_parts,omitempty"`
+}
+
+type MusicTranscribedScore struct {
+	ArtifactId string                 `json:"artifact_id,omitempty"`
+	Format     MusicScoreFormat       `json:"format,omitempty"`
+	Part       MusicTranscriptionPart `json:"part,omitempty"`
+}
+
+type MusicTranscription struct {
+	Scores             []MusicTranscribedScore        `json:"scores,omitempty"`
+	TimelineArtifactId string                         `json:"timeline_artifact_id,omitempty"`
+	Origin             MusicScoreOrigin               `json:"origin,omitempty"`
+	SourceArtifactId   string                         `json:"source_artifact_id,omitempty"`
+	SourceInfo         *LocalAppAudioInfo             `json:"source_info,omitempty"`
+	InputRange         *AudioFrameRange               `json:"input_range,omitempty"`
+	Completeness       MusicTranscriptionCompleteness `json:"completeness,omitempty"`
+}
+
+type MusicTranscriptionInputProfile struct {
+	Formats            []string `json:"formats,omitempty"`
+	Parts              []string `json:"parts,omitempty"`
+	MaxDurationSeconds uint32   `json:"max_duration_seconds,omitempty"`
+	MaxSourceBytes     uint32   `json:"max_source_bytes,omitempty"`
+	SupportsRange      bool     `json:"supports_range,omitempty"`
 }
 
 type OpenConversationAnchorRequest struct {
@@ -7347,6 +7412,7 @@ type ScenarioJob struct {
 	TextAnnotation         *TextAnnotationResult          `json:"text_annotation,omitempty"`
 	RecoveryExpiresAt      string                         `json:"recovery_expires_at,omitempty"`
 	MusicGeneration        *MusicGeneration               `json:"music_generation,omitempty"`
+	MusicTranscription     *MusicTranscription            `json:"music_transcription,omitempty"`
 }
 
 type ScenarioJobEvent struct {
@@ -7370,6 +7436,7 @@ type ScenarioOutput struct {
 	VideoFaceSwap    *VideoFaceSwapResult    `json:"video_face_swap,omitempty"`
 	AudioSeparate    *AudioSeparateResult    `json:"audio_separate,omitempty"`
 	TextAnnotation   *TextAnnotationResult   `json:"text_annotation,omitempty"`
+	MusicTranscribe  *MusicTranscribeResult  `json:"music_transcribe,omitempty"`
 }
 
 type ScenarioProfile struct {
@@ -7399,6 +7466,7 @@ type ScenarioSpec struct {
 	VideoFaceSwap    *VideoFaceSwapScenarioSpec    `json:"video_face_swap,omitempty"`
 	AudioSeparate    *AudioSeparateScenarioSpec    `json:"audio_separate,omitempty"`
 	TextAnnotate     *TextAnnotateScenarioSpec     `json:"text_annotate,omitempty"`
+	MusicTranscribe  *MusicTranscribeScenarioSpec  `json:"music_transcribe,omitempty"`
 }
 
 type ScenarioStreamCompleted struct {
@@ -7808,6 +7876,7 @@ type SubmitLocalAppScenarioJobRequest struct {
 	AudioSeparate      *AudioSeparateScenarioSpec         `json:"audio_separate,omitempty"`
 	TextAnnotate       *TextAnnotateScenarioSpec          `json:"text_annotate,omitempty"`
 	ClientSubmissionId string                             `json:"client_submission_id,omitempty"`
+	MusicTranscribe    *MusicTranscribeScenarioSpec       `json:"music_transcribe,omitempty"`
 }
 
 type SubmitLocalAppScenarioJobResponse struct {

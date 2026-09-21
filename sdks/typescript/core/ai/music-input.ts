@@ -16,7 +16,17 @@ export type NimiMusicGenerationInputProfile = {
   readonly maxScoreBytes: number;
   readonly maxAudioReferenceBytes: number;
 };
-export type NimiMusicInputCapabilities = { readonly generation: readonly NimiMusicGenerationInputProfile[] };
+export type NimiMusicTranscriptionInputProfile = {
+  readonly formats: readonly ('abc' | 'midi' | 'timeline')[];
+  readonly parts: readonly ('vocal-melody' | 'lead-sheet' | 'full-arrangement')[];
+  readonly maxDurationSeconds: number;
+  readonly maxSourceBytes: number;
+  readonly supportsRange: boolean;
+};
+export type NimiMusicInputCapabilities = {
+  readonly generation: readonly NimiMusicGenerationInputProfile[];
+  readonly transcription?: readonly NimiMusicTranscriptionInputProfile[];
+};
 
 const fail = (): never => { throw createNimiError({ reasonCode: 'SDK_LOCAL_APP_PROJECTION_INVALID', message: 'Music input capabilities are invalid.', actionHint: 'update_matching_runtime_sdk_kit', source: 'sdk' }); };
 const record = (value: unknown): Record<string, unknown> => {
@@ -31,7 +41,8 @@ const tokens = (value: unknown, allowed: readonly string[]): value is string[] =
 // @nimi-authority: rule.nimi.runtime.ai-provider.music-generation
 export function projectMusicInputCapabilities(value: unknown): NimiMusicInputCapabilities {
   const source = record(value);
-  if (Object.keys(source).join('|') !== 'generation' || !Array.isArray(source.generation) || source.generation.length < 1 || source.generation.length > 16) fail();
+  if (Object.keys(source).some(key => !['generation', 'transcription'].includes(key)) || !Array.isArray(source.generation) || source.generation.length > 16
+    || (source.transcription !== undefined && (!Array.isArray(source.transcription) || source.transcription.length > 16))) fail();
   const generation = (source.generation as unknown[]).map((entry) => {
     const row = record(entry);
     const keys = ['lyricsMode', 'scoreMode', 'scoreFormats', 'scoreConditioning', 'supportsInstrumental', 'supportsSeed', 'supportsGeneratedScore', 'supportsAudioReference', 'maxDurationSeconds', 'defaultDurationSeconds', 'maxPromptBytes', 'maxLyricsBytes', 'maxScoreBytes', 'maxAudioReferenceBytes'];
@@ -50,5 +61,15 @@ export function projectMusicInputCapabilities(value: unknown): NimiMusicInputCap
       || (profile.lyricsMode === 'required' && profile.supportsInstrumental)) fail();
     return Object.freeze({ ...profile, scoreFormats: Object.freeze([...profile.scoreFormats]), scoreConditioning: Object.freeze([...profile.scoreConditioning]) });
   });
-  return Object.freeze({ generation: Object.freeze(generation) });
+  const transcription = ((source.transcription ?? []) as unknown[]).map(entry => {
+    const row = record(entry); const keys = ['formats', 'parts', 'maxDurationSeconds', 'maxSourceBytes', 'supportsRange'];
+    if (Object.keys(row).length !== keys.length || Object.keys(row).some(key => !keys.includes(key))
+      || !tokens(row.formats, ['abc', 'midi', 'timeline']) || !row.formats.length
+      || !tokens(row.parts, ['vocal-melody', 'lead-sheet', 'full-arrangement']) || !row.parts.length
+      || !integer(row.maxDurationSeconds, 1, 600) || !integer(row.maxSourceBytes, 1, 512 * 1024 * 1024) || typeof row.supportsRange !== 'boolean') fail();
+    const profile = row as unknown as NimiMusicTranscriptionInputProfile;
+    return Object.freeze({ ...profile, formats: Object.freeze([...profile.formats]), parts: Object.freeze([...profile.parts]) });
+  });
+  if (!generation.length && !transcription.length) fail();
+  return Object.freeze({ generation: Object.freeze(generation), ...(transcription.length ? { transcription: Object.freeze(transcription) } : {}) });
 }

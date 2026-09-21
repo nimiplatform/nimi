@@ -23,6 +23,7 @@ const CATALOG_CAPABILITIES = [
   'audio.synthesize',
   'audio.transcribe',
   'music.generate',
+  'music.transcribe',
   'voice.create',
   'world.generate',
 ] as const;

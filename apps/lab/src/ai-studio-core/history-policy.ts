@@ -36,7 +36,7 @@ function optionalNonNegativeNumber(value: unknown, path: string): void {
   if (value !== undefined) nonNegativeNumber(value, path);
 }
 
-function validateManagedArtifact(value: unknown, path: string): void {
+export function validateManagedArtifact(value: unknown, path: string): void {
   if (!isJsonObject(value)) historyError(path, 'requires an object');
   requiredString(value.relativePath, `${path}.relativePath`);
   optionalString(value.mediaType, `${path}.mediaType`);
@@ -128,6 +128,42 @@ export function validateStudioHistoryResult(value: unknown, path: string): void 
       if (value.artifacts.length !== value.artifactCount) historyError(`${path}.artifacts`, 'must match artifactCount');
     }
     if (value.firstArtifact !== undefined) validateManagedArtifact(value.firstArtifact, `${path}.firstArtifact`);
+    if (value.musicTranscription !== undefined) {
+      const music = value.musicTranscription;
+      if (value.musicGeneration !== undefined || !isJsonObject(music) || !isJsonObject(music.sourceInfo)
+        || !isJsonObject(music.inputRange) || !Array.isArray(music.scores) || !Array.isArray(value.artifacts)
+        || music.origin !== 'transcribed-estimate' || !['unknown', 'complete', 'truncated'].includes(String(music.completeness))) historyError(path, 'requires complete transcription metadata');
+      validateManagedArtifact(music.sourceAudio, `${path}.sourceAudio`);
+      if (!isJsonObject(music.sourceAudio) || music.sourceAudio.mediaType !== 'audio/wav') historyError(path, 'requires saved canonical source audio');
+      const audio = music.sourceInfo;
+      for (const key of ['sampleRateHz', 'channels', 'frameCount', 'durationMs']) {
+        if (typeof audio[key] !== 'number' || !Number.isSafeInteger(audio[key])) historyError(path, 'has invalid transcription source facts');
+      }
+      if (Number(audio.sampleRateHz) < 8000 || Number(audio.sampleRateHz) > 96000 || ![1, 2].includes(Number(audio.channels))
+        || Number(audio.frameCount) < 1 || Number(audio.frameCount) > Number(audio.sampleRateHz) * 600
+        || audio.durationMs !== Math.floor(Number(audio.frameCount) * 1000 / Number(audio.sampleRateHz))) historyError(path, 'has inconsistent transcription source facts');
+      const range = music.inputRange;
+      if (!Number.isSafeInteger(range.startFrame) || !Number.isSafeInteger(range.endFrame) || Number(range.startFrame) < 0
+        || Number(range.endFrame) > Number(audio.frameCount) || Number(range.startFrame) >= Number(range.endFrame)) historyError(path, 'has an invalid transcription range');
+      const expected = new Map<string, string>(); const pairs = new Set<string>();
+      for (const score of music.scores) {
+        if (!isJsonObject(score) || typeof score.relativePath !== 'string' || !['abc', 'midi'].includes(String(score.format))
+          || !['vocal-melody', 'lead-sheet', 'full-arrangement'].includes(String(score.part))) historyError(path, 'has an invalid transcribed score');
+        const pair = `${score.format}:${score.part}`;
+        if (pairs.has(pair) || expected.has(score.relativePath)) historyError(path, 'duplicates a transcribed score');
+        pairs.add(pair); expected.set(score.relativePath, score.format === 'abc' ? 'text/vnd.abc' : 'audio/midi');
+      }
+      if (music.timelineRelativePath !== undefined) {
+        const timeline = requiredString(music.timelineRelativePath, `${path}.timelineRelativePath`);
+        if (expected.has(timeline)) historyError(path, 'duplicates its timeline');
+        expected.set(timeline, 'application/vnd.nimi.music-timeline+json');
+      }
+      if (!expected.size || value.artifacts.length !== expected.size) historyError(path, 'does not retain its complete transcription');
+      for (const artifact of value.artifacts) {
+        if (!isJsonObject(artifact) || typeof artifact.relativePath !== 'string' || expected.get(artifact.relativePath) !== artifact.mediaType) historyError(path, 'has mismatched transcription artifacts');
+        expected.delete(artifact.relativePath);
+      }
+    }
     if (value.musicGeneration !== undefined) {
       const music = value.musicGeneration;
       if (!isJsonObject(music) || !isJsonObject(music.audioInfo) || !Array.isArray(value.artifacts)) historyError(path, 'requires complete music metadata');

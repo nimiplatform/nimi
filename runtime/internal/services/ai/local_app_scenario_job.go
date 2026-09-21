@@ -220,6 +220,9 @@ func validateLocalAppScenarioJobID(jobID string) (string, error) {
 // correlation only. Head, route, model, provider, usage, label, and extension
 // fields never cross this boundary; unexpected owner shapes fail closed.
 func projectLocalAppScenarioJob(job *runtimev1.ScenarioJob) (*runtimev1.LocalAppScenarioJob, error) {
+	if err := validateMusicTranscriptionResult(job); err != nil {
+		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
 	if err := validateMusicGenerationResult(job); err != nil {
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
@@ -241,6 +244,7 @@ func projectLocalAppScenarioJob(job *runtimev1.ScenarioJob) (*runtimev1.LocalApp
 		runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SEPARATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE,
+		runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_TRANSCRIBE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:
 	default:
 		return invalid()
@@ -354,6 +358,7 @@ func projectLocalAppScenarioJob(job *runtimev1.ScenarioJob) (*runtimev1.LocalApp
 		UpdatedAt:            job.GetUpdatedAt(),
 		RecoveryExpiresAt:    job.GetRecoveryExpiresAt(),
 		MusicGeneration:      cloneMusicGeneration(job.GetMusicGeneration()),
+		MusicTranscription:   cloneMusicTranscription(job.GetMusicTranscription()),
 		TranscriptionText:    transcriptionText,
 		Transcription:        transcription,
 		AudioSeparation:      separation,
@@ -499,6 +504,11 @@ func validateLocalAppScenarioJobRequest(req *runtimev1.SubmitLocalAppScenarioJob
 			return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, err
 		}
 		return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_MusicGenerate{MusicGenerate: music}}, runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE, nil
+	case *runtimev1.SubmitLocalAppScenarioJobRequest_MusicTranscribe:
+		if err := validateMusicTranscriptionSpec(spec.MusicTranscribe); err != nil {
+			return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, err
+		}
+		return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_MusicTranscribe{MusicTranscribe: canonicalMusicTranscriptionSpec(spec.MusicTranscribe)}}, runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_TRANSCRIBE, nil
 	default:
 		return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}

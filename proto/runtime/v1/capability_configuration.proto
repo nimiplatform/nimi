@@ -465,6 +465,17 @@ message MusicGenerationInputProfile {
 
 message MusicInputCapabilities {
   repeated MusicGenerationInputProfile generation = 1;
+  repeated MusicTranscriptionInputProfile transcription = 2;
+}
+
+message MusicTranscriptionInputProfile {
+  // abc | midi | timeline
+  repeated string formats = 1;
+  // vocal-melody | lead-sheet | full-arrangement
+  repeated string parts = 2;
+  uint32 max_duration_seconds = 3;
+  uint32 max_source_bytes = 4;
+  bool supports_range = 5;
 }
 
 message AIConfigLocalResourceProjection {

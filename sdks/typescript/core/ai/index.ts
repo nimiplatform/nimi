@@ -254,4 +254,4 @@ export * from './runtime-model';
 export * from './text-runner';
 export * from './local-app-model';
 
-export { projectMusicInputCapabilities, type NimiMusicInputCapabilities, type NimiMusicGenerationInputProfile } from './music-input.js';
+export { projectMusicInputCapabilities, type NimiMusicInputCapabilities, type NimiMusicGenerationInputProfile, type NimiMusicTranscriptionInputProfile } from './music-input.js';

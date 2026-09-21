@@ -1,4 +1,5 @@
 mod music;
+mod music_transcription;
 use serde_json::{json, Map, Value as JsonValue};
 use tokio::sync::mpsc;
 use tonic::{transport::Channel, Request};
@@ -109,7 +110,7 @@ pub(super) async fn submit_job(
     let spec = parse_job_spec(request.spec)?;
     if !request.client_submission_id.is_empty() {
         require_submission_id(&request.client_submission_id)?;
-        if !matches!(spec, JobSpec::MusicGenerate(_)) { return Err(invalid_payload()); }
+        if !matches!(spec, JobSpec::MusicGenerate(_) | JobSpec::MusicTranscribe(_)) { return Err(invalid_payload()); }
     }
     let mut grpc_request = Request::new(ProtoSubmitJobRequest {
         spec: Some(spec),
@@ -532,6 +533,7 @@ fn parse_job_spec(value: JsonValue) -> Result<JobSpec, LocalAppOperationError> {
         }
         "voice-create" => Ok(JobSpec::VoiceCreate(parse_voice_create_spec(&object)?)),
         "music-generate" => Ok(JobSpec::MusicGenerate(music::parse(&object)?)),
+        "music-transcribe" => Ok(JobSpec::MusicTranscribe(music_transcription::parse(&object)?)),
         "world-generate" => {
             exact_keys(&object, &["type", "prompt", "displayName"])?;
             Ok(JobSpec::WorldGenerate(LocalAppWorldGenerateJobSpec {
@@ -1048,6 +1050,7 @@ fn project_job(job: LocalAppScenarioJob) -> Result<JsonValue, LocalAppOperationE
         ScenarioType::TextAnnotate => "text-annotate",
         ScenarioType::VoiceCreate => "voice-create",
         ScenarioType::MusicGenerate => "music-generate",
+        ScenarioType::MusicTranscribe => "music-transcribe",
         ScenarioType::WorldGenerate => "world-generate",
         _ => return Err(untrusted()),
     };
@@ -1114,6 +1117,12 @@ fn project_job(job: LocalAppScenarioJob) -> Result<JsonValue, LocalAppOperationE
         if job.music_generation.is_some() { return Err(untrusted()); }
         None
     };
+    let music_transcription = if scenario_type == "music-transcribe" && status == "completed" {
+        Some(music_transcription::project(job.music_transcription.as_ref().ok_or_else(untrusted)?, &job.artifacts)?)
+    } else {
+        if job.music_transcription.is_some() { return Err(untrusted()); }
+        None
+    };
     let mut projected = json!({
         "jobId": job.job_id,
         "scenarioType": scenario_type,
@@ -1139,11 +1148,12 @@ fn project_job(job: LocalAppScenarioJob) -> Result<JsonValue, LocalAppOperationE
         projected.as_object_mut().ok_or_else(untrusted)?.insert("textAnnotation".into(), value);
     }
     if let Some(value) = music_generation { projected["musicGeneration"] = value; }
+    if let Some(value) = music_transcription { projected["musicTranscription"] = value; }
     if let Some(value) = audio_separation {
         projected.as_object_mut().ok_or_else(untrusted)?.insert("audioSeparation".into(), value);
     }
     if job.recovery_expires_at.is_some() {
-        if scenario_type != "music-generate" || !matches!(status, "completed" | "failed" | "canceled" | "timeout") { return Err(untrusted()); }
+        if !matches!(scenario_type, "music-generate" | "music-transcribe") || !matches!(status, "completed" | "failed" | "canceled" | "timeout") { return Err(untrusted()); }
         projected["recoveryExpiresAt"] = project_timestamp(job.recovery_expires_at)?;
     }
     if job.video_face_swap_summary.is_some() != (scenario_type == "video-face-swap" && status == "completed") { return Err(untrusted()); }

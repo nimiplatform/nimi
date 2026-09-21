@@ -110,29 +110,32 @@ type localResolvedAssemblyLoadPlan struct {
 }
 
 type localResolvedAssemblyMusicPlan struct {
-	ProcessKey                     string  `json:"process_key"`
-	AudioCppPackageID              string  `json:"audio_cpp_package_id"`
-	AudioCppSelectedSourceRecordID string  `json:"audio_cpp_selected_source_record_id"`
-	AudioCppRoot                   string  `json:"audio_cpp_root"`
-	AudioCppExecutablePath         string  `json:"audio_cpp_executable_path"`
-	CUDA13DependencyID             string  `json:"cuda13_dependency_id"`
-	CUDA13SelectedSourceRecordID   string  `json:"cuda13_selected_source_record_id"`
-	CUDA13Root                     string  `json:"cuda13_root"`
-	ModelRoot                      string  `json:"model_root"`
-	LanguageModelPath              string  `json:"language_model_path"`
-	RVQDepthDecoderPath            string  `json:"rvq_depth_decoder_path"`
-	FlowTransformerPath            string  `json:"flow_transformer_path"`
-	DurationBudgetSeconds          int     `json:"duration_budget_seconds"`
-	NumInferenceSteps              int     `json:"num_inference_steps"`
-	GuidanceScale                  float64 `json:"guidance_scale"`
-	ARGuidanceScale                float64 `json:"ar_guidance_scale"`
-	TopK                           int     `json:"top_k"`
-	Seed                           uint64  `json:"seed"`
-	MemorySaver                    bool    `json:"memory_saver"`
-	StagingWAVPath                 string  `json:"staging_wav_path"`
-	ExpectedSampleRate             int     `json:"expected_sample_rate"`
-	ExpectedChannels               int     `json:"expected_channels"`
-	ExpectedBitsPerSample          int     `json:"expected_bits_per_sample"`
+	SourcePath                     string                       `json:"source_path,omitempty"`
+	SourceInfo                     *runtimev1.LocalAppAudioInfo `json:"source_info,omitempty"`
+	StagingDirectory               string                       `json:"staging_directory,omitempty"`
+	ProcessKey                     string                       `json:"process_key"`
+	AudioCppPackageID              string                       `json:"audio_cpp_package_id"`
+	AudioCppSelectedSourceRecordID string                       `json:"audio_cpp_selected_source_record_id"`
+	AudioCppRoot                   string                       `json:"audio_cpp_root"`
+	AudioCppExecutablePath         string                       `json:"audio_cpp_executable_path"`
+	CUDA13DependencyID             string                       `json:"cuda13_dependency_id"`
+	CUDA13SelectedSourceRecordID   string                       `json:"cuda13_selected_source_record_id"`
+	CUDA13Root                     string                       `json:"cuda13_root"`
+	ModelRoot                      string                       `json:"model_root"`
+	LanguageModelPath              string                       `json:"language_model_path"`
+	RVQDepthDecoderPath            string                       `json:"rvq_depth_decoder_path"`
+	FlowTransformerPath            string                       `json:"flow_transformer_path"`
+	DurationBudgetSeconds          int                          `json:"duration_budget_seconds"`
+	NumInferenceSteps              int                          `json:"num_inference_steps"`
+	GuidanceScale                  float64                      `json:"guidance_scale"`
+	ARGuidanceScale                float64                      `json:"ar_guidance_scale"`
+	TopK                           int                          `json:"top_k"`
+	Seed                           uint64                       `json:"seed"`
+	MemorySaver                    bool                         `json:"memory_saver"`
+	StagingWAVPath                 string                       `json:"staging_wav_path"`
+	ExpectedSampleRate             int                          `json:"expected_sample_rate"`
+	ExpectedChannels               int                          `json:"expected_channels"`
+	ExpectedBitsPerSample          int                          `json:"expected_bits_per_sample"`
 }
 
 type localResolvedAssemblyInvocationBinding struct {
@@ -1060,9 +1063,15 @@ func validateLocalResolvedAssembly(assembly *localResolvedAssembly) error {
 		if assembly.LoadPlan.Video == nil || strings.TrimSpace(assembly.LoadPlan.Video.ProcessKey) == "" {
 			return fmt.Errorf("local ResolvedAssembly video load plan is incomplete")
 		}
-	case "music":
-		if assembly.LoadPlan.Music == nil || strings.TrimSpace(assembly.LoadPlan.Music.ProcessKey) == "" || strings.TrimSpace(assembly.LoadPlan.Music.AudioCppSelectedSourceRecordID) == "" || strings.TrimSpace(assembly.LoadPlan.Music.CUDA13SelectedSourceRecordID) == "" || strings.TrimSpace(assembly.LoadPlan.Music.StagingWAVPath) == "" {
+	case "music", "music-transcription":
+		if assembly.LoadPlan.Music == nil || strings.TrimSpace(assembly.LoadPlan.Music.ProcessKey) == "" || strings.TrimSpace(assembly.LoadPlan.Music.AudioCppSelectedSourceRecordID) == "" || strings.TrimSpace(assembly.LoadPlan.Music.CUDA13SelectedSourceRecordID) == "" {
 			return fmt.Errorf("local ResolvedAssembly music load plan is incomplete")
+		}
+		if assembly.LoadPlan.Kind == "music" && strings.TrimSpace(assembly.LoadPlan.Music.StagingWAVPath) == "" {
+			return fmt.Errorf("music generation output path is missing")
+		}
+		if assembly.LoadPlan.Kind == "music-transcription" && (assembly.CapabilityContract != capabilitydriver.MusicTranscribeCapabilityContract || assembly.LoadPlan.Music.SourceInfo == nil || !filepath.IsAbs(assembly.LoadPlan.Music.StagingDirectory) || assembly.LoadPlan.Music.SourcePath != filepath.Join(assembly.LoadPlan.Music.StagingDirectory, "source.wav")) {
+			return fmt.Errorf("music transcription captured source is invalid")
 		}
 	default:
 		return fmt.Errorf("local ResolvedAssembly load plan kind %q is unsupported", assembly.LoadPlan.Kind)

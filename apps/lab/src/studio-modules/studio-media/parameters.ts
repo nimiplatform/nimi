@@ -51,6 +51,23 @@ export type StudioMusicGenerationParameters = {
   scoreConditioning?: 'melody-only' | 'melody-and-harmony';
 };
 
+export type StudioMusicTranscriptionParameters = {
+  sourceRelativePath?: string;
+  sourceName?: string;
+  sourceMimeType?: 'audio/wav' | 'audio/mpeg' | 'audio/flac';
+  requestedFormats?: ('abc' | 'midi' | 'timeline')[];
+  requestedPart?: 'vocal-melody' | 'lead-sheet' | 'full-arrangement';
+  startSeconds?: number;
+  endSeconds?: number;
+  recoverySubmissionId?: string;
+};
+
+export const studioMusicTranscribeParameters = defineStudioParameters<StudioMusicTranscriptionParameters>({
+  initial: () => ({}),
+  hasAlternativeInput: (value) => Boolean(value.sourceRelativePath || value.recoverySubmissionId),
+  routeMatrix: Object.fromEntries(['sourceRelativePath', 'sourceName', 'sourceMimeType', 'requestedFormats', 'requestedPart', 'startSeconds', 'endSeconds', 'recoverySubmissionId'].map(key => [key, LOCAL_ONLY_STUDIO_PARAMETER])),
+});
+
 const LOCAL_APP_UNAVAILABLE = Object.freeze({
   local: UNSUPPORTED_STUDIO_PARAMETER,
   cloud: UNSUPPORTED_STUDIO_PARAMETER,

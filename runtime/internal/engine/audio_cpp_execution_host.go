@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/nimiplatform/nimi/runtime/internal/audiomedia"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 )
@@ -213,7 +214,7 @@ func runAudioCppCLIProcess(ctx context.Context, plan *capabilitydriver.MusicInvo
 	}
 	// Reject the complete output set before cleanup can acquire any of its paths.
 	// A repeated dispatch must never remove an earlier score or audio result.
-	for _, path := range []string{plan.StagingWAVPath(), plan.StagingScorePath()} {
+	for _, path := range plan.StagingOutputPaths() {
 		if path == "" {
 			continue
 		}
@@ -242,7 +243,7 @@ func runAudioCppCLIProcess(ctx context.Context, plan *capabilitydriver.MusicInvo
 		if input.path == "" && len(input.data) == 0 {
 			continue
 		}
-		if filepath.Dir(input.path) != filepath.Dir(plan.StagingWAVPath()) || len(input.data) == 0 || len(input.data) > 1<<20 {
+		if filepath.Dir(input.path) != plan.StagingDirectory() || len(input.data) == 0 || len(input.data) > 1<<20 {
 			return localexecution.MusicResult{}, executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("music input materialization is invalid"))
 		}
 		if err := ctx.Err(); err != nil {
@@ -265,11 +266,38 @@ func runAudioCppCLIProcess(ctx context.Context, plan *capabilitydriver.MusicInvo
 			return localexecution.MusicResult{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("write private music input: %w", writeErr))
 		}
 	}
+	if plan.IsTranscription() {
+		facts, err := audiomedia.InspectCanonical(ctx, plan.TranscriptionSourcePath())
+		info, request := plan.TranscriptionSourceInfo(), plan.TranscriptionRequest()
+		rangeValue := request.GetSourceAudio().GetRange()
+		if err != nil || facts.SampleRateHz != info.GetSampleRateHz() || uint32(facts.Channels) != info.GetChannels() || facts.FrameCount != rangeValue.GetEndFrame()-rangeValue.GetStartFrame() {
+			return localexecution.MusicResult{}, executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("music transcription canonical source does not match the captured range"))
+		}
+	}
 	observer := plan.NewOutputObserver()
-	outcome, err := runAudioCppProcess(ctx, audioCppProcessSpec{executablePath: plan.AudioCppExecutablePath(), workingDir: plan.AudioCppRoot(), cuda13Root: plan.CUDA13Root(), args: args, stagingOutputPath: plan.StagingWAVPath(), modelBindings: []capabilitydriver.InvocationExactBinding{plan.ModelBinding()}, outputObserver: observer})
+	outcome, err := runAudioCppProcess(ctx, audioCppProcessSpec{executablePath: plan.AudioCppExecutablePath(), workingDir: plan.AudioCppRoot(), cuda13Root: plan.CUDA13Root(), args: args, stagingOutputPath: plan.PrimaryStagingOutputPath(), modelBindings: []capabilitydriver.InvocationExactBinding{plan.ModelBinding()}, outputObserver: observer})
 	if err != nil {
-		cleanupAudioCppStaging(plan.StagingScorePath())
+		cleanupAudioCppStaging(plan.StagingOutputPaths()...)
 		return localexecution.MusicResult{}, err
+	}
+	if plan.IsTranscription() {
+		paths := plan.StagingOutputPaths()
+		score, err := readAudioCppBoundedFile(paths[0], 1<<20)
+		if err != nil {
+			cleanupAudioCppStaging(paths...)
+			return localexecution.MusicResult{}, executionFailure(localexecution.FailureInference, err)
+		}
+		events, err := readAudioCppBoundedFile(paths[1], 33<<20)
+		if err != nil {
+			cleanupAudioCppStaging(paths...)
+			return localexecution.MusicResult{}, executionFailure(localexecution.FailureInference, err)
+		}
+		normalized, err := plan.NormalizeTranscription(score, events)
+		if err != nil {
+			cleanupAudioCppStaging(paths...)
+			return localexecution.MusicResult{}, executionFailure(localexecution.FailureInference, err)
+		}
+		return localexecution.MusicResult{Transcription: normalized, ComputeMS: outcome.computeMS}, nil
 	}
 	facts := capabilitydriver.MusicInferenceFacts{Termination: capabilitydriver.MusicTerminationUnknown}
 	if observer != nil {
@@ -290,10 +318,30 @@ func audioCppCLIArgs(plan *capabilitydriver.MusicInvocationPlan) ([]string, erro
 }
 
 func validateAudioCppMusicPlan(plan *capabilitydriver.MusicInvocationPlan) error {
-	if plan == nil || plan.ProcessKey() == "" || len(plan.CLIArgs()) == 0 || plan.AudioCppPackageID() != capabilitydriver.AudioCppWindowsCUDA13PackageID || plan.CUDA13DependencyID() != capabilitydriver.AudioCppCUDA13RuntimeDependencyID || plan.AudioCppSelectedSourceRecordID() == "" || plan.CUDA13SelectedSourceRecordID() == "" || !filepath.IsAbs(plan.AudioCppExecutablePath()) || !filepath.IsAbs(plan.CUDA13Root()) || !filepath.IsAbs(plan.ModelRoot()) || !filepath.IsAbs(plan.StagingWAVPath()) {
+	if plan == nil || plan.ProcessKey() == "" || len(plan.CLIArgs()) == 0 || plan.AudioCppPackageID() != capabilitydriver.AudioCppWindowsCUDA13PackageID || plan.CUDA13DependencyID() != capabilitydriver.AudioCppCUDA13RuntimeDependencyID || plan.AudioCppSelectedSourceRecordID() == "" || plan.CUDA13SelectedSourceRecordID() == "" || !filepath.IsAbs(plan.AudioCppExecutablePath()) || !filepath.IsAbs(plan.CUDA13Root()) || !filepath.IsAbs(plan.ModelRoot()) || !filepath.IsAbs(plan.PrimaryStagingOutputPath()) {
 		return fmt.Errorf("audio.cpp Music invocation plan is incomplete")
 	}
 	return nil
+}
+
+func readAudioCppBoundedFile(path string, limit int64) ([]byte, error) {
+	info, err := os.Lstat(path)
+	if err != nil || !info.Mode().IsRegular() || info.Size() < 1 || info.Size() > limit {
+		return nil, fmt.Errorf("audio.cpp music output is missing, irregular or outside its byte bound")
+	}
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("open audio.cpp music output: %w", err)
+	}
+	defer file.Close()
+	data, err := io.ReadAll(io.LimitReader(file, limit+1))
+	if err != nil {
+		return nil, fmt.Errorf("read audio.cpp music output: %w", err)
+	}
+	if len(data) == 0 || int64(len(data)) != info.Size() || int64(len(data)) > limit {
+		return nil, fmt.Errorf("audio.cpp music output changed while reading")
+	}
+	return data, nil
 }
 
 func musicContextFailure(err error) error { return audioCppContextFailure(err) }
