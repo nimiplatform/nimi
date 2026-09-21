@@ -5,6 +5,11 @@ published baseline. They are not a complete reconstruction of older releases.
 
 ## Unreleased (next 0.x minor)
 
+- AIConfig resource projections may carry `musicInput.generation` profiles for
+  exact legal input combinations and bounds. Missing profiles mean unknown or
+  inapplicable; Apps must not infer them from model labels. Submission remains
+  authoritative, including combined context limits.
+
 - Breaking (0.x minor): music generation now returns a typed `musicGeneration`
   with the mix reference, measured canonical PCM facts, seed when known,
   optional generated ABC score and explicit termination. Consumers must adopt

@@ -124,15 +124,19 @@ var scenarioExtensionRegistry = map[runtimev1.ScenarioType]map[string]scenarioEx
 	runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE: {
 		"nimi.scenario.voice_create.request": scenarioExtensionStrategyStrict,
 	},
-	runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE: {
-		"nimi.scenario.music_generate.request": scenarioExtensionStrategyBestEffort,
-	},
 	runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE: {
 		"nimi.scenario.world_generate.request": scenarioExtensionStrategyBestEffort,
 	},
 }
 
 func classifyScenarioExtensions(scenarioType runtimev1.ScenarioType, items []*runtimev1.ScenarioExtension) ([]*runtimev1.IgnoredScenarioExtension, error) {
+	if scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE {
+		for _, item := range items {
+			if item.GetNamespace() == "nimi.scenario.music_generate.request" {
+				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+			}
+		}
+	}
 	if len(items) == 0 {
 		return nil, nil
 	}

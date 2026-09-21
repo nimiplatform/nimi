@@ -372,3 +372,5 @@ export { validateNimiLocalAppTextAnnotationResult } from '@nimiplatform/sdk/app'
 export type { NimiLocalAppTextAnnotationResult, NimiLocalAppTextAnnotationDocument, NimiLocalAppTextAnnotationToken } from '@nimiplatform/sdk/app';
 
 export { validateNimiLocalAppMusicGenerateSpec, validateNimiLocalAppMusicGeneration, type NimiLocalAppMusicGenerateSpec, type NimiLocalAppMusicGeneration } from '@nimiplatform/sdk/app';
+
+export { projectMusicInputCapabilities, type NimiMusicInputCapabilities, type NimiMusicGenerationInputProfile } from '@nimiplatform/sdk/app';

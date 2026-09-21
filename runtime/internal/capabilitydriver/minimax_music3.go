@@ -204,7 +204,7 @@ func validateMiniMaxMusic3Request(request *runtimev1.MusicGenerateScenarioSpec, 
 		trimmed := strings.TrimLeft(line, " \t")
 		if strings.HasPrefix(trimmed, "[") {
 			if close := strings.Index(trimmed, "]"); close >= 0 && strings.TrimSpace(trimmed[close+1:]) != "" {
-				return invocationError(InvocationFailureUnsupported, fmt.Errorf("MiniMax-Music3 release-0.6.1 requires section tags on their own line"))
+				return invocationError(InvocationFailureUnsupported, fmt.Errorf("MiniMax-Music3 requires section tags on their own line"))
 			}
 		}
 	}

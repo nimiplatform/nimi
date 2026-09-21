@@ -415,3 +415,5 @@ export type { NimiLocalAppTextAnnotationResult, NimiLocalAppTextAnnotationDocume
 
 export { validateNimiLocalAppMusicGenerateSpec, validateNimiLocalAppMusicGeneration } from './local-app-music.js';
 export type { NimiLocalAppMusicGenerateSpec, NimiLocalAppMusicGeneration } from './local-app-music.js';
+
+export { projectMusicInputCapabilities, type NimiMusicInputCapabilities, type NimiMusicGenerationInputProfile } from '../ai/music-input.js';

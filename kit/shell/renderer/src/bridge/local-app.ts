@@ -1,3 +1,4 @@
+import { projectMusicInputCapabilities } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppMusicGenerateSpec, validateNimiLocalAppMusicGeneration, type NimiLocalAppMusicGenerateSpec, type NimiLocalAppMusicGeneration } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppTextAnnotationResult, type NimiLocalAppTextAnnotationResult } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppSpeechTranscript, type NimiLocalAppSpeechTranscript } from '@nimiplatform/kit/core/sdk-contract';
@@ -3410,7 +3411,12 @@ function parseCloudTargetResource(value: unknown, command: string): void {
     'connectorRef', 'label', 'capabilityContract', 'implementation', 'providerModelTarget',
     'supportedFeatures', 'state', 'reasons',
     ...(Object.hasOwn(resource, 'referenceAudioInput') ? ['referenceAudioInput'] : []),
+    ...(Object.hasOwn(resource, 'musicInput') ? ['musicInput'] : []),
   ], command, 'Cloud target resource');
+  if (Object.hasOwn(resource, 'musicInput')) {
+    if (resource.capabilityContract !== 'music.generate') throw new Error(`${command}: invalid music input capability contract`);
+    projectMusicInputCapabilities(resource.musicInput);
+  }
   if (Object.hasOwn(resource, 'referenceAudioInput')) parseReferenceAudioInput(resource.referenceAudioInput, command);
   requiredText(resource.connectorRef, 'connectorRef', command, MAX_IDENTIFIER_LENGTH);
   requiredText(resource.label, 'label', command, MAX_IDENTIFIER_LENGTH);
@@ -3437,7 +3443,12 @@ function parseLocalResource(value: unknown, command: string): void {
     'loadoutRef', 'label', 'capabilityContract', 'implementation',
     'implementationSupportedFeatures', 'configuredFeatures', 'textBehaviors', 'state', 'reasons',
     ...(Object.hasOwn(resource, 'referenceAudioInput') ? ['referenceAudioInput'] : []),
+    ...(Object.hasOwn(resource, 'musicInput') ? ['musicInput'] : []),
   ], command, 'Local resource');
+  if (Object.hasOwn(resource, 'musicInput')) {
+    if (resource.capabilityContract !== 'music.generate') throw new Error(`${command}: invalid music input capability contract`);
+    projectMusicInputCapabilities(resource.musicInput);
+  }
   if (Object.hasOwn(resource, 'referenceAudioInput')) parseReferenceAudioInput(resource.referenceAudioInput, command);
   requiredText(resource.loadoutRef, 'loadoutRef', command, MAX_IDENTIFIER_LENGTH);
   requiredText(resource.label, 'label', command, MAX_IDENTIFIER_LENGTH);

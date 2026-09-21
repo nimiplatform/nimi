@@ -3992,6 +3992,48 @@ pub struct VoiceReferenceInputCapabilities {
     #[prost(string, repeated, tag = "4")]
     pub mime_types: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
+/// Each row is one legal input combination of the exact selected implementation.
+/// Limits are upper bounds, not an execution authorization or quality guarantee.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MusicGenerationInputProfile {
+    /// unsupported | optional | required
+    #[prost(string, tag = "1")]
+    pub lyrics_mode: ::prost::alloc::string::String,
+    /// unsupported | required
+    #[prost(string, tag = "2")]
+    pub score_mode: ::prost::alloc::string::String,
+    /// abc | midi; empty when score_mode is unsupported.
+    #[prost(string, repeated, tag = "3")]
+    pub score_formats: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// melody-only | melody-and-harmony
+    #[prost(string, repeated, tag = "4")]
+    pub score_conditioning: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(bool, tag = "5")]
+    pub supports_instrumental: bool,
+    #[prost(bool, tag = "6")]
+    pub supports_seed: bool,
+    #[prost(bool, tag = "7")]
+    pub supports_generated_score: bool,
+    #[prost(bool, tag = "8")]
+    pub supports_audio_reference: bool,
+    #[prost(uint32, tag = "9")]
+    pub max_duration_seconds: u32,
+    #[prost(uint32, tag = "10")]
+    pub default_duration_seconds: u32,
+    #[prost(uint32, tag = "11")]
+    pub max_prompt_bytes: u32,
+    #[prost(uint32, tag = "12")]
+    pub max_lyrics_bytes: u32,
+    #[prost(uint32, tag = "13")]
+    pub max_score_bytes: u32,
+    #[prost(uint32, tag = "14")]
+    pub max_audio_reference_bytes: u32,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MusicInputCapabilities {
+    #[prost(message, repeated, tag = "1")]
+    pub generation: ::prost::alloc::vec::Vec<MusicGenerationInputProfile>,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AiConfigLocalResourceProjection {
     #[prost(string, tag = "1")]
@@ -4016,6 +4058,8 @@ pub struct AiConfigLocalResourceProjection {
     pub text_behaviors: ::prost::alloc::vec::Vec<TextBehaviorCapabilityProjection>,
     #[prost(message, optional, tag = "11")]
     pub reference_audio_input: ::core::option::Option<VoiceReferenceInputCapabilities>,
+    #[prost(message, optional, tag = "12")]
+    pub music_input: ::core::option::Option<MusicInputCapabilities>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AiConfigCloudConnectorProjection {
@@ -4050,6 +4094,8 @@ pub struct AiConfigCloudTargetProjection {
     pub reasons: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(message, optional, tag = "9")]
     pub reference_audio_input: ::core::option::Option<VoiceReferenceInputCapabilities>,
+    #[prost(message, optional, tag = "10")]
+    pub music_input: ::core::option::Option<MusicInputCapabilities>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AiConfigCloudResourceProjection {

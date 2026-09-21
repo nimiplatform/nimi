@@ -1,3 +1,4 @@
+import { projectMusicInputCapabilities } from '../ai/music-input.js';
 import { projectVoiceReferenceInput } from '../ai/voice-reference-input.js';
 import type {
   NimiAIConfigOptionsQuery,
@@ -297,11 +298,16 @@ function projectCloudConnectorOption(value: unknown, index: number): void {
 
 function projectCloudTargetOption(value: unknown, index: number): void {
   const option = asRecord(value);
+  if (option && Object.hasOwn(option, 'musicInput')) {
+    if (option.capabilityContract !== 'music.generate') localAppProjectionError('music input capability contract');
+    projectMusicInputCapabilities(option.musicInput);
+  }
   if (option && Object.hasOwn(option, 'referenceAudioInput')) projectVoiceReferenceInput(option.referenceAudioInput);
   assertExactProjectionKeys(option, [
     'connectorRef', 'label', 'capabilityContract', 'implementation', 'providerModelTarget',
     'supportedFeatures', 'state', 'reasons',
     ...(option && Object.hasOwn(option, 'referenceAudioInput') ? ['referenceAudioInput'] : []),
+    ...(option && Object.hasOwn(option, 'musicInput') ? ['musicInput'] : []),
   ], `App AIConfig Cloud target option ${index}`);
   projectionText(option.connectorRef, `App AIConfig Cloud target option ${index} connectorRef`);
   projectionText(option.label, `App AIConfig Cloud target option ${index} label`);
@@ -319,11 +325,16 @@ function projectCloudTargetOption(value: unknown, index: number): void {
 
 function projectLocalOption(value: unknown, index: number): void {
   const option = asRecord(value);
+  if (option && Object.hasOwn(option, 'musicInput')) {
+    if (option.capabilityContract !== 'music.generate') localAppProjectionError('music input capability contract');
+    projectMusicInputCapabilities(option.musicInput);
+  }
   if (option && Object.hasOwn(option, 'referenceAudioInput')) projectVoiceReferenceInput(option.referenceAudioInput);
   assertExactProjectionKeys(option, [
     'loadoutRef', 'label', 'capabilityContract', 'implementation',
     'implementationSupportedFeatures', 'configuredFeatures', 'textBehaviors', 'state', 'reasons',
     ...(option && Object.hasOwn(option, 'referenceAudioInput') ? ['referenceAudioInput'] : []),
+    ...(option && Object.hasOwn(option, 'musicInput') ? ['musicInput'] : []),
   ], `App AIConfig Local option ${index}`);
   projectionText(option.loadoutRef, `App AIConfig Local option ${index} loadoutRef`);
   projectionText(option.label, `App AIConfig Local option ${index} label`);

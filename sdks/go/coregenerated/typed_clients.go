@@ -2117,6 +2117,7 @@ type AIConfigCloudTargetProjection struct {
 	State               AIConfigEffectiveState            `json:"state,omitempty"`
 	Reasons             []string                          `json:"reasons,omitempty"`
 	ReferenceAudioInput *VoiceReferenceInputCapabilities  `json:"reference_audio_input,omitempty"`
+	MusicInput          *MusicInputCapabilities           `json:"music_input,omitempty"`
 }
 
 type AIConfigEffectiveSelection struct {
@@ -2150,6 +2151,7 @@ type AIConfigLocalResourceProjection struct {
 	ConfiguredFeatures              []string                           `json:"configured_features,omitempty"`
 	TextBehaviors                   []TextBehaviorCapabilityProjection `json:"text_behaviors,omitempty"`
 	ReferenceAudioInput             *VoiceReferenceInputCapabilities   `json:"reference_audio_input,omitempty"`
+	MusicInput                      *MusicInputCapabilities            `json:"music_input,omitempty"`
 }
 
 type AIConfigOwner struct {
@@ -6397,6 +6399,27 @@ type MusicGeneration struct {
 	ActualSeed     *uint32                    `json:"actual_seed,omitempty"`
 	Termination    MusicGenerationTermination `json:"termination,omitempty"`
 	AudioInfo      *LocalAppAudioInfo         `json:"audio_info,omitempty"`
+}
+
+type MusicGenerationInputProfile struct {
+	LyricsMode             string   `json:"lyrics_mode,omitempty"`
+	ScoreMode              string   `json:"score_mode,omitempty"`
+	ScoreFormats           []string `json:"score_formats,omitempty"`
+	ScoreConditioning      []string `json:"score_conditioning,omitempty"`
+	SupportsInstrumental   bool     `json:"supports_instrumental,omitempty"`
+	SupportsSeed           bool     `json:"supports_seed,omitempty"`
+	SupportsGeneratedScore bool     `json:"supports_generated_score,omitempty"`
+	SupportsAudioReference bool     `json:"supports_audio_reference,omitempty"`
+	MaxDurationSeconds     uint32   `json:"max_duration_seconds,omitempty"`
+	DefaultDurationSeconds uint32   `json:"default_duration_seconds,omitempty"`
+	MaxPromptBytes         uint32   `json:"max_prompt_bytes,omitempty"`
+	MaxLyricsBytes         uint32   `json:"max_lyrics_bytes,omitempty"`
+	MaxScoreBytes          uint32   `json:"max_score_bytes,omitempty"`
+	MaxAudioReferenceBytes uint32   `json:"max_audio_reference_bytes,omitempty"`
+}
+
+type MusicInputCapabilities struct {
+	Generation []MusicGenerationInputProfile `json:"generation,omitempty"`
 }
 
 type MusicScoreArtifact struct {

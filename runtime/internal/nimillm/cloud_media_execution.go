@@ -154,8 +154,6 @@ func mediaExecutionExtensions(request *runtimev1.SubmitScenarioJobRequest) *stru
 		namespace = "nimi.scenario.speech_synthesize.request"
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
 		namespace = "nimi.scenario.speech_transcribe.request"
-	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
-		namespace = "nimi.scenario.music_generate.request"
 	case runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:
 		namespace = "nimi.scenario.world_generate.request"
 	}

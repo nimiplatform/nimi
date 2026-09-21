@@ -286,6 +286,7 @@ class AIConfigCloudTargetProjection:
     state: AIConfigEffectiveState | None = None
     reasons: tuple[str, ...] = field(default_factory=tuple)
     reference_audio_input: VoiceReferenceInputCapabilities | None = None
+    music_input: MusicInputCapabilities | None = None
 
 @dataclass(frozen=True)
 class AIConfigEffectiveSelection:
@@ -320,6 +321,7 @@ class AIConfigLocalResourceProjection:
     configured_features: tuple[str, ...] = field(default_factory=tuple)
     text_behaviors: tuple[TextBehaviorCapabilityProjection, ...] = field(default_factory=tuple)
     reference_audio_input: VoiceReferenceInputCapabilities | None = None
+    music_input: MusicInputCapabilities | None = None
 
 @dataclass(frozen=True)
 class AIConfigOwner:
@@ -4594,6 +4596,27 @@ class MusicGeneration:
     actual_seed: int | None = None
     termination: MusicGenerationTermination | None = None
     audio_info: LocalAppAudioInfo | None = None
+
+@dataclass(frozen=True)
+class MusicGenerationInputProfile:
+    lyrics_mode: str | None = None
+    score_mode: str | None = None
+    score_formats: tuple[str, ...] = field(default_factory=tuple)
+    score_conditioning: tuple[str, ...] = field(default_factory=tuple)
+    supports_instrumental: bool | None = None
+    supports_seed: bool | None = None
+    supports_generated_score: bool | None = None
+    supports_audio_reference: bool | None = None
+    max_duration_seconds: int | None = None
+    default_duration_seconds: int | None = None
+    max_prompt_bytes: int | None = None
+    max_lyrics_bytes: int | None = None
+    max_score_bytes: int | None = None
+    max_audio_reference_bytes: int | None = None
+
+@dataclass(frozen=True)
+class MusicInputCapabilities:
+    generation: tuple[MusicGenerationInputProfile, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class MusicScoreArtifact:

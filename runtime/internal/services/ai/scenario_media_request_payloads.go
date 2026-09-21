@@ -73,8 +73,6 @@ func mediaScenarioExtensionNamespace(scenarioType runtimev1.ScenarioType) string
 		return "nimi.scenario.speech_synthesize.request"
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
 		return "nimi.scenario.speech_transcribe.request"
-	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
-		return "nimi.scenario.music_generate.request"
 	case runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:
 		return "nimi.scenario.world_generate.request"
 	default:

@@ -4167,6 +4167,7 @@ pub struct AIConfigCloudTargetProjection {
     pub state: Option<AIConfigEffectiveState>,
     pub reasons: Vec<String>,
     pub reference_audio_input: Option<Box<VoiceReferenceInputCapabilities>>,
+    pub music_input: Option<Box<MusicInputCapabilities>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -4206,6 +4207,7 @@ pub struct AIConfigLocalResourceProjection {
     pub configured_features: Vec<String>,
     pub text_behaviors: Vec<Box<TextBehaviorCapabilityProjection>>,
     pub reference_audio_input: Option<Box<VoiceReferenceInputCapabilities>>,
+    pub music_input: Option<Box<MusicInputCapabilities>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10241,6 +10243,29 @@ pub struct MusicGeneration {
     pub actual_seed: Option<u32>,
     pub termination: Option<MusicGenerationTermination>,
     pub audio_info: Option<Box<LocalAppAudioInfo>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct MusicGenerationInputProfile {
+    pub lyrics_mode: Option<String>,
+    pub score_mode: Option<String>,
+    pub score_formats: Vec<String>,
+    pub score_conditioning: Vec<String>,
+    pub supports_instrumental: Option<bool>,
+    pub supports_seed: Option<bool>,
+    pub supports_generated_score: Option<bool>,
+    pub supports_audio_reference: Option<bool>,
+    pub max_duration_seconds: Option<u32>,
+    pub default_duration_seconds: Option<u32>,
+    pub max_prompt_bytes: Option<u32>,
+    pub max_lyrics_bytes: Option<u32>,
+    pub max_score_bytes: Option<u32>,
+    pub max_audio_reference_bytes: Option<u32>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct MusicInputCapabilities {
+    pub generation: Vec<Box<MusicGenerationInputProfile>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

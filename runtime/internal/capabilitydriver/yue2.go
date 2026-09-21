@@ -17,13 +17,12 @@ import (
 )
 
 const (
-	YuE2ImplementationID        = "local.music.generate.yue2.audio-cpp"
-	YuE2DriverID                = "nimi.runtime.driver.audio-cpp.yue2"
-	YuE2DriverDialect           = "audio.cpp/yue2/music-generate/v1"
-	YuE2RecipeID                = "yue2.audio-cpp.v1"
-	YuE2RequirementID           = "music.bundle"
-	YuE2VerifiedContentID       = "sha256:5c23e6c01d468f3cd18068fd94bff0a6b22cca62846ae15015e7400754f65e94"
-	AudioCppMusicPackageVersion = "0.8.1"
+	YuE2ImplementationID  = "local.music.generate.yue2.audio-cpp"
+	YuE2DriverID          = "nimi.runtime.driver.audio-cpp.yue2"
+	YuE2DriverDialect     = "audio.cpp/yue2/music-generate/v1"
+	YuE2RecipeID          = "yue2.audio-cpp.v1"
+	YuE2RequirementID     = "music.bundle"
+	YuE2VerifiedContentID = "sha256:5c23e6c01d468f3cd18068fd94bff0a6b22cca62846ae15015e7400754f65e94"
 )
 
 var yue2Files = map[string]int64{

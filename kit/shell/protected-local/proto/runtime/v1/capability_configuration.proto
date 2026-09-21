@@ -440,6 +440,33 @@ message VoiceReferenceInputCapabilities {
   repeated string mime_types = 4;
 }
 
+// Each row is one legal input combination of the exact selected implementation.
+// Limits are upper bounds, not an execution authorization or quality guarantee.
+message MusicGenerationInputProfile {
+  // unsupported | optional | required
+  string lyrics_mode = 1;
+  // unsupported | required
+  string score_mode = 2;
+  // abc | midi; empty when score_mode is unsupported.
+  repeated string score_formats = 3;
+  // melody-only | melody-and-harmony
+  repeated string score_conditioning = 4;
+  bool supports_instrumental = 5;
+  bool supports_seed = 6;
+  bool supports_generated_score = 7;
+  bool supports_audio_reference = 8;
+  uint32 max_duration_seconds = 9;
+  uint32 default_duration_seconds = 10;
+  uint32 max_prompt_bytes = 11;
+  uint32 max_lyrics_bytes = 12;
+  uint32 max_score_bytes = 13;
+  uint32 max_audio_reference_bytes = 14;
+}
+
+message MusicInputCapabilities {
+  repeated MusicGenerationInputProfile generation = 1;
+}
+
 message AIConfigLocalResourceProjection {
   string loadout_ref = 1;
   string label = 2;
@@ -453,6 +480,7 @@ message AIConfigLocalResourceProjection {
   repeated string configured_features = 9;
   repeated TextBehaviorCapabilityProjection text_behaviors = 10;
   VoiceReferenceInputCapabilities reference_audio_input = 11;
+  MusicInputCapabilities music_input = 12;
 }
 
 message AIConfigCloudConnectorProjection {
@@ -473,6 +501,7 @@ message AIConfigCloudTargetProjection {
   AIConfigEffectiveState state = 7;
   repeated string reasons = 8;
   VoiceReferenceInputCapabilities reference_audio_input = 9;
+  MusicInputCapabilities music_input = 10;
 }
 
 message AIConfigCloudResourceProjection {

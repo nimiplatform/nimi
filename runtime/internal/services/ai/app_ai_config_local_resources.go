@@ -427,6 +427,13 @@ func (s *Service) projectLocalResourceProjection(option localexecution.LoadoutOp
 			referenceInput = projector.ReferenceAudioInputCapabilities(option.ConfiguredFeatures)
 		}
 	}
+	var musicInput *runtimev1.MusicInputCapabilities
+	if option.CapabilityContract == capabilitydriver.MiniMaxMusic3CapabilityContract && s.capabilityDrivers != nil {
+		driver, _ := s.capabilityDrivers.Resolve(option.CapabilityContract, capabilitydriver.IdentityFromProto(option.Implementation))
+		if projector, ok := driver.(capabilitydriver.MusicInputProjector); ok {
+			musicInput = projector.MusicInputCapabilities()
+		}
+	}
 	return &runtimev1.AIConfigLocalResourceProjection{
 		LoadoutRef: option.LoadoutID, Label: option.DisplayName,
 		CapabilityContract: option.CapabilityContract, Implementation: implementation,
@@ -434,6 +441,7 @@ func (s *Service) projectLocalResourceProjection(option localexecution.LoadoutOp
 		ConfiguredFeatures:              append([]string(nil), option.ConfiguredFeatures...),
 		TextBehaviors:                   cloneAITextBehaviorCapabilityProjections(option.TextBehaviors),
 		ReferenceAudioInput:             referenceInput,
+		MusicInput:                      musicInput,
 		State:                           state, Reasons: reasons,
 	}
 }

@@ -574,7 +574,7 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 	if err := validateCloudMediaMappedRequest(mapped); err != nil {
 		return nil, err
 	}
-	if mapped.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE && cloudMusicIterationRequested(mapped) && d.provider != "stability" {
+	if mapped.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE && cloudMusicReferenceRequested(mapped) && d.provider != "stability" {
 		return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("provider does not support music iteration mapping"))
 	}
 	adapter := cloudMediaAdapterFor(d.provider, target.capabilityContract)
@@ -1333,16 +1333,8 @@ func cloudMediaSpecForDefaults(request *runtimev1.SubmitScenarioJobRequest) (pro
 	}
 }
 
-func cloudMusicIterationRequested(request *runtimev1.SubmitScenarioJobRequest) bool {
-	if request == nil {
-		return false
-	}
-	for _, extension := range request.GetExtensions() {
-		if strings.TrimSpace(extension.GetNamespace()) == "nimi.scenario.music_generate.request" && extension.GetPayload() != nil && len(extension.GetPayload().GetFields()) > 0 {
-			return true
-		}
-	}
-	return false
+func cloudMusicReferenceRequested(request *runtimev1.SubmitScenarioJobRequest) bool {
+	return request.GetSpec().GetMusicGenerate().GetAudioReference() != nil
 }
 
 func validateCloudMediaMappedRequest(request *runtimev1.SubmitScenarioJobRequest) error {

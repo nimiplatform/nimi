@@ -1,0 +1,54 @@
+use serde_json::{json, Value};
+use crate::{generated::MusicInputCapabilities, LocalAppOperationError};
+use super::untrusted;
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.music-generation
+pub(super) fn project(value: MusicInputCapabilities) -> Result<Value, LocalAppOperationError> {
+    if value.generation.is_empty() || value.generation.len() > 16 { return Err(untrusted()); }
+    let mut profiles = Vec::new();
+    for row in value.generation {
+        if !matches!(row.lyrics_mode.as_str(), "unsupported" | "optional" | "required")
+            || !matches!(row.score_mode.as_str(), "unsupported" | "required")
+            || row.max_duration_seconds == 0 || row.max_duration_seconds > 600
+            || row.default_duration_seconds == 0 || row.default_duration_seconds > row.max_duration_seconds
+            || row.max_prompt_bytes == 0 || row.max_prompt_bytes > 32768 || row.max_lyrics_bytes > 32768
+            || row.max_score_bytes > 1048576 || row.max_audio_reference_bytes > 33554432
+            || row.supports_audio_reference != (row.max_audio_reference_bytes > 0)
+            || (row.lyrics_mode == "unsupported") != (row.max_lyrics_bytes == 0)
+            || (row.lyrics_mode == "required" && row.supports_instrumental)
+            || !tokens(&row.score_formats, &["abc", "midi"])
+            || !tokens(&row.score_conditioning, &["melody-only", "melody-and-harmony"])
+            || (row.score_mode == "required") != (!row.score_formats.is_empty() && !row.score_conditioning.is_empty() && row.max_score_bytes > 0)
+            || (row.score_mode == "unsupported" && (!row.score_formats.is_empty() || !row.score_conditioning.is_empty() || row.max_score_bytes != 0)) { return Err(untrusted()); }
+        profiles.push(json!({"lyricsMode":row.lyrics_mode,"scoreMode":row.score_mode,"scoreFormats":row.score_formats,
+            "scoreConditioning":row.score_conditioning,"supportsInstrumental":row.supports_instrumental,"supportsSeed":row.supports_seed,
+            "supportsGeneratedScore":row.supports_generated_score,"supportsAudioReference":row.supports_audio_reference,
+            "maxDurationSeconds":row.max_duration_seconds,"defaultDurationSeconds":row.default_duration_seconds,
+            "maxPromptBytes":row.max_prompt_bytes,"maxLyricsBytes":row.max_lyrics_bytes,"maxScoreBytes":row.max_score_bytes,
+            "maxAudioReferenceBytes":row.max_audio_reference_bytes}));
+    }
+    Ok(json!({"generation":profiles}))
+}
+
+fn tokens(values: &[String], allowed: &[&str]) -> bool {
+    values.len() <= allowed.len() && values.iter().enumerate().all(|(index, item)| allowed.contains(&item.as_str()) && !values[..index].contains(item))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn capability_profiles_keep_only_consistent_input_combinations() {
+        let profile = crate::generated::MusicGenerationInputProfile {
+            lyrics_mode:"required".into(), score_mode:"unsupported".into(), supports_seed:true,
+            supports_generated_score:true, max_duration_seconds:600, default_duration_seconds:20,
+            max_prompt_bytes:32768, max_lyrics_bytes:32768, ..Default::default()
+        };
+        let value = MusicInputCapabilities { generation:vec![profile.clone()] };
+        assert_eq!(project(value.clone()).unwrap()["generation"][0]["maxDurationSeconds"],600);
+        let mut contradictory=value.clone();contradictory.generation[0].supports_audio_reference=true;
+        assert!(project(contradictory).is_err());
+        let mut extra_score=value;extra_score.generation[0].score_formats.push("abc".into());
+        assert!(project(extra_score).is_err());
+    }
+}

@@ -1,5 +1,6 @@
 mod agent_configure;
 mod app_ai_config;
+mod music_input;
 mod avatar_host_target;
 mod conversation;
 mod embodiment;

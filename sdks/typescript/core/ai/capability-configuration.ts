@@ -1,3 +1,4 @@
+import { projectMusicInputCapabilities, type NimiMusicInputCapabilities } from './music-input.js';
 import { projectVoiceReferenceInput, type NimiVoiceReferenceInputCapabilities } from './voice-reference-input.js';
 import type {
   AIConfig,
@@ -116,6 +117,7 @@ export type NimiSharedLocalAgentAIConfigOptionsQuery =
 
 export type NimiAIConfigLocalLoadoutOption = {
   readonly referenceAudioInput?: NimiVoiceReferenceInputCapabilities;
+  readonly musicInput?: NimiMusicInputCapabilities;
   readonly loadoutRef: string;
   readonly label: string;
   readonly capabilityContract: string;
@@ -141,6 +143,7 @@ export type NimiAIConfigCloudConnectorOption = {
 
 export type NimiAIConfigCloudTargetOption = {
   readonly referenceAudioInput?: NimiVoiceReferenceInputCapabilities;
+  readonly musicInput?: NimiMusicInputCapabilities;
   readonly connectorRef: string;
   readonly label: string;
   readonly capabilityContract: string;
@@ -434,6 +437,7 @@ function projectCloudTargetResource(value: AIConfigCloudTargetProjection): NimiA
 		}),
 		providerModelTarget: RuntimeStruct.toJson(value.providerModelTarget) as NimiJsonObject,
 		supportedFeatures: Object.freeze([...value.supportedFeatures]),
+    ...(value.musicInput ? { musicInput: projectMusicInputCapabilities(value.musicInput) } : {}),
     ...(value.referenceAudioInput ? { referenceAudioInput: projectVoiceReferenceInput(value.referenceAudioInput) } : {}),
     state: value.state === AIConfigEffectiveState.AI_CONFIG_EFFECTIVE_STATE_READY ? 'ready' : 'blocked',
     reasons: Object.freeze([...value.reasons]),
@@ -454,6 +458,7 @@ function projectLocalResource(value: AIConfigLocalResourceProjection): NimiAICon
     implementationSupportedFeatures: Object.freeze([...value.implementationSupportedFeatures]),
     configuredFeatures: Object.freeze([...value.configuredFeatures]),
     textBehaviors: projectNimiTextBehaviorCapabilities(value.textBehaviors),
+    ...(value.musicInput ? { musicInput: projectMusicInputCapabilities(value.musicInput) } : {}),
     ...(value.referenceAudioInput ? { referenceAudioInput: projectVoiceReferenceInput(value.referenceAudioInput) } : {}),
     state: value.state === AIConfigEffectiveState.AI_CONFIG_EFFECTIVE_STATE_READY ? 'ready' : 'blocked',
     reasons: Object.freeze([...value.reasons]),
