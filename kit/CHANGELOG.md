@@ -2,6 +2,14 @@
 
 ## Unreleased (next 0.x minor)
 
+- Add `@nimiplatform/kit/core/audio` for bounded canonical float32 WAV inspection,
+  frame reads, waveform blocks, same-domain mixing and streamed export. One block
+  is at most 16,384 frames and a mix has at most eight tracks. The injected reader
+  must pin protected asset identity; the App owns placement, gains and atomic
+  storage. `createPcmWorkerClient` owns a dedicated caller-created Worker and
+  transfers input sample buffers. Cancellation terminates that Worker; create a
+  fresh client for later work. This is part of the unpublished 0.12 minor cohort.
+
 - AIConfig resource projections may carry `musicInput.generation` profiles for
   exact legal input combinations and bounds. Missing profiles mean unknown or
   inapplicable; Apps must not infer them from model labels. Submission remains

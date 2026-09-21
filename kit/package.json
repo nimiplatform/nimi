@@ -29,6 +29,11 @@
   ],
   "type": "module",
   "exports": {
+    "./core/audio": {
+      "types": "./dist/core/audio/index.d.ts",
+      "import": "./dist/core/audio/index.js",
+      "default": "./dist/core/audio/index.js"
+    },
     "./ui": {
       "types": "./dist/ui/index.d.ts",
       "import": "./dist/ui/index.js",

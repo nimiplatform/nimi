@@ -25,7 +25,7 @@ function transcriptionJob(status: ScenarioJobStatus): ScenarioJob {
 
 const transcriptArtifact: NimiRuntimeScenarioArtifact = {
   artifactId: 'artifact-transcript-1', mimeType: 'text/plain', bytes: new Uint8Array(), uri: '', sha256: '',
-  sizeBytes: '12', durationMs: '0', fps: 0, width: 0, height: 0, sampleRateHz: 0, channels: 0,
+  sizeBytes: '12', durationMs: '0', fps: 0, width: 0, height: 0, sampleRateHz: 0, channels: 0, frameCount: '0',
 };
 
 function fakeClient(config: {

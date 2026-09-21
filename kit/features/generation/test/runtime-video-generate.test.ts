@@ -53,6 +53,7 @@ function videoArtifactForTest(overrides: Partial<NimiRuntimeScenarioArtifact> = 
     height: 288,
     sampleRateHz: 0,
     channels: 0,
+    frameCount: '0',
     ...overrides,
   };
 }

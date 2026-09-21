@@ -906,7 +906,7 @@ units:
     kind: rule
     title: P-KIT-030 pure core logic boundary
     modality: must
-    statement: Kit core provides shared environment, capability detection, OAuth, and Desktop Open Intent helpers as pure TypeScript logic with no UI, styling, or rendering dependencies, consumes the SDK only through the single kit-core SDK contract boundary module, parameterizes OAuth through a typed bridge, and detects shell mode from injected environment values without app-name assumptions.
+    statement: Kit core provides shared environment, capability detection, OAuth, Desktop Open Intent and bounded canonical PCM helpers as pure TypeScript logic with no UI, styling, or rendering dependencies, consumes the SDK only through the single kit-core SDK contract boundary module, parameterizes external effects through typed ports, and detects shell mode from injected environment values without app-name assumptions.
     condition: Whenever a shared core helper is implemented or consumed.
     failure: Reject a visual or rendering dependency, an SDK import outside the contract boundary module, a host-specific import, or hardcoded app identity.
     relations:
@@ -914,6 +914,20 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-dependency-boundary
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.kit-module-family
+  - id: rule.nimi.platform.ui-design-system.p-kit-031-canonical-pcm
+    kind: rule
+    title: P-KIT-031 bounded canonical PCM composition
+    modality: must
+    statement: Kit exposes reusable canonical float32 WAV header inspection, frame-window reads, waveform aggregation, same-rate and same-channel PCM mixing and streamed WAV encoding through a pure core surface with injected byte readers and an optional dedicated Worker port. Source coordinates come from the immutable Runtime-prepared canonical audio, never from decoding compressed media in the renderer. Initial processing admits at most 16384 frames per block, eight input tracks, one outstanding Worker request per client and 65536 waveform bins; it validates complete frame and byte counts and finite samples, preserves unclipped float samples, reports over-range peaks, and never silently normalizes, resamples, changes channels or creates Runtime artifacts. Apps own source identity checks through protected asset metadata, track placement, gain intent, project lineage and durable result adoption. Cancellation releases pending work and prevents a successful incomplete export; the caller owns Worker creation and termination and protected asset writes remain atomic. A header check or local mix does not confer Runtime canonical-artifact identity, prove model execution or certify listening quality.
+    condition: Whenever an App reads or composes canonical music audio through Kit.
+    failure: Reject unsupported WAV encoding, corrupt or incomplete ranges, non-finite samples, mismatched track domains, resource bounds, canceled work or incomplete exports without a successful result or hidden conversion.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.kit-dependency-boundary
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.kit-module-family
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.canonical-audio
   - id: rule.nimi.platform.ui-design-system.p-kit-040
     kind: rule
     title: P-KIT-040 renderer-safe telemetry boundary

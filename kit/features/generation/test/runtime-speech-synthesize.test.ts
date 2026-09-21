@@ -26,7 +26,7 @@ function speechJob(status: ScenarioJobStatus): ScenarioJob {
 function audioArtifact(overrides: Partial<NimiRuntimeScenarioArtifact> = {}): NimiRuntimeScenarioArtifact {
   return {
     artifactId: 'artifact-audio-1', mimeType: 'audio/mpeg', bytes: new Uint8Array(), uri: '', sha256: '',
-    sizeBytes: '0', durationMs: '1000', fps: 0, width: 0, height: 0, sampleRateHz: 24000, channels: 1,
+    sizeBytes: '0', durationMs: '1000', fps: 0, width: 0, height: 0, sampleRateHz: 24000, channels: 1, frameCount: '0',
     ...overrides,
   };
 }

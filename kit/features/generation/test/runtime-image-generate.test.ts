@@ -30,7 +30,7 @@ function imageArtifact(overrides: Partial<NimiRuntimeScenarioArtifact> = {}): Ni
   return {
     artifactId: 'artifact-image-1', mimeType: 'image/png', bytes: new Uint8Array(), uri: '',
     sha256: '', sizeBytes: '0', durationMs: '0', fps: 0, width: 512, height: 512,
-    sampleRateHz: 0, channels: 0, ...overrides,
+    sampleRateHz: 0, channels: 0, frameCount: '0', ...overrides,
   };
 }
 

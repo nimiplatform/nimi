@@ -11,6 +11,8 @@ presentation helpers.
 - `@nimiplatform/kit/core/storage-json`
 - `@nimiplatform/kit/core/offline-coordinator`
 - `@nimiplatform/kit/core/notifications`
+- `@nimiplatform/kit/core/audio`: bounded float32 WAV frames, min/max waveforms,
+  same-rate/channel mixing and streaming WAV output, with an explicit Worker port.
 - Current surfaces:
   - `headless`: active
   - `ui`: none
@@ -34,6 +36,37 @@ presentation helpers.
 - `desktop`
 - `lab`
 - `web`
+
+## Canonical audio
+
+`inspectCanonicalWav` checks RIFF chunks, float32 format, fact frames and complete
+byte extent. It is a header inspection, not a full finite-sample scan or Runtime
+artifact authorization. `readPcmFrames` verifies each requested window. Supply
+`PcmByteSource.read` using protected asset ranges, comparing returned SHA, size
+and MIME with the pinned asset on every call.
+
+`buildPcmWaveform` returns at most 65,536 min/max bins. `mixPcmBlock` takes up to
+eight already aligned blocks in the same sample-rate/channel domain. The App
+places tracks and asks Runtime for explicit resampled derivatives when needed.
+Over-range peaks are reported, never silently clipped. Feed `encodePcmWav` to an
+atomic streamed asset write; missing/extra frames or cancellation must never
+become a saved version.
+
+Bundle a dedicated Worker in the consuming App:
+
+```ts
+import { executePcmWorkerRequest, pcmWorkerReplyTransfers } from '@nimiplatform/kit/core/audio';
+self.onmessage = event => {
+  const reply = executePcmWorkerRequest(event.data);
+  self.postMessage(reply, { transfer: pcmWorkerReplyTransfers(reply) });
+};
+```
+
+Pass it to `createPcmWorkerClient`, await each block, and `close()` in `finally`.
+Sample buffers transfer to the Worker and must not be reused. Each client allows
+one request at a time and terminates on cancellation, failure or a 30-second
+per-block deadline. It opens no files, selects no models and owns no project
+state. PCM operations do not prove synthesis or listening quality.
 
 ## Verification
 - `pnpm --filter @nimiplatform/kit build`

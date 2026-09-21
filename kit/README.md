@@ -85,7 +85,7 @@ platform spec tables first and regenerate the projection.
 
 ## Current Public Surface
 
-The current package publishes 72 public subpath exports through
+The current package publishes its public subpath exports through
 `kit/package.json`:
 
 - 9 UI entries (`./ui`, `./ui/glass`, `./ui/motion`, `./ui/a11y`,
@@ -93,7 +93,7 @@ The current package publishes 72 public subpath exports through
   `./ui/themes/nimi-accent.css`, and
   `./ui/themes/nimi-density-compact.css`)
 - 4 auth entries (`./auth`, `./auth/shell`, `./auth/styles.css`, `./auth/native-oauth-result-page`)
-- 9 core entries (`./core/shell-mode`, `./core/oauth`,
+- Core entries (`./core/shell-mode`, `./core/oauth`, `./core/audio`,
   `./core/storage-json`, `./core/json-value`, `./core/offline-coordinator`,
   `./core/notifications`, `./core/desktop-open`,
   `./core/runtime-capabilities`, and `./core/sdk-contract`)
