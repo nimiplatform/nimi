@@ -327,7 +327,7 @@ func (s *Service) resolveSelectedLocalExecutionDependencySources(capabilityContr
 			return nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED, "Runtime dependency selected-source is not ready for the exact Loadout and host tuple", map[string]string{"dependency_family": item.family, "dependency_id": item.dependencyID, "detail": detail})
 		}
 		if item.family == localEnvironmentFamilyNativeAudioCPP {
-			expectedVersion := "release-" + engine.AudioCppPackageVersion + "@" + engine.AudioCppPackageCommit
+			expectedVersion := engine.AudioCppSelectedSourceVersion
 			mgr := s.engineManagerOrNil()
 			recordRoot := filepath.Clean(strings.TrimSpace(record.CanonicalRoot))
 			expectedBinaryPath := filepath.Join(recordRoot, engine.AudioCppCLIExecutableName)

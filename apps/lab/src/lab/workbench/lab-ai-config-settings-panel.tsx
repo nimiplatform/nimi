@@ -6,7 +6,7 @@ import {
   type ModelConfigCopy,
 } from '@nimiplatform/kit/features/model-config';
 import { openDesktopIntent } from '@nimiplatform/kit/shell/renderer/bridge';
-import { StatusBadge } from '@nimiplatform/kit/ui';
+import { Button, StatusBadge } from '@nimiplatform/kit/ui';
 
 import { useLabRendererHost } from '../../renderer/context.js';
 import { useTranslation } from '../../shell/i18n/index.js';
@@ -165,6 +165,9 @@ export function LabAiConfigSettingsPanel({
           footer={(
             <p className="m-0 border-t border-[var(--nimi-border-subtle)] pt-4 text-xs leading-5 text-[var(--nimi-text-muted)]">
               {t('ModelConfig.footerNote')}
+              <Button onClick={() => { void openDesktopIntent({ intent: { kind: 'open-apps', appId, section: 'ai-models' } }); }}>
+                {t('ModelConfig.openOwnerConfigurationLabel')}
+              </Button>
             </p>
           )}
         />

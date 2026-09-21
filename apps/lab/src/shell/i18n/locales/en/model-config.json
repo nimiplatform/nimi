@@ -31,7 +31,7 @@
     "localBrokenLabel": "The selected on-device model is unavailable:",
     "localUnavailableLabel": "The current on-device selection could not be loaded.",
     "localMismatchLabel": "The selected on-device model does not support: {{features}}",
-    "openOwnerConfigurationLabel": "Manage centrally in Nimi Desktop",
+    "openOwnerConfigurationLabel": "Manage in Nimi",
     "loadFailed": "Nimi Lab AI configuration could not be loaded from Runtime.",
     "unsupportedCapabilityLabel": "This capability is unavailable.",
     "notConfiguredLabel": "Not configured",

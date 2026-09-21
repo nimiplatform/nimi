@@ -43,7 +43,11 @@ func (s *Service) commitLocalMusicGeneration(ctx context.Context, jobID string, 
 	case capabilitydriver.MusicTerminationBudgetLimit:
 		termination = runtimev1.MusicGenerationTermination_MUSIC_GENERATION_TERMINATION_BUDGET_LIMIT
 	}
-	return s.commitMusicGeneration(ctx, jobID, effective.head, musicGenerationPublication{WAV: wav, ScorePath: effective.plan.StagingScorePath(), RequireScore: effective.request.GetReturnGeneratedScore(), ActualSeed: &seed, Termination: termination, ScoreTruncated: result.InferenceFacts.GeneratedScoreTruncated, Usage: &runtimev1.UsageStats{ComputeMs: result.ComputeMS}})
+	scorePath := ""
+	if effective.request.GetReturnGeneratedScore() {
+		scorePath = effective.plan.StagingScorePath()
+	}
+	return s.commitMusicGeneration(ctx, jobID, effective.head, musicGenerationPublication{WAV: wav, ScorePath: scorePath, RequireScore: effective.request.GetReturnGeneratedScore(), ActualSeed: &seed, Termination: termination, ScoreTruncated: result.InferenceFacts.GeneratedScoreTruncated, Usage: &runtimev1.UsageStats{ComputeMs: result.ComputeMS}})
 }
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.music-generation

@@ -1,3 +1,4 @@
+import { MusicGenerationNotice } from './section-ai-testing-music-result.js';
 import { useEffect, useState, type ReactNode } from 'react';
 import { EmptyState, IconButton, StatusBadge, Surface, Tooltip } from '@nimiplatform/kit/ui';
 import { AlertTriangle, ChevronRight, Clock, Copy as CopyIcon, Download as DownloadIcon, FileText, FolderOpen, Loader2, RefreshCw, Sparkles, Square } from 'lucide-react';
@@ -24,7 +25,8 @@ function ReadyBody({ result }: { result: StudioCapabilityRunResult & { ok: true 
   if (output.kind === 'artifacts') {
     return (
       <div className="studio-result__rich">
-        {output.artifacts.map((artifact, index) => (
+        <MusicGenerationNotice value={output.musicGeneration} />
+        {output.artifacts.filter((artifact) => artifact.relativePath !== output.musicGeneration?.generatedScore?.relativePath).map((artifact, index) => (
           <ArtifactMediaResult
             key={artifact.relativePath}
             artifact={artifact}

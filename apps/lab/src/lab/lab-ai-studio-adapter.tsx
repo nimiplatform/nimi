@@ -56,7 +56,10 @@ export function LabAIStudioAdapter({ children }: { readonly children: ReactNode 
       runCapability: (input: StudioCapabilityRunInput): Promise<StudioCapabilityRunResult> => rendererHost.sdk.runCapability(input),
       listLocalAppVoiceAssets: () => rendererHost.sdk.listLocalAppVoiceAssets(),
       uploadLocalAppArtifact: (input) => rendererHost.sdk.uploadLocalAppArtifact(input),
+      assets: rendererHost.sdk.storage.assets,
+      storage: rendererHost.sdk.localAppClient.storage,
       aiConfig: {
+        getSnapshot: () => loadLabAIConfig(rendererHost.sdk.aiConfig),
         get: async () => (await loadLabAIConfig(rendererHost.sdk.aiConfig)).config,
       },
       revealLocalAppAsset: (relativePath) => rendererHost.sdk.storage.assets.reveal(relativePath),

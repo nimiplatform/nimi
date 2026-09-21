@@ -8,6 +8,26 @@ import {
 } from '../src/main/local-app-host.js';
 
 describe('Electron protected local-app host', () => {
+  it('preserves complete real-format music results through Get and terminal events', async () => {
+    const artifact = { artifactId: '01M31XPDSR0XFQJVY8NSBQRVED', mimeType: 'audio/wav', bytes: [],
+      sizeBytes: 7049274, sha256: '4e848edd82bf57a886b92f566020703b9252fb5e583c4751326394e4f120a8ed',
+      durationMs: 19980, width: 0, height: 0, sampleRateHz: 44100, channels: 2, frameCount: 881152 };
+    const musicGeneration = { mixArtifactId: artifact.artifactId, actualSeed: 42, termination: 'unknown',
+      audioInfo: { sampleRateHz: 44100, channels: 2, frameCount: 881152, durationMs: 19980 } };
+    const job = scenarioJobProjection({ scenarioType: 'music-generate', status: 'completed', artifacts: [artifact], musicGeneration,
+      recoveryExpiresAt: { seconds: '1790086467', nanos: 838649200 } });
+    const event = { eventType: 'completed', sequence: '3', traceId: 'trace-music', timestamp: null, job };
+    const candidate = { ...binding([]),
+      localAppScenarioJobGet: async () => ({ status: 'ok' as const, value: { job, asset: null, voiceReference: null } }),
+      localAppScenarioJobStreamNext: async () => ({ status: 'ok' as const, value: { completed: false, event } }),
+    };
+    const host = createNimiElectronLocalAppHostForBinding(candidate);
+    await expect(host.scenarioJobGet({ jobId: job.jobId })).resolves.toEqual({ job, asset: null, voiceReference: null });
+    await expect(host.scenarioJobStreamNext({ streamId: 'music-stream' })).resolves.toEqual({ completed: false, event });
+    const malformed = { ...job, musicGeneration: undefined };
+    candidate.localAppScenarioJobGet = async () => ({ status: 'ok', value: { job: malformed, asset: null, voiceReference: null } });
+    await expect(host.scenarioJobGet({ jobId: job.jobId })).rejects.toBeDefined();
+  });
   it('preserves typed transcription through the native Host boundary', async () => {
     const transcription = { status: 'transcribed', text: 'hello', language: 'en', words: [{ text: 'hello', startSeconds: 0.2, endSeconds: 0.8 }] };
     const host = createNimiElectronLocalAppHostForBinding({ ...binding([]), localAppScenarioJobGet: async () => ({ status: 'ok', value: { job: scenarioJobProjection({ scenarioType: 'speech-transcribe', status: 'completed', transcriptionText: 'hello', transcription }), asset: null, voiceReference: null } }) });

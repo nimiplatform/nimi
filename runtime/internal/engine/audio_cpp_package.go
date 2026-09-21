@@ -12,13 +12,14 @@ import (
 )
 
 const (
-	AudioCppPackageVersion       = "0.8.1"
-	AudioCppPackageCommit        = "f2b4937306daa25f5c78520f3c626ed31495a37a" // pragma: allowlist secret -- public source commit
-	AudioCppPackageAssetName     = "audio-v0.8.1-bin-windows-x64-cuda13.3.zip"
-	AudioCppPackageArchiveURL    = "https://github.com/0xShug0/audio.cpp/releases/download/v0.8.1/audio-v0.8.1-bin-windows-x64-cuda13.3.zip"
-	AudioCppPackageArchiveSHA256 = "aad5dffe4398b325018cf38e58e6555998ef97948a72ac7582de46e91155ca24" // pragma: allowlist secret -- public archive checksum
-	AudioCppPackageArchiveBytes  = int64(269917950)
-	AudioCppCLIExecutableName    = "audiocpp_cli.exe"
+	AudioCppPackageVersion        = "0.8.1"
+	AudioCppPackageCommit         = "f2b4937306daa25f5c78520f3c626ed31495a37a" // pragma: allowlist secret -- public source commit
+	AudioCppPackageAssetName      = "audio-v0.8.1-bin-windows-x64-cuda13.3.zip"
+	AudioCppPackageArchiveURL     = "https://github.com/0xShug0/audio.cpp/releases/download/v0.8.1/audio-v0.8.1-bin-windows-x64-cuda13.3.zip"
+	AudioCppPackageArchiveSHA256  = "aad5dffe4398b325018cf38e58e6555998ef97948a72ac7582de46e91155ca24" // pragma: allowlist secret -- public archive checksum
+	AudioCppPackageArchiveBytes   = int64(269917950)
+	AudioCppSelectedSourceVersion = "release-" + AudioCppPackageVersion + "@" + AudioCppPackageCommit
+	AudioCppCLIExecutableName     = "audiocpp_cli.exe"
 )
 
 // Admit the exact dynamic CLI runtime, excluding the upstream server and tools.

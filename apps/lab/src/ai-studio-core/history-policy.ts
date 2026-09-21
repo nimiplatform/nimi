@@ -47,7 +47,7 @@ function validateManagedArtifact(value: unknown, path: string): void {
   if (value.previewSource !== 'managed-asset') historyError(`${path}.previewSource`, 'requires managed-asset');
 }
 
-function validateHistoryResult(value: unknown, path: string): void {
+export function validateStudioHistoryResult(value: unknown, path: string): void {
   if (!isJsonObject(value) || typeof value.ok !== 'boolean') historyError(path, 'requires a discriminated result object');
   const kind = requiredString(value.kind, `${path}.kind`);
   requiredString(value.summary, `${path}.summary`);
@@ -128,6 +128,25 @@ function validateHistoryResult(value: unknown, path: string): void {
       if (value.artifacts.length !== value.artifactCount) historyError(`${path}.artifacts`, 'must match artifactCount');
     }
     if (value.firstArtifact !== undefined) validateManagedArtifact(value.firstArtifact, `${path}.firstArtifact`);
+    if (value.musicGeneration !== undefined) {
+      const music = value.musicGeneration;
+      if (!isJsonObject(music) || !isJsonObject(music.audioInfo) || !Array.isArray(value.artifacts)) historyError(path, 'requires complete music metadata');
+      const audio = music.audioInfo;
+      if (!['unknown', 'model-end', 'budget-limit'].includes(String(music.termination))) historyError(path, 'has an invalid music termination');
+      for (const key of ['sampleRateHz', 'channels', 'frameCount', 'durationMs']) {
+        if (typeof audio[key] !== 'number' || !Number.isSafeInteger(audio[key]) || Number(audio[key]) < 0) historyError(path, 'has invalid canonical audio facts');
+      }
+      if (Number(audio.sampleRateHz) < 8000 || Number(audio.sampleRateHz) > 96000 || ![1, 2].includes(Number(audio.channels))
+        || Number(audio.frameCount) < 1 || Number(audio.frameCount) > Number(audio.sampleRateHz) * 600
+        || audio.durationMs !== Math.floor(Number(audio.frameCount) * 1000 / Number(audio.sampleRateHz))) historyError(path, 'has inconsistent canonical audio facts');
+      if (music.actualSeed !== undefined && (typeof music.actualSeed !== 'number' || !Number.isSafeInteger(music.actualSeed) || music.actualSeed < 0 || music.actualSeed > 4294967295)) historyError(path, 'has an invalid music seed');
+      if (!value.artifacts.some((artifact) => isJsonObject(artifact) && artifact.relativePath === music.mixRelativePath && artifact.mediaType === 'audio/wav')) historyError(path, 'does not retain its mix');
+      if (music.generatedScore !== undefined) {
+        const score = music.generatedScore;
+        if (!isJsonObject(score) || score.format !== 'abc' || score.origin !== 'generated-plan' || typeof score.truncated !== 'boolean'
+          || !value.artifacts.some((artifact) => isJsonObject(artifact) && artifact.relativePath === score.relativePath && artifact.mediaType === 'text/vnd.abc')) historyError(path, 'does not retain its generated score');
+      }
+    }
     return;
   }
   if (kind === 'transcript') {
@@ -191,7 +210,7 @@ function parseHistoryRecord(value: unknown, path: string, capabilityId: string):
   requiredString(value.message, `${path}.message`);
   const createdAt = requiredString(value.createdAt, `${path}.createdAt`);
   if (Number.isNaN(new Date(createdAt).valueOf())) historyError(`${path}.createdAt`, 'requires a valid timestamp');
-  if (value.result !== undefined) validateHistoryResult(value.result, `${path}.result`);
+  if (value.result !== undefined) validateStudioHistoryResult(value.result, `${path}.result`);
   if (value.runConfig !== undefined) validateRunConfig(value.runConfig, `${path}.runConfig`);
   return value as unknown as StudioRunHistoryRecord;
 }

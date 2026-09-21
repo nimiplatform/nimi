@@ -1754,7 +1754,6 @@ test('local-app Scenario Job adapter runs the unchanged SDK image runner without
     referenceImages: [], referenceImageArtifactId: '', mask: '', responseFormat: '',
   }]);
   assert.deepEqual(calls.slice(1), [
-    ['subscribe', 'job-1'],
     ['get', 'job-1'],
     ['get', 'job-1'],
   ]);

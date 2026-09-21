@@ -89,6 +89,25 @@ pub(super) fn project(value: &MusicGeneration, artifacts: &[LocalAppScenarioArti
 mod tests {
     use super::*;
     #[test]
+    fn completed_native_music3_facts_cross_the_full_job_projection() {
+        // Numeric facts and format from the real Lab result; no inference is simulated here.
+        let mix = LocalAppScenarioArtifact { artifact_id:"01M31XPDSR0XFQJVY8NSBQRVED".into(), mime_type:"audio/wav".into(),
+            sha256:"4e848edd82bf57a886b92f566020703b9252fb5e583c4751326394e4f120a8ed".into(), size_bytes:7049274,
+            sample_rate_hz:44100, channels:2, frame_count:881152, duration_ms:19980, ..Default::default() };
+        let generation = MusicGeneration { mix_artifact_id:mix.artifact_id.clone(), actual_seed:Some(42),
+            termination:MusicGenerationTermination::Unknown as i32,
+            audio_info:Some(crate::generated::LocalAppAudioInfo { sample_rate_hz:44100, channels:2, frame_count:881152, duration_ms:19980 }), ..Default::default() };
+        assert!(project(&generation, &[mix.clone()]).is_ok());
+        let value = LocalAppScenarioJob { job_id:"01M31XMC5XET6EEWQ1CSAX958F".into(), scenario_type:ScenarioType::MusicGenerate as i32,
+            status:ScenarioJobStatus::Completed as i32, reason_code:crate::generated::ReasonCode::ActionExecuted as i32,
+            trace_id:"01M31XMC5XET6EEWQ1CSAX958F".into(), artifacts:vec![mix], music_generation:Some(generation),
+            created_at:Some(prost_types::Timestamp { seconds:1790000000,nanos:581752400 }),
+            updated_at:Some(prost_types::Timestamp { seconds:1790000067,nanos:838649200 }),
+            recovery_expires_at:Some(prost_types::Timestamp { seconds:1790086467,nanos:838649200 }), ..Default::default() };
+        let result = project_job(value).expect("full protected music Job");
+        assert_eq!(result["musicGeneration"]["audioInfo"]["frameCount"],881152);
+    }
+    #[test]
     fn typed_music_inputs_preserve_content_and_reject_orphan_conditions() {
         let value = json!({"type":"music-generate", "prompt":" gentle piano\n", "lyrics":" verse\n\nchorus ", "durationSeconds":240,
             "seed":4294967295_u64, "score":{"artifactId":"score-1","format":"abc"}, "scoreConditioning":"melody-only"});

@@ -329,7 +329,7 @@ func TestPrepareLocalEnvironmentPlanApplyRestartsFailedNativeAudioCPPAfterCUDARe
 	dependency := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyNativeAudioCPP)
 	dependency.State = localEnvironmentStateFailed
 	upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
-		DependencyFamily: localEnvironmentFamilyCUDA, DependencyID: cuda13UserSpaceRuntimeDependencyID,
+		DependencyFamily: localEnvironmentFamilyCUDA, DependencyID: cuda13UserSpaceRuntimeDependencyID, Version: engine.NVIDIACUDA13UserSpaceRuntimeVersion,
 		EnvironmentKey: "accelerator.cuda.runtime|ready-after-audio-cpp-failure", SourceKind: localEnvironmentSourceManaged,
 		SelectedConsumers: []string{consumer},
 	})

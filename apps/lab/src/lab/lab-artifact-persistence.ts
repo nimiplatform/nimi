@@ -16,6 +16,7 @@ export type LabArtifactPersistenceCandidate = {
     }>;
     jobId?: string;
     jobState?: string;
+    musicGeneration?: { readonly mixRelativePath: string };
   };
 };
 
@@ -115,7 +116,10 @@ export async function persistLabRunHistoryWithArtifactCompensation<T>(
     return { ok: true, value: await persist() };
   } catch (error) {
     const persistenceMessage = persistenceErrorMessage(error, 'History persistence failed.');
-    if (!shouldPersistLabArtifactRecord(result)) {
+    // A successful music result is already committed to the music recovery
+    // document. Failure to index it in history must not delete its assets.
+    if (!shouldPersistLabArtifactRecord(result)
+      || (result.capabilityId === 'music.generate' && result.output.musicGeneration)) {
       return {
         ok: false,
         message: persistenceMessage,

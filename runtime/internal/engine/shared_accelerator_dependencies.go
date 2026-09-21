@@ -12,6 +12,7 @@ import (
 const (
 	NVIDIACUDAUserSpaceRuntimeDependencyID   = "nvidia-cuda-user-space-runtime"
 	NVIDIACUDA13UserSpaceRuntimeDependencyID = "nvidia-cuda13-user-space-runtime"
+	NVIDIACUDA13UserSpaceRuntimeVersion      = "cuda_major=13;audio.cpp=v0.8.1;cuda_minor=3"
 )
 
 type SharedAcceleratorDependencyState string
@@ -107,7 +108,7 @@ func sharedAcceleratorDependencySpecForID(raw string) (sharedAcceleratorDependen
 	case NVIDIACUDA13UserSpaceRuntimeDependencyID:
 		return sharedAcceleratorDependencySpec{
 			DependencyID:      NVIDIACUDA13UserSpaceRuntimeDependencyID,
-			Version:           "cuda_major=13;audio.cpp=v0.8.1;cuda_minor=3",
+			Version:           NVIDIACUDA13UserSpaceRuntimeVersion,
 			RequiredArtifacts: append([]string(nil), nvidiaCUDA13UserSpaceRuntimeRequiredArtifacts...),
 			ManagedSource:     nvidiaCUDA13UserSpaceRuntimeManagedSource,
 		}, true

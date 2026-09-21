@@ -495,6 +495,12 @@ func (s *Service) resolveLocalEnvironmentDependencyWithID(def localComputePackDe
 			dep.Detail = err.Error()
 			return dep
 		}
+		if err := validateAudioCppSelectedSourceVersion(record); err != nil {
+			dep.State = localEnvironmentStateRepairRequired
+			dep.ReasonCode = "LOCAL_ENVIRONMENT_DEPENDENCY_REPAIR_REQUIRED"
+			dep.Detail = err.Error()
+			return dep
+		}
 		if family == localEnvironmentFamilyPythonPackageSet {
 			plane := localPythonAcceleratorPlane(dep.ConsumerScope, hostState)
 			expectedProfile, err := engine.ResolvePythonDependencyProfileIdentity(dep.ConsumerScope, platformTuple, plane)

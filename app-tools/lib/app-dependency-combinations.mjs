@@ -21,6 +21,7 @@ export const SUPPORTED_DEPENDENCY_COMBINATIONS = Object.freeze([
   Object.freeze({ sdkVersion: '^0.13.0', kitVersion: '^0.9.0', nimiShellTauriVersion: '0.5.0' }),
   Object.freeze({ sdkVersion: '^0.14.0', kitVersion: '^0.10.0', nimiShellTauriVersion: '0.6.0' }),
   Object.freeze({ sdkVersion: '^0.15.0', kitVersion: '^0.11.0', nimiShellTauriVersion: '0.6.0' }),
+  Object.freeze({ sdkVersion: '^0.16.0', kitVersion: '^0.12.0', nimiShellTauriVersion: '0.7.0' }),
 ]);
 
 const SDK = '@nimiplatform/sdk';

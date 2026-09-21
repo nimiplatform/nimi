@@ -1,6 +1,6 @@
 import type { NimiLocalAppClient } from '@nimiplatform/sdk/app';
 import { createContext, useContext, type ReactNode } from 'react';
-import type { NimiPortableAppAIConfig } from '@nimiplatform/sdk/ai';
+import type { NimiPortableAppAIConfig, NimiAIConfigSnapshot } from '@nimiplatform/sdk/ai';
 import type { StudioCapabilityRunInput, StudioCapabilityRunResult } from './runtime-types.js';
 import type { StudioCapabilityDescriptor } from './module-registration.js';
 import type { StudioRunTargetSummary } from './history.js';
@@ -55,7 +55,10 @@ export type AIStudioHostPort = {
       readonly sizeBytes: number;
       readonly mimeType: NimiLocalAppArtifactUploadMime;
     }>;
+    readonly assets: NimiLocalAppClient['storage']['assets'];
+    readonly storage: Pick<NimiLocalAppClient['storage'], 'readJson' | 'writeJson'>;
     readonly aiConfig: {
+      readonly getSnapshot: () => Promise<NimiAIConfigSnapshot>;
       readonly get: () => Promise<NimiPortableAppAIConfig | null>;
     };
     readonly revealLocalAppAsset: (relativePath: string) => Promise<{ readonly revealed: true }>;

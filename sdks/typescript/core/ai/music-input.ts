@@ -21,6 +21,8 @@ export type NimiMusicInputCapabilities = { readonly generation: readonly NimiMus
 const fail = (): never => { throw createNimiError({ reasonCode: 'SDK_LOCAL_APP_PROJECTION_INVALID', message: 'Music input capabilities are invalid.', actionHint: 'update_matching_runtime_sdk_kit', source: 'sdk' }); };
 const record = (value: unknown): Record<string, unknown> => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) fail();
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) fail();
   return value as Record<string, unknown>;
 };
 const integer = (value: unknown, min: number, max: number): value is number => typeof value === 'number' && Number.isSafeInteger(value) && value >= min && value <= max;

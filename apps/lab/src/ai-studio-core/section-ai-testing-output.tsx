@@ -34,6 +34,7 @@ export function formatTypedOutput(
       jobId: output.jobId,
       jobState: output.jobState,
       artifactCount: output.artifactCount,
+      ...(output.musicGeneration ? { musicGeneration: output.musicGeneration } : {}),
       artifacts: output.artifacts,
       firstArtifact: output.firstArtifact,
     }, null, 2);

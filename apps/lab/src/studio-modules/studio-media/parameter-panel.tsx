@@ -1,3 +1,4 @@
+import { MusicFields } from './music-parameters.js';
 import { useRef, useState, type ChangeEvent } from 'react';
 import { Button, SelectField, TextareaField } from '@nimiplatform/kit/ui';
 import { Trash2, Upload } from 'lucide-react';
@@ -17,7 +18,6 @@ import { useAIStudioHost } from '../../ai-studio-core/host-context.js';
 import {
   MAX_STUDIO_ARTIFACT_UPLOAD_BYTES,
   type StudioImageGenerationParameters,
-  type StudioMusicGenerationParameters,
   type StudioVideoGenerationParameters,
 } from './parameters.js';
 
@@ -28,27 +28,6 @@ function isStudioImageMimeType(value: string): value is StudioImageMimeType {
   return STUDIO_IMAGE_MIME_TYPES.includes(value as StudioImageMimeType);
 }
 
-function MusicFields(props: StudioParameterPanelProps) {
-  const { translate: t } = useAIStudioHost();
-  const parameters = props.parameters as StudioMusicGenerationParameters;
-  const update = props.onChange as (next: StudioMusicGenerationParameters) => void;
-  const translate: StudioParameterTranslate = (key, values) => t(key, values);
-  const fields: StudioParameterFieldDefinition[] = [{
-    field: 'lyrics',
-    label: t('Studio.parameters.fields.lyrics'),
-    render: (routeDisabled) => (
-      <StudioParameterField label={t('Studio.parameters.fields.lyrics')}>
-        <TextareaField
-          value={parameters.lyrics ?? ''}
-          disabled={props.disabled || routeDisabled}
-          textareaClassName="min-h-36 font-mono"
-          onChange={(event) => update({ ...parameters, lyrics: event.currentTarget.value })}
-        />
-      </StudioParameterField>
-    ),
-  }];
-  return <StudioRouteAwareParameterFields contract={props.contract} source={props.source} fields={fields} translate={translate} />;
-}
 
 function ImageFields(props: StudioParameterPanelProps) {
   const host = useAIStudioHost();

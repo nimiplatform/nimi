@@ -132,6 +132,7 @@ export {
   getNimiRuntimeReasonCodeMessage,
   toNimiRuntimeVoiceReference,
   runNimiRuntimeScenarioJob,
+  observeNimiRuntimeScenarioJob,
 } from '@nimiplatform/sdk/runtime';
 export {
   NIMI_RUNTIME_AGENT_RESOLVED_STATUS_CUE_MOODS,

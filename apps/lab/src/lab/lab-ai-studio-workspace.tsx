@@ -139,7 +139,7 @@ export function useLabAIStudioHistoryRepository(): AIStudioHistoryRepository {
           return {
             ok: false as const,
             message: persisted.message,
-            retryRecord: !shouldPersistLabArtifactRecord(result),
+            retryRecord: persisted.managedArtifactCleanup === 'not-required',
             remainingCleanupPaths: persisted.remainingCleanupPaths,
             ...(persisted.displayFailure ? { displayFailure: persisted.displayFailure } : {}),
           };

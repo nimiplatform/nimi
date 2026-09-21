@@ -1,3 +1,4 @@
+import { MusicGenerationNotice } from './section-ai-testing-music-result.js';
 import { useState, type ReactNode } from 'react';
 import { IconButton, nimiToast, StatusBadge, Tooltip } from '@nimiplatform/kit/ui';
 import { AlertTriangle, ChevronRight, Copy as CopyIcon, Download as DownloadIcon, FileText, FolderOpen, MessageSquare, RefreshCw, SlidersHorizontal, SquarePen } from 'lucide-react';
@@ -289,7 +290,8 @@ function TextStudioHistorySnapshotBody({ snapshot }: { snapshot: Extract<StudioR
     const artifacts = snapshot.artifacts ?? (snapshot.firstArtifact ? [snapshot.firstArtifact] : []);
     return (
       <div className="studio-result__rich">
-        {artifacts.map((artifact, index) => (
+        <MusicGenerationNotice value={snapshot.musicGeneration} />
+        {artifacts.filter((artifact) => artifact.relativePath !== snapshot.musicGeneration?.generatedScore?.relativePath).map((artifact, index) => (
           <ArtifactMediaResult
             key={artifact.relativePath}
             artifact={artifact}

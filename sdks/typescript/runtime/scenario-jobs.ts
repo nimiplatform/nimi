@@ -23,6 +23,7 @@ import {
   type VoiceAsset,
   type VoiceReference,
   type VisionLocateResult,
+  type VisionLocateScenarioSpec,
 } from '../core-generated/runtime-typed-client';
 import { localVisionLocateFromRuntime, localLocateGeometry, localInterruptionFromRuntime } from '../core/app/local-app-runtime-platform-vision.js';
 import { createNimiError, ReasonCode, type JsonObject } from '../types';
@@ -107,6 +108,14 @@ export interface NimiRuntimeScenarioJobRunnerInput {
   readonly onJobUpdate?: (job: NimiRuntimeScenarioJob) => void;
 }
 
+export type NimiRuntimeScenarioJobObservationInput = Omit<NimiRuntimeScenarioJobRunnerInput, 'request'> & {
+  readonly jobId: string;
+  readonly scenarioType: ScenarioType;
+  readonly expectedVision?: Pick<VisionLocateScenarioSpec, 'imageArtifactId' | 'geometry'>;
+};
+
+type ScenarioJobObservationContext = Omit<NimiRuntimeScenarioJobObservationInput, 'jobId'> & { readonly cancelKey?: string };
+
 export function withNimiRuntimeIdempotencyMetadata(
   options: RuntimeTypedCallOptions | undefined,
   idempotencyKey: string | undefined,
@@ -173,9 +182,33 @@ export async function runNimiRuntimeScenarioJob(
     });
   }
 
-  let terminalJob = submitted;
-  let observedTerminalEvent = false;
-  let recoveredTerminalResponse: Awaited<ReturnType<NimiScenarioJobClient['getScenarioJob']>> | undefined;
+  const spec = input.request.spec?.spec;
+  return observeSubmittedScenarioJob({ ...input, scenarioType: input.request.scenarioType, cancelKey: input.request.idempotencyKey,
+    ...(spec?.oneofKind === 'visionLocate' ? { expectedVision: spec.visionLocate } : {}) }, submitted!);
+}
+
+/** Observe an existing author action without submitting or replaying it.
+ * The expected scenario and optional Locate geometry verify the observed result.
+ */
+export async function observeNimiRuntimeScenarioJob(
+  input: NimiRuntimeScenarioJobObservationInput,
+): Promise<NimiRuntimeScenarioJobResult> {
+  throwIfAborted(input.signal);
+  if (!input.jobId || input.jobId !== input.jobId.trim()) throw runtimeScenarioJobResponseError('An existing Job identifier is required');
+  const response = await input.ai.getScenarioJob({ jobId: input.jobId }, input.callOptions);
+  if (response.job?.jobId !== input.jobId || response.job.scenarioType !== input.scenarioType) throw runtimeScenarioJobResponseError('Recovered Job does not match the expected scenario');
+  return observeSubmittedScenarioJob(input, response.job, response);
+}
+
+async function observeSubmittedScenarioJob(
+  input: ScenarioJobObservationContext,
+  submitted: ScenarioJob,
+  initialResponse?: Awaited<ReturnType<NimiScenarioJobClient['getScenarioJob']>>,
+): Promise<NimiRuntimeScenarioJobResult> {
+  const jobId = submitted.jobId;
+  let terminalJob: ScenarioJob | undefined = submitted;
+  let observedTerminalEvent = isNimiRuntimeScenarioJobTerminalStatus(submitted.status);
+  let recoveredTerminalResponse = observedTerminalEvent ? initialResponse : undefined;
   let cancellationResponse: CancelScenarioJobResponse | undefined;
   let cancellationRecoveryResponse: Awaited<ReturnType<NimiScenarioJobClient['getScenarioJob']>> | undefined;
   let cancellationRequested = false;
@@ -210,7 +243,7 @@ export async function runNimiRuntimeScenarioJob(
       if (!job) {
         throw runtimeScenarioJobResponseError('Runtime Scenario job event omitted its Job projection');
       }
-      if (normalizeText(job.jobId) !== jobId || job.scenarioType !== input.request.scenarioType
+      if (normalizeText(job.jobId) !== jobId || job.scenarioType !== input.scenarioType
         || !scenarioJobEventMatchesStatus(next.value.eventType, job.status)) {
         throw runtimeScenarioJobResponseError('Runtime Scenario job event does not match the submitted Job');
       }
@@ -224,7 +257,7 @@ export async function runNimiRuntimeScenarioJob(
   };
 
   try {
-    await consumeJobEventStream();
+    if (!observedTerminalEvent) await consumeJobEventStream();
     if (!observedTerminalEvent) {
       throwIfAborted(input.signal);
       const refreshed = await queryMatchingScenarioJob(input, jobId);
@@ -246,7 +279,7 @@ export async function runNimiRuntimeScenarioJob(
       const cancellationJob = cancellationRecoveryResponse?.job ?? cancellationResponse?.job;
       if (cancellationJob
         && (normalizeText(cancellationJob.jobId) !== jobId
-          || cancellationJob.scenarioType !== input.request.scenarioType)) {
+          || cancellationJob.scenarioType !== input.scenarioType)) {
         throw runtimeScenarioJobResponseError('Runtime Scenario job cancellation result does not match the submitted Job');
       }
       const refreshed = cancellationRecoveryResponse
@@ -285,7 +318,7 @@ export async function runNimiRuntimeScenarioJob(
   const terminalResponse = recoveredTerminalResponse
     ?? await input.ai.getScenarioJob({ jobId }, input.callOptions);
   terminalJob = terminalResponse.job;
-  if (normalizeText(terminalJob?.jobId) !== jobId || terminalJob?.scenarioType !== input.request.scenarioType) {
+  if (normalizeText(terminalJob?.jobId) !== jobId || terminalJob?.scenarioType !== input.scenarioType) {
     throw runtimeScenarioJobResponseError('Runtime Scenario job terminal result does not match the submitted Job');
   }
   if (terminalJob && terminalJob.status !== eventStatus) {
@@ -301,10 +334,10 @@ export async function runNimiRuntimeScenarioJob(
   );
 
   if (terminalJob.scenarioType === ScenarioType.VISION_LOCATE) {
-    const spec = input.request.spec?.spec;
-    if (!terminalResponse.visionLocate || spec?.oneofKind !== 'visionLocate' || terminalJob.artifacts.length !== 0) throw runtimeScenarioJobResponseError('Locate Job omitted its typed result');
+    const spec = input.expectedVision;
+    if (!terminalResponse.visionLocate || !spec || terminalJob.artifacts.length !== 0) throw runtimeScenarioJobResponseError('Locate Job omitted its typed result');
     const result = localVisionLocateFromRuntime(terminalResponse.visionLocate);
-    if (result.imageArtifactId !== spec.visionLocate.imageArtifactId || result.locations.some(location => location.type !== localLocateGeometry(spec.visionLocate.geometry))) throw runtimeScenarioJobResponseError('Locate result does not match the submitted image and geometry');
+    if (result.imageArtifactId !== spec.imageArtifactId || result.locations.some(location => location.type !== localLocateGeometry(spec.geometry))) throw runtimeScenarioJobResponseError('Locate result does not match the submitted image and geometry');
   } else if (terminalResponse.visionLocate) throw runtimeScenarioJobResponseError('Non-Locate Job returned a Locate result');
   const artifacts = terminalJob.scenarioType === ScenarioType.VOICE_CREATE || terminalJob.scenarioType === ScenarioType.VISION_LOCATE
     ? { artifacts: terminalJob.artifacts, traceId: terminalJob.traceId, output: undefined }
@@ -381,7 +414,7 @@ function runtimeScenarioJobResponseError(message: string): Error {
 }
 
 async function queryMatchingScenarioJob(
-  input: NimiRuntimeScenarioJobRunnerInput,
+  input: ScenarioJobObservationContext,
   jobId: string,
 ): Promise<Awaited<ReturnType<NimiScenarioJobClient['getScenarioJob']>> | undefined> {
   let response: Awaited<ReturnType<NimiScenarioJobClient['getScenarioJob']>>;
@@ -391,7 +424,7 @@ async function queryMatchingScenarioJob(
     return undefined;
   }
   const job = response.job;
-  if (normalizeText(job?.jobId) !== jobId || job?.scenarioType !== input.request.scenarioType) {
+  if (normalizeText(job?.jobId) !== jobId || job?.scenarioType !== input.scenarioType) {
     throw runtimeScenarioJobResponseError('Runtime Scenario job recovery result does not match the submitted Job');
   }
   return response;
@@ -409,14 +442,14 @@ function runtimeScenarioJobStreamInterruptedError(jobId: string): Error {
 }
 
 async function cancelNimiRuntimeScenarioJob(
-  input: NimiRuntimeScenarioJobRunnerInput,
+  input: ScenarioJobObservationContext,
   jobId: string,
 ): Promise<CancelScenarioJobResponse | undefined> {
   try {
     return await input.ai.cancelScenarioJob({
       jobId,
       reason: input.abortReason || 'aborted_by_abort_signal',
-    }, withNimiRuntimeIdempotencyMetadata(input.callOptions, `cancel:${input.request.idempotencyKey}:${jobId}`));
+    }, withNimiRuntimeIdempotencyMetadata(input.callOptions, `cancel:${input.cancelKey ?? jobId}:${jobId}`));
   } catch {
     // Preserve the original abort/error path; Runtime remains job authority.
     return undefined;

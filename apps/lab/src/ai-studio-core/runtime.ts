@@ -2,6 +2,7 @@ import {
   runRuntimeAIConsumeCapability,
   runRuntimeImageGenerate,
   runRuntimeMusicGenerate,
+  observeRuntimeMusicGeneration,
   runRuntimeSpeechSynthesize,
   runRuntimeSpeechTranscribe,
   runRuntimeVideoGenerate,
@@ -16,6 +17,7 @@ import type {
   StudioCapabilityRunInput,
   StudioCapabilityRunResult,
   StudioManagedArtifact,
+  StudioMusicGeneration,
   StudioNonSuccess,
   StudioNonSuccessDiagnostics,
   StudioNonSuccessReason,
@@ -33,6 +35,7 @@ export type StudioRuntimeRunnerSet = {
   readonly aiConsume: typeof runRuntimeAIConsumeCapability;
   readonly imageGenerate: typeof runRuntimeImageGenerate;
   readonly musicGenerate: typeof runRuntimeMusicGenerate;
+  readonly musicObserve: typeof observeRuntimeMusicGeneration;
   readonly videoGenerate: typeof runRuntimeVideoGenerate;
   readonly speechSynthesize: typeof runRuntimeSpeechSynthesize;
   readonly speechTranscribe: typeof runRuntimeSpeechTranscribe;
@@ -87,6 +90,7 @@ export const DEFAULT_STUDIO_RUNTIME_RUNNERS: StudioRuntimeRunnerSet = Object.fre
   aiConsume: runRuntimeAIConsumeCapability,
   imageGenerate: runRuntimeImageGenerate,
   musicGenerate: runRuntimeMusicGenerate,
+  musicObserve: observeRuntimeMusicGeneration,
   videoGenerate: runRuntimeVideoGenerate,
   speechSynthesize: runRuntimeSpeechSynthesize,
   speechTranscribe: runRuntimeSpeechTranscribe,
@@ -179,12 +183,25 @@ export async function projectStudioArtifactRunnerResult(
         result.output.jobId,
         index,
       );
-      const adopted = await context.host.client.storage.assets.adoptArtifact({
-        artifactId: sourceArtifact.artifactId,
-        relativePath,
-        overwrite: false,
-      });
-      adoptedPaths.push(adopted.relativePath);
+      let adopted: Awaited<ReturnType<NimiLocalAppClient['storage']['assets']['stat']>> | undefined;
+      const expectedHash = result.output.kind === 'music-artifacts' && 'sha256' in sourceArtifact && typeof sourceArtifact.sha256 === 'string'
+        ? `sha256:${sourceArtifact.sha256.replace(/^sha256:/u, '')}` : undefined;
+      if (result.output.kind === 'music-artifacts' && (!expectedHash || !/^sha256:[0-9a-f]{64}$/u.test(expectedHash))) throw new Error('Music artifact omitted its content digest.');
+      if (expectedHash) {
+        // Runtime owns the adopted extension. Each music artifact has its own
+        // deterministic directory, so recovery uses returned metadata instead.
+        const prefix = relativePath.slice(0, relativePath.lastIndexOf('/') + 1);
+        const retained = await context.host.client.storage.assets.list({ prefix, pageSize: 2 });
+        if (retained.nextCursor || retained.assets.length > 1) throw new Error('Retained music asset directory is ambiguous.');
+        adopted = retained.assets[0];
+        if (adopted && !adopted.relativePath.startsWith(`${prefix}result.`)) throw new Error('Retained music asset has an unexpected path.');
+        if (adopted && (adopted.sha256 !== expectedHash || adopted.sizeBytes !== sourceArtifact.sizeBytes || adopted.mediaType !== sourceArtifact.mimeType)) throw new Error('Retained music asset does not match the original Runtime artifact.');
+      }
+      if (!adopted) {
+        adopted = await context.host.client.storage.assets.adoptArtifact({ artifactId: sourceArtifact.artifactId, relativePath, overwrite: false });
+        adoptedPaths.push(adopted.relativePath);
+      }
+      if (expectedHash && (adopted.sha256 !== expectedHash || adopted.sizeBytes !== sourceArtifact.sizeBytes || adopted.mediaType !== sourceArtifact.mimeType)) throw new Error('Adopted music asset does not match the original Runtime artifact.');
       artifacts.push({
         relativePath: adopted.relativePath,
         ...(adopted.mediaType ? { mediaType: adopted.mediaType } : {}),
@@ -210,6 +227,22 @@ export async function projectStudioArtifactRunnerResult(
     }
     throw error;
   }
+  let musicGeneration: StudioMusicGeneration | undefined;
+  if (result.output.kind === 'music-artifacts') {
+    const generation = result.output.generation;
+    const pathFor = (artifactId: string) => {
+      const index = result.output.artifacts.findIndex((artifact) => artifact.artifactId === artifactId);
+      const path = artifacts[index]?.relativePath;
+      if (!path) throw new Error('Music result is missing its adopted artifact.');
+      return path;
+    };
+    musicGeneration = {
+      mixRelativePath: pathFor(generation.mixArtifactId), termination: generation.termination, audioInfo: generation.audioInfo,
+      ...(generation.actualSeed !== undefined ? { actualSeed: generation.actualSeed } : {}),
+      ...(generation.generatedScore ? { generatedScore: { relativePath: pathFor(generation.generatedScore.artifactId),
+        format: generation.generatedScore.format, origin: generation.generatedScore.origin, truncated: generation.generatedScore.truncated } } : {}),
+    };
+  }
   return {
     ok: true,
     capabilityId: context.capability.id,
@@ -217,6 +250,7 @@ export async function projectStudioArtifactRunnerResult(
     message: result.message,
     output: {
       kind: 'artifacts',
+      ...(musicGeneration ? { musicGeneration } : {}),
       jobId: result.output.jobId,
       jobState: result.output.jobStatus,
       artifactCount: result.output.artifactCount,
@@ -311,5 +345,5 @@ async function managedStudioAssetPath(
   const bytes = new TextEncoder().encode(identity);
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
   const token = Array.from(digest, (byte) => byte.toString(16).padStart(2, '0')).join('');
-  return `media/${capabilityId.replaceAll('.', '-')}/${token}.asset`;
+  return `media/${capabilityId.replaceAll('.', '-')}/${token}${capabilityId === 'music.generate' ? '/result' : ''}.asset`;
 }

@@ -131,7 +131,7 @@ test('supported dependency combinations are exact pairings and the tool default 
   }
   assert.throws(
     () => resolveDependencyCombination({ dependencies: { '@nimiplatform/sdk': '^0.11.0', '@nimiplatform/kit': fallback.kitVersion } }, versions),
-    /Unsupported SDK\/Kit combination: @nimiplatform\/sdk@\^0\.11\.0 with @nimiplatform\/kit@\^0\.11\.0\. Supported combinations:/u,
+    (error) => error.message.startsWith(`Unsupported SDK/Kit combination: @nimiplatform/sdk@^0.11.0 with @nimiplatform/kit@${fallback.kitVersion}. Supported combinations:`),
   );
   assert.throws(() => resolveDependencyCombination({ dependencies: { '@nimiplatform/sdk': '^0.9.0', '@nimiplatform/kit': '^0.5.0' } }, versions), /Unsupported SDK\/Kit combination/u);
 });

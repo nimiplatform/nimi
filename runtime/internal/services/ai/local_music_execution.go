@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -165,12 +166,20 @@ func validSelectedMusicExecution(selected *localexecution.SelectedLocalExecution
 	return selected != nil && selected.Configured && selected.CapabilityContract == capabilitydriver.MiniMaxMusic3CapabilityContract && selected.DriverIdentity != nil && len(selected.Requirements) == 1 && len(selected.ExactBindings) == 1 && len(selected.ExactDependencySources) == 2
 }
 
+var audioCppSelectedSourceVersionPattern = regexp.MustCompile(`^release-([0-9]+\.[0-9]+\.[0-9]+)@[0-9a-f]{40}$`)
+
 func audioCppRuntimePackageInput(selected *localexecution.SelectedLocalExecution) (capabilitydriver.AudioCppRuntimePackageInput, error) {
 	var result capabilitydriver.AudioCppRuntimePackageInput
 	for _, source := range selected.ExactDependencySources {
 		switch {
 		case source.DependencyFamily == "native-engine-package.audio-cpp" && source.DependencyID == "audio.cpp.package":
-			result.AudioCppVersion = source.Version
+			// Local service has already verified the complete owner identity.
+			// The Driver compares the semantic version, not that source-record id.
+			version := audioCppSelectedSourceVersionPattern.FindStringSubmatch(source.Version)
+			if len(version) != 2 {
+				return capabilitydriver.AudioCppRuntimePackageInput{}, fmt.Errorf("audio.cpp selected-source release identity is invalid")
+			}
+			result.AudioCppVersion = version[1]
 			result.AudioCppPackageID = capabilitydriver.AudioCppWindowsCUDA13PackageID
 			result.AudioCppSelectedSourceRecordID = source.SelectedSourceRecordID
 			result.AudioCppRoot = source.CanonicalRoot

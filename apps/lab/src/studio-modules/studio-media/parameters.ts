@@ -41,6 +41,14 @@ export type StudioVideoGenerationParameters = {
 
 export type StudioMusicGenerationParameters = {
   lyrics?: string;
+  durationSeconds?: number;
+  seed?: number;
+  instrumental?: boolean;
+  returnGeneratedScore?: boolean;
+  scoreRelativePath?: string;
+  scoreName?: string;
+  recoverySubmissionId?: string;
+  scoreConditioning?: 'melody-only' | 'melody-and-harmony';
 };
 
 const LOCAL_APP_UNAVAILABLE = Object.freeze({
@@ -90,5 +98,10 @@ export const studioVideoGenerateParameters = defineStudioParameters<StudioVideoG
 
 export const studioMusicGenerateParameters = defineStudioParameters<StudioMusicGenerationParameters>({
   initial: () => ({ lyrics: '[Verse]\n\n[Chorus]\n' }),
-  routeMatrix: { lyrics: LOCAL_ONLY_STUDIO_PARAMETER },
+  routeMatrix: {
+    lyrics: LOCAL_AND_CLOUD_STUDIO_PARAMETER, durationSeconds: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
+    seed: LOCAL_AND_CLOUD_STUDIO_PARAMETER, instrumental: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
+    returnGeneratedScore: LOCAL_AND_CLOUD_STUDIO_PARAMETER, scoreRelativePath: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
+    scoreName: LOCAL_AND_CLOUD_STUDIO_PARAMETER, scoreConditioning: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
+  },
 });

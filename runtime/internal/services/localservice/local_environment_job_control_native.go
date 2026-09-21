@@ -39,7 +39,7 @@ func (s *Service) executeNativeAudioCPPEnvironmentDependencyJob(ctx context.Cont
 		State:         localEnvironmentStateReadyManaged,
 		SourceKind:    localEnvironmentSourceManaged,
 		CanonicalRoot: filepath.Dir(strings.TrimSpace(status.BinaryPath)),
-		Version:       "release-" + engine.AudioCppPackageVersion + "@" + engine.AudioCppPackageCommit,
+		Version:       engine.AudioCppSelectedSourceVersion,
 		CompatibilityEvidence: []string{
 			strings.TrimSpace(status.Detail),
 			"asset=" + engine.AudioCppPackageAssetName,

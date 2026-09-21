@@ -1,4 +1,5 @@
 import { createNimiError } from '../../types';
+import { projectMusicInputCapabilities } from '../ai/music-input.js';
 
 const FORBIDDEN_AUTHORITY_FIELDS = new Set([
   'account',
@@ -161,6 +162,14 @@ export function assertSafeProjection(value: unknown, seen = new Set<object>(), p
   const record = asRecord(value);
   if (!record) localAppProjectionError('unsafe object');
   for (const [key, entry] of Object.entries(record)) {
+    if (!productContent && key === 'musicInput') {
+      // This closed musical descriptor contains a generation profile list,
+      // never an authority generation counter. Validate it before treating
+      // its exact scalar/enum fields as product content.
+      projectMusicInputCapabilities(entry);
+      assertSafeProjection(entry, seen, true);
+      continue;
+    }
     if (!productContent && FORBIDDEN_AUTHORITY_FIELDS.has(normalizeFieldName(key))) {
       localAppProjectionError(`forbidden ${key}`);
     }

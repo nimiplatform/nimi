@@ -508,7 +508,7 @@ func TestSelectedMusicExecutionCapturesBothExactSelectedSources(t *testing.T) {
 	svc.SetEngineManager(manager)
 	records := []localEnvironmentSelectedSourceRecordState{
 		{RecordID: "selected-audio", EnvironmentKey: "audio-env", DependencyFamily: localEnvironmentFamilyNativeAudioCPP, DependencyID: "audio.cpp.package", CanonicalRoot: filepath.Join(t.TempDir(), "audio-cpp"), Version: "release-" + engine.AudioCppPackageVersion + "@" + engine.AudioCppPackageCommit, VerifiedArtifacts: []string{"audiocpp_cli.exe"}, SelectedConsumers: audioCppSelectedConsumers()},
-		{RecordID: "selected-cuda13", EnvironmentKey: "cuda13-env", DependencyFamily: localEnvironmentFamilyCUDA, DependencyID: cuda13UserSpaceRuntimeDependencyID, CanonicalRoot: filepath.Join(t.TempDir(), "cuda13"), VerifiedArtifacts: []string{"cublas64_13.dll", "cublasLt64_13.dll", "cufft64_12.dll"}, SelectedConsumers: audioCppSelectedConsumers()},
+		{RecordID: "selected-cuda13", Version: engine.NVIDIACUDA13UserSpaceRuntimeVersion, EnvironmentKey: "cuda13-env", DependencyFamily: localEnvironmentFamilyCUDA, DependencyID: cuda13UserSpaceRuntimeDependencyID, CanonicalRoot: filepath.Join(t.TempDir(), "cuda13"), VerifiedArtifacts: []string{"cublas64_13.dll", "cublasLt64_13.dll", "cufft64_12.dll"}, SelectedConsumers: audioCppSelectedConsumers()},
 	}
 	for _, record := range records {
 		record = verifiedSelectedSourceRecordForTest(record)

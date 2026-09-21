@@ -160,6 +160,22 @@ test('artifact persistence gate accepts only saved runtime artifacts, including 
   }), true);
 });
 
+test('music recovery assets survive a later history-index write failure', async () => {
+  const asset = { relativePath: 'media/music-generate/job/result.wav', sizeBytes: 100, sha256: `sha256:${'a'.repeat(64)}` };
+  const result = { ok: true, capabilityId: 'music.generate', output: { kind: 'artifacts', artifactCount: 1,
+    jobId: 'job', jobState: 'COMPLETED', firstArtifact: asset, artifacts: [asset], musicGeneration: { mixRelativePath: asset.relativePath } } };
+  const removed = [];
+  const failed = await persistLabRunHistoryWithArtifactCompensation(result,
+    async () => { throw new Error('history full'); }, async (path) => { removed.push(path); });
+  assert.equal(failed.ok, false);
+  assert.equal(failed.managedArtifactCleanup, 'not-required');
+  assert.equal(failed.displayFailure, undefined);
+  assert.deepEqual(removed, []);
+  assert.deepEqual(failed.remainingCleanupPaths, []);
+  assert.deepEqual(await persistLabRunHistoryWithArtifactCompensation(result, async () => 'indexed', async () => { throw Error('must retain'); }),
+    { ok: true, value: 'indexed' });
+});
+
 test('history persistence compensation removes every managed artifact and reports cleanup failures', async () => {
   const result = {
     ok: true,

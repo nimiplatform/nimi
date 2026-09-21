@@ -11,13 +11,29 @@
     "correctInput": "请使用一张能正常打开的静态 JPEG、PNG、WebP 或 GIF（不支持多帧图片），不超过 32 MiB、约 6700 万像素。填写非空的目标描述，UTF-8 编码不超过 8 KiB，然后重新定位。",
     "historySummaryOnly": "此定位结果较大，历史仅保留摘要和任务编号。完整坐标请在当次运行中导出。",
     "stoppedBeforeSubmit": "定位请求已停止，尚未提交任务。",
-    "geometry": "结果形态", "box": "边界框", "point": "定位点", "localOnly": "使用本地图像定位，可通过下方配置入口选择模型。",
-    "inputRequired": "请附上一张静态图片，并描述要定位的目标。", "imageTooLarge": "请选择不超过 32 MiB 的静态图片。", "resultMissing": "Runtime 未返回完整的定位结果。",
-    "found": "找到 {{count}} 个匹配目标", "noMatch": "未找到匹配目标", "sourceImage": "本次任务使用的图片", "overlay": "任务图片上的定位结果", "target": "目标 {{index}}",
-    "previewUnavailable": "输入图片的预览已不可用。下方坐标仍对应记录中的原图。", "coordinates": "图片标识与坐标", "matches": "匹配目标", "queued": "正在排队等待定位…", "running": "正在加载模型或定位目标…"
+    "geometry": "结果形态",
+    "box": "边界框",
+    "point": "定位点",
+    "localOnly": "使用本地图像定位，可通过下方配置入口选择模型。",
+    "inputRequired": "请附上一张静态图片，并描述要定位的目标。",
+    "imageTooLarge": "请选择不超过 32 MiB 的静态图片。",
+    "resultMissing": "Runtime 未返回完整的定位结果。",
+    "found": "找到 {{count}} 个匹配目标",
+    "noMatch": "未找到匹配目标",
+    "sourceImage": "本次任务使用的图片",
+    "overlay": "任务图片上的定位结果",
+    "target": "目标 {{index}}",
+    "previewUnavailable": "输入图片的预览已不可用。下方坐标仍对应记录中的原图。",
+    "coordinates": "图片标识与坐标",
+    "matches": "匹配目标",
+    "queued": "正在排队等待定位…",
+    "running": "正在加载模型或定位目标…"
   },
   "Capabilities": {
-    "visionLocate": { "label": "图像定位", "summary": "描述单张图片中的物体或控件，获取边界框或定位点。" },
+    "visionLocate": {
+      "label": "图像定位",
+      "summary": "描述单张图片中的物体或控件，获取边界框或定位点。"
+    },
     "imageGenerate": {
       "label": "图像生成",
       "summary": "提示词 → image.generate 场景任务 → 类型化产物预览结果。"
@@ -33,7 +49,15 @@
   },
   "Studio": {
     "profiles": {
-      "visionLocate": { "inputTitle": "测试图像定位", "inputPlaceholder": "例如：右上角的搜索按钮，或桌上的红色杯子…", "primaryLabel": "定位目标", "primaryRunningLabel": "正在定位…", "emptyTitle": "定位图片中的物体或控件", "emptyHint": "选择一张静态图片，描述目标，再选择边界框或定位点。", "footnote": "坐标以应用方向后的完整原图为基准。" },
+      "visionLocate": {
+        "inputTitle": "测试图像定位",
+        "inputPlaceholder": "例如：右上角的搜索按钮，或桌上的红色杯子…",
+        "primaryLabel": "定位目标",
+        "primaryRunningLabel": "正在定位…",
+        "emptyTitle": "定位图片中的物体或控件",
+        "emptyHint": "选择一张静态图片，描述目标，再选择边界框或定位点。",
+        "footnote": "坐标以应用方向后的完整原图为基准。"
+      },
       "imageGenerate": {
         "inputTitle": "测试图像生成",
         "inputPlaceholder": "描述你希望 Runtime 渲染的图像…",
@@ -97,5 +121,40 @@
         "lyrics": "歌词"
       }
     }
+  },
+  "Music": {
+    "loadingInputs": "正在读取音乐输入能力…",
+    "configureInputs": "请配置可用且提供输入能力说明的音乐资源。不会根据模型名称推断支持情况。",
+    "duration": "生成预算（秒，最多 {{max}}）",
+    "durationHint": "预算用于限制生成时长，不保证歌曲完整结束。",
+    "seed": "随机种子（可选，0–4294967295）",
+    "instrumental": "只生成器乐",
+    "score": "乐谱输入",
+    "scoreTooLarge": "乐谱为空，或超过当前资源的大小限制。",
+    "scoreIncomplete": "保存的乐谱未能完整读取，请重新导入。",
+    "importing": "正在导入…",
+    "importScore": "导入 ABC 乐谱",
+    "importedScore": "已导入 ABC 乐谱",
+    "clearScore": "从本次请求移除",
+    "melodyOnly": "仅旋律",
+    "melodyHarmony": "旋律与和声",
+    "scoreHint": "导入的乐谱会保留为应用资产。仅旋律模式要求在导入前去掉和弦符号和同时发声音符。",
+    "returnScore": "返回生成乐谱",
+    "terminationModelEnd": "模型已生成至结束点。",
+    "terminationBudget": "已达到生成预算，歌曲可能尚未结束。",
+    "terminationUnknown": "引擎未提供生成结束原因。",
+    "scoreTruncated": "生成乐谱已截断，复用前请检查。",
+    "recoveryMissing": "这次音乐创作已不在恢复记录中。",
+    "recoveryTitle": "已保存和未完成的音乐",
+    "recoveryHint": "查询原任务并恢复结果，不会重新生成。Runtime 保留恢复结果 24 小时，已保存的应用资产可继续使用。移除记录只会移除这里的恢复入口。",
+    "recover": "恢复原任务",
+    "openSaved": "打开已保存结果",
+    "forgetRecord": "移除记录",
+    "recovering": "正在读取原任务并保存结果…",
+    "cancelJob": "取消任务",
+    "viewScore": "查看生成的 ABC",
+    "hideScore": "收起 ABC",
+    "exportScore": "导出 ABC 乐谱",
+    "generatedPlan": "ABC 格式的生成计划"
   }
 }

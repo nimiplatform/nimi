@@ -6,6 +6,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/nimiplatform/nimi/runtime/internal/engine"
 )
 
 const localEnvironmentDependencyPrerequisiteFailedReason = "LOCAL_ENVIRONMENT_DEPENDENCY_PREREQUISITE_FAILED"
@@ -260,6 +262,10 @@ func (s *Service) readySelectedSourceFromCandidates(candidates []localEnvironmen
 			lastDetail = "selected source record fails local artifact verification: " + err.Error()
 			continue
 		}
+		if err := validateAudioCppSelectedSourceVersion(record); err != nil {
+			lastDetail = err.Error()
+			continue
+		}
 		if record.DependencyFamily == localEnvironmentFamilyPythonPackageSet {
 			if _, ok, detail := s.localEnvironmentPythonPackageSetConsumptionJob(record, consumer); !ok {
 				lastDetail = detail
@@ -269,6 +275,18 @@ func (s *Service) readySelectedSourceFromCandidates(candidates []localEnvironmen
 		return record, true, ""
 	}
 	return localEnvironmentSelectedSourceRecordState{}, false, lastDetail
+}
+
+// Existing files from a retired package must not make an upgraded cohort
+// appear ready. This reads existing source identity; it never replaces it.
+func validateAudioCppSelectedSourceVersion(record localEnvironmentSelectedSourceRecordState) error {
+	if record.DependencyFamily == localEnvironmentFamilyNativeAudioCPP && record.DependencyID == "audio.cpp.package" && record.Version != engine.AudioCppSelectedSourceVersion {
+		return fmt.Errorf("audio.cpp selected source requires %s; recorded %s", engine.AudioCppSelectedSourceVersion, record.Version)
+	}
+	if record.DependencyFamily == localEnvironmentFamilyCUDA && record.DependencyID == engine.NVIDIACUDA13UserSpaceRuntimeDependencyID && record.Version != engine.NVIDIACUDA13UserSpaceRuntimeVersion {
+		return fmt.Errorf("audio.cpp CUDA selected source requires %s; recorded %s", engine.NVIDIACUDA13UserSpaceRuntimeVersion, record.Version)
+	}
+	return nil
 }
 
 func (s *Service) selectedSourceForFamilyAndConsumer(family string, consumer string) (localEnvironmentSelectedSourceRecordState, bool) {

@@ -11,6 +11,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
@@ -65,7 +66,7 @@ func selectedMusicExecutionForTest(t *testing.T) *localexecution.SelectedLocalEx
 	declared := []string{"LICENSE", "README.md", "config.json", "config/condition_encoder.json", "config/language_model.json", "config/rvq_depth_decoder.json", "config/transformer.json", "config/vocoder.json", "tokenizer/tokenizer.json", "tokenizer/tokenizer_config.json", "condition_encoder.gguf", "language_model_q4_0.gguf", "rvq_depth_decoder_q8_0.gguf", "transformer_q4_0.gguf", "vocoder.gguf"}
 	audioRoot := filepath.Join(root, "audio-cpp")
 	cudaRoot := filepath.Join(root, "cuda13")
-	return &localexecution.SelectedLocalExecution{LoadoutID: "loadout-music3", CapabilityContract: capabilitydriver.MiniMaxMusic3CapabilityContract, DisplayName: "MiniMax-Music3", RecipeID: capabilitydriver.MiniMaxMusic3RecipeID, RecipeRevision: "1", DriverIdentity: (&capabilitydriver.Identity{ImplementationID: capabilitydriver.MiniMaxMusic3ImplementationID, DriverID: capabilitydriver.MiniMaxMusic3DriverID, DriverDialect: capabilitydriver.MiniMaxMusic3DriverDialect}).Proto(), Requirements: requirements, ExactBindings: []localexecution.ExactBinding{{RequirementID: capabilitydriver.MiniMaxMusic3RequirementID, RequirementRole: runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN, ModelAssetID: "asset-music3", AbsolutePath: filepath.Join(root, "model", "language_model_q4_0.gguf"), BundleDir: filepath.Join(root, "model"), DeclaredFiles: declared, VerifiedContentID: capabilitydriver.MiniMaxMusic3VerifiedContentID, EntrySHA256: "sha256:6f621dd636320403c03e9f755b3e2047f5754d055e0fcc6c0c444ae52ffbfa90"}}, ExactDependencySources: []localexecution.ExactDependencySource{{DependencyFamily: "native-engine-package.audio-cpp", DependencyID: "audio.cpp.package", ConsumerScope: "audio.cpp.cuda", SelectedSourceRecordID: "selected-audio", CanonicalRoot: audioRoot, Version: "0.8.1", VerifiedArtifacts: []string{filepath.Join(audioRoot, "audiocpp_cli.exe")}}, {DependencyFamily: "accelerator.cuda.runtime", DependencyID: capabilitydriver.MiniMaxMusic3CUDA13DependencyID, ConsumerScope: "audio.cpp.cuda", SelectedSourceRecordID: "selected-cuda13", CanonicalRoot: cudaRoot, Version: "cuda_major=13"}}, Configured: true}
+	return &localexecution.SelectedLocalExecution{LoadoutID: "loadout-music3", CapabilityContract: capabilitydriver.MiniMaxMusic3CapabilityContract, DisplayName: "MiniMax-Music3", RecipeID: capabilitydriver.MiniMaxMusic3RecipeID, RecipeRevision: "1", DriverIdentity: (&capabilitydriver.Identity{ImplementationID: capabilitydriver.MiniMaxMusic3ImplementationID, DriverID: capabilitydriver.MiniMaxMusic3DriverID, DriverDialect: capabilitydriver.MiniMaxMusic3DriverDialect}).Proto(), Requirements: requirements, ExactBindings: []localexecution.ExactBinding{{RequirementID: capabilitydriver.MiniMaxMusic3RequirementID, RequirementRole: runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN, ModelAssetID: "asset-music3", AbsolutePath: filepath.Join(root, "model", "language_model_q4_0.gguf"), BundleDir: filepath.Join(root, "model"), DeclaredFiles: declared, VerifiedContentID: capabilitydriver.MiniMaxMusic3VerifiedContentID, EntrySHA256: "sha256:6f621dd636320403c03e9f755b3e2047f5754d055e0fcc6c0c444ae52ffbfa90"}}, ExactDependencySources: []localexecution.ExactDependencySource{{DependencyFamily: "native-engine-package.audio-cpp", DependencyID: "audio.cpp.package", ConsumerScope: "audio.cpp.cuda", SelectedSourceRecordID: "selected-audio", CanonicalRoot: audioRoot, Version: "release-" + engine.AudioCppPackageVersion + "@" + engine.AudioCppPackageCommit, VerifiedArtifacts: []string{filepath.Join(audioRoot, "audiocpp_cli.exe")}}, {DependencyFamily: "accelerator.cuda.runtime", DependencyID: capabilitydriver.MiniMaxMusic3CUDA13DependencyID, ConsumerScope: "audio.cpp.cuda", SelectedSourceRecordID: "selected-cuda13", CanonicalRoot: cudaRoot, Version: "cuda_major=13"}}, Configured: true}
 }
 
 func localMusicIntentContext(parent context.Context) context.Context {
@@ -260,4 +261,16 @@ func writeCanonicalMusicTestWAV(path string, sampleRate, channels, seconds int) 
 	copy(payload[50:54], "data")
 	binary.LittleEndian.PutUint32(payload[54:58], uint32(dataBytes))
 	return os.WriteFile(path, payload, 0600)
+}
+
+func TestAudioCppPackageInputUsesTheOwnerReleaseIdentity(t *testing.T) {
+	selected := selectedMusicExecutionForTest(t)
+	got, err := audioCppRuntimePackageInput(selected)
+	if err != nil || got.AudioCppVersion != engine.AudioCppPackageVersion {
+		t.Fatalf("owner release identity lost its version: %+v %v", got, err)
+	}
+	selected.ExactDependencySources[0].Version = engine.AudioCppPackageVersion
+	if _, err := audioCppRuntimePackageInput(selected); err == nil {
+		t.Fatal("incomplete source identity was accepted")
+	}
 }

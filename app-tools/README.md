@@ -110,6 +110,29 @@ rejected rather than normalized. A matrix range in the manifest does not
 require an automatic upgrade; install with the frozen lockfile until
 deliberately selecting and synchronizing a new component combination.
 
+### Music reference flow
+
+The admitted `studio-media` feature includes the music workflow maintained in
+Nimi Lab. Its source is read from Lab during development and materialized into
+the existing packaged App source during build; it is not a separate sample copy.
+It consumes the protected SDK/Kit interfaces, reads `musicInput` from the current
+AIConfig resource, imports ABC into App assets, and preserves every returned
+artifact and the reported generation ending. A missing input projection is not
+inferred from a model name.
+
+A music action saves its `clientSubmissionId` before submission. The recovery
+view looks up the original Job and observes or saves it without generating
+again. Runtime recovery has a 24-hour lifetime; adopted App assets and the
+saved result are used for later reopening. Generation budgets and generated
+plan scores must not be presented as proof of a complete song, accurate
+transcription, original melody or a requested singer.
+
+This source requires the matching candidate Runtime, SDK 0.16, Kit/native 0.12
+and App Tools 0.8 cohort. These version declarations are not a publication claim;
+use complete local archives until that cohort is published. Real model and
+Desktop-supervised acceptance are recorded for the exact tested combination,
+separately from generator tests and subjective listening.
+
 ### Local development packages
 
 Development does not require publishing every SDK/Kit or app-tools change.
