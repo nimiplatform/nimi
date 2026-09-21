@@ -5,6 +5,16 @@ published baseline. They are not a complete reconstruction of older releases.
 
 ## Unreleased (next 0.x minor)
 
+- Breaking (0.x minor): music generation now returns a typed `musicGeneration`
+  with the mix reference, measured canonical PCM facts, seed when known,
+  optional generated ABC score and explicit termination. Consumers must adopt
+  the complete artifact set and distinguish a budget cutoff from a natural end.
+  The old prior-audio extension is rejected. Use typed score, score conditioning,
+  audio reference, seed and instrumental inputs; exact Drivers reject unsupported
+  combinations. The common duration ceiling is 600 seconds, with stricter model
+  limits retained. Inline ABC imports are at most 1 MiB and expire after 24 hours.
+  Update Runtime, SDK, Kit and the native carrier as one cohort.
+
 - Add `clientSubmissionId` to protected music Job submit options and
   `ai.scenarioJobs.lookupSubmission(id)` to recover a lost submission response
   without resubmitting. Runtime binds the full request to the current account

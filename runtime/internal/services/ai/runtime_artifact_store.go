@@ -60,7 +60,7 @@ func (s *Service) storeRuntimeJobArtifacts(
 			continue
 		}
 		body := bodies[strings.TrimSpace(artifact.GetArtifactId())]
-		created, err := s.storeRuntimeJobArtifact(ctx, jobID, head, artifact, body)
+		created, err := s.storeRuntimeJobArtifact(ctx, jobID, head, artifact, body, nil)
 		if err != nil {
 			capabilitydriver.CloseArtifactBodies(bodies)
 			for _, artifactID := range storedIDs {
@@ -81,6 +81,7 @@ func (s *Service) storeRuntimeJobArtifact(
 	head *runtimev1.ScenarioRequestHead,
 	artifact *runtimev1.ScenarioArtifact,
 	body *capabilitydriver.ArtifactBody,
+	canonicalAudio *runtimeartifact.CanonicalAudioInfo,
 ) (bool, error) {
 	defer func() {
 		if body != nil {
@@ -153,6 +154,7 @@ func (s *Service) storeRuntimeJobArtifact(
 		ProducerJobID:      jobID,
 		Owner:              owner,
 		MusicRecoveryUntil: musicUntil,
+		CanonicalAudio:     canonicalAudio,
 	}, source); err != nil {
 		return false, fmt.Errorf("store Runtime job artifact %s: %w", artifactID, err)
 	}
@@ -192,7 +194,7 @@ func (s *Service) storeAndAttachRuntimeJobArtifactBody(
 		return nil, fmt.Errorf("bind Runtime job artifact: %w", err)
 	}
 	candidate := bound[0]
-	created, err := s.storeRuntimeJobArtifact(ctx, jobID, head, candidate, body)
+	created, err := s.storeRuntimeJobArtifact(ctx, jobID, head, candidate, body, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -223,7 +225,7 @@ func (s *Service) storeAndAttachRuntimeJobArtifacts(
 		}
 	}
 	for _, candidate := range bound {
-		created, err := s.storeRuntimeJobArtifact(ctx, jobID, head, candidate, nil)
+		created, err := s.storeRuntimeJobArtifact(ctx, jobID, head, candidate, nil, nil)
 		if err != nil {
 			rollback("job artifact batch store failed")
 			return nil, err

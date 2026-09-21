@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -265,10 +266,18 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 			return nil, err
 		}
 	}
-	if _, iteration, resolveErr := resolveMusicGenerateExtensionPayload(effectiveRequest); resolveErr != nil {
-		return nil, resolveErr
-	} else if supportErr := validateMusicGenerateIterationSupport(ctx, s, target.ProviderModelID(), safeTarget, s.cloudTextProvider, iteration); supportErr != nil {
-		return nil, supportErr
+	if err := validateCloudMusicGenerationFields(effectiveRequest.GetSpec().GetMusicGenerate(), mapped.Adapter() == capabilitydriver.CloudMediaAdapterStabilityMusic); err != nil {
+		return nil, err
+	}
+	if effectiveRequest.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE && (s.canonicalAudio == nil || !filepath.IsAbs(s.localMusicStagingRoot)) {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+	var musicReference *nimillm.MusicReferenceAudio
+	if music := effectiveRequest.GetSpec().GetMusicGenerate(); music != nil && music.GetAudioReference() != nil {
+		musicReference, err = s.captureCloudMusicReference(ctx, effectiveRequest.GetHead(), music.GetAudioReference())
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	implementation, _ := proto.Clone(intent.CloudImplementation).(*runtimev1.CapabilityImplementationIdentity)
@@ -297,6 +306,7 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 		effective.release()
 		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{Message: "Cloud ResolvedAssembly capture failed"})
 	}
+	effective.resolvedAssembly.MusicReference = musicReference
 	if err := s.auditCloudMediaCapture(effective); err != nil {
 		effective.release()
 		return nil, err
@@ -437,6 +447,9 @@ func cloudMediaDriverError(capabilityContract string, err error) error {
 func (s *Service) executeCapturedCloudMedia(ctx context.Context, effective *cloudMediaEffectiveInputs) (capabilitydriver.CloudMediaResult, error) {
 	if s == nil || effective == nil || effective.driver == nil || s.remoteMediaHost == nil {
 		return capabilitydriver.CloudMediaResult{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+	if effective.resolvedAssembly != nil {
+		ctx = nimillm.WithMusicReferenceAudio(ctx, effective.resolvedAssembly.MusicReference)
 	}
 	response, err := s.remoteMediaHost.ExecuteMedia(ctx, effective.connector, effective.target, effective.mapped, effective.dispatchAudit())
 	if err != nil {

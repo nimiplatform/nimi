@@ -14,11 +14,12 @@ const (
 )
 
 type yue2OutputObserver struct {
-	mu      sync.Mutex
-	lines   [2][]byte
-	discard [2]bool
-	values  map[string]int
-	err     error
+	expectGeneratedScore bool
+	mu                   sync.Mutex
+	lines                [2][]byte
+	discard              [2]bool
+	values               map[string]int
+	err                  error
 }
 
 func (o *yue2OutputObserver) Observe(stream int, chunk []byte) {
@@ -88,7 +89,7 @@ func (o *yue2OutputObserver) Facts() (MusicInferenceFacts, error) {
 	truncated, ok := o.values["yue2.semantic.truncated"]
 	abc, abcOK := o.values["yue2.semantic.abc_truncated"]
 	tokens, tokensOK := o.values["yue2.semantic.tokens"]
-	if !ok || !abcOK || !tokensOK || tokens < 1 {
+	if !ok || (o.expectGeneratedScore && !abcOK) || (!o.expectGeneratedScore && abcOK) || !tokensOK || tokens < 1 {
 		return MusicInferenceFacts{}, fmt.Errorf("YuE2 did not provide complete termination evidence")
 	}
 	termination := MusicTerminationModelEnd

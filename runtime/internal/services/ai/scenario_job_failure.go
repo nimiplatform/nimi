@@ -79,6 +79,7 @@ func prepareFailedScenarioJobProjection(job *runtimev1.ScenarioJob) error {
 	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED {
 		return validateFailedScenarioJobProjection(job)
 	}
+	job.MusicGeneration = nil
 	detail := strings.TrimSpace(job.GetReasonDetail())
 	if detail == "" {
 		detail = stableScenarioJobReasonDetail(job.GetReasonCode())

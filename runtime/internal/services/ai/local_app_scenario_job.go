@@ -220,6 +220,9 @@ func validateLocalAppScenarioJobID(jobID string) (string, error) {
 // correlation only. Head, route, model, provider, usage, label, and extension
 // fields never cross this boundary; unexpected owner shapes fail closed.
 func projectLocalAppScenarioJob(job *runtimev1.ScenarioJob) (*runtimev1.LocalAppScenarioJob, error) {
+	if err := validateMusicGenerationResult(job); err != nil {
+		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
 	invalid := func() (*runtimev1.LocalAppScenarioJob, error) {
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
@@ -350,6 +353,7 @@ func projectLocalAppScenarioJob(job *runtimev1.ScenarioJob) (*runtimev1.LocalApp
 		CreatedAt:            job.GetCreatedAt(),
 		UpdatedAt:            job.GetUpdatedAt(),
 		RecoveryExpiresAt:    job.GetRecoveryExpiresAt(),
+		MusicGeneration:      cloneMusicGeneration(job.GetMusicGeneration()),
 		TranscriptionText:    transcriptionText,
 		Transcription:        transcription,
 		AudioSeparation:      separation,
@@ -502,15 +506,17 @@ func validateLocalAppScenarioJobRequest(req *runtimev1.SubmitLocalAppScenarioJob
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.r109
 func validateLocalAppMusicGenerateJobSpec(spec *runtimev1.LocalAppMusicGenerateJobSpec) (*runtimev1.MusicGenerateScenarioSpec, error) {
-	if spec == nil || strings.TrimSpace(spec.GetPrompt()) == "" || strings.TrimSpace(spec.GetLyrics()) == "" ||
-		!localAppOptionalExactText(spec.GetPrompt(), maxLocalAppScenarioPromptBytes) ||
-		!localAppOptionalExactText(spec.GetLyrics(), maxLocalAppScenarioPromptBytes) {
+	if spec == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
-	if spec.GetDurationSeconds() > 180 {
+	if spec.GetDurationSeconds() > 600 {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
-	return &runtimev1.MusicGenerateScenarioSpec{Prompt: spec.GetPrompt(), Lyrics: spec.GetLyrics(), DurationSeconds: int32(spec.GetDurationSeconds())}, nil
+	result := &runtimev1.MusicGenerateScenarioSpec{Prompt: spec.GetPrompt(), Lyrics: spec.GetLyrics(), DurationSeconds: int32(spec.GetDurationSeconds()), Instrumental: spec.GetInstrumental(), Seed: spec.Seed, Score: spec.GetScore(), ScoreConditioning: spec.GetScoreConditioning(), ReturnGeneratedScore: spec.GetReturnGeneratedScore(), AudioReference: spec.GetAudioReference()}
+	if err := validateMusicGenerationRequest(result, nil); err != nil {
+		return nil, err
+	}
+	return proto.Clone(result).(*runtimev1.MusicGenerateScenarioSpec), nil
 }
 
 func validateLocalAppVideoGenerateJobSpec(spec *runtimev1.LocalAppVideoGenerateJobSpec) (*runtimev1.VideoGenerateScenarioSpec, error) {

@@ -41,12 +41,28 @@ func cleanupMusicStagingAtStartup(stateDirectory string) error {
 			}
 			for _, child := range children {
 				if child.IsDir() {
+					if profile.root == "music-staging" && child.Name() == "music" && child.Type()&os.ModeSymlink == 0 {
+						// The native request id is fixed by the Driver, not supplied by the App.
+						inner := filepath.Join(path, "music")
+						if err := os.Remove(filepath.Join(inner, "score.abc")); err != nil && !os.IsNotExist(err) {
+							return err
+						}
+						remaining, err := os.ReadDir(inner)
+						if err != nil {
+							return err
+						}
+						if len(remaining) == 0 {
+							if err := os.Remove(inner); err != nil {
+								return err
+							}
+						}
+					}
 					continue
 				}
 				name := child.Name()
 				owned := numericTemporaryName(name, "input-") || numericTemporaryName(strings.TrimSuffix(name, ".wav"), "canonical-audio-")
 				if profile.root == "music-staging" {
-					owned = name == "music.wav" || name == "music.wav.tmp" || name == "score.abc"
+					owned = name == "music.wav" || name == "music.wav.tmp" || name == "request.json" || name == "input.abc" || numericTemporaryName(name, "input-") || name == "score.abc" || numericTemporaryName(strings.TrimSuffix(name, ".wav"), "canonical-audio-")
 				}
 				if owned {
 					if err := os.Remove(filepath.Join(path, name)); err != nil {

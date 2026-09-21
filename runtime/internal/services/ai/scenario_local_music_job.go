@@ -3,7 +3,6 @@ package ai
 import (
 	"context"
 	"crypto/sha256"
-	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -12,6 +11,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/audiomedia"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -136,31 +136,15 @@ func (s *Service) runLocalMusicScenarioJob(ctx context.Context, jobID string, ti
 		s.finishLocalMusicJobFailure(ctx, jobID, err)
 		return
 	}
-	validated, err := validateLocalMusicWAV(result, effective.plan)
+	validated, err := validateLocalMusicWAV(ctx, result, effective.plan)
 	if err != nil {
 		s.finishLocalMusicJobFailure(ctx, jobID, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{}))
 		return
 	}
-	artifact, body, err := localMusicArtifactBody(validated)
-	if err != nil {
-		s.finishLocalMusicJobFailure(ctx, jobID, err)
-		return
+	if err := s.commitLocalMusicGeneration(ctx, jobID, effective, result, validated); err != nil {
+		s.finishLocalMusicJobFailure(ctx, jobID, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{}))
 	}
-	_, err = s.storeAndAttachRuntimeJobArtifactBody(ctx, jobID, effective.head, artifact, body, func(candidate *runtimev1.ScenarioArtifact) bool {
-		_, committed := s.commitScenarioJobArtifact(jobID, candidate, 0, 0, 0)
-		return committed
-	})
-	if err != nil {
-		s.finishLocalMusicJobFailure(ctx, jobID, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{}))
-		return
-	}
-	_, _, _ = s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED, func(job *runtimev1.ScenarioJob) {
-		job.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED
-		job.Usage = &runtimev1.UsageStats{ComputeMs: result.ComputeMS}
-		job.ProgressPercent = 0
-		job.ProgressCurrentStep = 0
-		job.ProgressTotalSteps = 0
-	})
+
 }
 
 func (s *Service) finishLocalMusicJobFailure(ctx context.Context, jobID string, err error) {
@@ -196,75 +180,53 @@ type validatedLocalMusicWAV struct {
 	Channels   int
 	Bits       int
 	DurationMS int64
+	FrameCount uint64
+	DataOffset int64
 }
 
-func validateLocalMusicWAV(result localexecution.MusicResult, plan *capabilitydriver.MusicInvocationPlan) (validatedLocalMusicWAV, error) {
+func validateLocalMusicWAV(ctx context.Context, result localexecution.MusicResult, plan *capabilitydriver.MusicInvocationPlan) (validatedLocalMusicWAV, error) {
 	if plan == nil || result.StagingWAVPath != plan.StagingWAVPath() {
 		return validatedLocalMusicWAV{}, fmt.Errorf("music staging identity mismatch")
 	}
-	file, err := os.Open(result.StagingWAVPath)
+	wav, err := inspectMusicWAV(ctx, result.StagingWAVPath)
 	if err != nil {
 		return validatedLocalMusicWAV{}, err
 	}
-	defer func() { _ = file.Close() }()
-	info, err := file.Stat()
-	if err != nil || info.Size() < 44 {
-		return validatedLocalMusicWAV{}, fmt.Errorf("music WAV is incomplete")
+	rate, channels, bits := plan.ExpectedWAVFormat()
+	if wav.SampleRate != rate || wav.Channels != channels || bits != 32 {
+		return validatedLocalMusicWAV{}, fmt.Errorf("music WAV differs from Driver output contract")
 	}
-	header := make([]byte, 12)
-	if _, err := io.ReadFull(file, header); err != nil || string(header[:4]) != "RIFF" || string(header[8:12]) != "WAVE" || int64(binary.LittleEndian.Uint32(header[4:8]))+8 != info.Size() {
-		return validatedLocalMusicWAV{}, fmt.Errorf("music WAV RIFF bounds are invalid")
+	return wav, nil
+}
+
+func inspectMusicWAV(ctx context.Context, path string) (validatedLocalMusicWAV, error) {
+	facts, err := audiomedia.InspectCanonical(ctx, path)
+	if err != nil {
+		return validatedLocalMusicWAV{}, err
 	}
-	var format, channels, bits uint16
-	var sampleRate, byteRate, dataBytes uint32
-	for filePosition := int64(12); filePosition+8 <= info.Size(); {
-		chunk := make([]byte, 8)
-		if _, err := io.ReadFull(file, chunk); err != nil {
+	file, err := os.Open(path)
+	if err != nil {
+		return validatedLocalMusicWAV{}, err
+	}
+	defer file.Close()
+	hasher := sha256.New()
+	buffer := make([]byte, 64<<10)
+	for {
+		if err := ctx.Err(); err != nil {
 			return validatedLocalMusicWAV{}, err
 		}
-		filePosition += 8
-		size := binary.LittleEndian.Uint32(chunk[4:])
-		if filePosition+int64(size) > info.Size() {
-			return validatedLocalMusicWAV{}, fmt.Errorf("music WAV chunk exceeds file bounds")
+		n, err := file.Read(buffer)
+		if n > 0 {
+			_, _ = hasher.Write(buffer[:n])
 		}
-		if string(chunk[:4]) == "fmt " {
-			payload := make([]byte, size)
-			if _, err := io.ReadFull(file, payload); err != nil || len(payload) < 16 {
-				return validatedLocalMusicWAV{}, fmt.Errorf("music WAV fmt is invalid")
-			}
-			format = binary.LittleEndian.Uint16(payload[:2])
-			channels = binary.LittleEndian.Uint16(payload[2:4])
-			sampleRate = binary.LittleEndian.Uint32(payload[4:8])
-			byteRate = binary.LittleEndian.Uint32(payload[8:12])
-			bits = binary.LittleEndian.Uint16(payload[14:16])
-		} else {
-			if string(chunk[:4]) == "data" {
-				dataBytes = size
-			}
-			if _, err := file.Seek(int64(size), io.SeekCurrent); err != nil {
-				return validatedLocalMusicWAV{}, err
-			}
+		if err == io.EOF {
+			break
 		}
-		filePosition += int64(size)
-		if size%2 == 1 {
-			if _, err := file.Seek(1, io.SeekCurrent); err != nil {
-				return validatedLocalMusicWAV{}, err
-			}
-			filePosition++
+		if err != nil {
+			return validatedLocalMusicWAV{}, err
 		}
 	}
-	expectedRate, expectedChannels, expectedBits := plan.ExpectedWAVFormat()
-	if format != 1 || int(sampleRate) != expectedRate || int(channels) != expectedChannels || int(bits) != expectedBits || byteRate == 0 || dataBytes == 0 {
-		return validatedLocalMusicWAV{}, fmt.Errorf("music WAV format does not match Driver contract")
-	}
-	if _, err := file.Seek(0, io.SeekStart); err != nil {
-		return validatedLocalMusicWAV{}, err
-	}
-	hasher := sha256.New()
-	if _, err := io.Copy(hasher, file); err != nil {
-		return validatedLocalMusicWAV{}, err
-	}
-	return validatedLocalMusicWAV{Path: result.StagingWAVPath, SizeBytes: info.Size(), SHA256: hex.EncodeToString(hasher.Sum(nil)), SampleRate: int(sampleRate), Channels: int(channels), Bits: int(bits), DurationMS: int64(dataBytes) * 1000 / int64(byteRate)}, nil
+	return validatedLocalMusicWAV{Path: path, SizeBytes: facts.SizeBytes, SHA256: hex.EncodeToString(hasher.Sum(nil)), SampleRate: int(facts.SampleRateHz), Channels: int(facts.Channels), Bits: 32, DurationMS: int64(facts.DurationMilliseconds()), FrameCount: facts.FrameCount, DataOffset: facts.DataOffset}, nil
 }
 
 func localMusicArtifactBody(wav validatedLocalMusicWAV) (*runtimev1.ScenarioArtifact, *capabilitydriver.ArtifactBody, error) {
@@ -277,6 +239,6 @@ func localMusicArtifactBody(wav validatedLocalMusicWAV) (*runtimev1.ScenarioArti
 		_ = file.Close()
 		return nil, nil, err
 	}
-	metadata, _ := structpb.NewStruct(map[string]any{"format": "pcm_s16le", "bits_per_sample": wav.Bits})
-	return &runtimev1.ScenarioArtifact{ArtifactId: ulid.Make().String(), MimeType: "audio/wav", Sha256: wav.SHA256, SizeBytes: wav.SizeBytes, DurationMs: wav.DurationMS, SampleRateHz: int32(wav.SampleRate), Channels: int32(wav.Channels), Metadata: metadata}, body, nil
+	metadata, _ := structpb.NewStruct(map[string]any{"format": "pcm_f32le", "bits_per_sample": wav.Bits})
+	return &runtimev1.ScenarioArtifact{ArtifactId: ulid.Make().String(), MimeType: "audio/wav", Sha256: wav.SHA256, SizeBytes: wav.SizeBytes, DurationMs: wav.DurationMS, SampleRateHz: int32(wav.SampleRate), Channels: int32(wav.Channels), FrameCount: wav.FrameCount, Metadata: metadata}, body, nil
 }

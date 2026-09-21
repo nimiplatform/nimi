@@ -11,6 +11,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -31,6 +32,7 @@ const (
 // an exact Connector custody record; credential material stays in the
 // request-scoped Remote ExecutionHost opening point.
 type cloudResolvedAssembly struct {
+	MusicReference       *nimillm.MusicReferenceAudio          `json:"music_reference,omitempty"`
 	EmbeddingDimension   int                                   `json:"embedding_dimension,omitempty"`
 	AIConfigRevision     uint64                                `json:"ai_config_revision,omitempty"`
 	Version              int                                   `json:"version"`
@@ -272,6 +274,9 @@ func validateCloudResolvedAssemblyDraft(assembly *cloudResolvedAssembly) error {
 
 func validateCloudResolvedAssemblyRequest(assembly *cloudResolvedAssembly) error {
 	unmarshal := protojson.UnmarshalOptions{DiscardUnknown: false}
+	if assembly.MusicReference != nil && (assembly.RequestKind != cloudResolvedRequestMedia || assembly.CapabilityContract != "music.generate") {
+		return fmt.Errorf("music reference capture belongs to another capability")
+	}
 	switch assembly.RequestKind {
 	case cloudResolvedRequestText:
 		request := &runtimev1.TextGenerateScenarioSpec{}
@@ -301,6 +306,14 @@ func validateCloudResolvedAssemblyRequest(assembly *cloudResolvedAssembly) error
 			request.GetExecutionMode() != assembly.ExecutionMode ||
 			scenarioTargetCapability(request.GetScenarioType()) != assembly.CapabilityContract {
 			return fmt.Errorf("Cloud media ResolvedAssembly request identity is mismatched")
+		}
+		music := request.GetSpec().GetMusicGenerate()
+		if reference := assembly.MusicReference; reference != nil {
+			if music == nil || music.GetAudioReference() == nil || reference.ArtifactID != music.GetAudioReference().GetArtifactId() || reference.MIMEType != "audio/wav" || len(reference.Bytes) == 0 || len(reference.Bytes) > 32<<20 {
+				return fmt.Errorf("Cloud music reference capture is invalid")
+			}
+		} else if music != nil && music.GetAudioReference() != nil && assembly.CredentialCustodyRef != "" {
+			return fmt.Errorf("Cloud music reference capture is missing")
 		}
 		if err := validateScenarioExecutionMode(request.GetScenarioType(), request.GetExecutionMode()); err != nil {
 			return fmt.Errorf("Cloud media ResolvedAssembly request mode is invalid")

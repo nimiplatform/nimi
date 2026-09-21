@@ -1284,6 +1284,39 @@ const (
 	MODELCATALOGPROVIDERSOURCEOVERRIDDEN  ModelCatalogProviderSource = "MODEL_CATALOG_PROVIDER_SOURCE_OVERRIDDEN"
 )
 
+type MusicGenerationTermination string
+
+const (
+	MUSICGENERATIONTERMINATIONUNSPECIFIED MusicGenerationTermination = "MUSIC_GENERATION_TERMINATION_UNSPECIFIED"
+	MUSICGENERATIONTERMINATIONUNKNOWN     MusicGenerationTermination = "MUSIC_GENERATION_TERMINATION_UNKNOWN"
+	MUSICGENERATIONTERMINATIONMODELEND    MusicGenerationTermination = "MUSIC_GENERATION_TERMINATION_MODEL_END"
+	MUSICGENERATIONTERMINATIONBUDGETLIMIT MusicGenerationTermination = "MUSIC_GENERATION_TERMINATION_BUDGET_LIMIT"
+)
+
+type MusicScoreConditioning string
+
+const (
+	MUSICSCORECONDITIONINGUNSPECIFIED      MusicScoreConditioning = "MUSIC_SCORE_CONDITIONING_UNSPECIFIED"
+	MUSICSCORECONDITIONINGMELODYONLY       MusicScoreConditioning = "MUSIC_SCORE_CONDITIONING_MELODY_ONLY"
+	MUSICSCORECONDITIONINGMELODYANDHARMONY MusicScoreConditioning = "MUSIC_SCORE_CONDITIONING_MELODY_AND_HARMONY"
+)
+
+type MusicScoreFormat string
+
+const (
+	MUSICSCOREFORMATUNSPECIFIED MusicScoreFormat = "MUSIC_SCORE_FORMAT_UNSPECIFIED"
+	MUSICSCOREFORMATABC         MusicScoreFormat = "MUSIC_SCORE_FORMAT_ABC"
+	MUSICSCOREFORMATMIDI        MusicScoreFormat = "MUSIC_SCORE_FORMAT_MIDI"
+)
+
+type MusicScoreOrigin string
+
+const (
+	MUSICSCOREORIGINUNSPECIFIED         MusicScoreOrigin = "MUSIC_SCORE_ORIGIN_UNSPECIFIED"
+	MUSICSCOREORIGINGENERATEDPLAN       MusicScoreOrigin = "MUSIC_SCORE_ORIGIN_GENERATED_PLAN"
+	MUSICSCOREORIGINTRANSCRIBEDESTIMATE MusicScoreOrigin = "MUSIC_SCORE_ORIGIN_TRANSCRIBED_ESTIMATE"
+)
+
 type PresenceVerificationMethod string
 
 const (
@@ -2907,6 +2940,11 @@ type ArtifactStreamDelta struct {
 
 type AudioChunks struct {
 	Chunks [][]byte `json:"chunks,omitempty"`
+}
+
+type AudioFrameRange struct {
+	StartFrame uint64 `json:"start_frame,omitempty"`
+	EndFrame   uint64 `json:"end_frame,omitempty"`
 }
 
 type AudioSeparateResult struct {
@@ -5604,9 +5642,15 @@ type LocalAppImageGenerateScenarioSpec struct {
 }
 
 type LocalAppMusicGenerateJobSpec struct {
-	Prompt          string `json:"prompt,omitempty"`
-	Lyrics          string `json:"lyrics,omitempty"`
-	DurationSeconds uint32 `json:"duration_seconds,omitempty"`
+	Prompt               string                 `json:"prompt,omitempty"`
+	Lyrics               string                 `json:"lyrics,omitempty"`
+	DurationSeconds      uint32                 `json:"duration_seconds,omitempty"`
+	Instrumental         bool                   `json:"instrumental,omitempty"`
+	Seed                 *uint32                `json:"seed,omitempty"`
+	Score                *MusicScoreReference   `json:"score,omitempty"`
+	ScoreConditioning    MusicScoreConditioning `json:"score_conditioning,omitempty"`
+	ReturnGeneratedScore bool                   `json:"return_generated_score,omitempty"`
+	AudioReference       *MusicAudioInput       `json:"audio_reference,omitempty"`
 }
 
 type LocalAppPackagePreview struct {
@@ -5661,6 +5705,7 @@ type LocalAppScenarioJob struct {
 	AudioSeparation      *AudioSeparation           `json:"audio_separation,omitempty"`
 	TextAnnotation       *TextAnnotationResult      `json:"text_annotation,omitempty"`
 	RecoveryExpiresAt    string                     `json:"recovery_expires_at,omitempty"`
+	MusicGeneration      *MusicGeneration           `json:"music_generation,omitempty"`
 }
 
 type LocalAppScenarioJobEvent struct {
@@ -6321,18 +6366,49 @@ type MoveLocalAppAssetResponse struct {
 	ReasonCode ReasonCode           `json:"reason_code,omitempty"`
 }
 
+type MusicAudioInput struct {
+	ArtifactId string           `json:"artifact_id,omitempty"`
+	Range      *AudioFrameRange `json:"range,omitempty"`
+}
+
 type MusicGenerateResult struct {
-	Artifacts []ScenarioArtifact `json:"artifacts,omitempty"`
+	Artifacts  []ScenarioArtifact `json:"artifacts,omitempty"`
+	Generation *MusicGeneration   `json:"generation,omitempty"`
 }
 
 type MusicGenerateScenarioSpec struct {
-	Prompt          string `json:"prompt,omitempty"`
-	NegativePrompt  string `json:"negative_prompt,omitempty"`
-	Lyrics          string `json:"lyrics,omitempty"`
-	Style           string `json:"style,omitempty"`
-	Title           string `json:"title,omitempty"`
-	DurationSeconds int32  `json:"duration_seconds,omitempty"`
-	Instrumental    bool   `json:"instrumental,omitempty"`
+	Prompt               string                 `json:"prompt,omitempty"`
+	NegativePrompt       string                 `json:"negative_prompt,omitempty"`
+	Lyrics               string                 `json:"lyrics,omitempty"`
+	Style                string                 `json:"style,omitempty"`
+	Title                string                 `json:"title,omitempty"`
+	DurationSeconds      int32                  `json:"duration_seconds,omitempty"`
+	Instrumental         bool                   `json:"instrumental,omitempty"`
+	Score                *MusicScoreReference   `json:"score,omitempty"`
+	ScoreConditioning    MusicScoreConditioning `json:"score_conditioning,omitempty"`
+	Seed                 *uint32                `json:"seed,omitempty"`
+	ReturnGeneratedScore bool                   `json:"return_generated_score,omitempty"`
+	AudioReference       *MusicAudioInput       `json:"audio_reference,omitempty"`
+}
+
+type MusicGeneration struct {
+	MixArtifactId  string                     `json:"mix_artifact_id,omitempty"`
+	GeneratedScore *MusicScoreArtifact        `json:"generated_score,omitempty"`
+	ActualSeed     *uint32                    `json:"actual_seed,omitempty"`
+	Termination    MusicGenerationTermination `json:"termination,omitempty"`
+	AudioInfo      *LocalAppAudioInfo         `json:"audio_info,omitempty"`
+}
+
+type MusicScoreArtifact struct {
+	ArtifactId string           `json:"artifact_id,omitempty"`
+	Format     MusicScoreFormat `json:"format,omitempty"`
+	Origin     MusicScoreOrigin `json:"origin,omitempty"`
+	Truncated  bool             `json:"truncated,omitempty"`
+}
+
+type MusicScoreReference struct {
+	ArtifactId string           `json:"artifact_id,omitempty"`
+	Format     MusicScoreFormat `json:"format,omitempty"`
 }
 
 type OpenConversationAnchorRequest struct {
@@ -7247,6 +7323,7 @@ type ScenarioJob struct {
 	AudioSeparation        *AudioSeparation               `json:"audio_separation,omitempty"`
 	TextAnnotation         *TextAnnotationResult          `json:"text_annotation,omitempty"`
 	RecoveryExpiresAt      string                         `json:"recovery_expires_at,omitempty"`
+	MusicGeneration        *MusicGeneration               `json:"music_generation,omitempty"`
 }
 
 type ScenarioJobEvent struct {

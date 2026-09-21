@@ -1089,3 +1089,6 @@ function localAppSessionActionHint(state: NimiAppLocalSessionState | 'unavailabl
     case 'unavailable': return 'start_fixed_runtime_service';
   }
 }
+
+export { validateNimiLocalAppMusicGenerateSpec, validateNimiLocalAppMusicGeneration } from './local-app-music.js';
+export type { NimiLocalAppMusicGenerateSpec, NimiLocalAppMusicGeneration } from './local-app-music.js';

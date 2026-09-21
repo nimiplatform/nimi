@@ -1,3 +1,4 @@
+import { validateNimiLocalAppMusicGenerateSpec } from '@nimiplatform/kit/core/sdk-contract';
 import { Buffer } from 'node:buffer';
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 import { validateNimiLocalAppTextInput } from '@nimiplatform/kit/core/sdk-contract';
@@ -1139,10 +1140,8 @@ function validateScenarioSpec(value: unknown, command: string, execute: boolean)
 }
 
 function validateMusicSpec(value: Record<string, unknown>, command: string): void {
-  assertExactKeys(value, ['type', 'prompt', 'lyrics', 'durationSeconds'], command);
-  requiredUtf8Text(value.prompt, 'prompt', command, 32 * 1024);
-  requiredUtf8Text(value.lyrics, 'lyrics', command, 32 * 1024);
-  if (value.durationSeconds !== undefined) boundedSafeInteger(value.durationSeconds, 'durationSeconds', command, 1, 180);
+  try { validateNimiLocalAppMusicGenerateSpec(value); }
+  catch { throw invalidPayload(command, 'Music generation input is invalid'); }
 }
 
 function validateImageSpec(value: Record<string, unknown>, command: string): void {

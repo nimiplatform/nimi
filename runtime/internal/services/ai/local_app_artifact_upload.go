@@ -26,6 +26,9 @@ func (s *Service) UploadLocalAppArtifact(ctx context.Context, req *runtimev1.Upl
 	if req != nil && (req.GetAudioPreparation() != nil || req.GetAppAssetRelativePath() != "" || req.GetSourceArtifactId() != "") {
 		return s.prepareLocalAppAudioArtifact(ctx, decision, req)
 	}
+	if req.GetMimeType() == "text/vnd.abc" {
+		return s.uploadLocalAppMusicScore(ctx, decision, req)
+	}
 	if req == nil || len(req.GetBytes()) == 0 {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ARTIFACT_UPLOAD_INVALID)
 	}

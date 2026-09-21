@@ -412,3 +412,6 @@ export type { NimiLocalAppAudioSeparation } from './local-app-audio-separation.j
 
 export { validateNimiLocalAppTextAnnotationResult } from './local-app-text-annotation.js';
 export type { NimiLocalAppTextAnnotationResult, NimiLocalAppTextAnnotationDocument, NimiLocalAppTextAnnotationToken } from './local-app-text-annotation.js';
+
+export { validateNimiLocalAppMusicGenerateSpec, validateNimiLocalAppMusicGeneration } from './local-app-music.js';
+export type { NimiLocalAppMusicGenerateSpec, NimiLocalAppMusicGeneration } from './local-app-music.js';

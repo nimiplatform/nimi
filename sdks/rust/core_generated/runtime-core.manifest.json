@@ -6571,6 +6571,7 @@
       "ArtifactChunk",
       "ArtifactStreamDelta",
       "AudioChunks",
+      "AudioFrameRange",
       "AudioSeparateResult",
       "AudioSeparateScenarioSpec",
       "AudioSeparation",
@@ -7053,8 +7054,12 @@
       "ModelCatalogProviderEntry",
       "MoveLocalAppAssetRequest",
       "MoveLocalAppAssetResponse",
+      "MusicAudioInput",
       "MusicGenerateResult",
       "MusicGenerateScenarioSpec",
+      "MusicGeneration",
+      "MusicScoreArtifact",
+      "MusicScoreReference",
       "OpenConversationAnchorRequest",
       "OpenConversationAnchorResponse",
       "OpenDesktopSessionRequest",
@@ -7507,6 +7512,10 @@
       "ModelAssetSourceAvailability",
       "ModelAssetSourceFreshness",
       "ModelCatalogProviderSource",
+      "MusicGenerationTermination",
+      "MusicScoreConditioning",
+      "MusicScoreFormat",
+      "MusicScoreOrigin",
       "PresenceVerificationMethod",
       "PresenceVerificationState",
       "RealmAttachmentDisplayKind",
@@ -12183,6 +12192,26 @@
             "repeated": true,
             "optional": false,
             "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "AudioFrameRange",
+        "fields": [
+          {
+            "name": "start_frame",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "end_frame",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -24776,6 +24805,48 @@
             "repeated": false,
             "optional": false,
             "number": 3
+          },
+          {
+            "name": "instrumental",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "seed",
+            "type": "uint32",
+            "repeated": false,
+            "optional": true,
+            "number": 5
+          },
+          {
+            "name": "score",
+            "type": "MusicScoreReference",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "score_conditioning",
+            "type": "MusicScoreConditioning",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "return_generated_score",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "audio_reference",
+            "type": "MusicAudioInput",
+            "repeated": false,
+            "optional": false,
+            "number": 9
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -25109,6 +25180,13 @@
             "repeated": false,
             "optional": false,
             "number": 19
+          },
+          {
+            "name": "music_generation",
+            "type": "MusicGeneration",
+            "repeated": false,
+            "optional": false,
+            "number": 20
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -28826,6 +28904,26 @@
         "source_file": "proto/runtime/v1/app.proto"
       },
       {
+        "name": "MusicAudioInput",
+        "fields": [
+          {
+            "name": "artifact_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "range",
+            "type": "AudioFrameRange",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
         "name": "MusicGenerateResult",
         "fields": [
           {
@@ -28834,6 +28932,13 @@
             "repeated": true,
             "optional": false,
             "number": 1
+          },
+          {
+            "name": "generation",
+            "type": "MusicGeneration",
+            "repeated": false,
+            "optional": false,
+            "number": 2
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -28889,6 +28994,136 @@
             "repeated": false,
             "optional": false,
             "number": 7
+          },
+          {
+            "name": "score",
+            "type": "MusicScoreReference",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "score_conditioning",
+            "type": "MusicScoreConditioning",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "seed",
+            "type": "uint32",
+            "repeated": false,
+            "optional": true,
+            "number": 10
+          },
+          {
+            "name": "return_generated_score",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 11
+          },
+          {
+            "name": "audio_reference",
+            "type": "MusicAudioInput",
+            "repeated": false,
+            "optional": false,
+            "number": 12
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "MusicGeneration",
+        "fields": [
+          {
+            "name": "mix_artifact_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "generated_score",
+            "type": "MusicScoreArtifact",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "actual_seed",
+            "type": "uint32",
+            "repeated": false,
+            "optional": true,
+            "number": 3
+          },
+          {
+            "name": "termination",
+            "type": "MusicGenerationTermination",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "audio_info",
+            "type": "LocalAppAudioInfo",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "MusicScoreArtifact",
+        "fields": [
+          {
+            "name": "artifact_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "format",
+            "type": "MusicScoreFormat",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "origin",
+            "type": "MusicScoreOrigin",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "truncated",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "MusicScoreReference",
+        "fields": [
+          {
+            "name": "artifact_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "format",
+            "type": "MusicScoreFormat",
+            "repeated": false,
+            "optional": false,
+            "number": 2
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -33136,6 +33371,13 @@
             "repeated": false,
             "optional": false,
             "number": 30
+          },
+          {
+            "name": "music_generation",
+            "type": "MusicGeneration",
+            "repeated": false,
+            "optional": false,
+            "number": 31
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -40356,6 +40598,43 @@
           "MODEL_CATALOG_PROVIDER_SOURCE_OVERRIDDEN"
         ],
         "source_file": "proto/runtime/v1/connector.proto"
+      },
+      {
+        "name": "MusicGenerationTermination",
+        "values": [
+          "MUSIC_GENERATION_TERMINATION_UNSPECIFIED",
+          "MUSIC_GENERATION_TERMINATION_UNKNOWN",
+          "MUSIC_GENERATION_TERMINATION_MODEL_END",
+          "MUSIC_GENERATION_TERMINATION_BUDGET_LIMIT"
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "MusicScoreConditioning",
+        "values": [
+          "MUSIC_SCORE_CONDITIONING_UNSPECIFIED",
+          "MUSIC_SCORE_CONDITIONING_MELODY_ONLY",
+          "MUSIC_SCORE_CONDITIONING_MELODY_AND_HARMONY"
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "MusicScoreFormat",
+        "values": [
+          "MUSIC_SCORE_FORMAT_UNSPECIFIED",
+          "MUSIC_SCORE_FORMAT_ABC",
+          "MUSIC_SCORE_FORMAT_MIDI"
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "MusicScoreOrigin",
+        "values": [
+          "MUSIC_SCORE_ORIGIN_UNSPECIFIED",
+          "MUSIC_SCORE_ORIGIN_GENERATED_PLAN",
+          "MUSIC_SCORE_ORIGIN_TRANSCRIBED_ESTIMATE"
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
       },
       {
         "name": "PresenceVerificationMethod",

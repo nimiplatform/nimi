@@ -16,6 +16,9 @@ func cloneVisionLocateResult(value *runtimev1.VisionLocateResult) *runtimev1.Vis
 }
 
 func validateScenarioJobTerminalResults(record *scenarioJobRecord) error {
+	if err := validateMusicGenerationResult(record.job); err != nil {
+		return err
+	}
 	if err := validateScenarioJobAnnotationResult(record.job, record.resolvedAssembly); err != nil {
 		return err
 	}

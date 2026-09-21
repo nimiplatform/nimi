@@ -442,6 +442,34 @@ message VoiceCreateScenarioSpec {
   }
 }
 
+enum MusicScoreFormat {
+  MUSIC_SCORE_FORMAT_UNSPECIFIED = 0;
+  MUSIC_SCORE_FORMAT_ABC = 1;
+  MUSIC_SCORE_FORMAT_MIDI = 2;
+}
+
+enum MusicScoreConditioning {
+  MUSIC_SCORE_CONDITIONING_UNSPECIFIED = 0;
+  MUSIC_SCORE_CONDITIONING_MELODY_ONLY = 1;
+  MUSIC_SCORE_CONDITIONING_MELODY_AND_HARMONY = 2;
+}
+
+message MusicScoreReference {
+  string artifact_id = 1;
+  MusicScoreFormat format = 2;
+}
+
+// A half-open range on the referenced canonical PCM artifact's own timeline.
+message AudioFrameRange {
+  uint64 start_frame = 1;
+  uint64 end_frame = 2;
+}
+
+message MusicAudioInput {
+  string artifact_id = 1;
+  AudioFrameRange range = 2;
+}
+
 message MusicGenerateScenarioSpec {
   string prompt = 1;
   string negative_prompt = 2;
@@ -450,6 +478,11 @@ message MusicGenerateScenarioSpec {
   string title = 5;
   int32 duration_seconds = 6;
   bool instrumental = 7;
+  MusicScoreReference score = 8;
+  MusicScoreConditioning score_conditioning = 9;
+  optional uint32 seed = 10;
+  bool return_generated_score = 11;
+  MusicAudioInput audio_reference = 12;
 }
 
 // Source separation preserves the input timeline and returns vocals plus the
@@ -798,6 +831,36 @@ message SpeechTranscribeResult {
 
 message MusicGenerateResult {
   repeated ScenarioArtifact artifacts = 1;
+  MusicGeneration generation = 2;
+}
+
+enum MusicGenerationTermination {
+  MUSIC_GENERATION_TERMINATION_UNSPECIFIED = 0;
+  MUSIC_GENERATION_TERMINATION_UNKNOWN = 1;
+  MUSIC_GENERATION_TERMINATION_MODEL_END = 2;
+  MUSIC_GENERATION_TERMINATION_BUDGET_LIMIT = 3;
+}
+
+enum MusicScoreOrigin {
+  MUSIC_SCORE_ORIGIN_UNSPECIFIED = 0;
+  MUSIC_SCORE_ORIGIN_GENERATED_PLAN = 1;
+  MUSIC_SCORE_ORIGIN_TRANSCRIBED_ESTIMATE = 2;
+}
+
+message MusicScoreArtifact {
+  string artifact_id = 1;
+  MusicScoreFormat format = 2;
+  MusicScoreOrigin origin = 3;
+  bool truncated = 4;
+}
+
+// Only references to committed artifacts in the same successful Job.
+message MusicGeneration {
+  string mix_artifact_id = 1;
+  MusicScoreArtifact generated_score = 2;
+  optional uint32 actual_seed = 3;
+  MusicGenerationTermination termination = 4;
+  LocalAppAudioInfo audio_info = 5;
 }
 
 message AudioSeparateResult {
@@ -1032,6 +1095,12 @@ message LocalAppMusicGenerateJobSpec {
   string lyrics = 2;
   // Generation budget, not a guaranteed output length. Zero uses Runtime defaults.
   uint32 duration_seconds = 3;
+  bool instrumental = 4;
+  optional uint32 seed = 5;
+  MusicScoreReference score = 6;
+  MusicScoreConditioning score_conditioning = 7;
+  bool return_generated_score = 8;
+  MusicAudioInput audio_reference = 9;
 }
 
 // Text-conditioned world generation. Provider selection and asset retrieval
@@ -1098,6 +1167,7 @@ message LocalAppScenarioJob {
   TextAnnotationResult text_annotation = 18;
   // Present only for a terminal protected music Job with recovery identity.
   google.protobuf.Timestamp recovery_expires_at = 19;
+  MusicGeneration music_generation = 20;
 }
 
 // Trimmed voice asset catalog projection. Provider, model, provider voice
@@ -1426,6 +1496,7 @@ message ScenarioJob {
   AudioSeparation audio_separation = 28;
   TextAnnotationResult text_annotation = 29;
   google.protobuf.Timestamp recovery_expires_at = 30;
+  MusicGeneration music_generation = 31;
 }
 
 message SubmitScenarioJobRequest {

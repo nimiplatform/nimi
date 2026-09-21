@@ -425,7 +425,7 @@ func (b *Backend) GenerateMusic(ctx context.Context, modelID string, spec *runti
 	}
 
 	prompt := strings.TrimSpace(spec.GetPrompt())
-	requestBody, err := buildMusicGenerationRequest(b.Name, modelID, spec, scenarioExtensions)
+	requestBody, err := buildMusicGenerationRequest(modelID, spec, scenarioExtensions)
 	if err != nil {
 		return nil, nil, err
 	}

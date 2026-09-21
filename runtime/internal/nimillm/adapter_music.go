@@ -42,7 +42,7 @@ func ExecuteStabilityMusic(
 		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	extensions := ScenarioExtensionPayloadForType(req.GetScenarioType(), req.GetExtensions())
-	_, iteration, err := NormalizeMusicIterationExtension(extensions)
+	reference, err := validateMusicAdapterInput(ctx, spec, extensions, true)
 	if err != nil {
 		return nil, nil, "", err
 	}
@@ -58,7 +58,7 @@ func ExecuteStabilityMusic(
 	}
 
 	var body *JSONOrBinaryBody
-	if iteration == nil {
+	if reference == nil {
 		payload := map[string]any{
 			"model":  resolvedModel,
 			"prompt": strings.TrimSpace(spec.GetPrompt()),
@@ -100,15 +100,11 @@ func ExecuteStabilityMusic(
 						return err
 					}
 				}
-				fileWriter, createErr := writer.CreateFormFile("audio", musicIterationFilename(iteration.SourceMIMEType))
+				fileWriter, createErr := writer.CreateFormFile("audio", musicIterationFilename(reference.MIMEType))
 				if createErr != nil {
 					return createErr
 				}
-				audioBytes, decodeErr := decodeMusicIterationBase64(iteration.SourceAudioBase64)
-				if decodeErr != nil {
-					return decodeErr
-				}
-				if _, writeErr := fileWriter.Write(audioBytes); writeErr != nil {
+				if _, writeErr := fileWriter.Write(reference.Bytes); writeErr != nil {
 					return writeErr
 				}
 				return nil
@@ -139,10 +135,8 @@ func ExecuteSoundverseMusic(
 		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	extensions := ScenarioExtensionPayloadForType(req.GetScenarioType(), req.GetExtensions())
-	if _, iteration, err := NormalizeMusicIterationExtension(extensions); err != nil {
+	if _, err := validateMusicAdapterInput(ctx, spec, extensions, false); err != nil {
 		return nil, nil, "", err
-	} else if iteration != nil {
-		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
@@ -197,10 +191,8 @@ func ExecuteMubertMusic(
 		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	extensions := ScenarioExtensionPayloadForType(req.GetScenarioType(), req.GetExtensions())
-	if _, iteration, err := NormalizeMusicIterationExtension(extensions); err != nil {
+	if _, err := validateMusicAdapterInput(ctx, spec, extensions, false); err != nil {
 		return nil, nil, "", err
-	} else if iteration != nil {
-		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 
 	headers := mubertHeaders(cfg)
@@ -306,10 +298,8 @@ func ExecuteLoudlyMusic(
 		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	extensions := ScenarioExtensionPayloadForType(req.GetScenarioType(), req.GetExtensions())
-	if _, iteration, err := NormalizeMusicIterationExtension(extensions); err != nil {
+	if _, err := validateMusicAdapterInput(ctx, spec, extensions, false); err != nil {
 		return nil, nil, "", err
-	} else if iteration != nil {
-		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
@@ -369,10 +359,8 @@ func ExecuteLlamaMusic(
 		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	extensions := ScenarioExtensionPayloadForType(req.GetScenarioType(), req.GetExtensions())
-	if _, iteration, err := NormalizeMusicIterationExtension(extensions); err != nil {
+	if _, err := validateMusicAdapterInput(ctx, spec, extensions, false); err != nil {
 		return nil, nil, "", err
-	} else if iteration != nil {
-		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
@@ -448,10 +436,8 @@ func ExecuteSidecarMusic(
 		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	extensions := ScenarioExtensionPayloadForType(req.GetScenarioType(), req.GetExtensions())
-	if _, iteration, err := NormalizeMusicIterationExtension(extensions); err != nil {
+	if _, err := validateMusicAdapterInput(ctx, spec, extensions, false); err != nil {
 		return nil, nil, "", err
-	} else if iteration != nil {
-		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")

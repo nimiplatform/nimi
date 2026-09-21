@@ -3,7 +3,6 @@ package engine
 import (
 	"bytes"
 	"context"
-	"encoding/binary"
 	"os"
 	"path/filepath"
 	"sort"
@@ -12,6 +11,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/audiomedia"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 )
 
@@ -52,14 +52,11 @@ func TestYuE2NativeExecutionIntegration(t *testing.T) {
 	if !admitted || result.SizeBytes <= 44 || result.InferenceFacts.SemanticTokens != 500 || result.InferenceFacts.Termination != capabilitydriver.MusicTerminationBudgetLimit {
 		t.Fatalf("invalid native result: %+v", result)
 	}
-	body, err := os.ReadFile(result.StagingWAVPath)
-	if err != nil {
-		t.Fatal(err)
+	facts, err := audiomedia.InspectCanonical(ctx, result.StagingWAVPath)
+	if err != nil || facts.SampleRateHz != 48000 || facts.Channels != 2 {
+		t.Fatalf("native canonical WAV: %+v %v", facts, err)
 	}
-	if len(body) < 44 || string(body[:4]) != "RIFF" || string(body[8:12]) != "WAVE" || binary.LittleEndian.Uint16(body[20:22]) != 1 || binary.LittleEndian.Uint16(body[22:24]) != 2 || binary.LittleEndian.Uint32(body[24:28]) != 48000 || binary.LittleEndian.Uint16(body[34:36]) != 16 {
-		t.Fatal("native WAV format mismatch")
-	}
-	frames := int(binary.LittleEndian.Uint32(body[40:44])) / 4
+	frames := int(facts.FrameCount)
 	if frames < 950000 || frames > 960000 {
 		t.Fatalf("unexpected 20-second budget frame count: %d", frames)
 	}

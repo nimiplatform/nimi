@@ -45,13 +45,13 @@ func (h *localMusicHostStub) ExecuteMusic(ctx context.Context, plan *capabilityd
 	}
 	write := h.write
 	if write == nil {
-		write = func(path string) error { return writeLocalMusicTestWAV(path, 44100, 2, 1) }
+		write = func(path string) error { return writeCanonicalMusicTestWAV(path, 44100, 2, 1) }
 	}
 	if err := write(plan.StagingWAVPath()); err != nil {
 		return localexecution.MusicResult{}, err
 	}
 	info, _ := os.Stat(plan.StagingWAVPath())
-	return localexecution.MusicResult{StagingWAVPath: plan.StagingWAVPath(), SizeBytes: info.Size(), SampleRate: 44100, Channels: 2, BitsPerSample: 16, DurationMS: 1000, ComputeMS: 7}, nil
+	return localexecution.MusicResult{StagingWAVPath: plan.StagingWAVPath(), SizeBytes: info.Size(), SampleRate: 44100, Channels: 2, BitsPerSample: 32, DurationMS: 1000, ComputeMS: 7}, nil
 }
 
 func selectedMusicExecutionForTest(t *testing.T) *localexecution.SelectedLocalExecution {
@@ -236,3 +236,28 @@ func writeLocalMusicTestBytes(path string, payload []byte) error {
 }
 
 var _ localexecution.MusicExecutionHost = (*localMusicHostStub)(nil)
+
+func writeCanonicalMusicTestWAV(path string, sampleRate, channels, seconds int) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+		return err
+	}
+	frames := sampleRate * seconds
+	dataBytes := frames * channels * 4
+	payload := make([]byte, 58+dataBytes)
+	copy(payload[:4], "RIFF")
+	binary.LittleEndian.PutUint32(payload[4:8], uint32(len(payload)-8))
+	copy(payload[8:16], "WAVEfmt ")
+	binary.LittleEndian.PutUint32(payload[16:20], 18)
+	binary.LittleEndian.PutUint16(payload[20:22], 3)
+	binary.LittleEndian.PutUint16(payload[22:24], uint16(channels))
+	binary.LittleEndian.PutUint32(payload[24:28], uint32(sampleRate))
+	binary.LittleEndian.PutUint32(payload[28:32], uint32(sampleRate*channels*4))
+	binary.LittleEndian.PutUint16(payload[32:34], uint16(channels*4))
+	binary.LittleEndian.PutUint16(payload[34:36], 32)
+	copy(payload[38:42], "fact")
+	binary.LittleEndian.PutUint32(payload[42:46], 4)
+	binary.LittleEndian.PutUint32(payload[46:50], uint32(frames))
+	copy(payload[50:54], "data")
+	binary.LittleEndian.PutUint32(payload[54:58], uint32(dataBytes))
+	return os.WriteFile(path, payload, 0600)
+}

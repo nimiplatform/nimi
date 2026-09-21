@@ -178,6 +178,31 @@ export enum Modal {
   VISION = 9,
 }
 
+export enum MusicGenerationTermination {
+  UNSPECIFIED = 0,
+  UNKNOWN = 1,
+  MODEL_END = 2,
+  BUDGET_LIMIT = 3,
+}
+
+export enum MusicScoreConditioning {
+  UNSPECIFIED = 0,
+  MELODY_ONLY = 1,
+  MELODY_AND_HARMONY = 2,
+}
+
+export enum MusicScoreFormat {
+  UNSPECIFIED = 0,
+  ABC = 1,
+  MIDI = 2,
+}
+
+export enum MusicScoreOrigin {
+  UNSPECIFIED = 0,
+  GENERATED_PLAN = 1,
+  TRANSCRIBED_ESTIMATE = 2,
+}
+
 export enum RealmAttachmentDisplayKind {
   UNSPECIFIED = 0,
   IMAGE = 1,

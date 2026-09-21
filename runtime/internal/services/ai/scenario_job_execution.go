@@ -64,6 +64,12 @@ func (s *Service) executeScenarioAsyncJob(
 	if existing, ok := s.scenarioJobs.get(jobID); ok && isTerminalScenarioJobStatus(existing.GetStatus()) {
 		return
 	}
+	if req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE {
+		if err := s.commitCloudMusicGeneration(ctx, jobID, effective, result); err != nil {
+			s.finishScenarioAsyncJobFailure(ctx, jobID, effective, err)
+		}
+		return
+	}
 	var transcription *runtimev1.SpeechTranscript
 	artifacts, custodyErr := bindRuntimeJobArtifacts(jobID, req.GetHead(), result.Artifacts)
 	var newCustodyIDs []string

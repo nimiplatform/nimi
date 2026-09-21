@@ -304,7 +304,7 @@ func (s *scenarioJobStore) createOwnedAndBindCapturedInputsChecked(
 			s.mu.Unlock()
 			return snapshot, false, nil
 		}
-		if err := s.admitMusicRecoveryLocked(submission.ReservedBytes, true); err != nil {
+		if err := s.admitMusicRecoveryLocked(submission.ReservedBytes+musicCapturedInputBytes(capturedAssembly, capturedCloudAssembly), true); err != nil {
 			s.mu.Unlock()
 			return nil, false, err
 		}

@@ -534,46 +534,12 @@ func TestBackendTranscribeAllowsEmptyTextForFirstRunProbeExtension(t *testing.T)
 	}
 }
 
-func TestBackendGenerateMusicNormalizesIterationExtensions(t *testing.T) {
-	var captured map[string]any
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost || r.URL.Path != "/v1/music/generations" {
-			http.NotFound(w, r)
-			return
-		}
-		captured = decodeJSONBodyForBackendMediaTest(t, r)
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]any{
-			"data": []map[string]any{
-				{"b64_audio": base64.StdEncoding.EncodeToString([]byte("music-generic"))},
-			},
-		})
-	}))
-	defer func() { server.Close() }()
-
-	backend := NewBackend("cloud-stability", server.URL, "", time.Second)
-	_, _, err := backend.GenerateMusic(context.Background(), "stable-audio-2", &runtimev1.MusicGenerateScenarioSpec{
-		Prompt: "continue this idea",
-		Title:  "Continuation",
-	}, map[string]any{
-		"mode":                "extend",
-		"source_audio_base64": "aGVsbG8=",
-		"trim_start_sec":      3.25,
-	})
-	if err != nil {
-		t.Fatalf("GenerateMusic failed: %v", err)
-	}
-
-	capturedExtensions, ok := captured["extensions"].(map[string]any)
-	if !ok {
-		t.Fatalf("expected music extensions map, got=%T", captured["extensions"])
-	}
-	if got := strings.TrimSpace(ValueAsString(capturedExtensions["mode"])); got != "extend" {
-		t.Fatalf("expected normalized music mode, got=%q", got)
-	}
-	if got := capturedExtensions["trim_start_sec"]; got != 3.25 {
-		t.Fatalf("expected normalized trim_start_sec, got=%#v", got)
+func TestBackendGenerateMusicRejectsRetiredExtensionsBeforeTransport(t *testing.T) {
+	backend := NewBackend("cloud-stability", "http://127.0.0.1", "", time.Second)
+	_, _, err := backend.GenerateMusic(context.Background(), "stable-audio-2", &runtimev1.MusicGenerateScenarioSpec{Prompt: "new reference request"}, map[string]any{"mode": "reference", "source_audio_base64": "aGVsbG8="})
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+		t.Fatalf("retired input reached transport: %v", err)
 	}
 }
 

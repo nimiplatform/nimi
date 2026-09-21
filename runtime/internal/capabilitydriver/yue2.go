@@ -3,15 +3,16 @@ package capabilitydriver
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
-	"unicode/utf16"
 	"unicode/utf8"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/musicscore"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -136,7 +137,7 @@ func (YuE2AudioCppDriver) PlanMusicInvocation(input MusicInvocationInput) (*Musi
 	if r == nil || strings.TrimSpace(r.GetPrompt()) == "" || strings.TrimSpace(r.GetLyrics()) == "" || !utf8.ValidString(r.GetPrompt()) || !utf8.ValidString(r.GetLyrics()) || strings.ContainsRune(r.GetPrompt()+r.GetLyrics(), 0) {
 		return bad(InvocationFailureInvalidRequest, "style prompt and lyrics are required")
 	}
-	if r.GetNegativePrompt() != "" || r.GetStyle() != "" || r.GetTitle() != "" || r.GetInstrumental() || len(input.Extensions) != 0 || r.GetDurationSeconds() < 0 || r.GetDurationSeconds() > 600 {
+	if r.GetNegativePrompt() != "" || r.GetStyle() != "" || r.GetTitle() != "" || r.GetInstrumental() || r.GetAudioReference() != nil || len(input.Extensions) != 0 || r.GetDurationSeconds() < 0 || r.GetDurationSeconds() > 600 {
 		return bad(InvocationFailureUnsupported, "request contains unsupported fields")
 	}
 	if !filepath.IsAbs(input.StagingWAVPath) || filepath.Base(input.StagingWAVPath) != "music.wav" {
@@ -146,24 +147,59 @@ func (YuE2AudioCppDriver) PlanMusicInvocation(input MusicInvocationInput) (*Musi
 	if duration == 0 {
 		duration = 20
 	}
+	generatedScore := r.GetScore() == nil
+	cot := "full"
+	if !generatedScore {
+		if r.GetScore().GetFormat() != runtimev1.MusicScoreFormat_MUSIC_SCORE_FORMAT_ABC || r.GetReturnGeneratedScore() {
+			return bad(InvocationFailureUnsupported, "does not generate another score from a provided ABC input")
+		}
+		if r.GetScoreConditioning() == runtimev1.MusicScoreConditioning_MUSIC_SCORE_CONDITIONING_MELODY_ONLY {
+			cot = "melody"
+		} else if r.GetScoreConditioning() != runtimev1.MusicScoreConditioning_MUSIC_SCORE_CONDITIONING_MELODY_AND_HARMONY {
+			return bad(InvocationFailureInvalidRequest, "score conditioning is required")
+		}
+		if err := musicscore.ValidateABC(input.ScoreABC, cot == "melody"); err != nil {
+			return bad(InvocationFailureInvalidRequest, err.Error())
+		}
+	} else if len(input.ScoreABC) != 0 || r.GetScoreConditioning() != runtimev1.MusicScoreConditioning_MUSIC_SCORE_CONDITIONING_UNSPECIFIED {
+		return bad(InvocationFailureInvalidRequest, "score content has no declared reference")
+	}
+	// Every UTF-8 byte can be at most one tokenizer token. This deliberately
+	// conservative bound includes generated tokens and avoids silent context cuts.
+	planningTokens := 0
+	if generatedScore {
+		planningTokens = 4096
+	}
+	if len(r.GetPrompt())+len(r.GetLyrics())+len(input.ScoreABC)+duration*25+planningTokens+128 > 24576 {
+		return bad(InvocationFailureUnsupported, "input and duration exceed the admitted context budget")
+	}
 	hasher := sha256.New()
 	for _, value := range append(invocationExactBindingIdentity(binding), pkg.AudioCppVersion, pkg.AudioCppSelectedSourceRecordID, pkg.CUDA13SelectedSourceRecordID, YuE2DriverDialect) {
 		_, _ = hasher.Write([]byte(value))
 		_, _ = hasher.Write([]byte{0})
 	}
-	plan := &MusicInvocationPlan{processKey: hex.EncodeToString(hasher.Sum(nil)), loadoutID: input.LoadoutID, recipeID: YuE2RecipeID, driverIdentity: Identity{ImplementationID: YuE2ImplementationID, DriverID: YuE2DriverID, DriverDialect: YuE2DriverDialect}, modelBinding: binding, modelRoot: filepath.Clean(binding.BundleDir), audioCppPackageID: pkg.AudioCppPackageID, audioCppSelectedSourceRecordID: pkg.AudioCppSelectedSourceRecordID, audioCppRoot: pkg.AudioCppRoot, audioCppExecutablePath: pkg.AudioCppExecutablePath, cuda13DependencyID: pkg.CUDA13DependencyID, cuda13SelectedSourceRecordID: pkg.CUDA13SelectedSourceRecordID, cuda13Root: pkg.CUDA13Root, prompt: r.GetPrompt(), lyrics: r.GetLyrics(), durationBudgetSeconds: duration, seed: 1234, stagingWAVPath: input.StagingWAVPath, stagingScorePath: filepath.Join(filepath.Dir(input.StagingWAVPath), "score.abc"), expectedSampleRate: 48000, expectedChannels: 2, expectedBitsPerSample: 16, outputObserver: func() MusicOutputObserver { return &yue2OutputObserver{} }}
+	plan := &MusicInvocationPlan{processKey: hex.EncodeToString(hasher.Sum(nil)), loadoutID: input.LoadoutID, recipeID: YuE2RecipeID, driverIdentity: Identity{ImplementationID: YuE2ImplementationID, DriverID: YuE2DriverID, DriverDialect: YuE2DriverDialect}, modelBinding: binding, modelRoot: filepath.Clean(binding.BundleDir), audioCppPackageID: pkg.AudioCppPackageID, audioCppSelectedSourceRecordID: pkg.AudioCppSelectedSourceRecordID, audioCppRoot: pkg.AudioCppRoot, audioCppExecutablePath: pkg.AudioCppExecutablePath, cuda13DependencyID: pkg.CUDA13DependencyID, cuda13SelectedSourceRecordID: pkg.CUDA13SelectedSourceRecordID, cuda13Root: pkg.CUDA13Root, prompt: r.GetPrompt(), lyrics: r.GetLyrics(), durationBudgetSeconds: duration, seed: 1234, stagingWAVPath: input.StagingWAVPath, expectedSampleRate: 48000, expectedChannels: 2, expectedBitsPerSample: 32, outputObserver: func() MusicOutputObserver { return &yue2OutputObserver{expectGeneratedScore: generatedScore} }}
+	if r.Seed != nil {
+		plan.seed = uint64(r.GetSeed())
+	}
+	directory := filepath.Dir(plan.stagingWAVPath)
+	options := map[string]string{"style": plan.prompt, "cot": cot, "seed": strconv.FormatUint(plan.seed, 10), "abc_max_tokens": "4096", "semantic_max_tokens": strconv.Itoa(duration * 25)}
+	if generatedScore {
+		plan.stagingScorePath = filepath.Join(directory, "music", "score.abc")
+	} else {
+		plan.scoreInputPath = filepath.Join(directory, "input.abc")
+		plan.scoreInput = append([]byte(nil), input.ScoreABC...)
+		options["abc_file"] = plan.scoreInputPath
+	}
+	plan.requestJSONPath = filepath.Join(directory, "request.json")
+	var encodeErr error
+	plan.requestJSON, encodeErr = json.Marshal(map[string]any{"requests": []any{map[string]any{"id": "music", "lyrics": plan.lyrics, "options": options}}})
+	if encodeErr != nil {
+		return bad(InvocationFailureInvalidRequest, "request could not be encoded")
+	}
 	// Native YuE2 generates 25 semantic tokens per second. The decoded waveform
 	// can round slightly; this is a budget, never a requested exact endpoint.
-	plan.cliArgs = []string{"--task", "gen", "--family", "yue2", "--model", plan.modelRoot, "--backend", "cuda", "--lyrics", plan.lyrics, "--seed", "1234", "--request-option", "style=" + plan.prompt, "--request-option", "cot=full", "--request-option", "abc_max_tokens=4096", "--request-option", "semantic_max_tokens=" + strconv.Itoa(duration*25), "--out", plan.stagingWAVPath, "--out-dir", filepath.Dir(plan.stagingWAVPath), "--metrics", "--log"}
-	// Until the file-backed request carrier is admitted, reject before launching
-	// a command exceeding Windows' limit, including worst-case quote escaping.
-	units := 0
-	for _, arg := range plan.cliArgs {
-		units += 2*len(utf16.Encode([]rune(arg))) + 3
-	}
-	if units > 30000 {
-		return bad(InvocationFailureUnsupported, "request exceeds this CLI profile's command bound")
-	}
+	plan.cliArgs = []string{"--task", "gen", "--family", "yue2", "--model", plan.modelRoot, "--backend", "cuda", "--request-sequence", plan.requestJSONPath, "--out-dir", directory, "--out-format", "float32", "--metrics", "--log"}
 	return plan, nil
 }
 

@@ -71,6 +71,9 @@ func (s *scenarioJobStore) admitMusicRecoveryLocked(extraBytes int64, jobSlot bo
 			continue
 		}
 		count++
+		if !charge(musicCapturedInputBytes(record.resolvedAssembly, record.cloudAssembly)) {
+			return errMusicRecoveryCapacity
+		}
 		if isTerminalScenarioJobStatus(record.job.GetStatus()) && !record.executionStarted && len(record.musicOutputReservations) == 0 {
 			continue
 		}
@@ -105,13 +108,30 @@ func (s *scenarioJobStore) admitMusicRecoveryLocked(extraBytes int64, jobSlot bo
 	return nil
 }
 
-func (s *scenarioJobStore) beginMusicPreparation(id string) (func(), error) {
+// Scores are the only inline music execution payload. Count their durable
+// base64 representation as retained media while the Job snapshot exists.
+func musicCapturedInputBytes(assembly *localResolvedAssembly, cloud *cloudResolvedAssembly) int64 {
+	var result int64
+	if assembly != nil && assembly.Request.Kind == "music.generate" {
+		result += int64((len(assembly.Request.BinaryInput) + 2) / 3 * 4)
+	}
+	if cloud != nil && cloud.MusicReference != nil {
+		result += int64((len(cloud.MusicReference.Bytes) + 2) / 3 * 4)
+	}
+	return result
+}
+
+func (s *scenarioJobStore) beginMusicImport(id string, bound int64) (func(), error) {
 	s.mu.Lock()
-	if err := s.admitMusicRecoveryLocked(maxMusicRecoveryOutputBytes, false); err != nil {
+	if bound <= 0 || bound > maxMusicRecoveryOutputBytes {
+		s.mu.Unlock()
+		return nil, errMusicRecoveryCapacity
+	}
+	if err := s.admitMusicRecoveryLocked(bound, false); err != nil {
 		s.mu.Unlock()
 		return nil, err
 	}
-	s.musicPreparations[id] = maxMusicRecoveryOutputBytes
+	s.musicPreparations[id] = bound
 	s.mu.Unlock()
 	var once sync.Once
 	return func() { once.Do(func() { s.mu.Lock(); delete(s.musicPreparations, id); s.mu.Unlock() }) }, nil

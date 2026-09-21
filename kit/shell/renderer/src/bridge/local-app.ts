@@ -1,3 +1,4 @@
+import { validateNimiLocalAppMusicGenerateSpec, validateNimiLocalAppMusicGeneration, type NimiLocalAppMusicGenerateSpec, type NimiLocalAppMusicGeneration } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppTextAnnotationResult, type NimiLocalAppTextAnnotationResult } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppSpeechTranscript, type NimiLocalAppSpeechTranscript } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppAudioSeparation, type NimiLocalAppAudioSeparation } from '@nimiplatform/kit/core/sdk-contract';
@@ -211,7 +212,7 @@ export type NimiLocalAppScenarioJobSpec =
       readonly instructionText: string; readonly previewText: string;
       readonly language: string; readonly preferredName: string;
     }
-  | { readonly type: 'music-generate'; readonly prompt: string; readonly lyrics: string; readonly durationSeconds?: number }
+  | NimiLocalAppMusicGenerateSpec
   | { readonly type: 'world-generate'; readonly prompt: string; readonly displayName: string };
 
 export type NimiLocalAppScenarioJobSubmitOptions = {
@@ -239,6 +240,7 @@ export type NimiLocalAppScenarioJob = {
   readonly transcription?: NimiLocalAppSpeechTranscript;
   readonly textAnnotation?: NimiLocalAppTextAnnotationResult;
   readonly audioSeparation?: NimiLocalAppAudioSeparation;
+  readonly musicGeneration?: NimiLocalAppMusicGeneration;
   readonly interruption?: NimiLocalAppExecutionInterruption;
 };
 export type NimiLocalAppVoiceAsset = {
@@ -930,6 +932,10 @@ export function listNimiLocalAppVoiceAssets(
 
 function canonicalScenarioSpec(spec: unknown, command: string): JsonObject {
   const record = assertRecord(spec, `${command}: scenario spec must be an object`);
+  if (record.type === 'music-generate') {
+    try { validateNimiLocalAppMusicGenerateSpec(record); }
+    catch { throw invalidInput(command, 'Music generation input is invalid'); }
+  }
   if (record.type === 'text-generate' && command === AIC_COMMANDS.scenarioExecute) {
     const { type, ...input } = record;
     return { type, ...canonicalTextTurnInput(input as unknown as NimiLocalAppTextTurnInput, command) };
@@ -2302,6 +2308,7 @@ function parseScenarioJob(value: unknown, command: string): NimiLocalAppScenario
     ...(Object.hasOwn(record, 'transcription') ? ['transcription'] : []),
     ...(Object.hasOwn(record, 'textAnnotation') ? ['textAnnotation'] : []),
     ...(Object.hasOwn(record, 'audioSeparation') ? ['audioSeparation'] : []),
+    ...(Object.hasOwn(record, 'musicGeneration') ? ['musicGeneration'] : []),
     ...(Object.hasOwn(record, 'interruption') ? ['interruption'] : []),
     ...(Object.hasOwn(record, 'videoFaceSwapSummary') ? ['videoFaceSwapSummary'] : []),
   ], command, 'scenario Job');
@@ -2328,12 +2335,15 @@ function parseScenarioJob(value: unknown, command: string): NimiLocalAppScenario
   if ((record.textAnnotation !== undefined) !== (record.scenarioType === 'text-annotate' && record.status === 'completed')) throw new Error(`${command}: annotation state is invalid`);
   const textAnnotation = record.textAnnotation === undefined ? undefined : validateNimiLocalAppTextAnnotationResult(record.textAnnotation);
   const audioSeparation = record.audioSeparation === undefined ? undefined : validateNimiLocalAppAudioSeparation(record.audioSeparation, artifacts);
+  if ((record.musicGeneration !== undefined) !== (record.scenarioType === 'music-generate' && record.status === 'completed')) throw new Error(`${command}: music generation state is invalid`);
+  const musicGeneration = record.musicGeneration === undefined ? undefined : validateNimiLocalAppMusicGeneration(record.musicGeneration, artifacts);
   const recoveryExpiresAt = record.recoveryExpiresAt === undefined ? undefined : parseScenarioTimestamp(record.recoveryExpiresAt, command);
   if (record.recoveryExpiresAt !== undefined && (!recoveryExpiresAt || record.scenarioType !== 'music-generate' || !['completed', 'failed', 'canceled', 'timeout'].includes(String(record.status)))) throw new Error(`${command}: music recovery expiry is invalid`);
   return Object.freeze({
     ...(recoveryExpiresAt ? { recoveryExpiresAt } : {}),
     ...(textAnnotation ? { textAnnotation } : {}),
     ...(audioSeparation ? { audioSeparation } : {}),
+    ...(musicGeneration ? { musicGeneration } : {}),
     ...(transcription ? { transcription } : {}),
     ...(videoFaceSwapSummary ? { videoFaceSwapSummary } : {}),
     ...(interruption !== undefined ? { interruption: { ...(interruption as NimiLocalAppExecutionInterruption) } } : {}),

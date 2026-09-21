@@ -86,13 +86,7 @@ func validateSubmitScenarioAsyncJobRequest(req *runtimev1.SubmitScenarioJobReque
 		}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
 		spec := req.GetSpec().GetMusicGenerate()
-		if spec == nil || strings.TrimSpace(spec.GetPrompt()) == "" {
-			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
-		}
-		if spec.GetDurationSeconds() < 0 || spec.GetDurationSeconds() > 600 {
-			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
-		}
-		if _, _, err := resolveMusicGenerateExtensionPayload(req); err != nil {
+		if err := validateMusicGenerationRequest(spec, req.GetExtensions()); err != nil {
 			return err
 		}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SEPARATE:

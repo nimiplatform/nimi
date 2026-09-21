@@ -1444,18 +1444,18 @@ test('local-app Music adapter carries prompt, lyrics and bounded duration throug
     head: { appId: 'nimi.lab', subjectUserId: '', timeoutMs: 5_000 },
     scenarioType: ScenarioType.MUSIC_GENERATE,
     executionMode: ExecutionMode.ASYNC_JOB,
-    spec: { spec: { oneofKind: 'musicGenerate', musicGenerate: { prompt: 'bright synth-pop', negativePrompt: '', lyrics: '[Verse]\nCity lights.', style: '', title: '', durationSeconds: 0, instrumental: false } } },
+    spec: { spec: { oneofKind: 'musicGenerate', musicGenerate: { prompt: 'bright synth-pop', negativePrompt: '', lyrics: '[Verse]\nCity lights.', style: '', title: '', durationSeconds: 0, instrumental: false, scoreConditioning: 0, returnGeneratedScore: false } } },
     requestId: 'request-music', idempotencyKey: 'idempotency-music', labels: {}, extensions: [],
   };
   await adapter.submitScenarioJob(request);
   assert.deepEqual(calls, [[
-    { type: 'music-generate', prompt: 'bright synth-pop', lyrics: '[Verse]\nCity lights.' },
+    { type: 'music-generate', prompt: 'bright synth-pop', lyrics: '[Verse]\nCity lights.', instrumental: false, returnGeneratedScore: false },
     { timeoutMs: 5_000 },
   ]]);
   await adapter.submitScenarioJob({ ...request, spec: { spec: { oneofKind: 'musicGenerate', musicGenerate: { ...request.spec!.spec!.musicGenerate, durationSeconds: 120 } } } });
-  assert.deepEqual(calls[1], [{ type: 'music-generate', prompt: 'bright synth-pop', lyrics: '[Verse]\nCity lights.', durationSeconds: 120 }, { timeoutMs: 5_000 }]);
+  assert.deepEqual(calls[1], [{ type: 'music-generate', prompt: 'bright synth-pop', lyrics: '[Verse]\nCity lights.', durationSeconds: 120, instrumental: false, returnGeneratedScore: false }, { timeoutMs: 5_000 }]);
   await assert.rejects(
-    () => adapter.submitScenarioJob({ ...request, spec: { spec: { oneofKind: 'musicGenerate', musicGenerate: { ...request.spec!.spec!.musicGenerate, durationSeconds: 181 } } } }),
+    () => adapter.submitScenarioJob({ ...request, spec: { spec: { oneofKind: 'musicGenerate', musicGenerate: { ...request.spec!.spec!.musicGenerate, durationSeconds: 601 } } } }),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_INPUT_INVALID',
   );
 });

@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -225,6 +226,44 @@ func runAudioCppCLIProcess(ctx context.Context, plan *capabilitydriver.MusicInvo
 	args, err := audioCppCLIArgs(plan)
 	if err != nil {
 		return localexecution.MusicResult{}, executionFailure(localexecution.FailureContentMismatch, err)
+	}
+	createdInputs := []string{}
+	defer func() {
+		for _, path := range createdInputs {
+			_ = os.Remove(path)
+		}
+	}()
+	requestPath, requestData := plan.RequestJSON()
+	scorePath, scoreData := plan.ScoreInput()
+	for _, input := range []struct {
+		path string
+		data []byte
+	}{{requestPath, requestData}, {scorePath, scoreData}} {
+		if input.path == "" && len(input.data) == 0 {
+			continue
+		}
+		if filepath.Dir(input.path) != filepath.Dir(plan.StagingWAVPath()) || len(input.data) == 0 || len(input.data) > 1<<20 {
+			return localexecution.MusicResult{}, executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("music input materialization is invalid"))
+		}
+		if err := ctx.Err(); err != nil {
+			return localexecution.MusicResult{}, musicContextFailure(err)
+		}
+		file, err := os.OpenFile(input.path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+		if err != nil {
+			return localexecution.MusicResult{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("create private music input: %w", err))
+		}
+		createdInputs = append(createdInputs, input.path)
+		written, writeErr := file.Write(input.data)
+		closeErr := file.Close()
+		if writeErr == nil && written != len(input.data) {
+			writeErr = io.ErrShortWrite
+		}
+		if writeErr == nil {
+			writeErr = closeErr
+		}
+		if writeErr != nil {
+			return localexecution.MusicResult{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("write private music input: %w", writeErr))
+		}
 	}
 	observer := plan.NewOutputObserver()
 	outcome, err := runAudioCppProcess(ctx, audioCppProcessSpec{executablePath: plan.AudioCppExecutablePath(), workingDir: plan.AudioCppRoot(), cuda13Root: plan.CUDA13Root(), args: args, stagingOutputPath: plan.StagingWAVPath(), modelBindings: []capabilitydriver.InvocationExactBinding{plan.ModelBinding()}, outputObserver: observer})

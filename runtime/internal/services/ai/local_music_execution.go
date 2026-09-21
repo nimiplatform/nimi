@@ -2,6 +2,8 @@ package ai
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"os"
@@ -81,8 +83,19 @@ func (s *Service) captureLocalMusicEffectiveInputs(ctx context.Context, head *ru
 		}
 	}()
 	request, _ := proto.Clone(spec).(*runtimev1.MusicGenerateScenarioSpec)
+	if request.Seed == nil {
+		var entropy [4]byte
+		if _, err := rand.Read(entropy[:]); err != nil {
+			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+		}
+		request.Seed = proto.Uint32(binary.LittleEndian.Uint32(entropy[:]))
+	}
+	score, err := s.captureMusicScore(ctx, head, request)
+	if err != nil {
+		return nil, err
+	}
 	portable, _ := proto.Clone(selected.PortableConfig).(*structpb.Struct)
-	plan, err := driver.PlanMusicInvocation(capabilitydriver.MusicInvocationInput{LoadoutID: selected.LoadoutID, RecipeID: selected.RecipeID, PortableConfig: portable, ExactBindings: projectInvocationExactBindings(selected.ExactBindings), Package: packageInput, Request: request, Extensions: cloneScenarioExtensions(extensions), StagingWAVPath: stagingPath})
+	plan, err := driver.PlanMusicInvocation(capabilitydriver.MusicInvocationInput{LoadoutID: selected.LoadoutID, RecipeID: selected.RecipeID, PortableConfig: portable, ExactBindings: projectInvocationExactBindings(selected.ExactBindings), Package: packageInput, Request: request, ScoreABC: score, Extensions: cloneScenarioExtensions(extensions), StagingWAVPath: stagingPath})
 	if err != nil {
 		return nil, localMusicInvocationError(err)
 	}
@@ -90,6 +103,7 @@ func (s *Service) captureLocalMusicEffectiveInputs(ctx context.Context, head *ru
 	if err != nil {
 		return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{})
 	}
+	assembly.Request.BinaryInput = append([]byte(nil), score...)
 	identity, err := projectResolvedAssemblyEffectiveInputIdentity(assembly)
 	if err != nil {
 		return nil, err
@@ -124,7 +138,7 @@ func (s *Service) localMusicEffectiveInputsFromResolvedAssembly(assembly *localR
 	if err != nil {
 		return nil, err
 	}
-	plan, err := driver.PlanMusicInvocation(capabilitydriver.MusicInvocationInput{LoadoutID: assembly.LoadoutID, RecipeID: assembly.RecipeID, PortableConfig: portable, ExactBindings: resolvedAssemblyExactBindings(assembly), Package: packageInput, Request: request, StagingWAVPath: assembly.LoadPlan.Music.StagingWAVPath})
+	plan, err := driver.PlanMusicInvocation(capabilitydriver.MusicInvocationInput{LoadoutID: assembly.LoadoutID, RecipeID: assembly.RecipeID, PortableConfig: portable, ExactBindings: resolvedAssemblyExactBindings(assembly), Package: packageInput, Request: request, ScoreABC: assembly.Request.BinaryInput, StagingWAVPath: assembly.LoadPlan.Music.StagingWAVPath})
 	if err != nil {
 		return nil, err
 	}
@@ -132,6 +146,7 @@ func (s *Service) localMusicEffectiveInputsFromResolvedAssembly(assembly *localR
 	if err != nil {
 		return nil, err
 	}
+	reprojected.Request.BinaryInput = append([]byte(nil), assembly.Request.BinaryInput...)
 	if err := validateRehydratedResolvedAssemblyPlan(assembly, reprojected); err != nil {
 		return nil, err
 	}
@@ -185,25 +200,25 @@ func (s *Service) createLocalMusicStagingWAVPath() (string, error) {
 	if err := os.MkdirAll(root, 0o700); err != nil {
 		return "", fmt.Errorf("create Runtime music staging root: %w", err)
 	}
-	file, err := os.CreateTemp(root, "music-*.wav")
+	directory, err := os.MkdirTemp(root, "music-")
 	if err != nil {
 		return "", fmt.Errorf("allocate Runtime music staging path: %w", err)
 	}
-	path := file.Name()
-	if err := file.Close(); err != nil {
-		_ = os.Remove(path)
-		return "", err
-	}
-	if err := os.Remove(path); err != nil {
-		return "", err
-	}
-	return path, nil
+	return filepath.Join(directory, "music.wav"), nil
 }
 
 func cleanupAudioMusicStaging(path string) {
 	if path != "" {
 		_ = os.Remove(path)
 		_ = os.Remove(path + ".tmp")
+		directory := filepath.Dir(path)
+		if filepath.Base(path) == "music.wav" && numericTemporaryName(filepath.Base(directory), "music-") {
+			for _, name := range []string{"request.json", "input.abc", "music/score.abc"} {
+				_ = os.Remove(filepath.Join(directory, name))
+			}
+			_ = os.Remove(filepath.Join(directory, "music"))
+			_ = os.Remove(directory)
+		}
 	}
 }
 func cloneScenarioExtensions(values []*runtimev1.ScenarioExtension) []*runtimev1.ScenarioExtension {

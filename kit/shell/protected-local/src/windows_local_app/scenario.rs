@@ -1,3 +1,4 @@
+mod music;
 use serde_json::{json, Map, Value as JsonValue};
 use tokio::sync::mpsc;
 use tonic::{transport::Channel, Request};
@@ -314,6 +315,7 @@ pub(super) async fn upload_artifact(
     {
         return Err(invalid_payload());
     }
+    if request.mime_type == "text/vnd.abc" && (request.bytes.is_empty() || request.bytes.len() > 1048576 || request.source.is_some() || request.audio_preparation.is_some()) { return Err(invalid_payload()); }
     let expected_size = request.bytes.len();
     let expected_mime = request.mime_type.clone();
     let canonical = request.audio_preparation.is_some();
@@ -389,6 +391,9 @@ pub(super) async fn upload_artifact(
         }
         projected["audioInfo"] = json!({"sampleRateHz": info.sample_rate_hz, "channels": info.channels,
             "frameCount": info.frame_count, "durationMs": info.duration_ms});
+    } else if expected_mime == "text/vnd.abc" {
+        if response.size_bytes != expected_size as i64 || response.mime_type != expected_mime || response.audio_info.is_some() || response.expires_at.is_none() { return Err(untrusted()); }
+        projected["expiresAt"] = project_timestamp(response.expires_at)?;
     } else if response.size_bytes != expected_size as i64
         || response.mime_type != expected_mime || response.audio_info.is_some() || response.expires_at.is_some()
     {
@@ -526,7 +531,7 @@ fn parse_job_spec(value: JsonValue) -> Result<JobSpec, LocalAppOperationError> {
             }))
         }
         "voice-create" => Ok(JobSpec::VoiceCreate(parse_voice_create_spec(&object)?)),
-        "music-generate" => Ok(JobSpec::MusicGenerate(parse_music_spec(&object)?)),
+        "music-generate" => Ok(JobSpec::MusicGenerate(music::parse(&object)?)),
         "world-generate" => {
             exact_keys(&object, &["type", "prompt", "displayName"])?;
             Ok(JobSpec::WorldGenerate(LocalAppWorldGenerateJobSpec {
@@ -538,25 +543,6 @@ fn parse_job_spec(value: JsonValue) -> Result<JobSpec, LocalAppOperationError> {
     }
 }
 
-// @nimi-authority: rule.nimi.sdks.feature-clients.r102
-fn parse_music_spec(
-    object: &Map<String, JsonValue>,
-) -> Result<LocalAppMusicGenerateJobSpec, LocalAppOperationError> {
-    allowed_keys(
-        object,
-        &["type", "prompt", "lyrics", "durationSeconds"],
-        &["type", "prompt", "lyrics"],
-    )?;
-    let duration = optional_integer_field(object, "durationSeconds")?;
-    if duration.is_some_and(|seconds| !(1..=180).contains(&seconds)) {
-        return Err(invalid_payload());
-    }
-    Ok(LocalAppMusicGenerateJobSpec {
-        prompt: required_text_field(object, "prompt", MAX_PROMPT_BYTES)?,
-        lyrics: required_text_field(object, "lyrics", MAX_PROMPT_BYTES)?,
-        duration_seconds: duration.unwrap_or(0) as u32,
-    })
-}
 
 fn parse_image_spec(
     object: &Map<String, JsonValue>,
@@ -1122,6 +1108,12 @@ fn project_job(job: LocalAppScenarioJob) -> Result<JsonValue, LocalAppOperationE
         if job.audio_separation.is_some() { return Err(untrusted()); }
         None
     };
+    let music_generation = if scenario_type == "music-generate" && status == "completed" {
+        Some(music::project(job.music_generation.as_ref().ok_or_else(untrusted)?, &job.artifacts)?)
+    } else {
+        if job.music_generation.is_some() { return Err(untrusted()); }
+        None
+    };
     let mut projected = json!({
         "jobId": job.job_id,
         "scenarioType": scenario_type,
@@ -1146,6 +1138,7 @@ fn project_job(job: LocalAppScenarioJob) -> Result<JsonValue, LocalAppOperationE
     if let Some(value) = text_annotation {
         projected.as_object_mut().ok_or_else(untrusted)?.insert("textAnnotation".into(), value);
     }
+    if let Some(value) = music_generation { projected["musicGeneration"] = value; }
     if let Some(value) = audio_separation {
         projected.as_object_mut().ok_or_else(untrusted)?.insert("audioSeparation".into(), value);
     }
@@ -1735,7 +1728,7 @@ fn valid_mime(value: &str) -> bool {
 fn valid_upload_mime(value: &str) -> bool {
     matches!(
         value,
-        "image/png" | "image/jpeg" | "image/webp" | "image/gif" | "audio/wav" | "audio/mpeg" | "audio/flac" | "video/mp4"
+        "image/png" | "image/jpeg" | "image/webp" | "image/gif" | "audio/wav" | "audio/mpeg" | "audio/flac" | "video/mp4" | "text/vnd.abc"
     )
 }
 
@@ -2050,7 +2043,7 @@ mod tests {
 
     #[test]
     fn music_duration_is_optional_bounded_and_preserved_in_the_typed_request() {
-        for duration in [None, Some(1), Some(120), Some(180)] {
+        for duration in [None, Some(1), Some(120), Some(600)] {
             let mut input = json!({
                 "type": "music-generate", "prompt": "bright synth-pop", "lyrics": "City lights"
             });
@@ -2062,7 +2055,7 @@ mod tests {
             };
             assert_eq!(spec.duration_seconds, duration.unwrap_or(0));
         }
-        for duration in [json!(0), json!(-1), json!(181), json!(1.5), json!(null)] {
+        for duration in [json!(0), json!(-1), json!(601), json!(1.5), json!(null)] {
             assert!(parse_job_spec(json!({
                 "type": "music-generate", "prompt": "bright synth-pop", "lyrics": "City lights",
                 "durationSeconds": duration

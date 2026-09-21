@@ -5377,6 +5377,28 @@ pub mod voice_create_scenario_spec {
     }
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MusicScoreReference {
+    #[prost(string, tag = "1")]
+    pub artifact_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "MusicScoreFormat", tag = "2")]
+    pub format: i32,
+}
+/// A half-open range on the referenced canonical PCM artifact's own timeline.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AudioFrameRange {
+    #[prost(uint64, tag = "1")]
+    pub start_frame: u64,
+    #[prost(uint64, tag = "2")]
+    pub end_frame: u64,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MusicAudioInput {
+    #[prost(string, tag = "1")]
+    pub artifact_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub range: ::core::option::Option<AudioFrameRange>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct MusicGenerateScenarioSpec {
     #[prost(string, tag = "1")]
     pub prompt: ::prost::alloc::string::String,
@@ -5392,6 +5414,16 @@ pub struct MusicGenerateScenarioSpec {
     pub duration_seconds: i32,
     #[prost(bool, tag = "7")]
     pub instrumental: bool,
+    #[prost(message, optional, tag = "8")]
+    pub score: ::core::option::Option<MusicScoreReference>,
+    #[prost(enumeration = "MusicScoreConditioning", tag = "9")]
+    pub score_conditioning: i32,
+    #[prost(uint32, optional, tag = "10")]
+    pub seed: ::core::option::Option<u32>,
+    #[prost(bool, tag = "11")]
+    pub return_generated_score: bool,
+    #[prost(message, optional, tag = "12")]
+    pub audio_reference: ::core::option::Option<MusicAudioInput>,
 }
 /// Source separation preserves the input timeline and returns vocals plus the
 /// sum of all non-vocal sources. The selected implementation owns input limits.
@@ -5881,6 +5913,33 @@ pub struct SpeechTranscribeResult {
 pub struct MusicGenerateResult {
     #[prost(message, repeated, tag = "1")]
     pub artifacts: ::prost::alloc::vec::Vec<ScenarioArtifact>,
+    #[prost(message, optional, tag = "2")]
+    pub generation: ::core::option::Option<MusicGeneration>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MusicScoreArtifact {
+    #[prost(string, tag = "1")]
+    pub artifact_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "MusicScoreFormat", tag = "2")]
+    pub format: i32,
+    #[prost(enumeration = "MusicScoreOrigin", tag = "3")]
+    pub origin: i32,
+    #[prost(bool, tag = "4")]
+    pub truncated: bool,
+}
+/// Only references to committed artifacts in the same successful Job.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MusicGeneration {
+    #[prost(string, tag = "1")]
+    pub mix_artifact_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub generated_score: ::core::option::Option<MusicScoreArtifact>,
+    #[prost(uint32, optional, tag = "3")]
+    pub actual_seed: ::core::option::Option<u32>,
+    #[prost(enumeration = "MusicGenerationTermination", tag = "4")]
+    pub termination: i32,
+    #[prost(message, optional, tag = "5")]
+    pub audio_info: ::core::option::Option<LocalAppAudioInfo>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AudioSeparateResult {
@@ -6257,6 +6316,18 @@ pub struct LocalAppMusicGenerateJobSpec {
     /// Generation budget, not a guaranteed output length. Zero uses Runtime defaults.
     #[prost(uint32, tag = "3")]
     pub duration_seconds: u32,
+    #[prost(bool, tag = "4")]
+    pub instrumental: bool,
+    #[prost(uint32, optional, tag = "5")]
+    pub seed: ::core::option::Option<u32>,
+    #[prost(message, optional, tag = "6")]
+    pub score: ::core::option::Option<MusicScoreReference>,
+    #[prost(enumeration = "MusicScoreConditioning", tag = "7")]
+    pub score_conditioning: i32,
+    #[prost(bool, tag = "8")]
+    pub return_generated_score: bool,
+    #[prost(message, optional, tag = "9")]
+    pub audio_reference: ::core::option::Option<MusicAudioInput>,
 }
 /// Text-conditioned world generation. Provider selection and asset retrieval
 /// remain Runtime-owned; the result is a portable world archive artifact.
@@ -6365,6 +6436,8 @@ pub struct LocalAppScenarioJob {
     /// Present only for a terminal protected music Job with recovery identity.
     #[prost(message, optional, tag = "19")]
     pub recovery_expires_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "20")]
+    pub music_generation: ::core::option::Option<MusicGeneration>,
 }
 /// Trimmed voice asset catalog projection. Provider, model, provider voice
 /// ref, and owner identity fields are never projected.
@@ -6830,6 +6903,8 @@ pub struct ScenarioJob {
     pub text_annotation: ::core::option::Option<TextAnnotationResult>,
     #[prost(message, optional, tag = "30")]
     pub recovery_expires_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "31")]
+    pub music_generation: ::core::option::Option<MusicGeneration>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SubmitScenarioJobRequest {
@@ -7804,6 +7879,64 @@ impl TextSourceType {
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
+pub enum MusicScoreFormat {
+    Unspecified = 0,
+    Abc = 1,
+    Midi = 2,
+}
+impl MusicScoreFormat {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "MUSIC_SCORE_FORMAT_UNSPECIFIED",
+            Self::Abc => "MUSIC_SCORE_FORMAT_ABC",
+            Self::Midi => "MUSIC_SCORE_FORMAT_MIDI",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "MUSIC_SCORE_FORMAT_UNSPECIFIED" => Some(Self::Unspecified),
+            "MUSIC_SCORE_FORMAT_ABC" => Some(Self::Abc),
+            "MUSIC_SCORE_FORMAT_MIDI" => Some(Self::Midi),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum MusicScoreConditioning {
+    Unspecified = 0,
+    MelodyOnly = 1,
+    MelodyAndHarmony = 2,
+}
+impl MusicScoreConditioning {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "MUSIC_SCORE_CONDITIONING_UNSPECIFIED",
+            Self::MelodyOnly => "MUSIC_SCORE_CONDITIONING_MELODY_ONLY",
+            Self::MelodyAndHarmony => "MUSIC_SCORE_CONDITIONING_MELODY_AND_HARMONY",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "MUSIC_SCORE_CONDITIONING_UNSPECIFIED" => Some(Self::Unspecified),
+            "MUSIC_SCORE_CONDITIONING_MELODY_ONLY" => Some(Self::MelodyOnly),
+            "MUSIC_SCORE_CONDITIONING_MELODY_AND_HARMONY" => Some(Self::MelodyAndHarmony),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
 pub enum VisionLocateGeometry {
     Unspecified = 0,
     Box = 1,
@@ -7911,6 +8044,67 @@ impl SpeechTranscriptStatus {
             "SPEECH_TRANSCRIPT_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
             "SPEECH_TRANSCRIPT_STATUS_TRANSCRIBED" => Some(Self::Transcribed),
             "SPEECH_TRANSCRIPT_STATUS_NO_SPEECH" => Some(Self::NoSpeech),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum MusicGenerationTermination {
+    Unspecified = 0,
+    Unknown = 1,
+    ModelEnd = 2,
+    BudgetLimit = 3,
+}
+impl MusicGenerationTermination {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "MUSIC_GENERATION_TERMINATION_UNSPECIFIED",
+            Self::Unknown => "MUSIC_GENERATION_TERMINATION_UNKNOWN",
+            Self::ModelEnd => "MUSIC_GENERATION_TERMINATION_MODEL_END",
+            Self::BudgetLimit => "MUSIC_GENERATION_TERMINATION_BUDGET_LIMIT",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "MUSIC_GENERATION_TERMINATION_UNSPECIFIED" => Some(Self::Unspecified),
+            "MUSIC_GENERATION_TERMINATION_UNKNOWN" => Some(Self::Unknown),
+            "MUSIC_GENERATION_TERMINATION_MODEL_END" => Some(Self::ModelEnd),
+            "MUSIC_GENERATION_TERMINATION_BUDGET_LIMIT" => Some(Self::BudgetLimit),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum MusicScoreOrigin {
+    Unspecified = 0,
+    GeneratedPlan = 1,
+    TranscribedEstimate = 2,
+}
+impl MusicScoreOrigin {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "MUSIC_SCORE_ORIGIN_UNSPECIFIED",
+            Self::GeneratedPlan => "MUSIC_SCORE_ORIGIN_GENERATED_PLAN",
+            Self::TranscribedEstimate => "MUSIC_SCORE_ORIGIN_TRANSCRIBED_ESTIMATE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "MUSIC_SCORE_ORIGIN_UNSPECIFIED" => Some(Self::Unspecified),
+            "MUSIC_SCORE_ORIGIN_GENERATED_PLAN" => Some(Self::GeneratedPlan),
+            "MUSIC_SCORE_ORIGIN_TRANSCRIBED_ESTIMATE" => Some(Self::TranscribedEstimate),
             _ => None,
         }
     }

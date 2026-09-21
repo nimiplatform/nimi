@@ -66,7 +66,7 @@ func (s *Service) prepareLocalAppAudioArtifact(ctx context.Context, decision acc
 	ctx, cancel := context.WithTimeout(ctx, audiomedia.PreparationTimeout)
 	defer cancel()
 	artifactID := "artifact_" + ulid.Make().String()
-	release, err := s.scenarioJobs.beginMusicPreparation(artifactID)
+	release, err := s.scenarioJobs.beginMusicImport(artifactID, maxMusicRecoveryOutputBytes)
 	if err != nil {
 		if errors.Is(err, errMusicRecoveryCapacity) {
 			return nil, localAppSubmissionError(err)

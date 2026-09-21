@@ -456,6 +456,7 @@ type AudioCppRuntimePackageInput struct {
 type MusicRuntimePackageInput = AudioCppRuntimePackageInput
 
 type MusicInvocationInput struct {
+	ScoreABC       []byte
 	LoadoutID      string
 	RecipeID       string
 	PortableConfig *structpb.Struct
@@ -1024,6 +1025,10 @@ type ImageInvocationDriver interface {
 // MusicInvocationPlan is the immutable private Music Driver/Host seam. CLI
 // options are translated by the exact Driver, never selected by the Host.
 type MusicInvocationPlan struct {
+	requestJSON                    []byte
+	requestJSONPath                string
+	scoreInput                     []byte
+	scoreInputPath                 string
 	cliArgs                        []string
 	outputObserver                 func() MusicOutputObserver
 	stagingScorePath               string
@@ -1063,6 +1068,19 @@ func (p *MusicInvocationPlan) CLIArgs() []string {
 		return nil
 	}
 	return append([]string(nil), p.cliArgs...)
+}
+
+func (p *MusicInvocationPlan) RequestJSON() (string, []byte) {
+	if p == nil {
+		return "", nil
+	}
+	return p.requestJSONPath, append([]byte(nil), p.requestJSON...)
+}
+func (p *MusicInvocationPlan) ScoreInput() (string, []byte) {
+	if p == nil {
+		return "", nil
+	}
+	return p.scoreInputPath, append([]byte(nil), p.scoreInput...)
 }
 
 type MusicInferenceFacts struct {

@@ -2179,6 +2179,59 @@ impl Default for ModelCatalogProviderSource {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum MusicGenerationTermination {
+    MUSICGENERATIONTERMINATIONUNSPECIFIED,
+    MUSICGENERATIONTERMINATIONUNKNOWN,
+    MUSICGENERATIONTERMINATIONMODELEND,
+    MUSICGENERATIONTERMINATIONBUDGETLIMIT,
+}
+
+impl Default for MusicGenerationTermination {
+    fn default() -> Self {
+        Self::MUSICGENERATIONTERMINATIONUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum MusicScoreConditioning {
+    MUSICSCORECONDITIONINGUNSPECIFIED,
+    MUSICSCORECONDITIONINGMELODYONLY,
+    MUSICSCORECONDITIONINGMELODYANDHARMONY,
+}
+
+impl Default for MusicScoreConditioning {
+    fn default() -> Self {
+        Self::MUSICSCORECONDITIONINGUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum MusicScoreFormat {
+    MUSICSCOREFORMATUNSPECIFIED,
+    MUSICSCOREFORMATABC,
+    MUSICSCOREFORMATMIDI,
+}
+
+impl Default for MusicScoreFormat {
+    fn default() -> Self {
+        Self::MUSICSCOREFORMATUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum MusicScoreOrigin {
+    MUSICSCOREORIGINUNSPECIFIED,
+    MUSICSCOREORIGINGENERATEDPLAN,
+    MUSICSCOREORIGINTRANSCRIBEDESTIMATE,
+}
+
+impl Default for MusicScoreOrigin {
+    fn default() -> Self {
+        Self::MUSICSCOREORIGINUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PresenceVerificationMethod {
     PRESENCEVERIFICATIONMETHODUNSPECIFIED,
     PRESENCEVERIFICATIONMETHODOSCREDENTIAL,
@@ -5172,6 +5225,12 @@ pub struct ArtifactStreamDelta {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct AudioChunks {
     pub chunks: Vec<Vec<u8>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AudioFrameRange {
+    pub start_frame: Option<u64>,
+    pub end_frame: Option<u64>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -9269,6 +9328,12 @@ pub struct LocalAppMusicGenerateJobSpec {
     pub prompt: Option<String>,
     pub lyrics: Option<String>,
     pub duration_seconds: Option<u32>,
+    pub instrumental: Option<bool>,
+    pub seed: Option<u32>,
+    pub score: Option<Box<MusicScoreReference>>,
+    pub score_conditioning: Option<MusicScoreConditioning>,
+    pub return_generated_score: Option<bool>,
+    pub audio_reference: Option<Box<MusicAudioInput>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -9326,6 +9391,7 @@ pub struct LocalAppScenarioJob {
     pub audio_separation: Option<Box<AudioSeparation>>,
     pub text_annotation: Option<Box<TextAnnotationResult>>,
     pub recovery_expires_at: Option<String>,
+    pub music_generation: Option<Box<MusicGeneration>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10141,8 +10207,15 @@ pub struct MoveLocalAppAssetResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct MusicAudioInput {
+    pub artifact_id: Option<String>,
+    pub range: Option<Box<AudioFrameRange>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct MusicGenerateResult {
     pub artifacts: Vec<Box<ScenarioArtifact>>,
+    pub generation: Option<Box<MusicGeneration>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10154,6 +10227,34 @@ pub struct MusicGenerateScenarioSpec {
     pub title: Option<String>,
     pub duration_seconds: Option<i32>,
     pub instrumental: Option<bool>,
+    pub score: Option<Box<MusicScoreReference>>,
+    pub score_conditioning: Option<MusicScoreConditioning>,
+    pub seed: Option<u32>,
+    pub return_generated_score: Option<bool>,
+    pub audio_reference: Option<Box<MusicAudioInput>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct MusicGeneration {
+    pub mix_artifact_id: Option<String>,
+    pub generated_score: Option<Box<MusicScoreArtifact>>,
+    pub actual_seed: Option<u32>,
+    pub termination: Option<MusicGenerationTermination>,
+    pub audio_info: Option<Box<LocalAppAudioInfo>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct MusicScoreArtifact {
+    pub artifact_id: Option<String>,
+    pub format: Option<MusicScoreFormat>,
+    pub origin: Option<MusicScoreOrigin>,
+    pub truncated: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct MusicScoreReference {
+    pub artifact_id: Option<String>,
+    pub format: Option<MusicScoreFormat>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -11822,6 +11923,7 @@ pub struct ScenarioJob {
     pub audio_separation: Option<Box<AudioSeparation>>,
     pub text_annotation: Option<Box<TextAnnotationResult>>,
     pub recovery_expires_at: Option<String>,
+    pub music_generation: Option<Box<MusicGeneration>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

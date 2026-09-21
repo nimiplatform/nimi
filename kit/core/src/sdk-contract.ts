@@ -139,6 +139,7 @@ export {
 } from '@nimiplatform/sdk/runtime';
 export {
   ExecutionMode,
+  MusicScoreFormat, MusicScoreConditioning, MusicGenerationTermination, MusicScoreOrigin,
   FinishReason,
   LocalAppSessionState,
   ScenarioJobEventType,
@@ -369,3 +370,5 @@ export { SpeechTranscriptStatus } from '@nimiplatform/sdk/runtime';
 
 export { validateNimiLocalAppTextAnnotationResult } from '@nimiplatform/sdk/app';
 export type { NimiLocalAppTextAnnotationResult, NimiLocalAppTextAnnotationDocument, NimiLocalAppTextAnnotationToken } from '@nimiplatform/sdk/app';
+
+export { validateNimiLocalAppMusicGenerateSpec, validateNimiLocalAppMusicGeneration, type NimiLocalAppMusicGenerateSpec, type NimiLocalAppMusicGeneration } from '@nimiplatform/sdk/app';

@@ -2,7 +2,6 @@ package nimillm
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"io"
 	"mime"
@@ -16,7 +15,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func TestExecuteStabilityMusicPromptOnly(t *testing.T) {
@@ -48,7 +46,7 @@ func TestExecuteStabilityMusicPromptOnly(t *testing.T) {
 	}
 }
 
-func TestExecuteStabilityMusicIterationMultipart(t *testing.T) {
+func TestExecuteStabilityMusicReferenceMultipart(t *testing.T) {
 	var contentType string
 	var prompt string
 	var fileBytes []byte
@@ -87,12 +85,9 @@ func TestExecuteStabilityMusicIterationMultipart(t *testing.T) {
 	defer func() { server.Close() }()
 
 	req := newMusicJobRequest("stable-audio-2", "continue this idea")
-	req.Extensions = []*runtimev1.ScenarioExtension{musicIterationExtension(t, map[string]any{
-		"mode":                "extend",
-		"source_audio_base64": base64.StdEncoding.EncodeToString([]byte("seed-audio")),
-		"source_mime_type":    "audio/wav",
-	})}
-	artifacts, _, _, err := ExecuteStabilityMusic(context.Background(), MediaAdapterConfig{
+	req.GetSpec().GetMusicGenerate().AudioReference = &runtimev1.MusicAudioInput{ArtifactId: "owned-audio"}
+	ctx := WithMusicReferenceAudio(context.Background(), &MusicReferenceAudio{ArtifactID: "owned-audio", MIMEType: "audio/wav", Bytes: []byte("seed-audio")})
+	artifacts, _, _, err := ExecuteStabilityMusic(ctx, MediaAdapterConfig{
 		BaseURL:               server.URL,
 		AllowLoopbackEndpoint: true,
 		APIKey:                "token",
@@ -364,16 +359,4 @@ func decodeMusicJSONBody(t *testing.T, r *http.Request) map[string]any {
 		t.Fatalf("Decode body: %v", err)
 	}
 	return body
-}
-
-func musicIterationExtension(t *testing.T, payload map[string]any) *runtimev1.ScenarioExtension {
-	t.Helper()
-	value, err := structpb.NewStruct(payload)
-	if err != nil {
-		t.Fatalf("NewStruct: %v", err)
-	}
-	return &runtimev1.ScenarioExtension{
-		Namespace: "nimi.scenario.music_generate.request",
-		Payload:   value,
-	}
 }

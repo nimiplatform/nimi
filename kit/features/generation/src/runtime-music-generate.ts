@@ -1,5 +1,8 @@
 import {
   ExecutionMode,
+  MusicScoreFormat, MusicScoreConditioning, MusicGenerationTermination, MusicScoreOrigin,
+  validateNimiLocalAppMusicGenerateSpec, validateNimiLocalAppMusicGeneration,
+  type NimiLocalAppMusicGenerateSpec, type NimiLocalAppMusicGeneration,
   ReasonCode,
   ScenarioJobStatus,
   ScenarioType,
@@ -25,6 +28,7 @@ export type RuntimeMusicGenerateArtifact = {
   readonly durationMs: number;
   readonly sampleRateHz: number;
   readonly channels: number;
+  readonly frameCount?: number;
 };
 
 export type RuntimeMusicGenerateResult =
@@ -36,22 +40,19 @@ export type RuntimeMusicGenerateResult =
         readonly kind: 'music-artifacts';
         readonly jobId: string;
         readonly jobStatus: string;
-        readonly artifactCount: 1;
+        readonly artifactCount: number;
+        readonly generation: NimiLocalAppMusicGeneration;
         readonly firstArtifact: RuntimeMusicGenerateArtifact;
-        readonly artifacts: readonly [RuntimeMusicGenerateArtifact];
+        readonly artifacts: readonly RuntimeMusicGenerateArtifact[];
       };
       readonly trace?: { readonly traceId?: string; readonly modelResolved?: string };
     }
   | { readonly ok: false; readonly capabilityId: 'music.generate'; readonly reason: RuntimeScenarioJobNonSuccessReason | 'input-invalid'; readonly message: string; readonly error: NimiError };
 
-export type RuntimeMusicGenerateInput = {
+export type RuntimeMusicGenerateInput = Omit<NimiLocalAppMusicGenerateSpec, 'type'> & {
   readonly runtime: { readonly ai: NimiProtectedLocalScenarioJobClient };
   readonly appId: string;
   readonly subjectUserId?: string;
-  readonly prompt: string;
-  readonly lyrics: string;
-  /** Generation budget in whole seconds (1–180); actual audio may end earlier. */
-  readonly durationSeconds?: number;
   readonly scenarioId: string;
   readonly surfaceId: string;
   readonly timeoutMs?: number;
@@ -65,38 +66,60 @@ export type RuntimeMusicGenerateInput = {
 // protected Local App Scenario Job adapter, never an unprotected Runtime client.
 export async function runRuntimeMusicGenerate(input: RuntimeMusicGenerateInput): Promise<RuntimeMusicGenerateResult> {
   try {
-    const prompt = requireMusicText(input.prompt, 'prompt');
-    const lyrics = requireMusicText(input.lyrics, 'lyrics');
-    if (input.durationSeconds !== undefined && (!Number.isSafeInteger(input.durationSeconds) || input.durationSeconds < 1 || input.durationSeconds > 180)) {
-      throw createNimiError({ message: 'music durationSeconds must be an integer from 1 through 180', code: ReasonCode.SDK_AI_INPUT_INVALID,
-        reasonCode: ReasonCode.SDK_AI_INPUT_INVALID, actionHint: 'provide_valid_music_duration', source: 'sdk' });
-    }
+    const spec = validateNimiLocalAppMusicGenerateSpec({
+      type: 'music-generate', prompt: input.prompt, lyrics: input.lyrics,
+      ...(input.durationSeconds !== undefined ? { durationSeconds: input.durationSeconds } : {}),
+      ...(input.instrumental !== undefined ? { instrumental: input.instrumental } : {}),
+      ...(input.seed !== undefined ? { seed: input.seed } : {}),
+      ...(input.score !== undefined ? { score: input.score } : {}),
+      ...(input.scoreConditioning !== undefined ? { scoreConditioning: input.scoreConditioning } : {}),
+      ...(input.returnGeneratedScore !== undefined ? { returnGeneratedScore: input.returnGeneratedScore } : {}),
+      ...(input.audioReference !== undefined ? { audioReference: input.audioReference } : {}),
+    });
     const identity = buildNimiRuntimeScenarioJobIdentity({ appId: input.appId, capabilityId: 'music.generate', scenarioId: input.scenarioId });
     const request: SubmitScenarioJobRequest = {
       head: { appId: requireMusicText(input.appId, 'appId'), subjectUserId: normalizeText(input.subjectUserId), timeoutMs: input.timeoutMs ?? 0 },
       scenarioType: ScenarioType.MUSIC_GENERATE,
       executionMode: ExecutionMode.ASYNC_JOB,
-      spec: { spec: { oneofKind: 'musicGenerate', musicGenerate: { prompt, negativePrompt: '', lyrics, style: '', title: '', durationSeconds: input.durationSeconds ?? 0, instrumental: false } } },
+      spec: { spec: { oneofKind: 'musicGenerate', musicGenerate: {
+        prompt: spec.prompt, lyrics: spec.lyrics, negativePrompt: '', style: '', title: '', durationSeconds: spec.durationSeconds ?? 0,
+        instrumental: spec.instrumental ?? false, seed: spec.seed, returnGeneratedScore: spec.returnGeneratedScore ?? false,
+        scoreConditioning: spec.scoreConditioning === 'melody-only' ? MusicScoreConditioning.MELODY_ONLY : spec.scoreConditioning === 'melody-and-harmony' ? MusicScoreConditioning.MELODY_AND_HARMONY : MusicScoreConditioning.UNSPECIFIED,
+        score: spec.score ? { artifactId: spec.score.artifactId, format: spec.score.format === 'abc' ? MusicScoreFormat.ABC : MusicScoreFormat.MIDI } : undefined,
+        audioReference: spec.audioReference ? { artifactId: spec.audioReference.artifactId, range: spec.audioReference.range ? { startFrame: String(spec.audioReference.range.startFrame), endFrame: String(spec.audioReference.range.endFrame) } : undefined } : undefined,
+      } } },
       requestId: identity.requestId,
       idempotencyKey: identity.idempotencyKey,
       labels: { scenarioId: input.scenarioId, surfaceId: input.surfaceId },
       extensions: [],
     };
     const result = await runNimiRuntimeScenarioJob({ ai: input.runtime.ai, request, callOptions: input.callOptions, signal: input.signal, abortReason: input.abortReason, onJobUpdate: input.onJobUpdate });
-    const artifact = result.artifacts.find((candidate) => normalizeText(candidate.mimeType).startsWith('audio/') && normalizeText(candidate.artifactId));
-    if (!artifact) throw new Error('Runtime music.generate returned no audio artifact');
-    const projected = { artifactId: artifact.artifactId, mimeType: artifact.mimeType, sizeBytes: Number(artifact.sizeBytes), durationMs: Number(artifact.durationMs), sampleRateHz: artifact.sampleRateHz, channels: artifact.channels };
+    const value = result.job.musicGeneration;
+    if (!value) throw new Error('Runtime music.generate returned no typed generation result');
+    const artifacts = result.artifacts.map((artifact) => ({ artifactId: artifact.artifactId, mimeType: artifact.mimeType,
+      sizeBytes: Number(artifact.sizeBytes), durationMs: Number(artifact.durationMs), sampleRateHz: artifact.sampleRateHz,
+      channels: artifact.channels, ...(Number(artifact.frameCount) > 0 ? { frameCount: Number(artifact.frameCount) } : {}) }));
+    const generation = validateNimiLocalAppMusicGeneration({
+      mixArtifactId: value.mixArtifactId,
+      termination: ({ [MusicGenerationTermination.UNKNOWN]: 'unknown', [MusicGenerationTermination.MODEL_END]: 'model-end', [MusicGenerationTermination.BUDGET_LIMIT]: 'budget-limit' } as Record<number, string>)[value.termination],
+      ...(value.actualSeed !== undefined ? { actualSeed: value.actualSeed } : {}),
+      audioInfo: value.audioInfo ? { ...value.audioInfo, frameCount: Number(value.audioInfo.frameCount), durationMs: Number(value.audioInfo.durationMs) } : undefined,
+      ...(value.generatedScore ? { generatedScore: { artifactId: value.generatedScore.artifactId, truncated: value.generatedScore.truncated,
+        format: value.generatedScore.format === MusicScoreFormat.ABC ? 'abc' : undefined,
+        origin: value.generatedScore.origin === MusicScoreOrigin.GENERATED_PLAN ? 'generated-plan' : undefined } } : {}),
+    }, artifacts);
+    const projected = artifacts.find((artifact) => artifact.artifactId === generation.mixArtifactId)!;
     return {
       ok: true,
       capabilityId: 'music.generate',
-      message: 'Runtime music.generate completed with 1 artifact.',
-      output: { kind: 'music-artifacts', jobId: result.job.jobId, jobStatus: musicJobStatusName(result.job.status), artifactCount: 1, firstArtifact: projected, artifacts: [projected] },
+      message: `Runtime music.generate completed with ${artifacts.length} artifacts.`,
+      output: { kind: 'music-artifacts', jobId: result.job.jobId, jobStatus: musicJobStatusName(result.job.status), artifactCount: artifacts.length, generation, firstArtifact: projected, artifacts },
       trace: { ...(result.traceId ? { traceId: result.traceId } : {}), ...(result.job.modelResolved ? { modelResolved: result.job.modelResolved } : {}) },
     };
   } catch (cause) {
     const error = asNimiError(cause, { reasonCode: ReasonCode.RUNTIME_CALL_FAILED, actionHint: 'inspect_runtime_music_execution', source: 'runtime' });
     const reasonCode = normalizeText(error.reasonCode) || normalizeText(error.code);
-    return { ok: false, capabilityId: 'music.generate', reason: reasonCode === ReasonCode.SDK_AI_INPUT_INVALID || reasonCode.startsWith('SDK_GENERATION_') ? 'input-invalid' : runtimeScenarioJobNonSuccessReasonFromError(error), message: error.message, error };
+    return { ok: false, capabilityId: 'music.generate', reason: reasonCode === ReasonCode.SDK_AI_INPUT_INVALID || reasonCode === 'SDK_LOCAL_APP_INPUT_INVALID' || reasonCode.startsWith('SDK_GENERATION_') ? 'input-invalid' : runtimeScenarioJobNonSuccessReasonFromError(error), message: error.message, error };
   }
 }
 

@@ -22,18 +22,18 @@ func TestMusicPreparationBudgetChargesActualCopiesAndReleasesOnce(t *testing.T) 
 	}
 	releases := make([]func(), 0, 32)
 	for i := 0; i < 31; i++ {
-		release, err := store.beginMusicPreparation(fmt.Sprintf("prepare-%d", i))
+		release, err := store.beginMusicImport(fmt.Sprintf("prepare-%d", i), maxMusicRecoveryOutputBytes)
 		if err != nil {
 			t.Fatal(err)
 		}
 		releases = append(releases, release)
 	}
-	if _, err := store.beginMusicPreparation("over-budget"); !errors.Is(err, errMusicRecoveryCapacity) {
+	if _, err := store.beginMusicImport("over-budget", maxMusicRecoveryOutputBytes); !errors.Is(err, errMusicRecoveryCapacity) {
 		t.Fatalf("retained bytes were uncharged: %v", err)
 	}
 	releases[0]()
 	releases[0]()
-	release, err := store.beginMusicPreparation("next")
+	release, err := store.beginMusicImport("next", maxMusicRecoveryOutputBytes)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +51,7 @@ func TestMusicPreparationBudgetChargesActualCopiesAndReleasesOnce(t *testing.T) 
 
 func TestMusicStagingStartupCleanupIsBoundedToOwnedNames(t *testing.T) {
 	root := t.TempDir()
-	for _, name := range []string{"music-staging/music-123.wav", "music-staging/music-notes.wav", "audio-preparation-staging/prepare-456/input-789", "audio-preparation-staging/prepare-456/canonical-audio-987.wav", "audio-preparation-staging/other/input-111"} {
+	for _, name := range []string{"music-staging/music-789/request.json", "music-staging/music-789/input.abc", "music-staging/music-789/music.wav", "music-staging/music-789/music/score.abc", "music-staging/music-123.wav", "music-staging/music-notes.wav", "audio-preparation-staging/prepare-456/input-789", "audio-preparation-staging/prepare-456/canonical-audio-987.wav", "audio-preparation-staging/other/input-111"} {
 		path := filepath.Join(root, name)
 		if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
 			t.Fatal(err)
@@ -63,7 +63,7 @@ func TestMusicStagingStartupCleanupIsBoundedToOwnedNames(t *testing.T) {
 	if err := cleanupMusicStagingAtStartup(root); err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"music-staging/music-123.wav", "audio-preparation-staging/prepare-456"} {
+	for _, name := range []string{"music-staging/music-123.wav", "music-staging/music-789", "audio-preparation-staging/prepare-456"} {
 		if _, err := os.Stat(filepath.Join(root, name)); !os.IsNotExist(err) {
 			t.Fatal("interrupted staging remained")
 		}
@@ -122,7 +122,7 @@ func TestMusicCancellationKeepsReservationUntilExecutorAndWritesExit(t *testing.
 	store := newScenarioJobStore()
 	releases := make([]func(), 0, 31)
 	for i := 0; i < 31; i++ {
-		release, err := store.beginMusicPreparation(fmt.Sprintf("prep-%d", i))
+		release, err := store.beginMusicImport(fmt.Sprintf("prep-%d", i), maxMusicRecoveryOutputBytes)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -135,16 +135,16 @@ func TestMusicCancellationKeepsReservationUntilExecutorAndWritesExit(t *testing.
 	}()
 	record := &scenarioJobRecord{job: &runtimev1.ScenarioJob{JobId: "canceled", Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED}, musicSubmission: &localAppMusicSubmission{ReservedBytes: maxMusicRecoveryOutputBytes}, terminalAt: time.Now(), executionStarted: true}
 	store.jobs["canceled"] = record
-	if _, err := store.beginMusicPreparation("too-early"); !errors.Is(err, errMusicRecoveryCapacity) {
+	if _, err := store.beginMusicImport("too-early", maxMusicRecoveryOutputBytes); !errors.Is(err, errMusicRecoveryCapacity) {
 		t.Fatal("terminal delivery released a still-executing reservation")
 	}
 	record.executionStarted = false
 	record.musicOutputReservations = map[string]int64{"pending": 1024}
-	if _, err := store.beginMusicPreparation("still-writing"); !errors.Is(err, errMusicRecoveryCapacity) {
+	if _, err := store.beginMusicImport("still-writing", maxMusicRecoveryOutputBytes); !errors.Is(err, errMusicRecoveryCapacity) {
 		t.Fatal("late body commit lost its reservation")
 	}
 	delete(record.musicOutputReservations, "pending")
-	release, err := store.beginMusicPreparation("after-exit")
+	release, err := store.beginMusicImport("after-exit", maxMusicRecoveryOutputBytes)
 	if err != nil {
 		t.Fatal(err)
 	}

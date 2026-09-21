@@ -172,6 +172,10 @@ ModelAssetCatalogVerification = Literal["MODEL_ASSET_CATALOG_VERIFICATION_UNSPEC
 ModelAssetSourceAvailability = Literal["MODEL_ASSET_SOURCE_AVAILABILITY_UNSPECIFIED", "MODEL_ASSET_SOURCE_AVAILABILITY_AVAILABLE", "MODEL_ASSET_SOURCE_AVAILABILITY_UNAVAILABLE"]
 ModelAssetSourceFreshness = Literal["MODEL_ASSET_SOURCE_FRESHNESS_UNSPECIFIED", "MODEL_ASSET_SOURCE_FRESHNESS_FRESH", "MODEL_ASSET_SOURCE_FRESHNESS_STALE"]
 ModelCatalogProviderSource = Literal["MODEL_CATALOG_PROVIDER_SOURCE_UNSPECIFIED", "MODEL_CATALOG_PROVIDER_SOURCE_BUILTIN", "MODEL_CATALOG_PROVIDER_SOURCE_CUSTOM", "MODEL_CATALOG_PROVIDER_SOURCE_REMOTE", "MODEL_CATALOG_PROVIDER_SOURCE_OVERRIDDEN"]
+MusicGenerationTermination = Literal["MUSIC_GENERATION_TERMINATION_UNSPECIFIED", "MUSIC_GENERATION_TERMINATION_UNKNOWN", "MUSIC_GENERATION_TERMINATION_MODEL_END", "MUSIC_GENERATION_TERMINATION_BUDGET_LIMIT"]
+MusicScoreConditioning = Literal["MUSIC_SCORE_CONDITIONING_UNSPECIFIED", "MUSIC_SCORE_CONDITIONING_MELODY_ONLY", "MUSIC_SCORE_CONDITIONING_MELODY_AND_HARMONY"]
+MusicScoreFormat = Literal["MUSIC_SCORE_FORMAT_UNSPECIFIED", "MUSIC_SCORE_FORMAT_ABC", "MUSIC_SCORE_FORMAT_MIDI"]
+MusicScoreOrigin = Literal["MUSIC_SCORE_ORIGIN_UNSPECIFIED", "MUSIC_SCORE_ORIGIN_GENERATED_PLAN", "MUSIC_SCORE_ORIGIN_TRANSCRIBED_ESTIMATE"]
 PresenceVerificationMethod = Literal["PRESENCE_VERIFICATION_METHOD_UNSPECIFIED", "PRESENCE_VERIFICATION_METHOD_OS_CREDENTIAL", "PRESENCE_VERIFICATION_METHOD_NIMI_REAUTH", "PRESENCE_VERIFICATION_METHOD_TEST_HARNESS"]
 PresenceVerificationState = Literal["PRESENCE_VERIFICATION_STATE_UNSPECIFIED", "PRESENCE_VERIFICATION_STATE_REJECTED", "PRESENCE_VERIFICATION_STATE_VERIFIED", "PRESENCE_VERIFICATION_STATE_UNAVAILABLE"]
 RealmAttachmentDisplayKind = Literal["REALM_ATTACHMENT_DISPLAY_KIND_UNSPECIFIED", "REALM_ATTACHMENT_DISPLAY_KIND_IMAGE", "REALM_ATTACHMENT_DISPLAY_KIND_VIDEO", "REALM_ATTACHMENT_DISPLAY_KIND_AUDIO", "REALM_ATTACHMENT_DISPLAY_KIND_TEXT", "REALM_ATTACHMENT_DISPLAY_KIND_CARD"]
@@ -1111,6 +1115,11 @@ class ArtifactStreamDelta:
 @dataclass(frozen=True)
 class AudioChunks:
     chunks: tuple[bytes, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class AudioFrameRange:
+    start_frame: int | None = None
+    end_frame: int | None = None
 
 @dataclass(frozen=True)
 class AudioSeparateResult:
@@ -3833,6 +3842,12 @@ class LocalAppMusicGenerateJobSpec:
     prompt: str | None = None
     lyrics: str | None = None
     duration_seconds: int | None = None
+    instrumental: bool | None = None
+    seed: int | None = None
+    score: MusicScoreReference | None = None
+    score_conditioning: MusicScoreConditioning | None = None
+    return_generated_score: bool | None = None
+    audio_reference: MusicAudioInput | None = None
 
 @dataclass(frozen=True)
 class LocalAppPackagePreview:
@@ -3887,6 +3902,7 @@ class LocalAppScenarioJob:
     audio_separation: AudioSeparation | None = None
     text_annotation: TextAnnotationResult | None = None
     recovery_expires_at: str | None = None
+    music_generation: MusicGeneration | None = None
 
 @dataclass(frozen=True)
 class LocalAppScenarioJobEvent:
@@ -4547,8 +4563,14 @@ class MoveLocalAppAssetResponse:
     reason_code: ReasonCode | None = None
 
 @dataclass(frozen=True)
+class MusicAudioInput:
+    artifact_id: str | None = None
+    range: AudioFrameRange | None = None
+
+@dataclass(frozen=True)
 class MusicGenerateResult:
     artifacts: tuple[ScenarioArtifact, ...] = field(default_factory=tuple)
+    generation: MusicGeneration | None = None
 
 @dataclass(frozen=True)
 class MusicGenerateScenarioSpec:
@@ -4559,6 +4581,31 @@ class MusicGenerateScenarioSpec:
     title: str | None = None
     duration_seconds: int | None = None
     instrumental: bool | None = None
+    score: MusicScoreReference | None = None
+    score_conditioning: MusicScoreConditioning | None = None
+    seed: int | None = None
+    return_generated_score: bool | None = None
+    audio_reference: MusicAudioInput | None = None
+
+@dataclass(frozen=True)
+class MusicGeneration:
+    mix_artifact_id: str | None = None
+    generated_score: MusicScoreArtifact | None = None
+    actual_seed: int | None = None
+    termination: MusicGenerationTermination | None = None
+    audio_info: LocalAppAudioInfo | None = None
+
+@dataclass(frozen=True)
+class MusicScoreArtifact:
+    artifact_id: str | None = None
+    format: MusicScoreFormat | None = None
+    origin: MusicScoreOrigin | None = None
+    truncated: bool | None = None
+
+@dataclass(frozen=True)
+class MusicScoreReference:
+    artifact_id: str | None = None
+    format: MusicScoreFormat | None = None
 
 @dataclass(frozen=True)
 class OpenConversationAnchorRequest:
@@ -5481,6 +5528,7 @@ class ScenarioJob:
     audio_separation: AudioSeparation | None = None
     text_annotation: TextAnnotationResult | None = None
     recovery_expires_at: str | None = None
+    music_generation: MusicGeneration | None = None
 
 @dataclass(frozen=True)
 class ScenarioJobEvent:

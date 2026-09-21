@@ -190,7 +190,7 @@ func TestCommittedCustodyReferenceRejectsOwnerOperationIntegrityAndExpiryChanges
 			test.mutate(t, svc, &reference)
 			body, _ := capabilitydriver.NewCommittedArtifactBody(reference)
 			created, err := svc.storeRuntimeJobArtifact(context.Background(), "job-ref", head,
-				&runtimev1.ScenarioArtifact{ArtifactId: "artifact-existing", MimeType: "video/mp4"}, body)
+				&runtimev1.ScenarioArtifact{ArtifactId: "artifact-existing", MimeType: "video/mp4"}, body, nil)
 			if err == nil || created {
 				t.Fatalf("invalid committed reference created=%v err=%v", created, err)
 			}

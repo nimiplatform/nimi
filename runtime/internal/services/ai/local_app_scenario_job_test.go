@@ -680,10 +680,11 @@ func TestProjectLocalAppScenarioJobAdmitsCompletedMusicArtifact(t *testing.T) {
 		JobId: "job-music", ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE,
 		Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
 		TraceId: "trace-music", Artifacts: []*runtimev1.ScenarioArtifact{{
-			ArtifactId: "artifact-music", MimeType: "audio/wav", SizeBytes: 3530796,
+			ArtifactId: "artifact-music", MimeType: "audio/wav", SizeBytes: 7056058,
 			Sha256:     strings.Repeat("a", 64),
-			DurationMs: 20015, SampleRateHz: 44100, Channels: 2,
+			DurationMs: 20000, SampleRateHz: 44100, Channels: 2, FrameCount: 882000,
 		}},
+		MusicGeneration: &runtimev1.MusicGeneration{MixArtifactId: "artifact-music", Termination: runtimev1.MusicGenerationTermination_MUSIC_GENERATION_TERMINATION_UNKNOWN, AudioInfo: &runtimev1.LocalAppAudioInfo{SampleRateHz: 44100, Channels: 2, FrameCount: 882000, DurationMs: 20000}},
 	})
 	if err != nil {
 		t.Fatalf("project completed Music Job: %v", err)
@@ -694,9 +695,9 @@ func TestProjectLocalAppScenarioJobAdmitsCompletedMusicArtifact(t *testing.T) {
 }
 
 func TestLocalAppMusicDurationIsBoundedAndPreserved(t *testing.T) {
-	for _, seconds := range []uint32{0, 20, 120, 180, 181} {
+	for _, seconds := range []uint32{0, 20, 120, 180, 240, 600, 601} {
 		result, err := validateLocalAppMusicGenerateJobSpec(&runtimev1.LocalAppMusicGenerateJobSpec{Prompt: "Synth pop", Lyrics: "City lights", DurationSeconds: seconds})
-		if seconds > 180 {
+		if seconds > 600 {
 			if err == nil {
 				t.Fatal("oversized music duration passed")
 			}

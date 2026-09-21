@@ -852,6 +852,47 @@ export interface VoiceCreateScenarioSpec {
     };
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.MusicScoreReference
+ */
+export interface MusicScoreReference {
+    /**
+     * @generated from protobuf field: string artifact_id = 1
+     */
+    artifactId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.MusicScoreFormat format = 2
+     */
+    format: MusicScoreFormat;
+}
+/**
+ * A half-open range on the referenced canonical PCM artifact's own timeline.
+ *
+ * @generated from protobuf message nimi.runtime.v1.AudioFrameRange
+ */
+export interface AudioFrameRange {
+    /**
+     * @generated from protobuf field: uint64 start_frame = 1
+     */
+    startFrame: string;
+    /**
+     * @generated from protobuf field: uint64 end_frame = 2
+     */
+    endFrame: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.MusicAudioInput
+ */
+export interface MusicAudioInput {
+    /**
+     * @generated from protobuf field: string artifact_id = 1
+     */
+    artifactId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AudioFrameRange range = 2
+     */
+    range?: AudioFrameRange;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.MusicGenerateScenarioSpec
  */
 export interface MusicGenerateScenarioSpec {
@@ -883,6 +924,26 @@ export interface MusicGenerateScenarioSpec {
      * @generated from protobuf field: bool instrumental = 7
      */
     instrumental: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.MusicScoreReference score = 8
+     */
+    score?: MusicScoreReference;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.MusicScoreConditioning score_conditioning = 9
+     */
+    scoreConditioning: MusicScoreConditioning;
+    /**
+     * @generated from protobuf field: optional uint32 seed = 10
+     */
+    seed?: number;
+    /**
+     * @generated from protobuf field: bool return_generated_score = 11
+     */
+    returnGeneratedScore: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.MusicAudioInput audio_reference = 12
+     */
+    audioReference?: MusicAudioInput;
 }
 /**
  * Source separation preserves the input timeline and returns vocals plus the
@@ -1803,6 +1864,58 @@ export interface MusicGenerateResult {
      * @generated from protobuf field: repeated nimi.runtime.v1.ScenarioArtifact artifacts = 1
      */
     artifacts: ScenarioArtifact[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.MusicGeneration generation = 2
+     */
+    generation?: MusicGeneration;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.MusicScoreArtifact
+ */
+export interface MusicScoreArtifact {
+    /**
+     * @generated from protobuf field: string artifact_id = 1
+     */
+    artifactId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.MusicScoreFormat format = 2
+     */
+    format: MusicScoreFormat;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.MusicScoreOrigin origin = 3
+     */
+    origin: MusicScoreOrigin;
+    /**
+     * @generated from protobuf field: bool truncated = 4
+     */
+    truncated: boolean;
+}
+/**
+ * Only references to committed artifacts in the same successful Job.
+ *
+ * @generated from protobuf message nimi.runtime.v1.MusicGeneration
+ */
+export interface MusicGeneration {
+    /**
+     * @generated from protobuf field: string mix_artifact_id = 1
+     */
+    mixArtifactId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.MusicScoreArtifact generated_score = 2
+     */
+    generatedScore?: MusicScoreArtifact;
+    /**
+     * @generated from protobuf field: optional uint32 actual_seed = 3
+     */
+    actualSeed?: number;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.MusicGenerationTermination termination = 4
+     */
+    termination: MusicGenerationTermination;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppAudioInfo audio_info = 5
+     */
+    audioInfo?: LocalAppAudioInfo;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AudioSeparateResult
@@ -2518,6 +2631,30 @@ export interface LocalAppMusicGenerateJobSpec {
      * @generated from protobuf field: uint32 duration_seconds = 3
      */
     durationSeconds: number;
+    /**
+     * @generated from protobuf field: bool instrumental = 4
+     */
+    instrumental: boolean;
+    /**
+     * @generated from protobuf field: optional uint32 seed = 5
+     */
+    seed?: number;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.MusicScoreReference score = 6
+     */
+    score?: MusicScoreReference;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.MusicScoreConditioning score_conditioning = 7
+     */
+    scoreConditioning: MusicScoreConditioning;
+    /**
+     * @generated from protobuf field: bool return_generated_score = 8
+     */
+    returnGeneratedScore: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.MusicAudioInput audio_reference = 9
+     */
+    audioReference?: MusicAudioInput;
 }
 /**
  * Text-conditioned world generation. Provider selection and asset retrieval
@@ -2732,6 +2869,10 @@ export interface LocalAppScenarioJob {
      * @generated from protobuf field: google.protobuf.Timestamp recovery_expires_at = 19
      */
     recoveryExpiresAt?: Timestamp;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.MusicGeneration music_generation = 20
+     */
+    musicGeneration?: MusicGeneration;
 }
 /**
  * Trimmed voice asset catalog projection. Provider, model, provider voice
@@ -3606,6 +3747,10 @@ export interface ScenarioJob {
      * @generated from protobuf field: google.protobuf.Timestamp recovery_expires_at = 30
      */
     recoveryExpiresAt?: Timestamp;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.MusicGeneration music_generation = 31
+     */
+    musicGeneration?: MusicGeneration;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.SubmitScenarioJobRequest
@@ -4635,6 +4780,40 @@ export enum TextSourceType {
     DOCUMENT = 2
 }
 /**
+ * @generated from protobuf enum nimi.runtime.v1.MusicScoreFormat
+ */
+export enum MusicScoreFormat {
+    /**
+     * @generated from protobuf enum value: MUSIC_SCORE_FORMAT_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: MUSIC_SCORE_FORMAT_ABC = 1;
+     */
+    ABC = 1,
+    /**
+     * @generated from protobuf enum value: MUSIC_SCORE_FORMAT_MIDI = 2;
+     */
+    MIDI = 2
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.MusicScoreConditioning
+ */
+export enum MusicScoreConditioning {
+    /**
+     * @generated from protobuf enum value: MUSIC_SCORE_CONDITIONING_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: MUSIC_SCORE_CONDITIONING_MELODY_ONLY = 1;
+     */
+    MELODY_ONLY = 1,
+    /**
+     * @generated from protobuf enum value: MUSIC_SCORE_CONDITIONING_MELODY_AND_HARMONY = 2;
+     */
+    MELODY_AND_HARMONY = 2
+}
+/**
  * @generated from protobuf enum nimi.runtime.v1.VisionLocateGeometry
  */
 export enum VisionLocateGeometry {
@@ -4697,6 +4876,44 @@ export enum SpeechTranscriptStatus {
      * @generated from protobuf enum value: SPEECH_TRANSCRIPT_STATUS_NO_SPEECH = 2;
      */
     NO_SPEECH = 2
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.MusicGenerationTermination
+ */
+export enum MusicGenerationTermination {
+    /**
+     * @generated from protobuf enum value: MUSIC_GENERATION_TERMINATION_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: MUSIC_GENERATION_TERMINATION_UNKNOWN = 1;
+     */
+    UNKNOWN = 1,
+    /**
+     * @generated from protobuf enum value: MUSIC_GENERATION_TERMINATION_MODEL_END = 2;
+     */
+    MODEL_END = 2,
+    /**
+     * @generated from protobuf enum value: MUSIC_GENERATION_TERMINATION_BUDGET_LIMIT = 3;
+     */
+    BUDGET_LIMIT = 3
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.MusicScoreOrigin
+ */
+export enum MusicScoreOrigin {
+    /**
+     * @generated from protobuf enum value: MUSIC_SCORE_ORIGIN_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: MUSIC_SCORE_ORIGIN_GENERATED_PLAN = 1;
+     */
+    GENERATED_PLAN = 1,
+    /**
+     * @generated from protobuf enum value: MUSIC_SCORE_ORIGIN_TRANSCRIBED_ESTIMATE = 2;
+     */
+    TRANSCRIBED_ESTIMATE = 2
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ScenarioJobStatus
@@ -7066,6 +7283,170 @@ class VoiceCreateScenarioSpec$Type extends MessageType<VoiceCreateScenarioSpec> 
  */
 export const VoiceCreateScenarioSpec = new VoiceCreateScenarioSpec$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class MusicScoreReference$Type extends MessageType<MusicScoreReference> {
+    constructor() {
+        super("nimi.runtime.v1.MusicScoreReference", [
+            { no: 1, name: "artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "format", kind: "enum", T: () => ["nimi.runtime.v1.MusicScoreFormat", MusicScoreFormat, "MUSIC_SCORE_FORMAT_"] }
+        ]);
+    }
+    create(value?: PartialMessage<MusicScoreReference>): MusicScoreReference {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.artifactId = "";
+        message.format = 0;
+        if (value !== undefined)
+            reflectionMergePartial<MusicScoreReference>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: MusicScoreReference): MusicScoreReference {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string artifact_id */ 1:
+                    message.artifactId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.MusicScoreFormat format */ 2:
+                    message.format = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: MusicScoreReference, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string artifact_id = 1; */
+        if (message.artifactId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.artifactId);
+        /* nimi.runtime.v1.MusicScoreFormat format = 2; */
+        if (message.format !== 0)
+            writer.tag(2, WireType.Varint).int32(message.format);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.MusicScoreReference
+ */
+export const MusicScoreReference = new MusicScoreReference$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AudioFrameRange$Type extends MessageType<AudioFrameRange> {
+    constructor() {
+        super("nimi.runtime.v1.AudioFrameRange", [
+            { no: 1, name: "start_frame", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 2, name: "end_frame", kind: "scalar", T: 4 /*ScalarType.UINT64*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AudioFrameRange>): AudioFrameRange {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.startFrame = "0";
+        message.endFrame = "0";
+        if (value !== undefined)
+            reflectionMergePartial<AudioFrameRange>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AudioFrameRange): AudioFrameRange {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* uint64 start_frame */ 1:
+                    message.startFrame = reader.uint64().toString();
+                    break;
+                case /* uint64 end_frame */ 2:
+                    message.endFrame = reader.uint64().toString();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AudioFrameRange, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* uint64 start_frame = 1; */
+        if (message.startFrame !== "0")
+            writer.tag(1, WireType.Varint).uint64(message.startFrame);
+        /* uint64 end_frame = 2; */
+        if (message.endFrame !== "0")
+            writer.tag(2, WireType.Varint).uint64(message.endFrame);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AudioFrameRange
+ */
+export const AudioFrameRange = new AudioFrameRange$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class MusicAudioInput$Type extends MessageType<MusicAudioInput> {
+    constructor() {
+        super("nimi.runtime.v1.MusicAudioInput", [
+            { no: 1, name: "artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "range", kind: "message", T: () => AudioFrameRange }
+        ]);
+    }
+    create(value?: PartialMessage<MusicAudioInput>): MusicAudioInput {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.artifactId = "";
+        if (value !== undefined)
+            reflectionMergePartial<MusicAudioInput>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: MusicAudioInput): MusicAudioInput {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string artifact_id */ 1:
+                    message.artifactId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.AudioFrameRange range */ 2:
+                    message.range = AudioFrameRange.internalBinaryRead(reader, reader.uint32(), options, message.range);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: MusicAudioInput, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string artifact_id = 1; */
+        if (message.artifactId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.artifactId);
+        /* nimi.runtime.v1.AudioFrameRange range = 2; */
+        if (message.range)
+            AudioFrameRange.internalBinaryWrite(message.range, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.MusicAudioInput
+ */
+export const MusicAudioInput = new MusicAudioInput$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class MusicGenerateScenarioSpec$Type extends MessageType<MusicGenerateScenarioSpec> {
     constructor() {
         super("nimi.runtime.v1.MusicGenerateScenarioSpec", [
@@ -7075,7 +7456,12 @@ class MusicGenerateScenarioSpec$Type extends MessageType<MusicGenerateScenarioSp
             { no: 4, name: "style", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "title", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "duration_seconds", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
-            { no: 7, name: "instrumental", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 7, name: "instrumental", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 8, name: "score", kind: "message", T: () => MusicScoreReference },
+            { no: 9, name: "score_conditioning", kind: "enum", T: () => ["nimi.runtime.v1.MusicScoreConditioning", MusicScoreConditioning, "MUSIC_SCORE_CONDITIONING_"] },
+            { no: 10, name: "seed", kind: "scalar", opt: true, T: 13 /*ScalarType.UINT32*/ },
+            { no: 11, name: "return_generated_score", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 12, name: "audio_reference", kind: "message", T: () => MusicAudioInput }
         ]);
     }
     create(value?: PartialMessage<MusicGenerateScenarioSpec>): MusicGenerateScenarioSpec {
@@ -7087,6 +7473,8 @@ class MusicGenerateScenarioSpec$Type extends MessageType<MusicGenerateScenarioSp
         message.title = "";
         message.durationSeconds = 0;
         message.instrumental = false;
+        message.scoreConditioning = 0;
+        message.returnGeneratedScore = false;
         if (value !== undefined)
             reflectionMergePartial<MusicGenerateScenarioSpec>(this, message, value);
         return message;
@@ -7116,6 +7504,21 @@ class MusicGenerateScenarioSpec$Type extends MessageType<MusicGenerateScenarioSp
                     break;
                 case /* bool instrumental */ 7:
                     message.instrumental = reader.bool();
+                    break;
+                case /* nimi.runtime.v1.MusicScoreReference score */ 8:
+                    message.score = MusicScoreReference.internalBinaryRead(reader, reader.uint32(), options, message.score);
+                    break;
+                case /* nimi.runtime.v1.MusicScoreConditioning score_conditioning */ 9:
+                    message.scoreConditioning = reader.int32();
+                    break;
+                case /* optional uint32 seed */ 10:
+                    message.seed = reader.uint32();
+                    break;
+                case /* bool return_generated_score */ 11:
+                    message.returnGeneratedScore = reader.bool();
+                    break;
+                case /* nimi.runtime.v1.MusicAudioInput audio_reference */ 12:
+                    message.audioReference = MusicAudioInput.internalBinaryRead(reader, reader.uint32(), options, message.audioReference);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -7150,6 +7553,21 @@ class MusicGenerateScenarioSpec$Type extends MessageType<MusicGenerateScenarioSp
         /* bool instrumental = 7; */
         if (message.instrumental !== false)
             writer.tag(7, WireType.Varint).bool(message.instrumental);
+        /* nimi.runtime.v1.MusicScoreReference score = 8; */
+        if (message.score)
+            MusicScoreReference.internalBinaryWrite(message.score, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.MusicScoreConditioning score_conditioning = 9; */
+        if (message.scoreConditioning !== 0)
+            writer.tag(9, WireType.Varint).int32(message.scoreConditioning);
+        /* optional uint32 seed = 10; */
+        if (message.seed !== undefined)
+            writer.tag(10, WireType.Varint).uint32(message.seed);
+        /* bool return_generated_score = 11; */
+        if (message.returnGeneratedScore !== false)
+            writer.tag(11, WireType.Varint).bool(message.returnGeneratedScore);
+        /* nimi.runtime.v1.MusicAudioInput audio_reference = 12; */
+        if (message.audioReference)
+            MusicAudioInput.internalBinaryWrite(message.audioReference, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -10178,7 +10596,8 @@ export const SpeechTranscribeResult = new SpeechTranscribeResult$Type();
 class MusicGenerateResult$Type extends MessageType<MusicGenerateResult> {
     constructor() {
         super("nimi.runtime.v1.MusicGenerateResult", [
-            { no: 1, name: "artifacts", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ScenarioArtifact }
+            { no: 1, name: "artifacts", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ScenarioArtifact },
+            { no: 2, name: "generation", kind: "message", T: () => MusicGeneration }
         ]);
     }
     create(value?: PartialMessage<MusicGenerateResult>): MusicGenerateResult {
@@ -10196,6 +10615,9 @@ class MusicGenerateResult$Type extends MessageType<MusicGenerateResult> {
                 case /* repeated nimi.runtime.v1.ScenarioArtifact artifacts */ 1:
                     message.artifacts.push(ScenarioArtifact.internalBinaryRead(reader, reader.uint32(), options));
                     break;
+                case /* nimi.runtime.v1.MusicGeneration generation */ 2:
+                    message.generation = MusicGeneration.internalBinaryRead(reader, reader.uint32(), options, message.generation);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -10211,6 +10633,9 @@ class MusicGenerateResult$Type extends MessageType<MusicGenerateResult> {
         /* repeated nimi.runtime.v1.ScenarioArtifact artifacts = 1; */
         for (let i = 0; i < message.artifacts.length; i++)
             ScenarioArtifact.internalBinaryWrite(message.artifacts[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.MusicGeneration generation = 2; */
+        if (message.generation)
+            MusicGeneration.internalBinaryWrite(message.generation, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -10221,6 +10646,153 @@ class MusicGenerateResult$Type extends MessageType<MusicGenerateResult> {
  * @generated MessageType for protobuf message nimi.runtime.v1.MusicGenerateResult
  */
 export const MusicGenerateResult = new MusicGenerateResult$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class MusicScoreArtifact$Type extends MessageType<MusicScoreArtifact> {
+    constructor() {
+        super("nimi.runtime.v1.MusicScoreArtifact", [
+            { no: 1, name: "artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "format", kind: "enum", T: () => ["nimi.runtime.v1.MusicScoreFormat", MusicScoreFormat, "MUSIC_SCORE_FORMAT_"] },
+            { no: 3, name: "origin", kind: "enum", T: () => ["nimi.runtime.v1.MusicScoreOrigin", MusicScoreOrigin, "MUSIC_SCORE_ORIGIN_"] },
+            { no: 4, name: "truncated", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<MusicScoreArtifact>): MusicScoreArtifact {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.artifactId = "";
+        message.format = 0;
+        message.origin = 0;
+        message.truncated = false;
+        if (value !== undefined)
+            reflectionMergePartial<MusicScoreArtifact>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: MusicScoreArtifact): MusicScoreArtifact {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string artifact_id */ 1:
+                    message.artifactId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.MusicScoreFormat format */ 2:
+                    message.format = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.MusicScoreOrigin origin */ 3:
+                    message.origin = reader.int32();
+                    break;
+                case /* bool truncated */ 4:
+                    message.truncated = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: MusicScoreArtifact, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string artifact_id = 1; */
+        if (message.artifactId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.artifactId);
+        /* nimi.runtime.v1.MusicScoreFormat format = 2; */
+        if (message.format !== 0)
+            writer.tag(2, WireType.Varint).int32(message.format);
+        /* nimi.runtime.v1.MusicScoreOrigin origin = 3; */
+        if (message.origin !== 0)
+            writer.tag(3, WireType.Varint).int32(message.origin);
+        /* bool truncated = 4; */
+        if (message.truncated !== false)
+            writer.tag(4, WireType.Varint).bool(message.truncated);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.MusicScoreArtifact
+ */
+export const MusicScoreArtifact = new MusicScoreArtifact$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class MusicGeneration$Type extends MessageType<MusicGeneration> {
+    constructor() {
+        super("nimi.runtime.v1.MusicGeneration", [
+            { no: 1, name: "mix_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "generated_score", kind: "message", T: () => MusicScoreArtifact },
+            { no: 3, name: "actual_seed", kind: "scalar", opt: true, T: 13 /*ScalarType.UINT32*/ },
+            { no: 4, name: "termination", kind: "enum", T: () => ["nimi.runtime.v1.MusicGenerationTermination", MusicGenerationTermination, "MUSIC_GENERATION_TERMINATION_"] },
+            { no: 5, name: "audio_info", kind: "message", T: () => LocalAppAudioInfo }
+        ]);
+    }
+    create(value?: PartialMessage<MusicGeneration>): MusicGeneration {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.mixArtifactId = "";
+        message.termination = 0;
+        if (value !== undefined)
+            reflectionMergePartial<MusicGeneration>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: MusicGeneration): MusicGeneration {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string mix_artifact_id */ 1:
+                    message.mixArtifactId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.MusicScoreArtifact generated_score */ 2:
+                    message.generatedScore = MusicScoreArtifact.internalBinaryRead(reader, reader.uint32(), options, message.generatedScore);
+                    break;
+                case /* optional uint32 actual_seed */ 3:
+                    message.actualSeed = reader.uint32();
+                    break;
+                case /* nimi.runtime.v1.MusicGenerationTermination termination */ 4:
+                    message.termination = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.LocalAppAudioInfo audio_info */ 5:
+                    message.audioInfo = LocalAppAudioInfo.internalBinaryRead(reader, reader.uint32(), options, message.audioInfo);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: MusicGeneration, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string mix_artifact_id = 1; */
+        if (message.mixArtifactId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.mixArtifactId);
+        /* nimi.runtime.v1.MusicScoreArtifact generated_score = 2; */
+        if (message.generatedScore)
+            MusicScoreArtifact.internalBinaryWrite(message.generatedScore, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* optional uint32 actual_seed = 3; */
+        if (message.actualSeed !== undefined)
+            writer.tag(3, WireType.Varint).uint32(message.actualSeed);
+        /* nimi.runtime.v1.MusicGenerationTermination termination = 4; */
+        if (message.termination !== 0)
+            writer.tag(4, WireType.Varint).int32(message.termination);
+        /* nimi.runtime.v1.LocalAppAudioInfo audio_info = 5; */
+        if (message.audioInfo)
+            LocalAppAudioInfo.internalBinaryWrite(message.audioInfo, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.MusicGeneration
+ */
+export const MusicGeneration = new MusicGeneration$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class AudioSeparateResult$Type extends MessageType<AudioSeparateResult> {
     constructor() {
@@ -12042,7 +12614,13 @@ class LocalAppMusicGenerateJobSpec$Type extends MessageType<LocalAppMusicGenerat
         super("nimi.runtime.v1.LocalAppMusicGenerateJobSpec", [
             { no: 1, name: "prompt", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "lyrics", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "duration_seconds", kind: "scalar", T: 13 /*ScalarType.UINT32*/ }
+            { no: 3, name: "duration_seconds", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 4, name: "instrumental", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 5, name: "seed", kind: "scalar", opt: true, T: 13 /*ScalarType.UINT32*/ },
+            { no: 6, name: "score", kind: "message", T: () => MusicScoreReference },
+            { no: 7, name: "score_conditioning", kind: "enum", T: () => ["nimi.runtime.v1.MusicScoreConditioning", MusicScoreConditioning, "MUSIC_SCORE_CONDITIONING_"] },
+            { no: 8, name: "return_generated_score", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 9, name: "audio_reference", kind: "message", T: () => MusicAudioInput }
         ]);
     }
     create(value?: PartialMessage<LocalAppMusicGenerateJobSpec>): LocalAppMusicGenerateJobSpec {
@@ -12050,6 +12628,9 @@ class LocalAppMusicGenerateJobSpec$Type extends MessageType<LocalAppMusicGenerat
         message.prompt = "";
         message.lyrics = "";
         message.durationSeconds = 0;
+        message.instrumental = false;
+        message.scoreConditioning = 0;
+        message.returnGeneratedScore = false;
         if (value !== undefined)
             reflectionMergePartial<LocalAppMusicGenerateJobSpec>(this, message, value);
         return message;
@@ -12067,6 +12648,24 @@ class LocalAppMusicGenerateJobSpec$Type extends MessageType<LocalAppMusicGenerat
                     break;
                 case /* uint32 duration_seconds */ 3:
                     message.durationSeconds = reader.uint32();
+                    break;
+                case /* bool instrumental */ 4:
+                    message.instrumental = reader.bool();
+                    break;
+                case /* optional uint32 seed */ 5:
+                    message.seed = reader.uint32();
+                    break;
+                case /* nimi.runtime.v1.MusicScoreReference score */ 6:
+                    message.score = MusicScoreReference.internalBinaryRead(reader, reader.uint32(), options, message.score);
+                    break;
+                case /* nimi.runtime.v1.MusicScoreConditioning score_conditioning */ 7:
+                    message.scoreConditioning = reader.int32();
+                    break;
+                case /* bool return_generated_score */ 8:
+                    message.returnGeneratedScore = reader.bool();
+                    break;
+                case /* nimi.runtime.v1.MusicAudioInput audio_reference */ 9:
+                    message.audioReference = MusicAudioInput.internalBinaryRead(reader, reader.uint32(), options, message.audioReference);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -12089,6 +12688,24 @@ class LocalAppMusicGenerateJobSpec$Type extends MessageType<LocalAppMusicGenerat
         /* uint32 duration_seconds = 3; */
         if (message.durationSeconds !== 0)
             writer.tag(3, WireType.Varint).uint32(message.durationSeconds);
+        /* bool instrumental = 4; */
+        if (message.instrumental !== false)
+            writer.tag(4, WireType.Varint).bool(message.instrumental);
+        /* optional uint32 seed = 5; */
+        if (message.seed !== undefined)
+            writer.tag(5, WireType.Varint).uint32(message.seed);
+        /* nimi.runtime.v1.MusicScoreReference score = 6; */
+        if (message.score)
+            MusicScoreReference.internalBinaryWrite(message.score, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.MusicScoreConditioning score_conditioning = 7; */
+        if (message.scoreConditioning !== 0)
+            writer.tag(7, WireType.Varint).int32(message.scoreConditioning);
+        /* bool return_generated_score = 8; */
+        if (message.returnGeneratedScore !== false)
+            writer.tag(8, WireType.Varint).bool(message.returnGeneratedScore);
+        /* nimi.runtime.v1.MusicAudioInput audio_reference = 9; */
+        if (message.audioReference)
+            MusicAudioInput.internalBinaryWrite(message.audioReference, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -12352,7 +12969,8 @@ class LocalAppScenarioJob$Type extends MessageType<LocalAppScenarioJob> {
             { no: 16, name: "transcription", kind: "message", T: () => SpeechTranscript },
             { no: 17, name: "audio_separation", kind: "message", T: () => AudioSeparation },
             { no: 18, name: "text_annotation", kind: "message", T: () => TextAnnotationResult },
-            { no: 19, name: "recovery_expires_at", kind: "message", T: () => Timestamp }
+            { no: 19, name: "recovery_expires_at", kind: "message", T: () => Timestamp },
+            { no: 20, name: "music_generation", kind: "message", T: () => MusicGeneration }
         ]);
     }
     create(value?: PartialMessage<LocalAppScenarioJob>): LocalAppScenarioJob {
@@ -12434,6 +13052,9 @@ class LocalAppScenarioJob$Type extends MessageType<LocalAppScenarioJob> {
                 case /* google.protobuf.Timestamp recovery_expires_at */ 19:
                     message.recoveryExpiresAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.recoveryExpiresAt);
                     break;
+                case /* nimi.runtime.v1.MusicGeneration music_generation */ 20:
+                    message.musicGeneration = MusicGeneration.internalBinaryRead(reader, reader.uint32(), options, message.musicGeneration);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -12503,6 +13124,9 @@ class LocalAppScenarioJob$Type extends MessageType<LocalAppScenarioJob> {
         /* google.protobuf.Timestamp recovery_expires_at = 19; */
         if (message.recoveryExpiresAt)
             Timestamp.internalBinaryWrite(message.recoveryExpiresAt, writer.tag(19, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.MusicGeneration music_generation = 20; */
+        if (message.musicGeneration)
+            MusicGeneration.internalBinaryWrite(message.musicGeneration, writer.tag(20, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -14720,7 +15344,8 @@ class ScenarioJob$Type extends MessageType<ScenarioJob> {
             { no: 27, name: "transcription", kind: "message", T: () => SpeechTranscript },
             { no: 28, name: "audio_separation", kind: "message", T: () => AudioSeparation },
             { no: 29, name: "text_annotation", kind: "message", T: () => TextAnnotationResult },
-            { no: 30, name: "recovery_expires_at", kind: "message", T: () => Timestamp }
+            { no: 30, name: "recovery_expires_at", kind: "message", T: () => Timestamp },
+            { no: 31, name: "music_generation", kind: "message", T: () => MusicGeneration }
         ]);
     }
     create(value?: PartialMessage<ScenarioJob>): ScenarioJob {
@@ -14841,6 +15466,9 @@ class ScenarioJob$Type extends MessageType<ScenarioJob> {
                 case /* google.protobuf.Timestamp recovery_expires_at */ 30:
                     message.recoveryExpiresAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.recoveryExpiresAt);
                     break;
+                case /* nimi.runtime.v1.MusicGeneration music_generation */ 31:
+                    message.musicGeneration = MusicGeneration.internalBinaryRead(reader, reader.uint32(), options, message.musicGeneration);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -14943,6 +15571,9 @@ class ScenarioJob$Type extends MessageType<ScenarioJob> {
         /* google.protobuf.Timestamp recovery_expires_at = 30; */
         if (message.recoveryExpiresAt)
             Timestamp.internalBinaryWrite(message.recoveryExpiresAt, writer.tag(30, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.MusicGeneration music_generation = 31; */
+        if (message.musicGeneration)
+            MusicGeneration.internalBinaryWrite(message.musicGeneration, writer.tag(31, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

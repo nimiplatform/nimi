@@ -1,6 +1,7 @@
 package capabilitydriver
 
 import (
+	"encoding/json"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -32,12 +33,25 @@ func TestYuE2ExactProfileAndNativeInputMapping(t *testing.T) {
 		}
 		return false
 	}
-	for _, pair := range [][2]string{{"--family", "yue2"}, {"--lyrics", input.Request.Lyrics}, {"--request-option", "style=" + input.Request.Prompt}, {"--request-option", "semantic_max_tokens=500"}, {"--request-option", "cot=full"}} {
+	for _, pair := range [][2]string{{"--family", "yue2"}, {"--out-format", "float32"}} {
 		if !containsPair(pair[0], pair[1]) {
 			t.Fatalf("missing %v in %v", pair, args)
 		}
 	}
-	if plan.NewOutputObserver() == nil || plan.StagingScorePath() != filepath.Join(filepath.Dir(input.StagingWAVPath), "score.abc") {
+	_, raw := plan.RequestJSON()
+	var request struct {
+		Requests []struct {
+			Lyrics  string            `json:"lyrics"`
+			Options map[string]string `json:"options"`
+		} `json:"requests"`
+	}
+	if err := json.Unmarshal(raw, &request); err != nil {
+		t.Fatal(err)
+	}
+	if len(request.Requests) != 1 || request.Requests[0].Lyrics != input.Request.Lyrics || request.Requests[0].Options["style"] != input.Request.Prompt || request.Requests[0].Options["semantic_max_tokens"] != "500" {
+		t.Fatal("request file changed author content or budget")
+	}
+	if plan.NewOutputObserver() == nil || plan.StagingScorePath() != filepath.Join(filepath.Dir(input.StagingWAVPath), "music", "score.abc") {
 		t.Fatal("missing multi-output interpretation")
 	}
 	args[0] = "mutated"
@@ -64,7 +78,7 @@ func TestYuE2ExactProfileAndNativeInputMapping(t *testing.T) {
 
 func TestYuE2TerminationIsExplicitAndBounded(t *testing.T) {
 	for _, test := range []struct{ flag, want string }{{"1", MusicTerminationBudgetLimit}, {"0", MusicTerminationModelEnd}} {
-		observer := &yue2OutputObserver{}
+		observer := &yue2OutputObserver{expectGeneratedScore: true}
 		observer.Observe(1, []byte(strings.Repeat("noise", 20000)+"\n"))
 		data := "[TIMING ts=20260921-051149] yue2.semantic.abc_truncated 0\n[TIMING ts=20260921-051153] yue2.semantic.tokens 500\n[TIMING ts=20260921-051153] yue2.semantic.truncated " + test.flag + "\n"
 		for start := 0; start < len(data); start += 7 {

@@ -133,7 +133,8 @@ func (MiniMaxMusic3AudioCppDriver) PlanMusicInvocation(input MusicInvocationInpu
 		_, _ = hasher.Write([]byte(value))
 		_, _ = hasher.Write([]byte{0})
 	}
-	plan := &MusicInvocationPlan{processKey: hex.EncodeToString(hasher.Sum(nil)), loadoutID: strings.TrimSpace(input.LoadoutID), recipeID: MiniMaxMusic3RecipeID, driverIdentity: Identity{ImplementationID: MiniMaxMusic3ImplementationID, DriverID: MiniMaxMusic3DriverID, DriverDialect: MiniMaxMusic3DriverDialect}, modelBinding: binding, modelRoot: modelRoot, languageModelPath: language, rvqDepthDecoderPath: rvq, flowTransformerPath: transformer, audioCppPackageID: input.Package.AudioCppPackageID, audioCppSelectedSourceRecordID: input.Package.AudioCppSelectedSourceRecordID, audioCppRoot: filepath.Clean(input.Package.AudioCppRoot), audioCppExecutablePath: filepath.Clean(input.Package.AudioCppExecutablePath), cuda13DependencyID: input.Package.CUDA13DependencyID, cuda13SelectedSourceRecordID: input.Package.CUDA13SelectedSourceRecordID, cuda13Root: filepath.Clean(input.Package.CUDA13Root), prompt: input.Request.GetPrompt(), lyrics: input.Request.GetLyrics(), durationBudgetSeconds: int(duration), numInferenceSteps: 30, guidanceScale: 1.7, arGuidanceScale: 1.5, topK: 50, seed: 0, memorySaver: true, stagingWAVPath: filepath.Clean(staging), expectedSampleRate: 44100, expectedChannels: 2, expectedBitsPerSample: 16}
+	plan := &MusicInvocationPlan{processKey: hex.EncodeToString(hasher.Sum(nil)), loadoutID: strings.TrimSpace(input.LoadoutID), recipeID: MiniMaxMusic3RecipeID, driverIdentity: Identity{ImplementationID: MiniMaxMusic3ImplementationID, DriverID: MiniMaxMusic3DriverID, DriverDialect: MiniMaxMusic3DriverDialect}, modelBinding: binding, modelRoot: modelRoot, languageModelPath: language, rvqDepthDecoderPath: rvq, flowTransformerPath: transformer, audioCppPackageID: input.Package.AudioCppPackageID, audioCppSelectedSourceRecordID: input.Package.AudioCppSelectedSourceRecordID, audioCppRoot: filepath.Clean(input.Package.AudioCppRoot), audioCppExecutablePath: filepath.Clean(input.Package.AudioCppExecutablePath), cuda13DependencyID: input.Package.CUDA13DependencyID, cuda13SelectedSourceRecordID: input.Package.CUDA13SelectedSourceRecordID, cuda13Root: filepath.Clean(input.Package.CUDA13Root), prompt: input.Request.GetPrompt(), lyrics: input.Request.GetLyrics(), durationBudgetSeconds: int(duration), numInferenceSteps: 30, guidanceScale: 1.7, arGuidanceScale: 1.5, topK: 50, seed: 0, memorySaver: true, stagingWAVPath: filepath.Clean(staging), expectedSampleRate: 44100, expectedChannels: 2, expectedBitsPerSample: 32}
+	plan.seed = uint64(input.Request.GetSeed())
 	plan.cliArgs = []string{
 		"--task", "gen", "--family", "minimax_music3", "--model", plan.modelRoot, "--backend", "cuda",
 		"--session-option", "minimax_music3.language_model_gguf=language_model_q4_0.gguf",
@@ -146,7 +147,7 @@ func (MiniMaxMusic3AudioCppDriver) PlanMusicInvocation(input MusicInvocationInpu
 		"--request-option", "guidance_scale=" + strconv.FormatFloat(plan.guidanceScale, 'g', -1, 64),
 		"--request-option", "ar_guidance_scale=" + strconv.FormatFloat(plan.arGuidanceScale, 'g', -1, 64),
 		"--request-option", "top_k=" + strconv.Itoa(plan.topK), "--request-option", "seed=" + strconv.FormatUint(plan.seed, 10),
-		"--out", plan.stagingWAVPath, "--metrics",
+		"--out", plan.stagingWAVPath, "--out-format", "float32", "--metrics",
 	}
 	return plan, nil
 }
@@ -193,7 +194,7 @@ func validateMiniMaxMusic3Request(request *runtimev1.MusicGenerateScenarioSpec, 
 	if request == nil || strings.TrimSpace(request.GetPrompt()) == "" || strings.TrimSpace(request.GetLyrics()) == "" {
 		return invocationError(InvocationFailureInvalidRequest, fmt.Errorf("MiniMax-Music3 prompt and lyrics are required"))
 	}
-	if request.GetNegativePrompt() != "" || request.GetStyle() != "" || request.GetTitle() != "" || request.GetInstrumental() || request.GetDurationSeconds() < 0 || request.GetDurationSeconds() > 180 || len(extensions) != 0 {
+	if request.GetNegativePrompt() != "" || request.GetStyle() != "" || request.GetTitle() != "" || request.GetInstrumental() || request.GetScore() != nil || request.GetAudioReference() != nil || request.GetReturnGeneratedScore() || request.GetScoreConditioning() != runtimev1.MusicScoreConditioning_MUSIC_SCORE_CONDITIONING_UNSPECIFIED || request.GetDurationSeconds() < 0 || request.GetDurationSeconds() > 180 || len(extensions) != 0 {
 		return invocationError(InvocationFailureUnsupported, fmt.Errorf("MiniMax-Music3 request contains unsupported fields"))
 	}
 	for _, line := range strings.Split(strings.ReplaceAll(request.GetLyrics(), "\r\n", "\n"), "\n") {

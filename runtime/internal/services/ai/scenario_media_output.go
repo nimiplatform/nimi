@@ -70,7 +70,7 @@ func buildScenarioOutputFromArtifacts(
 		}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
 		return &runtimev1.ScenarioOutput{
-			Output: &runtimev1.ScenarioOutput_MusicGenerate{MusicGenerate: &runtimev1.MusicGenerateResult{Artifacts: clonedArtifacts}},
+			Output: &runtimev1.ScenarioOutput_MusicGenerate{MusicGenerate: &runtimev1.MusicGenerateResult{Artifacts: clonedArtifacts, Generation: cloneMusicGeneration(job.GetMusicGeneration())}},
 		}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SEPARATE:
 		return &runtimev1.ScenarioOutput{

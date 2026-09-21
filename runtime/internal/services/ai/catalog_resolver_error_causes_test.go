@@ -68,19 +68,6 @@ func TestCatalogResolverErrorsRetainModelNotFoundCause(t *testing.T) {
 			},
 		},
 		{
-			name: "music iteration capability",
-			run: func() error {
-				return validateMusicGenerateIterationSupport(
-					ctx,
-					svc,
-					"unknown-model",
-					&nimillm.RemoteTarget{ProviderType: "stability"},
-					nil,
-					&nimillm.MusicIterationExtension{},
-				)
-			},
-		},
-		{
 			name: "speech voice catalog",
 			run: func() error {
 				_, _, _, err := resolveCatalogVoicesForSubject(
