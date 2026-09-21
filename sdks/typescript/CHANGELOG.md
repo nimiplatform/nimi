@@ -5,6 +5,11 @@ published baseline. They are not a complete reconstruction of older releases.
 
 ## Unreleased (next 0.x minor)
 
+- Preserve asset-stream cancellation before the first chunk and during a pending
+  read. Each returned body has one consumer; call its iterator's `return()` when
+  abandoning an opened read, including after an App-level metadata mismatch.
+  Update Kit with the corresponding native-stream close forwarding fix.
+
 - AIConfig resource projections may carry `musicInput.generation` profiles for
   exact legal input combinations and bounds. Missing profiles mean unknown or
   inapplicable; Apps must not infer them from model labels. Submission remains

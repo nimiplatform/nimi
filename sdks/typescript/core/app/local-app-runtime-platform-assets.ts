@@ -127,6 +127,7 @@ function projectAssetList(value: unknown): { readonly assets: readonly NimiLocal
   return Object.freeze({ assets, nextCursor: record.nextCursor });
 }
 
+// @nimi-authority: rule.nimi.sdks.feature-clients.r035
 function projectAssetRead(value: unknown): NimiLocalAppAssetReadResult {
   const record = asRecord(value);
   assertExactProjectionKeys(record, ['asset', 'range', 'body'], 'asset read');
@@ -139,16 +140,33 @@ function projectAssetRead(value: unknown): NimiLocalAppAssetReadResult {
   if (totalSize !== asset.sizeBytes || offset > totalSize || length > totalSize - offset) return localAppProjectionError('asset range');
   const source = record.body as AsyncIterable<Uint8Array>;
   if (!source || typeof source !== 'object' || typeof source[Symbol.asyncIterator] !== 'function') return localAppProjectionError('asset read body');
+  let consumed = false;
   const body = Object.freeze({
-    async *[Symbol.asyncIterator](): AsyncGenerator<Uint8Array> {
-      let observed = 0;
-      for await (const chunk of source) {
-        if (!(chunk instanceof Uint8Array) || chunk.byteLength === 0 || chunk.byteLength > MAX_CHUNK_BYTES) return localAppProjectionError('asset read chunk');
-        observed += chunk.byteLength;
-        if (!Number.isSafeInteger(observed) || observed > length) return localAppProjectionError('asset read length');
-        yield new Uint8Array(chunk);
-      }
-      if (observed !== length) return localAppProjectionError('asset read length');
+    [Symbol.asyncIterator](): AsyncIterator<Uint8Array> {
+      if (consumed) return localAppProjectionError('asset body already consumed');
+      consumed = true;
+      const upstream = source[Symbol.asyncIterator](); let closing: Promise<unknown> | undefined;
+      const close = () => closing ??= Promise.resolve().then(() => upstream.return?.());
+      const reader = (async function* () {
+        let observed = 0;
+        try {
+          while (true) {
+            const next = await upstream.next();
+            if (next.done) break;
+            const chunk = next.value;
+            if (!(chunk instanceof Uint8Array) || chunk.byteLength === 0 || chunk.byteLength > MAX_CHUNK_BYTES) return localAppProjectionError('asset read chunk');
+            observed += chunk.byteLength;
+            if (!Number.isSafeInteger(observed) || observed > length) return localAppProjectionError('asset read length');
+            yield new Uint8Array(chunk);
+          }
+          if (observed !== length) return localAppProjectionError('asset read length');
+        } finally { await close(); }
+      })();
+      return {
+        next: () => reader.next(),
+        return: async () => { await close(); return reader.return(undefined); },
+        throw: async error => { await close(); return reader.throw(error); },
+      };
     },
   });
   return Object.freeze({ asset, range: Object.freeze({ offset, length, totalSize }), body });

@@ -2,6 +2,10 @@
 
 ## Unreleased (next 0.x minor)
 
+- Close protected asset streams even when the consumer returns before reading
+  its first chunk or while a read is pending. Asset bodies have one consumer;
+  repeated return closes the native resource once. Use the matching SDK fix.
+
 - Add `@nimiplatform/kit/core/audio` for bounded canonical float32 WAV inspection,
   frame reads, waveform blocks, same-domain mixing and streamed export. One block
   is at most 16,384 frames and a mix has at most eight tracks. The injected reader

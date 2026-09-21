@@ -1880,18 +1880,30 @@ export async function readNimiLocalAppAsset(input: {
   if (input.offset !== undefined) payload.offset = boundedAssetRange(input.offset, false, command);
   if (input.length !== undefined) payload.length = boundedAssetRange(input.length, true, command);
   const opened = await invokeChecked(command, { payload }, (value) => parseAssetReadOpen(value, command));
+  let consumed = false;
+  let closing: Promise<unknown> | undefined;
+  const close = () => closing ??= invoke(NIMI_STANDARD_SHELL_COMMANDS['storage.assetReadClose'], { payload: { streamId: opened.streamId } }).catch(() => undefined);
   const body = Object.freeze({
-    async *[Symbol.asyncIterator](): AsyncGenerator<Uint8Array> {
-      try {
-        while (true) {
-          const next = await invokeChecked(NIMI_STANDARD_SHELL_COMMANDS['storage.assetReadNext'],
-            { payload: { streamId: opened.streamId } }, (value) => parseAssetReadNext(value, command));
-          if (next.completed) return;
-          yield next.bodyChunk;
-        }
-      } finally {
-        await invoke(NIMI_STANDARD_SHELL_COMMANDS['storage.assetReadClose'], { payload: { streamId: opened.streamId } }).catch(() => undefined);
-      }
+    [Symbol.asyncIterator](): AsyncIterator<Uint8Array> {
+      if (consumed) throw new Error(`${command}: asset body is already consumed`);
+      consumed = true;
+      const reader = (async function* () {
+        try {
+          while (true) {
+            const next = await invokeChecked(NIMI_STANDARD_SHELL_COMMANDS['storage.assetReadNext'],
+              { payload: { streamId: opened.streamId } }, (value) => parseAssetReadNext(value, command));
+            if (next.completed) return;
+            yield next.bodyChunk;
+          }
+        } finally { await close(); }
+      })();
+      // Generator finally does not run before the first next(), and return()
+      // queues behind a pending next(). Close the native resource first.
+      return {
+        next: () => reader.next(),
+        return: async () => { await close(); return reader.return(undefined); },
+        throw: async error => { await close(); return reader.throw(error); },
+      };
     },
   });
   return Object.freeze({ asset: opened.asset, range: opened.range, body });

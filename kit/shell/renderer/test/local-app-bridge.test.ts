@@ -1448,6 +1448,26 @@ describe('renderer local-app standard-shell surface', () => {
     expect(() => storage.readJson('../escape.json')).toThrow(/relativePath is invalid/u);
   });
 
+  it('closes a native asset stream while its next chunk is still pending', async () => {
+    let rejectRead: ((error: Error) => void) | undefined; let closed = 0;
+    let markStarted: (() => void) | undefined;
+    const started = new Promise<void>(resolve => { markStarted = resolve; });
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (command: string) => {
+        if (command.endsWith('assetReadOpen')) return { streamId: 'pending-read',
+          asset: { relativePath: 'media/audio.wav', mediaType: 'audio/wav', sizeBytes: 4, sha256: `sha256:${'a'.repeat(64)}`,
+            createdAt: '2026-09-22T00:00:00Z', updatedAt: '2026-09-22T00:00:00Z' }, range: { offset: 0, length: 4, totalSize: 4 } };
+        if (command.endsWith('assetReadNext')) return new Promise((_, reject) => { rejectRead = reject; markStarted?.(); });
+        if (command.endsWith('assetReadClose')) { closed++; rejectRead?.(new Error('stream closed')); return { closed: true }; }
+        throw new Error(`unexpected command: ${command}`);
+      }, listen: () => () => {},
+    };
+    const read = await createNimiLocalAppStandardShellSurface().storage.assets.read({ relativePath: 'media/audio.wav' });
+    const iterator = read.body[Symbol.asyncIterator](); const next = iterator.next();
+    const rejected = expect(next).rejects.toThrow('stream closed');
+    await started; await iterator.return?.(); await rejected; expect(closed).toBe(1);
+  });
+
   it('streams managed asset writes and reads with bounded chunks and cancellation', async () => {
     const invocations: Array<{ command: string; payload: unknown }> = [];
     const asset = {
@@ -1494,6 +1514,14 @@ describe('renderer local-app standard-shell surface', () => {
       break;
     }
     expect(invocations.some(({ command }) => command.endsWith('assetReadClose'))).toBe(true);
+    const beforeRead = readNext;
+    const beforeClose = invocations.filter(({ command }) => command.endsWith('assetReadClose')).length;
+    const unopened = await assets.read({ relativePath: asset.relativePath });
+    const unopenedIterator = unopened.body[Symbol.asyncIterator]();
+    await unopenedIterator.return?.(); await unopenedIterator.return?.();
+    expect(readNext).toBe(beforeRead);
+    expect(invocations.filter(({ command }) => command.endsWith('assetReadClose')).length).toBe(beforeClose + 1);
+    expect(() => unopened.body[Symbol.asyncIterator]()).toThrow(/already consumed/);
     const unicodePath = '媒体/é.wav';
     const maximumPath = `${'a'.repeat(255)}/${'b'.repeat(255)}/${'c'.repeat(255)}/${'d'.repeat(254)}/e`;
     await expect(assets.stat(unicodePath)).resolves.toEqual(asset);

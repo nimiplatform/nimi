@@ -45,6 +45,11 @@ artifact authorization. `readPcmFrames` verifies each requested window. Supply
 `PcmByteSource.read` using protected asset ranges, comparing returned SHA, size
 and MIME with the pinned asset on every call.
 
+The WAV reader keeps one MiB of bounded read-ahead per source and permits one
+in-flight source read. PCM processing still uses at most 16,384 frames. This
+avoids repeating a protected asset's full integrity verification for each small
+DSP block; no validation is removed and no full-song buffer is created.
+
 `buildPcmWaveform` returns at most 65,536 min/max bins. `mixPcmBlock` takes up to
 eight already aligned blocks in the same sample-rate/channel domain. The App
 places tracks and asks Runtime for explicit resampled derivatives when needed.

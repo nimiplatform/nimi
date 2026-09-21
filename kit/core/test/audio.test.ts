@@ -58,16 +58,17 @@ describe('canonical PCM frames', () => {
     const header = canonicalWavHeader(full); let maxRead = 0; let totalRead = 0;
     const source: PcmByteSource = { sizeBytes: 58 + full.frameCount * 8, read: async (offset, length) => {
       maxRead = Math.max(maxRead, length); totalRead += length;
-      if (offset < 58) return header.slice(offset, offset + length);
-      const bytes = new Uint8Array(length); const data = new DataView(bytes.buffer);
-      for (let i = 0; i < length / 4; i += 1) data.setFloat32(i * 4, ((offset - 58) / 4 + i) % 2 ? -0.25 : 0.5, true);
+      const bytes = new Uint8Array(length); const pattern = new Uint8Array(8); const data = new DataView(pattern.buffer);
+      data.setFloat32(0, 0.5, true); data.setFloat32(4, -0.25, true);
+      for (let i = 0; i < length; i += 1) bytes[i] = offset + i < 58 ? header[offset + i]! : pattern[(offset + i - 58) % 8]!;
       return bytes;
     } };
     const peaks = await buildPcmWaveform(await inspectCanonicalWav(source), 257);
     expect([...peaks.min].every(n => n === -0.25)).toBe(true);
     expect([...peaks.max].every(n => n === 0.5)).toBe(true);
-    expect(maxRead).toBe(PCM_BLOCK_FRAMES * 8);
-    expect(totalRead).toBe(source.sizeBytes);
+    expect(maxRead).toBe(1024 * 1024);
+    // One first-window overlap can bridge the unaligned WAV data offset.
+    expect(totalRead).toBeLessThanOrEqual(source.sizeBytes + PCM_BLOCK_FRAMES * 8);
   });
 });
 

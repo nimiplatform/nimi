@@ -3,6 +3,25 @@ import { abortable, integer, PCM_BLOCK_FRAMES, PcmError, validatePcmBlock, valid
 
 const text = (bytes: Uint8Array, start: number, length: number) => String.fromCharCode(...bytes.subarray(start, start + length));
 const view = (bytes: Uint8Array) => new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+// Protected asset ReadOpen verifies the immutable complete payload. Reuse one
+// bounded read-ahead window instead of opening that payload for every PCM block.
+// DSP windows remain 16,384 frames; this byte cache is at most one MiB per source.
+function bufferedSource(source: PcmByteSource): PcmByteSource {
+  let start = 0; let bytes: Uint8Array = new Uint8Array(0); let reading = false;
+  return { sizeBytes: source.sizeBytes, read: async (offset, length, signal) => {
+    signal?.throwIfAborted();
+    if (offset >= start && offset + length <= start + bytes.length) return bytes.slice(offset - start, offset - start + length);
+    if (reading) throw new PcmError('PCM_READER_BUSY');
+    reading = true;
+    try {
+      const count = Math.min(1024 * 1024, source.sizeBytes - offset);
+      const next = await source.read(offset, count, signal); signal?.throwIfAborted();
+      if (!(next instanceof Uint8Array) || next.length !== count) throw new PcmError('PCM_RANGE_INCOMPLETE');
+      start = offset; bytes = next;
+      return bytes.slice(0, length);
+    } finally { reading = false; }
+  } };
+}
 async function read(source: PcmByteSource, offset: number, length: number, signal?: AbortSignal): Promise<Uint8Array> {
   signal?.throwIfAborted();
   if (!integer(offset, 0, source.sizeBytes) || !integer(length, 1, PCM_BLOCK_FRAMES * 8) || offset + length > source.sizeBytes) throw new PcmError('PCM_RANGE_INVALID');
@@ -16,6 +35,7 @@ async function read(source: PcmByteSource, offset: number, length: number, signa
 /** Inspect format and exact frame count. Samples are validated when read, not by this header-only operation. */
 export async function inspectCanonicalWav(source: PcmByteSource, signal?: AbortSignal): Promise<CanonicalWav> {
   if (!integer(source.sizeBytes, 58, 512 * 1024 * 1024)) throw new PcmError('PCM_FILE_SIZE_INVALID');
+  source = bufferedSource(source);
   const header = await read(source, 0, 12, signal);
   if (text(header, 0, 4) !== 'RIFF' || text(header, 8, 4) !== 'WAVE' || view(header).getUint32(4, true) + 8 !== source.sizeBytes) throw new PcmError('PCM_WAV_INVALID');
   let format: { channels: 1 | 2; sampleRateHz: number } | undefined;
