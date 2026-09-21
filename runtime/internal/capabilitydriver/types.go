@@ -443,6 +443,7 @@ type ImageInvocationInput struct {
 // captured before Job publication. Exact Drivers freeze it into their own
 // immutable capability plans; it carries no model, request, or route facts.
 type AudioCppRuntimePackageInput struct {
+	AudioCppVersion                string
 	AudioCppPackageID              string
 	AudioCppSelectedSourceRecordID string
 	AudioCppRoot                   string
@@ -1020,8 +1021,12 @@ type ImageInvocationDriver interface {
 	PlanImageInvocation(input ImageInvocationInput) (*ImageInvocationPlan, error)
 }
 
-// MusicInvocationPlan is the immutable closed MiniMax-Music3 Driver/Host seam.
+// MusicInvocationPlan is the immutable private Music Driver/Host seam. CLI
+// options are translated by the exact Driver, never selected by the Host.
 type MusicInvocationPlan struct {
+	cliArgs                        []string
+	outputObserver                 func() MusicOutputObserver
+	stagingScorePath               string
 	processKey                     string
 	loadoutID                      string
 	recipeID                       string
@@ -1051,6 +1056,40 @@ type MusicInvocationPlan struct {
 	expectedSampleRate             int
 	expectedChannels               int
 	expectedBitsPerSample          int
+}
+
+func (p *MusicInvocationPlan) CLIArgs() []string {
+	if p == nil {
+		return nil
+	}
+	return append([]string(nil), p.cliArgs...)
+}
+
+type MusicInferenceFacts struct {
+	Termination             string
+	SemanticTokens          int
+	GeneratedScoreTruncated bool
+}
+
+// MusicOutputObserver belongs to an exact Driver dialect. It consumes bounded
+// process output incrementally; the Host never interprets model-specific logs.
+type MusicOutputObserver interface {
+	Observe(stream int, chunk []byte)
+	Facts() (MusicInferenceFacts, error)
+}
+
+func (p *MusicInvocationPlan) NewOutputObserver() MusicOutputObserver {
+	if p == nil || p.outputObserver == nil {
+		return nil
+	}
+	return p.outputObserver()
+}
+
+func (p *MusicInvocationPlan) StagingScorePath() string {
+	if p == nil {
+		return ""
+	}
+	return p.stagingScorePath
 }
 
 func (p *MusicInvocationPlan) ProcessKey() string {

@@ -155,6 +155,7 @@ func audioCppRuntimePackageInput(selected *localexecution.SelectedLocalExecution
 	for _, source := range selected.ExactDependencySources {
 		switch {
 		case source.DependencyFamily == "native-engine-package.audio-cpp" && source.DependencyID == "audio.cpp.package":
+			result.AudioCppVersion = source.Version
 			result.AudioCppPackageID = capabilitydriver.AudioCppWindowsCUDA13PackageID
 			result.AudioCppSelectedSourceRecordID = source.SelectedSourceRecordID
 			result.AudioCppRoot = source.CanonicalRoot

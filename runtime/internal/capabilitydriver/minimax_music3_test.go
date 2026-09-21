@@ -88,6 +88,11 @@ func TestMiniMaxMusic3DriverRegistryModelContractAndPlan(t *testing.T) {
 	if plan.ModelBinding().DeclaredFiles[0] == "mutated" {
 		t.Fatal("MusicInvocationPlan retained mutable caller binding storage")
 	}
+	args := plan.CLIArgs()
+	args[0] = "--untrusted"
+	if plan.CLIArgs()[0] != "--task" {
+		t.Fatal("MusicInvocationPlan exposes mutable CLI storage")
+	}
 }
 
 func TestMiniMaxMusic3DriverFailsUnsupportedCanonicalFieldsClosed(t *testing.T) {

@@ -502,6 +502,7 @@ func localResolvedAssemblyForMusic(selected *localexecution.SelectedLocalExecuti
 	sampleRate, channels, bits := plan.ExpectedWAVFormat()
 	assembly.LoadPlan = localResolvedAssemblyLoadPlan{Kind: "music", Music: &localResolvedAssemblyMusicPlan{ProcessKey: plan.ProcessKey(), AudioCppPackageID: plan.AudioCppPackageID(), AudioCppSelectedSourceRecordID: plan.AudioCppSelectedSourceRecordID(), AudioCppRoot: plan.AudioCppRoot(), AudioCppExecutablePath: plan.AudioCppExecutablePath(), CUDA13DependencyID: plan.CUDA13DependencyID(), CUDA13SelectedSourceRecordID: plan.CUDA13SelectedSourceRecordID(), CUDA13Root: plan.CUDA13Root(), ModelRoot: plan.ModelRoot(), LanguageModelPath: plan.LanguageModelPath(), RVQDepthDecoderPath: plan.RVQDepthDecoderPath(), FlowTransformerPath: plan.FlowTransformerPath(), DurationBudgetSeconds: plan.DurationBudgetSeconds(), NumInferenceSteps: plan.NumInferenceSteps(), GuidanceScale: plan.GuidanceScale(), ARGuidanceScale: plan.ARGuidanceScale(), TopK: plan.TopK(), Seed: plan.Seed(), MemorySaver: plan.MemorySaver(), StagingWAVPath: plan.StagingWAVPath(), ExpectedSampleRate: sampleRate, ExpectedChannels: channels, ExpectedBitsPerSample: bits}}
 	assembly.ProcessIdentity.ProcessKey = plan.ProcessKey()
+	assembly.ProcessIdentity.ProcessArgs = plan.CLIArgs()
 	return assembly, nil
 }
 

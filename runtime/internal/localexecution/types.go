@@ -226,16 +226,18 @@ type ImageExecutionHost interface {
 
 type MusicExecutionStartFunc func() error
 
-// MusicResult contains only factual staging-WAV output. Runtime Scenario Job
-// validation and artifact custody remain above this seam.
+// MusicResult contains factual private staging output and Driver-interpreted
+// inference facts. Runtime Job validation and artifact custody stay above it.
 type MusicResult struct {
-	StagingWAVPath string
-	SizeBytes      int64
-	SampleRate     int
-	Channels       int
-	BitsPerSample  int
-	DurationMS     int64
-	ComputeMS      int64
+	StagingScorePath string
+	InferenceFacts   capabilitydriver.MusicInferenceFacts
+	StagingWAVPath   string
+	SizeBytes        int64
+	SampleRate       int
+	Channels         int
+	BitsPerSample    int
+	DurationMS       int64
+	ComputeMS        int64
 }
 
 type MusicExecutionHost interface {

@@ -1,0 +1,177 @@
+package capabilitydriver
+
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
+	"path/filepath"
+	"sort"
+	"strconv"
+	"strings"
+	"unicode/utf16"
+	"unicode/utf8"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/protobuf/types/known/structpb"
+)
+
+const (
+	YuE2ImplementationID  = "local.music.generate.yue2.audio-cpp"
+	YuE2DriverID          = "nimi.runtime.driver.audio-cpp.yue2"
+	YuE2DriverDialect     = "audio.cpp/yue2/music-generate/v1"
+	YuE2RecipeID          = "yue2.audio-cpp.v1"
+	YuE2RequirementID     = "music.bundle"
+	YuE2VerifiedContentID = "sha256:5c23e6c01d468f3cd18068fd94bff0a6b22cca62846ae15015e7400754f65e94"
+	YuE2AudioCppVersion   = "0.8.1"
+)
+
+var yue2Files = map[string]int64{
+	"yue2-3b-q8_0.gguf":                    4264186432,
+	"yue2-vae-f16.gguf":                    265218656,
+	"sidecars/yue2-generation-config.json": 466,
+	"sidecars/yue2-model-config.json":      959,
+	"sidecars/yue2-qwen.tiktoken":          2561218,
+	"sidecars/yue2-vae-config.json":        1378,
+}
+
+// YuE2AudioCppDriver is the exact verified Q8/F16 candidate. It is deliberately
+// not in the production registry until typed multi-artifact Job publication,
+// the package/catalog cohort and protected consumer have been delivered.
+// @nimi-authority: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+type YuE2AudioCppDriver struct{}
+
+var _ MusicInvocationDriver = YuE2AudioCppDriver{}
+
+func (YuE2AudioCppDriver) ImplementationSupportedFeatures(recipe string) ([]string, runtimev1.LocalCapabilityReason) {
+	if recipe != YuE2RecipeID {
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
+	}
+	return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+}
+
+func (d YuE2AudioCppDriver) ProjectRecipe(recipe string, options *structpb.Struct, features []string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
+	return d.Interpret(InterpretInput{RecipeID: recipe, PortableConfig: options, SupportedFeatures: features})
+}
+
+func (YuE2AudioCppDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
+	if input.RecipeID != YuE2RecipeID || !musicStructIsEmpty(input.PortableConfig) {
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
+	}
+	if len(input.SupportedFeatures) != 0 {
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_FEATURE_UNSUPPORTED
+	}
+	constraints, _ := structpb.NewStruct(map[string]any{"asset_kind": "music", "model_family": "yue2", "artifact_role": "music_model", "format": "gguf-bundle"})
+	return []*runtimev1.LocalCapabilityRequirement{{RequirementId: YuE2RequirementID, Role: runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN, Presence: runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED, ResourceKind: "music", Policy: runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_STRICT, CompatibilityConstraints: constraints, DisplayLabel: "YuE2 Q8 with F16 VAE"}}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+}
+
+func (d YuE2AudioCppDriver) ProjectModelAssetBinding(input ModelAssetBindingInput) (ModelAssetBindingProjection, runtimev1.LocalCapabilityReason) {
+	if input.Requirement.GetRequirementId() != YuE2RequirementID || input.Binding.GetRequirementId() != YuE2RequirementID {
+		return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+	}
+	if input.Binding.GetVerifiedContentId() != YuE2VerifiedContentID || len(input.Files) != len(yue2Files) {
+		return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_MISMATCH
+	}
+	seen := map[string]bool{}
+	for _, file := range input.Files {
+		size, ok := yue2Files[file.RelativePath]
+		if !ok || seen[file.RelativePath] || file.SizeBytes != size || (strings.HasSuffix(file.RelativePath, ".gguf") && !musicGGUFProbe(file.FormatProbe)) {
+			return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_MISMATCH
+		}
+		seen[file.RelativePath] = true
+	}
+	entry, ok := modelAssetFileFact(input, "yue2-3b-q8_0.gguf")
+	if !ok || !musicGGUFProbe(entry.FormatProbe) {
+		return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+	}
+	return validatedModelAssetBindingProjection(input, ModelAssetDescriptor{Kind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_MUSIC, Family: "yue2", Engine: "audio-cpp", ArtifactRoles: []string{"music_model"}, FormatProbe: append([]byte(nil), entry.FormatProbe...)}, 5000, d.ValidateBinding)
+}
+
+func (YuE2AudioCppDriver) ValidateBinding(requirement *runtimev1.LocalCapabilityRequirement, binding *runtimev1.ModelAssetExactBinding, asset ModelAssetDescriptor) runtimev1.LocalCapabilityReason {
+	if requirement.GetRequirementId() != YuE2RequirementID || binding.GetRequirementId() != YuE2RequirementID || binding.GetVerifiedContentId() != YuE2VerifiedContentID || asset.Kind != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_MUSIC || asset.Family != "yue2" || asset.Engine != "audio-cpp" || !contains(asset.ArtifactRoles, "music_model") || !musicGGUFProbe(asset.FormatProbe) {
+		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+	}
+	return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+}
+
+func (d YuE2AudioCppDriver) ValidateCombination(requirements []*runtimev1.LocalCapabilityRequirement, bindings []*runtimev1.ModelAssetExactBinding, assets []ModelAssetDescriptor) runtimev1.LocalCapabilityReason {
+	if len(requirements) != 1 || len(bindings) != 1 || len(assets) != 1 {
+		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_BINDING_AMBIGUOUS
+	}
+	return d.ValidateBinding(requirements[0], bindings[0], assets[0])
+}
+
+func (YuE2AudioCppDriver) EffectiveRequestDefaults(string, *structpb.Struct) map[string]string {
+	return nil
+}
+
+func (YuE2AudioCppDriver) PlanMusicInvocation(input MusicInvocationInput) (*MusicInvocationPlan, error) {
+	bad := func(kind InvocationFailureKind, message string) (*MusicInvocationPlan, error) {
+		return nil, invocationError(kind, fmt.Errorf("YuE2 %s", message))
+	}
+	if input.RecipeID != YuE2RecipeID || !musicStructIsEmpty(input.PortableConfig) {
+		return bad(InvocationFailureInvalidConfig, "recipe or portable config is invalid")
+	}
+	if len(input.ExactBindings) != 1 || input.ExactBindings[0].RequirementID != YuE2RequirementID || input.ExactBindings[0].VerifiedContentID != YuE2VerifiedContentID {
+		return bad(InvocationFailureInvalidBinding, "requires the exact verified Q8/F16 bundle")
+	}
+	binding := cloneInvocationExactBindings(input.ExactBindings)[0]
+	if len(binding.DeclaredFiles) != len(yue2Files) {
+		return bad(InvocationFailureInvalidBinding, "bundle manifest is incomplete")
+	}
+	seen := map[string]bool{}
+	for _, file := range binding.DeclaredFiles {
+		if _, ok := yue2Files[file]; !ok || seen[file] {
+			return bad(InvocationFailureInvalidBinding, "bundle manifest is invalid")
+		}
+		seen[file] = true
+	}
+	if !filepath.IsAbs(binding.BundleDir) || filepath.Clean(binding.AbsolutePath) != filepath.Join(filepath.Clean(binding.BundleDir), "yue2-3b-q8_0.gguf") {
+		return bad(InvocationFailureInvalidBinding, "bundle entry is invalid")
+	}
+	pkg := input.Package
+	if pkg.AudioCppVersion != YuE2AudioCppVersion || pkg.AudioCppPackageID != AudioCppWindowsCUDA13PackageID || pkg.CUDA13DependencyID != AudioCppCUDA13RuntimeDependencyID || strings.TrimSpace(pkg.AudioCppSelectedSourceRecordID) == "" || strings.TrimSpace(pkg.CUDA13SelectedSourceRecordID) == "" || !filepath.IsAbs(pkg.AudioCppRoot) || !filepath.IsAbs(pkg.AudioCppExecutablePath) || !filepath.IsAbs(pkg.CUDA13Root) || !musicPathWithin(pkg.AudioCppRoot, pkg.AudioCppExecutablePath) || !strings.EqualFold(filepath.Base(pkg.AudioCppExecutablePath), "audiocpp_cli.exe") {
+		return bad(InvocationFailureInvalidConfig, "requires the captured audio.cpp 0.8.1 CUDA package")
+	}
+	r := input.Request
+	if r == nil || strings.TrimSpace(r.GetPrompt()) == "" || strings.TrimSpace(r.GetLyrics()) == "" || !utf8.ValidString(r.GetPrompt()) || !utf8.ValidString(r.GetLyrics()) || strings.ContainsRune(r.GetPrompt()+r.GetLyrics(), 0) {
+		return bad(InvocationFailureInvalidRequest, "style prompt and lyrics are required")
+	}
+	if r.GetNegativePrompt() != "" || r.GetStyle() != "" || r.GetTitle() != "" || r.GetInstrumental() || len(input.Extensions) != 0 || r.GetDurationSeconds() < 0 || r.GetDurationSeconds() > 600 {
+		return bad(InvocationFailureUnsupported, "request contains unsupported fields")
+	}
+	if !filepath.IsAbs(input.StagingWAVPath) || filepath.Base(input.StagingWAVPath) != "music.wav" {
+		return bad(InvocationFailureInvalidConfig, "requires a private Job directory containing music.wav")
+	}
+	duration := int(r.GetDurationSeconds())
+	if duration == 0 {
+		duration = 20
+	}
+	hasher := sha256.New()
+	for _, value := range append(invocationExactBindingIdentity(binding), pkg.AudioCppVersion, pkg.AudioCppSelectedSourceRecordID, pkg.CUDA13SelectedSourceRecordID, YuE2DriverDialect) {
+		_, _ = hasher.Write([]byte(value))
+		_, _ = hasher.Write([]byte{0})
+	}
+	plan := &MusicInvocationPlan{processKey: hex.EncodeToString(hasher.Sum(nil)), loadoutID: input.LoadoutID, recipeID: YuE2RecipeID, driverIdentity: Identity{ImplementationID: YuE2ImplementationID, DriverID: YuE2DriverID, DriverDialect: YuE2DriverDialect}, modelBinding: binding, modelRoot: filepath.Clean(binding.BundleDir), audioCppPackageID: pkg.AudioCppPackageID, audioCppSelectedSourceRecordID: pkg.AudioCppSelectedSourceRecordID, audioCppRoot: pkg.AudioCppRoot, audioCppExecutablePath: pkg.AudioCppExecutablePath, cuda13DependencyID: pkg.CUDA13DependencyID, cuda13SelectedSourceRecordID: pkg.CUDA13SelectedSourceRecordID, cuda13Root: pkg.CUDA13Root, prompt: r.GetPrompt(), lyrics: r.GetLyrics(), durationBudgetSeconds: duration, seed: 1234, stagingWAVPath: input.StagingWAVPath, stagingScorePath: filepath.Join(filepath.Dir(input.StagingWAVPath), "score.abc"), expectedSampleRate: 48000, expectedChannels: 2, expectedBitsPerSample: 16, outputObserver: func() MusicOutputObserver { return &yue2OutputObserver{} }}
+	// Native YuE2 generates 25 semantic tokens per second. The decoded waveform
+	// can round slightly; this is a budget, never a requested exact endpoint.
+	plan.cliArgs = []string{"--task", "gen", "--family", "yue2", "--model", plan.modelRoot, "--backend", "cuda", "--lyrics", plan.lyrics, "--seed", "1234", "--request-option", "style=" + plan.prompt, "--request-option", "cot=full", "--request-option", "abc_max_tokens=4096", "--request-option", "semantic_max_tokens=" + strconv.Itoa(duration*25), "--out", plan.stagingWAVPath, "--out-dir", filepath.Dir(plan.stagingWAVPath), "--metrics", "--log"}
+	// Until the file-backed request carrier is admitted, reject before launching
+	// a command exceeding Windows' limit, including worst-case quote escaping.
+	units := 0
+	for _, arg := range plan.cliArgs {
+		units += 2*len(utf16.Encode([]rune(arg))) + 3
+	}
+	if units > 30000 {
+		return bad(InvocationFailureUnsupported, "request exceeds this CLI profile's command bound")
+	}
+	return plan, nil
+}
+
+func yue2DeclaredFiles() []string {
+	files := make([]string, 0, len(yue2Files))
+	for file := range yue2Files {
+		files = append(files, file)
+	}
+	sort.Strings(files)
+	return files
+}

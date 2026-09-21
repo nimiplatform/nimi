@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -132,7 +133,22 @@ func (MiniMaxMusic3AudioCppDriver) PlanMusicInvocation(input MusicInvocationInpu
 		_, _ = hasher.Write([]byte(value))
 		_, _ = hasher.Write([]byte{0})
 	}
-	return &MusicInvocationPlan{processKey: hex.EncodeToString(hasher.Sum(nil)), loadoutID: strings.TrimSpace(input.LoadoutID), recipeID: MiniMaxMusic3RecipeID, driverIdentity: Identity{ImplementationID: MiniMaxMusic3ImplementationID, DriverID: MiniMaxMusic3DriverID, DriverDialect: MiniMaxMusic3DriverDialect}, modelBinding: binding, modelRoot: modelRoot, languageModelPath: language, rvqDepthDecoderPath: rvq, flowTransformerPath: transformer, audioCppPackageID: input.Package.AudioCppPackageID, audioCppSelectedSourceRecordID: input.Package.AudioCppSelectedSourceRecordID, audioCppRoot: filepath.Clean(input.Package.AudioCppRoot), audioCppExecutablePath: filepath.Clean(input.Package.AudioCppExecutablePath), cuda13DependencyID: input.Package.CUDA13DependencyID, cuda13SelectedSourceRecordID: input.Package.CUDA13SelectedSourceRecordID, cuda13Root: filepath.Clean(input.Package.CUDA13Root), prompt: input.Request.GetPrompt(), lyrics: input.Request.GetLyrics(), durationBudgetSeconds: int(duration), numInferenceSteps: 30, guidanceScale: 1.7, arGuidanceScale: 1.5, topK: 50, seed: 0, memorySaver: true, stagingWAVPath: filepath.Clean(staging), expectedSampleRate: 44100, expectedChannels: 2, expectedBitsPerSample: 16}, nil
+	plan := &MusicInvocationPlan{processKey: hex.EncodeToString(hasher.Sum(nil)), loadoutID: strings.TrimSpace(input.LoadoutID), recipeID: MiniMaxMusic3RecipeID, driverIdentity: Identity{ImplementationID: MiniMaxMusic3ImplementationID, DriverID: MiniMaxMusic3DriverID, DriverDialect: MiniMaxMusic3DriverDialect}, modelBinding: binding, modelRoot: modelRoot, languageModelPath: language, rvqDepthDecoderPath: rvq, flowTransformerPath: transformer, audioCppPackageID: input.Package.AudioCppPackageID, audioCppSelectedSourceRecordID: input.Package.AudioCppSelectedSourceRecordID, audioCppRoot: filepath.Clean(input.Package.AudioCppRoot), audioCppExecutablePath: filepath.Clean(input.Package.AudioCppExecutablePath), cuda13DependencyID: input.Package.CUDA13DependencyID, cuda13SelectedSourceRecordID: input.Package.CUDA13SelectedSourceRecordID, cuda13Root: filepath.Clean(input.Package.CUDA13Root), prompt: input.Request.GetPrompt(), lyrics: input.Request.GetLyrics(), durationBudgetSeconds: int(duration), numInferenceSteps: 30, guidanceScale: 1.7, arGuidanceScale: 1.5, topK: 50, seed: 0, memorySaver: true, stagingWAVPath: filepath.Clean(staging), expectedSampleRate: 44100, expectedChannels: 2, expectedBitsPerSample: 16}
+	plan.cliArgs = []string{
+		"--task", "gen", "--family", "minimax_music3", "--model", plan.modelRoot, "--backend", "cuda",
+		"--session-option", "minimax_music3.language_model_gguf=language_model_q4_0.gguf",
+		"--session-option", "minimax_music3.rvq_depth_decoder_gguf=rvq_depth_decoder_q8_0.gguf",
+		"--session-option", "minimax_music3.flow_transformer_gguf=transformer_q4_0.gguf",
+		"--session-option", "minimax_music3.mem_saver=" + strconv.FormatBool(plan.memorySaver),
+		"--text", plan.prompt, "--request-option", "lyrics=" + plan.lyrics,
+		"--request-option", "duration_sec=" + strconv.Itoa(plan.durationBudgetSeconds),
+		"--request-option", "num_inference_steps=" + strconv.Itoa(plan.numInferenceSteps),
+		"--request-option", "guidance_scale=" + strconv.FormatFloat(plan.guidanceScale, 'g', -1, 64),
+		"--request-option", "ar_guidance_scale=" + strconv.FormatFloat(plan.arGuidanceScale, 'g', -1, 64),
+		"--request-option", "top_k=" + strconv.Itoa(plan.topK), "--request-option", "seed=" + strconv.FormatUint(plan.seed, 10),
+		"--out", plan.stagingWAVPath, "--metrics",
+	}
+	return plan, nil
 }
 
 func musicStructIsEmpty(value *structpb.Struct) bool {

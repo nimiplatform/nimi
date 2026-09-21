@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -29,6 +30,7 @@ type audioCppProcessSpec struct {
 	args              []string
 	stagingOutputPath string
 	modelBindings     []capabilitydriver.InvocationExactBinding
+	outputObserver    capabilitydriver.MusicOutputObserver
 }
 
 type audioCppProcessOutcome struct {
@@ -65,6 +67,10 @@ func runAudioCppProcess(ctx context.Context, spec audioCppProcessSpec) (audioCpp
 	stderr := &boundedAudioCppOutput{limit: audioCppMaxDiagnosticBytes}
 	command.Stdout = stdout
 	command.Stderr = stderr
+	if spec.outputObserver != nil {
+		command.Stdout = io.MultiWriter(stdout, audioCppObservedOutput{observer: spec.outputObserver, stream: 0})
+		command.Stderr = io.MultiWriter(stderr, audioCppObservedOutput{observer: spec.outputObserver, stream: 1})
+	}
 	started := time.Now()
 	if err := command.Start(); err != nil {
 		cleanupAudioCppStaging(output, tempOutput)
@@ -110,6 +116,16 @@ func runAudioCppProcess(ctx context.Context, spec audioCppProcessSpec) (audioCpp
 		outcome.sizeBytes = info.Size()
 	}
 	return outcome, nil
+}
+
+type audioCppObservedOutput struct {
+	observer capabilitydriver.MusicOutputObserver
+	stream   int
+}
+
+func (w audioCppObservedOutput) Write(chunk []byte) (int, error) {
+	w.observer.Observe(w.stream, chunk)
+	return len(chunk), nil
 }
 
 func waitAudioCppProcessExit(done <-chan error, timeout time.Duration) (error, error) {

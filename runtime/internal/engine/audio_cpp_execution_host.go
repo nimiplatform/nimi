@@ -4,9 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
 	"path/filepath"
-	"strconv"
-	"strings"
 	"sync"
 
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
@@ -211,42 +210,48 @@ func runAudioCppCLIProcess(ctx context.Context, plan *capabilitydriver.MusicInvo
 	if err := validateAudioCppMusicPlan(plan); err != nil {
 		return localexecution.MusicResult{}, executionFailure(localexecution.FailureContentMismatch, err)
 	}
+	// Reject the complete output set before cleanup can acquire any of its paths.
+	// A repeated dispatch must never remove an earlier score or audio result.
+	for _, path := range []string{plan.StagingWAVPath(), plan.StagingScorePath()} {
+		if path == "" {
+			continue
+		}
+		if _, err := os.Stat(path); err == nil {
+			return localexecution.MusicResult{}, executionFailure(localexecution.FailureContentMismatch, fmt.Errorf("audio.cpp music output already exists"))
+		} else if !os.IsNotExist(err) {
+			return localexecution.MusicResult{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("stat audio.cpp music output: %w", err))
+		}
+	}
 	args, err := audioCppCLIArgs(plan)
 	if err != nil {
 		return localexecution.MusicResult{}, executionFailure(localexecution.FailureContentMismatch, err)
 	}
-	outcome, err := runAudioCppProcess(ctx, audioCppProcessSpec{executablePath: plan.AudioCppExecutablePath(), workingDir: plan.AudioCppRoot(), cuda13Root: plan.CUDA13Root(), args: args, stagingOutputPath: plan.StagingWAVPath(), modelBindings: []capabilitydriver.InvocationExactBinding{plan.ModelBinding()}})
+	observer := plan.NewOutputObserver()
+	outcome, err := runAudioCppProcess(ctx, audioCppProcessSpec{executablePath: plan.AudioCppExecutablePath(), workingDir: plan.AudioCppRoot(), cuda13Root: plan.CUDA13Root(), args: args, stagingOutputPath: plan.StagingWAVPath(), modelBindings: []capabilitydriver.InvocationExactBinding{plan.ModelBinding()}, outputObserver: observer})
 	if err != nil {
+		cleanupAudioCppStaging(plan.StagingScorePath())
 		return localexecution.MusicResult{}, err
 	}
-	return localexecution.MusicResult{StagingWAVPath: plan.StagingWAVPath(), SizeBytes: outcome.sizeBytes, ComputeMS: outcome.computeMS}, nil
+	facts := capabilitydriver.MusicInferenceFacts{Termination: capabilitydriver.MusicTerminationUnknown}
+	if observer != nil {
+		facts, err = observer.Facts()
+		if err != nil {
+			cleanupAudioCppStaging(plan.StagingWAVPath(), plan.StagingScorePath())
+			return localexecution.MusicResult{}, executionFailure(localexecution.FailureInference, err)
+		}
+	}
+	return localexecution.MusicResult{StagingWAVPath: plan.StagingWAVPath(), StagingScorePath: plan.StagingScorePath(), InferenceFacts: facts, SizeBytes: outcome.sizeBytes, ComputeMS: outcome.computeMS}, nil
 }
 
 func audioCppCLIArgs(plan *capabilitydriver.MusicInvocationPlan) ([]string, error) {
-	rel := func(path string) (string, error) {
-		value, err := filepath.Rel(plan.ModelRoot(), path)
-		if err != nil || value == "." || value == ".." || strings.HasPrefix(value, ".."+string(filepath.Separator)) {
-			return "", fmt.Errorf("audio.cpp component path escapes captured model root")
-		}
-		return filepath.ToSlash(value), nil
+	if plan == nil || len(plan.CLIArgs()) == 0 {
+		return nil, fmt.Errorf("audio.cpp Music Driver did not supply an invocation")
 	}
-	language, err := rel(plan.LanguageModelPath())
-	if err != nil {
-		return nil, err
-	}
-	rvq, err := rel(plan.RVQDepthDecoderPath())
-	if err != nil {
-		return nil, err
-	}
-	transformer, err := rel(plan.FlowTransformerPath())
-	if err != nil {
-		return nil, err
-	}
-	return []string{"--task", "gen", "--family", "minimax_music3", "--model", plan.ModelRoot(), "--backend", "cuda", "--session-option", "minimax_music3.language_model_gguf=" + language, "--session-option", "minimax_music3.rvq_depth_decoder_gguf=" + rvq, "--session-option", "minimax_music3.flow_transformer_gguf=" + transformer, "--session-option", "minimax_music3.mem_saver=" + strconv.FormatBool(plan.MemorySaver()), "--text", plan.Prompt(), "--request-option", "lyrics=" + plan.Lyrics(), "--request-option", "duration_sec=" + strconv.Itoa(plan.DurationBudgetSeconds()), "--request-option", "num_inference_steps=" + strconv.Itoa(plan.NumInferenceSteps()), "--request-option", "guidance_scale=" + strconv.FormatFloat(plan.GuidanceScale(), 'g', -1, 64), "--request-option", "ar_guidance_scale=" + strconv.FormatFloat(plan.ARGuidanceScale(), 'g', -1, 64), "--request-option", "top_k=" + strconv.Itoa(plan.TopK()), "--request-option", "seed=" + strconv.FormatUint(plan.Seed(), 10), "--out", plan.StagingWAVPath(), "--metrics"}, nil
+	return plan.CLIArgs(), nil
 }
 
 func validateAudioCppMusicPlan(plan *capabilitydriver.MusicInvocationPlan) error {
-	if plan == nil || plan.ProcessKey() == "" || plan.AudioCppPackageID() != capabilitydriver.MiniMaxMusic3AudioCppPackageID || plan.CUDA13DependencyID() != capabilitydriver.MiniMaxMusic3CUDA13DependencyID || plan.AudioCppSelectedSourceRecordID() == "" || plan.CUDA13SelectedSourceRecordID() == "" || !filepath.IsAbs(plan.AudioCppExecutablePath()) || !filepath.IsAbs(plan.CUDA13Root()) || !filepath.IsAbs(plan.ModelRoot()) || !filepath.IsAbs(plan.StagingWAVPath()) {
+	if plan == nil || plan.ProcessKey() == "" || len(plan.CLIArgs()) == 0 || plan.AudioCppPackageID() != capabilitydriver.AudioCppWindowsCUDA13PackageID || plan.CUDA13DependencyID() != capabilitydriver.AudioCppCUDA13RuntimeDependencyID || plan.AudioCppSelectedSourceRecordID() == "" || plan.CUDA13SelectedSourceRecordID() == "" || !filepath.IsAbs(plan.AudioCppExecutablePath()) || !filepath.IsAbs(plan.CUDA13Root()) || !filepath.IsAbs(plan.ModelRoot()) || !filepath.IsAbs(plan.StagingWAVPath()) {
 		return fmt.Errorf("audio.cpp Music invocation plan is incomplete")
 	}
 	return nil
