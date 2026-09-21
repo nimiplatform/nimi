@@ -1059,6 +1059,9 @@ message SubmitLocalAppScenarioJobRequest {
   // Canonical Job deadline in milliseconds. Zero keeps Runtime's
   // capability-owned default; no other ScenarioRequestHead field is exposed.
   int32 timeout_ms = 9;
+  // Optional owner-scoped identity for a music.generate creation action.
+  // Reuse with different input is rejected; lookup never executes work.
+  string client_submission_id = 16;
   reserved 5, 6;
   reserved "voice_clone", "voice_design";
 }
@@ -1116,6 +1119,8 @@ message SubmitLocalAppScenarioJobResponse {
 
 message GetLocalAppScenarioJobRequest {
   string job_id = 1;
+  // Exactly one of job_id and client_submission_id is required.
+  string client_submission_id = 2;
 }
 
 message GetLocalAppScenarioJobResponse {

@@ -104,10 +104,13 @@ func (s *Service) submitScenarioAsyncJob(
 			Message: "Cloud ScenarioJob credential custody could not be captured",
 		}))
 	}
-	snapshot, created, persistErr := s.scenarioJobs.createOwnedAndBindCloudAssemblyChecked(job, cancel, localAppJobOwnerFromContext(ctx), idempotencyScope, effective.resolvedAssembly)
+	snapshot, created, persistErr := s.scenarioJobs.createOwnedAndBindCapturedInputsChecked(job, cancel, localAppJobOwnerFromContext(ctx), idempotencyScope, nil, effective.resolvedAssembly, true, localAppMusicSubmissionFromContext(ctx))
 	if persistErr != nil {
 		cancel()
 		_ = s.discardPendingCloudCredentialCustody(jobID, effective.resolvedAssembly.CredentialCustodyRef)
+		if persistErr == errLocalAppSubmissionConflict {
+			return fail(localAppSubmissionError(persistErr))
+		}
 		return fail(grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, persistErr, grpcerr.ReasonOptions{
 			Message: "ScenarioJob submission could not be persisted",
 		}))

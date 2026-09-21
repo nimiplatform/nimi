@@ -6265,6 +6265,10 @@ pub struct SubmitLocalAppScenarioJobRequest {
     /// capability-owned default; no other ScenarioRequestHead field is exposed.
     #[prost(int32, tag = "9")]
     pub timeout_ms: i32,
+    /// Optional owner-scoped identity for a music.generate creation action.
+    /// Reuse with different input is rejected; lookup never executes work.
+    #[prost(string, tag = "16")]
+    pub client_submission_id: ::prost::alloc::string::String,
     #[prost(
         oneof = "submit_local_app_scenario_job_request::Spec",
         tags = "1, 2, 3, 4, 7, 8, 10, 11, 12, 13, 14, 15"
@@ -6377,6 +6381,9 @@ pub struct SubmitLocalAppScenarioJobResponse {
 pub struct GetLocalAppScenarioJobRequest {
     #[prost(string, tag = "1")]
     pub job_id: ::prost::alloc::string::String,
+    /// Exactly one of job_id and client_submission_id is required.
+    #[prost(string, tag = "2")]
+    pub client_submission_id: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetLocalAppScenarioJobResponse {

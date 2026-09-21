@@ -5,6 +5,13 @@ published baseline. They are not a complete reconstruction of older releases.
 
 ## Unreleased (next 0.x minor)
 
+- Add `clientSubmissionId` to protected music Job submit options and
+  `ai.scenarioJobs.lookupSubmission(id)` to recover a lost submission response
+  without resubmitting. Runtime binds the full request to the current account
+  and registered App, rejects conflicting reuse, and persists that binding
+  with the Job. This minor widening requires matching Kit/native and Runtime;
+  it does not by itself extend the existing Job retention window.
+
 - Add canonical audio preparation to the existing protected artifact upload.
   Apps may supply inline audio or an owned App asset / canonical artifact
   reference, receive measured sample-rate, channel, frame-count and duration

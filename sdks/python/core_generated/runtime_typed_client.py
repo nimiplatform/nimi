@@ -2487,6 +2487,7 @@ class GetLocalAppEmbodimentSnapshotResponse:
 @dataclass(frozen=True)
 class GetLocalAppScenarioJobRequest:
     job_id: str | None = None
+    client_submission_id: str | None = None
 
 @dataclass(frozen=True)
 class GetLocalAppScenarioJobResponse:
@@ -5941,6 +5942,7 @@ class SubmitLocalAppScenarioJobRequest:
     video_face_swap: VideoFaceSwapScenarioSpec | None = None
     audio_separate: AudioSeparateScenarioSpec | None = None
     text_annotate: TextAnnotateScenarioSpec | None = None
+    client_submission_id: str | None = None
 
 @dataclass(frozen=True)
 class SubmitLocalAppScenarioJobResponse:

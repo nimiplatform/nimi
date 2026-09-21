@@ -59,6 +59,7 @@ type scenarioJobRecord struct {
 	resolvedAssembly *localResolvedAssembly
 	cloudAssembly    *cloudResolvedAssembly
 	localAppOwner    *localAppJobOwner
+	musicSubmission  *localAppMusicSubmission
 	voiceAsset       *runtimev1.VoiceAsset
 	voiceReference   *runtimev1.VoiceReference
 	visionLocate     *runtimev1.VisionLocateResult
@@ -183,7 +184,7 @@ func (s *scenarioJobStore) createOwnedAndBindAssemblyChecked(
 	resolvedAssembly *localResolvedAssembly,
 	payload ...*embeddingPayload,
 ) (*runtimev1.ScenarioJob, bool, error) {
-	return s.createOwnedAndBindCapturedInputsChecked(job, cancel, owner, idempotencyScope, resolvedAssembly, nil, false, payload...)
+	return s.createOwnedAndBindCapturedInputsChecked(job, cancel, owner, idempotencyScope, resolvedAssembly, nil, false, nil, payload...)
 }
 
 func (s *scenarioJobStore) createOwnedAndBindCloudAssemblyChecked(
@@ -194,7 +195,7 @@ func (s *scenarioJobStore) createOwnedAndBindCloudAssemblyChecked(
 	cloudAssembly *cloudResolvedAssembly,
 	payload ...*embeddingPayload,
 ) (*runtimev1.ScenarioJob, bool, error) {
-	return s.createOwnedAndBindCapturedInputsChecked(job, cancel, owner, idempotencyScope, nil, cloudAssembly, true, payload...)
+	return s.createOwnedAndBindCapturedInputsChecked(job, cancel, owner, idempotencyScope, nil, cloudAssembly, true, nil, payload...)
 }
 
 func (s *scenarioJobStore) createOwnedAndBindCapturedInputsChecked(
@@ -205,6 +206,7 @@ func (s *scenarioJobStore) createOwnedAndBindCapturedInputsChecked(
 	resolvedAssembly *localResolvedAssembly,
 	cloudAssembly *cloudResolvedAssembly,
 	consumePendingCloudCustody bool,
+	submission *localAppMusicSubmission,
 	payload ...*embeddingPayload,
 ) (*runtimev1.ScenarioJob, bool, error) {
 	if job == nil {
@@ -213,6 +215,9 @@ func (s *scenarioJobStore) createOwnedAndBindCapturedInputsChecked(
 	id := strings.TrimSpace(job.GetJobId())
 	if id == "" {
 		return nil, false, fmt.Errorf("scenario job id is required")
+	}
+	if err := validateLocalAppMusicSubmission(submission, owner, job); err != nil {
+		return nil, false, err
 	}
 	nowTime := time.Now().UTC()
 	now := timestamppb.New(nowTime)
@@ -249,6 +254,7 @@ func (s *scenarioJobStore) createOwnedAndBindCapturedInputsChecked(
 		resolvedAssembly: capturedAssembly,
 		cloudAssembly:    capturedCloudAssembly,
 		localAppOwner:    cloneLocalAppJobOwner(owner),
+		musicSubmission:  cloneLocalAppMusicSubmission(submission),
 		events:           make([]*runtimev1.ScenarioJobEvent, 0, 8),
 		subscribers:      make(map[uint64]chan *runtimev1.ScenarioJobEvent),
 		done:             make(chan struct{}),
@@ -278,6 +284,17 @@ func (s *scenarioJobStore) createOwnedAndBindCapturedInputsChecked(
 	key := strings.TrimSpace(idempotencyScope)
 
 	s.mu.Lock()
+	if submission != nil {
+		if existing := s.musicSubmissionLocked(owner, submission.ID); existing != nil {
+			if existing.musicSubmission.RequestSHA256 != submission.RequestSHA256 {
+				s.mu.Unlock()
+				return nil, false, errLocalAppSubmissionConflict
+			}
+			snapshot := cloneScenarioJob(existing.job)
+			s.mu.Unlock()
+			return snapshot, false, nil
+		}
+	}
 	var pendingCustody scenarioPendingCloudCustody
 	if consumePendingCloudCustody {
 		pendingCustody = s.pendingCloudCustody[id]

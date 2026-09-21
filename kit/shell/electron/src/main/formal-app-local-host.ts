@@ -205,9 +205,15 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
     scenarioExecute: (record) => ai.scenario.execute(record.spec as never) as Promise<NimiElectronLocalAppRecord>,
     scenarioJobSubmit: (record) => ai.scenarioJobs.submit(
       record.spec as never,
-      { timeoutMs: Number(record.timeoutMs ?? 0) },
+      { timeoutMs: Number(record.timeoutMs ?? 0), ...(record.clientSubmissionId !== undefined ? { clientSubmissionId: requiredText(record.clientSubmissionId) } : {}) },
     ) as Promise<NimiElectronLocalAppRecord>,
-    scenarioJobGet: (record) => ai.scenarioJobs.get(requiredText(record.jobId)) as Promise<NimiElectronLocalAppRecord>,
+    scenarioJobGet: (record) => {
+      if (record.clientSubmissionId !== undefined) {
+        if (record.jobId !== undefined) throw new NimiElectronLocalAppHostError('invalid-payload', false);
+        return ai.scenarioJobs.lookupSubmission(requiredText(record.clientSubmissionId)) as Promise<NimiElectronLocalAppRecord>;
+      }
+      return ai.scenarioJobs.get(requiredText(record.jobId)) as Promise<NimiElectronLocalAppRecord>;
+    },
     scenarioJobSubscribe: async (record) => openPullStream(await ai.scenarioJobs.subscribe(requiredText(record.jobId))),
     scenarioJobStreamNext: nextPullStream,
     scenarioJobStreamClose: closePullStream,
@@ -1354,6 +1360,7 @@ function formalLocalAppReasonCode(reasonCode: string): string {
     case 'LOCAL_APP_ACCESS_DENIED': return 'local-app-access-denied';
     case 'LOCAL_APP_OPERATION_UNAVAILABLE': return 'local-app-operation-unavailable';
     case 'LOCAL_APP_OWNER_UNAVAILABLE': return 'local-app-owner-unavailable';
+    case 'AI_MEDIA_IDEMPOTENCY_CONFLICT': return 'ai-media-idempotency-conflict';
     default: return reasonCode;
   }
 }

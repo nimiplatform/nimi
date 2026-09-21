@@ -13,6 +13,24 @@ import { dispatchElectronLocalAppCommand } from '../src/main/local-app-commands.
 import { FakeIpcMain, createInvokeEvent, invokeBridge } from './electron-shell-test-utils.js';
 
 describe('Electron local-app standard-shell operations', () => {
+  it('preserves music submission identity and admits exactly one read-only lookup selector', async () => {
+    const calls: unknown[] = [];
+    const host = { ...localAppHost(calls), async scenarioJobGet(input: Record<string, unknown>) { calls.push(['scenarioJobGet', input]); return { job: null, asset: null, voiceReference: null }; } };
+    const submit = NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit'];
+    const get = NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobGet'];
+    const spec = { type: 'music-generate', prompt: 'ballad', lyrics: 'sing', durationSeconds: 20 };
+    await dispatchElectronLocalAppCommand({ host, command: submit, payload: { spec, timeoutMs: 0, clientSubmissionId: 'song-action' } });
+    await dispatchElectronLocalAppCommand({ host, command: get, payload: { clientSubmissionId: 'song-action' } });
+    expect(calls).toEqual([
+      ['scenarioJobSubmit', { spec, timeoutMs: 0, clientSubmissionId: 'song-action' }],
+      ['scenarioJobGet', { clientSubmissionId: 'song-action' }],
+    ]);
+    for (const payload of [{ clientSubmissionId: '' }, { clientSubmissionId: 'a/b' }, { jobId: 'job', clientSubmissionId: 'action' }, { clientSubmissionId: 'action', accountId: 'owner' }]) {
+      await expect(dispatchElectronLocalAppCommand({ host, command: get, payload })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    }
+    await expect(dispatchElectronLocalAppCommand({ host, command: submit, payload: { spec: { type: 'image-generate', prompt: 'image' }, timeoutMs: 0, clientSubmissionId: 'image-action' } })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    expect(calls).toHaveLength(2);
+  });
   it('carries long annotation and separation through renderer command admission', async () => {
     const calls: unknown[] = [];
     const host = localAppHost(calls);

@@ -2,6 +2,11 @@
 
 ## Unreleased (next 0.x minor)
 
+- Carry an optional music `clientSubmissionId` through protected Job submit
+  and its mutually exclusive read-only Get selector. Requires the matching
+  SDK and rebuilt native package; it adds neither an App operation nor
+  automatic resubmission or a longer retention guarantee.
+
 - Carry canonical audio preparation and owned audio source references through
   the renderer, Electron, Node native and protected Runtime projections.
   Preserve measured frame counts and large-output metadata without expanding

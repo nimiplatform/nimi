@@ -293,6 +293,7 @@ pub async fn local_app_scenario_job_submit(
             .submit_scenario_job(LocalAppScenarioSubmitRequest {
                 spec: input.spec,
                 timeout_ms,
+                client_submission_id: input.client_submission_id.unwrap_or_default(),
             })
             .await
     })
@@ -300,11 +301,12 @@ pub async fn local_app_scenario_job_submit(
 }
 
 #[napi(js_name = "localAppScenarioJobGet")]
-pub async fn local_app_scenario_job_get(input: NativeScenarioJobInput) -> NativeJsonOutcome {
+pub async fn local_app_scenario_job_get(input: NativeScenarioJobGetInput) -> NativeJsonOutcome {
     invoke_agent(|session| async move {
         session
             .get_scenario_job(LocalAppScenarioGetRequest {
-                job_id: input.job_id,
+                job_id: input.job_id.unwrap_or_default(),
+                client_submission_id: input.client_submission_id.unwrap_or_default(),
             })
             .await
     })

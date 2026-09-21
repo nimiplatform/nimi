@@ -141,6 +141,7 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'ai-route-unsupported',
   'ai-route-fallback-denied',
   'ai-input-invalid',
+  'ai-media-idempotency-conflict',
   'ai-output-invalid',
   'ai-text-behavior-unsupported',
   'ai-text-behavior-ambiguous',

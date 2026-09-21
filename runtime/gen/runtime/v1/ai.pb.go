@@ -9198,9 +9198,12 @@ type SubmitLocalAppScenarioJobRequest struct {
 	Spec isSubmitLocalAppScenarioJobRequest_Spec `protobuf_oneof:"spec"`
 	// Canonical Job deadline in milliseconds. Zero keeps Runtime's
 	// capability-owned default; no other ScenarioRequestHead field is exposed.
-	TimeoutMs     int32 `protobuf:"varint,9,opt,name=timeout_ms,json=timeoutMs,proto3" json:"timeout_ms,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	TimeoutMs int32 `protobuf:"varint,9,opt,name=timeout_ms,json=timeoutMs,proto3" json:"timeout_ms,omitempty"`
+	// Optional owner-scoped identity for a music.generate creation action.
+	// Reuse with different input is rejected; lookup never executes work.
+	ClientSubmissionId string `protobuf:"bytes,16,opt,name=client_submission_id,json=clientSubmissionId,proto3" json:"client_submission_id,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *SubmitLocalAppScenarioJobRequest) Reset() {
@@ -9353,6 +9356,13 @@ func (x *SubmitLocalAppScenarioJobRequest) GetTimeoutMs() int32 {
 		return x.TimeoutMs
 	}
 	return 0
+}
+
+func (x *SubmitLocalAppScenarioJobRequest) GetClientSubmissionId() string {
+	if x != nil {
+		return x.ClientSubmissionId
+	}
+	return ""
 }
 
 type isSubmitLocalAppScenarioJobRequest_Spec interface {
@@ -9753,10 +9763,12 @@ func (x *SubmitLocalAppScenarioJobResponse) GetJob() *LocalAppScenarioJob {
 }
 
 type GetLocalAppScenarioJobRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	JobId         string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	JobId string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	// Exactly one of job_id and client_submission_id is required.
+	ClientSubmissionId string `protobuf:"bytes,2,opt,name=client_submission_id,json=clientSubmissionId,proto3" json:"client_submission_id,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *GetLocalAppScenarioJobRequest) Reset() {
@@ -9792,6 +9804,13 @@ func (*GetLocalAppScenarioJobRequest) Descriptor() ([]byte, []int) {
 func (x *GetLocalAppScenarioJobRequest) GetJobId() string {
 	if x != nil {
 		return x.JobId
+	}
+	return ""
+}
+
+func (x *GetLocalAppScenarioJobRequest) GetClientSubmissionId() string {
+	if x != nil {
+		return x.ClientSubmissionId
 	}
 	return ""
 }
@@ -14643,7 +14662,7 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x10duration_seconds\x18\x03 \x01(\rR\x0fdurationSeconds\"Y\n" +
 	"\x1cLocalAppWorldGenerateJobSpec\x12\x16\n" +
 	"\x06prompt\x18\x01 \x01(\tR\x06prompt\x12!\n" +
-	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\"\x8e\t\n" +
+	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\"\xc0\t\n" +
 	" SubmitLocalAppScenarioJobRequest\x12[\n" +
 	"\x0eimage_generate\x18\x01 \x01(\v22.nimi.runtime.v1.LocalAppImageGenerateScenarioSpecH\x00R\rimageGenerate\x12V\n" +
 	"\x0evideo_generate\x18\x02 \x01(\v2-.nimi.runtime.v1.LocalAppVideoGenerateJobSpecH\x00R\rvideoGenerate\x12_\n" +
@@ -14659,7 +14678,8 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x0eaudio_separate\x18\x0e \x01(\v2*.nimi.runtime.v1.AudioSeparateScenarioSpecH\x00R\raudioSeparate\x12P\n" +
 	"\rtext_annotate\x18\x0f \x01(\v2).nimi.runtime.v1.TextAnnotateScenarioSpecH\x00R\ftextAnnotate\x12\x1d\n" +
 	"\n" +
-	"timeout_ms\x18\t \x01(\x05R\ttimeoutMsB\x06\n" +
+	"timeout_ms\x18\t \x01(\x05R\ttimeoutMs\x120\n" +
+	"\x14client_submission_id\x18\x10 \x01(\tR\x12clientSubmissionIdB\x06\n" +
 	"\x04specJ\x04\b\x05\x10\x06J\x04\b\x06\x10\aR\vvoice_cloneR\fvoice_design\"\xb9\b\n" +
 	"\x13LocalAppScenarioJob\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12B\n" +
@@ -14695,9 +14715,10 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"expires_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12M\n" +
 	"\x0fcreation_source\x18\a \x01(\x0e2$.nimi.runtime.v1.VoiceCreationSourceR\x0ecreationSourceJ\x04\b\x02\x10\x03R\rworkflow_type\"\x7f\n" +
 	"!SubmitLocalAppScenarioJobResponse\x126\n" +
-	"\x03job\x18\x01 \x01(\v2$.nimi.runtime.v1.LocalAppScenarioJobR\x03jobJ\x04\b\x02\x10\x03J\x04\b\x03\x10\x04R\x05assetR\x0fvoice_reference\"6\n" +
+	"\x03job\x18\x01 \x01(\v2$.nimi.runtime.v1.LocalAppScenarioJobR\x03jobJ\x04\b\x02\x10\x03J\x04\b\x03\x10\x04R\x05assetR\x0fvoice_reference\"h\n" +
 	"\x1dGetLocalAppScenarioJobRequest\x12\x15\n" +
-	"\x06job_id\x18\x01 \x01(\tR\x05jobId\"\xa7\x02\n" +
+	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x120\n" +
+	"\x14client_submission_id\x18\x02 \x01(\tR\x12clientSubmissionId\"\xa7\x02\n" +
 	"\x1eGetLocalAppScenarioJobResponse\x126\n" +
 	"\x03job\x18\x01 \x01(\v2$.nimi.runtime.v1.LocalAppScenarioJobR\x03job\x129\n" +
 	"\x05asset\x18\x02 \x01(\v2#.nimi.runtime.v1.LocalAppVoiceAssetR\x05asset\x12H\n" +

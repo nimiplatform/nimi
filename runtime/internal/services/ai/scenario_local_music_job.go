@@ -52,11 +52,14 @@ func (s *Service) submitLocalMusicScenarioJob(ctx context.Context, req *runtimev
 	now := timestamppb.New(time.Now().UTC())
 	jobID := ulid.Make().String()
 	job := &runtimev1.ScenarioJob{JobId: jobID, ScenarioType: req.GetScenarioType(), Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED, CreatedAt: now, UpdatedAt: now, ModelResolved: effective.modelResolved(), ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, ExecutionMode: mode, Head: cloneScenarioHead(effective.head), TraceId: ulid.Make().String(), IgnoredExtensions: cloneIgnoredScenarioExtensions(ignored), EffectiveInputIdentity: cloneLoadoutEffectiveInputIdentity(effective.effectiveInputIdentity)}
-	stored, created, persistErr := s.scenarioJobs.createOwnedAndBindAssemblyChecked(job, cancel, localAppJobOwnerFromContext(ctx), idempotencyScope, effective.resolvedAssembly)
+	stored, created, persistErr := s.scenarioJobs.createOwnedAndBindCapturedInputsChecked(job, cancel, localAppJobOwnerFromContext(ctx), idempotencyScope, effective.resolvedAssembly, nil, false, localAppMusicSubmissionFromContext(ctx))
 	if persistErr != nil || stored == nil {
 		cancel()
 		cleanupAudioMusicStaging(effective.plan.StagingWAVPath())
 		if persistErr != nil {
+			if errors.Is(persistErr, errLocalAppSubmissionConflict) {
+				return nil, localAppSubmissionError(persistErr)
+			}
 			return nil, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, persistErr, grpcerr.ReasonOptions{})
 		}
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)

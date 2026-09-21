@@ -61,17 +61,18 @@ type scenarioJobDiskSnapshot struct {
 }
 
 type scenarioJobDiskRecord struct {
-	Payload               *embeddingPayload `json:"embedding_payload,omitempty"`
-	Job                   json.RawMessage   `json:"job"`
-	ResolvedAssembly      json.RawMessage   `json:"resolved_assembly,omitempty"`
-	CloudResolvedAssembly json.RawMessage   `json:"cloud_resolved_assembly,omitempty"`
-	VoiceAsset            json.RawMessage   `json:"voice_asset,omitempty"`
-	VoiceReference        json.RawMessage   `json:"voice_reference,omitempty"`
-	VisionLocate          json.RawMessage   `json:"vision_locate,omitempty"`
-	Owner                 *localAppJobOwner `json:"owner,omitempty"`
-	CreatedAt             time.Time         `json:"created_at"`
-	UpdatedAt             time.Time         `json:"updated_at"`
-	TerminalAt            time.Time         `json:"terminal_at,omitempty"`
+	Payload               *embeddingPayload        `json:"embedding_payload,omitempty"`
+	Job                   json.RawMessage          `json:"job"`
+	ResolvedAssembly      json.RawMessage          `json:"resolved_assembly,omitempty"`
+	CloudResolvedAssembly json.RawMessage          `json:"cloud_resolved_assembly,omitempty"`
+	VoiceAsset            json.RawMessage          `json:"voice_asset,omitempty"`
+	VoiceReference        json.RawMessage          `json:"voice_reference,omitempty"`
+	VisionLocate          json.RawMessage          `json:"vision_locate,omitempty"`
+	Owner                 *localAppJobOwner        `json:"owner,omitempty"`
+	MusicSubmission       *localAppMusicSubmission `json:"music_submission,omitempty"`
+	CreatedAt             time.Time                `json:"created_at"`
+	UpdatedAt             time.Time                `json:"updated_at"`
+	TerminalAt            time.Time                `json:"terminal_at,omitempty"`
 }
 
 type scenarioJobDiskIdempotencyEntry struct {
@@ -160,6 +161,12 @@ func (s *scenarioJobStore) loadDurableJobs(prune bool) error {
 		if rowErr == nil {
 			rowErr = validateScenarioJobPayload(&job, resolvedAssembly, cloudAssembly, item.Payload)
 		}
+		if rowErr == nil {
+			rowErr = validateLocalAppMusicSubmission(item.MusicSubmission, item.Owner, &job)
+		}
+		if rowErr == nil && item.MusicSubmission != nil && s.musicSubmissionLocked(item.Owner, item.MusicSubmission.ID) != nil {
+			rowErr = errors.New("duplicate protected music submission binding")
+		}
 		var voiceAsset *runtimev1.VoiceAsset
 		if rowErr == nil && len(item.VoiceAsset) > 0 {
 			voiceAsset = &runtimev1.VoiceAsset{}
@@ -215,7 +222,8 @@ func (s *scenarioJobStore) loadDurableJobs(prune bool) error {
 			voiceAsset: cloneVoiceAsset(voiceAsset), voiceReference: cloneVoiceReference(voiceReference),
 			visionLocate: cloneVisionLocateResult(visionLocate),
 			events:       make([]*runtimev1.ScenarioJobEvent, 0, 1), subscribers: make(map[uint64]chan *runtimev1.ScenarioJobEvent),
-			done: make(chan struct{}), createdAt: item.CreatedAt.UTC(), updatedAt: item.UpdatedAt.UTC(), terminalAt: item.TerminalAt.UTC(),
+			musicSubmission: cloneLocalAppMusicSubmission(item.MusicSubmission),
+			done:            make(chan struct{}), createdAt: item.CreatedAt.UTC(), updatedAt: item.UpdatedAt.UTC(), terminalAt: item.TerminalAt.UTC(),
 		}
 		if isTerminalScenarioJobStatus(job.GetStatus()) {
 			record.doneClosed = true
@@ -462,6 +470,9 @@ func (s *scenarioJobStore) persistDurableJobsLocked(attempt scenarioJobPersisten
 		if err := validateScenarioJobTerminalResults(record); err != nil {
 			return fmt.Errorf("scenario job %q terminal result: %w", jobID, err)
 		}
+		if err := validateLocalAppMusicSubmission(record.musicSubmission, record.localAppOwner, record.job); err != nil {
+			return err
+		}
 		raw, err := (protojson.MarshalOptions{UseProtoNames: true}).Marshal(record.job)
 		if err != nil {
 			return err
@@ -504,8 +515,9 @@ func (s *scenarioJobStore) persistDurableJobsLocked(attempt scenarioJobPersisten
 		snapshot.Records = append(snapshot.Records, scenarioJobDiskRecord{
 			Payload: cloneEmbeddingPayload(record.payload), Job: raw, ResolvedAssembly: assemblyRaw, CloudResolvedAssembly: cloudAssemblyRaw, Owner: cloneLocalAppJobOwner(record.localAppOwner),
 			VoiceAsset: voiceAssetRaw, VoiceReference: voiceReferenceRaw,
-			VisionLocate: visionRaw,
-			CreatedAt:    record.createdAt, UpdatedAt: record.updatedAt, TerminalAt: record.terminalAt,
+			MusicSubmission: cloneLocalAppMusicSubmission(record.musicSubmission),
+			VisionLocate:    visionRaw,
+			CreatedAt:       record.createdAt, UpdatedAt: record.updatedAt, TerminalAt: record.terminalAt,
 		})
 	}
 	keys := make([]string, 0, len(s.idempotency))

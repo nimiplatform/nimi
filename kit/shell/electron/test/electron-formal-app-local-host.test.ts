@@ -19,6 +19,8 @@ import {
 import {
   GetLocalAppScenarioJobRequest,
   GetLocalAppScenarioJobResponse,
+  SubmitLocalAppScenarioJobRequest,
+  SubmitLocalAppScenarioJobResponse,
   AiVideoPixelFormat,
   OpenVideoSessionResponse,
   CloseVideoSessionResponse,
@@ -280,12 +282,42 @@ describe('Electron formal App local host', () => {
   it.each([
     ['desktop', 'nimi.desktop'],
     ['avatar', 'nimi.avatar'],
+  ] as const)('preserves music action identity and read-only lookup through the %s formal codec', async (profile, appId) => {
+    const methods: string[] = [];
+    const job = { jobId: 'music-job', scenarioType: ScenarioType.MUSIC_GENERATE, status: ScenarioJobStatus.SUBMITTED, traceId: 'trace-music' };
+    const unary = vi.fn(async (input: { methodId: string; requestBytes: Uint8Array }) => {
+      methods.push(input.methodId);
+      if (input.methodId.endsWith('/SubmitLocalAppScenarioJob')) {
+        const request = SubmitLocalAppScenarioJobRequest.fromBinary(input.requestBytes);
+        expect(request.clientSubmissionId).toBe('music-action');
+        expect(request.spec.oneofKind).toBe('musicGenerate');
+        return SubmitLocalAppScenarioJobResponse.toBinary(SubmitLocalAppScenarioJobResponse.create({ job }));
+      }
+      expect(input.methodId).toBe('/nimi.runtime.v1.RuntimeAiService/GetLocalAppScenarioJob');
+      expect(GetLocalAppScenarioJobRequest.fromBinary(input.requestBytes)).toEqual({ jobId: '', clientSubmissionId: 'music-action' });
+      return GetLocalAppScenarioJobResponse.toBinary(GetLocalAppScenarioJobResponse.create({ job }));
+    });
+    const control = { accountProductUnary: unary, bundledAvatarUnary: unary } as unknown as NimiElectronDesktopControlHost;
+    const host = createNimiElectronFormalAppLocalHost({ profile, appId, control });
+    await host.scenarioJobSubmit({ spec: { type: 'music-generate', prompt: 'warm ballad', lyrics: 'sing this song' }, clientSubmissionId: 'music-action' });
+    await expect(host.scenarioJobGet({ clientSubmissionId: 'music-action' })).resolves.toMatchObject({ job: { jobId: 'music-job' } });
+    await expect(host.scenarioJobGet({ jobId: 'music-job', clientSubmissionId: 'music-action' })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    expect(methods).toHaveLength(2);
+    unary.mockRejectedValueOnce(new NimiElectronDesktopControlHostError('AI_MEDIA_IDEMPOTENCY_CONFLICT', false));
+    await expect(host.scenarioJobSubmit({ spec: { type: 'music-generate', prompt: 'changed', lyrics: 'different song' }, clientSubmissionId: 'music-action' }))
+      .rejects.toMatchObject({ reasonCode: 'ai-media-idempotency-conflict', retryable: false });
+    expect(unary).toHaveBeenCalledTimes(3);
+  });
+
+  it.each([
+    ['desktop', 'nimi.desktop'],
+    ['avatar', 'nimi.avatar'],
   ] as const)('preserves a typed image artifact seed through the %s formal codec', async (profile, appId) => {
     const methodId = '/nimi.runtime.v1.RuntimeAiService/GetLocalAppScenarioJob';
     const jobId = 'job-seeded-image';
     const unary = vi.fn(async (input: { methodId: string; requestBytes: Uint8Array }) => {
       expect(input.methodId).toBe(methodId);
-      expect(GetLocalAppScenarioJobRequest.fromBinary(input.requestBytes)).toEqual({ jobId });
+      expect(GetLocalAppScenarioJobRequest.fromBinary(input.requestBytes)).toEqual({ jobId, clientSubmissionId: '' });
       return GetLocalAppScenarioJobResponse.toBinary(GetLocalAppScenarioJobResponse.create({
         job: {
           jobId,

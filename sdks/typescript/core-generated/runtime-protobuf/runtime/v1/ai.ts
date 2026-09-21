@@ -2624,6 +2624,13 @@ export interface SubmitLocalAppScenarioJobRequest {
      * @generated from protobuf field: int32 timeout_ms = 9
      */
     timeoutMs: number;
+    /**
+     * Optional owner-scoped identity for a music.generate creation action.
+     * Reuse with different input is rejected; lookup never executes work.
+     *
+     * @generated from protobuf field: string client_submission_id = 16
+     */
+    clientSubmissionId: string;
 }
 /**
  * Trimmed Job projection for Local App consumption: status, progress, typed
@@ -2769,6 +2776,12 @@ export interface GetLocalAppScenarioJobRequest {
      * @generated from protobuf field: string job_id = 1
      */
     jobId: string;
+    /**
+     * Exactly one of job_id and client_submission_id is required.
+     *
+     * @generated from protobuf field: string client_submission_id = 2
+     */
+    clientSubmissionId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.GetLocalAppScenarioJobResponse
@@ -12141,13 +12154,15 @@ class SubmitLocalAppScenarioJobRequest$Type extends MessageType<SubmitLocalAppSc
             { no: 13, name: "video_face_swap", kind: "message", oneof: "spec", T: () => VideoFaceSwapScenarioSpec },
             { no: 14, name: "audio_separate", kind: "message", oneof: "spec", T: () => AudioSeparateScenarioSpec },
             { no: 15, name: "text_annotate", kind: "message", oneof: "spec", T: () => TextAnnotateScenarioSpec },
-            { no: 9, name: "timeout_ms", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
+            { no: 9, name: "timeout_ms", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 16, name: "client_submission_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<SubmitLocalAppScenarioJobRequest>): SubmitLocalAppScenarioJobRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.spec = { oneofKind: undefined };
         message.timeoutMs = 0;
+        message.clientSubmissionId = "";
         if (value !== undefined)
             reflectionMergePartial<SubmitLocalAppScenarioJobRequest>(this, message, value);
         return message;
@@ -12232,6 +12247,9 @@ class SubmitLocalAppScenarioJobRequest$Type extends MessageType<SubmitLocalAppSc
                 case /* int32 timeout_ms */ 9:
                     message.timeoutMs = reader.int32();
                     break;
+                case /* string client_submission_id */ 16:
+                    message.clientSubmissionId = reader.string();
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -12283,6 +12301,9 @@ class SubmitLocalAppScenarioJobRequest$Type extends MessageType<SubmitLocalAppSc
         /* nimi.runtime.v1.TextAnnotateScenarioSpec text_annotate = 15; */
         if (message.spec.oneofKind === "textAnnotate")
             TextAnnotateScenarioSpec.internalBinaryWrite(message.spec.textAnnotate, writer.tag(15, WireType.LengthDelimited).fork(), options).join();
+        /* string client_submission_id = 16; */
+        if (message.clientSubmissionId !== "")
+            writer.tag(16, WireType.LengthDelimited).string(message.clientSubmissionId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -12603,12 +12624,14 @@ export const SubmitLocalAppScenarioJobResponse = new SubmitLocalAppScenarioJobRe
 class GetLocalAppScenarioJobRequest$Type extends MessageType<GetLocalAppScenarioJobRequest> {
     constructor() {
         super("nimi.runtime.v1.GetLocalAppScenarioJobRequest", [
-            { no: 1, name: "job_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "job_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "client_submission_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<GetLocalAppScenarioJobRequest>): GetLocalAppScenarioJobRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.jobId = "";
+        message.clientSubmissionId = "";
         if (value !== undefined)
             reflectionMergePartial<GetLocalAppScenarioJobRequest>(this, message, value);
         return message;
@@ -12620,6 +12643,9 @@ class GetLocalAppScenarioJobRequest$Type extends MessageType<GetLocalAppScenario
             switch (fieldNo) {
                 case /* string job_id */ 1:
                     message.jobId = reader.string();
+                    break;
+                case /* string client_submission_id */ 2:
+                    message.clientSubmissionId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -12636,6 +12662,9 @@ class GetLocalAppScenarioJobRequest$Type extends MessageType<GetLocalAppScenario
         /* string job_id = 1; */
         if (message.jobId !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.jobId);
+        /* string client_submission_id = 2; */
+        if (message.clientSubmissionId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.clientSubmissionId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

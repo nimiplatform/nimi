@@ -232,6 +232,13 @@ pub struct NativeScenarioSpecInput {
 pub struct NativeScenarioJobSubmitInput {
     pub spec: JsonValue,
     pub timeout_ms: f64,
+    pub client_submission_id: Option<String>,
+}
+
+#[napi(object)]
+pub struct NativeScenarioJobGetInput {
+    pub job_id: Option<String>,
+    pub client_submission_id: Option<String>,
 }
 
 #[napi(object)]

@@ -106,9 +106,14 @@ pub(super) async fn submit_job(
     request: LocalAppScenarioSubmitRequest,
 ) -> Result<JsonValue, LocalAppOperationError> {
     let spec = parse_job_spec(request.spec)?;
+    if !request.client_submission_id.is_empty() {
+        require_submission_id(&request.client_submission_id)?;
+        if !matches!(spec, JobSpec::MusicGenerate(_)) { return Err(invalid_payload()); }
+    }
     let mut grpc_request = Request::new(ProtoSubmitJobRequest {
         spec: Some(spec),
         timeout_ms: request.timeout_ms,
+        client_submission_id: request.client_submission_id,
     });
     grpc_request.set_timeout(std::time::Duration::from_secs(UNARY_TIMEOUT_SECONDS));
     let response = crate::grpc_limits::runtime_ai_client(channel)
@@ -123,9 +128,15 @@ pub(super) async fn get_job(
     channel: Channel,
     request: LocalAppScenarioGetRequest,
 ) -> Result<JsonValue, LocalAppOperationError> {
-    require_identifier(&request.job_id)?;
+    if request.client_submission_id.is_empty() {
+        require_identifier(&request.job_id)?;
+    } else {
+        require_submission_id(&request.client_submission_id)?;
+        if !request.job_id.is_empty() { return Err(invalid_payload()); }
+    }
     let mut grpc_request = Request::new(ProtoGetJobRequest {
         job_id: request.job_id,
+        client_submission_id: request.client_submission_id,
     });
     grpc_request.set_timeout(std::time::Duration::from_secs(UNARY_TIMEOUT_SECONDS));
     let response = crate::grpc_limits::runtime_ai_client(channel)
@@ -382,6 +393,13 @@ pub(super) async fn upload_artifact(
         return Err(untrusted());
     }
     Ok(projected)
+}
+
+fn require_submission_id(value: &str) -> Result<(), LocalAppOperationError> {
+    if value.is_empty() || value.len() > 128 || !value.bytes().all(|ch| ch.is_ascii_alphanumeric() || ch == b'-' || ch == b'_') {
+        return Err(invalid_payload());
+    }
+    Ok(())
 }
 
 pub(super) async fn list_voice_assets(

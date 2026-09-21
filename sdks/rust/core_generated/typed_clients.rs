@@ -7376,6 +7376,7 @@ pub struct GetLocalAppEmbodimentSnapshotResponse {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct GetLocalAppScenarioJobRequest {
     pub job_id: Option<String>,
+    pub client_submission_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -12490,6 +12491,7 @@ pub struct SubmitLocalAppScenarioJobRequest {
     pub video_face_swap: Option<Box<VideoFaceSwapScenarioSpec>>,
     pub audio_separate: Option<Box<AudioSeparateScenarioSpec>>,
     pub text_annotate: Option<Box<TextAnnotateScenarioSpec>>,
+    pub client_submission_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

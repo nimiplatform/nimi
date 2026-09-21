@@ -48,7 +48,7 @@ describe('Electron protected local-app host', () => {
     expect(invalidated).toBe(true);
   });
 
-  it.each(['ai-text-behavior-unsupported', 'ai-text-output-incomplete', 'ai-tool-call-invalid'])('preserves the typed text failure %s', async (reasonCode) => {
+  it.each(['ai-text-behavior-unsupported', 'ai-text-output-incomplete', 'ai-tool-call-invalid', 'ai-media-idempotency-conflict'])('preserves the typed AI failure %s', async (reasonCode) => {
     const candidate = binding([]);
     candidate.localAppScenarioExecute = async () => ({ status: 'error', reasonCode, retryable: false });
     const host = createNimiElectronLocalAppHostForBinding(candidate);

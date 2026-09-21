@@ -44,6 +44,7 @@ pub enum LocalAppReasonCode {
     AiRouteUnsupported,
     AiRouteFallbackDenied,
     AiInputInvalid,
+    AiMediaIdempotencyConflict,
     AiOutputInvalid,
     AiTextBehaviorUnsupported,
     AiTextBehaviorAmbiguous,
@@ -157,6 +158,7 @@ impl LocalAppReasonCode {
             Self::AiRouteUnsupported => "ai-route-unsupported",
             Self::AiRouteFallbackDenied => "ai-route-fallback-denied",
             Self::AiInputInvalid => "ai-input-invalid",
+            Self::AiMediaIdempotencyConflict => "ai-media-idempotency-conflict",
             Self::AiOutputInvalid => "ai-output-invalid",
             Self::AiTextBehaviorUnsupported => "ai-text-behavior-unsupported",
             Self::AiTextBehaviorAmbiguous => "ai-text-behavior-ambiguous",
@@ -393,11 +395,13 @@ pub struct LocalAppScenarioExecuteRequest {
 pub struct LocalAppScenarioSubmitRequest {
     pub spec: JsonValue,
     pub timeout_ms: i32,
+    pub client_submission_id: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalAppScenarioGetRequest {
     pub job_id: String,
+    pub client_submission_id: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

@@ -208,6 +208,7 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "AI_ROUTE_UNSUPPORTED" => LocalAppReasonCode::AiRouteUnsupported,
         "AI_ROUTE_FALLBACK_DENIED" => LocalAppReasonCode::AiRouteFallbackDenied,
         "AI_INPUT_INVALID" => LocalAppReasonCode::AiInputInvalid,
+        "AI_MEDIA_IDEMPOTENCY_CONFLICT" => LocalAppReasonCode::AiMediaIdempotencyConflict,
         "AI_OUTPUT_INVALID" => LocalAppReasonCode::AiOutputInvalid,
         "AI_TEXT_BEHAVIOR_UNSUPPORTED" => LocalAppReasonCode::AiTextBehaviorUnsupported,
         "AI_TEXT_BEHAVIOR_AMBIGUOUS" => LocalAppReasonCode::AiTextBehaviorAmbiguous,
@@ -412,6 +413,7 @@ mod tests {
             ("AI_TOOL_CALL_INVALID", LocalAppReasonCode::AiToolCallInvalid),
             ("AI_REASONING_CONTINUITY_INVALID", LocalAppReasonCode::AiReasoningContinuityInvalid),
             ("AI_EXECUTION_INTERRUPTED", LocalAppReasonCode::AiExecutionInterrupted),
+            ("AI_MEDIA_IDEMPOTENCY_CONFLICT", LocalAppReasonCode::AiMediaIdempotencyConflict),
         ] {
             assert_eq!(local_app_reason_from_runtime_reason(name), Some(reason));
         }

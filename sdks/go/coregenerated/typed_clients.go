@@ -4275,7 +4275,8 @@ type GetLocalAppEmbodimentSnapshotResponse struct {
 }
 
 type GetLocalAppScenarioJobRequest struct {
-	JobId string `json:"job_id,omitempty"`
+	JobId              string `json:"job_id,omitempty"`
+	ClientSubmissionId string `json:"client_submission_id,omitempty"`
 }
 
 type GetLocalAppScenarioJobResponse struct {
@@ -7690,19 +7691,20 @@ type SubmitDelegatedApprovalDecisionResponse struct {
 }
 
 type SubmitLocalAppScenarioJobRequest struct {
-	ImageGenerate    *LocalAppImageGenerateScenarioSpec `json:"image_generate,omitempty"`
-	VideoGenerate    *LocalAppVideoGenerateJobSpec      `json:"video_generate,omitempty"`
-	SpeechSynthesize *LocalAppSpeechSynthesizeJobSpec   `json:"speech_synthesize,omitempty"`
-	SpeechTranscribe *LocalAppSpeechTranscribeJobSpec   `json:"speech_transcribe,omitempty"`
-	VoiceCreate      *LocalAppVoiceCreateJobSpec        `json:"voice_create,omitempty"`
-	MusicGenerate    *LocalAppMusicGenerateJobSpec      `json:"music_generate,omitempty"`
-	TimeoutMs        int32                              `json:"timeout_ms,omitempty"`
-	WorldGenerate    *LocalAppWorldGenerateJobSpec      `json:"world_generate,omitempty"`
-	VisionLocate     *VisionLocateScenarioSpec          `json:"vision_locate,omitempty"`
-	ImageFaceSwap    *ImageFaceSwapScenarioSpec         `json:"image_face_swap,omitempty"`
-	VideoFaceSwap    *VideoFaceSwapScenarioSpec         `json:"video_face_swap,omitempty"`
-	AudioSeparate    *AudioSeparateScenarioSpec         `json:"audio_separate,omitempty"`
-	TextAnnotate     *TextAnnotateScenarioSpec          `json:"text_annotate,omitempty"`
+	ImageGenerate      *LocalAppImageGenerateScenarioSpec `json:"image_generate,omitempty"`
+	VideoGenerate      *LocalAppVideoGenerateJobSpec      `json:"video_generate,omitempty"`
+	SpeechSynthesize   *LocalAppSpeechSynthesizeJobSpec   `json:"speech_synthesize,omitempty"`
+	SpeechTranscribe   *LocalAppSpeechTranscribeJobSpec   `json:"speech_transcribe,omitempty"`
+	VoiceCreate        *LocalAppVoiceCreateJobSpec        `json:"voice_create,omitempty"`
+	MusicGenerate      *LocalAppMusicGenerateJobSpec      `json:"music_generate,omitempty"`
+	TimeoutMs          int32                              `json:"timeout_ms,omitempty"`
+	WorldGenerate      *LocalAppWorldGenerateJobSpec      `json:"world_generate,omitempty"`
+	VisionLocate       *VisionLocateScenarioSpec          `json:"vision_locate,omitempty"`
+	ImageFaceSwap      *ImageFaceSwapScenarioSpec         `json:"image_face_swap,omitempty"`
+	VideoFaceSwap      *VideoFaceSwapScenarioSpec         `json:"video_face_swap,omitempty"`
+	AudioSeparate      *AudioSeparateScenarioSpec         `json:"audio_separate,omitempty"`
+	TextAnnotate       *TextAnnotateScenarioSpec          `json:"text_annotate,omitempty"`
+	ClientSubmissionId string                             `json:"client_submission_id,omitempty"`
 }
 
 type SubmitLocalAppScenarioJobResponse struct {

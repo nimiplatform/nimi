@@ -33,7 +33,7 @@ const (
 // contract while delegating route composition, scheduling, Driver mapping,
 // metering, and execution to the Scenario Job owner. The App supplies a
 // closed-set Job spec only: no route, implementation, target, model,
-// tool, stream, idempotency, or label field. Voice creation target model
+// tool, stream, or label field. Voice creation target model
 // identity is derived from the committed AIConfig intent, never from the App.
 func (s *Service) SubmitLocalAppScenarioJob(ctx context.Context, req *runtimev1.SubmitLocalAppScenarioJobRequest) (*runtimev1.SubmitLocalAppScenarioJobResponse, error) {
 	ctx, releaseModelAssets := localexecution.WithModelAssetUseScope(ctx)
@@ -46,6 +46,24 @@ func (s *Service) SubmitLocalAppScenarioJob(ctx context.Context, req *runtimev1.
 	ownerSpec, scenarioType, err := validateLocalAppScenarioJobRequest(req)
 	if err != nil {
 		return nil, err
+	}
+	submission, err := captureLocalAppMusicSubmission(req)
+	if err != nil {
+		return nil, err
+	}
+	if submission != nil {
+		existing, err := s.scenarioJobs.getMusicSubmission(localAppJobOwnerFromContext(ctx), submission.ID, submission.RequestSHA256)
+		if err != nil {
+			return nil, localAppSubmissionError(err)
+		}
+		if existing != nil {
+			job, err := projectLocalAppScenarioJob(existing)
+			if err != nil {
+				return nil, err
+			}
+			return &runtimev1.SubmitLocalAppScenarioJobResponse{Job: job}, nil
+		}
+		ctx = context.WithValue(ctx, localAppMusicSubmissionContextKey{}, submission)
 	}
 	head := localAppScenarioHead(decision)
 	head.TimeoutMs = req.GetTimeoutMs()
@@ -95,7 +113,7 @@ func (s *Service) GetLocalAppScenarioJob(ctx context.Context, req *runtimev1.Get
 	if err != nil {
 		return nil, err
 	}
-	jobID, err := validateLocalAppScenarioJobID(req.GetJobId())
+	jobID, err := s.localAppScenarioJobSelector(ctx, req)
 	if err != nil {
 		return nil, err
 	}

@@ -221,6 +221,7 @@ export type NimiLocalAppScenarioJobSpec =
 
 export type NimiLocalAppScenarioJobSubmitOptions = {
   readonly timeoutMs?: number;
+  readonly clientSubmissionId?: string;
 };
 
 export type NimiLocalAppScenarioTimestamp = {
@@ -367,7 +368,7 @@ export type NimiLocalAppAIConsumptionShell = {
       spec: NimiLocalAppScenarioJobSpec,
       options?: NimiLocalAppScenarioJobSubmitOptions,
     ) => Promise<unknown>;
-    readonly get: (jobId: string) => Promise<unknown>;
+    readonly get: (jobId: string, clientSubmissionId?: string) => Promise<unknown>;
     readonly subscribe: (jobId: string) => Promise<NimiLocalAppShellStream<unknown>>;
     readonly cancel: (jobId: string, reason?: string) => Promise<unknown>;
   };
@@ -416,6 +417,7 @@ export type NimiLocalAppAIConsumptionClient = {
       options?: NimiLocalAppScenarioJobSubmitOptions,
     ) => Promise<NimiLocalAppScenarioJobSubmitResult>;
     readonly get: (jobId: string) => Promise<NimiLocalAppScenarioJobGetResult>;
+    readonly lookupSubmission: (clientSubmissionId: string) => Promise<NimiLocalAppScenarioJobGetResult>;
     readonly subscribe: (jobId: string) => Promise<NimiLocalAppSubscription<NimiLocalAppScenarioJobEvent>>;
     readonly cancel: (jobId: string, reason?: string) => Promise<{ readonly job: NimiLocalAppScenarioJob }>;
   };
@@ -515,11 +517,14 @@ export function createNimiLocalAppAIConsumptionClient(
       submit: async (spec, options = {}) => projectScenarioJobSubmit(
         await shell.scenarioJobs.submit(
           validateScenarioSpec(spec, false),
-          validateScenarioJobSubmitOptions(options),
+          validateScenarioJobSubmitOptions(options, spec),
         ),
       ),
       get: async (jobId) => projectScenarioJobGet(
         await shell.scenarioJobs.get(boundedIdentifier(jobId, 'jobId')),
+      ),
+      lookupSubmission: async (clientSubmissionId) => projectScenarioJobGet(
+        await shell.scenarioJobs.get('', validateClientSubmissionId(clientSubmissionId)),
       ),
       subscribe: async (jobId) => projectSubscription(
         await shell.scenarioJobs.subscribe(boundedIdentifier(jobId, 'jobId')),
@@ -587,11 +592,12 @@ export function createNimiLocalAppAIConsumptionRuntimeClient(
         const response = await runtime.submitLocalAppScenarioJob({
           spec: runtimeLocalJobSpec(spec),
           timeoutMs: options.timeoutMs ?? 0,
+          clientSubmissionId: options.clientSubmissionId ?? '',
         });
         return { job: projectRuntimeLocalJob(requiredRuntimeValue(response.job, 'scenario Job')) };
       },
-      async get(jobId) {
-        const response = await runtime.getLocalAppScenarioJob({ jobId });
+      async get(jobId, clientSubmissionId = '') {
+        const response = await runtime.getLocalAppScenarioJob({ jobId, clientSubmissionId });
         return {
           ...(response.visionLocate ? { visionLocate: localVisionLocateFromRuntime(response.visionLocate) } : {}),
           job: projectRuntimeLocalJob(requiredRuntimeValue(response.job, 'scenario Job')),
@@ -881,11 +887,19 @@ function validateScenarioSpec<T extends NimiLocalAppScenarioExecuteSpec | NimiLo
 
 function validateScenarioJobSubmitOptions(
   options: NimiLocalAppScenarioJobSubmitOptions,
+  spec: NimiLocalAppScenarioJobSpec,
 ): NimiLocalAppScenarioJobSubmitOptions {
-  assertExactKeys(options, ['timeoutMs'], 'Scenario Job submit options');
+  assertExactKeys(options, ['timeoutMs', 'clientSubmissionId'], 'Scenario Job submit options');
+  if (options.clientSubmissionId !== undefined && spec.type !== 'music-generate') invalidAIInput('clientSubmissionId requires music-generate');
   return Object.freeze({
     timeoutMs: boundedInteger(options.timeoutMs ?? 0, 'Scenario Job timeoutMs', 0, 2_147_483_647),
+    ...(options.clientSubmissionId !== undefined ? { clientSubmissionId: validateClientSubmissionId(options.clientSubmissionId) } : {}),
   });
+}
+
+function validateClientSubmissionId(value: string): string {
+  if (typeof value !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(value)) invalidAIInput('clientSubmissionId is invalid');
+  return value;
 }
 
 function validateVideoSpec(record: Record<string, unknown>): void {

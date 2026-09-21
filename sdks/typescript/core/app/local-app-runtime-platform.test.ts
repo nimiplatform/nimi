@@ -31,6 +31,29 @@ import {
 } from './local-app-runtime-platform.js';
 import { createNimiLocalAppVoiceAssetsRuntimeClient } from './local-app-runtime-platform-ai.js';
 
+test('music action identity survives the shell carrier and lookup never submits', async () => {
+  const calls: unknown[] = [];
+  const base = standardShell([]);
+  const job = { jobId: 'song-job', scenarioType: 'music-generate', status: 'submitted', progressPercent: 0,
+    progressCurrentStep: 0, progressTotalSteps: 0, reasonCode: '', reasonDetail: '', artifacts: [], traceId: 'trace',
+    createdAt: null, updatedAt: null, transcriptionText: '' };
+  const client = createNimiLocalAppClient({ standardShell: { ...base, ai: { ...base.ai, scenarioJobs: { ...base.ai.scenarioJobs,
+    async submit(spec, options) { calls.push(['submit', spec, options]); return { job }; },
+    async get(id, action) { calls.push(['get', id, action]); return { job, asset: null, voiceReference: null }; },
+  } } } });
+  const spec = { type: 'music-generate' as const, prompt: 'warm ballad', lyrics: 'keep the melody' };
+  await client.ai.scenarioJobs.submit(spec, { clientSubmissionId: 'song-action-1' });
+  assert.equal((calls[0] as unknown[])[2] && ((calls[0] as unknown[])[2] as {clientSubmissionId:string}).clientSubmissionId, 'song-action-1');
+  assert.equal((await client.ai.scenarioJobs.lookupSubmission('song-action-1')).job.jobId, 'song-job');
+  assert.deepEqual(calls[1], ['get', '', 'song-action-1']);
+  for (const id of ['', ' has-space', 'a/b', 'é', 'a'.repeat(129)]) {
+    await assert.rejects(client.ai.scenarioJobs.lookupSubmission(id));
+    await assert.rejects(client.ai.scenarioJobs.submit(spec, {clientSubmissionId:id}));
+  }
+  await assert.rejects(client.ai.scenarioJobs.submit({ type:'image-generate', prompt:'image' }, {clientSubmissionId:'image-action'}));
+  assert.equal(calls.length, 2);
+});
+
 test('image face replacement uses owned artifact Job input and rejects extra selectors', async () => {
   const captured: unknown[] = [];
   const base = standardShell([]);

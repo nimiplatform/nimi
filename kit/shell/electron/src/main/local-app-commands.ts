@@ -356,15 +356,27 @@ function validatePayload(
       assertExactKeys(payload, ['spec'], command);
       validateScenarioSpec(payload.spec, command, true);
       return { spec: payload.spec as NimiElectronLocalAppRecord[string] };
-    case 'scenarioJobSubmit':
-      assertExactKeys(payload, ['spec', 'timeoutMs'], command);
+    case 'scenarioJobSubmit': {
+      assertExactKeys(payload, ['spec', 'timeoutMs', ...(Object.hasOwn(payload, 'clientSubmissionId') ? ['clientSubmissionId'] : [])], command);
       validateScenarioSpec(payload.spec, command, false);
+      const clientSubmissionId = payload.clientSubmissionId;
+      if (clientSubmissionId !== undefined && ((payload.spec as { type: string }).type !== 'music-generate' || typeof clientSubmissionId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(clientSubmissionId))) {
+        throw invalidPayload(command, 'invalid music clientSubmissionId');
+      }
       return {
         spec: payload.spec as NimiElectronLocalAppRecord[string],
         timeoutMs: boundedSafeInteger(payload.timeoutMs, 'timeoutMs', command, 0, 2_147_483_647),
+        ...(clientSubmissionId !== undefined ? { clientSubmissionId } : {}),
       };
-    case 'scenarioJobGet':
+    }
+    case 'scenarioJobGet': {
+      if (Object.hasOwn(payload, 'clientSubmissionId')) {
+        assertExactKeys(payload, ['clientSubmissionId'], command);
+        if (typeof payload.clientSubmissionId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(payload.clientSubmissionId)) throw invalidPayload(command, 'invalid clientSubmissionId');
+        return { clientSubmissionId: payload.clientSubmissionId };
+      }
       return identifiers(payload, ['jobId'], command);
+    }
     case 'scenarioJobCancel': {
       assertExactKeys(payload, ['jobId', 'reason'], command);
       const reason = typeof payload.reason === 'string' ? payload.reason : '';

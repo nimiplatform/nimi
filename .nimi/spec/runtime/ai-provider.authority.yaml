@@ -1121,6 +1121,18 @@ units:
         target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+  - id: rule.nimi.runtime.ai-provider.music-submission-identity
+    kind: rule
+    title: Protected music creation action identity
+    modality: must
+    statement: Protected music.generate submission may carry a clientSubmissionId containing one through 128 ASCII letters, digits, hyphens or underscores. After fresh protected operation admission, Runtime binds the exact account and Registered App Subject plus that identity to the immutable complete author request and Job in the existing durable Job store, atomically with captured execution inputs. An identical request returns that original Job before resolving current AIConfig or model resources; a different request using the retained identity fails with a conflict, including concurrent submissions. Producer AppID is not an authorization key. The existing protected Get accepts exactly one Job id or clientSubmissionId selector and never executes, replays or resubmits work. The binding has the Job's bounded retention and restart interruption semantics; no binding grants background execution or indefinite recovery, and absence requires a new explicit author action. Other scenario variants reject clientSubmissionId until their exact owner admits it.
+    condition: Whenever a protected App submits or looks up a music creation action identity.
+    failure: Reject malformed or unsupported identities, mutually supplied selectors and conflicting requests; missing and foreign submission identities return the same Job-not-found result without route lookup, execution, cross-owner disclosure or synthesized success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
   - id: rule.nimi.runtime.ai-provider.r110
     kind: rule
     title: Voice creation source preflight is deterministic and non-switching

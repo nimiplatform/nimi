@@ -18627,6 +18627,13 @@
             "repeated": false,
             "optional": false,
             "number": 1
+          },
+          {
+            "name": "client_submission_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -35411,6 +35418,13 @@
             "repeated": false,
             "optional": false,
             "number": 15
+          },
+          {
+            "name": "client_submission_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 16
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"

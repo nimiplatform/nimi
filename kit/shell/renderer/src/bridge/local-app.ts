@@ -216,6 +216,7 @@ export type NimiLocalAppScenarioJobSpec =
 
 export type NimiLocalAppScenarioJobSubmitOptions = {
   readonly timeoutMs?: number;
+  readonly clientSubmissionId?: string;
 };
 
 export type NimiLocalAppScenarioTimestamp = { readonly seconds: string; readonly nanos: number };
@@ -439,7 +440,7 @@ export type NimiLocalAppStandardShellSurface = {
         spec: NimiLocalAppScenarioJobSpec,
         options?: NimiLocalAppScenarioJobSubmitOptions,
       ) => Promise<NimiLocalAppScenarioJobSubmitResult>;
-      readonly get: (jobId: string) => Promise<NimiLocalAppScenarioJobGetResult>;
+      readonly get: (jobId: string, clientSubmissionId?: string) => Promise<NimiLocalAppScenarioJobGetResult>;
       readonly subscribe: (jobId: string) => Promise<NimiLocalAppStream<NimiLocalAppScenarioJobEvent>>;
       readonly cancel: (jobId: string, reason?: string) => Promise<{ readonly job: NimiLocalAppScenarioJob }>;
     };
@@ -856,16 +857,24 @@ export function submitNimiLocalAppScenarioJob(
 ): Promise<NimiLocalAppScenarioJobSubmitResult> {
   const command = AIC_COMMANDS.scenarioJobSubmit;
   const timeoutMs = options.timeoutMs ?? 0;
+  const clientSubmissionId = options.clientSubmissionId;
+  if (clientSubmissionId !== undefined && (spec.type !== 'music-generate' || typeof clientSubmissionId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(clientSubmissionId))) {
+    throw invalidInput(command, 'clientSubmissionId requires music-generate and a bounded action id');
+  }
   return invokeChecked(command, { payload: {
     spec: canonicalScenarioSpec(spec, command),
     timeoutMs: boundedSafeInteger(timeoutMs, 'timeoutMs', command, 0, 2_147_483_647),
+    ...(clientSubmissionId !== undefined ? { clientSubmissionId } : {}),
   } },
     (value) => parseScenarioJobSubmit(value, command));
 }
 
-export function getNimiLocalAppScenarioJob(jobId: string): Promise<NimiLocalAppScenarioJobGetResult> {
+export function getNimiLocalAppScenarioJob(jobId: string, clientSubmissionId?: string): Promise<NimiLocalAppScenarioJobGetResult> {
   const command = AIC_COMMANDS.scenarioJobGet;
-  return invokeChecked(command, { payload: { jobId: requiredText(jobId, 'jobId', command, 128) } },
+  if (clientSubmissionId !== undefined && (jobId !== '' || typeof clientSubmissionId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(clientSubmissionId))) {
+    throw invalidInput(command, 'exactly one bounded Job selector is required');
+  }
+  return invokeChecked(command, { payload: clientSubmissionId === undefined ? { jobId: requiredText(jobId, 'jobId', command, 128) } : { clientSubmissionId } },
     (value) => parseScenarioJobGet(value, command));
 }
 
