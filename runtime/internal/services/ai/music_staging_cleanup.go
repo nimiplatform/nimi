@@ -11,7 +11,7 @@ import (
 // work. Only names allocated by Runtime's numeric CreateTemp/MkdirTemp paths
 // are removed; unknown entries and links to directories are not traversed.
 func cleanupMusicStagingAtStartup(stateDirectory string) error {
-	for _, profile := range []struct{ root, prefix string }{{"music-staging", "music-"}, {"audio-preparation-staging", "prepare-"}} {
+	for _, profile := range []struct{ root, prefix string }{{"music-staging", "music-"}, {"audio-preparation-staging", "prepare-"}, {"speech-staging", "sep-"}} {
 		root := filepath.Join(stateDirectory, profile.root)
 		entries, err := os.ReadDir(root)
 		if os.IsNotExist(err) {
@@ -41,28 +41,47 @@ func cleanupMusicStagingAtStartup(stateDirectory string) error {
 			}
 			for _, child := range children {
 				if child.IsDir() {
-					if profile.root == "music-staging" && child.Name() == "music" && child.Type()&os.ModeSymlink == 0 {
+					var innerNames []string
+					switch {
+					case profile.root == "music-staging" && child.Name() == "music":
 						// The native request id is fixed by the Driver, not supplied by the App.
-						inner := filepath.Join(path, "music")
-						if err := os.Remove(filepath.Join(inner, "score.abc")); err != nil && !os.IsNotExist(err) {
+						innerNames = []string{"score.abc"}
+					case profile.root == "speech-staging" && child.Name() == "stems":
+						// Stems written by the HTDemucs CLI and the Runtime-built background.
+						innerNames = []string{"vocals.wav", "drums.wav", "bass.wav", "other.wav", "background.wav"}
+					}
+					if innerNames == nil || child.Type()&os.ModeSymlink != 0 {
+						continue
+					}
+					inner := filepath.Join(path, child.Name())
+					for _, innerName := range innerNames {
+						if err := os.Remove(filepath.Join(inner, innerName)); err != nil && !os.IsNotExist(err) {
 							return err
 						}
-						remaining, err := os.ReadDir(inner)
-						if err != nil {
+					}
+					remaining, err := os.ReadDir(inner)
+					if err != nil {
+						return err
+					}
+					if len(remaining) == 0 {
+						if err := os.Remove(inner); err != nil {
 							return err
-						}
-						if len(remaining) == 0 {
-							if err := os.Remove(inner); err != nil {
-								return err
-							}
 						}
 					}
 					continue
 				}
 				name := child.Name()
-				owned := numericTemporaryName(name, "input-") || numericTemporaryName(strings.TrimSuffix(name, ".wav"), "canonical-audio-")
-				if profile.root == "music-staging" {
-					owned = name == "music.wav" || name == "music.wav.tmp" || name == "request.json" || name == "input.abc" || numericTemporaryName(name, "input-") || name == "score.abc" || numericTemporaryName(strings.TrimSuffix(name, ".wav"), "canonical-audio-")
+				var owned bool
+				switch profile.root {
+				case "music-staging":
+					// Generation, transcription and voice conversion stage these exact names.
+					owned = name == "music.wav" || name == "music.wav.tmp" || name == "request.json" || name == "input.abc" || name == "score.abc" ||
+						name == "source.wav" || name == "target.wav" || name == "vocal.wav" || name == "events.json" || name == "timeline.json" ||
+						numericTemporaryName(name, "input-") || numericTemporaryName(strings.TrimSuffix(name, ".wav"), "canonical-audio-")
+				case "speech-staging":
+					owned = name == "source.wav"
+				default:
+					owned = numericTemporaryName(name, "input-") || numericTemporaryName(strings.TrimSuffix(name, ".wav"), "canonical-audio-")
 				}
 				if owned {
 					if err := os.Remove(filepath.Join(path, name)); err != nil {

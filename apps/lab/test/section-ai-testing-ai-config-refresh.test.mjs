@@ -11,7 +11,7 @@ const root = path.resolve(import.meta.dirname, '..');
 const kitRequire = createRequire(path.resolve(root, '../../kit/package.json'));
 const { JSDOM } = kitRequire('jsdom');
 const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', { url:'http://localhost/' });
-for (const key of ['window', 'document', 'HTMLElement', 'HTMLInputElement', 'Element', 'Node', 'NodeFilter', 'Event', 'CustomEvent', 'KeyboardEvent', 'DocumentFragment', 'MutationObserver', 'getComputedStyle']) {
+for (const key of ['window', 'document', 'HTMLElement', 'HTMLInputElement', 'HTMLFormElement', 'Element', 'Node', 'NodeFilter', 'Event', 'CustomEvent', 'KeyboardEvent', 'DocumentFragment', 'MutationObserver', 'getComputedStyle']) {
   globalThis[key] = dom.window[key];
 }
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -70,12 +70,14 @@ async function closeDrawer() {
   });
 }
 
-// Mounts the audio.separate section with the given AIConfig panel and a host
-// bound the same way as the generated App host and the Lab adapter.
-async function mountSeparationSection(renderAIConfigPanel) {
+// Mounts one media capability section with the given AIConfig panel and a
+// host bound the same way as the generated App host and the Lab adapter.
+// Queued pendingSnapshots answer snapshot reads in call order, so a test can
+// settle overlapping reads out of order.
+async function mountSection(capabilityContract, renderAIConfigPanel) {
   const composition = composeAIStudioModules([studioMediaModule]);
-  const registration = composition.getCapability('audio.separate');
-  const state = { snapshot:unconfigured };
+  const registration = composition.getCapability(capabilityContract);
+  const state = { snapshot:unconfigured, pendingSnapshots:[] };
   const reads = { snapshot:0, config:0, recovery:0 };
   const host = {
     appTitle:'Studio', translate:key=>key, locale:'en', clock:{now:()=>Date.now()},
@@ -86,9 +88,10 @@ async function mountSeparationSection(renderAIConfigPanel) {
     },
     sdk:{
       aiConfig:{
-        getSnapshot:async()=>{ reads.snapshot++; return state.snapshot; },
+        getSnapshot:async()=>{ reads.snapshot++; return state.pendingSnapshots.length ? state.pendingSnapshots.shift().promise : state.snapshot; },
         get:async()=>{ reads.config++; return state.snapshot.config; },
       },
+      listLocalAppVoiceAssets:async()=>[],
       storage:{
         readJson:async relativePath=>{
           if (relativePath === 'studio/audio-separation-recovery.json') reads.recovery++;
@@ -115,6 +118,7 @@ async function mountSeparationSection(renderAIConfigPanel) {
   });
   return { state, reads, unmount:()=>act(async()=>{ renderer.unmount(); }) };
 }
+const mountSeparationSection = renderAIConfigPanel => mountSection('audio.separate', renderAIConfigPanel);
 
 // Follows the Lab and generated App panels: a committed write is reported
 // through onCommitted; a conflict or a failure concerns only the panel.
@@ -228,5 +232,67 @@ test('a write that conflicts or fails after the drawer closed never reports read
     } finally {
       await section.unmount();
     }
+  }
+});
+
+const voiceProfile = {
+  sourceKinds:['singing'], targetKinds:['reference-audio'], maxSourceSeconds:600, maxTargetSeconds:600, supportsRange:true,
+  supportsSemitoneShift:false, minSemitoneShift:0, maxSemitoneShift:0, maxSourceBytes:512 * 1024 * 1024, maxTargetBytes:512 * 1024 * 1024,
+};
+const voiceConfigured = {
+  config:{
+    owner:{ owner:{ oneofKind:'app', app:{ appId:'nimi.lab' } } },
+    capabilities:[{ capabilityContract:'audio.voice.convert', requiredFeatures:[], route:{ oneofKind:'local', local:{} } }],
+  },
+  revision:'2',
+  effectiveSelections:[{ capabilityContract:'audio.voice.convert', state:'ready',
+    resource:{ oneofKind:'local', local:{ musicInput:{ generation:[], voiceConvert:[voiceProfile] } } } }],
+};
+
+// The close read starts first and the commit read second; Runtime answers
+// the newer read first. Returns the settle step for the late, older answer.
+async function settleNewerReadFirst(section, write, ready) {
+  await openDrawer();
+  await act(async()=>{ drawerPanel().click(); await flush(); });
+  const olderRead = deferred();
+  section.state.pendingSnapshots.push(olderRead);
+  await closeDrawer();
+  const newerRead = deferred();
+  section.state.pendingSnapshots.push(newerRead);
+  section.state.snapshot = ready;
+  await act(async()=>{ write.resolve({ outcome:'committed', config:ready.config, revision:ready.revision }); await flush(); });
+  await act(async()=>{ newerRead.resolve(ready); await flush(); });
+  return ()=>act(async()=>{ olderRead.resolve(unconfigured); await flush(); });
+}
+
+test('an older AIConfig read answered after a newer one never undoes separation readiness', async () => {
+  const write = deferred();
+  const section = await mountSeparationSection(deferredWritePanel(()=>write.promise));
+  try {
+    const settleOlderRead = await settleNewerReadFirst(section, write, configured);
+    assert.equal(button('AudioSeparate.chooseSource').disabled,false);
+    await settleOlderRead();
+    assert.equal(button('AudioSeparate.chooseSource').disabled,false, 'a superseded snapshot must not disable ready input');
+    assert.match(fields(), /AudioSeparate\.inputHint/);
+    assert.doesNotMatch(fields(), /AudioSeparate\.configureInputs/);
+    assert.match(fields(), /StudioShell\.statusConfigured/);
+  } finally {
+    await section.unmount();
+  }
+});
+
+test('an older AIConfig read answered after a newer one never undoes voice conversion readiness', async () => {
+  const write = deferred();
+  const section = await mountSection('audio.voice.convert', deferredWritePanel(()=>write.promise));
+  try {
+    assert.equal(button('VoiceConvert.chooseSource').disabled,true);
+    const settleOlderRead = await settleNewerReadFirst(section, write, voiceConfigured);
+    assert.equal(button('VoiceConvert.chooseSource').disabled,false);
+    await settleOlderRead();
+    assert.equal(button('VoiceConvert.chooseSource').disabled,false, 'a superseded snapshot must not disable ready input');
+    assert.doesNotMatch(fields(), /VoiceConvert\.configureInputs/);
+    assert.match(fields(), /StudioShell\.statusConfigured/);
+  } finally {
+    await section.unmount();
   }
 });

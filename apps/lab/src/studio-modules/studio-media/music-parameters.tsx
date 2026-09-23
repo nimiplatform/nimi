@@ -18,18 +18,22 @@ export function MusicFields(props: StudioParameterPanelProps) {
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => {
     let active = true;
+    // Closing the drawer and a commit can both refresh; only the newest read
+    // applies, so a slower, older snapshot never undoes a newer one.
+    let requestGeneration = 0;
     const refresh = () => {
+      const generation = ++requestGeneration;
       setLoading(true);
       void host.sdk.aiConfig.getSnapshot().then((snapshot) => {
-        if (!active) return;
+        if (!active || generation !== requestGeneration) return;
         const selection = snapshot.effectiveSelections.find((item) => item.capabilityContract === 'music.generate');
         const resource = selection?.resource;
         const next = resource?.oneofKind === 'local' ? resource.local.musicInput : resource?.oneofKind === 'cloud' ? resource.cloud.target?.musicInput : undefined;
         setCapabilities(selection?.state === 'ready' && next ? next : null);
         setError('');
       }).catch((cause: unknown) => {
-        if (active) { setCapabilities(null); setError(cause instanceof Error ? cause.message : String(cause)); }
-      }).finally(() => { if (active) setLoading(false); });
+        if (active && generation === requestGeneration) { setCapabilities(null); setError(cause instanceof Error ? cause.message : String(cause)); }
+      }).finally(() => { if (active && generation === requestGeneration) setLoading(false); });
     };
     refresh();
     const unsubscribe = host.app.events.subscribeAIConfigRefresh(refresh);

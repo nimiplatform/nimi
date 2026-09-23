@@ -15,12 +15,18 @@ export function AudioSeparateFields(props: StudioParameterPanelProps) {
   const sourceInput = useRef<HTMLInputElement>(null);
   useEffect(() => {
     let active = true;
-    const refresh = () => void host.sdk.aiConfig.getSnapshot().then(snapshot => {
-      if (!active) return;
-      const selected = snapshot.effectiveSelections.find(item => item.capabilityContract === 'audio.separate');
-      setReady(selected?.state === 'ready');
-      setError('');
-    }).catch((cause: unknown) => { if (active) { setReady(false); setError(String(cause)); } });
+    // Closing the drawer and a commit can both refresh; only the newest read
+    // applies, so a slower, older snapshot never undoes a newer one.
+    let requestGeneration = 0;
+    const refresh = () => {
+      const generation = ++requestGeneration;
+      void host.sdk.aiConfig.getSnapshot().then(snapshot => {
+        if (!active || generation !== requestGeneration) return;
+        const selected = snapshot.effectiveSelections.find(item => item.capabilityContract === 'audio.separate');
+        setReady(selected?.state === 'ready');
+        setError('');
+      }).catch((cause: unknown) => { if (active && generation === requestGeneration) { setReady(false); setError(String(cause)); } });
+    };
     refresh(); const unsubscribe = host.app.events.subscribeAIConfigRefresh(refresh);
     return () => { active = false; unsubscribe(); };
   }, [host]);

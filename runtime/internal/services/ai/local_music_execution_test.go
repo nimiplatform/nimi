@@ -187,9 +187,7 @@ func TestLocalMusicScenarioJobRejectsInvalidAndPartialWAV(t *testing.T) {
 			host.mu.Lock()
 			staging := host.plans[0].StagingWAVPath()
 			host.mu.Unlock()
-			if _, statErr := os.Stat(staging); !os.IsNotExist(statErr) {
-				t.Fatalf("invalid staging remains: %v", statErr)
-			}
+			waitForMusicStagingRemoval(t, staging)
 		})
 	}
 }
@@ -205,6 +203,22 @@ func waitForMusicJobTerminal(t *testing.T, svc *Service, jobID string) *runtimev
 	}
 	t.Fatalf("music job %s did not terminate", jobID)
 	return nil
+}
+
+// A visible terminal Job precedes the executor's deferred staging removal.
+func waitForMusicStagingRemoval(t *testing.T, path string) {
+	t.Helper()
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		_, err := os.Stat(path)
+		if os.IsNotExist(err) {
+			return
+		}
+		if !time.Now().Before(deadline) {
+			t.Fatalf("invalid staging remains: %v", err)
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
 }
 
 func writeLocalMusicTestWAV(path string, sampleRate, channels, seconds int) error {

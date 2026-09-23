@@ -20,12 +20,18 @@ export function VoiceConvertFields(props: StudioParameterPanelProps) {
   const targetInput = useRef<HTMLInputElement>(null);
   useEffect(() => {
     let active = true;
-    const refresh = () => void host.sdk.aiConfig.getSnapshot().then(snapshot => {
-      if (!active) return;
-      const selected = snapshot.effectiveSelections.find(item => item.capabilityContract === 'audio.voice.convert');
-      setProfiles(selected?.state === 'ready' && selected.resource?.oneofKind === 'local' ? selected.resource.local.musicInput?.voiceConvert ?? [] : []);
-      setError('');
-    }).catch((cause: unknown) => { if (active) { setProfiles([]); setError(String(cause)); } });
+    // Closing the drawer and a commit can both refresh; only the newest read
+    // applies, so a slower, older snapshot never undoes a newer one.
+    let requestGeneration = 0;
+    const refresh = () => {
+      const generation = ++requestGeneration;
+      void host.sdk.aiConfig.getSnapshot().then(snapshot => {
+        if (!active || generation !== requestGeneration) return;
+        const selected = snapshot.effectiveSelections.find(item => item.capabilityContract === 'audio.voice.convert');
+        setProfiles(selected?.state === 'ready' && selected.resource?.oneofKind === 'local' ? selected.resource.local.musicInput?.voiceConvert ?? [] : []);
+        setError('');
+      }).catch((cause: unknown) => { if (active && generation === requestGeneration) { setProfiles([]); setError(String(cause)); } });
+    };
     refresh(); const unsubscribe = host.app.events.subscribeAIConfigRefresh(refresh);
     void host.sdk.listLocalAppVoiceAssets().then(assets => { if (active) setVoices(assets); }).catch(() => { if (active) setVoices([]); });
     return () => { active = false; unsubscribe(); };

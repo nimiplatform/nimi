@@ -75,6 +75,42 @@ func TestMusicStagingStartupCleanupIsBoundedToOwnedNames(t *testing.T) {
 	}
 }
 
+func TestNativeMediaStagingStartupCleanupIsBoundedToOwnedNames(t *testing.T) {
+	root := t.TempDir()
+	owned := []string{
+		"music-staging/music-12345/source.wav", "music-staging/music-12345/target.wav", "music-staging/music-12345/vocal.wav",
+		"music-staging/music-12346/events.json", "music-staging/music-12346/timeline.json",
+		"speech-staging/sep-12345/source.wav", "speech-staging/sep-12345/stems/vocals.wav", "speech-staging/sep-12345/stems/drums.wav",
+		"speech-staging/sep-12345/stems/bass.wav", "speech-staging/sep-12345/stems/other.wav", "speech-staging/sep-12345/stems/background.wav",
+	}
+	unrelated := []string{
+		"speech-staging/sep-notes/source.wav", "speech-staging/sep-777/stems/extra.wav", "speech-staging/voices/source.wav",
+		"music-staging/music-555/notes.txt",
+	}
+	for _, name := range append(append([]string{}, owned...), unrelated...) {
+		path := filepath.Join(root, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte("staging"), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := cleanupMusicStagingAtStartup(root); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"music-staging/music-12345", "music-staging/music-12346", "speech-staging/sep-12345"} {
+		if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(name))); !os.IsNotExist(err) {
+			t.Fatalf("interrupted native media staging remained: %s", name)
+		}
+	}
+	for _, name := range unrelated {
+		if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(name))); err != nil {
+			t.Fatalf("unrelated staging entry was removed: %s", name)
+		}
+	}
+}
+
 func TestMusicRecoverySurvivesOtherJobPruningAndDoesNotRenew(t *testing.T) {
 	store := newScenarioJobStore()
 	now := time.Now().UTC()

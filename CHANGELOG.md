@@ -20,15 +20,26 @@ The format follows Keep a Changelog and Semantic Versioning.
   state. Closing does not wait for a pending write, so the AIConfig panel also
   reports a committed write through the new `onCommitted` render input, which
   dispatches the same event even after the drawer has closed; a conflicting or
-  failed write notifies no consumer. `@nimiplatform/app-tools` packs this AI
-  Studio core into `--features studio-media` scaffolds as App-owned
-  `src/capabilities/ai-studio-core/**`, which `nimi-app sync` never rewrites:
-  existing scaffolds must port `ai-config.ts`, `index.ts`,
-  `section-ai-testing.tsx`, `section-ai-testing-run.ts`, and
-  `section-ai-testing-surface.tsx` by hand, together. `nimi-app sync` updates
-  the generated AIConfig panel, which uses `onCommitted` when the ported core
-  supplies it and otherwise keeps refreshing only itself; the `studio-media`
-  files are unchanged.
+  failed write notifies no consumer. The media parameter fields apply only
+  their newest AIConfig read, so a late answer to an older read cannot undo
+  newer readiness. `@nimiplatform/app-tools` packs this AI Studio core and the
+  studio-media slice into `--features studio-media` scaffolds as App-owned
+  `src/capabilities/ai-studio-core/**` and `src/capabilities/studio-media/**`,
+  which `nimi-app sync` never rewrites: existing scaffolds must port
+  `ai-config.ts`, `index.ts`, `section-ai-testing.tsx`,
+  `section-ai-testing-run.ts`, and `section-ai-testing-surface.tsx`, plus
+  `audio-separate-parameters.tsx`, `voice-convert-parameters.tsx`,
+  `music-transcription-parameters.tsx`, and `music-parameters.tsx`, by hand,
+  together; the packed studio-media templates import `../../ai-studio-core/`
+  (the Lab layout), which scaffolds use as `../ai-studio-core/`. `nimi-app
+  sync` updates the generated AIConfig panel, which uses
+  `onCommitted` when the ported core supplies it and otherwise keeps
+  refreshing only itself.
+- Runtime startup cleanup also removes interrupted voice-conversion staging
+  (`source.wav`, `target.wav`, `vocal.wav`), transcription staging
+  (`events.json`, `timeline.json`), and audio-separation staging
+  (`speech-staging/sep-*` with `source.wav` and its exact stem files), still
+  only by Runtime-allocated numeric directory and exact file name.
 
 ## [0.2.0] - 2026-08-31
 

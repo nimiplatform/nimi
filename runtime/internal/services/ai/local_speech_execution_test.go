@@ -42,6 +42,7 @@ type localSpeechHostStub struct {
 	calls                  chan string
 	synthesisResult        *localexecution.SpeechSynthesisResult
 	synthesisResultFn      func(capabilitydriver.SpeechSynthesizePlan) (localexecution.SpeechSynthesisResult, error)
+	transcriptionResultFn  func(capabilitydriver.SpeechTranscribePlan) (localexecution.SpeechTranscriptionResult, error)
 	voiceCreateResult      *localexecution.VoiceCreateResult
 	voiceCreateResultFn    func(*capabilitydriver.VoiceCreateInvocationPlan) (localexecution.VoiceCreateResult, error)
 	voiceCreateResultCtxFn func(context.Context, *capabilitydriver.VoiceCreateInvocationPlan) (localexecution.VoiceCreateResult, error)
@@ -465,6 +466,9 @@ func (host *localSpeechHostStub) ExecuteSpeechTranscription(ctx context.Context,
 			return localexecution.SpeechTranscriptionResult{}, &localexecution.ExecutionError{Kind: localexecution.FailureCanceled, Err: ctx.Err()}
 		}
 	}
+	if host.transcriptionResultFn != nil {
+		return host.transcriptionResultFn(plan)
+	}
 	return localexecution.SpeechTranscriptionResult{Transcript: &runtimev1.SpeechTranscript{Status: runtimev1.SpeechTranscriptStatus_SPEECH_TRANSCRIPT_STATUS_TRANSCRIBED, Text: "captured transcript"}, Usage: &runtimev1.UsageStats{InputTokens: 2, OutputTokens: 3, ComputeMs: 4}}, nil
 }
 
@@ -524,9 +528,7 @@ func TestQwen3TTSAudioCppScenarioJobUsesSpeechWaistAndRuntimeCustody(t *testing.
 	if !ok || captured.AudioCppSelectedSourceRecordID() != "selected-audio" || captured.CUDA13SelectedSourceRecordID() != "selected-cuda13" {
 		t.Fatalf("captured Qwen audio.cpp plan=%+v", captured)
 	}
-	if _, err := os.Stat(captured.StagingWAVPath()); !os.IsNotExist(err) {
-		t.Fatalf("Qwen staging cleanup err=%v", err)
-	}
+	waitLocalSpeechStagingRemoval(t, captured.StagingWAVPath())
 }
 
 func TestGenericAudioCppTTSAndASRScenarioJobsUseCapturedPlans(t *testing.T) {
@@ -562,7 +564,20 @@ func TestGenericAudioCppTTSAndASRScenarioJobsUseCapturedPlans(t *testing.T) {
 		svc.localSpeechStagingRoot = t.TempDir()
 		selected := selectedGenericAudioCppSpeechExecutionForTest(t, capabilitydriver.AudioTranscribeContract, "citrinet_asr")
 		svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selected})
-		host := &localSpeechHostStub{}
+		host := &localSpeechHostStub{transcriptionResultFn: func(plan capabilitydriver.SpeechTranscribePlan) (localexecution.SpeechTranscriptionResult, error) {
+			exact, ok := plan.(*capabilitydriver.AudioCppASRTranscribePlan)
+			if !ok {
+				return localexecution.SpeechTranscriptionResult{}, fmt.Errorf("unexpected plan %T", plan)
+			}
+			// Write both staging files as the audio.cpp host would and leave them for the Job's deferred cleanup.
+			if err := os.WriteFile(exact.StagingAudioPath(), exact.AudioBytes(), 0o600); err != nil {
+				return localexecution.SpeechTranscriptionResult{}, err
+			}
+			if err := os.WriteFile(exact.StagingTextOutPath(), []byte("captured transcript"), 0o600); err != nil {
+				return localexecution.SpeechTranscriptionResult{}, err
+			}
+			return localexecution.SpeechTranscriptionResult{Transcript: &runtimev1.SpeechTranscript{Status: runtimev1.SpeechTranscriptStatus_SPEECH_TRANSCRIPT_STATUS_TRANSCRIBED, Text: "captured transcript"}}, nil
+		}}
 		svc.SetLocalSpeechExecutionHost(host)
 		wavPath := filepath.Join(t.TempDir(), "input.wav")
 		if err := writeLocalMusicTestWAV(wavPath, 16000, 1, 1); err != nil {
@@ -585,9 +600,7 @@ func TestGenericAudioCppTTSAndASRScenarioJobsUseCapturedPlans(t *testing.T) {
 			t.Fatalf("Citrinet Job=%+v plan=%+v", job, plan)
 		}
 		for _, path := range []string{plan.StagingAudioPath(), plan.StagingTextOutPath()} {
-			if _, err := os.Stat(path); !os.IsNotExist(err) {
-				t.Fatalf("ASR staging cleanup %s err=%v", path, err)
-			}
+			waitLocalSpeechStagingRemoval(t, path)
 		}
 	})
 }
@@ -1060,4 +1073,20 @@ func waitLocalSpeechJobStatus(t *testing.T, svc *Service, jobID string, wanted r
 	}
 	t.Fatalf("local speech job %s did not reach %s", jobID, wanted)
 	return nil
+}
+
+// A visible terminal Job precedes the executor's deferred staging removal.
+func waitLocalSpeechStagingRemoval(t *testing.T, path string) {
+	t.Helper()
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		_, err := os.Stat(path)
+		if os.IsNotExist(err) {
+			return
+		}
+		if !time.Now().Before(deadline) {
+			t.Fatalf("local speech staging %s remains: %v", path, err)
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
 }
