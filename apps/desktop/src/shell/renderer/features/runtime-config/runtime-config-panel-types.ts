@@ -1,4 +1,5 @@
 import type {
+  RuntimeAdvancedDiagnosticsPane,
   RuntimeConfigStatusV11,
   RuntimeConfigStateV11,
 } from './runtime-config-state-types';
@@ -63,12 +64,16 @@ export type RuntimeConfigPanelControllerModel = {
   modelMarketContext: RuntimeConfigModelMarketContext | null;
   setupTaskFocus: { readonly taskId: string } | null;
   profileUseOwner: RuntimeConfigProfileUseOwner | null;
+  /** Latest deep-link request for an Advanced & Diagnostics sub-pane; revision changes per request. */
+  advancedDiagnosticsPaneRequest: { readonly pane: RuntimeAdvancedDiagnosticsPane; readonly revision: number } | null;
   setShowCloudApiKey: (value: boolean | ((prev: boolean) => boolean)) => void;
   setConnectorModelQuery: (value: string) => void;
   setPageFeedback: (value: InlineFeedbackState | null) => void;
   onChangePage: (pageId: RuntimeConfigStateV11['activePage']) => void;
   onOpenSavedConfigs: (context?: RuntimeConfigLoadoutNavigationContext) => void;
   onOpenModelMarket: (context: RuntimeConfigModelMarketContext) => void;
+  /** Opens the Model Library on the downloaded files with the import menu open. */
+  onOpenModelImport: () => void;
   onOpenSetupTask: (taskId: string) => void;
   onCloseSetupTask: () => void;
   onReturnToContextualLoadout: () => void;

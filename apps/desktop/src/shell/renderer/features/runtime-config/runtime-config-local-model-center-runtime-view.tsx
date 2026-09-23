@@ -10,6 +10,7 @@ import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { LocalModelCenterImportControls } from './runtime-config-local-model-center-import-controls';
 import { LocalModelCenterInstalledAssetsSection } from './runtime-config-local-model-center-installed-section';
 import { LocalModelCenterInProgressSection } from './runtime-config-local-model-center-progress-sections';
+import type { LocalModelAssetRemovalImpact } from './runtime-config-local-model-center-remove-dialog';
 
 /** Model Library sub-pages: discovery catalog, downloaded inventory, transfers. */
 export type LocalModelCenterSection = 'discover' | 'downloaded' | 'transfers';
@@ -35,13 +36,14 @@ type LocalAssetsRuntimeViewProps = {
   readonly onDismissSession: (installSessionId: string) => void;
   readonly onImportFile: () => Promise<unknown>;
   readonly onImportDirectory: () => Promise<unknown>;
-  readonly onInspectRemoval: (modelAssetId: string) => Promise<string[]>;
+  readonly onInspectRemoval: (modelAssetId: string) => Promise<LocalModelAssetRemovalImpact>;
   readonly onOpenModelsFolder: () => void;
   readonly onPauseDownload: (installSessionId: string) => void;
   readonly onRefreshAssets: () => void;
   readonly onRemoveAsset: (modelAssetId: string) => Promise<void>;
   readonly onResumeDownload: (installSessionId: string) => void;
   readonly onToggleImportMenu: () => void;
+  readonly onOpenDiscover?: () => void;
 };
 
 export function LocalModelCenterRuntimeView(props: LocalAssetsRuntimeViewProps) {
@@ -72,7 +74,11 @@ export function LocalModelCenterRuntimeView(props: LocalAssetsRuntimeViewProps) 
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-end gap-2">
+      <div className="flex flex-wrap items-center gap-3">
+        <SearchField value={query} onChange={(event) => setQuery(event.currentTarget.value)}
+          aria-label={i18n.t('runtimeConfig.localModelCenter.searchInstalled')}
+          placeholder={i18n.t('runtimeConfig.localModelCenter.searchInstalled')}
+          className="min-h-9 w-full max-w-xs" />
         <LocalModelCenterImportControls
           refreshing={props.loadingInstalledAssets}
           importMenuRef={props.importMenuRef}
@@ -103,9 +109,6 @@ export function LocalModelCenterRuntimeView(props: LocalAssetsRuntimeViewProps) 
           </button>
         </div>
       ) : null}
-      <SearchField value={query} onChange={(event) => setQuery(event.currentTarget.value)}
-        aria-label={i18n.t('runtimeConfig.localModelCenter.searchInstalled')}
-        placeholder={i18n.t('runtimeConfig.localModelCenter.searchInstalled')} />
       <LocalModelCenterInstalledAssetsSection
         modelAssets={[...props.modelAssets]}
         query={query}
@@ -115,6 +118,8 @@ export function LocalModelCenterRuntimeView(props: LocalAssetsRuntimeViewProps) 
         onRefreshAssets={props.onRefreshAssets}
         onInspectRemoval={props.onInspectRemoval}
         onRemoveAsset={props.onRemoveAsset}
+        onOpenDiscover={props.onOpenDiscover}
+        onImportFile={props.runtimeWritesDisabled ? undefined : () => { void props.onImportFile().catch(() => undefined); }}
       />
     </div>
   );

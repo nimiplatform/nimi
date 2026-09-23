@@ -43,7 +43,12 @@ export function capabilityPreparationState(input: {
   readonly tasks: readonly RuntimeSetupTask[];
   readonly unavailable?: boolean;
 }): { state: CapabilityPreparationState; task?: RuntimeSetupTask; replacement: boolean } {
-  const latest = [...input.tasks].reverse().find((item) => item.capabilityContract === input.capability);
+  // Only a setup the person confirmed is in flight for the capability. A draft
+  // or review they left without confirming is not surfaced on the rail, the
+  // detail page or the quick start.
+  const latest = [...input.tasks].reverse().find((item) => (
+    item.capabilityContract === input.capability && item.status !== 'draft' && item.status !== 'review'
+  ));
   const task =
     latest && !['done', 'stopped'].includes(latest.status) && !latest.supersededBy ? latest : undefined;
   if (!input.inventory || input.unavailable) return { state: 'unknown', task, replacement: false };
@@ -60,7 +65,11 @@ export function capabilityPreparationState(input: {
     environment.dependencies.every(
       (item) => !item.required || isNimiRuntimeLocalEnvironmentDependencyReadyState(item.state),
     );
-  if (ready) return { state: 'ready', task, replacement: !!task && task.candidateLoadoutId !== selectedId };
+  // A replacement is an unfinished task that has actually chosen a different
+  // loadout. A draft that has not picked anything yet is not a replacement,
+  // so the rail keeps showing the current model alone.
+  const replacement = !!task?.candidateLoadoutId && task.candidateLoadoutId !== selectedId;
+  if (ready) return { state: 'ready', task, replacement };
   if (task?.status === 'preparing' || task?.status === 'committing')
     return { state: 'preparing', task, replacement: false };
   if (task?.status === 'failed' || task?.status === 'needs-attention')

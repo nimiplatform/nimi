@@ -17,9 +17,12 @@ const DemoParentosPreview = lazy(async () => ({
 const DemoStorybookPreview = lazy(async () => ({
   default: (await import('./demo-storybook-preview.js')).DemoStorybookPreview,
 }));
+const DemoOddBureauPreview = lazy(async () => ({
+  default: (await import('./demo-odd-bureau-preview.js')).DemoOddBureauPreview,
+}));
 
 /** App ids with an interactive preview replica. */
-export const DEMO_PREVIEW_APP_IDS = ['nimi.zhiyu', 'nimi.shijing', 'nimi.parentos', 'nimi.storybook'] as const;
+export const DEMO_PREVIEW_APP_IDS = ['nimi.zhiyu', 'nimi.shijing', 'nimi.parentos', 'nimi.storybook', 'nimi.odd-bureau'] as const;
 
 function previewFor(appId: string, preview: HeroDemo['appPreview']): ReactNode | null {
   switch (appId) {
@@ -31,6 +34,8 @@ function previewFor(appId: string, preview: HeroDemo['appPreview']): ReactNode |
       return <DemoParentosPreview content={preview.parentos} />;
     case 'nimi.storybook':
       return <DemoStorybookPreview content={preview.storybook} />;
+    case 'nimi.odd-bureau':
+      return <DemoOddBureauPreview content={preview.oddBureau} />;
     default:
       return null;
   }
@@ -53,10 +58,18 @@ export function DemoAppPreview({
 }) {
   const app = apps.items.find((item) => item.id === appId) ?? null;
   const replica = app ? previewFor(app.id, preview) : null;
+  // Replicas open their own in-demo dialogs (e.g. ParentOS 安排日期). Radix
+  // handles Escape in the capture phase, so the replica cannot stop it from
+  // reaching this modal; skip dismissal while such a dialog is on screen and
+  // let the replica close its own layer.
+  const dismiss = () => {
+    if (document.querySelector('[data-demo-nested-dialog]')) return;
+    onClose();
+  };
   return (
-    <Dialog open={app !== null} onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Dialog open={app !== null} onOpenChange={(open) => { if (!open) dismiss(); }}>
       <DialogContent
-        onClose={onClose}
+        onClose={dismiss}
         className="flex h-[88vh] w-[96vw] max-w-[1360px] flex-col overflow-hidden p-0"
         data-testid="demo-app-preview"
         data-demo-app-id={app?.id ?? ''}

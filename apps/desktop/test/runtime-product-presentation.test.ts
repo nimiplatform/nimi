@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { NimiLoadoutRecipe, NimiMachineLoadout, NimiRuntimeLocalVerifiedAssetDescriptor, NimiRuntimeModelAssetRecord } from '@nimiplatform/sdk/runtime';
 import { AppPackageJobPhase } from '@nimiplatform/sdk/runtime/wire-types';
-import { capabilityModelIdentity, recipeResourceSummary, setupPlanNeedsPreparation } from '../src/shell/renderer/features/runtime-config/runtime-capability-presentation.js';
+import { capabilityModelIdentity, distinctSavedLoadouts, recipeResourceSummary, setupPlanNeedsPreparation } from '../src/shell/renderer/features/runtime-config/runtime-capability-presentation.js';
 import type { RuntimeSetupPreparationPlan } from '../src/shell/renderer/features/runtime-config/runtime-setup-task-runner.js';
 import { appJobLane, groupTransferAttempts, interruptionReasonKey, transferLane } from '../src/shell/renderer/features/runtime-config/global-downloads-presentation.js';
 
@@ -72,4 +72,28 @@ test('the use action only skips preparation wording when chosen files and requir
   const choicePlan = { ...plan, awaitingChoice: [{ slotId: 'main', label: 'Main', options: [{ offerRef: 'cached', installedModelAssetId: 'asset', title: 'Model', variantLabel: 'Variant', sizeBytes: 100 }] }] } satisfies RuntimeSetupPreparationPlan;
   assert.equal(setupPlanNeedsPreparation(choicePlan, {}), true);
   assert.equal(setupPlanNeedsPreparation(choicePlan, { main: 'cached' }), false);
+});
+
+test('saved configurations that run exactly the same thing are shown once, preferring the selected one', () => {
+  const axes = [{ slotId: 'main.gguf', modelAssetId: 'asset-a', expectedContentId: 'sha256:a' }] as unknown as NimiMachineLoadout['modelAxes'];
+  const same = (loadoutId: string, createdAt: string, extra: Partial<NimiMachineLoadout> = {}) => ({
+    loadoutId, createdAt, capabilityContract: 'text.generate', recipeId: 'recipe', recipeRevision: '1',
+    implementation: { implementationId: 'impl', driverId: 'driver', driverDialect: 'dialect' },
+    options: {}, displayName: 'Gemma 4 text generation', modelAxes: axes,
+    provenance: { desktop_setup_task_id: loadoutId }, ...extra,
+  }) as unknown as NimiMachineLoadout;
+  const loadouts = [
+    same('newest', '2026-09-21T09:59:58Z'),
+    same('oldest', '2026-09-21T07:44:11Z'),
+    same('middle', '2026-09-21T08:24:31Z'),
+    same('other-file', '2026-09-21T08:00:00Z', { modelAxes: [{ ...axes[0]!, modelAssetId: 'asset-b', expectedContentId: 'sha256:b' }] as unknown as NimiMachineLoadout['modelAxes'] }),
+    same('renamed', '2026-09-21T08:00:00Z', { displayName: 'My tuned Gemma' }),
+    same('tuned', '2026-09-21T08:00:00Z', { options: { temperature: 0.2 } }),
+  ];
+  // Without a selection the oldest exact duplicate stands for the group.
+  assert.deepEqual(distinctSavedLoadouts(loadouts).map(item => item.loadoutId), ['oldest', 'other-file', 'renamed', 'tuned']);
+  // The selected duplicate is the one shown, so its "current" badge stays visible.
+  assert.deepEqual(distinctSavedLoadouts(loadouts, 'middle').map(item => item.loadoutId), ['middle', 'other-file', 'renamed', 'tuned']);
+  // A selection outside the group leaves the group's survivor unchanged.
+  assert.deepEqual(distinctSavedLoadouts(loadouts, 'tuned').map(item => item.loadoutId), ['oldest', 'other-file', 'renamed', 'tuned']);
 });

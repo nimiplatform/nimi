@@ -10,10 +10,11 @@
  * export stay Support-owned.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PillTabs, Surface, cn } from '@nimiplatform/kit/ui';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
+import type { RuntimeAdvancedDiagnosticsPane } from './runtime-config-state-types';
 import { RuntimePageHeader, RuntimePageShell } from './runtime-config-page-shell';
 import { EnvironmentDataTab } from './runtime-config-environment-data-tab';
 import { RuntimeHealthSection } from './runtime-config-runtime-health-section.js';
@@ -37,7 +38,7 @@ import {
   TOKEN_TEXT_PRIMARY,
 } from './runtime-config-runtime-page-ui';
 
-type AdvancedDiagnosticsPaneId = 'services' | 'activity' | 'access' | 'data';
+type AdvancedDiagnosticsPaneId = RuntimeAdvancedDiagnosticsPane;
 
 type AdvancedDiagnosticsPageProps = {
   model: RuntimeConfigPanelControllerModel;
@@ -53,7 +54,13 @@ const SUB_PANES: Array<{ id: AdvancedDiagnosticsPaneId; labelKey: string; defaul
 export function AdvancedDiagnosticsPage({ model }: AdvancedDiagnosticsPageProps) {
   const { t } = useTranslation();
   const auditData = useGlobalAuditData(true);
-  const [pane, setPane] = useState<AdvancedDiagnosticsPaneId>('services');
+  const [pane, setPane] = useState<AdvancedDiagnosticsPaneId>(model.advancedDiagnosticsPaneRequest?.pane ?? 'services');
+  // Deep links (e.g. Home → Activity & Usage) arrive as a revisioned request so
+  // repeating the same pane still re-selects it after the user switched away.
+  const paneRequest = model.advancedDiagnosticsPaneRequest;
+  useEffect(() => {
+    if (paneRequest) setPane(paneRequest.pane);
+  }, [paneRequest]);
 
   return (
     <RuntimePageShell>

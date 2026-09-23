@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAppStore } from '../../app-shell/providers/app-store';
-import type { RuntimePageIdV11 } from './runtime-config-state-types';
+import type { RuntimeAdvancedDiagnosticsPane, RuntimePageIdV11 } from './runtime-config-state-types';
 import { persistRuntimeConfigStateV11 } from './runtime-config-storage-persist';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { useRuntimeConfigPanelEffects } from './runtime-config-panel-effects';
@@ -27,6 +27,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
   const [modelMarketContext, setModelMarketContext] = useState<RuntimeConfigModelMarketContext | null>(null);
   const [setupTaskFocus, setSetupTaskFocus] = useState<{ readonly taskId: string } | null>(null);
   const [profileUseOwner, setProfileUseOwner] = useState<RuntimeConfigProfileUseOwner | null>(null);
+  const [advancedDiagnosticsPaneRequest, setAdvancedDiagnosticsPaneRequest] = useState<{ readonly pane: RuntimeAdvancedDiagnosticsPane; readonly revision: number } | null>(null);
   const bindings = useDesktopRendererBindings();
   const runtimeConnectorSdk = useRuntimeConfigConnectorSdk();
   const runtimeConfigNavigation = bindings.app.commands.runtimeConfigNavigation;
@@ -158,6 +159,22 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     panelState.updateState((previous) => ({ ...previous, activePage: 'modelLibrary', actionFocus: null }));
   }, [panelState.updateState]);
 
+  // "Import model files" is a local-files intent, not discovery: the library
+  // lands on the downloaded files and opens the import menu (the view consumes
+  // and clears the focus).
+  const onOpenModelImport = useCallback(() => {
+    setModelMarketContext(null);
+    panelState.updateState((previous) => ({
+      ...previous,
+      activePage: 'modelLibrary',
+      actionFocus: {
+        page: 'modelLibrary',
+        action: 'import-model-files',
+        focus: 'runtime-config-action-focus.model-library-import',
+      },
+    }));
+  }, [panelState.updateState]);
+
   const onReturnToContextualLoadout = useCallback(() => {
     const context = modelMarketContext;
     setModelMarketContext(null);
@@ -276,6 +293,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
       );
       if (intent.kind === 'open-page') {
         setSetupTaskFocus(null);
+        if (intent.pane) setAdvancedDiagnosticsPaneRequest({ pane: intent.pane, revision: navigation.revision });
         panelState.updateState((prev) => ({
           ...prev,
           activePage: intent.page,
@@ -352,12 +370,14 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     modelMarketContext,
     setupTaskFocus,
     profileUseOwner,
+    advancedDiagnosticsPaneRequest,
     setShowCloudApiKey: panelState.setShowCloudApiKey,
     setConnectorModelQuery: panelState.setConnectorModelQuery,
     setPageFeedback,
     onChangePage,
     onOpenSavedConfigs,
     onOpenModelMarket,
+    onOpenModelImport,
     onOpenSetupTask,
     onCloseSetupTask,
     onReturnToContextualLoadout,

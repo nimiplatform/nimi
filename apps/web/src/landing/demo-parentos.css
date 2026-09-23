@@ -8,6 +8,7 @@
 @scope (.demo-parentos-root) {
 
 :scope {
+  position: relative;
   display: block;
   width: 100%;
   min-width: 0;

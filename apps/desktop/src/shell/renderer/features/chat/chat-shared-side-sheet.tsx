@@ -44,7 +44,9 @@ export function ChatSideSheet(props: ChatSideSheetProps) {
       <AppCardSurface
         kind="promoted-glass"
         as="section"
-        className="flex min-h-0 flex-1 flex-col overflow-hidden"
+        // Base elevation: the sheet is flush with the clipped content edge, so the
+        // raised shadow was cut into a hard dark band along the window bottom.
+        className="flex min-h-0 flex-1 flex-col overflow-hidden shadow-[var(--nimi-elevation-base)]"
       >
         {props.hideHeader ? null : <div className="flex items-start gap-3 border-b border-white/70 px-4 pb-3.5 pt-7">
           {props.eyebrow && (props.avatarUrl !== undefined || props.avatarFallback) ? (

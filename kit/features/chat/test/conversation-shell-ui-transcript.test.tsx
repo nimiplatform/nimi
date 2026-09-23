@@ -526,6 +526,103 @@ it('keeps the transcript scroll root inside the content column and reserves bott
     expect(transcriptRoot.scrollTop).toBe(960);
   });
 
+  it('jumps to the bottom when the user sends a message while scrolled up in history', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    const history = [{
+      id: 'user-1',
+      sessionId: 'session-agent',
+      targetId: 'agent:zhao',
+      source: 'agent' as const,
+      role: 'user' as const,
+      text: 'First turn',
+      createdAt: '2026-04-05T00:00:00.000Z',
+      updatedAt: '2026-04-05T00:00:00.000Z',
+      kind: 'text' as const,
+    }, {
+      id: 'assistant-1',
+      sessionId: 'session-agent',
+      targetId: 'agent:zhao',
+      source: 'agent' as const,
+      role: 'assistant' as const,
+      text: 'A long answer the person scrolled up to re-read.',
+      createdAt: '2026-04-05T00:00:01.000Z',
+      updatedAt: '2026-04-05T00:00:01.000Z',
+      kind: 'text' as const,
+    }];
+
+    await act(async () => {
+      root?.render(<CanonicalTranscriptView messages={history} />);
+      await flush();
+    });
+
+    const transcriptRoot = container.querySelector('[data-canonical-transcript-root="true"]') as HTMLDivElement | null;
+    expect(transcriptRoot).not.toBeNull();
+    if (!transcriptRoot) {
+      return;
+    }
+
+    let scrollHeightValue = 2000;
+    Object.defineProperty(transcriptRoot, 'clientHeight', {
+      configurable: true,
+      get: () => 320,
+    });
+    Object.defineProperty(transcriptRoot, 'scrollHeight', {
+      configurable: true,
+      get: () => scrollHeightValue,
+    });
+    // The person grabs the transcript and scrolls far away from the bottom.
+    transcriptRoot.scrollTop = 0;
+    await act(async () => {
+      transcriptRoot.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+      transcriptRoot.dispatchEvent(new Event('scroll', { bubbles: true }));
+      await flush();
+    });
+
+    const sentMessage = {
+      id: 'user-2',
+      sessionId: 'session-agent',
+      targetId: 'agent:zhao',
+      source: 'agent' as const,
+      role: 'user' as const,
+      text: 'Second turn',
+      createdAt: '2026-04-05T00:00:02.000Z',
+      updatedAt: '2026-04-05T00:00:02.000Z',
+      kind: 'text' as const,
+    };
+    scrollHeightValue = 2400;
+
+    await act(async () => {
+      root?.render(<CanonicalTranscriptView messages={[...history, sentMessage]} />);
+      await flush();
+    });
+
+    expect(transcriptRoot.scrollTop).toBe(2400);
+
+    // An assistant reply arriving while scrolled up still does not force a jump.
+    transcriptRoot.scrollTop = 0;
+    await act(async () => {
+      transcriptRoot.dispatchEvent(new Event('scroll', { bubbles: true }));
+      await flush();
+    });
+    scrollHeightValue = 2800;
+    await act(async () => {
+      root?.render(<CanonicalTranscriptView messages={[...history, sentMessage, {
+        ...sentMessage,
+        id: 'assistant-2',
+        role: 'assistant' as const,
+        text: 'Reply',
+        createdAt: '2026-04-05T00:00:03.000Z',
+        updatedAt: '2026-04-05T00:00:03.000Z',
+      }]} />);
+      await flush();
+    });
+
+    expect(transcriptRoot.scrollTop).toBe(0);
+  });
+
   it('keeps the initial transcript pinned while rendered content finishes measuring', async () => {
     let resizeCallback: ResizeObserverCallback | null = null;
     vi.stubGlobal('ResizeObserver', class {

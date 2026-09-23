@@ -37,8 +37,12 @@ export function useAgentConversationHostActions(
       return;
     }
     void (async () => {
-      input.currentComposerTextRef.current = '';
       const normalizedAgentHandle = normalizeText(agentHandle);
+      // The shell re-selects the current agent on mount; only a real change of
+      // partner discards the draft, so a composer prefill routed here survives.
+      if (normalizedAgentHandle !== normalizeText(input.selectedAgentHandle)) {
+        input.currentComposerTextRef.current = '';
+      }
       if (!normalizedAgentHandle) {
         input.syncSelectionToThread(null);
         return;

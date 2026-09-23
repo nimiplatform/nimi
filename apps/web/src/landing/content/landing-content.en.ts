@@ -3,6 +3,7 @@ import { zhiyuPreviewContent } from './landing-content.zhiyu.js';
 import { shijingPreviewContent } from './landing-content.shijing.js';
 import { parentosPreviewContent } from './landing-content.parentos.js';
 import { storybookPreviewContent } from './landing-content.storybook.js';
+import { oddBureauPreviewContent } from './landing-content.odd-bureau.js';
 
 export const landingContentEn: LandingContent = {
   skipToContent: 'Skip to main content',
@@ -113,7 +114,7 @@ export const landingContentEn: LandingContent = {
         moreInfoLabel: 'More info',
         previewBadge: 'Interactive preview · sample data',
         previewUnavailableTitle: 'Preview not connected',
-        previewUnavailableBody: 'This App has no interactive preview yet; Zhiyu, ShiJing, ParentOS, and Storybook provide demos today.',
+        previewUnavailableBody: 'This App has no interactive preview yet; Zhiyu, ShiJing, ParentOS, Storybook, and Odd Bureau provide demos today.',
         closeLabel: 'Close',
         items: [
           { id: 'nimi.zhiyu', name: '织羽 Zhiyu', task: 'Incubate local AI companions: chat, companionship, and growing together.', tags: ['Text', 'Speech'], updatedAt: 'September 17, 2026', localDev: true },
@@ -122,6 +123,7 @@ export const landingContentEn: LandingContent = {
           { id: 'nimi.storybook', name: 'Storybook', task: 'Read and create interactive stories.', tags: ['Text'], updatedAt: 'September 10, 2026', localDev: false, iconSrc: '/demo/storybook-icon.png' },
           { id: 'nimi.realm-persona-studio', name: 'Realm Persona Studio', task: 'Create and manage your own Realm Personas.', tags: ['Image'], updatedAt: 'September 8, 2026', localDev: true },
           { id: 'nimi.shijing', name: 'ShiJing', task: 'Personal rhythm readings.', tags: ['Text'], updatedAt: 'September 5, 2026', localDev: true },
+          { id: 'nimi.odd-bureau', name: 'Odd Bureau', task: 'Turn a photo into a playable world of everyday objects.', tags: ['Image', 'Text', 'Speech'], updatedAt: 'September 18, 2026', localDev: true },
           { id: 'nimi.inscape', name: 'Inscape', task: 'Personality exploration and everyday reflection.', tags: ['Text'], updatedAt: 'September 1, 2026', localDev: false },
         ],
       },
@@ -131,6 +133,7 @@ export const landingContentEn: LandingContent = {
         shijing: shijingPreviewContent,
         parentos: parentosPreviewContent,
         storybook: storybookPreviewContent,
+        oddBureau: oddBureauPreviewContent,
       },
       runtime: {
         title: 'Runtime',

@@ -433,16 +433,15 @@ export function RuntimeHealthBadge({
 }) {
   const i18n = useDesktopI18nResource().instance;
   const t = i18n.t.bind(i18n);
-  if (!daemonRunning) {
-    return (
-      <KitStatusBadge tone="danger" shape="dot">
-        {t('runtimeConfig.overview.stopped', { defaultValue: 'daemon stopped' })}
-      </KitStatusBadge>
-    );
-  }
+  // The badge names its subject: a bare "Healthy" in a page corner reads as
+  // noise, "Runtime healthy" tells the user what is being reported.
+  const hint = t('runtimeConfig.common.runtimeStatusHint', { defaultValue: 'Current state of the local AI runtime' });
+  const statusText = daemonRunning
+    ? localizedStatusTextV11(status, t)
+    : t('runtimeConfig.overview.stopped', { defaultValue: 'stopped' });
   return (
-    <KitStatusBadge tone={BADGE_STATUS_TONES[status]} shape="dot">
-      {localizedStatusTextV11(status, t)}
+    <KitStatusBadge tone={daemonRunning ? BADGE_STATUS_TONES[status] : 'danger'} shape="dot" title={hint}>
+      {t('runtimeConfig.common.runtimeStatusWithLabel', { defaultValue: 'Runtime {{status}}', status: statusText })}
     </KitStatusBadge>
   );
 }

@@ -57,6 +57,15 @@
   error ownership. This minor API widening requires the matching SDK/Runtime
   and a rebuilt native package; it is not an engine or App acceptance claim.
 
+- Tooltip: a closed bubble can no longer stay on screen. If the exit
+  animation never reports completion, the presence boundary is remounted
+  after `TOOLTIP_EXIT_WATCHDOG_MS` and the stale bubble is dropped. The
+  Radix root is now always controlled so re-hovering a trigger while its
+  previous bubble is still animating out reopens the tooltip instead of
+  being cancelled by Radix's own "tooltip.open" listener. Compatible
+  behavior fix (patch); the public `Tooltip` props are unchanged. The new
+  `TOOLTIP_EXIT_WATCHDOG_MS` constant is an additive public export (minor).
+
 - CanonicalComposer accepts optional `sendLabel` and `copy` props and forwards
   them to the inner ChatComposer, so hosts can localize the send button's
   accessible label and composer copy through the canonical surface. Compatible

@@ -85,6 +85,125 @@ test('ShiJing 月镜 mounts the app hero, filter row, and weekday-aligned 30-day
   assert.ok(!html.includes('class="shijing-yuejing__panel-backdrop"'));
 });
 
+test('ShiJing 命镜 is method-routed: the 八字子平法 route mounts hero, 排盘, 大运, 流年, events, and the AI reading', () => {
+  const content = shijingPreviewContent;
+  const m = content.mingjing;
+  assert.deepEqual(content.methodProfiles.map((profile) => profile.id), ['bazi_ziping_v1', 'ziwei_sanhe_v1', 'qizheng_siyu_guolao_v1']);
+  const html = renderToStaticMarkup(createElement(DemoShijingPreview, { content, initialTab: 'mingjing' }));
+  assert.ok(html.includes('class="shijing-shell" data-active-tab="mingjing"'));
+  assert.ok(html.includes('class="shijing-tab shijing-mingjing"'));
+  assert.ok(html.includes('data-mingjing-route="bazi_ziping_v1"'));
+  // 命局总览 hero: archetype title, day master, 用神 chips, current 大运.
+  assert.ok(html.includes('class="shijing-mj-hero" data-strength="weak"'));
+  assert.ok(html.includes(m.bazi.hero.title));
+  assert.ok(html.includes(m.bazi.hero.dayMaster));
+  assert.ok(html.includes(m.bazi.hero.persona));
+  assert.ok(html.includes(m.bazi.hero.current?.pillar ?? '__none__'));
+  // 八字排盘: four pillar cards with the day master badge, 五行分布 bars, collapsed expert table.
+  assert.equal(html.match(/class="shijing-paipan__pillar-card"/g)?.length, 4);
+  assert.ok(html.includes(m.bazi.paipan.dayBadge));
+  assert.ok(html.includes(m.bazi.paipan.structureBadge));
+  assert.equal(html.match(/class="shijing-mingjing-five__bar"/g)?.length, 5);
+  assert.ok(html.includes(m.bazi.paipan.five.summary));
+  assert.ok(!html.includes('class="shijing-paipan__table"'));
+  // 大运: timeline segment per period, "你在这里" marker, current row expanded, 90+ periods folded away.
+  assert.equal(html.match(/class="shijing-dayun__seg"/g)?.length, m.bazi.dayun.periods.length);
+  assert.ok(html.includes(m.bazi.dayun.currentLabel));
+  assert.ok(html.includes('class="shijing-dayun__row" data-nature="watch" data-favor="忌" data-current="" data-expanded=""'));
+  assert.ok(html.includes(m.bazi.dayun.distantTitle));
+  // 流年 windows, seeded events with resonance chips, AI reading output.
+  assert.equal(html.match(/class="shijing-liunian__card"/g)?.length, m.bazi.liunian.windows.length);
+  assert.ok(html.includes(m.bazi.liunian.windows[0]?.badge ?? '__none__'));
+  for (const event of m.bazi.events.items) assert.ok(html.includes(event.body), event.body);
+  assert.ok(html.includes(m.bazi.reading.output.summary));
+  assert.ok(html.includes(m.bazi.rectifyEntry));
+  // The other routes stay unmounted.
+  assert.ok(!html.includes('data-mingjing-route="ziwei_sanhe_v1"'));
+  assert.ok(!html.includes('data-mingjing-route="qizheng_siyu_guolao_v1"'));
+});
+
+test('ShiJing 命镜 switches to the 紫微 and 七政四余 routes with the method profile', () => {
+  const content = shijingPreviewContent;
+  const m = content.mingjing;
+
+  const ziwei = renderToStaticMarkup(createElement(DemoShijingPreview, { content, initialTab: 'mingjing', initialMethodProfile: 'ziwei_sanhe_v1' }));
+  assert.ok(ziwei.includes('data-mingjing-route="ziwei_sanhe_v1"'));
+  assert.ok(ziwei.includes(`<option value="ziwei_sanhe_v1" selected="">`));
+  assert.ok(!ziwei.includes('data-mingjing-route="bazi_ziping_v1"'));
+  assert.equal(ziwei.match(/class="shijing-ziwei-palace"/g)?.length, 12);
+  for (const branch of ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥']) {
+    assert.ok(ziwei.includes(`data-branch="${branch}"`), `palace ${branch}`);
+  }
+  // Soul palace is selected by default and the detail aside shows it; stars carry brightness + 四化.
+  assert.ok(ziwei.includes('data-branch="子" data-selected="" data-soul=""'));
+  assert.ok(ziwei.includes(m.ziwei.copy.palaceDetailEyebrow));
+  assert.ok(ziwei.includes(m.ziwei.copy.soulRole));
+  assert.ok(ziwei.includes('data-mutagen="禄"'));
+  assert.ok(ziwei.includes(m.ziwei.basis.fiveElementsClass));
+  assert.ok(ziwei.includes(m.ziwei.reading.summary));
+
+  const qizheng = renderToStaticMarkup(createElement(DemoShijingPreview, { content, initialTab: 'mingjing', initialMethodProfile: 'qizheng_siyu_guolao_v1' }));
+  assert.ok(qizheng.includes('data-mingjing-route="qizheng_siyu_guolao_v1"'));
+  assert.ok(qizheng.includes(m.qizheng.hero.title));
+  assert.ok(qizheng.includes(m.qizheng.hero.oneLiner));
+  assert.ok(qizheng.includes('class="shijing-qz-wheel__svg"'));
+  assert.equal(qizheng.match(/class="shijing-qz-star"/g)?.length, 11);
+  assert.equal(qizheng.match(/class="shijing-qz-pattern"/g)?.length, m.qizheng.patterns.length);
+  assert.ok(qizheng.includes(m.qizheng.copy.viewPlain));
+  assert.ok(qizheng.includes(m.qizheng.reading.summary));
+  // Data view stays unmounted until toggled.
+  assert.ok(!qizheng.includes('class="shijing-qz-luogong"'));
+});
+
+test('ShiJing 问镜 mounts the app history rail, welcome hero, and the composer with the context focus bar', () => {
+  const content = shijingPreviewContent;
+  const a = content.ask;
+  const html = renderToStaticMarkup(createElement(DemoShijingPreview, { content, initialTab: 'shijing' }));
+  assert.ok(html.includes('class="shijing-tab shijing-shijing shijing-ask"'));
+  assert.ok(html.includes('class="shijing-ask__layout"'));
+  // Rail: new-question button (drafting), search + filter button, grouped sessions with time labels.
+  assert.ok(html.includes('class="shijing-ask__new-question" aria-label="' + a.newQuestionAria + '" aria-current="true"'));
+  assert.ok(html.includes('class="shijing-ask__search-row"'));
+  assert.ok(html.includes('class="shijing-ask__filter-button"'));
+  for (const label of Object.values(a.groups)) assert.ok(html.includes(`<p class="shijing-ask__session-group-label">${label}</p>`), label);
+  for (const entry of a.history) {
+    assert.ok(html.includes(`<span class="shijing-ask__session-q">${entry.question}</span>`), entry.question);
+    assert.ok(html.includes(`<span class="shijing-ask__session-time">${entry.date}</span>`), entry.date);
+  }
+  // Welcome mode: hero with the mint dot, frosted composer card, context focus bar in the toolbar.
+  assert.ok(html.includes('class="shijing-ask__main" data-chat-active="false"'));
+  assert.ok(html.includes('class="shijing-ask__welcome"'));
+  assert.ok(html.includes('class="shijing-ask__title-dot"'));
+  assert.ok(html.includes('class="shijing-ask__composer" data-chat-composer="false"'));
+  assert.ok(html.includes(a.composerTitle));
+  assert.ok(html.includes('class="shijing-ctx"'));
+  for (const concern of a.concerns) assert.ok(html.includes(`<li class="shijing-ctx__chip">#${concern}</li>`), concern);
+  assert.ok(html.includes(a.contextManage));
+  assert.ok(html.includes('class="shijing-generating-button shijing-ask__submit"'));
+  assert.ok(html.includes(a.generate));
+  // No thread until a session is opened.
+  assert.ok(!html.includes('class="shijing-ask__thread"'));
+  assert.ok(!html.includes(a.answer.title));
+});
+
+test('ShiJing 合镜 mounts the app first-run intake hero (no relationship person yet)', () => {
+  const content = shijingPreviewContent;
+  const h = content.hejing;
+  const html = renderToStaticMarkup(createElement(DemoShijingPreview, { content, initialTab: 'hejing' }));
+  assert.ok(html.includes('class="shijing-hejing" data-mirror-kind="hejing"'));
+  assert.ok(html.includes('class="shijing-intake-hero" data-mirror-kind="hejing"'));
+  assert.ok(html.includes(h.heroImage));
+  assert.ok(html.includes(h.eyebrow));
+  assert.ok(html.includes(`${h.titleLead}<br/>${h.titleEmphasis}`));
+  assert.ok(html.includes(h.body));
+  assert.ok(html.includes(h.primaryAction));
+  assert.ok(html.includes(h.stepsHint));
+  assert.ok(html.includes(h.footer));
+  // The first-run hero replaces the mirror page header and any reading content.
+  assert.ok(!html.includes('shijing-mirror-header'));
+  assert.ok(!html.includes('sjd-glass'));
+});
+
 test('ParentOS preview mounts the sidebar shell on the 首页 dashboard with the reminder rail', () => {
   const html = renderToStaticMarkup(createElement(DemoParentosPreview, { content: parentosPreviewContent }));
   assert.ok(html.includes('data-demo-parentos-root="true"'));

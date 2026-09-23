@@ -15,6 +15,11 @@ import { projectCanonicalAgentTargetSnapshot } from './chat-agent-thread-model';
 import { createEmptyAgentThreadBundle } from './chat-agent-shell-bundle';
 import { encodeBytesAsDataUrl } from './chat-agent-runtime-shared';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
+import {
+  ConversationImageAttachmentError,
+  createBrowserConversationImageReencoder,
+  prepareConversationImageAttachment,
+} from '../turns/turn-input-image-upload-limit';
 import type { AgentChatUserAttachment } from './chat-agent-runtime-turn-types';
 import type { AgentUserProjectionAttachment } from './chat-agent-user-projection';
 import type { UseAgentConversationHostActionsInput } from './chat-agent-shell-host-actions-types';
@@ -109,8 +114,8 @@ export async function ensureThreadAnchorBindingForTarget(input: {
 export async function uploadPendingAttachment(
   input: UseAgentConversationHostActionsInput,
   attachment: PendingAttachment,
-	target: AgentLocalTargetSnapshot,
-	conversationAnchorId: string,
+  target: AgentLocalTargetSnapshot,
+  conversationAnchorId: string,
 ): Promise<AgentChatUserAttachment> {
   if (attachment.kind !== 'image') {
     throw new Error(input.t('Chat.agentAttachmentImageOnly', {
@@ -120,18 +125,32 @@ export async function uploadPendingAttachment(
   const uploadFailureMessage = input.t('Chat.agentAttachmentUploadFailed', {
     defaultValue: 'Failed to upload image attachment.',
   });
-  const bytes = new Uint8Array(await attachment.file.arrayBuffer());
-	const mimeType = attachment.file.type;
-	if (!['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(mimeType)) {
-	  throw new Error(uploadFailureMessage);
-	}
-	const agentHandle = normalizeText(target.agentHandle) as import('@nimiplatform/sdk/app').NimiLocalAppAgentHandle;
-	const uploaded = await input.sdk.conversation().uploadAttachment({
-	agentHandle,
-	conversationAnchorId,
-	mimeType: mimeType as 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif',
-	displayName: attachment.name,
-	bytes,
+  // Fit the Runtime attachment contract (4 MiB, PNG/JPEG/WebP/GIF) before the
+  // bytes leave the renderer; oversize or foreign formats are re-encoded.
+  const prepared = await prepareConversationImageAttachment(attachment.file, {
+    reencoder: createBrowserConversationImageReencoder(),
+  }).catch((error: unknown) => {
+    if (error instanceof ConversationImageAttachmentError) {
+      throw new Error(
+        error.reason === 'too-large'
+          ? input.t('Chat.agentAttachmentTooLarge', {
+            defaultValue: 'The image is still larger than 4 MB after compression. Please choose a smaller image.',
+          })
+          : input.t('Chat.agentAttachmentUnsupportedFormat', {
+            defaultValue: 'This image format is not supported. Use PNG, JPEG, WebP, or GIF.',
+          }),
+        { cause: error },
+      );
+    }
+    throw new Error(uploadFailureMessage, { cause: error });
+  });
+  const agentHandle = normalizeText(target.agentHandle) as import('@nimiplatform/sdk/app').NimiLocalAppAgentHandle;
+  const uploaded = await input.sdk.conversation().uploadAttachment({
+    agentHandle,
+    conversationAnchorId,
+    mimeType: prepared.mimeType,
+    displayName: attachment.name,
+    bytes: prepared.bytes,
   }).catch((error: unknown) => {
     throw new Error(uploadFailureMessage, { cause: error });
   });
@@ -142,7 +161,7 @@ export async function uploadPendingAttachment(
   return {
     kind: 'image',
     artifactId,
-    mimeType: normalizeText(attachment.file.type) || null,
+    mimeType: prepared.mimeType,
     name: attachment.name,
   };
 }

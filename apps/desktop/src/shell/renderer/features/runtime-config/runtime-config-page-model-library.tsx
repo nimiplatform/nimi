@@ -31,15 +31,25 @@ export function ModelLibraryPage(props: {
   const { t } = useTranslation();
   const { model } = props;
   const [section, setSection] = useState<LocalModelCenterSection>('discover');
+  // Counts import requests so a repeated deep link reopens the menu.
+  const [importMenuRequest, setImportMenuRequest] = useState(0);
 
   // The install-model deep link lands here: discovery is the acquisition
   // entry, so the intent focuses this tab and is consumed once.
   const actionFocus = model.state?.actionFocus;
   const { onClearActionFocus } = props;
   useEffect(() => {
-    if (actionFocus?.focus !== 'runtime-config-action-focus.model-library-install') return;
-    setSection('discover');
-    onClearActionFocus();
+    if (actionFocus?.focus === 'runtime-config-action-focus.model-library-install') {
+      setSection('discover');
+      onClearActionFocus();
+      return;
+    }
+    // "Import model files" lands on the local files with the import menu open.
+    if (actionFocus?.focus === 'runtime-config-action-focus.model-library-import') {
+      setSection('downloaded');
+      setImportMenuRequest((value) => value + 1);
+      onClearActionFocus();
+    }
   }, [actionFocus, onClearActionFocus]);
 
   return (
@@ -74,6 +84,8 @@ export function ModelLibraryPage(props: {
       ) : null}
       <LocalModelCenter
         activeSection={section}
+        importMenuRequest={importMenuRequest}
+        onOpenDiscover={() => setSection('discover')}
         runtimeWritesDisabled={model.runtimeWritesDisabled}
         installResolvedModelPlan={model.installResolvedModelPlan}
       />

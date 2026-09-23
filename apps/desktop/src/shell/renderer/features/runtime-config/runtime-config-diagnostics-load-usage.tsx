@@ -13,7 +13,7 @@ import {
   type RuntimeTone,
 } from './runtime-config-runtime-page-ui';
 import { useSystemResources } from './runtime-config-system-resources';
-import { useUsageEstimate } from './runtime-config-cost-estimator';
+import { formatEstimatedCost, useUsageEstimate } from './runtime-config-cost-estimator';
 import {
   ActivityIcon,
   ArrowDownUpIcon,
@@ -68,14 +68,6 @@ function ResourceLoadingSkeleton() {
       ))}
     </div>
   );
-}
-
-function formatCost(value: number | null, currency: string): string {
-  if (value === null) return 'N/A';
-  if (currency === 'none') return '$0.00';
-  const prefix = currency === 'USD' ? '$' : currency === 'CNY' ? '¥' : '';
-  if (value < 0.01 && value > 0) return `~${prefix}0.01`;
-  return `~${prefix}${value.toFixed(2)}`;
 }
 
 function CountUpText({ value, format }: { value: number; format: (n: number) => string }) {
@@ -308,7 +300,7 @@ export function UsageEstimateSection() {
             <UsageMetric
               icon={<CoinsIcon />}
               label={t('runtimeConfig.overview.estimatedCost', { defaultValue: 'Estimated Cost' })}
-              displayValue={usageEstimate.pricingLoading ? '...' : formatCost(usageEstimate.totalEstimatedCost, usageEstimate.costCurrency)}
+              displayValue={usageEstimate.pricingLoading ? '...' : formatEstimatedCost(usageEstimate.totalEstimatedCost, usageEstimate.costCurrency)}
               emphasize
               className="col-span-2"
               title={usageEstimate.totalEstimatedCost === null || usageEstimate.hasUnpricedUsage ? t('runtimeConfig.overview.costTooltipUnknown', { defaultValue: 'Some models have unknown pricing' }) : ''}

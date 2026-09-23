@@ -79,14 +79,12 @@ export function ChatNimiModeContent({
         <ChatNimiThreadListSheet
           threads={threadSummaries}
           activeThreadId={host.activeThreadId}
-          onSelectThread={(threadId) => {
-            host.onSelectThread?.(threadId);
-            onCloseThreadList();
-          }}
+          // Selecting a thread keeps the list open so people can hop between
+          // conversations; only the close button (or leaving AI mode) dismisses it.
+          onSelectThread={(threadId) => host.onSelectThread?.(threadId)}
           onCreateThread={host.onCreateThread ? () => void host.onCreateThread!() : undefined}
           onClose={onCloseThreadList}
           title={host.characterData?.name || selectedTarget.title}
-          subtitle={host.characterData?.handle || selectedTarget.handle}
           description={host.characterData?.bio || selectedTarget.bio}
         />
       ) : null}

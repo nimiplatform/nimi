@@ -1,13 +1,38 @@
-import { Button, InlineAlert, ScrollArea, SelectField, SidebarShell, Surface } from '@nimiplatform/kit/ui';
+import {
+  Button,
+  InlineAlert,
+  ScrollArea,
+  SelectField,
+  SidebarAffordanceStatusDot,
+  SidebarShell,
+  StatusBadge,
+  Surface,
+  type StatusTone,
+} from '@nimiplatform/kit/ui';
 import type { NimiMachineLoadout } from '@nimiplatform/sdk/runtime';
-import { Circle, CircleAlert, LoaderCircle, SlidersHorizontal } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { CircleAlert, CircleDashed, LoaderCircle, SlidersHorizontal } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
+import { desktopNimiAppAIConfigQueryKey } from '../chat/chat-nimi-app-ai-config.js';
 import { RuntimeCapabilityDetail } from './runtime-capability-detail.js';
-import { capabilityPreparationState, useCapabilityInventory } from './runtime-capability-inventory.js';
-import { capabilityIcon, capabilityModelIdentity, groupCapabilities } from './runtime-capability-presentation.js';
+import {
+  type CapabilityPreparationState,
+  capabilityPreparationState,
+  useCapabilityInventory,
+} from './runtime-capability-inventory.js';
+import {
+  capabilityIcon,
+  capabilityModelIdentity,
+  capabilityRecommendedFilesOnDevice,
+  capabilityRecommendedRecipeOnDevice,
+  distinctSavedLoadouts,
+  groupCapabilities,
+  setupPlanAllowsDirectUse,
+  setupTaskModelTitle,
+} from './runtime-capability-presentation.js';
 import { RuntimeConfigAiSettingsProfilesSection } from './runtime-config-ai-settings-profiles.js';
 import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability-labels.js';
 import type {
@@ -17,13 +42,23 @@ import type {
 } from './runtime-config-panel-types.js';
 import { RuntimeConfigSetupTaskView } from './runtime-config-setup-task-view.js';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types.js';
+import { RuntimeLocalModelListSection } from './runtime-local-model-list-section.js';
+import {
+  CONVERSATION_CAPABILITY,
+  type RuntimeProfileQuickStartConversation,
+} from './runtime-profile-quick-start.js';
 import { RuntimeProfileTaskView } from './runtime-profile-task-view.js';
 import { resolveRuntimeSetupReturnTarget } from './runtime-setup-task-open.js';
 import {
   createRuntimeSetupTaskRunnerPorts,
   currentDesktopAccountIdForSetup,
 } from './runtime-setup-task-ports.js';
-import { createRuntimeSetupCandidate, resolveRuntimeSetupPreparation } from './runtime-setup-task-runner.js';
+import {
+  createRuntimeSetupCandidate,
+  resolveRuntimeSetupPreparation,
+  reuseRuntimeSetupCurrent,
+  runRuntimeSetupPreparation,
+} from './runtime-setup-task-runner.js';
 import { getRuntimeSetupTaskStore } from './runtime-setup-task-store.js';
 import { useRuntimeModelLibrary } from './use-runtime-model-library.js';
 
@@ -36,6 +71,7 @@ export type AiSettingsPageProps = {
   readonly onOpenSetupTask: (taskId: string) => void;
   readonly onCloseSetupTask: () => void;
   readonly onOpenModelFiles?: () => void;
+  readonly onOpenModelImport?: () => void;
   readonly onOpenSavedConfigs: (context?: RuntimeConfigLoadoutNavigationContext) => void;
   readonly onOpenModelMarket: (context: RuntimeConfigModelMarketContext) => void;
   readonly onOpenAdvancedDiagnostics: () => void;
@@ -45,27 +81,38 @@ export type AiSettingsPageProps = {
   readonly onCloseSavedConfigs: () => void;
 };
 
-// Only exceptions get a glyph in the rail: a prepared capability shows its
-// model name and nothing else, so the list reads as an inventory, not a
-// column of check marks.
-const EXCEPTION_ICON = {
-  unset: Circle,
-  preparing: LoaderCircle,
-  attention: CircleAlert,
-  unknown: Circle,
-} as const;
-const EXCEPTION_COLOR = {
-  unset: 'text-[var(--nimi-text-muted)]',
-  preparing: 'text-[var(--nimi-status-info)]',
-  attention: 'text-[var(--nimi-status-warning)]',
-  unknown: 'text-[var(--nimi-text-muted)]',
-} as const;
+// Each rail row is a single line: icon + name on the left, a status mark plus
+// state text on the right. Only preparing and needs-attention earn a badge;
+// every other state is a quiet status dot so a dozen unset capabilities do
+// not read as a dozen problems. A prepared capability shows its default model
+// name beside the dot (selection), never a running or in-use claim.
+const RAIL_BADGE_TONE: Partial<Record<CapabilityPreparationState, StatusTone>> = {
+  preparing: 'info',
+  attention: 'warning',
+};
+
+function RailStatusMark(props: { readonly state: CapabilityPreparationState }) {
+  if (props.state === 'ready') {
+    return <SidebarAffordanceStatusDot className="text-[var(--nimi-status-success)]" />;
+  }
+  if (props.state === 'unknown') {
+    return <CircleDashed size={10} className="shrink-0 text-[var(--nimi-text-muted)]" aria-hidden="true" />;
+  }
+  return (
+    <span
+      className="inline-flex h-2 w-2 shrink-0 rounded-full border border-current opacity-60"
+      aria-hidden="true"
+    />
+  );
+}
 
 // @nimi-authority: rule.nimi.desktop.ai-consumption.capability-workspace
 export function AiSettingsPage(props: AiSettingsPageProps) {
   const { t } = useTranslation();
   const sdk = useDesktopRendererSdk();
+  const queryClient = useQueryClient();
   const setActiveTab = useAppStore((state) => state.setActiveTab);
+  const setChatMode = useAppStore((state) => state.setChatMode);
   const setAppsDetailAppId = useAppStore((state) => state.setAppsDetailAppId);
   const inventory = useCapabilityInventory();
   const library = useRuntimeModelLibrary();
@@ -115,10 +162,27 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
         const selection = inventory.data?.aggregate.selections.find((item) => item.capabilityContract === id);
         const selected = inventory.data?.aggregate.loadouts.find((item) => item.loadoutId === selection?.loadoutId);
         const identity = capabilityModelIdentity(selected, inventory.data?.recipes ?? []);
-        return { id, state, model: identity.shortTitle };
+        // "Downloaded · not enabled" closes the gap between the model library
+        // (files present) and the rail (no selection). It is only a reading
+        // aid on the unset state and never counts toward the ready total.
+        const downloaded =
+          state.state === 'unset' &&
+          capabilityRecommendedFilesOnDevice(
+            id,
+            inventory.data?.recipes ?? [],
+            library.data?.catalog ?? [],
+            library.data?.assets ?? [],
+          );
+        return { id, state, model: identity.shortTitle, downloaded };
       }),
-    [inventory.capabilities, inventory.data, inventory.tasks, inventory.isError],
+    [inventory.capabilities, inventory.data, inventory.tasks, inventory.isError, library.data],
   );
+  const railStateLabel = (entry: { state: { state: CapabilityPreparationState }; downloaded: boolean }) =>
+    t(
+      entry.downloaded
+        ? 'runtimeConfig.capabilities.state.downloaded'
+        : `runtimeConfig.capabilities.state.${entry.state.state}`,
+    );
   const readyCount = railEntries.filter((entry) => entry.state.state === 'ready').length;
   const attentionCount = railEntries.filter((entry) => entry.state.state === 'attention').length;
   const preparingCount = railEntries.filter((entry) => entry.state.state === 'preparing').length;
@@ -146,25 +210,46 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
         unavailable: inventory.isError,
       })
     : null;
+  const taskModel = status?.task
+    ? setupTaskModelTitle(status.task, inventory.data?.aggregate.loadouts ?? [], recipes)
+    : '';
   const environment = visibleCapability ? inventory.data?.environments[visibleCapability] : undefined;
-  const saved =
+  // Exact equivalents share a presentation entry here; every saved Loadout
+  // remains available in the model inventory and sharing flow.
+  const saved = distinctSavedLoadouts(
     inventory.data?.aggregate.loadouts.filter(
       (item) => item.capabilityContract === visibleCapability && item.validationState === 'configured',
-    ) ?? [];
+    ) ?? [],
+    selection?.loadoutId,
+  );
+  // The overview names the downloaded recipe only while nothing is selected;
+  // it mirrors the rail's "downloaded · not enabled" reading aid.
+  const downloadedRecipe =
+    visibleCapability && status?.state === 'unset'
+      ? capabilityRecommendedRecipeOnDevice(
+          visibleCapability,
+          recipes,
+          library.data?.catalog ?? [],
+          library.data?.assets ?? [],
+        )
+      : null;
+  const createSetupTask = async () => {
+    const owner = props.profileUseOwner;
+    return store.createTask({
+      capabilityContract: visibleCapability!,
+      source: {
+        ...(owner ?? { kind: 'runtime' as const }),
+        accountId: await currentDesktopAccountIdForSetup(),
+        returnFocus: owner?.returnFocus ?? 'runtime.aiSettings',
+      },
+    });
+  };
   const onStart = async (recipeId?: string, previous?: NimiMachineLoadout, customize = false) => {
     if (!visibleCapability) return;
     setBusy(true);
     setError('');
     try {
-      const owner = props.profileUseOwner;
-      const task = store.createTask({
-        capabilityContract: visibleCapability,
-        source: {
-          ...(owner ?? { kind: 'runtime' as const }),
-          accountId: await currentDesktopAccountIdForSetup(),
-          returnFocus: owner?.returnFocus ?? 'runtime.aiSettings',
-        },
-      });
+      const task = await createSetupTask();
       if (recipeId) {
         const result = await createRuntimeSetupCandidate(store, task.taskId, ports, {
           recipeId,
@@ -182,6 +267,91 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
     } finally {
       setBusy(false);
     }
+  };
+  // One-click enable for a recipe whose files are already on this device. The
+  // same task pipeline runs as for "select": the review screen is skipped only
+  // when the resolved plan has nothing to download, install or choose; any
+  // other outcome (missing components, a choice, a failure) opens the task so
+  // the person sees the same review or failure they would have seen before.
+  const onEnable = async (recipeId: string) => {
+    if (!visibleCapability) return;
+    setBusy(true);
+    setError('');
+    try {
+      const task = await createSetupTask();
+      const created = await createRuntimeSetupCandidate(store, task.taskId, ports, { recipeId });
+      if (created.status !== 'ok') {
+        setError(created.failure.message);
+        props.onOpenSetupTask(task.taskId);
+        return;
+      }
+      const resolved = await resolveRuntimeSetupPreparation(store, task.taskId, ports);
+      if (resolved.status !== 'ok' || !setupPlanAllowsDirectUse(resolved.value)) {
+        setCustomizingTaskId(null);
+        props.onOpenSetupTask(task.taskId);
+        return;
+      }
+      const used = await runRuntimeSetupPreparation(store, task.taskId, ports, {
+        mode: 'prepare-and-use',
+        reviewedPlan: resolved.value,
+        choices: {},
+      });
+      if (used.status !== 'ok') {
+        setCustomizingTaskId(null);
+        props.onOpenSetupTask(task.taskId);
+        return;
+      }
+      await inventory.refetch();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : String(caught));
+    } finally {
+      setBusy(false);
+    }
+  };
+  // The conversation quick start reads the same preparation facts as the rail
+  // and, separately, whether Nimi Chat already routes to Local (read inside
+  // the card). Reusing the current machine configuration never creates or
+  // selects a Loadout and never installs; its only possible write is the
+  // Nimi Chat route.
+  const conversationEntry = railEntries.find((entry) => entry.id === CONVERSATION_CAPABILITY);
+  const conversation: RuntimeProfileQuickStartConversation = {
+    pending: inventory.isPending,
+    preparation:
+      conversationEntry?.state ??
+      capabilityPreparationState({
+        capability: CONVERSATION_CAPABILITY,
+        inventory: inventory.data,
+        tasks: inventory.tasks,
+        unavailable: inventory.isError,
+      }),
+    model: conversationEntry?.model ?? '',
+    onOpenChat: () => {
+      setChatMode('ai');
+      setActiveTab('chat');
+    },
+    onUseInChat: async () => {
+      const task = store.createTask({
+        capabilityContract: CONVERSATION_CAPABILITY,
+        source: {
+          kind: 'app',
+          ownerAppId: sdk.appId(),
+          accountId: await currentDesktopAccountIdForSetup(),
+          returnFocus: 'chat',
+        },
+      });
+      const result = await reuseRuntimeSetupCurrent(store, task.taskId, ports);
+      if (result.status !== 'ok') {
+        props.onOpenSetupTask(task.taskId);
+        return { ok: false, message: result.failure.message };
+      }
+      await queryClient.invalidateQueries({ queryKey: desktopNimiAppAIConfigQueryKey(sdk.appId()) });
+      return { ok: true };
+    },
+    onOpenDetail: () => openCapability(CONVERSATION_CAPABILITY),
+    onOpenTask: props.onOpenSetupTask,
+    onRetry: () => {
+      void inventory.refetch();
+    },
   };
   const onHome = () => {
     props.onCloseSetupTask();
@@ -225,7 +395,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
               label:
                 entry.state.state === 'ready' && entry.model
                   ? `${label(entry.id)} · ${entry.model}`
-                  : `${label(entry.id)} · ${t(`runtimeConfig.capabilities.state.${entry.state.state}`)}`,
+                  : `${label(entry.id)} · ${railStateLabel(entry)}`,
             })),
           ]}
           onValueChange={(id) => {
@@ -257,7 +427,11 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
           </span>
           <span className="mt-1 block text-xs text-[var(--nimi-text-secondary)]">{railSummary}</span>
         </button>
-        <ScrollArea className="min-h-0 flex-1" contentClassName="space-y-3 px-2 pb-3">
+        <ScrollArea
+          className="min-h-0 flex-1"
+          viewportClassName="[&>div]:!block"
+          contentClassName="min-w-0 space-y-3 px-2 pb-3"
+        >
           {groupCapabilities(railEntries.map((entry) => entry.id)).map(({ group, items }) => (
             <div key={group} className="space-y-0.5">
               <p className="px-3 pb-1 pt-1 text-[11px] font-medium uppercase tracking-wide text-[var(--nimi-text-muted)]">
@@ -267,17 +441,13 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                 const entry = railEntries.find((item) => item.id === id)!;
                 const Icon = capabilityIcon(id);
                 const state = entry.state.state;
-                const exception = state !== 'ready';
-                const ExceptionIcon = state === 'ready' ? null : EXCEPTION_ICON[state];
-                const exceptionColor = state === 'ready' ? '' : EXCEPTION_COLOR[state];
-                const secondary =
-                  state === 'ready'
-                    ? entry.model
-                    : state === 'preparing' || state === 'attention'
-                      ? t(`runtimeConfig.capabilities.state.${state}`)
-                      : state === 'unset'
-                        ? t('runtimeConfig.capabilities.state.unset')
-                        : '';
+                const stateText = state === 'ready' && entry.model ? entry.model : railStateLabel(entry);
+                const stateSuffix =
+                  entry.state.replacement && entry.state.task
+                    ? ` · ${t(`runtimeConfig.setupTask.status.${entry.state.task.status}`)}`
+                    : '';
+                const badgeTone = RAIL_BADGE_TONE[state];
+                const hideStateText = state === 'unset' && !entry.downloaded;
                 return (
                   <button
                     key={id}
@@ -292,30 +462,44 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                       className={`shrink-0 ${state === 'unset' ? 'text-[var(--nimi-text-muted)]' : 'text-[var(--nimi-text-secondary)]'}`}
                       aria-hidden="true"
                     />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium text-[var(--nimi-text-primary)]">
-                        {label(id)}
-                      </span>
-                      {secondary ? (
-                        <span
-                          className={`block truncate text-xs ${exception ? exceptionColor : 'text-[var(--nimi-text-secondary)]'}`}
-                        >
-                          {secondary}
-                          {entry.state.replacement && entry.state.task
-                            ? ` · ${t(`runtimeConfig.setupTask.status.${entry.state.task.status}`)}`
-                            : ''}
-                        </span>
-                      ) : (
-                        <span className="sr-only">{t(`runtimeConfig.capabilities.state.${state}`)}</span>
-                      )}
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--nimi-text-primary)]">
+                      {label(id)}
                     </span>
-                    {ExceptionIcon ? (
-                      <ExceptionIcon
-                        size={13}
-                        className={`shrink-0 ${exceptionColor} ${state === 'preparing' ? 'animate-spin' : ''}`}
-                        aria-hidden="true"
-                      />
-                    ) : null}
+                    {badgeTone ? (
+                      <StatusBadge
+                        tone={badgeTone}
+                        className="min-w-0 max-w-[min(9rem,50%)] shrink-0 whitespace-nowrap px-2 py-0"
+                        title={`${stateText}${stateSuffix}`}
+                        data-rail-state={state}
+                      >
+                        {state === 'preparing' ? (
+                          <LoaderCircle size={11} className="shrink-0 animate-spin" aria-hidden="true" />
+                        ) : (
+                          <CircleAlert size={11} className="shrink-0" aria-hidden="true" />
+                        )}
+                        <span className="min-w-0 truncate">
+                          {stateText}
+                          {stateSuffix}
+                        </span>
+                      </StatusBadge>
+                    ) : (
+                      <span
+                        className={`flex min-w-0 max-w-[min(9rem,50%)] shrink-0 items-center gap-1.5 whitespace-nowrap text-xs ${state === 'ready' ? 'text-[var(--nimi-text-secondary)]' : 'text-[var(--nimi-text-muted)]'}`}
+                        title={`${stateText}${stateSuffix}`}
+                        data-rail-state={state}
+                      >
+                        <RailStatusMark state={state} />
+                        {!hideStateText ? (
+                          <span className="min-w-0 truncate">
+                            {stateText}
+                            {stateSuffix}
+                          </span>
+                        ) : null}
+                        {entry.state.replacement ? (
+                          <LoaderCircle size={11} className="shrink-0 animate-spin" aria-hidden="true" />
+                        ) : null}
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -382,14 +566,11 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
             )
           ) : !visibleCapability ? (
             <div className="space-y-6">
-              <header>
-                <h1 className="text-2xl font-semibold tracking-tight">{t('runtimeConfig.product.setupsTitle')}</h1>
-                <p className="mt-1.5 max-w-2xl text-sm text-[var(--nimi-text-secondary)]">
-                  {inventory.isPending ? t('runtimeConfig.product.setupsLead') : railSummary}
-                </p>
-              </header>
               <RuntimeConfigAiSettingsProfilesSection
                 key={homeRevision}
+                title={t('runtimeConfig.product.setupsTitle')}
+                lead={inventory.isPending ? '' : railSummary}
+                conversation={conversation}
                 store={store}
                 ports={ports}
                 runtimeWritesDisabled={props.runtimeWritesDisabled}
@@ -398,6 +579,21 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                 onOpenSetupTask={props.onOpenSetupTask}
                 onOpenSavedConfigs={props.onOpenSavedConfigs}
                 onOpenCloudServices={props.onOpenCloudServices}
+                belowEntryPoints={
+                  <RuntimeLocalModelListSection
+                    inventory={inventory.data}
+                    inventoryPending={inventory.isPending}
+                    inventoryError={inventory.isError}
+                    library={library}
+                    onRetry={() => {
+                      void inventory.refetch();
+                      void library.refetch();
+                    }}
+                    tasks={inventory.tasks}
+                    onOpenCapability={openCapability}
+                    onOpenModelFiles={props.onOpenModelFiles}
+                  />
+                }
               />
             </div>
           ) : (
@@ -405,6 +601,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
               key={visibleCapability}
               capability={visibleCapability}
               selected={selected}
+              downloadedRecipe={downloadedRecipe ?? undefined}
               loadouts={saved}
               recipes={recipes}
               catalog={library.data?.catalog ?? []}
@@ -413,6 +610,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
               libraryError={library.isError}
               environment={environment}
               status={status!}
+              taskModel={taskModel}
               section={section}
               onSection={setSection}
               busy={busy}
@@ -420,8 +618,10 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
               navigationContext={props.savedConfigsContext}
               onHome={onHome}
               onStart={onStart}
+              onEnable={onEnable}
               onTask={props.onOpenSetupTask}
               onModelFiles={props.onOpenModelFiles}
+              onImportModelFiles={props.onOpenModelImport}
               onDiagnostics={props.onOpenAdvancedDiagnostics}
               onModelMarket={props.onOpenModelMarket}
             />

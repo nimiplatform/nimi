@@ -1,12 +1,15 @@
-import { RuntimeProfileQuickStart } from './runtime-profile-quick-start.js';
+import {
+  RuntimeProfileQuickStart,
+  type RuntimeProfileQuickStartConversation,
+} from './runtime-profile-quick-start.js';
 // @nimi-authority: rule.nimi.desktop.ai-consumption.r023
 
 import { Button, IconButton, InlineAlert, LoadingSkeleton, SelectField } from '@nimiplatform/kit/ui';
 import type {
   NimiDesktopPortableAIProfileCatalogRecord,
 } from '@nimiplatform/sdk/runtime';
-import { ArrowRight, Download, FileUp, Plus } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Download, FileUp, Share2 } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { useAppsOverview } from '../apps/use-apps-overview.js';
@@ -67,6 +70,12 @@ function profileUseOwnerLabel(
  * journey retains that owner when entering the shared preparation tasks.
  */
 export function RuntimeConfigAiSettingsProfilesSection(props: {
+  /** Home heading; hidden while an import, export, create or use journey owns the page. */
+  readonly title: string;
+  /** Preparation summary shown under the heading where the rail is hidden. */
+  readonly lead: string;
+  /** Current on-device conversation preparation and the actions the quick start can take. */
+  readonly conversation: RuntimeProfileQuickStartConversation;
   readonly store: RuntimeSetupTaskStore;
   readonly ports: RuntimeSetupRunnerPorts;
   readonly runtimeWritesDisabled: boolean;
@@ -75,6 +84,8 @@ export function RuntimeConfigAiSettingsProfilesSection(props: {
   readonly onOpenSetupTask: (taskId: string) => void;
   readonly onOpenSavedConfigs: (context?: RuntimeConfigLoadoutNavigationContext) => void;
   readonly onOpenCloudServices: () => void;
+  /** Rendered below the recommendation and sharing entry points while the list is shown. */
+  readonly belowEntryPoints?: ReactNode;
 }) {
   const { t } = useTranslation();
   const sdk = useDesktopRendererSdk();
@@ -116,6 +127,41 @@ export function RuntimeConfigAiSettingsProfilesSection(props: {
   return (
     <div ref={sectionRef} tabIndex={-1} className="min-w-0" data-testid="runtime-ai-settings-profiles">
       <div className="space-y-5">
+        {mode.kind === 'list' || mode.kind === 'recommended' ? (
+          <header className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="text-2xl font-semibold tracking-tight">{props.title}</h1>
+              {props.lead ? (
+                <p className="mt-1.5 text-sm text-[var(--nimi-text-secondary)] md:hidden">{props.lead}</p>
+              ) : null}
+            </div>
+            {mode.kind === 'list' ? (
+              // Import and share are low-frequency tools: two compact entries
+              // in the heading row, not two explanatory bands. The journeys
+              // themselves carry the preview-first and no-secrets promises.
+              <div className="flex shrink-0 flex-wrap items-center gap-1" data-testid="runtime-ai-settings-profile-transfer">
+                <Button
+                  tone="ghost"
+                  size="sm"
+                  onClick={() => setMode({ kind: 'import' })}
+                  data-testid="runtime-ai-settings-profile-import"
+                >
+                  <FileUp size={14} strokeWidth={1.8} aria-hidden="true" />
+                  {t('runtimeConfig.quickStart.loadShared')}
+                </Button>
+                <Button
+                  tone="ghost"
+                  size="sm"
+                  onClick={() => setMode({ kind: 'export' })}
+                  data-testid="runtime-ai-settings-profile-export"
+                >
+                  <Share2 size={14} strokeWidth={1.8} aria-hidden="true" />
+                  {t('runtimeConfig.quickStart.shareSetup')}
+                </Button>
+              </div>
+            ) : null}
+          </header>
+        ) : null}
 
         {props.owner ? (
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] px-3 py-2" data-testid="runtime-ai-settings-profile-owner-banner">
@@ -135,6 +181,7 @@ export function RuntimeConfigAiSettingsProfilesSection(props: {
           <div className="mt-2">
             <RuntimeProfileQuickStart
               disabled={props.runtimeWritesDisabled}
+              conversation={props.conversation}
               onUse={(source) =>
                 setMode({
                   kind: 'use',
@@ -146,23 +193,7 @@ export function RuntimeConfigAiSettingsProfilesSection(props: {
             />
           </div>
         ) : null}
-        {mode.kind === 'list' ? (
-          <div className="flex flex-wrap items-center justify-between gap-3 px-1">
-            <p className="flex items-center gap-2 text-sm text-[var(--nimi-text-secondary)]">
-              <FileUp size={16} strokeWidth={1.7} />
-              {t('runtimeConfig.quickStart.sharedDescription')}
-            </p>
-            <Button
-              tone="ghost"
-              size="sm"
-              onClick={() => setMode({ kind: 'import' })}
-              data-testid="runtime-ai-settings-profile-import"
-            >
-              {t('runtimeConfig.quickStart.loadShared')}
-              <ArrowRight size={14} />
-            </Button>
-          </div>
-        ) : null}
+        {mode.kind === 'list' && props.belowEntryPoints ? <div className="mt-4">{props.belowEntryPoints}</div> : null}
         {mode.kind !== 'list' && mode.kind !== 'use' ? (
           <Button tone="ghost" size="sm" onClick={() => setMode({ kind: 'list' })}>
             {t('runtimeConfig.capabilities.backHome')}
@@ -194,7 +225,7 @@ export function RuntimeConfigAiSettingsProfilesSection(props: {
         ) : null}
         {mode.kind === 'export' ? (
           <div className="mt-3" data-testid="runtime-ai-settings-profile-export-panel">
-            <ProfileExportPanel />
+            <ProfileExportPanel onOpenSavedConfigs={props.onOpenSavedConfigs} />
           </div>
         ) : null}
         {mode.kind === 'use' ? (
@@ -214,18 +245,6 @@ export function RuntimeConfigAiSettingsProfilesSection(props: {
 
         {mode.kind === 'list' ? (
           <section className="mt-4 space-y-1">
-            <div className="flex flex-wrap items-center justify-between gap-2 py-2">
-              <h2 className="text-base font-semibold">
-                {t('runtimeConfig.quickStart.saved')}
-                {sortedRecords.length ? (
-                  <span className="ml-2 text-sm font-normal text-[var(--nimi-text-muted)]">{sortedRecords.length}</span>
-                ) : null}
-              </h2>
-              <Button tone="ghost" size="sm" onClick={() => setMode({ kind: 'export' })} data-testid="runtime-ai-settings-profile-export">
-                <Plus size={14} />
-                {t('runtimeConfig.product.saveCurrentSetup')}
-              </Button>
-            </div>
             {loadError ? (
               <InlineAlert tone="danger">
                 <div>{t('runtimeConfig.profiles.libraryLoadFailed', {
@@ -237,11 +256,6 @@ export function RuntimeConfigAiSettingsProfilesSection(props: {
               </InlineAlert>
             ) : null}
             {records === null && !loadError ? <LoadingSkeleton className="h-16 w-full" /> : null}
-            {records !== null && sortedRecords.length === 0 ? (
-              <p className="text-xs text-[var(--nimi-text-muted)]" data-testid="runtime-ai-settings-profiles-empty">
-                {t('runtimeConfig.profiles.libraryEmptyTitle', { defaultValue: 'No profiles yet' })}
-              </p>
-            ) : null}
             {(showAll || props.owner ? sortedRecords : sortedRecords.slice(0, 3)).map((record) => (
               <div
                 key={record.source.profileId}

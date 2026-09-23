@@ -1,25 +1,25 @@
 import type { ProviderCatalogEntry } from '@nimiplatform/sdk/runtime/wire-types';
 import type { TFunction } from 'i18next';
-import { CheckCircle2, CircleAlert, CircleHelp, KeyRound, LoaderCircle, PencilLine } from 'lucide-react';
+import { CheckCircle2, CircleAlert, CircleHelp, KeyRound, LoaderCircle, PencilLine, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useState } from 'react';
-import { IdentityTile } from '../../components/identity-tile.js';
+import { ProviderLogoTile } from '../../components/provider-logo-tile.js';
 import { useDesktopReducedMotion } from '../../ui/motion/desktop-motion';
 import type { CodexOAuthPendingState } from './runtime-config-codex-oauth';
 import {
   Button,
   CheckIcon,
-  CloudIcon,
   EyeIcon,
   EyeOffIcon,
   Input,
   KeyIcon,
   SearchIcon,
   ServerIcon,
+  endpointHost,
 } from './runtime-config-page-cloud-primitives';
 import { connectorPresentationState } from './runtime-config-page-cloud-connector-list';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
-import { ModelChips, RuntimeSelect } from './runtime-config-primitives';
+import { RuntimeSelect } from './runtime-config-primitives';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import { DEFAULT_CONNECTOR_ENDPOINT_V11 } from './runtime-config-state-types';
 
@@ -81,13 +81,11 @@ export function humanizeConnectorError(raw: string, t: TFunction): string {
   return t('runtimeConfig.product.connectionSaveFailed');
 }
 
-function endpointHost(endpoint: string): string {
-  try {
-    return new URL(endpoint).host;
-  } catch {
-    return endpoint;
-  }
-}
+// One elevated card per concern: the service itself (hero), its settings
+// while editing, and the models it exposes. Nothing here reads as a form
+// until the person asks to edit.
+const CARD_CLASS = 'min-w-0 rounded-[24px] bg-[var(--nimi-surface-card)] p-6 ring-1 ring-inset ring-[var(--nimi-border-subtle)] lg:p-7';
+const FIELD_NOTE_CLASS = 'rounded-[var(--nimi-radius-field)] bg-[var(--nimi-surface-panel)] px-4 py-3 text-xs text-[var(--nimi-text-muted)]';
 
 export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps) {
   const {
@@ -125,99 +123,117 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
     try { await props.onSaveConnection({ label: connectorLabelDraft, endpoint: endpointDraft, credentialValue: tokenDraft }); setEditing(false); } catch { /* The owner projects the saved/failed state and error. */ }
   };
   if (!selectedConnector) {
-    return (
-      <div className="min-w-0 rounded-2xl bg-[var(--nimi-surface-card)] p-5 lg:p-6">
-        <div className="flex h-full min-h-[160px] flex-col items-center justify-center text-center">
-          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--nimi-surface-panel)] ring-1 ring-[var(--nimi-border-subtle)]">
-            <CloudIcon className="h-6 w-6 text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]" />
-          </div>
-          <p className="text-sm font-medium text-[var(--nimi-text-primary)]">
-            {t('runtimeConfig.cloud.noConnectorSelected', { defaultValue: 'No Connector Selected' })}
-          </p>
-          <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
-            {t('runtimeConfig.cloud.noConnectorSelectedHint', { defaultValue: 'Select a connector above or create a new one' })}
-          </p>
-        </div>
-      </div>
-    );
+    return null;
   }
   const presentation = connectorPresentationState(selectedConnector);
   const vendorLabel = vendorOptions.find(item => item.value === selectedConnector.vendor)?.label ?? selectedConnector.vendor;
   const checking = model.testingConnector;
-  const statusCard = {
-    healthy: { Icon: CheckCircle2, iconClass: 'text-[var(--nimi-status-success)]', bg: 'bg-[var(--nimi-status-success-soft-bg)]', title: t('runtimeConfig.product.connectionChecked') },
-    unchecked: { Icon: CircleHelp, iconClass: 'text-[var(--nimi-text-secondary)]', bg: 'bg-[var(--nimi-surface-panel)]', title: t('runtimeConfig.product.connectionUnchecked') },
-    'needs-credential': { Icon: KeyRound, iconClass: 'text-[var(--nimi-status-warning)]', bg: 'bg-[var(--nimi-status-warning-soft-bg)]', title: t('runtimeConfig.product.connectionNeedsCredential') },
-    attention: { Icon: CircleAlert, iconClass: 'text-[var(--nimi-status-danger)]', bg: 'bg-[var(--nimi-status-danger-soft-bg)]', title: t('runtimeConfig.product.connectionNeedsAttention') },
+  const statusPill = {
+    healthy: { Icon: CheckCircle2, className: 'bg-[var(--nimi-status-success-soft-bg)] text-[var(--nimi-status-success-soft-text)]', title: t('runtimeConfig.product.connectionChecked') },
+    unchecked: { Icon: CircleHelp, className: 'bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-secondary)]', title: t('runtimeConfig.product.connectionUnchecked') },
+    'needs-credential': { Icon: KeyRound, className: 'bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning-soft-text)]', title: t('runtimeConfig.product.connectionNeedsCredential') },
+    attention: { Icon: CircleAlert, className: 'bg-[var(--nimi-status-danger-soft-bg)] text-[var(--nimi-status-danger-soft-text)]', title: t('runtimeConfig.product.connectionNeedsAttention') },
   }[presentation];
   const modelCount = selectedConnector.models.length;
   const humanError = tokenSaveError ? humanizeConnectorError(tokenSaveError, t) : '';
   const detailError = selectedConnector.lastDetail && presentation === 'attention' ? humanizeConnectorError(selectedConnector.lastDetail, t) : '';
+  const subtitle = [
+    vendorLabel.toLowerCase() !== selectedConnector.label.toLowerCase() ? vendorLabel : '',
+    selectedConnector.endpoint ? endpointHost(selectedConnector.endpoint) : '',
+  ].filter(Boolean).join(' · ');
+  const startEditing = () => {
+    setEditing(true);
+    setEndpointDraft(selectedConnector.endpoint);
+    props.onConnectorLabelDraftChange(selectedConnector.label);
+    props.setTokenDraft('');
+  };
+  const stopEditing = () => {
+    setEditing(false);
+    setEndpointDraft(selectedConnector.endpoint);
+    props.onConnectorLabelDraftChange(selectedConnector.label);
+    props.setTokenDraft('');
+  };
 
   return (
-    <div className="min-w-0 rounded-2xl bg-[var(--nimi-surface-card)] p-5 lg:p-6">
-      <div className="space-y-5">
-        <header className="space-y-4" data-testid="cloud-connection-summary">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-3">
-              <IdentityTile seed={selectedConnector.provider || selectedConnector.vendor} label={vendorLabel} size="lg" />
-              <div className="min-w-0">
-                <h2 className="break-words text-xl font-semibold">{selectedConnector.label}</h2>
-                <p className="mt-0.5 truncate text-sm text-[var(--nimi-text-secondary)]">
-                  {[
-                    vendorLabel.toLowerCase() !== selectedConnector.label.toLowerCase() ? vendorLabel : '',
-                    selectedConnector.endpoint ? endpointHost(selectedConnector.endpoint) : '',
-                  ].filter(Boolean).join(' · ')}
-                </p>
-              </div>
+    <div className="space-y-4">
+      <section
+        className="min-w-0 overflow-hidden rounded-[24px] p-6 ring-1 ring-inset ring-[var(--nimi-border-subtle)] lg:p-7"
+        style={{ background: 'var(--nimi-surface-hero)' }}
+        data-testid="cloud-connection-summary"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-4">
+            <ProviderLogoTile provider={selectedConnector.provider || selectedConnector.vendor} label={vendorLabel} size="lg" className="shadow-[var(--nimi-elevation-base)]" />
+            <div className="min-w-0">
+              <h2 className="break-words text-[22px] font-semibold leading-tight tracking-tight text-[var(--nimi-text-primary)]">{selectedConnector.label}</h2>
+              {subtitle ? <p className="mt-1 truncate text-sm text-[var(--nimi-text-secondary)]">{subtitle}</p> : null}
             </div>
-            {!isSystemOwned ? (
-              <Button variant="ghost" size="sm" disabled={savingToken || codexOAuthBusy} onClick={() => { setEditing(value => !value); setEndpointDraft(selectedConnector.endpoint); props.onConnectorLabelDraftChange(selectedConnector.label); props.setTokenDraft(''); }} icon={<PencilLine size={15} />}>{t(editing ? 'Common.cancel' : 'runtimeConfig.product.editConnection')}</Button>
-            ) : null}
           </div>
-          <motion.div
-            key={`${presentation}:${selectedConnector.lastCheckedAt ?? ''}:${modelCount}`}
-            initial={reducedMotion ? false : { opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.25 }}
-            className={`flex flex-wrap items-center gap-3 rounded-xl p-4 ${statusCard.bg}`}
-            data-testid={`cloud-connection-state:${presentation}`}
-          >
-            {checking ? <LoaderCircle size={19} className="shrink-0 animate-spin text-[var(--nimi-text-secondary)]" /> : <statusCard.Icon size={19} className={`shrink-0 ${statusCard.iconClass}`} />}
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium">
-                {checking
-                  ? t('runtimeConfig.cloud.testing')
-                  : presentation === 'healthy' && modelCount > 0
-                    ? t('runtimeConfig.product.connectionCheckedModels', { count: modelCount })
-                    : statusCard.title}
-              </p>
-              {detailError && !checking ? <p className="mt-0.5 text-xs text-[var(--nimi-text-secondary)]">{detailError}</p> : null}
-              {selectedConnector.lastCheckedAt && !checking ? <p className="mt-0.5 text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.product.lastConnectionCheck', { time: new Date(selectedConnector.lastCheckedAt).toLocaleString() })}</p> : null}
-            </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            {!isSystemOwned ? (
+              <Button variant="ghost" size="sm" disabled={savingToken || codexOAuthBusy} onClick={editing ? stopEditing : startEditing} icon={editing ? undefined : <PencilLine size={15} />}>
+                {t(editing ? 'Common.cancel' : 'runtimeConfig.product.editConnection')}
+              </Button>
+            ) : null}
             {!editing && presentation !== 'needs-credential' ? (
-              <Button variant={presentation === 'healthy' ? 'secondary' : 'primary'} size="sm" disabled={checking || savingToken || isDraft} onClick={() => { void model.testSelectedConnector(); }}>{t(presentation === 'healthy' ? 'runtimeConfig.product.checkAgain' : 'runtimeConfig.product.checkConnection')}</Button>
+              <Button variant={presentation === 'healthy' ? 'secondary' : 'primary'} size="sm" disabled={checking || savingToken || isDraft} onClick={() => { void model.testSelectedConnector(); }}>
+                {t(presentation === 'healthy' ? 'runtimeConfig.product.checkAgain' : 'runtimeConfig.product.checkConnection')}
+              </Button>
             ) : null}
             {!editing && presentation === 'needs-credential' && !isSystemOwned ? (
-              <Button variant="primary" size="sm" onClick={() => { setEditing(true); setEndpointDraft(selectedConnector.endpoint); props.onConnectorLabelDraftChange(selectedConnector.label); }}>{t('runtimeConfig.product.addCredential')}</Button>
+              <Button variant="primary" size="sm" onClick={startEditing} icon={<KeyRound size={14} />}>
+                {t('runtimeConfig.product.addCredential')}
+              </Button>
             ) : null}
-          </motion.div>
-          {selectedConnector.lastDetail ? <details className="text-xs text-[var(--nimi-text-secondary)]"><summary className="cursor-pointer">{t('runtimeConfig.product.checkDetails')}</summary><p className="mt-2 break-words">{selectedConnector.lastDetail}</p></details> : null}
-        </header>
+          </div>
+        </div>
 
-        {editing ? <div className="space-y-4 border-t border-[var(--nimi-border-subtle)] pt-5">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <motion.div
+          key={`${presentation}:${selectedConnector.lastCheckedAt ?? ''}:${modelCount}:${checking ? 'checking' : 'idle'}`}
+          initial={reducedMotion ? false : { opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25 }}
+          className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2"
+          data-testid={`cloud-connection-state:${presentation}`}
+        >
+          <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium ${statusPill.className}`}>
+            {checking
+              ? <LoaderCircle size={15} className="shrink-0 animate-spin" />
+              : <statusPill.Icon size={15} className="shrink-0" />}
+            {checking
+              ? t('runtimeConfig.cloud.testing')
+              : presentation === 'healthy' && modelCount > 0
+                ? t('runtimeConfig.product.connectionCheckedModels', { count: modelCount })
+                : statusPill.title}
+          </span>
+          {selectedConnector.lastCheckedAt && !checking ? (
+            <span className="text-xs text-[var(--nimi-text-muted)]">
+              {t('runtimeConfig.product.lastConnectionCheck', { time: new Date(selectedConnector.lastCheckedAt).toLocaleString() })}
+            </span>
+          ) : null}
+          {selectedConnector.lastDetail ? (
+            <details className="text-xs text-[var(--nimi-text-muted)]">
+              <summary className="cursor-pointer rounded-md hover:text-[var(--nimi-text-secondary)]">{t('runtimeConfig.product.checkDetails')}</summary>
+              <p className="mt-2 max-w-2xl break-words rounded-[var(--nimi-radius-field)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_70%,transparent)] px-3 py-2 font-mono text-[11px] leading-relaxed text-[var(--nimi-text-secondary)]">{selectedConnector.lastDetail}</p>
+            </details>
+          ) : null}
+        </motion.div>
+        {detailError && !checking ? <p className="mt-3 text-sm text-[var(--nimi-text-secondary)]">{detailError}</p> : null}
+      </section>
+
+      {editing ? (
+        <section className={CARD_CLASS} aria-label={t('runtimeConfig.product.connectionSettingsTitle')}>
+          <h3 className="text-base font-semibold text-[var(--nimi-text-primary)]">{t('runtimeConfig.product.connectionSettingsTitle')}</h3>
+          <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
             {isRuntimeSystem ? (
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
                   {t('runtimeConfig.cloud.apiKey', { defaultValue: 'API Key' })}
                 </label>
-                <div className="rounded-xl bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] px-4 py-3 ring-1 ring-[var(--nimi-border-subtle)]">
-                  <p className="text-xs text-[var(--nimi-text-muted)]">
-                    {selectedConnector.hasCredential
-                      ? t('runtimeConfig.cloud.managedByRuntime', { defaultValue: 'Managed by runtime (environment variable)' })
-                      : t('runtimeConfig.cloud.notConfigured', { defaultValue: 'Not configured — set the environment variable in config.json' })}
-                  </p>
+                <div className={FIELD_NOTE_CLASS}>
+                  {selectedConnector.hasCredential
+                    ? t('runtimeConfig.cloud.managedByRuntime', { defaultValue: 'Managed by runtime (environment variable)' })
+                    : t('runtimeConfig.cloud.notConfigured', { defaultValue: 'Not configured — set the environment variable in config.json' })}
                 </div>
               </div>
             ) : selectedConnector.authMode === 'oauth_managed' ? (
@@ -225,12 +241,10 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
                 <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
                   {t('runtimeConfig.cloud.managedOAuthCredential', { defaultValue: 'Managed OAuth credential' })}
                 </label>
-                <div className="rounded-xl bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] px-4 py-3 ring-1 ring-[var(--nimi-border-subtle)]">
-                  <p className="text-xs text-[var(--nimi-text-muted)]">
-                    {t('runtimeConfig.cloud.managedOAuthHostOwned', {
-                      defaultValue: 'Use the native sign-in flow below. OAuth tokens are never shown or entered here.',
-                    })}
-                  </p>
+                <div className={FIELD_NOTE_CLASS}>
+                  {t('runtimeConfig.cloud.managedOAuthHostOwned', {
+                    defaultValue: 'Use the native sign-in flow below. OAuth tokens are never shown or entered here.',
+                  })}
                 </div>
               </div>
             ) : (
@@ -270,9 +284,9 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
             />
           </div>
 
-          <details className="rounded-xl border border-[var(--nimi-border-subtle)] p-3" open={Boolean(selectedProviderCatalogEntry?.requiresExplicitEndpoint)}>
-            <summary className="cursor-pointer text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.product.connectionOptions')}</summary>
-            <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
+          <details className="mt-4 rounded-[var(--nimi-radius-lg)] bg-[var(--nimi-surface-panel)] p-4" open={Boolean(selectedProviderCatalogEntry?.requiresExplicitEndpoint)}>
+            <summary className="cursor-pointer text-sm font-medium text-[var(--nimi-text-secondary)]">{t('runtimeConfig.product.connectionOptions')}</summary>
+            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
               <Input
                 label={t('runtimeConfig.cloud.endpoint', { defaultValue: 'Endpoint' })}
                 value={endpointDraft}
@@ -318,10 +332,10 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
                 })}
               </p>
             ) : null}
-            <p className="mt-3 text-xs text-[var(--nimi-text-muted)]">ID: {selectedConnector.id}</p>
+            <p className="mt-3 font-mono text-[11px] text-[var(--nimi-text-muted)]">ID: {selectedConnector.id}</p>
           </details>
 
-          <div className="flex flex-wrap items-center gap-2 pt-1">
+          <div className="mt-5 flex flex-wrap items-center gap-2">
             {!isSystemOwned && (!isDraft || selectedConnector.authMode !== 'oauth_managed') && (
               <Button
                 variant="primary"
@@ -358,21 +372,21 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
             ) : null}
           </div>
 
-          <div className="space-y-2">
+          <div className="mt-4 space-y-2 empty:hidden">
             {isMachineGlobal ? (
               <p className="text-xs text-[var(--nimi-text-secondary)]">
                 {t('runtimeConfig.cloud.managedMachineGlobal', { defaultValue: 'Shared across accounts on this machine' })}
               </p>
             ) : null}
             {selectedConnector.authMode === 'oauth_managed' && authStatus !== 'authenticated' ? (
-              <p className="rounded-lg bg-[var(--nimi-status-warning-soft-bg)] px-3 py-2 text-xs text-[var(--nimi-status-warning-soft-text)]">
+              <p className="rounded-[var(--nimi-radius-md)] bg-[var(--nimi-status-warning-soft-bg)] px-3 py-2 text-xs text-[var(--nimi-status-warning-soft-text)]">
                 {t('runtimeConfig.cloud.oauthRequiresAuth', {
                   defaultValue: 'Managed OAuth connectors require an authenticated desktop session before they can be created.',
                 })}
               </p>
             ) : null}
             {isCodexManagedConnector && codexOAuthPending ? (
-              <div className="rounded-lg bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] px-3 py-2 text-xs text-[var(--nimi-text-secondary)]">
+              <div className="rounded-[var(--nimi-radius-md)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] px-3 py-2 text-xs text-[var(--nimi-text-secondary)]">
                 <p className="font-medium text-[var(--nimi-text-primary)]">
                   {t('runtimeConfig.cloud.codexOauthPendingTitle', { defaultValue: 'Complete Codex sign-in' })}
                 </p>
@@ -405,38 +419,49 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
               </p>
             )}
             {tokenSaveError && (
-              <div className="rounded-lg bg-[var(--nimi-status-danger-soft-bg)] px-3 py-2 text-sm text-[var(--nimi-status-danger-soft-text)]">
+              <div className="rounded-[var(--nimi-radius-md)] bg-[var(--nimi-status-danger-soft-bg)] px-3 py-2 text-sm text-[var(--nimi-status-danger-soft-text)]">
                 <p>{humanError}</p>
                 <details className="mt-2 text-xs"><summary className="cursor-pointer">{t('runtimeConfig.profiles.technicalDetails')}</summary><p className="mt-1 break-words">{tokenSaveError}</p></details>
               </div>
             )}
           </div>
-        </div> : null}
+        </section>
+      ) : null}
 
-        <div className="border-t border-[var(--nimi-border-subtle)] pt-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h3 className="text-sm font-semibold">
-              {t('runtimeConfig.cloud.availableModels', { defaultValue: 'Available Models' })}
-              {modelCount ? <span className="ml-2 text-sm font-normal text-[var(--nimi-text-muted)]">{modelCount}</span> : null}
-            </h3>
-            {selectedConnector.models.length > 6 ? (
-              <div className="w-full sm:w-60">
-                <Input
-                  value={model.connectorModelQuery}
-                  onChange={model.setConnectorModelQuery}
-                  placeholder={t('runtimeConfig.cloud.searchModelsPlaceholder', { defaultValue: 'Search by model name...' })}
-                  icon={<SearchIcon />}
-                />
-              </div>
-            ) : null}
-          </div>
-          {model.filteredConnectorModels.length ? (
-            <ModelChips
-              models={model.filteredConnectorModels}
-              prefix={`connector-${selectedConnector.id}`}
-            />
-          ) : (
-            <p className="py-4 text-sm text-[var(--nimi-text-secondary)]">
+      <section className={CARD_CLASS} aria-label={t('runtimeConfig.cloud.availableModels', { defaultValue: 'Available Models' })}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h3 className="flex items-baseline gap-2 text-base font-semibold text-[var(--nimi-text-primary)]">
+            {t('runtimeConfig.cloud.availableModels', { defaultValue: 'Available Models' })}
+            {modelCount ? <span className="text-sm font-normal text-[var(--nimi-text-muted)]">{modelCount}</span> : null}
+          </h3>
+          {selectedConnector.models.length > 6 ? (
+            <div className="w-full sm:w-60">
+              <Input
+                value={model.connectorModelQuery}
+                onChange={model.setConnectorModelQuery}
+                placeholder={t('runtimeConfig.cloud.searchModelsPlaceholder', { defaultValue: 'Search by model name...' })}
+                icon={<SearchIcon />}
+              />
+            </div>
+          ) : null}
+        </div>
+        {model.filteredConnectorModels.length ? (
+          <ul className="mt-4 flex flex-wrap gap-2">
+            {model.filteredConnectorModels.map((name) => (
+              <li
+                key={`connector-${selectedConnector.id}-${name}`}
+                className="rounded-full bg-[var(--nimi-surface-panel)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-primary)] ring-1 ring-inset ring-[var(--nimi-border-subtle)]"
+              >
+                {name}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="mt-4 flex items-center gap-3 rounded-[var(--nimi-radius-lg)] bg-[var(--nimi-surface-panel)] px-4 py-4">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[var(--nimi-surface-card)] text-[var(--nimi-text-muted)]">
+              <Sparkles size={16} />
+            </span>
+            <p className="text-sm text-[var(--nimi-text-secondary)]">
               {t(
                 !selectedConnector.hasCredential
                   ? 'runtimeConfig.product.modelsNeedCredential'
@@ -447,9 +472,9 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
                       : 'runtimeConfig.product.modelsNotListed',
               )}
             </p>
-          )}
-        </div>
-      </div>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

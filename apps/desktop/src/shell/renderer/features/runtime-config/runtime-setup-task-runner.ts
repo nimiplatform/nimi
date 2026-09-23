@@ -38,6 +38,7 @@ import type {
   RuntimeSetupTaskStage,
   RuntimeSetupTaskStore,
 } from './runtime-setup-task-store';
+import { runtimeSetupTaskUnconfirmed } from './runtime-setup-task-store.js';
 
 /**
  * Orchestration logic for one Runtime model setup task. All Runtime access is
@@ -1541,6 +1542,37 @@ export async function runRuntimeSetupPreparation(
   return commitRuntimeSetupUse(store, taskId, ports);
 }
 
+/** JSON with object keys sorted at every level, so key order never affects equality. */
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  if (value && typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .filter(([, item]) => item !== undefined)
+      .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0));
+    return `{${entries.map(([key, item]) => `${JSON.stringify(key)}:${canonicalJson(item)}`).join(',')}}`;
+  }
+  return JSON.stringify(value ?? null);
+}
+
+/**
+ * Identity of what a Loadout runs: recipe, implementation, bound model
+ * files, options and the user-facing name. Provenance, timestamps, derived
+ * feature projections and the Loadout id itself are deliberately excluded.
+ */
+export function loadoutCompositionKey(loadout: NimiMachineLoadout): string {
+  return canonicalJson({
+    capabilityContract: loadout.capabilityContract,
+    recipeId: loadout.recipeId,
+    recipeRevision: loadout.recipeRevision,
+    implementation: loadout.implementation,
+    options: loadout.options,
+    displayName: loadout.displayName.trim(),
+    modelAxes: [...loadout.modelAxes]
+      .map((axis) => ({ slotId: axis.slotId, modelAssetId: axis.modelAssetId, expectedContentId: axis.expectedContentId }))
+      .sort((left, right) => (left.slotId < right.slotId ? -1 : left.slotId > right.slotId ? 1 : 0)),
+  });
+}
+
 /**
  * Final use: conditional machine selection, then — only when the source has
  * an owner route — the whole-object AIConfig save under the baseline CAS.
@@ -1569,7 +1601,7 @@ export async function commitRuntimeSetupUse(
   store.updateTask(taskId, () => ({ status: 'committing' }));
   let selection: Awaited<ReturnType<RuntimeSetupRunnerPorts['loadouts']['select']>>;
   try {
-    selection = await ports.loadouts.select(task.capabilityContract, task.candidateLoadoutId!, true, {
+    selection = await ports.loadouts.select(task.capabilityContract, task.candidateLoadoutId, true, {
       // A recorded selection entry drives the revision condition; when the
       // review observed no entry at all, the first-ever selection is asserted
       // explicitly instead of falling back to an unchecked write.
@@ -1716,6 +1748,24 @@ export function stopRuntimeSetupTask(
     return blocked({ stage: 'lifecycle', reasonCode: RUNTIME_SETUP_TASK_INACTIVE, message: 'This setup task is already finished.' });
   }
   return ok({ stopped: true });
+}
+
+/**
+ * Drops a setup the person left before confirming it. Only an unconfirmed
+ * task is removed; the candidate Loadout it committed and any assets stay
+ * untouched, and choosing a model again starts a fresh task.
+ */
+export function discardRuntimeSetupTask(
+  store: RuntimeSetupTaskStore,
+  taskId: string,
+): RuntimeSetupRunnerResult<{ readonly discarded: true }> {
+  const task = store.getTask(taskId);
+  if (!task || !runtimeSetupTaskUnconfirmed(task)) {
+    return blocked({ stage: 'lifecycle', reasonCode: RUNTIME_SETUP_TASK_INACTIVE, message: 'Only an unconfirmed setup task can be discarded.' });
+  }
+  store.stopTask(taskId);
+  store.dismissTask(taskId);
+  return ok({ discarded: true });
 }
 
 /**

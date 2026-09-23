@@ -164,6 +164,15 @@ async function loadUsageRecords(
   return output;
 }
 
+/** Formats an estimated cost for display; null means at least one model could not be priced. */
+export function formatEstimatedCost(value: number | null, currency: string): string {
+  if (value === null) return 'N/A';
+  if (currency === 'none') return '$0.00';
+  const prefix = currency === 'USD' ? '$' : currency === 'CNY' ? '¥' : '';
+  if (value < 0.01 && value > 0) return `~${prefix}0.01`;
+  return `~${prefix}${value.toFixed(2)}`;
+}
+
 export function applyPricingToEstimate(
   estimate: ReturnType<typeof mapUsageRecordsToEstimate>,
   pricingIndex: Map<string, PricingEntry>,

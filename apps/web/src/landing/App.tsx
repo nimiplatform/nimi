@@ -247,7 +247,7 @@ export function App() {
               className="flex items-center gap-2.5 rounded-control-sm px-2 py-1 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38d6a3]"
             >
               <img src="/logo.svg" alt="Nimi" className="h-8 w-8" />
-              <span className="font-heading text-xl font-semibold tracking-tight text-ink">
+              <span className="font-brand text-xl font-semibold tracking-tight text-ink">
                 Nimi
               </span>
             </a>

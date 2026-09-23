@@ -15,8 +15,11 @@ import {
 } from './chat-nimi-thread-model';
 import type { DesktopNimiTextCapabilityResult } from './chat-nimi-shell-runtime-adapter';
 import {
+  appendOptimisticUserMessage,
   bundleQueryKey,
   createEmptyBundle,
+  replaceMessage,
+  restoreDraftAfterFailedSend,
   THREADS_QUERY_KEY,
   upsertThreadSummary,
   upsertBundleDraft,
@@ -108,6 +111,7 @@ export function useAiConversationHostActions(
   }, [input]);
 
   const handleCreateThread = useCallback(async () => {
+    if (input.submittingThreadId) return;
     if (input.ephemeralThread) {
       input.queryClient.removeQueries({ queryKey: bundleQueryKey(input.ephemeralThread.id) });
     }
@@ -157,7 +161,34 @@ export function useAiConversationHostActions(
           updatedAtMs: createdAtMs,
           lastMessageAtMs: null,
         });
+    const isFreshThread = !input.ephemeralThread
+      && !(input.selectedThreadRecord && input.activeThreadId);
+    const userMessageId = createNimiClientId('ai-message-user');
+    const userContent = createPlainTextMessageContent(text);
     input.setSubmittingThreadId(baseThread.id);
+    // The composer clears as soon as it hands the text over, so the transcript
+    // must show the sent message and the thinking indicator right away.
+    // Nothing is persisted until Runtime answers.
+    if (isFreshThread) {
+      input.setEphemeralThread(baseThread);
+    }
+    input.setBundleCache(baseThread.id, (current) => appendOptimisticUserMessage(current, baseThread, {
+      id: userMessageId,
+      threadId: baseThread.id,
+      role: 'user',
+      status: 'pending',
+      contentText: text,
+      content: userContent,
+      error: null,
+      traceId: null,
+      parentMessageId: null,
+      createdAtMs,
+      updatedAtMs: createdAtMs,
+    }));
+    if (isFreshThread) {
+      syncAiThreadSelectionState(baseThread.id);
+    }
+    input.currentDraftTextRef.current = '';
     try {
       // Runtime/Kit owns execution admission and implementation selection.
       const result = await input.executeTextCapability(text);
@@ -166,12 +197,12 @@ export function useAiConversationHostActions(
         verifyExisting: Boolean(input.selectedThreadRecord && !input.ephemeralThread),
       });
       const userMessage = await chatAiStoreClient.createMessage({
-        id: createNimiClientId('ai-message-user'),
+        id: userMessageId,
         threadId: persisted.thread.id,
         role: 'user',
         status: 'complete',
         contentText: text,
-        content: createPlainTextMessageContent(text),
+        content: userContent,
         error: null,
         traceId: null,
         parentMessageId: null,
@@ -200,7 +231,8 @@ export function useAiConversationHostActions(
       await chatAiStoreClient.deleteDraft(updatedThread.id);
       input.queryClient.setQueryData<ChatAiThreadBundle>(bundleQueryKey(updatedThread.id), (current) => ({
         thread: updatedThread,
-        messages: [...(current?.messages ?? []), userMessage, assistantMessage],
+        // The persisted user message replaces its optimistic twin by id.
+        messages: replaceMessage(replaceMessage(current?.messages ?? [], userMessage), assistantMessage),
         draft: null,
       }));
       input.queryClient.setQueryData<ChatAiThreadSummary[]>(THREADS_QUERY_KEY, (current) => (
@@ -211,6 +243,14 @@ export function useAiConversationHostActions(
       syncAiThreadSelectionState(updatedThread.id);
       await input.queryClient.invalidateQueries({ queryKey: THREADS_QUERY_KEY });
     } catch (error) {
+      // Give the text back so the person can retry without retyping.
+      input.setBundleCache(baseThread.id, (current) => restoreDraftAfterFailedSend(current, userMessageId, {
+        threadId: baseThread.id,
+        text,
+        attachments: [],
+        updatedAtMs: input.now(),
+      }));
+      input.currentDraftTextRef.current = text;
       input.reportHostError(error);
       throw error;
     } finally {

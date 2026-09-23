@@ -217,6 +217,12 @@ export function CanonicalTranscriptView({
       || previousRenderState.lastMessageUpdatedAt !== (lastMessage?.updatedAt || null)
       || previousRenderState.pendingFirstBeat !== pendingFirstBeat
       || previousRenderState.footerVisible !== footerVisible;
+    // Sending a message is an explicit request to see it: jump to the bottom
+    // even when the person had scrolled up to read history.
+    const ownMessageAppended = messages.length > previousRenderState.messageCount
+      && lastMessage !== null
+      && previousRenderState.lastMessageId !== lastMessage.id
+      && (lastMessage.role === 'user' || lastMessage.role === 'human');
     if (!didInitialScrollRef.current && messages.length > 0) {
       didInitialScrollRef.current = true;
       initialPinRef.current = true;
@@ -228,7 +234,7 @@ export function CanonicalTranscriptView({
         initialPinReleaseTimerRef.current = null;
       }, INITIAL_TRANSCRIPT_PIN_SETTLE_MS);
       root.scrollTop = root.scrollHeight;
-    } else if (transcriptChanged && nearBottomRef.current) {
+    } else if (transcriptChanged && (nearBottomRef.current || ownMessageAppended)) {
       root.scrollTop = root.scrollHeight;
     }
     const nextNearBottom = isNearBottom(root);

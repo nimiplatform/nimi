@@ -14,12 +14,14 @@ import { createNimiError } from '@nimiplatform/sdk/types';
 
 import {
   createRuntimeSetupTaskStore,
+  runtimeSetupTaskUnconfirmed,
   type RuntimeSetupTaskStore,
 } from '../src/shell/renderer/features/runtime-config/runtime-setup-task-store.js';
 import {
   commitRuntimeSetupCloudUse,
   commitRuntimeSetupUse,
   createRuntimeSetupCandidate,
+  discardRuntimeSetupTask,
   resolveRuntimeSetupPreparation,
   resumeRuntimeSetupOwnerRoute,
   reuseRuntimeSetupCurrent,
@@ -581,6 +583,77 @@ test('prepare-only never selects and never writes the owner AIConfig', async () 
   assert.equal(task?.nextAction, 'use-when-ready');
 });
 
+test('use selects the confirmed candidate and preserves other saved configurations even when equivalent', async () => {
+  const store = makeStore();
+  const calls: CallLog = [];
+  const state = baseState();
+  // What the prepared candidate will run once its slot is bound to the installed asset.
+  const boundAxes = [{
+    slotId: 'main.diffusion',
+    displayLabel: 'Main model',
+    modelAssetId: INSTALLED_ASSET.modelAssetId,
+    expectedContentId: INSTALLED_ASSET.contentId,
+    recipeCompatible: true,
+    reasons: [],
+    presence: 'required' as const,
+    conditionalFeatures: [],
+    resolution: 'configured' as const,
+  }];
+  const equivalent = (loadoutId: string, createdAt: string, revision: string) => loadout({
+    loadoutId, createdAt, revision, validationState: 'configured', modelAxes: boundAxes,
+    // Key order and provenance must not matter for equivalence.
+    options: { steps: 20 }, provenance: { desktop_setup_task_id: `older:${loadoutId}` },
+  });
+  state.loadouts = [
+    equivalent('saved-old', '2026-01-01T00:00:00.000Z', 'r-old'),
+    equivalent('saved-selected', '2026-02-01T00:00:00.000Z', 'r-selected'),
+    equivalent('saved-live', '2026-03-01T00:00:00.000Z', 'r-live'),
+    loadout({ loadoutId: 'saved-other', validationState: 'configured', modelAxes: boundAxes, options: { steps: 30 } }),
+  ];
+  state.selections = [{ capabilityContract: CAPABILITY, loadoutId: 'saved-selected', effectiveDefaults: {} }];
+  // Another live task still refers to saved-live as its candidate.
+  const otherTaskId = await createAppTask(store);
+  store.updateTask(otherTaskId, () => ({ status: 'review', candidateLoadoutId: 'saved-live', candidateRevisionBaseline: 'r-live' }));
+  const ports = createPorts(state, calls);
+  const taskId = await createAppTask(store);
+  const plan = await reachReview(store, taskId, ports);
+
+  const result = await runRuntimeSetupPreparation(store, taskId, ports, { mode: 'prepare-and-use', reviewedPlan: plan });
+  assert.equal(result.status, 'ok');
+
+  const selectCall = calls.find((entry) => entry.method === 'loadouts.select');
+  assert.deepEqual(selectCall?.args, {
+    capabilityContract: CAPABILITY,
+    loadoutId: 'loadout-1',
+    confirmedMachineImpact: true,
+    conditions: { expectedSelectionRevision: 'sel-1', expectedCandidateRevision: state.loadouts.find((item) => item.loadoutId === 'loadout-1')!.revision },
+  });
+  const deleted = calls.filter((entry) => entry.method === 'loadouts.delete').map((entry) => (entry.args as { loadoutId: string }).loadoutId);
+  assert.deepEqual(deleted, []);
+  assert.deepEqual(state.loadouts.map((entry) => entry.loadoutId).sort(), ['loadout-1', 'saved-live', 'saved-old', 'saved-other', 'saved-selected']);
+  const task = store.getTask(taskId);
+  assert.equal(task?.status, 'done');
+  assert.equal(task?.candidateLoadoutId, 'loadout-1');
+  assert.equal(task?.candidateRevisionBaseline, state.loadouts.find((item) => item.loadoutId === 'loadout-1')!.revision);
+});
+
+test('use keeps a candidate that has no saved equivalent', async () => {
+  const store = makeStore();
+  const calls: CallLog = [];
+  const state = baseState();
+  state.loadouts = [loadout({ loadoutId: 'saved-other', validationState: 'configured', options: { steps: 30 } })];
+  const ports = createPorts(state, calls);
+  const taskId = await createAppTask(store);
+  const plan = await reachReview(store, taskId, ports);
+
+  const result = await runRuntimeSetupPreparation(store, taskId, ports, { mode: 'prepare-and-use', reviewedPlan: plan });
+  assert.equal(result.status, 'ok');
+  const selectCall = calls.find((entry) => entry.method === 'loadouts.select');
+  assert.equal((selectCall?.args as { loadoutId: string }).loadoutId, 'loadout-1');
+  assert.equal(calls.some((entry) => entry.method === 'loadouts.delete'), false);
+  assert.deepEqual(state.loadouts.map((entry) => entry.loadoutId).sort(), ['loadout-1', 'saved-other']);
+});
+
 test('an external candidate edit during download stops at Prepare and keeps acquired resources', async () => {
   const store = makeStore();
   const calls: CallLog = [];
@@ -712,6 +785,26 @@ test('a stopped task performs no further writes', async () => {
   assert.equal(result.status, 'blocked');
   const writeCalls = calls.filter((entry) => entry.method.startsWith('install.install') || entry.method === 'loadouts.select');
   assert.equal(writeCalls.length, 0);
+});
+
+test('leaving an unconfirmed setup discards only its task record; a confirmed setup is kept', async () => {
+  const store = makeStore();
+  const calls: CallLog = [];
+  const ports = createPorts(baseState(), calls);
+  const reviewed = await createAppTask(store);
+  await reachReview(store, reviewed, ports);
+  assert.equal(runtimeSetupTaskUnconfirmed(store.getTask(reviewed)!), true);
+  assert.equal(discardRuntimeSetupTask(store, reviewed).status, 'ok');
+  assert.equal(store.getTask(reviewed), undefined);
+  // The candidate Loadout committed on "select" is not deleted with the task.
+  assert.equal(calls.filter((entry) => entry.method === 'loadouts.delete').length, 0);
+
+  const confirmed = await createAppTask(store);
+  const plan = await reachReview(store, confirmed, ports);
+  await runRuntimeSetupPreparation(store, confirmed, ports, { mode: 'prepare-only', reviewedPlan: plan });
+  assert.equal(runtimeSetupTaskUnconfirmed(store.getTask(confirmed)!), false);
+  assert.equal(discardRuntimeSetupTask(store, confirmed).status, 'blocked');
+  assert.notEqual(store.getTask(confirmed), undefined);
 });
 
 test('reuseCurrent with an existing Local intent performs zero writes', async () => {

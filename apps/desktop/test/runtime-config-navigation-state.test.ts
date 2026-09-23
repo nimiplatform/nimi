@@ -51,6 +51,9 @@ test('action focus accepts only the current destinations and actions', () => {
   const current = { page: 'cloudServices', action: 'add-connector', focus: 'runtime-config-action-focus.cloud-connector-draft' };
   assert.deepEqual(normalizeRuntimeConfigActionFocus(current), current);
   assert.equal(normalizeRuntimeConfigActionFocus({ ...current, page: 'cloud' }), null);
+  const importFocus = { page: 'modelLibrary', action: 'import-model-files', focus: 'runtime-config-action-focus.model-library-import' } as const;
+  assert.deepEqual(normalizeRuntimeConfigActionFocus(importFocus), importFocus);
+  assert.equal(normalizeRuntimeConfigActionFocus({ ...importFocus, action: 'install-model' }), null);
   assert.equal(normalizeRuntimeConfigActionFocus({ page: 'loadouts', action: 'open-loadouts', focus: 'runtime-config-action-focus.loadouts' }), null);
 });
 

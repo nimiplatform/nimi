@@ -16,7 +16,7 @@ import { useRuntimeConfigConnectorSdk } from './runtime-config-connector-sdk-con
 import { connectorAuthProfileForId, defaultConnectorAuthOptionForProvider, listConnectorAuthOptionsForProvider, providerToVendor, resolveProviderEndpoint, vendorToProvider } from './runtime-config-connector-sdk-service';
 import { CloudConnectorListPanel } from './runtime-config-page-cloud-connector-list';
 import { CloudConnectorDetailPanel } from './runtime-config-page-cloud-detail-panel';
-import { Button, PlusIcon } from './runtime-config-page-cloud-primitives';
+import { Button, CloudEmptyState, PlusIcon } from './runtime-config-page-cloud-primitives';
 import { RuntimePageHeader, RuntimePageShell } from './runtime-config-page-shell';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { testSelectedConnectorCommand } from './runtime-config-provider-commands.js';
@@ -405,86 +405,84 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
       setCheckingAll(false);
     }
   }, [bindings.clock.now, checkingAll, connectorSdk, model.setPageFeedback, state, uncheckedConnectors, updateState]);
-  const healthyCount = state.connectors.filter((connector) => connector.status === 'healthy').length;
-  const statusLine = state.connectors.length === 0
-    ? t('runtimeConfig.product.cloudLead')
-    : [
-        t('runtimeConfig.product.cloudSummaryConnected', { count: state.connectors.length }),
-        healthyCount ? t('runtimeConfig.product.cloudSummaryChecked', { count: healthyCount }) : '',
-        uncheckedConnectors.length ? t('runtimeConfig.product.cloudSummaryUnchecked', { count: uncheckedConnectors.length }) : '',
-      ].filter(Boolean).join(' · ');
+  const hasConnectors = state.connectors.length > 0;
   return (
-    <RuntimePageShell className="space-y-4">
+    <RuntimePageShell className='space-y-6 pt-1'>
       <RuntimePageHeader
         title={t('runtimeConfig.nav.cloudServices', { defaultValue: 'Cloud Services' })}
-        description={statusLine}
-        actions={(
+        description={t('runtimeConfig.product.cloudLead')}
+        actions={hasConnectors ? (
           <>
             {uncheckedConnectors.length > 1 ? (
-              <Button variant="secondary" size="sm" disabled={checkingAll || model.testingConnector} onClick={() => { void onCheckAll(); }}>
+              <Button variant='secondary' size='sm' disabled={checkingAll || model.testingConnector} onClick={() => { void onCheckAll(); }}>
                 {t(checkingAll ? 'runtimeConfig.cloud.testing' : 'runtimeConfig.product.checkAll', { count: uncheckedConnectors.length })}
               </Button>
             ) : null}
             <Button
-              variant="primary"
-              size="sm"
+              variant='primary'
+              size='sm'
               onClick={onAddConnector}
               icon={<PlusIcon />}
             >
               {t('runtimeConfig.cloud.addConnector', { defaultValue: 'Add' })}
             </Button>
           </>
-        )}
+        ) : null}
       />
-      {/* Split panel: connector list (left) + config (right) */}
-      <div className="grid items-start gap-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-8">
-        <CloudConnectorListPanel
-          connectors={orderedConnectors}
-          deletingConnectorId={deletingConnectorId}
-          onDeleteConnector={(connectorId) => onDeleteConnector(connectorId).catch((e) => reportError('Remove connector failed', e))}
-          onSelectConnector={onSelectConnector}
-          selectedConnectorId={state.selectedConnectorId}
-          t={t}
-        />
-        <CloudConnectorDetailPanel
-          key={selectedConnector?.id ?? 'empty'}
-          onSaveConnection={saveConnectionDetails}
-          authOptions={authOptions}
-          authStatus={authStatus}
-          canEditCredentialMode={canEditCredentialMode}
-          canEditVendor={canEditVendor}
-          canStartCodexOAuth={canStartCodexOAuth}
-          canManageCatalogOverrides={canManageCatalogOverrides}
-          codexOAuthBusy={codexOAuthBusy}
-          codexOAuthPending={codexOAuthPending}
-          connectorConfigurationLocked={codexOAuthBusy}
-          connectorLabelDraft={connectorLabelDraft}
-          isCodexManagedConnector={isCodexManagedConnector}
-          isDraft={isDraft}
-          isMachineGlobal={isMachineGlobal}
-          isRuntimeSystem={isRuntimeSystem}
-          isSystemOwned={isSystemOwned}
-          model={model}
-          onAcquireCodexOAuth={onAcquireCodexOAuth}
-          onManageCatalogOverrides={() => setCatalogOverrideProviderId(selectedConnector?.provider || '')}
-          onConnectorLabelDraftChange={(label) => {
-            if (!codexOAuthBusy) setConnectorLabelDraft(label);
-          }}
-          onChangeConnectorAuthOption={onChangeConnectorAuthOption}
-          onChangeConnectorVendor={onChangeConnectorVendor}
-          reportError={reportError}
-          savingToken={savingToken}
-          selectedAuthOptionValue={selectedAuthOptionValue}
-          selectedConnector={selectedConnector}
-          selectedProviderCatalogEntry={selectedProviderCatalogEntry}
-          setTokenDraft={setTokenDraft}
-          t={t}
-          tokenDraft={tokenDraft}
-          tokenSaveError={tokenSaveError}
-          tokenSavedConnectorId={tokenSavedConnectorId}
-          vendorOptions={vendorOptions}
-        />
-      </div>
+      {hasConnectors ? (
+        <>
+          <CloudConnectorListPanel
+            connectors={orderedConnectors}
+            deletingConnectorId={deletingConnectorId}
+            onAddConnector={onAddConnector}
+            onDeleteConnector={(connectorId) => onDeleteConnector(connectorId).catch((e) => reportError('Remove connector failed', e))}
+            onSelectConnector={onSelectConnector}
+            selectedConnectorId={state.selectedConnectorId}
+            uncheckedCount={uncheckedConnectors.length}
+            t={t}
+          />
+          <CloudConnectorDetailPanel
+            key={selectedConnector?.id ?? 'empty'}
+            onSaveConnection={saveConnectionDetails}
+            authOptions={authOptions}
+            authStatus={authStatus}
+            canEditCredentialMode={canEditCredentialMode}
+            canEditVendor={canEditVendor}
+            canStartCodexOAuth={canStartCodexOAuth}
+            canManageCatalogOverrides={canManageCatalogOverrides}
+            codexOAuthBusy={codexOAuthBusy}
+            codexOAuthPending={codexOAuthPending}
+            connectorConfigurationLocked={codexOAuthBusy}
+            connectorLabelDraft={connectorLabelDraft}
+            isCodexManagedConnector={isCodexManagedConnector}
+            isDraft={isDraft}
+            isMachineGlobal={isMachineGlobal}
+            isRuntimeSystem={isRuntimeSystem}
+            isSystemOwned={isSystemOwned}
+            model={model}
+            onAcquireCodexOAuth={onAcquireCodexOAuth}
+            onManageCatalogOverrides={() => setCatalogOverrideProviderId(selectedConnector?.provider || '')}
+            onConnectorLabelDraftChange={(label) => {
+              if (!codexOAuthBusy) setConnectorLabelDraft(label);
+            }}
+            onChangeConnectorAuthOption={onChangeConnectorAuthOption}
+            onChangeConnectorVendor={onChangeConnectorVendor}
+            reportError={reportError}
+            savingToken={savingToken}
+            selectedAuthOptionValue={selectedAuthOptionValue}
+            selectedConnector={selectedConnector}
+            selectedProviderCatalogEntry={selectedProviderCatalogEntry}
+            setTokenDraft={setTokenDraft}
+            t={t}
+            tokenDraft={tokenDraft}
+            tokenSaveError={tokenSaveError}
+            tokenSavedConnectorId={tokenSavedConnectorId}
+            vendorOptions={vendorOptions}
+          />
+        </>
+      ) : (
+        <CloudEmptyState onAddConnector={onAddConnector} t={t} />
+      )}
       <CatalogOverridesDrawer
         open={Boolean(catalogOverrideProviderId)}
         providerId={catalogOverrideProviderId}

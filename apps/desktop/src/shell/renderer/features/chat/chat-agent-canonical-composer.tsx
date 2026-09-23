@@ -440,7 +440,12 @@ export function AgentCanonicalComposer(props: {
       setComposerText(submittedText);
       props.onInputCaptureText(submittedText);
       if (submittedAttachments.length > 0) {
-        props.onAttachmentsChange(submittedAttachments);
+        // Clearing above revoked the staged preview URLs; restore with fresh
+        // ones so the re-staged thumbnails still render.
+        props.onAttachmentsChange(submittedAttachments.map((attachment) => ({
+          ...attachment,
+          previewUrl: URL.createObjectURL(attachment.file),
+        })));
       }
       throw error;
     }

@@ -42,7 +42,7 @@ import {
 import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability-labels.js';
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
 import { isDownloadTerminal } from './runtime-config-model-center-utils.js';
-import { getRuntimeSetupTaskStore, useRuntimeSetupTasks } from './runtime-setup-task-store.js';
+import { getRuntimeSetupTaskStore, runtimeSetupTaskUnconfirmed, useRuntimeSetupTasks } from './runtime-setup-task-store.js';
 import { ModelTransferRecoveryActions } from './model-transfer-recovery-actions.js';
 
 const AppDownloadsDetail = lazy(async () => ({ default: (await import('../apps/apps-panel.js')).AppsPanel }));
@@ -191,13 +191,7 @@ export function GlobalDownloadsView() {
   const grouped = new Map<string, typeof snapshot.tasks>();
   for (const task of snapshot.tasks) {
     if (setupTaskLane(task) !== lane) continue;
-    if (
-      ['draft', 'review'].includes(task.status) &&
-      !task.authorization &&
-      !task.refs.installPlanIds.length &&
-      !task.refs.dependencyJobIds.length
-    )
-      continue;
+    if (runtimeSetupTaskUnconfirmed(task)) continue;
     const key = task.draft?.profileUseId ?? task.taskId;
     grouped.set(key, [...(grouped.get(key) ?? []), task]);
   }

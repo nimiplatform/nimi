@@ -240,6 +240,18 @@ function isTerminalStatus(status: RuntimeSetupTaskStatus): boolean {
   return TERMINAL_STATUSES.has(status);
 }
 
+/**
+ * A setup the person never confirmed: still choosing or reviewing, with no
+ * confirmed scope in this session and no install plan or component job left
+ * by an earlier run, so no acquisition or environment work has run for it.
+ */
+export function runtimeSetupTaskUnconfirmed(task: RuntimeSetupTask): boolean {
+  return (task.status === 'draft' || task.status === 'review')
+    && !task.authorization
+    && task.refs.installPlanIds.length === 0
+    && task.refs.dependencyJobIds.length === 0;
+}
+
 function cloneRefs(refs: RuntimeSetupTaskRefs): RuntimeSetupTaskRefs {
   return {
     installPlanIds: [...refs.installPlanIds],

@@ -36,3 +36,15 @@ export function displayRuntimeConfigCapabilityLabel(
   if (capabilityContract === 'audio.voice.convert') return t('runtimeConfig.capabilityLabels.audioVoiceConvert');
   return capabilityContract;
 }
+
+/** One plain sentence on what a person uses the capability for. */
+export function displayRuntimeConfigCapabilityUsage(
+  capabilityContract: string,
+  t: TFunction,
+): string {
+  return t(`runtimeConfig.capabilities.uses.${capabilityContract.replace(/[._]/g, '-')}`, {
+    defaultValue: t('runtimeConfig.capabilities.description', {
+      capability: displayRuntimeConfigCapabilityLabel(capabilityContract, t),
+    }),
+  });
+}

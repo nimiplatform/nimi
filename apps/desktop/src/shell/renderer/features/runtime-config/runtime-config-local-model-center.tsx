@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import type { NimiRuntimeLocalInstallPlanDescriptor } from '@nimiplatform/sdk/runtime';
 import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
 import {
@@ -12,12 +13,21 @@ import type { RuntimeConfigInstallResult } from './runtime-config-panel-controll
 
 export function LocalModelCenter(props: {
   readonly activeSection: LocalModelCenterSection;
+  /** Each increment opens the import menu (deep link "import model files"). */
+  readonly importMenuRequest?: number;
+  /** Empty-state shortcut back to the Discover tab. */
+  readonly onOpenDiscover?: () => void;
   readonly runtimeWritesDisabled: boolean;
   readonly installResolvedModelPlan: (plan: NimiRuntimeLocalInstallPlanDescriptor) => Promise<RuntimeConfigInstallResult>;
 }) {
   const commands = useDesktopRendererCommands();
   const runtimeState = useLocalModelCenterRuntimeState();
   const client = useRuntimeConfigLocalEnvironmentClient();
+  const { importMenuRequest } = props;
+  const { setShowImportMenu } = runtimeState;
+  useEffect(() => {
+    if (importMenuRequest) setShowImportMenu(true);
+  }, [importMenuRequest, setShowImportMenu]);
   const catalog = useQuery({
     queryKey: ['runtime-config', 'builtin-catalog'],
     queryFn: () => client.listVerifiedAssets(),
@@ -71,6 +81,7 @@ export function LocalModelCenter(props: {
       onRemoveAsset={runtimeState.removeInstalledAsset}
       onResumeDownload={runtimeState.onResumeDownload}
       onToggleImportMenu={() => runtimeState.setShowImportMenu((previous) => !previous)}
+      onOpenDiscover={props.onOpenDiscover}
     />
   );
 }

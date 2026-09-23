@@ -232,7 +232,8 @@ test('renderer translation key usages resolve in en locale', async () => {
   }
 
   const missingKeys = [...seenKeys]
-    .filter((key) => !enKeys.has(key))
+    .filter((key) => !enKeys.has(key)
+      && !(enKeys.has(`${key}_one`) && enKeys.has(`${key}_other`)))
     .sort((left, right) => left.localeCompare(right));
 
   assert.deepEqual(
@@ -240,6 +241,25 @@ test('renderer translation key usages resolve in en locale', async () => {
     [],
     `en.json is missing renderer translation keys: ${missingKeys.join(', ')}`,
   );
+});
+
+test('conversation counts resolve plural translations in both locales without missing-key issues', async () => {
+  const resource = createDesktopI18n({ initialLocale: 'en', development: false, now: Date.now });
+  await resource.init();
+  const issues: string[] = [];
+  const unsubscribe = resource.onIssue((issue) => issues.push(issue.key));
+  try {
+    await resource.changeLocale('en');
+    assert.equal(resource.instance.t('Chat.threadListCount', { count: 0 }), '0 conversations');
+    assert.equal(resource.instance.t('Chat.threadListCount', { count: 1 }), '1 conversation');
+    assert.equal(resource.instance.t('Chat.threadListCount', { count: 2 }), '2 conversations');
+    await resource.changeLocale('zh');
+    assert.equal(resource.instance.t('Chat.threadListCount', { count: 1 }), '1 个历史对话');
+    assert.equal(resource.instance.t('Chat.threadListCount', { count: 2 }), '2 个历史对话');
+    assert.deepEqual(issues, []);
+  } finally {
+    unsubscribe();
+  }
 });
 
 test('known dynamic desktop locale keys exist in both locales', async () => {

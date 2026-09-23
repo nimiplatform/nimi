@@ -27,7 +27,7 @@ export function LocalModelCenterToolbar(props: ToolbarProps) {
   const iconBtnClass = 'flex h-8 w-8 items-center justify-center rounded-lg text-[var(--nimi-text-muted)] hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_8%,transparent)] hover:text-[var(--nimi-text-secondary)] disabled:opacity-50 transition-colors';
 
   return (
-    <div className="flex items-center justify-end gap-2">
+    <div className="ml-auto flex items-center justify-end gap-2">
       <div className="flex items-center gap-0.5">
         <button
           type="button"
@@ -69,15 +69,15 @@ export function LocalModelCenterToolbar(props: ToolbarProps) {
                   {i18n.t('runtimeConfig.localModelCenter.importModelFile', { defaultValue: 'Import Model File' })}
                 </div>
                 <div className="mt-0.5 text-[var(--nimi-text-muted)]">
-                  {i18n.t('runtimeConfig.localModelCenter.importModelFileDescription', { defaultValue: 'Import model content without choosing a type or engine.' })}
+                  {i18n.t('runtimeConfig.localModelCenter.importModelFileDescription', { defaultValue: 'Single-file model, e.g. GGUF' })}
                 </div>
               </button>
               <button type="button" disabled={props.runtimeWritesDisabled} onClick={() => { void props.onImportDirectory().catch(() => undefined); }} className="w-full border-t border-[var(--nimi-border-subtle)] px-3 py-2.5 text-left text-xs transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_6%,transparent)] disabled:opacity-50">
                 <div className="font-medium text-[var(--nimi-text-primary)]">
-                  {i18n.t('runtimeConfig.localModelCenter.importModelDirectory', { defaultValue: 'Import Model Directory' })}
+                  {i18n.t('runtimeConfig.localModelCenter.importModelDirectory', { defaultValue: 'Import Model Folder' })}
                 </div>
                 <div className="mt-0.5 text-[var(--nimi-text-muted)]">
-                  {i18n.t('runtimeConfig.localModelCenter.importModelDirectoryDescription', { defaultValue: 'Import the model files in a directory as a whole.' })}
+                  {i18n.t('runtimeConfig.localModelCenter.importModelDirectoryDescription', { defaultValue: 'Multi-file model, e.g. safetensors' })}
                 </div>
               </button>
             </div>

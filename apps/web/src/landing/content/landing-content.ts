@@ -181,6 +181,357 @@ export type HeroDemoZhiyuPreview = {
 
 export type HeroDemoShijingTone = 'supportive' | 'steady' | 'watch' | 'blocked' | 'turning';
 export type HeroDemoShijingTabId = 'rijing' | 'yuejing' | 'nianjing' | 'mingjing' | 'hejing' | 'shijing';
+// The three admitted 命理 method profiles (nimiapp-shijing domain/algorithm-method-profile.ts).
+export type HeroDemoShijingMethodId = 'bazi_ziping_v1' | 'ziwei_sanhe_v1' | 'qizheng_siyu_guolao_v1';
+export type HeroDemoShijingElement = 'wood' | 'fire' | 'earth' | 'metal' | 'water';
+export type HeroDemoShijingPillarPosition = 'year' | 'month' | 'day' | 'hour';
+export type HeroDemoShijingBaziCoreKey =
+  | 'personality'
+  | 'strengths'
+  | 'long_term_themes'
+  | 'relationship_pattern'
+  | 'career_inclination';
+export type HeroDemoShijingProfileKey =
+  | 'life_pattern'
+  | 'strengths'
+  | 'long_term_theme'
+  | 'relationship_pattern'
+  | 'career_inclination';
+
+/** 命镜 · 八字子平法 route (MingJingChart projection + deterministic narrative + one AI reading). */
+export type HeroDemoShijingBaziRoute = {
+  hero: {
+    eyebrow: string;
+    title: string;
+    dayMaster: string;
+    patternTag: string;
+    strengthTag: string;
+    strengthClass: 'weak' | 'balanced' | 'strong';
+    persona: string;
+    favorableTitle: string;
+    adverseTitle: string;
+    favorable: ReadonlyArray<HeroDemoShijingElement>;
+    adverse: ReadonlyArray<HeroDemoShijingElement>;
+    favorableHint: string;
+    currentStageLabel: string;
+    dayunWord: string;
+    notStarted: string;
+    seeStages: string;
+    current: { pillar: string; stemElement: HeroDemoShijingElement; ageRange: string; nature: HeroDemoShijingTone } | null;
+  };
+  paipan: {
+    sectionTitle: string;
+    sectionIntro: string;
+    structureBadge: string;
+    dayBadge: string;
+    dayMaster: string;
+    pillarLabels: Record<HeroDemoShijingPillarPosition, string>;
+    roles: Record<HeroDemoShijingPillarPosition, string>;
+    rows: { hidden: string; tenGod: string; nayin: string; terrain: string; voidRow: string };
+    voidMark: string;
+    voidEmpty: string;
+    expand: string;
+    collapse: string;
+    detailTitle: string;
+    columns: ReadonlyArray<{
+      position: HeroDemoShijingPillarPosition;
+      stemHanzi: string;
+      stemElement: HeroDemoShijingElement;
+      branchHanzi: string;
+      branchElement: HeroDemoShijingElement;
+      hidden: ReadonlyArray<{ hanzi: string; element: HeroDemoShijingElement; weight: string }>;
+      tenGod: string;
+      nayin: string;
+      terrain: string;
+      isVoid: boolean;
+      isDay: boolean;
+    }>;
+    five: {
+      title: string;
+      explanation: string;
+      labels: Record<HeroDemoShijingElement, string>;
+      count: Record<HeroDemoShijingElement, number>;
+      dominant: HeroDemoShijingElement;
+      weakest: HeroDemoShijingElement;
+      summary: string;
+    };
+    geju: { strengthLabel: string; supportRatioLabel: string; yong: string; ji: string; relationsLabel: string; relationsEmpty: string };
+    strengthBand: string;
+    supportRatio: string;
+    yong: ReadonlyArray<HeroDemoShijingElement>;
+    ji: ReadonlyArray<HeroDemoShijingElement>;
+    relations: ReadonlyArray<string>;
+  };
+  dayun: {
+    sectionTitle: string;
+    explanation: string;
+    directionLabel: string;
+    startAgeLabel: string;
+    introSegments: ReadonlyArray<{ text: string; tone?: 'current' | 'highlight' }>;
+    currentLabel: string;
+    highlightLabel: string;
+    cols: { age: string; years: string; pillar: string; tenGod: string; terrain: string; nature: string };
+    distantTitle: string;
+    distantDescription: string;
+    distantStartAge: number;
+    currentIndex: number;
+    highlightIndex: number;
+    periods: ReadonlyArray<{
+      pillar: string;
+      stemElement: HeroDemoShijingElement;
+      startAge: number;
+      endAge: number;
+      startYear: number;
+      endYear: number;
+      tenGod: string;
+      terrainLabel: string;
+      nature: HeroDemoShijingTone;
+      favor: string;
+      isCurrent: boolean;
+      isInflection: boolean;
+      phaseTitle: string;
+      explanation: string;
+    }>;
+  };
+  liunian: {
+    title: string;
+    intro: string;
+    explanation: string;
+    horizonLabel: string;
+    yearsLabel: string;
+    detailToggle: string;
+    evidenceLabel: string;
+    dayunLabel: string;
+    salienceLabels: Record<'high' | 'medium', string>;
+    favorLabels: Record<string, string>;
+    /** `{count}` placeholder templates. */
+    relationMore: string;
+    basisMore: string;
+    empty: string;
+    windows: ReadonlyArray<{
+      range: string;
+      nature: HeroDemoShijingTone;
+      favor: string;
+      salience: 'high' | 'medium';
+      badge: string;
+      plain: string;
+      pillars: ReadonlyArray<{ year: number; ganzhi: string }>;
+      dayunPillar: string | null;
+      relations: ReadonlyArray<string>;
+      basis: ReadonlyArray<string>;
+    }>;
+  };
+  events: {
+    title: string;
+    intro: string;
+    explanation: string;
+    dateLabel: string;
+    datePlaceholder: string;
+    bodyLabel: string;
+    bodyPlaceholder: string;
+    add: string;
+    invalidHint: string;
+    empty: string;
+    delete: string;
+    dayunColumn: string;
+    liunianColumn: string;
+    preGenHint: string;
+    items: ReadonlyArray<{
+      id: string;
+      date: string;
+      body: string;
+      resonance: {
+        dayunPillar: string | null;
+        dayunTenGod: string | null;
+        dayunNature: HeroDemoShijingTone;
+        liunianPillar: string;
+        liunianNature: HeroDemoShijingTone;
+      } | null;
+    }>;
+  };
+  reading: {
+    eyebrow: string;
+    coreTitle: string;
+    explanation: string;
+    coreLabels: Record<HeroDemoShijingBaziCoreKey, string>;
+    strategiesTitle: string;
+    output: {
+      summary: string;
+      core: Record<HeroDemoShijingBaziCoreKey, string>;
+      strategies: ReadonlyArray<{ pillar: string; ageRange: string; theme: string; strategy: string }>;
+    };
+  };
+  rectifyEntry: string;
+};
+
+export type HeroDemoShijingZiweiStar = { name: string; brightness: string; mutagen: '' | '禄' | '权' | '科' | '忌' };
+
+/** 命镜 · 紫微斗数(三合派) route (ZiweiSubjectChart + palace domain copy + one AI brief). */
+export type HeroDemoShijingZiweiRoute = {
+  copy: {
+    personaMark: string;
+    personaTitle: string;
+    personaSubtitle: string;
+    chartTitle: string;
+    chartHint: string;
+    centralEyebrow: string;
+    emptyPalace: string;
+    minorStars: string;
+    majorStars: string;
+    palaceDetailEyebrow: string;
+    stemBranchLabel: string;
+    sihuaLabel: string;
+    interpretationTitle: string;
+    decadeTitle: string;
+    decadeEmpty: string;
+    soulRole: string;
+    bodyRole: string;
+    selectedRole: string;
+    basis: { soulPalace: string; bodyPalace: string; fiveElements: string; soulStar: string; bodyStar: string; palaces: string };
+    astrolabeAria: string;
+    briefAria: string;
+    briefEyebrow: string;
+    briefTitle: string;
+    profileLabels: Record<HeroDemoShijingProfileKey, string>;
+    profileNumerals: Record<HeroDemoShijingProfileKey, string>;
+  };
+  basis: { soulPalace: string; bodyPalace: string; fiveElementsClass: string; soulStar: string; bodyStar: string; palaceCount: number };
+  palaces: ReadonlyArray<{
+    index: number;
+    name: string;
+    stem: string;
+    branch: string;
+    isSoul: boolean;
+    isBody: boolean;
+    major: ReadonlyArray<HeroDemoShijingZiweiStar>;
+    minor: ReadonlyArray<HeroDemoShijingZiweiStar>;
+    startAge: number;
+    endAge: number;
+  }>;
+  palaceDomains: Record<string, { tagline: string; scope: string; boundary: string }>;
+  defaultPalaceDomain: { tagline: string; scope: string; boundary: string };
+  reading: {
+    summary: string;
+    profile: Record<HeroDemoShijingProfileKey, string>;
+    decadeGuidance: ReadonlyArray<{ ageRange: string; palaceName: string; theme: string; strategy: string }>;
+  };
+};
+
+export type HeroDemoShijingQizhengStrength = '七强' | '次强' | '闲宫';
+export type HeroDemoShijingQizhengStar = {
+  key: string;
+  label: string;
+  planet: string;
+  element: string;
+  color: string;
+  bg: string;
+  essence: string;
+  houseName: string;
+  mansion: string;
+  strength: HeroDemoShijingQizhengStrength;
+  strengthLabel: string;
+  degree: string;
+  kind: 'qizheng' | 'siyu';
+  isMing: boolean;
+  deep: string;
+};
+
+/** 命镜 · 七政四余/果老星宗 route (QizhengSiyuSubjectChart + deterministic narrative + one AI reading). */
+export type HeroDemoShijingQizhengRoute = {
+  copy: {
+    heroEyebrow: string;
+    favorableTitle: string;
+    watchTitle: string;
+    basisTitle: string;
+    viewIntro: string;
+    viewPlain: string;
+    viewData: string;
+    viewToggleAria: string;
+    explainerTitle: string;
+    explainerBody: string;
+    qizhengCardTitle: string;
+    qizhengCardBody: string;
+    siyuCardTitle: string;
+    siyuCardBody: string;
+    explainerHint: string;
+    chartTitle: string;
+    chartHint: string;
+    wheelCenterEyebrow: string;
+    deepTitle: string;
+    starsTitle: string;
+    starsHint: string;
+    starGoPalace: string;
+    patternsTitle: string;
+    patternsHint: string;
+    basisSectionTitle: string;
+    basisSectionHint: string;
+    ctaEyebrow: string;
+    ctaTitle: string;
+    ctaBody: string;
+    ctaButton: string;
+    readingTitleSuffix: string;
+    emptyDetail: string;
+    terms: { mingZhu: string; qizheng: string; siyu: string; emptyHouse: string };
+    chartAria: string;
+    bodiesTitle: string;
+    housesTitle: string;
+    emptyHouse: string;
+    bodyColumns: { body: string; house: string; mansion: string; position: string; longitude: string };
+    readingAria: string;
+    starGuidanceTitle: string;
+    profileLabels: Record<HeroDemoShijingProfileKey, string>;
+  };
+  hero: {
+    title: string;
+    subtitleChips: ReadonlyArray<string>;
+    oneLiner: string;
+    paragraph: string;
+    favorable: ReadonlyArray<string>;
+    watch: ReadonlyArray<string>;
+    basisLabel: string;
+    mingZhuLabel: string;
+  };
+  stars: ReadonlyArray<HeroDemoShijingQizhengStar>;
+  palaces: ReadonlyArray<{
+    index: number;
+    name: string;
+    range: string;
+    domain: string;
+    strength: HeroDemoShijingQizhengStrength;
+    countLabel: string;
+    isEmpty: boolean;
+    ruler: string;
+    occupants: ReadonlyArray<HeroDemoShijingQizhengStar>;
+    deep: string;
+  }>;
+  patterns: ReadonlyArray<{
+    id: string;
+    tag: string;
+    tone: 'accent' | 'gold' | 'warn';
+    title: string;
+    summary: string;
+    glyphs: ReadonlyArray<{ name: string; color: string }>;
+    deep: string;
+  }>;
+  gloss: Record<string, string>;
+  basisRows: ReadonlyArray<{ term: string; label: string; value: string }>;
+  houses: ReadonlyArray<{ name: string; range: string; occupants: string }>;
+  reading: {
+    summary: string;
+    profile: Record<HeroDemoShijingProfileKey, string>;
+    starGuidance: ReadonlyArray<{ bodyKey: string; bodyLabel: string; houseName: string; mansion: string; theme: string; strategy: string }>;
+  };
+};
+
+/** 命镜 is method-routed: the global 推演方法 select picks which route renders. */
+export type HeroDemoShijingMingjing = {
+  title: string;
+  tendencyLabels: Record<HeroDemoShijingTone, string>;
+  reading: { generate: string; regenerate: string; generating: string; empty: string; stale: string };
+  bazi: HeroDemoShijingBaziRoute;
+  ziwei: HeroDemoShijingZiweiRoute;
+  qizheng: HeroDemoShijingQizhengRoute;
+};
 
 /** ShiJing (时镜) preview content. The app is zh-CN-first, so this stays zh. */
 export type HeroDemoShijingPreview = {
@@ -190,7 +541,7 @@ export type HeroDemoShijingPreview = {
   accountName: string;
   accountMenuLabel: string;
   navAriaLabel: string;
-  methodProfiles: ReadonlyArray<{ id: string; label: string }>;
+  methodProfiles: ReadonlyArray<{ id: HeroDemoShijingMethodId; label: string }>;
   tabs: ReadonlyArray<{ id: HeroDemoShijingTabId; label: string }>;
   rijing: {
     title: string;
@@ -420,49 +771,62 @@ export type HeroDemoShijingPreview = {
     concerns: ReadonlyArray<{ name: string; tone: HeroDemoShijingTone; label: string; body: string }>;
     detailAction: string;
   };
-  mingjing: {
-    title: string;
-    natalTitle: string;
-    natalMeta: string;
-    natalRows: ReadonlyArray<{ label: string; value: string }>;
-    pillarsTitle: string;
-    pillars: ReadonlyArray<{ label: string; stem: string; branch: string; hidden: string }>;
-    ziweiTitle: string;
-    ziweiSubtitle: string;
-    palaces: ReadonlyArray<{ name: string; branch: string; stars: ReadonlyArray<string>; highlight: boolean }>;
-    centerEyebrow: string;
-    centerTitle: string;
-    centerLines: ReadonlyArray<string>;
-  };
+  mingjing: HeroDemoShijingMingjing;
+  /** 合镜 first-run state: the immersive intake hero shown before any relationship person exists. */
   hejing: {
     title: string;
-    subtitle: string;
-    pair: ReadonlyArray<{ name: string; relation: string; birth: string }>;
-    patternsTitle: string;
-    patterns: ReadonlyArray<{ title: string; tone: HeroDemoShijingTone; label: string; body: string }>;
-    trackTitle: string;
-    track: ReadonlyArray<{ month: string; tone: HeroDemoShijingTone }>;
+    ariaLabel: string;
+    eyebrow: string;
+    titleLead: string;
+    titleEmphasis: string;
+    body: string;
+    primaryAction: string;
+    stepsHint: string;
+    footer: string;
+    heroImage: string;
   };
   ask: {
     title: string;
     subtitle: string;
+    railAria: string;
     newQuestion: string;
+    newQuestionAria: string;
     searchPlaceholder: string;
+    filterButton: string;
+    /** `{{count}}` placeholder template. */
+    filterButtonActive: string;
+    filterMenuAria: string;
+    filterAll: string;
     railEmptyTitle: string;
     railEmptyBody: string;
+    emptySearch: string;
     groups: { today: string; week: string; earlier: string };
+    justNow: string;
+    composerAria: string;
     composerTitle: string;
+    questionAria: string;
     placeholderLines: ReadonlyArray<string>;
     contextTitle: string;
     contextDescription: string;
+    contextEmpty: string;
+    contextManage: string;
     concerns: ReadonlyArray<string>;
-    submitLabel: string;
+    generate: string;
+    generateTitle: string;
+    generating: string;
+    send: string;
+    sendTitle: string;
+    sending: string;
+    recallAria: string;
+    recallTitle: string;
+    resultAria: string;
     thinking: string;
     roleUser: string;
     roleAi: string;
     citedFormat: string;
     fields: { riskLevel: string; why: string; suggestion: string; avoid: string };
-    history: ReadonlyArray<{ id: string; question: string; group: 'today' | 'week' | 'earlier'; date: string }>;
+    history: ReadonlyArray<{ id: string; question: string; group: 'today' | 'week' | 'earlier'; date: string; concerns?: ReadonlyArray<string> }>;
+    followUpAnswer: ReadonlyArray<string>;
     answer: {
       title: string;
       conclusion: string;
@@ -536,6 +900,17 @@ export type HeroDemoParentosPreview = {
     upcoming: ReadonlyArray<{ id: string; title: string; status: string; primary: string; kind: 'task' | 'consult' | 'practice' | 'guide' }>;
     overdue: ReadonlyArray<{ id: string; title: string; status: string; primary: string }>;
     schedule: string;
+    /** In-demo port of the app's ScheduleModal (reminders/schedule-modal.tsx). */
+    scheduleDialog: {
+      title: string;
+      description: string;
+      confirm: string;
+      close: string;
+      /** Status line for a scheduled reminder; {{date}} is YYYY-MM-DD. */
+      scheduled: string;
+      /** Transient notice after confirming; {{date}} is YYYY-MM-DD. */
+      scheduledNotice: string;
+    };
     markComplete: string;
     customTodoPlaceholder: string;
     customTodoTitlePlaceholder: string;
@@ -656,6 +1031,64 @@ export type HeroDemoStorybookPreview = {
   demo: { hostOnly: string; dismiss: string };
 };
 
+export type HeroDemoOddBureauBox = { x1: number; y1: number; x2: number; y2: number };
+export type HeroDemoOddBureauProp = { id: string; label: string; box: HeroDemoOddBureauBox };
+export type HeroDemoOddBureauMachineOp = 'source' | 'echo' | 'reverse' | 'raise' | 'slow' | 'store';
+export type HeroDemoOddBureauMachinePlan = {
+  title: string;
+  invitation: string;
+  nodes: ReadonlyArray<{ objectId: string; op: HeroDemoOddBureauMachineOp; melody: number[]; line: string }>;
+};
+export type HeroDemoOddBureauStrikeTask = 'story' | 'reading' | 'stage';
+export type HeroDemoOddBureauStrikePlan = {
+  title: string;
+  situation: string;
+  people: ReadonlyArray<{
+    objectId: string;
+    persona: string;
+    offers: ReadonlyArray<{ task: HeroDemoOddBureauStrikeTask; needsCredit: boolean; needsRest: string | null }>;
+  }>;
+};
+export type HeroDemoOddBureauMoodId = 'missing' | 'strike' | 'party';
+export type HeroDemoOddBureauCharacter = {
+  objectId: string;
+  persona: string;
+  greeting: string;
+  testimony: string;
+  clueTitle: string;
+  suggestedQuestion: string;
+  /** Scripted in-character answers standing in for Runtime text.generate turns. */
+  replies: ReadonlyArray<string>;
+};
+export type HeroDemoOddBureauMystery = {
+  mood: HeroDemoOddBureauMoodId;
+  title: string;
+  opening: string;
+  incident: string;
+  culpritId: string;
+  resolution: string;
+  decisiveEvidenceIds: ReadonlyArray<string>;
+  characters: ReadonlyArray<HeroDemoOddBureauCharacter>;
+};
+
+/**
+ * Odd Bureau (奇物局) preview content: the app's sample scene with the six
+ * objects its vision.locate query order would find, plus authored stand-ins
+ * for what Runtime text.generate produces in the app (a machine plan, a strike
+ * plan, three mysteries, a three-act performance). The app's UI copy is inline
+ * zh in its TSX, so the preview keeps those strings inline too.
+ */
+export type HeroDemoOddBureauPreview = {
+  appName: string;
+  photo: { src: string; name: string; width: number; height: number };
+  props: ReadonlyArray<HeroDemoOddBureauProp>;
+  machine: HeroDemoOddBureauMachinePlan;
+  strike: HeroDemoOddBureauStrikePlan;
+  performance: ReadonlyArray<string>;
+  mysteries: ReadonlyArray<HeroDemoOddBureauMystery>;
+  demo: { hostOnly: string; voice: string; dismiss: string };
+};
+
 export type HeroDemoSurface = 'chat' | 'explore' | 'apps' | 'runtime' | 'settings';
 
 export type HeroDemoRowGroup = {
@@ -718,6 +1151,7 @@ export type HeroDemo = {
     shijing: HeroDemoShijingPreview;
     parentos: HeroDemoParentosPreview;
     storybook: HeroDemoStorybookPreview;
+    oddBureau: HeroDemoOddBureauPreview;
   };
   runtime: {
     title: string;

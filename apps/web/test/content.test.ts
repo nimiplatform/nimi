@@ -46,7 +46,7 @@ test('content exposes the full user journey in both locales', async () => {
     assert.equal(
       content.apps.title,
       locale === 'zh'
-        ? '从工作到兴趣，探索不同的 AI 应用。'
+        ? 'AI 不该只是一个聊天框。'
         : 'From work to interests, explore different AI apps.',
     );
     assert.ok(content.apps.subtitle.length > 0);

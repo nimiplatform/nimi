@@ -20,7 +20,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { loadoutModelPresentation } from './runtime-config-loadout-model-display.js';
-import type { RuntimeSetupPreparationPlan } from './runtime-setup-task-runner.js';
+import { loadoutCompositionKey, type RuntimeSetupPreparationPlan } from './runtime-setup-task-runner.js';
 
 export function setupPlanNeedsPreparation(plan: RuntimeSetupPreparationPlan, choices: Readonly<Record<string, string>>): boolean {
   return plan.components.some(item => item.required)
@@ -88,6 +88,19 @@ export function modelDisplayTitle(title: string): string {
   return stripped.trim() || trimmed;
 }
 
+/** Display title of the model a setup task works on, or '' when its candidate is not known. */
+export function setupTaskModelTitle(
+  task: { readonly candidateLoadoutId?: string },
+  loadouts: readonly NimiMachineLoadout[],
+  recipes: readonly NimiLoadoutRecipe[],
+): string {
+  const candidate = task.candidateLoadoutId
+    ? loadouts.find((item) => item.loadoutId === task.candidateLoadoutId)
+    : undefined;
+  const title = candidate?.displayName || recipes.find((item) => item.recipeId === candidate?.recipeId)?.title || '';
+  return title ? modelDisplayTitle(title) : '';
+}
+
 /** Supported-feature ids that a person can act on when choosing a model. */
 export const MODEL_FEATURE_LOCALE_KEYS: Readonly<Record<string, string>> = Object.freeze({
   'input.image': 'runtimeConfig.product.feature.input-image',
@@ -127,6 +140,33 @@ export function capabilityModelIdentity(
     main,
     descriptor,
   };
+}
+
+/**
+ * Saved configurations the user can tell apart. Loadouts that run exactly the
+ * same thing (same recipe, revision, options, model files and name) collapse
+ * into one entry, so a pile of leftovers from repeated "enable" or "use this
+ * configuration" reads as the single configuration it really is. The entry
+ * shown for a group is the selected Loadout when the group holds it,
+ * otherwise the oldest one. This is a presentation grouping only; selecting
+ * a configuration never deletes another saved configuration.
+ */
+export function distinctSavedLoadouts(
+  loadouts: readonly NimiMachineLoadout[],
+  selectedLoadoutId?: string,
+): NimiMachineLoadout[] {
+  const groups = new Map<string, NimiMachineLoadout>();
+  for (const loadout of loadouts) {
+    const key = loadoutCompositionKey(loadout);
+    const shown = groups.get(key);
+    if (!shown) {
+      groups.set(key, loadout);
+      continue;
+    }
+    if (shown.loadoutId === selectedLoadoutId) continue;
+    if (loadout.loadoutId === selectedLoadoutId || loadout.createdAt < shown.createdAt) groups.set(key, loadout);
+  }
+  return [...groups.values()];
 }
 
 // @nimi-authority: rule.nimi.desktop.ai-consumption.capability-workspace
@@ -170,4 +210,44 @@ export function recipeResourceSummary(
     else known = false;
   }
   return { ready, missing, required: required.length, bytes: known ? bytes : null, totalBytes: totalKnown ? totalBytes : null };
+}
+
+/**
+ * True when a preparation plan has nothing left to acquire, install or choose:
+ * every required component is present, every acquisition already maps to an
+ * installed asset and no slot is waiting on a choice. Only such a plan may be
+ * confirmed for use without showing the review screen; any plan that would
+ * download, install or ask still goes through the explicit review.
+ */
+export function setupPlanAllowsDirectUse(plan: RuntimeSetupPreparationPlan): boolean {
+  return plan.unavailable.length === 0 && plan.awaitingChoice.length === 0 && !setupPlanNeedsPreparation(plan, {});
+}
+
+/**
+ * The first supported recipe for the capability whose required model files
+ * are all verified on this device, or null. This is a reading aid for the
+ * "downloaded but never selected" gap: it never claims readiness, since the
+ * capability still has no machine selection and no environment check.
+ */
+export function capabilityRecommendedRecipeOnDevice(
+  capability: string,
+  recipes: readonly NimiLoadoutRecipe[],
+  catalog: readonly NimiRuntimeLocalVerifiedAssetDescriptor[],
+  assets: readonly NimiRuntimeModelAssetRecord[],
+): NimiLoadoutRecipe | null {
+  return recipes.find((recipe) => {
+    if (recipe.capabilityContract !== capability || recipe.applicability !== 'supported') return false;
+    const summary = recipeResourceSummary(recipe, catalog, assets);
+    return summary.required > 0 && summary.missing === 0;
+  }) ?? null;
+}
+
+/** Boolean form of {@link capabilityRecommendedRecipeOnDevice} for the rail. */
+export function capabilityRecommendedFilesOnDevice(
+  capability: string,
+  recipes: readonly NimiLoadoutRecipe[],
+  catalog: readonly NimiRuntimeLocalVerifiedAssetDescriptor[],
+  assets: readonly NimiRuntimeModelAssetRecord[],
+): boolean {
+  return capabilityRecommendedRecipeOnDevice(capability, recipes, catalog, assets) !== null;
 }

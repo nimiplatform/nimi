@@ -59,12 +59,17 @@ function SessionThreadItem({
 
 export function ChatNimiThreadListSheet(props: ChatNimiThreadListSheetProps) {
   const { t } = useTranslation();
+  const threadCount = props.threads.length;
+  const subtitle = props.subtitle
+    || (threadCount > 0
+      ? t('Chat.threadListCount', { count: threadCount, defaultValue: '{{count}} conversations' })
+      : t('Chat.threadListSubtitle', { defaultValue: 'Conversation history' }));
 
   return (
     <ChatSideSheet
       sheetKey="nimi-thread-list"
       title={props.title}
-      subtitle={props.subtitle || t('Chat.nimiModeSubtitle', { defaultValue: 'Nimi threads and summaries' })}
+      subtitle={subtitle}
       onClose={props.onClose}
       footer={(
         <CompactAction
@@ -82,11 +87,11 @@ export function ChatNimiThreadListSheet(props: ChatNimiThreadListSheetProps) {
         </CompactAction>
       )}
     >
-      <div className="px-4 py-4">
-        <p className="text-xs leading-5 text-[var(--nimi-text-secondary)]">
-          {props.description || t('Chat.nimiTranscriptEmpty', { defaultValue: 'Send a message to start this conversation.' })}
-        </p>
-      </div>
+      {props.description ? (
+        <div className="px-4 py-4">
+          <p className="text-xs leading-5 text-[var(--nimi-text-secondary)]">{props.description}</p>
+        </div>
+      ) : null}
       {props.threads.length === 0 ? (
         <EmptyState
           className="mx-4 my-4"
@@ -96,7 +101,7 @@ export function ChatNimiThreadListSheet(props: ChatNimiThreadListSheetProps) {
             </svg>
           )}
           title={t('Chat.noConversationsYet', { defaultValue: 'No conversations yet' })}
-          description={t('Chat.startNewConversation', { defaultValue: 'Start a new conversation above' })}
+          description={t('Chat.startNewConversation', { defaultValue: 'Start a new conversation below' })}
         />
       ) : (
         <div className="flex flex-col gap-1.5 px-3 py-3">

@@ -2,6 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import type { NimiMachineLoadout } from '@nimiplatform/sdk/runtime';
+import { TooltipProvider } from '@nimiplatform/kit/ui';
+import { AppStoreProvider } from '../src/shell/renderer/app-shell/providers/app-store';
+import { createAppStore } from '../src/shell/renderer/app-shell/providers/app-store-factory';
 
 import { DesktopI18nResourceProvider } from '../src/shell/renderer/i18n/i18n-context';
 import { DesktopRendererBindingProvider } from '../src/shell/renderer/renderer/binding-context';
@@ -11,6 +15,7 @@ import {
   type RuntimeSetupTask,
 } from '../src/shell/renderer/features/runtime-config/runtime-setup-task-store';
 import { RuntimeConfigSetupTaskView, SetupTaskPlanReview } from '../src/shell/renderer/features/runtime-config/runtime-config-setup-task-view';
+import { PendingSetupBanner, RuntimeCapabilityDetail } from '../src/shell/renderer/features/runtime-config/runtime-capability-detail';
 import type { RuntimeSetupPreparationPlan, RuntimeSetupRunnerPorts } from '../src/shell/renderer/features/runtime-config/runtime-setup-task-runner';
 
 (globalThis as { React?: typeof React }).React = React;
@@ -204,4 +209,110 @@ test('failed owner save preserves the machine result and offers only the app ret
   assert.match(markup, /The app save result is unknown/);
   assert.match(markup, /Check and save app settings/);
   assert.doesNotMatch(markup, /Review and retry/);
+});
+
+test('the review shell names the capability and its use, opens straight on the checklist, and explains components in plain words', async () => {
+  const { componentPresentation } = await import('../src/shell/renderer/features/runtime-config/runtime-config-setup-task-view');
+  const t = (key: string, options?: Record<string, unknown>) => (typeof options?.defaultValue === 'string' ? options.defaultValue : key);
+  // Known ids get product names and a plain state; unknown ids stay visible verbatim.
+  const known = componentPresentation({ dependencyFamily: 'native-engine-package.llama', dependencyId: 'llama.cpp.package', state: 'needs_confirmation' }, t);
+  assert.equal(known.name, 'llama.cpp.package');
+  assert.equal(known.tone, 'info');
+  const failed = componentPresentation({ dependencyFamily: 'x', dependencyId: 'custom-thing', state: 'failed' }, t);
+  assert.equal(failed.name, 'custom-thing');
+  assert.equal(failed.tone, 'warning');
+
+  const plan = {
+    reuse: [{ slotId: 'main.model', label: 'Main model', modelAssetId: 'asset-1' }],
+    acquire: [], awaitingChoice: [], unavailable: [], options: [],
+    components: [{ dependencyFamily: 'accelerator.cuda.runtime', dependencyId: 'nvidia-cuda-user-space-runtime', label: 'raw', state: 'needs_confirmation', required: true }],
+    environmentPlanId: 'env-1', candidateRevision: 'r1', selectionRevisionPresent: false,
+  } satisfies RuntimeSetupPreparationPlan;
+  const markup = renderView(<SetupTaskPlanReview plan={plan} choices={{}} onChoiceChange={() => {}} ownerLabel={null} />);
+  // No count chips above the checklist; the checklist itself is the summary.
+  assert.doesNotMatch(markup, /runtime-setup-task-summary/);
+  assert.match(markup, /What will happen/);
+  assert.match(markup, /Installed automatically for this model/);
+  // The raw component id is kept under technical details rather than shown as the row title.
+  assert.match(markup, /accelerator\.cuda\.runtime \/ nvidia-cuda-user-space-runtime/);
+
+  const store = makeStore();
+  const task = taskOn(store, { capabilityContract: 'text.generate', status: 'review', candidateLoadoutId: 'cand-1' });
+  const view = renderView(<RuntimeConfigSetupTaskView taskId={task.taskId} store={store} ports={fakePorts()} onClose={() => {}} />);
+  // The header is the capability and what it is for, not the model name or a status line.
+  assert.match(view, /data-testid="runtime-setup-hero-title">runtimeConfig\.capabilityLabels\.textGenerate</);
+  assert.match(view, /data-testid="runtime-setup-hero-usage">/);
+  assert.doesNotMatch(view, /runtimeConfig\.setupTask\.lead\./);
+  // No choose/prepare/use step pills between the header and the review content.
+  assert.doesNotMatch(view, /runtime-setup-steps/);
+  assert.doesNotMatch(view, /aria-current="step"/);
+  assert.match(view, /runtime-setup-task-close/);
+  // Back already discards an unconfirmed setup, so there is no separate cancel.
+  assert.doesNotMatch(view, /runtime-setup-task-stop-early/);
+
+  // A reopened setup whose earlier run left install work keeps an explicit cancel.
+  const reopened = taskOn(store, {
+    capabilityContract: 'text.generate', status: 'review', candidateLoadoutId: 'cand-2',
+    refs: { installPlanIds: ['plan-1'], transferIds: [], dependencyJobIds: [] },
+  });
+  const reopenedView = renderView(<RuntimeConfigSetupTaskView taskId={reopened.taskId} store={store} ports={fakePorts()} onClose={() => {}} />);
+  assert.match(reopenedView, /runtime-setup-task-stop-early/);
+});
+
+test('the capability banner names the model under setup and offers the action for its state', () => {
+  const pending = (status: RuntimeSetupTask['status']) => taskOn(makeStore(), { capabilityContract: 'text.annotate', status, candidateLoadoutId: 'cand-1' });
+  const banner = (status: RuntimeSetupTask['status'], model = 'English language analysis') =>
+    renderView(<PendingSetupBanner task={pending(status)} model={model} onOpen={() => {}} />);
+  assert.match(banner('preparing'), /pendingSetup\.preparing<[\s\S]*pendingSetup\.viewProgress/);
+  assert.match(banner('committing'), /pendingSetup\.preparing</);
+  assert.match(banner('needs-attention'), /pendingSetup\.attention<[\s\S]*pendingSetup\.resolve/);
+  assert.match(banner('failed'), /pendingSetup\.attention</);
+  assert.match(banner('prepared'), /pendingSetup\.prepared<[\s\S]*pendingSetup\.enable/);
+  // Without a known candidate the banner still reads as a sentence.
+  assert.match(banner('preparing', ''), /pendingSetup\.preparingUnnamed</);
+});
+
+test('the capability page offers the customize tab only when a current model exists', () => {
+  const appStore = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference: () => undefined });
+  const detail = (selected: NimiMachineLoadout | undefined) => renderView(
+    <AppStoreProvider store={appStore}>
+    <TooltipProvider>
+    <RuntimeCapabilityDetail
+      capability="text.annotate"
+      selected={selected}
+      loadouts={[]}
+      recipes={[]}
+      catalog={[]}
+      assets={[]}
+      libraryLoading={false}
+      libraryError={false}
+      status={{ state: selected ? 'ready' : 'unset', replacement: false }}
+      taskModel=""
+      section="advanced"
+      onSection={() => {}}
+      busy={false}
+      disabled={false}
+      navigationContext={null}
+      onHome={() => {}}
+      onStart={async () => {}}
+      onEnable={async () => {}}
+      onTask={() => {}}
+      onDiagnostics={() => {}}
+      onModelMarket={() => {}}
+    />
+    </TooltipProvider>
+    </AppStoreProvider>,
+  );
+  // Nothing to customize: no tab, and a section left on it shows the overview.
+  const unset = detail(undefined);
+  assert.doesNotMatch(unset, /runtimeConfig\.capabilities\.tabs\.advanced/);
+  assert.doesNotMatch(unset, /runtimeConfig\.product\.editModelAndOptions/);
+  assert.match(unset, /runtimeConfig\.product\.currentOnDevice/);
+
+  const current = detail({
+    loadoutId: 'loadout-1', recipeId: 'recipe-en', capabilityContract: 'text.annotate',
+    displayName: 'English language analysis', modelAxes: [], validationState: 'configured',
+  } as unknown as NimiMachineLoadout);
+  assert.match(current, /runtimeConfig\.capabilities\.tabs\.advanced/);
+  assert.match(current, /runtimeConfig\.product\.editModelAndOptions/);
 });

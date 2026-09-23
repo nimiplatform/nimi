@@ -25,6 +25,8 @@ export type RuntimePageIdV11 =
   | 'modelLibrary'
   | 'cloudServices'
   | 'advancedDiagnostics';
+/** Sub-panes of the Advanced & Diagnostics page; deep-linkable from other surfaces. */
+export type RuntimeAdvancedDiagnosticsPane = 'services' | 'activity' | 'access' | 'data';
 export type UiModeV11 = 'simple' | 'advanced';
 export type RuntimeConfigStatusV11 = NimiRuntimeConfigProviderStatus;
 export type ApiConnectorScopeV11 = 'user' | 'machine-global' | 'runtime-system';
@@ -45,6 +47,11 @@ export type RuntimeConfigActionFocus =
     page: 'modelLibrary';
     action: 'install-model';
     focus: 'runtime-config-action-focus.model-library-install';
+  }
+  | {
+    page: 'modelLibrary';
+    action: 'import-model-files';
+    focus: 'runtime-config-action-focus.model-library-import';
   };
 
 export type LocalStateV11 = {
@@ -121,6 +128,17 @@ export function normalizeRuntimeConfigActionFocus(value: unknown): RuntimeConfig
       page: 'modelLibrary',
       action: 'install-model',
       focus: 'runtime-config-action-focus.model-library-install',
+    };
+  }
+  if (
+    record.page === 'modelLibrary'
+    && record.action === 'import-model-files'
+    && record.focus === 'runtime-config-action-focus.model-library-import'
+  ) {
+    return {
+      page: 'modelLibrary',
+      action: 'import-model-files',
+      focus: 'runtime-config-action-focus.model-library-import',
     };
   }
   return null;

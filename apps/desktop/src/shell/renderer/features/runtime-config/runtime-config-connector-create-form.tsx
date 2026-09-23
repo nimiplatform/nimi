@@ -6,7 +6,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../app-shell/providers/app-store';
-import { IdentityTile } from '../../components/identity-tile.js';
+import { ProviderLogoTile } from '../../components/provider-logo-tile.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { useConnectorOAuthAcquisition } from './runtime-config-connector-oauth-session.js';
 import { useRuntimeConfigConnectorSdk } from './runtime-config-connector-sdk-context.js';
@@ -200,7 +200,7 @@ export function RuntimeConfigConnectorCreateForm(props: {
                   onClick={() => chooseProvider(entry.provider)}
                   data-testid={`${testId}-provider:${entry.provider}`}
                 >
-                  <IdentityTile seed={entry.provider} label={label} size="sm" />
+                  <ProviderLogoTile provider={entry.provider} label={label} size="sm" />
                   <span className="min-w-0 flex-1 truncate font-medium text-[var(--nimi-text-primary)]">{label}</span>
                   {entry.requiresExplicitEndpoint ? <span className="text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.product.needsEndpoint')}</span> : null}
                 </button>
@@ -219,7 +219,7 @@ export function RuntimeConfigConnectorCreateForm(props: {
     <div className="space-y-4" data-testid={testId}>
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <IdentityTile seed={resolvedProvider} label={providerLabel(resolvedProvider)} size="md" />
+          <ProviderLogoTile provider={resolvedProvider} label={providerLabel(resolvedProvider)} size="md" />
           <h3 className="text-base font-semibold">{providerLabel(resolvedProvider)}</h3>
         </div>
         <Button variant="ghost" size="sm" disabled={saving || oauthBusy} onClick={() => onChangeField(() => { setProvider(''); setTokenDraft(''); })}><ArrowLeft size={14} />{t('runtimeConfig.product.changeService')}</Button>

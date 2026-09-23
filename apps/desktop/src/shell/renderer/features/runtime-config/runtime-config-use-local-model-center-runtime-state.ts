@@ -5,6 +5,10 @@ import { useTranslation } from 'react-i18next';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service';
 import { useLocalModelCenterImportActions } from './runtime-config-use-local-model-center-import-actions';
+import {
+  describeModelAssetRemovalImpact,
+  type LocalModelAssetRemovalImpact,
+} from './runtime-config-local-model-center-remove-dialog';
 
 type RuntimeInventoryErrorSlot = 'model-assets' | 'model-asset-action';
 type RuntimeInventoryErrors = Partial<Record<RuntimeInventoryErrorSlot, string>>;
@@ -85,11 +89,16 @@ export function useLocalModelCenterRuntimeState() {
     onRefreshAssets: refreshInstalledAssets,
   });
 
-  const inspectInstalledAssetRemoval = useCallback(async (modelAssetId: string) => {
+  const inspectInstalledAssetRemoval = useCallback(async (modelAssetId: string): Promise<LocalModelAssetRemovalImpact> => {
     setAssetBusy(true);
     try {
-      const inspection = await localEnvironmentClient.inspectModelAssetRemoval(modelAssetId);
-      return [...inspection.referencingLoadoutIds];
+      // The Loadout aggregate only decorates the dialog with names; when it is
+      // unreadable the referencing ids are still counted so removal stays possible.
+      const [inspection, aggregate] = await Promise.all([
+        localEnvironmentClient.inspectModelAssetRemoval(modelAssetId),
+        bindings.sdk.machineProduct().local.loadouts.get().catch(() => null),
+      ]);
+      return describeModelAssetRemovalImpact(inspection.referencingLoadoutIds, aggregate);
     } catch (error) {
       setRuntimeInventoryError(
         'model-asset-action',
@@ -99,7 +108,7 @@ export function useLocalModelCenterRuntimeState() {
     } finally {
       setAssetBusy(false);
     }
-  }, [localEnvironmentClient, setRuntimeInventoryError]);
+  }, [bindings.sdk, localEnvironmentClient, setRuntimeInventoryError]);
 
   const removeInstalledAsset = useCallback(async (modelAssetId: string) => {
     setAssetBusy(true);

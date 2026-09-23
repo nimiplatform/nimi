@@ -95,6 +95,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
             onCloseSetupTask={model.onCloseSetupTask}
             onOpenSavedConfigs={model.onOpenSavedConfigs}
             onOpenModelFiles={() => model.onChangePage('modelLibrary')}
+            onOpenModelImport={model.onOpenModelImport}
             onOpenModelMarket={model.onOpenModelMarket}
             onOpenAdvancedDiagnostics={() => model.onChangePage('advancedDiagnostics')}
             onOpenCloudServices={() => model.onChangePage('cloudServices')}
@@ -114,8 +115,9 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
           padding="none"
           className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
         >
-          {activePage !== 'cloudServices' ? <div className="flex shrink-0 items-center justify-between gap-3 px-5 py-4">
-            <Button tone="ghost" size="sm" onClick={() => model.onChangePage('aiSettings')}>
+          {activePage !== 'cloudServices' ? <div className="flex shrink-0 items-center justify-between gap-3 px-4 pt-3 pb-1">
+            <Button tone="ghost" size="sm" className="-ml-1 gap-1 text-[var(--nimi-text-secondary)]" onClick={() => model.onChangePage('aiSettings')}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
               {t('runtimeConfig.capabilities.backWorkspace')}
             </Button>
             <RuntimeHealthBadge daemonRunning={daemonRunning} status={runtimeStatus} />

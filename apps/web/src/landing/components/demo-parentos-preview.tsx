@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Baby,
   BellRing,
@@ -27,9 +28,10 @@ import {
   Syringe,
   TrendingUp,
   User,
+  X,
   type LucideProps,
 } from 'lucide-react';
-import { AmbientBackground, Surface, cn } from '@nimiplatform/kit/ui';
+import { AmbientBackground, Button, Surface, TextField, cn } from '@nimiplatform/kit/ui';
 import type { HeroDemoParentosPreview } from '../content/landing-content.js';
 
 /**
@@ -461,7 +463,7 @@ function TimelinePage({ content, navigate, notice }: { content: HeroDemoParentos
       </div>
 
       <div className="relative z-[1] hidden xl:block">
-        <ReminderPanel content={content} navigate={navigate} />
+        <ReminderPanel content={content} navigate={navigate} notice={notice} />
       </div>
     </div>
   );
@@ -472,11 +474,12 @@ function TimelinePage({ content, navigate, notice }: { content: HeroDemoParentos
 const ACTION_PILL_CLASS = 'inline-flex h-7 min-h-7 shrink-0 items-center justify-center whitespace-nowrap rounded-full border-0 px-3 no-underline [appearance:none] transition-colors';
 const ACTION_LABEL_CLASS = 'block text-[13px] leading-none font-medium tracking-[0.01em]';
 
-function ReminderRow({ item, tone, onPrimary, scheduleLabel, completeLabel, onComplete }: {
+function ReminderRow({ item, tone, onPrimary, scheduleLabel, onSchedule, completeLabel, onComplete }: {
   item: { id: string; title: string; status: string; primary: string };
   tone: { border: string; text: string };
   onPrimary: () => void;
   scheduleLabel: string;
+  onSchedule: () => void;
   completeLabel: string;
   onComplete: () => void;
 }) {
@@ -494,11 +497,11 @@ function ReminderRow({ item, tone, onPrimary, scheduleLabel, completeLabel, onCo
       <div className="min-w-0 flex-1">
         <p className="text-[14px] font-medium leading-snug" style={{ color: '#1e293b' }}>{item.title}</p>
         <p className="mt-0.5 text-[12px]" style={{ color: tone.text }}>{item.status}</p>
-        <div className="mt-1.5 flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+        <div className="mt-1.5 flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
           <button type="button" onClick={onPrimary} className={ACTION_PILL_CLASS} style={{ background: '#1e293b', color: '#fff' }}>
             <span className={ACTION_LABEL_CLASS}>{item.primary}</span>
           </button>
-          <button type="button" className={ACTION_PILL_CLASS} style={{ background: '#f1f5f9', color: '#475569' }}>
+          <button type="button" onClick={onSchedule} className={`${ACTION_PILL_CLASS} hover:bg-white`} style={{ background: '#f1f5f9', color: '#475569' }}>
             <span className={ACTION_LABEL_CLASS}>{scheduleLabel}</span>
           </button>
         </div>
@@ -507,22 +510,117 @@ function ReminderRow({ item, tone, onPrimary, scheduleLabel, completeLabel, onCo
   );
 }
 
-function ReminderPanel({ content, navigate }: { content: HeroDemoParentosPreview; navigate: (route: ParentosRoute) => void }) {
+type ReminderItem = { id: string; title: string; status: string; primary: string; kind?: 'task' | 'consult' | 'practice' | 'guide' };
+
+function isoDate(date: Date): string {
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function addDays(date: Date, days: number): Date {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+/** In-demo port of the app's ScheduleModal (reminders/schedule-modal.tsx): a
+ * date picker that parks the reminder until the chosen day. Rendered into the
+ * demo root so it covers the whole preview rather than just the right rail. */
+function ScheduleDialog({ copy, reminderTitle, suggestedDate, minDate, onConfirm, onClose }: {
+  copy: HeroDemoParentosPreview['panel']['scheduleDialog'];
+  reminderTitle: string;
+  suggestedDate: string;
+  minDate: string;
+  onConfirm: (date: string) => void;
+  onClose: () => void;
+}) {
+  const [date, setDate] = useState(suggestedDate);
+  const valid = /^\d{4}-\d{2}-\d{2}$/.test(date) && date >= minDate;
+  return (
+    <div
+      className="absolute inset-0 z-50 flex items-center justify-center p-6"
+      data-demo-parentos-schedule="true"
+      data-demo-nested-dialog="true"
+      onKeyDown={(event) => {
+        // The outer preview modal skips dismissal while data-demo-nested-dialog
+        // is on screen (demo-app-preview.tsx), so Escape only closes this layer.
+        if (event.key === 'Escape') { event.stopPropagation(); onClose(); }
+      }}
+    >
+      <div className="absolute inset-0 bg-slate-900/25 backdrop-blur-[2px]" onClick={onClose} role="presentation" aria-hidden="true" />
+      <Surface
+        as="div"
+        material="glass-thick"
+        tone="card"
+        padding="none"
+        role="dialog"
+        aria-modal="true"
+        aria-label={copy.title}
+        className="relative w-[380px] max-w-full rounded-[20px] border border-[var(--nimi-material-glass-thick-border)] p-5 shadow-[var(--nimi-elevation-floating)]"
+        style={{ animation: 'customTodoSlideDown 160ms ease both' }}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-[18px]" aria-hidden="true">📅</span>
+            <h2 className="text-[16px] font-bold" style={{ color: textMain }}>{copy.title}</h2>
+          </div>
+          <button type="button" onClick={onClose} aria-label={copy.close} className="flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-black/[0.06]" style={{ color: textMuted }}>
+            <X size={15} strokeWidth={2} aria-hidden="true" />
+          </button>
+        </div>
+        <p className="mb-1 text-[14px]" style={{ color: textMain }}>{reminderTitle}</p>
+        <p className="mb-4 text-[13px] leading-relaxed" style={{ color: textMuted }}>{copy.description}</p>
+        <TextField
+          type="date"
+          min={minDate}
+          value={date}
+          autoFocus
+          onChange={(event) => setDate(event.target.value)}
+          onKeyDown={(event) => { if (event.key === 'Enter' && valid) onConfirm(date); }}
+          aria-label={copy.title}
+          inputClassName="text-[14px]"
+        />
+        <div className="mt-4">
+          <Button tone="primary" size="md" fullWidth disabled={!valid} onClick={() => onConfirm(date)}>{copy.confirm}</Button>
+        </div>
+      </Surface>
+    </div>
+  );
+}
+
+function ReminderPanel({ content, navigate, notice }: { content: HeroDemoParentosPreview; navigate: (route: ParentosRoute) => void; notice: (text: string) => void }) {
   const panel = content.panel;
+  const asideRef = useRef<HTMLElement>(null);
   const [tab, setTab] = useState<'today' | 'upcoming'>('today');
   const [done, setDone] = useState<Record<string, boolean>>({});
+  // reminder id → YYYY-MM-DD; a scheduled reminder leaves today/overdue and
+  // resurfaces under 近期 with its date, like the app's 'scheduled' state.
+  const [scheduled, setScheduled] = useState<Record<string, string>>({});
+  const [scheduleTarget, setScheduleTarget] = useState<ReminderItem | null>(null);
   const [overdueOpen, setOverdueOpen] = useState(true);
   const [todos, setTodos] = useState(panel.todos);
   const [composerOpen, setComposerOpen] = useState(false);
   const [todoDraft, setTodoDraft] = useState('');
-  const items = (tab === 'today' ? panel.reminders : panel.upcoming).filter((item) => !done[item.id]);
-  const primaryRoute = (kind: string): ParentosRoute => (kind === 'consult' ? 'advisor' : kind === 'task' ? 'profile' : 'journal');
+  const today = isoDate(new Date());
+  const scheduledItems: ReminderItem[] = [...panel.reminders, ...panel.upcoming, ...panel.overdue]
+    .filter((item) => scheduled[item.id] && !done[item.id])
+    .map((item) => ({ ...item, status: panel.scheduleDialog.scheduled.replace('{{date}}', scheduled[item.id]!) }));
+  const todayItems: ReminderItem[] = panel.reminders.filter((item) => !done[item.id] && !scheduled[item.id]);
+  const upcomingItems: ReminderItem[] = [
+    ...panel.upcoming.filter((item) => !done[item.id] && !scheduled[item.id]),
+    ...scheduledItems,
+  ];
+  const overdueItems: ReminderItem[] = panel.overdue.filter((item) => !done[item.id] && !scheduled[item.id]);
+  const items = tab === 'today' ? todayItems : upcomingItems;
+  const primaryRoute = (kind?: string): ParentosRoute => (kind === 'consult' ? 'advisor' : kind === 'task' ? 'profile' : 'journal');
+  const complete = (id: string) => setDone((current) => ({ ...current, [id]: true }));
+  const scheduleHost = scheduleTarget ? asideRef.current?.closest<HTMLElement>('[data-demo-parentos-root]') ?? null : null;
   return (
-    <aside className="flex h-full w-[320px] shrink-0 flex-col overflow-y-auto border-l px-3 pb-6 pt-7" style={{ borderColor: 'rgba(255,255,255,0.6)', background: 'rgba(255,255,255,0.32)' }} aria-label={panel.title}>
+    <aside ref={asideRef} className="flex h-full w-[320px] shrink-0 flex-col overflow-y-auto border-l px-3 pb-6 pt-7" style={{ borderColor: 'rgba(255,255,255,0.6)', background: 'rgba(255,255,255,0.32)' }} aria-label={panel.title}>
       <p className="mb-4 px-3 text-[18px] font-semibold tracking-tight" style={{ color: '#1e293b', letterSpacing: '-0.3px' }}>{panel.title}</p>
       <div className="mx-2 mb-3 flex gap-1 rounded-full bg-white/60 p-1">
         {(['today', 'upcoming'] as const).map((key) => {
-          const count = (key === 'today' ? panel.reminders : panel.upcoming).filter((item) => !done[item.id]).length;
+          const count = (key === 'today' ? todayItems : upcomingItems).length;
           return (
             <button
               key={key}
@@ -543,8 +641,9 @@ function ReminderPanel({ content, navigate }: { content: HeroDemoParentosPreview
             item={item}
             tone={{ border: '#1e293b', text: '#475569' }}
             scheduleLabel={panel.schedule}
+            onSchedule={() => setScheduleTarget(item)}
             completeLabel={panel.markComplete}
-            onComplete={() => setDone((current) => ({ ...current, [item.id]: true }))}
+            onComplete={() => complete(item.id)}
             onPrimary={() => navigate(primaryRoute(item.kind))}
           />
         ))}
@@ -554,16 +653,17 @@ function ReminderPanel({ content, navigate }: { content: HeroDemoParentosPreview
         <button type="button" onClick={() => setOverdueOpen((value) => !value)} className="flex w-full items-center gap-1.5 text-left">
           <ChevronRight size={10} strokeWidth={2.5} style={{ color: '#d97706' }} className={`transition-transform ${overdueOpen ? 'rotate-90' : ''}`} aria-hidden="true" />
           <span className="text-[12px] font-semibold" style={{ color: '#d97706' }}>{panel.overdueSummary}</span>
-          <span className="rounded-full px-1.5 py-[1px] text-[12px] font-medium" style={{ background: '#fef3c7', color: '#b45309' }}>{panel.overdue.filter((item) => !done[item.id]).length}</span>
+          <span className="rounded-full px-1.5 py-[1px] text-[12px] font-medium" style={{ background: '#fef3c7', color: '#b45309' }}>{overdueItems.length}</span>
         </button>
-        {overdueOpen ? panel.overdue.filter((item) => !done[item.id]).map((item) => (
+        {overdueOpen ? overdueItems.map((item) => (
           <ReminderRow
             key={item.id}
             item={item}
             tone={{ border: '#f59e0b', text: '#f59e0b' }}
             scheduleLabel={panel.schedule}
+            onSchedule={() => setScheduleTarget(item)}
             completeLabel={panel.markComplete}
-            onComplete={() => setDone((current) => ({ ...current, [item.id]: true }))}
+            onComplete={() => complete(item.id)}
             onPrimary={() => navigate('profile')}
           />
         )) : null}
@@ -615,10 +715,26 @@ function ReminderPanel({ content, navigate }: { content: HeroDemoParentosPreview
               <p className="text-[14px] font-medium leading-snug" style={{ color: '#1e293b' }}>{nudge.text}</p>
               <p className="mt-0.5 text-[12px]" style={{ color: '#475569' }}>{nudge.question}</p>
             </div>
-            <button type="button" onClick={() => navigate('journal')} className="shrink-0 rounded-full px-3 py-1.5 text-[12px] font-medium text-white opacity-0 transition-all group-hover:opacity-100 hover:-translate-y-0.5" style={{ background: '#1e293b', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>{panel.observe}</button>
+            <button type="button" onClick={() => navigate('journal')} className="shrink-0 rounded-full px-3 py-1.5 text-[12px] font-medium text-white opacity-0 transition-all group-hover:opacity-100 group-focus-within:opacity-100 hover:-translate-y-0.5" style={{ background: '#1e293b', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>{panel.observe}</button>
           </div>
         ))}
       </div>
+
+      {scheduleTarget && scheduleHost ? createPortal(
+        <ScheduleDialog
+          copy={panel.scheduleDialog}
+          reminderTitle={scheduleTarget.title}
+          suggestedDate={scheduled[scheduleTarget.id] ?? isoDate(addDays(new Date(), 1))}
+          minDate={today}
+          onConfirm={(date) => {
+            setScheduled((current) => ({ ...current, [scheduleTarget.id]: date }));
+            setScheduleTarget(null);
+            notice(panel.scheduleDialog.scheduledNotice.replace('{{date}}', date));
+          }}
+          onClose={() => setScheduleTarget(null)}
+        />,
+        scheduleHost,
+      ) : null}
     </aside>
   );
 }

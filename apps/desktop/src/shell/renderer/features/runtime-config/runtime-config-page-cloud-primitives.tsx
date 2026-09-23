@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { TextField } from '@nimiplatform/kit/ui';
 import { Button as PrimitiveButton } from './runtime-config-primitives';
+import { PlusIcon } from './runtime-config-runtime-page-ui';
 
 // Shared icons re-exported from the runtime-page-ui layer; SVGs are identical.
 export { EyeIcon, EyeOffIcon, PlusIcon, TrashIcon } from './runtime-config-runtime-page-ui';
@@ -109,5 +110,46 @@ export function Input({
         trailing={rightAccessory}
       />
     </div>
+  );
+}
+
+/** Host portion of a connector endpoint for quiet, scannable labels. */
+export function endpointHost(endpoint: string): string {
+  try {
+    return new URL(endpoint).host;
+  } catch {
+    return endpoint;
+  }
+}
+
+/** First-run state for the Cloud page: one welcoming card instead of an empty rail. */
+export function CloudEmptyState({
+  onAddConnector,
+  t,
+}: {
+  onAddConnector: () => void;
+  t: (key: string, options?: Record<string, unknown>) => string;
+}) {
+  return (
+    <section
+      className="flex min-h-[320px] flex-col items-center justify-center rounded-[24px] px-6 py-12 text-center ring-1 ring-inset ring-[var(--nimi-border-subtle)]"
+      style={{ background: 'var(--nimi-surface-hero)' }}
+      data-testid="cloud-empty-state"
+    >
+      <span className="flex size-16 items-center justify-center rounded-[20px] bg-[var(--nimi-surface-card)] text-[var(--nimi-action-primary-bg)] shadow-[var(--nimi-elevation-base)]">
+        <CloudIcon className="h-7 w-7" />
+      </span>
+      <h2 className="mt-5 text-lg font-semibold tracking-tight text-[var(--nimi-text-primary)]">
+        {t('runtimeConfig.product.cloudEmptyTitle')}
+      </h2>
+      <p className="mt-2 max-w-md text-sm text-[var(--nimi-text-secondary)]">
+        {t('runtimeConfig.product.cloudEmptyBody')}
+      </p>
+      <div className="mt-6">
+        <Button variant="primary" onClick={onAddConnector} icon={<PlusIcon />}>
+          {t('runtimeConfig.cloud.addConnector', { defaultValue: 'Add' })}
+        </Button>
+      </div>
+    </section>
   );
 }

@@ -42,6 +42,9 @@
   --font-display: "Inter", "Sora", "IBM Plex Sans", "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", sans-serif;
   --font-body: "IBM Plex Sans", "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", "SFMono-Regular", monospace;
+  /* Brand wordmark (header "Nimi" text): Geist Sans (Vercel's open-source
+   * grotesque, loaded from Google Fonts), falling back to the heading stack. */
+  --font-brand: "Geist", "Space Grotesk", var(--font-heading);
   --surface: #ffffff;
   --surface-border: #e2e8f0; /* slate-200 */
   /* Shared canvas for the header bar and the hero: one max width and one
@@ -92,6 +95,10 @@ body {
 
 .font-display {
   font-family: var(--font-display);
+}
+
+.font-brand {
+  font-family: var(--font-brand);
 }
 
 .container-nimi {

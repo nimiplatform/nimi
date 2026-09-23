@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
-  ArrowUp,
   BookOpen,
   Briefcase,
   CalendarDays,
@@ -16,14 +15,11 @@ import {
   HeartPulse,
   House,
   Leaf,
-  Link2,
   MessageCircle,
   MessageSquare,
   Pause,
   Pencil,
-  Plus,
   RefreshCw,
-  Search,
   Send,
   ShieldCheck,
   Sparkles,
@@ -33,22 +29,26 @@ import {
   X,
 } from 'lucide-react';
 import type {
+  HeroDemoShijingMethodId,
   HeroDemoShijingPreview,
   HeroDemoShijingTabId,
   HeroDemoShijingTone,
 } from '../content/landing-content.js';
+import { DemoShijingAsk } from './demo-shijing-ask.js';
+import { DemoShijingMingJing } from './demo-shijing-mingjing.js';
 
 /**
  * Interactive replica of the ShiJing (时镜) six-mirror shell
  * (nimiapp-shijing src/product/shell + tabs). The integrated top bar, the
- * primary tab bar, and the 日镜 / 月镜 tabs mount the app's own class names on
- * the ported stylesheet (demo-shijing.css); the other mirrors are landing-owned
- * approximations of the app's redesign previews. Readings are mock data
- * from the landing content and no astrology pipeline or Runtime AI runs.
+ * primary tab bar, and the 日镜 / 月镜 / 命镜 tabs mount the app's own class
+ * names on the ported stylesheet (demo-shijing.css); the other mirrors are
+ * landing-owned approximations of the app's redesign previews. 命镜 is
+ * method-routed by the top bar's 推演方法 select exactly like the app. Readings
+ * are mock data from the landing content and no Runtime AI runs; the 命镜 chart
+ * data was generated once by the app's deterministic engines.
  */
 
 const GENERATE_MS = 1_600;
-const ASK_THINK_MS = 1_400;
 
 function concernIcon(name: string) {
   if (/事业|工作|合作/u.test(name)) return <Briefcase size={20} aria-hidden="true" />;
@@ -1576,336 +1576,52 @@ function NianJingTab({ content }: { content: HeroDemoShijingPreview['nianjing'] 
 /* 命镜                                                                     */
 /* ------------------------------------------------------------------------ */
 
-function MingJingTab({ content }: { content: HeroDemoShijingPreview['mingjing'] }) {
-  const [activePalace, setActivePalace] = useState<string | null>(null);
-  // Palaces are laid out clockwise around a 4x4 grid: top row (4), right
-  // column (2), bottom row (4, right to left), left column (2, bottom to top).
-  const slots: Array<{ column: number; row: number }> = [
-    { column: 1, row: 1 }, { column: 2, row: 1 }, { column: 3, row: 1 }, { column: 4, row: 1 },
-    { column: 1, row: 2 }, { column: 4, row: 2 },
-    { column: 1, row: 3 }, { column: 4, row: 3 },
-    { column: 1, row: 4 }, { column: 2, row: 4 }, { column: 3, row: 4 }, { column: 4, row: 4 },
-  ];
-  return (
-    <section className="shijing-tab shijing-mingjing" data-mirror-kind="mingjing" aria-label={content.title}>
-      <header className="shijing-mirror-header">
-        <div className="shijing-mirror-header__titles">
-          <h1>{content.title}</h1>
-        </div>
-      </header>
-      <section className="sjd-glass sjd-mingjing__natal" aria-label={content.natalTitle}>
-        <div className="sjd-mingjing__natal-head">
-          <span className="sjd-mingjing__natal-badge" aria-hidden="true">命</span>
-          <div>
-            <strong>{content.natalTitle}</strong>
-            <small>{content.natalMeta}</small>
-          </div>
-        </div>
-        <div className="sjd-mingjing__natal-grid">
-          {content.natalRows.map((row) => (
-            <div key={row.label}>
-              <span>{row.label}</span>
-              {row.value}
-            </div>
-          ))}
-        </div>
-      </section>
-      <section className="sjd-glass" aria-label={content.pillarsTitle}>
-        <h3 className="sjd-section-title">{content.pillarsTitle}</h3>
-        <div className="sjd-mingjing__pillars">
-          {content.pillars.map((pillar) => (
-            <div key={pillar.label} className="sjd-mingjing__pillar" data-day={pillar.label === '日柱'}>
-              <span>{pillar.label}</span>
-              <b>{pillar.stem}</b>
-              <b>{pillar.branch}</b>
-              <small>{pillar.hidden}</small>
-            </div>
-          ))}
-        </div>
-      </section>
-      <section className="sjd-glass" aria-label={content.ziweiTitle}>
-        <h3 className="sjd-section-title">{content.ziweiTitle}</h3>
-        <p style={{ margin: '-6px 0 14px', fontSize: 12.5, color: 'var(--shijing-text-muted)' }}>{content.ziweiSubtitle}</p>
-        <div className="sjd-ziwei">
-          {content.palaces.map((palace, index) => {
-            const slot = slots[index];
-            return (
-              <button
-                key={palace.name}
-                type="button"
-                className="sjd-ziwei__palace"
-                data-highlight={palace.highlight}
-                data-active={activePalace === palace.name}
-                aria-pressed={activePalace === palace.name}
-                style={slot ? { gridColumn: slot.column, gridRow: slot.row } : undefined}
-                onClick={() => setActivePalace((current) => (current === palace.name ? null : palace.name))}
-              >
-                <span className="sjd-ziwei__palace-head">
-                  <strong>{palace.name}</strong>
-                  <small>{palace.branch}</small>
-                </span>
-                <span className="sjd-ziwei__stars">
-                  {palace.stars.map((star) => <span key={star}>{star}</span>)}
-                </span>
-              </button>
-            );
-          })}
-          <div className="sjd-ziwei__center">
-            <span className="sjd-eyebrow">{content.centerEyebrow}</span>
-            <h3>{content.centerTitle}</h3>
-            {content.centerLines.map((line) => <p key={line}>{line}</p>)}
-            {activePalace ? (
-              <p style={{ color: '#157a5b', fontWeight: 600 }}>
-                {activePalace} · {content.palaces.find((palace) => palace.name === activePalace)?.stars.join(' ')}
-              </p>
-            ) : null}
-          </div>
-        </div>
-      </section>
-    </section>
-  );
-}
+// 命镜 is method-routed and lives in demo-shijing-mingjing.tsx (DemoShijingMingJing).
 
 /* ------------------------------------------------------------------------ */
 /* 合镜                                                                     */
 /* ------------------------------------------------------------------------ */
 
+// 合镜 first-run state — the app's immersive intake hero
+// (nimiapp-shijing tabs/hejing/hejing-immersive-empty.tsx, 合镜 grade of
+// onboarding/immersive-intake-gate.css). The app shows this until the first
+// relationship person exists; the demo keeps it as the 合镜 entry screen.
 function HeJingTab({ content }: { content: HeroDemoShijingPreview['hejing'] }) {
   return (
-    <section className="shijing-tab shijing-hejing" data-mirror-kind="hejing" aria-label={content.title}>
-      <header className="shijing-mirror-header">
-        <div className="shijing-mirror-header__titles">
-          <h1>{content.title}</h1>
-          <div className="shijing-mirror-header__meta">{content.subtitle}</div>
-        </div>
-      </header>
-      <section className="sjd-glass" aria-label={content.title}>
-        <div className="sjd-hejing__pair">
-          {content.pair.map((person, index) => (
-            <div key={person.name} style={{ display: 'contents' }}>
-              {index === 1 ? <span className="sjd-hejing__link" aria-hidden="true"><Link2 size={16} /></span> : null}
-              <div className="sjd-hejing__person">
-                <span className="sjd-hejing__avatar" aria-hidden="true">{Array.from(person.name)[0]}</span>
-                <div>
-                  <strong>{person.name}</strong>
-                  <small>{person.relation} · {person.birth}</small>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-      <section className="sjd-glass" aria-label={content.patternsTitle}>
-        <h3 className="sjd-section-title">{content.patternsTitle}</h3>
-        <div className="sjd-hejing__patterns">
-          {content.patterns.map((pattern) => (
-            <article key={pattern.title} className="sjd-hejing__pattern sjd-tone" data-tone={pattern.tone}>
-              <span className="sjd-dot" aria-hidden="true" style={{ marginTop: 8 }} />
-              <div>
-                <div className="sjd-hejing__pattern-head">
-                  <span>{pattern.title}</span>
-                  <span className="sjd-pill">{pattern.label}</span>
-                </div>
-                <p>{pattern.body}</p>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-      <section className="sjd-glass" aria-label={content.trackTitle}>
-        <h3 className="sjd-section-title">{content.trackTitle}</h3>
-        <div className="sjd-hejing__track">
-          {content.track.map((entry) => (
-            <div key={entry.month} className="sjd-tone" data-tone={entry.tone}>
-              <span aria-hidden="true" />
-              {entry.month}
-            </div>
-          ))}
-        </div>
-      </section>
-    </section>
-  );
-}
-
-/* ------------------------------------------------------------------------ */
-/* 问镜                                                                     */
-/* ------------------------------------------------------------------------ */
-
-type AskTurn = { id: string; role: 'user' | 'ai'; question?: string; pending?: boolean };
-
-function AskTab({ content }: { content: HeroDemoShijingPreview['ask'] }) {
-  const [question, setQuestion] = useState('');
-  const [search, setSearch] = useState('');
-  const [selected, setSelected] = useState<string | null>(null);
-  const [threads, setThreads] = useState<Record<string, AskTurn[]>>({});
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
-
-  const pending = selected ? threads[selected]?.some((turn) => turn.pending) ?? false : false;
-  const history = content.history.filter((entry) => !search.trim() || entry.question.includes(search.trim()));
-  const activeHistory = content.history.find((entry) => entry.id === selected) ?? null;
-  const thread: AskTurn[] = selected
-    ? threads[selected] ?? (activeHistory
-      ? [{ id: `${selected}-q`, role: 'user', question: activeHistory.question }, { id: `${selected}-a`, role: 'ai' }]
-      : [])
-    : [];
-
-  const submit = () => {
-    const body = question.trim();
-    if (!body || pending) return;
-    const id = `ask-${Date.now()}`;
-    setThreads((current) => ({
-      ...current,
-      [id]: [{ id: `${id}-q`, role: 'user', question: body }, { id: `${id}-a`, role: 'ai', pending: true }],
-    }));
-    setSelected(id);
-    setQuestion('');
-    timerRef.current = setTimeout(() => {
-      setThreads((current) => ({
-        ...current,
-        [id]: (current[id] ?? []).map((turn) => (turn.role === 'ai' ? { ...turn, pending: false } : turn)),
-      }));
-    }, ASK_THINK_MS);
-  };
-
-  const localQuestions = Object.entries(threads)
-    .filter(([id]) => !content.history.some((entry) => entry.id === id))
-    .map(([id, turns]) => ({ id, question: turns[0]?.question ?? '' }));
-
-  const renderGroup = (group: 'today' | 'week' | 'earlier') => {
-    const entries = history.filter((entry) => entry.group === group);
-    const extra = group === 'today' ? localQuestions : [];
-    if (entries.length === 0 && extra.length === 0) return null;
-    return (
-      <div key={group}>
-        <p className="shijing-ask__group-label">{content.groups[group]}</p>
-        {extra.map((entry) => (
-          <button key={entry.id} type="button" className="shijing-ask__history-item" data-active={selected === entry.id} onClick={() => setSelected(entry.id)}>
-            {entry.question}
-            <small>{content.groups.today}</small>
-          </button>
-        ))}
-        {entries.map((entry) => (
-          <button key={entry.id} type="button" className="shijing-ask__history-item" data-active={selected === entry.id} onClick={() => setSelected(entry.id)}>
-            {entry.question}
-            <small>{entry.date}</small>
-          </button>
-        ))}
-      </div>
-    );
-  };
-
-  return (
-    <section className="shijing-tab shijing-ask" data-mirror-kind="shijing" aria-label={content.title}>
-      <div className="shijing-ask__layout">
-        <aside className="shijing-ask__rail" aria-label="提问记录">
-          <button type="button" className="shijing-ask__new-question" onClick={() => { setSelected(null); setQuestion(''); }}>
-            <Plus size={14} aria-hidden="true" />
-            {content.newQuestion}
-          </button>
-          <div className="shijing-ask__search">
-            <Search size={14} aria-hidden="true" />
-            <input type="text" value={search} placeholder={content.searchPlaceholder} aria-label={content.searchPlaceholder} onChange={(event) => setSearch(event.target.value)} />
+    <section className="shijing-hejing" data-mirror-kind="hejing" aria-label={content.title}>
+      <section
+        className="shijing-intake-hero"
+        data-mirror-kind="hejing"
+        aria-label={content.ariaLabel}
+        style={{ backgroundImage: `url(${content.heroImage}), linear-gradient(150deg, #14241a 0%, #20382a 100%)` }}
+      >
+        <div className="shijing-intake-hero__content">
+          <p className="shijing-intake-hero__eyebrow">{content.eyebrow}</p>
+          <h1 className="shijing-intake-hero__title">
+            {content.titleLead}
+            <br />
+            {content.titleEmphasis}
+          </h1>
+          <span className="shijing-intake-hero__divider" aria-hidden="true" />
+          <p className="shijing-intake-hero__body">{content.body}</p>
+          <div className="shijing-intake-hero__actions">
+            <button type="button" className="shijing-intake-hero__action">
+              {content.primaryAction}
+              <span className="shijing-intake-hero__action-arrow" aria-hidden="true">→</span>
+            </button>
           </div>
-          {history.length === 0 && localQuestions.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '48px 8px', color: 'var(--shijing-text-muted)', fontSize: 12.5 }}>
-              <strong style={{ display: 'block', color: 'var(--shijing-text-secondary)', marginBottom: 6 }}>{content.railEmptyTitle}</strong>
-              {content.railEmptyBody}
-            </div>
-          ) : (['today', 'week', 'earlier'] as const).map(renderGroup)}
-        </aside>
-        <div className="shijing-ask__main" data-chat-active={thread.length > 0}>
-          {thread.length === 0 ? (
-            <header className="shijing-ask__hero">
-              <h1 className="shijing-ask__title">{content.title}<span className="shijing-ask__title-dot" aria-hidden="true" /></h1>
-              <p className="shijing-ask__subtitle">{content.subtitle}</p>
-              <span className="shijing-ask__hero-rule" aria-hidden="true" />
-            </header>
-          ) : (
-            <ol className="shijing-ask__thread">
-              {thread.map((turn) => (
-                <li key={turn.id} className="shijing-ask__turn" data-role={turn.role}>
-                  <span className="shijing-ask__turn-role">{turn.role === 'user' ? content.roleUser : content.roleAi}</span>
-                  <div className="shijing-ask__turn-body" aria-live={turn.pending ? 'polite' : undefined}>
-                    {turn.role === 'user' ? (
-                      <p>{turn.question}</p>
-                    ) : turn.pending ? (
-                      <p>
-                        <span className="shijing-ask__thinking-dots" aria-hidden="true"><i /><i /><i /></span>
-                        {' '}{content.thinking}
-                      </p>
-                    ) : (
-                      <>
-                        <h3 className="shijing-ask__answer-title">{content.answer.title}</h3>
-                        <p className="shijing-ask__answer-conclusion">{content.answer.conclusion}</p>
-                        <div className="shijing-ask__answer-cards">
-                          {content.answer.cards.map((card) => (
-                            <article key={card.title} className="shijing-ask__answer-card">
-                              <h4 className="shijing-ask__answer-card-title">{card.title}</h4>
-                              <p className="shijing-ask__answer-field shijing-ask__answer-risk" data-risk={card.risk}>
-                                <span className="shijing-ask__answer-field-label">{content.fields.riskLevel}</span>
-                                <span className="shijing-ask__answer-risk-value">{card.risk}</span>
-                              </p>
-                              <p className="shijing-ask__answer-field"><span className="shijing-ask__answer-field-label">{content.fields.why}</span>{card.why}</p>
-                              <p className="shijing-ask__answer-field"><span className="shijing-ask__answer-field-label">{content.fields.suggestion}</span>{card.suggestion}</p>
-                              <p className="shijing-ask__answer-field"><span className="shijing-ask__answer-field-label">{content.fields.avoid}</span>{card.avoid}</p>
-                            </article>
-                          ))}
-                        </div>
-                        <p className="shijing-ask__answer-summary">{content.answer.summary}</p>
-                        <small className="shijing-ask__turn-cite">{content.citedFormat.replace('{{count}}', String(content.answer.cited))}</small>
-                      </>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ol>
-          )}
-          <form
-            className="shijing-ask__composer"
-            aria-label="提问"
-            onSubmit={(event) => {
-              event.preventDefault();
-              submit();
-            }}
-          >
-            <h2 className="shijing-ask__composer-title">{content.composerTitle}</h2>
-            <textarea
-              className="shijing-ask__textarea"
-              value={question}
-              rows={3}
-              placeholder={content.placeholderLines.join('\n')}
-              aria-label="你的问题"
-              onChange={(event) => setQuestion(event.target.value)}
-            />
-            <div className="shijing-ask__toolbar">
-              <div className="shijing-ask__context">
-                <span className="shijing-ask__context-icon" aria-hidden="true"><Plus size={14} /></span>
-                <div>
-                  <strong>{content.contextTitle}</strong>
-                  {content.contextDescription}
-                </div>
-                <span className="shijing-ask__chips">
-                  {content.concerns.map((concern) => <span key={concern} className="shijing-ask__chip">#{concern}</span>)}
-                </span>
-              </div>
-              <button
-                type="submit"
-                className="shijing-generating-button shijing-ask__submit"
-                data-busy={pending ? 'true' : undefined}
-                disabled={pending || question.trim().length === 0}
-                aria-label={content.submitLabel}
-                title={content.submitLabel}
-              >
-                {pending ? <span className="shijing-generating-button__spinner" aria-hidden="true" /> : <ArrowUp size={16} aria-hidden="true" />}
-              </button>
-            </div>
-          </form>
+          <p className="shijing-intake-hero__subnote">{content.stepsHint}</p>
         </div>
-      </div>
+        <p className="shijing-intake-hero__footer">
+          {content.footer}
+          <span className="shijing-intake-hero__footer-rule" aria-hidden="true" />
+        </p>
+      </section>
     </section>
   );
 }
+
+// 问镜 lives in demo-shijing-ask.tsx (DemoShijingAsk).
 
 /* ------------------------------------------------------------------------ */
 /* Shell                                                                    */
@@ -1914,12 +1630,16 @@ function AskTab({ content }: { content: HeroDemoShijingPreview['ask'] }) {
 export function DemoShijingPreview({
   content,
   initialTab = 'rijing',
+  initialMethodProfile,
 }: {
   content: HeroDemoShijingPreview;
   initialTab?: HeroDemoShijingTabId;
+  initialMethodProfile?: HeroDemoShijingMethodId;
 }) {
   const [activeTab, setActiveTab] = useState<HeroDemoShijingTabId>(initialTab);
-  const [methodProfile, setMethodProfile] = useState(content.methodProfiles[0]?.id ?? '');
+  const [methodProfile, setMethodProfile] = useState<HeroDemoShijingMethodId>(
+    initialMethodProfile ?? content.methodProfiles[0]?.id ?? 'bazi_ziping_v1',
+  );
   const [menuOpen, setMenuOpen] = useState(false);
   const accountRef = useRef<HTMLDivElement>(null);
 
@@ -1968,7 +1688,7 @@ export function DemoShijingPreview({
               className="shijing-topbar__method-select"
               aria-label="推演方法"
               value={methodProfile}
-              onChange={(event) => setMethodProfile(event.target.value)}
+              onChange={(event) => setMethodProfile(event.target.value as HeroDemoShijingMethodId)}
             >
               {content.methodProfiles.map((profile) => (
                 <option key={profile.id} value={profile.id}>{profile.label}</option>
@@ -2000,9 +1720,9 @@ export function DemoShijingPreview({
           {activeTab === 'rijing' ? <RiJingTab content={content.rijing} /> : null}
           {activeTab === 'yuejing' ? <YueJingTab content={content.yuejing} onAskInShijing={() => setActiveTab('shijing')} /> : null}
           {activeTab === 'nianjing' ? <NianJingTab content={content.nianjing} /> : null}
-          {activeTab === 'mingjing' ? <MingJingTab content={content.mingjing} /> : null}
+          {activeTab === 'mingjing' ? <DemoShijingMingJing content={content.mingjing} methodProfile={methodProfile} /> : null}
           {activeTab === 'hejing' ? <HeJingTab content={content.hejing} /> : null}
-          {activeTab === 'shijing' ? <AskTab content={content.ask} /> : null}
+          {activeTab === 'shijing' ? <DemoShijingAsk content={content.ask} /> : null}
         </main>
       </div>
     </div>

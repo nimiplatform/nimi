@@ -82,6 +82,42 @@ export function createEmptyBundle(thread: ChatAiThreadRecord): ChatAiThreadBundl
   };
 }
 
+/**
+ * Shows the sent text in the transcript before Runtime answers. The message is
+ * `pending` and lives only in the query cache until the send is persisted.
+ */
+export function appendOptimisticUserMessage(
+  bundle: ChatAiThreadBundle | null | undefined,
+  thread: ChatAiThreadRecord,
+  message: ChatAiMessageRecord,
+): ChatAiThreadBundle {
+  const base = bundle ?? createEmptyBundle(thread);
+  return {
+    ...base,
+    messages: replaceMessage(base.messages, message),
+    draft: null,
+  };
+}
+
+/**
+ * Undoes an optimistic send that Runtime rejected: drops the pending message
+ * and hands the text back to the composer as the thread draft.
+ */
+export function restoreDraftAfterFailedSend(
+  bundle: ChatAiThreadBundle | null | undefined,
+  messageId: string,
+  draft: ChatAiDraftRecord,
+): ChatAiThreadBundle | null | undefined {
+  if (!bundle) {
+    return bundle;
+  }
+  return {
+    ...bundle,
+    messages: bundle.messages.filter((message) => message.id !== messageId),
+    draft,
+  };
+}
+
 export function toErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message;

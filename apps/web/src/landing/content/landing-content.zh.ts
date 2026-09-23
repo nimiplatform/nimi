@@ -3,6 +3,7 @@ import { zhiyuPreviewContent } from './landing-content.zhiyu.js';
 import { shijingPreviewContent } from './landing-content.shijing.js';
 import { parentosPreviewContent } from './landing-content.parentos.js';
 import { storybookPreviewContent } from './landing-content.storybook.js';
+import { oddBureauPreviewContent } from './landing-content.odd-bureau.js';
 
 export const landingContentZh: LandingContent = {
   skipToContent: '跳转到主要内容',
@@ -20,8 +21,8 @@ export const landingContentZh: LandingContent = {
   hero: {
     slogan: '你的 AI 由你定义',
     sloganAccent: '由你定义',
-    subSlogan: '本地或云端，模型由你选择。\n角色由你塑造，应用与世界由你开启。',
-    subSloganNote: '应用可以切换，AI 与记忆始终如一。',
+    subSlogan: '本地或云端，模型由你选择。\n角色与世界，体验由你塑造。',
+    subSloganNote: '应用随你切换，AI 与记忆始终如一。',
     downloadCta: '下载 Nimi',
     downloadNote: '支持 macOS 与 Windows。',
     docsCta: '查看文档',
@@ -113,7 +114,7 @@ export const landingContentZh: LandingContent = {
         moreInfoLabel: '更多信息',
         previewBadge: '交互预览 · 演示数据',
         previewUnavailableTitle: '预览暂未接入',
-        previewUnavailableBody: '该 App 的交互预览尚未提供；当前提供演示的有织羽 Zhiyu、时镜 ShiJing、ParentOS 与 Storybook。',
+        previewUnavailableBody: '该 App 的交互预览尚未提供；当前提供演示的有织羽 Zhiyu、时镜 ShiJing、ParentOS、Storybook 与奇物局。',
         closeLabel: '关闭',
         items: [
           { id: 'nimi.zhiyu', name: '织羽 Zhiyu', task: '孵化本地 AI 伙伴：与它对话、陪伴与共同成长。', tags: ['文字生成', '语音合成'], updatedAt: '2026年9月17日', localDev: true },
@@ -122,6 +123,7 @@ export const landingContentZh: LandingContent = {
           { id: 'nimi.storybook', name: 'Storybook', task: '阅读和创作互动故事。', tags: ['文字生成'], updatedAt: '2026年9月10日', localDev: false, iconSrc: '/demo/storybook-icon.png' },
           { id: 'nimi.realm-persona-studio', name: 'Realm Persona Studio', task: '创建和管理自己的 Realm Persona。', tags: ['图像生成'], updatedAt: '2026年9月8日', localDev: true },
           { id: 'nimi.shijing', name: '时镜 ShiJing', task: '个人节律观察与解读。', tags: ['文字生成'], updatedAt: '2026年9月5日', localDev: true },
+          { id: 'nimi.odd-bureau', name: '奇物局', task: '把一张照片变成可以玩的物品小世界。', tags: ['图像生成', '文字生成', '语音合成'], updatedAt: '2026年9月18日', localDev: true },
           { id: 'nimi.inscape', name: 'Inscape 心相', task: '性格探索与日常反思。', tags: ['文字生成'], updatedAt: '2026年9月1日', localDev: false },
         ],
       },
@@ -130,6 +132,7 @@ export const landingContentZh: LandingContent = {
         shijing: shijingPreviewContent,
         parentos: parentosPreviewContent,
         storybook: storybookPreviewContent,
+        oddBureau: oddBureauPreviewContent,
       },
       runtime: {
         title: '运行时',
@@ -152,8 +155,8 @@ export const landingContentZh: LandingContent = {
     },
   },
   apps: {
-    title: '从工作到兴趣，探索不同的 AI 应用。',
-    subtitle: '使用免费的 Nimi 应用，处理日常工作，也照顾生活中的兴趣与需要。',
+    title: 'AI 不该只是一个聊天框。',
+    subtitle: 'Nimi 把它做成一个个具体的应用',
   },
   worlds: {
     title: '遇见 AI 角色，走进他们的世界。',

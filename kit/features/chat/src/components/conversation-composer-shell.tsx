@@ -25,7 +25,9 @@ export function ConversationComposerShell({
     <Surface
       material="glass-chrome"
       tone="card"
-      elevation="raised"
+      // Base elevation: the composer sits ~20px above the clipped pane edge, so
+      // the raised shadow (12px offset / 28px blur) was cut off into a hard band.
+      elevation="base"
       padding="none"
       className={cn(
         'shrink-0 rounded-[var(--nimi-radius-xl)]',
