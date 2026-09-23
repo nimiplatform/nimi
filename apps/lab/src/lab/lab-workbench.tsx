@@ -227,8 +227,8 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
           verboseConsole={preferences.verboseConsole}
           draftPersistence={preferences.draftPersistence}
           rootTestId={labTestIds.sectionAI}
-          renderAIConfigPanel={({ runtime, capabilityId }) => (
-            <LabAiConfigSettingsPanel runtime={runtime} capabilityId={capabilityId} />
+          renderAIConfigPanel={({ runtime, capabilityId, onCommitted }) => (
+            <LabAiConfigSettingsPanel runtime={runtime} capabilityId={capabilityId} onCommitted={onCommitted} />
           )}
           headerActions={ecosystemReference ? (
             <StatusBadge

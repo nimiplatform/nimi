@@ -22,6 +22,12 @@ export { StudioResult } from './section-ai-testing-studio-result.js';
 export type StudioAIConfigPanelRenderInput = {
   readonly runtime: StudioRuntimeInspection | null;
   readonly capabilityId: string;
+  /**
+   * The panel calls this once Runtime reports its AIConfig write committed.
+   * Closing the drawer does not wait for a write, so a commit can land after
+   * the close; this still re-reads every mounted consumer.
+   */
+  readonly onCommitted: () => void;
 };
 
 export type SectionAITestingProps = {

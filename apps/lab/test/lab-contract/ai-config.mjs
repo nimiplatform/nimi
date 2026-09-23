@@ -121,8 +121,14 @@ test('lab mounts the shared App AIConfig editor with self-owner CAS and optional
   assert.match(source, /initialCapabilityContract=\{capabilityId\}/u);
   assert.match(source, /sdk\.aiConfig\.listOptions\(query\)/u);
   assert.match(source, /sdk\.aiConfig\.overwrite\(input\)/u);
-  assert.match(source, /setSnapshot\(\{ config: result\.config, revision: result\.revision, effectiveSelections: \[\] \}\);\s*void refresh\(\);/u);
-  assert.doesNotMatch(source, /result\.outcome === 'committed'/u);
+  // Every outcome re-reads this panel; a commit also reaches every other
+  // mounted consumer, even when the drawer closed before the write finished.
+  assert.match(
+    source,
+    /setSnapshot\(\{ config: result\.config, revision: result\.revision, effectiveSelections: \[\] \}\);[\s\S]{0,240}?if \(result\.outcome === 'committed'\) onCommitted\(\);\s*else void refresh\(\);/u,
+  );
+  const workbench = readFileSync(path.join(root, 'src/lab/lab-workbench.tsx'), 'utf8');
+  assert.match(workbench, /renderAIConfigPanel=\{\(\{ runtime, capabilityId, onCommitted \}\) =>[\s\S]{0,200}?onCommitted=\{onCommitted\}/u);
   assert.match(source, /onOpenOwnerConfiguration/u);
   assert.match(source, /kind: 'open-apps'[\s\S]*appId[\s\S]*section: 'ai-models'/u);
   assert.match(

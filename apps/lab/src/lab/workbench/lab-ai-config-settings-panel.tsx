@@ -24,6 +24,7 @@ import {
 type LabAiConfigSettingsPanelProps = {
   runtime: StudioRuntimeInspection | null;
   capabilityId: string;
+  onCommitted: () => void;
 };
 
 // The protected Lab mount uses the same canonical manager contract as Desktop;
@@ -86,6 +87,7 @@ function useLabModelConfigCopy(): ModelConfigCopy {
 export function LabAiConfigSettingsPanel({
   runtime,
   capabilityId,
+  onCommitted,
 }: LabAiConfigSettingsPanelProps) {
   const rendererHost = useLabRendererHost();
   const { t, i18n } = useTranslation();
@@ -138,7 +140,10 @@ export function LabAiConfigSettingsPanel({
           onOverwrite={async (input) => {
             const result = await rendererHost.sdk.aiConfig.overwrite(input);
             setSnapshot({ config: result.config, revision: result.revision, effectiveSelections: [] });
-            void refresh();
+            // A commit re-reads every mounted consumer, this panel included,
+            // even when the drawer closed before the write finished.
+            if (result.outcome === 'committed') onCommitted();
+            else void refresh();
             return result;
           }}
           onOpenOwnerConfiguration={() => {

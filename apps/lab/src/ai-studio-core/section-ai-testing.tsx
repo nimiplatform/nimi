@@ -482,6 +482,11 @@ export function SectionAITesting({
     setConfigOpen(false);
     if (rootRef.current) notifyStudioAIConfigChanged(rootRef.current);
   }
+  // The close refresh can run before a pending write commits; the panel then
+  // reports the commit here. The window hears it even after this section left.
+  function reportCommitted() {
+    notifyStudioAIConfigChanged(rootRef.current ?? window);
+  }
 
   return (
     <div
@@ -519,7 +524,7 @@ export function SectionAITesting({
       >
         <DrawerErrorBoundary onClose={closeConfig} translate={t}>
           <Suspense fallback={<div className="p-5"><LoadingSkeleton lines={4} label={t('Common.loading')} /></div>}>
-            {renderAIConfigPanel({ runtime, capabilityId: capability.capabilityContract ?? capability.id })}
+            {renderAIConfigPanel({ runtime, capabilityId: capability.capabilityContract ?? capability.id, onCommitted: reportCommitted })}
           </Suspense>
         </DrawerErrorBoundary>
       </OverlayShell> : null}

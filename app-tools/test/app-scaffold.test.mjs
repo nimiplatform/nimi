@@ -1655,6 +1655,10 @@ test('create accepts candidate studio-create as one shared AI Studio route with 
   assert.match(host, /section: 'ai-models'/);
   assert.match(host, /aiConfig\.listOptions\(query\)/);
   assert.match(host, /aiConfig\.overwrite\(input\)/);
+  // Commits reach every mounted consumer; an App-owned core without commit
+  // reporting keeps the panel's own refresh.
+  assert.match(host, /readonly onCommitted\?: \(\) => void;/);
+  assert.match(host, /if \(result\.outcome === 'committed'\) \{\s*if \(onCommitted\) onCommitted\(\);\s*else void refresh\(\);\s*\}/);
   assert.match(host, /revision=\{snapshot\?\.revision\}/);
   assert.match(host, /effectiveSelections=\{snapshot\?\.effectiveSelections\}/);
   assert.doesNotMatch(host, /effectiveSelections\.map/);
