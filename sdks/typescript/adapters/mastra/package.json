@@ -26,12 +26,12 @@
   },
   "devDependencies": {
     "@ai-sdk/provider": "3.0.10",
-    "@mastra/core": "1.63.2",
+    "@mastra/core": "1.67.0",
     "@nimiplatform/sdk": "workspace:*",
     "@types/node": "^24.13.3",
-    "tsx": "^4.23.13",
+    "tsx": "^4.23.15",
     "typescript": "^5.9.3",
-    "zod": "4.5.4"
+    "zod": "4.6.5"
   },
   "scripts": {
     "build": "node ../../../../scripts/with-workspace-surfaces.mjs -- pnpm run build:prepared",
