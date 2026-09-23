@@ -1,6 +1,7 @@
 import { useRealmSocialData } from '../social/data/realm-social-data-context.js';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ScrollArea, Surface } from '@nimiplatform/kit/ui';
+import { Button, InlineAlert, LoadingSkeleton, ScrollArea, Surface } from '@nimiplatform/kit/ui';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { NimiRealmFeedScope } from '@nimiplatform/sdk/realm';
 import { E2E_IDS } from '../../testability/e2e-ids';
@@ -76,10 +77,16 @@ function useHomeFeedColumns(): HomeFeedColumns {
 
 // @nimi-authority: definition.nimi.desktop.product-surfaces.home-feed
 // @nimi-authority: rule.nimi.desktop.product-surfaces.r015
+// @nimi-authority: rule.nimi.desktop.product-surfaces.r036
 export function HomeView(props: HomeViewProps) {
   const realmSocialData = useRealmSocialData();
   const { t } = useTranslation();
   const navigateToSourceDetail = useAppStore((state) => state.navigateToSourceDetail);
+  const focusPostIntent = useAppStore((state) => state.activityFocusPostId);
+  const clearActivityFocusPost = useAppStore((state) => state.clearActivityFocusPost);
+  // A Home message opens one Post first; the intent is consumed once and the
+  // Post is read through the existing Realm Post read and its visibility checks.
+  const [focusedPostId, setFocusedPostId] = useState<string | null>(focusPostIntent);
   const [createPostOpen, setCreatePostOpen] = useState(false);
   const [selectedFeedProfile, setSelectedFeedProfile] = useState<
     Extract<PostCardAuthorProfileTarget, { kind: 'human' }> | null
@@ -117,6 +124,19 @@ export function HomeView(props: HomeViewProps) {
   );
 
   useEffect(() => {
+    if (!focusPostIntent) return;
+    setFocusedPostId(focusPostIntent);
+    clearActivityFocusPost();
+  }, [clearActivityFocusPost, focusPostIntent]);
+
+  const focusedPost = useQuery({
+    queryKey: ['activity-focused-post', focusedPostId, refreshKey],
+    queryFn: () => realmSocialData.loadPostById(focusedPostId!),
+    enabled: Boolean(focusedPostId),
+    retry: false,
+  });
+
+  useEffect(() => {
     const handleBlockedUsersUpdated = () => {
       setRefreshKey((current) => current + 1);
     };
@@ -148,6 +168,51 @@ export function HomeView(props: HomeViewProps) {
                 <PublishingPostCard />
               </div>
             )}
+
+            {focusedPostId ? (
+              <section
+                className="mt-2 mb-6 flex flex-col gap-3"
+                aria-label={t('Home.focusedPost.title')}
+                data-testid="activity-focused-post"
+              >
+                <div className="flex items-center justify-between gap-2 px-1">
+                  <h2 className="text-sm font-semibold text-[var(--nimi-text-secondary)]">{t('Home.focusedPost.title')}</h2>
+                  <Button tone="ghost" size="sm" onClick={() => setFocusedPostId(null)}>
+                    {t('Home.focusedPost.close')}
+                  </Button>
+                </div>
+                {focusedPost.isPending ? (
+                  <LoadingSkeleton lines={3} label={t('Common.loading')} />
+                ) : focusedPost.isError ? (
+                  <InlineAlert
+                    tone="warning"
+                    data-testid="activity-focused-post-unavailable"
+                    action={(
+                      <Button tone="ghost" size="sm" onClick={() => void focusedPost.refetch()}>
+                        {t('Home.focusedPost.retry')}
+                      </Button>
+                    )}
+                  >
+                    {t('Home.focusedPost.unavailable')}
+                  </InlineAlert>
+                ) : focusedPost.data ? (
+                  <PostCard
+                    post={focusedPost.data}
+                    actionAdapter={postCardActionAdapter}
+                    onDelete={() => {
+                      setFocusedPostId(null);
+                      setRefreshKey((k) => k + 1);
+                    }}
+                    onBlock={() => {
+                      setFocusedPostId(null);
+                      setRefreshKey((k) => k + 1);
+                    }}
+                    showAddFriendBadge={false}
+                    onOpenAuthorProfile={handleOpenAuthorProfile}
+                  />
+                ) : null}
+              </section>
+            ) : null}
 
             {/* Feed */}
             <div className="mt-2">

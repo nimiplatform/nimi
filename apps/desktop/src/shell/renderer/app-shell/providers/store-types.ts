@@ -121,8 +121,13 @@ export type AppStoreState = {
   exploreSearchText: string;
   exploreSelectedWorldId: string | null;
   appsDetailAppId: string | null;
+  appsDetailEntryKey: string | null;
   appsDetailSection: NimiDesktopOpenAppsSection | null;
   appsDetailNavigationRevision: number;
+  /** Transient Home message intent: the Realm Post the Activity feed should show first. */
+  activityFocusPostId: string | null;
+  /** Bumped on every entry to Home (including the Logo while Home is open); Home then shows its overview. */
+  homeEntryRevision: number;
   profileDetailOverlayOpen: boolean;
   chatProfilePanelTarget: 'self' | 'other' | null;
   offlineTier: OfflineTier;
@@ -164,7 +169,11 @@ export type AppStoreState = {
   setAppsDetailAppId: (
     appId: string | null,
     section?: NimiDesktopOpenAppsSection | null,
+    entryKey?: string | null,
   ) => void;
+  /** Opens the Activity feed showing this Realm Post first. */
+  openActivityPost: (postId: string) => void;
+  clearActivityFocusPost: () => void;
   setProfileDetailOverlayOpen: (open: boolean) => void;
   setChatProfilePanelTarget: (target: 'self' | 'other' | null) => void;
   navigateToProfile: (profileId: string) => void;

@@ -108,6 +108,7 @@ test.beforeEach(() => {
     exploreActiveSection: 'worlds',
     exploreSearchText: '',
     appsDetailAppId: null,
+    appsDetailEntryKey: null,
     appsDetailSection: null,
     appsDetailNavigationRevision: 0,
   });
@@ -233,6 +234,8 @@ test('Desktop Open Intent maps runtime model install actions to the Model Librar
 });
 
 test('Desktop Open Intent maps settings profile and app details to owned surfaces', () => {
+  // A public app-only intent replaces a prior source-qualified Home intent.
+  productionAppStore.getState().setAppsDetailAppId('nimi.parentos', null, 'verified:nimi.parentos');
   applyDesktopOpenIntentToAppStore({
     kind: 'open-settings',
     section: 'profile',
@@ -248,6 +251,7 @@ test('Desktop Open Intent maps settings profile and app details to owned surface
   const state = productionAppStore.getState();
   assert.equal(state.activeTab, 'apps');
   assert.equal(state.appsDetailAppId, 'nimi.notes');
+  assert.equal(state.appsDetailEntryKey, null);
   assert.equal(state.appsDetailSection, 'ai-models');
-  assert.equal(state.appsDetailNavigationRevision, 1);
+  assert.equal(state.appsDetailNavigationRevision, 2);
 });

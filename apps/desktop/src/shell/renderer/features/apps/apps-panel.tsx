@@ -12,7 +12,7 @@ import { AppsLocalImportFeedback, useAppsLocalImport } from './apps-local-import
 import { packageJobKey } from './apps-downloads-observer.js';
 import { useAppsDownloads } from './apps-downloads-context.js';
 import { catalogTargetMatchesJob } from './apps-downloads-view.js';
-import type { DesktopAppsEntry } from './apps-panel-projection.js';
+import { resolveRequestedAppDetailEntry, type DesktopAppsEntry } from './apps-panel-projection.js';
 import {
   AppPackageJobPhase,
   AppPackageJobKind,
@@ -47,6 +47,7 @@ export function dispatchAppsPanelCardAction(input: {
   readonly setAppsDetailAppId: (
     appId: string | null,
     section?: NimiDesktopOpenAppsSection | null,
+    entryKey?: string | null,
   ) => void;
   readonly runCardAction: (entryKey: string, action: AppCardActionId) => void;
 }): void {
@@ -54,6 +55,7 @@ export function dispatchAppsPanelCardAction(input: {
     input.setAppsDetailAppId(
       input.appId,
       input.action === 'open-ai-config' ? 'ai-models' : null,
+      input.entryKey,
     );
   }
   input.runCardAction(input.entryKey, input.action);
@@ -67,6 +69,7 @@ export function AppsPanel({
   const settings = useDesktopRendererCommands().settings;
   const sdk = useDesktopRendererSdk();
   const requestedDetailAppId = useAppStore((state) => state.appsDetailAppId);
+  const requestedDetailEntryKey = useAppStore((state) => state.appsDetailEntryKey);
   const requestedDetailSection = useAppStore((state) => state.appsDetailSection);
   const requestedDetailNavigationRevision = useAppStore((state) => state.appsDetailNavigationRevision);
   const setAppsDetailAppId = useAppStore((state) => state.setAppsDetailAppId);
@@ -192,9 +195,9 @@ export function AppsPanel({
 
   useEffect(() => {
     if (!requestedDetailAppId || projection?.status !== 'loaded') return;
-    const candidates = projection.entries.filter((entry) => entry.identity.appId === requestedDetailAppId);
-    if (candidates.length === 1) runCardAction(candidates[0]!.identity.entryKey, 'details');
-  }, [projection, requestedDetailAppId, requestedDetailNavigationRevision, runCardAction]);
+    const entry = resolveRequestedAppDetailEntry(projection.entries, requestedDetailAppId, requestedDetailEntryKey);
+    if (entry) runCardAction(entry.identity.entryKey, 'details');
+  }, [projection, requestedDetailAppId, requestedDetailEntryKey, requestedDetailNavigationRevision, runCardAction]);
 
   const selectedEntry = projection?.status === 'loaded'
     ? projection.entries.find((entry) => entry.identity.entryKey === detailEntryKey) ?? null

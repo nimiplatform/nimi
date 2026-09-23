@@ -25,5 +25,26 @@
   "updateSuccess": "通知设置已更新",
   "updateError": "更新通知设置失败",
   "ssotNoteTitle": "关于这些设置",
-  "ssotNoteDescription": "通知偏好将应用于你的社交活动。"
+  "ssotNoteDescription": "通知偏好将应用于你的社交活动。",
+  "homeMessages": {
+    "title": "首页消息",
+    "description": "只影响首页展示，不会停止应用发布，也不会完成待办。",
+    "appSourceDescription": "已出现的应用来源",
+    "appSourceUnavailableDescription": "已出现的应用来源 · 当前不可用",
+    "realmPosts": "Realm 动态",
+    "realmPostsDescription": "首页动态预览",
+    "restoreHidden": "恢复全部单条隐藏消息",
+    "restoreHiddenNone": "没有单条隐藏的消息",
+    "loading": "正在读取首页消息设置…",
+    "readFailed": "暂时无法读取首页消息设置。",
+    "reload": "重新读取",
+    "saveFailed": "未能保存展示设置，仍保留原来的设置。",
+    "retry": "重试",
+    "saving": "正在保存…",
+    "sourcesLoading": "正在读取应用来源…",
+    "sourcesUnavailable": "暂时无法读取应用消息来源。",
+    "sourcesIncomplete": "较早的消息中可能还有其他应用来源。",
+    "loadMoreSources": "加载更多应用来源",
+    "noSources": "还没有应用发布过消息。"
+  }
 }

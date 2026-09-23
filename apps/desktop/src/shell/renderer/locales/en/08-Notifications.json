@@ -25,5 +25,26 @@
   "updateSuccess": "Notification settings updated",
   "updateError": "Failed to update notification settings",
   "ssotNoteTitle": "About These Settings",
-  "ssotNoteDescription": "Notification preferences apply across your social activity."
+  "ssotNoteDescription": "Notification preferences apply across your social activity.",
+  "homeMessages": {
+    "title": "Home messages",
+    "description": "Only changes Home visibility. Apps keep publishing and todos remain unchanged.",
+    "appSourceDescription": "An app source that has appeared",
+    "appSourceUnavailableDescription": "An app source that has appeared · currently unavailable",
+    "realmPosts": "Realm posts",
+    "realmPostsDescription": "Post previews on Home",
+    "restoreHidden": "Restore all individually hidden messages",
+    "restoreHiddenNone": "No individually hidden messages",
+    "loading": "Loading Home message settings…",
+    "readFailed": "Home message settings couldn't be read.",
+    "reload": "Read again",
+    "saveFailed": "Couldn't save display settings. The previous settings are kept.",
+    "retry": "Retry",
+    "saving": "Saving…",
+    "sourcesLoading": "Loading app sources…",
+    "sourcesUnavailable": "App message sources are temporarily unavailable.",
+    "sourcesIncomplete": "Earlier messages may contain more app sources.",
+    "loadMoreSources": "Load more app sources",
+    "noSources": "No app has published messages yet."
+  }
 }

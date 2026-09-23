@@ -18,6 +18,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -366,6 +367,12 @@ func (s *Service) SubscribeAppActivityChanges(req *runtimev1.SubscribeAppActivit
 	}
 	if req == nil {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_APP_ACTIVITY_INPUT_INVALID)
+	}
+	// Streaming clients treat response headers as the subscription-established
+	// signal; without an explicit flush gRPC defers them until the first change,
+	// so an idle subscription stays half-open and its caller cannot release it.
+	if err := stream.SendHeader(metadata.MD{}); err != nil {
+		return err
 	}
 	cursor := req.GetAfterChangeSeq()
 	revalidate := time.NewTicker(time.Second)

@@ -13,6 +13,7 @@ import (
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 )
 
 type fakeOpenStream struct {
@@ -29,11 +30,16 @@ func (stream *fakeOpenStream) Send(event *runtimev1.OpenAppActivityResponse) err
 
 type fakeOpenRequestStream struct {
 	grpc.ServerStream
-	ctx        context.Context
-	deliveries chan *runtimev1.SubscribeAppActivityOpenRequestsResponse
+	ctx         context.Context
+	deliveries  chan *runtimev1.SubscribeAppActivityOpenRequestsResponse
+	established chan struct{}
 }
 
 func (stream *fakeOpenRequestStream) Context() context.Context { return stream.ctx }
+func (stream *fakeOpenRequestStream) SendHeader(metadata.MD) error {
+	stream.established <- struct{}{}
+	return nil
+}
 func (stream *fakeOpenRequestStream) Send(event *runtimev1.SubscribeAppActivityOpenRequestsResponse) error {
 	stream.deliveries <- event
 	return nil
@@ -55,7 +61,11 @@ func (harness *testHarness) openWith(consumer context.Context, activityID string
 
 func (harness *testHarness) sourceSubscribe(account string, session byte) (*fakeOpenRequestStream, context.CancelFunc) {
 	ctx, cancel := context.WithCancel(harness.ctx(localappop.OperationAppActivityOpenRequestSubscribe, account, "subject-a", session))
-	stream := &fakeOpenRequestStream{ctx: ctx, deliveries: make(chan *runtimev1.SubscribeAppActivityOpenRequestsResponse, 4)}
+	stream := &fakeOpenRequestStream{
+		ctx:         ctx,
+		deliveries:  make(chan *runtimev1.SubscribeAppActivityOpenRequestsResponse, 4),
+		established: make(chan struct{}, 1),
+	}
 	go func() {
 		_ = harness.service.SubscribeAppActivityOpenRequests(&runtimev1.SubscribeAppActivityOpenRequestsRequest{}, stream)
 	}()

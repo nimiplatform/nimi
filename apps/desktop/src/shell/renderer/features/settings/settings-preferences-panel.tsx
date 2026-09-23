@@ -17,6 +17,7 @@ import {
   ToggleRow,
 } from './settings-layout-components.js';
 import { InfoIcon, MailIcon, MonitorIcon } from './settings-assets.js';
+import { HomeMessagesSettingsSection } from './settings-home-messages-section.js';
 import {
   AtSignIcon,
   BellIcon,
@@ -238,9 +239,14 @@ export function NotificationsPage() {
         ? <StatusBadge status="error" text={t('Settings.statusFailed')} />
         : null;
 
+  // Home messages are Desktop display preferences with their own storage and
+  // status; they stay usable whatever state the Realm settings read is in.
+  const homeMessages = <HomeMessagesSettingsSection />;
+
   if (settingsQuery.isPending) {
     return (
       <PageShell title={t('Notifications.pageTitle')} description={t('Notifications.pageDescription')}>
+        {homeMessages}
         <Card>
           <div className="flex items-center gap-3">
             <BellIcon className="h-5 w-5 text-[var(--nimi-text-muted)]" />
@@ -254,6 +260,7 @@ export function NotificationsPage() {
   if (settingsQuery.isError) {
     return (
       <PageShell title={t('Notifications.pageTitle')} description={t('Notifications.pageDescription')}>
+        {homeMessages}
         <FormFeedback
           feedback={{ kind: 'error', message: t('Notifications.loadError') }}
           title={t('Notifications.pageTitle')}
@@ -268,6 +275,7 @@ export function NotificationsPage() {
       description={t('Notifications.pageDescription')}
       status={statusNode}
     >
+      {homeMessages}
       <FormFeedback feedback={feedback} onDismiss={() => setFeedback(null)} title={t('Notifications.pageTitle')} />
       {/* Activity Notifications */}
       <Section

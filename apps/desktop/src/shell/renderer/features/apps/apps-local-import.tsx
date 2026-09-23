@@ -73,7 +73,8 @@ export function useAppsLocalImport(getClient: () => NimiDesktopMachineProductRun
       if (selected.canceled || selected.paths.length === 0) { setPhase('idle'); return; }
       if (selected.paths.length !== 1) throw new Error(t('Apps.localImport.selectOne'));
       setPhase('preparing');
-      const result = await getClient().prepareLocalAppPackage({ sourcePath: selected.paths[0]! }, { signal: abort.signal, timeoutMs: 120_000 });
+      // macOS verifies the full Electron bundle; a standard App can exceed two minutes.
+      const result = await getClient().prepareLocalAppPackage({ sourcePath: selected.paths[0]! }, { signal: abort.signal, timeoutMs: 300_000 });
       if (result.reasonCode !== ReasonCode.ACTION_EXECUTED || !result.preview?.candidateSelector.length || !result.preview.appId || !semver.valid(result.preview.version)) {
         if (result.preview?.candidateSelector.length) await discard({ preview: result.preview, installed });
         throw new Error(t('Apps.localImport.invalidPreview'));

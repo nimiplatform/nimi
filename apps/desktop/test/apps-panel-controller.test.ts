@@ -156,12 +156,12 @@ describe('Desktop Apps controller action boundary', () => {
       entryKey: 'local_development:nimi.parentos:dev-parentos',
       appId: 'nimi.parentos',
       action: 'details',
-      setAppsDetailAppId: (appId) => events.push(`request:${String(appId)}`),
+      setAppsDetailAppId: (appId, _section, entryKey) => events.push(`request:${String(appId)}:${String(entryKey)}`),
       runCardAction: (entryKey, action) => events.push(`controller:${entryKey}:${action}`),
     });
 
     assert.deepEqual(events, [
-      'request:nimi.parentos',
+      'request:nimi.parentos:local_development:nimi.parentos:dev-parentos',
       'controller:local_development:nimi.parentos:dev-parentos:details',
     ]);
   });

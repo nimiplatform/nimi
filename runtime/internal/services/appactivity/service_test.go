@@ -18,6 +18,7 @@ import (
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -208,17 +209,23 @@ func TestPutRejectsInvalidPublication(t *testing.T) {
 
 type fakeChangeStream struct {
 	grpc.ServerStream
-	ctx    context.Context
-	mu     sync.Mutex
-	events []*runtimev1.SubscribeAppActivityChangesResponse
-	notify chan struct{}
+	ctx         context.Context
+	mu          sync.Mutex
+	events      []*runtimev1.SubscribeAppActivityChangesResponse
+	notify      chan struct{}
+	established chan struct{}
 }
 
 func newFakeChangeStream(ctx context.Context) *fakeChangeStream {
-	return &fakeChangeStream{ctx: ctx, notify: make(chan struct{}, 1024)}
+	return &fakeChangeStream{ctx: ctx, notify: make(chan struct{}, 1024), established: make(chan struct{}, 1)}
 }
 
 func (stream *fakeChangeStream) Context() context.Context { return stream.ctx }
+
+func (stream *fakeChangeStream) SendHeader(metadata.MD) error {
+	stream.established <- struct{}{}
+	return nil
+}
 
 func (stream *fakeChangeStream) Send(event *runtimev1.SubscribeAppActivityChangesResponse) error {
 	stream.mu.Lock()
@@ -388,6 +395,29 @@ func TestSubscriptionReplaysInOrderAndExpiresPurgedCursors(t *testing.T) {
 	fresh.waitFor(t, 1)
 	cancelFresh()
 	<-freshDone
+}
+
+// An idle subscription must be established before its first event, or the
+// caller holds a half-open stream it cannot release when it cancels.
+func TestIdleSubscriptionsAreEstablishedBeforeTheirFirstEvent(t *testing.T) {
+	harness := newHarness(t)
+	changes, cancelChanges, done := harness.subscribe("acct-1", 0)
+	select {
+	case <-changes.established:
+	case <-time.After(5 * time.Second):
+		t.Fatal("an idle change subscription was not established")
+	}
+	requests, cancelRequests := harness.sourceSubscribe("acct-1", 1)
+	defer cancelRequests()
+	select {
+	case <-requests.established:
+	case <-time.After(5 * time.Second):
+		t.Fatal("an idle open-request subscription was not established")
+	}
+	cancelChanges()
+	if err := <-done; err != nil {
+		t.Fatalf("a cancelled idle subscription must end cleanly: %v", err)
+	}
 }
 
 func TestAgentAndAccountCleanupRemoveRuntimeOriginActivity(t *testing.T) {

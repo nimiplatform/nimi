@@ -97,8 +97,11 @@ type UiSlice = Pick<AppStoreState,
   | 'exploreSearchText'
   | 'exploreSelectedWorldId'
   | 'appsDetailAppId'
+  | 'appsDetailEntryKey'
   | 'appsDetailSection'
   | 'appsDetailNavigationRevision'
+  | 'activityFocusPostId'
+  | 'homeEntryRevision'
   | 'profileDetailOverlayOpen'
   | 'chatProfilePanelTarget'
   | 'offlineTier'
@@ -127,6 +130,8 @@ type UiSlice = Pick<AppStoreState,
   | 'setExploreSearchText'
   | 'setExploreSelectedWorldId'
   | 'setAppsDetailAppId'
+  | 'openActivityPost'
+  | 'clearActivityFocusPost'
   | 'setProfileDetailOverlayOpen'
   | 'setChatProfilePanelTarget'
   | 'navigateToProfile'
@@ -166,8 +171,11 @@ export function createUiSlice(
     exploreSearchText: '',
     exploreSelectedWorldId: null,
     appsDetailAppId: null,
+    appsDetailEntryKey: null,
     appsDetailSection: null,
     appsDetailNavigationRevision: 0,
+    activityFocusPostId: null,
+    homeEntryRevision: 0,
     profileDetailOverlayOpen: false,
     chatProfilePanelTarget: null,
     offlineTier: 'L0' as OfflineTier,
@@ -176,7 +184,11 @@ export function createUiSlice(
     setBootstrapError: (message) => set({ bootstrapError: message }),
     setActiveTab: (tab) => {
       startTransition(() => {
-        set({ activeTab: tab, navigationBackStack: [] });
+        set((state) => ({
+          activeTab: tab,
+          navigationBackStack: [],
+          ...(tab === 'home' ? { homeEntryRevision: state.homeEntryRevision + 1 } : {}),
+        }));
       });
     },
     setChatMode: (mode) => {
@@ -332,14 +344,23 @@ export function createUiSlice(
     setExploreActiveSection: (section) => set({ exploreActiveSection: section }),
     setExploreSearchText: (text) => set({ exploreSearchText: String(text || '') }),
     setExploreSelectedWorldId: (worldId) => set({ exploreSelectedWorldId: worldId }),
-    setAppsDetailAppId: (appId, section = null) => {
+    setAppsDetailAppId: (appId, section = null, entryKey = null) => {
       const normalizedAppId = String(appId || '').trim();
       set((state) => ({
         appsDetailAppId: normalizedAppId || null,
+        appsDetailEntryKey: normalizedAppId ? entryKey : null,
         appsDetailSection: normalizedAppId ? section : null,
         appsDetailNavigationRevision: state.appsDetailNavigationRevision + 1,
       }));
     },
+    openActivityPost: (postId) => {
+      const normalizedPostId = String(postId || '').trim();
+      if (!normalizedPostId) return;
+      startTransition(() => {
+        set({ activityFocusPostId: normalizedPostId, activeTab: 'activity', navigationBackStack: [] });
+      });
+    },
+    clearActivityFocusPost: () => set({ activityFocusPostId: null }),
     setProfileDetailOverlayOpen: (open) => set({ profileDetailOverlayOpen: open }),
     setChatProfilePanelTarget: (target) => set({ chatProfilePanelTarget: target }),
     navigateToProfile: (profileId) => {

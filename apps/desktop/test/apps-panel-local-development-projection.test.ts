@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import type { LocalDevelopmentRegistration, LocalDevelopmentRun } from '../src/shell/renderer/features/local-development/local-development-types.js';
-import { deriveAppSummary, desktopAppsEntryKey, projectAppsPanel, type DesktopAppsEntry } from '../src/shell/renderer/features/apps/apps-panel-projection.js';
+import { deriveAppSummary, desktopAppsEntryKey, projectAppsPanel, resolveRequestedAppDetailEntry, type DesktopAppsEntry } from '../src/shell/renderer/features/apps/apps-panel-projection.js';
 import {
   AppPackageJobKind,
   AppPackageJobPhase,
@@ -156,6 +156,13 @@ describe('Desktop Apps source-qualified projection', () => {
     const imported = projection.entries.find((entry) => entry.identity.sourceClass === 'user_imported');
     assert.equal(imported?.catalogTarget, null);
     assert.equal(imported?.committedRelease?.version, '1.0.0');
+    // An update card must open its verified detail even when imported and dev entries coexist.
+    const verifiedKey = desktopAppsEntryKey('example.shared', 'verified');
+    assert.equal(resolveRequestedAppDetailEntry(projection.entries, 'example.shared', verifiedKey)?.identity.sourceClass, 'verified');
+    assert.equal(resolveRequestedAppDetailEntry(projection.entries, 'example.shared', null), null);
+    assert.equal(resolveRequestedAppDetailEntry(projection.entries, 'example.shared', 'removed-entry'), null);
+    assert.equal(resolveRequestedAppDetailEntry(projection.entries, 'another.app', verifiedKey), null);
+    assert.equal(resolveRequestedAppDetailEntry([imported!], 'example.shared', null), imported);
   });
 
   it('fails closed on the unknown package source wire value', async () => {

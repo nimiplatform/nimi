@@ -116,5 +116,11 @@
   "visibilityFriendsOnly": "仅好友可见",
   "visibilityPrivateDescription": "只有你自己可以看到这条帖子。",
   "visibilityPrivateOnly": "仅自己可见",
-  "visibilityPublicDescription": "任何人都可以看到这条帖子。"
+  "visibilityPublicDescription": "任何人都可以看到这条帖子。",
+  "focusedPost": {
+    "title": "你打开的动态",
+    "close": "关闭",
+    "unavailable": "无法显示这条动态。它可能已被删除、对你不可见，或暂时无法读取。",
+    "retry": "重试"
+  }
 }

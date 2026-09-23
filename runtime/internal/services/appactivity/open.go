@@ -15,6 +15,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 )
 
 // openRequest is Host-private and memory-only. It never survives a Runtime
@@ -381,6 +382,11 @@ func (s *Service) SubscribeAppActivityOpenRequests(req *runtimev1.SubscribeAppAc
 		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_APP_ACTIVITY_UNAVAILABLE)
 	}
 	defer s.opens.unsubscribe(subscriber)
+	// Establish the stream once the subscriber is registered; an idle source App
+	// would otherwise hold a half-open subscription until its first request.
+	if err := stream.SendHeader(metadata.MD{}); err != nil {
+		return err
+	}
 	revalidate := time.NewTicker(time.Second)
 	defer revalidate.Stop()
 	for {

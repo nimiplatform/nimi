@@ -176,9 +176,9 @@ units:
     kind: rule
     title: Home presents the personal AI overview
     modality: must
-    statement: Home presents quick start or continue-use actions, pending items and recent activity from the App activity protocol, current machine AI preparation and Runtime availability, download progress or failures, available App updates, and an explicit Activity entry to the preserved feed and Create Post surface. Optional usage, cost and Agent activity appear only with trustworthy scoped data; missing data is not zero and raw maintenance panels are not embedded as the overview.
+    statement: Home presents quick start or continue-use actions, current machine AI preparation and Runtime availability, and one Messages column that previews pending items and recent messages from App and Runtime Agent activity, Realm agent-authored Posts, download progress, unresolved setup failures and available App updates, with a Pending entry, a View all messages entry to the Home Message center, and a separate explicit Activity entry to the preserved feed and Create Post surface. Optional usage, cost and Agent activity appear only with trustworthy scoped data; missing data is not zero and raw maintenance panels are not embedded as the overview.
     condition: Whenever Desktop renders or routes the Home primary-navigation tab.
-    failure: Keep independent sections usable when a projection is unavailable, omit unsupported optional statistics, and preserve access to the activity feed and existing use surfaces.
+    failure: Keep independent sections and message sources usable when a projection is unavailable, omit unsupported optional statistics, and preserve access to the Message center, the activity feed and existing use surfaces.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.product-surfaces.home-overview
@@ -378,7 +378,11 @@ units:
   - id: definition.nimi.desktop.product-surfaces.home-overview
     kind: definition
     title: Nimi personal AI overview
-    meaning: The Home default pane is a Desktop-owned personal AI overview of existing usage entry points, pending items and recent activity published through the App activity protocol, machine preparation, downloads, App updates and Runtime availability. Each section consumes its existing owner projection independently; optional activity or usage summaries create no new execution, billing, social or readiness truth.
+    meaning: The Home default pane is a Desktop-owned personal AI overview of existing usage entry points, machine preparation and Runtime availability, with a Messages column and a Home-internal Message center that present, as one card family, App and Runtime Agent activity published through the App activity protocol, Realm agent-authored Posts, downloads, setup failures and App updates. Each section and message source consumes its existing owner projection independently; the presentation creates no new execution, billing, social, readiness, read, completion or publishing truth.
+  - id: definition.nimi.desktop.product-surfaces.home-message-preferences
+    kind: definition
+    title: Home message display preferences
+    meaning: Home message display preferences are Desktop-owned presentation choices kept in the Desktop formal App private JSON storage of the current account, subject and data root, holding App or Runtime activity hidden from Home at a displayed revision, Realm Posts hidden from Home, Home display per App sourceRef and Home display of Realm Posts; they change only the Home Messages preview and never publishing, sharing, read state, todo state, App access or Realm notification settings.
   - id: definition.nimi.desktop.product-surfaces.global-downloads
     kind: definition
     title: Global preparation and downloads surface
@@ -397,11 +401,35 @@ units:
     kind: rule
     title: Home activity consumes the public App activity client
     modality: must
-    statement: Home reads App activity only through Desktop's formal App client and the same activity operations, merged view, and open action as every covered App; Pending shows open todos including read ones, Recent activity shows actual records grouped or filtered by source and Agent with Agent day groups taken from occurred time, each item shows source, title, summary, time, state, unread emphasis, and an open action only when the record has an App source object, unknown extension types use the standard card without App-specific parsing or executable content, reading is marked only by an explicit user view of the displayed revision, and Realm notifications, the Realm activity feed, and existing Home sections keep their own owners.
-    condition: Whenever Desktop renders, refreshes, reads, or opens App activity in Home.
-    failure: Show only the activity region as unavailable or empty on read failure or absence without blocking Desktop startup or other Home sections, show the typed unavailable or failed open result, and never merge Realm cursors, unread counts, or state into activity.
+    statement: Home reads App activity only through Desktop's formal App client and the same activity operations, SDK merged views, and open action as every covered App; the Messages preview and Message center share one open-todo view and one recent view, a record present in both is taken at its highest decimal change sequence before state and unread are judged, and read open todos stay pending. Each card shows source, title, summary, occurred time, todo state, attention and unread emphasis, and an open action only when the record has an App source object; App sources are grouped by sourceRef rather than appId, Runtime Agent summaries by agentRef without Conversation navigation, unknown extension types use the standard card without App-specific parsing or executable content, reading is marked only by an explicit Mark as read of the displayed revision, and Realm notifications, the Realm activity feed, and existing Home sections keep their own owners.
+    condition: Whenever Desktop renders, refreshes, reads, marks read, or opens App activity in Home or its Message center.
+    failure: Show only the App message source as unavailable with a retry on read failure without blocking Desktop startup or other Home sections and message sources, show the typed unavailable or failed open result, claim no complete count or definite empty state while a listing is incomplete, and never merge Realm cursors, unread counts, or state into activity.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.product-surfaces.home-overview
       - type: applies_to
         target: definition.nimi.platform.core-protocol.app-activity-record
+  - id: rule.nimi.desktop.product-surfaces.r036
+    kind: rule
+    title: The Message center is a Home-internal view over existing owners
+    modality: must
+    statement: View all messages opens a full-width Message center inside Home without a new primary navigation item, keeps Home selected, returns to the overview through Back to Home, and ordinary Home entry opens the overview. The center lists loaded messages with All, Pending and source filters; Pending holds loaded open todos including read and Home-hidden ones plus active downloads, unresolved setup failures and available App updates. Center cards show full titles and summaries, App and Realm listings continue separately through their own continuation, and counts or empty results are stated as complete only after the relevant listing is complete. A Realm Post card opens that Post in the Activity feed through a transient Post identity and the existing Realm Post read, system cards open their download, setup task or App detail, and a collapsed group only expands.
+    condition: Whenever Desktop renders, filters, paginates, or navigates from the Home Messages column or the Message center.
+    failure: Show loading, source-local unavailable with retry, incomplete, and actual open or Post-unavailable results, and reject merged owner cursors, read state or counts, fabricated completeness, and open actions that a source does not support.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.home-feed
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.home-overview
+  - id: rule.nimi.desktop.product-surfaces.r037
+    kind: rule
+    title: Home hiding and display preferences change only the Home preview
+    modality: must
+    statement: Hiding an App or Runtime activity card from Home stores its activityId at the displayed revision so only a higher revision reappears, hiding a Realm Post stores its Post identity, and hiding a group stores only the members counted in that group when the user acts; system items collapse but are not hidden. The Message center ignores Home hiding and source display choices, offers Show on Home for hidden cards, and says when a source display choice still keeps a restored card off Home. Settings > Notifications presents a Home messages section, saved and reported apart from Realm notification settings, with Home display per App sourceRef that has appeared, Home display of Realm Posts, and a restore action that clears hidden cards without changing source choices. A first read that returns APP_STORAGE_ENTRY_NOT_FOUND means no preferences yet and the first user change writes the document; any other read failure keeps messages visible while hiding and preference changes stay unavailable until a manual reload, and a change updates the display only after its write succeeds.
+    condition: Whenever Home, the Message center or Settings reads, applies, or changes Home message display preferences.
+    failure: Keep the previous display and show the read or save failure with a manual retry, and reject hiding that marks read, completes, cancels, or stops publishing, reuse of the Realm notification settings DTO, and preferences carried across accounts, subjects, or data roots.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.home-message-preferences
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.home-overview

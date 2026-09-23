@@ -116,5 +116,11 @@
   "visibilityFriendsOnly": "Friends only",
   "visibilityPrivateDescription": "Only you can see this post.",
   "visibilityPrivateOnly": "Private",
-  "visibilityPublicDescription": "Anyone can see this post."
+  "visibilityPublicDescription": "Anyone can see this post.",
+  "focusedPost": {
+    "title": "The post you opened",
+    "close": "Close",
+    "unavailable": "This post can't be shown. It may have been deleted, is no longer visible to you, or can't be read right now.",
+    "retry": "Try again"
+  }
 }

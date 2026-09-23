@@ -109,6 +109,17 @@ export type DesktopAppsPanelProjection =
     }
   | { readonly status: 'error'; readonly detail: string };
 
+/** Home and Apps cards preserve their source identity; App-only intents must be unambiguous. */
+export function resolveRequestedAppDetailEntry(
+  entries: readonly DesktopAppsEntry[],
+  appId: string,
+  entryKey: string | null,
+): DesktopAppsEntry | null {
+  const candidates = entries.filter((entry) => entry.identity.appId === appId);
+  if (entryKey) return candidates.find((entry) => entry.identity.entryKey === entryKey) ?? null;
+  return candidates.length === 1 ? candidates[0]! : null;
+}
+
 // @nimi-authority: rule.nimi.platform.product-lifecycle.p-home-009a
 // @nimi-authority: rule.nimi.platform.product-lifecycle.p-home-009e
 // @nimi-authority: rule.nimi.desktop.shell-ui.r102
