@@ -1,6 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
 import { LoadingSkeleton, StatusBadge } from '@nimiplatform/kit/ui';
-import { AudioLines, Bot, Boxes, Cable, Compass, Inbox, MessagesSquare } from 'lucide-react';
+import { AudioLines, Bot, Boxes, Cable, Inbox, MessagesSquare } from 'lucide-react';
 
 import { useAIStudioWorkspaceController } from '../ai-studio-core/index.js';
 import { useLabRendererHost } from '../renderer/context.js';
@@ -20,7 +20,6 @@ import type { LabPreferences } from './lab-preferences.js';
 import { labStudioComposition } from './lab-studio-composition.js';
 import { labTestIds } from './lab-test-ids.js';
 import {
-  workbenchLibraryCapabilityId,
   workbenchNavGroups,
   type WorkbenchView,
 } from './workbench/workbench-context.js';
@@ -130,29 +129,24 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
 
   const navigationGroups = useMemo<readonly WorkbenchNavigationGroup<LabWorkbenchNavigationId>[]>(() => [
     ...workbenchNavGroups.map((group) => ({
-      id: group.label,
+      id: group.id,
+      label: t(group.labelKey),
       items: group.capabilityIds.map((id) => ({
         id,
         label: t(getLabCapability(id).labelKey),
         icon: labStudioComposition.getCapability(id).icon,
+        detail: getLabCapability(id).capabilityContract ?? id,
         semanticId: id === 'text.generate' ? 'lab-primary-action' : undefined,
       })),
     })),
     {
       id: 'agents',
+      label: t('Workbench.groups.agents'),
       items: [
         { id: 'agent-center', label: t('Workbench.agentCenter'), icon: Bot },
         { id: 'agent-conversation', label: t('Workbench.agentConversation'), icon: MessagesSquare },
         { id: 'agent-realtime', label: t('Workbench.agentRealtime'), icon: AudioLines },
       ],
-    },
-    {
-      id: 'library',
-      items: [{
-        id: workbenchLibraryCapabilityId,
-        label: t(getLabCapability(workbenchLibraryCapabilityId).labelKey),
-        icon: Compass,
-      }],
     },
   ], [t]);
   const bottomNavigationItems = useMemo<readonly WorkbenchNavigationItem<LabWorkbenchNavigationId>[]>(() => [
@@ -192,8 +186,12 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
     <WorkbenchCore
       activeViewId={activeNavigationId}
       navigationLabel={t('Workbench.sideNavAriaLabel')}
+      navigationPresentation="catalog"
+      navigationTitle={t('Workbench.capabilityNavigationTitle')}
+      navigationDescription={t('Workbench.capabilityNavigationDescription')}
       navigationGroups={navigationGroups}
       bottomNavigationItems={bottomNavigationItems}
+      bottomNavigationLabel={t('Workbench.groups.workspace')}
       onSelectView={selectNavigationView}
       accountSlot={<NimiLabAccountMenu onOpenSettings={() => setView({ kind: 'settings' })} />}
       rootTestId={labTestIds.root}

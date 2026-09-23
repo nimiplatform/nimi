@@ -162,6 +162,10 @@ func (s *Service) PrepareLocalAppLaunch(ctx context.Context, req *runtimev1.Prep
 	if err != nil || registration.RegistrationHandle != localDevelopmentRegistrationHandleRef(handle) {
 		return nil, localDevelopmentFailureFromCause(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE, err)
 	}
+	profileRoot, err := s.localAppKernel.AppHostProfileRoot(registration.RegisteredAppSubject)
+	if err != nil {
+		return nil, localDevelopmentFailureAtStageFromCause(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE, "host-storage", err)
+	}
 	hostExecutable, err := localDevelopmentHostExecutable(project)
 	if err != nil {
 		return nil, localDevelopmentFailureAtStageFromCause(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE, "host-executable", err)
@@ -206,7 +210,10 @@ func (s *Service) PrepareLocalAppLaunch(ctx context.Context, req *runtimev1.Prep
 		revoke()
 		return nil, localDevelopmentFailureFromCause(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_LAUNCH_LEASE_REQUIRED, err)
 	}
-	return &runtimev1.PrepareLocalAppLaunchResponse{LaunchId: append([]byte(nil), launchID[:]...), BindDeadline: timestamppb.New(bindDeadline), ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
+	return &runtimev1.PrepareLocalAppLaunchResponse{
+		LaunchId: append([]byte(nil), launchID[:]...), BindDeadline: timestamppb.New(bindDeadline), ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+		HostStorage: &runtimev1.HostStorageProjection{ProfileRoot: profileRoot},
+	}, nil
 }
 
 func (s *Service) BindLocalAppProcess(ctx context.Context, req *runtimev1.BindLocalAppProcessRequest) (*runtimev1.BindLocalAppProcessResponse, error) {

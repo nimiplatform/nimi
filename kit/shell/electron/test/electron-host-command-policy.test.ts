@@ -75,6 +75,40 @@ function registerPolicyBridge(input: {
 }
 
 describe('Electron host command policy', () => {
+  it('passes validated operation selectors to policy before invoking Runtime or Realm', async () => {
+    const seen: Parameters<NimiElectronHostCommandPolicy>[0][] = [];
+    let clientCalls = 0;
+    const ipcMain = registerPolicyBridge({
+      policy: (input) => {
+        seen.push(input);
+        return { allow: false, reasonCode: 'setup-only', actionHint: 'finish_setup' };
+      },
+      fakeClient: {
+        unary: async () => { clientCalls += 1; return { responseBytes: new Uint8Array() }; },
+        serverStream: () => { throw new Error('must not open stream'); },
+        close: () => undefined,
+      },
+    });
+    const { event } = createInvokeEvent();
+    const methodId = '/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth';
+    const requests = [
+      { command: STANDARD_COMMANDS.unary, payload: { methodId, requestBytesBase64: 'AQ==' } },
+      { command: STANDARD_COMMANDS.stream_open, payload: { payload: { methodId, streamId: 'repair-stream', requestBytesBase64: '' } } },
+      { command: STANDARD_COMMANDS.unary, payload: { cancel: true, requestId: 'repair-request' } },
+      { command: 'runtime_account_invoke_realm_unary', payload: { payload: { methodId: 'getMe', request: { private: 'not-policy-input' } } } },
+    ];
+    for (const request of requests) {
+      await expect(invokeBridge(ipcMain, event, request)).rejects.toMatchObject({ reasonCode: 'setup-only' });
+    }
+    expect(seen).toEqual([
+      { command: STANDARD_COMMANDS.unary, commandKind: 'standard', appId: 'nimi.parentos', runtimeMethodId: methodId },
+      { command: STANDARD_COMMANDS.stream_open, commandKind: 'standard', appId: 'nimi.parentos', runtimeMethodId: methodId },
+      { command: STANDARD_COMMANDS.unary, commandKind: 'standard', appId: 'nimi.parentos', runtimeCancellation: true },
+      { command: 'runtime_account_invoke_realm_unary', commandKind: 'app-domain', appId: 'nimi.parentos', realmMethodId: 'getMe' },
+    ]);
+    expect(clientCalls).toBe(0);
+  });
+
   it('denies blocked runtime host commands before their handlers run', async () => {
     const ipcMain = registerPolicyBridge({
       policy: parentosFixturePolicy(),

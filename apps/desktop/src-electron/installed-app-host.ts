@@ -4,13 +4,20 @@ import {
   type NimiElectronInstalledAppControl,
 } from '@nimiplatform/kit/shell/electron/main';
 import type { InstalledAppRun } from '../src/shell/shared/installed-app-types.js';
+import {
+  createDesktopDataRootOperationGate,
+  type DesktopDataRootOperationGate,
+} from './data-root-operation-gate.js';
 
-type Run = { readonly selector: Uint8Array; launchId?: string; exitState?: 'stopped' | 'crashed'; pending: boolean; view: InstalledAppRun };
+type Run = { readonly selector: Uint8Array; launchId?: string; exitState?: 'stopped' | 'crashed'; pending: boolean; launchQueued?: boolean; view: InstalledAppRun };
 const COMMANDS = ['installed_app_launch', 'installed_app_focus', 'installed_app_stop', 'installed_app_runs_list', 'installed_app_uninstall'] as const;
 export type DesktopInstalledAppHost = ReturnType<typeof createDesktopInstalledAppHost>;
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040c
-export function createDesktopInstalledAppHost(control: NimiElectronInstalledAppControl = createNimiElectronInstalledAppControl()) {
+export function createDesktopInstalledAppHost(
+  control: NimiElectronInstalledAppControl = createNimiElectronInstalledAppControl(),
+  operationGate: DesktopDataRootOperationGate = createDesktopDataRootOperationGate(),
+) {
   const runs = new Map<string, Run>();
   let closing = false;
   const releaseLease = async (run: Run, id: string): Promise<void> => {
@@ -95,7 +102,17 @@ export function createDesktopInstalledAppHost(control: NimiElectronInstalledAppC
         }
         run.exitState = undefined;
         run.view = { launchSelector: [...selector], state: 'launching', accessAvailable: false, accessReasonCode: 'LOCAL_APP_SESSION_REVOKED', message: '' };
-        const launched = await control.launch(selector);
+        // @nimi-authority: rule.nimi.platform.product-lifecycle.p-mig-007h
+        // Prepare, Host profile preparation and spawn/bind hold the data-root
+        // gate only for this bounded launch; a launch still queued when a root
+        // handoff stops this owner is refused on admission.
+        const queued = run;
+        queued.launchQueued = true;
+        const launched = await operationGate.runExclusive(async () => {
+          queued.launchQueued = false;
+          if (closing) throw new Error('installed-app-owner-closing');
+          return control.launch(selector);
+        }).finally(() => { queued.launchQueued = false; });
         run.launchId = launched.launchId;
         run.view = { ...run.view, state: 'running' };
       } catch (error) {
@@ -132,19 +149,32 @@ export function createDesktopInstalledAppHost(control: NimiElectronInstalledAppC
     launchSelector: (selector: Uint8Array): Promise<unknown> => invoke('installed_app_launch', {
       payload: { launchSelector: [...selector] },
     }),
+    /** Whether any installed App is starting, running, or awaiting release. */
+    async hasActiveRuns(): Promise<boolean> {
+      for (const run of runs.values()) {
+        if (run.pending) return true;
+        if (!run.launchId || run.exitState) continue;
+        if ((await control.status(run.launchId)).running) return true;
+      }
+      return false;
+    },
     commandHandlers: Object.fromEntries(COMMANDS.map((command) => [command, (context: { readonly payload: Readonly<Record<string, unknown>> }) => invoke(command, context.payload)])),
     async shutdown(): Promise<void> {
       closing = true;
-      for (const run of runs.values()) {
+      for (const [key, run] of [...runs]) {
+        // A queued launch is refused on gate admission while closing; after an
+        // aborted handoff resumes this owner it proceeds and stays tracked.
+        if (run.launchQueued) continue;
         if (run.pending) throw new Error('installed-app-action-pending');
         const id = run.launchId;
-        if (!id) continue;
-        await control.stop(id);
-        run.exitState = 'stopped';
-        run.view = { ...run.view, state: 'stopped', accessAvailable: false, accessReasonCode: 'LOCAL_APP_SESSION_REVOKED', message: '' };
-        await releaseLease(run, id);
+        if (id) {
+          await control.stop(id);
+          run.exitState = 'stopped';
+          run.view = { ...run.view, state: 'stopped', accessAvailable: false, accessReasonCode: 'LOCAL_APP_SESSION_REVOKED', message: '' };
+          await releaseLease(run, id);
+        }
+        runs.delete(key);
       }
-      runs.clear();
     },
   };
 }

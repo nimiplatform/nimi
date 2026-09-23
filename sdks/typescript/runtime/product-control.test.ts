@@ -184,7 +184,7 @@ test('Runtime product-control parsers fail closed on retired state and firstRun 
     path: '', exists: false, state: 'config_missing', record: null, error: 'offline',
   });
   assert.deepEqual(projectUnavailableNimiProductControlSelectedDataRoot('offline'), {
-    path: '', exists: false, state: 'config_missing', dataRoot: null, error: 'offline',
+    path: '', exists: false, state: 'config_missing', dataRoot: null, error: 'offline', hostProfileScopeRoot: null,
   });
   const parsedRecord = parseNimiProductControlRecordProjection(JSON.parse(productControlEnvelope('ready_for_use').json));
   assert.deepEqual(parsedRecord.record?.firstRun, {

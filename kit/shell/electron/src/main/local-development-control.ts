@@ -1,3 +1,5 @@
+import path from 'node:path';
+
 import { resolveNimiElectronProtectedLocalBindingPackage } from './local-app-host.js';
 import { loadNimiElectronProtectedLocalPackage } from './protected-local-binding-loader.js';
 import { NimiElectronShellHostError } from './types.js';
@@ -57,7 +59,12 @@ export type NimiElectronLocalDevelopmentControl = {
     readonly rendererOrigin: string;
     readonly hostArguments: readonly string[];
     readonly workingDirectory: string;
-  }) => Promise<{ readonly processId: number; readonly bindDeadlineUnixMs: number }>;
+  }) => Promise<{
+    readonly processId: number;
+    readonly bindDeadlineUnixMs: number;
+    /** Runtime-derived Host technical profile root of this launch. */
+    readonly hostProfileRoot: string;
+  }>;
   readonly hostRunning: (supervisorRunId: string) => Promise<boolean>;
   readonly focusHost: (supervisorRunId: string) => Promise<void>;
   readonly terminateHost: (supervisorRunId: string) => Promise<void>;
@@ -115,10 +122,11 @@ class ElectronLocalDevelopmentControl implements NimiElectronLocalDevelopmentCon
         workingDirectory: boundedText(input.workingDirectory),
       }),
       'launch_local_development_host',
-    ), ['bindDeadlineUnixMs', 'processId']);
+    ), ['bindDeadlineUnixMs', 'hostProfileRoot', 'processId']);
     return {
       processId: integer(value.processId, 1),
       bindDeadlineUnixMs: integer(value.bindDeadlineUnixMs, Date.now() + 1),
+      hostProfileRoot: absolutePath(value.hostProfileRoot),
     };
   }
 
@@ -257,6 +265,12 @@ function identifier(value: unknown): string {
 function boundedText(value: unknown): string {
   if (typeof value !== 'string' || value.length === 0 || value.length > 4096 || value.trim() !== value) invalid();
   return value;
+}
+
+function absolutePath(value: unknown): string {
+  const text = boundedText(value);
+  if (!path.isAbsolute(text) || path.normalize(text) !== text) invalid();
+  return text;
 }
 
 function integer(value: unknown, minimum: number): number {

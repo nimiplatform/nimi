@@ -24,15 +24,16 @@ import (
 
 // Ephemeral launch ownership, not a persisted process or authorization record.
 type installedAppLaunch struct {
-	mu       sync.Mutex
-	id       protectedlocal.Identifier
-	owner    *protectedlocal.Connection
-	verified nimiappinstall.InstalledLaunch
-	policy   protectedlocal.InstalledAppProcessPolicy
-	expires  time.Time
-	bound    bool
-	closed   bool
-	liveness protectedlocal.DesktopProcessLiveness
+	mu          sync.Mutex
+	id          protectedlocal.Identifier
+	owner       *protectedlocal.Connection
+	verified    nimiappinstall.InstalledLaunch
+	policy      protectedlocal.InstalledAppProcessPolicy
+	profileRoot string
+	expires     time.Time
+	bound       bool
+	closed      bool
+	liveness    protectedlocal.DesktopProcessLiveness
 }
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-034a
@@ -41,7 +42,7 @@ func (s *Service) PrepareInstalledAppLaunch(ctx context.Context, req *runtimev1.
 	if err := requireProtectedLocalDevelopmentDesktop(ctx); err != nil {
 		return nil, err
 	}
-	if s == nil || s.appInstallCoordinator == nil || req == nil {
+	if s == nil || s.appInstallCoordinator == nil || s.localAppKernel == nil || req == nil {
 		return nil, installedLaunchUnavailable()
 	}
 	selector := req.GetLaunchSelector()
@@ -63,6 +64,10 @@ func (s *Service) PrepareInstalledAppLaunch(ctx context.Context, req *runtimev1.
 		if !ok {
 			return installedLaunchMismatch()
 		}
+		profileRoot, err := s.localAppKernel.AppHostProfileRoot(verified.Registration.RegisteredAppSubject)
+		if err != nil {
+			return installedLaunchUnavailable()
+		}
 		var runID protectedlocal.Identifier
 		if _, err := rand.Read(runID[:]); err != nil {
 			return err
@@ -83,7 +88,7 @@ func (s *Service) PrepareInstalledAppLaunch(ctx context.Context, req *runtimev1.
 		} else if s.localDevelopmentRegistry == nil {
 			return installedLaunchUnavailable()
 		}
-		lease = &installedAppLaunch{id: id, owner: owner, verified: verified, expires: expires,
+		lease = &installedAppLaunch{id: id, owner: owner, verified: verified, profileRoot: profileRoot, expires: expires,
 			policy: protectedlocal.InstalledAppProcessPolicy{RegistrationHandle: verified.Registration.RegistrationHandle,
 				TrustClass:       trustClass,
 				SourceGeneration: verified.Registration.SourceGeneration, DeclarationGeneration: verified.Registration.DeclarationGeneration,
@@ -130,7 +135,8 @@ func (s *Service) PrepareInstalledAppLaunch(ctx context.Context, req *runtimev1.
 	return &runtimev1.PrepareInstalledAppLaunchResponse{LaunchId: append([]byte(nil), lease.id[:]...),
 		AppId: lease.verified.Release.AppID, Version: lease.verified.Release.Version, ExecutablePath: lease.verified.RuntimeEntry,
 		WorkingDirectory: lease.verified.WorkingDirectory, Arguments: []string{}, ExecutableSha256: append([]byte(nil), lease.verified.ExecutableDigest[:]...),
-		ExecutionProfileRef: lease.policy.ExecutionProfileRef, BindDeadline: timestamppb.New(lease.expires), ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
+		ExecutionProfileRef: lease.policy.ExecutionProfileRef, BindDeadline: timestamppb.New(lease.expires), ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+		HostStorage: &runtimev1.HostStorageProjection{ProfileRoot: lease.profileRoot}}, nil
 }
 
 func (s *Service) installedLaunch(raw []byte) *installedAppLaunch {

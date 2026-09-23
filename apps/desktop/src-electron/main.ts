@@ -1,3 +1,4 @@
+import { createDesktopHomeCommandPolicy } from './home-host-policy.js';
 import path from 'node:path';
 import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -68,7 +69,19 @@ import {
   type DesktopElectronChatAiStoreHost,
 } from './chat-ai-store-host.js';
 import { createDesktopElectronDataCleanupHost } from './data-cleanup-host.js';
-import { createDesktopDataRootOperationGate } from './data-root-operation-gate.js';
+import {
+  createDesktopDataRootOperationGate,
+  type DesktopDataRootOperationGate,
+} from './data-root-operation-gate.js';
+import {
+  captureDesktopTemporaryEnvironment,
+  prepareDesktopHomeHostProfile,
+  prepareDesktopHomeRootProfile,
+  shouldRetryDesktopHomeProfile,
+  releaseDesktopHomeBootstrapSlot,
+  type DesktopHomeHostProfile,
+  type DesktopTemporaryEnvironment,
+} from './home-host-profile.js';
 import { createDesktopElectronHttpHost } from './http-request-host.js';
 import {
   bindDesktopSenderInvalidation,
@@ -164,6 +177,26 @@ let registeredRuntimeBridge: RegisteredNimiElectronRuntimeBridge | undefined;
 let quitCleanup: Promise<void> | undefined;
 let quitCleanupComplete = false;
 const DESKTOP_FORMAL_RESOURCE_SHUTDOWN_TIMEOUT_MS = 5_000;
+// Home's own Host technical profile (P-MIG-006d / P-COLD-017a).
+const HOME_PROFILE_RELAUNCH_ARGUMENT = '--nimi-home-profile-relaunch';
+const HOME_PROFILE_RELAUNCH_EXIT_CODE = 75;
+const HOME_PROFILE_SCOPE_READ_TIMEOUT_MS = 12_000;
+const HOME_PROFILE_RELAUNCHED = process.argv.includes(HOME_PROFILE_RELAUNCH_ARGUMENT);
+const HOME_PROFILE_REPAIR_COMMANDS: ReadonlySet<string> = new Set([
+  'product_control_record_select_data_root',
+  'product_control_root_activation_initialize',
+  'product_control_record_admit_ready_for_use',
+  'product_control_check_sync_start',
+]);
+let homeHostProfile: DesktopHomeHostProfile | undefined;
+let homeTemporaryEnvironment: DesktopTemporaryEnvironment | undefined;
+let homeRelaunchRequested = false;
+let homeProfileWorkBlocked = false;
+let homeDataRootOperationGate: DesktopDataRootOperationGate | undefined;
+let homeProfileCheckAt = 0;
+// Until startup finished constructing its hosts, a requested relaunch waits
+// for startup's own checkpoint so shutdown sees every host it must dispose.
+let desktopStartupSettled = false;
 
 app.setName(MACOS_LOCAL_DEVELOPMENT_BUILD ? 'Nimi Dev' : 'Nimi');
 if (SOURCE_PER_USER_RUNTIME_D2) {
@@ -176,9 +209,13 @@ configureDesktopElectronChromiumRuntime();
 const unregisterProductionService = process.platform === 'darwin' && app.isPackaged
   && !ELECTRON_DEVELOPMENT_BUILD && !MACOS_LOCAL_DEVELOPMENT_BUILD
   && process.argv.includes('--unregister-runtime-service');
+// The single-instance lock keeps its fixed location: it is requested before
+// the profile preflight moves userData, so modes and roots never split Home.
 const ownsDesktopInstanceLock = unregisterProductionService || app.requestSingleInstanceLock();
 if (!ownsDesktopInstanceLock) {
   app.quit();
+} else if (!await configureDesktopHomeHostProfile()) {
+  app.exit(1);
 } else {
   app.on('second-instance', () => {
     void focusDesktopMainWindow();
@@ -198,6 +235,114 @@ if (!ownsDesktopInstanceLock) {
   void bootstrapDesktopElectronHost();
 }
 
+// @nimi-authority: rule.nimi.platform.product-lifecycle.p-cold-017a
+// Bounded pre-ready preflight: only this runs before `app.whenReady()`; the
+// bootstrap below awaits readiness, so awaiting it here would self-wait.
+async function configureDesktopHomeHostProfile(): Promise<boolean> {
+  const temporaryEnvironment = captureDesktopTemporaryEnvironment();
+  try {
+    const profile = await prepareDesktopHomeHostProfile({
+      readScopeRoot: () => readDesktopHomeProfileScope(),
+      singleInstanceScope: app.getPath('userData'),
+      temporaryEnvironment,
+      reportCleanupFailure: (error) => {
+        process.stderr.write(`[desktop-home-profile] bootstrap-slot-cleanup:${desktopBootstrapFailureCode(error)}\n`);
+      },
+    });
+    app.setPath('userData', profile.userData);
+    app.setPath('sessionData', profile.sessionData);
+    app.setPath('temp', profile.temp);
+    temporaryEnvironment.apply(profile.temp);
+    homeHostProfile = profile;
+    homeTemporaryEnvironment = temporaryEnvironment;
+    if (profile.mode === 'bootstrap') {
+      process.stderr.write(`[desktop-home-profile] bootstrap:${profile.bootstrapReason ?? 'unavailable'}\n`);
+    }
+    return true;
+  } catch (error) {
+    const failureCode = desktopBootstrapFailureCode(error);
+    process.stderr.write(`[desktop-home-profile] ${failureCode}\n`);
+    dialog.showErrorBox(
+      'Nimi could not prepare its startup profile',
+      `Nimi could not prepare its temporary setup profile (${failureCode}). Close other Nimi windows or free the temporary folder, then open Nimi again.`,
+    );
+    return false;
+  }
+}
+
+async function readDesktopHomeProfileScope(): Promise<string> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      createDesktopElectronProductControlHost().resolveHostProfileScope(),
+      new Promise<never>((_resolve, reject) => {
+        timer = setTimeout(
+          () => reject(new Error('desktop-home-profile-scope-read-timeout')),
+          HOME_PROFILE_SCOPE_READ_TIMEOUT_MS,
+        );
+      }),
+    ]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+}
+
+// Bootstrap serves setup and repair only: App launches are refused until Home
+// relaunches into the selected root's profile.
+function normalHomeWorkAllowed(): boolean {
+  return homeHostProfile?.mode === 'root' && !homeProfileWorkBlocked && !homeRelaunchRequested
+    && !homeDataRootOperationGate?.isClosed();
+}
+
+function desktopAppLaunchGate(gate: DesktopDataRootOperationGate): DesktopDataRootOperationGate {
+  return Object.freeze({
+    ...gate,
+    runExclusive<T>(operation: () => Promise<T>): Promise<T> {
+      return gate.runExclusive(async () => {
+        if (!normalHomeWorkAllowed()) throw new Error('desktop-home-profile-repair-required');
+        return operation();
+      });
+    },
+  });
+}
+
+// @nimi-authority: rule.nimi.platform.product-lifecycle.p-mig-007h
+// Home adopts a different profile only by relaunching: from bootstrap once the
+// selected root is usable and GUI-writable, or after a committed root switch.
+async function checkDesktopHomeProfileScope(
+  resolveScope: () => Promise<string>,
+  trigger: 'startup' | 'activation' | 'command' | 'user-action',
+): Promise<boolean> {
+  const current = homeHostProfile;
+  if (!current || homeRelaunchRequested) return false;
+  // Bound automatic retries, not an explicit user repair attempt. A marker
+  // from the previous process must never permanently strand setup/repair.
+  if (!shouldRetryDesktopHomeProfile({
+    mode: current.mode, alreadyRelaunched: HOME_PROFILE_RELAUNCHED,
+    startupSettled: desktopStartupSettled, trigger,
+  })) return false;
+  const now = Date.now();
+  if (trigger === 'command' && now - homeProfileCheckAt < 2_000) return false;
+  homeProfileCheckAt = now;
+  let scope: string;
+  try {
+    scope = await resolveScope();
+  } catch {
+    return false;
+  }
+  if (current.mode === 'root' && scope === current.scopeRoot) return true;
+  try {
+    await prepareDesktopHomeRootProfile(scope);
+  } catch {
+    return false;
+  }
+  process.stderr.write(`[desktop-home-profile] relaunch:${trigger}\n`);
+  homeProfileWorkBlocked = true;
+  homeRelaunchRequested = true;
+  if (desktopStartupSettled) app.quit();
+  return false;
+}
+
 async function bootstrapDesktopElectronHost(): Promise<void> {
   try {
     await app.whenReady();
@@ -206,11 +351,14 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
     }
     localAssetProtocolHost.registerProtocolHandler();
     appOriginProtocol.register();
+    const dataRootOperationGate = createDesktopDataRootOperationGate();
+    homeDataRootOperationGate = dataRootOperationGate;
+    const appLaunchGate = desktopAppLaunchGate(dataRootOperationGate);
     localDevelopmentHost = await createDesktopElectronLocalDevelopmentHost({
       homeDirectory: app.getPath('home'),
+      operationGate: appLaunchGate,
     });
-    const dataRootOperationGate = createDesktopDataRootOperationGate();
-    installedAppHost = createDesktopInstalledAppHost();
+    installedAppHost = createDesktopInstalledAppHost(undefined, appLaunchGate);
     const runtimeDeploymentProfile = resolveElectronRuntimeDeploymentProfile({
       electronDevelopmentBuild: ELECTRON_DEVELOPMENT_BUILD,
       macOSLocalDevelopmentBuild: MACOS_LOCAL_DEVELOPMENT_BUILD,
@@ -278,6 +426,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       runtimeLifecycleProfile,
       restartRuntime: () => invokeRuntimeLifecycle(runtimeCommandNames.restart),
       quiesceHostDataRoot: async () => {
+        await localDevelopmentHost?.quiesceDataRoot();
         await installedAppHost?.shutdown();
         await bundledAvatarHost?.quiesceDataRoot();
         await localAssetProtocolHost.quiesceDataRootReadableGrants();
@@ -288,13 +437,43 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         bundledAvatarHost?.resumeDataRoot();
       },
       commitHostDataRoot: () => localAssetProtocolHost.retireDataRootReadableGrants(),
-      activateHostDataRoot: () => {
+      activateHostDataRoot: async () => {
+        homeProfileWorkBlocked = true;
+        const active = await checkDesktopHomeProfileScope(
+          () => productControlHost.resolveHostProfileScope(), 'activation',
+        );
+        if (!active) return false;
+        homeProfileWorkBlocked = false;
         installedAppHost?.resume();
         localAssetProtocolHost.activateDataRootReadableGrants();
         bundledAvatarHost?.resumeDataRoot();
+        return true;
       },
     });
     await productControlHost.bootstrapDataRootHandoff();
+    if (homeHostProfile?.mode === 'bootstrap') {
+      await checkDesktopHomeProfileScope(() => productControlHost.resolveHostProfileScope(), 'startup');
+    }
+    if (homeRelaunchRequested) {
+      // Only the launch hosts exist yet; relaunch before building the rest.
+      app.quit();
+      return;
+    }
+    const productControlCommandHandlers = Object.fromEntries(
+      Object.entries(productControlHost.commandHandlers).map(([command, handler]) => [
+        command,
+        async (context: Parameters<typeof handler>[0]) => {
+          const result = await handler(context);
+          if (homeHostProfile?.mode === 'bootstrap') {
+            void checkDesktopHomeProfileScope(
+              () => productControlHost.resolveHostProfileScope(),
+              HOME_PROFILE_REPAIR_COMMANDS.has(command) ? 'user-action' : 'command',
+            );
+          }
+          return result;
+        },
+      ]),
+    ) as typeof productControlHost.commandHandlers;
     const systemResourcesHost = createDesktopElectronSystemResourcesHost();
     const resolveProductControlDataRoot = createDesktopProductControlDataRootResolver(
       productControlHost.resolveSelectedDataRoot,
@@ -314,6 +493,9 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
     });
     const dataCleanupHost = createDesktopElectronDataCleanupHost({
       resolveReadyDataRoot: productControlHost.resolveReadyDataRoot,
+      resolveHostProfileScope: productControlHost.resolveHostProfileScope,
+      hasActiveManagedApps: async () => Boolean(localDevelopmentHost?.hasActiveRuns())
+        || Boolean(await installedAppHost?.hasActiveRuns()),
       operationGate: dataRootOperationGate,
     });
     const httpRequestHost = createDesktopElectronHttpHost({});
@@ -427,7 +609,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         }
         return avatarHostTargetRef;
       },
-      runDataRootOperation: (operation) => dataRootOperationGate.runExclusive(operation),
+      runDataRootOperation: (operation) => appLaunchGate.runExclusive(operation),
       resolveFormalPresentationAsset: async ({ agentHandle, assetRef }) => {
         const localAppHost = registeredRuntimeBridge?.bundledAvatarLocalAppHost;
         if (!localAppHost) throw new Error('Avatar formal App host is unavailable.');
@@ -443,6 +625,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         : undefined,
     });
     const appActivitySourceLaunch = createDesktopAppActivitySourceLaunch({
+      isAvailable: normalHomeWorkAllowed,
       resolve: () => registeredRuntimeBridge?.resolveAppActivityOpenLaunch,
       launchInstalled: () => installedAppHost?.launchSelector,
       startLocalDevelopment: () => localDevelopmentHost?.startRegistrationHandle,
@@ -465,6 +648,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
     // @nimi-authority: rule.nimi.desktop.command-execution.r006
     registeredRuntimeBridge = registerNimiElectronRuntimeBridge({
       appId: APP_ID,
+      commandPolicy: createDesktopHomeCommandPolicy(normalHomeWorkAllowed),
       runtimeEndpoint: PROTECTED_DESKTOP_RUNTIME_TRANSPORT_REF,
       runtimeDeploymentProfile,
       runtimeLifecycleProfile,
@@ -480,10 +664,24 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         },
       },
       commandHandlers: {
+        desktop_home_profile_status_get: () => ({
+          mode: homeHostProfile?.mode ?? 'bootstrap',
+          workAllowed: normalHomeWorkAllowed(),
+          relaunchRequested: homeRelaunchRequested,
+        }),
+        desktop_home_profile_retry: async () => {
+          if (dataRootOperationGate.isClosed()) {
+            await productControlHost.commandHandlers.product_control_check_sync_start({
+              command: 'product_control_check_sync_start', payload: {},
+            });
+          }
+          await checkDesktopHomeProfileScope(() => productControlHost.resolveHostProfileScope(), 'user-action');
+          return { requested: homeRelaunchRequested || normalHomeWorkAllowed() };
+        },
         ...localDevelopmentHost.commandHandlers,
         ...installedAppHost.commandHandlers,
         ...desktopOpenIntentHost.commandHandlers,
-        ...productControlHost.commandHandlers,
+        ...productControlCommandHandlers,
         ...chatAiStoreHost.commandHandlers,
         ...systemResourcesHost.commandHandlers,
         ...supportLogsHost.commandHandlers,
@@ -520,6 +718,12 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       },
       bundledAvatarHost: bundledAvatarHost.runtimeBridgeHost,
     });
+
+    desktopStartupSettled = true;
+    if (homeRelaunchRequested) {
+      app.quit();
+      return;
+    }
 
     if (AVATAR_ONLY_DEVELOPMENT_MODE) {
       const localAppHost = registeredRuntimeBridge.bundledAvatarLocalAppHost;
@@ -622,18 +826,50 @@ app.on('before-quit', (event) => {
   if (quitCleanupComplete) return;
   event.preventDefault();
   quitCleanup ??= shutdownBeforeQuit()
-    .then(() => {
+    .then(async () => {
       quitCleanupComplete = true;
-      app.quit();
+      await finishDesktopHomeProfileBeforeExit();
     })
     .catch(() => {
       quitCleanup = undefined;
+      // Home keeps its current profile; a later ordinary quit must not turn
+      // into this relaunch, and a later check may request it again.
+      homeRelaunchRequested = false;
       dialog.showErrorBox(
         'Nimi could not close safely',
         'A supervised local app did not shut down cleanly. Nimi remains open so you can retry without leaving an orphan process.',
       );
     });
 });
+
+// Relaunch only after supervised Apps stopped. The original temporary
+// environment is restored first so the next Home never nests its bootstrap
+// slot inside this profile; it re-reads Product Control itself.
+async function finishDesktopHomeProfileBeforeExit(): Promise<void> {
+  if (homeHostProfile?.mode === 'bootstrap') {
+    await Promise.race([
+      releaseDesktopHomeBootstrapSlot(homeHostProfile.profileRoot),
+      new Promise((resolve) => setTimeout(resolve, 1_000)),
+    ]);
+  }
+  if (!homeRelaunchRequested) {
+    app.quit();
+    return;
+  }
+  homeTemporaryEnvironment?.restore();
+  if (SOURCE_PER_USER_RUNTIME_D2) {
+    // The source dev launcher owns the renderer and restarts this host.
+    app.exit(HOME_PROFILE_RELAUNCH_EXIT_CODE);
+    return;
+  }
+  app.relaunch({
+    args: [
+      ...process.argv.slice(1).filter((argument) => argument !== HOME_PROFILE_RELAUNCH_ARGUMENT),
+      HOME_PROFILE_RELAUNCH_ARGUMENT,
+    ],
+  });
+  app.quit();
+}
 
 async function shutdownBeforeQuit(): Promise<void> {
   const localHost = localDevelopmentHost;

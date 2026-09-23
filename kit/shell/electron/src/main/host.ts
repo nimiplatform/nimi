@@ -396,7 +396,30 @@ export function registerNimiElectronRuntimeBridge(
     const payload = asRecord(envelope.payload ?? {}, 'Electron Runtime bridge command ' + command + ' payload must be an object');
     const commandHandler = rendererProfile.commandHandlers?.[command];
     const commandKind = classifyElectronHostCommand(command, Boolean(commandHandler));
-    await assertElectronHostCommandPolicyAllowed(rendererProfile.commandPolicy, { command, commandKind, appId: effectiveAppId });
+    // Let the existing Host availability policy distinguish setup/repair RPCs
+    // from normal product work without exposing request bytes or credentials.
+    let runtimeMethodId: string | undefined;
+    let realmMethodId: string | undefined;
+    let runtimeCancellation: true | undefined;
+    if (rendererProfile.commandPolicy && (command === commandNames.unary || command === commandNames.stream_open)) {
+      const runtimePayload = electronRuntimeCommandPayload(payload, command);
+      if (command === commandNames.unary && runtimePayload.cancel === true) {
+        parseElectronRuntimeUnaryCancelRequest(runtimePayload);
+        runtimeCancellation = true;
+      } else {
+        runtimeMethodId = (command === commandNames.unary
+          ? parseElectronRuntimeUnaryRequest(runtimePayload)
+          : parseElectronRuntimeStreamOpenRequest(runtimePayload)).methodId;
+      }
+    } else if (rendererProfile.commandPolicy && command === 'runtime_account_invoke_realm_unary') {
+      realmMethodId = normalizeRequiredToken(asRecord(payload.payload, 'Realm request must be an object').methodId, 'methodId');
+    }
+    await assertElectronHostCommandPolicyAllowed(rendererProfile.commandPolicy, {
+      command, commandKind, appId: effectiveAppId,
+      ...(runtimeMethodId ? { runtimeMethodId } : {}),
+      ...(realmMethodId ? { realmMethodId } : {}),
+      ...(runtimeCancellation ? { runtimeCancellation } : {}),
+    });
     if (rendererProfile.bundledAvatarProfile) {
       assertBundledAvatarSenderActive(event.sender as object);
     }

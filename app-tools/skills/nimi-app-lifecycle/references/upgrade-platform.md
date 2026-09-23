@@ -1,5 +1,10 @@
 # Platform upgrade
 
+App Tools 0.9 requires the Host-profile contract in Kit 0.13: select SDK
+`^0.16.0` and Kit `^0.13.0` before sync. Older combinations are rejected before
+files or owner projections change. There is no old-template or default-profile
+fallback. Use the selected package's matrix for later versions.
+
 Read the current and selected target app-tools version matrix plus SDK/Kit migration notes. App-side package consumption uses complete npm tarballs through explicit pnpm-workspace overrides, without depending on the Nimi source checkout or requiring publication. For an authorized platform repair or extension, follow [Platform gaps](platform-gaps.md). Sync preserves package selections; check validates installed identities/versions and lock resolutions. Use normal dev/test/build/pack during iteration. Public release preflight is a later step using registry resolutions, after development acceptance.
 
 Install the target app-tools and its exact nimi-coding first. The App-local nimi-coding executable performs its own projections, so running an old installed executable is not a target-version sync. Use the target tool for `nimi-app sync --dry-run --json`; this previews app-tools files and lists the separate owner step without pretending to preview nimi-coding's internals.

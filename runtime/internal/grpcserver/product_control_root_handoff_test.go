@@ -72,3 +72,25 @@ func TestProductControlRootHandoffAbortsWhenAppCommitCannotBeSettled(t *testing.
 		t.Fatal("pre-commit abort left current root RPC admission closed")
 	}
 }
+
+func TestProductControlRootHandoffIncludesActivityRetention(t *testing.T) {
+	owner := &appRootHandoffStub{entered: make(chan struct{}), settled: make(chan struct{})}
+	registry := newActiveRPCRegistry(nil)
+	handoff := &productControlRuntimeRootHandoff{registry: registry, appActivity: owner}
+	finished := make(chan error, 1)
+	go func() { finished <- handoff.CloseRootAdmission(context.Background()) }()
+	<-owner.entered
+	select {
+	case err := <-finished:
+		t.Fatalf("handoff crossed activity worker: %v", err)
+	default:
+	}
+	close(owner.settled)
+	if err := <-finished; err != nil {
+		t.Fatal(err)
+	}
+	handoff.AbortRootHandoff()
+	if owner.resumed != 1 {
+		t.Fatal("activity owner was not restored after abort")
+	}
+}

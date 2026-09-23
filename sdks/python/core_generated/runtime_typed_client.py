@@ -2751,6 +2751,10 @@ class HookTriggerTimeDetail:
     delay: str | None = None
 
 @dataclass(frozen=True)
+class HostStorageProjection:
+    profile_root: str | None = None
+
+@dataclass(frozen=True)
 class IgnoredScenarioExtension:
     namespace: str | None = None
     reason: str | None = None
@@ -5015,6 +5019,7 @@ class PrepareInstalledAppLaunchResponse:
     execution_profile_ref: str | None = None
     bind_deadline: str | None = None
     reason_code: ReasonCode | None = None
+    host_storage: HostStorageProjection | None = None
 
 @dataclass(frozen=True)
 class PrepareLoadoutRequest:
@@ -5044,6 +5049,7 @@ class PrepareLocalAppLaunchResponse:
     launch_id: bytes | None = None
     bind_deadline: str | None = None
     reason_code: ReasonCode | None = None
+    host_storage: HostStorageProjection | None = None
 
 @dataclass(frozen=True)
 class PrepareLocalAppPackageRequest:

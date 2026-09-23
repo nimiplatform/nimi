@@ -1,4 +1,4 @@
-use std::ffi::c_void;
+use std::ffi::{c_void, OsString};
 use std::mem::{size_of, zeroed};
 use std::os::windows::ffi::OsStrExt;
 use std::os::windows::io::{AsRawHandle, FromRawHandle, OwnedHandle};
@@ -23,6 +23,7 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
     ShowWindow, SW_RESTORE,
 };
 
+use crate::host_profile::PreparedHostProfile;
 use crate::windows_process_identity::{current_process_user, process_user};
 use crate::{NimiHostError, NimiHostErrorReasonCode};
 
@@ -46,20 +47,27 @@ impl SupervisedDevelopmentProcess {
         executable: &Path,
         arguments: &[String],
         working_directory: &Path,
+        profile: &PreparedHostProfile,
     ) -> Result<Self, NimiHostError> {
-        Self::create(executable, arguments, working_directory, None)
+        Self::create(
+            executable,
+            arguments,
+            working_directory,
+            inherited_environment(profile)?,
+        )
     }
 
     pub(crate) fn create_verified_installed(
         executable: &Path,
         arguments: &[String],
         working_directory: &Path,
+        profile: &PreparedHostProfile,
     ) -> Result<Self, NimiHostError> {
         Self::create(
             executable,
             arguments,
             working_directory,
-            Some(installed_environment()?),
+            installed_environment(profile)?,
         )
     }
 
@@ -67,7 +75,7 @@ impl SupervisedDevelopmentProcess {
         executable: &Path,
         arguments: &[String],
         working_directory: &Path,
-        environment: Option<Vec<u16>>,
+        environment: Vec<u16>,
     ) -> Result<Self, NimiHostError> {
         let parent = current_process_user().map_err(|_| context_rejected())?;
         if parent.1 {
@@ -102,15 +110,8 @@ impl SupervisedDevelopmentProcess {
                 std::ptr::null(),
                 std::ptr::null(),
                 0,
-                CREATE_SUSPENDED
-                    | if environment.is_some() {
-                        CREATE_UNICODE_ENVIRONMENT
-                    } else {
-                        0
-                    },
-                environment
-                    .as_ref()
-                    .map_or(std::ptr::null::<c_void>(), |block| block.as_ptr().cast()),
+                CREATE_SUSPENDED | CREATE_UNICODE_ENVIRONMENT,
+                environment.as_ptr().cast::<c_void>(),
                 current_directory.as_ptr(),
                 &startup,
                 &mut info,
@@ -414,6 +415,7 @@ fn context_rejected() -> NimiHostError {
     NimiHostError::new(NimiHostErrorReasonCode::ProcessContextRejected, false)
 }
 
+// TEMP and TMP are not inherited: the Host technical profile supplies them.
 const INSTALLED_ENVIRONMENT_KEYS: &[&str] = &[
     "APPDATA",
     "COMSPEC",
@@ -424,28 +426,57 @@ const INSTALLED_ENVIRONMENT_KEYS: &[&str] = &[
     "PATHEXT",
     "SystemDrive",
     "SystemRoot",
-    "TEMP",
-    "TMP",
     "USERDOMAIN",
     "USERNAME",
     "USERPROFILE",
     "WINDIR",
 ];
 
-fn installed_environment() -> Result<Vec<u16>, NimiHostError> {
-    let mut keys = INSTALLED_ENVIRONMENT_KEYS.to_vec();
+fn installed_environment(profile: &PreparedHostProfile) -> Result<Vec<u16>, NimiHostError> {
+    let keys = INSTALLED_ENVIRONMENT_KEYS.iter().copied();
     #[cfg(feature = "windows-source-local-development")]
-    keys.extend([
+    let keys = keys.chain([
         "NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT",
         "NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT_RUNTIME_EXECUTABLE",
     ]);
-    keys.sort_by_key(|key| key.to_ascii_uppercase());
+    let mut entries = keys
+        .filter_map(|key| std::env::var_os(key).map(|value| (OsString::from(key), value)))
+        .collect::<Vec<_>>();
+    entries.extend(profile_environment(profile));
+    environment_block(entries)
+}
+
+// @nimi-authority: rule.nimi.platform.product-lifecycle.p-mig-006d
+/// A development host keeps Desktop's environment except the Host profile
+/// variables, which apply to this child only (names compare case-insensitively
+/// as Windows does).
+fn inherited_environment(profile: &PreparedHostProfile) -> Result<Vec<u16>, NimiHostError> {
+    let overrides = profile_environment(profile);
+    let mut entries = std::env::vars_os()
+        .filter(|(key, _)| {
+            !overrides.iter().any(|(name, _)| {
+                name.to_string_lossy()
+                    .eq_ignore_ascii_case(&key.to_string_lossy())
+            })
+        })
+        .collect::<Vec<_>>();
+    entries.extend(overrides);
+    environment_block(entries)
+}
+
+fn profile_environment(profile: &PreparedHostProfile) -> Vec<(OsString, OsString)> {
+    profile
+        .environment()
+        .into_iter()
+        .map(|(key, value)| (OsString::from(key), value))
+        .collect()
+}
+
+fn environment_block(mut entries: Vec<(OsString, OsString)>) -> Result<Vec<u16>, NimiHostError> {
+    entries.sort_by_key(|(key, _)| key.to_string_lossy().to_ascii_uppercase());
     let mut block = Vec::new();
-    for key in keys {
-        let Some(value) = std::env::var_os(key) else {
-            continue;
-        };
-        let mut item = std::ffi::OsString::from(key);
+    for (key, value) in entries {
+        let mut item = key;
         item.push("=");
         item.push(value);
         block.extend(wide_null_terminated(&item)?);
@@ -524,6 +555,36 @@ unsafe extern "system" fn find_process_window(window: HWND, parameter: LPARAM) -
 mod tests {
     use super::*;
 
+    fn test_profile() -> PreparedHostProfile {
+        let data_root = std::env::temp_dir().join(format!(
+            "nimi-supervised-profile-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&data_root).expect("create data root");
+        crate::host_profile::prepare(Some(crate::host_profile::test_profile_projection(
+            &data_root,
+        )))
+        .expect("prepare test profile")
+    }
+
+    fn environment_entries(block: &[u16]) -> Vec<(String, String)> {
+        assert!(block.ends_with(&[0, 0]));
+        String::from_utf16(block)
+            .expect("environment UTF-16")
+            .split('\0')
+            .filter(|entry| !entry.is_empty())
+            .map(|entry| {
+                // Windows keeps per-drive entries such as "=C:=C:\dir".
+                let split = entry[1..].find('=').expect("environment entry") + 1;
+                (entry[..split].to_string(), entry[split + 1..].to_string())
+            })
+            .collect()
+    }
+
     // An elevated or non-interactive runner must prove rejection. The same
     // tests exercise actual child/job mechanics in an admitted user context;
     // no CI flag changes the production token checks or reports a fake spawn.
@@ -581,6 +642,7 @@ mod tests {
                 &executable,
                 &[],
                 &working_directory,
+                &test_profile(),
             ))
         else {
             return;
@@ -598,6 +660,7 @@ mod tests {
                 &executable,
                 &[],
                 &working_directory,
+                &test_profile(),
             ))
         else {
             return;
@@ -617,6 +680,7 @@ mod tests {
                 &executable,
                 &[],
                 &std::env::temp_dir(),
+                &test_profile(),
             ))
         else {
             return;
@@ -630,35 +694,68 @@ mod tests {
     }
 
     #[test]
-    fn installed_environment_contains_only_system_and_existing_d2_discovery_facts() {
-        let block = installed_environment().expect("installed environment");
-        assert!(block.ends_with(&[0, 0]));
-        let text = String::from_utf16(&block).expect("environment UTF-16");
-        for entry in text.split('\0').filter(|entry| !entry.is_empty()) {
-            let (key, _) = entry.split_once('=').expect("environment entry");
+    fn installed_environment_contains_only_system_d2_and_host_profile_facts() {
+        let profile = test_profile();
+        let block = installed_environment(&profile).expect("installed environment");
+        let temp = profile.temp().to_string_lossy().into_owned();
+        let mut profile_keys = 0;
+        for (key, value) in environment_entries(&block) {
             let d2 = cfg!(feature = "windows-source-local-development")
                 && [
                     "NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT",
                     "NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT_RUNTIME_EXECUTABLE",
                 ]
-                .contains(&key);
-            assert!(
-                INSTALLED_ENVIRONMENT_KEYS.contains(&key) || d2,
-                "unexpected inherited variable: {key}"
-            );
+                .contains(&key.as_str());
+            match key.as_str() {
+                "TEMP" | "TMP" | "TMPDIR" => {
+                    assert_eq!(value, temp, "{key} must be the profile temp");
+                    profile_keys += 1;
+                }
+                crate::host_profile::HOST_PROFILE_ENVIRONMENT_KEY => {
+                    assert_eq!(value, profile.root().to_string_lossy());
+                    profile_keys += 1;
+                }
+                other => assert!(
+                    INSTALLED_ENVIRONMENT_KEYS.contains(&other) || d2,
+                    "unexpected inherited variable: {other}"
+                ),
+            }
         }
+        assert_eq!(profile_keys, 4);
         let executable = std::env::current_exe().expect("test executable");
         let Some(mut child) =
             assert_context_result(SupervisedDevelopmentProcess::create_verified_installed(
                 &executable,
                 &[],
                 &std::env::temp_dir(),
+                &profile,
             ))
         else {
             return;
         };
         child.terminate().expect("stop installed child");
         assert!(!child.running());
+    }
+
+    #[test]
+    fn development_environment_overrides_only_the_host_profile_variables() {
+        let profile = test_profile();
+        let entries = environment_entries(&inherited_environment(&profile).expect("environment"));
+        let temp = profile.temp().to_string_lossy().into_owned();
+        for key in ["TEMP", "TMP", "TMPDIR"] {
+            let matches = entries
+                .iter()
+                .filter(|(name, _)| name.eq_ignore_ascii_case(key))
+                .collect::<Vec<_>>();
+            assert_eq!(matches.len(), 1, "{key} must appear exactly once");
+            assert_eq!(matches[0].1, temp, "{key}");
+        }
+        if let Some(path) = std::env::var_os("PATH") {
+            let path = path.to_string_lossy().into_owned();
+            assert!(entries
+                .iter()
+                .any(|(name, value)| name.eq_ignore_ascii_case("PATH") && value == &path));
+        }
     }
 
     #[test]
@@ -676,6 +773,7 @@ mod tests {
             &path,
             &[],
             &std::env::temp_dir(),
+            &test_profile(),
         );
         std::fs::remove_file(&path).expect("remove test input");
         let error = result.err().expect("Windows rejects invalid executable");

@@ -8,7 +8,7 @@ try {
   const launch = resolveMacOSLocalAppHostLaunch({
     argv: process.argv,
     executable: process.execPath,
-    homeDirectory: process.env.HOME,
+    hostProfileDirectory: process.env.NIMI_APP_HOST_PROFILE_DIR,
     uid: process.getuid?.(),
     workingDirectory: process.cwd(),
   });

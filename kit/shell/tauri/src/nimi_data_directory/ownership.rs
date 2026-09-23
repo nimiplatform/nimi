@@ -19,6 +19,7 @@ pub enum DirectoryOwner {
     UserExportFlow,
     RuntimeProductSupport,
     RuntimeRealmProductAudit,
+    CurrentHost,
 }
 
 impl DirectoryOwner {
@@ -33,6 +34,7 @@ impl DirectoryOwner {
             Self::UserExportFlow => "user_export_flow",
             Self::RuntimeProductSupport => "runtime_product_support",
             Self::RuntimeRealmProductAudit => "runtime_realm_product_audit",
+            Self::CurrentHost => "current_host",
         }
     }
 
@@ -44,6 +46,18 @@ impl DirectoryOwner {
                 | Self::RuntimeEnvironmentMaterializer
         )
     }
+
+    /// First-level owners whose content only their own management path may
+    /// remove: Runtime materializers, the App package installer (packages,
+    /// registrations, App data), account data-plane owners, and Host technical
+    /// profiles, whose only clearable class is a dedicated cache action.
+    pub const fn blocks_direct_cleanup(self) -> bool {
+        self.is_runtime_owned()
+            || matches!(
+                self,
+                Self::AppPackageInstaller | Self::AccountDataPlaneConsumers | Self::CurrentHost
+            )
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -52,6 +66,7 @@ pub enum CleanupClass {
     RuntimeManaged,
     ConfirmRequired,
     UserManaged,
+    HostCacheOnly,
 }
 
 impl CleanupClass {
@@ -153,6 +168,13 @@ pub const NIMI_DATA_DIRECTORY_MATRIX: &[NimiDataDirectoryRow] = &[
         first_level: true,
         owner: DirectoryOwner::RuntimeRealmProductAudit,
         cleanup: CleanupClass::ConfirmRequired,
+    },
+    NimiDataDirectoryRow {
+        directory_id: "app_hosts",
+        path_template: "<nimi_data>/app-hosts/",
+        first_level: true,
+        owner: DirectoryOwner::CurrentHost,
+        cleanup: CleanupClass::HostCacheOnly,
     },
 ];
 

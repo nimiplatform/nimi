@@ -22,7 +22,8 @@
       "@nimiplatform/kit/shell/capabilities": ["./shell/capabilities/src/index.ts"],
       "@nimiplatform/kit/shell/capabilities/*": ["./shell/capabilities/src/*"],
       "@nimiplatform/kit/shell/electron/main": ["./shell/electron/src/main/index.ts"],
-      "@nimiplatform/kit/shell/electron/preload": ["./shell/electron/src/preload/index.ts"],
+      "@nimiplatform/kit/shell/electron/host-profile": ["./shell/electron/src/main/app-host-profile.ts"],
+      "@nimiplatform/kit/shell/electron/preload":["./shell/electron/src/preload/index.ts"],
       "@nimiplatform/kit/shell/electron/preload-cjs": ["./shell/electron/src/preload/cjs.cts"],
       "@nimiplatform/kit/shell/electron/*": ["./shell/electron/src/*"],
       "@nimiplatform/kit/core/runtime-capabilities": ["./core/src/runtime-capabilities/index.ts"]

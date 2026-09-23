@@ -675,6 +675,17 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		return nil, fmt.Errorf("bind Product Control data-root security identities: %w", err)
 	}
 	if protected != nil {
+		// Same verified OS-user anchor the local-app kernel uses for launch
+		// profiles; without it the selected-root scope projection stays null.
+		if anchor, anchorErr := protected.LocalOSUserIdentity.LocalOSUserAnchor(); anchorErr == nil {
+			if err := localSvc.SetProductControlHostProfileAnchor(anchor); err != nil {
+				return nil, fmt.Errorf("bind Host technical profile OS-user anchor: %w", err)
+			}
+		} else {
+			logger.Warn("Host technical profile scope unavailable: verified OS-user anchor missing", "error", anchorErr)
+		}
+	}
+	if protected != nil {
 		serviceConfigPath := strings.TrimSpace(protected.serviceConfigPath)
 		if serviceConfigPath == "" {
 			return nil, fmt.Errorf("resolve service-owned Runtime config path: protected path is unavailable")
@@ -979,7 +990,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 
 	runtimev1.RegisterRuntimeArtifactServiceServer(g, artifactSvc)
 	rootHandoff := &productControlRuntimeRootHandoff{
-		registry: rpcRegistry, ai: aiSvc, agent: agentSvc, cognition: cognitionSvc, backend: backend,
+		registry: rpcRegistry, ai: aiSvc, agent: agentSvc, cognition: cognitionSvc, backend: backend, appActivity: activitySvc,
 	}
 	if appInstallCoordinator != nil {
 		rootHandoff.appPackages = appInstallCoordinator

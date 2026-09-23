@@ -110,6 +110,13 @@ rejected rather than normalized. A matrix range in the manifest does not
 require an automatic upgrade; install with the frozen lockfile until
 deliberately selecting and synchronizing a new component combination.
 
+App Tools 0.9 requires SDK `^0.16.0` with Kit `^0.13.0`. Kit 0.13 supplies the
+mandatory Electron Host-profile entrypoint; earlier combinations are rejected
+before sync writes files. Select both dependency ranges in `package.json`, run
+`nimi-app sync`, install the normalized dependencies and update the lockfile,
+then run `nimi-app check` and the App's build. Sync does not upgrade these
+business dependencies on your behalf or generate an older Host fallback.
+
 ### Music reference flow
 
 The admitted `studio-media` feature includes the music workflow maintained in

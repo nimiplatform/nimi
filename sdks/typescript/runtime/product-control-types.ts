@@ -94,6 +94,12 @@ export interface NimiProductControlSelectedDataRootProjection {
   readonly state: NimiProductControlState;
   readonly dataRoot: NimiProductControlRecord['dataRoot'] | null;
   readonly error: string | null;
+  /**
+   * Derived, never persisted: the current host-user scope of Host technical
+   * profiles below the Runtime's currently bound usable root, or null when no
+   * such root is bound. It is not a data-root selection or authorization.
+   */
+  readonly hostProfileScopeRoot: string | null;
 }
 
 export interface NimiProductControlStorageDirsProjection {

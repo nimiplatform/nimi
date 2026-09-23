@@ -12,6 +12,8 @@ mod first_party_product;
 mod first_party_profiles_generated;
 mod grpc_limits;
 mod grpc_status;
+#[cfg(any(target_os = "windows", target_os = "macos"))]
+mod host_profile;
 mod installed_app;
 mod local_development;
 pub use installed_app::{InstalledAppLaunchOutcome, InstalledAppRunAccess};

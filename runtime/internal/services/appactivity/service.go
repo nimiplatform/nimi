@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -91,6 +92,8 @@ type Service struct {
 	lifecycleCtx    context.Context
 	lifecycleCancel context.CancelFunc
 	workers         sync.WaitGroup
+	retentionMu     sync.Mutex
+	rootQuiesced    atomic.Bool
 }
 
 func New(options Options) *Service {
@@ -154,7 +157,7 @@ func (s *Service) available() bool {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return !s.closed
+	return !s.closed && !s.rootQuiesced.Load()
 }
 
 // NotifyCommitted wakes live subscribers after a committed account change.

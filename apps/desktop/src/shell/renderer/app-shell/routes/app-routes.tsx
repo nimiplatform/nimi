@@ -10,6 +10,8 @@ import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { logoutAndClearSession, useLogoutSessionDependencies } from '../../features/auth/logout';
 import bootstrapLogoImage from '../../assets/logo.png';
 import { RuntimeLoadingScreen } from './runtime-loading-screen';
+import { SupportDegradedEntry } from '../../features/support/support-degraded-entry.js';
+import type { DesktopHomeProfileStatus } from '../../bridge/runtime-bridge/product-control.js';
 
 const LoginPage = lazy(async () => {
   const mod = await import('../../features/auth/login-page');
@@ -280,6 +282,59 @@ function ReadyDesktopShell() {
   return <MainLayout />;
 }
 
+// @nimi-authority: rule.nimi.platform.product-lifecycle.p-cold-017a
+function useHomeProfileStatus(enabled: boolean): DesktopHomeProfileStatus | null {
+  const bindings = useDesktopRendererBindings();
+  const [status, setStatus] = useState<DesktopHomeProfileStatus | null>(null);
+  useEffect(() => {
+    if (!enabled) {
+      setStatus(null);
+      return;
+    }
+    let disposed = false;
+    const read = () => {
+      void bindings.app.commands.firstRun.getHomeProfileStatus().then((next) => {
+        if (!disposed) setStatus(next);
+      }).catch(() => {
+        if (!disposed) setStatus({ mode: 'bootstrap', workAllowed: false, relaunchRequested: false });
+      });
+    };
+    read();
+    // Reuse the existing Product Control observation rather than another poller.
+    const unsubscribe = bindings.app.events.subscribeProductControlRecord(read);
+    return () => { disposed = true; unsubscribe(); };
+  }, [bindings, enabled]);
+  return status;
+}
+
+function HomeProfileRepairScreen() {
+  const { t } = useTranslation();
+  const bindings = useDesktopRendererBindings();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const retry = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await bindings.app.commands.firstRun.retryHomeProfile();
+      if (!result.requested) setError(t('Support.homeProfileStillUnavailable'));
+    } catch {
+      setError(t('Support.homeProfileStillUnavailable'));
+    } finally { setBusy(false); }
+  };
+  return (
+    <SharedStatusShell eyebrow="Nimi" title={t('Support.homeProfileTitle')} description={t('Support.homeProfileDescription')}>
+      <div className="mt-5 flex flex-col items-center gap-3" data-testid="home-profile-repair">
+        {error ? <p role="status" className="text-sm">{error}</p> : null}
+        <button type="button" disabled={busy} onClick={() => { void retry(); }} className="rounded-lg bg-[var(--nimi-action-primary-bg)] px-4 py-2 text-[var(--nimi-action-primary-text)]">
+          {t('Support.homeProfileRetry')}
+        </button>
+        <SupportDegradedEntry />
+      </div>
+    </SharedStatusShell>
+  );
+}
+
 function DesktopOrdinaryShellGate() {
   const authStatus = useAppStore((state) => state.auth.status);
   const clearAuthSession = useAppStore((state) => state.clearAuthSession);
@@ -305,6 +360,7 @@ function DesktopOrdinaryShellGate() {
     : firstRunReady && accountRetainsOrdinaryShell(authStatus)
       ? 'ready'
       : observedAdmission;
+  const homeProfile = useHomeProfileStatus(admission === 'ready');
 
   useEffect(() => {
     if (
@@ -348,6 +404,8 @@ function DesktopOrdinaryShellGate() {
   if (!accountRetainsOrdinaryShell(authStatus)) {
     return <RuntimeLoadingScreen />;
   }
+  if (!homeProfile) return <RuntimeLoadingScreen />;
+  if (!homeProfile.workAllowed) return <HomeProfileRepairScreen />;
   return (
     <Suspense fallback={<RuntimeLoadingScreen />}>
       <ReadyDesktopShell />

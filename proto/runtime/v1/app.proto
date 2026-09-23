@@ -266,10 +266,20 @@ message PrepareLocalAppLaunchRequest {
   bytes supervisor_run_id = 2;
 }
 
+// Non-authorizing path projection of the launched Host's technical profile
+// (Electron user data, session data, temp) under the bound data root's
+// app-hosts directory. Runtime derives it from its bound root, Product Control
+// installId, verified local OS user, and Registered App Subject; the GUI-user
+// Host creates and verifies the directories. It grants nothing.
+message HostStorageProjection {
+  string profile_root = 1;
+}
+
 message PrepareLocalAppLaunchResponse {
   bytes launch_id = 1;
   google.protobuf.Timestamp bind_deadline = 2;
   ReasonCode reason_code = 3;
+  HostStorageProjection host_storage = 4;
 }
 
 message BindLocalAppProcessRequest {
@@ -294,6 +304,7 @@ message PrepareInstalledAppLaunchResponse {
   string execution_profile_ref = 8;
   google.protobuf.Timestamp bind_deadline = 9;
   ReasonCode reason_code = 10;
+  HostStorageProjection host_storage = 11;
 }
 
 message EndInstalledAppRunRequest {

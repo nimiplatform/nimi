@@ -284,3 +284,31 @@ function checkSyncOneOf<const Values extends readonly string[]>(value: unknown, 
   if (!(values as readonly string[]).includes(text)) throw new Error('runtime-check-sync-response-invalid');
   return text as Values[number];
 }
+
+/** Home-owned availability; never changes the Runtime Product Control record. */
+export type DesktopHomeProfileStatus = {
+  readonly mode: 'root' | 'bootstrap';
+  readonly workAllowed: boolean;
+  readonly relaunchRequested: boolean;
+};
+
+export function getDesktopHomeProfileStatus(): Promise<DesktopHomeProfileStatus> {
+  return invokeChecked('desktop_home_profile_status_get', {}, (value) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('home-profile-status-invalid');
+    const item = value as Record<string, unknown>;
+    if ((item.mode !== 'root' && item.mode !== 'bootstrap')
+      || typeof item.workAllowed !== 'boolean' || typeof item.relaunchRequested !== 'boolean') {
+      throw new Error('home-profile-status-invalid');
+    }
+    return { mode: item.mode, workAllowed: item.workAllowed, relaunchRequested: item.relaunchRequested };
+  });
+}
+
+export function retryDesktopHomeProfile(): Promise<{ readonly requested: boolean }> {
+  return invokeChecked('desktop_home_profile_retry', {}, (value) => {
+    if (!value || typeof value !== 'object' || typeof (value as { requested?: unknown }).requested !== 'boolean') {
+      throw new Error('home-profile-retry-invalid');
+    }
+    return { requested: (value as { requested: boolean }).requested };
+  });
+}

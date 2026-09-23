@@ -80,6 +80,7 @@ type Service struct {
 	productControlRoot                    string
 	productControlRootLocked              bool
 	productControlDataRootSecurity        ProductControlDataRootSecurityBinding
+	productControlHostProfileAnchor       string
 	productControlDataRootConfigWriter    func(string) (bool, error)
 	productControlDataRootConfigValidator func(string) error
 	productControlRootHandoff             ProductControlRootHandoff

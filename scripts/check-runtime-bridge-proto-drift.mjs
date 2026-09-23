@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
@@ -48,9 +47,19 @@ function assertCurrentRuntimeBridgeContract(source) {
 
 const before = readGenerated();
 assertCurrentRuntimeBridgeContract(before);
-const targetDir = mkdtempSync(path.join(tmpdir(), 'nimi-runtime-bridge-proto-drift-'));
+// The cargo target is a large repository work area, not OS temp. Every exit
+// below sets the status and returns through finally so it is always removed.
+const stagingParent = path.join(repoRoot, '.nimi/local/tmp');
+mkdirSync(stagingParent, { recursive: true });
+const targetDir = mkdtempSync(path.join(stagingParent, 'runtime-bridge-'));
 
 try {
+  process.exitCode = checkRuntimeBridgeProtoDrift();
+} finally {
+  rmSync(targetDir, { recursive: true, force: true });
+}
+
+function checkRuntimeBridgeProtoDrift() {
   const result = spawnSync(
     'cargo',
     ['check', '--manifest-path', manifestPath, '--quiet'],
@@ -68,7 +77,7 @@ try {
     throw result.error;
   }
   if (result.status !== 0) {
-    process.exit(result.status ?? 1);
+    return result.status ?? 1;
   }
 
   const after = readGenerated();
@@ -79,10 +88,9 @@ try {
       `runtime bridge proto generated drift detected: ${generatedFile}\n` +
       'run `cargo check --locked --manifest-path kit/shell/tauri/Cargo.toml` to regenerate, then commit the generated file.\n',
     );
-    process.exit(1);
+    return 1;
   }
 
   process.stdout.write(`up-to-date ${generatedFile}\n`);
-} finally {
-  rmSync(targetDir, { recursive: true, force: true });
+  return 0;
 }

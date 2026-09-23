@@ -465,6 +465,14 @@ test('standalone scaffold creates a generic starter with rewritten identity', as
     assert.equal(appOwned.some((file) => file.startsWith('src/shell/ai/')), false);
     assert.equal(appOwned.some((file) => file.startsWith('src-electron/')), false);
     const electronMain = generated.read('src-electron/main.ts');
+    // The Host profile binding runs before the rest of Kit loads, so a module
+    // that fails to load cannot leave Electron on its default OS-profile paths.
+    assert.match(electronMain, /import \{ configureNimiElectronAppHostProfile \} from '@nimiplatform\/kit\/shell\/electron\/host-profile';/);
+    assert.doesNotMatch(electronMain, /^import[^;]*from '@nimiplatform\/kit\/shell\/electron\/main';/mu);
+    const hostProfileCall = electronMain.indexOf('configureNimiElectronAppHostProfile(app);');
+    const kitMainLoad = electronMain.indexOf("await import('@nimiplatform/kit/shell/electron/main')");
+    assert.ok(hostProfileCall > 0 && kitMainLoad > hostProfileCall, 'Host profile binding must precede loading Kit main');
+    assert.match(electronMain, /configureNimiElectronAppHostProfile\(app\);\n\} catch \(error\) \{\n[^\n]*\n  app\.exit\(78\);\n  throw error;\n\}/);
     assert.match(electronMain, /registerNimiElectronAppBridge/);
     assert.match(electronMain, /const allowedRendererUrls = \[rendererUrl\];/);
     assert.match(electronMain, /allowedRendererUrls,\n    assetMediaPlatform: \{ protocol, webRequest: session\.defaultSession\.webRequest, webContents \},\n    ipcMain,/);
@@ -507,13 +515,20 @@ test('standalone scaffold creates a generic starter with rewritten identity', as
     assert.match(electronProductionPackager, /import \{ packager \} from '@electron\/packager'/);
     assert.match(electronProductionPackager, /define: \{ __NIMI_ELECTRON_PRODUCTION__: 'true' \}/);
     assert.match(electronProductionPackager, /await rm\(outputRoot, \{ recursive: true, force: true \}\)/);
-    assert.match(electronProductionPackager, /mkdtemp\(path\.join\(tmpdir\(\), 'nimi-electron-packager-'\)\)/);
+    // Nimi-created staging stays in this project's ignored work area, never OS
+    // temp, and is its own single-package workspace boundary for pnpm.
+    assert.match(electronProductionPackager, /const stagingParent = path\.join\(appRoot, '\.nimi', 'local', 'build'\)/);
+    assert.match(electronProductionPackager, /mkdtemp\(path\.join\(stagingParent, 'electron-'\)\)/);
+    assert.doesNotMatch(electronProductionPackager, /\btmpdir\(\)|from 'node:os'/);
+    assert.match(electronProductionPackager, /writeFile\(path\.join\(productionSourceRoot, 'pnpm-workspace\.yaml'\), stringifyYaml\(\{ packages: \['\.'\] \}\)\)/);
     assert.match(electronProductionPackager, /const productionSourceRoot = path\.join\(stagingRoot, 'app'\)/);
     assert.match(electronProductionPackager, /tmpdir: packagerTempRoot/);
     assert.doesNotMatch(electronProductionPackager, /\.nimi['"], ['"]local['"], ['"]electron-packager-stage/);
     assert.match(electronProductionPackager, /platform: NATIVE_PLATFORM/);
     assert.match(electronProductionPackager, /arch: NATIVE_ARCH/);
-    assert.match(electronProductionPackager, /asar: \{ unpack: '\*\*\/\*\.\{node,dylib,dll\}' \}/);
+    // Staging sits under '.nimi'; only a slash-free (file name) pattern unpacks
+    // native files there, since '**' does not cross dot directories.
+    assert.match(electronProductionPackager, /asar: \{ unpack: '\*\.\{node,dylib,dll\}' \}/);
     assert.match(electronProductionPackager, /path\.join\(stagingRoot, 'nimi-native', 'protected-local'\)/);
     assert.match(electronProductionPackager, /extraResource: \[path\.join\(stagingRoot, 'nimi-native'\)\]/);
     assert.match(electronProductionPackager, /name: APP_EXECUTABLE_NAME/);

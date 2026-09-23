@@ -62,6 +62,7 @@ pub(crate) async fn launch(
     if now_ms()? >= deadline {
         return Err(invalid());
     }
+    let host_storage = prepared.host_storage;
     let executable = PathBuf::from(prepared.executable_path);
     let cwd = PathBuf::from(prepared.working_directory);
     let expected: [u8; 32] = prepared
@@ -89,10 +90,14 @@ pub(crate) async fn launch(
             return Err(invalid());
         }
         drop(file);
+        // Arguments stay empty; the standard shell reads its profile from the
+        // child environment before any Electron session exists.
+        let profile = crate::host_profile::prepare(host_storage)?;
         let mut process = SupervisedDevelopmentProcess::create_verified_installed(
             &executable,
             &prepared.arguments,
             &cwd,
+            &profile,
         )?;
         let bound = crate::grpc_limits::runtime_app_client(channel.clone())
             .bind_local_app_process(request(

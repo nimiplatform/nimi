@@ -186,10 +186,15 @@ pub(crate) async fn launch_host(
     require_success_reason(response.reason_code)?;
     let launch_id = required_identifier(response.launch_id)?;
     let prepare_deadline = required_timestamp_ms(response.bind_deadline)?;
+    let profile = crate::host_profile::prepare(response.host_storage)?;
+    let host_arguments =
+        development_host_arguments(request.shell_kind, &profile, &request.host_arguments)?;
+    profile.clear_devtools_active_port()?;
     let mut process = SupervisedDevelopmentProcess::create_runtime_authorized(
         &host_executable_path,
-        &request.host_arguments,
+        &host_arguments,
         &working_directory,
+        &profile,
     )?;
     let bound = crate::grpc_limits::runtime_app_client(channel)
         .bind_local_app_process(BindLocalAppProcessRequest {
@@ -219,9 +224,34 @@ pub(crate) async fn launch_host(
         LocalDevelopmentLaunchOutcome {
             process_id: process.id(),
             bind_deadline_unix_ms,
+            host_profile_root: profile.root().to_path_buf(),
         },
         process,
     ))
+}
+
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-034c
+/// The caller never chooses the profile: a development Electron host receives
+/// only the user data directory derived from the Runtime projection.
+fn development_host_arguments(
+    shell_kind: LocalDevelopmentShellKind,
+    profile: &crate::host_profile::PreparedHostProfile,
+    caller_arguments: &[String],
+) -> Result<Vec<String>, NimiHostError> {
+    if caller_arguments
+        .iter()
+        .any(|argument| argument == "--user-data-dir" || argument.starts_with("--user-data-dir="))
+    {
+        return Err(untrusted());
+    }
+    let mut arguments = Vec::with_capacity(caller_arguments.len() + 1);
+    if shell_kind == LocalDevelopmentShellKind::Electron {
+        let user_data = profile.user_data();
+        let user_data = user_data.to_str().ok_or_else(untrusted)?;
+        arguments.push(format!("--user-data-dir={user_data}"));
+    }
+    arguments.extend(caller_arguments.iter().cloned());
+    Ok(arguments)
 }
 
 #[cfg(any(
@@ -232,7 +262,7 @@ pub(crate) async fn rebind_host(
     channel: Channel,
     request: LocalDevelopmentLaunchRequest,
     process_id: u32,
-) -> Result<LocalDevelopmentLaunchOutcome, NimiHostError> {
+) -> Result<(), NimiHostError> {
     retry_unavailable_rebind_once(|| rebind_host_once(channel.clone(), request.clone(), process_id))
         .await
 }
@@ -274,7 +304,7 @@ async fn rebind_host_once(
     channel: Channel,
     request: LocalDevelopmentLaunchRequest,
     process_id: u32,
-) -> Result<LocalDevelopmentLaunchOutcome, NimiHostError> {
+) -> Result<(), NimiHostError> {
     validate_identifier(request.registration_handle)?;
     validate_identifier(request.supervisor_run_id)?;
     if process_id == 0 {
@@ -313,14 +343,13 @@ async fn rebind_host_once(
         .as_millis()
         .try_into()
         .map_err(|_| untrusted())?;
+    // The live process keeps the profile prepared at its launch; a rebind
+    // neither re-creates nor changes it.
     if !valid_local_development_bind_deadline(now_unix_ms, bind_deadline_unix_ms, prepare_deadline)
     {
         return Err(untrusted());
     }
-    Ok(LocalDevelopmentLaunchOutcome {
-        process_id,
-        bind_deadline_unix_ms,
-    })
+    Ok(())
 }
 
 fn valid_local_development_bind_deadline(
@@ -663,6 +692,52 @@ mod tests {
             error.reason_code(),
             NimiHostErrorReasonCode::LocalDevelopmentProjectChanged
         );
+    }
+
+    #[test]
+    fn development_electron_receives_only_the_runtime_derived_user_data_directory() {
+        let data_root = std::env::temp_dir().join(format!(
+            "nimi-dev-host-arguments-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&data_root).expect("create data root");
+        let profile = crate::host_profile::prepare(Some(
+            crate::host_profile::test_profile_projection(&data_root),
+        ))
+        .expect("prepare profile");
+        let caller = vec![
+            "--remote-debugging-address=127.0.0.1".to_string(),
+            "--remote-debugging-port=0".to_string(),
+            "main.js".to_string(),
+        ];
+        let arguments =
+            development_host_arguments(LocalDevelopmentShellKind::Electron, &profile, &caller)
+                .expect("electron arguments");
+        assert_eq!(
+            arguments[0],
+            format!("--user-data-dir={}", profile.user_data().display())
+        );
+        assert_eq!(&arguments[1..], caller.as_slice());
+        assert_eq!(
+            development_host_arguments(LocalDevelopmentShellKind::Tauri, &profile, &caller)
+                .expect("tauri arguments"),
+            caller
+        );
+        for forged in ["--user-data-dir=C:\\elsewhere", "--user-data-dir"] {
+            let mut forged_arguments = caller.clone();
+            forged_arguments.insert(0, forged.to_string());
+            assert!(development_host_arguments(
+                LocalDevelopmentShellKind::Electron,
+                &profile,
+                &forged_arguments
+            )
+            .is_err());
+        }
+        let _ = std::fs::remove_dir_all(&data_root);
     }
 
     #[test]

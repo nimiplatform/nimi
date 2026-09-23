@@ -150,3 +150,72 @@ export async function executeNimiDataCleanup(
     parseCleanupOutcome,
   );
 }
+
+/** Preview of the fixed standard App cache classes in stopped Host profiles. */
+export interface NimiAppHostCachePlan {
+  readonly profileCount: number;
+  readonly totalBytes: number;
+  readonly fileCount: number;
+  readonly hostsRunning: boolean;
+}
+
+/** Result of clearing standard App caches; `complete` is false on any failure. */
+export interface NimiAppHostCacheOutcome {
+  readonly removedBytes: number;
+  readonly removedFiles: number;
+  readonly failedEntries: number;
+  readonly complete: boolean;
+}
+
+export function parseAppHostCachePlan(value: unknown): NimiAppHostCachePlan {
+  const record = asExactRecord(value, 'standard App cache plan', [
+    'fileCount',
+    'hostsRunning',
+    'profileCount',
+    'totalBytes',
+  ]);
+  return {
+    profileCount: requireNonNegativeInteger(record.profileCount, 'standard App cache plan profileCount'),
+    totalBytes: requireNonNegativeInteger(record.totalBytes, 'standard App cache plan totalBytes'),
+    fileCount: requireNonNegativeInteger(record.fileCount, 'standard App cache plan fileCount'),
+    hostsRunning: requireBoolean(record.hostsRunning, 'standard App cache plan hostsRunning'),
+  };
+}
+
+export function parseAppHostCacheOutcome(value: unknown): NimiAppHostCacheOutcome {
+  const record = asExactRecord(value, 'standard App cache outcome', [
+    'complete',
+    'failedEntries',
+    'removedBytes',
+    'removedFiles',
+  ]);
+  const outcome = {
+    removedBytes: requireNonNegativeInteger(record.removedBytes, 'standard App cache outcome removedBytes'),
+    removedFiles: requireNonNegativeInteger(record.removedFiles, 'standard App cache outcome removedFiles'),
+    failedEntries: requireNonNegativeInteger(record.failedEntries, 'standard App cache outcome failedEntries'),
+    complete: requireBoolean(record.complete, 'standard App cache outcome complete'),
+  };
+  if (outcome.complete !== (outcome.failedEntries === 0)) {
+    throw new Error('standard App cache outcome returned inconsistent completion');
+  }
+  return outcome;
+}
+
+/** `P-MIG-006e` plan: logical size of clearable standard App caches. */
+export async function planNimiAppHostCacheCleanup(): Promise<NimiAppHostCachePlan> {
+  if (!hasElectronInvoke()) {
+    throw new Error('nimi_app_host_cache_plan requires a standard shell host');
+  }
+  return invokeChecked('nimi_app_host_cache_plan', {}, parseAppHostCachePlan);
+}
+
+/**
+ * `P-MIG-006e` execute: clear only regenerable caches of stopped standard App
+ * Hosts. The click is the intent; no destructive confirmation token applies.
+ */
+export async function executeNimiAppHostCacheCleanup(): Promise<NimiAppHostCacheOutcome> {
+  if (!hasElectronInvoke()) {
+    throw new Error('nimi_app_host_cache_execute requires a standard shell host');
+  }
+  return invokeChecked('nimi_app_host_cache_execute', {}, parseAppHostCacheOutcome);
+}

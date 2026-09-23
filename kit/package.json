@@ -1,6 +1,6 @@
 {
   "name": "@nimiplatform/kit",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "description": "The product-grade cross-app toolkit for Nimi apps.",
   "license": "MIT",
   "private": false,
@@ -143,6 +143,11 @@
       "types": "./dist/shell/electron/main/index.d.ts",
       "import": "./dist/shell/electron/main/index.js",
       "default": "./dist/shell/electron/main/index.js"
+    },
+    "./shell/electron/host-profile": {
+      "types": "./dist/shell/electron/main/app-host-profile.d.ts",
+      "import": "./dist/shell/electron/main/app-host-profile.js",
+      "default": "./dist/shell/electron/main/app-host-profile.js"
     },
     "./shell/electron/preload": {
       "types": "./dist/shell/electron/preload/index.d.ts",

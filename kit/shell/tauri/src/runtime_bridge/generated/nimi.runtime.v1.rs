@@ -13149,6 +13149,16 @@ pub struct PrepareLocalAppLaunchRequest {
     #[prost(bytes = "vec", tag = "2")]
     pub supervisor_run_id: ::prost::alloc::vec::Vec<u8>,
 }
+/// Non-authorizing path projection of the launched Host's technical profile
+/// (Electron user data, session data, temp) under the bound data root's
+/// app-hosts directory. Runtime derives it from its bound root, Product Control
+/// installId, verified local OS user, and Registered App Subject; the GUI-user
+/// Host creates and verifies the directories. It grants nothing.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct HostStorageProjection {
+    #[prost(string, tag = "1")]
+    pub profile_root: ::prost::alloc::string::String,
+}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct PrepareLocalAppLaunchResponse {
     #[prost(bytes = "vec", tag = "1")]
@@ -13157,6 +13167,8 @@ pub struct PrepareLocalAppLaunchResponse {
     pub bind_deadline: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(enumeration = "ReasonCode", tag = "3")]
     pub reason_code: i32,
+    #[prost(message, optional, tag = "4")]
+    pub host_storage: ::core::option::Option<HostStorageProjection>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct BindLocalAppProcessRequest {
@@ -13194,6 +13206,8 @@ pub struct PrepareInstalledAppLaunchResponse {
     pub bind_deadline: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(enumeration = "ReasonCode", tag = "10")]
     pub reason_code: i32,
+    #[prost(message, optional, tag = "11")]
+    pub host_storage: ::core::option::Option<HostStorageProjection>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct EndInstalledAppRunRequest {

@@ -22,6 +22,17 @@
   "repairStatusRoutedBody": "Nimi 已进入修复状态。请按恢复引导继续。",
   "repairProductState": "当前状态",
   "repairOpenRecovery": "打开恢复引导",
+  "repairAppCacheTitle": "标准 App 缓存",
+  "repairAppCacheDescription": "清理标准 App 会自动重建的浏览器缓存。登录状态、站点数据、App 数据和 Nimi 自身配置都会保留。请先停止正在运行的 App。",
+  "repairAppCachePlanButton": "查看缓存大小",
+  "repairAppCachePlanFailed": "无法检查 App 缓存。",
+  "repairAppCacheProfiles": "App 配置目录",
+  "repairAppCacheSize": "缓存大小",
+  "repairAppCacheHostsRunning": "仍有 App 正在启动或运行。请先停止它们，然后重新检查。",
+  "repairAppCacheClearButton": "清理 App 缓存",
+  "repairAppCacheCleared": "App 缓存已清理（{{size}}）。",
+  "repairAppCachePartial": "已清理 {{size}}，但有 {{failed}} 个缓存文件夹因文件被占用或受保护而未能删除。请关闭使用它们的 App 后重试。",
+  "repairAppCacheClearFailed": "无法清理 App 缓存。",
   "repairCleanupTitle": "数据目录清理",
   "repairCleanupDescription": "规划并执行已确认的 nimi_data 目录清理。清理委托给受治理的目录所有权矩阵。",
   "repairCleanupDataRootLabel": "数据根",
@@ -34,6 +45,8 @@
   "repairCleanupPlanClass": "清理类别",
   "repairCleanupPlanFiles": "文件数",
   "repairCleanupRuntimeBlocked": "该目录由 runtime 拥有，不能从支持表面清理。",
+  "repairCleanupAppsOwnerManaged": "已安装的 App、其注册记录和 App 数据只能通过各 App 的卸载移除，支持页不会清空此目录。",
+  "repairCleanupAccountsOwnerManaged": "账号数据由其所有者保管，支持页不提供整体账号数据重置。",
   "repairCleanupConfirmationLabel": "输入 {{confirmation}} 以确认该破坏性清理。",
   "repairCleanupConfirmationRequired": "该清理需输入 {{confirmation}} 确认。",
   "repairCleanupExecuteButton": "执行清理",
@@ -137,5 +150,9 @@
     "body": "无需恢复操作。"
   },
   "degradedEntryButton": "支持",
-  "degradedEntryClose": "关闭"
+  "degradedEntryClose": "关闭",
+  "homeProfileTitle": "Nimi 需要完成数据目录设置",
+  "homeProfileDescription": "当前可以进行设置和修复。所选目录恢复可用并重启 Nimi 后，才能继续正常使用。",
+  "homeProfileRetry": "检查目录并重启 Nimi",
+  "homeProfileStillUnavailable": "目录仍不可用，或恢复尚未完成。请通过支持面板修复后重试。"
 }

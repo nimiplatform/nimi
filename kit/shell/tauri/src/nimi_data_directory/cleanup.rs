@@ -28,6 +28,7 @@ fn cleanup_class_id(class: CleanupClass) -> &'static str {
         CleanupClass::RuntimeManaged => "runtime_managed",
         CleanupClass::ConfirmRequired => "confirm_required",
         CleanupClass::UserManaged => "user_managed",
+        CleanupClass::HostCacheOnly => "host_cache_only",
     }
 }
 
@@ -43,7 +44,7 @@ pub fn plan_directory_cleanup(data_root: &Path, directory: &str) -> Result<Clean
         total_bytes: usage.total_bytes,
         file_count: usage.file_count,
         requires_confirmation: row.cleanup.requires_confirmation(),
-        runtime_owner_blocked: row.owner.is_runtime_owned(),
+        runtime_owner_blocked: row.owner.blocks_direct_cleanup(),
     })
 }
 
@@ -67,6 +68,12 @@ pub fn execute_directory_cleanup(
     if row.owner.is_runtime_owned() {
         return Err(format!(
             "{directory} 由 Runtime ({}) 拥有，P-MIG-006 禁止 Desktop 直接清理；必须通过 Runtime 管理路径",
+            row.owner.owner_id()
+        ));
+    }
+    if row.owner.blocks_direct_cleanup() {
+        return Err(format!(
+            "{directory} 由其所有者 ({}) 管理，P-MIG-006 禁止通用清理直接删除；App 通过卸载移除，账号数据不提供整体重置",
             row.owner.owner_id()
         ));
     }

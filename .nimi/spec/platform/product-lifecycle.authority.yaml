@@ -46,7 +46,11 @@ units:
   - id: definition.nimi.platform.product-lifecycle.nimi-data-ownership
     kind: definition
     title: nimi_data ownership and cleanup boundary
-    meaning: Each first-level nimi_data directory has one canonical owner and cleanup rule, with Runtime management paths owning models, dependencies, and environments, Runtime-private Registered-App-Subject-scoped logical partitions isolating App data without a canonical physical layout, and explicit user, export, or deletion policy protecting durable account and App data.
+    meaning: Each first-level nimi_data directory has one canonical owner and cleanup rule, with Runtime management paths owning models, dependencies, and environments, Runtime-private Registered-App-Subject-scoped logical partitions isolating App data without a canonical physical layout, the current Host owning host technical profiles under app-hosts whose only clearable class is regenerable browser cache, and explicit user, export, or deletion policy protecting durable account and App data.
+  - id: definition.nimi.platform.product-lifecycle.host-technical-profile
+    kind: definition
+    title: Host technical profile
+    meaning: A host technical profile is the Host-owned Electron user data, session data with its browser cache and site storage, and temporary directory of Nimi Home or of one standard App Host, placed in the active nimi_data root's first-level app-hosts directory under a Runtime-derived host-user scope from the Product Control installId and the verified local OS user and, for an App Host, under its Registered App Subject; it is Host technical state rather than Runtime-mediated App storage or an account partition, its fixed hashed names are neither identity nor authorization, and it provides no file-system isolation between unsandboxed native processes.
   - id: definition.nimi.platform.product-lifecycle.home-surface
     kind: definition
     title: Nimi Home surface
@@ -389,6 +393,20 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.product-control-record
+  - id: rule.nimi.platform.product-lifecycle.p-cold-017a
+    kind: rule
+    title: P-COLD-017 Home setup and repair bootstrap profile
+    modality: must
+    statement: When Nimi Home starts without a usable selected data root, with an inaccessible root, or before its protected selected-root read is available, it uses one explicit bootstrap profile in the current user's OS temporary area keyed only by its fixed single-instance scope, serves only setup and repair, starts no App, model, business execution, or heavy materialization, keeps no business data or credential there, clears only that known slot at a later start after single-instance coordination, and relaunches into the root profile once the selected root is usable and GUI-writable; a selected root does not wait for ready_for_use before Home uses its root profile.
+    condition: Whenever Nimi Home starts or runs without a usable host technical profile scope.
+    failure: Reject normal product work in the bootstrap profile, its use as a data root or normal-session fallback, unbounded relaunch loops, and scanning or deleting unknown temporary content, and report the exact startup problem when the known slot cannot be safely cleared or written.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.cold-start-state
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.home-surface
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.host-technical-profile
   - id: rule.nimi.platform.product-lifecycle.p-cold-closure
     kind: rule
     title: P-COLD upstream authority remains fail closed
@@ -553,10 +571,34 @@ units:
     kind: rule
     title: P-MIG-006 no renderer or uninstall bypass
     modality: must_not
-    statement: Desktop shell, Support, or renderer directly mutates models, dependencies, or environments, or app uninstall implicitly deletes shared models, Runtime dependencies, account data, or another app's data.
+    statement: Desktop shell, Support, or renderer directly mutates models, dependencies, or environments, a generic cleanup entry recursively deletes the apps or accounts first-level directory whose releases, registration store, App data, and account owner stores belong to their owners, or app uninstall implicitly deletes shared models, Runtime dependencies, account data, or another app's data.
     condition: When a UI surface cleans, repairs, or uninstalls local content.
-    failure: Reject the bypass and route the operation to the owning management path.
+    failure: Reject the bypass even when destructive confirmation is supplied and route the operation to the owning management path such as App uninstall.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.nimi-data-ownership
+  - id: rule.nimi.platform.product-lifecycle.p-mig-006d
+    kind: rule
+    title: P-MIG-006 Host technical profile placement
+    modality: must
+    statement: Nimi Home and each Desktop-managed standard App Host, in development and installed launch, use the host technical profile of the currently bound usable nimi_data root for user data, session data, and temporary files before any default session, window, or ready-dependent work starts; Runtime derives its location only from the bound root, the Product Control installId, the verified local OS user, and the Registered App Subject, the current GUI user's Host creates and write-verifies the profile directories without recursive permission changes, and the temporary-directory override applies only to that Host's own process environment.
+    condition: Whenever Nimi Home or a Desktop-managed standard App Host starts while a usable selected data root is bound.
+    failure: Fail the start with a typed unavailable result when the projection is missing, invalid, structurally conflicting, linked to an unknown target, or not writable by the GUI user, and never fall back to the OS home, OS temporary area, default Electron location, a former root, or another root.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.host-technical-profile
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.nimi-data-root
+  - id: rule.nimi.platform.product-lifecycle.p-mig-006e
+    kind: rule
+    title: P-MIG-006 Host technical profile cache-only cleanup
+    modality: must_not
+    statement: A cleanup of host technical profiles deletes anything other than the fixed regenerable Cache, Code Cache, GPUCache, DawnGraphiteCache, and DawnWebGPUCache directories inside the session data of stopped standard App Host profiles in the current host-user scope, follows links, deletes cookies, Local Storage, IndexedDB, other persistent browser state, a whole profile, the app-hosts directory, the Home profile, Runtime-mediated App data, or former-root content, or deletes while a Desktop-managed App Host is starting or running.
+    condition: Whenever Support or another Nimi surface clears host technical profile content.
+    failure: Reject the cleanup before deletion while a managed App Host is starting or running, report file-in-use, permission, or partial deletion as incomplete without claiming success, and preserve persistent profile state and unknown entries.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.host-technical-profile
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.nimi-data-ownership
   - id: rule.nimi.platform.product-lifecycle.p-mig-007a
@@ -675,6 +717,18 @@ units:
         target: definition.nimi.platform.product-lifecycle.owner-aware-check-sync
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.product-control-record
+  - id: rule.nimi.platform.product-lifecycle.p-mig-007h
+    kind: rule
+    title: P-MIG-007 Host technical profiles follow activation
+    modality: must
+    statement: Explicit replacement closes new development, watcher-restart, and installed App launches and host cache cleanup through Desktop's one data-root operation gate, drains launches already between Prepare and process binding, and stops every Desktop-managed App Host before commit; after commit App Hosts start only from the committed activation with profiles derived from the new root, Nimi Home relaunches to adopt its new profile after restoring its original temporary environment, and former-root profiles and former running registrations are neither moved, copied, cleaned, nor restarted automatically.
+    condition: Whenever explicit data-root replacement, its abort, or its post-commit recovery affects Desktop-managed Hosts or their technical profiles.
+    failure: Abort before commit and reopen admission when a Host cannot be stopped or another pre-commit step fails, keep launch and cleanup admission closed after a post-commit Runtime restart or activation failure until recovery reaches the committed activation, and reject hot profile moves and former-root profile reuse.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.data-root-replacement
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.host-technical-profile
   - id: rule.nimi.platform.product-lifecycle.p-mig-008a
     kind: rule
     title: P-MIG-008 destructive cleanup confirmation floor

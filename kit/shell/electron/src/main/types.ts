@@ -168,6 +168,10 @@ export type NimiElectronHostCommandPolicyInput = {
   readonly command: string;
   readonly commandKind: NimiElectronHostCommandKind;
   readonly appId: string;
+  /** Validated operation selectors only; no request content or credentials. */
+  readonly runtimeMethodId?: string;
+  readonly realmMethodId?: string;
+  readonly runtimeCancellation?: true;
 };
 
 export type NimiElectronHostCommandPolicy = (

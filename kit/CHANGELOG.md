@@ -1,6 +1,31 @@
 # Changelog
 
-## Unreleased (next 0.x minor)
+## Unreleased (0.13.0)
+
+- Add validated Runtime/Realm operation selectors and cancellation metadata to
+  Electron `commandPolicy` inputs. Hosts can retain setup and repair commands
+  while ordinary work is unavailable, without inspecting credentials or request
+  bodies. Existing policies remain compatible.
+
+- Breaking (0.x minor): add `configureNimiElectronAppHostProfile` and
+  `NIMI_APP_HOST_PROFILE_ENVIRONMENT_KEY`, published on the new
+  `@nimiplatform/kit/shell/electron/host-profile` subpath (also re-exported from
+  `@nimiplatform/kit/shell/electron/main`). A standard Electron App main imports
+  it from the subpath, which loads nothing else from Kit, calls it synchronously
+  first, and loads the rest of Kit afterwards (for example with
+  `await import('@nimiplatform/kit/shell/electron/main')`), before any session,
+  window or `whenReady` work; a Kit module that failed to load before the call
+  would otherwise leave Electron on its default paths. It binds `userData`,
+  `sessionData` and `temp` to the Host technical profile Nimi Desktop prepared
+  under the selected data root and throws when launched without that
+  projection. The protected native carrier now prepares that profile for every
+  development and installed launch, injects the development `--user-data-dir`
+  itself (a caller-supplied one is rejected) and returns `hostProfileRoot` from
+  the local-development `launch` result. Migration: rebuild or update an App to
+  adopt the new shell; packages built from earlier templates are not patched
+  and keep Electron's default profile. Browser-persistent state (cookies, Local
+  Storage, IndexedDB) from an earlier default profile does not carry over into
+  the new profile.
 
 - Add `runRuntimeVoiceConvert` and `observeRuntimeVoiceConversion` to the
   generation runtime surface for the protected `audio.voice.convert` scenario

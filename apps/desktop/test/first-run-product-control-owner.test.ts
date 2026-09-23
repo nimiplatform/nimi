@@ -71,8 +71,10 @@ test('Desktop first-run port exposes only active Product Control operations', ()
     'admitReadyForUse',
     'available',
     'ensureRecordCreated',
+    'getHomeProfileStatus',
     'getRecord',
     'pickDataRootDirectory',
+    'retryHomeProfile',
     'selectDataRoot',
   ]);
 });

@@ -1,6 +1,16 @@
 {
   "Workbench": {
     "sideNavAriaLabel": "Nimi Lab 工作区导航",
+    "capabilityNavigationTitle": "AI 能力",
+    "capabilityNavigationDescription": "按能力分类浏览与测试",
+    "groups": {
+      "textConversation": "文本与对话",
+      "imageVideo": "图像与视频",
+      "voiceMusic": "语音与音乐",
+      "worlds": "世界与 3D",
+      "agents": "Agent 工作流",
+      "workspace": "工作区"
+    },
     "uiRecipes": "UI Recipes",
     "agentCenter": "Agent 中心",
     "agentConversation": "Agent 对话",

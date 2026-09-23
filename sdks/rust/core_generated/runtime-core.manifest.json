@@ -7039,6 +7039,7 @@
       "HookTriggerEventChatEndedDetail",
       "HookTriggerEventUserIdleDetail",
       "HookTriggerTimeDetail",
+      "HostStorageProjection",
       "IgnoredScenarioExtension",
       "ImageFaceSwapResult",
       "ImageFaceSwapScenarioSpec",
@@ -19896,6 +19897,19 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
+        "name": "HostStorageProjection",
+        "fields": [
+          {
+            "name": "profile_root",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
         "name": "IgnoredScenarioExtension",
         "fields": [
           {
@@ -31238,6 +31252,13 @@
             "repeated": false,
             "optional": false,
             "number": 10
+          },
+          {
+            "name": "host_storage",
+            "type": "HostStorageProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 11
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"
@@ -31381,6 +31402,13 @@
             "repeated": false,
             "optional": false,
             "number": 3
+          },
+          {
+            "name": "host_storage",
+            "type": "HostStorageProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 4
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"

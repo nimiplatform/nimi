@@ -48,7 +48,14 @@ const {
   avatarOnly,
   observationArguments: desktopDevObservationArguments,
 } = resolveDesktopDevLaunchOptions(process.argv.slice(2));
+// Fixed development instance: anchors the dev session lock and Electron's
+// single-instance coordination. Home's runtime profile is chosen by its main
+// process preflight under the selected data root, not this directory.
 const profileRoot = resolvePersistentDesktopDevProfile(workspaceRoot);
+// Home exits with this code after it prepared a new root profile; the launcher
+// restarts it from its own environment, so redirected temp values never leak.
+const DESKTOP_HOME_PROFILE_RELAUNCH_EXIT_CODE = 75;
+const DESKTOP_HOME_PROFILE_RELAUNCH_ARGUMENT = '--nimi-home-profile-relaunch';
 let desktopDevSession;
 if (process.platform === 'win32') {
   try {
@@ -103,10 +110,11 @@ async function runWindowsDesktopDev() {
       spawnRenderer();
       await waitForUrl(rendererUrl, 45_000);
     }
-    const electron = spawnTracked(electronBin, [
+    const exitCode = await runDesktopElectronUntilExit((relaunch) => spawnTracked(electronBin, [
       ...desktopDevObservationArguments,
       `--user-data-dir=${profileRoot}`,
       'dist-electron/main.js',
+      ...relaunch,
     ], {
       stdio: 'inherit',
       env: {
@@ -126,8 +134,7 @@ async function runWindowsDesktopDev() {
         NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT_NATIVE_ENTRY: windowsSourceLocalDevelopmentNativeEntry,
         NIMI_REALM_URL: sourceLocalDevelopmentRealmUrl,
       },
-    });
-    const exitCode = await waitForExit(electron);
+    }));
     await requestAllChildrenShutdown('SIGTERM');
     process.exit(exitCode ?? 0);
   } catch (error) {
@@ -170,10 +177,11 @@ async function runMacOSDesktopDev() {
     })}\n`);
     spawnRenderer();
     await waitForUrl(rendererUrl, 45_000);
-    const electron = spawnTracked(electronBin, [
+    const exitCode = await runDesktopElectronUntilExit((relaunch) => spawnTracked(electronBin, [
       ...desktopDevObservationArguments,
       `--user-data-dir=${macOSProfileRoot}`,
       'dist-electron/main.js',
+      ...relaunch,
     ], {
       stdio: 'inherit',
       env: {
@@ -193,8 +201,7 @@ async function runMacOSDesktopDev() {
         NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_NATIVE_ENTRY: macOSSourceLocalDevelopmentNativeEntry,
         NIMI_REALM_URL: sourceLocalDevelopmentRealmUrl,
       },
-    });
-    const exitCode = await waitForExit(electron);
+    }));
     await requestAllChildrenShutdown('SIGTERM');
     process.exit(exitCode ?? 0);
   } catch (error) {
@@ -425,6 +432,16 @@ function forceKillProcessTree(child) {
     return;
   }
   child.kill('SIGKILL');
+}
+
+async function runDesktopElectronUntilExit(spawnElectron) {
+  let relaunch = [];
+  for (;;) {
+    const exitCode = await waitForExit(spawnElectron(relaunch));
+    if (exitCode !== DESKTOP_HOME_PROFILE_RELAUNCH_EXIT_CODE || shuttingDown) return exitCode;
+    relaunch = [DESKTOP_HOME_PROFILE_RELAUNCH_ARGUMENT];
+    process.stdout.write(`${JSON.stringify({ status: 'relaunching', reason: 'desktop-home-profile' })}\n`);
+  }
 }
 
 function waitForExit(child) {

@@ -16,6 +16,8 @@ import (
 	"time"
 
 	_ "modernc.org/sqlite"
+
+	"github.com/nimiplatform/nimi/runtime/internal/apphostprofile"
 )
 
 const identifierAllocationAttempts = 8
@@ -388,6 +390,16 @@ func (kernel *Kernel) DataRoot() string {
 		return ""
 	}
 	return kernel.dataRoot
+}
+
+// AppHostProfileRoot derives the Host technical profile of one Registered App
+// Subject from this kernel's bound root, host install scope, and verified
+// OS-user anchor. It is a path projection only; nothing is created or granted.
+func (kernel *Kernel) AppHostProfileRoot(registeredAppSubject string) (string, error) {
+	if kernel == nil {
+		return "", fmt.Errorf("%w: kernel", ErrInvalidArgument)
+	}
+	return apphostprofile.AppProfileRoot(kernel.dataRoot, kernel.hostInstallID, kernel.anchor, registeredAppSubject)
 }
 
 func (kernel *Kernel) nextIdentifier(prefix string, exists func(string) (bool, error)) (string, error) {

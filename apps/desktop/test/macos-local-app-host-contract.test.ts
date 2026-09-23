@@ -17,17 +17,21 @@ test('macOS local-app host accepts only the exact supervised production launch s
     const project = path.join(root, 'project');
     const mainEntry = path.join(project, 'dist-electron', 'main.js');
     const executable = path.join(root, 'Nimi Local App Host');
-    const home = path.join(root, 'home');
-    const profile = path.join(home, 'Library', 'Application Support', 'Nimi', 'Local App Hosts', 'v1', 'a'.repeat(64));
+    const appHosts = path.join(root, 'nimi_data', 'app-hosts');
+    const hostProfile = path.join(appHosts, 'a'.repeat(32), 'apps', 'b'.repeat(32));
+    const profile = path.join(hostProfile, 'user-data');
     await mkdir(path.dirname(mainEntry), { recursive: true, mode: 0o700 });
     await writeFile(mainEntry, 'export {};\n');
     await writeFile(executable, 'fixture');
+    await mkdir(appHosts, { recursive: true, mode: 0o755 });
     await mkdir(profile, { recursive: true, mode: 0o700 });
-    await chmod(home, 0o750);
+    for (const directory of [path.join(appHosts, 'a'.repeat(32)), path.dirname(hostProfile), hostProfile]) {
+      await chmod(directory, 0o700);
+    }
     const launchInput = {
       contractTestExpectedExecutable: executable,
       executable,
-      homeDirectory: home,
+      hostProfileDirectory: hostProfile,
       uid: process.getuid?.() ?? 0,
       workingDirectory: project,
     };
@@ -71,7 +75,7 @@ test('macOS local-app host accepts only the exact supervised production launch s
 test('macOS local-app host rejects incomplete or non-loopback CDP launch arguments on every platform', () => {
   const input = {
     executable: MACOS_LOCAL_APP_HOST_EXECUTABLE,
-    homeDirectory: '/tmp',
+    hostProfileDirectory: '/tmp/nimi_data/app-hosts/scope/apps/subject',
     workingDirectory: '/tmp',
   };
   const baseArguments = [
@@ -103,8 +107,8 @@ test('macOS local-app host rejects copied main and replaced profile ancestry', {
     const mainEntry = path.join(project, 'dist-electron', 'main.js');
     const copiedMain = path.join(project, 'copied-main.js');
     const executable = path.join(root, 'Nimi Local App Host');
-    const home = path.join(root, 'home');
-    const profile = path.join(home, 'Library', 'Application Support', 'Nimi', 'Local App Hosts', 'v1', 'a'.repeat(64));
+    const hostProfile = path.join(root, 'nimi_data', 'app-hosts', 'a'.repeat(32), 'apps', 'b'.repeat(32));
+    const profile = path.join(hostProfile, 'user-data');
     await mkdir(path.dirname(mainEntry), { recursive: true, mode: 0o700 });
     await mkdir(profile, { recursive: true, mode: 0o700 });
     await writeFile(mainEntry, 'export {};\n');
@@ -119,7 +123,7 @@ test('macOS local-app host rejects copied main and replaced profile ancestry', {
       ],
       contractTestExpectedExecutable: executable,
       executable,
-      homeDirectory: home,
+      hostProfileDirectory: hostProfile,
       uid: process.getuid?.() ?? 0,
       workingDirectory: project,
     };

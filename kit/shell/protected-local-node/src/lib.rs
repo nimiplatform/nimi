@@ -1086,6 +1086,7 @@ pub async fn desktop_launch_local_development_host(
                 json!({
                     "processId": outcome.process_id,
                     "bindDeadlineUnixMs": outcome.bind_deadline_unix_ms,
+                    "hostProfileRoot": outcome.host_profile_root.to_string_lossy(),
                 })
             })
     })

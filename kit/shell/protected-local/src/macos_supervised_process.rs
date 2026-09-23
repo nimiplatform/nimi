@@ -3,6 +3,7 @@ use std::os::fd::{FromRawFd, OwnedFd};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 
+use crate::host_profile::PreparedHostProfile;
 #[cfg(not(feature = "macos-source-local-development"))]
 use crate::macos_profile::LOCAL_APP_HOST_PATH;
 use crate::{NimiHostError, NimiHostErrorReasonCode};
@@ -48,27 +49,30 @@ impl SupervisedDevelopmentProcess {
         executable: &Path,
         arguments: &[String],
         working_directory: &Path,
+        profile: &PreparedHostProfile,
     ) -> Result<Self, NimiHostError> {
         let executable = canonical_fixed_host(executable)?;
-        Self::create(&executable, arguments, working_directory, false)
+        Self::create(&executable, arguments, working_directory, profile, false)
     }
 
     pub(crate) fn create_verified_installed(
         executable: &Path,
         arguments: &[String],
         working_directory: &Path,
+        profile: &PreparedHostProfile,
     ) -> Result<Self, NimiHostError> {
         let canonical = std::fs::canonicalize(executable).map_err(|_| untrusted())?;
         if canonical != executable || !canonical.is_file() || !arguments.is_empty() {
             return Err(untrusted());
         }
-        Self::create(&canonical, arguments, working_directory, true)
+        Self::create(&canonical, arguments, working_directory, profile, true)
     }
 
     fn create(
         executable: &Path,
         arguments: &[String],
         working_directory: &Path,
+        profile: &PreparedHostProfile,
         installed: bool,
     ) -> Result<Self, NimiHostError> {
         let working_directory = canonical_working_directory(working_directory)?;
@@ -99,6 +103,7 @@ impl SupervisedDevelopmentProcess {
         } else {
             environment_values
         };
+        let environment_values = with_host_profile_environment(environment_values, profile)?;
         let mut envp = environment_values
             .iter()
             .map(|value| value.as_ptr().cast_mut())
@@ -252,6 +257,32 @@ fn canonical_working_directory(path: &Path) -> Result<PathBuf, NimiHostError> {
 fn path_cstring(path: &Path) -> Result<CString, NimiHostError> {
     use std::os::unix::ffi::OsStrExt;
     CString::new(path.as_os_str().as_bytes()).map_err(|_| untrusted())
+}
+
+// @nimi-authority: rule.nimi.platform.product-lifecycle.p-mig-006d
+/// Replaces the fixed temporary directory with the Host technical profile and
+/// carries the profile root to this child only.
+fn with_host_profile_environment(
+    environment: Vec<CString>,
+    profile: &PreparedHostProfile,
+) -> Result<Vec<CString>, NimiHostError> {
+    let overrides = profile.environment();
+    let mut values = environment
+        .into_iter()
+        .filter(|value| {
+            let value = value.as_bytes();
+            !overrides.iter().any(|(key, _)| {
+                value.len() > key.len()
+                    && value.starts_with(key.as_bytes())
+                    && value[key.len()] == b'='
+            })
+        })
+        .collect::<Vec<_>>();
+    for (key, value) in overrides {
+        let value = value.into_string().map_err(|_| untrusted())?;
+        values.push(CString::new(format!("{key}={value}")).map_err(|_| untrusted())?);
+    }
+    Ok(values)
 }
 
 fn installed_app_environment(environment: Vec<CString>) -> Vec<CString> {
@@ -415,9 +446,19 @@ mod tests {
             "{}",
             String::from_utf8_lossy(&compiled.stderr)
         );
-        let mut process =
-            SupervisedDevelopmentProcess::create_verified_installed(&executable, &[], &root)
-                .unwrap();
+        let data_root = root.join("nimi_data");
+        std::fs::create_dir_all(&data_root).unwrap();
+        let profile = crate::host_profile::prepare(Some(
+            crate::host_profile::test_profile_projection(&data_root),
+        ))
+        .unwrap();
+        let mut process = SupervisedDevelopmentProcess::create_verified_installed(
+            &executable,
+            &[],
+            &root,
+            &profile,
+        )
+        .unwrap();
         assert!(process.running());
         assert_eq!(process.exit_code().unwrap(), None);
         process.resume().unwrap();

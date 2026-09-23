@@ -271,6 +271,7 @@ export function parseNimiProductControlSelectedDataRootProjection(
       }
       : null,
     error: parseOptionalString(record.error),
+    hostProfileScopeRoot: parseOptionalString(record.hostProfileScopeRoot),
   };
 }
 
@@ -310,6 +311,7 @@ export function projectUnavailableNimiProductControlSelectedDataRoot(
     state: 'config_missing',
     dataRoot: null,
     error,
+    hostProfileScopeRoot: null,
   };
 }
 

@@ -22,6 +22,17 @@
   "repairStatusRoutedBody": "Nimi has routed to a repair state. Follow the recovery guidance to continue.",
   "repairProductState": "Current state",
   "repairOpenRecovery": "Open recovery guidance",
+  "repairAppCacheTitle": "Standard App cache",
+  "repairAppCacheDescription": "Clear the browser caches that standard Apps rebuild automatically. Sign-ins, site data, App data and Nimi's own profile are kept. Stop running Apps first.",
+  "repairAppCachePlanButton": "Check cache size",
+  "repairAppCachePlanFailed": "Could not check the App cache.",
+  "repairAppCacheProfiles": "App profiles",
+  "repairAppCacheSize": "Cache size",
+  "repairAppCacheHostsRunning": "Some Apps are still starting or running. Stop them, then check again.",
+  "repairAppCacheClearButton": "Clear App cache",
+  "repairAppCacheCleared": "App cache cleared ({{size}}).",
+  "repairAppCachePartial": "Cleared {{size}}, but {{failed}} cache folders could not be removed because files are in use or protected. Close the Apps using them and try again.",
+  "repairAppCacheClearFailed": "Could not clear the App cache.",
   "repairCleanupTitle": "Data directory cleanup",
   "repairCleanupDescription": "Plan and run a confirmed cleanup of a nimi_data directory. Cleanup is delegated to the governed directory owner matrix.",
   "repairCleanupDataRootLabel": "Data root",
@@ -34,6 +45,8 @@
   "repairCleanupPlanClass": "Cleanup class",
   "repairCleanupPlanFiles": "Files",
   "repairCleanupRuntimeBlocked": "This directory is runtime-owned and cannot be cleaned from Support.",
+  "repairCleanupAppsOwnerManaged": "Installed Apps, their registrations, and App data are removed through each App's uninstall. Support does not clear this directory.",
+  "repairCleanupAccountsOwnerManaged": "Account data stays with its owners. Support does not offer a full account data reset.",
   "repairCleanupConfirmationLabel": "Type {{confirmation}} to confirm this destructive cleanup.",
   "repairCleanupConfirmationRequired": "This cleanup requires typing {{confirmation}} to confirm.",
   "repairCleanupExecuteButton": "Run cleanup",
@@ -137,5 +150,9 @@
     "body": "No recovery action is required."
   },
   "degradedEntryButton": "Support",
-  "degradedEntryClose": "Close"
+  "degradedEntryClose": "Close",
+  "homeProfileTitle": "Nimi needs to finish setting up its data folder",
+  "homeProfileDescription": "Setup and repair are available. Normal work will resume after Nimi can use the selected folder and restart.",
+  "homeProfileRetry": "Check folder and restart Nimi",
+  "homeProfileStillUnavailable": "The folder is still unavailable or recovery is incomplete. Use Support to repair it, then try again."
 }

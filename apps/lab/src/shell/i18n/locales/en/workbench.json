@@ -1,6 +1,16 @@
 {
   "Workbench": {
     "sideNavAriaLabel": "Nimi Lab workspace navigation",
+    "capabilityNavigationTitle": "AI capabilities",
+    "capabilityNavigationDescription": "Explore and test by capability",
+    "groups": {
+      "textConversation": "Text & conversation",
+      "imageVideo": "Image & video",
+      "voiceMusic": "Voice & music",
+      "worlds": "Worlds & 3D",
+      "agents": "Agent workflows",
+      "workspace": "Workspace"
+    },
     "uiRecipes": "UI Recipes",
     "agentCenter": "Agent Center",
     "agentConversation": "Agent Conversation",

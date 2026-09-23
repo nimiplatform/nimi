@@ -2,7 +2,7 @@ import { PNG } from 'pngjs';
 import { parse as parseYaml } from 'yaml';
 import { createHash, randomBytes } from 'node:crypto';
 import { watch, type FSWatcher } from 'node:fs';
-import { open, readFile, readdir, rm } from 'node:fs/promises';
+import { open, readFile, readdir } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import path from 'node:path';
 import type { ChildProcessWithoutNullStreams } from 'node:child_process';
@@ -25,10 +25,11 @@ import {
   type ElectronAIConfigAllowedRoute,
   type ElectronLocalDevelopmentPlan,
 } from './local-development-plan.js';
+import { resolveLocalDevelopmentElectronHostLaunch } from './local-development-host-arguments.js';
 import {
-  resolveLocalDevelopmentElectronHostLaunch,
-  resolveLocalAppUserDataArguments,
-} from './local-development-host-arguments.js';
+  createDesktopDataRootOperationGate,
+  type DesktopDataRootOperationGate,
+} from './data-root-operation-gate.js';
 import {
   assertLocalDevelopmentRendererOriginAvailable,
   spawnLocalDevelopmentPackageScript,
@@ -145,16 +146,22 @@ export type DesktopElectronLocalDevelopmentHost = {
   readonly startExactZhiyu: () => Promise<boolean>;
   /** Starts the exact Runtime-resolved registration; an active run is reused. */
   readonly startRegistrationHandle: (registrationHandle: string) => Promise<boolean>;
+  /** Stops every development run for a data-root handoff; runs are not restarted. */
+  readonly quiesceDataRoot: () => Promise<void>;
+  /** Whether any development run is starting or running. */
+  readonly hasActiveRuns: () => boolean;
 };
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-035f
 export async function createDesktopElectronLocalDevelopmentHost(input: {
   readonly homeDirectory: string;
   readonly control?: NimiElectronLocalDevelopmentControl;
+  readonly operationGate?: DesktopDataRootOperationGate;
 }): Promise<DesktopElectronLocalDevelopmentHost> {
   const host = new ElectronLocalDevelopmentHost(
     input.control ?? createNimiElectronLocalDevelopmentControl(),
     path.resolve(input.homeDirectory),
+    input.operationGate ?? createDesktopDataRootOperationGate(),
   );
   await host.start();
   return {
@@ -167,6 +174,8 @@ export async function createDesktopElectronLocalDevelopmentHost(input: {
     shutdown: () => host.shutdown(),
     startExactZhiyu: () => host.startExactZhiyu(),
     startRegistrationHandle: (registrationHandle) => host.startRegistrationHandle(registrationHandle),
+    quiesceDataRoot: () => host.quiesceDataRoot(),
+    hasActiveRuns: () => host.hasActiveRuns(),
   };
 }
 
@@ -183,7 +192,8 @@ export class ElectronLocalDevelopmentHost {
 
   constructor(
     private readonly control: NimiElectronLocalDevelopmentControl,
-    private readonly homeDirectory: string,
+    homeDirectory: string,
+    private readonly operationGate: DesktopDataRootOperationGate = createDesktopDataRootOperationGate(),
     private readonly launcherLeaseMs = LAUNCHER_LEASE_MS,
   ) {
     this.presencePublisher = createDesktopElectronLocalDevelopmentPresencePublisher({ homeDirectory });
@@ -272,6 +282,26 @@ export class ElectronLocalDevelopmentHost {
     if (matches.length !== 1) return false;
     await this.startRegistration({ selector: matches[0]!.selector });
     return true;
+  }
+
+  // @nimi-authority: rule.nimi.platform.product-lifecycle.p-mig-007h
+  // Called by the data-root handoff while it already holds the operation gate:
+  // stopping never enters the gate, so it cannot wait on queued launches, and
+  // a queued launch observes its stopped run instead of starting a host.
+  async quiesceDataRoot(): Promise<void> {
+    const failures: unknown[] = [];
+    const stopped = await Promise.allSettled([...this.runs.values()].map((run) => this.stopRun(run, 'stopped')));
+    for (const result of stopped) {
+      if (result.status === 'rejected') failures.push(result.reason);
+    }
+    if (failures.length > 0) throw new AggregateError(failures, 'local-development-data-root-quiesce-failed');
+  }
+
+  /** Whether any run is building, launching, running or still cleaning up. */
+  hasActiveRuns(): boolean {
+    return [...this.runs.values()].some((run) => (
+      run.stopped ? !run.stoppedCleanupComplete : !isIdleRetainedRun(run)
+    ));
   }
 
   shutdown(): Promise<void> {
@@ -804,15 +834,10 @@ export class ElectronLocalDevelopmentHost {
   private async launchHost(run: RunContext): Promise<void> {
     if (!run.registrationHandle) throw new Error('local-development-registration-not-found');
     const mainEntry = await canonicalElectronMain(run.plan);
-    const userDataArguments = await resolveLocalAppUserDataArguments({
-      registrationHandle: run.registrationHandle,
-      homeDirectory: this.homeDirectory,
-    });
     const launchCdpPort = run.cdpPort ?? run.requestedCdpPort;
     const hostLaunch = resolveLocalDevelopmentElectronHostLaunch({
       mainEntry,
       rendererOrigin: run.plan.rendererOrigin,
-      userDataArguments,
       cdpPort: launchCdpPort,
       sourceLocalDevelopment: (
         process.platform === 'darwin'
@@ -822,22 +847,33 @@ export class ElectronLocalDevelopmentHost {
         && process.env.NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT === '1'
       ),
     });
-    const discoveringCdpPort = launchCdpPort === 0;
-    if (discoveringCdpPort) {
-      await rm(path.join(hostLaunch.userDataDirectory, DEVTOOLS_ACTIVE_PORT_FILE), { force: true });
-    }
     setRunState(run, 'starting', 'Starting the supervised Electron host', undefined, false);
-    const outcome = await this.control.launch({
-      registrationHandle: run.registrationHandle,
-      supervisorRunId: run.supervisorRunId,
-      shell: 'electron',
-      hostExecutablePath: run.plan.electronExecutable,
-      rendererOrigin: run.plan.rendererOrigin,
-      hostArguments: hostLaunch.arguments,
-      workingDirectory: run.plan.projectRoot,
+    // @nimi-authority: rule.nimi.platform.product-lifecycle.p-mig-007h
+    // HTTP, IPC, Zhiyu and watcher restarts all reach this bounded Prepare ->
+    // profile preparation -> spawn/bind step, which alone holds the data-root
+    // gate; a run stopped while queued (for example by a root handoff) never
+    // starts a host.
+    const outcome = await this.operationGate.runExclusive(async () => {
+      const registrationHandle = run.registrationHandle;
+      if (run.stopped || !registrationHandle) throw new Error('local-development-run-stopped');
+      return this.control.launch({
+        registrationHandle,
+        supervisorRunId: run.supervisorRunId,
+        shell: 'electron',
+        hostExecutablePath: run.plan.electronExecutable,
+        rendererOrigin: run.plan.rendererOrigin,
+        hostArguments: hostLaunch.arguments,
+        workingDirectory: run.plan.projectRoot,
+      });
     });
-    if (discoveringCdpPort) {
-      run.cdpPort = await waitForDevToolsActivePort(hostLaunch.userDataDirectory, () => run.stopped);
+    if (launchCdpPort === 0) {
+      // The native carrier cleared stale port files inside the Runtime-derived
+      // profile before starting this host. Electron announces the port in
+      // session data; a shell without the profile helper uses user data.
+      run.cdpPort = await waitForDevToolsActivePort([
+        path.join(outcome.hostProfileRoot, 'session-data'),
+        path.join(outcome.hostProfileRoot, 'user-data'),
+      ], () => run.stopped);
       run.status.cdpPort = run.cdpPort;
     }
     run.status.hostGeneration += 1;
@@ -1148,21 +1184,24 @@ export class ElectronLocalDevelopmentHost {
 
 /** @internal Focused contract-test seam. */
 export async function waitForDevToolsActivePort(
-  userDataDirectory: string,
+  profileDirectories: string | readonly string[],
   stopped: () => boolean,
 ): Promise<number> {
-  const sourcePath = path.join(userDataDirectory, DEVTOOLS_ACTIVE_PORT_FILE);
+  const sourcePaths = (typeof profileDirectories === 'string' ? [profileDirectories] : profileDirectories)
+    .map((directory) => path.join(directory, DEVTOOLS_ACTIVE_PORT_FILE));
   const deadline = Date.now() + DEVTOOLS_ACTIVE_PORT_TIMEOUT_MS;
   while (Date.now() < deadline) {
     if (stopped()) throw new Error('local-development-cdp-discovery-stopped');
-    try {
-      const [rawPort = ''] = (await readFile(sourcePath, 'utf8')).split(/\r?\n/u);
-      if (/^[1-9][0-9]*$/u.test(rawPort)) {
-        const port = Number(rawPort);
-        if (Number.isSafeInteger(port) && port >= 1024 && port <= 65535) return port;
+    for (const sourcePath of sourcePaths) {
+      try {
+        const [rawPort = ''] = (await readFile(sourcePath, 'utf8')).split(/\r?\n/u);
+        if (/^[1-9][0-9]*$/u.test(rawPort)) {
+          const port = Number(rawPort);
+          if (Number.isSafeInteger(port) && port >= 1024 && port <= 65535) return port;
+        }
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException)?.code !== 'ENOENT') throw error;
       }
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException)?.code !== 'ENOENT') throw error;
     }
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
@@ -1258,6 +1297,14 @@ function comparableCanonicalProjectPath(value: string): string {
   }
   const resolved = path.resolve(normalized);
   return process.platform === 'win32' ? resolved.toLowerCase() : resolved;
+}
+
+// A failed or unregistered run keeps its registration for a retry; once its
+// supervision and teardown finished it owns no build, renderer or Host process.
+function isIdleRetainedRun(run: RunContext): boolean {
+  return RESTARTABLE_RUN_STATES.has(run.status.state)
+    && !run.supervising && !run.tearingDown && !run.rebuilding
+    && !run.buildChild && !run.renderer;
 }
 
 function setRunState(run: RunContext, state: string, message: string, reasonCode: string | undefined, retryable: boolean): void {

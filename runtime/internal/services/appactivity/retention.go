@@ -3,6 +3,7 @@ package appactivity
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 )
@@ -27,7 +28,7 @@ func (s *Service) StartRetention() {
 				return
 			case <-timer.C:
 			}
-			if err := s.RunRetention(s.lifecycleCtx); err != nil && s.lifecycleCtx.Err() == nil {
+			if err := s.RunRetention(s.lifecycleCtx); err != nil && !errors.Is(err, ErrUnavailable) && s.lifecycleCtx.Err() == nil {
 				s.logger.Warn("App activity retention failed", "error", err)
 			}
 			timer.Reset(retentionInterval)
@@ -38,6 +39,13 @@ func (s *Service) StartRetention() {
 // RunRetention removes expired records with content-free removes and deletes
 // retained changes older than the replay window, advancing each replay floor.
 func (s *Service) RunRetention(ctx context.Context) error {
+	if s == nil {
+		return ErrUnavailable
+	}
+	// Serialize background writes with the root handoff. Foreground requests
+	// and the Agent/Cognition producers are already drained by their owners.
+	s.retentionMu.Lock()
+	defer s.retentionMu.Unlock()
 	if !s.available() {
 		return ErrUnavailable
 	}

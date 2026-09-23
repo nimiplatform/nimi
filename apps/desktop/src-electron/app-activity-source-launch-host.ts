@@ -15,11 +15,13 @@ export type DesktopAppActivitySourceLaunch = (openRequestId: string) => Promise<
  * App's own confirmation remains the only opened signal.
  */
 export function createDesktopAppActivitySourceLaunch(input: {
+  readonly isAvailable?: () => boolean;
   readonly resolve: () => ((openRequestId: string) => Promise<ResolvedLaunchTarget>) | undefined;
   readonly launchInstalled: () => ((launchSelector: Uint8Array) => Promise<unknown>) | undefined;
   readonly startLocalDevelopment: () => ((registrationHandle: string) => Promise<boolean>) | undefined;
 }): DesktopAppActivitySourceLaunch {
   return async (openRequestId) => {
+    if (input.isAvailable && !input.isAvailable()) return { status: 'unavailable', reason: 'host-unavailable' };
     const resolve = input.resolve();
     if (!resolve) return { status: 'unavailable', reason: 'host-unavailable' };
     let target: ResolvedLaunchTarget;

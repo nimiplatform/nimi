@@ -344,7 +344,7 @@ units:
     kind: rule
     title: No alternate storage authority exists
     modality: must
-    statement: Third-party apps, renderers, and SDK clients never receive the canonical product-control record, raw data-root selection, protected Runtime configuration, or an alternate storage locator; trusted product and verification owners resolve Product Control only through the shared resolver, app storage remains available only through Runtime typed APIs and Registered-App-Subject-scoped logical partitions, and invalid canonical or derived storage state fails closed with a typed state and reason; physical path selection and validation remain Runtime implementation.
+    statement: Third-party apps, renderers, and SDK clients never receive the canonical product-control record, raw data-root selection, protected Runtime configuration, or an alternate storage locator, except that an exact Desktop-launched Host process environment carries only its own launch-derived host technical profile directory, which is non-authorizing Host technical state rather than a root selection or App storage locator; trusted product and verification owners resolve Product Control only through the shared resolver, app storage remains available only through Runtime typed APIs and Registered-App-Subject-scoped logical partitions, and invalid canonical or derived storage state fails closed with a typed state and reason; physical path selection and validation remain Runtime implementation.
     condition: Whenever storage authority is resolved or storage prerequisites fail.
     failure: Fail closed with typed storage state and reason, reject alternate authorities and raw-root disclosure, and route canonical-to-derived root disagreement to repair.
     relations:
@@ -813,3 +813,15 @@ units:
         target: definition.nimi.platform.core-protocol.app-activity-record
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-activity-plane
+  - id: rule.nimi.runtime.app-surface.r105
+    kind: rule
+    title: Launch and selected-root reads project the derived host technical profile
+    modality: must
+    statement: After their existing registration, current-host binding, and root admission checks, PrepareLocalAppLaunch and PrepareInstalledAppLaunch return one typed host storage projection whose absolute profile root Runtime derives from its bound data root, the Product Control installId, the verified local OS user anchor, and the Registered App Subject through a fixed versioned length-delimited SHA-256 name mapping, and the protected selected-root read projects the current host-user scope root only for a valid, currently bound, usable selected root without requiring ready_for_use; Runtime accepts no caller root or subject, creates no GUI-owned profile directory, and adds no RPC, nonce, lease, grant, or persistent record for the projection.
+    condition: Whenever a Desktop-managed App launch is prepared or Product Control's selected root is read.
+    failure: Fail the Prepare or project an unavailable null scope instead of a guessed, caller-derived, stale-root, or home-derived location, and never treat the projection as authorization.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.host-technical-profile
+      - type: applies_to
+        target: definition.nimi.runtime.app-surface.app-lifecycle-plane

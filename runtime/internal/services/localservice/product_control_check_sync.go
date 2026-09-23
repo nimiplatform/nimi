@@ -14,6 +14,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/apphostprofile"
 	"github.com/oklog/ulid/v2"
 )
 
@@ -538,6 +539,7 @@ func scanProductControlCheckSyncUnclaimed(root string) []productControlCheckSync
 	known := map[string]struct{}{
 		"models": {}, "dependencies": {}, "environments": {}, "apps": {},
 		"accounts": {}, "logs": {}, "audit": {}, "managed-app-storage": {},
+		apphostprofile.DirectoryName: {},
 	}
 	result := make([]productControlCheckSyncUnclaimed, 0)
 	for _, entry := range entries {

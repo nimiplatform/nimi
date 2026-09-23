@@ -24,6 +24,7 @@ import {
   type ElectronLocalDevelopmentPlan,
 } from '../src-electron/local-development-plan.js';
 import { resolveLocalDevelopmentElectronHostLaunch } from '../src-electron/local-development-host-arguments.js';
+import { createDesktopDataRootOperationGate } from '../src-electron/data-root-operation-gate.js';
 import { localDevelopmentCdpPort } from '../src-electron/local-development-host-protocol.js';
 
 const HANDLE = '11'.repeat(32);
@@ -55,7 +56,11 @@ function control(overrides: Partial<NimiElectronLocalDevelopmentControl> = {}): 
     register: async () => registration(),
     listRegistrations: async () => [registration()],
     removeRegistration: async () => undefined,
-    launch: async () => ({ processId: 10, bindDeadlineUnixMs: Date.now() + 10_000 }),
+    launch: async () => ({
+      processId: 10,
+      bindDeadlineUnixMs: Date.now() + 10_000,
+      hostProfileRoot: '/data/app-hosts/scope/apps/subject',
+    }),
     hostRunning: async () => false,
     focusHost: async () => undefined,
     terminateHost: async () => undefined,
@@ -1174,7 +1179,7 @@ describe('Desktop Electron local-development registration host', () => {
     const host = new ElectronLocalDevelopmentHost(control({
       terminateHost: async () => { terminated += 1; },
       endRun: async () => { ended += 1; },
-    }), '/tmp', 25);
+    }), '/tmp', createDesktopDataRootOperationGate(), 25);
     const run = {
       plan: plan(),
       supervisorRunId: SUPERVISOR,
@@ -1224,7 +1229,6 @@ describe('Desktop Electron local-development registration host', () => {
     const base = {
       mainEntry: '/projects/example/dist/main.js',
       rendererOrigin: 'http://127.0.0.1:1420',
-      userDataArguments: ['--user-data-dir=/tmp/example'],
       platform: 'darwin' as const,
     };
     assert.ok(resolveLocalDevelopmentElectronHostLaunch(base).arguments.includes(
@@ -1233,16 +1237,111 @@ describe('Desktop Electron local-development registration host', () => {
     assert.ok(resolveLocalDevelopmentElectronHostLaunch({ ...base, sourceLocalDevelopment: true }).arguments.includes(
       '/projects/example/dist/main.js',
     ));
+    // Desktop never chooses the profile: the native carrier prepends the
+    // Runtime-derived --user-data-dir of the launch's Host technical profile.
     assert.deepEqual(resolveLocalDevelopmentElectronHostLaunch({ ...base, cdpPort: 0 }), {
       arguments: [
-        '--user-data-dir=/tmp/example',
         '--remote-debugging-address=127.0.0.1',
         '--remote-debugging-port=0',
         '--nimi-local-app-main=/projects/example/dist/main.js',
         '--nimi-dev-renderer-url=http://127.0.0.1:1420',
       ],
-      userDataDirectory: '/tmp/example',
     });
+  });
+
+  it('discovers auto CDP output in the native-returned Host profile after a gated launch', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'nimi-dev-launch-profile-'));
+    try {
+      const projectRoot = path.join(root, 'project');
+      const mainEntry = path.join(projectRoot, 'dist-electron', 'main.js');
+      const hostProfileRoot = path.join(root, 'nimi_data', 'app-hosts', 'scope', 'apps', 'subject');
+      await mkdir(path.dirname(mainEntry), { recursive: true });
+      await writeFile(mainEntry, 'export {};\n');
+      await mkdir(path.join(hostProfileRoot, 'session-data'), { recursive: true });
+      const gate = createDesktopDataRootOperationGate();
+      const launches: Array<readonly string[]> = [];
+      const host = new ElectronLocalDevelopmentHost(control({
+        launch: async (input) => {
+          launches.push(input.hostArguments);
+          // A standard shell with the profile helper announces in session data.
+          await writeFile(path.join(hostProfileRoot, 'session-data', 'DevToolsActivePort'), '19491\n/devtools/browser/x\n');
+          return { processId: 42, bindDeadlineUnixMs: Date.now() + 10_000, hostProfileRoot };
+        },
+      }), root, gate);
+      const run = { ...activeRun(), requestedCdpPort: 0, plan: { ...plan(), projectRoot, mainEntry } };
+      await (host as unknown as { launchHost(context: typeof run): Promise<void> }).launchHost(run);
+      assert.equal((run.status as { cdpPort?: number }).cdpPort, 19491);
+      assert.equal(launches.length, 1);
+      assert.equal(launches[0]!.some((argument) => argument.startsWith('--user-data-dir')), false);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it('never starts a host for a run stopped while its launch waited on the data-root gate', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'nimi-dev-launch-gate-'));
+    try {
+      const projectRoot = path.join(root, 'project');
+      const mainEntry = path.join(projectRoot, 'dist-electron', 'main.js');
+      await mkdir(path.dirname(mainEntry), { recursive: true });
+      await writeFile(mainEntry, 'export {};\n');
+      const gate = createDesktopDataRootOperationGate();
+      let launched = 0;
+      const host = new ElectronLocalDevelopmentHost(control({
+        launch: async () => {
+          launched += 1;
+          return { processId: 42, bindDeadlineUnixMs: Date.now() + 10_000, hostProfileRoot: root };
+        },
+      }), root, gate);
+      const run = { ...activeRun(), plan: { ...plan(), projectRoot, mainEntry } };
+      (host as unknown as { runs: Map<string, typeof run> }).runs.set(run.status.runId, run);
+      let release!: () => void;
+      const handoff = gate.runExclusive(async () => {
+        await new Promise<void>((resolve) => { release = resolve; });
+        // A root handoff stops runs while it holds the gate; stopping never
+        // enters the gate, so it completes instead of waiting on the launch.
+        await host.quiesceDataRoot();
+      });
+      const launch = (host as unknown as { launchHost(context: typeof run): Promise<void> }).launchHost(run);
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      release();
+      await handoff;
+      await assert.rejects(launch, /local-development-run-stopped/u);
+      assert.equal(launched, 0);
+      assert.equal(host.hasActiveRuns(), false);
+
+      gate.close('desktop-data-root-handoff-committed');
+      const closedRun = { ...activeRun(), plan: { ...plan(), projectRoot, mainEntry } };
+      await assert.rejects(
+        (host as unknown as { launchHost(context: typeof closedRun): Promise<void> }).launchHost(closedRun),
+        /desktop-data-root-handoff-committed/u,
+      );
+      assert.equal(launched, 0);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it('counts a failed run that stopped its processes as idle, not as a running App', () => {
+    const host = new ElectronLocalDevelopmentHost(control(), '/home/test', createDesktopDataRootOperationGate());
+    const runs = (host as unknown as { runs: Map<string, ReturnType<typeof activeRun>> }).runs;
+    const run = activeRun();
+    runs.set(run.status.runId, run);
+    assert.equal(host.hasActiveRuns(), true, 'a running Host is active');
+    // A launch refused by the gate or a failed build leaves the registration
+    // for a retry after supervision stopped every process.
+    run.status.state = 'failed';
+    assert.equal(host.hasActiveRuns(), false);
+    run.tearingDown = true;
+    assert.equal(host.hasActiveRuns(), true, 'teardown still owns processes');
+    run.tearingDown = false;
+    run.status.state = 'cleanup-failed';
+    assert.equal(host.hasActiveRuns(), true, 'processes may have survived a failed cleanup');
+    run.status.state = 'stopped';
+    run.stopped = true;
+    assert.equal(host.hasActiveRuns(), true, 'a stopped run is active until cleanup completes');
+    run.stoppedCleanupComplete = true;
+    assert.equal(host.hasActiveRuns(), false);
   });
 
   it('discovers Chromium auto CDP output from the isolated Host profile', async () => {

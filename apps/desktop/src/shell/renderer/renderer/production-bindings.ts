@@ -183,6 +183,8 @@ export function createDesktopProductionBindings(
           executeDataCleanup: (directory: string, confirmation?: string) => (
             desktopBridge.executeNimiDataCleanup(directory, confirmation)
           ),
+          planAppHostCacheCleanup: () => desktopBridge.planNimiAppHostCacheCleanup(),
+          executeAppHostCacheCleanup: () => desktopBridge.executeNimiAppHostCacheCleanup(),
         }),
         connectorAuth: Object.freeze({
           acquireManagedConnectorCredential: (

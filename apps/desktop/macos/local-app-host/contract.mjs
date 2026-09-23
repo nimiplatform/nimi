@@ -15,13 +15,13 @@ export function resolveMacOSLocalAppHostLaunch(input) {
     : canonicalFile(exactAbsolute(input.contractTestExpectedExecutable));
   if (executable !== expectedExecutable || argv[0] !== executable) fail();
   const workingDirectory = canonicalDirectory(exactAbsolute(input?.workingDirectory));
-  const homeDirectory = canonicalDirectory(exactAbsolute(input?.homeDirectory));
+  const hostProfileDirectory = exactAbsolute(input?.hostProfileDirectory);
   const userDataArgument = exactArgument(argv, '--user-data-dir');
   const mainArgument = exactArgument(argv, '--nimi-local-app-main');
   const rendererArgument = exactArgument(argv, '--nimi-dev-renderer-url');
   if (argv.some(isForbiddenChromiumArgument)) fail();
 
-  const userDataDirectory = canonicalPrivateUserDataDirectory(userDataArgument, homeDirectory, input?.uid);
+  const userDataDirectory = canonicalHostProfileUserDataDirectory(userDataArgument, hostProfileDirectory, input?.uid);
   const expectedMain = path.join(workingDirectory, 'dist-electron', 'main.js');
   const mainEntry = canonicalFile(exactAbsolute(mainArgument));
   if (mainEntry !== expectedMain) fail();
@@ -48,23 +48,29 @@ function optionalCdpPort(argv) {
   return port;
 }
 
-function canonicalPrivateUserDataDirectory(candidate, homeDirectory, rawUID) {
+// The Host profile is the Runtime-derived `<data root>/app-hosts/<scope>/apps/
+// <subject>` prepared by the native carrier and passed only to this child as
+// NIMI_APP_HOST_PROFILE_DIR; the user data argument must be its user-data.
+function canonicalHostProfileUserDataDirectory(candidate, hostProfileDirectory, rawUID) {
   const uid = rawUID ?? process.getuid?.();
   if (!Number.isSafeInteger(uid) || Number(uid) < 0) fail();
-  const canonical = canonicalDirectory(exactAbsolute(candidate));
-  const expectedRoot = path.join(homeDirectory, 'Library', 'Application Support', 'Nimi', 'Local App Hosts', 'v1');
-  const relative = path.relative(expectedRoot, canonical);
-  if (!/^[a-f0-9]{64}$/u.test(relative) || path.isAbsolute(relative)) fail();
-  const homeMetadata = lstatSync(homeDirectory);
-  if (homeMetadata.uid !== Number(uid) || (homeMetadata.mode & 0o022) !== 0) fail();
-  let current = homeDirectory;
-  for (const component of ['Library', 'Application Support', 'Nimi', 'Local App Hosts', 'v1', relative]) {
+  const expected = path.join(hostProfileDirectory, 'user-data');
+  if (exactAbsolute(candidate) !== expected) fail();
+  const [subject, apps, scope, appHosts] = hostProfileDirectory.split(path.sep).reverse();
+  if (appHosts !== 'app-hosts' || apps !== 'apps'
+    || !/^[a-f0-9]{32}$/u.test(scope ?? '') || !/^[a-f0-9]{32}$/u.test(subject ?? '')) fail();
+  const appHostsDirectory = path.dirname(path.dirname(path.dirname(hostProfileDirectory)));
+  const appHostsMetadata = lstatSync(appHostsDirectory);
+  if (!appHostsMetadata.isDirectory() || appHostsMetadata.isSymbolicLink()
+    || realpathSync(appHostsDirectory) !== appHostsDirectory) fail();
+  let current = appHostsDirectory;
+  for (const component of [scope, apps, subject, 'user-data']) {
     current = path.join(current, component);
     const metadata = lstatSync(current);
     if (!metadata.isDirectory() || metadata.isSymbolicLink() || metadata.uid !== Number(uid)
       || (metadata.mode & 0o077) !== 0 || realpathSync(current) !== current) fail();
   }
-  return canonical;
+  return expected;
 }
 
 function exactArgument(argv, name) {

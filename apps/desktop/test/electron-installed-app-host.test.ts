@@ -199,3 +199,45 @@ test('relaunch keeps its captured lease while an overlapping poll completes clea
   assert.equal(launches, 2);
   await host.shutdown();
 });
+
+test('installed launches share the data-root gate and a queued launch never outlives a handoff stop', async () => {
+  const { createDesktopDataRootOperationGate } = await import('../src-electron/data-root-operation-gate.js');
+  const selector = [...new TextEncoder().encode('opaque-committed-selector')];
+  let launches = 0;
+  let running = false;
+  const control: NimiElectronInstalledAppControl = {
+    async launch() { launches += 1; running = true; return { launchId: '11'.repeat(32), processId: 123, appId: 'example', version: '1.0.0' }; },
+    async status() { return { running, exitCode: running ? null : 0 }; },
+    async focus() {},
+    async stop() { running = false; },
+    async end() {},
+    async completeUninstall() {},
+    async access() { return { available: false, reasonCode: 'LOCAL_APP_SESSION_REVOKED' }; },
+  };
+  const gate = createDesktopDataRootOperationGate();
+  const host = createDesktopInstalledAppHost(control, gate);
+  const call = (command: string) => host.commandHandlers[command]!({ payload: { payload: { launchSelector: selector } } });
+  let release!: () => void;
+  // A root handoff holds the gate and stops the owner before the queued launch runs.
+  const handoff = gate.runExclusive(async () => {
+    await new Promise<void>((resolve) => { release = resolve; });
+    await host.shutdown();
+  });
+  const queued = call('installed_app_launch') as Promise<InstalledAppRun>;
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.equal(await host.hasActiveRuns(), true, 'a queued launch is an active managed start');
+  release();
+  await handoff;
+  const refused = await queued;
+  assert.equal(refused.state, 'crashed');
+  assert.equal(refused.reasonCode, 'installed-app-launch-failed');
+  assert.equal(launches, 0, 'the owner closed before the queued launch was admitted');
+
+  host.resume();
+  const launched = await call('installed_app_launch') as InstalledAppRun;
+  assert.equal(launched.state, 'running');
+  assert.equal(launches, 1);
+  assert.equal(await host.hasActiveRuns(), true);
+  await host.shutdown();
+  assert.equal(await host.hasActiveRuns(), false);
+});

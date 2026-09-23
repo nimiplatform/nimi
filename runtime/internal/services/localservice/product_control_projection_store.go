@@ -15,6 +15,7 @@ import (
 	"unicode/utf8"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/apphostprofile"
 )
 
 const productControlRecordMaxBytes = 64 * 1024
@@ -162,10 +163,39 @@ func (s *Service) readProductControlSelectedDataRootProjection() (productControl
 		dataRoot = record.DataRoot
 	}
 	var message *string
+	var hostProfileScopeRoot *string
 	if dataRoot == nil {
 		message = stringPtr("product-control record has no selected absolute dataRoot.path")
+	} else {
+		hostProfileScopeRoot = s.productControlHostProfileScopeRoot(record)
 	}
-	return productControlSelectedDataRootProjection{Path: path, Exists: true, State: record.State, DataRoot: dataRoot, Error: message}, nil
+	return productControlSelectedDataRootProjection{
+		Path: path, Exists: true, State: record.State, DataRoot: dataRoot, Error: message,
+		HostProfileScopeRoot: hostProfileScopeRoot,
+	}, nil
+}
+
+// @nimi-authority: rule.nimi.runtime.app-surface.r105
+// productControlHostProfileScopeRoot projects the current host-user scope only
+// when the verified selected root is the one this process serves, matching the
+// active_current_process root handoff. A committed replacement awaiting
+// restart, an unbound selection, or a missing verified OS-user anchor yields
+// null; ready_for_use is intentionally not required.
+func (s *Service) productControlHostProfileScopeRoot(record *productControlRecord) *string {
+	selected := selectedProductDataRootPath(record)
+	s.mu.RLock()
+	anchor := s.productControlHostProfileAnchor
+	admissionClosed := s.productControlRootAdmissionClosed
+	bound := filepath.Clean(strings.TrimSpace(s.runtimeDataRoot))
+	s.mu.RUnlock()
+	if selected == "" || anchor == "" || admissionClosed || !filepath.IsAbs(bound) || !productControlPathsEqual(bound, selected) {
+		return nil
+	}
+	scope, err := apphostprofile.HostScopeRoot(bound, record.InstallID, anchor)
+	if err != nil {
+		return nil
+	}
+	return &scope
 }
 
 var nimiDataRootRequiredDirectories = []string{
@@ -926,6 +956,25 @@ func (s *Service) SetProductControlDataRootSecurityBinding(binding ProductContro
 		return errors.New("Product Control data-root security binding cannot change after first use")
 	}
 	s.productControlDataRootSecurity = binding
+	return nil
+}
+
+// SetProductControlHostProfileAnchor binds the verified local OS-user anchor
+// used, with the Product Control installId, to project the Host technical
+// profile scope. It never supplies a path and cannot change after first use.
+func (s *Service) SetProductControlHostProfileAnchor(localOSUserAnchor string) error {
+	if s == nil {
+		return errors.New("local service is nil")
+	}
+	if localOSUserAnchor == "" || strings.TrimSpace(localOSUserAnchor) != localOSUserAnchor {
+		return errors.New("Host technical profile anchor must be a verified non-empty OS-user anchor")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.productControlRootLocked {
+		return errors.New("Host technical profile anchor cannot change after Product Control first use")
+	}
+	s.productControlHostProfileAnchor = localOSUserAnchor
 	return nil
 }
 

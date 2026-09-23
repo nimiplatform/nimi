@@ -106,6 +106,9 @@ pub struct LocalDevelopmentLaunchRequest {
 pub struct LocalDevelopmentLaunchOutcome {
     pub process_id: u32,
     pub bind_deadline_unix_ms: i64,
+    /// Root of the Runtime-derived Host technical profile; Chromium announces
+    /// its automatic CDP port only inside this profile.
+    pub host_profile_root: PathBuf,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -153,6 +156,7 @@ pub enum NimiHostErrorReasonCode {
     ProcessStopFailed,
     ProcessFocusFailed,
     InstalledAppLaunchFailed,
+    HostProfileUnavailable,
 }
 
 impl NimiHostErrorReasonCode {
@@ -197,6 +201,7 @@ impl NimiHostErrorReasonCode {
             Self::ProcessStopFailed => "process-stop-failed",
             Self::ProcessFocusFailed => "process-focus-failed",
             Self::InstalledAppLaunchFailed => "installed-app-launch-failed",
+            Self::HostProfileUnavailable => "host-profile-unavailable",
         }
     }
 }

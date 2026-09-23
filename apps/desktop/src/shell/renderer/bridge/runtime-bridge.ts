@@ -16,6 +16,8 @@ import {
   admitProductReadyForUse,
   ensureProductControlRecordCreated,
   getProductControlRecord,
+  getDesktopHomeProfileStatus,
+  retryDesktopHomeProfile,
   getProductControlSelectedDataRoot,
   getProductControlCheckSync,
   initializeProductControlRootActivation,
@@ -25,7 +27,9 @@ import {
   startProductControlCheckSync,
 } from './runtime-bridge/product-control';
 import {
+  executeNimiAppHostCacheCleanup,
   executeNimiDataCleanup,
+  planNimiAppHostCacheCleanup,
   planNimiDataCleanup,
 } from './runtime-bridge/nimi-data-directory';
 import { exportDesktopLogs } from './runtime-bridge/support-logs-export';
@@ -95,6 +99,8 @@ export {
   desktopManagedConnectorCredentialAcquisitionHost,
   getRuntimeDefaults,
   getProductControlRecord,
+  getDesktopHomeProfileStatus,
+  retryDesktopHomeProfile,
   getProductControlSelectedDataRoot,
   getProductControlCheckSync,
   ensureProductControlRecordCreated,
@@ -106,6 +112,8 @@ export {
   admitProductReadyForUse,
   planNimiDataCleanup,
   executeNimiDataCleanup,
+  planNimiAppHostCacheCleanup,
+  executeNimiAppHostCacheCleanup,
   exportDesktopLogs,
   getDesktopStorageDirs,
   oauthListenForCode,

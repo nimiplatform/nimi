@@ -274,7 +274,7 @@ test('Electron Product Control supervises committed replacement through fixed Ru
     quiesceHostDataRoot: async () => { events.push('quiesce'); },
     abortHostDataRoot: () => { events.push('abort'); },
     commitHostDataRoot: () => { events.push('commit'); },
-    activateHostDataRoot: () => { events.push('activate'); },
+    activateHostDataRoot: () => { events.push('activate'); return true; },
   });
   const replaced = await host.commandHandlers.product_control_data_root_replace({
     command: 'product_control_data_root_replace',
@@ -321,7 +321,7 @@ test('Electron Product Control reopens host root state only when replacement did
     quiesceHostDataRoot: async () => { events.push('quiesce'); },
     abortHostDataRoot: () => { events.push('abort'); },
     commitHostDataRoot: () => { events.push('commit'); },
-    activateHostDataRoot: () => { events.push('activate'); },
+    activateHostDataRoot: () => { events.push('activate'); return true; },
   });
 
   const result = await host.commandHandlers.product_control_data_root_replace({
@@ -408,7 +408,7 @@ test('Electron Product Control reconnects source Runtime through the explicit Ch
     quiesceHostDataRoot: async () => { events.push('quiesce'); },
     abortHostDataRoot: () => { events.push('abort'); },
     commitHostDataRoot: () => { events.push('commit'); },
-    activateHostDataRoot: () => { events.push('activate'); },
+    activateHostDataRoot: () => { events.push('activate'); return true; },
   });
 
   const replacement = await host.commandHandlers.product_control_data_root_replace({
@@ -453,7 +453,7 @@ test('Electron Product Control uses canonical activation to resolve a lost repla
     quiesceHostDataRoot: async () => { events.push('quiesce'); },
     abortHostDataRoot: () => { events.push('abort'); },
     commitHostDataRoot: () => { events.push('commit'); },
-    activateHostDataRoot: () => { events.push('activate'); },
+    activateHostDataRoot: () => { events.push('activate'); return true; },
     control: {
       machineProductUnary: async (input) => {
         events.push(input.methodId);
@@ -610,7 +610,7 @@ test('Electron Product Control bootstrap opens only a ready activation with a Ch
   const readyGate = createDesktopDataRootOperationGate();
   const readyHost = createDesktopElectronProductControlHost({
     operationGate: readyGate,
-    activateHostDataRoot: () => undefined,
+    activateHostDataRoot: () => true,
     control: {
       machineProductUnary: async (input) => {
         if (input.methodId === GET_CHECK_SYNC) return checkSyncJson('rootact_ready', 'completed');
@@ -749,4 +749,37 @@ test('Electron Product Control admits only the executable Check & Sync owner act
     host.commandHandlers.product_control_check_sync_get({ command: 'product_control_check_sync_get', payload: {} }),
     /runtime-check-sync-response-invalid/u,
   );
+});
+
+test('Runtime activation does not reopen admission before Home finishes its profile transition', async () => {
+  const gate = createDesktopDataRootOperationGate();
+  gate.close('home-transition-pending');
+  let signalEntered!: () => void;
+  const entered = new Promise<void>((resolve) => { signalEntered = resolve; });
+  let finishHome!: (active: boolean) => void;
+  let homeResult = new Promise<boolean>((resolve) => { finishHome = resolve; });
+  const host = createDesktopElectronProductControlHost({
+    operationGate: gate,
+    activateHostDataRoot: () => { signalEntered(); return homeResult; },
+    control: {
+      machineProductUnary: async (input) => input.methodId === GET_CHECK_SYNC
+        ? checkSyncJson('rootact_next', 'completed')
+        : ProductControlProjectionJson.toBinary(ProductControlProjectionJson.create({
+          json: readyProjectionJson('D:/NimiDataNext', 'rootact_next'),
+        })),
+    },
+  });
+  const recovery = host.bootstrapDataRootHandoff();
+  await entered;
+  assert.equal(gate.isClosed(), true);
+  const queued = gate.runExclusive(async () => 'must not launch');
+  const rejected = assert.rejects(queued, /desktop-(?:data-root-handoff-bootstrap-recovery|home-profile-relaunch-required)/u);
+  finishHome(false);
+  await recovery;
+  await rejected;
+  assert.equal(gate.isClosed(), true);
+  await assert.rejects(gate.runExclusive(async () => 'still closed'), /desktop-home-profile-relaunch-required/u);
+  homeResult = Promise.resolve(true);
+  await host.recoverDataRootHandoff();
+  assert.equal(gate.isClosed(), false);
 });

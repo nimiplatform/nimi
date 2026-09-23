@@ -8178,6 +8178,11 @@ pub struct HookTriggerTimeDetail {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct HostStorageProjection {
+    pub profile_root: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct IgnoredScenarioExtension {
     pub namespace: Option<String>,
     pub reason: Option<String>,
@@ -11182,6 +11187,7 @@ pub struct PrepareInstalledAppLaunchResponse {
     pub execution_profile_ref: Option<String>,
     pub bind_deadline: Option<String>,
     pub reason_code: Option<ReasonCode>,
+    pub host_storage: Option<Box<HostStorageProjection>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -11215,6 +11221,7 @@ pub struct PrepareLocalAppLaunchResponse {
     pub launch_id: Option<Vec<u8>>,
     pub bind_deadline: Option<String>,
     pub reason_code: Option<ReasonCode>,
+    pub host_storage: Option<Box<HostStorageProjection>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

@@ -640,6 +640,21 @@ export interface PrepareLocalAppLaunchRequest {
     supervisorRunId: Uint8Array;
 }
 /**
+ * Non-authorizing path projection of the launched Host's technical profile
+ * (Electron user data, session data, temp) under the bound data root's
+ * app-hosts directory. Runtime derives it from its bound root, Product Control
+ * installId, verified local OS user, and Registered App Subject; the GUI-user
+ * Host creates and verifies the directories. It grants nothing.
+ *
+ * @generated from protobuf message nimi.runtime.v1.HostStorageProjection
+ */
+export interface HostStorageProjection {
+    /**
+     * @generated from protobuf field: string profile_root = 1
+     */
+    profileRoot: string;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.PrepareLocalAppLaunchResponse
  */
 export interface PrepareLocalAppLaunchResponse {
@@ -655,6 +670,10 @@ export interface PrepareLocalAppLaunchResponse {
      * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 3
      */
     reasonCode: ReasonCode;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.HostStorageProjection host_storage = 4
+     */
+    hostStorage?: HostStorageProjection;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.BindLocalAppProcessRequest
@@ -725,6 +744,10 @@ export interface PrepareInstalledAppLaunchResponse {
      * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 10
      */
     reasonCode: ReasonCode;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.HostStorageProjection host_storage = 11
+     */
+    hostStorage?: HostStorageProjection;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.EndInstalledAppRunRequest
@@ -4076,12 +4099,60 @@ class PrepareLocalAppLaunchRequest$Type extends MessageType<PrepareLocalAppLaunc
  */
 export const PrepareLocalAppLaunchRequest = new PrepareLocalAppLaunchRequest$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class HostStorageProjection$Type extends MessageType<HostStorageProjection> {
+    constructor() {
+        super("nimi.runtime.v1.HostStorageProjection", [
+            { no: 1, name: "profile_root", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<HostStorageProjection>): HostStorageProjection {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.profileRoot = "";
+        if (value !== undefined)
+            reflectionMergePartial<HostStorageProjection>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: HostStorageProjection): HostStorageProjection {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string profile_root */ 1:
+                    message.profileRoot = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: HostStorageProjection, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string profile_root = 1; */
+        if (message.profileRoot !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.profileRoot);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.HostStorageProjection
+ */
+export const HostStorageProjection = new HostStorageProjection$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class PrepareLocalAppLaunchResponse$Type extends MessageType<PrepareLocalAppLaunchResponse> {
     constructor() {
         super("nimi.runtime.v1.PrepareLocalAppLaunchResponse", [
             { no: 1, name: "launch_id", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
             { no: 2, name: "bind_deadline", kind: "message", T: () => Timestamp },
-            { no: 3, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+            { no: 3, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 4, name: "host_storage", kind: "message", T: () => HostStorageProjection }
         ]);
     }
     create(value?: PartialMessage<PrepareLocalAppLaunchResponse>): PrepareLocalAppLaunchResponse {
@@ -4106,6 +4177,9 @@ class PrepareLocalAppLaunchResponse$Type extends MessageType<PrepareLocalAppLaun
                 case /* nimi.runtime.v1.ReasonCode reason_code */ 3:
                     message.reasonCode = reader.int32();
                     break;
+                case /* nimi.runtime.v1.HostStorageProjection host_storage */ 4:
+                    message.hostStorage = HostStorageProjection.internalBinaryRead(reader, reader.uint32(), options, message.hostStorage);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -4127,6 +4201,9 @@ class PrepareLocalAppLaunchResponse$Type extends MessageType<PrepareLocalAppLaun
         /* nimi.runtime.v1.ReasonCode reason_code = 3; */
         if (message.reasonCode !== 0)
             writer.tag(3, WireType.Varint).int32(message.reasonCode);
+        /* nimi.runtime.v1.HostStorageProjection host_storage = 4; */
+        if (message.hostStorage)
+            HostStorageProjection.internalBinaryWrite(message.hostStorage, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -4252,7 +4329,8 @@ class PrepareInstalledAppLaunchResponse$Type extends MessageType<PrepareInstalle
             { no: 7, name: "executable_sha256", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
             { no: 8, name: "execution_profile_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 9, name: "bind_deadline", kind: "message", T: () => Timestamp },
-            { no: 10, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+            { no: 10, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 11, name: "host_storage", kind: "message", T: () => HostStorageProjection }
         ]);
     }
     create(value?: PartialMessage<PrepareInstalledAppLaunchResponse>): PrepareInstalledAppLaunchResponse {
@@ -4305,6 +4383,9 @@ class PrepareInstalledAppLaunchResponse$Type extends MessageType<PrepareInstalle
                 case /* nimi.runtime.v1.ReasonCode reason_code */ 10:
                     message.reasonCode = reader.int32();
                     break;
+                case /* nimi.runtime.v1.HostStorageProjection host_storage */ 11:
+                    message.hostStorage = HostStorageProjection.internalBinaryRead(reader, reader.uint32(), options, message.hostStorage);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -4347,6 +4428,9 @@ class PrepareInstalledAppLaunchResponse$Type extends MessageType<PrepareInstalle
         /* nimi.runtime.v1.ReasonCode reason_code = 10; */
         if (message.reasonCode !== 0)
             writer.tag(10, WireType.Varint).int32(message.reasonCode);
+        /* nimi.runtime.v1.HostStorageProjection host_storage = 11; */
+        if (message.hostStorage)
+            HostStorageProjection.internalBinaryWrite(message.hostStorage, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

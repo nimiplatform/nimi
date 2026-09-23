@@ -8,7 +8,7 @@ import {
   isCanonicalSafetyProfile,
   normalizeSafetyProfile,
 } from '../lib/app-safety-profile.mjs';
-import { SUPPORTED_DEPENDENCY_COMBINATIONS, defaultDependencyCombination, resolveDependencyCombination } from '../lib/app-dependency-combinations.mjs';
+import { defaultDependencyCombination, resolveDependencyCombination } from '../lib/app-dependency-combinations.mjs';
 import { readFileSync } from 'node:fs';
 
 const versions = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).nimiScaffoldVersions;
@@ -112,15 +112,17 @@ test('declaration diff reports changed fields and undeclared sides only', () => 
   assert.ok(fromUndeclared.some((entry) => entry.field === 'intended_audience' && entry.after === 'general'));
 });
 
-test('supported dependency combinations are exact pairings and the tool default is one of them', () => {
+test('the current Host rejects old SDK/Kit combinations before generating new glue', () => {
   const fallback = defaultDependencyCombination(versions);
   assert.equal(fallback.source, 'default');
-  assert.ok(SUPPORTED_DEPENDENCY_COMBINATIONS.some((entry) => entry.sdkVersion === fallback.sdkVersion && entry.kitVersion === fallback.kitVersion && entry.nimiShellTauriVersion === fallback.nimiShellTauriVersion), 'the shipped default matrix is a listed combination');
-  const pairs = SUPPORTED_DEPENDENCY_COMBINATIONS.map((entry) => `${entry.sdkVersion}|${entry.kitVersion}`);
-  assert.equal(new Set(pairs).size, pairs.length);
-  // Existing first-party Apps ship on SDK ^0.11.0 with Kit ^0.7.0.
-  const existing = resolveDependencyCombination({ dependencies: { '@nimiplatform/sdk': '^0.11.0', '@nimiplatform/kit': '^0.7.0' } }, versions);
-  assert.deepEqual({ ...existing }, { sdkVersion: '^0.11.0', kitVersion: '^0.7.0', nimiShellTauriVersion: '0.3.0', source: 'existing' });
+  for (const [sdk, kit] of [
+    ['^0.11.0', '^0.7.0'], ['^0.12.0', '^0.8.0'], ['^0.13.0', '^0.9.0'],
+    ['^0.14.0', '^0.10.0'], ['^0.15.0', '^0.11.0'], ['^0.16.0', '^0.12.0'],
+  ]) {
+    assert.throws(() => resolveDependencyCombination({ dependencies: {
+      '@nimiplatform/sdk': sdk, '@nimiplatform/kit': kit,
+    } }, versions), /Required combination:/u);
+  }
   assert.equal(resolveDependencyCombination({ dependencies: { '@nimiplatform/sdk': fallback.sdkVersion, '@nimiplatform/kit': fallback.kitVersion } }, versions).source, 'default');
   for (const local of [
     { '@nimiplatform/sdk': 'link:../nimi/sdks/typescript', '@nimiplatform/kit': 'workspace:*' },
@@ -131,7 +133,7 @@ test('supported dependency combinations are exact pairings and the tool default 
   }
   assert.throws(
     () => resolveDependencyCombination({ dependencies: { '@nimiplatform/sdk': '^0.11.0', '@nimiplatform/kit': fallback.kitVersion } }, versions),
-    (error) => error.message.startsWith(`Unsupported SDK/Kit combination: @nimiplatform/sdk@^0.11.0 with @nimiplatform/kit@${fallback.kitVersion}. Supported combinations:`),
+    (error) => error.message.startsWith(`Unsupported SDK/Kit combination: @nimiplatform/sdk@^0.11.0 with @nimiplatform/kit@${fallback.kitVersion}. Required combination:`),
   );
   assert.throws(() => resolveDependencyCombination({ dependencies: { '@nimiplatform/sdk': '^0.9.0', '@nimiplatform/kit': '^0.5.0' } }, versions), /Unsupported SDK\/Kit combination/u);
 });

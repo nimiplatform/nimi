@@ -1255,6 +1255,18 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.protected-local-transport
+  - id: rule.nimi.platform.app-ecosystem.p-napp-034c
+    kind: rule
+    title: P-NAPP-034 standard Electron Host profile placement
+    modality: must
+    statement: A standard Kit Electron App Host synchronously sets its Electron userData, sessionData, and temp paths from the launch-provided host technical profile before creating any default session, window, or ready-dependent work and fails explicitly when that projection is missing or unusable; development Electron receives its user-data-dir only from that Runtime-derived projection, installed launch arguments stay empty, installed immutable packages are never patched in place, and a package built before its standard shell adopted this placement is not claimed as covered until an ordinary update or rebuild.
+    condition: Whenever a standard Kit Electron App Host starts under Desktop development or installed launch.
+    failure: Stop the start with a typed unavailable result and reject default-location fallback, dual reads of former home-directory profiles, in-place package patching, and coverage claims for unrebuilt packages.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.registered-app-subject
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.host-technical-profile
   - id: rule.nimi.platform.app-ecosystem.p-napp-038
     kind: rule
     lifecycle: removed

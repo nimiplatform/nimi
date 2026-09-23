@@ -1,7 +1,7 @@
 import { PNG } from 'pngjs';
 import assert from 'node:assert/strict';
 import { chmodSync, cpSync, existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
-import { mkdtemp, realpath } from 'node:fs/promises';
+import { mkdir, mkdtemp, realpath } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -480,27 +480,30 @@ test('production staging preserves parentheses in archive paths and nested local
   assert.deepEqual(embeddedRebase(original, source, staged), rebased);
 });
 
-test('generated production staging preserves archive identity when the temp root is a symlink', async () => {
+test('generated production staging uses the project work area and preserves archive identity through a project alias', async () => {
   const temp = realpathSync(mkdtempSync(path.join(os.tmpdir(), 'nimi-app-staging-alias-')));
   try {
-    const physicalTemp = path.join(temp, 'physical', 'nested-temp');
-    const aliasTemp = path.join(temp, 'temp-alias');
-    mkdirSync(physicalTemp, { recursive: true });
-    symlinkSync(physicalTemp, aliasTemp, process.platform === 'win32' ? 'junction' : 'dir');
-    const appRoot = path.join(temp, 'consumer');
+    const physicalApp = path.join(temp, 'consumer');
+    const appRoot = path.join(temp, 'consumer-alias');
     const archive = path.join(temp, 'packages', 'sdk.tgz');
-    mkdirSync(appRoot);
+    mkdirSync(physicalApp);
+    symlinkSync(physicalApp, appRoot, process.platform === 'win32' ? 'junction' : 'dir');
     mkdirSync(path.dirname(archive));
     writeFileSync(archive, 'the selected archive');
     const snapshot = buildAppScaffoldSnapshot({
-      profile: 'standalone', versions, targetDir: appRoot,
+      profile: 'standalone', versions, targetDir: physicalApp,
       appId: 'example.staging', appTitle: 'Staging', packageName: 'example-staging', features: [],
     });
     const packager = snapshot.filesByPath.get('scripts/package-electron-production.mjs').content;
-    const declaration = packager.match(/^const stagingRoot = .+;$/mu)?.[0];
-    assert.ok(declaration, 'generated packager must allocate its staging root');
-    const stagingRoot = await new Function('path', 'mkdtemp', 'realpath', 'tmpdir',
-      `return (async () => { ${declaration} return stagingRoot; })();`)(path, mkdtemp, realpath, () => aliasTemp);
+    assert.doesNotMatch(packager, /\btmpdir\(\)|from 'node:os'/u, 'packaging staging must not use OS temp');
+    const start = packager.search(/^const stagingParent = /mu);
+    const end = packager.indexOf('\n', packager.search(/^const stagingRoot = /mu));
+    assert.ok(start >= 0 && end > start, 'generated packager must allocate its staging root');
+    const stagingRoot = await new Function('path', 'mkdir', 'mkdtemp', 'realpath', 'appRoot',
+      `return (async () => { ${packager.slice(start, end)} return stagingRoot; })();`)(path, mkdir, mkdtemp, realpath, appRoot);
+    // The staging root is physical and inside the project's ignored work area.
+    assert.equal(path.dirname(stagingRoot), path.join(physicalApp, '.nimi', 'local', 'build'));
+    assert.match(path.basename(stagingRoot), /^electron-/u);
     const productionSourceRoot = path.join(stagingRoot, 'app');
     mkdirSync(productionSourceRoot);
     const selected = 'file:' + path.relative(appRoot, archive).split(path.sep).join('/');
@@ -911,7 +914,7 @@ test('fresh upgrade plans every owner before mutation and recomputes derived ver
   const temp = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-derived-upgrade-'));
   let relocated;
   try {
-    const oldVersions = { ...versions, sdkVersion: '^0.11.0', kitVersion: '^0.7.0', appToolsVersion: '^0.5.1', nimicodingVersion: '0.6.2', nimiShellTauriVersion: '0.2.1' };
+    const oldVersions = { ...versions, appToolsVersion: '^0.5.1', nimicodingVersion: '0.6.2' };
     const old = buildAppScaffoldSnapshot({ profile: 'standalone', versions: oldVersions, appId: 'upgrade.example', appTitle: 'Upgrade', packageName: 'upgrade-example', targetDir: temp, features: [] });
     for (const file of old.createFiles) {
       const fullPath = path.join(temp, file.path); mkdirSync(path.dirname(fullPath), { recursive: true }); writeFileSync(fullPath, file.content);
@@ -966,13 +969,6 @@ test('fresh upgrade plans every owner before mutation and recomputes derived ver
     assert.equal(next.dependencyMatrix.npm['@nimiplatform/kit'], oldVersions.kitVersion);
     assert.equal(next.dependencyMatrix.npm['@nimiplatform/app-tools'], versions.appToolsVersion);
     assert.equal(JSON.parse(readFileSync(packagePath, 'utf8')).dependencies['@nimiplatform/sdk'], oldVersions.sdkVersion);
-    // Selecting the new combination is a deliberate App decision expressed in package.json.
-    const retained = JSON.parse(readFileSync(packagePath, 'utf8'));
-    retained.dependencies['@nimiplatform/sdk'] = versions.sdkVersion;
-    retained.dependencies['@nimiplatform/kit'] = versions.kitVersion;
-    writeFileSync(packagePath, `${JSON.stringify(retained, null, 2)}\n`);
-    syncAppProject(temp, {}, versions, runners);
-    next = JSON.parse(readFileSync(path.join(temp, SCAFFOLD_INTENT_PATH), 'utf8'));
     assert.equal(next.dependencyMatrix.npm['@nimiplatform/sdk'], versions.sdkVersion);
     assert.equal(next.appId, 'upgrade.example');
     assert.deepEqual(next.directFeatures, []);
@@ -1295,9 +1291,9 @@ test('an existing App on a supported SDK/Kit combination keeps it through sync a
   rmSync(path.join(target, 'src-tauri'), { recursive: true, force: true });
   const packagePath = path.join(target, 'package.json');
   const shipped = JSON.parse(readFileSync(packagePath, 'utf8'));
-  // The real first-party cohort: SDK ^0.11.0 with Kit ^0.7.0 on an older tool matrix.
-  shipped.dependencies['@nimiplatform/sdk'] = '^0.11.0';
-  shipped.dependencies['@nimiplatform/kit'] = '^0.7.0';
+  // An App has explicitly selected the current Host contract; tool dependencies are older.
+  shipped.dependencies['@nimiplatform/sdk'] = versions.sdkVersion;
+  shipped.dependencies['@nimiplatform/kit'] = versions.kitVersion;
   shipped.devDependencies['@nimiplatform/app-tools'] = '^0.5.1';
   shipped.devDependencies['@nimiplatform/nimi-coding'] = '0.6.2';
   delete shipped.devDependencies['@nimiplatform/kit-protected-local-win32-x64'];
@@ -1307,10 +1303,10 @@ test('an existing App on a supported SDK/Kit combination keeps it through sync a
     let result = runCli(['sync', '--dir', target, '--json'], tempRoot, env);
     assert.equal(result.status, 0, result.stderr);
     let payload = JSON.parse(result.stdout);
-    assert.deepEqual(payload.dependencyCombination, { sdk: '^0.11.0', kit: '^0.7.0', source: 'existing' });
+    assert.deepEqual(payload.dependencyCombination, { sdk: versions.sdkVersion, kit: versions.kitVersion, source: 'default' });
     const synced = JSON.parse(readFileSync(packagePath, 'utf8'));
-    assert.equal(synced.dependencies['@nimiplatform/sdk'], '^0.11.0', 'business SDK dependency is preserved');
-    assert.equal(synced.dependencies['@nimiplatform/kit'], '^0.7.0', 'business Kit dependency is preserved');
+    assert.equal(synced.dependencies['@nimiplatform/sdk'], versions.sdkVersion, 'business SDK dependency is preserved');
+    assert.equal(synced.dependencies['@nimiplatform/kit'], versions.kitVersion, 'business Kit dependency is preserved');
     assert.equal(synced.devDependencies['@nimiplatform/app-tools'], versions.appToolsVersion, 'tool dependency follows the tool');
     assert.equal(synced.devDependencies['@nimiplatform/nimi-coding'], versions.nimicodingVersion);
 
@@ -1318,14 +1314,14 @@ test('an existing App on a supported SDK/Kit combination keeps it through sync a
     writeFileSync(path.join(target, 'pnpm-lock.yaml'), stringifyYaml({
       lockfileVersion: '9.0',
       importers: { '.': {
-        dependencies: { '@nimiplatform/kit': { specifier: '^0.7.0', version: '0.7.0' }, '@nimiplatform/sdk': { specifier: '^0.11.0', version: '0.11.0' } },
+        dependencies: { '@nimiplatform/kit': { specifier: versions.kitVersion, version: versions.kitVersion.slice(1) }, '@nimiplatform/sdk': { specifier: versions.sdkVersion, version: versions.sdkVersion.slice(1) } },
         devDependencies: { '@nimiplatform/app-tools': { specifier: versions.appToolsVersion, version: versions.appToolsVersion }, '@nimiplatform/nimi-coding': { specifier: versions.nimicodingVersion, version: versions.nimicodingVersion } },
       } },
     }));
     result = runCli(['check', '--dir', target, '--production', '--json'], tempRoot, env);
     assert.equal(result.status, 0, result.stderr);
     payload = JSON.parse(result.stdout);
-    assert.deepEqual(payload.dependencyCombination, { sdk: '^0.11.0', kit: '^0.7.0', source: 'existing' });
+    assert.deepEqual(payload.dependencyCombination, { sdk: versions.sdkVersion, kit: versions.kitVersion, source: 'default' });
     assert.equal(payload.safetyProfile, 'undeclared');
 
     // Only the declaration changes: no business file, dependency or owner command moves.
@@ -1367,7 +1363,7 @@ test('an existing App on a supported SDK/Kit combination keeps it through sync a
     assert.equal(result.status, 0, result.stderr);
     payload = JSON.parse(result.stdout);
     assert.deepEqual(payload.synchronizedFiles, ['.nimi/admission/submission.yaml'], 'only the generated submission copy changes');
-    assert.deepEqual(payload.dependencyCombination, { sdk: '^0.11.0', kit: '^0.7.0', source: 'existing' });
+    assert.deepEqual(payload.dependencyCombination, { sdk: versions.sdkVersion, kit: versions.kitVersion, source: 'default' });
     assert.equal(readFileSync(packagePath, 'utf8'), packageBefore);
     assert.deepEqual(readFileSync(path.join(target, 'src', 'product', 'owned.ts')), productBefore);
     assert.equal(readFileSync(path.join(target, '.nimi', 'config', 'build-profile.yaml'), 'utf8'), buildProfileBefore);
@@ -1399,7 +1395,7 @@ test('an existing App on a supported SDK/Kit combination keeps it through sync a
     // An unlisted SDK x Kit pairing is rejected everywhere, not normalized.
     writeFileSync(manifestPath, readFileSync(manifestPath, 'utf8').replace('third_party_account: sometimes', 'third_party_account: none'));
     const crossed = JSON.parse(readFileSync(packagePath, 'utf8'));
-    crossed.dependencies['@nimiplatform/kit'] = versions.kitVersion;
+    crossed.dependencies['@nimiplatform/sdk'] = '^0.11.0';
     writeFileSync(packagePath, `${JSON.stringify(crossed, null, 2)}\n`);
     for (const command of [['sync'], ['check'], ['check', '--production']]) {
       result = runCli([...command, '--dir', target, '--json'], tempRoot, env);
@@ -1411,31 +1407,29 @@ test('an existing App on a supported SDK/Kit combination keeps it through sync a
   }
 });
 
-test('an existing Tauri App keeps the shell crate version that matches its SDK/Kit combination', () => {
-  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-existing-tauri-combination-'));
+test('an older Tauri combination is rejected before changing Host or Cargo inputs', () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-old-tauri-combination-'));
   const target = writeExistingSubmittedApp(tempRoot, { packageManager: versions.packageManager });
   const env = fakeNimicodingEnv(tempRoot);
   const packagePath = path.join(target, 'package.json');
-  const shipped = JSON.parse(readFileSync(packagePath, 'utf8'));
-  shipped.dependencies['@nimiplatform/sdk'] = '^0.13.0';
-  shipped.dependencies['@nimiplatform/kit'] = '^0.9.0';
-  writeFileSync(packagePath, `${JSON.stringify(shipped, null, 2)}\n`);
+  const old = JSON.parse(readFileSync(packagePath, 'utf8'));
+  old.dependencies['@nimiplatform/sdk'] = '^0.13.0';
+  old.dependencies['@nimiplatform/kit'] = '^0.9.0';
+  writeFileSync(packagePath, `${JSON.stringify(old, null, 2)}\n`);
   try {
-    const result = runCli(['sync', '--dir', target, '--json'], tempRoot, env);
-    assert.equal(result.status, 0, result.stderr);
-    const payload = JSON.parse(result.stdout);
-    assert.deepEqual(payload.dependencyCombination, { sdk: '^0.13.0', kit: '^0.9.0', source: 'existing' });
-    assert.deepEqual(payload.nextSteps, ['pnpm install', 'cargo update -p nimi-shell-tauri --precise 0.5.0', 'nimi-app sync', 'nimi-app check']);
-    assert.match(readFileSync(path.join(target, 'src-tauri', 'Cargo.toml'), 'utf8'), /^nimi-shell-tauri = "0\.5\.0"$/mu);
-    const synced = JSON.parse(readFileSync(packagePath, 'utf8'));
-    assert.equal(synced.dependencies['@nimiplatform/sdk'], '^0.13.0');
-    assert.equal(synced.dependencies['@nimiplatform/kit'], '^0.9.0');
+    const before = snapshotTree(target);
+    for (const command of [['sync', '--dry-run'], ['sync'], ['check']]) {
+      const result = runCli([...command, '--dir', target, '--json'], tempRoot, env);
+      assert.notEqual(result.status, 0, command.join(' '));
+      assert.match(jsonErrorMessage(result), /Required combination:/u);
+      assert.deepEqual(snapshotTree(target), before, 'unsupported pair must not rewrite files');
+    }
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });
   }
 });
 
-test('an existing managed scaffold keeps its supported SDK/Kit combination through sync and check and rejects an unlisted pairing', () => {
+test('an old managed scaffold requires explicit dependency selection before sync or owner mutation', () => {
   const temp = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-managed-combination-'));
   try {
     const oldVersions = { ...versions, sdkVersion: '^0.12.0', kitVersion: '^0.8.0', appToolsVersion: '^0.5.3', nimicodingVersion: '0.6.3', nimiShellTauriVersion: '0.4.0' };
@@ -1443,7 +1437,9 @@ test('an existing managed scaffold keeps its supported SDK/Kit combination throu
     for (const file of old.createFiles) {
       const fullPath = path.join(temp, file.path); mkdirSync(path.dirname(fullPath), { recursive: true }); writeFileSync(fullPath, file.content);
     }
+    let ownerCalls = 0;
     const runners = { runNimicodingSync(target, mode) {
+      ownerCalls += 1;
       if (mode === 'apply') {
         mkdirSync(path.join(target, '.nimi/methodology'), { recursive: true });
         writeFileSync(path.join(target, '.nimi/methodology/authority-authoring.yaml'), 'test-owner: true\n');
@@ -1452,29 +1448,44 @@ test('an existing managed scaffold keeps its supported SDK/Kit combination throu
     } };
     initApp(temp, {}, oldVersions, runners);
     const packagePath = path.join(temp, 'package.json');
+    const before = snapshotTree(temp);
+    const beforeOwnerCalls = ownerCalls;
+    for (const operation of [
+      () => syncAppProject(temp, { dryRun: true, json: true }, versions, runners),
+      () => syncAppProject(temp, { json: true }, versions, runners),
+      () => checkAppProject(temp, { json: true }, versions, runners),
+    ]) {
+      assert.throws(operation, /Required combination:/u);
+      assert.equal(ownerCalls, beforeOwnerCalls, 'no owner command before a valid selection');
+      assert.deepEqual(snapshotTree(temp), before, 'no partial new Host glue or package rewrite');
+    }
+    const selected = JSON.parse(readFileSync(packagePath, 'utf8'));
+    selected.dependencies['@nimiplatform/sdk'] = versions.sdkVersion;
+    selected.dependencies['@nimiplatform/kit'] = versions.kitVersion;
+    writeFileSync(packagePath, `${JSON.stringify(selected, null, 2)}\n`);
     const synced = syncAppProject(temp, { json: true }, versions, runners);
-    assert.deepEqual(synced.dependencyCombination, { sdk: '^0.12.0', kit: '^0.8.0', source: 'existing' });
+    assert.deepEqual(synced.dependencyCombination, { sdk: versions.sdkVersion, kit: versions.kitVersion, source: 'default' });
     const packageJson = JSON.parse(readFileSync(packagePath, 'utf8'));
-    assert.equal(packageJson.dependencies['@nimiplatform/sdk'], '^0.12.0');
-    assert.equal(packageJson.dependencies['@nimiplatform/kit'], '^0.8.0');
+    assert.equal(packageJson.dependencies['@nimiplatform/sdk'], versions.sdkVersion);
+    assert.equal(packageJson.dependencies['@nimiplatform/kit'], versions.kitVersion);
     assert.equal(packageJson.devDependencies['@nimiplatform/app-tools'], versions.appToolsVersion, 'tool dependency follows the tool');
     const lock = JSON.parse(readFileSync(path.join(temp, SCAFFOLD_LOCK_PATH), 'utf8'));
-    assert.equal(lock.dependencyMatrix.npm['@nimiplatform/sdk'], '^0.12.0');
-    assert.equal(lock.dependencyMatrix.npm['@nimiplatform/kit'], '^0.8.0');
-    assert.equal(lock.dependencyMatrix.cargo['nimi-shell-tauri'], '0.4.0', 'the shell crate matches the retained combination');
+    assert.equal(lock.dependencyMatrix.npm['@nimiplatform/sdk'], versions.sdkVersion);
+    assert.equal(lock.dependencyMatrix.npm['@nimiplatform/kit'], versions.kitVersion);
+    assert.equal(lock.dependencyMatrix.cargo['nimi-shell-tauri'], versions.nimiShellTauriVersion, 'the shell crate matches the selected combination');
     writeFileSync(path.join(temp, 'pnpm-lock.yaml'), stringifyYaml({ lockfileVersion: '9.0', importers: { '.': {
-      dependencies: { '@nimiplatform/kit': { specifier: '^0.8.0', version: '0.8.0' }, '@nimiplatform/sdk': { specifier: '^0.12.0', version: '0.12.0' } },
+      dependencies: { '@nimiplatform/kit': { specifier: versions.kitVersion, version: versions.kitVersion.slice(1) }, '@nimiplatform/sdk': { specifier: versions.sdkVersion, version: versions.sdkVersion.slice(1) } },
       devDependencies: { '@nimiplatform/app-tools': { specifier: versions.appToolsVersion, version: versions.appToolsVersion }, '@nimiplatform/nimi-coding': { specifier: versions.nimicodingVersion, version: versions.nimicodingVersion } },
     } } }));
     const checked = checkAppProject(temp, { json: true }, versions, runners);
     assert.equal(checked.managed, true);
-    assert.deepEqual(checked.dependencyCombination, { sdk: '^0.12.0', kit: '^0.8.0', source: 'existing' });
-    assert.deepEqual(syncAppProject(temp, { dryRun: true, json: true }, versions, runners).changes, [], 'a retained combination is stable across repeated sync');
+    assert.deepEqual(checked.dependencyCombination, { sdk: versions.sdkVersion, kit: versions.kitVersion, source: 'default' });
+    assert.deepEqual(syncAppProject(temp, { dryRun: true, json: true }, versions, runners).changes, [], 'the explicitly selected combination is stable across repeated sync');
 
     const crossed = JSON.parse(readFileSync(packagePath, 'utf8'));
-    crossed.dependencies['@nimiplatform/kit'] = versions.kitVersion;
+    crossed.dependencies['@nimiplatform/kit'] = '^0.12.0';
     writeFileSync(packagePath, `${JSON.stringify(crossed, null, 2)}\n`);
-    assert.throws(() => syncAppProject(temp, { dryRun: true, json: true }, versions, runners), /Unsupported SDK\/Kit combination: @nimiplatform\/sdk@\^0\.12\.0 with @nimiplatform\/kit@/u);
+    assert.throws(() => syncAppProject(temp, { dryRun: true, json: true }, versions, runners), /Unsupported SDK\/Kit combination/u);
     assert.throws(() => checkAppProject(temp, { json: true }, versions, runners), /Unsupported SDK\/Kit combination/u);
   } finally {
     rmSync(temp, { recursive: true, force: true });

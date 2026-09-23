@@ -103,4 +103,8 @@ type productControlSelectedDataRootProjection struct {
 	State    productControlState    `json:"state"`
 	DataRoot *productDataRootRecord `json:"dataRoot"`
 	Error    *string                `json:"error"`
+	// HostProfileScopeRoot is a derived read-only projection, never persisted in
+	// the canonical record: the current host-user scope below the currently bound
+	// usable root, or null when no such root is bound.
+	HostProfileScopeRoot *string `json:"hostProfileScopeRoot"`
 }

@@ -4690,6 +4690,10 @@ type HookTriggerTimeDetail struct {
 	Delay string `json:"delay,omitempty"`
 }
 
+type HostStorageProjection struct {
+	ProfileRoot string `json:"profile_root,omitempty"`
+}
+
 type IgnoredScenarioExtension struct {
 	Namespace string `json:"namespace,omitempty"`
 	Reason    string `json:"reason,omitempty"`
@@ -6932,16 +6936,17 @@ type PrepareInstalledAppLaunchRequest struct {
 }
 
 type PrepareInstalledAppLaunchResponse struct {
-	LaunchId            []byte     `json:"launch_id,omitempty"`
-	AppId               string     `json:"app_id,omitempty"`
-	Version             string     `json:"version,omitempty"`
-	ExecutablePath      string     `json:"executable_path,omitempty"`
-	WorkingDirectory    string     `json:"working_directory,omitempty"`
-	Arguments           []string   `json:"arguments,omitempty"`
-	ExecutableSha256    []byte     `json:"executable_sha256,omitempty"`
-	ExecutionProfileRef string     `json:"execution_profile_ref,omitempty"`
-	BindDeadline        string     `json:"bind_deadline,omitempty"`
-	ReasonCode          ReasonCode `json:"reason_code,omitempty"`
+	LaunchId            []byte                 `json:"launch_id,omitempty"`
+	AppId               string                 `json:"app_id,omitempty"`
+	Version             string                 `json:"version,omitempty"`
+	ExecutablePath      string                 `json:"executable_path,omitempty"`
+	WorkingDirectory    string                 `json:"working_directory,omitempty"`
+	Arguments           []string               `json:"arguments,omitempty"`
+	ExecutableSha256    []byte                 `json:"executable_sha256,omitempty"`
+	ExecutionProfileRef string                 `json:"execution_profile_ref,omitempty"`
+	BindDeadline        string                 `json:"bind_deadline,omitempty"`
+	ReasonCode          ReasonCode             `json:"reason_code,omitempty"`
+	HostStorage         *HostStorageProjection `json:"host_storage,omitempty"`
 }
 
 type PrepareLoadoutRequest struct {
@@ -6968,9 +6973,10 @@ type PrepareLocalAppLaunchRequest struct {
 }
 
 type PrepareLocalAppLaunchResponse struct {
-	LaunchId     []byte     `json:"launch_id,omitempty"`
-	BindDeadline string     `json:"bind_deadline,omitempty"`
-	ReasonCode   ReasonCode `json:"reason_code,omitempty"`
+	LaunchId     []byte                 `json:"launch_id,omitempty"`
+	BindDeadline string                 `json:"bind_deadline,omitempty"`
+	ReasonCode   ReasonCode             `json:"reason_code,omitempty"`
+	HostStorage  *HostStorageProjection `json:"host_storage,omitempty"`
 }
 
 type PrepareLocalAppPackageRequest struct {

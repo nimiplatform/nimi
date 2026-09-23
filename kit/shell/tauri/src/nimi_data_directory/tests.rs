@@ -45,7 +45,7 @@ fn matrix_mirrors_kernel_table_rows() {
         .collect();
     assert_eq!(
         table_ids.len(),
-        12,
+        13,
         "the kernel table must declare only canonical roots and admitted owner subtrees"
     );
     assert_eq!(
@@ -70,6 +70,7 @@ fn enforce_layout_creates_exactly_the_declared_first_level_directories() {
             "accounts",
             "logs",
             "audit",
+            "app-hosts",
         ],
         "the canonical root-level data families are closed"
     );
@@ -161,6 +162,43 @@ fn runtime_owned_directory_cleanup_is_refused() {
             .expect_err("runtime-owned cleanup must be refused");
     assert!(error.contains("Runtime"));
     assert!(data_root.join("models/m.bin").exists());
+}
+
+#[test]
+fn apps_and_accounts_cleanup_is_owner_blocked_even_with_confirmation() {
+    let base = unique_dir("cleanup-owner");
+    let data_root = base.join("nimi_data");
+    enforce_data_root_layout(&data_root).expect("layout");
+    write_file(&data_root.join("apps/local-app-kernel.db"), b"kernel");
+    write_file(
+        &data_root.join("accounts/runtime/local-state.json"),
+        b"state",
+    );
+
+    write_file(
+        &data_root.join("app-hosts/scope/desktop/user-data/Preferences"),
+        b"prefs",
+    );
+    for (directory, sentinel) in [
+        ("apps", "apps/local-app-kernel.db"),
+        ("accounts", "accounts/runtime/local-state.json"),
+        ("app-hosts", "app-hosts/scope/desktop/user-data/Preferences"),
+    ] {
+        let plan = plan_directory_cleanup(&data_root, directory).expect("plan");
+        assert!(
+            plan.runtime_owner_blocked,
+            "{directory} must preview as blocked"
+        );
+        let error = execute_directory_cleanup(
+            &data_root,
+            directory,
+            Some(DESTRUCTIVE_CLEANUP_CONFIRMATION),
+        )
+        .expect_err("owner-managed cleanup must be refused");
+        assert!(error.contains("P-MIG-006"), "{error}");
+        assert!(data_root.join(sentinel).exists(), "{sentinel} must remain");
+    }
+    let _ = fs::remove_dir_all(&base);
 }
 
 #[test]

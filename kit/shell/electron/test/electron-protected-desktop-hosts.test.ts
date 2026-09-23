@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { ReasonCode } from '@nimiplatform/kit/core/sdk-contract';
 
@@ -496,13 +497,15 @@ describe('Electron local-development protected control', () => {
     updatedAtUnixMs: 1_800_000_000_100,
   };
 
+  const hostProfileRoot = path.resolve('nimi-data', 'app-hosts', 'scope', 'apps', 'subject');
+
   function binding(overrides: Partial<NimiElectronLocalDevelopmentBinding> = {}): NimiElectronLocalDevelopmentBinding {
     const ok = async (value: unknown) => ({ status: 'ok' as const, value });
     return {
       desktopRegisterLocalDevelopmentProject: async () => ok(registration),
       desktopListLocalDevelopmentRegistrations: async () => ok([registration]),
       desktopRemoveLocalDevelopmentRegistration: async () => ok({ removed: true }),
-      desktopLaunchLocalDevelopmentHost: async () => ok({ processId: 4242, bindDeadlineUnixMs: Date.now() + 5_000 }),
+      desktopLaunchLocalDevelopmentHost: async () => ok({ processId: 4242, bindDeadlineUnixMs: Date.now() + 5_000, hostProfileRoot }),
       desktopLocalDevelopmentHostRunning: async () => ok({ running: true }),
       desktopFocusLocalDevelopmentHost: async () => ok({ focused: true }),
       desktopTerminateLocalDevelopmentHost: async () => ok({ terminated: true }),
@@ -541,8 +544,26 @@ describe('Electron local-development protected control', () => {
       rendererOrigin: 'http://127.0.0.1:1468',
       hostArguments: ['D:\\main.js'],
       workingDirectory: project.canonicalProjectRoot,
-    })).resolves.toMatchObject({ processId: 4242 });
+    })).resolves.toMatchObject({ processId: 4242, hostProfileRoot });
     expect(launch).toHaveBeenCalledWith(expect.objectContaining({ registrationHandle, supervisorRunId }));
+  });
+
+  it('accepts only an absolute Runtime-derived Host profile root from a launch', async () => {
+    const control = createNimiElectronLocalDevelopmentControlForBinding(binding({
+      desktopLaunchLocalDevelopmentHost: async () => ({
+        status: 'ok' as const,
+        value: { processId: 4242, bindDeadlineUnixMs: Date.now() + 5_000, hostProfileRoot: 'relative/profile' },
+      }),
+    }));
+    await expect(control.launch({
+      registrationHandle,
+      supervisorRunId,
+      shell: 'electron',
+      hostExecutablePath: 'D:\electron.exe',
+      rendererOrigin: 'http://127.0.0.1:1468',
+      hostArguments: ['D:\main.js'],
+      workingDirectory: project.canonicalProjectRoot,
+    })).rejects.toThrow();
   });
 
   it('shares overlapping registration reads without caching completed snapshots', async () => {

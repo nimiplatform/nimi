@@ -15,8 +15,10 @@ import type { DesktopRendererStorageDirs as DesktopStorageDirs } from '../../ren
 import {
   NIMI_DATA_DESTRUCTIVE_CLEANUP_CONFIRMATION,
   type DesktopRendererSupportRepairPort,
+  type NimiAppHostCachePlan,
   type NimiDataCleanupPlan,
 } from '../../renderer/support-repair-port.js';
+import { formatBytes } from '../../components/download-format.js';
 import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
 import { Button, useTypedProjection as useSupportProjection } from '@nimiplatform/kit/ui';
 import {
@@ -139,9 +141,130 @@ export function SupportRepairSection(props: { onNavigateToRecovery: () => void }
         ) : null}
       </SupportCard>
 
+      <SupportAppHostCacheCard />
       <SupportDataRootCleanupCard dirs={dirs} dirsError={dirsError} />
     </SupportSectionShell>
   );
+}
+
+/**
+ * Standard App cache (`P-MIG-006e`): clears only the fixed regenerable browser
+ * caches of stopped standard App Hosts in this data root. Cookies, site
+ * storage, App data and Nimi's own profile are never touched, so the click is
+ * the intent and no destructive confirmation token applies.
+ */
+function SupportAppHostCacheCard() {
+  const { t } = useTranslation();
+  const repair = useDesktopRendererCommands().supportRepair;
+  const [plan, setPlan] = useState<NimiAppHostCachePlan | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [feedback, setFeedback] = useState<{ tone: 'error' | 'success'; message: string } | null>(null);
+
+  const handlePlan = useCallback(async () => {
+    setBusy(true);
+    setPlan(null);
+    setFeedback(null);
+    try {
+      setPlan(await repair.planAppHostCacheCleanup());
+    } catch (error) {
+      setFeedback({
+        tone: 'error',
+        message: error instanceof Error ? error.message : t('Support.repairAppCachePlanFailed'),
+      });
+    } finally {
+      setBusy(false);
+    }
+  }, [repair, t]);
+
+  const handleClear = useCallback(async () => {
+    setBusy(true);
+    setFeedback(null);
+    try {
+      const outcome = await repair.executeAppHostCacheCleanup();
+      setPlan(null);
+      setFeedback(outcome.complete
+        ? { tone: 'success', message: t('Support.repairAppCacheCleared', { size: formatBytes(outcome.removedBytes) }) }
+        : {
+          tone: 'error',
+          message: t('Support.repairAppCachePartial', {
+            size: formatBytes(outcome.removedBytes),
+            failed: outcome.failedEntries,
+          }),
+        });
+    } catch (error) {
+      setFeedback({
+        tone: 'error',
+        message: error instanceof Error ? error.message : t('Support.repairAppCacheClearFailed'),
+      });
+    } finally {
+      setBusy(false);
+    }
+  }, [repair, t]);
+
+  return (
+    <SupportCard
+      title={t('Support.repairAppCacheTitle')}
+      description={t('Support.repairAppCacheDescription')}
+      testId="support-repair-app-cache"
+    >
+      <button
+        type="button"
+        data-testid="support-repair-app-cache-plan-button"
+        disabled={busy}
+        onClick={() => { void handlePlan(); }}
+        className="self-start rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-2 text-xs font-medium text-[var(--nimi-text-primary)] transition hover:bg-[var(--nimi-surface-active)] disabled:opacity-50"
+      >
+        {t('Support.repairAppCachePlanButton')}
+      </button>
+      {plan ? (
+        <div data-testid="support-repair-app-cache-plan" className="mt-4">
+          <div className="divide-y divide-[var(--nimi-border-subtle)]">
+            <SupportInfoRow label={t('Support.repairAppCacheProfiles')} value={String(plan.profileCount)} />
+            <SupportInfoRow label={t('Support.repairAppCacheSize')} value={formatBytes(plan.totalBytes)} />
+            <SupportInfoRow label={t('Support.repairCleanupPlanFiles')} value={String(plan.fileCount)} />
+          </div>
+          {plan.hostsRunning ? (
+            <p
+              data-testid="support-repair-app-cache-hosts-running"
+              className="mt-3 text-xs text-[var(--nimi-status-warning)]"
+            >
+              {t('Support.repairAppCacheHostsRunning')}
+            </p>
+          ) : (
+            <Button
+              size="sm"
+              data-testid="support-repair-app-cache-clear-button"
+              disabled={busy || plan.totalBytes === 0}
+              onClick={() => { void handleClear(); }}
+              className="mt-3 self-start"
+            >
+              {t('Support.repairAppCacheClearButton')}
+            </Button>
+          )}
+        </div>
+      ) : null}
+      {feedback ? (
+        <p
+          data-testid="support-repair-app-cache-feedback"
+          className={
+            feedback.tone === 'error'
+              ? 'mt-3 break-words rounded-lg bg-[var(--nimi-surface-canvas)] px-3 py-2 text-xs text-[var(--nimi-status-danger)]'
+              : 'mt-3 break-words rounded-lg bg-[var(--nimi-surface-canvas)] px-3 py-2 text-xs text-[var(--nimi-text-primary)]'
+          }
+        >
+          {feedback.message}
+        </p>
+      ) : null}
+    </SupportCard>
+  );
+}
+
+// apps and accounts are previewable but only their owners remove content:
+// installed Apps through uninstall, account data through its own owners.
+function cleanupOwnerBlockedCopyKey(directory: string): string {
+  if (directory === 'apps') return 'Support.repairCleanupAppsOwnerManaged';
+  if (directory === 'accounts') return 'Support.repairCleanupAccountsOwnerManaged';
+  return 'Support.repairCleanupRuntimeBlocked';
 }
 
 /**
@@ -275,8 +398,11 @@ function SupportDataRootCleanupCard(props: {
             />
           </div>
           {plan.runtimeOwnerBlocked ? (
-            <p className="mt-3 text-xs text-[var(--nimi-status-danger)]">
-              {t('Support.repairCleanupRuntimeBlocked')}
+            <p
+              data-testid="support-repair-cleanup-owner-blocked"
+              className="mt-3 text-xs text-[var(--nimi-status-danger)]"
+            >
+              {t(cleanupOwnerBlockedCopyKey(plan.directory))}
             </p>
           ) : (
             <>

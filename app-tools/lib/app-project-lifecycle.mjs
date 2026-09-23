@@ -180,10 +180,9 @@ function selectDependencyCombination(packageJson, versions, managed) {
   return managed ? defaultDependencyCombination(versions) : resolveDependencyCombination(packageJson, versions);
 }
 
-// An existing managed project keeps its current supported SDK/Kit combination:
-// the generator recomputes derived projections for that combination, while the
-// app-tools and nimi-coding tool dependencies still follow the selected tool.
-// Only a fresh create starts from the tool default. An unlisted pairing fails.
+// Validate the App's explicit SDK/Kit selection before deriving or writing
+// managed glue. A previous Host contract must be upgraded by the App first;
+// selecting a newer tool never silently changes business dependencies.
 function managedProjectVersions(targetDir, versions) {
   const packagePath = path.join(targetDir, 'package.json');
   if (!existsSync(packagePath)) return versions;

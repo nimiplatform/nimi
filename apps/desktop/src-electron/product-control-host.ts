@@ -82,6 +82,11 @@ export type DesktopElectronProductControlHost = {
   readonly resolveReadyDataRoot: () => Promise<string>;
   /** Canonical selected root retained for Support diagnostics in repair/blocked states. */
   readonly resolveSupportDataRoot: () => Promise<string>;
+  /**
+   * Runtime-derived host-user scope of Host technical profiles under the
+   * currently bound usable root; ready_for_use is not required.
+   */
+  readonly resolveHostProfileScope: () => Promise<string>;
   readonly bootstrapDataRootHandoff: () => Promise<void>;
   readonly recoverDataRootHandoff: () => Promise<unknown>;
 };
@@ -131,7 +136,7 @@ export function createDesktopElectronProductControlHost(input: {
   readonly quiesceHostDataRoot?: () => Promise<void>;
   readonly abortHostDataRoot?: () => void;
   readonly commitHostDataRoot?: () => void;
-  readonly activateHostDataRoot?: () => void;
+  readonly activateHostDataRoot?: () => boolean | Promise<boolean>;
 } = {}): DesktopElectronProductControlHost {
   const host = new ElectronProductControlHost(
     input.control ?? createNimiElectronDesktopControlHost(),
@@ -141,7 +146,7 @@ export function createDesktopElectronProductControlHost(input: {
     input.quiesceHostDataRoot ?? (async () => undefined),
     input.abortHostDataRoot ?? (() => undefined),
     input.commitHostDataRoot ?? (() => undefined),
-    input.activateHostDataRoot ?? (() => undefined),
+    input.activateHostDataRoot ?? (() => true),
   );
   return {
     commandHandlers: Object.fromEntries(COMMANDS.map((command) => [
@@ -153,6 +158,7 @@ export function createDesktopElectronProductControlHost(input: {
     resolveSelectedDataRoot: () => host.resolveSelectedDataRoot(),
     resolveReadyDataRoot: () => host.resolveReadyDataRoot(),
     resolveSupportDataRoot: () => host.resolveSupportDataRoot(),
+    resolveHostProfileScope: () => host.resolveHostProfileScope(),
     bootstrapDataRootHandoff: () => host.bootstrapDataRootHandoff(),
     recoverDataRootHandoff: () => host.recoverDataRootHandoff(),
   };
@@ -168,7 +174,7 @@ class ElectronProductControlHost {
     private readonly quiesceHostDataRoot: () => Promise<void>,
     private readonly abortHostDataRoot: () => void,
     private readonly commitHostDataRoot: () => void,
-    private readonly activateHostDataRoot: () => void,
+    private readonly activateHostDataRoot: () => boolean | Promise<boolean>,
   ) {}
 
   async invoke(command: ProductCommand, payload: Readonly<Record<string, unknown>>): Promise<unknown> {
@@ -285,6 +291,16 @@ class ElectronProductControlHost {
       throw new Error('desktop-product-control-support-data-root-unavailable');
     }
     return selectedPath;
+  }
+
+  // @nimi-authority: rule.nimi.runtime.app-surface.r105
+  async resolveHostProfileScope(): Promise<string> {
+    const projection = await this.selectedDataRoot();
+    const scope = String(projection.hostProfileScopeRoot || '').trim();
+    if (!scope || !path.isAbsolute(scope) || path.normalize(scope) !== scope) {
+      throw new Error('desktop-product-control-host-profile-scope-unavailable');
+    }
+    return scope;
   }
 
   async bootstrapDataRootHandoff(): Promise<void> {
@@ -512,7 +528,13 @@ class ElectronProductControlHost {
       throw new Error('desktop-product-control-runtime-rebound-activation-mismatch');
     }
     await this.awaitCheckSyncActivation(activation);
-    this.activateHostDataRoot();
+    // Runtime activation alone does not make the current Home profile usable.
+    // Keep all launches/cleanup closed until the Host either confirms the same
+    // profile or exits to relaunch into the committed root.
+    if (!await this.activateHostDataRoot()) {
+      this.operationGate.close('desktop-home-profile-relaunch-required');
+      return;
+    }
     this.operationGate.open();
   }
 

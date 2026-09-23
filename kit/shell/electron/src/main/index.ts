@@ -9,6 +9,12 @@ export * from './agent-center-resource-pack-placement.js';
 export * from './app-activity-source-launch.js';
 export * from './desktop-open.js';
 export * from './avatar-host-handoff.js';
+export {
+  configureNimiElectronAppHostProfile,
+  NIMI_APP_HOST_PROFILE_ENVIRONMENT_KEY,
+  type NimiElectronAppHostProfile,
+  type NimiElectronAppHostProfileTarget,
+} from './app-host-profile.js';
 export type { NimiElectronAppBusinessServices } from './app-business-services.js';
 export {
   registerNimiElectronAppBridge,

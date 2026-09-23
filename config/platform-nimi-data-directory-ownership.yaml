@@ -12,7 +12,8 @@ description: >-
   definition.nimi.platform.product-lifecycle.nimi-data-ownership,
   rule.nimi.platform.product-lifecycle.p-mig-006a,
   rule.nimi.platform.product-lifecycle.p-mig-006b,
-  rule.nimi.platform.product-lifecycle.p-mig-006c, and
+  rule.nimi.platform.product-lifecycle.p-mig-006c,
+  rule.nimi.platform.product-lifecycle.p-mig-006e, and
   rule.nimi.platform.product-lifecycle.p-mig-006-directory-declarations.
   This file supplies owner and cleanup-rule inputs to the host implementation;
   it does not define product semantics.
@@ -29,9 +30,13 @@ rows:
   - directories_10
   - directories_11
   - directories_12
+  - directories_13
   - the first-level nimi_data directory set is exactly models, dependencies,
-    environments, apps, accounts, logs, and audit; owner-local cache, generated,
-    and tmp directories may exist only below their admitted owner subtree
+    environments, apps, accounts, logs, audit, and app-hosts; owner-local cache,
+    generated, and tmp directories may exist only below their admitted owner
+    subtree
+  - apps and accounts are never deleted wholesale by a generic cleanup entry;
+    App content leaves through App uninstall
   - every first-level nimi_data directory must declare an owner and a cleanup
     rule; cleanup operations must obey the owning authority per P-MIG-006
   - models, dependencies, and environments may only be mutated through
@@ -124,4 +129,17 @@ directories:
     owner: runtime_realm_product_audit
     product_meaning: Local audit projections.
     cleanup_rule: Retention and privacy policy required.
+    source_rule: P-MIG-006
+
+  - directory_id: app_hosts
+    path: "<nimi_data>/app-hosts/"
+    owner: current_host
+    product_meaning: >-
+      Host technical profiles (Electron user data, session data, temporary
+      files) of Nimi Home and standard App Hosts, keyed by host-user scope and
+      Registered App Subject; created on demand by the GUI-user Host.
+    cleanup_rule: >-
+      Never cleared as a directory; only the fixed regenerable browser caches of
+      stopped App Host profiles are clearable through the dedicated Support
+      action.
     source_rule: P-MIG-006
