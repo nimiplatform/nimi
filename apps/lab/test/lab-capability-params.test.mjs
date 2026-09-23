@@ -131,6 +131,26 @@ test('Local voice creation exposes both typed source request shapes', () => {
   }
 });
 
+test('Local audio separation admits its source range and instrument-part request', () => {
+  const fields = ['sourceRelativePath', 'sourceName', 'sourceMimeType', 'startSeconds', 'endSeconds', 'includeInstrumentParts', 'recoverySubmissionId'];
+  const local = states('audio.separate', 'local');
+  for (const field of fields) {
+    assert.equal(local.get(field)?.state, 'enabled', `audio.separate.${field}`);
+  }
+  for (const field of fields) {
+    assert.deepEqual(states('audio.separate', 'cloud').get(field), { field, state: 'disabled', unavailableBecause: 'route' });
+  }
+  const request = { sourceRelativePath: 'studio/music/imports/1/source.mp3', sourceName: 'mix.mp3', sourceMimeType: 'audio/mpeg',
+    startSeconds: 1, endSeconds: 10, includeInstrumentParts: true };
+  assert.deepEqual(project('audio.separate', 'local', request), request);
+  assert.deepEqual(project('audio.separate', 'cloud', request), {});
+  const parameters = labStudioComposition.getCapability('audio.separate').parameters;
+  assert.equal(parameters.hasAlternativeInput({ sourceRelativePath: 'studio/music/imports/1/source.mp3' }), true);
+  assert.equal(parameters.hasAlternativeInput({ recoverySubmissionId: 'record-1' }), true);
+  assert.equal(parameters.hasAlternativeInput({}), false);
+  assert.deepEqual(parameters.initial(), {});
+});
+
 test('Cloud enables carrier fields but not private Local App scheduling fields', () => {
   for (const capabilityId of [
     'text.generate',

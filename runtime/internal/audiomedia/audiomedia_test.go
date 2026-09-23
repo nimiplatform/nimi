@@ -223,3 +223,138 @@ func TestPrepareIntegration(t *testing.T) {
 	}
 	t.Logf("real explicit resampled source: path=%s rate=%d frames=%d durationMs=%d", converted.Path, targetRate, converted.Facts.FrameCount, converted.Facts.DurationMilliseconds())
 }
+
+func TestDecodeArgumentsUseExplicitChannelMatrix(t *testing.T) {
+	index := func(args []string, value string) int {
+		for i, arg := range args {
+			if arg == value {
+				return i
+			}
+		}
+		return -1
+	}
+	for _, test := range []struct {
+		mode ChannelMode
+		pan  string
+	}{{ChannelMonoToStereo, "pan=stereo|c0=c0|c1=c0"}, {ChannelStereoToMono, "pan=mono|c0=0.5*c0+0.5*c1"}, {ChannelPreserve, ""}} {
+		args := decodeArguments("source.wav", 44100, test.mode)
+		if index(args, "-ac") >= 0 {
+			t.Fatalf("mode %d uses the implicit equal-power rematrix: %v", test.mode, args)
+		}
+		filter := index(args, "-af")
+		if test.pan == "" {
+			if filter >= 0 {
+				t.Fatalf("preserve mode added a channel filter: %v", args)
+			}
+		} else if filter < 0 || args[filter+1] != test.pan {
+			t.Fatalf("mode %d channel matrix = %v, want %s", test.mode, args, test.pan)
+		}
+		if rate := index(args, "-ar"); rate < 0 || args[rate+1] != "44100" {
+			t.Fatalf("explicit target rate was dropped: %v", args)
+		}
+	}
+}
+
+func writeRateTestWAV(t *testing.T, name string, rate uint32, channels uint16, samples []float32) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), name)
+	file, err := os.Create(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+	if err := writeHeader(file, rate, channels, int64(len(samples)*4)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := file.Seek(pcmHeaderBytes, io.SeekStart); err != nil {
+		t.Fatal(err)
+	}
+	if err := binary.Write(file, binary.LittleEndian, samples); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+func readTestPCM(t *testing.T, path string) (Facts, []float32) {
+	t.Helper()
+	facts, err := InspectCanonical(context.Background(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	samples := make([]float32, facts.FrameCount*uint64(facts.Channels))
+	if err := binary.Read(bytes.NewReader(data[facts.DataOffset:]), binary.LittleEndian, samples); err != nil {
+		t.Fatal(err)
+	}
+	return facts, samples
+}
+
+// TestPrepareChannelConversionIntegration runs the supplied managed codec on
+// synthetic canonical sources; a skip never establishes the conversion.
+func TestPrepareChannelConversionIntegration(t *testing.T) {
+	ffmpeg, ffprobe := os.Getenv("NIMI_AUDIO_TEST_FFMPEG"), os.Getenv("NIMI_AUDIO_TEST_FFPROBE")
+	if ffmpeg == "" || ffprobe == "" {
+		t.Skip("managed codec paths were not supplied")
+	}
+	processor, err := New(ffmpeg, ffprobe)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mono := make([]float32, 24000)
+	for i := range mono {
+		mono[i] = float32(0.5 * math.Sin(2*math.Pi*440*float64(i)/24000))
+	}
+	monoPath := writeRateTestWAV(t, "mono.wav", 24000, 1, mono)
+	duplicated, err := processor.Prepare(context.Background(), Input{Path: monoPath, MIMEType: "audio/wav", ChannelMode: ChannelMonoToStereo}, t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	facts, stereo := readTestPCM(t, duplicated.Path)
+	if facts.Channels != 2 || facts.SampleRateHz != 24000 || facts.FrameCount != uint64(len(mono)) {
+		t.Fatalf("mono-to-stereo facts = %+v", facts)
+	}
+	for i, sample := range mono {
+		if stereo[2*i] != sample || stereo[2*i+1] != sample {
+			t.Fatalf("frame %d is not an exact duplicate: %v %v want %v", i, stereo[2*i], stereo[2*i+1], sample)
+		}
+	}
+	resampled, err := processor.Prepare(context.Background(), Input{Path: monoPath, MIMEType: "audio/wav", TargetSampleRateHz: 44100}, t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	upmixed, err := processor.Prepare(context.Background(), Input{Path: monoPath, MIMEType: "audio/wav", TargetSampleRateHz: 44100, ChannelMode: ChannelMonoToStereo}, t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	resampledFacts, resampledMono := readTestPCM(t, resampled.Path)
+	upmixedFacts, upmixedStereo := readTestPCM(t, upmixed.Path)
+	if upmixedFacts.Channels != 2 || upmixedFacts.SampleRateHz != 44100 || upmixedFacts.FrameCount != resampledFacts.FrameCount {
+		t.Fatalf("resampled upmix facts = %+v vs %+v", upmixedFacts, resampledFacts)
+	}
+	for i, sample := range resampledMono {
+		if upmixedStereo[2*i] != sample || upmixedStereo[2*i+1] != sample {
+			t.Fatalf("resampled frame %d changed gain: %v %v want %v", i, upmixedStereo[2*i], upmixedStereo[2*i+1], sample)
+		}
+	}
+	pair := make([]float32, 2*44100)
+	for i := 0; i < 44100; i++ {
+		pair[2*i] = float32(0.4 * math.Sin(2*math.Pi*440*float64(i)/44100))
+		pair[2*i+1] = float32(0.2 * math.Sin(2*math.Pi*330*float64(i)/44100))
+	}
+	averaged, err := processor.Prepare(context.Background(), Input{Path: writeRateTestWAV(t, "stereo.wav", 44100, 2, pair), MIMEType: "audio/wav", ChannelMode: ChannelStereoToMono}, t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	averageFacts, average := readTestPCM(t, averaged.Path)
+	if averageFacts.Channels != 1 || averageFacts.FrameCount != 44100 {
+		t.Fatalf("stereo-to-mono facts = %+v", averageFacts)
+	}
+	for i, sample := range average {
+		if want := (pair[2*i] + pair[2*i+1]) / 2; math.Abs(float64(sample-want)) > 1e-6 {
+			t.Fatalf("frame %d = %v, want average %v", i, sample, want)
+		}
+	}
+}

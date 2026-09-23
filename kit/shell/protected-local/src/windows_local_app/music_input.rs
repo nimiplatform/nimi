@@ -4,7 +4,8 @@ use super::untrusted;
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.music-generation
 pub(super) fn project(value: MusicInputCapabilities) -> Result<Value, LocalAppOperationError> {
-    if value.generation.len() > 16 || value.transcription.len() > 16 || (value.generation.is_empty() && value.transcription.is_empty()) { return Err(untrusted()); }
+    if value.generation.len() > 16 || value.transcription.len() > 16 || value.voice_convert.len() > 16
+        || (value.generation.is_empty() && value.transcription.is_empty() && value.voice_convert.is_empty()) { return Err(untrusted()); }
     let mut profiles = Vec::new();
     for row in value.generation {
         if !matches!(row.lyrics_mode.as_str(), "unsupported" | "optional" | "required")
@@ -37,8 +38,26 @@ pub(super) fn project(value: MusicInputCapabilities) -> Result<Value, LocalAppOp
         transcription.push(json!({"formats":row.formats,"parts":row.parts,"maxDurationSeconds":row.max_duration_seconds,
             "maxSourceBytes":row.max_source_bytes,"supportsRange":row.supports_range}));
     }
+    let mut voice_convert = Vec::new();
+    for row in value.voice_convert {
+        if row.source_kinds.is_empty() || row.target_kinds.is_empty()
+            || !tokens(&row.source_kinds, &["singing"])
+            || !tokens(&row.target_kinds, &["reference-audio", "preset", "voice-asset"])
+            || row.max_source_seconds == 0 || row.max_source_seconds > 600
+            || row.max_target_seconds == 0 || row.max_target_seconds > 600
+            || row.min_semitone_shift < -12 || row.min_semitone_shift > 12
+            || row.max_semitone_shift < -12 || row.max_semitone_shift > 12
+            || row.min_semitone_shift > row.max_semitone_shift
+            || row.max_source_bytes == 0 || row.max_source_bytes > 512 * 1024 * 1024
+            || row.max_target_bytes == 0 || row.max_target_bytes > 512 * 1024 * 1024 { return Err(untrusted()); }
+        voice_convert.push(json!({"sourceKinds":row.source_kinds,"targetKinds":row.target_kinds,
+            "maxSourceSeconds":row.max_source_seconds,"maxTargetSeconds":row.max_target_seconds,"supportsRange":row.supports_range,
+            "supportsSemitoneShift":row.supports_semitone_shift,"minSemitoneShift":row.min_semitone_shift,"maxSemitoneShift":row.max_semitone_shift,
+            "maxSourceBytes":row.max_source_bytes,"maxTargetBytes":row.max_target_bytes}));
+    }
     let mut result = json!({"generation":profiles});
     if !transcription.is_empty() { result["transcription"] = json!(transcription); }
+    if !voice_convert.is_empty() { result["voiceConvert"] = json!(voice_convert); }
     Ok(result)
 }
 

@@ -1,5 +1,6 @@
 mod music;
 mod music_transcription;
+mod voice_convert;
 use serde_json::{json, Map, Value as JsonValue};
 use tokio::sync::mpsc;
 use tonic::{transport::Channel, Request};
@@ -23,7 +24,7 @@ use crate::generated::{
     LocalAppScenarioJob, LocalAppScenarioJobEvent, LocalAppSpeechSynthesizeJobSpec,
     LocalAppSpeechTranscribeJobSpec, LocalAppTextEmbedScenarioSpec, LocalAppTextTurnFailed,
     LocalAppVideoGenerateJobSpec, LocalAppVideoGenerationOptions, LocalAppVoiceAsset,
-    LocalAppVoiceCreateJobSpec, LocalAppWorldGenerateJobSpec,
+    LocalAppVoiceCreateJobSpec, LocalAppWorldGenerateJobSpec, MusicAudioInput,
     ReadLocalAppArtifactRequest as ProtoReadArtifactRequest, ScenarioJobEventType,
     ScenarioJobStatus, ScenarioType, SpeechTimingMode, SpeechTranscriptionAudioSource,
     SubmitLocalAppScenarioJobRequest as ProtoSubmitJobRequest,
@@ -110,7 +111,7 @@ pub(super) async fn submit_job(
     let spec = parse_job_spec(request.spec)?;
     if !request.client_submission_id.is_empty() {
         require_submission_id(&request.client_submission_id)?;
-        if !matches!(spec, JobSpec::MusicGenerate(_) | JobSpec::MusicTranscribe(_)) { return Err(invalid_payload()); }
+        if !matches!(spec, JobSpec::MusicGenerate(_) | JobSpec::MusicTranscribe(_) | JobSpec::AudioVoiceConvert(_)) { return Err(invalid_payload()); }
     }
     let mut grpc_request = Request::new(ProtoSubmitJobRequest {
         spec: Some(spec),
@@ -332,9 +333,17 @@ pub(super) async fn upload_artifact(
             {
                 return Err(invalid_payload());
             }
+            let channel_mode = match value.channel_mode.as_deref() {
+                None | Some("") => crate::generated::CanonicalChannelMode::Unspecified,
+                Some("PRESERVE") => crate::generated::CanonicalChannelMode::Preserve,
+                Some("MONO_TO_STEREO") => crate::generated::CanonicalChannelMode::MonoToStereo,
+                Some("STEREO_TO_MONO") => crate::generated::CanonicalChannelMode::StereoToMono,
+                Some(_) => return Err(invalid_payload()),
+            };
             target_rate = value.target_sample_rate_hz.unwrap_or(0);
             Some(crate::generated::LocalAppCanonicalAudioPreparation {
                 target_sample_rate_hz: target_rate,
+                channel_mode: channel_mode as i32,
             })
         }
         None => None,
@@ -521,19 +530,45 @@ fn parse_job_spec(value: JsonValue) -> Result<JobSpec, LocalAppOperationError> {
             &object,
         )?)),
         "audio-separate" => {
-            exact_keys(&object, &["type", "mimeType", "audioSource"])?;
-            let mut audio_input = object.clone();
-            for key in ["language", "prompt", "responseFormat"] {
-                audio_input.insert(key.into(), JsonValue::String(String::new()));
-            }
-            let audio = parse_speech_transcribe_spec(&audio_input)?;
+            allowed_keys(&object, &["type", "mimeType", "audioSource", "sourceAudio", "includeInstrumentParts"], &["type", "mimeType"])?;
+            if object.contains_key("audioSource") == object.contains_key("sourceAudio") { return Err(invalid_payload()); }
+            let include_instrument_parts = match object.get("includeInstrumentParts") {
+                None => false,
+                Some(JsonValue::Bool(value)) => *value,
+                Some(_) => return Err(invalid_payload()),
+            };
+            let (mime_type, audio_source, source_audio) = if let Some(_) = object.get("sourceAudio") {
+                let source = field(&object, "sourceAudio")?.as_object().ok_or_else(invalid_payload)?;
+                allowed_keys(source, &["artifactId", "range"], &["artifactId"])?;
+                let artifact_id = required_text_field(source, "artifactId", MAX_IDENTIFIER_BYTES)?;
+                require_identifier(&artifact_id).map_err(|_| invalid_payload())?;
+                let range = source.get("range").map(|v| {
+                    let r = v.as_object().ok_or_else(invalid_payload)?; exact_keys(r, &["startFrame", "endFrame"])?;
+                    let start_frame = field(r, "startFrame")?.as_u64().ok_or_else(invalid_payload)?;
+                    let end_frame = field(r, "endFrame")?.as_u64().ok_or_else(invalid_payload)?;
+                    if end_frame <= start_frame || end_frame > 57_600_000 { return Err(invalid_payload()); }
+                    Ok(crate::generated::AudioFrameRange { start_frame, end_frame })
+                }).transpose()?;
+                (required_text_field(&object, "mimeType", 128)?, None, Some(MusicAudioInput { artifact_id, range }))
+            } else {
+                let mut audio_input = Map::new();
+                audio_input.insert("type".into(), JsonValue::String("speech-transcribe".into()));
+                audio_input.insert("mimeType".into(), object.get("mimeType").cloned().unwrap_or(JsonValue::Null));
+                audio_input.insert("audioSource".into(), field(&object, "audioSource")?.clone());
+                for key in ["language", "prompt", "responseFormat"] {
+                    audio_input.insert(key.into(), JsonValue::String(String::new()));
+                }
+                let audio = parse_speech_transcribe_spec(&audio_input)?;
+                (audio.mime_type, audio.audio_source, None)
+            };
             Ok(JobSpec::AudioSeparate(crate::generated::AudioSeparateScenarioSpec {
-                mime_type: audio.mime_type, audio_source: audio.audio_source,
+                mime_type, audio_source, source_audio, include_instrument_parts,
             }))
         }
         "voice-create" => Ok(JobSpec::VoiceCreate(parse_voice_create_spec(&object)?)),
         "music-generate" => Ok(JobSpec::MusicGenerate(music::parse(&object)?)),
         "music-transcribe" => Ok(JobSpec::MusicTranscribe(music_transcription::parse(&object)?)),
+        "audio-voice-convert" => Ok(JobSpec::AudioVoiceConvert(voice_convert::parse(&object)?)),
         "world-generate" => {
             exact_keys(&object, &["type", "prompt", "displayName"])?;
             Ok(JobSpec::WorldGenerate(LocalAppWorldGenerateJobSpec {
@@ -1051,6 +1086,7 @@ fn project_job(job: LocalAppScenarioJob) -> Result<JsonValue, LocalAppOperationE
         ScenarioType::VoiceCreate => "voice-create",
         ScenarioType::MusicGenerate => "music-generate",
         ScenarioType::MusicTranscribe => "music-transcribe",
+        ScenarioType::AudioVoiceConvert => "audio-voice-convert",
         ScenarioType::WorldGenerate => "world-generate",
         _ => return Err(untrusted()),
     };
@@ -1123,6 +1159,12 @@ fn project_job(job: LocalAppScenarioJob) -> Result<JsonValue, LocalAppOperationE
         if job.music_transcription.is_some() { return Err(untrusted()); }
         None
     };
+    let voice_conversion = if scenario_type == "audio-voice-convert" && status == "completed" {
+        Some(voice_convert::project(job.voice_conversion.as_ref().ok_or_else(untrusted)?, &job.artifacts)?)
+    } else {
+        if job.voice_conversion.is_some() { return Err(untrusted()); }
+        None
+    };
     let mut projected = json!({
         "jobId": job.job_id,
         "scenarioType": scenario_type,
@@ -1149,11 +1191,12 @@ fn project_job(job: LocalAppScenarioJob) -> Result<JsonValue, LocalAppOperationE
     }
     if let Some(value) = music_generation { projected["musicGeneration"] = value; }
     if let Some(value) = music_transcription { projected["musicTranscription"] = value; }
+    if let Some(value) = voice_conversion { projected["voiceConversion"] = value; }
     if let Some(value) = audio_separation {
         projected.as_object_mut().ok_or_else(untrusted)?.insert("audioSeparation".into(), value);
     }
     if job.recovery_expires_at.is_some() {
-        if !matches!(scenario_type, "music-generate" | "music-transcribe") || !matches!(status, "completed" | "failed" | "canceled" | "timeout") { return Err(untrusted()); }
+        if !matches!(scenario_type, "music-generate" | "music-transcribe" | "audio-voice-convert") || !matches!(status, "completed" | "failed" | "canceled" | "timeout") { return Err(untrusted()); }
         projected["recoveryExpiresAt"] = project_timestamp(job.recovery_expires_at)?;
     }
     if job.video_face_swap_summary.is_some() != (scenario_type == "video-face-swap" && status == "completed") { return Err(untrusted()); }
@@ -1772,9 +1815,9 @@ mod tests {
     async fn invalid_audio_preparation_is_rejected_before_transport() {
         let channel = Channel::from_static("http://127.0.0.1:9").connect_lazy();
         for (bytes, preparation) in [
-            (vec![1], Some(crate::LocalAppCanonicalAudioPreparation { profile: "canonical-pcm-v1".into(), target_sample_rate_hz: None })),
+            (vec![1], Some(crate::LocalAppCanonicalAudioPreparation { profile: "canonical-pcm-v1".into(), target_sample_rate_hz: None, channel_mode: None })),
             (vec![], None),
-            (vec![], Some(crate::LocalAppCanonicalAudioPreparation { profile: "other".into(), target_sample_rate_hz: None })),
+            (vec![], Some(crate::LocalAppCanonicalAudioPreparation { profile: "other".into(), target_sample_rate_hz: None, channel_mode: None })),
         ] {
             let error = upload_artifact(channel.clone(), LocalAppScenarioUploadArtifactRequest {
                 bytes, mime_type: "audio/wav".into(),
@@ -2264,7 +2307,7 @@ mod text_annotation_tests {
 }
 
 fn project_audio_separation(value: &crate::generated::AudioSeparation, artifacts: &[LocalAppScenarioArtifact]) -> Result<JsonValue, LocalAppOperationError> {
-    if artifacts.len() != 2 || value.vocals_artifact_id.is_empty() || value.background_artifact_id.is_empty()
+    if artifacts.len() != 2 + value.instrument_parts.len() || value.vocals_artifact_id.is_empty() || value.background_artifact_id.is_empty()
         || value.vocals_artifact_id == value.background_artifact_id
         || value.vocals_artifact_id != artifacts[0].artifact_id || value.background_artifact_id != artifacts[1].artifact_id {
         return Err(untrusted());
@@ -2275,7 +2318,27 @@ fn project_audio_separation(value: &crate::generated::AudioSeparation, artifacts
     }
     if artifacts[0].sample_rate_hz != artifacts[1].sample_rate_hz || artifacts[0].channels != artifacts[1].channels
         || artifacts[0].duration_ms != artifacts[1].duration_ms { return Err(untrusted()); }
-    Ok(json!({"vocalsArtifactId": value.vocals_artifact_id, "backgroundArtifactId": value.background_artifact_id}))
+    let mut parts = Vec::new();
+    let mut kinds = std::collections::HashSet::new();
+    for part in &value.instrument_parts {
+        require_runtime_identifier(&part.artifact_id)?;
+        let kind = match crate::generated::AudioInstrumentPartKind::try_from(part.part).map_err(|_| untrusted())? {
+            crate::generated::AudioInstrumentPartKind::Drums => "DRUMS",
+            crate::generated::AudioInstrumentPartKind::Bass => "BASS",
+            crate::generated::AudioInstrumentPartKind::Other => "OTHER",
+            _ => return Err(untrusted()),
+        };
+        if !kinds.insert(kind) || part.artifact_id == value.vocals_artifact_id || part.artifact_id == value.background_artifact_id
+            || parts.iter().any(|entry: &JsonValue| entry["artifactId"] == part.artifact_id) { return Err(untrusted()); }
+        if let Some(artifact) = artifacts.iter().find(|artifact| artifact.artifact_id == part.artifact_id) {
+            if artifact.sample_rate_hz != artifacts[0].sample_rate_hz || artifact.channels != artifacts[0].channels
+                || artifact.duration_ms != artifacts[0].duration_ms { return Err(untrusted()); }
+        } else { return Err(untrusted()); }
+        parts.push(json!({"kind": kind, "artifactId": part.artifact_id}));
+    }
+    let mut output = json!({"vocalsArtifactId": value.vocals_artifact_id, "backgroundArtifactId": value.background_artifact_id});
+    if !parts.is_empty() { output["instrumentParts"] = json!(parts); }
+    Ok(output)
 }
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.speech-transcription-result
@@ -2339,7 +2402,7 @@ mod transcription_tests {
             artifact_id: id.into(), mime_type: "audio/wav".into(), size_bytes: 192044, sample_rate_hz: 48000,
             channels: 1, duration_ms: 1000, ..Default::default()
         }).collect();
-        let value = crate::generated::AudioSeparation { vocals_artifact_id: "vocals-1".into(), background_artifact_id: "background-1".into() };
+        let value = crate::generated::AudioSeparation { vocals_artifact_id: "vocals-1".into(), background_artifact_id: "background-1".into(), instrument_parts: vec![] };
         assert_eq!(project_audio_separation(&value, &artifacts).unwrap()["backgroundArtifactId"], "background-1");
         artifacts[1].duration_ms = 900;
         assert!(project_audio_separation(&value, &artifacts).is_err());

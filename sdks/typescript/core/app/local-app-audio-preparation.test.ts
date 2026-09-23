@@ -32,6 +32,7 @@ test('audio preparation rejects conflicting sources and authority material', () 
     { ...canonicalInput, audioPreparation: undefined },
     { ...canonicalInput, audioPreparation: { profile: 'other' } },
     { ...canonicalInput, audioPreparation: { profile: 'canonical-pcm-v1', targetSampleRateHz: 48000 } },
+    { ...canonicalInput, audioPreparation: { profile: 'canonical-pcm-v1', channelMode: 'QUAD' } },
     { ...canonicalInput, source: { kind: 'artifact', artifactId: 'artifact-1' } },
     { bytes: [1], mimeType: 'audio/flac' },
   ]) assert.throws(() => validateNimiLocalAppArtifactUploadShellInput(invalid));
@@ -75,5 +76,5 @@ test('Runtime SDK maps the finite source and facts without losing preparation', 
   });
   assert.deepEqual(result, metadata);
   assert.deepEqual(requests, [{ bytes: new Uint8Array(), mimeType: 'audio/mpeg',
-    appAssetRelativePath: 'sources/原曲.mp3', sourceArtifactId: '', audioPreparation: { targetSampleRateHz: 0 } }]);
+    appAssetRelativePath: 'sources/原曲.mp3', sourceArtifactId: '', audioPreparation: { targetSampleRateHz: 0, channelMode: 0 } }]);
 });

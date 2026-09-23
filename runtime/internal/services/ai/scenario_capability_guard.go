@@ -30,6 +30,7 @@ func unsupportedCapabilityReasonCode(scenarioType runtimev1.ScenarioType) runtim
 		runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_TRANSCRIBE,
+		runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_VOICE_CONVERT,
 		runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:
 		return runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE:
@@ -67,6 +68,8 @@ func localScenarioCapability(scenarioType runtimev1.ScenarioType) (string, bool)
 		return "music.generate", true
 	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_TRANSCRIBE:
 		return "music.transcribe", true
+	case runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_VOICE_CONVERT:
+		return "audio.voice.convert", true
 	case runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:
 		return "world.generate", true
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE:

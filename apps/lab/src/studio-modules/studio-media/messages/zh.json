@@ -21,6 +21,59 @@
     "range": "原始录音 {{start}}–{{end}} 秒 · 帧坐标基于 {{hz}} Hz",
     "export": "导出选中文件"
   },
+  "VoiceConvert": {
+    "running": "正在准备音频或转换人声…",
+    "configureInputs": "请选择已就绪的声音转换配置，导入源人声与目标声音，并确认变调设置。",
+    "inputHint": "MP3、WAV 或 FLAC · 源最长 {{sourceSeconds}} 秒 / {{sourceMib}} MiB · 目标最长 {{targetSeconds}} 秒 / {{targetMib}} MiB",
+    "fileInvalid": "请选择 MP3、WAV 或 FLAC，大小不得超过当前配置的限制。",
+    "source": "源人声",
+    "chooseSource": "导入源人声",
+    "sourceStart": "源起点（秒，可留空）",
+    "sourceEnd": "源终点（秒，可留空）",
+    "targetKind": "目标声音",
+    "targetKinds": { "reference-audio": "参考音频", "preset": "预置声音", "voice-asset": "语音资产" },
+    "target": "目标参考音频",
+    "chooseTarget": "导入参考音频",
+    "targetStart": "目标起点（秒，可留空）",
+    "targetEnd": "目标终点（秒，可留空）",
+    "presetVoiceId": "预置声音 ID",
+    "voiceAsset": "语音资产",
+    "selectVoiceAsset": "选择本地语音资产",
+    "noVoiceAssets": "没有本地语音资产",
+    "semitone": "变调（半音，可留空）",
+    "semitoneHint": "留空或填 0 即保持原调；系统绝不会自动估计调性。非零值表示在 -12 到 +12 半音之间显式移调。",
+    "semitoneInvalid": "请输入 -12 到 12 之间的整数半音移调，或留空保持原调。",
+    "sameInput": "源人声与目标声音参考必须是不同的录音。",
+    "rangeHint": "全部留空即处理整段录音。帧位置始终对应准备后的规范输入。",
+    "preparationHint": "提交前先将音频解码为规范 PCM。此时停止操作，会在解码结束后放弃启动任务。",
+    "result": "转换后的人声",
+    "lengthRelation": "长度关系：{{relation}} · {{delta}} 毫秒",
+    "length": { "EXACT": "完全一致", "MODEL_FRAME_ROUNDING": "模型帧对齐取整" },
+    "sourceFacts": "源人声：{{hz}} Hz · {{channels}} 声道 · {{durationMs}} 毫秒",
+    "vocalFacts": "转换后人声：{{hz}} Hz · {{channels}} 声道 · {{durationMs}} 毫秒",
+    "range": "源范围 {{start}}–{{end}} 秒 · 帧坐标基于 {{hz}} Hz",
+    "derivation": "输入在提交前通过派生的规范 PCM 转换（仅解码）进行准备。本应用不做隐藏的混缩、声道变更或采样率转换，尾部差异按返回值如实显示。"
+  },
+  "AudioSeparate": {
+    "running": "正在准备音频或分离音轨…",
+    "configureInputs": "请选择已就绪的音频分离配置，并导入源录音。",
+    "inputHint": "MP3、WAV 或 FLAC · 一段待拆分人声与背景的录音",
+    "fileInvalid": "请选择非空的 MP3、WAV 或 FLAC 录音。",
+    "source": "源录音",
+    "chooseSource": "导入录音",
+    "start": "起点（秒，可留空）",
+    "end": "终点（秒，可留空）",
+    "rangeHint": "全部留空即处理整段录音。帧位置始终对应准备后的规范输入。",
+    "includeInstrumentParts": "同时返回器乐音轨（鼓、贝斯、其他）",
+    "instrumentPartsHint": "器乐音轨仅在勾选请求且模型真实产出时返回，绝不会用静音或替代音轨冒充。",
+    "preparationHint": "提交前先将音频解码为规范 PCM。此时停止操作，会在解码结束后放弃启动任务。",
+    "recoveryMissingJob": "这条分离记录在任务编号被记下之前就已产生，无法恢复。移除记录即可放弃它。",
+    "result": "分离后的音轨",
+    "derivation": "源录音在提交前准备为规范 PCM。若其采样率或声道布局与所选实现的输入域不同（HTDemucs：44.1 kHz 立体声），本应用会先请求一次显式派生转换，此处显示的源录音即为转换后的输入。不做隐藏的混缩或声道变更；各条音轨按返回值如实显示。",
+    "vocals": "人声",
+    "background": "背景",
+    "parts": { "DRUMS": "鼓", "BASS": "贝斯", "OTHER": "其他器乐" }
+  },
   "VisionLocate": {
     "chooseImage": "选择图片",
     "replaceImage": "更换图片",
@@ -52,7 +105,9 @@
     "running": "正在加载模型或定位目标…"
   },
   "Capabilities": {
+    "voiceConvert": { "label": "声音转换", "summary": "把已有演唱转换为另一种声音，同时保留其旋律、歌词与时间轴。" },
     "musicTranscribe": { "label": "音乐转谱", "summary": "从已有录音估计谱面与音乐事件。" },
+    "audioSeparate": { "label": "音频分离", "summary": "把录音拆分成人声与背景，可选返回真实器乐音轨。" },
     "visionLocate": {
       "label": "图像定位",
       "summary": "描述单张图片中的物体或控件，获取边界框或定位点。"
@@ -72,12 +127,26 @@
   },
   "Studio": {
     "profiles": {
+      "voiceConvert": {
+        "inputTitle": "演唱人声转换", "inputPlaceholder": "",
+        "primaryLabel": "开始转换", "primaryRunningLabel": "正在准备或转换…",
+        "emptyTitle": "把演唱转换为另一种声音",
+        "emptyHint": "打开输入设置，导入源人声与目标声音，并确认变调设置。",
+        "footnote": "源人声、目标声音与转换结果会一起保存，便于对照。"
+      },
       "musicTranscribe": {
         "inputTitle": "录音转谱", "inputPlaceholder": "",
         "primaryLabel": "开始转谱", "primaryRunningLabel": "正在准备或转谱…",
         "emptyTitle": "从录音得到谱面草稿",
         "emptyHint": "打开输入设置，导入录音，并选择谱面内容与输出文件。",
         "footnote": "原始音频与转谱估计结果会一起保存，便于对照。"
+      },
+      "audioSeparate": {
+        "inputTitle": "人声与背景分离", "inputPlaceholder": "",
+        "primaryLabel": "开始分离", "primaryRunningLabel": "正在准备或分离…",
+        "emptyTitle": "把录音拆分成人声与背景",
+        "emptyHint": "打开输入设置，导入录音，并选择是否请求器乐音轨。",
+        "footnote": "源录音与返回的每条音轨会一起保存，便于对照。"
       },
       "visionLocate": {
         "inputTitle": "测试图像定位",

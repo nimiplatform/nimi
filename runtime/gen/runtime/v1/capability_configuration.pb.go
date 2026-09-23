@@ -3654,6 +3654,7 @@ type MusicInputCapabilities struct {
 	state         protoimpl.MessageState            `protogen:"open.v1"`
 	Generation    []*MusicGenerationInputProfile    `protobuf:"bytes,1,rep,name=generation,proto3" json:"generation,omitempty"`
 	Transcription []*MusicTranscriptionInputProfile `protobuf:"bytes,2,rep,name=transcription,proto3" json:"transcription,omitempty"`
+	VoiceConvert  []*VoiceConvertInputProfile       `protobuf:"bytes,3,rep,name=voice_convert,json=voiceConvert,proto3" json:"voice_convert,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3698,6 +3699,13 @@ func (x *MusicInputCapabilities) GetGeneration() []*MusicGenerationInputProfile 
 func (x *MusicInputCapabilities) GetTranscription() []*MusicTranscriptionInputProfile {
 	if x != nil {
 		return x.Transcription
+	}
+	return nil
+}
+
+func (x *MusicInputCapabilities) GetVoiceConvert() []*VoiceConvertInputProfile {
+	if x != nil {
+		return x.VoiceConvert
 	}
 	return nil
 }
@@ -3780,6 +3788,125 @@ func (x *MusicTranscriptionInputProfile) GetSupportsRange() bool {
 	return false
 }
 
+// One legal voice-conversion input combination of the exact implementation.
+type VoiceConvertInputProfile struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// singing
+	SourceKinds []string `protobuf:"bytes,1,rep,name=source_kinds,json=sourceKinds,proto3" json:"source_kinds,omitempty"`
+	// reference-audio | preset | voice-asset
+	TargetKinds           []string `protobuf:"bytes,2,rep,name=target_kinds,json=targetKinds,proto3" json:"target_kinds,omitempty"`
+	MaxSourceSeconds      uint32   `protobuf:"varint,3,opt,name=max_source_seconds,json=maxSourceSeconds,proto3" json:"max_source_seconds,omitempty"`
+	MaxTargetSeconds      uint32   `protobuf:"varint,4,opt,name=max_target_seconds,json=maxTargetSeconds,proto3" json:"max_target_seconds,omitempty"`
+	SupportsRange         bool     `protobuf:"varint,5,opt,name=supports_range,json=supportsRange,proto3" json:"supports_range,omitempty"`
+	SupportsSemitoneShift bool     `protobuf:"varint,6,opt,name=supports_semitone_shift,json=supportsSemitoneShift,proto3" json:"supports_semitone_shift,omitempty"`
+	MinSemitoneShift      int32    `protobuf:"varint,7,opt,name=min_semitone_shift,json=minSemitoneShift,proto3" json:"min_semitone_shift,omitempty"`
+	MaxSemitoneShift      int32    `protobuf:"varint,8,opt,name=max_semitone_shift,json=maxSemitoneShift,proto3" json:"max_semitone_shift,omitempty"`
+	MaxSourceBytes        uint32   `protobuf:"varint,9,opt,name=max_source_bytes,json=maxSourceBytes,proto3" json:"max_source_bytes,omitempty"`
+	MaxTargetBytes        uint32   `protobuf:"varint,10,opt,name=max_target_bytes,json=maxTargetBytes,proto3" json:"max_target_bytes,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
+}
+
+func (x *VoiceConvertInputProfile) Reset() {
+	*x = VoiceConvertInputProfile{}
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[44]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *VoiceConvertInputProfile) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*VoiceConvertInputProfile) ProtoMessage() {}
+
+func (x *VoiceConvertInputProfile) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[44]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use VoiceConvertInputProfile.ProtoReflect.Descriptor instead.
+func (*VoiceConvertInputProfile) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{44}
+}
+
+func (x *VoiceConvertInputProfile) GetSourceKinds() []string {
+	if x != nil {
+		return x.SourceKinds
+	}
+	return nil
+}
+
+func (x *VoiceConvertInputProfile) GetTargetKinds() []string {
+	if x != nil {
+		return x.TargetKinds
+	}
+	return nil
+}
+
+func (x *VoiceConvertInputProfile) GetMaxSourceSeconds() uint32 {
+	if x != nil {
+		return x.MaxSourceSeconds
+	}
+	return 0
+}
+
+func (x *VoiceConvertInputProfile) GetMaxTargetSeconds() uint32 {
+	if x != nil {
+		return x.MaxTargetSeconds
+	}
+	return 0
+}
+
+func (x *VoiceConvertInputProfile) GetSupportsRange() bool {
+	if x != nil {
+		return x.SupportsRange
+	}
+	return false
+}
+
+func (x *VoiceConvertInputProfile) GetSupportsSemitoneShift() bool {
+	if x != nil {
+		return x.SupportsSemitoneShift
+	}
+	return false
+}
+
+func (x *VoiceConvertInputProfile) GetMinSemitoneShift() int32 {
+	if x != nil {
+		return x.MinSemitoneShift
+	}
+	return 0
+}
+
+func (x *VoiceConvertInputProfile) GetMaxSemitoneShift() int32 {
+	if x != nil {
+		return x.MaxSemitoneShift
+	}
+	return 0
+}
+
+func (x *VoiceConvertInputProfile) GetMaxSourceBytes() uint32 {
+	if x != nil {
+		return x.MaxSourceBytes
+	}
+	return 0
+}
+
+func (x *VoiceConvertInputProfile) GetMaxTargetBytes() uint32 {
+	if x != nil {
+		return x.MaxTargetBytes
+	}
+	return 0
+}
+
 type AIConfigLocalResourceProjection struct {
 	state                           protoimpl.MessageState              `protogen:"open.v1"`
 	LoadoutRef                      string                              `protobuf:"bytes,1,opt,name=loadout_ref,json=loadoutRef,proto3" json:"loadout_ref,omitempty"`
@@ -3799,7 +3926,7 @@ type AIConfigLocalResourceProjection struct {
 
 func (x *AIConfigLocalResourceProjection) Reset() {
 	*x = AIConfigLocalResourceProjection{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[44]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3811,7 +3938,7 @@ func (x *AIConfigLocalResourceProjection) String() string {
 func (*AIConfigLocalResourceProjection) ProtoMessage() {}
 
 func (x *AIConfigLocalResourceProjection) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[44]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3824,7 +3951,7 @@ func (x *AIConfigLocalResourceProjection) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AIConfigLocalResourceProjection.ProtoReflect.Descriptor instead.
 func (*AIConfigLocalResourceProjection) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{44}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *AIConfigLocalResourceProjection) GetLoadoutRef() string {
@@ -3917,7 +4044,7 @@ type AIConfigCloudConnectorProjection struct {
 
 func (x *AIConfigCloudConnectorProjection) Reset() {
 	*x = AIConfigCloudConnectorProjection{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[45]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3929,7 +4056,7 @@ func (x *AIConfigCloudConnectorProjection) String() string {
 func (*AIConfigCloudConnectorProjection) ProtoMessage() {}
 
 func (x *AIConfigCloudConnectorProjection) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[45]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3942,7 +4069,7 @@ func (x *AIConfigCloudConnectorProjection) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AIConfigCloudConnectorProjection.ProtoReflect.Descriptor instead.
 func (*AIConfigCloudConnectorProjection) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{45}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *AIConfigCloudConnectorProjection) GetConnectorRef() string {
@@ -3998,7 +4125,7 @@ type AIConfigCloudTargetProjection struct {
 
 func (x *AIConfigCloudTargetProjection) Reset() {
 	*x = AIConfigCloudTargetProjection{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[46]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4010,7 +4137,7 @@ func (x *AIConfigCloudTargetProjection) String() string {
 func (*AIConfigCloudTargetProjection) ProtoMessage() {}
 
 func (x *AIConfigCloudTargetProjection) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[46]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4023,7 +4150,7 @@ func (x *AIConfigCloudTargetProjection) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AIConfigCloudTargetProjection.ProtoReflect.Descriptor instead.
 func (*AIConfigCloudTargetProjection) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{46}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *AIConfigCloudTargetProjection) GetConnectorRef() string {
@@ -4106,7 +4233,7 @@ type AIConfigCloudResourceProjection struct {
 
 func (x *AIConfigCloudResourceProjection) Reset() {
 	*x = AIConfigCloudResourceProjection{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[47]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4118,7 +4245,7 @@ func (x *AIConfigCloudResourceProjection) String() string {
 func (*AIConfigCloudResourceProjection) ProtoMessage() {}
 
 func (x *AIConfigCloudResourceProjection) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[47]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4131,7 +4258,7 @@ func (x *AIConfigCloudResourceProjection) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AIConfigCloudResourceProjection.ProtoReflect.Descriptor instead.
 func (*AIConfigCloudResourceProjection) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{47}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *AIConfigCloudResourceProjection) GetConnector() *AIConfigCloudConnectorProjection {
@@ -4164,7 +4291,7 @@ type AIConfigEffectiveSelection struct {
 
 func (x *AIConfigEffectiveSelection) Reset() {
 	*x = AIConfigEffectiveSelection{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[48]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4176,7 +4303,7 @@ func (x *AIConfigEffectiveSelection) String() string {
 func (*AIConfigEffectiveSelection) ProtoMessage() {}
 
 func (x *AIConfigEffectiveSelection) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[48]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4189,7 +4316,7 @@ func (x *AIConfigEffectiveSelection) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AIConfigEffectiveSelection.ProtoReflect.Descriptor instead.
 func (*AIConfigEffectiveSelection) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{48}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *AIConfigEffectiveSelection) GetCapabilityContract() string {
@@ -4264,7 +4391,7 @@ type AIConfigLocalLoadoutOptionsQuery struct {
 
 func (x *AIConfigLocalLoadoutOptionsQuery) Reset() {
 	*x = AIConfigLocalLoadoutOptionsQuery{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[49]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4276,7 +4403,7 @@ func (x *AIConfigLocalLoadoutOptionsQuery) String() string {
 func (*AIConfigLocalLoadoutOptionsQuery) ProtoMessage() {}
 
 func (x *AIConfigLocalLoadoutOptionsQuery) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[49]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4289,7 +4416,7 @@ func (x *AIConfigLocalLoadoutOptionsQuery) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AIConfigLocalLoadoutOptionsQuery.ProtoReflect.Descriptor instead.
 func (*AIConfigLocalLoadoutOptionsQuery) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{49}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *AIConfigLocalLoadoutOptionsQuery) GetCapabilityContract() string {
@@ -4315,7 +4442,7 @@ type AIConfigLocalLoadoutOptions struct {
 
 func (x *AIConfigLocalLoadoutOptions) Reset() {
 	*x = AIConfigLocalLoadoutOptions{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[50]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4327,7 +4454,7 @@ func (x *AIConfigLocalLoadoutOptions) String() string {
 func (*AIConfigLocalLoadoutOptions) ProtoMessage() {}
 
 func (x *AIConfigLocalLoadoutOptions) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[50]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4340,7 +4467,7 @@ func (x *AIConfigLocalLoadoutOptions) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AIConfigLocalLoadoutOptions.ProtoReflect.Descriptor instead.
 func (*AIConfigLocalLoadoutOptions) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{50}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *AIConfigLocalLoadoutOptions) GetOptions() []*AIConfigLocalResourceProjection {
@@ -4360,7 +4487,7 @@ type AIConfigCloudConnectorOptionsQuery struct {
 
 func (x *AIConfigCloudConnectorOptionsQuery) Reset() {
 	*x = AIConfigCloudConnectorOptionsQuery{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[51]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4372,7 +4499,7 @@ func (x *AIConfigCloudConnectorOptionsQuery) String() string {
 func (*AIConfigCloudConnectorOptionsQuery) ProtoMessage() {}
 
 func (x *AIConfigCloudConnectorOptionsQuery) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[51]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4385,7 +4512,7 @@ func (x *AIConfigCloudConnectorOptionsQuery) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use AIConfigCloudConnectorOptionsQuery.ProtoReflect.Descriptor instead.
 func (*AIConfigCloudConnectorOptionsQuery) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{51}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *AIConfigCloudConnectorOptionsQuery) GetCapabilityContract() string {
@@ -4411,7 +4538,7 @@ type AIConfigCloudConnectorOptions struct {
 
 func (x *AIConfigCloudConnectorOptions) Reset() {
 	*x = AIConfigCloudConnectorOptions{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[52]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4423,7 +4550,7 @@ func (x *AIConfigCloudConnectorOptions) String() string {
 func (*AIConfigCloudConnectorOptions) ProtoMessage() {}
 
 func (x *AIConfigCloudConnectorOptions) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[52]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4436,7 +4563,7 @@ func (x *AIConfigCloudConnectorOptions) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AIConfigCloudConnectorOptions.ProtoReflect.Descriptor instead.
 func (*AIConfigCloudConnectorOptions) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{52}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *AIConfigCloudConnectorOptions) GetOptions() []*AIConfigCloudConnectorProjection {
@@ -4457,7 +4584,7 @@ type AIConfigCloudTargetOptionsQuery struct {
 
 func (x *AIConfigCloudTargetOptionsQuery) Reset() {
 	*x = AIConfigCloudTargetOptionsQuery{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[53]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4469,7 +4596,7 @@ func (x *AIConfigCloudTargetOptionsQuery) String() string {
 func (*AIConfigCloudTargetOptionsQuery) ProtoMessage() {}
 
 func (x *AIConfigCloudTargetOptionsQuery) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[53]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4482,7 +4609,7 @@ func (x *AIConfigCloudTargetOptionsQuery) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AIConfigCloudTargetOptionsQuery.ProtoReflect.Descriptor instead.
 func (*AIConfigCloudTargetOptionsQuery) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{53}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *AIConfigCloudTargetOptionsQuery) GetCapabilityContract() string {
@@ -4515,7 +4642,7 @@ type AIConfigCloudTargetOptions struct {
 
 func (x *AIConfigCloudTargetOptions) Reset() {
 	*x = AIConfigCloudTargetOptions{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[54]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4527,7 +4654,7 @@ func (x *AIConfigCloudTargetOptions) String() string {
 func (*AIConfigCloudTargetOptions) ProtoMessage() {}
 
 func (x *AIConfigCloudTargetOptions) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[54]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4540,7 +4667,7 @@ func (x *AIConfigCloudTargetOptions) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AIConfigCloudTargetOptions.ProtoReflect.Descriptor instead.
 func (*AIConfigCloudTargetOptions) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{54}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *AIConfigCloudTargetOptions) GetOptions() []*AIConfigCloudTargetProjection {
@@ -4558,7 +4685,7 @@ type AppAIConfigPresetVoiceOptionsQuery struct {
 
 func (x *AppAIConfigPresetVoiceOptionsQuery) Reset() {
 	*x = AppAIConfigPresetVoiceOptionsQuery{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[55]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4570,7 +4697,7 @@ func (x *AppAIConfigPresetVoiceOptionsQuery) String() string {
 func (*AppAIConfigPresetVoiceOptionsQuery) ProtoMessage() {}
 
 func (x *AppAIConfigPresetVoiceOptionsQuery) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[55]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4583,7 +4710,7 @@ func (x *AppAIConfigPresetVoiceOptionsQuery) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use AppAIConfigPresetVoiceOptionsQuery.ProtoReflect.Descriptor instead.
 func (*AppAIConfigPresetVoiceOptionsQuery) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{55}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{56}
 }
 
 type AppAIConfigPresetVoiceOption struct {
@@ -4597,7 +4724,7 @@ type AppAIConfigPresetVoiceOption struct {
 
 func (x *AppAIConfigPresetVoiceOption) Reset() {
 	*x = AppAIConfigPresetVoiceOption{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[56]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4609,7 +4736,7 @@ func (x *AppAIConfigPresetVoiceOption) String() string {
 func (*AppAIConfigPresetVoiceOption) ProtoMessage() {}
 
 func (x *AppAIConfigPresetVoiceOption) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[56]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4622,7 +4749,7 @@ func (x *AppAIConfigPresetVoiceOption) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AppAIConfigPresetVoiceOption.ProtoReflect.Descriptor instead.
 func (*AppAIConfigPresetVoiceOption) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{56}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *AppAIConfigPresetVoiceOption) GetVoiceId() string {
@@ -4655,7 +4782,7 @@ type AppAIConfigPresetVoiceOptions struct {
 
 func (x *AppAIConfigPresetVoiceOptions) Reset() {
 	*x = AppAIConfigPresetVoiceOptions{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[57]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4667,7 +4794,7 @@ func (x *AppAIConfigPresetVoiceOptions) String() string {
 func (*AppAIConfigPresetVoiceOptions) ProtoMessage() {}
 
 func (x *AppAIConfigPresetVoiceOptions) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[57]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4680,7 +4807,7 @@ func (x *AppAIConfigPresetVoiceOptions) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AppAIConfigPresetVoiceOptions.ProtoReflect.Descriptor instead.
 func (*AppAIConfigPresetVoiceOptions) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{57}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{58}
 }
 
 func (x *AppAIConfigPresetVoiceOptions) GetOptions() []*AppAIConfigPresetVoiceOption {
@@ -4708,7 +4835,7 @@ type ListAppAIConfigOptionsRequest struct {
 
 func (x *ListAppAIConfigOptionsRequest) Reset() {
 	*x = ListAppAIConfigOptionsRequest{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[58]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4720,7 +4847,7 @@ func (x *ListAppAIConfigOptionsRequest) String() string {
 func (*ListAppAIConfigOptionsRequest) ProtoMessage() {}
 
 func (x *ListAppAIConfigOptionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[58]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4733,7 +4860,7 @@ func (x *ListAppAIConfigOptionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAppAIConfigOptionsRequest.ProtoReflect.Descriptor instead.
 func (*ListAppAIConfigOptionsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{58}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *ListAppAIConfigOptionsRequest) GetQuery() isListAppAIConfigOptionsRequest_Query {
@@ -4830,7 +4957,7 @@ type ListAppAIConfigOptionsResponse struct {
 
 func (x *ListAppAIConfigOptionsResponse) Reset() {
 	*x = ListAppAIConfigOptionsResponse{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[59]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4842,7 +4969,7 @@ func (x *ListAppAIConfigOptionsResponse) String() string {
 func (*ListAppAIConfigOptionsResponse) ProtoMessage() {}
 
 func (x *ListAppAIConfigOptionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[59]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4855,7 +4982,7 @@ func (x *ListAppAIConfigOptionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAppAIConfigOptionsResponse.ProtoReflect.Descriptor instead.
 func (*ListAppAIConfigOptionsResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{59}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *ListAppAIConfigOptionsResponse) GetResult() isListAppAIConfigOptionsResponse_Result {
@@ -4948,7 +5075,7 @@ type GetAppAIConfigRequest struct {
 
 func (x *GetAppAIConfigRequest) Reset() {
 	*x = GetAppAIConfigRequest{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[60]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4960,7 +5087,7 @@ func (x *GetAppAIConfigRequest) String() string {
 func (*GetAppAIConfigRequest) ProtoMessage() {}
 
 func (x *GetAppAIConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[60]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4973,7 +5100,7 @@ func (x *GetAppAIConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAppAIConfigRequest.ProtoReflect.Descriptor instead.
 func (*GetAppAIConfigRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{60}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *GetAppAIConfigRequest) GetOwner() *AIConfigOwner {
@@ -4994,7 +5121,7 @@ type GetAppAIConfigResponse struct {
 
 func (x *GetAppAIConfigResponse) Reset() {
 	*x = GetAppAIConfigResponse{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[61]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5006,7 +5133,7 @@ func (x *GetAppAIConfigResponse) String() string {
 func (*GetAppAIConfigResponse) ProtoMessage() {}
 
 func (x *GetAppAIConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[61]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5019,7 +5146,7 @@ func (x *GetAppAIConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAppAIConfigResponse.ProtoReflect.Descriptor instead.
 func (*GetAppAIConfigResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{61}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{62}
 }
 
 func (x *GetAppAIConfigResponse) GetConfig() *AIConfig {
@@ -5053,7 +5180,7 @@ type OverwriteAppAIConfigRequest struct {
 
 func (x *OverwriteAppAIConfigRequest) Reset() {
 	*x = OverwriteAppAIConfigRequest{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[62]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5065,7 +5192,7 @@ func (x *OverwriteAppAIConfigRequest) String() string {
 func (*OverwriteAppAIConfigRequest) ProtoMessage() {}
 
 func (x *OverwriteAppAIConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[62]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5078,7 +5205,7 @@ func (x *OverwriteAppAIConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OverwriteAppAIConfigRequest.ProtoReflect.Descriptor instead.
 func (*OverwriteAppAIConfigRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{62}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{63}
 }
 
 func (x *OverwriteAppAIConfigRequest) GetConfig() *AIConfig {
@@ -5107,7 +5234,7 @@ type OverwriteAppAIConfigResponse struct {
 
 func (x *OverwriteAppAIConfigResponse) Reset() {
 	*x = OverwriteAppAIConfigResponse{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[63]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[64]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5119,7 +5246,7 @@ func (x *OverwriteAppAIConfigResponse) String() string {
 func (*OverwriteAppAIConfigResponse) ProtoMessage() {}
 
 func (x *OverwriteAppAIConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[63]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[64]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5132,7 +5259,7 @@ func (x *OverwriteAppAIConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OverwriteAppAIConfigResponse.ProtoReflect.Descriptor instead.
 func (*OverwriteAppAIConfigResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{63}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{64}
 }
 
 func (x *OverwriteAppAIConfigResponse) GetConfig() *AIConfig {
@@ -5175,7 +5302,7 @@ type LoadoutRecipeCustodyDescriptor struct {
 
 func (x *LoadoutRecipeCustodyDescriptor) Reset() {
 	*x = LoadoutRecipeCustodyDescriptor{}
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[64]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[65]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5187,7 +5314,7 @@ func (x *LoadoutRecipeCustodyDescriptor) String() string {
 func (*LoadoutRecipeCustodyDescriptor) ProtoMessage() {}
 
 func (x *LoadoutRecipeCustodyDescriptor) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[64]
+	mi := &file_runtime_v1_capability_configuration_proto_msgTypes[65]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5200,7 +5327,7 @@ func (x *LoadoutRecipeCustodyDescriptor) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoadoutRecipeCustodyDescriptor.ProtoReflect.Descriptor instead.
 func (*LoadoutRecipeCustodyDescriptor) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{64}
+	return file_runtime_v1_capability_configuration_proto_rawDescGZIP(), []int{65}
 }
 
 func (x *LoadoutRecipeCustodyDescriptor) GetFile() string {
@@ -5512,18 +5639,31 @@ const file_runtime_v1_capability_configuration_proto_rawDesc = "" +
 	"\x10max_prompt_bytes\x18\v \x01(\rR\x0emaxPromptBytes\x12(\n" +
 	"\x10max_lyrics_bytes\x18\f \x01(\rR\x0emaxLyricsBytes\x12&\n" +
 	"\x0fmax_score_bytes\x18\r \x01(\rR\rmaxScoreBytes\x129\n" +
-	"\x19max_audio_reference_bytes\x18\x0e \x01(\rR\x16maxAudioReferenceBytes\"\xbd\x01\n" +
+	"\x19max_audio_reference_bytes\x18\x0e \x01(\rR\x16maxAudioReferenceBytes\"\x8d\x02\n" +
 	"\x16MusicInputCapabilities\x12L\n" +
 	"\n" +
 	"generation\x18\x01 \x03(\v2,.nimi.runtime.v1.MusicGenerationInputProfileR\n" +
 	"generation\x12U\n" +
-	"\rtranscription\x18\x02 \x03(\v2/.nimi.runtime.v1.MusicTranscriptionInputProfileR\rtranscription\"\xd3\x01\n" +
+	"\rtranscription\x18\x02 \x03(\v2/.nimi.runtime.v1.MusicTranscriptionInputProfileR\rtranscription\x12N\n" +
+	"\rvoice_convert\x18\x03 \x03(\v2).nimi.runtime.v1.VoiceConvertInputProfileR\fvoiceConvert\"\xd3\x01\n" +
 	"\x1eMusicTranscriptionInputProfile\x12\x18\n" +
 	"\aformats\x18\x01 \x03(\tR\aformats\x12\x14\n" +
 	"\x05parts\x18\x02 \x03(\tR\x05parts\x120\n" +
 	"\x14max_duration_seconds\x18\x03 \x01(\rR\x12maxDurationSeconds\x12(\n" +
 	"\x10max_source_bytes\x18\x04 \x01(\rR\x0emaxSourceBytes\x12%\n" +
-	"\x0esupports_range\x18\x05 \x01(\bR\rsupportsRange\"\xde\x05\n" +
+	"\x0esupports_range\x18\x05 \x01(\bR\rsupportsRange\"\xcb\x03\n" +
+	"\x18VoiceConvertInputProfile\x12!\n" +
+	"\fsource_kinds\x18\x01 \x03(\tR\vsourceKinds\x12!\n" +
+	"\ftarget_kinds\x18\x02 \x03(\tR\vtargetKinds\x12,\n" +
+	"\x12max_source_seconds\x18\x03 \x01(\rR\x10maxSourceSeconds\x12,\n" +
+	"\x12max_target_seconds\x18\x04 \x01(\rR\x10maxTargetSeconds\x12%\n" +
+	"\x0esupports_range\x18\x05 \x01(\bR\rsupportsRange\x126\n" +
+	"\x17supports_semitone_shift\x18\x06 \x01(\bR\x15supportsSemitoneShift\x12,\n" +
+	"\x12min_semitone_shift\x18\a \x01(\x05R\x10minSemitoneShift\x12,\n" +
+	"\x12max_semitone_shift\x18\b \x01(\x05R\x10maxSemitoneShift\x12(\n" +
+	"\x10max_source_bytes\x18\t \x01(\rR\x0emaxSourceBytes\x12(\n" +
+	"\x10max_target_bytes\x18\n" +
+	" \x01(\rR\x0emaxTargetBytes\"\xde\x05\n" +
 	"\x1fAIConfigLocalResourceProjection\x12\x1f\n" +
 	"\vloadout_ref\x18\x01 \x01(\tR\n" +
 	"loadoutRef\x12\x14\n" +
@@ -5694,7 +5834,7 @@ func file_runtime_v1_capability_configuration_proto_rawDescGZIP() []byte {
 }
 
 var file_runtime_v1_capability_configuration_proto_enumTypes = make([]protoimpl.EnumInfo, 9)
-var file_runtime_v1_capability_configuration_proto_msgTypes = make([]protoimpl.MessageInfo, 66)
+var file_runtime_v1_capability_configuration_proto_msgTypes = make([]protoimpl.MessageInfo, 67)
 var file_runtime_v1_capability_configuration_proto_goTypes = []any{
 	(LocalCapabilityInterpretability)(0),            // 0: nimi.runtime.v1.LocalCapabilityInterpretability
 	(LocalCapabilityRequirementResolution)(0),       // 1: nimi.runtime.v1.LocalCapabilityRequirementResolution
@@ -5749,149 +5889,151 @@ var file_runtime_v1_capability_configuration_proto_goTypes = []any{
 	(*MusicGenerationInputProfile)(nil),             // 50: nimi.runtime.v1.MusicGenerationInputProfile
 	(*MusicInputCapabilities)(nil),                  // 51: nimi.runtime.v1.MusicInputCapabilities
 	(*MusicTranscriptionInputProfile)(nil),          // 52: nimi.runtime.v1.MusicTranscriptionInputProfile
-	(*AIConfigLocalResourceProjection)(nil),         // 53: nimi.runtime.v1.AIConfigLocalResourceProjection
-	(*AIConfigCloudConnectorProjection)(nil),        // 54: nimi.runtime.v1.AIConfigCloudConnectorProjection
-	(*AIConfigCloudTargetProjection)(nil),           // 55: nimi.runtime.v1.AIConfigCloudTargetProjection
-	(*AIConfigCloudResourceProjection)(nil),         // 56: nimi.runtime.v1.AIConfigCloudResourceProjection
-	(*AIConfigEffectiveSelection)(nil),              // 57: nimi.runtime.v1.AIConfigEffectiveSelection
-	(*AIConfigLocalLoadoutOptionsQuery)(nil),        // 58: nimi.runtime.v1.AIConfigLocalLoadoutOptionsQuery
-	(*AIConfigLocalLoadoutOptions)(nil),             // 59: nimi.runtime.v1.AIConfigLocalLoadoutOptions
-	(*AIConfigCloudConnectorOptionsQuery)(nil),      // 60: nimi.runtime.v1.AIConfigCloudConnectorOptionsQuery
-	(*AIConfigCloudConnectorOptions)(nil),           // 61: nimi.runtime.v1.AIConfigCloudConnectorOptions
-	(*AIConfigCloudTargetOptionsQuery)(nil),         // 62: nimi.runtime.v1.AIConfigCloudTargetOptionsQuery
-	(*AIConfigCloudTargetOptions)(nil),              // 63: nimi.runtime.v1.AIConfigCloudTargetOptions
-	(*AppAIConfigPresetVoiceOptionsQuery)(nil),      // 64: nimi.runtime.v1.AppAIConfigPresetVoiceOptionsQuery
-	(*AppAIConfigPresetVoiceOption)(nil),            // 65: nimi.runtime.v1.AppAIConfigPresetVoiceOption
-	(*AppAIConfigPresetVoiceOptions)(nil),           // 66: nimi.runtime.v1.AppAIConfigPresetVoiceOptions
-	(*ListAppAIConfigOptionsRequest)(nil),           // 67: nimi.runtime.v1.ListAppAIConfigOptionsRequest
-	(*ListAppAIConfigOptionsResponse)(nil),          // 68: nimi.runtime.v1.ListAppAIConfigOptionsResponse
-	(*GetAppAIConfigRequest)(nil),                   // 69: nimi.runtime.v1.GetAppAIConfigRequest
-	(*GetAppAIConfigResponse)(nil),                  // 70: nimi.runtime.v1.GetAppAIConfigResponse
-	(*OverwriteAppAIConfigRequest)(nil),             // 71: nimi.runtime.v1.OverwriteAppAIConfigRequest
-	(*OverwriteAppAIConfigResponse)(nil),            // 72: nimi.runtime.v1.OverwriteAppAIConfigResponse
-	(*LoadoutRecipeCustodyDescriptor)(nil),          // 73: nimi.runtime.v1.LoadoutRecipeCustodyDescriptor
-	nil,                                             // 74: nimi.runtime.v1.MachineLoadouts.SelectionRevisionsEntry
-	(ToolSpecKind)(0),                               // 75: nimi.runtime.v1.ToolSpecKind
-	(ToolChoiceMode)(0),                             // 76: nimi.runtime.v1.ToolChoiceMode
-	(TextBehaviorKind)(0),                           // 77: nimi.runtime.v1.TextBehaviorKind
-	(*structpb.Struct)(nil),                         // 78: google.protobuf.Struct
-	(ReasonCode)(0),                                 // 79: nimi.runtime.v1.ReasonCode
-	(*ModelAssetMarketCandidate)(nil),               // 80: nimi.runtime.v1.ModelAssetMarketCandidate
-	(LocalRecommendationApplicability)(0),           // 81: nimi.runtime.v1.LocalRecommendationApplicability
+	(*VoiceConvertInputProfile)(nil),                // 53: nimi.runtime.v1.VoiceConvertInputProfile
+	(*AIConfigLocalResourceProjection)(nil),         // 54: nimi.runtime.v1.AIConfigLocalResourceProjection
+	(*AIConfigCloudConnectorProjection)(nil),        // 55: nimi.runtime.v1.AIConfigCloudConnectorProjection
+	(*AIConfigCloudTargetProjection)(nil),           // 56: nimi.runtime.v1.AIConfigCloudTargetProjection
+	(*AIConfigCloudResourceProjection)(nil),         // 57: nimi.runtime.v1.AIConfigCloudResourceProjection
+	(*AIConfigEffectiveSelection)(nil),              // 58: nimi.runtime.v1.AIConfigEffectiveSelection
+	(*AIConfigLocalLoadoutOptionsQuery)(nil),        // 59: nimi.runtime.v1.AIConfigLocalLoadoutOptionsQuery
+	(*AIConfigLocalLoadoutOptions)(nil),             // 60: nimi.runtime.v1.AIConfigLocalLoadoutOptions
+	(*AIConfigCloudConnectorOptionsQuery)(nil),      // 61: nimi.runtime.v1.AIConfigCloudConnectorOptionsQuery
+	(*AIConfigCloudConnectorOptions)(nil),           // 62: nimi.runtime.v1.AIConfigCloudConnectorOptions
+	(*AIConfigCloudTargetOptionsQuery)(nil),         // 63: nimi.runtime.v1.AIConfigCloudTargetOptionsQuery
+	(*AIConfigCloudTargetOptions)(nil),              // 64: nimi.runtime.v1.AIConfigCloudTargetOptions
+	(*AppAIConfigPresetVoiceOptionsQuery)(nil),      // 65: nimi.runtime.v1.AppAIConfigPresetVoiceOptionsQuery
+	(*AppAIConfigPresetVoiceOption)(nil),            // 66: nimi.runtime.v1.AppAIConfigPresetVoiceOption
+	(*AppAIConfigPresetVoiceOptions)(nil),           // 67: nimi.runtime.v1.AppAIConfigPresetVoiceOptions
+	(*ListAppAIConfigOptionsRequest)(nil),           // 68: nimi.runtime.v1.ListAppAIConfigOptionsRequest
+	(*ListAppAIConfigOptionsResponse)(nil),          // 69: nimi.runtime.v1.ListAppAIConfigOptionsResponse
+	(*GetAppAIConfigRequest)(nil),                   // 70: nimi.runtime.v1.GetAppAIConfigRequest
+	(*GetAppAIConfigResponse)(nil),                  // 71: nimi.runtime.v1.GetAppAIConfigResponse
+	(*OverwriteAppAIConfigRequest)(nil),             // 72: nimi.runtime.v1.OverwriteAppAIConfigRequest
+	(*OverwriteAppAIConfigResponse)(nil),            // 73: nimi.runtime.v1.OverwriteAppAIConfigResponse
+	(*LoadoutRecipeCustodyDescriptor)(nil),          // 74: nimi.runtime.v1.LoadoutRecipeCustodyDescriptor
+	nil,                                             // 75: nimi.runtime.v1.MachineLoadouts.SelectionRevisionsEntry
+	(ToolSpecKind)(0),                               // 76: nimi.runtime.v1.ToolSpecKind
+	(ToolChoiceMode)(0),                             // 77: nimi.runtime.v1.ToolChoiceMode
+	(TextBehaviorKind)(0),                           // 78: nimi.runtime.v1.TextBehaviorKind
+	(*structpb.Struct)(nil),                         // 79: google.protobuf.Struct
+	(ReasonCode)(0),                                 // 80: nimi.runtime.v1.ReasonCode
+	(*ModelAssetMarketCandidate)(nil),               // 81: nimi.runtime.v1.ModelAssetMarketCandidate
+	(LocalRecommendationApplicability)(0),           // 82: nimi.runtime.v1.LocalRecommendationApplicability
 }
 var file_runtime_v1_capability_configuration_proto_depIdxs = []int32{
-	75,  // 0: nimi.runtime.v1.ToolUseCapabilityProjection.supported_tool_spec_kinds:type_name -> nimi.runtime.v1.ToolSpecKind
-	76,  // 1: nimi.runtime.v1.ToolUseCapabilityProjection.supported_tool_choice_modes:type_name -> nimi.runtime.v1.ToolChoiceMode
-	77,  // 2: nimi.runtime.v1.TextBehaviorCapabilityProjection.kind:type_name -> nimi.runtime.v1.TextBehaviorKind
+	76,  // 0: nimi.runtime.v1.ToolUseCapabilityProjection.supported_tool_spec_kinds:type_name -> nimi.runtime.v1.ToolSpecKind
+	77,  // 1: nimi.runtime.v1.ToolUseCapabilityProjection.supported_tool_choice_modes:type_name -> nimi.runtime.v1.ToolChoiceMode
+	78,  // 2: nimi.runtime.v1.TextBehaviorCapabilityProjection.kind:type_name -> nimi.runtime.v1.TextBehaviorKind
 	6,   // 3: nimi.runtime.v1.TextBehaviorCapabilityProjection.configuration_state:type_name -> nimi.runtime.v1.TextBehaviorConfigurationState
 	5,   // 4: nimi.runtime.v1.TextBehaviorCapabilityProjection.reasons:type_name -> nimi.runtime.v1.LocalCapabilityReason
 	10,  // 5: nimi.runtime.v1.TextBehaviorCapabilityProjection.implementation_tool_use:type_name -> nimi.runtime.v1.ToolUseCapabilityProjection
 	10,  // 6: nimi.runtime.v1.TextBehaviorCapabilityProjection.configured_tool_use:type_name -> nimi.runtime.v1.ToolUseCapabilityProjection
 	4,   // 7: nimi.runtime.v1.LocalCapabilityRequirement.role:type_name -> nimi.runtime.v1.LocalCapabilityRequirementRole
 	2,   // 8: nimi.runtime.v1.LocalCapabilityRequirement.policy:type_name -> nimi.runtime.v1.LocalCapabilityRequirementPolicy
-	78,  // 9: nimi.runtime.v1.LocalCapabilityRequirement.compatibility_constraints:type_name -> google.protobuf.Struct
+	79,  // 9: nimi.runtime.v1.LocalCapabilityRequirement.compatibility_constraints:type_name -> google.protobuf.Struct
 	3,   // 10: nimi.runtime.v1.LocalCapabilityRequirement.presence:type_name -> nimi.runtime.v1.LocalCapabilityRequirementPresence
-	79,  // 11: nimi.runtime.v1.LoadoutModelAxis.reasons:type_name -> nimi.runtime.v1.ReasonCode
+	80,  // 11: nimi.runtime.v1.LoadoutModelAxis.reasons:type_name -> nimi.runtime.v1.ReasonCode
 	3,   // 12: nimi.runtime.v1.LoadoutModelAxis.presence:type_name -> nimi.runtime.v1.LocalCapabilityRequirementPresence
 	1,   // 13: nimi.runtime.v1.LoadoutModelAxis.resolution:type_name -> nimi.runtime.v1.LocalCapabilityRequirementResolution
 	9,   // 14: nimi.runtime.v1.Loadout.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
-	78,  // 15: nimi.runtime.v1.Loadout.options:type_name -> google.protobuf.Struct
+	79,  // 15: nimi.runtime.v1.Loadout.options:type_name -> google.protobuf.Struct
 	14,  // 16: nimi.runtime.v1.Loadout.model_axes:type_name -> nimi.runtime.v1.LoadoutModelAxis
 	15,  // 17: nimi.runtime.v1.Loadout.recipe_custody:type_name -> nimi.runtime.v1.LoadoutRecipeCustodyReference
 	7,   // 18: nimi.runtime.v1.Loadout.validation_state:type_name -> nimi.runtime.v1.LoadoutValidationState
-	79,  // 19: nimi.runtime.v1.Loadout.reasons:type_name -> nimi.runtime.v1.ReasonCode
-	78,  // 20: nimi.runtime.v1.Loadout.provenance:type_name -> google.protobuf.Struct
+	80,  // 19: nimi.runtime.v1.Loadout.reasons:type_name -> nimi.runtime.v1.ReasonCode
+	79,  // 20: nimi.runtime.v1.Loadout.provenance:type_name -> google.protobuf.Struct
 	11,  // 21: nimi.runtime.v1.Loadout.text_behaviors:type_name -> nimi.runtime.v1.TextBehaviorCapabilityProjection
-	78,  // 22: nimi.runtime.v1.LoadoutSelection.effective_defaults:type_name -> google.protobuf.Struct
+	79,  // 22: nimi.runtime.v1.LoadoutSelection.effective_defaults:type_name -> google.protobuf.Struct
 	16,  // 23: nimi.runtime.v1.MachineLoadouts.loadouts:type_name -> nimi.runtime.v1.Loadout
 	17,  // 24: nimi.runtime.v1.MachineLoadouts.selections:type_name -> nimi.runtime.v1.LoadoutSelection
-	74,  // 25: nimi.runtime.v1.MachineLoadouts.selection_revisions:type_name -> nimi.runtime.v1.MachineLoadouts.SelectionRevisionsEntry
-	80,  // 26: nimi.runtime.v1.LoadoutRecipeOfferDescriptor.candidate:type_name -> nimi.runtime.v1.ModelAssetMarketCandidate
-	81,  // 27: nimi.runtime.v1.LoadoutRecipeOfferDescriptor.applicability:type_name -> nimi.runtime.v1.LocalRecommendationApplicability
-	79,  // 28: nimi.runtime.v1.LoadoutRecipeOfferDescriptor.reasons:type_name -> nimi.runtime.v1.ReasonCode
-	78,  // 29: nimi.runtime.v1.LoadoutRecipeSlotDescriptor.model_contract:type_name -> google.protobuf.Struct
+	75,  // 25: nimi.runtime.v1.MachineLoadouts.selection_revisions:type_name -> nimi.runtime.v1.MachineLoadouts.SelectionRevisionsEntry
+	81,  // 26: nimi.runtime.v1.LoadoutRecipeOfferDescriptor.candidate:type_name -> nimi.runtime.v1.ModelAssetMarketCandidate
+	82,  // 27: nimi.runtime.v1.LoadoutRecipeOfferDescriptor.applicability:type_name -> nimi.runtime.v1.LocalRecommendationApplicability
+	80,  // 28: nimi.runtime.v1.LoadoutRecipeOfferDescriptor.reasons:type_name -> nimi.runtime.v1.ReasonCode
+	79,  // 29: nimi.runtime.v1.LoadoutRecipeSlotDescriptor.model_contract:type_name -> google.protobuf.Struct
 	3,   // 30: nimi.runtime.v1.LoadoutRecipeSlotDescriptor.presence:type_name -> nimi.runtime.v1.LocalCapabilityRequirementPresence
 	21,  // 31: nimi.runtime.v1.LoadoutRecipeSlotDescriptor.offers:type_name -> nimi.runtime.v1.LoadoutRecipeOfferDescriptor
-	81,  // 32: nimi.runtime.v1.LoadoutRecipeSlotDescriptor.applicability:type_name -> nimi.runtime.v1.LocalRecommendationApplicability
-	79,  // 33: nimi.runtime.v1.LoadoutRecipeSlotDescriptor.reasons:type_name -> nimi.runtime.v1.ReasonCode
+	82,  // 32: nimi.runtime.v1.LoadoutRecipeSlotDescriptor.applicability:type_name -> nimi.runtime.v1.LocalRecommendationApplicability
+	80,  // 33: nimi.runtime.v1.LoadoutRecipeSlotDescriptor.reasons:type_name -> nimi.runtime.v1.ReasonCode
 	9,   // 34: nimi.runtime.v1.LoadoutRecipeDescriptor.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
-	78,  // 35: nimi.runtime.v1.LoadoutRecipeDescriptor.default_options:type_name -> google.protobuf.Struct
+	79,  // 35: nimi.runtime.v1.LoadoutRecipeDescriptor.default_options:type_name -> google.protobuf.Struct
 	22,  // 36: nimi.runtime.v1.LoadoutRecipeDescriptor.slots:type_name -> nimi.runtime.v1.LoadoutRecipeSlotDescriptor
-	73,  // 37: nimi.runtime.v1.LoadoutRecipeDescriptor.custody:type_name -> nimi.runtime.v1.LoadoutRecipeCustodyDescriptor
-	81,  // 38: nimi.runtime.v1.LoadoutRecipeDescriptor.applicability:type_name -> nimi.runtime.v1.LocalRecommendationApplicability
-	79,  // 39: nimi.runtime.v1.LoadoutRecipeDescriptor.reasons:type_name -> nimi.runtime.v1.ReasonCode
+	74,  // 37: nimi.runtime.v1.LoadoutRecipeDescriptor.custody:type_name -> nimi.runtime.v1.LoadoutRecipeCustodyDescriptor
+	82,  // 38: nimi.runtime.v1.LoadoutRecipeDescriptor.applicability:type_name -> nimi.runtime.v1.LocalRecommendationApplicability
+	80,  // 39: nimi.runtime.v1.LoadoutRecipeDescriptor.reasons:type_name -> nimi.runtime.v1.ReasonCode
 	23,  // 40: nimi.runtime.v1.ListLoadoutRecipesResponse.recipes:type_name -> nimi.runtime.v1.LoadoutRecipeDescriptor
 	18,  // 41: nimi.runtime.v1.GetMachineLoadoutsResponse.aggregate:type_name -> nimi.runtime.v1.MachineLoadouts
 	16,  // 42: nimi.runtime.v1.GetLoadoutResponse.loadout:type_name -> nimi.runtime.v1.Loadout
-	78,  // 43: nimi.runtime.v1.PrepareLoadoutRequest.options:type_name -> google.protobuf.Struct
+	79,  // 43: nimi.runtime.v1.PrepareLoadoutRequest.options:type_name -> google.protobuf.Struct
 	19,  // 44: nimi.runtime.v1.PrepareLoadoutRequest.model_axes:type_name -> nimi.runtime.v1.LoadoutModelAxisInput
-	78,  // 45: nimi.runtime.v1.PrepareLoadoutRequest.provenance:type_name -> google.protobuf.Struct
+	79,  // 45: nimi.runtime.v1.PrepareLoadoutRequest.provenance:type_name -> google.protobuf.Struct
 	16,  // 46: nimi.runtime.v1.PrepareLoadoutResponse.proposed_loadout:type_name -> nimi.runtime.v1.Loadout
 	20,  // 47: nimi.runtime.v1.PrepareLoadoutResponse.impact:type_name -> nimi.runtime.v1.LoadoutImpactProjection
 	16,  // 48: nimi.runtime.v1.CommitLoadoutResponse.loadout:type_name -> nimi.runtime.v1.Loadout
-	78,  // 49: nimi.runtime.v1.UpdateLoadoutRequest.options:type_name -> google.protobuf.Struct
+	79,  // 49: nimi.runtime.v1.UpdateLoadoutRequest.options:type_name -> google.protobuf.Struct
 	19,  // 50: nimi.runtime.v1.UpdateLoadoutRequest.model_axes:type_name -> nimi.runtime.v1.LoadoutModelAxisInput
-	78,  // 51: nimi.runtime.v1.UpdateLoadoutRequest.provenance:type_name -> google.protobuf.Struct
+	79,  // 51: nimi.runtime.v1.UpdateLoadoutRequest.provenance:type_name -> google.protobuf.Struct
 	16,  // 52: nimi.runtime.v1.UpdateLoadoutResponse.loadout:type_name -> nimi.runtime.v1.Loadout
 	17,  // 53: nimi.runtime.v1.SelectLoadoutResponse.selection:type_name -> nimi.runtime.v1.LoadoutSelection
-	79,  // 54: nimi.runtime.v1.SelectLoadoutResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	80,  // 54: nimi.runtime.v1.SelectLoadoutResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	3,   // 55: nimi.runtime.v1.LoadoutEffectiveModelAxisIdentity.presence:type_name -> nimi.runtime.v1.LocalCapabilityRequirementPresence
 	9,   // 56: nimi.runtime.v1.LoadoutEffectiveInputIdentity.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
-	78,  // 57: nimi.runtime.v1.LoadoutEffectiveInputIdentity.options:type_name -> google.protobuf.Struct
+	79,  // 57: nimi.runtime.v1.LoadoutEffectiveInputIdentity.options:type_name -> google.protobuf.Struct
 	40,  // 58: nimi.runtime.v1.LoadoutEffectiveInputIdentity.model_axes:type_name -> nimi.runtime.v1.LoadoutEffectiveModelAxisIdentity
 	15,  // 59: nimi.runtime.v1.LoadoutEffectiveInputIdentity.recipe_custody:type_name -> nimi.runtime.v1.LoadoutRecipeCustodyReference
-	77,  // 60: nimi.runtime.v1.LoadoutEffectiveInputIdentity.admitted_text_behaviors:type_name -> nimi.runtime.v1.TextBehaviorKind
+	78,  // 60: nimi.runtime.v1.LoadoutEffectiveInputIdentity.admitted_text_behaviors:type_name -> nimi.runtime.v1.TextBehaviorKind
 	42,  // 61: nimi.runtime.v1.AIConfigOwner.app:type_name -> nimi.runtime.v1.AIConfigAppOwner
 	43,  // 62: nimi.runtime.v1.AIConfigOwner.runtime_local_agent_subsystem:type_name -> nimi.runtime.v1.AIConfigRuntimeLocalAgentSubsystemOwner
 	9,   // 63: nimi.runtime.v1.AIConfigCloudIntent.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
-	78,  // 64: nimi.runtime.v1.AIConfigCloudIntent.provider_model_target:type_name -> google.protobuf.Struct
-	78,  // 65: nimi.runtime.v1.AIConfigCapabilityIntent.defaults:type_name -> google.protobuf.Struct
+	79,  // 64: nimi.runtime.v1.AIConfigCloudIntent.provider_model_target:type_name -> google.protobuf.Struct
+	79,  // 65: nimi.runtime.v1.AIConfigCapabilityIntent.defaults:type_name -> google.protobuf.Struct
 	45,  // 66: nimi.runtime.v1.AIConfigCapabilityIntent.local:type_name -> nimi.runtime.v1.AIConfigLocalIntent
 	46,  // 67: nimi.runtime.v1.AIConfigCapabilityIntent.cloud:type_name -> nimi.runtime.v1.AIConfigCloudIntent
 	44,  // 68: nimi.runtime.v1.AIConfig.owner:type_name -> nimi.runtime.v1.AIConfigOwner
 	47,  // 69: nimi.runtime.v1.AIConfig.capabilities:type_name -> nimi.runtime.v1.AIConfigCapabilityIntent
 	50,  // 70: nimi.runtime.v1.MusicInputCapabilities.generation:type_name -> nimi.runtime.v1.MusicGenerationInputProfile
 	52,  // 71: nimi.runtime.v1.MusicInputCapabilities.transcription:type_name -> nimi.runtime.v1.MusicTranscriptionInputProfile
-	9,   // 72: nimi.runtime.v1.AIConfigLocalResourceProjection.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
-	8,   // 73: nimi.runtime.v1.AIConfigLocalResourceProjection.state:type_name -> nimi.runtime.v1.AIConfigEffectiveState
-	11,  // 74: nimi.runtime.v1.AIConfigLocalResourceProjection.text_behaviors:type_name -> nimi.runtime.v1.TextBehaviorCapabilityProjection
-	49,  // 75: nimi.runtime.v1.AIConfigLocalResourceProjection.reference_audio_input:type_name -> nimi.runtime.v1.VoiceReferenceInputCapabilities
-	51,  // 76: nimi.runtime.v1.AIConfigLocalResourceProjection.music_input:type_name -> nimi.runtime.v1.MusicInputCapabilities
-	8,   // 77: nimi.runtime.v1.AIConfigCloudConnectorProjection.state:type_name -> nimi.runtime.v1.AIConfigEffectiveState
-	9,   // 78: nimi.runtime.v1.AIConfigCloudTargetProjection.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
-	78,  // 79: nimi.runtime.v1.AIConfigCloudTargetProjection.provider_model_target:type_name -> google.protobuf.Struct
-	8,   // 80: nimi.runtime.v1.AIConfigCloudTargetProjection.state:type_name -> nimi.runtime.v1.AIConfigEffectiveState
-	49,  // 81: nimi.runtime.v1.AIConfigCloudTargetProjection.reference_audio_input:type_name -> nimi.runtime.v1.VoiceReferenceInputCapabilities
-	51,  // 82: nimi.runtime.v1.AIConfigCloudTargetProjection.music_input:type_name -> nimi.runtime.v1.MusicInputCapabilities
-	54,  // 83: nimi.runtime.v1.AIConfigCloudResourceProjection.connector:type_name -> nimi.runtime.v1.AIConfigCloudConnectorProjection
-	55,  // 84: nimi.runtime.v1.AIConfigCloudResourceProjection.target:type_name -> nimi.runtime.v1.AIConfigCloudTargetProjection
-	8,   // 85: nimi.runtime.v1.AIConfigEffectiveSelection.state:type_name -> nimi.runtime.v1.AIConfigEffectiveState
-	53,  // 86: nimi.runtime.v1.AIConfigEffectiveSelection.local:type_name -> nimi.runtime.v1.AIConfigLocalResourceProjection
-	56,  // 87: nimi.runtime.v1.AIConfigEffectiveSelection.cloud:type_name -> nimi.runtime.v1.AIConfigCloudResourceProjection
-	53,  // 88: nimi.runtime.v1.AIConfigLocalLoadoutOptions.options:type_name -> nimi.runtime.v1.AIConfigLocalResourceProjection
-	54,  // 89: nimi.runtime.v1.AIConfigCloudConnectorOptions.options:type_name -> nimi.runtime.v1.AIConfigCloudConnectorProjection
-	55,  // 90: nimi.runtime.v1.AIConfigCloudTargetOptions.options:type_name -> nimi.runtime.v1.AIConfigCloudTargetProjection
-	65,  // 91: nimi.runtime.v1.AppAIConfigPresetVoiceOptions.options:type_name -> nimi.runtime.v1.AppAIConfigPresetVoiceOption
-	58,  // 92: nimi.runtime.v1.ListAppAIConfigOptionsRequest.local_loadouts:type_name -> nimi.runtime.v1.AIConfigLocalLoadoutOptionsQuery
-	60,  // 93: nimi.runtime.v1.ListAppAIConfigOptionsRequest.cloud_connectors:type_name -> nimi.runtime.v1.AIConfigCloudConnectorOptionsQuery
-	62,  // 94: nimi.runtime.v1.ListAppAIConfigOptionsRequest.cloud_targets:type_name -> nimi.runtime.v1.AIConfigCloudTargetOptionsQuery
-	64,  // 95: nimi.runtime.v1.ListAppAIConfigOptionsRequest.preset_voices:type_name -> nimi.runtime.v1.AppAIConfigPresetVoiceOptionsQuery
-	44,  // 96: nimi.runtime.v1.ListAppAIConfigOptionsRequest.owner:type_name -> nimi.runtime.v1.AIConfigOwner
-	59,  // 97: nimi.runtime.v1.ListAppAIConfigOptionsResponse.local_loadouts:type_name -> nimi.runtime.v1.AIConfigLocalLoadoutOptions
-	61,  // 98: nimi.runtime.v1.ListAppAIConfigOptionsResponse.cloud_connectors:type_name -> nimi.runtime.v1.AIConfigCloudConnectorOptions
-	63,  // 99: nimi.runtime.v1.ListAppAIConfigOptionsResponse.cloud_targets:type_name -> nimi.runtime.v1.AIConfigCloudTargetOptions
-	66,  // 100: nimi.runtime.v1.ListAppAIConfigOptionsResponse.preset_voices:type_name -> nimi.runtime.v1.AppAIConfigPresetVoiceOptions
-	44,  // 101: nimi.runtime.v1.GetAppAIConfigRequest.owner:type_name -> nimi.runtime.v1.AIConfigOwner
-	48,  // 102: nimi.runtime.v1.GetAppAIConfigResponse.config:type_name -> nimi.runtime.v1.AIConfig
-	57,  // 103: nimi.runtime.v1.GetAppAIConfigResponse.effective_selections:type_name -> nimi.runtime.v1.AIConfigEffectiveSelection
-	48,  // 104: nimi.runtime.v1.OverwriteAppAIConfigRequest.config:type_name -> nimi.runtime.v1.AIConfig
-	48,  // 105: nimi.runtime.v1.OverwriteAppAIConfigResponse.config:type_name -> nimi.runtime.v1.AIConfig
-	79,  // 106: nimi.runtime.v1.OverwriteAppAIConfigResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	107, // [107:107] is the sub-list for method output_type
-	107, // [107:107] is the sub-list for method input_type
-	107, // [107:107] is the sub-list for extension type_name
-	107, // [107:107] is the sub-list for extension extendee
-	0,   // [0:107] is the sub-list for field type_name
+	53,  // 72: nimi.runtime.v1.MusicInputCapabilities.voice_convert:type_name -> nimi.runtime.v1.VoiceConvertInputProfile
+	9,   // 73: nimi.runtime.v1.AIConfigLocalResourceProjection.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
+	8,   // 74: nimi.runtime.v1.AIConfigLocalResourceProjection.state:type_name -> nimi.runtime.v1.AIConfigEffectiveState
+	11,  // 75: nimi.runtime.v1.AIConfigLocalResourceProjection.text_behaviors:type_name -> nimi.runtime.v1.TextBehaviorCapabilityProjection
+	49,  // 76: nimi.runtime.v1.AIConfigLocalResourceProjection.reference_audio_input:type_name -> nimi.runtime.v1.VoiceReferenceInputCapabilities
+	51,  // 77: nimi.runtime.v1.AIConfigLocalResourceProjection.music_input:type_name -> nimi.runtime.v1.MusicInputCapabilities
+	8,   // 78: nimi.runtime.v1.AIConfigCloudConnectorProjection.state:type_name -> nimi.runtime.v1.AIConfigEffectiveState
+	9,   // 79: nimi.runtime.v1.AIConfigCloudTargetProjection.implementation:type_name -> nimi.runtime.v1.CapabilityImplementationIdentity
+	79,  // 80: nimi.runtime.v1.AIConfigCloudTargetProjection.provider_model_target:type_name -> google.protobuf.Struct
+	8,   // 81: nimi.runtime.v1.AIConfigCloudTargetProjection.state:type_name -> nimi.runtime.v1.AIConfigEffectiveState
+	49,  // 82: nimi.runtime.v1.AIConfigCloudTargetProjection.reference_audio_input:type_name -> nimi.runtime.v1.VoiceReferenceInputCapabilities
+	51,  // 83: nimi.runtime.v1.AIConfigCloudTargetProjection.music_input:type_name -> nimi.runtime.v1.MusicInputCapabilities
+	55,  // 84: nimi.runtime.v1.AIConfigCloudResourceProjection.connector:type_name -> nimi.runtime.v1.AIConfigCloudConnectorProjection
+	56,  // 85: nimi.runtime.v1.AIConfigCloudResourceProjection.target:type_name -> nimi.runtime.v1.AIConfigCloudTargetProjection
+	8,   // 86: nimi.runtime.v1.AIConfigEffectiveSelection.state:type_name -> nimi.runtime.v1.AIConfigEffectiveState
+	54,  // 87: nimi.runtime.v1.AIConfigEffectiveSelection.local:type_name -> nimi.runtime.v1.AIConfigLocalResourceProjection
+	57,  // 88: nimi.runtime.v1.AIConfigEffectiveSelection.cloud:type_name -> nimi.runtime.v1.AIConfigCloudResourceProjection
+	54,  // 89: nimi.runtime.v1.AIConfigLocalLoadoutOptions.options:type_name -> nimi.runtime.v1.AIConfigLocalResourceProjection
+	55,  // 90: nimi.runtime.v1.AIConfigCloudConnectorOptions.options:type_name -> nimi.runtime.v1.AIConfigCloudConnectorProjection
+	56,  // 91: nimi.runtime.v1.AIConfigCloudTargetOptions.options:type_name -> nimi.runtime.v1.AIConfigCloudTargetProjection
+	66,  // 92: nimi.runtime.v1.AppAIConfigPresetVoiceOptions.options:type_name -> nimi.runtime.v1.AppAIConfigPresetVoiceOption
+	59,  // 93: nimi.runtime.v1.ListAppAIConfigOptionsRequest.local_loadouts:type_name -> nimi.runtime.v1.AIConfigLocalLoadoutOptionsQuery
+	61,  // 94: nimi.runtime.v1.ListAppAIConfigOptionsRequest.cloud_connectors:type_name -> nimi.runtime.v1.AIConfigCloudConnectorOptionsQuery
+	63,  // 95: nimi.runtime.v1.ListAppAIConfigOptionsRequest.cloud_targets:type_name -> nimi.runtime.v1.AIConfigCloudTargetOptionsQuery
+	65,  // 96: nimi.runtime.v1.ListAppAIConfigOptionsRequest.preset_voices:type_name -> nimi.runtime.v1.AppAIConfigPresetVoiceOptionsQuery
+	44,  // 97: nimi.runtime.v1.ListAppAIConfigOptionsRequest.owner:type_name -> nimi.runtime.v1.AIConfigOwner
+	60,  // 98: nimi.runtime.v1.ListAppAIConfigOptionsResponse.local_loadouts:type_name -> nimi.runtime.v1.AIConfigLocalLoadoutOptions
+	62,  // 99: nimi.runtime.v1.ListAppAIConfigOptionsResponse.cloud_connectors:type_name -> nimi.runtime.v1.AIConfigCloudConnectorOptions
+	64,  // 100: nimi.runtime.v1.ListAppAIConfigOptionsResponse.cloud_targets:type_name -> nimi.runtime.v1.AIConfigCloudTargetOptions
+	67,  // 101: nimi.runtime.v1.ListAppAIConfigOptionsResponse.preset_voices:type_name -> nimi.runtime.v1.AppAIConfigPresetVoiceOptions
+	44,  // 102: nimi.runtime.v1.GetAppAIConfigRequest.owner:type_name -> nimi.runtime.v1.AIConfigOwner
+	48,  // 103: nimi.runtime.v1.GetAppAIConfigResponse.config:type_name -> nimi.runtime.v1.AIConfig
+	58,  // 104: nimi.runtime.v1.GetAppAIConfigResponse.effective_selections:type_name -> nimi.runtime.v1.AIConfigEffectiveSelection
+	48,  // 105: nimi.runtime.v1.OverwriteAppAIConfigRequest.config:type_name -> nimi.runtime.v1.AIConfig
+	48,  // 106: nimi.runtime.v1.OverwriteAppAIConfigResponse.config:type_name -> nimi.runtime.v1.AIConfig
+	80,  // 107: nimi.runtime.v1.OverwriteAppAIConfigResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	108, // [108:108] is the sub-list for method output_type
+	108, // [108:108] is the sub-list for method input_type
+	108, // [108:108] is the sub-list for extension type_name
+	108, // [108:108] is the sub-list for extension extendee
+	0,   // [0:108] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_capability_configuration_proto_init() }
@@ -5909,17 +6051,17 @@ func file_runtime_v1_capability_configuration_proto_init() {
 		(*AIConfigCapabilityIntent_Local)(nil),
 		(*AIConfigCapabilityIntent_Cloud)(nil),
 	}
-	file_runtime_v1_capability_configuration_proto_msgTypes[48].OneofWrappers = []any{
+	file_runtime_v1_capability_configuration_proto_msgTypes[49].OneofWrappers = []any{
 		(*AIConfigEffectiveSelection_Local)(nil),
 		(*AIConfigEffectiveSelection_Cloud)(nil),
 	}
-	file_runtime_v1_capability_configuration_proto_msgTypes[58].OneofWrappers = []any{
+	file_runtime_v1_capability_configuration_proto_msgTypes[59].OneofWrappers = []any{
 		(*ListAppAIConfigOptionsRequest_LocalLoadouts)(nil),
 		(*ListAppAIConfigOptionsRequest_CloudConnectors)(nil),
 		(*ListAppAIConfigOptionsRequest_CloudTargets)(nil),
 		(*ListAppAIConfigOptionsRequest_PresetVoices)(nil),
 	}
-	file_runtime_v1_capability_configuration_proto_msgTypes[59].OneofWrappers = []any{
+	file_runtime_v1_capability_configuration_proto_msgTypes[60].OneofWrappers = []any{
 		(*ListAppAIConfigOptionsResponse_LocalLoadouts)(nil),
 		(*ListAppAIConfigOptionsResponse_CloudConnectors)(nil),
 		(*ListAppAIConfigOptionsResponse_CloudTargets)(nil),
@@ -5931,7 +6073,7 @@ func file_runtime_v1_capability_configuration_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_capability_configuration_proto_rawDesc), len(file_runtime_v1_capability_configuration_proto_rawDesc)),
 			NumEnums:      9,
-			NumMessages:   66,
+			NumMessages:   67,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

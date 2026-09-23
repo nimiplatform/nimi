@@ -36,6 +36,8 @@ export function formatTypedOutput(
       artifactCount: output.artifactCount,
       ...(output.musicGeneration ? { musicGeneration: output.musicGeneration } : {}),
       ...(output.musicTranscription ? { musicTranscription: output.musicTranscription } : {}),
+      ...(output.voiceConversion ? { voiceConversion: output.voiceConversion } : {}),
+      ...(output.audioSeparation ? { audioSeparation: output.audioSeparation } : {}),
       artifacts: output.artifacts,
       firstArtifact: output.firstArtifact,
     }, null, 2);

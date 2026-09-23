@@ -4,6 +4,8 @@ import { useAIStudioHost } from '../../ai-studio-core/host-context.js';
 import { ArtifactMediaResult } from '../../ai-studio-core/section-ai-testing-output.js';
 import { MusicGenerationNotice } from '../../ai-studio-core/section-ai-testing-music-result.js';
 import { MusicTranscriptionNotice } from '../../ai-studio-core/section-ai-testing-transcription-result.js';
+import { VoiceConversionNotice } from '../../ai-studio-core/section-ai-testing-voice-conversion-result.js';
+import { AudioSeparationNotice } from '../../ai-studio-core/section-ai-testing-audio-separation-result.js';
 import type { StudioCapabilityRunResult } from '../../ai-studio-core/runtime-types.js';
 import { forgetMusicRecovery, readMusicRecovery, type MusicRecoveryEntry, type MusicRecoveryCapability } from './music-recovery.js';
 
@@ -37,6 +39,8 @@ export function MusicRecoveryPanel({ disabled, capability = 'music.generate' }: 
   }
   const generatedScorePath = result?.ok && result.output.kind === 'artifacts' ? result.output.musicGeneration?.generatedScore?.relativePath : undefined;
   const isTranscription = result?.ok && result.output.kind === 'artifacts' && Boolean(result.output.musicTranscription);
+  const isVoiceConversion = result?.ok && result.output.kind === 'artifacts' && Boolean(result.output.voiceConversion);
+  const isAudioSeparation = result?.ok && result.output.kind === 'artifacts' && Boolean(result.output.audioSeparation);
   if (!entries.length && !error) return null;
   return <section className="space-y-3 border-t pt-4" aria-label={t('Music.recoveryTitle')}>
     <h3>{t('Music.recoveryTitle')}</h3>
@@ -55,7 +59,9 @@ export function MusicRecoveryPanel({ disabled, capability = 'music.generate' }: 
     {result?.ok && result.output.kind === 'artifacts' ? <div className="space-y-3">
       <MusicGenerationNotice value={result.output.musicGeneration} />
       <MusicTranscriptionNotice value={result.output.musicTranscription} />
-      {result.output.artifacts.filter((artifact) => !isTranscription && artifact.relativePath !== generatedScorePath).map((artifact) => <ArtifactMediaResult key={artifact.relativePath} artifact={artifact} fallbackLabel={artifact.relativePath} />)}
+      <VoiceConversionNotice value={result.output.voiceConversion} />
+      <AudioSeparationNotice value={result.output.audioSeparation} />
+      {result.output.artifacts.filter((artifact) => !isTranscription && !isVoiceConversion && !isAudioSeparation && artifact.relativePath !== generatedScorePath).map((artifact) => <ArtifactMediaResult key={artifact.relativePath} artifact={artifact} fallbackLabel={artifact.relativePath} />)}
     </div> : null}
   </section>;
 }

@@ -158,6 +158,29 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
     }),
   }),
   Object.freeze({
+    capabilityId: 'audio.voice.convert',
+    section: 'music',
+    editorKind: null,
+    sourceRef: Object.freeze({
+      table: 'local-adapter-routing',
+      capability: 'audio.voice.convert',
+    }),
+    additionalRuntimeTables: Object.freeze([]),
+    i18nKeys: Object.freeze({
+      title: 'AIConfig.capability.audioVoiceConvert.title',
+      subtitle: 'AIConfig.capability.audioVoiceConvert.subtitle',
+      detail: 'AIConfig.capability.audioVoiceConvert.detail',
+    }),
+    runtimeEvidenceClass: 'job',
+    governance: Object.freeze({
+      owner: 'runtime-music-route',
+      dataMovement: 'local-only',
+      retention: 'runtime-artifact-policy',
+      revocation: 'route-or-artifact-owner',
+      auditSource: 'runtime-scenario-job-evidence',
+    }),
+  }),
+  Object.freeze({
     capabilityId: 'image.face_swap',
     section: 'image',
     editorKind: null,

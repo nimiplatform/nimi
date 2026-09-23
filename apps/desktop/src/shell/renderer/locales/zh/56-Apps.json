@@ -267,6 +267,10 @@
         "label": "音乐转谱",
         "description": "设置此应用如何从录音估计乐谱。"
       },
+      "audioVoiceConvert": {
+        "label": "声音转换",
+        "description": "设置此应用如何把演唱转换为另一种声音。"
+      },
       "realtimeInteract": {
         "label": "实时交互",
         "description": "选择此 App 如何进行实时交互。"

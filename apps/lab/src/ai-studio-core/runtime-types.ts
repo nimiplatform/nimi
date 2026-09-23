@@ -1,6 +1,6 @@
 import type { BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/headless';
 import type { StudioParameterValue } from './parameters.js';
-import type { NimiLocalAppVisionLocateResult, NimiLocalAppMusicGeneration, NimiLocalAppMusicTranscription } from '@nimiplatform/sdk/app';
+import type { NimiLocalAppAudioInstrumentPartKind, NimiLocalAppVisionLocateResult, NimiLocalAppMusicGeneration, NimiLocalAppMusicTranscription, NimiLocalAppVoiceConversion } from '@nimiplatform/sdk/app';
 import type { NimiRuntimeScenarioJob } from '@nimiplatform/sdk/runtime';
 
 export type StudioRuntimeCapabilityDescriptor = {
@@ -38,11 +38,29 @@ export type StudioMusicTranscription = Pick<NimiLocalAppMusicTranscription, 'sou
   readonly timelineRelativePath?: string;
 };
 
+export type StudioVoiceConversion = Pick<NimiLocalAppVoiceConversion, 'sourceInfo' | 'inputRange' | 'vocalInfo' | 'lengthRelation' | 'durationDeltaMs'> & {
+  readonly sourceVocal: StudioManagedArtifact;
+  readonly targetVoice?: StudioManagedArtifact;
+  readonly vocal: StudioManagedArtifact;
+};
+
+export type StudioAudioSeparationInstrumentPart = {
+  readonly kind: NimiLocalAppAudioInstrumentPartKind;
+  readonly artifact: StudioManagedArtifact;
+};
+
+export type StudioAudioSeparation = {
+  readonly sourceAudio: StudioManagedArtifact;
+  readonly vocals: StudioManagedArtifact;
+  readonly background: StudioManagedArtifact;
+  readonly instrumentParts?: readonly StudioAudioSeparationInstrumentPart[];
+};
+
 export type StudioTypedOutput =
   | { readonly kind: 'vision-locate'; readonly jobId: string; readonly result: NimiLocalAppVisionLocateResult; readonly imagePreviewUrl?: string }
   | { readonly kind: 'text'; readonly text: string; readonly finishReason: string; readonly inputTokens?: number; readonly outputTokens?: number; readonly totalTokens?: number; readonly streamed: boolean }
   | { readonly kind: 'embedding'; readonly vectorCount: number; readonly dimensions: number; readonly sample: number[]; readonly totalTokens?: number }
-  | { readonly kind: 'artifacts'; readonly musicGeneration?: StudioMusicGeneration; readonly musicTranscription?: StudioMusicTranscription; readonly jobId: string; readonly jobState: string; readonly artifactCount: number; readonly artifacts: StudioManagedArtifact[]; readonly firstArtifact?: StudioManagedArtifact }
+  | { readonly kind: 'artifacts'; readonly musicGeneration?: StudioMusicGeneration; readonly musicTranscription?: StudioMusicTranscription; readonly voiceConversion?: StudioVoiceConversion; readonly audioSeparation?: StudioAudioSeparation; readonly jobId: string; readonly jobState: string; readonly artifactCount: number; readonly artifacts: StudioManagedArtifact[]; readonly firstArtifact?: StudioManagedArtifact }
   | { readonly kind: 'transcript'; readonly text: string; readonly jobId: string; readonly jobState: string; readonly artifactCount: number }
   | { readonly kind: 'voice-asset'; readonly jobId: string; readonly jobState: string; readonly voiceAssetId: string; readonly creationSource: 'reference-audio' | 'text-description'; readonly assetStatus: string; readonly voiceReference: { readonly kind: 'voice_asset_id'; readonly voiceAssetId: string } }
   | { readonly kind: 'voice-catalog'; readonly voiceCount: number; readonly sample: Array<{ readonly voiceId: string; readonly creationSource: string; readonly status: string }> };

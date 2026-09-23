@@ -269,7 +269,7 @@ pub(super) fn project_cloud_target(
         "reasons": resource.reasons,
     });
     if let Some(input) = resource.music_input {
-        if !matches!(resource.capability_contract.as_str(), "music.generate" | "music.transcribe") { return Err(untrusted()); }
+        if !matches!(resource.capability_contract.as_str(), "music.generate" | "music.transcribe" | "audio.voice.convert") { return Err(untrusted()); }
         projected["musicInput"] = super::music_input::project(input)?;
     }
     if let Some(input) = reference_input {
@@ -302,7 +302,7 @@ pub(super) fn project_local_resource(
         "reasons": resource.reasons,
     });
     if let Some(input) = resource.music_input {
-        if !matches!(resource.capability_contract.as_str(), "music.generate" | "music.transcribe") { return Err(untrusted()); }
+        if !matches!(resource.capability_contract.as_str(), "music.generate" | "music.transcribe" | "audio.voice.convert") { return Err(untrusted()); }
         projected["musicInput"] = super::music_input::project(input)?;
     }
     if let Some(input) = reference_input {

@@ -43,6 +43,7 @@ enum ScenarioType {
   SCENARIO_TYPE_AUDIO_SEPARATE = 15;
   SCENARIO_TYPE_TEXT_ANNOTATE = 16;
   SCENARIO_TYPE_MUSIC_TRANSCRIBE = 17;
+  SCENARIO_TYPE_AUDIO_VOICE_CONVERT = 18;
 }
 
 enum ExecutionMode {
@@ -511,13 +512,83 @@ message MusicTranscribeScenarioSpec {
 message AudioSeparateScenarioSpec {
   string mime_type = 1;
   SpeechTranscriptionAudioSource audio_source = 2;
+  // Owned canonical audio source, mutually exclusive with audio_source. This
+  // is the only carrier for sources beyond the inline byte ceiling.
+  MusicAudioInput source_audio = 3;
+  // Requests non-vocal instrument stems. They are returned only when the
+  // selected implementation actually produced them.
+  bool include_instrument_parts = 4;
 }
 
-// The identities refer to the two committed artifacts of this same Job.
-// Sample rate, channels and duration are carried by those artifact records.
+enum AudioInstrumentPartKind {
+  AUDIO_INSTRUMENT_PART_KIND_UNSPECIFIED = 0;
+  AUDIO_INSTRUMENT_PART_KIND_DRUMS = 1;
+  AUDIO_INSTRUMENT_PART_KIND_BASS = 2;
+  AUDIO_INSTRUMENT_PART_KIND_OTHER = 3;
+}
+
+// One committed non-vocal stem of a completed separation Job.
+message AudioInstrumentPart {
+  AudioInstrumentPartKind part = 1;
+  string artifact_id = 2;
+}
+
+// The identities refer to committed artifacts of this same Job. Sample rate,
+// channels and duration are carried by those artifact records. Instrument
+// parts are present only when requested and actually produced.
 message AudioSeparation {
   string vocals_artifact_id = 1;
   string background_artifact_id = 2;
+  repeated AudioInstrumentPart instrument_parts = 3;
+}
+
+enum VoiceConvertSourceKind {
+  VOICE_CONVERT_SOURCE_KIND_UNSPECIFIED = 0;
+  VOICE_CONVERT_SOURCE_KIND_SINGING = 1;
+}
+
+// The target voice is an independent input. Carriers never substitute for
+// each other.
+message VoiceConvertTargetVoice {
+  oneof target {
+    MusicAudioInput reference_audio = 1;
+    string preset_voice_id = 2;
+    string voice_asset_id = 3;
+  }
+}
+
+// Voice conversion retargets an existing singing performance to a different
+// voice. Source melody, lyrics and timing stay with the source vocal; no
+// accompaniment is generated and the source is never overwritten.
+message AudioVoiceConvertScenarioSpec {
+  MusicAudioInput source_vocal = 1;
+  VoiceConvertSourceKind source_kind = 2;
+  VoiceConvertTargetVoice target_voice = 3;
+  // Explicit semitone shift of the converted singing. Zero preserves the
+  // source key; implementations never auto-shift into a reference range.
+  optional int32 semitone_shift = 4;
+}
+
+enum VoiceConversionLengthRelation {
+  VOICE_CONVERSION_LENGTH_RELATION_UNSPECIFIED = 0;
+  VOICE_CONVERSION_LENGTH_RELATION_EXACT = 1;
+  VOICE_CONVERSION_LENGTH_RELATION_MODEL_FRAME_ROUNDING = 2;
+}
+
+// References identify committed outputs of this same Job.
+message VoiceConversion {
+  string vocal_artifact_id = 1;
+  string source_artifact_id = 2;
+  LocalAppAudioInfo source_info = 3;
+  AudioFrameRange input_range = 4;
+  LocalAppAudioInfo vocal_info = 5;
+  VoiceConversionLengthRelation length_relation = 6;
+  int64 duration_delta_ms = 7;
+}
+
+message AudioVoiceConvertResult {
+  repeated ScenarioArtifact artifacts = 1;
+  VoiceConversion conversion = 2;
 }
 
 message WorldGenerateAssetSource {
@@ -764,6 +835,7 @@ message ScenarioSpec {
     AudioSeparateScenarioSpec audio_separate = 15;
     TextAnnotateScenarioSpec text_annotate = 16;
     MusicTranscribeScenarioSpec music_transcribe = 17;
+    AudioVoiceConvertScenarioSpec audio_voice_convert = 18;
   }
   reserved 7, 8;
   reserved "voice_clone", "voice_design";
@@ -954,6 +1026,7 @@ message ScenarioOutput {
     AudioSeparateResult audio_separate = 11;
     TextAnnotationResult text_annotation = 12;
     MusicTranscribeResult music_transcribe = 13;
+    AudioVoiceConvertResult audio_voice_convert = 14;
   }
 }
 
@@ -1177,12 +1250,14 @@ message SubmitLocalAppScenarioJobRequest {
     AudioSeparateScenarioSpec audio_separate = 14;
     TextAnnotateScenarioSpec text_annotate = 15;
     MusicTranscribeScenarioSpec music_transcribe = 17;
+    AudioVoiceConvertScenarioSpec audio_voice_convert = 18;
   }
   // Canonical Job deadline in milliseconds. Zero keeps Runtime's
   // capability-owned default; no other ScenarioRequestHead field is exposed.
   int32 timeout_ms = 9;
-  // Optional owner-scoped identity for music generation or transcription.
-  // Reuse with different input is rejected; lookup never executes work.
+  // Optional owner-scoped identity for music generation, transcription or
+  // voice conversion. Reuse with different input is rejected; lookup never
+  // executes work.
   string client_submission_id = 16;
   reserved 5, 6;
   reserved "voice_clone", "voice_design";
@@ -1222,6 +1297,8 @@ message LocalAppScenarioJob {
   google.protobuf.Timestamp recovery_expires_at = 19;
   MusicGeneration music_generation = 20;
   MusicTranscription music_transcription = 21;
+  // Present only for a completed AUDIO_VOICE_CONVERT Job.
+  VoiceConversion voice_conversion = 22;
 }
 
 // Trimmed voice asset catalog projection. Provider, model, provider voice
@@ -1353,10 +1430,25 @@ message ReadLocalAppArtifactResponse {
 // protected Local App transport reserves enough receive capacity for this
 // exact 32 MiB operation; the trimmed unary shape avoids caller-supplied owner
 // metadata and chunk state while preserving UploadArtifact owner custody.
+enum CanonicalChannelMode {
+  CANONICAL_CHANNEL_MODE_UNSPECIFIED = 0;
+  // Keep the source channel count unchanged.
+  CANONICAL_CHANNEL_MODE_PRESERVE = 1;
+  // Duplicate one mono source channel into both output channels.
+  CANONICAL_CHANNEL_MODE_MONO_TO_STEREO = 2;
+  // Average two stereo source channels into one output channel.
+  CANONICAL_CHANNEL_MODE_STEREO_TO_MONO = 3;
+}
+
 message LocalAppCanonicalAudioPreparation {
   // Zero preserves the source rate. A nonzero value is an explicit conversion
   // of an already canonical source into a new artifact, never an overwrite.
   uint32 target_sample_rate_hz = 1;
+  // Explicit channel-domain conversion of an already canonical source into a
+  // new derived artifact. PRESERVE keeps the source channel count; a conversion
+  // is legal only when it matches the source channel count and never mixes
+  // with an unsupported source shape.
+  CanonicalChannelMode channel_mode = 2;
 }
 
 message LocalAppAudioInfo {
@@ -1552,6 +1644,7 @@ message ScenarioJob {
   google.protobuf.Timestamp recovery_expires_at = 30;
   MusicGeneration music_generation = 31;
   MusicTranscription music_transcription = 32;
+  VoiceConversion voice_conversion = 33;
 }
 
 message SubmitScenarioJobRequest {

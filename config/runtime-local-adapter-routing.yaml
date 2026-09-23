@@ -19,6 +19,10 @@ routes:
     capability: music.transcribe
     adapter: sidecar_music_adapter
     source_rule: rule.nimi.runtime.ai-provider.music-transcription
+  - provider: sidecar
+    capability: audio.voice.convert
+    adapter: sidecar_music_adapter
+    source_rule: rule.nimi.runtime.ai-provider.voice-conversion
   - provider: speech
     capability: audio.separate
     adapter: speech_native_adapter

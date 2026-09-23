@@ -71,6 +71,8 @@ func scenarioTargetCapability(scenarioType runtimev1.ScenarioType) string {
 		return "music.generate"
 	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_TRANSCRIBE:
 		return "music.transcribe"
+	case runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_VOICE_CONVERT:
+		return "audio.voice.convert"
 	case runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:
 		return "world.generate"
 	default:

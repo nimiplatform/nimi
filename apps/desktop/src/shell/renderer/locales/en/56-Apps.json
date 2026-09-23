@@ -267,6 +267,10 @@
         "label": "Music transcription",
         "description": "Choose how this app estimates scores from recordings."
       },
+      "audioVoiceConvert": {
+        "label": "Voice conversion",
+        "description": "Choose how this app retargets a singing performance to another voice."
+      },
       "realtimeInteract": {
         "label": "Realtime interaction",
         "description": "Choose how this app runs realtime interactions."

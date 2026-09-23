@@ -24,6 +24,8 @@ type localAppMusicSubmission struct {
 	ReservedBytes int64  `json:"reserved_bytes"`
 }
 
+const maxVoiceConvertOutputBytes int64 = 64 << 20
+
 type localAppMusicSubmissionContextKey struct{}
 
 var errLocalAppSubmissionConflict = errors.New("client submission id already belongs to another request")
@@ -45,7 +47,7 @@ func captureLocalAppMusicSubmission(req *runtimev1.SubmitLocalAppScenarioJobRequ
 	if req.GetClientSubmissionId() == "" {
 		return nil, nil
 	}
-	if (req.GetMusicGenerate() == nil && req.GetMusicTranscribe() == nil) || !validClientSubmissionID(req.GetClientSubmissionId()) {
+	if (req.GetMusicGenerate() == nil && req.GetMusicTranscribe() == nil && req.GetAudioVoiceConvert() == nil) || !validClientSubmissionID(req.GetClientSubmissionId()) {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	// Includes every closed author input and the timeout; excludes no user field.
@@ -59,6 +61,14 @@ func captureLocalAppMusicSubmission(req *runtimev1.SubmitLocalAppScenarioJobRequ
 		canonical = proto.Clone(req).(*runtimev1.SubmitLocalAppScenarioJobRequest)
 		canonical.Spec = &runtimev1.SubmitLocalAppScenarioJobRequest_MusicTranscribe{MusicTranscribe: canonicalMusicTranscriptionSpec(spec)}
 		reservation = 64 << 20
+	}
+	if spec := req.GetAudioVoiceConvert(); spec != nil {
+		if err := validateVoiceConvertSpec(spec); err != nil {
+			return nil, err
+		}
+		canonical = proto.Clone(req).(*runtimev1.SubmitLocalAppScenarioJobRequest)
+		canonical.Spec = &runtimev1.SubmitLocalAppScenarioJobRequest_AudioVoiceConvert{AudioVoiceConvert: canonicalVoiceConvertSpec(spec)}
+		reservation = maxVoiceConvertOutputBytes
 	}
 	encoded, err := (proto.MarshalOptions{Deterministic: true}).Marshal(canonical)
 	if err != nil {
@@ -92,6 +102,8 @@ func validateLocalAppMusicSubmission(value *localAppMusicSubmission, owner *loca
 		reservation = maxMusicRecoveryOutputBytes
 	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_TRANSCRIBE:
 		reservation = 64 << 20
+	case runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_VOICE_CONVERT:
+		reservation = maxVoiceConvertOutputBytes
 	}
 	if !owner.valid() || reservation == 0 || value.ReservedBytes != reservation || !validClientSubmissionID(value.ID) || err != nil || len(digest) != sha256.Size || strings.ToLower(value.RequestSHA256) != value.RequestSHA256 {
 		return fmt.Errorf("invalid protected music submission binding")

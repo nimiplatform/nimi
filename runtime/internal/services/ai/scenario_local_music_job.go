@@ -46,6 +46,8 @@ func (s *Service) submitLocalMusicScenarioJob(ctx context.Context, req *runtimev
 	var effective *localMusicEffectiveInputs
 	if req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_TRANSCRIBE {
 		effective, err = s.captureLocalMusicTranscription(captureCtx, req.GetHead(), req.GetSpec().GetMusicTranscribe())
+	} else if req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_VOICE_CONVERT {
+		effective, err = s.captureLocalVoiceConvert(captureCtx, req.GetHead(), req.GetSpec().GetAudioVoiceConvert())
 	} else {
 		effective, err = s.captureLocalMusicEffectiveInputs(captureCtx, req.GetHead(), req.GetSpec().GetMusicGenerate(), req.GetExtensions())
 	}
@@ -142,6 +144,12 @@ func (s *Service) runLocalMusicScenarioJob(ctx context.Context, jobID string, ti
 	result, err := s.executeCapturedLocalMusic(ctx, effective, onStart)
 	if err != nil {
 		s.finishLocalMusicJobFailure(ctx, jobID, err)
+		return
+	}
+	if effective.plan.IsVoiceConvert() {
+		if err := s.commitLocalVoiceConvert(ctx, jobID, effective, result); err != nil {
+			s.finishLocalMusicJobFailure(ctx, jobID, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{}))
+		}
 		return
 	}
 	if effective.plan.IsTranscription() {

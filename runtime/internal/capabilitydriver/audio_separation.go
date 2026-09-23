@@ -28,6 +28,12 @@ type AudioSeparateInvocationInput struct {
 	Request        *runtimev1.AudioSeparateScenarioSpec
 	AudioBytes     []byte
 	MIMEType       string
+	// Owned canonical audio input for the native HTDemucs path. Mutually
+	// exclusive with the inline AudioBytes carrier.
+	Package    AudioCppRuntimePackageInput
+	SourcePath string
+	SourceInfo *runtimev1.LocalAppAudioInfo
+	StagingDir string
 }
 
 type AudioSeparateInvocationPlan struct {
@@ -35,9 +41,84 @@ type AudioSeparateInvocationPlan struct {
 	request    *runtimev1.AudioSeparateScenarioSpec
 	audioBytes []byte
 	mimeType   string
+
+	native                bool
+	nativeProcessKey      string
+	nativeDriverIdentity  Identity
+	nativeModelRoot       string
+	nativeAudioCppPackage AudioCppRuntimePackageInput
+	nativeCLIArgs         []string
+	nativeSourcePath      string
+	nativeSourceInfo      *runtimev1.LocalAppAudioInfo
+	nativeOutDir          string
+	includeInstrument     bool
 }
 
-func (p *AudioSeparateInvocationPlan) DriverID() string { return DemucsDriverID }
+func (p *AudioSeparateInvocationPlan) IsNative() bool { return p != nil && p.native }
+func (p *AudioSeparateInvocationPlan) NativeProcessKey() string {
+	if p == nil {
+		return ""
+	}
+	return p.nativeProcessKey
+}
+func (p *AudioSeparateInvocationPlan) NativeDriverIdentity() Identity {
+	if p == nil {
+		return Identity{}
+	}
+	return p.nativeDriverIdentity
+}
+func (p *AudioSeparateInvocationPlan) NativeModelRoot() string {
+	if p == nil {
+		return ""
+	}
+	return p.nativeModelRoot
+}
+func (p *AudioSeparateInvocationPlan) NativeAudioCppPackage() AudioCppRuntimePackageInput {
+	if p == nil {
+		return AudioCppRuntimePackageInput{}
+	}
+	return p.nativeAudioCppPackage
+}
+func (p *AudioSeparateInvocationPlan) NativeCLIArgs() []string {
+	if p == nil {
+		return nil
+	}
+	return append([]string(nil), p.nativeCLIArgs...)
+}
+func (p *AudioSeparateInvocationPlan) NativeSourcePath() string {
+	if p == nil {
+		return ""
+	}
+	return p.nativeSourcePath
+}
+func (p *AudioSeparateInvocationPlan) NativeSourceInfo() *runtimev1.LocalAppAudioInfo {
+	if p == nil || p.nativeSourceInfo == nil {
+		return nil
+	}
+	return proto.Clone(p.nativeSourceInfo).(*runtimev1.LocalAppAudioInfo)
+}
+func (p *AudioSeparateInvocationPlan) NativeOutDir() string {
+	if p == nil {
+		return ""
+	}
+	return p.nativeOutDir
+}
+func (p *AudioSeparateInvocationPlan) IncludeInstrumentParts() bool {
+	return p != nil && p.includeInstrument
+}
+func (p *AudioSeparateInvocationPlan) NativeModelBinding() InvocationExactBinding {
+	if p == nil || len(p.modelFiles) != 1 {
+		return InvocationExactBinding{}
+	}
+	return p.modelFiles[0]
+}
+
+func (p *AudioSeparateInvocationPlan) DriverID() string {
+	if p != nil && p.native {
+		return p.nativeDriverIdentity.DriverID
+	}
+	return DemucsDriverID
+}
 func (p *AudioSeparateInvocationPlan) ModelAssetID() string {
 	if p == nil || len(p.modelFiles) != 1 {
 		return ""

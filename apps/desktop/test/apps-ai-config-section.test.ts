@@ -166,6 +166,7 @@ test('Apps AIConfig owner copy covers every canonical capability in both locales
     'imageGenerate',
     'musicGenerate',
     'musicTranscribe',
+    'audioVoiceConvert',
     'realtimeInteract',
     'textEmbed',
     'textAnnotate',

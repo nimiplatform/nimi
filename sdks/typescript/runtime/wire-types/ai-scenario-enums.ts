@@ -55,6 +55,20 @@ export enum AiVideoPixelFormat {
   RGB8 = 1,
 }
 
+export enum AudioInstrumentPartKind {
+  UNSPECIFIED = 0,
+  DRUMS = 1,
+  BASS = 2,
+  OTHER = 3,
+}
+
+export enum CanonicalChannelMode {
+  UNSPECIFIED = 0,
+  PRESERVE = 1,
+  MONO_TO_STEREO = 2,
+  STEREO_TO_MONO = 3,
+}
+
 export enum CharacterSourceKindV3 {
   UNSPECIFIED = 0,
   WORLD_CHARACTER = 1,
@@ -384,6 +398,7 @@ export enum ScenarioType {
   AUDIO_SEPARATE = 15,
   TEXT_ANNOTATE = 16,
   MUSIC_TRANSCRIBE = 17,
+  AUDIO_VOICE_CONVERT = 18,
 }
 
 export enum SchedulingState {
@@ -520,6 +535,17 @@ export enum VoiceAssetStatus {
   EXPIRED = 2,
   DELETED = 3,
   FAILED = 4,
+}
+
+export enum VoiceConversionLengthRelation {
+  UNSPECIFIED = 0,
+  EXACT = 1,
+  MODEL_FRAME_ROUNDING = 2,
+}
+
+export enum VoiceConvertSourceKind {
+  UNSPECIFIED = 0,
+  SINGING = 1,
 }
 
 export enum VoiceCreationSource {

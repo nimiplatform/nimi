@@ -5,6 +5,17 @@ published baseline. They are not a complete reconstruction of older releases.
 
 ## Unreleased (next 0.x minor)
 
+- Add typed `audio.voice.convert` Local App spec and conversion projection with
+  exact source/target identity checks, nested target reference ranges, the
+  reported length relation (`EXACT` or `MODEL_FRAME_ROUNDING`) and duration
+  delta. Canonical audio preparation may now name an explicit channel mode
+  (`PRESERVE`, `MONO_TO_STEREO`, `STEREO_TO_MONO`) alongside the target sample
+  rate; this is the only sanctioned rate or channel change. New exports (minor).
+
+- Extend the protected `audio.separate` projection with owned-artifact sources
+  and instrument parts (`DRUMS`, `BASS`, `OTHER`) beside vocals and background.
+  Submission identity (`clientSubmissionId`) stays rejected for separation.
+
 - Preserve asset-stream cancellation before the first chunk and during a pending
   read. Each returned body has one consumer; call its iterator's `return()` when
   abandoning an opened read, including after an App-level metadata mismatch.

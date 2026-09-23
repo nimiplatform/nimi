@@ -2,6 +2,8 @@ import { beginMusicRecovery, readMusicRecovery, restoreSavedMusicResult, saveMus
 import type { StudioCapabilityRuntimeHandlers } from '../../ai-studio-core/runtime-dispatcher.js';
 import { runVisionLocate } from './vision-runtime.js';
 import { runMusicTranscribe } from './music-transcription-runtime.js';
+import { runVoiceConvert } from './voice-convert-runtime.js';
+import { runAudioSeparate } from './audio-separate-runtime.js';
 import {
   createStudioScenarioJobClient,
   projectStudioArtifactRunnerResult,
@@ -21,6 +23,8 @@ export const studioMediaRuntimeHandlers: StudioCapabilityRuntimeHandlers = Objec
   'video.generate': runVideoGenerate,
   'music.generate': runMusicGenerate,
   'music.transcribe': runMusicTranscribe,
+  'audio.voice.convert': runVoiceConvert,
+  'audio.separate': runAudioSeparate,
 });
 
 async function runImageGenerate(context: StudioCapabilityRuntimeContext) {

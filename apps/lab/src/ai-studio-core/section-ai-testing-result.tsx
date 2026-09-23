@@ -1,5 +1,7 @@
 import { MusicGenerationNotice } from './section-ai-testing-music-result.js';
 import { MusicTranscriptionNotice } from './section-ai-testing-transcription-result.js';
+import { VoiceConversionNotice } from './section-ai-testing-voice-conversion-result.js';
+import { AudioSeparationNotice } from './section-ai-testing-audio-separation-result.js';
 import { useState, type ReactNode } from 'react';
 import { IconButton, nimiToast, StatusBadge, Tooltip } from '@nimiplatform/kit/ui';
 import { AlertTriangle, ChevronRight, Copy as CopyIcon, Download as DownloadIcon, FileText, FolderOpen, MessageSquare, RefreshCw, SlidersHorizontal, SquarePen } from 'lucide-react';
@@ -293,7 +295,9 @@ function TextStudioHistorySnapshotBody({ snapshot }: { snapshot: Extract<StudioR
       <div className="studio-result__rich">
         <MusicGenerationNotice value={snapshot.musicGeneration} />
         <MusicTranscriptionNotice value={snapshot.musicTranscription} />
-        {artifacts.filter((artifact) => !snapshot.musicTranscription && artifact.relativePath !== snapshot.musicGeneration?.generatedScore?.relativePath).map((artifact, index) => (
+        <VoiceConversionNotice value={snapshot.voiceConversion} />
+        <AudioSeparationNotice value={snapshot.audioSeparation} />
+        {artifacts.filter((artifact) => !snapshot.musicTranscription && !snapshot.voiceConversion && !snapshot.audioSeparation && artifact.relativePath !== snapshot.musicGeneration?.generatedScore?.relativePath).map((artifact, index) => (
           <ArtifactMediaResult
             key={artifact.relativePath}
             artifact={artifact}
@@ -391,7 +395,7 @@ export function TextStudioResultState({
         <article className="studio-turn studio-turn--assistant">
           <div className="studio-turn__label">
             <FileText size={14} aria-hidden="true" />
-            <span>{t(capability.id === 'music.transcribe' ? 'Transcription.result' : 'StudioShell.generationLabel')}</span>
+            <span>{t(capability.id === 'music.transcribe' ? 'Transcription.result' : capability.id === 'audio.voice.convert' ? 'VoiceConvert.result' : capability.id === 'audio.separate' ? 'AudioSeparate.result' : 'StudioShell.generationLabel')}</span>
           </div>
           {activeRun.error ? (
             <TextStudioRunError message={activeRun.error} />

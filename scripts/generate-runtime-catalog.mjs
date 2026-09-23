@@ -66,6 +66,7 @@ const canonicalModelCapabilities = new Set([
   'text.annotate',
   'music.generate',
   'music.transcribe',
+  'audio.voice.convert',
   'voice.create',
   'realtime.interact',
 ]);

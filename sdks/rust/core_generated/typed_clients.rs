@@ -1012,6 +1012,20 @@ impl Default for AppStorageState {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AudioInstrumentPartKind {
+    AUDIOINSTRUMENTPARTKINDUNSPECIFIED,
+    AUDIOINSTRUMENTPARTKINDDRUMS,
+    AUDIOINSTRUMENTPARTKINDBASS,
+    AUDIOINSTRUMENTPARTKINDOTHER,
+}
+
+impl Default for AudioInstrumentPartKind {
+    fn default() -> Self {
+        Self::AUDIOINSTRUMENTPARTKINDUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CallerKind {
     CALLERKINDUNSPECIFIED,
     CALLERKINDDESKTOPCORE,
@@ -1022,6 +1036,20 @@ pub enum CallerKind {
 impl Default for CallerKind {
     fn default() -> Self {
         Self::CALLERKINDUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum CanonicalChannelMode {
+    CANONICALCHANNELMODEUNSPECIFIED,
+    CANONICALCHANNELMODEPRESERVE,
+    CANONICALCHANNELMODEMONOTOSTEREO,
+    CANONICALCHANNELMODESTEREOTOMONO,
+}
+
+impl Default for CanonicalChannelMode {
+    fn default() -> Self {
+        Self::CANONICALCHANNELMODEUNSPECIFIED
     }
 }
 
@@ -3795,6 +3823,7 @@ pub enum ScenarioType {
     SCENARIOTYPEAUDIOSEPARATE,
     SCENARIOTYPETEXTANNOTATE,
     SCENARIOTYPEMUSICTRANSCRIBE,
+    SCENARIOTYPEAUDIOVOICECONVERT,
 }
 
 impl Default for ScenarioType {
@@ -4062,6 +4091,31 @@ pub enum VoiceAssetStatus {
 impl Default for VoiceAssetStatus {
     fn default() -> Self {
         Self::VOICEASSETSTATUSUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum VoiceConversionLengthRelation {
+    VOICECONVERSIONLENGTHRELATIONUNSPECIFIED,
+    VOICECONVERSIONLENGTHRELATIONEXACT,
+    VOICECONVERSIONLENGTHRELATIONMODELFRAMEROUNDING,
+}
+
+impl Default for VoiceConversionLengthRelation {
+    fn default() -> Self {
+        Self::VOICECONVERSIONLENGTHRELATIONUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum VoiceConvertSourceKind {
+    VOICECONVERTSOURCEKINDUNSPECIFIED,
+    VOICECONVERTSOURCEKINDSINGING,
+}
+
+impl Default for VoiceConvertSourceKind {
+    fn default() -> Self {
+        Self::VOICECONVERTSOURCEKINDUNSPECIFIED
     }
 }
 
@@ -5279,6 +5333,12 @@ pub struct AudioFrameRange {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct AudioInstrumentPart {
+    pub part: Option<AudioInstrumentPartKind>,
+    pub artifact_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AudioSeparateResult {
     pub artifacts: Vec<Box<ScenarioArtifact>>,
     pub separation: Option<Box<AudioSeparation>>,
@@ -5288,12 +5348,29 @@ pub struct AudioSeparateResult {
 pub struct AudioSeparateScenarioSpec {
     pub mime_type: Option<String>,
     pub audio_source: Option<Box<SpeechTranscriptionAudioSource>>,
+    pub source_audio: Option<Box<MusicAudioInput>>,
+    pub include_instrument_parts: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct AudioSeparation {
     pub vocals_artifact_id: Option<String>,
     pub background_artifact_id: Option<String>,
+    pub instrument_parts: Vec<Box<AudioInstrumentPart>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AudioVoiceConvertResult {
+    pub artifacts: Vec<Box<ScenarioArtifact>>,
+    pub conversion: Option<Box<VoiceConversion>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AudioVoiceConvertScenarioSpec {
+    pub source_vocal: Option<Box<MusicAudioInput>>,
+    pub source_kind: Option<VoiceConvertSourceKind>,
+    pub target_voice: Option<Box<VoiceConvertTargetVoice>>,
+    pub semitone_shift: Option<i32>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -9098,6 +9175,7 @@ pub struct LocalAppAudioInfo {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppCanonicalAudioPreparation {
     pub target_sample_rate_hz: Option<u32>,
+    pub channel_mode: Option<CanonicalChannelMode>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -9438,6 +9516,7 @@ pub struct LocalAppScenarioJob {
     pub recovery_expires_at: Option<String>,
     pub music_generation: Option<Box<MusicGeneration>>,
     pub music_transcription: Option<Box<MusicTranscription>>,
+    pub voice_conversion: Option<Box<VoiceConversion>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10311,6 +10390,7 @@ pub struct MusicGenerationInputProfile {
 pub struct MusicInputCapabilities {
     pub generation: Vec<Box<MusicGenerationInputProfile>>,
     pub transcription: Vec<Box<MusicTranscriptionInputProfile>>,
+    pub voice_convert: Vec<Box<VoiceConvertInputProfile>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -12035,6 +12115,7 @@ pub struct ScenarioJob {
     pub recovery_expires_at: Option<String>,
     pub music_generation: Option<Box<MusicGeneration>>,
     pub music_transcription: Option<Box<MusicTranscription>>,
+    pub voice_conversion: Option<Box<VoiceConversion>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -12061,6 +12142,7 @@ pub struct ScenarioOutput {
     pub audio_separate: Option<Box<AudioSeparateResult>>,
     pub text_annotation: Option<Box<TextAnnotationResult>>,
     pub music_transcribe: Option<Box<MusicTranscribeResult>>,
+    pub audio_voice_convert: Option<Box<AudioVoiceConvertResult>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -12094,6 +12176,7 @@ pub struct ScenarioSpec {
     pub audio_separate: Option<Box<AudioSeparateScenarioSpec>>,
     pub text_annotate: Option<Box<TextAnnotateScenarioSpec>>,
     pub music_transcribe: Option<Box<MusicTranscribeScenarioSpec>>,
+    pub audio_voice_convert: Option<Box<AudioVoiceConvertScenarioSpec>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -12714,6 +12797,7 @@ pub struct SubmitLocalAppScenarioJobRequest {
     pub text_annotate: Option<Box<TextAnnotateScenarioSpec>>,
     pub client_submission_id: Option<String>,
     pub music_transcribe: Option<Box<MusicTranscribeScenarioSpec>>,
+    pub audio_voice_convert: Option<Box<AudioVoiceConvertScenarioSpec>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -13410,6 +13494,38 @@ pub struct VoiceAsset {
     pub expires_at: Option<String>,
     pub metadata: Option<BTreeMap<String, String>>,
     pub creation_source: Option<VoiceCreationSource>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct VoiceConversion {
+    pub vocal_artifact_id: Option<String>,
+    pub source_artifact_id: Option<String>,
+    pub source_info: Option<Box<LocalAppAudioInfo>>,
+    pub input_range: Option<Box<AudioFrameRange>>,
+    pub vocal_info: Option<Box<LocalAppAudioInfo>>,
+    pub length_relation: Option<VoiceConversionLengthRelation>,
+    pub duration_delta_ms: Option<i64>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct VoiceConvertInputProfile {
+    pub source_kinds: Vec<String>,
+    pub target_kinds: Vec<String>,
+    pub max_source_seconds: Option<u32>,
+    pub max_target_seconds: Option<u32>,
+    pub supports_range: Option<bool>,
+    pub supports_semitone_shift: Option<bool>,
+    pub min_semitone_shift: Option<i32>,
+    pub max_semitone_shift: Option<i32>,
+    pub max_source_bytes: Option<u32>,
+    pub max_target_bytes: Option<u32>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct VoiceConvertTargetVoice {
+    pub reference_audio: Option<Box<MusicAudioInput>>,
+    pub preset_voice_id: Option<String>,
+    pub voice_asset_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

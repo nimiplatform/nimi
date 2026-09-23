@@ -648,6 +648,40 @@ loadout_recipes:
           format: gguf
           model_family: sheetsage2
           artifact_role: music_model
+  - recipe_id: vevo2.audio-cpp.v1
+    revision: "1"
+    title: VeVo2 singing voice conversion (non-commercial)
+    capability_contract: audio.voice.convert
+    implementation_id: local.audio.voice.convert.vevo2.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.vevo2
+    driver_dialect: audio.cpp/vevo2/voice-convert/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: voice.model
+        display_label: VeVo2 q8 (CC-BY-NC-ND-4.0)
+        recommended_variant_ids: [local.audio.voice.convert.vevo2.audio-cpp.q8.cuda]
+        model_contract:
+          format: gguf
+          model_family: vevo2
+          artifact_role: music_model
+  - recipe_id: htdemucs.audio-cpp.v1
+    revision: "1"
+    title: HTDemucs native source separation
+    capability_contract: audio.separate
+    implementation_id: local.audio.separate.htdemucs.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.htdemucs
+    driver_dialect: audio.cpp/htdemucs/audio-separate/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: separation.model
+        display_label: HTDemucs q8 (MIT)
+        recommended_variant_ids: [local.audio.separate.htdemucs.audio-cpp.q8.cuda]
+        model_contract:
+          format: gguf
+          model_family: htdemucs
+          artifact_role: music_model
   - recipe_id: yue2.audio-cpp.v1
     revision: "1"
     title: YuE2 score-guided music (non-commercial)

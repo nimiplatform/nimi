@@ -2,6 +2,20 @@
 
 ## Unreleased (next 0.x minor)
 
+- Add `runRuntimeVoiceConvert` and `observeRuntimeVoiceConversion` to the
+  generation runtime surface for the protected `audio.voice.convert` scenario
+  (spec discriminant `audio-voice-convert`). Submissions carry a source vocal,
+  a distinct target voice carrier and an optional semitone shift; results
+  project the typed conversion with its length relation and duration delta.
+  Compatible new export (minor).
+
+- Add `runRuntimeAudioSeparation` and `observeRuntimeAudioSeparation` to the
+  generation runtime surface for the protected `audio.separate` scenario.
+  Submission takes exactly one inline bytes/URI source or owned artifact source
+  with an optional frame range, plus optional instrument stems; results project
+  typed vocals, background and instrument-part artifact identities. Compatible
+  new export (minor).
+
 - Close protected asset streams even when the consumer returns before reading
   its first chunk or while a read is pending. Asset bodies have one consumer;
   repeated return closes the native resource once. Use the matching SDK fix.

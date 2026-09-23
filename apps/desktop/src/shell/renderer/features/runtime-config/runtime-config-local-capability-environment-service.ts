@@ -22,7 +22,8 @@ export type RuntimeConfigLocalCapabilityContract =
   | 'audio.separate'
   | 'voice.create'
   | 'music.generate'
-  | 'music.transcribe';
+  | 'music.transcribe'
+  | 'audio.voice.convert';
 
 export type RuntimeConfigLocalCapabilityEnvironmentPlan = {
   readonly resolution: NimiRuntimeLocalEnvironmentPlanInput;

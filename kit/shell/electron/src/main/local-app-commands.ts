@@ -1,4 +1,4 @@
-import { validateNimiLocalAppMusicGenerateSpec, validateNimiLocalAppMusicTranscribeSpec } from '@nimiplatform/kit/core/sdk-contract';
+import { validateNimiLocalAppMusicGenerateSpec, validateNimiLocalAppMusicTranscribeSpec, validateNimiLocalAppVoiceConvertSpec } from '@nimiplatform/kit/core/sdk-contract';
 import { Buffer } from 'node:buffer';
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 import { validateNimiLocalAppTextInput } from '@nimiplatform/kit/core/sdk-contract';
@@ -361,7 +361,7 @@ function validatePayload(
       assertExactKeys(payload, ['spec', 'timeoutMs', ...(Object.hasOwn(payload, 'clientSubmissionId') ? ['clientSubmissionId'] : [])], command);
       validateScenarioSpec(payload.spec, command, false);
       const clientSubmissionId = payload.clientSubmissionId;
-      if (clientSubmissionId !== undefined && (!['music-generate', 'music-transcribe'].includes((payload.spec as { type: string }).type) || typeof clientSubmissionId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(clientSubmissionId))) {
+      if (clientSubmissionId !== undefined && (!['music-generate', 'music-transcribe', 'audio-voice-convert'].includes((payload.spec as { type: string }).type) || typeof clientSubmissionId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(clientSubmissionId))) {
         throw invalidPayload(command, 'invalid music clientSubmissionId');
       }
       return {
@@ -1104,10 +1104,28 @@ function validateScenarioSpec(value: unknown, command: string, execute: boolean)
       return;
     }
     // @nimi-authority: rule.nimi.runtime.ai-provider.audio-separation
-    case 'audio-separate':
-      assertExactKeys(value, ['type', 'mimeType', 'audioSource'], command);
-      validateSpeechTranscribeSpec({ ...value, language: '', prompt: '', responseFormat: '' }, command);
+    case 'audio-separate': {
+      assertAllowedKeys(value, ['type', 'mimeType', 'audioSource', 'sourceAudio', 'includeInstrumentParts'], ['type', 'mimeType'], command);
+      if ((value.audioSource === undefined) === (value.sourceAudio === undefined)) throw invalidPayload(command, 'Audio separation requires exactly one source');
+      if (value.includeInstrumentParts !== undefined && typeof value.includeInstrumentParts !== 'boolean') throw invalidPayload(command, 'Audio separation instrument request is invalid');
+      if (value.sourceAudio !== undefined) {
+        const source = value.sourceAudio;
+        if (!isPlainRecord(source)) throw invalidPayload(command, 'Audio separation source is invalid');
+        assertAllowedKeys(source, ['artifactId', 'range'], ['artifactId'], command);
+        if (!optionalBoundedIdentifier(source.artifactId, 'sourceAudio artifactId', command)) throw invalidPayload(command, 'Audio separation source artifact is required');
+        if (source.range !== undefined) {
+          const range = source.range;
+          if (!isPlainRecord(range)) throw invalidPayload(command, 'Audio separation range is invalid');
+          assertExactKeys(range, ['startFrame', 'endFrame'], command);
+          const startFrame = boundedSafeInteger(range.startFrame, 'sourceAudio startFrame', command, 0, 57600000);
+          const endFrame = boundedSafeInteger(range.endFrame, 'sourceAudio endFrame', command, 1, 57600000);
+          if (startFrame >= endFrame) throw invalidPayload(command, 'Audio separation source range is invalid');
+        }
+        return;
+      }
+      validateSpeechTranscribeSpec({ type: value.type, mimeType: value.mimeType, language: '', prompt: '', responseFormat: '', audioSource: value.audioSource }, command);
       return;
+    }
     // @nimi-authority: rule.nimi.runtime.ai-provider.face-swap-video-job
     case 'video-face-swap':
       assertExactKeys(value, ['type', 'referenceImageArtifactId', 'targetVideoArtifactId', 'noFacePolicy'], command);
@@ -1131,6 +1149,9 @@ function validateScenarioSpec(value: unknown, command: string, execute: boolean)
     case 'voice-create': validateVoiceCreateSpec(value, command); return;
     case 'music-transcribe':
       try { validateNimiLocalAppMusicTranscribeSpec(value); } catch { throw invalidPayload(command, 'Music transcription input is invalid'); }
+      return;
+    case 'audio-voice-convert':
+      try { validateNimiLocalAppVoiceConvertSpec(value); } catch { throw invalidPayload(command, 'Voice conversion input is invalid'); }
       return;
     case 'music-generate': validateMusicSpec(value, command); return;
     case 'world-generate':

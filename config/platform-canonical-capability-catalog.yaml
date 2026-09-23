@@ -234,6 +234,24 @@ capabilities:
       revocation: route-or-artifact-owner
       auditSource: runtime-scenario-job-evidence
     source_rule: P-CAPCAT-001
+  - capabilityId: audio.voice.convert
+    section: music
+    editorKind: null
+    sourceRef:
+      table: local-adapter-routing
+      capability: audio.voice.convert
+    i18nKeys:
+      title: AIConfig.capability.audioVoiceConvert.title
+      subtitle: AIConfig.capability.audioVoiceConvert.subtitle
+      detail: AIConfig.capability.audioVoiceConvert.detail
+    runtimeEvidenceClass: job
+    governance:
+      owner: runtime-music-route
+      dataMovement: local-only
+      retention: runtime-artifact-policy
+      revocation: route-or-artifact-owner
+      auditSource: runtime-scenario-job-evidence
+    source_rule: P-CAPCAT-001
   - capabilityId: music.generate
     section: music
     editorKind: null

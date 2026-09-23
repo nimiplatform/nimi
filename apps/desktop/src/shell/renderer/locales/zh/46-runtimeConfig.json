@@ -461,6 +461,7 @@
       "videoGenerate": "视频生成",
       "musicGenerate": "音乐生成",
       "musicTranscribe": "音乐转谱",
+      "audioVoiceConvert": "声音转换",
       "other": "其他本地 AI 能力",
       "textAnnotate": "语言分析",
       "audioSeparate": "人声与背景分离"
@@ -478,6 +479,7 @@
       "videoGenerate": "根据描述生成视频",
       "musicGenerate": "生成音乐与配乐",
       "musicTranscribe": "从录音估计旋律、和弦与乐谱",
+      "audioVoiceConvert": "把演唱转换为另一种声音",
       "other": "其他本地 AI 能力",
       "textAnnotate": "识别词语、词性、依存关系和句子边界",
       "audioSeparate": "分离人声和背景音，保留原有时间轴"
@@ -1508,6 +1510,7 @@
     "videoGenerate": "视频生成",
     "musicGenerate": "音乐生成",
     "musicTranscribe": "音乐转谱",
+    "audioVoiceConvert": "声音转换",
     "voiceCreate": "声音创建",
     "textAnnotate": "语言分析",
     "audioSeparate": "人声与背景分离"
@@ -1931,6 +1934,7 @@
       "videoGenerate": "视频生成",
       "musicGenerate": "音乐生成",
       "musicTranscribe": "音乐转谱",
+      "audioVoiceConvert": "声音转换",
       "tts": "语音合成",
       "stt": "语音识别",
       "voiceCreate": "创建语音"
@@ -2095,6 +2099,7 @@
       "audio-separate": "分离人声和伴奏，为后续音频编辑准备素材。",
       "music-generate": "在创作应用中生成音乐与音频灵感。",
       "music-transcribe": "从已有录音估计谱面与音乐事件，并与原始音频对照核验。",
+      "audio-voice-convert": "把已有演唱转换为另一种声音，同时保留其旋律、歌词与时间轴。",
       "video-generate": "在支持的应用中生成视频，具体输入和控制方式由所选模型提供。",
       "voice-create": "根据支持的声音描述或参考录音创建可复用的声音。",
       "text-annotate": "分析文字的语言结构，供文本处理应用使用。",
@@ -2310,6 +2315,7 @@
       "video-generate": "生成视频",
       "music-generate": "生成音乐",
       "music-transcribe": "从录音估计乐谱",
+      "audio-voice-convert": "把人声转换为另一种声音",
       "voice-create": "创建声音",
       "audio-separate": "分离音轨",
       "text-annotate": "分析与标注文字",

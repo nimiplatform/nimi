@@ -36,6 +36,7 @@ const CAPABILITY_ICONS: Readonly<Record<string, LucideIcon>> = {
   'video.generate': Video,
   'music.generate': Music2,
   'music.transcribe': Music2,
+  'audio.voice.convert': Music2,
   'voice.create': AudioWaveform,
   'audio.separate': AudioLines,
   'text.annotate': Languages,

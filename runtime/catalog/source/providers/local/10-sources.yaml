@@ -203,3 +203,11 @@ sources:
     url: https://huggingface.co/m-a-p/YuE2-3B
     retrieved_at: 2026-09-21
     note: Upstream score-conditioned music semantics and CC-BY-NC-4.0 notice; Python-only features are not audio.cpp support claims.
+  - source_id: vevo2_audio_cpp_gguf_modelcard
+    url: https://huggingface.co/audio-cpp/audio.cpp-gguf/tree/406756ee8e3b16e902ce40112986c1010775f888/Vevo2-GGUF
+    retrieved_at: 2026-09-22
+    note: VeVo2 style-preserved singing voice conversion q8 GGUF inside the audio-cpp GGUF collection. Upstream RMSnow/VeVo2 model card is CC-BY-NC-ND-4.0; non-commercial research use only, commercial and distribution rights are not cleared.
+  - source_id: htdemucs_audio_cpp_gguf_modelcard
+    url: https://huggingface.co/audio-cpp/audio.cpp-gguf/tree/406756ee8e3b16e902ce40112986c1010775f888/HTDemucs-GGUF
+    retrieved_at: 2026-09-22
+    note: HTDemucs native music source separation q8 GGUF inside the audio-cpp GGUF collection. Upstream HTDemucs is MIT; produces vocals, drums, bass and other stems and requires a fixed 44100 Hz input rate.

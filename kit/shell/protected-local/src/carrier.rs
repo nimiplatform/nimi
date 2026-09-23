@@ -450,6 +450,7 @@ pub enum LocalAppArtifactUploadSource {
 pub struct LocalAppCanonicalAudioPreparation {
     pub profile: String,
     pub target_sample_rate_hz: Option<u32>,
+    pub channel_mode: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]

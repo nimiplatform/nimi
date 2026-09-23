@@ -184,7 +184,7 @@ func scenarioJobTimeoutDuration(
 		scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE) {
 		maxDuration = maxLocalSpeechJobTimeout
 	}
-	if localRoute && (scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE || scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_TRANSCRIBE) {
+	if localRoute && (scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE || scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_TRANSCRIBE || scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_VOICE_CONVERT) {
 		maxDuration = maxLocalMusicJobTimeout
 	}
 	if duration <= 0 || duration > maxDuration {
@@ -223,7 +223,7 @@ func clampScenarioJobTimeoutDuration(
 		scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE) {
 		maxDuration = maxLocalSpeechJobTimeout
 	}
-	if localRoute && (scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE || scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_TRANSCRIBE) {
+	if localRoute && (scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE || scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_TRANSCRIBE || scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_VOICE_CONVERT) {
 		maxDuration = maxLocalMusicJobTimeout
 	}
 	if duration > maxDuration {

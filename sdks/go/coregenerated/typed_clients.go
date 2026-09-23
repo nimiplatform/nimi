@@ -551,6 +551,15 @@ const (
 	APPSTORAGESTATESTORAGEUNAVAILABLE AppStorageState = "APP_STORAGE_STATE_STORAGE_UNAVAILABLE"
 )
 
+type AudioInstrumentPartKind string
+
+const (
+	AUDIOINSTRUMENTPARTKINDUNSPECIFIED AudioInstrumentPartKind = "AUDIO_INSTRUMENT_PART_KIND_UNSPECIFIED"
+	AUDIOINSTRUMENTPARTKINDDRUMS       AudioInstrumentPartKind = "AUDIO_INSTRUMENT_PART_KIND_DRUMS"
+	AUDIOINSTRUMENTPARTKINDBASS        AudioInstrumentPartKind = "AUDIO_INSTRUMENT_PART_KIND_BASS"
+	AUDIOINSTRUMENTPARTKINDOTHER       AudioInstrumentPartKind = "AUDIO_INSTRUMENT_PART_KIND_OTHER"
+)
+
 type CallerKind string
 
 const (
@@ -558,6 +567,15 @@ const (
 	CALLERKINDDESKTOPCORE       CallerKind = "CALLER_KIND_DESKTOP_CORE"
 	CALLERKINDTHIRDPARTYAPP     CallerKind = "CALLER_KIND_THIRD_PARTY_APP"
 	CALLERKINDTHIRDPARTYSERVICE CallerKind = "CALLER_KIND_THIRD_PARTY_SERVICE"
+)
+
+type CanonicalChannelMode string
+
+const (
+	CANONICALCHANNELMODEUNSPECIFIED  CanonicalChannelMode = "CANONICAL_CHANNEL_MODE_UNSPECIFIED"
+	CANONICALCHANNELMODEPRESERVE     CanonicalChannelMode = "CANONICAL_CHANNEL_MODE_PRESERVE"
+	CANONICALCHANNELMODEMONOTOSTEREO CanonicalChannelMode = "CANONICAL_CHANNEL_MODE_MONO_TO_STEREO"
+	CANONICALCHANNELMODESTEREOTOMONO CanonicalChannelMode = "CANONICAL_CHANNEL_MODE_STEREO_TO_MONO"
 )
 
 type CatalogModelSource string
@@ -1846,22 +1864,23 @@ const (
 type ScenarioType string
 
 const (
-	SCENARIOTYPEUNSPECIFIED      ScenarioType = "SCENARIO_TYPE_UNSPECIFIED"
-	SCENARIOTYPETEXTGENERATE     ScenarioType = "SCENARIO_TYPE_TEXT_GENERATE"
-	SCENARIOTYPETEXTEMBED        ScenarioType = "SCENARIO_TYPE_TEXT_EMBED"
-	SCENARIOTYPEIMAGEGENERATE    ScenarioType = "SCENARIO_TYPE_IMAGE_GENERATE"
-	SCENARIOTYPEVIDEOGENERATE    ScenarioType = "SCENARIO_TYPE_VIDEO_GENERATE"
-	SCENARIOTYPESPEECHSYNTHESIZE ScenarioType = "SCENARIO_TYPE_SPEECH_SYNTHESIZE"
-	SCENARIOTYPESPEECHTRANSCRIBE ScenarioType = "SCENARIO_TYPE_SPEECH_TRANSCRIBE"
-	SCENARIOTYPEMUSICGENERATE    ScenarioType = "SCENARIO_TYPE_MUSIC_GENERATE"
-	SCENARIOTYPEWORLDGENERATE    ScenarioType = "SCENARIO_TYPE_WORLD_GENERATE"
-	SCENARIOTYPEVOICECREATE      ScenarioType = "SCENARIO_TYPE_VOICE_CREATE"
-	SCENARIOTYPEVISIONLOCATE     ScenarioType = "SCENARIO_TYPE_VISION_LOCATE"
-	SCENARIOTYPEIMAGEFACESWAP    ScenarioType = "SCENARIO_TYPE_IMAGE_FACE_SWAP"
-	SCENARIOTYPEVIDEOFACESWAP    ScenarioType = "SCENARIO_TYPE_VIDEO_FACE_SWAP"
-	SCENARIOTYPEAUDIOSEPARATE    ScenarioType = "SCENARIO_TYPE_AUDIO_SEPARATE"
-	SCENARIOTYPETEXTANNOTATE     ScenarioType = "SCENARIO_TYPE_TEXT_ANNOTATE"
-	SCENARIOTYPEMUSICTRANSCRIBE  ScenarioType = "SCENARIO_TYPE_MUSIC_TRANSCRIBE"
+	SCENARIOTYPEUNSPECIFIED       ScenarioType = "SCENARIO_TYPE_UNSPECIFIED"
+	SCENARIOTYPETEXTGENERATE      ScenarioType = "SCENARIO_TYPE_TEXT_GENERATE"
+	SCENARIOTYPETEXTEMBED         ScenarioType = "SCENARIO_TYPE_TEXT_EMBED"
+	SCENARIOTYPEIMAGEGENERATE     ScenarioType = "SCENARIO_TYPE_IMAGE_GENERATE"
+	SCENARIOTYPEVIDEOGENERATE     ScenarioType = "SCENARIO_TYPE_VIDEO_GENERATE"
+	SCENARIOTYPESPEECHSYNTHESIZE  ScenarioType = "SCENARIO_TYPE_SPEECH_SYNTHESIZE"
+	SCENARIOTYPESPEECHTRANSCRIBE  ScenarioType = "SCENARIO_TYPE_SPEECH_TRANSCRIBE"
+	SCENARIOTYPEMUSICGENERATE     ScenarioType = "SCENARIO_TYPE_MUSIC_GENERATE"
+	SCENARIOTYPEWORLDGENERATE     ScenarioType = "SCENARIO_TYPE_WORLD_GENERATE"
+	SCENARIOTYPEVOICECREATE       ScenarioType = "SCENARIO_TYPE_VOICE_CREATE"
+	SCENARIOTYPEVISIONLOCATE      ScenarioType = "SCENARIO_TYPE_VISION_LOCATE"
+	SCENARIOTYPEIMAGEFACESWAP     ScenarioType = "SCENARIO_TYPE_IMAGE_FACE_SWAP"
+	SCENARIOTYPEVIDEOFACESWAP     ScenarioType = "SCENARIO_TYPE_VIDEO_FACE_SWAP"
+	SCENARIOTYPEAUDIOSEPARATE     ScenarioType = "SCENARIO_TYPE_AUDIO_SEPARATE"
+	SCENARIOTYPETEXTANNOTATE      ScenarioType = "SCENARIO_TYPE_TEXT_ANNOTATE"
+	SCENARIOTYPEMUSICTRANSCRIBE   ScenarioType = "SCENARIO_TYPE_MUSIC_TRANSCRIBE"
+	SCENARIOTYPEAUDIOVOICECONVERT ScenarioType = "SCENARIO_TYPE_AUDIO_VOICE_CONVERT"
 )
 
 type SchedulingState string
@@ -2034,6 +2053,21 @@ const (
 	VOICEASSETSTATUSEXPIRED     VoiceAssetStatus = "VOICE_ASSET_STATUS_EXPIRED"
 	VOICEASSETSTATUSDELETED     VoiceAssetStatus = "VOICE_ASSET_STATUS_DELETED"
 	VOICEASSETSTATUSFAILED      VoiceAssetStatus = "VOICE_ASSET_STATUS_FAILED"
+)
+
+type VoiceConversionLengthRelation string
+
+const (
+	VOICECONVERSIONLENGTHRELATIONUNSPECIFIED        VoiceConversionLengthRelation = "VOICE_CONVERSION_LENGTH_RELATION_UNSPECIFIED"
+	VOICECONVERSIONLENGTHRELATIONEXACT              VoiceConversionLengthRelation = "VOICE_CONVERSION_LENGTH_RELATION_EXACT"
+	VOICECONVERSIONLENGTHRELATIONMODELFRAMEROUNDING VoiceConversionLengthRelation = "VOICE_CONVERSION_LENGTH_RELATION_MODEL_FRAME_ROUNDING"
+)
+
+type VoiceConvertSourceKind string
+
+const (
+	VOICECONVERTSOURCEKINDUNSPECIFIED VoiceConvertSourceKind = "VOICE_CONVERT_SOURCE_KIND_UNSPECIFIED"
+	VOICECONVERTSOURCEKINDSINGING     VoiceConvertSourceKind = "VOICE_CONVERT_SOURCE_KIND_SINGING"
 )
 
 type VoiceCreationSource string
@@ -2977,19 +3011,39 @@ type AudioFrameRange struct {
 	EndFrame   uint64 `json:"end_frame,omitempty"`
 }
 
+type AudioInstrumentPart struct {
+	Part       AudioInstrumentPartKind `json:"part,omitempty"`
+	ArtifactId string                  `json:"artifact_id,omitempty"`
+}
+
 type AudioSeparateResult struct {
 	Artifacts  []ScenarioArtifact `json:"artifacts,omitempty"`
 	Separation *AudioSeparation   `json:"separation,omitempty"`
 }
 
 type AudioSeparateScenarioSpec struct {
-	MimeType    string                          `json:"mime_type,omitempty"`
-	AudioSource *SpeechTranscriptionAudioSource `json:"audio_source,omitempty"`
+	MimeType               string                          `json:"mime_type,omitempty"`
+	AudioSource            *SpeechTranscriptionAudioSource `json:"audio_source,omitempty"`
+	SourceAudio            *MusicAudioInput                `json:"source_audio,omitempty"`
+	IncludeInstrumentParts bool                            `json:"include_instrument_parts,omitempty"`
 }
 
 type AudioSeparation struct {
-	VocalsArtifactId     string `json:"vocals_artifact_id,omitempty"`
-	BackgroundArtifactId string `json:"background_artifact_id,omitempty"`
+	VocalsArtifactId     string                `json:"vocals_artifact_id,omitempty"`
+	BackgroundArtifactId string                `json:"background_artifact_id,omitempty"`
+	InstrumentParts      []AudioInstrumentPart `json:"instrument_parts,omitempty"`
+}
+
+type AudioVoiceConvertResult struct {
+	Artifacts  []ScenarioArtifact `json:"artifacts,omitempty"`
+	Conversion *VoiceConversion   `json:"conversion,omitempty"`
+}
+
+type AudioVoiceConvertScenarioSpec struct {
+	SourceVocal   *MusicAudioInput         `json:"source_vocal,omitempty"`
+	SourceKind    VoiceConvertSourceKind   `json:"source_kind,omitempty"`
+	TargetVoice   *VoiceConvertTargetVoice `json:"target_voice,omitempty"`
+	SemitoneShift *int32                   `json:"semitone_shift,omitempty"`
 }
 
 type AuditEventRecord struct {
@@ -5432,7 +5486,8 @@ type LocalAppAudioInfo struct {
 }
 
 type LocalAppCanonicalAudioPreparation struct {
-	TargetSampleRateHz uint32 `json:"target_sample_rate_hz,omitempty"`
+	TargetSampleRateHz uint32               `json:"target_sample_rate_hz,omitempty"`
+	ChannelMode        CanonicalChannelMode `json:"channel_mode,omitempty"`
 }
 
 type LocalAppConversationAction struct {
@@ -5737,6 +5792,7 @@ type LocalAppScenarioJob struct {
 	RecoveryExpiresAt    string                     `json:"recovery_expires_at,omitempty"`
 	MusicGeneration      *MusicGeneration           `json:"music_generation,omitempty"`
 	MusicTranscription   *MusicTranscription        `json:"music_transcription,omitempty"`
+	VoiceConversion      *VoiceConversion           `json:"voice_conversion,omitempty"`
 }
 
 type LocalAppScenarioJobEvent struct {
@@ -6450,6 +6506,7 @@ type MusicGenerationInputProfile struct {
 type MusicInputCapabilities struct {
 	Generation    []MusicGenerationInputProfile    `json:"generation,omitempty"`
 	Transcription []MusicTranscriptionInputProfile `json:"transcription,omitempty"`
+	VoiceConvert  []VoiceConvertInputProfile       `json:"voice_convert,omitempty"`
 }
 
 type MusicScoreArtifact struct {
@@ -7413,6 +7470,7 @@ type ScenarioJob struct {
 	RecoveryExpiresAt      string                         `json:"recovery_expires_at,omitempty"`
 	MusicGeneration        *MusicGeneration               `json:"music_generation,omitempty"`
 	MusicTranscription     *MusicTranscription            `json:"music_transcription,omitempty"`
+	VoiceConversion        *VoiceConversion               `json:"voice_conversion,omitempty"`
 }
 
 type ScenarioJobEvent struct {
@@ -7424,19 +7482,20 @@ type ScenarioJobEvent struct {
 }
 
 type ScenarioOutput struct {
-	TextGenerate     *TextGenerateOutput     `json:"text_generate,omitempty"`
-	TextEmbed        *TextEmbedOutput        `json:"text_embed,omitempty"`
-	ImageGenerate    *ImageGenerateResult    `json:"image_generate,omitempty"`
-	VideoGenerate    *VideoGenerateResult    `json:"video_generate,omitempty"`
-	SpeechSynthesize *SpeechSynthesizeResult `json:"speech_synthesize,omitempty"`
-	SpeechTranscribe *SpeechTranscribeResult `json:"speech_transcribe,omitempty"`
-	MusicGenerate    *MusicGenerateResult    `json:"music_generate,omitempty"`
-	WorldGenerate    *WorldGenerateResult    `json:"world_generate,omitempty"`
-	ImageFaceSwap    *ImageFaceSwapResult    `json:"image_face_swap,omitempty"`
-	VideoFaceSwap    *VideoFaceSwapResult    `json:"video_face_swap,omitempty"`
-	AudioSeparate    *AudioSeparateResult    `json:"audio_separate,omitempty"`
-	TextAnnotation   *TextAnnotationResult   `json:"text_annotation,omitempty"`
-	MusicTranscribe  *MusicTranscribeResult  `json:"music_transcribe,omitempty"`
+	TextGenerate      *TextGenerateOutput      `json:"text_generate,omitempty"`
+	TextEmbed         *TextEmbedOutput         `json:"text_embed,omitempty"`
+	ImageGenerate     *ImageGenerateResult     `json:"image_generate,omitempty"`
+	VideoGenerate     *VideoGenerateResult     `json:"video_generate,omitempty"`
+	SpeechSynthesize  *SpeechSynthesizeResult  `json:"speech_synthesize,omitempty"`
+	SpeechTranscribe  *SpeechTranscribeResult  `json:"speech_transcribe,omitempty"`
+	MusicGenerate     *MusicGenerateResult     `json:"music_generate,omitempty"`
+	WorldGenerate     *WorldGenerateResult     `json:"world_generate,omitempty"`
+	ImageFaceSwap     *ImageFaceSwapResult     `json:"image_face_swap,omitempty"`
+	VideoFaceSwap     *VideoFaceSwapResult     `json:"video_face_swap,omitempty"`
+	AudioSeparate     *AudioSeparateResult     `json:"audio_separate,omitempty"`
+	TextAnnotation    *TextAnnotationResult    `json:"text_annotation,omitempty"`
+	MusicTranscribe   *MusicTranscribeResult   `json:"music_transcribe,omitempty"`
+	AudioVoiceConvert *AudioVoiceConvertResult `json:"audio_voice_convert,omitempty"`
 }
 
 type ScenarioProfile struct {
@@ -7452,21 +7511,22 @@ type ScenarioRequestHead struct {
 }
 
 type ScenarioSpec struct {
-	TextGenerate     *TextGenerateScenarioSpec     `json:"text_generate,omitempty"`
-	TextEmbed        *TextEmbedScenarioSpec        `json:"text_embed,omitempty"`
-	ImageGenerate    *ImageGenerateScenarioSpec    `json:"image_generate,omitempty"`
-	VideoGenerate    *VideoGenerateScenarioSpec    `json:"video_generate,omitempty"`
-	SpeechSynthesize *SpeechSynthesizeScenarioSpec `json:"speech_synthesize,omitempty"`
-	SpeechTranscribe *SpeechTranscribeScenarioSpec `json:"speech_transcribe,omitempty"`
-	MusicGenerate    *MusicGenerateScenarioSpec    `json:"music_generate,omitempty"`
-	WorldGenerate    *WorldGenerateScenarioSpec    `json:"world_generate,omitempty"`
-	VoiceCreate      *VoiceCreateScenarioSpec      `json:"voice_create,omitempty"`
-	VisionLocate     *VisionLocateScenarioSpec     `json:"vision_locate,omitempty"`
-	ImageFaceSwap    *ImageFaceSwapScenarioSpec    `json:"image_face_swap,omitempty"`
-	VideoFaceSwap    *VideoFaceSwapScenarioSpec    `json:"video_face_swap,omitempty"`
-	AudioSeparate    *AudioSeparateScenarioSpec    `json:"audio_separate,omitempty"`
-	TextAnnotate     *TextAnnotateScenarioSpec     `json:"text_annotate,omitempty"`
-	MusicTranscribe  *MusicTranscribeScenarioSpec  `json:"music_transcribe,omitempty"`
+	TextGenerate      *TextGenerateScenarioSpec      `json:"text_generate,omitempty"`
+	TextEmbed         *TextEmbedScenarioSpec         `json:"text_embed,omitempty"`
+	ImageGenerate     *ImageGenerateScenarioSpec     `json:"image_generate,omitempty"`
+	VideoGenerate     *VideoGenerateScenarioSpec     `json:"video_generate,omitempty"`
+	SpeechSynthesize  *SpeechSynthesizeScenarioSpec  `json:"speech_synthesize,omitempty"`
+	SpeechTranscribe  *SpeechTranscribeScenarioSpec  `json:"speech_transcribe,omitempty"`
+	MusicGenerate     *MusicGenerateScenarioSpec     `json:"music_generate,omitempty"`
+	WorldGenerate     *WorldGenerateScenarioSpec     `json:"world_generate,omitempty"`
+	VoiceCreate       *VoiceCreateScenarioSpec       `json:"voice_create,omitempty"`
+	VisionLocate      *VisionLocateScenarioSpec      `json:"vision_locate,omitempty"`
+	ImageFaceSwap     *ImageFaceSwapScenarioSpec     `json:"image_face_swap,omitempty"`
+	VideoFaceSwap     *VideoFaceSwapScenarioSpec     `json:"video_face_swap,omitempty"`
+	AudioSeparate     *AudioSeparateScenarioSpec     `json:"audio_separate,omitempty"`
+	TextAnnotate      *TextAnnotateScenarioSpec      `json:"text_annotate,omitempty"`
+	MusicTranscribe   *MusicTranscribeScenarioSpec   `json:"music_transcribe,omitempty"`
+	AudioVoiceConvert *AudioVoiceConvertScenarioSpec `json:"audio_voice_convert,omitempty"`
 }
 
 type ScenarioStreamCompleted struct {
@@ -7877,6 +7937,7 @@ type SubmitLocalAppScenarioJobRequest struct {
 	TextAnnotate       *TextAnnotateScenarioSpec          `json:"text_annotate,omitempty"`
 	ClientSubmissionId string                             `json:"client_submission_id,omitempty"`
 	MusicTranscribe    *MusicTranscribeScenarioSpec       `json:"music_transcribe,omitempty"`
+	AudioVoiceConvert  *AudioVoiceConvertScenarioSpec     `json:"audio_voice_convert,omitempty"`
 }
 
 type SubmitLocalAppScenarioJobResponse struct {
@@ -8472,6 +8533,35 @@ type VoiceAsset struct {
 	ExpiresAt        string                `json:"expires_at,omitempty"`
 	Metadata         map[string]any        `json:"metadata,omitempty"`
 	CreationSource   VoiceCreationSource   `json:"creation_source,omitempty"`
+}
+
+type VoiceConversion struct {
+	VocalArtifactId  string                        `json:"vocal_artifact_id,omitempty"`
+	SourceArtifactId string                        `json:"source_artifact_id,omitempty"`
+	SourceInfo       *LocalAppAudioInfo            `json:"source_info,omitempty"`
+	InputRange       *AudioFrameRange              `json:"input_range,omitempty"`
+	VocalInfo        *LocalAppAudioInfo            `json:"vocal_info,omitempty"`
+	LengthRelation   VoiceConversionLengthRelation `json:"length_relation,omitempty"`
+	DurationDeltaMs  int64                         `json:"duration_delta_ms,omitempty"`
+}
+
+type VoiceConvertInputProfile struct {
+	SourceKinds           []string `json:"source_kinds,omitempty"`
+	TargetKinds           []string `json:"target_kinds,omitempty"`
+	MaxSourceSeconds      uint32   `json:"max_source_seconds,omitempty"`
+	MaxTargetSeconds      uint32   `json:"max_target_seconds,omitempty"`
+	SupportsRange         bool     `json:"supports_range,omitempty"`
+	SupportsSemitoneShift bool     `json:"supports_semitone_shift,omitempty"`
+	MinSemitoneShift      int32    `json:"min_semitone_shift,omitempty"`
+	MaxSemitoneShift      int32    `json:"max_semitone_shift,omitempty"`
+	MaxSourceBytes        uint32   `json:"max_source_bytes,omitempty"`
+	MaxTargetBytes        uint32   `json:"max_target_bytes,omitempty"`
+}
+
+type VoiceConvertTargetVoice struct {
+	ReferenceAudio *MusicAudioInput `json:"reference_audio,omitempty"`
+	PresetVoiceId  string           `json:"preset_voice_id,omitempty"`
+	VoiceAssetId   string           `json:"voice_asset_id,omitempty"`
 }
 
 type VoiceCreateScenarioSpec struct {

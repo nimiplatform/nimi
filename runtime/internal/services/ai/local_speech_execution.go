@@ -116,17 +116,28 @@ func (s *Service) captureLocalSpeechEffectiveInputs(ctx context.Context, head *r
 		if spec == nil {
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
-		audioBytes, mimeType, _, sourceErr := nimillm.ResolveTranscriptionAudioSource(ctx, &runtimev1.SpeechTranscribeScenarioSpec{MimeType: spec.GetMimeType(), AudioSource: spec.GetAudioSource()})
-		if sourceErr != nil {
-			return nil, sourceErr
-		}
 		separationDriver, ok := driver.(capabilitydriver.AudioSeparateInvocationDriver)
 		if !ok {
 			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE)
 		}
-		effective.separatePlan, err = separationDriver.PlanAudioSeparateInvocation(capabilitydriver.AudioSeparateInvocationInput{PortableConfig: portable, ExactBindings: exactBindings, Request: spec, AudioBytes: audioBytes, MIMEType: mimeType})
-		if err != nil {
-			return nil, localSpeechInvocationError(err)
+		if owned := spec.GetSourceAudio(); owned != nil {
+			packageInput, packageErr := audioCppRuntimePackageInput(selected)
+			if packageErr != nil {
+				return nil, localSpeechInvocationError(packageErr)
+			}
+			nativeErr := s.captureNativeSeparationInput(ctx, head, spec, packageInput, portable, exactBindings, separationDriver, effective)
+			if nativeErr != nil {
+				return nil, nativeErr
+			}
+		} else {
+			audioBytes, mimeType, _, sourceErr := nimillm.ResolveTranscriptionAudioSource(ctx, &runtimev1.SpeechTranscribeScenarioSpec{MimeType: spec.GetMimeType(), AudioSource: spec.GetAudioSource()})
+			if sourceErr != nil {
+				return nil, sourceErr
+			}
+			effective.separatePlan, err = separationDriver.PlanAudioSeparateInvocation(capabilitydriver.AudioSeparateInvocationInput{PortableConfig: portable, ExactBindings: exactBindings, Request: spec, AudioBytes: audioBytes, MIMEType: mimeType})
+			if err != nil {
+				return nil, localSpeechInvocationError(err)
+			}
 		}
 	case capabilitydriver.AudioSynthesizeContract:
 		spec, err := normalizeLocalSpeechSynthesizeRequest(request.GetSpec().GetSpeechSynthesize(), intent.Defaults)
@@ -364,7 +375,20 @@ func (s *Service) localSpeechEffectiveInputsFromResolvedAssembly(assembly *local
 		if !ok {
 			return nil, fmt.Errorf("captured separation Driver has no invocation contract")
 		}
-		effective.separatePlan, err = separationDriver.PlanAudioSeparateInvocation(capabilitydriver.AudioSeparateInvocationInput{PortableConfig: portable, ExactBindings: bindings, Request: request, AudioBytes: assembly.Request.BinaryInput, MIMEType: assembly.Request.MIMEType})
+		if native := assembly.LoadPlan.Speech.NativeSeparation; native != nil {
+			if native.SourceInfo == nil || !s.localNativeSeparationStagingAdmitted(native.StagingDirectory, native.SourcePath) {
+				return nil, fmt.Errorf("captured native separation staging path is invalid")
+			}
+			packageInput, packageErr := audioCppRuntimePackageInput(selectedLocalExecutionFromResolvedAssembly(assembly))
+			if packageErr != nil {
+				return nil, packageErr
+			}
+			effective.separatePlan, err = separationDriver.PlanAudioSeparateInvocation(capabilitydriver.AudioSeparateInvocationInput{PortableConfig: portable, ExactBindings: bindings, Request: request,
+				Package: packageInput, SourcePath: native.SourcePath, SourceInfo: native.SourceInfo, StagingDir: native.StagingDirectory})
+			effective.stagingPaths = append(effective.stagingPaths, native.SourcePath, filepath.Join(native.StagingDirectory, "stems"), native.StagingDirectory)
+		} else {
+			effective.separatePlan, err = separationDriver.PlanAudioSeparateInvocation(capabilitydriver.AudioSeparateInvocationInput{PortableConfig: portable, ExactBindings: bindings, Request: request, AudioBytes: assembly.Request.BinaryInput, MIMEType: assembly.Request.MIMEType})
+		}
 		effective.scenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SEPARATE
 	case "transcribe":
 		if assembly.CapabilityContract != capabilitydriver.AudioTranscribeContract || assembly.Request.Kind != "speech.transcribe" {
@@ -452,6 +476,17 @@ func cleanupLocalSpeechStagingPaths(paths []string) {
 	for _, path := range paths {
 		cleanupLocalSpeechStaging(path)
 	}
+}
+
+// localNativeSeparationStagingAdmitted accepts only a private sep-* directory
+// directly under the speech staging root and its canonical source.wav.
+func (s *Service) localNativeSeparationStagingAdmitted(directory, source string) bool {
+	root := strings.TrimSpace(s.localSpeechStagingRoot)
+	if !filepath.IsAbs(root) || !filepath.IsAbs(directory) || filepath.Clean(source) != filepath.Join(filepath.Clean(directory), "source.wav") {
+		return false
+	}
+	relative, err := filepath.Rel(filepath.Clean(root), filepath.Clean(directory))
+	return err == nil && filepath.Dir(relative) == "." && strings.HasPrefix(relative, "sep-")
 }
 
 func (s *Service) localSpeechStagingPathAdmitted(path string, extension string) bool {

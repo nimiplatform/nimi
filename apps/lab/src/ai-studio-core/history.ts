@@ -1,4 +1,4 @@
-import type { StudioMusicGeneration, StudioMusicTranscription } from './runtime-types.js';
+import type { StudioAudioSeparation, StudioMusicGeneration, StudioMusicTranscription, StudioVoiceConversion } from './runtime-types.js';
 import { isJsonObject } from '@nimiplatform/sdk/types';
 import type { NimiLocalAppVisionLocateResult } from '@nimiplatform/sdk/app';
 import type {
@@ -81,6 +81,8 @@ export type StudioRunHistoryResultSnapshot =
       kind: 'artifacts';
       musicGeneration?: StudioMusicGeneration;
       musicTranscription?: StudioMusicTranscription;
+      voiceConversion?: StudioVoiceConversion;
+      audioSeparation?: StudioAudioSeparation;
       summary: string;
       jobId: string;
       jobState: string;
@@ -497,6 +499,8 @@ export function createStudioRunHistoryResultSnapshot(result: StudioCapabilityRun
       kind: 'artifacts',
       ...(output.musicGeneration ? { musicGeneration: output.musicGeneration } : {}),
       ...(output.musicTranscription ? { musicTranscription: output.musicTranscription } : {}),
+      ...(output.voiceConversion ? { voiceConversion: output.voiceConversion } : {}),
+      ...(output.audioSeparation ? { audioSeparation: output.audioSeparation } : {}),
       summary: `${output.jobState || 'unknown'} / ${output.artifactCount} artifact${output.artifactCount === 1 ? '' : 's'}${firstArtifact?.mediaType ? ` / ${firstArtifact.mediaType}` : ''}`,
       jobId: output.jobId,
       jobState: output.jobState,
@@ -613,6 +617,8 @@ export function restoreStudioCapabilityRunResult(
         kind: 'artifacts',
         ...(snapshot.musicGeneration ? { musicGeneration: snapshot.musicGeneration } : {}),
         ...(snapshot.musicTranscription ? { musicTranscription: snapshot.musicTranscription } : {}),
+        ...(snapshot.voiceConversion ? { voiceConversion: snapshot.voiceConversion } : {}),
+        ...(snapshot.audioSeparation ? { audioSeparation: snapshot.audioSeparation } : {}),
         jobId: snapshot.jobId,
         jobState: snapshot.jobState,
         artifactCount: snapshot.artifactCount,

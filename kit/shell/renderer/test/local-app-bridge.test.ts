@@ -39,6 +39,18 @@ function managerActionAvailability() {
 }
 
 describe('renderer local-app standard-shell surface', () => {
+  it('preserves voice conversion profiles when the App selects its Local configuration', async () => {
+    const option = { loadoutRef: 'loadout-convert-1', label: 'Voice conversion', capabilityContract: 'audio.voice.convert',
+      implementation: { implementationId: 'convert.impl', driverId: 'convert.driver', driverDialect: 'convert/v1' },
+      implementationSupportedFeatures: [], configuredFeatures: [], textBehaviors: [], state: 'ready', reasons: [],
+      musicInput: { generation: [], voiceConvert: [{ sourceKinds: ['singing'], targetKinds: ['preset', 'voice-asset'], maxSourceSeconds: 600, maxTargetSeconds: 60,
+        supportsRange: true, supportsSemitoneShift: true, minSemitoneShift: -12, maxSemitoneShift: 12, maxSourceBytes: 536870912, maxTargetBytes: 33554432 }] } };
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = { invoke: async () => ({ kind: 'local-loadouts', options: [option], truncated: false }) };
+    const client = createNimiClient({ localApp: { standardShell: createNimiLocalAppStandardShellSurface() } });
+    await expect(client.aiConfig.listOptions({ kind: 'local-loadouts', capabilityContract: 'audio.voice.convert' })).resolves.toEqual({ kind: 'local-loadouts', options: [option], truncated: false });
+    option.musicInput.voiceConvert[0]!.minSemitoneShift = -13;
+    await expect(client.aiConfig.listOptions({ kind: 'local-loadouts', capabilityContract: 'audio.voice.convert' })).rejects.toBeDefined();
+  });
   it('preserves transcription-only music profiles when the App selects its Local configuration', async () => {
     const option = { loadoutRef: 'loadout-transcribe-1', label: 'Music transcription', capabilityContract: 'music.transcribe',
       implementation: { implementationId: 'transcription.impl', driverId: 'transcription.driver', driverDialect: 'transcription/v1' },

@@ -1026,6 +1026,7 @@ type ImageInvocationDriver interface {
 // options are translated by the exact Driver, never selected by the Host.
 type MusicInvocationPlan struct {
 	transcription                  *musicTranscriptionPlan
+	voiceConvert                   *voiceConvertPlan
 	requestJSON                    []byte
 	requestJSONPath                string
 	scoreInput                     []byte
@@ -1614,6 +1615,7 @@ func NewProductionRegistry() *Registry {
 		{CapabilityContract: VoiceCreateContract, Identity: Identity{ImplementationID: Qwen3VoiceCreateImplementationID, DriverID: Qwen3TTSDriverID, DriverDialect: Qwen3VoiceCreateDriverDialect}}:                                        Qwen3VoiceCreateDriver{},
 		{CapabilityContract: VoiceCreateContract, Identity: Identity{ImplementationID: Qwen3VoiceLibraryImplementationID, DriverID: Qwen3TTSDriverID, DriverDialect: Qwen3VoiceLibraryDriverDialect}}:                                      Qwen3VoiceLibraryDriver{},
 		{CapabilityContract: AudioSeparateContract, Identity: Identity{ImplementationID: DemucsImplementationID, DriverID: DemucsDriverID, DriverDialect: DemucsDriverDialect}}:                                                            DemucsDriver{},
+		{CapabilityContract: AudioSeparateContract, Identity: Identity{ImplementationID: HTDemucsImplementationID, DriverID: HTDemucsDriverID, DriverDialect: HTDemucsDriverDialect}}:                                                      HTDemucsAudioCppDriver{},
 		{CapabilityContract: TextAnnotateContract, Identity: Identity{ImplementationID: SpacyImplementationID, DriverID: SpacyDriverID, DriverDialect: SpacyDriverDialect}}:                                                                SpacyDriver{},
 		{CapabilityContract: AudioTranscribeContract, Identity: Identity{ImplementationID: Qwen3ASRAlignedImplementationID, DriverID: Qwen3ASRAlignedDriverID, DriverDialect: Qwen3ASRAlignedDriverDialect}}:                               Qwen3ASRAlignedDriver{},
 		{CapabilityContract: AudioTranscribeContract, Identity: Identity{ImplementationID: FasterWhisperImplementationID, DriverID: FasterWhisperDriverID, DriverDialect: FasterWhisperDriverDialect}}:                                     FasterWhisperDriver{},
@@ -1621,6 +1623,7 @@ func NewProductionRegistry() *Registry {
 		{CapabilityContract: AudioTranscribeContract, Identity: Identity{ImplementationID: Qwen3ASRTransformersImplementationID, DriverID: Qwen3ASRTransformersDriverID, DriverDialect: Qwen3ASRTransformersDriverDialect}}:                Qwen3ASRTransformersDriver{},
 		{CapabilityContract: MiniMaxMusic3CapabilityContract, Identity: Identity{ImplementationID: YuE2ImplementationID, DriverID: YuE2DriverID, DriverDialect: YuE2DriverDialect}}:                                                        YuE2AudioCppDriver{},
 		{CapabilityContract: MusicTranscribeCapabilityContract, Identity: Identity{ImplementationID: SheetSage2ImplementationID, DriverID: SheetSage2DriverID, DriverDialect: SheetSage2DriverDialect}}:                                    SheetSage2AudioCppDriver{},
+		{CapabilityContract: VoiceConvertCapabilityContract, Identity: Identity{ImplementationID: VeVo2ImplementationID, DriverID: VeVo2DriverID, DriverDialect: VeVo2DriverDialect}}:                                                      VeVo2AudioCppDriver{},
 		{CapabilityContract: MiniMaxMusic3CapabilityContract, Identity: Identity{ImplementationID: MiniMaxMusic3ImplementationID, DriverID: MiniMaxMusic3DriverID, DriverDialect: MiniMaxMusic3DriverDialect}}:                             MiniMaxMusic3AudioCppDriver{},
 	}
 	for key, driver := range audioCppSpeechProductionDrivers() {

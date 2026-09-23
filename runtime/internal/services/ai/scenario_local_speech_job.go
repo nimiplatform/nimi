@@ -183,8 +183,15 @@ func (s *Service) runLocalSpeechScenarioJob(ctx context.Context, jobID string, t
 		transcription, err = s.captureScenarioTranscriptionResult(ctx, effective.scenarioType, bound, effective.transcribePlan != nil && effective.transcribePlan.Request().GetTimestamps())
 	}
 	if err == nil && effective.scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SEPARATE {
-		if len(bound) == 2 {
+		if len(bound) >= 2 {
 			separation = &runtimev1.AudioSeparation{VocalsArtifactId: bound[0].GetArtifactId(), BackgroundArtifactId: bound[1].GetArtifactId()}
+			if effective.separatePlan != nil && effective.separatePlan.IncludeInstrumentParts() && len(bound) == 5 {
+				separation.InstrumentParts = []*runtimev1.AudioInstrumentPart{
+					{Part: runtimev1.AudioInstrumentPartKind_AUDIO_INSTRUMENT_PART_KIND_DRUMS, ArtifactId: bound[2].GetArtifactId()},
+					{Part: runtimev1.AudioInstrumentPartKind_AUDIO_INSTRUMENT_PART_KIND_BASS, ArtifactId: bound[3].GetArtifactId()},
+					{Part: runtimev1.AudioInstrumentPartKind_AUDIO_INSTRUMENT_PART_KIND_OTHER, ArtifactId: bound[4].GetArtifactId()},
+				}
+			}
 		}
 		err = localexecution.ValidateAudioSeparation(separation, bound)
 	}

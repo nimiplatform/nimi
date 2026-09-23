@@ -164,6 +164,82 @@ export function validateStudioHistoryResult(value: unknown, path: string): void 
         expected.delete(artifact.relativePath);
       }
     }
+    if (value.voiceConversion !== undefined) {
+      const voice = value.voiceConversion;
+      if (value.musicGeneration !== undefined || value.musicTranscription !== undefined || !isJsonObject(voice) || !isJsonObject(voice.sourceInfo)
+        || !isJsonObject(voice.inputRange) || !isJsonObject(voice.vocalInfo) || !isJsonObject(voice.vocal) || !Array.isArray(value.artifacts)
+        || !['EXACT', 'MODEL_FRAME_ROUNDING'].includes(String(voice.lengthRelation))) historyError(path, 'requires complete voice conversion metadata');
+      validateManagedArtifact(voice.sourceVocal, `${path}.sourceVocal`);
+      if (!isJsonObject(voice.sourceVocal) || voice.sourceVocal.mediaType !== 'audio/wav') historyError(path, 'requires saved canonical source vocal');
+      if (voice.targetVoice !== undefined) {
+        validateManagedArtifact(voice.targetVoice, `${path}.targetVoice`);
+        if (!isJsonObject(voice.targetVoice) || voice.targetVoice.mediaType !== 'audio/wav') historyError(path, 'requires saved canonical target voice');
+      }
+      const source = voice.sourceInfo;
+      const vocal = voice.vocalInfo;
+      for (const key of ['sampleRateHz', 'channels', 'frameCount', 'durationMs']) {
+        if (typeof source[key] !== 'number' || !Number.isSafeInteger(source[key])) historyError(path, 'has invalid voice conversion source facts');
+        if (typeof vocal[key] !== 'number' || !Number.isSafeInteger(vocal[key])) historyError(path, 'has invalid voice conversion vocal facts');
+      }
+      for (const audio of [source, vocal]) {
+        if (Number(audio.sampleRateHz) < 8000 || Number(audio.sampleRateHz) > 96000 || ![1, 2].includes(Number(audio.channels))
+          || Number(audio.frameCount) < 1 || Number(audio.frameCount) > Number(audio.sampleRateHz) * 600
+          || audio.durationMs !== Math.floor(Number(audio.frameCount) * 1000 / Number(audio.sampleRateHz))) historyError(path, 'has inconsistent voice conversion facts');
+      }
+      const range = voice.inputRange;
+      if (!Number.isSafeInteger(range.startFrame) || !Number.isSafeInteger(range.endFrame) || Number(range.startFrame) < 0
+        || Number(range.endFrame) > Number(source.frameCount) || Number(range.startFrame) >= Number(range.endFrame)) historyError(path, 'has an invalid voice conversion range');
+      const sourceRangeDurationMs = Math.floor((Number(range.endFrame) - Number(range.startFrame)) * 1000 / Number(source.sampleRateHz));
+      if (typeof voice.durationDeltaMs !== 'number' || !Number.isSafeInteger(voice.durationDeltaMs)
+        || voice.durationDeltaMs !== Number(vocal.durationMs) - sourceRangeDurationMs) historyError(path, 'has an inconsistent voice conversion duration delta');
+      if (voice.lengthRelation === 'EXACT' && voice.durationDeltaMs !== 0) historyError(path, 'has an inconsistent voice conversion length relation');
+      if (voice.lengthRelation === 'MODEL_FRAME_ROUNDING' && Math.abs(Number(voice.durationDeltaMs)) >= 1000) historyError(path, 'has an inconsistent voice conversion length relation');
+      validateManagedArtifact(voice.vocal, `${path}.vocal`);
+      if (!isJsonObject(voice.vocal) || voice.vocal.mediaType !== 'audio/wav') historyError(path, 'does not retain its converted vocal');
+      const vocalPath = requiredString(voice.vocal.relativePath, `${path}.vocal.relativePath`);
+      if (value.artifacts.length !== 1
+        || !value.artifacts.some((artifact) => isJsonObject(artifact) && artifact.relativePath === vocalPath && artifact.mediaType === 'audio/wav')) {
+        historyError(path, 'does not retain its converted vocal');
+      }
+    }
+    if (value.audioSeparation !== undefined) {
+      const separation = value.audioSeparation;
+      if (value.musicGeneration !== undefined || value.musicTranscription !== undefined || value.voiceConversion !== undefined
+        || !isJsonObject(separation) || !isJsonObject(separation.vocals) || !isJsonObject(separation.background) || !Array.isArray(value.artifacts)) {
+        historyError(path, 'requires complete audio separation metadata');
+      }
+      validateManagedArtifact(separation.sourceAudio, `${path}.sourceAudio`);
+      if (!isJsonObject(separation.sourceAudio) || separation.sourceAudio.mediaType !== 'audio/wav') historyError(path, 'requires saved canonical source audio');
+      validateManagedArtifact(separation.vocals, `${path}.vocals`);
+      validateManagedArtifact(separation.background, `${path}.background`);
+      if (!isJsonObject(separation.vocals) || separation.vocals.mediaType !== 'audio/wav'
+        || !isJsonObject(separation.background) || separation.background.mediaType !== 'audio/wav') historyError(path, 'does not retain its separation stems');
+      const vocalsPath = requiredString(separation.vocals.relativePath, `${path}.vocals.relativePath`);
+      const backgroundPath = requiredString(separation.background.relativePath, `${path}.background.relativePath`);
+      if (vocalsPath === backgroundPath) historyError(path, 'has identical vocal and background stems');
+      const parts = separation.instrumentParts === undefined ? [] : separation.instrumentParts;
+      if (!Array.isArray(parts) || parts.length > 3) historyError(path, 'has invalid instrument parts');
+      const expected = new Map<string, string>([[vocalsPath, 'audio/wav'], [backgroundPath, 'audio/wav']]);
+      const kinds = new Set<string>();
+      for (const part of parts) {
+        if (!isJsonObject(part) || !['DRUMS', 'BASS', 'OTHER'].includes(String(part.kind)) || kinds.has(String(part.kind))) {
+          historyError(path, 'has an invalid instrument part');
+        }
+        kinds.add(String(part.kind));
+        validateManagedArtifact(part.artifact, `${path}.instrumentParts.artifact`);
+        if (!isJsonObject(part.artifact) || part.artifact.mediaType !== 'audio/wav') historyError(path, 'does not retain its instrument stem');
+        const partPath = requiredString(part.artifact.relativePath, `${path}.instrumentParts.artifact.relativePath`);
+        if (expected.has(partPath)) historyError(path, 'duplicates a separation stem');
+        expected.set(partPath, 'audio/wav');
+      }
+      if (value.artifacts.length !== expected.size) historyError(path, 'does not retain its complete separation');
+      for (const artifact of value.artifacts) {
+        if (!isJsonObject(artifact) || typeof artifact.relativePath !== 'string' || expected.get(artifact.relativePath) !== artifact.mediaType) {
+          historyError(path, 'has mismatched separation artifacts');
+        }
+        expected.delete(artifact.relativePath);
+      }
+    }
     if (value.musicGeneration !== undefined) {
       const music = value.musicGeneration;
       if (!isJsonObject(music) || !isJsonObject(music.audioInfo) || !Array.isArray(value.artifacts)) historyError(path, 'requires complete music metadata');

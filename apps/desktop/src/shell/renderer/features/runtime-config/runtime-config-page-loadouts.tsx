@@ -1523,6 +1523,7 @@ export function loadoutCapabilityLabelKey(capabilityContract: string): string {
     case 'video.generate': return 'runtimeConfig.loadouts.capability.videoGenerate';
     case 'music.generate': return 'runtimeConfig.loadouts.capability.musicGenerate';
     case 'music.transcribe': return 'runtimeConfig.loadouts.capability.musicTranscribe';
+    case 'audio.voice.convert': return 'runtimeConfig.loadouts.capability.audioVoiceConvert';
     default: return 'runtimeConfig.loadouts.capability.other';
   }
 }

@@ -461,6 +461,7 @@
       "videoGenerate": "Video generation",
       "musicGenerate": "Music generation",
       "musicTranscribe": "Music transcription",
+      "audioVoiceConvert": "Voice conversion",
       "other": "Other local AI capability",
       "textAnnotate": "Language analysis",
       "audioSeparate": "Vocals and background"
@@ -478,6 +479,7 @@
       "videoGenerate": "Generate video from a prompt",
       "musicGenerate": "Generate music and soundtracks",
       "musicTranscribe": "Estimate melody, harmony and scores from a recording",
+      "audioVoiceConvert": "Retarget a singing performance to a different voice",
       "other": "Other local AI capability",
       "textAnnotate": "Identify tokens, parts of speech, dependencies, and sentence boundaries",
       "audioSeparate": "Separate vocals from background audio while preserving timing"
@@ -1508,6 +1510,7 @@
     "videoGenerate": "Video generation",
     "musicGenerate": "Music generation",
     "musicTranscribe": "Music transcription",
+    "audioVoiceConvert": "Voice conversion",
     "voiceCreate": "Voice creation",
     "textAnnotate": "Language analysis",
     "audioSeparate": "Vocals and background"
@@ -1931,6 +1934,7 @@
       "videoGenerate": "Video Generation",
       "musicGenerate": "Music Generation",
       "musicTranscribe": "Music transcription",
+      "audioVoiceConvert": "Voice conversion",
       "tts": "Speech Synthesis",
       "stt": "Speech Recognition",
       "voiceCreate": "Voice Creation"
@@ -2095,6 +2099,7 @@
       "audio-separate": "Separate vocals and accompaniment to prepare audio for editing.",
       "music-generate": "Generate music and audio ideas in supported creative apps.",
       "music-transcribe": "Estimate a score and musical events from an existing recording, then review them alongside the original audio.",
+      "audio-voice-convert": "Retarget an existing singing performance to a different voice while keeping its melody, lyrics and timing.",
       "video-generate": "Create video with the inputs and controls supported by the selected model.",
       "voice-create": "Create reusable voices from supported voice descriptions or reference recordings.",
       "text-annotate": "Analyze language structure for apps that process text.",
@@ -2310,6 +2315,7 @@
       "video-generate": "Generate video",
       "music-generate": "Generate music",
       "music-transcribe": "Estimate a score from audio",
+      "audio-voice-convert": "Convert a vocal to another voice",
       "voice-create": "Create voices",
       "audio-separate": "Separate audio tracks",
       "text-annotate": "Analyze and annotate text",

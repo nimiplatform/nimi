@@ -1,11 +1,13 @@
-import { Image as ImageIcon, Music2, Video, ScanSearch } from 'lucide-react';
+import { Image as ImageIcon, Music2, Video, ScanSearch, AudioWaveform, AudioLines } from 'lucide-react';
 import { StudioVisionParameterPanel, studioVisionLocateParameters } from './vision-parameters.js';
 import type { AIStudioModuleRegistration } from '../../ai-studio-core/module-registration.js';
 import { studioMediaDescriptors, type StudioMediaCapabilityId } from './descriptors.js';
 import { studioImageGenerateParameters, studioMusicGenerateParameters, studioVideoGenerateParameters } from './parameters.js';
 import { StudioMediaParameterPanel } from './parameter-panel.js';
 import { MusicTranscriptionFields } from './music-transcription-parameters.js';
-import { studioMusicTranscribeParameters } from './parameters.js';
+import { VoiceConvertFields } from './voice-convert-parameters.js';
+import { AudioSeparateFields } from './audio-separate-parameters.js';
+import { studioAudioSeparateParameters, studioMusicTranscribeParameters, studioVoiceConvertParameters } from './parameters.js';
 
 export const studioMediaModule = Object.freeze({
   id: 'studio-media', navigationLabel: 'Media', order: 20,
@@ -17,6 +19,22 @@ export const studioMediaModule = Object.freeze({
       },
       preset: { id: 'transcribe-recording', label: 'Transcribe a recording', prompt: '' },
       runtimeMethod: 'kit.generation.runRuntimeMusicTranscribe', parameters: studioMusicTranscribeParameters, parameterPanel: MusicTranscriptionFields,
+    },
+    {
+      descriptor: studioMediaDescriptors[5], icon: AudioWaveform,
+      profile: {
+        studioTag: 'Music', inputTitleKey: 'Studio.profiles.voiceConvert.inputTitle', inputPlaceholderKey: 'Studio.profiles.voiceConvert.inputPlaceholder', inputKind: 'none', supportsAttachments: false, controls: [], primaryLabelKey: 'Studio.profiles.voiceConvert.primaryLabel', primaryRunningLabelKey: 'Studio.profiles.voiceConvert.primaryRunningLabel', resultTitle: 'Converted vocal', emptyTitleKey: 'Studio.profiles.voiceConvert.emptyTitle', emptyHintKey: 'Studio.profiles.voiceConvert.emptyHint', resultKind: 'artifacts', footnoteKey: 'Studio.profiles.voiceConvert.footnote',
+      },
+      preset: { id: 'convert-singing-voice', label: 'Convert a singing voice', prompt: '' },
+      runtimeMethod: 'kit.generation.runRuntimeVoiceConvert', parameters: studioVoiceConvertParameters, parameterPanel: VoiceConvertFields,
+    },
+    {
+      descriptor: studioMediaDescriptors[6], icon: AudioLines,
+      profile: {
+        studioTag: 'Music', inputTitleKey: 'Studio.profiles.audioSeparate.inputTitle', inputPlaceholderKey: 'Studio.profiles.audioSeparate.inputPlaceholder', inputKind: 'none', supportsAttachments: false, controls: [], primaryLabelKey: 'Studio.profiles.audioSeparate.primaryLabel', primaryRunningLabelKey: 'Studio.profiles.audioSeparate.primaryRunningLabel', resultTitle: 'Separated stems', emptyTitleKey: 'Studio.profiles.audioSeparate.emptyTitle', emptyHintKey: 'Studio.profiles.audioSeparate.emptyHint', resultKind: 'artifacts', footnoteKey: 'Studio.profiles.audioSeparate.footnote',
+      },
+      preset: { id: 'separate-vocals-background', label: 'Separate vocals and background', prompt: '' },
+      runtimeMethod: 'kit.generation.runRuntimeAudioSeparation', parameters: studioAudioSeparateParameters, parameterPanel: AudioSeparateFields,
     },
     {
       descriptor: studioMediaDescriptors[3], icon: ScanSearch,

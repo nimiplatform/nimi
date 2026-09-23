@@ -1,0 +1,32 @@
+format: nimicoding.authority/v2
+owner: team.runtime
+scope: runtime.ai-provider
+units:
+  - id: definition.nimi.runtime.ai-provider.voice-conversion
+    kind: definition
+    title: Voice conversion retargets an existing singing performance
+    meaning: audio.voice.convert transfers an owned canonical singing source to a different target voice while that source carries the melody, lyrics and timing. The target voice is an independent input and never a second source performance. Conversion produces one independent vocal artifact, never overwrites the source, never generates accompaniment, and does not assert lyric accuracy, naturalness or listener identity of the result.
+  - id: rule.nimi.runtime.ai-provider.voice-conversion
+    kind: rule
+    title: Voice conversion has bounded typed inputs and one owned vocal output
+    modality: must
+    statement: AUDIO_VOICE_CONVERT uses audio.voice.convert and MODAL_MUSIC with ASYNC_JOB through the existing protected ScenarioJob operation family. Input contains exactly sourceVocal as an owned canonical MusicAudioInput with sourceKind singing and exactly one target voice carrier, where that carrier is reference audio as an owned canonical MusicAudioInput, a Runtime-projected presetVoiceId, or a compatible voiceAssetId. Carriers never substitute for each other and no prompt, lyrics, emotion, energy, style text or free-form instruction is accepted. Runtime authorizes and captures the immutable source vocal, target voice snapshot, source frame facts, requested range, selected exact Driver and complete ResolvedAssembly before publication. An optional explicit integer semitoneShift inside the declared implementation range requests a real pitch shift; absence or zero preserves the source key and implementations never auto-shift into a reference range. Success atomically commits one converted vocal artifact distinct from the source and returns its reference with source artifact identity and AudioInfo, the converted input frame range, converted vocal AudioInfo, a bounded length relation and signed duration delta derived from real output facts. Canonical audio is bounded to 600 seconds and 512 MiB per input with missing input-capability projection meaning unknown. The original source and its accompaniment stay unchanged; the result contains no generated audio beyond the converted vocal and no invented confidence or identity claim.
+    condition: Whenever Runtime, SDK, Kit or a protected App admits, executes or projects audio.voice.convert.
+    failure: Reject unowned or noncanonical source or target input, mixed target carriers, invalid ranges or closed-set fields, unsupported kind or shift values, malformed output or missing artifacts; never publish partial success, a copied source vocal, a synthesized substitute voice or a pseudo-conversion.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.capability-contract
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.canonical-audio
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.voice-conversion
+  - id: rule.nimi.runtime.ai-provider.voice-conversion-length
+    kind: rule
+    title: Converted vocal length differences are reported not repaired
+    modality: must
+    statement: A converted vocal reports its measured output sample rate, channel count, frame count and duration together with the analyzed source range and a bounded length relation of exact or model-frame-rounding plus a signed duration delta in milliseconds computed from those measured facts as the reported vocal duration minus the analyzed range duration, each the floored milliseconds of its frame count at its own sample rate, so every Runtime, SDK and carrier projection derives the same value; exact means the two durations are equal. Native source chunking and crossfades may round the tail inside the implementation's own frame grid; Runtime never trims, pads, time-stretches or splices the converted vocal to force equal frame counts with the source or any accompaniment, and never reports an unverified alignment. Product mixing must treat a reported tail difference as real input and may align tracks only through an explicit visible derived operation.
+    condition: Whenever a voice conversion result is produced, projected or consumed for mixing.
+    failure: Reject inconsistent output facts or an absent length relation instead of inventing exact alignment, and never hide a real tail difference behind silent truncation, speed change or moved segments.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.voice-conversion

@@ -4035,6 +4035,8 @@ pub struct MusicInputCapabilities {
     pub generation: ::prost::alloc::vec::Vec<MusicGenerationInputProfile>,
     #[prost(message, repeated, tag = "2")]
     pub transcription: ::prost::alloc::vec::Vec<MusicTranscriptionInputProfile>,
+    #[prost(message, repeated, tag = "3")]
+    pub voice_convert: ::prost::alloc::vec::Vec<VoiceConvertInputProfile>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct MusicTranscriptionInputProfile {
@@ -4050,6 +4052,32 @@ pub struct MusicTranscriptionInputProfile {
     pub max_source_bytes: u32,
     #[prost(bool, tag = "5")]
     pub supports_range: bool,
+}
+/// One legal voice-conversion input combination of the exact implementation.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct VoiceConvertInputProfile {
+    /// singing
+    #[prost(string, repeated, tag = "1")]
+    pub source_kinds: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// reference-audio | preset | voice-asset
+    #[prost(string, repeated, tag = "2")]
+    pub target_kinds: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(uint32, tag = "3")]
+    pub max_source_seconds: u32,
+    #[prost(uint32, tag = "4")]
+    pub max_target_seconds: u32,
+    #[prost(bool, tag = "5")]
+    pub supports_range: bool,
+    #[prost(bool, tag = "6")]
+    pub supports_semitone_shift: bool,
+    #[prost(int32, tag = "7")]
+    pub min_semitone_shift: i32,
+    #[prost(int32, tag = "8")]
+    pub max_semitone_shift: i32,
+    #[prost(uint32, tag = "9")]
+    pub max_source_bytes: u32,
+    #[prost(uint32, tag = "10")]
+    pub max_target_bytes: u32,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AiConfigLocalResourceProjection {
@@ -5505,15 +5533,94 @@ pub struct AudioSeparateScenarioSpec {
     pub mime_type: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "2")]
     pub audio_source: ::core::option::Option<SpeechTranscriptionAudioSource>,
+    /// Owned canonical audio source, mutually exclusive with audio_source. This
+    /// is the only carrier for sources beyond the inline byte ceiling.
+    #[prost(message, optional, tag = "3")]
+    pub source_audio: ::core::option::Option<MusicAudioInput>,
+    /// Requests non-vocal instrument stems. They are returned only when the
+    /// selected implementation actually produced them.
+    #[prost(bool, tag = "4")]
+    pub include_instrument_parts: bool,
 }
-/// The identities refer to the two committed artifacts of this same Job.
-/// Sample rate, channels and duration are carried by those artifact records.
+/// One committed non-vocal stem of a completed separation Job.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AudioInstrumentPart {
+    #[prost(enumeration = "AudioInstrumentPartKind", tag = "1")]
+    pub part: i32,
+    #[prost(string, tag = "2")]
+    pub artifact_id: ::prost::alloc::string::String,
+}
+/// The identities refer to committed artifacts of this same Job. Sample rate,
+/// channels and duration are carried by those artifact records. Instrument
+/// parts are present only when requested and actually produced.
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AudioSeparation {
     #[prost(string, tag = "1")]
     pub vocals_artifact_id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub background_artifact_id: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "3")]
+    pub instrument_parts: ::prost::alloc::vec::Vec<AudioInstrumentPart>,
+}
+/// The target voice is an independent input. Carriers never substitute for
+/// each other.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct VoiceConvertTargetVoice {
+    #[prost(oneof = "voice_convert_target_voice::Target", tags = "1, 2, 3")]
+    pub target: ::core::option::Option<voice_convert_target_voice::Target>,
+}
+/// Nested message and enum types in `VoiceConvertTargetVoice`.
+pub mod voice_convert_target_voice {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Target {
+        #[prost(message, tag = "1")]
+        ReferenceAudio(super::MusicAudioInput),
+        #[prost(string, tag = "2")]
+        PresetVoiceId(::prost::alloc::string::String),
+        #[prost(string, tag = "3")]
+        VoiceAssetId(::prost::alloc::string::String),
+    }
+}
+/// Voice conversion retargets an existing singing performance to a different
+/// voice. Source melody, lyrics and timing stay with the source vocal; no
+/// accompaniment is generated and the source is never overwritten.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AudioVoiceConvertScenarioSpec {
+    #[prost(message, optional, tag = "1")]
+    pub source_vocal: ::core::option::Option<MusicAudioInput>,
+    #[prost(enumeration = "VoiceConvertSourceKind", tag = "2")]
+    pub source_kind: i32,
+    #[prost(message, optional, tag = "3")]
+    pub target_voice: ::core::option::Option<VoiceConvertTargetVoice>,
+    /// Explicit semitone shift of the converted singing. Zero preserves the
+    /// source key; implementations never auto-shift into a reference range.
+    #[prost(int32, optional, tag = "4")]
+    pub semitone_shift: ::core::option::Option<i32>,
+}
+/// References identify committed outputs of this same Job.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct VoiceConversion {
+    #[prost(string, tag = "1")]
+    pub vocal_artifact_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub source_artifact_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub source_info: ::core::option::Option<LocalAppAudioInfo>,
+    #[prost(message, optional, tag = "4")]
+    pub input_range: ::core::option::Option<AudioFrameRange>,
+    #[prost(message, optional, tag = "5")]
+    pub vocal_info: ::core::option::Option<LocalAppAudioInfo>,
+    #[prost(enumeration = "VoiceConversionLengthRelation", tag = "6")]
+    pub length_relation: i32,
+    #[prost(int64, tag = "7")]
+    pub duration_delta_ms: i64,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AudioVoiceConvertResult {
+    #[prost(message, repeated, tag = "1")]
+    pub artifacts: ::prost::alloc::vec::Vec<ScenarioArtifact>,
+    #[prost(message, optional, tag = "2")]
+    pub conversion: ::core::option::Option<VoiceConversion>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct WorldGenerateAssetSource {
@@ -5839,7 +5946,7 @@ pub struct VisionLocateResult {
 pub struct ScenarioSpec {
     #[prost(
         oneof = "scenario_spec::Spec",
-        tags = "1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14, 15, 16, 17"
+        tags = "1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18"
     )]
     pub spec: ::core::option::Option<scenario_spec::Spec>,
 }
@@ -5877,6 +5984,8 @@ pub mod scenario_spec {
         TextAnnotate(super::TextAnnotateScenarioSpec),
         #[prost(message, tag = "17")]
         MusicTranscribe(super::MusicTranscribeScenarioSpec),
+        #[prost(message, tag = "18")]
+        AudioVoiceConvert(super::AudioVoiceConvertScenarioSpec),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -6093,7 +6202,7 @@ pub struct WorldGenerateResult {
 pub struct ScenarioOutput {
     #[prost(
         oneof = "scenario_output::Output",
-        tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13"
+        tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14"
     )]
     pub output: ::core::option::Option<scenario_output::Output>,
 }
@@ -6127,6 +6236,8 @@ pub mod scenario_output {
         TextAnnotation(super::TextAnnotationResult),
         #[prost(message, tag = "13")]
         MusicTranscribe(super::MusicTranscribeResult),
+        #[prost(message, tag = "14")]
+        AudioVoiceConvert(super::AudioVoiceConvertResult),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -6454,13 +6565,14 @@ pub struct SubmitLocalAppScenarioJobRequest {
     /// capability-owned default; no other ScenarioRequestHead field is exposed.
     #[prost(int32, tag = "9")]
     pub timeout_ms: i32,
-    /// Optional owner-scoped identity for music generation or transcription.
-    /// Reuse with different input is rejected; lookup never executes work.
+    /// Optional owner-scoped identity for music generation, transcription or
+    /// voice conversion. Reuse with different input is rejected; lookup never
+    /// executes work.
     #[prost(string, tag = "16")]
     pub client_submission_id: ::prost::alloc::string::String,
     #[prost(
         oneof = "submit_local_app_scenario_job_request::Spec",
-        tags = "1, 2, 3, 4, 7, 8, 10, 11, 12, 13, 14, 15, 17"
+        tags = "1, 2, 3, 4, 7, 8, 10, 11, 12, 13, 14, 15, 17, 18"
     )]
     pub spec: ::core::option::Option<submit_local_app_scenario_job_request::Spec>,
 }
@@ -6494,6 +6606,8 @@ pub mod submit_local_app_scenario_job_request {
         TextAnnotate(super::TextAnnotateScenarioSpec),
         #[prost(message, tag = "17")]
         MusicTranscribe(super::MusicTranscribeScenarioSpec),
+        #[prost(message, tag = "18")]
+        AudioVoiceConvert(super::AudioVoiceConvertScenarioSpec),
     }
 }
 /// Trimmed Job projection for Local App consumption: status, progress, typed
@@ -6552,6 +6666,9 @@ pub struct LocalAppScenarioJob {
     pub music_generation: ::core::option::Option<MusicGeneration>,
     #[prost(message, optional, tag = "21")]
     pub music_transcription: ::core::option::Option<MusicTranscription>,
+    /// Present only for a completed AUDIO_VOICE_CONVERT Job.
+    #[prost(message, optional, tag = "22")]
+    pub voice_conversion: ::core::option::Option<VoiceConversion>,
 }
 /// Trimmed voice asset catalog projection. Provider, model, provider voice
 /// ref, and owner identity fields are never projected.
@@ -6736,16 +6853,18 @@ pub struct ReadLocalAppArtifactResponse {
     #[prost(int64, tag = "3")]
     pub size_bytes: i64,
 }
-/// Bounded single-message image upload for the calling Local App owner. The
-/// protected Local App transport reserves enough receive capacity for this
-/// exact 32 MiB operation; the trimmed unary shape avoids caller-supplied owner
-/// metadata and chunk state while preserving UploadArtifact owner custody.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppCanonicalAudioPreparation {
     /// Zero preserves the source rate. A nonzero value is an explicit conversion
     /// of an already canonical source into a new artifact, never an overwrite.
     #[prost(uint32, tag = "1")]
     pub target_sample_rate_hz: u32,
+    /// Explicit channel-domain conversion of an already canonical source into a
+    /// new derived artifact. PRESERVE keeps the source channel count; a conversion
+    /// is legal only when it matches the source channel count and never mixes
+    /// with an unsupported source shape.
+    #[prost(enumeration = "CanonicalChannelMode", tag = "2")]
+    pub channel_mode: i32,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppAudioInfo {
@@ -7021,6 +7140,8 @@ pub struct ScenarioJob {
     pub music_generation: ::core::option::Option<MusicGeneration>,
     #[prost(message, optional, tag = "32")]
     pub music_transcription: ::core::option::Option<MusicTranscription>,
+    #[prost(message, optional, tag = "33")]
+    pub voice_conversion: ::core::option::Option<VoiceConversion>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SubmitScenarioJobRequest {
@@ -7380,6 +7501,7 @@ pub enum ScenarioType {
     AudioSeparate = 15,
     TextAnnotate = 16,
     MusicTranscribe = 17,
+    AudioVoiceConvert = 18,
 }
 impl ScenarioType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -7404,6 +7526,7 @@ impl ScenarioType {
             Self::AudioSeparate => "SCENARIO_TYPE_AUDIO_SEPARATE",
             Self::TextAnnotate => "SCENARIO_TYPE_TEXT_ANNOTATE",
             Self::MusicTranscribe => "SCENARIO_TYPE_MUSIC_TRANSCRIBE",
+            Self::AudioVoiceConvert => "SCENARIO_TYPE_AUDIO_VOICE_CONVERT",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -7425,6 +7548,7 @@ impl ScenarioType {
             "SCENARIO_TYPE_AUDIO_SEPARATE" => Some(Self::AudioSeparate),
             "SCENARIO_TYPE_TEXT_ANNOTATE" => Some(Self::TextAnnotate),
             "SCENARIO_TYPE_MUSIC_TRANSCRIBE" => Some(Self::MusicTranscribe),
+            "SCENARIO_TYPE_AUDIO_VOICE_CONVERT" => Some(Self::AudioVoiceConvert),
             _ => None,
         }
     }
@@ -8120,6 +8244,97 @@ impl MusicTranscriptionPart {
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
+pub enum AudioInstrumentPartKind {
+    Unspecified = 0,
+    Drums = 1,
+    Bass = 2,
+    Other = 3,
+}
+impl AudioInstrumentPartKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AUDIO_INSTRUMENT_PART_KIND_UNSPECIFIED",
+            Self::Drums => "AUDIO_INSTRUMENT_PART_KIND_DRUMS",
+            Self::Bass => "AUDIO_INSTRUMENT_PART_KIND_BASS",
+            Self::Other => "AUDIO_INSTRUMENT_PART_KIND_OTHER",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AUDIO_INSTRUMENT_PART_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "AUDIO_INSTRUMENT_PART_KIND_DRUMS" => Some(Self::Drums),
+            "AUDIO_INSTRUMENT_PART_KIND_BASS" => Some(Self::Bass),
+            "AUDIO_INSTRUMENT_PART_KIND_OTHER" => Some(Self::Other),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum VoiceConvertSourceKind {
+    Unspecified = 0,
+    Singing = 1,
+}
+impl VoiceConvertSourceKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "VOICE_CONVERT_SOURCE_KIND_UNSPECIFIED",
+            Self::Singing => "VOICE_CONVERT_SOURCE_KIND_SINGING",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "VOICE_CONVERT_SOURCE_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "VOICE_CONVERT_SOURCE_KIND_SINGING" => Some(Self::Singing),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum VoiceConversionLengthRelation {
+    Unspecified = 0,
+    Exact = 1,
+    ModelFrameRounding = 2,
+}
+impl VoiceConversionLengthRelation {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "VOICE_CONVERSION_LENGTH_RELATION_UNSPECIFIED",
+            Self::Exact => "VOICE_CONVERSION_LENGTH_RELATION_EXACT",
+            Self::ModelFrameRounding => {
+                "VOICE_CONVERSION_LENGTH_RELATION_MODEL_FRAME_ROUNDING"
+            }
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "VOICE_CONVERSION_LENGTH_RELATION_UNSPECIFIED" => Some(Self::Unspecified),
+            "VOICE_CONVERSION_LENGTH_RELATION_EXACT" => Some(Self::Exact),
+            "VOICE_CONVERSION_LENGTH_RELATION_MODEL_FRAME_ROUNDING" => {
+                Some(Self::ModelFrameRounding)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
 pub enum VisionLocateGeometry {
     Unspecified = 0,
     Box = 1,
@@ -8320,6 +8535,45 @@ impl MusicTranscriptionCompleteness {
             "MUSIC_TRANSCRIPTION_COMPLETENESS_UNKNOWN" => Some(Self::Unknown),
             "MUSIC_TRANSCRIPTION_COMPLETENESS_COMPLETE" => Some(Self::Complete),
             "MUSIC_TRANSCRIPTION_COMPLETENESS_TRUNCATED" => Some(Self::Truncated),
+            _ => None,
+        }
+    }
+}
+/// Bounded single-message image upload for the calling Local App owner. The
+/// protected Local App transport reserves enough receive capacity for this
+/// exact 32 MiB operation; the trimmed unary shape avoids caller-supplied owner
+/// metadata and chunk state while preserving UploadArtifact owner custody.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum CanonicalChannelMode {
+    Unspecified = 0,
+    /// Keep the source channel count unchanged.
+    Preserve = 1,
+    /// Duplicate one mono source channel into both output channels.
+    MonoToStereo = 2,
+    /// Average two stereo source channels into one output channel.
+    StereoToMono = 3,
+}
+impl CanonicalChannelMode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "CANONICAL_CHANNEL_MODE_UNSPECIFIED",
+            Self::Preserve => "CANONICAL_CHANNEL_MODE_PRESERVE",
+            Self::MonoToStereo => "CANONICAL_CHANNEL_MODE_MONO_TO_STEREO",
+            Self::StereoToMono => "CANONICAL_CHANNEL_MODE_STEREO_TO_MONO",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "CANONICAL_CHANNEL_MODE_UNSPECIFIED" => Some(Self::Unspecified),
+            "CANONICAL_CHANNEL_MODE_PRESERVE" => Some(Self::Preserve),
+            "CANONICAL_CHANNEL_MODE_MONO_TO_STEREO" => Some(Self::MonoToStereo),
+            "CANONICAL_CHANNEL_MODE_STEREO_TO_MONO" => Some(Self::StereoToMono),
             _ => None,
         }
     }

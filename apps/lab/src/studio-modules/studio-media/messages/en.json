@@ -21,6 +21,59 @@
     "range": "Original recording {{start}}–{{end}} s · {{hz}} Hz frame basis",
     "export": "Export selected file"
   },
+  "VoiceConvert": {
+    "running": "Preparing the audio or converting the voice…",
+    "configureInputs": "Choose a ready voice conversion configuration, import the source vocal and a target voice, and review the key shift.",
+    "inputHint": "MP3, WAV or FLAC · Source up to {{sourceSeconds}} s / {{sourceMib}} MiB · Target up to {{targetSeconds}} s / {{targetMib}} MiB",
+    "fileInvalid": "Choose an MP3, WAV or FLAC file within the selected configuration's size limit.",
+    "source": "Source vocal",
+    "chooseSource": "Import source vocal",
+    "sourceStart": "Source start (seconds, optional)",
+    "sourceEnd": "Source end (seconds, optional)",
+    "targetKind": "Target voice",
+    "targetKinds": { "reference-audio": "Reference audio", "preset": "Preset voice", "voice-asset": "Voice asset" },
+    "target": "Target reference audio",
+    "chooseTarget": "Import reference audio",
+    "targetStart": "Target start (seconds, optional)",
+    "targetEnd": "Target end (seconds, optional)",
+    "presetVoiceId": "Preset voice ID",
+    "voiceAsset": "Voice asset",
+    "selectVoiceAsset": "Select a local voice asset",
+    "noVoiceAssets": "No local voice assets",
+    "semitone": "Key shift (semitones, optional)",
+    "semitoneHint": "Leave blank or 0 to keep the source key; the key is never estimated automatically. A non-zero value shifts explicitly between -12 and +12 semitones.",
+    "semitoneInvalid": "Enter an integer semitone shift between -12 and 12, or leave it blank to keep the source key.",
+    "sameInput": "The source vocal and the target voice reference must be different recordings.",
+    "rangeHint": "Leave both blank for the whole recording. Frame positions always refer to the prepared canonical input.",
+    "preparationHint": "Audio is decoded to canonical PCM before submission. Stopping during preparation prevents the Job from starting once decoding finishes.",
+    "result": "Converted vocal",
+    "lengthRelation": "Length relation: {{relation}} · {{delta}} ms",
+    "length": { "EXACT": "exact", "MODEL_FRAME_ROUNDING": "model frame rounding" },
+    "sourceFacts": "Source vocal: {{hz}} Hz · {{channels}} channels · {{durationMs}} ms",
+    "vocalFacts": "Converted vocal: {{hz}} Hz · {{channels}} channels · {{durationMs}} ms",
+    "range": "Source range {{start}}–{{end}} s · {{hz}} Hz frame basis",
+    "derivation": "The inputs were prepared as derived canonical-PCM conversions (decode only) before submission. This App applies no hidden downmix, channel change, or sample-rate conversion, and the reported tail difference is shown as returned."
+  },
+  "AudioSeparate": {
+    "running": "Preparing the audio or separating stems…",
+    "configureInputs": "Choose a ready audio separation configuration and import a source recording.",
+    "inputHint": "MP3, WAV or FLAC · one recording to split into vocals and background",
+    "fileInvalid": "Choose a non-empty MP3, WAV or FLAC recording.",
+    "source": "Source recording",
+    "chooseSource": "Import recording",
+    "start": "Start (seconds, optional)",
+    "end": "End (seconds, optional)",
+    "rangeHint": "Leave both blank for the whole recording. Frame positions always refer to the prepared canonical input.",
+    "includeInstrumentParts": "Also return instrument stems (drums, bass, other)",
+    "instrumentPartsHint": "Instrument stems are returned only when requested and actually produced by the model — never as silent or substituted stand-ins.",
+    "preparationHint": "Audio is decoded to canonical PCM before submission. Stopping during preparation prevents the Job from starting once decoding finishes.",
+    "recoveryMissingJob": "This separation was recorded before its job was identified, so it cannot be recovered. Remove the record to abandon it.",
+    "result": "Separated stems",
+    "derivation": "The source was prepared as canonical PCM before submission. When its sample rate or channel layout differs from the selected implementation's input domain (HTDemucs: 44.1 kHz stereo), this App first requests one explicit derived conversion, and the source shown here is that converted input. No hidden downmix or channel change is applied; the stems are shown exactly as returned.",
+    "vocals": "Vocals",
+    "background": "Background",
+    "parts": { "DRUMS": "Drums", "BASS": "Bass", "OTHER": "Other instruments" }
+  },
   "VisionLocate": {
     "chooseImage": "Choose image",
     "replaceImage": "Replace image",
@@ -52,7 +105,9 @@
     "running": "Loading the model or locating targets…"
   },
   "Capabilities": {
+    "voiceConvert": { "label": "Voice conversion", "summary": "Retarget a singing performance to another voice while keeping its melody, lyrics and timing." },
     "musicTranscribe": { "label": "Music transcription", "summary": "Estimate a score and musical events from an existing recording." },
+    "audioSeparate": { "label": "Audio separation", "summary": "Split a recording into vocals and background, with optional real instrument stems." },
     "visionLocate": {
       "label": "Visual localization",
       "summary": "Describe an object or control in one image to get boxes or points."
@@ -72,12 +127,26 @@
   },
   "Studio": {
     "profiles": {
+      "voiceConvert": {
+        "inputTitle": "Convert a singing voice", "inputPlaceholder": "",
+        "primaryLabel": "Convert voice", "primaryRunningLabel": "Preparing or converting…",
+        "emptyTitle": "Turn a singing performance into another voice",
+        "emptyHint": "Open input settings, import the source vocal and a target voice, and review the key shift.",
+        "footnote": "The source vocal, the target voice and the converted vocal are saved together for comparison."
+      },
       "musicTranscribe": {
         "inputTitle": "Transcribe a recording", "inputPlaceholder": "",
         "primaryLabel": "Transcribe recording", "primaryRunningLabel": "Preparing or transcribing…",
         "emptyTitle": "Turn a recording into a draft score",
         "emptyHint": "Open input settings, import a recording, and choose the score content and output files.",
         "footnote": "The original audio and estimated score are saved together for comparison."
+      },
+      "audioSeparate": {
+        "inputTitle": "Separate vocals and background", "inputPlaceholder": "",
+        "primaryLabel": "Separate audio", "primaryRunningLabel": "Preparing or separating…",
+        "emptyTitle": "Split a recording into vocals and background",
+        "emptyHint": "Open input settings, import a recording, and choose whether to request instrument stems.",
+        "footnote": "The source recording and every returned stem are saved together for comparison."
       },
       "visionLocate": {
         "inputTitle": "Test visual localization",

@@ -142,6 +142,8 @@ export {
   ExecutionMode,
   MusicScoreFormat, MusicScoreConditioning, MusicGenerationTermination, MusicScoreOrigin,
   MusicTranscriptionFormat, MusicTranscriptionPart, MusicTranscriptionCompleteness,
+  VoiceConversionLengthRelation, VoiceConvertSourceKind,
+  AudioInstrumentPartKind, CanonicalChannelMode,
   FinishReason,
   LocalAppSessionState,
   ScenarioJobEventType,
@@ -367,7 +369,7 @@ export type { NimiLocalAppSpeechTranscript } from '@nimiplatform/sdk/app';
 export { validateNimiLocalAppAudioSeparation } from '@nimiplatform/sdk/app';
 export { validateNimiLocalAppArtifactUploadShellInput, validateNimiLocalAppArtifactUploadResult } from '@nimiplatform/sdk/app';
 export type { NimiLocalAppArtifactUploadShellInput, NimiLocalAppArtifactUploadResult, NimiLocalAppCanonicalAudioPreparation, NimiLocalAppAudioInfo } from '@nimiplatform/sdk/app';
-export type { NimiLocalAppAudioSeparation } from '@nimiplatform/sdk/app';
+export type { NimiLocalAppAudioSeparation, NimiLocalAppAudioInstrumentPart, NimiLocalAppAudioInstrumentPartKind } from '@nimiplatform/sdk/app';
 export { SpeechTranscriptStatus } from '@nimiplatform/sdk/runtime';
 
 export { validateNimiLocalAppTextAnnotationResult } from '@nimiplatform/sdk/app';
@@ -375,5 +377,6 @@ export type { NimiLocalAppTextAnnotationResult, NimiLocalAppTextAnnotationDocume
 
 export { validateNimiLocalAppMusicGenerateSpec, validateNimiLocalAppMusicGeneration, type NimiLocalAppMusicGenerateSpec, type NimiLocalAppMusicGeneration } from '@nimiplatform/sdk/app';
 
-export { projectMusicInputCapabilities, type NimiMusicInputCapabilities, type NimiMusicGenerationInputProfile, type NimiMusicTranscriptionInputProfile } from '@nimiplatform/sdk/app';
+export { projectMusicInputCapabilities, type NimiMusicInputCapabilities, type NimiMusicGenerationInputProfile, type NimiMusicTranscriptionInputProfile, type NimiVoiceConvertInputProfile } from '@nimiplatform/sdk/app';
 export { validateNimiLocalAppMusicTranscribeSpec, validateNimiLocalAppMusicTranscription, type NimiLocalAppMusicTranscribeSpec, type NimiLocalAppMusicTranscription } from '@nimiplatform/sdk/app';
+export { validateNimiLocalAppVoiceConvertSpec, validateNimiLocalAppVoiceConversion, type NimiLocalAppVoiceConvertSpec, type NimiLocalAppVoiceConversion, type NimiLocalAppVoiceConvertTargetVoice, type NimiLocalAppVoiceConvertSource, type NimiVoiceConvertSourceKind, type NimiVoiceConvertTargetKind, type NimiVoiceConversionLengthRelation } from '@nimiplatform/sdk/app';

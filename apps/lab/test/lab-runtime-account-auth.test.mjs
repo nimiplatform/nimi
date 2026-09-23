@@ -1416,6 +1416,317 @@ test('Lab transcription retains its canonical source and complete result across 
   assert.deepEqual(adoptions, ['source-canonical', 'score-1', 'timeline-1']);
 });
 
+test('Lab voice conversion retains its distinct inputs and complete result across lost Submit and reopen', async () => {
+  // Fault injection verifies recovery semantics; this is not model acceptance.
+  const { runLabCapability } = await importLabRuntime();
+  let entries = []; let submits = 0; let observations = 0; let preparations = 0; let capturedAI;
+  const adoptions = [];
+  const sourceInfo = { sampleRateHz: 48000, channels: 2, frameCount: 960000, durationMs: 20000 };
+  const targetInfo = { sampleRateHz: 48000, channels: 2, frameCount: 240000, durationMs: 5000 };
+  const vocalInfo = { sampleRateHz: 48000, channels: 2, frameCount: 432048, durationMs: 9001 };
+  const output = { ok: true, capabilityId: 'audio.voice.convert', message: 'converted vocal', output: {
+    kind: 'voice-conversion-artifacts', jobId: 'original-voice-convert-job', jobStatus: 'completed', artifactCount: 1,
+    artifacts: [{ artifactId: 'vocal-1', mimeType: 'audio/wav', sizeBytes: 8294444, sha256: 'b'.repeat(64),
+      durationMs: 9001, sampleRateHz: 48000, channels: 2, frameCount: 432048 }],
+    conversion: { vocalArtifactId: 'vocal-1', sourceArtifactId: 'source-canonical', sourceInfo,
+      inputRange: { startFrame: 48000, endFrame: 480000 }, vocalInfo, lengthRelation: 'MODEL_FRAME_ROUNDING', durationDeltaMs: 1 },
+  } };
+  const client = fakeLocalAppClient({
+    async submitScenarioJob(_spec, options) {
+      submits++; assert.equal(entries[0].sourceAudio.mediaType, 'audio/wav');
+      assert.equal(entries[0].targetAudio.mediaType, 'audio/wav');
+      assert.equal(options.clientSubmissionId, entries[0].clientSubmissionId); throw new Error('lost Submit response');
+    },
+    async adoptArtifact(input) {
+      adoptions.push(input.artifactId);
+      const artifact = output.output.artifacts.find(item => item.artifactId === input.artifactId);
+      const original = input.artifactId === 'source-canonical' ? { mediaType: 'audio/wav', sizeBytes: 7680058, sha256: 'a'.repeat(64) }
+        : input.artifactId === 'target-canonical' ? { mediaType: 'audio/wav', sizeBytes: 1920058, sha256: 'c'.repeat(64) }
+        : { mediaType: artifact.mimeType, sizeBytes: artifact.sizeBytes, sha256: artifact.sha256 };
+      return { relativePath: input.relativePath.replace(/\.asset$/u, '.bin'), mediaType: original.mediaType,
+        sizeBytes: original.sizeBytes, sha256: `sha256:${original.sha256}` };
+    },
+  });
+  client.storage.assets.stat = async (relativePath) => ({ relativePath,
+    mediaType: relativePath.endsWith('vocal.mp3') ? 'audio/mpeg' : 'audio/flac', sizeBytes: 1000 });
+  client.storage.assets.list = async () => ({ assets: [], nextCursor: '' });
+  client.storage.readJson = async path => { assert.equal(path, 'studio/voice-convert-recovery.json'); return { value: entries }; };
+  client.storage.writeJson = async (path, value) => { assert.equal(path, 'studio/voice-convert-recovery.json'); entries = structuredClone(value); return { value }; };
+  client.ai.artifacts.upload = async input => {
+    preparations++; assert.deepEqual(input.audioPreparation, { profile: 'canonical-pcm-v1' });
+    return preparations === 1
+      ? { artifactId: 'source-canonical', mimeType: 'audio/wav', sizeBytes: 7680058, audioInfo: sourceInfo }
+      : { artifactId: 'target-canonical', mimeType: 'audio/wav', sizeBytes: 1920058, audioInfo: targetInfo };
+  };
+  client.aiConfig = { get: async () => ({ effectiveSelections: [{ capabilityContract: 'audio.voice.convert', state: 'ready', resource: { oneofKind: 'local', local: { musicInput: { generation: [], voiceConvert: [{
+    sourceKinds: ['singing'], targetKinds: ['reference-audio', 'preset', 'voice-asset'], maxSourceSeconds: 600, maxTargetSeconds: 60,
+    supportsRange: true, supportsSemitoneShift: true, minSemitoneShift: -12, maxSemitoneShift: 12,
+    maxSourceBytes: 536870912, maxTargetBytes: 134217728 }] } } } }] }) };
+  client.ai.scenarioJobs.lookupSubmission = async () => ({ job: { jobId: 'original-voice-convert-job' } });
+  const dependencies = readyRuntimeDependencies(client, {
+    createScenarioJobClient(ai) { capturedAI = ai; return {}; },
+    runners: {
+      async voiceConvert(input) {
+        assert.equal(input.sourceKind, 'singing');
+        assert.deepEqual(input.sourceVocal.range, { startFrame: 48000, endFrame: 480000 });
+        assert.deepEqual(input.targetVoice, { kind: 'reference-audio', artifactId: 'target-canonical', range: { startFrame: 0, endFrame: 240000 } });
+        assert.equal(input.semitoneShift, 2);
+        await capturedAI.scenarioJobs.submit({}, {});
+      },
+      async voiceConversionObserve(input) { observations++; assert.equal(input.jobId, 'original-voice-convert-job'); return output; },
+    },
+  });
+  const failed = await runLabCapability({ capabilityId: 'audio.voice.convert', prompt: '', parameters: {
+    sourceRelativePath: 'input/vocal.mp3', sourceMimeType: 'audio/mpeg', sourceStartSeconds: 1, sourceEndSeconds: 10,
+    targetKind: 'reference-audio', targetRelativePath: 'input/target.flac', targetMimeType: 'audio/flac',
+    targetEndSeconds: 5, semitoneShift: 2 } }, dependencies);
+  assert.equal(failed.ok, false); assert.equal(submits, 1);
+  const recovery = { capabilityId: 'audio.voice.convert', prompt: '', parameters: { recoverySubmissionId: entries[0].clientSubmissionId } };
+  const recovered = await runLabCapability(recovery, dependencies);
+  assert.equal(recovered.ok, true, recovered.message);
+  assert.equal(recovered.output.artifacts.length, 1);
+  assert.equal(recovered.output.voiceConversion.lengthRelation, 'MODEL_FRAME_ROUNDING');
+  assert.equal(recovered.output.voiceConversion.durationDeltaMs, 1);
+  assert.equal(recovered.output.voiceConversion.sourceVocal.relativePath, entries[0].sourceAudio.relativePath);
+  assert.equal(recovered.output.voiceConversion.targetVoice.relativePath, entries[0].targetAudio.relativePath);
+  const reopened = await runLabCapability(recovery, dependencies);
+  assert.equal(reopened.ok, true, reopened.message);
+  assert.deepEqual(reopened.output.voiceConversion, recovered.output.voiceConversion);
+  assert.equal(submits, 1); assert.equal(preparations, 2); assert.equal(observations, 1);
+  assert.deepEqual(adoptions, ['source-canonical', 'target-canonical', 'vocal-1']);
+});
+
+test('Lab voice conversion refuses to merge identical source and target recordings', async () => {
+  // Identical prepared inputs must fail closed before Submit; this is not model acceptance.
+  const { runLabCapability } = await importLabRuntime();
+  let submits = 0;
+  const client = fakeLocalAppClient({
+    async submitScenarioJob() { submits++; throw new Error('must not submit'); },
+    async adoptArtifact(input) { return { relativePath: input.relativePath, mediaType: 'audio/wav', sizeBytes: 44,
+      sha256: `sha256:${'a'.repeat(64)}` }; },
+  });
+  client.storage.assets.stat = async (relativePath) => ({ relativePath, mediaType: 'audio/wav', sizeBytes: 1000 });
+  client.ai.artifacts.upload = async () => ({ artifactId: 'same-canonical', mimeType: 'audio/wav', sizeBytes: 44,
+    audioInfo: { sampleRateHz: 48000, channels: 1, frameCount: 48000, durationMs: 1000 } });
+  client.aiConfig = { get: async () => ({ effectiveSelections: [{ capabilityContract: 'audio.voice.convert', state: 'ready', resource: { oneofKind: 'local', local: { musicInput: { generation: [], voiceConvert: [{
+    sourceKinds: ['singing'], targetKinds: ['reference-audio'], maxSourceSeconds: 600, maxTargetSeconds: 60,
+    supportsRange: false, supportsSemitoneShift: false, minSemitoneShift: 0, maxSemitoneShift: 0,
+    maxSourceBytes: 536870912, maxTargetBytes: 134217728 }] } } } }] }) };
+  const result = await runLabCapability({ capabilityId: 'audio.voice.convert', prompt: '', parameters: {
+    sourceRelativePath: 'input/vocal.wav', sourceMimeType: 'audio/wav',
+    targetKind: 'reference-audio', targetRelativePath: 'input/vocal-copy.wav', targetMimeType: 'audio/wav' } },
+    readyRuntimeDependencies(client, { createScenarioJobClient() { return {}; },
+      runners: { async voiceConvert() { throw new Error('must not run'); } } }));
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'input-invalid');
+  assert.equal(submits, 0);
+});
+
+function audioSeparationStem(artifactId, digest) {
+  return { artifactId, mimeType: 'audio/wav', sizeBytes: 7680058, sha256: digest.repeat(64),
+    durationMs: 20000, sampleRateHz: 48000, channels: 2, frameCount: 960000 };
+}
+
+function audioSeparationRunnerOutput(jobId, instrumentParts) {
+  const artifacts = [audioSeparationStem('vocals-1', 'b'), audioSeparationStem('background-1', 'c'),
+    ...(instrumentParts ? [audioSeparationStem('drums-1', 'd'), audioSeparationStem('bass-1', 'e'), audioSeparationStem('other-1', 'f')] : [])];
+  return { ok: true, capabilityId: 'audio.separate', message: 'Audio separation returned vocals and background stems.', output: {
+    kind: 'audio-separation', jobId, jobStatus: 'completed', artifactCount: artifacts.length, artifacts,
+    separation: { vocalsArtifactId: 'vocals-1', backgroundArtifactId: 'background-1',
+      ...(instrumentParts ? { instrumentParts } : {}) },
+  } };
+}
+
+function fakeAudioSeparationClient(overrides = {}) {
+  let entries = overrides.entries ?? [];
+  const adoptions = [];
+  const client = fakeLocalAppClient({
+    async submitScenarioJob(_spec, options) {
+      overrides.onSubmit?.(options, entries);
+    },
+    async adoptArtifact(input) {
+      adoptions.push(input.artifactId);
+      const original = input.artifactId === 'source-converted';
+      const stem = audioSeparationRunnerOutput('job', true).output.artifacts.find(item => item.artifactId === input.artifactId);
+      return { relativePath: input.relativePath.replace(/\.asset$/u, '.bin'), mediaType: 'audio/wav',
+        sizeBytes: original ? 7680058 : stem.sizeBytes, sha256: `sha256:${original ? 'a'.repeat(64) : stem.sha256}` };
+    },
+  });
+  client.storage.assets.stat = async (relativePath) => ({ relativePath,
+    mediaType: relativePath.endsWith('.mp3') ? 'audio/mpeg' : 'audio/wav', sizeBytes: 1000 });
+  client.storage.assets.list = async () => ({ assets: [], nextCursor: '' });
+  client.storage.readJson = async path => { assert.equal(path, 'studio/audio-separation-recovery.json'); return { value: entries }; };
+  client.storage.writeJson = async (path, value) => { assert.equal(path, 'studio/audio-separation-recovery.json'); entries = structuredClone(value); return { value }; };
+  client.ai.artifacts.upload = async input => {
+    if (input.audioPreparation.targetSampleRateHz === 44100) {
+      assert.deepEqual(input.audioPreparation, { profile: 'canonical-pcm-v1', targetSampleRateHz: 44100, channelMode: 'PRESERVE' });
+      assert.deepEqual(input.source, { kind: 'artifact', artifactId: 'source-canonical' });
+      return { artifactId: 'source-converted', mimeType: 'audio/wav', sizeBytes: 7680058,
+        audioInfo: { sampleRateHz: 44100, channels: 2, frameCount: 882000, durationMs: 20000 } };
+    }
+    assert.deepEqual(input.audioPreparation, { profile: 'canonical-pcm-v1' });
+    return { artifactId: 'source-canonical', mimeType: 'audio/wav', sizeBytes: 7680058,
+      audioInfo: { sampleRateHz: 48000, channels: 2, frameCount: 960000, durationMs: 20000 } };
+  };
+  client.aiConfig = { get: async () => ({ effectiveSelections: [{ capabilityContract: 'audio.separate', state: 'ready', resource: { oneofKind: 'local', local: {} } }] }) };
+  return { client, adoptions, getEntries: () => entries };
+}
+
+test('Lab audio separation submits without a client submission identity and adopts every returned stem', async () => {
+  const { runLabCapability } = await importLabRuntime();
+  const output = audioSeparationRunnerOutput('separation-job-1', [{ kind: 'DRUMS', artifactId: 'drums-1' },
+    { kind: 'BASS', artifactId: 'bass-1' }, { kind: 'OTHER', artifactId: 'other-1' }]);
+  let submits = 0; let capturedAI;
+  const { client, adoptions, getEntries } = fakeAudioSeparationClient({
+    onSubmit(options, entries) {
+      submits++;
+      assert.deepEqual(options, {});
+      assert.equal(entries.length, 1);
+      assert.equal(entries[0].jobId, undefined);
+    },
+  });
+  const dependencies = readyRuntimeDependencies(client, {
+    createScenarioJobClient(ai) { capturedAI = ai; return {}; },
+    runners: {
+      async audioSeparate(input) {
+        assert.equal(input.mimeType, 'audio/wav');
+        assert.deepEqual(input.sourceAudio, { artifactId: 'source-converted', range: { startFrame: 44100, endFrame: 441000 } });
+        assert.equal(input.includeInstrumentParts, true);
+        assert.equal(input.appId, 'nimi.lab');
+        await capturedAI.scenarioJobs.submit({ type: 'audio-separate' }, {});
+        return output;
+      },
+    },
+  });
+  const result = await runLabCapability({ capabilityId: 'audio.separate', prompt: '', parameters: {
+    sourceRelativePath: 'input/mix.mp3', sourceMimeType: 'audio/mpeg', startSeconds: 1, endSeconds: 10, includeInstrumentParts: true } }, dependencies);
+  assert.equal(result.ok, true, result.message);
+  assert.equal(result.output.artifacts.length, 5);
+  assert.equal(result.output.artifactCount, 5);
+  const separation = result.output.audioSeparation;
+  assert.equal(separation.sourceAudio.mediaType, 'audio/wav');
+  assert.equal(separation.vocals.mediaType, 'audio/wav');
+  assert.equal(separation.background.sizeBytes, 7680058);
+  assert.deepEqual(separation.instrumentParts.map(part => part.kind), ['DRUMS', 'BASS', 'OTHER']);
+  assert.equal(separation.instrumentParts[0].artifact.mediaType, 'audio/wav');
+  assert.equal(submits, 1);
+  assert.deepEqual(adoptions, ['source-converted', 'vocals-1', 'background-1', 'drums-1', 'bass-1', 'other-1']);
+  const entries = getEntries();
+  assert.equal(entries[0].jobId, 'separation-job-1');
+  assert.equal(entries[0].sourceAudio.relativePath, separation.sourceAudio.relativePath);
+  assert.equal(entries[0].result.audioSeparation.vocals.relativePath, separation.vocals.relativePath);
+});
+
+test('Lab audio separation recovers only from its captured job identity after a lost terminal response', async () => {
+  // Fault injection verifies recovery semantics; this is not model acceptance.
+  const { runLabCapability } = await importLabRuntime();
+  const output = audioSeparationRunnerOutput('separation-job-1', undefined);
+  let runs = 0; let submits = 0; let observations = 0; let capturedAI;
+  const { client, adoptions, getEntries } = fakeAudioSeparationClient({
+    onSubmit() { submits++; },
+  });
+  const dependencies = readyRuntimeDependencies(client, {
+    createScenarioJobClient(ai) { capturedAI = ai; return {}; },
+    runners: {
+      async audioSeparate(input) {
+        runs++;
+        await capturedAI.scenarioJobs.submit({ type: 'audio-separate' }, {});
+        input.onJobUpdate({ jobId: 'separation-job-1', status: 'RUNNING' });
+        throw new Error('lost terminal response');
+      },
+      async audioSeparationObserve(input) {
+        observations++; assert.equal(input.jobId, 'separation-job-1'); return output;
+      },
+    },
+  });
+  const failed = await runLabCapability({ capabilityId: 'audio.separate', prompt: '', parameters: {
+    sourceRelativePath: 'input/mix.mp3', sourceMimeType: 'audio/mpeg' } }, dependencies);
+  assert.equal(failed.ok, false);
+  assert.equal(getEntries()[0].jobId, 'separation-job-1');
+  const recovery = { capabilityId: 'audio.separate', prompt: '', parameters: { recoverySubmissionId: getEntries()[0].clientSubmissionId } };
+  const recovered = await runLabCapability(recovery, dependencies);
+  assert.equal(recovered.ok, true, recovered.message);
+  assert.equal(recovered.output.artifacts.length, 2);
+  assert.equal(recovered.output.audioSeparation.vocals.mediaType, 'audio/wav');
+  assert.equal(recovered.output.audioSeparation.instrumentParts, undefined);
+  assert.equal(recovered.output.audioSeparation.sourceAudio.relativePath, getEntries()[0].sourceAudio.relativePath);
+  const reopened = await runLabCapability(recovery, dependencies);
+  assert.equal(reopened.ok, true, reopened.message);
+  assert.deepEqual(reopened.output.audioSeparation, recovered.output.audioSeparation);
+  assert.equal(runs, 1); assert.equal(submits, 1); assert.equal(observations, 1);
+  assert.deepEqual(adoptions, ['source-converted', 'vocals-1', 'background-1']);
+});
+
+test('Lab audio separation abandons a record that never captured its job identity', async () => {
+  const { runLabCapability } = await importLabRuntime();
+  const musicRecovery = await import(pathToFileURL(path.join(buildModule(), 'studio-modules/studio-media/music-recovery.js')).href);
+  let submits = 0; let observations = 0;
+  const { client, getEntries } = fakeAudioSeparationClient({
+    entries: [{ clientSubmissionId: 'record-without-job', createdAt: '2026-09-21T00:00:00.000Z',
+      sourceAudio: { relativePath: 'studio/music/audio-separate-inputs/abandoned/source.wav', mediaType: 'audio/wav',
+        sizeBytes: 7680058, sha256: `sha256:${'a'.repeat(64)}`, previewSource: 'managed-asset' } }],
+  });
+  const dependencies = readyRuntimeDependencies(client, {
+    createScenarioJobClient() { return {}; },
+    runners: {
+      async audioSeparate() { submits++; throw new Error('must not run'); },
+      async audioSeparationObserve() { observations++; throw new Error('must not observe'); },
+    },
+  });
+  const result = await runLabCapability({ capabilityId: 'audio.separate', prompt: '', parameters: { recoverySubmissionId: 'record-without-job' } }, dependencies);
+  assert.equal(result.ok, false);
+  assert.match(result.message, /cannot be recovered|无法恢复/u);
+  assert.equal(submits, 0); assert.equal(observations, 0);
+  await musicRecovery.forgetMusicRecovery(client.storage, 'record-without-job', 'audio.separate');
+  assert.deepEqual(getEntries(), []);
+});
+
+test('Lab forwards the user cancellation signal to the audio separation ScenarioJob runner', async () => {
+  const { runLabCapability } = await importLabRuntime();
+  const controller = new AbortController();
+  let capturedSignal;
+  let capturedAbortReason;
+  const output = audioSeparationRunnerOutput('separation-cancel-job', undefined);
+  const { client } = fakeAudioSeparationClient();
+  const result = await runLabCapability({
+    capabilityId: 'audio.separate',
+    prompt: 'cancel this separation',
+    signal: controller.signal,
+    parameters: { sourceRelativePath: 'input/mix.wav', sourceMimeType: 'audio/wav' },
+  }, readyRuntimeDependencies(client, {
+    createScenarioJobClient() { return { marker: 'job-client:audio.separate' }; },
+    runners: {
+      async audioSeparate(input) {
+        capturedSignal = input.signal;
+        capturedAbortReason = input.abortReason;
+        return output;
+      },
+    },
+  }));
+  assert.equal(result.ok, true, result.message);
+  assert.equal(capturedSignal, controller.signal);
+  assert.equal(capturedAbortReason, 'lab-user-canceled');
+});
+
+test('Lab audio separation fails closed until its capability contract is ready', async () => {
+  const { runLabCapability } = await importLabRuntime();
+  let uploads = 0; let submits = 0;
+  const { client } = fakeAudioSeparationClient();
+  client.ai.artifacts.upload = async () => { uploads++; throw new Error('must not upload'); };
+  client.aiConfig = { get: async () => ({ effectiveSelections: [{ capabilityContract: 'audio.separate', state: 'missing', resource: null }] }) };
+  client.ai.scenarioJobs.submit = async () => { submits++; throw new Error('must not submit'); };
+  const result = await runLabCapability({ capabilityId: 'audio.separate', prompt: '', parameters: {
+    sourceRelativePath: 'input/mix.mp3', sourceMimeType: 'audio/mpeg' } },
+    readyRuntimeDependencies(client, {
+      createScenarioJobClient() { return {}; },
+      runners: { async audioSeparate() { throw new Error('must not run'); } },
+    }));
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'input-invalid');
+  assert.match(result.message, /audio separation configuration|音频分离配置/u);
+  assert.equal(uploads, 0); assert.equal(submits, 0);
+});
+
 for (const corruptRetainedAsset of [false, true]) {
   test(`Lab recovers canonical audio and score paths after result persistence fails (corrupt=${corruptRetainedAsset})`, async () => {
     // Inject the storage failure after adoption, without claiming model acceptance.

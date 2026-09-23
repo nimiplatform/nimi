@@ -1,5 +1,7 @@
 import { MusicGenerationNotice } from './section-ai-testing-music-result.js';
 import { MusicTranscriptionNotice } from './section-ai-testing-transcription-result.js';
+import { VoiceConversionNotice } from './section-ai-testing-voice-conversion-result.js';
+import { AudioSeparationNotice } from './section-ai-testing-audio-separation-result.js';
 import { useEffect, useState, type ReactNode } from 'react';
 import { EmptyState, IconButton, StatusBadge, Surface, Tooltip } from '@nimiplatform/kit/ui';
 import { AlertTriangle, ChevronRight, Clock, Copy as CopyIcon, Download as DownloadIcon, FileText, FolderOpen, Loader2, RefreshCw, Sparkles, Square } from 'lucide-react';
@@ -28,7 +30,9 @@ function ReadyBody({ result }: { result: StudioCapabilityRunResult & { ok: true 
       <div className="studio-result__rich">
         <MusicGenerationNotice value={output.musicGeneration} />
         <MusicTranscriptionNotice value={output.musicTranscription} />
-        {output.artifacts.filter((artifact) => !output.musicTranscription && artifact.relativePath !== output.musicGeneration?.generatedScore?.relativePath).map((artifact, index) => (
+        <VoiceConversionNotice value={output.voiceConversion} />
+        <AudioSeparationNotice value={output.audioSeparation} />
+        {output.artifacts.filter((artifact) => !output.musicTranscription && !output.voiceConversion && !output.audioSeparation && artifact.relativePath !== output.musicGeneration?.generatedScore?.relativePath).map((artifact, index) => (
           <ArtifactMediaResult
             key={artifact.relativePath}
             artifact={artifact}
@@ -315,6 +319,8 @@ export function StudioResult({
           <span>{cancelRequested
             ? t('Studio.result.pendingCancel')
             : capability.id === 'music.transcribe' ? t('Transcription.running')
+            : capability.id === 'audio.voice.convert' ? t('VoiceConvert.running')
+            : capability.id === 'audio.separate' ? t('AudioSeparate.running')
             : capability.id === 'vision.locate' && jobStatus ? t(`VisionLocate.${jobStatus}`)
             : profile.pendingLabelKey
             ? t(profile.pendingLabelKey)

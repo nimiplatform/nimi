@@ -6623,9 +6623,12 @@
       "ArtifactStreamDelta",
       "AudioChunks",
       "AudioFrameRange",
+      "AudioInstrumentPart",
       "AudioSeparateResult",
       "AudioSeparateScenarioSpec",
       "AudioSeparation",
+      "AudioVoiceConvertResult",
+      "AudioVoiceConvertScenarioSpec",
       "AuditEventRecord",
       "AuditExportChunk",
       "BeginLoginRequest",
@@ -7419,6 +7422,9 @@
       "VisionLocateScenarioSpec",
       "VisionLocation",
       "VoiceAsset",
+      "VoiceConversion",
+      "VoiceConvertInputProfile",
+      "VoiceConvertTargetVoice",
       "VoiceCreateScenarioSpec",
       "VoicePresetDescriptor",
       "VoiceReference",
@@ -7498,7 +7504,9 @@
       "AppPackageSourceClass",
       "AppPackageTerminalResult",
       "AppStorageState",
+      "AudioInstrumentPartKind",
       "CallerKind",
+      "CanonicalChannelMode",
       "CatalogModelSource",
       "CatalogSourceKind",
       "CharacterSourceKindV3",
@@ -7619,6 +7627,8 @@
       "VisionLocateGeometry",
       "VoiceAssetPersistence",
       "VoiceAssetStatus",
+      "VoiceConversionLengthRelation",
+      "VoiceConvertSourceKind",
       "VoiceCreationSource",
       "VoiceOutputMode",
       "VoiceReferenceKind",
@@ -12296,6 +12306,26 @@
         "source_file": "proto/runtime/v1/ai.proto"
       },
       {
+        "name": "AudioInstrumentPart",
+        "fields": [
+          {
+            "name": "part",
+            "type": "AudioInstrumentPartKind",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "artifact_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
         "name": "AudioSeparateResult",
         "fields": [
           {
@@ -12331,6 +12361,20 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "source_audio",
+            "type": "MusicAudioInput",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "include_instrument_parts",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 4
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -12351,6 +12395,67 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "instrument_parts",
+            "type": "AudioInstrumentPart",
+            "repeated": true,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "AudioVoiceConvertResult",
+        "fields": [
+          {
+            "name": "artifacts",
+            "type": "ScenarioArtifact",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "conversion",
+            "type": "VoiceConversion",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "AudioVoiceConvertScenarioSpec",
+        "fields": [
+          {
+            "name": "source_vocal",
+            "type": "MusicAudioInput",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "source_kind",
+            "type": "VoiceConvertSourceKind",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "target_voice",
+            "type": "VoiceConvertTargetVoice",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "semitone_shift",
+            "type": "int32",
+            "repeated": false,
+            "optional": true,
+            "number": 4
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -23685,6 +23790,13 @@
             "repeated": false,
             "optional": false,
             "number": 1
+          },
+          {
+            "name": "channel_mode",
+            "type": "CanonicalChannelMode",
+            "repeated": false,
+            "optional": false,
+            "number": 2
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -25273,6 +25385,13 @@
             "repeated": false,
             "optional": false,
             "number": 21
+          },
+          {
+            "name": "voice_conversion",
+            "type": "VoiceConversion",
+            "repeated": false,
+            "optional": false,
+            "number": 22
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -29280,6 +29399,13 @@
             "repeated": true,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "voice_convert",
+            "type": "VoiceConvertInputProfile",
+            "repeated": true,
+            "optional": false,
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
@@ -33824,6 +33950,13 @@
             "repeated": false,
             "optional": false,
             "number": 32
+          },
+          {
+            "name": "voice_conversion",
+            "type": "VoiceConversion",
+            "repeated": false,
+            "optional": false,
+            "number": 33
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -33962,6 +34095,13 @@
             "repeated": false,
             "optional": false,
             "number": 13
+          },
+          {
+            "name": "audio_voice_convert",
+            "type": "AudioVoiceConvertResult",
+            "repeated": false,
+            "optional": false,
+            "number": 14
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -34127,6 +34267,13 @@
             "repeated": false,
             "optional": false,
             "number": 17
+          },
+          {
+            "name": "audio_voice_convert",
+            "type": "AudioVoiceConvertScenarioSpec",
+            "repeated": false,
+            "optional": false,
+            "number": 18
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -36034,6 +36181,13 @@
             "repeated": false,
             "optional": false,
             "number": 17
+          },
+          {
+            "name": "audio_voice_convert",
+            "type": "AudioVoiceConvertScenarioSpec",
+            "repeated": false,
+            "optional": false,
+            "number": 18
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -38929,6 +39083,164 @@
         "source_file": "proto/runtime/v1/voice.proto"
       },
       {
+        "name": "VoiceConversion",
+        "fields": [
+          {
+            "name": "vocal_artifact_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "source_artifact_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "source_info",
+            "type": "LocalAppAudioInfo",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "input_range",
+            "type": "AudioFrameRange",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "vocal_info",
+            "type": "LocalAppAudioInfo",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "length_relation",
+            "type": "VoiceConversionLengthRelation",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "duration_delta_ms",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "VoiceConvertInputProfile",
+        "fields": [
+          {
+            "name": "source_kinds",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "target_kinds",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "max_source_seconds",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "max_target_seconds",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "supports_range",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "supports_semitone_shift",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "min_semitone_shift",
+            "type": "int32",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "max_semitone_shift",
+            "type": "int32",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "max_source_bytes",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "max_target_bytes",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "VoiceConvertTargetVoice",
+        "fields": [
+          {
+            "name": "reference_audio",
+            "type": "MusicAudioInput",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "preset_voice_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "voice_asset_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
         "name": "VoiceCreateScenarioSpec",
         "fields": [
           {
@@ -40258,6 +40570,16 @@
         "source_file": "proto/runtime/v1/app.proto"
       },
       {
+        "name": "AudioInstrumentPartKind",
+        "values": [
+          "AUDIO_INSTRUMENT_PART_KIND_UNSPECIFIED",
+          "AUDIO_INSTRUMENT_PART_KIND_DRUMS",
+          "AUDIO_INSTRUMENT_PART_KIND_BASS",
+          "AUDIO_INSTRUMENT_PART_KIND_OTHER"
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
         "name": "CallerKind",
         "values": [
           "CALLER_KIND_UNSPECIFIED",
@@ -40266,6 +40588,16 @@
           "CALLER_KIND_THIRD_PARTY_SERVICE"
         ],
         "source_file": "proto/runtime/v1/common.proto"
+      },
+      {
+        "name": "CanonicalChannelMode",
+        "values": [
+          "CANONICAL_CHANNEL_MODE_UNSPECIFIED",
+          "CANONICAL_CHANNEL_MODE_PRESERVE",
+          "CANONICAL_CHANNEL_MODE_MONO_TO_STEREO",
+          "CANONICAL_CHANNEL_MODE_STEREO_TO_MONO"
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
       },
       {
         "name": "CatalogModelSource",
@@ -41669,7 +42001,8 @@
           "SCENARIO_TYPE_VIDEO_FACE_SWAP",
           "SCENARIO_TYPE_AUDIO_SEPARATE",
           "SCENARIO_TYPE_TEXT_ANNOTATE",
-          "SCENARIO_TYPE_MUSIC_TRANSCRIBE"
+          "SCENARIO_TYPE_MUSIC_TRANSCRIBE",
+          "SCENARIO_TYPE_AUDIO_VOICE_CONVERT"
         ],
         "source_file": "proto/runtime/v1/ai.proto"
       },
@@ -41862,6 +42195,23 @@
           "VOICE_ASSET_STATUS_FAILED"
         ],
         "source_file": "proto/runtime/v1/voice.proto"
+      },
+      {
+        "name": "VoiceConversionLengthRelation",
+        "values": [
+          "VOICE_CONVERSION_LENGTH_RELATION_UNSPECIFIED",
+          "VOICE_CONVERSION_LENGTH_RELATION_EXACT",
+          "VOICE_CONVERSION_LENGTH_RELATION_MODEL_FRAME_ROUNDING"
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "VoiceConvertSourceKind",
+        "values": [
+          "VOICE_CONVERT_SOURCE_KIND_UNSPECIFIED",
+          "VOICE_CONVERT_SOURCE_KIND_SINGING"
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
       },
       {
         "name": "VoiceCreationSource",

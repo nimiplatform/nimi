@@ -96,7 +96,9 @@ AppPackageProgressBasis = Literal["APP_PACKAGE_PROGRESS_BASIS_UNSPECIFIED", "APP
 AppPackageSourceClass = Literal["APP_PACKAGE_SOURCE_CLASS_UNSPECIFIED", "APP_PACKAGE_SOURCE_CLASS_VERIFIED", "APP_PACKAGE_SOURCE_CLASS_USER_IMPORTED"]
 AppPackageTerminalResult = Literal["APP_PACKAGE_TERMINAL_RESULT_UNSPECIFIED", "APP_PACKAGE_TERMINAL_RESULT_COMPLETED", "APP_PACKAGE_TERMINAL_RESULT_FAILED", "APP_PACKAGE_TERMINAL_RESULT_CANCELED"]
 AppStorageState = Literal["APP_STORAGE_STATE_UNSPECIFIED", "APP_STORAGE_STATE_READY", "APP_STORAGE_STATE_REPAIR_REQUIRED", "APP_STORAGE_STATE_STORAGE_UNAVAILABLE"]
+AudioInstrumentPartKind = Literal["AUDIO_INSTRUMENT_PART_KIND_UNSPECIFIED", "AUDIO_INSTRUMENT_PART_KIND_DRUMS", "AUDIO_INSTRUMENT_PART_KIND_BASS", "AUDIO_INSTRUMENT_PART_KIND_OTHER"]
 CallerKind = Literal["CALLER_KIND_UNSPECIFIED", "CALLER_KIND_DESKTOP_CORE", "CALLER_KIND_THIRD_PARTY_APP", "CALLER_KIND_THIRD_PARTY_SERVICE"]
+CanonicalChannelMode = Literal["CANONICAL_CHANNEL_MODE_UNSPECIFIED", "CANONICAL_CHANNEL_MODE_PRESERVE", "CANONICAL_CHANNEL_MODE_MONO_TO_STEREO", "CANONICAL_CHANNEL_MODE_STEREO_TO_MONO"]
 CatalogModelSource = Literal["CATALOG_MODEL_SOURCE_UNSPECIFIED", "CATALOG_MODEL_SOURCE_BUILTIN", "CATALOG_MODEL_SOURCE_CUSTOM", "CATALOG_MODEL_SOURCE_OVERRIDDEN"]
 CatalogSourceKind = Literal["CATALOG_SOURCE_KIND_UNSPECIFIED", "CATALOG_SOURCE_KIND_PROVIDER_DOCUMENTATION", "CATALOG_SOURCE_KIND_AUTHENTICATED_PROVIDER_INVENTORY"]
 CharacterSourceKindV3 = Literal["CHARACTER_SOURCE_KIND_V3_UNSPECIFIED", "CHARACTER_SOURCE_KIND_V3_WORLD_CHARACTER", "CHARACTER_SOURCE_KIND_V3_PERSONA_CHARACTER"]
@@ -198,7 +200,7 @@ RoutePolicy = Literal["ROUTE_POLICY_UNSPECIFIED", "ROUTE_POLICY_LOCAL", "ROUTE_P
 RuntimeHealthStatus = Literal["RUNTIME_HEALTH_STATUS_UNSPECIFIED", "RUNTIME_HEALTH_STATUS_STOPPED", "RUNTIME_HEALTH_STATUS_STARTING", "RUNTIME_HEALTH_STATUS_READY", "RUNTIME_HEALTH_STATUS_DEGRADED", "RUNTIME_HEALTH_STATUS_STOPPING"]
 ScenarioJobEventType = Literal["SCENARIO_JOB_EVENT_TYPE_UNSPECIFIED", "SCENARIO_JOB_EVENT_SUBMITTED", "SCENARIO_JOB_EVENT_QUEUED", "SCENARIO_JOB_EVENT_RUNNING", "SCENARIO_JOB_EVENT_COMPLETED", "SCENARIO_JOB_EVENT_FAILED", "SCENARIO_JOB_EVENT_CANCELED", "SCENARIO_JOB_EVENT_TIMEOUT"]
 ScenarioJobStatus = Literal["SCENARIO_JOB_STATUS_UNSPECIFIED", "SCENARIO_JOB_STATUS_SUBMITTED", "SCENARIO_JOB_STATUS_QUEUED", "SCENARIO_JOB_STATUS_RUNNING", "SCENARIO_JOB_STATUS_COMPLETED", "SCENARIO_JOB_STATUS_FAILED", "SCENARIO_JOB_STATUS_CANCELED", "SCENARIO_JOB_STATUS_TIMEOUT"]
-ScenarioType = Literal["SCENARIO_TYPE_UNSPECIFIED", "SCENARIO_TYPE_TEXT_GENERATE", "SCENARIO_TYPE_TEXT_EMBED", "SCENARIO_TYPE_IMAGE_GENERATE", "SCENARIO_TYPE_VIDEO_GENERATE", "SCENARIO_TYPE_SPEECH_SYNTHESIZE", "SCENARIO_TYPE_SPEECH_TRANSCRIBE", "SCENARIO_TYPE_MUSIC_GENERATE", "SCENARIO_TYPE_WORLD_GENERATE", "SCENARIO_TYPE_VOICE_CREATE", "SCENARIO_TYPE_VISION_LOCATE", "SCENARIO_TYPE_IMAGE_FACE_SWAP", "SCENARIO_TYPE_VIDEO_FACE_SWAP", "SCENARIO_TYPE_AUDIO_SEPARATE", "SCENARIO_TYPE_TEXT_ANNOTATE", "SCENARIO_TYPE_MUSIC_TRANSCRIBE"]
+ScenarioType = Literal["SCENARIO_TYPE_UNSPECIFIED", "SCENARIO_TYPE_TEXT_GENERATE", "SCENARIO_TYPE_TEXT_EMBED", "SCENARIO_TYPE_IMAGE_GENERATE", "SCENARIO_TYPE_VIDEO_GENERATE", "SCENARIO_TYPE_SPEECH_SYNTHESIZE", "SCENARIO_TYPE_SPEECH_TRANSCRIBE", "SCENARIO_TYPE_MUSIC_GENERATE", "SCENARIO_TYPE_WORLD_GENERATE", "SCENARIO_TYPE_VOICE_CREATE", "SCENARIO_TYPE_VISION_LOCATE", "SCENARIO_TYPE_IMAGE_FACE_SWAP", "SCENARIO_TYPE_VIDEO_FACE_SWAP", "SCENARIO_TYPE_AUDIO_SEPARATE", "SCENARIO_TYPE_TEXT_ANNOTATE", "SCENARIO_TYPE_MUSIC_TRANSCRIBE", "SCENARIO_TYPE_AUDIO_VOICE_CONVERT"]
 SchedulingState = Literal["SCHEDULING_STATE_UNSPECIFIED", "SCHEDULING_STATE_RUNNABLE", "SCHEDULING_STATE_QUEUE_REQUIRED", "SCHEDULING_STATE_PREEMPTION_RISK", "SCHEDULING_STATE_SLOWDOWN_RISK", "SCHEDULING_STATE_DENIED", "SCHEDULING_STATE_UNKNOWN"]
 SensitivityClass = Literal["SENSITIVITY_CLASS_UNSPECIFIED", "SENSITIVITY_CLASS_NONE", "SENSITIVITY_CLASS_USER_PRIVATE", "SENSITIVITY_CLASS_CREDENTIAL_LIKE", "SENSITIVITY_CLASS_ORG_PRIVATE", "SENSITIVITY_CLASS_REGULATED", "SENSITIVITY_CLASS_UNKNOWN_SENSITIVE"]
 SpeechAlignmentUnit = Literal["SPEECH_ALIGNMENT_UNIT_UNSPECIFIED", "SPEECH_ALIGNMENT_UNIT_WORD", "SPEECH_ALIGNMENT_UNIT_CHAR"]
@@ -217,6 +219,8 @@ VideoMode = Literal["VIDEO_MODE_UNSPECIFIED", "VIDEO_MODE_T2V", "VIDEO_MODE_I2V_
 VisionLocateGeometry = Literal["VISION_LOCATE_GEOMETRY_UNSPECIFIED", "VISION_LOCATE_GEOMETRY_BOX", "VISION_LOCATE_GEOMETRY_POINT"]
 VoiceAssetPersistence = Literal["VOICE_ASSET_PERSISTENCE_UNSPECIFIED", "VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT", "VOICE_ASSET_PERSISTENCE_SESSION_EPHEMERAL"]
 VoiceAssetStatus = Literal["VOICE_ASSET_STATUS_UNSPECIFIED", "VOICE_ASSET_STATUS_ACTIVE", "VOICE_ASSET_STATUS_EXPIRED", "VOICE_ASSET_STATUS_DELETED", "VOICE_ASSET_STATUS_FAILED"]
+VoiceConversionLengthRelation = Literal["VOICE_CONVERSION_LENGTH_RELATION_UNSPECIFIED", "VOICE_CONVERSION_LENGTH_RELATION_EXACT", "VOICE_CONVERSION_LENGTH_RELATION_MODEL_FRAME_ROUNDING"]
+VoiceConvertSourceKind = Literal["VOICE_CONVERT_SOURCE_KIND_UNSPECIFIED", "VOICE_CONVERT_SOURCE_KIND_SINGING"]
 VoiceCreationSource = Literal["VOICE_CREATION_SOURCE_UNSPECIFIED", "VOICE_CREATION_SOURCE_TEXT_DESCRIPTION", "VOICE_CREATION_SOURCE_REFERENCE_AUDIO"]
 VoiceOutputMode = Literal["VOICE_OUTPUT_MODE_UNSPECIFIED", "VOICE_OUTPUT_MODE_NATIVE_STREAM", "VOICE_OUTPUT_MODE_SIMULATED_STREAM", "VOICE_OUTPUT_MODE_BATCH_FINAL_ARTIFACT", "VOICE_OUTPUT_MODE_TEXT_ONLY"]
 VoiceReferenceKind = Literal["VOICE_REFERENCE_KIND_UNSPECIFIED", "VOICE_REFERENCE_KIND_PRESET", "VOICE_REFERENCE_KIND_VOICE_ASSET", "VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF"]
@@ -1127,6 +1131,11 @@ class AudioFrameRange:
     end_frame: int | None = None
 
 @dataclass(frozen=True)
+class AudioInstrumentPart:
+    part: AudioInstrumentPartKind | None = None
+    artifact_id: str | None = None
+
+@dataclass(frozen=True)
 class AudioSeparateResult:
     artifacts: tuple[ScenarioArtifact, ...] = field(default_factory=tuple)
     separation: AudioSeparation | None = None
@@ -1135,11 +1144,26 @@ class AudioSeparateResult:
 class AudioSeparateScenarioSpec:
     mime_type: str | None = None
     audio_source: SpeechTranscriptionAudioSource | None = None
+    source_audio: MusicAudioInput | None = None
+    include_instrument_parts: bool | None = None
 
 @dataclass(frozen=True)
 class AudioSeparation:
     vocals_artifact_id: str | None = None
     background_artifact_id: str | None = None
+    instrument_parts: tuple[AudioInstrumentPart, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class AudioVoiceConvertResult:
+    artifacts: tuple[ScenarioArtifact, ...] = field(default_factory=tuple)
+    conversion: VoiceConversion | None = None
+
+@dataclass(frozen=True)
+class AudioVoiceConvertScenarioSpec:
+    source_vocal: MusicAudioInput | None = None
+    source_kind: VoiceConvertSourceKind | None = None
+    target_voice: VoiceConvertTargetVoice | None = None
+    semitone_shift: int | None = None
 
 @dataclass(frozen=True)
 class AuditEventRecord:
@@ -3605,6 +3629,7 @@ class LocalAppAudioInfo:
 @dataclass(frozen=True)
 class LocalAppCanonicalAudioPreparation:
     target_sample_rate_hz: int | None = None
+    channel_mode: CanonicalChannelMode | None = None
 
 @dataclass(frozen=True)
 class LocalAppConversationAction:
@@ -3909,6 +3934,7 @@ class LocalAppScenarioJob:
     recovery_expires_at: str | None = None
     music_generation: MusicGeneration | None = None
     music_transcription: MusicTranscription | None = None
+    voice_conversion: VoiceConversion | None = None
 
 @dataclass(frozen=True)
 class LocalAppScenarioJobEvent:
@@ -4622,6 +4648,7 @@ class MusicGenerationInputProfile:
 class MusicInputCapabilities:
     generation: tuple[MusicGenerationInputProfile, ...] = field(default_factory=tuple)
     transcription: tuple[MusicTranscriptionInputProfile, ...] = field(default_factory=tuple)
+    voice_convert: tuple[VoiceConvertInputProfile, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class MusicScoreArtifact:
@@ -5593,6 +5620,7 @@ class ScenarioJob:
     recovery_expires_at: str | None = None
     music_generation: MusicGeneration | None = None
     music_transcription: MusicTranscription | None = None
+    voice_conversion: VoiceConversion | None = None
 
 @dataclass(frozen=True)
 class ScenarioJobEvent:
@@ -5617,6 +5645,7 @@ class ScenarioOutput:
     audio_separate: AudioSeparateResult | None = None
     text_annotation: TextAnnotationResult | None = None
     music_transcribe: MusicTranscribeResult | None = None
+    audio_voice_convert: AudioVoiceConvertResult | None = None
 
 @dataclass(frozen=True)
 class ScenarioProfile:
@@ -5647,6 +5676,7 @@ class ScenarioSpec:
     audio_separate: AudioSeparateScenarioSpec | None = None
     text_annotate: TextAnnotateScenarioSpec | None = None
     music_transcribe: MusicTranscribeScenarioSpec | None = None
+    audio_voice_convert: AudioVoiceConvertScenarioSpec | None = None
 
 @dataclass(frozen=True)
 class ScenarioStreamCompleted:
@@ -6060,6 +6090,7 @@ class SubmitLocalAppScenarioJobRequest:
     text_annotate: TextAnnotateScenarioSpec | None = None
     client_submission_id: str | None = None
     music_transcribe: MusicTranscribeScenarioSpec | None = None
+    audio_voice_convert: AudioVoiceConvertScenarioSpec | None = None
 
 @dataclass(frozen=True)
 class SubmitLocalAppScenarioJobResponse:
@@ -6656,6 +6687,35 @@ class VoiceAsset:
     expires_at: str | None = None
     metadata: Mapping[str, object] | None = None
     creation_source: VoiceCreationSource | None = None
+
+@dataclass(frozen=True)
+class VoiceConversion:
+    vocal_artifact_id: str | None = None
+    source_artifact_id: str | None = None
+    source_info: LocalAppAudioInfo | None = None
+    input_range: AudioFrameRange | None = None
+    vocal_info: LocalAppAudioInfo | None = None
+    length_relation: VoiceConversionLengthRelation | None = None
+    duration_delta_ms: int | None = None
+
+@dataclass(frozen=True)
+class VoiceConvertInputProfile:
+    source_kinds: tuple[str, ...] = field(default_factory=tuple)
+    target_kinds: tuple[str, ...] = field(default_factory=tuple)
+    max_source_seconds: int | None = None
+    max_target_seconds: int | None = None
+    supports_range: bool | None = None
+    supports_semitone_shift: bool | None = None
+    min_semitone_shift: int | None = None
+    max_semitone_shift: int | None = None
+    max_source_bytes: int | None = None
+    max_target_bytes: int | None = None
+
+@dataclass(frozen=True)
+class VoiceConvertTargetVoice:
+    reference_audio: MusicAudioInput | None = None
+    preset_voice_id: str | None = None
+    voice_asset_id: str | None = None
 
 @dataclass(frozen=True)
 class VoiceCreateScenarioSpec:

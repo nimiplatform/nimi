@@ -19,6 +19,17 @@ const PreparationTimeout = 60 * time.Second
 
 var ErrCodecUnavailable = errors.New("exact managed audio codec is unavailable")
 
+// ChannelMode is the explicit channel-domain conversion requested for an
+// already canonical source. It is never applied implicitly.
+type ChannelMode uint32
+
+const (
+	ChannelUnspecified  ChannelMode = 0
+	ChannelPreserve     ChannelMode = 1
+	ChannelMonoToStereo ChannelMode = 2
+	ChannelStereoToMono ChannelMode = 3
+)
+
 // Processor receives exact managed codec executables from Runtime composition.
 // It never resolves programs from PATH or downloads an input or dependency.
 type Processor struct {
@@ -30,6 +41,9 @@ type Input struct {
 	Path               string
 	MIMEType           string
 	TargetSampleRateHz uint32
+	// ChannelMode requests an explicit channel-domain conversion. Preserve (or
+	// Unspecified) keeps the source channel count unchanged.
+	ChannelMode ChannelMode
 }
 
 // Prepared is an unpublished, complete staging object. The caller commits it
@@ -71,8 +85,13 @@ func (p *Processor) Prepare(ctx context.Context, input Input, stagingDirectory s
 	}
 	mime := strings.ToLower(strings.TrimSpace(input.MIMEType))
 	expectedFormat := map[string]string{"audio/wav": "wav", "audio/mpeg": "mp3", "audio/flac": "flac"}[mime]
-	if expectedFormat == "" || (input.TargetSampleRateHz != 0 && !validFormat(input.TargetSampleRateHz, 1)) {
-		return Prepared{}, fmt.Errorf("unsupported audio input format or target sample rate")
+	channelMode := input.ChannelMode
+	if channelMode == ChannelUnspecified {
+		channelMode = ChannelPreserve
+	}
+	if expectedFormat == "" || (input.TargetSampleRateHz != 0 && !validFormat(input.TargetSampleRateHz, 1)) ||
+		(channelMode != ChannelPreserve && channelMode != ChannelMonoToStereo && channelMode != ChannelStereoToMono) {
+		return Prepared{}, fmt.Errorf("unsupported audio input format, target sample rate or channel mode")
 	}
 	canonical, canonicalErr := InspectCanonical(ctx, input.Path)
 	if ctx.Err() != nil {
@@ -81,8 +100,8 @@ func (p *Processor) Prepare(ctx context.Context, input Input, stagingDirectory s
 	if canonicalErr == nil && mime != "audio/wav" {
 		return Prepared{}, fmt.Errorf("audio MIME does not match the actual container")
 	}
-	if input.TargetSampleRateHz != 0 && canonicalErr != nil {
-		return Prepared{}, fmt.Errorf("explicit resampling requires an already canonical source")
+	if (input.TargetSampleRateHz != 0 || channelMode != ChannelPreserve) && canonicalErr != nil {
+		return Prepared{}, fmt.Errorf("explicit domain conversion requires an already canonical source")
 	}
 	output, err := os.CreateTemp(stagingDirectory, "canonical-audio-*.wav")
 	if err != nil {
@@ -94,7 +113,7 @@ func (p *Processor) Prepare(ctx context.Context, input Input, stagingDirectory s
 			_ = os.Remove(output.Name())
 		}
 	}()
-	if canonicalErr == nil && (input.TargetSampleRateHz == 0 || input.TargetSampleRateHz == canonical.SampleRateHz) {
+	if canonicalErr == nil && channelMode == ChannelPreserve && (input.TargetSampleRateHz == 0 || input.TargetSampleRateHz == canonical.SampleRateHz) {
 		source, openErr := os.Open(input.Path)
 		if openErr != nil {
 			return Prepared{}, fmt.Errorf("open canonical snapshot: %w", openErr)
@@ -115,14 +134,24 @@ func (p *Processor) Prepare(ctx context.Context, input Input, stagingDirectory s
 		if input.TargetSampleRateHz != 0 {
 			rate = input.TargetSampleRateHz
 		}
+		outChannels := channels
+		switch channelMode {
+		case ChannelPreserve:
+		case ChannelMonoToStereo:
+			if channels != 1 {
+				return Prepared{}, fmt.Errorf("mono-to-stereo conversion requires a mono source")
+			}
+			outChannels = 2
+		case ChannelStereoToMono:
+			if channels != 2 {
+				return Prepared{}, fmt.Errorf("stereo-to-mono conversion requires a stereo source")
+			}
+			outChannels = 1
+		}
 		if _, err = output.Write(make([]byte, pcmHeaderBytes)); err != nil {
 			return Prepared{}, fmt.Errorf("reserve WAV header: %w", err)
 		}
-		args := []string{"-nostdin", "-v", "error", "-xerror", "-protocol_whitelist", "file,pipe", "-format_whitelist", "wav,mp3,flac", "-i", input.Path, "-map", "0:a:0", "-vn", "-sn", "-dn"}
-		if input.TargetSampleRateHz != 0 {
-			args = append(args, "-ar", strconv.FormatUint(uint64(rate), 10))
-		}
-		args = append(args, "-c:a", "pcm_f32le", "-f", "f32le", "pipe:1")
+		args := decodeArguments(input.Path, input.TargetSampleRateHz, channelMode)
 		decodeCtx, stopDecode := context.WithCancel(ctx)
 		defer stopDecode()
 		command := exec.CommandContext(decodeCtx, p.ffmpeg, args...)
@@ -138,7 +167,7 @@ func (p *Processor) Prepare(ctx context.Context, input Input, stagingDirectory s
 			_ = stdout.Close()
 			return Prepared{}, fmt.Errorf("start managed audio decoder: %w", err)
 		}
-		limit := int64(rate) * int64(channels) * 4 * MaxSeconds
+		limit := int64(rate) * int64(outChannels) * 4 * MaxSeconds
 		count, copyErr := copyFinitePCM(decodeCtx, output, stdout, limit)
 		if copyErr != nil {
 			stopDecode()
@@ -154,10 +183,10 @@ func (p *Processor) Prepare(ctx context.Context, input Input, stagingDirectory s
 		if waitErr != nil {
 			return Prepared{}, fmt.Errorf("managed audio decoder failed: %w", waitErr)
 		}
-		if count == 0 || count%int64(channels*4) != 0 {
+		if count == 0 || count%int64(outChannels*4) != 0 {
 			return Prepared{}, fmt.Errorf("decoder returned empty audio or incomplete frames")
 		}
-		if err := writeHeader(output, rate, channels, count); err != nil {
+		if err := writeHeader(output, rate, outChannels, count); err != nil {
 			return Prepared{}, fmt.Errorf("finish canonical WAV header: %w", err)
 		}
 	}
@@ -175,6 +204,24 @@ func (p *Processor) Prepare(ctx context.Context, input Input, stagingDirectory s
 		return Prepared{}, ctx.Err()
 	}
 	return Prepared{Path: output.Name(), Facts: facts}, nil
+}
+
+// decodeArguments maps a requested channel conversion to an explicit pan
+// matrix. The codec's implicit -ac rematrix applies equal-power gains (each
+// mono-to-stereo channel at about -3 dB, stereo-to-mono as 0.707*(L+R)), which
+// is not the admitted duplicate or average conversion.
+func decodeArguments(path string, targetRateHz uint32, mode ChannelMode) []string {
+	args := []string{"-nostdin", "-v", "error", "-xerror", "-protocol_whitelist", "file,pipe", "-format_whitelist", "wav,mp3,flac", "-i", path, "-map", "0:a:0", "-vn", "-sn", "-dn"}
+	if targetRateHz != 0 {
+		args = append(args, "-ar", strconv.FormatUint(uint64(targetRateHz), 10))
+	}
+	switch mode {
+	case ChannelMonoToStereo:
+		args = append(args, "-af", "pan=stereo|c0=c0|c1=c0")
+	case ChannelStereoToMono:
+		args = append(args, "-af", "pan=mono|c0=0.5*c0+0.5*c1")
+	}
+	return append(args, "-c:a", "pcm_f32le", "-f", "f32le", "pipe:1")
 }
 
 func (p *Processor) probe(ctx context.Context, path, expectedFormat string) (uint32, uint16, error) {

@@ -162,7 +162,12 @@ func (s *Service) localMusicTranscriptionFromResolvedAssembly(assembly *localRes
 }
 
 func cleanupLocalMusicPlan(plan *capabilitydriver.MusicInvocationPlan) {
-	if plan != nil {
-		cleanupAudioMusicStaging(filepath.Join(plan.StagingDirectory(), "music.wav"))
+	if plan == nil {
+		return
 	}
+	if plan.IsVoiceConvert() {
+		cleanupLocalVoiceConvertStaging(plan.StagingDirectory())
+		return
+	}
+	cleanupAudioMusicStaging(filepath.Join(plan.StagingDirectory(), "music.wav"))
 }

@@ -153,6 +153,10 @@ export {
   SpeechTimingMode,
   UsageWindow,
   VoiceAssetStatus,
+  VoiceConversionLengthRelation,
+  VoiceConvertSourceKind,
   VoiceCreationSource,
   VoiceReferenceKind,
+  AudioInstrumentPartKind,
+  CanonicalChannelMode,
 } from '../core-generated/runtime-typed-client';

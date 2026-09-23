@@ -46,6 +46,7 @@ func scenarioAllowedModes(scenarioType runtimev1.ScenarioType) []runtimev1.Execu
 		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_TRANSCRIBE,
+		runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_VOICE_CONVERT,
 		runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:
 		return []runtimev1.ExecutionMode{
 			runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
@@ -93,6 +94,8 @@ func scenarioRequiredCapabilities(scenarioType runtimev1.ScenarioType) []string 
 		return []string{aicapabilities.MusicGenerate}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_TRANSCRIBE:
 		return []string{aicapabilities.MusicTranscribe}
+	case runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_VOICE_CONVERT:
+		return []string{aicapabilities.AudioVoiceConvert}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:
 		return []string{aicapabilities.WorldGenerate}
 	default:

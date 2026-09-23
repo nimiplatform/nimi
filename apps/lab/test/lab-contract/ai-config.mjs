@@ -91,6 +91,8 @@ test('lab shared Model Config inventory includes video.generate and deduplicates
     'text.generate',
     'text.embed',
     'music.transcribe',
+    'audio.voice.convert',
+    'audio.separate',
     'vision.locate',
     'image.generate',
     'video.generate',

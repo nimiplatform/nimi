@@ -11,9 +11,11 @@ export type MusicRecoveryEntry = {
   readonly message?: string;
   readonly result?: StudioRunHistoryResultSnapshot;
   readonly sourceAudio?: StudioManagedArtifact;
+  readonly targetAudio?: StudioManagedArtifact;
+  readonly jobId?: string;
 };
-export type MusicRecoveryCapability = 'music.generate' | 'music.transcribe';
-const paths = { 'music.generate': 'studio/music-recovery.json', 'music.transcribe': 'studio/music-transcription-recovery.json' };
+export type MusicRecoveryCapability = 'music.generate' | 'music.transcribe' | 'audio.voice.convert' | 'audio.separate';
+const paths = { 'music.generate': 'studio/music-recovery.json', 'music.transcribe': 'studio/music-transcription-recovery.json', 'audio.voice.convert': 'studio/voice-convert-recovery.json', 'audio.separate': 'studio/audio-separation-recovery.json' };
 let mutationTail: Promise<unknown> = Promise.resolve();
 
 export async function readMusicRecovery(storage: Storage, capability: MusicRecoveryCapability = 'music.generate'): Promise<readonly MusicRecoveryEntry[]> {
@@ -30,12 +32,21 @@ export async function readMusicRecovery(storage: Storage, capability: MusicRecov
   for (const item of value) {
     if (!item || typeof item !== 'object' || typeof item.clientSubmissionId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(item.clientSubmissionId)
       || ids.has(item.clientSubmissionId) || typeof item.createdAt !== 'string' || !Number.isFinite(Date.parse(item.createdAt))
-      || Object.keys(item).some((key) => !['clientSubmissionId', 'createdAt', 'message', 'result', ...(capability === 'music.transcribe' ? ['sourceAudio'] : [])].includes(key))) throw new Error('Invalid saved music recovery entry');
+      || Object.keys(item).some((key) => !['clientSubmissionId', 'createdAt', 'message', 'result',
+        ...(capability === 'music.generate' ? [] : ['sourceAudio']),
+        ...(capability === 'audio.voice.convert' ? ['targetAudio'] : []),
+        ...(capability === 'audio.separate' ? ['jobId'] : [])].includes(key))) throw new Error('Invalid saved music recovery entry');
     ids.add(item.clientSubmissionId);
-    if (capability === 'music.transcribe') validateManagedArtifact(item.sourceAudio, 'transcription recovery source');
+    if (capability === 'audio.separate' && item.jobId !== undefined
+      && (typeof item.jobId !== 'string' || item.jobId.length < 1 || item.jobId.length > 256 || item.jobId !== item.jobId.trim())) throw new Error('Invalid saved music recovery entry');
+    if (capability !== 'music.generate') validateManagedArtifact(item.sourceAudio, 'music recovery source');
+    if (capability === 'audio.voice.convert' && item.targetAudio !== undefined) validateManagedArtifact(item.targetAudio, 'voice conversion recovery target');
     if (item.result !== undefined) {
       validateStudioHistoryResult(item.result, 'music recovery');
-      if (!item.result.ok || item.result.kind !== 'artifacts' || !(capability === 'music.transcribe' ? item.result.musicTranscription : item.result.musicGeneration) || typeof item.message !== 'string') throw new Error('Incomplete saved music result');
+      const complete = capability === 'music.transcribe' ? item.result.musicTranscription
+        : capability === 'audio.voice.convert' ? item.result.voiceConversion
+        : capability === 'audio.separate' ? item.result.audioSeparation : item.result.musicGeneration;
+      if (!item.result.ok || item.result.kind !== 'artifacts' || !complete || typeof item.message !== 'string') throw new Error('Incomplete saved music result');
     }
   }
   return value as MusicRecoveryEntry[];
@@ -55,16 +66,28 @@ async function mutate(storage: Storage, update: (entries: readonly MusicRecovery
   await next;
 }
 
-export async function beginMusicRecovery(storage: Storage, capability: MusicRecoveryCapability = 'music.generate', sourceAudio?: StudioManagedArtifact): Promise<string> {
-  if (capability === 'music.transcribe') validateManagedArtifact(sourceAudio, 'transcription recovery source');
+export async function beginMusicRecovery(storage: Storage, capability: MusicRecoveryCapability = 'music.generate', sourceAudio?: StudioManagedArtifact, targetAudio?: StudioManagedArtifact): Promise<string> {
+  if (capability !== 'music.generate') validateManagedArtifact(sourceAudio, 'music recovery source');
+  if (targetAudio !== undefined) validateManagedArtifact(targetAudio, 'voice conversion recovery target');
   const clientSubmissionId = crypto.randomUUID();
-  await mutate(storage, (entries) => [...entries, { clientSubmissionId, createdAt: new Date().toISOString(), ...(sourceAudio ? { sourceAudio } : {}) }], capability);
+  await mutate(storage, (entries) => [...entries, { clientSubmissionId, createdAt: new Date().toISOString(), ...(sourceAudio ? { sourceAudio } : {}), ...(targetAudio ? { targetAudio } : {}) }], capability);
   return clientSubmissionId;
+}
+
+export async function captureMusicRecoveryJobId(storage: Storage, id: string, jobId: string, capability: MusicRecoveryCapability = 'music.generate') {
+  if (!jobId || jobId.length > 256 || jobId !== jobId.trim()) throw new Error('Invalid music recovery job identity');
+  await mutate(storage, (entries) => entries.map((entry) => (
+    entry.clientSubmissionId === id && !entry.jobId ? { ...entry, jobId } : entry
+  )), capability);
 }
 
 export async function saveMusicRecoveryResult(storage: Storage, id: string, result: StudioCapabilityRunResult, capability: MusicRecoveryCapability = 'music.generate') {
   if (!result.ok) return;
-  if (result.output.kind !== 'artifacts' || !(capability === 'music.transcribe' ? result.output.musicTranscription : result.output.musicGeneration)) throw new Error('Music recovery requires the complete adopted result');
+  if (result.output.kind !== 'artifacts') throw new Error('Music recovery requires the complete adopted result');
+  const complete = capability === 'music.transcribe' ? result.output.musicTranscription
+    : capability === 'audio.voice.convert' ? result.output.voiceConversion
+    : capability === 'audio.separate' ? result.output.audioSeparation : result.output.musicGeneration;
+  if (!complete) throw new Error('Music recovery requires the complete adopted result');
   const snapshot = createStudioRunHistoryResultSnapshot(result);
   await mutate(storage, (entries) => {
     if (!entries.some((entry) => entry.clientSubmissionId === id)) throw new Error('Music author action is no longer recorded');

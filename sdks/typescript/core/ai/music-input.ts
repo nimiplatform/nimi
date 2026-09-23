@@ -23,9 +23,22 @@ export type NimiMusicTranscriptionInputProfile = {
   readonly maxSourceBytes: number;
   readonly supportsRange: boolean;
 };
+export type NimiVoiceConvertInputProfile = {
+  readonly sourceKinds: readonly ('singing')[];
+  readonly targetKinds: readonly ('reference-audio' | 'preset' | 'voice-asset')[];
+  readonly maxSourceSeconds: number;
+  readonly maxTargetSeconds: number;
+  readonly supportsRange: boolean;
+  readonly supportsSemitoneShift: boolean;
+  readonly minSemitoneShift: number;
+  readonly maxSemitoneShift: number;
+  readonly maxSourceBytes: number;
+  readonly maxTargetBytes: number;
+};
 export type NimiMusicInputCapabilities = {
   readonly generation: readonly NimiMusicGenerationInputProfile[];
   readonly transcription?: readonly NimiMusicTranscriptionInputProfile[];
+  readonly voiceConvert?: readonly NimiVoiceConvertInputProfile[];
 };
 
 const fail = (): never => { throw createNimiError({ reasonCode: 'SDK_LOCAL_APP_PROJECTION_INVALID', message: 'Music input capabilities are invalid.', actionHint: 'update_matching_runtime_sdk_kit', source: 'sdk' }); };
@@ -41,8 +54,9 @@ const tokens = (value: unknown, allowed: readonly string[]): value is string[] =
 // @nimi-authority: rule.nimi.runtime.ai-provider.music-generation
 export function projectMusicInputCapabilities(value: unknown): NimiMusicInputCapabilities {
   const source = record(value);
-  if (Object.keys(source).some(key => !['generation', 'transcription'].includes(key)) || !Array.isArray(source.generation) || source.generation.length > 16
-    || (source.transcription !== undefined && (!Array.isArray(source.transcription) || source.transcription.length > 16))) fail();
+  if (Object.keys(source).some(key => !['generation', 'transcription', 'voiceConvert'].includes(key)) || !Array.isArray(source.generation) || source.generation.length > 16
+    || (source.transcription !== undefined && (!Array.isArray(source.transcription) || source.transcription.length > 16))
+    || (source.voiceConvert !== undefined && (!Array.isArray(source.voiceConvert) || source.voiceConvert.length > 16))) fail();
   const generation = (source.generation as unknown[]).map((entry) => {
     const row = record(entry);
     const keys = ['lyricsMode', 'scoreMode', 'scoreFormats', 'scoreConditioning', 'supportsInstrumental', 'supportsSeed', 'supportsGeneratedScore', 'supportsAudioReference', 'maxDurationSeconds', 'defaultDurationSeconds', 'maxPromptBytes', 'maxLyricsBytes', 'maxScoreBytes', 'maxAudioReferenceBytes'];
@@ -70,6 +84,18 @@ export function projectMusicInputCapabilities(value: unknown): NimiMusicInputCap
     const profile = row as unknown as NimiMusicTranscriptionInputProfile;
     return Object.freeze({ ...profile, formats: Object.freeze([...profile.formats]), parts: Object.freeze([...profile.parts]) });
   });
-  if (!generation.length && !transcription.length) fail();
-  return Object.freeze({ generation: Object.freeze(generation), ...(transcription.length ? { transcription: Object.freeze(transcription) } : {}) });
+  const voiceConvert = ((source.voiceConvert ?? []) as unknown[]).map(entry => {
+    const row = record(entry); const keys = ['sourceKinds', 'targetKinds', 'maxSourceSeconds', 'maxTargetSeconds', 'supportsRange', 'supportsSemitoneShift', 'minSemitoneShift', 'maxSemitoneShift', 'maxSourceBytes', 'maxTargetBytes'];
+    if (Object.keys(row).length !== keys.length || Object.keys(row).some(key => !keys.includes(key))
+      || !tokens(row.sourceKinds, ['singing']) || !row.sourceKinds.length
+      || !tokens(row.targetKinds, ['reference-audio', 'preset', 'voice-asset']) || !row.targetKinds.length
+      || !integer(row.maxSourceSeconds, 1, 600) || !integer(row.maxTargetSeconds, 1, 600)
+      || typeof row.supportsRange !== 'boolean' || typeof row.supportsSemitoneShift !== 'boolean'
+      || !integer(row.minSemitoneShift, -12, 12) || !integer(row.maxSemitoneShift, -12, 12) || (row.minSemitoneShift as number) > (row.maxSemitoneShift as number)
+      || !integer(row.maxSourceBytes, 1, 512 * 1024 * 1024) || !integer(row.maxTargetBytes, 1, 512 * 1024 * 1024)) fail();
+    const profile = row as unknown as NimiVoiceConvertInputProfile;
+    return Object.freeze({ ...profile, sourceKinds: Object.freeze([...profile.sourceKinds]), targetKinds: Object.freeze([...profile.targetKinds]) });
+  });
+  if (!generation.length && !transcription.length && !voiceConvert.length) fail();
+  return Object.freeze({ generation: Object.freeze(generation), ...(transcription.length ? { transcription: Object.freeze(transcription) } : {}), ...(voiceConvert.length ? { voiceConvert: Object.freeze(voiceConvert) } : {}) });
 }

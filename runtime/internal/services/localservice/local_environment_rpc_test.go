@@ -54,6 +54,8 @@ func TestLocalEnvironmentTargetForDriverUsesRuntimeDriverContract(t *testing.T) 
 		{name: "voxcpm", driver: capabilitydriver.VoxCPMDriver{}, wantPack: "local-speech", wantConsumer: "speech.voxcpm.python", wantOK: true},
 		{name: "qwen asr", driver: capabilitydriver.Qwen3ASRDriver{}, wantPack: "local-speech", wantConsumer: "speech.qwen3-asr.python", wantOK: true},
 		{name: "qwen transformers asr", driver: capabilitydriver.Qwen3ASRTransformersDriver{}, wantPack: "local-speech", wantConsumer: "speech.qwen3-asr-transformers.python", wantOK: true},
+		{name: "vevo2 voice convert", driver: capabilitydriver.VeVo2AudioCppDriver{}, wantPack: "local-music-native", wantConsumer: audioCppCUDAConsumerID, wantOK: true},
+		{name: "htdemucs separation", driver: capabilitydriver.HTDemucsAudioCppDriver{}, wantPack: "local-music-native", wantConsumer: audioCppCUDAConsumerID, wantOK: true},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

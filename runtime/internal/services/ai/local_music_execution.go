@@ -24,6 +24,7 @@ import (
 
 type localMusicEffectiveInputs struct {
 	transcriptionRequest   *runtimev1.MusicTranscribeScenarioSpec
+	voiceConvertRequest    *runtimev1.AudioVoiceConvertScenarioSpec
 	head                   *runtimev1.ScenarioRequestHead
 	intent                 executionintent.Intent
 	loadoutID              string
@@ -117,6 +118,9 @@ func (s *Service) captureLocalMusicEffectiveInputs(ctx context.Context, head *ru
 func (s *Service) localMusicEffectiveInputsFromResolvedAssembly(assembly *localResolvedAssembly) (*localMusicEffectiveInputs, error) {
 	if assembly != nil && assembly.Request.Kind == capabilitydriver.MusicTranscribeCapabilityContract {
 		return s.localMusicTranscriptionFromResolvedAssembly(assembly)
+	}
+	if assembly != nil && assembly.Request.Kind == capabilitydriver.VoiceConvertCapabilityContract {
+		return s.localVoiceConvertFromResolvedAssembly(assembly)
 	}
 	if err := validateLocalResolvedAssembly(assembly); err != nil {
 		return nil, err

@@ -23,6 +23,7 @@ const (
 	VoiceCreate       = "voice.create"
 	MusicGenerate     = "music.generate"
 	MusicTranscribe   = "music.transcribe"
+	AudioVoiceConvert = "audio.voice.convert"
 	RealtimeInteract  = "realtime.interact"
 	VisionLocate      = "vision.locate"
 	ImageFaceSwap     = "image.face_swap"
@@ -46,6 +47,7 @@ var canonicalCatalog = []string{
 	VideoGenerate,
 	WorldGenerate,
 	MusicTranscribe,
+	AudioVoiceConvert,
 	MusicGenerate,
 	RealtimeInteract,
 	VisionLocate,

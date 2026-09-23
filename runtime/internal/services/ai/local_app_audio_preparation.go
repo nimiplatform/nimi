@@ -46,7 +46,8 @@ func (s *Service) prepareLocalAppAudioArtifact(ctx context.Context, decision acc
 	}
 	mime := strings.TrimSpace(req.GetMimeType())
 	rate := req.GetAudioPreparation().GetTargetSampleRateHz()
-	if sourceCount != 1 || (mime != "audio/wav" && mime != "audio/mpeg" && mime != "audio/flac") || (rate != 0 && (rate < audiomedia.MinSampleRate || rate > audiomedia.MaxSampleRate)) {
+	channelMode, ok := mapCanonicalChannelMode(req.GetAudioPreparation().GetChannelMode())
+	if sourceCount != 1 || (mime != "audio/wav" && mime != "audio/mpeg" && mime != "audio/flac") || (rate != 0 && (rate < audiomedia.MinSampleRate || rate > audiomedia.MaxSampleRate)) || !ok {
 		return invalid()
 	}
 	if len(req.GetBytes()) > runtimeartifact.MaxInlineBytes {
@@ -133,7 +134,7 @@ func (s *Service) prepareLocalAppAudioArtifact(ctx context.Context, decision acc
 			return invalid()
 		}
 	}
-	prepared, err := s.canonicalAudio.Prepare(ctx, audiomedia.Input{Path: snapshot.Name(), MIMEType: mime, TargetSampleRateHz: rate}, directory)
+	prepared, err := s.canonicalAudio.Prepare(ctx, audiomedia.Input{Path: snapshot.Name(), MIMEType: mime, TargetSampleRateHz: rate, ChannelMode: channelMode}, directory)
 	if err != nil {
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
@@ -216,4 +217,19 @@ func copyAudioSnapshot(ctx context.Context, output io.Writer, source io.Reader, 
 
 func canonicalAudioInternalError(err error) error {
 	return grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{Message: "canonical audio could not be committed"})
+}
+
+func mapCanonicalChannelMode(mode runtimev1.CanonicalChannelMode) (audiomedia.ChannelMode, bool) {
+	switch mode {
+	case runtimev1.CanonicalChannelMode_CANONICAL_CHANNEL_MODE_UNSPECIFIED:
+		return audiomedia.ChannelUnspecified, true
+	case runtimev1.CanonicalChannelMode_CANONICAL_CHANNEL_MODE_PRESERVE:
+		return audiomedia.ChannelPreserve, true
+	case runtimev1.CanonicalChannelMode_CANONICAL_CHANNEL_MODE_MONO_TO_STEREO:
+		return audiomedia.ChannelMonoToStereo, true
+	case runtimev1.CanonicalChannelMode_CANONICAL_CHANNEL_MODE_STEREO_TO_MONO:
+		return audiomedia.ChannelStereoToMono, true
+	default:
+		return audiomedia.ChannelUnspecified, false
+	}
 }

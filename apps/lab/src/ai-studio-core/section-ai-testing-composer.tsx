@@ -96,7 +96,7 @@ export function TextStudioComposer({
   const [contextOpen, setContextOpen] = useState(false);
   const [parametersOpen, setParametersOpen] = useState(false);
   const promptReady = hasStudioCapabilityRunInput({ requiresPrompt, prompt, hasAlternativeInput })
-    && (capability.id !== 'music.transcribe' || hasAlternativeInput)
+    && ((capability.id !== 'music.transcribe' && capability.id !== 'audio.voice.convert' && capability.id !== 'audio.separate') || hasAlternativeInput)
     && (!isVisionLocate || (attachments.length === 1 && attachments[0]?.kind === 'image'));
   const intentConfigAction = Boolean(onOpenIntentConfig) && !canDispatch && canConfigureIntent;
   const generateDisabled = isVisionLocate

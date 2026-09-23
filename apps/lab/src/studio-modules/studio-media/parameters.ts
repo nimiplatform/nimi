@@ -68,6 +68,56 @@ export const studioMusicTranscribeParameters = defineStudioParameters<StudioMusi
   routeMatrix: Object.fromEntries(['sourceRelativePath', 'sourceName', 'sourceMimeType', 'requestedFormats', 'requestedPart', 'startSeconds', 'endSeconds', 'recoverySubmissionId'].map(key => [key, LOCAL_ONLY_STUDIO_PARAMETER])),
 });
 
+export type StudioVoiceConvertParameters = {
+  sourceRelativePath?: string;
+  sourceName?: string;
+  sourceMimeType?: 'audio/wav' | 'audio/mpeg' | 'audio/flac';
+  sourceStartSeconds?: number;
+  sourceEndSeconds?: number;
+  targetKind?: 'reference-audio' | 'preset' | 'voice-asset';
+  targetRelativePath?: string;
+  targetName?: string;
+  targetMimeType?: 'audio/wav' | 'audio/mpeg' | 'audio/flac';
+  targetStartSeconds?: number;
+  targetEndSeconds?: number;
+  targetPresetVoiceId?: string;
+  targetVoiceAssetId?: string;
+  semitoneShift?: number;
+  recoverySubmissionId?: string;
+};
+
+function voiceConvertTargetReady(value: StudioVoiceConvertParameters): boolean {
+  if (value.targetKind === 'preset') return Boolean(value.targetPresetVoiceId?.trim());
+  if (value.targetKind === 'voice-asset') return Boolean(value.targetVoiceAssetId?.trim());
+  return value.targetKind === 'reference-audio' ? Boolean(value.targetRelativePath && value.targetMimeType) : false;
+}
+
+export const studioVoiceConvertParameters = defineStudioParameters<StudioVoiceConvertParameters>({
+  initial: () => ({}),
+  hasAlternativeInput: (value) => Boolean(value.recoverySubmissionId
+    || (value.sourceRelativePath && value.sourceMimeType && voiceConvertTargetReady(value))),
+  routeMatrix: Object.fromEntries(['sourceRelativePath', 'sourceName', 'sourceMimeType', 'sourceStartSeconds', 'sourceEndSeconds',
+    'targetKind', 'targetRelativePath', 'targetName', 'targetMimeType', 'targetStartSeconds', 'targetEndSeconds',
+    'targetPresetVoiceId', 'targetVoiceAssetId', 'semitoneShift', 'recoverySubmissionId'].map(key => [key, LOCAL_ONLY_STUDIO_PARAMETER])),
+});
+
+export type StudioAudioSeparateParameters = {
+  sourceRelativePath?: string;
+  sourceName?: string;
+  sourceMimeType?: 'audio/wav' | 'audio/mpeg' | 'audio/flac';
+  startSeconds?: number;
+  endSeconds?: number;
+  includeInstrumentParts?: boolean;
+  recoverySubmissionId?: string;
+};
+
+export const studioAudioSeparateParameters = defineStudioParameters<StudioAudioSeparateParameters>({
+  initial: () => ({}),
+  hasAlternativeInput: (value) => Boolean(value.sourceRelativePath || value.recoverySubmissionId),
+  routeMatrix: Object.fromEntries(['sourceRelativePath', 'sourceName', 'sourceMimeType', 'startSeconds', 'endSeconds',
+    'includeInstrumentParts', 'recoverySubmissionId'].map(key => [key, LOCAL_ONLY_STUDIO_PARAMETER])),
+});
+
 const LOCAL_APP_UNAVAILABLE = Object.freeze({
   local: UNSUPPORTED_STUDIO_PARAMETER,
   cloud: UNSUPPORTED_STUDIO_PARAMETER,

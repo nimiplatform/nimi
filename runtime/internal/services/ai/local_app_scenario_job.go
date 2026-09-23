@@ -223,6 +223,9 @@ func projectLocalAppScenarioJob(job *runtimev1.ScenarioJob) (*runtimev1.LocalApp
 	if err := validateMusicTranscriptionResult(job); err != nil {
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
+	if err := validateVoiceConvertResult(job); err != nil {
+		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
 	if err := validateMusicGenerationResult(job); err != nil {
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
@@ -245,6 +248,7 @@ func projectLocalAppScenarioJob(job *runtimev1.ScenarioJob) (*runtimev1.LocalApp
 		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_TRANSCRIBE,
+		runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_VOICE_CONVERT,
 		runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:
 	default:
 		return invalid()
@@ -359,6 +363,7 @@ func projectLocalAppScenarioJob(job *runtimev1.ScenarioJob) (*runtimev1.LocalApp
 		RecoveryExpiresAt:    job.GetRecoveryExpiresAt(),
 		MusicGeneration:      cloneMusicGeneration(job.GetMusicGeneration()),
 		MusicTranscription:   cloneMusicTranscription(job.GetMusicTranscription()),
+		VoiceConversion:      cloneVoiceConversion(job.GetVoiceConversion()),
 		TranscriptionText:    transcriptionText,
 		Transcription:        transcription,
 		AudioSeparation:      separation,
@@ -485,11 +490,10 @@ func validateLocalAppScenarioJobRequest(req *runtimev1.SubmitLocalAppScenarioJob
 		if spec.AudioSeparate == nil {
 			return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
-		audio, err := validateLocalAppSpeechTranscribeJobSpec(&runtimev1.LocalAppSpeechTranscribeJobSpec{MimeType: spec.AudioSeparate.GetMimeType(), AudioSource: spec.AudioSeparate.GetAudioSource()})
-		if err != nil {
+		if err := validateAudioSeparateScenarioSpec(spec.AudioSeparate); err != nil {
 			return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, err
 		}
-		return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_AudioSeparate{AudioSeparate: &runtimev1.AudioSeparateScenarioSpec{MimeType: audio.GetMimeType(), AudioSource: audio.GetAudioSource()}}}, runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SEPARATE, nil
+		return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_AudioSeparate{AudioSeparate: proto.Clone(spec.AudioSeparate).(*runtimev1.AudioSeparateScenarioSpec)}}, runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SEPARATE, nil
 	case *runtimev1.SubmitLocalAppScenarioJobRequest_VoiceCreate:
 		creation, err := validateLocalAppVoiceCreateJobSpec(spec.VoiceCreate)
 		if err != nil {
@@ -509,6 +513,11 @@ func validateLocalAppScenarioJobRequest(req *runtimev1.SubmitLocalAppScenarioJob
 			return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, err
 		}
 		return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_MusicTranscribe{MusicTranscribe: canonicalMusicTranscriptionSpec(spec.MusicTranscribe)}}, runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_TRANSCRIBE, nil
+	case *runtimev1.SubmitLocalAppScenarioJobRequest_AudioVoiceConvert:
+		if err := validateVoiceConvertSpec(spec.AudioVoiceConvert); err != nil {
+			return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, err
+		}
+		return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_AudioVoiceConvert{AudioVoiceConvert: canonicalVoiceConvertSpec(spec.AudioVoiceConvert)}}, runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_VOICE_CONVERT, nil
 	default:
 		return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}

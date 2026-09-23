@@ -42,6 +42,7 @@ export const RUNTIME_CONFIG_LOCAL_ENVIRONMENT_CAPABILITIES = [
   { slice: 'voice', capabilityContract: 'voice.create' },
   { slice: 'music', capabilityContract: 'music.generate' },
   { slice: 'musicTranscription', capabilityContract: 'music.transcribe' },
+  { slice: 'voiceConvert', capabilityContract: 'audio.voice.convert' },
 ] as const satisfies readonly {
   readonly slice: string;
   readonly capabilityContract: RuntimeConfigLocalCapabilityContract;

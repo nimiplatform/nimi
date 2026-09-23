@@ -1105,6 +1105,10 @@ export interface MusicInputCapabilities {
      * @generated from protobuf field: repeated nimi.runtime.v1.MusicTranscriptionInputProfile transcription = 2
      */
     transcription: MusicTranscriptionInputProfile[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.VoiceConvertInputProfile voice_convert = 3
+     */
+    voiceConvert: VoiceConvertInputProfile[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.MusicTranscriptionInputProfile
@@ -1134,6 +1138,57 @@ export interface MusicTranscriptionInputProfile {
      * @generated from protobuf field: bool supports_range = 5
      */
     supportsRange: boolean;
+}
+/**
+ * One legal voice-conversion input combination of the exact implementation.
+ *
+ * @generated from protobuf message nimi.runtime.v1.VoiceConvertInputProfile
+ */
+export interface VoiceConvertInputProfile {
+    /**
+     * singing
+     *
+     * @generated from protobuf field: repeated string source_kinds = 1
+     */
+    sourceKinds: string[];
+    /**
+     * reference-audio | preset | voice-asset
+     *
+     * @generated from protobuf field: repeated string target_kinds = 2
+     */
+    targetKinds: string[];
+    /**
+     * @generated from protobuf field: uint32 max_source_seconds = 3
+     */
+    maxSourceSeconds: number;
+    /**
+     * @generated from protobuf field: uint32 max_target_seconds = 4
+     */
+    maxTargetSeconds: number;
+    /**
+     * @generated from protobuf field: bool supports_range = 5
+     */
+    supportsRange: boolean;
+    /**
+     * @generated from protobuf field: bool supports_semitone_shift = 6
+     */
+    supportsSemitoneShift: boolean;
+    /**
+     * @generated from protobuf field: int32 min_semitone_shift = 7
+     */
+    minSemitoneShift: number;
+    /**
+     * @generated from protobuf field: int32 max_semitone_shift = 8
+     */
+    maxSemitoneShift: number;
+    /**
+     * @generated from protobuf field: uint32 max_source_bytes = 9
+     */
+    maxSourceBytes: number;
+    /**
+     * @generated from protobuf field: uint32 max_target_bytes = 10
+     */
+    maxTargetBytes: number;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AIConfigLocalResourceProjection
@@ -5002,13 +5057,15 @@ class MusicInputCapabilities$Type extends MessageType<MusicInputCapabilities> {
     constructor() {
         super("nimi.runtime.v1.MusicInputCapabilities", [
             { no: 1, name: "generation", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => MusicGenerationInputProfile },
-            { no: 2, name: "transcription", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => MusicTranscriptionInputProfile }
+            { no: 2, name: "transcription", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => MusicTranscriptionInputProfile },
+            { no: 3, name: "voice_convert", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => VoiceConvertInputProfile }
         ]);
     }
     create(value?: PartialMessage<MusicInputCapabilities>): MusicInputCapabilities {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.generation = [];
         message.transcription = [];
+        message.voiceConvert = [];
         if (value !== undefined)
             reflectionMergePartial<MusicInputCapabilities>(this, message, value);
         return message;
@@ -5023,6 +5080,9 @@ class MusicInputCapabilities$Type extends MessageType<MusicInputCapabilities> {
                     break;
                 case /* repeated nimi.runtime.v1.MusicTranscriptionInputProfile transcription */ 2:
                     message.transcription.push(MusicTranscriptionInputProfile.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated nimi.runtime.v1.VoiceConvertInputProfile voice_convert */ 3:
+                    message.voiceConvert.push(VoiceConvertInputProfile.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -5042,6 +5102,9 @@ class MusicInputCapabilities$Type extends MessageType<MusicInputCapabilities> {
         /* repeated nimi.runtime.v1.MusicTranscriptionInputProfile transcription = 2; */
         for (let i = 0; i < message.transcription.length; i++)
             MusicTranscriptionInputProfile.internalBinaryWrite(message.transcription[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.VoiceConvertInputProfile voice_convert = 3; */
+        for (let i = 0; i < message.voiceConvert.length; i++)
+            VoiceConvertInputProfile.internalBinaryWrite(message.voiceConvert[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -5131,6 +5194,125 @@ class MusicTranscriptionInputProfile$Type extends MessageType<MusicTranscription
  * @generated MessageType for protobuf message nimi.runtime.v1.MusicTranscriptionInputProfile
  */
 export const MusicTranscriptionInputProfile = new MusicTranscriptionInputProfile$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class VoiceConvertInputProfile$Type extends MessageType<VoiceConvertInputProfile> {
+    constructor() {
+        super("nimi.runtime.v1.VoiceConvertInputProfile", [
+            { no: 1, name: "source_kinds", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "target_kinds", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "max_source_seconds", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 4, name: "max_target_seconds", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 5, name: "supports_range", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 6, name: "supports_semitone_shift", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 7, name: "min_semitone_shift", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 8, name: "max_semitone_shift", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 9, name: "max_source_bytes", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 10, name: "max_target_bytes", kind: "scalar", T: 13 /*ScalarType.UINT32*/ }
+        ]);
+    }
+    create(value?: PartialMessage<VoiceConvertInputProfile>): VoiceConvertInputProfile {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.sourceKinds = [];
+        message.targetKinds = [];
+        message.maxSourceSeconds = 0;
+        message.maxTargetSeconds = 0;
+        message.supportsRange = false;
+        message.supportsSemitoneShift = false;
+        message.minSemitoneShift = 0;
+        message.maxSemitoneShift = 0;
+        message.maxSourceBytes = 0;
+        message.maxTargetBytes = 0;
+        if (value !== undefined)
+            reflectionMergePartial<VoiceConvertInputProfile>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: VoiceConvertInputProfile): VoiceConvertInputProfile {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated string source_kinds */ 1:
+                    message.sourceKinds.push(reader.string());
+                    break;
+                case /* repeated string target_kinds */ 2:
+                    message.targetKinds.push(reader.string());
+                    break;
+                case /* uint32 max_source_seconds */ 3:
+                    message.maxSourceSeconds = reader.uint32();
+                    break;
+                case /* uint32 max_target_seconds */ 4:
+                    message.maxTargetSeconds = reader.uint32();
+                    break;
+                case /* bool supports_range */ 5:
+                    message.supportsRange = reader.bool();
+                    break;
+                case /* bool supports_semitone_shift */ 6:
+                    message.supportsSemitoneShift = reader.bool();
+                    break;
+                case /* int32 min_semitone_shift */ 7:
+                    message.minSemitoneShift = reader.int32();
+                    break;
+                case /* int32 max_semitone_shift */ 8:
+                    message.maxSemitoneShift = reader.int32();
+                    break;
+                case /* uint32 max_source_bytes */ 9:
+                    message.maxSourceBytes = reader.uint32();
+                    break;
+                case /* uint32 max_target_bytes */ 10:
+                    message.maxTargetBytes = reader.uint32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: VoiceConvertInputProfile, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated string source_kinds = 1; */
+        for (let i = 0; i < message.sourceKinds.length; i++)
+            writer.tag(1, WireType.LengthDelimited).string(message.sourceKinds[i]);
+        /* repeated string target_kinds = 2; */
+        for (let i = 0; i < message.targetKinds.length; i++)
+            writer.tag(2, WireType.LengthDelimited).string(message.targetKinds[i]);
+        /* uint32 max_source_seconds = 3; */
+        if (message.maxSourceSeconds !== 0)
+            writer.tag(3, WireType.Varint).uint32(message.maxSourceSeconds);
+        /* uint32 max_target_seconds = 4; */
+        if (message.maxTargetSeconds !== 0)
+            writer.tag(4, WireType.Varint).uint32(message.maxTargetSeconds);
+        /* bool supports_range = 5; */
+        if (message.supportsRange !== false)
+            writer.tag(5, WireType.Varint).bool(message.supportsRange);
+        /* bool supports_semitone_shift = 6; */
+        if (message.supportsSemitoneShift !== false)
+            writer.tag(6, WireType.Varint).bool(message.supportsSemitoneShift);
+        /* int32 min_semitone_shift = 7; */
+        if (message.minSemitoneShift !== 0)
+            writer.tag(7, WireType.Varint).int32(message.minSemitoneShift);
+        /* int32 max_semitone_shift = 8; */
+        if (message.maxSemitoneShift !== 0)
+            writer.tag(8, WireType.Varint).int32(message.maxSemitoneShift);
+        /* uint32 max_source_bytes = 9; */
+        if (message.maxSourceBytes !== 0)
+            writer.tag(9, WireType.Varint).uint32(message.maxSourceBytes);
+        /* uint32 max_target_bytes = 10; */
+        if (message.maxTargetBytes !== 0)
+            writer.tag(10, WireType.Varint).uint32(message.maxTargetBytes);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.VoiceConvertInputProfile
+ */
+export const VoiceConvertInputProfile = new VoiceConvertInputProfile$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class AIConfigLocalResourceProjection$Type extends MessageType<AIConfigLocalResourceProjection> {
     constructor() {

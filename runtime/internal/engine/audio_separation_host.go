@@ -17,6 +17,9 @@ import (
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.demucs-local-separation
 func (host *SpeechExecutionHost) ExecuteAudioSeparation(ctx context.Context, plan *capabilitydriver.AudioSeparateInvocationPlan, onStart localexecution.SpeechExecutionStartFunc) (localexecution.AudioSeparationResult, error) {
+	if plan != nil && plan.IsNative() {
+		return host.executeNativeAudioSeparation(ctx, plan, onStart)
+	}
 	if host == nil || host.materializer == nil || plan == nil || plan.ModelAssetID() == "" {
 		return localexecution.AudioSeparationResult{}, speechHostError(localexecution.FailureLoad, fmt.Errorf("audio separation Host is unavailable"))
 	}

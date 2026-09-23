@@ -6125,6 +6125,94 @@ models:
     fitness:
       param_count: 677020953
       context_length: 5120
+  - model_id: vevo2-audio-cpp-local
+    provider: local
+    model_type: music
+    updated_at: 2026-09-22
+    capabilities:
+      - audio.voice.convert
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/audio-cpp/audio.cpp-gguf/tree/406756ee8e3b16e902ce40112986c1010775f888/Vevo2-GGUF
+      retrieved_at: 2026-09-22
+      note: VeVo2 style-preserved singing voice conversion q8 GGUF inside the audio-cpp GGUF collection. Upstream RMSnow/VeVo2 model card is CC-BY-NC-ND-4.0; non-commercial research use only, commercial and distribution rights are not cleared.
+    family: vevo2
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: 406756ee8e3b16e902ce40112986c1010775f888
+      install_kind: verified-hf-multi-file
+      entry: Vevo2-GGUF/vevo2-q8_0.gguf
+      artifact_roles:
+        - music_model
+      license: CC-BY-NC-ND-4.0
+      provenance: RMSnow/VeVo2 style-preserved singing voice conversion merged and converted by audio-cpp; non-commercial research use
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.audio.voice.convert.vevo2.audio-cpp.q8.cuda
+        quant: Q8_0
+        entry: Vevo2-GGUF/vevo2-q8_0.gguf
+        files:
+          - Vevo2-GGUF/vevo2-q8_0.gguf
+        hashes:
+          Vevo2-GGUF/vevo2-q8_0.gguf: sha256:f80a70facaaecfcf1aa417ef16ef091318c5e789b24c16a741233c64a72fcee8
+        total_size_bytes: 3242124800
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 17179869184
+          min_vram_bytes: 17179869184
+    fitness:
+      param_count: 3000000000
+      context_length: 0
+  - model_id: htdemucs-audio-cpp-local
+    provider: local
+    model_type: music
+    updated_at: 2026-09-22
+    capabilities:
+      - audio.separate
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/audio-cpp/audio.cpp-gguf/tree/406756ee8e3b16e902ce40112986c1010775f888/HTDemucs-GGUF
+      retrieved_at: 2026-09-22
+      note: HTDemucs native music source separation q8 GGUF inside the audio-cpp GGUF collection. Upstream HTDemucs is MIT; produces vocals, drums, bass and other stems and requires a fixed 44100 Hz input rate.
+    family: htdemucs
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: 406756ee8e3b16e902ce40112986c1010775f888
+      install_kind: verified-hf-multi-file
+      entry: HTDemucs-GGUF/htdemucs-q8_0.gguf
+      artifact_roles:
+        - music_model
+      license: MIT
+      provenance: facebookresearch/demucs HTDemucs native source separation converted by audio-cpp; fixed 44100 Hz input
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.audio.separate.htdemucs.audio-cpp.q8.cuda
+        quant: Q8_0
+        entry: HTDemucs-GGUF/htdemucs-q8_0.gguf
+        files:
+          - HTDemucs-GGUF/htdemucs-q8_0.gguf
+        hashes:
+          HTDemucs-GGUF/htdemucs-q8_0.gguf: sha256:b0f532ac6e5f373aeb11fa0df73253251e133832d9c8b9942dc58f50bc5b4388
+        total_size_bytes: 61940768
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 4294967296
+          min_vram_bytes: 2147483648
+    fitness:
+      param_count: 41984456
+      context_length: 0
   - model_id: yue2-audio-cpp-local
     provider: local
     model_type: music
@@ -9126,6 +9214,46 @@ loadout_recipes:
         model_contract:
           format: gguf
           model_family: sheetsage2
+          artifact_role: music_model
+  - recipe_id: vevo2.audio-cpp.v1
+    revision: "1"
+    title: VeVo2 singing voice conversion (non-commercial)
+    capability_contract: audio.voice.convert
+    implementation_id: local.audio.voice.convert.vevo2.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.vevo2
+    driver_dialect: audio.cpp/vevo2/voice-convert/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: voice.model
+        display_label: VeVo2 q8 (CC-BY-NC-ND-4.0)
+        recommended_variant_ids:
+          - local.audio.voice.convert.vevo2.audio-cpp.q8.cuda
+        recommended_content_ids:
+          - sha256:f80a70facaaecfcf1aa417ef16ef091318c5e789b24c16a741233c64a72fcee8
+        model_contract:
+          format: gguf
+          model_family: vevo2
+          artifact_role: music_model
+  - recipe_id: htdemucs.audio-cpp.v1
+    revision: "1"
+    title: HTDemucs native source separation
+    capability_contract: audio.separate
+    implementation_id: local.audio.separate.htdemucs.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.htdemucs
+    driver_dialect: audio.cpp/htdemucs/audio-separate/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: separation.model
+        display_label: HTDemucs q8 (MIT)
+        recommended_variant_ids:
+          - local.audio.separate.htdemucs.audio-cpp.q8.cuda
+        recommended_content_ids:
+          - sha256:b0f532ac6e5f373aeb11fa0df73253251e133832d9c8b9942dc58f50bc5b4388
+        model_contract:
+          format: gguf
+          model_family: htdemucs
           artifact_role: music_model
   - recipe_id: yue2.audio-cpp.v1
     revision: "1"

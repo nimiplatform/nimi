@@ -8,6 +8,27 @@ import {
 } from '../src/main/local-app-host.js';
 
 describe('Electron protected local-app host', () => {
+  it('preserves voice conversion source facts and the reported tail delta on Get and events', async () => {
+    const artifacts = [{ artifactId: 'vocal-1', mimeType: 'audio/wav', sizeBytes: 963400 }]
+      .map(value => ({ ...value, bytes: [], sha256: 'a'.repeat(64), durationMs: 10034, width: 0, height: 0, sampleRateHz: 24000, channels: 1, frameCount: 240828 }));
+    const voiceConversion = { vocalArtifactId: 'vocal-1', sourceArtifactId: 'source-1',
+      sourceInfo: { sampleRateHz: 48000, channels: 2, frameCount: 480000, durationMs: 10000 },
+      inputRange: { startFrame: 0, endFrame: 480000 },
+      vocalInfo: { sampleRateHz: 24000, channels: 1, frameCount: 240828, durationMs: 10034 },
+      lengthRelation: 'MODEL_FRAME_ROUNDING', durationDeltaMs: 34 };
+    const job = scenarioJobProjection({ scenarioType: 'audio-voice-convert', status: 'completed', artifacts, voiceConversion,
+      recoveryExpiresAt: { seconds: '1790086467', nanos: 0 } });
+    const event = { eventType: 'completed', sequence: '3', traceId: 'trace-convert', timestamp: null, job };
+    const candidate = { ...binding([]),
+      localAppScenarioJobGet: async () => ({ status: 'ok' as const, value: { job, asset: null, voiceReference: null } }),
+      localAppScenarioJobStreamNext: async () => ({ status: 'ok' as const, value: { completed: false, event } }),
+    };
+    const host = createNimiElectronLocalAppHostForBinding(candidate);
+    await expect(host.scenarioJobGet({ jobId: job.jobId })).resolves.toEqual({ job, asset: null, voiceReference: null });
+    await expect(host.scenarioJobStreamNext({ streamId: 'convert-stream' })).resolves.toEqual({ completed: false, event });
+    candidate.localAppScenarioJobGet = async () => ({ status: 'ok', value: { job: { ...job, voiceConversion: { ...voiceConversion, durationDeltaMs: 0 } }, asset: null, voiceReference: null } });
+    await expect(host.scenarioJobGet({ jobId: job.jobId })).rejects.toBeDefined();
+  });
   it('preserves music transcription source facts and both output files on Get and events', async () => {
     const artifacts = [{ artifactId: 'score-1', mimeType: 'text/vnd.abc', sizeBytes: 512 },
       { artifactId: 'events-1', mimeType: 'application/vnd.nimi.music-timeline+json', sizeBytes: 1024 }]

@@ -4,6 +4,10 @@ import {
   runRuntimeMusicGenerate,
   runRuntimeMusicTranscribe,
   observeRuntimeMusicTranscription,
+  runRuntimeAudioSeparation,
+  observeRuntimeAudioSeparation,
+  runRuntimeVoiceConvert,
+  observeRuntimeVoiceConversion,
   observeRuntimeMusicGeneration,
   runRuntimeSpeechSynthesize,
   runRuntimeSpeechTranscribe,
@@ -16,6 +20,7 @@ import {
   type NimiLocalAppClient,
 } from '@nimiplatform/sdk/app';
 import type {
+  StudioAudioSeparation,
   StudioCapabilityRunInput,
   StudioCapabilityRunResult,
   StudioManagedArtifact,
@@ -26,6 +31,7 @@ import type {
   StudioNonSuccessReason,
   StudioRuntimeCapabilityDescriptor,
   StudioRuntimeInspection,
+  StudioVoiceConversion,
 } from './runtime-types.js';
 import {
   dispatchStudioCapabilityRuntime,
@@ -40,6 +46,10 @@ export type StudioRuntimeRunnerSet = {
   readonly musicGenerate: typeof runRuntimeMusicGenerate;
   readonly musicTranscribe: typeof runRuntimeMusicTranscribe;
   readonly musicTranscriptionObserve: typeof observeRuntimeMusicTranscription;
+  readonly voiceConvert: typeof runRuntimeVoiceConvert;
+  readonly voiceConversionObserve: typeof observeRuntimeVoiceConversion;
+  readonly audioSeparate: typeof runRuntimeAudioSeparation;
+  readonly audioSeparationObserve: typeof observeRuntimeAudioSeparation;
   readonly musicObserve: typeof observeRuntimeMusicGeneration;
   readonly videoGenerate: typeof runRuntimeVideoGenerate;
   readonly speechSynthesize: typeof runRuntimeSpeechSynthesize;
@@ -67,6 +77,9 @@ export type StudioRuntimeHost = {
 
 export type StudioCapabilityRuntimeContext = {
   readonly musicSourceAudio?: StudioManagedArtifact;
+  readonly voiceSourceVocal?: StudioManagedArtifact;
+  readonly voiceTargetAudio?: StudioManagedArtifact;
+  readonly separationSourceAudio?: StudioManagedArtifact;
   readonly capability: StudioRuntimeCapabilityDescriptor;
   readonly input: StudioCapabilityRunInput;
   readonly prompt: string;
@@ -98,6 +111,10 @@ export const DEFAULT_STUDIO_RUNTIME_RUNNERS: StudioRuntimeRunnerSet = Object.fre
   musicGenerate: runRuntimeMusicGenerate,
   musicTranscribe: runRuntimeMusicTranscribe,
   musicTranscriptionObserve: observeRuntimeMusicTranscription,
+  voiceConvert: runRuntimeVoiceConvert,
+  voiceConversionObserve: observeRuntimeVoiceConversion,
+  audioSeparate: runRuntimeAudioSeparation,
+  audioSeparationObserve: observeRuntimeAudioSeparation,
   musicObserve: observeRuntimeMusicGeneration,
   videoGenerate: runRuntimeVideoGenerate,
   speechSynthesize: runRuntimeSpeechSynthesize,
@@ -171,6 +188,8 @@ type ArtifactRunnerResult = Awaited<ReturnType<
   | typeof runRuntimeImageGenerate
   | typeof runRuntimeMusicGenerate
   | typeof runRuntimeMusicTranscribe
+  | typeof runRuntimeAudioSeparation
+  | typeof runRuntimeVoiceConvert
   | typeof runRuntimeVideoGenerate
   | typeof runRuntimeSpeechSynthesize
 >>;
@@ -181,6 +200,8 @@ export async function projectStudioArtifactRunnerResult(
 ): Promise<StudioCapabilityRunResult> {
   if (result.ok === false) return projectStudioRunnerNonSuccess(context, result);
   if (result.output.kind === 'music-transcription-artifacts' && !context.musicSourceAudio) throw new Error('Music transcription omitted the saved canonical input.');
+  if (result.output.kind === 'voice-conversion-artifacts' && !context.voiceSourceVocal) throw new Error('Voice conversion omitted the saved canonical source.');
+  if (result.output.kind === 'audio-separation' && !context.separationSourceAudio) throw new Error('Audio separation omitted the saved canonical source.');
   const artifacts: StudioManagedArtifact[] = [];
   const adoptedPaths: string[] = [];
   try {
@@ -194,9 +215,9 @@ export async function projectStudioArtifactRunnerResult(
         index,
       );
       let adopted: Awaited<ReturnType<NimiLocalAppClient['storage']['assets']['stat']>> | undefined;
-      const expectedHash = (result.output.kind === 'music-artifacts' || result.output.kind === 'music-transcription-artifacts') && 'sha256' in sourceArtifact && typeof sourceArtifact.sha256 === 'string'
+      const expectedHash = (result.output.kind === 'music-artifacts' || result.output.kind === 'music-transcription-artifacts' || result.output.kind === 'voice-conversion-artifacts' || result.output.kind === 'audio-separation') && 'sha256' in sourceArtifact && typeof sourceArtifact.sha256 === 'string'
         ? `sha256:${sourceArtifact.sha256.replace(/^sha256:/u, '')}` : undefined;
-      if ((result.output.kind === 'music-artifacts' || result.output.kind === 'music-transcription-artifacts') && (!expectedHash || !/^sha256:[0-9a-f]{64}$/u.test(expectedHash))) throw new Error('Music artifact omitted its content digest.');
+      if ((result.output.kind === 'music-artifacts' || result.output.kind === 'music-transcription-artifacts' || result.output.kind === 'voice-conversion-artifacts' || result.output.kind === 'audio-separation') && (!expectedHash || !/^sha256:[0-9a-f]{64}$/u.test(expectedHash))) throw new Error('Music artifact omitted its content digest.');
       if (expectedHash) {
         // Runtime owns the adopted extension. Each music artifact has its own
         // deterministic directory, so recovery uses returned metadata instead.
@@ -239,6 +260,8 @@ export async function projectStudioArtifactRunnerResult(
   }
   let musicGeneration: StudioMusicGeneration | undefined;
   let musicTranscription: StudioMusicTranscription | undefined;
+  let voiceConversion: StudioVoiceConversion | undefined;
+  let audioSeparation: StudioAudioSeparation | undefined;
   if (result.output.kind === 'music-transcription-artifacts') {
     if (!context.musicSourceAudio) throw new Error('Music transcription omitted the saved canonical input.');
     const pathFor = (id: string) => {
@@ -250,6 +273,31 @@ export async function projectStudioArtifactRunnerResult(
     musicTranscription = { sourceAudio: context.musicSourceAudio, sourceInfo: value.sourceInfo, inputRange: value.inputRange,
       completeness: value.completeness, origin: value.origin, scores: value.scores.map(score => ({ relativePath: pathFor(score.artifactId), format: score.format, part: score.part })),
       ...(value.timelineArtifactId ? { timelineRelativePath: pathFor(value.timelineArtifactId) } : {}) };
+  }
+  if (result.output.kind === 'voice-conversion-artifacts') {
+    if (!context.voiceSourceVocal) throw new Error('Voice conversion omitted the saved canonical source.');
+    const value = result.output.conversion;
+    const index = result.output.artifacts.findIndex(artifact => artifact.artifactId === value.vocalArtifactId);
+    const vocal = index < 0 ? undefined : artifacts[index];
+    if (!vocal || vocal.mediaType !== 'audio/wav') throw new Error('Voice conversion result references an unadopted vocal.');
+    voiceConversion = { sourceVocal: context.voiceSourceVocal,
+      ...(context.voiceTargetAudio ? { targetVoice: context.voiceTargetAudio } : {}),
+      vocal, sourceInfo: value.sourceInfo, inputRange: value.inputRange, vocalInfo: value.vocalInfo,
+      lengthRelation: value.lengthRelation, durationDeltaMs: value.durationDeltaMs };
+  }
+  if (result.output.kind === 'audio-separation') {
+    if (!context.separationSourceAudio) throw new Error('Audio separation omitted the saved canonical source.');
+    const value = result.output.separation;
+    const stemFor = (id: string) => {
+      const index = result.output.artifacts.findIndex(artifact => artifact.artifactId === id);
+      const stem = index < 0 ? undefined : artifacts[index];
+      if (!stem || stem.mediaType !== 'audio/wav') throw new Error('Audio separation result references an unadopted stem.');
+      return stem;
+    };
+    const vocals = stemFor(value.vocalsArtifactId);
+    const background = stemFor(value.backgroundArtifactId);
+    audioSeparation = { sourceAudio: context.separationSourceAudio, vocals, background,
+      ...(value.instrumentParts?.length ? { instrumentParts: value.instrumentParts.map(part => ({ kind: part.kind, artifact: stemFor(part.artifactId) })) } : {}) };
   }
   if (result.output.kind === 'music-artifacts') {
     const generation = result.output.generation;
@@ -275,6 +323,8 @@ export async function projectStudioArtifactRunnerResult(
       kind: 'artifacts',
       ...(musicGeneration ? { musicGeneration } : {}),
       ...(musicTranscription ? { musicTranscription } : {}),
+      ...(voiceConversion ? { voiceConversion } : {}),
+      ...(audioSeparation ? { audioSeparation } : {}),
       jobId: result.output.jobId,
       jobState: result.output.jobStatus,
       artifactCount: result.output.artifactCount,
@@ -369,5 +419,5 @@ async function managedStudioAssetPath(
   const bytes = new TextEncoder().encode(identity);
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
   const token = Array.from(digest, (byte) => byte.toString(16).padStart(2, '0')).join('');
-  return `media/${capabilityId.replaceAll('.', '-')}/${token}${['music.generate', 'music.transcribe'].includes(capabilityId) ? '/result' : ''}.asset`;
+  return `media/${capabilityId.replaceAll('.', '-')}/${token}${['music.generate', 'music.transcribe', 'audio.voice.convert', 'audio.separate'].includes(capabilityId) ? '/result' : ''}.asset`;
 }

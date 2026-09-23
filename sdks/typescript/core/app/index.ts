@@ -408,7 +408,7 @@ export { validateNimiLocalAppSpeechTranscript } from './local-app-transcription.
 export type { NimiLocalAppSpeechTranscript } from './local-app-transcription.js';
 export { validateNimiLocalAppAudioSeparation } from './local-app-audio-separation.js';
 export { validateNimiLocalAppArtifactUploadShellInput, validateNimiLocalAppArtifactUploadResult } from './local-app-runtime-platform-ai.js';
-export type { NimiLocalAppAudioSeparation } from './local-app-audio-separation.js';
+export type { NimiLocalAppAudioSeparation, NimiLocalAppAudioInstrumentPart, NimiLocalAppAudioInstrumentPartKind } from './local-app-audio-separation.js';
 
 export { validateNimiLocalAppTextAnnotationResult } from './local-app-text-annotation.js';
 export type { NimiLocalAppTextAnnotationResult, NimiLocalAppTextAnnotationDocument, NimiLocalAppTextAnnotationToken } from './local-app-text-annotation.js';
@@ -417,5 +417,7 @@ export { validateNimiLocalAppMusicGenerateSpec, validateNimiLocalAppMusicGenerat
 export type { NimiLocalAppMusicGenerateSpec, NimiLocalAppMusicGeneration } from './local-app-music.js';
 export { validateNimiLocalAppMusicTranscribeSpec, validateNimiLocalAppMusicTranscription } from './local-app-music-transcription.js';
 export type { NimiLocalAppMusicTranscribeSpec, NimiLocalAppMusicTranscription, NimiMusicTranscriptionFormat, NimiMusicTranscriptionPart } from './local-app-music-transcription.js';
+export { validateNimiLocalAppVoiceConvertSpec, validateNimiLocalAppVoiceConversion } from './local-app-voice-convert.js';
+export type { NimiLocalAppVoiceConvertSpec, NimiLocalAppVoiceConversion, NimiLocalAppVoiceConvertTargetVoice, NimiLocalAppVoiceConvertSource, NimiVoiceConvertSourceKind, NimiVoiceConvertTargetKind, NimiVoiceConversionLengthRelation } from './local-app-voice-convert.js';
 
-export { projectMusicInputCapabilities, type NimiMusicInputCapabilities, type NimiMusicGenerationInputProfile, type NimiMusicTranscriptionInputProfile } from '../ai/music-input.js';
+export { projectMusicInputCapabilities, type NimiMusicInputCapabilities, type NimiMusicGenerationInputProfile, type NimiMusicTranscriptionInputProfile, type NimiVoiceConvertInputProfile } from '../ai/music-input.js';

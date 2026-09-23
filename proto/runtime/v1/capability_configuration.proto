@@ -466,6 +466,7 @@ message MusicGenerationInputProfile {
 message MusicInputCapabilities {
   repeated MusicGenerationInputProfile generation = 1;
   repeated MusicTranscriptionInputProfile transcription = 2;
+  repeated VoiceConvertInputProfile voice_convert = 3;
 }
 
 message MusicTranscriptionInputProfile {
@@ -476,6 +477,22 @@ message MusicTranscriptionInputProfile {
   uint32 max_duration_seconds = 3;
   uint32 max_source_bytes = 4;
   bool supports_range = 5;
+}
+
+// One legal voice-conversion input combination of the exact implementation.
+message VoiceConvertInputProfile {
+  // singing
+  repeated string source_kinds = 1;
+  // reference-audio | preset | voice-asset
+  repeated string target_kinds = 2;
+  uint32 max_source_seconds = 3;
+  uint32 max_target_seconds = 4;
+  bool supports_range = 5;
+  bool supports_semitone_shift = 6;
+  int32 min_semitone_shift = 7;
+  int32 max_semitone_shift = 8;
+  uint32 max_source_bytes = 9;
+  uint32 max_target_bytes = 10;
 }
 
 message AIConfigLocalResourceProjection {

@@ -43,7 +43,7 @@ func scenarioModalFromType(scenarioType runtimev1.ScenarioType) runtimev1.Modal 
 		// Voice creation targets a synthesis model while remaining separate
 		// from the audio.synthesize contract.
 		return runtimev1.Modal_MODAL_TTS
-	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE, runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_TRANSCRIBE, runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SEPARATE:
+	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE, runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_TRANSCRIBE, runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_VOICE_CONVERT, runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SEPARATE:
 		return runtimev1.Modal_MODAL_MUSIC
 	case runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:
 		return runtimev1.Modal_MODAL_WORLD

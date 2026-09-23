@@ -112,6 +112,8 @@ type localResolvedAssemblyLoadPlan struct {
 type localResolvedAssemblyMusicPlan struct {
 	SourcePath                     string                       `json:"source_path,omitempty"`
 	SourceInfo                     *runtimev1.LocalAppAudioInfo `json:"source_info,omitempty"`
+	TargetPath                     string                       `json:"target_path,omitempty"`
+	TargetInfo                     *runtimev1.LocalAppAudioInfo `json:"target_info,omitempty"`
 	StagingDirectory               string                       `json:"staging_directory,omitempty"`
 	ProcessKey                     string                       `json:"process_key"`
 	AudioCppPackageID              string                       `json:"audio_cpp_package_id"`
@@ -190,6 +192,25 @@ type localResolvedAssemblySpeechPlan struct {
 	Qwen3TTSAudioCpp       *localResolvedAssemblyQwen3TTSAudioCppPlan       `json:"qwen3_tts_audio_cpp,omitempty"`
 	AudioCpp               *localResolvedAssemblyAudioCppSpeechPlan         `json:"audio_cpp,omitempty"`
 	AudioCppReferenceVoice *localResolvedAssemblyAudioCppReferenceVoicePlan `json:"audio_cpp_reference_voice,omitempty"`
+	NativeSeparation       *localResolvedAssemblyNativeSeparationPlan       `json:"native_separation,omitempty"`
+}
+
+// localResolvedAssemblyNativeSeparationPlan captures the owned canonical
+// source staged for the native separation process so execution re-plans the
+// exact captured input instead of the inline-bytes carrier.
+type localResolvedAssemblyNativeSeparationPlan struct {
+	ProcessKey                     string                       `json:"process_key"`
+	CLIArgs                        []string                     `json:"cli_args"`
+	AudioCppPackageID              string                       `json:"audio_cpp_package_id"`
+	AudioCppSelectedSourceRecordID string                       `json:"audio_cpp_selected_source_record_id"`
+	AudioCppRoot                   string                       `json:"audio_cpp_root"`
+	AudioCppExecutablePath         string                       `json:"audio_cpp_executable_path"`
+	CUDA13DependencyID             string                       `json:"cuda13_dependency_id"`
+	CUDA13SelectedSourceRecordID   string                       `json:"cuda13_selected_source_record_id"`
+	CUDA13Root                     string                       `json:"cuda13_root"`
+	SourcePath                     string                       `json:"source_path"`
+	SourceInfo                     *runtimev1.LocalAppAudioInfo `json:"source_info"`
+	StagingDirectory               string                       `json:"staging_directory"`
 }
 
 type localResolvedAssemblyAudioCppReferenceVoicePlan struct {
@@ -597,6 +618,14 @@ func localResolvedAssemblyForSpeech(selected *localexecution.SelectedLocalExecut
 		plan.ModelAssetID = separate.ModelAssetID()
 		plan.ModelFiles = resolvedAssemblyInvocationBindings(separate.ModelFiles())
 		binaryInput, mimeType = separate.AudioBytes(), separate.MIMEType()
+		if separate.IsNative() {
+			pkg := separate.NativeAudioCppPackage()
+			plan.NativeSeparation = &localResolvedAssemblyNativeSeparationPlan{ProcessKey: separate.NativeProcessKey(), CLIArgs: separate.NativeCLIArgs(),
+				AudioCppPackageID: pkg.AudioCppPackageID, AudioCppSelectedSourceRecordID: pkg.AudioCppSelectedSourceRecordID, AudioCppRoot: pkg.AudioCppRoot,
+				AudioCppExecutablePath: pkg.AudioCppExecutablePath, CUDA13DependencyID: pkg.CUDA13DependencyID, CUDA13SelectedSourceRecordID: pkg.CUDA13SelectedSourceRecordID,
+				CUDA13Root: pkg.CUDA13Root, SourcePath: separate.NativeSourcePath(), SourceInfo: separate.NativeSourceInfo(),
+				StagingDirectory: filepath.Dir(separate.NativeSourcePath())}
+		}
 	case synthesize != nil:
 		request = synthesize.Request()
 		plan.Operation = "synthesize"
@@ -643,6 +672,9 @@ func localResolvedAssemblyForSpeech(selected *localexecution.SelectedLocalExecut
 	assembly.ProcessIdentity.ModelAssetID = plan.ModelAssetID
 	if plan.Qwen3TTSAudioCpp != nil {
 		assembly.ProcessIdentity.ProcessKey = plan.Qwen3TTSAudioCpp.ProcessKey
+	} else if plan.NativeSeparation != nil {
+		assembly.ProcessIdentity.ProcessKey = plan.NativeSeparation.ProcessKey
+		assembly.ProcessIdentity.ProcessArgs = append([]string(nil), plan.NativeSeparation.CLIArgs...)
 	} else if plan.AudioCpp != nil {
 		assembly.ProcessIdentity.ProcessKey = plan.AudioCpp.ProcessKey
 		assembly.ProcessIdentity.ProcessArgs = append([]string(nil), plan.AudioCpp.CLIArgs...)
@@ -1063,7 +1095,7 @@ func validateLocalResolvedAssembly(assembly *localResolvedAssembly) error {
 		if assembly.LoadPlan.Video == nil || strings.TrimSpace(assembly.LoadPlan.Video.ProcessKey) == "" {
 			return fmt.Errorf("local ResolvedAssembly video load plan is incomplete")
 		}
-	case "music", "music-transcription":
+	case "music", "music-transcription", "music-voice-convert":
 		if assembly.LoadPlan.Music == nil || strings.TrimSpace(assembly.LoadPlan.Music.ProcessKey) == "" || strings.TrimSpace(assembly.LoadPlan.Music.AudioCppSelectedSourceRecordID) == "" || strings.TrimSpace(assembly.LoadPlan.Music.CUDA13SelectedSourceRecordID) == "" {
 			return fmt.Errorf("local ResolvedAssembly music load plan is incomplete")
 		}
@@ -1072,6 +1104,9 @@ func validateLocalResolvedAssembly(assembly *localResolvedAssembly) error {
 		}
 		if assembly.LoadPlan.Kind == "music-transcription" && (assembly.CapabilityContract != capabilitydriver.MusicTranscribeCapabilityContract || assembly.LoadPlan.Music.SourceInfo == nil || !filepath.IsAbs(assembly.LoadPlan.Music.StagingDirectory) || assembly.LoadPlan.Music.SourcePath != filepath.Join(assembly.LoadPlan.Music.StagingDirectory, "source.wav")) {
 			return fmt.Errorf("music transcription captured source is invalid")
+		}
+		if assembly.LoadPlan.Kind == "music-voice-convert" && (assembly.CapabilityContract != capabilitydriver.VoiceConvertCapabilityContract || assembly.LoadPlan.Music.SourceInfo == nil || !filepath.IsAbs(assembly.LoadPlan.Music.StagingDirectory) || assembly.LoadPlan.Music.SourcePath != filepath.Join(assembly.LoadPlan.Music.StagingDirectory, "source.wav")) {
+			return fmt.Errorf("voice conversion captured source is invalid")
 		}
 	default:
 		return fmt.Errorf("local ResolvedAssembly load plan kind %q is unsupported", assembly.LoadPlan.Kind)

@@ -90,7 +90,7 @@ func (s *Service) SubmitScenarioJob(ctx context.Context, req *runtimev1.SubmitSc
 	}
 	localImage := req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE && intent.IsLocal()
 	localVideo := req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE && intent.IsLocal()
-	localMusic := (req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE || req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_TRANSCRIBE) && intent.IsLocal()
+	localMusic := (req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE || req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_TRANSCRIBE || req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_VOICE_CONVERT) && intent.IsLocal()
 	localSpeech := (req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE ||
 		req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE) && intent.IsLocal()
 	if err := s.reportScenarioSpendDisclosure(ctx, req.GetHead(), req.GetScenarioType()); err != nil {
@@ -145,11 +145,11 @@ func (s *Service) SubmitScenarioJob(ctx context.Context, req *runtimev1.SubmitSc
 		}
 		return s.submitScenarioAsyncJob(ctx, req, mode, ignored)
 
-	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE, runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_TRANSCRIBE:
+	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE, runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_TRANSCRIBE, runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_VOICE_CONVERT:
 		if localMusic {
 			return s.submitLocalMusicScenarioJob(ctx, req, mode, ignored)
 		}
-		if req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_TRANSCRIBE {
+		if req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_TRANSCRIBE || req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_VOICE_CONVERT {
 			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 		}
 		return s.submitScenarioAsyncJob(ctx, req, mode, ignored)

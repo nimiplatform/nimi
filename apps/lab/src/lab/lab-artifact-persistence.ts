@@ -18,6 +18,8 @@ export type LabArtifactPersistenceCandidate = {
     jobState?: string;
     musicGeneration?: { readonly mixRelativePath: string };
     musicTranscription?: { readonly origin: 'transcribed-estimate' };
+    voiceConversion?: { readonly lengthRelation: 'EXACT' | 'MODEL_FRAME_ROUNDING' };
+    audioSeparation?: { readonly vocals: { readonly relativePath: string } };
   };
 };
 
@@ -121,7 +123,9 @@ export async function persistLabRunHistoryWithArtifactCompensation<T>(
     // document. Failure to index it in history must not delete its assets.
     if (!shouldPersistLabArtifactRecord(result)
       || (result.capabilityId === 'music.generate' && result.output.musicGeneration)
-      || (result.capabilityId === 'music.transcribe' && result.output.musicTranscription)) {
+      || (result.capabilityId === 'music.transcribe' && result.output.musicTranscription)
+      || (result.capabilityId === 'audio.voice.convert' && result.output.voiceConversion)
+      || (result.capabilityId === 'audio.separate' && result.output.audioSeparation)) {
       return {
         ok: false,
         message: persistenceMessage,

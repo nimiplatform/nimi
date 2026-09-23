@@ -1836,7 +1836,8 @@ test('audio separation retains both owned artifacts through submit and Runtime p
   assert.deepEqual(calls, [{ type: 'audio-separate', mimeType: 'audio/wav', audioSource: { type: 'bytes', bytes: [1, 2] } }]);
   const output = await createNimiLocalAppRuntimeScenarioJobClient(client.ai).getScenarioArtifacts({ jobId: 'separation-1' });
   assert.equal(output.output?.output.oneofKind, 'audioSeparate');
-  if (output.output?.output.oneofKind === 'audioSeparate') assert.deepEqual(output.output.output.audioSeparate.separation, audioSeparation);
+  if (output.output?.output.oneofKind === 'audioSeparate') assert.deepEqual(output.output.output.audioSeparate.separation,
+    { vocalsArtifactId: 'vocals-1', backgroundArtifactId: 'background-1', instrumentParts: [] });
   audioSeparation = { vocalsArtifactId: 'vocals-1', backgroundArtifactId: 'vocals-1' };
   await assert.rejects(() => client.ai.scenarioJobs.get('separation-1'));
 });
