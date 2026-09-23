@@ -219,3 +219,14 @@ export { getNimiLocalAppWorldCore, replaceNimiLocalAppWorldCore, listNimiLocalAp
 export type { NimiLocalAppWorldCharacterListInput, NimiLocalAppWorldEntityListInput, NimiLocalAppWorldRelationshipListInput } from './local-app.js';
 
 export { getNimiLocalAppWorldCreationEligibility } from './local-app.js';
+
+export {
+  putNimiLocalAppActivity,
+  listNimiLocalAppActivities,
+  subscribeNimiLocalAppActivityChanges,
+  markNimiLocalAppActivityRead,
+  openNimiLocalAppActivity,
+  subscribeNimiLocalAppActivityOpenRequests,
+  completeNimiLocalAppActivityOpenRequest,
+} from './local-app.js';
+export type { NimiLocalAppActivityShellSurface } from './local-app.js';

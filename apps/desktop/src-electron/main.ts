@@ -51,6 +51,7 @@ import {
   type DesktopElectronOpenIntentHost,
 } from './desktop-open-intent-host.js';
 import { requestRunningZhiyuResourcePackPlacement } from './zhiyu-resource-pack-placement.js';
+import { createDesktopAppActivitySourceLaunch } from './app-activity-source-launch-host.js';
 import {
   assertMacOSElectronSecurity,
   resolveElectronRuntimeDeploymentProfile,
@@ -441,11 +442,17 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         ? normalizeText(process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_DEV_ROOT)
         : undefined,
     });
+    const appActivitySourceLaunch = createDesktopAppActivitySourceLaunch({
+      resolve: () => registeredRuntimeBridge?.resolveAppActivityOpenLaunch,
+      launchInstalled: () => installedAppHost?.launchSelector,
+      startLocalDevelopment: () => localDevelopmentHost?.startRegistrationHandle,
+    });
     desktopOpenIntentHost = await createDesktopElectronOpenIntentHost({
       homeDirectory: app.getPath('home'),
       focusMainWindow: focusDesktopMainWindow,
       emitIntent: emitDesktopOpenIntent,
       avatarHostHandoff: bundledAvatarHost.hostHandoff,
+      appActivitySourceLaunch,
       zhiyuResourcePackPlacement: (request) => requestRunningZhiyuResourcePackPlacement({
         homeDirectory: app.getPath('home'),
         request,
@@ -500,6 +507,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         openExternalUrl: openDesktopExternalUrl,
         confirmDialog: confirmDesktopDialog,
         focusMainWindow: focusDesktopMainWindow,
+        appActivitySourceLaunch,
         agentCenterResourcePackPlacement: (payload) => (
           desktopOpenIntentHost?.requestZhiyuResourcePackPlacement({
             conversationAnchorId: payload.conversationAnchorId,

@@ -13,6 +13,14 @@ import (
 )
 
 var publicTransportBlockedMethods = map[string]runtimev1.ReasonCode{
+	"/nimi.runtime.v1.RuntimeAppActivityService/PutAppActivity":                      runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAppActivityService/ListAppActivities":                   runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityChanges":         runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAppActivityService/MarkAppActivityRead":                 runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAppActivityService/OpenAppActivity":                     runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityOpenRequests":    runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAppActivityService/CompleteAppActivityOpenRequest":      runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAppActivityService/ResolveAppActivityOpenLaunch":        runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference":              runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAppService/CompleteAppPackageUninstall":                 runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,
 	"/nimi.runtime.v1.RuntimeAppService/PrepareInstalledAppLaunch":                   runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,

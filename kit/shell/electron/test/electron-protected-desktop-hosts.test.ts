@@ -504,6 +504,7 @@ describe('Electron local-development protected control', () => {
       desktopRemoveLocalDevelopmentRegistration: async () => ok({ removed: true }),
       desktopLaunchLocalDevelopmentHost: async () => ok({ processId: 4242, bindDeadlineUnixMs: Date.now() + 5_000 }),
       desktopLocalDevelopmentHostRunning: async () => ok({ running: true }),
+      desktopFocusLocalDevelopmentHost: async () => ok({ focused: true }),
       desktopTerminateLocalDevelopmentHost: async () => ok({ terminated: true }),
       desktopEndLocalDevelopmentRun: async () => ok({ ended: true }),
       ...overrides,
@@ -558,6 +559,19 @@ describe('Electron local-development protected control', () => {
     expect(read).toHaveBeenCalledTimes(2);
     complete({ status: 'ok', value: [] });
     await expect(next).resolves.toEqual([]);
+  });
+
+  it('focuses only a private supervised run and rejects a failed native focus', async () => {
+    const focus = vi.fn(binding().desktopFocusLocalDevelopmentHost);
+    const control = createNimiElectronLocalDevelopmentControlForBinding(binding({ desktopFocusLocalDevelopmentHost: focus }));
+    await expect(control.focusHost(supervisorRunId)).resolves.toBeUndefined();
+    expect(focus).toHaveBeenCalledWith({ supervisorRunId });
+    await expect(control.focusHost('not-a-run')).rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
+    expect(focus).toHaveBeenCalledTimes(1);
+    const refused = createNimiElectronLocalDevelopmentControlForBinding(binding({
+      desktopFocusLocalDevelopmentHost: async () => ({ status: 'ok', value: { focused: false } }),
+    }));
+    await expect(refused.focusHost(supervisorRunId)).rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
   });
 
   it('rejects malformed native registration projections', async () => {

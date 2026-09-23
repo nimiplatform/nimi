@@ -30,6 +30,10 @@ units:
     kind: definition
     title: Runtime auth service plane
     meaning: The Runtime auth service plane owns only the technical session lifecycles for protected Desktop, process-bound protected Local App, and separately admitted external principals; it derives the current account context and Effective App Access Snapshot from the verified Host, registered subject, source generation, and declaration generation, validates each external principal independently, and never accepts caller-supplied identity, snapshot, operation, domain, or classification truth.
+  - id: definition.nimi.runtime.app-surface.app-activity-plane
+    kind: definition
+    title: Runtime App activity plane
+    meaning: The Runtime App activity plane owns the account-partitioned App activity record, ordered change, retention, and shared read-state tables in the Runtime persistence backend of the active data root, publisher derivation from the current protected session or the fixed Runtime Agent publisher, admission and execution of the app.activity operations, ordered change delivery, and the Host-private source open request lifecycle, while source Apps own business facts and object navigation, Desktop owns Host launch and focus, and Realm notifications and feeds remain separately owned; it is a purpose-specific publication surface rather than generic App messaging, routing, or command transport.
   - id: rule.nimi.runtime.app-surface.r001
     kind: rule
     title: K-APP ownership boundary is fixed
@@ -761,3 +765,51 @@ units:
         target: definition.nimi.runtime.app-surface.registered-app-subject-record-plane
       - type: supersedes
         target: rule.nimi.runtime.app-surface.r003
+  - id: rule.nimi.runtime.app-surface.r101
+    kind: rule
+    title: App activity storage is one transactional Runtime owner store
+    modality: must
+    statement: Runtime stores App activity records, ordered changes, per-account change sequences, replay floors, and read-through revisions in activity-owned tables of the Runtime persistence backend of the active data root, separate from the registration database, App-private storage, Conversation state, and Realm feeds; every publication, read-state, retention, or cleanup mutation commits the record image and its change in one transaction, live subscribers receive a change only after its commit, a subscriber that cannot keep up is ended with a typed relist-or-resume failure rather than silently dropping changes, and the store closes before data-root deactivation so no cursor or change crosses roots.
+    condition: Whenever App activity state is stored, mutated, delivered, or moved across a data-root transition.
+    failure: Reject the mutation without partial record or change state, end affected subscriptions with a typed failure, and never deliver an uncommitted or cross-root change.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-activity-record
+      - type: applies_to
+        target: definition.nimi.runtime.app-surface.app-activity-plane
+  - id: rule.nimi.runtime.app-surface.r102
+    kind: rule
+    title: App activity publisher and source facts are session derived
+    modality: must
+    statement: Runtime derives the account and Registered App Subject publisher of runtime.app-activity.put from the current protected session, resolves a supplied Agent handle only through that session's existing Agent handle admission into a private Agent association projected as a non-authorizing display reference, derives source appId, display name, and availability from the current registration record, and accepts no account, subject, publisher, source, Runtime-origin, or raw Agent identity from any request; a registration that reuses an app id receives a distinct publisher partition and neither inherits nor overwrites a tombstoned subject's records.
+    condition: Whenever an App activity is published or projected with its source and Agent association.
+    failure: Reject caller-supplied publisher or source authority and unresolvable or foreign Agent handles before mutation, and never merge partitions by app id.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-activity-record
+      - type: applies_to
+        target: definition.nimi.runtime.app-surface.app-activity-plane
+  - id: rule.nimi.runtime.app-surface.r103
+    kind: rule
+    title: App activity open requests are private, bounded, and single-resolution
+    modality: must
+    statement: Runtime keeps each App activity open request only in memory, bound to the consumer session and account, the exact source Registered App Subject, the record, and a bounded deadline; it resolves the Desktop launch target for that request only for Desktop's own formal App session on the protected Desktop transport, delivers the request only to an open-request subscription of a source session in the same account, accepts completion only from the source session it was delivered to before the deadline, resolves the consumer at most once, and cancels the request on consumer cancellation, deadline, session invalidation, account change, source registration loss, or Runtime restart.
+    condition: Whenever an App activity open request is created, launched, delivered, completed, or cancelled.
+    failure: Return typed unavailable or failed to the consumer, reject late or foreign completion without effect, and never persist, replay, or transfer an open request across sessions, accounts, or restarts.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-activity-open
+      - type: applies_to
+        target: definition.nimi.runtime.app-surface.app-activity-plane
+  - id: rule.nimi.runtime.app-surface.r104
+    kind: rule
+    title: App activity retention and cleanup are owner phases
+    modality: must
+    statement: Runtime applies App activity retention at startup and periodically, removes expired records with content-free remove changes, advances the replay floor whenever retained changes or purged payloads leave the replay window, participates in Account-terminal cleanup and LocalAgent termination as retryable owner phases of their existing fences, and never republishes into a fenced account or a terminating or terminated Agent.
+    condition: Whenever activity retention runs or account-terminal or LocalAgent termination cleanup reaches the activity owner.
+    failure: Preserve the owning fence and retry state on failure, report no cleanup success while activity state remains, and never resurrect removed records.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-activity-record
+      - type: applies_to
+        target: definition.nimi.runtime.app-surface.app-activity-plane

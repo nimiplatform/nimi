@@ -49,6 +49,7 @@ type RendererLocalAppHostMethod = Exclude<
   | 'avatarHostTargetResolve'
   | 'conversationStreamNext' | 'conversationStreamClose'
   | 'realtimeStreamNext' | 'realtimeStreamClose'
+  | 'activityStreamNext' | 'activityStreamClose'
   | 'textTurnStreamNext' | 'textTurnStreamClose'
   | 'scenarioJobStreamNext' | 'scenarioJobStreamClose'
 >;
@@ -59,6 +60,9 @@ const ACTIVE_SCENARIO_STREAMS = new WeakMap<
   Map<string, 'textTurnSubscribe' | 'scenarioJobSubscribe'>
 >();
 const ACTIVE_REALTIME_STREAMS = new WeakMap<NimiElectronLocalAppHost, Set<string>>();
+// Renderer-owned App activity pull streams by kind. Host-private open streams
+// are never registered here, so renderer code cannot pull or close them.
+const ACTIVE_ACTIVITY_STREAMS = new WeakMap<NimiElectronLocalAppHost, Map<string, 'changes' | 'deliveries'>>();
 
 const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.sessionStatus'], 'sessionStatus'],
@@ -112,6 +116,13 @@ const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSnapshot'], 'conversationSnapshot'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.embodimentSnapshot'], 'embodimentSnapshot'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.embodimentSubscribe'], 'embodimentSubscribe'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.activityPut'], 'activityPut'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.activityList'], 'activityList'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.activitySubscribe'], 'activitySubscribe'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.activityMarkRead'], 'activityMarkRead'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.activityOpen'], 'activityOpen'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.activityOpenRequestsSubscribe'], 'activityOpenDeliveriesSubscribe'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.activityOpenRequestComplete'], 'activityOpenDeliveryComplete'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.aiRealtimeOpen'], 'aiRealtimeOpen'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.videoSessionOpen'], 'videoSessionOpen'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.videoSessionSubmit'], 'videoSessionSubmit'],
@@ -162,6 +173,12 @@ const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
 
 export function isElectronLocalAppCommand(command: string): boolean {
   return COMMAND_METHODS.has(command);
+}
+
+/** True for a renderer pull that waits on an App activity subscription. */
+export function isElectronLocalAppPullWait(command: string, payload: Readonly<Record<string, unknown>>): boolean {
+  const method = COMMAND_METHODS.get(command);
+  return (method === 'activitySubscribe' || method === 'activityOpenDeliveriesSubscribe') && payload.action === 'next';
 }
 
 export async function dispatchElectronLocalAppCommand(input: {
@@ -245,6 +262,34 @@ export async function dispatchElectronLocalAppCommand(input: {
       }, 0);
       pumpTimer.unref?.();
       return { subscriptionId, eventName };
+    }
+    if (method === 'activitySubscribe' || method === 'activityOpenDeliveriesSubscribe') {
+      const kind = method === 'activitySubscribe' ? 'changes' : 'deliveries';
+      const streams = activeActivityStreams(input.host);
+      if (payload.action === 'cancel' || payload.action === 'next') {
+        const subscriptionId = String(payload.subscriptionId);
+        if (streams.get(subscriptionId) !== kind) throw new NimiElectronLocalAppHostError('invalid-payload', false);
+        if (payload.action === 'cancel') {
+          streams.delete(subscriptionId);
+          const result = await input.host.activityStreamClose({ streamId: subscriptionId });
+          return { subscriptionId, closed: result.closed };
+        }
+        const result = await input.host.activityStreamNext({ streamId: subscriptionId });
+        if (result.completed === true) {
+          streams.delete(subscriptionId);
+        } else if (!isActivityStreamEvent(kind, result.event)) {
+          streams.delete(subscriptionId);
+          await input.host.activityStreamClose({ streamId: subscriptionId }).catch(() => undefined);
+          throw new NimiElectronLocalAppHostError('runtime-service-untrusted', false);
+        }
+        return { subscriptionId, ...result };
+      }
+      const opened = method === 'activitySubscribe'
+        ? await input.host.activitySubscribe(payload)
+        : await input.host.activityOpenDeliveriesSubscribe(payload);
+      const subscriptionId = String(opened.streamId);
+      streams.set(subscriptionId, kind);
+      return { subscriptionId };
     }
     if (method === 'embodimentSubscribe') {
       if (payload.action === 'cancel') {
@@ -619,6 +664,39 @@ function validatePayload(
       return identifiers(payload, ['agentHandle', 'conversationAnchorId'], command);
     case 'embodimentSnapshot':
       return identifiers(payload, ['agentHandle', 'conversationAnchorId'], command);
+    case 'activityPut':
+      return validateActivityPut(payload, command);
+    case 'activityList':
+      return validateActivityList(payload, command);
+    case 'activitySubscribe':
+      if (payload.action === 'cancel' || payload.action === 'next') {
+        return { ...identifiers(payload, ['subscriptionId'], command, new Set(), ['action', 'subscriptionId']), action: payload.action };
+      }
+      assertExactKeys(payload, ['afterChangeSeq'], command);
+      return { afterChangeSeq: decimalUint64(payload.afterChangeSeq, 'afterChangeSeq', command, true) };
+    case 'activityMarkRead':
+      assertExactKeys(payload, ['activityId', 'displayedRevision'], command);
+      return {
+        activityId: requiredText(payload.activityId, 'activityId', command, MAX_IDENTIFIER_LENGTH),
+        displayedRevision: activityRevision(payload.displayedRevision, 'displayedRevision', command),
+      };
+    case 'activityOpen':
+      return identifiers(payload, ['activityId'], command);
+    case 'activityOpenDeliveriesSubscribe':
+      if (payload.action === 'cancel' || payload.action === 'next') {
+        return { ...identifiers(payload, ['subscriptionId'], command, new Set(), ['action', 'subscriptionId']), action: payload.action };
+      }
+      assertExactKeys(payload, [], command);
+      return {};
+    case 'activityOpenDeliveryComplete':
+      assertExactKeys(payload, ['deliveryId', 'completion'], command);
+      if (payload.completion !== 'opened' && payload.completion !== 'object-unavailable') {
+        throw invalidPayload(command, 'App activity completion is invalid');
+      }
+      return {
+        deliveryId: requiredText(payload.deliveryId, 'deliveryId', command, MAX_IDENTIFIER_LENGTH),
+        completion: payload.completion,
+      };
     case 'embodimentSubscribe':
       if (payload.action === 'cancel' || payload.action === 'next') {
         return { ...identifiers(payload, ['subscriptionId'], command, new Set(), ['action', 'subscriptionId']), action: payload.action };
@@ -1837,6 +1915,23 @@ function activeScenarioStreams(
   return streams;
 }
 
+function activeActivityStreams(host: NimiElectronLocalAppHost): Map<string, 'changes' | 'deliveries'> {
+  let streams = ACTIVE_ACTIVITY_STREAMS.get(host);
+  if (!streams) {
+    streams = new Map();
+    ACTIVE_ACTIVITY_STREAMS.set(host, streams);
+  }
+  return streams;
+}
+
+function isActivityStreamEvent(kind: 'changes' | 'deliveries', event: unknown): boolean {
+  if (!isPlainRecord(event)) return false;
+  const keys = Object.keys(event).sort().join(',');
+  return kind === 'changes'
+    ? keys === 'activityId,changeSeq,kind,record' || keys === 'activityId,changeSeq,kind'
+    : keys === 'activityId,deliveryId,objectRef,type';
+}
+
 function activeRealtimeStreams(host: NimiElectronLocalAppHost): Set<string> {
   let streams = ACTIVE_REALTIME_STREAMS.get(host);
   if (!streams) {
@@ -1854,9 +1949,11 @@ export async function invalidateElectronLocalAppCommandResources(
   const scenarios = [...activeScenarioStreams(registryHost).entries()];
   const conversations = [...activeConversationStreams(registryHost)];
   const realtime = [...activeRealtimeStreams(registryHost)];
+  const activity = [...activeActivityStreams(registryHost).keys()];
   activeScenarioStreams(registryHost).clear();
   activeConversationStreams(registryHost).clear();
   activeRealtimeStreams(registryHost).clear();
+  activeActivityStreams(registryHost).clear();
   await Promise.allSettled([
     ...scenarios.map(([streamId, method]) => (
       method === 'textTurnSubscribe'
@@ -1865,6 +1962,7 @@ export async function invalidateElectronLocalAppCommandResources(
     )),
     ...conversations.map((streamId) => closeHost.conversationStreamClose({ streamId })),
     ...realtime.map((streamId) => closeHost.realtimeStreamClose({ streamId })),
+    ...activity.map((streamId) => closeHost.activityStreamClose({ streamId })),
   ]);
 }
 
@@ -2151,6 +2249,80 @@ function carrierRequired(command: string): NimiElectronShellHostError {
     actionHint: 'install_verified_electron_protected_carrier',
     details: { command },
   });
+}
+
+const ACTIVITY_PUT_FIELDS = [
+  'key', 'revision', 'kind', 'todoState', 'attention', 'title', 'summary', 'objectRef', 'type', 'dataJson',
+  'occurredAt', 'agentHandle',
+] as const;
+
+function activityRevision(value: unknown, field: string, command: string): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 1) {
+    throw invalidPayload(command, `App activity ${field} is invalid`);
+  }
+  return value;
+}
+
+function activityNullableString(value: unknown, field: string, command: string, maxBytes: number): string | null {
+  if (value === null) return null;
+  if (typeof value !== 'string' || value.length === 0 || Buffer.byteLength(value, 'utf8') > maxBytes) {
+    throw invalidPayload(command, `App activity ${field} is invalid`);
+  }
+  return value;
+}
+
+function requiredActivityString(value: unknown, field: string, command: string, maxBytes: number): string {
+  const text = activityNullableString(value, field, command, maxBytes);
+  if (text === null) throw invalidPayload(command, `App activity ${field} is required`);
+  return text;
+}
+
+// Publisher data travels as opaque JSON text; only its size is checked here.
+function validateActivityPut(payload: Readonly<Record<string, unknown>>, command: string): NimiElectronLocalAppRecord {
+  assertExactKeys(payload, [...ACTIVITY_PUT_FIELDS], command);
+  if ((payload.kind !== 'activity' && payload.kind !== 'todo') || typeof payload.attention !== 'boolean') {
+    throw invalidPayload(command, 'App activity kind or attention is invalid');
+  }
+  return {
+    key: requiredText(payload.key, 'key', command, MAX_IDENTIFIER_LENGTH),
+    revision: activityRevision(payload.revision, 'revision', command),
+    kind: payload.kind,
+    todoState: activityNullableString(payload.todoState, 'todoState', command, 16),
+    attention: payload.attention,
+    title: requiredActivityString(payload.title, 'title', command, 4096),
+    summary: activityNullableString(payload.summary, 'summary', command, 4096),
+    objectRef: activityNullableString(payload.objectRef, 'objectRef', command, MAX_IDENTIFIER_LENGTH),
+    type: requiredText(payload.type, 'type', command, 128),
+    dataJson: activityNullableString(payload.dataJson, 'dataJson', command, 32 * 1024),
+    occurredAt: requiredText(payload.occurredAt, 'occurredAt', command, 64),
+    agentHandle: activityNullableString(payload.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
+  };
+}
+
+function validateActivityList(payload: Readonly<Record<string, unknown>>, command: string): NimiElectronLocalAppRecord {
+  assertExactKeys(payload, ['filter', 'pageSize', 'pageToken'], command);
+  const filter = payload.filter;
+  if (!isPlainRecord(filter)) throw invalidPayload(command, 'App activity filter is invalid');
+  assertExactKeys(filter, ['sourceRef', 'kind', 'todoStates', 'agentRef', 'occurredAfter', 'occurredBefore'], command);
+  if (!Array.isArray(filter.todoStates) || filter.todoStates.length > 3
+    || filter.todoStates.some((state) => state !== 'open' && state !== 'completed' && state !== 'cancelled')) {
+    throw invalidPayload(command, 'App activity todo states are invalid');
+  }
+  if (typeof payload.pageSize !== 'number' || !Number.isSafeInteger(payload.pageSize) || payload.pageSize < 1 || payload.pageSize > 100) {
+    throw invalidPayload(command, 'App activity page size is invalid');
+  }
+  return {
+    filter: {
+      sourceRef: activityNullableString(filter.sourceRef, 'sourceRef', command, 64),
+      kind: activityNullableString(filter.kind, 'kind', command, 16),
+      todoStates: [...filter.todoStates] as string[],
+      agentRef: activityNullableString(filter.agentRef, 'agentRef', command, 64),
+      occurredAfter: activityNullableString(filter.occurredAfter, 'occurredAfter', command, 64),
+      occurredBefore: activityNullableString(filter.occurredBefore, 'occurredBefore', command, 64),
+    },
+    pageSize: payload.pageSize,
+    pageToken: activityNullableString(payload.pageToken, 'pageToken', command, 512),
+  };
 }
 
 function invalidPayload(command: string, reason: string): NimiElectronShellHostError {

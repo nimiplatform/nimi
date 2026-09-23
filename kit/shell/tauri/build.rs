@@ -54,6 +54,7 @@ fn generate_runtime_proto_client() {
         "runtime/v1/agent_presentation.proto",
         "runtime/v1/agent_source_materialization.proto",
         "runtime/v1/agent_service.proto",
+        "runtime/v1/app_activity.proto",
     ];
 
     for relative in proto_files {

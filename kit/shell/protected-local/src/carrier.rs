@@ -836,6 +836,69 @@ pub struct LocalAppEmbodimentSubscribeRequest {
     pub after_sequence: u64,
 }
 
+/// Exact protobuf timestamp carried for App activity time bounds.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct LocalAppActivityTimestamp {
+    pub seconds: i64,
+    pub nanos: i32,
+}
+
+/// App activity publication. `kind` is `activity` or `todo`; `todo_state` is
+/// `open`, `completed`, or `cancelled`. Unknown values are rejected before
+/// transport; every other content rule belongs to the Runtime owner.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppActivityPutRequest {
+    pub key: String,
+    pub revision: u64,
+    pub kind: String,
+    pub todo_state: Option<String>,
+    pub attention: bool,
+    pub title: String,
+    pub summary: Option<String>,
+    pub object_ref: Option<String>,
+    pub activity_type: String,
+    pub data_json: Option<String>,
+    pub occurred_at_seconds: i64,
+    pub occurred_at_nanos: i32,
+    pub agent_handle: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct LocalAppActivityListRequest {
+    pub source_ref: Option<String>,
+    pub kind: Option<String>,
+    pub todo_states: Vec<String>,
+    pub agent_ref: Option<String>,
+    pub occurred_after: Option<LocalAppActivityTimestamp>,
+    pub occurred_before: Option<LocalAppActivityTimestamp>,
+    pub page_size: u32,
+    pub page_token: Option<String>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct LocalAppActivitySubscribeRequest {
+    pub after_change_seq: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppActivityMarkReadRequest {
+    pub activity_id: String,
+    pub displayed_revision: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppActivityOpenRequest {
+    pub activity_id: String,
+}
+
+/// Source-App confirmation of one delivered open request. `completion` is
+/// `opened` or `object-unavailable`.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppActivityOpenRequestCompleteRequest {
+    pub delivery_id: String,
+    pub completion: String,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalAppAgentHandleRequest {
     pub agent_handle: String,
@@ -1406,6 +1469,11 @@ pub trait NimiDesktopControl: Send + Sync {
         supervisor_run_id: [u8; 32],
     ) -> Result<bool, NimiHostError>;
 
+    fn focus_local_development_host(
+        &self,
+        supervisor_run_id: [u8; 32],
+    ) -> Result<(), NimiHostError>;
+
     fn terminate_local_development_host(
         &self,
         supervisor_run_id: [u8; 32],
@@ -1926,6 +1994,64 @@ pub trait NimiLocalAppSession: Send + Sync {
                 + '_,
         >,
     >;
+
+    fn activity_put(
+        &self,
+        request: LocalAppActivityPutRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn activity_list(
+        &self,
+        request: LocalAppActivityListRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn activity_subscribe(
+        &self,
+        request: LocalAppActivitySubscribeRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<LocalAppRealtimeSubscriptionReceiver, LocalAppOperationError>,
+                > + Send
+                + '_,
+        >,
+    >;
+
+    fn activity_mark_read(
+        &self,
+        request: LocalAppActivityMarkReadRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    /// Opens the Runtime source-open stream. Its first item may carry the
+    /// Host-private open request id; callers consume it for the Desktop
+    /// launch and never forward it to renderer code.
+    fn activity_open(
+        &self,
+        request: LocalAppActivityOpenRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<LocalAppRealtimeSubscriptionReceiver, LocalAppOperationError>,
+                > + Send
+                + '_,
+        >,
+    >;
+
+    fn activity_open_requests_subscribe(
+        &self,
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<LocalAppRealtimeSubscriptionReceiver, LocalAppOperationError>,
+                > + Send
+                + '_,
+        >,
+    >;
+
+    fn activity_open_request_complete(
+        &self,
+        request: LocalAppActivityOpenRequestCompleteRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
     fn ai_realtime_open(
         &self,

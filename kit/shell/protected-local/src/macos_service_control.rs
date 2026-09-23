@@ -521,6 +521,23 @@ impl NimiDesktopControl for MacOSDesktopControl {
             .is_some_and(|entry| entry.process.running()))
     }
 
+    // @nimi-authority: rule.nimi.desktop.bridge-ipc.r022
+    fn focus_local_development_host(
+        &self,
+        supervisor_run_id: [u8; 32],
+    ) -> Result<(), NimiHostError> {
+        self.host_channel()?;
+        let processes = self
+            .development_processes
+            .lock()
+            .map_err(|_| untrusted_host())?;
+        processes
+            .get(&supervisor_run_id)
+            .ok_or_else(untrusted_host)?
+            .process
+            .focus()
+    }
+
     fn terminate_local_development_host(
         &self,
         supervisor_run_id: [u8; 32],

@@ -365,6 +365,14 @@ export type NimiElectronStandardShellHost = {
     payload: { readonly conversationAnchorId: string },
     input: NimiElectronShellUiCommandInput,
   ) => Promise<NimiElectronAgentCenterResourcePackPlacementResult> | NimiElectronAgentCenterResourcePackPlacementResult;
+  /**
+   * Desktop Host only: launch or focus the exact source of one Runtime-issued
+   * App activity open request in-process. Other Hosts use the running Desktop
+   * Open transport.
+   */
+  readonly appActivitySourceLaunch?: (
+    openRequestId: string,
+  ) => Promise<import('./app-activity-source-launch.js').NimiElectronAppActivitySourceLaunchResult>;
   readonly desktopOpen?: NimiElectronDesktopOpenHost;
 };
 
@@ -414,12 +422,21 @@ export type RegisterNimiElectronRuntimeBridgeInput = {
   readonly bundledAvatarHost?: NimiElectronBundledAvatarHost;
 };
 
+/** Runtime-resolved exact source of one pending App activity open request. */
+export type NimiElectronAppActivityOpenLaunchTarget = Readonly<{
+  sourceClass: 'installed' | 'local-development';
+  launchSelector: Uint8Array;
+  appId: string;
+}>;
+
 export type RegisteredNimiElectronRuntimeBridge = {
   readonly invokeChannel: string;
   /** Main-process-only canonical formal host used for Avatar dev bootstrap. */
   readonly bundledAvatarLocalAppHost?: import('./local-app-host.js').NimiElectronLocalAppHost;
   /** Desktop-main-only private current Avatar target revalidation. */
   readonly revalidateAvatarHostTarget?: (avatarHostTargetRef: string) => Promise<string>;
+  /** Desktop-main-only exact source resolution for a pending App activity open request. */
+  readonly resolveAppActivityOpenLaunch?: (openRequestId: string) => Promise<NimiElectronAppActivityOpenLaunchTarget>;
   /** Bounded owner cleanup used before Desktop Host shutdown. */
   readonly disposeFormalAppResources?: () => Promise<void>;
   readonly unregister: () => void;

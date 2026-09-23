@@ -268,3 +268,15 @@ units:
         target: definition.nimi.desktop.bridge-ipc.protected-account-carrier
       - type: applies_to
         target: definition.nimi.desktop.bridge-ipc.shell-native-helper-plane
+  - id: rule.nimi.desktop.bridge-ipc.r022
+    kind: rule
+    title: Activity source launch is Runtime-resolved and exact
+    modality: must
+    statement: Desktop accepts an App activity source launch request from its own formal App host or from another verified Kit host over the running Desktop Open transport only as a Runtime-issued Host-private open request, resolves the exact source registration through its own formal App session on the protected Desktop transport, and launches or focuses that exact source through its existing installed or local-development Host launch and supervision owner; it accepts no App id, path, URL, command, or renderer-selected target, never starts another Host or routing service, and reports launch or focus separately from the source App's navigation confirmation.
+    condition: Whenever Desktop handles an App activity source launch request.
+    failure: Return typed unavailable when Desktop, the request, the registration, the installation, or the Host is unavailable, and never launch an unresolved, foreign, or caller-selected App or report opened from launch or focus alone.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.bridge-ipc.command-registration-plane
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-activity-open

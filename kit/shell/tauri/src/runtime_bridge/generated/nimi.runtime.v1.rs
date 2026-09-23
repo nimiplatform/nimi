@@ -533,6 +533,19 @@ pub enum ReasonCode {
     AiLocalModelInventoryReconciliationRequired = 752,
     /// Protected music recovery slots, resident bytes or disk headroom exhausted.
     AiMusicRecoveryCapacityExceeded = 754,
+    /// App activity publication, query, read-state, and source open. Conflict
+    /// covers same-revision content differences and stale revisions; cursor
+    /// expired requires relisting instead of claiming a complete replay; open
+    /// request unavailable covers late, foreign, or already resolved deliveries.
+    AppActivityInputInvalid = 763,
+    AppActivityRevisionConflict = 755,
+    AppActivityNotFound = 756,
+    AppActivityTooLarge = 757,
+    AppActivityPageTokenInvalid = 758,
+    AppActivityCursorExpired = 759,
+    AppActivityAgentUnavailable = 760,
+    AppActivityUnavailable = 761,
+    AppActivityOpenRequestUnavailable = 762,
 }
 impl ReasonCode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -910,6 +923,17 @@ impl ReasonCode {
             }
             Self::AiMusicRecoveryCapacityExceeded => {
                 "AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED"
+            }
+            Self::AppActivityInputInvalid => "APP_ACTIVITY_INPUT_INVALID",
+            Self::AppActivityRevisionConflict => "APP_ACTIVITY_REVISION_CONFLICT",
+            Self::AppActivityNotFound => "APP_ACTIVITY_NOT_FOUND",
+            Self::AppActivityTooLarge => "APP_ACTIVITY_TOO_LARGE",
+            Self::AppActivityPageTokenInvalid => "APP_ACTIVITY_PAGE_TOKEN_INVALID",
+            Self::AppActivityCursorExpired => "APP_ACTIVITY_CURSOR_EXPIRED",
+            Self::AppActivityAgentUnavailable => "APP_ACTIVITY_AGENT_UNAVAILABLE",
+            Self::AppActivityUnavailable => "APP_ACTIVITY_UNAVAILABLE",
+            Self::AppActivityOpenRequestUnavailable => {
+                "APP_ACTIVITY_OPEN_REQUEST_UNAVAILABLE"
             }
         }
     }
@@ -1357,6 +1381,17 @@ impl ReasonCode {
             }
             "AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED" => {
                 Some(Self::AiMusicRecoveryCapacityExceeded)
+            }
+            "APP_ACTIVITY_INPUT_INVALID" => Some(Self::AppActivityInputInvalid),
+            "APP_ACTIVITY_REVISION_CONFLICT" => Some(Self::AppActivityRevisionConflict),
+            "APP_ACTIVITY_NOT_FOUND" => Some(Self::AppActivityNotFound),
+            "APP_ACTIVITY_TOO_LARGE" => Some(Self::AppActivityTooLarge),
+            "APP_ACTIVITY_PAGE_TOKEN_INVALID" => Some(Self::AppActivityPageTokenInvalid),
+            "APP_ACTIVITY_CURSOR_EXPIRED" => Some(Self::AppActivityCursorExpired),
+            "APP_ACTIVITY_AGENT_UNAVAILABLE" => Some(Self::AppActivityAgentUnavailable),
+            "APP_ACTIVITY_UNAVAILABLE" => Some(Self::AppActivityUnavailable),
+            "APP_ACTIVITY_OPEN_REQUEST_UNAVAILABLE" => {
+                Some(Self::AppActivityOpenRequestUnavailable)
             }
             _ => None,
         }
@@ -25428,6 +25463,858 @@ pub mod runtime_agent_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
                         "DeleteAllLocalAppAgentMemory",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+    }
+}
+/// Runtime-derived trusted source projection. source_ref is an account-scoped
+/// non-authorizing grouping reference; it is not a Registered App Subject,
+/// registration handle, launch selector, or credential.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AppActivitySource {
+    #[prost(enumeration = "AppActivitySourceKind", tag = "1")]
+    pub kind: i32,
+    #[prost(string, tag = "2")]
+    pub source_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub app_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub display_name: ::prost::alloc::string::String,
+    #[prost(bool, tag = "5")]
+    pub available: bool,
+}
+/// Non-authorizing Agent display and grouping association. agent_ref cannot be
+/// used as an Agent handle and carries no Conversation or execution access.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AppActivityAgentAssociation {
+    #[prost(string, tag = "1")]
+    pub agent_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub display_name: ::prost::alloc::string::String,
+}
+/// Runtime-derived shared user view for the current account.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AppActivityUserView {
+    #[prost(uint64, tag = "1")]
+    pub read_through_revision: u64,
+    #[prost(bool, tag = "2")]
+    pub unread: bool,
+    #[prost(bool, tag = "3")]
+    pub needs_attention: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AppActivityRecord {
+    #[prost(string, tag = "1")]
+    pub activity_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub source: ::core::option::Option<AppActivitySource>,
+    #[prost(string, tag = "3")]
+    pub key: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "4")]
+    pub revision: u64,
+    #[prost(enumeration = "AppActivityKind", tag = "5")]
+    pub kind: i32,
+    #[prost(enumeration = "AppActivityTodoState", tag = "6")]
+    pub todo_state: i32,
+    #[prost(bool, tag = "7")]
+    pub attention: bool,
+    #[prost(string, tag = "8")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub summary: ::prost::alloc::string::String,
+    /// App-owned source object reference; empty when the record has none.
+    #[prost(string, tag = "10")]
+    pub object_ref: ::prost::alloc::string::String,
+    /// Namespaced versioned extension type such as com.example.editor.review-requested.v1.
+    #[prost(string, tag = "11")]
+    pub activity_type: ::prost::alloc::string::String,
+    /// Optional JSON object text owned by the publishing App; empty when absent.
+    #[prost(string, tag = "12")]
+    pub data_json: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "13")]
+    pub agent: ::core::option::Option<AppActivityAgentAssociation>,
+    #[prost(message, optional, tag = "14")]
+    pub occurred_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "15")]
+    pub published_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "16")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(uint64, tag = "17")]
+    pub change_seq: u64,
+    #[prost(message, optional, tag = "18")]
+    pub user_view: ::core::option::Option<AppActivityUserView>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PutAppActivityRequest {
+    #[prost(string, tag = "1")]
+    pub key: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "2")]
+    pub revision: u64,
+    #[prost(enumeration = "AppActivityKind", tag = "3")]
+    pub kind: i32,
+    #[prost(enumeration = "AppActivityTodoState", tag = "4")]
+    pub todo_state: i32,
+    #[prost(bool, tag = "5")]
+    pub attention: bool,
+    #[prost(string, tag = "6")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub summary: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub object_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub activity_type: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub data_json: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "11")]
+    pub occurred_at: ::core::option::Option<::prost_types::Timestamp>,
+    /// Optional current session-scoped Agent handle. Runtime resolves it through
+    /// the session's existing Agent handle admission; it is never stored or
+    /// projected.
+    #[prost(string, tag = "12")]
+    pub agent_handle: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PutAppActivityResponse {
+    #[prost(message, optional, tag = "1")]
+    pub record: ::core::option::Option<AppActivityRecord>,
+    /// False when an identical same-revision retry returned the existing record.
+    #[prost(bool, tag = "2")]
+    pub changed: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AppActivityFilter {
+    #[prost(string, tag = "1")]
+    pub source_ref: ::prost::alloc::string::String,
+    #[prost(enumeration = "AppActivityKind", tag = "2")]
+    pub kind: i32,
+    #[prost(enumeration = "AppActivityTodoState", repeated, tag = "3")]
+    pub todo_states: ::prost::alloc::vec::Vec<i32>,
+    #[prost(string, tag = "4")]
+    pub agent_ref: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "5")]
+    pub occurred_after: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "6")]
+    pub occurred_before: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListAppActivitiesRequest {
+    #[prost(message, optional, tag = "1")]
+    pub filter: ::core::option::Option<AppActivityFilter>,
+    #[prost(uint32, tag = "2")]
+    pub page_size: u32,
+    #[prost(string, tag = "3")]
+    pub page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListAppActivitiesResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub records: ::prost::alloc::vec::Vec<AppActivityRecord>,
+    #[prost(string, tag = "2")]
+    pub next_page_token: ::prost::alloc::string::String,
+    /// Subscription baseline fixed by the first page and reused by continuations.
+    #[prost(uint64, tag = "3")]
+    pub baseline_change_seq: u64,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SubscribeAppActivityChangesRequest {
+    #[prost(uint64, tag = "1")]
+    pub after_change_seq: u64,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SubscribeAppActivityChangesResponse {
+    #[prost(uint64, tag = "1")]
+    pub change_seq: u64,
+    #[prost(enumeration = "AppActivityChangeKind", tag = "2")]
+    pub kind: i32,
+    #[prost(string, tag = "3")]
+    pub activity_id: ::prost::alloc::string::String,
+    /// Complete projection of this commit for upsert; absent for remove.
+    #[prost(message, optional, tag = "4")]
+    pub record: ::core::option::Option<AppActivityRecord>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MarkAppActivityReadRequest {
+    #[prost(string, tag = "1")]
+    pub activity_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "2")]
+    pub displayed_revision: u64,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MarkAppActivityReadResponse {
+    #[prost(message, optional, tag = "1")]
+    pub record: ::core::option::Option<AppActivityRecord>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct OpenAppActivityRequest {
+    #[prost(string, tag = "1")]
+    pub activity_id: ::prost::alloc::string::String,
+}
+/// The first event carries a Host-private one-use open request id consumed only
+/// by the consumer Kit Host for Desktop launch; the final event carries the
+/// typed result. Renderer code never receives the open request id.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct OpenAppActivityResponse {
+    #[prost(oneof = "open_app_activity_response::Event", tags = "1, 2")]
+    pub event: ::core::option::Option<open_app_activity_response::Event>,
+}
+/// Nested message and enum types in `OpenAppActivityResponse`.
+pub mod open_app_activity_response {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Event {
+        #[prost(string, tag = "1")]
+        OpenRequestId(::prost::alloc::string::String),
+        #[prost(message, tag = "2")]
+        Result(super::AppActivityOpenResult),
+    }
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AppActivityOpenResult {
+    #[prost(enumeration = "AppActivityOpenOutcome", tag = "1")]
+    pub outcome: i32,
+    #[prost(enumeration = "AppActivityOpenReason", tag = "2")]
+    pub reason: i32,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SubscribeAppActivityOpenRequestsRequest {}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SubscribeAppActivityOpenRequestsResponse {
+    #[prost(string, tag = "1")]
+    pub delivery_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub activity_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub object_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub activity_type: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CompleteAppActivityOpenRequestRequest {
+    #[prost(string, tag = "1")]
+    pub delivery_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "AppActivityOpenCompletion", tag = "2")]
+    pub completion: i32,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CompleteAppActivityOpenRequestResponse {
+    /// False when the request already expired, was cancelled, or was resolved.
+    #[prost(bool, tag = "1")]
+    pub accepted: bool,
+}
+/// Protected Desktop control only: resolves the exact source registration of a
+/// pending open request for Desktop launch or focus.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ResolveAppActivityOpenLaunchRequest {
+    #[prost(string, tag = "1")]
+    pub open_request_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ResolveAppActivityOpenLaunchResponse {
+    #[prost(enumeration = "AppActivityOpenLaunchSourceClass", tag = "1")]
+    pub source_class: i32,
+    #[prost(bytes = "vec", tag = "2")]
+    pub launch_selector: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag = "3")]
+    pub app_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AppActivityKind {
+    Unspecified = 0,
+    Activity = 1,
+    Todo = 2,
+}
+impl AppActivityKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "APP_ACTIVITY_KIND_UNSPECIFIED",
+            Self::Activity => "APP_ACTIVITY_KIND_ACTIVITY",
+            Self::Todo => "APP_ACTIVITY_KIND_TODO",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "APP_ACTIVITY_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "APP_ACTIVITY_KIND_ACTIVITY" => Some(Self::Activity),
+            "APP_ACTIVITY_KIND_TODO" => Some(Self::Todo),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AppActivityTodoState {
+    Unspecified = 0,
+    Open = 1,
+    Completed = 2,
+    Cancelled = 3,
+}
+impl AppActivityTodoState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "APP_ACTIVITY_TODO_STATE_UNSPECIFIED",
+            Self::Open => "APP_ACTIVITY_TODO_STATE_OPEN",
+            Self::Completed => "APP_ACTIVITY_TODO_STATE_COMPLETED",
+            Self::Cancelled => "APP_ACTIVITY_TODO_STATE_CANCELLED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "APP_ACTIVITY_TODO_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "APP_ACTIVITY_TODO_STATE_OPEN" => Some(Self::Open),
+            "APP_ACTIVITY_TODO_STATE_COMPLETED" => Some(Self::Completed),
+            "APP_ACTIVITY_TODO_STATE_CANCELLED" => Some(Self::Cancelled),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AppActivitySourceKind {
+    Unspecified = 0,
+    App = 1,
+    RuntimeAgent = 2,
+}
+impl AppActivitySourceKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "APP_ACTIVITY_SOURCE_KIND_UNSPECIFIED",
+            Self::App => "APP_ACTIVITY_SOURCE_KIND_APP",
+            Self::RuntimeAgent => "APP_ACTIVITY_SOURCE_KIND_RUNTIME_AGENT",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "APP_ACTIVITY_SOURCE_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "APP_ACTIVITY_SOURCE_KIND_APP" => Some(Self::App),
+            "APP_ACTIVITY_SOURCE_KIND_RUNTIME_AGENT" => Some(Self::RuntimeAgent),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AppActivityChangeKind {
+    Unspecified = 0,
+    Upsert = 1,
+    Remove = 2,
+}
+impl AppActivityChangeKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "APP_ACTIVITY_CHANGE_KIND_UNSPECIFIED",
+            Self::Upsert => "APP_ACTIVITY_CHANGE_KIND_UPSERT",
+            Self::Remove => "APP_ACTIVITY_CHANGE_KIND_REMOVE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "APP_ACTIVITY_CHANGE_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "APP_ACTIVITY_CHANGE_KIND_UPSERT" => Some(Self::Upsert),
+            "APP_ACTIVITY_CHANGE_KIND_REMOVE" => Some(Self::Remove),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AppActivityOpenOutcome {
+    Unspecified = 0,
+    Opened = 1,
+    Unavailable = 2,
+    Failed = 3,
+}
+impl AppActivityOpenOutcome {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "APP_ACTIVITY_OPEN_OUTCOME_UNSPECIFIED",
+            Self::Opened => "APP_ACTIVITY_OPEN_OUTCOME_OPENED",
+            Self::Unavailable => "APP_ACTIVITY_OPEN_OUTCOME_UNAVAILABLE",
+            Self::Failed => "APP_ACTIVITY_OPEN_OUTCOME_FAILED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "APP_ACTIVITY_OPEN_OUTCOME_UNSPECIFIED" => Some(Self::Unspecified),
+            "APP_ACTIVITY_OPEN_OUTCOME_OPENED" => Some(Self::Opened),
+            "APP_ACTIVITY_OPEN_OUTCOME_UNAVAILABLE" => Some(Self::Unavailable),
+            "APP_ACTIVITY_OPEN_OUTCOME_FAILED" => Some(Self::Failed),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AppActivityOpenReason {
+    Unspecified = 0,
+    Opened = 1,
+    NotOpenable = 2,
+    SourceUnavailable = 3,
+    ObjectUnavailable = 4,
+    SourceNotReady = 5,
+    Canceled = 6,
+    ActivityUnavailable = 7,
+}
+impl AppActivityOpenReason {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "APP_ACTIVITY_OPEN_REASON_UNSPECIFIED",
+            Self::Opened => "APP_ACTIVITY_OPEN_REASON_OPENED",
+            Self::NotOpenable => "APP_ACTIVITY_OPEN_REASON_NOT_OPENABLE",
+            Self::SourceUnavailable => "APP_ACTIVITY_OPEN_REASON_SOURCE_UNAVAILABLE",
+            Self::ObjectUnavailable => "APP_ACTIVITY_OPEN_REASON_OBJECT_UNAVAILABLE",
+            Self::SourceNotReady => "APP_ACTIVITY_OPEN_REASON_SOURCE_NOT_READY",
+            Self::Canceled => "APP_ACTIVITY_OPEN_REASON_CANCELED",
+            Self::ActivityUnavailable => "APP_ACTIVITY_OPEN_REASON_ACTIVITY_UNAVAILABLE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "APP_ACTIVITY_OPEN_REASON_UNSPECIFIED" => Some(Self::Unspecified),
+            "APP_ACTIVITY_OPEN_REASON_OPENED" => Some(Self::Opened),
+            "APP_ACTIVITY_OPEN_REASON_NOT_OPENABLE" => Some(Self::NotOpenable),
+            "APP_ACTIVITY_OPEN_REASON_SOURCE_UNAVAILABLE" => {
+                Some(Self::SourceUnavailable)
+            }
+            "APP_ACTIVITY_OPEN_REASON_OBJECT_UNAVAILABLE" => {
+                Some(Self::ObjectUnavailable)
+            }
+            "APP_ACTIVITY_OPEN_REASON_SOURCE_NOT_READY" => Some(Self::SourceNotReady),
+            "APP_ACTIVITY_OPEN_REASON_CANCELED" => Some(Self::Canceled),
+            "APP_ACTIVITY_OPEN_REASON_ACTIVITY_UNAVAILABLE" => {
+                Some(Self::ActivityUnavailable)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AppActivityOpenCompletion {
+    Unspecified = 0,
+    Opened = 1,
+    ObjectUnavailable = 2,
+}
+impl AppActivityOpenCompletion {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "APP_ACTIVITY_OPEN_COMPLETION_UNSPECIFIED",
+            Self::Opened => "APP_ACTIVITY_OPEN_COMPLETION_OPENED",
+            Self::ObjectUnavailable => "APP_ACTIVITY_OPEN_COMPLETION_OBJECT_UNAVAILABLE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "APP_ACTIVITY_OPEN_COMPLETION_UNSPECIFIED" => Some(Self::Unspecified),
+            "APP_ACTIVITY_OPEN_COMPLETION_OPENED" => Some(Self::Opened),
+            "APP_ACTIVITY_OPEN_COMPLETION_OBJECT_UNAVAILABLE" => {
+                Some(Self::ObjectUnavailable)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AppActivityOpenLaunchSourceClass {
+    Unspecified = 0,
+    Installed = 1,
+    LocalDevelopment = 2,
+}
+impl AppActivityOpenLaunchSourceClass {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "APP_ACTIVITY_OPEN_LAUNCH_SOURCE_CLASS_UNSPECIFIED",
+            Self::Installed => "APP_ACTIVITY_OPEN_LAUNCH_SOURCE_CLASS_INSTALLED",
+            Self::LocalDevelopment => {
+                "APP_ACTIVITY_OPEN_LAUNCH_SOURCE_CLASS_LOCAL_DEVELOPMENT"
+            }
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "APP_ACTIVITY_OPEN_LAUNCH_SOURCE_CLASS_UNSPECIFIED" => {
+                Some(Self::Unspecified)
+            }
+            "APP_ACTIVITY_OPEN_LAUNCH_SOURCE_CLASS_INSTALLED" => Some(Self::Installed),
+            "APP_ACTIVITY_OPEN_LAUNCH_SOURCE_CLASS_LOCAL_DEVELOPMENT" => {
+                Some(Self::LocalDevelopment)
+            }
+            _ => None,
+        }
+    }
+}
+/// Generated client implementations.
+pub mod runtime_app_activity_service_client {
+    #![allow(
+        unused_variables,
+        dead_code,
+        missing_docs,
+        clippy::wildcard_imports,
+        clippy::let_unit_value,
+    )]
+    use tonic::codegen::*;
+    use tonic::codegen::http::Uri;
+    #[derive(Debug, Clone)]
+    pub struct RuntimeAppActivityServiceClient<T> {
+        inner: tonic::client::Grpc<T>,
+    }
+    impl RuntimeAppActivityServiceClient<tonic::transport::Channel> {
+        /// Attempt to create a new client by connecting to a given endpoint.
+        pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
+        where
+            D: TryInto<tonic::transport::Endpoint>,
+            D::Error: Into<StdError>,
+        {
+            let conn = tonic::transport::Endpoint::new(dst)?.connect().await?;
+            Ok(Self::new(conn))
+        }
+    }
+    impl<T> RuntimeAppActivityServiceClient<T>
+    where
+        T: tonic::client::GrpcService<tonic::body::Body>,
+        T::Error: Into<StdError>,
+        T::ResponseBody: Body<Data = Bytes> + std::marker::Send + 'static,
+        <T::ResponseBody as Body>::Error: Into<StdError> + std::marker::Send,
+    {
+        pub fn new(inner: T) -> Self {
+            let inner = tonic::client::Grpc::new(inner);
+            Self { inner }
+        }
+        pub fn with_origin(inner: T, origin: Uri) -> Self {
+            let inner = tonic::client::Grpc::with_origin(inner, origin);
+            Self { inner }
+        }
+        pub fn with_interceptor<F>(
+            inner: T,
+            interceptor: F,
+        ) -> RuntimeAppActivityServiceClient<InterceptedService<T, F>>
+        where
+            F: tonic::service::Interceptor,
+            T::ResponseBody: Default,
+            T: tonic::codegen::Service<
+                http::Request<tonic::body::Body>,
+                Response = http::Response<
+                    <T as tonic::client::GrpcService<tonic::body::Body>>::ResponseBody,
+                >,
+            >,
+            <T as tonic::codegen::Service<
+                http::Request<tonic::body::Body>,
+            >>::Error: Into<StdError> + std::marker::Send + std::marker::Sync,
+        {
+            RuntimeAppActivityServiceClient::new(
+                InterceptedService::new(inner, interceptor),
+            )
+        }
+        /// Compress requests with the given encoding.
+        ///
+        /// This requires the server to support it otherwise it might respond with an
+        /// error.
+        #[must_use]
+        pub fn send_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.inner = self.inner.send_compressed(encoding);
+            self
+        }
+        /// Enable decompressing responses.
+        #[must_use]
+        pub fn accept_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.inner = self.inner.accept_compressed(encoding);
+            self
+        }
+        /// Limits the maximum size of a decoded message.
+        ///
+        /// Default: `4MB`
+        #[must_use]
+        pub fn max_decoding_message_size(mut self, limit: usize) -> Self {
+            self.inner = self.inner.max_decoding_message_size(limit);
+            self
+        }
+        /// Limits the maximum size of an encoded message.
+        ///
+        /// Default: `usize::MAX`
+        #[must_use]
+        pub fn max_encoding_message_size(mut self, limit: usize) -> Self {
+            self.inner = self.inner.max_encoding_message_size(limit);
+            self
+        }
+        pub async fn put_app_activity(
+            &mut self,
+            request: impl tonic::IntoRequest<super::PutAppActivityRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::PutAppActivityResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppActivityService/PutAppActivity",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppActivityService",
+                        "PutAppActivity",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_app_activities(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListAppActivitiesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListAppActivitiesResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppActivityService/ListAppActivities",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppActivityService",
+                        "ListAppActivities",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn subscribe_app_activity_changes(
+            &mut self,
+            request: impl tonic::IntoRequest<super::SubscribeAppActivityChangesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<
+                tonic::codec::Streaming<super::SubscribeAppActivityChangesResponse>,
+            >,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityChanges",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppActivityService",
+                        "SubscribeAppActivityChanges",
+                    ),
+                );
+            self.inner.server_streaming(req, path, codec).await
+        }
+        pub async fn mark_app_activity_read(
+            &mut self,
+            request: impl tonic::IntoRequest<super::MarkAppActivityReadRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::MarkAppActivityReadResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppActivityService/MarkAppActivityRead",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppActivityService",
+                        "MarkAppActivityRead",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn open_app_activity(
+            &mut self,
+            request: impl tonic::IntoRequest<super::OpenAppActivityRequest>,
+        ) -> std::result::Result<
+            tonic::Response<tonic::codec::Streaming<super::OpenAppActivityResponse>>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppActivityService/OpenAppActivity",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppActivityService",
+                        "OpenAppActivity",
+                    ),
+                );
+            self.inner.server_streaming(req, path, codec).await
+        }
+        pub async fn subscribe_app_activity_open_requests(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::SubscribeAppActivityOpenRequestsRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<
+                tonic::codec::Streaming<super::SubscribeAppActivityOpenRequestsResponse>,
+            >,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityOpenRequests",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppActivityService",
+                        "SubscribeAppActivityOpenRequests",
+                    ),
+                );
+            self.inner.server_streaming(req, path, codec).await
+        }
+        pub async fn complete_app_activity_open_request(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::CompleteAppActivityOpenRequestRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::CompleteAppActivityOpenRequestResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppActivityService/CompleteAppActivityOpenRequest",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppActivityService",
+                        "CompleteAppActivityOpenRequest",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn resolve_app_activity_open_launch(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ResolveAppActivityOpenLaunchRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ResolveAppActivityOpenLaunchResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppActivityService/ResolveAppActivityOpenLaunch",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppActivityService",
+                        "ResolveAppActivityOpenLaunch",
                     ),
                 );
             self.inner.unary(req, path, codec).await

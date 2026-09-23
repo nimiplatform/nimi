@@ -309,7 +309,12 @@ func (s *Service) commitPublicChatTranscriptTurn(
 		rollback()
 		return status.Error(codes.FailedPrecondition, err.Error())
 	}
-	if err := s.persistPublicChatSurfaceStateWithTxHookLocked(memoryHook); err != nil {
+	var activityHook runtimeAgentStateTxHook
+	activityPublished := new(bool)
+	if trimmedAssistant != "" {
+		activityHook, activityPublished = s.appActivityTurnTxHook(session, committedTurnID, session.UpdatedAt)
+	}
+	if err := s.persistPublicChatSurfaceStateWithTxHookLocked(chainRuntimeAgentStateTxHooks(memoryHook, activityHook)); err != nil {
 		rollback()
 		return grpcerr.WrapWithReasonCode(
 			codes.Internal,
@@ -320,6 +325,9 @@ func (s *Service) commitPublicChatTranscriptTurn(
 	}
 	if memoryQueued {
 		s.triggerCognitionMemory(session.LocalAgentRef)
+	}
+	if *activityPublished {
+		go s.notifyAppActivity(strings.TrimSpace(session.OwnerUserID))
 	}
 	return nil
 }

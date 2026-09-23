@@ -128,6 +128,10 @@ export function createDesktopInstalledAppHost(control: NimiElectronInstalledAppC
   };
   return {
     resume(): void { closing = false; },
+    /** Launches or focuses the exact installed registration selected by Runtime. */
+    launchSelector: (selector: Uint8Array): Promise<unknown> => invoke('installed_app_launch', {
+      payload: { launchSelector: [...selector] },
+    }),
     commandHandlers: Object.fromEntries(COMMANDS.map((command) => [command, (context: { readonly payload: Readonly<Record<string, unknown>> }) => invoke(command, context.payload)])),
     async shutdown(): Promise<void> {
       closing = true;

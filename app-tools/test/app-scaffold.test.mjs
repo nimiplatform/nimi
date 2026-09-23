@@ -2478,12 +2478,13 @@ test('phase 7 check rejects tampered resolved ownership projections in the scaff
   }
 });
 
-test('App access declaration activates the four canonical domains and keeps unknown items inert', () => {
+test('App access declaration activates the closed canonical domains and keeps unknown items inert', () => {
   assert.deepEqual(APP_ACCESS_DOMAINS, [
     'realm.data',
     'runtime.consume',
     'agent.local',
     'agent.configure',
+    'app.activity',
   ]);
   assert.deepEqual(resolveAppAccessDeclaration([]), { rawItems: [], activatedDomains: [] });
   assert.deepEqual(resolveAppAccessDeclaration([

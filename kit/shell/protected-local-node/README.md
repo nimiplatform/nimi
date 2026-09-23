@@ -22,6 +22,10 @@ The addon exposes exact Local App operations, including:
 - typed Conversation open, send, attachments, interrupt, snapshot, and stream lifecycle;
 - App-owned Artifact upload and reads;
 - bounded `agent.local` embodiment snapshot and ordered stream lifecycle;
+- App activity put, list, change subscription, mark-read, source open, and the
+  source App's open-request subscription and completion, with streams pulled
+  through `localAppRealtimeStreamNext` / `Close` (the source-open stream's
+  Host-private open request id stays in the Electron main process);
 - shared LocalAgent-subsystem AIConfig read and overwrite; and
 - Agent autonomy snapshot/update and presentation snapshot/commit with independent revision CAS.
 

@@ -18,6 +18,7 @@ surfaces:
   - RuntimeAccountService
   - RuntimeAuditService
   - RuntimeAppService
+  - RuntimeAppActivityService
   - RuntimeArtifactService
   - RuntimeAgentService
   - RuntimeDevelopmentService
@@ -408,6 +409,47 @@ services:
         authority_status: admitted_exact_desktop_health_projection
         transport_disposition: protected_desktop_control_only
         protected_transport_ref: /nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents
+  - name: RuntimeAppActivityService
+    source_rule: rule.nimi.runtime.app-surface.r101
+    methods:
+      - name: PutAppActivity
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppActivityService/PutAppActivity
+      - name: ListAppActivities
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppActivityService/ListAppActivities
+      - name: SubscribeAppActivityChanges
+        type: server_stream
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityChanges
+      - name: MarkAppActivityRead
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppActivityService/MarkAppActivityRead
+      - name: OpenAppActivity
+        type: server_stream
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppActivityService/OpenAppActivity
+      - name: SubscribeAppActivityOpenRequests
+        type: server_stream
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityOpenRequests
+      - name: CompleteAppActivityOpenRequest
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppActivityService/CompleteAppActivityOpenRequest
+      - name: ResolveAppActivityOpenLaunch
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppActivityService/ResolveAppActivityOpenLaunch
   - name: RuntimeAppService
     source_rule: K-APP-001
     methods:

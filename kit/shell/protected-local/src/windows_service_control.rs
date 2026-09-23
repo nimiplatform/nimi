@@ -690,6 +690,20 @@ impl NimiDesktopControl for WindowsDesktopControl {
         Ok(running)
     }
 
+    // @nimi-authority: rule.nimi.desktop.bridge-ipc.r022
+    fn focus_local_development_host(
+        &self,
+        supervisor_run_id: [u8; 32],
+    ) -> Result<(), NimiHostError> {
+        let untrusted = || NimiHostError::new(NimiHostErrorReasonCode::RuntimeServiceUntrusted, false);
+        let processes = self.development_processes.lock().map_err(|_| untrusted())?;
+        processes
+            .get(&supervisor_run_id)
+            .ok_or_else(untrusted)?
+            .process
+            .focus()
+    }
+
     fn terminate_local_development_host(
         &self,
         supervisor_run_id: [u8; 32],

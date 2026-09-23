@@ -28,6 +28,7 @@ import (
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	aiservice "github.com/nimiplatform/nimi/runtime/internal/services/ai"
 	appservice "github.com/nimiplatform/nimi/runtime/internal/services/app"
+	"github.com/nimiplatform/nimi/runtime/internal/services/appactivity"
 	auditservice "github.com/nimiplatform/nimi/runtime/internal/services/audit"
 	authservice "github.com/nimiplatform/nimi/runtime/internal/services/auth"
 	cognitionservice "github.com/nimiplatform/nimi/runtime/internal/services/cognition"
@@ -64,6 +65,7 @@ type Server struct {
 	persistenceBackend    *runtimepersistence.Backend
 	cognitionV1Owner      *cognitionservice.Service
 	agentService          *runtimeagentservice.Service
+	appActivityService    *appactivity.Service
 	realmRealtimeService  *realmrealtimeservice.Service
 	localDevelopmentStore interface{ Close() error }
 	localAppKernel        *localappkernel.Kernel
@@ -927,6 +929,14 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	}
 	authSvc.SetLocalAppSessionOpener(appSvc)
 	agentSvc.SetLocalAppIngressRevalidator(appSvc)
+	var activityRegistrations appactivity.RegistrationResolver = unavailableActivityRegistrations{}
+	if localAppKernel != nil {
+		activityRegistrations = kernelActivityRegistrations{registrations: localAppKernel.Registrations()}
+	}
+	activitySvc := appactivity.New(appactivity.Options{
+		Backend: backend, Registrations: activityRegistrations, Agents: agentSvc, Revalidator: appSvc, Logger: logger,
+	})
+	agentSvc.SetAppActivityNotifier(activitySvc)
 	artifactSvc := runtimeartifactservice.New(
 		artifactStore,
 		logger,
@@ -952,7 +962,10 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		protectedGRPCServer = newProtectedDesktopRPCServer(runtimeControlSvc, authSvc, accountSvc, realmRealtimeSvc, auditSvc, localSvc, aiSvc, agentSvc, connSvc, externalAgentSvc, appSvc, appSvc, artifactSvc, protected.DesktopSessions, accountSvc, appOwnerAdmission, appSvc, rpcRegistry)
 		runtimev1.RegisterRuntimeAppPackageServiceServer(protectedGRPCServer, appSvc)
 		localAppGRPCServer = newProtectedLocalAppRPCServer(runtimeControlSvc, authSvc, accountSvc, realmRealtimeSvc, localSvc, aiSvc, agentSvc, appSvc, rpcRegistry)
+		runtimev1.RegisterRuntimeAppActivityServiceServer(protectedGRPCServer, activitySvc)
+		runtimev1.RegisterRuntimeAppActivityServiceServer(localAppGRPCServer, activitySvc)
 	}
+	activitySvc.StartRetention()
 	appSvc.RegisterInternalConsumer("runtime.agent.internal.chat_track_sidecar", agentSvc.ConsumeChatTrackSidecarAppMessage)
 	appSvc.RegisterInternalConsumer("runtime.agent", agentSvc.ConsumePublicChatAppMessage)
 	agentSvc.SetPublicChatAppEmitter(func(ctx context.Context, req *runtimev1.SendAppMessageRequest) (*runtimev1.SendAppMessageResponse, error) {
@@ -1005,6 +1018,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		persistenceBackend:    backend,
 		cognitionV1Owner:      cognitionSvc,
 		agentService:          agentSvc,
+		appActivityService:    activitySvc,
 		realmRealtimeService:  realmRealtimeSvc,
 		localDevelopmentStore: localDevelopmentStore,
 		localAppKernel:        localAppKernel,

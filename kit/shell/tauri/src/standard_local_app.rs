@@ -1,5 +1,8 @@
 use nimi_shell_protected_local::{
     LocalAppAIConfigLocalOptionsRequest, LocalAppAIConfigOverwriteRequest,
+    LocalAppActivityListRequest, LocalAppActivityMarkReadRequest, LocalAppActivityOpenRequest,
+    LocalAppActivityOpenRequestCompleteRequest, LocalAppActivityPutRequest,
+    LocalAppActivitySubscribeRequest, LocalAppActivityTimestamp,
     LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest,
     LocalAppAgentManagerSnapshotRequest, LocalAppAgentMemoryCorrectRequest,
     LocalAppAgentMemoryDeleteRequest, LocalAppAgentMemoryForgetRequest,
@@ -24,11 +27,24 @@ use nimi_shell_protected_local::{
     LocalAppWorldEntityListRequest, LocalAppWorldRelationshipGetRequest,
     LocalAppWorldRelationshipListRequest,
 };
+use nimi_shell_protected_local::{LocalAppRealtimeSubscriptionReceiver, LocalAppReasonCode};
 use serde::Deserialize;
 use serde_json::{json, Value};
+use std::future::Future;
+use std::time::Duration;
 
 use crate::runtime_bridge::RuntimeBridgeLocalAppHost;
+use crate::standard_desktop_open::AppActivitySourceLaunch;
 
+const ACTIVITY_PUT_COMMAND: &str = "local_app_activity_put";
+const ACTIVITY_LIST_COMMAND: &str = "local_app_activity_list";
+const ACTIVITY_SUBSCRIBE_COMMAND: &str = "local_app_activity_subscribe";
+const ACTIVITY_MARK_READ_COMMAND: &str = "local_app_activity_mark_read";
+const ACTIVITY_OPEN_COMMAND: &str = "local_app_activity_open";
+const ACTIVITY_OPEN_REQUESTS_SUBSCRIBE_COMMAND: &str = "local_app_activity_open_requests_subscribe";
+const ACTIVITY_OPEN_REQUEST_COMPLETE_COMMAND: &str = "local_app_activity_open_request_complete";
+/// Largest revision the renderer JSON number carries exactly.
+const MAX_ACTIVITY_REVISION: u64 = (1 << 53) - 1;
 const MAX_TEXT_CANDIDATE_MESSAGES: usize = 8;
 const MAX_TEXT_CANDIDATE_MESSAGE_BYTES: usize = 32 * 1024;
 const MAX_TEXT_CANDIDATE_PROMPT_BYTES: usize = 64 * 1024;
@@ -193,6 +209,93 @@ pub struct LocalAppEmbodimentSubscribeControlPayload {
 pub enum LocalAppEmbodimentSubscribePayload {
     Open(LocalAppEmbodimentSubscribeOpenPayload),
     Control(LocalAppEmbodimentSubscribeControlPayload),
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppActivityPutPayload {
+    key: String,
+    revision: u64,
+    kind: String,
+    todo_state: Option<String>,
+    attention: bool,
+    title: String,
+    summary: Option<String>,
+    object_ref: Option<String>,
+    r#type: String,
+    data_json: Option<String>,
+    occurred_at: String,
+    agent_handle: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppActivityFilterPayload {
+    source_ref: Option<String>,
+    kind: Option<String>,
+    todo_states: Vec<String>,
+    agent_ref: Option<String>,
+    occurred_after: Option<String>,
+    occurred_before: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppActivityListPayload {
+    filter: LocalAppActivityFilterPayload,
+    page_size: u32,
+    page_token: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppActivitySubscribeOpenPayload {
+    after_change_seq: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppActivityStreamControlPayload {
+    action: String,
+    subscription_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub enum LocalAppActivitySubscribePayload {
+    Open(LocalAppActivitySubscribeOpenPayload),
+    Control(LocalAppActivityStreamControlPayload),
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LocalAppActivityOpenRequestsSubscribeOpenPayload {}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub enum LocalAppActivityOpenRequestsSubscribePayload {
+    Open(LocalAppActivityOpenRequestsSubscribeOpenPayload),
+    Control(LocalAppActivityStreamControlPayload),
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppActivityMarkReadPayload {
+    activity_id: String,
+    displayed_revision: u64,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppActivityOpenPayload {
+    activity_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppActivityOpenRequestCompletePayload {
+    delivery_id: String,
+    completion: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -958,6 +1061,366 @@ pub async fn embodiment_subscribe_for_host(
             _ => Err(invalid_payload("local_app_embodiment_subscribe")),
         },
     }
+}
+
+pub async fn activity_put_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppActivityPutPayload = parse_payload(payload, ACTIVITY_PUT_COMMAND)?;
+    host.activity_put(activity_put_request(payload)?)
+        .await
+        .map_err(map_local_app_error)
+}
+
+fn activity_put_request(
+    payload: LocalAppActivityPutPayload,
+) -> Result<LocalAppActivityPutRequest, String> {
+    let command = ACTIVITY_PUT_COMMAND;
+    let occurred_at = activity_instant(&payload.occurred_at, command)?;
+    Ok(LocalAppActivityPutRequest {
+        key: payload.key,
+        revision: activity_revision(payload.revision, command)?,
+        kind: activity_kind(payload.kind, command)?,
+        todo_state: payload
+            .todo_state
+            .map(|state| activity_todo_state(state, command))
+            .transpose()?,
+        attention: payload.attention,
+        title: payload.title,
+        summary: payload.summary,
+        object_ref: payload.object_ref,
+        activity_type: payload.r#type,
+        data_json: payload.data_json,
+        occurred_at_seconds: occurred_at.seconds,
+        occurred_at_nanos: occurred_at.nanos,
+        agent_handle: payload.agent_handle,
+    })
+}
+
+pub async fn activity_list_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppActivityListPayload = parse_payload(payload, ACTIVITY_LIST_COMMAND)?;
+    host.activity_list(activity_list_request(payload)?)
+        .await
+        .map_err(map_local_app_error)
+}
+
+fn activity_list_request(
+    payload: LocalAppActivityListPayload,
+) -> Result<LocalAppActivityListRequest, String> {
+    let command = ACTIVITY_LIST_COMMAND;
+    let filter = payload.filter;
+    Ok(LocalAppActivityListRequest {
+        source_ref: filter.source_ref,
+        kind: filter
+            .kind
+            .map(|kind| activity_kind(kind, command))
+            .transpose()?,
+        todo_states: filter
+            .todo_states
+            .into_iter()
+            .map(|state| activity_todo_state(state, command))
+            .collect::<Result<Vec<_>, _>>()?,
+        agent_ref: filter.agent_ref,
+        occurred_after: filter
+            .occurred_after
+            .map(|value| activity_instant(&value, command))
+            .transpose()?,
+        occurred_before: filter
+            .occurred_before
+            .map(|value| activity_instant(&value, command))
+            .transpose()?,
+        page_size: payload.page_size,
+        page_token: payload.page_token,
+    })
+}
+
+pub async fn activity_subscribe_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let command = ACTIVITY_SUBSCRIBE_COMMAND;
+    match parse_payload::<LocalAppActivitySubscribePayload>(payload, command)? {
+        LocalAppActivitySubscribePayload::Open(payload) => {
+            let after_change_seq = decimal_revision(&payload.after_change_seq, true, command)?;
+            let subscription_id = host
+                .activity_subscribe(LocalAppActivitySubscribeRequest { after_change_seq })
+                .await
+                .map_err(map_local_app_error)?;
+            Ok(json!({ "subscriptionId": subscription_id }))
+        }
+        LocalAppActivitySubscribePayload::Control(payload) => match payload.action.as_str() {
+            "next" => {
+                let next = host
+                    .activity_stream_next(&payload.subscription_id)
+                    .await
+                    .map_err(map_local_app_error)?;
+                activity_pull_result(payload.subscription_id, next.completed, next.event, command)
+            }
+            "cancel" => Ok(json!({
+                "subscriptionId": payload.subscription_id,
+                "closed": host.activity_stream_close(&payload.subscription_id).await,
+            })),
+            _ => Err(invalid_payload(command)),
+        },
+    }
+}
+
+pub async fn activity_mark_read_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let command = ACTIVITY_MARK_READ_COMMAND;
+    let payload: LocalAppActivityMarkReadPayload = parse_payload(payload, command)?;
+    host.activity_mark_read(LocalAppActivityMarkReadRequest {
+        activity_id: payload.activity_id,
+        displayed_revision: activity_revision(payload.displayed_revision, command)?,
+    })
+    .await
+    .map_err(map_local_app_error)
+}
+
+// @nimi-authority: rule.nimi.platform.core-protocol.p-actv-005
+/// Consumer-side source open. The Runtime stream's Host-private open request
+/// id is consumed here for the Desktop launch and never returned; only the
+/// Runtime's typed result, or the typed Desktop launch refusal, reaches the
+/// renderer.
+pub async fn activity_open_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppActivityOpenPayload = parse_payload(payload, ACTIVITY_OPEN_COMMAND)?;
+    let events = host
+        .activity_open(LocalAppActivityOpenRequest {
+            activity_id: payload.activity_id,
+        })
+        .await
+        .map_err(map_local_app_error)?;
+    drive_activity_open(events, |open_request_id| async move {
+        crate::standard_desktop_open::request_app_activity_source_launch(&open_request_id).await
+    })
+    .await
+    .map_err(map_local_app_error)
+}
+
+/// After a refused or failed Desktop launch, a source App that is already
+/// running may still confirm the object; the Host waits this long for the
+/// Runtime result before reporting the launch refusal.
+const APP_ACTIVITY_LAUNCH_FAILURE_GRACE: Duration = Duration::from_secs(5);
+
+/// Launch alone never yields opened: a requested launch waits for the
+/// Runtime result. A refused launch waits a bounded grace for the Runtime
+/// result and otherwise drops the stream, which cancels the pending Runtime
+/// open request.
+async fn drive_activity_open<L, F>(
+    events: LocalAppRealtimeSubscriptionReceiver,
+    launch: L,
+) -> Result<Value, LocalAppOperationError>
+where
+    L: FnOnce(String) -> F,
+    F: Future<Output = AppActivitySourceLaunch>,
+{
+    drive_activity_open_with_grace(events, launch, APP_ACTIVITY_LAUNCH_FAILURE_GRACE).await
+}
+
+async fn drive_activity_open_with_grace<L, F>(
+    mut events: LocalAppRealtimeSubscriptionReceiver,
+    launch: L,
+    grace: Duration,
+) -> Result<Value, LocalAppOperationError>
+where
+    L: FnOnce(String) -> F,
+    F: Future<Output = AppActivitySourceLaunch>,
+{
+    let untrusted =
+        || LocalAppOperationError::new(LocalAppReasonCode::RuntimeServiceUntrusted, false);
+    let mut pending_launch = Some(launch);
+    let mut launch_refusal: Option<(Value, tokio::time::Instant)> = None;
+    loop {
+        let next = match &launch_refusal {
+            None => events.recv().await,
+            Some((refusal, deadline)) => {
+                match tokio::time::timeout_at(*deadline, events.recv()).await {
+                    Ok(next) => next,
+                    Err(_) => {
+                        drop(events);
+                        return Ok(refusal.clone());
+                    }
+                }
+            }
+        };
+        let event = match next {
+            Some(Ok(event)) => event,
+            Some(Err(error)) => {
+                return match launch_refusal {
+                    Some((refusal, _)) => Ok(refusal),
+                    None => Err(error),
+                }
+            }
+            None => {
+                return match launch_refusal {
+                    Some((refusal, _)) => Ok(refusal),
+                    None => Err(untrusted()),
+                }
+            }
+        };
+        if let Some(result) = event.get("result") {
+            return Ok(result.clone());
+        }
+        // At most one open request precedes the result.
+        let (Some(open_request_id), Some(request_launch)) = (
+            event.get("openRequestId").and_then(Value::as_str),
+            pending_launch.take(),
+        ) else {
+            return Err(untrusted());
+        };
+        match request_launch(open_request_id.to_string()).await {
+            AppActivitySourceLaunch::Requested => continue,
+            AppActivitySourceLaunch::Declined { outcome, reason } => {
+                // Only the source App's confirmation yields opened; a
+                // running source may still confirm although launch failed.
+                launch_refusal = Some((
+                    json!({ "outcome": outcome, "reason": reason }),
+                    tokio::time::Instant::now() + grace,
+                ));
+            }
+        }
+    }
+}
+
+pub async fn activity_open_requests_subscribe_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let command = ACTIVITY_OPEN_REQUESTS_SUBSCRIBE_COMMAND;
+    match parse_payload::<LocalAppActivityOpenRequestsSubscribePayload>(payload, command)? {
+        LocalAppActivityOpenRequestsSubscribePayload::Open(_) => {
+            let subscription_id = host
+                .activity_open_requests_subscribe()
+                .await
+                .map_err(map_local_app_error)?;
+            Ok(json!({ "subscriptionId": subscription_id }))
+        }
+        LocalAppActivityOpenRequestsSubscribePayload::Control(payload) => {
+            match payload.action.as_str() {
+                "next" => {
+                    let next = host
+                        .activity_open_requests_stream_next(&payload.subscription_id)
+                        .await
+                        .map_err(map_local_app_error)?;
+                    activity_pull_result(
+                        payload.subscription_id,
+                        next.completed,
+                        next.event,
+                        command,
+                    )
+                }
+                "cancel" => Ok(json!({
+                    "subscriptionId": payload.subscription_id,
+                    "closed": host
+                        .activity_open_requests_stream_close(&payload.subscription_id)
+                        .await,
+                })),
+                _ => Err(invalid_payload(command)),
+            }
+        }
+    }
+}
+
+pub async fn activity_open_request_complete_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let command = ACTIVITY_OPEN_REQUEST_COMPLETE_COMMAND;
+    let payload: LocalAppActivityOpenRequestCompletePayload = parse_payload(payload, command)?;
+    if !matches!(payload.completion.as_str(), "opened" | "object-unavailable") {
+        return Err(invalid_payload(command));
+    }
+    host.activity_open_request_complete(LocalAppActivityOpenRequestCompleteRequest {
+        delivery_id: payload.delivery_id,
+        completion: payload.completion,
+    })
+    .await
+    .map_err(map_local_app_error)
+}
+
+fn activity_pull_result(
+    subscription_id: String,
+    completed: bool,
+    event: Option<Value>,
+    command: &str,
+) -> Result<Value, String> {
+    if completed {
+        return Ok(json!({ "subscriptionId": subscription_id, "completed": true }));
+    }
+    Ok(json!({
+        "subscriptionId": subscription_id,
+        "completed": false,
+        "event": event.ok_or_else(|| invalid_payload(command))?,
+    }))
+}
+
+fn activity_revision(value: u64, command: &str) -> Result<u64, String> {
+    if value == 0 || value > MAX_ACTIVITY_REVISION {
+        return Err(invalid_payload(command));
+    }
+    Ok(value)
+}
+
+fn activity_kind(value: String, command: &str) -> Result<String, String> {
+    if !matches!(value.as_str(), "activity" | "todo") {
+        return Err(invalid_payload(command));
+    }
+    Ok(value)
+}
+
+fn activity_todo_state(value: String, command: &str) -> Result<String, String> {
+    if !matches!(value.as_str(), "open" | "completed" | "cancelled") {
+        return Err(invalid_payload(command));
+    }
+    Ok(value)
+}
+
+/// Strict RFC 3339 UTC instant as produced by `Date.prototype.toISOString`:
+/// `YYYY-MM-DDTHH:MM:SS[.fraction]Z` with at most nine fraction digits.
+fn activity_instant(value: &str, command: &str) -> Result<LocalAppActivityTimestamp, String> {
+    let bytes = value.as_bytes();
+    let digits = |range: std::ops::Range<usize>| bytes[range].iter().all(u8::is_ascii_digit);
+    let shaped = (20..=30).contains(&bytes.len())
+        && digits(0..4)
+        && bytes[4] == b'-'
+        && digits(5..7)
+        && bytes[7] == b'-'
+        && digits(8..10)
+        && bytes[10] == b'T'
+        && digits(11..13)
+        && bytes[13] == b':'
+        && digits(14..16)
+        && bytes[16] == b':'
+        && digits(17..19)
+        && match &bytes[19..] {
+            [b'Z'] => true,
+            [b'.', fraction @ .., b'Z'] => {
+                !fraction.is_empty() && fraction.len() <= 9 && fraction.iter().all(u8::is_ascii_digit)
+            }
+            _ => false,
+        };
+    if !shaped {
+        return Err(invalid_payload(command));
+    }
+    let parsed =
+        chrono::DateTime::parse_from_rfc3339(value).map_err(|_| invalid_payload(command))?;
+    let nanos = parsed.timestamp_subsec_nanos();
+    if nanos >= 1_000_000_000 {
+        return Err(invalid_payload(command));
+    }
+    Ok(LocalAppActivityTimestamp {
+        seconds: parsed.timestamp(),
+        nanos: nanos as i32,
+    })
 }
 
 pub async fn agent_autonomy_snapshot_for_host(
@@ -1869,6 +2332,375 @@ mod tests {
             assert_eq!(envelope["reasonCode"], code);
             assert_eq!(envelope["source"], source);
         }
+    }
+
+    fn activity_put_payload() -> Value {
+        json!({
+            "key": "review:42",
+            "revision": 3,
+            "kind": "todo",
+            "todoState": "open",
+            "attention": true,
+            "title": "Review chapter 4",
+            "summary": null,
+            "objectRef": "doc:42",
+            "type": "com.example.editor.review-requested.v1",
+            "dataJson": "{\"b\":1,\"a\":2}",
+            "occurredAt": "2026-09-20T09:00:00.125Z",
+            "agentHandle": null,
+        })
+    }
+
+    fn assert_invalid_payload(result: Result<impl std::fmt::Debug, String>, command: &str) {
+        let raw = result.expect_err("malformed renderer payload");
+        let envelope: Value = serde_json::from_str(&raw).expect("standard envelope");
+        assert_eq!(envelope["code"], "invalid-payload");
+        assert_eq!(envelope["source"], "tauri");
+        assert_eq!(envelope["details"]["command"], command);
+    }
+
+    #[test]
+    fn activity_put_payload_maps_exact_renderer_fields() {
+        let payload: LocalAppActivityPutPayload =
+            parse_payload(activity_put_payload(), ACTIVITY_PUT_COMMAND).expect("put payload");
+        let request = activity_put_request(payload).expect("put request");
+        assert_eq!(request.revision, 3);
+        assert_eq!(request.kind, "todo");
+        assert_eq!(request.todo_state.as_deref(), Some("open"));
+        assert_eq!(request.summary, None);
+        assert_eq!(request.activity_type, "com.example.editor.review-requested.v1");
+        // Publisher data stays opaque text.
+        assert_eq!(request.data_json.as_deref(), Some("{\"b\":1,\"a\":2}"));
+        assert_eq!(request.occurred_at_seconds, 1_789_894_800);
+        assert_eq!(request.occurred_at_nanos, 125_000_000);
+        assert_eq!(request.agent_handle, None);
+    }
+
+    #[test]
+    fn activity_put_payload_rejects_authority_fields_and_unknown_vocabulary() {
+        let mut extra = activity_put_payload();
+        extra["sourceRef"] = json!("src_forged");
+        assert_invalid_payload(
+            parse_payload::<LocalAppActivityPutPayload>(extra, ACTIVITY_PUT_COMMAND),
+            ACTIVITY_PUT_COMMAND,
+        );
+        for (field, value) in [
+            ("revision", json!(0)),
+            ("revision", json!(9_007_199_254_740_992_u64)),
+            ("revision", json!(1.5)),
+            ("kind", json!("task")),
+            ("todoState", json!("done")),
+            ("occurredAt", json!("2026-09-20T09:00:00+08:00")),
+            ("occurredAt", json!("2026-09-20 09:00:00Z")),
+            ("occurredAt", json!("2026-09-20T09:00:00.1234567890Z")),
+            ("occurredAt", json!("2026-13-20T09:00:00Z")),
+            ("occurredAt", json!("2026-09-20T09:00:60Z")),
+        ] {
+            let mut payload = activity_put_payload();
+            payload[field] = value;
+            let result = parse_payload::<LocalAppActivityPutPayload>(payload, ACTIVITY_PUT_COMMAND)
+                .and_then(activity_put_request);
+            assert_invalid_payload(result, ACTIVITY_PUT_COMMAND);
+        }
+    }
+
+    #[test]
+    fn activity_instant_accepts_only_utc_iso_strings() {
+        let exact = activity_instant("2026-09-20T09:00:00.000Z", ACTIVITY_PUT_COMMAND)
+            .expect("renderer ISO instant");
+        assert_eq!(
+            exact,
+            LocalAppActivityTimestamp {
+                seconds: 1_789_894_800,
+                nanos: 0
+            }
+        );
+        let whole = activity_instant("1999-12-31T23:59:59Z", ACTIVITY_PUT_COMMAND)
+            .expect("fractionless instant");
+        assert_eq!(whole.seconds, 946_684_799);
+        let fine = activity_instant("2026-09-20T09:00:00.000000001Z", ACTIVITY_PUT_COMMAND)
+            .expect("nanosecond instant");
+        assert_eq!(fine.nanos, 1);
+        for value in ["", "2026-09-20", "2026-09-20T09:00:00.Z", "2026-09-20t09:00:00Z", "+2026-09-20T09:00:00Z"] {
+            assert!(activity_instant(value, ACTIVITY_PUT_COMMAND).is_err(), "{value}");
+        }
+    }
+
+    #[test]
+    fn activity_list_payload_is_exact_and_converts_bounds() {
+        let payload: LocalAppActivityListPayload = parse_payload(
+            json!({
+                "filter": {
+                    "sourceRef": null,
+                    "kind": "todo",
+                    "todoStates": ["open", "cancelled"],
+                    "agentRef": "agr_writer",
+                    "occurredAfter": "2026-09-20T09:00:00.000Z",
+                    "occurredBefore": null,
+                },
+                "pageSize": 50,
+                "pageToken": null,
+            }),
+            ACTIVITY_LIST_COMMAND,
+        )
+        .expect("list payload");
+        let request = activity_list_request(payload).expect("list request");
+        assert_eq!(request.kind.as_deref(), Some("todo"));
+        assert_eq!(request.todo_states, vec!["open", "cancelled"]);
+        assert_eq!(request.agent_ref.as_deref(), Some("agr_writer"));
+        assert_eq!(
+            request.occurred_after,
+            Some(LocalAppActivityTimestamp {
+                seconds: 1_789_894_800,
+                nanos: 0
+            })
+        );
+        assert_eq!(request.occurred_before, None);
+        assert_eq!(request.page_size, 50);
+
+        assert_invalid_payload(
+            parse_payload::<LocalAppActivityListPayload>(
+                json!({ "filter": { "todoStates": ["done"] }, "pageSize": 1 }),
+                ACTIVITY_LIST_COMMAND,
+            )
+            .and_then(activity_list_request),
+            ACTIVITY_LIST_COMMAND,
+        );
+        assert_invalid_payload(
+            parse_payload::<LocalAppActivityListPayload>(
+                json!({ "filter": { "todoStates": [], "accountId": "forged" }, "pageSize": 1 }),
+                ACTIVITY_LIST_COMMAND,
+            ),
+            ACTIVITY_LIST_COMMAND,
+        );
+    }
+
+    #[test]
+    fn activity_pull_payloads_separate_open_and_control_shapes() {
+        assert!(matches!(
+            parse_payload::<LocalAppActivitySubscribePayload>(
+                json!({ "afterChangeSeq": "0" }),
+                ACTIVITY_SUBSCRIBE_COMMAND,
+            ),
+            Ok(LocalAppActivitySubscribePayload::Open(_))
+        ));
+        assert!(matches!(
+            parse_payload::<LocalAppActivitySubscribePayload>(
+                json!({ "action": "next", "subscriptionId": "activity-1" }),
+                ACTIVITY_SUBSCRIBE_COMMAND,
+            ),
+            Ok(LocalAppActivitySubscribePayload::Control(_))
+        ));
+        assert!(parse_payload::<LocalAppActivitySubscribePayload>(
+            json!({ "afterChangeSeq": "0", "action": "next", "subscriptionId": "activity-1" }),
+            ACTIVITY_SUBSCRIBE_COMMAND,
+        )
+        .is_err());
+        assert!(matches!(
+            parse_payload::<LocalAppActivityOpenRequestsSubscribePayload>(
+                json!({}),
+                ACTIVITY_OPEN_REQUESTS_SUBSCRIBE_COMMAND,
+            ),
+            Ok(LocalAppActivityOpenRequestsSubscribePayload::Open(_))
+        ));
+        assert!(matches!(
+            parse_payload::<LocalAppActivityOpenRequestsSubscribePayload>(
+                json!({ "action": "cancel", "subscriptionId": "activity-open-requests-1" }),
+                ACTIVITY_OPEN_REQUESTS_SUBSCRIBE_COMMAND,
+            ),
+            Ok(LocalAppActivityOpenRequestsSubscribePayload::Control(_))
+        ));
+        assert!(parse_payload::<LocalAppActivityOpenRequestsSubscribePayload>(
+            json!({ "afterChangeSeq": "0" }),
+            ACTIVITY_OPEN_REQUESTS_SUBSCRIBE_COMMAND,
+        )
+        .is_err());
+        assert_eq!(
+            activity_pull_result(
+                "activity-1".to_string(),
+                false,
+                Some(json!({ "kind": "remove" })),
+                ACTIVITY_SUBSCRIBE_COMMAND,
+            )
+            .expect("event"),
+            json!({ "subscriptionId": "activity-1", "completed": false, "event": { "kind": "remove" } })
+        );
+        assert_eq!(
+            activity_pull_result("activity-1".to_string(), true, None, ACTIVITY_SUBSCRIBE_COMMAND)
+                .expect("completion"),
+            json!({ "subscriptionId": "activity-1", "completed": true })
+        );
+    }
+
+    const OPEN_REQUEST_ID: &str = "aor_Q2l0eUxpZ2h0c0FyZUJyaWdodFRvbmln";
+
+    #[tokio::test]
+    async fn activity_open_waits_for_the_runtime_result_after_a_requested_launch() {
+        let (sender, receiver) = tokio::sync::mpsc::channel(4);
+        sender
+            .send(Ok(json!({ "openRequestId": OPEN_REQUEST_ID })))
+            .await
+            .expect("pending event");
+        let result_sender = sender.clone();
+        let launched = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let observed = launched.clone();
+        let result = drive_activity_open(receiver, move |open_request_id| async move {
+            observed.lock().expect("launch log").push(open_request_id);
+            // Runtime confirms only after the source App completes the request.
+            result_sender
+                .send(Ok(json!({ "result": { "outcome": "opened", "reason": "opened" } })))
+                .await
+                .expect("result event");
+            AppActivitySourceLaunch::Requested
+        })
+        .await
+        .expect("typed result");
+        assert_eq!(result, json!({ "outcome": "opened", "reason": "opened" }));
+        assert!(!result.to_string().contains(OPEN_REQUEST_ID));
+        assert_eq!(*launched.lock().expect("launch log"), vec![OPEN_REQUEST_ID]);
+    }
+
+    #[tokio::test]
+    async fn activity_open_never_reports_opened_from_launch_alone() {
+        let (sender, receiver) = tokio::sync::mpsc::channel(4);
+        sender
+            .send(Ok(json!({ "openRequestId": OPEN_REQUEST_ID })))
+            .await
+            .expect("pending event");
+        drop(sender);
+        let error = drive_activity_open(receiver, |_| async { AppActivitySourceLaunch::Requested })
+            .await
+            .expect_err("a stream without a Runtime result fails closed");
+        assert_eq!(error.reason_code(), LocalAppReasonCode::RuntimeServiceUntrusted);
+    }
+
+    #[tokio::test]
+    async fn activity_open_refused_launch_returns_typed_result_and_cancels_the_stream() {
+        for (declined, expected) in [
+            (
+                AppActivitySourceLaunch::Declined {
+                    outcome: "unavailable",
+                    reason: "host-unavailable",
+                },
+                json!({ "outcome": "unavailable", "reason": "host-unavailable" }),
+            ),
+            (
+                AppActivitySourceLaunch::Declined {
+                    outcome: "failed",
+                    reason: "launch-failed",
+                },
+                json!({ "outcome": "failed", "reason": "launch-failed" }),
+            ),
+        ] {
+            let (sender, receiver) = tokio::sync::mpsc::channel(4);
+            sender
+                .send(Ok(json!({ "openRequestId": OPEN_REQUEST_ID })))
+                .await
+                .expect("pending event");
+            let result = drive_activity_open_with_grace(
+                receiver,
+                move |_| async move { declined },
+                Duration::from_millis(20),
+            )
+            .await
+            .expect("typed refusal");
+            assert_eq!(result, expected);
+            // The dropped receiver is the carrier's cancellation signal.
+            assert!(sender.is_closed());
+        }
+    }
+
+    #[tokio::test]
+    async fn activity_open_reports_a_running_source_confirmation_after_a_refused_launch() {
+        let (sender, receiver) = tokio::sync::mpsc::channel(4);
+        sender
+            .send(Ok(json!({ "openRequestId": OPEN_REQUEST_ID })))
+            .await
+            .expect("pending event");
+        let confirming = sender.clone();
+        let result = drive_activity_open_with_grace(
+            receiver,
+            move |_| async move {
+                confirming
+                    .send(Ok(json!({ "result": { "outcome": "opened", "reason": "opened" } })))
+                    .await
+                    .expect("runtime result");
+                AppActivitySourceLaunch::Declined {
+                    outcome: "failed",
+                    reason: "launch-failed",
+                }
+            },
+            Duration::from_secs(5),
+        )
+        .await
+        .expect("source confirmation");
+        assert_eq!(result, json!({ "outcome": "opened", "reason": "opened" }));
+    }
+
+    #[tokio::test]
+    async fn activity_open_returns_an_immediate_runtime_result_without_launch() {
+        let (sender, receiver) = tokio::sync::mpsc::channel(4);
+        sender
+            .send(Ok(json!({ "result": { "outcome": "unavailable", "reason": "not-openable" } })))
+            .await
+            .expect("result event");
+        let result = drive_activity_open(receiver, |_| async {
+            panic!("an unopenable record never reaches Desktop");
+        })
+        .await
+        .expect("typed result");
+        assert_eq!(result, json!({ "outcome": "unavailable", "reason": "not-openable" }));
+    }
+
+    #[tokio::test]
+    async fn activity_open_rejects_a_second_open_request_and_runtime_failures() {
+        let (sender, receiver) = tokio::sync::mpsc::channel(4);
+        for _ in 0..2 {
+            sender
+                .send(Ok(json!({ "openRequestId": OPEN_REQUEST_ID })))
+                .await
+                .expect("pending event");
+        }
+        let error = drive_activity_open(receiver, |_| async { AppActivitySourceLaunch::Requested })
+            .await
+            .expect_err("second open request");
+        assert_eq!(error.reason_code(), LocalAppReasonCode::RuntimeServiceUntrusted);
+
+        let (sender, receiver) = tokio::sync::mpsc::channel(4);
+        sender
+            .send(Err(LocalAppOperationError::new(LocalAppReasonCode::NotFound, false)))
+            .await
+            .expect("typed failure");
+        let error = drive_activity_open(receiver, |_| async { AppActivitySourceLaunch::Requested })
+            .await
+            .expect_err("typed Runtime failure");
+        assert_eq!(error.reason_code(), LocalAppReasonCode::NotFound);
+    }
+
+    #[test]
+    fn activity_mark_read_and_completion_payloads_are_exact() {
+        let payload: LocalAppActivityMarkReadPayload = parse_payload(
+            json!({ "activityId": "act_01J8ZQ6J3F5T7W9X1Y2Z3A4B5C", "displayedRevision": 3 }),
+            ACTIVITY_MARK_READ_COMMAND,
+        )
+        .expect("mark-read payload");
+        assert_eq!(payload.displayed_revision, 3);
+        assert_invalid_payload(
+            activity_revision(0, ACTIVITY_MARK_READ_COMMAND),
+            ACTIVITY_MARK_READ_COMMAND,
+        );
+        assert_invalid_payload(
+            parse_payload::<LocalAppActivityOpenPayload>(
+                json!({ "activityId": "act_x", "openRequestId": OPEN_REQUEST_ID }),
+                ACTIVITY_OPEN_COMMAND,
+            ),
+            ACTIVITY_OPEN_COMMAND,
+        );
+        assert!(parse_payload::<LocalAppActivityOpenRequestCompletePayload>(
+            json!({ "deliveryId": "aod_x", "completion": "opened" }),
+            ACTIVITY_OPEN_REQUEST_COMPLETE_COMMAND,
+        )
+        .is_ok());
     }
 }
 

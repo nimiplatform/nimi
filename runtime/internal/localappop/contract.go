@@ -89,6 +89,18 @@ const (
 	AppOperationIDVoiceAssetsList      = "runtime.ai.voice-assets.list"
 )
 
+// Canonical operation identifiers for the App activity family governed by the
+// app.activity declaration domain.
+const (
+	AppOperationIDAppActivityPut                  = "runtime.app-activity.put"
+	AppOperationIDAppActivityList                 = "runtime.app-activity.list"
+	AppOperationIDAppActivitySubscribe            = "runtime.app-activity.subscribe"
+	AppOperationIDAppActivityMarkRead             = "runtime.app-activity.mark-read"
+	AppOperationIDAppActivityOpen                 = "runtime.app-activity.open"
+	AppOperationIDAppActivityOpenRequestSubscribe = "runtime.app-activity.open-request.subscribe"
+	AppOperationIDAppActivityOpenRequestComplete  = "runtime.app-activity.open-request.complete"
+)
+
 const (
 	IngressUnknown Ingress = iota
 	IngressStorageJSONRead
@@ -181,6 +193,13 @@ const (
 	IngressVideoSessionClose
 	IngressAgentEmbodimentSnapshotGet
 	IngressAgentEmbodimentEventsSubscribe
+	IngressAppActivityPut
+	IngressAppActivityList
+	IngressAppActivitySubscribe
+	IngressAppActivityMarkRead
+	IngressAppActivityOpen
+	IngressAppActivityOpenRequestSubscribe
+	IngressAppActivityOpenRequestComplete
 )
 
 const (
@@ -275,6 +294,13 @@ const (
 	OperationVideoSessionClose
 	OperationAgentEmbodimentSnapshotGet
 	OperationAgentEmbodimentEventsSubscribe
+	OperationAppActivityPut
+	OperationAppActivityList
+	OperationAppActivitySubscribe
+	OperationAppActivityMarkRead
+	OperationAppActivityOpen
+	OperationAppActivityOpenRequestSubscribe
+	OperationAppActivityOpenRequestComplete
 )
 
 type contractRow struct {
@@ -381,6 +407,13 @@ var canonicalAppOperationContract = [...]contractRow{
 	{IngressAgentMemoryForget, OperationAgentMemoryForget, "runtime.agent.memory.forget", AuthorityClassAppAccess, "agent.configure"},
 	{IngressAgentMemorySwitch, OperationAgentMemorySwitch, "runtime.agent.memory.switch", AuthorityClassAppAccess, "agent.configure"},
 	{IngressAgentMemoryDelete, OperationAgentMemoryDelete, "runtime.agent.memory.delete", AuthorityClassAppAccess, "agent.configure"},
+	{IngressAppActivityPut, OperationAppActivityPut, AppOperationIDAppActivityPut, AuthorityClassAppAccess, "app.activity"},
+	{IngressAppActivityList, OperationAppActivityList, AppOperationIDAppActivityList, AuthorityClassAppAccess, "app.activity"},
+	{IngressAppActivitySubscribe, OperationAppActivitySubscribe, AppOperationIDAppActivitySubscribe, AuthorityClassAppAccess, "app.activity"},
+	{IngressAppActivityMarkRead, OperationAppActivityMarkRead, AppOperationIDAppActivityMarkRead, AuthorityClassAppAccess, "app.activity"},
+	{IngressAppActivityOpen, OperationAppActivityOpen, AppOperationIDAppActivityOpen, AuthorityClassAppAccess, "app.activity"},
+	{IngressAppActivityOpenRequestSubscribe, OperationAppActivityOpenRequestSubscribe, AppOperationIDAppActivityOpenRequestSubscribe, AuthorityClassAppAccess, "app.activity"},
+	{IngressAppActivityOpenRequestComplete, OperationAppActivityOpenRequestComplete, AppOperationIDAppActivityOpenRequestComplete, AuthorityClassAppAccess, "app.activity"},
 }
 
 type Classification struct {

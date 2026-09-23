@@ -7,12 +7,14 @@ import {
   createNimiLocalAppAgentReferencesRuntimeClient,
   createNimiLocalAppConversationRuntimeClient,
   createNimiLocalAppEmbodimentRuntimeClient,
+  createNimiLocalAppActivityRuntimeShell,
   createNimiLocalAppVoiceAssetsRuntimeClient,
   createNimiRealmChatRuntimeClient,
   createNimiRealmRealtimeRuntimeClient,
   createNimiLocalAppAIConfigRuntimeClient,
   AccountReasonCode,
   AiVideoPixelFormat,
+  AppActivityOpenLaunchSourceClass,
   FinishReason,
   LocalAppSessionState,
   RuntimeReasonCode as ReasonCode,
@@ -33,10 +35,11 @@ import {
 } from './desktop-control-host.js';
 import {
   NimiElectronLocalAppHostError,
+  type NimiElectronAppActivityLaunch,
   type NimiElectronLocalAppHost,
   type NimiElectronLocalAppRecord,
 } from './local-app-host.js';
-import type { RuntimeGrpcBridgeStream } from './types.js';
+import type { NimiElectronAppActivityOpenLaunchTarget, RuntimeGrpcBridgeStream } from './types.js';
 import { invalidateElectronLocalAppCommandResources } from './local-app-commands.js';
 
 type FormalAppProfile = 'desktop' | 'avatar';
@@ -62,6 +65,8 @@ const FORMAL_SESSION_RENEW_INTERVAL_MS = 5 * 60 * 1_000;
 
 export type NimiElectronFormalAppLocalHostOwner = Readonly<{
   host: NimiElectronLocalAppHost;
+  /** Desktop-Host-private exact source resolution for one pending open request. */
+  resolveAppActivityOpenLaunch: (openRequestId: string) => Promise<NimiElectronAppActivityOpenLaunchTarget>;
   createResourceScope: () => NimiElectronFormalAppLocalHostResourceScope;
   invalidateResources: () => Promise<void>;
   dispose: () => Promise<void>;
@@ -90,11 +95,18 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
   readonly profile: FormalAppProfile;
   readonly control: NimiElectronDesktopControlHost;
   readonly revealInOs?: (path: string) => Promise<void> | void;
+  readonly activityLaunch?: NimiElectronAppActivityLaunch;
 }): NimiElectronFormalAppLocalHostOwner {
   const runtime = createNimiHostRuntimeTypedClient(profileTransport(input.control, input.profile, maintainFormalSession));
   const agents = createNimiLocalAppAgentReferencesRuntimeClient(runtime);
   const conversation = createNimiLocalAppConversationRuntimeClient(runtime);
   const embodiment = createNimiLocalAppEmbodimentRuntimeClient(runtime);
+  const activity = createNimiLocalAppActivityRuntimeShell(
+    runtime,
+    (openRequestId) => (input.activityLaunch
+      ? input.activityLaunch(openRequestId)
+      : Promise.resolve({ status: 'unavailable', reason: 'host-unavailable' } as const)),
+  );
   const agentRealtime = createNimiAgentRealtimeRuntimeClient(runtime);
   const aiRealtime = createNimiAiRealtimeRuntimeClient(runtime);
   const realmChat = createNimiRealmChatRuntimeClient(runtime);
@@ -574,6 +586,23 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
     conversationSnapshot: (record) => conversation.snapshot(record as never) as Promise<NimiElectronLocalAppRecord>,
     embodimentSnapshot: (record) => embodiment.snapshot(record as never) as Promise<NimiElectronLocalAppRecord>,
     embodimentSubscribe: async (record) => openPullStream(await embodiment.subscribe(record as never)),
+    activityPut: (record) => activity.put(record as never) as Promise<NimiElectronLocalAppRecord>,
+    activityList: (record) => activity.list(record as never) as Promise<NimiElectronLocalAppRecord>,
+    activitySubscribe: async (record) => {
+      const subscription = await activity.subscribe({ afterChangeSeq: requiredText(record.afterChangeSeq) });
+      return openPullStream(pullSource(subscription));
+    },
+    activityMarkRead: (record) => activity.markRead({
+      activityId: requiredText(record.activityId), displayedRevision: Number(record.displayedRevision),
+    }) as Promise<NimiElectronLocalAppRecord>,
+    activityOpen: (record) => activity.open({ activityId: requiredText(record.activityId) }) as Promise<NimiElectronLocalAppRecord>,
+    activityOpenDeliveriesSubscribe: async () => openPullStream(pullSource(await activity.openRequests.subscribe())),
+    activityStreamNext: nextPullStream,
+    activityStreamClose: closePullStream,
+    activityOpenDeliveryComplete: (record) => activity.openRequests.complete({
+      deliveryId: requiredText(record.deliveryId),
+      completion: record.completion === 'opened' ? 'opened' : 'object-unavailable',
+    }) as Promise<NimiElectronLocalAppRecord>,
     aiRealtimeOpen: (record) => aiRealtime.open(record as never) as Promise<NimiElectronLocalAppRecord>,
     async videoSessionOpen(record) {
       const result = await runtime.openVideoSession({ referenceImageArtifactId: requiredText(record.referenceImageArtifactId), format: { width: Number(record.width), height: Number(record.height), pixelFormat: AiVideoPixelFormat.RGB8 } });
@@ -644,8 +673,23 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
   const invalidateResources = (): Promise<void> => runBoundedFormalHostOperation(
     async () => invalidateFormalSessionResources(),
   ).then(() => undefined);
+  // @nimi-authority: rule.nimi.desktop.bridge-ipc.r022
+  const resolveAppActivityOpenLaunch = async (openRequestId: string): Promise<NimiElectronAppActivityOpenLaunchTarget> => {
+    if (!/^aor_[A-Za-z0-9_-]{32}$/u.test(openRequestId)) throw new NimiElectronLocalAppHostError('invalid-payload', false);
+    const resolved = await runBoundedFormalHostOperation(async (signal) => runtime.resolveAppActivityOpenLaunch(
+      { openRequestId }, { signal },
+    ));
+    const sourceClass = resolved.sourceClass === AppActivityOpenLaunchSourceClass.INSTALLED
+      ? 'installed'
+      : resolved.sourceClass === AppActivityOpenLaunchSourceClass.LOCAL_DEVELOPMENT ? 'local-development' : undefined;
+    if (!sourceClass || resolved.launchSelector.byteLength === 0 || resolved.launchSelector.byteLength > 160 || !resolved.appId) {
+      throw new NimiElectronLocalAppHostError('runtime-service-untrusted', false);
+    }
+    return Object.freeze({ sourceClass, launchSelector: Uint8Array.from(resolved.launchSelector), appId: resolved.appId });
+  };
   return Object.freeze({
     host: defaultScope.host,
+    resolveAppActivityOpenLaunch,
     createResourceScope,
     invalidateResources,
     dispose: async () => {
@@ -822,6 +866,18 @@ function createFormalAppResourceScope(
     ),
     embodimentSubscribe: (record) => openPull(
       'realtime', () => host.embodimentSubscribe(record),
+    ),
+    activitySubscribe: (record) => openPull(
+      'realtime', () => host.activitySubscribe(record),
+    ),
+    activityOpenDeliveriesSubscribe: (record) => openPull(
+      'realtime', () => host.activityOpenDeliveriesSubscribe(record),
+    ),
+    activityStreamNext: (record) => usePull(
+      record, 'realtime', () => host.activityStreamNext(record),
+    ),
+    activityStreamClose: (record) => usePull(
+      record, 'realtime', () => host.activityStreamClose(record), true,
     ),
     aiRealtimeSubscribe: (record) => openPull(
       'realtime', () => host.aiRealtimeSubscribe(record),
@@ -1119,6 +1175,9 @@ const FORMAL_SESSION_RETRY_SAFE_METHODS: ReadonlySet<keyof NimiElectronLocalAppH
   'agentReferenceList', 'avatarHostTargetResolve',
   'conversationSubscribe', 'conversationSnapshot',
   'embodimentSnapshot', 'embodimentSubscribe',
+  // Activity cursors, read marks, and open deliveries are bound to the
+  // session's account; the consumer re-lists or re-subscribes explicitly.
+  'activityList',
   'aiRealtimeSubscribe', 'agentRealtimeSubscribe', 'agentRealtimeStatus',
   'sharedAgentAIConfigGet', 'sharedAgentAIConfigLocalOptions',
   'agentManagerSnapshot', 'agentAutonomySnapshot',
@@ -1447,4 +1506,14 @@ function jsonProjection(value: unknown): NimiElectronLocalAppRecord[string] {
     return value;
   }
   throw new NimiElectronLocalAppHostError('contract-invalid', false);
+}
+
+function pullSource(subscription: {
+  readonly events: AsyncIterable<unknown>;
+  readonly cancel: () => Promise<void>;
+}): AsyncIterable<unknown> & { readonly cancel: () => Promise<void> } {
+  return {
+    [Symbol.asyncIterator]: () => subscription.events[Symbol.asyncIterator](),
+    cancel: subscription.cancel,
+  };
 }

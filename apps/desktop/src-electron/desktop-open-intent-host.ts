@@ -17,6 +17,7 @@ import {
 import {
   DESKTOP_AGENT_CENTER_RESOURCE_PACK_PLACEMENT_PATH,
   type NimiElectronAgentCenterResourcePackPlacementResult,
+  type NimiElectronAppActivitySourceLaunchResult,
 } from '@nimiplatform/kit/shell/electron/main';
 import type { DesktopZhiyuResourcePackPlacementDispatch } from './zhiyu-resource-pack-placement.js';
 import { writeOwnerPrivateAtomicJson } from './owner-private-atomic-json.js';
@@ -26,6 +27,7 @@ export const DESKTOP_OPEN_INTENT_EVENT = 'desktop-open://open-intent';
 const DESKTOP_OPEN_INTENT_PATH = '/v1/open-intent';
 export const DESKTOP_AVATAR_HOST_HANDOFF_PATH = '/v1/avatar-handoff';
 export const DESKTOP_ZHIYU_RESOURCE_PACK_REDEEM_PATH = '/v1/zhiyu-resource-pack-placement/redeem';
+export const DESKTOP_APP_ACTIVITY_SOURCE_LAUNCH_PATH = '/v1/app-activity-source-launch';
 const PRESENCE_HEARTBEAT_INTERVAL_MS = 3_000;
 const RENDERER_READY_HEARTBEAT_TTL_MS = 10_000;
 const MAX_REQUEST_BYTES = 32 * 1024;
@@ -65,6 +67,7 @@ export async function createDesktopElectronOpenIntentHost(input: {
   readonly zhiyuResourcePackPlacement?: (
     request: DesktopZhiyuResourcePackPlacementDispatch,
     ) => Promise<NimiElectronAgentCenterResourcePackPlacementResult>;
+  readonly appActivitySourceLaunch?: (openRequestId: string) => Promise<NimiElectronAppActivitySourceLaunchResult>;
   readonly now?: () => number;
   readonly heartbeatIntervalMs?: number;
   readonly readinessTtlMs?: number;
@@ -108,6 +111,7 @@ class ElectronDesktopOpenIntentHost {
     readonly zhiyuResourcePackPlacement?: (
       request: DesktopZhiyuResourcePackPlacementDispatch,
     ) => Promise<NimiElectronAgentCenterResourcePackPlacementResult>;
+    readonly appActivitySourceLaunch?: (openRequestId: string) => Promise<NimiElectronAppActivitySourceLaunchResult>;
     readonly now?: () => number;
     readonly heartbeatIntervalMs?: number;
     readonly readinessTtlMs?: number;
@@ -238,7 +242,8 @@ class ElectronDesktopOpenIntentHost {
       || (request.url !== DESKTOP_OPEN_INTENT_PATH
         && request.url !== DESKTOP_AVATAR_HOST_HANDOFF_PATH
         && request.url !== DESKTOP_AGENT_CENTER_RESOURCE_PACK_PLACEMENT_PATH
-        && request.url !== DESKTOP_ZHIYU_RESOURCE_PACK_REDEEM_PATH)) {
+        && request.url !== DESKTOP_ZHIYU_RESOURCE_PACK_REDEEM_PATH
+        && request.url !== DESKTOP_APP_ACTIVITY_SOURCE_LAUNCH_PATH)) {
       writeJson(response, 404, {
         status: 'rejected',
         reasonCode: 'desktop-open-intent-invalid',
@@ -255,6 +260,19 @@ class ElectronDesktopOpenIntentHost {
       return;
     }
     const raw = await readJsonBody(request);
+    if (request.url === DESKTOP_APP_ACTIVITY_SOURCE_LAUNCH_PATH) {
+      // @nimi-authority: rule.nimi.desktop.bridge-ipc.r022
+      const openRequestId = parseAppActivitySourceLaunchRequest(raw);
+      if (!openRequestId) {
+        writeJson(response, 400, { bridgeId: this.bridgeId, status: 'failed', reason: 'launch-failed' });
+        return;
+      }
+      const result: NimiElectronAppActivitySourceLaunchResult = this.input.appActivitySourceLaunch
+        ? await this.input.appActivitySourceLaunch(openRequestId).catch(() => ({ status: 'failed', reason: 'launch-failed' } as const))
+        : { status: 'unavailable', reason: 'host-unavailable' };
+      writeJson(response, 200, { bridgeId: this.bridgeId, ...result });
+      return;
+    }
     if (request.url === DESKTOP_ZHIYU_RESOURCE_PACK_REDEEM_PATH) {
       const redeemed = this.redeemZhiyuPlacementCorrelation(raw);
       writeJson(response, redeemed ? 200 : 404, {
@@ -376,6 +394,15 @@ class ElectronDesktopOpenIntentHost {
       if (errorCode(error) !== 'ENOENT') throw error;
     }
   }
+}
+
+function parseAppActivitySourceLaunchRequest(value: unknown): string | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  if (Object.keys(record).sort().join(',') !== 'openRequestId,schemaVersion' || record.schemaVersion !== 1) return null;
+  return typeof record.openRequestId === 'string' && /^aor_[A-Za-z0-9_-]{32}$/u.test(record.openRequestId)
+    ? record.openRequestId
+    : null;
 }
 
 type AvatarHostHandoffEnvelope = Readonly<{

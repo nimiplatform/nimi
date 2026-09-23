@@ -5,6 +5,7 @@ export const APP_ACCESS_DOMAINS = Object.freeze([
   'runtime.consume',
   'agent.local',
   'agent.configure',
+  'app.activity',
 ]);
 
 const SUPPORTED_APP_ACCESS_DOMAINS = new Set(APP_ACCESS_DOMAINS);

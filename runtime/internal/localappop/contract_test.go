@@ -110,6 +110,13 @@ func TestCanonicalAppOperationContractIsExactUniqueAndExplicit(t *testing.T) {
 		{id: "runtime.agent.memory.forget", class: AuthorityClassAppAccess, domain: "agent.configure"},
 		{id: "runtime.agent.memory.switch", class: AuthorityClassAppAccess, domain: "agent.configure"},
 		{id: "runtime.agent.memory.delete", class: AuthorityClassAppAccess, domain: "agent.configure"},
+		{id: AppOperationIDAppActivityPut, class: AuthorityClassAppAccess, domain: "app.activity"},
+		{id: AppOperationIDAppActivityList, class: AuthorityClassAppAccess, domain: "app.activity"},
+		{id: AppOperationIDAppActivitySubscribe, class: AuthorityClassAppAccess, domain: "app.activity"},
+		{id: AppOperationIDAppActivityMarkRead, class: AuthorityClassAppAccess, domain: "app.activity"},
+		{id: AppOperationIDAppActivityOpen, class: AuthorityClassAppAccess, domain: "app.activity"},
+		{id: AppOperationIDAppActivityOpenRequestSubscribe, class: AuthorityClassAppAccess, domain: "app.activity"},
+		{id: AppOperationIDAppActivityOpenRequestComplete, class: AuthorityClassAppAccess, domain: "app.activity"},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("canonical App operation map = %#v, want %#v", got, want)

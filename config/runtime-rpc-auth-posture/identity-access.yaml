@@ -104,6 +104,22 @@ methods:
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAppService/RebindLocalAppProcess
     posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAppActivityService/PutAppActivity
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAppActivityService/ListAppActivities
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityChanges
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAppActivityService/MarkAppActivityRead
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAppActivityService/OpenAppActivity
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityOpenRequests
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAppActivityService/CompleteAppActivityOpenRequest
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAppActivityService/ResolveAppActivityOpenLaunch
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession

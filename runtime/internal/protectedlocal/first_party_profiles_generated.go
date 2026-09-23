@@ -408,6 +408,22 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppEmbodimentEvents":
 			return FirstPartyMethodServerStream, true
+		case "/nimi.runtime.v1.RuntimeAppActivityService/PutAppActivity":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAppActivityService/ListAppActivities":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityChanges":
+			return FirstPartyMethodServerStream, true
+		case "/nimi.runtime.v1.RuntimeAppActivityService/MarkAppActivityRead":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAppActivityService/OpenAppActivity":
+			return FirstPartyMethodServerStream, true
+		case "/nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityOpenRequests":
+			return FirstPartyMethodServerStream, true
+		case "/nimi.runtime.v1.RuntimeAppActivityService/CompleteAppActivityOpenRequest":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAppActivityService/ResolveAppActivityOpenLaunch":
+			return FirstPartyMethodUnary, true
 		}
 	case "bundled_avatar_v1":
 		switch methodID {
@@ -766,6 +782,14 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppEmbodimentSnapshot", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppEmbodimentEvents", Kind: FirstPartyMethodServerStream},
+			{MethodID: "/nimi.runtime.v1.RuntimeAppActivityService/PutAppActivity", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAppActivityService/ListAppActivities", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityChanges", Kind: FirstPartyMethodServerStream},
+			{MethodID: "/nimi.runtime.v1.RuntimeAppActivityService/MarkAppActivityRead", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAppActivityService/OpenAppActivity", Kind: FirstPartyMethodServerStream},
+			{MethodID: "/nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityOpenRequests", Kind: FirstPartyMethodServerStream},
+			{MethodID: "/nimi.runtime.v1.RuntimeAppActivityService/CompleteAppActivityOpenRequest", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAppActivityService/ResolveAppActivityOpenLaunch", Kind: FirstPartyMethodUnary},
 		}
 	case "bundled_avatar_v1":
 		return []FirstPartyProfileMethodEntry{

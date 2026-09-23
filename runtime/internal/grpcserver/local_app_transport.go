@@ -99,6 +99,14 @@ const (
 	protectedGetAgentRealtimeStatusMethod         = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentRealtimeStatus"
 	protectedInterruptAgentRealtimeOutputMethod   = "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppAgentRealtimeOutput"
 	protectedCloseAgentRealtimeMethod             = "/nimi.runtime.v1.RuntimeAgentService/CloseLocalAppAgentRealtime"
+	protectedPutAppActivityMethod                 = "/nimi.runtime.v1.RuntimeAppActivityService/PutAppActivity"
+	protectedListAppActivitiesMethod              = "/nimi.runtime.v1.RuntimeAppActivityService/ListAppActivities"
+	protectedSubscribeAppActivityChangesMethod    = "/nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityChanges"
+	protectedMarkAppActivityReadMethod            = "/nimi.runtime.v1.RuntimeAppActivityService/MarkAppActivityRead"
+	protectedOpenAppActivityMethod                = "/nimi.runtime.v1.RuntimeAppActivityService/OpenAppActivity"
+	protectedSubscribeAppActivityOpenRequests     = "/nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityOpenRequests"
+	protectedCompleteAppActivityOpenRequest       = "/nimi.runtime.v1.RuntimeAppActivityService/CompleteAppActivityOpenRequest"
+	protectedResolveAppActivityOpenLaunch         = "/nimi.runtime.v1.RuntimeAppActivityService/ResolveAppActivityOpenLaunch"
 )
 
 type protectedLocalAppAdmission interface {
@@ -184,6 +192,11 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 	protectedGetAgentRealtimeStatusMethod:         localAppSessionMethodPolicy(),
 	protectedInterruptAgentRealtimeOutputMethod:   localAppSessionMethodPolicy(),
 	protectedCloseAgentRealtimeMethod:             localAppSessionMethodPolicy(),
+	protectedPutAppActivityMethod:                 localAppSessionMethodPolicy(),
+	protectedListAppActivitiesMethod:              localAppSessionMethodPolicy(),
+	protectedMarkAppActivityReadMethod:            localAppSessionMethodPolicy(),
+	protectedCompleteAppActivityOpenRequest:       localAppSessionMethodPolicy(),
+	protectedResolveAppActivityOpenLaunch:         localAppSessionMethodPolicy(),
 }
 
 var protectedLocalAppStreamMethodPolicies = map[string]protectedLocalAppMethodPolicy{
@@ -196,6 +209,9 @@ var protectedLocalAppStreamMethodPolicies = map[string]protectedLocalAppMethodPo
 	protectedSubscribeRealmRealtimeEventsMethod: localAppSessionMethodPolicy(),
 	protectedReadAIRealtimeEventsMethod:         localAppSessionMethodPolicy(),
 	protectedSubscribeAgentRealtimeEventsMethod: localAppSessionMethodPolicy(),
+	protectedSubscribeAppActivityChangesMethod:  localAppSessionMethodPolicy(),
+	protectedOpenAppActivityMethod:              localAppSessionMethodPolicy(),
+	protectedSubscribeAppActivityOpenRequests:   localAppSessionMethodPolicy(),
 }
 
 func localAppSessionMethodPolicy() protectedLocalAppMethodPolicy {
@@ -608,6 +624,18 @@ func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingres
 		return localappop.IngressAgentMemorySwitch
 	case protectedDeleteAgentMemoryMethod:
 		return localappop.IngressAgentMemoryDelete
+	case protectedPutAppActivityMethod:
+		return localappop.IngressAppActivityPut
+	case protectedListAppActivitiesMethod:
+		return localappop.IngressAppActivityList
+	case protectedMarkAppActivityReadMethod:
+		return localappop.IngressAppActivityMarkRead
+	case protectedCompleteAppActivityOpenRequest:
+		return localappop.IngressAppActivityOpenRequestComplete
+	case protectedResolveAppActivityOpenLaunch:
+		// Desktop-Host-private resolution under the Desktop formal App
+		// session's app.activity coverage; the owner rejects every other App.
+		return localappop.IngressAppActivityOpen
 	default:
 		return localappop.IngressUnknown
 	}
@@ -636,6 +664,10 @@ func protectedLocalAppOwnerEnabled(method string, request any, ingress localappo
 		protectedPresentationSnapshotMethod, protectedPresentationAssetMethod, protectedCommitPresentationMethod,
 		protectedInspectAgentMemoryMethod, protectedCorrectAgentMemoryMethod, protectedForgetAgentMemoryMethod,
 		protectedSwitchAgentMemoryMethod, protectedDeleteAgentMemoryMethod:
+		return true
+	case protectedPutAppActivityMethod, protectedListAppActivitiesMethod,
+		protectedMarkAppActivityReadMethod, protectedCompleteAppActivityOpenRequest,
+		protectedResolveAppActivityOpenLaunch:
 		return true
 	case protectedListRealmChatsMethod, protectedOpenRealmRealtimeChannelMethod, protectedAckRealmRealtimeEventsMethod,
 		protectedCloseRealmRealtimeSubscriptionMethod, protectedCloseRealmRealtimeChannelMethod:
@@ -720,6 +752,12 @@ func protectedLocalAppStreamIngress(method string) localappop.Ingress {
 		return localappop.IngressAIRealtimeEventsRead
 	case protectedSubscribeAgentRealtimeEventsMethod:
 		return localappop.IngressAgentRealtimeEventsSubscribe
+	case protectedSubscribeAppActivityChangesMethod:
+		return localappop.IngressAppActivitySubscribe
+	case protectedOpenAppActivityMethod:
+		return localappop.IngressAppActivityOpen
+	case protectedSubscribeAppActivityOpenRequests:
+		return localappop.IngressAppActivityOpenRequestSubscribe
 	default:
 		return localappop.IngressUnknown
 	}

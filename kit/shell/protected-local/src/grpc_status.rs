@@ -300,6 +300,16 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "APP_STORAGE_ARTIFACT_UNAVAILABLE" => LocalAppReasonCode::ArtifactUnavailable,
         "OPERATION_CANCELED" | "CANCELED" => LocalAppReasonCode::Canceled,
         "APP_STORAGE_ENTRY_NOT_FOUND" | "ARTIFACT_NOT_FOUND" => LocalAppReasonCode::NotFound,
+        "APP_ACTIVITY_INPUT_INVALID" => LocalAppReasonCode::InvalidPayload,
+        "APP_ACTIVITY_REVISION_CONFLICT" => LocalAppReasonCode::ContentConflict,
+        "APP_ACTIVITY_NOT_FOUND"
+        | "APP_ACTIVITY_AGENT_UNAVAILABLE"
+        | "APP_ACTIVITY_OPEN_REQUEST_UNAVAILABLE" => LocalAppReasonCode::NotFound,
+        "APP_ACTIVITY_TOO_LARGE" => LocalAppReasonCode::ObjectTooLarge,
+        "APP_ACTIVITY_PAGE_TOKEN_INVALID" | "APP_ACTIVITY_CURSOR_EXPIRED" => {
+            LocalAppReasonCode::InvalidCursor
+        }
+        "APP_ACTIVITY_UNAVAILABLE" => LocalAppReasonCode::RuntimeServiceUnavailable,
         "APP_STORAGE_QUOTA_EXCEEDED" | "RESOURCE_EXHAUSTED" | "ARTIFACT_TOO_LARGE" => {
             LocalAppReasonCode::ResourceExhausted
         }
@@ -496,6 +506,54 @@ mod tests {
                 Some(expected)
             );
         }
+    }
+
+    #[test]
+    fn app_activity_failures_reuse_existing_local_app_reasons() {
+        for (runtime_reason, expected) in [
+            ("APP_ACTIVITY_INPUT_INVALID", LocalAppReasonCode::InvalidPayload),
+            ("APP_ACTIVITY_REVISION_CONFLICT", LocalAppReasonCode::ContentConflict),
+            ("APP_ACTIVITY_NOT_FOUND", LocalAppReasonCode::NotFound),
+            ("APP_ACTIVITY_TOO_LARGE", LocalAppReasonCode::ObjectTooLarge),
+            ("APP_ACTIVITY_PAGE_TOKEN_INVALID", LocalAppReasonCode::InvalidCursor),
+            ("APP_ACTIVITY_CURSOR_EXPIRED", LocalAppReasonCode::InvalidCursor),
+            ("APP_ACTIVITY_AGENT_UNAVAILABLE", LocalAppReasonCode::NotFound),
+            ("APP_ACTIVITY_UNAVAILABLE", LocalAppReasonCode::RuntimeServiceUnavailable),
+            ("APP_ACTIVITY_OPEN_REQUEST_UNAVAILABLE", LocalAppReasonCode::NotFound),
+        ] {
+            // Each name must stay a generated Runtime reason, not a local alias.
+            assert!(
+                ReasonCode::from_str_name(runtime_reason).is_some(),
+                "{runtime_reason}"
+            );
+            assert_eq!(
+                local_app_reason_from_runtime_reason(runtime_reason),
+                Some(expected),
+                "{runtime_reason}"
+            );
+        }
+
+        let info = GoogleRpcErrorInfo {
+            reason: "APP_ACTIVITY_CURSOR_EXPIRED".to_string(),
+            domain: ERROR_INFO_DOMAIN.to_string(),
+            metadata: HashMap::new(),
+        };
+        let details = GoogleRpcStatus {
+            code: Code::OutOfRange as i32,
+            message: "cursor precedes the retained range".to_string(),
+            details: vec![prost_types::Any {
+                type_url: ERROR_INFO_TYPE_URL.to_string(),
+                value: info.encode_to_vec(),
+            }],
+        };
+        let error = local_app_error_from_status(Status::with_details(
+            Code::OutOfRange,
+            "cursor precedes the retained range",
+            details.encode_to_vec().into(),
+        ));
+        assert_eq!(error.reason_code(), LocalAppReasonCode::InvalidCursor);
+        assert!(!error.retryable());
+        assert!(error.reason_metadata().is_empty());
     }
 
     #[test]

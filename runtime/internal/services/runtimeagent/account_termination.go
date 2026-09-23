@@ -11,6 +11,7 @@ import (
 
 	"github.com/nimiplatform/nimi/nimi-cognition/memoryv1"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
+	"github.com/nimiplatform/nimi/runtime/internal/services/appactivity"
 	"github.com/oklog/ulid/v2"
 )
 
@@ -313,6 +314,11 @@ func (s *Service) resumeRealmAccountTerminationItems(ctx context.Context, termin
 		}
 		if pending != 0 {
 			return ErrRealmAccountTerminationUnavailable
+		}
+		// The Account's App activity partition is removed in the same commit
+		// that completes the durable Account-terminal operation.
+		if err := appactivity.RemoveAccountActivityTx(ctx, tx, termination.AccountID); err != nil {
+			return err
 		}
 		updated, err := tx.Exec(`UPDATE runtime_realm_account_termination SET phase = 'completed', updated_at = ? WHERE account_id = ? AND operation_id = ? AND phase = 'fenced'`, time.Now().UTC().Format(time.RFC3339Nano), termination.AccountID, termination.OperationID)
 		if err != nil {

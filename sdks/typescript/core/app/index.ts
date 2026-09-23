@@ -94,6 +94,48 @@ export {
   isNimiLocalAppAgentSelectorMismatchError,
 } from './local-app-agent-selector-error.js';
 export {
+  createNimiLocalAppActivityClient,
+  createNimiLocalAppActivityRuntimeShell,
+  projectNimiAppActivityRecord,
+  runNimiLocalAppActivityOpen,
+  runtimeActivityChangeJson,
+  runtimeActivityRecordJson,
+  runtimeOpenResultJson,
+  NIMI_APP_ACTIVITY_LAUNCH_FAILURE_GRACE_MS,
+  NIMI_APP_ACTIVITY_RUNTIME_TURN_TYPE,
+  type NimiAppActivityAgent,
+  type NimiAppActivityChange,
+  type NimiAppActivityFilter,
+  type NimiAppActivityKind,
+  type NimiAppActivityListInput,
+  type NimiAppActivityOpenHandler,
+  type NimiAppActivityOpenReason,
+  type NimiAppActivityOpenRegistration,
+  type NimiAppActivityOpenRequest,
+  type NimiAppActivityOpenResult,
+  type NimiAppActivityPage,
+  type NimiAppActivityPutInput,
+  type NimiAppActivityPutResult,
+  type NimiAppActivityRecord,
+  type NimiAppActivitySource,
+  type NimiAppActivitySubscription,
+  type NimiAppActivityTodoState,
+  type NimiAppActivityUserView,
+  type NimiLocalAppActivityClient,
+  type NimiLocalAppActivityHostLaunch,
+  type NimiLocalAppActivityRuntime,
+  type NimiLocalAppActivityShell,
+} from './local-app-runtime-platform-activity.js';
+export {
+  createNimiAppActivityView,
+  matchesNimiAppActivityFilter,
+  NimiAppActivityMergeState,
+  type NimiAppActivityView,
+  type NimiAppActivityViewOptions,
+  type NimiAppActivityViewSnapshot,
+  type NimiAppActivityViewStatus,
+} from './local-app-runtime-platform-activity-view.js';
+export {
   createNimiLocalAppAgentConfigureClient,
 } from './local-app-runtime-platform-configure.js';
 export type {

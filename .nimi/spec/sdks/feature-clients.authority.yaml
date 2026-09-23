@@ -25,7 +25,7 @@ units:
   - id: definition.nimi.sdks.feature-clients.app-client-plane
     kind: definition
     title: SDK app client plane
-    meaning: The SDK app client plane is the sole supported typed consumer surface over a Desktop-verified exact Host connection and fresh Runtime protected App session; it projects access availability, purpose-specific typed methods governed internally by the Runtime-owned Effective App Access Snapshot and central App Operation Contract, bounded App-private storage and App AIConfig operations, the minimal current-user display projection, the non-authorizing Manager Agent selector bootstrap for agent.configure, handle-and-anchor-scoped bounded semantic embodiment snapshot and event operations carrying any independently owned companion state, per-Agent Cognition-owned long-term Memory management results, exact owner-domain results, and typed failures without exposing the snapshot or contract as App data and without owning admission, declaration mapping, account truth, LocalAgent or Avatar truth, Memory or Knowledge truth, credentials, Host lifecycle, or marketplace truth.
+    meaning: The SDK app client plane is the sole supported typed consumer surface over a Desktop-verified exact Host connection and fresh Runtime protected App session; it projects access availability, purpose-specific typed methods governed internally by the Runtime-owned Effective App Access Snapshot and central App Operation Contract, bounded App-private storage and App AIConfig operations, the minimal current-user display projection, the non-authorizing Manager Agent selector bootstrap for agent.configure, handle-and-anchor-scoped bounded semantic embodiment snapshot and event operations carrying any independently owned companion state, per-Agent Cognition-owned long-term Memory management results, App activity publication, baselined query, ordered subscription, user read state, source open, and source open-request handling, exact owner-domain results, and typed failures without exposing the snapshot or contract as App data and without owning admission, declaration mapping, account truth, LocalAgent or Avatar truth, Memory or Knowledge truth, credentials, Host lifecycle, or marketplace truth.
   - id: definition.nimi.sdks.feature-clients.realtime-plane
     kind: definition
     title: SDK canonical Realtime owner API plane
@@ -1032,5 +1032,19 @@ units:
         target: definition.nimi.platform.core-protocol.app-operation-contract
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+      - type: applies_to
+        target: definition.nimi.sdks.feature-clients.app-client-plane
+  - id: rule.nimi.sdks.feature-clients.r113
+    kind: rule
+    title: Local App activity client is exact and convergent
+    modality: must
+    statement: Every formal App, including Desktop Home, consumes App activity only through the host-injected App client activity namespace with exactly put, list, subscribe, markRead, open, and onOpenRequest plus one pure merged view helper; inputs accept no account, subject, publisher, source, session, Agent identity, or open correlation, custom data is treated as product content rather than authority fields, the merged view applies the highest change sequence per id before filter membership, keeps removed and filtered-out sequences against stale pages and in-flight changes, relists from a fresh baseline on filter change, expired cursor, incomplete initial listing, or any ended subscription because change cursors are not account-bound, reports a listing paused at its record bound as incomplete with a continuation of the same baseline instead of as the complete set, and never marks read on its own, open returns only opened, unavailable, or failed with a typed reason, and onOpenRequest confirms opened only after the App handler reports entering the requested object for the current session.
+    condition: Whenever a formal App or Desktop Home publishes, reads, subscribes to, marks, opens, or handles open requests for App activity.
+    failure: Fail closed with typed SDK errors on unsupported fields, authority material, invalid projections, or missing carriers, and never synthesize records, read state, or open success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-activity-open
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-activity-record
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.app-client-plane

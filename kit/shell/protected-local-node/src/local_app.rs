@@ -1710,6 +1710,179 @@ pub async fn local_app_embodiment_subscribe(
     .await
 }
 
+#[napi(js_name = "localAppActivityPut")]
+pub async fn local_app_activity_put(input: NativeAppActivityPutInput) -> NativeJsonOutcome {
+    let request = match native_activity_put_request(input) {
+        Ok(request) => request,
+        Err(error) => return NativeJsonOutcome::error(error),
+    };
+    invoke_agent(|session| async move { session.activity_put(request).await }).await
+}
+
+#[napi(js_name = "localAppActivityList")]
+pub async fn local_app_activity_list(input: NativeAppActivityListInput) -> NativeJsonOutcome {
+    let request = match native_activity_list_request(input) {
+        Ok(request) => request,
+        Err(error) => return NativeJsonOutcome::error(error),
+    };
+    invoke_agent(|session| async move { session.activity_list(request).await }).await
+}
+
+#[napi(js_name = "localAppActivitySubscribe")]
+pub async fn local_app_activity_subscribe(
+    input: NativeAppActivitySubscribeInput,
+) -> NativeJsonOutcome {
+    let after_change_seq = match decimal_revision(&input.after_change_seq, true) {
+        Ok(value) => value,
+        Err(error) => return NativeJsonOutcome::error(error),
+    };
+    subscribe_realtime("activity", move |session| async move {
+        session
+            .activity_subscribe(LocalAppActivitySubscribeRequest { after_change_seq })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppActivityMarkRead")]
+pub async fn local_app_activity_mark_read(
+    input: NativeAppActivityMarkReadInput,
+) -> NativeJsonOutcome {
+    let displayed_revision = match native_positive_safe_revision(input.displayed_revision) {
+        Ok(value) => value,
+        Err(error) => return NativeJsonOutcome::error(error),
+    };
+    invoke_agent(|session| async move {
+        session
+            .activity_mark_read(LocalAppActivityMarkReadRequest {
+                activity_id: input.activity_id,
+                displayed_revision,
+            })
+            .await
+    })
+    .await
+}
+
+/// Host-only: the first stream item may carry the Host-private open request
+/// id for the Desktop launch. The Electron main process consumes it and never
+/// forwards it to renderer code.
+#[napi(js_name = "localAppActivityOpen")]
+pub async fn local_app_activity_open(input: NativeAppActivityOpenInput) -> NativeJsonOutcome {
+    subscribe_realtime("activity-open", move |session| async move {
+        session
+            .activity_open(LocalAppActivityOpenRequest {
+                activity_id: input.activity_id,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppActivityOpenRequestsSubscribe")]
+pub async fn local_app_activity_open_requests_subscribe() -> NativeJsonOutcome {
+    subscribe_realtime("activity-open-requests", |session| async move {
+        session.activity_open_requests_subscribe().await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppActivityOpenRequestComplete")]
+pub async fn local_app_activity_open_request_complete(
+    input: NativeAppActivityOpenRequestCompleteInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .activity_open_request_complete(LocalAppActivityOpenRequestCompleteRequest {
+                delivery_id: input.delivery_id,
+                completion: input.completion,
+            })
+            .await
+    })
+    .await
+}
+
+fn native_activity_put_request(
+    input: NativeAppActivityPutInput,
+) -> Result<LocalAppActivityPutRequest, LocalAppOperationError> {
+    Ok(LocalAppActivityPutRequest {
+        key: input.key,
+        revision: native_positive_safe_revision(input.revision)?,
+        kind: input.kind,
+        todo_state: input.todo_state,
+        attention: input.attention,
+        title: input.title,
+        summary: input.summary,
+        object_ref: input.object_ref,
+        activity_type: input.activity_type,
+        data_json: input.data_json,
+        occurred_at_seconds: native_timestamp_seconds(&input.occurred_at_seconds)?,
+        occurred_at_nanos: native_timestamp_nanos(input.occurred_at_nanos)?,
+        agent_handle: input.agent_handle,
+    })
+}
+
+fn native_activity_list_request(
+    input: NativeAppActivityListInput,
+) -> Result<LocalAppActivityListRequest, LocalAppOperationError> {
+    Ok(LocalAppActivityListRequest {
+        source_ref: input.source_ref,
+        kind: input.kind,
+        todo_states: input.todo_states,
+        agent_ref: input.agent_ref,
+        occurred_after: native_activity_timestamp(
+            input.occurred_after_seconds,
+            input.occurred_after_nanos,
+        )?,
+        occurred_before: native_activity_timestamp(
+            input.occurred_before_seconds,
+            input.occurred_before_nanos,
+        )?,
+        page_size: input.page_size,
+        page_token: input.page_token,
+    })
+}
+
+fn native_positive_safe_revision(value: f64) -> Result<u64, LocalAppOperationError> {
+    const MAX_SAFE_INTEGER: f64 = 9_007_199_254_740_991.0;
+    if !value.is_finite() || value.fract() != 0.0 || !(1.0..=MAX_SAFE_INTEGER).contains(&value) {
+        return Err(native_invalid_payload());
+    }
+    Ok(value as u64)
+}
+
+fn native_timestamp_seconds(value: &str) -> Result<i64, LocalAppOperationError> {
+    let digits = value.strip_prefix('-').unwrap_or(value);
+    if digits.is_empty()
+        || (digits.len() > 1 && digits.starts_with('0'))
+        || value == "-0"
+        || !digits.bytes().all(|byte| byte.is_ascii_digit())
+    {
+        return Err(native_invalid_payload());
+    }
+    value.parse::<i64>().map_err(|_| native_invalid_payload())
+}
+
+fn native_timestamp_nanos(value: u32) -> Result<i32, LocalAppOperationError> {
+    if value >= 1_000_000_000 {
+        return Err(native_invalid_payload());
+    }
+    Ok(value as i32)
+}
+
+fn native_activity_timestamp(
+    seconds: Option<String>,
+    nanos: Option<u32>,
+) -> Result<Option<LocalAppActivityTimestamp>, LocalAppOperationError> {
+    match (seconds, nanos) {
+        (None, None) => Ok(None),
+        (Some(seconds), Some(nanos)) => Ok(Some(LocalAppActivityTimestamp {
+            seconds: native_timestamp_seconds(&seconds)?,
+            nanos: native_timestamp_nanos(nanos)?,
+        })),
+        _ => Err(native_invalid_payload()),
+    }
+}
+
 #[napi(js_name = "localAppConversationSubscribe")]
 pub async fn local_app_conversation_subscribe(
     input: NativeConversationScopeInput,
@@ -2499,6 +2672,106 @@ mod session_rebind_tests {
     fn native_text_conversion_rejects_non_integer_or_unsafe_numbers() {
         assert!(optional_native_i32(Some(0.5)).is_err());
         assert!(optional_native_i64(Some(9_007_199_254_740_992.0)).is_err());
+    }
+
+    fn activity_put_input() -> NativeAppActivityPutInput {
+        NativeAppActivityPutInput {
+            key: "review:42".to_string(),
+            revision: 3.0,
+            kind: "todo".to_string(),
+            todo_state: Some("open".to_string()),
+            attention: true,
+            title: "Review chapter 4".to_string(),
+            summary: None,
+            object_ref: Some("doc:42".to_string()),
+            activity_type: "com.example.editor.review-requested.v1".to_string(),
+            data_json: Some(r#"{"b":1,"a":2}"#.to_string()),
+            occurred_at_seconds: "1790000000".to_string(),
+            occurred_at_nanos: 125_000_000,
+            agent_handle: None,
+        }
+    }
+
+    #[test]
+    fn native_activity_put_conversion_is_exact_and_keeps_publisher_text() {
+        let request = native_activity_put_request(activity_put_input()).expect("put request");
+        assert_eq!(request.revision, 3);
+        assert_eq!(request.kind, "todo");
+        assert_eq!(request.todo_state.as_deref(), Some("open"));
+        assert_eq!(request.data_json.as_deref(), Some(r#"{"b":1,"a":2}"#));
+        assert_eq!(request.occurred_at_seconds, 1_790_000_000);
+        assert_eq!(request.occurred_at_nanos, 125_000_000);
+
+        let mut negative = activity_put_input();
+        negative.occurred_at_seconds = "-1".to_string();
+        assert_eq!(
+            native_activity_put_request(negative)
+                .expect("pre-epoch seconds stay exact")
+                .occurred_at_seconds,
+            -1
+        );
+    }
+
+    #[test]
+    fn native_activity_numbers_reject_unsafe_or_noncanonical_values() {
+        for revision in [0.0, -1.0, 1.5, 9_007_199_254_740_992.0, f64::NAN, f64::INFINITY] {
+            let mut input = activity_put_input();
+            input.revision = revision;
+            assert_eq!(
+                native_activity_put_request(input)
+                    .expect_err("unsafe revision")
+                    .reason_code(),
+                LocalAppReasonCode::InvalidPayload,
+                "{revision}"
+            );
+        }
+        assert_eq!(
+            native_positive_safe_revision(9_007_199_254_740_991.0).expect("max safe"),
+            9_007_199_254_740_991
+        );
+        for seconds in ["", "-", "-0", "01", "+1", "1.5", "1e3", "9223372036854775808"] {
+            assert!(native_timestamp_seconds(seconds).is_err(), "{seconds}");
+        }
+        assert!(native_timestamp_nanos(1_000_000_000).is_err());
+        assert!(native_activity_timestamp(Some("1".to_string()), None).is_err());
+        assert!(native_activity_timestamp(None, Some(0)).is_err());
+        assert_eq!(native_activity_timestamp(None, None).expect("absent bound"), None);
+        assert_eq!(
+            native_activity_timestamp(Some("1790000000".to_string()), Some(0))
+                .expect("exact bound"),
+            Some(LocalAppActivityTimestamp {
+                seconds: 1_790_000_000,
+                nanos: 0
+            })
+        );
+    }
+
+    #[test]
+    fn native_activity_list_conversion_keeps_filter_vocabulary_for_the_carrier() {
+        let request = native_activity_list_request(NativeAppActivityListInput {
+            source_ref: Some("src_editor".to_string()),
+            kind: Some("todo".to_string()),
+            todo_states: vec!["open".to_string(), "completed".to_string()],
+            agent_ref: None,
+            occurred_after_seconds: Some("1790000000".to_string()),
+            occurred_after_nanos: Some(0),
+            occurred_before_seconds: None,
+            occurred_before_nanos: None,
+            page_size: 50,
+            page_token: None,
+        })
+        .expect("list request");
+        assert_eq!(request.kind.as_deref(), Some("todo"));
+        assert_eq!(request.todo_states, vec!["open", "completed"]);
+        assert_eq!(
+            request.occurred_after,
+            Some(LocalAppActivityTimestamp {
+                seconds: 1_790_000_000,
+                nanos: 0
+            })
+        );
+        assert_eq!(request.occurred_before, None);
+        assert_eq!(request.page_size, 50);
     }
 
     #[tokio::test]

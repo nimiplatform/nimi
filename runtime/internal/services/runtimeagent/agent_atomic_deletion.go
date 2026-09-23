@@ -1,10 +1,14 @@
 package runtimeagent
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
+
+	"github.com/nimiplatform/nimi/runtime/internal/services/appactivity"
 )
 
 // agentAtomicProjectionDeletionHook persists every Runtime Agent deletion
@@ -58,6 +62,10 @@ func agentAtomicProjectionDeletionHook(
 		}
 		if err := persistPublicChatSurfaceStateTx(tx, chatSnapshot, string(chatRaw)); err != nil {
 			return fmt.Errorf("persist public chat deletion snapshot: %w", err)
+		}
+		// @nimi-authority: rule.nimi.runtime.agent-service.r054
+		if _, err := appactivity.RemoveAgentActivityTx(context.Background(), tx, ref, time.Now()); err != nil {
+			return fmt.Errorf("delete LocalAgent App activity: %w", err)
 		}
 		return nil
 	}, nil

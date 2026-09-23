@@ -1,0 +1,53 @@
+{
+  "Activity": {
+    "title": "应用活动",
+    "blurb": "各应用发布到当前账户的活动与待办，通过所有应用共用的公共客户端读取。在这里查看不会把任何内容标为已读。",
+    "scopeLabel": "活动范围",
+    "scope": {
+      "openTodos": "未完成待办",
+      "all": "全部活动"
+    },
+    "unavailable": "暂时无法读取应用活动。",
+    "retry": "重试",
+    "emptyOpen": "应用里没有未完成的待办。",
+    "emptyAll": "应用还没有活动。",
+    "loadMore": "加载更多",
+    "unread": "未读",
+    "needsAttention": "需要关注",
+    "markRead": "标为已读",
+    "readFailed": "未能标为已读，请重试。",
+    "open": "在 {{source}} 中打开",
+    "technicalDetails": "技术详情",
+    "runtimeTurnTitle": "在对话中回复了你",
+    "state": {
+      "open": "待办",
+      "completed": "已完成",
+      "cancelled": "已取消"
+    },
+    "worldStudio": {
+      "task": {
+        "develop": "世界提案",
+        "cast": "角色构想",
+        "review": "一致性检查"
+      },
+      "suggestions_one": "{{count}} 条建议",
+      "suggestions_other": "{{count}} 条建议",
+      "notes_one": "{{count}} 条说明",
+      "notes_other": "{{count}} 条说明",
+      "adopted_one": "已采纳 {{count}} 条",
+      "adopted_other": "已采纳 {{count}} 条"
+    },
+    "result": {
+      "opened": "已在 {{source}} 中打开。",
+      "not-openable": "这一项无法打开。",
+      "activity-unavailable": "这一项已不可用。",
+      "source-unavailable": "{{source}} 在这台设备上不可用。",
+      "object-unavailable": "{{source}} 中已找不到这一项。",
+      "source-not-ready": "{{source}} 没有及时响应，请重试。",
+      "canceled": "已取消打开。",
+      "host-unavailable": "Nimi 暂时无法打开应用。",
+      "launch-failed": "{{source}} 未能启动。",
+      "error": "未能打开这一项，请重试。"
+    }
+  }
+}

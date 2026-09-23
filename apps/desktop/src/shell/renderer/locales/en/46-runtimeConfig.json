@@ -693,7 +693,50 @@
     "continueLast": "Continue where you left off",
     "continueLastBody": "Once apps connect, unfinished work from each app will show up here.",
     "postedActivity": "posted",
-    "viewAllActivity": "View all activity"
+    "viewAllActivity": "View all activity",
+    "appActivity": {
+      "pendingTitle": "Pending",
+      "pendingCount": "{{count}} open",
+      "pendingCountMore": "{{count}}+ open",
+      "pendingEmpty": "Nothing from your apps is waiting for you.",
+      "recentTitle": "Recent activity",
+      "recentEmpty": "No recent activity from your apps yet.",
+      "unavailable": "Activity from your apps is temporarily unavailable.",
+      "retry": "Try again",
+      "filterLabel": "Filter recent activity",
+      "filterAll": "All",
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "showMore": "Show more",
+      "showLess": "Show less",
+      "open": "Open",
+      "opening": "Opening…",
+      "markRead": "Mark as read",
+      "unread": "Unread",
+      "needsAttention": "Needs attention",
+      "unknownSource": "Unknown app",
+      "withAgent": "with {{agent}}",
+      "runtimeTurnTitle": "Replied in a conversation",
+      "sourceUnavailable": "{{source}} is no longer available on this device.",
+      "readFailed": "Couldn't mark this item as read. Try again.",
+      "state": {
+        "open": "To do",
+        "completed": "Completed",
+        "cancelled": "Cancelled"
+      },
+      "result": {
+        "opened": "Opened in {{source}}.",
+        "not-openable": "This item can't be opened.",
+        "activity-unavailable": "This item is no longer available.",
+        "source-unavailable": "{{source}} is not available on this device.",
+        "object-unavailable": "{{source}} could not find this item anymore.",
+        "source-not-ready": "{{source}} didn't respond in time. Try again.",
+        "canceled": "Opening was cancelled.",
+        "host-unavailable": "Nimi can't open apps right now.",
+        "launch-failed": "{{source}} couldn't be started.",
+        "error": "Couldn't open this item. Try again."
+      }
+    }
   },
   "local": {
     "confirmModelInstall": "Install “{{name}}”? Model size: {{size}}. Existing content will be verified and reused; only missing files will be downloaded after confirmation.",

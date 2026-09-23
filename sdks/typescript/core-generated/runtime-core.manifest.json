@@ -14,6 +14,7 @@
     "proto/runtime/v1/ai_realtime.proto",
     "proto/runtime/v1/ai_scheduling.proto",
     "proto/runtime/v1/app.proto",
+    "proto/runtime/v1/app_activity.proto",
     "proto/runtime/v1/artifact_service.proto",
     "proto/runtime/v1/audit.proto",
     "proto/runtime/v1/auth.proto",
@@ -1416,6 +1417,84 @@
       ]
     },
     {
+      "name": "RuntimeAppActivityService",
+      "source_file": "proto/runtime/v1/app_activity.proto",
+      "methods": [
+        {
+          "name": "PutAppActivity",
+          "method_id": "/nimi.runtime.v1.RuntimeAppActivityService/PutAppActivity",
+          "kind": "unary",
+          "request_type": "PutAppActivityRequest",
+          "response_type": "PutAppActivityResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "ListAppActivities",
+          "method_id": "/nimi.runtime.v1.RuntimeAppActivityService/ListAppActivities",
+          "kind": "unary",
+          "request_type": "ListAppActivitiesRequest",
+          "response_type": "ListAppActivitiesResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "SubscribeAppActivityChanges",
+          "method_id": "/nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityChanges",
+          "kind": "server_stream",
+          "request_type": "SubscribeAppActivityChangesRequest",
+          "response_type": "SubscribeAppActivityChangesResponse",
+          "request_stream": false,
+          "response_stream": true
+        },
+        {
+          "name": "MarkAppActivityRead",
+          "method_id": "/nimi.runtime.v1.RuntimeAppActivityService/MarkAppActivityRead",
+          "kind": "unary",
+          "request_type": "MarkAppActivityReadRequest",
+          "response_type": "MarkAppActivityReadResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "OpenAppActivity",
+          "method_id": "/nimi.runtime.v1.RuntimeAppActivityService/OpenAppActivity",
+          "kind": "server_stream",
+          "request_type": "OpenAppActivityRequest",
+          "response_type": "OpenAppActivityResponse",
+          "request_stream": false,
+          "response_stream": true
+        },
+        {
+          "name": "SubscribeAppActivityOpenRequests",
+          "method_id": "/nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityOpenRequests",
+          "kind": "server_stream",
+          "request_type": "SubscribeAppActivityOpenRequestsRequest",
+          "response_type": "SubscribeAppActivityOpenRequestsResponse",
+          "request_stream": false,
+          "response_stream": true
+        },
+        {
+          "name": "CompleteAppActivityOpenRequest",
+          "method_id": "/nimi.runtime.v1.RuntimeAppActivityService/CompleteAppActivityOpenRequest",
+          "kind": "unary",
+          "request_type": "CompleteAppActivityOpenRequestRequest",
+          "response_type": "CompleteAppActivityOpenRequestResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "ResolveAppActivityOpenLaunch",
+          "method_id": "/nimi.runtime.v1.RuntimeAppActivityService/ResolveAppActivityOpenLaunch",
+          "kind": "unary",
+          "request_type": "ResolveAppActivityOpenLaunchRequest",
+          "response_type": "ResolveAppActivityOpenLaunchResponse",
+          "request_stream": false,
+          "response_stream": false
+        }
+      ]
+    },
+    {
       "name": "RuntimeArtifactService",
       "source_file": "proto/runtime/v1/artifact_service.proto",
       "methods": [
@@ -2455,6 +2534,14 @@
     "/nimi.runtime.v1.RuntimeAiVideoSessionService/OpenVideoSession",
     "/nimi.runtime.v1.RuntimeAiVideoSessionService/ReadVideoSessionResult",
     "/nimi.runtime.v1.RuntimeAiVideoSessionService/SubmitVideoSessionFrame",
+    "/nimi.runtime.v1.RuntimeAppActivityService/CompleteAppActivityOpenRequest",
+    "/nimi.runtime.v1.RuntimeAppActivityService/ListAppActivities",
+    "/nimi.runtime.v1.RuntimeAppActivityService/MarkAppActivityRead",
+    "/nimi.runtime.v1.RuntimeAppActivityService/OpenAppActivity",
+    "/nimi.runtime.v1.RuntimeAppActivityService/PutAppActivity",
+    "/nimi.runtime.v1.RuntimeAppActivityService/ResolveAppActivityOpenLaunch",
+    "/nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityChanges",
+    "/nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityOpenRequests",
     "/nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob",
     "/nimi.runtime.v1.RuntimeAppPackageService/DiscardLocalAppPackage",
     "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageInfo",
@@ -3478,6 +3565,70 @@
       "kind": "unary",
       "request_type": "SubmitVideoSessionFrameRequest",
       "response_type": "SubmitVideoSessionFrameResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppActivityService/CompleteAppActivityOpenRequest",
+      "service": "RuntimeAppActivityService",
+      "method": "CompleteAppActivityOpenRequest",
+      "kind": "unary",
+      "request_type": "CompleteAppActivityOpenRequestRequest",
+      "response_type": "CompleteAppActivityOpenRequestResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppActivityService/ListAppActivities",
+      "service": "RuntimeAppActivityService",
+      "method": "ListAppActivities",
+      "kind": "unary",
+      "request_type": "ListAppActivitiesRequest",
+      "response_type": "ListAppActivitiesResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppActivityService/MarkAppActivityRead",
+      "service": "RuntimeAppActivityService",
+      "method": "MarkAppActivityRead",
+      "kind": "unary",
+      "request_type": "MarkAppActivityReadRequest",
+      "response_type": "MarkAppActivityReadResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppActivityService/OpenAppActivity",
+      "service": "RuntimeAppActivityService",
+      "method": "OpenAppActivity",
+      "kind": "server_stream",
+      "request_type": "OpenAppActivityRequest",
+      "response_type": "OpenAppActivityResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppActivityService/PutAppActivity",
+      "service": "RuntimeAppActivityService",
+      "method": "PutAppActivity",
+      "kind": "unary",
+      "request_type": "PutAppActivityRequest",
+      "response_type": "PutAppActivityResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppActivityService/ResolveAppActivityOpenLaunch",
+      "service": "RuntimeAppActivityService",
+      "method": "ResolveAppActivityOpenLaunch",
+      "kind": "unary",
+      "request_type": "ResolveAppActivityOpenLaunchRequest",
+      "response_type": "ResolveAppActivityOpenLaunchResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityChanges",
+      "service": "RuntimeAppActivityService",
+      "method": "SubscribeAppActivityChanges",
+      "kind": "server_stream",
+      "request_type": "SubscribeAppActivityChangesRequest",
+      "response_type": "SubscribeAppActivityChangesResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityOpenRequests",
+      "service": "RuntimeAppActivityService",
+      "method": "SubscribeAppActivityOpenRequests",
+      "kind": "server_stream",
+      "request_type": "SubscribeAppActivityOpenRequestsRequest",
+      "response_type": "SubscribeAppActivityOpenRequestsResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob",
@@ -5442,6 +5593,70 @@
       "response_type": "SubmitVideoSessionFrameResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAppActivityService/CompleteAppActivityOpenRequest",
+      "service": "RuntimeAppActivityService",
+      "method": "CompleteAppActivityOpenRequest",
+      "kind": "unary",
+      "request_type": "CompleteAppActivityOpenRequestRequest",
+      "response_type": "CompleteAppActivityOpenRequestResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppActivityService/ListAppActivities",
+      "service": "RuntimeAppActivityService",
+      "method": "ListAppActivities",
+      "kind": "unary",
+      "request_type": "ListAppActivitiesRequest",
+      "response_type": "ListAppActivitiesResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppActivityService/MarkAppActivityRead",
+      "service": "RuntimeAppActivityService",
+      "method": "MarkAppActivityRead",
+      "kind": "unary",
+      "request_type": "MarkAppActivityReadRequest",
+      "response_type": "MarkAppActivityReadResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppActivityService/OpenAppActivity",
+      "service": "RuntimeAppActivityService",
+      "method": "OpenAppActivity",
+      "kind": "server_stream",
+      "request_type": "OpenAppActivityRequest",
+      "response_type": "OpenAppActivityResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppActivityService/PutAppActivity",
+      "service": "RuntimeAppActivityService",
+      "method": "PutAppActivity",
+      "kind": "unary",
+      "request_type": "PutAppActivityRequest",
+      "response_type": "PutAppActivityResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppActivityService/ResolveAppActivityOpenLaunch",
+      "service": "RuntimeAppActivityService",
+      "method": "ResolveAppActivityOpenLaunch",
+      "kind": "unary",
+      "request_type": "ResolveAppActivityOpenLaunchRequest",
+      "response_type": "ResolveAppActivityOpenLaunchResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityChanges",
+      "service": "RuntimeAppActivityService",
+      "method": "SubscribeAppActivityChanges",
+      "kind": "server_stream",
+      "request_type": "SubscribeAppActivityChangesRequest",
+      "response_type": "SubscribeAppActivityChangesResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityOpenRequests",
+      "service": "RuntimeAppActivityService",
+      "method": "SubscribeAppActivityOpenRequests",
+      "kind": "server_stream",
+      "request_type": "SubscribeAppActivityOpenRequestsRequest",
+      "response_type": "SubscribeAppActivityOpenRequestsResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob",
       "service": "RuntimeAppPackageService",
       "method": "CancelAppPackageJob",
@@ -6601,6 +6816,12 @@
       "AppAIConfigPresetVoiceOption",
       "AppAIConfigPresetVoiceOptions",
       "AppAIConfigPresetVoiceOptionsQuery",
+      "AppActivityAgentAssociation",
+      "AppActivityFilter",
+      "AppActivityOpenResult",
+      "AppActivityRecord",
+      "AppActivitySource",
+      "AppActivityUserView",
       "AppMessageEvent",
       "AppPackageInfo",
       "AppPackageJob",
@@ -6725,6 +6946,8 @@
       "CommitLoadoutResponse",
       "CommitLocalAppAgentPresentationRequest",
       "CommittedAppRelease",
+      "CompleteAppActivityOpenRequestRequest",
+      "CompleteAppActivityOpenRequestResponse",
       "CompleteAppPackageUninstallRequest",
       "CompleteAppPackageUninstallResponse",
       "CompleteLoginRequest",
@@ -6895,6 +7118,8 @@
       "ListAgentsResponse",
       "ListAppAIConfigOptionsRequest",
       "ListAppAIConfigOptionsResponse",
+      "ListAppActivitiesRequest",
+      "ListAppActivitiesResponse",
       "ListAppPackageJobsRequest",
       "ListAppPackageJobsResponse",
       "ListApprovedAppCatalogTargetsRequest",
@@ -7095,6 +7320,8 @@
       "LogoutRequest",
       "LogoutResponse",
       "MachineLoadouts",
+      "MarkAppActivityReadRequest",
+      "MarkAppActivityReadResponse",
       "MaterializeRealmSourceRequest",
       "MaterializeRealmSourceResponse",
       "MemoryEmbeddingCloudBindingRef",
@@ -7121,6 +7348,8 @@
       "MusicTranscribedScore",
       "MusicTranscription",
       "MusicTranscriptionInputProfile",
+      "OpenAppActivityRequest",
+      "OpenAppActivityResponse",
       "OpenConversationAnchorRequest",
       "OpenConversationAnchorResponse",
       "OpenDesktopSessionRequest",
@@ -7166,6 +7395,8 @@
       "PreviewSharedLocalAgentAIProfileResponse",
       "ProductControlProjectionJson",
       "ProviderCatalogEntry",
+      "PutAppActivityRequest",
+      "PutAppActivityResponse",
       "PutArtifactRequest",
       "PutArtifactResponse",
       "RawChunk",
@@ -7241,6 +7472,8 @@
       "RequestPresenceVerificationResponse",
       "RequestRuntimeRestartRequest",
       "RequestRuntimeRestartResponse",
+      "ResolveAppActivityOpenLaunchRequest",
+      "ResolveAppActivityOpenLaunchResponse",
       "ResolveDesktopAgentReferenceRequest",
       "ResolveDesktopAgentReferenceResponse",
       "ResolveLocalAppAvatarHostTargetRequest",
@@ -7345,6 +7578,10 @@
       "SubmitVideoSessionFrameRequest",
       "SubmitVideoSessionFrameResponse",
       "SubscribeAccountSessionEventsRequest",
+      "SubscribeAppActivityChangesRequest",
+      "SubscribeAppActivityChangesResponse",
+      "SubscribeAppActivityOpenRequestsRequest",
+      "SubscribeAppActivityOpenRequestsResponse",
       "SubscribeAppMessagesRequest",
       "SubscribeLocalAppAgentRealtimeEventsRequest",
       "SubscribeLocalAppConversationEventsRequest",
@@ -7497,6 +7734,14 @@
       "AiRealtimeSpeechState",
       "AiRealtimeTurnDetectionMode",
       "AiVideoPixelFormat",
+      "AppActivityChangeKind",
+      "AppActivityKind",
+      "AppActivityOpenCompletion",
+      "AppActivityOpenLaunchSourceClass",
+      "AppActivityOpenOutcome",
+      "AppActivityOpenReason",
+      "AppActivitySourceKind",
+      "AppActivityTodoState",
       "AppMessageEventType",
       "AppPackageJobKind",
       "AppPackageJobPhase",
@@ -10951,6 +11196,294 @@
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "AppActivityAgentAssociation",
+        "fields": [
+          {
+            "name": "agent_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "display_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app_activity.proto"
+      },
+      {
+        "name": "AppActivityFilter",
+        "fields": [
+          {
+            "name": "source_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "kind",
+            "type": "AppActivityKind",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "todo_states",
+            "type": "AppActivityTodoState",
+            "repeated": true,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "agent_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "occurred_after",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "occurred_before",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/app_activity.proto"
+      },
+      {
+        "name": "AppActivityOpenResult",
+        "fields": [
+          {
+            "name": "outcome",
+            "type": "AppActivityOpenOutcome",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reason",
+            "type": "AppActivityOpenReason",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app_activity.proto"
+      },
+      {
+        "name": "AppActivityRecord",
+        "fields": [
+          {
+            "name": "activity_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "source",
+            "type": "AppActivitySource",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "key",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "kind",
+            "type": "AppActivityKind",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "todo_state",
+            "type": "AppActivityTodoState",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "attention",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "title",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "summary",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "object_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "activity_type",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 11
+          },
+          {
+            "name": "data_json",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 12
+          },
+          {
+            "name": "agent",
+            "type": "AppActivityAgentAssociation",
+            "repeated": false,
+            "optional": false,
+            "number": 13
+          },
+          {
+            "name": "occurred_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 14
+          },
+          {
+            "name": "published_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 15
+          },
+          {
+            "name": "updated_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 16
+          },
+          {
+            "name": "change_seq",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 17
+          },
+          {
+            "name": "user_view",
+            "type": "AppActivityUserView",
+            "repeated": false,
+            "optional": false,
+            "number": 18
+          }
+        ],
+        "source_file": "proto/runtime/v1/app_activity.proto"
+      },
+      {
+        "name": "AppActivitySource",
+        "fields": [
+          {
+            "name": "kind",
+            "type": "AppActivitySourceKind",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "source_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "app_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "display_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "available",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/app_activity.proto"
+      },
+      {
+        "name": "AppActivityUserView",
+        "fields": [
+          {
+            "name": "read_through_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "unread",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "needs_attention",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/app_activity.proto"
       },
       {
         "name": "AppAIConfigPresetVoiceOption",
@@ -15521,6 +16054,39 @@
         "source_file": "proto/runtime/v1/app.proto"
       },
       {
+        "name": "CompleteAppActivityOpenRequestRequest",
+        "fields": [
+          {
+            "name": "delivery_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "completion",
+            "type": "AppActivityOpenCompletion",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app_activity.proto"
+      },
+      {
+        "name": "CompleteAppActivityOpenRequestResponse",
+        "fields": [
+          {
+            "name": "accepted",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/app_activity.proto"
+      },
+      {
         "name": "CompleteAppPackageUninstallRequest",
         "fields": [
           {
@@ -20063,6 +20629,60 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "ListAppActivitiesRequest",
+        "fields": [
+          {
+            "name": "filter",
+            "type": "AppActivityFilter",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "page_size",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "page_token",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/app_activity.proto"
+      },
+      {
+        "name": "ListAppActivitiesResponse",
+        "fields": [
+          {
+            "name": "records",
+            "type": "AppActivityRecord",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "next_page_token",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "baseline_change_seq",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/app_activity.proto"
       },
       {
         "name": "ListAppAIConfigOptionsRequest",
@@ -28303,6 +28923,39 @@
         "source_file": "proto/runtime/v1/capability_configuration.proto"
       },
       {
+        "name": "MarkAppActivityReadRequest",
+        "fields": [
+          {
+            "name": "activity_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "displayed_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app_activity.proto"
+      },
+      {
+        "name": "MarkAppActivityReadResponse",
+        "fields": [
+          {
+            "name": "record",
+            "type": "AppActivityRecord",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/app_activity.proto"
+      },
+      {
         "name": "MaterializeRealmSourceRequest",
         "fields": [
           {
@@ -29635,6 +30288,39 @@
         "source_file": "proto/runtime/v1/capability_configuration.proto"
       },
       {
+        "name": "OpenAppActivityRequest",
+        "fields": [
+          {
+            "name": "activity_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/app_activity.proto"
+      },
+      {
+        "name": "OpenAppActivityResponse",
+        "fields": [
+          {
+            "name": "open_request_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "result",
+            "type": "AppActivityOpenResult",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app_activity.proto"
+      },
+      {
         "name": "OpenConversationAnchorRequest",
         "fields": [
           {
@@ -30901,6 +31587,116 @@
           }
         ],
         "source_file": "proto/runtime/v1/connector.proto"
+      },
+      {
+        "name": "PutAppActivityRequest",
+        "fields": [
+          {
+            "name": "key",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "kind",
+            "type": "AppActivityKind",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "todo_state",
+            "type": "AppActivityTodoState",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "attention",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "title",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "summary",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "object_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "activity_type",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "data_json",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "occurred_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 11
+          },
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 12
+          }
+        ],
+        "source_file": "proto/runtime/v1/app_activity.proto"
+      },
+      {
+        "name": "PutAppActivityResponse",
+        "fields": [
+          {
+            "name": "record",
+            "type": "AppActivityRecord",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "changed",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app_activity.proto"
       },
       {
         "name": "PutArtifactRequest",
@@ -32984,6 +33780,46 @@
           }
         ],
         "source_file": "proto/runtime/v1/runtime_service_control.proto"
+      },
+      {
+        "name": "ResolveAppActivityOpenLaunchRequest",
+        "fields": [
+          {
+            "name": "open_request_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/app_activity.proto"
+      },
+      {
+        "name": "ResolveAppActivityOpenLaunchResponse",
+        "fields": [
+          {
+            "name": "source_class",
+            "type": "AppActivityOpenLaunchSourceClass",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "launch_selector",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "app_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/app_activity.proto"
       },
       {
         "name": "ResolveDesktopAgentReferenceRequest",
@@ -36415,6 +37251,92 @@
           }
         ],
         "source_file": "proto/runtime/v1/account.proto"
+      },
+      {
+        "name": "SubscribeAppActivityChangesRequest",
+        "fields": [
+          {
+            "name": "after_change_seq",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/app_activity.proto"
+      },
+      {
+        "name": "SubscribeAppActivityChangesResponse",
+        "fields": [
+          {
+            "name": "change_seq",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "kind",
+            "type": "AppActivityChangeKind",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "activity_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "record",
+            "type": "AppActivityRecord",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/app_activity.proto"
+      },
+      {
+        "name": "SubscribeAppActivityOpenRequestsRequest",
+        "fields": [],
+        "source_file": "proto/runtime/v1/app_activity.proto"
+      },
+      {
+        "name": "SubscribeAppActivityOpenRequestsResponse",
+        "fields": [
+          {
+            "name": "delivery_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "activity_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "object_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "activity_type",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/app_activity.proto"
       },
       {
         "name": "SubscribeAppMessagesRequest",
@@ -40489,6 +41411,85 @@
         "source_file": "proto/runtime/v1/ai.proto"
       },
       {
+        "name": "AppActivityChangeKind",
+        "values": [
+          "APP_ACTIVITY_CHANGE_KIND_UNSPECIFIED",
+          "APP_ACTIVITY_CHANGE_KIND_UPSERT",
+          "APP_ACTIVITY_CHANGE_KIND_REMOVE"
+        ],
+        "source_file": "proto/runtime/v1/app_activity.proto"
+      },
+      {
+        "name": "AppActivityKind",
+        "values": [
+          "APP_ACTIVITY_KIND_UNSPECIFIED",
+          "APP_ACTIVITY_KIND_ACTIVITY",
+          "APP_ACTIVITY_KIND_TODO"
+        ],
+        "source_file": "proto/runtime/v1/app_activity.proto"
+      },
+      {
+        "name": "AppActivityOpenCompletion",
+        "values": [
+          "APP_ACTIVITY_OPEN_COMPLETION_UNSPECIFIED",
+          "APP_ACTIVITY_OPEN_COMPLETION_OPENED",
+          "APP_ACTIVITY_OPEN_COMPLETION_OBJECT_UNAVAILABLE"
+        ],
+        "source_file": "proto/runtime/v1/app_activity.proto"
+      },
+      {
+        "name": "AppActivityOpenLaunchSourceClass",
+        "values": [
+          "APP_ACTIVITY_OPEN_LAUNCH_SOURCE_CLASS_UNSPECIFIED",
+          "APP_ACTIVITY_OPEN_LAUNCH_SOURCE_CLASS_INSTALLED",
+          "APP_ACTIVITY_OPEN_LAUNCH_SOURCE_CLASS_LOCAL_DEVELOPMENT"
+        ],
+        "source_file": "proto/runtime/v1/app_activity.proto"
+      },
+      {
+        "name": "AppActivityOpenOutcome",
+        "values": [
+          "APP_ACTIVITY_OPEN_OUTCOME_UNSPECIFIED",
+          "APP_ACTIVITY_OPEN_OUTCOME_OPENED",
+          "APP_ACTIVITY_OPEN_OUTCOME_UNAVAILABLE",
+          "APP_ACTIVITY_OPEN_OUTCOME_FAILED"
+        ],
+        "source_file": "proto/runtime/v1/app_activity.proto"
+      },
+      {
+        "name": "AppActivityOpenReason",
+        "values": [
+          "APP_ACTIVITY_OPEN_REASON_UNSPECIFIED",
+          "APP_ACTIVITY_OPEN_REASON_OPENED",
+          "APP_ACTIVITY_OPEN_REASON_NOT_OPENABLE",
+          "APP_ACTIVITY_OPEN_REASON_SOURCE_UNAVAILABLE",
+          "APP_ACTIVITY_OPEN_REASON_OBJECT_UNAVAILABLE",
+          "APP_ACTIVITY_OPEN_REASON_SOURCE_NOT_READY",
+          "APP_ACTIVITY_OPEN_REASON_CANCELED",
+          "APP_ACTIVITY_OPEN_REASON_ACTIVITY_UNAVAILABLE"
+        ],
+        "source_file": "proto/runtime/v1/app_activity.proto"
+      },
+      {
+        "name": "AppActivitySourceKind",
+        "values": [
+          "APP_ACTIVITY_SOURCE_KIND_UNSPECIFIED",
+          "APP_ACTIVITY_SOURCE_KIND_APP",
+          "APP_ACTIVITY_SOURCE_KIND_RUNTIME_AGENT"
+        ],
+        "source_file": "proto/runtime/v1/app_activity.proto"
+      },
+      {
+        "name": "AppActivityTodoState",
+        "values": [
+          "APP_ACTIVITY_TODO_STATE_UNSPECIFIED",
+          "APP_ACTIVITY_TODO_STATE_OPEN",
+          "APP_ACTIVITY_TODO_STATE_COMPLETED",
+          "APP_ACTIVITY_TODO_STATE_CANCELLED"
+        ],
+        "source_file": "proto/runtime/v1/app_activity.proto"
+      },
+      {
         "name": "AppMessageEventType",
         "values": [
           "APP_MESSAGE_EVENT_TYPE_UNSPECIFIED",
@@ -41889,7 +42890,16 @@
           "AI_LOCAL_MODEL_STATE_OFFLINE_CONVERSION_REQUIRED",
           "AI_LOCAL_MODEL_STORAGE_LINK_UNSUPPORTED",
           "AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED",
-          "AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED"
+          "AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED",
+          "APP_ACTIVITY_INPUT_INVALID",
+          "APP_ACTIVITY_REVISION_CONFLICT",
+          "APP_ACTIVITY_NOT_FOUND",
+          "APP_ACTIVITY_TOO_LARGE",
+          "APP_ACTIVITY_PAGE_TOKEN_INVALID",
+          "APP_ACTIVITY_CURSOR_EXPIRED",
+          "APP_ACTIVITY_AGENT_UNAVAILABLE",
+          "APP_ACTIVITY_UNAVAILABLE",
+          "APP_ACTIVITY_OPEN_REQUEST_UNAVAILABLE"
         ],
         "source_file": "proto/runtime/v1/common.proto"
       },

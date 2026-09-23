@@ -231,6 +231,17 @@ func (s *TerminationService) deleteUnboundRuntimeStateTx(tx *sql.Tx, localAgentR
 	return err
 }
 
+// AgentTerminationFencedTx lets a peer Runtime owner check the existing durable
+// termination fence inside the same transaction as its Agent-scoped write.
+// @nimi-authority: rule.nimi.runtime.agent-service.r054
+func AgentTerminationFencedTx(ctx context.Context, tx *sql.Tx, localAgentRef string) (bool, error) {
+	var fenced bool
+	if err := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM runtime_cognition_memory_termination WHERE local_agent_ref = ?)`, localAgentRef).Scan(&fenced); err != nil {
+		return false, fmt.Errorf("inspect Agent termination fence: %w", err)
+	}
+	return fenced, nil
+}
+
 func (s *TerminationService) AgentTerminationStates(ctx context.Context) (states []AgentTerminationState, resultErr error) {
 	if s == nil || s.store == nil || s.store.backend == nil {
 		return nil, fmt.Errorf("list cognition memory terminations: service unavailable")

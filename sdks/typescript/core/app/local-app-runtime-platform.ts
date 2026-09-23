@@ -28,6 +28,12 @@ import {
   type NimiLocalAppEmbodimentShell,
 } from './local-app-runtime-platform-embodiment.js';
 import {
+  assertNimiLocalAppActivityShell,
+  createNimiLocalAppActivityClient,
+  type NimiLocalAppActivityClient,
+  type NimiLocalAppActivityShell,
+} from './local-app-runtime-platform-activity.js';
+import {
   createNimiLocalAppConversationClient,
   type NimiLocalAppConversationArtifactReadInput,
   type NimiLocalAppConversationArtifactReadResult,
@@ -466,6 +472,7 @@ export type NimiLocalAppStandardShell = {
   readonly embodiment: NimiLocalAppEmbodimentShell;
   readonly agentRealtime: NimiAgentRealtimeShell;
   readonly agentConfigure: NimiLocalAppAgentConfigureShell;
+  readonly activity: NimiLocalAppActivityShell;
 };
 
 export type NimiLocalAppClientInput = {
@@ -531,6 +538,7 @@ export type NimiLocalAppClient = {
   };
   readonly embodiment: NimiLocalAppEmbodimentClient;
   readonly agentRealtime: NimiAgentRealtimeClient;
+  readonly activity: NimiLocalAppActivityClient;
 };
 
 // @nimi-authority: definition.nimi.sdks.feature-clients.app-client-plane
@@ -542,7 +550,7 @@ export function createNimiLocalAppClient(
 ): NimiLocalAppClient {
   assertExactKeys(input, ['standardShell'], 'SDK local-app client input');
   const standardShell = input.standardShell;
-  const expectedNamespaces = ['session', 'ai', 'aiConfig', 'storage', 'realm', 'agents', 'conversation', 'embodiment', 'agentRealtime', 'agentConfigure'] as const;
+  const expectedNamespaces = ['session', 'ai', 'aiConfig', 'storage', 'realm', 'agents', 'conversation', 'embodiment', 'agentRealtime', 'agentConfigure', 'activity'] as const;
   if (!asRecord(standardShell)
     || Object.keys(standardShell).sort().join('|') !== [...expectedNamespaces].sort().join('|')) {
     return localAppError(
@@ -612,6 +620,7 @@ export function createNimiLocalAppClient(
   assertExactMethodNamespace(agentConfigure.presentation, ['snapshot', 'readAsset', 'commit'], 'agentConfigure.presentation');
   assertExactMethodNamespace(agentConfigure.memory, ['inspect', 'correct', 'forget', 'setEnabled', 'deleteAll'], 'agentConfigure.memory');
   assertExactMethodNamespace(agentConfigure.manager, ['snapshot'], 'agentConfigure.manager');
+  assertNimiLocalAppActivityShell(standardShell.activity);
 
   return Object.freeze({
     auth: Object.freeze({
@@ -637,6 +646,7 @@ export function createNimiLocalAppClient(
     embodiment: createNimiLocalAppEmbodimentClient(standardShell.embodiment),
     agentRealtime: createNimiAgentRealtimeClient(standardShell.agentRealtime),
     agentConfigure: createNimiLocalAppAgentConfigureClient(standardShell.agentConfigure),
+    activity: createNimiLocalAppActivityClient(standardShell.activity),
   });
 }
 

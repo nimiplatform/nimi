@@ -57,6 +57,7 @@ function control(overrides: Partial<NimiElectronLocalDevelopmentControl> = {}): 
     removeRegistration: async () => undefined,
     launch: async () => ({ processId: 10, bindDeadlineUnixMs: Date.now() + 10_000 }),
     hostRunning: async () => false,
+    focusHost: async () => undefined,
     terminateHost: async () => undefined,
     endRun: async () => undefined,
     ...overrides,
@@ -121,6 +122,23 @@ function activeRun() {
 }
 
 describe('Desktop Electron local-development registration host', () => {
+  it('focuses only the Runtime-selected running activity source without relaunching', async () => {
+    const focused: string[] = [];
+    const host = new ElectronLocalDevelopmentHost(control({
+      focusHost: async (runId) => { focused.push(runId); },
+      listRegistrations: async () => { throw new Error('running source must not be relaunched'); },
+    }), '/tmp');
+    const internal = host as unknown as { runs: Map<string, ReturnType<typeof activeRun>> };
+    const run = activeRun();
+    internal.runs.set(run.status.runId, run);
+    assert.equal(await host.startRegistrationHandle(HANDLE), true);
+    assert.deepEqual(focused, [SUPERVISOR]);
+    assert.equal(await host.startRegistrationHandle('invalid'), false);
+    run.status.state = 'preparing';
+    assert.equal(await host.startRegistrationHandle(HANDLE), true);
+    assert.deepEqual(focused, [SUPERVISOR], 'a pending launch has no focusable Host yet');
+  });
+
   it('reports build launcher failures without exposing error payloads or requiring another supervisor', async () => {
     for (const asynchronous of [false, true]) {
       const host = new ElectronLocalDevelopmentHost(control(), '/tmp');

@@ -842,6 +842,64 @@ pub mod local_app {
     }
 
     #[tauri::command]
+    pub async fn local_app_activity_put(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::activity_put_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_activity_list(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::activity_list_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_activity_subscribe(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::activity_subscribe_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_activity_mark_read(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::activity_mark_read_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_activity_open(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::activity_open_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_activity_open_requests_subscribe(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::activity_open_requests_subscribe_for_host(host.inner(), payload)
+            .await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_activity_open_request_complete(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::activity_open_request_complete_for_host(host.inner(), payload)
+            .await
+    }
+
+    #[tauri::command]
     pub async fn local_app_agent_autonomy_snapshot(
         host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
         payload: serde_json::Value,

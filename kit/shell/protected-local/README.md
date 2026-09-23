@@ -45,6 +45,15 @@ activity, emotion, semantic posture, provenance, and bounded voice-timing
 correlation. It carries no renderer mapping, motion, lipsync parameter, audio
 clock, raw replay, backend probe, or diagnostic store.
 
+The `app.activity` operations carry `RuntimeAppActivityService` put, list,
+change subscription, mark-read, source open, and the source App's open-request
+subscription and completion. Records project Runtime's trusted source, user
+view, and change sequence; publisher `dataJson` stays opaque text. The source
+open stream yields at most one Host-private open request id, consumed by the
+Kit Host for the Desktop launch and never forwarded to renderer code, followed
+by the typed Runtime result; dropping the stream cancels the pending request.
+Unknown enums or missing Runtime messages fail closed as untrusted.
+
 The crate never exposes a generic method-id/bytes proxy, endpoint, credential,
 portable session proof, principal, record, grant, launch lease, process tuple,
 account identity, or Runtime boot epoch. Immutable package admission remains

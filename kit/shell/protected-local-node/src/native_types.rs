@@ -453,6 +453,59 @@ pub struct NativeConversationStreamInput {
 }
 
 #[napi(object)]
+pub struct NativeAppActivityPutInput {
+    pub key: String,
+    pub revision: f64,
+    pub kind: String,
+    pub todo_state: Option<String>,
+    pub attention: bool,
+    pub title: String,
+    pub summary: Option<String>,
+    pub object_ref: Option<String>,
+    pub activity_type: String,
+    pub data_json: Option<String>,
+    pub occurred_at_seconds: String,
+    pub occurred_at_nanos: u32,
+    pub agent_handle: Option<String>,
+}
+
+#[napi(object)]
+pub struct NativeAppActivityListInput {
+    pub source_ref: Option<String>,
+    pub kind: Option<String>,
+    pub todo_states: Vec<String>,
+    pub agent_ref: Option<String>,
+    pub occurred_after_seconds: Option<String>,
+    pub occurred_after_nanos: Option<u32>,
+    pub occurred_before_seconds: Option<String>,
+    pub occurred_before_nanos: Option<u32>,
+    pub page_size: u32,
+    pub page_token: Option<String>,
+}
+
+#[napi(object)]
+pub struct NativeAppActivitySubscribeInput {
+    pub after_change_seq: String,
+}
+
+#[napi(object)]
+pub struct NativeAppActivityMarkReadInput {
+    pub activity_id: String,
+    pub displayed_revision: f64,
+}
+
+#[napi(object)]
+pub struct NativeAppActivityOpenInput {
+    pub activity_id: String,
+}
+
+#[napi(object)]
+pub struct NativeAppActivityOpenRequestCompleteInput {
+    pub delivery_id: String,
+    pub completion: String,
+}
+
+#[napi(object)]
 pub struct NativeAiRealtimeOpenInput {
     pub input_audio: JsonValue,
     pub audio_output_enabled: bool,

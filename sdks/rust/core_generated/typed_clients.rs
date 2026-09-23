@@ -903,6 +903,134 @@ impl Default for AiVideoPixelFormat {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AppActivityChangeKind {
+    APPACTIVITYCHANGEKINDUNSPECIFIED,
+    APPACTIVITYCHANGEKINDUPSERT,
+    APPACTIVITYCHANGEKINDREMOVE,
+}
+
+impl Default for AppActivityChangeKind {
+    fn default() -> Self {
+        Self::APPACTIVITYCHANGEKINDUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AppActivityKind {
+    APPACTIVITYKINDUNSPECIFIED,
+    APPACTIVITYKINDACTIVITY,
+    APPACTIVITYKINDTODO,
+}
+
+impl Default for AppActivityKind {
+    fn default() -> Self {
+        Self::APPACTIVITYKINDUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
+pub enum AppActivityOpenCompletion {
+    #[serde(rename = "APP_ACTIVITY_OPEN_COMPLETION_UNSPECIFIED")]
+    APPACTIVITYOPENCOMPLETIONUNSPECIFIED,
+    #[serde(rename = "APP_ACTIVITY_OPEN_COMPLETION_OPENED")]
+    APPACTIVITYOPENCOMPLETIONOPENED,
+    #[serde(rename = "APP_ACTIVITY_OPEN_COMPLETION_OBJECT_UNAVAILABLE")]
+    APPACTIVITYOPENCOMPLETIONOBJECTUNAVAILABLE,
+}
+
+impl Default for AppActivityOpenCompletion {
+    fn default() -> Self {
+        Self::APPACTIVITYOPENCOMPLETIONUNSPECIFIED
+    }
+}
+
+impl AppActivityOpenCompletion {
+    fn from_transport(value: &str) -> Option<Self> {
+        match value {
+            "APP_ACTIVITY_OPEN_COMPLETION_UNSPECIFIED" => Some(Self::APPACTIVITYOPENCOMPLETIONUNSPECIFIED),
+            "APPACTIVITYOPENCOMPLETIONUNSPECIFIED" => Some(Self::APPACTIVITYOPENCOMPLETIONUNSPECIFIED),
+            "APP_ACTIVITY_OPEN_COMPLETION_OPENED" => Some(Self::APPACTIVITYOPENCOMPLETIONOPENED),
+            "APPACTIVITYOPENCOMPLETIONOPENED" => Some(Self::APPACTIVITYOPENCOMPLETIONOPENED),
+            "APP_ACTIVITY_OPEN_COMPLETION_OBJECT_UNAVAILABLE" => Some(Self::APPACTIVITYOPENCOMPLETIONOBJECTUNAVAILABLE),
+            "APPACTIVITYOPENCOMPLETIONOBJECTUNAVAILABLE" => Some(Self::APPACTIVITYOPENCOMPLETIONOBJECTUNAVAILABLE),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AppActivityOpenLaunchSourceClass {
+    APPACTIVITYOPENLAUNCHSOURCECLASSUNSPECIFIED,
+    APPACTIVITYOPENLAUNCHSOURCECLASSINSTALLED,
+    APPACTIVITYOPENLAUNCHSOURCECLASSLOCALDEVELOPMENT,
+}
+
+impl Default for AppActivityOpenLaunchSourceClass {
+    fn default() -> Self {
+        Self::APPACTIVITYOPENLAUNCHSOURCECLASSUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AppActivityOpenOutcome {
+    APPACTIVITYOPENOUTCOMEUNSPECIFIED,
+    APPACTIVITYOPENOUTCOMEOPENED,
+    APPACTIVITYOPENOUTCOMEUNAVAILABLE,
+    APPACTIVITYOPENOUTCOMEFAILED,
+}
+
+impl Default for AppActivityOpenOutcome {
+    fn default() -> Self {
+        Self::APPACTIVITYOPENOUTCOMEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AppActivityOpenReason {
+    APPACTIVITYOPENREASONUNSPECIFIED,
+    APPACTIVITYOPENREASONOPENED,
+    APPACTIVITYOPENREASONNOTOPENABLE,
+    APPACTIVITYOPENREASONSOURCEUNAVAILABLE,
+    APPACTIVITYOPENREASONOBJECTUNAVAILABLE,
+    APPACTIVITYOPENREASONSOURCENOTREADY,
+    APPACTIVITYOPENREASONCANCELED,
+    APPACTIVITYOPENREASONACTIVITYUNAVAILABLE,
+}
+
+impl Default for AppActivityOpenReason {
+    fn default() -> Self {
+        Self::APPACTIVITYOPENREASONUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AppActivitySourceKind {
+    APPACTIVITYSOURCEKINDUNSPECIFIED,
+    APPACTIVITYSOURCEKINDAPP,
+    APPACTIVITYSOURCEKINDRUNTIMEAGENT,
+}
+
+impl Default for AppActivitySourceKind {
+    fn default() -> Self {
+        Self::APPACTIVITYSOURCEKINDUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AppActivityTodoState {
+    APPACTIVITYTODOSTATEUNSPECIFIED,
+    APPACTIVITYTODOSTATEOPEN,
+    APPACTIVITYTODOSTATECOMPLETED,
+    APPACTIVITYTODOSTATECANCELLED,
+}
+
+impl Default for AppActivityTodoState {
+    fn default() -> Self {
+        Self::APPACTIVITYTODOSTATEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AppMessageEventType {
     APPMESSAGEEVENTTYPEUNSPECIFIED,
     APPMESSAGEEVENTRECEIVED,
@@ -3057,6 +3185,24 @@ pub enum ReasonCode {
     AILOCALMODELINVENTORYRECONCILIATIONREQUIRED,
     #[serde(rename = "AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED")]
     AIMUSICRECOVERYCAPACITYEXCEEDED,
+    #[serde(rename = "APP_ACTIVITY_INPUT_INVALID")]
+    APPACTIVITYINPUTINVALID,
+    #[serde(rename = "APP_ACTIVITY_REVISION_CONFLICT")]
+    APPACTIVITYREVISIONCONFLICT,
+    #[serde(rename = "APP_ACTIVITY_NOT_FOUND")]
+    APPACTIVITYNOTFOUND,
+    #[serde(rename = "APP_ACTIVITY_TOO_LARGE")]
+    APPACTIVITYTOOLARGE,
+    #[serde(rename = "APP_ACTIVITY_PAGE_TOKEN_INVALID")]
+    APPACTIVITYPAGETOKENINVALID,
+    #[serde(rename = "APP_ACTIVITY_CURSOR_EXPIRED")]
+    APPACTIVITYCURSOREXPIRED,
+    #[serde(rename = "APP_ACTIVITY_AGENT_UNAVAILABLE")]
+    APPACTIVITYAGENTUNAVAILABLE,
+    #[serde(rename = "APP_ACTIVITY_UNAVAILABLE")]
+    APPACTIVITYUNAVAILABLE,
+    #[serde(rename = "APP_ACTIVITY_OPEN_REQUEST_UNAVAILABLE")]
+    APPACTIVITYOPENREQUESTUNAVAILABLE,
 }
 
 impl Default for ReasonCode {
@@ -3652,6 +3798,24 @@ impl ReasonCode {
             "AILOCALMODELINVENTORYRECONCILIATIONREQUIRED" => Some(Self::AILOCALMODELINVENTORYRECONCILIATIONREQUIRED),
             "AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED" => Some(Self::AIMUSICRECOVERYCAPACITYEXCEEDED),
             "AIMUSICRECOVERYCAPACITYEXCEEDED" => Some(Self::AIMUSICRECOVERYCAPACITYEXCEEDED),
+            "APP_ACTIVITY_INPUT_INVALID" => Some(Self::APPACTIVITYINPUTINVALID),
+            "APPACTIVITYINPUTINVALID" => Some(Self::APPACTIVITYINPUTINVALID),
+            "APP_ACTIVITY_REVISION_CONFLICT" => Some(Self::APPACTIVITYREVISIONCONFLICT),
+            "APPACTIVITYREVISIONCONFLICT" => Some(Self::APPACTIVITYREVISIONCONFLICT),
+            "APP_ACTIVITY_NOT_FOUND" => Some(Self::APPACTIVITYNOTFOUND),
+            "APPACTIVITYNOTFOUND" => Some(Self::APPACTIVITYNOTFOUND),
+            "APP_ACTIVITY_TOO_LARGE" => Some(Self::APPACTIVITYTOOLARGE),
+            "APPACTIVITYTOOLARGE" => Some(Self::APPACTIVITYTOOLARGE),
+            "APP_ACTIVITY_PAGE_TOKEN_INVALID" => Some(Self::APPACTIVITYPAGETOKENINVALID),
+            "APPACTIVITYPAGETOKENINVALID" => Some(Self::APPACTIVITYPAGETOKENINVALID),
+            "APP_ACTIVITY_CURSOR_EXPIRED" => Some(Self::APPACTIVITYCURSOREXPIRED),
+            "APPACTIVITYCURSOREXPIRED" => Some(Self::APPACTIVITYCURSOREXPIRED),
+            "APP_ACTIVITY_AGENT_UNAVAILABLE" => Some(Self::APPACTIVITYAGENTUNAVAILABLE),
+            "APPACTIVITYAGENTUNAVAILABLE" => Some(Self::APPACTIVITYAGENTUNAVAILABLE),
+            "APP_ACTIVITY_UNAVAILABLE" => Some(Self::APPACTIVITYUNAVAILABLE),
+            "APPACTIVITYUNAVAILABLE" => Some(Self::APPACTIVITYUNAVAILABLE),
+            "APP_ACTIVITY_OPEN_REQUEST_UNAVAILABLE" => Some(Self::APPACTIVITYOPENREQUESTUNAVAILABLE),
+            "APPACTIVITYOPENREQUESTUNAVAILABLE" => Some(Self::APPACTIVITYOPENREQUESTUNAVAILABLE),
             _ => None,
         }
     }
@@ -5077,6 +5241,66 @@ pub struct AppAIConfigPresetVoiceOptionsQuery {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppActivityAgentAssociation {
+    pub agent_ref: Option<String>,
+    pub display_name: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppActivityFilter {
+    pub source_ref: Option<String>,
+    pub kind: Option<AppActivityKind>,
+    pub todo_states: Vec<AppActivityTodoState>,
+    pub agent_ref: Option<String>,
+    pub occurred_after: Option<String>,
+    pub occurred_before: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppActivityOpenResult {
+    pub outcome: Option<AppActivityOpenOutcome>,
+    pub reason: Option<AppActivityOpenReason>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppActivityRecord {
+    pub activity_id: Option<String>,
+    pub source: Option<Box<AppActivitySource>>,
+    pub key: Option<String>,
+    pub revision: Option<u64>,
+    pub kind: Option<AppActivityKind>,
+    pub todo_state: Option<AppActivityTodoState>,
+    pub attention: Option<bool>,
+    pub title: Option<String>,
+    pub summary: Option<String>,
+    pub object_ref: Option<String>,
+    pub activity_type: Option<String>,
+    pub data_json: Option<String>,
+    pub agent: Option<Box<AppActivityAgentAssociation>>,
+    pub occurred_at: Option<String>,
+    pub published_at: Option<String>,
+    pub updated_at: Option<String>,
+    pub change_seq: Option<u64>,
+    pub user_view: Option<Box<AppActivityUserView>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppActivitySource {
+    pub kind: Option<AppActivitySourceKind>,
+    pub source_ref: Option<String>,
+    pub app_id: Option<String>,
+    pub display_name: Option<String>,
+    pub available: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppActivityUserView {
+    pub read_through_revision: Option<u64>,
+    pub unread: Option<bool>,
+    pub needs_attention: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AppMessageEvent {
     pub event_type: Option<AppMessageEventType>,
     pub sequence: Option<u64>,
@@ -6424,6 +6648,78 @@ pub struct CommittedAppRelease {
     pub committed_at: Option<String>,
     pub display_name: Option<String>,
     pub app_access: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct CompleteAppActivityOpenRequestRequest {
+    #[serde(rename = "delivery_id", skip_serializing_if = "Option::is_none")]
+    pub delivery_id: Option<String>,
+    #[serde(rename = "completion", skip_serializing_if = "Option::is_none")]
+    pub completion: Option<AppActivityOpenCompletion>,
+}
+
+impl CompleteAppActivityOpenRequestRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
+    }
+
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "CompleteAppActivityOpenRequestRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
+        let mut out = Self::default();
+        out.delivery_id = match object.get("delivery_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("delivery_id"))?),
+            None => None,
+        };
+        out.completion = match object.get("completion") {
+            Some(value) if value.is_null() => None,
+            Some(value) => {
+                let raw = value.as_str().ok_or_else(|| Self::decode_error("completion"))?;
+                Some(AppActivityOpenCompletion::from_transport(raw).ok_or_else(|| Self::decode_error("completion"))?)
+            }
+            None => None,
+        };
+        Ok(out)
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct CompleteAppActivityOpenRequestResponse {
+    #[serde(rename = "accepted", skip_serializing_if = "Option::is_none")]
+    pub accepted: Option<bool>,
+}
+
+impl CompleteAppActivityOpenRequestResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
+    }
+
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "CompleteAppActivityOpenRequestResponse", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
+        let mut out = Self::default();
+        out.accepted = match object.get("accepted") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_bool().ok_or_else(|| Self::decode_error("accepted"))?),
+            None => None,
+        };
+        Ok(out)
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -8277,6 +8573,20 @@ pub struct ListAppAIConfigOptionsResponse {
     pub cloud_connectors: Option<Box<AIConfigCloudConnectorOptions>>,
     pub cloud_targets: Option<Box<AIConfigCloudTargetOptions>>,
     pub preset_voices: Option<Box<AppAIConfigPresetVoiceOptions>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListAppActivitiesRequest {
+    pub filter: Option<Box<AppActivityFilter>>,
+    pub page_size: Option<u32>,
+    pub page_token: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListAppActivitiesResponse {
+    pub records: Vec<Box<AppActivityRecord>>,
+    pub next_page_token: Option<String>,
+    pub baseline_change_seq: Option<u64>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10176,6 +10486,17 @@ pub struct MachineLoadouts {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct MarkAppActivityReadRequest {
+    pub activity_id: Option<String>,
+    pub displayed_revision: Option<u64>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct MarkAppActivityReadResponse {
+    pub record: Option<Box<AppActivityRecord>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct MaterializeRealmSourceRequest {
     pub context: Option<Box<AgentRequestContext>>,
     pub request_id: Option<String>,
@@ -10445,6 +10766,17 @@ pub struct MusicTranscriptionInputProfile {
     pub max_duration_seconds: Option<u32>,
     pub max_source_bytes: Option<u32>,
     pub supports_range: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct OpenAppActivityRequest {
+    pub activity_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct OpenAppActivityResponse {
+    pub open_request_id: Option<String>,
+    pub result: Option<Box<AppActivityOpenResult>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10949,6 +11281,28 @@ pub struct ProviderCatalogEntry {
     pub managed_supported: Option<bool>,
     pub inventory_mode: Option<String>,
     pub inline_supported: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PutAppActivityRequest {
+    pub key: Option<String>,
+    pub revision: Option<u64>,
+    pub kind: Option<AppActivityKind>,
+    pub todo_state: Option<AppActivityTodoState>,
+    pub attention: Option<bool>,
+    pub title: Option<String>,
+    pub summary: Option<String>,
+    pub object_ref: Option<String>,
+    pub activity_type: Option<String>,
+    pub data_json: Option<String>,
+    pub occurred_at: Option<String>,
+    pub agent_handle: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PutAppActivityResponse {
+    pub record: Option<Box<AppActivityRecord>>,
+    pub changed: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -11804,6 +12158,18 @@ impl RequestRuntimeRestartResponse {
         };
         Ok(out)
     }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ResolveAppActivityOpenLaunchRequest {
+    pub open_request_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ResolveAppActivityOpenLaunchResponse {
+    pub source_class: Option<AppActivityOpenLaunchSourceClass>,
+    pub launch_selector: Option<Vec<u8>>,
+    pub app_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -12858,6 +13224,91 @@ pub struct SubscribeAccountSessionEventsRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct SubscribeAppActivityChangesRequest {
+    pub after_change_seq: Option<u64>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SubscribeAppActivityChangesResponse {
+    pub change_seq: Option<u64>,
+    pub kind: Option<AppActivityChangeKind>,
+    pub activity_id: Option<String>,
+    pub record: Option<Box<AppActivityRecord>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct SubscribeAppActivityOpenRequestsRequest {
+
+}
+
+impl SubscribeAppActivityOpenRequestsRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
+    }
+
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "SubscribeAppActivityOpenRequestsRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        json_object(raw, Self::decode_error("<body>"))?;
+        Ok(Self::default())
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct SubscribeAppActivityOpenRequestsResponse {
+    #[serde(rename = "delivery_id", skip_serializing_if = "Option::is_none")]
+    pub delivery_id: Option<String>,
+    #[serde(rename = "activity_id", skip_serializing_if = "Option::is_none")]
+    pub activity_id: Option<String>,
+    #[serde(rename = "object_ref", skip_serializing_if = "Option::is_none")]
+    pub object_ref: Option<String>,
+    #[serde(rename = "activity_type", skip_serializing_if = "Option::is_none")]
+    pub activity_type: Option<String>,
+}
+
+impl SubscribeAppActivityOpenRequestsResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
+    }
+
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "SubscribeAppActivityOpenRequestsResponse", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
+        let mut out = Self::default();
+        out.delivery_id = match object.get("delivery_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("delivery_id"))?),
+            None => None,
+        };
+        out.activity_id = match object.get("activity_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("activity_id"))?),
+            None => None,
+        };
+        out.object_ref = match object.get("object_ref") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("object_ref"))?),
+            None => None,
+        };
+        out.activity_type = match object.get("activity_type") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("activity_type"))?),
+            None => None,
+        };
+        Ok(out)
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct SubscribeAppMessagesRequest {
     pub app_id: Option<String>,
     pub subject_user_id: Option<String>,
@@ -13779,6 +14230,22 @@ impl TryFrom<Vec<u8>> for CloseVideoSessionResponse {
     }
 }
 
+impl TryFrom<Vec<u8>> for CompleteAppActivityOpenRequestResponse {
+    type Error = RuntimeResponseDecodeError;
+
+    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
+        Self::from_transport(&body)
+    }
+}
+
+impl TryFrom<Vec<u8>> for SubscribeAppActivityOpenRequestsResponse {
+    type Error = RuntimeResponseDecodeError;
+
+    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
+        Self::from_transport(&body)
+    }
+}
+
 impl TryFrom<Vec<u8>> for RemoveLocalAppAssetResponse {
     type Error = RuntimeResponseDecodeError;
 
@@ -14006,6 +14473,33 @@ where
             type_name: error.type_name,
             field: error.field,
         })
+    }
+
+    pub fn complete_app_activity_open_request(&self, request: CompleteAppActivityOpenRequestRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CompleteAppActivityOpenRequestResponse, RuntimeTypedClientError<T::Error>> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAppActivityService/CompleteAppActivityOpenRequest".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        CompleteAppActivityOpenRequestResponse::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeAppActivityService/CompleteAppActivityOpenRequest",
+            type_name: error.type_name,
+            field: error.field,
+        })
+    }
+
+    pub fn subscribe_app_activity_open_requests(&self, request: SubscribeAppActivityOpenRequestsRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RuntimeTypedStream<T::Stream, SubscribeAppActivityOpenRequestsResponse>, T::Error>
+    where
+        T::Stream: CoreTypedStream,
+    {
+        let inner = self.core.server_stream(CoreStreamRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityOpenRequests".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(RuntimeTypedStream { inner, _response: std::marker::PhantomData })
     }
 
     pub fn remove_local_app_asset(&self, request: RemoveLocalAppAssetRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RemoveLocalAppAssetResponse, RuntimeTypedClientError<T::Error>> {

@@ -880,6 +880,70 @@ RUNTIME_METHODS = [
     "response_type": "SubmitVideoSessionFrameResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAppActivityService/CompleteAppActivityOpenRequest",
+    "service": "RuntimeAppActivityService",
+    "method": "CompleteAppActivityOpenRequest",
+    "kind": "unary",
+    "request_type": "CompleteAppActivityOpenRequestRequest",
+    "response_type": "CompleteAppActivityOpenRequestResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAppActivityService/ListAppActivities",
+    "service": "RuntimeAppActivityService",
+    "method": "ListAppActivities",
+    "kind": "unary",
+    "request_type": "ListAppActivitiesRequest",
+    "response_type": "ListAppActivitiesResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAppActivityService/MarkAppActivityRead",
+    "service": "RuntimeAppActivityService",
+    "method": "MarkAppActivityRead",
+    "kind": "unary",
+    "request_type": "MarkAppActivityReadRequest",
+    "response_type": "MarkAppActivityReadResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAppActivityService/OpenAppActivity",
+    "service": "RuntimeAppActivityService",
+    "method": "OpenAppActivity",
+    "kind": "server_stream",
+    "request_type": "OpenAppActivityRequest",
+    "response_type": "OpenAppActivityResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAppActivityService/PutAppActivity",
+    "service": "RuntimeAppActivityService",
+    "method": "PutAppActivity",
+    "kind": "unary",
+    "request_type": "PutAppActivityRequest",
+    "response_type": "PutAppActivityResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAppActivityService/ResolveAppActivityOpenLaunch",
+    "service": "RuntimeAppActivityService",
+    "method": "ResolveAppActivityOpenLaunch",
+    "kind": "unary",
+    "request_type": "ResolveAppActivityOpenLaunchRequest",
+    "response_type": "ResolveAppActivityOpenLaunchResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityChanges",
+    "service": "RuntimeAppActivityService",
+    "method": "SubscribeAppActivityChanges",
+    "kind": "server_stream",
+    "request_type": "SubscribeAppActivityChangesRequest",
+    "response_type": "SubscribeAppActivityChangesResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityOpenRequests",
+    "service": "RuntimeAppActivityService",
+    "method": "SubscribeAppActivityOpenRequests",
+    "kind": "server_stream",
+    "request_type": "SubscribeAppActivityOpenRequestsRequest",
+    "response_type": "SubscribeAppActivityOpenRequestsResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob",
     "service": "RuntimeAppPackageService",
     "method": "CancelAppPackageJob",

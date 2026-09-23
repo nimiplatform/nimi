@@ -222,7 +222,7 @@ units:
     kind: rule
     title: LocalAgent termination removes the complete local projection
     modality: must
-    statement: Terminating a LocalAgent establishes a durable terminating fence before destructive work, rejects new sessions, turns, event delivery, Memory Commit and Recall, and reports success only after Cognition has committed deletion or already-absence for the exact Agent-private Memory bank and required source scope and Runtime has removed the LocalAgent identity, immutable snapshot and lorebook, Agent-scoped configuration, Conversation and summary, committed event delivery state, scheduled work, and local execution material without mutating the originating Realm Character or World source or another LocalAgent; rematerializing the same source creates a new empty Memory bank.
+    statement: Terminating a LocalAgent establishes a durable terminating fence before destructive work, rejects new sessions, turns, event delivery, Memory Commit and Recall, and reports success only after Cognition has committed deletion or already-absence for the exact Agent-private Memory bank and required source scope and Runtime has removed the LocalAgent identity, immutable snapshot and lorebook, Agent-scoped configuration, Conversation and summary, committed event delivery state, Runtime-origin App activity records with their read state and retained change payloads, structured Agent associations on App-published activity, scheduled work, and local execution material without mutating the originating Realm Character or World source or another LocalAgent; rematerializing the same source creates a new empty Memory bank.
     condition: Whenever an authorized LocalAgent termination commits.
     failure: Fail the termination if Runtime cannot remove the complete owned local projection atomically.
     relations:
@@ -312,5 +312,17 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.cognition.memory.domain
+      - type: applies_to
+        target: definition.nimi.runtime.agent-service.agent-service-plane
+  - id: rule.nimi.runtime.agent-service.r064
+    kind: rule
+    title: Runtime Agent activity derives from committed turns
+    modality: must
+    statement: When Runtime commits a completed LocalAgent Conversation turn, the Runtime Agent owner publishes one fixed Runtime-origin activity through the internal activity owner seam inside the same durable commit, keyed by that committed turn, with the Agent's owning account, the Agent display association, and the commit time as occurred time; it skips fenced accounts and terminating or terminated Agents, never publishes outside a committed turn transaction, and exposes no Conversation title, text, attachment, Memory, reasoning, provider trace, or navigation target.
+    condition: Whenever a LocalAgent Conversation turn commits or Runtime recovers Runtime-origin activity.
+    failure: Roll back the activity together with an uncommitted turn, and never publish from volatile deltas, uncommitted turns, another account, or a fenced Agent.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-activity-record
       - type: applies_to
         target: definition.nimi.runtime.agent-service.agent-service-plane

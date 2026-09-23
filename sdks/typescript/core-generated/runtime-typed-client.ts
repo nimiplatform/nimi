@@ -12,6 +12,7 @@ import type { CancelLocalAppScenarioJobRequest, CancelLocalAppScenarioJobRespons
 import type { AiRealtimeEvent, AppendRealtimeInputRequest, AppendRealtimeInputResponse, CloseRealtimeSessionRequest, CloseRealtimeSessionResponse, InterruptRealtimeOutputRequest, InterruptRealtimeOutputResponse, OpenRealtimeSessionRequest, OpenRealtimeSessionResponse, ReadRealtimeEventsRequest, SubmitRealtimeOwnerControlRequest, SubmitRealtimeOwnerControlResponse } from "./runtime-protobuf/runtime/v1/ai_realtime";
 import type { PeekSchedulingRequest, PeekSchedulingResponse } from "./runtime-protobuf/runtime/v1/ai_scheduling";
 import type { AdoptLocalAppArtifactRequest, AdoptLocalAppArtifactResponse, AppMessageEvent, BindLocalAppProcessRequest, BindLocalAppProcessResponse, CancelAppPackageJobRequest, CancelAppPackageJobResponse, CompleteAppPackageUninstallRequest, CompleteAppPackageUninstallResponse, DiscardLocalAppPackageRequest, DiscardLocalAppPackageResponse, EndInstalledAppRunRequest, EndInstalledAppRunResponse, GetAppPackageInfoRequest, GetAppPackageInfoResponse, GetAppPackageJobRequest, GetAppPackageJobResponse, GetAppStorageRequest, GetAppStorageResponse, GetInstalledAppRunAccessRequest, GetInstalledAppRunAccessResponse, ListAppPackageJobsRequest, ListAppPackageJobsResponse, ListApprovedAppCatalogTargetsRequest, ListApprovedAppCatalogTargetsResponse, ListCommittedAppReleasesRequest, ListCommittedAppReleasesResponse, ListLocalAppAssetsRequest, ListLocalAppAssetsResponse, MoveLocalAppAssetRequest, MoveLocalAppAssetResponse, PauseAppPackageJobRequest, PauseAppPackageJobResponse, PrepareInstalledAppLaunchRequest, PrepareInstalledAppLaunchResponse, PrepareLocalAppLaunchRequest, PrepareLocalAppLaunchResponse, PrepareLocalAppPackageRequest, PrepareLocalAppPackageResponse, ReadLocalAppAssetRequest, ReadLocalAppAssetResponse, ReadLocalAppStorageJsonRequest, ReadLocalAppStorageJsonResponse, RebindLocalAppProcessRequest, RebindLocalAppProcessResponse, RemoveLocalAppAssetRequest, RemoveLocalAppAssetResponse, RemoveLocalAppStorageJsonRequest, RemoveLocalAppStorageJsonResponse, ReorderAppPackageJobRequest, ReorderAppPackageJobResponse, ResumeAppPackageJobRequest, ResumeAppPackageJobResponse, RevealLocalAppAssetRequest, RevealLocalAppAssetResponse, SendAppMessageRequest, SendAppMessageResponse, StartAppPackageInstallRequest, StartAppPackageInstallResponse, StartAppPackageUninstallRequest, StartAppPackageUninstallResponse, StartAppPackageUpdateRequest, StartAppPackageUpdateResponse, StartLocalAppPackageInstallRequest, StartLocalAppPackageInstallResponse, StartLocalAppPackageUpdateRequest, StartLocalAppPackageUpdateResponse, StatLocalAppAssetRequest, StatLocalAppAssetResponse, SubscribeAppMessagesRequest, WriteLocalAppAssetRequest, WriteLocalAppAssetResponse, WriteLocalAppStorageJsonRequest, WriteLocalAppStorageJsonResponse } from "./runtime-protobuf/runtime/v1/app";
+import type { CompleteAppActivityOpenRequestRequest, CompleteAppActivityOpenRequestResponse, ListAppActivitiesRequest, ListAppActivitiesResponse, MarkAppActivityReadRequest, MarkAppActivityReadResponse, OpenAppActivityRequest, OpenAppActivityResponse, PutAppActivityRequest, PutAppActivityResponse, ResolveAppActivityOpenLaunchRequest, ResolveAppActivityOpenLaunchResponse, SubscribeAppActivityChangesRequest, SubscribeAppActivityChangesResponse, SubscribeAppActivityOpenRequestsRequest, SubscribeAppActivityOpenRequestsResponse } from "./runtime-protobuf/runtime/v1/app_activity";
 import type { CleanupGeneratedVoiceArtifactsRequest, CleanupGeneratedVoiceArtifactsResponse, PutArtifactRequest, PutArtifactResponse, ReadArtifactBytesRequest, ReadArtifactBytesResponse } from "./runtime-protobuf/runtime/v1/artifact_service";
 import type { AuditExportChunk, ExportAuditEventsRequest, GetRuntimeHealthRequest, GetRuntimeHealthResponse, ListAuditEventsRequest, ListAuditEventsResponse, ListDesktopAuditEventsRequest, ListDesktopAuditEventsResponse, ListUsageStatsRequest, ListUsageStatsResponse, RuntimeHealthEvent, SubscribeRuntimeHealthEventsRequest } from "./runtime-protobuf/runtime/v1/audit";
 import type { OpenDesktopSessionRequest, OpenDesktopSessionResponse, OpenExternalPrincipalSessionRequest, OpenExternalPrincipalSessionResponse, OpenLocalAppSessionRequest, OpenLocalAppSessionResponse, RegisterExternalPrincipalRequest, RegisterExternalPrincipalResponse, RenewLocalAppSessionRequest, RevokeExternalPrincipalSessionRequest } from "./runtime-protobuf/runtime/v1/auth";
@@ -46,6 +47,7 @@ export type { AiVideoFrameDisposition, AiVideoSessionFormat, AiVideoSessionResul
 export type { AiRealtimeAudioFormat, AiRealtimeAudioFrameInput, AiRealtimeAudioFrameOutput, AiRealtimeEvent, AiRealtimeFailure, AiRealtimeInputAccepted, AiRealtimeOutputTrackStatus, AiRealtimeOwnerContextInput, AiRealtimeRequestTerminal, AiRealtimeSessionOpened, AiRealtimeSessionTerminal, AiRealtimeSpeechStatus, AiRealtimeTextInput, AiRealtimeTextOutput, AiRealtimeTranscript, AppendRealtimeInputRequest, AppendRealtimeInputResponse, CloseRealtimeSessionRequest, CloseRealtimeSessionResponse, InterruptRealtimeOutputRequest, InterruptRealtimeOutputResponse, OpenRealtimeSessionRequest, OpenRealtimeSessionResponse, ReadRealtimeEventsRequest, SubmitRealtimeOwnerControlRequest, SubmitRealtimeOwnerControlResponse } from "./runtime-protobuf/runtime/v1/ai_realtime";
 export type { PeekSchedulingRequest, PeekSchedulingResponse, SchedulingEvaluationTarget, SchedulingJudgement, SchedulingOccupancySnapshot, SchedulingResourceHint, SchedulingTargetJudgement } from "./runtime-protobuf/runtime/v1/ai_scheduling";
 export type { AdoptLocalAppArtifactRequest, AdoptLocalAppArtifactResponse, AppMessageEvent, AppPackageInfo, AppPackageJob, AppSafetyDeclaration, AppSafetyOutputDeclaration, AppStorageProjection, ApprovedAppCatalogStorageDisclosure, ApprovedAppCatalogTarget, BindLocalAppProcessRequest, BindLocalAppProcessResponse, CancelAppPackageJobRequest, CancelAppPackageJobResponse, CommittedAppRelease, CompleteAppPackageUninstallRequest, CompleteAppPackageUninstallResponse, DiscardLocalAppPackageRequest, DiscardLocalAppPackageResponse, EndInstalledAppRunRequest, EndInstalledAppRunResponse, GetAppPackageInfoRequest, GetAppPackageInfoResponse, GetAppPackageJobRequest, GetAppPackageJobResponse, GetAppStorageRequest, GetAppStorageResponse, GetInstalledAppRunAccessRequest, GetInstalledAppRunAccessResponse, ListAppPackageJobsRequest, ListAppPackageJobsResponse, ListApprovedAppCatalogTargetsRequest, ListApprovedAppCatalogTargetsResponse, ListCommittedAppReleasesRequest, ListCommittedAppReleasesResponse, ListLocalAppAssetsRequest, ListLocalAppAssetsResponse, LocalAppAssetRange, LocalAppAssetRecord, LocalAppPackagePreview, MoveLocalAppAssetRequest, MoveLocalAppAssetResponse, PauseAppPackageJobRequest, PauseAppPackageJobResponse, PrepareInstalledAppLaunchRequest, PrepareInstalledAppLaunchResponse, PrepareLocalAppLaunchRequest, PrepareLocalAppLaunchResponse, PrepareLocalAppPackageRequest, PrepareLocalAppPackageResponse, ReadLocalAppAssetMetadata, ReadLocalAppAssetRequest, ReadLocalAppAssetResponse, ReadLocalAppStorageJsonRequest, ReadLocalAppStorageJsonResponse, RebindLocalAppProcessRequest, RebindLocalAppProcessResponse, RemoveLocalAppAssetRequest, RemoveLocalAppAssetResponse, RemoveLocalAppStorageJsonRequest, RemoveLocalAppStorageJsonResponse, ReorderAppPackageJobRequest, ReorderAppPackageJobResponse, ResumeAppPackageJobRequest, ResumeAppPackageJobResponse, RevealLocalAppAssetRequest, RevealLocalAppAssetResponse, SendAppMessageRequest, SendAppMessageResponse, StartAppPackageInstallRequest, StartAppPackageInstallResponse, StartAppPackageUninstallRequest, StartAppPackageUninstallResponse, StartAppPackageUpdateRequest, StartAppPackageUpdateResponse, StartLocalAppPackageInstallRequest, StartLocalAppPackageInstallResponse, StartLocalAppPackageUpdateRequest, StartLocalAppPackageUpdateResponse, StatLocalAppAssetRequest, StatLocalAppAssetResponse, SubscribeAppMessagesRequest, WriteLocalAppAssetMetadata, WriteLocalAppAssetRequest, WriteLocalAppAssetResponse, WriteLocalAppStorageJsonRequest, WriteLocalAppStorageJsonResponse } from "./runtime-protobuf/runtime/v1/app";
+export type { AppActivityAgentAssociation, AppActivityFilter, AppActivityOpenResult, AppActivityRecord, AppActivitySource, AppActivityUserView, CompleteAppActivityOpenRequestRequest, CompleteAppActivityOpenRequestResponse, ListAppActivitiesRequest, ListAppActivitiesResponse, MarkAppActivityReadRequest, MarkAppActivityReadResponse, OpenAppActivityRequest, OpenAppActivityResponse, PutAppActivityRequest, PutAppActivityResponse, ResolveAppActivityOpenLaunchRequest, ResolveAppActivityOpenLaunchResponse, SubscribeAppActivityChangesRequest, SubscribeAppActivityChangesResponse, SubscribeAppActivityOpenRequestsRequest, SubscribeAppActivityOpenRequestsResponse } from "./runtime-protobuf/runtime/v1/app_activity";
 export type { CleanupGeneratedVoiceArtifactsRequest, CleanupGeneratedVoiceArtifactsResponse, PutArtifactRequest, PutArtifactResponse, ReadArtifactBytesRequest, ReadArtifactBytesResponse } from "./runtime-protobuf/runtime/v1/artifact_service";
 export type { AuditEventRecord, AuditExportChunk, DesktopAuditEventProjection, ExportAuditEventsRequest, GetRuntimeHealthRequest, GetRuntimeHealthResponse, ListAuditEventsRequest, ListAuditEventsResponse, ListDesktopAuditEventsRequest, ListDesktopAuditEventsResponse, ListUsageStatsRequest, ListUsageStatsResponse, RuntimeHealthEvent, SubscribeRuntimeHealthEventsRequest, UsageStatRecord } from "./runtime-protobuf/runtime/v1/audit";
 export type { CurrentUserDisplayProjection, OpenDesktopSessionRequest, OpenDesktopSessionResponse, OpenExternalPrincipalSessionRequest, OpenExternalPrincipalSessionResponse, OpenLocalAppSessionRequest, OpenLocalAppSessionResponse, RegisterExternalPrincipalRequest, RegisterExternalPrincipalResponse, RenewLocalAppSessionRequest, RevokeExternalPrincipalSessionRequest } from "./runtime-protobuf/runtime/v1/auth";
@@ -76,6 +78,7 @@ export { AiVideoPixelFormat, AudioInstrumentPartKind, CanonicalChannelMode, Chat
 export { AiRealtimeAudioCodec, AiRealtimeOutputTrackLifecycle, AiRealtimeOwnerContextKind, AiRealtimeOwnerControlKind, AiRealtimeSpeechState, AiRealtimeTurnDetectionMode } from "./runtime-protobuf/runtime/v1/ai_realtime";
 export { SchedulingState } from "./runtime-protobuf/runtime/v1/ai_scheduling";
 export { AppMessageEventType, AppPackageJobKind, AppPackageJobPhase, AppPackageProgressBasis, AppPackageSourceClass, AppPackageTerminalResult, AppStorageState } from "./runtime-protobuf/runtime/v1/app";
+export { AppActivityChangeKind, AppActivityKind, AppActivityOpenCompletion, AppActivityOpenLaunchSourceClass, AppActivityOpenOutcome, AppActivityOpenReason, AppActivitySourceKind, AppActivityTodoState } from "./runtime-protobuf/runtime/v1/app_activity";
 export { RuntimeHealthStatus, UsageWindow } from "./runtime-protobuf/runtime/v1/audit";
 export { ExternalProofType, LocalAppSessionState, LocalAppTrustClass } from "./runtime-protobuf/runtime/v1/auth";
 export { AIConfigEffectiveState, LoadoutValidationState, LocalCapabilityInterpretability, LocalCapabilityReason, LocalCapabilityRequirementPolicy, LocalCapabilityRequirementPresence, LocalCapabilityRequirementResolution, LocalCapabilityRequirementRole, TextBehaviorConfigurationState } from "./runtime-protobuf/runtime/v1/capability_configuration";
@@ -1303,6 +1306,94 @@ export class RuntimeTypedClient {
   async submitVideoSessionFrame(request: SubmitVideoSessionFrameRequest, options: RuntimeTypedCallOptions = {}): Promise<SubmitVideoSessionFrameResponse> {
     return this.core.unary<SubmitVideoSessionFrameResponse, SubmitVideoSessionFrameRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAiVideoSessionService/SubmitVideoSessionFrame",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async completeAppActivityOpenRequest(request: CompleteAppActivityOpenRequestRequest, options: RuntimeTypedCallOptions = {}): Promise<CompleteAppActivityOpenRequestResponse> {
+    return this.core.unary<CompleteAppActivityOpenRequestResponse, CompleteAppActivityOpenRequestRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAppActivityService/CompleteAppActivityOpenRequest",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async listAppActivities(request: ListAppActivitiesRequest, options: RuntimeTypedCallOptions = {}): Promise<ListAppActivitiesResponse> {
+    return this.core.unary<ListAppActivitiesResponse, ListAppActivitiesRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAppActivityService/ListAppActivities",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async markAppActivityRead(request: MarkAppActivityReadRequest, options: RuntimeTypedCallOptions = {}): Promise<MarkAppActivityReadResponse> {
+    return this.core.unary<MarkAppActivityReadResponse, MarkAppActivityReadRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAppActivityService/MarkAppActivityRead",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  openAppActivity(request: OpenAppActivityRequest, options: RuntimeTypedCallOptions = {}): AsyncIterable<OpenAppActivityResponse> {
+    return this.core.serverStream<OpenAppActivityResponse, OpenAppActivityRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAppActivityService/OpenAppActivity",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async putAppActivity(request: PutAppActivityRequest, options: RuntimeTypedCallOptions = {}): Promise<PutAppActivityResponse> {
+    return this.core.unary<PutAppActivityResponse, PutAppActivityRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAppActivityService/PutAppActivity",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async resolveAppActivityOpenLaunch(request: ResolveAppActivityOpenLaunchRequest, options: RuntimeTypedCallOptions = {}): Promise<ResolveAppActivityOpenLaunchResponse> {
+    return this.core.unary<ResolveAppActivityOpenLaunchResponse, ResolveAppActivityOpenLaunchRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAppActivityService/ResolveAppActivityOpenLaunch",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  subscribeAppActivityChanges(request: SubscribeAppActivityChangesRequest, options: RuntimeTypedCallOptions = {}): AsyncIterable<SubscribeAppActivityChangesResponse> {
+    return this.core.serverStream<SubscribeAppActivityChangesResponse, SubscribeAppActivityChangesRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityChanges",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  subscribeAppActivityOpenRequests(request: SubscribeAppActivityOpenRequestsRequest, options: RuntimeTypedCallOptions = {}): AsyncIterable<SubscribeAppActivityOpenRequestsResponse> {
+    return this.core.serverStream<SubscribeAppActivityOpenRequestsResponse, SubscribeAppActivityOpenRequestsRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityOpenRequests",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,

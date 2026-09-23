@@ -25,6 +25,19 @@ process.dlopen(nativeModule, addonPath);
 const addon = nativeModule.exports;
 const agentHandle = 'lah_contract_nonexistent';
 const embodimentAgentHandle = `agent_ref_${'A'.repeat(43)}`;
+const activityPutInput = {
+  key: 'contract-key',
+  revision: 1,
+  kind: 'todo',
+  todoState: 'open',
+  attention: false,
+  title: 'Contract',
+  objectRef: 'contract-object',
+  activityType: 'com.example.contract.recorded.v1',
+  dataJson: '{"contract":true}',
+  occurredAtSeconds: '1790000000',
+  occurredAtNanos: 0,
+};
 
 const calls = [
   ['localAppRealmWorldCreationEligibilityGet'],
@@ -74,6 +87,15 @@ const calls = [
   ['localAppEmbodimentSubscribe', {
     agentHandle: embodimentAgentHandle, conversationAnchorId: 'contract-anchor', afterSequence: '0',
   }],
+  ['localAppActivityPut', activityPutInput],
+  ['localAppActivityList', {
+    kind: 'todo', todoStates: ['open'], occurredAfterSeconds: '1790000000', occurredAfterNanos: 0, pageSize: 50,
+  }],
+  ['localAppActivitySubscribe', { afterChangeSeq: '0' }],
+  ['localAppActivityMarkRead', { activityId: 'act_contract', displayedRevision: 1 }],
+  ['localAppActivityOpen', { activityId: 'act_contract' }],
+  ['localAppActivityOpenRequestsSubscribe'],
+  ['localAppActivityOpenRequestComplete', { deliveryId: 'aod_contract', completion: 'opened' }],
   ['localAppAgentManagerSnapshot', { agentHandle, conversationAnchorId: 'contract-anchor' }],
   ['localAppAgentMemoryInspect', { agentHandle, limit: 2, pageToken: 'opaque-page-2' }],
   ['localAppAgentMemoryCorrect', { agentHandle, memoryId: 'memory-contract', correctedContent: 'corrected' }],
@@ -131,6 +153,7 @@ async function main() {
     assert.equal(addon[retired], undefined, `${retired} must remain hard-cut`);
   }
   for (const name of [
+    'desktopFocusLocalDevelopmentHost',
     'localAppScenarioExecute',
     'localAppScenarioJobSubmit',
     'localAppScenarioJobGet',
@@ -152,8 +175,45 @@ async function main() {
     'localAppSharedAgentAIConfigLocalOptions',
     'localAppEmbodimentSnapshot',
     'localAppEmbodimentSubscribe',
+    'localAppActivityPut',
+    'localAppActivityList',
+    'localAppActivitySubscribe',
+    'localAppActivityMarkRead',
+    'localAppActivityOpen',
+    'localAppActivityOpenRequestsSubscribe',
+    'localAppActivityOpenRequestComplete',
+    'localAppRealtimeStreamNext',
+    'localAppRealtimeStreamClose',
   ]) {
     assert.equal(typeof addon[name], 'function', `${name} export is missing`);
+  }
+  const { occurredAtSeconds: _occurredAtSeconds, ...putWithoutSeconds } = activityPutInput;
+  const focus = await addon.desktopFocusLocalDevelopmentHost({ supervisorRunId: 'invalid' });
+  assert.equal(focus.status, 'error');
+  assert.equal(focus.reasonCode, 'runtime-service-untrusted', 'an invalid focus selector must fail before transport');
+  assert.throws(
+    () => addon.localAppActivityPut(putWithoutSeconds),
+    /Missing field `occurredAtSeconds`/u,
+    'localAppActivityPut must take the decimal occurredAtSeconds field',
+  );
+  const { activityType, ...putWithRendererTypeName } = activityPutInput;
+  assert.throws(
+    () => addon.localAppActivityPut({ ...putWithRendererTypeName, type: activityType }),
+    /Missing field `activityType`/u,
+    'localAppActivityPut must take activityType rather than the renderer type field',
+  );
+  for (const [name, input] of [
+    ['localAppActivityPut', { ...activityPutInput, revision: 1.5 }],
+    ['localAppActivityPut', { ...activityPutInput, revision: 2 ** 53 }],
+    ['localAppActivityPut', { ...activityPutInput, occurredAtSeconds: '01' }],
+    ['localAppActivityPut', { ...activityPutInput, occurredAtNanos: 1_000_000_000 }],
+    ['localAppActivityList', { todoStates: [], occurredBeforeSeconds: '1', pageSize: 1 }],
+    ['localAppActivitySubscribe', { afterChangeSeq: '01' }],
+    ['localAppActivityMarkRead', { activityId: 'act_contract', displayedRevision: 0 }],
+  ]) {
+    const outcome = await addon[name](input);
+    assert.equal(outcome?.status, 'error', `${name} must reject a malformed numeric input`);
+    assert.equal(outcome?.reasonCode, 'invalid-payload', `${name} must reject before transport`);
   }
   assert.equal(typeof addon.localAppAIConfigGet, 'function', 'localAppAIConfigGet export is missing');
   const aiConfigGet = addon.localAppAIConfigGet();

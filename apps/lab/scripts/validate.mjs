@@ -1,13 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { parse as parseYaml } from 'yaml';
 
-const EXPECTED_APP_ACCESS = ['realm.data', 'runtime.consume', 'agent.local', 'agent.configure'];
+const EXPECTED_APP_ACCESS = ['realm.data', 'runtime.consume', 'agent.local', 'agent.configure', 'app.activity'];
 
 function validateAppAccessDeclaration(manifestText) {
   const parsed = parseYaml(manifestText);
   if (!Array.isArray(parsed?.app_access)
     || JSON.stringify(parsed.app_access) !== JSON.stringify(EXPECTED_APP_ACCESS)) {
-    throw new Error('Lab must declare exactly realm.data, runtime.consume, agent.local, and agent.configure');
+    throw new Error('Lab must declare exactly realm.data, runtime.consume, agent.local, agent.configure, and app.activity');
   }
   for (const retired of ['permissions', 'reason', 'grant_id', 'scope', 'qualifier', 'operation_id', 'resource_ref']) {
     if (Object.hasOwn(parsed, retired)) {

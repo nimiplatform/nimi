@@ -89,6 +89,61 @@ export enum AccountSessionState {
   UNAVAILABLE = 9,
 }
 
+export enum AppActivityChangeKind {
+  UNSPECIFIED = 0,
+  UPSERT = 1,
+  REMOVE = 2,
+}
+
+export enum AppActivityKind {
+  UNSPECIFIED = 0,
+  ACTIVITY = 1,
+  TODO = 2,
+}
+
+export enum AppActivityOpenCompletion {
+  UNSPECIFIED = 0,
+  OPENED = 1,
+  OBJECT_UNAVAILABLE = 2,
+}
+
+export enum AppActivityOpenLaunchSourceClass {
+  UNSPECIFIED = 0,
+  INSTALLED = 1,
+  LOCAL_DEVELOPMENT = 2,
+}
+
+export enum AppActivityOpenOutcome {
+  UNSPECIFIED = 0,
+  OPENED = 1,
+  UNAVAILABLE = 2,
+  FAILED = 3,
+}
+
+export enum AppActivityOpenReason {
+  UNSPECIFIED = 0,
+  OPENED = 1,
+  NOT_OPENABLE = 2,
+  SOURCE_UNAVAILABLE = 3,
+  OBJECT_UNAVAILABLE = 4,
+  SOURCE_NOT_READY = 5,
+  CANCELED = 6,
+  ACTIVITY_UNAVAILABLE = 7,
+}
+
+export enum AppActivitySourceKind {
+  UNSPECIFIED = 0,
+  APP = 1,
+  RUNTIME_AGENT = 2,
+}
+
+export enum AppActivityTodoState {
+  UNSPECIFIED = 0,
+  OPEN = 1,
+  COMPLETED = 2,
+  CANCELLED = 3,
+}
+
 export enum AppMessageEventType {
   APP_MESSAGE_EVENT_TYPE_UNSPECIFIED = 0,
   APP_MESSAGE_EVENT_RECEIVED = 1,

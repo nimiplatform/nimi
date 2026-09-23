@@ -276,6 +276,13 @@ capability_sets:
       - local-app.agentRealtimeStatus
       - local-app.agentRealtimeInterruptOutput
       - local-app.agentRealtimeClose
+      - local-app.activityPut
+      - local-app.activityList
+      - local-app.activitySubscribe
+      - local-app.activityMarkRead
+      - local-app.activityOpen
+      - local-app.activityOpenRequestsSubscribe
+      - local-app.activityOpenRequestComplete
       - local-app.sharedAgentAIConfigGet
       - local-app.sharedAgentAIConfigOverwrite
       - local-app.sharedAgentAIConfigLocalOptions
@@ -1001,6 +1008,66 @@ local_app_operation_contract:
       transport_boundary: unary
       effect_boundary: write
       owner: runtime_agent_service
+    activityPut:
+      command: local-app.activityPut
+      operation_id: runtime.app-activity.put
+      request_fields: [key, revision, kind, todoState, attention, title, summary, objectRef, type, dataJson, occurredAt, agentHandle]
+      response_fields: [record, changed]
+      transport_boundary: unary
+      effect_boundary: write
+      owner: runtime_app_activity_service
+    activityList:
+      command: local-app.activityList
+      operation_id: runtime.app-activity.list
+      request_fields: [filter, pageSize, pageToken]
+      response_fields: [records, nextPageToken, baselineChangeSeq]
+      transport_boundary: unary
+      effect_boundary: read
+      owner: runtime_app_activity_service
+    activitySubscribe:
+      command: local-app.activitySubscribe
+      operation_id: runtime.app-activity.subscribe
+      request_fields: [afterChangeSeq]
+      response_fields: [subscriptionId]
+      event_fields: [changeSeq, kind, activityId, record]
+      transport_boundary: server_stream
+      effect_boundary: stream_read
+      typed_failures: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, invalid-cursor, resource-exhausted, not-found, host-internal-error]
+      owner: runtime_app_activity_service
+    activityMarkRead:
+      command: local-app.activityMarkRead
+      operation_id: runtime.app-activity.mark-read
+      request_fields: [activityId, displayedRevision]
+      response_fields: [activityId, source, key, revision, kind, todoState, attention, title, summary, objectRef, type, dataJson, agent, occurredAt, publishedAt, updatedAt, changeSeq, userView]
+      transport_boundary: unary
+      effect_boundary: write
+      owner: runtime_app_activity_service
+    activityOpen:
+      command: local-app.activityOpen
+      operation_id: runtime.app-activity.open
+      request_fields: [activityId]
+      response_fields: [outcome, reason]
+      transport_boundary: unary
+      effect_boundary: write
+      owner: runtime_app_activity_service
+    activityOpenRequestsSubscribe:
+      command: local-app.activityOpenRequestsSubscribe
+      operation_id: runtime.app-activity.open-request.subscribe
+      request_fields: []
+      response_fields: [subscriptionId]
+      event_fields: [deliveryId, activityId, objectRef, type]
+      transport_boundary: server_stream
+      effect_boundary: stream_read
+      typed_failures: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, invalid-cursor, resource-exhausted, not-found, host-internal-error]
+      owner: runtime_app_activity_service
+    activityOpenRequestComplete:
+      command: local-app.activityOpenRequestComplete
+      operation_id: runtime.app-activity.open-request.complete
+      request_fields: [deliveryId, completion]
+      response_fields: [accepted]
+      transport_boundary: unary
+      effect_boundary: write
+      owner: runtime_app_activity_service
     sharedAgentAIConfigGet:
       command: local-app.sharedAgentAIConfigGet
       operation_id: runtime.agent.ai-config.get
@@ -1539,6 +1606,27 @@ capabilities:
       - id: agentRealtimeClose
         command: nimi.shell.localApp.agentRealtimeClose
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, not-found, host-internal-error]
+      - id: activityPut
+        command: nimi.shell.localApp.activityPut
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, content-conflict, not-found, object-too-large, invalid-cursor, host-internal-error]
+      - id: activityList
+        command: nimi.shell.localApp.activityList
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, content-conflict, not-found, object-too-large, invalid-cursor, host-internal-error]
+      - id: activitySubscribe
+        command: nimi.shell.localApp.activitySubscribe
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, invalid-cursor, resource-exhausted, not-found, host-internal-error]
+      - id: activityMarkRead
+        command: nimi.shell.localApp.activityMarkRead
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, content-conflict, not-found, object-too-large, invalid-cursor, host-internal-error]
+      - id: activityOpen
+        command: nimi.shell.localApp.activityOpen
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, content-conflict, not-found, object-too-large, invalid-cursor, host-internal-error]
+      - id: activityOpenRequestsSubscribe
+        command: nimi.shell.localApp.activityOpenRequestsSubscribe
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, invalid-cursor, resource-exhausted, not-found, host-internal-error]
+      - id: activityOpenRequestComplete
+        command: nimi.shell.localApp.activityOpenRequestComplete
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, content-conflict, not-found, object-too-large, invalid-cursor, host-internal-error]
       - id: sharedAgentAIConfigGet
         command: nimi.shell.localApp.sharedAgentAIConfigGet
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, host-internal-error]

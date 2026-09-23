@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { dispatchElectronLocalAppCommand } from '../src/main/local-app-commands.js';
 import {
   createNimiElectronLocalAppHostForBinding,
   primeNimiElectronLocalAppHost,
@@ -148,6 +149,48 @@ describe('Electron protected local-app host', () => {
       maintenance.close();
       expect(calls.map(({ method }) => method)).toEqual([
         'localAppSessionStatus',
+        'localAppSessionStatus',
+        'localAppSessionStatus',
+        'localAppSessionRenew',
+      ]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('reports a session the Runtime invalidated before a rotation can renew it for another account', async () => {
+    vi.useFakeTimers();
+    try {
+      const calls: string[] = [];
+      let sessionChanges = 0;
+      let invalidated = false;
+      const candidate = {
+        ...binding([]),
+        localAppSessionStatus: async () => {
+          calls.push('localAppSessionStatus');
+          if (invalidated) {
+            invalidated = false;
+            return { status: 'error' as const, reasonCode: 'account-changed', retryable: false };
+          }
+          return { status: 'ok' as const, value: statusProjection() };
+        },
+        localAppSessionRenew: async () => {
+          calls.push('localAppSessionRenew');
+          return { status: 'ok' as const, value: statusProjection() };
+        },
+      };
+      const host = createNimiElectronLocalAppHostForBinding(candidate, () => { sessionChanges += 1; });
+      const maintenance = startNimiElectronLocalAppHostMaintenance(host, 1_000);
+      await maintenance.ready;
+      calls.length = 0;
+      // The account changed while the App made no call of its own.
+      invalidated = true;
+      await vi.advanceTimersByTimeAsync(1_000);
+      maintenance.close();
+      expect(sessionChanges).toBe(1);
+      expect(calls).toEqual([
+        'localAppSessionStatus',
+        'localAppSessionRenew',
         'localAppSessionStatus',
         'localAppSessionRenew',
       ]);
@@ -422,6 +465,40 @@ describe('Electron protected local-app host', () => {
       { method: 'localAppConversationOpen', input: { agentHandle: `agent_ref_${'a'.repeat(43)}` } },
       { method: 'localAppSessionRenew' },
     ]);
+  });
+
+  it('never replays an activity publication or read mark into the next account after a rebind', async () => {
+    const calls: Array<{ method: string; input?: unknown }> = [];
+    let sessionChanges = 0;
+    const candidate = {
+      ...binding(calls),
+      localAppSessionRenew: async () => {
+        calls.push({ method: 'localAppSessionRenew' });
+        return { status: 'ok' as const, value: statusProjection() };
+      },
+      localAppActivityPut: async (input: unknown) => {
+        calls.push({ method: 'localAppActivityPut', input });
+        return { status: 'error' as const, reasonCode: 'account-changed', retryable: false };
+      },
+      localAppActivityMarkRead: async (input: unknown) => {
+        calls.push({ method: 'localAppActivityMarkRead', input });
+        return { status: 'error' as const, reasonCode: 'account-changed', retryable: false };
+      },
+    };
+    const host = createNimiElectronLocalAppHostForBinding(candidate as never, () => { sessionChanges += 1; });
+    await expect(host.activityPut({
+      key: 'draft:1', revision: 1, kind: 'todo', todoState: 'open', attention: true, title: 'Review',
+      summary: null, objectRef: 'draft:1', type: 'com.example.studio.review-requested.v1',
+      dataJson: null, occurredAt: '2026-09-20T09:00:00.000Z', agentHandle: null,
+    })).rejects.toMatchObject({ reasonCode: 'account-changed' });
+    await expect(host.activityMarkRead({ activityId: `act_${'0'.repeat(26)}`, displayedRevision: 1 }))
+      .rejects.toMatchObject({ reasonCode: 'account-changed' });
+    // The session is repaired for later explicit calls, but neither mutation
+    // reaches the next account.
+    expect(calls.map((call) => call.method)).toEqual([
+      'localAppActivityPut', 'localAppSessionRenew', 'localAppActivityMarkRead', 'localAppSessionRenew',
+    ]);
+    expect(sessionChanges).toBe(2);
   });
 
   it('renews once when the formal session status itself is revoked', async () => {
@@ -1134,6 +1211,13 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
       activity: null, emotion: null, posture: null, voiceTiming: null,
     }),
     localAppEmbodimentSubscribe: record('localAppEmbodimentSubscribe', { streamId: 'embodiment-1' }),
+    localAppActivityPut: record('localAppActivityPut', { record: {}, changed: true }),
+    localAppActivityList: record('localAppActivityList', { records: [], nextPageToken: null, baselineChangeSeq: '0' }),
+    localAppActivitySubscribe: record('localAppActivitySubscribe', { streamId: 'activity-1' }),
+    localAppActivityMarkRead: record('localAppActivityMarkRead', {}),
+    localAppActivityOpen: record('localAppActivityOpen', { streamId: 'activity-open-1' }),
+    localAppActivityOpenRequestsSubscribe: record('localAppActivityOpenRequestsSubscribe', { streamId: 'activity-open-requests-1' }),
+    localAppActivityOpenRequestComplete: record('localAppActivityOpenRequestComplete', { accepted: true }),
     localAppAiRealtimeOpen: record('localAppAiRealtimeOpen', {}),
     localAppVideoSessionOpen: record('localAppVideoSessionOpen', {}),
     localAppVideoSessionSubmit: record('localAppVideoSessionSubmit', {}),
@@ -1215,3 +1299,132 @@ function assetProjection() {
     sha256: `sha256:${'a'.repeat(64)}`, createdAt: '2026-08-09T00:00:00Z', updatedAt: '2026-08-09T00:00:00Z',
   };
 }
+
+describe('Electron App activity carrier', () => {
+  const OPEN_REQUEST_ID = `aor_${'a'.repeat(32)}`;
+  const ACTIVITY_ID = `act_${'0'.repeat(26)}`;
+
+  function openBinding(events: unknown[], closed: string[]) {
+    return {
+      ...binding([]),
+      localAppActivityOpen: async () => ({ status: 'ok' as const, value: { streamId: 'open-1' } }),
+      // A Runtime open stream with no further event keeps waiting.
+      localAppRealtimeStreamNext: async () => (events.length > 0
+        ? { status: 'ok' as const, value: events.shift() }
+        : new Promise<never>(() => undefined)),
+      localAppRealtimeStreamClose: async (input: { streamId: string }) => {
+        closed.push(input.streamId);
+        return { status: 'ok' as const, value: { closed: true } };
+      },
+    };
+  }
+
+  it('asks Desktop to launch the source and reports only the Runtime confirmation', async () => {
+    const launches: string[] = [];
+    const closed: string[] = [];
+    const host = createNimiElectronLocalAppHostForBinding(openBinding([
+      { completed: false, event: { openRequestId: OPEN_REQUEST_ID } },
+      { completed: false, event: { result: { outcome: 'opened', reason: 'opened' } } },
+    ], closed) as never, () => undefined, async (id) => {
+      launches.push(id);
+      return { status: 'requested' };
+    });
+    await expect(host.activityOpen({ activityId: ACTIVITY_ID })).resolves.toEqual({ outcome: 'opened', reason: 'opened' });
+    expect(launches).toEqual([OPEN_REQUEST_ID]);
+    expect(closed).toEqual(['open-1']);
+  });
+
+  it('never reports opened from a failed launch and releases the Runtime request after the grace', async () => {
+    vi.useFakeTimers();
+    try {
+      const closed: string[] = [];
+      const host = createNimiElectronLocalAppHostForBinding(openBinding([
+        { completed: false, event: { openRequestId: OPEN_REQUEST_ID } },
+      ], closed) as never, () => undefined, async () => ({ status: 'unavailable', reason: 'host-unavailable' }));
+      const opening = host.activityOpen({ activityId: ACTIVITY_ID });
+      await vi.advanceTimersByTimeAsync(5_000);
+      await expect(opening).resolves.toEqual({ outcome: 'unavailable', reason: 'host-unavailable' });
+      expect(closed).toEqual(['open-1']);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('reports a running source confirmation even when the Desktop launch failed', async () => {
+    const closed: string[] = [];
+    const host = createNimiElectronLocalAppHostForBinding(openBinding([
+      { completed: false, event: { openRequestId: OPEN_REQUEST_ID } },
+      { completed: false, event: { result: { outcome: 'opened', reason: 'opened' } } },
+    ], closed) as never, () => undefined, async () => ({ status: 'failed', reason: 'launch-failed' }));
+    await expect(host.activityOpen({ activityId: ACTIVITY_ID })).resolves.toEqual({ outcome: 'opened', reason: 'opened' });
+    expect(closed).toEqual(['open-1']);
+  });
+
+  it('treats an ended open stream as not ready and rejects foreign event shapes', async () => {
+    const closed: string[] = [];
+    const ended = createNimiElectronLocalAppHostForBinding(openBinding([{ completed: true }], closed) as never);
+    await expect(ended.activityOpen({ activityId: ACTIVITY_ID })).resolves.toEqual({ outcome: 'failed', reason: 'source-not-ready' });
+    const foreign = createNimiElectronLocalAppHostForBinding(openBinding([
+      { completed: false, event: { openRequestId: OPEN_REQUEST_ID, sessionId: 'leak' } },
+    ], closed) as never, () => undefined, async () => ({ status: 'requested' }));
+    await expect(foreign.activityOpen({ activityId: ACTIVITY_ID })).rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
+  });
+
+  it('lets renderer commands reach only their own activity subscriptions, never the Host-private open stream', async () => {
+    const pulled: string[] = [];
+    const closedStreams: string[] = [];
+    const host = createNimiElectronLocalAppHostForBinding({
+      ...binding([]),
+      localAppActivitySubscribe: async () => ({ status: 'ok' as const, value: { streamId: 'changes-1' } }),
+      localAppActivityOpenRequestsSubscribe: async () => ({ status: 'ok' as const, value: { streamId: 'deliveries-1' } }),
+      localAppRealtimeStreamNext: async (input: { streamId: string }) => {
+        pulled.push(input.streamId);
+        return {
+          status: 'ok' as const,
+          value: { completed: false, event: { deliveryId: 'aod_1', activityId: ACTIVITY_ID, objectRef: 'draft:1', type: 'com.example.studio.review-requested.v1' } },
+        };
+      },
+      localAppRealtimeStreamClose: async (input: { streamId: string }) => {
+        closedStreams.push(input.streamId);
+        return { status: 'ok' as const, value: { closed: true } };
+      },
+    } as never);
+    const subscribe = (command: string, payload: Record<string, unknown>) => dispatchElectronLocalAppCommand({ host, command, payload });
+    await expect(subscribe('nimi.shell.localApp.activitySubscribe', { action: 'next', subscriptionId: 'realtime-activity-open-1' }))
+      .rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    expect(pulled).toEqual([]);
+    await expect(subscribe('nimi.shell.localApp.activitySubscribe', { afterChangeSeq: '0' })).resolves.toEqual({ subscriptionId: 'changes-1' });
+    await expect(subscribe('nimi.shell.localApp.activityOpenRequestsSubscribe', {})).resolves.toEqual({ subscriptionId: 'deliveries-1' });
+    // A delivery stream id is not usable through the change subscription.
+    await expect(subscribe('nimi.shell.localApp.activitySubscribe', { action: 'next', subscriptionId: 'deliveries-1' }))
+      .rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    await expect(subscribe('nimi.shell.localApp.activityOpenRequestsSubscribe', { action: 'next', subscriptionId: 'deliveries-1' }))
+      .resolves.toMatchObject({ subscriptionId: 'deliveries-1', completed: false });
+    // A change stream that yields a delivery-shaped event is closed as untrusted.
+    await expect(subscribe('nimi.shell.localApp.activitySubscribe', { action: 'next', subscriptionId: 'changes-1' }))
+      .rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
+    expect(closedStreams).toEqual(['changes-1']);
+    expect(pulled).toEqual(['deliveries-1', 'changes-1']);
+  });
+
+  it('converts carrier ISO instants into the native timestamp pair without reading publisher data', async () => {
+    const calls: Array<Record<string, unknown>> = [];
+    const host = createNimiElectronLocalAppHostForBinding({
+      ...binding([]),
+      localAppActivityPut: async (input: Record<string, unknown>) => {
+        calls.push(input);
+        return { status: 'ok' as const, value: { record: {}, changed: true } };
+      },
+    } as never);
+    await host.activityPut({
+      key: 'k1', revision: 2, kind: 'todo', todoState: 'open', attention: true, title: 'Review',
+      summary: null, objectRef: 'draft:1', type: 'com.example.studio.review-requested.v1',
+      dataJson: '{"subject":"content"}', occurredAt: '2026-09-20T09:00:00.250Z', agentHandle: null,
+    });
+    expect(calls[0]).toEqual({
+      key: 'k1', revision: 2, kind: 'todo', todoState: 'open', attention: true, title: 'Review',
+      objectRef: 'draft:1', activityType: 'com.example.studio.review-requested.v1', dataJson: '{"subject":"content"}',
+      occurredAtSeconds: String(Date.parse('2026-09-20T09:00:00Z') / 1000), occurredAtNanos: 250_000_000,
+    });
+  });
+});

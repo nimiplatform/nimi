@@ -6,9 +6,14 @@ import test from 'node:test';
 
 import type { NimiDesktopOpenIntentEnvelope } from '@nimiplatform/kit/core/desktop-open';
 import type { AvatarHostHandoffRequest } from '@nimiplatform/kit/features/avatar/headless';
-import { DESKTOP_AGENT_CENTER_RESOURCE_PACK_PLACEMENT_PATH } from '@nimiplatform/kit/shell/electron/main';
+import {
+  DESKTOP_AGENT_CENTER_RESOURCE_PACK_PLACEMENT_PATH,
+  requestElectronAppActivitySourceLaunch,
+} from '@nimiplatform/kit/shell/electron/main';
+import { createDesktopAppActivitySourceLaunch } from '../src-electron/app-activity-source-launch-host';
 import {
   createDesktopElectronOpenIntentHost,
+  DESKTOP_APP_ACTIVITY_SOURCE_LAUNCH_PATH,
   DESKTOP_AVATAR_HOST_HANDOFF_PATH,
   DESKTOP_OPEN_INTENT_EVENT,
   DESKTOP_ZHIYU_RESOURCE_PACK_REDEEM_PATH,
@@ -306,6 +311,88 @@ test('Zhiyu placement correlation expires before redemption and never exposes so
     await host.shutdown();
     await rm(home, { recursive: true, force: true });
   }
+});
+
+test('App activity source launch accepts only a Runtime-issued request id over the running bridge', async () => {
+  const home = await realpath(await mkdtemp(path.join(os.tmpdir(), 'nimi-electron-activity-launch-')));
+  const descriptorPath = path.join(home, '.nimi', 'run', 'desktop', 'open-intent', 'presence.v1.json');
+  const openRequestId = `aor_${'A'.repeat(32)}`;
+  const launched: string[] = [];
+  const host = await createDesktopElectronOpenIntentHost({
+    homeDirectory: home,
+    heartbeatIntervalMs: 60_000,
+    focusMainWindow: async () => undefined,
+    emitIntent: () => undefined,
+    appActivitySourceLaunch: async (id) => {
+      launched.push(id);
+      return { status: 'requested' };
+    },
+  });
+  try {
+    const descriptor = JSON.parse(await readFile(descriptorPath, 'utf8')) as { endpoint: string; token: string; bridgeId: string };
+    // The Kit carrier of another App's Host reaches the same exact endpoint.
+    assert.deepEqual(
+      await requestElectronAppActivitySourceLaunch({ host: { desktopOpen: { descriptorPath } }, openRequestId }),
+      { status: 'requested' },
+    );
+    assert.deepEqual(launched, [openRequestId]);
+    for (const body of [
+      { schemaVersion: 1, openRequestId, appId: 'com.example.studio' },
+      { schemaVersion: 1, openRequestId: 'aor_short' },
+      { schemaVersion: 2, openRequestId },
+      { schemaVersion: 1, openRequestId: `https://example.com/${'A'.repeat(20)}` },
+    ]) {
+      const rejected = await post(descriptor.endpoint, descriptor.token, body, DESKTOP_APP_ACTIVITY_SOURCE_LAUNCH_PATH);
+      assert.equal(rejected.status, 400);
+      assert.deepEqual(await rejected.json(), { bridgeId: descriptor.bridgeId, status: 'failed', reason: 'launch-failed' });
+    }
+    const unauthorized = await post(descriptor.endpoint, 'wrong-token', { schemaVersion: 1, openRequestId }, DESKTOP_APP_ACTIVITY_SOURCE_LAUNCH_PATH);
+    assert.equal(unauthorized.status, 401);
+    assert.deepEqual(launched, [openRequestId], 'rejected requests never reach the launch owner');
+  } finally {
+    await host.shutdown();
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
+test('Desktop launches only the Runtime-resolved exact source and reports launch separately from opening', async () => {
+  const installedSelector = new Uint8Array([1, 2, 3]);
+  const localSelector = new Uint8Array(32).fill(0xab);
+  const installedCalls: Uint8Array[] = [];
+  const localCalls: string[] = [];
+  let target: { sourceClass: 'installed' | 'local-development'; launchSelector: Uint8Array; appId: string } | Error = {
+    sourceClass: 'installed', launchSelector: installedSelector, appId: 'com.example.studio',
+  };
+  let runState = 'running';
+  const launch = createDesktopAppActivitySourceLaunch({
+    resolve: () => async () => {
+      if (target instanceof Error) throw target;
+      return target;
+    },
+    launchInstalled: () => async (selector) => {
+      installedCalls.push(selector);
+      return { state: runState };
+    },
+    startLocalDevelopment: () => async (registrationHandle) => {
+      localCalls.push(registrationHandle);
+      return registrationHandle === 'ab'.repeat(32);
+    },
+  });
+  assert.deepEqual(await launch('aor_request'), { status: 'requested' });
+  assert.equal(installedCalls[0], installedSelector);
+  runState = 'crashed';
+  assert.deepEqual(await launch('aor_request'), { status: 'failed', reason: 'launch-failed' });
+  target = { sourceClass: 'local-development', launchSelector: localSelector, appId: 'com.example.studio' };
+  assert.deepEqual(await launch('aor_request'), { status: 'requested' });
+  assert.deepEqual(localCalls, ['ab'.repeat(32)]);
+  target = new Error('open request unavailable');
+  assert.deepEqual(await launch('aor_request'), { status: 'failed', reason: 'launch-failed' });
+  const noRuntime = createDesktopAppActivitySourceLaunch({
+    resolve: () => undefined,
+    launchInstalled: () => undefined,
+    startLocalDevelopment: () => undefined,
+  });
+  assert.deepEqual(await noRuntime('aor_request'), { status: 'unavailable', reason: 'host-unavailable' });
 });
 
 async function post(

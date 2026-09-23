@@ -42,6 +42,7 @@ function buildBehaviorModules() {
     'src/lab/app-access/app-access-probes.ts',
     'src/lab/app-access/app-access-state.ts',
     'src/lab/app-access/app-access-mapping.ts',
+    'src/lab/activity/lab-activity-model.ts',
   ], {
     cwd: root,
     stdio: 'pipe',

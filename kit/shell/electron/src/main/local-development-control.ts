@@ -35,6 +35,7 @@ export type NimiElectronLocalDevelopmentBinding = {
   readonly desktopRemoveLocalDevelopmentRegistration: (input: Readonly<Record<string, unknown>>) => Promise<NativeJsonOutcome>;
   readonly desktopLaunchLocalDevelopmentHost: (input: Readonly<Record<string, unknown>>) => Promise<NativeJsonOutcome>;
   readonly desktopLocalDevelopmentHostRunning: (input: Readonly<Record<string, unknown>>) => Promise<NativeJsonOutcome>;
+  readonly desktopFocusLocalDevelopmentHost: (input: Readonly<Record<string, unknown>>) => Promise<NativeJsonOutcome>;
   readonly desktopTerminateLocalDevelopmentHost: (input: Readonly<Record<string, unknown>>) => Promise<NativeJsonOutcome>;
   readonly desktopEndLocalDevelopmentRun: (input: Readonly<Record<string, unknown>>) => Promise<NativeJsonOutcome>;
 };
@@ -58,6 +59,7 @@ export type NimiElectronLocalDevelopmentControl = {
     readonly workingDirectory: string;
   }) => Promise<{ readonly processId: number; readonly bindDeadlineUnixMs: number }>;
   readonly hostRunning: (supervisorRunId: string) => Promise<boolean>;
+  readonly focusHost: (supervisorRunId: string) => Promise<void>;
   readonly terminateHost: (supervisorRunId: string) => Promise<void>;
   readonly endRun: (registrationHandle: string, supervisorRunId: string) => Promise<void>;
 };
@@ -129,6 +131,14 @@ class ElectronLocalDevelopmentControl implements NimiElectronLocalDevelopmentCon
     return value.running;
   }
 
+  async focusHost(supervisorRunId: string) {
+    const value = exact(await invokeNative(
+      () => this.binding.desktopFocusLocalDevelopmentHost({ supervisorRunId: identifier(supervisorRunId) }),
+      'focus_local_development_host',
+    ), ['focused']);
+    if (value.focused !== true) invalid();
+  }
+
   async terminateHost(supervisorRunId: string) {
     const value = exact(await invokeNative(
       () => this.binding.desktopTerminateLocalDevelopmentHost({ supervisorRunId: identifier(supervisorRunId) }),
@@ -162,6 +172,7 @@ class LazyElectronLocalDevelopmentControl implements NimiElectronLocalDevelopmen
   removeRegistration: NimiElectronLocalDevelopmentControl['removeRegistration'] = (handle) => this.resolve().removeRegistration(handle);
   launch: NimiElectronLocalDevelopmentControl['launch'] = (input) => this.resolve().launch(input);
   hostRunning: NimiElectronLocalDevelopmentControl['hostRunning'] = (id) => this.resolve().hostRunning(id);
+  focusHost: NimiElectronLocalDevelopmentControl['focusHost'] = (id) => this.resolve().focusHost(id);
   terminateHost: NimiElectronLocalDevelopmentControl['terminateHost'] = (id) => this.resolve().terminateHost(id);
   endRun: NimiElectronLocalDevelopmentControl['endRun'] = (handle, runId) => this.resolve().endRun(handle, runId);
 }
@@ -266,6 +277,7 @@ function validateBinding(value: unknown): NimiElectronLocalDevelopmentBinding {
     'desktopRemoveLocalDevelopmentRegistration',
     'desktopLaunchLocalDevelopmentHost',
     'desktopLocalDevelopmentHostRunning',
+    'desktopFocusLocalDevelopmentHost',
     'desktopTerminateLocalDevelopmentHost',
     'desktopEndLocalDevelopmentRun',
   ];

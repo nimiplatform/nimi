@@ -477,6 +477,77 @@ const (
 	AIVIDEOPIXELFORMATRGB8        AiVideoPixelFormat = "AI_VIDEO_PIXEL_FORMAT_RGB8"
 )
 
+type AppActivityChangeKind string
+
+const (
+	APPACTIVITYCHANGEKINDUNSPECIFIED AppActivityChangeKind = "APP_ACTIVITY_CHANGE_KIND_UNSPECIFIED"
+	APPACTIVITYCHANGEKINDUPSERT      AppActivityChangeKind = "APP_ACTIVITY_CHANGE_KIND_UPSERT"
+	APPACTIVITYCHANGEKINDREMOVE      AppActivityChangeKind = "APP_ACTIVITY_CHANGE_KIND_REMOVE"
+)
+
+type AppActivityKind string
+
+const (
+	APPACTIVITYKINDUNSPECIFIED AppActivityKind = "APP_ACTIVITY_KIND_UNSPECIFIED"
+	APPACTIVITYKINDACTIVITY    AppActivityKind = "APP_ACTIVITY_KIND_ACTIVITY"
+	APPACTIVITYKINDTODO        AppActivityKind = "APP_ACTIVITY_KIND_TODO"
+)
+
+type AppActivityOpenCompletion string
+
+const (
+	APPACTIVITYOPENCOMPLETIONUNSPECIFIED       AppActivityOpenCompletion = "APP_ACTIVITY_OPEN_COMPLETION_UNSPECIFIED"
+	APPACTIVITYOPENCOMPLETIONOPENED            AppActivityOpenCompletion = "APP_ACTIVITY_OPEN_COMPLETION_OPENED"
+	APPACTIVITYOPENCOMPLETIONOBJECTUNAVAILABLE AppActivityOpenCompletion = "APP_ACTIVITY_OPEN_COMPLETION_OBJECT_UNAVAILABLE"
+)
+
+type AppActivityOpenLaunchSourceClass string
+
+const (
+	APPACTIVITYOPENLAUNCHSOURCECLASSUNSPECIFIED      AppActivityOpenLaunchSourceClass = "APP_ACTIVITY_OPEN_LAUNCH_SOURCE_CLASS_UNSPECIFIED"
+	APPACTIVITYOPENLAUNCHSOURCECLASSINSTALLED        AppActivityOpenLaunchSourceClass = "APP_ACTIVITY_OPEN_LAUNCH_SOURCE_CLASS_INSTALLED"
+	APPACTIVITYOPENLAUNCHSOURCECLASSLOCALDEVELOPMENT AppActivityOpenLaunchSourceClass = "APP_ACTIVITY_OPEN_LAUNCH_SOURCE_CLASS_LOCAL_DEVELOPMENT"
+)
+
+type AppActivityOpenOutcome string
+
+const (
+	APPACTIVITYOPENOUTCOMEUNSPECIFIED AppActivityOpenOutcome = "APP_ACTIVITY_OPEN_OUTCOME_UNSPECIFIED"
+	APPACTIVITYOPENOUTCOMEOPENED      AppActivityOpenOutcome = "APP_ACTIVITY_OPEN_OUTCOME_OPENED"
+	APPACTIVITYOPENOUTCOMEUNAVAILABLE AppActivityOpenOutcome = "APP_ACTIVITY_OPEN_OUTCOME_UNAVAILABLE"
+	APPACTIVITYOPENOUTCOMEFAILED      AppActivityOpenOutcome = "APP_ACTIVITY_OPEN_OUTCOME_FAILED"
+)
+
+type AppActivityOpenReason string
+
+const (
+	APPACTIVITYOPENREASONUNSPECIFIED         AppActivityOpenReason = "APP_ACTIVITY_OPEN_REASON_UNSPECIFIED"
+	APPACTIVITYOPENREASONOPENED              AppActivityOpenReason = "APP_ACTIVITY_OPEN_REASON_OPENED"
+	APPACTIVITYOPENREASONNOTOPENABLE         AppActivityOpenReason = "APP_ACTIVITY_OPEN_REASON_NOT_OPENABLE"
+	APPACTIVITYOPENREASONSOURCEUNAVAILABLE   AppActivityOpenReason = "APP_ACTIVITY_OPEN_REASON_SOURCE_UNAVAILABLE"
+	APPACTIVITYOPENREASONOBJECTUNAVAILABLE   AppActivityOpenReason = "APP_ACTIVITY_OPEN_REASON_OBJECT_UNAVAILABLE"
+	APPACTIVITYOPENREASONSOURCENOTREADY      AppActivityOpenReason = "APP_ACTIVITY_OPEN_REASON_SOURCE_NOT_READY"
+	APPACTIVITYOPENREASONCANCELED            AppActivityOpenReason = "APP_ACTIVITY_OPEN_REASON_CANCELED"
+	APPACTIVITYOPENREASONACTIVITYUNAVAILABLE AppActivityOpenReason = "APP_ACTIVITY_OPEN_REASON_ACTIVITY_UNAVAILABLE"
+)
+
+type AppActivitySourceKind string
+
+const (
+	APPACTIVITYSOURCEKINDUNSPECIFIED  AppActivitySourceKind = "APP_ACTIVITY_SOURCE_KIND_UNSPECIFIED"
+	APPACTIVITYSOURCEKINDAPP          AppActivitySourceKind = "APP_ACTIVITY_SOURCE_KIND_APP"
+	APPACTIVITYSOURCEKINDRUNTIMEAGENT AppActivitySourceKind = "APP_ACTIVITY_SOURCE_KIND_RUNTIME_AGENT"
+)
+
+type AppActivityTodoState string
+
+const (
+	APPACTIVITYTODOSTATEUNSPECIFIED AppActivityTodoState = "APP_ACTIVITY_TODO_STATE_UNSPECIFIED"
+	APPACTIVITYTODOSTATEOPEN        AppActivityTodoState = "APP_ACTIVITY_TODO_STATE_OPEN"
+	APPACTIVITYTODOSTATECOMPLETED   AppActivityTodoState = "APP_ACTIVITY_TODO_STATE_COMPLETED"
+	APPACTIVITYTODOSTATECANCELLED   AppActivityTodoState = "APP_ACTIVITY_TODO_STATE_CANCELLED"
+)
+
 type AppMessageEventType string
 
 const (
@@ -1777,6 +1848,15 @@ const (
 	AILOCALMODELSTORAGELINKUNSUPPORTED              ReasonCode = "AI_LOCAL_MODEL_STORAGE_LINK_UNSUPPORTED"
 	AILOCALMODELINVENTORYRECONCILIATIONREQUIRED     ReasonCode = "AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED"
 	AIMUSICRECOVERYCAPACITYEXCEEDED                 ReasonCode = "AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED"
+	APPACTIVITYINPUTINVALID                         ReasonCode = "APP_ACTIVITY_INPUT_INVALID"
+	APPACTIVITYREVISIONCONFLICT                     ReasonCode = "APP_ACTIVITY_REVISION_CONFLICT"
+	APPACTIVITYNOTFOUND                             ReasonCode = "APP_ACTIVITY_NOT_FOUND"
+	APPACTIVITYTOOLARGE                             ReasonCode = "APP_ACTIVITY_TOO_LARGE"
+	APPACTIVITYPAGETOKENINVALID                     ReasonCode = "APP_ACTIVITY_PAGE_TOKEN_INVALID"
+	APPACTIVITYCURSOREXPIRED                        ReasonCode = "APP_ACTIVITY_CURSOR_EXPIRED"
+	APPACTIVITYAGENTUNAVAILABLE                     ReasonCode = "APP_ACTIVITY_AGENT_UNAVAILABLE"
+	APPACTIVITYUNAVAILABLE                          ReasonCode = "APP_ACTIVITY_UNAVAILABLE"
+	APPACTIVITYOPENREQUESTUNAVAILABLE               ReasonCode = "APP_ACTIVITY_OPEN_REQUEST_UNAVAILABLE"
 )
 
 type ReasoningActivation string
@@ -2777,6 +2857,60 @@ type AppAIConfigPresetVoiceOptions struct {
 type AppAIConfigPresetVoiceOptionsQuery struct {
 }
 
+type AppActivityAgentAssociation struct {
+	AgentRef    string `json:"agent_ref,omitempty"`
+	DisplayName string `json:"display_name,omitempty"`
+}
+
+type AppActivityFilter struct {
+	SourceRef      string                 `json:"source_ref,omitempty"`
+	Kind           AppActivityKind        `json:"kind,omitempty"`
+	TodoStates     []AppActivityTodoState `json:"todo_states,omitempty"`
+	AgentRef       string                 `json:"agent_ref,omitempty"`
+	OccurredAfter  string                 `json:"occurred_after,omitempty"`
+	OccurredBefore string                 `json:"occurred_before,omitempty"`
+}
+
+type AppActivityOpenResult struct {
+	Outcome AppActivityOpenOutcome `json:"outcome,omitempty"`
+	Reason  AppActivityOpenReason  `json:"reason,omitempty"`
+}
+
+type AppActivityRecord struct {
+	ActivityId   string                       `json:"activity_id,omitempty"`
+	Source       *AppActivitySource           `json:"source,omitempty"`
+	Key          string                       `json:"key,omitempty"`
+	Revision     uint64                       `json:"revision,omitempty"`
+	Kind         AppActivityKind              `json:"kind,omitempty"`
+	TodoState    AppActivityTodoState         `json:"todo_state,omitempty"`
+	Attention    bool                         `json:"attention,omitempty"`
+	Title        string                       `json:"title,omitempty"`
+	Summary      string                       `json:"summary,omitempty"`
+	ObjectRef    string                       `json:"object_ref,omitempty"`
+	ActivityType string                       `json:"activity_type,omitempty"`
+	DataJson     string                       `json:"data_json,omitempty"`
+	Agent        *AppActivityAgentAssociation `json:"agent,omitempty"`
+	OccurredAt   string                       `json:"occurred_at,omitempty"`
+	PublishedAt  string                       `json:"published_at,omitempty"`
+	UpdatedAt    string                       `json:"updated_at,omitempty"`
+	ChangeSeq    uint64                       `json:"change_seq,omitempty"`
+	UserView     *AppActivityUserView         `json:"user_view,omitempty"`
+}
+
+type AppActivitySource struct {
+	Kind        AppActivitySourceKind `json:"kind,omitempty"`
+	SourceRef   string                `json:"source_ref,omitempty"`
+	AppId       string                `json:"app_id,omitempty"`
+	DisplayName string                `json:"display_name,omitempty"`
+	Available   bool                  `json:"available,omitempty"`
+}
+
+type AppActivityUserView struct {
+	ReadThroughRevision uint64 `json:"read_through_revision,omitempty"`
+	Unread              bool   `json:"unread,omitempty"`
+	NeedsAttention      bool   `json:"needs_attention,omitempty"`
+}
+
 type AppMessageEvent struct {
 	EventType     AppMessageEventType `json:"event_type,omitempty"`
 	Sequence      uint64              `json:"sequence,omitempty"`
@@ -3687,6 +3821,15 @@ type CommittedAppRelease struct {
 	CommittedAt    string                `json:"committed_at,omitempty"`
 	DisplayName    string                `json:"display_name,omitempty"`
 	AppAccess      []string              `json:"app_access,omitempty"`
+}
+
+type CompleteAppActivityOpenRequestRequest struct {
+	DeliveryId string                    `json:"delivery_id,omitempty"`
+	Completion AppActivityOpenCompletion `json:"completion,omitempty"`
+}
+
+type CompleteAppActivityOpenRequestResponse struct {
+	Accepted bool `json:"accepted,omitempty"`
 }
 
 type CompleteAppPackageUninstallRequest struct {
@@ -4714,6 +4857,18 @@ type ListAppAIConfigOptionsResponse struct {
 	CloudConnectors *AIConfigCloudConnectorOptions `json:"cloud_connectors,omitempty"`
 	CloudTargets    *AIConfigCloudTargetOptions    `json:"cloud_targets,omitempty"`
 	PresetVoices    *AppAIConfigPresetVoiceOptions `json:"preset_voices,omitempty"`
+}
+
+type ListAppActivitiesRequest struct {
+	Filter    *AppActivityFilter `json:"filter,omitempty"`
+	PageSize  uint32             `json:"page_size,omitempty"`
+	PageToken string             `json:"page_token,omitempty"`
+}
+
+type ListAppActivitiesResponse struct {
+	Records           []AppActivityRecord `json:"records,omitempty"`
+	NextPageToken     string              `json:"next_page_token,omitempty"`
+	BaselineChangeSeq uint64              `json:"baseline_change_seq,omitempty"`
 }
 
 type ListAppPackageJobsRequest struct {
@@ -6310,6 +6465,15 @@ type MachineLoadouts struct {
 	SelectionRevisions map[string]string  `json:"selection_revisions,omitempty"`
 }
 
+type MarkAppActivityReadRequest struct {
+	ActivityId        string `json:"activity_id,omitempty"`
+	DisplayedRevision uint64 `json:"displayed_revision,omitempty"`
+}
+
+type MarkAppActivityReadResponse struct {
+	Record *AppActivityRecord `json:"record,omitempty"`
+}
+
 type MaterializeRealmSourceRequest struct {
 	Context   *AgentRequestContext  `json:"context,omitempty"`
 	RequestId string                `json:"request_id,omitempty"`
@@ -6554,6 +6718,15 @@ type MusicTranscriptionInputProfile struct {
 	MaxDurationSeconds uint32   `json:"max_duration_seconds,omitempty"`
 	MaxSourceBytes     uint32   `json:"max_source_bytes,omitempty"`
 	SupportsRange      bool     `json:"supports_range,omitempty"`
+}
+
+type OpenAppActivityRequest struct {
+	ActivityId string `json:"activity_id,omitempty"`
+}
+
+type OpenAppActivityResponse struct {
+	OpenRequestId string                 `json:"open_request_id,omitempty"`
+	Result        *AppActivityOpenResult `json:"result,omitempty"`
 }
 
 type OpenConversationAnchorRequest struct {
@@ -6832,6 +7005,26 @@ type ProviderCatalogEntry struct {
 	ManagedSupported         bool   `json:"managed_supported,omitempty"`
 	InventoryMode            string `json:"inventory_mode,omitempty"`
 	InlineSupported          bool   `json:"inline_supported,omitempty"`
+}
+
+type PutAppActivityRequest struct {
+	Key          string               `json:"key,omitempty"`
+	Revision     uint64               `json:"revision,omitempty"`
+	Kind         AppActivityKind      `json:"kind,omitempty"`
+	TodoState    AppActivityTodoState `json:"todo_state,omitempty"`
+	Attention    bool                 `json:"attention,omitempty"`
+	Title        string               `json:"title,omitempty"`
+	Summary      string               `json:"summary,omitempty"`
+	ObjectRef    string               `json:"object_ref,omitempty"`
+	ActivityType string               `json:"activity_type,omitempty"`
+	DataJson     string               `json:"data_json,omitempty"`
+	OccurredAt   string               `json:"occurred_at,omitempty"`
+	AgentHandle  string               `json:"agent_handle,omitempty"`
+}
+
+type PutAppActivityResponse struct {
+	Record  *AppActivityRecord `json:"record,omitempty"`
+	Changed bool               `json:"changed,omitempty"`
 }
 
 type PutArtifactRequest struct {
@@ -7291,6 +7484,16 @@ type RequestRuntimeRestartRequest struct {
 type RequestRuntimeRestartResponse struct {
 	Accepted   bool       `json:"accepted,omitempty"`
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
+type ResolveAppActivityOpenLaunchRequest struct {
+	OpenRequestId string `json:"open_request_id,omitempty"`
+}
+
+type ResolveAppActivityOpenLaunchResponse struct {
+	SourceClass    AppActivityOpenLaunchSourceClass `json:"source_class,omitempty"`
+	LaunchSelector []byte                           `json:"launch_selector,omitempty"`
+	AppId          string                           `json:"app_id,omitempty"`
 }
 
 type ResolveDesktopAgentReferenceRequest struct {
@@ -7987,6 +8190,27 @@ type SubmitVideoSessionFrameResponse struct {
 type SubscribeAccountSessionEventsRequest struct {
 	Caller        *AccountCaller `json:"caller,omitempty"`
 	AfterSequence uint64         `json:"after_sequence,omitempty"`
+}
+
+type SubscribeAppActivityChangesRequest struct {
+	AfterChangeSeq uint64 `json:"after_change_seq,omitempty"`
+}
+
+type SubscribeAppActivityChangesResponse struct {
+	ChangeSeq  uint64                `json:"change_seq,omitempty"`
+	Kind       AppActivityChangeKind `json:"kind,omitempty"`
+	ActivityId string                `json:"activity_id,omitempty"`
+	Record     *AppActivityRecord    `json:"record,omitempty"`
+}
+
+type SubscribeAppActivityOpenRequestsRequest struct {
+}
+
+type SubscribeAppActivityOpenRequestsResponse struct {
+	DeliveryId   string `json:"delivery_id,omitempty"`
+	ActivityId   string `json:"activity_id,omitempty"`
+	ObjectRef    string `json:"object_ref,omitempty"`
+	ActivityType string `json:"activity_type,omitempty"`
 }
 
 type SubscribeAppMessagesRequest struct {
@@ -9655,6 +9879,70 @@ func (c RuntimeTypedClient) SubmitVideoSessionFrame(ctx context.Context, request
 		return SubmitVideoSessionFrameResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[SubmitVideoSessionFrameResponse](raw, "SubmitVideoSessionFrameResponse")
+}
+
+func (c RuntimeTypedClient) CompleteAppActivityOpenRequest(ctx context.Context, request CompleteAppActivityOpenRequestRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CompleteAppActivityOpenRequestResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppActivityService/CompleteAppActivityOpenRequest", request, metadata, timeoutMS)
+	if err != nil {
+		return CompleteAppActivityOpenRequestResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[CompleteAppActivityOpenRequestResponse](raw, "CompleteAppActivityOpenRequestResponse")
+}
+
+func (c RuntimeTypedClient) ListAppActivities(ctx context.Context, request ListAppActivitiesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListAppActivitiesResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppActivityService/ListAppActivities", request, metadata, timeoutMS)
+	if err != nil {
+		return ListAppActivitiesResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ListAppActivitiesResponse](raw, "ListAppActivitiesResponse")
+}
+
+func (c RuntimeTypedClient) MarkAppActivityRead(ctx context.Context, request MarkAppActivityReadRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (MarkAppActivityReadResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppActivityService/MarkAppActivityRead", request, metadata, timeoutMS)
+	if err != nil {
+		return MarkAppActivityReadResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[MarkAppActivityReadResponse](raw, "MarkAppActivityReadResponse")
+}
+
+func (c RuntimeTypedClient) OpenAppActivity(ctx context.Context, request OpenAppActivityRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[OpenAppActivityResponse], error) {
+	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeAppActivityService/OpenAppActivity", request, metadata, timeoutMS)
+	if err != nil {
+		return nil, err
+	}
+	return &RuntimeTypedStream[OpenAppActivityResponse]{reader: reader}, nil
+}
+
+func (c RuntimeTypedClient) PutAppActivity(ctx context.Context, request PutAppActivityRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PutAppActivityResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppActivityService/PutAppActivity", request, metadata, timeoutMS)
+	if err != nil {
+		return PutAppActivityResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[PutAppActivityResponse](raw, "PutAppActivityResponse")
+}
+
+func (c RuntimeTypedClient) ResolveAppActivityOpenLaunch(ctx context.Context, request ResolveAppActivityOpenLaunchRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResolveAppActivityOpenLaunchResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppActivityService/ResolveAppActivityOpenLaunch", request, metadata, timeoutMS)
+	if err != nil {
+		return ResolveAppActivityOpenLaunchResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ResolveAppActivityOpenLaunchResponse](raw, "ResolveAppActivityOpenLaunchResponse")
+}
+
+func (c RuntimeTypedClient) SubscribeAppActivityChanges(ctx context.Context, request SubscribeAppActivityChangesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[SubscribeAppActivityChangesResponse], error) {
+	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityChanges", request, metadata, timeoutMS)
+	if err != nil {
+		return nil, err
+	}
+	return &RuntimeTypedStream[SubscribeAppActivityChangesResponse]{reader: reader}, nil
+}
+
+func (c RuntimeTypedClient) SubscribeAppActivityOpenRequests(ctx context.Context, request SubscribeAppActivityOpenRequestsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[SubscribeAppActivityOpenRequestsResponse], error) {
+	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityOpenRequests", request, metadata, timeoutMS)
+	if err != nil {
+		return nil, err
+	}
+	return &RuntimeTypedStream[SubscribeAppActivityOpenRequestsResponse]{reader: reader}, nil
 }
 
 func (c RuntimeTypedClient) CancelAppPackageJob(ctx context.Context, request CancelAppPackageJobRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CancelAppPackageJobResponse, error) {

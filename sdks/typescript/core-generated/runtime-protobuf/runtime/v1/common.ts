@@ -1482,7 +1482,48 @@ export enum ReasonCode {
      *
      * @generated from protobuf enum value: AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED = 754;
      */
-    AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED = 754
+    AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED = 754,
+    /**
+     * App activity publication, query, read-state, and source open. Conflict
+     * covers same-revision content differences and stale revisions; cursor
+     * expired requires relisting instead of claiming a complete replay; open
+     * request unavailable covers late, foreign, or already resolved deliveries.
+     *
+     * @generated from protobuf enum value: APP_ACTIVITY_INPUT_INVALID = 763;
+     */
+    APP_ACTIVITY_INPUT_INVALID = 763,
+    /**
+     * @generated from protobuf enum value: APP_ACTIVITY_REVISION_CONFLICT = 755;
+     */
+    APP_ACTIVITY_REVISION_CONFLICT = 755,
+    /**
+     * @generated from protobuf enum value: APP_ACTIVITY_NOT_FOUND = 756;
+     */
+    APP_ACTIVITY_NOT_FOUND = 756,
+    /**
+     * @generated from protobuf enum value: APP_ACTIVITY_TOO_LARGE = 757;
+     */
+    APP_ACTIVITY_TOO_LARGE = 757,
+    /**
+     * @generated from protobuf enum value: APP_ACTIVITY_PAGE_TOKEN_INVALID = 758;
+     */
+    APP_ACTIVITY_PAGE_TOKEN_INVALID = 758,
+    /**
+     * @generated from protobuf enum value: APP_ACTIVITY_CURSOR_EXPIRED = 759;
+     */
+    APP_ACTIVITY_CURSOR_EXPIRED = 759,
+    /**
+     * @generated from protobuf enum value: APP_ACTIVITY_AGENT_UNAVAILABLE = 760;
+     */
+    APP_ACTIVITY_AGENT_UNAVAILABLE = 760,
+    /**
+     * @generated from protobuf enum value: APP_ACTIVITY_UNAVAILABLE = 761;
+     */
+    APP_ACTIVITY_UNAVAILABLE = 761,
+    /**
+     * @generated from protobuf enum value: APP_ACTIVITY_OPEN_REQUEST_UNAVAILABLE = 762;
+     */
+    APP_ACTIVITY_OPEN_REQUEST_UNAVAILABLE = 762
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

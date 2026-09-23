@@ -593,6 +593,54 @@ func (b *Backend) ensureSchema() error {
 			PRIMARY KEY(local_agent_ref, asset_ref)
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_runtime_agent_presentation_asset_agent ON runtime_agent_presentation_asset(local_agent_ref)`,
+		// App activity owner tables. Records, ordered changes, and the per-account
+		// change sequence commit together; see internal/services/appactivity.
+		`CREATE TABLE IF NOT EXISTS runtime_app_activity_account (
+			account_id TEXT PRIMARY KEY,
+			last_change_seq INTEGER NOT NULL CHECK (last_change_seq >= 0),
+			replay_floor_seq INTEGER NOT NULL CHECK (replay_floor_seq >= 0)
+		)`,
+		`CREATE TABLE IF NOT EXISTS runtime_app_activity_record (
+			activity_id TEXT PRIMARY KEY,
+			account_id TEXT NOT NULL,
+			publisher_kind TEXT NOT NULL CHECK (publisher_kind IN ('app', 'runtime_agent')),
+			publisher_ref TEXT NOT NULL,
+			publisher_key TEXT NOT NULL,
+			source_ref TEXT NOT NULL,
+			create_seq INTEGER NOT NULL CHECK (create_seq > 0),
+			change_seq INTEGER NOT NULL CHECK (change_seq > 0),
+			revision INTEGER NOT NULL CHECK (revision > 0),
+			content_hash TEXT NOT NULL,
+			kind TEXT NOT NULL CHECK (kind IN ('activity', 'todo')),
+			todo_state TEXT NOT NULL CHECK (todo_state IN ('', 'open', 'completed', 'cancelled')),
+			attention INTEGER NOT NULL CHECK (attention IN (0, 1)),
+			title TEXT NOT NULL,
+			summary TEXT NOT NULL,
+			object_ref TEXT NOT NULL,
+			activity_type TEXT NOT NULL,
+			data_json TEXT NOT NULL,
+			agent_local_ref TEXT NOT NULL,
+			agent_ref TEXT NOT NULL,
+			agent_display_name TEXT NOT NULL,
+			occurred_at_ms INTEGER NOT NULL,
+			published_at_ms INTEGER NOT NULL,
+			updated_at_ms INTEGER NOT NULL,
+			terminal_at_ms INTEGER NOT NULL,
+			read_through_revision INTEGER NOT NULL CHECK (read_through_revision >= 0 AND read_through_revision <= revision),
+			UNIQUE(account_id, publisher_kind, publisher_ref, publisher_key)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_runtime_app_activity_record_order ON runtime_app_activity_record(account_id, create_seq, activity_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_runtime_app_activity_record_agent ON runtime_app_activity_record(agent_local_ref)`,
+		`CREATE TABLE IF NOT EXISTS runtime_app_activity_change (
+			account_id TEXT NOT NULL,
+			change_seq INTEGER NOT NULL CHECK (change_seq > 0),
+			activity_id TEXT NOT NULL,
+			change_kind TEXT NOT NULL CHECK (change_kind IN ('upsert', 'remove')),
+			record_json TEXT NOT NULL,
+			committed_at_ms INTEGER NOT NULL,
+			PRIMARY KEY(account_id, change_seq)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_runtime_app_activity_change_record ON runtime_app_activity_change(activity_id)`,
 	}
 	for _, stmt := range stmts {
 		if _, err := b.writeDB.Exec(stmt); err != nil {

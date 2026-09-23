@@ -287,6 +287,7 @@ func (r agentAdminRuntime) terminateOwned(ctx context.Context, identity localAge
 		}
 	}
 	r.svc.eventStreamRuntime().broadcast(liveEvents, targetsByEvent)
+	r.svc.notifyAppActivity(identity.OwnerUserID)
 	return &runtimev1.TerminateAgentResponse{Ack: okAck()}, nil
 }
 

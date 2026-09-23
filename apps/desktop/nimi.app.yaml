@@ -6,4 +6,5 @@ app_access:
   - runtime.consume
   - agent.local
   - agent.configure
+  - app.activity
 disposition: first_party_host_with_formal_app_self

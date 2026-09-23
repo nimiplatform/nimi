@@ -232,6 +232,17 @@ function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
         snapshot: touched('agentConfigure.manager.snapshot'),
       },
     },
+    activity: {
+      put: touched('activity.put'),
+      list: touched('activity.list'),
+      subscribe: touched('activity.subscribe'),
+      markRead: touched('activity.markRead'),
+      open: touched('activity.open'),
+      openRequests: {
+        subscribe: touched('activity.openRequests.subscribe'),
+        complete: touched('activity.openRequests.complete'),
+      },
+    },
   };
 }
 
@@ -315,8 +326,9 @@ test('generated local-app session wire projection is posture-only', () => {
 test('local-app client hard-cuts the access workflow namespace', () => {
   const client = createNimiLocalAppClient({ standardShell: standardShell([]) });
   assert.deepEqual(Object.keys(client).sort(), [
-    'agentConfigure', 'agentRealtime', 'agents', 'ai', 'aiConfig', 'auth', 'conversation', 'currentUser', 'embodiment', 'realm', 'storage',
+    'activity', 'agentConfigure', 'agentRealtime', 'agents', 'ai', 'aiConfig', 'auth', 'conversation', 'currentUser', 'embodiment', 'realm', 'storage',
   ]);
+  assert.deepEqual(Object.keys(client.activity).sort(), ['list', 'markRead', 'onOpenRequest', 'open', 'put', 'subscribe']);
   assert.equal('permissions' in client, false);
   assert.equal('artifacts' in client, false);
   assert.deepEqual(Object.keys(client.ai).sort(), ['artifacts', 'realtime', 'scenario', 'scenarioJobs', 'text', 'videoSessions', 'voiceAssets']);

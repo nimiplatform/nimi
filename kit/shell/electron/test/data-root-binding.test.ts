@@ -121,6 +121,46 @@ describe('Electron standard data root binding', () => {
     });
   });
 
+  it('keeps an activity pull wait outside the exclusive product Host root gate', async () => {
+    let chain = Promise.resolve();
+    const exclusive = <T>(operation: () => Promise<T>): Promise<T> => {
+      const run = chain.then(operation);
+      chain = run.then(() => undefined, () => undefined);
+      return run;
+    };
+    let releaseNext: (() => void) | undefined;
+    const localAppHost = {
+      activitySubscribe: async () => ({ streamId: 'changes-1' }),
+      activityStreamNext: () => new Promise((resolve) => {
+        releaseNext = () => resolve({ completed: true });
+      }),
+      activityStreamClose: async () => ({ closed: true }),
+      activityList: async () => ({ records: [], nextPageToken: null, baselineChangeSeq: '0' }),
+    };
+    const ipcMain = registerBindingBridge({
+      standardShellHost: { localAppHost: localAppHost as never, runDataRootOperation: exclusive },
+    });
+    const event = createInvokeEvent().event;
+    const opened = await invokeBridge(ipcMain, event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.activitySubscribe'],
+      payload: { afterChangeSeq: '0' },
+    }) as { subscriptionId: string };
+    const waiting = invokeBridge(ipcMain, event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.activitySubscribe'],
+      payload: { action: 'next', subscriptionId: opened.subscriptionId },
+    });
+    await expect(invokeBridge(ipcMain, event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.activityList'],
+      payload: {
+        filter: { sourceRef: null, kind: null, todoStates: [], agentRef: null, occurredAfter: null, occurredBefore: null },
+        pageSize: 10,
+        pageToken: null,
+      },
+    })).resolves.toEqual({ records: [], nextPageToken: null, baselineChangeSeq: '0' });
+    releaseNext?.();
+    await expect(waiting).resolves.toMatchObject({ subscriptionId: 'changes-1', completed: true });
+  });
+
   it('fails closed when the Product Control binding has no selected data root', async () => {
     const ipcMain = registerBindingBridge({
       standardShellHost: {

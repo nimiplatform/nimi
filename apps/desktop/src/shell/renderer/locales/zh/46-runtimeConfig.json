@@ -693,7 +693,50 @@
     "continueLast": "继续上次",
     "continueLastBody": "接入后，这里会显示你在各个应用里未完成的内容。",
     "postedActivity": "发布了动态",
-    "viewAllActivity": "查看全部动态"
+    "viewAllActivity": "查看全部动态",
+    "appActivity": {
+      "pendingTitle": "待处理",
+      "pendingCount": "{{count}} 项未完成",
+      "pendingCountMore": "{{count}}+ 项未完成",
+      "pendingEmpty": "应用里暂时没有等你处理的事项。",
+      "recentTitle": "最近活动",
+      "recentEmpty": "应用还没有最近活动。",
+      "unavailable": "暂时无法读取应用活动。",
+      "retry": "重试",
+      "filterLabel": "筛选最近活动",
+      "filterAll": "全部",
+      "today": "今天",
+      "yesterday": "昨天",
+      "showMore": "显示更多",
+      "showLess": "收起",
+      "open": "打开",
+      "opening": "正在打开…",
+      "markRead": "标为已读",
+      "unread": "未读",
+      "needsAttention": "需要关注",
+      "unknownSource": "未知应用",
+      "withAgent": "关联 {{agent}}",
+      "runtimeTurnTitle": "在对话中回复了你",
+      "sourceUnavailable": "{{source}} 在这台设备上已不可用。",
+      "readFailed": "未能标为已读，请重试。",
+      "state": {
+        "open": "待办",
+        "completed": "已完成",
+        "cancelled": "已取消"
+      },
+      "result": {
+        "opened": "已在 {{source}} 中打开。",
+        "not-openable": "这一项无法打开。",
+        "activity-unavailable": "这一项已不可用。",
+        "source-unavailable": "{{source}} 在这台设备上不可用。",
+        "object-unavailable": "{{source}} 中已找不到这一项。",
+        "source-not-ready": "{{source}} 没有及时响应，请重试。",
+        "canceled": "已取消打开。",
+        "host-unavailable": "Nimi 暂时无法打开应用。",
+        "launch-failed": "{{source}} 未能启动。",
+        "error": "未能打开这一项，请重试。"
+      }
+    }
   },
   "local": {
     "confirmModelInstall": "确认安装“{{name}}”？模型总大小：{{size}}。已有内容会先校验并复用，仅在确认后下载缺失文件。",

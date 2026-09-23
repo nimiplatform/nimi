@@ -186,6 +186,7 @@ export {
 export type { NimiError } from '@nimiplatform/sdk/types';
 export { asNimiError, createNimiError, isNimiError, ReasonCode } from '@nimiplatform/sdk/types';
 export { AiVideoPixelFormat } from '@nimiplatform/sdk/runtime/wire-types';
+export { AppActivityOpenLaunchSourceClass } from '@nimiplatform/sdk/runtime/wire-types';
 
 // --- Nimi AI developer-experience primitives --------------------------------
 export {
@@ -298,6 +299,9 @@ export {
   createNimiLocalAppAgentReferencesRuntimeClient,
   createNimiLocalAppConversationRuntimeClient,
   createNimiLocalAppEmbodimentRuntimeClient,
+  createNimiLocalAppActivityRuntimeShell,
+  NIMI_APP_ACTIVITY_LAUNCH_FAILURE_GRACE_MS,
+  createNimiAppActivityView,
   createNimiLocalAppVoiceAssetsRuntimeClient,
   createNimiRealmChatRuntimeClient,
   createNimiRealmRealtimeRuntimeClient,

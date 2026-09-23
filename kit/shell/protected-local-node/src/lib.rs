@@ -19,7 +19,10 @@ use nimi_shell_protected_local::{
     DesktopAccountRealmUnaryResponse, DesktopAccountSessionEvent,
     DesktopAccountSessionStatusRequest, DesktopMachineProductUnaryMethod,
     DesktopMachineProductUnaryRequest, LocalAppAIConfigLocalOptionsRequest,
-    LocalAppAIConfigOverwriteRequest, LocalAppAgentCommitPresentationRequest,
+    LocalAppAIConfigOverwriteRequest, LocalAppActivityListRequest, LocalAppActivityMarkReadRequest,
+    LocalAppActivityOpenRequest, LocalAppActivityOpenRequestCompleteRequest,
+    LocalAppActivityPutRequest, LocalAppActivitySubscribeRequest, LocalAppActivityTimestamp,
+    LocalAppAgentCommitPresentationRequest,
     LocalAppAgentHandleRequest, LocalAppAgentManagerSnapshotRequest,
     LocalAppAgentMemoryCorrectRequest, LocalAppAgentMemoryDeleteRequest,
     LocalAppAgentMemoryForgetRequest, LocalAppAgentMemoryInspectRequest,
@@ -1108,6 +1111,22 @@ pub async fn desktop_local_development_host_running(
             NativeJsonOutcome::host_error(error)
         }
     }
+}
+
+#[napi(js_name = "desktopFocusLocalDevelopmentHost")]
+pub async fn desktop_focus_local_development_host(
+    input: NativeLocalDevelopmentRunInput,
+) -> NativeJsonOutcome {
+    let supervisor_run_id = match decode_identifier(&input.supervisor_run_id) {
+        Some(value) => value,
+        None => return NativeJsonOutcome::host_reason("runtime-service-untrusted", false),
+    };
+    invoke_desktop_json(|control| async move {
+        control
+            .focus_local_development_host(supervisor_run_id)
+            .map(|()| json!({ "focused": true }))
+    })
+    .await
 }
 
 #[napi(js_name = "desktopTerminateLocalDevelopmentHost")]

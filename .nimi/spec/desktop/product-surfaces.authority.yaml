@@ -176,7 +176,7 @@ units:
     kind: rule
     title: Home presents the personal AI overview
     modality: must
-    statement: Home presents quick start or continue-use actions, current machine AI preparation and Runtime availability, download progress or failures, available App updates, and an explicit Activity entry to the preserved feed and Create Post surface. Optional usage, cost and Agent activity appear only with trustworthy scoped data; missing data is not zero and raw maintenance panels are not embedded as the overview.
+    statement: Home presents quick start or continue-use actions, pending items and recent activity from the App activity protocol, current machine AI preparation and Runtime availability, download progress or failures, available App updates, and an explicit Activity entry to the preserved feed and Create Post surface. Optional usage, cost and Agent activity appear only with trustworthy scoped data; missing data is not zero and raw maintenance panels are not embedded as the overview.
     condition: Whenever Desktop renders or routes the Home primary-navigation tab.
     failure: Keep independent sections usable when a projection is unavailable, omit unsupported optional statistics, and preserve access to the activity feed and existing use surfaces.
     relations:
@@ -378,7 +378,7 @@ units:
   - id: definition.nimi.desktop.product-surfaces.home-overview
     kind: definition
     title: Nimi personal AI overview
-    meaning: The Home default pane is a Desktop-owned personal AI overview of existing usage entry points, machine preparation, downloads, App updates and Runtime availability. Each section consumes its existing owner projection independently; optional activity or usage summaries create no new execution, billing, social or readiness truth.
+    meaning: The Home default pane is a Desktop-owned personal AI overview of existing usage entry points, pending items and recent activity published through the App activity protocol, machine preparation, downloads, App updates and Runtime availability. Each section consumes its existing owner projection independently; optional activity or usage summaries create no new execution, billing, social or readiness truth.
   - id: definition.nimi.desktop.product-surfaces.global-downloads
     kind: definition
     title: Global preparation and downloads surface
@@ -393,3 +393,15 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.desktop.product-surfaces.global-downloads
+  - id: rule.nimi.desktop.product-surfaces.r035
+    kind: rule
+    title: Home activity consumes the public App activity client
+    modality: must
+    statement: Home reads App activity only through Desktop's formal App client and the same activity operations, merged view, and open action as every covered App; Pending shows open todos including read ones, Recent activity shows actual records grouped or filtered by source and Agent with Agent day groups taken from occurred time, each item shows source, title, summary, time, state, unread emphasis, and an open action only when the record has an App source object, unknown extension types use the standard card without App-specific parsing or executable content, reading is marked only by an explicit user view of the displayed revision, and Realm notifications, the Realm activity feed, and existing Home sections keep their own owners.
+    condition: Whenever Desktop renders, refreshes, reads, or opens App activity in Home.
+    failure: Show only the activity region as unavailable or empty on read failure or absence without blocking Desktop startup or other Home sections, show the typed unavailable or failed open result, and never merge Realm cursors, unread counts, or state into activity.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.home-overview
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-activity-record

@@ -46,7 +46,11 @@ import {
   toSerializedElectronShellError,
 } from './errors.js';
 import { writeElectronShellArtifact } from './artifacts.js';
-import { dispatchElectronLocalAppCommand, isElectronLocalAppCommand } from './local-app-commands.js';
+import {
+  dispatchElectronLocalAppCommand,
+  isElectronLocalAppCommand,
+  isElectronLocalAppPullWait,
+} from './local-app-commands.js';
 import {
   dispatchElectronLocalAppAssetMediaCommand,
   isElectronLocalAppAssetMediaCommand,
@@ -190,6 +194,7 @@ export function registerNimiElectronRuntimeBridge(
     ? createNimiElectronFormalAppLocalHostOwner({
         appId: 'nimi.desktop', profile: 'desktop', control: desktopControlHost,
         revealInOs: input.standardShellHost.revealInOs,
+        activityLaunch: input.standardShellHost.appActivitySourceLaunch,
       })
     : undefined;
   const standardShellHost = desktopFormalHostOwner && input.standardShellHost
@@ -497,7 +502,13 @@ export function registerNimiElectronRuntimeBridge(
     }
     if (effectiveStandardShellHost?.localAppHost && isElectronLocalAppCommand(command)) {
       const localHost = effectiveStandardShellHost.localAppHost;
-      return runDataRootOperation(async () => {
+      // A renderer pull waits for the next Runtime change. Like the Host-side
+      // pumps of other subscriptions it stays outside the exclusive data-root
+      // gate; a data-root change ends it through resource invalidation.
+      const gate = isElectronLocalAppPullWait(command, standardPayload)
+        ? <T>(operation: () => Promise<T>) => operation()
+        : runDataRootOperation;
+      return gate(async () => {
         const result = await rendererAssetStreams.run(assetOpening, localHost, command, standardPayload, () => dispatchElectronLocalAppCommand({
           host: localHost,
           payload: standardPayload,
@@ -627,6 +638,9 @@ export function registerNimiElectronRuntimeBridge(
       : {}),
     ...(desktopControlHost && desktopFormalHostOwner
       ? {
+          resolveAppActivityOpenLaunch: (openRequestId: string) => (
+            desktopFormalHostOwner.resolveAppActivityOpenLaunch(openRequestId)
+          ),
           revalidateAvatarHostTarget: (avatarHostTargetRef: string) => (
             revalidateDesktopAvatarHostTarget(
               desktopControlHost,

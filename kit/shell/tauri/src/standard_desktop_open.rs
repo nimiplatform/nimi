@@ -7,11 +7,39 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 use url::Url;
 
 const DESKTOP_OPEN_PATH: &str = "/v1/open-intent";
+const APP_ACTIVITY_SOURCE_LAUNCH_PATH: &str = "/v1/app-activity-source-launch";
+const APP_ACTIVITY_SOURCE_LAUNCH_TIMEOUT: Duration = Duration::from_secs(20);
+const APP_ACTIVITY_OPEN_REQUEST_ID_PREFIX: &str = "aor_";
+const APP_ACTIVITY_OPEN_REQUEST_ID_SUFFIX_BYTES: usize = 32;
 const MAX_HEARTBEAT_AGE_MS: i64 = 10_000;
 const TAURI_IDENTIFIER_PREFIX: &str = "ai.nimi.apps.";
+
+/// Desktop's answer to one App activity source launch request. `Requested`
+/// reports only that Desktop launched or focused the source; navigation is
+/// confirmed solely by the source App through Runtime.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum AppActivitySourceLaunch {
+    Requested,
+    Declined {
+        outcome: &'static str,
+        reason: &'static str,
+    },
+}
+
+impl AppActivitySourceLaunch {
+    const HOST_UNAVAILABLE: Self = Self::Declined {
+        outcome: "unavailable",
+        reason: "host-unavailable",
+    };
+    const LAUNCH_FAILED: Self = Self::Declined {
+        outcome: "failed",
+        reason: "launch-failed",
+    };
+}
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -122,6 +150,132 @@ pub async fn desktop_open_intent_open_intent(
             .and_then(Value::as_str)
             .unwrap_or_default(),
     ))
+}
+
+/// Asks the running Desktop Host, over the same presence descriptor and
+/// bearer-authenticated exact-loopback bridge as Desktop Open, to launch or
+/// focus the exact source of one Runtime-issued open request. The request id
+/// is Host-private; it never reaches renderer code. This never starts Desktop.
+pub(crate) async fn request_app_activity_source_launch(
+    open_request_id: &str,
+) -> AppActivitySourceLaunch {
+    if !valid_app_activity_open_request_id(open_request_id) {
+        return AppActivitySourceLaunch::LAUNCH_FAILED;
+    }
+    let Ok(descriptor) = read_presence_descriptor() else {
+        return AppActivitySourceLaunch::HOST_UNAVAILABLE;
+    };
+    send_app_activity_source_launch(&descriptor, open_request_id).await
+}
+
+async fn send_app_activity_source_launch(
+    descriptor: &DesktopOpenPresenceDescriptor,
+    open_request_id: &str,
+) -> AppActivitySourceLaunch {
+    let Ok(client) = reqwest::Client::builder()
+        .no_proxy()
+        .redirect(reqwest::redirect::Policy::none())
+        .timeout(APP_ACTIVITY_SOURCE_LAUNCH_TIMEOUT)
+        .build()
+    else {
+        return AppActivitySourceLaunch::HOST_UNAVAILABLE;
+    };
+    let Ok(body) = serde_json::to_vec(&json!({
+        "schemaVersion": 1,
+        "openRequestId": open_request_id,
+    })) else {
+        return AppActivitySourceLaunch::LAUNCH_FAILED;
+    };
+    let transport_failure = |error: reqwest::Error| {
+        if error.is_timeout() {
+            AppActivitySourceLaunch::LAUNCH_FAILED
+        } else {
+            AppActivitySourceLaunch::HOST_UNAVAILABLE
+        }
+    };
+    let response = match client
+        .post(format!(
+            "{}{}",
+            descriptor.endpoint, APP_ACTIVITY_SOURCE_LAUNCH_PATH
+        ))
+        .bearer_auth(&descriptor.token)
+        .header("content-type", "application/json")
+        .body(body)
+        .send()
+        .await
+    {
+        Ok(value) => value,
+        Err(error) => return transport_failure(error),
+    };
+    if matches!(
+        response.status(),
+        StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN
+    ) {
+        return AppActivitySourceLaunch::HOST_UNAVAILABLE;
+    }
+    let text = match response.text().await {
+        Ok(value) => value,
+        Err(error) => return transport_failure(error),
+    };
+    let Ok(raw) = serde_json::from_str::<Value>(&text) else {
+        return AppActivitySourceLaunch::HOST_UNAVAILABLE;
+    };
+    parse_app_activity_source_launch(&raw, &descriptor.bridge_id)
+}
+
+/// Accepts only the closed Desktop launch vocabulary: `requested`, or
+/// `unavailable` with `host-unavailable`/`source-unavailable`, or `failed`
+/// with `launch-failed`, from the exact running bridge.
+fn parse_app_activity_source_launch(
+    raw: &Value,
+    expected_bridge_id: &str,
+) -> AppActivitySourceLaunch {
+    let Some(record) = raw.as_object() else {
+        return AppActivitySourceLaunch::LAUNCH_FAILED;
+    };
+    if record
+        .get("bridgeId")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        != Some(expected_bridge_id)
+    {
+        return AppActivitySourceLaunch::LAUNCH_FAILED;
+    }
+    let mut fields = record
+        .keys()
+        .map(String::as_str)
+        .filter(|field| *field != "bridgeId")
+        .collect::<Vec<_>>();
+    fields.sort_unstable();
+    let status = record.get("status").and_then(Value::as_str);
+    let reason = record.get("reason").and_then(Value::as_str);
+    match (fields.as_slice(), status, reason) {
+        (["status"], Some("requested"), None) => AppActivitySourceLaunch::Requested,
+        (["reason", "status"], Some("unavailable"), Some("host-unavailable")) => {
+            AppActivitySourceLaunch::HOST_UNAVAILABLE
+        }
+        (["reason", "status"], Some("unavailable"), Some("source-unavailable")) => {
+            AppActivitySourceLaunch::Declined {
+                outcome: "unavailable",
+                reason: "source-unavailable",
+            }
+        }
+        (["reason", "status"], Some("failed"), Some("launch-failed")) => {
+            AppActivitySourceLaunch::LAUNCH_FAILED
+        }
+        _ => AppActivitySourceLaunch::LAUNCH_FAILED,
+    }
+}
+
+fn valid_app_activity_open_request_id(value: &str) -> bool {
+    value
+        .strip_prefix(APP_ACTIVITY_OPEN_REQUEST_ID_PREFIX)
+        .is_some_and(|suffix| {
+            suffix.len() == APP_ACTIVITY_OPEN_REQUEST_ID_SUFFIX_BYTES
+                && suffix
+                    .bytes()
+                    .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_' || byte == b'-')
+        })
 }
 
 fn compose_envelope(

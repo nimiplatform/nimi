@@ -143,6 +143,8 @@ export type DesktopElectronLocalDevelopmentHost = {
   }) => Promise<unknown>>>;
   readonly shutdown: () => Promise<void>;
   readonly startExactZhiyu: () => Promise<boolean>;
+  /** Starts the exact Runtime-resolved registration; an active run is reused. */
+  readonly startRegistrationHandle: (registrationHandle: string) => Promise<boolean>;
 };
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-035f
@@ -164,6 +166,7 @@ export async function createDesktopElectronLocalDevelopmentHost(input: {
     ])),
     shutdown: () => host.shutdown(),
     startExactZhiyu: () => host.startExactZhiyu(),
+    startRegistrationHandle: (registrationHandle) => host.startRegistrationHandle(registrationHandle),
   };
 }
 
@@ -227,6 +230,41 @@ export class ElectronLocalDevelopmentHost {
     if (command === 'local_development_project_readme') return this.readProjectReadme(exactPayload);
     if (command === 'local_development_project_icon') return this.readProjectIcon(exactPayload);
     return this.stopRegistrationRun(exactPayload);
+  }
+
+  // @nimi-authority: rule.nimi.desktop.bridge-ipc.r022
+  async startRegistrationHandle(registrationHandle: string): Promise<boolean> {
+    if (!/^[0-9a-f]{64}$/u.test(registrationHandle)) return false;
+    // Reuse and focus only the exact supervised source; pending launches keep
+    // waiting for their own handler without starting a second Host.
+    const running = [...this.runs.values()].find((run) => (
+      !run.stopped
+      && run.registrationHandle === registrationHandle
+      && (run.status.retryable || !RESTARTABLE_RUN_STATES.has(run.status.state))
+    ));
+    if (running) {
+      if (running.status.state === 'running') await this.control.focusHost(running.supervisorRunId);
+      return true;
+    }
+    const registration = (await this.control.listRegistrations())
+      .find((candidate) => candidate.registrationHandle === registrationHandle);
+    if (!registration || registration.project.shell !== 'electron') return false;
+    try {
+      await this.startIntent(
+        registration.project.appId,
+        registration.project.canonicalProjectRoot,
+        registration.project.shell,
+        undefined,
+        true,
+        registrationHandle,
+      );
+    } catch (error) {
+      // The same project is running under another registration, which is a
+      // different App subject; the requested source itself is unavailable.
+      if (error instanceof Error && error.message === 'local-development-registration-unavailable') return false;
+      throw error;
+    }
+    return true;
   }
 
   async startExactZhiyu(): Promise<boolean> {

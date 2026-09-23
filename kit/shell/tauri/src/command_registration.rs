@@ -167,6 +167,43 @@ pub const LOCAL_APP_COMMANDS: &[ShellCommandDescriptor] = &[
         boundary: ShellCommandBoundary::LocalApp,
     },
     ShellCommandDescriptor {
+        command_name: "local_app_activity_put",
+        rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_activity_put",
+        boundary: ShellCommandBoundary::LocalApp,
+    },
+    ShellCommandDescriptor {
+        command_name: "local_app_activity_list",
+        rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_activity_list",
+        boundary: ShellCommandBoundary::LocalApp,
+    },
+    ShellCommandDescriptor {
+        command_name: "local_app_activity_subscribe",
+        rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_activity_subscribe",
+        boundary: ShellCommandBoundary::LocalApp,
+    },
+    ShellCommandDescriptor {
+        command_name: "local_app_activity_mark_read",
+        rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_activity_mark_read",
+        boundary: ShellCommandBoundary::LocalApp,
+    },
+    ShellCommandDescriptor {
+        command_name: "local_app_activity_open",
+        rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_activity_open",
+        boundary: ShellCommandBoundary::LocalApp,
+    },
+    ShellCommandDescriptor {
+        command_name: "local_app_activity_open_requests_subscribe",
+        rust_path:
+            "nimi_shell_tauri::capabilities::local_app::local_app_activity_open_requests_subscribe",
+        boundary: ShellCommandBoundary::LocalApp,
+    },
+    ShellCommandDescriptor {
+        command_name: "local_app_activity_open_request_complete",
+        rust_path:
+            "nimi_shell_tauri::capabilities::local_app::local_app_activity_open_request_complete",
+        boundary: ShellCommandBoundary::LocalApp,
+    },
+    ShellCommandDescriptor {
         command_name: "local_app_agent_autonomy_snapshot",
         rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_agent_autonomy_snapshot",
         boundary: ShellCommandBoundary::LocalApp,
@@ -628,6 +665,13 @@ macro_rules! nimi_shell_tauri_local_app_standard_shell_handler {
             $crate::capabilities::local_app::local_app_agent_manager_snapshot,
             $crate::capabilities::local_app::local_app_embodiment_snapshot,
             $crate::capabilities::local_app::local_app_embodiment_subscribe,
+            $crate::capabilities::local_app::local_app_activity_put,
+            $crate::capabilities::local_app::local_app_activity_list,
+            $crate::capabilities::local_app::local_app_activity_subscribe,
+            $crate::capabilities::local_app::local_app_activity_mark_read,
+            $crate::capabilities::local_app::local_app_activity_open,
+            $crate::capabilities::local_app::local_app_activity_open_requests_subscribe,
+            $crate::capabilities::local_app::local_app_activity_open_request_complete,
             $crate::capabilities::local_app::local_app_agent_autonomy_snapshot,
             $crate::capabilities::local_app::local_app_agent_update_autonomy,
             $crate::capabilities::local_app::local_app_agent_presentation_snapshot,

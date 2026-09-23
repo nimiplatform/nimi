@@ -3,7 +3,7 @@
 These package-local notes cover the App-facing changes relevant to the current
 published baseline. They are not a complete reconstruction of older releases.
 
-## Unreleased (next 0.x minor)
+## 0.16.0 (development)
 
 - Add typed `audio.voice.convert` Local App spec and conversion projection with
   exact source/target identity checks, nested target reference ranges, the
@@ -59,6 +59,29 @@ published baseline. They are not a complete reconstruction of older releases.
   Runtime plus Kit/native delivery. Source builds do not make older published
   packages support these inputs. Job retention and music model capabilities
   are separate changes, not implied by audio preparation.
+
+- Breaking (0.x minor): the host-injected local-app `standardShell` now requires
+  an exact `activity` namespace (`put`, `list`, `subscribe`, `markRead`, `open`,
+  `openRequests.subscribe/complete`). Pair this SDK only with Kit 0.12.0 and the
+  matching Runtime; custom carriers must implement the namespace and carry
+  publisher `data` as opaque `dataJson` text.
+- Add `client.activity` for the `app.activity` App Access domain: publish or
+  update revisioned activity and todos in the App's own partition, list with
+  baseline paging, subscribe to account changes, mark the displayed revision
+  read, open a record's source object, and register `onOpenRequest` to confirm
+  navigation in the source App. Only the handler's confirmation yields `opened`;
+  a Host whose Desktop launch or focus fails still waits
+  `NIMI_APP_ACTIVITY_LAUNCH_FAILURE_GRACE_MS` for a running source's confirmation.
+- Add `createNimiAppActivityView` and `NimiAppActivityMergeState`: a filtered
+  projection that merges pages and changes by the highest change sequence,
+  keeps removed or filtered-out ids from resurrecting, and recovers every ended
+  subscription with a fresh listing baseline, immediately clearing the prior
+  session's records and rejecting its in-flight pages. It never marks anything read.
+  Listing pauses after `maxRecords` records per step: the snapshot then reports
+  `hasMore: true` and `complete: false`, and `loadMore()` continues the same
+  baseline.
+- Declare `app.activity` in `nimi.app.yaml` `app_access` before using the
+  client; undeclared calls fail closed.
 
 ## 0.14.0 (development)
 

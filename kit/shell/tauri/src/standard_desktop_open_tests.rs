@@ -421,3 +421,193 @@ fn result_mapping_strips_bridge_id_from_valid_rejected_result() {
         }),
     );
 }
+
+const ACTIVITY_OPEN_REQUEST_ID: &str = "aor_Q2l0eUxpZ2h0c0FyZUJyaWdodFRvbmln";
+const ACTIVITY_BRIDGE_ID: &str = "desktop-open-bridge-test";
+
+fn activity_launch_descriptor(port: u16) -> super::DesktopOpenPresenceDescriptor {
+    super::DesktopOpenPresenceDescriptor {
+        schema_version: 1,
+        bridge_id: ACTIVITY_BRIDGE_ID.to_string(),
+        endpoint: format!("http://127.0.0.1:{port}"),
+        token: "fixture-bridge-token".to_string(),
+        last_heartbeat_at: "2026-09-20T09:00:00Z".to_string(),
+    }
+}
+
+/// Serves exactly one HTTP exchange on loopback and returns the raw request.
+fn serve_activity_launch_once(
+    status_line: &'static str,
+    body: &'static str,
+) -> (u16, std::thread::JoinHandle<String>) {
+    use std::io::{Read, Write};
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("bind loopback fixture");
+    let port = listener.local_addr().expect("fixture address").port();
+    let server = std::thread::spawn(move || {
+        let (mut socket, _) = listener.accept().expect("accept launch request");
+        socket
+            .set_read_timeout(Some(std::time::Duration::from_secs(5)))
+            .expect("read timeout");
+        let mut request = Vec::new();
+        let mut buffer = [0_u8; 4096];
+        loop {
+            let read = socket.read(&mut buffer).expect("read launch request");
+            if read == 0 {
+                break;
+            }
+            request.extend_from_slice(&buffer[..read]);
+            let Some(header_end) = request.windows(4).position(|window| window == b"\r\n\r\n")
+            else {
+                continue;
+            };
+            let headers = String::from_utf8_lossy(&request[..header_end]).to_ascii_lowercase();
+            let length = headers
+                .lines()
+                .find_map(|line| line.strip_prefix("content-length:"))
+                .map(|value| value.trim().parse::<usize>().expect("content length"))
+                .unwrap_or(0);
+            if request.len() >= header_end + 4 + length {
+                break;
+            }
+        }
+        let response = format!(
+            "{status_line}\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}",
+            body.len()
+        );
+        socket
+            .write_all(response.as_bytes())
+            .expect("write launch response");
+        String::from_utf8(request).expect("UTF-8 launch request")
+    });
+    (port, server)
+}
+
+#[tokio::test]
+async fn activity_source_launch_posts_only_the_open_request_with_bridge_bearer_auth() {
+    let (port, server) = serve_activity_launch_once(
+        "HTTP/1.1 200 OK",
+        r#"{"bridgeId":"desktop-open-bridge-test","status":"requested"}"#,
+    );
+    let outcome = super::send_app_activity_source_launch(
+        &activity_launch_descriptor(port),
+        ACTIVITY_OPEN_REQUEST_ID,
+    )
+    .await;
+    assert_eq!(outcome, super::AppActivitySourceLaunch::Requested);
+    let request = server.join().expect("launch fixture");
+    assert!(request.starts_with("POST /v1/app-activity-source-launch HTTP/1.1\r\n"));
+    let (headers, body) = request.split_once("\r\n\r\n").expect("HTTP request framing");
+    assert!(headers
+        .to_ascii_lowercase()
+        .contains("\r\nauthorization: bearer fixture-bridge-token"));
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(body).expect("JSON launch body"),
+        json!({ "schemaVersion": 1, "openRequestId": ACTIVITY_OPEN_REQUEST_ID }),
+    );
+}
+
+#[tokio::test]
+async fn activity_source_launch_maps_refused_or_unreadable_desktop_to_host_unavailable() {
+    let (port, server) = serve_activity_launch_once("HTTP/1.1 403 Forbidden", "{}");
+    assert_eq!(
+        super::send_app_activity_source_launch(
+            &activity_launch_descriptor(port),
+            ACTIVITY_OPEN_REQUEST_ID,
+        )
+        .await,
+        super::AppActivitySourceLaunch::HOST_UNAVAILABLE,
+    );
+    server.join().expect("refusing fixture");
+
+    let (port, server) = serve_activity_launch_once("HTTP/1.1 200 OK", "not-json");
+    assert_eq!(
+        super::send_app_activity_source_launch(
+            &activity_launch_descriptor(port),
+            ACTIVITY_OPEN_REQUEST_ID,
+        )
+        .await,
+        super::AppActivitySourceLaunch::HOST_UNAVAILABLE,
+    );
+    server.join().expect("unreadable fixture");
+
+    let closed_port = {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("bind closed port");
+        listener.local_addr().expect("closed address").port()
+    };
+    assert_eq!(
+        super::send_app_activity_source_launch(
+            &activity_launch_descriptor(closed_port),
+            ACTIVITY_OPEN_REQUEST_ID,
+        )
+        .await,
+        super::AppActivitySourceLaunch::HOST_UNAVAILABLE,
+    );
+}
+
+#[test]
+fn activity_source_launch_accepts_only_the_closed_desktop_vocabulary() {
+    use super::AppActivitySourceLaunch;
+    let parse =
+        |raw: serde_json::Value| super::parse_app_activity_source_launch(&raw, ACTIVITY_BRIDGE_ID);
+    assert_eq!(
+        parse(json!({ "bridgeId": ACTIVITY_BRIDGE_ID, "status": "requested" })),
+        AppActivitySourceLaunch::Requested,
+    );
+    assert_eq!(
+        parse(json!({
+            "bridgeId": ACTIVITY_BRIDGE_ID, "status": "unavailable", "reason": "source-unavailable",
+        })),
+        AppActivitySourceLaunch::Declined {
+            outcome: "unavailable",
+            reason: "source-unavailable",
+        },
+    );
+    assert_eq!(
+        parse(json!({
+            "bridgeId": ACTIVITY_BRIDGE_ID, "status": "unavailable", "reason": "host-unavailable",
+        })),
+        AppActivitySourceLaunch::HOST_UNAVAILABLE,
+    );
+    assert_eq!(
+        parse(json!({
+            "bridgeId": ACTIVITY_BRIDGE_ID, "status": "failed", "reason": "launch-failed",
+        })),
+        AppActivitySourceLaunch::LAUNCH_FAILED,
+    );
+    for malformed in [
+        json!({ "bridgeId": "desktop-open-other-bridge", "status": "requested" }),
+        json!({ "status": "requested" }),
+        json!({ "bridgeId": ACTIVITY_BRIDGE_ID, "status": "requested", "reason": "opened" }),
+        json!({ "bridgeId": ACTIVITY_BRIDGE_ID, "status": "opened" }),
+        json!({ "bridgeId": ACTIVITY_BRIDGE_ID, "status": "failed", "reason": "host-unavailable" }),
+        json!({ "bridgeId": ACTIVITY_BRIDGE_ID, "status": "unavailable", "reason": "launch-failed" }),
+        json!({ "bridgeId": ACTIVITY_BRIDGE_ID, "status": "requested", "appId": "nimi.forged" }),
+        json!(["requested"]),
+    ] {
+        assert_eq!(
+            parse(malformed.clone()),
+            AppActivitySourceLaunch::LAUNCH_FAILED,
+            "{malformed}"
+        );
+    }
+}
+
+#[test]
+fn activity_open_request_id_is_the_exact_runtime_shape() {
+    assert!(super::valid_app_activity_open_request_id(
+        ACTIVITY_OPEN_REQUEST_ID
+    ));
+    for invalid in [
+        "",
+        "aor_",
+        "aod_Q2l0eUxpZ2h0c0FyZUJyaWdodFRvbmln",
+        "aor_Q2l0eUxpZ2h0c0FyZUJyaWdodFRvbml",
+        "aor_Q2l0eUxpZ2h0c0FyZUJyaWdodFRvbmlnX",
+        "aor_Q2l0eUxpZ2h0c0FyZUJyaWdodFRvbm/n",
+    ] {
+        assert!(
+            !super::valid_app_activity_open_request_id(invalid),
+            "{invalid}"
+        );
+    }
+}

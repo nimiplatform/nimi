@@ -121,6 +121,9 @@ pub use bundled_avatar::{
 };
 pub use carrier::{
     DesktopControlFuture, LocalAppAIConfigLocalOptionsRequest, LocalAppAIConfigOverwriteRequest,
+    LocalAppActivityListRequest, LocalAppActivityMarkReadRequest, LocalAppActivityOpenRequest,
+    LocalAppActivityOpenRequestCompleteRequest, LocalAppActivityPutRequest,
+    LocalAppActivitySubscribeRequest, LocalAppActivityTimestamp,
     LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest,
     LocalAppAgentManagerSnapshotRequest, LocalAppAgentMemoryCorrectRequest,
     LocalAppAgentMemoryDeleteRequest, LocalAppAgentMemoryForgetRequest,

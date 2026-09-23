@@ -494,6 +494,42 @@ describe('Electron formal App local host', () => {
     ]);
   });
 
+  it('never replays an activity publication or read mark after the formal session rebinds', async () => {
+    const calls: string[] = [];
+    const unary = vi.fn(async (input: { methodId: string }) => {
+      calls.push(input.methodId);
+      if (input.methodId.endsWith('/PutAppActivity') || input.methodId.endsWith('/MarkAppActivityRead')) {
+        throw new NimiElectronDesktopControlHostError('LOCAL_APP_SESSION_REVOKED', false);
+      }
+      if (input.methodId.endsWith('/RenewLocalAppSession')) {
+        return OpenLocalAppSessionResponse.toBinary(OpenLocalAppSessionResponse.create({
+          state: LocalAppSessionState.READY,
+          reasonCode: ReasonCode.ACTION_EXECUTED,
+          currentUserReasonCode: ReasonCode.CURRENT_USER_DISPLAY_UNAVAILABLE,
+        }));
+      }
+      throw new Error(`unexpected formal App method: ${input.methodId}`);
+    });
+    const host = createNimiElectronFormalAppLocalHost({
+      profile: 'desktop', appId: 'nimi.desktop',
+      control: { accountProductUnary: unary } as unknown as NimiElectronDesktopControlHost,
+    });
+
+    await expect(host.activityPut({
+      key: 'draft:1', revision: 1, kind: 'todo', todoState: 'open', attention: true, title: 'Review',
+      summary: null, objectRef: 'draft:1', type: 'com.example.studio.review-requested.v1',
+      dataJson: null, occurredAt: '2026-09-20T09:00:00.000Z', agentHandle: null,
+    })).rejects.toMatchObject({ reasonCode: 'revoked' });
+    await expect(host.activityMarkRead({ activityId: `act_${'0'.repeat(26)}`, displayedRevision: 1 }))
+      .rejects.toMatchObject({ reasonCode: 'revoked' });
+    expect(calls).toEqual([
+      '/nimi.runtime.v1.RuntimeAppActivityService/PutAppActivity',
+      '/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession',
+      '/nimi.runtime.v1.RuntimeAppActivityService/MarkAppActivityRead',
+      '/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession',
+    ]);
+  });
+
   it('invalidates local resources idempotently before Host reuse or shutdown', async () => {
     const runtime = control('avatar');
     const owner = createNimiElectronFormalAppLocalHostOwner({

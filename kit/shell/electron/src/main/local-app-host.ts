@@ -1,9 +1,16 @@
-import { validateNimiLocalAppTextAnnotationResult } from '@nimiplatform/kit/core/sdk-contract';
+import {
+  NIMI_APP_ACTIVITY_LAUNCH_FAILURE_GRACE_MS,
+  validateNimiLocalAppTextAnnotationResult,
+} from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppSpeechTranscript, validateNimiLocalAppAudioSeparation } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppMusicGeneration, validateNimiLocalAppMusicTranscription, validateNimiLocalAppVoiceConversion } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppArtifactUploadShellInput, validateNimiLocalAppArtifactUploadResult,
   type NimiLocalAppArtifactUploadShellInput } from '@nimiplatform/kit/core/sdk-contract';
 import { loadNimiElectronProtectedLocalPackage } from './protected-local-binding-loader.js';
+import {
+  requestElectronAppActivitySourceLaunch,
+  type NimiElectronAppActivitySourceLaunchResult,
+} from './app-activity-source-launch.js';
 
 const WINDOWS_X64_BINDING_PACKAGE = '@nimiplatform/kit-protected-local-win32-x64';
 const MACOS_ARM64_BINDING_PACKAGE = '@nimiplatform/kit-protected-local-darwin-arm64';
@@ -90,6 +97,13 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppConversationSnapshot',
   'localAppEmbodimentSnapshot',
   'localAppEmbodimentSubscribe',
+  'localAppActivityPut',
+  'localAppActivityList',
+  'localAppActivitySubscribe',
+  'localAppActivityMarkRead',
+  'localAppActivityOpen',
+  'localAppActivityOpenRequestsSubscribe',
+  'localAppActivityOpenRequestComplete',
   'localAppAiRealtimeOpen',
   'localAppAiRealtimeAppendInput',
   'localAppAiRealtimeSubmitOwnerControl',
@@ -404,6 +418,13 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppConversationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppEmbodimentSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppEmbodimentSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppActivityPut: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppActivityList: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppActivitySubscribe: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppActivityMarkRead: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppActivityOpen: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppActivityOpenRequestsSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppActivityOpenRequestComplete: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppRealmRealtimeOpen: () => Promise<NativeLocalAppOutcome>;
   readonly localAppRealmRealtimeSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppRealmRealtimeAck: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
@@ -515,6 +536,15 @@ export type NimiElectronLocalAppHost = {
   readonly conversationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly embodimentSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly embodimentSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly activityPut: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly activityList: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly activitySubscribe: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly activityMarkRead: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly activityOpen: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly activityOpenDeliveriesSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly activityOpenDeliveryComplete: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly activityStreamNext: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly activityStreamClose: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly realmRealtimeOpen: () => Promise<NimiElectronLocalAppRecord>;
   readonly realmRealtimeSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly realmRealtimeAck: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
@@ -592,6 +622,9 @@ const LOCAL_APP_BINDING_RETRY_SAFE_METHODS: ReadonlySet<string> = new Set([
   'localAppRealmPersonaCharacterGetOwned', 'localAppRealmChatList',
   'localAppAgentReferenceList', 'localAppAvatarHostTargetResolve',
   'localAppConversationSnapshot', 'localAppEmbodimentSnapshot',
+  // Activity publication and read marks are account-scoped mutations; after a
+  // rebind they are never replayed into the next session or account.
+  'localAppActivityList',
   'localAppAgentRealtimeStatus',
   'localAppSharedAgentAIConfigGet', 'localAppSharedAgentAIConfigLocalOptions',
   'localAppAgentManagerSnapshot', 'localAppAgentAutonomySnapshot',
@@ -713,6 +746,32 @@ function untrustedNativeOutcome(): NativeLocalAppOutcome {
   return { status: 'error', reasonCode: 'runtime-service-untrusted', retryable: false };
 }
 
+export type NimiElectronAppActivityLaunch = (openRequestId: string) => Promise<NimiElectronAppActivitySourceLaunchResult>;
+
+const defaultAppActivityLaunch: NimiElectronAppActivityLaunch = (openRequestId) => (
+  requestElectronAppActivitySourceLaunch({ openRequestId })
+);
+
+// Converts an ISO-8601 instant from the renderer carrier into the native
+// Timestamp input pair.
+function nativeTimestamp(value: unknown): { readonly seconds: string; readonly nanos: number } {
+  const millis = typeof value === 'string' ? Date.parse(value) : Number.NaN;
+  if (!Number.isFinite(millis)) throw new NimiElectronLocalAppHostError('invalid-payload', false);
+  const seconds = Math.floor(millis / 1000);
+  return { seconds: String(seconds), nanos: (millis - seconds * 1000) * 1_000_000 };
+}
+
+// Native optional fields are omitted rather than carried as null.
+function presentNativeFields(
+  fields: Readonly<Record<string, NimiElectronLocalAppJson | undefined>>,
+): NimiElectronLocalAppRecord {
+  const present: Record<string, NimiElectronLocalAppJson> = {};
+  for (const [name, value] of Object.entries(fields)) {
+    if (value !== undefined && value !== null) present[name] = value;
+  }
+  return present;
+}
+
 class ElectronLocalAppHost implements NimiElectronLocalAppHost {
   private readonly binding: NimiElectronProtectedLocalBinding;
   private readonly onSessionReady: () => void;
@@ -722,6 +781,7 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     binding: NimiElectronProtectedLocalBinding,
     onSessionChange: () => void = () => undefined,
     onSessionReady: () => void = () => undefined,
+    private readonly activityLaunch: NimiElectronAppActivityLaunch = defaultAppActivityLaunch,
   ) {
     this.onSessionReady = () => { notifySessionReady(this); onSessionReady(); };
     this.binding = withBoundedSessionRebind(binding, onSessionChange, this.onSessionReady);
@@ -1091,6 +1151,109 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
 
   embodimentSubscribe(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return invokeExactTextRecord(() => this.binding.localAppEmbodimentSubscribe(input), ['streamId']);
+  }
+
+  activityPut(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    const occurredAt = nativeTimestamp(input.occurredAt);
+    return invokeRecord(() => this.binding.localAppActivityPut(presentNativeFields({
+      key: input.key, revision: input.revision, kind: input.kind, todoState: input.todoState,
+      attention: input.attention, title: input.title, summary: input.summary, objectRef: input.objectRef,
+      activityType: input.type, dataJson: input.dataJson,
+      occurredAtSeconds: occurredAt.seconds, occurredAtNanos: occurredAt.nanos, agentHandle: input.agentHandle,
+    })));
+  }
+
+  activityList(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    const filter = (input.filter ?? {}) as Readonly<Record<string, NimiElectronLocalAppJson | undefined>>;
+    const after = typeof filter.occurredAfter === 'string' ? nativeTimestamp(filter.occurredAfter) : undefined;
+    const before = typeof filter.occurredBefore === 'string' ? nativeTimestamp(filter.occurredBefore) : undefined;
+    return invokeRecord(() => this.binding.localAppActivityList(presentNativeFields({
+      sourceRef: filter.sourceRef, kind: filter.kind,
+      todoStates: Array.isArray(filter.todoStates) ? filter.todoStates : [],
+      agentRef: filter.agentRef,
+      occurredAfterSeconds: after?.seconds, occurredAfterNanos: after?.nanos,
+      occurredBeforeSeconds: before?.seconds, occurredBeforeNanos: before?.nanos,
+      pageSize: input.pageSize, pageToken: input.pageToken,
+    })));
+  }
+
+  activitySubscribe(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeExactTextRecord(() => this.binding.localAppActivitySubscribe(presentNativeFields({ afterChangeSeq: input.afterChangeSeq })), ['streamId']);
+  }
+
+  activityMarkRead(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppActivityMarkRead(input));
+  }
+
+  // @nimi-authority: rule.nimi.platform.core-protocol.p-actv-005
+  // The Host consumes the Runtime-issued open request id for the Desktop
+  // launch; renderer code receives only the typed result.
+  async activityOpen(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    const opened = await invokeExactTextRecord(() => this.binding.localAppActivityOpen(presentNativeFields({ activityId: input.activityId })), ['streamId']);
+    const streamId = String(opened.streamId);
+    let closed = false;
+    const close = async () => {
+      if (closed) return;
+      closed = true;
+      await invokeConversationStreamClose(() => this.binding.localAppRealtimeStreamClose({ streamId })).catch(() => undefined);
+    };
+    let launchFailure: NimiElectronLocalAppRecord | undefined;
+    let graceTimer: ReturnType<typeof setTimeout> | undefined;
+    let graceElapsed: Promise<'grace-elapsed'> | undefined;
+    try {
+      while (true) {
+        const pending = invokeActivityStreamNext(
+          () => this.binding.localAppRealtimeStreamNext({ streamId }),
+          ACTIVITY_OPEN_EVENT_SHAPES,
+        );
+        const next = graceElapsed ? await Promise.race([pending, graceElapsed]) : await pending;
+        if (next === 'grace-elapsed') {
+          pending.catch(() => undefined);
+          return launchFailure!;
+        }
+        if (next.completed === true) {
+          closed = true;
+          return launchFailure ?? { outcome: 'failed', reason: 'source-not-ready' };
+        }
+        const event = next.event as Record<string, NimiElectronLocalAppJson> | undefined;
+        if (event && typeof event.openRequestId === 'string') {
+          const launched = await this.activityLaunch(event.openRequestId);
+          if (launched.status !== 'requested') {
+            // Only the source App's confirmation yields opened; a running
+            // source may still confirm although launch or focus failed.
+            launchFailure = { outcome: launched.status, reason: launched.reason };
+            graceElapsed = new Promise((resolve) => {
+              graceTimer = setTimeout(() => resolve('grace-elapsed'), NIMI_APP_ACTIVITY_LAUNCH_FAILURE_GRACE_MS);
+            });
+          }
+          continue;
+        }
+        const result = event?.result as Record<string, NimiElectronLocalAppJson> | undefined;
+        if (result && typeof result.outcome === 'string' && typeof result.reason === 'string') {
+          return { outcome: result.outcome, reason: result.reason };
+        }
+        throw new NimiElectronLocalAppHostError('runtime-service-untrusted', false);
+      }
+    } finally {
+      if (graceTimer !== undefined) clearTimeout(graceTimer);
+      await close();
+    }
+  }
+
+  activityOpenDeliveriesSubscribe(): Promise<NimiElectronLocalAppRecord> {
+    return invokeExactTextRecord(() => this.binding.localAppActivityOpenRequestsSubscribe({}), ['streamId']);
+  }
+
+  activityOpenDeliveryComplete(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppActivityOpenRequestComplete(input));
+  }
+
+  activityStreamNext(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeActivityStreamNext(() => this.binding.localAppRealtimeStreamNext(input));
+  }
+
+  activityStreamClose(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeConversationStreamClose(() => this.binding.localAppRealtimeStreamClose(input));
   }
 
   realmChatList(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
@@ -1467,6 +1630,42 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
     return this.resolve().embodimentSubscribe(input);
   }
 
+  activityPut(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().activityPut(input);
+  }
+
+  activityList(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().activityList(input);
+  }
+
+  activitySubscribe(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().activitySubscribe(input);
+  }
+
+  activityMarkRead(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().activityMarkRead(input);
+  }
+
+  activityOpen(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().activityOpen(input);
+  }
+
+  activityOpenDeliveriesSubscribe(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().activityOpenDeliveriesSubscribe(input);
+  }
+
+  activityOpenDeliveryComplete(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().activityOpenDeliveryComplete(input);
+  }
+
+  activityStreamNext(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().activityStreamNext(input);
+  }
+
+  activityStreamClose(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().activityStreamClose(input);
+  }
+
   realmChatList(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().realmChatList(input); }
   realmRealtimeOpen(): Promise<NimiElectronLocalAppRecord> { return this.resolve().realmRealtimeOpen(); }
   realmRealtimeSubscribe(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().realmRealtimeSubscribe(input); }
@@ -1594,6 +1793,10 @@ export function startNimiElectronLocalAppHostMaintenance(
     if (closed || rotating) return;
     rotating = true;
     try {
+      // A session the Runtime already invalidated, for example after an
+      // account change, must surface through the rebind path as a session
+      // change before renewal can install a fresh session for the App.
+      await host.sessionStatus();
       await host.renewTechnicalSession();
     } catch (error) {
       fail(error);
@@ -1626,8 +1829,9 @@ export function startNimiElectronLocalAppHostMaintenance(
 export function createNimiElectronLocalAppHostForBinding(
   binding: NimiElectronProtectedLocalBinding,
   onSessionChange: () => void = () => undefined,
+  activityLaunch: NimiElectronAppActivityLaunch = defaultAppActivityLaunch,
 ): NimiElectronLocalAppHost {
-  return new ElectronLocalAppHost(validateBinding(binding), onSessionChange);
+  return new ElectronLocalAppHost(validateBinding(binding), onSessionChange, () => undefined, activityLaunch);
 }
 
 /** @internal Platform-package resolver used by release and fail-closed tests. */
@@ -2461,6 +2665,32 @@ async function invokeRealtimeStreamNext(call: () => Promise<NativeLocalAppOutcom
   ]);
   if (!isRuntimeEnvelope && !isRealmEnvelope) throw untrustedRuntimeError();
   return Object.freeze({ completed: false, event: validateProjection(value.event) });
+}
+
+// Renderer-visible App activity pull streams carry exactly change and
+// open-delivery events; publisher data stays opaque text inside a record.
+const ACTIVITY_RENDERER_EVENT_SHAPES: readonly (readonly string[])[] = [
+  ['changeSeq', 'kind', 'activityId', 'record'],
+  ['changeSeq', 'kind', 'activityId'],
+  ['deliveryId', 'activityId', 'objectRef', 'type'],
+];
+// The Host-private open stream carries the open request id and the result.
+const ACTIVITY_OPEN_EVENT_SHAPES: readonly (readonly string[])[] = [['openRequestId'], ['result']];
+
+async function invokeActivityStreamNext(
+  call: () => Promise<NativeLocalAppOutcome>,
+  shapes: readonly (readonly string[])[] = ACTIVITY_RENDERER_EVENT_SHAPES,
+): Promise<NimiElectronLocalAppRecord> {
+  const value = await invoke(call);
+  if (!isPlainRecord(value) || typeof value.completed !== 'boolean') throw untrustedRuntimeError();
+  if (value.completed) {
+    if (!hasExactKeys(value, ['completed'])) throw untrustedRuntimeError();
+    return Object.freeze({ completed: true });
+  }
+  if (!hasExactKeys(value, ['completed', 'event']) || !isPlainRecord(value.event)) throw untrustedRuntimeError();
+  const event = value.event;
+  if (!shapes.some((shape) => hasExactKeys(event, [...shape]))) throw untrustedRuntimeError();
+  return Object.freeze({ completed: false, event: validateProjection(event) });
 }
 
 async function invokeConversationStreamClose(call: () => Promise<NativeLocalAppOutcome>): Promise<NimiElectronLocalAppRecord> {

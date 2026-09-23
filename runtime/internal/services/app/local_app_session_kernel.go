@@ -572,6 +572,15 @@ func (s *Service) AuthorizeLocalAppIngress(ctx context.Context, ingress localapp
 		localappop.OperationAgentRealtimeOutputInterrupt,
 		localappop.OperationAgentRealtimeClose:
 		capability = string(admission.Domain)
+	// @nimi-authority: rule.nimi.runtime.app-surface.r102
+	case localappop.OperationAppActivityPut,
+		localappop.OperationAppActivityList,
+		localappop.OperationAppActivitySubscribe,
+		localappop.OperationAppActivityMarkRead,
+		localappop.OperationAppActivityOpen,
+		localappop.OperationAppActivityOpenRequestSubscribe,
+		localappop.OperationAppActivityOpenRequestComplete:
+		capability = string(admission.Domain)
 	default:
 		ownerSupported = false
 	}

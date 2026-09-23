@@ -66,6 +66,37 @@
   behavior fix (patch); the public `Tooltip` props are unchanged. The new
   `TOOLTIP_EXIT_WATCHDOG_MS` constant is an additive public export (minor).
 
+- Breaking (0.x minor): the local-app standard shell adds the App activity
+  namespace and seven `nimi.shell.localApp.activity*` commands, carried by the
+  Electron host, the Desktop formal host, the protected-local Node-API binding
+  (native packages 0.12.0) and the Tauri shell (`nimi-shell-tauri` and
+  `nimi-shell-protected-local` 0.7.0). Pair Kit 0.12.0 with SDK 0.16.0 and
+  upgrade renderer, host glue and native carrier together.
+- Activity open is Host-mediated: the consumer Host receives the Runtime-issued
+  open request, asks the running Desktop to launch or focus the exact source
+  over the Desktop Open transport (`requestElectronAppActivitySourceLaunch`),
+  and returns only the Runtime result to renderer code. Renderer commands can
+  pull only their own activity subscriptions; the open request id never reaches
+  renderer code. When the launch or focus fails, the Host still reports a
+  running source's confirmation that arrives within
+  `NIMI_APP_ACTIVITY_LAUNCH_FAILURE_GRACE_MS` (5 s). A renderer pull that waits
+  for the next change stays outside a Host's exclusive data-root operation gate.
+- `createNimiElectronLocalAppHostForBinding` accepts an optional activity launch
+  function as its third argument, and the standard shell host accepts
+  `appActivitySourceLaunch` for Desktop's in-process launch owner.
+- Local-development activity source opening focuses the exact supervised
+  running Host through the private `focusHost` control and matching native
+  `desktopFocusLocalDevelopmentHost` binding; update native and Host packages
+  together. Cold starts continue through the existing launch owner.
+- After a session rebind, the Electron and Desktop formal hosts replay only
+  activity listing. Publication, read marks, change subscriptions and open
+  deliveries fail with the session reason instead of reaching the next session
+  or account; consumers re-list or re-subscribe explicitly.
+- The Electron local-app Host checks the session status before each routine
+  rotation, so a session the Runtime already invalidated (for example after an
+  account change) reaches `onSessionInvalidated` before renewal installs a fresh
+  session.
+
 - CanonicalComposer accepts optional `sendLabel` and `copy` props and forwards
   them to the inner ChatComposer, so hosts can localize the send button's
   accessible label and composer copy through the canonical surface. Compatible

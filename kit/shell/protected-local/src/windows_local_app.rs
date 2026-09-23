@@ -1,4 +1,5 @@
 mod agent_configure;
+mod app_activity;
 mod app_ai_config;
 mod music_input;
 mod avatar_host_target;
@@ -39,8 +40,11 @@ use crate::windows_service_control::open_verified_runtime_channel;
 use crate::windows_service_control::{open_verified_runtime_channel, SOURCE_LOCAL_APP_PIPE_REF};
 use crate::{
     LocalAppAIConfigLocalOptionsRequest, LocalAppAIConfigOverwriteRequest,
-    LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest,
-    LocalAppAgentManagerSnapshotRequest, LocalAppAgentMemoryCorrectRequest,
+    LocalAppActivityListRequest, LocalAppActivityMarkReadRequest, LocalAppActivityOpenRequest,
+    LocalAppActivityOpenRequestCompleteRequest, LocalAppActivityPutRequest,
+    LocalAppActivitySubscribeRequest, LocalAppAgentCommitPresentationRequest,
+    LocalAppAgentHandleRequest, LocalAppAgentManagerSnapshotRequest,
+    LocalAppAgentMemoryCorrectRequest,
     LocalAppAgentMemoryDeleteRequest, LocalAppAgentMemoryForgetRequest,
     LocalAppAgentMemoryInspectRequest, LocalAppAgentMemorySwitchRequest,
     LocalAppAgentPresentationAssetReadRequest, LocalAppAgentRealtimeAppendInputRequest,
@@ -978,6 +982,100 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
             embodiment::subscribe(self.checked_channel()?, request).await
+        })
+    }
+
+    fn activity_put(
+        &self,
+        request: LocalAppActivityPutRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            app_activity::put(self.checked_channel()?, request).await
+        })
+    }
+
+    fn activity_list(
+        &self,
+        request: LocalAppActivityListRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            app_activity::list(self.checked_channel()?, request).await
+        })
+    }
+
+    fn activity_subscribe(
+        &self,
+        request: LocalAppActivitySubscribeRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<LocalAppRealtimeSubscriptionReceiver, LocalAppOperationError>,
+                > + Send
+                + '_,
+        >,
+    > {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            app_activity::subscribe_changes(self.checked_channel()?, request).await
+        })
+    }
+
+    fn activity_mark_read(
+        &self,
+        request: LocalAppActivityMarkReadRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            app_activity::mark_read(self.checked_channel()?, request).await
+        })
+    }
+
+    fn activity_open(
+        &self,
+        request: LocalAppActivityOpenRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<LocalAppRealtimeSubscriptionReceiver, LocalAppOperationError>,
+                > + Send
+                + '_,
+        >,
+    > {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            app_activity::open(self.checked_channel()?, request).await
+        })
+    }
+
+    fn activity_open_requests_subscribe(
+        &self,
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<LocalAppRealtimeSubscriptionReceiver, LocalAppOperationError>,
+                > + Send
+                + '_,
+        >,
+    > {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            app_activity::subscribe_open_requests(self.checked_channel()?).await
+        })
+    }
+
+    fn activity_open_request_complete(
+        &self,
+        request: LocalAppActivityOpenRequestCompleteRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            app_activity::complete_open_request(self.checked_channel()?, request).await
         })
     }
 

@@ -14,6 +14,7 @@
     "proto/runtime/v1/ai_realtime.proto",
     "proto/runtime/v1/ai_scheduling.proto",
     "proto/runtime/v1/app.proto",
+    "proto/runtime/v1/app_activity.proto",
     "proto/runtime/v1/artifact_service.proto",
     "proto/runtime/v1/audit.proto",
     "proto/runtime/v1/auth.proto",

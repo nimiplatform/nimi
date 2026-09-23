@@ -370,6 +370,21 @@ export type NimiLocalAppConversationSubscription = {
 
 export type NimiLocalAppRealtimeSubscription = NimiLocalAppConversationSubscription;
 
+export type NimiLocalAppActivityShellSurface = {
+  readonly put: (input: JsonObject) => Promise<JsonObject>;
+  readonly list: (input: JsonObject) => Promise<JsonObject>;
+  readonly subscribe: (input: { readonly afterChangeSeq: string }) => Promise<NimiLocalAppConversationSubscription>;
+  readonly markRead: (input: { readonly activityId: string; readonly displayedRevision: number }) => Promise<JsonObject>;
+  readonly open: (input: { readonly activityId: string }) => Promise<JsonObject>;
+  readonly openRequests: {
+    readonly subscribe: () => Promise<NimiLocalAppConversationSubscription>;
+    readonly complete: (input: {
+      readonly deliveryId: string;
+      readonly completion: 'opened' | 'object-unavailable';
+    }) => Promise<JsonObject>;
+  };
+};
+
 export type NimiLocalAppEmbodimentShellSurface = {
   readonly snapshot: (input: NimiLocalAppConversationScopeInput) => Promise<JsonObject>;
   readonly subscribe: (input: NimiLocalAppConversationScopeInput & {
@@ -561,6 +576,7 @@ export type NimiLocalAppStandardShellSurface = {
     readonly snapshot: (input: NimiLocalAppConversationScopeInput) => Promise<JsonObject>;
   };
   readonly embodiment: NimiLocalAppEmbodimentShellSurface;
+  readonly activity: NimiLocalAppActivityShellSurface;
   readonly agentRealtime: {
     readonly open: (input: JsonObject) => Promise<JsonObject>;
     readonly appendInput: (input: JsonObject) => Promise<JsonObject>;
@@ -699,6 +715,17 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
     embodiment: {
       snapshot: getNimiLocalAppEmbodimentSnapshot,
       subscribe: subscribeNimiLocalAppEmbodiment,
+    },
+    activity: {
+      put: putNimiLocalAppActivity,
+      list: listNimiLocalAppActivities,
+      subscribe: subscribeNimiLocalAppActivityChanges,
+      markRead: markNimiLocalAppActivityRead,
+      open: openNimiLocalAppActivity,
+      openRequests: {
+        subscribe: subscribeNimiLocalAppActivityOpenRequests,
+        complete: completeNimiLocalAppActivityOpenRequest,
+      },
     },
     agentRealtime: {
       open: openNimiLocalAppAgentRealtime,
@@ -1685,6 +1712,153 @@ export function subscribeNimiLocalAppEmbodiment(
       command,
       requiredText(record.subscriptionId, 'subscriptionId', command, MAX_IDENTIFIER_LENGTH),
     );
+  });
+}
+
+const ACTIVITY_PUT_KEYS = [
+  'key', 'revision', 'kind', 'todoState', 'attention', 'title', 'summary', 'objectRef', 'type', 'dataJson',
+  'occurredAt', 'agentHandle',
+] as const;
+const ACTIVITY_FILTER_KEYS = ['sourceRef', 'kind', 'todoStates', 'agentRef', 'occurredAfter', 'occurredBefore'] as const;
+const MAX_ACTIVITY_DATA_JSON_BYTES = 32 * 1024;
+const MAX_ACTIVITY_TEXT_BYTES = 4096;
+
+function activityNullableText(value: unknown, field: string, command: string, maxBytes: number): string | null {
+  if (value === null) return null;
+  if (typeof value !== 'string' || value.length === 0 || new TextEncoder().encode(value).byteLength > maxBytes) {
+    throw invalidInput(command, `${field} is invalid`);
+  }
+  return value;
+}
+
+function activityRevision(value: unknown, field: string, command: string): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 1) {
+    throw invalidInput(command, `${field} is invalid`);
+  }
+  return value;
+}
+
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-kit-044
+export function putNimiLocalAppActivity(input: JsonObject): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.activityPut'];
+  assertExactInput(input, [...ACTIVITY_PUT_KEYS], command);
+  if (input.kind !== 'activity' && input.kind !== 'todo') throw invalidInput(command, 'kind is invalid');
+  if (typeof input.attention !== 'boolean') throw invalidInput(command, 'attention is invalid');
+  const payload: JsonObject = {
+    key: requiredText(input.key, 'key', command, MAX_IDENTIFIER_LENGTH),
+    revision: activityRevision(input.revision, 'revision', command),
+    kind: input.kind,
+    todoState: activityNullableText(input.todoState, 'todoState', command, 16),
+    attention: input.attention,
+    title: requiredUtf8Text(input.title, 'title', command, MAX_ACTIVITY_TEXT_BYTES),
+    summary: activityNullableText(input.summary, 'summary', command, MAX_ACTIVITY_TEXT_BYTES),
+    objectRef: activityNullableText(input.objectRef, 'objectRef', command, MAX_IDENTIFIER_LENGTH),
+    type: requiredText(input.type, 'type', command, 128),
+    dataJson: activityNullableText(input.dataJson, 'dataJson', command, MAX_ACTIVITY_DATA_JSON_BYTES),
+    occurredAt: requiredText(input.occurredAt, 'occurredAt', command, 64),
+    agentHandle: activityNullableText(input.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
+  };
+  return invokeChecked(command, { payload }, (value) => parseSafeProjection(value, command));
+}
+
+export function listNimiLocalAppActivities(input: JsonObject): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.activityList'];
+  assertExactInput(input, ['filter', 'pageSize', 'pageToken'], command);
+  const filter = assertRecord(input.filter, `${command}: filter is invalid`);
+  assertExactInput(filter, [...ACTIVITY_FILTER_KEYS], command);
+  if (!Array.isArray(filter.todoStates) || filter.todoStates.length > 3
+    || filter.todoStates.some((state) => typeof state !== 'string')) {
+    throw invalidInput(command, 'todoStates is invalid');
+  }
+  if (typeof input.pageSize !== 'number' || !Number.isSafeInteger(input.pageSize) || input.pageSize < 1 || input.pageSize > 100) {
+    throw invalidInput(command, 'pageSize is invalid');
+  }
+  const payload: JsonObject = {
+    filter: {
+      sourceRef: activityNullableText(filter.sourceRef, 'sourceRef', command, 64),
+      kind: activityNullableText(filter.kind, 'kind', command, 16),
+      todoStates: [...filter.todoStates] as string[],
+      agentRef: activityNullableText(filter.agentRef, 'agentRef', command, 64),
+      occurredAfter: activityNullableText(filter.occurredAfter, 'occurredAfter', command, 64),
+      occurredBefore: activityNullableText(filter.occurredBefore, 'occurredBefore', command, 64),
+    },
+    pageSize: input.pageSize,
+    pageToken: activityNullableText(input.pageToken, 'pageToken', command, 512),
+  };
+  return invokeChecked(command, { payload }, (value) => parseSafeProjection(value, command));
+}
+
+export function subscribeNimiLocalAppActivityChanges(
+  input: { readonly afterChangeSeq: string },
+): Promise<NimiLocalAppConversationSubscription> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.activitySubscribe'];
+  assertExactInput(input, ['afterChangeSeq'], command);
+  return invokeChecked(command, { payload: {
+    afterChangeSeq: decimalUint64(input.afterChangeSeq, 'afterChangeSeq', command, true),
+  } }, (value) => {
+    const record = assertRecord(value, `${command}: subscription open is invalid`);
+    assertProjectionKeys(record, ['subscriptionId'], command, 'activity subscription');
+    return new LocalAppPullSubscription(
+      command,
+      requiredText(record.subscriptionId, 'subscriptionId', command, MAX_IDENTIFIER_LENGTH),
+      'activity',
+    );
+  });
+}
+
+export function markNimiLocalAppActivityRead(
+  input: { readonly activityId: string; readonly displayedRevision: number },
+): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.activityMarkRead'];
+  assertExactInput(input, ['activityId', 'displayedRevision'], command);
+  return invokeChecked(command, { payload: {
+    activityId: requiredText(input.activityId, 'activityId', command, MAX_IDENTIFIER_LENGTH),
+    displayedRevision: activityRevision(input.displayedRevision, 'displayedRevision', command),
+  } }, (value) => parseSafeProjection(value, command));
+}
+
+export function openNimiLocalAppActivity(input: { readonly activityId: string }): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.activityOpen'];
+  return invokeChecked(
+    command,
+    { payload: identifiers(input, ['activityId'], command) },
+    (value) => {
+      const record = parseSafeProjection(value, command);
+      assertProjectionKeys(record, ['outcome', 'reason'], command, 'activity open result');
+      return record;
+    },
+  );
+}
+
+export function subscribeNimiLocalAppActivityOpenRequests(): Promise<NimiLocalAppConversationSubscription> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.activityOpenRequestsSubscribe'];
+  return invokeChecked(command, { payload: {} }, (value) => {
+    const record = assertRecord(value, `${command}: subscription open is invalid`);
+    assertProjectionKeys(record, ['subscriptionId'], command, 'activity open-request subscription');
+    return new LocalAppPullSubscription(
+      command,
+      requiredText(record.subscriptionId, 'subscriptionId', command, MAX_IDENTIFIER_LENGTH),
+      'activity open-request',
+    );
+  });
+}
+
+export function completeNimiLocalAppActivityOpenRequest(input: {
+  readonly deliveryId: string;
+  readonly completion: 'opened' | 'object-unavailable';
+}): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.activityOpenRequestComplete'];
+  assertExactInput(input, ['deliveryId', 'completion'], command);
+  if (input.completion !== 'opened' && input.completion !== 'object-unavailable') {
+    throw invalidInput(command, 'completion is invalid');
+  }
+  return invokeChecked(command, { payload: {
+    deliveryId: requiredText(input.deliveryId, 'deliveryId', command, MAX_IDENTIFIER_LENGTH),
+    completion: input.completion,
+  } }, (value) => {
+    const record = parseSafeProjection(value, command);
+    assertProjectionKeys(record, ['accepted'], command, 'activity open-request completion');
+    return record;
   });
 }
 
@@ -2921,6 +3095,71 @@ class LocalAppRealtimeEventSubscription implements NimiLocalAppRealtimeSubscript
   }
   private finish(): void { if (this.done) return; this.done = true; this.unlisten?.(); this.unlisten = undefined; for (const waiter of this.waiting.splice(0)) waiter.resolve({ done: true, value: undefined }); }
   private fail(error: unknown): void { if (this.done) return; this.terminalError = error; this.done = true; this.unlisten?.(); this.unlisten = undefined; for (const waiter of this.waiting.splice(0)) waiter.reject(error); }
+}
+
+class LocalAppPullSubscription implements NimiLocalAppConversationSubscription {
+  readonly events: AsyncIterable<unknown> = this;
+  private done = false;
+  private cancelPromise: Promise<void> | undefined;
+
+  constructor(
+    private readonly command: string,
+    private readonly subscriptionId: string,
+    private readonly label: string,
+  ) {}
+
+  [Symbol.asyncIterator](): AsyncIterator<unknown> {
+    return {
+      next: () => this.next(),
+      return: async () => {
+        await this.cancel();
+        return { done: true, value: undefined };
+      },
+    };
+  }
+
+  cancel(): Promise<void> {
+    if (this.cancelPromise) return this.cancelPromise;
+    this.done = true;
+    this.cancelPromise = invokeChecked(
+      this.command,
+      { payload: { action: 'cancel', subscriptionId: this.subscriptionId } },
+      (value) => {
+        const record = assertRecord(value, `${this.command}: cancel result is invalid`);
+        assertProjectionKeys(record, ['subscriptionId', 'closed'], this.command, `${this.label} cancel`);
+        if (record.subscriptionId !== this.subscriptionId || typeof record.closed !== 'boolean') {
+          throw new Error(`${this.command}: cancel result is invalid`);
+        }
+      },
+    );
+    return this.cancelPromise;
+  }
+
+  private async next(): Promise<IteratorResult<unknown>> {
+    if (this.done) return { done: true, value: undefined };
+    const result = await invokeChecked(
+      this.command,
+      { payload: { action: 'next', subscriptionId: this.subscriptionId } },
+      (value) => {
+        const record = assertRecord(value, `${this.command}: next result is invalid`);
+        if (record.completed === true) {
+          assertProjectionKeys(record, ['subscriptionId', 'completed'], this.command, `${this.label} completion`);
+          if (record.subscriptionId !== this.subscriptionId) throw new Error(`${this.command}: subscription binding is invalid`);
+          return { completed: true as const };
+        }
+        assertProjectionKeys(record, ['subscriptionId', 'completed', 'event'], this.command, `${this.label} event`);
+        if (record.subscriptionId !== this.subscriptionId || record.completed !== false) {
+          throw new Error(`${this.command}: subscription binding is invalid`);
+        }
+        return { completed: false as const, event: parseSafeProjection(record.event, this.command) };
+      },
+    );
+    if (result.completed) {
+      this.done = true;
+      return { done: true, value: undefined };
+    }
+    return { done: false, value: result.event };
+  }
 }
 
 class LocalAppEmbodimentPullSubscription implements NimiLocalAppConversationSubscription {

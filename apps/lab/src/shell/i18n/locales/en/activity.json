@@ -1,0 +1,53 @@
+{
+  "Activity": {
+    "title": "App activity",
+    "blurb": "Activity and to-dos that apps have published to this account, read through the same public client every App uses. Viewing here never marks anything read.",
+    "scopeLabel": "Activity scope",
+    "scope": {
+      "openTodos": "Open to-dos",
+      "all": "All activity"
+    },
+    "unavailable": "App activity is unavailable right now.",
+    "retry": "Try again",
+    "emptyOpen": "No open to-dos from your apps.",
+    "emptyAll": "No activity from your apps yet.",
+    "loadMore": "Load more",
+    "unread": "Unread",
+    "needsAttention": "Needs attention",
+    "markRead": "Mark as read",
+    "readFailed": "Couldn't mark this item as read. Try again.",
+    "open": "Open in {{source}}",
+    "technicalDetails": "Technical details",
+    "runtimeTurnTitle": "Replied in a conversation",
+    "state": {
+      "open": "To do",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "worldStudio": {
+      "task": {
+        "develop": "World proposal",
+        "cast": "Character concepts",
+        "review": "Consistency review"
+      },
+      "suggestions_one": "{{count}} suggestion",
+      "suggestions_other": "{{count}} suggestions",
+      "notes_one": "{{count}} note",
+      "notes_other": "{{count}} notes",
+      "adopted_one": "{{count}} adopted",
+      "adopted_other": "{{count}} adopted"
+    },
+    "result": {
+      "opened": "Opened in {{source}}.",
+      "not-openable": "This item can't be opened.",
+      "activity-unavailable": "This item is no longer available.",
+      "source-unavailable": "{{source}} is not available on this device.",
+      "object-unavailable": "{{source}} could not find this item anymore.",
+      "source-not-ready": "{{source}} didn't respond in time. Try again.",
+      "canceled": "Opening was cancelled.",
+      "host-unavailable": "Nimi can't open apps right now.",
+      "launch-failed": "{{source}} couldn't be started.",
+      "error": "Couldn't open this item. Try again."
+    }
+  }
+}

@@ -6,7 +6,10 @@ use nimi_shell_protected_local::MacOsLocalAppCarrier;
 use nimi_shell_protected_local::WindowsLocalAppCarrier;
 use nimi_shell_protected_local::{
     LocalAppAIConfigLocalOptionsRequest, LocalAppAIConfigOverwriteRequest,
-    LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest,
+    LocalAppActivityListRequest, LocalAppActivityMarkReadRequest, LocalAppActivityOpenRequest,
+    LocalAppActivityOpenRequestCompleteRequest, LocalAppActivityPutRequest,
+    LocalAppActivitySubscribeRequest, LocalAppAgentCommitPresentationRequest,
+    LocalAppAgentHandleRequest,
     LocalAppAgentManagerSnapshotRequest, LocalAppAgentMemoryCorrectRequest,
     LocalAppAgentMemoryDeleteRequest, LocalAppAgentMemoryForgetRequest,
     LocalAppAgentMemoryInspectRequest, LocalAppAgentMemorySwitchRequest,
@@ -44,6 +47,7 @@ use tokio::task::JoinHandle;
 
 const MAX_ASSET_STREAMS: usize = 8;
 const MAX_EMBODIMENT_STREAMS: usize = 8;
+const MAX_ACTIVITY_STREAMS: usize = 8;
 
 struct AssetWriteStream {
     sender: tokio::sync::mpsc::Sender<Vec<u8>>,
@@ -77,6 +81,162 @@ pub struct RuntimeBridgeEmbodimentNextResult {
     pub event: Option<serde_json::Value>,
 }
 
+pub struct RuntimeBridgeActivityNextResult {
+    pub completed: bool,
+    pub event: Option<serde_json::Value>,
+}
+
+#[derive(Clone)]
+enum ActivityStreamClosure {
+    Open,
+    Canceled,
+    Failed(LocalAppOperationError),
+}
+
+struct ActivityStream {
+    receiver: Mutex<Option<LocalAppRealtimeSubscriptionReceiver>>,
+    closure: watch::Sender<ActivityStreamClosure>,
+}
+
+impl ActivityStream {
+    /// Ends the stream for any pending pull and drops the carrier receiver,
+    /// which cancels the Runtime stream.
+    async fn close(&self, closure: ActivityStreamClosure) {
+        self.closure.send_replace(closure);
+        self.receiver.lock().await.take();
+    }
+}
+
+/// Renderer-pulled App activity stream registry. Each registry serves one
+/// exact command, so a subscription id never crosses between the change feed
+/// and the source open-request feed.
+struct ActivityStreams {
+    prefix: &'static str,
+    counter: AtomicU64,
+    streams: Mutex<HashMap<String, Arc<ActivityStream>>>,
+}
+
+impl ActivityStreams {
+    fn new(prefix: &'static str) -> Self {
+        Self {
+            prefix,
+            counter: AtomicU64::new(1),
+            streams: Mutex::new(HashMap::new()),
+        }
+    }
+
+    async fn ensure_capacity(&self) -> Result<(), LocalAppOperationError> {
+        if self.streams.lock().await.len() >= MAX_ACTIVITY_STREAMS {
+            return Err(LocalAppOperationError::new(
+                LocalAppReasonCode::ResourceExhausted,
+                false,
+            ));
+        }
+        Ok(())
+    }
+
+    async fn insert(
+        &self,
+        receiver: LocalAppRealtimeSubscriptionReceiver,
+    ) -> Result<String, LocalAppOperationError> {
+        let stream_id = format!(
+            "{}-{}",
+            self.prefix,
+            self.counter.fetch_add(1, Ordering::Relaxed)
+        );
+        let (closure, _) = watch::channel(ActivityStreamClosure::Open);
+        let mut streams = self.streams.lock().await;
+        if streams.len() >= MAX_ACTIVITY_STREAMS {
+            return Err(LocalAppOperationError::new(
+                LocalAppReasonCode::ResourceExhausted,
+                false,
+            ));
+        }
+        streams.insert(
+            stream_id.clone(),
+            Arc::new(ActivityStream {
+                receiver: Mutex::new(Some(receiver)),
+                closure,
+            }),
+        );
+        Ok(stream_id)
+    }
+
+    async fn next(
+        &self,
+        stream_id: &str,
+    ) -> Result<RuntimeBridgeActivityNextResult, LocalAppOperationError> {
+        let stream = self.streams.lock().await.get(stream_id).cloned();
+        let Some(stream) = stream else {
+            return Err(LocalAppOperationError::new(
+                LocalAppReasonCode::NotFound,
+                false,
+            ));
+        };
+        let mut closure_rx = stream.closure.subscribe();
+        let Ok(mut receiver_slot) = stream.receiver.try_lock() else {
+            return Err(LocalAppOperationError::new(
+                LocalAppReasonCode::InvalidPayload,
+                false,
+            ));
+        };
+        let closed = |closure: &ActivityStreamClosure| match closure {
+            ActivityStreamClosure::Open => None,
+            ActivityStreamClosure::Canceled => Some(Ok(RuntimeBridgeActivityNextResult {
+                completed: true,
+                event: None,
+            })),
+            ActivityStreamClosure::Failed(error) => Some(Err(error.clone())),
+        };
+        if let Some(result) = closed(&closure_rx.borrow()) {
+            return result;
+        }
+        let Some(receiver) = receiver_slot.as_mut() else {
+            return Ok(RuntimeBridgeActivityNextResult {
+                completed: true,
+                event: None,
+            });
+        };
+        let next = tokio::select! {
+            biased;
+            _ = closure_rx.changed() => None,
+            next = receiver.recv() => next,
+        };
+        let result = match next {
+            Some(Ok(event)) => {
+                return Ok(RuntimeBridgeActivityNextResult {
+                    completed: false,
+                    event: Some(event),
+                })
+            }
+            Some(Err(error)) => Err(error),
+            None => closed(&closure_rx.borrow()).unwrap_or(Ok(RuntimeBridgeActivityNextResult {
+                completed: true,
+                event: None,
+            })),
+        };
+        self.streams.lock().await.remove(stream_id);
+        result
+    }
+
+    async fn close(&self, stream_id: &str) -> bool {
+        let stream = self.streams.lock().await.remove(stream_id);
+        if let Some(stream) = stream.as_ref() {
+            stream.close(ActivityStreamClosure::Canceled).await;
+        }
+        stream.is_some()
+    }
+
+    async fn drain(&self) -> Vec<Arc<ActivityStream>> {
+        self.streams
+            .lock()
+            .await
+            .drain()
+            .map(|(_, stream)| stream)
+            .collect()
+    }
+}
+
 /// Host-only Tauri projection of one connection-bound Local App session.
 /// It exposes the same exact typed operations as the Electron Node-API addon.
 pub struct RuntimeBridgeLocalAppHost {
@@ -87,6 +247,8 @@ pub struct RuntimeBridgeLocalAppHost {
     asset_stream_counter: AtomicU64,
     embodiment_streams: Mutex<HashMap<String, Arc<EmbodimentStream>>>,
     embodiment_stream_counter: AtomicU64,
+    activity_streams: ActivityStreams,
+    activity_open_request_streams: ActivityStreams,
 }
 
 impl RuntimeBridgeLocalAppHost {
@@ -99,6 +261,8 @@ impl RuntimeBridgeLocalAppHost {
             asset_stream_counter: AtomicU64::new(1),
             embodiment_streams: Mutex::new(HashMap::new()),
             embodiment_stream_counter: AtomicU64::new(1),
+            activity_streams: ActivityStreams::new("activity"),
+            activity_open_request_streams: ActivityStreams::new("activity-open-requests"),
         }
     }
 
@@ -779,6 +943,127 @@ impl RuntimeBridgeLocalAppHost {
         stream.is_some()
     }
 
+    pub async fn activity_put(
+        &self,
+        request: LocalAppActivityPutRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.activity_put(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn activity_list(
+        &self,
+        request: LocalAppActivityListRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.activity_list(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn activity_subscribe(
+        &self,
+        request: LocalAppActivitySubscribeRequest,
+    ) -> Result<String, LocalAppOperationError> {
+        self.activity_streams.ensure_capacity().await?;
+        let session = self.current_or_open_session().await?;
+        match session.activity_subscribe(request).await {
+            Ok(receiver) => self.activity_streams.insert(receiver).await,
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn activity_stream_next(
+        &self,
+        stream_id: &str,
+    ) -> Result<RuntimeBridgeActivityNextResult, LocalAppOperationError> {
+        self.activity_streams.next(stream_id).await
+    }
+
+    pub async fn activity_stream_close(&self, stream_id: &str) -> bool {
+        self.activity_streams.close(stream_id).await
+    }
+
+    pub async fn activity_mark_read(
+        &self,
+        request: LocalAppActivityMarkReadRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.activity_mark_read(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    /// Host-private source-open stream. The caller consumes the open request
+    /// id for the Desktop launch and returns only the typed result.
+    pub async fn activity_open(
+        &self,
+        request: LocalAppActivityOpenRequest,
+    ) -> Result<LocalAppRealtimeSubscriptionReceiver, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.activity_open(request).await {
+            Ok(receiver) => Ok(receiver),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn activity_open_requests_subscribe(&self) -> Result<String, LocalAppOperationError> {
+        self.activity_open_request_streams.ensure_capacity().await?;
+        let session = self.current_or_open_session().await?;
+        match session.activity_open_requests_subscribe().await {
+            Ok(receiver) => self.activity_open_request_streams.insert(receiver).await,
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn activity_open_requests_stream_next(
+        &self,
+        stream_id: &str,
+    ) -> Result<RuntimeBridgeActivityNextResult, LocalAppOperationError> {
+        self.activity_open_request_streams.next(stream_id).await
+    }
+
+    pub async fn activity_open_requests_stream_close(&self, stream_id: &str) -> bool {
+        self.activity_open_request_streams.close(stream_id).await
+    }
+
+    pub async fn activity_open_request_complete(
+        &self,
+        request: LocalAppActivityOpenRequestCompleteRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.activity_open_request_complete(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
     pub async fn storage_read_json(
         &self,
         request: LocalAppStorageReadRequest,
@@ -1098,15 +1383,26 @@ impl RuntimeBridgeLocalAppHost {
             return;
         }
         let mut current = self.session.lock().await;
-        if current
+        if !current
             .as_ref()
             .is_some_and(|candidate| Arc::ptr_eq(candidate, session))
         {
-            *current = None;
-            for (_, stream) in self.asset_write_streams.lock().await.drain() {
-                stream.task.abort();
-            }
-            self.asset_read_streams.lock().await.clear();
+            return;
+        }
+        *current = None;
+        for (_, stream) in self.asset_write_streams.lock().await.drain() {
+            stream.task.abort();
+        }
+        self.asset_read_streams.lock().await.clear();
+        // Activity feeds are account-scoped: streams of the invalidated
+        // session end with its failure and never carry into a fresh bind.
+        let mut activity_streams = self.activity_streams.drain().await;
+        activity_streams.extend(self.activity_open_request_streams.drain().await);
+        drop(current);
+        for stream in activity_streams {
+            stream
+                .close(ActivityStreamClosure::Failed(error.clone()))
+                .await;
         }
     }
 }
@@ -1114,5 +1410,120 @@ impl RuntimeBridgeLocalAppHost {
 impl Default for RuntimeBridgeLocalAppHost {
     fn default() -> Self {
         Self::platform_default()
+    }
+}
+
+#[cfg(test)]
+mod activity_stream_tests {
+    use super::*;
+    use serde_json::json;
+
+    fn stream_pair() -> (
+        tokio::sync::mpsc::Sender<Result<serde_json::Value, LocalAppOperationError>>,
+        LocalAppRealtimeSubscriptionReceiver,
+    ) {
+        tokio::sync::mpsc::channel(4)
+    }
+
+    #[tokio::test]
+    async fn activity_stream_pulls_events_and_completes_with_the_runtime_stream() {
+        let streams = ActivityStreams::new("activity");
+        let (sender, receiver) = stream_pair();
+        let stream_id = streams.insert(receiver).await.expect("stream id");
+        assert_eq!(stream_id, "activity-1");
+        sender
+            .send(Ok(json!({ "changeSeq": "1", "kind": "remove", "activityId": "act_1" })))
+            .await
+            .expect("event");
+        let next = streams.next(&stream_id).await.expect("next event");
+        assert!(!next.completed);
+        assert_eq!(next.event.expect("event")["kind"], "remove");
+        drop(sender);
+        let next = streams.next(&stream_id).await.expect("completion");
+        assert!(next.completed);
+        assert_eq!(
+            streams
+                .next(&stream_id)
+                .await
+                .err()
+                .map(|error| error.reason_code()),
+            Some(LocalAppReasonCode::NotFound)
+        );
+    }
+
+    #[tokio::test]
+    async fn activity_stream_cancel_ends_a_pending_pull_and_drops_the_carrier_receiver() {
+        let streams = Arc::new(ActivityStreams::new("activity-open-requests"));
+        let (sender, receiver) = stream_pair();
+        let stream_id = streams.insert(receiver).await.expect("stream id");
+        let pending = {
+            let streams = Arc::clone(&streams);
+            let stream_id = stream_id.clone();
+            tokio::spawn(async move { streams.next(&stream_id).await })
+        };
+        tokio::task::yield_now().await;
+        assert!(streams.close(&stream_id).await);
+        let next = pending
+            .await
+            .expect("pending pull joins")
+            .expect("canceled pull completes");
+        assert!(next.completed);
+        assert!(sender.is_closed(), "cancel must release the carrier stream");
+        assert!(!streams.close(&stream_id).await);
+    }
+
+    #[tokio::test]
+    async fn drained_activity_streams_surface_the_session_failure() {
+        let streams = Arc::new(ActivityStreams::new("activity"));
+        let (sender, receiver) = stream_pair();
+        let stream_id = streams.insert(receiver).await.expect("stream id");
+        let pending = {
+            let streams = Arc::clone(&streams);
+            let stream_id = stream_id.clone();
+            tokio::spawn(async move { streams.next(&stream_id).await })
+        };
+        tokio::task::yield_now().await;
+        let failure = LocalAppOperationError::new(LocalAppReasonCode::AccountChanged, false);
+        for stream in streams.drain().await {
+            stream
+                .close(ActivityStreamClosure::Failed(failure.clone()))
+                .await;
+        }
+        let error = pending
+            .await
+            .expect("pending pull joins")
+            .err()
+            .expect("session failure reaches the pending pull");
+        assert_eq!(error.reason_code(), LocalAppReasonCode::AccountChanged);
+        assert!(sender.is_closed());
+    }
+
+    #[tokio::test]
+    async fn activity_stream_registry_is_bounded() {
+        let streams = ActivityStreams::new("activity");
+        let mut senders = Vec::new();
+        for _ in 0..MAX_ACTIVITY_STREAMS {
+            let (sender, receiver) = stream_pair();
+            streams.insert(receiver).await.expect("bounded stream");
+            senders.push(sender);
+        }
+        assert_eq!(
+            streams
+                .ensure_capacity()
+                .await
+                .err()
+                .map(|error| error.reason_code()),
+            Some(LocalAppReasonCode::ResourceExhausted)
+        );
+        let (sender, receiver) = stream_pair();
+        assert_eq!(
+            streams
+                .insert(receiver)
+                .await
+                .err()
+                .map(|error| error.reason_code()),
+            Some(LocalAppReasonCode::ResourceExhausted)
+        );
+        assert!(sender.is_closed(), "an over-limit stream is released at once");
     }
 }

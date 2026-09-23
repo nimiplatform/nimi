@@ -19,6 +19,7 @@ import { isDownloadTerminal } from '../runtime-config/runtime-config-model-cente
 import type { RuntimeAdvancedDiagnosticsPane } from '../runtime-config/runtime-config-state-types.js';
 import { HomeActivityColumn, type HomeAttentionItem } from './home-activity-column.js';
 import { HomeAgentCard } from './home-agent-card.js';
+import { HomeAppActivity } from './home-app-activity.js';
 import { HomeMachineStatus, homeRuntimeState } from './home-machine-status.js';
 
 const HOME_APP_LIMIT = 8;
@@ -76,6 +77,7 @@ export function NimiOverview() {
   const setChatMode = useAppStore((state) => state.setChatMode);
   const setAppsDetailAppId = useAppStore((state) => state.setAppsDetailAppId);
   const authUser = useAppStore((state) => state.auth.user);
+  const authStatus = useAppStore((state) => state.auth.status);
   const inventory = useCapabilityInventory();
   const downloads = useGlobalDownloads();
   const apps = useAppsOverview();
@@ -111,6 +113,9 @@ export function NimiOverview() {
   );
   const activeTransfers = downloads?.transfers.filter((item) => !isDownloadTerminal(item.state)) ?? [];
   const displayName = authUser ? String(authUser.displayName || authUser.handle || '') : '';
+  // Activity views belong to one account; a different account remounts them
+  // so the previous account's projection and subscriptions are dropped.
+  const activityAccountKey = authStatus === 'authenticated' && authUser?.id ? String(authUser.id) : null;
   const now = new Date();
   const firstRun = !apps.isError && apps.data?.status === 'loaded'
     && !apps.data.runtimeError && apps.data.catalogStatus !== 'unavailable'
@@ -318,6 +323,8 @@ export function NimiOverview() {
                   ) : null}
                 </section>
               )}
+
+              {activityAccountKey ? <HomeAppActivity key={activityAccountKey} /> : null}
 
               <HomeContinuePlaceholder />
 

@@ -1,6 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
 import { LoadingSkeleton, StatusBadge } from '@nimiplatform/kit/ui';
-import { AudioLines, Bot, Boxes, Cable, Compass, MessagesSquare } from 'lucide-react';
+import { AudioLines, Bot, Boxes, Cable, Compass, Inbox, MessagesSquare } from 'lucide-react';
 
 import { useAIStudioWorkspaceController } from '../ai-studio-core/index.js';
 import { useLabRendererHost } from '../renderer/context.js';
@@ -8,6 +8,7 @@ import type { LabEcosystemReferenceProjection } from '../renderer/contract.js';
 import { NimiLabAccountMenu } from '../shell/account/account-panel.js';
 import { useTranslation } from '../shell/i18n/index.js';
 import { WorkbenchCore, type WorkbenchNavigationGroup, type WorkbenchNavigationItem } from '../workbench-core/index.js';
+import { LabActivityPanel } from './activity/lab-activity-panel.js';
 import { AppAccessPanel } from './app-access/app-access-panel.js';
 import { getLabCapability, labCapabilities, type LabCapabilityId } from './lab-capabilities.js';
 import type { LabAIConfigSummary } from './lab-ai-config.js';
@@ -56,6 +57,7 @@ type LabWorkbenchNavigationId = LabCapabilityId
   | 'agent-conversation'
   | 'agent-realtime'
   | 'app-access'
+  | 'activity'
   | 'ui-recipes';
 
 export function LabWorkbench(_props: LabWorkbenchProps) {
@@ -154,6 +156,7 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
     },
   ], [t]);
   const bottomNavigationItems = useMemo<readonly WorkbenchNavigationItem<LabWorkbenchNavigationId>[]>(() => [
+    { id: 'activity', label: t('Activity.title'), icon: Inbox },
     { id: 'app-access', label: t('AppAccess.page.title'), icon: Cable },
     { id: 'ui-recipes', label: t('Workbench.uiRecipes'), icon: Boxes },
   ], [t]);
@@ -165,6 +168,7 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
   const activeNavigationId: LabWorkbenchNavigationId | null = view.kind === 'capability'
     ? view.capabilityId
     : view.kind === 'app-access'
+      || view.kind === 'activity'
       || view.kind === 'ui-recipes'
       || view.kind === 'agent-center'
       || view.kind === 'agent-conversation'
@@ -173,6 +177,7 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
       : null;
   const selectNavigationView = (id: LabWorkbenchNavigationId) => {
     if (id === 'app-access'
+      || id === 'activity'
       || id === 'ui-recipes'
       || id === 'agent-center'
       || id === 'agent-conversation'
@@ -207,6 +212,8 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
         <Suspense fallback={<LoadingFallback />}>
           <div className="h-full overflow-y-auto p-5"><AgentRealtimeCapability client={rendererHost.sdk.localAppClient} /></div>
         </Suspense>
+      ) : view.kind === 'activity' ? (
+        <LabActivityPanel />
       ) : view.kind === 'app-access' ? (
         <AppAccessPanel />
       ) : view.kind === 'ui-recipes' ? (

@@ -47,7 +47,10 @@ func protectedDesktopStreamMethodAllowed(method string) bool {
 		method == "/nimi.runtime.v1.RuntimeRealmRealtimeService/SubscribeRealmRealtimeEvents" ||
 		method == "/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents" ||
 		method == "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents" ||
-		method == "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents"
+		method == "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents" ||
+		method == "/nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityChanges" ||
+		method == "/nimi.runtime.v1.RuntimeAppActivityService/OpenAppActivity" ||
+		method == "/nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityOpenRequests"
 }
 
 func protectedDesktopMethodRole(method string) (protectedlocal.OriginRole, bool) {

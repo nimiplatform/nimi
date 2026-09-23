@@ -5,6 +5,7 @@ export type WorkbenchView =
   | { kind: 'capability'; capabilityId: LabCapabilityId }
   | { kind: 'ui-recipes' }
   | { kind: 'app-access' }
+  | { kind: 'activity' }
   | { kind: 'agent-center' }
   | { kind: 'agent-conversation' }
   | { kind: 'agent-realtime' }

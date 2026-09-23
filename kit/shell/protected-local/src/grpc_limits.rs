@@ -7,6 +7,7 @@ use crate::generated::runtime_agent_service_client::RuntimeAgentServiceClient;
 use crate::generated::runtime_ai_realtime_service_client::RuntimeAiRealtimeServiceClient;
 use crate::generated::runtime_ai_video_session_service_client::RuntimeAiVideoSessionServiceClient;
 use crate::generated::runtime_ai_service_client::RuntimeAiServiceClient;
+use crate::generated::runtime_app_activity_service_client::RuntimeAppActivityServiceClient;
 use crate::generated::runtime_app_service_client::RuntimeAppServiceClient;
 use crate::generated::runtime_auth_service_client::RuntimeAuthServiceClient;
 use crate::generated::runtime_development_service_client::RuntimeDevelopmentServiceClient;
@@ -52,6 +53,10 @@ limited_runtime_client!(runtime_ai_client, RuntimeAiServiceClient);
 limited_runtime_client!(runtime_ai_realtime_client, RuntimeAiRealtimeServiceClient);
 limited_runtime_client!(runtime_ai_video_session_client, RuntimeAiVideoSessionServiceClient);
 limited_runtime_client!(runtime_app_client, RuntimeAppServiceClient);
+limited_runtime_client!(
+    runtime_app_activity_client,
+    RuntimeAppActivityServiceClient
+);
 limited_runtime_client!(runtime_auth_client, RuntimeAuthServiceClient);
 limited_runtime_client!(runtime_development_client, RuntimeDevelopmentServiceClient);
 limited_runtime_client!(

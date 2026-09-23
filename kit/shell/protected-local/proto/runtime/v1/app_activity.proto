@@ -1,0 +1,244 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "google/protobuf/timestamp.proto";
+
+// App activity records are the account-scoped public projection of activity
+// and todos published by Registered App Subjects or the fixed Runtime Agent
+// publisher. They are not App-private business truth, a notification store, a
+// task engine, a command channel, or a generic App-to-App message bus.
+
+enum AppActivityKind {
+  APP_ACTIVITY_KIND_UNSPECIFIED = 0;
+  APP_ACTIVITY_KIND_ACTIVITY = 1;
+  APP_ACTIVITY_KIND_TODO = 2;
+}
+
+enum AppActivityTodoState {
+  APP_ACTIVITY_TODO_STATE_UNSPECIFIED = 0;
+  APP_ACTIVITY_TODO_STATE_OPEN = 1;
+  APP_ACTIVITY_TODO_STATE_COMPLETED = 2;
+  APP_ACTIVITY_TODO_STATE_CANCELLED = 3;
+}
+
+enum AppActivitySourceKind {
+  APP_ACTIVITY_SOURCE_KIND_UNSPECIFIED = 0;
+  APP_ACTIVITY_SOURCE_KIND_APP = 1;
+  APP_ACTIVITY_SOURCE_KIND_RUNTIME_AGENT = 2;
+}
+
+// Runtime-derived trusted source projection. source_ref is an account-scoped
+// non-authorizing grouping reference; it is not a Registered App Subject,
+// registration handle, launch selector, or credential.
+message AppActivitySource {
+  AppActivitySourceKind kind = 1;
+  string source_ref = 2;
+  string app_id = 3;
+  string display_name = 4;
+  bool available = 5;
+}
+
+// Non-authorizing Agent display and grouping association. agent_ref cannot be
+// used as an Agent handle and carries no Conversation or execution access.
+message AppActivityAgentAssociation {
+  string agent_ref = 1;
+  string display_name = 2;
+}
+
+// Runtime-derived shared user view for the current account.
+message AppActivityUserView {
+  uint64 read_through_revision = 1;
+  bool unread = 2;
+  bool needs_attention = 3;
+}
+
+message AppActivityRecord {
+  string activity_id = 1;
+  AppActivitySource source = 2;
+  string key = 3;
+  uint64 revision = 4;
+  AppActivityKind kind = 5;
+  AppActivityTodoState todo_state = 6;
+  bool attention = 7;
+  string title = 8;
+  string summary = 9;
+  // App-owned source object reference; empty when the record has none.
+  string object_ref = 10;
+  // Namespaced versioned extension type such as com.example.editor.review-requested.v1.
+  string activity_type = 11;
+  // Optional JSON object text owned by the publishing App; empty when absent.
+  string data_json = 12;
+  AppActivityAgentAssociation agent = 13;
+  google.protobuf.Timestamp occurred_at = 14;
+  google.protobuf.Timestamp published_at = 15;
+  google.protobuf.Timestamp updated_at = 16;
+  uint64 change_seq = 17;
+  AppActivityUserView user_view = 18;
+}
+
+message PutAppActivityRequest {
+  string key = 1;
+  uint64 revision = 2;
+  AppActivityKind kind = 3;
+  AppActivityTodoState todo_state = 4;
+  bool attention = 5;
+  string title = 6;
+  string summary = 7;
+  string object_ref = 8;
+  string activity_type = 9;
+  string data_json = 10;
+  google.protobuf.Timestamp occurred_at = 11;
+  // Optional current session-scoped Agent handle. Runtime resolves it through
+  // the session's existing Agent handle admission; it is never stored or
+  // projected.
+  string agent_handle = 12;
+}
+
+message PutAppActivityResponse {
+  AppActivityRecord record = 1;
+  // False when an identical same-revision retry returned the existing record.
+  bool changed = 2;
+}
+
+message AppActivityFilter {
+  string source_ref = 1;
+  AppActivityKind kind = 2;
+  repeated AppActivityTodoState todo_states = 3;
+  string agent_ref = 4;
+  google.protobuf.Timestamp occurred_after = 5;
+  google.protobuf.Timestamp occurred_before = 6;
+}
+
+message ListAppActivitiesRequest {
+  AppActivityFilter filter = 1;
+  uint32 page_size = 2;
+  string page_token = 3;
+}
+
+message ListAppActivitiesResponse {
+  repeated AppActivityRecord records = 1;
+  string next_page_token = 2;
+  // Subscription baseline fixed by the first page and reused by continuations.
+  uint64 baseline_change_seq = 3;
+}
+
+enum AppActivityChangeKind {
+  APP_ACTIVITY_CHANGE_KIND_UNSPECIFIED = 0;
+  APP_ACTIVITY_CHANGE_KIND_UPSERT = 1;
+  APP_ACTIVITY_CHANGE_KIND_REMOVE = 2;
+}
+
+message SubscribeAppActivityChangesRequest {
+  uint64 after_change_seq = 1;
+}
+
+message SubscribeAppActivityChangesResponse {
+  uint64 change_seq = 1;
+  AppActivityChangeKind kind = 2;
+  string activity_id = 3;
+  // Complete projection of this commit for upsert; absent for remove.
+  AppActivityRecord record = 4;
+}
+
+message MarkAppActivityReadRequest {
+  string activity_id = 1;
+  uint64 displayed_revision = 2;
+}
+
+message MarkAppActivityReadResponse {
+  AppActivityRecord record = 1;
+}
+
+enum AppActivityOpenOutcome {
+  APP_ACTIVITY_OPEN_OUTCOME_UNSPECIFIED = 0;
+  APP_ACTIVITY_OPEN_OUTCOME_OPENED = 1;
+  APP_ACTIVITY_OPEN_OUTCOME_UNAVAILABLE = 2;
+  APP_ACTIVITY_OPEN_OUTCOME_FAILED = 3;
+}
+
+enum AppActivityOpenReason {
+  APP_ACTIVITY_OPEN_REASON_UNSPECIFIED = 0;
+  APP_ACTIVITY_OPEN_REASON_OPENED = 1;
+  APP_ACTIVITY_OPEN_REASON_NOT_OPENABLE = 2;
+  APP_ACTIVITY_OPEN_REASON_SOURCE_UNAVAILABLE = 3;
+  APP_ACTIVITY_OPEN_REASON_OBJECT_UNAVAILABLE = 4;
+  APP_ACTIVITY_OPEN_REASON_SOURCE_NOT_READY = 5;
+  APP_ACTIVITY_OPEN_REASON_CANCELED = 6;
+  APP_ACTIVITY_OPEN_REASON_ACTIVITY_UNAVAILABLE = 7;
+}
+
+message OpenAppActivityRequest {
+  string activity_id = 1;
+}
+
+// The first event carries a Host-private one-use open request id consumed only
+// by the consumer Kit Host for Desktop launch; the final event carries the
+// typed result. Renderer code never receives the open request id.
+message OpenAppActivityResponse {
+  oneof event {
+    string open_request_id = 1;
+    AppActivityOpenResult result = 2;
+  }
+}
+
+message AppActivityOpenResult {
+  AppActivityOpenOutcome outcome = 1;
+  AppActivityOpenReason reason = 2;
+}
+
+message SubscribeAppActivityOpenRequestsRequest {}
+
+message SubscribeAppActivityOpenRequestsResponse {
+  string delivery_id = 1;
+  string activity_id = 2;
+  string object_ref = 3;
+  string activity_type = 4;
+}
+
+enum AppActivityOpenCompletion {
+  APP_ACTIVITY_OPEN_COMPLETION_UNSPECIFIED = 0;
+  APP_ACTIVITY_OPEN_COMPLETION_OPENED = 1;
+  APP_ACTIVITY_OPEN_COMPLETION_OBJECT_UNAVAILABLE = 2;
+}
+
+message CompleteAppActivityOpenRequestRequest {
+  string delivery_id = 1;
+  AppActivityOpenCompletion completion = 2;
+}
+
+message CompleteAppActivityOpenRequestResponse {
+  // False when the request already expired, was cancelled, or was resolved.
+  bool accepted = 1;
+}
+
+enum AppActivityOpenLaunchSourceClass {
+  APP_ACTIVITY_OPEN_LAUNCH_SOURCE_CLASS_UNSPECIFIED = 0;
+  APP_ACTIVITY_OPEN_LAUNCH_SOURCE_CLASS_INSTALLED = 1;
+  APP_ACTIVITY_OPEN_LAUNCH_SOURCE_CLASS_LOCAL_DEVELOPMENT = 2;
+}
+
+// Protected Desktop control only: resolves the exact source registration of a
+// pending open request for Desktop launch or focus.
+message ResolveAppActivityOpenLaunchRequest {
+  string open_request_id = 1;
+}
+
+message ResolveAppActivityOpenLaunchResponse {
+  AppActivityOpenLaunchSourceClass source_class = 1;
+  bytes launch_selector = 2;
+  string app_id = 3;
+}
+
+service RuntimeAppActivityService {
+  rpc PutAppActivity(PutAppActivityRequest) returns (PutAppActivityResponse);
+  rpc ListAppActivities(ListAppActivitiesRequest) returns (ListAppActivitiesResponse);
+  rpc SubscribeAppActivityChanges(SubscribeAppActivityChangesRequest) returns (stream SubscribeAppActivityChangesResponse);
+  rpc MarkAppActivityRead(MarkAppActivityReadRequest) returns (MarkAppActivityReadResponse);
+  rpc OpenAppActivity(OpenAppActivityRequest) returns (stream OpenAppActivityResponse);
+  rpc SubscribeAppActivityOpenRequests(SubscribeAppActivityOpenRequestsRequest) returns (stream SubscribeAppActivityOpenRequestsResponse);
+  rpc CompleteAppActivityOpenRequest(CompleteAppActivityOpenRequestRequest) returns (CompleteAppActivityOpenRequestResponse);
+  rpc ResolveAppActivityOpenLaunch(ResolveAppActivityOpenLaunchRequest) returns (ResolveAppActivityOpenLaunchResponse);
+}

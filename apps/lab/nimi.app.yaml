@@ -7,6 +7,7 @@ app_access:
   - runtime.consume
   - agent.local
   - agent.configure
+  - app.activity
 local_development:
   electron:
     renderer_origin: http://127.0.0.1:1468

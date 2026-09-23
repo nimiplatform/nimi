@@ -215,6 +215,18 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppEmbodimentSnapshot
       - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppEmbodimentEvents
+      # Desktop App Product Plane consumes the same canonical app.activity
+      # operations as every equally covered protected App.
+      - method_id: /nimi.runtime.v1.RuntimeAppActivityService/PutAppActivity
+      - method_id: /nimi.runtime.v1.RuntimeAppActivityService/ListAppActivities
+      - method_id: /nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityChanges
+      - method_id: /nimi.runtime.v1.RuntimeAppActivityService/MarkAppActivityRead
+      - method_id: /nimi.runtime.v1.RuntimeAppActivityService/OpenAppActivity
+      - method_id: /nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityOpenRequests
+      - method_id: /nimi.runtime.v1.RuntimeAppActivityService/CompleteAppActivityOpenRequest
+      # Desktop-Host-private exact source launch resolution for a pending
+      # activity open request; never projected to the Desktop renderer.
+      - method_id: /nimi.runtime.v1.RuntimeAppActivityService/ResolveAppActivityOpenLaunch
   - profile_id: bundled_avatar_v1
     identity_class: avatar
     app_id: nimi.avatar
