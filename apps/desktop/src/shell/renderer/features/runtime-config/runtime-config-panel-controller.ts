@@ -178,6 +178,12 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
   const onReturnToContextualLoadout = useCallback(() => {
     const context = modelMarketContext;
     setModelMarketContext(null);
+    if (context?.kind === 'browse') {
+      setLoadoutNavigationContext({ capabilityContract: context.capabilityContract });
+      setSetupTaskFocus(null);
+      panelState.updateState((previous) => ({ ...previous, activePage: 'aiSettings', actionFocus: null }));
+      return;
+    }
     onOpenSavedConfigs(context ? {
       capabilityContract: context.capabilityContract,
       recipeId: context.recipeId,
@@ -186,7 +192,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
       draft: context.draft,
       autoSelectOfferRef: context.candidate.offerRef,
     } : undefined);
-  }, [modelMarketContext, onOpenSavedConfigs]);
+  }, [modelMarketContext, onOpenSavedConfigs, panelState.updateState]);
 
   const onOpenProfileUseForOwner = useCallback((owner: RuntimeConfigProfileUseOwner) => {
     setLoadoutNavigationContext(null);

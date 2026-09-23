@@ -6,7 +6,7 @@ import { asNimiError } from '@nimiplatform/sdk';
 import type { NimiDesktopMachineProductRuntimeClient } from '@nimiplatform/sdk/runtime';
 import { AppPackageJobKind, AppPackageSourceClass, ReasonCode, type AppPackageJob, type CommittedAppRelease, type LocalAppPackagePreview } from '@nimiplatform/sdk/runtime/wire-types';
 import { openShellFileDialog } from '@nimiplatform/kit/shell/renderer/bridge';
-import { Button, ConfirmDialog, InlineAlert } from '@nimiplatform/kit/ui';
+import { Button, InlineAlert, OverlayShell } from '@nimiplatform/kit/ui';
 import semver from 'semver';
 
 type LocalIntent = { readonly preview: LocalAppPackagePreview; readonly installed: CommittedAppRelease | null };
@@ -123,14 +123,22 @@ export function useAppsLocalImport(getClient: () => NimiDesktopMachineProductRun
 export function AppsLocalImportFeedback({ state }: { readonly state: ReturnType<typeof useAppsLocalImport> }): ReactElement {
   const { t } = useTranslation();
   const preview = state.intent?.preview;
+  const pending = state.phase === 'starting';
   return <>
     {(state.phase === 'choosing' || state.phase === 'preparing') ? <InlineAlert tone="info" className="mx-4 mt-2" role="status">
       <span>{t(state.phase === 'choosing' ? 'Apps.localImport.choosing' : 'Apps.localImport.preparing')}</span>
       {state.phase === 'preparing' ? <Button tone="ghost" size="sm" onClick={state.cancel}>{t('Common.cancel')}</Button> : null}
     </InlineAlert> : null}
     {state.error && !preview ? <InlineAlert tone="danger" className="mx-4 mt-2" role="alert">{state.error}</InlineAlert> : null}
-    <ConfirmDialog confirmTone="primary" open={preview !== undefined} title={t(state.intent?.installed ? 'Apps.localImport.updateTitle' : 'Apps.localImport.confirmTitle')}
-      message={preview ? <div className="space-y-3">
+    <OverlayShell open={preview !== undefined} size="md" title={t(state.intent?.installed ? 'Apps.localImport.updateTitle' : 'Apps.localImport.confirmTitle')}
+      panelClassName="flex flex-col" panelStyle={{ maxHeight: 'calc(100dvh - 32px)' }}
+      contentClassName="min-h-0 overflow-y-auto" onClose={pending ? undefined : state.cancel}
+      footer={<div className="flex justify-end gap-3">
+        <Button tone="secondary" disabled={pending} onClick={state.cancel}>{t('Common.cancel')}</Button>
+        <Button tone="primary" loading={pending} onClick={() => void state.confirm()}>{t(state.intent?.installed ? 'Apps.action.update' : 'Apps.action.install')}</Button>
+      </div>}
+    >
+      {preview ? <div className="space-y-3 text-[length:var(--nimi-type-body-size)] text-[var(--nimi-text-secondary)]">
         {state.error ? <InlineAlert tone="danger" role="alert">{state.error}</InlineAlert> : null}
         <div className="flex items-center gap-3"><AppArtworkIcon appId={preview.appId} displayName={preview.displayName} iconUrl={preview.info ? `data:image/png;base64,${preview.info.iconPngBase64}` : null} /><p className="font-semibold">{preview.displayName} · {preview.version}</p></div>
         <AppsDistributionInfo info={preview.info} />
@@ -144,8 +152,7 @@ export function AppsLocalImportFeedback({ state }: { readonly state: ReturnType<
           <dt>{t('Apps.localImport.appAccess')}</dt><dd>{preview.appAccess.join(', ') || t('Apps.catalog.none')}</dd>
           {preview.observedSigningSubject ? <><dt>{t('Apps.catalog.nativePosture')}</dt><dd className="break-all">{preview.observedSigningSubject}</dd></> : null}
         </dl>
-      </div> : ''}
-      confirmLabel={t(state.intent?.installed ? 'Apps.action.update' : 'Apps.action.install')}
-      cancelLabel={t('Common.cancel')} pending={state.phase === 'starting'} onConfirm={() => void state.confirm()} onClose={state.cancel} />
+      </div> : null}
+    </OverlayShell>
   </>;
 }

@@ -76,6 +76,7 @@ export function ModelLibraryPage(props: {
       />
       {section === 'discover' ? (
         <RecommendPage
+          key={model.modelMarketContext ? `${model.modelMarketContext.kind}:${model.modelMarketContext.capabilityContract}` : 'market'}
           model={model}
           context={model.modelMarketContext}
           onReturnToLoadout={model.onReturnToContextualLoadout}

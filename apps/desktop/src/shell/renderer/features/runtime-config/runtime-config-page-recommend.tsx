@@ -35,11 +35,21 @@ import {
 import type { ModelSpecEntry } from './runtime-config-model-market-detail';
 import type {
   RuntimeConfigModelMarketContext,
+  RuntimeConfigModelMarketSlotContext,
   RuntimeConfigPanelControllerModel,
 } from './runtime-config-panel-types';
 
 const MARKET_CATEGORIES = ['all', 'chat', 'image', 'video'] as const;
 type MarketCategory = typeof MARKET_CATEGORIES[number];
+
+/** Market categories aid discovery; they do not assert model compatibility. */
+export function modelMarketCategoryForCapability(capability?: string): MarketCategory {
+  if (!capability || capability === 'text.generate') return 'chat';
+  if (capability === 'image.generate') return 'image';
+  if (capability === 'video.generate') return 'video';
+  // The market has no dedicated category for the remaining capabilities.
+  return 'all';
+}
 
 // Compact filter styling so the market filters share one toolbar row instead
 // of stacking as full-width field rows; field tokens keep them visually
@@ -71,7 +81,7 @@ type RecommendPageProps = {
 export function RecommendPage(props: RecommendPageProps) {
   const { t } = useTranslation();
   const client = useRuntimeConfigLocalEnvironmentClient();
-  const [category, setCategory] = useState<MarketCategory>('chat');
+  const [category, setCategory] = useState<MarketCategory>(() => modelMarketCategoryForCapability(props.context?.capabilityContract));
   const [query, setQuery] = useState('');
   const [author, setAuthor] = useState('all');
   const [license, setLicense] = useState('all');
@@ -100,7 +110,7 @@ export function RecommendPage(props: RecommendPageProps) {
     refetchOnWindowFocus: false,
   });
 
-  if (props.context) {
+  if (props.context?.kind === 'slot') {
     return (
       <ContextualMarketDetail
         context={props.context}
@@ -471,7 +481,7 @@ function MarketCandidateDetail(props: {
 }
 
 function ContextualMarketDetail(props: {
-  readonly context: RuntimeConfigModelMarketContext;
+  readonly context: RuntimeConfigModelMarketSlotContext;
   readonly model: RuntimeConfigPanelControllerModel;
   readonly onBack: () => void;
   readonly onOpenDownloaded: () => void;

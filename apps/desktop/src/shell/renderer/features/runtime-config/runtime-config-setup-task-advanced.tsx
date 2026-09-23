@@ -10,13 +10,13 @@ import type {
   NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
 import type { NimiJsonObject, NimiJsonValue } from '@nimiplatform/sdk/contracts';
-import { Button, InlineAlert } from '@nimiplatform/kit/ui';
+import { Button, InlineAlert, SelectField } from '@nimiplatform/kit/ui';
+import { formatBytes } from '../../components/download-format.js';
 import {
-  LoadoutSelectedModelCard,
-  LoadoutSlotModelPicker,
-} from './runtime-config-loadout-model-picker.js';
-import {
+  loadoutAssetLabel,
+  loadoutCandidatePresentation,
   loadoutSlotLabelKey,
+  runtimeConfigLoadoutCandidateAssets,
   type NimiLoadoutRecipeSlot,
   type NimiLoadoutRecipeSlotOffer,
 } from './runtime-config-loadout-model-display.js';
@@ -24,6 +24,7 @@ import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-e
 import { updateRuntimeSetupCandidate } from './runtime-setup-task-runner.js';
 import type {
   RuntimeSetupTask,
+  RuntimeSetupTaskDraft,
   RuntimeSetupTaskDraftAxis,
   RuntimeSetupTaskStore,
 } from './runtime-setup-task-store.js';
@@ -43,46 +44,26 @@ function optionValueType(value: unknown): 'boolean' | 'number' | 'string' | 'jso
   return 'json';
 }
 
-/**
- * Advanced editing inside the setup task: exact variant picks per slot,
- * optional-slot enable/disable, and typed implementation options on top of
- * the recipe defaults. Every edit is written to the task draft so switching
- * views or restoring after a restart never drops it. A legal unresolved
- * intent (a slot left unbound) remains saveable.
- */
-export function SetupTaskAdvancedSection(props: {
-  readonly task: RuntimeSetupTask;
-  readonly store: RuntimeSetupTaskStore;
-  readonly ports: RuntimeSetupRunnerPorts;
+/** The same editable fields serve capability customization and preparation drafts. */
+export function RuntimeLoadoutOptionsEditor(props: {
   readonly recipe: NimiLoadoutRecipe;
   readonly candidate: NimiMachineLoadout | null;
-  readonly onCandidateUpdated: () => void;
+  readonly draft?: RuntimeSetupTaskDraft;
+  readonly assets: readonly NimiRuntimeModelAssetRecord[];
+  readonly verifiedAssets: readonly NimiRuntimeLocalVerifiedAssetDescriptor[];
+  readonly onChange: (patch: Partial<RuntimeSetupTaskDraft>) => void;
+  readonly onApply?: (draft: RuntimeSetupTaskDraft) => Promise<void>;
+  readonly disabled?: boolean;
+  readonly changed?: boolean;
+  readonly applyLabel?: string;
+  readonly onDiscard?: () => void;
 }) {
   const { t } = useTranslation();
-  const { task, recipe, candidate } = props;
-  const localEnvironment = useRuntimeConfigLocalEnvironmentClient();
-  const [assets, setAssets] = useState<readonly NimiRuntimeModelAssetRecord[]>([]);
-  const [verifiedAssets, setVerifiedAssets] = useState<readonly NimiRuntimeLocalVerifiedAssetDescriptor[]>([]);
-  const [pickerSlotId, setPickerSlotId] = useState<string | null>(null);
+  const { recipe, candidate, assets, verifiedAssets, draft, onChange: writeDraft } = props;
   const [offerHint, setOfferHint] = useState('');
   const [applyError, setApplyError] = useState('');
   const [applying, setApplying] = useState(false);
 
-  useEffect(() => {
-    let active = true;
-    void Promise.all([localEnvironment.listModelAssets(), localEnvironment.listVerifiedAssets()])
-      .then(([nextAssets, nextVerified]) => {
-        if (!active) return;
-        setAssets(nextAssets);
-        setVerifiedAssets(nextVerified);
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
-  }, [localEnvironment]);
-
-  const draft = task.draft;
   const baseOptions: JsonObject = useMemo(() => (
     (draft?.options as JsonObject | undefined)
     ?? (candidate?.options as JsonObject | undefined)
@@ -97,15 +78,12 @@ export function SetupTaskAdvancedSection(props: {
       .filter((axis) => axis.modelAssetId && axis.expectedContentId)
       .map((axis) => ({ slotId: axis.slotId, modelAssetId: axis.modelAssetId, expectedContentId: axis.expectedContentId }));
   const disabledOptionalSlots = useMemo(
-    () => new Set(draft?.disabledOptionalSlots ?? []),
-    [draft?.disabledOptionalSlots],
+    () => new Set(draft?.disabledOptionalSlots ?? recipe.slots
+      .filter((slot) => slot.presence === 'optional-conditional' && !boundAxes.some((axis) => axis.slotId === slot.slotId)
+        && !draft?.preferredOffers?.[slot.slotId] && !draft?.pendingAxes?.some((axis) => axis.slotId === slot.slotId))
+      .map((slot) => slot.slotId)),
+    [draft, recipe.slots, boundAxes],
   );
-
-  const writeDraft = useCallback((patch: Partial<NonNullable<RuntimeSetupTask['draft']>>) => {
-    props.store.updateTask(task.taskId, (current) => ({
-      draft: { ...(current.draft ?? {}), ...patch },
-    }));
-  }, [props.store, task.taskId]);
 
   const onOptionChange = useCallback((key: string, value: NimiJsonValue) => {
     writeDraft({ options: { ...baseOptions, [key]: value } });
@@ -132,15 +110,16 @@ export function SetupTaskAdvancedSection(props: {
     if (enabled) {
       const nextDisabled = [...disabledOptionalSlots].filter((slotId) => slotId !== slot.slotId);
       writeDraft({ disabledOptionalSlots: nextDisabled });
-      setPickerSlotId(slot.slotId);
       return;
     }
     const nextAxes = boundAxes.filter((axis) => axis.slotId !== slot.slotId);
     writeDraft({
       axes: nextAxes,
       disabledOptionalSlots: [...disabledOptionalSlots, slot.slotId],
+      preferredOffers: Object.fromEntries(Object.entries(draft?.preferredOffers ?? {}).filter(([id]) => id !== slot.slotId)),
+      pendingAxes: (draft?.pendingAxes ?? []).filter((axis) => axis.slotId !== slot.slotId),
     });
-  }, [boundAxes, disabledOptionalSlots, writeDraft]);
+  }, [boundAxes, disabledOptionalSlots, draft, writeDraft]);
 
   const onOpenOffer = useCallback((slot: NimiLoadoutRecipeSlot, offer: NimiLoadoutRecipeSlotOffer) => {
     // Acquisition is reviewed in the preparation list; an advanced offer pick
@@ -149,14 +128,13 @@ export function SetupTaskAdvancedSection(props: {
       preferredOffers: { ...(draft?.preferredOffers ?? {}), [slot.slotId]: offer.candidate.offerRef },
       pendingAxes: (draft?.pendingAxes ?? []).filter((axis) => axis.slotId !== slot.slotId),
     });
-    setPickerSlotId(null);
     setOfferHint(t('runtimeConfig.setupTask.advanced.offerQueued', {
       defaultValue: 'This variant is queued as the preferred choice and will be downloaded during the reviewed preparation.',
     }));
   }, [draft?.pendingAxes, draft?.preferredOffers, t, writeDraft]);
 
-  const onApply = useCallback(() => {
-    if (!candidate) return;
+  const onApply = useCallback(async () => {
+    if (!props.onApply || props.disabled || applying) return;
     let options: NimiJsonObject;
     try {
       const value: unknown = JSON.parse(optionsJson);
@@ -168,26 +146,21 @@ export function SetupTaskAdvancedSection(props: {
     }
     setApplying(true);
     setApplyError('');
-    void updateRuntimeSetupCandidate(props.store, task.taskId, props.ports, {
-      options,
-      axes: boundAxes,
-    }).then((result) => {
-      if (result.status === 'ok') {
-        props.onCandidateUpdated();
-        return;
-      }
-      if (result.status === 'blocked') {
-        setApplyError(result.failure.message);
-      }
-      // needs-attention/failed are projected from the task status by the view.
-    }).finally(() => setApplying(false));
-  }, [optionsJson, boundAxes, candidate, props, task.taskId, t]);
+    try {
+      await props.onApply({ ...draft, options, axes: boundAxes });
+    } catch (error) {
+      setApplyError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setApplying(false);
+    }
+  }, [optionsJson, boundAxes, draft, props, applying, t]);
 
-  const optionKeys = Object.keys(baseOptions);
-  const pickerSlot = pickerSlotId ? recipe.slots.find((slot) => slot.slotId === pickerSlotId) ?? null : null;
+  const optionKeys = Object.keys(baseOptions).filter((key) => !candidate || optionValueType(baseOptions[key]) !== 'json');
+  const changed = props.changed || optionsJson !== JSON.stringify(baseOptions, null, 2);
+  const disabled = props.disabled || applying;
 
   return (
-    <div className="space-y-3" data-testid="runtime-setup-task-advanced">
+    <fieldset disabled={disabled} className="min-w-0 space-y-5" data-testid="runtime-setup-task-advanced">
       {offerHint ? (
         <InlineAlert tone="info">{offerHint}</InlineAlert>
       ) : null}
@@ -198,9 +171,43 @@ export function SetupTaskAdvancedSection(props: {
         {recipe.slots.map((slot) => {
           const isOptional = slot.presence === 'optional-conditional';
           const bound = boundAxes.find((axis) => axis.slotId === slot.slotId) ?? null;
-          const asset = bound ? assets.find((entry) => entry.modelAssetId === bound.modelAssetId) ?? null : null;
-          const optionalEnabled = !isOptional || (!disabledOptionalSlots.has(slot.slotId) && bound !== null);
+          const preferredOffer = draft?.preferredOffers?.[slot.slotId];
+          const optionalEnabled = !isOptional || !disabledOptionalSlots.has(slot.slotId);
           const slotLabel = slotDisplayLabel(slot, t);
+          const candidates = runtimeConfigLoadoutCandidateAssets(slot, assets);
+          const offers = slot.offers.filter((offer) => !offer.installedModelAssetId
+            || !candidates.some((asset) => asset.modelAssetId === offer.installedModelAssetId));
+          const value = preferredOffer ? `offer:${preferredOffer}` : bound ? `asset:${bound.modelAssetId}` : '__unresolved__';
+          const choices = [
+            { value: '__unresolved__', label: t('runtimeConfig.loadouts.unresolved') },
+            ...candidates.map((asset) => ({
+              value: `asset:${asset.modelAssetId}`,
+              label: `${loadoutAssetLabel(asset, verifiedAssets)} · ${t('runtimeConfig.loadouts.installed')}${asset.totalSizeBytes ? ` · ${formatBytes(asset.totalSizeBytes)}` : ''}`,
+            })),
+            ...offers.map((offer) => {
+              const presentation = loadoutCandidatePresentation(offer.candidate);
+              const acquisitionLabel = offer.installedModelAssetId
+                ? t('runtimeConfig.loadouts.installed')
+                : !offer.candidate.installable
+                  ? t('runtimeConfig.recommend.notInstallable')
+                  : offer.candidate.totalSizeBytes
+                    ? t('runtimeConfig.product.downloadSize', { size: formatBytes(offer.candidate.totalSizeBytes) })
+                    : t('runtimeConfig.product.downloadSizeUnknown');
+              return {
+                value: `offer:${offer.candidate.offerRef}`,
+                label: [presentation.headline,
+                  offer.candidate.variantLabel || presentation.quant.technical,
+                  t(`runtimeConfig.loadouts.hostFit.${offer.applicability}`),
+                  acquisitionLabel,
+                ].filter(Boolean).join(' · '),
+                disabled: offer.applicability === 'unsupported' || (!offer.installedModelAssetId && !offer.candidate.installable),
+              };
+            }),
+          ];
+          // Keep a missing current binding visible rather than silently showing another version.
+          if (!choices.some((choice) => choice.value === value)) {
+            choices.push({ value, label: candidate?.modelAxes.find((axis) => axis.slotId === slot.slotId)?.displayLabel || slotLabel });
+          }
           return (
             <div key={slot.slotId} data-testid={`runtime-setup-advanced-slot:${slot.slotId}`}>
               <div className="mb-1 flex items-center justify-between gap-2">
@@ -225,11 +232,19 @@ export function SetupTaskAdvancedSection(props: {
                 ) : null}
               </div>
               {!isOptional || optionalEnabled ? (
-                <LoadoutSelectedModelCard
-                  slot={slot}
-                  asset={asset}
-                  verifiedAssets={verifiedAssets}
-                  onOpenPicker={() => setPickerSlotId(slot.slotId)}
+                <SelectField
+                  aria-label={slotLabel}
+                  data-testid={`runtime-setup-advanced-version:${slot.slotId}`}
+                  value={value}
+                  options={choices}
+                  disabled={disabled}
+                  onValueChange={(next) => {
+                    setOfferHint('');
+                    if (next.startsWith('offer:')) {
+                      const offer = slot.offers.find((item) => item.candidate.offerRef === next.slice(6));
+                      if (offer && offer.applicability !== 'unsupported' && (offer.installedModelAssetId || offer.candidate.installable)) onOpenOffer(slot, offer);
+                    } else onSelectAxis(slot.slotId, next.startsWith('asset:') ? next.slice(6) : '');
+                  }}
                 />
               ) : null}
             </div>
@@ -255,12 +270,15 @@ export function SetupTaskAdvancedSection(props: {
                 {valueType === 'boolean' ? (
                   <input
                     type="checkbox"
+                    aria-label={key}
                     checked={value === true}
                     onChange={(event) => onOptionChange(key, event.currentTarget.checked)}
                   />
                 ) : valueType === 'number' ? (
                   <input
                     type="number"
+                    aria-label={key}
+                    step="any"
                     className="w-32 rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] px-2 py-1 text-sm text-[var(--nimi-text-primary)]"
                     value={typeof value === 'number' && Number.isFinite(value) ? value : 0}
                     onChange={(event) => {
@@ -271,6 +289,7 @@ export function SetupTaskAdvancedSection(props: {
                 ) : valueType === 'string' ? (
                   <input
                     type="text"
+                    aria-label={key}
                     className="w-56 rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] px-2 py-1 text-sm text-[var(--nimi-text-primary)]"
                     value={typeof value === 'string' ? value : ''}
                     onChange={(event) => onOptionChange(key, event.currentTarget.value)}
@@ -278,15 +297,13 @@ export function SetupTaskAdvancedSection(props: {
                 ) : (
                   <input
                     type="text"
+                    aria-label={key}
                     key={JSON.stringify(value)}
                     className="w-56 rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] px-2 py-1 font-mono text-xs text-[var(--nimi-text-primary)]"
                     defaultValue={JSON.stringify(value)}
                     onBlur={(event) => {
-                      try {
-                        onOptionChange(key, JSON.parse(event.currentTarget.value));
-                      } catch {
-                        // Keep the last valid value while the JSON is incomplete.
-                      }
+                      try { onOptionChange(key, JSON.parse(event.currentTarget.value)); }
+                      catch { /* Keep the last valid draft while the JSON is incomplete. */ }
                     }}
                   />
                 )}
@@ -294,7 +311,7 @@ export function SetupTaskAdvancedSection(props: {
             );
           })}
         </div>
-      ) : null}
+      ) : <p className="text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.product.customization.noOptions')}</p>}
       {candidate ? (
         <details className="space-y-2 text-sm" data-testid="runtime-setup-options-json">
           <summary className="cursor-pointer font-medium">{t('runtimeConfig.setupTask.advanced.optionsJson')}</summary>
@@ -302,27 +319,54 @@ export function SetupTaskAdvancedSection(props: {
           <textarea aria-label={t('runtimeConfig.setupTask.advanced.optionsJson')} className="min-h-32 w-full rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] p-3 font-mono text-xs text-[var(--nimi-text-primary)]" value={optionsJson} onChange={event => setOptionsJson(event.currentTarget.value)} />
         </details>
       ) : null}
-      {candidate ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <Button tone="secondary" size="sm" disabled={applying} onClick={onApply} data-testid="runtime-setup-advanced-apply">
+      {props.onApply ? (
+        <div className="flex flex-wrap items-center gap-3 border-t border-[var(--nimi-border-subtle)] pt-4">
+          <Button tone={props.applyLabel ? 'primary' : 'secondary'} disabled={disabled || (props.changed !== undefined && !changed)} onClick={() => { void onApply(); }} data-testid="runtime-setup-advanced-apply">
             {applying
               ? t('runtimeConfig.setupTask.advanced.applying', { defaultValue: 'Applying…' })
-              : t('runtimeConfig.setupTask.advanced.apply', { defaultValue: 'Apply changes to the saved configuration' })}
+              : props.applyLabel ?? t('runtimeConfig.setupTask.advanced.apply', { defaultValue: 'Apply changes to the saved configuration' })}
           </Button>
+          {props.onDiscard && changed ? <Button tone="ghost" disabled={disabled} onClick={props.onDiscard}>{t('runtimeConfig.product.customization.discard')}</Button> : null}
+          {props.changed !== undefined ? <span role="status" className="text-xs text-[var(--nimi-text-secondary)]">{t(changed ? 'runtimeConfig.product.customization.pending' : 'runtimeConfig.product.customization.current')}</span> : null}
           {applyError ? <InlineAlert tone="warning">{applyError}</InlineAlert> : null}
         </div>
       ) : null}
-      {pickerSlot ? (
-        <LoadoutSlotModelPicker
-          slot={pickerSlot}
-          assets={assets}
-          verifiedAssets={verifiedAssets}
-          selectedAssetId={boundAxes.find((axis) => axis.slotId === pickerSlot.slotId)?.modelAssetId ?? ''}
-          onSelect={(modelAssetId) => onSelectAxis(pickerSlot.slotId, modelAssetId)}
-          onOpenOffer={(offer) => onOpenOffer(pickerSlot, offer)}
-          onClose={() => setPickerSlotId(null)}
-        />
-      ) : null}
-    </div>
+    </fieldset>
   );
+}
+
+/** Preparation edits persist in the task; the current machine selection is never edited in place. */
+export function SetupTaskAdvancedSection(props: {
+  readonly task: RuntimeSetupTask;
+  readonly store: RuntimeSetupTaskStore;
+  readonly ports: RuntimeSetupRunnerPorts;
+  readonly recipe: NimiLoadoutRecipe;
+  readonly candidate: NimiMachineLoadout | null;
+  readonly onCandidateUpdated: () => void;
+}) {
+  const localEnvironment = useRuntimeConfigLocalEnvironmentClient();
+  const [assets, setAssets] = useState<readonly NimiRuntimeModelAssetRecord[]>([]);
+  const [verifiedAssets, setVerifiedAssets] = useState<readonly NimiRuntimeLocalVerifiedAssetDescriptor[]>([]);
+  useEffect(() => {
+    let active = true;
+    void Promise.all([localEnvironment.listModelAssets(), localEnvironment.listVerifiedAssets()])
+      .then(([nextAssets, nextVerified]) => {
+        if (active) { setAssets(nextAssets); setVerifiedAssets(nextVerified); }
+      }).catch(() => {});
+    return () => { active = false; };
+  }, [localEnvironment]);
+  return <RuntimeLoadoutOptionsEditor
+    recipe={props.recipe}
+    candidate={props.candidate}
+    draft={props.task.draft}
+    assets={assets}
+    verifiedAssets={verifiedAssets}
+    onChange={(patch) => props.store.updateTask(props.task.taskId, (current) => ({ draft: { ...current.draft, ...patch } }))}
+    onApply={props.candidate ? async (draft) => {
+      props.store.updateTask(props.task.taskId, () => ({ draft }));
+      const result = await updateRuntimeSetupCandidate(props.store, props.task.taskId, props.ports, { options: draft.options, axes: draft.axes });
+      if (result.status !== 'ok') throw new Error(result.failure.message);
+      props.onCandidateUpdated();
+    } : undefined}
+  />;
 }

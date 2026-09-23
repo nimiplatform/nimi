@@ -32,10 +32,11 @@ test('local import releases invalid previews and keeps confirmation failures ins
   const valid = { candidateSelector: selector, appId: 'example.app', displayName: 'Example', version: '1.0.0', os: 'macos', arch: 'arm64', appAccess: [], macosNotarization: 'absent' } as LocalAppPackagePreview;
   let preview = valid;
   const discarded: Uint8Array[] = [];
+  let rejectInstall!: (cause: Error) => void;
   const getClient = () => ({
     prepareLocalAppPackage: async () => ({ reasonCode: ReasonCode.ACTION_EXECUTED, preview }),
     discardLocalAppPackage: async (input: { candidateSelector: Uint8Array }) => { discarded.push(input.candidateSelector); return { reasonCode: ReasonCode.ACTION_EXECUTED }; },
-    startLocalAppPackageInstall: async () => { throw new Error('installation-blocked-test'); },
+    startLocalAppPackageInstall: () => new Promise((_resolve, reject) => { rejectInstall = reject; }),
   }) as unknown as NimiDesktopMachineProductRuntimeClient['apps'];
   let state!: ReturnType<typeof useAppsLocalImport>;
   const started = () => { throw new Error('failed install must not announce a started job'); };
@@ -55,9 +56,24 @@ test('local import releases invalid previews and keeps confirmation failures ins
     preview = valid;
     await act(async () => { await state.choose(); });
     assert.equal(state.phase, 'confirming');
-    await act(async () => { await state.confirm(); });
     const dialog = dom.window.document.querySelector('[role="dialog"]');
     assert.ok(dialog);
+    // Rich package metadata scrolls independently of the confirmation actions.
+    assert.equal((dialog as HTMLElement).style.maxHeight, 'calc(100dvh - 32px)');
+    const content = dialog.querySelector('.nimi-overlay-content');
+    assert.ok(content?.classList.contains('overflow-y-auto'));
+    assert.ok(content.classList.contains('min-h-0'));
+    const install = [...dialog.querySelectorAll('button')].find((button) => button.textContent === 'Install');
+    const cancel = [...dialog.querySelectorAll('button')].find((button) => button.textContent === 'Cancel');
+    assert.ok(install && cancel);
+    assert.equal(content.contains(install), false);
+    await act(async () => { install.click(); });
+    assert.equal(state.phase, 'starting');
+    assert.equal(install.disabled, true);
+    assert.equal(cancel.disabled, true);
+    await act(async () => { rejectInstall(new Error('installation-blocked-test')); });
+    assert.equal(install.disabled, false);
+    assert.equal(cancel.disabled, false);
     assert.match(dialog.querySelector('[role="alert"]')?.textContent ?? '', /installation-blocked-test/u);
     assert.equal(dom.window.document.querySelectorAll('[role="alert"]').length, 1);
     await act(async () => { state.cancel(); });

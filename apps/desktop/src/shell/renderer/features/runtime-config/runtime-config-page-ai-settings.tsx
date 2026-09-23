@@ -16,6 +16,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
+import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast.js';
 import { desktopNimiAppAIConfigQueryKey } from '../chat/chat-nimi-app-ai-config.js';
 import { RuntimeCapabilityDetail } from './runtime-capability-detail.js';
 import {
@@ -59,7 +60,7 @@ import {
   reuseRuntimeSetupCurrent,
   runRuntimeSetupPreparation,
 } from './runtime-setup-task-runner.js';
-import { getRuntimeSetupTaskStore } from './runtime-setup-task-store.js';
+import { getRuntimeSetupTaskStore, type RuntimeSetupTaskDraft } from './runtime-setup-task-store.js';
 import { useRuntimeModelLibrary } from './use-runtime-model-library.js';
 
 export type AiSettingsPageProps = {
@@ -121,7 +122,6 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
   const [capability, setCapability] = useState<string | null>(null);
   const [section, setSection] = useState('overview');
   const [busy, setBusy] = useState(false);
-  const [customizingTaskId, setCustomizingTaskId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [homeRevision, setHomeRevision] = useState(0);
   const focusedTask = props.focusedTaskId ? store.getTask(props.focusedTaskId) : undefined;
@@ -147,6 +147,9 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
     if (target && !props.actionFocus) {
       setCapability(target);
       setSection('overview');
+      // Returning from acquisition refreshes files and choices without selecting a model.
+      void inventory.refetch();
+      void library.refetch();
     }
   }, [props.savedConfigsContext]);
 
@@ -244,7 +247,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
       },
     });
   };
-  const onStart = async (recipeId?: string, previous?: NimiMachineLoadout, customize = false) => {
+  const onStart = async (recipeId?: string, previous?: NimiMachineLoadout) => {
     if (!visibleCapability) return;
     setBusy(true);
     setError('');
@@ -258,9 +261,8 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
             : {}),
         });
         if (result.status !== 'ok') setError(result.failure.message);
-        else if (!customize) await resolveRuntimeSetupPreparation(store, task.taskId, ports);
+        else await resolveRuntimeSetupPreparation(store, task.taskId, ports);
       }
-      setCustomizingTaskId(customize ? task.taskId : null);
       props.onOpenSetupTask(task.taskId);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : String(caught));
@@ -268,18 +270,21 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
       setBusy(false);
     }
   };
-  // One-click enable for a recipe whose files are already on this device. The
-  // same task pipeline runs as for "select": the review screen is skipped only
+  // Enabling and changing a model use the same task pipeline as "select".
+  // A saved choice keeps its exact axes and options; the review is skipped only
   // when the resolved plan has nothing to download, install or choose; any
   // other outcome (missing components, a choice, a failure) opens the task so
   // the person sees the same review or failure they would have seen before.
-  const onEnable = async (recipeId: string) => {
+  const onEnable = async (recipeId: string, previous?: NimiMachineLoadout) => {
     if (!visibleCapability) return;
     setBusy(true);
     setError('');
     try {
       const task = await createSetupTask();
-      const created = await createRuntimeSetupCandidate(store, task.taskId, ports, { recipeId });
+      const created = await createRuntimeSetupCandidate(store, task.taskId, ports, {
+        recipeId,
+        ...(previous ? { axes: previous.modelAxes, options: previous.options, displayName: previous.displayName } : {}),
+      });
       if (created.status !== 'ok') {
         setError(created.failure.message);
         props.onOpenSetupTask(task.taskId);
@@ -287,7 +292,6 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
       }
       const resolved = await resolveRuntimeSetupPreparation(store, task.taskId, ports);
       if (resolved.status !== 'ok' || !setupPlanAllowsDirectUse(resolved.value)) {
-        setCustomizingTaskId(null);
         props.onOpenSetupTask(task.taskId);
         return;
       }
@@ -296,14 +300,49 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
         reviewedPlan: resolved.value,
         choices: {},
       });
+      // Read the actual selection even when a later consumer save fails.
+      await inventory.refetch();
       if (used.status !== 'ok') {
-        setCustomizingTaskId(null);
         props.onOpenSetupTask(task.taskId);
         return;
       }
-      await inventory.refetch();
+      setSection('overview');
+      emitFeedbackToast({ kind: 'success', message: t('runtimeConfig.product.modelPicker.selected') });
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : String(caught));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const onApplyCustomization = async (draft: RuntimeSetupTaskDraft) => {
+    if (!selected || !visibleCapability || busy || props.runtimeWritesDisabled) return;
+    setBusy(true);
+    setError('');
+    try {
+      const task = await createSetupTask();
+      store.updateTask(task.taskId, () => ({ draft }));
+      const created = await createRuntimeSetupCandidate(store, task.taskId, ports, {
+        recipeId: selected.recipeId,
+        displayName: selected.displayName,
+        axes: draft.axes,
+        options: draft.options,
+      });
+      if (created.status !== 'ok') throw new Error(created.failure.message);
+      const resolved = await resolveRuntimeSetupPreparation(store, task.taskId, ports);
+      if (resolved.status !== 'ok') throw new Error(resolved.failure.message);
+      if (!setupPlanAllowsDirectUse(resolved.value)) {
+        props.onOpenSetupTask(task.taskId);
+        return;
+      }
+      const used = await runRuntimeSetupPreparation(store, task.taskId, ports, {
+        mode: 'prepare-and-use', reviewedPlan: resolved.value, choices: draft.preferredOffers ?? {},
+      });
+      await inventory.refetch();
+      if (used.status !== 'ok') {
+        props.onOpenSetupTask(task.taskId);
+        return;
+      }
+      emitFeedbackToast({ kind: 'success', message: t('runtimeConfig.product.customization.applied') });
     } finally {
       setBusy(false);
     }
@@ -553,7 +592,6 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
               <RuntimeConfigSetupTaskView
                 key={focusedTask.taskId}
                 taskId={focusedTask.taskId}
-                initialAdvancedOpen={focusedTask.taskId === customizingTaskId}
                 store={store}
                 ports={ports}
                 onClose={() => {
@@ -608,6 +646,8 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
               assets={library.data?.assets ?? []}
               libraryLoading={library.isPending}
               libraryError={library.isError}
+              modelsLoading={inventory.isPending}
+              modelsError={inventory.isError}
               environment={environment}
               status={status!}
               taskModel={taskModel}
@@ -619,6 +659,8 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
               onHome={onHome}
               onStart={onStart}
               onEnable={onEnable}
+              onApplyCustomization={onApplyCustomization}
+              onRetryCustomization={() => { void inventory.refetch(); void library.refetch(); }}
               onTask={props.onOpenSetupTask}
               onModelFiles={props.onOpenModelFiles}
               onImportModelFiles={props.onOpenModelImport}

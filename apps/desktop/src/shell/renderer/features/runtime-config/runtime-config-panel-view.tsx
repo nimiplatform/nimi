@@ -7,6 +7,7 @@ import { resetRuntimePageViewport } from './runtime-config-page-shell';
 import { useRuntimeConfigPanelController } from './runtime-config-panel-controller';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { RuntimeHealthBadge } from './runtime-config-primitives';
+import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability-labels.js';
 
 const AiSettingsPage = lazy(async () => ({
   default: (await import('./runtime-config-page-ai-settings')).AiSettingsPage,
@@ -40,6 +41,9 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
 
   const daemonRunning = model.runtimeDaemonStatus?.running === true;
   const activePage = model.activePage;
+  const browseContext = activePage === 'modelLibrary' && model.modelMarketContext?.kind === 'browse'
+    ? model.modelMarketContext
+    : null;
 
   useEffect(() => {
     resetRuntimePageViewport(pageViewportRef.current);
@@ -116,9 +120,11 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
           className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
         >
           {activePage !== 'cloudServices' ? <div className="flex shrink-0 items-center justify-between gap-3 px-4 pt-3 pb-1">
-            <Button tone="ghost" size="sm" className="-ml-1 gap-1 text-[var(--nimi-text-secondary)]" onClick={() => model.onChangePage('aiSettings')}>
+            <Button tone="ghost" size="sm" className="-ml-1 gap-1 text-[var(--nimi-text-secondary)]" onClick={browseContext ? model.onReturnToContextualLoadout : () => model.onChangePage('aiSettings')} data-testid="runtime-model-library-back">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
-              {t('runtimeConfig.capabilities.backWorkspace')}
+              {browseContext
+                ? t('runtimeConfig.product.modelPicker.backToCapability', { capability: displayRuntimeConfigCapabilityLabel(browseContext.capabilityContract, t) })
+                : t('runtimeConfig.capabilities.backWorkspace')}
             </Button>
             <RuntimeHealthBadge daemonRunning={daemonRunning} status={runtimeStatus} />
           </div> : null}

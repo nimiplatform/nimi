@@ -8,12 +8,13 @@ import {
   TextField,
   Tooltip,
 } from '@nimiplatform/kit/ui';
-import type {
-  NimiLoadoutRecipe,
-  NimiMachineLoadout,
-  NimiRuntimeLocalEnvironmentPlan,
-  NimiRuntimeLocalVerifiedAssetDescriptor,
-  NimiRuntimeModelAssetRecord,
+import {
+  isNimiRuntimeLocalEnvironmentDependencyReadyState,
+  type NimiLoadoutRecipe,
+  type NimiMachineLoadout,
+  type NimiRuntimeLocalEnvironmentPlan,
+  type NimiRuntimeLocalVerifiedAssetDescriptor,
+  type NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
 import {
   ArrowLeft,
@@ -40,6 +41,8 @@ import { useAppStore } from '../../app-shell/providers/app-store.js';
 import { formatBytes } from '../../components/download-format.js';
 import { IdentityTile } from '../../components/identity-tile.js';
 import type { capabilityPreparationState } from './runtime-capability-inventory.js';
+import { RuntimeCapabilityModelPicker } from './runtime-capability-model-picker.js';
+import { RuntimeCapabilityCustomize } from './runtime-capability-customize.js';
 import {
   capabilityIcon,
   capabilityModelIdentity,
@@ -48,13 +51,12 @@ import {
   recipeResourceSummary,
 } from './runtime-capability-presentation.js';
 import { displayRuntimeConfigCapabilityLabel, displayRuntimeConfigCapabilityUsage } from './runtime-config-capability-labels.js';
-import { loadoutAssetLabel, loadoutSlotLabelKey } from './runtime-config-loadout-model-display.js';
 import { SavedConfigsView } from './runtime-config-page-loadouts.js';
 import type {
   RuntimeConfigLoadoutNavigationContext,
   RuntimeConfigModelMarketContext,
 } from './runtime-config-panel-types.js';
-import type { RuntimeSetupTask } from './runtime-setup-task-store.js';
+import type { RuntimeSetupTask, RuntimeSetupTaskDraft } from './runtime-setup-task-store.js';
 
 type Props = {
   capability: string;
@@ -67,6 +69,8 @@ type Props = {
   assets: readonly NimiRuntimeModelAssetRecord[];
   libraryLoading: boolean;
   libraryError: boolean;
+  modelsLoading?: boolean;
+  modelsError?: boolean;
   environment?: NimiRuntimeLocalEnvironmentPlan;
   status: ReturnType<typeof capabilityPreparationState>;
   /** Model the in-flight setup works on; '' when its candidate is not known. */
@@ -77,9 +81,11 @@ type Props = {
   disabled: boolean;
   navigationContext: RuntimeConfigLoadoutNavigationContext | null;
   onHome: () => void;
-  onStart: (recipe: string, previous?: NimiMachineLoadout, customize?: boolean) => Promise<void>;
-  /** Enables a downloaded recipe directly; falls back to the review task when preparation is needed. */
-  onEnable: (recipe: string) => Promise<void>;
+  onStart: (recipe: string, previous?: NimiMachineLoadout) => Promise<void>;
+  /** Uses the exact saved configuration or recipe recommendation after checking its preparation plan. */
+  onEnable: (recipe: string, previous?: NimiMachineLoadout) => Promise<void>;
+  onApplyCustomization: (draft: RuntimeSetupTaskDraft) => Promise<void>;
+  onRetryCustomization?: () => void;
   onTask: (taskId: string) => void;
   onModelFiles?: () => void;
   /** Direct import entry: the Model Library's local files with the import menu open. */
@@ -151,6 +157,7 @@ export function RuntimeCapabilityDetail(props: Props) {
   const { t } = useTranslation();
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const [query, setQuery] = useState('');
+  const [modelPickerOpen, setModelPickerOpen] = useState(false);
   const label = displayRuntimeConfigCapabilityLabel(props.capability, t);
   const Icon = capabilityIcon(props.capability);
   const identity = capabilityModelIdentity(props.selected, props.recipes, props.catalog);
@@ -173,16 +180,15 @@ export function RuntimeCapabilityDetail(props: Props) {
       .toLocaleLowerCase()
       .includes(query.trim().toLocaleLowerCase()),
   );
-  const partName = (slotId: string, fallback: string) => {
-    const key = loadoutSlotLabelKey(slotId);
-    return key ? t(key) : fallback;
-  };
   const isReady = props.status.state === 'ready';
+  // The same dependency reading as the capability list, so the card and the rail agree.
   const environmentReady =
     !!props.environment &&
     props.environment.dependencies.every(
-      (d) => !d.required || d.state === 'ready_managed' || d.state === 'ready_system',
+      (d) => !d.required || isNimiRuntimeLocalEnvironmentDependencyReadyState(d.state),
     );
+  const readyDependencies =
+    props.environment?.dependencies.filter((d) => isNimiRuntimeLocalEnvironmentDependencyReadyState(d.state)).length ?? 0;
   const chipSize = identity.sizeBytes ?? downloadedSummary?.totalBytes ?? null;
   const versionChip = [identity.versionShort, chipSize ? t('runtimeConfig.product.aboutSize', { size: formatBytes(chipSize) }) : '']
     .filter(Boolean)
@@ -221,9 +227,29 @@ export function RuntimeCapabilityDetail(props: Props) {
         onOpenModelMarket={props.onModelMarket}
       />
     );
+  const needsAttention = props.status.state === 'attention';
+  const stateBadge = isReady ? (
+    <StatusBadge tone="success" shape="dot" data-testid="capability-state-badge">
+      {t('runtimeConfig.capabilities.state.ready')}
+    </StatusBadge>
+  ) : downloaded ? (
+    <StatusBadge tone="neutral" shape="soft" data-testid="capability-downloaded-badge">
+      {t('runtimeConfig.capabilities.state.downloaded')}
+    </StatusBadge>
+  ) : props.status.state !== 'unset' ? (
+    <StatusBadge
+      tone={needsAttention ? 'warning' : props.status.state === 'preparing' ? 'info' : 'neutral'}
+      shape="soft"
+      data-testid="capability-state-badge"
+    >
+      {props.status.state === 'preparing' ? <LoaderCircle size={12} className="animate-spin" aria-hidden="true" /> : null}
+      {needsAttention ? <CircleAlert size={12} aria-hidden="true" /> : null}
+      {t(`runtimeConfig.capabilities.state.${props.status.state}`)}
+    </StatusBadge>
+  ) : null;
   return (
     <div className="space-y-6" data-testid={`ai-capability-detail:${props.capability}`}>
-      <Button tone="ghost" size="sm" onClick={props.onHome}>
+      <Button tone="ghost" size="sm" className="-ml-3" onClick={props.onHome}>
         <ArrowLeft size={15} />
         {t('runtimeConfig.product.backToSetups')}
       </Button>
@@ -257,178 +283,231 @@ export function RuntimeCapabilityDetail(props: Props) {
       ) : null}
 
       {section === 'overview' ? (
-        <div className="space-y-6">
-          <section className="grid gap-6 rounded-2xl bg-[var(--nimi-surface-card)] p-5 lg:grid-cols-[minmax(0,1fr)_240px] lg:p-6">
-            <div className="flex items-start gap-4">
+        <section
+          className="overflow-hidden rounded-2xl bg-[var(--nimi-surface-card)]"
+          data-testid="capability-current-model"
+        >
+          <div className="flex flex-wrap items-start gap-x-6 gap-y-4 p-5 lg:p-6">
+            <div className="flex min-w-[16rem] flex-1 items-start gap-4">
               {cardTitle ? (
                 <IdentityTile seed={modelFamilySeed(cardSeed)} label={cardTitle} size="lg" />
               ) : null}
               <div className="min-w-0 flex-1">
-                <p className="flex items-center gap-1.5 text-xs font-medium text-[var(--nimi-text-secondary)]">
-                  {t('runtimeConfig.product.currentOnDevice')}
-                  <ScopeHint text={t('runtimeConfig.product.localScopeHelp')} />
-                </p>
-                <h2 className="mt-1.5 text-xl font-semibold leading-snug">
-                  {cardTitle || t('runtimeConfig.aiSettings.notConfigured')}
-                </h2>
-                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                  {versionChip ? (
-                    <span className="rounded-md bg-[var(--nimi-surface-panel)] px-2 py-1 text-[var(--nimi-text-secondary)]">
-                      {versionChip}
-                    </span>
-                  ) : null}
-                  {downloaded ? (
-                    <StatusBadge tone="neutral" shape="soft" data-testid="capability-downloaded-badge">
-                      {t('runtimeConfig.capabilities.state.downloaded')}
-                    </StatusBadge>
-                  ) : null}
-                  {!isReady && props.status.state !== 'unset' ? (
-                    <StatusBadge
-                      tone={props.status.state === 'attention' ? 'warning' : props.status.state === 'preparing' ? 'info' : 'neutral'}
-                      shape="soft"
-                    >
-                      {t(`runtimeConfig.capabilities.state.${props.status.state}`)}
-                    </StatusBadge>
-                  ) : null}
+                <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                  <h2 className="text-xl font-semibold leading-7">
+                    {cardTitle || t('runtimeConfig.aiSettings.notConfigured')}
+                  </h2>
+                  {stateBadge}
                 </div>
+                {/* A downloaded recipe is not selected yet, so it is never labeled as the current model. */}
+                {!downloaded || versionChip ? (
+                  <p className="mt-0.5 flex flex-wrap items-center gap-x-1 text-[length:var(--nimi-type-body-size)] text-[var(--nimi-text-muted)]">
+                    {!downloaded ? (
+                      <>
+                        {t('runtimeConfig.product.currentOnDevice')}
+                        <ScopeHint text={t('runtimeConfig.product.localScopeHelp')} />
+                      </>
+                    ) : null}
+                    {!downloaded && versionChip ? <span aria-hidden="true">·</span> : null}
+                    {versionChip ? <span>{versionChip}</span> : null}
+                  </p>
+                ) : null}
                 {!props.selected ? (
-                  <p className="mt-4 max-w-xl text-sm leading-relaxed text-[var(--nimi-text-secondary)]">
+                  <p className="mt-3 max-w-xl text-sm leading-relaxed text-[var(--nimi-text-secondary)]">
                     {t(downloaded ? 'runtimeConfig.product.downloadedLead' : 'runtimeConfig.product.chooseModelLead')}
                   </p>
                 ) : null}
-                <div className="mt-5 flex flex-wrap gap-2">
-                  {props.selected ? (
-                    <>
-                      <Button
-                        tone="primary"
-                        disabled={props.busy || props.disabled}
-                        onClick={() => {
-                          if (isReady) openUse();
-                          else if (props.status.task) props.onTask(props.status.task.taskId);
-                          else void props.onStart(props.selected!.recipeId, props.selected);
-                        }}
+                {cardTitle ? (
+                  <ul className="mt-4 flex flex-wrap gap-2" aria-label={t('runtimeConfig.product.whatItDoes')}>
+                    {[shortUse, ...featureKeys.map((key) => t(key))].map((text, index) => (
+                      <li
+                        key={`${index}:${text}`}
+                        className="rounded-[var(--nimi-radius-sm)] bg-[var(--nimi-surface-panel)] px-2.5 py-1 text-xs text-[var(--nimi-text-secondary)]"
                       >
-                        {t(
-                          !isReady
-                            ? 'runtimeConfig.product.viewPreparation'
-                            : props.capability === 'text.generate'
-                              ? 'runtimeConfig.overview.openChat'
-                              : 'runtimeConfig.product.openApps',
-                        )}
-                        <ArrowRight size={15} />
-                      </Button>
-                      <Button tone="secondary" onClick={() => props.onSection('models')}>
-                        {t('runtimeConfig.product.changeModel')}
-                      </Button>
-                    </>
-                  ) : downloaded ? (
-                    <>
-                      <Button
-                        tone="primary"
-                        disabled={props.busy || props.disabled}
-                        data-testid="capability-enable-downloaded"
-                        onClick={() => {
-                          void props.onEnable(downloaded.recipeId);
-                        }}
-                      >
-                        {t('runtimeConfig.product.enableModel')}
-                        <ArrowRight size={15} />
-                      </Button>
-                      <Button tone="secondary" onClick={() => props.onSection('models')}>
-                        {t('runtimeConfig.product.changeModel')}
-                      </Button>
-                    </>
-                  ) : (
-                    <Button tone="primary" onClick={() => props.onSection('models')}>
-                      {t('runtimeConfig.capabilities.chooseModel')}
-                      <ArrowRight size={15} />
-                    </Button>
-                  )}
-                </div>
+                        {text}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
               </div>
             </div>
-            <div className="border-t border-[var(--nimi-border-subtle)] pt-4 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
-              <h3 className="text-sm font-semibold">{t('runtimeConfig.product.whatItDoes')}</h3>
-              <ul className="mt-2 space-y-1.5 text-sm text-[var(--nimi-text-secondary)]">
-                <li className="flex items-start gap-2">
-                  <Check size={14} className="mt-0.5 shrink-0 text-[var(--nimi-status-success)]" />
-                  {shortUse}
-                </li>
-                {featureKeys.map((key) => (
-                  <li key={key} className="flex items-start gap-2">
-                    <Check size={14} className="mt-0.5 shrink-0 text-[var(--nimi-status-success)]" />
-                    {t(key)}
-                  </li>
-                ))}
-              </ul>
-              {props.selected ? (
-                <Button tone="ghost" size="sm" className="mt-3" onClick={() => props.onSection('advanced')}>
-                  <SlidersHorizontal size={14} />
-                  {t('runtimeConfig.product.customize')}
+            <div className="flex flex-wrap gap-2 pt-[7px]">
+              {props.selected || downloaded ? (
+                <Button tone="secondary" disabled={props.busy} onClick={() => setModelPickerOpen(true)} data-testid="capability-change-model">
+                  {t('runtimeConfig.product.changeModel')}
                 </Button>
               ) : null}
+              {props.selected ? (
+                <Button
+                  tone="primary"
+                  disabled={props.busy || props.disabled}
+                  onClick={() => {
+                    if (isReady) openUse();
+                    else if (props.status.task) props.onTask(props.status.task.taskId);
+                    else void props.onStart(props.selected!.recipeId, props.selected);
+                  }}
+                >
+                  {t(
+                    !isReady
+                      ? 'runtimeConfig.product.viewPreparation'
+                      : props.capability === 'text.generate'
+                        ? 'runtimeConfig.overview.openChat'
+                        : 'runtimeConfig.product.openApps',
+                  )}
+                  <ArrowRight size={15} />
+                </Button>
+              ) : downloaded ? (
+                <Button
+                  tone="primary"
+                  disabled={props.busy || props.disabled}
+                  data-testid="capability-enable-downloaded"
+                  onClick={() => {
+                    void props.onEnable(downloaded.recipeId);
+                  }}
+                >
+                  {t('runtimeConfig.product.enableModel')}
+                  <ArrowRight size={15} />
+                </Button>
+              ) : (
+                <Button tone="primary" onClick={() => props.onSection('models')}>
+                  {t('runtimeConfig.capabilities.chooseModel')}
+                  <ArrowRight size={15} />
+                </Button>
+              )}
             </div>
-          </section>
+          </div>
 
-          <section className="space-y-2 border-b border-[var(--nimi-border-subtle)] pb-5">
-            {props.environment && environmentReady ? (
-              <details className="text-sm text-[var(--nimi-text-secondary)]">
-                <summary className="flex cursor-pointer items-center gap-2">
-                  <Check size={14} className="text-[var(--nimi-status-success)]" />
-                  {t('runtimeConfig.product.environmentReady')}
-                  <span className="text-[var(--nimi-text-muted)]">· {t('runtimeConfig.product.environmentDetails')}</span>
-                </summary>
-                <EnvironmentList environment={props.environment} onDiagnostics={props.onDiagnostics} />
-              </details>
-            ) : (
-              <>
-                <div>
-                  <h3 className="text-sm font-semibold">{t('runtimeConfig.capabilities.environment')}</h3>
-                  <p className="mt-1 text-sm text-[var(--nimi-text-secondary)]">
-                    {props.environment
-                      ? t('runtimeConfig.capabilities.environmentSummary', {
-                          ready: props.environment.dependencies.filter(
-                            (d) => d.state === 'ready_managed' || d.state === 'ready_system',
-                          ).length,
-                          count: props.environment.dependencies.length,
-                        })
-                      : t('runtimeConfig.capabilities.environmentUnknown')}
+          {/* Components that still need preparing stay on the card; once all are ready they move into the technical details. */}
+          {props.environment && !environmentReady ? (
+            <div className="flex gap-4 px-5 pb-5 lg:px-6 lg:pb-6">
+              {cardTitle ? <span className="w-12 shrink-0" aria-hidden="true" /> : null}
+              <div
+                className={`min-w-0 flex-1 rounded-[var(--nimi-radius-md)] px-4 py-3 ring-1 ring-inset ${
+                  needsAttention
+                    ? 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_7%,transparent)] ring-[var(--nimi-status-warning-soft-border)]'
+                    : 'bg-[var(--nimi-surface-panel)] ring-[var(--nimi-border-subtle)]'
+                }`}
+                data-testid="capability-environment-status"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                  <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm">
+                    {needsAttention ? (
+                      <CircleAlert size={15} className="shrink-0 text-[var(--nimi-status-warning)]" aria-hidden="true" />
+                    ) : null}
+                    <span className="font-semibold text-[var(--nimi-text-primary)]">
+                      {t('runtimeConfig.capabilities.environment')}
+                    </span>
+                    <span className="text-[var(--nimi-text-secondary)]">
+                      {t('runtimeConfig.capabilities.environmentSummary', {
+                        ready: readyDependencies,
+                        count: props.environment.dependencies.length,
+                      })}
+                    </span>
                   </p>
+                  <Button tone="ghost" size="sm" className="-mr-2" onClick={props.onDiagnostics}>
+                    {t('runtimeConfig.nav.advancedDiagnostics')}
+                    <ChevronRight size={14} />
+                  </Button>
                 </div>
-                {props.environment ? (
-                  <EnvironmentList environment={props.environment} onDiagnostics={props.onDiagnostics} />
-                ) : null}
-              </>
-            )}
-          </section>
+                <EnvironmentDependencies
+                  environment={props.environment}
+                  className={needsAttention ? 'mt-2 pl-[calc(15px+0.5rem)]' : 'mt-2'}
+                />
+              </div>
+            </div>
+          ) : null}
+
           {props.selected ? (
-            <details className="text-xs text-[var(--nimi-text-secondary)]">
-              <summary className="cursor-pointer">{t('runtimeConfig.profiles.technicalDetails')}</summary>
-              <dl className="mt-2 grid gap-x-4 gap-y-1 sm:grid-cols-[140px_minmax(0,1fr)]">
-                <dt>{t('runtimeConfig.product.technicalRecipe')}</dt>
-                <dd className="break-words">{identity.title}</dd>
-                {identity.alias && identity.alias !== identity.title ? (
-                  <>
-                    <dt>{t('runtimeConfig.product.technicalAlias')}</dt>
-                    <dd className="break-words">{identity.alias}</dd>
-                  </>
-                ) : null}
-                {identity.version ? (
-                  <>
-                    <dt>{t('runtimeConfig.product.technicalVariant')}</dt>
-                    <dd className="break-words">{identity.version}</dd>
-                  </>
-                ) : null}
-                {identity.descriptor?.entry ? (
-                  <>
-                    <dt>{t('runtimeConfig.product.technicalFile')}</dt>
-                    <dd className="break-all">{identity.descriptor.entry}</dd>
-                  </>
-                ) : null}
-              </dl>
+            <details className="group border-t border-[var(--nimi-border-subtle)]" data-testid="capability-technical-details">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-5 text-xs font-medium text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)] lg:px-6 [&::-webkit-details-marker]:hidden">
+                <ChevronRight size={14} className="shrink-0 transition-transform group-open:rotate-90" aria-hidden="true" />
+                {t('runtimeConfig.profiles.technicalDetails')}
+              </summary>
+              {/* Indented to the summary text: card padding plus the 14px chevron and its gap. */}
+              <div className="grid gap-x-12 gap-y-5 pb-5 pl-[calc(1.25rem+14px+0.5rem)] pr-5 md:grid-cols-2 lg:pb-6 lg:pl-[calc(1.5rem+14px+0.5rem)] lg:pr-6">
+                <div className="min-w-0">
+                  <h3 className="text-xs font-semibold text-[var(--nimi-text-primary)]">
+                    {t('runtimeConfig.product.technicalModel')}
+                  </h3>
+                  <dl className="mt-2.5 grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-xs">
+                    <dt className="text-[var(--nimi-text-muted)]">{t('runtimeConfig.product.technicalRecipe')}</dt>
+                    <dd className="break-words text-[var(--nimi-text-primary)]">{identity.title}</dd>
+                    {identity.alias && identity.alias !== identity.title ? (
+                      <>
+                        <dt className="text-[var(--nimi-text-muted)]">{t('runtimeConfig.product.technicalAlias')}</dt>
+                        <dd className="break-words text-[var(--nimi-text-primary)]">{identity.alias}</dd>
+                      </>
+                    ) : null}
+                    {identity.version ? (
+                      <>
+                        <dt className="text-[var(--nimi-text-muted)]">{t('runtimeConfig.product.technicalVariant')}</dt>
+                        <dd className="break-words text-[var(--nimi-text-primary)]">{identity.version}</dd>
+                      </>
+                    ) : null}
+                    {identity.descriptor?.entry ? (
+                      <>
+                        <dt className="text-[var(--nimi-text-muted)]">{t('runtimeConfig.product.technicalFile')}</dt>
+                        <dd className="break-all font-mono text-[var(--nimi-text-primary)]">{identity.descriptor.entry}</dd>
+                      </>
+                    ) : null}
+                  </dl>
+                </div>
+                {props.environment && !environmentReady ? null : (
+                  <div className="min-w-0">
+                    <h3 className="text-xs font-semibold text-[var(--nimi-text-primary)]">
+                      {t('runtimeConfig.product.technicalEnvironment')}
+                    </h3>
+                    {props.environment ? (
+                      <EnvironmentDependencies environment={props.environment} className="mt-2.5" />
+                    ) : (
+                      <p className="mt-2.5 text-xs text-[var(--nimi-text-secondary)]">
+                        {t('runtimeConfig.capabilities.state.unknown')}
+                      </p>
+                    )}
+                    <Button tone="ghost" size="sm" className="-ml-3 mt-2" onClick={props.onDiagnostics}>
+                      {t('runtimeConfig.nav.advancedDiagnostics')}
+                      <ChevronRight size={14} />
+                    </Button>
+                  </div>
+                )}
+              </div>
             </details>
           ) : null}
-        </div>
+        </section>
+      ) : null}
+
+      {modelPickerOpen ? (
+        <RuntimeCapabilityModelPicker
+          label={label}
+          selected={props.selected}
+          loadouts={props.loadouts}
+          recipes={props.recipes}
+          catalog={props.catalog}
+          assets={props.assets}
+          libraryLoading={props.libraryLoading}
+          libraryError={props.libraryError}
+          loading={props.modelsLoading ?? false}
+          error={props.modelsError ?? false}
+          busy={props.busy}
+          disabled={props.disabled}
+          onChoose={async (recipe, previous) => {
+            await props.onEnable(recipe, previous);
+            setModelPickerOpen(false);
+          }}
+          onCustomize={() => {
+            setModelPickerOpen(false);
+            props.onSection('advanced');
+          }}
+          onBrowse={() => {
+            setModelPickerOpen(false);
+            props.onModelMarket({ kind: 'browse', capabilityContract: props.capability });
+          }}
+          onImport={props.onImportModelFiles || props.onModelFiles ? () => {
+            setModelPickerOpen(false);
+            (props.onImportModelFiles ?? props.onModelFiles)?.();
+          } : undefined}
+          onClose={() => setModelPickerOpen(false)}
+        />
       ) : null}
 
       {section === 'models' ? (
@@ -510,44 +589,25 @@ export function RuntimeCapabilityDetail(props: Props) {
 
       {section === 'advanced' && props.selected ? (
         <div className="space-y-6">
-          <section>
-            <h2 className="text-base font-semibold">{t('runtimeConfig.product.customize')}</h2>
-            <Button
-              className="mt-4"
-              tone="primary"
-              disabled={props.busy || props.disabled}
-              onClick={() => {
-                void props.onStart(props.selected!.recipeId, props.selected, true);
-              }}
-            >
-              <SlidersHorizontal size={15} />
-              {t('runtimeConfig.product.editModelAndOptions')}
-            </Button>
-          </section>
-          <section className="divide-y divide-[var(--nimi-border-subtle)] rounded-xl bg-[var(--nimi-surface-card)] px-4">
-            <h3 className="py-3 text-sm font-semibold">{t('runtimeConfig.product.currentComposition')}</h3>
-            {props.libraryLoading ? (
-              <LoadingSkeleton lines={3} />
-            ) : (
-              props.selected.modelAxes.map((axis) => {
-                const asset = props.assets.find((item) => item.modelAssetId === axis.modelAssetId);
-                return (
-                  <div key={axis.slotId} className="grid gap-1 py-3 sm:grid-cols-[140px_minmax(0,1fr)]">
-                    <span className="text-xs text-[var(--nimi-text-secondary)]">
-                      {partName(axis.slotId, axis.displayLabel)}
-                    </span>
-                    <span className="break-words text-sm">
-                      {asset
-                        ? loadoutAssetLabel(asset, props.catalog)
-                        : axis.modelAssetId
-                          ? axis.displayLabel
-                          : t('runtimeConfig.product.notEnabled')}
-                    </span>
-                  </div>
-                );
-              })
-            )}
-          </section>
+          {props.libraryLoading || props.modelsLoading ? <LoadingSkeleton lines={4} /> : (
+            <>
+              {props.libraryError || props.modelsError || !identity.recipe ? (
+                <InlineAlert tone="warning">
+                  <p>{t('runtimeConfig.product.customization.unavailable')}</p>
+                  {props.onRetryCustomization ? <Button tone="secondary" size="sm" onClick={props.onRetryCustomization}>{t('Common.retry')}</Button> : null}
+                </InlineAlert>
+              ) : null}
+              {identity.recipe ? <RuntimeCapabilityCustomize
+                key={`${props.selected.loadoutId}:${props.selected.revision}`}
+                selected={props.selected}
+                recipe={identity.recipe}
+                assets={props.assets}
+                catalog={props.catalog}
+                disabled={props.busy || props.disabled || props.libraryError || Boolean(props.modelsError)}
+                onApply={props.onApplyCustomization}
+              /> : null}
+            </>
+          )}
           <div className="flex flex-wrap gap-2 border-t border-[var(--nimi-border-subtle)] pt-4">
             <Button tone="secondary" size="sm" onClick={() => props.onSection('saved')}>
               <Settings2 size={14} />
@@ -714,23 +774,31 @@ function ModelChoiceCard(props: {
   );
 }
 
-function EnvironmentList(props: {
+/** Each runtime component of the capability's environment with its own state. */
+function EnvironmentDependencies(props: {
   readonly environment: NimiRuntimeLocalEnvironmentPlan;
-  readonly onDiagnostics: () => void;
+  readonly className?: string;
 }) {
   const { t } = useTranslation();
   return (
-    <div className="mt-3 space-y-2 text-xs text-[var(--nimi-text-secondary)]">
-      {props.environment.dependencies.map((item) => (
-        <p key={`${item.dependencyFamily}:${item.dependencyId}`} className="flex flex-wrap justify-between gap-2">
-          <span className="break-all">{item.dependencyId}</span>
-          <span>{t(`runtimeConfig.downloads.environment.${item.state}`, { defaultValue: item.state })}</span>
-        </p>
-      ))}
-      <Button tone="ghost" size="sm" onClick={props.onDiagnostics}>
-        {t('runtimeConfig.nav.advancedDiagnostics')}
-        <ChevronRight size={14} />
-      </Button>
-    </div>
+    <ul className={`space-y-1.5 text-xs ${props.className ?? ''}`}>
+      {props.environment.dependencies.map((item) => {
+        const ready = isNimiRuntimeLocalEnvironmentDependencyReadyState(item.state);
+        return (
+          <li
+            key={`${item.dependencyFamily}:${item.dependencyId}`}
+            className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5"
+          >
+            <span className="min-w-0 break-all font-mono text-[var(--nimi-text-primary)]">{item.dependencyId}</span>
+            <span
+              className={`inline-flex shrink-0 items-center gap-1 ${ready ? 'text-[var(--nimi-status-success)]' : 'text-[var(--nimi-text-secondary)]'}`}
+            >
+              {ready ? <Check size={12} aria-hidden="true" /> : null}
+              {t(`runtimeConfig.downloads.environment.${item.state}`, { defaultValue: item.state })}
+            </span>
+          </li>
+        );
+      })}
+    </ul>
   );
 }

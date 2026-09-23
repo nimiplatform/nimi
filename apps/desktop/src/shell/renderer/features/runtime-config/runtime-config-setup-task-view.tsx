@@ -462,7 +462,6 @@ function sourceOwnerLabel(task: RuntimeSetupTask, t: (key: string, options?: Rec
  * affordance. Advanced editing persists to the task draft.
  */
 export function RuntimeConfigSetupTaskView(props: {
-  readonly initialAdvancedOpen?: boolean;
   readonly taskId: string;
   readonly store: RuntimeSetupTaskStore;
   readonly ports: RuntimeSetupRunnerPorts;
@@ -483,7 +482,7 @@ export function RuntimeConfigSetupTaskView(props: {
   const [busy, setBusy] = useState(false);
   const [reuseMessage, setReuseMessage] = useState('');
   const [actionError, setActionError] = useState('');
-  const [advancedOpen, setAdvancedOpen] = useState(props.initialAdvancedOpen ?? false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [candidateInfo, setCandidateInfo] = useState<{
     readonly candidate: NimiMachineLoadout | null;
     readonly recipe: NimiLoadoutRecipe | null;

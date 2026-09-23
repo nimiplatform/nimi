@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import type { NimiMachineLoadout } from '@nimiplatform/sdk/runtime';
+import type { NimiLoadoutRecipe, NimiMachineLoadout, NimiRuntimeLocalEnvironmentPlan } from '@nimiplatform/sdk/runtime';
 import { TooltipProvider } from '@nimiplatform/kit/ui';
 import { AppStoreProvider } from '../src/shell/renderer/app-shell/providers/app-store';
 import { createAppStore } from '../src/shell/renderer/app-shell/providers/app-store-factory';
@@ -296,6 +296,7 @@ test('the capability page offers the customize tab only when a current model exi
       onHome={() => {}}
       onStart={async () => {}}
       onEnable={async () => {}}
+      onApplyCustomization={async () => {}}
       onTask={() => {}}
       onDiagnostics={() => {}}
       onModelMarket={() => {}}
@@ -314,5 +315,97 @@ test('the capability page offers the customize tab only when a current model exi
     displayName: 'English language analysis', modelAxes: [], validationState: 'configured',
   } as unknown as NimiMachineLoadout);
   assert.match(current, /runtimeConfig\.capabilities\.tabs\.advanced/);
-  assert.match(current, /runtimeConfig\.product\.editModelAndOptions/);
+  assert.doesNotMatch(current, /runtimeConfig\.product\.editModelAndOptions/);
+  assert.match(current, /runtimeConfig\.product\.customization\.unavailable/);
+});
+
+function renderCapabilityOverview(props: Partial<React.ComponentProps<typeof RuntimeCapabilityDetail>>): string {
+  const appStore = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference: () => undefined });
+  return renderView(
+    <AppStoreProvider store={appStore}>
+    <TooltipProvider>
+    <RuntimeCapabilityDetail
+      capability="text.generate"
+      loadouts={[]}
+      recipes={[]}
+      catalog={[]}
+      assets={[]}
+      libraryLoading={false}
+      libraryError={false}
+      status={{ state: 'unset', replacement: false }}
+      taskModel=""
+      section="overview"
+      onSection={() => {}}
+      busy={false}
+      disabled={false}
+      navigationContext={null}
+      onHome={() => {}}
+      onStart={async () => {}}
+      onEnable={async () => {}}
+      onApplyCustomization={async () => {}}
+      onTask={() => {}}
+      onDiagnostics={() => {}}
+      onModelMarket={() => {}}
+      {...props}
+    />
+    </TooltipProvider>
+    </AppStoreProvider>,
+  );
+}
+
+const GEMMA_RECIPE = {
+  recipeId: 'recipe-gemma', title: 'Gemma 4 text generation', capabilityContract: 'text.generate',
+  implementationSupportedFeatures: ['input.image'], slots: [], applicability: 'supported',
+} as unknown as NimiLoadoutRecipe;
+const GEMMA_LOADOUT = {
+  loadoutId: 'loadout-gemma', recipeId: 'recipe-gemma', capabilityContract: 'text.generate',
+  displayName: 'Gemma 4 text generation', modelAxes: [], validationState: 'configured',
+} as unknown as NimiMachineLoadout;
+const environmentWith = (...states: string[]) => ({
+  state: 'ready',
+  dependencies: states.map((state, index) => ({
+    dependencyFamily: 'engine', dependencyId: `component-${index}`, state, required: true,
+  })),
+}) as unknown as NimiRuntimeLocalEnvironmentPlan;
+
+test('a prepared capability keeps its model on one card and folds ready components into technical details', () => {
+  const html = renderCapabilityOverview({
+    selected: GEMMA_LOADOUT,
+    recipes: [GEMMA_RECIPE],
+    environment: environmentWith('ready_managed'),
+    status: { state: 'ready', replacement: false },
+  });
+  assert.match(html, /capability-state-badge[^>]*>[\s\S]*?runtimeConfig\.capabilities\.state\.ready</);
+  assert.match(html, /runtimeConfig\.product\.currentOnDevice/);
+  assert.match(html, /aria-label="runtimeConfig\.product\.whatItDoes"><li[^>]*>[^<]+<\/li><li[^>]*>runtimeConfig\.product\.feature\.input-image</);
+  assert.match(html, /runtimeConfig\.overview\.openChat/);
+  // Ready components are a technical detail, not a second status line.
+  assert.doesNotMatch(html, /capability-environment-status/);
+  assert.match(html, /capability-technical-details[\s\S]*runtimeConfig\.product\.technicalEnvironment[\s\S]*component-0/);
+  // Customizing is reached through its own tab.
+  assert.doesNotMatch(html, /runtimeConfig\.product\.customize/);
+});
+
+test('runtime components that still need work stay on the capability card and are listed once', () => {
+  const html = renderCapabilityOverview({
+    selected: GEMMA_LOADOUT,
+    recipes: [GEMMA_RECIPE],
+    environment: environmentWith('ready_managed', 'failed'),
+    status: { state: 'attention', replacement: false },
+  });
+  assert.match(html, /capability-state-badge[^>]*>[\s\S]*?runtimeConfig\.capabilities\.state\.attention</);
+  assert.match(html, /runtimeConfig\.product\.viewPreparation/);
+  assert.match(html, /capability-environment-status[\s\S]*runtimeConfig\.capabilities\.environmentSummary[\s\S]*component-0[\s\S]*component-1/);
+  const details = html.slice(html.indexOf('capability-technical-details'));
+  assert.match(details, /runtimeConfig\.product\.technicalModel/);
+  assert.doesNotMatch(details, /runtimeConfig\.product\.technicalEnvironment|component-1/);
+});
+
+test('a downloaded recipe offers enable without being labeled as the current model', () => {
+  const html = renderCapabilityOverview({ downloadedRecipe: GEMMA_RECIPE, recipes: [GEMMA_RECIPE] });
+  assert.match(html, /capability-downloaded-badge/);
+  assert.match(html, /capability-enable-downloaded/);
+  assert.match(html, /runtimeConfig\.product\.downloadedLead/);
+  assert.doesNotMatch(html, /runtimeConfig\.product\.currentOnDevice/);
+  assert.doesNotMatch(html, /capability-technical-details/);
 });

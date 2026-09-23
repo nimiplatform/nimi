@@ -20,6 +20,7 @@ async function withRenderer(run: (ui: {
     window: dom.window, document: dom.window.document, navigator: dom.window.navigator,
     HTMLElement: dom.window.HTMLElement, HTMLButtonElement: dom.window.HTMLButtonElement,
     HTMLInputElement: dom.window.HTMLInputElement, HTMLTextAreaElement: dom.window.HTMLTextAreaElement,
+    HTMLFormElement: dom.window.HTMLFormElement, HTMLSelectElement: dom.window.HTMLSelectElement,
     Element: dom.window.Element, Node: dom.window.Node, NodeFilter: dom.window.NodeFilter,
     DocumentFragment: dom.window.DocumentFragment, MutationObserver: dom.window.MutationObserver,
     CustomEvent: dom.window.CustomEvent, Event: dom.window.Event, getComputedStyle: dom.window.getComputedStyle,
@@ -48,6 +49,8 @@ async function withRenderer(run: (ui: {
     });
   } finally {
     await act(async () => root.unmount());
+    // Overlay focus restoration is scheduled for the next task by Radix.
+    await new Promise((resolve) => setTimeout(resolve, 0));
     dom.window.close();
     for (const [key, descriptor] of previous) {
       if (descriptor) Object.defineProperty(globalThis, key, descriptor);
@@ -74,6 +77,93 @@ test('transfer recovery exposes only advertised actions and reports rejected com
     assert.equal(ui.document.querySelector('[data-transfer-recovery="import_file"]'), null);
     await ui.click('[data-transfer-recovery="check_sync"]');
     assert.equal(calls.length, 4);
+  });
+});
+
+test('inline customization edits without writes, discards changes, and preserves edits after an apply failure', async () => {
+  await withRenderer(async (ui) => {
+    const { RuntimeCapabilityCustomize } = await import('../src/shell/renderer/features/runtime-config/runtime-capability-customize.js');
+    const selected = {
+      loadoutId: 'current', recipeId: 'recipe', revision: 'r1', options: { useMmap: true, contextSize: 4096 },
+      modelAxes: [{ slotId: 'main.text', modelAssetId: 'asset-1', expectedContentId: 'content-1', displayLabel: 'Current' }],
+    } as unknown as import('@nimiplatform/sdk/runtime').NimiMachineLoadout;
+    const recipe = {
+      recipeId: 'recipe', defaultOptions: { useMmap: false, contextSize: 2048 },
+      slots: [
+        { slotId: 'main.text', displayLabel: 'Main', presence: 'required', offers: [], recommendedContentIds: ['content-1'] },
+        { slotId: 'companion.mmproj', displayLabel: 'Vision', presence: 'optional-conditional', offers: [], recommendedContentIds: [] },
+      ],
+    } as unknown as import('@nimiplatform/sdk/runtime').NimiLoadoutRecipe;
+    const submitted: import('../src/shell/renderer/features/runtime-config/runtime-setup-task-store.js').RuntimeSetupTaskDraft[] = [];
+    const render = (disabled = false) => ui.render(<RuntimeCapabilityCustomize
+      selected={selected} recipe={recipe} assets={[]} catalog={[]} disabled={disabled}
+      onApply={async (draft) => { submitted.push(draft); throw new Error('Runtime is unavailable'); }}
+    />);
+    await render();
+    const apply = () => ui.document.querySelector<HTMLButtonElement>('[data-testid="runtime-setup-advanced-apply"]')!;
+    assert.ok(ui.document.querySelector('[data-testid="runtime-setup-advanced-version:main.text"]'), 'version selection is already visible');
+    assert.ok(ui.document.querySelector('input[aria-label="contextSize"]'), 'typed parameters are already visible');
+    assert.equal(ui.document.querySelector<HTMLDetailsElement>('[data-testid="runtime-setup-options-json"]')?.open, false);
+    assert.equal(apply().disabled, true);
+    assert.equal(submitted.length, 0);
+    await ui.click('input[aria-label="useMmap"]');
+    assert.equal(apply().disabled, false);
+    assert.equal(submitted.length, 0, 'editing is not an apply');
+    const discard = [...ui.document.querySelectorAll('button')].find((button) => button.textContent?.includes('customization.discard'))!;
+    await act(async () => discard.click());
+    assert.equal(ui.document.querySelector<HTMLInputElement>('input[aria-label="useMmap"]')?.checked, true);
+    assert.equal(apply().disabled, true);
+    await ui.click('input[aria-label="useMmap"]');
+    await ui.click('[data-testid="runtime-setup-advanced-apply"]');
+    assert.equal(submitted.length, 1);
+    assert.deepEqual(submitted[0]!.options, { useMmap: false, contextSize: 4096 });
+    assert.deepEqual(submitted[0]!.axes, [{ slotId: 'main.text', modelAssetId: 'asset-1', expectedContentId: 'content-1' }]);
+    assert.deepEqual(submitted[0]!.disabledOptionalSlots, ['companion.mmproj']);
+    assert.match(ui.document.body.textContent ?? '', /Runtime is unavailable/);
+    assert.equal(ui.document.querySelector<HTMLInputElement>('input[aria-label="useMmap"]')?.checked, false);
+    assert.equal(apply().disabled, false, 'failed applies remain retryable');
+    await ui.click('[data-testid="runtime-setup-advanced-optional:companion.mmproj"]');
+    assert.ok(ui.document.querySelector('[data-testid="runtime-setup-advanced-version:companion.mmproj"]'), 'enabling an optional model immediately exposes its version selector');
+    await render(true);
+    assert.equal(apply().disabled, true);
+    assert.equal(ui.document.querySelector('fieldset')?.disabled, true);
+  });
+});
+
+test('customization keeps exact variant names and refuses offers that Runtime cannot install', async () => {
+  await withRenderer(async (ui) => {
+    const { RuntimeLoadoutOptionsEditor } = await import('../src/shell/renderer/features/runtime-config/runtime-config-setup-task-advanced.js');
+    const offer = (variant: string, installable = true, applicability = 'supported') => ({
+      candidate: { offerRef: variant, title: `Example 2B (${variant})`, variantLabel: `example-${variant}.gguf`, installable },
+      applicability,
+    });
+    const recipe = {
+      recipeId: 'recipe', defaultOptions: {}, slots: [{
+        slotId: 'main.text', displayLabel: 'Main', presence: 'required', recommendedContentIds: [],
+        offers: [offer('Q4_K_M'), offer('Q4_0'), offer('F16', false), offer('Q8_0', true, 'unsupported')],
+      }],
+    } as unknown as import('@nimiplatform/sdk/runtime').NimiLoadoutRecipe;
+    const patches: Partial<import('../src/shell/renderer/features/runtime-config/runtime-setup-task-store.js').RuntimeSetupTaskDraft>[] = [];
+    // jsdom has no layout or scrolling implementation.
+    ui.document.defaultView!.HTMLElement.prototype.scrollIntoView = () => {};
+    await ui.render(<RuntimeLoadoutOptionsEditor recipe={recipe} candidate={null} assets={[]} verifiedAssets={[]} onChange={(patch) => patches.push(patch)} />);
+    const trigger = ui.document.querySelector<HTMLButtonElement>('[data-testid="runtime-setup-advanced-version:main.text"]')!;
+    await act(async () => {
+      trigger.dispatchEvent(new ui.document.defaultView!.KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    });
+    const options = [...ui.document.querySelectorAll<HTMLElement>('[role="option"]')];
+    const unavailable = options.find((option) => option.textContent?.includes('F16'));
+    assert.ok(unavailable);
+    assert.equal(unavailable.getAttribute('aria-disabled'), 'true', 'host support does not imply installability');
+    await act(async () => unavailable.click());
+    assert.equal(patches.length, 0);
+    assert.equal(options.find((option) => option.textContent?.includes('Q8'))?.getAttribute('aria-disabled'), 'true');
+    const exactVariant = options.find((option) => option.textContent?.includes('Q4_K_M'));
+    assert.ok(exactVariant, 'the selector must distinguish exact Q4 variants');
+    assert.ok(options.some((option) => option.textContent?.includes('Q4_0')));
+    await act(async () => exactVariant.click());
+    assert.equal(patches.length, 1);
+    assert.deepEqual(patches[0]?.preferredOffers, { 'main.text': 'Q4_K_M' });
   });
 });
 
@@ -183,5 +273,73 @@ test('model loading failure has an in-place retry and is distinct from an empty 
     assert.match(ui.document.body.textContent ?? '', /No models are available/);
     assert.doesNotMatch(ui.document.body.textContent ?? '', /Models could not be loaded/);
     assert.equal(ui.document.querySelector<HTMLButtonElement>('[data-testid="runtime-setup-task-review"]')?.disabled, true);
+  });
+});
+
+test('changing a capability model stays in the overview, cancels without writes, and preserves the exact saved choice', async () => {
+  await withRenderer(async (ui) => {
+    const { RuntimeCapabilityDetail } = await import('../src/shell/renderer/features/runtime-config/runtime-capability-detail.js');
+    const { AppStoreProvider } = await import('../src/shell/renderer/app-shell/providers/app-store.js');
+    const { createAppStore } = await import('../src/shell/renderer/app-shell/providers/app-store-factory.js');
+    const { TooltipProvider } = await import('@nimiplatform/kit/ui');
+    const appStore = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference: () => undefined });
+    const current = {
+      loadoutId: 'current', recipeId: 'recipe-a', capabilityContract: 'text.generate',
+      displayName: 'Current model', modelAxes: [], options: {}, validationState: 'configured',
+    } as unknown as import('@nimiplatform/sdk/runtime').NimiMachineLoadout;
+    const saved = { ...current, loadoutId: 'saved-version', displayName: 'My saved version', options: { contextSize: 4096 }, modelAxes: [{ slotId: 'main.text', modelAssetId: 'exact-file', expectedContentId: 'exact-content', displayLabel: 'Main' }] };
+    const recipe = (recipeId: string, applicability = 'supported') => ({ recipeId, title: recipeId, capabilityContract: 'text.generate', implementationSupportedFeatures: [], slots: [], applicability }) as unknown as import('@nimiplatform/sdk/runtime').NimiLoadoutRecipe;
+    const navigation: string[] = [];
+    const uses: unknown[][] = [];
+    const props: React.ComponentProps<typeof RuntimeCapabilityDetail> = {
+      capability: 'text.generate', selected: current, loadouts: [current, saved],
+      recipes: [recipe('recipe-a'), recipe('recipe-b'), recipe('unsupported', 'unsupported')], catalog: [], assets: [],
+      libraryLoading: false, libraryError: false, status: { state: 'ready', replacement: false }, taskModel: '',
+      section: 'overview', onSection: (section) => navigation.push(section), busy: false, disabled: false, navigationContext: null,
+      onHome: () => {}, onTask: () => {}, onDiagnostics: () => {}, onModelMarket: () => {},
+      onStart: async () => { throw new Error('Opening the picker must not create a preparation task'); },
+      onEnable: async (...args) => { uses.push(args); },
+      onApplyCustomization: async () => {},
+    };
+    const render = async (overrides: Partial<typeof props> = {}) => ui.render(
+      <AppStoreProvider store={appStore}><TooltipProvider><RuntimeCapabilityDetail {...props} {...overrides} /></TooltipProvider></AppStoreProvider>,
+    );
+    await render();
+    const trigger = ui.document.querySelector<HTMLButtonElement>('[data-testid="capability-change-model"]')!;
+    trigger.focus();
+    await ui.click('[data-testid="capability-change-model"]');
+    assert.ok(ui.document.querySelector('[role="dialog"][data-testid="capability-model-picker"]'));
+    assert.ok(ui.document.querySelector('[data-testid="capability-current-model"]'));
+    assert.deepEqual(navigation, []);
+    assert.deepEqual(uses, []);
+    assert.ok(ui.document.querySelector('[data-testid="capability-model-picker-saved:saved-version"]'), 'another saved version of the current recipe stays directly selectable');
+    assert.equal(ui.document.querySelector<HTMLButtonElement>('[data-testid="capability-model-picker-recipe:unsupported"]')?.disabled, true);
+    await ui.click('[data-testid="capability-model-picker-cancel"]');
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+    assert.equal(ui.document.querySelector('[data-testid="capability-model-picker"]'), null);
+    assert.deepEqual(uses, []);
+    assert.equal(ui.document.activeElement === trigger, true, 'closing restores focus to the change-model trigger');
+
+    await ui.click('[data-testid="capability-change-model"]');
+    await ui.click('[data-testid="capability-model-picker-saved:saved-version"]');
+    assert.deepEqual(uses, [['recipe-a', saved]]);
+    assert.equal(ui.document.querySelector('[data-testid="capability-model-picker"]'), null);
+    assert.deepEqual(navigation, []);
+    await ui.click('[data-testid="capability-change-model"]');
+    await ui.click('[data-testid="capability-model-picker-recipe:recipe-b"]');
+    assert.deepEqual(uses[1], ['recipe-b', undefined]);
+
+    await render({ loadouts: [current], recipes: [recipe('recipe-a')] });
+    await ui.click('[data-testid="capability-change-model"]');
+    assert.ok(ui.document.querySelector('[data-testid="capability-model-picker-empty"]'));
+    await render({ loadouts: [current], recipes: [], modelsError: true });
+    assert.equal(ui.document.querySelector('[data-testid="capability-model-picker-empty"]'), null, 'a failed recipe query is not an empty inventory');
+    await render({ disabled: true });
+    assert.equal(ui.document.querySelector<HTMLButtonElement>('[data-testid="capability-model-picker-saved:saved-version"]')?.disabled, true);
+    await render({ recipes: [recipe('recipe-b')] });
+    const unavailable = ui.document.querySelector<HTMLButtonElement>('[data-testid="capability-model-picker-saved:saved-version"]')!;
+    assert.equal(unavailable.disabled, true);
+    assert.match(unavailable.parentElement?.textContent ?? '', /preparationUnknown/);
+    assert.doesNotMatch(unavailable.parentElement?.textContent ?? '', /hostFit\.unsupported/, 'a missing recipe is unknown, not evidence of incompatibility');
   });
 });

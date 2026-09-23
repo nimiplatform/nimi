@@ -27,7 +27,8 @@ export type RuntimeConfigLoadoutCreateDraft = {
   readonly modelAssetIds: Readonly<Record<string, string>>;
 };
 
-export type RuntimeConfigModelMarketContext = {
+export type RuntimeConfigModelMarketSlotContext = {
+  readonly kind: 'slot';
   readonly capabilityContract: string;
   readonly recipeId: string;
   readonly recipeRevision: string;
@@ -35,6 +36,11 @@ export type RuntimeConfigModelMarketContext = {
   readonly candidate: NimiRuntimeModelAssetMarketCandidate;
   readonly draft: RuntimeConfigLoadoutCreateDraft;
 };
+
+/** A market detour either discovers models for a capability or inspects one exact slot offer. */
+export type RuntimeConfigModelMarketContext =
+  | { readonly kind: 'browse'; readonly capabilityContract: string }
+  | RuntimeConfigModelMarketSlotContext;
 
 /** Owner context when the profile library runs "use profile" for a consumer. */
 export type RuntimeConfigProfileUseOwner =

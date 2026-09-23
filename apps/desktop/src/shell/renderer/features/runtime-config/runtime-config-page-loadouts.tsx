@@ -718,6 +718,7 @@ export function SavedConfigsView(props: {
                   const slot = selectedRecipe.slots.find((item) => item.slotId === pickerSlotId);
                   if (!slot) return;
                   props.onOpenModelMarket({
+                    kind: 'slot',
                     capabilityContract: selectedRecipe.capabilityContract,
                     recipeId: selectedRecipe.recipeId,
                     recipeRevision: selectedRecipe.revision,
