@@ -2,6 +2,7 @@ import { Suspense, useContext, useEffect, useMemo, useRef, useState, type ReactN
 import { Button, IconButton, LoadingSkeleton, nimiToast, OverlayShell, StatusBadge, Tooltip } from '@nimiplatform/kit/ui';
 import { PanelRight, SquarePen } from 'lucide-react';
 import { createBrowserDataUrlAttachmentAdapter, useChatComposer, type BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/headless';
+import { notifyStudioAIConfigChanged } from './ai-config.js';
 import { useAIStudioHost } from './host-context.js';
 import type { StudioCapabilityRegistration } from './module-registration.js';
 import type { StudioCapabilityRunResult, StudioRuntimeInspection } from './runtime-types.js';
@@ -36,7 +37,6 @@ function TextStudioShell({
   verboseConsole,
   draftPersistence,
   onOpenConfig,
-  configOpen,
   history,
   historySelectionRequest,
   onSelectHistoryRun,
@@ -50,7 +50,6 @@ function TextStudioShell({
   verboseConsole: boolean;
   draftPersistence: boolean;
   onOpenConfig?: () => void;
-  configOpen: boolean;
   history: StudioRunHistory | null;
   historySelectionRequest: { requestId: number; record: StudioRunHistoryRecord } | null;
   onSelectHistoryRun: (record: StudioRunHistoryRecord) => void;
@@ -107,7 +106,7 @@ function TextStudioShell({
       : null)
     : lastResult?.capabilityId === capability.id ? lastResult : null;
   const headerResult = hasActiveRun ? currentResult : null;
-  const runTarget = useStudioRunTargetSummary(registration, runtime, configOpen);
+  const runTarget = useStudioRunTargetSummary(registration, runtime);
   const admission = statusForCapability(registration, runTarget, headerResult, t);
   const requiresPrompt = profile.inputKind !== 'none';
   const supportsMedia = profile.supportsAttachments;
@@ -474,9 +473,19 @@ export function SectionAITesting({
   const { translate: t, appTitle } = useAIStudioHost();
   const capability = registration.descriptor;
   const [configOpen, setConfigOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // Mounted consumers (run target, parameter fields, recovery panels) cache
+  // AIConfig readiness; a drawer write happens in this window, so no focus or
+  // visibility change reports it.
+  function closeConfig() {
+    setConfigOpen(false);
+    if (rootRef.current) notifyStudioAIConfigChanged(rootRef.current);
+  }
 
   return (
     <div
+      ref={rootRef}
       className="section-ai-testing"
       data-testid={rootTestId}
       data-config-open={configOpen ? '' : undefined}
@@ -491,7 +500,6 @@ export function SectionAITesting({
           verboseConsole={verboseConsole}
           draftPersistence={draftPersistence}
           onOpenConfig={renderAIConfigPanel ? () => setConfigOpen(true) : undefined}
-          configOpen={configOpen}
           history={history}
           historySelectionRequest={historySelectionRequest}
           onSelectHistoryRun={onSelectHistoryRun}
@@ -507,9 +515,9 @@ export function SectionAITesting({
         description={t('StudioModelConfig.drawerDescription', { appTitle })}
         panelClassName="flex flex-col"
         contentClassName="min-h-0 flex-1 overflow-y-auto p-0"
-        onClose={() => setConfigOpen(false)}
+        onClose={closeConfig}
       >
-        <DrawerErrorBoundary onClose={() => setConfigOpen(false)} translate={t}>
+        <DrawerErrorBoundary onClose={closeConfig} translate={t}>
           <Suspense fallback={<div className="p-5"><LoadingSkeleton lines={4} label={t('Common.loading')} /></div>}>
             {renderAIConfigPanel({ runtime, capabilityId: capability.capabilityContract ?? capability.id })}
           </Suspense>

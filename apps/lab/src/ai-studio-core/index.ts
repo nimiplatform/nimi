@@ -49,8 +49,10 @@ export {
   type StudioParameterTranslate,
 } from './parameter-fields.js';
 export {
+  STUDIO_AI_CONFIG_CHANGED_EVENT,
   findStudioCapabilityIntent,
   loadStudioAIConfig,
+  notifyStudioAIConfigChanged,
   requireStudioAIConfigOwner,
   studioCloudIntentHasExactTarget,
   subscribeStudioAIConfigRefresh,

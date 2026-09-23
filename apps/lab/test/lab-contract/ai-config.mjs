@@ -33,8 +33,9 @@ test('lab loads the canonical unconfigured snapshot and propagates transport fai
   }));
 });
 
-test('lab refreshes the canonical AIConfig projection when another manager returns focus', async () => {
+test('lab refreshes the canonical AIConfig projection when another manager returns focus or the in-app drawer writes', async () => {
   const { subscribeLabAIConfigOwnerRefresh } = await importBehaviorModule('lab/lab-ai-config-store.js');
+  const { STUDIO_AI_CONFIG_CHANGED_EVENT } = await importBehaviorModule('ai-studio-core/ai-config.js');
   const createTarget = () => {
     const listeners = new Map();
     return {
@@ -65,12 +66,14 @@ test('lab refreshes the canonical AIConfig projection when another manager retur
   visibilityTarget.dispatch('visibilitychange');
   visibilityTarget.visibilityState = 'visible';
   visibilityTarget.dispatch('visibilitychange');
-  assert.equal(refreshes, 2);
+  focusTarget.dispatch(STUDIO_AI_CONFIG_CHANGED_EVENT);
+  assert.equal(refreshes, 3);
 
   unsubscribe();
   focusTarget.dispatch('focus');
   visibilityTarget.dispatch('visibilitychange');
-  assert.equal(refreshes, 2);
+  focusTarget.dispatch(STUDIO_AI_CONFIG_CHANGED_EVENT);
+  assert.equal(refreshes, 3);
 });
 
 test('lab clones the immutable AIConfig projection for the Kit editor', async () => {

@@ -17,6 +17,9 @@ export type StudioAIConfigVisibilityTarget = StudioAIConfigRefreshEventTarget & 
   readonly visibilityState: string;
 };
 
+/** Reports a possible AIConfig write inside this App window, e.g. when the in-app drawer closes. */
+export const STUDIO_AI_CONFIG_CHANGED_EVENT = 'nimi://ai-studio-ai-config-changed';
+
 export async function loadStudioAIConfig(
   client: Pick<StudioAIConfigClient, 'get'>,
   expectedAppId: string,
@@ -30,21 +33,32 @@ export async function loadStudioAIConfig(
   }
 }
 
+/**
+ * Focus and visibility report writes from other surfaces; the in-app change
+ * event reports same-window writes, which never move focus.
+ */
 export function subscribeStudioAIConfigRefresh(
   refresh: () => void,
   focusTarget: StudioAIConfigRefreshEventTarget,
   visibilityTarget: StudioAIConfigVisibilityTarget,
 ): () => void {
-  const onFocus: EventListener = () => refresh();
+  const onRefresh: EventListener = () => refresh();
   const onVisibilityChange: EventListener = () => {
     if (visibilityTarget.visibilityState === 'visible') refresh();
   };
-  focusTarget.addEventListener('focus', onFocus);
+  focusTarget.addEventListener('focus', onRefresh);
+  focusTarget.addEventListener(STUDIO_AI_CONFIG_CHANGED_EVENT, onRefresh);
   visibilityTarget.addEventListener('visibilitychange', onVisibilityChange);
   return () => {
-    focusTarget.removeEventListener('focus', onFocus);
+    focusTarget.removeEventListener('focus', onRefresh);
+    focusTarget.removeEventListener(STUDIO_AI_CONFIG_CHANGED_EVENT, onRefresh);
     visibilityTarget.removeEventListener('visibilitychange', onVisibilityChange);
   };
+}
+
+/** Dispatches from a node inside the App document so it bubbles to the window focus target. */
+export function notifyStudioAIConfigChanged(source: Pick<EventTarget, 'dispatchEvent'>): void {
+  source.dispatchEvent(new Event(STUDIO_AI_CONFIG_CHANGED_EVENT, { bubbles: true }));
 }
 
 export function requireStudioAIConfigOwner(

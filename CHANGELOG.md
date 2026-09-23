@@ -10,6 +10,19 @@ The format follows Keep a Changelog and Semantic Versioning.
 
 - Component npm release workflows treat a missing registry version as
   unpublished without mistaking npm's JSON error output for a published digest.
+- Nimi Lab and scaffolded AI Studio media parameter fields (music generation,
+  recording transcription, voice conversion, audio separation) and their
+  recovery panels refresh AIConfig readiness when the in-app AI config drawer
+  closes, instead of waiting for window focus or a reload. Closing the drawer
+  dispatches the app-local `nimi://ai-studio-ai-config-changed` event that
+  `subscribeStudioAIConfigRefresh` handles alongside focus and visibility, and
+  the run-target gate uses the same event instead of re-reading on drawer
+  state. `@nimiplatform/app-tools` packs this AI Studio core into
+  `--features studio-media` scaffolds as App-owned
+  `src/capabilities/ai-studio-core/**`, which `nimi-app sync` never rewrites:
+  existing scaffolds must port `ai-config.ts`, `index.ts`,
+  `section-ai-testing.tsx`, and `section-ai-testing-run.ts` by hand, together.
+  Generated host glue and the `studio-media` files are unchanged.
 
 ## [0.2.0] - 2026-08-31
 
