@@ -186,7 +186,7 @@
     "kit:preview": "pnpm --filter @nimiplatform/kit preview"
   },
   "dependencies": {
-    "yaml": "^2.9.0"
+    "yaml": "^2.9.1"
   },
   "devDependencies": {
     "@nimiplatform/nimi-coding": "0.6.3",

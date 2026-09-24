@@ -23,24 +23,24 @@
     "@react-three/postprocessing": "^3.1.1",
     "i18next": "25.10.10",
     "lucide-react": "0.577.0",
-    "postprocessing": "^6.39.4",
+    "postprocessing": "^6.39.5",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-i18next": "16.6.6",
-    "react-router-dom": "^7.18.3",
-    "three": "^0.185.1"
+    "react-router-dom": "^7.18.4",
+    "three": "^0.186.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.5",
-    "@types/three": "^0.185.4",
+    "@types/three": "^0.186.0",
     "@vitejs/plugin-react": "^5.2.0",
     "tailwindcss": "^4.3.3",
-    "tsx": "^4.23.13",
+    "tsx": "^4.23.15",
     "typescript": "^5.9.3",
     "vite": "^7.3.6",
-    "yaml": "^2.9.0"
+    "yaml": "^2.9.1"
   }
 }
