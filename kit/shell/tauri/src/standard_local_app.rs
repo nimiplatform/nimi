@@ -2680,7 +2680,7 @@ mod tests {
     #[test]
     fn activity_mark_read_and_completion_payloads_are_exact() {
         let payload: LocalAppActivityMarkReadPayload = parse_payload(
-            json!({ "activityId": "act_01J8ZQ6J3F5T7W9X1Y2Z3A4B5C", "displayedRevision": 3 }),
+            json!({ "activityId": "act_01J8ZQ6J3F5T7W9X1Y2Z3A4B5C", "displayedRevision": 3 }), // pragma: allowlist secret -- activity-id fixture
             ACTIVITY_MARK_READ_COMMAND,
         )
         .expect("mark-read payload");

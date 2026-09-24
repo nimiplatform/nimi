@@ -157,7 +157,7 @@ func TestCanonicalAudioUploadLargeRecordingIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer source.Close()
+	defer func() { _ = source.Close() }()
 	if _, err := assets.Write(context.Background(), owner, "sources/原曲.mp3", "audio/mpeg", false, source); err != nil {
 		t.Fatal(err)
 	}
@@ -184,7 +184,7 @@ func TestCanonicalAudioUploadLargeRecordingIntegration(t *testing.T) {
 	if !ok {
 		t.Fatal("actual committed body is unavailable")
 	}
-	defer opened.Body.Close()
+	defer func() { _ = opened.Body.Close() }()
 	if _, err := assets.Write(context.Background(), owner, "sources/原曲.mp3", "audio/mpeg", true, io.NopCloser(bytes.NewReader([]byte("changed source")))); err != nil {
 		t.Fatal(err)
 	}

@@ -602,8 +602,8 @@ fn activity_open_request_id_is_the_exact_runtime_shape() {
         "aor_",
         "aod_Q2l0eUxpZ2h0c0FyZUJyaWdodFRvbmln",
         "aor_Q2l0eUxpZ2h0c0FyZUJyaWdodFRvbml",
-        "aor_Q2l0eUxpZ2h0c0FyZUJyaWdodFRvbmlnX",
-        "aor_Q2l0eUxpZ2h0c0FyZUJyaWdodFRvbm/n",
+        "aor_Q2l0eUxpZ2h0c0FyZUJyaWdodFRvbmlnX", // pragma: allowlist secret -- malformed request-id fixture
+        "aor_Q2l0eUxpZ2h0c0FyZUJyaWdodFRvbm/n", // pragma: allowlist secret -- malformed request-id fixture
     ] {
         assert!(
             !super::valid_app_activity_open_request_id(invalid),

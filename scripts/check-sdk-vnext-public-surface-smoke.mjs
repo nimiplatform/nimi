@@ -265,6 +265,8 @@ const localAppStandardShell: NimiLocalAppStandardShell = {
   conversation: {
     async open() { return { conversationAnchorId: 'anchor-1', activeTurnId: null }; },
     async send() { return { turnId: 'turn-1' }; },
+    listToolCalls: unavailableCarrier,
+    submitToolResult: unavailableCarrier,
     uploadAttachment: unavailableCarrier,
     readArtifact: unavailableCarrier,
     transcribeVoice: unavailableCarrier,
@@ -306,6 +308,14 @@ const localAppStandardShell: NimiLocalAppStandardShell = {
       deleteAll: unavailableCarrier,
     },
     manager: { snapshot: unavailableCarrier },
+  },
+  activity: {
+    put: unavailableCarrier,
+    list: unavailableCarrier,
+    subscribe: unavailableCarrier,
+    markRead: unavailableCarrier,
+    open: unavailableCarrier,
+    openRequests: { subscribe: unavailableCarrier, complete: unavailableCarrier },
   },
 };
 const localApp = createNimiClient({ localApp: { standardShell: localAppStandardShell } });

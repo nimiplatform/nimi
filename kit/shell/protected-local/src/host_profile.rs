@@ -264,9 +264,9 @@ pub(crate) fn test_profile_projection(data_root: &Path) -> HostStorageProjection
     HostStorageProjection {
         profile_root: data_root
             .join(APP_HOSTS_DIRECTORY)
-            .join("0123456789abcdef0123456789abcdef")
+            .join("01".repeat(16))
             .join("apps")
-            .join("fedcba9876543210fedcba9876543210")
+            .join("10".repeat(16))
             .to_string_lossy()
             .into_owned(),
     }
@@ -323,10 +323,10 @@ mod tests {
         );
         for raw in [
             String::new(),
-            "relative/app-hosts/0123456789abcdef0123456789abcdef/apps/fedcba9876543210fedcba9876543210".to_string(),
-            data_root.join("app-hosts").join("short").join("apps").join("fedcba9876543210fedcba9876543210").to_string_lossy().into_owned(),
-            data_root.join("other").join("0123456789abcdef0123456789abcdef").join("apps").join("fedcba9876543210fedcba9876543210").to_string_lossy().into_owned(),
-            data_root.join("app-hosts").join("0123456789ABCDEF0123456789ABCDEF").join("apps").join("fedcba9876543210fedcba9876543210").to_string_lossy().into_owned(),
+            format!("relative/app-hosts/{}/apps/{}", "01".repeat(16), "10".repeat(16)),
+            data_root.join("app-hosts").join("short").join("apps").join("10".repeat(16)).to_string_lossy().into_owned(),
+            data_root.join("other").join("01".repeat(16)).join("apps").join("10".repeat(16)).to_string_lossy().into_owned(),
+            data_root.join("app-hosts").join("AB".repeat(16)).join("apps").join("10".repeat(16)).to_string_lossy().into_owned(),
             format!(" {}", test_profile_projection(&data_root).profile_root),
         ] {
             let error = prepare(Some(HostStorageProjection { profile_root: raw.clone() }))

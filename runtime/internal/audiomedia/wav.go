@@ -46,7 +46,7 @@ func InspectCanonical(ctx context.Context, path string) (Facts, error) {
 	if err != nil {
 		return Facts{}, fmt.Errorf("open canonical audio: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	info, err := file.Stat()
 	if err != nil || !info.Mode().IsRegular() || info.Size() < pcmHeaderBytes || info.Size() > MaxInputBytes {
 		return Facts{}, fmt.Errorf("canonical audio size or file type is invalid")

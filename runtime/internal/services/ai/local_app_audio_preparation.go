@@ -96,7 +96,7 @@ func (s *Service) prepareLocalAppAudioArtifact(ctx context.Context, decision acc
 		}
 		source, expectedSize = opened.Body, opened.Record.SizeBytes
 	}
-	defer source.Close()
+	defer func() { _ = source.Close() }()
 	if expectedSize <= 0 || expectedSize > audiomedia.MaxInputBytes {
 		return nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AI_ARTIFACT_UPLOAD_TOO_LARGE)
 	}
@@ -107,13 +107,13 @@ func (s *Service) prepareLocalAppAudioArtifact(ctx context.Context, decision acc
 	if err != nil {
 		return nil, canonicalAudioInternalError(err)
 	}
-	defer os.Remove(directory)
+	defer func() { _ = os.Remove(directory) }()
 	snapshot, err := os.CreateTemp(directory, "input-")
 	if err != nil {
 		return nil, canonicalAudioInternalError(err)
 	}
-	defer os.Remove(snapshot.Name())
-	defer snapshot.Close()
+	defer func() { _ = os.Remove(snapshot.Name()) }()
+	defer func() { _ = snapshot.Close() }()
 	count, err := copyAudioSnapshot(ctx, snapshot, source, expectedSize)
 	if err != nil || count != expectedSize {
 		if ctx.Err() != nil {
@@ -144,12 +144,12 @@ func (s *Service) prepareLocalAppAudioArtifact(ctx context.Context, decision acc
 		}
 		return invalid()
 	}
-	defer os.Remove(prepared.Path)
+	defer func() { _ = os.Remove(prepared.Path) }()
 	body, err := os.Open(prepared.Path)
 	if err != nil {
 		return nil, canonicalAudioInternalError(err)
 	}
-	defer body.Close()
+	defer func() { _ = body.Close() }()
 	expiresAt := time.Now().UTC().Add(musicRecoveryRetention)
 	record := runtimeartifact.ArtifactRecord{
 		MimeType: "audio/wav", SizeBytes: prepared.Facts.SizeBytes,

@@ -103,7 +103,7 @@ func activityAccounts(ctx context.Context, q querier) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("list App activity accounts: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	accounts := []string{}
 	for rows.Next() {
 		var accountID string
@@ -154,7 +154,7 @@ func expiredRecordIDs(ctx context.Context, tx *sql.Tx, accountID string, cutoff 
 	if err != nil {
 		return nil, fmt.Errorf("scan App activity retention: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	expired := []string{}
 	for rows.Next() {
 		var activityID, publisherRef, kind, state string

@@ -75,7 +75,7 @@ func TestAudioCpp081RetainedDriversIntegration(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 	musicHost := NewAudioCppExecutionHost(nil)
-	defer musicHost.Stop()
+	defer func() { _ = musicHost.Stop() }()
 	musicPlan, err := (capabilitydriver.MiniMaxMusic3AudioCppDriver{}).PlanMusicInvocation(capabilitydriver.MusicInvocationInput{
 		LoadoutID: "isolated-music3", RecipeID: capabilitydriver.MiniMaxMusic3RecipeID, Package: packageInput,
 		ExactBindings: []capabilitydriver.InvocationExactBinding{binding(musicRoot, capabilitydriver.MiniMaxMusic3RequirementID, "language_model_q4_0.gguf")},
@@ -94,7 +94,7 @@ func TestAudioCpp081RetainedDriversIntegration(t *testing.T) {
 	}
 	t.Logf("music3 wall=%s compute_ms=%d frames=%d bytes=%d", time.Since(started), music.ComputeMS, facts.FrameCount, music.SizeBytes)
 	speechHost := NewAudioCppSpeechExecutionHost(nil)
-	defer speechHost.Stop()
+	defer func() { _ = speechHost.Stop() }()
 	speechPlan, err := (capabilitydriver.Qwen3TTSAudioCppDriver{}).PlanQwen3TTSAudioCppInvocation(capabilitydriver.Qwen3TTSAudioCppInvocationInput{
 		LoadoutID: "isolated-qwen", RecipeID: capabilitydriver.Qwen3TTSAudioCppRecipeID, Package: packageInput,
 		ExactBindings: []capabilitydriver.InvocationExactBinding{binding(speechRoot, capabilitydriver.Qwen3TTSAudioCppModelRequirementID, capabilitydriver.Qwen3TTSAudioCppModelRelativePath)},

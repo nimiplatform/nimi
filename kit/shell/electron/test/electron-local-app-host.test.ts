@@ -60,7 +60,7 @@ describe('Electron protected local-app host', () => {
   });
   it('preserves complete real-format music results through Get and terminal events', async () => {
     const artifact = { artifactId: '01M31XPDSR0XFQJVY8NSBQRVED', mimeType: 'audio/wav', bytes: [],
-      sizeBytes: 7049274, sha256: '4e848edd82bf57a886b92f566020703b9252fb5e583c4751326394e4f120a8ed',
+      sizeBytes: 7049274, sha256: '4e848edd82bf57a886b92f566020703b9252fb5e583c4751326394e4f120a8ed', // pragma: allowlist secret -- audio fixture SHA-256
       durationMs: 19980, width: 0, height: 0, sampleRateHz: 44100, channels: 2, frameCount: 881152 };
     const musicGeneration = { mixArtifactId: artifact.artifactId, actualSeed: 42, termination: 'unknown',
       audioInfo: { sampleRateHz: 44100, channels: 2, frameCount: 881152, durationMs: 19980 } };

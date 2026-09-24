@@ -61,7 +61,7 @@ func (s *Service) ResolveAppActivityAgentTx(ctx context.Context, tx *sql.Tx, age
 	if err != nil {
 		return appactivity.AgentFacts{}, fmt.Errorf("list committed Agents for App activity: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var selected string
 	matches := 0
 	for rows.Next() {

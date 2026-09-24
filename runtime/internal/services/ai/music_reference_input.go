@@ -36,7 +36,7 @@ func (s *Service) captureCloudMusicReference(ctx context.Context, head *runtimev
 	if err != nil {
 		return nil, err
 	}
-	defer source.Body.Close()
+	defer func() { _ = source.Body.Close() }()
 	info := source.Record.CanonicalAudio
 	if info == nil || source.Record.MimeType != "audio/wav" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)

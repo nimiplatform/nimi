@@ -11,7 +11,7 @@ import {
   prepareDesktopHomeRootProfile,
 } from '../src-electron/home-host-profile.js';
 
-const SCOPE_NAME = '0123456789abcdef0123456789abcdef';
+const SCOPE_NAME = '01'.repeat(16);
 
 async function fixture(label: string) {
   const root = await mkdtemp(path.join(os.tmpdir(), `nimi-home-profile-${label}-`));

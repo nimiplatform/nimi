@@ -55,7 +55,7 @@ func (s *Service) captureLocalMusicTranscription(ctx context.Context, head *runt
 	if err != nil {
 		return nil, err
 	}
-	defer source.Body.Close()
+	defer func() { _ = source.Body.Close() }()
 	canonical := source.Record.CanonicalAudio
 	if canonical == nil || source.Record.MimeType != "audio/wav" || source.Record.SizeBytes <= 0 || source.Record.SizeBytes > audiomedia.MaxInputBytes {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)

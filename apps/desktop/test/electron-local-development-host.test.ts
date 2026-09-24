@@ -1249,7 +1249,8 @@ describe('Desktop Electron local-development registration host', () => {
     });
   });
 
-  it('discovers auto CDP output in the native-returned Host profile after a gated launch', async () => {
+  it('discovers auto CDP output in the native-returned Host profile after a gated launch', async (t) => {
+    t.mock.property(process, 'platform', 'darwin');
     const root = await mkdtemp(path.join(os.tmpdir(), 'nimi-dev-launch-profile-'));
     try {
       const projectRoot = path.join(root, 'project');
@@ -1278,7 +1279,8 @@ describe('Desktop Electron local-development registration host', () => {
     }
   });
 
-  it('never starts a host for a run stopped while its launch waited on the data-root gate', async () => {
+  it('never starts a host for a run stopped while its launch waited on the data-root gate', async (t) => {
+    t.mock.property(process, 'platform', 'darwin');
     const root = await mkdtemp(path.join(os.tmpdir(), 'nimi-dev-launch-gate-'));
     try {
       const projectRoot = path.join(root, 'project');

@@ -333,7 +333,7 @@ func readAudioCppBoundedFile(path string, limit int64) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open audio.cpp music output: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	data, err := io.ReadAll(io.LimitReader(file, limit+1))
 	if err != nil {
 		return nil, fmt.Errorf("read audio.cpp music output: %w", err)

@@ -24,7 +24,7 @@ func (s *Service) captureNativeSeparationInput(ctx context.Context, head *runtim
 	if err != nil {
 		return err
 	}
-	defer source.Body.Close()
+	defer func() { _ = source.Body.Close() }()
 	canonical := source.Record.CanonicalAudio
 	if canonical == nil || source.Record.MimeType != "audio/wav" || source.Record.SizeBytes <= 0 || source.Record.SizeBytes > audiomedia.MaxInputBytes {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)

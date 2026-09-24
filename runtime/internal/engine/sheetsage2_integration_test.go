@@ -30,7 +30,7 @@ func TestSheetSage2NativeExecutionIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer inputFile.Close()
+	defer func() { _ = inputFile.Close() }()
 	stagedSource := filepath.Join(output, "source.wav")
 	copyFile, err := os.OpenFile(stagedSource, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 	if err != nil {
@@ -78,7 +78,7 @@ func TestSheetSage2NativeExecutionIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 	host := NewAudioCppExecutionHost(nil)
-	defer host.Stop()
+	defer func() { _ = host.Stop() }()
 	started := time.Now()
 	result, err := host.ExecuteMusic(ctx, plan, nil)
 	if err != nil {

@@ -60,7 +60,7 @@ func (s *Service) captureMusicScore(ctx context.Context, head *runtimev1.Scenari
 	if err != nil {
 		return nil, err
 	}
-	defer source.Body.Close()
+	defer func() { _ = source.Body.Close() }()
 	if source.Record.MimeType != "text/vnd.abc" || source.Record.SizeBytes < 1 || source.Record.SizeBytes > musicscore.MaxBytes {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 	}

@@ -92,7 +92,7 @@ mod tests {
     fn completed_native_music3_facts_cross_the_full_job_projection() {
         // Numeric facts and format from the real Lab result; no inference is simulated here.
         let mix = LocalAppScenarioArtifact { artifact_id:"01M31XPDSR0XFQJVY8NSBQRVED".into(), mime_type:"audio/wav".into(),
-            sha256:"4e848edd82bf57a886b92f566020703b9252fb5e583c4751326394e4f120a8ed".into(), size_bytes:7049274,
+            sha256:"4e848edd82bf57a886b92f566020703b9252fb5e583c4751326394e4f120a8ed".into(), size_bytes:7049274, // pragma: allowlist secret -- audio fixture SHA-256
             sample_rate_hz:44100, channels:2, frame_count:881152, duration_ms:19980, ..Default::default() };
         let generation = MusicGeneration { mix_artifact_id:mix.artifact_id.clone(), actual_seed:Some(42),
             termination:MusicGenerationTermination::Unknown as i32,

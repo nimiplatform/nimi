@@ -56,7 +56,7 @@ func (s *Service) captureLocalVoiceConvert(ctx context.Context, head *runtimev1.
 	if err != nil {
 		return nil, err
 	}
-	defer source.Body.Close()
+	defer func() { _ = source.Body.Close() }()
 	sourceCanonical := source.Record.CanonicalAudio
 	if sourceCanonical == nil || source.Record.MimeType != "audio/wav" || source.Record.SizeBytes <= 0 || source.Record.SizeBytes > audiomedia.MaxInputBytes {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
@@ -84,7 +84,7 @@ func (s *Service) captureLocalVoiceConvert(ctx context.Context, head *runtimev1.
 		if err != nil {
 			return nil, err
 		}
-		defer opened.Body.Close()
+		defer func() { _ = opened.Body.Close() }()
 		targetCanonical := opened.Record.CanonicalAudio
 		if targetCanonical == nil || opened.Record.MimeType != "audio/wav" || opened.Record.SizeBytes <= 0 || opened.Record.SizeBytes > audiomedia.MaxInputBytes {
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)

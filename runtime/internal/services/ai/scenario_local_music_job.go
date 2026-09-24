@@ -230,7 +230,7 @@ func inspectMusicWAV(ctx context.Context, path string) (validatedLocalMusicWAV, 
 	if err != nil {
 		return validatedLocalMusicWAV{}, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	hasher := sha256.New()
 	buffer := make([]byte, 64<<10)
 	for {

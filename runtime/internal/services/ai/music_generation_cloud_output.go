@@ -47,8 +47,8 @@ func (s *Service) commitCloudMusicGeneration(ctx context.Context, jobID string, 
 	if err != nil {
 		return err
 	}
-	defer os.Remove(input.Name())
-	defer input.Close()
+	defer func() { _ = os.Remove(input.Name()) }()
+	defer func() { _ = input.Close() }()
 	var source io.ReadCloser
 	body := result.ArtifactBodies[artifact.GetArtifactId()]
 	switch {
@@ -72,7 +72,7 @@ func (s *Service) commitCloudMusicGeneration(ctx context.Context, jobID string, 
 	if source == nil {
 		return fmt.Errorf("provider music body is missing")
 	}
-	defer source.Close()
+	defer func() { _ = source.Close() }()
 	count, err := io.CopyBuffer(input, io.LimitReader(musicContextReader{ctx: ctx, source: source}, audiomedia.MaxInputBytes+1), make([]byte, 64<<10))
 	_ = source.Close()
 	if err != nil {
@@ -88,7 +88,7 @@ func (s *Service) commitCloudMusicGeneration(ctx context.Context, jobID string, 
 	if err != nil {
 		return err
 	}
-	defer os.Remove(prepared.Path)
+	defer func() { _ = os.Remove(prepared.Path) }()
 	wav, err := inspectMusicWAV(ctx, prepared.Path)
 	if err != nil {
 		return err

@@ -1890,6 +1890,8 @@ func (store failingLoadoutStore) Save([]*runtimev1.Loadout, []*runtimev1.Loadout
 
 func loadoutEmbeddingFixture(t *testing.T) (*Service, *runtimev1.ModelAssetRecord) {
 	t.Helper()
+	// Admission tests need a supported Loadout host regardless of the test runner.
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	root := t.TempDir()
 	svc := newLoadoutTestService(t, root)
 	source := filepath.Join(root, "embedding.gguf")

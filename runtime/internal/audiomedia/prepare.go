@@ -118,7 +118,7 @@ func (p *Processor) Prepare(ctx context.Context, input Input, stagingDirectory s
 		if openErr != nil {
 			return Prepared{}, fmt.Errorf("open canonical snapshot: %w", openErr)
 		}
-		defer source.Close()
+		defer func() { _ = source.Close() }()
 		count, copyErr := io.CopyBuffer(output, &contextReader{ctx: ctx, reader: io.LimitReader(source, MaxInputBytes+1)}, make([]byte, bufferBytes))
 		if copyErr != nil {
 			return Prepared{}, fmt.Errorf("copy canonical snapshot: %w", copyErr)

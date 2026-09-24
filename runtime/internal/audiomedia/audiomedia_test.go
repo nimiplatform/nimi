@@ -19,7 +19,7 @@ func writeTestWAV(t *testing.T, samples []float32, channels uint16) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	if err := writeHeader(file, 44100, channels, int64(len(samples)*4)); err != nil {
 		t.Fatal(err)
 	}
@@ -53,7 +53,7 @@ func TestCopyCanonicalRangePreservesBitsAndProtectsDestination(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer source.Close()
+	defer func() { _ = source.Close() }()
 	destination := filepath.Join(t.TempDir(), "selection.wav")
 	got, err := CopyCanonicalRange(context.Background(), source, facts, 1, 3, destination)
 	if err != nil {
@@ -262,7 +262,7 @@ func writeRateTestWAV(t *testing.T, name string, rate uint32, channels uint16, s
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	if err := writeHeader(file, rate, channels, int64(len(samples)*4)); err != nil {
 		t.Fatal(err)
 	}

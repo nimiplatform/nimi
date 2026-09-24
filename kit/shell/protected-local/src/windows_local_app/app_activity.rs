@@ -512,7 +512,7 @@ mod tests {
 
     fn todo_record() -> AppActivityRecord {
         AppActivityRecord {
-            activity_id: "act_01J8ZQ6J3F5T7W9X1Y2Z3A4B5C".into(),
+            activity_id: "act_01AAAAAAAAAAAAAAAAAAAAAAAA".into(),
             source: Some(AppActivitySource {
                 kind: AppActivitySourceKind::App as i32,
                 source_ref: "src_editor".into(),
@@ -669,7 +669,7 @@ mod tests {
         let upsert = project_change(SubscribeAppActivityChangesResponse {
             change_seq: 17,
             kind: AppActivityChangeKind::Upsert as i32,
-            activity_id: "act_01J8ZQ6J3F5T7W9X1Y2Z3A4B5C".into(),
+            activity_id: "act_01AAAAAAAAAAAAAAAAAAAAAAAA".into(),
             record: Some(todo_record()),
         })
         .expect("valid upsert");
@@ -684,7 +684,7 @@ mod tests {
         let remove = project_change(SubscribeAppActivityChangesResponse {
             change_seq: 18,
             kind: AppActivityChangeKind::Remove as i32,
-            activity_id: "act_01J8ZQ6J3F5T7W9X1Y2Z3A4B5C".into(),
+            activity_id: "act_01AAAAAAAAAAAAAAAAAAAAAAAA".into(),
             record: None,
         })
         .expect("valid remove");
@@ -693,7 +693,7 @@ mod tests {
             json!({
                 "changeSeq": "18",
                 "kind": "remove",
-                "activityId": "act_01J8ZQ6J3F5T7W9X1Y2Z3A4B5C",
+                "activityId": "act_01AAAAAAAAAAAAAAAAAAAAAAAA",
             })
         );
 
@@ -701,13 +701,13 @@ mod tests {
         assert_untrusted(project_change(SubscribeAppActivityChangesResponse {
             change_seq: 19,
             kind: AppActivityChangeKind::Upsert as i32,
-            activity_id: "act_01J8ZQ6J3F5T7W9X1Y2Z3A4B5C".into(),
+            activity_id: "act_01AAAAAAAAAAAAAAAAAAAAAAAA".into(),
             record: Some(todo_record()),
         }));
         assert_untrusted(project_change(SubscribeAppActivityChangesResponse {
             change_seq: 17,
             kind: AppActivityChangeKind::Upsert as i32,
-            activity_id: "act_01J8ZQ6J3F5T7W9X1Y2Z3A4B5C".into(),
+            activity_id: "act_01AAAAAAAAAAAAAAAAAAAAAAAA".into(),
             record: None,
         }));
     }
@@ -718,7 +718,7 @@ mod tests {
         let pending = project_open_event(
             OpenAppActivityResponse {
                 event: Some(OpenEvent::OpenRequestId(
-                    "aor_Q2l0eUxpZ2h0c0FyZUJyaWdodFRvbmlnaHQx".into(),
+                    "aor_test_pending".into(),
                 )),
             },
             &mut seen,
@@ -726,7 +726,7 @@ mod tests {
         .expect("pending open request");
         assert_eq!(
             pending,
-            json!({ "openRequestId": "aor_Q2l0eUxpZ2h0c0FyZUJyaWdodFRvbmlnaHQx" })
+            json!({ "openRequestId": "aor_test_pending" })
         );
         assert!(seen);
         // A second Host-private request on one stream is a contract violation.
@@ -780,7 +780,7 @@ mod tests {
     fn open_request_projection_is_exact() {
         let projected = project_open_request(SubscribeAppActivityOpenRequestsResponse {
             delivery_id: "aod_delivery".into(),
-            activity_id: "act_01J8ZQ6J3F5T7W9X1Y2Z3A4B5C".into(),
+            activity_id: "act_01AAAAAAAAAAAAAAAAAAAAAAAA".into(),
             object_ref: "doc:42".into(),
             activity_type: "com.example.editor.review-requested.v1".into(),
         })
@@ -789,7 +789,7 @@ mod tests {
             projected,
             json!({
                 "deliveryId": "aod_delivery",
-                "activityId": "act_01J8ZQ6J3F5T7W9X1Y2Z3A4B5C",
+                "activityId": "act_01AAAAAAAAAAAAAAAAAAAAAAAA",
                 "objectRef": "doc:42",
                 "type": "com.example.editor.review-requested.v1",
             })
@@ -825,7 +825,7 @@ mod tests {
         assert_untrusted(project_change(SubscribeAppActivityChangesResponse {
             change_seq: 18,
             kind: AppActivityChangeKind::Unspecified as i32,
-            activity_id: "act_01J8ZQ6J3F5T7W9X1Y2Z3A4B5C".into(),
+            activity_id: "act_01AAAAAAAAAAAAAAAAAAAAAAAA".into(),
             record: None,
         }));
         assert_untrusted(project_open_result(AppActivityOpenResult {

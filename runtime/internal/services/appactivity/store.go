@@ -327,7 +327,7 @@ func loadChangesAfter(ctx context.Context, q querier, accountID string, cursor u
 	if err != nil {
 		return nil, fmt.Errorf("read App activity changes: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	changes := make([]changeRow, 0, limit)
 	for rows.Next() {
 		var change changeRow
@@ -406,7 +406,7 @@ func listPage(ctx context.Context, q querier, accountID string, filter listFilte
 	if err != nil {
 		return nil, fmt.Errorf("list App activity: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	records := make([]storedRecord, 0, limit)
 	for rows.Next() {
 		record, err := scanRecord(rows)

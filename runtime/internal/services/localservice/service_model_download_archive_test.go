@@ -345,6 +345,10 @@ func TestCanonicalReleaseArchiveSpecRejectsUnsafeShapes(t *testing.T) {
 
 func TestSpacyReleaseArchiveOffersProjectPinnedSourceFacts(t *testing.T) {
 	svc := newTestService(t)
+	// The service fixture models macOS; its RAM probe must not query the CI host.
+	previousProbeRAM := localRuntimeProbeRAM
+	localRuntimeProbeRAM = func() (int64, int64) { return 16 << 30, 12 << 30 }
+	t.Cleanup(func() { localRuntimeProbeRAM = previousProbeRAM })
 	wantArchives := map[string]int64{
 		"spacy-md-en": 33480380, "spacy-md-de": 44398316, "spacy-md-es": 42284033, "spacy-md-fr": 45836173,
 		"spacy-md-it": 42389964, "spacy-md-ru": 41884158, "spacy-md-zh": 78021257, "spacy-md-ja": 42105500,
