@@ -2,9 +2,9 @@
  * @generated
  * Sources:
  *   config/runtime-provider-capabilities.yaml
- *     sha256: d5330844a7afb051c41a1e40fc348ccb2749192a9a24f8d9f233d29c9007bbe7
+ *     sha256: 07605767755db91c71d1a577c313267cfa4261b86c52da6241c5f13700266fcd
  *   config/runtime-provider-catalog.yaml
- *     sha256: ae802b6d8446fcaad2a20695434360f111824317538d29e5f72c2b441aa86f7f
+ *     sha256: 5b4dd26817cb3e2af89a14680a156078adf20a5ec75b02ead9bdee9106c96bf2
  * Generator: apps/web/scripts/generate-landing-data.mjs
  * DO NOT EDIT MANUALLY. Re-run generator (`pnpm prebuild` or
  * `node scripts/generate-landing-data.mjs` from apps/web/) to refresh.
@@ -28,9 +28,12 @@ export type AdmittedCapability =
   | "audio.separate"
   | "audio.synthesize"
   | "audio.transcribe"
+  | "audio.voice.convert"
   | "image.generate"
   | "music.generate"
+  | "music.transcribe"
   | "realtime.interact"
+  | "text.decide"
   | "text.embed"
   | "text.generate"
   | "video.generate"
@@ -44,9 +47,12 @@ export const ADMITTED_CAPABILITIES = [
   "audio.separate",
   "audio.synthesize",
   "audio.transcribe",
+  "audio.voice.convert",
   "image.generate",
   "music.generate",
+  "music.transcribe",
   "realtime.interact",
+  "text.decide",
   "text.embed",
   "text.generate",
   "video.generate",
@@ -550,6 +556,17 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     endpointRequirement: "explicit_required",
     inventoryMode: "dynamic_endpoint",
     capabilities: ["audio.synthesize", "audio.transcribe", "image.generate", "text.embed", "text.generate", "video.generate"],
+    sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
+  },
+  {
+    provider: "typesafe",
+    runtimePlane: "remote",
+    executionModule: "nimillm",
+    managedConnectorSupported: true,
+    inlineSupported: true,
+    endpointRequirement: "default_or_explicit",
+    inventoryMode: "static_source",
+    capabilities: [],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {

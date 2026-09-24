@@ -48,9 +48,12 @@ const ADMITTED_CAPABILITIES_ALLOWLIST = new Set([
   'audio.separate',
   'audio.synthesize',
   'audio.transcribe',
+  'audio.voice.convert',
   'image.generate',
   'music.generate',
+  'music.transcribe',
   'realtime.interact',
+  'text.decide',
   'text.embed',
   'text.generate',
   'video.generate',
@@ -62,7 +65,7 @@ const ADMITTED_CAPABILITIES_ALLOWLIST = new Set([
 // Canonical vocabulary may precede a verified public product slice. Keep the
 // contract type admitted while withholding provider-level supported claims
 // that the current release posture explicitly defers.
-const DEFERRED_PUBLIC_CAPABILITIES = new Set(['world.generate']);
+const DEFERRED_PUBLIC_CAPABILITIES = new Set(['world.generate', 'text.decide', 'music.transcribe', 'audio.voice.convert']);
 
 function failClose(message) {
   process.stderr.write(`generate-landing-data: ${message}\n`);

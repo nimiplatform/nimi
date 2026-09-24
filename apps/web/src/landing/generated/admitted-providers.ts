@@ -1,7 +1,7 @@
 /**
  * @generated
  * Source: config/runtime-provider-catalog.yaml
- *   sha256: ae802b6d8446fcaad2a20695434360f111824317538d29e5f72c2b441aa86f7f
+ *   sha256: 5b4dd26817cb3e2af89a14680a156078adf20a5ec75b02ead9bdee9106c96bf2
  * Generator: apps/web/scripts/generate-landing-data.mjs
  * DO NOT EDIT MANUALLY. Re-run generator (`pnpm prebuild` or
  * `node scripts/generate-landing-data.mjs` from apps/web/) to refresh.
@@ -361,6 +361,14 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
     defaultTextModel: null,
     requiresExplicitEndpoint: true,
     inventoryMode: "dynamic_endpoint",
+    sourceRule: "K-MCAT-027",
+  },
+  {
+    provider: "typesafe",
+    defaultEndpoint: "https://api.typesafe.ai",
+    defaultTextModel: null,
+    requiresExplicitEndpoint: false,
+    inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
   },
   {
