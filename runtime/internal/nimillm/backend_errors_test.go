@@ -2,9 +2,14 @@ package nimillm
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
+	"io"
 	"net"
+	"net/url"
+	"os"
 	"strings"
+	"syscall"
 	"testing"
 
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
@@ -531,6 +536,35 @@ func TestMapProviderRequestError_NetworkTimeout(t *testing.T) {
 		t.Fatalf("expected AI_PROVIDER_TIMEOUT, got %v", reason)
 	}
 }
+
+func TestProviderRequestFailureClassKeepsOnlyTheClass(t *testing.T) {
+	const address = "203.0.113.7:443"
+	reset := &net.OpError{Op: "read", Net: "tcp", Err: &os.SyscallError{Syscall: "wsarecv", Err: syscall.Errno(10054)}}
+	for _, test := range []struct {
+		err  error
+		want string
+	}{
+		{&url.Error{Op: "Post", URL: "https://" + address + "/v1/systemone", Err: reset}, "read-errno-10054"},
+		{&url.Error{Op: "Post", URL: "https://" + address, Err: &net.DNSError{Name: "api.example.test"}}, "dns"},
+		{&url.Error{Op: "Post", URL: "https://" + address, Err: io.EOF}, "eof"},
+		{&url.Error{Op: "Post", URL: "https://" + address, Err: &tls.CertificateVerificationError{Err: errors.New("unknown authority")}}, "tls"},
+		{&net.OpError{Op: "dial", Net: "tcp", Err: timeoutError{}}, "dial-timeout"},
+		{MapProviderRequestError(&url.Error{Op: "Post", URL: "https://" + address, Err: reset}), "read-errno-10054"},
+		{context.DeadlineExceeded, "deadline"},
+		{errors.New("unclassified " + address), "other"},
+	} {
+		got := ProviderRequestFailureClass(test.err)
+		if got != test.want || strings.Contains(got, "203.0.113") {
+			t.Fatalf("%v: class=%q want %q", test.err, got, test.want)
+		}
+	}
+}
+
+type timeoutError struct{}
+
+func (timeoutError) Error() string   { return "i/o timeout" }
+func (timeoutError) Timeout() bool   { return true }
+func (timeoutError) Temporary() bool { return true }
 
 func TestMapProviderRequestError_GRPCDeadlineExceeded(t *testing.T) {
 	err := MapProviderRequestError(status.Error(codes.DeadlineExceeded, "provider-timeout-marker"))

@@ -8,7 +8,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"time"
 
@@ -27,6 +26,7 @@ const (
 	scenarioJobRecordQuarantinedReason    = "SCENARIO_JOB_RECORD_QUARANTINED"
 	scenarioJobDocumentQuarantinedReason  = "SCENARIO_JOB_DOCUMENT_QUARANTINED"
 	scenarioJobIsolationQuarantineDirName = "state-quarantine"
+	scenarioJobQuarantineRecordsLevel     = "records"
 )
 
 type scenarioJobIsolationDiagnostic struct {
@@ -37,6 +37,9 @@ type scenarioJobIsolationDiagnostic struct {
 	Section        string
 	RecordIndex    int
 	RecordID       string
+	// JournalLine is the 1-based journal line of the isolated row; zero for a
+	// base snapshot row.
+	JournalLine int
 }
 
 type scenarioJobDiskRawSnapshot struct {
@@ -49,8 +52,19 @@ type scenarioJobDiskRawSnapshot struct {
 type scenarioJobQuarantinedRecord struct {
 	Section     string
 	RecordIndex int
+	JournalLine int
 	RecordID    string
 	Reason      string
+	Raw         json.RawMessage
+}
+
+// scenarioJobLoadRow is one row reload validates: a base snapshot row, or the
+// final journal row of a key (journalLine > 0).
+type scenarioJobLoadRow struct {
+	raw         json.RawMessage
+	key         string
+	index       int
+	journalLine int
 }
 
 type scenarioJobDiskSnapshot struct {
@@ -128,22 +142,40 @@ func (s *scenarioJobStore) loadDurableJobs(prune bool) error {
 		}
 		return err
 	}
-	var snapshot scenarioJobDiskRawSnapshot
-	if err := decodeScenarioJobStrictJSON(raw, &snapshot); err != nil {
+	document, err := parseScenarioJobDurableDocument(raw)
+	if err != nil {
 		return s.isolateDurableDocument(raw, err)
 	}
+	snapshot := document.base
 	if snapshot.Version != scenarioJobDiskStoreVersion {
 		return s.isolateDurableDocument(raw, fmt.Errorf("unsupported scenario job store version %d", snapshot.Version))
 	}
+	// A Job, binding, or custody obligation that the journal touched is
+	// represented by its final journal row, never by its base row.
+	replay := replayScenarioJobJournal(document.entries)
 
 	now := time.Now().UTC()
 	quarantined := make([]scenarioJobQuarantinedRecord, 0)
+	recordRows := make([]scenarioJobLoadRow, 0, len(snapshot.Records)+len(replay.records.order))
 	for index, rawRecord := range snapshot.Records {
+		recordRows = append(recordRows, scenarioJobLoadRow{raw: rawRecord, index: index})
+	}
+	for _, row := range replay.records.live() {
+		recordRows = append(recordRows, scenarioJobLoadRow{raw: row.value.Record, key: row.value.JobID, index: row.index, journalLine: row.line})
+	}
+	for _, row := range recordRows {
 		var item scenarioJobDiskRecord
-		rowErr := decodeScenarioJobStrictJSON(rawRecord, &item)
+		rowErr := decodeScenarioJobStrictJSON(row.raw, &item)
 		var job runtimev1.ScenarioJob
 		if rowErr == nil {
 			rowErr = (protojson.UnmarshalOptions{DiscardUnknown: false}).Unmarshal(item.Job, &job)
+		}
+		jobID := strings.TrimSpace(job.GetJobId())
+		if rowErr == nil && row.journalLine == 0 && replay.records.touched(jobID) {
+			continue
+		}
+		if rowErr == nil && row.journalLine > 0 && jobID != row.key {
+			rowErr = fmt.Errorf("journal row for scenario job %q holds scenario job %q", row.key, jobID)
 		}
 		var resolvedAssembly *localResolvedAssembly
 		if rowErr == nil && len(item.ResolvedAssembly) > 0 {
@@ -188,7 +220,6 @@ func (s *scenarioJobStore) loadDurableJobs(prune bool) error {
 		if rowErr == nil {
 			rowErr = validateScenarioJobVisionResult(&job, resolvedAssembly, visionLocate)
 		}
-		jobID := strings.TrimSpace(job.GetJobId())
 		if rowErr == nil && (jobID == "" || item.CreatedAt.IsZero() || item.UpdatedAt.IsZero()) {
 			rowErr = errors.New("record has no stable identity or timestamps")
 		}
@@ -197,7 +228,7 @@ func (s *scenarioJobStore) loadDurableJobs(prune bool) error {
 		}
 		if rowErr != nil {
 			quarantined = append(quarantined, scenarioJobQuarantinedRecord{
-				Section: "records", RecordIndex: index, RecordID: jobID, Reason: rowErr.Error(),
+				Section: "records", RecordIndex: row.index, JournalLine: row.journalLine, RecordID: jobID, Reason: rowErr.Error(), Raw: row.raw,
 			})
 			continue
 		}
@@ -209,13 +240,14 @@ func (s *scenarioJobStore) loadDurableJobs(prune bool) error {
 			job.Interruption = runtimeRestartExecutionInterruption()
 			if projectionErr := prepareFailedScenarioJobProjection(&job); projectionErr != nil {
 				quarantined = append(quarantined, scenarioJobQuarantinedRecord{
-					Section: "records", RecordIndex: index, RecordID: jobID, Reason: projectionErr.Error(),
+					Section: "records", RecordIndex: row.index, JournalLine: row.journalLine, RecordID: jobID, Reason: projectionErr.Error(), Raw: row.raw,
 				})
 				continue
 			}
 			job.UpdatedAt = timestamppb.New(now)
 			item.UpdatedAt = now
 			item.TerminalAt = now
+			s.markDurableJobChangedLocked(jobID)
 		}
 		record := &scenarioJobRecord{
 			payload: cloneEmbeddingPayload(item.Payload), job: cloneScenarioJob(&job), resolvedAssembly: resolvedAssembly, cloudAssembly: cloudAssembly, localAppOwner: cloneLocalAppJobOwner(item.Owner),
@@ -235,11 +267,18 @@ func (s *scenarioJobStore) loadDurableJobs(prune bool) error {
 		s.publishLocked(record, scenarioJobEventForStatus(job.GetStatus()))
 	}
 
-	seenPendingCustody := make(map[string]struct{}, len(snapshot.PendingCustody))
-	for index, rawPending := range snapshot.PendingCustody {
+	custodyRows, err := scenarioJobLoadRows(snapshot.PendingCustody, replay.pendingCustody.live(), func(item scenarioJobDiskPendingCustody) string { return item.JobID })
+	if err != nil {
+		return err
+	}
+	seenPendingCustody := make(map[string]struct{}, len(custodyRows))
+	for _, row := range custodyRows {
 		var item scenarioJobDiskPendingCustody
-		rowErr := decodeScenarioJobStrictJSON(rawPending, &item)
+		rowErr := decodeScenarioJobStrictJSON(row.raw, &item)
 		jobID := strings.TrimSpace(item.JobID)
+		if rowErr == nil && row.journalLine == 0 && replay.pendingCustody.touched(jobID) {
+			continue
+		}
 		ref := strings.TrimSpace(item.Ref)
 		if rowErr == nil && (jobID == "" || ref == "" || item.CapturedAt.IsZero()) {
 			rowErr = errors.New("pending credential custody has no stable Job, reference, or timestamp")
@@ -257,7 +296,7 @@ func (s *scenarioJobStore) loadDurableJobs(prune bool) error {
 		}
 		if rowErr != nil {
 			quarantined = append(quarantined, scenarioJobQuarantinedRecord{
-				Section: "pending_credential_custody", RecordIndex: index, RecordID: jobID, Reason: rowErr.Error(),
+				Section: "pending_credential_custody", RecordIndex: row.index, JournalLine: row.journalLine, RecordID: jobID, Reason: rowErr.Error(), Raw: row.raw,
 			})
 			continue
 		}
@@ -267,11 +306,18 @@ func (s *scenarioJobStore) loadDurableJobs(prune bool) error {
 		}
 	}
 
-	seenScopes := make(map[string]struct{}, len(snapshot.Idempotency))
-	for index, rawBinding := range snapshot.Idempotency {
+	bindingRows, err := scenarioJobLoadRows(snapshot.Idempotency, replay.idempotency.live(), func(item scenarioJobDiskIdempotencyEntry) string { return item.ScopeKey })
+	if err != nil {
+		return err
+	}
+	seenScopes := make(map[string]struct{}, len(bindingRows))
+	for _, row := range bindingRows {
 		var item scenarioJobDiskIdempotencyEntry
-		rowErr := decodeScenarioJobStrictJSON(rawBinding, &item)
+		rowErr := decodeScenarioJobStrictJSON(row.raw, &item)
 		key := strings.TrimSpace(item.ScopeKey)
+		if rowErr == nil && row.journalLine == 0 && replay.idempotency.touched(key) {
+			continue
+		}
 		jobID := strings.TrimSpace(item.JobID)
 		if rowErr == nil && (key == "" || jobID == "" || item.BoundAt.IsZero() || s.jobs[jobID] == nil) {
 			rowErr = errors.New("binding has no stable scope, Job, timestamp, or live Job target")
@@ -283,7 +329,7 @@ func (s *scenarioJobStore) loadDurableJobs(prune bool) error {
 		}
 		if rowErr != nil {
 			quarantined = append(quarantined, scenarioJobQuarantinedRecord{
-				Section: "idempotency", RecordIndex: index, RecordID: key, Reason: rowErr.Error(),
+				Section: "idempotency", RecordIndex: row.index, JournalLine: row.journalLine, RecordID: key, Reason: rowErr.Error(), Raw: row.raw,
 			})
 			continue
 		}
@@ -292,7 +338,7 @@ func (s *scenarioJobStore) loadDurableJobs(prune bool) error {
 	}
 
 	if len(quarantined) > 0 {
-		quarantinePath, quarantineErr := s.preserveIsolatedRecords(raw)
+		quarantinePath, quarantineErr := s.preserveIsolatedRecords(quarantined)
 		if quarantineErr != nil {
 			return fmt.Errorf("preserve isolated scenario job records: %w", quarantineErr)
 		}
@@ -300,14 +346,43 @@ func (s *scenarioJobStore) loadDurableJobs(prune bool) error {
 			s.isolationDiagnostics = append(s.isolationDiagnostics, scenarioJobIsolationDiagnostic{
 				Level: scenarioJobIsolationLevelRecord, ReasonCode: scenarioJobRecordQuarantinedReason,
 				Message: record.Reason, QuarantinePath: quarantinePath, Section: record.Section,
-				RecordIndex: record.RecordIndex, RecordID: record.RecordID,
+				RecordIndex: record.RecordIndex, RecordID: record.RecordID, JournalLine: record.JournalLine,
 			})
 		}
+	}
+	if document.tornBytes > 0 {
+		s.isolationDiagnostics = append(s.isolationDiagnostics, scenarioJobIsolationDiagnostic{
+			Level: scenarioJobIsolationLevelJournalTail, ReasonCode: scenarioJobJournalTailDiscardedReason,
+			Message:     fmt.Sprintf("discarded %d bytes of a final append that was never acknowledged", document.tornBytes),
+			RecordIndex: -1,
+		})
+	}
+	// Every loaded row was validated above. The load rewrite validates again
+	// only the Jobs that restart recovery changed.
+	for jobID := range s.jobs {
+		s.durable.jobs[jobID] = struct{}{}
 	}
 	if prune {
 		s.pruneLocked(now)
 	}
 	return s.persistDurableJobsLocked(scenarioJobPersistenceAttempt{Operation: scenarioJobPersistLoad})
+}
+
+// scenarioJobLoadRows lists base rows followed by the final journal row of
+// each key, encoded in the same row shape.
+func scenarioJobLoadRows[T any](base []json.RawMessage, journal []scenarioJobJournalRow[T], key func(T) string) ([]scenarioJobLoadRow, error) {
+	rows := make([]scenarioJobLoadRow, 0, len(base)+len(journal))
+	for index, raw := range base {
+		rows = append(rows, scenarioJobLoadRow{raw: raw, index: index})
+	}
+	for _, row := range journal {
+		raw, err := json.Marshal(row.value)
+		if err != nil {
+			return nil, fmt.Errorf("encode ScenarioJob journal row: %w", err)
+		}
+		rows = append(rows, scenarioJobLoadRow{raw: raw, key: key(row.value), index: row.index, journalLine: row.line})
+	}
+	return rows, nil
 }
 
 func (s *scenarioJobStore) pruneRecoveredDurableState() error {
@@ -389,12 +464,33 @@ func (s *scenarioJobStore) preserveScenarioJobDocument(payload []byte) (string, 
 	return target, nil
 }
 
-func (s *scenarioJobStore) preserveIsolatedRecords(payload []byte) (string, error) {
-	target, err := s.scenarioJobQuarantinePath("records")
+// preserveIsolatedRecords copies only the isolated rows into quarantine
+// evidence. Healthy sibling rows stay solely in the live store, so their
+// captured inputs follow ordinary retention.
+// @nimi-authority: rule.nimi.runtime.service-operations.scenario-job-isolation-evidence
+func (s *scenarioJobStore) preserveIsolatedRecords(rows []scenarioJobQuarantinedRecord) (string, error) {
+	isolated := scenarioJobDiskRawSnapshot{Version: scenarioJobDiskStoreVersion}
+	for _, row := range rows {
+		switch row.Section {
+		case "records":
+			isolated.Records = append(isolated.Records, row.Raw)
+		case "idempotency":
+			isolated.Idempotency = append(isolated.Idempotency, row.Raw)
+		case "pending_credential_custody":
+			isolated.PendingCustody = append(isolated.PendingCustody, row.Raw)
+		default:
+			return "", fmt.Errorf("isolated scenario job row section %q is unknown", row.Section)
+		}
+	}
+	payload, err := json.MarshalIndent(isolated, "", "  ")
 	if err != nil {
 		return "", err
 	}
-	if err := os.WriteFile(target, payload, 0o600); err != nil {
+	target, err := s.scenarioJobQuarantinePath(scenarioJobQuarantineRecordsLevel)
+	if err != nil {
+		return "", err
+	}
+	if err := writeScenarioJobDocument(target, payload); err != nil {
 		return "", err
 	}
 	return target, nil
@@ -437,121 +533,6 @@ func scenarioJobEventForStatus(status runtimev1.ScenarioJobStatus) runtimev1.Sce
 	default:
 		return runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_SUBMITTED
 	}
-}
-
-func (s *scenarioJobStore) persistDurableJobsLocked(attempt scenarioJobPersistenceAttempt) error {
-	if s == nil {
-		return nil
-	}
-	if s.persistenceFailure != nil {
-		if err := s.persistenceFailure(attempt); err != nil {
-			return err
-		}
-	}
-	if strings.TrimSpace(s.durablePath) == "" {
-		return nil
-	}
-	jobIDs := make([]string, 0, len(s.jobs))
-	for jobID := range s.jobs {
-		jobIDs = append(jobIDs, jobID)
-	}
-	sort.Strings(jobIDs)
-	snapshot := scenarioJobDiskSnapshot{Version: scenarioJobDiskStoreVersion, Records: make([]scenarioJobDiskRecord, 0, len(jobIDs))}
-	for _, jobID := range jobIDs {
-		record := s.jobs[jobID]
-		if record == nil || record.job == nil {
-			return fmt.Errorf("scenario job %q has no record", jobID)
-		}
-		if err := validatePersistedScenarioJob(record.job, record.createdAt, record.updatedAt, record.terminalAt); err != nil {
-			return fmt.Errorf("scenario job %q public record: %w", jobID, err)
-		}
-		if err := validateScenarioJobPayload(record.job, record.resolvedAssembly, record.cloudAssembly, record.payload); err != nil {
-			return fmt.Errorf("scenario job %q captured inputs: %w", jobID, err)
-		}
-		if err := validateScenarioJobTerminalResults(record); err != nil {
-			return fmt.Errorf("scenario job %q terminal result: %w", jobID, err)
-		}
-		if err := validateLocalAppMusicSubmission(record.musicSubmission, record.localAppOwner, record.job); err != nil {
-			return err
-		}
-		raw, err := (protojson.MarshalOptions{UseProtoNames: true}).Marshal(record.job)
-		if err != nil {
-			return err
-		}
-		var assemblyRaw json.RawMessage
-		if record.resolvedAssembly != nil {
-			assemblyRaw, err = json.Marshal(record.resolvedAssembly)
-			if err != nil {
-				return fmt.Errorf("marshal scenario job %q ResolvedAssembly: %w", jobID, err)
-			}
-		}
-		var cloudAssemblyRaw json.RawMessage
-		if record.cloudAssembly != nil {
-			cloudAssemblyRaw, err = json.Marshal(record.cloudAssembly)
-			if err != nil {
-				return fmt.Errorf("marshal scenario job %q Cloud ResolvedAssembly: %w", jobID, err)
-			}
-		}
-		var voiceAssetRaw json.RawMessage
-		if record.voiceAsset != nil {
-			voiceAssetRaw, err = (protojson.MarshalOptions{UseProtoNames: true}).Marshal(record.voiceAsset)
-			if err != nil {
-				return fmt.Errorf("marshal scenario job %q terminal VoiceAsset: %w", jobID, err)
-			}
-		}
-		var voiceReferenceRaw json.RawMessage
-		if record.voiceReference != nil {
-			voiceReferenceRaw, err = (protojson.MarshalOptions{UseProtoNames: true}).Marshal(record.voiceReference)
-			if err != nil {
-				return fmt.Errorf("marshal scenario job %q terminal VoiceReference: %w", jobID, err)
-			}
-		}
-		var visionRaw json.RawMessage
-		if record.visionLocate != nil {
-			visionRaw, err = (protojson.MarshalOptions{UseProtoNames: true}).Marshal(record.visionLocate)
-			if err != nil {
-				return fmt.Errorf("marshal scenario job %q Locate result: %w", jobID, err)
-			}
-		}
-		snapshot.Records = append(snapshot.Records, scenarioJobDiskRecord{
-			Payload: cloneEmbeddingPayload(record.payload), Job: raw, ResolvedAssembly: assemblyRaw, CloudResolvedAssembly: cloudAssemblyRaw, Owner: cloneLocalAppJobOwner(record.localAppOwner),
-			VoiceAsset: voiceAssetRaw, VoiceReference: voiceReferenceRaw,
-			MusicSubmission: cloneLocalAppMusicSubmission(record.musicSubmission),
-			VisionLocate:    visionRaw,
-			CreatedAt:       record.createdAt, UpdatedAt: record.updatedAt, TerminalAt: record.terminalAt,
-		})
-	}
-	keys := make([]string, 0, len(s.idempotency))
-	for key := range s.idempotency {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-	for _, key := range keys {
-		binding := s.idempotency[key]
-		snapshot.Idempotency = append(snapshot.Idempotency, scenarioJobDiskIdempotencyEntry{ScopeKey: key, JobID: binding.jobID, BoundAt: binding.boundAt})
-	}
-	pendingJobIDs := make([]string, 0, len(s.pendingCloudCustody))
-	for jobID := range s.pendingCloudCustody {
-		pendingJobIDs = append(pendingJobIDs, jobID)
-	}
-	sort.Strings(pendingJobIDs)
-	for _, jobID := range pendingJobIDs {
-		pending := s.pendingCloudCustody[jobID]
-		if pending.jobID != jobID || strings.TrimSpace(pending.ref) == "" || pending.capturedAt.IsZero() {
-			return fmt.Errorf("pending credential custody for scenario job %q is invalid", jobID)
-		}
-		if err := connector.ValidateCredentialCustodyRefForJob(pending.ref, jobID); err != nil {
-			return fmt.Errorf("pending credential custody for scenario job %q: %w", jobID, err)
-		}
-		snapshot.PendingCustody = append(snapshot.PendingCustody, scenarioJobDiskPendingCustody{
-			JobID: jobID, Ref: pending.ref, CapturedAt: pending.capturedAt,
-		})
-	}
-	raw, err := json.MarshalIndent(snapshot, "", "  ")
-	if err != nil {
-		return err
-	}
-	return writeScenarioJobDocument(s.durablePath, raw)
 }
 
 func writeScenarioJobDocument(path string, raw []byte) error {

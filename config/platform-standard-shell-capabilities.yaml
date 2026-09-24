@@ -1445,7 +1445,7 @@ capabilities:
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, host-internal-error]
       - id: scenarioExecute
         command: nimi.shell.localApp.scenarioExecute
-        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, host-internal-error]
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, canceled, timeout, session-invalid, host-internal-error]
       - id: scenarioJobSubmit
         command: nimi.shell.localApp.scenarioJobSubmit
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, host-internal-error]

@@ -4915,6 +4915,879 @@ models:
         host_requirement:
           accelerator: cpu
           min_ram_bytes: 8589934592
+  - model_id: asset-nlp-spacy-en-core-web-md-3.8.0
+    provider: local
+    model_type: auxiliary
+    updated_at: 2026-09-24
+    capabilities: []
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://github.com/explosion/spacy-models/releases/tag/en_core_web_md-3.8.0
+      retrieved_at: 2026-09-24
+      note: Official spaCy en_core_web_md 3.8.0 release. The release notes publish the wheel SHA-256; its en_core_web_md-3.8.0 data directory, with its LICENSE and LICENSES_SOURCES notices, is the installed English analysis ModelAsset. Upstream license MIT. Its 2 GiB min_ram_bytes covers the 1069 MiB peak commit measured when the managed CPU worker loaded it on windows/amd64.
+    family: spacy
+    install:
+      repo: explosion/spacy-models
+      revision: en_core_web_md-3.8.0
+      install_kind: verified-release-archive
+      entry: config.cfg
+      artifact_roles:
+        - text_analysis_model
+      license: MIT
+      provenance: https://github.com/explosion/spacy-models/releases/tag/en_core_web_md-3.8.0
+    variants:
+      - variant_id: local.nlp.spacy-en-core-web-md.3.8.0
+        quant: F32
+        entry: config.cfg
+        files:
+          - LICENSE
+          - LICENSES_SOURCES
+          - attribute_ruler/patterns
+          - config.cfg
+          - lemmatizer/lookups/lookups.bin
+          - meta.json
+          - ner/cfg
+          - ner/model
+          - ner/moves
+          - parser/cfg
+          - parser/model
+          - parser/moves
+          - senter/cfg
+          - senter/model
+          - tagger/cfg
+          - tagger/model
+          - tok2vec/cfg
+          - tok2vec/model
+          - tokenizer
+          - vocab/key2row
+          - vocab/lookups.bin
+          - vocab/strings.json
+          - vocab/vectors
+          - vocab/vectors.cfg
+        hashes:
+          LICENSE: sha256:3933c176979b68bc6d0bcc902c7d6c130f1d127f476f17ba5cdba8d99cfd0012
+          LICENSES_SOURCES: sha256:ea21333cecd2593c1fea842e9362bedf7b556abfb97cd08ce0650f2228b2eb58
+          attribute_ruler/patterns: sha256:f8b97f7ebef9b8536bba5f0fc1e73af6183563e96e2325bcbb021b8c6dbc6683
+          config.cfg: sha256:24b1b17065a74a6a3f999dd9c722f5532dc6bb5994b6a7ba5aa4f2ce09d434cc
+          lemmatizer/lookups/lookups.bin: sha256:eb64f40c0f8396d1762730c0ddf4dad2a52d138f5a389f71a1a1d088173b7737
+          meta.json: sha256:5bcf739c5ac3b0038fc218d3227f8600e35a420e29fbe4c6bcc643688ab63b1b
+          ner/cfg: sha256:a7172edadafba9f472e9ac0f2660eec04b6405e471be9e20267b79c67288d22d
+          ner/model: sha256:7454af3a8d841f9724f932f95b06591a13da659e0f99dd44ebbb2be804739d6d
+          ner/moves: sha256:d82b13473ebd33e0396004dd22f00c71fe3c1251742bf1f7c4554f23fd3b0af4
+          parser/cfg: sha256:e2a240ef01f95e58f5dd4c9d6e90d61f597b8d998966570d3009dd81e8879780
+          parser/model: sha256:9d2f5ec9fe1cdf6b709cc3bcf746e82788ee3561f1f659a9bc94dadcd7648225
+          parser/moves: sha256:ec41318c32eb7f9e4d8f050b2e8466ee67954d2d3455c1aec73abf46c82dd67f
+          senter/cfg: sha256:2a4db4a729b6469da1f87d71cc7cd3ed2a73360cc85326821e850836c4671103
+          senter/model: sha256:44e30022d4b5068e59448053cc2514759f9a978b8e9e994485a76b150ca11a5a
+          tagger/cfg: sha256:d484c3d9391f37bf9c727aa2eb4c477a24cb103020f95e52dc37842818b50118
+          tagger/model: sha256:4ddde747a73dfd6fc1e40d9702e5185526f7d27e3b56200852761a03f0814533
+          tok2vec/cfg: sha256:f8a5a26e3056eb6fb06deeb3dbccfd88ae74900200c98c70b5966bbb7ec9d4de
+          tok2vec/model: sha256:c20baba06c75a2882f19758ed64ad94e0e5e4078cfcb515bca59e4456b710675
+          tokenizer: sha256:b014e8bba4958b120af2d0c1c63eabb7c00379f2bacaf10df7c5325efd2ea467
+          vocab/key2row: sha256:1a1825f75ae9d691024317632021a49970ce61bcc007bc176f77ca429c3bcf5c
+          vocab/lookups.bin: sha256:fce9c883c56165f29573cc938c2a1c9d417ac61bd8f56b671dd5f7996de70682
+          vocab/strings.json: sha256:efd814b36290d2513b683c924571d9e3b25bf6c60bb89c13cb8c3436d2cb6cfa
+          vocab/vectors: sha256:22d102290ba09bb681c5a2e6063e9b4cea4c41dec9517565181a907b6ba6a830
+          vocab/vectors.cfg: sha256:ff4359091952c8cd16f1f0482f5770fb82d1707368d5cca3c46aa501f552e3c5
+        total_size_bytes: 56524490
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 2147483648
+        archive:
+          file: en_core_web_md-3.8.0-py3-none-any.whl
+          format: zip
+          sha256: sha256:5e6329fe3fecedb1d1a02c3ea2172ee0fede6cea6e4aefb6a02d832dba78a310
+          size_bytes: 33480380
+          root: en_core_web_md/en_core_web_md-3.8.0
+  - model_id: asset-nlp-spacy-de-core-news-md-3.8.0
+    provider: local
+    model_type: auxiliary
+    updated_at: 2026-09-24
+    capabilities: []
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://github.com/explosion/spacy-models/releases/tag/de_core_news_md-3.8.0
+      retrieved_at: 2026-09-24
+      note: Official spaCy de_core_news_md 3.8.0 release. The release notes publish the wheel SHA-256; its de_core_news_md-3.8.0 data directory, with its LICENSE and LICENSES_SOURCES notices, is the installed German analysis ModelAsset. Upstream license MIT. Its 2 GiB min_ram_bytes covers the 1122 MiB peak commit measured when the managed CPU worker loaded it on windows/amd64.
+    family: spacy
+    install:
+      repo: explosion/spacy-models
+      revision: de_core_news_md-3.8.0
+      install_kind: verified-release-archive
+      entry: config.cfg
+      artifact_roles:
+        - text_analysis_model
+      license: MIT
+      provenance: https://github.com/explosion/spacy-models/releases/tag/de_core_news_md-3.8.0
+    variants:
+      - variant_id: local.nlp.spacy-de-core-news-md.3.8.0
+        quant: F32
+        entry: config.cfg
+        files:
+          - LICENSE
+          - LICENSES_SOURCES
+          - attribute_ruler/patterns
+          - config.cfg
+          - lemmatizer/cfg
+          - lemmatizer/model
+          - lemmatizer/trees
+          - meta.json
+          - morphologizer/cfg
+          - morphologizer/model
+          - ner/cfg
+          - ner/model
+          - ner/moves
+          - parser/cfg
+          - parser/model
+          - parser/moves
+          - senter/cfg
+          - senter/model
+          - tagger/cfg
+          - tagger/model
+          - tok2vec/cfg
+          - tok2vec/model
+          - tokenizer
+          - vocab/key2row
+          - vocab/lookups.bin
+          - vocab/strings.json
+          - vocab/vectors
+          - vocab/vectors.cfg
+        hashes:
+          LICENSE: sha256:3933c176979b68bc6d0bcc902c7d6c130f1d127f476f17ba5cdba8d99cfd0012
+          LICENSES_SOURCES: sha256:5c1460fbf2193f7fbd80bdea331870e23edc6d11f9f3c24a2d10a91ee236b61d
+          attribute_ruler/patterns: sha256:6241300d1efc3b0263997a4a429ce4692f85a7c71470394c6b07371186ea93ba
+          config.cfg: sha256:f9429742959c513a99a35e9607d2c2eebdf4a15a8fc6a6c97cd6a3aaab874d04
+          lemmatizer/cfg: sha256:5b147c534e61b7286fb4b04a5a6e7b35eadebaabeca85c43aaadba9774f1156e
+          lemmatizer/model: sha256:06e2a0a86f7a1c9ec02a1d7e74e7e9176d042737b2ddc4a216d0f8d653100be8
+          lemmatizer/trees: sha256:627ffb537321d682ad47cf33d60dd49a976544c1b2192b77f44da1fc092ddd85
+          meta.json: sha256:47fde0ef22416cb2ce7ef81afe50a50bb4c7cdc8aba33f75203af76852992dd3
+          morphologizer/cfg: sha256:3dd694d5d091031ba16b1510bb55e5cd4fd2e891966248561dd8a6211fd22885
+          morphologizer/model: sha256:a3b052e8f3fed159db48e8714663e4f97a9e419e7643c77938d78d10c4085bdd
+          ner/cfg: sha256:a7172edadafba9f472e9ac0f2660eec04b6405e471be9e20267b79c67288d22d
+          ner/model: sha256:eace5535cdba6f5e492d4245794d0ebb87cefda0ff8a6d92390fe66ec06110a2
+          ner/moves: sha256:c4a69879c86b2d718f21b539dd7ff2f1dd57e5c65a3b2948d51c8430d37e612b
+          parser/cfg: sha256:e2a240ef01f95e58f5dd4c9d6e90d61f597b8d998966570d3009dd81e8879780
+          parser/model: sha256:30ac1e6a0a9590c226ea426351711a9981660add62e67e011bc952b95db0ac60
+          parser/moves: sha256:84d098f96ebf27b149128b91157fe7bc1ead7e53ded1a790f2b3000d30705cbd
+          senter/cfg: sha256:2a4db4a729b6469da1f87d71cc7cd3ed2a73360cc85326821e850836c4671103
+          senter/model: sha256:2412aad4e3434171c80c515892c52f31a0ed4c46611e4d44c1105f453d8c2449
+          tagger/cfg: sha256:05ab51eb95028199eed91e04b849cc993248ba30e174fb45c1b1e11585576f32
+          tagger/model: sha256:cf28b5e7c6077aa476b582e7e976c82480481b654623558dff2bec6694e88fb0
+          tok2vec/cfg: sha256:f8a5a26e3056eb6fb06deeb3dbccfd88ae74900200c98c70b5966bbb7ec9d4de
+          tok2vec/model: sha256:2d713fd4768e7caf0dfc4d62da85243e2747603d489d6808d838730fef6b16eb
+          tokenizer: sha256:de9ff2caf5338582c90987fe9e6c5f06855639e7565433030950092240636a1c
+          vocab/key2row: sha256:e03cb8631c06036a364245d61c065bcddb32533d38356c7ea63c8365f73275dc
+          vocab/lookups.bin: sha256:15c33cca0a6b138fa982c8c2fcffa7341c85e49add5c898fec405db6e16cd36c
+          vocab/strings.json: sha256:cc85b952ba8a8d58cff69360a9bb20f7eab1f650119b0ecfb9aa1a4eb7a95d39
+          vocab/vectors: sha256:1281d1a73dd0d9c0a9511f8118da09d3e92299db91efc3139597b878d6eac5d2
+          vocab/vectors.cfg: sha256:ff4359091952c8cd16f1f0482f5770fb82d1707368d5cca3c46aa501f552e3c5
+        total_size_bytes: 62422412
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 2147483648
+        archive:
+          file: de_core_news_md-3.8.0-py3-none-any.whl
+          format: zip
+          sha256: sha256:b903f59220f1e76dd672acdaa7fa454d6703fe056c5ccd6457820e70874116d0
+          size_bytes: 44398316
+          root: de_core_news_md/de_core_news_md-3.8.0
+  - model_id: asset-nlp-spacy-es-core-news-md-3.8.0
+    provider: local
+    model_type: auxiliary
+    updated_at: 2026-09-24
+    capabilities: []
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://github.com/explosion/spacy-models/releases/tag/es_core_news_md-3.8.0
+      retrieved_at: 2026-09-24
+      note: Official spaCy es_core_news_md 3.8.0 release. The release notes publish the wheel SHA-256; its es_core_news_md-3.8.0 data directory, with its LICENSE and LICENSES_SOURCES notices, is the installed Spanish analysis ModelAsset. Upstream license GNU GPL 3.0. Its 2 GiB min_ram_bytes covers the 1046 MiB peak commit measured when the managed CPU worker loaded it on windows/amd64.
+    family: spacy
+    install:
+      repo: explosion/spacy-models
+      revision: es_core_news_md-3.8.0
+      install_kind: verified-release-archive
+      entry: config.cfg
+      artifact_roles:
+        - text_analysis_model
+      license: GNU GPL 3.0
+      provenance: https://github.com/explosion/spacy-models/releases/tag/es_core_news_md-3.8.0
+    variants:
+      - variant_id: local.nlp.spacy-es-core-news-md.3.8.0
+        quant: F32
+        entry: config.cfg
+        files:
+          - LICENSE
+          - LICENSES_SOURCES
+          - attribute_ruler/patterns
+          - config.cfg
+          - lemmatizer/lookups/lookups.bin
+          - meta.json
+          - morphologizer/cfg
+          - morphologizer/model
+          - ner/cfg
+          - ner/model
+          - ner/moves
+          - parser/cfg
+          - parser/model
+          - parser/moves
+          - senter/cfg
+          - senter/model
+          - tok2vec/cfg
+          - tok2vec/model
+          - tokenizer
+          - vocab/key2row
+          - vocab/lookups.bin
+          - vocab/strings.json
+          - vocab/vectors
+          - vocab/vectors.cfg
+        hashes:
+          LICENSE: sha256:3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986
+          LICENSES_SOURCES: sha256:ba88e34debb14e8ef93fcb24e603b15bbb950c4316971c6299f8054d971c3739
+          attribute_ruler/patterns: sha256:4f75cda3457fb69177271ea919b9718de483d613a6934e705284a0d7a3f5f8d4
+          config.cfg: sha256:0287eff7a5b4e86c91d59629a3e039a159bf232c03352ebd56579af59aa3d5e9
+          lemmatizer/lookups/lookups.bin: sha256:ee3740fdad2ebc1cf79a63a8e5b2d2f3dd47b33c3a7a0bc9351ba5a1246b6a07
+          meta.json: sha256:889a2fd05d217fa7c1bcffa867af7fc30911bc7b48523f87b5b2525846553ef5
+          morphologizer/cfg: sha256:fb6ef1fde55d6fdfc62928ad473b02ec6f60c918de3630b24193155e9b44e6b6
+          morphologizer/model: sha256:d1acf7ca5d52626da749f356b92ab8b5cc3de4058d27fe82264ffec8c5fac154
+          ner/cfg: sha256:a7172edadafba9f472e9ac0f2660eec04b6405e471be9e20267b79c67288d22d
+          ner/model: sha256:3a5162759252275ea3ba0413c0821b932ac01e84e6939194991766de3ee8d40f
+          ner/moves: sha256:388a36c16aef7bcb5337914cbeb4294615eed7f43d9428d54ce7d5cec3fbda88
+          parser/cfg: sha256:e2a240ef01f95e58f5dd4c9d6e90d61f597b8d998966570d3009dd81e8879780
+          parser/model: sha256:0a610e39c67e8e52489f3542f1c04b00daa44a34d6c516dbaef2a34a73848f0d
+          parser/moves: sha256:8d24e3afe08cdb49c58d10b045fb3f2238be46e9ec61c5310603627a1aa1de5b
+          senter/cfg: sha256:2a4db4a729b6469da1f87d71cc7cd3ed2a73360cc85326821e850836c4671103
+          senter/model: sha256:1d59abc728863a21bd024af418b99c45d3b1a5a141b3a1bf1a7a897cabeddaab
+          tok2vec/cfg: sha256:f8a5a26e3056eb6fb06deeb3dbccfd88ae74900200c98c70b5966bbb7ec9d4de
+          tok2vec/model: sha256:24a88bfb3c927f7ceb4911064428660e88b9a76162e08f1411a1640417dfb1e8
+          tokenizer: sha256:b59b7b576c81115906b8fcf07f331a84846f77b431676a0803906c94c817462f
+          vocab/key2row: sha256:e8671a09a41a5b75945090b0587993eff21adca55f626dae7bb36f159a6eb5f7
+          vocab/lookups.bin: sha256:76be8b528d0075f7aae98d6fa57a6d3c83ae480a8469e668d7b0af968995ac71
+          vocab/strings.json: sha256:075e99764ce5265fb5a2345aac18d6ced24ad612ad238378908b52b15bc38136
+          vocab/vectors: sha256:e62c4610ae1cf28f17f80020f38ac20d3f8c57b10c348d4403141e16e79b7664
+          vocab/vectors.cfg: sha256:ff4359091952c8cd16f1f0482f5770fb82d1707368d5cca3c46aa501f552e3c5
+        total_size_bytes: 54287234
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 2147483648
+        archive:
+          file: es_core_news_md-3.8.0-py3-none-any.whl
+          format: zip
+          sha256: sha256:478b8bb3f3e8eb149192f7d80e7cd64f990b7e9bccbc5329df41a57e86326be2
+          size_bytes: 42284033
+          root: es_core_news_md/es_core_news_md-3.8.0
+  - model_id: asset-nlp-spacy-fr-core-news-md-3.8.0
+    provider: local
+    model_type: auxiliary
+    updated_at: 2026-09-24
+    capabilities: []
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://github.com/explosion/spacy-models/releases/tag/fr_core_news_md-3.8.0
+      retrieved_at: 2026-09-24
+      note: Official spaCy fr_core_news_md 3.8.0 release. The release notes publish the wheel SHA-256; its fr_core_news_md-3.8.0 data directory, with its LICENSE and LICENSES_SOURCES notices, is the installed French analysis ModelAsset. Upstream license LGPL-LR. Its 2 GiB min_ram_bytes covers the 1192 MiB peak commit measured when the managed CPU worker loaded it on windows/amd64.
+    family: spacy
+    install:
+      repo: explosion/spacy-models
+      revision: fr_core_news_md-3.8.0
+      install_kind: verified-release-archive
+      entry: config.cfg
+      artifact_roles:
+        - text_analysis_model
+      license: LGPL-LR
+      provenance: https://github.com/explosion/spacy-models/releases/tag/fr_core_news_md-3.8.0
+    variants:
+      - variant_id: local.nlp.spacy-fr-core-news-md.3.8.0
+        quant: F32
+        entry: config.cfg
+        files:
+          - LICENSE
+          - LICENSES_SOURCES
+          - attribute_ruler/patterns
+          - config.cfg
+          - lemmatizer/lookups/lookups.bin
+          - meta.json
+          - morphologizer/cfg
+          - morphologizer/model
+          - ner/cfg
+          - ner/model
+          - ner/moves
+          - parser/cfg
+          - parser/model
+          - parser/moves
+          - senter/cfg
+          - senter/model
+          - tok2vec/cfg
+          - tok2vec/model
+          - tokenizer
+          - vocab/key2row
+          - vocab/lookups.bin
+          - vocab/strings.json
+          - vocab/vectors
+          - vocab/vectors.cfg
+        hashes:
+          LICENSE: sha256:fcfeb5f3a67aa25d659d1162b4f4a9c52a92171d4df68a11d87c52e3af982a17
+          LICENSES_SOURCES: sha256:04c6d1ecb70fbe2449975a7af0b7c8cbb516ecc57022d447a0cb2370df866a65
+          attribute_ruler/patterns: sha256:7729f95ca78f12afec2a16a34e39a9a929bb0a136ee523639bd4ccdbfb950a86
+          config.cfg: sha256:64a5ed369a003285fc526180d901aacc628db7295f81a93d4c23ef60aad790aa
+          lemmatizer/lookups/lookups.bin: sha256:085ec6e824162d6d75a6b5e1b2cb69cbb784be324f6029900334896203fa81b3
+          meta.json: sha256:a392d1f29f4e990c7fd2afd1cc944e3a7553129198f7fb58de25e067936a4f56
+          morphologizer/cfg: sha256:cd2bb0350f53f278db97566e385b2aca489d14c2fc9761dbe4c3cdc40c7af851
+          morphologizer/model: sha256:4d97793018d10c206ba9862c37906cf50649dcc72d627202ae9b36167edb4199
+          ner/cfg: sha256:a7172edadafba9f472e9ac0f2660eec04b6405e471be9e20267b79c67288d22d
+          ner/model: sha256:ca499e9977f1e7c386a6991595635cf1b150077ac502992b55c8fe27dc1547cc
+          ner/moves: sha256:caaec5c72440377c4e050f5f7af17287354c81426e5126f7e23a5f875850f0f1
+          parser/cfg: sha256:e2a240ef01f95e58f5dd4c9d6e90d61f597b8d998966570d3009dd81e8879780
+          parser/model: sha256:81fcd12c100eab942576949dc508a8a9cc44aecff9a4722759ae18aeb12ac986
+          parser/moves: sha256:d20730affa2a16af252c1434a21bea4c8c436475a77c79e2707c3442e7f8a198
+          senter/cfg: sha256:2a4db4a729b6469da1f87d71cc7cd3ed2a73360cc85326821e850836c4671103
+          senter/model: sha256:4120f08bb5070d50b82a821ab891147c00f9b6f0a2b5abd943007687e59cf238
+          tok2vec/cfg: sha256:f8a5a26e3056eb6fb06deeb3dbccfd88ae74900200c98c70b5966bbb7ec9d4de
+          tok2vec/model: sha256:79e5092eab3c61ecfeb8cdcd0f3eced2f5a3d716aabf9341eeed5212b587b95b
+          tokenizer: sha256:0c5994780fdf69912547eff13b24e61764efefae670274e56112354430afe0f4
+          vocab/key2row: sha256:9306ce6306d84627696543c087a53e1d43a8bcad1b9ee5af725ef5e33dc96d29
+          vocab/lookups.bin: sha256:76be8b528d0075f7aae98d6fa57a6d3c83ae480a8469e668d7b0af968995ac71
+          vocab/strings.json: sha256:d1682f44c3970ac1b66bdeb8cab47800e8656eb09fceb3dfe362b5b2ff8624ea
+          vocab/vectors: sha256:5ca43f943cbd2a97105dd46cabf14edf5ffd1a930fb7b73f87c5a1d5403d0447
+          vocab/vectors.cfg: sha256:ff4359091952c8cd16f1f0482f5770fb82d1707368d5cca3c46aa501f552e3c5
+        total_size_bytes: 65125305
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 2147483648
+        archive:
+          file: fr_core_news_md-3.8.0-py3-none-any.whl
+          format: zip
+          sha256: sha256:8a70d090a54ef77525c3ffa6a6195b9d365f2cf369ae1cd84ede93f3d709079e
+          size_bytes: 45836173
+          root: fr_core_news_md/fr_core_news_md-3.8.0
+  - model_id: asset-nlp-spacy-it-core-news-md-3.8.0
+    provider: local
+    model_type: auxiliary
+    updated_at: 2026-09-24
+    capabilities: []
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://github.com/explosion/spacy-models/releases/tag/it_core_news_md-3.8.0
+      retrieved_at: 2026-09-24
+      note: Official spaCy it_core_news_md 3.8.0 release. The release notes publish the wheel SHA-256; its it_core_news_md-3.8.0 data directory, with its LICENSE and LICENSES_SOURCES notices, is the installed Italian analysis ModelAsset. Upstream license CC BY-NC-SA 3.0. Its 2 GiB min_ram_bytes covers the 1041 MiB peak commit measured when the managed CPU worker loaded it on windows/amd64.
+    family: spacy
+    install:
+      repo: explosion/spacy-models
+      revision: it_core_news_md-3.8.0
+      install_kind: verified-release-archive
+      entry: config.cfg
+      artifact_roles:
+        - text_analysis_model
+      license: CC BY-NC-SA 3.0
+      provenance: https://github.com/explosion/spacy-models/releases/tag/it_core_news_md-3.8.0
+    variants:
+      - variant_id: local.nlp.spacy-it-core-news-md.3.8.0
+        quant: F32
+        entry: config.cfg
+        files:
+          - LICENSE
+          - LICENSES_SOURCES
+          - attribute_ruler/patterns
+          - config.cfg
+          - lemmatizer/cfg
+          - lemmatizer/model
+          - lemmatizer/trees
+          - meta.json
+          - morphologizer/cfg
+          - morphologizer/model
+          - ner/cfg
+          - ner/model
+          - ner/moves
+          - parser/cfg
+          - parser/model
+          - parser/moves
+          - senter/cfg
+          - senter/model
+          - tagger/cfg
+          - tagger/model
+          - tok2vec/cfg
+          - tok2vec/model
+          - tokenizer
+          - vocab/key2row
+          - vocab/lookups.bin
+          - vocab/strings.json
+          - vocab/vectors
+          - vocab/vectors.cfg
+        hashes:
+          LICENSE: sha256:8812f83442fd0eca14eb0208988e190fdcbfebec58fa5459d3218edfdfdc5a32
+          LICENSES_SOURCES: sha256:847038ac65cec688f9ee2dcf6d1c8cf1e5b8ecfcb82163b156559966ba90906a
+          attribute_ruler/patterns: sha256:6241300d1efc3b0263997a4a429ce4692f85a7c71470394c6b07371186ea93ba
+          config.cfg: sha256:f27f6fe74a49b625079cb176f1ea226a712781b6b2ee02301303088c1c67c75f
+          lemmatizer/cfg: sha256:a275b533c83a472d3a8e8cc94219c921459f26424079dd2663afa51c6715a68c
+          lemmatizer/model: sha256:a7acf70687190adf298496658a3471336c317eda51ea43ceb7cb9bb5e1a0a09d
+          lemmatizer/trees: sha256:e83cbe175dcd0ae49b6f52786199462bdb1b7973e2ef53291d5be99f7515307e
+          meta.json: sha256:a682589c2cc25d9523434505ad8e290d1107201b20d675c43cfd0e498b7d7bc2
+          morphologizer/cfg: sha256:8a0e0b83ce98e04649946a96bc79f20df6f3c995f9d5bac11c166c7b9178036d
+          morphologizer/model: sha256:96e180995cfb3e024893348e4eb3663a16c76f12c9e01572d32db4cd6f80a17a
+          ner/cfg: sha256:a7172edadafba9f472e9ac0f2660eec04b6405e471be9e20267b79c67288d22d
+          ner/model: sha256:5549212d8a30f6acad1b7529989e8d0e0b8733066703295965763fe1aba3ffa4
+          ner/moves: sha256:0601b7e8848f0745a8af0968b4328a4923cc1142648b6022e8c19cef8d9dc574
+          parser/cfg: sha256:e2a240ef01f95e58f5dd4c9d6e90d61f597b8d998966570d3009dd81e8879780
+          parser/model: sha256:534aa5bc982cec704050808c7b67c2018e8b37e435c7d6b056272e5a46f10c41
+          parser/moves: sha256:927e9bdf97ced442e65fec25a6dbf80a23be73e79447f692ef0a3310431c954e
+          senter/cfg: sha256:2a4db4a729b6469da1f87d71cc7cd3ed2a73360cc85326821e850836c4671103
+          senter/model: sha256:bea5d2658eff79f13494ea2c61bc294af45c1b769ccc1fe30eda8419a0316723
+          tagger/cfg: sha256:41f20f4a57632523838d7216737f20da48771b68334c93b1f7a6485bc842d2be
+          tagger/model: sha256:28923bd6918c9f1154d4b94b81f45be62088e66e75da9c23d3e5f19b4c489faf
+          tok2vec/cfg: sha256:f8a5a26e3056eb6fb06deeb3dbccfd88ae74900200c98c70b5966bbb7ec9d4de
+          tok2vec/model: sha256:3913a518cf385d5f2a69ddf38de7896888fb2902d49d74fd2b40272df638b295
+          tokenizer: sha256:1ba4ca6ea64d364089b97fc1d578b1d8adb7d5e0563bc87360e33ddfffb27cd5
+          vocab/key2row: sha256:c6b65ca3d219f28c0ab2104f6f8e65eec213c4060c4593685d7f73e49fde602d
+          vocab/lookups.bin: sha256:76be8b528d0075f7aae98d6fa57a6d3c83ae480a8469e668d7b0af968995ac71
+          vocab/strings.json: sha256:c7814eeab2da9b6950f2c15d5f9d967c75e824e581e98709f89a2ce31f2ab8d5
+          vocab/vectors: sha256:0f544f5753c5fd1f3b77b68d8aa0aea7fd8aa9dff437f524bdd965ce3134a41a
+          vocab/vectors.cfg: sha256:ff4359091952c8cd16f1f0482f5770fb82d1707368d5cca3c46aa501f552e3c5
+        total_size_bytes: 53875030
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 2147483648
+        archive:
+          file: it_core_news_md-3.8.0-py3-none-any.whl
+          format: zip
+          sha256: sha256:a731d2d8e7c5a7093ac42f88774ea2a2ad3d5809959eedee65632b3533f804ec
+          size_bytes: 42389964
+          root: it_core_news_md/it_core_news_md-3.8.0
+  - model_id: asset-nlp-spacy-ru-core-news-md-3.8.0
+    provider: local
+    model_type: auxiliary
+    updated_at: 2026-09-24
+    capabilities: []
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://github.com/explosion/spacy-models/releases/tag/ru_core_news_md-3.8.0
+      retrieved_at: 2026-09-24
+      note: Official spaCy ru_core_news_md 3.8.0 release. The release notes publish the wheel SHA-256; its ru_core_news_md-3.8.0 data directory, with its LICENSE and LICENSES_SOURCES notices, is the installed Russian analysis ModelAsset. Upstream license MIT. Its 2 GiB min_ram_bytes covers the 1185 MiB peak commit measured when the managed CPU worker loaded it on windows/amd64.
+    family: spacy
+    install:
+      repo: explosion/spacy-models
+      revision: ru_core_news_md-3.8.0
+      install_kind: verified-release-archive
+      entry: config.cfg
+      artifact_roles:
+        - text_analysis_model
+      license: MIT
+      provenance: https://github.com/explosion/spacy-models/releases/tag/ru_core_news_md-3.8.0
+    variants:
+      - variant_id: local.nlp.spacy-ru-core-news-md.3.8.0
+        quant: F32
+        entry: config.cfg
+        files:
+          - LICENSE
+          - LICENSES_SOURCES
+          - attribute_ruler/patterns
+          - config.cfg
+          - lemmatizer/lookups/lookups.bin
+          - meta.json
+          - morphologizer/cfg
+          - morphologizer/model
+          - ner/cfg
+          - ner/model
+          - ner/moves
+          - parser/cfg
+          - parser/model
+          - parser/moves
+          - senter/cfg
+          - senter/model
+          - tok2vec/cfg
+          - tok2vec/model
+          - tokenizer
+          - vocab/key2row
+          - vocab/lookups.bin
+          - vocab/strings.json
+          - vocab/vectors
+          - vocab/vectors.cfg
+        hashes:
+          LICENSE: sha256:3933c176979b68bc6d0bcc902c7d6c130f1d127f476f17ba5cdba8d99cfd0012
+          LICENSES_SOURCES: sha256:903f74bbbf35c28e255cd5bfe069da85e56ce717ab248717c3fa79f8503bfd6f
+          attribute_ruler/patterns: sha256:ba1beeaecd4d4f8234f4be79d74d82ef55c52066bfbfbf1f45e8007da780ff40
+          config.cfg: sha256:83e10820566c18ec311f3c5e8d0465a22a791f443aa33cb31e788458d94bf779
+          lemmatizer/lookups/lookups.bin: sha256:76be8b528d0075f7aae98d6fa57a6d3c83ae480a8469e668d7b0af968995ac71
+          meta.json: sha256:56bc0190228499d8f85a7c71e03a04299a3868c15703c1132c638ce4a22334f2
+          morphologizer/cfg: sha256:94577e702cbab1510878b3335de7310d5ef35c05dae0dda34e8df2fbeb60c7a4
+          morphologizer/model: sha256:45bd7946e689bd44d55d71fdd8bfd261187c33d40a4b33708b8858fe13dc9e56
+          ner/cfg: sha256:a7172edadafba9f472e9ac0f2660eec04b6405e471be9e20267b79c67288d22d
+          ner/model: sha256:26405f2f2806377c128a5be5f83d1c8b11689e63f3388b4246cf909615b263f7
+          ner/moves: sha256:68989d605c2ae4d537b4833c1883afa6cbd1daaa8ee39ab2460538d7ca7652f2
+          parser/cfg: sha256:e2a240ef01f95e58f5dd4c9d6e90d61f597b8d998966570d3009dd81e8879780
+          parser/model: sha256:26bafe49060c3024b83fbace192c0e2924e1644fad1ea66d10f96796d9a9714d
+          parser/moves: sha256:9a704f4105f8ac121eb295e7f46c5de1b1a627ccd709a2ea1f79ace2fa53c1ea
+          senter/cfg: sha256:2a4db4a729b6469da1f87d71cc7cd3ed2a73360cc85326821e850836c4671103
+          senter/model: sha256:668c49914d7ad1f07b401b960f22d3c01df285b8bc66ac3eec9a1766a582be69
+          tok2vec/cfg: sha256:f8a5a26e3056eb6fb06deeb3dbccfd88ae74900200c98c70b5966bbb7ec9d4de
+          tok2vec/model: sha256:eb10c058fc88abed1a81a8b5825c6850e4b8d9c43a7214101956915fc61c55e4
+          tokenizer: sha256:2227a2106f96afd2a302f3a71f5ef8068df8cf871efd3e1672ea375bde057366
+          vocab/key2row: sha256:d4d3d2342f3336a8dbee5688c3be0d38e0ad725771f92ce063ed5ccd70d86a74
+          vocab/lookups.bin: sha256:76be8b528d0075f7aae98d6fa57a6d3c83ae480a8469e668d7b0af968995ac71
+          vocab/strings.json: sha256:967899b299d4c01affbceff241c8c8546b171c66d05a57fe8dc078c192759284
+          vocab/vectors: sha256:d9e55769bc5661f6b5b34d850cc1a9658676faecd09845ba527080932f053574
+          vocab/vectors.cfg: sha256:ff4359091952c8cd16f1f0482f5770fb82d1707368d5cca3c46aa501f552e3c5
+        total_size_bytes: 93048929
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 2147483648
+        archive:
+          file: ru_core_news_md-3.8.0-py3-none-any.whl
+          format: zip
+          sha256: sha256:43f456d40e4b70726874e01ce01fce32f50089ba98a2660292e9a6c63a06ebe9
+          size_bytes: 41884158
+          root: ru_core_news_md/ru_core_news_md-3.8.0
+  - model_id: asset-nlp-spacy-zh-core-web-md-3.8.0
+    provider: local
+    model_type: auxiliary
+    updated_at: 2026-09-24
+    capabilities: []
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://github.com/explosion/spacy-models/releases/tag/zh_core_web_md-3.8.0
+      retrieved_at: 2026-09-24
+      note: Official spaCy zh_core_web_md 3.8.0 release. The release notes publish the wheel SHA-256; its zh_core_web_md-3.8.0 data directory, with its LICENSE and LICENSES_SOURCES notices, is the installed Chinese analysis ModelAsset. Upstream license MIT. Its 2 GiB min_ram_bytes covers the 1329 MiB peak commit measured when the managed CPU worker loaded it on windows/amd64.
+    family: spacy
+    install:
+      repo: explosion/spacy-models
+      revision: zh_core_web_md-3.8.0
+      install_kind: verified-release-archive
+      entry: config.cfg
+      artifact_roles:
+        - text_analysis_model
+      license: MIT
+      provenance: https://github.com/explosion/spacy-models/releases/tag/zh_core_web_md-3.8.0
+    variants:
+      - variant_id: local.nlp.spacy-zh-core-web-md.3.8.0
+        quant: F32
+        entry: config.cfg
+        files:
+          - LICENSE
+          - LICENSES_SOURCES
+          - attribute_ruler/patterns
+          - config.cfg
+          - meta.json
+          - ner/cfg
+          - ner/model
+          - ner/moves
+          - parser/cfg
+          - parser/model
+          - parser/moves
+          - senter/cfg
+          - senter/model
+          - tagger/cfg
+          - tagger/model
+          - tok2vec/cfg
+          - tok2vec/model
+          - tokenizer/cfg
+          - tokenizer/pkuseg_model/features.msgpack
+          - tokenizer/pkuseg_model/weights.npz
+          - tokenizer/pkuseg_processors
+          - vocab/key2row
+          - vocab/lookups.bin
+          - vocab/strings.json
+          - vocab/vectors
+          - vocab/vectors.cfg
+        hashes:
+          LICENSE: sha256:3933c176979b68bc6d0bcc902c7d6c130f1d127f476f17ba5cdba8d99cfd0012
+          LICENSES_SOURCES: sha256:0fc6687af277abef52cfcc65a5d970476af9b9e2e056b43a4040ff483b83c886
+          attribute_ruler/patterns: sha256:c129c90a51277a9c75593c6f57c1408bb1079c2f162f5dacb43082f2a65d5a1c
+          config.cfg: sha256:93bd171ad59dba9100f085ef5855c1069e0d09c042b01f52cf748cc5f9e4a5c5
+          meta.json: sha256:4032cf5741d5b42d5e5c730c9c214c2085bb43b1603dc60fbecbc21e68f29f06
+          ner/cfg: sha256:a7172edadafba9f472e9ac0f2660eec04b6405e471be9e20267b79c67288d22d
+          ner/model: sha256:48c25aa3974082435f82fd64a1a9afaa8ee0f3c9e38f3a29383103ccc1485528
+          ner/moves: sha256:48f9e5435d71f80a5f3f234a72f995dfd45b12272ba51487abcd1b8a272edd81
+          parser/cfg: sha256:e2a240ef01f95e58f5dd4c9d6e90d61f597b8d998966570d3009dd81e8879780
+          parser/model: sha256:b37f7360630fa92655beb0e81239e8543a9837b45cde1e0baa218ecd62fe8fa8
+          parser/moves: sha256:8cb478214977f9a6565c99f48a5d3b5a70a75eaa9989156a159fc99144340dcc
+          senter/cfg: sha256:2a4db4a729b6469da1f87d71cc7cd3ed2a73360cc85326821e850836c4671103
+          senter/model: sha256:2c3c6160e692fbc2a90185a814bddcdb1cc2b4f8025d56304278207006682262
+          tagger/cfg: sha256:336117ec934d4de27bc0222b9e88488831440bfdd681ddc0b0dea0cb488d9bb8
+          tagger/model: sha256:a0ca1235ffe6e36528483b97012a870cb3b38d7f05c47c40aeb940dfa30cad6f
+          tok2vec/cfg: sha256:f8a5a26e3056eb6fb06deeb3dbccfd88ae74900200c98c70b5966bbb7ec9d4de
+          tok2vec/model: sha256:0133b4b9f7979c9b05a26b820ffe9f9dcf770c030cb757cef337ff3edefb2fc0
+          tokenizer/cfg: sha256:e292e55366dc1320ae9a3d78b60836928e04cb08ff3cf8a62cc7b016986e8814
+          tokenizer/pkuseg_model/features.msgpack: sha256:fd4322482a7018b9bce9216173ae9d2848efe6d310b468bbb4383fb55c874a18
+          tokenizer/pkuseg_model/weights.npz: sha256:5ada075eb25a854f71d6e6fa4e7d55e7be0ae049255b1f8f19d05c13b1b68c9e
+          tokenizer/pkuseg_processors: sha256:cdc3129ffe89371aeaf4abacde2b4f00f5e0ff3cae022e937b14c1ed2b54879e
+          vocab/key2row: sha256:6881609f4aabe2a8b2de9d8de475c72913e0f3c58228267c30e685f01c26b303
+          vocab/lookups.bin: sha256:76be8b528d0075f7aae98d6fa57a6d3c83ae480a8469e668d7b0af968995ac71
+          vocab/strings.json: sha256:3461a794887471cf95a50367004c80f6218c16c7d4bff4824a8109a50ceede6f
+          vocab/vectors: sha256:b8e94a33f5749fc0203883b41ba61814c42dceab6b577d9376fc0565de39b92a
+          vocab/vectors.cfg: sha256:ff4359091952c8cd16f1f0482f5770fb82d1707368d5cca3c46aa501f552e3c5
+        total_size_bytes: 118541883
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 2147483648
+        archive:
+          file: zh_core_web_md-3.8.0-py3-none-any.whl
+          format: zip
+          sha256: sha256:bcf300540fbd15b1b0aac358f327f2a31de8992b346162d5600f843514da0e98
+          size_bytes: 78021257
+          root: zh_core_web_md/zh_core_web_md-3.8.0
+  - model_id: asset-nlp-spacy-ja-core-news-md-3.8.0
+    provider: local
+    model_type: auxiliary
+    updated_at: 2026-09-24
+    capabilities: []
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://github.com/explosion/spacy-models/releases/tag/ja_core_news_md-3.8.0
+      retrieved_at: 2026-09-24
+      note: Official spaCy ja_core_news_md 3.8.0 release. The release notes publish the wheel SHA-256; its ja_core_news_md-3.8.0 data directory, with its LICENSE and LICENSES_SOURCES notices, is the installed Japanese analysis ModelAsset. Upstream license CC BY-SA 4.0. Its 2 GiB min_ram_bytes covers the 1048 MiB peak commit measured when the managed CPU worker loaded it on windows/amd64.
+    family: spacy
+    install:
+      repo: explosion/spacy-models
+      revision: ja_core_news_md-3.8.0
+      install_kind: verified-release-archive
+      entry: config.cfg
+      artifact_roles:
+        - text_analysis_model
+      license: CC BY-SA 4.0
+      provenance: https://github.com/explosion/spacy-models/releases/tag/ja_core_news_md-3.8.0
+    variants:
+      - variant_id: local.nlp.spacy-ja-core-news-md.3.8.0
+        quant: F32
+        entry: config.cfg
+        files:
+          - LICENSE
+          - LICENSES_SOURCES
+          - attribute_ruler/patterns
+          - config.cfg
+          - meta.json
+          - morphologizer/cfg
+          - morphologizer/model
+          - ner/cfg
+          - ner/model
+          - ner/moves
+          - parser/cfg
+          - parser/model
+          - parser/moves
+          - senter/cfg
+          - senter/model
+          - tok2vec/cfg
+          - tok2vec/model
+          - tokenizer/cfg
+          - vocab/key2row
+          - vocab/lookups.bin
+          - vocab/strings.json
+          - vocab/vectors
+          - vocab/vectors.cfg
+        hashes:
+          LICENSE: sha256:3b2890eacd851373001c4a14623458e3adaf1b1967939aa9c38a318e28d61c00
+          LICENSES_SOURCES: sha256:9b0d6128f240f16479d4640fd0c97ba56513be14a8df8ca33c8efafd61298703
+          attribute_ruler/patterns: sha256:b4b56afe54f869e1d647f777f15328e2b5ee2ef80ce4dc19a997944cf60b7354
+          config.cfg: sha256:c64179403c2f1b0a679c70da7a33f6c29dc98397b4730fa4bf8f2a62e42b895b
+          meta.json: sha256:743140d4b97bdbee209a88d98dab5f427da4f987959a78e0d3c5d9c8c2d6f3e2
+          morphologizer/cfg: sha256:108e90190cac4d95af1481fc6e9eb264cc76edcdeae6fbb5bafb788d0f254252
+          morphologizer/model: sha256:d968b3b899cf947336c7f1b6c171d993b3fda5e3e1c6bd29fe03791795cefdf2
+          ner/cfg: sha256:a7172edadafba9f472e9ac0f2660eec04b6405e471be9e20267b79c67288d22d
+          ner/model: sha256:a7e6aa2c6315f91cb4408e03222796ed9b907870de233996d6df475b9c41d566
+          ner/moves: sha256:8124d9dbda10ac0e51136ca7a8af57a1e41dd750098b76c5e2e74d9b466728a7
+          parser/cfg: sha256:e2a240ef01f95e58f5dd4c9d6e90d61f597b8d998966570d3009dd81e8879780
+          parser/model: sha256:5a6427b7260567818ef197b1561d1f49bcc8f7a1142c94cf4cffdfe57f0274ed
+          parser/moves: sha256:7b77ae660c62a34d4805c3b3e9c29fd6cbd6a3145d64d6dafc4a98efa6a8c012
+          senter/cfg: sha256:2a4db4a729b6469da1f87d71cc7cd3ed2a73360cc85326821e850836c4671103
+          senter/model: sha256:4bdf906c35465756072aeaaa820092322d56b01b847b622ece31a5629021d51d
+          tok2vec/cfg: sha256:f8a5a26e3056eb6fb06deeb3dbccfd88ae74900200c98c70b5966bbb7ec9d4de
+          tok2vec/model: sha256:a36b704d05e5d837ba39f3b85da476dfc8d3eeb54ef42d64f379ac4931c78d26
+          tokenizer/cfg: sha256:27edcd2388bf8c1090f7fab30a3bb93e0d0a47593641c20224dd5420dcbdbfcf
+          vocab/key2row: sha256:dee5b86de2f94dac1f48db1115ad21a94755e370debb78b5cc46dbcf3950cad0
+          vocab/lookups.bin: sha256:76be8b528d0075f7aae98d6fa57a6d3c83ae480a8469e668d7b0af968995ac71
+          vocab/strings.json: sha256:17b0de309c327168045363ef9dfde883e8f8e88e8f6ebaca5bee1010f57a0bd3
+          vocab/vectors: sha256:8c16f062e90069d86fc58df57af9c9c948aae9b0033684332c99538fbdcff4bf
+          vocab/vectors.cfg: sha256:ff4359091952c8cd16f1f0482f5770fb82d1707368d5cca3c46aa501f552e3c5
+        total_size_bytes: 58738753
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 2147483648
+        archive:
+          file: ja_core_news_md-3.8.0-py3-none-any.whl
+          format: zip
+          sha256: sha256:17c3497539bd970546b75e36c274b3fa183511b6ef59a178017aa02dde3a090a
+          size_bytes: 42105500
+          root: ja_core_news_md/ja_core_news_md-3.8.0
+  - model_id: asset-decision-laya-typed-decisions
+    provider: local
+    model_type: auxiliary
+    updated_at: 2026-09-24
+    capabilities: []
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/convaiinnovations/laya/blob/aa8c91ca088ec597df95a0d1c76b3063cb2ae5e8/README.md
+      retrieved_at: 2026-09-24
+      note: Laya typed-decision model family card (Apache-2.0). The pinned revision bundles the typed-decisions (ModernBERT-large, English) and multilingual (mmBERT-base) checkpoints as subfolders with rl_agent_config.json, model.safetensors, encoder/config.json and tokenizer files, used with the laya 0.3.11 decision model definition. Its 8 GiB min_ram_bytes covers the 7756 MiB (typed-decisions) and 6394 MiB (multilingual) peak commit measured when the managed Worker loaded each checkpoint and answered eight short questions on windows/amd64; commit grows with total question tokens because one request runs as one batch.
+    family: laya
+    install:
+      repo: convaiinnovations/laya
+      revision: aa8c91ca088ec597df95a0d1c76b3063cb2ae5e8
+      install_kind: verified-hf-multi-file
+      entry: typed-decisions/model.safetensors
+      artifact_roles:
+        - decision_model
+      license: Apache-2.0
+    variants:
+      - variant_id: local.decision.laya-typed-decisions.safetensors
+        quant: F16
+        entry: typed-decisions/model.safetensors
+        files:
+          - typed-decisions/rl_agent_config.json
+          - typed-decisions/model.safetensors
+          - typed-decisions/encoder/config.json
+          - typed-decisions/tokenizer/tokenizer.json
+          - typed-decisions/tokenizer/tokenizer_config.json
+        hashes:
+          typed-decisions/rl_agent_config.json: sha256:ebf0cd524d92342a6be5e48e9fca3d7c2babfb5a56ccd79d2171ef5d8c7f7be8
+          typed-decisions/model.safetensors: sha256:4fa56de72383a9d3efa9cfa78955733c81b9fc8067a587ca4beb82c78107a24e
+          typed-decisions/encoder/config.json: sha256:5268d24ad3b77c8151de5dcb0762ba4391619aad9ab0bda33e36fb083cfeae6d
+          typed-decisions/tokenizer/tokenizer.json: sha256:6c8aaa9a542084f2457eab775d4eeb51f92a70c0fd9de28d5edb0ddec3c08d30
+          typed-decisions/tokenizer/tokenizer_config.json: sha256:08d4cf3ac4dca381759441b85b91a6d40e688471dcd33d15d6649eb0a9a854d1
+        total_size_bytes: 846195716
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 8589934592
+  - model_id: asset-decision-laya-multilingual
+    provider: local
+    model_type: auxiliary
+    updated_at: 2026-09-24
+    capabilities: []
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/convaiinnovations/laya/blob/aa8c91ca088ec597df95a0d1c76b3063cb2ae5e8/README.md
+      retrieved_at: 2026-09-24
+      note: Laya typed-decision model family card (Apache-2.0). The pinned revision bundles the typed-decisions (ModernBERT-large, English) and multilingual (mmBERT-base) checkpoints as subfolders with rl_agent_config.json, model.safetensors, encoder/config.json and tokenizer files, used with the laya 0.3.11 decision model definition. Its 8 GiB min_ram_bytes covers the 7756 MiB (typed-decisions) and 6394 MiB (multilingual) peak commit measured when the managed Worker loaded each checkpoint and answered eight short questions on windows/amd64; commit grows with total question tokens because one request runs as one batch.
+    family: laya
+    install:
+      repo: convaiinnovations/laya
+      revision: aa8c91ca088ec597df95a0d1c76b3063cb2ae5e8
+      install_kind: verified-hf-multi-file
+      entry: multilingual/model.safetensors
+      artifact_roles:
+        - decision_model
+      license: Apache-2.0
+    variants:
+      - variant_id: local.decision.laya-multilingual.safetensors
+        quant: F16
+        entry: multilingual/model.safetensors
+        files:
+          - multilingual/rl_agent_config.json
+          - multilingual/model.safetensors
+          - multilingual/encoder/config.json
+          - multilingual/tokenizer/tokenizer.json
+          - multilingual/tokenizer/tokenizer_config.json
+        hashes:
+          multilingual/rl_agent_config.json: sha256:25061739243b617ad88d1219ba6f8a9c86c5881ca28df024fa2d9b3b2fcc30c6
+          multilingual/model.safetensors: sha256:9d628fd971b700382ac6f65920a86f149777b2e748e0c955fb3b19695aa8f204
+          multilingual/encoder/config.json: sha256:83f6916d13ef0f556ac461f28308dc2bffa7ebeadee8ec9e2db5812020ea5bb4
+          multilingual/tokenizer/tokenizer.json: sha256:609d8f4c067cd3950f88594c5a802616cea245823836ef5848ee4fc40aab5b6f
+          multilingual/tokenizer/tokenizer_config.json: sha256:6c6b2d8e3c84ce0e671c129cd6b374b235d6f9863042a5836358d00a89bbb5a1
+        total_size_bytes: 678201636
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 8589934592
+  - model_id: asset-decision-laya-browser-v10s
+    provider: local
+    model_type: auxiliary
+    updated_at: 2026-09-24
+    capabilities: []
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/cklxx/laya-browser/tree/4219958196e2c566c141688c773e08da10c1ff3b/v10s
+      retrieved_at: 2026-09-24
+      note: Laya v10s checkpoint (Apache-2.0), an mmBERT-base Laya decision model fine-tuned for browser operation and target decisions, with the same checkpoint layout as the upstream Laya family. Its 8 GiB min_ram_bytes covers the same measured mmBERT-base peak commit.
+    family: laya
+    install:
+      repo: cklxx/laya-browser
+      revision: 4219958196e2c566c141688c773e08da10c1ff3b
+      install_kind: verified-hf-multi-file
+      entry: v10s/model.safetensors
+      artifact_roles:
+        - decision_model
+      license: Apache-2.0
+    variants:
+      - variant_id: local.decision.laya-browser-v10s.safetensors
+        quant: F16
+        entry: v10s/model.safetensors
+        files:
+          - v10s/rl_agent_config.json
+          - v10s/model.safetensors
+          - v10s/encoder/config.json
+          - v10s/tokenizer/tokenizer.json
+          - v10s/tokenizer/tokenizer_config.json
+        hashes:
+          v10s/rl_agent_config.json: sha256:7fb4682f17bbce2347ad2caec422bd9edec5387c04c576d0bfa1c440f745d7fb
+          v10s/model.safetensors: sha256:b11217df18bf79cfcd4ab639caf1ae8652b91c9c44fcb9457fbe480237332335
+          v10s/encoder/config.json: sha256:fad4076bcae03044a509e35a2d36c1cdff482fd4c2d6e7c5d187bbc7d8b91590
+          v10s/tokenizer/tokenizer.json: sha256:609d8f4c067cd3950f88594c5a802616cea245823836ef5848ee4fc40aab5b6f
+          v10s/tokenizer/tokenizer_config.json: sha256:f2ff584a8f78ac9f3b6fd0afcf9ab310e41c2d445ef628f9ab4b0d594e992b7a
+        total_size_bytes: 678201836
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 8589934592
   - model_id: flux.1-schnell-local
     provider: local
     model_type: image
@@ -8473,8 +9346,10 @@ loadout_recipes:
     slot_metadata:
       - slot_id: text.model
         display_label: English language analysis model
-        recommended_variant_ids: []
-        recommended_content_ids: []
+        recommended_variant_ids:
+          - local.nlp.spacy-en-core-web-md.3.8.0
+        recommended_content_ids:
+          - sha256:69832606ab24b9fe2fe731d9c3baa5625acef7abc0260444d48df454f16991ba
         model_contract:
           format: spacy
           artifact_role: text_analysis_model
@@ -8491,8 +9366,10 @@ loadout_recipes:
     slot_metadata:
       - slot_id: text.model
         display_label: German language analysis model
-        recommended_variant_ids: []
-        recommended_content_ids: []
+        recommended_variant_ids:
+          - local.nlp.spacy-de-core-news-md.3.8.0
+        recommended_content_ids:
+          - sha256:b57d51d7b193a0f57cb02ac285f57e0289fb981a2801e3c1bc8a56c05ed9b9e4
         model_contract:
           format: spacy
           artifact_role: text_analysis_model
@@ -8509,8 +9386,10 @@ loadout_recipes:
     slot_metadata:
       - slot_id: text.model
         display_label: Spanish language analysis model
-        recommended_variant_ids: []
-        recommended_content_ids: []
+        recommended_variant_ids:
+          - local.nlp.spacy-es-core-news-md.3.8.0
+        recommended_content_ids:
+          - sha256:b8fc8f942336854ef4d58bcabe2d6a61f73e5bdae193d5c1dc22d10d07c87942
         model_contract:
           format: spacy
           artifact_role: text_analysis_model
@@ -8527,8 +9406,10 @@ loadout_recipes:
     slot_metadata:
       - slot_id: text.model
         display_label: French language analysis model
-        recommended_variant_ids: []
-        recommended_content_ids: []
+        recommended_variant_ids:
+          - local.nlp.spacy-fr-core-news-md.3.8.0
+        recommended_content_ids:
+          - sha256:72a0b260c2072a884b3f5f12619262c93600273a29cf20a79a9a5a8801442b75
         model_contract:
           format: spacy
           artifact_role: text_analysis_model
@@ -8545,8 +9426,10 @@ loadout_recipes:
     slot_metadata:
       - slot_id: text.model
         display_label: Italian language analysis model
-        recommended_variant_ids: []
-        recommended_content_ids: []
+        recommended_variant_ids:
+          - local.nlp.spacy-it-core-news-md.3.8.0
+        recommended_content_ids:
+          - sha256:8c81aa7fbb2a8e1512593f74141471adb25d09c577f212e17a6f5a1166c7ae6c
         model_contract:
           format: spacy
           artifact_role: text_analysis_model
@@ -8563,8 +9446,10 @@ loadout_recipes:
     slot_metadata:
       - slot_id: text.model
         display_label: Russian language analysis model
-        recommended_variant_ids: []
-        recommended_content_ids: []
+        recommended_variant_ids:
+          - local.nlp.spacy-ru-core-news-md.3.8.0
+        recommended_content_ids:
+          - sha256:87aeefde67c72190a62684a7eb6e331b2d2691d10d6644d64150c781eed5158b
         model_contract:
           format: spacy
           artifact_role: text_analysis_model
@@ -8581,8 +9466,10 @@ loadout_recipes:
     slot_metadata:
       - slot_id: text.model
         display_label: Chinese language analysis model
-        recommended_variant_ids: []
-        recommended_content_ids: []
+        recommended_variant_ids:
+          - local.nlp.spacy-zh-core-web-md.3.8.0
+        recommended_content_ids:
+          - sha256:84cd8e278a57d51eb8bf55c53415005f3b4fc8c2c48000e41c3c368997d86ad3
         model_contract:
           format: spacy
           artifact_role: text_analysis_model
@@ -8599,8 +9486,10 @@ loadout_recipes:
     slot_metadata:
       - slot_id: text.model
         display_label: Japanese language analysis model
-        recommended_variant_ids: []
-        recommended_content_ids: []
+        recommended_variant_ids:
+          - local.nlp.spacy-ja-core-news-md.3.8.0
+        recommended_content_ids:
+          - sha256:ef3c4ee0c5b8f2492c203299c709b5059cdbee86b0992d5f8cf3326cd0b87bc2
         model_contract:
           format: spacy
           artifact_role: text_analysis_model
@@ -10508,3 +11397,63 @@ loadout_recipes:
           format: gguf
           model_family: vevo2
           artifact_role: tts_model
+  - recipe_id: laya-typed-decisions
+    revision: "1"
+    title: Laya typed decisions (English)
+    capability_contract: text.decide
+    implementation_id: local.text.decide.laya
+    driver_id: nimi.runtime.driver.laya
+    driver_dialect: laya/text-decide/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: decision.model
+        display_label: Laya typed-decisions checkpoint
+        recommended_variant_ids:
+          - local.decision.laya-typed-decisions.safetensors
+        recommended_content_ids:
+          - sha256:a776bd4a8aa7d8b14a4fc19a6a05d747eeabfa89ef018872d097dd8a6d835c41
+        model_contract:
+          format: laya
+          artifact_role: decision_model
+  - recipe_id: laya-multilingual
+    revision: "1"
+    title: Laya multilingual decisions
+    capability_contract: text.decide
+    implementation_id: local.text.decide.laya
+    driver_id: nimi.runtime.driver.laya
+    driver_dialect: laya/text-decide/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: decision.model
+        display_label: Laya multilingual checkpoint
+        recommended_variant_ids:
+          - local.decision.laya-multilingual.safetensors
+        recommended_content_ids:
+          - sha256:60f218f7c269724118e745615d6d6c2a7a8c286e41ebd9af7143387eb3ecc2f0
+        model_contract:
+          format: laya
+          artifact_role: decision_model
+  - recipe_id: laya-browser-v10s
+    revision: "1"
+    title: Laya browser steps (v10s)
+    capability_contract: text.decide
+    implementation_id: local.text.decide.laya
+    driver_id: nimi.runtime.driver.laya
+    driver_dialect: laya/text-decide/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: decision.model
+        display_label: Laya browser checkpoint (v10s)
+        recommended_variant_ids:
+          - local.decision.laya-browser-v10s.safetensors
+        recommended_content_ids:
+          - sha256:a367a18c2a80c01625bd13823a5dd7fc7bd860224307fb25584e32fb86bd4646
+        model_contract:
+          format: laya
+          artifact_role: decision_model

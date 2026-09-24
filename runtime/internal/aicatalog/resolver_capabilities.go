@@ -38,6 +38,8 @@ func (r *Resolver) SupportsScenarioForSubject(subjectUserID string, providerType
 		return hasAny(aicapabilities.TextGenerate), nil
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED:
 		return hasAny(aicapabilities.TextEmbed), nil
+	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_DECIDE:
+		return hasAny(aicapabilities.TextDecide), nil
 	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:
 		return hasAny(aicapabilities.ImageGenerate), nil
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE:

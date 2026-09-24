@@ -725,7 +725,7 @@ func (s *Service) tryReuseEquivalentModelAsset(ctx context.Context, transferID s
 		return nil, &modelAssetReconciliationError{Reason: fmt.Sprintf("inventory holds %d equivalent ModelAssets; offline merge is required", len(exact))}
 	}
 	candidate := exact[0]
-	s.modelAssetMutationMu.Lock()
+	s.lockModelAssetMutation()
 	s.mu.RLock()
 	current := s.modelAssets[candidate.GetModelAssetId()]
 	live := current != nil && current.GetCreatedAt() == candidate.GetCreatedAt()
@@ -830,7 +830,7 @@ func (s *Service) verifyManagedModelAssetView(ctx context.Context, modelsRoot st
 // reused anything; after it the result stays even if the asset is later
 // removed.
 func (s *Service) commitReusedModelAsset(transferID string, modelAssetID string, generation string) (*runtimev1.ModelAssetRecord, error) {
-	s.modelAssetMutationMu.Lock()
+	s.lockModelAssetMutation()
 	defer s.modelAssetMutationMu.Unlock()
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -981,7 +981,7 @@ func (s *Service) registerCreatedModelAssetView(transferID string, asset *runtim
 	if err != nil {
 		return nil, runtimev1.LocalTransferDisposition_LOCAL_TRANSFER_DISPOSITION_UNSPECIFIED, err
 	}
-	s.modelAssetMutationMu.Lock()
+	s.lockModelAssetMutation()
 	defer s.modelAssetMutationMu.Unlock()
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -1056,6 +1056,9 @@ func (s *Service) registerCreatedModelAssetView(transferID string, asset *runtim
 		summary.BytesReceived = received
 		summary.BytesReused = reusedBytes
 		summary.BytesTotal = asset.GetTotalSizeBytes()
+		if completion.transferBytesTotal > 0 {
+			summary.BytesTotal = completion.transferBytesTotal
+		}
 	})
 	committedIntent := private.commitIntent
 	private.commitIntent = nil
@@ -1408,6 +1411,9 @@ type modelAssetTransferCompletion struct {
 	sessionID string
 	phase     string
 	message   string
+	// transferBytesTotal, when positive, is the source size the transfer
+	// actually moved (a release archive) and stays the completed total.
+	transferBytesTotal int64
 }
 
 func (s *Service) modelAssetForManagedDirectoryLocked(managedDirectory string) (*runtimev1.ModelAssetRecord, bool) {
@@ -1469,7 +1475,7 @@ func (s *Service) RemoveModelAsset(_ context.Context, req *runtimev1.RemoveModel
 	if id == "" {
 		return nil, status.Error(codes.InvalidArgument, "model_asset_id is required")
 	}
-	s.modelAssetMutationMu.Lock()
+	s.lockModelAssetMutation()
 	defer s.modelAssetMutationMu.Unlock()
 	s.mu.Lock()
 	asset := cloneModelAsset(s.modelAssets[id])
@@ -1633,6 +1639,8 @@ func (s *Service) completeModelAssetCleanupLocked(modelAssetID string) bool {
 			}
 			obligation.Phase = modelAssetCleanupPhaseRemoveView
 		case modelAssetCleanupPhaseRemoveView:
+			// Files change from here on, so admission holds go first.
+			s.releaseAdmissionHolds()
 			if err := removeModelAssetView(obligation); err != nil {
 				var conflict *modelAssetCleanupConflict
 				if errors.As(err, &conflict) {
@@ -1646,6 +1654,7 @@ func (s *Service) completeModelAssetCleanupLocked(modelAssetID string) bool {
 			}
 			obligation.Phase = modelAssetCleanupPhaseReclaimObjects
 		case modelAssetCleanupPhaseReclaimObjects:
+			s.releaseAdmissionHolds()
 			if err := s.reclaimModelAssetObjects(modelsRoot, modelAssetID, obligation); err != nil {
 				s.markModelAssetCleanupPendingLocked(modelAssetID, modelAssetCleanupPendingAccessReason+": "+err.Error())
 				return false
@@ -2182,7 +2191,7 @@ func (s *Service) adoptResolvedModelAssetDirectoryWithOptions(ctx context.Contex
 // re-checks directory ownership and equivalence under the mutation lock and
 // saves the inventory as the commit point.
 func (s *Service) commitAdoptedModelAssetView(asset *runtimev1.ModelAssetRecord, distribution modelDistribution, absolute string, options modelAssetAdoptionOptions) (*runtimev1.ModelAssetRecord, bool, error) {
-	s.modelAssetMutationMu.Lock()
+	s.lockModelAssetMutation()
 	defer s.modelAssetMutationMu.Unlock()
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -2368,7 +2377,7 @@ func (s *Service) isolateModelObjectGeneration(modelsRoot string, digest string,
 		ID: id, Digest: key, ObjectIdentity: &identity, QuarantinePath: quarantinePath, Reason: strings.TrimSpace(reason),
 		Phase: modelObjectQuarantinePhaseIsolate, CreatedAt: nowISO(), UpdatedAt: nowISO(),
 	}
-	s.modelAssetMutationMu.Lock()
+	s.lockModelAssetMutation()
 	defer s.modelAssetMutationMu.Unlock()
 	s.mu.Lock()
 	if s.modelObjectQuarantines == nil {
@@ -2523,6 +2532,8 @@ func (s *Service) modelFileIdentityReferencedByViews(identity modelFileIdentity)
 	return false
 }
 
+// retryModelObjectQuarantines also runs whenever an execution Host goes idle,
+// so it releases admission holds only when there is a generation to move.
 func (s *Service) retryModelObjectQuarantines() {
 	s.modelAssetMutationMu.Lock()
 	defer s.modelAssetMutationMu.Unlock()
@@ -2539,9 +2550,10 @@ func (s *Service) retryModelObjectQuarantinesLocked(modelsRoot string) {
 	}
 	open := s.modelAssetReclamationOpen && s.modelAssetStoreRestriction == nil
 	s.mu.RUnlock()
-	if !open {
+	if !open || len(ids) == 0 {
 		return
 	}
+	s.releaseAdmissionHolds()
 	sort.Strings(ids)
 	for _, id := range ids {
 		_ = s.progressModelObjectQuarantineLocked(modelsRoot, id)

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -440,7 +441,21 @@ func TestResolveLocalEnvironmentPlanForFreshCustomVoxCPMLoadoutUsesConsumerProfi
 	}
 }
 
-func TestLoadoutJobAdmissionRehashesEveryPayloadWhileProjectionUsesCache(t *testing.T) {
+// holdsAdmissionPayloadsForTest reports whether this platform and volume let
+// admission hold a payload, the only basis for reusing its verification.
+func holdsAdmissionPayloadsForTest(t *testing.T, path string) bool {
+	t.Helper()
+	file, _, holdable, err := openAdmissionPayloadHold(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if holdable {
+		_ = file.Close()
+	}
+	return holdable
+}
+
+func TestLoadoutJobAdmissionReusesOnlyAHeldVerificationWhileProjectionUsesCache(t *testing.T) {
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	root := t.TempDir()
 	svc := newLoadoutTestService(t, root)
@@ -479,6 +494,8 @@ func TestLoadoutJobAdmissionRehashesEveryPayloadWhileProjectionUsesCache(t *test
 	if declaredFileCount == 0 {
 		t.Fatal("ModelAsset fixture has no declared payloads")
 	}
+	entryPath := filepath.Join(bundleDir, filepath.FromSlash(asset.GetEntry()))
+	held := holdsAdmissionPayloadsForTest(t, entryPath)
 
 	firstProjection, err := svc.GetMachineLoadouts(context.Background(), &runtimev1.GetMachineLoadoutsRequest{})
 	if err != nil {
@@ -515,14 +532,18 @@ func TestLoadoutJobAdmissionRehashesEveryPayloadWhileProjectionUsesCache(t *test
 		len(resolved.ExactBindings[0].DeclaredFiles) != declaredFileCount {
 		t.Fatalf("fresh ResolvedAssembly verification = %+v", resolved.ExactBindings)
 	}
+	// Only a payload held since before its hash keeps that verification.
 	if _, err := svc.ResolveLocalExecution(capabilitydriver.TextEmbedCapabilityContract, selectedLoadoutRefForTest(t, svc, capabilitydriver.TextEmbedCapabilityContract)); err != nil {
-		t.Fatalf("second fresh Job admission: %v", err)
+		t.Fatalf("second Job admission: %v", err)
 	}
-	if hashCalls != 3*declaredFileCount {
-		t.Fatalf("second Job admission did not reread every payload: calls=%d", hashCalls)
+	wantCalls := 3 * declaredFileCount
+	if held {
+		wantCalls = 2 * declaredFileCount
+	}
+	if hashCalls != wantCalls {
+		t.Fatalf("second Job admission hash calls = %d, want %d (held=%v)", hashCalls, wantCalls, held)
 	}
 
-	entryPath := filepath.Join(bundleDir, filepath.FromSlash(asset.GetEntry()))
 	originalInfo, err := os.Stat(entryPath)
 	if err != nil {
 		t.Fatal(err)
@@ -532,6 +553,14 @@ func TestLoadoutJobAdmissionRehashesEveryPayloadWhileProjectionUsesCache(t *test
 		t.Fatal(err)
 	}
 	drifted[len(drifted)-1] ^= 0x01
+	if held {
+		if err := os.WriteFile(entryPath, drifted, originalInfo.Mode().Perm()); err == nil {
+			t.Fatal("a held payload accepted an in-place write")
+		}
+		// A ModelAsset change releases every hold before it proceeds.
+		svc.lockModelAssetMutation()
+		svc.modelAssetMutationMu.Unlock()
+	}
 	if err := os.WriteFile(entryPath, drifted, originalInfo.Mode().Perm()); err != nil {
 		t.Fatal(err)
 	}
@@ -547,15 +576,190 @@ func TestLoadoutJobAdmissionRehashesEveryPayloadWhileProjectionUsesCache(t *test
 	if projected == nil || projected.GetValidationState() != runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED {
 		t.Fatalf("projection did not retain imported identity fact after metadata rollback: %+v", projected)
 	}
-	if hashCalls != 3*declaredFileCount {
+	if hashCalls != wantCalls {
 		t.Fatalf("cached projection reread same-size, same-mtime drift: calls=%d", hashCalls)
 	}
+	// Restored size and mtime prove nothing: every unheld payload is reread
+	// and the drift is rejected.
 	_, err = svc.ResolveLocalExecution(capabilitydriver.TextEmbedCapabilityContract, selectedLoadoutRefForTest(t, svc, capabilitydriver.TextEmbedCapabilityContract))
 	if grpcReasonForTest(err) != runtimev1.ReasonCode_AI_LOADOUT_MODEL_ASSET_CONTENT_MISMATCH || !strings.Contains(status.Convert(err).Message(), "byte drift") {
 		t.Fatalf("Job admission drift rejection = reason:%s err:%v", grpcReasonForTest(err), err)
 	}
-	if hashCalls != 4*declaredFileCount {
-		t.Fatalf("drifted Job admission did not reread every payload: calls=%d", hashCalls)
+	if hashCalls != wantCalls+declaredFileCount {
+		t.Fatalf("drifted Job admission rehash calls = %d, want every payload reread", hashCalls-wantCalls)
+	}
+}
+
+func TestLoadoutJobAdmissionRehashesEveryPayloadItCannotHold(t *testing.T) {
+	svc, asset := loadoutEmbeddingFixture(t)
+	prepared := prepareEmbeddingLoadoutForTest(t, svc, context.Background(), "", "Embedding without hold", asset)
+	committed := commitLoadoutForTest(t, svc, context.Background(), prepared.GetPrepareId(), false)
+	svc.mu.RLock()
+	bundleDir := svc.modelAssetDirectories[asset.GetModelAssetId()]
+	svc.mu.RUnlock()
+	// A writer that stays open keeps each payload from being held.
+	for _, file := range asset.GetFiles() {
+		writer, err := os.OpenFile(filepath.Join(bundleDir, filepath.FromSlash(file.GetRelativePath())), os.O_RDWR, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { _ = writer.Close() })
+	}
+	hashCalls := 0
+	svc.mu.Lock()
+	svc.entryFileSHA256 = func(path string) (string, error) {
+		hashCalls++
+		return computeFileSHA256(path)
+	}
+	svc.mu.Unlock()
+	for admission := 1; admission <= 3; admission++ {
+		if _, err := svc.ResolveLocalExecution(capabilitydriver.TextEmbedCapabilityContract, committed.GetLoadoutId()); err != nil {
+			t.Fatalf("admission %d: %v", admission, err)
+		}
+		if want := admission * len(asset.GetFiles()); hashCalls != want {
+			t.Fatalf("admission %d hash calls = %d, want %d", admission, hashCalls, want)
+		}
+	}
+	svc.mu.RLock()
+	holds := len(svc.admissionHolds)
+	svc.mu.RUnlock()
+	if holds != 0 {
+		t.Fatalf("admission retained %d holds on payloads with an open writer", holds)
+	}
+}
+
+func TestLoadoutJobAdmissionRehashesAReplacedPayload(t *testing.T) {
+	svc, asset := loadoutEmbeddingFixture(t)
+	prepared := prepareEmbeddingLoadoutForTest(t, svc, context.Background(), "", "Embedding replaced payload", asset)
+	committed := commitLoadoutForTest(t, svc, context.Background(), prepared.GetPrepareId(), false)
+	hashCalls := 0
+	svc.mu.Lock()
+	bundleDir := svc.modelAssetDirectories[asset.GetModelAssetId()]
+	svc.entryFileSHA256 = func(path string) (string, error) {
+		hashCalls++
+		return computeFileSHA256(path)
+	}
+	svc.mu.Unlock()
+	entryPath := filepath.Join(bundleDir, filepath.FromSlash(asset.GetEntry()))
+	held := holdsAdmissionPayloadsForTest(t, entryPath)
+	if _, err := svc.ResolveLocalExecution(capabilitydriver.TextEmbedCapabilityContract, committed.GetLoadoutId()); err != nil {
+		t.Fatal(err)
+	}
+	verified := hashCalls
+	// The same bytes under a new file object are verified again, not trusted;
+	// a held payload can still be deleted.
+	content, err := os.ReadFile(entryPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	info, err := os.Stat(entryPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(entryPath); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(entryPath, content, info.Mode().Perm()); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(entryPath, info.ModTime(), info.ModTime()); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.ResolveLocalExecution(capabilitydriver.TextEmbedCapabilityContract, committed.GetLoadoutId()); err != nil {
+		t.Fatalf("replaced identical payload: %v", err)
+	}
+	want := len(asset.GetFiles())
+	if held {
+		want = 1
+	}
+	if hashCalls != verified+want {
+		t.Fatalf("replaced payload rehash calls = %d, want %d (held=%v)", hashCalls-verified, want, held)
+	}
+}
+
+func TestCaptureLocalExecutionEndsWithItsCaller(t *testing.T) {
+	svc, asset := loadoutEmbeddingFixture(t)
+	prepared := prepareEmbeddingLoadoutForTest(t, svc, context.Background(), "", "Embedding capture cancel", asset)
+	committed := commitLoadoutForTest(t, svc, context.Background(), prepared.GetPrepareId(), false)
+
+	canceled, cancel := context.WithCancel(context.Background())
+	cancel()
+	if selected, err := svc.CaptureLocalExecution(canceled, capabilitydriver.TextEmbedCapabilityContract, committed.GetLoadoutId()); selected != nil ||
+		status.Code(err) != codes.Canceled || grpcReasonForTest(err) != runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CANCELED {
+		t.Fatalf("canceled capture = %+v code=%v reason=%v", selected, status.Code(err), grpcReasonForTest(err))
+	}
+
+	// A caller waiting behind a long inventory mutation gives up at its deadline.
+	svc.modelAssetMutationMu.Lock()
+	deadline, stop := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	started := time.Now()
+	selected, err := svc.CaptureLocalExecution(deadline, capabilitydriver.TextEmbedCapabilityContract, committed.GetLoadoutId())
+	waited := time.Since(started)
+	stop()
+	svc.modelAssetMutationMu.Unlock()
+	if selected != nil || status.Code(err) != codes.DeadlineExceeded || grpcReasonForTest(err) != runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT {
+		t.Fatalf("capture past its deadline = %+v code=%v reason=%v", selected, status.Code(err), grpcReasonForTest(err))
+	}
+	if waited > 5*time.Second {
+		t.Fatalf("capture waited %s for the mutation lock after its deadline", waited)
+	}
+
+	// A released lock admits the next capture normally.
+	selected, err = svc.CaptureLocalExecution(context.Background(), capabilitydriver.TextEmbedCapabilityContract, committed.GetLoadoutId())
+	if err != nil || selected == nil || selected.ModelAssetUse == nil {
+		t.Fatalf("capture after release = %+v err=%v", selected, err)
+	}
+	selected.ModelAssetUse.Release()
+}
+
+func TestLocalJobAdmissionProbesTheHostOncePerDependencyLookup(t *testing.T) {
+	originalLookPath := localRuntimeLookPath
+	t.Cleanup(func() { localRuntimeLookPath = originalLookPath })
+	gpuProbes := 0
+	localRuntimeLookPath = func(name string) (string, error) {
+		if name == "nvidia-smi" {
+			gpuProbes++
+		}
+		return "", exec.ErrNotFound
+	}
+	svc := newLocalEnvironmentTestService(t)
+	defer svc.Close()
+	for _, driver := range []capabilitydriver.Driver{
+		capabilitydriver.LayaDriver{}, capabilitydriver.SpacyDriver{},
+		capabilitydriver.InsightFaceImageDriver{}, capabilitydriver.LocateAnythingDriver{},
+	} {
+		gpuProbes = 0
+		// The environment is not prepared here; only the host probing matters.
+		_, _ = svc.resolveSelectedLocalExecutionDependencySources("", driver, nil)
+		if gpuProbes != 1 {
+			t.Fatalf("%T admission probed the host %d times, want one live profile", driver, gpuProbes)
+		}
+	}
+}
+
+func TestCaptureLocalExecutionVerifiesPayloadsBeforeTakingTheLocks(t *testing.T) {
+	svc, asset := loadoutEmbeddingFixture(t)
+	prepared := prepareEmbeddingLoadoutForTest(t, svc, context.Background(), "", "Embedding pre-verification", asset)
+	committed := commitLoadoutForTest(t, svc, context.Background(), prepared.GetPrepareId(), false)
+	hashed, hashedUnderLock := 0, 0
+	svc.mu.Lock()
+	svc.entryFileSHA256 = func(path string) (string, error) {
+		hashed++
+		if svc.modelAssetMutationMu.TryLock() {
+			svc.modelAssetMutationMu.Unlock()
+		} else {
+			hashedUnderLock++
+		}
+		return computeFileSHA256(path)
+	}
+	svc.mu.Unlock()
+	selected, err := svc.CaptureLocalExecution(context.Background(), capabilitydriver.TextEmbedCapabilityContract, committed.GetLoadoutId())
+	if err != nil || selected == nil {
+		t.Fatalf("capture = %+v err=%v", selected, err)
+	}
+	selected.ModelAssetUse.Release()
+	if hashed != len(asset.GetFiles()) || hashedUnderLock != 0 {
+		t.Fatalf("payload hashes = %d (%d under the mutation lock), want %d outside it", hashed, hashedUnderLock, len(asset.GetFiles()))
 	}
 }
 
@@ -1036,7 +1240,7 @@ func TestCopiedDataRootReopensModelAssetAndLoadoutIdentity(t *testing.T) {
 	if err != nil {
 		t.Fatalf("project copied Loadout: %v", err)
 	}
-	validation := reopened.validateLoadoutForJobAdmission(reopenedLoadout, driver, requirements)
+	validation := reopened.validateLoadoutForJobAdmission(context.Background(), admissionPass{}, reopenedLoadout, driver, requirements)
 	if validation.state != runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED || len(validation.axes) != 1 || validation.axes[0].templateIdentity != "" || validation.axes[0].contextWindow != 8192 {
 		t.Fatalf("copied Loadout exact binding = %+v", validation)
 	}
@@ -1395,8 +1599,8 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 	}
 
 	all := list("")
-	if len(all) != 91 {
-		t.Fatalf("all Loadout recipes = %d, want 91", len(all))
+	if len(all) != 94 {
+		t.Fatalf("all Loadout recipes = %d, want 94", len(all))
 	}
 	byID := make(map[string]*runtimev1.LoadoutRecipeDescriptor, len(all))
 	for _, recipe := range all {

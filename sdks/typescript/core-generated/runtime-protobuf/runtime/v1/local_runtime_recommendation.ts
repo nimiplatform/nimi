@@ -189,6 +189,14 @@ export interface ModelAssetMarketCandidate {
      * @generated from protobuf field: string author = 20
      */
     author: string;
+    /**
+     * Bytes this offer's acquisition transfers from its source: the declared
+     * files, or the pinned archive of a release archive offer. Zero when
+     * unknown. total_size_bytes remains the installed file total.
+     *
+     * @generated from protobuf field: int64 download_size_bytes = 21
+     */
+    downloadSizeBytes: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListFeaturedModelAssetsRequest
@@ -559,7 +567,8 @@ class ModelAssetMarketCandidate$Type extends MessageType<ModelAssetMarketCandida
             { no: 17, name: "installable", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 18, name: "featured_ordinal", kind: "scalar", opt: true, T: 5 /*ScalarType.INT32*/ },
             { no: 19, name: "editorial_reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 20, name: "author", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 20, name: "author", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 21, name: "download_size_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ }
         ]);
     }
     create(value?: PartialMessage<ModelAssetMarketCandidate>): ModelAssetMarketCandidate {
@@ -583,6 +592,7 @@ class ModelAssetMarketCandidate$Type extends MessageType<ModelAssetMarketCandida
         message.installable = false;
         message.editorialReason = "";
         message.author = "";
+        message.downloadSizeBytes = "0";
         if (value !== undefined)
             reflectionMergePartial<ModelAssetMarketCandidate>(this, message, value);
         return message;
@@ -651,6 +661,9 @@ class ModelAssetMarketCandidate$Type extends MessageType<ModelAssetMarketCandida
                     break;
                 case /* string author */ 20:
                     message.author = reader.string();
+                    break;
+                case /* int64 download_size_bytes */ 21:
+                    message.downloadSizeBytes = reader.int64().toString();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -724,6 +737,9 @@ class ModelAssetMarketCandidate$Type extends MessageType<ModelAssetMarketCandida
         /* string author = 20; */
         if (message.author !== "")
             writer.tag(20, WireType.LengthDelimited).string(message.author);
+        /* int64 download_size_bytes = 21; */
+        if (message.downloadSizeBytes !== "0")
+            writer.tag(21, WireType.Varint).int64(message.downloadSizeBytes);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

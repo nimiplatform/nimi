@@ -358,7 +358,7 @@ func (s *Service) rederiveStoredModelAssetCatalogVerification(modelAssetID strin
 	if matched {
 		want = runtimev1.ModelAssetCatalogVerification_MODEL_ASSET_CATALOG_VERIFICATION_MATCHED
 	}
-	s.modelAssetMutationMu.Lock()
+	s.lockModelAssetMutation()
 	defer s.modelAssetMutationMu.Unlock()
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -400,7 +400,7 @@ func (s *Service) migrateLegacyResolvedDirectory(ctx context.Context, directory 
 	}
 	provenance["source_kind"] = "legacy_local_asset_migration"
 	provenance["legacy_local_asset_id"] = record.LocalAssetID
-	s.modelAssetMutationMu.Lock()
+	s.lockModelAssetMutation()
 	defer s.modelAssetMutationMu.Unlock()
 	s.mu.Lock()
 	defer s.mu.Unlock()

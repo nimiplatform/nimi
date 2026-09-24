@@ -44,6 +44,7 @@ enum ScenarioType {
   SCENARIO_TYPE_TEXT_ANNOTATE = 16;
   SCENARIO_TYPE_MUSIC_TRANSCRIBE = 17;
   SCENARIO_TYPE_AUDIO_VOICE_CONVERT = 18;
+  SCENARIO_TYPE_TEXT_DECIDE = 19;
 }
 
 enum ExecutionMode {
@@ -783,6 +784,74 @@ message TextAnnotationResult {
   repeated TextAnnotationDocument documents = 1;
 }
 
+// text.decide content is either Unicode text or one serialized JSON object or
+// array. Runtime validates it and never splits, truncates or rewrites it.
+message TextDecisionContent {
+  oneof value {
+    string text = 1;
+    string json = 2;
+  }
+}
+
+message TextDecisionCandidate {
+  string id = 1;
+  // Optional. Unset means the candidate has no description.
+  TextDecisionContent description = 2;
+}
+
+message TextDecisionChoice {
+  repeated TextDecisionCandidate candidates = 1;
+}
+
+message TextDecisionBoolean {
+  // Optional criteria. Unset leaves the wording to the implementation.
+  TextDecisionContent true_criterion = 1;
+  TextDecisionContent false_criterion = 2;
+}
+
+message TextDecisionQuestion {
+  string id = 1;
+  TextDecisionContent instructions = 2;
+  oneof kind {
+    TextDecisionChoice choice = 3;
+    TextDecisionBoolean boolean = 4;
+  }
+}
+
+// Question and candidate order is preserved in the result.
+message TextDecideScenarioSpec {
+  TextDecisionContent state = 1;
+  repeated TextDecisionQuestion questions = 2;
+}
+
+message TextDecisionCandidateProbability {
+  string candidate_id = 1;
+  double probability = 2;
+}
+
+message TextDecisionChoiceAnswer {
+  string selected_candidate_id = 1;
+  // One entry per submitted candidate, in submitted order.
+  repeated TextDecisionCandidateProbability probabilities = 2;
+}
+
+message TextDecisionBooleanAnswer {
+  double true_probability = 1;
+}
+
+message TextDecisionAnswer {
+  string question_id = 1;
+  oneof result {
+    TextDecisionChoiceAnswer choice = 2;
+    TextDecisionBooleanAnswer boolean = 3;
+  }
+}
+
+// Exactly one answer per submitted question, in submitted order.
+message TextDecisionResult {
+  repeated TextDecisionAnswer answers = 1;
+}
+
 message VisionLocateScenarioSpec {
   string image_artifact_id = 1;
   string query = 2;
@@ -836,6 +905,7 @@ message ScenarioSpec {
     TextAnnotateScenarioSpec text_annotate = 16;
     MusicTranscribeScenarioSpec music_transcribe = 17;
     AudioVoiceConvertScenarioSpec audio_voice_convert = 18;
+    TextDecideScenarioSpec text_decide = 19;
   }
   reserved 7, 8;
   reserved "voice_clone", "voice_design";
@@ -1027,6 +1097,7 @@ message ScenarioOutput {
     TextAnnotationResult text_annotation = 12;
     MusicTranscribeResult music_transcribe = 13;
     AudioVoiceConvertResult audio_voice_convert = 14;
+    TextDecisionResult text_decision = 15;
   }
 }
 
@@ -1128,7 +1199,12 @@ message ExecuteLocalAppScenarioRequest {
     LocalAppImageGenerateScenarioSpec image_generate = 2;
     // Reuse the single text-turn input for synchronous text generation.
     StreamLocalAppTextTurnRequest text_generate = 3;
+    TextDecideScenarioSpec text_decide = 4;
   }
+  // The caller's deadline for this call in milliseconds. Zero keeps Runtime's
+  // capability-owned default. Runtime owns this deadline, so an elapsed
+  // deadline stays distinguishable from the caller canceling the call.
+  int32 timeout_ms = 5;
 }
 
 message LocalAppTextEmbedOutput {
@@ -1151,6 +1227,7 @@ message ExecuteLocalAppScenarioResponse {
     LocalAppTextEmbedOutput text_embed = 1;
     LocalAppImageGenerateOutput image_generate = 2;
     LocalAppTextGenerateOutput text_generate = 4;
+    TextDecisionResult text_decide = 5;
   }
   string trace_id = 3;
 }

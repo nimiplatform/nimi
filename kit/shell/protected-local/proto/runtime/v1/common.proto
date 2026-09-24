@@ -150,6 +150,8 @@ enum ReasonCode {
   AI_TOOL_CALL_INVALID = 398;
   AI_REASONING_CONTINUITY_INVALID = 399;
   AI_EXECUTION_INTERRUPTED = 402;
+  // Valid input that the captured implementation cannot encode completely.
+  AI_INPUT_LIMIT_EXCEEDED = 403;
 
   // MEDIA family (410+)
   AI_MEDIA_SPEC_INVALID = 410;

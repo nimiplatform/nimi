@@ -335,7 +335,7 @@ func (s *Service) projectMissingProductControlCheckSyncModelAssets(result Produc
 }
 
 func (s *Service) commitProductControlCheckSyncModelAssetRebases() (map[string]string, map[string]modelAssetCleanupObligation, error) {
-	s.modelAssetMutationMu.Lock()
+	s.lockModelAssetMutation()
 	defer s.modelAssetMutationMu.Unlock()
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -521,7 +521,7 @@ func (s *Service) transferCommitIntentForDirectory(directory string) string {
 }
 
 func (s *Service) rebaseProductControlCheckSyncModelAsset(id string, directory string) error {
-	s.modelAssetMutationMu.Lock()
+	s.lockModelAssetMutation()
 	defer s.modelAssetMutationMu.Unlock()
 	s.mu.Lock()
 	defer s.mu.Unlock()

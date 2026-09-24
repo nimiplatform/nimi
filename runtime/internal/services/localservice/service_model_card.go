@@ -32,7 +32,8 @@ func (s *Service) GetCatalogModelCard(ctx context.Context, req *runtimev1.GetCat
 	if err != nil {
 		return nil, grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, err, grpcerr.ReasonOptions{Message: "model card identity is invalid"})
 	}
-	if source != "huggingface" && source != "model-index" && source != "verified" {
+	if source != "huggingface" && source != "model-index" && source != "verified" ||
+		source == "verified" && s.catalogReleaseArchiveSourceKnown(repo, revision) {
 		return nil, grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_TEMPLATE_NOT_FOUND, grpcerr.ReasonOptions{Message: "this catalog source has no Hugging Face model card"})
 	}
 	repo, err = normalizeHFRepo(repo)

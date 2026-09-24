@@ -289,6 +289,8 @@ const (
 	ReasonCode_AI_TOOL_CALL_INVALID            ReasonCode = 398
 	ReasonCode_AI_REASONING_CONTINUITY_INVALID ReasonCode = 399
 	ReasonCode_AI_EXECUTION_INTERRUPTED        ReasonCode = 402
+	// Valid input that the captured implementation cannot encode completely.
+	ReasonCode_AI_INPUT_LIMIT_EXCEEDED ReasonCode = 403
 	// MEDIA family (410+)
 	ReasonCode_AI_MEDIA_SPEC_INVALID         ReasonCode = 410
 	ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED   ReasonCode = 411
@@ -671,6 +673,7 @@ var (
 		398: "AI_TOOL_CALL_INVALID",
 		399: "AI_REASONING_CONTINUITY_INVALID",
 		402: "AI_EXECUTION_INTERRUPTED",
+		403: "AI_INPUT_LIMIT_EXCEEDED",
 		410: "AI_MEDIA_SPEC_INVALID",
 		411: "AI_MEDIA_OPTION_UNSUPPORTED",
 		412: "AI_MEDIA_JOB_NOT_FOUND",
@@ -976,6 +979,7 @@ var (
 		"AI_TOOL_CALL_INVALID":                                 398,
 		"AI_REASONING_CONTINUITY_INVALID":                      399,
 		"AI_EXECUTION_INTERRUPTED":                             402,
+		"AI_INPUT_LIMIT_EXCEEDED":                              403,
 		"AI_MEDIA_SPEC_INVALID":                                410,
 		"AI_MEDIA_OPTION_UNSUPPORTED":                          411,
 		"AI_MEDIA_JOB_NOT_FOUND":                               412,
@@ -1702,7 +1706,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x15TOOL_CHOICE_MODE_AUTO\x10\x01\x12\x19\n" +
 	"\x15TOOL_CHOICE_MODE_NONE\x10\x02\x12\x1d\n" +
 	"\x19TOOL_CHOICE_MODE_REQUIRED\x10\x03\x12\x19\n" +
-	"\x15TOOL_CHOICE_MODE_TOOL\x10\x04*\xd7^\n" +
+	"\x15TOOL_CHOICE_MODE_TOOL\x10\x04*\xf5^\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -1794,7 +1798,8 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x19AI_TEXT_OUTPUT_INCOMPLETE\x10\x8d\x03\x12\x19\n" +
 	"\x14AI_TOOL_CALL_INVALID\x10\x8e\x03\x12$\n" +
 	"\x1fAI_REASONING_CONTINUITY_INVALID\x10\x8f\x03\x12\x1d\n" +
-	"\x18AI_EXECUTION_INTERRUPTED\x10\x92\x03\x12\x1a\n" +
+	"\x18AI_EXECUTION_INTERRUPTED\x10\x92\x03\x12\x1c\n" +
+	"\x17AI_INPUT_LIMIT_EXCEEDED\x10\x93\x03\x12\x1a\n" +
 	"\x15AI_MEDIA_SPEC_INVALID\x10\x9a\x03\x12 \n" +
 	"\x1bAI_MEDIA_OPTION_UNSUPPORTED\x10\x9b\x03\x12\x1b\n" +
 	"\x16AI_MEDIA_JOB_NOT_FOUND\x10\x9c\x03\x12!\n" +

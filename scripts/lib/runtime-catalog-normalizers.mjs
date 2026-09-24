@@ -11,6 +11,7 @@ const canonicalModelCapabilities = new Set([
   'audio.transcribe',
   'audio.separate',
   'text.annotate',
+  'text.decide',
   'music.generate',
   'music.transcribe',
   'audio.voice.convert',
@@ -700,7 +701,8 @@ export function selectionProfileModelID(selectionProfiles, profileID) {
   return normalizeString(match?.model_id);
 }
 
-const localInstallKinds = new Set(['binary', 'weights', 'verified-hf-multi-file']);
+const localInstallKinds = new Set(['binary', 'weights', 'verified-hf-multi-file', 'verified-release-archive']);
+const localReleaseArchiveInstallKind = 'verified-release-archive';
 const localPreferredEngines = new Set(['llama', 'media', 'speech', 'sidecar', 'audio-cpp']);
 const localAccelerators = new Set(['cpu', 'metal', 'cuda']);
 
@@ -819,7 +821,58 @@ function normalizeLocalVariant(raw, modelID, installEntry, options = {}) {
   if (driverBackend) {
     variant.driver_backend = driverBackend;
   }
+  const releaseArchive = options.installKind === localReleaseArchiveInstallKind;
+  if (releaseArchive !== (raw?.archive !== undefined)) {
+    throw new Error(`${label} archive must be declared exactly for install_kind ${localReleaseArchiveInstallKind}`);
+  }
+  if (releaseArchive) {
+    variant.archive = normalizeLocalReleaseArchive(raw.archive, files, label);
+  }
   return variant;
+}
+
+const localArchivePathSegment = /^[A-Za-z0-9][A-Za-z0-9_.+-]*$/u;
+
+function canonicalLocalArchivePath(value) {
+  if (!value || /[\\:\u0000]/u.test(value) || value.startsWith('/') || value.endsWith('/')) {
+    return false;
+  }
+  return value.split('/').every((segment) => segment && segment !== '.' && segment !== '..' && segment.trim() === segment);
+}
+
+// normalizeLocalReleaseArchive projects the pinned official release archive of
+// one verified-release-archive offer. Declared files stay the installed data
+// files below root; the archive integrity is separate transfer integrity.
+function normalizeLocalReleaseArchive(raw, files, label) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new Error(`${label} archive must be a mapping`);
+  }
+  const file = normalizeString(raw.file);
+  if (!localArchivePathSegment.test(file) || file.includes('..')) {
+    throw new Error(`${label} archive.file must be one asset name, got: ${raw.file}`);
+  }
+  const format = normalizeString(raw.format);
+  if (format !== 'zip') {
+    throw new Error(`${label} archive.format must be zip, got: ${raw.format}`);
+  }
+  const sha256 = normalizeString(raw.sha256).toLowerCase();
+  if (!/^sha256:[0-9a-f]{64}$/u.test(sha256)) {
+    throw new Error(`${label} archive.sha256 must be sha256:<64-hex>`);
+  }
+  const sizeBytes = normalizeInt(raw.size_bytes, `${label} archive.size_bytes`);
+  if (sizeBytes === undefined || sizeBytes <= 0) {
+    throw new Error(`${label} archive.size_bytes must be a positive integer`);
+  }
+  const root = normalizeString(raw.root);
+  if (!canonicalLocalArchivePath(root)) {
+    throw new Error(`${label} archive.root must be a canonical relative path, got: ${raw.root}`);
+  }
+  for (const file of files) {
+    if (!canonicalLocalArchivePath(file)) {
+      throw new Error(`${label} archive file path ${file} is not canonical`);
+    }
+  }
+  return { file, format, sha256, size_bytes: sizeBytes, root };
 }
 
 const localPassiveModelTypes = new Set(['vae', 'clip', 'lora', 'controlnet', 'auxiliary']);
@@ -840,8 +893,14 @@ function normalizeLocalInstall(install, label, { passive = false, privateHost = 
     throw new Error(`${label} install.revision must be a pinned commit sha, not "main"`);
   }
   const installKind = normalizeString(install.install_kind);
+  if (installKind === localReleaseArchiveInstallKind && (
+    !/^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\/[A-Za-z0-9_.-]+$/u.test(repo) || repo.includes('..')
+    || !localArchivePathSegment.test(revision) || revision.includes('..')
+  )) {
+    throw new Error(`${label} release archive install requires a GitHub owner/repository and one release tag`);
+  }
   if (!localInstallKinds.has(installKind)) {
-    throw new Error(`${label} install.install_kind must be binary|weights|verified-hf-multi-file, got: ${installKind}`);
+    throw new Error(`${label} install.install_kind must be binary|weights|verified-hf-multi-file|verified-release-archive, got: ${installKind}`);
   }
   const entry = normalizeString(install.entry);
   if (!entry) {
@@ -933,7 +992,7 @@ export function normalizeLocalPlaneRow(model, modelID) {
   if (passive && (install.artifact_roles.length !== 1 || !/^[a-z0-9]+(?:_[a-z0-9]+)*$/u.test(install.artifact_roles[0]))) {
     throw new Error(`local passive ModelAsset offer ${modelID} requires exactly one canonical artifact role`);
   }
-  const variants = normalizeLocalVariantList(model.variants, modelID, install.entry, { capacityOptional: passive || fitnessOptional });
+  const variants = normalizeLocalVariantList(model.variants, modelID, install.entry, { capacityOptional: passive || fitnessOptional, installKind: install.install_kind });
   const out = { install, variants };
   if (hasFitness) {
     const paramCount = normalizeInt(model.fitness.param_count, `local model ${modelID} fitness.param_count`);

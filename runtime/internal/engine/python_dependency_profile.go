@@ -84,6 +84,9 @@ func PythonDependencyProfileStaticFiles(consumer string, identity PythonDependen
 	if strings.TrimSpace(consumer) == TextAnnotationConsumerID {
 		return append(files, textAnnotationDriverStaticFiles()...), nil
 	}
+	if strings.TrimSpace(consumer) == TextDecisionConsumerID {
+		return append(files, textDecisionDriverStaticFiles()...), nil
+	}
 	driverFiles := speechPipelineFilesForConsumer(consumer)
 	if len(driverFiles) == 0 && strings.HasPrefix(strings.TrimSpace(consumer), "media.") {
 		driverFiles = []struct {
@@ -218,6 +221,8 @@ func pythonDependencyProfileSourceLabel(consumer string, platformTuple string, a
 			return "", fmt.Errorf("text annotation profile requires CPU")
 		}
 		return "text-spacy-cpu", nil
+	case TextDecisionConsumerID:
+		return textDecisionPythonSourceLabel(platformTuple, acceleratorPlane)
 	case FaceSwapConsumerID:
 		if platformTuple != "windows/amd64" || acceleratorPlane != "cuda" {
 			return "", fmt.Errorf("face replacement profile requires windows/amd64 NVIDIA CUDA")
@@ -298,6 +303,9 @@ func pythonDependencyProfileDriverProtocol(consumer string) string {
 	if strings.TrimSpace(consumer) == TextAnnotationConsumerID {
 		return capabilitydriver.SpacyProtocol
 	}
+	if strings.TrimSpace(consumer) == TextDecisionConsumerID {
+		return capabilitydriver.LayaProtocol
+	}
 	if strings.TrimSpace(consumer) == FaceSwapConsumerID {
 		return capabilitydriver.InsightFaceProtocol
 	}
@@ -321,6 +329,9 @@ func pythonDependencyProfileDriverBundleDigest(consumer string, driverProtocol s
 			lines = append(lines, "file="+file.RelativePath, string(file.Content))
 		}
 		return sha256Hex([]byte(strings.Join(lines, "\n") + "\n")), nil
+	}
+	if strings.TrimSpace(consumer) == TextDecisionConsumerID {
+		return textDecisionDriverBundleDigest(driverProtocol), nil
 	}
 	if strings.TrimSpace(consumer) == FaceSwapConsumerID {
 		lines := []string{"driver_protocol=" + driverProtocol}

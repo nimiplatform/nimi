@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
 )
@@ -381,12 +382,19 @@ func (s *Service) StopSpeechExecutionHost() error {
 }
 
 func (s *Service) selectedPythonPackageSetSourceForConsumer(consumer string, driverPath func(string) string) (localEnvironmentSelectedSourceRecordState, engine.PythonDependencyProfileIdentity, bool, string) {
+	return s.selectedPythonPackageSetSourceForConsumerOnHost(consumer, driverPath, nil)
+}
+
+// selectedPythonPackageSetSourceForConsumerOnHost resolves the source for the
+// given live device profile, so a caller that already collected one for this
+// request does not probe the host again; nil collects it here.
+func (s *Service) selectedPythonPackageSetSourceForConsumerOnHost(consumer string, driverPath func(string) string, profile *runtimev1.LocalDeviceProfile) (localEnvironmentSelectedSourceRecordState, engine.PythonDependencyProfileIdentity, bool, string) {
 	trimmedConsumer := strings.TrimSpace(consumer)
 	if trimmedConsumer == "" || driverPath == nil {
 		return localEnvironmentSelectedSourceRecordState{}, engine.PythonDependencyProfileIdentity{}, false, "package-set consumer and driver path are required"
 	}
 
-	hostState := localEnvironmentHostProfileFromDeviceProfile(hostProfileOrCollected(nil))
+	hostState := localEnvironmentHostProfileFromDeviceProfile(hostProfileOrCollected(profile))
 	acceleratorPlane := localPythonAcceleratorPlane(trimmedConsumer, hostState)
 	identity, err := engine.ResolvePythonDependencyProfileIdentity(trimmedConsumer, localEnvironmentPlatformTuple(hostState), acceleratorPlane)
 	if err != nil {

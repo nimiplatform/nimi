@@ -28,7 +28,8 @@ func scenarioAllowedModes(scenarioType runtimev1.ScenarioType) []runtimev1.Execu
 			runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
 			runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
 		}
-	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED:
+	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED,
+		runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_DECIDE:
 		return []runtimev1.ExecutionMode{
 			runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
 		}
@@ -68,6 +69,8 @@ func scenarioRequiredCapabilities(scenarioType runtimev1.ScenarioType) []string 
 	switch scenarioType {
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_ANNOTATE:
 		return []string{aicapabilities.TextAnnotate}
+	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_DECIDE:
+		return []string{aicapabilities.TextDecide}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_FACE_SWAP:
 		return []string{aicapabilities.VideoFaceSwap}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_FACE_SWAP:

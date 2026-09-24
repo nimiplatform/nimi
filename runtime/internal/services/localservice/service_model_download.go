@@ -68,6 +68,9 @@ type managedDownloadedModelSpec struct {
 	totalSizeBytes    int64
 	engineConfig      *structpb.Struct
 	planID            string
+	// archive is set only for a pinned official release archive offer; files,
+	// hashes and totalSizeBytes keep describing the installed data files.
+	archive *managedModelArchiveSource
 }
 
 type managedModelDownloadResumePlan struct {
@@ -99,7 +102,7 @@ func (s *Service) rebuildManagedModelDownloadResumePlan(transferID string) (mana
 	if err != nil {
 		return managedModelDownloadResumePlan{}, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE.String(), err
 	}
-	bytesReceived, err := managedModelDownloadStagedBytes(modelsRoot, transferID, spec.files)
+	bytesReceived, err := managedModelDownloadStagedBytes(modelsRoot, transferID, managedModelDownloadStagingFiles(spec))
 	if err != nil {
 		reason := runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE.String()
 		return managedModelDownloadResumePlan{}, reason, grpcerr.WrapWithReasonCode(
@@ -110,7 +113,7 @@ func (s *Service) rebuildManagedModelDownloadResumePlan(transferID string) (mana
 		)
 	}
 
-	bytesTotal := clampInt64Minimum(spec.totalSizeBytes, 0)
+	bytesTotal := managedModelDownloadTransferTotal(spec)
 	if bytesTotal == 0 {
 		bytesTotal = clampInt64Minimum(summary.GetBytesTotal(), 0)
 	}
@@ -291,7 +294,7 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 		transfer, createErr := s.newManagedModelDownloadTransfer(localTransferMutation{
 			Phase:       "download",
 			State:       localTransferStateRunning,
-			BytesTotal:  clampInt64Minimum(spec.totalSizeBytes, 0),
+			BytesTotal:  managedModelDownloadTransferTotal(spec),
 			Message:     "acquiring managed model bundle",
 			Retryable:   true,
 			PlanID:      spec.planID,
@@ -367,6 +370,13 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 	stagingDir, err := prepareManagedModelDownloadStageDir(modelsRoot, transferID)
 	if err != nil {
 		return nil, transferID, fail(err, false)
+	}
+	if spec.archive != nil {
+		acquired, archiveErr := s.acquireManagedModelArchiveFiles(ctx, transferID, modelsRoot, stagingDir, spec, checkActive)
+		if archiveErr != nil {
+			return nil, transferID, s.failManagedModelArchiveDownload(ctx, transferID, archiveErr, fail)
+		}
+		return s.commitManagedModelDownload(ctx, transferID, modelsRoot, stagingDir, spec, acquired.files, acquired.receivedBytes, acquired.reusedBytes, acquired.transferTotal, checkActive, fail)
 	}
 	bundleTotal := clampInt64Minimum(spec.totalSizeBytes, 0)
 	if bundleTotal == 0 {
@@ -489,14 +499,45 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 		verifiedFiles = append(verifiedFiles, modelDistributionFile{RelativePath: relativeFile, SHA256: expected, SizeBytes: size, NonExecutableContent: nonExecutable})
 		s.updateTransferReuse(transferID, "download", received+pendingStaged, reusedBytes, "verified "+relativeFile)
 	}
+	if bundleTotal > 0 && received+reusedBytes != bundleTotal {
+		_ = os.RemoveAll(stagingDir)
+		err := fmt.Errorf("managed model bundle size mismatch: expected=%d actual=%d", bundleTotal, received+reusedBytes)
+		return nil, transferID, fail(err, false)
+	}
+	return s.commitManagedModelDownload(ctx, transferID, modelsRoot, stagingDir, spec, verifiedFiles, received, reusedBytes, 0, checkActive, fail)
+}
+
+// commitManagedModelDownload commits a distribution whose every file is a
+// published object pinned by transferID. transferTotal, when positive, keeps
+// the completed transfer summary in source-transfer terms (an archive).
+func (s *Service) commitManagedModelDownload(
+	ctx context.Context,
+	transferID string,
+	modelsRoot string,
+	stagingDir string,
+	spec managedDownloadedModelSpec,
+	verifiedFiles []modelDistributionFile,
+	received int64,
+	reusedBytes int64,
+	transferTotal int64,
+	checkActive func() error,
+	fail func(error, bool) error,
+) (*runtimev1.ModelAssetRecord, string, error) {
+	files := normalizeStringSlice(spec.files)
 	// Every file is a published, pinned object now; the transfer's exclusive
 	// staging holds nothing a resume would need.
 	if err := os.RemoveAll(stagingDir); err != nil {
 		s.logger.Warn("acquisition staging cleanup pending after publish", "transfer_id", transferID, "directory", stagingDir, "error", err)
 	}
-	if bundleTotal > 0 && received+reusedBytes != bundleTotal {
-		err := fmt.Errorf("managed model bundle size mismatch: expected=%d actual=%d", bundleTotal, received+reusedBytes)
-		return nil, transferID, fail(err, false)
+	if spec.archive != nil {
+		var installed int64
+		for _, file := range verifiedFiles {
+			installed += file.SizeBytes
+		}
+		if len(verifiedFiles) != len(files) || installed != spec.totalSizeBytes {
+			err := fmt.Errorf("release archive installed size mismatch: expected=%d actual=%d", spec.totalSizeBytes, installed)
+			return nil, transferID, fail(err, false)
+		}
 	}
 	verifiedDistribution, err := newModelDistribution(spec.entry, verifiedFiles)
 	if err != nil {
@@ -525,6 +566,11 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 		"source_revision": defaultString(strings.TrimSpace(spec.revision), "main"),
 		"distribution":    "directory",
 	}
+	if spec.archive != nil {
+		provenance["source_archive"] = spec.archive.file
+		provenance["source_archive_sha256"] = spec.archive.sha256
+		provenance["source_archive_root"] = spec.archive.root
+	}
 	if license := strings.TrimSpace(spec.license); license != "" {
 		provenance["license"] = license
 	}
@@ -543,10 +589,10 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 	}
 	s.updateTransferReuse(transferID, "register", received, reusedBytes, "registering ModelAsset")
 	record, _, err := s.commitManagedModelAssetView(ctx, transferID, modelsRoot, modelAssetIntake{
-		distribution: verifiedDistribution, displayName: defaultString(strings.TrimSpace(spec.displayName), modelID),
+		distribution: verifiedDistribution, displayName: defaultString(strings.TrimSpace(spec.displayName), strings.TrimSpace(spec.modelID)),
 		provenance: provenance, fingerprint: fingerprint, unclassified: unclassified, containsCode: containsCode,
 		catalogMatched: s.modelAssetCatalogMatch(normalizedManagedDownloadHashes(files, spec.hashes)),
-		completion:     modelAssetTransferCompletion{sessionID: transferID, phase: "register", message: "ModelAsset installed"},
+		completion:     modelAssetTransferCompletion{sessionID: transferID, phase: "register", message: "ModelAsset installed", transferBytesTotal: transferTotal},
 	}, received, reusedBytes)
 	if err != nil {
 		return nil, transferID, fail(classifyAcquisitionFailure(err), false)
@@ -757,6 +803,14 @@ func canonicalManagedDownloadedModelSpec(input managedDownloadedModelSpec) (mana
 		return managedDownloadedModelSpec{}, fmt.Errorf("managed download spec entry %q is not declared", entry)
 	}
 	result.entry = entry
+	if input.archive != nil && strings.EqualFold(result.revision, "main") {
+		return managedDownloadedModelSpec{}, errors.New("managed release archive spec requires a pinned release tag")
+	}
+	archive, err := canonicalManagedModelArchiveSource(result.repo, result.revision, input.archive, result.files, result.totalSizeBytes)
+	if err != nil {
+		return managedDownloadedModelSpec{}, fmt.Errorf("managed download spec archive: %w", err)
+	}
+	result.archive = archive
 	return result, nil
 }
 
@@ -779,6 +833,7 @@ func cloneManagedDownloadedModelSpec(input managedDownloadedModelSpec) managedDo
 		totalSizeBytes:    input.totalSizeBytes,
 		engineConfig:      toStruct(structToMap(input.engineConfig)),
 		planID:            input.planID,
+		archive:           cloneManagedModelArchiveSource(input.archive),
 	}
 }
 
@@ -800,6 +855,7 @@ func localStateManagedDownloadSpec(input managedDownloadedModelSpec) *localState
 		Hashes:            cloneStringMap(input.hashes),
 		TotalSizeBytes:    input.totalSizeBytes,
 		EngineConfig:      structToMap(input.engineConfig),
+		Archive:           localStateManagedModelDownloadArchiveFromSource(input.archive),
 	}
 }
 
@@ -824,6 +880,7 @@ func managedDownloadedModelSpecFromLocalState(input *localStateManagedModelDownl
 		hashes:            cloneStringMap(input.Hashes),
 		totalSizeBytes:    input.TotalSizeBytes,
 		engineConfig:      toStruct(input.EngineConfig),
+		archive:           managedModelArchiveSourceFromLocalState(input.Archive),
 	})
 }
 
@@ -907,6 +964,8 @@ func (s *Service) downloadManagedModelFile(
 		maxBodyBytes,
 		header,
 		timeout,
+		0,
+		nil,
 	)
 	if err != nil {
 		if errors.Is(err, errLocalTransferCancelled) {

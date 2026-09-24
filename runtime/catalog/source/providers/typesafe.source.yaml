@@ -1,0 +1,74 @@
+schema_version: 3
+provider: typesafe
+catalog_version: 2026-09-24-typesafe-v1
+generated_target: runtime/catalog/providers/typesafe.yaml
+runtime:
+  inventory_mode: static_source
+  runtime_plane: remote
+  managed_connector_supported: true
+  inline_supported: true
+  default_endpoint: https://api.typesafe.ai
+  requires_explicit_endpoint: false
+defaults:
+  provider: typesafe
+  model_type: decision
+  capabilities: []
+  pricing:
+    unit: token
+    input: "0.042"
+    output: "0"
+    currency: USD
+    as_of: 2026-09-24
+    notes: Per 1M input tokens ($42 per 1B input tokens); output tokens are not charged.
+
+sources:
+  - source_id: typesafe_models
+    url: https://docs.typesafe.ai/models
+    retrieved_at: 2026-09-24
+    note: Jev model identifiers, alias semantics, 64k-token request and 32k-token state-plus-longest-question limits, text-only input, English-primary language support and input-token pricing.
+  - source_id: typesafe_api
+    url: https://docs.typesafe.ai/api
+    retrieved_at: 2026-09-24
+    note: System One POST /v1/systemone request schema (state, model, choice and noul questions), answer schema and 401/422/429/529 error statuses.
+
+# TypeSafe publishes no release date for the Jev rows; updated_at records the
+# date these rows were verified against the official documentation.
+models:
+  - model_id: jev-1.13.0
+    model_type: decision
+    updated_at: 2026-09-24
+    capabilities: [text.decide]
+    pricing:
+      unit: token
+      input: "0.042"
+      output: "0"
+      currency: USD
+      as_of: 2026-09-24
+      notes: Versioned Jev System One release. Text-only state and questions; English is primary and other languages are handled less accurately. Per 1M input tokens; output tokens are not charged.
+    source_ids: [typesafe_models, typesafe_api]
+
+  - model_id: jev-latest
+    model_type: decision
+    updated_at: 2026-09-24
+    capabilities: [text.decide]
+    pricing:
+      unit: token
+      input: "0.042"
+      output: "0"
+      currency: USD
+      as_of: 2026-09-24
+      notes: Moving alias for the most recent stable official Jev release, currently jev-1.13.0. Per 1M input tokens; output tokens are not charged.
+    source_ids: [typesafe_models, typesafe_api]
+
+  - model_id: jev-preview
+    model_type: decision
+    updated_at: 2026-09-24
+    capabilities: [text.decide]
+    pricing:
+      unit: token
+      input: "0.042"
+      output: "0"
+      currency: USD
+      as_of: 2026-09-24
+      notes: Preview alias for the most recent Jev release whether or not it is official; currently the same model as jev-latest (jev-1.13.0). Per 1M input tokens; output tokens are not charged.
+    source_ids: [typesafe_models, typesafe_api]

@@ -14,6 +14,7 @@ const (
 	FeatureInputVideo = "input.video"
 	TextEmbed         = "text.embed"
 	TextAnnotate      = "text.annotate"
+	TextDecide        = "text.decide"
 	ImageGenerate     = "image.generate"
 	VideoGenerate     = "video.generate"
 	WorldGenerate     = "world.generate"
@@ -38,6 +39,7 @@ var ErrUnknownCatalogCapability = errors.New("unknown catalog capability")
 var canonicalCatalog = []string{
 	TextGenerate,
 	TextAnnotate,
+	TextDecide,
 	TextEmbed,
 	AudioSynthesize,
 	AudioTranscribe,

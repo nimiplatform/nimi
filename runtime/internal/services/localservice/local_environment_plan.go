@@ -149,6 +149,11 @@ func localEnvironmentTargetForDriver(driver capabilitydriver.Driver, host localE
 			return "local-nlp", engine.TextAnnotationConsumerID, true
 		}
 		return "", "", false
+	case capabilitydriver.LayaDriver:
+		if strings.EqualFold(host.OS, "windows") && strings.EqualFold(host.Arch, "amd64") || strings.EqualFold(host.OS, "darwin") && strings.EqualFold(host.Arch, "arm64") {
+			return localDecisionPackID, engine.TextDecisionConsumerID, true
+		}
+		return "", "", false
 	default:
 		return "", "", false
 	}
@@ -558,7 +563,7 @@ func (s *Service) resolveLocalEnvironmentDependencyWithID(def localComputePackDe
 }
 
 func (s *Service) resolveExpandedLocalEnvironmentDependencies(def localComputePackDefinition, family string, required bool, hostState localEnvironmentHostProfileState, platformTuple string, runtimeDataRoot string, consumerScope string) ([]localEnvironmentPlanDependency, bool) {
-	if def.PackID != "local-speech" && def.PackID != "local-vision" && def.PackID != "local-face-swap" && def.PackID != "local-nlp" {
+	if def.PackID != "local-speech" && def.PackID != "local-vision" && def.PackID != "local-face-swap" && def.PackID != "local-nlp" && def.PackID != localDecisionPackID {
 		return nil, false
 	}
 	if family != localEnvironmentFamilyPythonUV &&
@@ -581,6 +586,9 @@ func (s *Service) resolveExpandedLocalEnvironmentDependencies(def localComputePa
 	}
 	if def.PackID == "local-face-swap" {
 		consumers = []string{engine.FaceSwapConsumerID}
+	}
+	if def.PackID == localDecisionPackID {
+		consumers = []string{engine.TextDecisionConsumerID}
 	}
 	dependencies := make([]localEnvironmentPlanDependency, 0, len(consumers))
 	for _, consumer := range consumers {
@@ -664,7 +672,7 @@ func localEnvironmentOptionalDependencyRequiredForConsumer(def localComputePackD
 	if localEnvironmentCUDAConsumerScopeRequiresRuntime(scope) {
 		return true
 	}
-	if (def.PackID == "local-speech" || def.PackID == "local-vision") && localEnvironmentHostSupportsCUDA(hostState) {
+	if (def.PackID == "local-speech" || def.PackID == "local-vision" || def.PackID == localDecisionPackID) && localEnvironmentHostSupportsCUDA(hostState) {
 		return true
 	}
 	return def.PackID == "local-text" &&
@@ -701,7 +709,7 @@ func localEnvironmentDependencyConsumerScope(def localComputePackDefinition, fam
 func localEnvironmentCUDAConsumerScopeRequiresRuntime(consumerScope string) bool {
 	trimmed := strings.TrimSpace(consumerScope)
 	switch trimmed {
-	case engine.VisionLocateConsumerID + ".cuda":
+	case engine.VisionLocateConsumerID + ".cuda", engine.TextDecisionConsumerID + ".cuda":
 		return true
 	case "llama.cpp.cuda", stableDiffusionCUDAConsumerID, audioCppCUDAConsumerID, audioCppQwen3TTSCUDAConsumerID, "media.diffusers.cuda", "media.video-python.cuda":
 		return true
@@ -829,6 +837,7 @@ func localComputePackDefinitions() []localComputePackDefinition {
 			OptionalDependencyFamilies: []string{},
 			CloudOnlyImpact:            "none",
 		},
+		localDecisionPackDefinition(),
 	}
 }
 

@@ -81,6 +81,10 @@ message ModelAssetMarketCandidate {
   // Publishing organization or author label (for example the repository
   // owner). Presentation only; never part of offer identity.
   string author = 20;
+  // Bytes this offer's acquisition transfers from its source: the declared
+  // files, or the pinned archive of a release archive offer. Zero when
+  // unknown. total_size_bytes remains the installed file total.
+  int64 download_size_bytes = 21;
 }
 
 message ListFeaturedModelAssetsRequest {

@@ -165,7 +165,12 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
       table: 'local-adapter-routing',
       capability: 'audio.voice.convert',
     }),
-    additionalRuntimeTables: Object.freeze([]),
+    additionalRuntimeTables: Object.freeze([
+      Object.freeze({
+        table: 'provider-capabilities',
+        capability: 'audio.voice.convert',
+      }),
+    ]),
     i18nKeys: Object.freeze({
       title: 'AIConfig.capability.audioVoiceConvert.title',
       subtitle: 'AIConfig.capability.audioVoiceConvert.subtitle',
@@ -267,7 +272,12 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
       table: 'local-adapter-routing',
       capability: 'music.transcribe',
     }),
-    additionalRuntimeTables: Object.freeze([]),
+    additionalRuntimeTables: Object.freeze([
+      Object.freeze({
+        table: 'provider-capabilities',
+        capability: 'music.transcribe',
+      }),
+    ]),
     i18nKeys: Object.freeze({
       title: 'AIConfig.capability.musicTranscribe.title',
       subtitle: 'AIConfig.capability.musicTranscribe.subtitle',
@@ -325,6 +335,34 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
       dataMovement: 'local-by-selected-route',
       retention: 'runtime-scenario-job-policy',
       revocation: 'route-or-job-owner',
+      auditSource: 'runtime-scenario-job-evidence',
+    }),
+  }),
+  Object.freeze({
+    capabilityId: 'text.decide',
+    section: 'chat',
+    editorKind: null,
+    sourceRef: Object.freeze({
+      table: 'local-adapter-routing',
+      capability: 'text.decide',
+    }),
+    additionalRuntimeTables: Object.freeze([
+      Object.freeze({
+        table: 'provider-capabilities',
+        capability: 'text.decide',
+      }),
+    ]),
+    i18nKeys: Object.freeze({
+      title: 'AIConfig.capability.textDecide.title',
+      subtitle: 'AIConfig.capability.textDecide.subtitle',
+      detail: 'AIConfig.capability.textDecide.detail',
+    }),
+    runtimeEvidenceClass: 'job',
+    governance: Object.freeze({
+      owner: 'runtime-text-route',
+      dataMovement: 'local-or-cloud-by-selected-route',
+      retention: 'runtime-scenario-job-policy',
+      revocation: 'route-or-connector-owner',
       auditSource: 'runtime-scenario-job-evidence',
     }),
   }),

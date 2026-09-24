@@ -18,6 +18,8 @@ func resolvePythonPackageSetManifest(consumer string) (pythonPackageSetManifest,
 	switch {
 	case trimmed == TextAnnotationConsumerID:
 		return pythonPackageSetManifest{ID: "text-spacy-python-core", ImportProbes: []string{"spacy", "spacy_pkuseg", "sudachipy", "sudachidict_core", "pymorphy3", "fastapi", "uvicorn"}}, nil
+	case trimmed == TextDecisionConsumerID:
+		return pythonPackageSetManifest{ID: "text-laya-python-core", ImportProbes: textDecisionPythonImportProbes()}, nil
 	case trimmed == FaceSwapConsumerID:
 		return pythonPackageSetManifest{ID: "face-swap-insightface-python-core", ImportProbes: []string{"insightface", "onnxruntime", "onnx", "cv2", "PIL", "av"}}, nil
 	case trimmed == VisionLocateConsumerID:
@@ -297,6 +299,8 @@ func materializePythonPipelineServerScript(root string, consumer string) error {
 		return nil
 	case strings.TrimSpace(consumer) == VisionLocateConsumerID:
 		return materializeVisionDriverBundle(trimmedRoot)
+	case strings.TrimSpace(consumer) == TextDecisionConsumerID:
+		return materializeTextDecisionDriverBundle(trimmedRoot)
 	case strings.TrimSpace(consumer) == TextAnnotationConsumerID:
 		for _, file := range textAnnotationDriverStaticFiles() {
 			if err := os.WriteFile(filepath.Join(trimmedRoot, file.RelativePath), file.Content, 0o444); err != nil {

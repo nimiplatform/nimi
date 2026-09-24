@@ -1625,6 +1625,192 @@ export interface TextAnnotationResult {
     documents: TextAnnotationDocument[];
 }
 /**
+ * text.decide content is either Unicode text or one serialized JSON object or
+ * array. Runtime validates it and never splits, truncates or rewrites it.
+ *
+ * @generated from protobuf message nimi.runtime.v1.TextDecisionContent
+ */
+export interface TextDecisionContent {
+    /**
+     * @generated from protobuf oneof: value
+     */
+    value: {
+        oneofKind: "text";
+        /**
+         * @generated from protobuf field: string text = 1
+         */
+        text: string;
+    } | {
+        oneofKind: "json";
+        /**
+         * @generated from protobuf field: string json = 2
+         */
+        json: string;
+    } | {
+        oneofKind: undefined;
+    };
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.TextDecisionCandidate
+ */
+export interface TextDecisionCandidate {
+    /**
+     * @generated from protobuf field: string id = 1
+     */
+    id: string;
+    /**
+     * Optional. Unset means the candidate has no description.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.TextDecisionContent description = 2
+     */
+    description?: TextDecisionContent;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.TextDecisionChoice
+ */
+export interface TextDecisionChoice {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.TextDecisionCandidate candidates = 1
+     */
+    candidates: TextDecisionCandidate[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.TextDecisionBoolean
+ */
+export interface TextDecisionBoolean {
+    /**
+     * Optional criteria. Unset leaves the wording to the implementation.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.TextDecisionContent true_criterion = 1
+     */
+    trueCriterion?: TextDecisionContent;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.TextDecisionContent false_criterion = 2
+     */
+    falseCriterion?: TextDecisionContent;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.TextDecisionQuestion
+ */
+export interface TextDecisionQuestion {
+    /**
+     * @generated from protobuf field: string id = 1
+     */
+    id: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.TextDecisionContent instructions = 2
+     */
+    instructions?: TextDecisionContent;
+    /**
+     * @generated from protobuf oneof: kind
+     */
+    kind: {
+        oneofKind: "choice";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.TextDecisionChoice choice = 3
+         */
+        choice: TextDecisionChoice;
+    } | {
+        oneofKind: "boolean";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.TextDecisionBoolean boolean = 4
+         */
+        boolean: TextDecisionBoolean;
+    } | {
+        oneofKind: undefined;
+    };
+}
+/**
+ * Question and candidate order is preserved in the result.
+ *
+ * @generated from protobuf message nimi.runtime.v1.TextDecideScenarioSpec
+ */
+export interface TextDecideScenarioSpec {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.TextDecisionContent state = 1
+     */
+    state?: TextDecisionContent;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.TextDecisionQuestion questions = 2
+     */
+    questions: TextDecisionQuestion[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.TextDecisionCandidateProbability
+ */
+export interface TextDecisionCandidateProbability {
+    /**
+     * @generated from protobuf field: string candidate_id = 1
+     */
+    candidateId: string;
+    /**
+     * @generated from protobuf field: double probability = 2
+     */
+    probability: number;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.TextDecisionChoiceAnswer
+ */
+export interface TextDecisionChoiceAnswer {
+    /**
+     * @generated from protobuf field: string selected_candidate_id = 1
+     */
+    selectedCandidateId: string;
+    /**
+     * One entry per submitted candidate, in submitted order.
+     *
+     * @generated from protobuf field: repeated nimi.runtime.v1.TextDecisionCandidateProbability probabilities = 2
+     */
+    probabilities: TextDecisionCandidateProbability[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.TextDecisionBooleanAnswer
+ */
+export interface TextDecisionBooleanAnswer {
+    /**
+     * @generated from protobuf field: double true_probability = 1
+     */
+    trueProbability: number;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.TextDecisionAnswer
+ */
+export interface TextDecisionAnswer {
+    /**
+     * @generated from protobuf field: string question_id = 1
+     */
+    questionId: string;
+    /**
+     * @generated from protobuf oneof: result
+     */
+    result: {
+        oneofKind: "choice";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.TextDecisionChoiceAnswer choice = 2
+         */
+        choice: TextDecisionChoiceAnswer;
+    } | {
+        oneofKind: "boolean";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.TextDecisionBooleanAnswer boolean = 3
+         */
+        boolean: TextDecisionBooleanAnswer;
+    } | {
+        oneofKind: undefined;
+    };
+}
+/**
+ * Exactly one answer per submitted question, in submitted order.
+ *
+ * @generated from protobuf message nimi.runtime.v1.TextDecisionResult
+ */
+export interface TextDecisionResult {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.TextDecisionAnswer answers = 1
+     */
+    answers: TextDecisionAnswer[];
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.VisionLocateScenarioSpec
  */
 export interface VisionLocateScenarioSpec {
@@ -1829,6 +2015,12 @@ export interface ScenarioSpec {
          * @generated from protobuf field: nimi.runtime.v1.AudioVoiceConvertScenarioSpec audio_voice_convert = 18
          */
         audioVoiceConvert: AudioVoiceConvertScenarioSpec;
+    } | {
+        oneofKind: "textDecide";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.TextDecideScenarioSpec text_decide = 19
+         */
+        textDecide: TextDecideScenarioSpec;
     } | {
         oneofKind: undefined;
     };
@@ -2318,6 +2510,12 @@ export interface ScenarioOutput {
          */
         audioVoiceConvert: AudioVoiceConvertResult;
     } | {
+        oneofKind: "textDecision";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.TextDecisionResult text_decision = 15
+         */
+        textDecision: TextDecisionResult;
+    } | {
         oneofKind: undefined;
     };
 }
@@ -2597,8 +2795,22 @@ export interface ExecuteLocalAppScenarioRequest {
          */
         textGenerate: StreamLocalAppTextTurnRequest;
     } | {
+        oneofKind: "textDecide";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.TextDecideScenarioSpec text_decide = 4
+         */
+        textDecide: TextDecideScenarioSpec;
+    } | {
         oneofKind: undefined;
     };
+    /**
+     * The caller's deadline for this call in milliseconds. Zero keeps Runtime's
+     * capability-owned default. Runtime owns this deadline, so an elapsed
+     * deadline stays distinguishable from the caller canceling the call.
+     *
+     * @generated from protobuf field: int32 timeout_ms = 5
+     */
+    timeoutMs: number;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalAppTextEmbedOutput
@@ -2662,6 +2874,12 @@ export interface ExecuteLocalAppScenarioResponse {
          * @generated from protobuf field: nimi.runtime.v1.LocalAppTextGenerateOutput text_generate = 4
          */
         textGenerate: LocalAppTextGenerateOutput;
+    } | {
+        oneofKind: "textDecide";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.TextDecisionResult text_decide = 5
+         */
+        textDecide: TextDecisionResult;
     } | {
         oneofKind: undefined;
     };
@@ -4685,7 +4903,11 @@ export enum ScenarioType {
     /**
      * @generated from protobuf enum value: SCENARIO_TYPE_AUDIO_VOICE_CONVERT = 18;
      */
-    AUDIO_VOICE_CONVERT = 18
+    AUDIO_VOICE_CONVERT = 18,
+    /**
+     * @generated from protobuf enum value: SCENARIO_TYPE_TEXT_DECIDE = 19;
+     */
+    TEXT_DECIDE = 19
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExecutionMode
@@ -10251,6 +10473,621 @@ class TextAnnotationResult$Type extends MessageType<TextAnnotationResult> {
  */
 export const TextAnnotationResult = new TextAnnotationResult$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class TextDecisionContent$Type extends MessageType<TextDecisionContent> {
+    constructor() {
+        super("nimi.runtime.v1.TextDecisionContent", [
+            { no: 1, name: "text", kind: "scalar", oneof: "value", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "json", kind: "scalar", oneof: "value", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<TextDecisionContent>): TextDecisionContent {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.value = { oneofKind: undefined };
+        if (value !== undefined)
+            reflectionMergePartial<TextDecisionContent>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TextDecisionContent): TextDecisionContent {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string text */ 1:
+                    message.value = {
+                        oneofKind: "text",
+                        text: reader.string()
+                    };
+                    break;
+                case /* string json */ 2:
+                    message.value = {
+                        oneofKind: "json",
+                        json: reader.string()
+                    };
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: TextDecisionContent, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string text = 1; */
+        if (message.value.oneofKind === "text")
+            writer.tag(1, WireType.LengthDelimited).string(message.value.text);
+        /* string json = 2; */
+        if (message.value.oneofKind === "json")
+            writer.tag(2, WireType.LengthDelimited).string(message.value.json);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.TextDecisionContent
+ */
+export const TextDecisionContent = new TextDecisionContent$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class TextDecisionCandidate$Type extends MessageType<TextDecisionCandidate> {
+    constructor() {
+        super("nimi.runtime.v1.TextDecisionCandidate", [
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "description", kind: "message", T: () => TextDecisionContent }
+        ]);
+    }
+    create(value?: PartialMessage<TextDecisionCandidate>): TextDecisionCandidate {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.id = "";
+        if (value !== undefined)
+            reflectionMergePartial<TextDecisionCandidate>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TextDecisionCandidate): TextDecisionCandidate {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string id */ 1:
+                    message.id = reader.string();
+                    break;
+                case /* nimi.runtime.v1.TextDecisionContent description */ 2:
+                    message.description = TextDecisionContent.internalBinaryRead(reader, reader.uint32(), options, message.description);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: TextDecisionCandidate, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string id = 1; */
+        if (message.id !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.id);
+        /* nimi.runtime.v1.TextDecisionContent description = 2; */
+        if (message.description)
+            TextDecisionContent.internalBinaryWrite(message.description, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.TextDecisionCandidate
+ */
+export const TextDecisionCandidate = new TextDecisionCandidate$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class TextDecisionChoice$Type extends MessageType<TextDecisionChoice> {
+    constructor() {
+        super("nimi.runtime.v1.TextDecisionChoice", [
+            { no: 1, name: "candidates", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => TextDecisionCandidate }
+        ]);
+    }
+    create(value?: PartialMessage<TextDecisionChoice>): TextDecisionChoice {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.candidates = [];
+        if (value !== undefined)
+            reflectionMergePartial<TextDecisionChoice>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TextDecisionChoice): TextDecisionChoice {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.TextDecisionCandidate candidates */ 1:
+                    message.candidates.push(TextDecisionCandidate.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: TextDecisionChoice, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.TextDecisionCandidate candidates = 1; */
+        for (let i = 0; i < message.candidates.length; i++)
+            TextDecisionCandidate.internalBinaryWrite(message.candidates[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.TextDecisionChoice
+ */
+export const TextDecisionChoice = new TextDecisionChoice$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class TextDecisionBoolean$Type extends MessageType<TextDecisionBoolean> {
+    constructor() {
+        super("nimi.runtime.v1.TextDecisionBoolean", [
+            { no: 1, name: "true_criterion", kind: "message", T: () => TextDecisionContent },
+            { no: 2, name: "false_criterion", kind: "message", T: () => TextDecisionContent }
+        ]);
+    }
+    create(value?: PartialMessage<TextDecisionBoolean>): TextDecisionBoolean {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<TextDecisionBoolean>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TextDecisionBoolean): TextDecisionBoolean {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.TextDecisionContent true_criterion */ 1:
+                    message.trueCriterion = TextDecisionContent.internalBinaryRead(reader, reader.uint32(), options, message.trueCriterion);
+                    break;
+                case /* nimi.runtime.v1.TextDecisionContent false_criterion */ 2:
+                    message.falseCriterion = TextDecisionContent.internalBinaryRead(reader, reader.uint32(), options, message.falseCriterion);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: TextDecisionBoolean, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.TextDecisionContent true_criterion = 1; */
+        if (message.trueCriterion)
+            TextDecisionContent.internalBinaryWrite(message.trueCriterion, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.TextDecisionContent false_criterion = 2; */
+        if (message.falseCriterion)
+            TextDecisionContent.internalBinaryWrite(message.falseCriterion, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.TextDecisionBoolean
+ */
+export const TextDecisionBoolean = new TextDecisionBoolean$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class TextDecisionQuestion$Type extends MessageType<TextDecisionQuestion> {
+    constructor() {
+        super("nimi.runtime.v1.TextDecisionQuestion", [
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "instructions", kind: "message", T: () => TextDecisionContent },
+            { no: 3, name: "choice", kind: "message", oneof: "kind", T: () => TextDecisionChoice },
+            { no: 4, name: "boolean", kind: "message", oneof: "kind", T: () => TextDecisionBoolean }
+        ]);
+    }
+    create(value?: PartialMessage<TextDecisionQuestion>): TextDecisionQuestion {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.id = "";
+        message.kind = { oneofKind: undefined };
+        if (value !== undefined)
+            reflectionMergePartial<TextDecisionQuestion>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TextDecisionQuestion): TextDecisionQuestion {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string id */ 1:
+                    message.id = reader.string();
+                    break;
+                case /* nimi.runtime.v1.TextDecisionContent instructions */ 2:
+                    message.instructions = TextDecisionContent.internalBinaryRead(reader, reader.uint32(), options, message.instructions);
+                    break;
+                case /* nimi.runtime.v1.TextDecisionChoice choice */ 3:
+                    message.kind = {
+                        oneofKind: "choice",
+                        choice: TextDecisionChoice.internalBinaryRead(reader, reader.uint32(), options, (message.kind as any).choice)
+                    };
+                    break;
+                case /* nimi.runtime.v1.TextDecisionBoolean boolean */ 4:
+                    message.kind = {
+                        oneofKind: "boolean",
+                        boolean: TextDecisionBoolean.internalBinaryRead(reader, reader.uint32(), options, (message.kind as any).boolean)
+                    };
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: TextDecisionQuestion, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string id = 1; */
+        if (message.id !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.id);
+        /* nimi.runtime.v1.TextDecisionContent instructions = 2; */
+        if (message.instructions)
+            TextDecisionContent.internalBinaryWrite(message.instructions, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.TextDecisionChoice choice = 3; */
+        if (message.kind.oneofKind === "choice")
+            TextDecisionChoice.internalBinaryWrite(message.kind.choice, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.TextDecisionBoolean boolean = 4; */
+        if (message.kind.oneofKind === "boolean")
+            TextDecisionBoolean.internalBinaryWrite(message.kind.boolean, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.TextDecisionQuestion
+ */
+export const TextDecisionQuestion = new TextDecisionQuestion$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class TextDecideScenarioSpec$Type extends MessageType<TextDecideScenarioSpec> {
+    constructor() {
+        super("nimi.runtime.v1.TextDecideScenarioSpec", [
+            { no: 1, name: "state", kind: "message", T: () => TextDecisionContent },
+            { no: 2, name: "questions", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => TextDecisionQuestion }
+        ]);
+    }
+    create(value?: PartialMessage<TextDecideScenarioSpec>): TextDecideScenarioSpec {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.questions = [];
+        if (value !== undefined)
+            reflectionMergePartial<TextDecideScenarioSpec>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TextDecideScenarioSpec): TextDecideScenarioSpec {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.TextDecisionContent state */ 1:
+                    message.state = TextDecisionContent.internalBinaryRead(reader, reader.uint32(), options, message.state);
+                    break;
+                case /* repeated nimi.runtime.v1.TextDecisionQuestion questions */ 2:
+                    message.questions.push(TextDecisionQuestion.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: TextDecideScenarioSpec, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.TextDecisionContent state = 1; */
+        if (message.state)
+            TextDecisionContent.internalBinaryWrite(message.state, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.TextDecisionQuestion questions = 2; */
+        for (let i = 0; i < message.questions.length; i++)
+            TextDecisionQuestion.internalBinaryWrite(message.questions[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.TextDecideScenarioSpec
+ */
+export const TextDecideScenarioSpec = new TextDecideScenarioSpec$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class TextDecisionCandidateProbability$Type extends MessageType<TextDecisionCandidateProbability> {
+    constructor() {
+        super("nimi.runtime.v1.TextDecisionCandidateProbability", [
+            { no: 1, name: "candidate_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "probability", kind: "scalar", T: 1 /*ScalarType.DOUBLE*/ }
+        ]);
+    }
+    create(value?: PartialMessage<TextDecisionCandidateProbability>): TextDecisionCandidateProbability {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.candidateId = "";
+        message.probability = 0;
+        if (value !== undefined)
+            reflectionMergePartial<TextDecisionCandidateProbability>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TextDecisionCandidateProbability): TextDecisionCandidateProbability {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string candidate_id */ 1:
+                    message.candidateId = reader.string();
+                    break;
+                case /* double probability */ 2:
+                    message.probability = reader.double();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: TextDecisionCandidateProbability, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string candidate_id = 1; */
+        if (message.candidateId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.candidateId);
+        /* double probability = 2; */
+        if (message.probability !== 0)
+            writer.tag(2, WireType.Bit64).double(message.probability);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.TextDecisionCandidateProbability
+ */
+export const TextDecisionCandidateProbability = new TextDecisionCandidateProbability$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class TextDecisionChoiceAnswer$Type extends MessageType<TextDecisionChoiceAnswer> {
+    constructor() {
+        super("nimi.runtime.v1.TextDecisionChoiceAnswer", [
+            { no: 1, name: "selected_candidate_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "probabilities", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => TextDecisionCandidateProbability }
+        ]);
+    }
+    create(value?: PartialMessage<TextDecisionChoiceAnswer>): TextDecisionChoiceAnswer {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.selectedCandidateId = "";
+        message.probabilities = [];
+        if (value !== undefined)
+            reflectionMergePartial<TextDecisionChoiceAnswer>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TextDecisionChoiceAnswer): TextDecisionChoiceAnswer {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string selected_candidate_id */ 1:
+                    message.selectedCandidateId = reader.string();
+                    break;
+                case /* repeated nimi.runtime.v1.TextDecisionCandidateProbability probabilities */ 2:
+                    message.probabilities.push(TextDecisionCandidateProbability.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: TextDecisionChoiceAnswer, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string selected_candidate_id = 1; */
+        if (message.selectedCandidateId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.selectedCandidateId);
+        /* repeated nimi.runtime.v1.TextDecisionCandidateProbability probabilities = 2; */
+        for (let i = 0; i < message.probabilities.length; i++)
+            TextDecisionCandidateProbability.internalBinaryWrite(message.probabilities[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.TextDecisionChoiceAnswer
+ */
+export const TextDecisionChoiceAnswer = new TextDecisionChoiceAnswer$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class TextDecisionBooleanAnswer$Type extends MessageType<TextDecisionBooleanAnswer> {
+    constructor() {
+        super("nimi.runtime.v1.TextDecisionBooleanAnswer", [
+            { no: 1, name: "true_probability", kind: "scalar", T: 1 /*ScalarType.DOUBLE*/ }
+        ]);
+    }
+    create(value?: PartialMessage<TextDecisionBooleanAnswer>): TextDecisionBooleanAnswer {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.trueProbability = 0;
+        if (value !== undefined)
+            reflectionMergePartial<TextDecisionBooleanAnswer>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TextDecisionBooleanAnswer): TextDecisionBooleanAnswer {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* double true_probability */ 1:
+                    message.trueProbability = reader.double();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: TextDecisionBooleanAnswer, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* double true_probability = 1; */
+        if (message.trueProbability !== 0)
+            writer.tag(1, WireType.Bit64).double(message.trueProbability);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.TextDecisionBooleanAnswer
+ */
+export const TextDecisionBooleanAnswer = new TextDecisionBooleanAnswer$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class TextDecisionAnswer$Type extends MessageType<TextDecisionAnswer> {
+    constructor() {
+        super("nimi.runtime.v1.TextDecisionAnswer", [
+            { no: 1, name: "question_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "choice", kind: "message", oneof: "result", T: () => TextDecisionChoiceAnswer },
+            { no: 3, name: "boolean", kind: "message", oneof: "result", T: () => TextDecisionBooleanAnswer }
+        ]);
+    }
+    create(value?: PartialMessage<TextDecisionAnswer>): TextDecisionAnswer {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.questionId = "";
+        message.result = { oneofKind: undefined };
+        if (value !== undefined)
+            reflectionMergePartial<TextDecisionAnswer>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TextDecisionAnswer): TextDecisionAnswer {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string question_id */ 1:
+                    message.questionId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.TextDecisionChoiceAnswer choice */ 2:
+                    message.result = {
+                        oneofKind: "choice",
+                        choice: TextDecisionChoiceAnswer.internalBinaryRead(reader, reader.uint32(), options, (message.result as any).choice)
+                    };
+                    break;
+                case /* nimi.runtime.v1.TextDecisionBooleanAnswer boolean */ 3:
+                    message.result = {
+                        oneofKind: "boolean",
+                        boolean: TextDecisionBooleanAnswer.internalBinaryRead(reader, reader.uint32(), options, (message.result as any).boolean)
+                    };
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: TextDecisionAnswer, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string question_id = 1; */
+        if (message.questionId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.questionId);
+        /* nimi.runtime.v1.TextDecisionChoiceAnswer choice = 2; */
+        if (message.result.oneofKind === "choice")
+            TextDecisionChoiceAnswer.internalBinaryWrite(message.result.choice, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.TextDecisionBooleanAnswer boolean = 3; */
+        if (message.result.oneofKind === "boolean")
+            TextDecisionBooleanAnswer.internalBinaryWrite(message.result.boolean, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.TextDecisionAnswer
+ */
+export const TextDecisionAnswer = new TextDecisionAnswer$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class TextDecisionResult$Type extends MessageType<TextDecisionResult> {
+    constructor() {
+        super("nimi.runtime.v1.TextDecisionResult", [
+            { no: 1, name: "answers", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => TextDecisionAnswer }
+        ]);
+    }
+    create(value?: PartialMessage<TextDecisionResult>): TextDecisionResult {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.answers = [];
+        if (value !== undefined)
+            reflectionMergePartial<TextDecisionResult>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TextDecisionResult): TextDecisionResult {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.TextDecisionAnswer answers */ 1:
+                    message.answers.push(TextDecisionAnswer.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: TextDecisionResult, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.TextDecisionAnswer answers = 1; */
+        for (let i = 0; i < message.answers.length; i++)
+            TextDecisionAnswer.internalBinaryWrite(message.answers[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.TextDecisionResult
+ */
+export const TextDecisionResult = new TextDecisionResult$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class VisionLocateScenarioSpec$Type extends MessageType<VisionLocateScenarioSpec> {
     constructor() {
         super("nimi.runtime.v1.VisionLocateScenarioSpec", [
@@ -10596,7 +11433,8 @@ class ScenarioSpec$Type extends MessageType<ScenarioSpec> {
             { no: 15, name: "audio_separate", kind: "message", oneof: "spec", T: () => AudioSeparateScenarioSpec },
             { no: 16, name: "text_annotate", kind: "message", oneof: "spec", T: () => TextAnnotateScenarioSpec },
             { no: 17, name: "music_transcribe", kind: "message", oneof: "spec", T: () => MusicTranscribeScenarioSpec },
-            { no: 18, name: "audio_voice_convert", kind: "message", oneof: "spec", T: () => AudioVoiceConvertScenarioSpec }
+            { no: 18, name: "audio_voice_convert", kind: "message", oneof: "spec", T: () => AudioVoiceConvertScenarioSpec },
+            { no: 19, name: "text_decide", kind: "message", oneof: "spec", T: () => TextDecideScenarioSpec }
         ]);
     }
     create(value?: PartialMessage<ScenarioSpec>): ScenarioSpec {
@@ -10707,6 +11545,12 @@ class ScenarioSpec$Type extends MessageType<ScenarioSpec> {
                         audioVoiceConvert: AudioVoiceConvertScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).audioVoiceConvert)
                     };
                     break;
+                case /* nimi.runtime.v1.TextDecideScenarioSpec text_decide */ 19:
+                    message.spec = {
+                        oneofKind: "textDecide",
+                        textDecide: TextDecideScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).textDecide)
+                    };
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -10767,6 +11611,9 @@ class ScenarioSpec$Type extends MessageType<ScenarioSpec> {
         /* nimi.runtime.v1.AudioVoiceConvertScenarioSpec audio_voice_convert = 18; */
         if (message.spec.oneofKind === "audioVoiceConvert")
             AudioVoiceConvertScenarioSpec.internalBinaryWrite(message.spec.audioVoiceConvert, writer.tag(18, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.TextDecideScenarioSpec text_decide = 19; */
+        if (message.spec.oneofKind === "textDecide")
+            TextDecideScenarioSpec.internalBinaryWrite(message.spec.textDecide, writer.tag(19, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -12160,7 +13007,8 @@ class ScenarioOutput$Type extends MessageType<ScenarioOutput> {
             { no: 11, name: "audio_separate", kind: "message", oneof: "output", T: () => AudioSeparateResult },
             { no: 12, name: "text_annotation", kind: "message", oneof: "output", T: () => TextAnnotationResult },
             { no: 13, name: "music_transcribe", kind: "message", oneof: "output", T: () => MusicTranscribeResult },
-            { no: 14, name: "audio_voice_convert", kind: "message", oneof: "output", T: () => AudioVoiceConvertResult }
+            { no: 14, name: "audio_voice_convert", kind: "message", oneof: "output", T: () => AudioVoiceConvertResult },
+            { no: 15, name: "text_decision", kind: "message", oneof: "output", T: () => TextDecisionResult }
         ]);
     }
     create(value?: PartialMessage<ScenarioOutput>): ScenarioOutput {
@@ -12259,6 +13107,12 @@ class ScenarioOutput$Type extends MessageType<ScenarioOutput> {
                         audioVoiceConvert: AudioVoiceConvertResult.internalBinaryRead(reader, reader.uint32(), options, (message.output as any).audioVoiceConvert)
                     };
                     break;
+                case /* nimi.runtime.v1.TextDecisionResult text_decision */ 15:
+                    message.output = {
+                        oneofKind: "textDecision",
+                        textDecision: TextDecisionResult.internalBinaryRead(reader, reader.uint32(), options, (message.output as any).textDecision)
+                    };
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -12313,6 +13167,9 @@ class ScenarioOutput$Type extends MessageType<ScenarioOutput> {
         /* nimi.runtime.v1.AudioVoiceConvertResult audio_voice_convert = 14; */
         if (message.output.oneofKind === "audioVoiceConvert")
             AudioVoiceConvertResult.internalBinaryWrite(message.output.audioVoiceConvert, writer.tag(14, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.TextDecisionResult text_decision = 15; */
+        if (message.output.oneofKind === "textDecision")
+            TextDecisionResult.internalBinaryWrite(message.output.textDecision, writer.tag(15, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -12960,12 +13817,15 @@ class ExecuteLocalAppScenarioRequest$Type extends MessageType<ExecuteLocalAppSce
         super("nimi.runtime.v1.ExecuteLocalAppScenarioRequest", [
             { no: 1, name: "text_embed", kind: "message", oneof: "spec", T: () => LocalAppTextEmbedScenarioSpec },
             { no: 2, name: "image_generate", kind: "message", oneof: "spec", T: () => LocalAppImageGenerateScenarioSpec },
-            { no: 3, name: "text_generate", kind: "message", oneof: "spec", T: () => StreamLocalAppTextTurnRequest }
+            { no: 3, name: "text_generate", kind: "message", oneof: "spec", T: () => StreamLocalAppTextTurnRequest },
+            { no: 4, name: "text_decide", kind: "message", oneof: "spec", T: () => TextDecideScenarioSpec },
+            { no: 5, name: "timeout_ms", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
         ]);
     }
     create(value?: PartialMessage<ExecuteLocalAppScenarioRequest>): ExecuteLocalAppScenarioRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.spec = { oneofKind: undefined };
+        message.timeoutMs = 0;
         if (value !== undefined)
             reflectionMergePartial<ExecuteLocalAppScenarioRequest>(this, message, value);
         return message;
@@ -12993,6 +13853,15 @@ class ExecuteLocalAppScenarioRequest$Type extends MessageType<ExecuteLocalAppSce
                         textGenerate: StreamLocalAppTextTurnRequest.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).textGenerate)
                     };
                     break;
+                case /* nimi.runtime.v1.TextDecideScenarioSpec text_decide */ 4:
+                    message.spec = {
+                        oneofKind: "textDecide",
+                        textDecide: TextDecideScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).textDecide)
+                    };
+                    break;
+                case /* int32 timeout_ms */ 5:
+                    message.timeoutMs = reader.int32();
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -13014,6 +13883,12 @@ class ExecuteLocalAppScenarioRequest$Type extends MessageType<ExecuteLocalAppSce
         /* nimi.runtime.v1.StreamLocalAppTextTurnRequest text_generate = 3; */
         if (message.spec.oneofKind === "textGenerate")
             StreamLocalAppTextTurnRequest.internalBinaryWrite(message.spec.textGenerate, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.TextDecideScenarioSpec text_decide = 4; */
+        if (message.spec.oneofKind === "textDecide")
+            TextDecideScenarioSpec.internalBinaryWrite(message.spec.textDecide, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* int32 timeout_ms = 5; */
+        if (message.timeoutMs !== 0)
+            writer.tag(5, WireType.Varint).int32(message.timeoutMs);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -13188,6 +14063,7 @@ class ExecuteLocalAppScenarioResponse$Type extends MessageType<ExecuteLocalAppSc
             { no: 1, name: "text_embed", kind: "message", oneof: "output", T: () => LocalAppTextEmbedOutput },
             { no: 2, name: "image_generate", kind: "message", oneof: "output", T: () => LocalAppImageGenerateOutput },
             { no: 4, name: "text_generate", kind: "message", oneof: "output", T: () => LocalAppTextGenerateOutput },
+            { no: 5, name: "text_decide", kind: "message", oneof: "output", T: () => TextDecisionResult },
             { no: 3, name: "trace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
@@ -13222,6 +14098,12 @@ class ExecuteLocalAppScenarioResponse$Type extends MessageType<ExecuteLocalAppSc
                         textGenerate: LocalAppTextGenerateOutput.internalBinaryRead(reader, reader.uint32(), options, (message.output as any).textGenerate)
                     };
                     break;
+                case /* nimi.runtime.v1.TextDecisionResult text_decide */ 5:
+                    message.output = {
+                        oneofKind: "textDecide",
+                        textDecide: TextDecisionResult.internalBinaryRead(reader, reader.uint32(), options, (message.output as any).textDecide)
+                    };
+                    break;
                 case /* string trace_id */ 3:
                     message.traceId = reader.string();
                     break;
@@ -13249,6 +14131,9 @@ class ExecuteLocalAppScenarioResponse$Type extends MessageType<ExecuteLocalAppSc
         /* nimi.runtime.v1.LocalAppTextGenerateOutput text_generate = 4; */
         if (message.output.oneofKind === "textGenerate")
             LocalAppTextGenerateOutput.internalBinaryWrite(message.output.textGenerate, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.TextDecisionResult text_decide = 5; */
+        if (message.output.oneofKind === "textDecide")
+            TextDecisionResult.internalBinaryWrite(message.output.textDecide, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

@@ -166,31 +166,42 @@ func (offer catalogOffer) clone() catalogOffer {
 func (s *Service) projectMarketCandidate(offer catalogOffer) *runtimev1.ModelAssetMarketCandidate {
 	installedModelAssetID := s.catalogOfferInstalledAssetID(offer)
 	result := &runtimev1.ModelAssetMarketCandidate{
-		OfferRef:        offer.offerRef,
-		SourceLabel:     offer.identity.sourceKind,
-		Title:           defaultString(offer.title, offer.identity.locator),
-		Description:     strings.TrimSpace(offer.description),
-		Categories:      normalizeStringSlice(offer.categories),
-		ModelType:       strings.TrimSpace(offer.modelType),
-		VariantLabel:    offer.entryPath,
-		Format:          strings.TrimSpace(offer.format),
-		Author:          defaultString(strings.TrimSpace(offer.author), catalogLocatorOwner(offer.identity.locator)),
-		TotalSizeBytes:  offer.totalSizeBytes,
-		License:         strings.TrimSpace(offer.license),
-		Tags:            normalizeStringSlice(offer.tags),
-		Downloads:       offer.downloads,
-		Likes:           offer.likes,
-		LastModified:    strings.TrimSpace(offer.lastModified),
-		Verified:        offer.verified,
-		Installed:       installedModelAssetID != "",
-		Installable:     catalogOfferInstallable(offer),
-		EditorialReason: strings.TrimSpace(offer.editorialReason),
+		OfferRef:          offer.offerRef,
+		SourceLabel:       offer.identity.sourceKind,
+		Title:             defaultString(offer.title, offer.identity.locator),
+		Description:       strings.TrimSpace(offer.description),
+		Categories:        normalizeStringSlice(offer.categories),
+		ModelType:         strings.TrimSpace(offer.modelType),
+		VariantLabel:      offer.entryPath,
+		Format:            strings.TrimSpace(offer.format),
+		Author:            defaultString(strings.TrimSpace(offer.author), catalogLocatorOwner(offer.identity.locator)),
+		TotalSizeBytes:    offer.totalSizeBytes,
+		DownloadSizeBytes: s.catalogOfferDownloadSize(offer),
+		License:           strings.TrimSpace(offer.license),
+		Tags:              normalizeStringSlice(offer.tags),
+		Downloads:         offer.downloads,
+		Likes:             offer.likes,
+		LastModified:      strings.TrimSpace(offer.lastModified),
+		Verified:          offer.verified,
+		Installed:         installedModelAssetID != "",
+		Installable:       catalogOfferInstallable(offer),
+		EditorialReason:   strings.TrimSpace(offer.editorialReason),
 	}
 	if offer.featuredOrdinal != nil {
 		ordinal := *offer.featuredOrdinal
 		result.FeaturedOrdinal = &ordinal
 	}
 	return result
+}
+
+// catalogOfferDownloadSize is what acquiring the offer transfers: the pinned
+// archive of a release archive offer, otherwise its declared files. Zero means
+// unknown.
+func (s *Service) catalogOfferDownloadSize(offer catalogOffer) int64 {
+	if archive, ok := s.catalogReleaseArchiveForOffer(offer); ok {
+		return archive.SizeBytes
+	}
+	return clampInt64Minimum(offer.totalSizeBytes, 0)
 }
 
 func (s *Service) catalogOfferInstalled(offer catalogOffer) bool {

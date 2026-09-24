@@ -123,6 +123,8 @@ type localStateManagedModelDownloadSpec struct {
 	Hashes            map[string]string        `json:"hashes"`
 	TotalSizeBytes    int64                    `json:"totalSizeBytes,omitempty"`
 	EngineConfig      map[string]any           `json:"engineConfig,omitempty"`
+	// Archive is present only for a pinned release archive acquisition.
+	Archive *localStateManagedModelDownloadArchive `json:"archive,omitempty"`
 }
 
 func resolveLocalStatePath(configuredPath string) string {

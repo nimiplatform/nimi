@@ -71,7 +71,25 @@ func (s *Service) acquireAsyncScenarioJobLease(ctx context.Context, appID string
 	return release, nil
 }
 
+// schedulerAcquireError reports why a call was not admitted to execution. The
+// scheduler stops waiting only when its caller does, so a deadline that
+// elapsed in the queue stays a timeout and a cancel stays a cancel; neither is
+// a provider failure.
 func schedulerAcquireError(err error) error {
+	if errors.Is(err, context.DeadlineExceeded) {
+		return grpcerr.WrapWithReasonCode(
+			codes.DeadlineExceeded,
+			runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT,
+			err,
+			grpcerr.ReasonOptions{
+				ActionHint: "retry_with_a_longer_timeout",
+				Message:    "runtime scheduler wait exceeded the request deadline",
+			},
+		)
+	}
+	if errors.Is(err, context.Canceled) {
+		return grpcerr.WrapWithReasonCode(codes.Canceled, runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CANCELED, err, grpcerr.ReasonOptions{})
+	}
 	return grpcerr.WrapWithReasonCode(
 		codes.ResourceExhausted,
 		runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,

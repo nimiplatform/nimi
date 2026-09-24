@@ -261,6 +261,8 @@ pub enum ReasonCode {
     AiToolCallInvalid = 398,
     AiReasoningContinuityInvalid = 399,
     AiExecutionInterrupted = 402,
+    /// Valid input that the captured implementation cannot encode completely.
+    AiInputLimitExceeded = 403,
     /// MEDIA family (410+)
     AiMediaSpecInvalid = 410,
     AiMediaOptionUnsupported = 411,
@@ -654,6 +656,7 @@ impl ReasonCode {
             Self::AiToolCallInvalid => "AI_TOOL_CALL_INVALID",
             Self::AiReasoningContinuityInvalid => "AI_REASONING_CONTINUITY_INVALID",
             Self::AiExecutionInterrupted => "AI_EXECUTION_INTERRUPTED",
+            Self::AiInputLimitExceeded => "AI_INPUT_LIMIT_EXCEEDED",
             Self::AiMediaSpecInvalid => "AI_MEDIA_SPEC_INVALID",
             Self::AiMediaOptionUnsupported => "AI_MEDIA_OPTION_UNSUPPORTED",
             Self::AiMediaJobNotFound => "AI_MEDIA_JOB_NOT_FOUND",
@@ -1060,6 +1063,7 @@ impl ReasonCode {
             "AI_TOOL_CALL_INVALID" => Some(Self::AiToolCallInvalid),
             "AI_REASONING_CONTINUITY_INVALID" => Some(Self::AiReasoningContinuityInvalid),
             "AI_EXECUTION_INTERRUPTED" => Some(Self::AiExecutionInterrupted),
+            "AI_INPUT_LIMIT_EXCEEDED" => Some(Self::AiInputLimitExceeded),
             "AI_MEDIA_SPEC_INVALID" => Some(Self::AiMediaSpecInvalid),
             "AI_MEDIA_OPTION_UNSUPPORTED" => Some(Self::AiMediaOptionUnsupported),
             "AI_MEDIA_JOB_NOT_FOUND" => Some(Self::AiMediaJobNotFound),
@@ -3349,6 +3353,11 @@ pub struct ModelAssetMarketCandidate {
     /// owner). Presentation only; never part of offer identity.
     #[prost(string, tag = "20")]
     pub author: ::prost::alloc::string::String,
+    /// Bytes this offer's acquisition transfers from its source: the declared
+    /// files, or the pinned archive of a release archive offer. Zero when
+    /// unknown. total_size_bytes remains the installed file total.
+    #[prost(int64, tag = "21")]
+    pub download_size_bytes: i64,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListFeaturedModelAssetsRequest {
@@ -5926,6 +5935,114 @@ pub struct TextAnnotationResult {
     #[prost(message, repeated, tag = "1")]
     pub documents: ::prost::alloc::vec::Vec<TextAnnotationDocument>,
 }
+/// text.decide content is either Unicode text or one serialized JSON object or
+/// array. Runtime validates it and never splits, truncates or rewrites it.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TextDecisionContent {
+    #[prost(oneof = "text_decision_content::Value", tags = "1, 2")]
+    pub value: ::core::option::Option<text_decision_content::Value>,
+}
+/// Nested message and enum types in `TextDecisionContent`.
+pub mod text_decision_content {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Value {
+        #[prost(string, tag = "1")]
+        Text(::prost::alloc::string::String),
+        #[prost(string, tag = "2")]
+        Json(::prost::alloc::string::String),
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TextDecisionCandidate {
+    #[prost(string, tag = "1")]
+    pub id: ::prost::alloc::string::String,
+    /// Optional. Unset means the candidate has no description.
+    #[prost(message, optional, tag = "2")]
+    pub description: ::core::option::Option<TextDecisionContent>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TextDecisionChoice {
+    #[prost(message, repeated, tag = "1")]
+    pub candidates: ::prost::alloc::vec::Vec<TextDecisionCandidate>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TextDecisionBoolean {
+    /// Optional criteria. Unset leaves the wording to the implementation.
+    #[prost(message, optional, tag = "1")]
+    pub true_criterion: ::core::option::Option<TextDecisionContent>,
+    #[prost(message, optional, tag = "2")]
+    pub false_criterion: ::core::option::Option<TextDecisionContent>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TextDecisionQuestion {
+    #[prost(string, tag = "1")]
+    pub id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub instructions: ::core::option::Option<TextDecisionContent>,
+    #[prost(oneof = "text_decision_question::Kind", tags = "3, 4")]
+    pub kind: ::core::option::Option<text_decision_question::Kind>,
+}
+/// Nested message and enum types in `TextDecisionQuestion`.
+pub mod text_decision_question {
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Kind {
+        #[prost(message, tag = "3")]
+        Choice(super::TextDecisionChoice),
+        #[prost(message, tag = "4")]
+        Boolean(super::TextDecisionBoolean),
+    }
+}
+/// Question and candidate order is preserved in the result.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TextDecideScenarioSpec {
+    #[prost(message, optional, tag = "1")]
+    pub state: ::core::option::Option<TextDecisionContent>,
+    #[prost(message, repeated, tag = "2")]
+    pub questions: ::prost::alloc::vec::Vec<TextDecisionQuestion>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TextDecisionCandidateProbability {
+    #[prost(string, tag = "1")]
+    pub candidate_id: ::prost::alloc::string::String,
+    #[prost(double, tag = "2")]
+    pub probability: f64,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TextDecisionChoiceAnswer {
+    #[prost(string, tag = "1")]
+    pub selected_candidate_id: ::prost::alloc::string::String,
+    /// One entry per submitted candidate, in submitted order.
+    #[prost(message, repeated, tag = "2")]
+    pub probabilities: ::prost::alloc::vec::Vec<TextDecisionCandidateProbability>,
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct TextDecisionBooleanAnswer {
+    #[prost(double, tag = "1")]
+    pub true_probability: f64,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TextDecisionAnswer {
+    #[prost(string, tag = "1")]
+    pub question_id: ::prost::alloc::string::String,
+    #[prost(oneof = "text_decision_answer::Result", tags = "2, 3")]
+    pub result: ::core::option::Option<text_decision_answer::Result>,
+}
+/// Nested message and enum types in `TextDecisionAnswer`.
+pub mod text_decision_answer {
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Result {
+        #[prost(message, tag = "2")]
+        Choice(super::TextDecisionChoiceAnswer),
+        #[prost(message, tag = "3")]
+        Boolean(super::TextDecisionBooleanAnswer),
+    }
+}
+/// Exactly one answer per submitted question, in submitted order.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TextDecisionResult {
+    #[prost(message, repeated, tag = "1")]
+    pub answers: ::prost::alloc::vec::Vec<TextDecisionAnswer>,
+}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct VisionLocateScenarioSpec {
     #[prost(string, tag = "1")]
@@ -5987,7 +6104,7 @@ pub struct VisionLocateResult {
 pub struct ScenarioSpec {
     #[prost(
         oneof = "scenario_spec::Spec",
-        tags = "1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18"
+        tags = "1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19"
     )]
     pub spec: ::core::option::Option<scenario_spec::Spec>,
 }
@@ -6027,6 +6144,8 @@ pub mod scenario_spec {
         MusicTranscribe(super::MusicTranscribeScenarioSpec),
         #[prost(message, tag = "18")]
         AudioVoiceConvert(super::AudioVoiceConvertScenarioSpec),
+        #[prost(message, tag = "19")]
+        TextDecide(super::TextDecideScenarioSpec),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -6243,7 +6362,7 @@ pub struct WorldGenerateResult {
 pub struct ScenarioOutput {
     #[prost(
         oneof = "scenario_output::Output",
-        tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14"
+        tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15"
     )]
     pub output: ::core::option::Option<scenario_output::Output>,
 }
@@ -6279,6 +6398,8 @@ pub mod scenario_output {
         MusicTranscribe(super::MusicTranscribeResult),
         #[prost(message, tag = "14")]
         AudioVoiceConvert(super::AudioVoiceConvertResult),
+        #[prost(message, tag = "15")]
+        TextDecision(super::TextDecisionResult),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -6411,7 +6532,12 @@ pub struct LocalAppImageGenerateScenarioSpec {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ExecuteLocalAppScenarioRequest {
-    #[prost(oneof = "execute_local_app_scenario_request::Spec", tags = "1, 2, 3")]
+    /// The caller's deadline for this call in milliseconds. Zero keeps Runtime's
+    /// capability-owned default. Runtime owns this deadline, so an elapsed
+    /// deadline stays distinguishable from the caller canceling the call.
+    #[prost(int32, tag = "5")]
+    pub timeout_ms: i32,
+    #[prost(oneof = "execute_local_app_scenario_request::Spec", tags = "1, 2, 3, 4")]
     pub spec: ::core::option::Option<execute_local_app_scenario_request::Spec>,
 }
 /// Nested message and enum types in `ExecuteLocalAppScenarioRequest`.
@@ -6425,6 +6551,8 @@ pub mod execute_local_app_scenario_request {
         /// Reuse the single text-turn input for synchronous text generation.
         #[prost(message, tag = "3")]
         TextGenerate(super::StreamLocalAppTextTurnRequest),
+        #[prost(message, tag = "4")]
+        TextDecide(super::TextDecideScenarioSpec),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -6451,7 +6579,7 @@ pub struct LocalAppTextGenerateOutput {
 pub struct ExecuteLocalAppScenarioResponse {
     #[prost(string, tag = "3")]
     pub trace_id: ::prost::alloc::string::String,
-    #[prost(oneof = "execute_local_app_scenario_response::Output", tags = "1, 2, 4")]
+    #[prost(oneof = "execute_local_app_scenario_response::Output", tags = "1, 2, 4, 5")]
     pub output: ::core::option::Option<execute_local_app_scenario_response::Output>,
 }
 /// Nested message and enum types in `ExecuteLocalAppScenarioResponse`.
@@ -6464,6 +6592,8 @@ pub mod execute_local_app_scenario_response {
         ImageGenerate(super::LocalAppImageGenerateOutput),
         #[prost(message, tag = "4")]
         TextGenerate(super::LocalAppTextGenerateOutput),
+        #[prost(message, tag = "5")]
+        TextDecide(super::TextDecisionResult),
     }
 }
 /// Asynchronous closed-set Job specs admitted for SubmitLocalAppScenarioJob.
@@ -7543,6 +7673,7 @@ pub enum ScenarioType {
     TextAnnotate = 16,
     MusicTranscribe = 17,
     AudioVoiceConvert = 18,
+    TextDecide = 19,
 }
 impl ScenarioType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -7568,6 +7699,7 @@ impl ScenarioType {
             Self::TextAnnotate => "SCENARIO_TYPE_TEXT_ANNOTATE",
             Self::MusicTranscribe => "SCENARIO_TYPE_MUSIC_TRANSCRIBE",
             Self::AudioVoiceConvert => "SCENARIO_TYPE_AUDIO_VOICE_CONVERT",
+            Self::TextDecide => "SCENARIO_TYPE_TEXT_DECIDE",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -7590,6 +7722,7 @@ impl ScenarioType {
             "SCENARIO_TYPE_TEXT_ANNOTATE" => Some(Self::TextAnnotate),
             "SCENARIO_TYPE_MUSIC_TRANSCRIBE" => Some(Self::MusicTranscribe),
             "SCENARIO_TYPE_AUDIO_VOICE_CONVERT" => Some(Self::AudioVoiceConvert),
+            "SCENARIO_TYPE_TEXT_DECIDE" => Some(Self::TextDecide),
             _ => None,
         }
     }

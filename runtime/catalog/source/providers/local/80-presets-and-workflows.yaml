@@ -38,7 +38,7 @@ loadout_recipes:
     slot_metadata:
       - slot_id: text.model
         display_label: English language analysis model
-        recommended_variant_ids: []
+        recommended_variant_ids: [local.nlp.spacy-en-core-web-md.3.8.0]
         model_contract:
           format: spacy
           artifact_role: text_analysis_model
@@ -55,7 +55,7 @@ loadout_recipes:
     slot_metadata:
       - slot_id: text.model
         display_label: German language analysis model
-        recommended_variant_ids: []
+        recommended_variant_ids: [local.nlp.spacy-de-core-news-md.3.8.0]
         model_contract:
           format: spacy
           artifact_role: text_analysis_model
@@ -72,7 +72,7 @@ loadout_recipes:
     slot_metadata:
       - slot_id: text.model
         display_label: Spanish language analysis model
-        recommended_variant_ids: []
+        recommended_variant_ids: [local.nlp.spacy-es-core-news-md.3.8.0]
         model_contract:
           format: spacy
           artifact_role: text_analysis_model
@@ -89,7 +89,7 @@ loadout_recipes:
     slot_metadata:
       - slot_id: text.model
         display_label: French language analysis model
-        recommended_variant_ids: []
+        recommended_variant_ids: [local.nlp.spacy-fr-core-news-md.3.8.0]
         model_contract:
           format: spacy
           artifact_role: text_analysis_model
@@ -106,7 +106,7 @@ loadout_recipes:
     slot_metadata:
       - slot_id: text.model
         display_label: Italian language analysis model
-        recommended_variant_ids: []
+        recommended_variant_ids: [local.nlp.spacy-it-core-news-md.3.8.0]
         model_contract:
           format: spacy
           artifact_role: text_analysis_model
@@ -123,7 +123,7 @@ loadout_recipes:
     slot_metadata:
       - slot_id: text.model
         display_label: Russian language analysis model
-        recommended_variant_ids: []
+        recommended_variant_ids: [local.nlp.spacy-ru-core-news-md.3.8.0]
         model_contract:
           format: spacy
           artifact_role: text_analysis_model
@@ -140,7 +140,7 @@ loadout_recipes:
     slot_metadata:
       - slot_id: text.model
         display_label: Chinese language analysis model
-        recommended_variant_ids: []
+        recommended_variant_ids: [local.nlp.spacy-zh-core-web-md.3.8.0]
         model_contract:
           format: spacy
           artifact_role: text_analysis_model
@@ -157,7 +157,7 @@ loadout_recipes:
     slot_metadata:
       - slot_id: text.model
         display_label: Japanese language analysis model
-        recommended_variant_ids: []
+        recommended_variant_ids: [local.nlp.spacy-ja-core-news-md.3.8.0]
         model_contract:
           format: spacy
           artifact_role: text_analysis_model

@@ -13,6 +13,8 @@ import (
 func (s *Service) ExecuteScenario(ctx context.Context, req *runtimev1.ExecuteScenarioRequest) (*runtimev1.ExecuteScenarioResponse, error) {
 	ctx, releaseModelAssets := localexecution.WithModelAssetUseScope(ctx)
 	defer releaseModelAssets()
+	ctx, stopNotingEnd := withRequestEnd(ctx)
+	defer stopNotingEnd()
 
 	if req == nil || req.GetHead() == nil || req.GetSpec() == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
@@ -28,8 +30,11 @@ func (s *Service) ExecuteScenario(ctx context.Context, req *runtimev1.ExecuteSce
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
 	defaultTimeout := defaultGenerateTimeout
-	if req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED {
+	switch req.GetScenarioType() {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED:
 		defaultTimeout = defaultEmbedTimeout
+	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_DECIDE:
+		defaultTimeout = defaultDecideTimeout
 	}
 	if _, err := timeoutDuration(req.GetHead().GetTimeoutMs(), defaultTimeout); err != nil {
 		return nil, err
@@ -52,6 +57,8 @@ func (s *Service) ExecuteScenario(ctx context.Context, req *runtimev1.ExecuteSce
 		response, executionErr = executeTextGenerateScenario(ctx, s, req, ignored)
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED:
 		response, executionErr = executeTextEmbedScenario(ctx, s, req, ignored)
+	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_DECIDE:
+		response, executionErr = executeTextDecideScenario(ctx, s, req, ignored)
 	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE:
@@ -73,6 +80,7 @@ func (s *Service) ListScenarioProfiles(_ context.Context, _ *runtimev1.ListScena
 		{runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE, "Text generation"},
 		{runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED, "Text embedding"},
 		{runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_ANNOTATE, "Language analysis"},
+		{runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_DECIDE, "Decisions"},
 		{runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE, "Image generation"},
 		{runtimev1.ScenarioType_SCENARIO_TYPE_VISION_LOCATE, "Visual localization"},
 		{runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_FACE_SWAP, "Image face replacement"},

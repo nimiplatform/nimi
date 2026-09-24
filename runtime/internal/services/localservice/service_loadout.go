@@ -985,9 +985,13 @@ func (s *Service) validateLoadoutCurrent(loadout *runtimev1.Loadout, driver capa
 }
 
 // validateLoadoutForJobAdmission is intentionally separate from projection
-// validation: its axis resolver rereads every declared payload byte.
-func (s *Service) validateLoadoutForJobAdmission(loadout *runtimev1.Loadout, driver capabilitydriver.Driver, requirements []*runtimev1.LocalCapabilityRequirement) loadoutValidationResult {
-	return s.validateLoadoutWithAxisResolver(loadout, driver, requirements, s.resolveLoadoutModelAxisForAdmission)
+// validation: its axis resolver verifies every declared payload for admission
+// and never trusts the projection cache. pass carries the verifications this
+// admission made before the locks; a caller whose ctx ends stops it.
+func (s *Service) validateLoadoutForJobAdmission(ctx context.Context, pass admissionPass, loadout *runtimev1.Loadout, driver capabilitydriver.Driver, requirements []*runtimev1.LocalCapabilityRequirement) loadoutValidationResult {
+	return s.validateLoadoutWithAxisResolver(loadout, driver, requirements, func(loadout *runtimev1.Loadout, driver capabilitydriver.Driver, requirement *runtimev1.LocalCapabilityRequirement, axis *runtimev1.LoadoutModelAxis) (resolvedLoadoutAxis, runtimev1.ReasonCode) {
+		return s.resolveLoadoutModelAxisForAdmission(ctx, pass, loadout, driver, requirement, axis)
+	})
 }
 
 func (s *Service) validateLoadoutWithAxisResolver(loadout *runtimev1.Loadout, driver capabilitydriver.Driver, requirements []*runtimev1.LocalCapabilityRequirement, resolveAxis loadoutModelAxisResolver) loadoutValidationResult {
@@ -1099,8 +1103,10 @@ func (s *Service) resolveLoadoutModelAxis(loadout *runtimev1.Loadout, driver cap
 	return s.resolveLoadoutModelAxisWithHasher(loadout, driver, requirement, axis, s.cachedFileSHA256)
 }
 
-func (s *Service) resolveLoadoutModelAxisForAdmission(loadout *runtimev1.Loadout, driver capabilitydriver.Driver, requirement *runtimev1.LocalCapabilityRequirement, axis *runtimev1.LoadoutModelAxis) (resolvedLoadoutAxis, runtimev1.ReasonCode) {
-	resolved, reason := s.resolveLoadoutModelAxisWithHasher(loadout, driver, requirement, axis, s.freshFileSHA256)
+func (s *Service) resolveLoadoutModelAxisForAdmission(ctx context.Context, pass admissionPass, loadout *runtimev1.Loadout, driver capabilitydriver.Driver, requirement *runtimev1.LocalCapabilityRequirement, axis *runtimev1.LoadoutModelAxis) (resolvedLoadoutAxis, runtimev1.ReasonCode) {
+	resolved, reason := s.resolveLoadoutModelAxisWithHasher(loadout, driver, requirement, axis, func(path string, info os.FileInfo, generationDigest string) (string, error) {
+		return s.admitPayloadLocked(ctx, pass, path, info, generationDigest)
+	})
 	if reason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
 		return resolvedLoadoutAxis{}, reason
 	}

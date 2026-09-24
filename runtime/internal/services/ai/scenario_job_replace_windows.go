@@ -32,3 +32,18 @@ func replaceScenarioJobFileAtomically(source, target string) error {
 		time.Sleep(5 * time.Millisecond)
 	}
 }
+
+// Appends share the same bounded retry for a transient reader that denies
+// write sharing; a persistent one fails the write closed.
+func openScenarioJobStoreForAppend(path string) (*os.File, error) {
+	for attempt := 0; ; attempt++ {
+		file, err := os.OpenFile(path, os.O_WRONLY, 0)
+		if err == nil {
+			return file, nil
+		}
+		if attempt >= 19 || (!errors.Is(err, windows.ERROR_SHARING_VIOLATION) && !errors.Is(err, windows.ERROR_ACCESS_DENIED)) {
+			return nil, err
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+}

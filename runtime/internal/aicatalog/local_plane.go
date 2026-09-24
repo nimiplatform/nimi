@@ -161,8 +161,78 @@ func (c *LocalProviderCatalog) validateLocalPlane() error {
 		if err := validateLocalPlaneVariants(fmt.Sprintf("local model %q", model.ModelID), model.Variants, seenVariants, passive || fitnessOptional); err != nil {
 			return err
 		}
+		releaseArchive := strings.TrimSpace(model.Install.InstallKind) == LocalInstallKindReleaseArchive
+		for _, variant := range model.Variants {
+			if (variant.Archive != nil) != releaseArchive {
+				return fmt.Errorf("local variant %q archive must be declared exactly for install_kind %s", variant.VariantID, LocalInstallKindReleaseArchive)
+			}
+			if variant.Archive == nil {
+				continue
+			}
+			repo, revision := strings.TrimSpace(variant.Repo), strings.TrimSpace(variant.Revision)
+			if repo == "" {
+				repo, revision = strings.TrimSpace(model.Install.Repo), strings.TrimSpace(model.Install.Revision)
+			}
+			if err := ValidateLocalPlaneArchive(repo, revision, *variant.Archive, variant.Files); err != nil {
+				return fmt.Errorf("local variant %q: %w", variant.VariantID, err)
+			}
+		}
 	}
 	return c.validateLoadoutRecipes()
+}
+
+var (
+	localReleaseRepoPattern    = regexp.MustCompile(`^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?/[A-Za-z0-9_.-]+$`)
+	localReleaseSegmentPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.+-]*$`)
+)
+
+// ValidateLocalPlaneArchive admits one official release archive source: a
+// GitHub owner/repository, a release tag, a single-segment asset name, the zip
+// format, exact archive integrity, and a canonical data root. Declared files
+// are canonical paths below that root.
+func ValidateLocalPlaneArchive(repo string, revision string, archive LocalPlaneArchive, files []string) error {
+	if !localReleaseRepoPattern.MatchString(repo) || strings.Contains(repo, "..") {
+		return fmt.Errorf("release archive repo %q must be an owner/repository name", repo)
+	}
+	if !localReleaseSegmentPattern.MatchString(revision) || strings.Contains(revision, "..") {
+		return fmt.Errorf("release archive revision %q must be one release tag", revision)
+	}
+	if !localReleaseSegmentPattern.MatchString(archive.File) || strings.Contains(archive.File, "..") {
+		return fmt.Errorf("release archive file %q must be one asset name", archive.File)
+	}
+	if archive.Format != "zip" {
+		return fmt.Errorf("release archive format %q is not admitted", archive.Format)
+	}
+	if !localExactSHA256Pattern.MatchString(archive.SHA256) {
+		return fmt.Errorf("release archive sha256 must be sha256:<64 lowercase hex>")
+	}
+	if archive.SizeBytes <= 0 {
+		return fmt.Errorf("release archive size_bytes must be positive")
+	}
+	if !canonicalArchivePath(archive.Root) {
+		return fmt.Errorf("release archive root %q is not canonical", archive.Root)
+	}
+	if len(files) == 0 {
+		return fmt.Errorf("release archive declares no files")
+	}
+	for _, file := range files {
+		if !canonicalArchivePath(file) {
+			return fmt.Errorf("release archive file path %q is not canonical", file)
+		}
+	}
+	return nil
+}
+
+func canonicalArchivePath(value string) bool {
+	if value == "" || strings.ContainsAny(value, "\\:\x00") || strings.HasPrefix(value, "/") || strings.HasSuffix(value, "/") {
+		return false
+	}
+	for _, segment := range strings.Split(value, "/") {
+		if segment == "" || segment == "." || segment == ".." || strings.TrimSpace(segment) != segment {
+			return false
+		}
+	}
+	return true
 }
 
 func (c *LocalProviderCatalog) validateLoadoutRecipes() error {

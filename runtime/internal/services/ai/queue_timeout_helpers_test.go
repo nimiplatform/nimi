@@ -3,12 +3,14 @@ package ai
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func TestTimeoutDurationUsesBoundedOverride(t *testing.T) {
@@ -102,14 +104,24 @@ func TestActionHintFromStreamErrorFallsBackToRetry(t *testing.T) {
 }
 
 func TestSchedulerAcquireErrorPreservesCause(t *testing.T) {
-	cause := context.DeadlineExceeded
-	err := schedulerAcquireError(cause)
-	if !errors.Is(err, cause) {
-		t.Fatal("expected scheduler cause to remain available in-process")
-	}
-	reason, ok := grpcerr.ExtractReasonCode(err)
-	if !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE {
-		t.Fatalf("unexpected reason code: %v (ok=%v)", reason, ok)
+	for _, test := range []struct {
+		cause  error
+		code   codes.Code
+		reason runtimev1.ReasonCode
+	}{
+		// A caller's deadline or cancel while queued keeps its own meaning.
+		{fmt.Errorf("scheduler acquire: %w", context.DeadlineExceeded), codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT},
+		{fmt.Errorf("scheduler acquire: %w", context.Canceled), codes.Canceled, runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CANCELED},
+		{errors.New("scheduler unavailable"), codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE},
+	} {
+		err := schedulerAcquireError(test.cause)
+		if !errors.Is(err, test.cause) {
+			t.Fatalf("%v: expected scheduler cause to remain available in-process", test.cause)
+		}
+		reason, ok := grpcerr.ExtractReasonCode(err)
+		if !ok || reason != test.reason || status.Code(err) != test.code {
+			t.Fatalf("%v: reason=%v code=%v (ok=%v)", test.cause, reason, status.Code(err), ok)
+		}
 	}
 }
 

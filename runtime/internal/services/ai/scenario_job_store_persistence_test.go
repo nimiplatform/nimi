@@ -467,7 +467,12 @@ func TestScenarioJobStoreIsolatesInvalidRowsAndStartsAIService(t *testing.T) {
 			localStatePath := filepath.Join(t.TempDir(), "local-state.json")
 			path := scenarioJobStorePathForLocalStatePath(localStatePath)
 			snapshot := healthyScenarioJobRawSnapshotForIsolationTest(t)
+			healthyRecords := len(snapshot.Records)
 			test.poison(&snapshot)
+			poisonedRow := snapshot.Idempotency[len(snapshot.Idempotency)-1]
+			if len(snapshot.Records) > healthyRecords {
+				poisonedRow = snapshot.Records[len(snapshot.Records)-1]
+			}
 			poisoned, err := json.Marshal(snapshot)
 			if err != nil {
 				t.Fatal(err)
@@ -502,8 +507,13 @@ func TestScenarioJobStoreIsolatesInvalidRowsAndStartsAIService(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if !bytes.Equal(quarantined, poisoned) {
-				t.Fatal("record quarantine did not preserve the original document bytes")
+			var isolated scenarioJobDiskRawSnapshot
+			if err := decodeScenarioJobStrictJSON(quarantined, &isolated); err != nil {
+				t.Fatalf("record quarantine is not an inspectable snapshot: %v", err)
+			}
+			isolatedRows := append(append(append([]json.RawMessage(nil), isolated.Records...), isolated.Idempotency...), isolated.PendingCustody...)
+			if len(isolatedRows) != 1 || !bytes.Equal(compactJSONForTest(t, isolatedRows[0]), compactJSONForTest(t, poisonedRow)) {
+				t.Fatalf("record quarantine holds %d rows, want only the isolated row", len(isolatedRows))
 			}
 			var rewritten scenarioJobDiskRawSnapshot
 			rewrittenRaw, err := os.ReadFile(path)
@@ -515,11 +525,20 @@ func TestScenarioJobStoreIsolatesInvalidRowsAndStartsAIService(t *testing.T) {
 			}
 			createCompletedCloudScenarioJobForIsolationTest(t, svc.scenarioJobs, "job-after-isolation")
 			preserved, err := os.ReadFile(diagnostics[0].QuarantinePath)
-			if err != nil || !bytes.Equal(preserved, poisoned) {
+			if err != nil || !bytes.Equal(preserved, quarantined) {
 				t.Fatalf("healthy write overwrote quarantined bytes: err=%v", err)
 			}
 		})
 	}
+}
+
+func compactJSONForTest(t *testing.T, raw []byte) []byte {
+	t.Helper()
+	var out bytes.Buffer
+	if err := json.Compact(&out, raw); err != nil {
+		t.Fatal(err)
+	}
+	return out.Bytes()
 }
 
 func TestScenarioJobStorePersistsCloudAssemblyWithoutCredentialAndUsesCloudRestartReason(t *testing.T) {
@@ -1202,7 +1221,7 @@ func healthyScenarioJobRawSnapshotForIsolationTest(t *testing.T) scenarioJobDisk
 	return snapshot
 }
 
-func resolvedAssemblyForPersistenceTest(t *testing.T, identity *runtimev1.LoadoutEffectiveInputIdentity) *localResolvedAssembly {
+func resolvedAssemblyForPersistenceTest(t testing.TB, identity *runtimev1.LoadoutEffectiveInputIdentity) *localResolvedAssembly {
 	t.Helper()
 	axes := make([]localResolvedAssemblyModelAxis, 0, len(identity.GetModelAxes()))
 	modelFiles := make([]localResolvedAssemblyInvocationBinding, 0, len(identity.GetModelAxes()))
@@ -1426,7 +1445,7 @@ func createCompletedCloudScenarioJobForIsolationTest(t *testing.T, store *scenar
 }
 
 func localScenarioJobForPersistenceTest(
-	t *testing.T,
+	t testing.TB,
 	jobID string,
 	loadoutID string,
 	recipeID string,

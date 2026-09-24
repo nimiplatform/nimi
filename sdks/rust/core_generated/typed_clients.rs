@@ -2783,6 +2783,8 @@ pub enum ReasonCode {
     AIREASONINGCONTINUITYINVALID,
     #[serde(rename = "AI_EXECUTION_INTERRUPTED")]
     AIEXECUTIONINTERRUPTED,
+    #[serde(rename = "AI_INPUT_LIMIT_EXCEEDED")]
+    AIINPUTLIMITEXCEEDED,
     #[serde(rename = "AI_MEDIA_SPEC_INVALID")]
     AIMEDIASPECINVALID,
     #[serde(rename = "AI_MEDIA_OPTION_UNSUPPORTED")]
@@ -3400,6 +3402,8 @@ impl ReasonCode {
             "AIREASONINGCONTINUITYINVALID" => Some(Self::AIREASONINGCONTINUITYINVALID),
             "AI_EXECUTION_INTERRUPTED" => Some(Self::AIEXECUTIONINTERRUPTED),
             "AIEXECUTIONINTERRUPTED" => Some(Self::AIEXECUTIONINTERRUPTED),
+            "AI_INPUT_LIMIT_EXCEEDED" => Some(Self::AIINPUTLIMITEXCEEDED),
+            "AIINPUTLIMITEXCEEDED" => Some(Self::AIINPUTLIMITEXCEEDED),
             "AI_MEDIA_SPEC_INVALID" => Some(Self::AIMEDIASPECINVALID),
             "AIMEDIASPECINVALID" => Some(Self::AIMEDIASPECINVALID),
             "AI_MEDIA_OPTION_UNSUPPORTED" => Some(Self::AIMEDIAOPTIONUNSUPPORTED),
@@ -3998,6 +4002,7 @@ pub enum ScenarioType {
     SCENARIOTYPETEXTANNOTATE,
     SCENARIOTYPEMUSICTRANSCRIBE,
     SCENARIOTYPEAUDIOVOICECONVERT,
+    SCENARIOTYPETEXTDECIDE,
 }
 
 impl Default for ScenarioType {
@@ -7208,6 +7213,8 @@ pub struct ExecuteLocalAppScenarioRequest {
     pub text_embed: Option<Box<LocalAppTextEmbedScenarioSpec>>,
     pub image_generate: Option<Box<LocalAppImageGenerateScenarioSpec>>,
     pub text_generate: Option<Box<StreamLocalAppTextTurnRequest>>,
+    pub text_decide: Option<Box<TextDecideScenarioSpec>>,
+    pub timeout_ms: Option<i32>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7216,6 +7223,7 @@ pub struct ExecuteLocalAppScenarioResponse {
     pub image_generate: Option<Box<LocalAppImageGenerateOutput>>,
     pub trace_id: Option<String>,
     pub text_generate: Option<Box<LocalAppTextGenerateOutput>>,
+    pub text_decide: Option<Box<TextDecisionResult>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10659,6 +10667,7 @@ pub struct ModelAssetMarketCandidate {
     pub featured_ordinal: Option<i32>,
     pub editorial_reason: Option<String>,
     pub author: Option<String>,
+    pub download_size_bytes: Option<i64>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -12577,6 +12586,7 @@ pub struct ScenarioOutput {
     pub text_annotation: Option<Box<TextAnnotationResult>>,
     pub music_transcribe: Option<Box<MusicTranscribeResult>>,
     pub audio_voice_convert: Option<Box<AudioVoiceConvertResult>>,
+    pub text_decision: Option<Box<TextDecisionResult>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -12611,6 +12621,7 @@ pub struct ScenarioSpec {
     pub text_annotate: Option<Box<TextAnnotateScenarioSpec>>,
     pub music_transcribe: Option<Box<MusicTranscribeScenarioSpec>>,
     pub audio_voice_convert: Option<Box<AudioVoiceConvertScenarioSpec>>,
+    pub text_decide: Option<Box<TextDecideScenarioSpec>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -13641,6 +13652,72 @@ pub struct TextBehaviorCapabilityProjection {
     pub reasons: Vec<LocalCapabilityReason>,
     pub implementation_tool_use: Option<Box<ToolUseCapabilityProjection>>,
     pub configured_tool_use: Option<Box<ToolUseCapabilityProjection>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct TextDecideScenarioSpec {
+    pub state: Option<Box<TextDecisionContent>>,
+    pub questions: Vec<Box<TextDecisionQuestion>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct TextDecisionAnswer {
+    pub question_id: Option<String>,
+    pub choice: Option<Box<TextDecisionChoiceAnswer>>,
+    pub boolean: Option<Box<TextDecisionBooleanAnswer>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct TextDecisionBoolean {
+    pub true_criterion: Option<Box<TextDecisionContent>>,
+    pub false_criterion: Option<Box<TextDecisionContent>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct TextDecisionBooleanAnswer {
+    pub true_probability: Option<f64>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct TextDecisionCandidate {
+    pub id: Option<String>,
+    pub description: Option<Box<TextDecisionContent>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct TextDecisionCandidateProbability {
+    pub candidate_id: Option<String>,
+    pub probability: Option<f64>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct TextDecisionChoice {
+    pub candidates: Vec<Box<TextDecisionCandidate>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct TextDecisionChoiceAnswer {
+    pub selected_candidate_id: Option<String>,
+    pub probabilities: Vec<Box<TextDecisionCandidateProbability>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct TextDecisionContent {
+    pub text: Option<String>,
+    pub json: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct TextDecisionQuestion {
+    pub id: Option<String>,
+    pub instructions: Option<Box<TextDecisionContent>>,
+    pub choice: Option<Box<TextDecisionChoice>>,
+    pub boolean: Option<Box<TextDecisionBoolean>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct TextDecisionResult {
+    pub answers: Vec<Box<TextDecisionAnswer>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

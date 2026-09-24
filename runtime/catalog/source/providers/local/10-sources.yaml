@@ -211,3 +211,35 @@ sources:
     url: https://huggingface.co/audio-cpp/audio.cpp-gguf/tree/406756ee8e3b16e902ce40112986c1010775f888/HTDemucs-GGUF
     retrieved_at: 2026-09-22
     note: HTDemucs native music source separation q8 GGUF inside the audio-cpp GGUF collection. Upstream HTDemucs is MIT; produces vocals, drums, bass and other stems and requires a fixed 44100 Hz input rate.
+  - source_id: spacy_models_en_core_web_md_3_8_0_release
+    url: https://github.com/explosion/spacy-models/releases/tag/en_core_web_md-3.8.0
+    retrieved_at: 2026-09-24
+    note: Official spaCy en_core_web_md 3.8.0 release. The release notes publish the wheel SHA-256; its en_core_web_md-3.8.0 data directory, with its LICENSE and LICENSES_SOURCES notices, is the installed English analysis ModelAsset. Upstream license MIT. Its 2 GiB min_ram_bytes covers the 1069 MiB peak commit measured when the managed CPU worker loaded it on windows/amd64.
+  - source_id: spacy_models_de_core_news_md_3_8_0_release
+    url: https://github.com/explosion/spacy-models/releases/tag/de_core_news_md-3.8.0
+    retrieved_at: 2026-09-24
+    note: Official spaCy de_core_news_md 3.8.0 release. The release notes publish the wheel SHA-256; its de_core_news_md-3.8.0 data directory, with its LICENSE and LICENSES_SOURCES notices, is the installed German analysis ModelAsset. Upstream license MIT. Its 2 GiB min_ram_bytes covers the 1122 MiB peak commit measured when the managed CPU worker loaded it on windows/amd64.
+  - source_id: spacy_models_es_core_news_md_3_8_0_release
+    url: https://github.com/explosion/spacy-models/releases/tag/es_core_news_md-3.8.0
+    retrieved_at: 2026-09-24
+    note: Official spaCy es_core_news_md 3.8.0 release. The release notes publish the wheel SHA-256; its es_core_news_md-3.8.0 data directory, with its LICENSE and LICENSES_SOURCES notices, is the installed Spanish analysis ModelAsset. Upstream license GNU GPL 3.0. Its 2 GiB min_ram_bytes covers the 1046 MiB peak commit measured when the managed CPU worker loaded it on windows/amd64.
+  - source_id: spacy_models_fr_core_news_md_3_8_0_release
+    url: https://github.com/explosion/spacy-models/releases/tag/fr_core_news_md-3.8.0
+    retrieved_at: 2026-09-24
+    note: Official spaCy fr_core_news_md 3.8.0 release. The release notes publish the wheel SHA-256; its fr_core_news_md-3.8.0 data directory, with its LICENSE and LICENSES_SOURCES notices, is the installed French analysis ModelAsset. Upstream license LGPL-LR. Its 2 GiB min_ram_bytes covers the 1192 MiB peak commit measured when the managed CPU worker loaded it on windows/amd64.
+  - source_id: spacy_models_it_core_news_md_3_8_0_release
+    url: https://github.com/explosion/spacy-models/releases/tag/it_core_news_md-3.8.0
+    retrieved_at: 2026-09-24
+    note: Official spaCy it_core_news_md 3.8.0 release. The release notes publish the wheel SHA-256; its it_core_news_md-3.8.0 data directory, with its LICENSE and LICENSES_SOURCES notices, is the installed Italian analysis ModelAsset. Upstream license CC BY-NC-SA 3.0. Its 2 GiB min_ram_bytes covers the 1041 MiB peak commit measured when the managed CPU worker loaded it on windows/amd64.
+  - source_id: spacy_models_ru_core_news_md_3_8_0_release
+    url: https://github.com/explosion/spacy-models/releases/tag/ru_core_news_md-3.8.0
+    retrieved_at: 2026-09-24
+    note: Official spaCy ru_core_news_md 3.8.0 release. The release notes publish the wheel SHA-256; its ru_core_news_md-3.8.0 data directory, with its LICENSE and LICENSES_SOURCES notices, is the installed Russian analysis ModelAsset. Upstream license MIT. Its 2 GiB min_ram_bytes covers the 1185 MiB peak commit measured when the managed CPU worker loaded it on windows/amd64.
+  - source_id: spacy_models_zh_core_web_md_3_8_0_release
+    url: https://github.com/explosion/spacy-models/releases/tag/zh_core_web_md-3.8.0
+    retrieved_at: 2026-09-24
+    note: Official spaCy zh_core_web_md 3.8.0 release. The release notes publish the wheel SHA-256; its zh_core_web_md-3.8.0 data directory, with its LICENSE and LICENSES_SOURCES notices, is the installed Chinese analysis ModelAsset. Upstream license MIT. Its 2 GiB min_ram_bytes covers the 1329 MiB peak commit measured when the managed CPU worker loaded it on windows/amd64.
+  - source_id: spacy_models_ja_core_news_md_3_8_0_release
+    url: https://github.com/explosion/spacy-models/releases/tag/ja_core_news_md-3.8.0
+    retrieved_at: 2026-09-24
+    note: Official spaCy ja_core_news_md 3.8.0 release. The release notes publish the wheel SHA-256; its ja_core_news_md-3.8.0 data directory, with its LICENSE and LICENSES_SOURCES notices, is the installed Japanese analysis ModelAsset. Upstream license CC BY-SA 4.0. Its 2 GiB min_ram_bytes covers the 1048 MiB peak commit measured when the managed CPU worker loaded it on windows/amd64.

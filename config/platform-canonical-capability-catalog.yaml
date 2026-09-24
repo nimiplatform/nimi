@@ -57,6 +57,27 @@ capabilities:
       revocation: route-or-job-owner
       auditSource: runtime-scenario-job-evidence
     source_rule: P-CAPCAT-001
+  - capabilityId: text.decide
+    section: chat
+    editorKind: null
+    sourceRef:
+      table: local-adapter-routing
+      capability: text.decide
+    additionalRuntimeTables:
+      - table: provider-capabilities
+        capability: text.decide
+    i18nKeys:
+      title: AIConfig.capability.textDecide.title
+      subtitle: AIConfig.capability.textDecide.subtitle
+      detail: AIConfig.capability.textDecide.detail
+    runtimeEvidenceClass: job
+    governance:
+      owner: runtime-text-route
+      dataMovement: local-or-cloud-by-selected-route
+      retention: runtime-scenario-job-policy
+      revocation: route-or-connector-owner
+      auditSource: runtime-scenario-job-evidence
+    source_rule: P-CAPCAT-007
   - capabilityId: text.embed
     section: embed
     editorKind: null
@@ -222,6 +243,9 @@ capabilities:
     sourceRef:
       table: local-adapter-routing
       capability: music.transcribe
+    additionalRuntimeTables:
+      - table: provider-capabilities
+        capability: music.transcribe
     i18nKeys:
       title: AIConfig.capability.musicTranscribe.title
       subtitle: AIConfig.capability.musicTranscribe.subtitle
@@ -240,6 +264,9 @@ capabilities:
     sourceRef:
       table: local-adapter-routing
       capability: audio.voice.convert
+    additionalRuntimeTables:
+      - table: provider-capabilities
+        capability: audio.voice.convert
     i18nKeys:
       title: AIConfig.capability.audioVoiceConvert.title
       subtitle: AIConfig.capability.audioVoiceConvert.subtitle

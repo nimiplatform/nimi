@@ -1,0 +1,101 @@
+# Laya typed-decision checkpoints for the Local text.decide Laya recipe. Each
+# passive offer installs exactly one pinned checkpoint subfolder; declared files
+# keep the upstream checkpoint layout below that subfolder, and the Driver
+# resolves the checkpoint directory from the model.safetensors entry.
+models:
+  - model_id: asset-decision-laya-typed-decisions
+    model_type: auxiliary
+    family: laya
+    updated_at: 2026-09-24
+    capabilities: []
+    source_ids: [laya_convaiinnovations_modelcard]
+    install:
+      repo: convaiinnovations/laya
+      revision: aa8c91ca088ec597df95a0d1c76b3063cb2ae5e8 # pragma: allowlist secret -- public immutable model revision
+      install_kind: verified-hf-multi-file
+      entry: typed-decisions/model.safetensors
+      artifact_roles: [decision_model]
+      license: Apache-2.0
+    variants:
+      - variant_id: local.decision.laya-typed-decisions.safetensors
+        quant: F16
+        files:
+          - typed-decisions/rl_agent_config.json
+          - typed-decisions/model.safetensors
+          - typed-decisions/encoder/config.json
+          - typed-decisions/tokenizer/tokenizer.json
+          - typed-decisions/tokenizer/tokenizer_config.json
+        hashes:
+          typed-decisions/rl_agent_config.json: sha256:ebf0cd524d92342a6be5e48e9fca3d7c2babfb5a56ccd79d2171ef5d8c7f7be8
+          typed-decisions/model.safetensors: sha256:4fa56de72383a9d3efa9cfa78955733c81b9fc8067a587ca4beb82c78107a24e
+          typed-decisions/encoder/config.json: sha256:5268d24ad3b77c8151de5dcb0762ba4391619aad9ab0bda33e36fb083cfeae6d
+          typed-decisions/tokenizer/tokenizer.json: sha256:6c8aaa9a542084f2457eab775d4eeb51f92a70c0fd9de28d5edb0ddec3c08d30
+          typed-decisions/tokenizer/tokenizer_config.json: sha256:08d4cf3ac4dca381759441b85b91a6d40e688471dcd33d15d6649eb0a9a854d1
+        total_size_bytes: 846195716
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 8589934592
+  - model_id: asset-decision-laya-multilingual
+    model_type: auxiliary
+    family: laya
+    updated_at: 2026-09-24
+    capabilities: []
+    source_ids: [laya_convaiinnovations_modelcard]
+    install:
+      repo: convaiinnovations/laya
+      revision: aa8c91ca088ec597df95a0d1c76b3063cb2ae5e8 # pragma: allowlist secret -- public immutable model revision
+      install_kind: verified-hf-multi-file
+      entry: multilingual/model.safetensors
+      artifact_roles: [decision_model]
+      license: Apache-2.0
+    variants:
+      - variant_id: local.decision.laya-multilingual.safetensors
+        quant: F16
+        files:
+          - multilingual/rl_agent_config.json
+          - multilingual/model.safetensors
+          - multilingual/encoder/config.json
+          - multilingual/tokenizer/tokenizer.json
+          - multilingual/tokenizer/tokenizer_config.json
+        hashes:
+          multilingual/rl_agent_config.json: sha256:25061739243b617ad88d1219ba6f8a9c86c5881ca28df024fa2d9b3b2fcc30c6
+          multilingual/model.safetensors: sha256:9d628fd971b700382ac6f65920a86f149777b2e748e0c955fb3b19695aa8f204
+          multilingual/encoder/config.json: sha256:83f6916d13ef0f556ac461f28308dc2bffa7ebeadee8ec9e2db5812020ea5bb4
+          multilingual/tokenizer/tokenizer.json: sha256:609d8f4c067cd3950f88594c5a802616cea245823836ef5848ee4fc40aab5b6f
+          multilingual/tokenizer/tokenizer_config.json: sha256:6c6b2d8e3c84ce0e671c129cd6b374b235d6f9863042a5836358d00a89bbb5a1
+        total_size_bytes: 678201636
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 8589934592
+  - model_id: asset-decision-laya-browser-v10s
+    model_type: auxiliary
+    family: laya
+    updated_at: 2026-09-24
+    capabilities: []
+    source_ids: [laya_browser_v10s_modelcard]
+    install:
+      repo: cklxx/laya-browser
+      revision: 4219958196e2c566c141688c773e08da10c1ff3b # pragma: allowlist secret -- public immutable model revision
+      install_kind: verified-hf-multi-file
+      entry: v10s/model.safetensors
+      artifact_roles: [decision_model]
+      license: Apache-2.0
+    variants:
+      - variant_id: local.decision.laya-browser-v10s.safetensors
+        quant: F16
+        files:
+          - v10s/rl_agent_config.json
+          - v10s/model.safetensors
+          - v10s/encoder/config.json
+          - v10s/tokenizer/tokenizer.json
+          - v10s/tokenizer/tokenizer_config.json
+        hashes:
+          v10s/rl_agent_config.json: sha256:7fb4682f17bbce2347ad2caec422bd9edec5387c04c576d0bfa1c440f745d7fb
+          v10s/model.safetensors: sha256:b11217df18bf79cfcd4ab639caf1ae8652b91c9c44fcb9457fbe480237332335
+          v10s/encoder/config.json: sha256:fad4076bcae03044a509e35a2d36c1cdff482fd4c2d6e7c5d187bbc7d8b91590
+          v10s/tokenizer/tokenizer.json: sha256:609d8f4c067cd3950f88594c5a802616cea245823836ef5848ee4fc40aab5b6f
+          v10s/tokenizer/tokenizer_config.json: sha256:f2ff584a8f78ac9f3b6fd0afcf9ab310e41c2d445ef628f9ab4b0d594e992b7a
+        total_size_bytes: 678201836
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 8589934592

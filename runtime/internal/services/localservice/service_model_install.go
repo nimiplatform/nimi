@@ -391,6 +391,12 @@ func (s *Service) InstallModelFromPlan(ctx context.Context, req *runtimev1.Insta
 	if err := s.requireModelAssetWrites(); err != nil {
 		return nil, err
 	}
+	archive, err := s.catalogReleaseArchiveForPlan(plan)
+	if err != nil {
+		return nil, grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, err, grpcerr.ReasonOptions{
+			Message: "install plan does not match its catalog offer", ActionHint: "resolve_model_install_plan",
+		})
+	}
 	record, installSessionID, err := s.installManagedDownloadedModelWithTransfer(ctx, managedDownloadedModelSpec{
 		modelID:           defaultString(plan.GetTemplateId(), defaultString(plan.GetItemId(), plan.GetModelId())),
 		displayName:       plan.GetModelId(),
@@ -407,6 +413,7 @@ func (s *Service) InstallModelFromPlan(ctx context.Context, req *runtimev1.Insta
 		hashes:            cloneStringMap(plan.GetHashes()),
 		totalSizeBytes:    plan.GetTotalSizeBytes(),
 		planID:            plan.GetPlanId(),
+		archive:           archive,
 	}, "")
 	if err != nil {
 		return nil, modelInstallRPCError(err)

@@ -16,3 +16,4 @@ token_probe_provider_ids:
   - openai
   - openai_compatible
   - openai_codex
+  - typesafe

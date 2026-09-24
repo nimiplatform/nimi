@@ -15,7 +15,7 @@ func TestModelAssetCaptureSurvivesRemovalThroughJobHandoff(t *testing.T) {
 	svc.OpenModelAssetReclamation()
 	prepared := prepareEmbeddingLoadoutForTest(t, svc, context.Background(), "", "capture lifetime", asset)
 	loadout := commitLoadoutForTest(t, svc, context.Background(), prepared.GetPrepareId(), false)
-	selected, err := svc.CaptureLocalExecution(capabilitydriver.TextEmbedCapabilityContract, loadout.GetLoadoutId())
+	selected, err := svc.CaptureLocalExecution(context.Background(), capabilitydriver.TextEmbedCapabilityContract, loadout.GetLoadoutId())
 	if err != nil {
 		t.Fatal(err)
 	}

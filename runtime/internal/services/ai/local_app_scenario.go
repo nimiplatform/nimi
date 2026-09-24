@@ -12,6 +12,7 @@ import (
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -178,8 +179,22 @@ func (s *Service) ExecuteLocalAppScenario(ctx context.Context, req *runtimev1.Ex
 	if err != nil {
 		return nil, err
 	}
+	head := localAppScenarioHead(decision)
+	// The caller's deadline travels with the call so Runtime owns it from the
+	// call's arrival, admission included: an elapsed deadline is a timeout, and
+	// a cancel before it stays a cancel.
+	if timeoutMs := req.GetTimeoutMs(); timeoutMs != 0 {
+		deadline, err := timeoutDuration(timeoutMs, 0)
+		if err != nil {
+			return nil, err
+		}
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, deadline)
+		defer cancel()
+	}
+	head.TimeoutMs = req.GetTimeoutMs()
 	result, err := s.ExecuteScenario(ctx, &runtimev1.ExecuteScenarioRequest{
-		Head:          localAppScenarioHead(decision),
+		Head:          head,
 		ScenarioType:  scenarioType,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
 		Spec:          ownerSpec,
@@ -230,6 +245,15 @@ func (s *Service) ExecuteLocalAppScenario(ctx context.Context, req *runtimev1.Ex
 			Output:  &runtimev1.ExecuteLocalAppScenarioResponse_TextEmbed{TextEmbed: &runtimev1.LocalAppTextEmbedOutput{Vectors: vectors, SpaceId: embed.GetSpaceId()}},
 			TraceId: result.GetTraceId(),
 		}, nil
+	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_DECIDE:
+		decision := result.GetOutput().GetTextDecision()
+		if decision == nil || validateTextDecisionResult(ownerSpec.GetTextDecide(), decision) != nil {
+			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		}
+		return &runtimev1.ExecuteLocalAppScenarioResponse{
+			Output:  &runtimev1.ExecuteLocalAppScenarioResponse_TextDecide{TextDecide: decision},
+			TraceId: result.GetTraceId(),
+		}, nil
 	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:
 		image := result.GetOutput().GetImageGenerate()
 		if image == nil || result.GetOutput().GetTextEmbed() != nil {
@@ -269,6 +293,14 @@ func validateLocalAppScenarioExecuteRequest(req *runtimev1.ExecuteLocalAppScenar
 		return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_TextEmbed{
 			TextEmbed: &runtimev1.TextEmbedScenarioSpec{Inputs: inputs},
 		}}, runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED, nil
+	case *runtimev1.ExecuteLocalAppScenarioRequest_TextDecide:
+		if err := validateTextDecideSpec(spec.TextDecide); err != nil {
+			return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, err
+		}
+		decide, _ := proto.Clone(spec.TextDecide).(*runtimev1.TextDecideScenarioSpec)
+		return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_TextDecide{
+			TextDecide: decide,
+		}}, runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_DECIDE, nil
 	case *runtimev1.ExecuteLocalAppScenarioRequest_ImageGenerate:
 		image, err := validateLocalAppImageGenerateSpec(spec.ImageGenerate)
 		if err != nil {

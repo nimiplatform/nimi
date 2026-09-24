@@ -138,8 +138,9 @@ func (s *Service) disposeEmbeddingPayloads(ctx context.Context, scope embeddingD
 	if len(targets) > 0 {
 		for _, target := range targets {
 			store.jobs[target.id].payload.State = "pending"
+			store.markDurableJobChangedLocked(target.id)
 		}
-		if err := store.persistDurableJobsLocked(scenarioJobPersistenceAttempt{Operation: "payload-fence"}); err != nil {
+		if err := store.persistDurableJobsLocked(scenarioJobPersistenceAttempt{Operation: scenarioJobPersistPayloadFence}); err != nil {
 			store.mu.Unlock()
 			return err
 		}
@@ -190,11 +191,14 @@ func (s *Service) disposeEmbeddingPayloads(ctx context.Context, scope embeddingD
 		record.job = cloneScenarioJob(record.job)
 		stripEmbeddingFailureContent(record.job)
 		record.payload.State = "disposed"
+		store.markDurableJobChangedLocked(record.job.GetJobId())
 	}
 	if len(previousRecords) == 0 {
 		return nil
 	}
-	if err := store.persistDurableJobsLocked(scenarioJobPersistenceAttempt{Operation: "payload-dispose"}); err != nil {
+	// The dispose write rewrites the store, so no superseded row keeps the
+	// disposed content on disk.
+	if err := store.persistDurableJobsLocked(scenarioJobPersistenceAttempt{Operation: scenarioJobPersistPayloadDispose}); err != nil {
 		for _, old := range previousRecords {
 			old.record.resolvedAssembly, old.record.cloudAssembly, old.record.job = old.local, old.cloud, old.job
 			old.record.payload.State = "pending"

@@ -1,0 +1,9 @@
+sources:
+  - source_id: laya_convaiinnovations_modelcard
+    url: https://huggingface.co/convaiinnovations/laya/blob/aa8c91ca088ec597df95a0d1c76b3063cb2ae5e8/README.md
+    retrieved_at: 2026-09-24
+    note: Laya typed-decision model family card (Apache-2.0). The pinned revision bundles the typed-decisions (ModernBERT-large, English) and multilingual (mmBERT-base) checkpoints as subfolders with rl_agent_config.json, model.safetensors, encoder/config.json and tokenizer files, used with the laya 0.3.11 decision model definition. Its 8 GiB min_ram_bytes covers the 7756 MiB (typed-decisions) and 6394 MiB (multilingual) peak commit measured when the managed Worker loaded each checkpoint and answered eight short questions on windows/amd64; commit grows with total question tokens because one request runs as one batch.
+  - source_id: laya_browser_v10s_modelcard
+    url: https://huggingface.co/cklxx/laya-browser/tree/4219958196e2c566c141688c773e08da10c1ff3b/v10s
+    retrieved_at: 2026-09-24
+    note: Laya v10s checkpoint (Apache-2.0), an mmBERT-base Laya decision model fine-tuned for browser operation and target decisions, with the same checkpoint layout as the upstream Laya family. Its 8 GiB min_ram_bytes covers the same measured mmBERT-base peak commit.

@@ -859,6 +859,9 @@ func verifyPythonDependencyProfileDriverBundle(root string, consumer string) err
 	if trimmedConsumer == TextAnnotationConsumerID {
 		return verifyTextAnnotationDriverBundle(root)
 	}
+	if trimmedConsumer == TextDecisionConsumerID {
+		return verifyTextDecisionDriverBundle(root)
+	}
 	if trimmedConsumer == FaceSwapConsumerID {
 		return verifyFaceSwapDriverBundle(root)
 	}
@@ -885,6 +888,9 @@ func pythonDependencyProfileDriverScripts(root string, consumer string) []string
 	trimmedConsumer := strings.TrimSpace(consumer)
 	if trimmedConsumer == TextAnnotationConsumerID {
 		return []string{filepath.Join(root, "text_annotation_server.py")}
+	}
+	if trimmedConsumer == TextDecisionConsumerID {
+		return []string{filepath.Join(root, textDecisionServerScriptName)}
 	}
 	if trimmedConsumer == FaceSwapConsumerID {
 		return []string{filepath.Join(root, "face_swap_server.py")}

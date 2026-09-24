@@ -519,7 +519,7 @@ func (s *Service) reconcileOrphanedLocalTransfersLocked(modelsRoot string) int {
 			// restart never presents an existing Range prefix as 0 B or shares it.
 			var files []string
 			if spec, exists := s.managedModelDownloadSpecs[summary.GetInstallSessionId()]; exists {
-				files = append([]string(nil), spec.files...)
+				files = managedModelDownloadStagingFiles(spec)
 			}
 			if bytesReceived, err := managedModelDownloadStagedBytes(modelsRoot, summary.GetInstallSessionId(), files); err == nil &&
 				summary.GetBytesReceived() != bytesReceived {
@@ -567,7 +567,7 @@ func (s *Service) reconcileOrphanedLocalTransfersLocked(modelsRoot string) int {
 // for its explicit resume, Check & Sync, or cancel; a cancelled intent's
 // material is discarded. It runs before reclamation opens.
 func (s *Service) reconcileTransferCommitIntents() {
-	s.modelAssetMutationMu.Lock()
+	s.lockModelAssetMutation()
 	defer s.modelAssetMutationMu.Unlock()
 	s.mu.Lock()
 	defer s.mu.Unlock()

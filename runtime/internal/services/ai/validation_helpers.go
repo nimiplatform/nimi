@@ -45,6 +45,8 @@ func scenarioTargetCapability(scenarioType runtimev1.ScenarioType) string {
 	switch scenarioType {
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_ANNOTATE:
 		return "text.annotate"
+	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_DECIDE:
+		return "text.decide"
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_FACE_SWAP:
 		return "video.face_swap"
 	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_FACE_SWAP:

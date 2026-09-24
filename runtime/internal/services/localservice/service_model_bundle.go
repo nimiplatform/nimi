@@ -1,6 +1,7 @@
 package localservice
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -235,11 +236,17 @@ func (s *Service) cachedFileSHA256(path string, info os.FileInfo, generationDige
 	return s.freshFileSHA256(cacheKey, info, generation)
 }
 
-// freshFileSHA256 deliberately bypasses entryHashCache. Job admission uses
-// this entry so every bound payload is reread even when size and mtime were
-// restored to a previously verified generation. The resulting proof may warm
-// projection caches, but it is never sourced from them.
+// freshFileSHA256 deliberately bypasses entryHashCache: it rereads the payload
+// even when size and mtime were restored to a previously verified generation.
+// The resulting proof may warm projection caches, but it is never sourced from
+// them.
 func (s *Service) freshFileSHA256(path string, info os.FileInfo, generationDigest string) (string, error) {
+	return s.freshFileSHA256Context(context.Background(), path, info, generationDigest, nil)
+}
+
+// freshFileSHA256Context hashes through held when it is set, so the digest
+// describes exactly the file an admission hold keeps open.
+func (s *Service) freshFileSHA256Context(ctx context.Context, path string, info os.FileInfo, generationDigest string, held *os.File) (string, error) {
 	if info == nil {
 		var err error
 		info, err = os.Stat(path)
@@ -254,10 +261,16 @@ func (s *Service) freshFileSHA256(path string, info os.FileInfo, generationDiges
 	s.mu.RLock()
 	hasher := s.entryFileSHA256
 	s.mu.RUnlock()
-	if hasher == nil {
-		hasher = computeFileSHA256
+	var sum string
+	var err error
+	switch {
+	case hasher != nil:
+		sum, err = hasher(cacheKey)
+	case held != nil:
+		sum, err = hashFileContext(ctx, held)
+	default:
+		sum, err = computeFileSHA256Context(ctx, cacheKey)
 	}
-	sum, err := hasher(cacheKey)
 	if err != nil {
 		return "", err
 	}

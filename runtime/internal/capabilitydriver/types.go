@@ -1629,6 +1629,7 @@ func NewProductionRegistry() *Registry {
 	for key, driver := range audioCppSpeechProductionDrivers() {
 		entries[key] = driver
 	}
+	entries[layaRegistrationKey()] = LayaDriver{}
 	registry, err := NewRegistry(entries)
 	if err != nil {
 		panic(err)

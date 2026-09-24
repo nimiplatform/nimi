@@ -40,6 +40,10 @@ routes:
     adapter: text_annotation_execution_host
     source_rule: rule.nimi.runtime.ai-provider.spacy-local-annotation
   - provider: local
+    capability: text.decide
+    adapter: decision_execution_host
+    source_rule: rule.nimi.runtime.ai-provider.laya-local-decision
+  - provider: local
     capability: vision.locate
     adapter: vision_execution_host
     source_rule: rule.nimi.runtime.local-compute.r116

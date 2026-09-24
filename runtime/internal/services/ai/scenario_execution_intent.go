@@ -123,7 +123,7 @@ func (s *Service) captureReferencedLocalExecution(
 		err      error
 	)
 	if owner, holdsFiles := s.localExecution.(localexecution.ModelAssetCaptureResolver); holdsFiles {
-		resolved, err = owner.CaptureLocalExecution(intent.CapabilityContract, intent.LocalLoadoutRef)
+		resolved, err = owner.CaptureLocalExecution(ctx, intent.CapabilityContract, intent.LocalLoadoutRef)
 	} else if strings.TrimSpace(intent.LocalLoadoutRef) != "" {
 		resolved, err = s.localExecution.ResolveLocalExecution(intent.CapabilityContract, intent.LocalLoadoutRef)
 	} else {

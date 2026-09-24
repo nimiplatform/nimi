@@ -1,0 +1,35 @@
+[project]
+name = "nimi-managed-python-profile"
+version = "0.0.0"
+requires-python = "==3.12.13"
+dependencies = [
+  "fastapi==0.121.1",
+  "huggingface-hub==1.27.0",
+  "laya==0.3.11",
+  "numpy==2.4.6",
+  "safetensors==0.8.0",
+  "tokenizers==0.22.2",
+  "torch==2.11.0",
+  "transformers==5.13.0",
+  "uvicorn[standard]==0.38.0",
+]
+
+[tool.uv]
+package = false
+environments = [
+  "sys_platform == 'win32' and platform_machine == 'AMD64'",
+  "sys_platform == 'darwin' and platform_machine == 'arm64'",
+]
+
+[[tool.uv.index]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple"
+default = true
+
+[tool.uv.sources]
+torch = { index = "pytorch" }

@@ -8,6 +8,9 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
 func TestNormalizeTokenProviderIDCanonicalOnly(t *testing.T) {
@@ -95,6 +98,43 @@ func TestBackendProbeConnectorAndListModelsUseAnthropicAPI(t *testing.T) {
 	}
 	if len(models) != 1 || models[0].ModelID != "claude-sonnet-4-6" {
 		t.Fatalf("unexpected models: %+v", models)
+	}
+}
+
+// TypeSafe publishes an authenticated GET /v1/models (401 on a bad key, 403
+// without one), so a connection test reaches it instead of reporting the
+// provider unavailable without any outbound call.
+func TestResolveProbeBackendTestsTypeSafeCredentialsAgainstAuthenticatedModelList(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/v1/models" {
+			http.NotFound(w, r)
+			return
+		}
+		if r.Header.Get("Authorization") != "Bearer typesafe-valid" {
+			w.WriteHeader(http.StatusUnauthorized)
+			_, _ = w.Write([]byte(`{"detail":{"error_type":"authentication_error"}}`))
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"models":[{"name":"jev-latest"}]}`))
+	}))
+	defer server.Close()
+
+	provider := &CloudProvider{allowLoopbackEndpoint: true}
+	backend, providerID, err := provider.ResolveProbeBackend("typesafe", server.URL, "typesafe-valid", nil)
+	if err != nil || providerID != "typesafe" {
+		t.Fatalf("ResolveProbeBackend(typesafe) = %q, %v", providerID, err)
+	}
+	if err := backend.ProbeConnector(context.Background()); err != nil {
+		t.Fatalf("valid TypeSafe credential failed the probe: %v", err)
+	}
+	rejected, _, err := provider.ResolveProbeBackend("typesafe", server.URL, "typesafe-invalid", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = rejected.ProbeConnector(context.Background())
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED {
+		t.Fatalf("invalid TypeSafe credential probe = %v, want AI_PROVIDER_AUTH_FAILED", err)
 	}
 }
 

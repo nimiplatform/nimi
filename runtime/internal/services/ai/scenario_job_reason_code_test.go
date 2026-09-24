@@ -5,6 +5,7 @@ import (
 	"io"
 	"log/slog"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -199,5 +200,104 @@ func TestCloudStreamDeliveryFailureOutranksAmbientContextCancellation(t *testing
 	if terminal.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED ||
 		terminal.GetReasonCode() != runtimev1.ReasonCode_AI_STREAM_BROKEN {
 		t.Fatalf("cloud stream terminal = status=%s reason=%s", terminal.GetStatus(), terminal.GetReasonCode())
+	}
+}
+
+// grpc-go enforces a propagated deadline by resetting the stream, so an
+// immediate Job whose request deadline elapsed can end with a canceled
+// context; it is still a timeout, while a cancel before the deadline is not.
+// A deadline Runtime owns ends the request as DeadlineExceeded; grpc-go also
+// enforces a propagated grpc-timeout by resetting the stream, which ends it as
+// canceled at the deadline. Both are timeouts. A cancel that arrives before the
+// deadline, however close, is the caller's cancel.
+// transportDeadlineContext is a request context that ends as canceled while
+// carrying a deadline, the way grpc-go resets a stream at its grpc-timeout.
+type transportDeadlineContext struct {
+	context.Context
+	deadline time.Time
+}
+
+func (ctx transportDeadlineContext) Deadline() (time.Time, bool) { return ctx.deadline, true }
+
+func TestImmediateJobDeadlineAndCallerCancelClassifyApart(t *testing.T) {
+	// request ends a noted caller request with the given deadline window at
+	// endAfter, then classification happens at classifyAfter.
+	request := func(window, endAfter, classifyAfter time.Duration) context.Context {
+		started := time.Now()
+		base, cancel := context.WithCancel(context.Background())
+		t.Cleanup(cancel)
+		ctx, stop := withRequestEnd(transportDeadlineContext{Context: base, deadline: started.Add(window)})
+		t.Cleanup(func() { stop() })
+		time.Sleep(endAfter)
+		cancel()
+		time.Sleep(time.Until(started.Add(classifyAfter)))
+		return ctx
+	}
+	deadlineExceeded := func() context.Context {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond)
+		defer cancel()
+		<-ctx.Done()
+		return ctx
+	}
+	// Runtime itself ends a context derived from a live request.
+	runtimeCanceled := func() context.Context {
+		base, cancelBase := context.WithCancel(context.Background())
+		t.Cleanup(cancelBase)
+		live, stop := withRequestEnd(base)
+		t.Cleanup(func() { stop() })
+		ctx, cancel := context.WithDeadline(live, time.Now().Add(20*time.Millisecond))
+		cancel()
+		time.Sleep(40 * time.Millisecond)
+		return ctx
+	}
+	unnoted := func(window, sleep time.Duration) context.Context {
+		ctx, cancel := context.WithTimeout(context.Background(), window)
+		cancel()
+		time.Sleep(sleep)
+		return ctx
+	}
+	finishers := map[string]func(*Service, context.Context, string, error){
+		"local": (*Service).finishLocalTextScenarioJobFailure,
+		"cloud": (*Service).finishCloudScenarioJobFailure,
+	}
+	for _, test := range []struct {
+		name       string
+		ctx        func() context.Context
+		wantStatus runtimev1.ScenarioJobStatus
+		wantReason runtimev1.ReasonCode
+	}{
+		{"deadline exceeded", deadlineExceeded, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT},
+		{"reset at the deadline", func() context.Context { return request(20*time.Millisecond, 25*time.Millisecond, 40*time.Millisecond) }, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT},
+		{"canceled 40ms before the deadline", func() context.Context { return request(40*time.Millisecond, 0, 0) }, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED, runtimev1.ReasonCode_ACTION_EXECUTED},
+		// Admission can outlast the deadline; when the request ended decides.
+		{"canceled before the deadline and classified after it", func() context.Context { return request(40*time.Millisecond, 0, 80*time.Millisecond) }, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED, runtimev1.ReasonCode_ACTION_EXECUTED},
+		{"canceled long before the deadline", func() context.Context { return request(time.Hour, 0, 0) }, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED, runtimev1.ReasonCode_ACTION_EXECUTED},
+		{"canceled by Runtime while the request lives", runtimeCanceled, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED, runtimev1.ReasonCode_ACTION_EXECUTED},
+		// A context no request end was noted for is judged when classified.
+		{"unnoted reset at the deadline", func() context.Context { return unnoted(20*time.Millisecond, 40*time.Millisecond) }, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT},
+	} {
+		for route, finish := range finishers {
+			t.Run(route+"/"+test.name, func(t *testing.T) {
+				svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+				jobID := "decide-deadline-" + route + "-" + test.name
+				if svc.scenarioJobs.create(&runtimev1.ScenarioJob{
+					JobId:         jobID,
+					Head:          &runtimev1.ScenarioRequestHead{AppId: "nimi.lab", SubjectUserId: "user-001"},
+					ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_DECIDE,
+					ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
+					ModelResolved: "decision-model",
+					TraceId:       "trace-decide-deadline",
+					Status:        runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING,
+					ReasonCode:    runtimev1.ReasonCode_ACTION_EXECUTED,
+				}, func() {}) == nil {
+					t.Fatal("create immediate ScenarioJob")
+				}
+				finish(svc, test.ctx(), jobID, grpcerr.WithReasonCode(codes.Canceled, runtimev1.ReasonCode_ACTION_EXECUTED))
+				terminal, ok := svc.scenarioJobs.get(jobID)
+				if !ok || terminal.GetStatus() != test.wantStatus || terminal.GetReasonCode() != test.wantReason {
+					t.Fatalf("terminal = %s/%s, want %s/%s", terminal.GetStatus(), terminal.GetReasonCode(), test.wantStatus, test.wantReason)
+				}
+			})
+		}
 	}
 }

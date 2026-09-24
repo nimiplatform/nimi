@@ -6,14 +6,23 @@ owner: runtime
 catalog_id: runtime_capability_vocabulary_mapping
 entries:
   - text.generate
+  - text.annotate
+  - text.decide
   - text.embed
   - image.generate
   - video.generate
   - world.generate
   - audio.synthesize
   - audio.transcribe
+  - audio.separate
   - music.generate
+  - music.transcribe
+  - audio.voice.convert
   - voice.create
+  - realtime.interact
+  - vision.locate
+  - image.face_swap
+  - video.face_swap
   - chat
   - vision
   - audio_chat
@@ -66,14 +75,23 @@ version: 1
 # and live-provider checks.
 canonical_tokens:
   - text.generate
+  - text.annotate
+  - text.decide
   - text.embed
   - image.generate
   - video.generate
   - world.generate
   - audio.synthesize
   - audio.transcribe
+  - audio.separate
   - music.generate
+  - music.transcribe
+  - audio.voice.convert
   - voice.create
+  - realtime.interact
+  - vision.locate
+  - image.face_swap
+  - video.face_swap
 
 # Local runtime tokens (K-LOCAL-026 manifest capabilities field)
 local_manifest_tokens:

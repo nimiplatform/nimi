@@ -101,9 +101,10 @@ type Resolver interface {
 
 // ModelAssetCaptureResolver is implemented by the mutable inventory owner.
 // Projection-only resolvers do not own model files. Actual inventory capture
-// returns a use while its lookup is still serialized with removal.
+// returns a use while its lookup is still serialized with removal, and ends
+// without capturing anything when ctx ends.
 type ModelAssetCaptureResolver interface {
-	CaptureLocalExecution(capabilityContract, loadoutRef string) (*SelectedLocalExecution, error)
+	CaptureLocalExecution(ctx context.Context, capabilityContract, loadoutRef string) (*SelectedLocalExecution, error)
 	HoldCapturedLocalExecution(*SelectedLocalExecution) (*ModelAssetUse, error)
 }
 

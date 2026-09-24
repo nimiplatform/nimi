@@ -263,6 +263,8 @@ func localEnvironmentConsumerRequirementByID(consumerID string) (localEnvironmen
 		return localEnvironmentConsumerRequirement{ConsumerID: engine.FaceSwapConsumerID, PackID: "local-face-swap"}, true
 	case engine.VisionLocateConsumerID, engine.VisionLocateConsumerID + ".cuda", engine.VisionLocateConsumerID + ".cpu":
 		return localEnvironmentConsumerRequirement{ConsumerID: strings.TrimSpace(consumerID), PackID: "local-vision"}, true
+	case engine.TextDecisionConsumerID, engine.TextDecisionConsumerID + ".cuda", engine.TextDecisionConsumerID + ".cpu":
+		return localEnvironmentConsumerRequirement{ConsumerID: strings.TrimSpace(consumerID), PackID: localDecisionPackID}, true
 	case "llama.cpp.cuda", "llama.cpp.metal":
 		return localEnvironmentConsumerRequirement{ConsumerID: strings.TrimSpace(consumerID), PackID: "local-text"}, true
 	case "stable-diffusion.cpp.metal", stableDiffusionCUDAConsumerID:

@@ -91,8 +91,10 @@ func (driver SpacyDriver) ProjectModelAssetBinding(input ModelAssetBindingInput)
 	if json.Unmarshal(metadata.FormatProbe, &meta) != nil || meta.Language != SpacyRecipeLanguage(input.RecipeID) || meta.Version != "3.8.0" || !strings.HasSuffix(meta.Name, "_md") {
 		return ModelAssetBindingProjection{}, invalid
 	}
+	// The Chinese and Japanese pipelines serialize their language-specific
+	// tokenizer as a directory; the others serialize one tokenizer file.
 	tokenizer := "tokenizer"
-	if meta.Language == "zh" {
+	if meta.Language == "zh" || meta.Language == "ja" {
 		tokenizer = "tokenizer/cfg"
 	}
 	for _, name := range []string{tokenizer, "parser/model", "tok2vec/model", "vocab/strings.json"} {

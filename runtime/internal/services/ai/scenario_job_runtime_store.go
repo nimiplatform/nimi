@@ -45,6 +45,9 @@ const (
 	scenarioJobPersistCustodyRelease scenarioJobPersistenceOperation = "credential-custody-release"
 	scenarioJobPersistLoad           scenarioJobPersistenceOperation = "load"
 	scenarioJobPersistPrune          scenarioJobPersistenceOperation = "prune"
+	scenarioJobPersistMaintenance    scenarioJobPersistenceOperation = "maintenance"
+	scenarioJobPersistPayloadFence   scenarioJobPersistenceOperation = "payload-fence"
+	scenarioJobPersistPayloadDispose scenarioJobPersistenceOperation = "payload-dispose"
 )
 
 type scenarioJobPersistenceAttempt struct {
@@ -140,6 +143,7 @@ type scenarioJobStore struct {
 	uploads              map[string]*uploadedArtifactRecord
 	persistenceFailure   func(scenarioJobPersistenceAttempt) error
 	isolationDiagnostics []scenarioJobIsolationDiagnostic
+	durable              scenarioJobDurableState
 }
 
 func newScenarioJobStore() *scenarioJobStore {
@@ -151,6 +155,7 @@ func newScenarioJobStore() *scenarioJobStore {
 		idempotency:         make(map[string]scenarioIdempotencyBinding),
 		pendingCloudCustody: make(map[string]scenarioPendingCloudCustody),
 		uploads:             make(map[string]*uploadedArtifactRecord),
+		durable:             newScenarioJobDurableState(),
 	}
 }
 
@@ -803,6 +808,8 @@ func (s *scenarioJobStore) forceFailedInMemory(jobID string, reason string) (*ru
 	record.updatedAt = nowTime
 	record.terminalAt = nowTime
 	projectMusicRecoveryExpiry(record)
+	// Not written here; the next durable write that succeeds records it.
+	s.markDurableJobChangedLocked(id)
 	if !record.doneClosed {
 		record.doneClosed = true
 		close(record.done)
@@ -1144,6 +1151,7 @@ func (s *scenarioJobStore) requestCancel(jobID string, reason string) (*runtimev
 	nowTime := time.Now().UTC()
 	record.updatedAt = nowTime
 	record.job.UpdatedAt = timestamppb.New(nowTime)
+	s.markDurableJobChangedLocked(id)
 	cancel := record.cancel
 	executionStarted := record.executionStarted
 	job := cloneScenarioJob(record.job)
@@ -1422,13 +1430,13 @@ func (s *scenarioJobStore) pruneLocked(now time.Time) {
 	s.pruneIdempotencyLocked(now)
 }
 
+// @nimi-authority: rule.nimi.runtime.service-operations.scenario-job-retention
 func (s *scenarioJobStore) pruneJobsLocked(now time.Time) {
 	cutoff := now.Add(-scenarioJobRetention)
-	type candidate struct {
-		jobID string
-		at    time.Time
-	}
-	terminal := make([]candidate, 0, len(s.jobs))
+	// SYNC and STREAM Jobs already returned their results inline. They are
+	// bounded apart from submitted Jobs, whose callers still fetch results,
+	// so an immediate burst from any App never evicts a submitted result.
+	var immediate, submitted []scenarioJobEvictionCandidate
 	for jobID, record := range s.jobs {
 		if record == nil || record.job == nil {
 			s.deleteJobLocked(jobID)
@@ -1460,8 +1468,25 @@ func (s *scenarioJobStore) pruneJobsLocked(now time.Time) {
 			s.deleteJobLocked(jobID)
 			continue
 		}
-		terminal = append(terminal, candidate{jobID: jobID, at: terminalAt})
+		candidate := scenarioJobEvictionCandidate{jobID: jobID, at: terminalAt}
+		if isImmediateScenarioJob(record.job) {
+			immediate = append(immediate, candidate)
+		} else {
+			submitted = append(submitted, candidate)
+		}
 	}
+	s.evictOldestTerminalJobsLocked(immediate)
+	s.evictOldestTerminalJobsLocked(submitted)
+}
+
+type scenarioJobEvictionCandidate struct {
+	jobID string
+	at    time.Time
+}
+
+// evictOldestTerminalJobsLocked applies the count bound within one delivery
+// class only.
+func (s *scenarioJobStore) evictOldestTerminalJobsLocked(terminal []scenarioJobEvictionCandidate) {
 	if len(terminal) <= maxRetainedTerminalScenarioJobs {
 		return
 	}
@@ -1470,6 +1495,15 @@ func (s *scenarioJobStore) pruneJobsLocked(now time.Time) {
 	})
 	for _, item := range terminal[:len(terminal)-maxRetainedTerminalScenarioJobs] {
 		s.deleteJobLocked(item.jobID)
+	}
+}
+
+func isImmediateScenarioJob(job *runtimev1.ScenarioJob) bool {
+	switch job.GetExecutionMode() {
+	case runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, runtimev1.ExecutionMode_EXECUTION_MODE_STREAM:
+		return true
+	default:
+		return false
 	}
 }
 
@@ -1535,6 +1569,7 @@ func (s *scenarioJobStore) pruneIdempotencyLocked(now time.Time) {
 func (s *scenarioJobStore) deleteJobLocked(jobID string) {
 	record := s.jobs[jobID]
 	delete(s.jobs, jobID)
+	s.markDurableJobChangedLocked(jobID)
 	if record == nil {
 		return
 	}

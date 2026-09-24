@@ -107,6 +107,7 @@ type localResolvedAssemblyLoadPlan struct {
 	Music      *localResolvedAssemblyMusicPlan      `json:"music,omitempty"`
 	Vision     *localResolvedAssemblyVisionPlan     `json:"vision,omitempty"`
 	FaceSwap   *localResolvedAssemblyFaceSwapPlan   `json:"face_swap,omitempty"`
+	Decision   *localResolvedAssemblyDecisionPlan   `json:"decision,omitempty"`
 }
 
 type localResolvedAssemblyMusicPlan struct {
@@ -995,6 +996,10 @@ func validateLocalResolvedAssembly(assembly *localResolvedAssembly) error {
 	switch assembly.LoadPlan.Kind {
 	case "annotation":
 		if _, err := annotationPlanFromResolvedAssembly(assembly); err != nil {
+			return err
+		}
+	case "decide":
+		if _, err := decisionPlanFromResolvedAssembly(assembly); err != nil {
 			return err
 		}
 	case "video-face-swap":

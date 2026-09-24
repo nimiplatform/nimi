@@ -1,0 +1,57 @@
+# Loadout recipe metadata for the Local Laya text.decide Driver. The Driver
+# owns the single decision.model slot and its checkpoint admission; this
+# metadata only recommends pinned checkpoint offers. The checkpoints serve
+# different purposes rather than being sizes of one model, so each recipe
+# recommends exactly one of them.
+loadout_recipes:
+  - recipe_id: laya-typed-decisions
+    revision: "1"
+    title: Laya typed decisions (English)
+    capability_contract: text.decide
+    implementation_id: local.text.decide.laya
+    driver_id: nimi.runtime.driver.laya
+    driver_dialect: laya/text-decide/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: decision.model
+        display_label: Laya typed-decisions checkpoint
+        recommended_variant_ids: [local.decision.laya-typed-decisions.safetensors]
+        model_contract:
+          format: laya
+          artifact_role: decision_model
+  - recipe_id: laya-multilingual
+    revision: "1"
+    title: Laya multilingual decisions
+    capability_contract: text.decide
+    implementation_id: local.text.decide.laya
+    driver_id: nimi.runtime.driver.laya
+    driver_dialect: laya/text-decide/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: decision.model
+        display_label: Laya multilingual checkpoint
+        recommended_variant_ids: [local.decision.laya-multilingual.safetensors]
+        model_contract:
+          format: laya
+          artifact_role: decision_model
+  - recipe_id: laya-browser-v10s
+    revision: "1"
+    title: Laya browser steps (v10s)
+    capability_contract: text.decide
+    implementation_id: local.text.decide.laya
+    driver_id: nimi.runtime.driver.laya
+    driver_dialect: laya/text-decide/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: decision.model
+        display_label: Laya browser checkpoint (v10s)
+        recommended_variant_ids: [local.decision.laya-browser-v10s.safetensors]
+        model_contract:
+          format: laya
+          artifact_role: decision_model

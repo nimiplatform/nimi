@@ -2,11 +2,14 @@ package nimillm
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
+	"io"
 	"net"
 	"net/http"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -264,6 +267,45 @@ func MapProviderRequestError(err error) error {
 		ActionHint: "check_provider_endpoint_or_local_runtime_health",
 		Message:    "provider request failed",
 	})
+}
+
+// ProviderRequestFailureClass names, for diagnostics only, how a provider
+// request failed before the provider returned any status. It never carries an
+// address, URL, or provider text.
+func ProviderRequestFailureClass(err error) string {
+	if err == nil {
+		return ""
+	}
+	var dnsErr *net.DNSError
+	var certErr *tls.CertificateVerificationError
+	var recordErr tls.RecordHeaderError
+	var alertErr tls.AlertError
+	var opErr *net.OpError
+	var netErr net.Error
+	switch {
+	case errors.Is(err, context.Canceled):
+		return "canceled"
+	case errors.Is(err, context.DeadlineExceeded):
+		return "deadline"
+	case errors.As(err, &dnsErr):
+		return "dns"
+	case errors.As(err, &certErr), errors.As(err, &recordErr), errors.As(err, &alertErr):
+		return "tls"
+	case errors.As(err, &opErr):
+		class := opErr.Op
+		var errno syscall.Errno
+		if errors.As(opErr.Err, &errno) {
+			class += "-errno-" + strconv.FormatUint(uint64(errno), 10)
+		} else if opErr.Timeout() {
+			class += "-timeout"
+		}
+		return class
+	case errors.Is(err, io.EOF), errors.Is(err, io.ErrUnexpectedEOF):
+		return "eof"
+	case errors.As(err, &netErr) && netErr.Timeout():
+		return "timeout"
+	}
+	return "other"
 }
 
 // MapProviderHTTPError maps an HTTP status code to gRPC status.

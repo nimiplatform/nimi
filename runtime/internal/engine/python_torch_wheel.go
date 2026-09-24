@@ -75,6 +75,18 @@ func resolvePythonTorchWheelManifest(consumer string) (pythonTorchWheelManifest,
 			AcceleratorPlane: "cpu", CUDAABI: "none",
 			WheelIndex: defaultMediaTorchCPUIndexURL, PackageSource: pythonTorchPackageSource,
 		}, nil
+	case trimmed == TextDecisionConsumerID+".cuda":
+		return pythonTorchWheelManifest{
+			Packages: []string{"torch==" + speechTorchVersion}, ImportProbes: []string{"torch"},
+			AcceleratorPlane: "cuda", CUDAABI: "cu128",
+			WheelIndex: defaultSpeechTorchCUDAIndexURL, PackageSource: pythonTorchPackageSource,
+		}, nil
+	case trimmed == TextDecisionConsumerID+".cpu":
+		return pythonTorchWheelManifest{
+			Packages: []string{"torch==" + speechTorchVersion}, ImportProbes: []string{"torch"},
+			AcceleratorPlane: "cpu", CUDAABI: "none",
+			WheelIndex: defaultMediaTorchCPUIndexURL, PackageSource: pythonTorchPackageSource,
+		}, nil
 	case strings.HasPrefix(trimmed, "media.") && strings.HasSuffix(trimmed, ".cuda"):
 		return pythonTorchWheelManifest{
 			Packages:         append([]string{}, mediaPackages[:2]...),

@@ -482,6 +482,13 @@ func (d *Daemon) run(ctx context.Context, serverCount int, startServers daemonSe
 			aiSvc.RunVoiceAssetDeleteReconciliationLoop(backgroundCtx)
 		}
 	}()
+	backgroundWG.Add(1)
+	go func() {
+		defer backgroundWG.Done()
+		if aiSvc := d.grpc.AIService(); aiSvc != nil {
+			aiSvc.RunScenarioJobRetentionLoop(backgroundCtx)
+		}
+	}()
 	var serveErr error
 	remainingServers := serverCount
 waitForShutdown:
@@ -749,6 +756,9 @@ func (d *Daemon) startSupervisedEngines(_ context.Context) {
 		aiSvc.SetLocalTextAnnotationExecutionHost(annotationHost)
 		aiSvc.SetLocalFaceSwapExecutionHost(faceSwapHost)
 		modelAssetHosts = append(modelAssetHosts, d.imageExecutionHost, visionHost, annotationHost, faceSwapHost)
+		decisionHost := engine.NewTextDecisionExecutionHost(mgr)
+		aiSvc.SetLocalTextDecisionExecutionHost(decisionHost)
+		modelAssetHosts = append(modelAssetHosts, decisionHost)
 		d.audioCppExecutionHost = engine.NewAudioCppExecutionHost(d.logger)
 		aiSvc.SetLocalMusicExecutionHost(d.audioCppExecutionHost)
 		d.videoExecutionHost = engine.NewVideoExecutionHost(mgr, d.logger, engine.VideoExecutionHostConfig{

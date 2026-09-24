@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
@@ -23,6 +24,7 @@ const cloudResolvedAssemblyVersion = 2
 const (
 	cloudResolvedRequestText          = "text.generate"
 	cloudResolvedRequestEmbed         = "text.embed"
+	cloudResolvedRequestDecide        = "text.decide"
 	cloudResolvedRequestMedia         = "media"
 	cloudResolvedRequestVoiceWorkflow = "voice.create"
 )
@@ -164,7 +166,7 @@ func validateCloudResolvedAssemblyDraft(assembly *cloudResolvedAssembly) error {
 		return fmt.Errorf("Cloud ResolvedAssembly version is invalid")
 	}
 	switch assembly.RequestKind {
-	case cloudResolvedRequestText, cloudResolvedRequestEmbed, cloudResolvedRequestMedia, cloudResolvedRequestVoiceWorkflow:
+	case cloudResolvedRequestText, cloudResolvedRequestEmbed, cloudResolvedRequestDecide, cloudResolvedRequestMedia, cloudResolvedRequestVoiceWorkflow:
 	default:
 		return fmt.Errorf("Cloud ResolvedAssembly request kind is invalid")
 	}
@@ -177,6 +179,9 @@ func validateCloudResolvedAssemblyDraft(assembly *cloudResolvedAssembly) error {
 	}
 	if assembly.RequestKind == cloudResolvedRequestEmbed && assembly.ExecutionMode != runtimev1.ExecutionMode_EXECUTION_MODE_SYNC {
 		return fmt.Errorf("Cloud embedding ResolvedAssembly execution mode is invalid")
+	}
+	if assembly.RequestKind == cloudResolvedRequestDecide && assembly.ExecutionMode != runtimev1.ExecutionMode_EXECUTION_MODE_SYNC {
+		return fmt.Errorf("Cloud decision ResolvedAssembly execution mode is invalid")
 	}
 	if assembly.RequestKind == cloudResolvedRequestVoiceWorkflow && assembly.ExecutionMode != runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB {
 		return fmt.Errorf("Cloud voice ResolvedAssembly execution mode is invalid")
@@ -206,6 +211,8 @@ func validateCloudResolvedAssemblyDraft(assembly *cloudResolvedAssembly) error {
 		expectedRequestKind = cloudResolvedRequestText
 	case capabilitydriver.TextEmbedCapabilityContract:
 		expectedRequestKind = cloudResolvedRequestEmbed
+	case aicapabilities.TextDecide:
+		expectedRequestKind = cloudResolvedRequestDecide
 	case capabilitydriver.VoiceCreateContract:
 		expectedRequestKind = cloudResolvedRequestVoiceWorkflow
 	}
@@ -295,6 +302,12 @@ func validateCloudResolvedAssemblyRequest(assembly *cloudResolvedAssembly) error
 			if strings.TrimSpace(input) == "" {
 				return fmt.Errorf("Cloud embedding ResolvedAssembly request contains an empty input")
 			}
+		}
+	case cloudResolvedRequestDecide:
+		request := &runtimev1.TextDecideScenarioSpec{}
+		// Admission enforced the public limits; stored records are checked structurally.
+		if err := unmarshal.Unmarshal(assembly.Request, request); err != nil || request.GetState() == nil || len(request.GetQuestions()) == 0 {
+			return fmt.Errorf("Cloud decision ResolvedAssembly request is invalid")
 		}
 	case cloudResolvedRequestMedia, cloudResolvedRequestVoiceWorkflow:
 		request := &runtimev1.SubmitScenarioJobRequest{}

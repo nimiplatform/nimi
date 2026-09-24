@@ -109,7 +109,7 @@ type Service struct {
 	localEnvironmentJobWG                     sync.WaitGroup
 	transferWorkerWG                          sync.WaitGroup
 	localEnvironmentPrerequisiteWaitTimeout   time.Duration
-	loadoutMutationMu                         sync.Mutex
+	loadoutMutationMu                         contextMutex
 	loadouts                                  map[string]*runtimev1.Loadout
 	loadoutSelections                         map[string]*runtimev1.LoadoutSelection
 	loadoutSelectionRevisions                 map[string]string
@@ -117,7 +117,7 @@ type Service struct {
 	heldLoadoutPrepares                       map[string]heldLoadoutPrepare
 	loadoutCASToken                           string
 	loadoutNow                                func() time.Time
-	modelAssetMutationMu                      sync.Mutex
+	modelAssetMutationMu                      contextMutex
 	modelAssetHosts                           []localexecution.ModelAssetHostRetirer
 	modelAssets                               map[string]*runtimev1.ModelAssetRecord
 	modelAssetDirectories                     map[string]string
@@ -149,6 +149,7 @@ type Service struct {
 	hfCatalogSearch               hfCatalogSearchFunc
 	hfCatalogVariants             hfCatalogVariantsFunc
 	hfDownloadBaseURL             string
+	githubReleaseDownloadBaseURL  string
 	artifactDownloadTimeout       time.Duration
 	artifactDownloadMaxBodyBytes  int64
 	modelDownloadTimeout          time.Duration
@@ -163,6 +164,7 @@ type Service struct {
 	transferSubscriberSeq         uint64
 	entryHashCache                map[string]entryHashCacheState
 	entryFileSHA256               func(string) (string, error)
+	admissionHolds                map[string]*admissionPayloadHold
 	adoptResolvedModelImports     bool
 	managedPortAvailable          func(int) bool
 	modelIndexRefreshMu           sync.Mutex
@@ -327,6 +329,7 @@ func newService(logger *slog.Logger, store *auditlog.Store, stateStorePath strin
 		hfCatalogSearch:              defaultHFCatalogSearch,
 		hfCatalogVariants:            defaultHFCatalogVariants,
 		hfDownloadBaseURL:            defaultHFDownloadBaseURL,
+		githubReleaseDownloadBaseURL: defaultGitHubReleaseDownloadBaseURL,
 		artifactDownloadTimeout:      localArtifactDownloadTimeout,
 		artifactDownloadMaxBodyBytes: localArtifactDownloadMaxBodyBytes,
 		modelDownloadTimeout:         localModelDownloadTimeout,
@@ -339,7 +342,7 @@ func newService(logger *slog.Logger, store *auditlog.Store, stateStorePath strin
 		transferRates:                make(map[string]*filedownload.RateTracker),
 		transferSubscribers:          make(map[uint64]chan *runtimev1.LocalTransferProgressEvent),
 		entryHashCache:               make(map[string]entryHashCacheState),
-		entryFileSHA256:              computeFileSHA256,
+		admissionHolds:               make(map[string]*admissionPayloadHold),
 		adoptResolvedModelImports:    mode.adoptResolvedModelImports,
 		managedPortAvailable:         loopbackPortAvailable,
 	}
@@ -447,7 +450,7 @@ func (s *Service) Close() {
 	s.localEnvironmentJobWG.Wait()
 	s.transferWorkerWG.Wait()
 
-	s.modelAssetMutationMu.Lock()
+	s.lockModelAssetMutation()
 	defer s.modelAssetMutationMu.Unlock()
 	s.mu.Lock()
 	stateProcessLock := s.stateProcessLock

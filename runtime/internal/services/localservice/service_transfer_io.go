@@ -324,7 +324,7 @@ func (s *Service) cancelTransfer(sessionID string, message string) error {
 // cancellation or an explicit acquisition retry. It only touches a directory
 // no committed asset owns; committed inventory is never rolled back.
 func (s *Service) discardUncommittedIntentView(sessionID string) bool {
-	s.modelAssetMutationMu.Lock()
+	s.lockModelAssetMutation()
 	defer s.modelAssetMutationMu.Unlock()
 	s.mu.RLock()
 	private := s.transferPrivate[strings.TrimSpace(sessionID)]
@@ -391,6 +391,8 @@ func (s *Service) downloadToFileWithTransfer(
 	maxBodyBytes int64,
 	header http.Header,
 	timeout time.Duration,
+	expectedSize int64,
+	checkRedirect func(*http.Request, []*http.Request) error,
 ) (filedownload.Result, error) {
 	control := s.transferControl(sessionID)
 	progress := func(bytesReceived, bytesTotal int64) {
@@ -421,9 +423,10 @@ func (s *Service) downloadToFileWithTransfer(
 	return filedownload.Download(ctx, filedownload.Options{
 		URL:            sourceURL,
 		DestPath:       targetPath,
-		Client:         &http.Client{Timeout: timeout},
+		Client:         &http.Client{Timeout: timeout, CheckRedirect: checkRedirect},
 		Header:         header,
 		ExpectedSHA256: expectedSHA256,
+		ExpectedSize:   expectedSize,
 		MaxBodyBytes:   maxBodyBytes,
 		MaxAttempts:    maxAttempts,
 		RetryDelays:    retryDelays,

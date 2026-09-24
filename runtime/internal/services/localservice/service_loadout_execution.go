@@ -3,12 +3,16 @@
 package localservice
 
 import (
+	"context"
+	"errors"
+	"os"
 	"path/filepath"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"github.com/oklog/ulid/v2"
@@ -69,7 +73,7 @@ func (s *Service) ResolveSelectedLocalExecution(capabilityContract string) (*loc
 	if selection == nil || strings.TrimSpace(selection.GetLoadoutId()) == "" {
 		return nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND, "no Loadout is selected for the capability contract", map[string]string{"capability_contract": capabilityContract})
 	}
-	return s.resolveLocalExecutionLocked(capabilityContract, selection.GetLoadoutId())
+	return s.resolveLocalExecutionLocked(context.Background(), admissionPass{}, capabilityContract, selection.GetLoadoutId())
 }
 
 // ResolveLocalExecution resolves an exact Loadout identity already captured by
@@ -84,10 +88,10 @@ func (s *Service) ResolveLocalExecution(capabilityContract string, loadoutRef st
 	defer s.loadoutMutationMu.Unlock()
 	s.modelAssetMutationMu.Lock()
 	defer s.modelAssetMutationMu.Unlock()
-	return s.resolveLocalExecutionLocked(capabilityContract, loadoutRef)
+	return s.resolveLocalExecutionLocked(context.Background(), admissionPass{}, capabilityContract, loadoutRef)
 }
 
-func (s *Service) resolveLocalExecutionLocked(capabilityContract string, loadoutRef string) (*localexecution.SelectedLocalExecution, error) {
+func (s *Service) resolveLocalExecutionLocked(ctx context.Context, pass admissionPass, capabilityContract string, loadoutRef string) (*localexecution.SelectedLocalExecution, error) {
 	s.mu.RLock()
 	loadout := cloneLoadout(s.loadouts[loadoutRef])
 	s.mu.RUnlock()
@@ -101,7 +105,11 @@ func (s *Service) resolveLocalExecutionLocked(capabilityContract string, loadout
 	if err != nil {
 		return nil, err
 	}
-	validation := s.validateLoadoutForJobAdmission(loadout, driver, requirements)
+	validation := s.validateLoadoutForJobAdmission(ctx, pass, loadout, driver, requirements)
+	// A caller that ended during verification is not byte drift.
+	if err := ctx.Err(); err != nil {
+		return nil, admissionContextError(err)
+	}
 	if validation.state != runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED {
 		for _, reason := range validation.reasons {
 			if reason == runtimev1.ReasonCode_AI_LOADOUT_MODEL_ASSET_CONTENT_MISMATCH {
@@ -173,10 +181,26 @@ func (s *Service) resolveLocalExecutionLocked(capabilityContract string, loadout
 	}, nil
 }
 
-func (s *Service) CaptureLocalExecution(capabilityContract, loadoutRef string) (*localexecution.SelectedLocalExecution, error) {
-	s.loadoutMutationMu.Lock()
+// CaptureLocalExecution admits one Local Job's inputs. Bound payloads are
+// verified before the mutation locks are taken, so the atomic capture normally
+// only confirms each file's identity and generation; waiting for the locks and
+// every payload read end when ctx does, publishing nothing.
+func (s *Service) CaptureLocalExecution(ctx context.Context, capabilityContract, loadoutRef string) (*localexecution.SelectedLocalExecution, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	pass, err := s.preverifyLocalExecutionPayloads(ctx, capabilityContract, loadoutRef)
+	if err != nil {
+		return nil, admissionContextError(err)
+	}
+	defer pass.close()
+	if err := s.loadoutMutationMu.LockContext(ctx); err != nil {
+		return nil, admissionContextError(err)
+	}
 	defer s.loadoutMutationMu.Unlock()
-	s.modelAssetMutationMu.Lock()
+	if err := s.modelAssetMutationMu.LockContext(ctx); err != nil {
+		return nil, admissionContextError(err)
+	}
 	defer s.modelAssetMutationMu.Unlock()
 	if strings.TrimSpace(loadoutRef) == "" {
 		s.mu.RLock()
@@ -186,12 +210,69 @@ func (s *Service) CaptureLocalExecution(capabilityContract, loadoutRef string) (
 			return nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND, "no Loadout is selected for the capability contract", nil)
 		}
 	}
-	selected, err := s.resolveLocalExecutionLocked(capabilityContract, loadoutRef)
+	selected, err := s.resolveLocalExecutionLocked(ctx, pass, capabilityContract, loadoutRef)
 	if err != nil {
 		return nil, err
 	}
 	selected.ModelAssetUse, err = s.holdCapturedLocalExecutionLocked(selected)
 	return selected, err
+}
+
+// preverifyLocalExecutionPayloads verifies the Loadout's bound payloads without
+// the mutation locks. It is advisory: the atomic capture repeats every check on
+// the records it reads and accepts a verification from the returned pass only
+// for the same file identity and generation. It fails only when ctx ended, and
+// then holds nothing.
+func (s *Service) preverifyLocalExecutionPayloads(ctx context.Context, capabilityContract, loadoutRef string) (admissionPass, error) {
+	type payload struct {
+		path, generation string
+	}
+	var payloads []payload
+	s.mu.RLock()
+	if strings.TrimSpace(loadoutRef) == "" {
+		loadoutRef = s.loadoutSelections[capabilityContract].GetLoadoutId()
+	}
+	for _, axis := range s.loadouts[loadoutRef].GetModelAxes() {
+		asset := s.modelAssets[axis.GetModelAssetId()]
+		directory := s.modelAssetDirectories[axis.GetModelAssetId()]
+		if asset == nil || directory == "" || asset.GetContentId() != axis.GetExpectedContentId() {
+			continue
+		}
+		for _, file := range asset.GetFiles() {
+			if file == nil || !safeModelAssetRelativePath(file.GetRelativePath()) {
+				continue
+			}
+			absolute := filepath.Join(directory, filepath.FromSlash(file.GetRelativePath()))
+			if pathWithinBase(directory, absolute, false) {
+				payloads = append(payloads, payload{path: absolute, generation: modelAssetFileVerificationGeneration(asset, file)})
+			}
+		}
+	}
+	s.mu.RUnlock()
+	pass := make(admissionPass, len(payloads))
+	for _, item := range payloads {
+		info, err := os.Lstat(item.path)
+		if err != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 {
+			continue
+		}
+		if payload, err := s.verifyAdmissionPayload(ctx, item.path, info, item.generation); err == nil {
+			pass[admissionPayloadKey(item.path)] = payload
+		}
+		if err := ctx.Err(); err != nil {
+			pass.close()
+			return nil, err
+		}
+	}
+	return pass, nil
+}
+
+// admissionContextError reports a caller that ended admission: an elapsed
+// deadline stays a timeout and a cancel stays a cancel, never byte drift.
+func admissionContextError(err error) error {
+	if errors.Is(err, context.DeadlineExceeded) {
+		return grpcerr.WrapWithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, err, grpcerr.ReasonOptions{Message: "Local Job admission exceeded the request deadline"})
+	}
+	return grpcerr.WrapWithReasonCode(codes.Canceled, runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CANCELED, err, grpcerr.ReasonOptions{})
 }
 
 func (s *Service) HoldCapturedLocalExecution(selected *localexecution.SelectedLocalExecution) (*localexecution.ModelAssetUse, error) {
@@ -247,10 +328,12 @@ func (s *Service) resolveSelectedLocalExecutionDependencySources(capabilityContr
 		family, dependencyID, version string
 	}
 	var required []requiredDependency
-	host := localEnvironmentHostProfileFromDeviceProfile(collectDeviceProfile())
+	// One live device profile serves every dependency lookup of this admission.
+	profile := collectDeviceProfile()
+	host := localEnvironmentHostProfileFromDeviceProfile(profile)
 	switch typed := driver.(type) {
 	case capabilitydriver.SpacyDriver:
-		record, _, ok, detail := s.selectedPythonPackageSetSourceForConsumer(engine.TextAnnotationConsumerID, func(root string) string { return filepath.Join(root, "text_annotation_server.py") })
+		record, _, ok, detail := s.selectedPythonPackageSetSourceForConsumerOnHost(engine.TextAnnotationConsumerID, func(root string) string { return filepath.Join(root, "text_annotation_server.py") }, profile)
 		if !ok {
 			return nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED, "Language analysis environment is not ready", map[string]string{"detail": detail})
 		}
@@ -258,7 +341,7 @@ func (s *Service) resolveSelectedLocalExecutionDependencySources(capabilityContr
 			ConsumerScope: engine.TextAnnotationConsumerID, SelectedSourceRecordID: record.RecordID, CanonicalRoot: record.CanonicalRoot, Version: record.Version,
 			VerifiedArtifacts: append([]string(nil), record.VerifiedArtifacts...), Hashes: cloneStringMap(record.Hashes)}}, nil
 	case capabilitydriver.InsightFaceImageDriver, capabilitydriver.InsightFaceVideoDriver:
-		record, _, ok, detail := s.selectedPythonPackageSetSourceForConsumer(engine.FaceSwapConsumerID, func(root string) string { return filepath.Join(root, "face_swap_server.py") })
+		record, _, ok, detail := s.selectedPythonPackageSetSourceForConsumerOnHost(engine.FaceSwapConsumerID, func(root string) string { return filepath.Join(root, "face_swap_server.py") }, profile)
 		if !ok {
 			return nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED, "Face replacement managed profile is not ready", map[string]string{"detail": detail})
 		}
@@ -266,7 +349,7 @@ func (s *Service) resolveSelectedLocalExecutionDependencySources(capabilityContr
 			ConsumerScope: engine.FaceSwapConsumerID, SelectedSourceRecordID: record.RecordID, CanonicalRoot: record.CanonicalRoot, Version: record.Version,
 			VerifiedArtifacts: append([]string(nil), record.VerifiedArtifacts...), Hashes: cloneStringMap(record.Hashes)}}, nil
 	case capabilitydriver.LocateAnythingDriver:
-		record, _, ok, detail := s.selectedPythonPackageSetSourceForConsumer(engine.VisionLocateConsumerID, func(root string) string { return filepath.Join(root, "vision_server.py") })
+		record, _, ok, detail := s.selectedPythonPackageSetSourceForConsumerOnHost(engine.VisionLocateConsumerID, func(root string) string { return filepath.Join(root, "vision_server.py") }, profile)
 		if !ok {
 			return nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED, "Locate managed profile is not ready", map[string]string{"detail": detail})
 		}
@@ -276,6 +359,8 @@ func (s *Service) resolveSelectedLocalExecutionDependencySources(capabilityContr
 			CanonicalRoot: record.CanonicalRoot, Version: record.Version,
 			VerifiedArtifacts: append([]string(nil), record.VerifiedArtifacts...), Hashes: cloneStringMap(record.Hashes),
 		}}, nil
+	case capabilitydriver.LayaDriver:
+		return s.localDecisionDependencySources(profile)
 	case capabilitydriver.LlamaTextDriver, capabilitydriver.LlamaEmbedDriver:
 		_, resolvedConsumer, ok := localEnvironmentTargetForDriver(typed, host)
 		if !ok {

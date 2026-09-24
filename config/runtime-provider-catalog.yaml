@@ -52,6 +52,7 @@ entries:
   - providers_45
   - providers_46
   - providers_47
+  - providers_48
 providers:
   - provider: anthropic
     default_endpoint: https://api.anthropic.com
@@ -310,6 +311,12 @@ providers:
     default_text_model: null
     requires_explicit_endpoint: true
     inventory_mode: dynamic_endpoint
+    source_rule: K-MCAT-027
+  - provider: typesafe
+    default_endpoint: https://api.typesafe.ai
+    default_text_model: null
+    requires_explicit_endpoint: false
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: volcengine
     default_endpoint: https://ark.cn-beijing.volces.com/api/v3

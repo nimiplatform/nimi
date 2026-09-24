@@ -188,6 +188,24 @@ type LocalPlaneVariant struct {
 	Repo            string                    `yaml:"repo,omitempty" json:"repo,omitempty"`
 	Revision        string                    `yaml:"revision,omitempty" json:"revision,omitempty"`
 	DriverBackend   string                    `yaml:"driver_backend,omitempty" json:"driver_backend,omitempty"`
+	// Archive is present exactly for verified-release-archive offers. Files,
+	// Hashes and TotalSizeBytes keep describing the installed data files.
+	Archive *LocalPlaneArchive `yaml:"archive,omitempty" json:"archive,omitempty"`
+}
+
+// LocalInstallKindReleaseArchive marks offers whose files are extracted from
+// one pinned official release archive instead of fetched file by file.
+const LocalInstallKindReleaseArchive = "verified-release-archive"
+
+// LocalPlaneArchive is the pinned release archive of one offer. The download
+// URL is derived from the offer's repo, revision (release tag) and File; Root
+// is the archive directory whose declared files form the ModelAsset.
+type LocalPlaneArchive struct {
+	File      string `yaml:"file" json:"file"`
+	Format    string `yaml:"format" json:"format"`
+	SHA256    string `yaml:"sha256" json:"sha256"`
+	SizeBytes int64  `yaml:"size_bytes" json:"size_bytes"`
+	Root      string `yaml:"root" json:"root"`
 }
 
 type LocalVariantApplicability string

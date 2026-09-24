@@ -53,6 +53,7 @@ entries:
   - providers_46
   - providers_47
   - providers_48
+  - providers_49
 providers:
   - provider: anthropic
     runtime_plane: remote
@@ -362,8 +363,10 @@ providers:
       - audio.separate
       - audio.synthesize
       - audio.transcribe
+      - audio.voice.convert
       - image.generate
       - music.generate
+      - music.transcribe
       - text.embed
       - text.generate
       - video.generate
@@ -685,6 +688,19 @@ providers:
       - text.embed
       - text.generate
       - video.generate
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: typesafe
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: default_or_explicit
+    inventory_mode: static_source
+    capabilities:
+      - text.decide
     sources:
       - K-MCAT-027
       - K-CONN-008

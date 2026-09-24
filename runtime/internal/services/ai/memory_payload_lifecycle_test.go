@@ -71,7 +71,12 @@ func TestMemoryPayloadDispositionAcrossCoreJobsAndRecoveryCopies(t *testing.T) {
 				if readErr != nil {
 					t.Fatal(readErr)
 				}
-				if _, err := service.scenarioJobs.preserveIsolatedRecords(snapshot); err != nil {
+				// A recovery copy of the live document, journal included.
+				copyPath, pathErr := service.scenarioJobs.scenarioJobQuarantinePath("records")
+				if pathErr != nil {
+					t.Fatal(pathErr)
+				}
+				if err := os.WriteFile(copyPath, snapshot, 0o600); err != nil {
 					t.Fatal(err)
 				}
 			}

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -160,6 +162,52 @@ func validateFailedScenarioJobProjection(job *runtimev1.ScenarioJob) error {
 	return nil
 }
 
+type requestEndKey struct{}
+
+// requestEnd notes when the caller's request context ended.
+type requestEnd struct {
+	ctx context.Context
+	at  atomic.Int64
+}
+
+// withRequestEnd notes when the caller's request ends, so a failure classified
+// later, after a slow admission say, still tells a cancel that arrived before
+// the deadline from an expiry at it.
+func withRequestEnd(ctx context.Context) (context.Context, func() bool) {
+	end := &requestEnd{ctx: ctx}
+	stop := context.AfterFunc(ctx, func() { end.at.Store(time.Now().UnixNano()) })
+	return context.WithValue(ctx, requestEndKey{}, end), stop
+}
+
+// scenarioDeadlineElapsed reports a context that ended at or after its
+// deadline. grpc-go enforces a propagated grpc-timeout by also resetting the
+// stream, so a request whose deadline elapsed can end as canceled; what counts
+// is when the request ended, so a cancel that arrived before the deadline
+// stays a cancel however late it is classified.
+func scenarioDeadlineElapsed(ctx context.Context) bool {
+	if ctx == nil || ctx.Err() == nil {
+		return false
+	}
+	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+		return true
+	}
+	deadline, ok := ctx.Deadline()
+	if !ok {
+		return false
+	}
+	endedAt := time.Now()
+	if end, noted := ctx.Value(requestEndKey{}).(*requestEnd); noted {
+		if end.ctx.Err() == nil {
+			// The request is live; Runtime itself canceled this context.
+			return false
+		}
+		if at := end.at.Load(); at != 0 {
+			endedAt = time.Unix(0, at)
+		}
+	}
+	return !endedAt.Before(deadline)
+}
+
 func (s *Service) finishLocalTextScenarioJobFailure(ctx context.Context, jobID string, err error) {
 	if existing, ok := s.scenarioJobs.get(jobID); ok && isTerminalScenarioJobStatus(existing.GetStatus()) {
 		return
@@ -173,7 +221,7 @@ func (s *Service) finishLocalTextScenarioJobFailure(ctx context.Context, jobID s
 	switch {
 	case s.isRuntimeRestartShutdown(ctx):
 		reason = runtimev1.ReasonCode_AI_EXECUTION_INTERRUPTED
-	case errors.Is(ctx.Err(), context.DeadlineExceeded) || errors.Is(err, context.DeadlineExceeded) || reason == runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT:
+	case scenarioDeadlineElapsed(ctx) || errors.Is(err, context.DeadlineExceeded) || reason == runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT:
 		jobStatus = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT
 		eventType = runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_TIMEOUT
 		reason = runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT
@@ -208,7 +256,7 @@ func (s *Service) finishCloudScenarioJobFailure(ctx context.Context, jobID strin
 	switch {
 	case s.isRuntimeRestartShutdown(ctx):
 		reason = runtimev1.ReasonCode_AI_EXECUTION_INTERRUPTED
-	case errors.Is(ctx.Err(), context.DeadlineExceeded) || errors.Is(err, context.DeadlineExceeded) || reason == runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT:
+	case scenarioDeadlineElapsed(ctx) || errors.Is(err, context.DeadlineExceeded) || reason == runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT:
 		jobStatus = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT
 		eventType = runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_TIMEOUT
 		reason = runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT

@@ -13,7 +13,7 @@ import (
 // Their canonical paths are enough to enumerate them after a crash; no second
 // inventory or permanent reference counter is needed.
 func (s *Service) reclaimUnreferencedModelObjects() error {
-	s.modelAssetMutationMu.Lock()
+	s.lockModelAssetMutation()
 	defer s.modelAssetMutationMu.Unlock()
 	s.mu.RLock()
 	open := s.modelAssetReclamationOpen && s.modelAssetStoreRestriction == nil && !s.modelAssetInventoryReconciliationRequired

@@ -13,6 +13,7 @@ export const CANONICAL_CAPABILITY_IDS = Object.freeze([
   "music.transcribe",
   "realtime.interact",
   "text.annotate",
+  "text.decide",
   "text.embed",
   "text.generate",
   "video.face_swap",

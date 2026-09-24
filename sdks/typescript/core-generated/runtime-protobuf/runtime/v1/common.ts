@@ -575,6 +575,12 @@ export enum ReasonCode {
      */
     AI_EXECUTION_INTERRUPTED = 402,
     /**
+     * Valid input that the captured implementation cannot encode completely.
+     *
+     * @generated from protobuf enum value: AI_INPUT_LIMIT_EXCEEDED = 403;
+     */
+    AI_INPUT_LIMIT_EXCEEDED = 403,
+    /**
      * MEDIA family (410+)
      *
      * @generated from protobuf enum value: AI_MEDIA_SPEC_INVALID = 410;

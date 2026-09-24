@@ -412,9 +412,13 @@ type ModelAssetMarketCandidate struct {
 	EditorialReason string                 `protobuf:"bytes,19,opt,name=editorial_reason,json=editorialReason,proto3" json:"editorial_reason,omitempty"`
 	// Publishing organization or author label (for example the repository
 	// owner). Presentation only; never part of offer identity.
-	Author        string `protobuf:"bytes,20,opt,name=author,proto3" json:"author,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Author string `protobuf:"bytes,20,opt,name=author,proto3" json:"author,omitempty"`
+	// Bytes this offer's acquisition transfers from its source: the declared
+	// files, or the pinned archive of a release archive offer. Zero when
+	// unknown. total_size_bytes remains the installed file total.
+	DownloadSizeBytes int64 `protobuf:"varint,21,opt,name=download_size_bytes,json=downloadSizeBytes,proto3" json:"download_size_bytes,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *ModelAssetMarketCandidate) Reset() {
@@ -585,6 +589,13 @@ func (x *ModelAssetMarketCandidate) GetAuthor() string {
 		return x.Author
 	}
 	return ""
+}
+
+func (x *ModelAssetMarketCandidate) GetDownloadSizeBytes() int64 {
+	if x != nil {
+		return x.DownloadSizeBytes
+	}
+	return 0
 }
 
 type ListFeaturedModelAssetsRequest struct {
@@ -921,7 +932,7 @@ const file_runtime_v1_local_runtime_recommendation_proto_rawDesc = "" +
 	" \x01(\x03R\x05likes\x12#\n" +
 	"\rlast_modified\x18\v \x01(\tR\flastModified\x12\x1a\n" +
 	"\bverified\x18\f \x01(\bR\bverified\x12\x16\n" +
-	"\x06author\x18\r \x01(\tR\x06author\"\xa4\x05\n" +
+	"\x06author\x18\r \x01(\tR\x06author\"\xd4\x05\n" +
 	"\x19ModelAssetMarketCandidate\x12\x1b\n" +
 	"\toffer_ref\x18\x01 \x01(\tR\bofferRef\x12!\n" +
 	"\fsource_label\x18\x02 \x01(\tR\vsourceLabel\x12\x14\n" +
@@ -946,7 +957,8 @@ const file_runtime_v1_local_runtime_recommendation_proto_rawDesc = "" +
 	"\vinstallable\x18\x11 \x01(\bR\vinstallable\x12.\n" +
 	"\x10featured_ordinal\x18\x12 \x01(\x05H\x00R\x0ffeaturedOrdinal\x88\x01\x01\x12)\n" +
 	"\x10editorial_reason\x18\x13 \x01(\tR\x0feditorialReason\x12\x16\n" +
-	"\x06author\x18\x14 \x01(\tR\x06authorB\x13\n" +
+	"\x06author\x18\x14 \x01(\tR\x06author\x12.\n" +
+	"\x13download_size_bytes\x18\x15 \x01(\x03R\x11downloadSizeBytesB\x13\n" +
 	"\x11_featured_ordinal\"Y\n" +
 	"\x1eListFeaturedModelAssetsRequest\x12\x1a\n" +
 	"\bcategory\x18\x01 \x01(\tR\bcategory\x12\x1b\n" +

@@ -1648,6 +1648,7 @@ const (
 	AITOOLCALLINVALID                               ReasonCode = "AI_TOOL_CALL_INVALID"
 	AIREASONINGCONTINUITYINVALID                    ReasonCode = "AI_REASONING_CONTINUITY_INVALID"
 	AIEXECUTIONINTERRUPTED                          ReasonCode = "AI_EXECUTION_INTERRUPTED"
+	AIINPUTLIMITEXCEEDED                            ReasonCode = "AI_INPUT_LIMIT_EXCEEDED"
 	AIMEDIASPECINVALID                              ReasonCode = "AI_MEDIA_SPEC_INVALID"
 	AIMEDIAOPTIONUNSUPPORTED                        ReasonCode = "AI_MEDIA_OPTION_UNSUPPORTED"
 	AIMEDIAJOBNOTFOUND                              ReasonCode = "AI_MEDIA_JOB_NOT_FOUND"
@@ -1965,6 +1966,7 @@ const (
 	SCENARIOTYPETEXTANNOTATE      ScenarioType = "SCENARIO_TYPE_TEXT_ANNOTATE"
 	SCENARIOTYPEMUSICTRANSCRIBE   ScenarioType = "SCENARIO_TYPE_MUSIC_TRANSCRIBE"
 	SCENARIOTYPEAUDIOVOICECONVERT ScenarioType = "SCENARIO_TYPE_AUDIO_VOICE_CONVERT"
+	SCENARIOTYPETEXTDECIDE        ScenarioType = "SCENARIO_TYPE_TEXT_DECIDE"
 )
 
 type SchedulingState string
@@ -4183,6 +4185,8 @@ type ExecuteLocalAppScenarioRequest struct {
 	TextEmbed     *LocalAppTextEmbedScenarioSpec     `json:"text_embed,omitempty"`
 	ImageGenerate *LocalAppImageGenerateScenarioSpec `json:"image_generate,omitempty"`
 	TextGenerate  *StreamLocalAppTextTurnRequest     `json:"text_generate,omitempty"`
+	TextDecide    *TextDecideScenarioSpec            `json:"text_decide,omitempty"`
+	TimeoutMs     int32                              `json:"timeout_ms,omitempty"`
 }
 
 type ExecuteLocalAppScenarioResponse struct {
@@ -4190,6 +4194,7 @@ type ExecuteLocalAppScenarioResponse struct {
 	ImageGenerate *LocalAppImageGenerateOutput `json:"image_generate,omitempty"`
 	TraceId       string                       `json:"trace_id,omitempty"`
 	TextGenerate  *LocalAppTextGenerateOutput  `json:"text_generate,omitempty"`
+	TextDecide    *TextDecisionResult          `json:"text_decide,omitempty"`
 }
 
 type ExecuteScenarioRequest struct {
@@ -6589,26 +6594,27 @@ type ModelAssetFile struct {
 }
 
 type ModelAssetMarketCandidate struct {
-	OfferRef        string   `json:"offer_ref,omitempty"`
-	SourceLabel     string   `json:"source_label,omitempty"`
-	Title           string   `json:"title,omitempty"`
-	Description     string   `json:"description,omitempty"`
-	Categories      []string `json:"categories,omitempty"`
-	ModelType       string   `json:"model_type,omitempty"`
-	VariantLabel    string   `json:"variant_label,omitempty"`
-	Format          string   `json:"format,omitempty"`
-	TotalSizeBytes  int64    `json:"total_size_bytes,omitempty"`
-	License         string   `json:"license,omitempty"`
-	Tags            []string `json:"tags,omitempty"`
-	Downloads       int64    `json:"downloads,omitempty"`
-	Likes           int64    `json:"likes,omitempty"`
-	LastModified    string   `json:"last_modified,omitempty"`
-	Verified        bool     `json:"verified,omitempty"`
-	Installed       bool     `json:"installed,omitempty"`
-	Installable     bool     `json:"installable,omitempty"`
-	FeaturedOrdinal *int32   `json:"featured_ordinal,omitempty"`
-	EditorialReason string   `json:"editorial_reason,omitempty"`
-	Author          string   `json:"author,omitempty"`
+	OfferRef          string   `json:"offer_ref,omitempty"`
+	SourceLabel       string   `json:"source_label,omitempty"`
+	Title             string   `json:"title,omitempty"`
+	Description       string   `json:"description,omitempty"`
+	Categories        []string `json:"categories,omitempty"`
+	ModelType         string   `json:"model_type,omitempty"`
+	VariantLabel      string   `json:"variant_label,omitempty"`
+	Format            string   `json:"format,omitempty"`
+	TotalSizeBytes    int64    `json:"total_size_bytes,omitempty"`
+	License           string   `json:"license,omitempty"`
+	Tags              []string `json:"tags,omitempty"`
+	Downloads         int64    `json:"downloads,omitempty"`
+	Likes             int64    `json:"likes,omitempty"`
+	LastModified      string   `json:"last_modified,omitempty"`
+	Verified          bool     `json:"verified,omitempty"`
+	Installed         bool     `json:"installed,omitempty"`
+	Installable       bool     `json:"installable,omitempty"`
+	FeaturedOrdinal   *int32   `json:"featured_ordinal,omitempty"`
+	EditorialReason   string   `json:"editorial_reason,omitempty"`
+	Author            string   `json:"author,omitempty"`
+	DownloadSizeBytes int64    `json:"download_size_bytes,omitempty"`
 }
 
 type ModelAssetRecord struct {
@@ -7748,6 +7754,7 @@ type ScenarioOutput struct {
 	TextAnnotation    *TextAnnotationResult    `json:"text_annotation,omitempty"`
 	MusicTranscribe   *MusicTranscribeResult   `json:"music_transcribe,omitempty"`
 	AudioVoiceConvert *AudioVoiceConvertResult `json:"audio_voice_convert,omitempty"`
+	TextDecision      *TextDecisionResult      `json:"text_decision,omitempty"`
 }
 
 type ScenarioProfile struct {
@@ -7779,6 +7786,7 @@ type ScenarioSpec struct {
 	TextAnnotate      *TextAnnotateScenarioSpec      `json:"text_annotate,omitempty"`
 	MusicTranscribe   *MusicTranscribeScenarioSpec   `json:"music_transcribe,omitempty"`
 	AudioVoiceConvert *AudioVoiceConvertScenarioSpec `json:"audio_voice_convert,omitempty"`
+	TextDecide        *TextDecideScenarioSpec        `json:"text_decide,omitempty"`
 }
 
 type ScenarioStreamCompleted struct {
@@ -8406,6 +8414,61 @@ type TextBehaviorCapabilityProjection struct {
 	Reasons                 []LocalCapabilityReason        `json:"reasons,omitempty"`
 	ImplementationToolUse   *ToolUseCapabilityProjection   `json:"implementation_tool_use,omitempty"`
 	ConfiguredToolUse       *ToolUseCapabilityProjection   `json:"configured_tool_use,omitempty"`
+}
+
+type TextDecideScenarioSpec struct {
+	State     *TextDecisionContent   `json:"state,omitempty"`
+	Questions []TextDecisionQuestion `json:"questions,omitempty"`
+}
+
+type TextDecisionAnswer struct {
+	QuestionId string                     `json:"question_id,omitempty"`
+	Choice     *TextDecisionChoiceAnswer  `json:"choice,omitempty"`
+	Boolean    *TextDecisionBooleanAnswer `json:"boolean,omitempty"`
+}
+
+type TextDecisionBoolean struct {
+	TrueCriterion  *TextDecisionContent `json:"true_criterion,omitempty"`
+	FalseCriterion *TextDecisionContent `json:"false_criterion,omitempty"`
+}
+
+type TextDecisionBooleanAnswer struct {
+	TrueProbability float64 `json:"true_probability,omitempty"`
+}
+
+type TextDecisionCandidate struct {
+	Id          string               `json:"id,omitempty"`
+	Description *TextDecisionContent `json:"description,omitempty"`
+}
+
+type TextDecisionCandidateProbability struct {
+	CandidateId string  `json:"candidate_id,omitempty"`
+	Probability float64 `json:"probability,omitempty"`
+}
+
+type TextDecisionChoice struct {
+	Candidates []TextDecisionCandidate `json:"candidates,omitempty"`
+}
+
+type TextDecisionChoiceAnswer struct {
+	SelectedCandidateId string                             `json:"selected_candidate_id,omitempty"`
+	Probabilities       []TextDecisionCandidateProbability `json:"probabilities,omitempty"`
+}
+
+type TextDecisionContent struct {
+	Text string `json:"text,omitempty"`
+	Json string `json:"json,omitempty"`
+}
+
+type TextDecisionQuestion struct {
+	Id           string               `json:"id,omitempty"`
+	Instructions *TextDecisionContent `json:"instructions,omitempty"`
+	Choice       *TextDecisionChoice  `json:"choice,omitempty"`
+	Boolean      *TextDecisionBoolean `json:"boolean,omitempty"`
+}
+
+type TextDecisionResult struct {
+	Answers []TextDecisionAnswer `json:"answers,omitempty"`
 }
 
 type TextEmbedOutput struct {

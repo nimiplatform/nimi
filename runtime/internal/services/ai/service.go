@@ -43,6 +43,7 @@ const (
 	defaultStreamIdleTimeout                      = 30 * time.Second
 	defaultStreamTotalTimeout                     = 120 * time.Second
 	defaultEmbedTimeout                           = 20 * time.Second
+	defaultDecideTimeout                          = 120 * time.Second
 	defaultGenerateImageTimeout                   = 120 * time.Second
 	defaultGenerateVideoTimeout                   = 300 * time.Second
 	defaultSynthesizeTimeout                      = 45 * time.Second
@@ -81,6 +82,7 @@ type Service struct {
 	localSpeechHost                        localexecution.SpeechExecutionHost
 	localVisionHost                        localexecution.VisionExecutionHost
 	localAnnotationHost                    localexecution.TextAnnotationExecutionHost
+	localDecisionHost                      localexecution.TextDecisionExecutionHost
 	localAnnotationJobOrder                localMediaSubmissionOrder
 	localVisionJobOrder                    localMediaSubmissionOrder
 	localFaceSwapHost                      localexecution.FaceSwapExecutionHost
@@ -95,12 +97,14 @@ type Service struct {
 	capabilityDrivers                      *capabilitydriver.Registry
 	cloudTextDrivers                       *capabilitydriver.CloudTextRegistry
 	cloudEmbedDrivers                      *capabilitydriver.CloudEmbedRegistry
+	cloudDecideDrivers                     *capabilitydriver.CloudDecideRegistry
 	cloudMediaDrivers                      *capabilitydriver.CloudMediaRegistry
 	cloudRealtimeDrivers                   *capabilitydriver.CloudRealtimeRegistry
 	cloudProvider                          *nimillm.CloudProvider
 	cloudTextProvider                      provider
 	remoteTextHost                         remoteexecution.TextHost
 	remoteEmbedHost                        remoteexecution.EmbedHost
+	remoteDecideHost                       remoteexecution.DecideHost
 	remoteMediaHost                        remoteexecution.MediaHost
 	remoteRealtimeHost                     *remoteexecution.ProviderRealtimeHost
 	runtimeAccountProjection               runtimeAccountProjectionProvider
@@ -180,6 +184,9 @@ func newService(logger *slog.Logger, auditStore *auditlog.Store, connStore *conn
 		return nil, fmt.Errorf("init scenario job store: %w", err)
 	}
 	svc.scenarioJobs = scenarioJobs
+	if err := scenarioJobs.sweepExpiredDurableCopies(time.Now().UTC()); err != nil {
+		svc.logScenarioJobPersistenceFailure("ScenarioJob quarantine sweep remains pending", "error", err)
+	}
 	svc.scenarioJobs.setMusicArtifactStore(svc.runtimeArtifacts)
 	if localStatePath := strings.TrimSpace(daemonCfg.LocalStatePath); localStatePath != "" {
 		if err := cleanupMusicStagingAtStartup(filepath.Dir(localStatePath)); err != nil {
@@ -216,6 +223,7 @@ func newService(logger *slog.Logger, auditStore *auditlog.Store, connStore *conn
 				"level", diagnostic.Level,
 				"section", diagnostic.Section,
 				"record_index", diagnostic.RecordIndex,
+				"journal_line", diagnostic.JournalLine,
 				"record_id", diagnostic.RecordID,
 				"quarantine_path", diagnostic.QuarantinePath,
 				"detail", diagnostic.Message,
@@ -271,12 +279,14 @@ func newFromProviderConfig(logger *slog.Logger, auditStore *auditlog.Store, conn
 		capabilityDrivers:                      capabilitydriver.NewProductionRegistry(),
 		cloudTextDrivers:                       capabilitydriver.NewProductionCloudTextRegistry(),
 		cloudEmbedDrivers:                      capabilitydriver.NewProductionCloudEmbedRegistry(),
+		cloudDecideDrivers:                     capabilitydriver.NewProductionCloudDecideRegistry(),
 		cloudMediaDrivers:                      capabilitydriver.NewProductionCloudMediaRegistry(),
 		cloudRealtimeDrivers:                   capabilitydriver.NewProductionCloudRealtimeRegistry(),
 		cloudProvider:                          cloudProvider,
 		cloudTextProvider:                      remoteCloudTransport,
 		remoteTextHost:                         remoteexecution.NewProviderTextHost(connStore, remoteCloudTransport, hostAudit, cfg.AllowLoopbackEndpoint),
 		remoteEmbedHost:                        remoteexecution.NewProviderEmbedHost(connStore, remoteCloudTransport, hostAudit, cfg.AllowLoopbackEndpoint),
+		remoteDecideHost:                       remoteexecution.NewProviderDecideHost(connStore, remoteCloudTransport, hostAudit, cfg.AllowLoopbackEndpoint),
 		remoteMediaHost:                        remoteexecution.NewProviderMediaHost(connStore, remoteCloudTransport, hostAudit, cfg.AllowLoopbackEndpoint),
 		remoteRealtimeHost:                     remoteexecution.NewProviderRealtimeHost(connStore, cfg.AllowLoopbackEndpoint),
 		connStore:                              connStore,

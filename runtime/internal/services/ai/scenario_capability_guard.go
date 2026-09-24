@@ -44,6 +44,8 @@ func localScenarioCapability(scenarioType runtimev1.ScenarioType) (string, bool)
 	switch scenarioType {
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_ANNOTATE:
 		return "text.annotate", true
+	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_DECIDE:
+		return "text.decide", true
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_FACE_SWAP:
 		return "video.face_swap", true
 	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_FACE_SWAP:
