@@ -473,8 +473,13 @@ func applyPublicChatAPMLCapture(envelope *publicChatStructuredEnvelope, action *
 	return nil
 }
 
+// @nimi-authority: definition.nimi.runtime.agent-participation.output-wire-plane
 func normalizePublicChatAPMLText(value string) string {
-	return strings.Join(strings.Fields(strings.TrimSpace(value)), " ")
+	// Message text is user-visible content. Paragraphs, list indentation and code
+	// spacing must survive the APML carrier; only surrounding whitespace is framing.
+	value = strings.ReplaceAll(value, "\r\n", "\n")
+	value = strings.ReplaceAll(value, "\r", "\n")
+	return strings.TrimSpace(value)
 }
 
 func publicChatStructuredActionFromAPMLDraft(action publicChatAPMLActionDraft, messageID string, index int) (publicChatStructuredAction, error) {
