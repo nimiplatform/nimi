@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { createWork, createWorkspace, workCanEdit } from '../src/product/model.ts';
 
 // Execute the real initialization and store, replacing only the external SDK port.
 const result = await build({
-  entryPoints: [new URL('../src/product/engine.ts', import.meta.url).pathname],
+  entryPoints: [fileURLToPath(new URL('../src/product/engine.ts', import.meta.url))],
   bundle: true, platform: 'node', format: 'esm', write: false,
   plugins: [{ name: 'sdk-test-port', setup(builder) {
     builder.onResolve({ filter: /shell\/auth\/local-app-client$/ }, () => ({ path: 'client', namespace: 'test-port' }));
