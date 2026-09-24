@@ -416,3 +416,7 @@ scopes:
         value: "runtime/internal/services/account/**/*.go"
       - kind: path_glob
         value: "sdks/typescript/realm/**/*"
+  - scope: nimigo.workbench
+    bindings:
+      - kind: path_glob
+        value: "apps/nimigo/src/product/**"

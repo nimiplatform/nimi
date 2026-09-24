@@ -1,0 +1,54 @@
+format: nimicoding.authority/v2
+owner: team.nimigo
+scope: nimigo.workbench
+units:
+  - id: definition.nimi.nimigo.workbench.product
+    kind: definition
+    title: NimiGo project and delivery workspace
+    meaning: NimiGo is the ordinary nimi.go App that helps a user turn sourced work goals into reusable deliverables with an appointed existing Runtime LocalAgent; it owns projects, work items, source material, versioned deliverables, reusable work methods and explicitly enabled routines, while Runtime owns Agent identity, execution and Conversation and Cognition owns canonical long-term Memory and Knowledge.
+  - id: rule.nimi.nimigo.workbench.assignment
+    kind: rule
+    title: App-owned assignment restores only through current references
+    modality: must
+    statement: NimiGo persists only the App-scoped agentBinding for its appointment, restores it by matching a fresh current reference catalog, uses only that reference's current agentHandle for operations, and keeps project material and work methods when an Agent is changed; a missing Agent remains unappointed and a busy Agent cannot be silently replaced or interrupted.
+    condition: Whenever NimiGo appoints, restores, replaces or invokes its work partner.
+    failure: Show unavailable or busy state without name-based identity recovery, hidden Agent creation, copied personal Memory or substitute AI execution.
+    relations:
+      - type: applies_to
+        target: definition.nimi.nimigo.workbench.product
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.app-work-plane
+  - id: rule.nimi.nimigo.workbench.delivery
+    kind: rule
+    title: Work completion follows owner facts and durable business effects
+    modality: must
+    statement: NimiGo submits the chosen work goal, sourced business material and reusable method to the appointed LocalAgent through the formal work contract, executes only that turn's admitted App skills, saves complete deliverables in private Nimi-mediated assets with immutable versions before returning success, and presents accepted, queued, running, awaiting input, failed, interrupted and completed states from the corresponding actual facts; Runtime final completion does not fabricate a saved deliverable or a source-business effect, and reopening observes existing turns rather than replaying submissions or tool effects; stopping a work item uses its recorded turn id as the Runtime expected-turn fence and never interrupts a later turn.
+    condition: Whenever NimiGo performs, recovers, edits or exports work.
+    failure: Preserve already saved work and show failure or uncertainty without fake results, undeclared external calls, lost versions or automatic retry of an indeterminate effect.
+    relations:
+      - type: applies_to
+        target: definition.nimi.nimigo.workbench.product
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.app-work-plane
+  - id: rule.nimi.nimigo.workbench.ecosystem
+    kind: rule
+    title: Source operations preserve provenance and owner admission
+    modality: must
+    statement: NimiGo consumes public Activity and Realm World records with their source and update facts, opens source objects through the formal owner, and applies a proposed World summary change only after the user reviews its exact before and after; the write carries the source content hash and preserves unrelated fields, and only the Realm returned committed result may be described as applied. Home publications open the exact NimiGo work item and Avatar or voice interactions use the current appointed Agent through existing shared carriers.
+    condition: Whenever NimiGo reads or acts across an ecosystem boundary.
+    failure: Show owner denial, conflict or unavailable state without private-source reads, fabricated completion or silent source overwrite.
+    relations:
+      - type: applies_to
+        target: definition.nimi.nimigo.workbench.product
+  - id: rule.nimi.nimigo.workbench.routines
+    kind: rule
+    title: Routines have an explicit foreground lifetime and App origin
+    modality: must
+    statement: A user-enabled daily routine creates a new App-owned work item and submits an App-originated routineName only while NimiGo's renderer and its Nimi session are running; multiple work items are processed serially, the user can pause or run a routine explicitly, and a due time missed while closed is shown as missed without automatic catch-up. A final Home update is optional and reports only actual saved work or committed response facts.
+    condition: Whenever NimiGo enables, triggers, pauses or recovers a routine.
+    failure: Do not impersonate user speech, promise always-on background execution, replay missed effects or mark a timer record as a completed task.
+    relations:
+      - type: applies_to
+        target: definition.nimi.nimigo.workbench.product
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.app-work-plane

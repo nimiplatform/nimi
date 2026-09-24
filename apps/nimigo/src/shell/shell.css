@@ -1,0 +1,52 @@
+.app-shell {
+  position: relative;
+  height: 100%;
+  min-height: 100%;
+  overflow: clip;
+  display: flex;
+  flex-direction: column;
+  isolation: isolate;
+  background: var(--nimi-surface-canvas);
+}
+
+.runtime-check-screen,
+.runtime-unavailable-screen {
+  min-height: 100%;
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.runtime-alert-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.runtime-alert-copy strong,
+.runtime-alert-copy span {
+  min-width: 0;
+}
+
+.runtime-unavailable-panel {
+  width: min(560px, 100%);
+  display: grid;
+  gap: 18px;
+}
+
+.runtime-unavailable-heading {
+  display: grid;
+  gap: 10px;
+}
+
+.runtime-unavailable-heading h1 {
+  margin: 0;
+  letter-spacing: 0;
+}
+
+.runtime-action-hint {
+  margin: 0;
+  color: var(--nimi-text-secondary);
+  font-size: 13px;
+}

@@ -1,0 +1,48 @@
+{
+  "name": "@nimiplatform/nimigo",
+  "version": "0.1.1",
+  "private": true,
+  "type": "module",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "dev": "nimi-app dev --shell electron",
+    "dev:renderer": "vite --host 127.0.0.1 --port 1449 --strictPort",
+    "dev:shell": "nimi-app dev",
+    "dev:electron": "nimi-app dev --shell electron",
+    "typecheck:prepared": "tsc --noEmit",
+    "typecheck": "node ../../scripts/with-workspace-surfaces.mjs -- pnpm run typecheck:prepared",
+    "build:prepared": "tsc --noEmit && vite build",
+    "build": "node ../../scripts/with-workspace-surfaces.mjs -- pnpm run build:prepared",
+    "build:electron": "node ../../scripts/build-supervised-app-electron.mjs --consumer nimigo",
+    "test:app": "node --import tsx --test test/*.test.mjs",
+    "test": "node ../../scripts/with-workspace-surfaces.mjs -- pnpm run test:app",
+    "validate": "node scripts/validate.mjs"
+  },
+  "dependencies": {
+    "@nimiplatform/kit": "workspace:*",
+    "@nimiplatform/sdk": "workspace:*",
+    "lucide-react": "^0.577.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1"
+  },
+  "devDependencies": {
+    "@nimiplatform/app-tools": "workspace:*",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^24.13.3",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "@vitejs/plugin-react": "^5.2.0",
+    "electron": "^42.10.1",
+    "esbuild": "^0.28.2",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.6",
+    "yaml": "^2.9.0",
+    "tsx": "^4.23.13"
+  },
+  "author": "Nimi",
+  "license": "MIT",
+  "description": "让熟悉你的 Agent 把资料、想法与项目推进到可复用的成果。"
+}

@@ -15,7 +15,7 @@ import {
 
 const repoRoot = path.resolve(import.meta.dirname, '../..');
 
-test('Lab and Zhiyu forward explicit registration selection without reserving a CDP port for listing', () => {
+test('supervised workspace Apps forward registration selection without reserving a CDP port for listing', () => {
   const listed = resolveDevAppLaunch('lab', ['--list-registrations'], { platform: 'darwin' });
   assert.equal(listed.cdpPort, undefined);
   assert.deepEqual(listed.args.slice(-2), ['--', '--list-registrations']);
@@ -23,6 +23,14 @@ test('Lab and Zhiyu forward explicit registration selection without reserving a 
   assert.deepEqual(resumed.args.slice(-5), ['--', '--cdp-port', '9334', '--resume', 'dev-project-selected']);
   assert.throws(() => parseDevAppArguments('lab', ['--list-registrations', '--resume', 'dev-project-selected']));
   assert.throws(() => parseDevAppArguments('desktop', ['--list-registrations']));
+  for (const name of ['nimigo', 'nimiday']) {
+    const definition = DEV_APP_DEFINITIONS[name];
+    const listing = resolveDevAppLaunch(name, ['--list-registrations'], { platform: 'darwin' });
+    assert.equal(listing.cdpPort, undefined);
+    assert.deepEqual(listing.args, ['--filter', definition.packageName, 'run', 'dev:electron', '--', '--list-registrations']);
+    const resume = resolveDevAppLaunch(name, ['--resume', 'dev-project-existing'], { platform: 'darwin' });
+    assert.deepEqual(resume.args.slice(-5), ['--', '--cdp-port', String(definition.defaultCdpPort), '--resume', 'dev-project-existing']);
+  }
 });
 
 test('development apps have stable non-conflicting default CDP ports', () => {
@@ -36,11 +44,13 @@ test('development apps have stable non-conflicting default CDP ports', () => {
       zhiyu: 9334,
       lab: 9335,
       avatar: 9336,
+      nimigo: 9337,
+      nimiday: 9338,
     },
   );
   const ports = Object.values(DEV_APP_DEFINITIONS).map(({ defaultCdpPort }) => defaultCdpPort);
   assert.equal(new Set(ports).size, ports.length);
-  const rendererPorts = new Set([1420, 1427, 1468, 1472]);
+  const rendererPorts = new Set([1420, 1427, 1449, 1468, 1472, 1523]);
   assert.equal(ports.some((port) => rendererPorts.has(port)), false);
 });
 
@@ -164,6 +174,8 @@ test('root package commands route canonical and explicit Electron names through 
   assert.equal(packageDocument.scripts['dev:zhiyu'], 'node scripts/dev-app.mjs zhiyu');
   assert.equal(packageDocument.scripts['dev:lab'], 'node scripts/dev-app.mjs lab');
   assert.equal(packageDocument.scripts['dev:avatar'], 'node scripts/dev-app.mjs avatar');
+  assert.equal(packageDocument.scripts['dev:nimigo'], 'node scripts/dev-app.mjs nimigo');
+  assert.equal(packageDocument.scripts['dev:nimiday'], 'node scripts/dev-app.mjs nimiday');
   for (const appName of ['desktop', 'zhiyu', 'lab', 'avatar']) {
     assert.equal(
       packageDocument.scripts[`dev:electron:${appName}`],

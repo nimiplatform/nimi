@@ -1,0 +1,20 @@
+schema_version: 1
+app_id: nimi.day
+display_name: NimiDay
+version: 0.1.0
+app_access:
+  - agent.local
+  - app.activity
+capability_contract_refs: []
+required_standardized_feature_refs: []
+storage_policy:
+  kind: nimi-mediated-default
+metadata:
+  summary: 让你的 Nimi 助理替你照看日常：家人、自己和家里的大小事，到点提醒，用生活技能帮你安排、准备和跟进。
+  icon: assets/app-icon.png
+  readme: GUIDE.md
+  release_notes: RELEASE_NOTES.md
+  author: Nimi
+local_development:
+  electron:
+    renderer_origin: http://127.0.0.1:1523

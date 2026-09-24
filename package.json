@@ -155,6 +155,8 @@
     "dev:desktop": "node scripts/dev-app.mjs desktop",
     "dev:zhiyu": "node scripts/dev-app.mjs zhiyu",
     "dev:lab": "node scripts/dev-app.mjs lab",
+    "dev:nimigo": "node scripts/dev-app.mjs nimigo",
+    "dev:nimiday": "node scripts/dev-app.mjs nimiday",
     "dev:avatar": "node scripts/dev-app.mjs avatar",
     "dev:macos:desktop:installed": "pnpm --filter @nimiplatform/desktop dev:macos:installed",
     "dev:electron:desktop": "node scripts/dev-app.mjs desktop --electron",

@@ -1,0 +1,11 @@
+node_modules/
+dist/
+dist-electron/
+dist-electron-package/
+src-tauri/target/
+.env.local
+.env.*.local
+.nimi/local/
+.turbo/
+.vite/
+.DS_Store

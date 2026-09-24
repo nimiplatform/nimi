@@ -1,0 +1,20 @@
+schema_version: 1
+app_id: nimi.go
+display_name: NimiGo
+version: 0.1.1
+app_access:
+  - agent.local
+  - app.activity
+  - realm.data
+capability_contract_refs: []
+required_standardized_feature_refs: []
+storage_policy:
+  kind: nimi-mediated-default
+metadata:
+  summary: 让熟悉你的 Agent 把资料、想法与项目推进到可复用的成果。
+  icon: assets/app-icon.png
+  readme: USAGE.md
+  release_notes: RELEASE_NOTES.md
+local_development:
+  electron:
+    renderer_origin: http://127.0.0.1:1449

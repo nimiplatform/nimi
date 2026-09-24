@@ -1,0 +1,49 @@
+{
+  "name": "@nimiplatform/nimiday",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "dev": "nimi-app dev --shell electron",
+    "dev:renderer": "vite --host 127.0.0.1 --port 1523 --strictPort",
+    "dev:shell": "nimi-app dev",
+    "dev:electron": "nimi-app dev --shell electron",
+    "typecheck:prepared": "tsc --noEmit",
+    "typecheck": "node ../../scripts/with-workspace-surfaces.mjs -- pnpm run typecheck:prepared",
+    "build:prepared": "tsc --noEmit && vite build",
+    "build": "node ../../scripts/with-workspace-surfaces.mjs -- pnpm run build:prepared",
+    "build:electron": "node ../../scripts/build-supervised-app-electron.mjs --consumer nimiday",
+    "test:app": "vitest run",
+    "test": "node ../../scripts/with-workspace-surfaces.mjs -- pnpm run test:app",
+    "validate": "node scripts/validate.mjs",
+    "typecheck:test:prepared": "tsc -p tsconfig.test.json",
+    "typecheck:test": "node ../../scripts/with-workspace-surfaces.mjs -- pnpm run typecheck:test:prepared",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@nimiplatform/kit": "workspace:*",
+    "@nimiplatform/sdk": "workspace:*",
+    "lucide-react": "^0.577.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@nimiplatform/app-tools": "workspace:*",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^24.13.3",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "@vitejs/plugin-react": "^5.2.0",
+    "electron": "^42.10.1",
+    "esbuild": "^0.28.2",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.6",
+    "vitest": "^4.1.11",
+    "yaml": "^2.9.0",
+    "tsx": "^4.23.13"
+  },
+  "author": "Nimi",
+  "license": "MIT"
+}

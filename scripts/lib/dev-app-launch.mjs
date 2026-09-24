@@ -10,14 +10,26 @@ export const DEV_APP_DEFINITIONS = Object.freeze({
   zhiyu: Object.freeze({
     packageName: '@nimiplatform/zhiyu',
     defaultCdpPort: 9334,
+    supportsRegistrations: true,
   }),
   lab: Object.freeze({
     packageName: '@nimiplatform/lab',
     defaultCdpPort: 9335,
+    supportsRegistrations: true,
   }),
   avatar: Object.freeze({
     packageName: '@nimiplatform/avatar',
     defaultCdpPort: 9336,
+  }),
+  nimigo: Object.freeze({
+    packageName: '@nimiplatform/nimigo',
+    defaultCdpPort: 9337,
+    supportsRegistrations: true,
+  }),
+  nimiday: Object.freeze({
+    packageName: '@nimiplatform/nimiday',
+    defaultCdpPort: 9338,
+    supportsRegistrations: true,
   }),
 });
 
@@ -51,7 +63,7 @@ export function devAppUsage(appName) {
       'Electron Avatar is an avatar-only Desktop carrier and cannot run beside the regular Desktop dev instance.',
     );
   }
-  if (appName === 'lab' || appName === 'zhiyu') {
+  if (definition.supportsRegistrations) {
     lines.push('  --list-registrations  List existing registrations without launching.', '  --resume <selector>   Resume an explicitly selected current-host registration.');
   }
   lines.push('', `Electron CDP defaults to 127.0.0.1:${definition.defaultCdpPort}.`, '');
@@ -86,8 +98,8 @@ export function parseDevAppArguments(appName, argv = []) {
       continue;
     }
     if (argument === '--list-registrations' || argument === '--resume') {
-      if (appName !== 'lab' && appName !== 'zhiyu') {
-        throw launchError('dev-app-option-unsupported', `${argument} is available only for dev:lab and dev:zhiyu.`);
+      if (!definition.supportsRegistrations) {
+        throw launchError('dev-app-option-unsupported', `${argument} is available only for Desktop-supervised App registrations.`);
       }
       if (listRegistrations || resume !== undefined) throw launchError('dev-app-option-duplicate', 'Choose either --list-registrations or --resume once.');
       if (argument === '--list-registrations') listRegistrations = true;
