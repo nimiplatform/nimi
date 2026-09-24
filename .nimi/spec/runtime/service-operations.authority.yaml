@@ -941,3 +941,35 @@ units:
         target: definition.nimi.runtime.service-operations.memory-derived-payload
       - type: applies_to
         target: definition.nimi.runtime.service-operations.scenario-job-plane
+  - id: rule.nimi.runtime.service-operations.scenario-job-retention
+    kind: rule
+    title: Terminal ScenarioJob retention is bounded per delivery class
+    modality: must
+    statement: Runtime retains a terminal ScenarioJob with its captured inputs for 30 minutes after its terminal timestamp, removes an expired Job from memory and from every durable ScenarioJob store copy within one minute of expiry while Runtime runs, and removes Jobs that expired while it was stopped before a restarted Runtime serves requests. Count-based eviction keeps at most 1024 terminal SYNC or STREAM Jobs, whose results the caller already received inline, and separately at most 1024 terminal ASYNC_JOB Jobs, evicting oldest first only within the same class, so no burst of immediate Jobs from any App evicts a submitted Job's retained result. A Job that is still executing, holds Cloud credential custody, awaits Memory-derived payload disposal, or is an unexpired music recovery record is excluded from both count bounds and from this expiry.
+    condition: Whenever Runtime creates, transitions, prunes, persists, or reloads terminal ScenarioJob records.
+    failure: Reject evicting an ASYNC_JOB record to retain an immediate Job, evicting an excluded Job, or keeping an expired Job's captured inputs in memory or in durable store copies beyond the bound; a failed durable removal stays pending and is retried rather than reported as removed.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.scenario-job-plane
+  - id: rule.nimi.runtime.service-operations.scenario-job-isolation-evidence
+    kind: rule
+    title: Isolated ScenarioJob evidence is minimal and expires
+    modality: must
+    statement: When restart validation isolates ScenarioJob store rows, Runtime copies only the isolated rows into quarantine evidence and keeps healthy sibling rows only in the live store, while a store document that cannot be read as a whole is preserved whole. Every quarantine copy expires 30 minutes after its isolation, the same period as terminal ScenarioJob retention, and Runtime deletes expired copies and interrupted temporary store writes at startup and within one minute while it runs; authorized Memory-derived payload disposal still scrubs matching copies before expiry.
+    condition: Whenever Runtime isolates ScenarioJob durable state, sweeps its quarantine, or disposes Memory-derived payload.
+    failure: Reject copying healthy rows into quarantine, keeping a quarantine copy or interrupted temporary write past its expiry, or serving isolated rows as Jobs; a failed deletion stays pending and is retried.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.memory-derived-payload
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.scenario-job-plane
+  - id: rule.nimi.runtime.service-operations.scenario-job-incremental-persistence
+    kind: rule
+    title: ScenarioJob persistence follows the changed Job
+    modality: must
+    statement: Each ScenarioJob store mutation validates and durably appends only the Jobs, idempotency bindings, and credential-custody obligations it changed as one atomic record before its result is published, so per-mutation persistence cost follows the changed Job rather than the retained set. Runtime rewrites the store from live state when appended history outgrows the live state, when removed captured inputs must leave durable storage, and at startup. Reload applies appended records in order, discards only an unterminated or unreadable final append as never acknowledged, and isolates the whole document on any other unreadable or inconsistent content.
+    condition: Whenever Runtime persists, rewrites, or reloads the ScenarioJob store.
+    failure: Reject publication before the append is durable, per-mutation revalidation or rewrite of unchanged Jobs outside a store rewrite, a partially applied multi-row mutation, or silent acceptance of corrupt acknowledged state.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.service-operations.scenario-job-plane

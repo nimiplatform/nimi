@@ -1676,6 +1676,20 @@ units:
         target: definition.nimi.platform.core-protocol.capability-governance
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.vision-locate-contract
+  - id: rule.nimi.platform.core-protocol.p-capcat-007
+    kind: rule
+    title: P-CAPCAT-007 text decide capability admission
+    modality: must
+    statement: text.decide is admitted as one canonical model-independent typed decision CapabilityContract whose request, execution mode, result and failure semantics are owned by Runtime; its catalog row satisfies the existing source, localization, evidence-class and governance requirements before consumer use without naming a model, Driver, provider or engine as public task identity. It is neither an alias, subtype, structured-output mode nor fallback of text.generate or text.annotate, it may be implemented Locally and in Cloud, and catalog admission is not execution, model-quality or platform-support evidence.
+    condition: Whenever text.decide is cataloged, configured or projected.
+    failure: Reject a model-specific decision alias, incomplete catalog projection, text-generation substitute, and catalog-derived execution success, model quality or platform support.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.capability-catalog
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.capability-governance
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.text-decision-contract
   - id: definition.nimi.platform.core-protocol.architecture-layer-model
     kind: definition
     title: P-ARCH execution layer model

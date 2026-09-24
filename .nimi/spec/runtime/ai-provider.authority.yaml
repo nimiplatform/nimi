@@ -30,6 +30,10 @@ units:
     kind: definition
     title: Runtime vision locate contract
     meaning: vision.locate is the model-independent Runtime task that locates naturally described targets in one static image and returns typed boxes or predicted points in that image's canonical coordinate frame through the ScenarioJob lifecycle; it owns no model choice, video tracking, OCR transcription, segmentation, operating-system action, or LocalAgent participation.
+  - id: definition.nimi.runtime.ai-provider.text-decision-contract
+    kind: definition
+    title: Runtime typed text decision contract
+    meaning: text.decide is the model-independent Runtime task that answers one ordered set of App-authored choice and boolean questions about one bounded Unicode text or JSON state document with the typed probability results produced by the captured implementation, without generating text, selecting routes or owning the App workflow that forms, groups and acts on those questions.
   - id: definition.nimi.runtime.ai-provider.realtime-plane
     kind: definition
     title: Runtime provider-independent AI Realtime plane
@@ -1524,6 +1528,42 @@ units:
         target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+  - id: rule.nimi.runtime.ai-provider.text-decision
+    kind: rule
+    title: Text decision returns complete validated probabilities for every submitted question
+    modality: must
+    statement: The text.decide CapabilityContract executes only as a synchronous Scenario over one state that is Unicode text or one JSON object or array of at most 256 KiB of UTF-8 and one to 64 questions with unique IDs. JSON content anywhere in the request is strict JSON with unique object keys, nests at most 64 levels deep and contains only numbers that are finite IEEE 754 binary64 values. Each question has Unicode text or JSON object or array instructions of at most 32 KiB and is either a choice over 2 to 255 unique candidates, each with an optional text or JSON description, or a boolean with optional true and false criteria; question and candidate IDs are 1 to 64 bytes of Unicode without control characters, each description or criterion is at most 8 KiB, and the complete request is at most 1 MiB. IDs, descriptions and criteria may be presented to the model as question content. The typed result answers every submitted question exactly once in submitted order; a choice returns the selected candidate ID and one finite probability in [0,1] for every submitted candidate in submitted order whose sum is within 0.02 of one and whose selected probability is within 1e-6 of the largest, allowing ties, and a boolean returns the finite probability in [0,1] that its true criterion holds. Runtime validates the complete result before returning it, captures the effective input and ResolvedAssembly through the existing immediate Job owner, and projects only typed answers and trace identity through the existing App session, App Access and AIConfig boundaries, without provider, model, raw response, provider confidence or credential exposure. Apps own question wording, request grouping, thresholds, business defaults and actions; Runtime never splits, merges, reorders, truncates or rewrites submitted state, questions or candidates, fills missing answers, derives probabilities, retries through another implementation or route, or substitutes text generation.
+    condition: Whenever text.decide is admitted, executed, validated or projected to an App.
+    failure: Reject invalid or oversized requests with AI_INPUT_INVALID before execution, input that the captured implementation cannot encode completely with AI_INPUT_LIMIT_EXCEEDED, and missing, extra, unknown, non-finite, out-of-range, unnormalized or inconsistent answers with AI_OUTPUT_INVALID, preserving cancellation, timeout and configuration failures without partial success, synthesized answers or fallback.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.text-decision-contract
+  - id: rule.nimi.runtime.ai-provider.laya-local-decision
+    kind: rule
+    title: Local Laya decisions encode one captured checkpoint completely
+    modality: must
+    statement: The initial Local text.decide Driver executes one exact Laya checkpoint ModelAsset bound by its recipe, whose content provides rl_agent_config.json, model.safetensors, encoder/config.json and tokenizer files, using the laya 0.3.11 decision model definition with PyTorch and transformers from a managed Python dependency profile; Runtime captures the model content and profile in the existing immediate Job ResolvedAssembly and executes them in a private supervised resident Decision Worker on CUDA when the captured profile targets CUDA and otherwise on CPU. Each question is encoded as the upstream Laya sequence of question type and instructions, one mask marker per option in submitted order and the serialized state, with choice options rendered as candidate ID and optional description and boolean options rendered false then true; JSON values use the upstream Unicode JSON rendering and literal special-token text inside content is tokenized as ordinary text. The Driver never applies upstream option, instruction or state truncation and accepts a question only when its complete sequence fits the maximum positions of the captured encoder. Probabilities are the softmax of the option logits divided by the checkpoint's own temperature for the question type and option count, clamped to the upstream 0.5 to 5.0 range, without rounding, confidence or act-head output. The worker loads only captured files, without network access, tokenizer rewriting, automatic device fallback or cross-checkpoint routing; the same captured identities may reuse the loaded checkpoint and changed identities replace it. It follows existing execution leases and cancellation ownership; a started accelerator computation may finish, but its result is discarded after cancellation and success is never published.
+    condition: Whenever the Local Laya decision recipe is configured, captured, materialized or executed.
+    failure: Fail the exact call with AI_INPUT_LIMIT_EXCEEDED when a question cannot be encoded completely, and with the existing local model, dependency, load, execution or cancellation failure when captured content is missing or changed, the profile or device is unavailable or inference fails, without truncation, substitution or guessed answers.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.text-decision-contract
+  - id: rule.nimi.runtime.ai-provider.typesafe-cloud-decision
+    kind: rule
+    title: Cloud TypeSafe decisions map exactly to System One
+    modality: must
+    statement: The initial Cloud text.decide implementation calls TypeSafe System One at POST /v1/systemone with the committed Connector credential and exact committed model target, sending the state as a JSON string or the submitted JSON value and the questions in submitted order keyed by question ID, with choice criteria keyed by candidate ID and boolean questions as noul carrying only the supplied true and false criteria, while preserving submitted JSON structure. It accepts only a complete response whose answers match the submitted question IDs and types, converts each noul answer to the boolean true probability and each choice distribution to submitted candidate order, and removes provider confidence, legend, usage and model metadata from the App result. Provider authentication, validation, rate-limit, overload, server and timeout failures map to the existing typed provider and input reasons without retrying through another provider, model or route, and the provider's own token limits remain provider-enforced.
+    condition: Whenever a Cloud TypeSafe decision target is configured, captured or executed.
+    failure: Reject missing credentials or targets before dispatch and return typed provider, input or AI_OUTPUT_INVALID failures for provider errors or incomplete, extra, mistyped or inconsistent answers, without partial success, fabricated probabilities or fallback.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.connector-plane
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.text-decision-contract
   - id: rule.nimi.runtime.ai-provider.qwen3-reference-voice-library
     kind: rule
     title: Explicit Qwen3 voice library captures design and reference models

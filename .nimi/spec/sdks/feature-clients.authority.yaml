@@ -858,6 +858,18 @@ units:
         target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
       - type: applies_to
         target: definition.nimi.sdks.feature-clients.app-client-plane
+  - id: rule.nimi.sdks.feature-clients.scenario-execute-call-control
+    kind: rule
+    title: Local App scenario execute carries text decisions and per-call control
+    modality: must
+    statement: runtime.ai.scenario.execute admits the typed text-decide variant beside the other execute variants and accepts an optional per-call AbortSignal and an integer timeout of 1 to 120000 milliseconds. The SDK, renderer bridge, Host and native carrier carry cancellation through a Host-generated call correlation scoped to the current Host session rather than a serialized signal, drop the pending native Runtime call so Runtime observes context cancellation, and apply the timeout as that call's deadline. An aborted call settles for its caller as the existing typed canceled failure without waiting for Runtime, an elapsed caller deadline settles as a typed timeout failure that leaves the protected App session valid, a late result is never projected after either, and session invalidation cancels every outstanding call. The typed text-decide projection preserves every submitted question and candidate ID, the selected candidate and complete probability distribution or true probability, and the trace identity without adding confidence, defaults or provider metadata.
+    condition: Whenever a Local App executes a synchronous scenario through the SDK and Kit carriers or receives a text-decide result.
+    failure: Reject invalid input or call options before transport, return the typed canceled or timeout failure instead of a late result, and reject a missing, extra or inconsistent text-decide answer without invalidating the protected session, fabricating output or reporting Runtime-confirmed cancellation that did not occur.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.text-decision-contract
+      - type: applies_to
+        target: definition.nimi.sdks.feature-clients.app-client-plane
   - id: rule.nimi.sdks.feature-clients.r103
     kind: rule
     title: Runtime Agent voice input remains bounded and typed
