@@ -705,23 +705,33 @@ export async function runNimiLocalAppActivityOpen(
   const iterator = runtime.openAppActivity({ activityId: activityIdValue }, { signal: controller.signal })[Symbol.asyncIterator]();
   let launchFailure: { readonly outcome: string; readonly reason: string } | undefined;
   let graceTimer: ReturnType<typeof setTimeout> | undefined;
-  let graceElapsed: Promise<'grace-elapsed'> | undefined;
+  let graceElapsed: Promise<{ kind: 'grace' }> | undefined;
+  let launching: Promise<{ kind: 'launch'; value: Awaited<ReturnType<NimiLocalAppActivityHostLaunch>> }> | undefined;
+  let pending = iterator.next().then(value => ({ kind: 'stream' as const, value }));
   try {
     while (true) {
-      const next = graceElapsed ? await Promise.race([iterator.next(), graceElapsed]) : await iterator.next();
-      if (next === 'grace-elapsed') return launchFailure!;
+      // Keep reading Runtime while Desktop starts the source. A slow launch
+      // acknowledgement must not hide the source confirmation or owner deadline.
+      const outcome = await Promise.race([pending, ...(launching ? [launching] : []), ...(graceElapsed ? [graceElapsed] : [])]);
+      if (outcome.kind === 'grace') return launchFailure!;
+      if (outcome.kind === 'launch') {
+        launching = undefined;
+        if (outcome.value.status !== 'requested') {
+          launchFailure = { outcome: outcome.value.status, reason: outcome.value.reason };
+          graceElapsed = new Promise(resolve => {
+            graceTimer = setTimeout(() => resolve({ kind: 'grace' }), launchFailureGraceMs);
+          });
+        }
+        continue;
+      }
+      const next = outcome.value;
       if (next.done) return launchFailure ?? { outcome: 'failed', reason: 'source-not-ready' };
       const event = next.value.event;
       if (event.oneofKind === 'openRequestId') {
-        const launched = await launch(event.openRequestId).catch(() => ({ status: 'failed' as const, reason: 'launch-failed' as const }));
-        if (launched.status !== 'requested') {
-          // Only the source App's confirmation yields opened; a running
-          // source may still confirm although launch or focus failed.
-          launchFailure = { outcome: launched.status, reason: launched.reason };
-          graceElapsed = new Promise((resolve) => {
-            graceTimer = setTimeout(() => resolve('grace-elapsed'), launchFailureGraceMs);
-          });
-        }
+        launching = launch(event.openRequestId)
+          .catch(() => ({ status: 'failed' as const, reason: 'launch-failed' as const }))
+          .then(value => ({ kind: 'launch' as const, value }));
+        pending = iterator.next().then(value => ({ kind: 'stream' as const, value }));
         continue;
       }
       if (event.oneofKind === 'result' && event.result) return runtimeOpenResultJson(event.result.outcome, event.result.reason);
@@ -729,9 +739,9 @@ export async function runNimiLocalAppActivityOpen(
     }
   } finally {
     if (graceTimer !== undefined) clearTimeout(graceTimer);
-    // Aborting cancels the Runtime request; a next() still pending after the
-    // grace must not hold the result, so return() is not awaited.
     controller.abort();
+    pending.catch(() => undefined);
+    // Generator cancellation must not delay the already authoritative result.
     void Promise.resolve(iterator.return?.()).catch(() => undefined);
   }
 }

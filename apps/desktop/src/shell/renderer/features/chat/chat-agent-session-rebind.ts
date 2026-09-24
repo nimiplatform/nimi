@@ -53,7 +53,8 @@ export async function resolveDesktopAgentSessionRebind(
       }
       matches.push(reference);
     } catch (error) {
-      if (!isNimiLocalAppAgentSelectorMismatchError(error)) {
+      if (!isNimiLocalAppAgentSelectorMismatchError(error)
+        && normalizeText(extractNimiErrorFields(error).reasonCode) !== 'LOCAL_APP_RECORD_NOT_FOUND') {
         throw error;
       }
     }

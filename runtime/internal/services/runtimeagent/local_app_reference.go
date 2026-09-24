@@ -116,8 +116,9 @@ func projectLocalAppAgentReferences(
 		}
 		seenHandles[handle] = struct{}{}
 		reference := &runtimev1.LocalAppAgentReference{
-			AgentHandle: handle,
-			DisplayName: displayName,
+			AgentHandle:  handle,
+			AgentBinding: mintLocalAppAgentBinding(decision, localAgentID),
+			DisplayName:  displayName,
 		}
 		if item.AvatarURL != nil && safeLocalAppAgentAvatarURL(*item.AvatarURL) {
 			avatarURL := *item.AvatarURL
@@ -126,6 +127,13 @@ func projectLocalAppAgentReferences(
 		references = append(references, reference)
 	}
 	return references, true
+}
+
+// Stable correlation never grants access and never replaces the current handle.
+func mintLocalAppAgentBinding(decision accountservice.LocalAppCallerDecision, localAgentID string) string {
+	mac := hmac.New(sha256.New, []byte(localAgentID))
+	_, _ = mac.Write([]byte("nimi.runtime.app-agent-binding/v1\x00" + decision.AccountID + "\x00" + decision.RegisteredAppSubject))
+	return "agent_binding_" + base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
 }
 func mintLocalAppAgentHandle(decision accountservice.LocalAppCallerDecision, localAgentID string) string {
 	localAgentID = strings.TrimSpace(localAgentID)

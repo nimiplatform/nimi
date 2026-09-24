@@ -87,7 +87,7 @@ func cognitionMemoryMessageEnvelope(binding cognitionmemory.Binding, committedAt
 	actor := runtimev1.CognitionMemoryActorRole_COGNITION_MEMORY_ACTOR_ROLE_ASSISTANT
 	if userSide {
 		actor = runtimev1.CognitionMemoryActorRole_COGNITION_MEMORY_ACTOR_ROLE_USER
-		if origin == publicChatTurnOriginFollowUp {
+		if origin == publicChatTurnOriginFollowUp || origin == publicChatTurnOriginApp {
 			actor = runtimev1.CognitionMemoryActorRole_COGNITION_MEMORY_ACTOR_ROLE_TOOL
 		}
 	}

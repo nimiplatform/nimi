@@ -1595,7 +1595,7 @@ export function createAppScaffoldCandidate(input) {
   return createAppScaffold({ ...input, plan });
 }
 
-export const APP_AUTHOR_DECLARATION_FIELDS = Object.freeze(['metadata', 'capability_contract_refs', 'required_standardized_feature_refs', 'storage_policy', 'safety_profile']);
+export const APP_AUTHOR_DECLARATION_FIELDS = Object.freeze(['metadata', 'app_access', 'capability_contract_refs', 'required_standardized_feature_refs', 'storage_policy', 'safety_profile']);
 
 // Source configuration is editable; existing scaffold checks still cover identity and carrier fields.
 export function hashScaffoldManagedContent(relativePath, content) {

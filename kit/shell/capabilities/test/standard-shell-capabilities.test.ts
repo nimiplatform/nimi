@@ -199,6 +199,8 @@ describe('standard shell capabilities', () => {
       'local-app.agentReferenceList',
       'local-app.conversationOpen',
       'local-app.conversationSendTurn',
+      'local-app.conversationToolCallsList',
+      'local-app.conversationToolResultSubmit',
       'local-app.conversationAttachmentUpload',
       'local-app.conversationArtifactRead',
       'local-app.conversationVoiceTranscribe',

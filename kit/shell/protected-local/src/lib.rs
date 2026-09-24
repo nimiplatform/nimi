@@ -149,6 +149,7 @@ pub use carrier::{
     LocalAppConversationInterruptRequest, LocalAppConversationInterruptResult,
     LocalAppConversationMessage, LocalAppConversationMessageRole, LocalAppConversationOpenRequest,
     LocalAppConversationOpenResult, LocalAppConversationSendRequest,
+    LocalAppConversationToolScopeRequest, LocalAppConversationToolResultRequest,
     LocalAppConversationSendResult, LocalAppConversationSnapshot,
     LocalAppConversationSnapshotRequest, LocalAppConversationSubscribeRequest,
     LocalAppConversationSubscriptionReceiver, LocalAppConversationVoiceRenderRequest,

@@ -22,6 +22,7 @@ const bridge = registerNimiElectronAppBridge({
   appId: 'nimi.example.local-app',
   allowedRendererUrls: [rendererUrl],
   ipcMain,
+  onSessionInvalidated: invalidateAppWorkAndResetRenderers,
   assetMediaPlatform: { protocol, webRequest: session.defaultSession.webRequest, webContents },
 });
 ```
@@ -74,7 +75,15 @@ Host. Register fixed business commands through `appCommandHandlers` and use
 `onSessionInvalidated` to abort application tasks and clear their account-scoped
 memory. These handlers never occupy the reserved `nimi.shell.*` namespace.
 Business requests carry their own cancellation signal into the SDK model
-binding and check it before committing asynchronous work. Renderer disconnect
+binding and check it before committing asynchronous work.
+The callback runs before rebind; it must synchronously make old App work
+unusable. New renderer calls wait for the rebind to finish, and old in-flight
+responses cannot become a successful response in the new scope. Standard App
+Tools Hosts destroy the old renderer windows and create new ones in the same
+Host on this callback, so old renderer timers and queues cannot retry into the
+new scope. Load a fresh store there; never flush or copy the invalidated store.
+Normal successful technical renewal does not trigger this callback.
+ Renderer disconnect
 does not itself replay or cancel a business workflow; the App owns that policy.
 
 This entrypoint has no Runtime endpoint, ordinary gRPC factory, native-host

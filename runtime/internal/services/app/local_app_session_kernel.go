@@ -543,6 +543,8 @@ func (s *Service) AuthorizeLocalAppIngress(ctx context.Context, ingress localapp
 	case localappop.OperationAgentReferenceList,
 		localappop.OperationConversationOpen,
 		localappop.OperationConversationTurnSend,
+		localappop.OperationConversationToolCallsList,
+		localappop.OperationConversationToolResultSubmit,
 		localappop.OperationConversationTurnInterrupt,
 		localappop.OperationConversationEventsSubscribe,
 		localappop.OperationConversationSnapshotGet,

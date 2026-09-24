@@ -51,6 +51,7 @@ function references(current: () => readonly NimiLocalAppAgentHandle[]): NimiLoca
     async listReferences() {
       return current().map((agentHandle, index) => ({
         agentHandle,
+        agentBinding: agentHandle.replace('agent_ref_', 'agent_binding_'),
         displayName: `Agent ${index + 1}`,
         avatarUrl: null,
       }));
@@ -72,6 +73,7 @@ describe('Avatar current-session Agent binding', () => {
   it.each([
     ['Electron', conversationResourceNotFound],
     ['Host', hostConversationResourceNotFound],
+    ['Canonical Runtime', () => Object.assign(new Error('missing candidate anchor'), { reasonCode: 'LOCAL_APP_RECORD_NOT_FOUND' })],
   ])('rebinds from the handed-off anchor across the %s transport error shape', async (_transport, mismatch) => {
     const snapshot = vi.fn(async (agentHandle: NimiLocalAppAgentHandle) => {
       if (agentHandle === HANDLE_A) throw mismatch();

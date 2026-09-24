@@ -328,9 +328,10 @@ export enum AgentTurnContextLaneId {
   COGNITION_SOURCE = 12,
   CONVERSATION_SUMMARY = 13,
   PRIVATE_RECALL = 14,
+  APP_WORK = 15,
 }
 
-const KNOWN_AGENT_TURN_CONTEXT_LANE_ID_VALUES: ReadonlySet<number> = new Set([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
+const KNOWN_AGENT_TURN_CONTEXT_LANE_ID_VALUES: ReadonlySet<number> = new Set([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
 
 export function isKnownAgentTurnContextLaneId(value: unknown): value is AgentTurnContextLaneId {
   return typeof value === 'number' && Number.isInteger(value) && KNOWN_AGENT_TURN_CONTEXT_LANE_ID_VALUES.has(value);

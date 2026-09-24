@@ -360,6 +360,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListLocalAppAgentReferencesResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppConversationToolCalls",
+        service: "RuntimeAgentService",
+        method: "ListLocalAppConversationToolCalls",
+        kind: "unary",
+        request_type: "ListLocalAppConversationToolCallsRequest",
+        response_type: "ListLocalAppConversationToolCallsResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions",
         service: "RuntimeAgentService",
         method: "ListLocalAppSharedLocalAgentAIConfigOptions",
@@ -518,6 +526,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "unary",
         request_type: "SubmitDelegatedApprovalDecisionRequest",
         response_type: "SubmitDelegatedApprovalDecisionResponse",
+    },
+    RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppConversationToolResult",
+        service: "RuntimeAgentService",
+        method: "SubmitLocalAppConversationToolResult",
+        kind: "unary",
+        request_type: "SubmitLocalAppConversationToolResultRequest",
+        response_type: "SubmitLocalAppConversationToolResultResponse",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents",

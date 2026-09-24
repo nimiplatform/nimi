@@ -173,6 +173,8 @@ func isWriteMethod(fullMethod string) bool {
 		"/nimi.runtime.v1.RuntimeAgentService/CloseLocalAppAgentRealtime",
 		"/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation",
 		"/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn",
+		"/nimi.runtime.v1.RuntimeAgentService/ListLocalAppConversationToolCalls",
+		"/nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppConversationToolResult",
 		"/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment",
 		"/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact",
 		"/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppConversationVoice",

@@ -40,6 +40,8 @@ const (
 	protectedAvatarHostTargetRevalidateMethod     = "/nimi.runtime.v1.RuntimeAgentService/RevalidateLocalAppAvatarHostTarget"
 	protectedOpenConversationMethod               = "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation"
 	protectedSendConversationTurnMethod           = "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn"
+	protectedListConversationToolCallsMethod      = "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppConversationToolCalls"
+	protectedSubmitConversationToolResultMethod   = "/nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppConversationToolResult"
 	protectedUploadConversationAttachmentMethod   = "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment"
 	protectedReadConversationArtifactMethod       = "/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact"
 	protectedTranscribeConversationVoiceMethod    = "/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppConversationVoice"
@@ -140,6 +142,8 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 	protectedAvatarHostTargetRevalidateMethod:     localAppSessionMethodPolicy(),
 	protectedOpenConversationMethod:               localAppSessionMethodPolicy(),
 	protectedSendConversationTurnMethod:           localAppSessionMethodPolicy(),
+	protectedListConversationToolCallsMethod:      localAppSessionMethodPolicy(),
+	protectedSubmitConversationToolResultMethod:   localAppSessionMethodPolicy(),
 	protectedUploadConversationAttachmentMethod:   localAppSessionMethodPolicy(),
 	protectedReadConversationArtifactMethod:       localAppSessionMethodPolicy(),
 	protectedTranscribeConversationVoiceMethod:    localAppSessionMethodPolicy(),
@@ -582,6 +586,10 @@ func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingres
 		return localappop.IngressAgentRealtimeClose
 	case protectedOpenConversationMethod:
 		return localappop.IngressConversationOpen
+	case protectedListConversationToolCallsMethod:
+		return localappop.IngressConversationToolCallsList
+	case protectedSubmitConversationToolResultMethod:
+		return localappop.IngressConversationToolResultSubmit
 	case protectedSendConversationTurnMethod:
 		return localappop.IngressConversationTurnSend
 	case protectedUploadConversationAttachmentMethod:
@@ -655,6 +663,7 @@ func protectedLocalAppOwnerEnabled(method string, request any, ingress localappo
 		protectedAgentReferenceListMethod, protectedAvatarHostTargetResolveMethod,
 		protectedAvatarHostTargetRevalidateMethod,
 		protectedOpenConversationMethod, protectedSendConversationTurnMethod,
+		protectedListConversationToolCallsMethod, protectedSubmitConversationToolResultMethod,
 		protectedUploadConversationAttachmentMethod, protectedReadConversationArtifactMethod, protectedTranscribeConversationVoiceMethod, protectedRenderConversationVoiceMethod,
 		protectedInterruptConversationTurnMethod, protectedConversationSnapshotMethod,
 		protectedEmbodimentSnapshotMethod,

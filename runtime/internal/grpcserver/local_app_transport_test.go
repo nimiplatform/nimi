@@ -347,6 +347,8 @@ func TestProtectedLocalAppConversationUnaryOwnersDispatchAfterAdmission(t *testi
 		request any
 		ingress localappop.Ingress
 	}{
+		{method: protectedListConversationToolCallsMethod, request: &runtimev1.ListLocalAppConversationToolCallsRequest{}, ingress: localappop.IngressConversationToolCallsList},
+		{method: protectedSubmitConversationToolResultMethod, request: &runtimev1.SubmitLocalAppConversationToolResultRequest{}, ingress: localappop.IngressConversationToolResultSubmit},
 		{method: protectedUploadConversationAttachmentMethod, request: &runtimev1.UploadLocalAppConversationAttachmentRequest{}, ingress: localappop.IngressConversationAttachmentUpload},
 		{method: protectedReadConversationArtifactMethod, request: &runtimev1.ReadLocalAppConversationArtifactRequest{}, ingress: localappop.IngressConversationArtifactRead},
 		{method: protectedTranscribeConversationVoiceMethod, request: &runtimev1.TranscribeLocalAppConversationVoiceRequest{}, ingress: localappop.IngressConversationVoiceTranscribe},

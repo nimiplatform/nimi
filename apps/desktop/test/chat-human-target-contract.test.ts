@@ -96,6 +96,7 @@ test('human sidebar targets include human friends without duplicating existing c
 test('agent sidebar target is built only from the canonical reference projection', () => {
   const reference: NimiLocalAppAgentReference = {
     agentHandle: AGENT_HANDLE as NimiLocalAppAgentReference['agentHandle'],
+    agentBinding: AGENT_HANDLE.replace('agent_ref_', 'agent_binding_'),
     displayName: 'Runtime Archivist',
     avatarUrl: 'https://cdn.example.test/agent.png',
   };

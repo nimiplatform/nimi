@@ -332,7 +332,8 @@ export type NimiLocalAppAgentManagerLaneId =
   | 'current_user_turn'
   | 'cognition_source'
   | 'conversation_summary'
-  | 'private_recall';
+  | 'private_recall'
+  | 'app_work';
 
 export type NimiLocalAppAgentManagerLaneState =
   | 'included'
@@ -676,7 +677,7 @@ const MANAGER_LANE_IDS = new Set<NimiLocalAppAgentManagerLaneId>([
   'runtime_policy', 'output_contract', 'source_identity', 'source_behavior', 'world_context',
   'relationship_context', 'source_knowledge', 'canonical_memory', 'conversation_history',
   'capability_context', 'current_user_turn', 'cognition_source', 'conversation_summary',
-  'private_recall',
+  'private_recall', 'app_work',
 ]);
 const MANAGER_LANE_STATES = new Set<NimiLocalAppAgentManagerLaneState>([
   'included', 'empty', 'omitted', 'truncated', 'invalid',
@@ -1744,6 +1745,7 @@ function projectRuntimeManagerLaneId(value: AgentTurnContextLaneId): NimiLocalAp
     [AgentTurnContextLaneId.COGNITION_SOURCE]: 'cognition_source',
     [AgentTurnContextLaneId.CONVERSATION_SUMMARY]: 'conversation_summary',
     [AgentTurnContextLaneId.PRIVATE_RECALL]: 'private_recall',
+    [AgentTurnContextLaneId.APP_WORK]: 'app_work',
   };
   return names[value] ?? localAppProjectionError('Agent Center manager lane id');
 }

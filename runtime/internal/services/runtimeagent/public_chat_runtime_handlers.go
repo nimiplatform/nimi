@@ -151,6 +151,9 @@ func (r publicChatRuntime) handleTurnInterruptWithID(
 		req,
 	)
 	if err != nil {
+		if req.ExpectedTurnID != "" && status.Code(err) == codes.NotFound {
+			return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_TURN_NOT_ACTIVE)
+		}
 		return "", err
 	}
 	reason, err := normalizePublicChatCancellationReason(req.Reason)
@@ -159,6 +162,17 @@ func (r publicChatRuntime) handleTurnInterruptWithID(
 	}
 	var cancel context.CancelFunc
 	r.svc.chatSurfaceMu.Lock()
+	// @nimi-authority: rule.nimi.runtime.agent-participation.r175
+	// Compare and interrupt under the same owner lock. A snapshot at the App
+	// cannot fence another App starting a later turn before this RPC arrives.
+	if req.ExpectedTurnID != "" {
+		anchor := r.svc.chatAnchors[session.ConversationAnchorID]
+		current := r.svc.chatTurns[turn.TurnID]
+		if anchor == nil || anchor.ActiveTurnID != req.ExpectedTurnID || turn.TurnID != req.ExpectedTurnID || current == nil || current.Interrupted {
+			r.svc.chatSurfaceMu.Unlock()
+			return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AGENT_TURN_NOT_ACTIVE)
+		}
+	}
 	if current := r.svc.chatTurns[turn.TurnID]; current != nil {
 		current.Interrupted = true
 		current.InterruptReason = reason

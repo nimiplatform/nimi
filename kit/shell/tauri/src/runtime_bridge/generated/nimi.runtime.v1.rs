@@ -537,6 +537,8 @@ pub enum ReasonCode {
     /// covers same-revision content differences and stale revisions; cursor
     /// expired requires relisting instead of claiming a complete replay; open
     /// request unavailable covers late, foreign, or already resolved deliveries.
+    AgentBusy = 764,
+    AgentTurnNotActive = 765,
     AppActivityInputInvalid = 763,
     AppActivityRevisionConflict = 755,
     AppActivityNotFound = 756,
@@ -924,6 +926,8 @@ impl ReasonCode {
             Self::AiMusicRecoveryCapacityExceeded => {
                 "AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED"
             }
+            Self::AgentBusy => "AGENT_BUSY",
+            Self::AgentTurnNotActive => "AGENT_TURN_NOT_ACTIVE",
             Self::AppActivityInputInvalid => "APP_ACTIVITY_INPUT_INVALID",
             Self::AppActivityRevisionConflict => "APP_ACTIVITY_REVISION_CONFLICT",
             Self::AppActivityNotFound => "APP_ACTIVITY_NOT_FOUND",
@@ -1382,6 +1386,8 @@ impl ReasonCode {
             "AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED" => {
                 Some(Self::AiMusicRecoveryCapacityExceeded)
             }
+            "AGENT_BUSY" => Some(Self::AgentBusy),
+            "AGENT_TURN_NOT_ACTIVE" => Some(Self::AgentTurnNotActive),
             "APP_ACTIVITY_INPUT_INVALID" => Some(Self::AppActivityInputInvalid),
             "APP_ACTIVITY_REVISION_CONFLICT" => Some(Self::AppActivityRevisionConflict),
             "APP_ACTIVITY_NOT_FOUND" => Some(Self::AppActivityNotFound),
@@ -17561,6 +17567,7 @@ pub enum AgentTurnContextLaneId {
     CognitionSource = 12,
     ConversationSummary = 13,
     PrivateRecall = 14,
+    AppWork = 15,
 }
 impl AgentTurnContextLaneId {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -17590,6 +17597,7 @@ impl AgentTurnContextLaneId {
                 "AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_SUMMARY"
             }
             Self::PrivateRecall => "AGENT_TURN_CONTEXT_LANE_ID_PRIVATE_RECALL",
+            Self::AppWork => "AGENT_TURN_CONTEXT_LANE_ID_APP_WORK",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -17618,6 +17626,7 @@ impl AgentTurnContextLaneId {
                 Some(Self::ConversationSummary)
             }
             "AGENT_TURN_CONTEXT_LANE_ID_PRIVATE_RECALL" => Some(Self::PrivateRecall),
+            "AGENT_TURN_CONTEXT_LANE_ID_APP_WORK" => Some(Self::AppWork),
             _ => None,
         }
     }
@@ -21167,6 +21176,9 @@ pub struct LocalAppAgentReference {
     pub display_name: ::prost::alloc::string::String,
     #[prost(string, optional, tag = "3")]
     pub avatar_url: ::core::option::Option<::prost::alloc::string::String>,
+    /// Stable only within this account and registered App; correlation, never access.
+    #[prost(string, tag = "4")]
+    pub agent_binding: ::prost::alloc::string::String,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListLocalAppAgentReferencesRequest {}
@@ -21339,6 +21351,86 @@ pub struct SendLocalAppConversationTurnRequest {
     pub request_id: ::prost::alloc::string::String,
     #[prost(message, repeated, tag = "5")]
     pub parts: ::prost::alloc::vec::Vec<LocalAppConversationInputPart>,
+    #[prost(message, optional, tag = "6")]
+    pub work: ::core::option::Option<LocalAppConversationWork>,
+}
+/// App-authored business context. Runtime supplies provenance and composes it
+/// below its policy and the LocalAgent's own source identity.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppConversationWorkSource {
+    #[prost(string, tag = "1")]
+    pub source_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub content: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppConversationWorkTool {
+    #[prost(string, tag = "1")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub input_schema_json: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAppConversationWork {
+    #[prost(string, tag = "1")]
+    pub work_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub instructions: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "3")]
+    pub sources: ::prost::alloc::vec::Vec<LocalAppConversationWorkSource>,
+    #[prost(message, repeated, tag = "4")]
+    pub tools: ::prost::alloc::vec::Vec<LocalAppConversationWorkTool>,
+    #[prost(string, optional, tag = "5")]
+    pub routine_name: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListLocalAppConversationToolCallsRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub turn_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppConversationToolCall {
+    #[prost(string, tag = "1")]
+    pub call_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub turn_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub arguments_json: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListLocalAppConversationToolCallsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub calls: ::prost::alloc::vec::Vec<LocalAppConversationToolCall>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SubmitLocalAppConversationToolResultRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub turn_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub call_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub result_json: ::prost::alloc::string::String,
+    #[prost(bool, tag = "6")]
+    pub is_error: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SubmitLocalAppConversationToolResultResponse {
+    #[prost(string, tag = "1")]
+    pub call_id: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct SendLocalAppConversationTurnResponse {
@@ -21445,6 +21537,9 @@ pub struct InterruptLocalAppConversationTurnRequest {
     pub agent_handle: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub conversation_anchor_id: ::prost::alloc::string::String,
+    /// When present, interrupt only this currently active turn.
+    #[prost(string, optional, tag = "3")]
+    pub expected_turn_id: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct InterruptLocalAppConversationTurnResponse {
@@ -23170,6 +23265,7 @@ pub enum LocalAppConversationMessageRole {
     Unspecified = 0,
     User = 1,
     Assistant = 2,
+    App = 3,
 }
 impl LocalAppConversationMessageRole {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -23181,6 +23277,7 @@ impl LocalAppConversationMessageRole {
             Self::Unspecified => "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_UNSPECIFIED",
             Self::User => "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_USER",
             Self::Assistant => "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_ASSISTANT",
+            Self::App => "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_APP",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -23189,6 +23286,7 @@ impl LocalAppConversationMessageRole {
             "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_UNSPECIFIED" => Some(Self::Unspecified),
             "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_USER" => Some(Self::User),
             "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_ASSISTANT" => Some(Self::Assistant),
+            "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_APP" => Some(Self::App),
             _ => None,
         }
     }
@@ -23800,6 +23898,68 @@ pub mod runtime_agent_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
                         "SendLocalAppConversationTurn",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_local_app_conversation_tool_calls(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::ListLocalAppConversationToolCallsRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::ListLocalAppConversationToolCallsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppConversationToolCalls",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "ListLocalAppConversationToolCalls",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn submit_local_app_conversation_tool_result(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::SubmitLocalAppConversationToolResultRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::SubmitLocalAppConversationToolResultResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppConversationToolResult",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "SubmitLocalAppConversationToolResult",
                     ),
                 );
             self.inner.unary(req, path, codec).await

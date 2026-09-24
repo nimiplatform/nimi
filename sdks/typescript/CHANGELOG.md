@@ -1,7 +1,43 @@
 # SDK migration notes
 
+## Unreleased (0.18.1)
+
+- Keep observing the Runtime activity-open stream while Desktop launches the
+  source App. Source confirmation or the Runtime deadline can now finish the
+  operation even if the launch acknowledgement remains pending; a launch result
+  alone still never proves the source object opened. No API change.
+
+## Unreleased (0.18.0)
+
+- Add optional `conversation.interruptTurn({ expectedTurnId })`. Runtime atomically
+  refuses `AGENT_TURN_NOT_ACTIVE` when that turn is no longer active, preserving
+  any newer work from another App. Work-item stop controls should pass their
+  recorded turn ID and refresh the snapshot on rejection. Omitting the field
+  retains explicit current-Conversation interruption. Upgrade SDK 0.18, Kit and
+  matching native 0.15 together before using the field.
+
 These package-local notes cover the App-facing changes relevant to the current
 published baseline. They are not a complete reconstruction of older releases.
+
+## 0.17.0 (development)
+
+- Breaking (0.x minor): LocalAgent references add the required `agentBinding`.
+  Persist it only to match a fresh `agents.listReferences()` result after reopen;
+  continue to use its fresh `agentHandle` for every operation. Bindings differ
+  between registered Apps and accounts and never grant access.
+- `conversation.send` accepts optional `work: { workId, instructions, sources,
+  tools }`. Sources contain `sourceId`, `title`, `content`; tools contain `name`,
+  `description`, `inputSchemaJson`. Runtime owns the selected LocalAgent's
+  bounded tool loop and final Conversation commit. Poll
+  `conversation.listToolCalls({ agentHandle, conversationAnchorId, turnId })`
+  while the turn runs; dispatch each returned `callId` once and submit
+  `{ ...scope, callId, resultJson, isError }` with `submitToolResult`.
+  Only the initiating current session may receive or complete these calls.
+  Never replay effects after reconnect or an indeterminate submission.
+- Custom standard-shell implementations must add both Conversation methods.
+  Upgrade SDK, Kit 0.14 and its matching native carrier together. Work is
+  bounded to 64 KiB, 16 sources/tools, eight rounds and 32 KiB per tool result;
+  interruption, expired sessions and invalid or incomplete batches fail closed.
 
 ## 0.16.0 (development)
 

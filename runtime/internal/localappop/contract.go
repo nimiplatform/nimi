@@ -167,6 +167,8 @@ const (
 	IngressAgentReferenceList
 	IngressConversationOpen
 	IngressConversationTurnSend
+	IngressConversationToolCallsList
+	IngressConversationToolResultSubmit
 	IngressConversationTurnInterrupt
 	IngressConversationEventsSubscribe
 	IngressConversationSnapshotGet
@@ -268,6 +270,8 @@ const (
 	OperationAgentReferenceList
 	OperationConversationOpen
 	OperationConversationTurnSend
+	OperationConversationToolCallsList
+	OperationConversationToolResultSubmit
 	OperationConversationTurnInterrupt
 	OperationConversationEventsSubscribe
 	OperationConversationSnapshotGet
@@ -385,6 +389,8 @@ var canonicalAppOperationContract = [...]contractRow{
 	{IngressAgentReferenceList, OperationAgentReferenceList, "runtime.agent.reference.list", AuthorityClassAppAccess, "agent.local"},
 	{IngressConversationOpen, OperationConversationOpen, "runtime.agent.conversation.open", AuthorityClassAppAccess, "agent.local"},
 	{IngressConversationTurnSend, OperationConversationTurnSend, "runtime.agent.conversation.turn.send", AuthorityClassAppAccess, "agent.local"},
+	{IngressConversationToolCallsList, OperationConversationToolCallsList, "runtime.agent.conversation.tool-calls.list", AuthorityClassAppAccess, "agent.local"},
+	{IngressConversationToolResultSubmit, OperationConversationToolResultSubmit, "runtime.agent.conversation.tool-result.submit", AuthorityClassAppAccess, "agent.local"},
 	{IngressConversationTurnInterrupt, OperationConversationTurnInterrupt, "runtime.agent.conversation.turn.interrupt", AuthorityClassAppAccess, "agent.local"},
 	{IngressConversationEventsSubscribe, OperationConversationEventsSubscribe, "runtime.agent.conversation.events.subscribe", AuthorityClassAppAccess, "agent.local"},
 	{IngressConversationSnapshotGet, OperationConversationSnapshotGet, "runtime.agent.conversation.snapshot.get", AuthorityClassAppAccess, "agent.local"},

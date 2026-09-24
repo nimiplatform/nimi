@@ -390,6 +390,7 @@ pub struct NativeConversationOpenInput {
 
 #[napi(object)]
 pub struct NativeConversationSendInput {
+    pub work: Option<JsonValue>,
     pub agent_handle: String,
     pub conversation_anchor_id: String,
     pub request_id: String,
@@ -432,6 +433,28 @@ pub struct NativeConversationVoiceRenderInput {
     pub conversation_anchor_id: String,
     pub message_id: String,
     pub request_id: String,
+}
+
+#[napi(object)]
+pub struct NativeConversationToolScopeInput {
+    pub agent_handle: String,
+    pub conversation_anchor_id: String,
+    pub turn_id: String,
+}
+#[napi(object)]
+pub struct NativeConversationToolResultInput {
+    pub agent_handle: String,
+    pub conversation_anchor_id: String,
+    pub turn_id: String,
+    pub call_id: String,
+    pub result_json: String,
+    pub is_error: bool,
+}
+#[napi(object)]
+pub struct NativeConversationInterruptInput {
+    pub agent_handle: String,
+    pub conversation_anchor_id: String,
+    pub expected_turn_id: Option<String>,
 }
 
 #[napi(object)]

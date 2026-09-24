@@ -349,6 +349,7 @@ const (
 	AGENTTURNCONTEXTLANEIDCOGNITIONSOURCE     AgentTurnContextLaneId = "AGENT_TURN_CONTEXT_LANE_ID_COGNITION_SOURCE"
 	AGENTTURNCONTEXTLANEIDCONVERSATIONSUMMARY AgentTurnContextLaneId = "AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_SUMMARY"
 	AGENTTURNCONTEXTLANEIDPRIVATERECALL       AgentTurnContextLaneId = "AGENT_TURN_CONTEXT_LANE_ID_PRIVATE_RECALL"
+	AGENTTURNCONTEXTLANEIDAPPWORK             AgentTurnContextLaneId = "AGENT_TURN_CONTEXT_LANE_ID_APP_WORK"
 )
 
 type AgentTurnContextLaneState string
@@ -1105,6 +1106,7 @@ const (
 	LOCALAPPCONVERSATIONMESSAGEROLEUNSPECIFIED LocalAppConversationMessageRole = "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_UNSPECIFIED"
 	LOCALAPPCONVERSATIONMESSAGEROLEUSER        LocalAppConversationMessageRole = "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_USER"
 	LOCALAPPCONVERSATIONMESSAGEROLEASSISTANT   LocalAppConversationMessageRole = "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_ASSISTANT"
+	LOCALAPPCONVERSATIONMESSAGEROLEAPP         LocalAppConversationMessageRole = "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_APP"
 )
 
 type LocalAppConversationReasoningState string
@@ -1848,6 +1850,8 @@ const (
 	AILOCALMODELSTORAGELINKUNSUPPORTED              ReasonCode = "AI_LOCAL_MODEL_STORAGE_LINK_UNSUPPORTED"
 	AILOCALMODELINVENTORYRECONCILIATIONREQUIRED     ReasonCode = "AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED"
 	AIMUSICRECOVERYCAPACITYEXCEEDED                 ReasonCode = "AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED"
+	AGENTBUSY                                       ReasonCode = "AGENT_BUSY"
+	AGENTTURNNOTACTIVE                              ReasonCode = "AGENT_TURN_NOT_ACTIVE"
 	APPACTIVITYINPUTINVALID                         ReasonCode = "APP_ACTIVITY_INPUT_INVALID"
 	APPACTIVITYREVISIONCONFLICT                     ReasonCode = "APP_ACTIVITY_REVISION_CONFLICT"
 	APPACTIVITYNOTFOUND                             ReasonCode = "APP_ACTIVITY_NOT_FOUND"
@@ -4784,8 +4788,9 @@ type InterruptLocalAppAgentRealtimeOutputResponse struct {
 }
 
 type InterruptLocalAppConversationTurnRequest struct {
-	AgentHandle          string `json:"agent_handle,omitempty"`
-	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
+	AgentHandle          string  `json:"agent_handle,omitempty"`
+	ConversationAnchorId string  `json:"conversation_anchor_id,omitempty"`
+	ExpectedTurnId       *string `json:"expected_turn_id,omitempty"`
 }
 
 type InterruptLocalAppConversationTurnResponse struct {
@@ -5054,6 +5059,16 @@ type ListLocalAppAssetsResponse struct {
 	Assets     []LocalAppAssetRecord `json:"assets,omitempty"`
 	NextCursor string                `json:"next_cursor,omitempty"`
 	ReasonCode ReasonCode            `json:"reason_code,omitempty"`
+}
+
+type ListLocalAppConversationToolCallsRequest struct {
+	AgentHandle          string `json:"agent_handle,omitempty"`
+	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
+	TurnId               string `json:"turn_id,omitempty"`
+}
+
+type ListLocalAppConversationToolCallsResponse struct {
+	Calls []LocalAppConversationToolCall `json:"calls,omitempty"`
 }
 
 type ListLocalAppSharedLocalAgentAIConfigOptionsRequest struct {
@@ -5613,9 +5628,10 @@ type LocalAppAgentRealtimeTranscript struct {
 }
 
 type LocalAppAgentReference struct {
-	AgentHandle string  `json:"agent_handle,omitempty"`
-	DisplayName string  `json:"display_name,omitempty"`
-	AvatarUrl   *string `json:"avatar_url,omitempty"`
+	AgentHandle  string  `json:"agent_handle,omitempty"`
+	DisplayName  string  `json:"display_name,omitempty"`
+	AvatarUrl    *string `json:"avatar_url,omitempty"`
+	AgentBinding string  `json:"agent_binding,omitempty"`
 }
 
 type LocalAppAgentUpdateAutonomyResponse struct {
@@ -5770,6 +5786,13 @@ type LocalAppConversationTextPart struct {
 	Text string `json:"text,omitempty"`
 }
 
+type LocalAppConversationToolCall struct {
+	CallId        string `json:"call_id,omitempty"`
+	TurnId        string `json:"turn_id,omitempty"`
+	Name          string `json:"name,omitempty"`
+	ArgumentsJson string `json:"arguments_json,omitempty"`
+}
+
 type LocalAppConversationTurn struct {
 	TurnId         string                         `json:"turn_id,omitempty"`
 	Status         LocalAppConversationTurnStatus `json:"status,omitempty"`
@@ -5815,6 +5838,26 @@ type LocalAppConversationVoice struct {
 
 type LocalAppConversationVoiceEvent struct {
 	Voice *LocalAppConversationVoice `json:"voice,omitempty"`
+}
+
+type LocalAppConversationWork struct {
+	WorkId       string                           `json:"work_id,omitempty"`
+	Instructions string                           `json:"instructions,omitempty"`
+	Sources      []LocalAppConversationWorkSource `json:"sources,omitempty"`
+	Tools        []LocalAppConversationWorkTool   `json:"tools,omitempty"`
+	RoutineName  *string                          `json:"routine_name,omitempty"`
+}
+
+type LocalAppConversationWorkSource struct {
+	SourceId string `json:"source_id,omitempty"`
+	Title    string `json:"title,omitempty"`
+	Content  string `json:"content,omitempty"`
+}
+
+type LocalAppConversationWorkTool struct {
+	Name            string `json:"name,omitempty"`
+	Description     string `json:"description,omitempty"`
+	InputSchemaJson string `json:"input_schema_json,omitempty"`
 }
 
 type LocalAppEmbodimentActivity struct {
@@ -7850,6 +7893,7 @@ type SendLocalAppConversationTurnRequest struct {
 	ConversationAnchorId string                          `json:"conversation_anchor_id,omitempty"`
 	RequestId            string                          `json:"request_id,omitempty"`
 	Parts                []LocalAppConversationInputPart `json:"parts,omitempty"`
+	Work                 *LocalAppConversationWork       `json:"work,omitempty"`
 }
 
 type SendLocalAppConversationTurnResponse struct {
@@ -8128,6 +8172,19 @@ type SubmitDelegatedApprovalDecisionRequest struct {
 
 type SubmitDelegatedApprovalDecisionResponse struct {
 	ApprovalRequest *DelegatedApprovalRequest `json:"approval_request,omitempty"`
+}
+
+type SubmitLocalAppConversationToolResultRequest struct {
+	AgentHandle          string `json:"agent_handle,omitempty"`
+	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
+	TurnId               string `json:"turn_id,omitempty"`
+	CallId               string `json:"call_id,omitempty"`
+	ResultJson           string `json:"result_json,omitempty"`
+	IsError              bool   `json:"is_error,omitempty"`
+}
+
+type SubmitLocalAppConversationToolResultResponse struct {
+	CallId string `json:"call_id,omitempty"`
 }
 
 type SubmitLocalAppScenarioJobRequest struct {
@@ -9363,6 +9420,14 @@ func (c RuntimeTypedClient) ListLocalAppAgentReferences(ctx context.Context, req
 	return decodeRuntimeTypedResponse[ListLocalAppAgentReferencesResponse](raw, "ListLocalAppAgentReferencesResponse")
 }
 
+func (c RuntimeTypedClient) ListLocalAppConversationToolCalls(ctx context.Context, request ListLocalAppConversationToolCallsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalAppConversationToolCallsResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppConversationToolCalls", request, metadata, timeoutMS)
+	if err != nil {
+		return ListLocalAppConversationToolCallsResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ListLocalAppConversationToolCallsResponse](raw, "ListLocalAppConversationToolCallsResponse")
+}
+
 func (c RuntimeTypedClient) ListLocalAppSharedLocalAgentAIConfigOptions(ctx context.Context, request ListLocalAppSharedLocalAgentAIConfigOptionsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalAppSharedLocalAgentAIConfigOptionsResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions", request, metadata, timeoutMS)
 	if err != nil {
@@ -9521,6 +9586,14 @@ func (c RuntimeTypedClient) SubmitDelegatedApprovalDecision(ctx context.Context,
 		return SubmitDelegatedApprovalDecisionResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[SubmitDelegatedApprovalDecisionResponse](raw, "SubmitDelegatedApprovalDecisionResponse")
+}
+
+func (c RuntimeTypedClient) SubmitLocalAppConversationToolResult(ctx context.Context, request SubmitLocalAppConversationToolResultRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SubmitLocalAppConversationToolResultResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppConversationToolResult", request, metadata, timeoutMS)
+	if err != nil {
+		return SubmitLocalAppConversationToolResultResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[SubmitLocalAppConversationToolResultResponse](raw, "SubmitLocalAppConversationToolResultResponse")
 }
 
 func (c RuntimeTypedClient) SubscribeLocalAppAgentRealtimeEvents(ctx context.Context, request SubscribeLocalAppAgentRealtimeEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[LocalAppAgentRealtimeEvent], error) {

@@ -1489,6 +1489,14 @@ export enum ReasonCode {
      * expired requires relisting instead of claiming a complete replay; open
      * request unavailable covers late, foreign, or already resolved deliveries.
      *
+     * @generated from protobuf enum value: AGENT_BUSY = 764;
+     */
+    AGENT_BUSY = 764,
+    /**
+     * @generated from protobuf enum value: AGENT_TURN_NOT_ACTIVE = 765;
+     */
+    AGENT_TURN_NOT_ACTIVE = 765,
+    /**
      * @generated from protobuf enum value: APP_ACTIVITY_INPUT_INVALID = 763;
      */
     APP_ACTIVITY_INPUT_INVALID = 763,

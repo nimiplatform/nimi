@@ -15,6 +15,10 @@ import type {
   ReadLocalAppConversationArtifactResponse,
   RenderLocalAppConversationVoiceRequest,
   RenderLocalAppConversationVoiceResponse,
+  ListLocalAppConversationToolCallsRequest,
+  ListLocalAppConversationToolCallsResponse,
+  SubmitLocalAppConversationToolResultRequest,
+  SubmitLocalAppConversationToolResultResponse,
   SendLocalAppConversationTurnRequest,
   SendLocalAppConversationTurnResponse,
   SubscribeLocalAppConversationEventsRequest,
@@ -41,6 +45,8 @@ import {
 } from './local-app-runtime-platform-conversation.js';
 
 export type NimiLocalAppConversationRuntime = {
+  readonly listLocalAppConversationToolCalls: (request: ListLocalAppConversationToolCallsRequest) => Promise<ListLocalAppConversationToolCallsResponse>;
+  readonly submitLocalAppConversationToolResult: (request: SubmitLocalAppConversationToolResultRequest) => Promise<SubmitLocalAppConversationToolResultResponse>;
   readonly openLocalAppConversation: (request: OpenLocalAppConversationRequest) => Promise<OpenLocalAppConversationResponse>;
   readonly sendLocalAppConversationTurn: (request: SendLocalAppConversationTurnRequest) => Promise<SendLocalAppConversationTurnResponse>;
   readonly uploadLocalAppConversationAttachment: (request: UploadLocalAppConversationAttachmentRequest) => Promise<UploadLocalAppConversationAttachmentResponse>;
@@ -56,13 +62,16 @@ export function createNimiLocalAppConversationRuntimeClient(
   runtime: NimiLocalAppConversationRuntime,
 ): NimiLocalAppConversationClient {
   const shell: NimiLocalAppConversationShell = {
+    listToolCalls: async (input) => runtime.listLocalAppConversationToolCalls(input),
+    submitToolResult: async (input) => runtime.submitLocalAppConversationToolResult(input),
     open: async ({ agentHandle }) => {
       const response = await runtime.openLocalAppConversation({ agentHandle });
       return { conversationAnchorId: response.conversationAnchorId, activeTurnId: response.activeTurnId ?? null };
     },
-    send: async ({ agentHandle, conversationAnchorId, requestId, parts }) => {
+    send: async ({ agentHandle, conversationAnchorId, requestId, parts, work }) => {
       const response = await runtime.sendLocalAppConversationTurn({
         agentHandle, conversationAnchorId, requestId,
+        work: work ? { ...work, sources: [...work.sources], tools: [...work.tools] } : undefined,
         parts: parts.map((part) => part.kind === 'text'
           ? { part: { oneofKind: 'text', text: { text: part.text } } }
           : { part: { oneofKind: 'artifactRef', artifactRef: { artifactId: part.artifactId } } }),
@@ -92,8 +101,8 @@ export function createNimiLocalAppConversationRuntimeClient(
       if (!response.voice) throw new Error('Runtime LocalApp Conversation voice render response is missing');
       return { voice: projectVoice(response.voice) };
     },
-    interruptTurn: async ({ agentHandle, conversationAnchorId }) => {
-      const response = await runtime.interruptLocalAppConversationTurn({ agentHandle, conversationAnchorId });
+    interruptTurn: async ({ agentHandle, conversationAnchorId, expectedTurnId }) => {
+      const response = await runtime.interruptLocalAppConversationTurn({ agentHandle, conversationAnchorId, expectedTurnId });
       return { turnId: response.turnId };
     },
     subscribe: async ({ agentHandle, conversationAnchorId }) => {
@@ -164,7 +173,7 @@ function projectRuntimeSnapshot(value: LocalAppConversationSnapshot): Record<str
 function projectMessage(value: LocalAppConversationMessage): Record<string, unknown> {
   return {
     messageId: value.messageId, turnId: value.turnId,
-    role: value.role === LocalAppConversationMessageRole.USER ? 'user' : value.role === LocalAppConversationMessageRole.ASSISTANT ? 'assistant' : '',
+    role: value.role === LocalAppConversationMessageRole.USER ? 'user' : value.role === LocalAppConversationMessageRole.ASSISTANT ? 'assistant' : value.role === LocalAppConversationMessageRole.APP ? 'app' : '',
     parts: value.parts.map((part) => part.part.oneofKind === 'text'
       ? { kind: 'text', text: part.part.text.text }
       : part.part.oneofKind === 'artifact'

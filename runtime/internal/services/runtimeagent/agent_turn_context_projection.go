@@ -168,6 +168,8 @@ func agentTurnContextProtoLaneID(laneID agentTurnContextLaneID) runtimev1.AgentT
 		return runtimev1.AgentTurnContextLaneId_AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_HISTORY
 	case agentTurnContextLaneCapabilityContext:
 		return runtimev1.AgentTurnContextLaneId_AGENT_TURN_CONTEXT_LANE_ID_CAPABILITY_CONTEXT
+	case agentTurnContextLaneAppWork:
+		return runtimev1.AgentTurnContextLaneId_AGENT_TURN_CONTEXT_LANE_ID_APP_WORK
 	case agentTurnContextLaneCurrentUserTurn:
 		return runtimev1.AgentTurnContextLaneId_AGENT_TURN_CONTEXT_LANE_ID_CURRENT_USER_TURN
 	default:

@@ -352,6 +352,14 @@ RUNTIME_METHODS = [
     "response_type": "ListLocalAppAgentReferencesResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppConversationToolCalls",
+    "service": "RuntimeAgentService",
+    "method": "ListLocalAppConversationToolCalls",
+    "kind": "unary",
+    "request_type": "ListLocalAppConversationToolCallsRequest",
+    "response_type": "ListLocalAppConversationToolCallsResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions",
     "service": "RuntimeAgentService",
     "method": "ListLocalAppSharedLocalAgentAIConfigOptions",
@@ -510,6 +518,14 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "SubmitDelegatedApprovalDecisionRequest",
     "response_type": "SubmitDelegatedApprovalDecisionResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppConversationToolResult",
+    "service": "RuntimeAgentService",
+    "method": "SubmitLocalAppConversationToolResult",
+    "kind": "unary",
+    "request_type": "SubmitLocalAppConversationToolResultRequest",
+    "response_type": "SubmitLocalAppConversationToolResultResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents",

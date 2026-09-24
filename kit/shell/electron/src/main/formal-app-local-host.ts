@@ -550,6 +550,8 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
     },
     conversationOpen: (record) => conversation.open(record as never) as Promise<NimiElectronLocalAppRecord>,
     conversationSendTurn: (record) => conversation.send(record as never) as Promise<NimiElectronLocalAppRecord>,
+    conversationToolCallsList: async (record) => ({ calls: await conversation.listToolCalls(record as never) }) as NimiElectronLocalAppRecord,
+    conversationToolResultSubmit: (record) => conversation.submitToolResult(record as never) as Promise<NimiElectronLocalAppRecord>,
     conversationAttachmentUpload: (record) => conversation.uploadAttachment({
       ...record,
       bytes: Uint8Array.from(record.bytes as readonly number[]),

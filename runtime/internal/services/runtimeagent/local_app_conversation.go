@@ -135,6 +135,13 @@ func (s *Service) SendLocalAppConversationTurn(
 	if err != nil {
 		return nil, err
 	}
+	work, err := admitLocalAppWork(ctx, resolved, req.GetWork())
+	if err != nil {
+		return nil, err
+	}
+	if work != nil && work.input.RoutineName != nil {
+		text = "[App: " + resolved.decision.AppID + " · Routine: " + work.input.GetRoutineName() + "]\n" + text
+	}
 	message := publicChatMessagePayload{Role: "user", Content: text}
 	if artifactID != "" {
 		attachment, resolveErr := s.resolveLocalAppConversationAttachmentCandidate(resolved, anchorID, artifactID)
@@ -157,6 +164,7 @@ func (s *Service) SendLocalAppConversationTurn(
 		ConversationAnchorID: anchorID,
 		RequestID:            requestID,
 		Messages:             []publicChatMessagePayload{message},
+		appWork:              work,
 	})
 	if err != nil {
 		return nil, err
@@ -444,7 +452,7 @@ func (s *Service) resolveLocalAppConversationVoiceRenderTarget(
 	}
 	for _, transcriptTurn := range anchor.CommittedTranscript {
 		turnID := strings.TrimSpace(transcriptTurn.TurnID)
-		if transcriptTurn.Origin != publicChatTurnOriginUser || strings.TrimSpace(transcriptTurn.AssistantText) == "" ||
+		if (transcriptTurn.Origin != publicChatTurnOriginUser && transcriptTurn.Origin != publicChatTurnOriginApp) || strings.TrimSpace(transcriptTurn.AssistantText) == "" ||
 			localAppConversationMessageID(turnID, "assistant", "") != strings.TrimSpace(messageID) {
 			continue
 		}
@@ -584,6 +592,9 @@ func (s *Service) InterruptLocalAppConversationTurn(
 	if req == nil {
 		return nil, localAppConversationInvalid("local-app conversation interrupt request is required")
 	}
+	if req.ExpectedTurnId != nil && !validLocalAppConversationSelector(req.GetExpectedTurnId()) {
+		return nil, localAppConversationInvalid("expected turn id is invalid")
+	}
 	anchorID := strings.TrimSpace(req.GetConversationAnchorId())
 	if !validLocalAppConversationSelector(anchorID) {
 		return nil, localAppConversationInvalid("local-app conversation anchor is invalid")
@@ -604,6 +615,7 @@ func (s *Service) InterruptLocalAppConversationTurn(
 		SubjectUserId: resolved.decision.AccountID,
 	}, publicChatTurnInterruptPayload{
 		ConversationAnchorID: anchorID,
+		ExpectedTurnID:       req.GetExpectedTurnId(),
 		Reason:               "user_cancel",
 	})
 	if err != nil {
@@ -815,7 +827,7 @@ func (s *Service) buildLocalAppConversationSnapshot(
 	var activeGroup *messageGroup
 	seenTurnIDs := make(map[string]struct{}, len(transcript))
 	for _, turn := range transcript {
-		if turn.Origin != publicChatTurnOriginUser || !validLocalAppConversationSelector(turn.TurnID) {
+		if (turn.Origin != publicChatTurnOriginUser && turn.Origin != publicChatTurnOriginApp) || !validLocalAppConversationSelector(turn.TurnID) {
 			continue
 		}
 		seenTurnIDs[turn.TurnID] = struct{}{}
@@ -1043,9 +1055,13 @@ func localAppConversationUserMessage(
 	if len(parts) == 0 {
 		return nil
 	}
+	role := runtimev1.LocalAppConversationMessageRole_LOCAL_APP_CONVERSATION_MESSAGE_ROLE_USER
+	if turn.Origin == publicChatTurnOriginApp {
+		role = runtimev1.LocalAppConversationMessageRole_LOCAL_APP_CONVERSATION_MESSAGE_ROLE_APP
+	}
 	return &runtimev1.LocalAppConversationMessage{
 		TurnId:    strings.TrimSpace(turn.TurnID),
-		Role:      runtimev1.LocalAppConversationMessageRole_LOCAL_APP_CONVERSATION_MESSAGE_ROLE_USER,
+		Role:      role,
 		MessageId: localAppConversationMessageID(turn.TurnID, "user", ""),
 		Parts:     parts,
 	}
@@ -1201,7 +1217,7 @@ func (s *Service) localAppCommittedTextMessages(anchorID string, turnID string) 
 			continue
 		}
 		messages := make([]*runtimev1.LocalAppConversationMessage, 0, 2)
-		if turn.Origin == publicChatTurnOriginUser {
+		if turn.Origin == publicChatTurnOriginUser || turn.Origin == publicChatTurnOriginApp {
 			userMessage := localAppConversationUserMessage(turn)
 			if userMessage == nil {
 				return nil, localAppConversationOwnerUnavailable()

@@ -50,6 +50,7 @@ const (
 const PublicChatRuntimeAppID = publicChatRuntimeAppID
 const (
 	publicChatTurnOriginUser     = "user"
+	publicChatTurnOriginApp      = "app"
 	publicChatTurnOriginFollowUp = "follow_up"
 )
 
@@ -319,8 +320,10 @@ type publicChatTurnRequestPayload struct {
 	// resolvedAttachments is Runtime-internal admission truth, never caller
 	// JSON: store-validated attachment references fixed at turn admission.
 	resolvedAttachments []publicChatResolvedAttachment
+	appWork             *localAppWorkExecution
 }
 type publicChatTurnInterruptPayload struct {
+	ExpectedTurnID       string `json:"-"`
 	ConversationAnchorID string `json:"conversation_anchor_id"`
 	TurnID               string `json:"turn_id,omitempty"`
 	Reason               string `json:"reason,omitempty"`
@@ -332,6 +335,7 @@ type publicChatTurnVoiceRenderPayload struct {
 	Text                 string `json:"text,omitempty"`
 }
 type PublicChatTurnExecutionRequest struct {
+	Tools            []*runtimev1.ToolSpec
 	AppID            string
 	SubjectUserID    string
 	Messages         []*runtimev1.ChatMessage

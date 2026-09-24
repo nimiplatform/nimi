@@ -144,3 +144,21 @@ test('canonical materialization preserves snapshot recovery metadata and typed c
     assert.equal(message.updatedAt, undefined);
   }
 });
+
+
+test('App routine input is a source-labelled system row, never user or Agent speech', async () => {
+  const bundle = await materializeCanonicalConversationBundle({
+    conversation: {} as NimiLocalAppConversationClient, thread: thread(), nowMs: 100,
+    projection: seedCanonicalConversationProjection({ ...snapshot(), actions: [], voices: [], messages: [{
+      messageId: 'app-input', turnId: 'routine-turn', role: 'app', parts: [{ kind: 'text', text: '[App: nimi.go · Routine: Brief]\nPrepare the brief' }],
+    }] }),
+  });
+  assert.equal(bundle.messages[0]?.role, 'system');
+  assert.equal(bundle.messages[0]?.metadataJson?.canonicalOrigin, 'app');
+  const { resolveAgentCanonicalMessages } = await import('../src/shell/renderer/features/chat/chat-agent-shell-view-model.js');
+  const projected = resolveAgentCanonicalMessages({ messages: bundle.messages.map(toConversationMessageViewModel), activeThreadId: null,
+    activeConversationAnchorId: 'anchor-1', activeTargetId: null, character: { name: 'Agent', avatarUrl: 'https://example.com/avatar.png', handle: 'agent' } });
+  assert.equal(projected[0]?.senderName, 'App');
+  assert.equal(projected[0]?.senderKind, undefined);
+  assert.equal(projected[0]?.senderAvatarUrl, undefined);
+});

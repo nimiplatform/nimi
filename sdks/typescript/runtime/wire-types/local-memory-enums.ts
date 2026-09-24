@@ -81,6 +81,7 @@ export enum LocalAppConversationMessageRole {
   UNSPECIFIED = 0,
   USER = 1,
   ASSISTANT = 2,
+  APP = 3,
 }
 
 export enum LocalAppConversationReasoningState {

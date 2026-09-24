@@ -698,6 +698,7 @@ pub enum AgentTurnContextLaneId {
     AGENTTURNCONTEXTLANEIDCOGNITIONSOURCE,
     AGENTTURNCONTEXTLANEIDCONVERSATIONSUMMARY,
     AGENTTURNCONTEXTLANEIDPRIVATERECALL,
+    AGENTTURNCONTEXTLANEIDAPPWORK,
 }
 
 impl Default for AgentTurnContextLaneId {
@@ -1925,6 +1926,7 @@ pub enum LocalAppConversationMessageRole {
     LOCALAPPCONVERSATIONMESSAGEROLEUNSPECIFIED,
     LOCALAPPCONVERSATIONMESSAGEROLEUSER,
     LOCALAPPCONVERSATIONMESSAGEROLEASSISTANT,
+    LOCALAPPCONVERSATIONMESSAGEROLEAPP,
 }
 
 impl Default for LocalAppConversationMessageRole {
@@ -3185,6 +3187,10 @@ pub enum ReasonCode {
     AILOCALMODELINVENTORYRECONCILIATIONREQUIRED,
     #[serde(rename = "AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED")]
     AIMUSICRECOVERYCAPACITYEXCEEDED,
+    #[serde(rename = "AGENT_BUSY")]
+    AGENTBUSY,
+    #[serde(rename = "AGENT_TURN_NOT_ACTIVE")]
+    AGENTTURNNOTACTIVE,
     #[serde(rename = "APP_ACTIVITY_INPUT_INVALID")]
     APPACTIVITYINPUTINVALID,
     #[serde(rename = "APP_ACTIVITY_REVISION_CONFLICT")]
@@ -3798,6 +3804,10 @@ impl ReasonCode {
             "AILOCALMODELINVENTORYRECONCILIATIONREQUIRED" => Some(Self::AILOCALMODELINVENTORYRECONCILIATIONREQUIRED),
             "AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED" => Some(Self::AIMUSICRECOVERYCAPACITYEXCEEDED),
             "AIMUSICRECOVERYCAPACITYEXCEEDED" => Some(Self::AIMUSICRECOVERYCAPACITYEXCEEDED),
+            "AGENT_BUSY" => Some(Self::AGENTBUSY),
+            "AGENTBUSY" => Some(Self::AGENTBUSY),
+            "AGENT_TURN_NOT_ACTIVE" => Some(Self::AGENTTURNNOTACTIVE),
+            "AGENTTURNNOTACTIVE" => Some(Self::AGENTTURNNOTACTIVE),
             "APP_ACTIVITY_INPUT_INVALID" => Some(Self::APPACTIVITYINPUTINVALID),
             "APPACTIVITYINPUTINVALID" => Some(Self::APPACTIVITYINPUTINVALID),
             "APP_ACTIVITY_REVISION_CONFLICT" => Some(Self::APPACTIVITYREVISIONCONFLICT),
@@ -8309,6 +8319,8 @@ pub struct InterruptLocalAppConversationTurnRequest {
     pub agent_handle: Option<String>,
     #[serde(rename = "conversation_anchor_id", skip_serializing_if = "Option::is_none")]
     pub conversation_anchor_id: Option<String>,
+    #[serde(rename = "expected_turn_id", skip_serializing_if = "Option::is_none")]
+    pub expected_turn_id: Option<String>,
 }
 
 impl InterruptLocalAppConversationTurnRequest {
@@ -8335,6 +8347,11 @@ impl InterruptLocalAppConversationTurnRequest {
         out.conversation_anchor_id = match object.get("conversation_anchor_id") {
             Some(value) if value.is_null() => None,
             Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("conversation_anchor_id"))?),
+            None => None,
+        };
+        out.expected_turn_id = match object.get("expected_turn_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("expected_turn_id"))?),
             None => None,
         };
         Ok(out)
@@ -8811,6 +8828,18 @@ pub struct ListLocalAppAssetsResponse {
     pub assets: Vec<Box<LocalAppAssetRecord>>,
     pub next_cursor: Option<String>,
     pub reason_code: Option<ReasonCode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListLocalAppConversationToolCallsRequest {
+    pub agent_handle: Option<String>,
+    pub conversation_anchor_id: Option<String>,
+    pub turn_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListLocalAppConversationToolCallsResponse {
+    pub calls: Vec<Box<LocalAppConversationToolCall>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -9455,6 +9484,7 @@ pub struct LocalAppAgentReference {
     pub agent_handle: Option<String>,
     pub display_name: Option<String>,
     pub avatar_url: Option<String>,
+    pub agent_binding: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -9631,6 +9661,14 @@ pub struct LocalAppConversationTextPart {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppConversationToolCall {
+    pub call_id: Option<String>,
+    pub turn_id: Option<String>,
+    pub name: Option<String>,
+    pub arguments_json: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppConversationTurn {
     pub turn_id: Option<String>,
     pub status: Option<LocalAppConversationTurnStatus>,
@@ -9683,6 +9721,29 @@ pub struct LocalAppConversationVoice {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppConversationVoiceEvent {
     pub voice: Option<Box<LocalAppConversationVoice>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppConversationWork {
+    pub work_id: Option<String>,
+    pub instructions: Option<String>,
+    pub sources: Vec<Box<LocalAppConversationWorkSource>>,
+    pub tools: Vec<Box<LocalAppConversationWorkTool>>,
+    pub routine_name: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppConversationWorkSource {
+    pub source_id: Option<String>,
+    pub title: Option<String>,
+    pub content: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppConversationWorkTool {
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub input_schema_json: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -12707,6 +12768,7 @@ pub struct SendLocalAppConversationTurnRequest {
     pub conversation_anchor_id: Option<String>,
     pub request_id: Option<String>,
     pub parts: Vec<Box<LocalAppConversationInputPart>>,
+    pub work: Option<Box<LocalAppConversationWork>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -13151,6 +13213,103 @@ pub struct SubmitDelegatedApprovalDecisionRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct SubmitDelegatedApprovalDecisionResponse {
     pub approval_request: Option<Box<DelegatedApprovalRequest>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct SubmitLocalAppConversationToolResultRequest {
+    #[serde(rename = "agent_handle", skip_serializing_if = "Option::is_none")]
+    pub agent_handle: Option<String>,
+    #[serde(rename = "conversation_anchor_id", skip_serializing_if = "Option::is_none")]
+    pub conversation_anchor_id: Option<String>,
+    #[serde(rename = "turn_id", skip_serializing_if = "Option::is_none")]
+    pub turn_id: Option<String>,
+    #[serde(rename = "call_id", skip_serializing_if = "Option::is_none")]
+    pub call_id: Option<String>,
+    #[serde(rename = "result_json", skip_serializing_if = "Option::is_none")]
+    pub result_json: Option<String>,
+    #[serde(rename = "is_error", skip_serializing_if = "Option::is_none")]
+    pub is_error: Option<bool>,
+}
+
+impl SubmitLocalAppConversationToolResultRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
+    }
+
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "SubmitLocalAppConversationToolResultRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
+        let mut out = Self::default();
+        out.agent_handle = match object.get("agent_handle") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("agent_handle"))?),
+            None => None,
+        };
+        out.conversation_anchor_id = match object.get("conversation_anchor_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("conversation_anchor_id"))?),
+            None => None,
+        };
+        out.turn_id = match object.get("turn_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("turn_id"))?),
+            None => None,
+        };
+        out.call_id = match object.get("call_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("call_id"))?),
+            None => None,
+        };
+        out.result_json = match object.get("result_json") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("result_json"))?),
+            None => None,
+        };
+        out.is_error = match object.get("is_error") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_bool().ok_or_else(|| Self::decode_error("is_error"))?),
+            None => None,
+        };
+        Ok(out)
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct SubmitLocalAppConversationToolResultResponse {
+    #[serde(rename = "call_id", skip_serializing_if = "Option::is_none")]
+    pub call_id: Option<String>,
+}
+
+impl SubmitLocalAppConversationToolResultResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
+    }
+
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "SubmitLocalAppConversationToolResultResponse", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
+        let mut out = Self::default();
+        out.call_id = match object.get("call_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("call_id"))?),
+            None => None,
+        };
+        Ok(out)
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -14229,6 +14388,14 @@ impl TryFrom<Vec<u8>> for OpenLocalAppConversationResponse {
     }
 }
 
+impl TryFrom<Vec<u8>> for SubmitLocalAppConversationToolResultResponse {
+    type Error = RuntimeResponseDecodeError;
+
+    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
+        Self::from_transport(&body)
+    }
+}
+
 impl TryFrom<Vec<u8>> for CloseVideoSessionResponse {
     type Error = RuntimeResponseDecodeError;
 
@@ -14463,6 +14630,20 @@ where
         }).map_err(RuntimeTypedClientError::Transport)?;
         OpenLocalAppConversationResponse::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
             method_id: "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation",
+            type_name: error.type_name,
+            field: error.field,
+        })
+    }
+
+    pub fn submit_local_app_conversation_tool_result(&self, request: SubmitLocalAppConversationToolResultRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SubmitLocalAppConversationToolResultResponse, RuntimeTypedClientError<T::Error>> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppConversationToolResult".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        SubmitLocalAppConversationToolResultResponse::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppConversationToolResult",
             type_name: error.type_name,
             field: error.field,
         })

@@ -32,6 +32,9 @@ func compileAgentTurnContext(input agentTurnContextCompileInput) (*agentTurnCont
 	if err != nil {
 		return nil, err
 	}
+	if err := appendAgentTurnAppWork(items, input.AppWork); err != nil {
+		return nil, err
+	}
 	lanes, err := makeAgentTurnContextLanes(items)
 	if err != nil {
 		return nil, err

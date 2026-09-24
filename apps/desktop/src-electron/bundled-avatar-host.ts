@@ -458,12 +458,21 @@ export async function createDesktopElectronBundledAvatarHost(
     window.on('closed', () => {
       releaseWindow();
     });
+    let loadTimer: ReturnType<typeof setTimeout> | undefined;
     try {
-      await window.loadURL(rendererUrl);
+      await Promise.race([
+        window.loadURL(rendererUrl),
+        new Promise<never>((_resolve, reject) => {
+          loadTimer = setTimeout(() => reject(new Error('desktop-avatar-renderer-load-timeout')), 30_000);
+          loadTimer.unref?.();
+        }),
+      ]);
       assertAvatarHostOpen();
     } catch (error) {
       if (!window.isDestroyed()) window.destroy();
       throw error;
+    } finally {
+      if (loadTimer !== undefined) clearTimeout(loadTimer);
     }
     return windowRecord;
   };
@@ -1617,7 +1626,7 @@ async function rendererResponds(url: string, packagedRendererIndexPath?: string)
     return false;
   }
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, { signal: AbortSignal.timeout(2_000) });
     return response.ok || response.status < 500;
   } catch {
     return false;

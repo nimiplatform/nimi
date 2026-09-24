@@ -42,7 +42,12 @@ export async function resolveAvatarSessionAgentHandle(input: {
         return reference.agentHandle;
       }
     } catch (error) {
-      if (isNimiLocalAppAgentSelectorMismatchError(error)) {
+      // This exact snapshot probe asks whether one current Agent owns the
+      // handed-off anchor. Runtime's typed not-found is a negative match,
+      // not a failed Avatar registration or permission grant.
+      if (isNimiLocalAppAgentSelectorMismatchError(error)
+        || (error && typeof error === 'object' && 'reasonCode' in error
+          && error.reasonCode === 'LOCAL_APP_RECORD_NOT_FOUND')) {
         continue;
       }
       throw error;

@@ -830,7 +830,7 @@ describe('renderer local-app standard-shell surface', () => {
         invocations.push({ command, payload });
         return [{
           agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-          displayName: 'Agent One',
+          agentBinding: 'agent_binding_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', displayName: 'Agent One',
           avatarUrl: null,
         }];
       },
@@ -838,7 +838,7 @@ describe('renderer local-app standard-shell surface', () => {
     };
     await expect(createNimiLocalAppStandardShellSurface().agents.listReferences()).resolves.toEqual([{
       agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-      displayName: 'Agent One',
+      agentBinding: 'agent_binding_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', displayName: 'Agent One',
       avatarUrl: null,
     }]);
     expect(invocations).toEqual([{
@@ -1272,6 +1272,14 @@ describe('renderer local-app standard-shell surface', () => {
       command: 'nimi.shell.localApp.conversationInterruptTurn',
       payload: { payload: { agentHandle: 'lash_owner_issued', conversationAnchorId: 'anchor-1' } },
     }]);
+    await createNimiLocalAppStandardShellSurface().conversation.interruptTurn({
+      agentHandle: 'lash_owner_issued', conversationAnchorId: 'anchor-1', expectedTurnId: 'agent-turn-1',
+    });
+    expect(invocations[1]).toEqual({
+      command: 'nimi.shell.localApp.conversationInterruptTurn',
+      payload: { payload: { agentHandle: 'lash_owner_issued', conversationAnchorId: 'anchor-1', expectedTurnId: 'agent-turn-1' } },
+    });
+
   });
 
   it('cancels an in-flight conversation transcription with the same host command', async () => {

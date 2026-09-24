@@ -245,6 +245,10 @@ export type {
   NimiLocalAppPresentationSnapshotInput,
   NimiLocalAppRevision,
   NimiLocalAppTimestamp,
+  NimiLocalAppConversationWork,
+  NimiLocalAppConversationToolCall,
+  NimiLocalAppConversationToolScope,
+  NimiLocalAppConversationToolResultInput,
   NimiLocalAppConversationAction,
   NimiLocalAppConversationClient,
   NimiLocalAppConversationEvent,
@@ -463,3 +467,5 @@ export { validateNimiLocalAppVoiceConvertSpec, validateNimiLocalAppVoiceConversi
 export type { NimiLocalAppVoiceConvertSpec, NimiLocalAppVoiceConversion, NimiLocalAppVoiceConvertTargetVoice, NimiLocalAppVoiceConvertSource, NimiVoiceConvertSourceKind, NimiVoiceConvertTargetKind, NimiVoiceConversionLengthRelation } from './local-app-voice-convert.js';
 
 export { projectMusicInputCapabilities, type NimiMusicInputCapabilities, type NimiMusicGenerationInputProfile, type NimiMusicTranscriptionInputProfile, type NimiVoiceConvertInputProfile } from '../ai/music-input.js';
+
+export { validateConversationWork as validateNimiLocalAppConversationWork } from './local-app-conversation-work.js';

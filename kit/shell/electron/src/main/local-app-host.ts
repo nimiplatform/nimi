@@ -85,6 +85,8 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppAssetAdopt',
   'localAppConversationOpen',
   'localAppConversationSendTurn',
+  'localAppConversationToolCallsList',
+  'localAppConversationToolResultSubmit',
   'localAppConversationAttachmentUpload',
   'localAppConversationArtifactRead',
   'localAppConversationVoiceTranscribe',
@@ -226,6 +228,8 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'ai-config-not-found',
   'ai-config-persistence-unavailable',
   'agent-presentation-revision-conflict',
+  'agent-busy',
+  'agent-turn-not-active',
   'agent-presentation-asset-type-invalid',
   'agent-presentation-asset-too-large',
   'agent-presentation-asset-structure-invalid',
@@ -405,6 +409,8 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppAssetReveal: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAssetAdopt: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationOpen: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppConversationToolCallsList: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppConversationToolResultSubmit: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationSendTurn: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationAttachmentUpload: (input: NimiElectronLocalAppConversationAttachmentUploadBindingInput) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationArtifactRead: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
@@ -524,6 +530,8 @@ export type NimiElectronLocalAppHost = {
   readonly assetReveal: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly assetAdopt: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly conversationOpen: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly conversationToolCallsList: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly conversationToolResultSubmit: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly conversationSendTurn: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly conversationAttachmentUpload: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly conversationArtifactRead: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
@@ -598,6 +606,10 @@ function notifySessionReady(host: NimiElectronLocalAppHost): void {
 
 const LOCAL_APP_SESSION_REBIND_TIMEOUT_MS = 2_000;
 const LOCAL_APP_SESSION_INVALID_REASONS: ReadonlySet<string> = new Set([
+  // Native drops these one-shot transports; its next call may bind a new scope.
+  'runtime-service-unavailable',
+  'runtime-service-untrusted',
+  'runtime-service-error-unclassified',
   'runtime-unauthenticated',
   'process-replaced',
   'account-changed',
@@ -657,10 +669,26 @@ function withBoundedSessionRebind(
   onSessionReady: () => void,
 ): NimiElectronProtectedLocalBinding {
   let rebindInFlight: Promise<NativeLocalAppOutcome> | undefined;
+  let generation = 0;
+  let invalidated = false;
+  const stale = (): NativeLocalAppOutcome => ({ status: 'error', reasonCode: 'runtime-unauthenticated', retryable: false });
   const renew = (): Promise<NativeLocalAppOutcome> => {
-    rebindInFlight ??= boundedSessionRenew(binding).finally(() => {
-      rebindInFlight = undefined;
-    });
+    if (!rebindInFlight) {
+      let resolve!: (outcome: NativeLocalAppOutcome) => void;
+      let reject!: (error: unknown) => void;
+      const pending = new Promise<NativeLocalAppOutcome>((accept, fail) => { resolve = accept; reject = fail; });
+      rebindInFlight = pending.then((outcome) => {
+        if (isReadySessionOutcome(outcome)) invalidated = false;
+        return outcome;
+      }).finally(() => { rebindInFlight = undefined; });
+      // Dispose old App state synchronously, before installing another scope.
+      // Install the gate first: cleanup may itself close protected resources.
+      try {
+        if (!invalidated) { generation++; invalidated = true; onSessionChange(); }
+        void boundedSessionRenew(binding).then(resolve, reject);
+      }
+      catch (error) { reject(error); }
+    }
     return rebindInFlight;
   };
   return new Proxy(binding, {
@@ -675,7 +703,16 @@ function withBoundedSessionRebind(
         return typeof value === 'function' ? value.bind(target) : value;
       }
       return async (...args: unknown[]): Promise<NativeLocalAppOutcome> => {
+        const expected = generation;
+        if (rebindInFlight || invalidated) {
+          const ready = await (rebindInFlight ?? renew());
+          if (expected !== generation) return stale();
+          if (!isReadySessionOutcome(ready)) return ready.status === 'error' ? ready : untrustedNativeOutcome();
+        }
         const first = await Reflect.apply(value, target, args) as NativeLocalAppOutcome;
+        // A late response from the old scope cannot start a second rebind or
+        // become a successful response in the newly loaded renderer.
+        if (expected !== generation) return stale();
         if (!isSessionInvalidOutcome(first)) {
           return first;
         }
@@ -683,7 +720,6 @@ function withBoundedSessionRebind(
           method: property, reasonCode: first.reasonCode, retryable: first.retryable,
         });
         // Old App-owned work must stop even when the subsequent rebind fails.
-        onSessionChange();
         const rebound = await renew();
         if (!isReadySessionOutcome(rebound)) {
           return rebound.status === 'error' ? rebound : untrustedNativeOutcome();
@@ -692,7 +728,9 @@ function withBoundedSessionRebind(
         if (!LOCAL_APP_BINDING_RETRY_SAFE_METHODS.has(property)) {
           return first;
         }
-        return Reflect.apply(value, target, args) as Promise<NativeLocalAppOutcome>;
+        const reboundGeneration = generation;
+        const retried = await Reflect.apply(value, target, args) as NativeLocalAppOutcome;
+        return reboundGeneration === generation ? retried : stale();
       };
     },
   });
@@ -1078,6 +1116,12 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     return invokeConversationOpen(() => this.binding.localAppConversationOpen(input));
   }
 
+  conversationToolCallsList(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppConversationToolCallsList(input));
+  }
+  conversationToolResultSubmit(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeExactTextRecord(() => this.binding.localAppConversationToolResultSubmit(input), ['callId']);
+  }
   conversationSendTurn(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return invokeExactTextRecord(() => this.binding.localAppConversationSendTurn(input), ['turnId']);
   }
@@ -1199,33 +1243,40 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     };
     let launchFailure: NimiElectronLocalAppRecord | undefined;
     let graceTimer: ReturnType<typeof setTimeout> | undefined;
-    let graceElapsed: Promise<'grace-elapsed'> | undefined;
+    let graceElapsed: Promise<{ kind: 'grace' }> | undefined;
+    let launching: Promise<{ kind: 'launch'; value: NimiElectronAppActivitySourceLaunchResult }> | undefined;
+    const readNext = () => invokeActivityStreamNext(
+      () => this.binding.localAppRealtimeStreamNext({ streamId }),
+      ACTIVITY_OPEN_EVENT_SHAPES,
+    ).then(value => ({ kind: 'stream' as const, value }));
+    let pending = readNext();
     try {
       while (true) {
-        const pending = invokeActivityStreamNext(
-          () => this.binding.localAppRealtimeStreamNext({ streamId }),
-          ACTIVITY_OPEN_EVENT_SHAPES,
-        );
-        const next = graceElapsed ? await Promise.race([pending, graceElapsed]) : await pending;
-        if (next === 'grace-elapsed') {
-          pending.catch(() => undefined);
-          return launchFailure!;
+        // A cold source can confirm before Desktop's launch promise settles.
+        // Its Runtime result (including the deadline) remains authoritative.
+        const outcome = await Promise.race([pending, ...(launching ? [launching] : []), ...(graceElapsed ? [graceElapsed] : [])]);
+        if (outcome.kind === 'grace') return launchFailure!;
+        if (outcome.kind === 'launch') {
+          launching = undefined;
+          if (outcome.value.status !== 'requested') {
+            launchFailure = { outcome: outcome.value.status, reason: outcome.value.reason };
+            graceElapsed = new Promise(resolve => {
+              graceTimer = setTimeout(() => resolve({ kind: 'grace' }), NIMI_APP_ACTIVITY_LAUNCH_FAILURE_GRACE_MS);
+            });
+          }
+          continue;
         }
+        const next = outcome.value;
         if (next.completed === true) {
           closed = true;
           return launchFailure ?? { outcome: 'failed', reason: 'source-not-ready' };
         }
         const event = next.event as Record<string, NimiElectronLocalAppJson> | undefined;
         if (event && typeof event.openRequestId === 'string') {
-          const launched = await this.activityLaunch(event.openRequestId);
-          if (launched.status !== 'requested') {
-            // Only the source App's confirmation yields opened; a running
-            // source may still confirm although launch or focus failed.
-            launchFailure = { outcome: launched.status, reason: launched.reason };
-            graceElapsed = new Promise((resolve) => {
-              graceTimer = setTimeout(() => resolve('grace-elapsed'), NIMI_APP_ACTIVITY_LAUNCH_FAILURE_GRACE_MS);
-            });
-          }
+          launching = this.activityLaunch(event.openRequestId)
+            .catch(() => ({ status: 'failed' as const, reason: 'launch-failed' as const }))
+            .then(value => ({ kind: 'launch' as const, value }));
+          pending = readNext();
           continue;
         }
         const result = event?.result as Record<string, NimiElectronLocalAppJson> | undefined;
@@ -1236,6 +1287,7 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
       }
     } finally {
       if (graceTimer !== undefined) clearTimeout(graceTimer);
+      pending.catch(() => undefined);
       await close();
     }
   }
@@ -1582,6 +1634,8 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
     return this.resolve().conversationOpen(input);
   }
 
+  conversationToolCallsList(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().conversationToolCallsList(input); }
+  conversationToolResultSubmit(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().conversationToolResultSubmit(input); }
   conversationSendTurn(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return this.resolve().conversationSendTurn(input);
   }
@@ -2408,11 +2462,12 @@ async function invokeAgentReferenceList(
   const value = await invoke(call);
   if (!Array.isArray(value)) throw new NimiElectronLocalAppHostError('runtime-service-untrusted', false);
   return Object.freeze(value.map((entry) => {
-    if (!isPlainRecord(entry) || !hasExactKeys(entry, ['agentHandle', 'displayName', 'avatarUrl'])) {
+    if (!isPlainRecord(entry) || !hasExactKeys(entry, ['agentHandle', 'agentBinding', 'displayName', 'avatarUrl'])) {
       throw new NimiElectronLocalAppHostError('runtime-service-untrusted', false);
     }
     validateProjectionValue(entry);
-    if (typeof entry.agentHandle !== 'string'
+    if (typeof entry.agentBinding !== 'string' || !/^agent_binding_[A-Za-z0-9_-]{43}$/u.test(entry.agentBinding)
+      || typeof entry.agentHandle !== 'string'
       || !/^agent_ref_[A-Za-z0-9_-]{43}$/u.test(entry.agentHandle)
       || typeof entry.displayName !== 'string'
       || !entry.displayName
@@ -2423,6 +2478,7 @@ async function invokeAgentReferenceList(
     }
     return Object.freeze({
       agentHandle: entry.agentHandle,
+      agentBinding: entry.agentBinding,
       displayName: entry.displayName,
       avatarUrl: entry.avatarUrl as string | null,
     }) as NimiElectronLocalAppRecord;
@@ -2846,7 +2902,7 @@ async function invokeConversationSnapshot(
 
 function validateConversationMessage(value: unknown): NimiElectronLocalAppRecord {
   if (!isPlainRecord(value) || !hasExactKeys(value, ['messageId', 'turnId', 'role', 'parts'])
-    || (value.role !== 'user' && value.role !== 'assistant')
+    || (value.role !== 'user' && value.role !== 'assistant' && value.role !== 'app')
     || !Array.isArray(value.parts) || value.parts.length < 1 || value.parts.length > 2) {
     throw untrustedRuntimeError();
   }

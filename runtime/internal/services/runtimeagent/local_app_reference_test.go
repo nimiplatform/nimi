@@ -46,7 +46,7 @@ func TestLocalAppAgentReferenceListProjectsAllCurrentAccountActiveAgents(t *test
 			strings.Contains(reference.GetAgentHandle(), "agent-") {
 			t.Fatalf("reference handle exposes owner identity: %q", reference.GetAgentHandle())
 		}
-		if reference.ProtoReflect().Descriptor().Fields().Len() != 3 {
+		if reference.ProtoReflect().Descriptor().Fields().Len() != 4 {
 			t.Fatalf("reference wire field count = %d", reference.ProtoReflect().Descriptor().Fields().Len())
 		}
 	}

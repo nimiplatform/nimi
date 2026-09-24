@@ -9,6 +9,14 @@ import {
 } from '../src/main/local-app-host.js';
 
 describe('Electron protected local-app host', () => {
+  it('preserves the native stale-turn refusal for a fenced work interruption', async () => {
+    const host = createNimiElectronLocalAppHostForBinding({ ...binding([]),
+      localAppConversationInterruptTurn: async () => ({ status: 'error' as const, reasonCode: 'agent-turn-not-active', retryable: false }),
+    });
+    await expect(host.conversationInterruptTurn({ agentHandle: 'handle', conversationAnchorId: 'anchor', expectedTurnId: 'old-turn' }))
+      .rejects.toMatchObject({ reasonCode: 'agent-turn-not-active', retryable: false });
+  });
+
   it('preserves voice conversion source facts and the reported tail delta on Get and events', async () => {
     const artifacts = [{ artifactId: 'vocal-1', mimeType: 'audio/wav', sizeBytes: 963400 }]
       .map(value => ({ ...value, bytes: [], sha256: 'a'.repeat(64), durationMs: 10034, width: 0, height: 0, sampleRateHz: 24000, channels: 1, frameCount: 240828 }));
@@ -90,6 +98,46 @@ describe('Electron protected local-app host', () => {
       reasonCode: 'runtime-service-untrusted',
     });
   });
+  it('gates new-scope reads until rebind and rejects old responses without a second invalidation', async () => {
+    let account = 'A'; let invalidations = 0; let renewals = 0; let reads = 0;
+    let releaseRenew!: () => void; let releaseOld!: () => void;
+    const renewing = new Promise<void>(resolve => { releaseRenew = resolve; });
+    const oldPending = new Promise<void>(resolve => { releaseOld = resolve; });
+    let enteredOld!: () => void; const oldEntered = new Promise<void>(resolve => { enteredOld = resolve; });
+    let enteredRenew!: () => void; const renewEntered = new Promise<void>(resolve => { enteredRenew = resolve; });
+    const host = createNimiElectronLocalAppHostForBinding({ ...binding([]),
+      localAppStorageReadJson: async () => { reads++; if (reads === 1) { enteredOld(); await oldPending; return { status: 'ok' as const, value: { value: { owner: 'A' }, sizeBytes: 13 } }; } return { status: 'ok' as const, value: { value: { owner: account }, sizeBytes: 13 } }; },
+      localAppStorageWriteJson: async () => ({ status: 'error' as const, reasonCode: 'account-changed', retryable: false }),
+      localAppSessionRenew: async () => { renewals++; enteredRenew(); await renewing; account = 'B'; return { status: 'ok' as const, value: statusProjection() }; },
+    }, () => { invalidations++; });
+    const oldRead = host.storageReadJson({ relativePath: 'state.json' });
+    const oldRejected = expect(oldRead).rejects.toMatchObject({ reasonCode: 'runtime-unauthenticated' });
+    await oldEntered;
+    const write = host.storageWriteJson({ relativePath: 'state.json', value: { owner: 'A' } });
+    const writeRejected = expect(write).rejects.toMatchObject({ reasonCode: 'account-changed' });
+    await renewEntered;
+    const newRead = host.storageReadJson({ relativePath: 'state.json' });
+    await Promise.resolve(); expect(reads).toBe(1); expect(invalidations).toBe(1);
+    releaseRenew(); await writeRejected;
+    await expect(newRead).resolves.toMatchObject({ value: { owner: 'B' } });
+    releaseOld(); await oldRejected;
+    expect(invalidations).toBe(1); expect(renewals).toBe(1);
+  });
+
+  it('invalidates a lost native transport once and waits for a ready scope before a fresh read', async () => {
+    let renewals = 0; let invalidations = 0; let reads = 0; let ready = false;
+    const host = createNimiElectronLocalAppHostForBinding({ ...binding([]),
+      localAppStorageReadJson: async () => { reads++; return ready ? { status: 'ok' as const, value: { value: { owner: 'B' }, sizeBytes: 13 } } : { status: 'error' as const, reasonCode: 'runtime-service-unavailable', retryable: true }; },
+      localAppSessionRenew: async () => { renewals++; return ready ? { status: 'ok' as const, value: statusProjection() } : { status: 'error' as const, reasonCode: 'runtime-service-unavailable', retryable: true }; },
+    }, () => { invalidations++; });
+    await expect(host.storageReadJson({ relativePath: 'state.json' })).rejects.toMatchObject({ reasonCode: 'runtime-service-unavailable' });
+    await expect(host.storageReadJson({ relativePath: 'state.json' })).rejects.toMatchObject({ reasonCode: 'runtime-service-unavailable' });
+    expect(invalidations).toBe(1); expect(reads).toBe(1);
+    ready = true;
+    await expect(host.storageReadJson({ relativePath: 'state.json' })).resolves.toMatchObject({ value: { owner: 'B' } });
+    expect(invalidations).toBe(1); expect(renewals).toBe(3); expect(reads).toBe(2);
+  });
+
   it('preserves App-owned work on a successful routine renewal', async () => {
     let invalidated = 0;
     const host = createNimiElectronLocalAppHostForBinding(binding([]), () => { invalidated++; });
@@ -277,7 +325,7 @@ describe('Electron protected local-app host', () => {
       .resolves.toEqual({ value: { version: 1 }, sizeBytes: 13 });
     await expect(host.agentReferenceList()).resolves.toEqual([{
       agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-      displayName: 'Agent One',
+      agentBinding: 'agent_binding_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', displayName: 'Agent One',
       avatarUrl: null,
     }]);
     await expect(host.avatarHostTargetResolve({
@@ -1098,7 +1146,7 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppRealmRealtimeChannelClose: record('localAppRealmRealtimeChannelClose', {}),
     localAppAgentReferenceList: record('localAppAgentReferenceList', [{
       agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-      displayName: 'Agent One',
+      agentBinding: 'agent_binding_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', displayName: 'Agent One',
       avatarUrl: null,
     }]),
     localAppAvatarHostTargetResolve: record('localAppAvatarHostTargetResolve', {
@@ -1181,6 +1229,8 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppAssetAdopt: record('localAppAssetAdopt', assetProjection()),
     localAppConversationOpen: record('localAppConversationOpen', { conversationAnchorId: 'anchor-1', activeTurnId: null }),
     localAppConversationSendTurn: record('localAppConversationSendTurn', { turnId: 'turn-1' }),
+    localAppConversationToolCallsList: record('localAppConversationToolCallsList', { calls: [] }),
+    localAppConversationToolResultSubmit: record('localAppConversationToolResultSubmit', { callId: 'call-1' }),
     localAppConversationAttachmentUpload: record('localAppConversationAttachmentUpload', {
       artifactId: 'artifact-1', expiresAt: '2026-08-23T09:00:00Z',
     }),
@@ -1334,6 +1384,18 @@ describe('Electron App activity carrier', () => {
     expect(closed).toEqual(['open-1']);
   });
 
+  it('observes Runtime confirmation and timeout while a cold Desktop launch is pending', async () => {
+    for (const result of [{ outcome: 'opened', reason: 'opened' }, { outcome: 'failed', reason: 'source-not-ready' }]) {
+      const closed: string[] = [];
+      const host = createNimiElectronLocalAppHostForBinding(openBinding([
+        { completed: false, event: { openRequestId: OPEN_REQUEST_ID } },
+        { completed: false, event: { result } },
+      ], closed) as never, () => undefined, () => new Promise(() => undefined));
+      await expect(host.activityOpen({ activityId: ACTIVITY_ID })).resolves.toEqual(result);
+      expect(closed).toEqual(['open-1']);
+    }
+  });
+
   it('never reports opened from a failed launch and releases the Runtime request after the grace', async () => {
     vi.useFakeTimers();
     try {
@@ -1427,4 +1489,16 @@ describe('Electron App activity carrier', () => {
       occurredAtSeconds: String(Date.parse('2026-09-20T09:00:00Z') / 1000), occurredAtNanos: 250_000_000,
     });
   });
+});
+
+
+it('preserves App-originated routine input through both native Conversation snapshot and event validation', async () => {
+  const message = { messageId: 'message-app', turnId: 'turn-app', role: 'app', parts: [{ kind: 'text', text: '[App: nimi.day · Routine: Morning] Plan the day.' }] };
+  const candidate = { ...binding([]),
+    localAppConversationSnapshot: async () => ({ status: 'ok', value: { conversationAnchorId: 'anchor-1', throughSequence: '1', turns: [], messages: [message], actions: [], voices: [], truncatedBefore: false } }),
+    localAppConversationStreamNext: async () => ({ status: 'ok', value: { completed: false, event: { type: 'message-committed', conversationAnchorId: 'anchor-1', sequence: '1', turnId: 'turn-app', message } } }),
+  };
+  const host = createNimiElectronLocalAppHostForBinding(candidate);
+  await expect(host.conversationSnapshot({ agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', conversationAnchorId: 'anchor-1' })).resolves.toMatchObject({ messages: [message] });
+  await expect(host.conversationStreamNext({ streamId: 'stream-1' })).resolves.toMatchObject({ event: { message } });
 });

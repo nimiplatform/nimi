@@ -215,6 +215,24 @@
           "response_stream": false
         },
         {
+          "name": "ListLocalAppConversationToolCalls",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppConversationToolCalls",
+          "kind": "unary",
+          "request_type": "ListLocalAppConversationToolCallsRequest",
+          "response_type": "ListLocalAppConversationToolCallsResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "SubmitLocalAppConversationToolResult",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppConversationToolResult",
+          "kind": "unary",
+          "request_type": "SubmitLocalAppConversationToolResultRequest",
+          "response_type": "SubmitLocalAppConversationToolResultResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "UploadLocalAppConversationAttachment",
           "method_id": "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment",
           "kind": "unary",
@@ -2466,6 +2484,7 @@
     "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedDiagnostics",
     "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles",
     "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences",
+    "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppConversationToolCalls",
     "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions",
     "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks",
     "/nimi.runtime.v1.RuntimeAgentService/ListPortableAIProfiles",
@@ -2488,6 +2507,7 @@
     "/nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig",
     "/nimi.runtime.v1.RuntimeAgentService/SetLocalAppAgentMemoryEnabled",
     "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision",
+    "/nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppConversationToolResult",
     "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents",
     "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents",
     "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppEmbodimentEvents",
@@ -3023,6 +3043,14 @@
       "response_type": "ListLocalAppAgentReferencesResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppConversationToolCalls",
+      "service": "RuntimeAgentService",
+      "method": "ListLocalAppConversationToolCalls",
+      "kind": "unary",
+      "request_type": "ListLocalAppConversationToolCallsRequest",
+      "response_type": "ListLocalAppConversationToolCallsResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions",
       "service": "RuntimeAgentService",
       "method": "ListLocalAppSharedLocalAgentAIConfigOptions",
@@ -3197,6 +3225,14 @@
       "kind": "unary",
       "request_type": "SubmitDelegatedApprovalDecisionRequest",
       "response_type": "SubmitDelegatedApprovalDecisionResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppConversationToolResult",
+      "service": "RuntimeAgentService",
+      "method": "SubmitLocalAppConversationToolResult",
+      "kind": "unary",
+      "request_type": "SubmitLocalAppConversationToolResultRequest",
+      "response_type": "SubmitLocalAppConversationToolResultResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents",
@@ -5049,6 +5085,14 @@
       "response_type": "ListLocalAppAgentReferencesResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppConversationToolCalls",
+      "service": "RuntimeAgentService",
+      "method": "ListLocalAppConversationToolCalls",
+      "kind": "unary",
+      "request_type": "ListLocalAppConversationToolCallsRequest",
+      "response_type": "ListLocalAppConversationToolCallsResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions",
       "service": "RuntimeAgentService",
       "method": "ListLocalAppSharedLocalAgentAIConfigOptions",
@@ -5223,6 +5267,14 @@
       "kind": "unary",
       "request_type": "SubmitDelegatedApprovalDecisionRequest",
       "response_type": "SubmitDelegatedApprovalDecisionResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppConversationToolResult",
+      "service": "RuntimeAgentService",
+      "method": "SubmitLocalAppConversationToolResult",
+      "kind": "unary",
+      "request_type": "SubmitLocalAppConversationToolResultRequest",
+      "response_type": "SubmitLocalAppConversationToolResultResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents",
@@ -7155,6 +7207,8 @@
       "ListLocalAppAgentReferencesResponse",
       "ListLocalAppAssetsRequest",
       "ListLocalAppAssetsResponse",
+      "ListLocalAppConversationToolCallsRequest",
+      "ListLocalAppConversationToolCallsResponse",
       "ListLocalAppSharedLocalAgentAIConfigOptionsRequest",
       "ListLocalAppSharedLocalAgentAIConfigOptionsResponse",
       "ListLocalAppVoiceAssetsRequest",
@@ -7254,6 +7308,7 @@
       "LocalAppConversationSnapshot",
       "LocalAppConversationTextDelta",
       "LocalAppConversationTextPart",
+      "LocalAppConversationToolCall",
       "LocalAppConversationTurn",
       "LocalAppConversationTurnAccepted",
       "LocalAppConversationTurnCompleted",
@@ -7262,6 +7317,9 @@
       "LocalAppConversationTurnStarted",
       "LocalAppConversationVoice",
       "LocalAppConversationVoiceEvent",
+      "LocalAppConversationWork",
+      "LocalAppConversationWorkSource",
+      "LocalAppConversationWorkTool",
       "LocalAppEmbodimentActivity",
       "LocalAppEmbodimentEmotion",
       "LocalAppEmbodimentEvent",
@@ -7570,6 +7628,8 @@
       "StreamScenarioRequest",
       "SubmitDelegatedApprovalDecisionRequest",
       "SubmitDelegatedApprovalDecisionResponse",
+      "SubmitLocalAppConversationToolResultRequest",
+      "SubmitLocalAppConversationToolResultResponse",
       "SubmitLocalAppScenarioJobRequest",
       "SubmitLocalAppScenarioJobResponse",
       "SubmitRealtimeOwnerControlRequest",
@@ -20362,6 +20422,13 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "expected_turn_id",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -21532,6 +21599,46 @@
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "ListLocalAppConversationToolCallsRequest",
+        "fields": [
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "conversation_anchor_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "turn_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "ListLocalAppConversationToolCallsResponse",
+        "fields": [
+          {
+            "name": "calls",
+            "type": "LocalAppConversationToolCall",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
         "name": "ListLocalAppSharedLocalAgentAIConfigOptionsRequest",
@@ -24289,6 +24396,13 @@
             "repeated": false,
             "optional": true,
             "number": 3
+          },
+          {
+            "name": "agent_binding",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -25043,6 +25157,40 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
+        "name": "LocalAppConversationToolCall",
+        "fields": [
+          {
+            "name": "call_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "turn_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "arguments_json",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
         "name": "LocalAppConversationTurn",
         "fields": [
           {
@@ -25247,6 +25395,101 @@
             "repeated": false,
             "optional": false,
             "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "LocalAppConversationWork",
+        "fields": [
+          {
+            "name": "work_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "instructions",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "sources",
+            "type": "LocalAppConversationWorkSource",
+            "repeated": true,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "tools",
+            "type": "LocalAppConversationWorkTool",
+            "repeated": true,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "routine_name",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "LocalAppConversationWorkSource",
+        "fields": [
+          {
+            "name": "source_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "title",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "content",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "LocalAppConversationWorkTool",
+        "fields": [
+          {
+            "name": "name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "description",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "input_schema_json",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -35681,6 +35924,13 @@
             "repeated": true,
             "optional": false,
             "number": 5
+          },
+          {
+            "name": "work",
+            "type": "LocalAppConversationWork",
+            "repeated": false,
+            "optional": false,
+            "number": 6
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -36937,6 +37187,67 @@
           }
         ],
         "source_file": "proto/runtime/v1/delegated_control.proto"
+      },
+      {
+        "name": "SubmitLocalAppConversationToolResultRequest",
+        "fields": [
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "conversation_anchor_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "turn_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "call_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "result_json",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "is_error",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "SubmitLocalAppConversationToolResultResponse",
+        "fields": [
+          {
+            "name": "call_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
         "name": "SubmitLocalAppScenarioJobRequest",
@@ -41294,7 +41605,8 @@
           "AGENT_TURN_CONTEXT_LANE_ID_CURRENT_USER_TURN",
           "AGENT_TURN_CONTEXT_LANE_ID_COGNITION_SOURCE",
           "AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_SUMMARY",
-          "AGENT_TURN_CONTEXT_LANE_ID_PRIVATE_RECALL"
+          "AGENT_TURN_CONTEXT_LANE_ID_PRIVATE_RECALL",
+          "AGENT_TURN_CONTEXT_LANE_ID_APP_WORK"
         ],
         "source_file": "proto/runtime/v1/agent_source_materialization.proto"
       },
@@ -42130,7 +42442,8 @@
         "values": [
           "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_UNSPECIFIED",
           "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_USER",
-          "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_ASSISTANT"
+          "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_ASSISTANT",
+          "LOCAL_APP_CONVERSATION_MESSAGE_ROLE_APP"
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
@@ -42919,6 +43232,8 @@
           "AI_LOCAL_MODEL_STORAGE_LINK_UNSUPPORTED",
           "AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED",
           "AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED",
+          "AGENT_BUSY",
+          "AGENT_TURN_NOT_ACTIVE",
           "APP_ACTIVITY_INPUT_INVALID",
           "APP_ACTIVITY_REVISION_CONFLICT",
           "APP_ACTIVITY_NOT_FOUND",

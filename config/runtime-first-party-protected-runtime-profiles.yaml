@@ -206,6 +206,8 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAgentService/RevalidateLocalAppAvatarHostTarget
       - method_id: /nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation
       - method_id: /nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppConversationToolCalls
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppConversationToolResult
       - method_id: /nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact
       - method_id: /nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppConversationVoice
@@ -333,6 +335,10 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation
         capability: agent.local
       - method_id: /nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn
+        capability: agent.local
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppConversationToolCalls
+        capability: agent.local
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppConversationToolResult
         capability: agent.local
       - method_id: /nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment
         capability: agent.local

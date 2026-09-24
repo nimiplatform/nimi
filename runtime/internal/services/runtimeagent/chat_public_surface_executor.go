@@ -33,14 +33,14 @@ func NewAIBackedPublicChatTurnExecutor(ai publicChatScenarioStreamer) PublicChat
 }
 
 const publicChatAPMLOutputContractPromptTemplate = `Runtime APML contract:
-- Output APML only. Begin exactly <message id="message-0">; no Markdown, JSON, fences, <think>, or other prose.
+- Output APML only. Begin exactly <message id="message-0">; no Markdown, JSON, fences, <think>, or other prose outside the message.
 %s
 - Text: <message id="message-0">reply text</message>. Never self-close <message>; all reply text stays inside <message>.
 - Optional inside <message>, at most one each (omit if unsure): <emotion>%s</emotion>; <activity>%s</activity>. "focused" is activity, not emotion.
 - Voice: <action id="action-0" kind="voice"><prompt-payload kind="voice"><prompt-text>voice prompt</prompt-text></prompt-payload></action>.
 %s
 - Follow-up: <time-hook id="hook-0"><delay-ms>600000</delay-ms><effect kind="follow-up-turn"><prompt-text>instruction</prompt-text></effect></time-hook>.
-- Message first; then action/time-hook/event-hook siblings; close all tags. FINAL: reply ONLY as <message id="message-0">reply text</message> unless a sibling is required.`
+- No top-level emotion/activity. Message first; then action/time-hook/event-hook siblings; close all tags. FINAL: reply ONLY as <message id="message-0">reply text</message> unless a sibling is required.`
 
 const publicChatRoundOneRecallPrompt = `- If essential source facts are missing, instead output exactly <message id="message-0"><query>one bounded source question</query></message>. This Runtime-private recall is available at most once; the message may contain only the query request and never reply text/actions.`
 
@@ -168,6 +168,7 @@ func (e *aiBackedPublicChatTurnExecutor) StreamChatTurn(
 			Spec: &runtimev1.ScenarioSpec_TextGenerate{
 				TextGenerate: &runtimev1.TextGenerateScenarioSpec{
 					Input:        cloneChatMessages(req.Messages),
+					Tools:        req.Tools,
 					SystemPrompt: strings.TrimSpace(req.SystemPrompt),
 					MaxTokens:    maxTokens,
 					Reasoning:    toProtoReasoningConfig(req.Reasoning),

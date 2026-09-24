@@ -442,7 +442,7 @@ func TestPublicChatCommittedSnapshotRemainsActiveUntilTerminalDeliveryReleasesRe
 	if _, exists := committedSnapshot["last_turn"]; exists {
 		t.Fatalf("committed message must not fabricate terminal last_turn before post-turn completion: %v", committedSnapshot)
 	}
-	if err := svc.ConsumePublicChatAppMessage(context.Background(), request("request-blocked", "must remain blocked before terminal")); status.Code(err) != codes.FailedPrecondition {
+	if err := svc.ConsumePublicChatAppMessage(context.Background(), request("request-blocked", "must remain blocked before terminal")); status.Code(err) != codes.ResourceExhausted {
 		t.Fatalf("expected pre-terminal request to remain blocked, got %v", err)
 	}
 

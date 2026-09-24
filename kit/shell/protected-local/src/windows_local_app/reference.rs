@@ -26,6 +26,8 @@ pub(super) async fn list(
         .into_iter()
         .map(|reference| {
             if !safe_handle(&reference.agent_handle)
+                || !(reference.agent_binding.starts_with("agent_binding_")
+                    && safe_handle(&reference.agent_binding.replacen("agent_binding_", "agent_ref_", 1)))
                 || !safe_display_name(&reference.display_name)
                 || !handles.insert(reference.agent_handle.clone())
                 || reference
@@ -37,6 +39,7 @@ pub(super) async fn list(
             }
             Ok(LocalAppAgentReference {
                 agent_handle: reference.agent_handle,
+                agent_binding: reference.agent_binding,
                 display_name: reference.display_name,
                 avatar_url: reference.avatar_url,
             })

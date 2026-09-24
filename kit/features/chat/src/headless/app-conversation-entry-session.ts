@@ -232,14 +232,14 @@ function projectCommittedMessage(input: {
     sessionId: input.conversationAnchorId,
     targetId: input.reference.agentHandle,
     source: 'agent' as const,
-    role: input.message.role,
+    role: input.message.role === 'app' ? 'system' as const : input.message.role,
     text: text?.text ?? image?.displayName ?? '',
     // Canonical Conversation does not project wall-clock message time. An
     // empty value keeps the reusable shell from inventing one.
     createdAt: '',
     status: 'complete' as const,
     kind: image ? 'image' as const : 'text' as const,
-    senderName: input.message.role === 'assistant'
+    senderName: input.message.role === 'app' ? 'App' : input.message.role === 'assistant'
       ? input.reference.displayName
       : null,
     senderAvatarUrl: input.message.role === 'assistant'

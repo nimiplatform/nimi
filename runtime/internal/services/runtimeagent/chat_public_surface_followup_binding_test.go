@@ -93,7 +93,7 @@ func TestPublicChatTurnRejectsConcurrentTurnForSameAgent(t *testing.T) {
 			},
 		}),
 	})
-	if status.Code(err) != codes.FailedPrecondition {
+	if status.Code(err) != codes.ResourceExhausted {
 		t.Fatalf("expected concurrent turn rejection, got err=%v code=%v", err, status.Code(err))
 	}
 	close(release)

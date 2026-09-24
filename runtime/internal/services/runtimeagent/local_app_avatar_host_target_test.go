@@ -28,7 +28,7 @@ func TestLocalAppAvatarHostTargetWireIsExactAndSeparateFromReferenceProjection(t
 		t.Fatal("current target revalidation wire is not exact")
 	}
 	reference := (&runtimev1.LocalAppAgentReference{}).ProtoReflect().Descriptor()
-	if reference.Fields().Len() != 3 || reference.Fields().ByName(protoreflect.Name("avatar_host_target_ref")) != nil {
+	if reference.Fields().Len() != 4 || reference.Fields().ByName(protoreflect.Name("avatar_host_target_ref")) != nil {
 		t.Fatalf("reference projection leaked Host target: fields=%d", reference.Fields().Len())
 	}
 }

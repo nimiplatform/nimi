@@ -1,5 +1,54 @@
 # Changelog
 
+## Unreleased (0.15.3)
+
+- Gate calls while a protected session rebind is in progress, reject old in-flight
+  responses, and coalesce invalidation before any fresh scope is used. The existing
+  `onSessionInvalidated` hook remains the App lifecycle boundary; successful
+  routine renewal does not invalidate App state. No SDK/proto/API change.
+- App Tools 0.11.3 wires that hook to destroy old renderer windows and create fresh
+  ones in the same supervised Host. Consumers with Node business work must also
+  cancel their own queues, retries and callbacks in the existing hook. Native
+  companion package metadata follows 0.15.3; its native code and ABI are unchanged.
+
+## Unreleased (0.15.2)
+
+- Keep observing the Runtime activity-open stream while Desktop launches the
+  source App. Source confirmation or the Runtime deadline can now finish the
+  operation even if the launch acknowledgement remains pending; a launch result
+  alone still never proves the source object opened. No API change.
+
+## Unreleased (0.15.1)
+
+- Preserve `agent-turn-not-active` through Electron Host error validation so
+  consumers can refresh the completed work without retrying an unfenced stop.
+
+## Unreleased (0.15.0)
+
+- Add optional `conversation.interruptTurn({ expectedTurnId })`. Runtime atomically
+  refuses `AGENT_TURN_NOT_ACTIVE` when that turn is no longer active, preserving
+  any newer work from another App. Work-item stop controls should pass their
+  recorded turn ID and refresh the snapshot on rejection. Omitting the field
+  retains explicit current-Conversation interruption. Upgrade SDK 0.18, Kit and
+  matching native 0.15 together before using the field.
+
+## Unreleased (0.14.1)
+
+- Preserve canonical `role: app` messages in the Electron native Host's snapshot
+  and event validation. Apps sharing an Agent can read its Conversation after
+  another App's routine commits. Native reference validation also rejects a
+  session handle where an `agentBinding` is required. Use matching 0.14.1 native.
+
+## Unreleased (0.14.0)
+
+- Breaking (0.x minor): carry App-scoped `agentBinding`, typed LocalAgent work
+  context, pending skill calls and result submission through the standard
+  renderer, Electron and native carriers. Upgrade SDK to 0.17 and native to
+  0.14 together; custom carrier test fixtures must use four reference fields
+  and both new Conversation methods. App calls remain bound to their exact
+  initiating session, Agent, anchor and turn. No provider or identity escapes.
+- Agent Center bounded context status recognizes the Runtime `app_work` lane.
+
 ## Unreleased (0.13.0)
 
 - Add validated Runtime/Realm operation selectors and cancellation metadata to

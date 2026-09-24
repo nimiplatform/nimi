@@ -254,7 +254,7 @@ function baseMessage(input: {
   id: string;
   threadId: string;
   turnId: string;
-  role: 'user' | 'assistant';
+  role: AgentLocalMessageRecord['role'];
   kind: 'text' | 'image' | 'voice';
   contentText: string;
   status: 'pending' | 'complete' | 'error';
@@ -300,12 +300,13 @@ export async function materializeCanonicalConversationBundle(input: {
         id: message.messageId,
         threadId: input.thread.id,
         turnId: message.turnId,
-        role: message.role,
+        role: message.role === 'app' ? 'system' : message.role,
         kind: artifact ? 'image' : 'text',
         contentText: text?.text || '',
         status: 'complete',
         nowMs: input.nowMs,
         metadata: {
+          canonicalOrigin: message.role,
           canonicalConversationAnchorId: input.projection.conversationAnchorId,
           canonicalTurnId: message.turnId,
           canonicalThroughSequence: input.projection.throughSequence,

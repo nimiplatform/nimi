@@ -359,6 +359,7 @@ fn project_context_lane_id(value: i32) -> Result<&'static str, LocalAppOperation
             AgentTurnContextLaneId::CognitionSource => "cognition_source",
             AgentTurnContextLaneId::ConversationSummary => "conversation_summary",
             AgentTurnContextLaneId::PrivateRecall => "private_recall",
+            AgentTurnContextLaneId::AppWork => "app_work",
             AgentTurnContextLaneId::Unspecified => return Err(untrusted()),
         },
     )

@@ -493,6 +493,8 @@ message LocalAppAgentReference {
   string agent_handle = 1;
   string display_name = 2;
   optional string avatar_url = 3;
+  // Stable only within this account and registered App; correlation, never access.
+  string agent_binding = 4;
 }
 message ListLocalAppAgentReferencesRequest {}
 message ListLocalAppAgentReferencesResponse {
@@ -630,6 +632,51 @@ message SendLocalAppConversationTurnRequest {
   reserved 4;
   reserved "text";
   repeated LocalAppConversationInputPart parts = 5;
+  LocalAppConversationWork work = 6;
+}
+// App-authored business context. Runtime supplies provenance and composes it
+// below its policy and the LocalAgent's own source identity.
+message LocalAppConversationWorkSource {
+  string source_id = 1;
+  string title = 2;
+  string content = 3;
+}
+message LocalAppConversationWorkTool {
+  string name = 1;
+  string description = 2;
+  string input_schema_json = 3;
+}
+message LocalAppConversationWork {
+  string work_id = 1;
+  string instructions = 2;
+  repeated LocalAppConversationWorkSource sources = 3;
+  repeated LocalAppConversationWorkTool tools = 4;
+  optional string routine_name = 5;
+}
+message ListLocalAppConversationToolCallsRequest {
+  string agent_handle = 1;
+  string conversation_anchor_id = 2;
+  string turn_id = 3;
+}
+message LocalAppConversationToolCall {
+  string call_id = 1;
+  string turn_id = 2;
+  string name = 3;
+  string arguments_json = 4;
+}
+message ListLocalAppConversationToolCallsResponse {
+  repeated LocalAppConversationToolCall calls = 1;
+}
+message SubmitLocalAppConversationToolResultRequest {
+  string agent_handle = 1;
+  string conversation_anchor_id = 2;
+  string turn_id = 3;
+  string call_id = 4;
+  string result_json = 5;
+  bool is_error = 6;
+}
+message SubmitLocalAppConversationToolResultResponse {
+  string call_id = 1;
 }
 message SendLocalAppConversationTurnResponse {
   string turn_id = 1;
@@ -687,6 +734,8 @@ message RenderLocalAppConversationVoiceResponse {
 message InterruptLocalAppConversationTurnRequest {
   string agent_handle = 1;
   string conversation_anchor_id = 2;
+  // When present, interrupt only this currently active turn.
+  optional string expected_turn_id = 3;
 }
 message InterruptLocalAppConversationTurnResponse {
   string turn_id = 1;
@@ -704,6 +753,7 @@ enum LocalAppConversationMessageRole {
   LOCAL_APP_CONVERSATION_MESSAGE_ROLE_UNSPECIFIED = 0;
   LOCAL_APP_CONVERSATION_MESSAGE_ROLE_USER = 1;
   LOCAL_APP_CONVERSATION_MESSAGE_ROLE_ASSISTANT = 2;
+  LOCAL_APP_CONVERSATION_MESSAGE_ROLE_APP = 3;
 }
 message LocalAppConversationMessage {
   string turn_id = 1;
@@ -1137,6 +1187,8 @@ service RuntimeAgentService {
   rpc RevalidateLocalAppAvatarHostTarget(RevalidateLocalAppAvatarHostTargetRequest) returns (RevalidateLocalAppAvatarHostTargetResponse);
   rpc OpenLocalAppConversation(OpenLocalAppConversationRequest) returns (OpenLocalAppConversationResponse);
   rpc SendLocalAppConversationTurn(SendLocalAppConversationTurnRequest) returns (SendLocalAppConversationTurnResponse);
+  rpc ListLocalAppConversationToolCalls(ListLocalAppConversationToolCallsRequest) returns (ListLocalAppConversationToolCallsResponse);
+  rpc SubmitLocalAppConversationToolResult(SubmitLocalAppConversationToolResultRequest) returns (SubmitLocalAppConversationToolResultResponse);
   rpc UploadLocalAppConversationAttachment(UploadLocalAppConversationAttachmentRequest) returns (UploadLocalAppConversationAttachmentResponse);
   rpc ReadLocalAppConversationArtifact(ReadLocalAppConversationArtifactRequest) returns (ReadLocalAppConversationArtifactResponse);
   rpc TranscribeLocalAppConversationVoice(TranscribeLocalAppConversationVoiceRequest) returns (TranscribeLocalAppConversationVoiceResponse);

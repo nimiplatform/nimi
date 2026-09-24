@@ -565,6 +565,8 @@ const (
 	// covers same-revision content differences and stale revisions; cursor
 	// expired requires relisting instead of claiming a complete replay; open
 	// request unavailable covers late, foreign, or already resolved deliveries.
+	ReasonCode_AGENT_BUSY                            ReasonCode = 764
+	ReasonCode_AGENT_TURN_NOT_ACTIVE                 ReasonCode = 765
 	ReasonCode_APP_ACTIVITY_INPUT_INVALID            ReasonCode = 763
 	ReasonCode_APP_ACTIVITY_REVISION_CONFLICT        ReasonCode = 755
 	ReasonCode_APP_ACTIVITY_NOT_FOUND                ReasonCode = 756
@@ -871,6 +873,8 @@ var (
 		751: "AI_LOCAL_MODEL_STORAGE_LINK_UNSUPPORTED",
 		752: "AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED",
 		754: "AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED",
+		764: "AGENT_BUSY",
+		765: "AGENT_TURN_NOT_ACTIVE",
 		763: "APP_ACTIVITY_INPUT_INVALID",
 		755: "APP_ACTIVITY_REVISION_CONFLICT",
 		756: "APP_ACTIVITY_NOT_FOUND",
@@ -1174,6 +1178,8 @@ var (
 		"AI_LOCAL_MODEL_STORAGE_LINK_UNSUPPORTED":              751,
 		"AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED":     752,
 		"AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED":                  754,
+		"AGENT_BUSY":                                           764,
+		"AGENT_TURN_NOT_ACTIVE":                                765,
 		"APP_ACTIVITY_INPUT_INVALID":                           763,
 		"APP_ACTIVITY_REVISION_CONFLICT":                       755,
 		"APP_ACTIVITY_NOT_FOUND":                               756,
@@ -1696,7 +1702,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x15TOOL_CHOICE_MODE_AUTO\x10\x01\x12\x19\n" +
 	"\x15TOOL_CHOICE_MODE_NONE\x10\x02\x12\x1d\n" +
 	"\x19TOOL_CHOICE_MODE_REQUIRED\x10\x03\x12\x19\n" +
-	"\x15TOOL_CHOICE_MODE_TOOL\x10\x04*\xaa^\n" +
+	"\x15TOOL_CHOICE_MODE_TOOL\x10\x04*\xd7^\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -1990,7 +1996,10 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"0AI_LOCAL_MODEL_STATE_OFFLINE_CONVERSION_REQUIRED\x10\xee\x05\x12,\n" +
 	"'AI_LOCAL_MODEL_STORAGE_LINK_UNSUPPORTED\x10\xef\x05\x125\n" +
 	"0AI_LOCAL_MODEL_INVENTORY_RECONCILIATION_REQUIRED\x10\xf0\x05\x12(\n" +
-	"#AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED\x10\xf2\x05\x12\x1f\n" +
+	"#AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED\x10\xf2\x05\x12\x0f\n" +
+	"\n" +
+	"AGENT_BUSY\x10\xfc\x05\x12\x1a\n" +
+	"\x15AGENT_TURN_NOT_ACTIVE\x10\xfd\x05\x12\x1f\n" +
 	"\x1aAPP_ACTIVITY_INPUT_INVALID\x10\xfb\x05\x12#\n" +
 	"\x1eAPP_ACTIVITY_REVISION_CONFLICT\x10\xf3\x05\x12\x1b\n" +
 	"\x16APP_ACTIVITY_NOT_FOUND\x10\xf4\x05\x12\x1b\n" +

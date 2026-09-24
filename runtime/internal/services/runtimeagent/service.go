@@ -78,6 +78,8 @@ type Service struct {
 	accountTerminationFencedAccounts         map[string]bool
 	realmCharacterPublicAvatar               realmCharacterPublicAvatarResolver
 	localAppIngressRevalidator               localAppIngressRevalidator
+	localAppWorkMu                           sync.Mutex
+	localAppWorkCalls                        map[string]*localAppWorkCall
 	localAppConversationMu                   sync.Mutex
 	localAppConversationPublishMu            sync.Mutex
 	localAppConversationNextSubscriberID     uint64

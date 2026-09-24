@@ -26,6 +26,7 @@ const (
 	agentTurnContextLaneConversationSummary agentTurnContextLaneID = "conversation_summary"
 	agentTurnContextLaneConversationHistory agentTurnContextLaneID = "conversation_history"
 	agentTurnContextLaneCapabilityContext   agentTurnContextLaneID = "capability_context"
+	agentTurnContextLaneAppWork             agentTurnContextLaneID = "app_work"
 	agentTurnContextLaneCurrentUserTurn     agentTurnContextLaneID = "current_user_turn"
 	agentTurnContextLanePrivateRecall       agentTurnContextLaneID = "private_recall"
 )
@@ -233,6 +234,7 @@ type agentTurnContextCompileInput struct {
 	CurrentUserTurn      agentTurnCurrentUserInput
 	Cognition            agentTurnCognitionInput
 	PrivateRecall        *agentTurnPrivateRecallInput
+	AppWork              *localAppWorkExecution
 	Budget               agentTurnContextBudgetInput
 	Route                agentTurnContextRouteInput
 }

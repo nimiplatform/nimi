@@ -1,5 +1,6 @@
 use super::*;
 use nimi_shell_protected_local::{
+    LocalAppConversationToolScopeRequest, LocalAppConversationToolResultRequest,
     LocalAppVideoSessionFrameRequest, LocalAppVideoSessionOpenRequest,
     LocalAppVideoSessionScopeRequest,
 };
@@ -1115,6 +1116,7 @@ pub async fn local_app_avatar_host_target_resolve(
 fn project_agent_reference(reference: LocalAppAgentReference) -> JsonValue {
     json!({
         "agentHandle": reference.agent_handle,
+        "agentBinding": reference.agent_binding,
         "displayName": reference.display_name,
         "avatarUrl": reference.avatar_url,
     })
@@ -1415,6 +1417,7 @@ pub async fn local_app_conversation_send_turn(
                 conversation_anchor_id: input.conversation_anchor_id,
                 request_id: input.request_id,
                 parts,
+                work: input.work,
             })
             .await
             .map(|result| json!({ "turnId": result.turn_id }))
@@ -1422,6 +1425,19 @@ pub async fn local_app_conversation_send_turn(
     .await
 }
 
+#[napi(js_name = "localAppConversationToolCallsList")]
+pub async fn local_app_conversation_tool_calls_list(input: NativeConversationToolScopeInput) -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.conversation_tool_calls_list(LocalAppConversationToolScopeRequest {
+        agent_handle: input.agent_handle, conversation_anchor_id: input.conversation_anchor_id, turn_id: input.turn_id,
+    }).await }).await
+}
+#[napi(js_name = "localAppConversationToolResultSubmit")]
+pub async fn local_app_conversation_tool_result_submit(input: NativeConversationToolResultInput) -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.conversation_tool_result_submit(LocalAppConversationToolResultRequest {
+        scope: LocalAppConversationToolScopeRequest { agent_handle: input.agent_handle, conversation_anchor_id: input.conversation_anchor_id, turn_id: input.turn_id },
+        call_id: input.call_id, result_json: input.result_json, is_error: input.is_error,
+    }).await }).await
+}
 #[napi(js_name = "localAppConversationAttachmentUpload")]
 pub async fn local_app_conversation_attachment_upload(
     input: NativeConversationAttachmentUploadInput,
@@ -1627,13 +1643,14 @@ fn native_invalid_payload() -> LocalAppOperationError {
 
 #[napi(js_name = "localAppConversationInterruptTurn")]
 pub async fn local_app_conversation_interrupt_turn(
-    input: NativeConversationScopeInput,
+    input: NativeConversationInterruptInput,
 ) -> NativeJsonOutcome {
     invoke_agent(|session| async move {
         session
             .conversation_interrupt_turn(LocalAppConversationInterruptRequest {
                 agent_handle: input.agent_handle,
                 conversation_anchor_id: input.conversation_anchor_id,
+                expected_turn_id: input.expected_turn_id,
             })
             .await
             .map(|result| json!({ "turnId": result.turn_id }))
@@ -1661,7 +1678,8 @@ pub async fn local_app_conversation_snapshot(
                         "messageId": message.message_id,
                         "turnId": message.turn_id,
                         "role": match message.role {
-                            LocalAppConversationMessageRole::User => "user",
+                            LocalAppConversationMessageRole::App => "app",
+                        LocalAppConversationMessageRole::User => "user",
                             LocalAppConversationMessageRole::Assistant => "assistant",
                         },
                         "parts": message.parts,

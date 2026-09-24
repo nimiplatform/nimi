@@ -1,3 +1,4 @@
+import { validateNimiLocalAppConversationWork, type NimiLocalAppConversationWork } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppMusicTranscribeSpec, validateNimiLocalAppMusicTranscription, type NimiLocalAppMusicTranscribeSpec, type NimiLocalAppMusicTranscription } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppVoiceConvertSpec, validateNimiLocalAppVoiceConversion, type NimiLocalAppVoiceConvertSpec, type NimiLocalAppVoiceConversion } from '@nimiplatform/kit/core/sdk-contract';
 import { projectMusicInputCapabilities } from '@nimiplatform/kit/core/sdk-contract';
@@ -94,6 +95,7 @@ export type NimiLocalAppCurrentUserDisplay = {
 };
 
 export type NimiLocalAppAgentReference = {
+  readonly agentBinding: string;
   readonly agentHandle: NimiLocalAppAgentHandle;
   readonly displayName: string;
   readonly avatarUrl: string | null;
@@ -544,10 +546,13 @@ export type NimiLocalAppStandardShellSurface = {
   };
   readonly agentConfigure: NimiLocalAppAgentConfigureShellSurface;
   readonly conversation: {
+    readonly listToolCalls: (input: NimiLocalAppConversationScopeInput & { readonly turnId: string }) => Promise<JsonObject>;
+    readonly submitToolResult: (input: NimiLocalAppConversationScopeInput & { readonly turnId: string; readonly callId: string; readonly resultJson: string; readonly isError: boolean }) => Promise<JsonObject>;
     readonly open: (input: {
       readonly agentHandle: string;
     }) => Promise<JsonObject>;
     readonly send: (input: NimiLocalAppConversationScopeInput & {
+      readonly work?: NimiLocalAppConversationWork;
       readonly requestId: string;
       readonly parts: readonly (
         | { readonly kind: 'text'; readonly text: string }
@@ -571,7 +576,7 @@ export type NimiLocalAppStandardShellSurface = {
       readonly messageId: string;
       readonly requestId: string;
     }) => Promise<JsonObject>;
-    readonly interruptTurn: (input: NimiLocalAppConversationScopeInput) => Promise<JsonObject>;
+    readonly interruptTurn: (input: NimiLocalAppConversationScopeInput & { readonly expectedTurnId?: string }) => Promise<JsonObject>;
     readonly subscribe: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationSubscription>;
     readonly snapshot: (input: NimiLocalAppConversationScopeInput) => Promise<JsonObject>;
   };
@@ -704,6 +709,8 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
     conversation: {
       open: openNimiLocalAppConversation,
       send: sendNimiLocalAppConversationTurn,
+      listToolCalls: listNimiLocalAppConversationToolCalls,
+      submitToolResult: submitNimiLocalAppConversationToolResult,
       uploadAttachment: uploadNimiLocalAppConversationAttachment,
       readArtifact: readNimiLocalAppConversationArtifact,
       transcribeVoice: transcribeNimiLocalAppConversationVoice,
@@ -1166,7 +1173,9 @@ export function listNimiLocalAppAgentReferences(): Promise<readonly NimiLocalApp
     const seen = new Set<string>();
     return Object.freeze(value.map((entry) => {
       const record = assertRecord(entry, `${command}: reference must be an object`);
-      assertProjectionKeys(record, ['agentHandle', 'displayName', 'avatarUrl'], command, 'Agent reference');
+      assertProjectionKeys(record, ['agentHandle', 'agentBinding', 'displayName', 'avatarUrl'], command, 'Agent reference');
+      const agentBinding = requiredText(record.agentBinding, 'agentBinding', command, MAX_IDENTIFIER_LENGTH);
+      if (!/^agent_binding_[A-Za-z0-9_-]{43}$/u.test(agentBinding)) throw new Error(`${command}: agentBinding is invalid`);
       const agentHandle = requiredText(record.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH);
       const displayName = requiredText(record.displayName, 'displayName', command, 256);
       if (!/^agent_ref_[A-Za-z0-9_-]{43}$/u.test(agentHandle) || seen.has(agentHandle)) {
@@ -1179,6 +1188,7 @@ export function listNimiLocalAppAgentReferences(): Promise<readonly NimiLocalApp
       }
       return Object.freeze({
         agentHandle: agentHandle as NimiLocalAppAgentHandle,
+        agentBinding,
         displayName,
         avatarUrl: avatarUrl as string | null,
       });
@@ -1481,6 +1491,7 @@ export function openNimiLocalAppConversation(input: {
 }
 
 export function sendNimiLocalAppConversationTurn(input: NimiLocalAppConversationScopeInput & {
+  readonly work?: NimiLocalAppConversationWork;
   readonly requestId: string;
   readonly parts: readonly (
     | { readonly kind: 'text'; readonly text: string }
@@ -1488,12 +1499,13 @@ export function sendNimiLocalAppConversationTurn(input: NimiLocalAppConversation
   )[];
 }): Promise<JsonObject> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSendTurn'];
-  assertExactInput(input, ['agentHandle', 'conversationAnchorId', 'requestId', 'parts'], command);
+  assertExactInput(input, input.work === undefined ? ['agentHandle', 'conversationAnchorId', 'requestId', 'parts'] : ['agentHandle', 'conversationAnchorId', 'requestId', 'parts', 'work'], command);
   return invokeLocalAppRecord(command, {
     agentHandle: requiredText(input.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
     conversationAnchorId: requiredText(input.conversationAnchorId, 'conversationAnchorId', command, MAX_IDENTIFIER_LENGTH),
     requestId: requiredText(input.requestId, 'requestId', command, MAX_IDENTIFIER_LENGTH),
     parts: parseConversationInputParts(input.parts, command),
+    ...(input.work === undefined ? {} : { work: validateNimiLocalAppConversationWork(input.work) }),
   });
 }
 
@@ -1642,12 +1654,15 @@ function abortableConversationVoiceTranscription(
 }
 
 export function interruptNimiLocalAppConversationTurn(
-  input: NimiLocalAppConversationScopeInput,
+  input: NimiLocalAppConversationScopeInput & { readonly expectedTurnId?: string },
 ): Promise<JsonObject> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationInterruptTurn'];
+  assertAllowedInputKeys(input, ['agentHandle', 'conversationAnchorId', 'expectedTurnId'], ['agentHandle', 'conversationAnchorId'], command);
   return invokeLocalAppRecord(
     command,
-    identifiers(input, ['agentHandle', 'conversationAnchorId'], command),
+    { ...identifiers({ agentHandle: input.agentHandle, conversationAnchorId: input.conversationAnchorId }, ['agentHandle', 'conversationAnchorId'], command),
+      ...(input.expectedTurnId !== undefined ? { expectedTurnId: requiredText(input.expectedTurnId, 'expectedTurnId', command, MAX_IDENTIFIER_LENGTH) } : {}),
+    },
   );
 }
 
@@ -2334,7 +2349,7 @@ function parseConversationMessage(
 ): JsonObject {
   const message = assertRecord(value, `${command} returned invalid conversation message`);
   assertProjectionKeys(message, ['messageId', 'turnId', 'role', 'parts'], command, 'conversation message');
-  if ((message.role !== 'user' && message.role !== 'assistant')
+  if ((message.role !== 'user' && message.role !== 'assistant' && message.role !== 'app')
     || !Array.isArray(message.parts) || message.parts.length < 1 || message.parts.length > 2) {
     throw new Error(`${command}: conversation message is invalid`);
   }
@@ -4423,4 +4438,18 @@ function parseReferenceAudioInput(value: unknown, command: string): void {
  if (typeof row.supportsBytes !== 'boolean' || typeof row.supportsUri !== 'boolean' || (!row.supportsBytes && !row.supportsUri) || !['unsupported', 'optional', 'required'].includes(String(row.textMode)) || !Array.isArray(row.mimeTypes) || row.mimeTypes.length > 16 || row.mimeTypes.some(m => typeof m !== 'string' || !m || m.length > 64 || m.trim() !== m)) {
  throw new Error(`${command}: reference audio input is invalid`);
  }
+}
+
+export function listNimiLocalAppConversationToolCalls(input: NimiLocalAppConversationScopeInput & { readonly turnId: string }): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationToolCallsList'];
+  assertExactInput(input, ['agentHandle', 'conversationAnchorId', 'turnId'], command);
+  return invokeLocalAppRecord(command, { agentHandle: requiredText(input.agentHandle, 'agentHandle', command, 256), conversationAnchorId: requiredText(input.conversationAnchorId, 'conversationAnchorId', command, 256), turnId: requiredText(input.turnId, 'turnId', command, 256) });
+}
+export function submitNimiLocalAppConversationToolResult(input: NimiLocalAppConversationScopeInput & { readonly turnId: string; readonly callId: string; readonly resultJson: string; readonly isError: boolean }): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationToolResultSubmit'];
+  assertExactInput(input, ['agentHandle', 'conversationAnchorId', 'turnId', 'callId', 'resultJson', 'isError'], command);
+  const resultJson = requiredUtf8Text(input.resultJson, 'resultJson', command, 32768);
+  JSON.parse(resultJson);
+  if (typeof input.isError !== 'boolean') throw new Error(`${command}: isError must be boolean`);
+  return invokeLocalAppRecord(command, { agentHandle: requiredText(input.agentHandle, 'agentHandle', command, 256), conversationAnchorId: requiredText(input.conversationAnchorId, 'conversationAnchorId', command, 256), turnId: requiredText(input.turnId, 'turnId', command, 256), callId: requiredText(input.callId, 'callId', command, 256), resultJson, isError: input.isError });
 }

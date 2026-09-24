@@ -489,6 +489,8 @@ enum ReasonCode {
   // covers same-revision content differences and stale revisions; cursor
   // expired requires relisting instead of claiming a complete replay; open
   // request unavailable covers late, foreign, or already resolved deliveries.
+  AGENT_BUSY = 764;
+  AGENT_TURN_NOT_ACTIVE = 765;
   APP_ACTIVITY_INPUT_INVALID = 763;
   APP_ACTIVITY_REVISION_CONFLICT = 755;
   APP_ACTIVITY_NOT_FOUND = 756;

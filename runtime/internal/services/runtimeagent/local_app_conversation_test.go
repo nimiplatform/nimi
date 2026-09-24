@@ -26,8 +26,8 @@ import (
 
 func TestLocalAppConversationWireIsExactAndHasNoGenericMessageEnvelope(t *testing.T) {
 	send := (&runtimev1.SendLocalAppConversationTurnRequest{}).ProtoReflect().Descriptor()
-	if send.Fields().Len() != 4 {
-		t.Fatalf("send field count = %d, want handle, anchor, request id, parts", send.Fields().Len())
+	if send.Fields().Len() != 5 {
+		t.Fatalf("send field count = %d, want handle, anchor, request id, parts, optional work", send.Fields().Len())
 	}
 	for _, forbidden := range []string{
 		"agent_id", "local_agent_id", "attachments", "message_type", "payload", "context",

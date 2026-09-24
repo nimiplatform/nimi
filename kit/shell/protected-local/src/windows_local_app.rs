@@ -4,6 +4,8 @@ mod app_ai_config;
 mod music_input;
 mod avatar_host_target;
 mod conversation;
+mod conversation_work;
+use crate::{LocalAppConversationToolScopeRequest, LocalAppConversationToolResultRequest};
 mod embodiment;
 mod realm_persona_character;
 mod realm_realtime;
@@ -831,6 +833,12 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         })
     }
 
+    fn conversation_tool_calls_list(&self, request: LocalAppConversationToolScopeRequest) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>> {
+        Box::pin(async move { let _operation = self.operation_gate.read().await; conversation_work::list_calls(self.checked_channel()?, request).await })
+    }
+    fn conversation_tool_result_submit(&self, request: LocalAppConversationToolResultRequest) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>> {
+        Box::pin(async move { let _operation = self.operation_gate.read().await; conversation_work::submit_result(self.checked_channel()?, request).await })
+    }
     fn conversation_attachment_upload(
         &self,
         request: LocalAppConversationAttachmentUploadRequest,

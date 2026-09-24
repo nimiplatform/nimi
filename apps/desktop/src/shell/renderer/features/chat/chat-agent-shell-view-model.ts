@@ -97,6 +97,7 @@ export function resolveAgentCanonicalMessages(input: {
   return input.messages.map((message) => {
     const isUser = message.role === 'user' || message.role === 'human';
     const metadata = (message.metadata as Record<string, unknown> | undefined) || {};
+    const isApp = metadata.canonicalOrigin === 'app';
     const kind = String(metadata.kind || '').trim();
     const isImage = kind === 'image';
     const isVoice = kind === 'voice';
@@ -120,10 +121,10 @@ export function resolveAgentCanonicalMessages(input: {
         : isVoice
           ? 'voice' as const
           : 'text' as const,
-      senderName: isUser ? 'You' : input.character.name,
-      senderAvatarUrl: isUser ? undefined : input.character.avatarUrl || undefined,
-      senderHandle: isUser ? undefined : input.character.handle || undefined,
-      senderKind: isUser ? ('human' as const) : ('agent' as const),
+      senderName: isApp ? 'App' : isUser ? 'You' : input.character.name,
+      senderAvatarUrl: isApp || isUser ? undefined : input.character.avatarUrl || undefined,
+      senderHandle: isApp || isUser ? undefined : input.character.handle || undefined,
+      senderKind: isApp ? undefined : isUser ? ('human' as const) : ('agent' as const),
       metadata,
     };
   });

@@ -251,6 +251,8 @@ capability_sets:
       - local-app.agentReferenceList
       - local-app.conversationOpen
       - local-app.conversationSendTurn
+      - local-app.conversationToolCallsList
+      - local-app.conversationToolResultSubmit
       - local-app.conversationAttachmentUpload
       - local-app.conversationArtifactRead
       - local-app.conversationVoiceTranscribe
@@ -772,7 +774,7 @@ local_app_operation_contract:
       command: local-app.agentReferenceList
       operation_id: runtime_agent.reference.list
       request_fields: []
-      response_fields: [agentHandle, displayName, avatarUrl]
+      response_fields: [agentHandle, agentBinding, displayName, avatarUrl]
       transport_boundary: unary
       effect_boundary: read
       typed_failures: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, resource-exhausted, host-internal-error]
@@ -789,8 +791,26 @@ local_app_operation_contract:
     conversationSendTurn:
       command: local-app.conversationSendTurn
       operation_id: runtime_agent.conversation.turn_send
-      request_fields: [agentHandle, conversationAnchorId, requestId, parts]
+      request_fields: [agentHandle, conversationAnchorId, requestId, parts, work]
       response_fields: [turnId]
+      transport_boundary: unary
+      effect_boundary: write
+      typed_failures: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, host-internal-error]
+      owner: runtime_agent_service
+    conversationToolCallsList:
+      command: local-app.conversationToolCallsList
+      operation_id: runtime_agent.conversation.tool_calls_list
+      request_fields: [agentHandle, conversationAnchorId, turnId]
+      response_fields: [calls]
+      transport_boundary: unary
+      effect_boundary: read
+      typed_failures: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, host-internal-error]
+      owner: runtime_agent_service
+    conversationToolResultSubmit:
+      command: local-app.conversationToolResultSubmit
+      operation_id: runtime_agent.conversation.tool_result_submit
+      request_fields: [agentHandle, conversationAnchorId, turnId, callId, resultJson, isError]
+      response_fields: [callId]
       transport_boundary: unary
       effect_boundary: write
       typed_failures: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, host-internal-error]
@@ -1530,6 +1550,12 @@ capabilities:
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, host-internal-error]
       - id: conversationSendTurn
         command: nimi.shell.localApp.conversationSendTurn
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, host-internal-error]
+      - id: conversationToolCallsList
+        command: nimi.shell.localApp.conversationToolCallsList
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, host-internal-error]
+      - id: conversationToolResultSubmit
+        command: nimi.shell.localApp.conversationToolResultSubmit
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, host-internal-error]
       - id: conversationAttachmentUpload
         command: nimi.shell.localApp.conversationAttachmentUpload

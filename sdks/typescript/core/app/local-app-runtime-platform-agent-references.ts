@@ -12,6 +12,7 @@ import {
 
 export type NimiLocalAppAgentReference = {
   readonly agentHandle: NimiLocalAppAgentHandle;
+  readonly agentBinding: string;
   readonly displayName: string;
   readonly avatarUrl: string | null;
 };
@@ -40,7 +41,9 @@ export function createNimiLocalAppAgentReferencesClient(
       const handles = new Set<string>();
       return Object.freeze(value.map((entry) => {
         const record = asRecord(entry);
-        assertExactProjectionKeys(record, ['agentHandle', 'displayName', 'avatarUrl'], 'Agent reference');
+        assertExactProjectionKeys(record, ['agentHandle', 'agentBinding', 'displayName', 'avatarUrl'], 'Agent reference');
+        const agentBinding = projectionText(record.agentBinding, 'Agent reference agentBinding');
+        if (!/^agent_binding_[A-Za-z0-9_-]{43}$/u.test(agentBinding)) localAppProjectionError('Agent reference agentBinding');
         const agentHandle = projectionText(record.agentHandle, 'Agent reference agentHandle');
         if (!/^agent_ref_[A-Za-z0-9_-]{43}$/u.test(agentHandle) || handles.has(agentHandle)) {
           localAppProjectionError('Agent reference agentHandle');
@@ -53,6 +56,7 @@ export function createNimiLocalAppAgentReferencesClient(
         }
         return Object.freeze({
           agentHandle: agentHandle as NimiLocalAppAgentHandle,
+          agentBinding,
           displayName,
           avatarUrl: avatarUrl as string | null,
         });
@@ -70,6 +74,7 @@ export function createNimiLocalAppAgentReferencesRuntimeClient(
       const response = await runtime.listLocalAppAgentReferences({});
       return response.references.map((reference) => ({
         agentHandle: reference.agentHandle,
+        agentBinding: reference.agentBinding,
         displayName: reference.displayName,
         avatarUrl: reference.avatarUrl ?? null,
       }));

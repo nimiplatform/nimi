@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { stripTypeScriptTypes } from 'node:module';
+import vm from 'node:vm';
 import { chmodSync, existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -433,6 +435,7 @@ test('standalone scaffold creates a generic starter with rewritten identity', as
     assert.match(generated.read('src/main.tsx'), /entry:acme-widget-app/);
     assert.doesNotMatch(generated.read('vite.config.ts'), /repoRoot|path\.join\(repoRoot|\.\.\/\.\.\/kit|kit\/ui\/src/);
     assert.match(generated.read('vite.config.ts'), /cacheDir: '\.vite'/);
+    assert.ok(generated.read('vite.config.ts').includes("'**/.nimi/local/**', '**/dist/**', '**/dist-electron/**', '**/dist-electron-package/**'"));
     assert.doesNotMatch(generated.read('src-tauri/src/main.rs'), /lab_storage|world_tour|lab_/);
     assertGeneratedPathMissing(generated, 'src/lab');
     assertGeneratedPathMissing(generated, 'src/capabilities');
@@ -2358,6 +2361,7 @@ test('sync advances the App version while preserving immutable scaffold identity
     const intent = JSON.parse(readFileSync(intentPath, 'utf8'));
     const packageJson = JSON.parse(readFileSync(packagePath, 'utf8'));
     const sourceManifest = parseYaml(generated.read('nimi.app.yaml'));
+    sourceManifest.app_access = ['agent.local', 'app.activity', 'realm.data'];
     sourceManifest.metadata = { summary: 'Author-maintained description.', icon: 'artwork/custom.png', readme: 'GUIDE.md', release_notes: 'NOTES.md' };
     sourceManifest.capability_contract_refs = ['text.generate'];
     sourceManifest.required_standardized_feature_refs = ['text.generate.text'];
@@ -2373,6 +2377,7 @@ test('sync advances the App version while preserving immutable scaffold identity
     assert.equal(JSON.parse(generated.read('package.json')).version, '0.1.1');
     assert.equal(parseYaml(generated.read('nimi.app.yaml')).version, '0.1.1');
     assert.deepEqual(parseYaml(generated.read('nimi.app.yaml')).metadata, sourceManifest.metadata);
+    assert.deepEqual(parseYaml(generated.read('nimi.app.yaml')).app_access, sourceManifest.app_access);
     for (const field of ['capability_contract_refs', 'required_standardized_feature_refs']) {
       assert.deepEqual(parseYaml(generated.read('nimi.app.yaml'))[field], sourceManifest[field]);
       assert.deepEqual(parseYaml(generated.read('.nimi/admission/submission.yaml'))[field], sourceManifest[field]);
@@ -3008,4 +3013,36 @@ test('default profiles generate local-app carrier boundaries without Lab-only or
       generated.cleanup();
     }
   }
+});
+
+
+test('generated Host destroys old renderer state on invalidation before creating a fresh renderer', async () => {
+  const snapshot = buildAppScaffoldSnapshot({ profile: 'standalone', versions, appId: 'acme.scope', appTitle: 'Scope App', packageName: 'scope-app' });
+  let source = stripTypeScriptTypes(snapshot.filesByPath.get('src-electron/main.ts').content, { mode: 'strip' });
+  source = source.replace(/^import .+ from '[^']+';$/gm, '')
+    .replace("await import('@nimiplatform/kit/shell/electron/main')", 'kitMain')
+    .replaceAll('import.meta.url', "'file:///tmp/scope-app/dist-electron/main.js'");
+  const windows = [], events = new Map(), order = []; let invalidated, quits = 0;
+  class Window {
+    static getAllWindows() { return [...windows]; }
+    constructor() { this.webContents = { setWindowOpenHandler() {}, on() {} }; this.oldBusinessState = null; windows.push(this); order.push('create'); }
+    async loadURL() { if (order.length === 1) await new Promise((_, reject) => { this.abortLoad = reject; }); }
+    isDestroyed() { return !windows.includes(this); }
+    destroy() { this.oldBusinessState = null; windows.splice(windows.indexOf(this), 1); order.push('destroy'); this.abortLoad?.(new Error('ERR_ABORTED')); if (!windows.length) events.get('window-all-closed')?.(); }
+  }
+  const app = { setName() {}, setAppUserModelId() {}, exit() {}, quit() { quits++; }, whenReady: async () => {}, on: (name, listener) => events.set(name, listener) };
+  await vm.runInNewContext(`(async () => {${source}})()`, {
+    path, fileURLToPath, app, BrowserWindow: Window, ipcMain: {}, Menu: { setApplicationMenu() {} }, protocol: {}, session: { defaultSession: { webRequest: {} } }, webContents: {},
+    configureNimiElectronAppHostProfile() {}, URL, process: { platform: 'win32', argv: [], stderr: { write() {} } },
+    pathToFileURL: value => new URL(`file://${value}`),
+    kitMain: { isAllowedElectronRendererUrl: () => true, registerNimiElectronAppAssetProtocolScheme() {}, registerNimiElectronAppBridge(input) { invalidated = input.onSessionInvalidated; } },
+  });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(windows.length, 1); const old = windows[0]; old.oldBusinessState = { dirty: 'account A private' };
+  assert.equal(typeof invalidated, 'function'); invalidated();
+  assert.equal(old.oldBusinessState, null); assert.notEqual(windows[0], old);
+  assert.deepEqual(order, ['create', 'destroy', 'create']); assert.equal(quits, 0);
+  await new Promise(resolve => setImmediate(resolve));
+  events.get('before-quit')(); invalidated();
+  assert.equal(order.length, 3, 'quitting must not resurrect a renderer');
 });

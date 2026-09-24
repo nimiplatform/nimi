@@ -202,6 +202,8 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "LOCAL_APP_OWNER_UNAVAILABLE" => LocalAppReasonCode::OwnerUnavailable,
         "CURRENT_USER_DISPLAY_UNAVAILABLE" => LocalAppReasonCode::CurrentUserDisplayUnavailable,
         "LOCAL_APP_PRESENCE_EXPIRED" => LocalAppReasonCode::PresenceExpired,
+        "AGENT_BUSY" => LocalAppReasonCode::AgentBusy,
+        "AGENT_TURN_NOT_ACTIVE" => LocalAppReasonCode::AgentTurnNotActive,
         "AI_MODEL_NOT_FOUND" => LocalAppReasonCode::AiModelNotFound,
         "AI_MODEL_NOT_READY" => LocalAppReasonCode::AiModelNotReady,
         "AI_PROVIDER_UNAVAILABLE" => LocalAppReasonCode::AiProviderUnavailable,

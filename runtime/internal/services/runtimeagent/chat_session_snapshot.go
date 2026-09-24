@@ -129,11 +129,17 @@ func (s *Service) commitPublicChatTurnTranscriptForTurnWithProjection(
 	if strings.TrimSpace(anchorID) == "" || !validRuntimeOwnedCurrentUserMessage(currentUser) || strings.TrimSpace(assistantText) == "" {
 		return status.Error(codes.InvalidArgument, "committed transcript requires anchor, current user, and assistant text")
 	}
+	origin := publicChatTurnOriginUser
+	s.chatSurfaceMu.Lock()
+	if turn := s.chatTurns[turnID]; turn != nil && turn.Origin == publicChatTurnOriginApp {
+		origin = publicChatTurnOriginApp
+	}
+	s.chatSurfaceMu.Unlock()
 	return s.commitPublicChatTranscriptTurn(
 		commitContext,
 		anchorID,
 		turnID,
-		publicChatTurnOriginUser,
+		origin,
 		currentUser.GetContent(),
 		publicChatCommittedAttachmentFromMessage(currentUser),
 		assistantText,
@@ -195,7 +201,7 @@ func (s *Service) commitPublicChatTranscriptTurn(
 	inputAttachment = normalizePublicChatCommittedTranscriptAttachment(inputAttachment)
 	userOnlyAttachmentFailure := origin == publicChatTurnOriginUser && inputAttachment != nil && trimmedAssistant == ""
 	if trimmedAnchorID == "" || (trimmedInput == "" && inputAttachment == nil) || (trimmedAssistant == "" && !userOnlyAttachmentFailure) ||
-		(origin != publicChatTurnOriginUser && origin != publicChatTurnOriginFollowUp) ||
+		(origin != publicChatTurnOriginUser && origin != publicChatTurnOriginFollowUp && origin != publicChatTurnOriginApp) ||
 		(origin == publicChatTurnOriginFollowUp && (trimmedTurnID == "" || inputAttachment != nil)) {
 		return status.Error(codes.InvalidArgument, "committed transcript turn is invalid")
 	}
@@ -340,7 +346,7 @@ func validatePublicChatCommittedTranscript(transcript []publicChatCommittedTrans
 		if turn.Sequence != uint64(index) || strings.TrimSpace(turn.TurnID) == "" || turn.TurnID != strings.TrimSpace(turn.TurnID) ||
 			(strings.TrimSpace(turn.InputText) == "" && attachment == nil) || (strings.TrimSpace(turn.AssistantText) == "" && !userOnlyAttachmentFailure) ||
 			turn.InputText != strings.TrimSpace(turn.InputText) || turn.AssistantText != strings.TrimSpace(turn.AssistantText) ||
-			(turn.Origin != publicChatTurnOriginUser && turn.Origin != publicChatTurnOriginFollowUp) ||
+			(turn.Origin != publicChatTurnOriginUser && turn.Origin != publicChatTurnOriginFollowUp && turn.Origin != publicChatTurnOriginApp) ||
 			(turn.Origin == publicChatTurnOriginFollowUp && attachment != nil) ||
 			!publicChatCommittedTranscriptAttachmentsEqual(turn.InputAttachment, attachment) {
 			return fmt.Errorf("Runtime committed transcript turn is invalid")
@@ -519,10 +525,14 @@ func publicChatTranscriptProjection(transcript []publicChatCommittedTranscriptTu
 	}
 	messages := make([]*runtimev1.ChatMessage, 0, len(transcript)*3)
 	for _, turn := range transcript {
-		if turn.Origin != publicChatTurnOriginUser {
+		if turn.Origin != publicChatTurnOriginUser && turn.Origin != publicChatTurnOriginApp {
 			continue
 		}
-		userMessage := &runtimev1.ChatMessage{Role: "user", Content: turn.InputText}
+		role := "user"
+		if turn.Origin == publicChatTurnOriginApp {
+			role = "system"
+		}
+		userMessage := &runtimev1.ChatMessage{Role: role, Content: turn.InputText}
 		if attachment := normalizePublicChatCommittedTranscriptAttachment(turn.InputAttachment); attachment != nil {
 			userMessage.Parts = []*runtimev1.ChatContentPart{{
 				Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_ARTIFACT_REF,

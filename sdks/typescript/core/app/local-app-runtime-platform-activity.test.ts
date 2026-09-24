@@ -368,3 +368,13 @@ test('a failed launch without a confirmation ends after the grace and releases t
   assert.ok(Date.now() - started >= 25);
   assert.equal(stream.aborted, true);
 });
+
+
+test('Runtime confirmation and deadline remain observable while Desktop launch is pending', { timeout: 1000 }, async () => {
+  for (const result of [OPENED, { event: { oneofKind: 'result', result: { outcome: AppActivityOpenOutcome.FAILED, reason: AppActivityOpenReason.SOURCE_NOT_READY } } }]) {
+    const stream = openRuntime([OPEN_REQUEST, result]);
+    const output = await runNimiLocalAppActivityOpen(stream.runtime, () => new Promise(() => undefined), ID(1));
+    assert.equal(output.outcome, result === OPENED ? 'opened' : 'failed');
+    assert.equal(stream.aborted, true);
+  }
+});

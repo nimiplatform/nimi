@@ -127,6 +127,7 @@ pub(super) async fn send_turn(
             agent_handle: request.agent_handle,
             conversation_anchor_id: request.conversation_anchor_id,
             request_id: request.request_id,
+            work: super::conversation_work::parse_work(request.work)?,
             parts,
         })
         .await
@@ -272,10 +273,12 @@ pub(super) async fn interrupt_turn(
 ) -> Result<LocalAppConversationInterruptResult, LocalAppOperationError> {
     require_agent_handle(&request.agent_handle)?;
     require_selector(&request.conversation_anchor_id)?;
+    if let Some(expected) = &request.expected_turn_id { require_selector(expected)?; }
     let response = crate::grpc_limits::runtime_agent_client(channel)
         .interrupt_local_app_conversation_turn(InterruptLocalAppConversationTurnRequest {
             agent_handle: request.agent_handle,
             conversation_anchor_id: request.conversation_anchor_id,
+            expected_turn_id: request.expected_turn_id,
         })
         .await
         .map_err(local_app_error_from_status)?
@@ -459,6 +462,7 @@ fn project_event(
                     "messageId": message.message_id,
                     "turnId": message.turn_id,
                     "role": match message.role {
+                        LocalAppConversationMessageRole::App => "app",
                         LocalAppConversationMessageRole::User => "user",
                         LocalAppConversationMessageRole::Assistant => "assistant",
                     },
@@ -567,6 +571,7 @@ fn project_message(
     }
     let role =
         match ProtoConversationMessageRole::try_from(message.role).map_err(|_| untrusted())? {
+            ProtoConversationMessageRole::App => LocalAppConversationMessageRole::App,
             ProtoConversationMessageRole::User => LocalAppConversationMessageRole::User,
             ProtoConversationMessageRole::Assistant => LocalAppConversationMessageRole::Assistant,
             ProtoConversationMessageRole::Unspecified => return Err(untrusted()),

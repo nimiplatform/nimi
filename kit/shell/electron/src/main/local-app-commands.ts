@@ -1,3 +1,4 @@
+import { validateNimiLocalAppConversationWork } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppMusicGenerateSpec, validateNimiLocalAppMusicTranscribeSpec, validateNimiLocalAppVoiceConvertSpec } from '@nimiplatform/kit/core/sdk-contract';
 import { Buffer } from 'node:buffer';
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
@@ -107,6 +108,8 @@ const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentReferenceList'], 'agentReferenceList'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationOpen'], 'conversationOpen'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSendTurn'], 'conversationSendTurn'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationToolCallsList'], 'conversationToolCallsList'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationToolResultSubmit'], 'conversationToolResultSubmit'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationAttachmentUpload'], 'conversationAttachmentUpload'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationArtifactRead'], 'conversationArtifactRead'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationVoiceTranscribe'], 'conversationVoiceTranscribe'],
@@ -599,12 +602,22 @@ function validatePayload(
       return identifiers(payload, ['personaCharacterId'], command);
     case 'conversationOpen':
       return identifiers(payload, ['agentHandle'], command);
+    case 'conversationToolCallsList':
+      return identifiers(payload, ['agentHandle', 'conversationAnchorId', 'turnId'], command);
+    case 'conversationToolResultSubmit': {
+      assertExactKeys(payload, ['agentHandle', 'conversationAnchorId', 'turnId', 'callId', 'resultJson', 'isError'], command);
+      const resultJson = requiredUtf8Text(payload.resultJson, 'resultJson', command, 32768);
+      JSON.parse(resultJson);
+      if (typeof payload.isError !== 'boolean') throw invalidPayload(command, 'isError is invalid');
+      return { ...identifiers(payload, ['agentHandle', 'conversationAnchorId', 'turnId', 'callId'], command, new Set(), ['agentHandle', 'conversationAnchorId', 'turnId', 'callId', 'resultJson', 'isError']), resultJson, isError: payload.isError };
+    }
     case 'conversationSendTurn': {
-      assertExactKeys(payload, ['agentHandle', 'conversationAnchorId', 'requestId', 'parts'], command);
+      assertAllowedKeys(payload, ['agentHandle', 'conversationAnchorId', 'requestId', 'parts', 'work'], ['agentHandle', 'conversationAnchorId', 'requestId', 'parts'], command);
       return {
         ...identifiers(payload, ['agentHandle', 'conversationAnchorId', 'requestId'], command,
-          new Set(), ['agentHandle', 'conversationAnchorId', 'requestId', 'parts']),
+          new Set(), payload.work === undefined ? ['agentHandle', 'conversationAnchorId', 'requestId', 'parts'] : ['agentHandle', 'conversationAnchorId', 'requestId', 'parts', 'work']),
         parts: conversationInputParts(payload.parts, command),
+        ...(payload.work === undefined ? {} : { work: validateNimiLocalAppConversationWork(payload.work) }),
       };
     }
     case 'conversationAttachmentUpload': {
@@ -651,7 +664,11 @@ function validatePayload(
     case 'conversationVoiceRender':
       return identifiers(payload, ['agentHandle', 'conversationAnchorId', 'messageId', 'requestId'], command);
     case 'conversationInterruptTurn':
-      return identifiers(payload, ['agentHandle', 'conversationAnchorId'], command);
+      assertAllowedKeys(payload, ['agentHandle', 'conversationAnchorId', 'expectedTurnId'], ['agentHandle', 'conversationAnchorId'], command);
+      return {
+        ...identifiers({ agentHandle: payload.agentHandle, conversationAnchorId: payload.conversationAnchorId }, ['agentHandle', 'conversationAnchorId'], command),
+        ...(payload.expectedTurnId !== undefined ? { expectedTurnId: requiredText(payload.expectedTurnId, 'expectedTurnId', command, MAX_IDENTIFIER_LENGTH) } : {}),
+      };
     case 'conversationSubscribe':
       if (payload.action === 'cancel') {
         return {

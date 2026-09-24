@@ -186,6 +186,8 @@ function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
     conversation: {
       open: touched('conversation.open'),
       send: touched('conversation.send'),
+      listToolCalls: touched('conversation.listToolCalls'),
+      submitToolResult: touched('conversation.submitToolResult'),
       uploadAttachment: touched('conversation.uploadAttachment'),
       readArtifact: touched('conversation.readArtifact'),
       transcribeVoice: touched('conversation.transcribeVoice'),
@@ -691,7 +693,7 @@ test('Current User failure is isolated from the ready App session', async () => 
   );
 });
 
-test('Current User projects exactly three display-safe fields', async () => {
+test('Current User projects exactly four display-safe fields', async () => {
   const base = standardShell([]);
   const shell: NimiLocalAppStandardShell = {
     ...base,
@@ -710,26 +712,26 @@ test('Current User projects exactly three display-safe fields', async () => {
   });
 });
 
-test('Agent reference list projects every item as exactly three display-safe fields', async () => {
+test('Agent reference list projects every item as exactly four display-safe fields', async () => {
   const base = standardShell([]);
   const shell: NimiLocalAppStandardShell = {
     ...base,
     agents: { listReferences: async () => [
-      { agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', displayName: 'Alpha', avatarUrl: null },
-      { agentHandle: 'agent_ref_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB', displayName: 'Beta', avatarUrl: 'https://cdn.nimi.ai/beta.webp' },
+      { agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', agentBinding: 'agent_binding_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', displayName: 'Alpha', avatarUrl: null },
+      { agentHandle: 'agent_ref_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB', agentBinding: 'agent_binding_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB', displayName: 'Beta', avatarUrl: 'https://cdn.nimi.ai/beta.webp' },
     ] },
   };
   const references = await createNimiLocalAppClient({ standardShell: shell }).agents.listReferences();
   assert.deepEqual(references.map((reference) => Object.keys(reference).sort()), [
-    ['agentHandle', 'avatarUrl', 'displayName'],
-    ['agentHandle', 'avatarUrl', 'displayName'],
+    ['agentBinding', 'agentHandle', 'avatarUrl', 'displayName'],
+    ['agentBinding', 'agentHandle', 'avatarUrl', 'displayName'],
   ]);
   assert.equal(JSON.stringify(references).includes('localAgentId'), false);
 
   for (const malformed of [
     [{ agentHandle: 'raw-agent-id', displayName: 'Alpha', avatarUrl: null }],
-    [{ agentHandle: 'agent_ref_CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC', displayName: 'Alpha', avatarUrl: 'https://cdn.nimi.ai/a?token=private' }],
-    [{ agentHandle: 'agent_ref_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD', displayName: 'Alpha', avatarUrl: null, accountId: 'private' }],
+    [{ agentHandle: 'agent_ref_CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC', agentBinding: 'agent_binding_CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC', displayName: 'Alpha', avatarUrl: 'https://cdn.nimi.ai/a?token=private' }],
+    [{ agentHandle: 'agent_ref_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD', agentBinding: 'agent_binding_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD', displayName: 'Alpha', avatarUrl: null, accountId: 'private' }],
   ]) {
     const invalid: NimiLocalAppStandardShell = { ...base, agents: { listReferences: async () => malformed } };
     await assert.rejects(
@@ -746,6 +748,7 @@ test('Agent conversation projects only the exact typed union and bounded snapsho
   const shell: NimiLocalAppStandardShell = {
     ...base,
     conversation: {
+      ...base.conversation,
       async open(input) {
         calls.push(['open', input]);
         return { conversationAnchorId: 'agent_anchor_01J', activeTurnId: null };
@@ -1852,4 +1855,19 @@ test('audio separation retains both owned artifacts through submit and Runtime p
     { vocalsArtifactId: 'vocals-1', backgroundArtifactId: 'background-1', instrumentParts: [] });
   audioSeparation = { vocalsArtifactId: 'vocals-1', backgroundArtifactId: 'vocals-1' };
   await assert.rejects(() => client.ai.scenarioJobs.get('separation-1'));
+});
+
+
+test('work interruption preserves the expected turn fence and rejects malformed selectors', async () => {
+  const base = standardShell([]);
+  const inputs: unknown[] = [];
+  const client = createNimiLocalAppClient({ standardShell: { ...base, conversation: {
+    ...base.conversation,
+    interruptTurn: async input => { inputs.push(input); return { turnId: 'turn-current' }; },
+  } } });
+  const scope = { agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' as NimiLocalAppAgentHandle, conversationAnchorId: 'anchor-1' };
+  await client.conversation.interruptTurn({ ...scope, expectedTurnId: 'turn-current' });
+  await client.conversation.interruptTurn(scope);
+  assert.deepEqual(inputs, [{ ...scope, expectedTurnId: 'turn-current' }, scope]);
+  await assert.rejects(() => client.conversation.interruptTurn({ ...scope, expectedTurnId: '' }));
 });

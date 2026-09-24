@@ -24,6 +24,8 @@ use std::pin::Pin;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum LocalAppReasonCode {
+    AgentBusy,
+    AgentTurnNotActive,
     ActionExecuted,
     ProtectedCarrierRequired,
     RuntimeServiceUnavailable,
@@ -139,6 +141,8 @@ pub enum LocalAppReasonCode {
 impl LocalAppReasonCode {
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::AgentBusy => "agent-busy",
+            Self::AgentTurnNotActive => "agent-turn-not-active",
             Self::ActionExecuted => "action-executed",
             Self::ProtectedCarrierRequired => "protected-carrier-required",
             Self::RuntimeServiceUnavailable => "runtime-service-unavailable",
@@ -698,6 +702,7 @@ pub struct LocalAppPersonaCharacterDeleteRequest {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalAppAgentReference {
     pub agent_handle: String,
+    pub agent_binding: String,
     pub display_name: String,
     pub avatar_url: Option<String>,
 }
@@ -730,12 +735,28 @@ pub struct LocalAppConversationSendRequest {
     pub conversation_anchor_id: String,
     pub request_id: String,
     pub parts: Vec<LocalAppConversationInputPart>,
+    pub work: Option<JsonValue>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LocalAppConversationInputPart {
     Text(String),
     ArtifactRef(String),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppConversationToolScopeRequest {
+    pub agent_handle: String,
+    pub conversation_anchor_id: String,
+    pub turn_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppConversationToolResultRequest {
+    pub scope: LocalAppConversationToolScopeRequest,
+    pub call_id: String,
+    pub result_json: String,
+    pub is_error: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -804,6 +825,7 @@ pub struct LocalAppConversationVoiceRenderResult {
 pub struct LocalAppConversationInterruptRequest {
     pub agent_handle: String,
     pub conversation_anchor_id: String,
+    pub expected_turn_id: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -1003,6 +1025,7 @@ pub struct LocalAppAgentMemoryDeleteRequest {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LocalAppConversationMessageRole {
+    App,
     User,
     Assistant,
 }
@@ -1886,6 +1909,10 @@ pub trait NimiLocalAppSession: Send + Sync {
                 + '_,
         >,
     >;
+
+    fn conversation_tool_calls_list(&self, request: LocalAppConversationToolScopeRequest) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn conversation_tool_result_submit(&self, request: LocalAppConversationToolResultRequest) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
     fn conversation_attachment_upload(
         &self,
