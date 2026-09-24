@@ -4,6 +4,7 @@ import { studioCreateModule } from '../studio-modules/studio-create/registration
 import { studioMediaModule } from '../studio-modules/studio-media/registration.js';
 import { studioVoiceModule } from '../studio-modules/studio-voice/registration.js';
 import { labWorldTourCapability } from './lab-only/world-tour-registration.js';
+import { labCapabilityTestRegistrations } from './lab-only/capability-test-registrations.js';
 
 export const labAIStudioComposition = composeAIStudioModules([
   studioCreateModule,
@@ -11,9 +12,12 @@ export const labAIStudioComposition = composeAIStudioModules([
   studioVoiceModule,
 ]);
 
+// Lab-only entries follow the public scaffold modules. Adding one here never
+// changes App Tools scaffold admission.
 const allCapabilities = Object.freeze([
   ...labAIStudioComposition.capabilities,
   labWorldTourCapability,
+  ...labCapabilityTestRegistrations,
 ]);
 
 export const labStudioComposition = Object.freeze({

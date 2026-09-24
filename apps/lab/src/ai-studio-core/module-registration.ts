@@ -7,7 +7,7 @@ import type { StudioParameterPanelProps } from './parameter-fields.js';
 
 export type StudioControlId = 'tone' | 'length';
 export type StudioInputKind = 'prompt' | 'url' | 'none';
-export type StudioResultKind = 'text' | 'transcript' | 'embedding' | 'artifacts' | 'voice-asset' | 'voice-catalog' | 'vision-locate';
+export type StudioResultKind = 'text' | 'transcript' | 'embedding' | 'artifacts' | 'voice-asset' | 'voice-catalog' | 'vision-locate' | 'text-annotation' | 'text-exchange' | 'text-decision' | 'session';
 
 export type CapabilityStudioProfile = {
   readonly studioTag: string;
@@ -26,6 +26,12 @@ export type CapabilityStudioProfile = {
   readonly footnoteKey: string;
   readonly statusLabelKey?: string;
   readonly pendingLabelKey?: string;
+  // The capability runs only when its parameter panel supplies the input
+  // (for example selected media) rather than the composer prompt.
+  readonly requiresParameterInput?: boolean;
+  // The composer text is itself the request input; it is sent without
+  // directive or context wrapping.
+  readonly rawPrompt?: boolean;
 };
 
 export type ScenarioPreset = {

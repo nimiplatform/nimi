@@ -5,6 +5,7 @@ import { createBrowserDataUrlAttachmentAdapter, useChatComposer, type BrowserDat
 import { notifyStudioAIConfigChanged } from './ai-config.js';
 import { useAIStudioHost } from './host-context.js';
 import type { StudioCapabilityRegistration } from './module-registration.js';
+import type { StudioParameterValue } from './parameters.js';
 import type { StudioCapabilityRunResult, StudioRuntimeInspection } from './runtime-types.js';
 import { getStudioRunIntentLabel, restoreStudioCapabilityRunResult, type StudioRunConfigSnapshot, type StudioRunHistory, type StudioRunHistoryRecord } from './history.js';
 import { CapabilityRunHistory, DrawerErrorBoundary, downloadTextFile, resultPlainText, statusForCapability, type CapabilityStatus, type SectionAITestingProps } from './section-ai-testing-surface.js';
@@ -117,6 +118,14 @@ function TextStudioShell({
   ), [capabilityParameters, registration.parameters, runTarget.source]);
   const parameterSummary = registration.parameters.summarize(effectiveCapabilityParameters);
   const hasAlternativeInput = registration.parameters.hasAlternativeInput(capabilityParameters);
+  const recordedInput = registration.parameters.recordedInput;
+  const displayedRunPrompt = displayedRun?.prompt;
+  // A parameter-owned input reruns the displayed run's recorded request, which
+  // stays valid however the current parameters have changed since.
+  const displayedRunReplayable = useMemo(
+    () => !recordedInput || displayedRunPrompt === undefined || recordedInput.decode(displayedRunPrompt) !== null,
+    [displayedRunPrompt, recordedInput],
+  );
 
   useEffect(() => {
     const error = historyLoad?.error ?? null;
@@ -156,11 +165,29 @@ function TextStudioShell({
     setStreamingText(null);
   }, [capability.id, draftPersistence, preset, rendererHost]);
 
-  async function run(nextPrompt = prompt, nextContext = context) {
+  // Replaying a run whose input lives in its parameters rebuilds them from the
+  // recorded request instead of reading the current parameters.
+  function runParametersFor(replayedInput: string | null): StudioParameterValue | null {
+    if (replayedInput === null || !recordedInput) return capabilityParameters;
+    const restored = recordedInput.decode(replayedInput);
+    return restored ? { ...capabilityParameters, ...restored } : null;
+  }
+
+  async function run(nextPrompt = prompt, nextContext = context, replay = false) {
     if (abortControllerRef.current) return;
-    const displayPrompt = nextPrompt.trim();
-    if (!hasStudioCapabilityRunInput({ requiresPrompt, prompt: displayPrompt, hasAlternativeInput })) return;
-    if ((capability.id === 'music.transcribe' || capability.id === 'audio.voice.convert' || capability.id === 'audio.separate') && !hasAlternativeInput) return;
+    const runParameters = runParametersFor(replay ? nextPrompt : null);
+    if (!runParameters) return;
+    const runEffectiveParameters = registration.parameters.project(runTarget.source, runParameters);
+    const runHasAlternativeInput = registration.parameters.hasAlternativeInput(runParameters);
+    // Raw document inputs retain their original whitespace so annotation
+    // offsets refer to the exact text the user entered. A parameter-owned input
+    // records its complete encoded request.
+    const displayPrompt = recordedInput
+      ? (runHasAlternativeInput ? recordedInput.encode(runEffectiveParameters) : '')
+      : profile.rawPrompt ? nextPrompt : nextPrompt.trim();
+    if (!hasStudioCapabilityRunInput({ requiresPrompt, prompt: displayPrompt, hasAlternativeInput: runHasAlternativeInput })) return;
+    if ((capability.id === 'music.transcribe' || capability.id === 'audio.voice.convert' || capability.id === 'audio.separate') && !runHasAlternativeInput) return;
+    if (profile.requiresParameterInput && !runHasAlternativeInput) return;
     if (!hasRequiredImage) return;
     if (!runTarget.canDispatch) return;
     const runSeq = runSeqRef.current + 1;
@@ -188,7 +215,7 @@ function TextStudioShell({
         const directive = textStudioDirectiveForTarget(runTarget, profile);
         result = await rendererHost.sdk.runCapability({
           capabilityId: capability.id,
-          prompt: capability.id === 'audio.transcribe' || capability.id === 'vision.locate'
+          prompt: capability.id === 'audio.transcribe' || capability.id === 'vision.locate' || profile.rawPrompt || recordedInput
             ? displayPrompt
             : textStudioRuntimePrompt(displayPrompt, nextContext, directive),
           scenarioId: preset.id,
@@ -196,7 +223,7 @@ function TextStudioShell({
             if (runSeqRef.current === runSeq) setStreamingText(text);
           } : undefined,
           attachments: supportsMedia ? [...composerState.attachments] : undefined,
-          parameters: effectiveCapabilityParameters,
+          parameters: runEffectiveParameters,
           signal: abortController.signal,
           onJobUpdate: job => {
             if (runSeqRef.current !== runSeq) return;
@@ -222,7 +249,7 @@ function TextStudioShell({
           : null,
         context: nextContext,
         attachmentCount: supportsMedia ? composerState.attachments.length : 0,
-        requestParameters: parameterSummary,
+        requestParameters: registration.parameters.summarize(runEffectiveParameters),
       });
       const record = await onResult(result, displayPrompt, runConfig);
       // A result reaches the visible completed stage only after onResult has
@@ -278,6 +305,10 @@ function TextStudioShell({
       }
       return;
     }
+    if (currentResult.ok && currentResult.output.kind === 'text-annotation') {
+      await rendererHost.sdk.revealLocalAppAsset(currentResult.output.document.relativePath);
+      return;
+    }
     const stamp = new Date(rendererHost.clock.now()).toISOString().replace(/[:.]/g, '-');
     const text = resultPlainText(currentResult, t);
     if (!text) return;
@@ -304,6 +335,13 @@ function TextStudioShell({
   }
 
   function useHistoryRunAsDraft(record: StudioRunHistoryRecord) {
+    if (recordedInput) {
+      const restored = recordedInput.decode(record.prompt);
+      if (!restored || !parameterStore) return;
+      parameterStore.setParameters(capability.id, { ...capabilityParameters, ...restored });
+      setActiveRun(null);
+      return;
+    }
     updatePrompt(record.prompt);
     setContext(record.runConfig?.promptControls.context ?? '');
     setActiveRun(null);
@@ -418,14 +456,16 @@ function TextStudioShell({
                 admission={admission}
                 intentLabel={displayedRun.record ? getStudioRunIntentLabel(displayedRun.record) : runTarget.intentLabel}
                 running={displayingExecution}
-                canRegenerate={!running && hasRequiredImage}
+                canRegenerate={!running && hasRequiredImage && (recordedInput
+                  ? displayedRunReplayable
+                  : !profile.requiresParameterInput || hasAlternativeInput)}
                 cancelRequested={displayingExecution && cancelRequested}
                 streamingText={displayingExecution ? streamingText : null}
                 verboseConsole={verboseConsole}
                 composer={composer}
                 onCopy={handleCopy}
                 onDownload={handleDownload}
-                onRegenerate={() => void run(displayedRun.prompt, displayedRun.context)}
+                onRegenerate={() => void run(displayedRun.prompt, displayedRun.context, true)}
                 onCancel={displayingExecution && canCancelStudioCapabilityRun({
                   capabilityId: capability.id,
                   resultKind: profile.resultKind,

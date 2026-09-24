@@ -259,8 +259,10 @@ export function useLabAIStudioHistoryRepository(): AIStudioHistoryRepository {
         };
       },
       nextIdentity: () => rendererHost.app.commands.nextRunIdentity(),
-      statusForResult: (result) => result.capabilityId === 'world.generate' && result.ok
-        ? 'local-fixture'
+      // A Session its owner ended is recorded as failed; the summary still
+      // keeps what was observed. Every other status follows the typed result.
+      statusForResult: (result) => result.ok && result.output.kind === 'session' && result.output.ending === 'terminated'
+        ? 'failed'
         : undefined,
       loadPanelPreferences: () => ({ ...rendererHost.app.projection.preferences().historyPanel }),
       savePanelPreferences: async (historyPanel) => {

@@ -163,7 +163,14 @@ export function createLabProductionBindings(
         async nextRunIdentity() {
           return { runId: createNimiClientId('run'), createdAt: new Date().toISOString() };
         },
-        appendRunHistory: appendLabRunHistory,
+        appendRunHistory: (record: Parameters<LabRendererCommandPort['appendRunHistory']>[0]) => appendLabRunHistory(record, (failures) => {
+          emitRuntimeLog({
+            level: 'warn',
+            area: 'lab-history',
+            message: 'history-evicted-document-cleanup-failed',
+            details: { failures: [...failures] },
+          } as Parameters<typeof emitRuntimeLog>[0]);
+        }),
         removeRunHistory: removeLabRunHistoryRecord,
         async clearRunHistory(input: { readonly capabilityId?: string }) {
           return clearLabRunHistory(input.capabilityId);

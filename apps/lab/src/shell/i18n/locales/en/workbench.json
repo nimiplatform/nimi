@@ -55,13 +55,6 @@
     "pendingExists": "A world task is already submitted. Use Continue last generation in Parameters to retrieve its result.",
     "noSavedWorld": "Generate a world first. It will be saved here for your next visit."
   },
-  "History": {
-    "filters": {
-      "status": {
-        "localFixture": "Local fixture"
-      }
-    }
-  },
   "Studio": {
     "profiles": {
       "worldGenerate": {
@@ -74,19 +67,10 @@
         "emptyHint": "Describe a scene and generate a world. The viewer opens when its assets are saved.",
         "footnote": "Generation may take a few minutes. Saved worlds can be reopened without generating them again."
       }
-    },
-    "admission": {
-      "tauriOnlyDetail": "Standalone viewer fixture. It can write a local run record, but it is not a runtime artifact."
-    },
-    "result": {
-      "pendingViewer": "Opening viewer fixture..."
     }
   },
   "StudioShell": {
     "returnToRunning": "Return to running task",
-    "statusStandaloneViewer": "Local viewer",
-    "runStatusLocalFixture": "local fixture",
-    "worldTourViewerMessage": "Viewer opened for a Electron-only local fixture ({{manifestPath}}); local fixture record only, with no runtime generation or runtime artifact.",
-    "worldTourViewerOutput": "Local fixture viewer opened ({{windowLabel}}). This is not a runtime result or runtime artifact."
+    "runStatusLocalFixture": "local fixture"
   }
 }

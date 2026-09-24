@@ -102,7 +102,9 @@
     "emptyNone": "No runs yet",
     "emptyFiltered": "No runs match these filters",
     "loadFailedTitle": "History failed to load",
-    "saveFailedTitle": "History failed to save"
+    "saveFailedTitle": "History failed to save",
+    "deleteRecordAndDocument": "Delete record and its saved result",
+    "stopped": "Stopped"
   },
   "NonSuccess": {
     "title": {
@@ -111,6 +113,7 @@
       "sdkMethodUnavailable": "Not supported in this version",
       "principalUnauthorized": "Reconnect this app",
       "operationAborted": "Cancellation pending",
+      "stoppedDirectCall": "Stopped",
       "runtimeCanceled": "Task canceled",
       "runtimeTimeout": "Task timed out",
       "streamInterrupted": "Result stream interrupted",
@@ -126,7 +129,9 @@
       "runtimeTimeout": "This task timed out.",
       "streamInterrupted": "The live result connection ended before Runtime confirmed a final state.",
       "runtimeCallFailed": "This generation could not be completed.",
-      "fallback": "The generation did not complete."
+      "inputLimitExceeded": "The configured model cannot take this whole input. Nothing was shortened or answered in part.",
+      "fallback": "The generation did not complete.",
+      "stoppedDirectCall": "You stopped waiting for this call. A result that arrives later will not be shown."
     },
     "action": {
       "runtimeUnavailable": "Return to Desktop, confirm Local AI is connected, then try again.",
@@ -138,7 +143,9 @@
       "runtimeTimeout": "Try again later. If it still times out, open Runtime details to find the cause.",
       "streamInterrupted": "Check the task status; retry only after confirming it did not complete.",
       "runtimeCallFailed": "Try again once. If it still fails, open Runtime details to find the cause.",
-      "fallback": "Try again. If it still fails, open Runtime details to find the cause."
+      "inputLimitExceeded": "Shorten the input, or configure a model that accepts longer input, then run it again.",
+      "fallback": "Try again. If it still fails, open Runtime details to find the cause.",
+      "stoppedDirectCall": "Run it again whenever you are ready."
     },
     "hint": {
       "runtimeUnavailable": "Restore the protected Runtime connection, then retry the same request.",
@@ -174,6 +181,8 @@
     "showRequestSettings": "Show request settings",
     "hideRequestSettings": "Hide request settings",
     "legacyRecordHint": "This older persisted run record contains only status metadata. Run it again to persist the typed result snapshot.",
+    "historyInputTruncated": "History keeps only the beginning of this long input, so this record cannot be reused as a draft or run again.",
+    "historyAdditionalDocumentsNotRetained": "Only the first document can be reused as a draft. Add the other documents again before running.",
     "generationFailed": "Generation could not be completed",
     "generationCanceled": "Generation canceled",
     "cancelGeneration": "Cancel task",
@@ -200,6 +209,7 @@
     "noResultProduced": "No result was produced. Resolve the typed Runtime failure before retrying.",
     "resultAriaLabel": "{{capability}} result",
     "promptLabel": "Prompt",
+    "requestLabel": "Request",
     "generationLabel": "Generation",
     "runStatusReady": "runtime ready",
     "runStatusUnavailable": "sdk unavailable",
@@ -272,7 +282,8 @@
         "runtimeTimedOut": "Task timed out",
         "runtimeBlocked": "Generation blocked",
         "runtimeResult": "Completed",
-        "runtimeWaiting": "Ready to start"
+        "runtimeWaiting": "Ready to start",
+        "stoppedDirectCall": "Stopped"
       },
       "tokensNotCaptured": "not captured",
       "statStatus": "Status",
@@ -305,7 +316,98 @@
       "runtimeChip": "AI generation",
       "createdFromDescription": "Text description",
       "createdFromAudio": "Reference audio",
-      "generationMetrics": "Generation metrics"
+      "generationMetrics": "Generation metrics",
+      "statStoppedDirect": "Stopped"
+    }
+  },
+  "StudioResults": {
+    "embedding": {
+      "space": "Embedding space: {{spaceId}}. Vectors are comparable only within the same space, even when dimensions match.",
+      "spaceNotRecorded": "This older record did not keep its embedding space."
+    },
+    "job": {
+      "known": "Job {{jobId}} was issued before this outcome. Runtime keeps a Job only for its retention period; saved App assets are the long-term record."
+    },
+    "stats": {
+      "documents": "Documents",
+      "tokens": "Tokens",
+      "sentences": "Sentences",
+      "steps": "Steps",
+      "questions": "Questions"
+    },
+    "annotation": {
+      "title": "Text annotation",
+      "summary": "{{language}} · {{documents}} document(s) · {{tokens}} tokens · {{sentences}} sentences",
+      "offsetHint": "Spans are zero-based Unicode scalar offsets with an exclusive end.",
+      "loading": "Reading the saved annotation…",
+      "unavailable": "The saved annotation is unavailable or no longer matches this record.",
+      "document": "Document {{index}} · {{scalars}} characters · {{tokens}} tokens · {{sentences}} sentences",
+      "sentence": "Sentence {{index}}",
+      "token": "Token",
+      "span": "Span",
+      "partOfSpeech": "POS",
+      "dependency": "Dependency",
+      "head": "Head",
+      "punctuation": "punctuation",
+      "truncatedView": "Showing {{shown}} of {{total}} tokens. The saved document keeps all of them."
+    },
+    "exchange": {
+      "title": "Model exchange",
+      "toolScenario": "Tool call test: the App ran its fixed test tool and returned the result in the next model step.",
+      "structuredScenario": "Structured output test: the App parsed the final text and checked the fixed schema fields.",
+      "modelStep": "Model step {{index}}",
+      "appStep": "App step {{index}}",
+      "finishReason": "finish: {{reason}}",
+      "text": "Text",
+      "continuity": "Reasoning continuity ({{kind}} v{{version}}, {{bytes}} bytes, returned unchanged)",
+      "toolCall": "Tool call {{name}} · {{id}}",
+      "toolResult": "Tool result {{name}} · {{id}}",
+      "toolError": "Tool error {{name}} · {{id}}",
+      "structured": "Parsed structured result",
+      "finalText": "Final text"
+    },
+    "decision": {
+      "title": "Decisions",
+      "summary": "{{count}} question(s) answered, in the order they were asked.",
+      "choice": "Choice",
+      "boolean": "Yes / no",
+      "selected": "Selected: {{candidate}}",
+      "trueProbability": "Probability that the true criterion holds: {{probability}}",
+      "trueLabel": "True",
+      "trueBar": "Probability that the true criterion holds",
+      "candidates": "Probability of each candidate",
+      "trace": "Trace",
+      "summaryOnly": "History kept only this summary; the complete answers were too large to store."
+    },
+    "session": {
+      "title": "Session summary",
+      "closed": "The {{contract}} Session was closed ({{reason}}).",
+      "terminated": "The {{contract}} Session was ended by its owner ({{reason}}).",
+      "started": "Started",
+      "duration": "Duration",
+      "seconds": "{{seconds}} s",
+      "terminalReason": "Terminal reason",
+      "nothingObserved": "No results were observed.",
+      "notRestorable": "A closed Session cannot be restored. Open a new Session to run it again.",
+      "stateClosed": "Closed",
+      "stateTerminated": "Terminated"
+    },
+    "faceSwap": {
+      "inputs": "Face replacement inputs",
+      "role": {
+        "reference-image": "Reference",
+        "target-image": "Target image",
+        "target-video": "Target video"
+      },
+      "policy": "Frames without a target face: {{policy}}",
+      "policies": {
+        "fail": "fail the Job",
+        "preserve-frame": "keep the original frame"
+      },
+      "videoSummary": "{{total}} frames: {{transformed}} replaced, {{preserved}} kept · {{seconds}} s at {{fps}} fps · {{audio}}",
+      "audioPreserved": "audio kept",
+      "noAudio": "no audio track",
+      "rerunHint": "Input files are not saved with the record. Choose them again to rerun."
     }
   }
 }

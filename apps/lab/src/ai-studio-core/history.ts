@@ -1,4 +1,4 @@
-import type { StudioAudioSeparation, StudioMusicGeneration, StudioMusicTranscription, StudioVoiceConversion } from './runtime-types.js';
+import type { StudioAudioSeparation, StudioFaceSwap, StudioJsonValue, StudioMusicGeneration, StudioMusicTranscription, StudioSessionSummary, StudioTextDecisionAnswer, StudioTextExchangeStep, StudioVoiceConversion } from './runtime-types.js';
 import { isJsonObject } from '@nimiplatform/sdk/types';
 import type { NimiLocalAppVisionLocateResult } from '@nimiplatform/sdk/app';
 import type {
@@ -72,6 +72,7 @@ export type StudioRunHistoryResultSnapshot =
       summary: string;
       vectorCount: number;
       dimensions: number;
+      spaceId?: string;
       sample: number[];
       totalTokens?: number;
       traceId?: string;
@@ -83,6 +84,7 @@ export type StudioRunHistoryResultSnapshot =
       musicTranscription?: StudioMusicTranscription;
       voiceConversion?: StudioVoiceConversion;
       audioSeparation?: StudioAudioSeparation;
+      faceSwap?: StudioFaceSwap;
       summary: string;
       jobId: string;
       jobState: string;
@@ -122,6 +124,45 @@ export type StudioRunHistoryResultSnapshot =
       traceId?: string;
     }
   | {
+      ok: true;
+      kind: 'text-annotation';
+      summary: string;
+      jobId: string;
+      jobState: string;
+      language: string;
+      documentCount: number;
+      tokenCount: number;
+      sentenceCount: number;
+      document: StudioManagedArtifact;
+      traceId?: string;
+    }
+  | {
+      ok: true;
+      kind: 'text-exchange';
+      summary: string;
+      scenario: 'tool-call' | 'structured-output';
+      steps: StudioTextExchangeStep[];
+      text: string;
+      structured?: StudioJsonValue;
+      traceId?: string;
+    }
+  | {
+      ok: true;
+      kind: 'text-decision';
+      summary: string;
+      questionCount: number;
+      // Absent only when the answers were too large for the shared history
+      // budget; the record then keeps its summary alone.
+      answers?: StudioTextDecisionAnswer[];
+      traceId?: string;
+    }
+  | ({
+      ok: true;
+      kind: 'session';
+      summary: string;
+      traceId?: string;
+    } & StudioSessionSummary)
+  | {
       ok: false;
       kind: 'non-success';
       summary: string;
@@ -130,6 +171,7 @@ export type StudioRunHistoryResultSnapshot =
       actionHint: string;
       missingSurface?: string;
       diagnostics?: StudioNonSuccessDiagnostics;
+      jobId?: string;
     };
 
 export type StudioRunHistoryRecord = {
@@ -141,6 +183,9 @@ export type StudioRunHistoryRecord = {
   createdAt: string;
   result?: StudioRunHistoryResultSnapshot;
   runConfig?: StudioRunConfigSnapshot;
+  // Set when history keeps only the beginning of a long prompt or context;
+  // such a record cannot be reused as a draft or rerun.
+  inputTruncated?: true;
 };
 
 export type StudioRunHistory = Record<string, StudioRunHistoryRecord[]>;
@@ -229,6 +274,12 @@ export async function projectStudioManagedHistory(input: {
           });
           projectedIDs.add(id);
         }
+      }
+      if (result?.ok === true && result.kind === 'text-annotation') {
+        // The saved document is the only complete result; reopening never
+        // presents a missing or altered document as saved.
+        const verification = await verifyStudioManagedArtifact(input.statArtifact, result.document, record);
+        if (verification.status === 'unavailable') unavailableReason = verification.message;
       }
       if (unavailableReason && record.status === 'ready') {
         projectedRecord = { ...record, status: 'unavailable', message: unavailableReason };
@@ -432,6 +483,25 @@ function compactBodySummary(value: string): string {
   return normalized.length > 180 ? `${normalized.slice(0, 177)}...` : normalized;
 }
 
+function studioTextDecisionSummary(answers: readonly StudioTextDecisionAnswer[]): string {
+  return answers.map((answer) => {
+    if (answer.kind === 'boolean') return `${answer.questionId}: true ${answer.trueProbability.toFixed(2)}`;
+    const selected = answer.probabilities.find((entry) => entry.candidateId === answer.selectedCandidateId);
+    return `${answer.questionId}: ${answer.selectedCandidateId}${selected ? ` ${selected.probability.toFixed(2)}` : ''}`;
+  }).join(' / ');
+}
+
+function copyStudioTextDecisionAnswer(answer: StudioTextDecisionAnswer): StudioTextDecisionAnswer {
+  return answer.kind === 'choice'
+    ? {
+        questionId: answer.questionId,
+        kind: 'choice',
+        selectedCandidateId: answer.selectedCandidateId,
+        probabilities: answer.probabilities.map((entry) => ({ candidateId: entry.candidateId, probability: entry.probability })),
+      }
+    : { questionId: answer.questionId, kind: 'boolean', trueProbability: answer.trueProbability };
+}
+
 function traceFields(result: StudioCapabilityRunResult): Pick<Extract<StudioRunHistoryResultSnapshot, { ok: true }>, 'traceId'> {
   if (isStudioNonSuccessRunResult(result)) return {};
   return {
@@ -458,6 +528,7 @@ export function createStudioRunHistoryResultSnapshot(result: StudioCapabilityRun
       actionHint: result.actionHint,
       missingSurface: result.missingSurface,
       ...(result.diagnostics ? { diagnostics: { ...result.diagnostics } } : {}),
+      ...(result.jobId ? { jobId: result.jobId } : {}),
     };
   }
 
@@ -483,11 +554,63 @@ export function createStudioRunHistoryResultSnapshot(result: StudioCapabilityRun
     return {
       ok: true,
       kind: 'embedding',
-      summary: `${output.vectorCount} vector${output.vectorCount === 1 ? '' : 's'} / ${output.dimensions} dimensions`,
+      summary: `${output.vectorCount} vector${output.vectorCount === 1 ? '' : 's'} / ${output.dimensions} dimensions${output.spaceId ? ` / space ${output.spaceId}` : ''}`,
       vectorCount: output.vectorCount,
       dimensions: output.dimensions,
+      ...(output.spaceId ? { spaceId: output.spaceId } : {}),
       sample: output.sample,
       totalTokens: output.totalTokens,
+      ...trace,
+    };
+  }
+  if (output.kind === 'text-annotation') {
+    return {
+      ok: true,
+      kind: 'text-annotation',
+      summary: `${output.language} / ${output.documentCount} document${output.documentCount === 1 ? '' : 's'} / ${output.tokenCount} token${output.tokenCount === 1 ? '' : 's'} / ${output.sentenceCount} sentence${output.sentenceCount === 1 ? '' : 's'}`,
+      jobId: output.jobId,
+      jobState: output.jobState,
+      language: output.language,
+      documentCount: output.documentCount,
+      tokenCount: output.tokenCount,
+      sentenceCount: output.sentenceCount,
+      document: { ...output.document },
+      ...trace,
+    };
+  }
+  if (output.kind === 'text-exchange') {
+    return {
+      ok: true,
+      kind: 'text-exchange',
+      summary: compactBodySummary(output.text),
+      scenario: output.scenario,
+      steps: output.steps.map((step) => ({ ...step, items: [...step.items] })),
+      text: output.text,
+      ...(output.structured !== undefined ? { structured: output.structured } : {}),
+      ...trace,
+    };
+  }
+  if (output.kind === 'text-decision') {
+    return {
+      ok: true,
+      kind: 'text-decision',
+      summary: compactBodySummary(studioTextDecisionSummary(output.answers)),
+      questionCount: output.answers.length,
+      answers: output.answers.map(copyStudioTextDecisionAnswer),
+      ...trace,
+    };
+  }
+  if (output.kind === 'session') {
+    return {
+      ok: true,
+      kind: 'session',
+      summary: `${output.capabilityContract} / ${output.ending} / ${output.terminalReason}`,
+      capabilityContract: output.capabilityContract,
+      startedAt: output.startedAt,
+      endedAt: output.endedAt,
+      ending: output.ending,
+      terminalReason: output.terminalReason,
+      observed: { ...output.observed },
       ...trace,
     };
   }
@@ -501,6 +624,7 @@ export function createStudioRunHistoryResultSnapshot(result: StudioCapabilityRun
       ...(output.musicTranscription ? { musicTranscription: output.musicTranscription } : {}),
       ...(output.voiceConversion ? { voiceConversion: output.voiceConversion } : {}),
       ...(output.audioSeparation ? { audioSeparation: output.audioSeparation } : {}),
+      ...(output.faceSwap ? { faceSwap: output.faceSwap } : {}),
       summary: `${output.jobState || 'unknown'} / ${output.artifactCount} artifact${output.artifactCount === 1 ? '' : 's'}${firstArtifact?.mediaType ? ` / ${firstArtifact.mediaType}` : ''}`,
       jobId: output.jobId,
       jobState: output.jobState,
@@ -561,6 +685,7 @@ export function restoreStudioCapabilityRunResult(
       actionHint: snapshot.actionHint,
       ...(snapshot.missingSurface ? { missingSurface: snapshot.missingSurface } : {}),
       ...(snapshot.diagnostics ? { diagnostics: { ...snapshot.diagnostics } } : {}),
+      ...(snapshot.jobId ? { jobId: snapshot.jobId } : {}),
     };
   }
 
@@ -603,8 +728,55 @@ export function restoreStudioCapabilityRunResult(
         kind: 'embedding',
         vectorCount: snapshot.vectorCount,
         dimensions: snapshot.dimensions,
+        ...(snapshot.spaceId ? { spaceId: snapshot.spaceId } : {}),
         sample: snapshot.sample,
         totalTokens: snapshot.totalTokens,
+      },
+    };
+  }
+  if (snapshot.kind === 'text-annotation') {
+    return {
+      ...common,
+      output: {
+        kind: 'text-annotation',
+        jobId: snapshot.jobId,
+        jobState: snapshot.jobState,
+        language: snapshot.language,
+        documentCount: snapshot.documentCount,
+        tokenCount: snapshot.tokenCount,
+        sentenceCount: snapshot.sentenceCount,
+        document: { ...snapshot.document },
+      },
+    };
+  }
+  if (snapshot.kind === 'text-exchange') {
+    return {
+      ...common,
+      output: {
+        kind: 'text-exchange',
+        scenario: snapshot.scenario,
+        steps: snapshot.steps.map((step) => ({ ...step, items: [...step.items] })),
+        text: snapshot.text,
+        ...(snapshot.structured !== undefined ? { structured: snapshot.structured } : {}),
+      },
+    };
+  }
+  if (snapshot.kind === 'text-decision') {
+    return snapshot.answers
+      ? { ...common, output: { kind: 'text-decision', answers: snapshot.answers.map(copyStudioTextDecisionAnswer) } }
+      : null;
+  }
+  if (snapshot.kind === 'session') {
+    return {
+      ...common,
+      output: {
+        kind: 'session',
+        capabilityContract: snapshot.capabilityContract,
+        startedAt: snapshot.startedAt,
+        endedAt: snapshot.endedAt,
+        ending: snapshot.ending,
+        terminalReason: snapshot.terminalReason,
+        observed: { ...snapshot.observed },
       },
     };
   }
@@ -619,6 +791,7 @@ export function restoreStudioCapabilityRunResult(
         ...(snapshot.musicTranscription ? { musicTranscription: snapshot.musicTranscription } : {}),
         ...(snapshot.voiceConversion ? { voiceConversion: snapshot.voiceConversion } : {}),
         ...(snapshot.audioSeparation ? { audioSeparation: snapshot.audioSeparation } : {}),
+        ...(snapshot.faceSwap ? { faceSwap: snapshot.faceSwap } : {}),
         jobId: snapshot.jobId,
         jobState: snapshot.jobState,
         artifactCount: snapshot.artifactCount,
@@ -814,8 +987,13 @@ export function getStudioRunMetricSummary(record: StudioRunHistoryRecord): strin
       formatStudioTokenUsage(undefined, undefined, result.totalTokens),
       `${result.vectorCount} vector${result.vectorCount === 1 ? '' : 's'}`,
       `${result.dimensions} dims`,
+      result.spaceId ? `space ${result.spaceId}` : '',
     ].filter(Boolean).join(' / ');
   }
+  if (result.kind === 'text-annotation') return `${result.jobState || 'unknown'} / ${result.documentCount} doc${result.documentCount === 1 ? '' : 's'} / ${result.tokenCount} tokens`;
+  if (result.kind === 'text-exchange') return `${result.scenario} / ${result.steps.length} step${result.steps.length === 1 ? '' : 's'}`;
+  if (result.kind === 'text-decision') return `${result.questionCount} question${result.questionCount === 1 ? '' : 's'}`;
+  if (result.kind === 'session') return `${result.ending} / ${result.terminalReason}`;
   if (result.kind === 'artifacts') return `${result.jobState || 'unknown'} / ${result.artifactCount} artifact${result.artifactCount === 1 ? '' : 's'}`;
   if (result.kind === 'transcript') return `${result.jobState || 'unknown'} / ${result.charCount} chars / ${result.artifactCount} artifact${result.artifactCount === 1 ? '' : 's'}`;
   if (result.kind === 'voice-asset') return `${result.jobState || 'unknown'} / ${result.creationSource} / ${result.assetStatus}`;
@@ -834,7 +1012,11 @@ export function getStudioRunResultTags(record: StudioRunHistoryRecord): string[]
       result.totalTokens === undefined ? '' : `${result.totalTokens} tokens`,
     ].filter(Boolean);
   }
-  if (result.kind === 'embedding') return ['Embedding ready'];
+  if (result.kind === 'embedding') return ['Embedding ready', ...(result.spaceId ? [result.spaceId] : [])];
+  if (result.kind === 'text-annotation') return ['Annotation', result.language];
+  if (result.kind === 'text-exchange') return [result.scenario];
+  if (result.kind === 'text-decision') return ['Decision', `${result.questionCount} question${result.questionCount === 1 ? '' : 's'}`];
+  if (result.kind === 'session') return ['Session', result.ending];
   if (result.kind === 'artifacts') return ['Ready'];
   if (result.kind === 'transcript') return ['Ready'];
   if (result.kind === 'voice-asset') return ['VoiceAsset ready', result.creationSource];

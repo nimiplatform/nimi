@@ -26,13 +26,15 @@ await build({
     contents: `export { SectionAITesting } from './src/ai-studio-core/section-ai-testing.tsx';
       export { TextStudioComposer } from './src/ai-studio-core/section-ai-testing-composer.tsx';
       export { AIStudioHostProvider } from './src/ai-studio-core/host-context.tsx';
-      export { labStudioComposition } from './src/lab/lab-studio-composition.ts';`,
+      export { StudioCapabilityParameterContext } from './src/ai-studio-core/contexts.tsx';
+      export { labStudioComposition } from './src/lab/lab-studio-composition.ts';
+      export { t as labTranslate } from './src/shell/i18n/index.ts';`,
     resolveDir:root, loader:'ts',
   },
   outfile:path.join(buildDir,'studio.mjs'), bundle:true, packages:'external',
   platform:'node', format:'esm', target:'es2022', jsx:'automatic', logLevel:'silent',
 });
-const { SectionAITesting, TextStudioComposer, AIStudioHostProvider, labStudioComposition } = await import(pathToFileURL(path.join(buildDir,'studio.mjs')).href);
+const { SectionAITesting, TextStudioComposer, AIStudioHostProvider, StudioCapabilityParameterContext, labStudioComposition, labTranslate } = await import(pathToFileURL(path.join(buildDir,'studio.mjs')).href);
 
 test.after(async () => {
   dom.window.close();
@@ -135,6 +137,58 @@ test('history previews do not inherit another run status or cancellation target'
   }
 });
 
+test('text annotation submits and records the exact composer document', async () => {
+  const registration = labStudioComposition.getCapability('text.annotate');
+  const target = {
+    capabilityId: 'text.annotate', capabilityContract: 'text.annotate', section: 'embed',
+    source: 'local', status: 'configured', canDispatch: true, intentLabel: 'Local', detail: 'configured',
+    params: {}, paramsSummary: [], profileOrigin: null,
+  };
+  const submitted = [];
+  const recorded = [];
+  const host = {
+    appTitle: 'Lab', translate: key => key, locale: 'en', clock: { now: () => Date.now() },
+    app: {
+      projection: { promptDraft: () => ({ prompt: '' }), projectRunTarget: () => target, runStatusLabel: s => s },
+      events: { subscribeAIConfigRefresh: () => () => {} },
+      commands: { savePromptDraft: async () => {}, copyText: async () => ({ ok: true }), exportText: async () => {} },
+    },
+    sdk: {
+      aiConfig: { get: async () => null },
+      async runCapability(input) {
+        submitted.push(input);
+        return { ok: false, capabilityId: 'text.annotate', reason: 'runtime-call-failed', message: 'test stop', actionHint: '' };
+      },
+    },
+  };
+  const container = document.getElementById('root');
+  const renderer = createRoot(container);
+  try {
+    await act(async () => {
+      renderer.render(createElement(TooltipProvider, null, createElement(AIStudioHostProvider, { value: host }, createElement(SectionAITesting, {
+        registration, registrations: [registration], runtime: { status: 'connected', detail: 'connected' },
+        lastResult: null, history: {}, historySelectionRequest: null, onSelectHistoryRun: () => {},
+        onResult: async (_result, prompt) => { recorded.push(prompt); return null; },
+        verboseConsole: false, draftPersistence: false,
+      }))));
+    });
+    const documentText = '  The café sells 🍰 cake.  ';
+    const textarea = container.querySelector('.studio-input textarea');
+    assert.ok(textarea);
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set.call(textarea, documentText);
+      textarea.dispatchEvent(new window.Event('input', { bubbles: true }));
+    });
+    const submit = Array.from(container.querySelectorAll('button')).find(button => button.getAttribute('aria-label') === 'CapabilityTests.textAnnotate.primaryLabel');
+    assert.ok(submit);
+    await act(async () => { submit.click(); });
+    assert.equal(submitted[0]?.prompt, documentText);
+    assert.deepEqual(recorded, [documentText]);
+  } finally {
+    await act(async () => { renderer.unmount(); });
+  }
+});
+
 test('vision locate exposes image selection and geometry beside the target query', async () => {
   const registration = labStudioComposition.getCapability('vision.locate');
   const container = document.getElementById('root');
@@ -200,5 +254,121 @@ test('vision locate exposes image selection and geometry beside the target query
     assert.equal(submitCount,1);
   } finally {
     await act(async()=>{renderer.unmount();});
+  }
+});
+
+test('Decisions run the request from Parameters, stop the one call and replay or restore a recorded request', async () => {
+  const registration = labStudioComposition.getCapability('text.decide');
+  const codec = registration.parameters.recordedInput;
+  assert.ok(codec);
+  const target = {
+    capabilityId: 'text.decide', capabilityContract: 'text.decide', section: 'chat',
+    source: 'cloud', status: 'configured', canDispatch: true, intentLabel: 'Cloud', detail: 'configured',
+    params: {}, paramsSummary: [], profileOrigin: null,
+  };
+  const calls = [];
+  const recorded = [];
+  const host = {
+    appTitle: 'Lab', translate: key => key, locale: 'en', clock: { now: () => Date.now() },
+    app: {
+      projection: { promptDraft: () => ({ prompt: '' }), projectRunTarget: () => target, runStatusLabel: s => s },
+      events: { subscribeAIConfigRefresh: () => () => {} },
+      commands: { savePromptDraft: async () => {}, copyText: async () => ({ ok: true }), exportText: async () => {} },
+    },
+    sdk: {
+      aiConfig: { get: async () => null },
+      runCapability(input) {
+        const deferred = Promise.withResolvers();
+        calls.push({ input, ...deferred });
+        return deferred.promise;
+      },
+    },
+  };
+  const relevance = registration.parameters.initial();
+  let parameters = relevance;
+  const container = document.getElementById('root');
+  const renderer = createRoot(container);
+  const props = {
+    registration, registrations: [registration], runtime: { status: 'connected', detail: 'connected' },
+    lastResult: null, history: {}, historySelectionRequest: null, onSelectHistoryRun: () => {},
+    onResult: async (result, prompt) => { recorded.push({ result, prompt }); return null; },
+    verboseConsole: false, draftPersistence: false,
+  };
+  const store = () => ({
+    state: { 'text.decide': parameters },
+    setParameters: (capabilityId, next) => {
+      assert.equal(capabilityId, 'text.decide');
+      parameters = next;
+      render();
+    },
+  });
+  const render = () => renderer.render(createElement(TooltipProvider, null, createElement(AIStudioHostProvider, { value: host },
+    createElement(StudioCapabilityParameterContext.Provider, { value: store() }, createElement(SectionAITesting, props)))));
+  const button = label => Array.from(container.querySelectorAll('button')).find(el => el.getAttribute('aria-label') === label || el.textContent.trim() === label);
+  try {
+    await act(async () => { render(); });
+    // The loaded example is complete, so one click runs it as one request.
+    const relevancePrompt = codec.encode(relevance);
+    await act(async () => { button('CapabilityTests.textDecide.primaryLabel').click(); });
+    assert.equal(calls.length, 1);
+    assert.deepEqual(calls[0].input.parameters, relevance);
+    assert.equal(calls[0].input.prompt, relevancePrompt);
+    assert.equal(container.querySelector('.studio-turn__request pre').textContent, relevancePrompt);
+    await act(async () => { button('StudioShell.cancelGeneration').click(); });
+    assert.equal(calls[0].input.signal.aborted, true);
+    assert.equal(calls[0].input.signal.reason, 'studio-user-canceled');
+    await act(async () => { calls[0].resolve({ ok: false, capabilityId: 'text.decide', reason: 'operation-aborted', message: 'stopped', actionHint: '' }); });
+    assert.equal(recorded[0].prompt, relevancePrompt);
+    // A stopped direct call has no Job to wait for: it reads as stopped, not as a pending cancellation.
+    assert.ok(container.textContent.includes('Studio.result.status.stoppedDirectCall'));
+    assert.ok(container.textContent.includes('NonSuccess.message.stoppedDirectCall'));
+    assert.ok(!container.textContent.includes('Studio.result.status.operationAborted'));
+
+    // An example from Parameters replaces the form; the next run sends it.
+    await act(async () => { button(labTranslate('CapabilityTests.textDecide.exampleIntent')).click(); });
+    assert.equal(parameters.stateFormat, 'text');
+    await act(async () => { button('CapabilityTests.textDecide.primaryLabel').click(); });
+    assert.equal(calls.length, 2);
+    assert.deepEqual(calls[1].input.parameters, parameters);
+    const answers = [
+      { questionId: 'intent', kind: 'choice', selectedCandidateId: 'exchange', probabilities: ['refund', 'exchange', 'repair', 'shipping', 'other'].map((candidateId) => ({ candidateId, probability: candidateId === 'exchange' ? 0.6 : 0.1 })) },
+      { questionId: 'needs_agent', kind: 'boolean', trueProbability: 0.7 },
+    ];
+    await act(async () => { calls[1].resolve({ ok: true, capabilityId: 'text.decide', capabilityLabel: 'Decisions', message: 'ok', output: { kind: 'text-decision', answers }, trace: { traceId: 'trace-intent' } }); });
+    assert.equal(container.querySelectorAll('.studio-decision__question').length, 2);
+    assert.equal(container.querySelectorAll('.studio-decision__bar').length, 6);
+    assert.equal(container.querySelector('.studio-decision__bar[aria-current="true"] .studio-decision__label').textContent, 'exchange');
+    assert.ok(container.textContent.includes('trace-intent'));
+
+    // A recorded request reruns as recorded, whatever the form holds now, and
+    // restores the form only when asked.
+    const record = {
+      id: 'history-decide', capabilityId: 'text.decide', createdAt: '2026-09-24T00:00:00.000Z',
+      prompt: relevancePrompt, status: 'ready', message: 'saved',
+      result: { ok: true, kind: 'text-decision', summary: 'relevant: true 0.80', questionCount: 2, answers: [
+        { questionId: 'relevant', kind: 'boolean', trueProbability: 0.8 },
+        { questionId: 'hands_on', kind: 'boolean', trueProbability: 0.3 },
+      ] },
+      runConfig: { target, promptControls: { contextAttached: false, attachmentCount: 0 } },
+    };
+    props.history = { 'text.decide': [record] };
+    props.historySelectionRequest = { requestId: 1, record };
+    await act(async () => { render(); });
+    assert.equal(container.querySelector('.studio-turn__request pre').textContent, relevancePrompt);
+    assert.equal(container.querySelectorAll('.studio-decision__bar').length, 2);
+    await act(async () => { button('StudioShell.regenerate').click(); });
+    assert.equal(calls.length, 3);
+    assert.equal(calls[2].input.prompt, relevancePrompt);
+    assert.deepEqual(calls[2].input.parameters.questions, relevance.questions);
+    assert.equal(parameters.stateFormat, 'text', 'a replay leaves the form unchanged');
+    await act(async () => { calls[2].resolve({ ok: false, capabilityId: 'text.decide', reason: 'runtime-timeout', message: 'late', actionHint: '' }); });
+    props.historySelectionRequest = { requestId: 2, record };
+    await act(async () => { render(); });
+    await act(async () => { button('StudioShell.useAsDraft').click(); });
+    assert.equal(parameters.stateFormat, 'json');
+    assert.deepEqual(JSON.parse(parameters.state), JSON.parse(relevance.state));
+    assert.deepEqual(parameters.questions, relevance.questions);
+  } finally {
+    await act(async () => { renderer.unmount(); });
   }
 });

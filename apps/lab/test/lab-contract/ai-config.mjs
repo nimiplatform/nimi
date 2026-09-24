@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import {
@@ -85,7 +85,7 @@ test('lab clones the immutable AIConfig projection for the Kit editor', async ()
   assert.notEqual(projected[0].requiredFeatures, intent.requiredFeatures);
 });
 
-test('lab shared Model Config inventory includes video.generate and deduplicates studio aliases', async () => {
+test('lab shared Model Config inventory covers every Lab entry and deduplicates studio aliases', async () => {
   const {
     labCapabilities,
     labModelConfigCapabilityContracts,
@@ -104,10 +104,47 @@ test('lab shared Model Config inventory includes video.generate and deduplicates
     'audio.transcribe',
     'voice.create',
     'world.generate',
+    'text.annotate',
+    'text.decide',
+    'image.face_swap',
+    'video.face_swap',
+    'realtime.interact',
   ]);
   for (const capability of labCapabilities.filter((entry) => entry.execution === 'runtime-sdk')) {
     assert.doesNotMatch(capability.summary, /currently unavailable/iu);
     assert.doesNotMatch(capability.surface, /typed unavailable/iu);
+  }
+});
+
+// A new canonical contract lands in Lab together with a formal entry, its
+// focused regression and its real acceptance path (see apps/lab/README.md).
+test('every canonical capability has a formal Lab entry through the existing inventory', async () => {
+  const { CANONICAL_CAPABILITY_IDS } = await import('@nimiplatform/kit/core/runtime-capabilities');
+  const { labModelConfigCapabilityContracts } = await importBehaviorModule('lab/lab-capabilities.js');
+  assert.deepEqual(
+    CANONICAL_CAPABILITY_IDS.filter((id) => !labModelConfigCapabilityContracts.includes(id)),
+    [],
+  );
+});
+
+test('lab-only capability tests join the existing section-based navigation without public scaffold admission', async () => {
+  const { workbenchNavGroups } = await importBehaviorModule('lab/workbench/workbench-context.js');
+  const groupOf = (id) => workbenchNavGroups.find((group) => group.capabilityIds.includes(id))?.id;
+  assert.equal(groupOf('text.annotate'), 'text');
+  assert.equal(groupOf('text.tools'), 'text');
+  assert.equal(groupOf('text.decide'), 'text');
+  assert.equal(groupOf('image.face_swap'), 'image-video');
+  assert.equal(groupOf('video.face_swap'), 'image-video');
+  assert.equal(groupOf('realtime.interact'), 'voice-music');
+  const scaffold = readFileSync(path.join(root, '../../app-tools/lib/app-scaffold-capabilities.mjs'), 'utf8');
+  for (const id of ['text.annotate', 'text.tools', 'text.decide', 'image.face_swap', 'video.face_swap', 'realtime.interact']) {
+    assert.equal(scaffold.includes(`'${id}'`), false, `${id} stays out of public scaffold admission`);
+  }
+  for (const relative of ['src/ai-studio-core', 'src/studio-modules']) {
+    for (const file of readdirSync(path.join(root, relative), { recursive: true })) {
+      if (!/\.(ts|tsx|json)$/u.test(String(file))) continue;
+      assert.doesNotMatch(readFileSync(path.join(root, relative, String(file)), 'utf8'), /lab-only|Nimi Lab|nimi\.lab/u, `${relative}/${file}`);
+    }
   }
 });
 
@@ -216,6 +253,48 @@ test('lab presents Local intent while leaving implementation selection to Runtim
   assert.equal(imageTarget.canDispatch, true);
 });
 
+test('lab never presents a saved Cloud intent as runnable for Local-only Lab entries', async () => {
+  const { createLabRunTargetSummary } = await importBehaviorModule('lab/lab-run-target.js');
+  const { t } = await importBehaviorModule('shell/i18n/index.js');
+  const runtime = { status: 'connected', mode: 'electron-local-app', detail: 'connected' };
+  const text = (value) => ({ kind: { oneofKind: 'stringValue', stringValue: value } });
+  const cloudIntent = (capabilityContract) => ({
+    capabilityContract,
+    requiredFeatures: [],
+    route: {
+      oneofKind: 'cloud',
+      cloud: {
+        connectorRef: 'connector-cloud-test',
+        implementation: { implementationId: 'cloud.test', driverId: 'cloud.driver.test', driverDialect: 'test/v1' },
+        providerModelTarget: { fields: { provider: text('provider-test'), providerModelId: text('model-test'), remoteModelCatalogId: text('catalog-test') } },
+      },
+    },
+  });
+  const capability = (id, capabilityContract) => ({
+    id, label: id, group: 'media', section: 'image', summary: '', surface: '', execution: 'runtime-sdk', capabilityContract,
+  });
+  for (const id of ['text.annotate', 'image.face_swap', 'video.face_swap']) {
+    const cloud = createLabRunTargetSummary({ capability: capability(id, id), runtime, config: config(cloudIntent(id)) });
+    assert.equal(cloud.status, 'blocked', id);
+    assert.equal(cloud.source, 'cloud');
+    assert.equal(cloud.canDispatch, false);
+    assert.equal(cloud.detail, t('CapabilityTests.common.localRouteBlocked'));
+    assert.match(cloud.detail, /AI_ROUTE_UNSUPPORTED/u);
+    const local = createLabRunTargetSummary({ capability: capability(id, id), runtime, config: config(localIntent(id)) });
+    assert.equal(local.status, 'configured', id);
+    assert.equal(local.canDispatch, true);
+  }
+  // A contract Runtime runs on both routes keeps a configured Cloud intent runnable.
+  const tools = createLabRunTargetSummary({ capability: capability('text.tools', 'text.generate'), runtime, config: config(cloudIntent('text.generate')) });
+  assert.equal(tools.status, 'configured');
+  assert.equal(tools.canDispatch, true);
+  for (const intent of [cloudIntent('text.decide'), localIntent('text.decide')]) {
+    const decide = createLabRunTargetSummary({ capability: capability('text.decide', 'text.decide'), runtime, config: config(intent) });
+    assert.equal(decide.status, 'configured', intent.route.oneofKind);
+    assert.equal(decide.canDispatch, true, intent.route.oneofKind);
+  }
+});
+
 test('lab requires an exact Connector and provider-model target for Cloud execution', async () => {
   const { createLabRunTargetSummary } = await importBehaviorModule('lab/lab-run-target.js');
   const capability = {
@@ -274,26 +353,23 @@ test('lab requires an exact Connector and provider-model target for Cloud execut
   assert.equal(blocked.intentLabel, 'Invalid configuration');
 });
 
-test('lab dispatches the standalone World Tour only from a Electron shell', async () => {
+test('lab dispatches World Tour generation through the App AIConfig like every Runtime capability', async () => {
+  const { getLabCapability } = await importBehaviorModule('lab/lab-capabilities.js');
   const { createLabRunTargetSummary } = await importBehaviorModule('lab/lab-run-target.js');
-  const capability = {
-    id: 'world.generate', label: 'World Tour', group: 'world', section: 'world', summary: '', surface: '', execution: 'standalone-electron',
-  };
-  const unavailable = createLabRunTargetSummary({
-    capability,
-    runtime: { status: 'connected', mode: 'electron-local-app', detail: 'connected' },
-    config: null,
-    standaloneViewerAvailable: false,
-  });
-  assert.equal(unavailable.canDispatch, false);
-
-  const electron = createLabRunTargetSummary({
-    capability,
-    runtime: { status: 'connected', mode: 'electron-local-app', detail: 'connected' },
-    config: null,
-    standaloneViewerAvailable: true,
-  });
-  assert.equal(electron.canDispatch, true);
+  const capability = getLabCapability('world.generate');
+  assert.equal(capability.execution, 'runtime-sdk');
+  assert.equal(capability.capabilityContract, 'world.generate');
+  const runtime = { status: 'connected', mode: 'electron-local-app', detail: 'connected' };
+  const unconfigured = createLabRunTargetSummary({ capability, runtime, config: null, standaloneViewerAvailable: true });
+  assert.equal(unconfigured.status, 'blocked');
+  assert.equal(unconfigured.canDispatch, false);
+  assert.notEqual(unconfigured.intentLabel, 'Local fixture');
+  const configured = createLabRunTargetSummary({ capability, runtime, config: config(localIntent('world.generate')) });
+  assert.equal(configured.status, 'configured');
+  assert.equal(configured.canDispatch, true);
+  assert.equal(configured.source, 'local');
+  const workspace = readFileSync(path.join(root, 'src/lab/lab-ai-studio-workspace.tsx'), 'utf8');
+  assert.doesNotMatch(workspace, /'local-fixture'/u, 'a real World Tour generation is not recorded as a fixture');
 });
 
 test('lab run history presents only the configured capability intent', async () => {

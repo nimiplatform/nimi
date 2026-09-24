@@ -25,8 +25,42 @@ export function formatTypedOutput(
     return JSON.stringify({
       vectors: output.vectorCount,
       dimensions: output.dimensions,
+      // Equal dimensions do not make two vectors comparable; the space does.
+      spaceId: output.spaceId ?? null,
       sample: output.sample,
       totalTokens: output.totalTokens,
+    }, null, 2);
+  }
+  if (output.kind === 'text-annotation') {
+    return JSON.stringify({
+      jobId: output.jobId,
+      jobState: output.jobState,
+      language: output.language,
+      documentCount: output.documentCount,
+      tokenCount: output.tokenCount,
+      sentenceCount: output.sentenceCount,
+      document: output.document,
+    }, null, 2);
+  }
+  if (output.kind === 'text-exchange') {
+    return JSON.stringify({
+      scenario: output.scenario,
+      steps: output.steps,
+      ...(output.structured !== undefined ? { structured: output.structured } : {}),
+      text: output.text,
+    }, null, 2);
+  }
+  if (output.kind === 'text-decision') {
+    return JSON.stringify({ answers: output.answers }, null, 2);
+  }
+  if (output.kind === 'session') {
+    return JSON.stringify({
+      capabilityContract: output.capabilityContract,
+      startedAt: output.startedAt,
+      endedAt: output.endedAt,
+      ending: output.ending,
+      terminalReason: output.terminalReason,
+      observed: output.observed,
     }, null, 2);
   }
   if (output.kind === 'artifacts') {
@@ -38,6 +72,7 @@ export function formatTypedOutput(
       ...(output.musicTranscription ? { musicTranscription: output.musicTranscription } : {}),
       ...(output.voiceConversion ? { voiceConversion: output.voiceConversion } : {}),
       ...(output.audioSeparation ? { audioSeparation: output.audioSeparation } : {}),
+      ...(output.faceSwap ? { faceSwap: output.faceSwap } : {}),
       artifacts: output.artifacts,
       firstArtifact: output.firstArtifact,
     }, null, 2);
@@ -61,6 +96,26 @@ export function formatTypedOutput(
   }, null, 2);
 }
 
+// A Job the owner already issued stays locatable after a non-success, but
+// Runtime retains it only for its own retention period.
+export function KnownJobNotice({ jobId }: { readonly jobId?: string }) {
+  const { translate: t } = useAIStudioHost();
+  if (!jobId) return null;
+  return <p className="studio-result__hint">{t('StudioResults.job.known', { jobId })}</p>;
+}
+
+export function EmbeddingResultBody({ spaceId }: { readonly spaceId?: string }) {
+  const { translate: t } = useAIStudioHost();
+  return (
+    <div className="studio-result__rich">
+      <p className="studio-result__plain">{t('StudioShell.embeddingSuccess')}</p>
+      <p className="studio-result__hint">
+        {spaceId ? t('StudioResults.embedding.space', { spaceId }) : t('StudioResults.embedding.spaceNotRecorded')}
+      </p>
+    </div>
+  );
+}
+
 export function formatNonSuccessOutput(
   result: StudioCapabilityRunResult & { ok: false },
   translate: StudioTranslate,
@@ -70,6 +125,7 @@ export function formatNonSuccessOutput(
     '',
     `Capability: ${result.capabilityId}`,
     `Reason: ${result.reason}`,
+    result.jobId ? `Job: ${result.jobId}` : '',
     result.missingSurface ? `Missing surface: ${result.missingSurface}` : '',
     '',
     'Message:',

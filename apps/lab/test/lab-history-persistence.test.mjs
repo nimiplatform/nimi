@@ -155,13 +155,56 @@ test('shared history policy enforces global count and byte bounds', () => {
   assert.equal(records.some((record) => record.id === 'run-160'), true);
   assert.equal(records.some((record) => record.id === 'run-0'), false);
 
+  const oversized = runRecord('oversized', '2026-01-01T00:00:00.000Z');
   assert.throws(
-    () => historyPolicyModule.boundStudioRunHistoryWithRecord({}, runRecord(
-      'oversized',
-      '2026-01-01T00:00:00.000Z',
-      { prompt: 'x'.repeat(241 * 1024) },
-    )),
+    () => historyPolicyModule.boundStudioRunHistoryWithRecord({}, {
+      ...oversized,
+      result: { ...oversized.result, body: 'x'.repeat(241 * 1024) },
+    }),
     /exceeds the storage document limit/,
+  );
+});
+
+test('a long input keeps a bounded history preview instead of evicting other capabilities', () => {
+  let history = {};
+  for (let index = 0; index < 30; index += 1) {
+    history = historyPolicyModule.boundStudioRunHistoryWithRecord(history, runRecord(
+      `other-${index}`,
+      new Date(Date.UTC(2026, 0, 1, 0, 0, index)).toISOString(),
+      { capabilityId: `capability.${index % 6}` },
+    ));
+  }
+  const limit = historyPolicyModule.STUDIO_HISTORY_INPUT_LIMIT_BYTES;
+  const base = runRecord('long-input', '2026-02-01T00:00:00.000Z');
+  // The four-byte character straddles the limit, so the preview stops before it.
+  const prompt = `${'a'.repeat(limit - 2)}🍰${'b'.repeat(200 * 1024)}`;
+  const context = 'c'.repeat(limit + 1);
+  const record = {
+    ...base,
+    capabilityId: 'text.annotate',
+    prompt,
+    runConfig: { ...base.runConfig, promptControls: { ...base.runConfig.promptControls, contextAttached: true, context } },
+  };
+  const next = historyPolicyModule.boundStudioRunHistoryWithRecord(history, record);
+  assert.equal(historyPolicyModule.flattenStudioHistoryRecords(next).length, 31);
+  const stored = next['text.annotate'][0];
+  assert.equal(stored.inputTruncated, true);
+  assert.equal(stored.prompt, 'a'.repeat(limit - 2));
+  assert.equal(stored.runConfig.promptControls.context, 'c'.repeat(limit));
+  assert.equal(record.prompt, prompt);
+  assert.equal(record.inputTruncated, undefined);
+  const roundTrip = JSON.parse(JSON.stringify(next));
+  assert.deepEqual(historyPolicyModule.parseStudioRunHistory(roundTrip), roundTrip);
+
+  const short = historyPolicyModule.boundStudioRunHistoryWithRecord({}, runRecord('short', '2026-02-02T00:00:00.000Z'));
+  assert.equal(short['text.generate'][0].inputTruncated, undefined);
+  assert.throws(
+    () => historyPolicyModule.parseStudioRunHistory({ 'text.generate': [{ ...runRecord('flag', '2026-02-03T00:00:00.000Z'), inputTruncated: false }] }),
+    /inputTruncated/,
+  );
+  assert.throws(
+    () => historyPolicyModule.parseStudioRunHistory({ 'text.generate': [{ ...runRecord('preview', '2026-02-03T00:00:00.000Z', { prompt: 'x'.repeat(limit + 1) }), inputTruncated: true }] }),
+    /prompt/,
   );
 });
 
@@ -503,6 +546,212 @@ test('image-history append, remove, and clear share the serialized JSON mutation
     assert.deepEqual(loaded.map((entry) => entry.id), ['run-2']);
     loaded = await imageHistoryModule.clearLabImageHistory();
     assert.deepEqual(loaded, []);
+  } finally {
+    delete globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__;
+  }
+});
+
+function annotationRun(id, createdAt, documentPath) {
+  return runRecord(id, createdAt, {
+    capabilityId: 'text.annotate',
+    runConfig: undefined,
+    result: {
+      ok: true, kind: 'text-annotation', summary: 'en / 1 document', jobId: `job-${id}`, jobState: 'completed',
+      language: 'en', documentCount: 1, tokenCount: 7, sentenceCount: 1,
+      document: { relativePath: documentPath, mediaType: 'application/json', sizeBytes: 64, sha256: `sha256:${'a'.repeat(64)}`, previewSource: 'managed-asset' },
+    },
+  });
+}
+
+test('shared history codec accepts the new typed snapshots and keeps older embedding records readable', () => {
+  const history = {
+    'text.embed': [
+      runRecord('embed-legacy', '2026-09-01T00:00:00.000Z', { capabilityId: 'text.embed', result: { ok: true, kind: 'embedding', summary: '1 vector', vectorCount: 1, dimensions: 3, sample: [0.1] } }),
+      runRecord('embed-space', '2026-09-01T00:00:01.000Z', { capabilityId: 'text.embed', result: { ok: true, kind: 'embedding', summary: '1 vector', vectorCount: 1, dimensions: 3, spaceId: 'space-a', sample: [0.1] } }),
+    ],
+    'text.annotate': [annotationRun('annotate', '2026-09-01T00:00:02.000Z', 'studio/text-annotate/a.json')],
+    'text.tools': [runRecord('tools', '2026-09-01T00:00:03.000Z', {
+      capabilityId: 'text.tools',
+      result: {
+        ok: true, kind: 'text-exchange', summary: 'done', scenario: 'tool-call', text: 'done',
+        steps: [
+          { origin: 'model', finishReason: 'tool-calls', items: [
+            { type: 'reasoning-continuity', carrierKind: 'opaque', version: 1, payloadBytes: 3 },
+            { type: 'tool-call', toolCallId: 'call-1', toolName: 'lab_convert_centimeters', arguments: { centimeters: 30 } },
+          ] },
+          { origin: 'app', items: [{ type: 'tool-result', toolCallId: 'call-1', toolName: 'lab_convert_centimeters', result: { inches: 11.811 }, isError: false }] },
+          { origin: 'model', finishReason: 'stop', items: [{ type: 'text', text: 'done' }] },
+        ],
+      },
+    })],
+    'image.face_swap': [runRecord('face', '2026-09-01T00:00:04.000Z', {
+      capabilityId: 'image.face_swap',
+      result: {
+        ok: true, kind: 'artifacts', summary: 'completed', jobId: 'job-face', jobState: 'completed', artifactCount: 1,
+        artifacts: [{ relativePath: 'media/image-face_swap/x.png', mediaType: 'image/png', sizeBytes: 9, sha256: `sha256:${'b'.repeat(64)}`, previewSource: 'managed-asset' }],
+        faceSwap: { inputs: [
+          { role: 'reference-image', name: 'ref.png', mediaType: 'image/png', sizeBytes: 3, sha256: `sha256:${'c'.repeat(64)}` },
+          { role: 'target-image', name: 'target.jpg', mediaType: 'image/jpeg', sizeBytes: 4, sha256: `sha256:${'d'.repeat(64)}` },
+        ] },
+      },
+    })],
+    'realtime.interact': [runRecord('session', '2026-09-01T00:00:05.000Z', {
+      capabilityId: 'realtime.interact',
+      status: 'failed',
+      result: { ok: true, kind: 'session', summary: 'terminated', capabilityContract: 'realtime.interact', startedAt: '2026-09-01T00:00:00.000Z', endedAt: '2026-09-01T00:00:05.000Z', ending: 'terminated', terminalReason: 'AI_PROVIDER_UNAVAILABLE', observed: { 'text-input': 1, opened: 1 } },
+    })],
+    'video.face_swap': [runRecord('video-canceled', '2026-09-01T00:00:06.000Z', {
+      capabilityId: 'video.face_swap',
+      status: 'canceled',
+      result: { ok: false, kind: 'non-success', summary: 'canceled', reason: 'runtime-canceled', message: 'canceled', actionHint: 'retry', jobId: 'job-video-1' },
+    })],
+    'text.decide': [
+      runRecord('decide', '2026-09-01T00:00:07.000Z', {
+        capabilityId: 'text.decide',
+        prompt: '{"type":"text-decide"}',
+        result: {
+          ok: true, kind: 'text-decision', summary: 'relevant: true 0.88 / intent: learn 0.50', questionCount: 2, traceId: 'trace-decide',
+          answers: [
+            { questionId: 'relevant', kind: 'boolean', trueProbability: 0.875 },
+            { questionId: 'intent', kind: 'choice', selectedCandidateId: 'learn', probabilities: [{ candidateId: 'buy', probability: 0.2 }, { candidateId: 'learn', probability: 0.5 }, { candidateId: 'compare', probability: 0.3 }] },
+          ],
+        },
+      }),
+      runRecord('decide-summary', '2026-09-01T00:00:08.000Z', {
+        capabilityId: 'text.decide',
+        result: { ok: true, kind: 'text-decision', summary: 'kept as a summary', questionCount: 64 },
+      }),
+      runRecord('decide-limit', '2026-09-01T00:00:09.000Z', {
+        capabilityId: 'text.decide',
+        status: 'unavailable',
+        result: { ok: false, kind: 'non-success', summary: 'too long', reason: 'input-invalid', message: 'too long', actionHint: 'shorten', diagnostics: { reasonCode: 'AI_INPUT_LIMIT_EXCEEDED', source: 'runtime' } },
+      }),
+    ],
+  };
+  const parsed = historyPolicyModule.parseStudioRunHistory(JSON.parse(JSON.stringify(history)));
+  assert.equal(parsed['text.embed'][0].result.spaceId, undefined);
+  assert.equal(parsed['text.embed'][1].result.spaceId, 'space-a');
+  assert.equal(parsed['video.face_swap'][0].result.jobId, 'job-video-1');
+  assert.deepEqual(historyPolicyModule.studioHistoryArtifactPaths(parsed['text.annotate'][0]), ['studio/text-annotate/a.json']);
+  assert.deepEqual(historyPolicyModule.studioHistoryDocumentPaths(parsed['image.face_swap'][0]), []);
+
+  const reject = (mutate, pattern) => {
+    const copy = JSON.parse(JSON.stringify(history));
+    mutate(copy);
+    assert.throws(() => historyPolicyModule.parseStudioRunHistory(copy), pattern);
+  };
+  reject((copy) => { copy['text.annotate'][0].result.document.mediaType = 'text/plain'; }, /saved JSON document/u);
+  reject((copy) => { copy['image.face_swap'][0].result.faceSwap.inputs[1].role = 'reference-image'; }, /duplicate role/u);
+  reject((copy) => { copy['image.face_swap'][0].result.faceSwap.noFacePolicy = 'fail'; }, /video target/u);
+  reject((copy) => { copy['text.tools'][0].result.steps[0].items[1].type = 'shell-command'; }, /unsupported value/u);
+  reject((copy) => { copy['realtime.interact'][0].result.observed.Bad = 1; }, /invalid counter/u);
+  reject((copy) => { copy['text.embed'][1].result.spaceId = ''; }, /spaceId/u);
+  assert.equal(parsed['text.decide'][0].result.answers[1].selectedCandidateId, 'learn');
+  assert.equal(parsed['text.decide'][1].result.answers, undefined);
+  reject((copy) => { copy['text.decide'][0].result.questionCount = 3; }, /one answer per question/u);
+  reject((copy) => { delete copy['text.decide'][1].result.questionCount; }, /questionCount/u);
+  reject((copy) => { copy['text.decide'][0].result.answers[1].questionId = 'relevant'; }, /repeated/u);
+  reject((copy) => { copy['text.decide'][0].result.answers[0].trueProbability = 1.2; }, /probability from 0 to 1/u);
+  reject((copy) => { copy['text.decide'][0].result.answers[1].probabilities[2].probability = Number.NaN; }, /probability from 0 to 1/u);
+  reject((copy) => { copy['text.decide'][0].result.answers[1].selectedCandidateId = 'unknown'; }, /not one of its candidates/u);
+  reject((copy) => { copy['text.decide'][0].result.answers[1].probabilities.splice(1); }, /2 to 255 candidates/u);
+  reject((copy) => { copy['text.decide'][0].result.answers[0].kind = 'score'; }, /unsupported value/u);
+});
+
+test('a decision record keeps its spec as a bounded input and its answers only while they fit', () => {
+  const limit = historyPolicyModule.STUDIO_HISTORY_INPUT_LIMIT_BYTES;
+  const candidates = Array.from({ length: 255 }, (_, index) => `candidate-${String(index).padStart(3, '0')}-${'x'.repeat(48)}`);
+  const answers = Array.from({ length: 64 }, (_, index) => ({
+    questionId: `question-${index}`,
+    kind: 'choice',
+    selectedCandidateId: candidates[0],
+    probabilities: candidates.map((candidateId, position) => ({ candidateId, probability: position === 0 ? 0.746 : 0.001 })),
+  }));
+  const spec = JSON.stringify({ type: 'text-decide', state: { text: 'z'.repeat(limit) }, questions: [] }, null, 2);
+  const record = runRecord('decide-large', '2026-09-02T00:00:00.000Z', {
+    capabilityId: 'text.decide',
+    prompt: spec,
+    result: { ok: true, kind: 'text-decision', summary: 'question-0: candidate-000 0.75', questionCount: 64, answers },
+  });
+  const earlier = runRecord('earlier', '2026-09-01T00:00:00.000Z');
+  const next = historyPolicyModule.boundStudioRunHistoryWithRecord({ 'text.generate': [earlier] }, record);
+  const stored = next['text.decide'][0];
+  // The spec is a prompt like any other: a longer one keeps a marked preview.
+  assert.equal(stored.inputTruncated, true);
+  assert.equal(Buffer.byteLength(stored.prompt), limit);
+  // Every candidate keeps its probability, so these answers outgrow the whole
+  // budget; the stored copy keeps the summary and count, the run keeps them all.
+  assert.equal(stored.result.answers, undefined);
+  assert.equal(stored.result.questionCount, 64);
+  assert.equal(stored.result.summary, 'question-0: candidate-000 0.75');
+  assert.equal(record.result.answers.length, 64);
+  assert.equal(next['text.generate'][0].id, 'earlier');
+  const roundTrip = JSON.parse(JSON.stringify(next));
+  assert.deepEqual(historyPolicyModule.parseStudioRunHistory(roundTrip), roundTrip);
+
+  const small = historyPolicyModule.boundStudioRunHistoryWithRecord({}, { ...record, prompt: '{}', result: { ...record.result, questionCount: 1, answers: answers.slice(0, 1) } });
+  assert.equal(small['text.decide'][0].result.answers.length, 1);
+  assert.equal(small['text.decide'][0].inputTruncated, undefined);
+});
+
+test('a video face swap history summary must keep consistent frame counts', () => {
+  const record = runRecord('video-face', '2026-09-01T00:00:00.000Z', {
+    capabilityId: 'video.face_swap',
+    result: {
+      ok: true, kind: 'artifacts', summary: 'completed', jobId: 'job-v', jobState: 'completed', artifactCount: 1,
+      artifacts: [{ relativePath: 'media/video-face_swap/x.mp4', mediaType: 'video/mp4', sizeBytes: 9, sha256: `sha256:${'b'.repeat(64)}`, previewSource: 'managed-asset' }],
+      faceSwap: {
+        inputs: [
+          { role: 'reference-image', name: 'ref.png', mediaType: 'image/png', sizeBytes: 3, sha256: `sha256:${'c'.repeat(64)}` },
+          { role: 'target-video', name: 'clip.mp4', mediaType: 'video/mp4', sizeBytes: 4, sha256: `sha256:${'d'.repeat(64)}` },
+        ],
+        noFacePolicy: 'preserve-frame',
+        video: { totalFrames: 90, transformedFrames: 80, preservedFrames: 10, durationUs: 3_000_000, frameRate: 30, audioPreserved: true },
+      },
+    },
+  });
+  historyPolicyModule.parseStudioRunHistory({ 'video.face_swap': [record] });
+  const inconsistent = structuredClone(record);
+  inconsistent.result.faceSwap.video.preservedFrames = 9;
+  assert.throws(() => historyPolicyModule.parseStudioRunHistory({ 'video.face_swap': [inconsistent] }), /inconsistent video facts/u);
+});
+
+test('automatic history bounding releases only annotation documents no retained record references', async () => {
+  const storage = createStorageClient();
+  const removed = [];
+  const failures = [];
+  storage.client.storage.assets = {
+    async remove(relativePath) {
+      removed.push(relativePath);
+      if (relativePath.endsWith('locked.json')) throw new Error('document locked');
+      return { removed: true };
+    },
+  };
+  globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__ = storage.client;
+  try {
+    await historyStorageModule.appendLabRunHistory(annotationRun('oldest', '2026-01-01T00:00:00.000Z', 'studio/text-annotate/oldest.json'));
+    await historyStorageModule.appendLabRunHistory(annotationRun('locked', '2026-01-01T00:00:01.000Z', 'studio/text-annotate/locked.json'));
+    await historyStorageModule.appendLabRunHistory(runRecord('media', '2026-01-01T00:00:02.000Z', {
+      capabilityId: 'image.generate',
+      result: {
+        ok: true, kind: 'artifacts', summary: 'ready', jobId: 'job-media', jobState: 'completed', artifactCount: 1,
+        artifacts: [{ relativePath: 'media/image-generate/kept.asset', mediaType: 'image/png', sizeBytes: 9, sha256: `sha256:${'b'.repeat(64)}`, previewSource: 'managed-asset' }],
+      },
+    }));
+    for (let index = 0; index < 40; index += 1) {
+      await historyStorageModule.appendLabRunHistory(
+        annotationRun(`fresh-${index}`, new Date(Date.UTC(2026, 1, 1, 0, 0, index)).toISOString(), `studio/text-annotate/fresh-${index}.json`),
+        (items) => failures.push(...items),
+      );
+    }
+    // Forty newer annotations evict the two older annotation records only.
+    assert.deepEqual(removed.sort(), ['studio/text-annotate/locked.json', 'studio/text-annotate/oldest.json']);
+    assert.equal(failures.length, 1);
+    assert.match(failures[0], /locked\.json: document locked/u);
+    const stored = await historyStorageModule.loadLabRunHistory();
+    assert.equal(stored['text.annotate'].length, 40);
+    assert.equal(stored['image.generate'].length, 1, 'media runs stay; annotation eviction never touches their assets');
+    assert.equal(removed.includes('media/image-generate/kept.asset'), false);
   } finally {
     delete globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__;
   }

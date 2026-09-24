@@ -25,6 +25,7 @@ import {
 import enActivity from './locales/en/activity.json' with { type: 'json' };
 import enAppAccess from './locales/en/app-access.json' with { type: 'json' };
 import enAuth from './locales/en/auth.json' with { type: 'json' };
+import enCapabilityTests from './locales/en/capability-tests.json' with { type: 'json' };
 import enCommon from './locales/en/common.json' with { type: 'json' };
 import enModelConfig from './locales/en/model-config.json' with { type: 'json' };
 import enSettings from './locales/en/settings.json' with { type: 'json' };
@@ -41,6 +42,7 @@ import { studioVoiceMessageBundles } from '../../studio-modules/studio-voice/mes
 import zhActivity from './locales/zh/activity.json' with { type: 'json' };
 import zhAppAccess from './locales/zh/app-access.json' with { type: 'json' };
 import zhAuth from './locales/zh/auth.json' with { type: 'json' };
+import zhCapabilityTests from './locales/zh/capability-tests.json' with { type: 'json' };
 import zhCommon from './locales/zh/common.json' with { type: 'json' };
 import zhModelConfig from './locales/zh/model-config.json' with { type: 'json' };
 import zhSettings from './locales/zh/settings.json' with { type: 'json' };
@@ -62,6 +64,7 @@ const RESOURCES: Record<SupportedLocale, Record<string, unknown>> = {
     enActivity,
     enAppAccess,
     enAuth,
+    enCapabilityTests,
     enCommon,
     enModelConfig,
     enSettings,
@@ -76,6 +79,7 @@ const RESOURCES: Record<SupportedLocale, Record<string, unknown>> = {
     zhActivity,
     zhAppAccess,
     zhAuth,
+    zhCapabilityTests,
     zhCommon,
     zhModelConfig,
     zhSettings,

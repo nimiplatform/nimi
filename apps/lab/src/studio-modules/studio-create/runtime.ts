@@ -108,16 +108,27 @@ async function runTextEmbed(context: StudioCapabilityRuntimeContext) {
       'Runtime embedding returned an unexpected output type.',
     );
   }
+  // Equal dimensions do not make vectors comparable; only the owner-reported
+  // space identifies them, so a result without it is not a reusable result.
+  const spaceId = typeof result.output.spaceId === 'string' ? result.output.spaceId.trim() : '';
+  if (!spaceId) {
+    return context.host.nonSuccess(
+      context.capability,
+      'runtime-call-failed',
+      'Runtime embedding omitted its embedding space.',
+    );
+  }
   const first = result.output.vectors[0] ?? [];
   return {
     ok: true as const,
     capabilityId: context.capability.id,
     capabilityLabel: context.capability.label,
-    message: `Runtime completed text.embed with ${result.output.vectors.length} vector(s).`,
+    message: `Runtime completed text.embed with ${result.output.vectors.length} vector(s) in space ${spaceId}.`,
     output: {
       kind: 'embedding' as const,
       vectorCount: result.output.vectors.length,
       dimensions: first.length,
+      spaceId,
       sample: [...first.slice(0, 8)],
     },
     ...(result.traceId ? { trace: { traceId: result.traceId } } : {}),

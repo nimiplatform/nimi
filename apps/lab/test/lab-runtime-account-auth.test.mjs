@@ -918,13 +918,13 @@ test('Lab chat.stream forwards the caller cancellation signal to the Kit streami
   assert.equal(result.reason, 'operation-aborted');
 });
 
-test('Lab text.embed executes the closed Local App scenario face and projects vectors', async () => {
+test('Lab text.embed executes the closed Local App scenario face and keeps the embedding space', async () => {
   const { runLabCapability } = await importLabRuntime();
   const calls = [];
   const client = fakeLocalAppClient({
     async executeScenario(spec) {
       calls.push(spec);
-      return { output: { type: 'text-embed', vectors: [[0.1, 0.2, 0.3]] }, traceId: 'trace-embed' };
+      return { output: { type: 'text-embed', vectors: [[0.1, 0.2, 0.3]], spaceId: 'local:embed-space-a' }, traceId: 'trace-embed' };
     },
   });
   const result = await runLabCapability({
@@ -933,7 +933,24 @@ test('Lab text.embed executes the closed Local App scenario face and projects ve
     parameters: { inputs: ['first', ' second '] },
   }, readyRuntimeDependencies(client));
   assert.deepEqual(calls, [{ type: 'text-embed', inputs: ['first', 'second'] }]);
-  assert.deepEqual(result.output, { kind: 'embedding', vectorCount: 1, dimensions: 3, sample: [0.1, 0.2, 0.3] });
+  assert.deepEqual(result.output, { kind: 'embedding', vectorCount: 1, dimensions: 3, spaceId: 'local:embed-space-a', sample: [0.1, 0.2, 0.3] });
+});
+
+test('Lab text.embed keeps equal-dimension results from different spaces apart and rejects a missing space', async () => {
+  const { runLabCapability } = await importLabRuntime();
+  const run = async (spaceId) => runLabCapability({ capabilityId: 'text.embed', prompt: 'same text' }, readyRuntimeDependencies(fakeLocalAppClient({
+    async executeScenario() {
+      return { output: { type: 'text-embed', vectors: [[1, 0, 0]], ...(spaceId === undefined ? {} : { spaceId }) }, traceId: 'trace' };
+    },
+  })));
+  const first = await run('cloud:space-a');
+  const second = await run('local:space-b');
+  assert.equal(first.output.dimensions, second.output.dimensions);
+  assert.notEqual(first.output.spaceId, second.output.spaceId);
+  const missing = await run(undefined);
+  assert.equal(missing.ok, false);
+  assert.equal(missing.reason, 'runtime-call-failed');
+  assert.match(missing.message, /omitted its embedding space/u);
 });
 
 test('Lab audio.transcribe supplies inferred MIME and projects the Kit transcript', async () => {

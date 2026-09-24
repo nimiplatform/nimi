@@ -156,6 +156,35 @@
 .studio-voice-list{ display: grid; gap: 8px; margin: 0; padding: 0; list-style: none;}
 .studio-voice-list li{ display: grid; gap: 2px;}
 .studio-voice-list span{ color: var(--nimi-text-muted); font-size: 12px;}
+.studio-annotation{ display: grid; gap: 8px; min-width: 0;}
+.studio-annotation > summary{ cursor: pointer; font-weight: 600;}
+.studio-annotation__text{ margin: 0; white-space: pre-wrap; overflow-wrap: anywhere;}
+.studio-annotation__sentence{ display: grid; gap: 6px; min-width: 0; overflow-x: auto;}
+.studio-annotation__tokens{ border-collapse: collapse; font-size: 12px;}
+.studio-annotation__tokens th,
+.studio-annotation__tokens td{ padding: 3px 8px; border-bottom: 1px solid var(--nimi-border-subtle); text-align: left; white-space: nowrap;}
+.studio-annotation__tokens th{ color: var(--nimi-text-muted); font-weight: 600;}
+.studio-exchange,
+.studio-exchange__items{ display: grid; gap: 10px; margin: 0; padding-left: 18px;}
+.studio-exchange__step{ display: grid; gap: 6px; min-width: 0;}
+.studio-exchange__kind{ color: var(--nimi-text-muted); font-size: 12px;}
+.studio-exchange__text{ margin: 2px 0 0; white-space: pre-wrap; overflow-wrap: anywhere;}
+.studio-decision,
+.studio-decision__bars{ display: grid; gap: 10px; margin: 0; padding: 0; list-style: none;}
+.studio-decision__bars{ gap: 6px;}
+.studio-decision__question{ display: grid; gap: 8px; min-width: 0; border: 1px solid var(--nimi-border-subtle); border-radius: var(--nimi-radius-md); padding: 12px 14px;}
+.studio-decision__head{ display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; min-width: 0;}
+.studio-decision__id{ font-weight: 600; overflow-wrap: anywhere;}
+.studio-decision__kind{ color: var(--nimi-text-muted); font-size: 12px;}
+.studio-decision__answer{ margin: 0; overflow-wrap: anywhere;}
+.studio-decision__bar{ display: grid; grid-template-columns: minmax(0, 36%) minmax(0, 1fr) auto; align-items: center; gap: 10px; color: var(--nimi-text-secondary); font-size: 13px;}
+.studio-decision__label{ min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
+.studio-decision__track{ height: 8px; overflow: hidden; border-radius: 999px; background: var(--nimi-surface-active);}
+.studio-decision__fill{ display: block; height: 100%; border-radius: inherit; background: color-mix(in srgb, var(--nimi-text-muted) 55%, transparent);}
+.studio-decision__value{ font-family: var(--nimi-font-mono); font-size: 12px; text-align: right;}
+.studio-decision__bar--selected{ color: var(--nimi-text-primary); font-weight: 600;}
+.studio-decision__bar--selected .studio-decision__fill{ background: var(--nimi-action-primary-bg);}
+.studio-turn__request{ border: 1px solid var(--nimi-border-subtle); border-radius: var(--nimi-radius-lg); background: color-mix(in srgb, var(--nimi-surface-card) 72%, transparent);}
 .studio-diag{ position: relative; min-width: 0; max-width: 100%; border-top: 1px solid var(--nimi-border-subtle); padding: 12px 16px 14px;}
 .studio-diag > summary{ display: inline-flex; max-width: calc(100% - 64px); align-items: center; gap: 5px; cursor: pointer; list-style: none; color: var(--nimi-text-secondary); font-size: 12px; font-weight: var(--nimi-type-page-title-weight); vertical-align: middle;}
 .studio-diag > summary::-webkit-details-marker{ display: none;}
@@ -258,6 +287,7 @@
 .studio-recent__rows li:hover .studio-recent__row-delete,
 .studio-recent__rows li:focus-within .studio-recent__row-delete{ opacity: 1;}
 .studio-recent__row-delete:hover{ background: var(--nimi-surface-active); color: var(--nimi-text-primary);}
+.studio-recent__row-delete--document{ right: 32px;}
 .studio-recent__icon--media{ overflow: hidden; border-radius: var(--nimi-radius-sm);}
 .studio-recent__icon--media img{ display: block; width: 22px; height: 22px; object-fit: cover;}
 /* The history filter popover styles live in the portal-scoped block at the end

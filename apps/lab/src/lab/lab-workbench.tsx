@@ -49,6 +49,12 @@ const AgentConversationCapability = lazy(async () => ({
 const AgentRealtimeCapability = lazy(async () => ({
   default: (await import('../product-modules/agent-realtime/index.js')).AgentRealtimeCapability,
 }));
+const LabAiRealtimePage = lazy(async () => ({
+  default: (await import('./lab-only/ai-realtime-page.js')).LabAiRealtimePage,
+}));
+const LabVideoFaceSwapSessionLauncher = lazy(async () => ({
+  default: (await import('./lab-only/video-face-swap-session-panel.js')).LabVideoFaceSwapSessionLauncher,
+}));
 
 type LabWorkbenchProps = { title: string };
 type LabWorkbenchNavigationId = LabCapabilityId
@@ -214,6 +220,12 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
         <LabActivityPanel />
       ) : view.kind === 'app-access' ? (
         <AppAccessPanel />
+      ) : view.kind === 'capability' && view.capabilityId === 'realtime.interact' ? (
+        <Suspense fallback={<LoadingFallback />}>
+          <div className="h-full overflow-y-auto p-5">
+            <LabAiRealtimePage controller={studioController} runtime={summary?.runtime ?? null} />
+          </div>
+        </Suspense>
       ) : view.kind === 'ui-recipes' ? (
         <Suspense fallback={<LoadingFallback />}>
           <KitComponentGallery
@@ -235,16 +247,25 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
           renderAIConfigPanel={({ runtime, capabilityId, onCommitted }) => (
             <LabAiConfigSettingsPanel runtime={runtime} capabilityId={capabilityId} onCommitted={onCommitted} />
           )}
-          headerActions={ecosystemReference ? (
-            <StatusBadge
-              tone="success"
-              shape="dot"
-              data-nimi-semantic-id="lab-ecosystem-reference"
-              data-ecosystem-revision={ecosystemReference.ecosystemRevision}
-            >
-              {t('WorkbenchTop.ecosystemRevision', { revision: ecosystemReference.ecosystemRevision })}
-            </StatusBadge>
-          ) : null}
+          headerActions={(
+            <>
+              {activeCapabilityId === 'video.face_swap' ? (
+                <Suspense fallback={null}>
+                  <LabVideoFaceSwapSessionLauncher controller={studioController} runtime={summary?.runtime ?? null} />
+                </Suspense>
+              ) : null}
+              {ecosystemReference ? (
+                <StatusBadge
+                  tone="success"
+                  shape="dot"
+                  data-nimi-semantic-id="lab-ecosystem-reference"
+                  data-ecosystem-revision={ecosystemReference.ecosystemRevision}
+                >
+                  {t('WorkbenchTop.ecosystemRevision', { revision: ecosystemReference.ecosystemRevision })}
+                </StatusBadge>
+              ) : null}
+            </>
+          )}
         />
       )}
     </WorkbenchCore>

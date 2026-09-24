@@ -3,10 +3,12 @@ import {
   clearStudioRunHistory,
   parseStudioRunHistory,
   removeStudioRunHistoryRecord,
+  studioHistoryEvictedDocumentPaths,
 } from '../ai-studio-core/history-policy.js';
 import type { StudioRunHistory, StudioRunHistoryRecord } from '../ai-studio-core/history.js';
 import {
   readLabStandardStorageJson,
+  removeLabStandardStorageAsset,
   writeLabStandardStorageJson,
 } from './lab-standard-storage.js';
 
@@ -28,10 +30,26 @@ export async function saveLabRunHistory(history: StudioRunHistory): Promise<void
   await writeLabStandardStorageJson(LAB_RUN_HISTORY_STORAGE_PATH, normalized);
 }
 
-export async function appendLabRunHistory(record: StudioRunHistoryRecord): Promise<StudioRunHistory> {
+// Bounding the history can evict older records. A saved result document that
+// only an evicted record referenced is released in the same mutation; its
+// failure is reported, while the newly appended record stays saved.
+export async function appendLabRunHistory(
+  record: StudioRunHistoryRecord,
+  reportEvictedDocumentCleanupFailure?: (failures: readonly string[]) => void,
+): Promise<StudioRunHistory> {
   return enqueueHistoryMutation(async () => {
-    const next = boundStudioRunHistoryWithRecord(await loadLabRunHistory(), record);
+    const previous = await loadLabRunHistory();
+    const next = boundStudioRunHistoryWithRecord(previous, record);
     await saveLabRunHistory(next);
+    const failures: string[] = [];
+    for (const relativePath of studioHistoryEvictedDocumentPaths(previous, record, next)) {
+      try {
+        await removeLabStandardStorageAsset(relativePath);
+      } catch (error) {
+        failures.push(`${relativePath}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+    if (failures.length > 0) reportEvictedDocumentCleanupFailure?.(failures);
     return next;
   });
 }

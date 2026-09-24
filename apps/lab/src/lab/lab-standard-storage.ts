@@ -97,6 +97,10 @@ export async function readLabStandardStorageJson(relativePath: string): Promise<
   }
 }
 
+export async function removeLabStandardStorageAsset(relativePath: string): Promise<void> {
+  await getLabLocalAppClient().storage.assets.remove(relativePath);
+}
+
 export async function writeLabStandardStorageJson(relativePath: string, value: unknown): Promise<void> {
   await getLabLocalAppClient().storage.writeJson(
     relativePath,

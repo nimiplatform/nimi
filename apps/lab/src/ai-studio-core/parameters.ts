@@ -19,12 +19,23 @@ export type StudioParameterRouteMatrix = Readonly<Record<
   Readonly<Record<'local' | 'cloud', StudioParameterRouteState>>
 >>;
 
+// For a capability whose whole request input lives in its parameters: the
+// exact text recorded as a run's input (history bounds and marks it like any
+// prompt), and the parameter fields rebuilt from such a record, or null when
+// the record cannot be restored. Fields the record does not carry keep their
+// current value.
+export type StudioRecordedParameterInput = {
+  readonly encode: (parameters: StudioParameterValue) => string;
+  readonly decode: (recorded: string) => StudioParameterValue | null;
+};
+
 export type StudioParameterContract = {
   readonly initial: () => StudioParameterValue;
   readonly summarize: (parameters: StudioParameterValue) => Readonly<Record<string, unknown>>;
   readonly hasAlternativeInput: (parameters: StudioParameterValue) => boolean;
   readonly presentation: (source: StudioRunTargetSource) => readonly StudioParameterPresentation[];
   readonly project: (source: StudioRunTargetSource, parameters: StudioParameterValue) => StudioParameterValue;
+  readonly recordedInput?: StudioRecordedParameterInput;
 };
 
 export type TypedStudioParameterContract<TParameters extends object> = {
@@ -32,6 +43,10 @@ export type TypedStudioParameterContract<TParameters extends object> = {
   readonly summarize?: (parameters: TParameters) => Readonly<Record<string, unknown>>;
   readonly hasAlternativeInput?: (parameters: TParameters) => boolean;
   readonly routeMatrix: StudioParameterRouteMatrix;
+  readonly recordedInput?: {
+    readonly encode: (parameters: TParameters) => string;
+    readonly decode: (recorded: string) => Partial<TParameters> | null;
+  };
 };
 
 export const SUPPORTED_STUDIO_PARAMETER = Object.freeze({ kind: 'supported' } as const);
@@ -65,7 +80,17 @@ export function defineStudioParameters<TParameters extends object>(
   const project = (source: StudioRunTargetSource, parameters: StudioParameterValue) => (
     projectStudioParameters(typed.routeMatrix, source, parameters)
   );
-  return Object.freeze({ initial, summarize, hasAlternativeInput, presentation, project });
+  const recorded = typed.recordedInput;
+  const recordedInput: StudioRecordedParameterInput | undefined = recorded
+    ? Object.freeze({
+        encode: (parameters: StudioParameterValue) => recorded.encode(parameters as TParameters),
+        decode: (value: string) => recorded.decode(value) as StudioParameterValue | null,
+      })
+    : undefined;
+  return Object.freeze({
+    initial, summarize, hasAlternativeInput, presentation, project,
+    ...(recordedInput ? { recordedInput } : {}),
+  });
 }
 
 export const EMPTY_STUDIO_PARAMETERS = defineStudioParameters({

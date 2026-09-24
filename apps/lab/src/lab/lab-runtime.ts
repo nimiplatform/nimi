@@ -20,6 +20,7 @@ import type {
 import { studioCreateRuntimeHandlers } from '../studio-modules/studio-create/runtime.js';
 import { studioMediaRuntimeHandlers } from '../studio-modules/studio-media/runtime.js';
 import { studioVoiceRuntimeHandlers } from '../studio-modules/studio-voice/runtime.js';
+import { labCapabilityTestRuntimeHandlers } from './lab-only/capability-test-runtime.js';
 import { capabilityNonSuccess } from './lab-non-success.js';
 import { getStudioRuntimeCapability } from './studio-runtime-capabilities.js';
 import { t } from '../shell/i18n/index.js';
@@ -33,6 +34,7 @@ const LAB_STUDIO_RUNTIME_HANDLERS = composeStudioCapabilityRuntimeHandlers([
   studioCreateRuntimeHandlers,
   studioMediaRuntimeHandlers,
   studioVoiceRuntimeHandlers,
+  labCapabilityTestRuntimeHandlers,
 ]);
 
 export type LabRuntimeDependencies = {
@@ -89,6 +91,12 @@ export async function runLabCapability(
           'sdk-method-unavailable',
           'World Tour runs through its standalone viewer command.',
         )
-      : null,
+      : context.capability.id === 'realtime.interact'
+        ? capabilityNonSuccess(
+            context.capability,
+            'sdk-method-unavailable',
+            'AI Realtime runs as a Session on its own Lab page.',
+          )
+        : null,
   });
 }

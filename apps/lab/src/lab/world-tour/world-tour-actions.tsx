@@ -17,7 +17,11 @@ export function WorldTourActions() {
     abort.current = controller;
     try {
       const result = await rendererHost.app.commands.resumeWorldTour(controller.signal, setMessage);
-      setMessage(result.message);
+      if (result.ok) setMessage(result.message);
+      else {
+        setMessage('');
+        setError(result.jobId ? `${result.message} (${result.jobId})` : result.message);
+      }
     } catch (cause) {
       setMessage('');
       setError(controller.signal.aborted ? t('WorldTour.canceled') : cause instanceof Error ? cause.message : t('WorldTour.generationFailed'));

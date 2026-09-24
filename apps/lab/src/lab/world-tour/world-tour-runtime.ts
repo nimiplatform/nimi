@@ -1,10 +1,14 @@
 import type { StudioCapabilityRunInput, StudioCapabilityRunResult } from '../../ai-studio-core/runtime-types.js';
+import { studioRuntimeErrorMessage } from '../../ai-studio-core/runtime.js';
 import { getLabLocalAppClient } from '../../shell/local-app-runtime-platform.js';
 import { t } from '../../shell/i18n/index.js';
 import { DEFAULT_MANIFEST_PATH, WORLD_BUNDLE_MIME, openWorldTourWindow } from './world-tour-shared.js';
 import { isJsonObject } from '@nimiplatform/sdk/types';
 import { createStudioRunHistoryRecord } from '../../ai-studio-core/history.js';
 import { appendLabRunHistory } from '../lab-history-storage.js';
+import { capabilityNonSuccess } from '../lab-non-success.js';
+import { labWorldTourDescriptor } from '../lab-only/world-tour-descriptor.js';
+import { labJobNonSuccess, observeLabScenarioJob } from '../lab-only/lab-scenario-job.js';
 
 export const PENDING_WORLD_PATH = 'world-tour/pending.json';
 
@@ -26,12 +30,13 @@ export async function runWorldTour(input: StudioCapabilityRunInput): Promise<Stu
   if (!prompt) throw new Error(t('WorldTour.promptRequired'));
   if (input.signal?.aborted) throw new DOMException('Aborted', 'AbortError');
   if (await pendingJobId()) throw new Error(t('WorldTour.pendingExists'));
+  // A Submit without a response has no Job ID to observe; its error propagates.
   const { job } = await client.ai.scenarioJobs.submit({
     type: 'world-generate', prompt, displayName: '',
   });
   await client.storage.writeJson(PENDING_WORLD_PATH, { jobId: job.jobId });
   const result = await finishWorldTourJob(job.jobId, input);
-  await client.storage.removeJson(PENDING_WORLD_PATH);
+  if (result.ok) await client.storage.removeJson(PENDING_WORLD_PATH);
   return result;
 }
 
@@ -43,46 +48,43 @@ export async function resumeWorldTour(signal: AbortSignal, onPartial: (message: 
   await appendLabRunHistory(createStudioRunHistoryRecord({
     result, prompt: t('WorldTour.resume'), runId: `world-tour-${jobId}`, createdAt,
   }));
-  await getLabLocalAppClient().storage.removeJson(PENDING_WORLD_PATH);
+  if (result.ok) await getLabLocalAppClient().storage.removeJson(PENDING_WORLD_PATH);
   return result;
 }
 
 async function finishWorldTourJob(jobId: string, input: StudioCapabilityRunInput): Promise<StudioCapabilityRunResult> {
   const client = getLabLocalAppClient();
-  let response;
-  try { response = await client.ai.scenarioJobs.get(jobId); }
-  catch (cause) {
-    if (cause && typeof cause === 'object' && 'reasonCode' in cause && cause.reasonCode === 'ai-media-job-not-found') {
+  const outcome = await observeLabScenarioJob({
+    scenarioJobs: client.ai.scenarioJobs,
+    jobId,
+    capability: labWorldTourDescriptor,
+    nonSuccess: capabilityNonSuccess,
+    cancelReason: 'user canceled',
+    ...(input.signal ? { signal: input.signal } : {}),
+    onJob: () => input.onPartial?.(t('WorldTour.generating')),
+  });
+  if (outcome.kind === 'non-success') {
+    // A terminal or missing Job no longer needs resuming; an unreachable one
+    // stays pending so it can be continued.
+    if (outcome.terminal || outcome.result.diagnostics?.reasonCode === 'AI_MEDIA_JOB_NOT_FOUND') {
       await client.storage.removeJson(PENDING_WORLD_PATH);
     }
-    throw cause;
+    return outcome.result;
   }
-  let { job } = response;
-  const terminal = () => ['completed', 'failed', 'canceled', 'timeout'].includes(job.status);
-  const cancel = () => { void client.ai.scenarioJobs.cancel(jobId, 'user canceled').catch(() => undefined); };
-  if (!terminal()) {
-    const events = await client.ai.scenarioJobs.subscribe(jobId);
-    input.signal?.addEventListener('abort', cancel, { once: true });
-    if (input.signal?.aborted) cancel();
-    try {
-      for await (const event of events) {
-        job = event.job;
-        input.onPartial?.(t('WorldTour.generating'));
-        if (terminal()) break;
-      }
-    } finally {
-      input.signal?.removeEventListener('abort', cancel);
-      await events.cancel();
-    }
-  }
-  if (terminal() && job.status !== 'completed') await client.storage.removeJson(PENDING_WORLD_PATH);
-  if (input.signal?.aborted || job.status === 'canceled') throw new DOMException('Aborted', 'AbortError');
-  if (job.status !== 'completed') throw new Error(job.reasonDetail || job.reasonCode || t('WorldTour.generationFailed'));
+  const job = outcome.job;
   const bundle = job.artifacts.find((artifact) => artifact.mimeType === WORLD_BUNDLE_MIME);
-  if (!bundle) throw new Error(t('WorldTour.archiveMissing'));
-  const adopted = await client.storage.assets.adoptArtifact({
-    artifactId: bundle.artifactId, relativePath: `world-tour/${jobId}/world.zip`, overwrite: true,
-  });
+  if (!bundle) {
+    await client.storage.removeJson(PENDING_WORLD_PATH);
+    return labJobNonSuccess({ capability: labWorldTourDescriptor, nonSuccess: capabilityNonSuccess, jobId }, 'runtime-call-failed', t('WorldTour.archiveMissing'), job).result;
+  }
+  let adopted;
+  try {
+    adopted = await client.storage.assets.adoptArtifact({
+      artifactId: bundle.artifactId, relativePath: `world-tour/${jobId}/world.zip`, overwrite: true,
+    });
+  } catch (error) {
+    return labJobNonSuccess({ capability: labWorldTourDescriptor, nonSuccess: capabilityNonSuccess, jobId }, 'runtime-call-failed', studioRuntimeErrorMessage(error), job).result;
+  }
   const manifestPath = `world-tour/${jobId}/world.json`;
   await client.storage.writeJson(manifestPath, { archivePath: adopted.relativePath });
   await client.storage.writeJson(DEFAULT_MANIFEST_PATH, { archivePath: adopted.relativePath });

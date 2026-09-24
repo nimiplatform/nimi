@@ -4,6 +4,8 @@ import type { StudioRunTargetStatus, StudioRunTargetSummary } from '../ai-studio
 import type { StudioCapabilityDescriptor } from '../ai-studio-core/module-registration.js';
 import { createStudioRunTargetSummary } from '../ai-studio-core/run-target.js';
 import type { StudioRuntimeInspection } from '../ai-studio-core/runtime-types.js';
+import { t } from '../shell/i18n/index.js';
+import { isLabLocalRouteOnlyCapability } from './lab-only/capability-test-descriptors.js';
 
 export type LabRunTargetStatus = StudioRunTargetStatus;
 export type LabRunTargetSource = StudioRunTargetSummary['source'];
@@ -19,7 +21,18 @@ export function createLabRunTargetSummary(input: {
   readonly standaloneViewerAvailable?: boolean;
 }): LabRunTargetSummary {
   if (input.capability.execution !== 'standalone-electron') {
-    return createStudioRunTargetSummary(input);
+    const target = createStudioRunTargetSummary(input);
+    // AIConfig can name Cloud here, but Runtime refuses that route, so a saved
+    // Cloud intent is not presented as a runnable configuration.
+    if (target.source === 'cloud' && isLabLocalRouteOnlyCapability(input.capability.id)) {
+      return {
+        ...target,
+        status: 'blocked',
+        canDispatch: false,
+        detail: t('CapabilityTests.common.localRouteBlocked'),
+      };
+    }
+    return target;
   }
 
   const canDispatch = input.standaloneViewerAvailable === true;

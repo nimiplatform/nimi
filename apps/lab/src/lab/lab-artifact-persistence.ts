@@ -20,6 +20,7 @@ export type LabArtifactPersistenceCandidate = {
     musicTranscription?: { readonly origin: 'transcribed-estimate' };
     voiceConversion?: { readonly lengthRelation: 'EXACT' | 'MODEL_FRAME_ROUNDING' };
     audioSeparation?: { readonly vocals: { readonly relativePath: string } };
+    document?: { readonly relativePath?: string };
   };
 };
 
@@ -58,17 +59,25 @@ function persistenceErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : String(error || fallback);
 }
 
+// App assets a successful result created and that only its history record
+// will reference: adopted media outputs or a saved result document.
+export function labRunOwnedAssetPaths(result: LabArtifactPersistenceCandidate): string[] {
+  if (shouldPersistLabArtifactRecord(result)) {
+    return [...new Set(
+      (result.output.artifacts?.length ? result.output.artifacts : [result.output.firstArtifact])
+        .map((artifact) => artifact.relativePath)
+        .filter((relativePath): relativePath is string => Boolean(relativePath)),
+    )];
+  }
+  const documentPath = result.ok && result.output?.kind === 'text-annotation' ? result.output.document?.relativePath : undefined;
+  return documentPath ? [documentPath] : [];
+}
+
 export async function cleanupLabManagedArtifacts(
   result: LabArtifactPersistenceCandidate,
   removeAsset: (relativePath: string) => Promise<unknown>,
 ): Promise<{ failures: string[]; remainingCleanupPaths: string[] }> {
-  if (!shouldPersistLabArtifactRecord(result)) return { failures: [], remainingCleanupPaths: [] };
-  const paths = [...new Set(
-    (result.output.artifacts?.length ? result.output.artifacts : [result.output.firstArtifact])
-      .map((artifact) => artifact.relativePath)
-      .filter((relativePath): relativePath is string => Boolean(relativePath)),
-  )];
-  return cleanupLabManagedArtifactPaths(paths.reverse(), removeAsset);
+  return cleanupLabManagedArtifactPaths(labRunOwnedAssetPaths(result).reverse(), removeAsset);
 }
 
 export async function cleanupLabManagedArtifactPaths(
@@ -121,7 +130,8 @@ export async function persistLabRunHistoryWithArtifactCompensation<T>(
     const persistenceMessage = persistenceErrorMessage(error, 'History persistence failed.');
     // A successful music result is already committed to the music recovery
     // document. Failure to index it in history must not delete its assets.
-    if (!shouldPersistLabArtifactRecord(result)
+    if (labRunOwnedAssetPaths(result).length === 0
+      || !result.output
       || (result.capabilityId === 'music.generate' && result.output.musicGeneration)
       || (result.capabilityId === 'music.transcribe' && result.output.musicTranscription)
       || (result.capabilityId === 'audio.voice.convert' && result.output.voiceConversion)

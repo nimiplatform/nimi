@@ -102,7 +102,9 @@
     "emptyNone": "还没有运行记录",
     "emptyFiltered": "没有符合这些筛选条件的运行",
     "loadFailedTitle": "历史加载失败",
-    "saveFailedTitle": "历史保存失败"
+    "saveFailedTitle": "历史保存失败",
+    "deleteRecordAndDocument": "删除记录及其保存的结果",
+    "stopped": "已停止"
   },
   "NonSuccess": {
     "title": {
@@ -111,6 +113,7 @@
       "sdkMethodUnavailable": "当前版本暂不支持",
       "principalUnauthorized": "需要重新连接",
       "operationAborted": "取消结果待确认",
+      "stoppedDirectCall": "已停止",
       "runtimeCanceled": "任务已取消",
       "runtimeTimeout": "任务已超时",
       "streamInterrupted": "结果流已中断",
@@ -126,7 +129,9 @@
       "runtimeTimeout": "这次任务已超时。",
       "streamInterrupted": "实时结果连接已结束，但 Runtime 尚未确认最终状态。",
       "runtimeCallFailed": "这次生成未能完成。",
-      "fallback": "本次生成未完成。"
+      "inputLimitExceeded": "当前配置的模型无法完整读取这次输入。输入没有被截断，也没有返回部分结果。",
+      "fallback": "本次生成未完成。",
+      "stoppedDirectCall": "已停止等待这次调用，之后返回的结果不会显示。"
     },
     "action": {
       "runtimeUnavailable": "返回 Desktop 确认本地 AI 已连接，然后重试。",
@@ -138,7 +143,9 @@
       "runtimeTimeout": "稍后重试；如果仍然超时，再展开 Runtime 详情查看原因。",
       "streamInterrupted": "请先检查任务状态；确认任务未完成后再重试。",
       "runtimeCallFailed": "先重试一次；如果仍然失败，再展开 Runtime 详情查看原因。",
-      "fallback": "请重试；如果仍然失败，再展开 Runtime 详情查看原因。"
+      "inputLimitExceeded": "请缩短输入，或配置可接受更长输入的模型，然后重新运行。",
+      "fallback": "请重试；如果仍然失败，再展开 Runtime 详情查看原因。",
+      "stoppedDirectCall": "准备好后可以直接重新运行。"
     },
     "hint": {
       "runtimeUnavailable": "恢复受保护的 Runtime 连接后重试同一请求。",
@@ -174,6 +181,8 @@
     "showRequestSettings": "显示请求设置",
     "hideRequestSettings": "隐藏请求设置",
     "legacyRecordHint": "这条较早的历史记录仅包含状态元数据。重新运行一次即可保存类型化的结果快照。",
+    "historyInputTruncated": "历史只保留这段长输入的开头部分，因此这条记录不能用作草稿或重新运行。",
+    "historyAdditionalDocumentsNotRetained": "只能将第一篇文档用作草稿。重新运行前请再次添加其他文档。",
     "generationFailed": "生成未能完成",
     "generationCanceled": "生成已取消",
     "cancelGeneration": "取消任务",
@@ -200,6 +209,7 @@
     "noResultProduced": "未产生任何结果。请先解决类型化的 Runtime 失败，再重试。",
     "resultAriaLabel": "{{capability}}结果",
     "promptLabel": "提示词",
+    "requestLabel": "请求",
     "generationLabel": "生成结果",
     "runStatusReady": "Runtime 就绪",
     "runStatusUnavailable": "SDK 不可用",
@@ -272,7 +282,8 @@
         "runtimeTimedOut": "任务已超时",
         "runtimeBlocked": "生成受阻",
         "runtimeResult": "已完成",
-        "runtimeWaiting": "等待开始"
+        "runtimeWaiting": "等待开始",
+        "stoppedDirectCall": "已停止"
       },
       "tokensNotCaptured": "未捕获",
       "statStatus": "状态",
@@ -305,7 +316,98 @@
       "runtimeChip": "AI 生成",
       "createdFromDescription": "文字描述",
       "createdFromAudio": "参考音频",
-      "generationMetrics": "生成指标"
+      "generationMetrics": "生成指标",
+      "statStoppedDirect": "已停止"
+    }
+  },
+  "StudioResults": {
+    "embedding": {
+      "space": "向量空间：{{spaceId}}。只有同一空间的向量可以比较，维度相同并不代表空间相同。",
+      "spaceNotRecorded": "这条较早的记录没有保存向量空间。"
+    },
+    "job": {
+      "known": "任务 {{jobId}} 在此结果前已发出。Runtime 只在保留期内保存任务，长期回看以已保存的 App 资产为准。"
+    },
+    "stats": {
+      "documents": "文档",
+      "tokens": "词元",
+      "sentences": "句子",
+      "steps": "步骤",
+      "questions": "问题"
+    },
+    "annotation": {
+      "title": "文本注释",
+      "summary": "{{language}} · {{documents}} 个文档 · {{tokens}} 个词元 · {{sentences}} 个句子",
+      "offsetHint": "区间是从 0 开始的 Unicode 标量偏移，结束位置不包含在内。",
+      "loading": "正在读取已保存的注释…",
+      "unavailable": "已保存的注释不可用，或已与这条记录不一致。",
+      "document": "文档 {{index}} · {{scalars}} 个字符 · {{tokens}} 个词元 · {{sentences}} 个句子",
+      "sentence": "第 {{index}} 句",
+      "token": "词元",
+      "span": "区间",
+      "partOfSpeech": "词性",
+      "dependency": "依存关系",
+      "head": "中心词",
+      "punctuation": "标点",
+      "truncatedView": "显示 {{total}} 个词元中的前 {{shown}} 个，已保存的文档包含全部内容。"
+    },
+    "exchange": {
+      "title": "模型交互",
+      "toolScenario": "工具调用测试：App 执行固定测试工具，并在下一步模型调用中返回结果。",
+      "structuredScenario": "结构化输出测试：App 解析最终文本并检查固定 schema 字段。",
+      "modelStep": "模型第 {{index}} 步",
+      "appStep": "App 第 {{index}} 步",
+      "finishReason": "结束：{{reason}}",
+      "text": "文本",
+      "continuity": "推理延续（{{kind}} v{{version}}，{{bytes}} 字节，原样传回）",
+      "toolCall": "工具调用 {{name}} · {{id}}",
+      "toolResult": "工具结果 {{name}} · {{id}}",
+      "toolError": "工具错误 {{name}} · {{id}}",
+      "structured": "解析后的结构化结果",
+      "finalText": "最终文本"
+    },
+    "decision": {
+      "title": "判断结果",
+      "summary": "已按提问顺序回答 {{count}} 个问题。",
+      "choice": "单选",
+      "boolean": "是 / 否",
+      "selected": "选中：{{candidate}}",
+      "trueProbability": "“是”的判断条件成立的概率：{{probability}}",
+      "trueLabel": "是",
+      "trueBar": "“是”的判断条件成立的概率",
+      "candidates": "各候选项的概率",
+      "trace": "追踪",
+      "summaryOnly": "历史记录只保留了这条摘要；完整答案过大，未能保存。"
+    },
+    "session": {
+      "title": "会话摘要",
+      "closed": "{{contract}} 会话已关闭（{{reason}}）。",
+      "terminated": "{{contract}} 会话已被其所有者结束（{{reason}}）。",
+      "started": "开始时间",
+      "duration": "时长",
+      "seconds": "{{seconds}} 秒",
+      "terminalReason": "终止原因",
+      "nothingObserved": "未观察到任何结果。",
+      "notRestorable": "已关闭的会话无法恢复。如需再次测试，请打开新会话。",
+      "stateClosed": "已关闭",
+      "stateTerminated": "已终止"
+    },
+    "faceSwap": {
+      "inputs": "换脸输入",
+      "role": {
+        "reference-image": "参考图",
+        "target-image": "目标图片",
+        "target-video": "目标视频"
+      },
+      "policy": "无目标人脸的帧：{{policy}}",
+      "policies": {
+        "fail": "使任务失败",
+        "preserve-frame": "保留原始帧"
+      },
+      "videoSummary": "共 {{total}} 帧：替换 {{transformed}} 帧，保留 {{preserved}} 帧 · {{seconds}} 秒，{{fps}} fps · {{audio}}",
+      "audioPreserved": "已保留音轨",
+      "noAudio": "无音轨",
+      "rerunHint": "记录不保存输入文件。重新运行时请再次选择。"
     }
   }
 }

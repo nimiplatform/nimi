@@ -352,8 +352,11 @@ export function projectStudioRuntimeError(
   error: unknown,
 ): StudioNonSuccess {
   const diagnostics = studioNonSuccessDiagnostics(error);
+  const reasonCode = diagnostics?.reasonCode.replaceAll('-', '_').toUpperCase();
+  // An input the configured implementation cannot encode completely is an
+  // input outcome too; it is never retried or presented as a call failure.
   // @nimi-authority: rule.nimi.runtime.ai-provider.r126
-  const reason = diagnostics?.reasonCode.replaceAll('-', '_').toUpperCase() === 'AI_INPUT_INVALID'
+  const reason = reasonCode === 'AI_INPUT_INVALID' || reasonCode === 'AI_INPUT_LIMIT_EXCEEDED'
     ? 'input-invalid'
     : studioNonSuccessReason(runtimeScenarioJobNonSuccessReasonFromError(error));
   return context.host.nonSuccess(

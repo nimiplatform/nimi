@@ -2,6 +2,10 @@ import { MusicGenerationNotice } from './section-ai-testing-music-result.js';
 import { MusicTranscriptionNotice } from './section-ai-testing-transcription-result.js';
 import { VoiceConversionNotice } from './section-ai-testing-voice-conversion-result.js';
 import { AudioSeparationNotice } from './section-ai-testing-audio-separation-result.js';
+import { TextAnnotationResultView } from './section-ai-testing-annotation-result.js';
+import { TextExchangeResultView } from './section-ai-testing-exchange-result.js';
+import { TextDecisionResultView } from './section-ai-testing-decision-result.js';
+import { FaceSwapNotice, SessionSummaryView } from './section-ai-testing-session-result.js';
 import { useEffect, useState, type ReactNode } from 'react';
 import { EmptyState, IconButton, StatusBadge, Surface, Tooltip } from '@nimiplatform/kit/ui';
 import { AlertTriangle, ChevronRight, Clock, Copy as CopyIcon, Download as DownloadIcon, FileText, FolderOpen, Loader2, RefreshCw, Sparkles, Square } from 'lucide-react';
@@ -10,10 +14,10 @@ import { VisionLocateResultView } from './section-ai-testing-vision-result.js';
 import type { StudioCapabilityRunResult } from './runtime-types.js';
 import type { StudioCapabilityDescriptor, StudioCapabilityRegistration } from './module-registration.js';
 import { formatStudioRunTimestamp } from './history.js';
-import { studioNonSuccessReasonUserAction, studioNonSuccessReasonUserMessage, type StudioTranslate } from './non-success-presentation.js';
+import { isStoppedDirectCall, studioNonSuccessReasonUserAction, studioNonSuccessReasonUserMessage, type StudioTranslate } from './non-success-presentation.js';
 import { countStudioWords } from './studio-directives.js';
 import type { CapabilityStatus } from './section-ai-testing-admission.js';
-import { ArtifactMediaResult, RuntimeDiagnosticsActions, formatTypedOutput, formatNonSuccessOutput, resultPlainText, TextStudioOutputBody } from './section-ai-testing-output.js';
+import { ArtifactMediaResult, EmbeddingResultBody, KnownJobNotice, RuntimeDiagnosticsActions, formatTypedOutput, formatNonSuccessOutput, resultPlainText, TextStudioOutputBody } from './section-ai-testing-output.js';
 
 // Readable body for a successful typed result (light surface), with structured
 // summaries for embedding / voice-catalog rather than raw JSON (which moves to
@@ -25,6 +29,10 @@ function ReadyBody({ result }: { result: StudioCapabilityRunResult & { ok: true 
   if (output.kind === 'text' || output.kind === 'transcript') {
     return <TextStudioOutputBody text={output.text} />;
   }
+  if (output.kind === 'text-annotation') return <TextAnnotationResultView output={output} />;
+  if (output.kind === 'text-exchange') return <TextExchangeResultView output={output} />;
+  if (output.kind === 'text-decision') return <TextDecisionResultView output={output} traceId={result.trace?.traceId} />;
+  if (output.kind === 'session') return <SessionSummaryView output={output} />;
   if (output.kind === 'artifacts') {
     return (
       <div className="studio-result__rich">
@@ -32,6 +40,7 @@ function ReadyBody({ result }: { result: StudioCapabilityRunResult & { ok: true 
         <MusicTranscriptionNotice value={output.musicTranscription} />
         <VoiceConversionNotice value={output.voiceConversion} />
         <AudioSeparationNotice value={output.audioSeparation} />
+        <FaceSwapNotice value={output.faceSwap} />
         {output.artifacts.filter((artifact) => !output.musicTranscription && !output.voiceConversion && !output.audioSeparation && artifact.relativePath !== output.musicGeneration?.generatedScore?.relativePath).map((artifact, index) => (
           <ArtifactMediaResult
             key={artifact.relativePath}
@@ -43,11 +52,7 @@ function ReadyBody({ result }: { result: StudioCapabilityRunResult & { ok: true 
     );
   }
   if (output.kind === 'embedding') {
-    return (
-      <div className="studio-result__rich">
-        <p className="studio-result__plain">{t('StudioShell.embeddingSuccess')}</p>
-      </div>
-    );
+    return <EmbeddingResultBody spaceId={output.spaceId} />;
   }
   if (output.kind === 'voice-asset') {
     return (
@@ -220,6 +225,7 @@ export function StudioResult({
   const profile = registration.profile;
   const ready = result?.ok ? result : null;
   const operationAborted = result && !result.ok && result.reason === 'operation-aborted' ? result : null;
+  const stoppedDirectCall = Boolean(operationAborted && isStoppedDirectCall(operationAborted.reason, capability.id));
   const canceled = result && !result.ok && result.reason === 'runtime-canceled' ? result : null;
   const timedOut = result && !result.ok && result.reason === 'runtime-timeout' ? result : null;
   const blocked = result && !result.ok
@@ -228,14 +234,14 @@ export function StudioResult({
     && result.reason !== 'runtime-timeout' ? result : null;
   const plainText = ready ? resultPlainText(ready, t) : '';
   const canExport = Boolean(ready && plainText);
-  const revealsManagedAsset = ready?.output.kind === 'artifacts';
+  const revealsManagedAsset = ready?.output.kind === 'artifacts' || ready?.output.kind === 'text-annotation';
   const displayIntentLabel = studioResultIntentLabel(result, capability, intentLabel, t);
   const [requestSettingsOpen, setRequestSettingsOpen] = useState(false);
   const hasRequestSettings = Boolean(requestSettings);
   const runTimeLabel = createdAt
     ? formatStudioRunTimestamp(createdAt, new Date(rendererHost.clock.now()))
     : running ? t('Studio.result.statRunning') : t('Studio.result.notRecorded');
-  const statusTitleKey = cancelRequested ? 'stopping' : running ? 'runtimeRunning' : operationAborted ? 'operationAborted' : canceled ? 'runtimeCanceled' : timedOut ? 'runtimeTimedOut' : blocked ? 'runtimeBlocked' : ready ? 'runtimeResult' : 'runtimeWaiting';
+  const statusTitleKey = cancelRequested ? 'stopping' : running ? 'runtimeRunning' : operationAborted ? (stoppedDirectCall ? 'stoppedDirectCall' : 'operationAborted') : canceled ? 'runtimeCanceled' : timedOut ? 'runtimeTimedOut' : blocked ? 'runtimeBlocked' : ready ? 'runtimeResult' : 'runtimeWaiting';
   const statusTitle = t(`Studio.result.status.${statusTitleKey}`);
   const statusTone = blocked || operationAborted || canceled || timedOut ? 'warning' : ready ? 'success' : running ? 'info' : 'neutral';
   useEffect(() => {
@@ -254,7 +260,7 @@ export function StudioResult({
     if (!result.ok) return [{
       label: t('Studio.result.statStatus'),
       value: t(result.reason === 'operation-aborted'
-        ? 'Studio.result.statStopped'
+        ? (isStoppedDirectCall(result.reason, capability.id) ? 'Studio.result.statStoppedDirect' : 'Studio.result.statStopped')
         : result.reason === 'runtime-canceled'
           ? 'Studio.result.statCanceled'
         : result.reason === 'runtime-timeout'
@@ -278,6 +284,28 @@ export function StudioResult({
     if (output.kind === 'embedding') {
       return [{ label: t('Studio.result.statResult'), value: t('Studio.result.statCreated') }];
     }
+    if (output.kind === 'text-annotation') {
+      return [
+        { label: t('StudioResults.stats.documents'), value: String(output.documentCount) },
+        { label: t('StudioResults.stats.tokens'), value: String(output.tokenCount) },
+        { label: t('StudioResults.stats.sentences'), value: String(output.sentenceCount) },
+      ];
+    }
+    if (output.kind === 'text-exchange') {
+      return [
+        { label: t('StudioResults.stats.steps'), value: String(output.steps.length) },
+        { label: t('Studio.result.statCharacters'), value: String(output.text.length) },
+      ];
+    }
+    if (output.kind === 'text-decision') {
+      return [{ label: t('StudioResults.stats.questions'), value: String(output.answers.length) }];
+    }
+    if (output.kind === 'session') {
+      return [{
+        label: t('Studio.result.statState'),
+        value: t(output.ending === 'closed' ? 'StudioResults.session.stateClosed' : 'StudioResults.session.stateTerminated'),
+      }];
+    }
     if (output.kind === 'artifacts') {
       return [
         { label: t('Studio.result.statArtifacts'), value: String(output.artifactCount) },
@@ -300,7 +328,10 @@ export function StudioResult({
   let metric = '-';
   if (ready) {
     const output = ready.output;
-    if (output.kind === 'text' || output.kind === 'transcript') metric = t('Studio.result.metricWords', { count: countStudioWords(output.text) });
+    if (output.kind === 'text' || output.kind === 'transcript' || output.kind === 'text-exchange') metric = t('Studio.result.metricWords', { count: countStudioWords(output.text) });
+    else if (output.kind === 'text-annotation') metric = String(output.tokenCount);
+    else if (output.kind === 'text-decision') metric = String(output.answers.length);
+    else if (output.kind === 'session') metric = output.terminalReason;
     else if (output.kind === 'artifacts') metric = t('Studio.result.metricArtifacts', { count: output.artifactCount });
     else if (output.kind === 'embedding') metric = t('Studio.result.metricCreated');
     else if (output.kind === 'voice-asset') metric = output.creationSource;
@@ -336,8 +367,9 @@ export function StudioResult({
           <Clock size={15} aria-hidden="true" />
           <span>{statusTitle}</span>
         </div>
-        <p>{studioNonSuccessReasonUserMessage(operationAborted.reason, t)}</p>
-        <p className="studio-result__hint">{studioNonSuccessReasonUserAction(operationAborted.reason, t)}</p>
+        <p>{studioNonSuccessReasonUserMessage(operationAborted.reason, t, capability.id)}</p>
+        <p className="studio-result__hint">{studioNonSuccessReasonUserAction(operationAborted.reason, t, capability.id)}</p>
+        <KnownJobNotice jobId={operationAborted.jobId} />
       </div>
     );
   } else if (canceled) {
@@ -349,6 +381,7 @@ export function StudioResult({
         </div>
         <p>{studioNonSuccessReasonUserMessage(canceled.reason, t)}</p>
         <p className="studio-result__hint">{studioNonSuccessReasonUserAction(canceled.reason, t)}</p>
+        <KnownJobNotice jobId={canceled.jobId} />
       </div>
     );
   } else if (timedOut) {
@@ -360,6 +393,7 @@ export function StudioResult({
         </div>
         <p>{studioNonSuccessReasonUserMessage(timedOut.reason, t)}</p>
         <p className="studio-result__hint">{studioNonSuccessReasonUserAction(timedOut.reason, t)}</p>
+        <KnownJobNotice jobId={timedOut.jobId} />
       </div>
     );
   } else if (blocked) {
@@ -371,6 +405,7 @@ export function StudioResult({
         </div>
         <p>{studioNonSuccessReasonUserMessage(blocked.reason, t, blocked.capabilityId, blocked.diagnostics)}</p>
         <p className="studio-result__hint">{studioNonSuccessReasonUserAction(blocked.reason, t, blocked.capabilityId, blocked.diagnostics)}</p>
+        <KnownJobNotice jobId={blocked.jobId} />
       </div>
     );
   } else if (ready) {

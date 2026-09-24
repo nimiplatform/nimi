@@ -64,5 +64,7 @@ test('streamed text and async result kinds expose the product cancellation actio
   assert.equal(canCancelStudioCapabilityRun({ capabilityId: 'image.generate', resultKind: 'artifacts' }), true);
   assert.equal(canCancelStudioCapabilityRun({ capabilityId: 'audio.transcribe', resultKind: 'transcript' }), true);
   assert.equal(canCancelStudioCapabilityRun({ capabilityId: 'voice.create', resultKind: 'voice-asset' }), true);
+  // A synchronous decision call honors its AbortSignal, so it can be stopped.
+  assert.equal(canCancelStudioCapabilityRun({ capabilityId: 'text.decide', resultKind: 'text-decision' }), true);
   assert.equal(canCancelStudioCapabilityRun({ capabilityId: 'text.embed', resultKind: 'embedding' }), false);
 });

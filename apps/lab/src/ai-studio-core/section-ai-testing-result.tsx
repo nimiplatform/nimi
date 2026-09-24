@@ -2,6 +2,10 @@ import { MusicGenerationNotice } from './section-ai-testing-music-result.js';
 import { MusicTranscriptionNotice } from './section-ai-testing-transcription-result.js';
 import { VoiceConversionNotice } from './section-ai-testing-voice-conversion-result.js';
 import { AudioSeparationNotice } from './section-ai-testing-audio-separation-result.js';
+import { TextAnnotationResultView } from './section-ai-testing-annotation-result.js';
+import { TextExchangeResultView } from './section-ai-testing-exchange-result.js';
+import { TextDecisionResultView } from './section-ai-testing-decision-result.js';
+import { FaceSwapNotice, SessionSummaryView } from './section-ai-testing-session-result.js';
 import { useState, type ReactNode } from 'react';
 import { IconButton, nimiToast, StatusBadge, Tooltip } from '@nimiplatform/kit/ui';
 import { AlertTriangle, ChevronRight, Copy as CopyIcon, Download as DownloadIcon, FileText, FolderOpen, MessageSquare, RefreshCw, SlidersHorizontal, SquarePen } from 'lucide-react';
@@ -11,6 +15,7 @@ import type { StudioCapabilityRegistration } from './module-registration.js';
 import { formatStudioRunTimestamp, getStudioRunConfigParamRows, getStudioRunIntentLabel, getStudioRunPromptControlFacts, getStudioRunResultTags, getStudioRunStatusTone, type StudioRunConfigParamRow, type StudioRunHistoryRecord, type StudioRunHistoryResultSnapshot, type StudioRunPromptControlFact } from './history.js';
 import { studioNonSuccessReasonTitle, studioNonSuccessReasonUserAction, studioNonSuccessReasonUserMessage } from './non-success-presentation.js';
 import { ArtifactMediaResult, RuntimeDiagnosticsActions, StudioResult, TextStudioOutputBody, downloadTextFile, statusForCapability } from './section-ai-testing-surface.js';
+import { EmbeddingResultBody, KnownJobNotice } from './section-ai-testing-output.js';
 import type { TextStudioActiveRun } from './section-ai-testing-run.js';
 
 function TextStudioPromptControlFacts({ facts }: { facts: readonly StudioRunPromptControlFact[] }) {
@@ -107,12 +112,15 @@ function historyRecordPlainText(record: StudioRunHistoryRecord): string {
   if (!snapshot) return record.message;
   if (!snapshot.ok) return snapshot.message;
   if (snapshot.kind === 'text' || snapshot.kind === 'transcript') return snapshot.body;
+  if (snapshot.kind === 'text-exchange') return snapshot.text;
+  if (snapshot.kind === 'text-decision' && snapshot.answers) return JSON.stringify({ answers: snapshot.answers }, null, 2);
   return snapshot.summary;
 }
 
 function historyNonSuccessDiagnosticsText(snapshot: Extract<StudioRunHistoryResultSnapshot, { ok: false }>): string {
   return [
     `Reason: ${snapshot.reason}`,
+    snapshot.jobId ? `Job: ${snapshot.jobId}` : '',
     snapshot.missingSurface ? `Missing surface: ${snapshot.missingSurface}` : '',
     '',
     'Message:',
@@ -149,13 +157,21 @@ function TextStudioHistoryRecordResult({
   const { translate: t } = useAIStudioHost();
   const snapshot = record.result;
   const blocked = snapshot && !snapshot.ok ? snapshot : null;
-  const tags = blocked ? [studioNonSuccessReasonTitle(blocked.reason, t)] : getStudioRunResultTags(record);
+  const tags = blocked ? [studioNonSuccessReasonTitle(blocked.reason, t, record.capabilityId)] : getStudioRunResultTags(record);
   const intentLabel = getStudioRunIntentLabel(record);
   const toneClass = historyResultToneClass(record);
   const exportText = historyRecordPlainText(record);
   const managedArtifact = snapshot?.ok && snapshot.kind === 'artifacts'
     ? snapshot.artifacts?.[0] ?? snapshot.firstArtifact
-    : undefined;
+    : snapshot?.ok && snapshot.kind === 'text-annotation' ? snapshot.document : undefined;
+  // Session state and selected media are not retained by history. A truncated
+  // prompt or omitted extra annotation documents would replay different input.
+  const sessionOnly = snapshot?.ok && snapshot.kind === 'session';
+  const faceSwapNeedsMedia = snapshot?.ok && snapshot.kind === 'artifacts' && Boolean(snapshot.faceSwap);
+  const additionalDocumentsNotRetained = snapshot?.ok && snapshot.kind === 'text-annotation'
+    && Number(record.runConfig?.target.params.additionalDocuments ?? 0) > 0;
+  const canUseAsDraft = !sessionOnly && !faceSwapNeedsMedia && !record.inputTruncated;
+  const canReplay = canUseAsDraft && !additionalDocumentsNotRetained;
   const revealsManagedAsset = Boolean(managedArtifact?.relativePath);
   const canExport = !blocked && (revealsManagedAsset || Boolean(exportText.trim()));
   const hasRequestSettings = hasTextStudioRequestSettings(record);
@@ -199,10 +215,11 @@ function TextStudioHistoryRecordResult({
       <div className="studio-result__blocked">
         <div className="studio-result__blocked-line">
           <AlertTriangle size={15} aria-hidden="true" />
-          <span>{studioNonSuccessReasonTitle(snapshot.reason, t)}</span>
+          <span>{studioNonSuccessReasonTitle(snapshot.reason, t, record.capabilityId)}</span>
         </div>
         <p>{studioNonSuccessReasonUserMessage(snapshot.reason, t, record.capabilityId, snapshot.diagnostics)}</p>
         <p className="studio-result__hint">{studioNonSuccessReasonUserAction(snapshot.reason, t, record.capabilityId, snapshot.diagnostics)}</p>
+        <KnownJobNotice jobId={snapshot.jobId} />
         <details className="studio-diag">
           <summary>{t('StudioShell.runtimeDetails')}</summary>
           <RuntimeDiagnosticsActions text={diagnosticsText} filenameBase={record.capabilityId} />
@@ -235,12 +252,16 @@ function TextStudioHistoryRecordResult({
               </Tooltip>
             </>
           ) : null}
-          <Tooltip content={t('StudioShell.useAsDraft')} placement="top">
-            <IconButton type="button" className="studio-result__action" onClick={() => onUseAsDraft(record)} aria-label={t('StudioShell.useAsDraft')} icon={<SquarePen size={16} aria-hidden="true" />} />
-          </Tooltip>
-          <Tooltip content={t('StudioShell.regenerate')} placement="top">
-            <IconButton type="button" className="studio-result__action" onClick={onRegenerate} disabled={!canRegenerate} aria-label={t('StudioShell.regenerate')} icon={<RefreshCw size={16} aria-hidden="true" />} />
-          </Tooltip>
+          {canUseAsDraft ? (
+            <Tooltip content={t('StudioShell.useAsDraft')} placement="top">
+              <IconButton type="button" className="studio-result__action" onClick={() => onUseAsDraft(record)} aria-label={t('StudioShell.useAsDraft')} icon={<SquarePen size={16} aria-hidden="true" />} />
+            </Tooltip>
+          ) : null}
+          {canReplay ? (
+            <Tooltip content={t('StudioShell.regenerate')} placement="top">
+              <IconButton type="button" className="studio-result__action" onClick={onRegenerate} disabled={!canRegenerate} aria-label={t('StudioShell.regenerate')} icon={<RefreshCw size={16} aria-hidden="true" />} />
+            </Tooltip>
+          ) : null}
         </div>
       </div>
       <div className="studio-history-result__meta">
@@ -270,6 +291,7 @@ function TextStudioHistoryRecordResult({
       </div>
       {requestSettingsOpen && hasRequestSettings ? <TextStudioRequestSettings record={record} /> : null}
       {body}
+      {additionalDocumentsNotRetained ? <p className="studio-result__hint">{t('StudioShell.historyAdditionalDocumentsNotRetained')}</p> : null}
     </div>
   );
 }
@@ -283,11 +305,30 @@ function TextStudioHistorySnapshotBody({ snapshot }: { snapshot: Extract<StudioR
     return <TextStudioOutputBody text={snapshot.body} />;
   }
   if (snapshot.kind === 'embedding') {
-    return (
-      <div className="studio-result__rich">
-        <p className="studio-result__plain">{t('StudioShell.embeddingSuccess')}</p>
-      </div>
-    );
+    return <EmbeddingResultBody spaceId={snapshot.spaceId} />;
+  }
+  if (snapshot.kind === 'text-annotation') {
+    return <TextAnnotationResultView output={{
+      kind: 'text-annotation', jobId: snapshot.jobId, jobState: snapshot.jobState, language: snapshot.language,
+      documentCount: snapshot.documentCount, tokenCount: snapshot.tokenCount, sentenceCount: snapshot.sentenceCount, document: snapshot.document,
+    }} />;
+  }
+  if (snapshot.kind === 'text-exchange') {
+    return <TextExchangeResultView output={{
+      kind: 'text-exchange', scenario: snapshot.scenario, steps: snapshot.steps, text: snapshot.text,
+      ...(snapshot.structured !== undefined ? { structured: snapshot.structured } : {}),
+    }} />;
+  }
+  if (snapshot.kind === 'text-decision') {
+    return snapshot.answers
+      ? <TextDecisionResultView output={{ kind: 'text-decision', answers: snapshot.answers }} traceId={snapshot.traceId} />
+      : <><p>{snapshot.summary}</p><p className="studio-result__hint">{t('StudioResults.decision.summaryOnly')}</p></>;
+  }
+  if (snapshot.kind === 'session') {
+    return <SessionSummaryView output={{
+      kind: 'session', capabilityContract: snapshot.capabilityContract, startedAt: snapshot.startedAt, endedAt: snapshot.endedAt,
+      ending: snapshot.ending, terminalReason: snapshot.terminalReason, observed: snapshot.observed,
+    }} />;
   }
   if (snapshot.kind === 'artifacts') {
     const artifacts = snapshot.artifacts ?? (snapshot.firstArtifact ? [snapshot.firstArtifact] : []);
@@ -297,6 +338,7 @@ function TextStudioHistorySnapshotBody({ snapshot }: { snapshot: Extract<StudioR
         <MusicTranscriptionNotice value={snapshot.musicTranscription} />
         <VoiceConversionNotice value={snapshot.voiceConversion} />
         <AudioSeparationNotice value={snapshot.audioSeparation} />
+        <FaceSwapNotice value={snapshot.faceSwap} />
         {artifacts.filter((artifact) => !snapshot.musicTranscription && !snapshot.voiceConversion && !snapshot.audioSeparation && artifact.relativePath !== snapshot.musicGeneration?.generatedScore?.relativePath).map((artifact, index) => (
           <ArtifactMediaResult
             key={artifact.relativePath}
@@ -384,12 +426,22 @@ export function TextStudioResultState({
   return (
     <section className="studio-thread" aria-label={t('StudioShell.resultAriaLabel', { capability: t(capability.labelKey) })}>
       <div className="studio-thread__scroll">
-        {registration.profile.inputKind !== 'none' ? <article className="studio-turn studio-turn--user">
+        {registration.parameters.recordedInput ? (
+          // A parameter-owned input is shown as the complete request it recorded.
+          <article className="studio-turn studio-turn--user">
+            <details className="studio-diag studio-turn__request">
+              <summary>{t('StudioShell.requestLabel')}</summary>
+              <pre className="studio-diag__json">{activeRun.prompt}</pre>
+            </details>
+            {activeRun.record?.inputTruncated ? <p className="studio-result__hint">{t('StudioShell.historyInputTruncated')}</p> : null}
+          </article>
+        ) : registration.profile.inputKind !== 'none' ? <article className="studio-turn studio-turn--user">
           <div className="studio-turn__label">
             <MessageSquare size={14} aria-hidden="true" />
             <span>{t('StudioShell.promptLabel')}</span>
           </div>
           <p>{activeRun.prompt}</p>
+          {activeRun.record?.inputTruncated ? <p className="studio-result__hint">{t('StudioShell.historyInputTruncated')}</p> : null}
           <TextStudioPromptSettings activeRun={activeRun} />
         </article> : null}
         <article className="studio-turn studio-turn--assistant">

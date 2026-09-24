@@ -35,6 +35,7 @@ function buildBehaviorModules() {
     'src/lab/local-app-conversation-journey.ts',
     'src/lab/lab-ai-config-store.ts',
     'src/lab/lab-capabilities.ts',
+    'src/lab/workbench/workbench-context.ts',
     'src/lab/lab-run-target.ts',
     'src/ai-studio-core/history.ts',
     'src/ai-studio-core/section-ai-testing-admission.ts',

@@ -10,6 +10,10 @@
 - Do not add app-local persistence commands or modules; history, export, artifacts, and storage use admitted Kit shell capabilities.
 - Nimi Lab is local-development-only and must not carry public admission, listing, release, registry, or install truth.
 
+## Capability Coverage
+- A new canonical capability or important contract behavior from a third-party App adaptation ships with its Lab entry, a focused regression, and the real Desktop-supervised Lab acceptance path in the same task; if Lab cannot host it, record the specific lifecycle or input reason. See the README section "AI capability coverage".
+- Lab-only entries live in `src/lab/lab-only/**` and join navigation through `descriptor.section`; they never change App Tools scaffold admission. Extend the existing inventory test, history policy and assets instead of adding a parallel capability list or evidence store.
+
 ## Retrieval Defaults
 - Read the affected lab route, its direct SDK/Kit or shell dependency, and the matching lab contract test.
 

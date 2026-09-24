@@ -549,3 +549,93 @@ test('retained media-only clear preserves failed assets and reports them as skip
   assert.deepEqual([...state.assets], ['media/orphan-2.asset']);
   assert.deepEqual(outcome.issues.map((issue) => [issue.runId, issue.step]), [['orphan-2', 'asset']]);
 });
+
+const annotationDocument = Object.freeze({
+  relativePath: 'studio/text-annotate/0123456789abcdef.json',
+  mediaType: 'application/json',
+  sizeBytes: 512,
+  sha256: `sha256:${'d'.repeat(64)}`,
+  previewSource: 'managed-asset',
+});
+
+function annotationRecord(id, document = annotationDocument) {
+  return {
+    id,
+    capabilityId: 'text.annotate',
+    prompt: 'The café sells 🍰 cake.',
+    status: 'ready',
+    message: 'Annotated 1 document(s).',
+    createdAt: '2026-09-23T08:00:00.000Z',
+    result: {
+      ok: true, kind: 'text-annotation', summary: 'en / 1 document', jobId: `job-${id}`, jobState: 'completed',
+      language: 'en', documentCount: 1, tokenCount: 7, sentenceCount: 1, document: { ...document },
+    },
+  };
+}
+
+test('a saved annotation document is compensated like a managed artifact when its history record fails', async () => {
+  const result = {
+    ok: true,
+    capabilityId: 'text.annotate',
+    output: { kind: 'text-annotation', jobId: 'job-annotate', jobState: 'completed', document: { ...annotationDocument } },
+  };
+  const removed = [];
+  const outcome = await persistLabRunHistoryWithArtifactCompensation(
+    result,
+    async () => { throw new Error('history full'); },
+    async (relativePath) => { removed.push(relativePath); return { removed: true }; },
+  );
+  assert.deepEqual(removed, [annotationDocument.relativePath]);
+  assert.deepEqual(outcome, {
+    ok: false,
+    message: 'history full',
+    managedArtifactCleanup: 'completed',
+    remainingCleanupPaths: [],
+    displayFailure: { reason: 'runtime-call-failed', message: 'history full' },
+  });
+  const locked = await persistLabRunHistoryWithArtifactCompensation(
+    result,
+    async () => { throw new Error('history full'); },
+    async () => { throw new Error('document locked'); },
+  );
+  assert.equal(locked.managedArtifactCleanup, 'failed');
+  assert.deepEqual(locked.remainingCleanupPaths, [annotationDocument.relativePath]);
+});
+
+test('annotation records join record-plus-asset deletion and clearing through their saved document', async () => {
+  const history = { 'text.annotate': [annotationRecord('run-annotate')] };
+  const withAsset = managedHistoryPort({ runHistory: history, imageHistory: [], assets: [annotationDocument.relativePath] });
+  const recordOnly = await deleteLabManagedHistoryRecord(withAsset.port, 'run-annotate', false);
+  assert.equal(recordOnly.completed, 1);
+  assert.deepEqual(withAsset.assetCalls, []);
+  assert.equal(withAsset.assets.has(annotationDocument.relativePath), true);
+
+  const deleting = managedHistoryPort({ runHistory: history, imageHistory: [], assets: [annotationDocument.relativePath] });
+  const deleted = await deleteLabManagedHistoryRecord(deleting.port, 'run-annotate', true);
+  assert.equal(deleted.completed, 1);
+  assert.deepEqual(deleting.assetCalls, [annotationDocument.relativePath]);
+  assert.equal(deleting.assets.size, 0);
+
+  const clearing = managedHistoryPort({ runHistory: history, imageHistory: [], assets: [annotationDocument.relativePath] });
+  clearing.failingAssets.add(annotationDocument.relativePath);
+  const cleared = await clearLabManagedHistoryScope(clearing.port, 'text.annotate', true);
+  assert.equal(cleared.skipped, 1);
+  assert.equal(cleared.completed, 0);
+  assert.equal(cleared.runHistory['text.annotate'].length, 1, 'a document that could not be removed keeps its record');
+});
+
+test('reopening history never presents a missing or altered annotation document as saved', async () => {
+  const history = { 'text.annotate': [annotationRecord('run-ok'), annotationRecord('run-missing', { ...annotationDocument, relativePath: 'studio/text-annotate/missing.json' }), annotationRecord('run-altered', { ...annotationDocument, relativePath: 'studio/text-annotate/altered.json' })] };
+  const projection = await reconcileLabManagedHistoryProjection(history, [], async (relativePath) => {
+    if (relativePath.endsWith('missing.json')) throw new Error('not found');
+    if (relativePath.endsWith('altered.json')) return { sha256: `sha256:${'e'.repeat(64)}`, sizeBytes: annotationDocument.sizeBytes };
+    return { sha256: annotationDocument.sha256, sizeBytes: annotationDocument.sizeBytes };
+  });
+  const byId = Object.fromEntries(projection.runHistory['text.annotate'].map((record) => [record.id, record]));
+  assert.equal(byId['run-ok'].status, 'ready');
+  assert.equal(byId['run-missing'].status, 'unavailable');
+  assert.match(byId['run-missing'].message, /Managed artifact is unavailable: studio\/text-annotate\/missing\.json/u);
+  assert.equal(byId['run-altered'].status, 'unavailable');
+  assert.match(byId['run-altered'].message, /verification failed/u);
+  assert.deepEqual(projection.imageHistory, [], 'annotation documents are not media history rows');
+});

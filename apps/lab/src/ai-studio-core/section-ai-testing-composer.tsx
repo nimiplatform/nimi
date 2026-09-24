@@ -92,11 +92,12 @@ export function TextStudioComposer({
   const isReadOnlyComposer = profile.inputKind === 'none';
   const requiresPrompt = !isReadOnlyComposer;
   const contextAttached = Boolean(context.trim());
-  const supportsContext = requiresPrompt && capability.id !== 'audio.transcribe' && !isVisionLocate;
+  const supportsContext = requiresPrompt && capability.id !== 'audio.transcribe' && !isVisionLocate && !profile.rawPrompt;
   const [contextOpen, setContextOpen] = useState(false);
   const [parametersOpen, setParametersOpen] = useState(false);
   const promptReady = hasStudioCapabilityRunInput({ requiresPrompt, prompt, hasAlternativeInput })
     && ((capability.id !== 'music.transcribe' && capability.id !== 'audio.voice.convert' && capability.id !== 'audio.separate') || hasAlternativeInput)
+    && (!profile.requiresParameterInput || hasAlternativeInput)
     && (!isVisionLocate || (attachments.length === 1 && attachments[0]?.kind === 'image'));
   const intentConfigAction = Boolean(onOpenIntentConfig) && !canDispatch && canConfigureIntent;
   const generateDisabled = isVisionLocate

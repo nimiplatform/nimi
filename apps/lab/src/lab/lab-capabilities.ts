@@ -3,13 +3,15 @@ import type { StudioCreateCapabilityId } from '../studio-modules/studio-create/d
 import type { StudioMediaCapabilityId } from '../studio-modules/studio-media/descriptors.js';
 import type { StudioVoiceCapabilityId } from '../studio-modules/studio-voice/descriptors.js';
 import type { LabWorldTourCapabilityId } from './lab-only/world-tour-descriptor.js';
+import type { LabCapabilityTestId } from './lab-only/capability-test-descriptors.js';
 import { labStudioComposition } from './lab-studio-composition.js';
 
 export type LabCapabilityId =
   | StudioCreateCapabilityId
   | StudioMediaCapabilityId
   | StudioVoiceCapabilityId
-  | LabWorldTourCapabilityId;
+  | LabWorldTourCapabilityId
+  | LabCapabilityTestId;
 
 export type LabCapability = StudioCapabilityDescriptor<LabCapabilityId>;
 

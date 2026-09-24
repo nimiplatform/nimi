@@ -3,12 +3,14 @@ import { studioCreateDescriptors } from '../studio-modules/studio-create/descrip
 import { studioMediaDescriptors } from '../studio-modules/studio-media/descriptors.js';
 import { studioVoiceDescriptors } from '../studio-modules/studio-voice/descriptors.js';
 import { labWorldTourDescriptor } from './lab-only/world-tour-descriptor.js';
+import { labCapabilityTestDescriptors } from './lab-only/capability-test-descriptors.js';
 
 export const studioRuntimeCapabilities: readonly StudioRuntimeCapabilityDescriptor[] = Object.freeze([
   ...studioCreateDescriptors,
   ...studioMediaDescriptors,
   ...studioVoiceDescriptors,
   labWorldTourDescriptor,
+  ...labCapabilityTestDescriptors,
 ]);
 
 export function getStudioRuntimeCapability(id: string): StudioRuntimeCapabilityDescriptor {

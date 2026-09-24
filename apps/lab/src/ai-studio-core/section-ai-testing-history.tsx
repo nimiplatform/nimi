@@ -1,6 +1,6 @@
 import { useContext, useMemo, useState } from 'react';
 import { Button, IconButton, InlineAlert, nimiToast, Popover, PopoverContent, PopoverTrigger, Tooltip } from '@nimiplatform/kit/ui';
-import { Check, ChevronRight, Funnel, RefreshCw, Search, Sparkles, Trash2 } from 'lucide-react';
+import { Check, ChevronRight, FileX, Funnel, RefreshCw, Search, Sparkles, Trash2 } from 'lucide-react';
 import { useAIStudioHost } from './host-context.js';
 import type { StudioCapabilityRegistration } from './module-registration.js';
 import {
@@ -23,6 +23,8 @@ import {
   type StudioHistoryPanelScope,
   type StudioMediaHistoryRecord,
 } from './contexts.js';
+import { studioHistoryDocumentPaths } from './history-policy.js';
+import { isStoppedDirectCall } from './non-success-presentation.js';
 
 type HistoryStatusFilter = 'all' | StudioRunHistoryRecord['status'];
 type HistoryEnvironmentFilter = 'all' | 'local' | 'cloud' | 'remote-control';
@@ -245,8 +247,8 @@ export function CapabilityRunHistory({
     onSelectRun(runRecord);
   }
 
-  function handleRemoveRecord(record: StudioRunHistoryRecord) {
-    void historyActions?.removeRecord(record.id);
+  function handleRemoveRecord(record: StudioRunHistoryRecord, deleteDocument = false) {
+    void historyActions?.removeRecord(record.id, deleteDocument);
   }
 
   function handleRemoveMediaRecord(record: StudioMediaHistoryRecord) {
@@ -270,7 +272,8 @@ export function CapabilityRunHistory({
     const source = historySourceLabelForRun(record);
     if (record.status === 'canceled') {
       const reason = historyFailureReasonForRun(record);
-      return [t(reason === 'operation-aborted' ? 'History.stoppedWaiting' : 'History.canceled'), intent, source, reason].filter(Boolean).join(' / ');
+      const stoppedLabel = reason !== 'operation-aborted' ? 'History.canceled' : isStoppedDirectCall(reason, record.capabilityId) ? 'History.stopped' : 'History.stoppedWaiting';
+      return [t(stoppedLabel), intent, source, reason].filter(Boolean).join(' / ');
     }
     if (record.status === 'timed-out') {
       return [t('History.timedOut'), intent, source, historyFailureReasonForRun(record)].filter(Boolean).join(' / ');
@@ -657,6 +660,19 @@ export function CapabilityRunHistory({
                               aria-label={t('History.deleteRecordOnly')}
                               onClick={() => handleRemoveRecord(record)}
                               icon={<Trash2 size={13} strokeWidth={1.9} aria-hidden="true" />}
+                            />
+                          </Tooltip>
+                        ) : null}
+                        {historyActions && studioHistoryDocumentPaths(record).length > 0 ? (
+                          <Tooltip content={t('History.deleteRecordAndDocument')} placement="left">
+                            <IconButton
+                              type="button"
+                              tone="ghost"
+                              size="sm"
+                              className="studio-recent__row-delete studio-recent__row-delete--document"
+                              aria-label={t('History.deleteRecordAndDocument')}
+                              onClick={() => handleRemoveRecord(record, true)}
+                              icon={<FileX size={13} strokeWidth={1.9} aria-hidden="true" />}
                             />
                           </Tooltip>
                         ) : null}
