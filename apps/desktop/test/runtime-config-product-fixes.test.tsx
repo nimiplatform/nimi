@@ -343,3 +343,84 @@ test('changing a capability model stays in the overview, cancels without writes,
     assert.doesNotMatch(unavailable.parentElement?.textContent ?? '', /hostFit\.unsupported/, 'a missing recipe is unknown, not evidence of incompatibility');
   });
 });
+
+test('model cards read Runtime offers and the main Select reuses a single saved configuration', async () => {
+  await withRenderer(async (ui) => {
+    const { RuntimeCapabilityDetail } = await import('../src/shell/renderer/features/runtime-config/runtime-capability-detail.js');
+    const { AppStoreProvider } = await import('../src/shell/renderer/app-shell/providers/app-store.js');
+    const { createAppStore } = await import('../src/shell/renderer/app-shell/providers/app-store-factory.js');
+    const { TooltipProvider } = await import('@nimiplatform/kit/ui');
+    type Recipe = import('@nimiplatform/sdk/runtime').NimiLoadoutRecipe;
+    type Loadout = import('@nimiplatform/sdk/runtime').NimiMachineLoadout;
+    const appStore = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference: () => undefined });
+    const offer = (offerRef: string, extra: Record<string, unknown> = {}) => ({
+      applicability: 'supported', reasons: [],
+      candidate: { offerRef, title: offerRef, installable: true, totalSizeBytes: 56524490, downloadSizeBytes: 33480380, ...extra },
+    });
+    const recipe = (recipeId: string, offers: unknown[]) => ({
+      recipeId, title: recipeId, capabilityContract: 'text.annotate', implementationSupportedFeatures: [], applicability: 'supported',
+      slots: [{ slotId: 'text.model', presence: 'required', recommendedContentIds: [], recommendedVariantIds: [], offers }],
+    }) as unknown as Recipe;
+    const saved = (loadoutId: string, recipeId: string) => ({
+      loadoutId, recipeId, capabilityContract: 'text.annotate', displayName: loadoutId, options: {}, validationState: 'configured',
+      modelAxes: [{ slotId: 'text.model', modelAssetId: `${loadoutId}-asset`, expectedContentId: 'content' }],
+    }) as unknown as Loadout;
+    const english = saved('english-saved', 'spacy-md-en');
+    const starts: unknown[][] = [];
+    const chosenImports: string[] = [];
+    let imports = 0;
+    const props: React.ComponentProps<typeof RuntimeCapabilityDetail> = {
+      capability: 'text.annotate', loadouts: [english, saved('it-a', 'spacy-md-it'), saved('it-b', 'spacy-md-it')],
+      recipes: [
+        recipe('spacy-md-en', [offer('offer-en')]),
+        recipe('spacy-md-de', [offer('offer-de')]),
+        recipe('spacy-md-it', [offer('offer-it')]),
+        recipe('face.swap', []),
+      ],
+      catalog: [], assets: [], libraryLoading: false, libraryError: false, status: { state: 'unset', replacement: false }, taskModel: '',
+      section: 'models', onSection: () => {}, busy: false, disabled: false, navigationContext: null,
+      onHome: () => {}, onTask: () => {}, onDiagnostics: () => {}, onModelMarket: () => {},
+      onStart: async (...args) => { starts.push(args); },
+      onEnable: async () => {}, onApplyCustomization: async () => {},
+      onImportModelFiles: () => { imports += 1; },
+      onChooseImportedFiles: (recipeId) => { chosenImports.push(recipeId); },
+    };
+    const render = async (overrides: Partial<typeof props> = {}) => ui.render(
+      <AppStoreProvider store={appStore}><TooltipProvider><RuntimeCapabilityDetail {...props} {...overrides} /></TooltipProvider></AppStoreProvider>,
+    );
+    const card = (recipeId: string) => ui.document.querySelector<HTMLElement>(`[data-testid="capability-model:${recipeId}"]`)!;
+    const button = (recipeId: string, label: string) => [...card(recipeId).querySelectorAll<HTMLButtonElement>('button')]
+      .find((item) => item.textContent?.includes(label))!;
+    await render();
+
+    // The downloadable offer names its source transfer size and a device-fit
+    // statement about the recommended model only.
+    assert.match(card('spacy-md-de').textContent ?? '', /runtimeConfig\.product\.downloadSize/);
+    assert.match(card('spacy-md-de').textContent ?? '', /runtimeConfig\.product\.modelFit\.supported/);
+    assert.doesNotMatch(card('spacy-md-de').textContent ?? '', /hostFit|downloadSizeUnknown/);
+    await act(async () => button('spacy-md-de', 'runtimeConfig.product.selectModel').click());
+    assert.deepEqual(starts.at(-1), ['spacy-md-de']);
+
+    // One saved configuration: the main Select carries exactly that binding.
+    assert.match(card('spacy-md-en').textContent ?? '', /runtimeConfig\.product\.modelsOnDevice/);
+    await act(async () => button('spacy-md-en', 'runtimeConfig.product.selectModel').click());
+    assert.deepEqual(starts.at(-1), ['spacy-md-en', english]);
+
+    // Several saved configurations: Select opens them for an exact choice.
+    await act(async () => button('spacy-md-it', 'runtimeConfig.product.selectModel').click());
+    assert.equal(starts.length, 2);
+    assert.ok(button('spacy-md-it', 'runtimeConfig.product.useSavedVersion'), 'saved configurations open for choosing');
+
+    // No offer and nothing imported: lead to import instead of a doomed task.
+    assert.match(card('face.swap').textContent ?? '', /runtimeConfig\.product\.noDirectDownload/);
+    await act(async () => button('face.swap', 'runtimeConfig.product.importModel').click());
+    assert.equal(imports, 1);
+    assert.equal(button('face.swap', 'runtimeConfig.product.selectModel'), undefined);
+
+    // Imported files no saved configuration uses lead to choosing them.
+    await render({ assets: [{ modelAssetId: 'imported', catalogVerified: false }] as never });
+    await act(async () => button('face.swap', 'runtimeConfig.product.chooseImportedFiles').click());
+    assert.deepEqual(chosenImports, ['face.swap']);
+    assert.equal(starts.length, 2);
+  });
+});

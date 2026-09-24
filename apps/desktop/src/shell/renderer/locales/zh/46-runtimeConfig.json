@@ -203,6 +203,13 @@
     "rowChoice": "选择要使用的版本。",
     "rowComponentRequired": "运行此模型所需，将自动安装",
     "rowComponentOptional": "可选",
+    "rowPublisher": "来源：{{publisher}}",
+    "rowLicense": "许可：{{license}}",
+    "directDownloadNote": "模型由这台设备直接从发布方下载，使用须遵守各自的许可条款。",
+    "componentsDownloadKnown": "运行组件另需下载约 {{size}}。",
+    "componentsDownloadUnknown": "运行组件也需要下载，其下载量暂无法预估，未计入上面的模型下载量。",
+    "environmentUnavailable": "此方案在本机没有可用的受管运行环境，无法在这台设备上准备。不会下载任何内容，当前模型保持不变。",
+    "noDirectDownloadHint": "这个模型暂无直接下载项。请在「版本与参数」中选择本机已有的模型文件，或先导入模型文件。",
     "confirmLead": "确认后，Nimi 会自动完成上面的准备。完成后，{{model}} 将成为本机「{{capability}}」的当前模型。",
     "confirmLeadReady": "无需额外准备。确认后，{{model}} 立即成为本机「{{capability}}」的当前模型。",
     "heroModel": "本次设置的模型：{{model}}",
@@ -213,6 +220,20 @@
     "componentFamily": {
       "native-engine-package.llama": "推理引擎",
       "accelerator.cuda.runtime": "GPU 加速"
+    },
+    "componentFamilyName": {
+      "python.tool.uv": "Python 安装工具（uv）",
+      "python.runtime": "Python 运行时",
+      "python.venv": "独立 Python 环境",
+      "python.package-set": "模型依赖库",
+      "python.torch-wheel": "PyTorch 计算库"
+    },
+    "componentPurpose": {
+      "python.tool.uv": "在 Nimi 管理的目录中安装 Python 组件",
+      "python.runtime": "运行模型程序，不改动系统中的 Python",
+      "python.venv": "与系统和其他程序隔离的运行环境",
+      "python.package-set": "此模型运行所需的固定版本依赖库",
+      "python.torch-wheel": "模型计算所需的 PyTorch 库"
     },
     "componentState": {
       "needs_confirmation": "待安装",
@@ -483,6 +504,7 @@
       "audioVoiceConvert": "声音转换",
       "other": "其他本地 AI 能力",
       "textAnnotate": "语言分析",
+      "textDecide": "决策判断",
       "audioSeparate": "人声与背景分离"
     },
     "capabilityDescription": {
@@ -501,6 +523,7 @@
       "audioVoiceConvert": "把演唱转换为另一种声音",
       "other": "其他本地 AI 能力",
       "textAnnotate": "识别词语、词性、依存关系和句子边界",
+      "textDecide": "从应用提供的选项中挑选一项，或判断某个说法是否成立，并给出概率",
       "audioSeparate": "分离人声和背景音，保留原有时间轴"
     },
     "required": "必需",
@@ -1688,6 +1711,7 @@
     "audioVoiceConvert": "声音转换",
     "voiceCreate": "声音创建",
     "textAnnotate": "语言分析",
+    "textDecide": "决策判断",
     "audioSeparate": "人声与背景分离"
   },
   "common": {
@@ -2293,6 +2317,7 @@
       "video-generate": "在支持的应用中生成视频，具体输入和控制方式由所选模型提供。",
       "voice-create": "根据支持的声音描述或参考录音创建可复用的声音。",
       "text-annotate": "把文字拆分成句子和词语，标出词性和语法关系，供字幕、翻译等应用使用。",
+      "text-decide": "让应用从自己提供的选项中挑选一项，或判断关于文字或数据的某个说法是否成立，并给出每个答案的概率。",
       "text-embed": "为语义搜索等应用功能生成文字表示。",
       "image-face-swap": "使用支持的输入和模型替换图像中的人脸。",
       "video-face-swap": "在支持的应用中对视频进行人脸替换。",
@@ -2453,7 +2478,14 @@
     "backToSetups": "返回开始使用",
     "backToCustomization": "返回自定义设置",
     "preparationUnknown": "暂时无法确认准备内容，请稍后重试。",
-    "downloadSizeUnknown": "下载量待确认",
+    "downloadSizeUnknown": "下载量未知",
+    "noDirectDownload": "暂无直接下载项",
+    "chooseImportedFiles": "选择本机模型文件",
+    "modelFit": {
+      "supported": "推荐模型符合设备条件",
+      "unknown": "设备条件待确认",
+      "unsupported": "推荐模型不适合此设备"
+    },
     "downloadSize": "还需下载 {{size}}",
     "modelsOnDevice": "已在本机",
     "deviceRecommendation": "适合本机",
@@ -2577,6 +2609,7 @@
       "voice-create": "创建声音",
       "audio-separate": "分离音轨",
       "text-annotate": "分析与标注文字",
+      "text-decide": "挑选选项或判断是否成立",
       "image-face-swap": "图像换脸",
       "video-face-swap": "视频换脸",
       "vision-locate": "识别与定位图像内容",

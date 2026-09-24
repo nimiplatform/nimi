@@ -186,18 +186,20 @@ export function RuntimeLoadoutOptionsEditor(props: {
             })),
             ...offers.map((offer) => {
               const presentation = loadoutCandidatePresentation(offer.candidate);
+              // A download names the offer's source transfer size, which is
+              // not its installed total when the source is an archive.
               const acquisitionLabel = offer.installedModelAssetId
                 ? t('runtimeConfig.loadouts.installed')
                 : !offer.candidate.installable
                   ? t('runtimeConfig.recommend.notInstallable')
-                  : offer.candidate.totalSizeBytes
-                    ? t('runtimeConfig.product.downloadSize', { size: formatBytes(offer.candidate.totalSizeBytes) })
+                  : offer.candidate.downloadSizeBytes
+                    ? t('runtimeConfig.product.downloadSize', { size: formatBytes(offer.candidate.downloadSizeBytes) })
                     : t('runtimeConfig.product.downloadSizeUnknown');
               return {
                 value: `offer:${offer.candidate.offerRef}`,
                 label: [presentation.headline,
                   offer.candidate.variantLabel || presentation.quant.technical,
-                  t(`runtimeConfig.loadouts.hostFit.${offer.applicability}`),
+                  t(`runtimeConfig.product.modelFit.${offer.applicability}`),
                   acquisitionLabel,
                 ].filter(Boolean).join(' · '),
                 disabled: offer.applicability === 'unsupported' || (!offer.installedModelAssetId && !offer.candidate.installable),

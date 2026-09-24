@@ -165,20 +165,15 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
         const selection = inventory.data?.aggregate.selections.find((item) => item.capabilityContract === id);
         const selected = inventory.data?.aggregate.loadouts.find((item) => item.loadoutId === selection?.loadoutId);
         const identity = capabilityModelIdentity(selected, inventory.data?.recipes ?? []);
-        // "Downloaded · not enabled" closes the gap between the model library
-        // (files present) and the rail (no selection). It is only a reading
+        // "Downloaded · not enabled" closes the gap between the installed
+        // recommended offers and the rail (no selection). It is only a reading
         // aid on the unset state and never counts toward the ready total.
         const downloaded =
           state.state === 'unset' &&
-          capabilityRecommendedFilesOnDevice(
-            id,
-            inventory.data?.recipes ?? [],
-            library.data?.catalog ?? [],
-            library.data?.assets ?? [],
-          );
+          capabilityRecommendedFilesOnDevice(id, inventory.data?.recipes ?? []);
         return { id, state, model: identity.shortTitle, downloaded };
       }),
-    [inventory.capabilities, inventory.data, inventory.tasks, inventory.isError, library.data],
+    [inventory.capabilities, inventory.data, inventory.tasks, inventory.isError],
   );
   const railStateLabel = (entry: { state: { state: CapabilityPreparationState }; downloaded: boolean }) =>
     t(
@@ -229,12 +224,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
   // it mirrors the rail's "downloaded · not enabled" reading aid.
   const downloadedRecipe =
     visibleCapability && status?.state === 'unset'
-      ? capabilityRecommendedRecipeOnDevice(
-          visibleCapability,
-          recipes,
-          library.data?.catalog ?? [],
-          library.data?.assets ?? [],
-        )
+      ? capabilityRecommendedRecipeOnDevice(visibleCapability, recipes)
       : null;
   const createSetupTask = async () => {
     const owner = props.profileUseOwner;
@@ -308,6 +298,23 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
       }
       setSection('overview');
       emitFeedbackToast({ kind: 'success', message: t('runtimeConfig.product.modelPicker.selected') });
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : String(caught));
+    } finally {
+      setBusy(false);
+    }
+  };
+  // A recipe with no downloadable offer starts as a draft with that recipe
+  // chosen, so files already on this device are picked under its version
+  // choices and validated by Runtime; no candidate is saved beforehand.
+  const onChooseImportedFiles = async (recipeId: string) => {
+    if (!visibleCapability) return;
+    setBusy(true);
+    setError('');
+    try {
+      const task = await createSetupTask();
+      store.updateTask(task.taskId, (current) => ({ draft: { ...(current.draft ?? {}), route: 'local', recipeId } }));
+      props.onOpenSetupTask(task.taskId);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : String(caught));
     } finally {
@@ -664,6 +671,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
               onTask={props.onOpenSetupTask}
               onModelFiles={props.onOpenModelFiles}
               onImportModelFiles={props.onOpenModelImport}
+              onChooseImportedFiles={(recipeId) => { void onChooseImportedFiles(recipeId); }}
               onDiagnostics={props.onOpenAdvancedDiagnostics}
               onModelMarket={props.onOpenModelMarket}
             />

@@ -409,3 +409,57 @@ test('a downloaded recipe offers enable without being labeled as the current mod
   assert.doesNotMatch(html, /runtimeConfig\.product\.currentOnDevice/);
   assert.doesNotMatch(html, /capability-technical-details/);
 });
+
+test('the review names Python components by family, shows offer terms, and blocks a candidate without a managed environment', async () => {
+  const { componentPresentation } = await import('../src/shell/renderer/features/runtime-config/runtime-config-setup-task-view');
+  const { readFileSync } = await import('node:fs');
+  const en = JSON.parse(readFileSync(new URL('../src/shell/renderer/locales/en/46-runtimeConfig.json', import.meta.url), 'utf8')) as Record<string, unknown>;
+  // Mirrors i18next's lookup of keys whose last segment contains dots.
+  const lookup = (key: string): unknown => {
+    const path = key.replace(/^runtimeConfig\./u, '').split('.');
+    let node: unknown = en;
+    for (let index = 0; index < path.length; index += 1) {
+      const record = node as Record<string, unknown> | undefined;
+      if (!record || typeof record !== 'object') return undefined;
+      if (path[index]! in record) { node = record[path[index]!]; continue; }
+      return record[path.slice(index).join('.')];
+    }
+    return node;
+  };
+  const t = (key: string, options?: Record<string, unknown>) => {
+    const found = lookup(key);
+    return typeof found === 'string' ? found : (typeof options?.defaultValue === 'string' ? options.defaultValue : key);
+  };
+  const packages = componentPresentation({ dependencyFamily: 'python.package-set', dependencyId: 'text.spacy.python.cpu.0123abcd', state: 'needs_confirmation' }, t);
+  assert.equal(packages.name, 'Model libraries');
+  assert.equal(packages.purpose, 'The pinned libraries this model needs to run');
+  for (const family of ['python.tool.uv', 'python.runtime', 'python.venv', 'python.package-set']) {
+    const shown = componentPresentation({ dependencyFamily: family, dependencyId: `raw.${family}.digest`, state: 'needs_confirmation' }, t);
+    assert.notEqual(shown.name, `raw.${family}.digest`, `${family} is named in plain words`);
+    assert.ok(shown.purpose, `${family} explains its purpose`);
+  }
+
+  const plan = {
+    reuse: [], awaitingChoice: [], unavailable: [], options: [],
+    acquire: [{ slotId: 'text.model', label: 'English language analysis model', offer: {
+      offerRef: 'offer-en', title: 'asset-nlp-spacy-en-core-web-md-3.8.0', variantLabel: 'config.cfg', sizeBytes: 33480380,
+      license: 'MIT', publisher: 'explosion',
+    } }],
+    components: [{ dependencyFamily: 'python.package-set', dependencyId: 'text.spacy.python.cpu.0123abcd', label: 'raw', state: 'needs_confirmation', required: true }],
+    environmentPlanId: 'env-1', candidateRevision: 'r1', selectionRevisionPresent: false, componentsDownloadBytes: null,
+  } satisfies RuntimeSetupPreparationPlan;
+  const markup = renderView(<SetupTaskPlanReview plan={plan} choices={{}} onChoiceChange={() => {}} ownerLabel={null} />);
+  // The terms row exists for the download; this harness does not interpolate values.
+  assert.match(markup, /runtime-setup-offer-terms:text\.model/);
+  assert.match(markup, /runtime-setup-download-scope/);
+  assert.match(markup, /directly from their publisher/);
+  assert.match(markup, /not included in the model download above/);
+  assert.doesNotMatch(markup, /runtime-setup-environment-unavailable/);
+
+  const refused = renderView(<SetupTaskPlanReview
+    plan={{ ...plan, acquire: [], components: [], environmentUnavailable: { reasonCode: 'AI_LOADOUT_DRIVER_UNAVAILABLE' } }}
+    choices={{}} onChoiceChange={() => {}} ownerLabel={null}
+  />);
+  assert.match(refused, /runtime-setup-environment-unavailable/);
+  assert.doesNotMatch(refused, /Ready to use these settings|readyToUseSettings/);
+});

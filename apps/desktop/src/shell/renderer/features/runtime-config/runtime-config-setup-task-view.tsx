@@ -13,7 +13,7 @@ import { formatBytes, formatDurationShort, formatTransferRate } from '../../comp
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
 import { formatKnownDownloadSize } from './runtime-config-model-center-utils.js';
 import { loadoutCandidatePresentation, loadoutSlotLabelKey } from './runtime-config-loadout-model-display.js';
-import { capabilityIcon, modelDisplayTitle, setupPlanNeedsPreparation } from './runtime-capability-presentation.js';
+import { capabilityIcon, modelDisplayTitle, recipeOfferSummary, setupPlanNeedsPreparation } from './runtime-capability-presentation.js';
 import { displayRuntimeConfigCapabilityLabel, displayRuntimeConfigCapabilityUsage } from './runtime-config-capability-labels.js';
 import {
   runtimeSetupTaskUnconfirmed,
@@ -169,9 +169,19 @@ function PlanRow(props: {
 export function componentPresentation(
   item: { readonly dependencyFamily: string; readonly dependencyId: string; readonly state: string },
   t: (key: string, options?: Record<string, unknown>) => string,
-): { readonly name: string; readonly family: string; readonly state: string; readonly tone: 'success' | 'warning' | 'info' | 'neutral' } {
-  const name = t(`runtimeConfig.setupTask.component.${item.dependencyId}`, { defaultValue: item.dependencyId });
+): {
+  readonly name: string;
+  readonly family: string;
+  readonly purpose: string;
+  readonly state: string;
+  readonly tone: 'success' | 'warning' | 'info' | 'neutral';
+} {
+  // Exact ids that carry a digest (a Python environment or package set) are
+  // named by their family; the raw id stays under technical details.
+  const familyName = t(`runtimeConfig.setupTask.componentFamilyName.${item.dependencyFamily}`, { defaultValue: '' });
+  const name = t(`runtimeConfig.setupTask.component.${item.dependencyId}`, { defaultValue: familyName || item.dependencyId });
   const family = t(`runtimeConfig.setupTask.componentFamily.${item.dependencyFamily}`, { defaultValue: '' });
+  const purpose = t(`runtimeConfig.setupTask.componentPurpose.${item.dependencyFamily}`, { defaultValue: '' });
   const state = t(`runtimeConfig.setupTask.componentState.${item.state}`, {
     defaultValue: t(`runtimeConfig.downloads.environment.${item.state}`, { defaultValue: item.state }),
   });
@@ -180,7 +190,7 @@ export function componentPresentation(
     : item.state === 'failed' || item.state === 'repair_required' || item.state === 'unsupported'
       ? 'warning'
       : 'info';
-  return { name, family, state, tone };
+  return { name, family, purpose, state, tone };
 }
 
 /**
@@ -205,7 +215,8 @@ export function SetupTaskPlanReview(props: {
   const needsPreparation = setupPlanNeedsPreparation(props.plan, props.choices);
   const requiredComponents = props.plan.components.filter((item) => item.required);
   const optionalComponents = props.plan.components.filter((item) => !item.required);
-  const ready = !needsPreparation && props.plan.unavailable.length === 0;
+  const ready = !needsPreparation && props.plan.unavailable.length === 0 && !props.plan.environmentUnavailable;
+  const downloads = props.plan.acquire.some((item) => !item.offer.installedModelAssetId) || props.plan.awaitingChoice.length > 0;
   return (
     <div className="space-y-5" data-testid="runtime-setup-task-plan">
       {ready ? (
@@ -244,7 +255,16 @@ export function SetupTaskPlanReview(props: {
                   : t('runtimeConfig.setupTask.rowDownload', { defaultValue: '{{part}} · will be downloaded', part: partLabel(item) })}
                 trailing={installed ? installedLabel : scopeSizeLabel(item.offer.sizeBytes, unknownSize)}
                 trailingTone={installed ? 'success' : 'warning'}
-              />
+              >
+                {!installed && (item.offer.license || item.offer.publisher) ? (
+                  <p className="mt-0.5 text-xs text-[var(--nimi-text-muted)]" data-testid={`runtime-setup-offer-terms:${item.slotId}`}>
+                    {[
+                      item.offer.publisher ? t('runtimeConfig.setupTask.rowPublisher', { defaultValue: 'Source: {{publisher}}', publisher: item.offer.publisher }) : '',
+                      item.offer.license ? t('runtimeConfig.setupTask.rowLicense', { defaultValue: 'License: {{license}}', license: item.offer.license }) : '',
+                    ].filter(Boolean).join(' · ')}
+                  </p>
+                ) : null}
+              </PlanRow>
             );
           })}
           {props.plan.awaitingChoice.map((choice) => (
@@ -287,7 +307,7 @@ export function SetupTaskPlanReview(props: {
                 tone={shown.tone === 'success' ? 'ready' : shown.tone === 'warning' ? 'warning' : 'pending'}
                 icon={shown.tone === 'success' ? 'check' : 'package'}
                 title={shown.name}
-                subtitle={[shown.family, item.required
+                subtitle={[shown.purpose || shown.family, item.required
                   ? t('runtimeConfig.setupTask.rowComponentRequired', { defaultValue: 'Installed automatically for this model' })
                   : t('runtimeConfig.setupTask.rowComponentOptional', { defaultValue: 'Optional' })]
                   .filter(Boolean)
@@ -307,6 +327,23 @@ export function SetupTaskPlanReview(props: {
             if (recommended) props.onChoiceChange(choice.slotId, recommended.offerRef);
           }
         }}>{t('runtimeConfig.setupTask.acceptRecommendations', { defaultValue: "Use device recommendations" })}</Button>
+      ) : null}
+      {downloads || props.plan.components.length > 0 ? (
+        <p className="text-xs leading-relaxed text-[var(--nimi-text-muted)]" data-testid="runtime-setup-download-scope">
+          {[
+            downloads ? t('runtimeConfig.setupTask.directDownloadNote', { defaultValue: 'Models are downloaded by this device directly from their publisher; using them is subject to each license.' }) : '',
+            props.plan.components.length > 0
+              ? typeof props.plan.componentsDownloadBytes === 'number'
+                ? t('runtimeConfig.setupTask.componentsDownloadKnown', { defaultValue: 'Runtime components download about {{size}} more.', size: formatBytes(props.plan.componentsDownloadBytes) })
+                : t('runtimeConfig.setupTask.componentsDownloadUnknown', { defaultValue: 'Runtime components also need downloading; their size can’t be estimated yet and is not included in the model download above.' })
+              : '',
+          ].filter(Boolean).join(' ')}
+        </p>
+      ) : null}
+      {props.plan.environmentUnavailable ? (
+        <InlineAlert tone="warning" data-testid="runtime-setup-environment-unavailable">
+          <div>{t('runtimeConfig.setupTask.environmentUnavailable', { defaultValue: "This model has no managed runtime environment on this device, so it can't be prepared here. Nothing will be downloaded and the current model stays unchanged." })}</div>
+        </InlineAlert>
       ) : null}
       {props.plan.unavailable.length > 0 ? (
         <InlineAlert tone="warning" data-testid="runtime-setup-unavailable">
@@ -492,6 +529,13 @@ export function RuntimeConfigSetupTaskView(props: {
   // The route is a draft fact: machine-scope tasks are always local, and a
   // consumer source chooses Local or Cloud explicitly.
   const route = task?.draft?.route ?? (task?.source.kind === 'runtime' ? 'local' : null);
+  // A recipe without any downloadable offer can only use files already on this
+  // device: its version choices open directly instead of a doomed review.
+  const draftRecipe = recipes.find((entry) => entry.recipeId === selectedRecipeId) ?? null;
+  const draftWithoutDirectDownload = draftRecipe ? recipeOfferSummary(draftRecipe).withoutOffer > 0 : false;
+  useEffect(() => {
+    if (draftWithoutDirectDownload) setAdvancedOpen(true);
+  }, [draftWithoutDirectDownload, selectedRecipeId]);
 
   useEffect(() => {
     if (!task || task.status !== 'draft' || task.candidateLoadoutId || route === 'cloud') return;
@@ -830,6 +874,11 @@ export function RuntimeConfigSetupTaskView(props: {
             </label>
           ))}
         </div>
+        {selectedRecipe && draftWithoutDirectDownload ? (
+          <InlineAlert tone="info" data-testid="runtime-setup-no-direct-download">
+            {t('runtimeConfig.setupTask.noDirectDownloadHint', { defaultValue: 'This model has no direct download. Choose model files already on this device under Version and options, or import model files first.' })}
+          </InlineAlert>
+        ) : null}
         {selectedRecipe ? (
           <details
             className="rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] p-3"
@@ -881,7 +930,8 @@ export function RuntimeConfigSetupTaskView(props: {
       }
       case 'review': {
         const direct = !!plan && !setupPlanNeedsPreparation(plan, choices);
-        const blockedConfirm = busy || !plan || plan.unavailable.length > 0 || plan.awaitingChoice.some((choice) => !choices[choice.slotId]);
+        const blockedConfirm = busy || !plan || plan.unavailable.length > 0 || Boolean(plan.environmentUnavailable)
+          || plan.awaitingChoice.some((choice) => !choices[choice.slotId]);
         const downloadBytes = plan ? setupPlanDownloadBytes(plan, choices) : null;
         const confirmLabel = direct
           ? t('runtimeConfig.product.useTheseSettings')
@@ -931,7 +981,7 @@ export function RuntimeConfigSetupTaskView(props: {
                   props.store.updateTask(task.taskId, () => ({ status: 'draft', nextAction: 'review-preparation' }));
                   setAdvancedOpen(true);
                 }}>{t('runtimeConfig.product.customize')}</Button>
-                {plan && plan.unavailable.length > 0 ? (
+                {plan && (plan.unavailable.length > 0 || plan.environmentUnavailable) ? (
                   <Button tone="ghost" size="sm" disabled={busy} onClick={() => {
                     props.store.updateTask(task.taskId, () => ({
                       status: 'draft', nextAction: 'choose-model', failure: undefined, authorization: undefined,

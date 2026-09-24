@@ -48,7 +48,7 @@ import {
   capabilityModelIdentity,
   modelDisplayTitle,
   modelFeatureLocaleKeys,
-  recipeResourceSummary,
+  recipeOfferSummary,
 } from './runtime-capability-presentation.js';
 import { displayRuntimeConfigCapabilityLabel, displayRuntimeConfigCapabilityUsage } from './runtime-config-capability-labels.js';
 import { SavedConfigsView } from './runtime-config-page-loadouts.js';
@@ -90,6 +90,8 @@ type Props = {
   onModelFiles?: () => void;
   /** Direct import entry: the Model Library's local files with the import menu open. */
   onImportModelFiles?: () => void;
+  /** Opens a draft for the recipe so imported files can be chosen and validated by Runtime. */
+  onChooseImportedFiles?: (recipe: string) => void;
   onDiagnostics: () => void;
   onModelMarket: (context: RuntimeConfigModelMarketContext) => void;
 };
@@ -169,7 +171,7 @@ export function RuntimeCapabilityDetail(props: Props) {
   const downloaded = !props.selected ? props.downloadedRecipe : undefined;
   const shownRecipe = identity.recipe ?? downloaded;
   const featureKeys = modelFeatureLocaleKeys(shownRecipe?.implementationSupportedFeatures ?? []);
-  const downloadedSummary = downloaded ? recipeResourceSummary(downloaded, props.catalog, props.assets) : null;
+  const downloadedSummary = downloaded ? recipeOfferSummary(downloaded) : null;
   const cardTitle = identity.shortTitle || (downloaded ? modelDisplayTitle(downloaded.title) : '');
   const cardSeed = identity.title || downloaded?.title || '';
   const matched = props.recipes.filter((recipe) =>
@@ -189,24 +191,33 @@ export function RuntimeCapabilityDetail(props: Props) {
     );
   const readyDependencies =
     props.environment?.dependencies.filter((d) => isNimiRuntimeLocalEnvironmentDependencyReadyState(d.state)).length ?? 0;
-  const chipSize = identity.sizeBytes ?? downloadedSummary?.totalBytes ?? null;
+  const chipSize = identity.sizeBytes ?? downloadedSummary?.installedBytes ?? null;
   const versionChip = [identity.versionShort, chipSize ? t('runtimeConfig.product.aboutSize', { size: formatBytes(chipSize) }) : '']
     .filter(Boolean)
     .join(' · ');
   const openUse = () => setActiveTab(props.capability === 'text.generate' ? 'chat' : 'apps');
-  const costOf = (recipe: NimiLoadoutRecipe) => {
-    if (props.libraryLoading) return { text: t('Common.loading'), tone: 'muted' as const };
-    if (props.libraryError) return { text: t('runtimeConfig.product.preparationUnknown'), tone: 'muted' as const };
-    const summary = recipeResourceSummary(recipe, props.catalog, props.assets);
+  // Imported files that no saved configuration of this capability uses yet;
+  // Runtime validates any of them only when they are chosen for a recipe.
+  const unboundImports = props.assets.some((asset) => !asset.catalogVerified
+    && !props.loadouts.some((loadout) => loadout.modelAxes.some((axis) => axis.modelAssetId === asset.modelAssetId)));
+  // The card reads Runtime's offers: a saved configuration is reused first,
+  // an exact installed offer counts as on this device, and a download names
+  // the source transfer size only when Runtime knows it.
+  const costOf = (recipe: NimiLoadoutRecipe, saved: readonly NimiMachineLoadout[]): ModelCost => {
+    if (props.modelsLoading) return { text: t('Common.loading'), tone: 'muted' };
+    if (props.modelsError) return { text: t('runtimeConfig.product.preparationUnknown'), tone: 'muted' };
+    if (saved.length > 0) return { text: t('runtimeConfig.product.modelsOnDevice'), tone: 'ready' };
+    const summary = recipeOfferSummary(recipe);
+    if (summary.withoutOffer > 0) return { text: t('runtimeConfig.product.noDirectDownload'), tone: 'muted' };
     if (summary.missing === 0)
       return {
-        text: summary.totalBytes !== null
-          ? t('runtimeConfig.product.onDeviceWithSize', { size: formatBytes(summary.totalBytes) })
+        text: summary.installedBytes !== null
+          ? t('runtimeConfig.product.onDeviceWithSize', { size: formatBytes(summary.installedBytes) })
           : t('runtimeConfig.product.modelsOnDevice'),
-        tone: 'ready' as const,
+        tone: 'ready',
       };
-    if (summary.bytes === null) return { text: t('runtimeConfig.product.downloadSizeUnknown'), tone: 'muted' as const };
-    return { text: t('runtimeConfig.product.downloadSize', { size: formatBytes(summary.bytes) }), tone: 'download' as const };
+    if (summary.downloadBytes === null) return { text: t('runtimeConfig.product.downloadSizeUnknown'), tone: 'muted' };
+    return { text: t('runtimeConfig.product.downloadSize', { size: formatBytes(summary.downloadBytes) }), tone: 'download' };
   };
   // Customizing works on the current model, so its tab exists only with one; a
   // section left on it after the selection is gone falls back to the overview.
@@ -537,6 +548,10 @@ export function RuntimeCapabilityDetail(props: Props) {
             <div className="grid gap-3 md:grid-cols-2">
               {matched.map((recipe) => {
                 const recipeFeatures = modelFeatureLocaleKeys(recipe.implementationSupportedFeatures);
+                const saved = props.loadouts.filter(
+                  (item) => item.recipeId === recipe.recipeId && item.validationState === 'configured',
+                );
+                const noDirectDownload = !props.modelsLoading && !props.modelsError && recipeOfferSummary(recipe).withoutOffer > 0;
                 return (
                   <ModelChoiceCard
                     key={recipe.recipeId}
@@ -545,12 +560,12 @@ export function RuntimeCapabilityDetail(props: Props) {
                     description={
                       recipeFeatures.length ? recipeFeatures.map((key) => t(key)).join(' · ') : shortUse
                     }
-                    cost={costOf(recipe)}
+                    cost={costOf(recipe, saved)}
                     current={props.selected?.recipeId === recipe.recipeId}
                     enableable={!props.selected && props.downloadedRecipe?.recipeId === recipe.recipeId}
-                    saved={props.loadouts.filter(
-                      (item) => item.recipeId === recipe.recipeId && item.validationState === 'configured',
-                    )}
+                    saved={saved}
+                    noDirectDownload={!noDirectDownload ? null
+                      : unboundImports && props.onChooseImportedFiles ? 'choose-imported' : 'import'}
                     selectedLoadoutId={props.selected?.loadoutId}
                     recipes={props.recipes}
                     catalog={props.catalog}
@@ -564,6 +579,8 @@ export function RuntimeCapabilityDetail(props: Props) {
                     onUseSaved={(item) => {
                       void props.onStart(item.recipeId, item);
                     }}
+                    onChooseImported={() => props.onChooseImportedFiles?.(recipe.recipeId)}
+                    onImport={props.onImportModelFiles ?? props.onModelFiles}
                     onCustomize={() => props.onSection('advanced')}
                   />
                 );
@@ -644,6 +661,8 @@ function ModelChoiceCard(props: {
   /** Files are on this device and nothing is selected yet: offer one-click enable. */
   readonly enableable: boolean;
   readonly saved: readonly NimiMachineLoadout[];
+  /** No offer can be downloaded: lead to imported files when some exist, otherwise to import. */
+  readonly noDirectDownload: 'choose-imported' | 'import' | null;
   readonly selectedLoadoutId?: string;
   readonly recipes: readonly NimiLoadoutRecipe[];
   readonly catalog: readonly NimiRuntimeLocalVerifiedAssetDescriptor[];
@@ -651,10 +670,13 @@ function ModelChoiceCard(props: {
   readonly onSelect: () => void;
   readonly onEnable: () => void;
   readonly onUseSaved: (item: NimiMachineLoadout) => void;
+  readonly onChooseImported: () => void;
+  readonly onImport?: () => void;
   readonly onCustomize: () => void;
 }) {
   const { t } = useTranslation();
   const [savedOpen, setSavedOpen] = useState(false);
+  const onlySaved = props.saved.length === 1 ? props.saved[0] : undefined;
   const unsupported = props.recipe.applicability === 'unsupported';
   const fitTone: StatusTone = unsupported ? 'danger' : 'neutral';
   const FitIcon = props.recipe.applicability === 'supported'
@@ -702,7 +724,7 @@ function ModelChoiceCard(props: {
         <li>
           <StatusBadge tone={fitTone} shape="soft">
             <FitIcon size={12} aria-hidden="true" />
-            {t(`runtimeConfig.loadouts.hostFit.${props.recipe.applicability}`)}
+            {t(`runtimeConfig.product.modelFit.${props.recipe.applicability}`)}
           </StatusBadge>
         </li>
       </ul>
@@ -734,6 +756,28 @@ function ModelChoiceCard(props: {
           <Button tone="primary" size="sm" disabled={props.busy} onClick={props.onEnable}>
             {t('runtimeConfig.product.enableModel')}
             <ArrowRight size={14} />
+          </Button>
+        ) : onlySaved ? (
+          // Selecting a recipe that already has one saved configuration reuses
+          // that exact configuration instead of starting an empty candidate.
+          <Button tone="secondary" size="sm" disabled={props.busy || unsupported} onClick={() => props.onUseSaved(onlySaved)}>
+            {t('runtimeConfig.product.selectModel')}
+            <ArrowRight size={14} />
+          </Button>
+        ) : props.saved.length > 1 ? (
+          <Button tone="secondary" size="sm" disabled={props.busy} aria-expanded={savedOpen} onClick={() => setSavedOpen(true)}>
+            {t('runtimeConfig.product.selectModel')}
+            <ChevronDown size={14} />
+          </Button>
+        ) : props.noDirectDownload === 'choose-imported' ? (
+          <Button tone="secondary" size="sm" disabled={props.busy || unsupported} onClick={props.onChooseImported}>
+            {t('runtimeConfig.product.chooseImportedFiles')}
+            <ArrowRight size={14} />
+          </Button>
+        ) : props.noDirectDownload === 'import' ? (
+          <Button tone="secondary" size="sm" disabled={props.busy || !props.onImport} onClick={props.onImport}>
+            <FolderOpen size={14} />
+            {t('runtimeConfig.product.importModel')}
           </Button>
         ) : (
           <Button tone="secondary" size="sm" disabled={props.busy || unsupported} onClick={props.onSelect}>

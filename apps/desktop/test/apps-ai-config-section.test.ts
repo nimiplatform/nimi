@@ -170,6 +170,7 @@ test('Apps AIConfig owner copy covers every canonical capability in both locales
     'realtimeInteract',
     'textEmbed',
     'textAnnotate',
+    'textDecide',
     'textGenerate',
     'videoFaceSwap',
     'videoGenerate',

@@ -10,6 +10,7 @@ import {
   FileSearch,
   Image,
   Languages,
+  ListChecks,
   MessageSquare,
   Mic,
   Music2,
@@ -40,6 +41,7 @@ const CAPABILITY_ICONS: Readonly<Record<string, LucideIcon>> = {
   'voice.create': AudioWaveform,
   'audio.separate': AudioLines,
   'text.annotate': Languages,
+  'text.decide': ListChecks,
   'image.face_swap': ScanFace,
   'video.face_swap': ScanFace,
   'vision.locate': ScanSearch,
@@ -213,6 +215,56 @@ export function recipeResourceSummary(
 }
 
 /**
+ * Runtime-projected acquisition facts for a recipe's required model slots.
+ * A slot counts as installed only when Runtime reports the exact installed
+ * distribution on its offer; matching content bytes alone never do. The
+ * download size is the offer's source transfer size, never its installed
+ * total, and stays null whenever any missing offer's transfer size is unknown.
+ */
+export type RecipeOfferSummary = {
+  readonly required: number;
+  readonly installed: number;
+  readonly missing: number;
+  /** Required slots without any installable or installed offer for this device. */
+  readonly withoutOffer: number;
+  readonly downloadBytes: number | null;
+  readonly installedBytes: number | null;
+};
+
+// @nimi-authority: rule.nimi.desktop.ai-consumption.capability-workspace
+export function recipeOfferSummary(recipe: NimiLoadoutRecipe): RecipeOfferSummary {
+  const required = recipe.slots.filter((slot) => slot.presence === 'required');
+  let installed = 0;
+  let missing = 0;
+  let withoutOffer = 0;
+  let downloadBytes: number | null = 0;
+  let installedBytes: number | null = 0;
+  const counted = new Set<string>();
+  for (const slot of required) {
+    const usable = slot.offers.filter((offer) => offer.applicability !== 'unsupported');
+    const present = usable.find((offer) => offer.installedModelAssetId);
+    const offer = present ?? usable.find((item) => item.candidate.installable);
+    if (!offer) {
+      withoutOffer++;
+      installedBytes = null;
+      continue;
+    }
+    if (counted.has(offer.candidate.offerRef)) continue;
+    counted.add(offer.candidate.offerRef);
+    const size = offer.candidate.totalSizeBytes;
+    installedBytes = installedBytes !== null && size !== undefined && size > 0 ? installedBytes + size : null;
+    if (present) {
+      installed++;
+      continue;
+    }
+    missing++;
+    const transfer = offer.candidate.downloadSizeBytes;
+    downloadBytes = downloadBytes !== null && transfer !== undefined && transfer > 0 ? downloadBytes + transfer : null;
+  }
+  return { required: required.length, installed, missing, withoutOffer, downloadBytes, installedBytes };
+}
+
+/**
  * True when a preparation plan has nothing left to acquire, install or choose:
  * every required component is present, every acquisition already maps to an
  * installed asset and no slot is waiting on a choice. Only such a plan may be
@@ -220,25 +272,25 @@ export function recipeResourceSummary(
  * download, install or ask still goes through the explicit review.
  */
 export function setupPlanAllowsDirectUse(plan: RuntimeSetupPreparationPlan): boolean {
-  return plan.unavailable.length === 0 && plan.awaitingChoice.length === 0 && !setupPlanNeedsPreparation(plan, {});
+  return plan.unavailable.length === 0 && plan.awaitingChoice.length === 0 && !plan.environmentUnavailable
+    && !setupPlanNeedsPreparation(plan, {});
 }
 
 /**
- * The first supported recipe for the capability whose required model files
- * are all verified on this device, or null. This is a reading aid for the
- * "downloaded but never selected" gap: it never claims readiness, since the
- * capability still has no machine selection and no environment check.
+ * The first supported recipe for the capability whose recommended model
+ * offers Runtime reports as installed on this device, or null. This is a
+ * reading aid for the "downloaded but never selected" gap: it never claims
+ * readiness, since the capability still has no machine selection and no
+ * environment check.
  */
 export function capabilityRecommendedRecipeOnDevice(
   capability: string,
   recipes: readonly NimiLoadoutRecipe[],
-  catalog: readonly NimiRuntimeLocalVerifiedAssetDescriptor[],
-  assets: readonly NimiRuntimeModelAssetRecord[],
 ): NimiLoadoutRecipe | null {
   return recipes.find((recipe) => {
     if (recipe.capabilityContract !== capability || recipe.applicability !== 'supported') return false;
-    const summary = recipeResourceSummary(recipe, catalog, assets);
-    return summary.required > 0 && summary.missing === 0;
+    const summary = recipeOfferSummary(recipe);
+    return summary.required > 0 && summary.installed === summary.required;
   }) ?? null;
 }
 
@@ -246,8 +298,6 @@ export function capabilityRecommendedRecipeOnDevice(
 export function capabilityRecommendedFilesOnDevice(
   capability: string,
   recipes: readonly NimiLoadoutRecipe[],
-  catalog: readonly NimiRuntimeLocalVerifiedAssetDescriptor[],
-  assets: readonly NimiRuntimeModelAssetRecord[],
 ): boolean {
-  return capabilityRecommendedRecipeOnDevice(capability, recipes, catalog, assets) !== null;
+  return capabilityRecommendedRecipeOnDevice(capability, recipes) !== null;
 }

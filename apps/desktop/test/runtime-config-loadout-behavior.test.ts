@@ -59,7 +59,7 @@ function recipeOffer(
       verified: true,
       installed: Boolean(installedModelAssetId),
       installable: true,
-      ...(totalSizeBytes ? { totalSizeBytes } : {}),
+      ...(totalSizeBytes ? { totalSizeBytes, downloadSizeBytes: totalSizeBytes } : {}),
     },
     applicability,
     reasons: [],
@@ -104,6 +104,7 @@ test('Loadout presentation uses typed capability labels and Runtime catalog titl
   assert.equal(loadoutCapabilityLabelKey('voice.create'), 'runtimeConfig.loadouts.capability.voiceCreate');
   assert.equal(loadoutCapabilityLabelKey('music.generate'), 'runtimeConfig.loadouts.capability.musicGenerate');
   assert.equal(loadoutCapabilityLabelKey('audio.voice.convert'), 'runtimeConfig.loadouts.capability.audioVoiceConvert');
+  assert.equal(loadoutCapabilityLabelKey('text.decide'), 'runtimeConfig.loadouts.capability.textDecide');
   assert.equal(loadoutCapabilityLabelKey('future.capability'), 'runtimeConfig.loadouts.capability.other');
 
   const asset = {
@@ -249,7 +250,7 @@ test('Recipe template grouping preserves multiple image plans in canonical order
 });
 
 test('Recipe download estimate uses the first admissible offer per missing required slot', () => {
-  const candidate = (offerRef: string, totalSizeBytes?: number) => ({
+  const candidate = (offerRef: string, totalSizeBytes?: number, downloadSizeBytes = totalSizeBytes) => ({
     candidate: {
       offerRef,
       sourceLabel: 'model-index',
@@ -262,6 +263,7 @@ test('Recipe download estimate uses the first admissible offer per missing requi
       installed: false,
       installable: true,
       ...(totalSizeBytes ? { totalSizeBytes } : {}),
+      ...(downloadSizeBytes ? { downloadSizeBytes } : {}),
     },
     applicability: 'supported' as const,
     reasons: [],
@@ -279,6 +281,9 @@ test('Recipe download estimate uses the first admissible offer per missing requi
     slots: [...recipe.slots, { presence: 'required', offers: [candidate('unknown')] }],
   } as unknown as NimiLoadoutRecipe;
   assert.deepEqual(summarizeRuntimeConfigRecipeDownloads(unknown), { count: 3, totalSizeBytes: null });
+  // An archive offer downloads its archive, not its installed total.
+  const archive = { slots: [{ presence: 'required', offers: [candidate('archive', 100, 60)] }] } as unknown as NimiLoadoutRecipe;
+  assert.deepEqual(summarizeRuntimeConfigRecipeDownloads(archive), { count: 1, totalSizeBytes: 60 });
 });
 
 test('recommended Loadout install resolves the exact offer then updates the unresolved slot', async () => {

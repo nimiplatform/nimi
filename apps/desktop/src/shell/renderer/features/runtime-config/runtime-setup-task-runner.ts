@@ -101,7 +101,11 @@ export type RuntimeSetupAcquireOption = {
   readonly offerRef: string;
   readonly title: string;
   readonly variantLabel: string;
+  /** Bytes the acquisition transfers from its source; null when unknown. */
   readonly sizeBytes: number | null;
+  /** Upstream license and publisher of a catalog offer, shown before confirmation. */
+  readonly license?: string;
+  readonly publisher?: string;
   readonly installedModelAssetId?: string;
   readonly recommended?: boolean;
   /** Declared content identity to bind after acquisition (profile pending axis). */
@@ -136,6 +140,14 @@ export type RuntimeSetupPreparationPlan = {
   readonly environmentPlanId: string;
   readonly environmentScope?: string;
   readonly environmentDependencies?: NimiRuntimeLocalEnvironmentPlan['dependencies'];
+  /**
+   * Runtime's typed refusal to plan a managed environment for this candidate
+   * on this device. Present only before confirmation can be offered: the
+   * candidate cannot be prepared here, so nothing is downloaded or selected.
+   */
+  readonly environmentUnavailable?: { readonly reasonCode: string };
+  /** Runtime's aggregate component download size, or null when it is not known. */
+  readonly componentsDownloadBytes?: number | null;
   readonly candidateRevision: string;
   /** Whether the machine had any selection record for the capability at review. */
   readonly selectionRevisionPresent: boolean;
@@ -167,6 +179,8 @@ const RUNTIME_SETUP_ACCOUNT_CHANGED = 'RUNTIME_SETUP_ACCOUNT_CHANGED';
 const RUNTIME_SETUP_TASK_INACTIVE = 'RUNTIME_SETUP_TASK_INACTIVE';
 const RUNTIME_SETUP_TASK_SUPERSEDED = 'RUNTIME_SETUP_TASK_SUPERSEDED';
 const RUNTIME_SETUP_PLAN_CHANGED = 'RUNTIME_SETUP_PLAN_CHANGED';
+/** Runtime's exact refusal when a candidate's Driver has no managed environment on this host. */
+const RUNTIME_SETUP_ENVIRONMENT_UNAVAILABLE = 'AI_LOADOUT_DRIVER_UNAVAILABLE';
 const RUNTIME_SETUP_DEPENDENCY_JOB_POLL_INTERVAL_MS = 2000;
 
 function errorReasonCode(error: unknown): string | undefined {
@@ -436,13 +450,16 @@ async function writeRuntimeSetupOwnerConfig(
 }
 
 function acquireOptionFromOffer(offer: RecipeSlotOffer): RuntimeSetupAcquireOption {
+  // The review states what will be downloaded: the offer's source transfer
+  // size, which differs from the installed total for an archive source.
+  const transfer = offer.candidate.downloadSizeBytes;
   return {
     offerRef: offer.candidate.offerRef,
     title: offer.candidate.title || offer.candidate.offerRef,
     variantLabel: offer.candidate.variantLabel,
-    sizeBytes: typeof offer.candidate.totalSizeBytes === 'number' && Number.isFinite(offer.candidate.totalSizeBytes)
-      ? offer.candidate.totalSizeBytes
-      : null,
+    sizeBytes: typeof transfer === 'number' && Number.isFinite(transfer) && transfer > 0 ? transfer : null,
+    ...(offer.candidate.license ? { license: offer.candidate.license } : {}),
+    ...(offer.candidate.author ? { publisher: offer.candidate.author } : {}),
     ...(offer.installedModelAssetId ? { installedModelAssetId: offer.installedModelAssetId } : {}),
   };
 }
@@ -559,8 +576,34 @@ function planSlot(
 type ComputedPreparation = {
   readonly plan: RuntimeSetupPreparationPlan;
   readonly candidate: NimiMachineLoadout;
-  readonly environmentPlan: NimiRuntimeLocalEnvironmentPlan;
+  /** Null exactly when the plan carries environmentUnavailable from Runtime's refusal. */
+  readonly environmentPlan: NimiRuntimeLocalEnvironmentPlan | null;
 };
+
+/**
+ * The candidate's managed environment plan, or Runtime's exact typed refusal
+ * that its Driver has no managed environment on this device. Every other
+ * failure still fails the resolution; nothing here infers a platform table.
+ */
+async function resolveCandidateEnvironment(
+  task: RuntimeSetupTask,
+  ports: RuntimeSetupRunnerPorts,
+): Promise<{ readonly plan: NimiRuntimeLocalEnvironmentPlan | null; readonly unavailable?: { readonly reasonCode: string } }> {
+  try {
+    const plan = await ports.environment.resolveEnvironmentPlan({
+      capabilityContract: task.capabilityContract,
+      candidateLoadoutId: task.candidateLoadoutId,
+    });
+    return plan.state === 'unsupported'
+      ? { plan, unavailable: { reasonCode: plan.reasonCode || 'LOCAL_ENVIRONMENT_PLAN_UNSUPPORTED' } }
+      : { plan };
+  } catch (error) {
+    if (errorReasonCode(error) === RUNTIME_SETUP_ENVIRONMENT_UNAVAILABLE) {
+      return { plan: null, unavailable: { reasonCode: RUNTIME_SETUP_ENVIRONMENT_UNAVAILABLE } };
+    }
+    throw error;
+  }
+}
 
 /**
  * A slot with a declared content identity (AIProfile pending axis) is planned
@@ -646,14 +689,12 @@ async function computePreparation(
     throw new Error('Runtime setup task has no candidate Loadout yet.');
   }
   const pendingAxes = task.draft?.pendingAxes ?? [];
-  const [aggregate, recipes, environmentPlan] = await Promise.all([
+  const [aggregate, recipes, environment] = await Promise.all([
     ports.loadouts.get(),
     ports.loadouts.listRecipes(task.capabilityContract),
-    ports.environment.resolveEnvironmentPlan({
-      capabilityContract: task.capabilityContract,
-      candidateLoadoutId: task.candidateLoadoutId,
-    }),
+    resolveCandidateEnvironment(task, ports),
   ]);
+  const environmentPlan = environment.plan;
     const candidate = aggregate.loadouts.find((loadout) => loadout.loadoutId === task.candidateLoadoutId);
   if (!candidate) {
     throw new Error('Runtime setup candidate Loadout no longer exists.');
@@ -732,7 +773,7 @@ async function computePreparation(
       }
     }
   }
-  const components = environmentPlan.dependencies
+  const components = (environment.unavailable ? [] : environmentPlan?.dependencies ?? [])
     .filter((dependency) => !environmentComponentReady(dependency.state))
     .map((dependency) => ({
       dependencyFamily: dependency.dependencyFamily,
@@ -759,15 +800,21 @@ async function computePreparation(
       unavailable,
       components,
       options,
-      environmentPlanId: environmentPlan.planId,
-      environmentScope: JSON.stringify([
-        environmentPlan.packId,
-        environmentPlan.hostProfileId,
-        environmentPlan.platformTuple,
-        environmentPlan.runtimeDataRoot,
-        environmentPlan.consumerScope,
-      ]),
-      environmentDependencies: environmentPlan.dependencies,
+      environmentPlanId: environmentPlan?.planId ?? '',
+      ...(environmentPlan ? {
+        environmentScope: JSON.stringify([
+          environmentPlan.packId,
+          environmentPlan.hostProfileId,
+          environmentPlan.platformTuple,
+          environmentPlan.runtimeDataRoot,
+          environmentPlan.consumerScope,
+        ]),
+        environmentDependencies: environmentPlan.dependencies,
+        componentsDownloadBytes: environmentPlan.aggregateSizeKnown && environmentPlan.aggregateSizeBytes > 0
+          ? environmentPlan.aggregateSizeBytes
+          : null,
+      } : {}),
+      ...(environment.unavailable ? { environmentUnavailable: environment.unavailable } : {}),
       candidateRevision: candidate.revision,
       selectionRevisionPresent: Boolean(selectionRevision),
       ...(selectionRevision ? { selectionRevision } : {}),
@@ -799,6 +846,7 @@ function samePlan(left: RuntimeSetupPreparationPlan, right: RuntimeSetupPreparat
     components: plan.components.map((item) => [item.dependencyFamily, item.dependencyId, item.state]),
     options: plan.options.map((item) => item.slotId),
     environmentPlanId: plan.environmentPlanId,
+    environmentUnavailable: plan.environmentUnavailable?.reasonCode ?? '',
   });
   if (normalize(left) === normalize(right)) return true;
   if (
@@ -1213,7 +1261,7 @@ export async function resolveRuntimeSetupPreparation(
       ...(computed.plan.selectionRevision ? { selectionRevisionBaseline: computed.plan.selectionRevision } : {}),
       refs: {
         ...task.refs,
-        environmentPlanId: computed.environmentPlan.planId,
+        ...(computed.environmentPlan ? { environmentPlanId: computed.environmentPlan.planId } : {}),
         ...(computed.plan.ownerAIConfigRevision
           ? { aiConfigBaselineRevision: computed.plan.ownerAIConfigRevision }
           : {}),
@@ -1317,6 +1365,14 @@ export async function runRuntimeSetupPreparation(
       stage,
       reasonCode: 'RUNTIME_SETUP_SLOT_UNAVAILABLE',
       message: `No installable option exists for: ${computed.plan.unavailable.map((item) => item.label).join(', ')}.`,
+    });
+  }
+  const reviewedEnvironmentPlan = computed.environmentPlan;
+  if (computed.plan.environmentUnavailable || !reviewedEnvironmentPlan) {
+    return blocked({
+      stage,
+      reasonCode: computed.plan.environmentUnavailable?.reasonCode ?? RUNTIME_SETUP_ENVIRONMENT_UNAVAILABLE,
+      message: 'This configuration has no managed runtime environment on this device.',
     });
   }
   // The reviewed plan still carries its awaitingChoice slots; apply the same
@@ -1481,7 +1537,7 @@ export async function runRuntimeSetupPreparation(
     return failed(failure);
   }
   const dependencyChange = environmentPlanRequiredDependencyChange(
-    computed.environmentPlan.dependencies,
+    reviewedEnvironmentPlan.dependencies,
     freshEnvironmentPlan.dependencies,
   );
   if (dependencyChange) {

@@ -307,6 +307,10 @@
         "label": "语言分析",
         "description": "识别词语、词性、依存关系和句子边界"
       },
+      "textDecide": {
+        "label": "决策判断",
+        "description": "选择此 App 如何从它提供的选项中挑选一项，或判断某个说法是否成立，并给出相应的概率。"
+      },
       "audioSeparate": {
         "label": "人声与背景分离",
         "description": "分离人声和背景音，保留原有时间轴"

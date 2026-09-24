@@ -307,6 +307,10 @@
         "label": "Language analysis",
         "description": "Identify tokens, parts of speech, dependencies, and sentence boundaries"
       },
+      "textDecide": {
+        "label": "Decisions",
+        "description": "Choose how this app picks one of the options it provides or judges whether a statement holds, with a probability for each answer."
+      },
       "audioSeparate": {
         "label": "Vocals and background",
         "description": "Separate vocals from background audio while preserving timing"

@@ -1423,14 +1423,15 @@ export function recommendedInstallMessage(
   labels: RecommendedInstallMessageLabels,
 ): string {
   const missing = items.filter((item) => !item.installed);
+  // Download figures are the offers' source transfer sizes, never installed totals.
   const total = missing.length === 0
     ? 0
-    : missing.every((item) => knownDownloadSize(item.candidate.totalSizeBytes) !== null)
-      ? missing.reduce((sum, item) => sum + (knownDownloadSize(item.candidate.totalSizeBytes) ?? 0), 0)
+    : missing.every((item) => knownDownloadSize(item.candidate.downloadSizeBytes) !== null)
+      ? missing.reduce((sum, item) => sum + (knownDownloadSize(item.candidate.downloadSizeBytes) ?? 0), 0)
       : null;
   return [
     labels.heading,
-    ...items.map((item) => `${item.displayLabel}: ${item.candidate.title} · ${item.candidate.variantLabel} · ${formatDownloadBytes(knownDownloadSize(item.candidate.totalSizeBytes), labels.unknownSize)} · ${item.installed ? labels.installed : labels.download}`),
+    ...items.map((item) => `${item.displayLabel}: ${item.candidate.title} · ${item.candidate.variantLabel} · ${formatDownloadBytes(knownDownloadSize(item.candidate.downloadSizeBytes), labels.unknownSize)} · ${item.installed ? labels.installed : labels.download}`),
     `${labels.total}: ${formatDownloadBytes(total, labels.unknownSize)}`,
   ].join('\n');
 }
@@ -1470,7 +1471,7 @@ export function summarizeRuntimeConfigRecipeDownloads(recipe: NimiLoadoutRecipe)
     const offer = slot.offers.find((item) => (
       item.applicability !== 'unsupported' && item.candidate.installable
     ));
-    const size = offer?.candidate.totalSizeBytes;
+    const size = offer?.candidate.downloadSizeBytes;
     if (!size) return { count: missingRequiredSlots.length, totalSizeBytes: null };
     totalSizeBytes += size;
   }
@@ -1519,6 +1520,7 @@ export function loadoutCapabilityLabelKey(capabilityContract: string): string {
     case 'audio.synthesize': return 'runtimeConfig.loadouts.capability.audioSynthesize';
     case 'audio.transcribe': return 'runtimeConfig.loadouts.capability.audioTranscribe';
     case 'text.annotate': return 'runtimeConfig.loadouts.capability.textAnnotate';
+    case 'text.decide': return 'runtimeConfig.loadouts.capability.textDecide';
     case 'audio.separate': return 'runtimeConfig.loadouts.capability.audioSeparate';
     case 'voice.create': return 'runtimeConfig.loadouts.capability.voiceCreate';
     case 'video.generate': return 'runtimeConfig.loadouts.capability.videoGenerate';

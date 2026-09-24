@@ -24,6 +24,7 @@ const CAPABILITY_PRESENTATION_ORDER = [
   'voice.create',
   'audio.separate',
   'text.annotate',
+  'text.decide',
   'image.face_swap',
   'video.face_swap',
   'vision.locate',

@@ -130,6 +130,7 @@ function recipe(overrides?: Partial<NimiLoadoutRecipe>): NimiLoadoutRecipe {
           installed: false,
           installable: true,
           totalSizeBytes: 1024,
+          downloadSizeBytes: 1024,
         },
         applicability: 'supported',
         reasons: [],
@@ -2394,4 +2395,91 @@ test('choosing a recipe binds its single installed offer without downloading it 
     calls.some((call) => call.method === 'install.install'),
     false,
   );
+});
+
+test('a candidate without a managed environment on this device is blocked before confirmation', async () => {
+  const store = makeStore();
+  const calls: CallLog = [];
+  const state = baseState();
+  state.resolvePlan = () => {
+    throw createNimiError({
+      message: 'Loadout Driver has no local environment contract',
+      reasonCode: 'AI_LOADOUT_DRIVER_UNAVAILABLE',
+      source: 'runtime',
+    });
+  };
+  const ports = createPorts(state, calls);
+  const taskId = await createAppTask(store);
+  const created = await createRuntimeSetupCandidate(store, taskId, ports, { recipeId: 'image.recipe' });
+  assert.equal(created.status, 'ok');
+  const resolved = await resolveRuntimeSetupPreparation(store, taskId, ports);
+  assert.equal(resolved.status, 'ok');
+  const plan = resolved.status === 'ok' ? resolved.value : assert.fail('unreachable');
+  assert.deepEqual(plan.environmentUnavailable, { reasonCode: 'AI_LOADOUT_DRIVER_UNAVAILABLE' });
+  assert.equal(plan.components.length, 0);
+  assert.equal(store.getTask(taskId)?.status, 'review');
+
+  const result = await runRuntimeSetupPreparation(store, taskId, ports, { mode: 'prepare-and-use', reviewedPlan: plan });
+  assert.equal(result.status, 'blocked');
+  if (result.status === 'blocked') assert.equal(result.failure.reasonCode, 'AI_LOADOUT_DRIVER_UNAVAILABLE');
+  // Nothing is downloaded, installed, applied or selected for a refused candidate.
+  assert.equal(calls.some((entry) => [
+    'install.resolveOfferInstallPlan', 'install.install', 'environment.applyEnvironmentPlan', 'loadouts.select',
+  ].includes(entry.method)), false);
+});
+
+test('other environment resolution failures still fail the review instead of being reported as unsupported', async () => {
+  const store = makeStore();
+  const state = baseState();
+  state.resolvePlan = () => {
+    throw createNimiError({ message: 'Runtime unavailable', reasonCode: 'RUNTIME_UNAVAILABLE', source: 'runtime' });
+  };
+  const ports = createPorts(state, []);
+  const taskId = await createAppTask(store);
+  await createRuntimeSetupCandidate(store, taskId, ports, { recipeId: 'image.recipe' });
+  const resolved = await resolveRuntimeSetupPreparation(store, taskId, ports);
+  assert.equal(resolved.status, 'failed');
+  assert.equal(store.getTask(taskId)?.status, 'failed');
+});
+
+test('an unsupported environment plan blocks confirmation with its own reason', async () => {
+  const store = makeStore();
+  const ports = createPorts(baseState({
+    plan: environmentPlan({ state: 'unsupported', reasonCode: 'LOCAL_ENVIRONMENT_PLAN_UNSUPPORTED' }),
+  }), []);
+  const taskId = await createAppTask(store);
+  await createRuntimeSetupCandidate(store, taskId, ports, { recipeId: 'image.recipe' });
+  const resolved = await resolveRuntimeSetupPreparation(store, taskId, ports);
+  const plan = resolved.status === 'ok' ? resolved.value : assert.fail('unreachable');
+  assert.deepEqual(plan.environmentUnavailable, { reasonCode: 'LOCAL_ENVIRONMENT_PLAN_UNSUPPORTED' });
+});
+
+test('a download row states the source transfer size and upstream terms, never the installed total', async () => {
+  const store = makeStore();
+  const base = recipe();
+  const slot = base.slots[0]!;
+  const archiveRecipe = recipe({
+    slots: [{
+      ...slot,
+      offers: [{
+        ...slot.offers[0]!,
+        candidate: {
+          ...slot.offers[0]!.candidate,
+          totalSizeBytes: 56524490,
+          downloadSizeBytes: 33480380,
+          license: 'MIT',
+          author: 'explosion',
+        },
+      }],
+    }],
+  });
+  const ports = createPorts(baseState({ recipes: [archiveRecipe] }), []);
+  const taskId = await createAppTask(store);
+  await createRuntimeSetupCandidate(store, taskId, ports, { recipeId: 'image.recipe' });
+  const resolved = await resolveRuntimeSetupPreparation(store, taskId, ports);
+  const plan = resolved.status === 'ok' ? resolved.value : assert.fail('unreachable');
+  assert.equal(plan.acquire[0]?.offer.sizeBytes, 33480380);
+  assert.equal(plan.acquire[0]?.offer.license, 'MIT');
+  assert.equal(plan.acquire[0]?.offer.publisher, 'explosion');
+  assert.equal(plan.componentsDownloadBytes, null);
 });

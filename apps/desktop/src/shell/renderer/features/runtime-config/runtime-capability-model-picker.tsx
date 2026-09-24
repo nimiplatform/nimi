@@ -9,7 +9,7 @@ import { ArrowRight, Check, FolderOpen, SlidersHorizontal } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatBytes } from '../../components/download-format.js';
-import { capabilityModelIdentity, modelDisplayTitle, recipeResourceSummary } from './runtime-capability-presentation.js';
+import { capabilityModelIdentity, modelDisplayTitle, recipeOfferSummary } from './runtime-capability-presentation.js';
 
 type Props = {
   readonly label: string;
@@ -60,13 +60,12 @@ export function RuntimeCapabilityModelPicker(props: Props) {
     }
   };
   const downloadLabel = (recipe: NimiLoadoutRecipe) => {
-    if (props.libraryLoading) return t('Common.loading');
-    if (props.libraryError) return t('runtimeConfig.product.preparationUnknown');
-    const summary = recipeResourceSummary(recipe, props.catalog, props.assets);
+    const summary = recipeOfferSummary(recipe);
+    if (summary.withoutOffer > 0) return t('runtimeConfig.product.noDirectDownload');
     if (summary.missing === 0) return t('runtimeConfig.product.modelsOnDevice');
-    return summary.bytes === null
+    return summary.downloadBytes === null
       ? t('runtimeConfig.product.downloadSizeUnknown')
-      : t('runtimeConfig.product.downloadSize', { size: formatBytes(summary.bytes) });
+      : t('runtimeConfig.product.downloadSize', { size: formatBytes(summary.downloadBytes) });
   };
   return (
     <OverlayShell
@@ -147,7 +146,7 @@ export function RuntimeCapabilityModelPicker(props: Props) {
                 <div className="min-w-0">
                   <p className="break-words text-sm font-semibold">{modelDisplayTitle(recipe.title)}</p>
                   <p className="mt-1 text-xs text-[var(--nimi-text-secondary)]">{downloadLabel(recipe)}</p>
-                  <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">{t(`runtimeConfig.loadouts.hostFit.${recipe.applicability}`)}</p>
+                  <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">{t(`runtimeConfig.product.modelFit.${recipe.applicability}`)}</p>
                 </div>
                 <Button tone="primary" size="sm" disabled={busy || props.disabled || recipe.applicability === 'unsupported'} loading={choosing === recipe.recipeId} onClick={() => void choose(recipe.recipeId, recipe.recipeId)} data-testid={`capability-model-picker-recipe:${recipe.recipeId}`}>
                   {t('runtimeConfig.product.modelPicker.use')}

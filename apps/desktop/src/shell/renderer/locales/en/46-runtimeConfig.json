@@ -203,6 +203,13 @@
     "rowChoice": "Choose which version to use.",
     "rowComponentRequired": "Installed automatically for this model",
     "rowComponentOptional": "Optional",
+    "rowPublisher": "Source: {{publisher}}",
+    "rowLicense": "License: {{license}}",
+    "directDownloadNote": "Models are downloaded by this device directly from their publisher; using them is subject to each license.",
+    "componentsDownloadKnown": "Runtime components download about {{size}} more.",
+    "componentsDownloadUnknown": "Runtime components also need downloading; their size can't be estimated yet and isn't included in the model download above.",
+    "environmentUnavailable": "This model has no managed runtime environment on this device, so it can't be prepared here. Nothing will be downloaded and the current model stays unchanged.",
+    "noDirectDownloadHint": "This model has no direct download. Choose model files already on this device under Version and options, or import model files first.",
     "confirmLead": "After you confirm, Nimi prepares everything above by itself. When it finishes, {{model}} becomes the current model for {{capability}} on this device.",
     "confirmLeadReady": "Nothing needs preparing. {{model}} becomes the current model for {{capability}} on this device as soon as you confirm.",
     "heroModel": "Model for this setup: {{model}}",
@@ -213,6 +220,20 @@
     "componentFamily": {
       "native-engine-package.llama": "Inference engine",
       "accelerator.cuda.runtime": "GPU acceleration"
+    },
+    "componentFamilyName": {
+      "python.tool.uv": "Python installer (uv)",
+      "python.runtime": "Python runtime",
+      "python.venv": "Isolated Python environment",
+      "python.package-set": "Model libraries",
+      "python.torch-wheel": "PyTorch compute library"
+    },
+    "componentPurpose": {
+      "python.tool.uv": "Installs Python components inside Nimi's managed folder",
+      "python.runtime": "Runs the model program without changing the system Python",
+      "python.venv": "Keeps this model's libraries separate from the system and other apps",
+      "python.package-set": "The pinned libraries this model needs to run",
+      "python.torch-wheel": "The PyTorch library the model computes with"
     },
     "componentState": {
       "needs_confirmation": "To install",
@@ -483,6 +504,7 @@
       "audioVoiceConvert": "Voice conversion",
       "other": "Other local AI capability",
       "textAnnotate": "Language analysis",
+      "textDecide": "Decisions",
       "audioSeparate": "Vocals and background"
     },
     "capabilityDescription": {
@@ -501,6 +523,7 @@
       "audioVoiceConvert": "Retarget a singing performance to a different voice",
       "other": "Other local AI capability",
       "textAnnotate": "Identify tokens, parts of speech, dependencies, and sentence boundaries",
+      "textDecide": "Pick one of an app's options or judge whether a statement holds, with probabilities",
       "audioSeparate": "Separate vocals from background audio while preserving timing"
     },
     "required": "Required",
@@ -1688,6 +1711,7 @@
     "audioVoiceConvert": "Voice conversion",
     "voiceCreate": "Voice creation",
     "textAnnotate": "Language analysis",
+    "textDecide": "Decisions",
     "audioSeparate": "Vocals and background"
   },
   "common": {
@@ -2293,6 +2317,7 @@
       "video-generate": "Create video with the inputs and controls supported by the selected model.",
       "voice-create": "Create reusable voices from supported voice descriptions or reference recordings.",
       "text-annotate": "Break text into sentences and words and mark parts of speech and grammar for subtitle, translation and other text apps.",
+      "text-decide": "Let apps pick one of the options they provide or judge whether a statement about text or data holds, with a probability for each answer.",
       "text-embed": "Represent text for semantic search and other app features.",
       "image-face-swap": "Replace faces in images using supported inputs and models.",
       "video-face-swap": "Apply face replacement to video in supported apps.",
@@ -2454,7 +2479,14 @@
     "backToSetups": "Back to Get started",
     "backToCustomization": "Back to customization",
     "preparationUnknown": "Preparation details are unavailable. Try again shortly.",
-    "downloadSizeUnknown": "Download size to be confirmed",
+    "downloadSizeUnknown": "Download size unknown",
+    "noDirectDownload": "No direct download",
+    "chooseImportedFiles": "Choose files on this device",
+    "modelFit": {
+      "supported": "Recommended model fits this device",
+      "unknown": "Device fit not confirmed",
+      "unsupported": "Recommended model doesn't fit this device"
+    },
     "downloadSize": "{{size}} to download",
     "modelsOnDevice": "On this device",
     "deviceRecommendation": "Fits this device",
@@ -2578,6 +2610,7 @@
       "voice-create": "Create voices",
       "audio-separate": "Separate audio tracks",
       "text-annotate": "Analyze and annotate text",
+      "text-decide": "Pick an option or answer yes/no",
       "image-face-swap": "Swap faces in images",
       "video-face-swap": "Swap faces in video",
       "vision-locate": "Identify and locate image content",

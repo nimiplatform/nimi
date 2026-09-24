@@ -72,6 +72,10 @@ const CAPABILITY_COPY_KEYS: Readonly<Record<string, {
     label: 'Apps.aiConfig.capability.textAnnotate.label',
     description: 'Apps.aiConfig.capability.textAnnotate.description',
   },
+  'text.decide': {
+    label: 'Apps.aiConfig.capability.textDecide.label',
+    description: 'Apps.aiConfig.capability.textDecide.description',
+  },
   'text.generate': {
     label: 'Apps.aiConfig.capability.textGenerate.label',
     description: 'Apps.aiConfig.capability.textGenerate.description',

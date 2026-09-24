@@ -126,21 +126,26 @@ test('downloaded recommended files are surfaced on an unset capability without c
   const { capabilityRecommendedFilesOnDevice } = await import(
     '../src/shell/renderer/features/runtime-config/runtime-capability-presentation.js'
   );
-  const recipe = (applicability: string, contentId = 'c1') => ({
+  // Only Runtime's exact installed-offer identity counts; equal content bytes
+  // imported under another distribution do not.
+  const recipe = (applicability: string, installedModelAssetId?: string) => ({
     recipeId: 'r',
     capabilityContract: capability,
     applicability,
-    slots: [{ presence: 'required', recommendedContentIds: [contentId], recommendedVariantIds: ['v1'] }],
+    slots: [{
+      presence: 'required', recommendedContentIds: ['c1'], recommendedVariantIds: ['v1'],
+      offers: [{
+        applicability: 'supported', reasons: [],
+        candidate: { offerRef: 'offer-v1', installable: true, totalSizeBytes: 10, downloadSizeBytes: 6 },
+        ...(installedModelAssetId ? { installedModelAssetId } : {}),
+      }],
+    }],
   });
-  const catalog = [{ contentId: 'c1', templateId: 'v1', totalSizeBytes: 10 }];
-  const verified = [{ contentId: 'c1', contentVerified: true }];
-  const helper = (recipes: unknown[], assets: unknown[]) =>
-    capabilityRecommendedFilesOnDevice(capability, recipes as never, catalog as never, assets as never);
-  assert.equal(helper([recipe('supported')], verified), true);
-  assert.equal(helper([recipe('supported')], [{ contentId: 'c1', contentVerified: false }]), false);
-  assert.equal(helper([recipe('supported', 'other')], verified), false);
-  assert.equal(helper([recipe('unsupported')], verified), false);
-  assert.equal(helper([], verified), false);
+  const helper = (recipes: unknown[]) => capabilityRecommendedFilesOnDevice(capability, recipes as never);
+  assert.equal(helper([recipe('supported', 'asset-1')]), true);
+  assert.equal(helper([recipe('supported')]), false);
+  assert.equal(helper([recipe('unsupported', 'asset-1')]), false);
+  assert.equal(helper([]), false);
   // Files on device never change the preparation state itself.
   assert.equal(
     capabilityPreparationState({ capability, inventory: inventory(false), tasks: [] }).state,
@@ -152,20 +157,24 @@ test('the overview names the downloaded recipe and a direct enable only when not
   const { capabilityRecommendedRecipeOnDevice, setupPlanAllowsDirectUse } = await import(
     '../src/shell/renderer/features/runtime-config/runtime-capability-presentation.js'
   );
-  const recipe = (recipeId: string, applicability: string, contentId = 'c1') => ({
+  const recipe = (recipeId: string, applicability: string, installed = true) => ({
     recipeId,
     capabilityContract: capability,
     applicability,
-    slots: [{ presence: 'required', recommendedContentIds: [contentId], recommendedVariantIds: ['v1'] }],
+    slots: [{
+      presence: 'required', recommendedContentIds: ['c1'], recommendedVariantIds: ['v1'],
+      offers: [{
+        applicability: 'supported', reasons: [],
+        candidate: { offerRef: `offer-${recipeId}`, installable: true, totalSizeBytes: 10 },
+        ...(installed ? { installedModelAssetId: `asset-${recipeId}` } : {}),
+      }],
+    }],
   });
-  const catalog = [{ contentId: 'c1', templateId: 'v1', totalSizeBytes: 10 }];
-  const verified = [{ contentId: 'c1', contentVerified: true }];
-  const pick = (recipes: unknown[]) =>
-    capabilityRecommendedRecipeOnDevice(capability, recipes as never, catalog as never, verified as never);
-  // The first supported recipe with every required file verified wins; an
+  const pick = (recipes: unknown[]) => capabilityRecommendedRecipeOnDevice(capability, recipes as never);
+  // The first supported recipe with every required offer installed wins; an
   // unsupported or incomplete recipe is skipped rather than blocking.
-  assert.equal(pick([recipe('a', 'unsupported'), recipe('b', 'supported', 'other'), recipe('c', 'supported')])?.recipeId, 'c');
-  assert.equal(pick([recipe('a', 'supported', 'other')]), null);
+  assert.equal(pick([recipe('a', 'unsupported'), recipe('b', 'supported', false), recipe('c', 'supported')])?.recipeId, 'c');
+  assert.equal(pick([recipe('a', 'supported', false)]), null);
 
   const plan = (overrides: Record<string, unknown>) => ({
     reuse: [], acquire: [], awaitingChoice: [], unavailable: [], components: [], options: [],
@@ -179,4 +188,5 @@ test('the overview names the downloaded recipe and a direct enable only when not
   assert.equal(setupPlanAllowsDirectUse(plan({ acquire: [{ slotId: 's', label: '', offer: {} }] }) as never), false);
   assert.equal(setupPlanAllowsDirectUse(plan({ awaitingChoice: [{ slotId: 's', label: '', options: [] }] }) as never), false);
   assert.equal(setupPlanAllowsDirectUse(plan({ unavailable: [{ slotId: 's', label: '' }] }) as never), false);
+  assert.equal(setupPlanAllowsDirectUse(plan({ environmentUnavailable: { reasonCode: 'AI_LOADOUT_DRIVER_UNAVAILABLE' } }) as never), false);
 });
