@@ -138,6 +138,32 @@ async function main() {
   });
   assert.equal(voiceCancellation?.status, 'ok');
   assert.equal(voiceCancellation?.value?.canceled, true);
+  for (const name of ['localAppScenarioExecuteCancel', 'localAppScenarioExecuteRelease']) {
+    assert.equal(typeof addon[name], 'function', `${name} export is missing`);
+  }
+  assert.throws(
+    () => addon.localAppScenarioExecute({ spec: { type: 'text-embed', inputs: ['x'] } }),
+    /Missing field `requestId`/u,
+    'localAppScenarioExecute must take the Host-generated requestId',
+  );
+  for (const input of [
+    { spec: {}, requestId: '' },
+    { spec: {}, requestId: 'contract-execute', timeoutMs: 0 },
+    { spec: {}, requestId: 'contract-execute', timeoutMs: 120001 },
+    { spec: {}, requestId: 'contract-execute', timeoutMs: 1.5 },
+  ]) {
+    const outcome = await addon.localAppScenarioExecute(input);
+    assert.equal(outcome?.status, 'error');
+    assert.equal(outcome?.reasonCode, 'invalid-payload', 'an invalid call identity or deadline must fail before transport');
+  }
+  const executeCancellation = await addon.localAppScenarioExecuteCancel({ requestId: 'contract-execute-cancel' });
+  assert.equal(executeCancellation?.status, 'ok');
+  assert.equal(executeCancellation?.value?.canceled, true);
+  const executeRelease = await addon.localAppScenarioExecuteRelease({ requestId: 'contract-execute-cancel' });
+  assert.equal(executeRelease?.status, 'ok');
+  assert.equal(executeRelease?.value?.released, true);
+  const invalidExecuteCancellation = await addon.localAppScenarioExecuteCancel({ requestId: 'has space' });
+  assert.equal(invalidExecuteCancellation?.reasonCode, 'invalid-payload');
 
   for (const retired of [
     'localAppAgentConfigurationSnapshot',
@@ -155,6 +181,8 @@ async function main() {
   for (const name of [
     'desktopFocusLocalDevelopmentHost',
     'localAppScenarioExecute',
+    'localAppScenarioExecuteCancel',
+    'localAppScenarioExecuteRelease',
     'localAppScenarioJobSubmit',
     'localAppScenarioJobGet',
     'localAppScenarioJobCancel',

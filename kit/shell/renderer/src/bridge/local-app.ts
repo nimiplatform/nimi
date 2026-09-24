@@ -34,6 +34,12 @@ import type {
   NimiLocalAppTextOutputItem,
 } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppTextInput, validateNimiLocalAppTextOutputItems, validateNimiLocalAppReasoningContinuityCarrier } from '@nimiplatform/kit/core/sdk-contract';
+import {
+  validateNimiLocalAppTextDecideOutput,
+  validateNimiLocalAppTextDecideShellSpec,
+  type NimiLocalAppTextDecideOutput,
+  type NimiLocalAppTextDecideShellSpec,
+} from '@nimiplatform/kit/core/sdk-contract';
 import { BridgeError, invoke, invokeChecked } from './invoke.js';
 import { listenShell } from './tauri-api.js';
 import { assertRecord, parseRequiredString } from './types.js';
@@ -138,7 +144,15 @@ export type NimiLocalAppTextCandidateResult = {
 export type NimiLocalAppScenarioExecuteSpec =
   | ({ readonly type: 'text-generate' } & NimiLocalAppTextTurnInput)
   | { readonly type: 'text-embed'; readonly inputs: readonly string[] }
-  | NimiLocalAppImageGenerateSpec;
+  | NimiLocalAppImageGenerateSpec
+  // Carrier form: JSON content is the SDK's canonical JSON.stringify text.
+  | NimiLocalAppTextDecideShellSpec;
+
+/** Per-call control; the Host, not the renderer, owns the native call identity. */
+export type NimiLocalAppScenarioExecuteOptions = {
+  readonly signal?: AbortSignal;
+  readonly timeoutMs?: number;
+};
 
 export type NimiLocalAppImageGenerateSpec = {
   readonly type: 'image-generate';
@@ -263,7 +277,8 @@ export type NimiLocalAppVoiceAsset = {
 export type NimiLocalAppScenarioExecuteResult =
   | { readonly output: { readonly type: 'text-generate'; readonly items: readonly NimiLocalAppTextOutputItem[]; readonly finishReason: 'stop' | 'length' | 'tool-calls' | 'content-filter' }; readonly traceId: string }
   | { readonly output: { readonly type: 'text-embed'; readonly vectors: readonly (readonly number[])[] }; readonly traceId: string }
-  | { readonly output: { readonly type: 'image-generate'; readonly artifacts: readonly NimiLocalAppScenarioArtifact[] }; readonly traceId: string };
+  | { readonly output: { readonly type: 'image-generate'; readonly artifacts: readonly NimiLocalAppScenarioArtifact[] }; readonly traceId: string }
+  | { readonly output: NimiLocalAppTextDecideOutput; readonly traceId: string };
 export type NimiLocalAppScenarioJobSubmitResult = {
   readonly job: NimiLocalAppScenarioJob;
 };
@@ -462,7 +477,10 @@ export type NimiLocalAppStandardShellSurface = {
       ) => Promise<NimiLocalAppStream<NimiLocalAppTextTurnEvent>>;
     };
     readonly scenario: {
-      readonly execute: (spec: NimiLocalAppScenarioExecuteSpec) => Promise<NimiLocalAppScenarioExecuteResult>;
+      readonly execute: (
+        spec: NimiLocalAppScenarioExecuteSpec,
+        options?: NimiLocalAppScenarioExecuteOptions,
+      ) => Promise<NimiLocalAppScenarioExecuteResult>;
     };
     readonly scenarioJobs: {
       readonly submit: (
@@ -889,12 +907,95 @@ export async function streamNimiLocalAppTextTurn(
   );
 }
 
+// @nimi-authority: rule.nimi.sdks.feature-clients.scenario-execute-call-control
 export function executeNimiLocalAppScenario(
   spec: NimiLocalAppScenarioExecuteSpec,
+  options?: NimiLocalAppScenarioExecuteOptions,
 ): Promise<NimiLocalAppScenarioExecuteResult> {
   const command = AIC_COMMANDS.scenarioExecute;
-  return invokeChecked(command, { payload: { spec: canonicalScenarioSpec(spec, command) } },
-    (value) => parseScenarioExecute(value, command));
+  const call = scenarioExecuteOptions(options, command);
+  const canonical = canonicalScenarioSpec(spec, command);
+  const signal = call.signal;
+  if (signal?.aborted) return Promise.reject(scenarioExecuteAbortError());
+  // A renderer correlation only names this call for cancel on the same
+  // command; the Host keeps it per sender and chooses the native identity.
+  const callId = signal ? createScenarioExecuteCallId() : undefined;
+  const operation = invokeChecked(command, { payload: {
+    spec: canonical,
+    ...(callId ? { callId } : {}),
+    ...(call.timeoutMs !== undefined ? { timeoutMs: call.timeoutMs } : {}),
+  } }, (value) => parseScenarioExecute(value, command, canonical));
+  if (!signal || !callId) return operation;
+  return abortableScenarioExecute(command, callId, signal, operation);
+}
+
+const MAX_SCENARIO_EXECUTE_TIMEOUT_MS = 120_000;
+let scenarioExecuteCallSequence = 0;
+
+function scenarioExecuteOptions(
+  options: NimiLocalAppScenarioExecuteOptions | undefined,
+  command: string,
+): NimiLocalAppScenarioExecuteOptions {
+  if (options === undefined) return {};
+  assertAllowedInputKeys(options, ['signal', 'timeoutMs'], [], command);
+  const signal = options.signal;
+  if (signal !== undefined && (!signal || typeof signal !== 'object' || typeof signal.aborted !== 'boolean'
+    || typeof signal.addEventListener !== 'function' || typeof signal.removeEventListener !== 'function')) {
+    throw invalidInput(command, 'signal must be an AbortSignal');
+  }
+  return {
+    ...(signal !== undefined ? { signal } : {}),
+    ...(options.timeoutMs !== undefined
+      ? { timeoutMs: boundedSafeInteger(options.timeoutMs, 'timeoutMs', command, 1, MAX_SCENARIO_EXECUTE_TIMEOUT_MS) }
+      : {}),
+  };
+}
+
+function createScenarioExecuteCallId(): string {
+  scenarioExecuteCallSequence += 1;
+  const random = new Uint32Array(2);
+  const crypto = (globalThis as { readonly crypto?: { getRandomValues?: (array: Uint32Array) => Uint32Array } }).crypto;
+  if (typeof crypto?.getRandomValues === 'function') {
+    crypto.getRandomValues(random);
+  } else {
+    random[0] = Math.floor(Math.random() * 0x1_0000_0000);
+    random[1] = Math.floor(Math.random() * 0x1_0000_0000);
+  }
+  return `scenario-execute-${Date.now().toString(36)}-${scenarioExecuteCallSequence}-${random[0]!.toString(36)}${random[1]!.toString(36)}`;
+}
+
+function scenarioExecuteAbortError(): Error {
+  const error = new Error('Local-app scenario execution was canceled.');
+  error.name = 'AbortError';
+  return error;
+}
+
+function abortableScenarioExecute(
+  command: string,
+  callId: string,
+  signal: AbortSignal,
+  operation: Promise<NimiLocalAppScenarioExecuteResult>,
+): Promise<NimiLocalAppScenarioExecuteResult> {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (callback: () => void) => {
+      if (settled) return;
+      settled = true;
+      signal.removeEventListener('abort', onAbort);
+      callback();
+    };
+    const onAbort = () => {
+      // Settle without waiting for Runtime; the Host drops the native call.
+      void invoke(command, { payload: { action: 'cancel', callId } }).catch(() => undefined);
+      finish(() => reject(scenarioExecuteAbortError()));
+    };
+    signal.addEventListener('abort', onAbort, { once: true });
+    if (signal.aborted) onAbort();
+    operation.then(
+      (value) => finish(() => resolve(value)),
+      (error) => finish(() => reject(error)),
+    );
+  });
 }
 
 export function submitNimiLocalAppScenarioJob(
@@ -975,6 +1076,13 @@ export function listNimiLocalAppVoiceAssets(
 
 function canonicalScenarioSpec(spec: unknown, command: string): JsonObject {
   const record = assertRecord(spec, `${command}: scenario spec must be an object`);
+  if (record.type === 'text-decide') {
+    if (command !== AIC_COMMANDS.scenarioExecute) throw invalidInput(command, 'text-decide is a synchronous Scenario');
+    // App JSON is carried as its canonical text, so its keys are product
+    // content rather than projection fields.
+    try { return validateNimiLocalAppTextDecideShellSpec(record) as unknown as JsonObject; }
+    catch { throw invalidInput(command, 'text decision input is invalid'); }
+  }
   if (record.type === 'music-transcribe') {
     try { validateNimiLocalAppMusicTranscribeSpec(record); }
     catch { throw invalidInput(command, 'Music transcription input is invalid'); }
@@ -2456,11 +2564,19 @@ function parseConversationVoice(value: unknown, command: string): JsonObject {
   }) as JsonObject;
 }
 
-function parseScenarioExecute(value: unknown, command: string): NimiLocalAppScenarioExecuteResult {
+function parseScenarioExecute(value: unknown, command: string, spec: JsonObject): NimiLocalAppScenarioExecuteResult {
   const record = assertRecord(value, `${command}: execute result is invalid`);
   assertProjectionKeys(record, ['output', 'traceId'], command, 'scenario execute');
   requiredText(record.traceId, 'traceId', command, 512);
   const output = assertRecord(record.output, `${command}: execute output is invalid`);
+  if ((output.type === 'text-decide') !== (spec.type === 'text-decide')) {
+    throw new Error(`${command}: execute output type does not match the submitted spec`);
+  }
+  if (output.type === 'text-decide') {
+    // @nimi-authority: rule.nimi.runtime.ai-provider.text-decision
+    const decision = validateNimiLocalAppTextDecideOutput(output, spec as unknown as NimiLocalAppTextDecideShellSpec);
+    return Object.freeze({ output: decision, traceId: record.traceId as string });
+  }
   if (output.type === 'text-generate') {
     assertProjectionKeys(output, ['type', 'items', 'finishReason'], command, 'text output');
     validateNimiLocalAppTextOutputItems(output.items);

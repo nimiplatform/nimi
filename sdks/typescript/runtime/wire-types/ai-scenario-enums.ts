@@ -399,6 +399,7 @@ export enum ScenarioType {
   TEXT_ANNOTATE = 16,
   MUSIC_TRANSCRIBE = 17,
   AUDIO_VOICE_CONVERT = 18,
+  TEXT_DECIDE = 19,
 }
 
 export enum SchedulingState {

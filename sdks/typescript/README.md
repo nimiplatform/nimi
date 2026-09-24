@@ -363,6 +363,43 @@ This addition requires a matching development Runtime, SDK, Kit and native
 package set. Keep using the documented local tarball workflow during iteration;
 package publication is not a development prerequisite.
 
+## Text decisions
+
+Use the `text.decide` AI configuration capability and the synchronous
+`text-decide` execute variant to score App-authored questions about one state:
+
+```ts
+const controller = new AbortController();
+const { output, traceId } = await client.ai.scenario.execute({
+  type: 'text-decide',
+  state: { json: { hand: ['A', 'K'], pot: 12 } }, // or { text: '...' }
+  questions: [
+    { id: 'action', instructions: { text: 'Choose the action.' }, kind: 'choice',
+      candidates: [{ id: 'fold' }, { id: 'call', description: { text: 'Match the bet.' } }] },
+    { id: 'bluff', instructions: { text: 'Is the opponent bluffing?' }, kind: 'boolean' },
+  ],
+}, { signal: controller.signal, timeoutMs: 10_000 });
+// output.type === 'text-decide'; output.answers follow the submitted order.
+```
+
+State is nonblank text or one JSON object or array (at most 256 KiB, 64 nesting
+levels); 1–64 questions with unique IDs; instructions at most 32 KiB; a choice has
+2–255 unique candidates; descriptions and boolean criteria are optional and at most
+8 KiB; IDs are 1–64 bytes without surrounding whitespace or control characters; the
+complete request is at most 1 MiB. JSON content is sent as its `JSON.stringify`
+text, so key insertion order is kept. Invalid input fails before transport.
+
+Each choice answer carries the selected candidate and one probability per submitted
+candidate in submitted order; each boolean answer carries `trueProbability`. There is
+no confidence, usage, provider or model field. Thresholds, grouping and actions stay
+in the App. Input that is valid but cannot be encoded completely by the configured
+implementation fails with `ai-input-limit-exceeded` (`AI_INPUT_LIMIT_EXCEEDED`).
+
+Every execute variant accepts per-call options. Aborting settles the call at once
+with `OPERATION_ABORTED`; an elapsed `timeoutMs` (1–120000) settles it with
+`OPERATION_TIMEOUT`. Either failure cancels the pending Runtime call, never returns a
+late result and leaves the protected App session valid.
+
 ## Public entry points
 
 | Import | Purpose |

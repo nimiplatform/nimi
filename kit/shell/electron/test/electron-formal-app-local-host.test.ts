@@ -17,6 +17,8 @@ import {
   UploadLocalAppConversationAttachmentResponse,
 } from '../../../../sdks/typescript/core-generated/runtime-protobuf/runtime/v1/agent_service.js';
 import {
+  ExecuteLocalAppScenarioRequest,
+  ExecuteLocalAppScenarioResponse,
   GetLocalAppScenarioJobRequest,
   GetLocalAppScenarioJobResponse,
   SubmitLocalAppScenarioJobRequest,
@@ -307,6 +309,118 @@ describe('Electron formal App local host', () => {
     await expect(host.scenarioJobSubmit({ spec: { type: 'music-generate', prompt: 'changed', lyrics: 'different song' }, clientSubmissionId: 'music-action' }))
       .rejects.toMatchObject({ reasonCode: 'ai-media-idempotency-conflict', retryable: false });
     expect(unary).toHaveBeenCalledTimes(3);
+  });
+
+  it.each([
+    ['desktop', 'nimi.desktop'],
+    ['avatar', 'nimi.avatar'],
+  ] as const)('carries one text decision with caller controls through the %s formal codec', async (profile, appId) => {
+    const spec = {
+      type: 'text-decide',
+      state: { json: '{"z":1,"a":[true,null]}' },
+      questions: [
+        {
+          id: 'mood',
+          instructions: { text: 'Pick the mood.' },
+          kind: 'choice',
+          candidates: [{ id: 'calm' }, { id: 'tense', description: { json: '["b","a"]' } }],
+        },
+        { id: 'act', instructions: { json: '{"b":2,"a":1}' }, kind: 'boolean', trueCriterion: { text: 'Act now.' } },
+      ],
+    };
+    const transports: Array<{ timeoutMs?: number; requestTimeoutMs: number; signal?: AbortSignal }> = [];
+    let respond = true;
+    const unary = vi.fn(async (input: {
+      methodId: string;
+      requestBytes: Uint8Array;
+      timeoutMs?: number;
+      signal?: AbortSignal;
+    }) => {
+      expect(input.methodId).toBe('/nimi.runtime.v1.RuntimeAiService/ExecuteLocalAppScenario');
+      const request = ExecuteLocalAppScenarioRequest.fromBinary(input.requestBytes);
+      transports.push({ timeoutMs: input.timeoutMs, requestTimeoutMs: request.timeoutMs, signal: input.signal });
+      expect(request.spec).toEqual({
+        oneofKind: 'textDecide',
+        textDecide: {
+          state: { value: { oneofKind: 'json', json: '{"z":1,"a":[true,null]}' } },
+          questions: [
+            {
+              id: 'mood',
+              instructions: { value: { oneofKind: 'text', text: 'Pick the mood.' } },
+              kind: { oneofKind: 'choice', choice: { candidates: [
+                { id: 'calm' },
+                { id: 'tense', description: { value: { oneofKind: 'json', json: '["b","a"]' } } },
+              ] } },
+            },
+            {
+              id: 'act',
+              instructions: { value: { oneofKind: 'json', json: '{"b":2,"a":1}' } },
+              kind: { oneofKind: 'boolean', boolean: { trueCriterion: { value: { oneofKind: 'text', text: 'Act now.' } } } },
+            },
+          ],
+        },
+      });
+      if (!respond) {
+        return new Promise<Uint8Array>(() => undefined);
+      }
+      return ExecuteLocalAppScenarioResponse.toBinary(ExecuteLocalAppScenarioResponse.create({
+        output: { oneofKind: 'textDecide', textDecide: { answers: [
+          { questionId: 'mood', result: { oneofKind: 'choice', choice: {
+            selectedCandidateId: 'tense',
+            probabilities: [{ candidateId: 'calm', probability: 0.25 }, { candidateId: 'tense', probability: 0.75 }],
+          } } },
+          { questionId: 'act', result: { oneofKind: 'boolean', boolean: { trueProbability: 0.6 } } },
+        ] } },
+        traceId: 'trace-decide',
+      }));
+    });
+    const control = { accountProductUnary: unary, bundledAvatarUnary: unary } as unknown as NimiElectronDesktopControlHost;
+    const host = createNimiElectronFormalAppLocalHost({ profile, appId, control });
+    const caller = new AbortController();
+
+    await expect(host.scenarioExecute({ spec, timeoutMs: 5_000 }, { signal: caller.signal })).resolves.toEqual({
+      output: {
+        type: 'text-decide',
+        answers: [
+          {
+            questionId: 'mood',
+            kind: 'choice',
+            selectedCandidateId: 'tense',
+            probabilities: [{ candidateId: 'calm', probability: 0.25 }, { candidateId: 'tense', probability: 0.75 }],
+          },
+          { questionId: 'act', kind: 'boolean', trueProbability: 0.6 },
+        ],
+      },
+      traceId: 'trace-decide',
+    });
+    expect(transports[0]).toMatchObject({ requestTimeoutMs: 5_000, timeoutMs: 7_000 });
+    expect(transports[0]?.signal).toBeInstanceOf(AbortSignal);
+
+    unary.mockRejectedValueOnce(new NimiElectronDesktopControlHostError('AI_INPUT_LIMIT_EXCEEDED', false));
+    await expect(host.scenarioExecute({ spec })).rejects.toMatchObject({
+      reasonCode: 'ai-input-limit-exceeded',
+      retryable: false,
+    });
+
+    respond = false;
+    const aborted = expect(host.scenarioExecute({ spec }, { signal: caller.signal }))
+      .rejects.toMatchObject({ reasonCode: 'canceled', retryable: false });
+    await vi.waitFor(() => expect(transports).toHaveLength(2));
+    expect(transports[1]?.signal?.aborted).toBe(false);
+    caller.abort();
+    await aborted;
+    expect(transports[1]?.signal?.aborted).toBe(true);
+
+    const timedOut = expect(host.scenarioExecute({ spec, timeoutMs: 20 }))
+      .rejects.toMatchObject({ reasonCode: 'timeout', retryable: true });
+    await vi.waitFor(() => expect(transports).toHaveLength(3));
+    await timedOut;
+    expect(transports[2]).toMatchObject({ requestTimeoutMs: 20, timeoutMs: 2_020 });
+    // Runtime owns the request deadline; settling the caller must not turn it
+    // into the explicit cancellation exercised above.
+    expect(transports[2]?.signal?.aborted).toBe(false);
+    await expect(host.scenarioExecute({ spec, extra: true })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    expect(unary).toHaveBeenCalledTimes(4);
   });
 
   it.each([

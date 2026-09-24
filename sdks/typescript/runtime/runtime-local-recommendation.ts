@@ -80,6 +80,7 @@ export function projectNimiRuntimeModelAssetMarketCandidate(
     ...(normalizeText(value.author) ? { author: normalizeText(value.author) } : {}),
     ...(normalizeText(value.format) ? { format: normalizeText(value.format) } : {}),
     ...(positiveNumber(value.totalSizeBytes) !== undefined ? { totalSizeBytes: positiveNumber(value.totalSizeBytes) } : {}),
+    ...(positiveNumber(value.downloadSizeBytes) !== undefined ? { downloadSizeBytes: positiveNumber(value.downloadSizeBytes) } : {}),
     ...(normalizeText(value.license) ? { license: normalizeText(value.license) } : {}),
     tags: Object.freeze(textList(value.tags)),
     ...(positiveNumber(value.downloads) !== undefined ? { downloads: positiveNumber(value.downloads) } : {}),

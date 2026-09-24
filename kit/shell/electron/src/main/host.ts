@@ -50,6 +50,7 @@ import {
   dispatchElectronLocalAppCommand,
   isElectronLocalAppCommand,
   isElectronLocalAppPullWait,
+  isElectronLocalAppScenarioExecute,
 } from './local-app-commands.js';
 import {
   dispatchElectronLocalAppAssetMediaCommand,
@@ -528,7 +529,10 @@ export function registerNimiElectronRuntimeBridge(
       // A renderer pull waits for the next Runtime change. Like the Host-side
       // pumps of other subscriptions it stays outside the exclusive data-root
       // gate; a data-root change ends it through resource invalidation.
-      const gate = isElectronLocalAppPullWait(command, standardPayload)
+      // A synchronous Scenario call registers its cancel handle before it
+      // enters the gate, so its cancel never waits behind the call itself.
+      const scenarioExecute = isElectronLocalAppScenarioExecute(command);
+      const gate = isElectronLocalAppPullWait(command, standardPayload) || scenarioExecute
         ? <T>(operation: () => Promise<T>) => operation()
         : runDataRootOperation;
       return gate(async () => {
@@ -539,6 +543,8 @@ export function registerNimiElectronRuntimeBridge(
           sendEvent: event.sender?.send
             ? (eventName, eventPayload) => event.sender?.send?.(`${eventChannelPrefix}${eventName}`, eventPayload)
             : undefined,
+          ...(event.sender ? { sender: event.sender as object } : {}),
+          ...(scenarioExecute ? { operationGate: runDataRootOperation } : {}),
         }));
         const mediaHost = effectiveStandardShellHost.localAppAssetMediaHost;
         if (mediaHost) {
@@ -585,6 +591,7 @@ export function registerNimiElectronRuntimeBridge(
         sendEvent: event.sender?.send
           ? (eventName, eventPayload) => event.sender?.send?.(`${eventChannelPrefix}${eventName}`, eventPayload)
           : undefined,
+        ...(event.sender ? { sender: event.sender as object } : {}),
       });
     }
     if (isElectronAgentCenterCommand(command)) {

@@ -106,6 +106,8 @@ test('formal AI consumption runtime adapter keeps the canonical Local App operat
   });
   assert.deepEqual(executeRequest, {
     spec: { oneofKind: 'textEmbed', textEmbed: { inputs: ['hello'] } },
+    // No caller deadline: Runtime keeps its capability-owned default.
+    timeoutMs: 0,
   });
   embeddingSpaceId = '';
   await assert.rejects(client.scenario.execute({ type: 'text-embed', inputs: ['hello'] }), {

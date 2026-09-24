@@ -319,8 +319,11 @@ export type {
   NimiLocalAppArtifactUploadResult,
   NimiLocalAppImageGenerateSpec,
   NimiLocalAppScenarioArtifact,
+  NimiLocalAppScenarioExecuteOptions,
   NimiLocalAppScenarioExecuteResult,
+  NimiLocalAppScenarioExecuteShellSpec,
   NimiLocalAppScenarioExecuteSpec,
+  NimiLocalAppTextDecideResult,
   NimiLocalAppScenarioJob,
   NimiLocalAppScenarioJobEvent,
   NimiLocalAppScenarioJobSpec,
@@ -454,6 +457,26 @@ export { validateNimiLocalAppSpeechTranscript } from './local-app-transcription.
 export type { NimiLocalAppSpeechTranscript } from './local-app-transcription.js';
 export { validateNimiLocalAppAudioSeparation } from './local-app-audio-separation.js';
 export { validateNimiLocalAppArtifactUploadShellInput, validateNimiLocalAppArtifactUploadResult } from './local-app-runtime-platform-ai.js';
+export {
+  nimiLocalAppTextDecideSpecFromShell,
+  validateNimiLocalAppTextDecideOutput,
+  validateNimiLocalAppTextDecideShellSpec,
+} from './local-app-text-decision.js';
+export type {
+  NimiJsonValue,
+  NimiLocalAppTextDecideOutput,
+  NimiLocalAppTextDecideShellSpec,
+  NimiLocalAppTextDecideSpec,
+  NimiLocalAppTextDecisionAnswer,
+  NimiLocalAppTextDecisionCandidate,
+  NimiLocalAppTextDecisionContent,
+  NimiLocalAppTextDecisionJson,
+  NimiLocalAppTextDecisionProbability,
+  NimiLocalAppTextDecisionQuestion,
+  NimiLocalAppTextDecisionShellCandidate,
+  NimiLocalAppTextDecisionShellContent,
+  NimiLocalAppTextDecisionShellQuestion,
+} from './local-app-text-decision.js';
 export type { NimiLocalAppAudioSeparation, NimiLocalAppAudioInstrumentPart, NimiLocalAppAudioInstrumentPartKind } from './local-app-audio-separation.js';
 
 export { validateNimiLocalAppTextAnnotationResult } from './local-app-text-annotation.js';

@@ -797,6 +797,15 @@ async fn rebind_supervised_development_processes(
             if discard_stale_supervised_development_rebind(&registry, run_id, process_id)? {
                 continue;
             }
+            diagnose_desktop_session(&format!(
+                "development-rebind-failed-{}-{}",
+                error.reason_code().as_str(),
+                error
+                    .reason_metadata()
+                    .get("diagnostic_stage")
+                    .map(String::as_str)
+                    .unwrap_or("no-stage")
+            ));
             return Err(if error.retryable() {
                 unavailable()
             } else {
@@ -837,6 +846,10 @@ async fn verify_source_local_development_runtime_readiness(
         .await
         .map(|_| ())
         .map_err(|error| {
+            diagnose_desktop_session(&format!(
+                "readiness-failed-{}",
+                error.reason_code().as_str()
+            ));
             if error.retryable() {
                 unavailable()
             } else {
@@ -933,7 +946,15 @@ pub(crate) async fn open_verified_runtime_channel(
 
 #[cfg(feature = "windows-source-local-development")]
 async fn open_source_runtime_pipe(name: &str) -> Result<NamedPipeClient, ProtectedCarrierError> {
-    ClientOptions::new().open(name).map_err(|_| unavailable())
+    ClientOptions::new().open(name).map_err(|error| {
+        // The OS error tells a busy pipe, whose one instance Runtime still
+        // serves to another connection, from a pipe no Runtime listens on.
+        diagnose_desktop_session(&format!(
+            "pipe-open-failed-os-{}",
+            error.raw_os_error().unwrap_or(-1)
+        ));
+        unavailable()
+    })
 }
 
 async fn shared_verified_desktop_runtime_session(

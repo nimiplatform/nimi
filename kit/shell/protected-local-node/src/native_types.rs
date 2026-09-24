@@ -224,8 +224,17 @@ pub struct NativeTextTurnInput {
 }
 
 #[napi(object)]
-pub struct NativeScenarioSpecInput {
+pub struct NativeScenarioExecuteInput {
     pub spec: JsonValue,
+    /// Host-generated call identity used only for cancel and release.
+    pub request_id: String,
+    /// Caller deadline in milliseconds, an integer from 1 to 120000.
+    pub timeout_ms: Option<f64>,
+}
+
+#[napi(object)]
+pub struct NativeScenarioExecuteCallInput {
+    pub request_id: String,
 }
 
 #[napi(object)]

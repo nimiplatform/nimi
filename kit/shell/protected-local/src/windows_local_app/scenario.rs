@@ -1,5 +1,6 @@
 mod music;
 mod music_transcription;
+mod text_decision;
 mod voice_convert;
 use serde_json::{json, Map, Value as JsonValue};
 use tokio::sync::mpsc;
@@ -35,9 +36,9 @@ use crate::generated::{
     VisionLocateScenarioSpec, VoiceAssetStatus, VoiceCreationSource, VoiceReference,
     VoiceReferenceKind, VoiceRenderHints, VoiceT2vInput, VoiceV2vInput,
 };
-use crate::grpc_status::local_app_error_from_status;
+use crate::grpc_status::{local_app_error_from_status, local_app_execute_error_from_status};
 use crate::{
-    LocalAppOperationError, LocalAppScenarioCancelRequest, LocalAppScenarioExecuteRequest,
+    LocalAppOperationError, LocalAppReasonCode, LocalAppScenarioCancelRequest, LocalAppScenarioExecuteRequest,
     LocalAppScenarioGetRequest, LocalAppScenarioJobSubscribeRequest,
     LocalAppScenarioListVoiceAssetsRequest, LocalAppScenarioReadArtifactRequest,
     LocalAppScenarioStreamReceiver, LocalAppScenarioSubmitRequest,
@@ -59,19 +60,43 @@ const MAX_URI_BYTES: usize = 2048;
 const MAX_REFERENCE_AUDIO_BYTES: usize = 20 * 1024 * 1024;
 const MAX_TRANSCRIPTION_TEXT_BYTES: usize = 1024 * 1024;
 
+// @nimi-authority: rule.nimi.sdks.feature-clients.scenario-execute-call-control
 pub(super) async fn execute(
     channel: Channel,
     request: LocalAppScenarioExecuteRequest,
 ) -> Result<JsonValue, LocalAppOperationError> {
+    let deadline = execute_deadline(request.timeout);
     let spec = parse_execute_spec(request.spec)?;
-    let mut grpc_request = Request::new(ProtoExecuteRequest { spec: Some(spec) });
-    grpc_request.set_timeout(std::time::Duration::from_secs(UNARY_TIMEOUT_SECONDS));
-    let response = crate::grpc_limits::runtime_ai_client(channel)
-        .execute_local_app_scenario(grpc_request)
-        .await
-        .map_err(local_app_error_from_status)?
-        .into_inner();
+    let decide = match &spec {
+        ExecuteSpec::TextDecide(value) => Some(value.clone()),
+        _ => None,
+    };
+    // Runtime owns the caller deadline, carried with the call rather than as a
+    // transport deadline, so a cancel before it stays distinct from its expiry.
+    // The local timer only bounds the call a little beyond it, for a service
+    // that never answers. Either expiry leaves the session valid.
+    let grpc_request = Request::new(ProtoExecuteRequest {
+        spec: Some(spec),
+        timeout_ms: execute_deadline_millis(deadline),
+    });
+    let mut client = crate::grpc_limits::runtime_ai_client(channel);
+    let started = std::time::Instant::now();
+    let local_bound = deadline + LOCAL_DEADLINE_GRACE;
+    let response = match tokio::time::timeout(local_bound, client.execute_local_app_scenario(grpc_request)).await {
+        Ok(result) => result
+            .map_err(|status| {
+                local_app_execute_error_from_status(status, execute_deadline_elapsed(started.elapsed(), deadline))
+            })?
+            .into_inner(),
+        Err(_) => return Err(LocalAppOperationError::new(LocalAppReasonCode::Timeout, true)),
+    };
     valid_runtime_text(&response.trace_id, MAX_TRACE_BYTES)?;
+    match (decide.is_some(), matches!(response.output, Some(ExecuteOutput::TextDecide(_)))) {
+        // A decide call answered with another output keeps the protected session.
+        (true, false) => return Err(text_decision::output_invalid()),
+        (false, true) => return Err(untrusted()),
+        _ => {}
+    }
     let output = match response.output.ok_or_else(untrusted)? {
         ExecuteOutput::TextEmbed(value) => {
             valid_runtime_text(&value.space_id, MAX_IDENTIFIER_BYTES)?;
@@ -100,8 +125,40 @@ pub(super) async fn execute(
             "type": "image-generate",
             "artifacts": project_artifacts(value.artifacts)?,
         }),
+        ExecuteOutput::TextDecide(value) => {
+            text_decision::project(decide.as_ref().ok_or_else(untrusted)?, value)?
+        }
     };
     Ok(json!({"output": output, "traceId": response.trace_id}))
+}
+
+/// Runtime's clock advances in coarse ticks (up to 15.6 ms on Windows), so its
+/// deadline reply can arrive up to about one tick before this call's own
+/// deadline as measured here.
+const RUNTIME_DEADLINE_CLOCK_SLACK: std::time::Duration = std::time::Duration::from_millis(32);
+
+/// How long past the caller deadline this side waits for Runtime's own
+/// deadline reply before it gives up on an unresponsive service.
+const LOCAL_DEADLINE_GRACE: std::time::Duration = std::time::Duration::from_secs(2);
+
+/// The deadline as the request's millisecond field; it is at most the carrier
+/// bound, so it always fits.
+fn execute_deadline_millis(deadline: std::time::Duration) -> i32 {
+    i32::try_from(deadline.as_millis()).unwrap_or(i32::MAX)
+}
+
+/// Whether a Runtime failure arrived at this call's own deadline. A caller
+/// cancel never reaches here: it drops the call instead.
+fn execute_deadline_elapsed(elapsed: std::time::Duration, deadline: std::time::Duration) -> bool {
+    elapsed + RUNTIME_DEADLINE_CLOCK_SLACK >= deadline
+}
+
+/// The call's deadline: the caller's timeout clamped to the carrier bound.
+fn execute_deadline(timeout: Option<std::time::Duration>) -> std::time::Duration {
+    let maximum = std::time::Duration::from_secs(UNARY_TIMEOUT_SECONDS);
+    timeout
+        .filter(|value| !value.is_zero())
+        .map_or(maximum, |value| value.min(maximum))
 }
 
 pub(super) async fn submit_job(
@@ -465,6 +522,7 @@ fn parse_execute_spec(value: JsonValue) -> Result<ExecuteSpec, LocalAppOperation
             }))
         }
         "image-generate" => Ok(ExecuteSpec::ImageGenerate(parse_image_spec(&object)?)),
+        "text-decide" => Ok(ExecuteSpec::TextDecide(text_decision::parse(&object)?)),
         _ => Err(invalid_payload()),
     }
 }
@@ -1906,6 +1964,37 @@ mod tests {
         let mut missing = input;
         missing["targetImageArtifactId"] = json!("");
         assert!(parse_job_spec(missing).is_err());
+    }
+
+    #[test]
+    fn the_caller_deadline_travels_with_the_call_in_milliseconds() {
+        use std::time::Duration;
+        assert_eq!(execute_deadline_millis(Duration::from_millis(100)), 100);
+        assert_eq!(execute_deadline_millis(execute_deadline(None)), 120_000);
+    }
+
+    #[test]
+    fn a_runtime_reset_within_a_clock_tick_of_the_deadline_is_that_deadline() {
+        use std::time::Duration;
+        assert!(execute_deadline_elapsed(Duration::from_millis(95), Duration::from_millis(100)));
+        assert!(execute_deadline_elapsed(Duration::from_millis(100), Duration::from_millis(100)));
+        assert!(!execute_deadline_elapsed(Duration::from_millis(50), Duration::from_millis(100)));
+    }
+
+    #[test]
+    fn execute_deadline_clamps_the_caller_timeout_to_the_carrier_bound() {
+        use std::time::Duration;
+        assert_eq!(execute_deadline(None), Duration::from_secs(UNARY_TIMEOUT_SECONDS));
+        assert_eq!(execute_deadline(Some(Duration::from_millis(250))), Duration::from_millis(250));
+        assert_eq!(execute_deadline(Some(Duration::from_secs(600))), Duration::from_secs(UNARY_TIMEOUT_SECONDS));
+        assert_eq!(execute_deadline(Some(Duration::ZERO)), Duration::from_secs(UNARY_TIMEOUT_SECONDS));
+        // text-decide is a synchronous Scenario and never an async Job spec.
+        assert!(parse_job_spec(json!({
+            "type": "text-decide",
+            "state": { "text": "state" },
+            "questions": [{ "id": "q", "instructions": { "text": "?" }, "kind": "boolean" }],
+        }))
+        .is_err());
     }
 
     #[test]

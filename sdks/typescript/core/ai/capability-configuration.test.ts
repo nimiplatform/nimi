@@ -6,6 +6,11 @@ import {
   createNimiAppAIConfigOwner,
   createNimiLocalAppAIConfigRuntimeClient,
 } from './capability-configuration';
+import {
+  AIConfigEffectiveState,
+  GetAppAIConfigResponse,
+  ListAppAIConfigOptionsResponse,
+} from '../../core-generated/runtime-protobuf/runtime/v1/capability_configuration';
 
 test('formal Local App AIConfig derives owner without a caller selector', async () => {
 	const requests: unknown[] = [];
@@ -191,4 +196,46 @@ test('App AIConfig client rejects retired Local loadout references before transp
     /must not contain a Loadout reference/u,
   );
   assert.equal(overwriteCalls, 0);
+});
+
+test('App AIConfig client projects music input decoded from the Runtime wire', async () => {
+  const owner = createNimiAppAIConfigOwner('app.music');
+  const local = {
+    loadoutRef: 'loadout.music', label: 'Music', capabilityContract: 'music.generate',
+    implementation: { implementationId: 'local.music.generate', driverId: 'driver.music', driverDialect: 'music/v1' },
+    state: AIConfigEffectiveState.AI_CONFIG_EFFECTIVE_STATE_READY,
+    musicInput: { generation: [{
+      lyricsMode: 'required', scoreMode: 'unsupported', supportsSeed: true,
+      maxDurationSeconds: 180, defaultDurationSeconds: 20, maxPromptBytes: 32768, maxLyricsBytes: 32768,
+    }] },
+  };
+  // Round-trip through the wire so every nested row carries the protobuf
+  // runtime's own prototype, exactly as the transport delivers it.
+  const decodedGet = GetAppAIConfigResponse.fromBinary(GetAppAIConfigResponse.toBinary(GetAppAIConfigResponse.create({
+    config: { owner, capabilities: [] }, revision: '1',
+    effectiveSelections: [{
+      capabilityContract: 'music.generate', state: AIConfigEffectiveState.AI_CONFIG_EFFECTIVE_STATE_READY,
+      resource: { oneofKind: 'local', local },
+    }],
+  })));
+  const decodedOptions = ListAppAIConfigOptionsResponse.fromBinary(ListAppAIConfigOptionsResponse.toBinary(
+    ListAppAIConfigOptionsResponse.create({ result: { oneofKind: 'localLoadouts', localLoadouts: { options: [local] } } }),
+  ));
+  const client = createNimiAppAIConfigClient({
+    appId: 'app.music',
+    runtime: {
+      async getAppAIConfig() { return decodedGet; },
+      async overwriteAppAIConfig() { return { config: undefined, revision: '1', committed: false, reasonCode: 0 } as never; },
+      async listAppAIConfigOptions() { return decodedOptions; },
+    },
+  });
+
+  const snapshot = await client.get();
+  const selected = snapshot.effectiveSelections[0]?.resource;
+  assert.equal(selected?.oneofKind, 'local');
+  if (selected?.oneofKind !== 'local') assert.fail('expected a Local selection');
+  assert.equal(selected.local.musicInput?.generation[0]?.maxDurationSeconds, 180);
+  const options = await client.listOptions({ kind: 'local-loadouts', capabilityContract: 'music.generate' });
+  if (options.kind !== 'local-loadouts') assert.fail('expected Local options');
+  assert.equal(options.options[0]?.musicInput?.generation[0]?.lyricsMode, 'required');
 });

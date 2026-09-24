@@ -6,6 +6,8 @@ import { validateNimiLocalAppSpeechTranscript, validateNimiLocalAppAudioSeparati
 import { validateNimiLocalAppMusicGeneration, validateNimiLocalAppMusicTranscription, validateNimiLocalAppVoiceConversion } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppArtifactUploadShellInput, validateNimiLocalAppArtifactUploadResult,
   type NimiLocalAppArtifactUploadShellInput } from '@nimiplatform/kit/core/sdk-contract';
+import { validateNimiLocalAppTextDecideOutput, validateNimiLocalAppTextDecideShellSpec,
+  type NimiLocalAppTextDecideShellSpec } from '@nimiplatform/kit/core/sdk-contract';
 import { loadNimiElectronProtectedLocalPackage } from './protected-local-binding-loader.js';
 import {
   requestElectronAppActivitySourceLaunch,
@@ -31,6 +33,8 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppTextTurnStreamNext',
   'localAppTextTurnStreamClose',
   'localAppScenarioExecute',
+  'localAppScenarioExecuteCancel',
+  'localAppScenarioExecuteRelease',
   'localAppScenarioJobSubmit',
   'localAppScenarioJobGet',
   'localAppScenarioJobSubscribe',
@@ -158,6 +162,7 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'ai-route-unsupported',
   'ai-route-fallback-denied',
   'ai-input-invalid',
+  'ai-input-limit-exceeded',
   'ai-media-idempotency-conflict',
   'ai-music-recovery-capacity-exceeded',
   'ai-output-invalid',
@@ -248,6 +253,7 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'integrity-failure',
   'artifact-unavailable',
   'canceled',
+  'timeout',
   'host-internal-error',
 ] as const);
 
@@ -332,6 +338,22 @@ type NimiElectronLocalAppConversationVoiceTranscriptionCancelBindingInput = {
   readonly requestId: string;
 };
 
+type NimiElectronLocalAppScenarioExecuteBindingInput = {
+  readonly spec: NimiElectronLocalAppJson;
+  /** Host-generated native call identity; never supplied by a renderer. */
+  readonly requestId: string;
+  readonly timeoutMs?: number;
+};
+
+type NimiElectronLocalAppScenarioExecuteCallBindingInput = {
+  readonly requestId: string;
+};
+
+/** Per-call Host control. Cancellation never serializes the signal itself. */
+export type NimiElectronLocalAppCallOptions = {
+  readonly signal?: AbortSignal;
+};
+
 type NativeLocalAppOutcome =
   | { readonly status: 'ok'; readonly value: unknown }
   | {
@@ -360,7 +382,9 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppTextTurnSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppTextTurnStreamNext: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppTextTurnStreamClose: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
-  readonly localAppScenarioExecute: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppScenarioExecute: (input: NimiElectronLocalAppScenarioExecuteBindingInput) => Promise<NativeLocalAppOutcome>;
+  readonly localAppScenarioExecuteCancel: (input: NimiElectronLocalAppScenarioExecuteCallBindingInput) => Promise<NativeLocalAppOutcome>;
+  readonly localAppScenarioExecuteRelease: (input: NimiElectronLocalAppScenarioExecuteCallBindingInput) => Promise<NativeLocalAppOutcome>;
   readonly localAppScenarioJobSubmit: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppScenarioJobGet: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppScenarioJobSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
@@ -480,7 +504,10 @@ export type NimiElectronLocalAppHost = {
   readonly textTurnSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly textTurnStreamNext: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly textTurnStreamClose: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
-  readonly scenarioExecute: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly scenarioExecute: (
+    input: NimiElectronLocalAppRecord,
+    options?: NimiElectronLocalAppCallOptions,
+  ) => Promise<NimiElectronLocalAppRecord>;
   readonly scenarioJobSubmit: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly scenarioJobGet: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly scenarioJobSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
@@ -665,14 +692,14 @@ export class NimiElectronLocalAppHostError extends Error {
 
 function withBoundedSessionRebind(
   binding: NimiElectronProtectedLocalBinding,
-  onSessionChange: () => void,
+  onSessionChange: (cause: { readonly reasonCode: string; readonly retryable: boolean }) => void,
   onSessionReady: () => void,
 ): NimiElectronProtectedLocalBinding {
   let rebindInFlight: Promise<NativeLocalAppOutcome> | undefined;
   let generation = 0;
   let invalidated = false;
   const stale = (): NativeLocalAppOutcome => ({ status: 'error', reasonCode: 'runtime-unauthenticated', retryable: false });
-  const renew = (): Promise<NativeLocalAppOutcome> => {
+  const renew = (cause = { reasonCode: 'runtime-unauthenticated', retryable: false }): Promise<NativeLocalAppOutcome> => {
     if (!rebindInFlight) {
       let resolve!: (outcome: NativeLocalAppOutcome) => void;
       let reject!: (error: unknown) => void;
@@ -684,7 +711,7 @@ function withBoundedSessionRebind(
       // Dispose old App state synchronously, before installing another scope.
       // Install the gate first: cleanup may itself close protected resources.
       try {
-        if (!invalidated) { generation++; invalidated = true; onSessionChange(); }
+        if (!invalidated) { generation++; invalidated = true; onSessionChange(cause); }
         void boundedSessionRenew(binding).then(resolve, reject);
       }
       catch (error) { reject(error); }
@@ -720,7 +747,7 @@ function withBoundedSessionRebind(
           method: property, reasonCode: first.reasonCode, retryable: first.retryable,
         });
         // Old App-owned work must stop even when the subsequent rebind fails.
-        const rebound = await renew();
+        const rebound = await renew({ reasonCode: first.reasonCode, retryable: first.retryable });
         if (!isReadySessionOutcome(rebound)) {
           return rebound.status === 'error' ? rebound : untrustedNativeOutcome();
         }
@@ -814,6 +841,8 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
   private readonly binding: NimiElectronProtectedLocalBinding;
   private readonly onSessionReady: () => void;
   private readonly textTurnStreams = new Map<string, { sequence: bigint }>();
+  // Outstanding synchronous Scenario calls by Host-generated native identity.
+  private readonly scenarioExecutions = new Map<string, (error: NimiElectronLocalAppHostError) => void>();
 
   constructor(
     binding: NimiElectronProtectedLocalBinding,
@@ -822,7 +851,14 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     private readonly activityLaunch: NimiElectronAppActivityLaunch = defaultAppActivityLaunch,
   ) {
     this.onSessionReady = () => { notifySessionReady(this); onSessionReady(); };
-    this.binding = withBoundedSessionRebind(binding, onSessionChange, this.onSessionReady);
+    this.binding = withBoundedSessionRebind(binding, (cause) => {
+      // Session invalidation cancels every outstanding call with the typed
+      // invalidation reason before App-owned work is torn down.
+      for (const cancel of [...this.scenarioExecutions.values()]) {
+        cancel(new NimiElectronLocalAppHostError(cause.reasonCode, cause.retryable));
+      }
+      onSessionChange();
+    }, this.onSessionReady);
   }
 
   async sessionStatus(): Promise<NimiElectronLocalAppRecord> {
@@ -890,8 +926,56 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     return invokeConversationStreamClose(() => this.binding.localAppTextTurnStreamClose(input));
   }
 
-  scenarioExecute(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return invokeScenarioExecute(() => this.binding.localAppScenarioExecute(input));
+  // @nimi-authority: rule.nimi.sdks.feature-clients.scenario-execute-call-control
+  scenarioExecute(
+    input: NimiElectronLocalAppRecord,
+    options: NimiElectronLocalAppCallOptions = {},
+  ): Promise<NimiElectronLocalAppRecord> {
+    let parsed: ReturnType<typeof scenarioExecuteInput>;
+    try {
+      parsed = scenarioExecuteInput(input);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+    const { spec, timeoutMs, decide } = parsed;
+    const signal = options.signal;
+    if (signal?.aborted) return Promise.reject(scenarioExecuteCanceledError());
+    const requestId = createScenarioExecuteRequestId();
+    return new Promise<NimiElectronLocalAppRecord>((resolve, reject) => {
+      let settled = false;
+      let cancellation: Promise<unknown> | undefined;
+      const settle = (complete: () => void) => {
+        if (settled) return;
+        settled = true;
+        complete();
+      };
+      // An abort or session invalidation settles the caller at once and drops
+      // the pending native Runtime call; its late result is never projected.
+      const cancel = (error: NimiElectronLocalAppHostError) => {
+        if (settled) return;
+        cancellation ??= this.binding.localAppScenarioExecuteCancel({ requestId }).catch(() => undefined);
+        settle(() => reject(error));
+      };
+      const onAbort = () => cancel(scenarioExecuteCanceledError());
+      this.scenarioExecutions.set(requestId, cancel);
+      signal?.addEventListener('abort', onAbort, { once: true });
+      const native = (async () => this.binding.localAppScenarioExecute({
+        spec,
+        requestId,
+        ...(timeoutMs !== undefined ? { timeoutMs } : {}),
+      }))();
+      // The native registration is released exactly once after its call settles.
+      void native.then(() => undefined, () => undefined).then(async () => {
+        signal?.removeEventListener('abort', onAbort);
+        this.scenarioExecutions.delete(requestId);
+        await cancellation;
+        await this.binding.localAppScenarioExecuteRelease({ requestId }).catch(() => undefined);
+      });
+      invokeScenarioExecute(() => native, decide).then(
+        (value) => settle(() => resolve(value)),
+        (error: unknown) => settle(() => reject(error)),
+      );
+    });
   }
 
   scenarioJobSubmit(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
@@ -1482,8 +1566,11 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
     return this.resolve().textTurnStreamClose(input);
   }
 
-  scenarioExecute(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return this.resolve().scenarioExecute(input);
+  scenarioExecute(
+    input: NimiElectronLocalAppRecord,
+    options?: NimiElectronLocalAppCallOptions,
+  ): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().scenarioExecute(input, options);
   }
 
   scenarioJobSubmit(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
@@ -1983,6 +2070,7 @@ async function invokeTextCandidate(
 
 async function invokeScenarioExecute(
   call: () => Promise<NativeLocalAppOutcome>,
+  decide?: NimiLocalAppTextDecideShellSpec,
 ): Promise<NimiElectronLocalAppRecord> {
   const value = await invoke(call);
   if (!isPlainRecord(value) || !hasExactKeys(value, ['output', 'traceId']) || !isPlainRecord(value.output)) {
@@ -1990,6 +2078,17 @@ async function invokeScenarioExecute(
   }
   const traceId = boundedExactText(value.traceId, 512, false);
   const output = value.output;
+  if ((output.type === 'text-decide') !== Boolean(decide)) throw untrustedRuntimeError();
+  if (decide) {
+    // @nimi-authority: rule.nimi.runtime.ai-provider.text-decision
+    let decision: unknown;
+    try {
+      decision = validateNimiLocalAppTextDecideOutput(output, decide);
+    } catch {
+      throw untrustedRuntimeError();
+    }
+    return Object.freeze({ output: decision as NimiElectronLocalAppJson, traceId });
+  }
   if (output.type === 'text-generate') {
     if (!hasExactKeys(output, ['type', 'items', 'finishReason']) || !Array.isArray(output.items)
       || output.items.length === 0 || !['stop', 'length', 'tool-calls', 'content-filter'].includes(String(output.finishReason))) throw untrustedRuntimeError();
@@ -2032,6 +2131,49 @@ async function invokeScenarioExecute(
     });
   }
   throw untrustedRuntimeError();
+}
+
+const MAX_SCENARIO_EXECUTE_TIMEOUT_MS = 120_000;
+let scenarioExecuteRequestSequence = 0;
+
+function scenarioExecuteInput(input: NimiElectronLocalAppRecord): {
+  readonly spec: NimiElectronLocalAppJson;
+  readonly timeoutMs?: number;
+  readonly decide?: NimiLocalAppTextDecideShellSpec;
+} {
+  if (!isPlainRecord(input) || !Object.hasOwn(input, 'spec')
+    || Object.keys(input).some((key) => key !== 'spec' && key !== 'timeoutMs')) {
+    throw new NimiElectronLocalAppHostError('invalid-payload', false);
+  }
+  const timeoutMs = input.timeoutMs;
+  if (timeoutMs !== undefined && (typeof timeoutMs !== 'number' || !Number.isSafeInteger(timeoutMs)
+    || timeoutMs < 1 || timeoutMs > MAX_SCENARIO_EXECUTE_TIMEOUT_MS)) {
+    throw new NimiElectronLocalAppHostError('invalid-payload', false);
+  }
+  let decide: NimiLocalAppTextDecideShellSpec | undefined;
+  if (isPlainRecord(input.spec) && input.spec.type === 'text-decide') {
+    try {
+      decide = validateNimiLocalAppTextDecideShellSpec(input.spec);
+    } catch {
+      throw new NimiElectronLocalAppHostError('invalid-payload', false);
+    }
+  }
+  return {
+    // The validated carrier form omits absent optional fields for the native parser.
+    spec: (decide ?? input.spec) as NimiElectronLocalAppJson,
+    ...(timeoutMs !== undefined ? { timeoutMs } : {}),
+    ...(decide ? { decide } : {}),
+  };
+}
+
+// The native call identity is Host-generated; renderer correlations never reach it.
+function createScenarioExecuteRequestId(): string {
+  scenarioExecuteRequestSequence += 1;
+  return `local-app-scenario-execute-${Date.now().toString(36)}-${scenarioExecuteRequestSequence}`;
+}
+
+function scenarioExecuteCanceledError(): NimiElectronLocalAppHostError {
+  return new NimiElectronLocalAppHostError('canceled', false);
 }
 
 async function invokeScenarioJobSubmit(

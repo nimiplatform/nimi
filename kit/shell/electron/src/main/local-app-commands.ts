@@ -4,6 +4,7 @@ import { Buffer } from 'node:buffer';
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 import { validateNimiLocalAppTextInput } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppArtifactUploadShellInput } from '@nimiplatform/kit/core/sdk-contract';
+import { validateNimiLocalAppTextDecideShellSpec } from '@nimiplatform/kit/core/sdk-contract';
 import {
   NimiElectronLocalAppHostError,
   type NimiElectronLocalAppHost,
@@ -64,6 +65,19 @@ const ACTIVE_REALTIME_STREAMS = new WeakMap<NimiElectronLocalAppHost, Set<string
 // Renderer-owned App activity pull streams by kind. Host-private open streams
 // are never registered here, so renderer code cannot pull or close them.
 const ACTIVE_ACTIVITY_STREAMS = new WeakMap<NimiElectronLocalAppHost, Map<string, 'changes' | 'deliveries'>>();
+// In-flight synchronous Scenario calls per Host and renderer sender. A renderer
+// call correlation only names its own call for cancel; the Host generates the
+// native call identity.
+type ActiveScenarioExecution = { readonly controller: AbortController };
+const ACTIVE_SCENARIO_EXECUTIONS = new WeakMap<
+  NimiElectronLocalAppHost,
+  Map<object, Map<string, ActiveScenarioExecution>>
+>();
+const DEFAULT_SCENARIO_EXECUTION_SENDER: object = Object.freeze({});
+const SCENARIO_EXECUTIONS_INVALIDATED: object = Object.freeze({});
+const MAX_SCENARIO_EXECUTIONS_PER_SENDER = 32;
+let scenarioExecutionSequence = 0;
+const MAX_SCENARIO_EXECUTE_TIMEOUT_MS = 120_000;
 
 const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.sessionStatus'], 'sessionStatus'],
@@ -178,6 +192,11 @@ export function isElectronLocalAppCommand(command: string): boolean {
   return COMMAND_METHODS.has(command);
 }
 
+/** True for the synchronous Scenario command, whose cancel must not wait behind its own call. */
+export function isElectronLocalAppScenarioExecute(command: string): boolean {
+  return COMMAND_METHODS.get(command) === 'scenarioExecute';
+}
+
 /** True for a renderer pull that waits on an App activity subscription. */
 export function isElectronLocalAppPullWait(command: string, payload: Readonly<Record<string, unknown>>): boolean {
   const method = COMMAND_METHODS.get(command);
@@ -189,6 +208,10 @@ export async function dispatchElectronLocalAppCommand(input: {
   readonly command: string;
   readonly payload: Readonly<Record<string, unknown>>;
   readonly sendEvent?: (eventName: string, payload: NimiElectronLocalAppRecord) => void;
+  /** Renderer sender that owns in-flight call correlations. */
+  readonly sender?: object;
+  /** Host operation gate applied to the native call after its cancel handle is registered. */
+  readonly operationGate?: <T>(operation: () => Promise<T>) => Promise<T>;
 }): Promise<unknown> {
   const method = COMMAND_METHODS.get(input.command);
   if (!method) throw invalidPayload(input.command, 'unknown local-app operation');
@@ -221,6 +244,9 @@ export async function dispatchElectronLocalAppCommand(input: {
     if (method === 'assetMove') return await input.host.assetMove(payload);
     if (method === 'assetReveal') return await input.host.assetReveal(payload);
     if (method === 'assetAdopt') return await input.host.assetAdopt(payload);
+    if (method === 'scenarioExecute') {
+      return await dispatchScenarioExecute(input.host, input.sender ?? DEFAULT_SCENARIO_EXECUTION_SENDER, payload, input.operationGate);
+    }
     if (method === 'textTurnSubscribe' || method === 'scenarioJobSubscribe') {
       const streams = activeScenarioStreams(input.host);
       if (payload.action === 'cancel') {
@@ -401,10 +427,21 @@ function validatePayload(
         };
       }
       return textTurnPayload(payload, command);
-    case 'scenarioExecute':
-      assertExactKeys(payload, ['spec'], command);
-      validateScenarioSpec(payload.spec, command, true);
-      return { spec: payload.spec as NimiElectronLocalAppRecord[string] };
+    case 'scenarioExecute': {
+      // @nimi-authority: rule.nimi.sdks.feature-clients.scenario-execute-call-control
+      if (payload.action === 'cancel') {
+        assertExactKeys(payload, ['action', 'callId'], command);
+        return { action: 'cancel', callId: scenarioCallId(payload.callId, command) };
+      }
+      assertAllowedKeys(payload, ['spec', 'callId', 'timeoutMs'], ['spec'], command);
+      return {
+        spec: validateScenarioSpec(payload.spec, command, true),
+        ...(payload.callId !== undefined ? { callId: scenarioCallId(payload.callId, command) } : {}),
+        ...(payload.timeoutMs !== undefined
+          ? { timeoutMs: boundedSafeInteger(payload.timeoutMs, 'timeoutMs', command, 1, MAX_SCENARIO_EXECUTE_TIMEOUT_MS) }
+          : {}),
+      };
+    }
     case 'scenarioJobSubmit': {
       assertExactKeys(payload, ['spec', 'timeoutMs', ...(Object.hasOwn(payload, 'clientSubmissionId') ? ['clientSubmissionId'] : [])], command);
       validateScenarioSpec(payload.spec, command, false);
@@ -1151,7 +1188,23 @@ function textInputBasePayload(
   return output;
 }
 
-function validateScenarioSpec(value: unknown, command: string, execute: boolean): void {
+function validateScenarioSpec(value: unknown, command: string, execute: boolean): NimiElectronLocalAppJson {
+  if (isPlainRecord(value) && value.type === 'text-decide') {
+    // @nimi-authority: rule.nimi.runtime.ai-provider.text-decision
+    // JSON content is canonical text, so App keys never read as authority
+    // fields. The validated carrier form omits absent optional fields.
+    if (!execute) throw invalidPayload(command, 'text-decide is a synchronous Scenario');
+    try {
+      return validateNimiLocalAppTextDecideShellSpec(value) as unknown as NimiElectronLocalAppJson;
+    } catch {
+      throw invalidPayload(command, 'text decision input is invalid');
+    }
+  }
+  assertScenarioSpec(value, command, execute);
+  return value as NimiElectronLocalAppJson;
+}
+
+function assertScenarioSpec(value: unknown, command: string, execute: boolean): void {
   if (!isPlainRecord(value) || typeof value.type !== 'string') {
     throw invalidPayload(command, 'scenario spec is invalid');
   }
@@ -1932,6 +1985,69 @@ function activeScenarioStreams(
   return streams;
 }
 
+// @nimi-authority: rule.nimi.sdks.feature-clients.scenario-execute-call-control
+async function dispatchScenarioExecute(
+  host: NimiElectronLocalAppHost,
+  sender: object,
+  payload: NimiElectronLocalAppRecord,
+  operationGate: (<T>(operation: () => Promise<T>) => Promise<T>) | undefined,
+): Promise<unknown> {
+  const owners = ACTIVE_SCENARIO_EXECUTIONS.get(host) ?? new Map<object, Map<string, ActiveScenarioExecution>>();
+  ACTIVE_SCENARIO_EXECUTIONS.set(host, owners);
+  const executions = owners.get(sender) ?? new Map<string, ActiveScenarioExecution>();
+  if (payload.action === 'cancel') {
+    const callId = String(payload.callId);
+    const active = executions.get(callId);
+    if (active && !active.controller.signal.aborted) active.controller.abort();
+    return { callId, canceled: Boolean(active) };
+  }
+  // Every call is tracked so session invalidation can cancel it; a call without
+  // a renderer correlation gets a Host-local key that no callId can spell.
+  const callId = typeof payload.callId === 'string' ? payload.callId : undefined;
+  if (callId !== undefined && executions.has(callId)) {
+    throw new NimiElectronLocalAppHostError('invalid-payload', false);
+  }
+  if (executions.size >= MAX_SCENARIO_EXECUTIONS_PER_SENDER) {
+    throw new NimiElectronLocalAppHostError('resource-exhausted', true);
+  }
+  scenarioExecutionSequence += 1;
+  const key = callId ?? `#host-${scenarioExecutionSequence}`;
+  const controller = new AbortController();
+  const active: ActiveScenarioExecution = { controller };
+  executions.set(key, active);
+  owners.set(sender, executions);
+  const record: NimiElectronLocalAppRecord = {
+    spec: payload.spec as NimiElectronLocalAppJson,
+    ...(payload.timeoutMs !== undefined ? { timeoutMs: payload.timeoutMs } : {}),
+  };
+  try {
+    const run = () => {
+      if (controller.signal.aborted) return Promise.reject(scenarioExecutionStopped(controller));
+      return host.scenarioExecute(record, { signal: controller.signal });
+    };
+    return await (operationGate ? operationGate(run) : run());
+  } catch (error) {
+    if (controller.signal.aborted) throw scenarioExecutionStopped(controller);
+    throw error;
+  } finally {
+    if (executions.get(key) === active) executions.delete(key);
+    if (executions.size === 0 && owners.get(sender) === executions) owners.delete(sender);
+  }
+}
+
+function scenarioExecutionStopped(controller: AbortController): NimiElectronLocalAppHostError {
+  return controller.signal.reason === SCENARIO_EXECUTIONS_INVALIDATED
+    ? new NimiElectronLocalAppHostError('session-invalid', false)
+    : new NimiElectronLocalAppHostError('canceled', false);
+}
+
+function scenarioCallId(value: unknown, command: string): string {
+  if (typeof value !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u.test(value)) {
+    throw invalidPayload(command, 'scenario execute callId is invalid');
+  }
+  return value;
+}
+
 function activeActivityStreams(host: NimiElectronLocalAppHost): Map<string, 'changes' | 'deliveries'> {
   let streams = ACTIVE_ACTIVITY_STREAMS.get(host);
   if (!streams) {
@@ -1967,6 +2083,14 @@ export async function invalidateElectronLocalAppCommandResources(
   const conversations = [...activeConversationStreams(registryHost)];
   const realtime = [...activeRealtimeStreams(registryHost)];
   const activity = [...activeActivityStreams(registryHost).keys()];
+  // Session invalidation cancels every outstanding renderer Scenario call.
+  const executions = ACTIVE_SCENARIO_EXECUTIONS.get(registryHost);
+  ACTIVE_SCENARIO_EXECUTIONS.delete(registryHost);
+  for (const owned of executions?.values() ?? []) {
+    for (const active of owned.values()) {
+      if (!active.controller.signal.aborted) active.controller.abort(SCENARIO_EXECUTIONS_INVALIDATED);
+    }
+  }
   activeScenarioStreams(registryHost).clear();
   activeConversationStreams(registryHost).clear();
   activeRealtimeStreams(registryHost).clear();

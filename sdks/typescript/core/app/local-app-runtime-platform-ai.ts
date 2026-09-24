@@ -5,6 +5,11 @@ import { validateNimiLocalAppTextAnnotationResult, type NimiLocalAppTextAnnotati
 import { validateNimiLocalAppSpeechTranscript, type NimiLocalAppSpeechTranscript } from './local-app-transcription.js';
 import { validateNimiLocalAppAudioSeparation, localAudioSeparation, runtimeAudioSeparation, type NimiLocalAppAudioSeparation } from './local-app-audio-separation.js';
 import {
+  prepareNimiLocalAppTextDecideSpec, validateNimiLocalAppTextDecideOutput, runtimeTextDecideSpec, localTextDecideOutputFromRuntime,
+  type NimiLocalAppTextDecideSpec, type NimiLocalAppTextDecideShellSpec, type NimiLocalAppTextDecideOutput,
+} from './local-app-text-decision.js';
+import { ReasonCode, createNimiError } from '../../types/index.js';
+import {
   CanonicalChannelMode,
   ChatContentPartType,
   ExecutionMode,
@@ -112,7 +117,23 @@ export type NimiLocalAppImageGenerateSpec = {
 export type NimiLocalAppScenarioExecuteSpec =
   | (NimiLocalAppTextTurnInput & { readonly type: 'text-generate' })
   | { readonly type: 'text-embed'; readonly inputs: readonly string[] }
-  | NimiLocalAppImageGenerateSpec;
+  | NimiLocalAppImageGenerateSpec
+  | NimiLocalAppTextDecideSpec;
+
+/**
+ * Carrier form passed to a host shell. It differs from the public spec only for
+ * text-decide, whose JSON content travels as the SDK's JSON.stringify text.
+ */
+export type NimiLocalAppScenarioExecuteShellSpec =
+  | Exclude<NimiLocalAppScenarioExecuteSpec, NimiLocalAppTextDecideSpec>
+  | NimiLocalAppTextDecideShellSpec;
+
+/** Per-call control for every synchronous Scenario execute variant. */
+export type NimiLocalAppScenarioExecuteOptions = {
+  readonly signal?: AbortSignal;
+  /** Caller deadline in milliseconds, an integer from 1 to 120000. */
+  readonly timeoutMs?: number;
+};
 
 export type NimiLocalAppVideoContentRole =
   | 'prompt'
@@ -289,10 +310,16 @@ export type NimiLocalAppVoiceAsset = {
   readonly expiresAt: NimiLocalAppScenarioTimestamp | null;
 };
 
+export type NimiLocalAppTextDecideResult = {
+  readonly output: NimiLocalAppTextDecideOutput;
+  readonly traceId: string;
+};
+
 export type NimiLocalAppScenarioExecuteResult =
   | { readonly output: { readonly type: 'text-generate'; readonly items: readonly NimiLocalAppTextOutputItem[]; readonly finishReason: 'stop' | 'length' | 'tool-calls' | 'content-filter' }; readonly traceId: string }
   | { readonly output: { readonly type: 'text-embed'; readonly vectors: readonly (readonly number[])[]; readonly spaceId: string }; readonly traceId: string }
-  | { readonly output: { readonly type: 'image-generate'; readonly artifacts: readonly NimiLocalAppScenarioArtifact[] }; readonly traceId: string };
+  | { readonly output: { readonly type: 'image-generate'; readonly artifacts: readonly NimiLocalAppScenarioArtifact[] }; readonly traceId: string }
+  | NimiLocalAppTextDecideResult;
 
 export type NimiLocalAppScenarioJobSubmitResult = {
   readonly job: NimiLocalAppScenarioJob;
@@ -369,7 +396,10 @@ export type NimiLocalAppAIConsumptionShell = {
     readonly streamTurn: (input: NimiLocalAppTextTurnInput) => Promise<NimiLocalAppShellStream<unknown>>;
   };
   readonly scenario: {
-    readonly execute: (spec: NimiLocalAppScenarioExecuteSpec) => Promise<unknown>;
+    readonly execute: (
+      spec: NimiLocalAppScenarioExecuteShellSpec,
+      options?: NimiLocalAppScenarioExecuteOptions,
+    ) => Promise<unknown>;
   };
   readonly scenarioJobs: {
     readonly submit: (
@@ -417,7 +447,10 @@ export type NimiLocalAppAIConsumptionClient = {
     readonly streamTurn: (input: NimiLocalAppTextTurnInput) => Promise<NimiLocalAppSubscription<NimiLocalAppTextTurnEvent>>;
   };
   readonly scenario: {
-    readonly execute: (spec: NimiLocalAppScenarioExecuteSpec) => Promise<NimiLocalAppScenarioExecuteResult>;
+    readonly execute: (
+      spec: NimiLocalAppScenarioExecuteSpec,
+      options?: NimiLocalAppScenarioExecuteOptions,
+    ) => Promise<NimiLocalAppScenarioExecuteResult>;
   };
   readonly scenarioJobs: {
     readonly submit: (
@@ -516,10 +549,18 @@ export function createNimiLocalAppAIConsumptionClient(
         });
       },
     }),
+    // @nimi-authority: rule.nimi.sdks.feature-clients.scenario-execute-call-control
     scenario: Object.freeze({
-      execute: async (spec) => projectScenarioExecute(
-        await shell.scenario.execute(validateScenarioSpec(spec, true)),
-      ),
+      execute: async (spec, options) => {
+        const call = validateScenarioExecuteOptions(options);
+        if (call.signal?.aborted) throw scenarioExecuteCanceledError();
+        const prepared = prepareScenarioExecuteSpec(spec);
+        return runScenarioExecuteCall(
+          call,
+          (shellOptions) => shell.scenario.execute(prepared.shellSpec, shellOptions),
+          (value) => projectScenarioExecute(value, prepared.decide),
+        );
+      },
     }),
     scenarioJobs: Object.freeze({
       submit: async (spec, options = {}) => projectScenarioJobSubmit(
@@ -590,8 +631,17 @@ export function createNimiLocalAppAIConsumptionRuntimeClient(
       },
     },
     scenario: {
-      async execute(spec) {
-        const response = await runtime.executeLocalAppScenario(runtimeExecuteRequest(spec));
+      async execute(spec, options) {
+        // The deadline travels in the request so Runtime owns it; the transport
+        // only bounds the call a little beyond it, so Runtime records an elapsed
+        // deadline as a timeout and an abort, which cancels at once, as a cancel.
+        const request = runtimeExecuteRequest(spec, options?.timeoutMs ?? 0);
+        const response = options
+          ? await runtime.executeLocalAppScenario(request, {
+              ...(options.signal ? { signal: options.signal } : {}),
+              ...(options.timeoutMs !== undefined ? { timeoutMs: options.timeoutMs + RUNTIME_DEADLINE_GRACE_MS } : {}),
+            })
+          : await runtime.executeLocalAppScenario(request);
         return projectRuntimeScenarioExecuteResponse(response);
       },
     },
@@ -792,6 +842,13 @@ function validateScenarioSpec<T extends NimiLocalAppScenarioExecuteSpec | NimiLo
     const { type: _type, ...input } = record;
     return Object.freeze({ type: 'text-generate', ...validateLocalAppTextInput(input as NimiLocalAppTextTurnInput) }) as T;
   }
+  if (record.type === 'text-decide') {
+    // App JSON state is product content: its keys are never read as authority
+    // fields. The closed envelope and exact bounds are checked instead.
+    if (!execute) invalidAIInput('text-decide is a synchronous Scenario, not an async Job');
+    prepareNimiLocalAppTextDecideSpec(record);
+    return spec;
+  }
   assertNoAuthorityMaterial(record);
   switch (record.type) {
     // @nimi-authority: rule.nimi.runtime.ai-provider.face-swap-video-job
@@ -916,6 +973,141 @@ function validateScenarioJobSubmitOptions(
   return Object.freeze({
     timeoutMs: boundedInteger(options.timeoutMs ?? 0, 'Scenario Job timeoutMs', 0, 2_147_483_647),
     ...(options.clientSubmissionId !== undefined ? { clientSubmissionId: validateClientSubmissionId(options.clientSubmissionId) } : {}),
+  });
+}
+
+const MAX_SCENARIO_EXECUTE_TIMEOUT_MS = 120_000;
+// How long past the caller deadline the transport waits for Runtime's own
+// deadline reply before it gives up on an unresponsive service.
+const RUNTIME_DEADLINE_GRACE_MS = 2_000;
+
+type ScenarioExecuteCall = {
+  readonly signal?: AbortSignal;
+  readonly timeoutMs?: number;
+};
+
+function validateScenarioExecuteOptions(options: unknown): ScenarioExecuteCall {
+  if (options === undefined) return {};
+  assertExactKeys(options, ['signal', 'timeoutMs'], 'scenario execute options');
+  const signal = options.signal;
+  if (signal !== undefined && !isAbortSignal(signal)) invalidAIInput('scenario execute signal must be an AbortSignal');
+  const timeoutMs = options.timeoutMs === undefined
+    ? undefined
+    : boundedInteger(options.timeoutMs, 'scenario execute timeoutMs', 1, MAX_SCENARIO_EXECUTE_TIMEOUT_MS);
+  return Object.freeze({
+    ...(signal !== undefined ? { signal } : {}),
+    ...(timeoutMs !== undefined ? { timeoutMs } : {}),
+  });
+}
+
+function isAbortSignal(value: unknown): value is AbortSignal {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as Partial<AbortSignal>;
+  return typeof candidate.aborted === 'boolean'
+    && typeof candidate.addEventListener === 'function'
+    && typeof candidate.removeEventListener === 'function';
+}
+
+function prepareScenarioExecuteSpec(spec: NimiLocalAppScenarioExecuteSpec): {
+  readonly shellSpec: NimiLocalAppScenarioExecuteShellSpec;
+  readonly decide?: NimiLocalAppTextDecideShellSpec;
+} {
+  if (asRecord(spec)?.type === 'text-decide') {
+    const decide = prepareNimiLocalAppTextDecideSpec(spec);
+    return { shellSpec: decide, decide };
+  }
+  return { shellSpec: validateScenarioSpec(spec as Exclude<NimiLocalAppScenarioExecuteSpec, NimiLocalAppTextDecideSpec>, true) };
+}
+
+// Settles the caller exactly once: an abort or an elapsed caller deadline
+// rejects immediately without waiting for the carrier, and a late carrier
+// result is never projected. An abort cancels the carrier call; the deadline
+// travels with the call, so Runtime ends it there and records a timeout
+// rather than the cancel an abort would be.
+function runScenarioExecuteCall<T>(
+  call: ScenarioExecuteCall,
+  invoke: (options: NimiLocalAppScenarioExecuteOptions | undefined) => Promise<unknown>,
+  project: (value: unknown) => T,
+): Promise<T> {
+  if (!call.signal && call.timeoutMs === undefined) {
+    return invoke(undefined).then(project);
+  }
+  const controller = new AbortController();
+  const callerSignal = call.signal;
+  return new Promise<T>((resolve, reject) => {
+    let settled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const settle = (complete: () => void) => {
+      if (settled) return;
+      settled = true;
+      if (timer !== undefined) clearTimeout(timer);
+      callerSignal?.removeEventListener('abort', onAbort);
+      complete();
+    };
+    const stop = (error: Error) => {
+      settle(() => reject(error));
+      if (!controller.signal.aborted) controller.abort(error);
+    };
+    const onAbort = () => stop(scenarioExecuteCanceledError());
+    callerSignal?.addEventListener('abort', onAbort, { once: true });
+    if (call.timeoutMs !== undefined) {
+      const timeoutMs = call.timeoutMs;
+      timer = setTimeout(() => settle(() => reject(scenarioExecuteTimeoutError(timeoutMs))), timeoutMs);
+    }
+    let pending: Promise<unknown>;
+    try {
+      pending = invoke({
+        signal: controller.signal,
+        ...(call.timeoutMs !== undefined ? { timeoutMs: call.timeoutMs } : {}),
+      });
+    } catch (error) {
+      settle(() => reject(error));
+      return;
+    }
+    pending.then((value) => {
+      if (settled || callerSignal?.aborted) return;
+      let projected: T;
+      try {
+        projected = project(value);
+      } catch (error) {
+        settle(() => reject(error));
+        return;
+      }
+      settle(() => resolve(projected));
+    }, (error: unknown) => {
+      // A carrier deadline surfaces as the same typed caller timeout.
+      settle(() => reject(call.timeoutMs !== undefined && isCarrierTimeout(error)
+        ? scenarioExecuteTimeoutError(call.timeoutMs)
+        : error));
+    });
+  });
+}
+
+function isCarrierTimeout(error: unknown): boolean {
+  const reasonCode = error && typeof error === 'object' ? (error as { readonly reasonCode?: unknown }).reasonCode : undefined;
+  return reasonCode === 'timeout' || reasonCode === ReasonCode.OPERATION_TIMEOUT;
+}
+
+function scenarioExecuteCanceledError(): Error {
+  return createNimiError({
+    message: 'Local-app scenario execution was canceled by its caller.',
+    code: ReasonCode.OPERATION_ABORTED,
+    reasonCode: ReasonCode.OPERATION_ABORTED,
+    actionHint: 'retry_if_still_needed',
+    retryable: false,
+    source: 'sdk',
+  });
+}
+
+function scenarioExecuteTimeoutError(timeoutMs: number): Error {
+  return createNimiError({
+    message: `Local-app scenario execution exceeded its ${timeoutMs} ms caller deadline.`,
+    code: ReasonCode.OPERATION_TIMEOUT,
+    reasonCode: ReasonCode.OPERATION_TIMEOUT,
+    actionHint: 'retry_with_a_longer_timeout',
+    retryable: true,
+    source: 'sdk',
+    details: { timeoutMs },
   });
 }
 
@@ -1095,12 +1287,19 @@ function projectTextTurnEvent(value: unknown): NimiLocalAppTextTurnEvent {
   return localAppProjectionError('text-turn event type');
 }
 
-function projectScenarioExecute(value: unknown): NimiLocalAppScenarioExecuteResult {
+function projectScenarioExecute(
+  value: unknown,
+  decide?: NimiLocalAppTextDecideShellSpec,
+): NimiLocalAppScenarioExecuteResult {
   const record = asRecord(value);
   assertExactProjectionKeys(record, ['output', 'traceId'], 'scenario execute');
   const output = asRecord(record.output);
   if (!output) localAppProjectionError('scenario execute output');
   const traceId = boundedProjectionText(record.traceId, 'scenario execute traceId', 512);
+  if ((output.type === 'text-decide') !== Boolean(decide)) localAppProjectionError('scenario execute output type');
+  if (decide) {
+    return Object.freeze({ output: validateNimiLocalAppTextDecideOutput(output, decide), traceId });
+  }
   if (output.type === 'text-generate') {
     assertExactProjectionKeys(output, ['type', 'items', 'finishReason'], 'text generate output');
     const items = projectLocalAppTextItems(output.items);
@@ -1484,12 +1683,15 @@ function runtimeTextTurnRequest(input: NimiLocalAppTextTurnInput): StreamLocalAp
   };
 }
 
-function runtimeExecuteRequest(spec: NimiLocalAppScenarioExecuteSpec): ExecuteLocalAppScenarioRequest {
-  if (spec.type === 'text-generate') return { spec: { oneofKind: 'textGenerate', textGenerate: runtimeTextTurnRequest(spec) } };
+function runtimeExecuteRequest(spec: NimiLocalAppScenarioExecuteShellSpec, timeoutMs: number): ExecuteLocalAppScenarioRequest {
+  if (spec.type === 'text-generate') return { spec: { oneofKind: 'textGenerate', textGenerate: runtimeTextTurnRequest(spec) }, timeoutMs };
   if (spec.type === 'text-embed') {
-    return { spec: { oneofKind: 'textEmbed', textEmbed: { inputs: [...spec.inputs] } } };
+    return { spec: { oneofKind: 'textEmbed', textEmbed: { inputs: [...spec.inputs] } }, timeoutMs };
   }
-  return { spec: { oneofKind: 'imageGenerate', imageGenerate: runtimeImageSpec(spec) } };
+  if (spec.type === 'text-decide') {
+    return { spec: { oneofKind: 'textDecide', textDecide: runtimeTextDecideSpec(spec) }, timeoutMs };
+  }
+  return { spec: { oneofKind: 'imageGenerate', imageGenerate: runtimeImageSpec(spec) }, timeoutMs };
 }
 
 function runtimeLocalJobSpec(
@@ -1750,6 +1952,8 @@ function projectRuntimeScenarioExecuteResponse(response: ExecuteLocalAppScenario
         },
         traceId: response.traceId,
       };
+    case 'textDecide':
+      return { output: localTextDecideOutputFromRuntime(response.output.textDecide), traceId: response.traceId };
     default:
       return localAppProjectionError('scenario Runtime output');
   }

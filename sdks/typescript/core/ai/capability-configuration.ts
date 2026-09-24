@@ -1,4 +1,5 @@
-import { projectMusicInputCapabilities, type NimiMusicInputCapabilities } from './music-input.js';
+import type { NimiMusicInputCapabilities } from './music-input.js';
+import { projectRuntimeMusicInput } from './music-input-wire.js';
 import { projectVoiceReferenceInput, type NimiVoiceReferenceInputCapabilities } from './voice-reference-input.js';
 import type {
   AIConfig,
@@ -437,7 +438,7 @@ function projectCloudTargetResource(value: AIConfigCloudTargetProjection): NimiA
 		}),
 		providerModelTarget: RuntimeStruct.toJson(value.providerModelTarget) as NimiJsonObject,
 		supportedFeatures: Object.freeze([...value.supportedFeatures]),
-    ...(value.musicInput ? { musicInput: projectMusicInputCapabilities(value.musicInput) } : {}),
+    ...(value.musicInput ? { musicInput: projectRuntimeMusicInput(value.musicInput) } : {}),
     ...(value.referenceAudioInput ? { referenceAudioInput: projectVoiceReferenceInput(value.referenceAudioInput) } : {}),
     state: value.state === AIConfigEffectiveState.AI_CONFIG_EFFECTIVE_STATE_READY ? 'ready' : 'blocked',
     reasons: Object.freeze([...value.reasons]),
@@ -458,7 +459,7 @@ function projectLocalResource(value: AIConfigLocalResourceProjection): NimiAICon
     implementationSupportedFeatures: Object.freeze([...value.implementationSupportedFeatures]),
     configuredFeatures: Object.freeze([...value.configuredFeatures]),
     textBehaviors: projectNimiTextBehaviorCapabilities(value.textBehaviors),
-    ...(value.musicInput ? { musicInput: projectMusicInputCapabilities(value.musicInput) } : {}),
+    ...(value.musicInput ? { musicInput: projectRuntimeMusicInput(value.musicInput) } : {}),
     ...(value.referenceAudioInput ? { referenceAudioInput: projectVoiceReferenceInput(value.referenceAudioInput) } : {}),
     state: value.state === AIConfigEffectiveState.AI_CONFIG_EFFECTIVE_STATE_READY ? 'ready' : 'blocked',
     reasons: Object.freeze([...value.reasons]),

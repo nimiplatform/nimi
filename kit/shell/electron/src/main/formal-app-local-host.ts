@@ -1,4 +1,4 @@
-import { validateNimiLocalAppArtifactUploadShellInput } from '@nimiplatform/kit/core/sdk-contract';
+import { nimiLocalAppTextDecideSpecFromShell, validateNimiLocalAppArtifactUploadShellInput } from '@nimiplatform/kit/core/sdk-contract';
 import {
   createNimiAgentRealtimeRuntimeClient,
   createNimiAiRealtimeRuntimeClient,
@@ -214,7 +214,25 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
     textTurnSubscribe: async (record) => openPullStream(await ai.text.streamTurn(record as never)),
     textTurnStreamNext: nextPullStream,
     textTurnStreamClose: closePullStream,
-    scenarioExecute: (record) => ai.scenario.execute(record.spec as never) as Promise<NimiElectronLocalAppRecord>,
+    // @nimi-authority: rule.nimi.sdks.feature-clients.scenario-execute-call-control
+    scenarioExecute: (record, options) => {
+      const spec = record.spec;
+      const timeoutMs = record.timeoutMs;
+      if (Object.keys(record).some((key) => key !== 'spec' && key !== 'timeoutMs')) {
+        throw new NimiElectronLocalAppHostError('invalid-payload', false);
+      }
+      // The carrier text is canonical, so the public spec re-serializes to the same bytes.
+      const publicSpec = spec && typeof spec === 'object' && !Array.isArray(spec)
+        && (spec as { readonly type?: unknown }).type === 'text-decide'
+        ? nimiLocalAppTextDecideSpecFromShell(spec)
+        : spec;
+      return ai.scenario.execute(publicSpec as never, {
+        ...(options?.signal ? { signal: options.signal } : {}),
+        ...(timeoutMs !== undefined ? { timeoutMs: timeoutMs as number } : {}),
+      }).catch((error: unknown) => {
+        throw formalScenarioExecuteError(error);
+      }) as Promise<NimiElectronLocalAppRecord>;
+    },
     scenarioJobSubmit: (record) => ai.scenarioJobs.submit(
       record.spec as never,
       { timeoutMs: Number(record.timeoutMs ?? 0), ...(record.clientSubmissionId !== undefined ? { clientSubmissionId: requiredText(record.clientSubmissionId) } : {}) },
@@ -1412,8 +1430,20 @@ async function formalCall<T>(operation: () => Promise<T>): Promise<T> {
   }
 }
 
+// Caller aborts and caller deadlines keep the Host-level execute contract
+// shared with the protected local-app Host; the session stays usable.
+function formalScenarioExecuteError(error: unknown): unknown {
+  const reasonCode = error && typeof error === 'object'
+    ? (error as { readonly reasonCode?: unknown }).reasonCode
+    : undefined;
+  if (reasonCode === 'OPERATION_ABORTED') return new NimiElectronLocalAppHostError('canceled', false);
+  if (reasonCode === 'OPERATION_TIMEOUT') return new NimiElectronLocalAppHostError('timeout', true);
+  return error;
+}
+
 function formalLocalAppReasonCode(reasonCode: string): string {
   switch (reasonCode) {
+    case 'AI_INPUT_LIMIT_EXCEEDED': return 'ai-input-limit-exceeded';
     case 'LOCAL_APP_SESSION_REVOKED': return 'revoked';
     case 'LOCAL_APP_PRESENCE_EXPIRED': return 'presence-expired';
     case 'LOCAL_APP_ACCOUNT_CHANGED': return 'account-changed';

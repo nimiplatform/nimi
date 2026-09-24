@@ -9,7 +9,7 @@ import {
   NimiElectronLocalAppHostError,
   registerNimiElectronRuntimeBridge,
 } from '../src/main/index.js';
-import { dispatchElectronLocalAppCommand } from '../src/main/local-app-commands.js';
+import { dispatchElectronLocalAppCommand, invalidateElectronLocalAppCommandResources } from '../src/main/local-app-commands.js';
 import { FakeIpcMain, createInvokeEvent, invokeBridge } from './electron-shell-test-utils.js';
 
 describe('Electron local-app standard-shell operations', () => {
@@ -1201,6 +1201,122 @@ describe('Electron local-app standard-shell operations', () => {
       })).rejects.toMatchObject({ code: 'capability-unavailable' });
       expect(calls).toEqual([]);
     }
+  });
+});
+
+describe('Electron synchronous Scenario call control', () => {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioExecute'];
+  const decideSpec = {
+    type: 'text-decide',
+    state: { json: '{"token":"bishop","account":{"owner":"white"}}' },
+    questions: [
+      { id: 'pin', instructions: { text: 'Is the bishop pinned?' }, kind: 'boolean' },
+      { id: 'move', instructions: { json: '["Pick a move"]' }, kind: 'choice', candidates: [{ id: 'e4' }, { id: 'd4', description: { text: 'Queen pawn' } }] },
+    ],
+  };
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+  const cancelableHost = (seen: Array<{ input: unknown; signal?: AbortSignal }>) => ({
+    ...localAppHost([]),
+    scenarioExecute: (input: unknown, options?: { signal?: AbortSignal }) => {
+      seen.push({ input, signal: options?.signal });
+      return new Promise((_resolve, reject) => {
+        options?.signal?.addEventListener('abort', () => reject(new NimiElectronLocalAppHostError('canceled', false)));
+      });
+    },
+  });
+
+  it('routes an exact text decision and cancels only the correlated call of the same sender', async () => {
+    const seen: Array<{ input: unknown; signal?: AbortSignal }> = [];
+    const host = cancelableHost(seen);
+    const senderA = {};
+    const senderB = {};
+    const pending = dispatchElectronLocalAppCommand({
+      host, command, sender: senderA, payload: { spec: decideSpec, callId: 'call-1', timeoutMs: 2_000 },
+    });
+    await settle();
+    // App JSON keys are canonical text content, never renderer authority fields.
+    expect(seen[0]?.input).toEqual({ spec: decideSpec, timeoutMs: 2_000 });
+    await expect(dispatchElectronLocalAppCommand({
+      host, command, sender: senderA, payload: { spec: decideSpec, callId: 'call-1' },
+    })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    await expect(dispatchElectronLocalAppCommand({
+      host, command, sender: senderB, payload: { action: 'cancel', callId: 'call-1' },
+    })).resolves.toEqual({ callId: 'call-1', canceled: false });
+    expect(seen[0]?.signal?.aborted).toBe(false);
+    await expect(dispatchElectronLocalAppCommand({
+      host, command, sender: senderA, payload: { action: 'cancel', callId: 'call-1' },
+    })).resolves.toEqual({ callId: 'call-1', canceled: true });
+    expect(seen[0]?.signal?.aborted).toBe(true);
+    await expect(pending).rejects.toMatchObject({ reasonCode: 'canceled' });
+    await expect(dispatchElectronLocalAppCommand({
+      host, command, sender: senderA, payload: { action: 'cancel', callId: 'call-1' },
+    })).resolves.toEqual({ callId: 'call-1', canceled: false });
+  });
+
+  it('rejects inexact call envelopes and non-canonical decisions before the protected Host', async () => {
+    const seen: Array<{ input: unknown; signal?: AbortSignal }> = [];
+    const host = cancelableHost(seen);
+    for (const payload of [
+      { spec: decideSpec, callId: 'bad id' },
+      { spec: decideSpec, callId: 'x'.repeat(129) },
+      { spec: decideSpec, timeoutMs: 0 },
+      { spec: decideSpec, timeoutMs: 120_001 },
+      { spec: decideSpec, requestId: 'renderer-native-id' },
+      { action: 'cancel', callId: 'call-1', spec: decideSpec },
+      { action: 'cancel' },
+      { spec: { ...decideSpec, state: { json: '{"token": "bishop"}' } } },
+      { spec: { ...decideSpec, state: { json: { token: 'bishop' } } } },
+      { spec: { ...decideSpec, questions: [] } },
+    ]) {
+      await expect(dispatchElectronLocalAppCommand({ host, command, payload })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    }
+    await expect(dispatchElectronLocalAppCommand({
+      host, command: NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit'], payload: { spec: decideSpec, timeoutMs: 0 },
+    })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    expect(seen).toEqual([]);
+  });
+
+  it('registers the cancel handle before the Host operation gate admits the call', async () => {
+    const seen: Array<{ input: unknown; signal?: AbortSignal }> = [];
+    const host = cancelableHost(seen);
+    let open: (() => void) | undefined;
+    const gate = new Promise<void>((resolve) => { open = resolve; });
+    const operationGate = async <T,>(operation: () => Promise<T>) => { await gate; return operation(); };
+    const pending = dispatchElectronLocalAppCommand({
+      host, command, operationGate, payload: { spec: { type: 'text-embed', inputs: ['hello'] }, callId: 'queued-1' },
+    });
+    await expect(dispatchElectronLocalAppCommand({
+      host, command, payload: { action: 'cancel', callId: 'queued-1' },
+    })).resolves.toEqual({ callId: 'queued-1', canceled: true });
+    open?.();
+    await expect(pending).rejects.toMatchObject({ reasonCode: 'canceled' });
+    expect(seen).toEqual([]);
+  });
+
+  it('cancels every outstanding renderer call when session resources are invalidated', async () => {
+    const seen: Array<{ input: unknown; signal?: AbortSignal }> = [];
+    const host = cancelableHost(seen);
+    const correlated = dispatchElectronLocalAppCommand({ host, command, sender: {}, payload: { spec: decideSpec, callId: 'call-1' } });
+    const uncorrelated = dispatchElectronLocalAppCommand({ host, command, payload: { spec: { type: 'text-embed', inputs: ['hello'] } } });
+    await settle();
+    await invalidateElectronLocalAppCommandResources(host as never);
+    await expect(correlated).rejects.toMatchObject({ reasonCode: 'session-invalid' });
+    await expect(uncorrelated).rejects.toMatchObject({ reasonCode: 'session-invalid' });
+    expect(seen.map(({ signal }) => signal?.aborted)).toEqual([true, true]);
+  });
+
+  it('carries the renderer correlation through the registered IPC bridge', async () => {
+    const ipcMain = new FakeIpcMain();
+    const calls: unknown[] = [];
+    registerBridge(ipcMain, calls);
+    const { event } = createInvokeEvent();
+    await expect(invokeBridge(ipcMain, event, {
+      command, payload: { payload: { spec: { type: 'text-embed', inputs: ['hello'] }, callId: 'ipc-1', timeoutMs: 1_000 } },
+    })).resolves.toEqual({ output: { type: 'text-embed', vectors: [[0.1]], spaceId: 'space-test-1' }, traceId: 'trace-1' });
+    expect(calls).toEqual([['scenarioExecute', { spec: { type: 'text-embed', inputs: ['hello'] }, timeoutMs: 1_000 }]]);
+    await expect(invokeBridge(ipcMain, event, {
+      command, payload: { payload: { action: 'cancel', callId: 'ipc-1' } },
+    })).resolves.toEqual({ callId: 'ipc-1', canceled: false });
   });
 });
 

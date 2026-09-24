@@ -1110,6 +1110,8 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppScenarioExecute: record('localAppScenarioExecute', {
       output: { type: 'text-embed', vectors: [[0.1, 0.2]], spaceId: 'space-test-1' }, traceId: 'trace-1',
     }),
+    localAppScenarioExecuteCancel: record('localAppScenarioExecuteCancel', { canceled: true }),
+    localAppScenarioExecuteRelease: record('localAppScenarioExecuteRelease', { released: true }),
     localAppScenarioJobSubmit: record('localAppScenarioJobSubmit', { job: scenarioJobProjection() }),
     localAppScenarioJobGet: record('localAppScenarioJobGet', { job: scenarioJobProjection(), asset: null, voiceReference: null }),
     localAppScenarioJobSubscribe: record('localAppScenarioJobSubscribe', { streamId: 'scenario-job-1' }),
@@ -1349,6 +1351,127 @@ function assetProjection() {
     sha256: `sha256:${'a'.repeat(64)}`, createdAt: '2026-08-09T00:00:00Z', updatedAt: '2026-08-09T00:00:00Z',
   };
 }
+
+describe('Electron synchronous Scenario call control', () => {
+  const decideSpec = {
+    type: 'text-decide',
+    state: { json: '{"board":["x",null],"turn":2}' },
+    questions: [
+      { id: 'move', instructions: { text: 'Choose a move.' }, kind: 'choice', candidates: [{ id: 'left' }, { id: 'right', description: { text: 'Toward the center' } }] },
+      { id: 'resign', instructions: { text: 'Resign?' }, kind: 'boolean' },
+    ],
+  };
+  const decision = {
+    output: { type: 'text-decide', answers: [
+      { questionId: 'move', kind: 'choice', selectedCandidateId: 'right',
+        probabilities: [{ candidateId: 'left', probability: 0.4 }, { candidateId: 'right', probability: 0.6 }] },
+      { questionId: 'resign', kind: 'boolean', trueProbability: 0.1 },
+    ] },
+    traceId: 'trace-decide',
+  };
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+  it('generates the native call identity, carries the deadline and releases the call', async () => {
+    const calls: Array<{ method: string; input?: unknown }> = [];
+    const candidate = binding(calls);
+    candidate.localAppScenarioExecute = async (input?: unknown) => {
+      calls.push({ method: 'localAppScenarioExecute', input });
+      return { status: 'ok' as const, value: decision };
+    };
+    const host = createNimiElectronLocalAppHostForBinding(candidate);
+    await expect(host.scenarioExecute({ spec: decideSpec, timeoutMs: 3_000 })).resolves.toEqual(decision);
+    await settle();
+    const execute = calls.find(({ method }) => method === 'localAppScenarioExecute');
+    const requestId = (execute?.input as { requestId?: string } | undefined)?.requestId;
+    expect(execute?.input).toEqual({ spec: decideSpec, requestId: expect.stringMatching(/^local-app-scenario-execute-/u), timeoutMs: 3_000 });
+    expect(calls.filter(({ method }) => method.startsWith('localAppScenarioExecute'))).toEqual([
+      execute,
+      { method: 'localAppScenarioExecuteRelease', input: { requestId } },
+    ]);
+    await expect(host.scenarioExecute({ spec: decideSpec, requestId: 'renderer-chosen' })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    await expect(host.scenarioExecute({ spec: { ...decideSpec, state: { json: '{"board": []}' } } })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    await expect(host.scenarioExecute({ spec: decideSpec, timeoutMs: 120_001 })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+  });
+
+  it('cancels the pending native call on abort and never projects its late result', async () => {
+    const calls: Array<{ method: string; input?: unknown }> = [];
+    let finish: ((value: unknown) => void) | undefined;
+    const candidate = binding(calls);
+    candidate.localAppScenarioExecute = (input?: unknown) => {
+      calls.push({ method: 'localAppScenarioExecute', input });
+      return new Promise((resolve) => { finish = resolve; }) as never;
+    };
+    const host = createNimiElectronLocalAppHostForBinding(candidate);
+    const controller = new AbortController();
+    const pending = host.scenarioExecute({ spec: decideSpec }, { signal: controller.signal });
+    await settle();
+    controller.abort();
+    await expect(pending).rejects.toMatchObject({ reasonCode: 'canceled', retryable: false });
+    const requestId = (calls[0]?.input as { requestId: string }).requestId;
+    expect(calls.map(({ method }) => method)).toEqual(['localAppScenarioExecute', 'localAppScenarioExecuteCancel']);
+    expect(calls[1]).toEqual({ method: 'localAppScenarioExecuteCancel', input: { requestId } });
+    finish?.({ status: 'ok', value: decision });
+    await settle();
+    expect(calls.at(-1)).toEqual({ method: 'localAppScenarioExecuteRelease', input: { requestId } });
+
+    const preAborted = new AbortController();
+    preAborted.abort();
+    const before = calls.length;
+    await expect(host.scenarioExecute({ spec: decideSpec }, { signal: preAborted.signal })).rejects.toMatchObject({ reasonCode: 'canceled' });
+    expect(calls).toHaveLength(before);
+  });
+
+  it('keeps the protected session on a caller deadline and admits the input-limit reason', async () => {
+    let invalidated = 0;
+    const candidate = binding([]);
+    const host = createNimiElectronLocalAppHostForBinding(candidate, () => { invalidated += 1; });
+    for (const reasonCode of ['timeout', 'ai-input-limit-exceeded', 'ai-output-invalid']) {
+      candidate.localAppScenarioExecute = async () => ({ status: 'error', reasonCode, retryable: reasonCode === 'timeout' }) as never;
+      await expect(host.scenarioExecute({ spec: decideSpec, timeoutMs: 50 })).rejects.toMatchObject({ reasonCode });
+    }
+    expect(invalidated).toBe(0);
+    candidate.localAppScenarioExecute = async () => ({ status: 'ok', value: decision }) as never;
+    await expect(host.scenarioExecute({ spec: decideSpec })).resolves.toEqual(decision);
+  });
+
+  it('cancels every outstanding call with the typed reason when the protected session is invalidated', async () => {
+    const calls: Array<{ method: string; input?: unknown }> = [];
+    let invalidated = 0;
+    const candidate = binding(calls);
+    candidate.localAppScenarioExecute = (input?: unknown) => {
+      calls.push({ method: 'localAppScenarioExecute', input });
+      return new Promise(() => undefined) as never;
+    };
+    candidate.localAppStorageReadJson = async () => ({ status: 'error', reasonCode: 'account-changed', retryable: false }) as never;
+    const host = createNimiElectronLocalAppHostForBinding(candidate, () => { invalidated += 1; });
+    const first = host.scenarioExecute({ spec: decideSpec });
+    const second = host.scenarioExecute({ spec: { type: 'text-embed', inputs: ['hello'] } });
+    await settle();
+    await expect(host.storageReadJson({ relativePath: 'config.json' })).rejects.toBeDefined();
+    await expect(first).rejects.toMatchObject({ reasonCode: 'account-changed', retryable: false });
+    await expect(second).rejects.toMatchObject({ reasonCode: 'account-changed', retryable: false });
+    expect(invalidated).toBe(1);
+    expect(calls.filter(({ method }) => method === 'localAppScenarioExecuteCancel')).toHaveLength(2);
+  });
+
+  it('rejects a native decision that does not answer the submitted questions exactly', async () => {
+    const candidate = binding([]);
+    const host = createNimiElectronLocalAppHostForBinding(candidate);
+    const answers = decision.output.answers;
+    for (const output of [
+      { type: 'text-decide', answers: [answers[1], answers[0]] },
+      { type: 'text-decide', answers: [answers[0]] },
+      { type: 'text-decide', answers: [answers[0], { ...answers[1], trueProbability: 2 }] },
+      { type: 'text-decide', answers: [answers[0], { ...answers[1], confidence: 0.5 }] },
+      { type: 'text-embed', vectors: [[1]], spaceId: 'space-1' },
+    ]) {
+      candidate.localAppScenarioExecute = async () => ({ status: 'ok', value: { output, traceId: 'trace' } }) as never;
+      await expect(host.scenarioExecute({ spec: decideSpec })).rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
+    }
+    candidate.localAppScenarioExecute = async () => ({ status: 'ok', value: decision }) as never;
+    await expect(host.scenarioExecute({ spec: { type: 'text-embed', inputs: ['x'] } })).rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
+  });
+});
 
 describe('Electron App activity carrier', () => {
   const OPEN_REQUEST_ID = `aor_${'a'.repeat(32)}`;

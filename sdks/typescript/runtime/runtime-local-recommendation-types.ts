@@ -35,7 +35,10 @@ export interface NimiRuntimeModelAssetMarketCandidate {
   readonly variantLabel: string;
   readonly author?: string;
   readonly format?: string;
+  /** Installed file total. */
   readonly totalSizeBytes?: number;
+  /** Bytes acquisition transfers from the source; absent when unknown. */
+  readonly downloadSizeBytes?: number;
   readonly license?: string;
   readonly tags: readonly string[];
   readonly downloads?: number;

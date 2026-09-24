@@ -130,4 +130,92 @@ describe('App-owned Node services on the existing protected Host', () => {
     owner.close();
     await expect(owner.services.storage.readJson('config.json')).rejects.toMatchObject({ reasonCode: 'session-invalid' });
   });
+
+  describe('synchronous Scenario call control', () => {
+    const decideSpec = {
+      type: 'text-decide' as const,
+      state: { json: { hand: ['A', 'K'], pot: 12 } },
+      questions: [
+        { id: 'bet', instructions: { text: 'Choose the action.' }, kind: 'choice' as const, candidates: [{ id: 'fold' }, { id: 'call' }] },
+      ],
+    };
+    const decision = {
+      output: { type: 'text-decide', answers: [{ questionId: 'bet', kind: 'choice', selectedCandidateId: 'call',
+        probabilities: [{ candidateId: 'fold', probability: 0.25 }, { candidateId: 'call', probability: 0.75 }] }] },
+      traceId: 'trace-bet',
+    };
+
+    it('carries the canonical text decision, caller deadline and signal to the Host', async () => {
+      const requests: Array<{ input: unknown; signal?: AbortSignal }> = [];
+      const owner = createAppBusinessServices({
+        scenarioExecute: async (input: unknown, options?: { signal?: AbortSignal }) => {
+          requests.push({ input, signal: options?.signal });
+          return decision;
+        },
+      } as unknown as NimiElectronLocalAppHost);
+      await expect(owner.services.ai.scenario.execute(decideSpec, { timeoutMs: 4_000 })).resolves.toEqual(decision);
+      expect(requests).toHaveLength(1);
+      expect(requests[0]?.input).toEqual({
+        spec: { type: 'text-decide', state: { json: '{"hand":["A","K"],"pot":12}' }, questions: decideSpec.questions },
+        timeoutMs: 4_000,
+      });
+      expect(requests[0]?.signal?.aborted).toBe(false);
+      owner.close();
+    });
+
+    it('settles an abort as the typed canceled failure and drops the Host call', async () => {
+      let hostSignal: AbortSignal | undefined;
+      let finish: ((value: unknown) => void) | undefined;
+      const owner = createAppBusinessServices({
+        scenarioExecute: (_input: unknown, options?: { signal?: AbortSignal }) => {
+          hostSignal = options?.signal;
+          return new Promise((resolve) => { finish = resolve; });
+        },
+      } as unknown as NimiElectronLocalAppHost);
+      const controller = new AbortController();
+      const pending = owner.services.ai.scenario.execute(decideSpec, { signal: controller.signal });
+      await Promise.resolve();
+      controller.abort();
+      await expect(pending).rejects.toMatchObject({ reasonCode: 'OPERATION_ABORTED', source: 'sdk' });
+      expect(hostSignal?.aborted).toBe(true);
+      finish?.(decision);
+      owner.close();
+    });
+
+    it('settles an elapsed caller deadline as a typed timeout without invalidating the services', async () => {
+      let calls = 0;
+      const owner = createAppBusinessServices({
+        scenarioExecute: (_input: unknown, options?: { signal?: AbortSignal }) => {
+          calls += 1;
+          if (calls > 1) return Promise.resolve(decision);
+          return new Promise((_resolve, reject) => {
+            options?.signal?.addEventListener('abort', () => reject(Object.assign(new Error('canceled'), { reasonCode: 'canceled' })));
+          });
+        },
+      } as unknown as NimiElectronLocalAppHost);
+      await expect(owner.services.ai.scenario.execute(decideSpec, { timeoutMs: 15 })).rejects.toMatchObject({ reasonCode: 'OPERATION_TIMEOUT' });
+      await expect(owner.services.ai.scenario.execute(decideSpec)).resolves.toEqual(decision);
+      owner.close();
+    });
+
+    it('cancels every outstanding call on invalidation', async () => {
+      const signals: AbortSignal[] = [];
+      const owner = createAppBusinessServices({
+        scenarioExecute: (_input: unknown, options?: { signal?: AbortSignal }) => {
+          if (options?.signal) signals.push(options.signal);
+          return new Promise((_resolve, reject) => {
+            options?.signal?.addEventListener('abort', () => reject(Object.assign(new Error('canceled'), { reasonCode: 'canceled' })));
+          });
+        },
+      } as unknown as NimiElectronLocalAppHost);
+      const first = owner.services.ai.scenario.execute(decideSpec);
+      const second = owner.services.ai.scenario.execute({ type: 'text-embed', inputs: ['hello'] }, { timeoutMs: 60_000 });
+      await Promise.resolve();
+      owner.invalidate();
+      await expect(first).rejects.toMatchObject({ reasonCode: 'session-invalid' });
+      await expect(second).rejects.toMatchObject({ reasonCode: 'session-invalid' });
+      expect(signals.map((signal) => signal.aborted)).toEqual([true, true]);
+      owner.close();
+    });
+  });
 });

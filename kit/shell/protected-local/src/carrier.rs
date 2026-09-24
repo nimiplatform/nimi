@@ -46,6 +46,7 @@ pub enum LocalAppReasonCode {
     AiRouteUnsupported,
     AiRouteFallbackDenied,
     AiInputInvalid,
+    AiInputLimitExceeded,
     AiMediaIdempotencyConflict,
     AiMusicRecoveryCapacityExceeded,
     AiOutputInvalid,
@@ -135,6 +136,8 @@ pub enum LocalAppReasonCode {
     IntegrityFailure,
     ArtifactUnavailable,
     Canceled,
+    /// The call's own deadline elapsed; the protected session stays valid.
+    Timeout,
     HostInternalError,
 }
 
@@ -163,6 +166,7 @@ impl LocalAppReasonCode {
             Self::AiRouteUnsupported => "ai-route-unsupported",
             Self::AiRouteFallbackDenied => "ai-route-fallback-denied",
             Self::AiInputInvalid => "ai-input-invalid",
+            Self::AiInputLimitExceeded => "ai-input-limit-exceeded",
             Self::AiMediaIdempotencyConflict => "ai-media-idempotency-conflict",
             Self::AiMusicRecoveryCapacityExceeded => "ai-music-recovery-capacity-exceeded",
             Self::AiOutputInvalid => "ai-output-invalid",
@@ -258,6 +262,7 @@ impl LocalAppReasonCode {
             Self::IntegrityFailure => "integrity-failure",
             Self::ArtifactUnavailable => "artifact-unavailable",
             Self::Canceled => "canceled",
+            Self::Timeout => "timeout",
             Self::HostInternalError => "host-internal-error",
         }
     }
@@ -395,6 +400,8 @@ pub struct LocalAppTextCandidateResult {
 #[derive(Clone, Debug, PartialEq)]
 pub struct LocalAppScenarioExecuteRequest {
     pub spec: JsonValue,
+    /// Caller deadline for this call; absent keeps the carrier's bounded default.
+    pub timeout: Option<std::time::Duration>,
 }
 
 #[derive(Clone, Debug, PartialEq)]

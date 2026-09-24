@@ -41,6 +41,17 @@ published baseline. They are not a complete reconstruction of older releases.
 
 ## 0.16.0 (development)
 
+- Add the synchronous `text-decide` execute variant (`NimiLocalAppTextDecideSpec`,
+  `NimiLocalAppTextDecideResult`) with exact validation of the submitted questions
+  and returned probability distributions. `ai.scenario.execute(spec, options)` now
+  accepts `{ signal, timeoutMs }` for every variant: an abort settles as
+  `OPERATION_ABORTED`, an elapsed deadline as `OPERATION_TIMEOUT`, and neither
+  projects a late result. Add `AI_INPUT_LIMIT_EXCEEDED` and carrier helpers
+  (`validateNimiLocalAppTextDecideShellSpec`, `validateNimiLocalAppTextDecideOutput`,
+  `nimiLocalAppTextDecideSpecFromShell`). Host shells receive the carrier spec, whose
+  JSON content is the SDK's `JSON.stringify` text. New exports (minor); update
+  Runtime, SDK, Kit and the native carrier as one cohort.
+
 - Add typed `audio.voice.convert` Local App spec and conversion projection with
   exact source/target identity checks, nested target reference ranges, the
   reported length relation (`EXACT` or `MODEL_FRAME_ROUNDING`) and duration

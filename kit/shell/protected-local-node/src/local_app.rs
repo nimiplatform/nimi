@@ -266,14 +266,169 @@ pub async fn local_app_text_generate_candidate(
     .await
 }
 
+// Outstanding synchronous Scenario calls by Host-generated identity. A cancel
+// that arrives before registration leaves Pending so the call never starts;
+// completion leaves Completed until the Host releases the identity.
+enum ScenarioExecuteCall {
+    Pending,
+    Active(Arc<Notify>),
+    Completed,
+}
+
+static SCENARIO_EXECUTE_CALLS: OnceLock<Mutex<HashMap<String, ScenarioExecuteCall>>> =
+    OnceLock::new();
+const MAX_SCENARIO_EXECUTE_CALLS: usize = 64;
+const MAX_SCENARIO_EXECUTE_TIMEOUT_MS: f64 = 120_000.0;
+
+fn scenario_execute_calls() -> &'static Mutex<HashMap<String, ScenarioExecuteCall>> {
+    SCENARIO_EXECUTE_CALLS.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+// @nimi-authority: rule.nimi.sdks.feature-clients.scenario-execute-call-control
 #[napi(js_name = "localAppScenarioExecute")]
-pub async fn local_app_scenario_execute(input: NativeScenarioSpecInput) -> NativeJsonOutcome {
-    invoke_agent(|session| async move {
-        session
-            .execute_scenario(LocalAppScenarioExecuteRequest { spec: input.spec })
-            .await
-    })
+pub async fn local_app_scenario_execute(input: NativeScenarioExecuteInput) -> NativeJsonOutcome {
+    let Some(request_id) = admitted_scenario_execute_request_id(&input.request_id) else {
+        return NativeJsonOutcome::error(native_invalid_payload());
+    };
+    let timeout = match native_scenario_execute_timeout(input.timeout_ms) {
+        Ok(timeout) => timeout,
+        Err(error) => return NativeJsonOutcome::error(error),
+    };
+    let spec = input.spec;
+    run_scenario_execute(
+        request_id,
+        invoke_agent(|session| async move {
+            session
+                .execute_scenario(LocalAppScenarioExecuteRequest { spec, timeout })
+                .await
+        }),
+    )
     .await
+}
+
+#[napi(js_name = "localAppScenarioExecuteCancel")]
+pub async fn local_app_scenario_execute_cancel(
+    input: NativeScenarioExecuteCallInput,
+) -> NativeJsonOutcome {
+    let Some(request_id) = admitted_scenario_execute_request_id(&input.request_id) else {
+        return NativeJsonOutcome::error(native_invalid_payload());
+    };
+    let mut registry = scenario_execute_calls().lock().await;
+    let canceled = match registry.get(&request_id) {
+        Some(ScenarioExecuteCall::Active(cancellation)) => {
+            cancellation.notify_one();
+            true
+        }
+        Some(ScenarioExecuteCall::Pending) => true,
+        Some(ScenarioExecuteCall::Completed) => false,
+        None => {
+            if registry.len() >= MAX_SCENARIO_EXECUTE_CALLS {
+                return NativeJsonOutcome::error(LocalAppOperationError::new(
+                    LocalAppReasonCode::ResourceExhausted,
+                    true,
+                ));
+            }
+            registry.insert(request_id, ScenarioExecuteCall::Pending);
+            true
+        }
+    };
+    NativeJsonOutcome::success(json!({ "canceled": canceled }))
+}
+
+#[napi(js_name = "localAppScenarioExecuteRelease")]
+pub async fn local_app_scenario_execute_release(
+    input: NativeScenarioExecuteCallInput,
+) -> NativeJsonOutcome {
+    let Some(request_id) = admitted_scenario_execute_request_id(&input.request_id) else {
+        return NativeJsonOutcome::error(native_invalid_payload());
+    };
+    let mut registry = scenario_execute_calls().lock().await;
+    let released = matches!(
+        registry.get(&request_id),
+        Some(ScenarioExecuteCall::Pending | ScenarioExecuteCall::Completed)
+    );
+    if released {
+        registry.remove(&request_id);
+    }
+    NativeJsonOutcome::success(json!({ "released": released }))
+}
+
+async fn run_scenario_execute<F>(request_id: String, operation: F) -> NativeJsonOutcome
+where
+    F: Future<Output = NativeJsonOutcome>,
+{
+    let cancellation = Arc::new(Notify::new());
+    {
+        let mut registry = scenario_execute_calls().lock().await;
+        match registry.remove(&request_id) {
+            Some(ScenarioExecuteCall::Pending) => {
+                registry.insert(request_id, ScenarioExecuteCall::Completed);
+                return NativeJsonOutcome::error(scenario_execute_canceled());
+            }
+            Some(existing) => {
+                registry.insert(request_id, existing);
+                return NativeJsonOutcome::host_reason("runtime-service-untrusted", false);
+            }
+            None => {}
+        }
+        if registry.len() >= MAX_SCENARIO_EXECUTE_CALLS {
+            return NativeJsonOutcome::error(LocalAppOperationError::new(
+                LocalAppReasonCode::ResourceExhausted,
+                true,
+            ));
+        }
+        registry.insert(
+            request_id.clone(),
+            ScenarioExecuteCall::Active(Arc::clone(&cancellation)),
+        );
+    }
+    // Cancellation drops the pending Runtime call, so Runtime observes context
+    // cancellation; the protected session is never invalidated for it.
+    let outcome = {
+        tokio::pin!(operation);
+        tokio::select! {
+            biased;
+            outcome = &mut operation => outcome,
+            () = cancellation.notified() => NativeJsonOutcome::error(scenario_execute_canceled()),
+        }
+    };
+    let mut registry = scenario_execute_calls().lock().await;
+    if matches!(
+        registry.get(&request_id),
+        Some(ScenarioExecuteCall::Active(current)) if Arc::ptr_eq(current, &cancellation)
+    ) {
+        registry.insert(request_id, ScenarioExecuteCall::Completed);
+    }
+    outcome
+}
+
+fn scenario_execute_canceled() -> LocalAppOperationError {
+    LocalAppOperationError::new(LocalAppReasonCode::Canceled, false)
+}
+
+fn admitted_scenario_execute_request_id(value: &str) -> Option<String> {
+    let admitted = !value.is_empty()
+        && value.len() <= 160
+        && value.bytes().enumerate().all(|(index, byte)| {
+            byte.is_ascii_alphanumeric() || (index > 0 && matches!(byte, b'.' | b'_' | b':' | b'-'))
+        });
+    admitted.then(|| value.to_owned())
+}
+
+fn native_scenario_execute_timeout(
+    value: Option<f64>,
+) -> Result<Option<std::time::Duration>, LocalAppOperationError> {
+    value
+        .map(|milliseconds| {
+            if !milliseconds.is_finite()
+                || milliseconds.fract() != 0.0
+                || !(1.0..=MAX_SCENARIO_EXECUTE_TIMEOUT_MS).contains(&milliseconds)
+            {
+                return Err(native_invalid_payload());
+            }
+            Ok(std::time::Duration::from_millis(milliseconds as u64))
+        })
+        .transpose()
 }
 
 #[napi(js_name = "localAppScenarioJobSubmit")]
@@ -2601,6 +2756,180 @@ async fn clear_session_on_transport_failure(
         .is_some_and(|candidate| Arc::ptr_eq(candidate, session))
     {
         *current = None;
+    }
+}
+
+#[cfg(test)]
+mod scenario_execute_cancellation_tests {
+    use super::*;
+    use std::sync::atomic::{AtomicBool, Ordering};
+
+    static SCENARIO_EXECUTE_TEST_LOCK: Mutex<()> = Mutex::const_new(());
+
+    struct DropMarker(Arc<AtomicBool>);
+
+    impl Drop for DropMarker {
+        fn drop(&mut self) {
+            self.0.store(true, Ordering::SeqCst);
+        }
+    }
+
+    fn call(request_id: &str) -> NativeScenarioExecuteCallInput {
+        NativeScenarioExecuteCallInput {
+            request_id: request_id.to_owned(),
+        }
+    }
+
+    async fn registered(request_id: &str) -> bool {
+        scenario_execute_calls().lock().await.contains_key(request_id)
+    }
+
+    #[tokio::test]
+    async fn cancel_before_registration_is_consumed_without_polling_the_call() {
+        let _guard = SCENARIO_EXECUTE_TEST_LOCK.lock().await;
+        let request_id = "local-app-scenario-execute-before-register";
+        let canceled = local_app_scenario_execute_cancel(call(request_id)).await;
+        assert_eq!(canceled.value, Some(json!({ "canceled": true })));
+        let polled = Arc::new(AtomicBool::new(false));
+        let observed = Arc::clone(&polled);
+        let outcome = run_scenario_execute(request_id.to_owned(), async move {
+            observed.store(true, Ordering::SeqCst);
+            NativeJsonOutcome::success(json!({ "late": true }))
+        })
+        .await;
+        assert_eq!(outcome.status, "error");
+        assert_eq!(outcome.reason_code.as_deref(), Some("canceled"));
+        assert_eq!(outcome.retryable, Some(false));
+        assert!(!polled.load(Ordering::SeqCst));
+        let released = local_app_scenario_execute_release(call(request_id)).await;
+        assert_eq!(released.value, Some(json!({ "released": true })));
+        assert!(!registered(request_id).await);
+    }
+
+    #[tokio::test]
+    async fn cancel_drops_the_pending_runtime_call_and_reports_canceled() {
+        let _guard = SCENARIO_EXECUTE_TEST_LOCK.lock().await;
+        let request_id = "local-app-scenario-execute-active";
+        let started = Arc::new(Notify::new());
+        let dropped = Arc::new(AtomicBool::new(false));
+        let operation_started = Arc::clone(&started);
+        let operation_dropped = Arc::clone(&dropped);
+        let task = tokio::spawn(run_scenario_execute(request_id.to_owned(), async move {
+            let _marker = DropMarker(operation_dropped);
+            operation_started.notify_one();
+            std::future::pending::<NativeJsonOutcome>().await
+        }));
+        started.notified().await;
+        let canceled = local_app_scenario_execute_cancel(call(request_id)).await;
+        assert_eq!(canceled.value, Some(json!({ "canceled": true })));
+        let outcome = task.await.expect("canceled call must join");
+        assert_eq!(outcome.reason_code.as_deref(), Some("canceled"));
+        assert!(dropped.load(Ordering::SeqCst));
+        let late_cancel = local_app_scenario_execute_cancel(call(request_id)).await;
+        assert_eq!(late_cancel.value, Some(json!({ "canceled": false })));
+        let released = local_app_scenario_execute_release(call(request_id)).await;
+        assert_eq!(released.value, Some(json!({ "released": true })));
+        assert!(!registered(request_id).await);
+    }
+
+    #[tokio::test]
+    async fn completion_wins_a_late_cancel_until_release_and_active_identity_is_exclusive() {
+        let _guard = SCENARIO_EXECUTE_TEST_LOCK.lock().await;
+        let request_id = "local-app-scenario-execute-completed";
+        let outcome = run_scenario_execute(request_id.to_owned(), async {
+            NativeJsonOutcome::success(json!({ "traceId": "trace" }))
+        })
+        .await;
+        assert_eq!(outcome.status, "ok");
+        let canceled = local_app_scenario_execute_cancel(call(request_id)).await;
+        assert_eq!(canceled.value, Some(json!({ "canceled": false })));
+        let duplicate = run_scenario_execute(request_id.to_owned(), async {
+            NativeJsonOutcome::success(json!({ "traceId": "replayed" }))
+        })
+        .await;
+        assert_eq!(duplicate.reason_code.as_deref(), Some("runtime-service-untrusted"));
+        let released = local_app_scenario_execute_release(call(request_id)).await;
+        assert_eq!(released.value, Some(json!({ "released": true })));
+
+        let active_id = "local-app-scenario-execute-exclusive";
+        let started = Arc::new(Notify::new());
+        let operation_started = Arc::clone(&started);
+        let task = tokio::spawn(run_scenario_execute(active_id.to_owned(), async move {
+            operation_started.notify_one();
+            std::future::pending::<NativeJsonOutcome>().await
+        }));
+        started.notified().await;
+        let second = run_scenario_execute(active_id.to_owned(), async {
+            NativeJsonOutcome::success(json!({}))
+        })
+        .await;
+        assert_eq!(second.reason_code.as_deref(), Some("runtime-service-untrusted"));
+        let not_released = local_app_scenario_execute_release(call(active_id)).await;
+        assert_eq!(not_released.value, Some(json!({ "released": false })));
+        local_app_scenario_execute_cancel(call(active_id)).await;
+        assert_eq!(task.await.expect("join").reason_code.as_deref(), Some("canceled"));
+        local_app_scenario_execute_release(call(active_id)).await;
+        assert!(!registered(active_id).await);
+    }
+
+    #[tokio::test]
+    async fn outstanding_identities_are_bounded() {
+        let _guard = SCENARIO_EXECUTE_TEST_LOCK.lock().await;
+        let ids = (0..MAX_SCENARIO_EXECUTE_CALLS)
+            .map(|index| format!("local-app-scenario-execute-bound-{index}"))
+            .collect::<Vec<_>>();
+        for id in &ids {
+            let canceled = local_app_scenario_execute_cancel(call(id)).await;
+            assert_eq!(canceled.status, "ok");
+        }
+        let over = local_app_scenario_execute_cancel(call("local-app-scenario-execute-over")).await;
+        assert_eq!(over.reason_code.as_deref(), Some("resource-exhausted"));
+        let refused = run_scenario_execute("local-app-scenario-execute-over".to_owned(), async {
+            NativeJsonOutcome::success(json!({}))
+        })
+        .await;
+        assert_eq!(refused.reason_code.as_deref(), Some("resource-exhausted"));
+        for id in &ids {
+            let released = local_app_scenario_execute_release(call(id)).await;
+            assert_eq!(released.value, Some(json!({ "released": true })));
+        }
+    }
+
+    #[tokio::test]
+    async fn invalid_identity_or_deadline_fails_before_the_session() {
+        for request_id in ["", " padded", "-leading", "has space", &"x".repeat(161)] {
+            let outcome = local_app_scenario_execute(NativeScenarioExecuteInput {
+                spec: json!({}),
+                request_id: request_id.to_owned(),
+                timeout_ms: None,
+            })
+            .await;
+            assert_eq!(outcome.reason_code.as_deref(), Some("invalid-payload"), "{request_id}");
+            let cancel = local_app_scenario_execute_cancel(call(request_id)).await;
+            assert_eq!(cancel.reason_code.as_deref(), Some("invalid-payload"), "{request_id}");
+        }
+        for timeout in [0.0, -1.0, 120_001.0, 1.5, f64::NAN, f64::INFINITY] {
+            let outcome = local_app_scenario_execute(NativeScenarioExecuteInput {
+                spec: json!({}),
+                request_id: "local-app-scenario-execute-timeout".to_owned(),
+                timeout_ms: Some(timeout),
+            })
+            .await;
+            assert_eq!(outcome.reason_code.as_deref(), Some("invalid-payload"), "{timeout}");
+        }
+        assert_eq!(
+            native_scenario_execute_timeout(Some(120_000.0)).expect("bound"),
+            Some(std::time::Duration::from_secs(120))
+        );
+        assert_eq!(native_scenario_execute_timeout(None).expect("absent"), None);
+        // Caller deadlines, cancellation and encoding limits keep the protected session.
+        for reason in [
+            LocalAppReasonCode::Timeout,
+            LocalAppReasonCode::Canceled,
+            LocalAppReasonCode::AiInputLimitExceeded,
+        ] {
+            assert!(!invalidates_local_app_session(reason), "{reason:?}");
+        }
     }
 }
 

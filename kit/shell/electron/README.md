@@ -85,6 +85,10 @@ new scope. Load a fresh store there; never flush or copy the invalidated store.
 Normal successful technical renewal does not trigger this callback.
  Renderer disconnect
 does not itself replay or cancel a business workflow; the App owns that policy.
+Synchronous Scenario calls (`ai.scenario.execute(spec, { signal, timeoutMs })`)
+settle an abort or an elapsed deadline at once, drop the pending native call by
+its Host-generated identity and never return a late result; session invalidation
+cancels every outstanding call, while a caller deadline leaves the session valid.
 
 This entrypoint has no Runtime endpoint, ordinary gRPC factory, native-host
 injection or capability-set selection. Services become unavailable when the

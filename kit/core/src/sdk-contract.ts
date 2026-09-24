@@ -385,5 +385,14 @@ export { validateNimiLocalAppMusicGenerateSpec, validateNimiLocalAppMusicGenerat
 export { projectMusicInputCapabilities, type NimiMusicInputCapabilities, type NimiMusicGenerationInputProfile, type NimiMusicTranscriptionInputProfile, type NimiVoiceConvertInputProfile } from '@nimiplatform/sdk/app';
 export { validateNimiLocalAppMusicTranscribeSpec, validateNimiLocalAppMusicTranscription, type NimiLocalAppMusicTranscribeSpec, type NimiLocalAppMusicTranscription } from '@nimiplatform/sdk/app';
 export { validateNimiLocalAppVoiceConvertSpec, validateNimiLocalAppVoiceConversion, type NimiLocalAppVoiceConvertSpec, type NimiLocalAppVoiceConversion, type NimiLocalAppVoiceConvertTargetVoice, type NimiLocalAppVoiceConvertSource, type NimiVoiceConvertSourceKind, type NimiVoiceConvertTargetKind, type NimiVoiceConversionLengthRelation } from '@nimiplatform/sdk/app';
-
 export { validateNimiLocalAppConversationWork } from '@nimiplatform/sdk';
+export {
+  nimiLocalAppTextDecideSpecFromShell,
+  validateNimiLocalAppTextDecideOutput,
+  validateNimiLocalAppTextDecideShellSpec,
+  type NimiLocalAppScenarioExecuteOptions,
+  type NimiLocalAppTextDecideOutput,
+  type NimiLocalAppTextDecideResult,
+  type NimiLocalAppTextDecideShellSpec,
+  type NimiLocalAppTextDecideSpec,
+} from '@nimiplatform/sdk/app';

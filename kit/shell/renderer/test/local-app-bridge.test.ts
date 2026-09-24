@@ -601,6 +601,96 @@ describe('renderer local-app standard-shell surface', () => {
     }]);
   });
 
+  describe('text decisions and per-call control', () => {
+    const command = 'nimi.shell.localApp.scenarioExecute';
+    const publicSpec = {
+      type: 'text-decide' as const,
+      state: { json: { turn: 7, token: 'rook', board: ['a1', null] } },
+      questions: [
+        { id: 'move', instructions: { text: 'Pick the move.' }, kind: 'choice' as const, candidates: [{ id: 'a1' }, { id: 'h8', description: { json: { corner: true } } }] },
+        { id: 'resign', instructions: { text: 'Resign?' }, kind: 'boolean' as const, falseCriterion: { text: 'Play on.' } },
+      ],
+    };
+    const shellSpec = {
+      type: 'text-decide',
+      state: { json: '{"turn":7,"token":"rook","board":["a1",null]}' },
+      questions: [
+        { id: 'move', instructions: { text: 'Pick the move.' }, kind: 'choice', candidates: [{ id: 'a1' }, { id: 'h8', description: { json: '{"corner":true}' } }] },
+        { id: 'resign', instructions: { text: 'Resign?' }, kind: 'boolean', falseCriterion: { text: 'Play on.' } },
+      ],
+    };
+    const result = {
+      output: { type: 'text-decide', answers: [
+        { questionId: 'move', kind: 'choice', selectedCandidateId: 'h8',
+          probabilities: [{ candidateId: 'a1', probability: 0.3 }, { candidateId: 'h8', probability: 0.7 }] },
+        { questionId: 'resign', kind: 'boolean', trueProbability: 0.02 },
+      ] },
+      traceId: 'trace-decide',
+    };
+    const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+    it('carries the canonical decision text with a Host-scoped call correlation and validates the answers', async () => {
+      const invocations: Array<{ command: string; payload: unknown }> = [];
+      (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+        invoke: async (invoked: string, payload: unknown) => { invocations.push({ command: invoked, payload }); return result; },
+        listen: () => () => {},
+      };
+      const client = createNimiClient({ localApp: { standardShell: createNimiLocalAppStandardShellSurface() } });
+      await expect(client.ai.scenario.execute(publicSpec, { timeoutMs: 5_000 })).resolves.toEqual(result);
+      await expect(client.ai.scenario.execute(publicSpec)).resolves.toEqual(result);
+      expect(invocations).toEqual([
+        { command, payload: { payload: { spec: shellSpec, callId: expect.stringMatching(/^scenario-execute-/u), timeoutMs: 5_000 } } },
+        { command, payload: { payload: { spec: shellSpec } } },
+      ]);
+    });
+
+    it('settles an abort at once, cancels the same correlation and drops the late result', async () => {
+      const invocations: Array<{ command: string; payload: { payload: Record<string, unknown> } }> = [];
+      let finish: ((value: unknown) => void) | undefined;
+      (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+        invoke: async (invoked: string, payload: { payload: Record<string, unknown> }) => {
+          invocations.push({ command: invoked, payload });
+          if (payload.payload.action === 'cancel') return { callId: payload.payload.callId, canceled: true };
+          return new Promise((resolve) => { finish = resolve; });
+        },
+        listen: () => () => {},
+      };
+      const client = createNimiClient({ localApp: { standardShell: createNimiLocalAppStandardShellSurface() } });
+      const controller = new AbortController();
+      const pending = client.ai.scenario.execute(publicSpec, { signal: controller.signal });
+      await settle();
+      controller.abort();
+      await expect(pending).rejects.toMatchObject({ reasonCode: 'OPERATION_ABORTED', source: 'sdk' });
+      await settle();
+      const callId = invocations[0]?.payload.payload.callId;
+      expect(typeof callId).toBe('string');
+      expect(invocations.slice(1)).toEqual([{ command, payload: { payload: { action: 'cancel', callId } } }]);
+      finish?.(result);
+      await settle();
+      expect(invocations).toHaveLength(2);
+    });
+
+    it('rejects non-canonical carrier decisions, invalid options and inconsistent answers', async () => {
+      const invocations: unknown[] = [];
+      let answer: unknown = result;
+      (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+        invoke: async (_invoked: string, payload: unknown) => { invocations.push(payload); return answer; },
+        listen: () => () => {},
+      };
+      const surface = createNimiLocalAppStandardShellSurface().ai.scenario;
+      expect(() => surface.execute({ ...shellSpec, state: { json: '{"turn": 7}' } } as never)).toThrow();
+      expect(() => surface.execute({ ...shellSpec, questions: [] } as never)).toThrow();
+      expect(() => surface.execute(shellSpec as never, { timeoutMs: 0 })).toThrow();
+      expect(() => surface.execute(shellSpec as never, { deadline: 1 } as never)).toThrow();
+      expect(() => createNimiLocalAppStandardShellSurface().ai.scenarioJobs.submit(shellSpec as never)).toThrow();
+      expect(invocations).toEqual([]);
+      answer = { output: { type: 'text-decide', answers: [...result.output.answers].reverse() }, traceId: 'trace-decide' };
+      await expect(surface.execute(shellSpec as never)).rejects.toMatchObject({ reasonCode: 'renderer-standard-shell-result-invalid' });
+      answer = { output: { type: 'text-embed', vectors: [[1]], spaceId: 'space-1' }, traceId: 'trace-embed' };
+      await expect(surface.execute(shellSpec as never)).rejects.toMatchObject({ reasonCode: 'renderer-standard-shell-result-invalid' });
+    });
+  });
+
   it('forwards the typed artifact-owned image reference without another carrier', async () => {
     const invocations: Array<{ command: string; payload: unknown }> = [];
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {

@@ -165,6 +165,7 @@ const VENDOR_TOKEN_ORTHOGRAPHY: Readonly<Record<string, string>> = Object.freeze
   siliconflow: 'SiliconFlow',
   stepfun: 'StepFun',
   tts: 'TTS',
+  typesafe: 'TypeSafe',
   worldlabs: 'World Labs',
   xai: 'xAI',
 });

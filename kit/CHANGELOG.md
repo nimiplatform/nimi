@@ -51,6 +51,22 @@
 
 ## Unreleased (0.13.0)
 
+- Carry the synchronous `text-decide` Scenario and per-call control through the
+  standard shell (minor). The renderer `ai.scenario.execute(spec, options)` accepts
+  `{ signal, timeoutMs }`; the carrier spec keeps text-decide JSON as the SDK's
+  canonical `JSON.stringify` text and results are validated against the submitted
+  questions. The Electron command admits exactly `{ spec, callId?, timeoutMs? }` and
+  `{ action: 'cancel', callId }`; the Host keeps in-flight calls per sender, generates
+  the native call identity itself, cancels and releases it through the new
+  `localAppScenarioExecuteCancel` and `localAppScenarioExecuteRelease` native
+  bindings, and cancels every outstanding call on session invalidation.
+  `NimiElectronLocalAppHost.scenarioExecute(input, options)` and
+  `bridge.services.ai.scenario.execute(spec, options)` pass the caller signal. A
+  caller deadline surfaces as the typed `timeout` reason without dropping the
+  protected session; `canceled` and `timeout` join the `scenarioExecute` negative
+  states and `ai-input-limit-exceeded` is admitted. Requires the matching native
+  package.
+
 - Add validated Runtime/Realm operation selectors and cancellation metadata to
   Electron `commandPolicy` inputs. Hosts can retain setup and repair commands
   while ordinary work is unavailable, without inspecting credentials or request

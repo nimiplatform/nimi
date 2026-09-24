@@ -54,6 +54,14 @@ Kit Host for the Desktop launch and never forwarded to renderer code, followed
 by the typed Runtime result; dropping the stream cancels the pending request.
 Unknown enums or missing Runtime messages fail closed as untrusted.
 
+Synchronous Scenario execution carries the caller deadline as the call's
+`grpc-timeout` and a local timer (at most 120 seconds); its expiry is the typed
+`timeout` reason and never drops the cached App session. The text-decide variant
+is validated against the public bounds before transport, keeps JSON content as
+the caller's text, and its answers must match the submitted questions exactly.
+The Node binding cancels one call by its Host-generated identity and bounds the
+outstanding identities.
+
 The crate never exposes a generic method-id/bytes proxy, endpoint, credential,
 portable session proof, principal, record, grant, launch lease, process tuple,
 account identity, or Runtime boot epoch. Immutable package admission remains

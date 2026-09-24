@@ -144,6 +144,26 @@ pub(crate) fn local_app_error_from_status(status: Status) -> LocalAppOperationEr
         .with_reason_metadata(metadata)
 }
 
+// @nimi-authority: rule.nimi.sdks.feature-clients.scenario-execute-call-control
+/// A synchronous Scenario call's own elapsed deadline is a typed timeout, not a
+/// transport loss: the one-shot channel and the protected App session stay valid.
+/// Runtime enforces the propagated deadline by resetting the stream, which the
+/// transport reports as Cancelled, so Cancelled or DeadlineExceeded once the
+/// call's deadline has elapsed is that same timeout.
+pub(crate) fn local_app_execute_error_from_status(
+    status: Status,
+    deadline_elapsed: bool,
+) -> LocalAppOperationError {
+    let typed_runtime_reason = runtime_error_info(&status)
+        .and_then(|info| local_app_reason_from_runtime_reason(&info.reason))
+        .is_some();
+    let deadline_code = matches!(status.code(), Code::Cancelled | Code::DeadlineExceeded);
+    if (status.code() == Code::DeadlineExceeded && !typed_runtime_reason) || (deadline_code && deadline_elapsed) {
+        return LocalAppOperationError::new(LocalAppReasonCode::Timeout, true);
+    }
+    local_app_error_from_status(status)
+}
+
 pub(crate) fn local_app_realm_reason_from_response(
     reason_code: i32,
     account_reason_code: i32,
@@ -210,6 +230,7 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "AI_ROUTE_UNSUPPORTED" => LocalAppReasonCode::AiRouteUnsupported,
         "AI_ROUTE_FALLBACK_DENIED" => LocalAppReasonCode::AiRouteFallbackDenied,
         "AI_INPUT_INVALID" => LocalAppReasonCode::AiInputInvalid,
+        "AI_INPUT_LIMIT_EXCEEDED" => LocalAppReasonCode::AiInputLimitExceeded,
         "AI_MEDIA_IDEMPOTENCY_CONFLICT" => LocalAppReasonCode::AiMediaIdempotencyConflict,
         "AI_MUSIC_RECOVERY_CAPACITY_EXCEEDED" => LocalAppReasonCode::AiMusicRecoveryCapacityExceeded,
         "AI_OUTPUT_INVALID" => LocalAppReasonCode::AiOutputInvalid,
@@ -427,9 +448,62 @@ mod tests {
             ("AI_REASONING_CONTINUITY_INVALID", LocalAppReasonCode::AiReasoningContinuityInvalid),
             ("AI_EXECUTION_INTERRUPTED", LocalAppReasonCode::AiExecutionInterrupted),
             ("AI_MEDIA_IDEMPOTENCY_CONFLICT", LocalAppReasonCode::AiMediaIdempotencyConflict),
+            ("AI_INPUT_LIMIT_EXCEEDED", LocalAppReasonCode::AiInputLimitExceeded),
         ] {
             assert_eq!(local_app_reason_from_runtime_reason(name), Some(reason));
         }
+        assert!(ReasonCode::from_str_name("AI_INPUT_LIMIT_EXCEEDED").is_some());
+        assert_eq!(
+            LocalAppReasonCode::AiInputLimitExceeded.as_str(),
+            "ai-input-limit-exceeded"
+        );
+    }
+
+    #[test]
+    fn execute_deadline_is_a_typed_timeout_that_keeps_the_channel() {
+        let elapsed = local_app_execute_error_from_status(Status::deadline_exceeded("deadline"), false);
+        assert_eq!(elapsed.reason_code(), LocalAppReasonCode::Timeout);
+        assert_eq!(elapsed.reason_code().as_str(), "timeout");
+        assert!(elapsed.retryable());
+        // Runtime's deadline reset arrives as Cancelled once the deadline has
+        // elapsed; before it, Cancelled stays a cancel.
+        let reset = local_app_execute_error_from_status(Status::cancelled("stream reset"), true);
+        assert_eq!(reset.reason_code(), LocalAppReasonCode::Timeout);
+        assert!(reset.retryable());
+        assert_eq!(
+            local_app_execute_error_from_status(Status::cancelled("canceled"), false).reason_code(),
+            LocalAppReasonCode::Canceled
+        );
+        // Other operations keep the transport-loss classification.
+        assert_eq!(
+            local_app_error_from_status(Status::deadline_exceeded("deadline")).reason_code(),
+            LocalAppReasonCode::RuntimeServiceUnavailable
+        );
+        assert_eq!(
+            local_app_execute_error_from_status(Status::unavailable("gone"), true).reason_code(),
+            LocalAppReasonCode::RuntimeServiceUnavailable
+        );
+        let info = GoogleRpcErrorInfo {
+            reason: "AI_PROVIDER_TIMEOUT".to_string(),
+            domain: ERROR_INFO_DOMAIN.to_string(),
+            metadata: HashMap::new(),
+        };
+        let details = GoogleRpcStatus {
+            code: Code::DeadlineExceeded as i32,
+            message: "provider deadline".to_string(),
+            details: vec![prost_types::Any {
+                type_url: ERROR_INFO_TYPE_URL.to_string(),
+                value: info.encode_to_vec(),
+            }],
+        };
+        let provider = |deadline_elapsed| local_app_execute_error_from_status(Status::with_details(
+            Code::DeadlineExceeded,
+            "provider deadline",
+            details.encode_to_vec().into(),
+        ), deadline_elapsed);
+        assert_eq!(provider(false).reason_code(), LocalAppReasonCode::AiProviderTimeout);
+        // Past the call's own deadline the typed provider timeout is that deadline.
+        assert_eq!(provider(true).reason_code(), LocalAppReasonCode::Timeout);
     }
 
     #[test]

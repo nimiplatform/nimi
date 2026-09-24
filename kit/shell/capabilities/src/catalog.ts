@@ -49,7 +49,8 @@ export type NimiStandardShellNegativeState =
   | 'invalid-cursor'
   | 'integrity-failure'
   | 'artifact-unavailable'
-  | 'canceled';
+  | 'canceled'
+  | 'timeout';
 
 export interface NimiStandardShellOperation {
   id: string;
@@ -183,7 +184,7 @@ export const NIMI_STANDARD_SHELL_CAPABILITIES = [
       { id: 'aiConfigLocalOptions', command: 'nimi.shell.localApp.aiConfigLocalOptions', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'runtime-permission-denied', 'process-replaced', 'account-changed', 'runtime-restarted', 'invalid-payload', 'host-internal-error'] },
       { id: 'textGenerateCandidate', command: 'nimi.shell.localApp.textGenerateCandidate', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'runtime-permission-denied', 'process-replaced', 'account-changed', 'runtime-restarted', 'invalid-payload', 'resource-exhausted', 'host-internal-error'] },
       { id: 'textTurnStream', command: 'nimi.shell.localApp.textTurnStream', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'runtime-permission-denied', 'process-replaced', 'account-changed', 'runtime-restarted', 'invalid-payload', 'resource-exhausted', 'host-internal-error'] },
-      { id: 'scenarioExecute', command: 'nimi.shell.localApp.scenarioExecute', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'runtime-permission-denied', 'process-replaced', 'account-changed', 'runtime-restarted', 'invalid-payload', 'resource-exhausted', 'host-internal-error'] },
+      { id: 'scenarioExecute', command: 'nimi.shell.localApp.scenarioExecute', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'runtime-permission-denied', 'process-replaced', 'account-changed', 'runtime-restarted', 'invalid-payload', 'resource-exhausted', 'canceled', 'timeout', 'session-invalid', 'host-internal-error'] },
       { id: 'scenarioJobSubmit', command: 'nimi.shell.localApp.scenarioJobSubmit', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'runtime-permission-denied', 'process-replaced', 'account-changed', 'runtime-restarted', 'invalid-payload', 'resource-exhausted', 'host-internal-error'] },
       { id: 'scenarioJobGet', command: 'nimi.shell.localApp.scenarioJobGet', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'runtime-permission-denied', 'process-replaced', 'account-changed', 'runtime-restarted', 'invalid-payload', 'not-found', 'host-internal-error'] },
       { id: 'scenarioJobSubscribe', command: 'nimi.shell.localApp.scenarioJobSubscribe', negativeStates: ['protected-carrier-required', 'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'runtime-unauthenticated', 'runtime-permission-denied', 'process-replaced', 'account-changed', 'runtime-restarted', 'invalid-payload', 'resource-exhausted', 'not-found', 'host-internal-error'] },

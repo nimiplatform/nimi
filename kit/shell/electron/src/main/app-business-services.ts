@@ -77,9 +77,40 @@ export function createAppBusinessServices(host: NimiElectronLocalAppHost) {
       cancel,
     };
   };
+  // @nimi-authority: rule.nimi.sdks.feature-clients.scenario-execute-call-control
+  // The SDK client settles abort and caller deadline itself; the Host receives
+  // the signal so the native call is dropped, and invalidation cancels every
+  // outstanding call before it can settle for this service generation.
+  const execute = async (
+    spec: unknown,
+    options: { readonly signal?: AbortSignal; readonly timeoutMs?: number } | undefined,
+  ) => {
+    const expected = generation;
+    check(expected);
+    const controller = new AbortController();
+    const abort = async () => { controller.abort(); };
+    const onCallerAbort = () => controller.abort();
+    resources.add(abort);
+    options?.signal?.addEventListener('abort', onCallerAbort, { once: true });
+    if (options?.signal?.aborted) controller.abort();
+    try {
+      const result = await host.scenarioExecute({
+        spec: spec as NimiElectronLocalAppRecord[string],
+        ...(options?.timeoutMs !== undefined ? { timeoutMs: options.timeoutMs } : {}),
+      }, { signal: controller.signal });
+      check(expected);
+      return result;
+    } catch (error) {
+      check(expected);
+      throw error;
+    } finally {
+      options?.signal?.removeEventListener('abort', onCallerAbort);
+      resources.delete(abort);
+    }
+  };
   const ai = createNimiLocalAppAIConsumptionClient({
     text: { streamTurn: (input) => stream('textTurnSubscribe', 'textTurnStreamNext', 'textTurnStreamClose', input) },
-    scenario: { execute: (spec) => request('scenarioExecute', { spec }) },
+    scenario: { execute },
     scenarioJobs: {
       submit: (spec, options) => request('scenarioJobSubmit', { spec, timeoutMs: options?.timeoutMs ?? 0 }),
       get: (jobId) => request('scenarioJobGet', { jobId }),
