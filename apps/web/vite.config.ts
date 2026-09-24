@@ -31,6 +31,35 @@ function manualChunks(id: string): string | undefined {
     return 'vendor-protobuf';
   }
   if (
+    normalized.includes('/node_modules/framer-motion/')
+    || normalized.includes('/node_modules/motion-dom/')
+    || normalized.includes('/node_modules/motion-utils/')
+  ) {
+    return 'vendor-motion';
+  }
+  if (
+    normalized.includes('/node_modules/@radix-ui/')
+    || normalized.includes('/node_modules/@floating-ui/')
+  ) {
+    return 'vendor-ui-primitives';
+  }
+  if (
+    normalized.includes('/node_modules/@tanstack/react-virtual/')
+    || normalized.includes('/node_modules/@tanstack/virtual-core/')
+  ) {
+    return 'vendor-virtualization';
+  }
+  if (/\/node_modules\/(?:react-markdown|remark-[^/]+|rehype-[^/]+|micromark(?:-[^/]+)?|mdast-util-[^/]+|hast-util-[^/]+|unist-util-[^/]+|unified|vfile(?:-[^/]+)?)\//u.test(normalized)) {
+    return 'vendor-markdown';
+  }
+  if (
+    normalized.includes('/node_modules/tailwind-merge/')
+    || normalized.includes('/node_modules/clsx/')
+    || normalized.includes('/node_modules/class-variance-authority/')
+  ) {
+    return 'vendor-styling';
+  }
+  if (
     normalized.includes('/node_modules/three/')
     || normalized.includes('/node_modules/@react-three/')
     || normalized.includes('/node_modules/postprocessing/')
@@ -47,8 +76,14 @@ function manualChunks(id: string): string | undefined {
   if (isNimiSdk) {
     return 'vendor-nimi-sdk';
   }
+  const isNimiKit =
+    normalized.includes('/node_modules/@nimiplatform/kit/')
+    || normalized.startsWith(`${repoRootNormalized}/kit/`);
+  if (isNimiKit && normalized.includes('/features/agent-center/')) {
+    return 'vendor-nimi-kit-agent-center';
+  }
 
-  // Kit modules chunk by their real import graph. A unified vendor-nimi-kit
+  // Other Kit modules chunk by their real import graph. A unified vendor-nimi-kit
   // chunk would collapse kit's internal lazy boundaries (e.g. the auth
   // particle background's dynamic three import) into static edges and force
   // every kit consumer to load unrelated heavy modules.

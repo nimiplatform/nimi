@@ -36,6 +36,9 @@ function manualChunks(id: string) {
   if (normalized.includes('/node_modules/@protobuf-ts/runtime/')) {
     return 'vendor-protobuf-ts';
   }
+  if (normalized.includes('/node_modules/fflate/')) {
+    return 'vendor-fflate';
+  }
   if (isNimiSdk && normalized.includes('/dist/core-generated/runtime-protobuf/google/')) {
     return 'vendor-nimi-sdk-protobuf-google';
   }
@@ -99,6 +102,9 @@ function manualChunks(id: string) {
   }
   if (normalized.includes('/apps/lab/src/shell/i18n/')) {
     return 'lab-i18n';
+  }
+  if (normalized.includes('/apps/lab/src/ai-studio-core/history')) {
+    return 'lab-history';
   }
   if (normalized.includes('/apps/lab/src/lab/workbench/')) {
     return 'lab-workbench';

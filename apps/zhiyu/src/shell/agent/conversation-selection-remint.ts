@@ -20,7 +20,7 @@ export type ZhiyuConversationSelectionRemintResult = Readonly<
 
 export type ZhiyuConversationSelectionRemintInput = Readonly<{
   readonly previousConversationAnchorId: string;
-  readonly currentReferences: readonly NimiLocalAppAgentReference[];
+  readonly currentReferences: readonly Pick<NimiLocalAppAgentReference, 'agentHandle'>[];
   readonly conversation: Pick<NimiLocalAppConversationClient, 'snapshot'>;
   readonly isCurrent?: () => boolean;
 }>;
@@ -53,7 +53,7 @@ function requireAnchor(value: unknown): string {
 }
 
 function freezeCurrentHandles(
-  references: readonly NimiLocalAppAgentReference[],
+  references: ZhiyuConversationSelectionRemintInput['currentReferences'],
 ): readonly NimiLocalAppAgentHandle[] {
   const handles: NimiLocalAppAgentHandle[] = [];
   const seen = new Set<string>();
