@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ArrowRight, ArrowUp } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { SHELL_PAGE_WIDTH_CLASS } from '../../app-shell/layouts/shell-chrome-classes.js';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
 import { formatBytes, formatTransferRate } from '../../components/download-format.js';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
@@ -22,6 +23,7 @@ import {
 import { displayRuntimeConfigCapabilityLabel } from '../runtime-config/runtime-config-capability-labels.js';
 import { isDownloadTerminal } from '../runtime-config/runtime-config-model-center-utils.js';
 import type { RuntimeAdvancedDiagnosticsPane } from '../runtime-config/runtime-config-state-types.js';
+import { runtimeSetupFailureText } from '../runtime-config/runtime-setup-failure-message.js';
 import { HomeAgentCard } from './home-agent-card.js';
 import { HomeMachineStatus, homeRuntimeState } from './home-machine-status.js';
 import type { HomeMessageCardContext } from './home-message-card.js';
@@ -191,7 +193,7 @@ export function NimiOverview() {
       kind: 'setup',
       id: task.taskId,
       title: t('runtimeConfig.overview.setupFailed', { capability: displayRuntimeConfigCapabilityLabel(task.capabilityContract, t) }),
-      detail: task.failure?.message ?? '',
+      detail: task.failure ? runtimeSetupFailureText(task.failure, t) : '',
       progress: null,
       time: task.updatedAt || null,
       app: null,
@@ -390,7 +392,7 @@ export function NimiOverview() {
         key={view}
         className="min-h-0 flex-1"
         viewportClassName="bg-transparent"
-        contentClassName="mx-auto w-full max-w-[1400px] px-5 pb-7 pt-5 lg:px-8"
+        contentClassName={`${SHELL_PAGE_WIDTH_CLASS} pb-7 pt-5`}
       >
         {view === 'center' && messages ? (
           <HomeMessageCenter

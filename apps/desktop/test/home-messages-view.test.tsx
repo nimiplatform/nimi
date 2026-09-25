@@ -226,17 +226,31 @@ test('one unavailable source keeps the others and never claims an empty list', a
   assert.doesNotMatch(html, /没有消息/);
 });
 
+test('Home limits item and Activity previews independently', async () => {
+  await initI18n(); await changeLocale('en');
+  const items = Array.from({ length: 6 }, (_, index) => activityMessage(record(index + 10, {
+    source: { ...PARENTOS, sourceRef: `src_${index}`, appId: `app.example.${index}` },
+  })));
+  const html = renderColumn(controller({ messages: [...items, agentPost] }));
+  assert.match(cardHtml(html, agentPost.key), /Practised calligraphy/);
+  assert.equal(items.filter((item) => html.includes(`data-testid="home-message:${item.key}"`)).length, 5);
+  assert.doesNotMatch(html, /No activity yet/);
+});
+
 test('Home empty states distinguish hidden, complete and not yet loaded', async () => {
   await initI18n(); await changeLocale('zh');
   const hidden = renderColumn(controller({ messages: [growthOpen], homeMessages: [], offHomeCount: 1 }));
   assert.match(hidden, /首页消息已隐藏，可在消息中心查看。/);
   const empty = renderColumn(controller({ messages: [] }));
-  assert.match(empty, /没有消息/);
+  assert.match(empty, /暂无消息与事项/);
+  assert.match(empty, /暂无动态/);
   const partial = renderColumn(controller({ messages: [], realm: { hasMore: true } }));
   assert.match(partial, /尚未加载到匹配事项/);
   assert.doesNotMatch(partial, /没有消息/);
   const loading = renderColumn(controller({ messages: [growthOpen], homeMessages: null, preferencesStatus: 'loading' }));
   assert.doesNotMatch(loading, /data-testid="home-message-stack/, 'no card flashes before display preferences are known');
+  assert.match(loading, /data-testid="home-messages-view-activity"/, 'Activity stays reachable while display preferences load');
+  assert.doesNotMatch(loading, /暂无消息与事项|暂无动态/);
   const unreadable = renderColumn(controller({ messages: [growthOpen], preferencesStatus: 'unavailable' }), context({ canHide: false }));
   assert.match(unreadable, /data-testid="home-messages-preferences-unavailable"/);
   assert.match(unreadable, /身高|Growth record 1/, 'messages stay visible when preferences cannot be read');

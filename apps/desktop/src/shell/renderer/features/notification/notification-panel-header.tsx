@@ -1,10 +1,9 @@
-import { Button, PillTabs } from '@nimiplatform/kit/ui';
+import { Button, NimiTabs } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 import { FILTER_TABS, type NotificationFilterTab } from './notification-panel-types.js';
 
 type NotificationPanelHeaderProps = {
   activeFilter: NotificationFilterTab;
-  markingAllRead: boolean;
   unreadCount: number | null;
   onFilterChange: (filter: NotificationFilterTab) => void;
   onMarkAllRead: () => void;
@@ -12,15 +11,14 @@ type NotificationPanelHeaderProps = {
 
 export function NotificationPanelHeader({
   activeFilter,
-  markingAllRead,
   unreadCount,
   onFilterChange,
   onMarkAllRead,
 }: NotificationPanelHeaderProps) {
   const { t } = useTranslation();
   return (
-    <div className="shrink-0 border-b border-[var(--nimi-border-subtle)] px-6 pb-4 pt-5">
-      <div className="flex items-center justify-between gap-4">
+    <div className="shrink-0">
+      <div className="flex items-center justify-between gap-4 px-6 pb-4 pt-5">
         <div className="flex min-w-0 items-center gap-3.5">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] text-[var(--nimi-action-primary-bg)]">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -41,26 +39,24 @@ export function NotificationPanelHeader({
             ) : null}
           </div>
         </div>
-        <Button
-          tone="ghost"
-          size="sm"
-          disabled={markingAllRead || unreadCount === null || unreadCount <= 0}
-          onClick={onMarkAllRead}
-          leadingIcon={(
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-          )}
-        >
-          {markingAllRead
-            ? t('NotificationPanel.markingAllRead', { defaultValue: 'Marking...' })
-            : t('NotificationPanel.markAllRead', { defaultValue: 'Mark All Read' })}
-        </Button>
+        {unreadCount !== null && unreadCount > 0 ? (
+          <Button
+            tone="ghost"
+            size="sm"
+            onClick={onMarkAllRead}
+            leadingIcon={(
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            )}
+          >
+            {t('NotificationPanel.markAllRead', { defaultValue: 'Mark All Read' })}
+          </Button>
+        ) : null}
       </div>
 
-      <div className="mt-4">
-        <PillTabs
-          size="sm"
+      <div className="border-b border-[var(--nimi-border-subtle)] px-6">
+        <NimiTabs
           ariaLabel={t('NotificationPanel.title', { defaultValue: 'Notifications' })}
           value={activeFilter}
           onValueChange={(value) => onFilterChange(value as NotificationFilterTab)}

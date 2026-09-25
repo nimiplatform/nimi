@@ -19,30 +19,12 @@ export function clampHoverCardTop(top: number): number {
   return Math.min(Math.max(top, minTop), maxTop);
 }
 
-function getSourceLabel(source: ConversationTargetSummary['source'], t: TFunction): string {
-  switch (source) {
-    case 'ai':
-      return t('Chat.hoverCardAi', { defaultValue: 'AI' });
-    case 'agent':
-      return t('Chat.hoverCardLocalAgent', { defaultValue: 'localAgent' });
-    case 'human':
-    default:
-      return t('Chat.hoverCardHuman', { defaultValue: 'Human' });
+function getIdentityLabel(target: ConversationTargetSummary): string | null {
+  const handle = String(target.handle || '').replace(/^@+/, '').trim();
+  if (handle) {
+    return handle;
   }
-}
-
-function getIdentityLabel(target: ConversationTargetSummary, sourceLabel: string): string {
-  if (target.handle) {
-    return target.handle.replace(/^@+/, '');
-  }
-  if (target.source === 'ai') {
-    return 'nimi';
-  }
-  const fallbackId = String(target.canonicalSessionId || target.id || '').trim();
-  if (fallbackId) {
-    return fallbackId;
-  }
-  return sourceLabel;
+  return target.source === 'ai' ? 'nimi' : null;
 }
 
 function getProfileOpenLabel(source: ConversationTargetSummary['source'], title: string, t: TFunction): string {
@@ -107,6 +89,7 @@ export function RelationshipHoverCard({
   onMouseLeave,
   onSelect,
   onOpenProfile,
+  subtitle,
 }: {
   target: ConversationTargetSummary;
   selected: boolean;
@@ -115,11 +98,11 @@ export function RelationshipHoverCard({
   onMouseLeave: () => void;
   onSelect: () => void;
   onOpenProfile?: () => void;
+  subtitle?: string | null;
 }) {
   const { t } = useTranslation();
-  const sourceLabel = getSourceLabel(target.source, t);
-  const identity = getIdentityLabel(target, sourceLabel);
-  const preview = target.previewText || target.bio || t('Chat.hoverCardNoPreview', { defaultValue: 'No recent message' });
+  const identity = getIdentityLabel(target);
+  const preview = target.previewText || target.bio || null;
   const isLocalAgent = target.source === 'agent';
   const sourcePillLabel = t('Chat.hoverCardLocalAgent', { defaultValue: 'localAgent' });
 
@@ -190,15 +173,27 @@ export function RelationshipHoverCard({
               </span>
             ) : null}
           </div>
-          <div className="mt-0.5 truncate text-[12px] font-normal leading-4 text-[var(--nimi-text-muted)]">
-            {identity}
-          </div>
-          <div className="mt-3 flex min-w-0 items-center gap-1.5 text-[12px] leading-4 text-[var(--nimi-text-muted)]">
-            <span className="shrink-0 font-medium text-[var(--nimi-text-secondary)]">
-              {t('Chat.hoverCardLast', { defaultValue: 'Last:' })}
-            </span>
-            <span className="min-w-0 flex-1 truncate">{preview}</span>
-          </div>
+          {subtitle ? (
+            <div
+              data-chat-contact-hover-card-subtitle="true"
+              className="mt-0.5 truncate text-[12px] font-normal leading-4 text-[var(--nimi-text-muted)]"
+            >
+              {subtitle}
+            </div>
+          ) : null}
+          {identity ? (
+            <div className="mt-0.5 truncate text-[12px] font-normal leading-4 text-[var(--nimi-text-muted)]">
+              {identity}
+            </div>
+          ) : null}
+          {preview ? (
+            <div className="mt-3 flex min-w-0 items-center gap-1.5 text-[12px] leading-4 text-[var(--nimi-text-muted)]">
+              <span className="shrink-0 font-medium text-[var(--nimi-text-secondary)]">
+                {t('Chat.hoverCardLast', { defaultValue: 'Last:' })}
+              </span>
+              <span className="min-w-0 flex-1 truncate">{preview}</span>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

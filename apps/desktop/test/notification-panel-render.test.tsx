@@ -21,12 +21,24 @@ test('notification header only claims all caught up after observing zero unread'
   await initI18n();
   await changeLocale('en');
   const render = (unreadCount: number | null) => renderToStaticMarkup(
-    <NotificationPanelHeader activeFilter="all" markingAllRead={false} unreadCount={unreadCount}
+    <NotificationPanelHeader activeFilter="all" unreadCount={unreadCount}
       onFilterChange={() => undefined} onMarkAllRead={() => undefined} />,
   );
   assert.doesNotMatch(render(null), /caught up|\d+ unread/u);
   assert.match(render(0), /caught up/u);
   assert.match(render(3), /3 unread/u);
+});
+
+test('notification header hides mark all read unless unread notifications exist', async () => {
+  await initI18n();
+  await changeLocale('en');
+  const render = (unreadCount: number | null) => renderToStaticMarkup(
+    <NotificationPanelHeader activeFilter="all" unreadCount={unreadCount}
+      onFilterChange={() => undefined} onMarkAllRead={() => undefined} />,
+  );
+  assert.doesNotMatch(render(null), /Mark All Read/u);
+  assert.doesNotMatch(render(0), /Mark All Read/u);
+  assert.match(render(3), /Mark All Read/u);
 });
 
 test('request filter retains pagination when only later pages contain requests', async () => {

@@ -10,6 +10,7 @@ import {
   clampHoverCardTop,
   type RelationshipHoverCardPosition,
 } from './chat-relationship-hover-card.js';
+import { useRelationshipHoverCardSubtitle } from './chat-relationship-hover-subtitle.js';
 import { resolveAgentTargetSourceRef } from '../agents/agent-conversation-source-resolution.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
@@ -55,6 +56,11 @@ function RelationshipAvatar({
   const cancelHideRef = useRef<(() => void) | null>(null);
   const profileOpenPendingRef = useRef(false);
   const [hoverCardPos, setHoverCardPos] = useState<RelationshipHoverCardPosition | null>(null);
+  // The character subtitle resolves lazily only while the hover card is visible.
+  const hoverCardSubtitle = useRelationshipHoverCardSubtitle({
+    target,
+    enabled: Boolean(hoverCardPos),
+  });
 
   const initial = (target.avatarFallback || target.title || '?').charAt(0).toUpperCase();
   const unread = target.unreadCount && target.unreadCount > 0 ? target.unreadCount : null;
@@ -235,6 +241,7 @@ function RelationshipAvatar({
           onMouseLeave={scheduleHide}
           onSelect={onSelect}
           onOpenProfile={profileTarget || canResolveAgentProfile ? handleOpenProfile : undefined}
+          subtitle={hoverCardSubtitle}
         />
       ) : null}
     </>

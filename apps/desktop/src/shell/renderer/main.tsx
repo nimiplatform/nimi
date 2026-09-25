@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, type PropsWithChildren } from 'react';
 import { createRoot } from 'react-dom/client';
-import { AmbientBackground, NimiThemeProvider, ProgressIndicator } from '@nimiplatform/kit/ui';
+import { NimiThemeProvider } from '@nimiplatform/kit/ui';
 import { usePrefersReducedMotion } from '@nimiplatform/kit/ui/motion';
 import { motion } from 'motion/react';
 import {
@@ -33,13 +33,9 @@ async function preflightRendererAppDependencies(): Promise<void> {
 
 const entryBootCopy = bootstrapEntryCopy as {
     initializingRuntime: string;
-    initializingRuntimeDescription: string;
-    bootSequenceLabel: string;
     startFailedTitle: string;
     rendererEntryFailed: string;
 };
-
-const ENTRY_BOOT_PROGRESS_FLOOR_PERCENT = 8;
 
 const App = lazy(async () => {
     // Start loading the App chunk immediately — in parallel with runtime
@@ -101,61 +97,36 @@ function EntryBootSurface(props: { title: string; detail: string }) {
     );
 }
 
-function EntryNimiLogoMark({ className = 'h-12 w-12' }: { className?: string }) {
-    return (
-      <img src={entryLogoImage} alt="" className={`${className} object-contain`} aria-hidden="true" />
-    );
-}
-
-function EntryRuntimeBootSurface(props: {
-    title: string;
-    detail: string;
-    sequenceLabel: string;
-}) {
+function EntryRuntimeBootSurface(props: { title: string }) {
     const prefersReducedMotion = usePrefersReducedMotion();
-    const title = props.title.replace(/(?:\.{3}|…)+$/u, '');
 
     return (
-      <AmbientBackground
-        variant="mesh"
-        className="flex min-h-screen items-center justify-center overflow-hidden bg-[var(--nimi-surface-canvas,#f8fafc)] px-6 py-8 text-[var(--nimi-text-primary,#111827)]"
-      >
-        <div
-          aria-hidden="true"
-          className="nimi-material-glass-regular absolute inset-0 z-[1] bg-[color-mix(in_srgb,var(--nimi-material-glass-regular-bg)_58%,transparent)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
-        />
+      <div className="flex min-h-screen items-center justify-center overflow-hidden bg-[var(--nimi-surface-canvas,#f8fafc)] px-6 py-8 text-[var(--nimi-text-primary,#111827)]">
         <motion.section
           initial={{ opacity: prefersReducedMotion ? 1 : 0, y: prefersReducedMotion ? 0 : 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: prefersReducedMotion ? 0 : 0.32, ease: [0.05, 0.7, 0.1, 1] }}
           className="relative z-10 flex w-full max-w-[420px] flex-col items-center text-center"
         >
-          <div
+          <img
+            src={entryLogoImage}
+            alt="Nimi"
             data-testid="runtime-loading-logo"
-            className="flex h-24 w-24 items-center justify-center"
-          >
-            <EntryNimiLogoMark className="h-24 w-24 drop-shadow-[0_10px_18px_rgba(33,183,181,0.14)]" />
-          </div>
-          <div className="mt-6 rounded-full border border-[color-mix(in_srgb,var(--nimi-action-primary-bg,#5fcbb2)_42%,white)] bg-[var(--nimi-surface-card,#fff)] px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--nimi-action-primary-bg,#5fcbb2)]">
-            Nimi Runtime
-          </div>
-          <h1 className="mt-4 text-[22px] font-semibold leading-7 tracking-[-0.02em] text-[var(--nimi-text-primary,#111827)]">
-            {title}
+            className="h-20 w-20 object-contain"
+          />
+          <h1 className="mt-10 text-[30px] font-medium leading-snug">
+            Nimi Ecosystem
           </h1>
-          <p className="mt-2 max-w-[28rem] text-sm leading-6 text-[var(--nimi-text-secondary,#475569)]">
-            {props.detail}
-          </p>
-          <div className="mt-7 w-full max-w-[18rem]">
-            <ProgressIndicator
-              value={ENTRY_BOOT_PROGRESS_FLOOR_PERCENT}
-              showValue
-              aria-label={title}
-              className="[&_.nimi-progress__track]:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg,#5fcbb2)_10%,white)]"
-            />
-            <p className="mt-3 text-xs text-[var(--nimi-text-muted,#64748b)]">{props.sequenceLabel}</p>
+          <div role="status" className="mt-12 flex flex-col items-center gap-3">
+            <div aria-hidden="true" className="nimi-boot-dots">
+              <span className="nimi-boot-dot" />
+              <span className="nimi-boot-dot" />
+              <span className="nimi-boot-dot" />
+            </div>
+            <p className="text-xs text-[var(--nimi-text-muted,#64748b)]">{props.title}</p>
           </div>
         </motion.section>
-      </AmbientBackground>
+      </div>
     );
 }
 if (!import.meta.env.DEV) {
@@ -171,11 +142,7 @@ createRoot(rootElement).render(
   <EntryErrorBoundary>
     <NimiThemeProvider accentPack="nimi-accent" defaultScheme="light" defaultDensity="compact">
       <Suspense
-        fallback={<EntryRuntimeBootSurface
-          title={entryBootCopy.initializingRuntime}
-          detail={entryBootCopy.initializingRuntimeDescription}
-          sequenceLabel={entryBootCopy.bootSequenceLabel}
-        />}
+        fallback={<EntryRuntimeBootSurface title={entryBootCopy.initializingRuntime} />}
       >
         <App />
       </Suspense>

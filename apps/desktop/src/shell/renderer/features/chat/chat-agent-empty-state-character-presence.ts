@@ -27,6 +27,22 @@ export type AgentEmptyStateCharacterPresence = {
 
 type TranslationFn = ReturnType<typeof useTranslation>['t'];
 
+// Hero subtitle line shared by the agent chat header and relationship surfaces:
+// the character's dynasty label joined with its readable persona role.
+export function resolveWorldCharacterHeroSubtitle(
+  source: SourceDetailData,
+  t: TranslationFn,
+): string | null {
+  const baseSubtitle = worldCharacterHeroSubtitle(source);
+  const roleText = source.characterProfile.role
+    ? personaStyleDisplayText(source.characterProfile.role, t)
+    : '';
+  const roleSubtitle = roleText && isReadablePersonaQuestionTopic(roleText) ? simplifyDisplayText(roleText) : '';
+  return [baseSubtitle, roleSubtitle && !baseSubtitle?.includes(roleSubtitle) ? roleSubtitle : '']
+    .filter(Boolean)
+    .join(' · ') || null;
+}
+
 // Presence content for the agent chat empty state, derived from the same Realm
 // source detail that backs the profile page (suggested questions, the
 // character's opening line, portrait, and voice sample). Returns null when the
@@ -43,14 +59,7 @@ export function toAgentEmptyStateCharacterPresence(
   const questions = buildWorldCharacterQuestions(source, t, questionLimit);
   const greetingText = source.characterProfile.interaction?.greeting;
   const greeting = greetingText ? simplifyDisplayText(greetingText) || null : null;
-  const baseSubtitle = worldCharacterHeroSubtitle(source);
-  const roleText = source.characterProfile.role
-    ? personaStyleDisplayText(source.characterProfile.role, t)
-    : '';
-  const roleSubtitle = roleText && isReadablePersonaQuestionTopic(roleText) ? simplifyDisplayText(roleText) : '';
-  const heroSubtitle = [baseSubtitle, roleSubtitle && !baseSubtitle?.includes(roleSubtitle) ? roleSubtitle : '']
-    .filter(Boolean)
-    .join(' · ') || null;
+  const heroSubtitle = resolveWorldCharacterHeroSubtitle(source, t);
   const referenceImageUrl = source.referenceImageUrl || null;
   const voiceSampleUrl = source.voiceSample?.url || null;
   const voiceSampleDurationSec = source.voiceSample?.durationSec ?? null;

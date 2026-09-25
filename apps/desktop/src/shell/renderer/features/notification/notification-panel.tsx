@@ -9,6 +9,7 @@ import {
 } from '@nimiplatform/kit/core/notifications';
 import { useTranslation } from 'react-i18next';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
+import { SHELL_PAGE_WIDTH_CLASS } from '../../app-shell/layouts/shell-chrome-classes.js';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { E2E_IDS } from '../../testability/e2e-ids';
 
@@ -319,140 +320,138 @@ export function NotificationPanel() {
 
   if (authStatus !== 'authenticated') {
     return (
-      <div data-testid={E2E_IDS.panel('notification')} className="flex min-h-0 flex-1 px-5 pb-5 pt-4">
-        <Surface
-          tone="panel"
-          material="glass-regular"
-          padding="none"
-          className="flex flex-1 items-center justify-center rounded-[2rem] border-white/60 text-sm text-[var(--nimi-text-secondary)] shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
-        >
-          {t('NotificationPanel.loginRequired')}
-        </Surface>
+      <div data-testid={E2E_IDS.panel('notification')} className="flex min-h-0 flex-1 px-3 pb-5 pt-4">
+        <div className={`flex min-h-0 flex-1 ${SHELL_PAGE_WIDTH_CLASS}`}>
+          <Surface
+            tone="panel"
+            material="glass-regular"
+            padding="none"
+            className="flex flex-1 items-center justify-center rounded-[2rem] border-white/60 text-sm text-[var(--nimi-text-secondary)] shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+          >
+            {t('NotificationPanel.loginRequired')}
+          </Surface>
+        </div>
       </div>
     );
   }
 
   return (
-    <div data-testid={E2E_IDS.panel('notification')} className="flex min-h-0 flex-1 px-5 pb-5 pt-4">
-      <Surface
-        tone="panel"
-        material="glass-regular"
-        padding="none"
-        className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col overflow-hidden rounded-[2rem] border-white/60 shadow-[0_22px_52px_rgba(15,23,42,0.08)]"
-      >
-        <NotificationPanelHeader
-          activeFilter={activeFilter}
-          markingAllRead={markingAllRead}
-          unreadCount={optimisticUnreadCount ?? unreadCountQuery.data?.total ?? null}
-          onFilterChange={setActiveFilter}
-          onMarkAllRead={() => {
-            void markAllRead();
-          }}
-        />
+    <div data-testid={E2E_IDS.panel('notification')} className="flex min-h-0 flex-1 px-3 pb-5 pt-4">
+      <div className={`flex min-h-0 flex-1 ${SHELL_PAGE_WIDTH_CLASS}`}>
+        <Surface
+          tone="panel"
+          material="glass-regular"
+          padding="none"
+          className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[2rem] border-white/60 shadow-[0_22px_52px_rgba(15,23,42,0.08)]"
+        >
+          <NotificationPanelHeader
+            activeFilter={activeFilter}
+            unreadCount={optimisticUnreadCount ?? unreadCountQuery.data?.total ?? null}
+            onFilterChange={setActiveFilter}
+            onMarkAllRead={() => {
+              void markAllRead();
+            }}
+          />
 
-        {showInitialLoading ? (
-          <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-6 py-20 text-center">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--nimi-border-subtle)] border-t-[var(--nimi-action-primary-bg)]" />
-            <p className="text-sm text-[var(--nimi-text-secondary)]">
-              {t('NotificationPanel.loading', { defaultValue: 'Loading notifications...' })}
-            </p>
-          </div>
-        ) : null}
-
-        {showInitialError ? (
-          <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-6 py-20 text-center">
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--nimi-status-danger-soft-bg)] text-[var(--nimi-status-danger-soft-text)]">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
-            </span>
-            <p className="text-sm text-[var(--nimi-status-danger-soft-text)]">
-              {t('NotificationPanel.loadError', { defaultValue: 'Failed to load notifications' })}
-            </p>
-            <Button
-              tone="secondary"
-              size="sm"
-              onClick={() => {
-                void refreshNotifications();
-              }}
-            >
-              {t('NotificationPanel.retry', { defaultValue: 'Retry' })}
-            </Button>
-          </div>
-        ) : null}
-
-        {showEmptyState ? (
-          <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-5 px-6 py-20 text-center">
-            <div className="relative flex items-center justify-center">
-              <div
-                aria-hidden="true"
-                className="absolute h-36 w-36 rounded-full bg-[radial-gradient(circle,color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,transparent)_0%,transparent_70%)]"
-              />
-              <div className="relative flex h-20 w-20 items-center justify-center rounded-[1.75rem] border border-white/60 bg-[var(--nimi-surface-card)] text-[var(--nimi-action-primary-bg)] shadow-[0_18px_40px_rgba(15,23,42,0.10)]">
-                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                </svg>
-              </div>
+          {showInitialLoading ? (
+            <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-6 py-20 text-center">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--nimi-border-subtle)] border-t-[var(--nimi-action-primary-bg)]" />
+              <p className="text-sm text-[var(--nimi-text-secondary)]">
+                {t('NotificationPanel.loading', { defaultValue: 'Loading notifications...' })}
+              </p>
             </div>
-            <div className="space-y-1.5">
+          ) : null}
+
+          {showInitialError ? (
+            <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-6 py-20 text-center">
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--nimi-status-danger-soft-bg)] text-[var(--nimi-status-danger-soft-text)]">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+              </span>
+              <p className="text-sm text-[var(--nimi-status-danger-soft-text)]">
+                {t('NotificationPanel.loadError', { defaultValue: 'Failed to load notifications' })}
+              </p>
+              <Button
+                tone="secondary"
+                size="sm"
+                onClick={() => {
+                  void refreshNotifications();
+                }}
+              >
+                {t('NotificationPanel.retry', { defaultValue: 'Retry' })}
+              </Button>
+            </div>
+          ) : null}
+
+          {showEmptyState ? (
+            <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-5 px-6 py-20 text-center">
+              <div className="relative flex items-center justify-center">
+                <div
+                  aria-hidden="true"
+                  className="absolute h-36 w-36 rounded-full bg-[radial-gradient(circle,color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,transparent)_0%,transparent_70%)]"
+                />
+                <div className="relative flex h-20 w-20 items-center justify-center rounded-[1.75rem] border border-white/60 bg-[var(--nimi-surface-card)] text-[var(--nimi-action-primary-bg)] shadow-[0_18px_40px_rgba(15,23,42,0.10)]">
+                  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                  </svg>
+                </div>
+              </div>
               <p className="text-base font-semibold text-[var(--nimi-text-primary)]">
                 {t('NotificationPanel.empty', { defaultValue: 'No notifications' })}
               </p>
-              <p className="mx-auto max-w-sm text-sm leading-relaxed text-[var(--nimi-text-muted)]">
-                {t('NotificationPanel.emptyDescription', { defaultValue: 'New mentions, requests, likes, and system updates will appear here.' })}
-              </p>
             </div>
-          </div>
-        ) : null}
+          ) : null}
 
-        {showList ? (
-          <ScrollArea
-            className="min-h-0 flex-1"
-            viewportClassName="bg-transparent"
-            contentClassName="flex w-full flex-col"
-          >
-            <div className="divide-y divide-[var(--nimi-border-subtle)]">
-              {filteredItems.map((item) => (
-                <NotificationPanelItemCard
-                  key={item.id}
-                  item={item}
-                  itemBusy={isBusyForItem(item.id)}
-                  pendingItemAction={pendingItemAction}
-                  t={t}
-                  markOneRead={(id) => {
-                    void markOneRead(id);
-                  }}
-                  onAcceptFriendRequest={(target) => {
-                    void acceptFriendRequest(target);
-                  }}
-                  onRejectFriendRequest={(target) => {
-                    void rejectFriendRequest(target);
-                  }}
-                />
-              ))}
-            </div>
-
-            {notificationsQuery.hasNextPage ? (
-              <div className="flex justify-center px-6 py-4">
-                <Button
-                  tone="secondary"
-                  onClick={() => {
-                    void loadMore();
-                  }}
-                  disabled={notificationsQuery.isFetchingNextPage}
-                >
-                  {notificationsQuery.isFetchingNextPage
-                    ? t('NotificationPanel.loadingMore', { defaultValue: 'Loading...' })
-                    : t('NotificationPanel.loadMore', { defaultValue: 'Load More' })}
-                </Button>
+          {showList ? (
+            <ScrollArea
+              className="min-h-0 flex-1"
+              viewportClassName="bg-transparent"
+              contentClassName="flex w-full flex-col"
+            >
+              <div className="divide-y divide-[var(--nimi-border-subtle)]">
+                {filteredItems.map((item) => (
+                  <NotificationPanelItemCard
+                    key={item.id}
+                    item={item}
+                    itemBusy={isBusyForItem(item.id)}
+                    pendingItemAction={pendingItemAction}
+                    t={t}
+                    markOneRead={(id) => {
+                      void markOneRead(id);
+                    }}
+                    onAcceptFriendRequest={(target) => {
+                      void acceptFriendRequest(target);
+                    }}
+                    onRejectFriendRequest={(target) => {
+                      void rejectFriendRequest(target);
+                    }}
+                  />
+                ))}
               </div>
-            ) : null}
-          </ScrollArea>
-        ) : null}
-      </Surface>
+
+              {notificationsQuery.hasNextPage ? (
+                <div className="flex justify-center px-6 py-4">
+                  <Button
+                    tone="secondary"
+                    onClick={() => {
+                      void loadMore();
+                    }}
+                    disabled={notificationsQuery.isFetchingNextPage}
+                  >
+                    {notificationsQuery.isFetchingNextPage
+                      ? t('NotificationPanel.loadingMore', { defaultValue: 'Loading...' })
+                      : t('NotificationPanel.loadMore', { defaultValue: 'Load More' })}
+                  </Button>
+                </div>
+              ) : null}
+            </ScrollArea>
+          ) : null}
+        </Surface>
+      </div>
     </div>
   );
 }
