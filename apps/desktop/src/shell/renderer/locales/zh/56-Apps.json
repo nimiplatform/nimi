@@ -201,6 +201,7 @@
   "runState": {
     "running": "运行中",
     "starting": "启动中",
+    "stopping": "停止中",
     "stopped": "未运行",
     "failed": "启动失败"
   },

@@ -201,6 +201,7 @@
   "runState": {
     "running": "Running",
     "starting": "Starting",
+    "stopping": "Stopping",
     "stopped": "Not running",
     "failed": "Launch failed"
   },

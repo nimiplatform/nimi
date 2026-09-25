@@ -25,6 +25,7 @@ import {
 } from '../src/shell/renderer/features/apps/apps-panel-view';
 import type { LocalDevelopmentRegistration } from '../src/shell/renderer/features/local-development/local-development-types';
 import type { DesktopAppsEntry } from '../src/shell/renderer/features/apps/apps-panel-projection';
+import type { InstalledAppRun } from '../src/shell/shared/installed-app-types';
 import {
   AppPackageJobKind,
   AppPackageJobPhase,
@@ -201,7 +202,7 @@ function baseProps(overrides: Partial<AppsPanelViewProps> = {}): AppsPanelViewPr
     onRetry: () => {},
     onAIConfigChanged: () => {},
     actionError: null,
-    activeAction: null,
+    pendingActions: [],
     installConfirmation: null,
     onConfirmInstall: () => undefined,
     onCancelInstall: () => undefined,
@@ -700,33 +701,123 @@ test('Apps home surfaces a terminal launch failure instead of a silent stop', as
   assert.ok(!markup.includes('Apps.runState.'), 'no raw i18n keys');
 });
 
-test('An action on another App disables mutations on home rows, rail rows and details without marking them loading', async () => {
+function buttonTags(markup: string): string[] {
+  return [...markup.matchAll(/<button\b[^>]*>/g)].map((match) => match[0]);
+}
+
+/** Markup of one home row, from its card root to the next card. */
+function homeRowMarkup(markup: string, entryKey: string): string {
+  const start = markup.indexOf(`data-testid="apps-entry-${entryKey}"`);
+  assert.ok(start >= 0, `expected home row ${entryKey}`);
+  const next = markup.indexOf('data-app-card', start + 1);
+  return markup.slice(start, next < 0 ? undefined : next);
+}
+
+/** Spinner elements: Kit button spinners and spinning icons, one per element. */
+function spinnerCount(markup: string): number {
+  return [...markup.matchAll(/class="([^"]*)"/g)]
+    .filter((match) => /\bnimi-action__spinner\b|\banimate-spin\b/.test(match[1]!)).length;
+}
+
+function installedRun(state: InstalledAppRun['state']): InstalledAppRun {
+  return { launchSelector: [1], state, accessAvailable: state === 'running', accessReasonCode: '', message: '' };
+}
+
+test('An action locks only its own App while other Apps stay available', async () => {
   await initI18n();
   await changeLocale('en');
   const installed = { ...installedRuntimeEntry(), packageJob: null };
+  const launching = ENTRIES[0]!;
   const props = baseProps({
     projection: { status: 'loaded', entries: [installed, ...ENTRIES, entry({ selector: 'fourth', appId: 'example.fourth' })], catalogStatus: 'not-implemented', runtimeError: null },
-    activeAction: { entryKey: ENTRIES[0]!.identity.entryKey, action: 'launch' },
+    pendingActions: [{ entryKey: launching.identity.entryKey, appId: launching.identity.appId, action: 'launch' }],
   });
   const home = renderView(props);
-  const buttons = [...home.matchAll(/<button\b[^>]*>/g)].map((match) => match[0]);
+  const buttons = buttonTags(home);
   const launches = buttons.filter((button) => button.includes(`data-testid="apps-entry-${installed.identity.entryKey}-launch"`));
   assert.equal(launches.length, 1, 'installed App appears once on the merged home');
-  for (const button of launches) {
-    assert.ok(button.includes(' disabled=""'), 'other App launch must be disabled');
-    assert.ok(!button.includes('aria-busy="true"'), 'other App is not launching');
-  }
+  assert.ok(!launches[0]!.includes(' disabled=""'), 'another App launching leaves this launch available');
+  assert.ok(!launches[0]!.includes('aria-busy="true"'), 'other App is not launching');
   const railLaunch = buttons.find((button) => button.includes(`data-testid="apps-rail-app-${installed.identity.appId}-launch"`));
-  assert.ok(railLaunch?.includes(' disabled=""'), 'rail quick launch must be disabled');
+  assert.ok(railLaunch && !railLaunch.includes(' disabled=""'), 'rail quick launch stays available');
+  const starting = buttons.filter((button) => button.includes(`data-testid="apps-entry-${launching.identity.entryKey}-starting"`));
+  assert.equal(starting.length, 1, 'the launching App shows its progress on its own button');
+  assert.ok(starting[0]!.includes('aria-busy="true"'));
   const detail = renderView({ ...props, selectedEntryKey: installed.identity.entryKey });
-  const detailLaunch = [...detail.matchAll(/<button\b[^>]*>/g)].map((match) => match[0])
-    .find((button) => button.includes('data-testid="apps-installed-launch"'));
-  assert.ok(detailLaunch?.includes(' disabled=""'), 'selected App launch must also be disabled');
-  assert.ok(!detailLaunch.includes('aria-busy="true"'));
-  const idleDetail = renderView({ ...props, activeAction: null, selectedEntryKey: installed.identity.entryKey });
-  const idleLaunch = [...idleDetail.matchAll(/<button\b[^>]*>/g)].map((match) => match[0])
-    .find((button) => button.includes('data-testid="apps-installed-launch"'));
-  assert.ok(idleLaunch && !idleLaunch.includes(' disabled=""'), 'launch becomes available after the operation finishes');
+  const detailLaunch = buttonTags(detail).find((button) => button.includes('data-testid="apps-installed-launch"'));
+  assert.ok(detailLaunch && !detailLaunch.includes(' disabled=""'), 'another App stays launchable from its detail');
+
+  // Install and update share the one confirmation intent, so one in flight
+  // still locks every App.
+  const installing = renderView({
+    ...props,
+    pendingActions: [{ entryKey: 'verified:example.other', appId: 'example.other', action: 'install' }],
+  });
+  const lockedLaunch = buttonTags(installing).find((button) => button.includes(`data-testid="apps-entry-${installed.identity.entryKey}-launch"`));
+  assert.ok(lockedLaunch?.includes(' disabled=""'), 'an install in flight locks other Apps');
+});
+
+test('A launch shows its progress once, on the pressed button, and a stop never reads as 启动中', async () => {
+  await initI18n();
+  await changeLocale('zh');
+  const base = { ...installedRuntimeEntry(), packageJob: null };
+  for (const [state, transition, label] of [['launching', 'starting', '启动中'], ['stopping', 'stopping', '停止中']] as const) {
+    const installed: DesktopAppsEntry = { ...base, run: installedRun(state) };
+    const home = renderView(baseProps({
+      projection: { status: 'loaded', entries: [installed], catalogStatus: 'not-implemented', runtimeError: null },
+    }));
+    const row = homeRowMarkup(home, installed.identity.entryKey);
+    const progress = buttonTags(row).find((button) => button.includes(`data-testid="apps-entry-${installed.identity.entryKey}-${transition}"`));
+    assert.ok(progress?.includes('aria-busy="true"'), `${state}: the row button carries the progress`);
+    assert.ok(row.includes(`>${label}<`), `${state}: button reads ${label}`);
+    assert.equal(row.includes('data-run-visual='), false, `${state}: the status line shows no run state meanwhile`);
+    assert.equal(spinnerCount(row), 1, `${state}: exactly one spinner in the row`);
+    assert.ok(row.includes('Nimi Access 不可用'), `${state}: access stays an independent fact`);
+    assert.ok(home.includes(`data-rail-transition="${transition}"`), `${state}: the rail keeps its own compact indicator`);
+    assert.equal(home.includes(`data-testid="apps-rail-app-${installed.identity.appId}-launch"`), false, `${state}: no second rail spinner`);
+
+    const detail = renderView(baseProps({
+      projection: { status: 'loaded', entries: [installed], catalogStatus: 'not-implemented', runtimeError: null },
+      selectedEntryKey: installed.identity.entryKey,
+    }));
+    assert.ok(detail.includes(`data-testid="apps-installed-${transition}"`), `${state}: detail header button carries the progress`);
+    assert.equal(detail.includes('data-run-visual='), false, `${state}: detail badge stays hidden meanwhile`);
+  }
+
+  const running: DesktopAppsEntry = { ...base, run: installedRun('running') };
+  const settled = homeRowMarkup(renderView(baseProps({
+    projection: { status: 'loaded', entries: [running], catalogStatus: 'not-implemented', runtimeError: null },
+  })), running.identity.entryKey);
+  assert.ok(settled.includes('data-run-visual="running"'), 'the settled state returns to the status line');
+  assert.ok(settled.includes('显示窗口'), 'a running installed App offers focus');
+  assert.equal(spinnerCount(settled), 0);
+});
+
+test('A pending launch shows 启动中 before the first owner poll and keeps the row height', async () => {
+  await initI18n();
+  await changeLocale('zh');
+  const target = ENTRIES[0]!;
+  const home = renderView(baseProps({
+    pendingActions: [{ entryKey: target.identity.entryKey, appId: target.identity.appId, action: 'launch' }],
+  }));
+  const row = homeRowMarkup(home, target.identity.entryKey);
+  assert.ok(row.includes('>启动中<'), 'the pressed button switches to 启动中 at once');
+  assert.equal(row.includes('data-run-visual='), false, 'no 未运行 next to 启动中');
+  assert.equal(spinnerCount(row), 1);
+  assert.ok(row.includes('min-h-4'), 'the local-development status line keeps its height');
+});
+
+test('A local-development build shows 启动中 on the detail header without a second badge', async () => {
+  await initI18n();
+  await changeLocale('zh');
+  const building = entry({}, 'building');
+  const detail = renderView(baseProps({
+    projection: { status: 'loaded', entries: [building], catalogStatus: 'not-implemented', runtimeError: null },
+    selectedEntryKey: building.identity.entryKey,
+  }));
+  assert.ok(detail.includes('data-testid="apps-detail-starting"'), 'header shows 启动中');
+  assert.equal(detail.includes('data-testid="apps-detail-stop"'), false);
+  assert.equal(detail.includes('data-run-visual='), false, 'no second 启动中 badge next to the title');
 });
 
 test('Apps home renders with resolved en copy after locale switch', async () => {

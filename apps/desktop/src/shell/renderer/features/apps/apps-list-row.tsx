@@ -1,9 +1,6 @@
 import { memo, type MouseEvent, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  LoaderCircle,
-  MoreHorizontal,
-} from 'lucide-react';
+import { MoreHorizontal } from 'lucide-react';
 import {
   ActionMenu,
   Button,
@@ -19,6 +16,7 @@ import {
   type AppCardActionId,
 } from './apps-card-actions.js';
 import {
+  appRunTransition,
   appRunVisualState,
   appSourceForEntry,
   type AppRunVisualState,
@@ -62,29 +60,34 @@ function aiConfigSummaryPresentation(
 const RUN_STATUS_TEXT_TONE: Readonly<Record<AppRunVisualState, string>> = Object.freeze({
   running: 'text-[var(--nimi-status-success)]',
   starting: 'text-[var(--nimi-action-primary-bg)]',
+  stopping: 'text-[var(--nimi-action-primary-bg)]',
   stopped: 'text-[color:var(--nimi-text-muted)]',
   failed: 'text-[var(--nimi-status-danger)]',
 });
 
 /**
- * App Store style run status: a plain colored dot (or spinner) plus status
- * copy, no pill chrome. Local-development entries only; Runtime package state
- * stays on AppPackageStatusLine.
+ * App Store style run status: a plain colored dot plus status copy, no pill
+ * chrome. It shows settled states only; while a launch or stop is in
+ * progress the row's action button carries it, so a row never shows two
+ * spinners. Runtime package state stays on AppPackageStatusLine.
  */
-export function AppRunStatusText({ entry }: { readonly entry: DesktopAppsEntry }): ReactElement {
+export function AppRunStatusText({
+  entry,
+  pendingAction,
+}: {
+  readonly entry: DesktopAppsEntry;
+  readonly pendingAction: AppCardActionId | null;
+}): ReactElement | null {
   const { t } = useTranslation();
   const visual = appRunVisualState(entry.run?.state ?? null);
+  if (appRunTransition(visual, pendingAction)) return null;
   return (
     <span
       data-run-visual={visual}
       title={visual === 'failed' ? entry.run?.message : undefined}
       className={`inline-flex min-w-0 items-center gap-1.5 text-xs font-medium leading-4 ${RUN_STATUS_TEXT_TONE[visual]}`}
     >
-      {visual === 'starting' ? (
-        <LoaderCircle className="h-3 w-3 shrink-0 animate-spin" aria-hidden="true" />
-      ) : (
-        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" aria-hidden="true" />
-      )}
+      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" aria-hidden="true" />
       <span className="truncate">{appRunStatusLabel(t, visual)}</span>
     </span>
   );
@@ -109,89 +112,43 @@ export function AppRowActionButton({
   const { t } = useTranslation();
   const { identity, localDevelopment } = entry;
   const visual = appRunVisualState(entry.run?.state ?? null);
-  if (localDevelopment === null) {
-    const action = actionPlanForEntry(entry).primary?.id;
-    if (action !== 'launch') return null;
+  const transition = appRunTransition(visual, activeAction);
+  // Progress stays in the control the user pressed: 启动 → 启动中 → 停止.
+  if (transition) {
     return (
       <Button
-        data-testid={`apps-entry-${identity.entryKey}-${action}`}
-        tone="secondary"
-        size="sm"
-        className={launchCapsuleClassName}
-        loading={activeAction === action}
-        disabled={actionsDisabled}
-        onClick={(event) => {
-          event.stopPropagation();
-          onAction(action);
-        }}
-      >
-        {t(visual === 'running' ? 'Apps.action.focus' : 'Apps.action.launch')}
-      </Button>
-    );
-  }
-
-  const launch = (event: MouseEvent): void => {
-    event.stopPropagation();
-    onAction('launch');
-  };
-
-  if (visual === 'starting') {
-    return (
-      <Button
-        data-testid={`apps-entry-${identity.entryKey}-starting`}
+        data-testid={`apps-entry-${identity.entryKey}-${transition}`}
         tone="secondary"
         size="sm"
         loading
-        disabled
         className={launchCapsuleClassName}
       >
-        {t('Apps.runState.starting')}
+        {t(`Apps.runState.${transition}`)}
       </Button>
     );
   }
-  if (visual === 'running') {
-    return (
-      <Button
-        data-testid={`apps-entry-${identity.entryKey}-stop`}
-        tone="secondary"
-        size="sm"
-        className={launchCapsuleClassName}
-        loading={activeAction === 'stop'}
-        disabled={actionsDisabled}
-        onClick={(event) => {
-          event.stopPropagation();
-          onAction('stop');
-        }}
-      >
-        {t('Apps.action.stop')}
-      </Button>
-    );
-  }
-  if (visual === 'failed') {
-    return (
-      <Button
-        data-testid={`apps-entry-${identity.entryKey}-retry`}
-        tone="secondary"
-        size="sm"
-        loading={activeAction === 'launch'}
-        disabled={actionsDisabled}
-        onClick={launch}
-      >
-        {t('Apps.action.retry')}
-      </Button>
-    );
-  }
+  const action = localDevelopment !== null
+    ? visual === 'running' ? 'stop' : 'launch'
+    : actionPlanForEntry(entry).primary?.id === 'launch' ? 'launch' : null;
+  if (action === null) return null;
+  const failed = action === 'launch' && visual === 'failed';
   return (
     <Button
-      data-testid={`apps-entry-${identity.entryKey}-launch`}
+      data-testid={`apps-entry-${identity.entryKey}-${failed ? 'retry' : action}`}
       tone="secondary"
       size="sm"
-      className={launchCapsuleClassName}
-      loading={activeAction === 'launch'}
+      className={failed ? undefined : launchCapsuleClassName}
+      // Only focusing a running installed App can still be in flight here.
+      loading={activeAction === action}
       disabled={actionsDisabled}
-      onClick={launch}
+      onClick={(event: MouseEvent) => {
+        event.stopPropagation();
+        onAction(action);
+      }}
     >
-      {t('Apps.action.launch')}
+      {t(action === 'stop'
+        ? 'Apps.action.stop'
+        : visual === 'running' ? 'Apps.action.focus' : failed ? 'Apps.action.retry' : 'Apps.action.launch')}
     </Button>
   );
 }
@@ -262,8 +219,11 @@ export const AppListRow = memo(function AppListRow({
             {entry.summary}
           </p>
         ) : null}
-        <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-          {localDevelopment !== null || entry.run ? <AppRunStatusText entry={entry} /> : null}
+        {/* A local-development row's status line is anchored by its run
+            status; keeping the line's height while a transition hides that
+            status stops the row from jumping. */}
+        <div className={`mt-1 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1${localDevelopment !== null ? ' min-h-4' : ''}`}>
+          {localDevelopment !== null || entry.run ? <AppRunStatusText entry={entry} pendingAction={activeAction} /> : null}
           {entry.run && 'accessAvailable' in entry.run ? (
             <span className="text-xs text-[var(--nimi-text-muted)]">
               {t(entry.run.accessAvailable ? 'Apps.installedAccess.ready' : 'Apps.installedAccess.unavailable')}

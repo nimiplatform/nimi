@@ -37,6 +37,30 @@ const TERMINAL_RUN_STATES = Object.freeze([
   'launcher-disconnected',
 ] as const);
 
+/** One in-flight Apps operation, bound to the exact source entry it acts on. */
+export interface AppsPendingAction {
+  readonly entryKey: string;
+  readonly appId: string;
+  readonly action: AppCardActionId;
+}
+
+/**
+ * An operation locks only its own App, across every source of that App, so
+ * other Apps stay usable while one launches or stops. Install and update share
+ * the single confirmation intent, so while one is in flight every App waits.
+ */
+export function appsActionsLocked(pending: readonly AppsPendingAction[], appId: string): boolean {
+  return pending.some((item) => item.appId === appId || item.action === 'install' || item.action === 'update');
+}
+
+export function pendingActionForEntry(pending: readonly AppsPendingAction[], entryKey: string): AppCardActionId | null {
+  return pending.find((item) => item.entryKey === entryKey)?.action ?? null;
+}
+
+export function pendingActionForApp(pending: readonly AppsPendingAction[], appId: string): AppCardActionId | null {
+  return pending.find((item) => item.appId === appId)?.action ?? null;
+}
+
 export function isLocalDevelopmentRunActive(runState: string | null): boolean {
   return runState !== null && !(TERMINAL_RUN_STATES as readonly string[]).includes(runState);
 }

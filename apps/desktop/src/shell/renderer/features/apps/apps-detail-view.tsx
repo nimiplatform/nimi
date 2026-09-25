@@ -58,7 +58,7 @@ import {
   canRequestUninstall,
   type AppCardActionId,
 } from './apps-card-actions.js';
-import { appRunVisualState, appSourceForEntry } from './apps-card-fields.js';
+import { appRunTransition, appRunVisualState, appSourceForEntry } from './apps-card-fields.js';
 import { AppArtworkIcon, AppPackageStatusLine, AppRunStatusBadge, AppSourceBadge } from './apps-card-visuals.js';
 import { AppsReadmeMarkdown, readmeExternalHref } from './apps-readme-markdown.js';
 import { AppsDistributionDocuments } from './apps-distribution-info.js';
@@ -139,6 +139,8 @@ function LocalDevelopmentAppsDetailView({
   const aiConfigCapabilityContracts = appsAIConfigCapabilityContracts(registration.appAccess);
   const aiModelsAvailable = aiConfigCapabilityContracts.length > 0;
   const actionPlan = actionPlanForEntry(entry);
+  const runVisual = appRunVisualState(entry.run?.state ?? null);
+  const runTransition = appRunTransition(runVisual, activeAction);
 
   const liveBridge = useMemo(() => createDesktopAppsLiveBridge(), []);
   const [readme, setReadme] = useState<ProjectReadmeState>({ status: 'loading' });
@@ -189,6 +191,15 @@ function LocalDevelopmentAppsDetailView({
       icon: <Settings className="h-4 w-4" aria-hidden="true" />,
       onSelect: () => setPropertiesOpen(true),
     },
+    // While a build or start is underway the header shows 启动中, so stopping
+    // it stays reachable here.
+    ...(actionPlan.primary?.id === 'stop' && runTransition === 'starting' ? [{
+      id: 'stop',
+      label: t('Apps.action.stop'),
+      icon: <Square className="h-4 w-4" aria-hidden="true" />,
+      disabled: actionsDisabled,
+      onSelect: () => onAction('stop'),
+    }] : []),
     ...(actionPlan.secondary.some((action) => action.id === 'cancel-job') ? [{
       id: 'cancel-job',
       label: t('Apps.action.cancel'),
@@ -240,7 +251,7 @@ function LocalDevelopmentAppsDetailView({
       label: t('Apps.detail.runCardTitle'),
       description: t('Apps.detail.runDiagnosticsDescription'),
       rows: [
-        { label: t('Apps.detail.runState'), value: t(`Apps.runState.${appRunVisualState(entry.run?.state ?? null)}`) },
+        { label: t('Apps.detail.runState'), value: t(`Apps.runState.${runVisual}`) },
         ...(entry.run?.message ? [{ label: t('Apps.detail.runMessage'), value: entry.run.message }] : []),
         ...(entry.run?.reasonCode ? [{ label: t('Apps.detail.runReasonCode'), value: entry.run.reasonCode, mono: true }] : []),
       ],
@@ -273,7 +284,7 @@ function LocalDevelopmentAppsDetailView({
               <h1 data-testid="apps-detail-title" className="break-words text-2xl font-semibold leading-8 text-[color:var(--nimi-text-primary)]">
                 {identity.displayName}
               </h1>
-              {appRunVisualState(entry.run?.state ?? null) !== 'stopped' ? <AppRunStatusBadge entry={entry} /> : null}
+              {runVisual !== 'stopped' && runTransition === null ? <AppRunStatusBadge entry={entry} /> : null}
             </div>
             {entry.summary ? (
               <p data-testid="apps-detail-summary" className="mt-1.5 break-words text-sm leading-6 text-[color:var(--nimi-text-secondary)]">
@@ -282,11 +293,18 @@ function LocalDevelopmentAppsDetailView({
             ) : null}
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            {actionPlan.primary?.id === 'stop' ? (
+            {runTransition ? (
+              <Button
+                data-testid={`apps-detail-${runTransition}`}
+                tone={runTransition === 'starting' ? 'primary' : 'secondary'}
+                loading
+              >
+                {t(`Apps.runState.${runTransition}`)}
+              </Button>
+            ) : actionPlan.primary?.id === 'stop' ? (
               <Button
                 data-testid="apps-detail-stop"
                 tone="secondary"
-                loading={activeAction === 'stop'}
                 disabled={actionsDisabled}
                 onClick={() => onAction('stop')}
               >
@@ -297,12 +315,11 @@ function LocalDevelopmentAppsDetailView({
               <Button
                 data-testid="apps-detail-launch"
                 tone="primary"
-                loading={activeAction === 'launch'}
                 disabled={actionsDisabled}
                 onClick={() => onAction('launch')}
               >
                 <Play className="mr-2 h-4 w-4" aria-hidden="true" />
-                {t('Apps.action.launch')}
+                {t(runVisual === 'failed' ? 'Apps.action.retry' : 'Apps.action.launch')}
               </Button>
             )}
             <Popover>
@@ -444,6 +461,8 @@ function InstalledAppsDetailView({
   }, []);
 
   const actionPlan = actionPlanForEntry(entry);
+  const runVisual = appRunVisualState(entry.run?.state ?? null);
+  const runTransition = appRunTransition(runVisual, activeAction);
 
   const declaredAppAccess = release?.appAccess ?? catalog?.appAccess ?? [];
   // The installed information snapshot is the exact installed version; the
@@ -637,7 +656,7 @@ function InstalledAppsDetailView({
                   <AppSourceBadge source="verified" description={t('Apps.sourceBadge.verifiedDescription')} className="ml-1.5 mt-1 align-top" />
                 ) : null}
               </h1>
-              {release && appRunVisualState(entry.run?.state ?? null) !== 'stopped' ? <AppRunStatusBadge entry={entry} /> : null}
+              {release && runVisual !== 'stopped' && runTransition === null ? <AppRunStatusBadge entry={entry} /> : null}
               {release ? (
                 <span className="text-sm text-[color:var(--nimi-text-secondary)]" data-testid="apps-installed-access">
                   {t(installedRun?.accessAvailable ? 'Apps.installedAccess.ready' : 'Apps.installedAccess.unavailable')}
@@ -670,6 +689,14 @@ function InstalledAppsDetailView({
                 <Download className="mr-2 h-4 w-4" aria-hidden="true" />
                 {t('Apps.action.install')}
               </Button>
+            ) : runTransition ? (
+              <Button
+                data-testid={`apps-installed-${runTransition}`}
+                tone={runTransition === 'starting' ? 'primary' : 'secondary'}
+                loading
+              >
+                {t(`Apps.runState.${runTransition}`)}
+              </Button>
             ) : actionPlan.primary ? (
               <Button
                 data-testid="apps-installed-launch"
@@ -679,7 +706,9 @@ function InstalledAppsDetailView({
                 onClick={() => onAction('launch')}
               >
                 <Play className="mr-2 h-4 w-4" aria-hidden="true" />
-                {t(installedRun?.state === 'running' ? 'Apps.action.focus' : 'Apps.action.launch')}
+                {t(installedRun?.state === 'running'
+                  ? 'Apps.action.focus'
+                  : runVisual === 'failed' ? 'Apps.action.retry' : 'Apps.action.launch')}
               </Button>
             ) : null}
             <Popover>

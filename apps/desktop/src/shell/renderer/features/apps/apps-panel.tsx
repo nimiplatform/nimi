@@ -156,7 +156,7 @@ export function AppsPanel({
     detailEntryKey,
     searchQuery,
     actionError,
-    activeAction,
+    pendingActions,
     installConfirmation,
     runCardAction,
     setSearchQuery,
@@ -253,7 +253,7 @@ export function AppsPanel({
         onRetry={retryProjection}
         onAIConfigChanged={acknowledgeAIConfigMutation}
         actionError={actionError}
-        activeAction={activeAction}
+        pendingActions={pendingActions}
         installConfirmation={installConfirmation}
         onConfirmInstall={confirmInstall}
         onCancelInstall={cancelInstall}

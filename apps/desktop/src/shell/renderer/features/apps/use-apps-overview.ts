@@ -5,13 +5,15 @@ import { createDesktopAppsLiveBridge } from './apps-live-bridge.js';
 import { projectAppsPanel, type DesktopAppsCatalogProjection } from './apps-panel-projection.js';
 
 /** Read-only reuse of the Apps inventory projection for Home and target choice. */
-export function useAppsOverview() {
+export function useAppsOverview(options: { readonly enabled?: boolean } = {}) {
   const sdk = useDesktopRendererSdk();
   return useQuery({
     queryKey: ['desktop', 'apps-overview'],
     staleTime: 15_000,
+    enabled: options.enabled,
     queryFn: async () => {
       const apps = sdk.machineProduct().apps;
+      const liveBridge = createDesktopAppsLiveBridge();
       const catalog: DesktopAppsCatalogProjection = await apps
         .listApprovedAppCatalogTargets({})
         .then((response) => {
@@ -21,7 +23,9 @@ export function useAppsOverview() {
         .catch((error: unknown) => ({ status: 'unavailable' as const, targets: [], error }));
       return projectAppsPanel(
         {
-          ...createDesktopAppsLiveBridge(),
+          ...liveBridge,
+          // Development projects carry their own artwork, read the same way as on the Apps page.
+          readAppIcon: async (selector) => (await liveBridge.readProjectIcon(selector)).iconDataUrl,
           listCommittedReleases: async () => {
             const r = await apps.listCommittedAppReleases({});
             if (r.reasonCode !== ReasonCode.ACTION_EXECUTED) throw Error(String(r.reasonCode));

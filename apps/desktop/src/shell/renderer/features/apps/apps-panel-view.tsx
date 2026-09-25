@@ -43,10 +43,15 @@ import {
 } from '@nimiplatform/kit/ui';
 import {
   actionPlanForEntry,
+  appsActionsLocked,
   hasAvailableCatalogUpdate,
+  pendingActionForApp,
+  pendingActionForEntry,
   type AppCardActionId,
+  type AppsPendingAction,
 } from './apps-card-actions.js';
 import {
+  appRunTransition,
   appRunVisualState,
   entryNeedsAttention,
   sortAppsEntries,
@@ -106,7 +111,7 @@ export interface AppsPanelViewProps {
   readonly onRetry: () => void;
   readonly onAIConfigChanged: (entryKey: string, result: NimiAIConfigOverwriteResult) => void;
   readonly actionError: string | null;
-  readonly activeAction: Readonly<{ entryKey: string; action: AppCardActionId }> | null;
+  readonly pendingActions: readonly AppsPendingAction[];
   readonly installConfirmation: AppsInstallIntentSnapshot | null;
   readonly onConfirmInstall: () => void;
   readonly onCancelInstall: () => void;
@@ -142,7 +147,7 @@ export function AppsPanelView({
   onRetry,
   onAIConfigChanged,
   actionError,
-  activeAction,
+  pendingActions,
   installConfirmation,
   onConfirmInstall,
   onCancelInstall,
@@ -231,7 +236,7 @@ export function AppsPanelView({
     [],
   );
   useEffect(() => {
-    if (projection?.status !== 'loaded' || activeAction || installConfirmation) return;
+    if (projection?.status !== 'loaded' || pendingActions.length > 0 || installConfirmation) return;
     const candidate = planAppUpdateAutoPrompt(projection.entries);
     if (!candidate) return;
     try {
@@ -242,7 +247,7 @@ export function AppsPanelView({
       return;
     }
     onCardActionRef.current(candidate.entryKey, 'update');
-  }, [activeAction, installConfirmation, projection, updatePreferenceRevision]);
+  }, [pendingActions, installConfirmation, projection, updatePreferenceRevision]);
 
   const filterMenuItems: NimiMenuItem[] = FILTER_IDS.map((id) => ({
     id,
@@ -267,7 +272,7 @@ export function AppsPanelView({
         filterId={filterId}
         filterMenuItems={filterMenuItems}
         downloads={downloads}
-        activeAction={activeAction}
+        pendingActions={pendingActions}
         actionDispatcherFor={actionDispatcherFor}
         onLeaveDownloads={onBack}
         onRetry={onRetry}
@@ -300,8 +305,8 @@ export function AppsPanelView({
               onBack={onBack}
               onOpenEntry={(entryKey) => onCardAction(entryKey, 'details')}
               onAction={(action) => onCardAction(selectedEntry.identity.entryKey, action)}
-              activeAction={activeAction && activeAction.entryKey === selectedEntry.identity.entryKey ? activeAction.action : null}
-              actionsDisabled={activeAction !== null}
+              activeAction={pendingActionForEntry(pendingActions, selectedEntry.identity.entryKey)}
+              actionsDisabled={appsActionsLocked(pendingActions, selectedEntry.identity.appId)}
               actionError={actionError}
               onAIConfigChanged={(result) => onAIConfigChanged(selectedEntry.identity.entryKey, result)}
               readPackageInfo={readPackageInfo}
@@ -313,7 +318,7 @@ export function AppsPanelView({
             attentionEntries={attentionEntries}
             updateEntries={updateEntries}
             recentGroups={recentGroups}
-            activeAction={activeAction}
+            pendingActions={pendingActions}
             actionDispatcherFor={actionDispatcherFor}
             onRetry={onRetry}
             onOpenDeveloperMode={onOpenDeveloperMode}
@@ -325,7 +330,7 @@ export function AppsPanelView({
       </Surface>
       <AppsInstallConfirmationDialog
         intent={installConfirmation}
-        pending={activeAction?.action === 'install'}
+        pending={pendingActions.some((item) => item.action === 'install')}
         onConfirm={onConfirmInstall}
         onClose={onCancelInstall}
       />
@@ -346,7 +351,7 @@ function AppsRail({
   filterId,
   filterMenuItems,
   downloads,
-  activeAction,
+  pendingActions,
   actionDispatcherFor,
   onLeaveDownloads,
   onRetry,
@@ -363,7 +368,7 @@ function AppsRail({
   readonly filterId: AppsRailFilterId;
   readonly filterMenuItems: NimiMenuItem[];
   readonly downloads?: AppsDownloadsContextValue;
-  readonly activeAction: Readonly<{ entryKey: string; action: AppCardActionId }> | null;
+  readonly pendingActions: readonly AppsPendingAction[];
   readonly actionDispatcherFor: (entryKey: string) => (action: AppCardActionId) => void;
   readonly onLeaveDownloads: () => void;
   readonly onRetry: () => void;
@@ -380,8 +385,8 @@ function AppsRail({
       group={group}
       active={group.entries.some((entry) => entry.identity.entryKey === selectedEntryKey)}
       tabIndex={group.entries.some((entry) => entry.identity.entryKey === tabbableEntryKey) ? 0 : -1}
-      activeAction={activeAction && group.entries.some((entry) => entry.identity.entryKey === activeAction.entryKey) ? activeAction.action : null}
-      actionsDisabled={activeAction !== null}
+      activeAction={pendingActionForApp(pendingActions, group.appId)}
+      actionsDisabled={appsActionsLocked(pendingActions, group.appId)}
       onAction={actionDispatcherFor(group.primary.identity.entryKey)}
       onKeyDown={handleRailKeyDown}
     />
@@ -598,6 +603,7 @@ const RailGroupRow = memo(function RailGroupRow({
   const { t } = useTranslation();
   const primary = group.primary;
   const visual = appRunVisualState(primary.run?.state ?? null);
+  const transition = appRunTransition(visual, activeAction);
   const { menuItems, confirmElement } = useAppEntryMenu({
     entry: primary,
     actionsDisabled,
@@ -628,19 +634,17 @@ const RailGroupRow = memo(function RailGroupRow({
           <span className={`min-w-0 flex-1 truncate text-[13px] leading-5 ${visual === 'running' ? 'font-semibold text-[color:var(--nimi-text-primary)]' : 'font-medium text-[color:var(--nimi-text-primary)]'}`}>
             {group.displayName}
           </span>
-          {visual === 'running' ? (
+          {transition ? (
+            <span data-rail-transition={transition} className="inline-flex shrink-0 items-center gap-1 text-[var(--nimi-action-primary-bg)]">
+              <LoaderCircle className="h-3 w-3 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+              <span className="sr-only">{t(`Apps.runState.${transition}`)}</span>
+            </span>
+          ) : visual === 'running' ? (
             <span className="inline-flex shrink-0 items-center gap-1">
               <span className="h-1.5 w-1.5 rounded-full bg-[var(--nimi-status-success)]" aria-hidden="true" />
               <span className="sr-only">{t('Apps.runState.running')}</span>
             </span>
-          ) : null}
-          {visual === 'starting' ? (
-            <span className="inline-flex shrink-0 items-center gap-1 text-[var(--nimi-action-primary-bg)]">
-              <LoaderCircle className="h-3 w-3 animate-spin" aria-hidden="true" />
-              <span className="sr-only">{t('Apps.runState.starting')}</span>
-            </span>
-          ) : null}
-          {visual === 'failed' ? (
+          ) : visual === 'failed' ? (
             <span className="inline-flex shrink-0 items-center gap-1">
               <span className="h-1.5 w-1.5 rounded-full bg-[var(--nimi-status-danger)]" aria-hidden="true" />
               <span className="sr-only">{t('Apps.runState.failed')}</span>
@@ -699,18 +703,13 @@ function RailQuickAction({
   const visual = appRunVisualState(entry.run?.state ?? null);
   const plan = actionPlanForEntry(entry);
   if (!plan.primary) return null;
-  if (visual === 'starting') {
-    return (
-      <span className="inline-flex h-6 w-6 items-center justify-center text-[var(--nimi-action-primary-bg)]" role="status" aria-label={t('Apps.runState.starting')}>
-        <LoaderCircle className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-      </span>
-    );
-  }
+  // The row's status spinner already carries a launch or stop in progress.
+  if (appRunTransition(visual, activeAction)) return null;
   if (plan.primary.id === 'stop') {
     return (
       <IconButton
         data-testid={`apps-rail-app-${entry.identity.appId}-stop`}
-        icon={activeAction === 'stop' ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Square className="h-3.5 w-3.5" aria-hidden="true" />}
+        icon={<Square className="h-3.5 w-3.5" aria-hidden="true" />}
         tone="ghost"
         size="sm"
         disabled={actionsDisabled}
@@ -725,7 +724,7 @@ function RailQuickAction({
   return (
     <IconButton
       data-testid={`apps-rail-app-${entry.identity.appId}-launch`}
-      icon={activeAction === 'launch' ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Play className="h-3.5 w-3.5" aria-hidden="true" />}
+      icon={activeAction === 'launch' ? <LoaderCircle className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Play className="h-3.5 w-3.5" aria-hidden="true" />}
       tone="ghost"
       size="sm"
       disabled={actionsDisabled}
@@ -742,7 +741,7 @@ function AppsHome({
   attentionEntries,
   updateEntries,
   recentGroups,
-  activeAction,
+  pendingActions,
   actionDispatcherFor,
   onRetry,
   onOpenDeveloperMode,
@@ -754,7 +753,7 @@ function AppsHome({
   readonly attentionEntries: readonly DesktopAppsEntry[];
   readonly updateEntries: readonly DesktopAppsEntry[];
   readonly recentGroups: readonly DesktopAppGroup[];
-  readonly activeAction: Readonly<{ entryKey: string; action: AppCardActionId }> | null;
+  readonly pendingActions: readonly AppsPendingAction[];
   readonly actionDispatcherFor: (entryKey: string) => (action: AppCardActionId) => void;
   readonly onRetry: () => void;
   readonly onOpenDeveloperMode: () => void;
@@ -803,7 +802,7 @@ function AppsHome({
           attentionEntries={attentionEntries}
           updateEntries={updateEntries}
           recentGroups={recentGroups}
-          activeAction={activeAction}
+          pendingActions={pendingActions}
           actionDispatcherFor={actionDispatcherFor}
           onRetry={onRetry}
           onOpenDeveloperMode={onOpenDeveloperMode}
@@ -820,7 +819,7 @@ function AppsHomeBody({
   attentionEntries,
   updateEntries,
   recentGroups,
-  activeAction,
+  pendingActions,
   actionDispatcherFor,
   onRetry,
   onOpenDeveloperMode,
@@ -831,7 +830,7 @@ function AppsHomeBody({
   readonly attentionEntries: readonly DesktopAppsEntry[];
   readonly updateEntries: readonly DesktopAppsEntry[];
   readonly recentGroups: readonly DesktopAppGroup[];
-  readonly activeAction: Readonly<{ entryKey: string; action: AppCardActionId }> | null;
+  readonly pendingActions: readonly AppsPendingAction[];
   readonly actionDispatcherFor: (entryKey: string) => (action: AppCardActionId) => void;
   readonly onRetry: () => void;
   readonly onOpenDeveloperMode: () => void;
@@ -909,8 +908,8 @@ function AppsHomeBody({
                 key={entry.identity.entryKey}
                 entry={entry}
                 showSourceBadge
-                activeAction={activeAction && activeAction.entryKey === entry.identity.entryKey ? activeAction.action : null}
-                actionsDisabled={activeAction !== null}
+                activeAction={pendingActionForEntry(pendingActions, entry.identity.entryKey)}
+                actionsDisabled={appsActionsLocked(pendingActions, entry.identity.appId)}
                 onAction={actionDispatcherFor(entry.identity.entryKey)}
               />
             ))}
@@ -932,8 +931,8 @@ function AppsHomeBody({
                 key={entry.identity.entryKey}
                 entry={entry}
                 showSourceBadge
-                activeAction={activeAction && activeAction.entryKey === entry.identity.entryKey ? activeAction.action : null}
-                actionsDisabled={activeAction !== null}
+                activeAction={pendingActionForEntry(pendingActions, entry.identity.entryKey)}
+                actionsDisabled={appsActionsLocked(pendingActions, entry.identity.appId)}
                 onAction={actionDispatcherFor(entry.identity.entryKey)}
               />
             ))}
@@ -951,8 +950,8 @@ function AppsHomeBody({
               key={group.primary.identity.entryKey}
               entry={group.primary}
               showSourceBadge={group.entries.length > 1}
-              activeAction={activeAction && activeAction.entryKey === group.primary.identity.entryKey ? activeAction.action : null}
-              actionsDisabled={activeAction !== null}
+              activeAction={pendingActionForEntry(pendingActions, group.primary.identity.entryKey)}
+              actionsDisabled={appsActionsLocked(pendingActions, group.appId)}
               onAction={actionDispatcherFor(group.primary.identity.entryKey)}
             />
           ))}

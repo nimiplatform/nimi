@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import type { AppCardActionId } from './apps-card-actions.js';
-import { canRequestCatalogInstall, canRequestCatalogUpdate, isLocalDevelopmentRunActive } from './apps-card-actions.js';
+import type { AppCardActionId, AppsPendingAction } from './apps-card-actions.js';
+import { appsActionsLocked, canRequestCatalogInstall, canRequestCatalogUpdate, isLocalDevelopmentRunActive } from './apps-card-actions.js';
 import type {
   AppsInstallIntentController,
   AppsInstallIntentResult,
@@ -36,7 +36,7 @@ export interface AppsPanelState {
   readonly detailEntryKey: string | null;
   readonly searchQuery: string;
   readonly actionError: string | null;
-  readonly activeAction: Readonly<{ entryKey: string; action: AppCardActionId }> | null;
+  readonly pendingActions: readonly AppsPendingAction[];
   readonly installConfirmation: AppsInstallIntentSnapshot | null;
 }
 
@@ -232,10 +232,17 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
   const [detailEntryKey, setDetailEntryKey] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [actionError, setActionError] = useState<string | null>(null);
-  const [activeAction, setActiveAction] = useState<Readonly<{
-    entryKey: string;
-    action: AppCardActionId;
-  }> | null>(null);
+  // The ref is the synchronous single-flight guard; state drives rendering.
+  const pendingActionsRef = useRef<readonly AppsPendingAction[]>([]);
+  const [pendingActions, setPendingActions] = useState<readonly AppsPendingAction[]>([]);
+  const beginPendingAction = useCallback((pending: AppsPendingAction): (() => void) => {
+    pendingActionsRef.current = [...pendingActionsRef.current, pending];
+    setPendingActions(pendingActionsRef.current);
+    return () => {
+      pendingActionsRef.current = pendingActionsRef.current.filter((item) => item !== pending);
+      setPendingActions(pendingActionsRef.current);
+    };
+  }, []);
   const [installConfirmation, setInstallConfirmation] = useState<AppsInstallIntentSnapshot | null>(null);
   const reloader = useMemo(() => createAppsPanelProjectionReloader({
     source: {
@@ -333,13 +340,14 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
       setDetailEntryKey(entryKey);
       return;
     }
-    if (activeAction || projection?.status !== 'loaded') return;
+    if (projection?.status !== 'loaded') return;
     const entry = projection.entries.find((candidate) => candidate.identity.entryKey === entryKey);
     if (!entry) {
       setActionError(`App source is no longer available: ${entryKey}`);
       return;
     }
-    setActiveAction({ entryKey, action });
+    if (appsActionsLocked(pendingActionsRef.current, entry.identity.appId)) return;
+    const endPendingAction = beginPendingAction({ entryKey, appId: entry.identity.appId, action });
     void (async () => {
       try {
         if (action === 'install' || action === 'update') {
@@ -378,10 +386,10 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
       } catch (error) {
         setActionError(error instanceof Error ? error.message : String(error));
       } finally {
-        setActiveAction(null);
+        endPendingAction();
       }
     })();
-  }, [activeAction, deps.cancelPackageJob, deps.uninstall, installIntentController, liveBridge, projection, reload, t]);
+  }, [beginPendingAction, deps.cancelPackageJob, deps.uninstall, installIntentController, liveBridge, projection, reload, t]);
 
   const retryProjection = useCallback((): void => {
     setProjection(null);
@@ -404,18 +412,23 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
   }, [reload]);
 
   const confirmInstall = useCallback((): void => {
-    if (!installConfirmation || !installIntentController || activeAction) return;
+    if (!installConfirmation || !installIntentController) return;
+    if (appsActionsLocked(pendingActionsRef.current, installConfirmation.appId)) return;
     const entryKey = desktopAppsEntryKey(installConfirmation.appId, 'verified');
     setInstallConfirmation(null);
     setActionError(null);
-    setActiveAction({ entryKey, action: installConfirmation.update ? 'update' : 'install' });
+    const endPendingAction = beginPendingAction({
+      entryKey,
+      appId: installConfirmation.appId,
+      action: installConfirmation.update ? 'update' : 'install',
+    });
     void installIntentController.confirm().then(async (result) => {
       setActionError(appsInstallIntentFailure(result, t));
       await reload(false);
     }).catch((error: unknown) => {
       setActionError(error instanceof Error ? error.message : String(error));
-    }).finally(() => setActiveAction(null));
-  }, [activeAction, installIntentController, installConfirmation, reload, t]);
+    }).finally(endPendingAction);
+  }, [beginPendingAction, installIntentController, installConfirmation, reload, t]);
 
   const cancelInstall = useCallback((): void => {
     installIntentController?.cancel();
@@ -427,7 +440,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
     detailEntryKey,
     searchQuery,
     actionError,
-    activeAction,
+    pendingActions,
     installConfirmation,
     runCardAction,
     setSearchQuery,

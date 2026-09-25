@@ -4,6 +4,7 @@ import type { LocalDevelopmentRegistration } from '../src/shell/renderer/feature
 import {
   appArtworkFor,
   appPackagePhaseLocaleKey,
+  appRunTransition,
   appRunVisualState,
   appSourceForEntry,
   deriveIconGlyph,
@@ -114,9 +115,22 @@ describe('Apps run visual state', () => {
   it('maps host run states to presentation states', () => {
     assert.equal(appRunVisualState('running'), 'running');
     assert.equal(appRunVisualState('building'), 'starting');
-    assert.equal(appRunVisualState('stopping'), 'starting');
+    assert.equal(appRunVisualState('launching'), 'starting');
+    assert.equal(appRunVisualState('stopping'), 'stopping', 'a stop in progress never reads as 启动中');
     assert.equal(appRunVisualState('stopped'), 'stopped');
     assert.equal(appRunVisualState(null), 'stopped');
+  });
+
+  it('derives one in-progress transition from owner state or the pending request', () => {
+    assert.equal(appRunTransition('starting', null), 'starting');
+    assert.equal(appRunTransition('stopping', null), 'stopping');
+    assert.equal(appRunTransition('stopped', 'launch'), 'starting', 'shown before the first owner poll');
+    assert.equal(appRunTransition('failed', 'launch'), 'starting', 'a retry is a launch');
+    assert.equal(appRunTransition('running', 'stop'), 'stopping');
+    assert.equal(appRunTransition('running', 'launch'), null, 'focusing a running App is not a transition');
+    assert.equal(appRunTransition('stopped', 'uninstall'), null);
+    assert.equal(appRunTransition('running', null), null);
+    assert.equal(appRunTransition('failed', null), null);
   });
 
   it('keeps terminal launch failures visually distinct from a clean stop', () => {

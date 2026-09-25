@@ -1,6 +1,6 @@
 import { useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
-import { BadgeCheck, Code2, LoaderCircle, PackageOpen } from 'lucide-react';
+import { BadgeCheck, Code2, PackageOpen } from 'lucide-react';
 import { Button, StatusBadge, Tooltip, type StatusBadgeShape } from '@nimiplatform/kit/ui';
 import { AppPackageJobPhase } from '@nimiplatform/sdk/runtime/wire-types';
 import { formatBytes } from '../../components/download-format.js';
@@ -70,6 +70,11 @@ export function appRunStatusLabel(
   return t(`Apps.runState.${visual}`);
 }
 
+/**
+ * Settled run status for a detail header. A launch or stop in progress is
+ * shown on the header's action button instead, so callers omit the badge
+ * while a transition is underway.
+ */
 export function AppRunStatusBadge({
   entry,
   shape = 'soft',
@@ -86,9 +91,6 @@ export function AppRunStatusBadge({
       data-run-visual={visual}
       title={visual === 'failed' ? entry.run?.message : undefined}
     >
-      {visual === 'starting' && shape !== 'dot' ? (
-        <LoaderCircle className="mr-1 h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-      ) : null}
       {appRunStatusLabel(t, visual)}
     </StatusBadge>
   );

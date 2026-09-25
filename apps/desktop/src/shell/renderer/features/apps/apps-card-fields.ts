@@ -5,7 +5,7 @@
  * project README), and everything else is derived deterministically from
  * Runtime-projected owner data (appId, displayName) as the stable fallback.
  */
-import { isLocalDevelopmentRunActive } from './apps-card-actions.js';
+import { isLocalDevelopmentRunActive, type AppCardActionId } from './apps-card-actions.js';
 import type { DesktopAppsEntry } from './apps-panel-projection.js';
 import {
   AppPackageJobKind,
@@ -81,7 +81,7 @@ export function appArtworkFor(appId: string): AppArtwork {
     ?? APP_ARTWORK_PALETTES[0]!;
 }
 
-export type AppRunVisualState = 'running' | 'starting' | 'stopped' | 'failed';
+export type AppRunVisualState = 'running' | 'starting' | 'stopping' | 'stopped' | 'failed';
 
 /**
  * Run states that mean the last launch, rebuild, or cleanup actually failed.
@@ -98,6 +98,7 @@ const FAILED_RUN_STATES = Object.freeze([
 
 export function appRunVisualState(runState: string | null): AppRunVisualState {
   if (runState === 'running') return 'running';
+  if (runState === 'stopping') return 'stopping';
   if (runState !== null && (FAILED_RUN_STATES as readonly string[]).includes(runState)) return 'failed';
   if (isLocalDevelopmentRunActive(runState)) return 'starting';
   return 'stopped';
@@ -106,9 +107,29 @@ export function appRunVisualState(runState: string | null): AppRunVisualState {
 export const APP_RUN_BADGE_TONE = Object.freeze({
   running: 'success',
   starting: 'info',
+  stopping: 'info',
   stopped: 'neutral',
   failed: 'danger',
 } as const);
+
+export type AppRunTransition = 'starting' | 'stopping';
+
+/**
+ * The launch or stop an Apps surface shows as in progress: the owner-projected
+ * run state when it reports one, otherwise the request this renderer has in
+ * flight. A launch request on a running App only focuses its window, so it is
+ * not a transition. Surfaces show a transition once, on the action control,
+ * and keep settled run facts off their status line until it ends.
+ */
+export function appRunTransition(
+  visual: AppRunVisualState,
+  pendingAction: AppCardActionId | null,
+): AppRunTransition | null {
+  if (visual === 'starting' || visual === 'stopping') return visual;
+  if (pendingAction === 'stop') return 'stopping';
+  if (pendingAction === 'launch' && visual !== 'running') return 'starting';
+  return null;
+}
 
 export function isEntryRunActive(entry: DesktopAppsEntry): boolean {
   return isLocalDevelopmentRunActive(entry.run?.state ?? null);
