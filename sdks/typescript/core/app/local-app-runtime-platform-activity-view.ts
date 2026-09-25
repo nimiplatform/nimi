@@ -1,3 +1,4 @@
+import { extractNimiErrorFields } from '../../types/errors.js';
 import type {
   NimiAppActivityChange,
   NimiAppActivityFilter,
@@ -223,7 +224,7 @@ export function createNimiAppActivityView(options: NimiAppActivityViewOptions): 
     }
   };
 
-  const startListing = (keepVisible = false) => {
+  const startListing = ({ keepVisible = false, background = false } = {}) => {
     if (retryTimer !== undefined) clearTimeout(retryTimer);
     retryTimer = undefined;
     generation += 1;
@@ -232,10 +233,13 @@ export function createNimiAppActivityView(options: NimiAppActivityViewOptions): 
     // A relist may keep the previous projection visible until its first page
     // arrives; the projection is replaced, never merged, with the new baseline.
     if (!keepVisible) state = next;
-    current = { status: 'loading', complete: false, hasMore: false, error: null };
+    // Automatic recovery keeps the read failure visible until a new baseline
+    // succeeds. Returning to initial loading on every retry makes consumers
+    // repeatedly remove their error/empty state and flash a loading skeleton.
+    if (!background) current = { status: 'loading', complete: false, hasMore: false, error: null };
     continuation = null;
     void closeSubscription();
-    publish();
+    if (!background) publish();
     void (async () => {
       try {
         const first = await options.activity.list({ filter, pageSize });
@@ -256,7 +260,9 @@ export function createNimiAppActivityView(options: NimiAppActivityViewOptions): 
         current = { status: 'unavailable', complete: false, hasMore: false, error };
         continuation = null;
         publish();
-        scheduleRetry(() => startListing(), 3_000);
+        if (extractNimiErrorFields(error).retryable !== false) {
+          scheduleRetry(() => startListing({ background: true }), 3_000);
+        }
       }
     })();
   };
@@ -269,7 +275,7 @@ export function createNimiAppActivityView(options: NimiAppActivityViewOptions): 
       // A continuation that no longer belongs to this account or baseline
       // requires a fresh listing; other failures keep the paused position.
       if (cursorProblem(error)) {
-        startListing(true);
+        startListing({ keepVisible: true });
         return;
       }
       current = { ...current, error };
@@ -291,7 +297,7 @@ export function createNimiAppActivityView(options: NimiAppActivityViewOptions): 
       await closeSubscription();
     },
     relist: () => {
-      if (running) startListing(true);
+      if (running) startListing({ keepVisible: true });
     },
     loadMore,
     snapshot: () => Object.freeze({ ...current, records: Object.freeze(state.list()) }),

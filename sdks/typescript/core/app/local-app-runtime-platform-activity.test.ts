@@ -289,6 +289,82 @@ test('a listing that reaches its record bound reports more instead of complete a
   await view.stop();
 });
 
+test('non-retryable listing failures remain unavailable until an explicit retry', async (context) => {
+  context.mock.timers.enable({ apis: ['setTimeout'] });
+  const failure = Object.assign(new Error('local-app-operation-unavailable'), {
+    code: 'runtime-permission-denied',
+    details: { retryable: false },
+  });
+  const pushable = fakeShell([
+    () => { throw failure; },
+    () => ({ records: [recordJson(1)], nextPageToken: null, baselineChangeSeq: '1' }),
+  ]);
+  const snapshots: NimiAppActivityViewSnapshot[] = [];
+  const view = createNimiAppActivityView({
+    activity: createNimiLocalAppActivityClient(pushable.shell),
+    onUpdate: (snapshot) => snapshots.push(snapshot),
+  });
+  try {
+    view.start();
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(view.snapshot().status, 'unavailable');
+    assert.equal(view.snapshot().error, failure);
+    const updates = snapshots.length;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      context.mock.timers.tick(3_000);
+      await new Promise((resolve) => setImmediate(resolve));
+    }
+    assert.equal(pushable.listCalls.length, 1, 'the carrier forbids automatic retries');
+    assert.equal(snapshots.length, updates, 'no periodic loading or error updates');
+    view.relist();
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(pushable.listCalls.length, 2, 'the user can still retry after repairing the cause');
+    assert.equal(view.snapshot().status, 'ready');
+    assert.deepEqual(view.snapshot().records.map((record) => record.activityId), [ID(1)]);
+  } finally {
+    await view.stop();
+  }
+});
+
+test('automatic listing retries keep the failure visible until recovery succeeds', async (context) => {
+  context.mock.timers.enable({ apis: ['setTimeout'] });
+  const failure = Object.assign(new Error('runtime-service-unavailable'), { retryable: true });
+  let release!: (page: unknown) => void;
+  const pushable = fakeShell([
+    () => { throw failure; },
+    () => { throw failure; },
+    () => new Promise((resolve) => { release = resolve; }),
+  ]);
+  const snapshots: NimiAppActivityViewSnapshot[] = [];
+  const view = createNimiAppActivityView({
+    activity: createNimiLocalAppActivityClient(pushable.shell),
+    onUpdate: (snapshot) => snapshots.push(snapshot),
+  });
+  try {
+    view.start();
+    await new Promise((resolve) => setImmediate(resolve));
+    const afterInitialFailure = snapshots.length;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      context.mock.timers.tick(3_000);
+      await new Promise((resolve) => setImmediate(resolve));
+      assert.equal(view.snapshot().status, 'unavailable');
+      assert.equal(view.snapshot().error, failure);
+      assert.equal(view.snapshot().complete, false);
+    }
+    assert.equal(pushable.listCalls.length, 3, 'transient failures still recover automatically');
+    assert.ok(snapshots.slice(afterInitialFailure).every((snapshot) => snapshot.status === 'unavailable'));
+    release({ records: [recordJson(2)], nextPageToken: null, baselineChangeSeq: '2' });
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(view.snapshot().status, 'ready');
+    assert.equal(view.snapshot().error, null);
+    assert.equal(view.snapshot().complete, true);
+    assert.deepEqual(view.snapshot().records.map((record) => record.activityId), [ID(2)]);
+    assert.deepEqual(pushable.subscribeCalls, [{ afterChangeSeq: '2' }]);
+  } finally {
+    await view.stop();
+  }
+});
+
 test('an ended subscription recovers through a fresh baseline instead of replaying its cursor', async () => {
   const pushable = fakeShell([
     () => ({ records: [recordJson(1)], nextPageToken: null, baselineChangeSeq: '7' }),
