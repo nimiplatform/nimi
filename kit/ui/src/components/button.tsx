@@ -78,7 +78,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     buttonVariants({ tone, size }),
     FOCUS_RING_CLASS_NAME,
     active && 'nimi-action--active bg-[var(--nimi-surface-active)]',
-    loading && 'nimi-action--loading cursor-wait',
+    // Loading is work in progress, not an unavailable action: it stays
+    // non-interactive but keeps full color so it never reads as greyed out.
+    loading && 'nimi-action--loading cursor-wait disabled:cursor-wait disabled:opacity-100',
     fullWidth && 'w-full',
     className,
   );
@@ -96,7 +98,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       {...rest}
     >
       {leadingIcon ? <span className="nimi-action__leading pointer-events-none inline-flex shrink-0 items-center justify-center">{leadingIcon}</span> : null}
-      {loading ? <span className="nimi-action__spinner pointer-events-none inline-block h-3.5 w-3.5 shrink-0 rounded-full border-2 border-current border-r-transparent" aria-hidden="true" /> : null}
+      {loading ? <span className="nimi-action__spinner pointer-events-none inline-block h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-current border-r-transparent motion-reduce:animate-none" aria-hidden="true" /> : null}
       {asChild ? (
         <Slottable>{children}</Slottable>
       ) : (

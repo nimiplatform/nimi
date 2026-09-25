@@ -149,6 +149,10 @@ export function CanonicalTranscriptView({
   });
   const showEmptyState = !loading && !error && messages.length === 0 && !content;
   const compactEmptyState = emptyStateVariant === 'compact';
+  // Hosts that draw their own empty-state heading (e.g. a character hero) blank
+  // every copy prop; the copy gap then only pushes a viewport-sized empty state
+  // into scrolling.
+  const hasEmptyStateCopy = Boolean(emptyStateAgent || emptyEyebrow || emptyTitle || emptyDescription || onSeedFirstTurn);
   const lastMessage = messages[messages.length - 1] || null;
   const footerVisible = Boolean(footerContent) && !pendingFirstBeat && !loading && !error;
 
@@ -392,7 +396,12 @@ export function CanonicalTranscriptView({
                 ) : null}
               </div>
               {emptyStateContent ? (
-                <div className={cn('mt-6 text-left', compactEmptyState ? '-mx-5' : '-mx-6')}>{emptyStateContent}</div>
+                <div
+                  className={cn(hasEmptyStateCopy ? 'mt-6' : '', 'text-left', compactEmptyState ? '-mx-5' : '-mx-6')}
+                  data-canonical-empty-content="true"
+                >
+                  {emptyStateContent}
+                </div>
               ) : null}
             </section>
           </div>

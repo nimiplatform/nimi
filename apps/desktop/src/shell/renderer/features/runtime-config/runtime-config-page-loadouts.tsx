@@ -948,7 +948,7 @@ function CreateLoadoutStepIndicator(props: { readonly step: 1 | 2 | 3 }) {
             <span
               aria-hidden="true"
               className={`grid size-5 shrink-0 place-items-center rounded-full text-[11px] font-bold ${complete
-                ? 'bg-[var(--nimi-status-success)] text-[var(--nimi-action-primary-text)]'
+                ? 'bg-[var(--nimi-status-success)] text-[var(--nimi-text-inverse)]'
                 : current
                   ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]'
                   : 'border border-[var(--nimi-border-strong)] text-[var(--nimi-text-muted)]'}`}

@@ -406,15 +406,15 @@ packs:
     pack_kind: accent
     source_rule: P-DESIGN-002
     values:
-      surface.active: rgba(69,184,214,0.16)
-      action.primary_bg: "#45B8D6"
-      action.primary_bg_hover: "#35A7C4"
-      action.primary_text: "#111827"
-      action.ghost_hover: rgba(69,184,214,0.10)
-      sidebar.item_active: rgba(69,184,214,0.16)
-      sidebar.item_hover: rgba(69,184,214,0.08)
-      field.focus: "#45B8D6"
-      focus.ring_color: rgba(69,184,214,0.28)
+      surface.active: rgba(20,118,212,0.16)
+      action.primary_bg: "#1476D4"
+      action.primary_bg_hover: "#1166B8"
+      action.primary_text: "#FFFFFF"
+      action.ghost_hover: rgba(20,118,212,0.10)
+      sidebar.item_active: rgba(20,118,212,0.16)
+      sidebar.item_hover: rgba(20,118,212,0.08)
+      field.focus: "#1476D4"
+      focus.ring_color: rgba(20,118,212,0.28)
   - theme_id: nimi-density-compact
     pack_kind: density
     source_rule: P-DESIGN-028

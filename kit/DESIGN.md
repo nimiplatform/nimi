@@ -18,9 +18,9 @@ sources:
   - config/platform-nimi-ui-primitives/*.yaml
   - config/platform-nimi-ui-compositions.yaml
 colors:
-  on-primary: "#111827"
-  primary: "#45B8D6"
-  primary-hover: "#35A7C4"
+  on-primary: "#FFFFFF"
+  primary: "#1476D4"
+  primary-hover: "#1166B8"
   secondary: "#4b5563"
   surface: "#ffffff"
   surface-panel: "#f8f9fb"
@@ -253,9 +253,9 @@ Colors come from `nimi-ui-tokens.yaml` and `nimi-ui-themes.yaml`. The front matt
 - **danger** (#dc2626): projected from Nimi semantic UI tokens.
 - **info** (#2563eb): projected from Nimi semantic UI tokens.
 - **neutral** (#f5f7fa): projected from Nimi semantic UI tokens.
-- **on-primary** (#111827): projected from Nimi semantic UI tokens.
-- **primary** (#45B8D6): projected from Nimi semantic UI tokens.
-- **primary-hover** (#35A7C4): projected from Nimi semantic UI tokens.
+- **on-primary** (#FFFFFF): projected from Nimi semantic UI tokens.
+- **primary** (#1476D4): projected from Nimi semantic UI tokens.
+- **primary-hover** (#1166B8): projected from Nimi semantic UI tokens.
 - **secondary** (#4b5563): projected from Nimi semantic UI tokens.
 - **success** (#16a34a): projected from Nimi semantic UI tokens.
 - **surface** (#ffffff): projected from Nimi semantic UI tokens.

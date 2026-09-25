@@ -375,7 +375,7 @@ export function WorldCharacterRelationshipCluesSection({ source }: { source: Sou
           );
         })}
 
-        <div className="absolute left-1/2 top-1/2 z-20 grid h-24 w-24 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-[6px] border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_26%,transparent)] bg-[var(--nimi-action-primary-bg)] px-3 text-center text-lg font-semibold leading-6 text-[var(--nimi-text-inverse)] shadow-[var(--nimi-elevation-raised)]">
+        <div className="absolute left-1/2 top-1/2 z-20 grid h-24 w-24 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-[6px] border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_26%,transparent)] bg-[var(--nimi-action-primary-bg)] px-3 text-center text-lg font-semibold leading-6 text-[var(--nimi-action-primary-text)] shadow-[var(--nimi-elevation-raised)]">
           <span className="max-w-full break-words">{simplifyDisplayText(source.displayName)}</span>
         </div>
 

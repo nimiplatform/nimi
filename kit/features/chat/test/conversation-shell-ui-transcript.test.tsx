@@ -899,4 +899,42 @@ it('keeps the transcript scroll root inside the content column and reserves bott
     expect(container.textContent).toContain('开始一段对话');
     expect(container.textContent).not.toContain('ZHIYU');
   });
+
+  it('spaces empty-state content from the copy only when copy is shown', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(
+        <CanonicalTranscriptView
+          messages={[]}
+          emptyEyebrow=""
+          emptyTitle="开始一段对话"
+          emptyDescription=""
+          emptyStateContent={<div>Suggestions</div>}
+        />,
+      );
+      await flush();
+    });
+
+    expect(container.querySelector('[data-canonical-empty-content="true"]')?.className).toContain('mt-6');
+
+    await act(async () => {
+      root?.render(
+        <CanonicalTranscriptView
+          messages={[]}
+          emptyEyebrow=""
+          emptyTitle=""
+          emptyDescription=""
+          emptyStateContent={<h2>Character hero</h2>}
+        />,
+      );
+      await flush();
+    });
+
+    const emptyContent = container.querySelector('[data-canonical-empty-content="true"]');
+    expect(emptyContent?.textContent).toBe('Character hero');
+    expect(emptyContent?.className).not.toContain('mt-6');
+  });
 });

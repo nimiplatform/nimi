@@ -10,12 +10,6 @@ vi.mock('../src/logic/desktop-browser-auth.js', () => ({
   performDesktopBrowserAuth,
 }));
 
-vi.mock('../src/components/auth-visual-background.js', () => ({
-  AuthVisualBackground: ({ profile }: { profile: string }) => (
-    <div data-testid="auth-visual-background" data-profile={profile} />
-  ),
-}));
-
 import { DesktopBrowserAuthGate } from '../src/components/desktop-browser-auth-gate.js';
 
 function renderGate(notice?: string) {
@@ -47,19 +41,17 @@ function renderGate(notice?: string) {
 }
 
 describe('DesktopBrowserAuthGate presentation', () => {
-  it('keeps the established Nimi logo interaction and ambient visual shell', () => {
+  it('renders the clean launch surface with compact logo, brand title, and animated dots', () => {
     const { container, root } = renderGate();
     const action = container.querySelector<HTMLButtonElement>('[data-testid="login-action"]');
     const hint = Array.from(container.querySelectorAll('p')).find((element) => element.textContent === '继续登录');
 
-    expect(container.querySelector('.nimi-shell-auth-brand-surface')).not.toBeNull();
-    expect(container.querySelector('[data-testid="auth-visual-background"]')?.getAttribute('data-profile')).toBe('desktop');
-    expect(container.querySelector('h1')?.textContent).toBe('Nimi');
-    expect(action?.querySelector('.h-32.w-32')).not.toBeNull();
-    expect(hint?.className).toContain('opacity-0');
-
-    act(() => action?.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })));
-    expect(hint?.className).toContain('opacity-100');
+    expect(container.querySelector('.nimi-shell-auth-clean-surface')).not.toBeNull();
+    expect(container.querySelector('.nimi-shell-auth-brand-surface')).toBeNull();
+    expect(container.querySelector('h1')?.textContent).toBe('Nimi Ecosystem');
+    expect(action?.querySelector('.h-24.w-24')).not.toBeNull();
+    expect(container.querySelectorAll('.nimi-shell-auth-dot')).toHaveLength(3);
+    expect(hint).toBeDefined();
 
     act(() => root.unmount());
     container.remove();

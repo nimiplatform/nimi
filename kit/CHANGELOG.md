@@ -2,6 +2,23 @@
 
 ## Unreleased (0.15.3)
 
+- `CanonicalTranscriptView` no longer keeps the 24px copy gap above
+  `emptyStateContent` when every empty-state copy prop is blank. Hosts that draw
+  their own heading, such as a character hero, could overflow a viewport-sized
+  empty state by that unused gap and show a scrollbar with nothing to scroll.
+  Visual change only; the public API is unchanged.
+- Change the shared `nimi-accent` pack from cyan `#45B8D6` (hover `#35A7C4`)
+  with dark `#111827` primary action text to blue `#1476D4` (hover `#1166B8`)
+  with white text, keeping primary action text at or above 4.5:1. The active,
+  hover, field-focus and focus-ring tints and the auth brand surface follow the
+  new hue. `Steps` status dots now use `--nimi-text-inverse` on status fills so
+  they stay legible in both schemes. Visual change only; the public API is
+  unchanged.
+- `Button` `loading` now rotates its spinner, which previously rendered as a
+  static ring, and keeps full color instead of the disabled fade, so work in
+  progress no longer reads as an unavailable action. The button stays
+  non-interactive with `aria-busy`; under reduced motion the spinner stops and
+  the label carries the state. The public API is unchanged.
 - Gate calls while a protected session rebind is in progress, reject old in-flight
   responses, and coalesce invalidation before any fresh scope is used. The existing
   `onSessionInvalidated` hook remains the App lifecycle boundary; successful

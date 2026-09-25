@@ -23,9 +23,9 @@
     "danger": "#dc2626",
     "info": "#2563eb",
     "neutral": "#f5f7fa",
-    "on-primary": "#111827",
-    "primary": "#45B8D6",
-    "primary-hover": "#35A7C4",
+    "on-primary": "#FFFFFF",
+    "primary": "#1476D4",
+    "primary-hover": "#1166B8",
     "secondary": "#4b5563",
     "success": "#16a34a",
     "surface": "#ffffff",
@@ -261,9 +261,9 @@
       "danger": "#dc2626",
       "info": "#2563eb",
       "neutral": "#f5f7fa",
-      "on-primary": "#111827",
-      "primary": "#45B8D6",
-      "primary-hover": "#35A7C4",
+      "on-primary": "#FFFFFF",
+      "primary": "#1476D4",
+      "primary-hover": "#1166B8",
       "secondary": "#4b5563",
       "success": "#16a34a",
       "surface": "#ffffff",
@@ -376,7 +376,7 @@
           "themeLayer": "accent",
           "sourceRule": "P-DESIGN-003",
           "values": {
-            "nimi-accent": "rgba(69,184,214,0.10)"
+            "nimi-accent": "rgba(20,118,212,0.10)"
           }
         },
         "action.primary_bg": {
@@ -385,7 +385,7 @@
           "themeLayer": "accent",
           "sourceRule": "P-DESIGN-003",
           "values": {
-            "nimi-accent": "#45B8D6"
+            "nimi-accent": "#1476D4"
           }
         },
         "action.primary_bg_hover": {
@@ -394,7 +394,7 @@
           "themeLayer": "accent",
           "sourceRule": "P-DESIGN-003",
           "values": {
-            "nimi-accent": "#35A7C4"
+            "nimi-accent": "#1166B8"
           }
         },
         "action.primary_text": {
@@ -403,7 +403,7 @@
           "themeLayer": "accent",
           "sourceRule": "P-DESIGN-003",
           "values": {
-            "nimi-accent": "#111827"
+            "nimi-accent": "#FFFFFF"
           }
         },
         "action.secondary_bg": {
@@ -652,7 +652,7 @@
           "themeLayer": "accent",
           "sourceRule": "P-DESIGN-003",
           "values": {
-            "nimi-accent": "#45B8D6"
+            "nimi-accent": "#1476D4"
           }
         },
         "field.placeholder": {
@@ -683,7 +683,7 @@
           "themeLayer": "accent",
           "sourceRule": "P-DESIGN-018",
           "values": {
-            "nimi-accent": "rgba(69,184,214,0.28)"
+            "nimi-accent": "rgba(20,118,212,0.28)"
           }
         },
         "focus.ring_offset": {
@@ -1156,7 +1156,7 @@
           "themeLayer": "accent",
           "sourceRule": "P-DESIGN-003",
           "values": {
-            "nimi-accent": "rgba(69,184,214,0.16)"
+            "nimi-accent": "rgba(20,118,212,0.16)"
           }
         },
         "sidebar.item_default": {
@@ -1175,7 +1175,7 @@
           "themeLayer": "accent",
           "sourceRule": "P-DESIGN-003",
           "values": {
-            "nimi-accent": "rgba(69,184,214,0.08)"
+            "nimi-accent": "rgba(20,118,212,0.08)"
           }
         },
         "sidebar.resize_handle": {
@@ -1721,7 +1721,7 @@
           "themeLayer": "accent",
           "sourceRule": "P-DESIGN-003",
           "values": {
-            "nimi-accent": "rgba(69,184,214,0.16)"
+            "nimi-accent": "rgba(20,118,212,0.16)"
           }
         },
         "surface.app_background": {

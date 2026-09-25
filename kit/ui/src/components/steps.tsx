@@ -27,10 +27,10 @@ const statusTone: Record<StepStatus, StatusTone | 'brand'> = {
 const dotClass: Record<StatusTone | 'brand', string> = {
   brand: 'border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]',
   neutral: 'border-[var(--nimi-border-strong)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-muted)]',
-  success: 'border-[var(--nimi-status-success)] bg-[var(--nimi-status-success)] text-[var(--nimi-action-primary-text)]',
-  warning: 'border-[var(--nimi-status-warning)] bg-[var(--nimi-status-warning)] text-[var(--nimi-action-primary-text)]',
-  danger: 'border-[var(--nimi-status-danger)] bg-[var(--nimi-status-danger)] text-[var(--nimi-action-primary-text)]',
-  info: 'border-[var(--nimi-status-info)] bg-[var(--nimi-status-info)] text-[var(--nimi-action-primary-text)]',
+  success: 'border-[var(--nimi-status-success)] bg-[var(--nimi-status-success)] text-[var(--nimi-text-inverse)]',
+  warning: 'border-[var(--nimi-status-warning)] bg-[var(--nimi-status-warning)] text-[var(--nimi-text-inverse)]',
+  danger: 'border-[var(--nimi-status-danger)] bg-[var(--nimi-status-danger)] text-[var(--nimi-text-inverse)]',
+  info: 'border-[var(--nimi-status-info)] bg-[var(--nimi-status-info)] text-[var(--nimi-text-inverse)]',
 };
 
 export function Steps({ items, ariaLabel, className }: StepsProps) {

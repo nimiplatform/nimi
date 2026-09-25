@@ -3,8 +3,6 @@ import type { ShellOAuthCodeBridge } from '@nimiplatform/kit/core/oauth';
 import { performDesktopBrowserAuth } from '../logic/desktop-browser-auth.js';
 import { toDesktopBrowserAuthErrorMessage } from '../logic/oauth-helpers.js';
 import type { DesktopBrowserAuthRuntimeBroker } from '../types/auth-types.js';
-import { AuthVisualBackground } from './auth-visual-background.js';
-import { LoadingSpinner } from './primitives.js';
 
 export type DesktopBrowserAuthGateProps = {
   bridge: ShellOAuthCodeBridge;
@@ -30,7 +28,6 @@ export type DesktopBrowserAuthGateProps = {
 export function DesktopBrowserAuthGate(props: DesktopBrowserAuthGateProps) {
   const [status, setStatus] = useState<'idle' | 'pending' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
-  const [isLogoHovered, setIsLogoHovered] = useState(false);
   const autoStartedRef = useRef(false);
   const descriptionId = useId();
 
@@ -67,22 +64,17 @@ export function DesktopBrowserAuthGate(props: DesktopBrowserAuthGateProps) {
   const actionLabel = status === 'error'
     ? (props.retryLabel || '重试')
     : (props.continueLabel || '继续登录');
-  const shouldShowHint = isLogoHovered || status !== 'idle' || Boolean(props.notice);
 
   return (
     <main
-      className="nimi-shell-auth-root nimi-shell-auth-brand-surface absolute inset-0 z-10"
+      className="nimi-shell-auth-root nimi-shell-auth-clean-surface absolute inset-0 z-10"
       data-shell-auth-theme="custom"
       data-testid={props.screenTestId}
       onMouseDown={props.onRootPointerDown}
     >
-      <div aria-hidden className="nimi-shell-auth-background">
-        <AuthVisualBackground isLogoHovered={isLogoHovered} profile="desktop" />
-      </div>
-
       <div className="nimi-shell-auth-shell absolute inset-0 z-10 !p-0">
         <section className="nimi-shell-auth-content">
-          <div className="pointer-events-auto flex flex-col items-center gap-8 text-center">
+          <div className="pointer-events-auto flex flex-col items-center text-center">
             <button
               type="button"
               aria-label={actionLabel}
@@ -90,42 +82,41 @@ export function DesktopBrowserAuthGate(props: DesktopBrowserAuthGateProps) {
               data-testid={props.actionTestId}
               disabled={status === 'pending'}
               onClick={() => void begin()}
-              onMouseEnter={() => setIsLogoHovered(true)}
-              onMouseLeave={() => setIsLogoHovered(false)}
               className="group relative cursor-pointer rounded-full focus:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--nimi-focus-ring-color)] disabled:cursor-wait"
             >
               {props.logo ? (
-                <span className="block h-32 w-32 select-none overflow-hidden rounded-full transition-transform duration-200 ease-out group-hover:scale-105 group-disabled:scale-100">
+                <span className="block h-24 w-24 select-none transition-transform duration-200 ease-out group-hover:scale-105 group-disabled:scale-100">
                   {props.logo}
                 </span>
               ) : null}
             </button>
 
-            <div className="min-h-16 text-center">
-              <h1 className="mb-3 text-[13px] font-medium uppercase tracking-[0.38em] text-[var(--nimi-text-secondary)]">
-                Nimi
-              </h1>
-              <p id={descriptionId} className="sr-only">{title}. {description}</p>
+            <h1 className="mt-10 text-[30px] font-medium leading-snug text-[var(--nimi-text-primary)]">
+              Nimi Ecosystem
+            </h1>
+            <p id={descriptionId} className="sr-only">{title}. {description}</p>
 
-              {props.notice && status !== 'pending' ? (
-                <p className="mb-2 max-w-sm text-xs text-[var(--nimi-text-muted)]">{props.notice}</p>
-              ) : null}
+            {props.notice && status !== 'pending' ? (
+              <p className="mt-3 max-w-sm text-xs text-[var(--nimi-text-muted)]">{props.notice}</p>
+            ) : null}
+
+            <div className="mt-12 flex flex-col items-center gap-3">
+              <div aria-hidden className="nimi-shell-auth-dots">
+                <span className="nimi-shell-auth-dot" />
+                <span className="nimi-shell-auth-dot" />
+                <span className="nimi-shell-auth-dot" />
+              </div>
 
               {status === 'pending' ? (
-                <div role="status" className="flex flex-col items-center gap-2 text-xs text-[var(--nimi-text-muted)]">
-                  <LoadingSpinner />
-                  <span>{props.pendingMessage || '请在浏览器中完成登录'}</span>
-                </div>
-              ) : (
-                <p className={`text-xs text-[var(--nimi-text-muted)] transition-opacity duration-500 ${
-                  shouldShowHint ? 'opacity-100' : 'opacity-0'
-                }`}>
-                  {actionLabel}
+                <p role="status" className="text-xs text-[var(--nimi-text-muted)]">
+                  {props.pendingMessage || '请在浏览器中完成登录'}
                 </p>
+              ) : (
+                <p className="text-xs text-[var(--nimi-text-muted)]">{actionLabel}</p>
               )}
 
               {error ? (
-                <p role="alert" className="mt-2 max-w-sm text-xs text-[var(--nimi-status-danger)]">{error}</p>
+                <p role="alert" className="max-w-sm text-xs text-[var(--nimi-status-danger)]">{error}</p>
               ) : null}
             </div>
           </div>

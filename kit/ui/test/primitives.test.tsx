@@ -193,6 +193,29 @@ test('button asChild retains loading feedback inside the child', () => {
   expect(html).toContain('Loading');
 });
 
+test('loading button spins at full color while plain disabled buttons fade', () => {
+  const classTokens = (html: string, pattern: RegExp): string[] =>
+    (pattern.exec(html)?.[1] ?? '').split(/\s+/u);
+  const loading = renderToStaticMarkup(<Button loading>Starting</Button>);
+  const spinner = classTokens(loading, /<span class="(nimi-action__spinner[^"]*)"/u);
+  expect(spinner).toContain('animate-spin');
+  // Reduced motion stops the loop; the label and aria-busy still carry the state.
+  expect(spinner).toContain('motion-reduce:animate-none');
+  expect(loading).toContain(' disabled=""');
+  const loadingButton = classTokens(loading, /<button[^>]*\bclass="([^"]*)"/u);
+  expect(loadingButton).toContain('disabled:opacity-100');
+  expect(loadingButton).toContain('disabled:cursor-wait');
+  expect(loadingButton).not.toContain('disabled:opacity-[var(--nimi-opacity-disabled)]');
+  expect(loadingButton).not.toContain('disabled:cursor-not-allowed');
+
+  const disabledButton = classTokens(
+    renderToStaticMarkup(<Button disabled>Launch</Button>),
+    /<button[^>]*\bclass="([^"]*)"/u,
+  );
+  expect(disabledButton).toContain('disabled:opacity-[var(--nimi-opacity-disabled)]');
+  expect(disabledButton).not.toContain('disabled:opacity-100');
+});
+
 test('pill tabs render sliding-indicator slots, radiogroup roles, and active state', () => {
   const html = renderToStaticMarkup(
     <PillTabs

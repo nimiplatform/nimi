@@ -26,11 +26,11 @@
   --nimi-type-section-title-letter-spacing: var(--nimi-type-section-title-letter-spacing, -0.01em);
   --nimi-type-body-sm-size: var(--nimi-type-body-sm-size, 0.8125rem);
 
-  --nimi-action-primary-bg: var(--nimi-action-primary-bg, #45B8D6);
-  --nimi-action-primary-bg-hover: var(--nimi-action-primary-bg-hover, #35A7C4);
+  --nimi-action-primary-bg: var(--nimi-action-primary-bg, #1476D4);
+  --nimi-action-primary-bg-hover: var(--nimi-action-primary-bg-hover, #1166B8);
   --nimi-action-primary-text: var(--nimi-action-primary-text, #ffffff);
-  --nimi-action-ghost-hover: var(--nimi-action-ghost-hover, rgba(69,184,214,0.10));
-  --nimi-focus-ring-color: var(--nimi-focus-ring-color, rgba(69,184,214,0.28));
+  --nimi-action-ghost-hover: var(--nimi-action-ghost-hover, rgba(20,118,212,0.10));
+  --nimi-focus-ring-color: var(--nimi-focus-ring-color, rgba(20,118,212,0.28));
 
   /* ---- layout ---- */
   position: relative;
@@ -69,20 +69,80 @@
   --nimi-field-border: #ddd4c6;
   --nimi-border-subtle: #e4dccf;
   --nimi-elevation-base: 0 12px 34px rgba(157, 145, 123, 0.09);
-  --nimi-elevation-raised: 0 18px 40px rgba(69, 184, 214, 0.28);
+  --nimi-elevation-raised: 0 18px 40px rgba(20, 118, 212, 0.28);
   --nimi-elevation-floating: 0 18px 40px rgba(157, 145, 123, 0.12);
   --nimi-status-danger: #ef4444;
-  --nimi-action-primary-bg: #45b8d6;
-  --nimi-action-primary-bg-hover: #35a7c4;
+  --nimi-action-primary-bg: #1476d4;
+  --nimi-action-primary-bg-hover: #1166b8;
   --nimi-action-primary-text: #ffffff;
   --nimi-action-ghost-hover: #f0ece6;
-  --nimi-focus-ring-color: rgba(69, 184, 214, 0.28);
+  --nimi-focus-ring-color: rgba(20, 118, 212, 0.28);
 }
 
 .nimi-shell-auth-root .nimi-shell-auth-background {
   position: absolute;
   inset: 0;
   z-index: 0;
+}
+
+/*
+ * Desktop browser-auth gate launch surface: plain white card, compact logo,
+ * and animated status dots. Scoped to the gate so the Web account page keeps
+ * the brand mesh surface above.
+ */
+.nimi-shell-auth-root.nimi-shell-auth-clean-surface {
+  --nimi-app-background: #ffffff;
+  --nimi-text-primary: #1f2937;
+  --nimi-text-secondary: #4b5563;
+  --nimi-text-muted: #9ca3af;
+  --nimi-border-subtle: #d7dce4;
+  --nimi-status-danger: #ef4444;
+  --nimi-action-primary-bg: #1476d4;
+  --nimi-action-primary-bg-hover: #1166b8;
+  --nimi-focus-ring-color: rgba(20, 118, 212, 0.28);
+}
+
+.nimi-shell-auth-root .nimi-shell-auth-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.nimi-shell-auth-root .nimi-shell-auth-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  background-color: var(--nimi-border-subtle);
+  animation: nimi-shell-auth-dot-pulse 1.4s ease-in-out infinite;
+}
+
+.nimi-shell-auth-root .nimi-shell-auth-dot:nth-child(2) {
+  animation-delay: 0.18s;
+}
+
+.nimi-shell-auth-root .nimi-shell-auth-dot:nth-child(3) {
+  animation-delay: 0.36s;
+}
+
+@keyframes nimi-shell-auth-dot-pulse {
+  0%, 55%, 100% {
+    background-color: var(--nimi-border-subtle);
+    transform: scale(1);
+  }
+  25% {
+    background-color: var(--nimi-action-primary-bg);
+    transform: scale(1.3);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nimi-shell-auth-root .nimi-shell-auth-dot {
+    animation: none;
+  }
+  .nimi-shell-auth-root .nimi-shell-auth-dot:first-child {
+    background-color: var(--nimi-action-primary-bg);
+  }
 }
 
 .nimi-shell-auth-root .nimi-shell-auth-shell {

@@ -201,7 +201,7 @@ function PersonaRailRow({
         src={persona.avatarUrl}
         size="sm"
         fallback={persona.name.trim().charAt(0).toUpperCase() || 'P'}
-        fallbackClassName="bg-[image:var(--nimi-surface-hero)] text-[var(--nimi-action-primary-text)]"
+        fallbackClassName="bg-[image:var(--nimi-surface-hero)] text-[var(--nimi-text-primary)]"
       />
       <span className="min-w-0 flex-1">
         <span

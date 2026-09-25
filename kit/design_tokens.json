@@ -18,15 +18,15 @@
     },
     "on-primary": {
       "$type": "color",
-      "$value": "#111827"
+      "$value": "#FFFFFF"
     },
     "primary": {
       "$type": "color",
-      "$value": "#45B8D6"
+      "$value": "#1476D4"
     },
     "primary-hover": {
       "$type": "color",
-      "$value": "#35A7C4"
+      "$value": "#1166B8"
     },
     "secondary": {
       "$type": "color",
