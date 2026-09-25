@@ -21,6 +21,7 @@ import {
   type NimiLoadoutRecipeSlotOffer,
 } from './runtime-config-loadout-model-display.js';
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
+import { runtimeSetupFailureText } from './runtime-setup-failure-message.js';
 import { updateRuntimeSetupCandidate } from './runtime-setup-task-runner.js';
 import type {
   RuntimeSetupTask,
@@ -345,30 +346,53 @@ export function SetupTaskAdvancedSection(props: {
   readonly recipe: NimiLoadoutRecipe;
   readonly candidate: NimiMachineLoadout | null;
   readonly onCandidateUpdated: () => void;
+  readonly disabled?: boolean;
+  readonly onBusyChange?: (busy: boolean) => void;
+  readonly reviewChoices?: Readonly<Record<string, string>>;
 }) {
+  const { t } = useTranslation();
   const localEnvironment = useRuntimeConfigLocalEnvironmentClient();
   const [assets, setAssets] = useState<readonly NimiRuntimeModelAssetRecord[]>([]);
   const [verifiedAssets, setVerifiedAssets] = useState<readonly NimiRuntimeLocalVerifiedAssetDescriptor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [retry, setRetry] = useState(0);
   useEffect(() => {
     let active = true;
+    setLoading(true);
+    setLoadError('');
     void Promise.all([localEnvironment.listModelAssets(), localEnvironment.listVerifiedAssets()])
       .then(([nextAssets, nextVerified]) => {
         if (active) { setAssets(nextAssets); setVerifiedAssets(nextVerified); }
-      }).catch(() => {});
+      }).catch((error: unknown) => {
+        if (active) setLoadError(error instanceof Error ? error.message : String(error));
+      }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [localEnvironment]);
+  }, [localEnvironment, retry]);
+  if (loading) return <p role="status" className="text-sm text-[var(--nimi-text-secondary)]">{t('Common.loading')}</p>;
+  if (loadError) return <InlineAlert tone="warning">
+    <p>{t('runtimeConfig.setupTask.settingsLoadFailed', { defaultValue: 'Model versions and settings could not be loaded. Your selection is kept.' })}</p>
+    <Button tone="secondary" size="sm" onClick={() => setRetry(value => value + 1)}>{t('Common.retry', { defaultValue: 'Retry' })}</Button>
+    <details className="mt-2 text-xs"><summary>{t('runtimeConfig.profiles.technicalDetails', { defaultValue: 'Technical details' })}</summary><span className="break-all">{loadError}</span></details>
+  </InlineAlert>;
   return <RuntimeLoadoutOptionsEditor
+    disabled={props.disabled}
     recipe={props.recipe}
     candidate={props.candidate}
-    draft={props.task.draft}
+    draft={{ ...props.task.draft, preferredOffers: { ...props.reviewChoices, ...props.task.draft?.preferredOffers } }}
     assets={assets}
     verifiedAssets={verifiedAssets}
     onChange={(patch) => props.store.updateTask(props.task.taskId, (current) => ({ draft: { ...current.draft, ...patch } }))}
     onApply={props.candidate ? async (draft) => {
-      props.store.updateTask(props.task.taskId, () => ({ draft }));
-      const result = await updateRuntimeSetupCandidate(props.store, props.task.taskId, props.ports, { options: draft.options, axes: draft.axes });
-      if (result.status !== 'ok') throw new Error(result.failure.message);
-      props.onCandidateUpdated();
+      props.onBusyChange?.(true);
+      try {
+        props.store.updateTask(props.task.taskId, () => ({ draft }));
+        const result = await updateRuntimeSetupCandidate(props.store, props.task.taskId, props.ports, { options: draft.options, axes: draft.axes });
+        if (result.status !== 'ok') throw new Error(runtimeSetupFailureText(result.failure, t));
+        props.onCandidateUpdated();
+      } finally {
+        props.onBusyChange?.(false);
+      }
     } : undefined}
   />;
 }

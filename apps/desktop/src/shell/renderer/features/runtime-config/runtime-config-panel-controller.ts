@@ -175,6 +175,20 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     }));
   }, [panelState.updateState]);
 
+  // "Manage model files" is the same local-files intent without the import
+  // menu: the library lands on the downloaded files instead of discovery.
+  const onOpenModelFiles = useCallback(() => {
+    onChangePage('modelLibrary');
+    panelState.updateState((previous) => ({
+      ...previous,
+      actionFocus: {
+        page: 'modelLibrary',
+        action: 'manage-model-files',
+        focus: 'runtime-config-action-focus.model-library-files',
+      },
+    }));
+  }, [onChangePage, panelState.updateState]);
+
   const onReturnToContextualLoadout = useCallback(() => {
     const context = modelMarketContext;
     setModelMarketContext(null);
@@ -384,6 +398,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     onOpenSavedConfigs,
     onOpenModelMarket,
     onOpenModelImport,
+    onOpenModelFiles,
     onOpenSetupTask,
     onCloseSetupTask,
     onReturnToContextualLoadout,

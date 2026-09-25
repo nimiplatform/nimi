@@ -100,6 +100,8 @@ export type RuntimeSetupTaskDraft = {
   readonly disabledOptionalSlots?: readonly string[];
   /** Per-slot preferred offer chosen in advanced editing, consumed at review. */
   readonly preferredOffers?: Readonly<Record<string, string>>;
+  /** Picks in a pending review; retained across navigation, never an execution authorization. */
+  readonly reviewChoices?: Readonly<Record<string, string>>;
   readonly cloudConnectorRef?: string;
   readonly cloudTargetLabel?: string;
   /** Stable identity of the chosen cloud target for draft restore. */
@@ -428,15 +430,19 @@ function normalizeDraft(raw: unknown): RuntimeSetupTaskDraft | undefined {
   const pendingAxes = normalizeDraftPendingAxes(record.pendingAxes);
   const options = normalizeDraftOptions(record.options);
   const cloudRecommendation = normalizeCloudRecommendation(record.cloudRecommendation);
-  const preferredOffersRaw = record.preferredOffers;
-  const preferredOffers: Record<string, string> = {};
-  if (preferredOffersRaw && typeof preferredOffersRaw === 'object' && !Array.isArray(preferredOffersRaw)) {
-    for (const [slotId, offerRef] of Object.entries(preferredOffersRaw as Record<string, unknown>)) {
-      const normalizedSlotId = normalizeText(slotId);
-      const normalizedOfferRef = normalizeText(offerRef);
-      if (normalizedSlotId && normalizedOfferRef) preferredOffers[normalizedSlotId] = normalizedOfferRef;
+  const normalizeChoices = (value: unknown) => {
+    const choices: Record<string, string> = {};
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      for (const [slotId, offerRef] of Object.entries(value as Record<string, unknown>)) {
+        const normalizedSlotId = normalizeText(slotId);
+        const normalizedOfferRef = normalizeText(offerRef);
+        if (normalizedSlotId && normalizedOfferRef) choices[normalizedSlotId] = normalizedOfferRef;
+      }
     }
-  }
+    return choices;
+  };
+  const preferredOffers = normalizeChoices(record.preferredOffers);
+  const reviewChoices = normalizeChoices(record.reviewChoices);
   const draft: RuntimeSetupTaskDraft = {
     ...(normalizeText(record.recipeId) ? { recipeId: normalizeText(record.recipeId) } : {}),
     ...(record.route === 'local' || record.route === 'cloud' ? { route: record.route } : {}),
@@ -445,6 +451,7 @@ function normalizeDraft(raw: unknown): RuntimeSetupTaskDraft | undefined {
     ...(pendingAxes.length > 0 ? { pendingAxes } : {}),
     ...(disabledOptionalSlots.length > 0 ? { disabledOptionalSlots } : {}),
     ...(Object.keys(preferredOffers).length > 0 ? { preferredOffers } : {}),
+    ...(Object.keys(reviewChoices).length > 0 ? { reviewChoices } : {}),
     ...(normalizeText(record.cloudConnectorRef) ? { cloudConnectorRef: normalizeText(record.cloudConnectorRef) } : {}),
     ...(normalizeText(record.cloudTargetLabel) ? { cloudTargetLabel: normalizeText(record.cloudTargetLabel) } : {}),
     ...(normalizeText(record.cloudTargetKey) ? { cloudTargetKey: normalizeText(record.cloudTargetKey) } : {}),

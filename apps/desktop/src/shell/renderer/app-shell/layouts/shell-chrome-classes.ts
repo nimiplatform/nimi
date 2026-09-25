@@ -14,3 +14,7 @@ export const SHELL_CHROME_TOOLTIP_CLASS =
 
 export const SHELL_CHROME_MENU_ITEM_BASE_CLASS =
   'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition-all';
+
+// Single home for the page width shared by Home, Downloads and Notifications,
+// so the three pages keep the same left and right edges.
+export const SHELL_PAGE_WIDTH_CLASS = 'mx-auto w-full max-w-[1400px] px-5 lg:px-8';

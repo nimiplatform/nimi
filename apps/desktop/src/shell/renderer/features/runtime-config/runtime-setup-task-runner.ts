@@ -1119,15 +1119,27 @@ export async function createRuntimeSetupCandidate(
   if (task.status !== 'draft' && task.status !== 'review') {
     return blocked({ stage, reasonCode: RUNTIME_SETUP_TASK_INACTIVE, message: `Cannot create a candidate while the task is ${task.status}.` });
   }
-  const recipes = await ports.loadouts.listRecipes(task.capabilityContract);
-  const recipe = recipes.find((item) => item.recipeId === input.recipeId);
-  if (!recipe) {
-    return failed({ stage, reasonCode: 'RUNTIME_SETUP_RECIPE_UNAVAILABLE', message: `Recipe ${input.recipeId} is not available for ${task.capabilityContract}.` });
-  }
+  // Preserve the chosen intent even if Prepare fails before there is a candidate.
+  // A retry must not silently replace exact saved axes/options with a recommendation.
+  store.updateTask(taskId, (current) => ({
+    draft: {
+      ...current.draft,
+      recipeId: input.recipeId,
+      ...(input.options ? { options: JSON.parse(JSON.stringify(input.options)) } : {}),
+      ...(input.axes ? { axes: input.axes } : {}),
+    },
+  }));
   const modelAxes = (input.axes ?? [])
     .filter((axis) => axis.slotId && axis.modelAssetId && axis.expectedContentId)
     .map((axis) => ({ slotId: axis.slotId, modelAssetId: axis.modelAssetId, expectedContentId: axis.expectedContentId }));
   try {
+    const recipes = await ports.loadouts.listRecipes(task.capabilityContract);
+    const recipe = recipes.find((item) => item.recipeId === input.recipeId);
+    if (!recipe) {
+      const failure = { stage, reasonCode: 'RUNTIME_SETUP_RECIPE_UNAVAILABLE', message: `Recipe ${input.recipeId} is not available for ${task.capabilityContract}.` };
+      failTask(store, taskId, 'failed', failure);
+      return failed(failure);
+    }
     const prepareAdmission = await guardWrite(store, taskId, ports, { stage });
     if (!('task' in prepareAdmission)) return prepareAdmission;
     const prepared = await ports.loadouts.prepare({

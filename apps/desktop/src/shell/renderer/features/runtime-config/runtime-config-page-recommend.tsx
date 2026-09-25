@@ -7,11 +7,24 @@ import {
   Button,
   InlineAlert,
   LoadingSkeleton,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
   SearchField,
   SelectField,
   StatusBadge,
   Surface,
 } from '@nimiplatform/kit/ui';
+import {
+  Boxes,
+  Filter,
+  Image as ImageIcon,
+  MessageSquare,
+  Mic,
+  Music,
+  Play,
+  type LucideIcon,
+} from 'lucide-react';
 import type {
   NimiRuntimeLocalInstallPlanDescriptor,
   NimiRuntimeModelAssetCatalogSearchResult,
@@ -24,38 +37,48 @@ import { ModelAboutCard } from './runtime-config-model-card';
 
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service';
 import {
-  AuthorAvatar,
   MarketDetailColumns,
   MarketMeta,
   ModelIdentityHeader,
+  ModelMakerLogo,
   ModelSpecsCard,
   ModelStatsCard,
   ModelTagRow,
 } from './runtime-config-model-market-detail';
 import type { ModelSpecEntry } from './runtime-config-model-market-detail';
+import {
+  buildNimiCollection,
+  communityFeedCategories,
+  initialModelLibraryCategory,
+  mergeCommunityFeeds,
+  MODEL_LIBRARY_CATEGORIES,
+  nimiCollectionForCategory,
+  onDeviceContentIds,
+  type ModelLibraryCategory,
+  type NimiCollectionItem,
+} from './runtime-config-model-library-collection';
+import { NimiCollectionDetail, NimiCollectionSection } from './runtime-config-model-library-collection-view';
 import type {
   RuntimeConfigModelMarketContext,
   RuntimeConfigModelMarketSlotContext,
   RuntimeConfigPanelControllerModel,
 } from './runtime-config-panel-types';
+import { RUNTIME_MODEL_LIBRARY_KEY } from './use-runtime-model-library';
 
-const MARKET_CATEGORIES = ['all', 'chat', 'image', 'video'] as const;
-type MarketCategory = typeof MARKET_CATEGORIES[number];
-
-/** Market categories aid discovery; they do not assert model compatibility. */
-export function modelMarketCategoryForCapability(capability?: string): MarketCategory {
-  if (!capability || capability === 'text.generate') return 'chat';
-  if (capability === 'image.generate') return 'image';
-  if (capability === 'video.generate') return 'video';
-  // The market has no dedicated category for the remaining capabilities.
-  return 'all';
-}
-
-// Compact filter styling so the market filters share one toolbar row instead
-// of stacking as full-width field rows; field tokens keep them visually
-// consistent with the adjacent search field.
-const MARKET_FILTER_CLASS = 'w-auto min-w-36 max-w-56';
+// The market toolbar keeps search, the filter popover, and the sort select on
+// one row; the sort trigger shares field tokens with the adjacent search field.
 const MARKET_FILTER_TRIGGER_CLASS = 'min-h-9 gap-1.5 rounded-lg border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-2.5 text-xs font-medium text-[var(--nimi-text-secondary)] shadow-none';
+
+// Category chips carry a small glyph per kind; "All" stays text-only.
+const CATEGORY_ICONS: Readonly<Record<ModelLibraryCategory, LucideIcon | null>> = {
+  all: null,
+  chat: MessageSquare,
+  image: ImageIcon,
+  video: Play,
+  voice: Mic,
+  music: Music,
+  other: Boxes,
+};
 
 export function filterModelMarketRows<T extends { title: string; author?: string; license?: string; downloads?: number; totalSizeBytes?: number }>(
   rows: readonly T[], author: string, license: string, sort: string,
@@ -73,6 +96,8 @@ export function filterModelMarketRows<T extends { title: string; author?: string
 type RecommendPageProps = {
   readonly model: RuntimeConfigPanelControllerModel;
   readonly context: RuntimeConfigModelMarketContext | null;
+  /** Refreshes the downloaded files after a Nimi collection install completes. */
+  readonly onModelInstalled: () => Promise<void>;
   readonly onReturnToLoadout: () => void;
   /** Opens the Model Library downloaded tab (installed inventory). */
   readonly onOpenDownloaded: () => void;
@@ -81,34 +106,79 @@ type RecommendPageProps = {
 export function RecommendPage(props: RecommendPageProps) {
   const { t } = useTranslation();
   const client = useRuntimeConfigLocalEnvironmentClient();
-  const [category, setCategory] = useState<MarketCategory>(() => modelMarketCategoryForCapability(props.context?.capabilityContract));
+  const sdk = useDesktopRendererSdk();
+  const queryClient = useQueryClient();
+  const [category, setCategory] = useState<ModelLibraryCategory>(() => initialModelLibraryCategory(props.context?.capabilityContract));
   const [query, setQuery] = useState('');
   const [author, setAuthor] = useState('all');
   const [license, setLicense] = useState('all');
   const [sort, setSort] = useState('default');
   const [selectedSearchResult, setSelectedSearchResult] = useState<NimiRuntimeModelAssetCatalogSearchResult | null>(null);
   const [selectedCandidate, setSelectedCandidate] = useState<NimiRuntimeModelAssetMarketCandidate | null>(null);
+  const [selectedCollectionItem, setSelectedCollectionItem] = useState<NimiCollectionItem | null>(null);
   const normalizedQuery = query.trim();
+  const feedCategories = communityFeedCategories(category);
+  // Runtime search narrows only by the community feed categories.
+  const searchCategory = category !== 'all' ? feedCategories[0] : undefined;
 
   useEffect(() => {
     setSelectedSearchResult(null);
     setSelectedCandidate(null);
+    setSelectedCollectionItem(null);
     setAuthor('all');
     setLicense('all');
   }, [category]);
 
   const featuredQuery = useQuery({
     queryKey: ['model-market', 'featured', category],
-    queryFn: () => client.listFeaturedModelAssets({ category, pageSize: 80 }),
-    enabled: category !== 'all',
+    queryFn: async () => mergeCommunityFeeds(await Promise.all(
+      feedCategories.map((value) => client.listFeaturedModelAssets({ category: value, pageSize: 80 })),
+    )),
+    enabled: feedCategories.length > 0,
     refetchOnWindowFocus: false,
   });
   const searchQuery = useQuery({
     queryKey: ['model-market', 'search', category, normalizedQuery],
-    queryFn: () => client.searchCatalog({ query: normalizedQuery, category: category === 'all' ? undefined : category, pageSize: 50 }),
+    queryFn: () => client.searchCatalog({ query: normalizedQuery, category: searchCategory, pageSize: 50 }),
     enabled: normalizedQuery.length > 0,
     refetchOnWindowFocus: false,
   });
+  // The catalog and recipes make up the collection. The installed files only
+  // add the on-device mark, so a failed inventory read never hides browsing.
+  const catalogQuery = useQuery({
+    queryKey: ['model-market', 'collection-catalog'],
+    queryFn: () => client.listVerifiedAssets(),
+    refetchOnWindowFocus: false,
+  });
+  const recipesQuery = useQuery({
+    queryKey: ['model-market', 'collection-recipes'],
+    queryFn: () => sdk.machineProduct().local.loadouts.listRecipes(),
+    refetchOnWindowFocus: false,
+  });
+  const assetsQuery = useQuery({
+    queryKey: ['model-market', 'collection-assets'],
+    queryFn: () => client.listModelAssets(),
+    refetchOnWindowFocus: false,
+  });
+  const collection = useMemo(
+    () => buildNimiCollection({ catalog: catalogQuery.data ?? [], recipes: recipesQuery.data ?? [] }),
+    [catalogQuery.data, recipesQuery.data],
+  );
+  const onDevice = useMemo(() => onDeviceContentIds(assetsQuery.data ?? []), [assetsQuery.data]);
+
+  const installFromCollection = async (templateId: string) => {
+    const plan = await client.resolveInstallPlan({ source: 'verified', templateId });
+    if (!plan.installAvailable) throw new Error(plan.warnings.join(' · ') || plan.reasonCode);
+    const result = await props.model.installResolvedModelPlan(plan);
+    if (result.status === 'failed') throw result.error;
+    if (result.status === 'completed') {
+      await Promise.all([
+        props.onModelInstalled(),
+        queryClient.invalidateQueries({ queryKey: RUNTIME_MODEL_LIBRARY_KEY }),
+        queryClient.invalidateQueries({ queryKey: ['model-market'] }),
+      ]);
+    }
+  };
 
   if (props.context?.kind === 'slot') {
     return (
@@ -117,6 +187,17 @@ export function RecommendPage(props: RecommendPageProps) {
         model={props.model}
         onBack={props.onReturnToLoadout}
         onOpenDownloaded={props.onOpenDownloaded}
+      />
+    );
+  }
+  if (selectedCollectionItem) {
+    return (
+      <NimiCollectionDetail
+        item={selectedCollectionItem}
+        onDevice={onDevice}
+        runtimeWritesDisabled={props.model.runtimeWritesDisabled}
+        onBack={() => setSelectedCollectionItem(null)}
+        onInstall={installFromCollection}
       />
     );
   }
@@ -143,7 +224,6 @@ export function RecommendPage(props: RecommendPageProps) {
   const featured = featuredQuery.data;
   const showSearch = normalizedQuery.length > 0;
   const rawRows = showSearch ? searchQuery.data?.items ?? [] : featured?.items ?? [];
-  const queryFailed = showSearch ? searchQuery.isError : featuredQuery.isError;
   const huggingFaceUnavailable = showSearch && Boolean(searchQuery.data?.huggingFaceUnavailable);
   const rows = filterModelMarketRows<NimiRuntimeModelAssetCatalogSearchResult | NimiRuntimeModelAssetMarketCandidate>(rawRows, author, license, sort);
   const authors = [...new Set(rawRows.map((row) => row.author).filter((value): value is string => Boolean(value)))].sort();
@@ -152,102 +232,167 @@ export function RecommendPage(props: RecommendPageProps) {
   const candidateSourceCount = showSearch
     ? 0
     : new Set((rows as readonly NimiRuntimeModelAssetMarketCandidate[]).map((candidate) => candidate.sourceLabel)).size;
+  const filtersActive = author !== 'all' || license !== 'all';
+  const totalCount = showSearch ? rows.length : collection.models.length + rows.length;
 
   return (
-    <div className="space-y-4">
-      {showStaleSnapshot ? (
-        <div>
-          <StatusBadge
-            tone="warning"
-            shape="soft"
-            title={t('runtimeConfig.recommend.staleNotice', { defaultValue: 'Showing the last successful model recommendation snapshot.' })}
-          >
-            {t('runtimeConfig.recommend.staleBadge', { defaultValue: 'Snapshot' })}
-          </StatusBadge>
-        </div>
-      ) : null}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="inline-flex h-9 items-center rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-0.5">
-          {MARKET_CATEGORIES.map((value) => (
-            <button
-              key={value}
-              type="button"
-              aria-pressed={category === value}
-              onClick={() => setCategory(value)}
-              className={`inline-flex h-full items-center rounded-md px-3 text-xs font-medium transition-colors ${category === value
-                ? 'bg-[var(--nimi-surface-card)] text-[var(--nimi-action-primary-bg)] shadow-[var(--nimi-elevation-base)]'
-                : 'text-[var(--nimi-text-muted)] hover:text-[var(--nimi-text-secondary)]'}`}
-            >
-              {t(`runtimeConfig.recommend.category.${value}`, { defaultValue: value[0]!.toUpperCase() + value.slice(1) })}
-            </button>
-          ))}
-        </div>
-        <SearchField
-          value={query}
-          onChange={(event) => setQuery(event.currentTarget.value)}
-          placeholder={t('runtimeConfig.recommend.searchPlaceholder', { defaultValue: 'Search the full catalog…' })}
-          className="min-h-9 min-w-56 flex-1"
-        />
-      </div>
-
-      {rawRows.length > 0 ? (
+    <div className="space-y-5">
+      <div className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
-          <SelectField aria-label={t('runtimeConfig.recommend.filterAuthor')} value={author} onValueChange={setAuthor}
-            className={MARKET_FILTER_CLASS} selectClassName={MARKET_FILTER_TRIGGER_CLASS}
-            options={[{ value: 'all', label: t('runtimeConfig.recommend.allAuthors') }, ...authors.map((value) => ({ value: `author:${value}`, label: value }))]} />
-          <SelectField aria-label={t('runtimeConfig.recommend.filterLicense')} value={license} onValueChange={setLicense}
-            className={MARKET_FILTER_CLASS} selectClassName={MARKET_FILTER_TRIGGER_CLASS}
-            options={[{ value: 'all', label: t('runtimeConfig.recommend.allLicenses') }, ...licenses.map((value) => ({ value: `license:${value}`, label: value }))]} />
+          <SearchField
+            value={query}
+            onChange={(event) => setQuery(event.currentTarget.value)}
+            placeholder={t('runtimeConfig.recommend.searchPlaceholder', { defaultValue: 'Search models' })}
+            className="min-h-9 min-w-56 flex-1"
+          />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                size="sm"
+                tone="secondary"
+                active={filtersActive}
+                className="min-h-9"
+                leadingIcon={<Filter className="h-3.5 w-3.5" aria-hidden="true" />}
+              >
+                {t('runtimeConfig.recommend.filterButton', { defaultValue: 'Filter' })}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-64">
+              <div className="space-y-3">
+                <label className="block space-y-1.5">
+                  <span className="text-xs font-medium text-[var(--nimi-text-secondary)]">{t('runtimeConfig.recommend.filterAuthor')}</span>
+                  <SelectField aria-label={t('runtimeConfig.recommend.filterAuthor')} value={author} onValueChange={setAuthor}
+                    className="w-full"
+                    options={[{ value: 'all', label: t('runtimeConfig.recommend.allAuthors') }, ...authors.map((value) => ({ value: `author:${value}`, label: value }))]} />
+                </label>
+                <label className="block space-y-1.5">
+                  <span className="text-xs font-medium text-[var(--nimi-text-secondary)]">{t('runtimeConfig.recommend.filterLicense')}</span>
+                  <SelectField aria-label={t('runtimeConfig.recommend.filterLicense')} value={license} onValueChange={setLicense}
+                    className="w-full"
+                    options={[{ value: 'all', label: t('runtimeConfig.recommend.allLicenses') }, ...licenses.map((value) => ({ value: `license:${value}`, label: value }))]} />
+                </label>
+              </div>
+            </PopoverContent>
+          </Popover>
           <SelectField aria-label={t('runtimeConfig.recommend.sortResults')} value={sort} onValueChange={setSort}
-            className={`${MARKET_FILTER_CLASS} ml-auto`} selectClassName={MARKET_FILTER_TRIGGER_CLASS}
+            className="w-auto min-w-36" selectClassName={MARKET_FILTER_TRIGGER_CLASS}
             options={['default', 'title', 'downloads', ...(rawRows.some((row) => 'totalSizeBytes' in row && row.totalSizeBytes) ? ['size'] : [])].map((value) => ({ value, label: t(`runtimeConfig.recommend.resultSort.${value}`) }))} />
         </div>
-      ) : null}
-
-      {!showSearch && featured?.source.availability === 'unavailable' ? (
-        <InlineAlert tone="warning">
-          {t('runtimeConfig.recommend.recommendationsUnavailable', {
-            defaultValue: 'Model recommendations are unavailable. Full catalog search is still available.',
+        <div className="flex flex-wrap items-center gap-1.5">
+          {MODEL_LIBRARY_CATEGORIES.map((value) => {
+            const Icon = CATEGORY_ICONS[value];
+            const selected = category === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => setCategory(value)}
+                className={`inline-flex h-8 items-center gap-1.5 rounded-full px-3.5 text-xs font-medium transition-colors ${selected
+                  ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] shadow-[var(--nimi-elevation-base)]'
+                  : 'text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]'}`}
+              >
+                {Icon ? <Icon className="h-3.5 w-3.5" aria-hidden="true" /> : null}
+                {t(`runtimeConfig.recommend.category.${value}`, { defaultValue: value[0]!.toUpperCase() + value.slice(1) })}
+              </button>
+            );
           })}
-        </InlineAlert>
-      ) : null}
-      {huggingFaceUnavailable ? (
-        <InlineAlert tone="warning">
-          {t('runtimeConfig.recommend.hfSearchUnavailable', {
-            defaultValue: 'Hugging Face is unavailable. Search is limited to the local catalog.',
-          })}
-        </InlineAlert>
-      ) : null}
-      {queryFailed ? (
-        <InlineAlert tone="danger">
-          {showSearch
-            ? t('runtimeConfig.recommend.searchFailed', { defaultValue: 'Catalog search failed.' })
-            : t('runtimeConfig.recommend.loadFailed', { defaultValue: 'Model recommendations could not be loaded.' })}
-        </InlineAlert>
-      ) : null}
-
-      {category === 'all' && !showSearch ? (
-        <Surface tone="card" className="p-6 text-sm text-[var(--nimi-text-muted)]">{t('runtimeConfig.recommend.searchAllHint')}</Surface>
-      ) : (showSearch ? searchQuery.isPending : featuredQuery.isPending) ? (
-        <ModelMarketLoadingState />
-      ) : rows.length === 0 ? (
-        queryFailed || huggingFaceUnavailable ? null : <Surface tone="card" className="border-dashed p-6 text-sm text-[var(--nimi-text-muted)]">
-          {showSearch
-            ? t('runtimeConfig.recommend.noSearchResults', { defaultValue: 'No catalog models matched this query.' })
-            : featured?.source.availability === 'available'
-              ? t('runtimeConfig.recommend.recommendationsEmpty', { defaultValue: 'This recommendation snapshot contains no models in the selected category.' })
-              : t('runtimeConfig.recommend.searchInstead', { defaultValue: 'Search the catalog to find a model.' })}
-        </Surface>
-      ) : (
-        <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-          {showSearch
-            ? (rows as readonly NimiRuntimeModelAssetCatalogSearchResult[]).map((row) => (
-              <SearchResultCard key={row.modelLocator} result={row} onOpen={() => setSelectedSearchResult(row)} />
-            ))
-            : (rows as readonly NimiRuntimeModelAssetMarketCandidate[]).map((candidate) => (
-              <CandidateCard key={candidate.offerRef} candidate={candidate} showSource={candidateSourceCount > 1} onOpen={() => setSelectedCandidate(candidate)} />
-            ))}
+          {totalCount > 0 ? (
+            <span className="ml-auto text-xs text-[var(--nimi-text-muted)]">
+              {t('runtimeConfig.recommend.totalCount', { count: totalCount, defaultValue: '{{count}} models' })}
+            </span>
+          ) : null}
         </div>
+      </div>
+
+      {showSearch ? (
+        <div className="space-y-4">
+          {huggingFaceUnavailable ? (
+            <InlineAlert tone="warning">
+              {t('runtimeConfig.recommend.hfSearchUnavailable', {
+                defaultValue: 'Hugging Face is unavailable. Search is limited to the local catalog.',
+              })}
+            </InlineAlert>
+          ) : null}
+          {searchQuery.isError ? (
+            <InlineAlert tone="danger">{t('runtimeConfig.recommend.searchFailed', { defaultValue: 'Catalog search failed.' })}</InlineAlert>
+          ) : null}
+          {searchQuery.isPending ? (
+            <ModelMarketLoadingState />
+          ) : rows.length === 0 ? (
+            searchQuery.isError || huggingFaceUnavailable ? null : (
+              <Surface tone="card" className="border-dashed p-6 text-sm text-[var(--nimi-text-muted)]">
+                {t('runtimeConfig.recommend.noSearchResults', { defaultValue: 'No catalog models matched this query.' })}
+              </Surface>
+            )
+          ) : (
+            <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+              {(rows as readonly NimiRuntimeModelAssetCatalogSearchResult[]).map((row) => (
+                <SearchResultCard key={row.modelLocator} result={row} onOpen={() => setSelectedSearchResult(row)} />
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          <NimiCollectionSection
+            collection={nimiCollectionForCategory(collection, category)}
+            loading={catalogQuery.isPending || recipesQuery.isPending}
+            failed={catalogQuery.isError || recipesQuery.isError}
+            onOpen={setSelectedCollectionItem}
+          />
+          {feedCategories.length > 0 ? (
+            <section data-testid="model-library-community" className="space-y-3" aria-labelledby="model-library-community-title">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <h3 id="model-library-community-title" className="flex items-baseline gap-2 text-sm font-semibold text-[var(--nimi-text-primary)]">
+                    {t('runtimeConfig.modelLibrary.community.title')}
+                    {featured ? <span className="text-xs font-normal text-[var(--nimi-text-muted)]">{featured.items.length}</span> : null}
+                  </h3>
+                  <p className="mt-0.5 text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.modelLibrary.community.description')}</p>
+                </div>
+                {showStaleSnapshot ? (
+                  <StatusBadge
+                    tone="warning"
+                    shape="soft"
+                    title={t('runtimeConfig.recommend.staleNotice', { defaultValue: 'Showing the last successful model recommendation snapshot.' })}
+                  >
+                    {t('runtimeConfig.recommend.staleBadge', { defaultValue: 'Snapshot' })}
+                  </StatusBadge>
+                ) : null}
+              </div>
+              {featured?.source.availability === 'unavailable' ? (
+                <InlineAlert tone="warning">
+                  {t('runtimeConfig.recommend.recommendationsUnavailable', {
+                    defaultValue: 'Model recommendations are unavailable. Full catalog search is still available.',
+                  })}
+                </InlineAlert>
+              ) : null}
+              {featuredQuery.isError ? (
+                <InlineAlert tone="danger">{t('runtimeConfig.recommend.loadFailed', { defaultValue: 'Model recommendations could not be loaded.' })}</InlineAlert>
+              ) : null}
+              {featuredQuery.isPending ? (
+                <ModelMarketLoadingState />
+              ) : rows.length === 0 ? (
+                featuredQuery.isError ? null : (
+                  <Surface tone="card" className="border-dashed p-6 text-sm text-[var(--nimi-text-muted)]">
+                    {featured?.source.availability === 'available'
+                      ? t('runtimeConfig.recommend.recommendationsEmpty', { defaultValue: 'This recommendation snapshot contains no models in the selected category.' })
+                      : t('runtimeConfig.recommend.searchInstead', { defaultValue: 'Search the catalog to find a model.' })}
+                  </Surface>
+                )
+              ) : (
+                <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                  {(rows as readonly NimiRuntimeModelAssetMarketCandidate[]).map((candidate) => (
+                    <CandidateCard key={candidate.offerRef} candidate={candidate} showSource={candidateSourceCount > 1} onOpen={() => setSelectedCandidate(candidate)} />
+                  ))}
+                </div>
+              )}
+            </section>
+          ) : (
+            <p className="text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.modelLibrary.community.notInCategory')}</p>
+          )}
+        </>
       )}
     </div>
   );
@@ -296,7 +441,7 @@ function SearchResultCard(props: {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <AuthorAvatar author={result.author} />
+            <ModelMakerLogo author={result.author} tags={result.tags} />
             <h3 className="truncate text-sm font-semibold text-[var(--nimi-text-primary)]">{result.title}</h3>
           </div>
           <p className="mt-1 truncate text-xs text-[var(--nimi-text-muted)]">{result.sourceLabel}</p>
@@ -328,7 +473,7 @@ function CandidateCard(props: {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <AuthorAvatar author={candidate.author} />
+            <ModelMakerLogo author={candidate.author} tags={candidate.tags} />
             <h3 className="line-clamp-2 break-all text-sm font-semibold text-[var(--nimi-text-primary)]" title={variantTitle}>{variantTitle}</h3>
           </div>
         </div>
@@ -359,7 +504,7 @@ function CatalogSearchDetail(props: {
   return (
     <div className="space-y-4">
       <Button size="sm" tone="ghost" onClick={props.onBack}>{t('Common.back', { defaultValue: 'Back' })}</Button>
-      <ModelIdentityHeader author={result.author} title={result.title} verified={result.verified} />
+      <ModelIdentityHeader author={result.author} tags={result.tags} title={result.title} verified={result.verified} />
       <MarketMeta categories={result.categories} license={result.license} updatedAt={result.lastModified} downloads={result.downloads} likes={result.likes} />
       <ModelTagRow tags={result.tags} />
       <MarketDetailColumns
@@ -445,7 +590,24 @@ function MarketCandidateDetail(props: {
   return (
     <div className="space-y-4">
       <Button size="sm" tone="ghost" onClick={props.onBack}>{t('Common.back', { defaultValue: 'Back' })}</Button>
-      <ModelIdentityHeader author={candidate.author} title={candidate.title} verified={candidate.verified} />
+      <ModelIdentityHeader
+        author={candidate.author}
+        tags={candidate.tags}
+        title={candidate.title}
+        verified={candidate.verified}
+        actions={(
+          <ModelInstallAction
+            installed={candidate.installed}
+            installable={candidate.installable}
+            plan={plan}
+            busy={busy}
+            runtimeWritesDisabled={props.model.runtimeWritesDisabled}
+            onReview={() => { void review(); }}
+            onInstall={() => { void install(); }}
+            onOpenLocalAssets={props.onOpenDownloaded}
+          />
+        )}
+      />
       <MarketMeta categories={candidate.categories} format={candidate.format} size={candidate.totalSizeBytes} license={candidate.license} updatedAt={candidate.lastModified} downloads={candidate.downloads} likes={candidate.likes} />
       <ModelTagRow tags={candidate.tags} />
       {candidate.editorialReason ? <InlineAlert tone="info">{candidate.editorialReason}</InlineAlert> : null}
@@ -459,10 +621,7 @@ function MarketCandidateDetail(props: {
               plan={plan}
               error={error}
               busy={busy}
-              runtimeWritesDisabled={props.model.runtimeWritesDisabled}
               onReview={() => { void review(); }}
-              onInstall={() => { void install(); }}
-              onOpenLocalAssets={props.onOpenDownloaded}
             />
           </>
         )}
@@ -558,8 +717,21 @@ function ContextualMarketDetail(props: {
       <Button size="sm" tone="ghost" onClick={props.onBack}>{t('runtimeConfig.recommend.backToPlan', { defaultValue: 'Back to capability plan' })}</Button>
       <ModelIdentityHeader
         author={candidate.author}
+        tags={candidate.tags}
         title={candidate.title || slot?.displayLabel || t('runtimeConfig.recommend.contextTitle', { defaultValue: 'Model for this capability slot' })}
         verified={candidate.verified}
+        actions={offer ? (
+          <ModelInstallAction
+            installed={Boolean(offer.installedModelAssetId) || offer.candidate.installed}
+            installable={offer.applicability !== 'unsupported' && offer.candidate.installable}
+            plan={plan}
+            busy={busy || planLoading}
+            runtimeWritesDisabled={props.model.runtimeWritesDisabled}
+            onReview={() => { void review(); }}
+            onInstall={() => { void install(); }}
+            onOpenLocalAssets={props.onOpenDownloaded}
+          />
+        ) : null}
       />
       <p className="text-sm text-[var(--nimi-text-muted)]">
         {recipe
@@ -592,10 +764,7 @@ function ContextualMarketDetail(props: {
                 plan={plan}
                 error={planError}
                 busy={busy || planLoading}
-                runtimeWritesDisabled={props.model.runtimeWritesDisabled}
                 onReview={() => { void review(); }}
-                onInstall={() => { void install(); }}
-                onOpenLocalAssets={props.onOpenDownloaded}
               />
             </>
           )}
@@ -633,12 +802,13 @@ function ApplicabilityNotice(props: {
   );
 }
 
-// @nimi-authority: rule.nimi.runtime.local-compute.r016
-export function InstallPlanPanel(props: {
+// The install entry lives in the detail header so it stays visible without
+// scrolling; the panel below only carries resolved plan details, errors, and
+// availability notes once a review has run.
+export function ModelInstallAction(props: {
   readonly installed: boolean;
   readonly installable: boolean;
   readonly plan: NimiRuntimeLocalInstallPlanDescriptor | null;
-  readonly error: string;
   readonly busy: boolean;
   readonly runtimeWritesDisabled: boolean;
   readonly onReview: () => void;
@@ -648,16 +818,56 @@ export function InstallPlanPanel(props: {
   const { t } = useTranslation();
   if (props.installed) {
     return (
-      <Surface tone="card" className="flex items-center justify-between gap-3 p-4">
-        <span className="text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.recommend.alreadyInstalled', { defaultValue: 'This exact ModelAsset is installed.' })}</span>
-        <Button size="sm" tone="secondary" onClick={props.onOpenLocalAssets}>{t('runtimeConfig.recommend.openLocalAssets', { defaultValue: 'Open Downloaded' })}</Button>
-      </Surface>
+      <Button size="sm" tone="secondary" onClick={props.onOpenLocalAssets}>
+        {t('runtimeConfig.recommend.openLocalAssets', { defaultValue: 'Open Downloaded' })}
+      </Button>
     );
   }
+  if (!props.installable) {
+    return null;
+  }
+  if (props.plan) {
+    return (
+      <Button size="sm" tone="primary" disabled={props.busy || props.runtimeWritesDisabled || !props.plan.installAvailable} onClick={props.onInstall}>
+        {t('runtimeConfig.recommend.startInstall', { defaultValue: 'Download and install' })}
+      </Button>
+    );
+  }
+  return (
+    <Button size="sm" tone="primary" disabled={props.busy} onClick={props.onReview}>
+      {props.busy
+        ? t('runtimeConfig.recommend.reviewingPlan', { defaultValue: 'Reviewing…' })
+        : t('runtimeConfig.recommend.reviewInstallPlan', { defaultValue: 'Review install' })}
+    </Button>
+  );
+}
+
+// @nimi-authority: rule.nimi.runtime.local-compute.r016
+export function InstallPlanPanel(props: {
+  readonly installed: boolean;
+  readonly installable: boolean;
+  readonly plan: NimiRuntimeLocalInstallPlanDescriptor | null;
+  readonly error: string;
+  readonly busy: boolean;
+  readonly onReview: () => void;
+}) {
+  const { t } = useTranslation();
   const plan = props.plan;
+  // The header owns the install action, so this card only appears when there
+  // is plan detail, an error, or an availability note worth showing.
+  if (props.installed || (!plan && !props.error && props.installable)) {
+    return null;
+  }
   return (
     <Surface tone="card" className="space-y-3 p-4">
-      <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">{t('runtimeConfig.recommend.detailInstallTitle', { defaultValue: 'Install' })}</h3>
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">{t('runtimeConfig.recommend.detailInstallTitle', { defaultValue: 'Install' })}</h3>
+        {plan ? (
+          <Button size="sm" tone="ghost" disabled={props.busy} onClick={props.onReview}>
+            {t('runtimeConfig.recommend.reviewInstallPlan', { defaultValue: 'Review install' })}
+          </Button>
+        ) : null}
+      </div>
       {props.error ? <InlineAlert tone="danger">{props.error}</InlineAlert> : null}
       {plan ? (
         <div className="space-y-2 text-xs text-[var(--nimi-text-secondary)]">
@@ -694,22 +904,7 @@ export function InstallPlanPanel(props: {
       ) : null}
       {!props.installable ? (
         <p className="text-sm text-[var(--nimi-text-muted)]">{t('runtimeConfig.recommend.notInstallable', { defaultValue: 'This offer is not installable.' })}</p>
-      ) : props.plan ? (
-        <div className="flex flex-wrap gap-2">
-          <Button size="sm" tone="primary" disabled={props.busy || props.runtimeWritesDisabled || !props.plan.installAvailable} onClick={props.onInstall}>
-            {t('runtimeConfig.recommend.startInstall', { defaultValue: 'Download and install' })}
-          </Button>
-          <Button size="sm" tone="secondary" disabled={props.busy} onClick={props.onReview}>
-            {t('runtimeConfig.recommend.reviewInstallPlan', { defaultValue: 'Review install' })}
-          </Button>
-        </div>
-      ) : (
-        <Button size="sm" tone="primary" disabled={props.busy} onClick={props.onReview}>
-          {props.busy
-            ? t('runtimeConfig.recommend.reviewingPlan', { defaultValue: 'Reviewing…' })
-            : t('runtimeConfig.recommend.reviewInstallPlan', { defaultValue: 'Review install' })}
-        </Button>
-      )}
+      ) : null}
     </Surface>
   );
 }

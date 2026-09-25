@@ -98,7 +98,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
             onOpenSetupTask={model.onOpenSetupTask}
             onCloseSetupTask={model.onCloseSetupTask}
             onOpenSavedConfigs={model.onOpenSavedConfigs}
-            onOpenModelFiles={() => model.onChangePage('modelLibrary')}
+            onOpenModelFiles={model.onOpenModelFiles}
             onOpenModelImport={model.onOpenModelImport}
             onOpenModelMarket={model.onOpenModelMarket}
             onOpenAdvancedDiagnostics={() => model.onChangePage('advancedDiagnostics')}

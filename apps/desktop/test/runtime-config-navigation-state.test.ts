@@ -54,6 +54,9 @@ test('action focus accepts only the current destinations and actions', () => {
   const importFocus = { page: 'modelLibrary', action: 'import-model-files', focus: 'runtime-config-action-focus.model-library-import' } as const;
   assert.deepEqual(normalizeRuntimeConfigActionFocus(importFocus), importFocus);
   assert.equal(normalizeRuntimeConfigActionFocus({ ...importFocus, action: 'install-model' }), null);
+  const filesFocus = { page: 'modelLibrary', action: 'manage-model-files', focus: 'runtime-config-action-focus.model-library-files' } as const;
+  assert.deepEqual(normalizeRuntimeConfigActionFocus(filesFocus), filesFocus);
+  assert.equal(normalizeRuntimeConfigActionFocus({ ...filesFocus, action: 'import-model-files' }), null);
   assert.equal(normalizeRuntimeConfigActionFocus({ page: 'loadouts', action: 'open-loadouts', focus: 'runtime-config-action-focus.loadouts' }), null);
 });
 

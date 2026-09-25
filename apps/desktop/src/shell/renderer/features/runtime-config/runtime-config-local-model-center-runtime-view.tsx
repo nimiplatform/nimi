@@ -17,7 +17,7 @@ export type LocalModelCenterSection = 'discover' | 'downloaded' | 'transfers';
 
 type LocalAssetsRuntimeViewProps = {
   readonly activeSection: LocalModelCenterSection;
-  readonly catalogContent: ReactNode;
+  readonly discoveryContent: ReactNode;
   readonly assetBusy: boolean;
   readonly assetImportError: string;
   readonly loadingInstalledAssets: boolean;
@@ -51,7 +51,7 @@ export function LocalModelCenterRuntimeView(props: LocalAssetsRuntimeViewProps) 
   const [query, setQuery] = useState('');
 
   if (props.activeSection === 'discover') {
-    return <>{props.catalogContent}</>;
+    return <>{props.discoveryContent}</>;
   }
 
   if (props.activeSection === 'transfers') {

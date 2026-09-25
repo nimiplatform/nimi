@@ -19,6 +19,7 @@ import {
   type RuntimeSetupPreparationPlan,
   type RuntimeSetupRunnerPorts,
 } from './runtime-setup-task-runner.js';
+import { runtimeSetupFailureText } from './runtime-setup-failure-message.js';
 import { useRuntimeSetupTasks, type RuntimeSetupTaskStore } from './runtime-setup-task-store.js';
 
 // @nimi-authority: rule.nimi.desktop.ai-consumption.r026
@@ -169,7 +170,8 @@ export function RuntimeProfileTaskView(props: {
       {error ? <InlineAlert tone="warning">{error}</InlineAlert> : null}
       {tasks.map((task) => {
         const CapabilityIcon = capabilityIcon(task.capabilityContract);
-        const recipeTitle = inventory.data?.recipes.find(recipe => recipe.recipeId === task.draft?.recipeId)?.title;
+        const recipe = inventory.data?.recipes.find(entry => entry.recipeId === task.draft?.recipeId) ?? null;
+        const recipeTitle = recipe?.title;
         const terminal = task.status === 'done' || task.status === 'stopped' || task.status === 'failed' || task.status === 'needs-attention';
         return (
         <section
@@ -200,7 +202,7 @@ export function RuntimeProfileTaskView(props: {
           {task.failure ? (
             <InlineAlert tone="warning">
               {task.failure.machineSelected ? t('runtimeConfig.setupTask.machineSelectionCompleted') : null}{' '}
-              {task.failure.message}
+              {runtimeSetupFailureText(task.failure, t)}
             </InlineAlert>
           ) : null}
           {!active && !['done', 'stopped'].includes(task.status) && task.draft?.route === 'cloud' ? (
@@ -220,7 +222,7 @@ export function RuntimeProfileTaskView(props: {
               onChoiceChange={(slot, ref) =>
                 setChoices((prev) => ({ ...prev, [task.taskId]: { ...prev[task.taskId], [slot]: ref } }))
               }
-              ownerLabel={task.source.kind === 'runtime' ? null : ownerLabel(task.source.ownerAppId)}
+              recipe={recipe}
             />
           ) : null}
           <Button tone="ghost" size="sm" disabled={active} onClick={() => setDetail(task.taskId)}>

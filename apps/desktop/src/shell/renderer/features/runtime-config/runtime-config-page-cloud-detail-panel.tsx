@@ -1,6 +1,6 @@
 import type { ProviderCatalogEntry } from '@nimiplatform/sdk/runtime/wire-types';
 import type { TFunction } from 'i18next';
-import { CheckCircle2, CircleAlert, CircleHelp, KeyRound, LoaderCircle, PencilLine, Sparkles } from 'lucide-react';
+import { CheckCircle2, CircleAlert, CircleHelp, KeyRound, LoaderCircle, PencilLine } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useState } from 'react';
 import { ProviderLogoTile } from '../../components/provider-logo-tile.js';
@@ -81,10 +81,10 @@ export function humanizeConnectorError(raw: string, t: TFunction): string {
   return t('runtimeConfig.product.connectionSaveFailed');
 }
 
-// One elevated card per concern: the service itself (hero), its settings
-// while editing, and the models it exposes. Nothing here reads as a form
-// until the person asks to edit.
-const CARD_CLASS = 'min-w-0 rounded-[24px] bg-[var(--nimi-surface-card)] p-6 ring-1 ring-inset ring-[var(--nimi-border-subtle)] lg:p-7';
+// One card per service: identity and state on the hero band, then its
+// settings while editing and, once a check returns them, its models.
+// Nothing here reads as a form until the person asks to edit.
+const SECTION_CLASS = 'border-t border-[var(--nimi-border-subtle)] p-6 lg:p-7';
 const FIELD_NOTE_CLASS = 'rounded-[var(--nimi-radius-field)] bg-[var(--nimi-surface-panel)] px-4 py-3 text-xs text-[var(--nimi-text-muted)]';
 
 export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps) {
@@ -135,6 +135,9 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
     attention: { Icon: CircleAlert, className: 'bg-[var(--nimi-status-danger-soft-bg)] text-[var(--nimi-status-danger-soft-text)]', title: t('runtimeConfig.product.connectionNeedsAttention') },
   }[presentation];
   const modelCount = selectedConnector.models.length;
+  // Models appear only after a check has returned some; until then the
+  // status line above already says what to do next.
+  const showModels = modelCount > 0 && (presentation === 'healthy' || presentation === 'attention');
   const humanError = tokenSaveError ? humanizeConnectorError(tokenSaveError, t) : '';
   const detailError = selectedConnector.lastDetail && presentation === 'attention' ? humanizeConnectorError(selectedConnector.lastDetail, t) : '';
   const subtitle = [
@@ -155,9 +158,9 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
   };
 
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 overflow-hidden rounded-[24px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)]">
       <section
-        className="min-w-0 overflow-hidden rounded-[24px] p-6 ring-1 ring-inset ring-[var(--nimi-border-subtle)] lg:p-7"
+        className="p-6 lg:p-7"
         style={{ background: 'var(--nimi-surface-hero)' }}
         data-testid="cloud-connection-summary"
       >
@@ -222,7 +225,7 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
       </section>
 
       {editing ? (
-        <section className={CARD_CLASS} aria-label={t('runtimeConfig.product.connectionSettingsTitle')}>
+        <section className={SECTION_CLASS} aria-label={t('runtimeConfig.product.connectionSettingsTitle')}>
           <h3 className="text-base font-semibold text-[var(--nimi-text-primary)]">{t('runtimeConfig.product.connectionSettingsTitle')}</h3>
           <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
             {isRuntimeSystem ? (
@@ -428,53 +431,46 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
         </section>
       ) : null}
 
-      <section className={CARD_CLASS} aria-label={t('runtimeConfig.cloud.availableModels', { defaultValue: 'Available Models' })}>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h3 className="flex items-baseline gap-2 text-base font-semibold text-[var(--nimi-text-primary)]">
-            {t('runtimeConfig.cloud.availableModels', { defaultValue: 'Available Models' })}
-            {modelCount ? <span className="text-sm font-normal text-[var(--nimi-text-muted)]">{modelCount}</span> : null}
-          </h3>
-          {selectedConnector.models.length > 6 ? (
-            <div className="w-full sm:w-60">
-              <Input
-                value={model.connectorModelQuery}
-                onChange={model.setConnectorModelQuery}
-                placeholder={t('runtimeConfig.cloud.searchModelsPlaceholder', { defaultValue: 'Search by model name...' })}
-                icon={<SearchIcon />}
-              />
-            </div>
-          ) : null}
-        </div>
-        {model.filteredConnectorModels.length ? (
-          <ul className="mt-4 flex flex-wrap gap-2">
-            {model.filteredConnectorModels.map((name) => (
-              <li
-                key={`connector-${selectedConnector.id}-${name}`}
-                className="rounded-full bg-[var(--nimi-surface-panel)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-primary)] ring-1 ring-inset ring-[var(--nimi-border-subtle)]"
-              >
-                {name}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <div className="mt-4 flex items-center gap-3 rounded-[var(--nimi-radius-lg)] bg-[var(--nimi-surface-panel)] px-4 py-4">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[var(--nimi-surface-card)] text-[var(--nimi-text-muted)]">
-              <Sparkles size={16} />
-            </span>
-            <p className="text-sm text-[var(--nimi-text-secondary)]">
-              {t(
-                !selectedConnector.hasCredential
-                  ? 'runtimeConfig.product.modelsNeedCredential'
-                  : selectedConnector.status === 'idle'
-                    ? 'runtimeConfig.product.modelsNeedCheck'
-                    : presentation === 'attention'
-                      ? 'runtimeConfig.product.modelsAfterFix'
-                      : 'runtimeConfig.product.modelsNotListed',
-              )}
-            </p>
+      {showModels ? (
+        <motion.section
+          initial={reducedMotion ? false : { opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25 }}
+          className={SECTION_CLASS}
+          aria-label={t('runtimeConfig.cloud.availableModels', { defaultValue: 'Available Models' })}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="flex items-baseline gap-2 text-base font-semibold text-[var(--nimi-text-primary)]">
+              {t('runtimeConfig.cloud.availableModels', { defaultValue: 'Available Models' })}
+              <span className="text-sm font-normal text-[var(--nimi-text-muted)]">{modelCount}</span>
+            </h3>
+            {modelCount > 6 ? (
+              <div className="w-full sm:w-60">
+                <Input
+                  value={model.connectorModelQuery}
+                  onChange={model.setConnectorModelQuery}
+                  placeholder={t('runtimeConfig.cloud.searchModelsPlaceholder', { defaultValue: 'Search by model name...' })}
+                  icon={<SearchIcon />}
+                />
+              </div>
+            ) : null}
           </div>
-        )}
-      </section>
+          {model.filteredConnectorModels.length ? (
+            <ul className="mt-4 flex flex-wrap gap-2">
+              {model.filteredConnectorModels.map((name) => (
+                <li
+                  key={`connector-${selectedConnector.id}-${name}`}
+                  className="rounded-full bg-[var(--nimi-surface-panel)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-primary)] ring-1 ring-inset ring-[var(--nimi-border-subtle)]"
+                >
+                  {name}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-4 text-sm text-[var(--nimi-text-muted)]">{t('runtimeConfig.setupTask.cloud.noSearchMatches')}</p>
+          )}
+        </motion.section>
+      ) : null}
     </div>
   );
 }

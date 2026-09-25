@@ -80,6 +80,8 @@ export type RuntimeConfigPanelControllerModel = {
   onOpenModelMarket: (context: RuntimeConfigModelMarketContext) => void;
   /** Opens the Model Library on the downloaded files with the import menu open. */
   onOpenModelImport: () => void;
+  /** Opens the Model Library on the downloaded files. */
+  onOpenModelFiles: () => void;
   onOpenSetupTask: (taskId: string) => void;
   onCloseSetupTask: () => void;
   onReturnToContextualLoadout: () => void;

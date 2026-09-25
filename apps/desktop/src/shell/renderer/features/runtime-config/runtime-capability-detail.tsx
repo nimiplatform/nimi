@@ -1,12 +1,10 @@
 import {
   Button,
   InlineAlert,
-  LoadingSkeleton,
   NimiTabs,
   StatusBadge,
   type StatusTone,
   TextField,
-  Tooltip,
 } from '@nimiplatform/kit/ui';
 import {
   isNimiRuntimeLocalEnvironmentDependencyReadyState,
@@ -28,25 +26,24 @@ import {
   CircleHelp,
   Download,
   FolderOpen,
-  Info,
   LoaderCircle,
   MonitorCheck,
   Search,
-  Settings2,
   SlidersHorizontal,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
 import { formatBytes } from '../../components/download-format.js';
 import { IdentityTile } from '../../components/identity-tile.js';
 import type { capabilityPreparationState } from './runtime-capability-inventory.js';
 import { RuntimeCapabilityModelPicker } from './runtime-capability-model-picker.js';
-import { RuntimeCapabilityCustomize } from './runtime-capability-customize.js';
+import { RuntimeCapabilityCustomizeTab, ScopeHint } from './runtime-capability-customize.js';
 import {
   capabilityIcon,
   capabilityModelIdentity,
   modelDisplayTitle,
+  modelFamilySeed,
   modelFeatureLocaleKeys,
   recipeOfferSummary,
 } from './runtime-capability-presentation.js';
@@ -75,6 +72,10 @@ type Props = {
   status: ReturnType<typeof capabilityPreparationState>;
   /** Model the in-flight setup works on; '' when its candidate is not known. */
   taskModel: string;
+  /** A machine setup stays in this capability's overview, including recovery and progress. */
+  preparation?: ReactNode;
+  /** Apps that use this capability, shown in a column beside the tab content. */
+  apps?: ReactNode;
   section: string;
   onSection: (section: string) => void;
   busy: boolean;
@@ -137,20 +138,6 @@ export function PendingSetupBanner(props: {
         <ArrowRight size={14} />
       </Button>
     </div>
-  );
-}
-
-function modelFamilySeed(title: string): string {
-  return modelDisplayTitle(title).split(/[\s\-_/]+/u)[0]?.toLowerCase() ?? title;
-}
-
-function ScopeHint({ text }: { readonly text: string }) {
-  return (
-    <Tooltip content={text} placement="top">
-      <span className="inline-flex cursor-help items-center text-[var(--nimi-text-muted)]" aria-label={text}>
-        <Info size={14} />
-      </span>
-    </Tooltip>
   );
 }
 
@@ -284,361 +271,356 @@ export function RuntimeCapabilityDetail(props: Props) {
           label: t(`runtimeConfig.capabilities.tabs.${value}`),
         }))}
       />
+      <div className={props.apps ? 'grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_15rem]' : undefined}>
+        <div className="min-w-0 space-y-6">
+          {props.status.task && !props.preparation ? (
+            <PendingSetupBanner
+              task={props.status.task}
+              model={props.taskModel}
+              onOpen={() => props.onTask(props.status.task!.taskId)}
+            />
+          ) : null}
 
-      {props.status.task ? (
-        <PendingSetupBanner
-          task={props.status.task}
-          model={props.taskModel}
-          onOpen={() => props.onTask(props.status.task!.taskId)}
-        />
-      ) : null}
-
-      {section === 'overview' ? (
-        <section
-          className="overflow-hidden rounded-2xl bg-[var(--nimi-surface-card)]"
-          data-testid="capability-current-model"
-        >
-          <div className="flex flex-wrap items-start gap-x-6 gap-y-4 p-5 lg:p-6">
-            <div className="flex min-w-[16rem] flex-1 items-start gap-4">
-              {cardTitle ? (
-                <IdentityTile seed={modelFamilySeed(cardSeed)} label={cardTitle} size="lg" />
-              ) : null}
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                  <h2 className="text-xl font-semibold leading-7">
-                    {cardTitle || t('runtimeConfig.aiSettings.notConfigured')}
-                  </h2>
-                  {stateBadge}
-                </div>
-                {/* A downloaded recipe is not selected yet, so it is never labeled as the current model. */}
-                {!downloaded || versionChip ? (
-                  <p className="mt-0.5 flex flex-wrap items-center gap-x-1 text-[length:var(--nimi-type-body-size)] text-[var(--nimi-text-muted)]">
-                    {!downloaded ? (
-                      <>
-                        {t('runtimeConfig.product.currentOnDevice')}
-                        <ScopeHint text={t('runtimeConfig.product.localScopeHelp')} />
-                      </>
+          {section === 'overview' && (!props.preparation || isReady) ? (
+            <section
+              className="overflow-hidden rounded-2xl bg-[var(--nimi-surface-card)]"
+              data-testid="capability-current-model"
+            >
+              <div className="flex flex-wrap items-start gap-x-6 gap-y-4 p-5 lg:p-6">
+                <div className="flex min-w-[16rem] flex-1 items-start gap-4">
+                  {cardTitle ? (
+                    <IdentityTile seed={modelFamilySeed(cardSeed)} label={cardTitle} size="lg" />
+                  ) : null}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                      <h2 className="text-xl font-semibold leading-7">
+                        {cardTitle || t('runtimeConfig.aiSettings.notConfigured')}
+                      </h2>
+                      {stateBadge}
+                    </div>
+                    {/* A downloaded recipe is not selected yet, so it is never labeled as the current model. */}
+                    {!downloaded || versionChip ? (
+                      <p className="mt-0.5 flex flex-wrap items-center gap-x-1 text-[length:var(--nimi-type-body-size)] text-[var(--nimi-text-muted)]">
+                        {!downloaded ? (
+                          <>
+                            {t('runtimeConfig.product.currentOnDevice')}
+                            <ScopeHint text={t('runtimeConfig.product.localScopeHelp')} />
+                          </>
+                        ) : null}
+                        {!downloaded && versionChip ? <span aria-hidden="true">·</span> : null}
+                        {versionChip ? <span>{versionChip}</span> : null}
+                      </p>
                     ) : null}
-                    {!downloaded && versionChip ? <span aria-hidden="true">·</span> : null}
-                    {versionChip ? <span>{versionChip}</span> : null}
-                  </p>
-                ) : null}
-                {!props.selected ? (
-                  <p className="mt-3 max-w-xl text-sm leading-relaxed text-[var(--nimi-text-secondary)]">
-                    {t(downloaded ? 'runtimeConfig.product.downloadedLead' : 'runtimeConfig.product.chooseModelLead')}
-                  </p>
-                ) : null}
-                {cardTitle ? (
-                  <ul className="mt-4 flex flex-wrap gap-2" aria-label={t('runtimeConfig.product.whatItDoes')}>
-                    {[shortUse, ...featureKeys.map((key) => t(key))].map((text, index) => (
-                      <li
-                        key={`${index}:${text}`}
-                        className="rounded-[var(--nimi-radius-sm)] bg-[var(--nimi-surface-panel)] px-2.5 py-1 text-xs text-[var(--nimi-text-secondary)]"
-                      >
-                        {text}
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2 pt-[7px]">
-              {props.selected || downloaded ? (
-                <Button tone="secondary" disabled={props.busy} onClick={() => setModelPickerOpen(true)} data-testid="capability-change-model">
-                  {t('runtimeConfig.product.changeModel')}
-                </Button>
-              ) : null}
-              {props.selected ? (
-                <Button
-                  tone="primary"
-                  disabled={props.busy || props.disabled}
-                  onClick={() => {
-                    if (isReady) openUse();
-                    else if (props.status.task) props.onTask(props.status.task.taskId);
-                    else void props.onStart(props.selected!.recipeId, props.selected);
-                  }}
-                >
-                  {t(
-                    !isReady
-                      ? 'runtimeConfig.product.viewPreparation'
-                      : props.capability === 'text.generate'
-                        ? 'runtimeConfig.overview.openChat'
-                        : 'runtimeConfig.product.openApps',
+                    {!props.selected ? (
+                      <p className="mt-3 max-w-xl text-sm leading-relaxed text-[var(--nimi-text-secondary)]">
+                        {t(downloaded ? 'runtimeConfig.product.downloadedLead' : 'runtimeConfig.product.chooseModelLead')}
+                      </p>
+                    ) : null}
+                    {cardTitle ? (
+                      <ul className="mt-4 flex flex-wrap gap-2" aria-label={t('runtimeConfig.product.whatItDoes')}>
+                        {[shortUse, ...featureKeys.map((key) => t(key))].map((text, index) => (
+                          <li
+                            key={`${index}:${text}`}
+                            className="rounded-[var(--nimi-radius-sm)] bg-[var(--nimi-surface-panel)] px-2.5 py-1 text-xs text-[var(--nimi-text-secondary)]"
+                          >
+                            {text}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 pt-[7px]">
+                  {props.selected || downloaded ? (
+                    <Button tone="secondary" disabled={props.busy} onClick={() => setModelPickerOpen(true)} data-testid="capability-change-model">
+                      {t('runtimeConfig.product.changeModel')}
+                    </Button>
+                  ) : null}
+                  {props.selected ? (
+                    <Button
+                      tone="primary"
+                      disabled={props.busy || props.disabled}
+                      onClick={() => {
+                        if (isReady) openUse();
+                        else if (props.status.task) props.onTask(props.status.task.taskId);
+                        else void props.onStart(props.selected!.recipeId, props.selected);
+                      }}
+                    >
+                      {t(
+                        !isReady
+                          ? props.status.state === 'unknown'
+                            ? 'runtimeConfig.setupTask.checkPreparation'
+                            : 'runtimeConfig.setupTask.repairSetup'
+                          : props.capability === 'text.generate'
+                            ? 'runtimeConfig.overview.openChat'
+                            : 'runtimeConfig.product.openApps',
+                      )}
+                      <ArrowRight size={15} />
+                    </Button>
+                  ) : downloaded ? (
+                    <Button
+                      tone="primary"
+                      disabled={props.busy || props.disabled}
+                      data-testid="capability-enable-downloaded"
+                      onClick={() => {
+                        void props.onEnable(downloaded.recipeId);
+                      }}
+                    >
+                      {t('runtimeConfig.product.enableModel')}
+                      <ArrowRight size={15} />
+                    </Button>
+                  ) : (
+                    <Button tone="primary" onClick={() => props.onSection('models')}>
+                      {t('runtimeConfig.capabilities.chooseModel')}
+                      <ArrowRight size={15} />
+                    </Button>
                   )}
-                  <ArrowRight size={15} />
-                </Button>
-              ) : downloaded ? (
-                <Button
-                  tone="primary"
-                  disabled={props.busy || props.disabled}
-                  data-testid="capability-enable-downloaded"
-                  onClick={() => {
-                    void props.onEnable(downloaded.recipeId);
-                  }}
-                >
-                  {t('runtimeConfig.product.enableModel')}
-                  <ArrowRight size={15} />
-                </Button>
+                </div>
+              </div>
+
+              {/* Components that still need preparing stay on the card; once all are ready they move into the technical details. */}
+              {props.environment && !environmentReady ? (
+                <div className="flex gap-4 px-5 pb-5 lg:px-6 lg:pb-6">
+                  {cardTitle ? <span className="w-12 shrink-0" aria-hidden="true" /> : null}
+                  <div
+                    className={`min-w-0 flex-1 rounded-[var(--nimi-radius-md)] px-4 py-3 ring-1 ring-inset ${
+                      needsAttention
+                        ? 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_7%,transparent)] ring-[var(--nimi-status-warning-soft-border)]'
+                        : 'bg-[var(--nimi-surface-panel)] ring-[var(--nimi-border-subtle)]'
+                    }`}
+                    data-testid="capability-environment-status"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                      <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm">
+                        {needsAttention ? (
+                          <CircleAlert size={15} className="shrink-0 text-[var(--nimi-status-warning)]" aria-hidden="true" />
+                        ) : null}
+                        <span className="font-semibold text-[var(--nimi-text-primary)]">
+                          {t('runtimeConfig.capabilities.environment')}
+                        </span>
+                        <span className="text-[var(--nimi-text-secondary)]">
+                          {t('runtimeConfig.capabilities.environmentSummary', {
+                            ready: readyDependencies,
+                            count: props.environment.dependencies.length,
+                          })}
+                        </span>
+                      </p>
+                      <Button tone="ghost" size="sm" className="-mr-2" onClick={props.onDiagnostics}>
+                        {t('runtimeConfig.nav.advancedDiagnostics')}
+                        <ChevronRight size={14} />
+                      </Button>
+                    </div>
+                    <EnvironmentDependencies
+                      environment={props.environment}
+                      className={needsAttention ? 'mt-2 pl-[calc(15px+0.5rem)]' : 'mt-2'}
+                    />
+                  </div>
+                </div>
+              ) : null}
+
+              {props.selected ? (
+                <details className="group border-t border-[var(--nimi-border-subtle)]" data-testid="capability-technical-details">
+                  <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-5 text-xs font-medium text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)] lg:px-6 [&::-webkit-details-marker]:hidden">
+                    <ChevronRight size={14} className="shrink-0 transition-transform group-open:rotate-90" aria-hidden="true" />
+                    {t('runtimeConfig.profiles.technicalDetails')}
+                  </summary>
+                  {/* Indented to the summary text: card padding plus the 14px chevron and its gap. */}
+                  <div className="grid gap-x-12 gap-y-5 pb-5 pl-[calc(1.25rem+14px+0.5rem)] pr-5 md:grid-cols-2 lg:pb-6 lg:pl-[calc(1.5rem+14px+0.5rem)] lg:pr-6">
+                    <div className="min-w-0">
+                      <h3 className="text-xs font-semibold text-[var(--nimi-text-primary)]">
+                        {t('runtimeConfig.product.technicalModel')}
+                      </h3>
+                      <dl className="mt-2.5 grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-xs">
+                        <dt className="text-[var(--nimi-text-muted)]">{t('runtimeConfig.product.technicalRecipe')}</dt>
+                        <dd className="break-words text-[var(--nimi-text-primary)]">{identity.title}</dd>
+                        {identity.alias && identity.alias !== identity.title ? (
+                          <>
+                            <dt className="text-[var(--nimi-text-muted)]">{t('runtimeConfig.product.technicalAlias')}</dt>
+                            <dd className="break-words text-[var(--nimi-text-primary)]">{identity.alias}</dd>
+                          </>
+                        ) : null}
+                        {identity.version ? (
+                          <>
+                            <dt className="text-[var(--nimi-text-muted)]">{t('runtimeConfig.product.technicalVariant')}</dt>
+                            <dd className="break-words text-[var(--nimi-text-primary)]">{identity.version}</dd>
+                          </>
+                        ) : null}
+                        {identity.descriptor?.entry ? (
+                          <>
+                            <dt className="text-[var(--nimi-text-muted)]">{t('runtimeConfig.product.technicalFile')}</dt>
+                            <dd className="break-all font-mono text-[var(--nimi-text-primary)]">{identity.descriptor.entry}</dd>
+                          </>
+                        ) : null}
+                      </dl>
+                    </div>
+                    {props.environment && !environmentReady ? null : (
+                      <div className="min-w-0">
+                        <h3 className="text-xs font-semibold text-[var(--nimi-text-primary)]">
+                          {t('runtimeConfig.product.technicalEnvironment')}
+                        </h3>
+                        {props.environment ? (
+                          <EnvironmentDependencies environment={props.environment} className="mt-2.5" />
+                        ) : (
+                          <p className="mt-2.5 text-xs text-[var(--nimi-text-secondary)]">
+                            {t('runtimeConfig.capabilities.state.unknown')}
+                          </p>
+                        )}
+                        <Button tone="ghost" size="sm" className="-ml-3 mt-2" onClick={props.onDiagnostics}>
+                          {t('runtimeConfig.nav.advancedDiagnostics')}
+                          <ChevronRight size={14} />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </details>
+              ) : null}
+            </section>
+          ) : null}
+
+          {props.preparation ? (
+            <div hidden={section !== 'overview'} className="min-w-0 rounded-2xl bg-[var(--nimi-surface-card)] p-5 lg:p-6" data-testid="capability-preparation">
+              {props.preparation}
+            </div>
+          ) : null}
+
+          {modelPickerOpen ? (
+            <RuntimeCapabilityModelPicker
+              label={label}
+              selected={props.selected}
+              loadouts={props.loadouts}
+              recipes={props.recipes}
+              catalog={props.catalog}
+              assets={props.assets}
+              libraryLoading={props.libraryLoading}
+              libraryError={props.libraryError}
+              loading={props.modelsLoading ?? false}
+              error={props.modelsError ?? false}
+              busy={props.busy}
+              disabled={props.disabled}
+              onChoose={async (recipe, previous) => {
+                await props.onEnable(recipe, previous);
+                setModelPickerOpen(false);
+              }}
+              onCustomize={() => {
+                setModelPickerOpen(false);
+                props.onSection('advanced');
+              }}
+              onBrowse={() => {
+                setModelPickerOpen(false);
+                props.onModelMarket({ kind: 'browse', capabilityContract: props.capability });
+              }}
+              onImport={props.onImportModelFiles || props.onModelFiles ? () => {
+                setModelPickerOpen(false);
+                (props.onImportModelFiles ?? props.onModelFiles)?.();
+              } : undefined}
+              onClose={() => setModelPickerOpen(false)}
+            />
+          ) : null}
+
+          {section === 'models' ? (
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 className="text-base font-semibold">{t('runtimeConfig.product.chooseYourModel')}</h2>
+                {/* Import sits in the header so it stays in view above a long model list. */}
+                <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+                  {props.recipes.length > 6 ? (
+                    <div className="relative flex-1 sm:w-60 sm:flex-none">
+                      <Search
+                        size={15}
+                        className="pointer-events-none absolute left-3 top-3 text-[var(--nimi-text-secondary)]"
+                      />
+                      <TextField
+                        aria-label={t('runtimeConfig.product.searchModels')}
+                        placeholder={t('runtimeConfig.product.searchModels')}
+                        value={query}
+                        onChange={(event) => setQuery(event.currentTarget.value)}
+                        className="pl-9"
+                      />
+                    </div>
+                  ) : null}
+                  {props.onImportModelFiles || props.onModelFiles ? (
+                    <Button
+                      tone="secondary"
+                      onClick={props.onImportModelFiles ?? props.onModelFiles}
+                      data-testid="capability-models-import"
+                    >
+                      <FolderOpen size={15} />
+                      {t('runtimeConfig.product.importModel')}
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
+              {props.libraryError ? (
+                <InlineAlert tone="warning">{t('runtimeConfig.product.preparationUnknown')}</InlineAlert>
+              ) : null}
+              {matched.length ? (
+                <div className="grid gap-3 md:grid-cols-2">
+                  {matched.map((recipe) => {
+                    const recipeFeatures = modelFeatureLocaleKeys(recipe.implementationSupportedFeatures);
+                    const saved = props.loadouts.filter(
+                      (item) => item.recipeId === recipe.recipeId && item.validationState === 'configured',
+                    );
+                    const noDirectDownload = !props.modelsLoading && !props.modelsError && recipeOfferSummary(recipe).withoutOffer > 0;
+                    return (
+                      <ModelChoiceCard
+                        key={recipe.recipeId}
+                        recipe={recipe}
+                        title={modelDisplayTitle(recipe.title)}
+                        description={
+                          recipeFeatures.length ? recipeFeatures.map((key) => t(key)).join(' · ') : shortUse
+                        }
+                        cost={costOf(recipe, saved)}
+                        current={props.selected?.recipeId === recipe.recipeId}
+                        enableable={!props.selected && props.downloadedRecipe?.recipeId === recipe.recipeId}
+                        saved={saved}
+                        noDirectDownload={!noDirectDownload ? null
+                          : unboundImports && props.onChooseImportedFiles ? 'choose-imported' : 'import'}
+                        selectedLoadoutId={props.selected?.loadoutId}
+                        recipes={props.recipes}
+                        catalog={props.catalog}
+                        busy={props.busy || props.disabled}
+                        onSelect={() => {
+                          void props.onStart(recipe.recipeId);
+                        }}
+                        onEnable={() => {
+                          void props.onEnable(recipe.recipeId);
+                        }}
+                        onUseSaved={(item) => {
+                          void props.onStart(item.recipeId, item);
+                        }}
+                        onChooseImported={() => props.onChooseImportedFiles?.(recipe.recipeId)}
+                        onImport={props.onImportModelFiles ?? props.onModelFiles}
+                        onCustomize={() => props.onSection('advanced')}
+                      />
+                    );
+                  })}
+                </div>
               ) : (
-                <Button tone="primary" onClick={() => props.onSection('models')}>
-                  {t('runtimeConfig.capabilities.chooseModel')}
-                  <ArrowRight size={15} />
-                </Button>
+                <p className="rounded-xl bg-[var(--nimi-surface-card)] px-4 py-6 text-center text-sm text-[var(--nimi-text-secondary)]">
+                  {t('runtimeConfig.product.noModelsMatch')}
+                </p>
               )}
             </div>
-          </div>
-
-          {/* Components that still need preparing stay on the card; once all are ready they move into the technical details. */}
-          {props.environment && !environmentReady ? (
-            <div className="flex gap-4 px-5 pb-5 lg:px-6 lg:pb-6">
-              {cardTitle ? <span className="w-12 shrink-0" aria-hidden="true" /> : null}
-              <div
-                className={`min-w-0 flex-1 rounded-[var(--nimi-radius-md)] px-4 py-3 ring-1 ring-inset ${
-                  needsAttention
-                    ? 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_7%,transparent)] ring-[var(--nimi-status-warning-soft-border)]'
-                    : 'bg-[var(--nimi-surface-panel)] ring-[var(--nimi-border-subtle)]'
-                }`}
-                data-testid="capability-environment-status"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-                  <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm">
-                    {needsAttention ? (
-                      <CircleAlert size={15} className="shrink-0 text-[var(--nimi-status-warning)]" aria-hidden="true" />
-                    ) : null}
-                    <span className="font-semibold text-[var(--nimi-text-primary)]">
-                      {t('runtimeConfig.capabilities.environment')}
-                    </span>
-                    <span className="text-[var(--nimi-text-secondary)]">
-                      {t('runtimeConfig.capabilities.environmentSummary', {
-                        ready: readyDependencies,
-                        count: props.environment.dependencies.length,
-                      })}
-                    </span>
-                  </p>
-                  <Button tone="ghost" size="sm" className="-mr-2" onClick={props.onDiagnostics}>
-                    {t('runtimeConfig.nav.advancedDiagnostics')}
-                    <ChevronRight size={14} />
-                  </Button>
-                </div>
-                <EnvironmentDependencies
-                  environment={props.environment}
-                  className={needsAttention ? 'mt-2 pl-[calc(15px+0.5rem)]' : 'mt-2'}
-                />
-              </div>
-            </div>
           ) : null}
 
-          {props.selected ? (
-            <details className="group border-t border-[var(--nimi-border-subtle)]" data-testid="capability-technical-details">
-              <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-5 text-xs font-medium text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)] lg:px-6 [&::-webkit-details-marker]:hidden">
-                <ChevronRight size={14} className="shrink-0 transition-transform group-open:rotate-90" aria-hidden="true" />
-                {t('runtimeConfig.profiles.technicalDetails')}
-              </summary>
-              {/* Indented to the summary text: card padding plus the 14px chevron and its gap. */}
-              <div className="grid gap-x-12 gap-y-5 pb-5 pl-[calc(1.25rem+14px+0.5rem)] pr-5 md:grid-cols-2 lg:pb-6 lg:pl-[calc(1.5rem+14px+0.5rem)] lg:pr-6">
-                <div className="min-w-0">
-                  <h3 className="text-xs font-semibold text-[var(--nimi-text-primary)]">
-                    {t('runtimeConfig.product.technicalModel')}
-                  </h3>
-                  <dl className="mt-2.5 grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-xs">
-                    <dt className="text-[var(--nimi-text-muted)]">{t('runtimeConfig.product.technicalRecipe')}</dt>
-                    <dd className="break-words text-[var(--nimi-text-primary)]">{identity.title}</dd>
-                    {identity.alias && identity.alias !== identity.title ? (
-                      <>
-                        <dt className="text-[var(--nimi-text-muted)]">{t('runtimeConfig.product.technicalAlias')}</dt>
-                        <dd className="break-words text-[var(--nimi-text-primary)]">{identity.alias}</dd>
-                      </>
-                    ) : null}
-                    {identity.version ? (
-                      <>
-                        <dt className="text-[var(--nimi-text-muted)]">{t('runtimeConfig.product.technicalVariant')}</dt>
-                        <dd className="break-words text-[var(--nimi-text-primary)]">{identity.version}</dd>
-                      </>
-                    ) : null}
-                    {identity.descriptor?.entry ? (
-                      <>
-                        <dt className="text-[var(--nimi-text-muted)]">{t('runtimeConfig.product.technicalFile')}</dt>
-                        <dd className="break-all font-mono text-[var(--nimi-text-primary)]">{identity.descriptor.entry}</dd>
-                      </>
-                    ) : null}
-                  </dl>
-                </div>
-                {props.environment && !environmentReady ? null : (
-                  <div className="min-w-0">
-                    <h3 className="text-xs font-semibold text-[var(--nimi-text-primary)]">
-                      {t('runtimeConfig.product.technicalEnvironment')}
-                    </h3>
-                    {props.environment ? (
-                      <EnvironmentDependencies environment={props.environment} className="mt-2.5" />
-                    ) : (
-                      <p className="mt-2.5 text-xs text-[var(--nimi-text-secondary)]">
-                        {t('runtimeConfig.capabilities.state.unknown')}
-                      </p>
-                    )}
-                    <Button tone="ghost" size="sm" className="-ml-3 mt-2" onClick={props.onDiagnostics}>
-                      {t('runtimeConfig.nav.advancedDiagnostics')}
-                      <ChevronRight size={14} />
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </details>
+          {section === 'advanced' && props.selected ? (
+            <RuntimeCapabilityCustomizeTab
+              selected={props.selected}
+              recipe={identity.recipe}
+              recipes={props.recipes}
+              assets={props.assets}
+              catalog={props.catalog}
+              loading={props.libraryLoading || Boolean(props.modelsLoading)}
+              readFailed={props.libraryError || Boolean(props.modelsError)}
+              disabled={props.busy || props.disabled}
+              onRetry={props.onRetryCustomization}
+              onManageSaved={() => props.onSection('saved')}
+              onApply={props.onApplyCustomization}
+            />
           ) : null}
-        </section>
-      ) : null}
-
-      {modelPickerOpen ? (
-        <RuntimeCapabilityModelPicker
-          label={label}
-          selected={props.selected}
-          loadouts={props.loadouts}
-          recipes={props.recipes}
-          catalog={props.catalog}
-          assets={props.assets}
-          libraryLoading={props.libraryLoading}
-          libraryError={props.libraryError}
-          loading={props.modelsLoading ?? false}
-          error={props.modelsError ?? false}
-          busy={props.busy}
-          disabled={props.disabled}
-          onChoose={async (recipe, previous) => {
-            await props.onEnable(recipe, previous);
-            setModelPickerOpen(false);
-          }}
-          onCustomize={() => {
-            setModelPickerOpen(false);
-            props.onSection('advanced');
-          }}
-          onBrowse={() => {
-            setModelPickerOpen(false);
-            props.onModelMarket({ kind: 'browse', capabilityContract: props.capability });
-          }}
-          onImport={props.onImportModelFiles || props.onModelFiles ? () => {
-            setModelPickerOpen(false);
-            (props.onImportModelFiles ?? props.onModelFiles)?.();
-          } : undefined}
-          onClose={() => setModelPickerOpen(false)}
-        />
-      ) : null}
-
-      {section === 'models' ? (
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-base font-semibold">{t('runtimeConfig.product.chooseYourModel')}</h2>
-            {props.recipes.length > 6 ? (
-              <div className="relative w-full sm:w-60">
-                <Search
-                  size={15}
-                  className="pointer-events-none absolute left-3 top-3 text-[var(--nimi-text-secondary)]"
-                />
-                <TextField
-                  aria-label={t('runtimeConfig.product.searchModels')}
-                  placeholder={t('runtimeConfig.product.searchModels')}
-                  value={query}
-                  onChange={(event) => setQuery(event.currentTarget.value)}
-                  className="pl-9"
-                />
-              </div>
-            ) : null}
-          </div>
-          {props.libraryError ? (
-            <InlineAlert tone="warning">{t('runtimeConfig.product.preparationUnknown')}</InlineAlert>
-          ) : null}
-          {matched.length ? (
-            <div className="grid gap-3 md:grid-cols-2">
-              {matched.map((recipe) => {
-                const recipeFeatures = modelFeatureLocaleKeys(recipe.implementationSupportedFeatures);
-                const saved = props.loadouts.filter(
-                  (item) => item.recipeId === recipe.recipeId && item.validationState === 'configured',
-                );
-                const noDirectDownload = !props.modelsLoading && !props.modelsError && recipeOfferSummary(recipe).withoutOffer > 0;
-                return (
-                  <ModelChoiceCard
-                    key={recipe.recipeId}
-                    recipe={recipe}
-                    title={modelDisplayTitle(recipe.title)}
-                    description={
-                      recipeFeatures.length ? recipeFeatures.map((key) => t(key)).join(' · ') : shortUse
-                    }
-                    cost={costOf(recipe, saved)}
-                    current={props.selected?.recipeId === recipe.recipeId}
-                    enableable={!props.selected && props.downloadedRecipe?.recipeId === recipe.recipeId}
-                    saved={saved}
-                    noDirectDownload={!noDirectDownload ? null
-                      : unboundImports && props.onChooseImportedFiles ? 'choose-imported' : 'import'}
-                    selectedLoadoutId={props.selected?.loadoutId}
-                    recipes={props.recipes}
-                    catalog={props.catalog}
-                    busy={props.busy || props.disabled}
-                    onSelect={() => {
-                      void props.onStart(recipe.recipeId);
-                    }}
-                    onEnable={() => {
-                      void props.onEnable(recipe.recipeId);
-                    }}
-                    onUseSaved={(item) => {
-                      void props.onStart(item.recipeId, item);
-                    }}
-                    onChooseImported={() => props.onChooseImportedFiles?.(recipe.recipeId)}
-                    onImport={props.onImportModelFiles ?? props.onModelFiles}
-                    onCustomize={() => props.onSection('advanced')}
-                  />
-                );
-              })}
-            </div>
-          ) : (
-            <p className="rounded-xl bg-[var(--nimi-surface-card)] px-4 py-6 text-center text-sm text-[var(--nimi-text-secondary)]">
-              {t('runtimeConfig.product.noModelsMatch')}
-            </p>
-          )}
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed border-[var(--nimi-border-strong)] px-4 py-3">
-            <p className="flex items-center gap-2 text-sm text-[var(--nimi-text-secondary)]">
-              <FolderOpen size={16} strokeWidth={1.7} aria-hidden="true" />
-              {t('runtimeConfig.product.importModelLead')}
-            </p>
-            <Button tone="ghost" size="sm" onClick={props.onImportModelFiles ?? props.onModelFiles}>
-              {t('runtimeConfig.product.importModel')}
-              <ArrowRight size={14} />
-            </Button>
-          </div>
         </div>
-      ) : null}
-
-      {section === 'advanced' && props.selected ? (
-        <div className="space-y-6">
-          {props.libraryLoading || props.modelsLoading ? <LoadingSkeleton lines={4} /> : (
-            <>
-              {props.libraryError || props.modelsError || !identity.recipe ? (
-                <InlineAlert tone="warning">
-                  <p>{t('runtimeConfig.product.customization.unavailable')}</p>
-                  {props.onRetryCustomization ? <Button tone="secondary" size="sm" onClick={props.onRetryCustomization}>{t('Common.retry')}</Button> : null}
-                </InlineAlert>
-              ) : null}
-              {identity.recipe ? <RuntimeCapabilityCustomize
-                key={`${props.selected.loadoutId}:${props.selected.revision}`}
-                selected={props.selected}
-                recipe={identity.recipe}
-                assets={props.assets}
-                catalog={props.catalog}
-                disabled={props.busy || props.disabled || props.libraryError || Boolean(props.modelsError)}
-                onApply={props.onApplyCustomization}
-              /> : null}
-            </>
-          )}
-          <div className="flex flex-wrap gap-2 border-t border-[var(--nimi-border-subtle)] pt-4">
-            <Button tone="secondary" size="sm" onClick={() => props.onSection('saved')}>
-              <Settings2 size={14} />
-              {t('runtimeConfig.product.manageSaved')}
-            </Button>
-            <Button tone="ghost" size="sm" onClick={props.onModelFiles}>
-              {t('runtimeConfig.capabilities.manageFiles')}
-            </Button>
-            <Button tone="ghost" size="sm" onClick={props.onDiagnostics}>
-              {t('runtimeConfig.nav.advancedDiagnostics')}
-            </Button>
-          </div>
-        </div>
-      ) : null}
+        {props.apps ? <aside className="min-w-0">{props.apps}</aside> : null}
+      </div>
     </div>
   );
 }

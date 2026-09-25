@@ -1,55 +1,34 @@
-import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import type { NimiRuntimeLocalInstallPlanDescriptor } from '@nimiplatform/sdk/runtime';
+import type { ReactNode } from 'react';
 import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
 import {
   LocalModelCenterRuntimeView,
   type LocalModelCenterSection,
 } from './runtime-config-local-model-center-runtime-view';
 import { useLocalModelCenterRuntimeState } from './runtime-config-use-local-model-center-runtime-state';
-import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service';
-import { LocalModelCatalogSection } from './runtime-config-local-model-center-catalog';
-import type { RuntimeConfigInstallResult } from './runtime-config-panel-controller-install-actions';
 
 export function LocalModelCenter(props: {
   readonly activeSection: LocalModelCenterSection;
+  /** Discovery content; it refreshes the downloaded files after an install completes. */
+  readonly renderDiscover: (refreshInstalledAssets: () => Promise<void>) => ReactNode;
   /** Each increment opens the import menu (deep link "import model files"). */
   readonly importMenuRequest?: number;
   /** Empty-state shortcut back to the Discover tab. */
   readonly onOpenDiscover?: () => void;
   readonly runtimeWritesDisabled: boolean;
-  readonly installResolvedModelPlan: (plan: NimiRuntimeLocalInstallPlanDescriptor) => Promise<RuntimeConfigInstallResult>;
 }) {
   const commands = useDesktopRendererCommands();
   const runtimeState = useLocalModelCenterRuntimeState();
-  const client = useRuntimeConfigLocalEnvironmentClient();
   const { importMenuRequest } = props;
   const { setShowImportMenu } = runtimeState;
   useEffect(() => {
     if (importMenuRequest) setShowImportMenu(true);
   }, [importMenuRequest, setShowImportMenu]);
-  const catalog = useQuery({
-    queryKey: ['runtime-config', 'builtin-catalog'],
-    queryFn: () => client.listVerifiedAssets(),
-    enabled: props.activeSection === 'discover',
-    refetchOnWindowFocus: false,
-  });
 
   return (
     <LocalModelCenterRuntimeView
       activeSection={props.activeSection}
-      catalogContent={(
-        <LocalModelCatalogSection assets={catalog.data ?? []} loading={catalog.isPending}
-          error={catalog.error?.message ?? ''} runtimeWritesDisabled={props.runtimeWritesDisabled}
-          onRefresh={() => { void catalog.refetch(); }}
-          onInstall={async (templateId) => {
-            const plan = await client.resolveInstallPlan({ source: 'verified', templateId });
-            if (!plan.installAvailable) throw new Error(plan.warnings.join(' · ') || plan.reasonCode);
-            const result = await props.installResolvedModelPlan(plan);
-            if (result.status === 'failed') throw result.error;
-            if (result.status === 'completed') await runtimeState.refreshInstalledAssets();
-          }} />
-      )}
+      discoveryContent={props.renderDiscover(async () => { await runtimeState.refreshInstalledAssets(); })}
       assetBusy={runtimeState.assetBusy}
       assetImportError={runtimeState.assetImportError}
       loadingInstalledAssets={runtimeState.loadingInstalledAssets}

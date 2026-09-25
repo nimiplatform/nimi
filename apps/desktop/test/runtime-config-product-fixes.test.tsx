@@ -32,7 +32,12 @@ async function withRenderer(run: (ui: {
   const { createRoot } = await import('react-dom/client');
   const { DesktopRendererBindingProvider } = await import('../src/shell/renderer/renderer/binding-context.js');
   const testI18n = createInstance();
-  await testI18n.init({ lng: 'en', fallbackLng: 'en', resources: { en: { translation: {} } } });
+  await testI18n.init({ lng: 'en', fallbackLng: 'en', resources: { en: { translation: {
+    runtimeConfig: { product: {
+      downloadSize: 'runtimeConfig.product.downloadSize {{size}}',
+      customization: { applyHintDownload: 'customization.applyHintDownload {{size}}' },
+    } },
+  } } } });
   const root = createRoot(dom.window.document.getElementById('root')!);
   try {
     await run({
@@ -100,33 +105,106 @@ test('inline customization edits without writes, discards changes, and preserves
       onApply={async (draft) => { submitted.push(draft); throw new Error('Runtime is unavailable'); }}
     />);
     await render();
-    const apply = () => ui.document.querySelector<HTMLButtonElement>('[data-testid="runtime-setup-advanced-apply"]')!;
-    assert.ok(ui.document.querySelector('[data-testid="runtime-setup-advanced-version:main.text"]'), 'version selection is already visible');
+    const apply = () => ui.document.querySelector<HTMLButtonElement>('[data-testid="capability-customize-apply"]');
+    assert.ok(ui.document.querySelector('[data-testid="capability-customize-version:main.text"]'), 'version selection is already visible');
     assert.ok(ui.document.querySelector('input[aria-label="contextSize"]'), 'typed parameters are already visible');
-    assert.equal(ui.document.querySelector<HTMLDetailsElement>('[data-testid="runtime-setup-options-json"]')?.open, false);
-    assert.equal(apply().disabled, true);
+    assert.equal(ui.document.querySelector<HTMLDetailsElement>('[data-testid="capability-customize-options-json"]')?.open, false);
+    assert.equal(apply(), null, 'nothing is offered for applying before an edit');
     assert.equal(submitted.length, 0);
     await ui.click('input[aria-label="useMmap"]');
-    assert.equal(apply().disabled, false);
+    assert.equal(apply()?.disabled, false);
     assert.equal(submitted.length, 0, 'editing is not an apply');
-    const discard = [...ui.document.querySelectorAll('button')].find((button) => button.textContent?.includes('customization.discard'))!;
-    await act(async () => discard.click());
+    await ui.click('[data-testid="capability-customize-discard"]');
     assert.equal(ui.document.querySelector<HTMLInputElement>('input[aria-label="useMmap"]')?.checked, true);
-    assert.equal(apply().disabled, true);
+    assert.equal(apply(), null, 'discarding returns to the applied configuration');
     await ui.click('input[aria-label="useMmap"]');
-    await ui.click('[data-testid="runtime-setup-advanced-apply"]');
+    await ui.click('[data-testid="capability-customize-apply"]');
     assert.equal(submitted.length, 1);
     assert.deepEqual(submitted[0]!.options, { useMmap: false, contextSize: 4096 });
     assert.deepEqual(submitted[0]!.axes, [{ slotId: 'main.text', modelAssetId: 'asset-1', expectedContentId: 'content-1' }]);
     assert.deepEqual(submitted[0]!.disabledOptionalSlots, ['companion.mmproj']);
     assert.match(ui.document.body.textContent ?? '', /Runtime is unavailable/);
     assert.equal(ui.document.querySelector<HTMLInputElement>('input[aria-label="useMmap"]')?.checked, false);
-    assert.equal(apply().disabled, false, 'failed applies remain retryable');
-    await ui.click('[data-testid="runtime-setup-advanced-optional:companion.mmproj"]');
-    assert.ok(ui.document.querySelector('[data-testid="runtime-setup-advanced-version:companion.mmproj"]'), 'enabling an optional model immediately exposes its version selector');
+    assert.equal(apply()?.disabled, false, 'failed applies remain retryable');
+    assert.match(
+      ui.document.querySelector('[data-testid="capability-customize-version:companion.mmproj"]')?.textContent ?? '',
+      /customization\.notUsed/,
+      'an optional model is chosen or left unused from its own version selector',
+    );
     await render(true);
-    assert.equal(apply().disabled, true);
+    assert.equal(apply()?.disabled, true);
     assert.equal(ui.document.querySelector('fieldset')?.disabled, true);
+  });
+});
+
+test('customization enables an optional model from its version selector and explains the download before applying', async () => {
+  await withRenderer(async (ui) => {
+    const { RuntimeCapabilityCustomize } = await import('../src/shell/renderer/features/runtime-config/runtime-capability-customize.js');
+    // jsdom has no layout or scrolling implementation.
+    ui.document.defaultView!.HTMLElement.prototype.scrollIntoView = () => {};
+    const selected = {
+      loadoutId: 'current', recipeId: 'recipe', revision: 'r1', options: {},
+      modelAxes: [{ slotId: 'main.gguf', modelAssetId: 'asset-1', expectedContentId: 'content-1', displayLabel: 'Current' }],
+    } as unknown as import('@nimiplatform/sdk/runtime').NimiMachineLoadout;
+    const recipe = {
+      recipeId: 'recipe', capabilityContract: 'text.generate', defaultOptions: {},
+      slots: [
+        { slotId: 'main.gguf', displayLabel: 'Main', presence: 'required', offers: [], recommendedContentIds: ['content-1'], conditionalFeatures: [] },
+        {
+          slotId: 'companion.mmproj', displayLabel: 'Vision', presence: 'optional-conditional', recommendedContentIds: [], conditionalFeatures: ['input.image'],
+          offers: [{ candidate: { offerRef: 'mmproj-f16', title: 'Example 2B (F16)', variantLabel: 'mmproj-F16.gguf', installable: true, totalSizeBytes: 985654080, downloadSizeBytes: 524288000 }, applicability: 'supported' }],
+        },
+      ],
+    } as unknown as import('@nimiplatform/sdk/runtime').NimiLoadoutRecipe;
+    const submitted: import('../src/shell/renderer/features/runtime-config/runtime-setup-task-store.js').RuntimeSetupTaskDraft[] = [];
+    await ui.render(<RuntimeCapabilityCustomize
+      selected={selected} recipe={recipe} assets={[]} catalog={[]} disabled={false}
+      onApply={async (draft) => { submitted.push(draft); }}
+    />);
+    const text = () => ui.document.body.textContent ?? '';
+    assert.match(text(), /customization\.slotHelp\.inputImage/, 'the optional model says what it adds');
+    assert.match(text(), /customization\.optionsDefault/);
+    const trigger = ui.document.querySelector<HTMLButtonElement>('[data-testid="capability-customize-version:companion.mmproj"]')!;
+    await act(async () => {
+      trigger.dispatchEvent(new ui.document.defaultView!.KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    });
+    const choice = [...ui.document.querySelectorAll<HTMLElement>('[role="option"]')].find((option) => option.textContent?.includes('Example 2B · F16'));
+    assert.ok(choice, 'versions are named by model and exact quantization');
+    assert.match(choice.textContent ?? '', /downloadSize 500\.0 MB/, 'transfer size is distinct from installed disk usage');
+    await act(async () => choice.click());
+    assert.match(ui.document.querySelector('[data-testid="capability-customize-apply-bar"]')?.textContent ?? '', /customization\.applyHintDownload 500\.0 MB/);
+    assert.equal(submitted.length, 0, 'choosing a download is not an apply');
+
+    const unknownSizeRecipe = {
+      ...recipe,
+      slots: recipe.slots.map((slot) => ({
+        ...slot,
+        offers: slot.offers.map((offer) => ({ ...offer, candidate: { ...offer.candidate, downloadSizeBytes: undefined } })),
+      })),
+    };
+    await ui.render(<RuntimeCapabilityCustomize
+      selected={selected} recipe={unknownSizeRecipe} assets={[]} catalog={[]} disabled={false}
+      onApply={async (draft) => { submitted.push(draft); }}
+    />);
+    assert.match(ui.document.querySelector('[data-testid="capability-customize-slot:companion.mmproj"]')?.textContent ?? '', /downloadSizeUnknown/);
+    assert.match(ui.document.querySelector('[data-testid="capability-customize-apply-bar"]')?.textContent ?? '', /customization\.applyHintDownloadUnknown/);
+
+    const textarea = ui.document.querySelector<HTMLTextAreaElement>('[data-testid="capability-customize-options-json"] textarea')!;
+    const type = async (value: string) => act(async () => {
+      Object.getOwnPropertyDescriptor(ui.document.defaultView!.HTMLTextAreaElement.prototype, 'value')!.set!.call(textarea, value);
+      textarea.dispatchEvent(new ui.document.defaultView!.Event('input', { bubbles: true }));
+    });
+    await type('{ "contextSize": ');
+    assert.equal(ui.document.querySelector<HTMLButtonElement>('[data-testid="capability-customize-apply"]')?.disabled, true, 'invalid options cannot be applied');
+    assert.match(text(), /customization\.applyInvalid/);
+    await type('{ "contextSize": 8192 }');
+    assert.match(text(), /customization\.optionsCustomized/);
+    await ui.click('[data-testid="capability-customize-apply"]');
+    assert.equal(submitted.length, 1);
+    assert.deepEqual(submitted[0]!.preferredOffers, { 'companion.mmproj': 'mmproj-f16' });
+    assert.deepEqual(submitted[0]!.disabledOptionalSlots, []);
+    assert.deepEqual(submitted[0]!.options, { contextSize: 8192 });
+    assert.deepEqual(submitted[0]!.axes, [{ slotId: 'main.gguf', modelAssetId: 'asset-1', expectedContentId: 'content-1' }]);
   });
 });
 
@@ -195,10 +273,84 @@ test('import previews and retries library save without any machine operation, th
     assert.equal(used, undefined);
     await ui.click('[data-testid="runtime-profile-import-save"]');
     assert.ok(ui.document.querySelector('[data-testid="runtime-profile-import-success"]'));
+    assert.equal(ui.document.activeElement?.getAttribute('data-testid'), 'runtime-profile-import-use');
     assert.equal(changed, 1);
     assert.equal(used, undefined);
     await ui.click('[data-testid="runtime-profile-import-use"]');
     assert.equal(used, record);
+  });
+});
+
+test('import reads a dropped, chosen or pasted setup into a preview and changes the source without saving', async () => {
+  await withRenderer(async (ui) => {
+    const { ProfileImportWizard } = await import('../src/shell/renderer/features/runtime-config/runtime-config-profile-import-wizard.js');
+    const win = ui.document.defaultView!;
+    const source = {
+      profileId: 'shared.office',
+      title: 'Office setup',
+      capabilities: {
+        'audio.synthesize': {
+          route: 'cloud', requiredFeatures: [],
+          implementation: { implementationId: 'cloud.speech', driverId: 'driver.speech', driverDialect: 'speech/v1', supportedFeatures: [] },
+          providerModelTarget: { provider: 'example', providerModelId: 'voice-1', remoteModelCatalogId: 'catalog.voice-1' },
+        },
+        'text.generate': { route: 'local', requiredFeatures: [] },
+      },
+    };
+    const sdk = new Proxy({}, {
+      get: (_target, key) => {
+        assert.equal(key, 'accountProduct', 'import must not access machine APIs');
+        return () => ({ profiles: { import: async () => assert.fail('previewing never saves') } });
+      },
+    });
+    const settle = () => act(async () => { await new Promise((resolve) => setTimeout(resolve, 10)); });
+    const summaryText = () => ui.document.querySelector('[data-testid="runtime-profile-import-summary"]')?.textContent ?? '';
+    const type = async (value: string) => {
+      const textarea = ui.document.querySelector('textarea')!;
+      await act(async () => {
+        Object.getOwnPropertyDescriptor(win.HTMLTextAreaElement.prototype, 'value')!.set!.call(textarea, value);
+        textarea.dispatchEvent(new win.Event('input', { bubbles: true }));
+      });
+    };
+    await ui.render(<ProfileImportWizard initialSourceText={null} onClose={() => {}} onCatalogChanged={() => {}} />, sdk);
+    assert.ok(ui.document.querySelector('[data-testid="runtime-profile-import-file"]'), 'choosing a file is the main action');
+    assert.equal(ui.document.querySelector('textarea'), null, 'pasting waits behind its own entry');
+
+    const drop = new win.Event('drop', { bubbles: true, cancelable: true });
+    Object.defineProperty(drop, 'dataTransfer', { value: { types: ['Files'], files: [new win.File([JSON.stringify(source)], 'office.ai-profile.json')] } });
+    await act(async () => { ui.document.querySelector('[data-testid="runtime-profile-import-drop"]')!.dispatchEvent(drop); });
+    await settle();
+    assert.match(summaryText(), /office\.ai-profile\.json/);
+    assert.match(summaryText(), /Includes 2/);
+    const rows = [...ui.document.querySelectorAll('[data-testid="runtime-profile-import-summary"] li')].map((row) => row.textContent ?? '');
+    assert.equal(rows.length, 2);
+    assert.match(rows[0]!, /textGenerate.*On this device/, 'uses follow the capability rail order, not file key order');
+    assert.match(rows[1]!, /audioSynthesize.*Cloud service/);
+    const focused = () => ui.document.activeElement?.getAttribute('data-testid') ?? ui.document.activeElement?.tagName;
+    assert.equal(focused(), 'runtime-profile-import-save', 'each step hands focus to its next action');
+
+    await ui.click('[data-testid="runtime-profile-import-change"]');
+    assert.ok(ui.document.querySelector('[data-testid="runtime-profile-import-drop"]'), 'a file source returns to choosing a file');
+    assert.equal(focused(), 'runtime-profile-import-file');
+    const input = ui.document.querySelector<HTMLInputElement>('input[type="file"]')!;
+    Object.defineProperty(input, 'files', { configurable: true, value: [new win.File([JSON.stringify({ ...source, title: 'Chosen' })], 'chosen.json')] });
+    await act(async () => { input.dispatchEvent(new win.Event('change', { bubbles: true })); });
+    await settle();
+    assert.match(summaryText(), /chosen\.json/);
+    assert.equal(ui.document.querySelector<HTMLInputElement>('[data-testid="runtime-profile-import-summary"] input')?.value, 'Chosen');
+
+    await ui.click('[data-testid="runtime-profile-import-change"]');
+    await ui.click('[data-testid="runtime-profile-import-paste-toggle"]');
+    assert.equal(focused(), 'TEXTAREA');
+    await type('not a setup');
+    await ui.click('[data-testid="runtime-profile-import-preview"]');
+    assert.match(ui.document.body.textContent ?? '', /could not be imported/);
+    assert.equal(summaryText(), '');
+    await type(JSON.stringify(source));
+    await ui.click('[data-testid="runtime-profile-import-preview"]');
+    assert.match(summaryText(), /Pasted setup/);
+    await ui.click('[data-testid="runtime-profile-import-change"]');
+    assert.equal(ui.document.querySelector('textarea')?.value, JSON.stringify(source), 'pasted text stays editable');
   });
 });
 
@@ -272,7 +424,157 @@ test('model loading failure has an in-place retry and is distinct from an empty 
     assert.equal(attempts, 2);
     assert.match(ui.document.body.textContent ?? '', /No models are available/);
     assert.doesNotMatch(ui.document.body.textContent ?? '', /Models could not be loaded/);
-    assert.equal(ui.document.querySelector<HTMLButtonElement>('[data-testid="runtime-setup-task-review"]')?.disabled, true);
+    assert.equal(ui.document.querySelector('[data-testid="runtime-setup-task-review"]'), null);
+    assert.equal(ui.document.querySelector('[data-testid="runtime-setup-task-prepare-and-use"]'), null);
+  });
+});
+
+function setupReviewFixture(recipeCount = 1) {
+  const store = createRuntimeSetupTaskStore({ storage: null });
+  const task = store.createTask({ capabilityContract: 'text.generate', source: { kind: 'runtime', accountId: 'acct' } });
+  const recipes = Array.from({ length: recipeCount }, (_, index) => ({
+    recipeId: `recipe-${index}`, title: `Model ${index}`, capabilityContract: 'text.generate',
+    defaultOptions: { contextSize: 4096 }, applicability: 'supported', slots: [],
+  }));
+  let candidate: unknown;
+  let proposed: Record<string, unknown>;
+  const writes: string[] = [];
+  const ports = {
+    loadouts: {
+      listRecipes: async () => recipes,
+      get: async () => ({ loadouts: candidate ? [candidate] : [], selections: [], selectionRevisions: {} }),
+      prepare: async (input: Record<string, unknown>) => { writes.push('prepare'); proposed = input; return { prepareId: 'proposal' }; },
+      commit: async () => { writes.push('commit-candidate'); candidate = { ...proposed, loadoutId: 'candidate', revision: 'r1' }; return { loadoutId: 'candidate', revision: 'r1' }; },
+      select: async () => { writes.push('select'); throw new Error('Unexpected selection before confirmation'); },
+    },
+    environment: { resolveEnvironmentPlan: async () => ({ planId: 'environment', dependencies: [] }) },
+    install: { install: async () => { writes.push('download'); throw new Error('Unexpected download before confirmation'); } },
+    aiConfigForSource: () => null,
+    account: { currentAccountId: () => 'acct' },
+    now: () => '2026-09-24T00:00:00Z',
+  } as unknown as RuntimeSetupRunnerPorts;
+  return { store, task, ports, writes };
+}
+
+test('one supported recipe opens a review in place without selecting or downloading, even when ready', async () => {
+  await withRenderer(async ui => {
+    const { RuntimeConfigSetupTaskView } = await import('../src/shell/renderer/features/runtime-config/runtime-config-setup-task-view.js');
+    const { store, task, ports, writes } = setupReviewFixture();
+    await ui.render(<RuntimeConfigSetupTaskView taskId={task.taskId} store={store} ports={ports} embedded onClose={() => {}} />);
+    assert.equal(store.getTask(task.taskId)?.status, 'review');
+    assert.deepEqual(writes, ['prepare', 'commit-candidate']);
+    assert.equal(ui.document.querySelector('[data-testid="runtime-setup-task-recipes"]'), null);
+    assert.equal(ui.document.querySelector('[data-testid="runtime-setup-hero-title"]'), null);
+    assert.ok(ui.document.querySelector('[data-testid="runtime-setup-review-impact"]'));
+    assert.equal(ui.document.querySelector<HTMLButtonElement>('[data-testid="runtime-setup-task-prepare-and-use"]')?.disabled, false);
+    await ui.click('button[data-testid="runtime-setup-task-advanced"]');
+    assert.equal(store.getTask(task.taskId)?.status, 'review');
+    assert.equal(ui.document.querySelector<HTMLButtonElement>('[data-testid="runtime-setup-task-prepare-and-use"]')?.disabled, true);
+    await ui.click('button[data-testid="runtime-setup-task-advanced"]');
+    assert.equal(ui.document.querySelector<HTMLButtonElement>('[data-testid="runtime-setup-task-prepare-and-use"]')?.disabled, false);
+    assert.deepEqual(writes, ['prepare', 'commit-candidate']);
+  });
+});
+
+test('an unavailable managed environment keeps the embedded confirmation disabled', async () => {
+  await withRenderer(async ui => {
+    const { RuntimeConfigSetupTaskView } = await import('../src/shell/renderer/features/runtime-config/runtime-config-setup-task-view.js');
+    const { createNimiError } = await import('@nimiplatform/sdk/types');
+    const { store, task, ports, writes } = setupReviewFixture();
+    const unavailablePorts = {
+      ...ports,
+      environment: { ...ports.environment, resolveEnvironmentPlan: async () => {
+        throw createNimiError({ message: 'No managed environment', reasonCode: 'AI_LOADOUT_DRIVER_UNAVAILABLE', source: 'runtime' });
+      } },
+    };
+    await ui.render(<RuntimeConfigSetupTaskView taskId={task.taskId} store={store} ports={unavailablePorts} embedded onClose={() => {}} />);
+    assert.equal(store.getTask(task.taskId)?.status, 'review');
+    assert.ok(ui.document.querySelector('[data-testid="runtime-setup-environment-unavailable"]'));
+    assert.equal(ui.document.querySelector<HTMLButtonElement>('[data-testid="runtime-setup-task-prepare-and-use"]')?.disabled, true);
+    await ui.click('[data-testid="runtime-setup-task-prepare-and-use"]');
+    assert.deepEqual(writes, ['prepare', 'commit-candidate']);
+  });
+});
+
+test('a recipe without a download keeps imported-file choices in the draft until review', async () => {
+  await withRenderer(async ui => {
+    const { RuntimeConfigSetupTaskView } = await import('../src/shell/renderer/features/runtime-config/runtime-config-setup-task-view.js');
+    const { store, task, ports, writes } = setupReviewFixture();
+    const recipe = (await ports.loadouts.listRecipes('text.generate'))[0]!;
+    const importPorts = {
+      ...ports,
+      loadouts: { ...ports.loadouts, listRecipes: async () => [{ ...recipe, slots: [{
+        slotId: 'main.gguf', displayLabel: 'Main model', presence: 'required', offers: [], reasons: [],
+        recommendedContentIds: [], recommendedVariantIds: [],
+      }] }] },
+    } as unknown as RuntimeSetupRunnerPorts;
+    const sdk = { localEnvironmentRpc: () => ({
+      listModelAssets: async () => ({ assets: [], nextPageToken: '' }),
+      listVerifiedAssets: async () => ({ assets: [], nextPageToken: '' }),
+    }) };
+    let imports = 0;
+    await ui.render(<RuntimeConfigSetupTaskView taskId={task.taskId} store={store} ports={importPorts} embedded onClose={() => {}} onImportModelFiles={() => { imports += 1; }} />, sdk);
+    assert.equal(store.getTask(task.taskId)?.status, 'draft');
+    assert.equal(store.getTask(task.taskId)?.candidateLoadoutId, undefined);
+    assert.deepEqual(writes, []);
+    const panel = ui.document.querySelector('[data-testid="runtime-setup-imported-files"]')!;
+    assert.ok(panel.querySelector('[data-testid="runtime-setup-task-advanced"]'));
+    const importButton = Array.from(panel.querySelectorAll('button')).find(button => button.textContent === 'Import model files');
+    assert.ok(importButton);
+    await act(async () => importButton.click());
+    assert.equal(imports, 1);
+    assert.deepEqual(writes, []);
+    await ui.click('[data-testid="runtime-setup-task-review"]');
+    assert.equal(store.getTask(task.taskId)?.status, 'review');
+    assert.deepEqual(writes, ['prepare', 'commit-candidate']);
+    assert.ok(ui.document.querySelector('[data-testid="runtime-setup-unavailable"]'));
+    assert.equal(ui.document.querySelector<HTMLButtonElement>('[data-testid="runtime-setup-task-prepare-and-use"]')?.disabled, true);
+  });
+});
+
+test('several recipes remain an explicit choice and each choice goes straight to review', async () => {
+  await withRenderer(async ui => {
+    const { RuntimeConfigSetupTaskView } = await import('../src/shell/renderer/features/runtime-config/runtime-config-setup-task-view.js');
+    const { store, task, ports, writes } = setupReviewFixture(2);
+    await ui.render(<RuntimeConfigSetupTaskView taskId={task.taskId} store={store} ports={ports} onClose={() => {}} />);
+    assert.deepEqual(writes, []);
+    assert.equal(ui.document.querySelectorAll('input[type="radio"]').length, 0);
+    await ui.click('[data-testid="runtime-setup-task-recipe:recipe-1"] button');
+    assert.equal(store.getTask(task.taskId)?.draft?.recipeId, 'recipe-1');
+    assert.equal(store.getTask(task.taskId)?.status, 'review');
+    assert.deepEqual(writes, ['prepare', 'commit-candidate']);
+  });
+});
+
+test('missing-file recovery offers import and an explicit replacement review without automatic use', async () => {
+  await withRenderer(async ui => {
+    const { RuntimeConfigSetupTaskView } = await import('../src/shell/renderer/features/runtime-config/runtime-config-setup-task-view.js');
+    const { store, task, ports, writes } = setupReviewFixture();
+    store.updateTask(task.taskId, () => ({
+      status: 'failed', draft: { recipeId: 'recipe-0', axes: [{ slotId: 'main', modelAssetId: 'missing', expectedContentId: 'original' }] },
+      failure: { stage: 'create-candidate', reasonCode: 'AI_LOADOUT_MODEL_ASSET_NOT_FOUND', message: 'missing' },
+    }));
+    let imports = 0;
+    await ui.render(<RuntimeConfigSetupTaskView taskId={task.taskId} store={store} ports={ports} embedded onImportModelFiles={() => { imports += 1; }} onClose={() => {}} />);
+    assert.deepEqual(writes, []);
+    assert.match(ui.document.body.textContent ?? '', /Choose a model to repair setup/);
+    await ui.click('[data-testid="runtime-setup-import-files"]');
+    assert.equal(imports, 1);
+    await ui.click('[data-testid="runtime-setup-task-retry"]');
+    assert.equal(store.getTask(task.taskId)?.status, 'review');
+    assert.equal(store.getTask(task.taskId)?.draft?.axes, undefined);
+    assert.deepEqual(writes, ['prepare', 'commit-candidate']);
+  });
+});
+
+test('read-only setup never auto-creates a candidate', async () => {
+  await withRenderer(async ui => {
+    const { RuntimeConfigSetupTaskView } = await import('../src/shell/renderer/features/runtime-config/runtime-config-setup-task-view.js');
+    const { store, task, ports, writes } = setupReviewFixture();
+    await ui.render(<RuntimeConfigSetupTaskView taskId={task.taskId} store={store} ports={ports} disabled onClose={() => {}} />);
+    assert.equal(store.getTask(task.taskId)?.status, 'draft');
+    assert.deepEqual(writes, []);
+    assert.equal(ui.document.querySelector<HTMLButtonElement>('[data-testid="runtime-setup-task-recipe:recipe-0"] button')?.disabled, true);
   });
 });
 
@@ -314,7 +616,9 @@ test('changing a capability model stays in the overview, cancels without writes,
     assert.deepEqual(uses, []);
     assert.ok(ui.document.querySelector('[data-testid="capability-model-picker-saved:saved-version"]'), 'another saved version of the current recipe stays directly selectable');
     assert.equal(ui.document.querySelector<HTMLButtonElement>('[data-testid="capability-model-picker-recipe:unsupported"]')?.disabled, true);
-    await ui.click('[data-testid="capability-model-picker-cancel"]');
+    assert.match(ui.document.querySelector('[data-testid="capability-model-picker"]')?.textContent ?? '', /modelPicker\.switchNote/, 'a switch discloses its scope next to the choices');
+    assert.equal(ui.document.querySelector('[data-testid="capability-model-picker-empty"]'), null);
+    await ui.click('[data-testid="capability-model-picker-close"]');
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
     assert.equal(ui.document.querySelector('[data-testid="capability-model-picker"]'), null);
     assert.deepEqual(uses, []);
@@ -329,9 +633,16 @@ test('changing a capability model stays in the overview, cancels without writes,
     await ui.click('[data-testid="capability-model-picker-recipe:recipe-b"]');
     assert.deepEqual(uses[1], ['recipe-b', undefined]);
 
-    await render({ loadouts: [current], recipes: [recipe('recipe-a')] });
+    const imports: string[] = [];
+    const onImportModelFiles = () => { imports.push('import'); };
+    await render({ loadouts: [current], recipes: [recipe('recipe-a')], onImportModelFiles });
     await ui.click('[data-testid="capability-change-model"]');
-    assert.ok(ui.document.querySelector('[data-testid="capability-model-picker-empty"]'));
+    const empty = ui.document.querySelector('[data-testid="capability-model-picker-empty"]');
+    assert.ok(empty);
+    assert.ok(empty.querySelector('[data-testid="capability-model-picker-market"]'), 'with nothing to switch to, adding a model is the main content');
+    assert.ok(empty.querySelector('[data-testid="capability-model-picker-import"]'));
+    assert.equal(ui.document.querySelectorAll('[data-testid="capability-model-picker-market"]').length, 1, 'no second market entry in a footer');
+    assert.doesNotMatch(ui.document.querySelector('[data-testid="capability-model-picker"]')?.textContent ?? '', /switchNote/, 'the scope note belongs to an actual switch');
     await render({ loadouts: [current], recipes: [], modelsError: true });
     assert.equal(ui.document.querySelector('[data-testid="capability-model-picker-empty"]'), null, 'a failed recipe query is not an empty inventory');
     await render({ disabled: true });
@@ -341,6 +652,154 @@ test('changing a capability model stays in the overview, cancels without writes,
     assert.equal(unavailable.disabled, true);
     assert.match(unavailable.parentElement?.textContent ?? '', /preparationUnknown/);
     assert.doesNotMatch(unavailable.parentElement?.textContent ?? '', /hostFit\.unsupported/, 'a missing recipe is unknown, not evidence of incompatibility');
+
+    await render({ loadouts: [current], recipes: [recipe('recipe-a')], onImportModelFiles });
+    await ui.click('[data-testid="capability-model-picker-import"]');
+    assert.deepEqual(imports, ['import']);
+    assert.equal(ui.document.querySelector('[data-testid="capability-model-picker"]'), null);
+    assert.deepEqual(uses, [['recipe-a', saved], ['recipe-b', undefined]], 'adding a model never switches the current one');
+  });
+});
+
+test('the models tab offers import above a long model list without starting a setup', async () => {
+  await withRenderer(async (ui) => {
+    const { RuntimeCapabilityDetail } = await import('../src/shell/renderer/features/runtime-config/runtime-capability-detail.js');
+    const { AppStoreProvider } = await import('../src/shell/renderer/app-shell/providers/app-store.js');
+    const { createAppStore } = await import('../src/shell/renderer/app-shell/providers/app-store-factory.js');
+    const { TooltipProvider } = await import('@nimiplatform/kit/ui');
+    const appStore = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference: () => undefined });
+    const recipes = Array.from({ length: 8 }, (_, index) => ({
+      recipeId: `recipe-${index}`, title: `recipe-${index}`, capabilityContract: 'audio.transcribe',
+      implementationSupportedFeatures: [], slots: [], applicability: 'supported',
+    }) as unknown as import('@nimiplatform/sdk/runtime').NimiLoadoutRecipe);
+    const opened: string[] = [];
+    const props: React.ComponentProps<typeof RuntimeCapabilityDetail> = {
+      capability: 'audio.transcribe', loadouts: [], recipes, catalog: [], assets: [],
+      libraryLoading: false, libraryError: false, status: { state: 'unset', replacement: false }, taskModel: '',
+      section: 'models', onSection: () => {}, busy: false, disabled: false, navigationContext: null,
+      onHome: () => {}, onTask: () => {}, onDiagnostics: () => {}, onModelMarket: () => {},
+      onStart: async () => { throw new Error('Importing must not start a setup'); },
+      onEnable: async () => { throw new Error('Importing must not enable a model'); },
+      onApplyCustomization: async () => {},
+      onModelFiles: () => { opened.push('files'); },
+      onImportModelFiles: () => { opened.push('import'); },
+    };
+    const render = (overrides: Partial<typeof props> = {}) => ui.render(
+      <AppStoreProvider store={appStore}><TooltipProvider><RuntimeCapabilityDetail {...props} {...overrides} /></TooltipProvider></AppStoreProvider>,
+    );
+    await render();
+    const importButton = ui.document.querySelector('[data-testid="capability-models-import"]');
+    const firstModel = ui.document.querySelector('[data-testid="capability-model:recipe-0"]');
+    assert.ok(importButton && firstModel);
+    assert.ok(importButton.compareDocumentPosition(firstModel) & Node.DOCUMENT_POSITION_FOLLOWING, 'import comes before the model list');
+    assert.ok(ui.document.querySelector('input[aria-label="runtimeConfig.product.searchModels"]'), 'search and import share the header');
+    const detailText = ui.document.querySelector('[data-testid="ai-capability-detail:audio.transcribe"]')?.textContent ?? '';
+    assert.equal(detailText.match(/product\.importModel/g)?.length, 1, 'no second import entry below the list');
+    await ui.click('[data-testid="capability-models-import"]');
+    assert.deepEqual(opened, ['import'], 'the direct import entry opens the import menu');
+
+    await render({ onImportModelFiles: undefined });
+    await ui.click('[data-testid="capability-models-import"]');
+    assert.deepEqual(opened, ['import', 'files']);
+
+    await render({ onImportModelFiles: undefined, onModelFiles: undefined });
+    assert.equal(ui.document.querySelector('[data-testid="capability-models-import"]'), null, 'no dead import button without a destination');
+  });
+});
+
+test('a version choice opens on request, follows the picked version, and returns to the device recommendation', async () => {
+  await withRenderer(async (ui) => {
+    const { SetupTaskPlanReview } = await import('../src/shell/renderer/features/runtime-config/runtime-config-setup-task-view.js');
+    const option = (quant: string, sizeBytes: number, recommended = false) => ({
+      offerRef: `offer:${quant}`, title: `gemma-4-e2b-it-local (${quant})`, variantLabel: '', sizeBytes, recommended,
+    });
+    const plan = {
+      reuse: [], acquire: [], unavailable: [], components: [], options: [],
+      awaitingChoice: [{ slotId: 'main.gguf', label: 'Main model', options: [option('Q8_0', 5_048_350_848, true), option('Q4_K_M', 3_106_736_256)] }],
+      environmentPlanId: 'env-1', candidateRevision: 'r1', selectionRevisionPresent: false,
+    };
+    function Review() {
+      const [choices, setChoices] = React.useState<Record<string, string>>({ 'main.gguf': 'offer:Q8_0' });
+      return <SetupTaskPlanReview plan={plan} choices={choices} onChoiceChange={(slot, ref) => setChoices((previous) => ({ ...previous, [slot]: ref }))} />;
+    }
+    await ui.render(<Review />);
+    const line = () => ui.document.querySelector('[data-testid="runtime-setup-task-choice:main.gguf"]')?.textContent ?? '';
+    const restore = '[data-testid="runtime-setup-restore-recommendation:main.gguf"]';
+    assert.match(line(), /Gemma 4 2B · Q8/);
+    assert.match(line(), /Recommended for this device/);
+    assert.equal(ui.document.querySelectorAll('input[type="radio"]').length, 0, 'the versions stay closed while the recommendation is selected');
+
+    await ui.click('[data-testid="runtime-setup-task-choice-toggle:main.gguf"]');
+    const radios = Array.from(ui.document.querySelectorAll<HTMLInputElement>('input[type="radio"]'));
+    assert.equal(radios.length, 2);
+    assert.equal(ui.document.querySelector(restore), null);
+    await act(async () => radios[0]!.click());
+    assert.match(line(), /Gemma 4 2B · Q4/);
+    assert.doesNotMatch(line(), /Recommended for this device/);
+
+    await ui.click(restore);
+    assert.match(line(), /Gemma 4 2B · Q8/);
+    assert.equal(ui.document.querySelector(restore), null);
+  });
+});
+
+test('inside the capability card the review leads with the model and keeps both confirmations in view', async () => {
+  await withRenderer(async (ui) => {
+    const { RuntimeConfigSetupTaskView } = await import('../src/shell/renderer/features/runtime-config/runtime-config-setup-task-view.js');
+    const store = createRuntimeSetupTaskStore({ storage: null });
+    const task = store.createTask({ capabilityContract: 'text.generate', source: { kind: 'runtime', accountId: 'acct' } });
+    const offer = (quant: string, totalSizeBytes: number) => ({
+      candidate: { offerRef: `offer:${quant}`, title: `gemma-4-e2b-it-local (${quant})`, variantLabel: '', installable: true, totalSizeBytes, downloadSizeBytes: totalSizeBytes, author: 'model-publisher', license: 'Apache-2.0' },
+      applicability: 'supported', installedModelAssetId: '',
+    });
+    const recipe = {
+      recipeId: 'gemma', title: 'Gemma 4 text generation', capabilityContract: 'text.generate', defaultOptions: {}, applicability: 'supported',
+      slots: [{ slotId: 'main.gguf', displayLabel: 'Main model', presence: 'required', recommendedVariantIds: ['template:q8'], recommendedContentIds: [], offers: [offer('Q8_0', 5_048_350_848), offer('Q4_K_M', 3_106_736_256)] }],
+    };
+    let candidate: unknown;
+    let proposed: Record<string, unknown>;
+    const writes: string[] = [];
+    const ports = {
+      loadouts: {
+        listRecipes: async () => [recipe],
+        get: async () => ({ loadouts: candidate ? [candidate] : [], selections: [], selectionRevisions: {} }),
+        prepare: async (input: Record<string, unknown>) => { writes.push('prepare'); proposed = input; return { prepareId: 'proposal' }; },
+        commit: async () => { writes.push('commit-candidate'); candidate = { ...proposed, loadoutId: 'candidate', revision: 'r1' }; return { loadoutId: 'candidate', revision: 'r1' }; },
+      },
+      environment: { resolveEnvironmentPlan: async () => ({ planId: 'environment', dependencies: [] }) },
+      install: {
+        resolveOfferInstallPlan: async (offerRef: string) => ({ templateId: offerRef === 'offer:Q8_0' ? 'template:q8' : 'template:other', installAvailable: true }),
+        install: async () => { writes.push('download'); throw new Error('Unexpected download before confirmation'); },
+      },
+      aiConfigForSource: () => null,
+      account: { currentAccountId: () => 'acct' },
+      now: () => '2026-09-24T00:00:00Z',
+    } as unknown as RuntimeSetupRunnerPorts;
+    let closed = 0;
+    await ui.render(<RuntimeConfigSetupTaskView taskId={task.taskId} store={store} ports={ports} embedded onClose={() => { closed += 1; }} />);
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+    assert.equal(store.getTask(task.taskId)?.status, 'review');
+
+    // The recommended version names the card, with its size and the version choice beside it.
+    const plan = ui.document.querySelector('[data-testid="runtime-setup-task-plan"]')!;
+    assert.equal(plan.querySelector('h2')?.textContent, 'Gemma 4 2B · Q8');
+    assert.match(plan.textContent ?? '', /Recommended for this device[\s\S]*4\.70 GB[\s\S]*Change version/);
+    assert.match(plan.querySelector('[data-testid="runtime-setup-offer-terms:main.gguf"]')?.textContent ?? '', /model-publisher.*Apache-2\.0/);
+    assert.ok(plan.querySelector('[data-testid="runtime-setup-download-scope"]'));
+    assert.equal(ui.document.querySelector('dl'), null, 'a single model file needs no summary rows');
+    assert.doesNotMatch(plan.innerHTML, /--nimi-surface-card/, 'no second card inside the capability card');
+
+    // Both confirmations are in view; nothing hides behind a "More actions" disclosure.
+    assert.equal(ui.document.querySelector('[data-testid="runtime-setup-task-prepare-and-use"]')?.textContent, 'Download and use · 4.70 GB');
+    assert.equal(ui.document.querySelector('[data-testid="runtime-setup-task-prepare-only"]')?.textContent, 'Download only, don’t switch');
+    assert.equal(ui.document.querySelector('details'), null);
+
+    // Closing is an icon control with its name, and leaving the unconfirmed setup writes nothing more.
+    const close = ui.document.querySelector<HTMLButtonElement>('[data-testid="runtime-setup-task-close"]')!;
+    assert.equal(close.getAttribute('aria-label'), 'Close setup');
+    await ui.click('[data-testid="runtime-setup-task-close"]');
+    assert.equal(closed, 1);
+    assert.deepEqual(writes, ['prepare', 'commit-candidate']);
   });
 });
 

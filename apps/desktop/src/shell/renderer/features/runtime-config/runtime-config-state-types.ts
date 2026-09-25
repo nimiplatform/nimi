@@ -52,6 +52,11 @@ export type RuntimeConfigActionFocus =
     page: 'modelLibrary';
     action: 'import-model-files';
     focus: 'runtime-config-action-focus.model-library-import';
+  }
+  | {
+    page: 'modelLibrary';
+    action: 'manage-model-files';
+    focus: 'runtime-config-action-focus.model-library-files';
   };
 
 export type LocalStateV11 = {
@@ -139,6 +144,17 @@ export function normalizeRuntimeConfigActionFocus(value: unknown): RuntimeConfig
       page: 'modelLibrary',
       action: 'import-model-files',
       focus: 'runtime-config-action-focus.model-library-import',
+    };
+  }
+  if (
+    record.page === 'modelLibrary'
+    && record.action === 'manage-model-files'
+    && record.focus === 'runtime-config-action-focus.model-library-files'
+  ) {
+    return {
+      page: 'modelLibrary',
+      action: 'manage-model-files',
+      focus: 'runtime-config-action-focus.model-library-files',
     };
   }
   return null;

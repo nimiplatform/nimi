@@ -5,28 +5,61 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { createInstance } from 'i18next';
 import { I18nextProvider } from 'react-i18next';
 import { ModelCardMarkdown, modelCardBody, modelCardUrl } from '../src/shell/renderer/features/runtime-config/runtime-config-model-card';
-import { InstallPlanPanel } from '../src/shell/renderer/features/runtime-config/runtime-config-page-recommend';
+import { InstallPlanPanel, ModelInstallAction } from '../src/shell/renderer/features/runtime-config/runtime-config-page-recommend';
 import type { NimiRuntimeLocalInstallPlanDescriptor } from '@nimiplatform/sdk/runtime';
 
 (globalThis as { React?: typeof React }).React = React;
 const baseUrl = 'https://huggingface.co/org/model/resolve/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/';
 
-test('an existing install plan keeps its review action available after expiry or a failed attempt', async () => {
+test('the header owns the install action while the panel keeps plan details and re-review after a failed attempt', async () => {
   const i18n = createInstance();
   await i18n.init({ lng: 'en', resources: {} });
   const plan = {
     planId: 'previously-reviewed', modelId: 'org/model', repo: 'org/model', revision: 'revision',
     entry: 'model.gguf', files: ['model.gguf'], warnings: [], installAvailable: true,
   } as unknown as NimiRuntimeLocalInstallPlanDescriptor;
-  const html = renderToStaticMarkup(<I18nextProvider i18n={i18n}><InstallPlanPanel
-    installed={false} installable plan={plan} error="Install plan expired" busy={false}
-    runtimeWritesDisabled={false} onReview={() => {}} onInstall={() => {}} onOpenLocalAssets={() => {}}
-  /></I18nextProvider>);
-  const buttons = [...html.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/g)]
+  const buttonsOf = (html: string) => [...html.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/g)]
     .map((match) => ({ attributes: match[1]!, label: match[2]!.replace(/<[^>]*>/g, '') }));
-  assert.ok(buttons.some((button) => button.label === 'Review install' && !button.attributes.includes('disabled=""')));
-  assert.ok(buttons.some((button) => button.label === 'Download and install' && !button.attributes.includes('disabled=""')));
-  assert.match(html, /Install plan expired/);
+
+  const headerHtml = renderToStaticMarkup(<I18nextProvider i18n={i18n}><ModelInstallAction
+    installed={false} installable plan={plan} busy={false} runtimeWritesDisabled={false}
+    onReview={() => {}} onInstall={() => {}} onOpenLocalAssets={() => {}}
+  /></I18nextProvider>);
+  assert.ok(buttonsOf(headerHtml).some((button) => button.label === 'Download and install' && !button.attributes.includes('disabled=""')));
+
+  const panelHtml = renderToStaticMarkup(<I18nextProvider i18n={i18n}><InstallPlanPanel
+    installed={false} installable plan={plan} error="Install plan expired" busy={false} onReview={() => {}}
+  /></I18nextProvider>);
+  assert.ok(buttonsOf(panelHtml).some((button) => button.label === 'Review install' && !button.attributes.includes('disabled=""')));
+  assert.match(panelHtml, /Install plan expired/);
+});
+
+test('the header install entry stays visible before review and the panel stays hidden until there is detail', async () => {
+  const i18n = createInstance();
+  await i18n.init({ lng: 'en', resources: {} });
+  const headerHtml = renderToStaticMarkup(<I18nextProvider i18n={i18n}><ModelInstallAction
+    installed={false} installable plan={null} busy={false} runtimeWritesDisabled={false}
+    onReview={() => {}} onInstall={() => {}} onOpenLocalAssets={() => {}}
+  /></I18nextProvider>);
+  assert.match(headerHtml, /Review install/);
+  const panelHtml = renderToStaticMarkup(<I18nextProvider i18n={i18n}><InstallPlanPanel
+    installed={false} installable plan={null} error="" busy={false} onReview={() => {}}
+  /></I18nextProvider>);
+  assert.equal(panelHtml, '');
+});
+
+test('an installed model offers the downloaded inventory from the header instead of the panel', async () => {
+  const i18n = createInstance();
+  await i18n.init({ lng: 'en', resources: {} });
+  const headerHtml = renderToStaticMarkup(<I18nextProvider i18n={i18n}><ModelInstallAction
+    installed installable plan={null} busy={false} runtimeWritesDisabled={false}
+    onReview={() => {}} onInstall={() => {}} onOpenLocalAssets={() => {}}
+  /></I18nextProvider>);
+  assert.match(headerHtml, /Open Downloaded/);
+  const panelHtml = renderToStaticMarkup(<I18nextProvider i18n={i18n}><InstallPlanPanel
+    installed installable plan={null} error="" busy={false} onReview={() => {}}
+  /></I18nextProvider>);
+  assert.equal(panelHtml, '');
 });
 
 test('model card preserves document content while hiding metadata and resolving repository assets', () => {
@@ -75,4 +108,22 @@ test('market filters and user ordering preserve exact candidates and source orde
   assert.deepEqual(filterModelMarketRows(rows, 'all', 'all', 'downloads').map((row) => row.offerRef), ['offer-a', 'offer-z', 'offer-b']);
   assert.deepEqual(filterModelMarketRows(rows, 'all', 'all', 'size').map((row) => row.offerRef), ['offer-a', 'offer-z', 'offer-b']);
   assert.deepEqual(rows.map((row) => row.offerRef), ['offer-z', 'offer-a', 'offer-b']);
+});
+
+test('market logos credit a quantization to its base model maker and keep a monogram for unknown makers', async () => {
+  const { ModelMakerLogo, modelMakerOrg } = await import('../src/shell/renderer/features/runtime-config/runtime-config-model-market-detail');
+  const quantizedTags = ['gguf', 'base_model:Qwen/Qwen3-Coder-30B-A3B-Instruct', 'base_model:quantized:Qwen/Qwen3-Coder-30B-A3B-Instruct'];
+  assert.equal(modelMakerOrg('unsloth', quantizedTags), 'Qwen');
+  assert.equal(modelMakerOrg('RunDiffusion', ['base_model:finetune:stabilityai/stable-diffusion-xl-base-1.0']), 'RunDiffusion');
+  assert.equal(modelMakerOrg(' ornith-ai ', []), 'ornith-ai');
+  assert.equal(modelMakerOrg(undefined), '');
+
+  const logo = renderToStaticMarkup(<ModelMakerLogo author="unsloth" tags={quantizedTags} />);
+  assert.match(logo, /title="Qwen"/);
+  assert.match(logo, /data-model-maker-logo="qwen-color"/);
+  assert.match(logo, /<svg /);
+  const monogram = renderToStaticMarkup(<ModelMakerLogo author="ornith-ai" tags={[]} />);
+  assert.doesNotMatch(monogram, /data-model-maker-logo|<svg/);
+  assert.match(monogram, />OA<\/span>/);
+  assert.equal(renderToStaticMarkup(<ModelMakerLogo />), '');
 });

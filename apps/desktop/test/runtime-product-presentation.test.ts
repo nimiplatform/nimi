@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { NimiLoadoutRecipe, NimiMachineLoadout, NimiRuntimeLocalVerifiedAssetDescriptor, NimiRuntimeModelAssetRecord } from '@nimiplatform/sdk/runtime';
 import { AppPackageJobPhase } from '@nimiplatform/sdk/runtime/wire-types';
-import { capabilityModelIdentity, distinctSavedLoadouts, recipeResourceSummary, setupPlanNeedsPreparation } from '../src/shell/renderer/features/runtime-config/runtime-capability-presentation.js';
+import { capabilityModelIdentity, configurationVariantLabel, distinctSavedLoadouts, recipeResourceSummary, setupPlanNeedsPreparation } from '../src/shell/renderer/features/runtime-config/runtime-capability-presentation.js';
 import type { RuntimeSetupPreparationPlan } from '../src/shell/renderer/features/runtime-config/runtime-setup-task-runner.js';
 import { appJobLane, groupTransferAttempts, interruptionReasonKey, transferLane } from '../src/shell/renderer/features/runtime-config/global-downloads-presentation.js';
 
@@ -39,6 +39,17 @@ test('capability title preserves the model identity separately from a custom con
   const result = capabilityModelIdentity({ recipeId: 'recipe', displayName: 'My custom settings', modelAxes: [] } as unknown as NimiMachineLoadout, [recipe([])]);
   assert.equal(result.title, 'Readable model');
   assert.equal(result.alias, 'My custom settings');
+});
+
+test('a generated configuration name shows only its variant beside the model name, a chosen name stays whole', () => {
+  const recipeTitle = 'Gemma 4 text generation';
+  assert.equal(configurationVariantLabel(`${recipeTitle} · Gemma 4 2B · Q8`, recipeTitle, 'Gemma 4'), '2B · Q8');
+  assert.equal(configurationVariantLabel(`${recipeTitle} · Gemma 4 · Q4`, recipeTitle, 'Gemma 4'), 'Q4');
+  assert.equal(configurationVariantLabel(`${recipeTitle} · Gemma 40B · Q4`, recipeTitle, 'Gemma 4'), 'Gemma 40B · Q4', 'another size is not trimmed into a fragment');
+  assert.equal(configurationVariantLabel(`${recipeTitle} · Gemma 4`, recipeTitle, 'Gemma 4'), '');
+  assert.equal(configurationVariantLabel(recipeTitle, recipeTitle, 'Gemma 4'), '');
+  assert.equal(configurationVariantLabel('Long context', recipeTitle, 'Gemma 4'), 'Long context');
+  assert.equal(configurationVariantLabel('Long context', '', 'Long context'), '', 'without a recipe the name is already the title');
 });
 
 test('downloads separate interrupted work from canceled history and resumable work', () => {

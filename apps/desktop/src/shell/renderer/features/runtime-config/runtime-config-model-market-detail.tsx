@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StatusBadge, Surface } from '@nimiplatform/kit/ui';
 
+import { ModelMakerLogoTile } from '../../components/provider-logo-tile.js';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import { formatCompactCount } from './runtime-config-model-center-utils';
 
@@ -25,33 +26,40 @@ export function MarketDetailColumns(props: {
   );
 }
 
-// HuggingFace-style identity row: org avatar, "author / title" headline, and
-// trust badges (verified / installed).
+// HuggingFace-style identity row: maker logo, "author / title" headline, and
+// trust badges (verified / installed). `actions` pins the page's primary
+// action (for example install) to the far right of the headline so it stays
+// visible without scrolling.
 export function ModelIdentityHeader(props: {
   readonly author?: string;
+  readonly tags?: readonly string[];
   readonly title: string;
   readonly verified?: boolean;
   readonly badges?: ReactNode;
+  readonly actions?: ReactNode;
 }) {
   const { t } = useTranslation();
   const author = (props.author ?? '').trim();
   return (
-    <div className="flex min-w-0 items-start gap-3">
-      <AuthorAvatar author={props.author} size="lg" />
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <h1 className="break-all text-xl font-semibold text-[var(--nimi-text-primary)]">
-            {author ? <span className="text-[var(--nimi-text-muted)]">{author} / </span> : null}
-            {props.title}
-          </h1>
-          {props.verified ? (
-            <StatusBadge tone="success" shape="soft">
-              {t('runtimeConfig.recommend.verified', { defaultValue: 'Verified' })}
-            </StatusBadge>
-          ) : null}
-          {props.badges}
+    <div className="flex min-w-0 items-start justify-between gap-3">
+      <div className="flex min-w-0 items-start gap-3">
+        <ModelMakerLogo author={props.author} tags={props.tags} size="lg" />
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <h1 className="break-all text-xl font-semibold text-[var(--nimi-text-primary)]">
+              {author ? <span className="text-[var(--nimi-text-muted)]">{author} / </span> : null}
+              {props.title}
+            </h1>
+            {props.verified ? (
+              <StatusBadge tone="success" shape="soft">
+                {t('runtimeConfig.recommend.verified', { defaultValue: 'Verified' })}
+              </StatusBadge>
+            ) : null}
+            {props.badges}
+          </div>
         </div>
       </div>
+      {props.actions ? <div className="flex shrink-0 items-center gap-2 self-center">{props.actions}</div> : null}
     </div>
   );
 }
@@ -243,31 +251,38 @@ export function MarketMeta(props: {
   ) : null;
 }
 
-// Local stand-in for organization avatars: deterministic color tile with the
-// author's initial, so cards keep the HuggingFace-style org marker without any
-// remote image dependency. Swap for an <img> once the model-index feed carries
-// real avatar URLs.
-export function AuthorAvatar(props: { readonly author?: string; readonly size?: 'sm' | 'lg' }) {
-  const author = (props.author ?? '').trim();
-  const initial = author ? (Array.from(author)[0] ?? '').toUpperCase() : '';
-  if (!initial) {
+const QUANTIZED_BASE_MODEL_TAG = /^base_model:quantized:([^/\s]+)\//u;
+
+/**
+ * Organization credited as a market model's maker. A quantization (unsloth,
+ * bartowski, …) is credited to the organization whose model it quantizes, per
+ * the Hugging Face `base_model:quantized:<org>/<model>` lineage tag; any other
+ * repo, fine-tunes and merges included, is credited to its own author.
+ */
+export function modelMakerOrg(author: string | undefined, tags: readonly string[] = []): string {
+  for (const tag of tags) {
+    const org = QUANTIZED_BASE_MODEL_TAG.exec(tag.trim())?.[1];
+    if (org) {
+      return org;
+    }
+  }
+  return (author ?? '').trim();
+}
+
+// Maker brand logo in place of a HuggingFace-style org avatar, so cards need no
+// remote image; makers without a bundled mark keep a monogram tile.
+export function ModelMakerLogo(props: {
+  readonly author?: string;
+  readonly tags?: readonly string[];
+  readonly size?: 'sm' | 'lg';
+}) {
+  const maker = modelMakerOrg(props.author, props.tags);
+  if (!maker) {
     return null;
   }
-  let hash = 0;
-  for (const ch of author) {
-    hash = (hash * 31 + (ch.codePointAt(0) ?? 0)) >>> 0;
-  }
-  const sizeClass = props.size === 'lg'
-    ? 'h-9 w-9 rounded-lg text-sm'
-    : 'h-5 w-5 rounded-md text-[11px]';
   return (
-    <span
-      aria-hidden="true"
-      title={author}
-      className={`flex shrink-0 select-none items-center justify-center font-semibold text-white ${sizeClass}`}
-      style={{ backgroundColor: `hsl(${hash % 360} 45% 42%)` }}
-    >
-      {initial}
+    <span title={maker} className="inline-flex shrink-0">
+      <ModelMakerLogoTile maker={maker} size={props.size === 'lg' ? 'md' : 'xs'} />
     </span>
   );
 }

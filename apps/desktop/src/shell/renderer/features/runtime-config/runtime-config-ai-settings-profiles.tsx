@@ -8,7 +8,7 @@ import { Button, IconButton, InlineAlert, LoadingSkeleton, SelectField } from '@
 import type {
   NimiDesktopPortableAIProfileCatalogRecord,
 } from '@nimiplatform/sdk/runtime';
-import { Download, FileUp, Share2 } from 'lucide-react';
+import { ArrowLeft, Download, FileUp, Share2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
@@ -30,6 +30,7 @@ import { ProfileRecommendationsPage } from './runtime-config-profile-recommendat
 import {
   planRuntimeSetupProfileUse,
 } from './runtime-config-profile-use.js';
+import { runtimeSetupFailureText } from './runtime-setup-failure-message.js';
 import {
   currentDesktopAccountIdForSetup,
 } from './runtime-setup-task-ports.js';
@@ -45,7 +46,6 @@ import type {
 type ProfilesSectionMode =
   | { readonly kind: 'list'; }
   | { readonly kind: 'recommended'; }
-  | { readonly kind: 'import'; }
   | { readonly kind: 'create'; }
   | { readonly kind: 'export'; }
   | {
@@ -64,13 +64,14 @@ function profileUseOwnerLabel(
 
 /**
  * The AI settings 配置库 (profile library) section: recommendations, use,
- * import, create, and export share one in-page home. Using a profile never
+ * create, and export share one in-page home, and import opens as a dialog
+ * over the list it adds to. Using a profile never
  * stores it again, and storing/importing never applies it — the two are
  * separate journeys. With an owner context (entered from an app), the use
  * journey retains that owner when entering the shared preparation tasks.
  */
 export function RuntimeConfigAiSettingsProfilesSection(props: {
-  /** Home heading; hidden while an import, export, create or use journey owns the page. */
+  /** Home heading; hidden while an export, create or use journey owns the page. */
   readonly title: string;
   /** Preparation summary shown under the heading where the rail is hidden. */
   readonly lead: string;
@@ -91,6 +92,7 @@ export function RuntimeConfigAiSettingsProfilesSection(props: {
   const sdk = useDesktopRendererSdk();
   const profileCatalog = useMemo(() => sdk.accountProduct().profiles, [sdk]);
   const [mode, setMode] = useState<ProfilesSectionMode>({ kind: 'list' });
+  const [importing, setImporting] = useState(false);
   const [records, setRecords] = useState<readonly NimiDesktopPortableAIProfileCatalogRecord[] | null>(null);
   const [loadError, setLoadError] = useState('');
   const [refreshNonce, setRefreshNonce] = useState(0);
@@ -143,7 +145,7 @@ export function RuntimeConfigAiSettingsProfilesSection(props: {
                 <Button
                   tone="ghost"
                   size="sm"
-                  onClick={() => setMode({ kind: 'import' })}
+                  onClick={() => setImporting(true)}
                   data-testid="runtime-ai-settings-profile-import"
                 >
                   <FileUp size={14} strokeWidth={1.8} aria-hidden="true" />
@@ -195,7 +197,8 @@ export function RuntimeConfigAiSettingsProfilesSection(props: {
         ) : null}
         {mode.kind === 'list' && props.belowEntryPoints ? <div className="mt-4">{props.belowEntryPoints}</div> : null}
         {mode.kind !== 'list' && mode.kind !== 'use' ? (
-          <Button tone="ghost" size="sm" onClick={() => setMode({ kind: 'list' })}>
+          <Button tone="ghost" size="sm" className="-ml-3" onClick={() => setMode({ kind: 'list' })}>
+            <ArrowLeft size={15} />
             {t('runtimeConfig.capabilities.backHome')}
           </Button>
         ) : null}
@@ -208,15 +211,16 @@ export function RuntimeConfigAiSettingsProfilesSection(props: {
             />
           </div>
         ) : null}
-        {mode.kind === 'import' ? (
-          <div className="mt-3">
-            <ProfileImportWizard
-              initialSourceText={null}
-              onClose={() => setMode({ kind: 'list' })}
-              onCatalogChanged={() => setRefreshNonce((value) => value + 1)}
-              onUseImported={(profile) => setMode({ kind: 'use', profile })}
-            />
-          </div>
+        {importing ? (
+          <ProfileImportWizard
+            initialSourceText={null}
+            onClose={() => setImporting(false)}
+            onCatalogChanged={() => setRefreshNonce((value) => value + 1)}
+            onUseImported={(profile) => {
+              setImporting(false);
+              setMode({ kind: 'use', profile });
+            }}
+          />
         ) : null}
         {mode.kind === 'create' ? (
           <div className="mt-3" data-testid="runtime-ai-settings-profile-authoring">
@@ -503,7 +507,7 @@ function ProfileUsePanel(props: {
         if (created.status === 'ok') {
           nextOutcomes.push({ capabilityContract: plan.capabilityContract, taskId: task.taskId });
         } else {
-          nextOutcomes.push({ capabilityContract: plan.capabilityContract, error: created.failure.message });
+          nextOutcomes.push({ capabilityContract: plan.capabilityContract, error: runtimeSetupFailureText(created.failure, t) });
         }
       }
       // Owner routes are deliberately NOT saved here: each task saves its
@@ -516,7 +520,7 @@ function ProfileUsePanel(props: {
         props.onOpenSetupTask(firstTaskId);
       }
     })().catch((error: unknown) => setPreviewError(error instanceof Error ? error.message : String(error))).finally(() => setBusy(false));
-  }, [busy, owner, profile.source.profileId, props, startablePlans]);
+  }, [busy, owner, profile.source.profileId, props, startablePlans, t]);
 
   useEffect(() => {
     if (!props.autoReview || autoReviewStarted.current || !transferPlan || busy || previewError || startablePlans.length !== selectedPlans.length || !startablePlans.length) return;

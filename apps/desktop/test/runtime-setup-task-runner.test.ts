@@ -507,6 +507,34 @@ async function reachReview(store: RuntimeSetupTaskStore, taskId: string, ports: 
   return resolved.status === 'ok' ? resolved.value : assert.fail('unreachable');
 }
 
+test('a failed candidate keeps the exact chosen recipe, options and axes for recovery', async () => {
+  const store = makeStore();
+  const taskId = await createAppTask(store);
+  const calls: CallLog = [];
+  const state = baseState({ prepareError: createNimiError({ reasonCode: 'AI_LOADOUT_MODEL_ASSET_NOT_FOUND', message: 'missing asset' }) });
+  const input = {
+    recipeId: 'image.recipe', options: { steps: 31 },
+    axes: [{ slotId: 'main.diffusion', modelAssetId: 'missing-original', expectedContentId: 'sha256:original' }],
+  };
+  const result = await createRuntimeSetupCandidate(store, taskId, createPorts(state, calls), input);
+  assert.equal(result.status, 'failed');
+  assert.equal(store.getTask(taskId)?.status, 'failed');
+  assert.deepEqual(store.getTask(taskId)?.draft, input);
+  assert.equal(store.getTask(taskId)?.candidateLoadoutId, undefined);
+  assert.equal(calls.some(call => call.method === 'loadouts.commit' || call.method === 'loadouts.select' || call.method === 'install.install'), false);
+});
+
+test('an unavailable chosen recipe records a terminal failure instead of falling back to another model', async () => {
+  const store = makeStore();
+  const taskId = await createAppTask(store);
+  const calls: CallLog = [];
+  const result = await createRuntimeSetupCandidate(store, taskId, createPorts(baseState(), calls), { recipeId: 'removed.recipe' });
+  assert.equal(result.status, 'failed');
+  assert.equal(store.getTask(taskId)?.failure?.reasonCode, 'RUNTIME_SETUP_RECIPE_UNAVAILABLE');
+  assert.equal(store.getTask(taskId)?.draft?.recipeId, 'removed.recipe');
+  assert.equal(calls.some(call => call.method === 'loadouts.prepare'), false);
+});
+
 test('first-time local setup runs the full authorized chain in order with expected conditions', async () => {
   const store = makeStore();
   const calls: CallLog = [];
@@ -1281,6 +1309,8 @@ test('a reviewed plan with awaiting choices confirms once the same choices resol
   const plan = await reachReview(store, taskId, ports);
   assert.equal(plan.awaitingChoice.length, 1);
   assert.deepEqual(plan.awaitingChoice[0]?.options.map((option) => option.offerRef), ['offer:a', 'offer:b']);
+  // Remembering the UI pick does not rewrite the planner's choice structure.
+  store.updateTask(taskId, current => ({ draft: { ...current.draft, reviewChoices: { 'main.diffusion': 'offer:b' } } }));
 
   const result = await runRuntimeSetupPreparation(store, taskId, ports, {
     mode: 'prepare-only',

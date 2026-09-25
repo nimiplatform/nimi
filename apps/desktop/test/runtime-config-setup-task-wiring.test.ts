@@ -65,6 +65,20 @@ test('the AI settings page navigates back to the recorded source on return', asy
   assert.match(open, /return \{ kind: 'tab', tab: 'chat' \}/u);
 });
 
+test('the AI settings page notice leaves recorded failures to the task view and does not outlive navigation', async () => {
+  const page = await readFeature('runtime-config/runtime-config-page-ai-settings.tsx');
+  // A failure the opened task recorded is shown by the task view, not repeated above it.
+  assert.match(page, /if \(!store\.getTask\(taskId\)\?\.failure\) setError\(failure\);/u);
+  assert.doesNotMatch(page, /setError\((?:result|created)\.failure\.message\)/u);
+  // The notice renders through the shared failure presentation, never as raw text.
+  assert.match(page, /<InlineAlert tone="danger">\s*<RuntimeSetupFailureMessage failure=\{error\} \/>/u);
+  // Home, closing the task view and returning to the source each drop the notice.
+  const between = (start: string, end: string) => page.slice(page.indexOf(start), page.indexOf(end, page.indexOf(start)));
+  assert.match(between('const onHome = () => {', '};'), /setError\(null\)/u);
+  assert.match(between('const onReturnToSource = () => {', '};'), /setError\(null\)/u);
+  assert.match(between('<RuntimeConfigSetupTaskView', 'onReturnToSource='), /props\.onCloseSetupTask\(\);\s*setError\(null\);/u);
+});
+
 test('the AI settings page hosts the profile library section with all five entries', async () => {
   const [page, section] = await Promise.all([
     readFeature('runtime-config/runtime-config-page-ai-settings.tsx'),

@@ -13,9 +13,10 @@ import {
   isNimiRuntimeLocalEnvironmentDependencyReadyState,
 } from '@nimiplatform/sdk/runtime';
 import { AppPackageJobPhase, AppPackageSourceClass } from '@nimiplatform/sdk/runtime/wire-types';
-import { Download } from 'lucide-react';
+import { Download, RefreshCw } from 'lucide-react';
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { SHELL_PAGE_WIDTH_CLASS } from '../../app-shell/layouts/shell-chrome-classes.js';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
 import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
 import { formatBytes } from '../../components/download-format.js';
@@ -363,206 +364,235 @@ export function GlobalDownloadsView() {
         ? t('runtimeConfig.downloads.summaryAttention', { count: counts.attention })
         : t('runtimeConfig.downloads.summaryIdle');
   return (
-    <div className="flex min-h-0 flex-1 flex-col p-3">
-      <Surface tone="panel" padding="none" className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <header className="flex flex-wrap items-center justify-between gap-3 px-6 pb-4 pt-6 lg:px-8">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">{t('runtimeConfig.downloads.title')}</h1>
-            <p className="mt-1.5 text-sm text-[var(--nimi-text-secondary)]">{statusLine}</p>
-          </div>
-          <Button
-            tone="ghost"
-            size="sm"
-            onClick={() => {
-              void downloads?.refresh();
-            }}
-          >
-            {t('Common.refresh')}
-          </Button>
-        </header>
-        {!appDetails ? (
-          <div className="border-b border-[var(--nimi-border-subtle)] px-6 lg:px-8">
-            <NimiTabs
-              ariaLabel={t('runtimeConfig.downloads.title')}
-              value={lane}
-              onValueChange={(value) => setLane(value as DownloadsLane)}
-              items={lanes.map((value) => ({
-                value,
-                label:
-                  t(`runtimeConfig.product.downloadLane.${value}`) +
-                  (counts[value] ? ' (' + counts[value] + ')' : ''),
-              }))}
-            />
-          </div>
-        ) : null}
-        {appDetails ? (
-          <div className="flex min-h-0 flex-1 flex-col">
-            <Button tone="ghost" onClick={() => setAppDetails(false)}>
-              {t('runtimeConfig.downloads.back')}
+    <div className="flex min-h-0 flex-1 px-3 pb-5 pt-4">
+      <div className={`flex min-h-0 flex-1 ${SHELL_PAGE_WIDTH_CLASS}`}>
+        <Surface
+          tone="panel"
+          material="glass-regular"
+          padding="none"
+          className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[2rem] border-white/60 shadow-[0_22px_52px_rgba(15,23,42,0.08)]"
+        >
+          <header className="flex shrink-0 items-center justify-between gap-4 px-6 pb-4 pt-5">
+            <div className="flex min-w-0 items-center gap-3.5">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] text-[var(--nimi-action-primary-bg)]">
+                <Download size={20} />
+              </span>
+              <div className="min-w-0">
+                <h1 className="nimi-type-page-title truncate text-[color:var(--nimi-text-primary)]">
+                  {t('runtimeConfig.downloads.title')}
+                </h1>
+                <p className="mt-0.5 text-xs text-[var(--nimi-text-muted)]">{statusLine}</p>
+              </div>
+            </div>
+            <Button
+              tone="ghost"
+              size="sm"
+              leadingIcon={<RefreshCw size={14} />}
+              onClick={() => {
+                void downloads?.refresh();
+              }}
+            >
+              {t('Common.refresh')}
             </Button>
-            <Suspense fallback={<LoadingSkeleton className="h-32" />}>
-              <AppDownloadsDetail downloadsOnly />
-            </Suspense>
-          </div>
-        ) : (
-          <ScrollArea className="min-h-0 flex-1" contentClassName="space-y-4 px-6 py-4 lg:px-8">
-            {error ? <InlineAlert tone="danger">{error}</InlineAlert> : null}
-            {downloads?.errors.length || apps?.error ? (
-              <InlineAlert tone="warning">
-                {t('runtimeConfig.downloads.readFailed')}
-                <details>
-                  <summary>{t('runtimeConfig.profiles.technicalDetails')}</summary>
-                  {[...(downloads?.errors ?? []), apps?.error].filter(Boolean).join(' · ')}
-                </details>
-              </InlineAlert>
-            ) : null}
-            {[...grouped.entries()].map(([id, tasks]) => {
-              const taskTransfers = transfers.filter(
-                (item) =>
-                  !usedTransfers.has(item.installSessionId) &&
-                  tasks.some(
-                    (task) =>
-                      task.refs.transferIds.includes(item.installSessionId) ||
-                      (!!item.planId && task.refs.installPlanIds.includes(item.planId)),
-                  ),
-              );
-              taskTransfers.forEach((item) => usedTransfers.add(item.installSessionId));
-              const taskEnvironments = environments.filter(
-                (item) =>
-                  !usedEnvironments.has(item.jobId) &&
-                  tasks.some((task) => task.refs.dependencyJobIds.includes(item.jobId)),
-              );
-              taskEnvironments.forEach((item) => usedEnvironments.add(item.jobId));
-              return (
-                <section key={id} className="rounded-2xl bg-[var(--nimi-surface-card)] px-5 pb-1 pt-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--nimi-text-muted)]">
-                        {t('runtimeConfig.downloads.setupGroup')}
-                      </p>
-                      <h2 className="font-semibold">
-                        {tasks[0]?.draft?.profileTitle ??
-                          displayRuntimeConfigCapabilityLabel(tasks[0]!.capabilityContract, t)}
-                      </h2>
-                      <p className="mt-0.5 text-xs text-[var(--nimi-text-secondary)]">
-                        {tasks
-                          .map((task) => `${displayRuntimeConfigCapabilityLabel(task.capabilityContract, t)} · ${t(`runtimeConfig.setupTask.status.${task.status}`)}`)
-                          .join(' · ')}
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      tone="secondary"
-                      onClick={() => {
-                        commands.runtimeConfigNavigation.openSetupTask(tasks[0]!.taskId);
-                        setActiveTab('runtime');
-                      }}
-                    >
-                      {t('runtimeConfig.downloads.openSetup')}
-                    </Button>
+          </header>
+          {!appDetails ? (
+            <div className="shrink-0 border-b border-[var(--nimi-border-subtle)] px-6">
+              <NimiTabs
+                ariaLabel={t('runtimeConfig.downloads.title')}
+                value={lane}
+                onValueChange={(value) => setLane(value as DownloadsLane)}
+                items={lanes.map((value) => ({
+                  value,
+                  label:
+                    t(`runtimeConfig.product.downloadLane.${value}`) +
+                    (counts[value] ? ' (' + counts[value] + ')' : ''),
+                }))}
+              />
+            </div>
+          ) : null}
+          {appDetails ? (
+            <div className="flex min-h-0 flex-1 flex-col">
+              <Button tone="ghost" onClick={() => setAppDetails(false)}>
+                {t('runtimeConfig.downloads.back')}
+              </Button>
+              <Suspense fallback={<LoadingSkeleton className="h-32" />}>
+                <AppDownloadsDetail downloadsOnly />
+              </Suspense>
+            </div>
+          ) : empty ? (
+            <div className="flex min-h-0 flex-1 flex-col">
+              {error ? <InlineAlert tone="danger" className="mx-6 mt-4">{error}</InlineAlert> : null}
+              <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-5 px-6 py-20 text-center">
+                <div className="relative flex items-center justify-center">
+                  <div
+                    aria-hidden="true"
+                    className="absolute h-36 w-36 rounded-full bg-[radial-gradient(circle,color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,transparent)_0%,transparent_70%)]"
+                  />
+                  <div className="relative flex h-20 w-20 items-center justify-center rounded-[1.75rem] border border-white/60 bg-[var(--nimi-surface-card)] text-[var(--nimi-action-primary-bg)] shadow-[0_18px_40px_rgba(15,23,42,0.10)]">
+                    <Download size={34} strokeWidth={1.6} />
                   </div>
-                  {taskTransfers.map((item) => transferRow(item))}
-                  {taskEnvironments.map(environmentRow)}
-                </section>
-              );
-            })}
-            {lane === 'active'
-              ? transfers.filter((item) => !usedTransfers.has(item.installSessionId)).map((item) => transferRow(item))
-              : groupTransferAttempts(transfers.filter((item) => !usedTransfers.has(item.installSessionId))).map(transferGroup)}
-            {environments.filter((item) => !usedEnvironments.has(item.jobId)).map(environmentRow)}
-            {(lane === 'active'
-              ? appJobs.map((job) => ({ job, attempts: 1 }))
-              : [...new Map(
-                  [...appJobs]
-                    .sort((left, right) => Number(right.updatedAt?.seconds ?? 0) - Number(left.updatedAt?.seconds ?? 0))
-                    .reverse()
-                    .map((job) => [job.appId, job] as const),
-                ).values()].map((job) => ({ job, attempts: appJobs.filter((item) => item.appId === job.appId).length }))
-            ).map(({ job, attempts }) => {
-              const entry = appEntries.get(job.appId);
-              const stage = appJobStage(appDownloadPhase(job));
-              const failure = appPackageFailureReason(job);
-              const displayName = job.displayName || entry?.identity.displayName || job.appId;
-              return (
-                <DownloadTaskRow
-                  key={packageJobKey(job)}
-                  testId={`download-app:${packageJobKey(job)}`}
-                  title={displayName}
-                  kind="app"
-                  lane={appJobLane(job.phase)}
-                  stage={stage}
-                  bytes={Number(job.bytesCompleted)}
-                  total={Number(job.bytesTotal)}
-                  attempts={attempts}
-                  at={job.updatedAt ? new Date(Number(job.updatedAt.seconds) * 1000).toISOString() : undefined}
-                  reason={stage === 'interrupted' ? t(interruptionReasonKey(failure ?? '')) : undefined}
-                  technical={failure ?? undefined}
-                  leading={<AppArtworkIcon appId={job.appId} displayName={displayName} iconUrl={entry?.iconUrl ?? null} size="md" className="mt-0.5" />}
-                >
-                  <div className="flex flex-wrap gap-2">
-                    {job.sourceClass === AppPackageSourceClass.VERIFIED &&
-                    [AppPackageJobPhase.QUEUED, AppPackageJobPhase.DOWNLOADING].includes(job.phase) ? (
-                      <Button
-                        size="sm"
-                        tone="secondary"
-                        disabled={busy}
-                        onClick={() => {
-                          void action(async () => {
-                            const results = await apps!.observer.control('pause', [job]);
-                            if (results[0]?.error) throw Error(results[0].error);
-                          });
-                        }}
-                      >
-                        {t('Apps.downloads.pause')}
-                      </Button>
-                    ) : null}
-                    {job.phase === AppPackageJobPhase.PAUSED ? (
-                      <Button
-                        size="sm"
-                        tone="primary"
-                        disabled={busy}
-                        onClick={() => {
-                          void action(async () => {
-                            const results = await apps!.observer.control('resume', [job]);
-                            if (results[0]?.error) throw Error(results[0].error);
-                          });
-                        }}
-                      >
-                        {t('Apps.downloads.resume')}
-                      </Button>
-                    ) : null}
-                    <Button
-                      size="sm"
-                      tone="ghost"
-                      onClick={() => {
-                        apps?.selectJob(packageJobKey(job));
-                        setAppDetails(true);
-                      }}
-                    >
-                      {t('runtimeConfig.downloads.appDetails')}
-                    </Button>
-                  </div>
-                </DownloadTaskRow>
-              );
-            })}
-            {loading ? <LoadingSkeleton lines={4} label={t('Common.loading')} /> : null}
-            {empty ? (
-              <div className="flex flex-col items-center py-16 text-center">
-                <Download size={32} strokeWidth={1.4} className="mb-4 text-[var(--nimi-text-muted)]" />
-                <h2 className="text-lg font-semibold">{t(`runtimeConfig.product.downloadEmpty.${lane}`)}</h2>
-                <p className="mt-2 max-w-md text-sm text-[var(--nimi-text-secondary)]">
-                  {t('runtimeConfig.product.downloadEmptyHelp')}
-                </p>
+                </div>
+                <div className="space-y-1.5">
+                  <h2 className="text-base font-semibold text-[var(--nimi-text-primary)]">
+                    {t(`runtimeConfig.product.downloadEmpty.${lane}`)}
+                  </h2>
+                  <p className="mx-auto max-w-sm text-sm leading-relaxed text-[var(--nimi-text-muted)]">
+                    {t('runtimeConfig.product.downloadEmptyHelp')}
+                  </p>
+                </div>
                 {lane === 'active' && counts.attention ? (
-                  <Button className="mt-5" tone="secondary" onClick={() => setLane('attention')}>
+                  <Button tone="secondary" onClick={() => setLane('attention')}>
                     {t('runtimeConfig.product.viewInterrupted', { count: counts.attention })}
                   </Button>
                 ) : null}
               </div>
-            ) : null}
-          </ScrollArea>
-        )}
-      </Surface>
+            </div>
+          ) : (
+            <ScrollArea className="min-h-0 flex-1" contentClassName="space-y-4 px-6 py-4">
+              {error ? <InlineAlert tone="danger">{error}</InlineAlert> : null}
+              {downloads?.errors.length || apps?.error ? (
+                <InlineAlert tone="warning">
+                  {t('runtimeConfig.downloads.readFailed')}
+                  <details>
+                    <summary>{t('runtimeConfig.profiles.technicalDetails')}</summary>
+                    {[...(downloads?.errors ?? []), apps?.error].filter(Boolean).join(' · ')}
+                  </details>
+                </InlineAlert>
+              ) : null}
+              {[...grouped.entries()].map(([id, tasks]) => {
+                const taskTransfers = transfers.filter(
+                  (item) =>
+                    !usedTransfers.has(item.installSessionId) &&
+                    tasks.some(
+                      (task) =>
+                        task.refs.transferIds.includes(item.installSessionId) ||
+                        (!!item.planId && task.refs.installPlanIds.includes(item.planId)),
+                    ),
+                );
+                taskTransfers.forEach((item) => usedTransfers.add(item.installSessionId));
+                const taskEnvironments = environments.filter(
+                  (item) =>
+                    !usedEnvironments.has(item.jobId) &&
+                    tasks.some((task) => task.refs.dependencyJobIds.includes(item.jobId)),
+                );
+                taskEnvironments.forEach((item) => usedEnvironments.add(item.jobId));
+                return (
+                  <section key={id} className="rounded-2xl bg-[var(--nimi-surface-card)] px-5 pb-1 pt-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--nimi-text-muted)]">
+                          {t('runtimeConfig.downloads.setupGroup')}
+                        </p>
+                        <h2 className="font-semibold">
+                          {tasks[0]?.draft?.profileTitle ??
+                            displayRuntimeConfigCapabilityLabel(tasks[0]!.capabilityContract, t)}
+                        </h2>
+                        <p className="mt-0.5 text-xs text-[var(--nimi-text-secondary)]">
+                          {tasks
+                            .map((task) => `${displayRuntimeConfigCapabilityLabel(task.capabilityContract, t)} · ${t(`runtimeConfig.setupTask.status.${task.status}`)}`)
+                            .join(' · ')}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        tone="secondary"
+                        onClick={() => {
+                          commands.runtimeConfigNavigation.openSetupTask(tasks[0]!.taskId);
+                          setActiveTab('runtime');
+                        }}
+                      >
+                        {t('runtimeConfig.downloads.openSetup')}
+                      </Button>
+                    </div>
+                    {taskTransfers.map((item) => transferRow(item))}
+                    {taskEnvironments.map(environmentRow)}
+                  </section>
+                );
+              })}
+              {lane === 'active'
+                ? transfers.filter((item) => !usedTransfers.has(item.installSessionId)).map((item) => transferRow(item))
+                : groupTransferAttempts(transfers.filter((item) => !usedTransfers.has(item.installSessionId))).map(transferGroup)}
+              {environments.filter((item) => !usedEnvironments.has(item.jobId)).map(environmentRow)}
+              {(lane === 'active'
+                ? appJobs.map((job) => ({ job, attempts: 1 }))
+                : [...new Map(
+                    [...appJobs]
+                      .sort((left, right) => Number(right.updatedAt?.seconds ?? 0) - Number(left.updatedAt?.seconds ?? 0))
+                      .reverse()
+                      .map((job) => [job.appId, job] as const),
+                  ).values()].map((job) => ({ job, attempts: appJobs.filter((item) => item.appId === job.appId).length }))
+              ).map(({ job, attempts }) => {
+                const entry = appEntries.get(job.appId);
+                const stage = appJobStage(appDownloadPhase(job));
+                const failure = appPackageFailureReason(job);
+                const displayName = job.displayName || entry?.identity.displayName || job.appId;
+                return (
+                  <DownloadTaskRow
+                    key={packageJobKey(job)}
+                    testId={`download-app:${packageJobKey(job)}`}
+                    title={displayName}
+                    kind="app"
+                    lane={appJobLane(job.phase)}
+                    stage={stage}
+                    bytes={Number(job.bytesCompleted)}
+                    total={Number(job.bytesTotal)}
+                    attempts={attempts}
+                    at={job.updatedAt ? new Date(Number(job.updatedAt.seconds) * 1000).toISOString() : undefined}
+                    reason={stage === 'interrupted' ? t(interruptionReasonKey(failure ?? '')) : undefined}
+                    technical={failure ?? undefined}
+                    leading={<AppArtworkIcon appId={job.appId} displayName={displayName} iconUrl={entry?.iconUrl ?? null} size="md" className="mt-0.5" />}
+                  >
+                    <div className="flex flex-wrap gap-2">
+                      {job.sourceClass === AppPackageSourceClass.VERIFIED &&
+                      [AppPackageJobPhase.QUEUED, AppPackageJobPhase.DOWNLOADING].includes(job.phase) ? (
+                        <Button
+                          size="sm"
+                          tone="secondary"
+                          disabled={busy}
+                          onClick={() => {
+                            void action(async () => {
+                              const results = await apps!.observer.control('pause', [job]);
+                              if (results[0]?.error) throw Error(results[0].error);
+                            });
+                          }}
+                        >
+                          {t('Apps.downloads.pause')}
+                        </Button>
+                      ) : null}
+                      {job.phase === AppPackageJobPhase.PAUSED ? (
+                        <Button
+                          size="sm"
+                          tone="primary"
+                          disabled={busy}
+                          onClick={() => {
+                            void action(async () => {
+                              const results = await apps!.observer.control('resume', [job]);
+                              if (results[0]?.error) throw Error(results[0].error);
+                            });
+                          }}
+                        >
+                          {t('Apps.downloads.resume')}
+                        </Button>
+                      ) : null}
+                      <Button
+                        size="sm"
+                        tone="ghost"
+                        onClick={() => {
+                          apps?.selectJob(packageJobKey(job));
+                          setAppDetails(true);
+                        }}
+                      >
+                        {t('runtimeConfig.downloads.appDetails')}
+                      </Button>
+                    </div>
+                  </DownloadTaskRow>
+                );
+              })}
+              {loading ? <LoadingSkeleton lines={4} label={t('Common.loading')} /> : null}
+            </ScrollArea>
+          )}
+        </Surface>
+      </div>
     </div>
   );
 }

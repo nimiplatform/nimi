@@ -18,6 +18,7 @@ import { useAppStore } from '../../app-shell/providers/app-store.js';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast.js';
 import { desktopNimiAppAIConfigQueryKey } from '../chat/chat-nimi-app-ai-config.js';
+import { RuntimeCapabilityApps, useCapabilityAppsColumn } from './runtime-capability-apps.js';
 import { RuntimeCapabilityDetail } from './runtime-capability-detail.js';
 import {
   type CapabilityPreparationState,
@@ -49,6 +50,11 @@ import {
   type RuntimeProfileQuickStartConversation,
 } from './runtime-profile-quick-start.js';
 import { RuntimeProfileTaskView } from './runtime-profile-task-view.js';
+import {
+  RuntimeSetupFailureMessage,
+  runtimeSetupFailureText,
+  type RuntimeSetupFailureNotice,
+} from './runtime-setup-failure-message.js';
 import { resolveRuntimeSetupReturnTarget } from './runtime-setup-task-open.js';
 import {
   createRuntimeSetupTaskRunnerPorts,
@@ -122,10 +128,11 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
   const [capability, setCapability] = useState<string | null>(null);
   const [section, setSection] = useState('overview');
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<RuntimeSetupFailureNotice | null>(null);
   const [homeRevision, setHomeRevision] = useState(0);
   const focusedTask = props.focusedTaskId ? store.getTask(props.focusedTaskId) : undefined;
   const visibleCapability = focusedTask?.capabilityContract ?? capability;
+  const appsColumn = useCapabilityAppsColumn(visibleCapability);
   const label = (id: string) => displayRuntimeConfigCapabilityLabel(id, t);
   useEffect(() => {
     if (props.profileUseOwner) {
@@ -208,6 +215,12 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
         unavailable: inventory.isError,
       })
     : null;
+  const inlineTask = focusedTask?.source.kind === 'runtime' && !focusedTask.draft?.profileUseId
+    ? focusedTask : undefined;
+  const openSetupTask = (taskId: string) => {
+    setSection('overview');
+    props.onOpenSetupTask(taskId);
+  };
   const taskModel = status?.task
     ? setupTaskModelTitle(status.task, inventory.data?.aggregate.loadouts ?? [], recipes)
     : '';
@@ -237,10 +250,15 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
       },
     });
   };
+  // The setup task view shows the failure its task recorded, so the page
+  // notice only carries a failure the opened task cannot show.
+  const noticeUnlessShownByTask = (taskId: string, failure: RuntimeSetupFailureNotice) => {
+    if (!store.getTask(taskId)?.failure) setError(failure);
+  };
   const onStart = async (recipeId?: string, previous?: NimiMachineLoadout) => {
     if (!visibleCapability) return;
     setBusy(true);
-    setError('');
+    setError(null);
     try {
       const task = await createSetupTask();
       if (recipeId) {
@@ -250,12 +268,12 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
             ? { axes: previous.modelAxes, options: previous.options, displayName: previous.displayName }
             : {}),
         });
-        if (result.status !== 'ok') setError(result.failure.message);
+        if (result.status !== 'ok') noticeUnlessShownByTask(task.taskId, result.failure);
         else await resolveRuntimeSetupPreparation(store, task.taskId, ports);
       }
-      props.onOpenSetupTask(task.taskId);
+      openSetupTask(task.taskId);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : String(caught));
+      setError({ message: caught instanceof Error ? caught.message : String(caught) });
     } finally {
       setBusy(false);
     }
@@ -268,7 +286,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
   const onEnable = async (recipeId: string, previous?: NimiMachineLoadout) => {
     if (!visibleCapability) return;
     setBusy(true);
-    setError('');
+    setError(null);
     try {
       const task = await createSetupTask();
       const created = await createRuntimeSetupCandidate(store, task.taskId, ports, {
@@ -276,13 +294,13 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
         ...(previous ? { axes: previous.modelAxes, options: previous.options, displayName: previous.displayName } : {}),
       });
       if (created.status !== 'ok') {
-        setError(created.failure.message);
-        props.onOpenSetupTask(task.taskId);
+        noticeUnlessShownByTask(task.taskId, created.failure);
+        openSetupTask(task.taskId);
         return;
       }
       const resolved = await resolveRuntimeSetupPreparation(store, task.taskId, ports);
       if (resolved.status !== 'ok' || !setupPlanAllowsDirectUse(resolved.value)) {
-        props.onOpenSetupTask(task.taskId);
+        openSetupTask(task.taskId);
         return;
       }
       const used = await runRuntimeSetupPreparation(store, task.taskId, ports, {
@@ -293,30 +311,30 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
       // Read the actual selection even when a later consumer save fails.
       await inventory.refetch();
       if (used.status !== 'ok') {
-        props.onOpenSetupTask(task.taskId);
+        openSetupTask(task.taskId);
         return;
       }
       setSection('overview');
       emitFeedbackToast({ kind: 'success', message: t('runtimeConfig.product.modelPicker.selected') });
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : String(caught));
+      setError({ message: caught instanceof Error ? caught.message : String(caught) });
     } finally {
       setBusy(false);
     }
   };
   // A recipe with no downloadable offer starts as a draft with that recipe
-  // chosen, so files already on this device are picked under its version
+  // chosen, so files already on this device are picked in Advanced settings
   // choices and validated by Runtime; no candidate is saved beforehand.
   const onChooseImportedFiles = async (recipeId: string) => {
     if (!visibleCapability) return;
     setBusy(true);
-    setError('');
+    setError(null);
     try {
       const task = await createSetupTask();
       store.updateTask(task.taskId, (current) => ({ draft: { ...(current.draft ?? {}), route: 'local', recipeId } }));
-      props.onOpenSetupTask(task.taskId);
+      openSetupTask(task.taskId);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : String(caught));
+      setError({ message: caught instanceof Error ? caught.message : String(caught) });
     } finally {
       setBusy(false);
     }
@@ -324,7 +342,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
   const onApplyCustomization = async (draft: RuntimeSetupTaskDraft) => {
     if (!selected || !visibleCapability || busy || props.runtimeWritesDisabled) return;
     setBusy(true);
-    setError('');
+    setError(null);
     try {
       const task = await createSetupTask();
       store.updateTask(task.taskId, () => ({ draft }));
@@ -334,11 +352,11 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
         axes: draft.axes,
         options: draft.options,
       });
-      if (created.status !== 'ok') throw new Error(created.failure.message);
+      if (created.status !== 'ok') throw new Error(runtimeSetupFailureText(created.failure, t));
       const resolved = await resolveRuntimeSetupPreparation(store, task.taskId, ports);
-      if (resolved.status !== 'ok') throw new Error(resolved.failure.message);
+      if (resolved.status !== 'ok') throw new Error(runtimeSetupFailureText(resolved.failure, t));
       if (!setupPlanAllowsDirectUse(resolved.value)) {
-        props.onOpenSetupTask(task.taskId);
+        openSetupTask(task.taskId);
         return;
       }
       const used = await runRuntimeSetupPreparation(store, task.taskId, ports, {
@@ -346,7 +364,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
       });
       await inventory.refetch();
       if (used.status !== 'ok') {
-        props.onOpenSetupTask(task.taskId);
+        openSetupTask(task.taskId);
         return;
       }
       emitFeedbackToast({ kind: 'success', message: t('runtimeConfig.product.customization.applied') });
@@ -387,8 +405,8 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
       });
       const result = await reuseRuntimeSetupCurrent(store, task.taskId, ports);
       if (result.status !== 'ok') {
-        props.onOpenSetupTask(task.taskId);
-        return { ok: false, message: result.failure.message };
+        openSetupTask(task.taskId);
+        return { ok: false, message: runtimeSetupFailureText(result.failure, t) };
       }
       await queryClient.invalidateQueries({ queryKey: desktopNimiAppAIConfigQueryKey(sdk.appId()) });
       return { ok: true };
@@ -404,6 +422,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
     props.onCloseSavedConfigs();
     setCapability(null);
     setSection('overview');
+    setError(null);
     setHomeRevision((value) => value + 1);
     void inventory.refetch();
   };
@@ -412,11 +431,16 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
     props.onCloseSavedConfigs();
     setCapability(id);
     setSection('overview');
-    setError('');
+    setError(null);
+    const pending = capabilityPreparationState({
+      capability: id, inventory: inventory.data, tasks: inventory.tasks, unavailable: inventory.isError,
+    }).task;
+    if (pending?.source.kind === 'runtime' && !pending.draft?.profileUseId) openSetupTask(pending.taskId);
   };
   const onReturnToSource = () => {
     const target = resolveRuntimeSetupReturnTarget(focusedTask?.source.returnFocus);
     props.onCloseSetupTask();
+    setError(null);
     if (target?.kind === 'tab') setActiveTab(target.tab);
     if (target?.kind === 'tab' && target.tab === 'apps' && focusedTask?.source.ownerAppId) {
       setAppsDetailAppId(focusedTask.source.ownerAppId);
@@ -584,8 +608,12 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
               </Button>
             </InlineAlert>
           ) : null}
-          {error ? <InlineAlert tone="danger">{error}</InlineAlert> : null}
-          {focusedTask ? (
+          {error ? (
+            <InlineAlert tone="danger">
+              <RuntimeSetupFailureMessage failure={error} />
+            </InlineAlert>
+          ) : null}
+          {focusedTask && !inlineTask ? (
             focusedTask.draft?.profileUseId ? (
               <RuntimeProfileTaskView
                 key={focusedTask.draft.profileUseId}
@@ -601,9 +629,12 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                 taskId={focusedTask.taskId}
                 store={store}
                 ports={ports}
+                disabled={props.runtimeWritesDisabled}
+                onImportModelFiles={props.onOpenModelImport}
                 onClose={() => {
                   setCapability(focusedTask.capabilityContract);
                   props.onCloseSetupTask();
+                  setError(null);
                   void inventory.refetch();
                 }}
                 onReturnToSource={onReturnToSource}
@@ -668,7 +699,26 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
               onEnable={onEnable}
               onApplyCustomization={onApplyCustomization}
               onRetryCustomization={() => { void inventory.refetch(); void library.refetch(); }}
-              onTask={props.onOpenSetupTask}
+              onTask={openSetupTask}
+              preparation={inlineTask ? (
+                <RuntimeConfigSetupTaskView
+                  key={inlineTask.taskId}
+                  taskId={inlineTask.taskId}
+                  store={store}
+                  ports={ports}
+                  embedded
+                  disabled={props.runtimeWritesDisabled}
+                  onImportModelFiles={props.onOpenModelImport}
+                  onClose={() => {
+                    setCapability(inlineTask.capabilityContract);
+                    props.onCloseSetupTask();
+                    setError(null);
+                    void inventory.refetch();
+                    void library.refetch();
+                  }}
+                />
+              ) : undefined}
+              apps={appsColumn ? <RuntimeCapabilityApps state={appsColumn} /> : undefined}
               onModelFiles={props.onOpenModelFiles}
               onImportModelFiles={props.onOpenModelImport}
               onChooseImportedFiles={(recipeId) => { void onChooseImportedFiles(recipeId); }}

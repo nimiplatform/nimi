@@ -16,6 +16,7 @@ import {
 } from '../src/shell/renderer/features/runtime-config/runtime-setup-task-store';
 import { RuntimeConfigSetupTaskView, SetupTaskPlanReview } from '../src/shell/renderer/features/runtime-config/runtime-config-setup-task-view';
 import { PendingSetupBanner, RuntimeCapabilityDetail } from '../src/shell/renderer/features/runtime-config/runtime-capability-detail';
+import { RuntimeProfileQuickStart } from '../src/shell/renderer/features/runtime-config/runtime-profile-quick-start';
 import type { RuntimeSetupPreparationPlan, RuntimeSetupRunnerPorts } from '../src/shell/renderer/features/runtime-config/runtime-setup-task-runner';
 
 (globalThis as { React?: typeof React }).React = React;
@@ -170,7 +171,7 @@ test('the plan review marks an installed variant as a rebind instead of a downlo
     selectionRevision: 'sel-1',
   };
   const markup = renderView(
-    <SetupTaskPlanReview plan={plan} choices={{}} onChoiceChange={() => {}} ownerLabel={null} />,
+    <SetupTaskPlanReview plan={plan} choices={{}} onChoiceChange={() => {}} />,
   );
   assert.match(markup, /runtime-setup-task-plan/);
   // Both the acquire row and the choice option show the installed-rebind
@@ -178,9 +179,12 @@ test('the plan review marks an installed variant as a rebind instead of a downlo
   const occurrences = markup.match(/Already on this machine/gu) ?? [];
   assert.equal(occurrences.length, 2);
   assert.doesNotMatch(markup, /2048|4096/);
+  // Several model files are told apart by their part, never by a raw slot label.
+  assert.match(markup, />Main model</);
+  assert.match(markup, />Vision projector</);
 });
 
-test('review shows unavailable resources and distinguishes prepare-only from use', () => {
+test('review shows unavailable resources and marks the device recommendation without a separate accept button', () => {
   const plan = {
     reuse: [], acquire: [], components: [], options: [],
     unavailable: [{ slotId: 'weights', label: 'Model weights' }],
@@ -189,12 +193,52 @@ test('review shows unavailable resources and distinguishes prepare-only from use
     }] }],
     environmentPlanId: 'env-1', candidateRevision: 'r1', selectionRevisionPresent: false,
   } satisfies RuntimeSetupPreparationPlan;
-  const markup = renderView(<SetupTaskPlanReview plan={plan} choices={{}} onChoiceChange={() => {}} ownerLabel="Chat" />);
+  const markup = renderView(<SetupTaskPlanReview plan={plan} choices={{}} onChoiceChange={() => {}} />);
   assert.match(markup, /runtime-setup-unavailable/);
   assert.match(markup, /Model weights/);
-  assert.match(markup, /runtime-setup-accept-recommendations/);
   assert.match(markup, /Recommended for this device/);
-  assert.match(markup, /Prepare only keeps the current model unchanged/);
+  assert.doesNotMatch(markup, /runtime-setup-accept-recommendations/);
+  // The card is the summary: no heading or prose restating the confirmation.
+  assert.doesNotMatch(markup, /What will happen|Prepare only keeps the current model unchanged/);
+});
+
+test('a version choice shows the selected version on one line and groups the versions by model size', () => {
+  const option = (size: string, quant: string, sizeBytes: number, recommended = false) => ({
+    offerRef: `offer:${size}:${quant}`, title: `gemma-4-${size}-it-local (${quant})`, variantLabel: '', sizeBytes, recommended,
+  });
+  const plan = {
+    reuse: [], acquire: [], unavailable: [], components: [], options: [],
+    awaitingChoice: [{ slotId: 'main.gguf', label: 'Main model', options: [
+      option('26b-a4b', 'Q4_K_M', 16_947_539_744),
+      option('e2b', 'Q8_0', 5_048_350_848, true),
+      option('e2b', 'Q4_K_M', 3_106_736_256),
+    ] }],
+    environmentPlanId: 'env-1', candidateRevision: 'r1', selectionRevisionPresent: false,
+  } satisfies RuntimeSetupPreparationPlan;
+
+  // With the recommendation selected the choice is one closed line.
+  const closed = renderView(
+    <SetupTaskPlanReview plan={plan} choices={{ 'main.gguf': 'offer:e2b:Q8_0' }} onChoiceChange={() => {}} />,
+  );
+  assert.match(closed, />Model</);
+  assert.doesNotMatch(closed, /Main model/);
+  assert.match(closed, /Gemma 4 2B · Q8/);
+  assert.match(closed, /Recommended for this device/);
+  assert.match(closed, /4\.70 GB/);
+  assert.match(closed, /Change version/);
+  assert.doesNotMatch(closed, /type="radio"/);
+
+  // Without a selection the versions start open, grouped by model size.
+  const open = renderView(<SetupTaskPlanReview plan={plan} choices={{}} onChoiceChange={() => {}} />);
+  assert.match(open, /No version selected/);
+  assert.equal((open.match(/type="radio"/gu) ?? []).length, 3);
+  const small = open.indexOf('>Gemma 4 2B<');
+  const large = open.indexOf('>Gemma 4 26B<');
+  assert.ok(small >= 0 && large > small, 'the smaller model size is listed first');
+  assert.ok(open.indexOf('>Q4<', small) < open.indexOf('>Q8<', small), 'versions follow their quantization');
+  // Versions carry no quality words: those are inferred from bit width alone
+  // and would compare versions of different model sizes.
+  assert.doesNotMatch(open, /quantSemantic/);
 });
 
 test('failed owner save preserves the machine result and offers only the app retry', () => {
@@ -211,7 +255,86 @@ test('failed owner save preserves the machine result and offers only the app ret
   assert.doesNotMatch(markup, /Review and retry/);
 });
 
-test('the review shell names the capability and its use, opens straight on the checklist, and explains components in plain words', async () => {
+// Desktop's Runtime carrier reports a Runtime failure with the reason code as its message.
+const MISSING_MODEL_FILES = {
+  stage: 'create-candidate', reasonCode: 'AI_LOADOUT_MODEL_ASSET_NOT_FOUND', message: 'AI_LOADOUT_MODEL_ASSET_NOT_FOUND',
+} as const;
+
+test('a missing model file reads as guidance and keeps its reason code under technical details', () => {
+  const store = makeStore();
+  const task = taskOn(store, { capabilityContract: 'text.generate', status: 'failed', failure: MISSING_MODEL_FILES });
+  const markup = renderView(<RuntimeConfigSetupTaskView taskId={task.taskId} store={store} ports={fakePorts()} onClose={() => {}} />);
+  assert.match(markup, /runtime-setup-task-failed[\s\S]*The files for this model could not be found\. They may have been deleted or moved\./);
+  assert.equal(markup.match(/AI_LOADOUT_MODEL_ASSET_NOT_FOUND/gu)?.length, 1);
+  assert.match(markup, /<details[^>]*><summary[^>]*>Technical details<\/summary><span[^>]*>AI_LOADOUT_MODEL_ASSET_NOT_FOUND<\/span><\/details>/);
+});
+
+test('locked local models read as guidance and offer no retry that meets the same restriction', () => {
+  const store = makeStore();
+  const task = taskOn(store, {
+    capabilityContract: 'text.generate', status: 'failed',
+    failure: {
+      stage: 'resolve-preparation',
+      reasonCode: 'AI_LOCAL_MODEL_STATE_OFFLINE_CONVERSION_REQUIRED',
+      message: 'AI_LOCAL_MODEL_STATE_OFFLINE_CONVERSION_REQUIRED',
+    },
+  });
+  const page = renderView(<RuntimeConfigSetupTaskView taskId={task.taskId} store={store} ports={fakePorts()} onClose={() => {}} />);
+  assert.match(page, /runtime-setup-task-failed[\s\S]*Local models unavailable[\s\S]*saved by an earlier version of Nimi and need a format upgrade before local models can be used again\./);
+  assert.doesNotMatch(page, /Setup failed/);
+  assert.equal(page.match(/AI_LOCAL_MODEL_STATE_OFFLINE_CONVERSION_REQUIRED/gu)?.length, 1);
+  assert.match(page, /<details[^>]*><summary[^>]*>Technical details<\/summary><span[^>]*>AI_LOCAL_MODEL_STATE_OFFLINE_CONVERSION_REQUIRED<\/span><\/details>/);
+  assert.doesNotMatch(page, /runtime-setup-task-retry|Choose another model/);
+  assert.match(page, />Back<\/span><\/button>/);
+
+  // Embedded, the card closes from its header, so the alert stands alone.
+  const card = renderView(<RuntimeConfigSetupTaskView taskId={task.taskId} store={store} ports={fakePorts()} onClose={() => {}} embedded />);
+  assert.match(card, /Local models unavailable/);
+  assert.doesNotMatch(card, /runtime-setup-task-retry|Choose another model|>Back<\/span><\/button>/);
+});
+
+test('any other failure keeps its reported text and names a distinct reason code once', () => {
+  const store = makeStore();
+  const bare = taskOn(store, {
+    capabilityContract: 'text.generate', status: 'failed',
+    failure: { stage: 'create-candidate', reasonCode: 'AI_LOADOUT_NOT_CONFIGURED', message: 'AI_LOADOUT_NOT_CONFIGURED' },
+  });
+  const bareMarkup = renderView(<RuntimeConfigSetupTaskView taskId={bare.taskId} store={store} ports={fakePorts()} onClose={() => {}} />);
+  assert.equal(bareMarkup.match(/AI_LOADOUT_NOT_CONFIGURED/gu)?.length, 1);
+  assert.doesNotMatch(bareMarkup, /Technical details/);
+
+  const described = taskOn(store, {
+    capabilityContract: 'text.generate', status: 'needs-attention',
+    failure: { stage: 'resolve-preparation', reasonCode: 'RUNTIME_SETUP_CONDITION_CONFLICT', message: 'The candidate configuration was modified outside this task.' },
+  });
+  const describedMarkup = renderView(<RuntimeConfigSetupTaskView taskId={described.taskId} store={store} ports={fakePorts()} onClose={() => {}} />);
+  assert.match(describedMarkup, /The candidate configuration was modified outside this task\. \(RUNTIME_SETUP_CONDITION_CONFLICT\)/);
+});
+
+test('the conversation quick start explains a missing model file instead of showing its reason code', () => {
+  const task = taskOn(makeStore(), { capabilityContract: 'text.generate', status: 'failed', failure: MISSING_MODEL_FILES });
+  const markup = renderView(
+    <RuntimeProfileQuickStart
+      disabled={false}
+      onUse={() => {}}
+      conversation={{
+        pending: false,
+        preparation: { state: 'attention', task, replacement: false },
+        model: '',
+        onOpenChat: () => {},
+        onUseInChat: async () => ({ ok: true }),
+        onOpenDetail: () => {},
+        onOpenTask: () => {},
+        onRetry: () => {},
+      }}
+    />,
+  );
+  assert.match(markup, /data-quick-start-state="attention"/);
+  assert.match(markup, /The files for this model could not be found/);
+  assert.doesNotMatch(markup, /AI_LOADOUT_MODEL_ASSET_NOT_FOUND/);
+});
+
+test('the review shell names the setup, opens straight on the summary card, and explains components in plain words', async () => {
   const { componentPresentation } = await import('../src/shell/renderer/features/runtime-config/runtime-config-setup-task-view');
   const t = (key: string, options?: Record<string, unknown>) => (typeof options?.defaultValue === 'string' ? options.defaultValue : key);
   // Known ids get product names and a plain state; unknown ids stay visible verbatim.
@@ -228,20 +351,21 @@ test('the review shell names the capability and its use, opens straight on the c
     components: [{ dependencyFamily: 'accelerator.cuda.runtime', dependencyId: 'nvidia-cuda-user-space-runtime', label: 'raw', state: 'needs_confirmation', required: true }],
     environmentPlanId: 'env-1', candidateRevision: 'r1', selectionRevisionPresent: false,
   } satisfies RuntimeSetupPreparationPlan;
-  const markup = renderView(<SetupTaskPlanReview plan={plan} choices={{}} onChoiceChange={() => {}} ownerLabel={null} />);
-  // No count chips above the checklist; the checklist itself is the summary.
+  const markup = renderView(<SetupTaskPlanReview plan={plan} choices={{}} onChoiceChange={() => {}} />);
+  // No count chips above the card; the card itself is the summary.
   assert.doesNotMatch(markup, /runtime-setup-task-summary/);
-  assert.match(markup, /What will happen/);
-  assert.match(markup, /Installed automatically for this model/);
+  assert.match(markup, />Model<[\s\S]*Already on this machine/);
+  assert.match(markup, />Component<[\s\S]*nvidia-cuda-user-space-runtime/);
   // The raw component id is kept under technical details rather than shown as the row title.
   assert.match(markup, /accelerator\.cuda\.runtime \/ nvidia-cuda-user-space-runtime/);
 
   const store = makeStore();
   const task = taskOn(store, { capabilityContract: 'text.generate', status: 'review', candidateLoadoutId: 'cand-1' });
   const view = renderView(<RuntimeConfigSetupTaskView taskId={task.taskId} store={store} ports={fakePorts()} onClose={() => {}} />);
-  // The header is the capability and what it is for, not the model name or a status line.
-  assert.match(view, /data-testid="runtime-setup-hero-title">runtimeConfig\.capabilityLabels\.textGenerate</);
-  assert.match(view, /data-testid="runtime-setup-hero-usage">/);
+  // The header names the setup; what the capability is for stays on the capability page.
+  assert.match(view, /data-testid="runtime-setup-hero-title"/);
+  assert.doesNotMatch(view, /runtime-setup-hero-usage/);
+  assert.match(view, /runtime-setup-task-advanced/);
   assert.doesNotMatch(view, /runtimeConfig\.setupTask\.lead\./);
   // No choose/prepare/use step pills between the header and the review content.
   assert.doesNotMatch(view, /runtime-setup-steps/);
@@ -394,7 +518,7 @@ test('runtime components that still need work stay on the capability card and ar
     status: { state: 'attention', replacement: false },
   });
   assert.match(html, /capability-state-badge[^>]*>[\s\S]*?runtimeConfig\.capabilities\.state\.attention</);
-  assert.match(html, /runtimeConfig\.product\.viewPreparation/);
+  assert.match(html, /runtimeConfig\.setupTask\.repairSetup/);
   assert.match(html, /capability-environment-status[\s\S]*runtimeConfig\.capabilities\.environmentSummary[\s\S]*component-0[\s\S]*component-1/);
   const details = html.slice(html.indexOf('capability-technical-details'));
   assert.match(details, /runtimeConfig\.product\.technicalModel/);
@@ -448,7 +572,7 @@ test('the review names Python components by family, shows offer terms, and block
     components: [{ dependencyFamily: 'python.package-set', dependencyId: 'text.spacy.python.cpu.0123abcd', label: 'raw', state: 'needs_confirmation', required: true }],
     environmentPlanId: 'env-1', candidateRevision: 'r1', selectionRevisionPresent: false, componentsDownloadBytes: null,
   } satisfies RuntimeSetupPreparationPlan;
-  const markup = renderView(<SetupTaskPlanReview plan={plan} choices={{}} onChoiceChange={() => {}} ownerLabel={null} />);
+  const markup = renderView(<SetupTaskPlanReview plan={plan} choices={{}} onChoiceChange={() => {}} />);
   // The terms row exists for the download; this harness does not interpolate values.
   assert.match(markup, /runtime-setup-offer-terms:text\.model/);
   assert.match(markup, /runtime-setup-download-scope/);
@@ -458,8 +582,26 @@ test('the review names Python components by family, shows offer terms, and block
 
   const refused = renderView(<SetupTaskPlanReview
     plan={{ ...plan, acquire: [], components: [], environmentUnavailable: { reasonCode: 'AI_LOADOUT_DRIVER_UNAVAILABLE' } }}
-    choices={{}} onChoiceChange={() => {}} ownerLabel={null}
+    choices={{}} onChoiceChange={() => {}}
   />);
   assert.match(refused, /runtime-setup-environment-unavailable/);
   assert.doesNotMatch(refused, /Ready to use these settings|readyToUseSettings/);
+});
+
+test('inline preparation replaces an unavailable model card and keeps a ready current model usable', () => {
+  const pending = taskOn(makeStore(), { capabilityContract: 'text.generate', status: 'preparing', candidateLoadoutId: 'replacement' });
+  const props = {
+    selected: GEMMA_LOADOUT,
+    recipes: [GEMMA_RECIPE],
+    preparation: <div data-testid="embedded-preparation">Download progress</div>,
+  };
+  const repair = renderCapabilityOverview({ ...props, status: { state: 'attention', task: pending, replacement: false } });
+  assert.match(repair, /capability-preparation[\s\S]*embedded-preparation/);
+  assert.doesNotMatch(repair, /capability-current-model|capability-pending-setup/);
+  assert.equal((repair.match(/<h1/g) ?? []).length, 1);
+  const replacement = renderCapabilityOverview({ ...props, status: { state: 'ready', task: pending, replacement: true } });
+  assert.match(replacement, /capability-current-model/);
+  assert.match(replacement, /runtimeConfig\.overview\.openChat/);
+  assert.match(replacement, /capability-preparation/);
+  assert.doesNotMatch(replacement, /capability-pending-setup/);
 });

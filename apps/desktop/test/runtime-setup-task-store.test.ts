@@ -28,6 +28,18 @@ function makeStore(storage: ReturnType<typeof createMemoryStorage>) {
 
 const SOURCE = { kind: 'app' as const, ownerAppId: 'app.chat', accountId: 'acct-1', returnFocus: 'app:app.chat' };
 
+test('review version picks survive navigation and restart without granting use authorization', () => {
+  const storage = createMemoryStorage();
+  const store = makeStore(storage);
+  const task = store.createTask({ capabilityContract: 'text.generate', source: SOURCE });
+  store.updateTask(task.taskId, () => ({
+    status: 'review', draft: { recipeId: 'chosen', reviewChoices: { main: 'offer:chosen' } },
+  }));
+  const restored = makeStore(storage).getTask(task.taskId)!;
+  assert.deepEqual(restored.draft?.reviewChoices, { main: 'offer:chosen' });
+  assert.equal(restored.authorization, undefined);
+});
+
 test('recovery records persist only non-secret fields and never the authorization', () => {
   const storage = createMemoryStorage();
   const store = makeStore(storage);

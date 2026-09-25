@@ -1,20 +1,26 @@
-// @nimi-authority: rule.nimi.desktop.ai-consumption.r023
+// @nimi-authority: rule.nimi.desktop.ai-consumption.r026
 
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type {
   NimiLoadoutRecipe,
   NimiMachineLoadout,
   NimiRuntimeLocalTransferProgressEvent,
 } from '@nimiplatform/sdk/runtime';
-import { Button, InlineAlert, LoadingSkeleton, ProgressIndicator, StatusBadge } from '@nimiplatform/kit/ui';
-import { ArrowLeft, Check, CheckCircle2, CircleAlert, Download, LoaderCircle, Package } from 'lucide-react';
+import { Button, IconButton, InlineAlert, LoadingSkeleton, ProgressIndicator, StatusBadge } from '@nimiplatform/kit/ui';
+import { ArrowLeft, CheckCircle2, ChevronDown, ChevronRight, ChevronUp, LoaderCircle, X } from 'lucide-react';
 import { formatBytes, formatDurationShort, formatTransferRate } from '../../components/download-format.js';
+import { IdentityTile } from '../../components/identity-tile.js';
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
 import { formatKnownDownloadSize } from './runtime-config-model-center-utils.js';
-import { loadoutCandidatePresentation, loadoutSlotLabelKey } from './runtime-config-loadout-model-display.js';
-import { capabilityIcon, modelDisplayTitle, recipeOfferSummary, setupPlanNeedsPreparation } from './runtime-capability-presentation.js';
-import { displayRuntimeConfigCapabilityLabel, displayRuntimeConfigCapabilityUsage } from './runtime-config-capability-labels.js';
+import {
+  groupLoadoutModelPresentations,
+  loadoutCandidatePresentation,
+  loadoutSlotLabelKey,
+  loadoutSlotOfferForAsset,
+} from './runtime-config-loadout-model-display.js';
+import { capabilityIcon, modelDisplayTitle, modelFamilySeed, recipeOfferSummary, setupPlanNeedsPreparation } from './runtime-capability-presentation.js';
+import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability-labels.js';
 import {
   runtimeSetupTaskUnconfirmed,
   useRuntimeSetupTasks,
@@ -35,6 +41,7 @@ import {
 } from './runtime-setup-task-runner.js';
 import { RuntimeSetupTaskCloudPanel } from './runtime-config-setup-task-cloud.js';
 import { SetupTaskAdvancedSection } from './runtime-config-setup-task-advanced.js';
+import { RuntimeSetupFailureMessage } from './runtime-setup-failure-message.js';
 
 function useSetupTaskTransferProgress(
   installPlanIds: readonly string[],
@@ -121,43 +128,53 @@ function installedRebindLabel(t: (key: string, options?: Record<string, unknown>
   return t('runtimeConfig.setupTask.scope.installedRebind', { defaultValue: 'Already on this machine' });
 }
 
-type PlanRowTone = 'ready' | 'pending' | 'warning';
+/** Product name of a model file, e.g. "Gemma 4 2B · Q8"; the catalog title when nothing parses. */
+function offerHeadline(offer: { readonly title: string; readonly variantLabel: string }): string {
+  return loadoutCandidatePresentation({ title: offer.title, variantLabel: offer.variantLabel }).headline || offer.title;
+}
 
-/** One line of the preparation checklist: what it is, and what will happen to it. */
-function PlanRow(props: {
-  readonly tone: PlanRowTone;
-  readonly icon: 'check' | 'download' | 'package' | 'alert';
-  readonly title: string;
-  readonly subtitle?: string;
-  readonly trailing?: string;
-  readonly trailingTone?: 'success' | 'warning' | 'info' | 'neutral';
-  readonly children?: ReactNode;
+/** One line of the summary card: what it is, and what happens to it. */
+type PlanSummaryRow = {
+  readonly key: string;
+  readonly label: string;
+  /** Screen-reader-only label for a row that repeats the one above it. */
+  readonly labelHidden?: boolean;
+  readonly value: ReactNode;
+  readonly trailing?: ReactNode;
+  /** Content under the line, spanning the value and trailing columns. */
+  readonly panel?: ReactNode;
+  readonly testId?: string;
+  /** A model file keeps its parts, so the main one can lead a card as the model itself. */
+  readonly file?: PlanFileParts;
+};
+
+type PlanFileParts = {
+  readonly slotId: string;
+  /** Product name, or the "no version selected" placeholder. */
+  readonly name: string;
+  readonly placeholder?: boolean;
+  readonly badge?: ReactNode;
+  /** Download size, or the installed-rebind label. */
+  readonly state?: string;
+  readonly toggle?: ReactNode;
+  readonly terms?: ReactNode;
+};
+
+/** A details disclosure drawn like the capability card's technical details: a turning chevron, no native marker. */
+function Disclosure(props: {
+  readonly summary: string;
+  readonly children: ReactNode;
+  readonly className?: string;
   readonly testId?: string;
 }) {
-  const iconClass = props.tone === 'ready'
-    ? 'bg-[var(--nimi-status-success-soft-bg)] text-[var(--nimi-status-success)]'
-    : props.tone === 'warning'
-      ? 'bg-[var(--nimi-status-warning-soft-bg,var(--nimi-surface-active))] text-[var(--nimi-status-warning)]'
-      : 'bg-[var(--nimi-surface-active)] text-[var(--nimi-text-secondary)]';
-  const Icon = props.icon === 'check' ? Check : props.icon === 'download' ? Download : props.icon === 'alert' ? CircleAlert : Package;
   return (
-    <div className="flex items-start gap-3 py-3" data-testid={props.testId}>
-      <span className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg ${iconClass}`} aria-hidden="true">
-        <Icon size={15} />
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-          <p className="min-w-0 text-sm font-medium text-[var(--nimi-text-primary)]">{props.title}</p>
-          {props.trailing ? (
-            <StatusBadge tone={props.trailingTone ?? 'neutral'} shape="soft" className="shrink-0">
-              {props.trailing}
-            </StatusBadge>
-          ) : null}
-        </div>
-        {props.subtitle ? <p className="mt-0.5 text-xs text-[var(--nimi-text-secondary)]">{props.subtitle}</p> : null}
-        {props.children}
-      </div>
-    </div>
+    <details className={`group ${props.className ?? ''}`} data-testid={props.testId}>
+      <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-[var(--nimi-radius-sm)] text-xs font-medium text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)] [&::-webkit-details-marker]:hidden">
+        <ChevronRight size={14} className="shrink-0 transition-transform group-open:rotate-90" aria-hidden="true" />
+        {props.summary}
+      </summary>
+      <div className="mt-2 pl-5">{props.children}</div>
+    </details>
   );
 }
 
@@ -194,200 +211,348 @@ export function componentPresentation(
 }
 
 /**
- * Exported for direct render tests: the reviewed preparation checklist,
- * including the awaiting-choice pickers and the installed-rebind honesty label.
+ * Exported for direct render tests: the reviewed preparation scope as one
+ * summary card. Every model file and runtime component is one line; a pending
+ * version choice shows the selected version and opens the versions grouped by
+ * model size on request, with the device recommendation marked. Files already
+ * on the device keep the installed-rebind honesty label instead of a size.
+ * Optional model files stay with the advanced settings, where they can be
+ * turned on.
+ *
+ * Embedded in a card (the capability overview), the main model file leads
+ * as the model itself, drawn like the current-model card: identity tile,
+ * name, then size and version choice. The other lines sit flush under it,
+ * and the confirmation follows in the same text column.
  */
 export function SetupTaskPlanReview(props: {
   readonly choiceGroup?: string;
   readonly plan: RuntimeSetupPreparationPlan;
   readonly choices: Readonly<Record<string, string>>;
   readonly onChoiceChange: (slotId: string, offerRef: string) => void;
-  /** Source owner whose route is saved by the prepare-and-use confirmation. */
-  readonly ownerLabel: string | null;
+  /** Recipe of the candidate; it names reused model files and, embedded, the model family. */
+  readonly recipe?: NimiLoadoutRecipe | null;
+  readonly disabled?: boolean;
+  readonly embedded?: boolean;
+  /** Embedded only: controls at the end of the model's name line, such as close. */
+  readonly aside?: ReactNode;
+  /** Embedded only: what follows the summary in its text column, such as the confirmation. */
+  readonly footer?: ReactNode;
 }) {
   const { t } = useTranslation();
+  const [openChoices, setOpenChoices] = useState<Readonly<Record<string, boolean>>>({});
   const unknownSize = t('runtimeConfig.setupTask.unknownSize', { defaultValue: 'size unknown' });
   const installedLabel = installedRebindLabel(t);
   const partLabel = (item: { slotId: string; label: string }) => {
     const key = loadoutSlotLabelKey(item.slotId);
-    return key ? t(key) : item.label;
+    return key ? t(key, { defaultValue: item.label }) : item.label;
   };
-  const needsPreparation = setupPlanNeedsPreparation(props.plan, props.choices);
-  const requiredComponents = props.plan.components.filter((item) => item.required);
-  const optionalComponents = props.plan.components.filter((item) => !item.required);
-  const ready = !needsPreparation && props.plan.unavailable.length === 0 && !props.plan.environmentUnavailable;
-  const downloads = props.plan.acquire.some((item) => !item.offer.installedModelAssetId) || props.plan.awaitingChoice.length > 0;
-  return (
-    <div className="space-y-5" data-testid="runtime-setup-task-plan">
-      {ready ? (
-        <p className="flex items-center gap-2 text-sm font-medium text-[var(--nimi-text-primary)]">
-          <CheckCircle2 size={15} className="text-[var(--nimi-status-success)]" />
-          {t('runtimeConfig.product.readyToUseSettings')}
-        </p>
-      ) : null}
+  // A single model file is simply "Model"; several are told apart by their part.
+  const fileCount = props.plan.reuse.length + props.plan.acquire.length + props.plan.awaitingChoice.length;
+  const fileLabel = (item: { slotId: string; label: string }) => (
+    fileCount === 1 ? t('runtimeConfig.setupTask.summary.model', { defaultValue: 'Model' }) : partLabel(item)
+  );
+  const fileState = (offer: { readonly installedModelAssetId?: string; readonly sizeBytes: number | null }) => (
+    offer.installedModelAssetId ? installedLabel : scopeSizeLabel(offer.sizeBytes, unknownSize)
+  );
+  const offerTerms = (slotId: string, offer: { readonly installedModelAssetId?: string; readonly publisher?: string; readonly license?: string }) => (
+    !offer.installedModelAssetId && (offer.publisher || offer.license) ? (
+      <p className="mt-0.5 text-xs text-[var(--nimi-text-muted)]" data-testid={`runtime-setup-offer-terms:${slotId}`}>
+        {[
+          offer.publisher ? t('runtimeConfig.setupTask.rowPublisher', { defaultValue: 'Source: {{publisher}}', publisher: offer.publisher }) : '',
+          offer.license ? t('runtimeConfig.setupTask.rowLicense', { defaultValue: 'License: {{license}}', license: offer.license }) : '',
+        ].filter(Boolean).join(' · ')}
+      </p>
+    ) : null
+  );
+  const recommendedBadge = (
+    <StatusBadge tone="info" shape="soft" className="shrink-0 whitespace-nowrap">
+      {t('runtimeConfig.setupTask.deviceRecommended', { defaultValue: 'Recommended for this device' })}
+    </StatusBadge>
+  );
 
-      <section className="rounded-2xl bg-[var(--nimi-surface-card)] px-5 pb-1 pt-4">
-        <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-          {t('runtimeConfig.setupTask.checklistTitle', { defaultValue: 'What will happen' })}
-        </h3>
-        <div className="mt-1 divide-y divide-[var(--nimi-border-subtle)]">
-          {props.plan.reuse.map((item) => (
-            <PlanRow
-              key={`reuse:${item.slotId}`}
-              tone="ready"
-              icon="check"
-              title={partLabel(item)}
-              subtitle={t('runtimeConfig.setupTask.rowReuse', { defaultValue: 'Model files already on this device are reused.' })}
-              trailing={installedLabel}
-              trailingTone="success"
-            />
-          ))}
-          {props.plan.acquire.map((item) => {
-            const installed = !!item.offer.installedModelAssetId;
+  // A model file line is assembled from its parts, which an embedded card can also lay out as the model itself.
+  const fileRow = (row: Omit<PlanSummaryRow, 'value' | 'trailing' | 'file'> & { readonly file: PlanFileParts }): PlanSummaryRow => ({
+    ...row,
+    value: (
+      <div className="min-w-0">
+        <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <span className={row.file.placeholder ? 'min-w-0 text-[var(--nimi-text-muted)]' : 'min-w-0 font-medium text-[var(--nimi-text-primary)]'}>
+            {row.file.name}
+          </span>
+          {row.file.badge}
+        </span>
+        {row.file.terms}
+      </div>
+    ),
+    trailing: (
+      <span className="flex items-center justify-end gap-2">
+        {row.file.state ? <span className="whitespace-nowrap">{row.file.state}</span> : null}
+        {row.file.toggle}
+      </span>
+    ),
+  });
+
+  const rows: PlanSummaryRow[] = [];
+  for (const item of props.plan.reuse) {
+    const slot = props.recipe?.slots.find((entry) => entry.slotId === item.slotId);
+    const offer = loadoutSlotOfferForAsset(slot, item.modelAssetId);
+    rows.push(fileRow({
+      key: `reuse:${item.slotId}`,
+      label: fileLabel(item),
+      file: { slotId: item.slotId, name: offer ? offerHeadline(offer.candidate) : partLabel(item), state: installedLabel },
+    }));
+  }
+  for (const item of props.plan.acquire) {
+    rows.push(fileRow({
+      key: `acquire:${item.slotId}`,
+      label: fileLabel(item),
+      file: { slotId: item.slotId, name: offerHeadline(item.offer), state: fileState(item.offer), terms: offerTerms(item.slotId, item.offer) },
+    }));
+  }
+  for (const choice of props.plan.awaitingChoice) {
+    const selected = choice.options.find((option) => option.offerRef === props.choices[choice.slotId]);
+    const recommended = choice.options.find((option) => option.recommended);
+    // Nothing to show on the line until a version is picked, so start open.
+    const open = openChoices[choice.slotId] ?? !selected;
+    const panelId = `runtime-setup-versions-${props.choiceGroup ?? 'task'}-${choice.slotId}`;
+    const present = (option: (typeof choice.options)[number]) => loadoutCandidatePresentation({ title: option.title, variantLabel: option.variantLabel });
+    const groups = groupLoadoutModelPresentations(choice.options, present);
+    const toggleLabel = open
+      ? t('runtimeConfig.setupTask.hideVersions', { defaultValue: 'Hide versions' })
+      : t('runtimeConfig.setupTask.changeVersion', { defaultValue: 'Change version' });
+    const ToggleIcon = open ? ChevronUp : ChevronDown;
+    const toggleProps = {
+      'aria-expanded': open,
+      'aria-controls': panelId,
+      onClick: () => setOpenChoices((previous) => ({ ...previous, [choice.slotId]: !open })),
+      'data-testid': `runtime-setup-task-choice-toggle:${choice.slotId}`,
+    };
+    rows.push(fileRow({
+      key: `choice:${choice.slotId}`,
+      label: fileLabel(choice),
+      testId: `runtime-setup-task-choice:${choice.slotId}`,
+      file: {
+        slotId: choice.slotId,
+        name: selected ? offerHeadline(selected) : t('runtimeConfig.setupTask.versionUnselected', { defaultValue: 'No version selected' }),
+        placeholder: !selected,
+        badge: selected?.recommended ? recommendedBadge : undefined,
+        state: selected ? fileState(selected) : undefined,
+        terms: selected ? offerTerms(choice.slotId, selected) : undefined,
+        // Beside the model's size the choice reads as an inline link; in the summary grid it is a ghost button.
+        toggle: props.embedded ? (
+          <button
+            type="button"
+            className="inline-flex items-center gap-0.5 rounded-[var(--nimi-radius-sm)] font-medium text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)] focus-visible:outline-none focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[color:var(--nimi-focus-ring-color)]"
+            {...toggleProps}
+          >
+            {toggleLabel}
+            <ToggleIcon size={14} aria-hidden="true" />
+          </button>
+        ) : (
+          <Button tone="ghost" size="sm" trailingIcon={<ToggleIcon size={14} />} {...toggleProps}>
+            {toggleLabel}
+          </Button>
+        ),
+      },
+      panel: open ? (
+        <div
+          id={panelId}
+          role="radiogroup"
+          aria-label={t('runtimeConfig.setupTask.versionListLabel', { defaultValue: 'Choose a version' })}
+          className="space-y-3"
+        >
+          {groups.map((group) => {
+            // A group names the model size once, so its versions only need the quantization.
+            const named = group.items.some((option) => present(option).quant.short);
             return (
-              <PlanRow
-                key={`acquire:${item.slotId}`}
-                tone={installed ? 'ready' : 'warning'}
-                icon={installed ? 'check' : 'download'}
-                title={item.offer.title}
-                subtitle={installed
-                  ? partLabel(item)
-                  : t('runtimeConfig.setupTask.rowDownload', { defaultValue: '{{part}} · will be downloaded', part: partLabel(item) })}
-                trailing={installed ? installedLabel : scopeSizeLabel(item.offer.sizeBytes, unknownSize)}
-                trailingTone={installed ? 'success' : 'warning'}
-              >
-                {!installed && (item.offer.license || item.offer.publisher) ? (
-                  <p className="mt-0.5 text-xs text-[var(--nimi-text-muted)]" data-testid={`runtime-setup-offer-terms:${item.slotId}`}>
-                    {[
-                      item.offer.publisher ? t('runtimeConfig.setupTask.rowPublisher', { defaultValue: 'Source: {{publisher}}', publisher: item.offer.publisher }) : '',
-                      item.offer.license ? t('runtimeConfig.setupTask.rowLicense', { defaultValue: 'License: {{license}}', license: item.offer.license }) : '',
-                    ].filter(Boolean).join(' · ')}
-                  </p>
-                ) : null}
-              </PlanRow>
-            );
-          })}
-          {props.plan.awaitingChoice.map((choice) => (
-            <PlanRow
-              key={`choice:${choice.slotId}`}
-              tone="pending"
-              icon="alert"
-              title={choice.label}
-              subtitle={t('runtimeConfig.setupTask.rowChoice', { defaultValue: 'Choose which version to use.' })}
-              testId={`runtime-setup-task-choice:${choice.slotId}`}
-            >
-              <div className="mt-2 space-y-1.5">
-                {choice.options.map((option) => {
-                  const presentation = loadoutCandidatePresentation({ title: option.title, variantLabel: option.variantLabel });
-                  const selected = props.choices[choice.slotId] === option.offerRef;
+              <div key={group.key} className="space-y-0.5">
+                {named ? <p className="px-2 pb-0.5 text-xs font-medium text-[var(--nimi-text-muted)]">{group.title}</p> : null}
+                {group.items.map((option) => {
+                  const isSelected = option.offerRef === selected?.offerRef;
                   return (
-                    <label key={option.offerRef} className="flex cursor-pointer items-center gap-2 text-sm text-[var(--nimi-text-secondary)]">
+                    <label
+                      key={option.offerRef}
+                      className={`flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-[var(--nimi-action-ghost-hover)] ${isSelected ? 'bg-[var(--nimi-surface-active)]' : ''}`}
+                    >
                       <input
                         type="radio"
+                        className="shrink-0 accent-[var(--nimi-action-primary-bg)]"
                         name={`runtime-setup-choice-${props.choiceGroup ?? 'task'}-${choice.slotId}`}
-                        checked={selected}
+                        checked={isSelected}
+                        disabled={props.disabled}
                         onChange={() => props.onChoiceChange(choice.slotId, option.offerRef)}
                       />
-                      <span className="min-w-0 truncate">{presentation.headline || option.title}</span>
-                      {option.recommended ? <StatusBadge tone="info" shape="soft">{t('runtimeConfig.setupTask.deviceRecommended', { defaultValue: "Recommended for this device" })}</StatusBadge> : null}
-                      <span className="shrink-0 text-xs text-[var(--nimi-text-muted)]">
-                        {option.installedModelAssetId ? installedLabel : scopeSizeLabel(option.sizeBytes, unknownSize)}
+                      <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className="min-w-0 truncate text-[var(--nimi-text-primary)]">
+                          {(named && present(option).quant.short) || offerHeadline(option)}
+                        </span>
+                        {option.recommended ? recommendedBadge : null}
                       </span>
+                      <span className="shrink-0 whitespace-nowrap text-xs tabular-nums text-[var(--nimi-text-muted)]">{fileState(option)}</span>
                     </label>
                   );
                 })}
               </div>
-            </PlanRow>
-          ))}
-          {[...requiredComponents, ...optionalComponents].map((item) => {
-            const shown = componentPresentation(item, t);
-            return (
-              <PlanRow
-                key={`component:${item.dependencyFamily}/${item.dependencyId}`}
-                tone={shown.tone === 'success' ? 'ready' : shown.tone === 'warning' ? 'warning' : 'pending'}
-                icon={shown.tone === 'success' ? 'check' : 'package'}
-                title={shown.name}
-                subtitle={[shown.purpose || shown.family, item.required
-                  ? t('runtimeConfig.setupTask.rowComponentRequired', { defaultValue: 'Installed automatically for this model' })
-                  : t('runtimeConfig.setupTask.rowComponentOptional', { defaultValue: 'Optional' })]
-                  .filter(Boolean)
-                  .join(' · ')}
-                trailing={shown.state}
-                trailingTone={shown.tone}
-              />
             );
           })}
+          {recommended && selected && selected.offerRef !== recommended.offerRef ? (
+            <Button
+              tone="ghost"
+              size="sm"
+              onClick={() => props.onChoiceChange(choice.slotId, recommended.offerRef)}
+              disabled={props.disabled}
+              data-testid={`runtime-setup-restore-recommendation:${choice.slotId}`}
+            >
+              {t('runtimeConfig.setupTask.restoreRecommendation', { defaultValue: 'Back to the recommended version' })}
+            </Button>
+          ) : null}
         </div>
-      </section>
+      ) : undefined,
+    }));
+  }
+  const components = [
+    ...props.plan.components.filter((item) => item.required),
+    ...props.plan.components.filter((item) => !item.required),
+  ];
+  components.forEach((item, index) => {
+    const shown = componentPresentation(item, t);
+    rows.push({
+      key: `component:${item.dependencyFamily}/${item.dependencyId}`,
+      label: t('runtimeConfig.setupTask.summary.component', { defaultValue: 'Component' }),
+      labelHidden: index > 0,
+      value: (
+        <span className="min-w-0 text-[var(--nimi-text-primary)]">
+          {shown.name}
+          {item.required ? null : (
+            <span className="ml-2 text-xs text-[var(--nimi-text-muted)]">
+              {t('runtimeConfig.setupTask.rowComponentOptional', { defaultValue: 'Optional' })}
+            </span>
+          )}
+          {shown.purpose ? <span className="mt-0.5 block text-xs text-[var(--nimi-text-muted)]">{shown.purpose}</span> : null}
+        </span>
+      ),
+      trailing: (
+        <span className={shown.tone === 'warning' ? 'text-[var(--nimi-status-warning)]' : undefined}>{shown.state}</span>
+      ),
+    });
+  });
 
-      {props.plan.awaitingChoice.some((choice) => choice.options.some((option) => option.recommended)) ? (
-        <Button tone="secondary" size="sm" data-testid="runtime-setup-accept-recommendations" onClick={() => {
-          for (const choice of props.plan.awaitingChoice) {
-            const recommended = choice.options.find((option) => option.recommended);
-            if (recommended) props.onChoiceChange(choice.slotId, recommended.offerRef);
-          }
-        }}>{t('runtimeConfig.setupTask.acceptRecommendations', { defaultValue: "Use device recommendations" })}</Button>
-      ) : null}
-      {downloads || props.plan.components.length > 0 ? (
-        <p className="text-xs leading-relaxed text-[var(--nimi-text-muted)]" data-testid="runtime-setup-download-scope">
-          {[
-            downloads ? t('runtimeConfig.setupTask.directDownloadNote', { defaultValue: 'Models are downloaded by this device directly from their publisher; using them is subject to each license.' }) : '',
-            props.plan.components.length > 0
-              ? typeof props.plan.componentsDownloadBytes === 'number'
-                ? t('runtimeConfig.setupTask.componentsDownloadKnown', { defaultValue: 'Runtime components download about {{size}} more.', size: formatBytes(props.plan.componentsDownloadBytes) })
-                : t('runtimeConfig.setupTask.componentsDownloadUnknown', { defaultValue: 'Runtime components also need downloading; their size can’t be estimated yet and is not included in the model download above.' })
-              : '',
-          ].filter(Boolean).join(' ')}
-        </p>
-      ) : null}
-      {props.plan.environmentUnavailable ? (
-        <InlineAlert tone="warning" data-testid="runtime-setup-environment-unavailable">
-          <div>{t('runtimeConfig.setupTask.environmentUnavailable', { defaultValue: "This model has no managed runtime environment on this device, so it can't be prepared here. Nothing will be downloaded and the current model stays unchanged." })}</div>
-        </InlineAlert>
-      ) : null}
-      {props.plan.unavailable.length > 0 ? (
-        <InlineAlert tone="warning" data-testid="runtime-setup-unavailable">
-          <div>{t('runtimeConfig.setupTask.resourcesUnavailable', { defaultValue: "Some required resources are unavailable. Choose another model or manage files in the model library." })}</div>
-          <ul className="mt-2 list-disc pl-4">{props.plan.unavailable.map((item) => <li key={item.slotId}>{item.label}</li>)}</ul>
-        </InlineAlert>
-      ) : null}
-      {props.plan.options.length > 0 ? (
-        <details className="text-sm">
-          <summary className="cursor-pointer text-[var(--nimi-text-secondary)]">
-            {t('runtimeConfig.setupTask.scope.options', { defaultValue: 'Optional features' })}
-          </summary>
-          <ul className="mt-1 space-y-1 pl-4 text-[var(--nimi-text-secondary)]">
-            {props.plan.options.map((item) => (
-              <li key={item.slotId}>{partLabel(item)}</li>
-            ))}
-          </ul>
-        </details>
-      ) : null}
-      <p className="text-xs text-[var(--nimi-text-muted)]">
-        {t('runtimeConfig.setupTask.scope.reviewModes', { defaultValue: "Prepare and use makes this the current model on this device. Prepare only keeps the current model unchanged." })}
-        {props.ownerLabel ? (
-          <span>
-            {' '}
-            {t('runtimeConfig.setupTask.scope.reviewOwner', {
-              defaultValue: "When you choose Prepare and use, {{owner}} will use the model selected on this device.",
-              owner: props.ownerLabel,
-            })}
-          </span>
-        ) : null}
-      </p>
-      {props.plan.components.length > 0 ? (
-        <details className="text-xs text-[var(--nimi-text-secondary)]">
-          <summary className="cursor-pointer">{t('runtimeConfig.profiles.technicalDetails', { defaultValue: 'Technical details' })}</summary>
-          <dl className="mt-2 grid gap-x-4 gap-y-1 sm:grid-cols-[minmax(0,1fr)_auto]">
-            {props.plan.components.map((item) => (
-              <div key={`raw:${item.dependencyFamily}/${item.dependencyId}`} className="contents">
-                <dt className="break-all">{item.dependencyFamily} / {item.dependencyId}</dt>
-                <dd>{item.state}</dd>
-              </div>
-            ))}
-          </dl>
-        </details>
-      ) : null}
+  const summaryGrid = (lines: readonly PlanSummaryRow[], className: string, dividerAbove: boolean) => (
+    <dl className={`grid grid-cols-[max-content_minmax(0,1fr)_auto] text-sm ${className}`}>
+      {lines.map((row, index) => {
+        // Cells stretch to the row height so the divider stays one straight line.
+        const divider = dividerAbove || index > 0 ? 'border-t border-[var(--nimi-border-subtle)]' : '';
+        return (
+          <Fragment key={row.key}>
+            <dt className={`flex items-center py-3 pr-6 text-[var(--nimi-text-secondary)] ${divider}`}>
+              <span className={row.labelHidden ? 'sr-only' : undefined}>{row.label}</span>
+            </dt>
+            <dd className={`flex min-w-0 items-center py-3 pr-4 ${divider}`} data-testid={row.testId}>{row.value}</dd>
+            <dd className={`flex items-center justify-end py-3 text-xs text-[var(--nimi-text-secondary)] ${divider}`}>{row.trailing}</dd>
+            {row.panel ? <dd className="col-span-2 col-start-2 pb-3">{row.panel}</dd> : null}
+          </Fragment>
+        );
+      })}
+    </dl>
+  );
+  const downloads = props.plan.acquire.some((item) => !item.offer.installedModelAssetId) || props.plan.awaitingChoice.length > 0;
+  const downloadScope = downloads || props.plan.components.length > 0 ? (
+    <p className="text-xs leading-relaxed text-[var(--nimi-text-muted)]" data-testid="runtime-setup-download-scope">
+      {[
+        downloads ? t('runtimeConfig.setupTask.directDownloadNote', { defaultValue: 'Models are downloaded by this device directly from their publisher; using them is subject to each license.' }) : '',
+        props.plan.components.length > 0
+          ? typeof props.plan.componentsDownloadBytes === 'number'
+            ? t('runtimeConfig.setupTask.componentsDownloadKnown', { defaultValue: 'Runtime components download about {{size}} more.', size: formatBytes(props.plan.componentsDownloadBytes) })
+            : t('runtimeConfig.setupTask.componentsDownloadUnknown', { defaultValue: 'Runtime components also need downloading; their size can’t be estimated yet and is not included in the model download above.' })
+          : '',
+      ].filter(Boolean).join(' ')}
+    </p>
+  ) : null;
+  const environmentUnavailable = props.plan.environmentUnavailable ? (
+    <InlineAlert tone="warning" data-testid="runtime-setup-environment-unavailable">
+      <div>{t('runtimeConfig.setupTask.environmentUnavailable', { defaultValue: "This model has no managed runtime environment on this device, so it can't be prepared here. Nothing will be downloaded and the current model stays unchanged." })}</div>
+    </InlineAlert>
+  ) : null;
+  const unavailable = props.plan.unavailable.length > 0 ? (
+    <InlineAlert tone="warning" data-testid="runtime-setup-unavailable">
+      <div>{t('runtimeConfig.setupTask.resourcesUnavailable', { defaultValue: "Some required resources are unavailable. Choose another model or manage files in the model library." })}</div>
+      <ul className="mt-2 list-disc pl-4">{props.plan.unavailable.map((item) => <li key={item.slotId}>{partLabel(item)}</li>)}</ul>
+    </InlineAlert>
+  ) : null;
+  const technicalDetails = props.plan.components.length > 0 ? (
+    <Disclosure summary={t('runtimeConfig.profiles.technicalDetails', { defaultValue: 'Technical details' })}>
+      <dl className="grid gap-x-4 gap-y-1 text-xs text-[var(--nimi-text-secondary)] sm:grid-cols-[minmax(0,1fr)_auto]">
+        {props.plan.components.map((item) => (
+          <div key={`raw:${item.dependencyFamily}/${item.dependencyId}`} className="contents">
+            <dt className="break-all">{item.dependencyFamily} / {item.dependencyId}</dt>
+            <dd>{item.state}</dd>
+          </div>
+        ))}
+      </dl>
+    </Disclosure>
+  ) : null;
+
+  if (props.embedded) {
+    const lead = rows.find((row) => row.file?.slotId.startsWith('main.')) ?? rows.find((row) => row.file);
+    const rest = rows.filter((row) => row !== lead);
+    const family = props.recipe ? modelDisplayTitle(props.recipe.title) : '';
+    // Until a version is chosen the model family names the card, and the placeholder moves to the line below.
+    const title = lead?.file ? (lead.file.placeholder && family ? family : lead.file.name) : '';
+    const facts = lead?.file
+      ? [lead.file.placeholder && title !== lead.file.name ? lead.file.name : '', lead.file.state ?? ''].filter(Boolean)
+      : [];
+    return (
+      <div className="flex items-start gap-4" data-testid="runtime-setup-task-plan">
+        {lead?.file ? <IdentityTile seed={modelFamilySeed(props.recipe?.title || title)} label={family || title} size="lg" /> : null}
+        <div className="min-w-0 flex-1 space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="min-w-0 flex-1" data-testid={lead?.testId}>
+              {lead?.file ? (
+                <>
+                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                    <h2 className="text-xl font-semibold leading-7">{title}</h2>
+                    {lead.file.badge}
+                  </div>
+                  <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[length:var(--nimi-type-body-size)] text-[var(--nimi-text-muted)]">
+                    {facts.map((fact, index) => (
+                      <Fragment key={fact}>
+                        {index > 0 ? <span aria-hidden="true">·</span> : null}
+                        <span className="tabular-nums">{fact}</span>
+                      </Fragment>
+                    ))}
+                    {facts.length > 0 && lead.file.toggle ? <span aria-hidden="true">·</span> : null}
+                    {lead.file.toggle}
+                  </p>
+                  {lead.file.terms}
+                </>
+              ) : (
+                <h2 className="text-base font-semibold leading-7">{t('runtimeConfig.setupTask.inlineTitle', { defaultValue: 'Model setup' })}</h2>
+              )}
+            </div>
+            {props.aside}
+          </div>
+          {lead?.panel ? (
+            <div className="max-w-md rounded-[var(--nimi-radius-md)] bg-[var(--nimi-surface-panel)] p-2 text-sm ring-1 ring-inset ring-[var(--nimi-border-subtle)]">
+              {lead.panel}
+            </div>
+          ) : null}
+          {rest.length > 0 ? summaryGrid(rest, '', true) : null}
+          {downloadScope}
+          {environmentUnavailable}
+          {unavailable}
+          {technicalDetails}
+          {props.footer}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-4" data-testid="runtime-setup-task-plan">
+      {rows.length > 0 ? summaryGrid(rows, 'rounded-2xl bg-[var(--nimi-surface-card)] px-5 py-1', false) : null}
+      {downloadScope}
+      {environmentUnavailable}
+      {unavailable}
+      {technicalDetails}
     </div>
   );
 }
@@ -417,6 +582,8 @@ export function preparationStage(input: {
 function PreparationProgress(props: {
   readonly task: RuntimeSetupTask;
   readonly progress: Readonly<Record<string, NimiRuntimeLocalTransferProgressEvent>>;
+  /** Inside a card: an inset well rather than a second card of the same colour. */
+  readonly inset?: boolean;
 }) {
   const { t } = useTranslation();
   const events = props.task.refs.installPlanIds.map((planId) => props.progress[planId]).filter((event): event is NimiRuntimeLocalTransferProgressEvent => !!event);
@@ -432,7 +599,10 @@ function PreparationProgress(props: {
     typeof event.etaSeconds === 'number' ? Math.max(longest ?? 0, event.etaSeconds) : longest
   ), null);
   return (
-    <div className="space-y-4 rounded-xl bg-[var(--nimi-surface-card)] p-4" data-testid="runtime-setup-task-stages">
+    <div
+      className={`space-y-4 rounded-xl p-4 ${props.inset ? 'bg-[var(--nimi-surface-panel)] ring-1 ring-inset ring-[var(--nimi-border-subtle)]' : 'bg-[var(--nimi-surface-card)]'}`}
+      data-testid="runtime-setup-task-stages"
+    >
       <ol className="flex flex-wrap items-center gap-2 text-xs" aria-label={t('runtimeConfig.setupTask.stages.title')}>
         {PREPARATION_STAGES.map((item, index) => {
           const tone = index < stageIndex ? 'done' : index === stageIndex ? 'current' : 'pending';
@@ -505,6 +675,9 @@ export function RuntimeConfigSetupTaskView(props: {
   readonly onClose: () => void;
   /** Result-page return affordance; defaults to onClose. */
   readonly onReturnToSource?: () => void;
+  readonly embedded?: boolean;
+  readonly disabled?: boolean;
+  readonly onImportModelFiles?: () => void;
 }) {
   const { t } = useTranslation();
   const snapshot = useRuntimeSetupTasks(props.store);
@@ -513,13 +686,15 @@ export function RuntimeConfigSetupTaskView(props: {
   const [recipesLoading, setRecipesLoading] = useState(false);
   const [recipesError, setRecipesError] = useState('');
   const [recipesRetry, setRecipesRetry] = useState(0);
-  const [selectedRecipeId, setSelectedRecipeId] = useState(task?.draft?.recipeId ?? '');
   const [plan, setPlan] = useState<RuntimeSetupPreparationPlan | null>(null);
-  const [choices, setChoices] = useState<Readonly<Record<string, string>>>(task?.draft?.preferredOffers ?? {});
-  const [busy, setBusy] = useState(false);
+  const [choices, setChoices] = useState<Readonly<Record<string, string>>>(task?.draft?.reviewChoices ?? task?.draft?.preferredOffers ?? {});
+  const [working, setBusy] = useState(false);
+  const busy = working || props.disabled === true;
+  const planning = useRef(false);
   const [reuseMessage, setReuseMessage] = useState('');
   const [actionError, setActionError] = useState('');
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const advancedBaseline = useRef<RuntimeSetupTask['draft']>(undefined);
   const [candidateInfo, setCandidateInfo] = useState<{
     readonly candidate: NimiMachineLoadout | null;
     readonly recipe: NimiLoadoutRecipe | null;
@@ -529,13 +704,17 @@ export function RuntimeConfigSetupTaskView(props: {
   // The route is a draft fact: machine-scope tasks are always local, and a
   // consumer source chooses Local or Cloud explicitly.
   const route = task?.draft?.route ?? (task?.source.kind === 'runtime' ? 'local' : null);
-  // A recipe without any downloadable offer can only use files already on this
-  // device: its version choices open directly instead of a doomed review.
-  const draftRecipe = recipes.find((entry) => entry.recipeId === selectedRecipeId) ?? null;
+  // When a required file has no downloadable offer, open the advanced editor
+  // so the reviewed candidate can bind model files already on this device.
+  const draftRecipe = candidateInfo?.recipe ?? recipes.find((entry) => entry.recipeId === task?.draft?.recipeId) ?? null;
   const draftWithoutDirectDownload = draftRecipe ? recipeOfferSummary(draftRecipe).withoutOffer > 0 : false;
+  const needsImportedFiles = draftWithoutDirectDownload && (plan?.unavailable.length ?? 0) > 0;
   useEffect(() => {
-    if (draftWithoutDirectDownload) setAdvancedOpen(true);
-  }, [draftWithoutDirectDownload, selectedRecipeId]);
+    if (needsImportedFiles) {
+      advancedBaseline.current = props.store.getTask(props.taskId)?.draft;
+      setAdvancedOpen(true);
+    }
+  }, [needsImportedFiles, draftRecipe?.recipeId, props.store, props.taskId]);
 
   useEffect(() => {
     if (!task || task.status !== 'draft' || task.candidateLoadoutId || route === 'cloud') return;
@@ -562,6 +741,7 @@ export function RuntimeConfigSetupTaskView(props: {
     ]).then(([aggregate, nextRecipes]) => {
       if (!active) return;
       const candidate = aggregate.loadouts.find((loadout) => loadout.loadoutId === candidateLoadoutId) ?? null;
+      setRecipes(nextRecipes);
       setCandidateInfo({
         candidate,
         recipe: candidate ? nextRecipes.find((entry) => entry.recipeId === candidate.recipeId) ?? null : null,
@@ -572,18 +752,21 @@ export function RuntimeConfigSetupTaskView(props: {
     return () => {
       active = false;
     };
-  }, [props.ports, task, candidateRevisionBaseline]);
+  }, [props.ports, task?.taskId, task?.candidateLoadoutId, task?.capabilityContract, candidateRevisionBaseline]);
 
   const onChoiceChange = useCallback((slotId: string, offerRef: string) => {
     setChoices((previous) => ({ ...previous, [slotId]: offerRef }));
-  }, []);
+    props.store.updateTask(props.taskId, current => ({
+      draft: { ...current.draft, reviewChoices: { ...current.draft?.reviewChoices, [slotId]: offerRef } },
+    }));
+  }, [props.store, props.taskId]);
 
   const onSelectRoute = useCallback((nextRoute: 'local' | 'cloud') => {
-    if (!task) return;
+    if (!task || busy) return;
     props.store.updateTask(task.taskId, (current) => ({
       draft: { ...(current.draft ?? {}), route: nextRoute },
     }));
-  }, [props.store, task]);
+  }, [props.store, task, busy]);
 
   const onReuseCurrent = useCallback(() => {
     if (!task) return;
@@ -595,6 +778,7 @@ export function RuntimeConfigSetupTaskView(props: {
           setReuseMessage(result.failure.message);
         }
       })
+      .catch((error: unknown) => setActionError(error instanceof Error ? error.message : String(error)))
       .finally(() => setBusy(false));
   }, [props.ports, props.store, task]);
 
@@ -605,46 +789,49 @@ export function RuntimeConfigSetupTaskView(props: {
     });
     if (result.status === 'ok') {
       setPlan(result.value);
-      setChoices(previous => ({ ...recommendedChoices(result.value), ...previous }));
+      setChoices(previous => Object.fromEntries(result.value.awaitingChoice.flatMap(choice => {
+        const chosen = choice.options.find(option => option.offerRef === previous[choice.slotId])
+          ?? choice.options.find(option => option.recommended);
+        return chosen ? [[choice.slotId, chosen.offerRef]] : [];
+      })));
       return result.value;
     }
     if (result.status === 'blocked') setActionError(result.failure.message);
     return null;
   }, [props.ports, props.store, props.taskId]);
 
-  // "Use this model" from the draft: resolve the plan, and when nothing needs
-  // preparing apply it right away instead of asking for a second confirmation.
-  const useResolvedPlan = useCallback(async () => {
-    const resolved = await resolvePlan();
-    if (!resolved) return;
-    const chosen = recommendedChoices(resolved);
-    if (!setupPlanIsDirect(resolved, chosen)) return;
-    const result = await runRuntimeSetupPreparation(props.store, props.taskId, props.ports, {
-      mode: 'prepare-and-use',
-      reviewedPlan: resolved,
-      choices: chosen,
-    });
-    if (result.status === 'blocked') setActionError(result.failure.message);
-  }, [props.ports, props.store, props.taskId, resolvePlan]);
-
   // The reviewed plan lives only in this view's state, so reopening a
   // review-stage task within the same session would otherwise strand it with
   // disabled confirm actions. Recompute the plan from current Runtime state.
   const taskStatus = task?.status;
   useEffect(() => {
-    if (taskStatus !== 'review' || plan) return;
+    if (taskStatus !== 'review' || plan || planning.current) return;
     setBusy(true);
-    void resolvePlan().finally(() => setBusy(false));
+    void resolvePlan()
+      .catch((error: unknown) => setActionError(error instanceof Error ? error.message : String(error)))
+      .finally(() => setBusy(false));
   }, [taskStatus, plan, resolvePlan]);
 
-  const onReviewPreparation = useCallback(() => {
-    if (!task || !selectedRecipeId) return;
+  const onReviewPreparation = useCallback((recipeId?: string, reviewImportedFiles = false) => {
+    const current = props.store.getTask(props.taskId);
+    if (!current || planning.current || props.disabled) return;
+    const recipe = recipes.find((entry) => entry.recipeId === recipeId);
+    if (!current.candidateLoadoutId && !reviewImportedFiles && recipe && recipeOfferSummary(recipe).withoutOffer > 0) {
+      if (current.draft?.recipeId !== recipeId) {
+        props.store.updateTask(current.taskId, (entry) => ({ draft: { ...entry.draft, route: 'local', recipeId } }));
+      }
+      return;
+    }
+    planning.current = true;
     setBusy(true);
+    setActionError('');
+    setAdvancedOpen(false);
     void (async () => {
-      if (!task.candidateLoadoutId) {
-        const draft = task.draft;
+      if (!current.candidateLoadoutId) {
+        if (!recipeId) return;
+        const draft = current.draft;
         const created = await createRuntimeSetupCandidate(props.store, props.taskId, props.ports, {
-          recipeId: selectedRecipeId,
+          recipeId,
           ...(draft?.options ? { options: draft.options } : {}),
           ...(draft?.axes && draft.axes.length > 0 ? { axes: draft.axes } : {}),
           ...(draft?.profileId ? { provenance: { source_profile_id: draft.profileId } } : {}),
@@ -654,12 +841,39 @@ export function RuntimeConfigSetupTaskView(props: {
           return;
         }
       }
-      await useResolvedPlan();
-    })().finally(() => setBusy(false));
-  }, [props.ports, props.store, props.taskId, selectedRecipeId, task, useResolvedPlan]);
+      await resolvePlan();
+    })().catch((error: unknown) => setActionError(error instanceof Error ? error.message : String(error)))
+      .finally(() => { planning.current = false; setBusy(false); });
+  }, [props.ports, props.store, props.taskId, props.disabled, recipes, resolvePlan]);
+
+  // Opening an explicitly started task may prepare its unselected draft for
+  // review. It never downloads, selects, or saves an app route. A sole
+  // supported recipe needs no radio/Next screen; multiple choices stay explicit.
+  useEffect(() => {
+    if (task?.status !== 'draft' || route !== 'local' || busy || actionError) return;
+    if (task.candidateLoadoutId) {
+      onReviewPreparation();
+      return;
+    }
+    if (recipesLoading || recipesError || recipes.length === 0) return;
+    const supported = recipes.filter(recipe => recipe.applicability === 'supported');
+    const recipeId = task.draft?.recipeId ?? (supported.length === 1 ? supported[0]!.recipeId : undefined);
+    if (recipeId) onReviewPreparation(recipeId);
+  }, [task?.status, task?.candidateLoadoutId, task?.draft?.recipeId, route, busy, actionError, recipes, recipesLoading, recipesError, onReviewPreparation]);
+
+  const onChooseAnotherModel = () => {
+    if (!task || busy || task.failure?.machineSelected) return;
+    props.store.updateTask(task.taskId, () => ({
+      status: 'draft', nextAction: 'choose-model', failure: undefined, authorization: undefined,
+      candidateLoadoutId: undefined, candidateRevisionBaseline: undefined, selectionRevisionBaseline: undefined,
+      refs: { installPlanIds: [], transferIds: [], dependencyJobIds: [] },
+      draft: { route: 'local' },
+    }));
+    setCandidateInfo(null); setChoices({}); setPlan(null); setActionError(''); setAdvancedOpen(false);
+  };
 
   const onConfirm = useCallback((mode: 'prepare-and-use' | 'prepare-only') => {
-    if (!plan) return;
+    if (!plan || busy || advancedOpen) return;
     setBusy(true);
     setActionError('');
     void runRuntimeSetupPreparation(props.store, props.taskId, props.ports, {
@@ -668,11 +882,15 @@ export function RuntimeConfigSetupTaskView(props: {
       choices,
     }).then((result) => {
       if (result.status === 'blocked') setActionError(result.failure.message);
-    }).finally(() => setBusy(false));
-  }, [choices, plan, props.ports, props.store, props.taskId]);
+    }).catch((error: unknown) => setActionError(error instanceof Error ? error.message : String(error)))
+      .finally(() => setBusy(false));
+  }, [advancedOpen, busy, choices, plan, props.ports, props.store, props.taskId]);
 
   const onReverify = useCallback(() => {
+    if (busy) return;
     setBusy(true);
+    setPlan(null);
+    setActionError('');
     void (async () => {
       if (task?.failure?.machineSelected) {
         const result = await resumeRuntimeSetupOwnerRoute(props.store, props.taskId, props.ports);
@@ -685,9 +903,14 @@ export function RuntimeConfigSetupTaskView(props: {
         reopenRuntimeSetupTask(props.store, props.taskId);
         return;
       }
+      if (task?.status === 'failed' || task?.status === 'needs-attention') {
+        reopenRuntimeSetupTask(props.store, props.taskId);
+      }
+      if (!task?.candidateLoadoutId) return;
       await resolvePlan(true);
-    })().finally(() => setBusy(false));
-  }, [props.store, props.taskId, props.ports, resolvePlan, task?.draft?.route, task?.failure?.machineSelected]);
+    })().catch((error: unknown) => setActionError(error instanceof Error ? error.message : String(error)))
+      .finally(() => setBusy(false));
+  }, [busy, props.store, props.taskId, props.ports, resolvePlan, task]);
 
   // Leaving a setup that was never confirmed discards it rather than keeping
   // it as unfinished work; choosing a model again starts a fresh one.
@@ -716,6 +939,7 @@ export function RuntimeConfigSetupTaskView(props: {
             type="button"
             className="rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] px-4 py-3 text-left hover:border-[var(--nimi-border-strong)]"
             onClick={() => onSelectRoute('local')}
+            disabled={busy}
             data-testid="runtime-setup-route-local"
           >
             <span className="block text-[length:var(--nimi-type-label-size)] font-semibold text-[var(--nimi-text-primary)]">
@@ -731,6 +955,7 @@ export function RuntimeConfigSetupTaskView(props: {
             type="button"
             className="rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] px-4 py-3 text-left hover:border-[var(--nimi-border-strong)]"
             onClick={() => onSelectRoute('cloud')}
+            disabled={busy}
             data-testid="runtime-setup-route-cloud"
           >
             <span className="block text-[length:var(--nimi-type-label-size)] font-semibold text-[var(--nimi-text-primary)]">
@@ -770,60 +995,28 @@ export function RuntimeConfigSetupTaskView(props: {
       return (
         <div className="space-y-3">
           {currentTask.source.kind !== 'runtime' ? (
-            <Button tone="ghost" size="sm" onClick={() => onSelectRoute('local')} data-testid="runtime-setup-route-back-local">
+            <Button tone="ghost" size="sm" disabled={busy} onClick={() => onSelectRoute('local')} data-testid="runtime-setup-route-back-local">
               {t('runtimeConfig.setupTask.routeSwitchLocal', { defaultValue: 'Switch to Local setup' })}
             </Button>
           ) : null}
-          <RuntimeSetupTaskCloudPanel
-            task={currentTask}
-            store={props.store}
-            ports={props.ports}
-            onBusyChange={setBusy}
-          />
+          <RuntimeSetupTaskCloudPanel task={currentTask} store={props.store} ports={props.ports} onBusyChange={setBusy} />
         </div>
       );
     }
-    if (currentTask.candidateLoadoutId) {
-      const candidate = candidateInfo?.candidate ?? null;
-      const candidateRecipe = candidateInfo?.recipe ?? null;
-      return (
-        <div className="space-y-3">
-          {candidateRecipe && candidate ? (
-            <details
-              className="rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] p-3"
-              open={advancedOpen}
-              onToggle={(event) => setAdvancedOpen(event.currentTarget.open)}
-            >
-              <summary className="cursor-pointer text-xs font-semibold text-[var(--nimi-text-secondary)]">
-                {t('runtimeConfig.setupTask.advancedToggle', { defaultValue: 'Version and options' })}
-              </summary>
-              <div className="mt-3">
-                <SetupTaskAdvancedSection
-                  task={currentTask}
-                  store={props.store}
-                  ports={props.ports}
-                  recipe={candidateRecipe}
-                  candidate={candidate}
-                  onCandidateUpdated={() => { setPlan(null); }}
-                />
-              </div>
-            </details>
-          ) : null}
-          <Button tone="primary" disabled={busy} onClick={() => { setBusy(true); void useResolvedPlan().finally(() => setBusy(false)); }} data-testid="runtime-setup-task-review">
-            {t('runtimeConfig.setupTask.useModel', { defaultValue: 'Use this model' })}
-          </Button>
-        </div>
-      );
+    if (currentTask.candidateLoadoutId || working) {
+      return <div className="space-y-3" role="status">
+        <p className="text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.setupTask.checkingPreparation', { defaultValue: 'Checking model files and required components…' })}</p>
+        <LoadingSkeleton className="h-24 w-full" />
+      </div>;
     }
-    const selectedRecipe = recipes.find((entry) => entry.recipeId === selectedRecipeId) ?? null;
     return (
       <div className="space-y-3" data-testid="runtime-setup-task-recipes">
-        <p className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-secondary)]">
-          {t('runtimeConfig.setupTask.chooseModel', { defaultValue: "Choose a model for {{capability}}.", capability: capabilityLabel })}
+        <p className="text-sm text-[var(--nimi-text-secondary)]">
+          {t('runtimeConfig.setupTask.chooseModel', { defaultValue: 'Choose a model for {{capability}}.', capability: capabilityLabel })}
         </p>
         {currentTask.source.kind !== 'runtime' ? (
           <div className="flex flex-wrap items-center gap-2">
-            <Button tone="ghost" size="sm" onClick={() => onSelectRoute('cloud')} data-testid="runtime-setup-route-switch-cloud">
+            <Button tone="ghost" size="sm" disabled={busy} onClick={() => onSelectRoute('cloud')} data-testid="runtime-setup-route-switch-cloud">
               {t('runtimeConfig.setupTask.routeSwitchCloud', { defaultValue: 'Use a cloud connection instead' })}
             </Button>
             <Button tone="ghost" size="sm" disabled={busy} onClick={onReuseCurrent} data-testid="runtime-setup-reuse-current-local">
@@ -834,86 +1027,112 @@ export function RuntimeConfigSetupTaskView(props: {
         {reuseMessage ? <InlineAlert tone="warning">{reuseMessage}</InlineAlert> : null}
         {recipesError ? (
           <InlineAlert tone="danger" data-testid="runtime-setup-recipes-error">
-            <div>{t('runtimeConfig.setupTask.recipesLoadFailed', { defaultValue: "Models could not be loaded. Try again." })}</div>
-            <Button tone="secondary" size="sm" disabled={recipesLoading} onClick={() => setRecipesRetry((value) => value + 1)}>{t('Common.retry', { defaultValue: 'Retry' })}</Button>
+            <div>{t('runtimeConfig.setupTask.recipesLoadFailed', { defaultValue: 'Models could not be loaded. Try again.' })}</div>
+            <Button tone="secondary" size="sm" disabled={recipesLoading} onClick={() => setRecipesRetry(value => value + 1)}>{t('Common.retry', { defaultValue: 'Retry' })}</Button>
             <details className="mt-1 text-xs"><summary>{t('runtimeConfig.profiles.technicalDetails', { defaultValue: 'Technical details' })}</summary>{recipesError}</details>
           </InlineAlert>
         ) : null}
         {recipesLoading ? <LoadingSkeleton className="h-24 w-full" /> : null}
         {!recipesLoading && !recipesError && recipes.length === 0 ? (
-          <p className="text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.setupTask.noRecipes', { defaultValue: "No models are available for this capability on this device yet." })}</p>
+          <p className="text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.setupTask.noRecipes', { defaultValue: 'No models are available for this capability on this device yet.' })}</p>
         ) : null}
         <div className="space-y-2">
-          {recipes.map((recipe) => (
-            <label
-              key={recipe.recipeId}
-              className="flex cursor-pointer items-center gap-2 rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] px-3 py-2"
-              data-testid={`runtime-setup-task-recipe:${recipe.recipeId}`}
-            >
-              <input
-                type="radio"
-                name="runtime-setup-recipe"
-                checked={selectedRecipeId === recipe.recipeId}
-                onChange={() => {
-                  setSelectedRecipeId(recipe.recipeId);
-                  props.store.updateTask(currentTask.taskId, (current) => ({
-                    draft: { ...(current.draft ?? {}), recipeId: recipe.recipeId },
-                  }));
-                }}
-              />
-              <span className="min-w-0 flex-1 text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-primary)]">
-                <span className="block">{recipe.title}</span>
-                <span className="block text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.setupTask.recipeResources', {
-                  defaultValue: "Required resources: {{count}}",
-                  count: recipe.slots.filter((slot) => slot.presence !== 'optional-conditional').length,
-                })}</span>
-              </span>
-              <StatusBadge tone={recipe.applicability === 'supported' ? 'success' : recipe.applicability === 'unsupported' ? 'danger' : 'neutral'} shape="soft">
-                {t(`runtimeConfig.loadouts.hostFit.${recipe.applicability}`, { defaultValue: recipe.applicability })}
-              </StatusBadge>
-            </label>
+          {recipes.map(recipe => (
+            <div key={recipe.recipeId} className="flex flex-wrap items-center gap-3 rounded-xl border border-[var(--nimi-border-subtle)] p-3" data-testid={`runtime-setup-task-recipe:${recipe.recipeId}`}>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium">{modelDisplayTitle(recipe.title)}</p>
+                <p className="mt-1 text-xs text-[var(--nimi-text-secondary)]">
+                  {t(`runtimeConfig.setupTask.compatibility.${recipe.applicability}`, { defaultValue: recipe.applicability })}
+                </p>
+              </div>
+              <Button tone="secondary" size="sm" disabled={busy || recipe.applicability === 'unsupported'} onClick={() => onReviewPreparation(recipe.recipeId)}>
+                {t('runtimeConfig.setupTask.reviewModel', { defaultValue: 'View version and download' })}
+              </Button>
+            </div>
           ))}
         </div>
-        {selectedRecipe && draftWithoutDirectDownload ? (
-          <InlineAlert tone="info" data-testid="runtime-setup-no-direct-download">
-            {t('runtimeConfig.setupTask.noDirectDownloadHint', { defaultValue: 'This model has no direct download. Choose model files already on this device under Version and options, or import model files first.' })}
-          </InlineAlert>
-        ) : null}
-        {selectedRecipe ? (
-          <details
-            className="rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] p-3"
-            open={advancedOpen}
-            onToggle={(event) => setAdvancedOpen(event.currentTarget.open)}
-          >
-            <summary className="cursor-pointer text-xs font-semibold text-[var(--nimi-text-secondary)]">
-              {t('runtimeConfig.setupTask.advancedToggle', { defaultValue: 'Version and options' })}
-            </summary>
-            <div className="mt-3">
-              <SetupTaskAdvancedSection
-                task={currentTask}
-                store={props.store}
-                ports={props.ports}
-                recipe={selectedRecipe}
-                candidate={null}
-                onCandidateUpdated={() => {}}
-              />
+        {draftWithoutDirectDownload && draftRecipe ? (
+          <div className="space-y-3" data-testid="runtime-setup-imported-files">
+            <InlineAlert tone="info" data-testid="runtime-setup-no-direct-download">
+              {t('runtimeConfig.setupTask.noDirectDownloadHint', { defaultValue: 'This model has no direct download. Choose model files already on this device under Advanced settings, or import model files first.' })}
+            </InlineAlert>
+            <div className="space-y-3 rounded-xl border border-[var(--nimi-border-subtle)] p-4">
+              <h3 className="text-sm font-semibold">{t('runtimeConfig.setupTask.advancedSettings', { defaultValue: 'Advanced settings' })}</h3>
+              <SetupTaskAdvancedSection task={currentTask} store={props.store} ports={props.ports} recipe={draftRecipe} candidate={null} disabled={busy} onCandidateUpdated={() => {}} />
             </div>
-          </details>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button tone="primary" disabled={busy || recipesLoading || Boolean(recipesError) || draftRecipe.applicability === 'unsupported'} onClick={() => onReviewPreparation(draftRecipe.recipeId, true)} data-testid="runtime-setup-task-review">
+                {t('runtimeConfig.setupTask.reviewModel', { defaultValue: 'View version and download' })}
+              </Button>
+              {props.onImportModelFiles ? <Button tone="secondary" disabled={busy} onClick={props.onImportModelFiles}>
+                {t('runtimeConfig.setupTask.importFiles', { defaultValue: 'Import model files' })}
+              </Button> : null}
+            </div>
+          </div>
         ) : null}
-        <Button tone="primary" disabled={!selectedRecipe || busy || recipesLoading || Boolean(recipesError)} onClick={onReviewPreparation} data-testid="runtime-setup-task-review">
-          {t('runtimeConfig.setupTask.useModel', { defaultValue: 'Use this model' })}
-        </Button>
       </div>
     );
   };
 
-  // The header names the capability being set up and what it is for; the
-  // model under setup is a secondary line once its candidate is known.
+  // The header names the setup; the model under setup is a secondary line
+  // once its candidate is known, except in review where the card shows it.
   const capabilityLabel = task ? displayRuntimeConfigCapabilityLabel(task.capabilityContract, t) : '';
-  const capabilityUsage = task ? displayRuntimeConfigCapabilityUsage(task.capabilityContract, t) : '';
   const HeroIcon = capabilityIcon(task?.capabilityContract ?? '');
   const candidateName = candidateInfo?.candidate?.displayName ?? candidateInfo?.recipe?.title ?? '';
   const modelTitle = candidateName ? modelDisplayTitle(candidateName) : '';
+
+  // Back already discards an unconfirmed setup; only a reopened one that ran before needs an explicit cancel.
+  const stopEarly = task && (task.status === 'draft' || task.status === 'review') && !runtimeSetupTaskUnconfirmed(task) ? (
+    <Button tone="ghost" size="sm" onClick={() => stopRuntimeSetupTask(props.store, props.taskId)} data-testid="runtime-setup-task-stop-early">
+      {t('runtimeConfig.setupTask.cancelSetup', { defaultValue: 'Cancel this setup' })}
+    </Button>
+  ) : null;
+  // Inside a card the setup closes like a panel, from the top-right corner.
+  const closeLabel = t('runtimeConfig.setupTask.collapse', { defaultValue: 'Close setup' });
+  const embeddedControls = (
+    <div className="-mr-2 flex shrink-0 items-center gap-1">
+      {stopEarly}
+      <IconButton
+        size="sm"
+        tone="ghost"
+        aria-label={closeLabel}
+        title={closeLabel}
+        icon={<X size={16} aria-hidden="true" />}
+        onClick={onBack}
+        data-testid="runtime-setup-task-close"
+      />
+    </div>
+  );
+  const notices = (
+    <>
+      {task?.failure && task.status !== 'failed' && task.status !== 'needs-attention' ? (
+        <InlineAlert tone="warning">
+          <div className="font-semibold text-[var(--nimi-text-primary)]">
+            {t('runtimeConfig.setupTask.attentionTitle', { defaultValue: 'Needs your decision' })}
+          </div>
+          <div>{task.failure.reasonCode === 'AI_LOCAL_SELECTION_NOT_FOUND'
+            ? t('runtimeConfig.setupTask.currentModelMissing', { defaultValue: "No local model is selected yet. Choose a model below to continue." })
+            : task.failure.reasonCode === 'RUNTIME_SETUP_CURRENT_MODEL_NEEDS_PREPARATION'
+              ? t('runtimeConfig.setupTask.currentModelBlocked', { defaultValue: "The current local model needs preparation. Choose a model below to continue." })
+              : task.failure.message}</div>
+        </InlineAlert>
+      ) : null}
+      {task?.failure?.machineSelected ? (
+        <InlineAlert tone="warning" data-testid="runtime-setup-partial-completion">
+          <div>{t('runtimeConfig.setupTask.machineSelectionCompleted', { defaultValue: "The model on this device was changed successfully." })}</div>
+          <div>{task.failure.ownerSaveState === 'unknown'
+            ? t('runtimeConfig.setupTask.ownerSaveUnknown', { defaultValue: "The app save result is unknown. Check the current settings before continuing; the model does not need to be prepared again." })
+            : t('runtimeConfig.setupTask.ownerNotSaved', { defaultValue: "The app settings were not saved. You can continue saving them without preparing the model again." })}</div>
+        </InlineAlert>
+      ) : null}
+      {actionError ? <InlineAlert tone="warning" data-testid="runtime-setup-action-error">
+        <p>{actionError}</p>
+        <Button tone="secondary" size="sm" disabled={busy} onClick={onReverify}>{t('Common.retry', { defaultValue: 'Retry' })}</Button>
+      </InlineAlert> : null}
+    </>
+  );
+  // Embedded, the reviewed plan leads with the model itself and carries the close control and notices.
+  const planLeads = props.embedded === true && task?.status === 'review' && plan !== null;
 
   const renderContent = () => {
     if (!task) {
@@ -930,33 +1149,31 @@ export function RuntimeConfigSetupTaskView(props: {
       }
       case 'review': {
         const direct = !!plan && !setupPlanNeedsPreparation(plan, choices);
-        const blockedConfirm = busy || !plan || plan.unavailable.length > 0 || Boolean(plan.environmentUnavailable)
+        const blockedConfirm = busy || advancedOpen || !plan || plan.unavailable.length > 0 || Boolean(plan.environmentUnavailable)
           || plan.awaitingChoice.some((choice) => !choices[choice.slotId]);
         const downloadBytes = plan ? setupPlanDownloadBytes(plan, choices) : null;
         const confirmLabel = direct
           ? t('runtimeConfig.product.useTheseSettings')
           : downloadBytes !== null && downloadBytes > 0
-            ? t('runtimeConfig.setupTask.downloadAndUse', { defaultValue: 'Download & start · {{size}}', size: formatBytes(downloadBytes) })
+            ? t('runtimeConfig.setupTask.downloadAndUse', { defaultValue: 'Download and use · {{size}}', size: formatBytes(downloadBytes) })
             : t('runtimeConfig.setupTask.prepareAndUse');
-        return (
-          <div className="space-y-5">
-            {plan ? (
-              <SetupTaskPlanReview plan={plan} choices={choices} onChoiceChange={onChoiceChange} ownerLabel={task.source.kind === 'runtime' ? null : sourceOwnerLabel(task, t)} />
-            ) : (
-              <LoadingSkeleton className="h-32 w-full" />
-            )}
-            <div className="space-y-3 border-t border-[var(--nimi-border-subtle)] pt-4">
-              {plan ? (
-                <p className="max-w-2xl text-sm text-[var(--nimi-text-secondary)]" data-testid="runtime-setup-confirm-lead">
-                  {t(direct ? 'runtimeConfig.setupTask.confirmLeadReady' : 'runtimeConfig.setupTask.confirmLead', {
-                    defaultValue: direct
-                      ? 'Nothing needs preparing. {{model}} becomes the current model for {{capability}} on this device as soon as you confirm.'
-                      : 'After you confirm, Nimi prepares everything above by itself. When it finishes, {{model}} becomes the current model for {{capability}} on this device.',
-                    model: modelTitle || capabilityLabel,
-                    capability: capabilityLabel,
-                  })}
-                </p>
-              ) : null}
+        // "Download only" is exact only while downloading is all that preparing does.
+        const prepareOnlyLabel = plan && plan.components.length === 0 && setupPlanDownloads(plan, choices)
+          ? t('runtimeConfig.setupTask.downloadOnly', { defaultValue: 'Download only, don’t switch' })
+          : t('runtimeConfig.setupTask.prepareOnly', { defaultValue: 'Prepare only' });
+        // The consequence sits right above the two confirmations; model and settings changes stay at the far end.
+        const confirmation = (
+          <div className="space-y-4">
+            {needsImportedFiles ? (
+              <InlineAlert tone="info" data-testid="runtime-setup-no-direct-download">
+                {t('runtimeConfig.setupTask.noDirectDownloadHint', { defaultValue: 'This model has no direct download. Choose model files already on this device under Advanced settings, or import model files first.' })}
+              </InlineAlert>
+            ) : null}
+            <div className="space-y-2.5">
+              <p className="text-sm text-[var(--nimi-text-secondary)]" data-testid="runtime-setup-review-impact">
+                {t('runtimeConfig.setupTask.reviewImpact', { defaultValue: 'Enabling this model changes the device default shared by apps using local AI.' })}
+                {task.source.kind !== 'runtime' ? ` ${t('runtimeConfig.setupTask.scope.usageSaveOwner', { defaultValue: '{{owner}} will use the model selected on this device.', owner: sourceOwnerLabel(task, t) })}` : ''}
+              </p>
               <div className="flex flex-wrap items-center gap-2">
                 <Button
                   tone="primary"
@@ -969,30 +1186,63 @@ export function RuntimeConfigSetupTaskView(props: {
                 {plan && !direct ? (
                   <Button
                     tone="ghost"
-                    size="sm"
                     disabled={blockedConfirm}
                     onClick={() => onConfirm('prepare-only')}
                     data-testid="runtime-setup-task-prepare-only"
                   >
-                    {t('runtimeConfig.setupTask.prepareOnly', { defaultValue: 'Prepare only' })}
+                    {prepareOnlyLabel}
                   </Button>
                 ) : null}
-                <Button tone="ghost" size="sm" disabled={busy} onClick={() => {
-                  props.store.updateTask(task.taskId, () => ({ status: 'draft', nextAction: 'review-preparation' }));
-                  setAdvancedOpen(true);
-                }}>{t('runtimeConfig.product.customize')}</Button>
-                {plan && (plan.unavailable.length > 0 || plan.environmentUnavailable) ? (
-                  <Button tone="ghost" size="sm" disabled={busy} onClick={() => {
-                    props.store.updateTask(task.taskId, () => ({
-                      status: 'draft', nextAction: 'choose-model', failure: undefined, authorization: undefined,
-                      candidateLoadoutId: undefined, candidateRevisionBaseline: undefined,
-                      draft: { route: 'local' },
-                    }));
-                    setSelectedRecipeId(''); setChoices({}); setPlan(null); setActionError('');
-                  }}>{t('runtimeConfig.setupTask.chooseAnotherModel', { defaultValue: "Choose another model" })}</Button>
-                ) : null}
+                {plan?.unavailable.length && props.onImportModelFiles ? <Button tone="secondary" disabled={busy} onClick={props.onImportModelFiles}>
+                  {t('runtimeConfig.setupTask.importFiles', { defaultValue: 'Import model files' })}
+                </Button> : null}
+                <span className="ml-auto flex flex-wrap items-center gap-1">
+                  {recipes.filter(recipe => recipe.applicability !== 'unsupported').length > 1 ? <Button tone="ghost" size="sm" disabled={busy || advancedOpen} onClick={onChooseAnotherModel} data-testid="runtime-setup-change-model">
+                    {t('runtimeConfig.product.changeModel')}
+                  </Button> : null}
+                  <Button tone="ghost" size="sm" disabled={busy} aria-expanded={advancedOpen} aria-controls={`runtime-setup-advanced-${task.taskId}`} onClick={() => {
+                    if (advancedOpen) props.store.updateTask(task.taskId, () => ({ draft: advancedBaseline.current }));
+                    else advancedBaseline.current = task.draft;
+                    setAdvancedOpen(value => !value);
+                  }} data-testid="runtime-setup-task-advanced">
+                    {advancedOpen
+                      ? t('runtimeConfig.product.customization.discard', { defaultValue: 'Discard changes' })
+                      : t('runtimeConfig.setupTask.advancedSettings', { defaultValue: 'Advanced settings' })}
+                  </Button>
+                </span>
               </div>
             </div>
+            {advancedOpen ? (
+              <div id={`runtime-setup-advanced-${task.taskId}`} className="rounded-xl border border-[var(--nimi-border-subtle)] p-4">
+                {candidateInfo?.recipe && candidateInfo.candidate ? (
+                  <SetupTaskAdvancedSection task={task} store={props.store} ports={props.ports} recipe={candidateInfo.recipe} candidate={candidateInfo.candidate} reviewChoices={choices} disabled={busy} onBusyChange={setBusy} onCandidateUpdated={() => { setAdvancedOpen(false); setPlan(null); }} />
+                ) : <LoadingSkeleton className="h-24 w-full" />}
+              </div>
+            ) : null}
+          </div>
+        );
+        if (props.embedded && plan) {
+          return (
+            <SetupTaskPlanReview
+              embedded
+              plan={plan}
+              choices={choices}
+              onChoiceChange={onChoiceChange}
+              recipe={candidateInfo?.recipe ?? null}
+              disabled={busy || advancedOpen}
+              aside={embeddedControls}
+              footer={<>{notices}{confirmation}</>}
+            />
+          );
+        }
+        return (
+          <div className="space-y-5">
+            {plan ? (
+              <SetupTaskPlanReview plan={plan} choices={choices} onChoiceChange={onChoiceChange} recipe={candidateInfo?.recipe ?? null} disabled={busy || advancedOpen} />
+            ) : (
+              <LoadingSkeleton className="h-32 w-full" />
+            )}
+            {confirmation}
           </div>
         );
       }
@@ -1000,11 +1250,10 @@ export function RuntimeConfigSetupTaskView(props: {
       case 'committing': {
         return (
           <div className="space-y-3" data-testid="runtime-setup-task-progress">
-            <PreparationProgress task={task} progress={progress} />
-            <details className="text-sm">
-              <summary className="cursor-pointer text-[var(--nimi-text-secondary)]">{t('runtimeConfig.setupTask.receipt.scopeDetails')}</summary>
-              <div className="mt-2"><SetupTaskScopeList task={task} /></div>
-            </details>
+            <PreparationProgress task={task} progress={progress} inset={props.embedded} />
+            <Disclosure summary={t('runtimeConfig.setupTask.receipt.scopeDetails')}>
+              <SetupTaskScopeList task={task} />
+            </Disclosure>
             <div className="flex flex-wrap items-center gap-3">
               <Button tone="secondary" size="sm" onClick={() => stopRuntimeSetupTask(props.store, props.taskId)} data-testid="runtime-setup-task-stop">
                 {t('runtimeConfig.setupTask.stop', { defaultValue: 'Stop' })}
@@ -1075,7 +1324,7 @@ export function RuntimeConfigSetupTaskView(props: {
               <div className="font-semibold text-[var(--nimi-text-primary)]">
                 {t('runtimeConfig.setupTask.attentionTitle', { defaultValue: 'Needs your decision' })}
               </div>
-              <div>{`${task.failure?.message ?? ''}${task.failure?.reasonCode ? ` (${task.failure.reasonCode})` : ''}`}</div>
+              {task.failure ? <RuntimeSetupFailureMessage failure={task.failure} /> : null}
             </InlineAlert>
             <div className="flex flex-wrap gap-2">
               <Button tone="primary" disabled={busy} onClick={onReverify} data-testid="runtime-setup-task-reverify">
@@ -1090,7 +1339,27 @@ export function RuntimeConfigSetupTaskView(props: {
             <p className="text-xs text-[var(--nimi-text-muted)]">{stopInfo}</p>
           </div>
         );
-      case 'failed':
+      case 'failed': {
+        // Until the model records are converted Runtime refuses every local
+        // model operation, so a retry or another local model fails the same way.
+        if (task.failure?.reasonCode === 'AI_LOCAL_MODEL_STATE_OFFLINE_CONVERSION_REQUIRED' && !task.failure.machineSelected) {
+          return (
+            <div className="space-y-3" data-testid="runtime-setup-task-failed">
+              <InlineAlert tone="danger">
+                <div className="font-semibold text-[var(--nimi-text-primary)]">
+                  {t('runtimeConfig.setupTask.localModelsUnavailableTitle', { defaultValue: 'Local models unavailable' })}
+                </div>
+                <RuntimeSetupFailureMessage failure={task.failure} />
+              </InlineAlert>
+              {!props.embedded ? (
+                <Button tone="secondary" onClick={props.onClose}>
+                  {t('runtimeConfig.setupTask.back', { defaultValue: 'Back' })}
+                </Button>
+              ) : null}
+            </div>
+          );
+        }
+        const missingFiles = task.failure?.reasonCode === 'AI_LOADOUT_MODEL_ASSET_NOT_FOUND' && !task.failure.machineSelected;
         return (
           <div className="space-y-3" data-testid="runtime-setup-task-failed">
             <InlineAlert tone="danger">
@@ -1099,20 +1368,38 @@ export function RuntimeConfigSetupTaskView(props: {
                   ? t('runtimeConfig.setupTask.partialTitle', { defaultValue: "Model changed; app settings need attention" })
                   : t('runtimeConfig.setupTask.failedTitle', { defaultValue: 'Setup failed' })}
               </div>
-              <div>{`${task.failure?.message ?? ''}${task.failure?.reasonCode ? ` (${task.failure.reasonCode})` : ''}`}</div>
+              {task.failure ? <RuntimeSetupFailureMessage failure={task.failure} /> : null}
             </InlineAlert>
             <div className="flex flex-wrap gap-2">
-              <Button tone="primary" disabled={busy} onClick={() => { if (task.failure?.machineSelected) onReverify(); else reopenRuntimeSetupTask(props.store, props.taskId); }} data-testid="runtime-setup-task-retry">
+              <Button tone="primary" disabled={busy} onClick={missingFiles ? onChooseAnotherModel : onReverify} data-testid="runtime-setup-task-retry">
                 {task.failure?.machineSelected
                   ? t('runtimeConfig.setupTask.continueOwnerSave', { defaultValue: "Check and save app settings" })
-                  : t('runtimeConfig.setupTask.retry', { defaultValue: 'Review and retry' })}
+                  : missingFiles
+                    ? t('runtimeConfig.setupTask.chooseRepairModel', { defaultValue: 'Choose a model to repair setup' })
+                    : t('runtimeConfig.setupTask.retry', { defaultValue: 'Review and retry' })}
               </Button>
-              <Button tone="secondary" onClick={props.onClose}>
+              {missingFiles && props.onImportModelFiles ? (
+                <Button tone="secondary" disabled={busy} onClick={props.onImportModelFiles} data-testid="runtime-setup-import-files">
+                  {t('runtimeConfig.setupTask.importFiles', { defaultValue: 'Import model files' })}
+                </Button>
+              ) : null}
+              {missingFiles ? (
+                <Button tone="ghost" disabled={busy} onClick={onReverify}>
+                  {t('runtimeConfig.setupTask.checkAgain', { defaultValue: 'Check again' })}
+                </Button>
+              ) : !task.failure?.machineSelected ? (
+                <Button tone="secondary" disabled={busy} onClick={onChooseAnotherModel}>
+                  {t('runtimeConfig.setupTask.chooseAnotherModel', { defaultValue: 'Choose another model' })}
+                </Button>
+              ) : null}
+              {!props.embedded ? <Button tone="secondary" onClick={props.onClose}>
                 {t('runtimeConfig.setupTask.back', { defaultValue: 'Back' })}
-              </Button>
+              </Button> : null}
             </div>
+            {missingFiles ? <p className="text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.setupTask.repairChoiceHint', { defaultValue: 'Review the model version and download size before replacing the current configuration.' })}</p> : null}
           </div>
         );
+      }
       case 'stopped':
         return (
           <div className="space-y-3" data-testid="runtime-setup-task-stopped">
@@ -1133,82 +1420,58 @@ export function RuntimeConfigSetupTaskView(props: {
   };
 
   return (
-    <section className="min-w-0 space-y-6" data-testid="runtime-setup-task-view" aria-label={t('runtimeConfig.setupTask.title', { defaultValue: 'Setup task' })}>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <Button tone="ghost" size="sm" onClick={onBack} data-testid="runtime-setup-task-close">
-          <ArrowLeft size={15} />
-          {task ? t('runtimeConfig.setupTask.backToCapability', { defaultValue: 'Back to {{capability}}', capability: capabilityLabel }) : t('runtimeConfig.setupTask.close', { defaultValue: 'Close' })}
-        </Button>
-        {/* Back already discards an unconfirmed setup; only a reopened one that ran before needs an explicit cancel. */}
-        {task && (task.status === 'draft' || task.status === 'review') && !runtimeSetupTaskUnconfirmed(task) ? (
-          <Button tone="ghost" size="sm" onClick={() => stopRuntimeSetupTask(props.store, props.taskId)} data-testid="runtime-setup-task-stop-early">
-            {t('runtimeConfig.setupTask.cancelSetup', { defaultValue: 'Cancel this setup' })}
+    <section className={`min-w-0 ${props.embedded ? 'space-y-5' : 'space-y-6'}`} data-testid="runtime-setup-task-view" aria-label={t('runtimeConfig.setupTask.title', { defaultValue: 'Setup task' })}>
+      {/* First, so the spacing utility never leaves a trailing margin under the visible content. */}
+      <span className="sr-only" role="status">{task ? t(`runtimeConfig.setupTask.status.${task.status}`, { defaultValue: task.status }) : ''}</span>
+      {planLeads ? null : props.embedded ? (
+        <div className="flex items-start gap-3">
+          <h2 className="min-w-0 flex-1 text-base font-semibold leading-7">{t('runtimeConfig.setupTask.inlineTitle', { defaultValue: 'Model setup' })}</h2>
+          {embeddedControls}
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Button tone="ghost" size="sm" onClick={onBack} data-testid="runtime-setup-task-close">
+            <ArrowLeft size={15} />
+            {task ? t('runtimeConfig.setupTask.backToCapability', { defaultValue: 'Back to {{capability}}', capability: capabilityLabel }) : t('runtimeConfig.setupTask.close', { defaultValue: 'Close' })}
           </Button>
-        ) : null}
-      </div>
-      {task ? (
-        <header className="flex items-start gap-4">
-          <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)]">
-            <HeroIcon size={25} strokeWidth={1.6} />
+          {stopEarly}
+        </div>
+      )}
+      {task && !props.embedded ? (
+        <header className="flex items-center gap-3">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)]">
+            <HeroIcon size={20} strokeWidth={1.7} aria-hidden="true" />
           </span>
           <div className="min-w-0">
-            <h1 className="text-2xl font-semibold tracking-tight" data-testid="runtime-setup-hero-title">{capabilityLabel}</h1>
-            <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-[var(--nimi-text-secondary)]" data-testid="runtime-setup-hero-usage">
-              {capabilityUsage}
-            </p>
-            {modelTitle ? (
-              <p className="mt-2 text-xs text-[var(--nimi-text-muted)]" data-testid="runtime-setup-hero-model">
+            <h1 className="text-xl font-semibold tracking-tight" data-testid="runtime-setup-hero-title">
+              {t('runtimeConfig.setupTask.heroTitle', { defaultValue: '{{capability}} setup', capability: capabilityLabel })}
+            </h1>
+            {task.source.kind !== 'runtime' ? (
+              <p className="mt-0.5 text-sm text-[var(--nimi-text-secondary)]" data-testid="runtime-setup-source-owner">
+                {t('runtimeConfig.setupTask.forSource', { defaultValue: 'Settings for {{owner}}', owner: sourceOwnerLabel(task, t) })}
+              </p>
+            ) : null}
+            {modelTitle && task.status !== 'review' ? (
+              <p className="mt-0.5 text-xs text-[var(--nimi-text-muted)]" data-testid="runtime-setup-hero-model">
                 {t('runtimeConfig.setupTask.heroModel', { defaultValue: 'Model for this setup: {{model}}', model: modelTitle })}
               </p>
             ) : null}
           </div>
         </header>
       ) : null}
-      {task && task.source.kind !== 'runtime' ? (
-        <p className="text-sm text-[var(--nimi-text-secondary)]" data-testid="runtime-setup-source-owner">
-          {t('runtimeConfig.setupTask.forSource', { defaultValue: 'Settings for {{owner}}', owner: sourceOwnerLabel(task, t) })}
-        </p>
-      ) : null}
-      {task?.failure && task.status !== 'failed' && task.status !== 'needs-attention' ? (
-        <InlineAlert tone="warning">
-          <div className="font-semibold text-[var(--nimi-text-primary)]">
-            {t('runtimeConfig.setupTask.attentionTitle', { defaultValue: 'Needs your decision' })}
-          </div>
-          <div>{task.failure.reasonCode === 'AI_LOCAL_SELECTION_NOT_FOUND'
-            ? t('runtimeConfig.setupTask.currentModelMissing', { defaultValue: "No local model is selected yet. Choose a model below to continue." })
-            : task.failure.reasonCode === 'RUNTIME_SETUP_CURRENT_MODEL_NEEDS_PREPARATION'
-              ? t('runtimeConfig.setupTask.currentModelBlocked', { defaultValue: "The current local model needs preparation. Choose a model below to continue." })
-              : task.failure.message}</div>
-        </InlineAlert>
-      ) : null}
-      {task?.failure?.machineSelected ? (
-        <InlineAlert tone="warning" data-testid="runtime-setup-partial-completion">
-          <div>{t('runtimeConfig.setupTask.machineSelectionCompleted', { defaultValue: "The model on this device was changed successfully." })}</div>
-          <div>{task.failure.ownerSaveState === 'unknown'
-            ? t('runtimeConfig.setupTask.ownerSaveUnknown', { defaultValue: "The app save result is unknown. Check the current settings before continuing; the model does not need to be prepared again." })
-            : t('runtimeConfig.setupTask.ownerNotSaved', { defaultValue: "The app settings were not saved. You can continue saving them without preparing the model again." })}</div>
-        </InlineAlert>
-      ) : null}
-      {actionError ? <InlineAlert tone="warning" data-testid="runtime-setup-action-error">{actionError}</InlineAlert> : null}
+      {planLeads ? null : notices}
       {renderContent()}
-      <span className="sr-only" role="status">{task ? t(`runtimeConfig.setupTask.status.${task.status}`, { defaultValue: task.status }) : ''}</span>
     </section>
   );
 }
 
-/** Slot choices pre-filled with the device recommendation for each pending choice. */
-function recommendedChoices(plan: RuntimeSetupPreparationPlan): Record<string, string> {
-  return Object.fromEntries(plan.awaitingChoice.flatMap(choice => {
-    const recommendation = choice.options.find(option => option.recommended);
-    return recommendation ? [[choice.slotId, recommendation.offerRef]] : [];
-  }));
-}
-
-/** A plan that needs nothing from the user or the network can be applied on the spot. */
-function setupPlanIsDirect(plan: RuntimeSetupPreparationPlan, choices: Readonly<Record<string, string>>): boolean {
-  return plan.unavailable.length === 0
-    && !plan.awaitingChoice.some((choice) => !choices[choice.slotId])
-    && !setupPlanNeedsPreparation(plan, choices);
+/** Whether confirming the plan downloads any model file. */
+function setupPlanDownloads(plan: RuntimeSetupPreparationPlan, choices: Readonly<Record<string, string>>): boolean {
+  return plan.acquire.some((item) => !item.offer.installedModelAssetId)
+    || plan.awaitingChoice.some((item) => {
+      const chosen = item.options.find((option) => option.offerRef === choices[item.slotId]);
+      return !!chosen && !chosen.installedModelAssetId;
+    });
 }
 
 /** Total bytes the plan will download, or null when any size is unknown. */

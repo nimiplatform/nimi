@@ -20,6 +20,7 @@ import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { findDesktopNimiTextIntent, useDesktopNimiAppAIConfig } from '../chat/chat-nimi-app-ai-config.js';
 import type { capabilityPreparationState } from './runtime-capability-inventory.js';
 import { modelDisplayTitle, recipeResourceSummary } from './runtime-capability-presentation.js';
+import { runtimeSetupFailureText } from './runtime-setup-failure-message.js';
 import { useRuntimeModelLibrary } from './use-runtime-model-library.js';
 
 /** The capability the on-device conversation quick start is about. */
@@ -140,11 +141,12 @@ export function RuntimeProfileQuickStart(props: {
   }
   if (state === 'attention') {
     const task = conversation.preparation.task;
+    const failureText = task?.failure ? runtimeSetupFailureText(task.failure, t) : '';
     return (
       <QuickStartShell icon={CircleAlert} state={state}>
         <QuickStartTitle>{t('runtimeConfig.quickStart.attentionTitle')}</QuickStartTitle>
-        {task?.failure?.message ? (
-          <p className="text-sm text-[var(--nimi-text-secondary)]">{task.failure.message}</p>
+        {failureText ? (
+          <p className="text-sm text-[var(--nimi-text-secondary)]">{failureText}</p>
         ) : null}
         <Button
           tone="secondary"

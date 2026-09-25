@@ -90,6 +90,27 @@ export function modelDisplayTitle(title: string): string {
   return stripped.trim() || trimmed;
 }
 
+/** Identity-tile seed shared by every variant of one model family, so a family keeps its colour everywhere. */
+export function modelFamilySeed(title: string): string {
+  return modelDisplayTitle(title).split(/[\s\-_/]+/u)[0]?.toLowerCase() ?? title;
+}
+
+/**
+ * What tells a configuration apart where its model name is already shown. A
+ * generated name ("<recipe> · Gemma 4 2B · Q8") keeps only its variant
+ * ("2B · Q8"); a name the person gave is kept whole.
+ */
+export function configurationVariantLabel(displayName: string, recipeTitle: string, modelName: string): string {
+  const name = displayName.trim();
+  const recipe = recipeTitle.trim();
+  if (!recipe || name === recipe) return '';
+  if (!name.startsWith(`${recipe} · `)) return name;
+  const variant = name.slice(recipe.length + 3).trim();
+  const rest = modelName && variant.startsWith(modelName) ? variant.slice(modelName.length) : null;
+  // "Gemma 40B" is a different size of "Gemma 4", not its variant "0B".
+  return rest !== null && (rest === '' || /^[\s·]/u.test(rest)) ? rest.replace(/^[\s·]+/u, '') : variant;
+}
+
 /** Display title of the model a setup task works on, or '' when its candidate is not known. */
 export function setupTaskModelTitle(
   task: { readonly candidateLoadoutId?: string },
