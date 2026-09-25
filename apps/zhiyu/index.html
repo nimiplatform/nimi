@@ -5,9 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="data:," />
     <title>织羽 Zhiyu</title>
+    <style>
+      /* Inline so the first paint, before app CSS loads, fits the window
+         instead of overflowing it and showing scrollbars. */
+      html,
+      body,
+      #root {
+        height: 100%;
+        margin: 0;
+      }
+    </style>
   </head>
   <body>
-    <div id="root" style="width: 100vw; height: 100vh"></div>
+    <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

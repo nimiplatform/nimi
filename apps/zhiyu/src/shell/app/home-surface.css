@@ -310,8 +310,7 @@
    elevations (e.g. the empty-state card's --nimi-elevation-floating) are not
    hard-clipped into rectangular slabs when the column fills the viewport. */
 .zhiyu-chat-canvas__transcript [data-canonical-transcript-width],
-.zhiyu-chat-canvas__composer [data-canonical-composer-width],
-.zhiyu-home__chat-failure-notice {
+.zhiyu-chat-canvas__composer [data-canonical-composer-width] {
   width: min(720px, calc(100% - 48px));
   max-width: min(720px, calc(100% - 48px));
   margin-right: auto;
@@ -319,8 +318,7 @@
 }
 
 .zhiyu-agent-chat__layout.is-side-closed .zhiyu-chat-canvas__transcript [data-canonical-transcript-width],
-.zhiyu-agent-chat__layout.is-side-closed .zhiyu-chat-canvas__composer [data-canonical-composer-width],
-.zhiyu-agent-chat__layout.is-side-closed .zhiyu-home__chat-failure-notice {
+.zhiyu-agent-chat__layout.is-side-closed .zhiyu-chat-canvas__composer [data-canonical-composer-width] {
   width: min(720px, calc(100% - 48px));
   max-width: min(720px, calc(100% - 48px));
   margin-right: auto;
@@ -331,6 +329,13 @@
   display: grid;
   width: 100%;
   min-width: 0;
+}
+
+/* The Kit runtime hint is the only optional sibling above the composer input.
+   It sits 12px above the input, so its default 12px/24px warm shadow bled onto
+   it; keep the lift inside that gap. */
+.zhiyu-chat-canvas__composer [data-canonical-composer-width] > div:not(:last-child) {
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--nimi-status-warning, #d97706) 10%, transparent);
 }
 
 /* Floating composer + status strip, mirroring the desktop conversation pane's

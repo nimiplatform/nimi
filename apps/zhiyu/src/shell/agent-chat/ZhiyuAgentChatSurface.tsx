@@ -323,6 +323,84 @@ export function ZhiyuAgentChatSurface({
 	const failedVoiceMessages = evidence.chat.messages.filter((message) => (
 		typeof message.metadata?.voiceError === 'string' && message.metadata.voiceError.trim()
 	));
+  // Turn outcome notices end the transcript like the streaming footer. The
+  // composer floats over the canvas bottom, so anything placed below the
+  // transcript would sit hidden under it.
+  const chatTurnNotices = (
+    <>
+      {evidence.chat.state === 'failed' ? (
+        <RuntimeChatFailureNotice chat={evidence.chat} />
+      ) : null}
+      {evidence.chat.actionHint === 'reselect_local_partner' ? (
+        <section
+          className="zhiyu-home__chat-failure-notice"
+          data-zhiyu-agent-chat-recovery="reselect-local-partner"
+          data-zhiyu-agent-chat-turn-admission={
+            evidence.chat.diagnostics?.turnAdmission === 'observed' ? 'observed' : 'not-observed'
+          }
+          aria-live="polite"
+          aria-label="伙伴会话需要刷新"
+        >
+          <div className="zhiyu-home__chat-failure-mark" aria-hidden="true">
+            <AlertTriangle size={17} />
+          </div>
+          <div className="zhiyu-home__chat-failure-copy">
+            <span>
+              {evidence.chat.diagnostics?.turnAdmission === 'observed'
+                ? '伙伴会话已更新'
+                : '伙伴会话已失效'}
+            </span>
+            <strong>请重新选择当前伙伴</strong>
+            <p>
+              {evidence.chat.diagnostics?.turnAdmission === 'observed'
+                ? 'Runtime 已接受此 turn；重新选择后会读取当前结果。'
+                : '这条消息尚未确认提交到 Runtime；重新选择后草稿会保留，可再次发送。'}
+            </p>
+          </div>
+        </section>
+      ) : null}
+      {failedImageActions.map((action) => (
+        <section
+          key={zhiyuConversationActionKey(action)}
+          className="zhiyu-home__chat-failure-notice"
+          data-zhiyu-image-action-failure="true"
+          data-zhiyu-image-action-id={action.actionId}
+          data-zhiyu-image-action-reason={action.reasonCode ?? 'unknown'}
+          aria-live="polite"
+          aria-label="图片生成失败"
+        >
+          <div className="zhiyu-home__chat-failure-mark" aria-hidden="true">
+            <AlertTriangle size={17} />
+          </div>
+          <div className="zhiyu-home__chat-failure-copy">
+            <span>图片生成失败</span>
+            <strong>文字回复已保留</strong>
+            <p>{action.message || '图片没有生成完成，请稍后重试。'}</p>
+          </div>
+        </section>
+      ))}
+      {failedVoiceMessages.map((message) => (
+        <section
+          key={`voice-failure:${message.id}`}
+          className="zhiyu-home__chat-failure-notice"
+          data-zhiyu-voice-failure="true"
+          data-zhiyu-voice-message-id={message.id}
+          data-zhiyu-voice-failure-reason={String(message.metadata?.voiceError)}
+          aria-live="polite"
+          aria-label="语音回复生成失败"
+        >
+          <div className="zhiyu-home__chat-failure-mark" aria-hidden="true">
+            <AlertTriangle size={17} />
+          </div>
+          <div className="zhiyu-home__chat-failure-copy">
+            <span>语音回复生成失败</span>
+            <strong>文字回复已保留</strong>
+            <p>{String(message.metadata?.voiceError)}</p>
+          </div>
+        </section>
+      ))}
+    </>
+  );
   const [rightPanelMode, setRightPanelMode] = useState<RightPanelMode>('closed');
   const [activeAgentTab, setActiveAgentTab] = useState<AgentPanelTab>('overview');
   const acknowledgedPlacementKeyRef = useRef<string | null>(null);
@@ -491,6 +569,7 @@ export function ZhiyuAgentChatSurface({
                 content={noLocalPartnerEmptyState}
                 footerContent={(
                   <>
+                    {chatTurnNotices}
                     {chatFooter}
                     <span
                       ref={chatTranscriptEndRef}
@@ -510,77 +589,6 @@ export function ZhiyuAgentChatSurface({
                 onPlayVoiceMessage={playVoiceMessage}
               />
             </div>
-            {evidence.chat.state === 'failed' ? (
-              <RuntimeChatFailureNotice chat={evidence.chat} />
-            ) : null}
-			{evidence.chat.actionHint === 'reselect_local_partner' ? (
-				<section
-					className="zhiyu-home__chat-failure-notice"
-					data-zhiyu-agent-chat-recovery="reselect-local-partner"
-					data-zhiyu-agent-chat-turn-admission={
-						evidence.chat.diagnostics?.turnAdmission === 'observed' ? 'observed' : 'not-observed'
-					}
-					aria-live="polite"
-					aria-label="伙伴会话需要刷新"
-				>
-					<div className="zhiyu-home__chat-failure-mark" aria-hidden="true">
-						<AlertTriangle size={17} />
-					</div>
-					<div className="zhiyu-home__chat-failure-copy">
-						<span>
-							{evidence.chat.diagnostics?.turnAdmission === 'observed'
-								? '伙伴会话已更新'
-								: '伙伴会话已失效'}
-						</span>
-						<strong>请重新选择当前伙伴</strong>
-						<p>
-							{evidence.chat.diagnostics?.turnAdmission === 'observed'
-								? 'Runtime 已接受此 turn；重新选择后会读取当前结果。'
-								: '这条消息尚未确认提交到 Runtime；重新选择后草稿会保留，可再次发送。'}
-						</p>
-					</div>
-				</section>
-			) : null}
-			{failedImageActions.map((action) => (
-				<section
-					key={zhiyuConversationActionKey(action)}
-					className="zhiyu-home__chat-failure-notice"
-					data-zhiyu-image-action-failure="true"
-					data-zhiyu-image-action-id={action.actionId}
-					data-zhiyu-image-action-reason={action.reasonCode ?? 'unknown'}
-					aria-live="polite"
-					aria-label="图片生成失败"
-				>
-					<div className="zhiyu-home__chat-failure-mark" aria-hidden="true">
-						<AlertTriangle size={17} />
-					</div>
-					<div className="zhiyu-home__chat-failure-copy">
-						<span>图片生成失败</span>
-						<strong>文字回复已保留</strong>
-						<p>{action.message || '图片没有生成完成，请稍后重试。'}</p>
-					</div>
-				</section>
-			))}
-			{failedVoiceMessages.map((message) => (
-				<section
-					key={`voice-failure:${message.id}`}
-					className="zhiyu-home__chat-failure-notice"
-					data-zhiyu-voice-failure="true"
-					data-zhiyu-voice-message-id={message.id}
-					data-zhiyu-voice-failure-reason={String(message.metadata?.voiceError)}
-					aria-live="polite"
-					aria-label="语音回复生成失败"
-				>
-					<div className="zhiyu-home__chat-failure-mark" aria-hidden="true">
-						<AlertTriangle size={17} />
-					</div>
-					<div className="zhiyu-home__chat-failure-copy">
-						<span>语音回复生成失败</span>
-						<strong>文字回复已保留</strong>
-						<p>{String(message.metadata?.voiceError)}</p>
-					</div>
-				</section>
-			))}
           </div>
             <div className="zhiyu-chat-canvas__overlay">
               <div className="zhiyu-chat-canvas__overlay-inner">

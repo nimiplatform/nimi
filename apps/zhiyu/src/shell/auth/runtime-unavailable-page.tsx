@@ -1,72 +1,152 @@
-import type { OfflineTier } from '@nimiplatform/kit/core/offline-coordinator';
-import { Button, InlineAlert, StatusBadge, Surface } from '@nimiplatform/kit/ui';
-import { appTitle, type RuntimePlatformUnavailableProjection } from './runtime-platform';
+import { useEffect, useState } from 'react';
+import { Check, ChevronDown, Copy } from 'lucide-react';
+import { Button } from '@nimiplatform/kit/ui';
+import zhiyuLogoImage from '../assets/logo.png';
+import type { RuntimePlatformUnavailableProjection } from './runtime-platform';
+import { zhiyuRuntimeUnavailableKind, type ZhiyuRuntimeUnavailableKind } from './runtime-unavailable-kind';
 
 type RuntimeUnavailablePageProps = {
   readonly projection?: RuntimePlatformUnavailableProjection;
   readonly message?: string;
-  readonly offlineTier?: OfflineTier;
+  readonly retrying: boolean;
   readonly onRetry: () => void;
 };
 
-export function RuntimeUnavailablePage({
-  projection,
-  message,
-  offlineTier,
-  onRetry,
-}: RuntimeUnavailablePageProps) {
-  const diagnosticMessage = message || projection?.message || '本地服务会话尚未就绪。';
-  const reasonCode = projection?.reasonCode ?? 'runtime-unavailable';
-  const actionHint = projection?.actionHint ?? 'start_external_runtime_daemon';
+type RuntimeUnavailableCopy = {
+  readonly title: string;
+  readonly body: string;
+  readonly action: string;
+  readonly pending: string;
+};
+
+const RUNTIME_UNAVAILABLE_COPY: Record<ZhiyuRuntimeUnavailableKind, RuntimeUnavailableCopy> = {
+  connection: {
+    title: '暂时连接不上 Nimi',
+    body: '请确认 Nimi 已打开，连接后会自动继续。',
+    action: '重新连接',
+    pending: '正在连接…',
+  },
+  session: {
+    title: '织羽暂时无法打开',
+    body: '请从 Nimi 重新打开织羽。',
+    action: '重试',
+    pending: '正在重试…',
+  },
+};
+
+export function RuntimeConnectingScreen() {
   return (
-    <main
-      className="runtime-unavailable-screen"
-      data-zhiyu-runtime-unavailable-reason={reasonCode}
-      data-zhiyu-runtime-unavailable-action={actionHint}
-    >
-      <Surface className="runtime-unavailable-panel" material="glass-thick" tone="panel" elevation="floating">
-        <div className="runtime-unavailable-heading">
-          <StatusBadge tone="warning" shape="dot">需要本地服务</StatusBadge>
-          <h1>{appTitle}</h1>
-          <p>{runtimeUnavailablePrimaryCopy(reasonCode)}</p>
-        </div>
-        <InlineAlert tone="warning">
-          <div className="runtime-alert-copy">
-            <strong>本地运行服务暂未连接</strong>
-            <span>请先启动 Nimi 本地运行服务，然后重新检查连接状态。</span>
-          </div>
-        </InlineAlert>
-        <div className="runtime-unavailable-actions">
-          <Button type="button" tone="primary" onClick={onRetry}>重新检查本地服务</Button>
-          {offlineTier ? (
-            <span data-zhiyu-runtime-offline-tier={offlineTier}>连接可恢复</span>
-          ) : null}
-        </div>
-        <details className="runtime-unavailable-diagnostic-detail">
-          <summary>查看技术诊断</summary>
-          <dl>
-            <div>
-              <dt>reason</dt>
-              <dd>{reasonCode}</dd>
-            </div>
-            <div>
-              <dt>action</dt>
-              <dd>{actionHint}</dd>
-            </div>
-            <div>
-              <dt>detail</dt>
-              <dd>{diagnosticMessage}</dd>
-            </div>
-          </dl>
-        </details>
-      </Surface>
+    <main className="runtime-check-screen" aria-busy="true">
+      <div className="runtime-gate-content" role="status">
+        <RuntimeGateMark state="connecting" />
+        <p>正在连接 Nimi…</p>
+      </div>
     </main>
   );
 }
 
-function runtimeUnavailablePrimaryCopy(reasonCode: string): string {
-  if (/permission|forbidden|scope/i.test(reasonCode)) {
-    return '当前应用还没有获得本地会话权限，请在诊断中确认授权状态。';
-  }
-  return '织羽需要连接本地服务以获取账户和伙伴信息；连接恢复后会自动回到工作区。';
+export function RuntimeUnavailablePage({
+  projection,
+  message,
+  retrying,
+  onRetry,
+}: RuntimeUnavailablePageProps) {
+  const kind = zhiyuRuntimeUnavailableKind(projection);
+  const copy = RUNTIME_UNAVAILABLE_COPY[kind];
+  const reasonCode = projection?.reasonCode ?? 'runtime-unavailable';
+  const actionHint = projection ? projection.actionHint : 'start_external_runtime_daemon';
+  const detail = message || projection?.message || '本地服务会话尚未就绪。';
+  return (
+    <main
+      className="runtime-unavailable-screen"
+      data-zhiyu-runtime-unavailable-kind={kind}
+      data-zhiyu-runtime-unavailable-reason={reasonCode}
+      data-zhiyu-runtime-unavailable-action={actionHint}
+    >
+      <div className="runtime-gate-content" aria-live="polite">
+        <RuntimeGateMark state={retrying ? 'connecting' : 'blocked'} />
+        <h1>{copy.title}</h1>
+        <p>{copy.body}</p>
+        <Button tone="primary" loading={retrying} onClick={onRetry}>
+          {retrying ? copy.pending : copy.action}
+        </Button>
+      </div>
+      <RuntimeDiagnosticDetails reasonCode={reasonCode} actionHint={actionHint} detail={detail} />
+    </main>
+  );
+}
+
+function RuntimeGateMark({ state }: { readonly state: 'connecting' | 'blocked' }) {
+  return (
+    <div className="runtime-gate-mark" data-state={state} aria-hidden="true">
+      <img src={zhiyuLogoImage} alt="" />
+      <span className="runtime-gate-mark__status" />
+    </div>
+  );
+}
+
+type DiagnosticCopyState = 'idle' | 'copied' | 'failed';
+
+function RuntimeDiagnosticDetails({
+  reasonCode,
+  actionHint,
+  detail,
+}: {
+  readonly reasonCode: string;
+  readonly actionHint?: string;
+  readonly detail: string;
+}) {
+  const [copyState, setCopyState] = useState<DiagnosticCopyState>('idle');
+
+  useEffect(() => {
+    if (copyState === 'idle') return undefined;
+    const timer = window.setTimeout(() => setCopyState('idle'), 2000);
+    return () => window.clearTimeout(timer);
+  }, [copyState]);
+
+  const copyReport = () => {
+    const report = [
+      `reason: ${reasonCode}`,
+      ...(actionHint ? [`action: ${actionHint}`] : []),
+      `detail: ${detail}`,
+    ].join('\n');
+    void Promise.resolve()
+      .then(() => navigator.clipboard.writeText(report))
+      .then(() => setCopyState('copied'), () => setCopyState('failed'));
+  };
+
+  return (
+    <details className="runtime-gate-details">
+      <summary>
+        技术详情
+        <ChevronDown aria-hidden="true" size={14} />
+      </summary>
+      <div className="runtime-gate-details__panel">
+        <dl>
+          <div>
+            <dt>原因</dt>
+            <dd>{reasonCode}</dd>
+          </div>
+          {actionHint ? (
+            <div>
+              <dt>建议操作</dt>
+              <dd>{actionHint}</dd>
+            </div>
+          ) : null}
+          <div>
+            <dt>详细信息</dt>
+            <dd>{detail}</dd>
+          </div>
+        </dl>
+        <Button
+          tone="ghost"
+          size="sm"
+          leadingIcon={copyState === 'copied' ? <Check aria-hidden="true" size={14} /> : <Copy aria-hidden="true" size={14} />}
+          onClick={copyReport}
+        >
+          {copyState === 'copied' ? '已复制' : copyState === 'failed' ? '复制失败' : '复制'}
+        </Button>
+      </div>
+    </details>
+  );
 }
