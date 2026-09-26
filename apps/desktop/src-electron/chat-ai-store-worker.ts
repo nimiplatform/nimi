@@ -1,5 +1,5 @@
 import { parentPort } from 'node:worker_threads';
-import { runDesktopChatAiStoreOperation } from './chat-ai-store-database.ts';
+import { createDesktopChatAiStoreSession } from './chat-ai-store-database.ts';
 import {
   boundedChatAiStoreWorkerError,
   parseChatAiStoreWorkerRequest,
@@ -11,6 +11,8 @@ if (!parentPort) {
 }
 
 const port = parentPort;
+const store = createDesktopChatAiStoreSession();
+port.once('close', () => store.close());
 let operationQueue = Promise.resolve();
 port.on('message', (value: unknown) => {
   operationQueue = operationQueue.then(() => run(value));
@@ -21,7 +23,7 @@ async function run(value: unknown): Promise<void> {
   try {
     const request = parseChatAiStoreWorkerRequest(value);
     requestId = request.id;
-    const result = await runDesktopChatAiStoreOperation(request);
+    const result = await store.run(request);
     const response: ChatAiStoreWorkerResponse = {
       id: request.id,
       ok: true,

@@ -52,7 +52,6 @@ export function createDesktopElectronChatAiStoreHost(input: {
 class ElectronChatAiStoreWorkerClient {
   private readonly pending = new Map<string, PendingOperation>();
   private readonly worker: Worker;
-  private invocationQueue = Promise.resolve();
   private nextId = 1;
   private closed = false;
 
@@ -78,12 +77,9 @@ class ElectronChatAiStoreWorkerClient {
     command: ChatAiCommand,
     payload: Readonly<Record<string, unknown>>,
   ): Promise<unknown> {
-    const operation = this.invocationQueue.then(() => this.invokeInOrder(command, payload));
-    this.invocationQueue = operation.then(
-      () => undefined,
-      () => undefined,
-    );
-    return operation;
+    // The shared data-root operation gate admits calls in order and waits for
+    // each Worker result, including asynchronous root resolution.
+    return this.invokeInOrder(command, payload);
   }
 
   private async invokeInOrder(

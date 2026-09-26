@@ -38,19 +38,45 @@ const CHAT_AI_DIRECTORY = 'chat-ai';
 const CHAT_AI_DATABASE = 'main.db';
 type ChatAiDatabaseOperation = (database: DatabaseSync) => unknown;
 
-export async function runDesktopChatAiStoreOperation(input: {
+type ChatAiStoreOperationInput = {
   readonly command: ChatAiCommand;
   readonly payload: Readonly<Record<string, unknown>>;
   readonly selectedDataRoot: string;
-}): Promise<unknown> {
-  const operation = prepareChatAiOperation(input.command, input.payload);
-  const databasePath = await resolveChatAiDatabasePath(input.selectedDataRoot);
-  const database = openDatabase(databasePath);
-  try {
-    return operation(database);
-  } finally {
-    database.close();
-  }
+};
+
+// One Worker owns one connection. Path identity and schema cookies are checked
+// on each admitted operation; root/file/schema changes invalidate the handle.
+export function createDesktopChatAiStoreSession() {
+  let current: { path: string; identity: string; database: DatabaseSync; schema: number; version: number } | undefined;
+  const close = () => { const previous = current; current = undefined; previous?.database.close(); };
+  return {
+    close,
+    async run(input: ChatAiStoreOperationInput): Promise<unknown> {
+      const operation = prepareChatAiOperation(input.command, input.payload);
+      try {
+        const databasePath = await resolveChatAiDatabasePath(input.selectedDataRoot);
+        const stat = await lstat(databasePath, { bigint: true }).catch((error: unknown) => { if (isMissingPathError(error)) return null; throw error; });
+        const identity = stat ? `${stat.dev}:${stat.ino}` : '';
+        if (current && (current.path !== databasePath || current.identity !== identity)) close();
+        if (current) {
+          const schema = Number(current.database.prepare('PRAGMA schema_version').get()?.schema_version);
+          const version = readSchemaVersion(current.database);
+          if (schema !== current.schema || version !== current.version) close();
+        }
+        if (!current) {
+          const database = openDatabase(databasePath);
+          try {
+            const opened = await lstat(databasePath, { bigint: true });
+            current = { path: databasePath, identity: `${opened.dev}:${opened.ino}`, database,
+              schema: Number(database.prepare('PRAGMA schema_version').get()?.schema_version), version: readSchemaVersion(database) };
+          } catch (error) { database.close(); throw error; }
+        } else {
+          validateSchemaVersionMeta(current.database);
+        }
+        return operation(current.database);
+      } catch (error) { close(); throw error; }
+    },
+  };
 }
 
 function prepareChatAiOperation(
