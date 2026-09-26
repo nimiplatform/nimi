@@ -24,11 +24,12 @@ models:
         host_requirement:
           accelerator: cpu
           min_ram_bytes: 1073741824
-  - model_id: asset-image-vae-z-image-ae-f16-cuda
+  - model_id: asset-image-vae-z-image-ae
     model_type: vae
     family: flux1-vae
     updated_at: 2026-08-14
     capabilities: []
+    source_ids: [comfy_org_z_image_turbo_modelcard]
     install:
       repo: Comfy-Org/z_image_turbo
       revision: 2f862278568d3f0a83167a16e5f11094da6dee72 # pragma: allowlist secret -- public immutable model revision
@@ -61,11 +62,12 @@ models:
           accelerator: metal
           min_ram_bytes: 8589934592
           min_vram_bytes: 4294967296
-  - model_id: asset-image-textenc-qwen3-4b-instruct-2507-q4-k-m-cuda
+  - model_id: asset-image-textenc-qwen3-4b-instruct-2507
     model_type: auxiliary
     family: qwen
     updated_at: 2026-08-14
     capabilities: []
+    source_ids: [qwen3_4b_instruct_2507_gguf_modelcard]
     install:
       repo: unsloth/Qwen3-4B-Instruct-2507-GGUF
       revision: a06e946bb6b655725eafa393f4a9745d460374c9 # pragma: allowlist secret -- public immutable model revision
@@ -170,11 +172,12 @@ models:
           accelerator: metal
           min_ram_bytes: 12884901888
           min_vram_bytes: 8589934592
-  - model_id: asset-image-vae-flux2-ae-f16-cuda
+  - model_id: asset-image-vae-flux2-ae
     model_type: vae
     family: flux2-vae
     updated_at: 2026-08-16
     capabilities: []
+    source_ids: [flux2_dev_modelcard]
     install:
       repo: black-forest-labs/FLUX.2-dev
       revision: 26afe3a78bb242c0a8bb181dcc8937bb16e5c66c # pragma: allowlist secret -- public immutable model revision
@@ -195,11 +198,12 @@ models:
           accelerator: cuda
           min_ram_bytes: 8589934592
           min_vram_bytes: 4294967296
-  - model_id: asset-image-vae-qwen-image-f16-cuda
+  - model_id: asset-image-vae-qwen-image
     model_type: vae
     family: qwen-image-vae
     updated_at: 2026-08-14
     capabilities: []
+    source_ids: [quantstack_qwen_image_gguf_modelcard]
     install:
       repo: QuantStack/Qwen-Image-GGUF
       revision: 257f261fa92593bed760aa6fa3f7921a49fea00f # pragma: allowlist secret -- public immutable model revision
@@ -220,11 +224,12 @@ models:
           accelerator: cuda
           min_ram_bytes: 8589934592
           min_vram_bytes: 4294967296
-  - model_id: asset-image-textenc-qwen2-5-vl-7b-q4-k-m-cuda
+  - model_id: asset-image-textenc-qwen2-5-vl-7b
     model_type: auxiliary
     family: qwen-vl
     updated_at: 2026-08-14
     capabilities: []
+    source_ids: [mradermacher_qwen25_vl_7b_gguf_modelcard]
     install:
       repo: mradermacher/Qwen2.5-VL-7B-Instruct-GGUF
       revision: cfa2baa09946b211c107e6e104948987a64dd2c1 # pragma: allowlist secret -- public immutable model revision
@@ -245,11 +250,12 @@ models:
           accelerator: cuda
           min_ram_bytes: 17179869184
           min_vram_bytes: 8589934592
-  - model_id: asset-image-vae-qwen-image-edit-2511-f16-cuda
+  - model_id: asset-image-vae-qwen-image-edit-2511
     model_type: vae
     family: qwen-image-vae
     updated_at: 2026-08-14
     capabilities: []
+    source_ids: [quantstack_qwen_image_gguf_modelcard]
     install:
       repo: QuantStack/Qwen-Image-GGUF
       revision: 257f261fa92593bed760aa6fa3f7921a49fea00f # pragma: allowlist secret -- public immutable model revision
@@ -270,11 +276,12 @@ models:
           accelerator: cuda
           min_ram_bytes: 8589934592
           min_vram_bytes: 4294967296
-  - model_id: asset-image-textenc-qwen2-5-vl-7b-edit-2511-q4-k-m-cuda
+  - model_id: asset-image-textenc-qwen2-5-vl-7b-edit-2511
     model_type: auxiliary
     family: qwen-vl
     updated_at: 2026-08-14
     capabilities: []
+    source_ids: [mradermacher_qwen25_vl_7b_gguf_modelcard]
     install:
       repo: mradermacher/Qwen2.5-VL-7B-Instruct-GGUF
       revision: cfa2baa09946b211c107e6e104948987a64dd2c1 # pragma: allowlist secret -- public immutable model revision
@@ -295,11 +302,12 @@ models:
           accelerator: cuda
           min_ram_bytes: 17179869184
           min_vram_bytes: 8589934592
-  - model_id: asset-video-vae-minimax-h3-f16-cuda
+  - model_id: asset-video-vae-minimax-h3
     model_type: vae
     family: minimax-h3-video-vae
     updated_at: 2026-08-16
     capabilities: []
+    source_ids: [minimax_h3_comfy_modelcard]
     install:
       repo: Comfy-Org/MiniMax-H3
       revision: d07f69bc8fa09c9717e1e47180034f9322e0e54d # pragma: allowlist secret -- public immutable model revision
@@ -320,11 +328,12 @@ models:
           accelerator: cuda
           min_ram_bytes: 17179869184
           min_vram_bytes: 8589934592
-  - model_id: asset-audio-vae-minimax-h3-f32-cuda
+  - model_id: asset-audio-vae-minimax-h3
     model_type: vae
     family: minimax-h3-audio-vae
     updated_at: 2026-08-16
     capabilities: []
+    source_ids: [minimax_h3_comfy_modelcard]
     install:
       repo: Comfy-Org/MiniMax-H3
       revision: d07f69bc8fa09c9717e1e47180034f9322e0e54d # pragma: allowlist secret -- public immutable model revision
@@ -350,6 +359,7 @@ models:
     family: gemma4
     updated_at: 2026-08-30
     capabilities: []
+    source_ids: [gemma4_e2b_gguf_modelcard]
     install:
       repo: unsloth/gemma-4-E2B-it-GGUF
       revision: 90f9618340396838ee7ff5b0ba2da27da62953d3 # pragma: allowlist secret -- public immutable model revision
@@ -383,6 +393,7 @@ models:
     family: gemma4
     updated_at: 2026-08-30
     capabilities: []
+    source_ids: [gemma4_26b_a4b_gguf_modelcard]
     install:
       repo: unsloth/gemma-4-26B-A4B-it-GGUF
       revision: 3365c68df1a83799b846d05324ebfadbb8cc70b3 # pragma: allowlist secret -- public immutable model revision

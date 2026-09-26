@@ -1,4 +1,12 @@
 sources:
+  - source_id: whisper_large_v3_modelcard
+    url: https://huggingface.co/openai/whisper-large-v3
+    retrieved_at: 2026-09-26
+    note: Official Whisper large-v3 model card for the local transcription catalog row.
+  - source_id: ace_step_repo
+    url: https://github.com/ace-step/ACE-Step
+    retrieved_at: 2026-09-26
+    note: Official ACE-Step repository for the local music generation catalog row.
   - source_id: qwen3_tts_repo
     url: https://github.com/QwenLM/Qwen3-TTS
     retrieved_at: 2026-03-05

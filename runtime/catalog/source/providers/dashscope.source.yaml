@@ -481,6 +481,7 @@ models:
   - model_id: qwen3-tts-vc
     api_model_id: qwen3-tts-vc-2026-01-22
     updated_at: 2026-01-22
+    source_ids: [dashscope_voice_cloning_doc]
     capabilities: [audio.synthesize, voice.create]
     features: [input.audio]
     voice:
@@ -492,6 +493,7 @@ models:
   - model_id: qwen3-tts-vd
     api_model_id: qwen3-tts-vd-2026-01-26
     updated_at: 2026-01-26
+    source_ids: [dashscope_voice_design_doc]
     capabilities: [audio.synthesize, voice.create]
     features: [input.text]
     voice:

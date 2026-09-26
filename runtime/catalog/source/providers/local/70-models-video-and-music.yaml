@@ -182,6 +182,7 @@ models:
     model_type: music
     updated_at: 2026-03-13
     capabilities: [music.generate]
+    source_ids: [ace_step_repo]
     aliases:
       - sidecar/ace-step
       - sidecar/ace-step-turbo

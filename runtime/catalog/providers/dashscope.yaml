@@ -364,9 +364,9 @@ models:
       as_of: 2026-03-05
       notes: Official document does not provide stable public pricing in a unified schema.
     source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
+      url: https://help.aliyun.com/zh/model-studio/qwen-tts-voice-cloning
       retrieved_at: 2026-03-05
-      note: dashscope official model documentation
+      note: qwen tts voice cloning documentation
     api_model_id: qwen3-tts-vc-2026-01-22
     features:
       - input.audio
@@ -390,9 +390,9 @@ models:
       as_of: 2026-03-05
       notes: Official document does not provide stable public pricing in a unified schema.
     source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
+      url: https://help.aliyun.com/zh/model-studio/qwen-tts-voice-cloning
       retrieved_at: 2026-03-05
-      note: dashscope official model documentation
+      note: qwen tts voice cloning documentation
     api_model_id: qwen3-tts-vc-2026-01-22
     features:
       - input.audio
@@ -414,9 +414,9 @@ models:
       as_of: 2026-03-05
       notes: Official document does not provide stable public pricing in a unified schema.
     source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
+      url: https://help.aliyun.com/zh/model-studio/qwen-tts-voice-design
       retrieved_at: 2026-03-05
-      note: dashscope official model documentation
+      note: qwen tts voice design documentation
     api_model_id: qwen3-tts-vd-2026-01-26
     features:
       - input.text
@@ -440,9 +440,9 @@ models:
       as_of: 2026-03-05
       notes: Official document does not provide stable public pricing in a unified schema.
     source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
+      url: https://help.aliyun.com/zh/model-studio/qwen-tts-voice-design
       retrieved_at: 2026-03-05
-      note: dashscope official model documentation
+      note: qwen tts voice design documentation
     api_model_id: qwen3-tts-vd-2026-01-26
     features:
       - input.text
@@ -3669,9 +3669,9 @@ voices:
       - qwen3-tts-vc
       - qwen3-tts-vc-2026-01-22
     source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
+      url: https://help.aliyun.com/zh/model-studio/qwen-tts-voice-cloning
       retrieved_at: 2026-03-05
-      note: dashscope official model documentation
+      note: qwen tts voice cloning documentation
   - voice_id: user-custom
     voice_set_id: dashscope:qwen3-tts-vd-dynamic
     provider: dashscope
@@ -3691,9 +3691,9 @@ voices:
       - qwen3-tts-vd
       - qwen3-tts-vd-2026-01-26
     source_ref:
-      url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
+      url: https://help.aliyun.com/zh/model-studio/qwen-tts-voice-design
       retrieved_at: 2026-03-05
-      note: dashscope official model documentation
+      note: qwen tts voice design documentation
   - voice_id: user-custom
     voice_set_id: dashscope:qwen3-tts-vc-realtime-2026-01-15-dynamic
     provider: dashscope

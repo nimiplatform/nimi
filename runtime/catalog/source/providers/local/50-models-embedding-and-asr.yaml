@@ -69,6 +69,7 @@ models:
     model_type: stt
     updated_at: 2026-03-15
     capabilities: [audio.transcribe]
+    source_ids: [whisper_large_v3_modelcard]
     aliases:
       - local/whisper-large-v3
       - speech/whisper-large-v3

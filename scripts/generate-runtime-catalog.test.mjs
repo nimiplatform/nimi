@@ -153,6 +153,79 @@ function staticTextProviderWithSource(source, provider = 'source-test') {
   };
 }
 
+const explicitSourceFixture = {
+  source_id: 'model_documentation',
+  url: 'https://provider.example/docs/models/private-model-route',
+  retrieved_at: '2026-09-26',
+  note: 'Exact model documentation.',
+};
+
+test('catalog generation rejects missing source references instead of crediting the first source', () => {
+  for (const sourceIDs of [undefined, [], [' ']]) {
+    const doc = staticTextProviderWithSource(explicitSourceFixture);
+    doc.models[0].source_ids = sourceIDs;
+    assert.throws(() => generateProviderCatalog(doc), /source-test model private-model-route requires explicit source_ids/u);
+  }
+});
+
+test('every declared source reference must resolve, including secondary references', () => {
+  for (const sourceIDs of [['unknown'], ['unknown', 'model_documentation'], ['model_documentation', 'unknown']]) {
+    const doc = staticTextProviderWithSource(explicitSourceFixture);
+    doc.models[0].source_ids = sourceIDs;
+    assert.throws(() => generateProviderCatalog(doc), /private-model-route references unknown source_id: unknown/u);
+  }
+});
+
+test('catalog generation rejects missing and duplicate source identities', () => {
+  const doc = staticTextProviderWithSource(explicitSourceFixture);
+  doc.sources = [];
+  assert.throws(() => generateProviderCatalog(doc), /sources must include at least one entry/u);
+  doc.sources = [{ ...explicitSourceFixture, source_id: '' }];
+  assert.throws(() => generateProviderCatalog(doc), /sources entry missing source_id/u);
+  doc.sources = [explicitSourceFixture, { ...explicitSourceFixture, url: 'https://wrong.example/model' }];
+  assert.throws(() => generateProviderCatalog(doc), /duplicate source_id: model_documentation/u);
+});
+
+test('models and voices can inherit the explicitly referenced voice set source', () => {
+  const doc = staticTextProviderWithSource(explicitSourceFixture);
+  delete doc.models[0].source_ids;
+  doc.models[0].capabilities = ['audio.synthesize'];
+  doc.models[0].voice = { discovery_mode: 'static_catalog', voice_set_ref: 'example' };
+  doc.voice_sets = [{
+    voice_set_id: 'example',
+    source_ids: ['model_documentation'],
+    langs: ['en'],
+    voices: [{ voice_id: 'example-voice', name: 'Example' }],
+  }];
+  const generated = generateProviderCatalog(doc);
+  assert.equal(generated.models[0].source_ref.url, explicitSourceFixture.url);
+  assert.equal(generated.voices[0].source_ref.url, explicitSourceFixture.url);
+
+  // An independently sourced model cannot silently supply an unsourced voice.
+  doc.models[0].source_ids = ['model_documentation'];
+  delete doc.voice_sets[0].source_ids;
+  assert.throws(() => generateProviderCatalog(doc), /voice example-voice .* requires explicit source_ids/u);
+});
+
+test('local companion assets have variant-neutral names and cite their artifact repository', () => {
+  const sourceDir = path.join(import.meta.dirname, '..', 'runtime', 'catalog', 'source', 'providers', 'local');
+  const source = readYamlResource(sourceDir, { merge: true });
+  const generated = generateProviderCatalog(source);
+  const companions = readYamlResource(path.join(sourceDir, '55-model-asset-offers.yaml')).models.filter(
+    (model) => model.install.artifact_roles.some((role) => ['vae', 'video_vae', 'audio_vae', 'text_encoder', 'mmproj'].includes(role)),
+  );
+  assert.ok(companions.length > 0);
+  for (const companion of companions) {
+    const row = generated.models.find((model) => model.model_id === companion.model_id);
+    const sourcePath = new URL(row.source_ref.url).pathname;
+    const repoPath = `/${companion.install.repo}`;
+    assert.ok(sourcePath === repoPath || sourcePath.startsWith(`${repoPath}/`), `${companion.model_id}: ${row.source_ref.url}`);
+    assert.doesNotMatch(companion.model_id, /(?:^|-)(?:q\d+|bf16|f16|f32|fp16|fp32|cuda|metal|cpu)(?:-|$)/iu);
+  }
+  // Source list order carries no attribution meaning.
+  assert.deepEqual(generateProviderCatalog({ ...source, sources: [...source.sources].reverse() }), generated);
+});
+
 test('model features are normalized, validated, and propagated', () => {
   const source = {
     source_id: 'provider_documentation',

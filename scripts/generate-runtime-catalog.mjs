@@ -9,7 +9,6 @@ import { listProviderSourceDocs } from './lib/provider-source.mjs';
 import {
   buildLanguageProfiles,
   buildSourceIndex,
-  defaultCatalogSource,
   ensureVoiceSetID,
   fileExists,
   makeDynamicVoiceSetID,
@@ -315,7 +314,6 @@ export function generateProviderCatalog(doc) {
   }
 
   const sourceIndex = buildSourceIndex(doc?.sources, provider);
-  const fallbackSourceRef = defaultCatalogSource(doc?.sources, provider);
   const languageProfiles = buildLanguageProfiles(doc?.language_profiles);
   const runtime = doc?.runtime && typeof doc.runtime === 'object' ? doc.runtime : {};
   const inventoryMode = normalizeInventoryMode(runtime.inventory_mode);
@@ -455,7 +453,7 @@ export function generateProviderCatalog(doc) {
     ]);
 
     const modelLangs = resolveLangs({ ...model, langs_ref: voiceLangsRef || model?.langs_ref }, languageProfiles, []);
-    const modelSourceRef = resolveSourceRef(modelSourceIDs, sourceIndex, fallbackSourceRef);
+    const modelSourceRef = resolveSourceRef(modelSourceIDs, sourceIndex, `${provider} model ${canonicalModelID}`);
 
     const videoGeneration = normalizeVideoGeneration(model?.video_generation);
     if (
@@ -618,7 +616,7 @@ export function generateProviderCatalog(doc) {
         name: parsed.name,
         langs: [...voiceLangs],
         model_ids: [...voiceModelIDs],
-        source_ref: resolveSourceRef([...parsed.sourceIDs, ...setSourceIDs], sourceIndex, fallbackSourceRef),
+        source_ref: resolveSourceRef([...parsed.sourceIDs, ...setSourceIDs], sourceIndex, `${provider} voice ${parsed.voiceID} in ${setID}`),
       });
     }
   }
@@ -644,7 +642,7 @@ export function generateProviderCatalog(doc) {
       name: 'User Custom Voice',
       langs: [...langs],
       model_ids: [...modelIDs],
-      source_ref: resolveSourceRef(aggregate.sourceIDs, sourceIndex, fallbackSourceRef),
+      source_ref: resolveSourceRef(aggregate.sourceIDs, sourceIndex, `${provider} dynamic voice set ${setID}`),
     });
   }
 
@@ -735,7 +733,7 @@ export function generateProviderCatalog(doc) {
       workflowType,
     );
     const langs = resolveLangs(workflowModel, languageProfiles, []);
-    const sourceRef = resolveSourceRef(workflowModel?.source_ids, sourceIndex, fallbackSourceRef);
+    const sourceRef = resolveSourceRef(workflowModel?.source_ids, sourceIndex, `${provider} workflow model ${workflowModelID}`);
 
     const entry = {
       workflow_model_id: workflowModelID,
@@ -839,7 +837,7 @@ export function generateProviderCatalog(doc) {
       scope,
       delete_semantics: deleteSemantics,
       runtime_reconciliation_required: Boolean(policy?.runtime_reconciliation_required),
-      source_ref: resolveSourceRef(policy?.source_ids, sourceIndex, fallbackSourceRef),
+      source_ref: resolveSourceRef(policy?.source_ids, sourceIndex, `${provider} voice handle policy ${policyID}`),
     };
     voiceHandlePoliciesOut.push(entry);
   }

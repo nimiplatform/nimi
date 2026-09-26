@@ -196,34 +196,36 @@ function normalizeCatalogSource(entry, label, provider) {
   };
 }
 
-export function defaultCatalogSource(sourceList, provider) {
-  const first = Array.isArray(sourceList) ? sourceList[0] : null;
-  if (!first) {
-    throw new Error('sources must include at least one entry');
-  }
-  return normalizeCatalogSource(first, 'sources entry', provider);
-}
-
 export function buildSourceIndex(sourceList, provider) {
+  if (!Array.isArray(sourceList) || sourceList.length === 0) {
+    throw new Error(`${provider} sources must include at least one entry`);
+  }
   const out = new Map();
-  for (const entry of Array.isArray(sourceList) ? sourceList : []) {
+  for (const entry of sourceList) {
     const sourceID = normalizeString(entry?.source_id);
     if (!sourceID) {
-      continue;
+      throw new Error(`${provider} sources entry missing source_id`);
+    }
+    if (out.has(sourceID)) {
+      throw new Error(`${provider} duplicate source_id: ${sourceID}`);
     }
     out.set(sourceID, normalizeCatalogSource(entry, `source ${sourceID}`, provider));
   }
   return out;
 }
 
-export function resolveSourceRef(sourceIDs, sourceIndex, fallback) {
-  for (const sourceID of normalizeStringArray(sourceIDs)) {
-    const resolved = sourceIndex.get(sourceID);
-    if (resolved) {
-      return { ...resolved };
+// @nimi-authority: rule.nimi.runtime.model-catalog.r005
+export function resolveSourceRef(sourceIDs, sourceIndex, label) {
+  const ids = normalizeStringArray(sourceIDs);
+  if (ids.length === 0) {
+    throw new Error(`${label} requires explicit source_ids`);
+  }
+  for (const sourceID of ids) {
+    if (!sourceIndex.has(sourceID)) {
+      throw new Error(`${label} references unknown source_id: ${sourceID}`);
     }
   }
-  return { ...fallback };
+  return { ...sourceIndex.get(ids[0]) };
 }
 
 export function buildLanguageProfiles(languageProfiles) {

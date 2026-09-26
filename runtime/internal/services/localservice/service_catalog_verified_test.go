@@ -45,6 +45,42 @@ func TestVerifiedCatalogDoesNotExposeUnspecifiedAssetKinds(t *testing.T) {
 	}
 }
 
+func TestVerifiedCatalogTextEncoderTitleUsesTheSelectedQuantization(t *testing.T) {
+	local, err := catalog.LoadBuiltInLocalProviderCatalog()
+	if err != nil {
+		t.Fatal(err)
+	}
+	descriptors, err := verifiedAssetsFromLocalCatalog(local)
+	if err != nil {
+		t.Fatal(err)
+	}
+	byTemplate := make(map[string]*runtimev1.LocalVerifiedAssetDescriptor)
+	for _, descriptor := range descriptors {
+		byTemplate[descriptor.GetTemplateId()] = descriptor
+	}
+	for _, quant := range []string{"Q4_K_M", "Q5_K_M", "Q6_K", "Q8_0"} {
+		var contentID string
+		for _, accelerator := range []string{"cuda", "metal"} {
+			variantID := "local.image-textenc.qwen3-4b-instruct-2507." + strings.ToLower(strings.ReplaceAll(quant, "_", "-")) + "." + accelerator
+			descriptor := byTemplate[variantID]
+			if descriptor == nil {
+				t.Fatalf("missing install offer %s", variantID)
+			}
+			wantTitle := "asset-image-textenc-qwen3-4b-instruct-2507 (" + quant + ")"
+			if descriptor.GetTitle() != wantTitle {
+				t.Fatalf("%s title=%q want=%q", variantID, descriptor.GetTitle(), wantTitle)
+			}
+			if got := descriptor.GetMetadata().GetFields()["accelerator"].GetStringValue(); got != accelerator {
+				t.Fatalf("%s accelerator=%q want=%q", variantID, got, accelerator)
+			}
+			if descriptor.GetContentId() == "" || (contentID != "" && descriptor.GetContentId() != contentID) {
+				t.Fatalf("%s has inconsistent content identity: %q vs %q", variantID, descriptor.GetContentId(), contentID)
+			}
+			contentID = descriptor.GetContentId()
+		}
+	}
+}
+
 func TestProjectVerifiedVoxCPMAssetCarriesCanonicalFamilyAndPrivateBackend(t *testing.T) {
 	row := catalog.ModelEntry{
 		ModelID:      "voxcpm2-local",

@@ -3368,9 +3368,9 @@ models:
       as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
-      url: https://github.com/QwenLM/Qwen3-TTS
-      retrieved_at: 2026-03-05
-      note: Open-source Qwen3-TTS repository and examples.
+      url: https://huggingface.co/openai/whisper-large-v3
+      retrieved_at: 2026-09-26
+      note: Official Whisper large-v3 model card for the local transcription catalog row.
   - model_id: local/whisper-large-v3
     provider: local
     model_type: stt
@@ -3385,9 +3385,9 @@ models:
       as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
-      url: https://github.com/QwenLM/Qwen3-TTS
-      retrieved_at: 2026-03-05
-      note: Open-source Qwen3-TTS repository and examples.
+      url: https://huggingface.co/openai/whisper-large-v3
+      retrieved_at: 2026-09-26
+      note: Official Whisper large-v3 model card for the local transcription catalog row.
   - model_id: speech/whisper-large-v3
     provider: local
     model_type: stt
@@ -3402,9 +3402,9 @@ models:
       as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
-      url: https://github.com/QwenLM/Qwen3-TTS
-      retrieved_at: 2026-03-05
-      note: Open-source Qwen3-TTS repository and examples.
+      url: https://huggingface.co/openai/whisper-large-v3
+      retrieved_at: 2026-09-26
+      note: Official Whisper large-v3 model card for the local transcription catalog row.
   - model_id: qwen3-asr-local
     provider: local
     model_type: stt
@@ -4351,7 +4351,7 @@ models:
         host_requirement:
           accelerator: cpu
           min_ram_bytes: 1073741824
-  - model_id: asset-image-vae-z-image-ae-f16-cuda
+  - model_id: asset-image-vae-z-image-ae
     provider: local
     model_type: vae
     updated_at: 2026-08-14
@@ -4364,9 +4364,9 @@ models:
       as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
-      url: https://github.com/QwenLM/Qwen3-TTS
-      retrieved_at: 2026-03-05
-      note: Open-source Qwen3-TTS repository and examples.
+      url: https://huggingface.co/Comfy-Org/z_image_turbo
+      retrieved_at: 2026-05-21
+      note: Z-Image-Turbo VAE companion source (split_files/vae/ae.safetensors). The stable-diffusion.cpp Z-Image guide also names black-forest-labs/FLUX.1-schnell for ae.sft, but that repo is access-gated; Comfy-Org/z_image_turbo is the guide's ungated Z-Image distribution carrying byte-identical ae.safetensors.
     family: flux1-vae
     install:
       repo: Comfy-Org/z_image_turbo
@@ -4400,7 +4400,7 @@ models:
           accelerator: metal
           min_ram_bytes: 8589934592
           min_vram_bytes: 4294967296
-  - model_id: asset-image-textenc-qwen3-4b-instruct-2507-q4-k-m-cuda
+  - model_id: asset-image-textenc-qwen3-4b-instruct-2507
     provider: local
     model_type: auxiliary
     updated_at: 2026-08-14
@@ -4413,9 +4413,9 @@ models:
       as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
-      url: https://github.com/QwenLM/Qwen3-TTS
-      retrieved_at: 2026-03-05
-      note: Open-source Qwen3-TTS repository and examples.
+      url: https://huggingface.co/unsloth/Qwen3-4B-Instruct-2507-GGUF
+      retrieved_at: 2026-05-21
+      note: Z-Image-Turbo text-encoder companion source (Qwen3-4B-Instruct-2507, GGUF quants for the stable-diffusion.cpp --llm slot).
     family: qwen
     install:
       repo: unsloth/Qwen3-4B-Instruct-2507-GGUF
@@ -4521,7 +4521,7 @@ models:
           accelerator: metal
           min_ram_bytes: 12884901888
           min_vram_bytes: 8589934592
-  - model_id: asset-image-vae-flux2-ae-f16-cuda
+  - model_id: asset-image-vae-flux2-ae
     provider: local
     model_type: vae
     updated_at: 2026-08-16
@@ -4534,9 +4534,9 @@ models:
       as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
-      url: https://github.com/QwenLM/Qwen3-TTS
-      retrieved_at: 2026-03-05
-      note: Open-source Qwen3-TTS repository and examples.
+      url: https://huggingface.co/black-forest-labs/FLUX.2-dev/tree/26afe3a78bb242c0a8bb181dcc8937bb16e5c66c
+      retrieved_at: 2026-08-16
+      note: Canonical FLUX.2 VAE source used by the Ideogram4 recipe.
     family: flux2-vae
     install:
       repo: black-forest-labs/FLUX.2-dev
@@ -4558,7 +4558,7 @@ models:
           accelerator: cuda
           min_ram_bytes: 8589934592
           min_vram_bytes: 4294967296
-  - model_id: asset-image-vae-qwen-image-f16-cuda
+  - model_id: asset-image-vae-qwen-image
     provider: local
     model_type: vae
     updated_at: 2026-08-14
@@ -4571,9 +4571,9 @@ models:
       as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
-      url: https://github.com/QwenLM/Qwen3-TTS
-      retrieved_at: 2026-03-05
-      note: Open-source Qwen3-TTS repository and examples.
+      url: https://huggingface.co/QuantStack/Qwen-Image-GGUF/tree/257f261fa92593bed760aa6fa3f7921a49fea00f
+      retrieved_at: 2026-08-14
+      note: Engine-compatible Qwen Image GGUF conversion plus Qwen Image VAE artifact, pinned independently from the official model lineage.
     family: qwen-image-vae
     install:
       repo: QuantStack/Qwen-Image-GGUF
@@ -4595,7 +4595,7 @@ models:
           accelerator: cuda
           min_ram_bytes: 8589934592
           min_vram_bytes: 4294967296
-  - model_id: asset-image-textenc-qwen2-5-vl-7b-q4-k-m-cuda
+  - model_id: asset-image-textenc-qwen2-5-vl-7b
     provider: local
     model_type: auxiliary
     updated_at: 2026-08-14
@@ -4608,9 +4608,9 @@ models:
       as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
-      url: https://github.com/QwenLM/Qwen3-TTS
-      retrieved_at: 2026-03-05
-      note: Open-source Qwen3-TTS repository and examples.
+      url: https://huggingface.co/mradermacher/Qwen2.5-VL-7B-Instruct-GGUF/tree/cfa2baa09946b211c107e6e104948987a64dd2c1
+      retrieved_at: 2026-08-14
+      note: Engine-compatible Qwen2.5-VL-7B text-encoder GGUF companion used by the canonical Qwen Image recipes.
     family: qwen-vl
     install:
       repo: mradermacher/Qwen2.5-VL-7B-Instruct-GGUF
@@ -4632,7 +4632,7 @@ models:
           accelerator: cuda
           min_ram_bytes: 17179869184
           min_vram_bytes: 8589934592
-  - model_id: asset-image-vae-qwen-image-edit-2511-f16-cuda
+  - model_id: asset-image-vae-qwen-image-edit-2511
     provider: local
     model_type: vae
     updated_at: 2026-08-14
@@ -4645,9 +4645,9 @@ models:
       as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
-      url: https://github.com/QwenLM/Qwen3-TTS
-      retrieved_at: 2026-03-05
-      note: Open-source Qwen3-TTS repository and examples.
+      url: https://huggingface.co/QuantStack/Qwen-Image-GGUF/tree/257f261fa92593bed760aa6fa3f7921a49fea00f
+      retrieved_at: 2026-08-14
+      note: Engine-compatible Qwen Image GGUF conversion plus Qwen Image VAE artifact, pinned independently from the official model lineage.
     family: qwen-image-vae
     install:
       repo: QuantStack/Qwen-Image-GGUF
@@ -4669,7 +4669,7 @@ models:
           accelerator: cuda
           min_ram_bytes: 8589934592
           min_vram_bytes: 4294967296
-  - model_id: asset-image-textenc-qwen2-5-vl-7b-edit-2511-q4-k-m-cuda
+  - model_id: asset-image-textenc-qwen2-5-vl-7b-edit-2511
     provider: local
     model_type: auxiliary
     updated_at: 2026-08-14
@@ -4682,9 +4682,9 @@ models:
       as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
-      url: https://github.com/QwenLM/Qwen3-TTS
-      retrieved_at: 2026-03-05
-      note: Open-source Qwen3-TTS repository and examples.
+      url: https://huggingface.co/mradermacher/Qwen2.5-VL-7B-Instruct-GGUF/tree/cfa2baa09946b211c107e6e104948987a64dd2c1
+      retrieved_at: 2026-08-14
+      note: Engine-compatible Qwen2.5-VL-7B text-encoder GGUF companion used by the canonical Qwen Image recipes.
     family: qwen-vl
     install:
       repo: mradermacher/Qwen2.5-VL-7B-Instruct-GGUF
@@ -4706,7 +4706,7 @@ models:
           accelerator: cuda
           min_ram_bytes: 17179869184
           min_vram_bytes: 8589934592
-  - model_id: asset-video-vae-minimax-h3-f16-cuda
+  - model_id: asset-video-vae-minimax-h3
     provider: local
     model_type: vae
     updated_at: 2026-08-16
@@ -4719,9 +4719,9 @@ models:
       as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
-      url: https://github.com/QwenLM/Qwen3-TTS
-      retrieved_at: 2026-03-05
-      note: Open-source Qwen3-TTS repository and examples.
+      url: https://huggingface.co/Comfy-Org/MiniMax-H3/tree/d07f69bc8fa09c9717e1e47180034f9322e0e54d
+      retrieved_at: 2026-08-16
+      note: MiniMax-H3 video and audio VAE artifacts used by the stable-diffusion.cpp recipe.
     family: minimax-h3-video-vae
     install:
       repo: Comfy-Org/MiniMax-H3
@@ -4743,7 +4743,7 @@ models:
           accelerator: cuda
           min_ram_bytes: 17179869184
           min_vram_bytes: 8589934592
-  - model_id: asset-audio-vae-minimax-h3-f32-cuda
+  - model_id: asset-audio-vae-minimax-h3
     provider: local
     model_type: vae
     updated_at: 2026-08-16
@@ -4756,9 +4756,9 @@ models:
       as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
-      url: https://github.com/QwenLM/Qwen3-TTS
-      retrieved_at: 2026-03-05
-      note: Open-source Qwen3-TTS repository and examples.
+      url: https://huggingface.co/Comfy-Org/MiniMax-H3/tree/d07f69bc8fa09c9717e1e47180034f9322e0e54d
+      retrieved_at: 2026-08-16
+      note: MiniMax-H3 video and audio VAE artifacts used by the stable-diffusion.cpp recipe.
     family: minimax-h3-audio-vae
     install:
       repo: Comfy-Org/MiniMax-H3
@@ -4793,9 +4793,9 @@ models:
       as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
-      url: https://github.com/QwenLM/Qwen3-TTS
-      retrieved_at: 2026-03-05
-      note: Open-source Qwen3-TTS repository and examples.
+      url: https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF
+      retrieved_at: 2026-05-21
+      note: Curated local chat checkpoint (Gemma 4 E2B, GGUF quants).
     family: gemma4
     install:
       repo: unsloth/gemma-4-E2B-it-GGUF
@@ -4838,9 +4838,9 @@ models:
       as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
-      url: https://github.com/QwenLM/Qwen3-TTS
-      retrieved_at: 2026-03-05
-      note: Open-source Qwen3-TTS repository and examples.
+      url: https://huggingface.co/unsloth/gemma-4-26B-A4B-it-GGUF
+      retrieved_at: 2026-05-21
+      note: Curated local chat checkpoint (Gemma 4 26B-A4B MoE, GGUF quants).
     family: gemma4
     install:
       repo: unsloth/gemma-4-26B-A4B-it-GGUF
@@ -6709,9 +6709,9 @@ models:
       as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
-      url: https://github.com/QwenLM/Qwen3-TTS
-      retrieved_at: 2026-03-05
-      note: Open-source Qwen3-TTS repository and examples.
+      url: https://github.com/ace-step/ACE-Step
+      retrieved_at: 2026-09-26
+      note: Official ACE-Step repository for the local music generation catalog row.
   - model_id: sidecar/ace-step
     provider: local
     model_type: music
@@ -6726,9 +6726,9 @@ models:
       as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
-      url: https://github.com/QwenLM/Qwen3-TTS
-      retrieved_at: 2026-03-05
-      note: Open-source Qwen3-TTS repository and examples.
+      url: https://github.com/ace-step/ACE-Step
+      retrieved_at: 2026-09-26
+      note: Official ACE-Step repository for the local music generation catalog row.
   - model_id: sidecar/ace-step-turbo
     provider: local
     model_type: music
@@ -6743,9 +6743,9 @@ models:
       as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
-      url: https://github.com/QwenLM/Qwen3-TTS
-      retrieved_at: 2026-03-05
-      note: Open-source Qwen3-TTS repository and examples.
+      url: https://github.com/ace-step/ACE-Step
+      retrieved_at: 2026-09-26
+      note: Official ACE-Step repository for the local music generation catalog row.
   - model_id: minimax-music3-audio-cpp-local
     provider: local
     model_type: music
