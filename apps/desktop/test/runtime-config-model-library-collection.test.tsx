@@ -110,8 +110,8 @@ const catalog = [
   descriptor({ templateId: 'chat.gemma-26b.q4', title: 'gemma-4-26b-a4b-it-local (Q4_K_M)', contentId: 'sha256:26b-q4', capabilities: ['text.generate'], logicalModelId: 'gemma-4-26b-a4b-it-local', size: 15.8 * GB }),
   descriptor({ templateId: 'image.z.q4.cuda', title: 'z-image-turbo-local (Q4_0)', contentId: 'sha256:z-q4', capabilities: ['image.generate'], logicalModelId: 'z-image-turbo-local', size: 3.4 * GB }),
   descriptor({ templateId: 'image.z.q4.metal', title: 'z-image-turbo-local (Q4_0)', contentId: 'sha256:z-q4', capabilities: ['image.generate'], logicalModelId: 'z-image-turbo-local', size: 3.4 * GB }),
-  descriptor({ templateId: 'image-vae.z.cuda', title: 'asset-image-vae-z-image-ae-f16-cuda (F16)', contentId: 'sha256:z-vae', size: 0.3 * GB }),
-  descriptor({ templateId: 'image-vae.z.metal', title: 'asset-image-vae-z-image-ae-f16-cuda (F16)', contentId: 'sha256:z-vae', size: 0.3 * GB }),
+  descriptor({ templateId: 'image-vae.z.cuda', title: 'asset-image-vae-z-image-ae (F16)', contentId: 'sha256:z-vae', size: 0.3 * GB }),
+  descriptor({ templateId: 'image-vae.z.metal', title: 'asset-image-vae-z-image-ae (F16)', contentId: 'sha256:z-vae', size: 0.3 * GB }),
   descriptor({ templateId: 'image.ideogram4', title: 'ideogram4-local (Q4_0)', contentId: 'sha256:ideogram', capabilities: ['image.generate'], logicalModelId: 'ideogram4-local', size: 5.3 * GB }),
   descriptor({ templateId: 'image-textenc.qwen3-vl-8b', title: 'ideogram4-qwen3-vl-8b-encoder-local (Q8_0)', contentId: 'sha256:encoder', capabilities: ['text.generate'], logicalModelId: 'ideogram4-qwen3-vl-8b-encoder-local', size: 8.7 * GB }),
   descriptor({ templateId: 'tts.chatterbox', title: 'chatterbox-audio-cpp-local (Q8_0)', contentId: 'sha256:chatterbox', capabilities: ['audio.synthesize', 'voice.create'], logicalModelId: 'chatterbox-audio-cpp-local', size: 1.9 * GB }),
@@ -174,7 +174,7 @@ test('parts are passive assets or assets recipes use only as companions or for a
 
 test('parts name the exact model they serve and fall back to their catalog role', () => {
   const mmproj = descriptor({ templateId: 'aux.gemma-26b.mmproj', title: 'gemma-4-26b-a4b-it-mmproj-local (F16)', contentId: 'sha256:mmproj-26b', entry: 'mmproj-F16.gguf', artifactRoles: ['mmproj'] });
-  const unlinkedEncoder = descriptor({ templateId: 'image-textenc.q8', title: 'asset-image-textenc-qwen3-4b-instruct-2507-q4-k-m-cuda (Q8_0)', contentId: 'sha256:textenc-q8', artifactRoles: ['text_encoder'] });
+  const unlinkedEncoder = descriptor({ templateId: 'image-textenc.q8', title: 'asset-image-textenc-qwen3-4b-instruct-2507 (Q8_0)', entry: 'Qwen3-4B-Instruct-2507-Q8_0.gguf', contentId: 'sha256:textenc-q8', artifactRoles: ['text_encoder'] });
   const gemma = recipe({ recipeId: 'gemma', title: 'Gemma 4 text generation', capabilityContract: 'text.generate', slots: [
     { slotId: 'main.gguf', variants: [], offers: [catalog[0]!, catalog[2]!] },
     { slotId: 'companion.mmproj', variants: [], offers: [mmproj], label: 'Vision projector' },
@@ -187,6 +187,7 @@ test('parts name the exact model they serve and fall back to their catalog role'
   assert.equal(encoder?.usedBy, '');
   assert.equal(encoder?.roleLabelKey, 'runtimeConfig.loadouts.slotLabels.textEncoder');
   assert.equal(encoder?.category, 'other');
+  assert.equal(encoder?.versions[0]?.quantLabel, 'Q8');
 });
 
 test('slot offers link every catalog variant when the host recommends only some', () => {

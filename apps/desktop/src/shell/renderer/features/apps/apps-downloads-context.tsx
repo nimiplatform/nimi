@@ -1,7 +1,8 @@
 import { useAppStore } from '../../app-shell/providers/app-store.js';
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type PropsWithChildren } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
-import { createAppsJobsObserver, type AppsJobsSnapshot } from './apps-downloads-observer.js';
+import { startDownloadPolling } from '../runtime-config/download-polling.js';
+import { createAppsJobsObserver, packageJobIsTerminal, type AppsJobsSnapshot } from './apps-downloads-observer.js';
 
 export type AppsDownloadsContextValue = AppsJobsSnapshot & {
   readonly observer: ReturnType<typeof createAppsJobsObserver>;
@@ -19,6 +20,8 @@ export function AppsDownloadsProvider({ children }: PropsWithChildren) {
   const bindings = useDesktopRendererBindings();
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const [snapshot, setSnapshot] = useState<AppsJobsSnapshot>({ jobs: [], status: 'loading', pendingIds: [], error: null });
+  const polling = useRef<ReturnType<typeof startDownloadPolling> | null>(null);
+  const hasActiveJobs = snapshot.jobs.some((job) => !packageJobIsTerminal(job));
   const [view, setView] = useState<'library' | 'downloads'>('library');
   const [selectedJobId, selectJob] = useState<string | null>(null);
   const openDownloads = useCallback((jobId?: string) => { setView('downloads'); selectJob(jobId ?? null);
@@ -36,9 +39,11 @@ export function AppsDownloadsProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     setSnapshot(observer.getSnapshot());
     void observer.start();
-    const interval = window.setInterval(() => void observer.refresh(), 2_000);
-    return () => { window.clearInterval(interval); observer.dispose(); };
+    const current = startDownloadPolling(() => observer.refresh(), () => observer.getSnapshot().jobs.some((job) => !packageJobIsTerminal(job)));
+    polling.current = current;
+    return () => { polling.current = null; current.stop(); observer.dispose(); };
   }, [observer]);
+  useEffect(() => { if (hasActiveJobs) polling.current?.wake(); }, [hasActiveJobs]);
   return <AppsDownloadsContext.Provider value={{
     ...snapshot, observer, view, selectedJobId, selectJob, openDownloads, showLibrary,
   }}>{children}</AppsDownloadsContext.Provider>;

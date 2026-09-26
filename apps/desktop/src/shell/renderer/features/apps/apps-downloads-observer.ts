@@ -1,4 +1,5 @@
 import type { NimiDesktopMachineProductRuntimeClient } from '@nimiplatform/sdk/runtime';
+import { replaceEqualDeep } from '@tanstack/react-query';
 import { AppPackageJobPhase, ReasonCode, type AppPackageJob } from '@nimiplatform/sdk/runtime/wire-types';
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040c
@@ -27,7 +28,10 @@ function acceptJob(current: AppPackageJob | undefined, next: AppPackageJob): App
   if (!current) return next;
   // Terminal App jobs are immutable. A retry has its own Runtime job ID.
   if (packageJobIsTerminal(current) && !packageJobIsTerminal(next)) return current;
-  return timestampMilliseconds(next.updatedAt) < timestampMilliseconds(current.updatedAt) ? current : next;
+  if (timestampMilliseconds(next.updatedAt) < timestampMilliseconds(current.updatedAt)) return current;
+  // Membership matched by the exact job bytes before reaching this function.
+  // Reuse that byte array so unchanged plain projections retain their identity.
+  return replaceEqualDeep(current, { ...next, jobId: current.jobId });
 }
 
 export function mergePackageJobs(current: readonly AppPackageJob[], incoming: readonly AppPackageJob[]): readonly AppPackageJob[] {
@@ -50,8 +54,10 @@ export function createAppsJobsObserver(client: AppRuntime, commit: (snapshot: Ap
   let ownerActivation: string | null = null;
   const publish = (next: AppsJobsSnapshot) => {
     if (disposed) return;
-    snapshot = next;
-    commit(next);
+    const shared = replaceEqualDeep(snapshot, next);
+    if (shared === snapshot) return;
+    snapshot = shared;
+    commit(shared);
   };
   const refresh = (): Promise<void> => {
     if (disposed || controlling) return Promise.resolve();

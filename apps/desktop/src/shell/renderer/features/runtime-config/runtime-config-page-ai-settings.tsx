@@ -37,6 +37,7 @@ import {
 } from './runtime-capability-presentation.js';
 import { RuntimeConfigAiSettingsProfilesSection } from './runtime-config-ai-settings-profiles.js';
 import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability-labels.js';
+import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
 import type {
   RuntimeConfigLoadoutNavigationContext,
   RuntimeConfigModelMarketContext,
@@ -124,7 +125,8 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
   const inventory = useCapabilityInventory();
   const library = useRuntimeModelLibrary();
   const store = getRuntimeSetupTaskStore();
-  const ports = useMemo(() => createRuntimeSetupTaskRunnerPorts(sdk), [sdk]);
+  const localEnvironment = useRuntimeConfigLocalEnvironmentClient();
+  const ports = useMemo(() => createRuntimeSetupTaskRunnerPorts(sdk, localEnvironment), [sdk, localEnvironment]);
   const [capability, setCapability] = useState<string | null>(null);
   const [section, setSection] = useState('overview');
   const [busy, setBusy] = useState(false);

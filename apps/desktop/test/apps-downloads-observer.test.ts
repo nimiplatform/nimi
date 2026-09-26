@@ -128,3 +128,20 @@ test('root activation change during a batch discards the old response and stops 
   assert.ok(results.every((result) => result.error?.includes('data root changed')));
   assert.ok(observer.getSnapshot().jobs.every((row) => row.phase === AppPackageJobPhase.QUEUED));
 });
+
+test('unchanged owner job lists do not republish while actual progress still does', async () => {
+  let completed = '100';
+  const client = { listAppPackageJobs: async () => listed([{ ...job(1, AppPackageJobPhase.DOWNLOADING, 5), bytesCompleted: completed }]) } as unknown as Client;
+  const updates: AppsJobsSnapshot[] = [];
+  const observer = createAppsJobsObserver(client, (snapshot) => updates.push(snapshot), async () => 'root-a');
+  await observer.refresh();
+  const settled = observer.getSnapshot();
+  const count = updates.length;
+  await observer.refresh();
+  assert.equal(observer.getSnapshot(), settled);
+  assert.equal(updates.length, count);
+  completed = '125';
+  await observer.refresh();
+  assert.equal(updates.length, count + 1);
+  assert.equal(observer.getSnapshot().jobs[0]?.bytesCompleted, '125');
+});

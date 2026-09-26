@@ -5,7 +5,7 @@ import type {
   NimiAIConfigOptionsResult,
 } from '@nimiplatform/sdk/ai';
 import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
-import { createRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
+import type { RuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
 import type {
   RuntimeSetupRunnerAIConfigPort,
   RuntimeSetupRunnerPorts,
@@ -28,8 +28,8 @@ export async function currentDesktopAccountIdForSetup(): Promise<string> {
  */
 export function createRuntimeSetupTaskRunnerPorts(
   sdk: DesktopRendererSdkPort,
+  localEnvironment: RuntimeConfigLocalEnvironmentClient,
 ): RuntimeSetupRunnerPorts {
-  const localEnvironment = createRuntimeConfigLocalEnvironmentClient(() => sdk.localEnvironmentRpc());
   return {
     loadouts: sdk.machineProduct().local.loadouts,
     environment: localEnvironment,

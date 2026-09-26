@@ -152,6 +152,8 @@ export function GlobalDownloadsView() {
   const [appDetails, setAppDetails] = useState(false);
   const handledSelection = useRef(0);
   const [focusedTransferId, setFocusedTransferId] = useState('');
+  const refreshDownloads = downloads?.refresh;
+  useEffect(() => { void refreshDownloads?.(); }, [refreshDownloads]);
   useEffect(() => {
     const selection = downloads?.selectedTransfer;
     if (!selection || downloads.loading || handledSelection.current === selection.revision) return;
