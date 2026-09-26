@@ -40,8 +40,8 @@
     "tailwindcss": "^4.3.3",
     "typescript": "^5.9.3",
     "vite": "^7.3.6",
-    "yaml": "^2.9.0",
-    "tsx": "^4.23.13"
+    "yaml": "^2.9.1",
+    "tsx": "^4.23.15"
   },
   "author": "Nimi",
   "license": "MIT",
