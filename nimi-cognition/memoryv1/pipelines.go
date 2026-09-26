@@ -259,7 +259,7 @@ func (c *Core) executeRememberWithPipeline(ctx context.Context, operationID stri
 	if _, err := c.MarkProcessing(ctx, operationID); err != nil {
 		return DecisionResult{Outcome: errorOutcome(err)}, err
 	}
-	current, err := c.ListMemories(ctx, request.BankRef, false)
+	current, err := c.rememberInputs(ctx, request.BankRef)
 	if err != nil {
 		return DecisionResult{Outcome: errorOutcome(err)}, err
 	}
@@ -283,7 +283,7 @@ func (c *Core) completeRememberTerminal(ctx context.Context, operationID string,
 		return fmt.Errorf("complete remember terminal: load bank: %w", err)
 	}
 	if result.Outcome == OutcomeAdmitted {
-		if err := c.RebuildFTS(ctx, bankRef); err != nil {
+		if err := c.ensureFTSCurrent(ctx, bankRef); err != nil {
 			return fmt.Errorf("complete remember terminal: rebuild fts: %w", err)
 		}
 	}

@@ -65,7 +65,7 @@ func TestStaleEmbeddingDisposalSurvivesGenerationReplacement(t *testing.T) {
 	}
 	f.assertRuntimeJob(t, operationID, "consumed", false, 2)
 	for i := 0; i < 3; i++ {
-		if err := f.facade(port).ResumePending(f.ctx, f.binding.LocalAgentRef); err != nil {
+		if err := f.facade(port).ResumeDerived(f.ctx, f.binding.LocalAgentRef); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -94,7 +94,7 @@ func TestRecallFailureDisposesQueryResultAndNeverReplaysIt(t *testing.T) {
 		t.Fatalf("expected stale generation failure: %+v %v", result, err)
 	}
 	f.assertRuntimeJob(t, operationID, "consumed", false, 2)
-	if err := f.facade(port).ResumePending(f.ctx, f.binding.LocalAgentRef); err != nil {
+	if err := f.facade(port).ResumeDerived(f.ctx, f.binding.LocalAgentRef); err != nil {
 		t.Fatal(err)
 	}
 	var status string
@@ -183,7 +183,7 @@ func TestOrdinaryDisposalFailureDoesNotBlockNewMemoryIndex(t *testing.T) {
 		t.Fatal("cleanup failure was hidden")
 	}
 	f.rememberAdditional(t, "independent-event", "independent-remember", "I prefer mountain hikes")
-	if err := f.facade(port).ResumePending(f.ctx, f.binding.LocalAgentRef); err == nil {
+	if err := f.facade(port).ResumeDerived(f.ctx, f.binding.LocalAgentRef); err == nil {
 		t.Fatal("cleanup debt was not reported")
 	}
 	if executions != 2 {

@@ -50,7 +50,7 @@ func TestTerminationFenceRetriesOwnerDeleteAndPreservesOtherAgent(t *testing.T) 
 	if err != nil || len(memoriesA) != 1 {
 		t.Fatalf("load correction target before termination: memories=%+v err=%v", memoriesA, err)
 	}
-	if corrected, err := facade.Correct(ctx, "agent-a", memoriesA[0].MemoryRef, "I prefer chamomile tea"); err != nil || corrected.Outcome != memoryv1.OutcomeAdmitted {
+	if corrected, err := facade.Correct(ctx, "agent-a", memoriesA[0].MemoryRef, "I prefer chamomile tea", nil); err != nil || corrected.Outcome != memoryv1.OutcomeAdmitted {
 		t.Fatalf("commit correction before termination: result=%+v err=%v", corrected, err)
 	}
 	assertRowCount(t, backend, "runtime_cognition_memory_committed_correction", 1)

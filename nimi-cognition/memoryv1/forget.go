@@ -113,7 +113,7 @@ func (c *Core) ForgetExact(ctx context.Context, request ForgetRequest) (ForgetRe
 		if err := tx.QueryRowContext(ctx, `SELECT canonical_version, lifecycle_ref FROM memory_banks WHERE bank_ref = ? AND state = 'active'`, request.BankRef).Scan(&currentVersion, &currentLifecycleRef); err != nil {
 			return ForgetResult{Outcome: OutcomeUnavailable}, fmt.Errorf("forget exact: load advanced canonical version: %w", err)
 		}
-		if _, err := tx.ExecContext(ctx, `UPDATE memory_derived_generations SET canonical_version = ?, lifecycle_ref = ?, updated_at = ? WHERE bank_ref = ? AND status = 'ready'`, currentVersion, currentLifecycleRef, formatTime(c.now()), request.BankRef); err != nil {
+		if _, err := tx.ExecContext(ctx, `UPDATE memory_derived_generations SET canonical_version = ?, lifecycle_ref = ?, updated_at = ? WHERE bank_ref = ? AND status = 'ready' AND canonical_version = ? AND lifecycle_ref = ?`, currentVersion, currentLifecycleRef, formatTime(c.now()), request.BankRef, currentVersion-1, currentLifecycleRef); err != nil {
 			return ForgetResult{Outcome: OutcomeUnavailable}, fmt.Errorf("forget exact: advance compatible generations: %w", err)
 		}
 	}

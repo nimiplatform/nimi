@@ -118,7 +118,7 @@ func TestFacadeCorrectionDrainsEarlierCommittedFactsBeforeItsOwnOperation(t *tes
 		t.Fatalf("remember base fact: result=%+v err=%v", base, err)
 	}
 	enqueue("event-backlog", "operation-backlog", "I like oolong tea")
-	corrected, err := facade.Correct(ctx, "agent-a", base.AffectedMemoryRefs[0], "I prefer chamomile tea")
+	corrected, err := facade.Correct(ctx, "agent-a", base.AffectedMemoryRefs[0], "I prefer chamomile tea", nil)
 	if err != nil || corrected.Outcome != memoryv1.OutcomeAdmitted {
 		t.Fatalf("correct behind pending fact: result=%+v err=%v", corrected, err)
 	}
@@ -381,7 +381,7 @@ func TestFacadeCorrectionReturnsCommittedOutcomeWhenPostCommitCompletionFails(t 
 	facade := NewFacade(store, failingOwner, NewBridge(store, failingOwner, authorize), authorize, func(context.Context, Binding) (memoryv1.CapabilitySnapshot, memoryv1.EmbeddingPort, error) {
 		return memoryv1.CapabilitySnapshot{ConfigRevision: 1, Available: []memoryv1.Capability{memoryv1.CapabilityFTSIndex}}, nil, nil
 	})
-	corrected, err := facade.Correct(ctx, "agent-correction-post-commit", base.AffectedMemoryRefs[0], "I prefer chamomile tea")
+	corrected, err := facade.Correct(ctx, "agent-correction-post-commit", base.AffectedMemoryRefs[0], "I prefer chamomile tea", nil)
 	if err != nil || corrected.Outcome != memoryv1.OutcomeAdmitted || len(corrected.AffectedMemoryRefs) != 1 || corrected.Projection.Outcome != memoryv1.OutcomeUnavailable {
 		t.Fatalf("canonical correction was reported as failed after commit: result=%+v err=%v", corrected, err)
 	}
@@ -446,8 +446,14 @@ func TestFacadeRebuildsEmbeddingOnceAfterBatchAndOnceAfterCorrection(t *testing.
 	if owner.rebuildCalls != 0 {
 		t.Fatalf("per-event Remember rebuilt full embedding %d times", owner.rebuildCalls)
 	}
-	if err := facade.ResumePending(ctx, "agent-batch"); err != nil {
-		t.Fatalf("complete batch: %v", err)
+	if cleanupErr, err := facade.ResumePending(ctx, "agent-batch"); cleanupErr != nil || err != nil {
+		t.Fatalf("complete batch: cleanup=%v processing=%v", cleanupErr, err)
+	}
+	if owner.rebuildCalls != 0 {
+		t.Fatalf("canonical recovery invoked optional embedding %d times", owner.rebuildCalls)
+	}
+	if err := facade.ResumeDerived(ctx, "agent-batch"); err != nil {
+		t.Fatalf("build batch index: %v", err)
 	}
 	if owner.rebuildCalls != 1 {
 		t.Fatalf("batch embedding rebuilds = %d, want 1", owner.rebuildCalls)
@@ -457,9 +463,15 @@ func TestFacadeRebuildsEmbeddingOnceAfterBatchAndOnceAfterCorrection(t *testing.
 		t.Fatalf("inspect batch: projection=%+v err=%v", projection, err)
 	}
 	owner.rebuildCalls = 0
-	corrected, err := facade.Correct(ctx, "agent-batch", projection.Items[0].MemoryRef, "I prefer quiet cedar forests")
+	corrected, err := facade.Correct(ctx, "agent-batch", projection.Items[0].MemoryRef, "I prefer quiet cedar forests", nil)
 	if err != nil || corrected.Outcome != memoryv1.OutcomeAdmitted {
 		t.Fatalf("correct batch Memory: result=%+v err=%v", corrected, err)
+	}
+	if owner.rebuildCalls != 0 {
+		t.Fatalf("canonical correction invoked optional embedding %d times", owner.rebuildCalls)
+	}
+	if err := facade.ResumeDerived(ctx, "agent-batch"); err != nil {
+		t.Fatalf("build corrected index: %v", err)
 	}
 	if owner.rebuildCalls != 1 {
 		t.Fatalf("correction embedding rebuilds = %d, want 1", owner.rebuildCalls)
@@ -488,3 +500,38 @@ func (batchEmbeddingPort) Embed(_ context.Context, request memoryv1.AIEmbeddingR
 
 func (batchEmbeddingPort) AcknowledgeConsumed(context.Context, string) error { return nil }
 func (batchEmbeddingPort) FinalizeStale(context.Context, string) error       { return nil }
+
+type disabledAfterCommitOwner struct {
+	OwnerPort
+	disable func() error
+}
+
+func (o *disabledAfterCommitOwner) Commit(ctx context.Context, req *runtimev1.CognitionMemoryCommitRequest) (*runtimev1.CognitionMemoryCommitResponse, error) {
+	response, err := o.OwnerPort.Commit(ctx, req)
+	if err == nil {
+		err = o.disable()
+	}
+	return response, err
+}
+
+func TestCorrectionDoesNotReportFastDisabledOutcomeAsDurableDecision(t *testing.T) {
+	fixture := newEmbeddingRecoveryFixture(t, "correction-disabled-after-custody")
+	items, err := fixture.owner.core.ListMemories(fixture.ctx, fixture.binding.BankRef, false)
+	if err != nil || len(items) != 1 {
+		t.Fatalf("seed: %v %v", items, err)
+	}
+	owner := &disabledAfterCommitOwner{OwnerPort: fixture.owner, disable: func() error {
+		// Pause after Runtime's durable disable flag and before Core's cutoff step.
+		return fixture.backend.WriteTx(fixture.ctx, func(tx *sql.Tx) error { return fixture.store.SetEnabledTx(tx, fixture.binding.LocalAgentRef, false) })
+	}}
+	authorize := func(context.Context, Binding) error { return nil }
+	facade := NewFacade(fixture.store, owner, NewBridge(fixture.store, owner, authorize), authorize, nil)
+	result, err := facade.Correct(fixture.ctx, fixture.binding.LocalAgentRef, items[0].MemoryRef, "I prefer green tea", nil)
+	if err == nil || result.Outcome == memoryv1.OutcomeAdmitted {
+		t.Fatalf("disabled correction fabricated success: %+v %v", result, err)
+	}
+	current, err := fixture.owner.core.ListMemories(fixture.ctx, fixture.binding.BankRef, false)
+	if err != nil || len(current) != 1 || current[0].Content != items[0].Content {
+		t.Fatalf("disabled correction changed Memory: %v %v", current, err)
+	}
+}

@@ -32,21 +32,27 @@ func NewBridge(store *Store, owner OwnerPort, authorize DrainAuthorizer) *Bridge
 	return &Bridge{store: store, owner: owner, authorize: authorize}
 }
 
-// @nimi-authority: rule.nimi.cognition.runtime-bridge.r005
+// EnsureBinding restores only the stable owner Ensure/Runtime bind boundary.
+// It neither transfers outbox payloads nor executes Remember or model work.
 // @nimi-authority: rule.nimi.cognition.runtime-bridge.r019
-func (b *Bridge) DrainOne(ctx context.Context, localAgentRef string) (DrainResult, error) {
+func (b *Bridge) EnsureBinding(ctx context.Context, localAgentRef string) error {
+	_, _, err := b.bindingForDrain(ctx, localAgentRef)
+	return err
+}
+
+func (b *Bridge) bindingForDrain(ctx context.Context, localAgentRef string) (Binding, DrainResult, error) {
 	if b == nil || b.store == nil || b.owner == nil || b.authorize == nil {
-		return DrainResult{Outcome: memoryv1.OutcomeUnavailable}, fmt.Errorf("drain cognition memory outbox: bridge unavailable")
+		return Binding{}, DrainResult{Outcome: memoryv1.OutcomeUnavailable}, fmt.Errorf("drain cognition memory outbox: bridge unavailable")
 	}
 	binding, err := b.store.BindingForAgent(ctx, localAgentRef)
 	if err != nil {
-		return DrainResult{Outcome: memoryv1.OutcomeUnavailable}, fmt.Errorf("drain cognition memory outbox: load binding: %w", err)
+		return Binding{}, DrainResult{Outcome: memoryv1.OutcomeUnavailable}, fmt.Errorf("drain cognition memory outbox: load binding: %w", err)
 	}
 	if !binding.Enabled || binding.AdoptionRequired {
-		return DrainResult{BindingRef: binding.BindingRef, Outcome: memoryv1.OutcomeNoEffect}, ErrMemoryDisabled
+		return Binding{}, DrainResult{BindingRef: binding.BindingRef, Outcome: memoryv1.OutcomeNoEffect}, ErrMemoryDisabled
 	}
 	if err := b.authorize(ctx, binding); err != nil {
-		return DrainResult{BindingRef: binding.BindingRef, Outcome: memoryv1.OutcomeInvalid}, fmt.Errorf("drain cognition memory outbox: authorize current lifecycle: %w", err)
+		return Binding{}, DrainResult{BindingRef: binding.BindingRef, Outcome: memoryv1.OutcomeInvalid}, fmt.Errorf("drain cognition memory outbox: authorize current lifecycle: %w", err)
 	}
 	if binding.BankRef == "" || binding.LifecycleRef == "" {
 		ensured, err := b.owner.EnsureBank(ctx, &runtimev1.CognitionMemoryEnsureBankRequest{
@@ -55,16 +61,26 @@ func (b *Bridge) DrainOne(ctx context.Context, localAgentRef string) (DrainResul
 			Operation:       &runtimev1.CognitionMemoryOperationRef{Value: binding.BindingOperationID},
 		})
 		if err != nil {
-			return DrainResult{BindingRef: binding.BindingRef, Outcome: ownerMemoryOutcome(ensured.GetOutcome())}, fmt.Errorf("drain cognition memory outbox: ensure bank: %w", err)
+			return Binding{}, DrainResult{BindingRef: binding.BindingRef, Outcome: ownerMemoryOutcome(ensured.GetOutcome())}, fmt.Errorf("drain cognition memory outbox: ensure bank: %w", err)
 		}
 		if ensured.GetOutcome() != runtimev1.CognitionMemoryOutcome_COGNITION_MEMORY_OUTCOME_COMMITTED || ensured.GetBankBinding().GetValue() != binding.BindingRef || ensured.GetBank().GetValue() == "" || ensured.GetLifecycleCutoff().GetValue() == "" {
-			return DrainResult{BindingRef: binding.BindingRef, Outcome: ownerMemoryOutcome(ensured.GetOutcome())}, fmt.Errorf("drain cognition memory outbox: invalid ensure owner result")
+			return Binding{}, DrainResult{BindingRef: binding.BindingRef, Outcome: ownerMemoryOutcome(ensured.GetOutcome())}, fmt.Errorf("drain cognition memory outbox: invalid ensure owner result")
 		}
 		if err := b.store.BindEnsuredBank(ctx, binding.BindingRef, ensured.GetBank().GetValue(), ensured.GetLifecycleCutoff().GetValue()); err != nil {
-			return DrainResult{BindingRef: binding.BindingRef, Outcome: memoryv1.OutcomeUnavailable}, err
+			return Binding{}, DrainResult{BindingRef: binding.BindingRef, Outcome: memoryv1.OutcomeUnavailable}, err
 		}
 		binding.BankRef = ensured.GetBank().GetValue()
 		binding.LifecycleRef = ensured.GetLifecycleCutoff().GetValue()
+	}
+	return binding, DrainResult{}, nil
+}
+
+// @nimi-authority: rule.nimi.cognition.runtime-bridge.r005
+// @nimi-authority: rule.nimi.cognition.runtime-bridge.r019
+func (b *Bridge) DrainOne(ctx context.Context, localAgentRef string) (DrainResult, error) {
+	binding, rejected, err := b.bindingForDrain(ctx, localAgentRef)
+	if err != nil {
+		return rejected, err
 	}
 	item, err := b.store.NextPending(ctx, binding.BindingRef)
 	if err != nil {

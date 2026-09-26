@@ -56,23 +56,27 @@ func (s *Service) ConfigureCognitionMemory(store *cognitionmemory.Store, bridge 
 			return fmt.Errorf("configure Cognition Memory: initialize existing Agent %s: %w", localAgentRef, err)
 		}
 	}
+	// Termination fences and safe pre-cut bindings above are startup requirements.
+	// Per-Agent lifecycle recovery below completes already durable barriers:
+	// cutoff keeps the Runtime binding disabled, and Forget keeps its owner and
+	// payload fences until completion. Failure here never reopens those barriers
+	// or permits the tracked drain to pass ResumeLifecycle.
+	// @nimi-authority: rule.nimi.runtime.memory-world.r015
 	for _, localAgentRef := range agents {
 		if _, fenced := terminating[localAgentRef]; fenced {
 			continue
 		}
 		s.cognitionMemoryOwnerLifecycleMu.Lock()
-		cutoffErr := facade.ResumeCutoff(context.Background(), localAgentRef)
-		s.cognitionMemoryOwnerLifecycleMu.Unlock()
-		if cutoffErr != nil {
-			if s.logger != nil {
-				s.logger.Warn("Cognition Memory cutoff startup recovery remains pending", "local_agent_ref", localAgentRef, "error", cutoffErr)
-			}
-			continue
+		recoveryErr := facade.ResumeLifecycle(context.Background(), localAgentRef)
+		var bindingErr error
+		if recoveryErr == nil {
+			bindingErr = bridge.EnsureBinding(context.Background(), localAgentRef)
 		}
-		if err := s.processCognitionMemoryAgent(context.Background(), localAgentRef); err != nil && !errors.Is(err, cognitionmemory.ErrMemoryDisabled) {
-			if s.logger != nil {
-				s.logger.Warn("Cognition Memory startup replay remains pending", "local_agent_ref", localAgentRef, "error", err)
-			}
+		s.cognitionMemoryOwnerLifecycleMu.Unlock()
+		if recoveryErr != nil && s.logger != nil {
+			s.logger.Warn("Cognition Memory lifecycle startup recovery remains pending", "local_agent_ref", localAgentRef, "error", recoveryErr)
+		} else if bindingErr != nil && !errors.Is(bindingErr, cognitionmemory.ErrMemoryDisabled) && s.logger != nil {
+			s.logger.Warn("Cognition Memory binding startup recovery remains pending", "local_agent_ref", localAgentRef, "error", bindingErr)
 		}
 	}
 	if err := s.ResumeRealmAccountTerminations(context.Background()); err != nil {
@@ -80,6 +84,14 @@ func (s *Service) ConfigureCognitionMemory(store *cognitionmemory.Store, bridge 
 			s.logger.Warn("durable Realm Account termination remains pending after Cognition Memory configuration", "error", err)
 		}
 		s.scheduleRealmAccountTerminationRetry()
+	}
+	// The existing tracked drain owns backlog and optional model work after
+	// Runtime fences are installed. It retries owner lifecycle and binding
+	// recovery before admitting any Remember or derived execution.
+	for _, localAgentRef := range agents {
+		if _, fenced := terminating[localAgentRef]; !fenced {
+			s.triggerCognitionMemory(localAgentRef)
+		}
 	}
 	return nil
 }
@@ -128,12 +140,9 @@ func (s *Service) triggerCognitionMemory(localAgentRef string) {
 	if s == nil || s.cognitionMemoryBridge == nil || s.cognitionMemoryFacade == nil || strings.TrimSpace(localAgentRef) == "" {
 		return
 	}
-	ctx := s.cognitionMemoryLifecycleCtx
-	if ctx == nil || ctx.Err() != nil {
-		return
-	}
 	s.cognitionMemoryDrainMu.Lock()
-	if s.isClosed() || ctx.Err() != nil {
+	ctx := s.cognitionMemoryLifecycleCtx
+	if s.isClosed() || ctx == nil || ctx.Err() != nil {
 		s.cognitionMemoryDrainMu.Unlock()
 		return
 	}
@@ -154,8 +163,12 @@ func (s *Service) triggerCognitionMemory(localAgentRef string) {
 	go func() {
 		defer s.cognitionMemoryWG.Done()
 		for {
-			if err := s.processCognitionMemoryAgent(ctx, localAgentRef); err != nil && !errors.Is(err, cognitionmemory.ErrMemoryDisabled) && s.logger != nil {
-				s.logger.Warn("Cognition Memory event processing failed", "local_agent_ref", localAgentRef, "error", err)
+			if err := s.processCognitionMemoryAgent(ctx, localAgentRef); err != nil {
+				if !errors.Is(err, cognitionmemory.ErrMemoryDisabled) && ctx.Err() == nil && s.logger != nil {
+					s.logger.Warn("Cognition Memory event processing failed", "local_agent_ref", localAgentRef, "error", err)
+				}
+			} else {
+				s.triggerCognitionMemoryDerived(localAgentRef)
 			}
 			s.cognitionMemoryDrainMu.Lock()
 			if s.cognitionMemoryDrainPending[localAgentRef] && ctx.Err() == nil {
@@ -172,6 +185,12 @@ func (s *Service) triggerCognitionMemory(localAgentRef string) {
 }
 
 func (s *Service) processCognitionMemoryAgent(ctx context.Context, localAgentRef string) error {
+	s.cognitionMemoryOwnerLifecycleMu.Lock()
+	err := s.cognitionMemoryFacade.ResumeLifecycle(ctx, localAgentRef)
+	s.cognitionMemoryOwnerLifecycleMu.Unlock()
+	if err != nil {
+		return err
+	}
 	for {
 		s.cognitionMemoryOwnerLifecycleMu.Lock()
 		drained, err := s.cognitionMemoryBridge.DrainOne(ctx, localAgentRef)
@@ -186,7 +205,11 @@ func (s *Service) processCognitionMemoryAgent(ctx context.Context, localAgentRef
 			return err
 		}
 	}
-	s.cognitionMemoryOwnerLifecycleMu.Lock()
-	defer s.cognitionMemoryOwnerLifecycleMu.Unlock()
-	return s.cognitionMemoryFacade.ResumePending(ctx, localAgentRef)
+	// Remember and derived execution keep their version/cutoff guards without
+	// holding the shared Ensure/Bind and lifecycle admission lock.
+	cleanupErr, err := s.cognitionMemoryFacade.ResumePending(ctx, localAgentRef)
+	if cleanupErr != nil && ctx.Err() == nil && s.logger != nil {
+		s.logger.Warn("Cognition Memory ordinary cleanup remains pending", "local_agent_ref", localAgentRef, "error", cleanupErr)
+	}
+	return err
 }

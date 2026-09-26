@@ -25,7 +25,7 @@ func TestEmbeddingBuildRecoversReadyRuntimeJobWithOriginalOperation(t *testing.T
 	})
 	fixture.assertRuntimeJob(t, operationID, "ready", true, 1)
 
-	if err := fixture.facade(port).ResumePending(fixture.ctx, fixture.binding.LocalAgentRef); err != nil {
+	if err := fixture.facade(port).ResumeDerived(fixture.ctx, fixture.binding.LocalAgentRef); err != nil {
 		t.Fatalf("resume ready Runtime embedding Job: %v", err)
 	}
 	if paidExecutions != 1 {
@@ -45,7 +45,7 @@ func TestEmbeddingBuildRecoversPublishedGenerationAndAcknowledgesRuntimeResult(t
 	})
 	fixture.assertRuntimeJob(t, operationID, "ready", true, 1)
 
-	if err := fixture.facade(port).ResumePending(fixture.ctx, fixture.binding.LocalAgentRef); err != nil {
+	if err := fixture.facade(port).ResumeDerived(fixture.ctx, fixture.binding.LocalAgentRef); err != nil {
 		t.Fatalf("resume published embedding generation: %v", err)
 	}
 	if paidExecutions != 1 {
@@ -70,7 +70,7 @@ func TestEmbeddingBuildFinalizesStaleReadyJobBeforeBuildingCurrentGeneration(t *
 		t.Fatalf("stale interrupted embedding operation was not recoverable: pending=%+v err=%v", pending, err)
 	}
 
-	if err := fixture.facade(port).ResumePending(fixture.ctx, fixture.binding.LocalAgentRef); err != nil {
+	if err := fixture.facade(port).ResumeDerived(fixture.ctx, fixture.binding.LocalAgentRef); err != nil {
 		t.Fatalf("finalize stale embedding Job and build current generation: %v", err)
 	}
 	if paidExecutions != 2 {
@@ -90,7 +90,7 @@ func TestEmbeddingBuildFinalizesStaleReadyJobBeforeBuildingCurrentGeneration(t *
 	}
 }
 
-func TestConcurrentResumePendingSerializesOneInterruptedEmbeddingOperation(t *testing.T) {
+func TestConcurrentResumeDerivedSerializesOneInterruptedEmbeddingOperation(t *testing.T) {
 	fixture := newEmbeddingRecoveryFixture(t, "agent-concurrent-resume")
 	paidExecutions := 0
 	port := fixture.embeddingPort(&paidExecutions)
@@ -101,12 +101,12 @@ func TestConcurrentResumePendingSerializesOneInterruptedEmbeddingOperation(t *te
 	blocking := &blockingReadyRecoveryPort{delegate: port, entered: make(chan struct{}), release: make(chan struct{})}
 	facade := fixture.facade(blocking)
 	results := make(chan error, 2)
-	go func() { results <- facade.ResumePending(fixture.ctx, fixture.binding.LocalAgentRef) }()
+	go func() { results <- facade.ResumeDerived(fixture.ctx, fixture.binding.LocalAgentRef) }()
 	<-blocking.entered
-	go func() { results <- facade.ResumePending(fixture.ctx, fixture.binding.LocalAgentRef) }()
+	go func() { results <- facade.ResumeDerived(fixture.ctx, fixture.binding.LocalAgentRef) }()
 	select {
 	case err := <-results:
-		t.Fatalf("concurrent ResumePending crossed the active embedding recovery: %v", err)
+		t.Fatalf("concurrent ResumeDerived crossed the active embedding recovery: %v", err)
 	case <-time.After(50 * time.Millisecond):
 	}
 	if calls := blocking.calls.Load(); calls != 1 {
@@ -115,7 +115,7 @@ func TestConcurrentResumePendingSerializesOneInterruptedEmbeddingOperation(t *te
 	close(blocking.release)
 	for index := 0; index < 2; index++ {
 		if err := <-results; err != nil {
-			t.Fatalf("ResumePending %d: %v", index, err)
+			t.Fatalf("ResumeDerived %d: %v", index, err)
 		}
 	}
 	if paidExecutions != 1 || blocking.calls.Load() != 1 {

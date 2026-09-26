@@ -113,6 +113,7 @@ type Service struct {
 	cognitionMemoryOwnerLifecycleMu          sync.Mutex
 	cognitionMemoryDraining                  map[string]bool
 	cognitionMemoryDrainPending              map[string]bool
+	cognitionMemoryDerived                   map[string]*memoryDerivedWork
 	aiBridgeMu                               sync.RWMutex
 	aiBridge                                 *RuntimePrivateAIBridge
 	machineExecutionBindingMu                sync.RWMutex
@@ -286,16 +287,18 @@ func (s *Service) Close() {
 		return
 	}
 	s.closeOnce.Do(func() {
+		s.cognitionMemoryDrainMu.Lock()
 		s.closed.Store(true)
+		if s.cognitionMemoryLifecycleCancel != nil {
+			s.cognitionMemoryLifecycleCancel()
+		}
+		s.cognitionMemoryDrainMu.Unlock()
 		s.sourceCognitionLifecycleMu.Lock()
 		if s.sourceCognitionLifecycleCancel != nil {
 			s.sourceCognitionLifecycleCancel()
 		}
 		s.sourceCognitionLifecycleMu.Unlock()
 		s.sourceCognitionWG.Wait()
-		if s.cognitionMemoryLifecycleCancel != nil {
-			s.cognitionMemoryLifecycleCancel()
-		}
 		s.cognitionMemoryWG.Wait()
 		s.StopLifeTrackLoop()
 		s.shutdownAgentRealtime()

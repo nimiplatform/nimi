@@ -125,9 +125,10 @@ func (s *Service) CorrectLocalAppAgentMemory(ctx context.Context, req *runtimev1
 	if err := s.requireCognitionMemoryOwner(); err != nil {
 		return nil, err
 	}
-	s.cognitionMemoryOwnerLifecycleMu.Lock()
-	defer s.cognitionMemoryOwnerLifecycleMu.Unlock()
-	result, err := s.cognitionMemoryFacade.Correct(ctx, resolved.identity.LocalAgentRef, req.GetMemoryId(), req.GetCorrectedContent())
+	result, err := s.cognitionMemoryFacade.Correct(ctx, resolved.identity.LocalAgentRef, req.GetMemoryId(), req.GetCorrectedContent(), &s.cognitionMemoryOwnerLifecycleMu)
+	if err == nil || result.Outcome == memoryv1.OutcomeUnavailable {
+		s.triggerCognitionMemory(resolved.identity.LocalAgentRef)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -143,8 +144,11 @@ func (s *Service) ForgetLocalAppAgentMemory(ctx context.Context, req *runtimev1.
 		return nil, err
 	}
 	s.cognitionMemoryOwnerLifecycleMu.Lock()
-	defer s.cognitionMemoryOwnerLifecycleMu.Unlock()
 	result, err := s.cognitionMemoryFacade.Forget(ctx, resolved.identity.LocalAgentRef, req.GetMemoryIds(), req.GetConfirmed())
+	s.cognitionMemoryOwnerLifecycleMu.Unlock()
+	if err == nil || result.Outcome == memoryv1.OutcomeUnavailable {
+		s.triggerCognitionMemory(resolved.identity.LocalAgentRef)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -160,8 +164,11 @@ func (s *Service) SetLocalAppAgentMemoryEnabled(ctx context.Context, req *runtim
 		return nil, err
 	}
 	s.cognitionMemoryOwnerLifecycleMu.Lock()
-	defer s.cognitionMemoryOwnerLifecycleMu.Unlock()
 	result, err := s.cognitionMemoryFacade.SetEnabled(ctx, resolved.identity.LocalAgentRef, req.GetEnabled())
+	s.cognitionMemoryOwnerLifecycleMu.Unlock()
+	if err == nil || result.Outcome == memoryv1.OutcomeUnavailable {
+		s.triggerCognitionMemory(resolved.identity.LocalAgentRef)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -177,8 +184,11 @@ func (s *Service) DeleteAllLocalAppAgentMemory(ctx context.Context, req *runtime
 		return nil, err
 	}
 	s.cognitionMemoryOwnerLifecycleMu.Lock()
-	defer s.cognitionMemoryOwnerLifecycleMu.Unlock()
 	result, err := s.cognitionMemoryFacade.DeleteAll(ctx, resolved.identity.LocalAgentRef, req.GetConfirmed())
+	s.cognitionMemoryOwnerLifecycleMu.Unlock()
+	if err == nil || result.Outcome == memoryv1.OutcomeUnavailable {
+		s.triggerCognitionMemory(resolved.identity.LocalAgentRef)
+	}
 	if err != nil {
 		return nil, err
 	}

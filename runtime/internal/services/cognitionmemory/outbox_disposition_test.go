@@ -92,8 +92,8 @@ func TestReceivedOutboxBackupIsDisposedAfterHandoffBatch(t *testing.T) {
 	if result, err := bridge.DrainOne(f.ctx, f.binding.LocalAgentRef); err != nil || !result.Drained {
 		t.Fatalf("handoff: %+v %v", result, err)
 	}
-	if err := f.facade(nil).ResumePending(f.ctx, f.binding.LocalAgentRef); err != nil {
-		t.Fatal(err)
+	if cleanupErr, err := f.facade(nil).ResumePending(f.ctx, f.binding.LocalAgentRef); cleanupErr != nil || err != nil {
+		t.Fatalf("resume pending: cleanup=%v processing=%v", cleanupErr, err)
 	}
 	backup, err := sql.Open("sqlite", path)
 	if err != nil {

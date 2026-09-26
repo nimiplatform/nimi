@@ -160,7 +160,7 @@ func (c *Core) CommitDecision(ctx context.Context, operationID string, plan Muta
 		if _, err := tx.ExecContext(ctx, `UPDATE memory_banks SET canonical_version = canonical_version + 1, updated_at = ? WHERE bank_ref = ?`, formatTime(c.now()), request.BankRef); err != nil {
 			return DecisionResult{Outcome: OutcomeUnavailable}, fmt.Errorf("commit decision: advance canonical version: %w", err)
 		}
-		if _, err := tx.ExecContext(ctx, `UPDATE memory_derived_generations SET status = 'building', updated_at = ? WHERE bank_ref = ?`, formatTime(c.now()), request.BankRef); err != nil {
+		if err := c.advanceFTSDelta(ctx, tx, request.BankRef, plan, result.AffectedMemoryRefs); err != nil {
 			return DecisionResult{Outcome: OutcomeUnavailable}, fmt.Errorf("commit decision: invalidate derived generations: %w", err)
 		}
 	}

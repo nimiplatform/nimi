@@ -114,6 +114,7 @@ func (s *Service) ResumeDataRootAfterAbort() {
 	s.cognitionMemoryLifecycleCtx, s.cognitionMemoryLifecycleCancel = context.WithCancel(context.Background())
 	s.cognitionMemoryDraining = make(map[string]bool)
 	s.cognitionMemoryDrainPending = make(map[string]bool)
+	s.cognitionMemoryDerived = make(map[string]*memoryDerivedWork)
 	s.cognitionMemoryDrainMu.Unlock()
 	s.chatSurfaceMu.Lock()
 	s.chatAsyncLifecycleCtx, s.chatAsyncLifecycleCancel = context.WithCancel(context.Background())

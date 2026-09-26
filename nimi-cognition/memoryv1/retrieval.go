@@ -1,6 +1,7 @@
 package memoryv1
 
 import (
+	"container/heap"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -150,7 +151,7 @@ func (c *Core) Recall(ctx context.Context, request RecallRequest, port Embedding
 	if err != nil {
 		return RecallResult{Outcome: outcome}, err
 	}
-	revision := "fts-1"
+	revision := "fts-2"
 	if descriptor.Name == PipelineRecallEmbedding {
 		revision = "embedding-1"
 	}
@@ -297,11 +298,18 @@ func (c *Core) RebuildEmbedding(ctx context.Context, operationID, bankRef string
 		}
 		return prior, contractError(prior, "embedding_operation_disposed")
 	}
-	version, lifecycleRef, refs, texts, err := c.canonicalTexts(ctx, bankRef)
+	version, lifecycleRef, generationStatus, refs, texts, err := c.prepareEmbeddingDelta(ctx, operationID, bankRef, snapshot)
 	if err != nil {
+		if IsOutcome(err, OutcomeConflict) {
+			_ = c.completeStaleEmbeddingGeneration(ctx, bankRef, operationID)
+		}
 		return errorOutcome(err), err
 	}
-	if len(texts) > 0 {
+	var retained bool
+	if err := c.db.QueryRowContext(ctx, `SELECT ai_disposition='retained' FROM memory_operation_routes WHERE operation_id=?`, operationID).Scan(&retained); err != nil {
+		return OutcomeUnavailable, err
+	}
+	if len(texts) > 0 || retained {
 		if err := c.retainEmbeddingOperation(ctx, operationID, bankRef, lifecycleRef); err != nil {
 			return OutcomeUnavailable, err
 		}
@@ -329,57 +337,22 @@ func (c *Core) RebuildEmbedding(ctx context.Context, operationID, bankRef string
 	// as the generation ref lets a retry find both the Core generation and the
 	// Runtime Job without a second registry or migration path.
 	generationRef := operationID
-	generationStatus, generationStale, err := c.ensureEmbeddingGeneration(ctx, generationRef, bankRef, version, lifecycleRef, snapshot)
-	if err != nil {
-		return errorOutcome(err), err
-	}
-	if generationStale {
-		if err := c.completeStaleEmbeddingGeneration(ctx, bankRef, generationRef); err != nil {
-			return OutcomeUnavailable, err
-		}
-		return OutcomeConflict, contractError(OutcomeConflict, "embedding_generation_stale")
-	}
 	if generationStatus == "ready" {
 		return OutcomeReady, nil
 	}
 	if generationStatus == "failed" {
 		return OutcomeFailed, contractError(OutcomeFailed, "embedding_generation_failed")
 	}
-	if len(texts) == 0 {
-		tx, err := c.db.BeginTx(ctx, nil)
+	var result AIEmbeddingResult
+	if len(texts) > 0 {
+		result, err = port.Embed(ctx, AIEmbeddingRequest{BankRef: bankRef, LifecycleRef: lifecycleRef, MemoryRefs: refs, OperationID: operationID, ConfigRevision: snapshot.ConfigRevision, EmbeddingSpaceRef: snapshot.EmbeddingSpaceRef, Inputs: texts})
+		if err == nil {
+			err = validateEmbeddingResult(result, len(texts), snapshot.EmbeddingSpaceRef)
+		}
 		if err != nil {
-			return OutcomeUnavailable, fmt.Errorf("build empty memory embedding: begin publish: %w", err)
+			_, _ = c.db.ExecContext(ctx, `UPDATE memory_derived_generations SET status='failed',updated_at=? WHERE generation_ref=?`, formatTime(c.now()), generationRef)
+			return OutcomeFailed, fmt.Errorf("build memory embedding: runtime AI port: %w", err)
 		}
-		defer func() { _ = tx.Rollback() }()
-		var currentVersion uint64
-		var currentLifecycleRef string
-		if err := tx.QueryRowContext(ctx, `SELECT canonical_version, lifecycle_ref FROM memory_banks WHERE bank_ref = ? AND state = 'active'`, bankRef).Scan(&currentVersion, &currentLifecycleRef); err != nil {
-			return OutcomeUnavailable, fmt.Errorf("build empty memory embedding: revalidate bank: %w", err)
-		}
-		if currentVersion != version || currentLifecycleRef != lifecycleRef {
-			return OutcomeConflict, contractError(OutcomeConflict, "embedding_generation_stale")
-		}
-		published, err := tx.ExecContext(ctx, `UPDATE memory_derived_generations SET status = 'ready', updated_at = ? WHERE generation_ref = ? AND bank_ref = ? AND canonical_version = ? AND lifecycle_ref = ? AND config_revision = ? AND embedding_space_ref = ? AND status = 'building'`, formatTime(c.now()), generationRef, bankRef, version, lifecycleRef, snapshot.ConfigRevision, snapshot.EmbeddingSpaceRef)
-		if err != nil {
-			return OutcomeUnavailable, err
-		}
-		count, err := published.RowsAffected()
-		if err != nil || count != 1 {
-			return OutcomeConflict, contractError(OutcomeConflict, "embedding_generation_publish")
-		}
-		if err := tx.Commit(); err != nil {
-			return OutcomeUnavailable, fmt.Errorf("build empty memory embedding: commit publish: %w", err)
-		}
-		return OutcomeReady, nil
-	}
-	result, err := port.Embed(ctx, AIEmbeddingRequest{BankRef: bankRef, LifecycleRef: lifecycleRef, MemoryRefs: refs, OperationID: operationID, ConfigRevision: snapshot.ConfigRevision, EmbeddingSpaceRef: snapshot.EmbeddingSpaceRef, Inputs: append([]string(nil), texts...)})
-	if err != nil {
-		_, _ = c.db.ExecContext(ctx, `UPDATE memory_derived_generations SET status = 'failed', updated_at = ? WHERE generation_ref = ?`, formatTime(c.now()), generationRef)
-		return OutcomeFailed, fmt.Errorf("build memory embedding: runtime AI port: %w", err)
-	}
-	if err := validateEmbeddingResult(result, len(texts), snapshot.EmbeddingSpaceRef); err != nil {
-		_, _ = c.db.ExecContext(ctx, `UPDATE memory_derived_generations SET status = 'failed', updated_at = ? WHERE generation_ref = ?`, formatTime(c.now()), generationRef)
-		return OutcomeFailed, err
 	}
 	tx, err := c.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -399,6 +372,15 @@ func (c *Core) RebuildEmbedding(ctx context.Context, operationID, bankRef string
 			return OutcomeUnavailable, err
 		}
 		return OutcomeConflict, contractError(OutcomeConflict, "embedding_generation_stale")
+	}
+	if len(texts) > 0 {
+		var minimum, maximum int
+		if err := tx.QueryRowContext(ctx, `SELECT COALESCE(MIN(dimension),0),COALESCE(MAX(dimension),0) FROM memory_vector_items WHERE generation_ref=?`, generationRef).Scan(&minimum, &maximum); err != nil {
+			return OutcomeUnavailable, err
+		}
+		if maximum != 0 && (minimum != result.Dimension || maximum != result.Dimension) {
+			return OutcomeFailed, contractError(OutcomeFailed, "stored_vector_dimension")
+		}
 	}
 	for index, ref := range refs {
 		raw, err := json.Marshal(result.Vectors[index])
@@ -427,35 +409,6 @@ func (c *Core) RebuildEmbedding(ctx context.Context, operationID, bankRef string
 		return OutcomeUnavailable, fmt.Errorf("build memory embedding: commit publish: %w", err)
 	}
 	return OutcomeReady, nil
-}
-
-func (c *Core) ensureEmbeddingGeneration(ctx context.Context, generationRef, bankRef string, canonicalVersion uint64, lifecycleRef string, snapshot CapabilitySnapshot) (string, bool, error) {
-	tx, err := c.db.BeginTx(ctx, nil)
-	if err != nil {
-		return "", false, fmt.Errorf("build memory embedding: begin generation: %w", err)
-	}
-	defer func() { _ = tx.Rollback() }()
-	if _, err := tx.ExecContext(ctx, `INSERT INTO memory_derived_generations(bank_ref, kind, generation_ref, canonical_version, lifecycle_ref, config_revision, embedding_space_ref, status, updated_at)
-		VALUES(?, 'embedding', ?, ?, ?, ?, ?, 'building', ?)
-		ON CONFLICT(bank_ref, kind, generation_ref) DO NOTHING`, bankRef, generationRef, canonicalVersion, lifecycleRef, snapshot.ConfigRevision, snapshot.EmbeddingSpaceRef, formatTime(c.now())); err != nil {
-		return "", false, fmt.Errorf("build memory embedding: establish generation: %w", err)
-	}
-	var storedVersion, storedConfigRevision uint64
-	var storedLifecycleRef, storedEmbeddingSpaceRef, status string
-	if err := tx.QueryRowContext(ctx, `SELECT canonical_version, lifecycle_ref, config_revision, embedding_space_ref, status
-		FROM memory_derived_generations WHERE bank_ref = ? AND kind = 'embedding' AND generation_ref = ?`, bankRef, generationRef).Scan(&storedVersion, &storedLifecycleRef, &storedConfigRevision, &storedEmbeddingSpaceRef, &status); err != nil {
-		return "", false, fmt.Errorf("build memory embedding: inspect generation: %w", err)
-	}
-	if storedConfigRevision != snapshot.ConfigRevision || storedEmbeddingSpaceRef != snapshot.EmbeddingSpaceRef {
-		return "", false, contractError(OutcomeConflict, "embedding_generation_retry")
-	}
-	if status != "building" && status != "ready" && status != "failed" {
-		return "", false, contractError(OutcomeFailed, "embedding_generation_state")
-	}
-	if err := tx.Commit(); err != nil {
-		return "", false, fmt.Errorf("build memory embedding: commit generation: %w", err)
-	}
-	return status, storedVersion != canonicalVersion || storedLifecycleRef != lifecycleRef, nil
 }
 
 func (c *Core) completeStaleEmbeddingGeneration(ctx context.Context, bankRef, generationRef string) error {
@@ -535,13 +488,11 @@ func (c *Core) recallEmbedding(ctx context.Context, request RecallRequest, port 
 	if err != nil {
 		return RecallResult{Outcome: OutcomeFailed, Pipeline: PipelineRecallEmbedding}, fmt.Errorf("recall memory embedding: load vectors: %w", err)
 	}
-	type scored struct {
-		memory Memory
-		score  float64
-	}
-	var candidates []scored
+	candidates := make(memoryTopK, 0, request.Limit)
+	vector := make([]float64, 0, queryEmbedding.Dimension)
+	queryNorm := vectorNorm(queryEmbedding.Vectors[0])
 	for rows.Next() {
-		var item scored
+		var item scoredMemory
 		var occurredAt, updatedAt string
 		var vectorRaw []byte
 		if err := rows.Scan(&item.memory.MemoryRef, &item.memory.BankRef, &item.memory.Content, &item.memory.EpistemicStatus, &item.memory.Lifecycle, &occurredAt, &updatedAt, &item.memory.SourceExplanation, &item.memory.EventRef, &vectorRaw); err != nil {
@@ -558,28 +509,29 @@ func (c *Core) recallEmbedding(ctx context.Context, request RecallRequest, port 
 			_ = rows.Close()
 			return RecallResult{Outcome: OutcomeFailed, Pipeline: PipelineRecallEmbedding}, err
 		}
-		var vector []float64
-		if json.Unmarshal(vectorRaw, &vector) != nil || len(vector) != queryEmbedding.Dimension || !finiteVector(vector) {
+		var valid bool
+		vector, valid = decodeMemoryVector(vectorRaw, vector, queryEmbedding.Dimension)
+		if !valid {
 			_ = rows.Close()
 			return RecallResult{Outcome: OutcomeFailed, Pipeline: PipelineRecallEmbedding}, contractError(OutcomeFailed, "stored_vector")
 		}
-		item.score = cosine(queryEmbedding.Vectors[0], vector)
+		item.score = cosineWithNorm(queryEmbedding.Vectors[0], vector, queryNorm)
 		if item.score >= 0.35 {
-			candidates = append(candidates, item)
+			if len(candidates) < request.Limit {
+				heap.Push(&candidates, item)
+			} else if betterMemory(item, candidates[0]) {
+				candidates[0] = item
+				heap.Fix(&candidates, 0)
+			}
 		}
 	}
 	if err := rows.Close(); err != nil {
 		return RecallResult{Outcome: OutcomeFailed, Pipeline: PipelineRecallEmbedding}, err
 	}
-	sort.Slice(candidates, func(i, j int) bool {
-		if candidates[i].score != candidates[j].score {
-			return candidates[i].score > candidates[j].score
-		}
-		return candidates[i].memory.UpdatedAt.After(candidates[j].memory.UpdatedAt)
-	})
-	if len(candidates) > request.Limit {
-		candidates = candidates[:request.Limit]
+	if err := rows.Err(); err != nil {
+		return RecallResult{Outcome: OutcomeFailed, Pipeline: PipelineRecallEmbedding}, err
 	}
+	sort.Slice(candidates, func(i, j int) bool { return betterMemory(candidates[i], candidates[j]) })
 	hits := make([]Memory, len(candidates))
 	for index := range candidates {
 		hits[index] = candidates[index].memory
@@ -691,34 +643,6 @@ func compatibleEmbeddingGenerationTx(ctx context.Context, tx *sql.Tx, bankRef st
 	return version, generationRef, nil
 }
 
-func (c *Core) canonicalTexts(ctx context.Context, bankRef string) (uint64, string, []string, []string, error) {
-	var version uint64
-	var lifecycleRef string
-	if err := c.db.QueryRowContext(ctx, `SELECT canonical_version, lifecycle_ref FROM memory_banks WHERE bank_ref = ? AND state = 'active'`, bankRef).Scan(&version, &lifecycleRef); err != nil {
-		return 0, "", nil, nil, contractError(OutcomeInvalid, "unknown_bank")
-	}
-	rows, err := c.db.QueryContext(ctx, `SELECT memory_ref, content FROM memories WHERE bank_ref = ? AND lifecycle = ? ORDER BY memory_ref`, bankRef, LifecycleCurrent)
-	if err != nil {
-		return 0, "", nil, nil, err
-	}
-	defer func() { _ = rows.Close() }()
-	var refs, texts []string
-	for rows.Next() {
-		var ref, text string
-		if err := rows.Scan(&ref, &text); err != nil {
-			return 0, "", nil, nil, err
-		}
-		refs, texts = append(refs, ref), append(texts, text)
-	}
-	if err := rows.Err(); err != nil {
-		return 0, "", nil, nil, err
-	}
-	if err := rows.Close(); err != nil {
-		return 0, "", nil, nil, fmt.Errorf("close canonical memory texts: %w", err)
-	}
-	return version, lifecycleRef, refs, texts, nil
-}
-
 func scanMemories(rows *sql.Rows) ([]Memory, error) {
 	defer func() { _ = rows.Close() }()
 	var result []Memory
@@ -801,25 +725,22 @@ func finiteVector(vector []float64) bool {
 	return true
 }
 
-func cosine(left, right []float64) float64 {
-	var dot, leftNorm, rightNorm float64
-	for index := range left {
-		dot += left[index] * right[index]
-		leftNorm += left[index] * left[index]
-		rightNorm += right[index] * right[index]
-	}
-	if leftNorm == 0 || rightNorm == 0 {
-		return 0
-	}
-	return dot / (math.Sqrt(leftNorm) * math.Sqrt(rightNorm))
-}
-
+// @nimi-authority: rule.nimi.cognition.memory.r009
 func ftsQuery(value string) string {
 	var tokens []string
+	seen := make(map[string]struct{})
 	var wordRun []rune
 	var hanRun []rune
 	quote := func(value string) string {
 		return `"` + strings.ReplaceAll(strings.ToLower(value), `"`, `""`) + `"`
+	}
+	appendToken := func(value string) {
+		token := quote(value)
+		if _, found := seen[token]; found {
+			return
+		}
+		seen[token] = struct{}{}
+		tokens = append(tokens, token)
 	}
 	flushWord := func() {
 		if len(wordRun) == 0 {
@@ -830,7 +751,7 @@ func ftsQuery(value string) string {
 		if len([]rune(token)) < 2 {
 			return
 		}
-		tokens = append(tokens, quote(token))
+		appendToken(token)
 	}
 	flushHan := func() {
 		if len(hanRun) == 0 {
@@ -838,15 +759,14 @@ func ftsQuery(value string) string {
 		}
 		switch len(hanRun) {
 		case 1:
-			tokens = append(tokens, quote(string(hanRun)))
-		case 2:
-			tokens = append(tokens, quote(string(hanRun)))
+			appendToken(string(hanRun))
 		default:
-			bigrams := make([]string, 0, len(hanRun)-1)
+			// Match the indexed lexical bigrams as independent terms, like
+			// word tokens in other scripts. A natural-language question is
+			// not a demand that its entire Han sentence occur verbatim.
 			for index := 0; index+1 < len(hanRun); index++ {
-				bigrams = append(bigrams, string(hanRun[index:index+2]))
+				appendToken(string(hanRun[index : index+2]))
 			}
-			tokens = append(tokens, quote(strings.Join(bigrams, " ")))
 		}
 		hanRun = hanRun[:0]
 	}

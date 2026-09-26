@@ -67,23 +67,27 @@ func (s *Service) ConsumeRealmAccountDeletedResult(ctx context.Context, result a
 // termination rows. It is a bounded, purpose-specific lifecycle retry rather
 // than a second scheduler or an alternate deletion path.
 func (s *Service) scheduleRealmAccountTerminationRetry() {
-	if s == nil || s.isClosed() || s.cognitionMemoryLifecycleCtx == nil || s.cognitionMemoryLifecycleCtx.Err() != nil {
+	if s == nil {
 		return
 	}
 	s.accountTerminationRetryMu.Lock()
-	if s.isClosed() || s.cognitionMemoryLifecycleCtx == nil || s.cognitionMemoryLifecycleCtx.Err() != nil {
+	s.cognitionMemoryDrainMu.Lock()
+	ctx := s.cognitionMemoryLifecycleCtx
+	if s.isClosed() || ctx == nil || ctx.Err() != nil {
+		s.cognitionMemoryDrainMu.Unlock()
 		s.accountTerminationRetryMu.Unlock()
 		return
 	}
 	if s.accountTerminationRetrying {
 		s.accountTerminationRetryRequested = true
+		s.cognitionMemoryDrainMu.Unlock()
 		s.accountTerminationRetryMu.Unlock()
 		return
 	}
 	s.accountTerminationRetrying = true
 	s.accountTerminationRetryRequested = false
 	s.cognitionMemoryWG.Add(1)
-	ctx := s.cognitionMemoryLifecycleCtx
+	s.cognitionMemoryDrainMu.Unlock()
 	s.accountTerminationRetryMu.Unlock()
 	go func() {
 		defer s.cognitionMemoryWG.Done()

@@ -18,12 +18,13 @@ import (
 type CapabilityProvider func(context.Context, Binding) (memoryv1.CapabilitySnapshot, memoryv1.EmbeddingPort, error)
 
 type Facade struct {
-	store        *Store
-	owner        OwnerPort
-	bridge       *Bridge
-	authorize    DrainAuthorizer
-	capabilities CapabilityProvider
-	embeddingMu  sync.Mutex
+	store          *Store
+	owner          OwnerPort
+	bridge         *Bridge
+	authorize      DrainAuthorizer
+	capabilities   CapabilityProvider
+	embeddingMu    sync.Mutex // protects only the bank gate map
+	embeddingBanks map[string]*embeddingBankGate
 }
 
 type RecallIntent struct {
@@ -165,43 +166,80 @@ func (f *Facade) Recall(ctx context.Context, intent RecallIntent) (RecallOutcome
 	return RecallOutcome{Outcome: outcome, OperationID: operationID, Hits: mapped}, err
 }
 
-func (f *Facade) ResumePending(ctx context.Context, localAgentRef string) error {
-	if _, found, err := f.resumeForget(ctx, localAgentRef); found && err != nil {
+// ResumeLifecycle restores required owner barriers without starting Remember
+// backlog or optional model work. The Runtime lifecycle admission lock covers
+// this phase and the minimum Ensure/Bind handoff.
+func (f *Facade) ResumeLifecycle(ctx context.Context, localAgentRef string) error {
+	if err := f.ResumeCutoff(ctx, localAgentRef); err != nil {
 		return err
 	}
+	_, _, err := f.resumeForget(ctx, localAgentRef)
+	return err
+}
+
+// ResumePending finishes canonical Remember custody and ordinary cleanup.
+// Callers run this outside the cross-Agent lifecycle admission lock.
+// cleanupErr reports ordinary disposal debt; only err blocks derived work.
+func (f *Facade) ResumePending(ctx context.Context, localAgentRef string) (cleanupErr, err error) {
 	// Ordinary cleanup debt is reported independently; it must not stop
 	// canonical Remember processing or a new, unrelated index build.
-	cleanupErr := errors.Join(f.store.DisposeAgentEmbeddingPayloads(ctx, localAgentRef, false), f.store.disposeSettledOutboxCopies(ctx, localAgentRef))
+	cleanupErr = errors.Join(f.store.DisposeAgentEmbeddingPayloads(ctx, localAgentRef, false), f.store.disposeSettledOutboxCopies(ctx, localAgentRef))
+	binding, err := f.store.BindingForAgent(ctx, localAgentRef)
+	if err != nil {
+		return cleanupErr, err
+	}
+	if !binding.Enabled || binding.AdoptionRequired || binding.BankRef == "" {
+		return cleanupErr, nil
+	}
+	if err := f.authorize(ctx, binding); err != nil {
+		return cleanupErr, err
+	}
+	pending, err := f.owner.ListPendingEvents(ctx, binding.BindingRef, binding.BankRef)
+	if err != nil {
+		return cleanupErr, err
+	}
+	for _, event := range pending {
+		if _, err := f.ProcessRemember(ctx, localAgentRef, event.OperationID); err != nil {
+			return cleanupErr, err
+		}
+	}
+	return cleanupErr, nil
+}
+
+// ResumeDerived is optional, tracked Runtime work. Only competing builds for
+// this bank serialize; Forget/cutoff never wait on a model through this gate.
+// @nimi-authority: rule.nimi.cognition.runtime-bridge.r022
+func (f *Facade) ResumeDerived(ctx context.Context, localAgentRef string) error {
+	if f == nil || f.store == nil || f.owner == nil || f.capabilities == nil || f.authorize == nil {
+		return nil
+	}
 	binding, err := f.store.BindingForAgent(ctx, localAgentRef)
 	if err != nil {
 		return err
 	}
 	if !binding.Enabled || binding.AdoptionRequired || binding.BankRef == "" {
-		return cleanupErr
+		return nil
 	}
-	if err := f.authorize(ctx, binding); err != nil {
-		return err
-	}
-	pending, err := f.owner.ListPendingEvents(ctx, binding.BindingRef, binding.BankRef)
+	bankRef := binding.BankRef
+	release, err := f.acquireEmbeddingBank(ctx, bankRef)
 	if err != nil {
 		return err
 	}
-	for _, event := range pending {
-		if _, err := f.ProcessRemember(ctx, localAgentRef, event.OperationID); err != nil {
-			return err
-		}
+	defer release()
+	// A queued rebuild may outlive disable/delete or a binding rotation.
+	// Re-read the owner after admission instead of reusing the pre-wait view.
+	binding, err = f.store.BindingForAgent(ctx, localAgentRef)
+	if err != nil {
+		return err
 	}
-	return errors.Join(cleanupErr, f.rebuildEmbeddingIfNeeded(ctx, binding))
-}
-
-func (f *Facade) rebuildEmbeddingIfNeeded(ctx context.Context, binding Binding) error {
-	if f == nil {
+	if !binding.Enabled || binding.AdoptionRequired {
 		return nil
 	}
-	f.embeddingMu.Lock()
-	defer f.embeddingMu.Unlock()
-	if f.owner == nil || f.capabilities == nil || binding.BankRef == "" {
-		return nil
+	if binding.BankRef != bankRef {
+		return ErrConflict
+	}
+	if err := f.authorize(ctx, binding); err != nil {
+		return err
 	}
 	snapshot, port, err := f.capabilities(ctx, binding)
 	if err != nil || port == nil {
@@ -283,7 +321,7 @@ func (f *Facade) Inspect(ctx context.Context, intent InspectIntent) (Projection,
 	return projection, nil
 }
 
-func (f *Facade) Correct(ctx context.Context, localAgentRef, memoryRef, correctedContent string) (MutationOutcome, error) {
+func (f *Facade) Correct(ctx context.Context, localAgentRef, memoryRef, correctedContent string, admission sync.Locker) (MutationOutcome, error) {
 	if f == nil || f.bridge == nil || !validRef(memoryRef) || strings.TrimSpace(correctedContent) == "" {
 		return MutationOutcome{Outcome: memoryv1.OutcomeInvalid}, fmt.Errorf("correct cognition memory: invalid intent")
 	}
@@ -314,7 +352,13 @@ func (f *Facade) Correct(ctx context.Context, localAgentRef, memoryRef, correcte
 	}
 	var decision memoryv1.DecisionResult
 	for {
+		if admission != nil {
+			admission.Lock()
+		}
 		drained, err := f.bridge.DrainOne(ctx, localAgentRef)
+		if admission != nil {
+			admission.Unlock()
+		}
 		if err != nil {
 			return MutationOutcome{Outcome: memoryv1.OutcomeUnavailable}, fmt.Errorf("correct cognition memory: custody transfer failed: %w", err)
 		}
@@ -322,20 +366,21 @@ func (f *Facade) Correct(ctx context.Context, localAgentRef, memoryRef, correcte
 			// A concurrent Runtime worker may already have transferred this exact
 			// operation. ExecuteRemember is idempotent over owner custody/results.
 			decision, err = f.ProcessRemember(ctx, localAgentRef, operationID)
-			if err != nil && !decision.Outcome.TerminalRemember() {
+			if err != nil && (!decision.Outcome.TerminalRemember() || decision.OperationID != operationID) {
 				return MutationOutcome{Outcome: decision.Outcome}, err
 			}
 			break
 		}
 		decision, err = f.ProcessRemember(ctx, localAgentRef, drained.OperationID)
-		if err != nil && !decision.Outcome.TerminalRemember() {
+		if err != nil && (!decision.Outcome.TerminalRemember() || decision.OperationID != drained.OperationID) {
 			return MutationOutcome{Outcome: decision.Outcome}, err
 		}
 		if drained.OperationID == operationID {
 			break
 		}
 	}
-	if err := f.ResumePending(ctx, localAgentRef); err != nil && !decision.Outcome.TerminalRemember() {
+	cleanupErr, pendingErr := f.ResumePending(ctx, localAgentRef)
+	if err := errors.Join(cleanupErr, pendingErr); err != nil && !decision.Outcome.TerminalRemember() {
 		return MutationOutcome{Outcome: decision.Outcome, AffectedMemoryRefs: decision.AffectedMemoryRefs}, err
 	}
 	projection, inspectErr := f.Inspect(ctx, InspectIntent{LocalAgentRef: localAgentRef, Limit: 100})
@@ -365,9 +410,6 @@ func (f *Facade) Forget(ctx context.Context, localAgentRef string, memoryRefs []
 		return mutation, err
 	}
 	affected := mutation.AffectedMemoryRefs
-	if err := f.rebuildEmbeddingIfNeeded(ctx, binding); err != nil {
-		return MutationOutcome{Outcome: mutation.Outcome, AffectedMemoryRefs: affected}, err
-	}
 	projection, inspectErr := f.Inspect(ctx, InspectIntent{LocalAgentRef: localAgentRef, Limit: 100})
 	return MutationOutcome{Outcome: mutation.Outcome, AffectedMemoryRefs: affected, Projection: projection}, inspectErr
 }
