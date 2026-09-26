@@ -15,6 +15,12 @@ export function selectCiScope(files, { full = false } = {}) {
   const touches = (pattern) => full || codePaths.some((file) => pattern.test(file));
   const shared = touches(/^(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|\.github\/workflows\/ci\.yml)$/u);
   const scripts = touches(/^scripts\//u);
+  const checkerOnly = /^(?:scripts\/(?:check-eol-noise|check-text-encoding-gate)\.mjs|scripts\/lib\/text-encoding-gate\.mjs)$/u;
+  const productScripts = full || codePaths.some((file) => file.startsWith('scripts/') && !checkerOnly.test(file));
+  const productAuthority = full || codePaths.some((file) => file.startsWith('.nimi/')
+    && !file.startsWith('.nimi/methodology/')
+    && file !== '.nimi/config/authority-verifiers.yaml'
+    && /^(?:\.nimi\/(?:spec|config)\/)/u.test(file));
   const config = touches(/^config\//u);
   const authority = touches(/^\.nimi\/(?:spec\/|config\/|methodology\/)/u);
   const proto = shared || touches(/^(?:proto\/|runtime\/(?:gen|proto)\/|scripts\/(?:proto-breaking|check-proto-drift|run-buf)[^/]*\.mjs$)/u);
@@ -29,7 +35,7 @@ export function selectCiScope(files, { full = false } = {}) {
 
   // pnpm resolves transitive workspace consumers; only source-copy dependencies
   // that are not package dependencies need an explicit edge here.
-  if (shared || scripts || config || authority) filters.add('*');
+  if (shared || productScripts || config || productAuthority) filters.add('*');
   if (sdk) filters.add('...@nimiplatform/sdk');
   else if (kit) filters.add('...@nimiplatform/kit');
   if (sdk || kit) filters.add('@nimiplatform/app-tools');

@@ -132,6 +132,9 @@ jobs:
       - name: Check Kit contracts
         if: needs.changes.outputs.kit_changed == 'true'
         run: pnpm check:nimi-kit
+      - name: Check text-only repository gates
+        if: needs.changes.outputs.scripts_changed == 'true' && needs.changes.outputs.workspace_changed != 'true'
+        run: pnpm check:text-encoding
       - name: Check license file map
         run: pnpm check:license-file-map
       - name: gate.workflow.actionlint
@@ -234,8 +237,8 @@ jobs:
           go install github.com/bufbuild/buf/cmd/buf@v1.70.0
           echo "$(go env GOPATH)/bin" >> "${GITHUB_PATH}"
 
-      - name: Build SDK
-        run: pnpm build:sdk
+      - name: Build SDK and check public surface
+        run: pnpm check:sdk-vnext-public-surface-smoke
 
       - name: SDK generator drift check
         run: PATH="${PWD}/node_modules/.bin:${PATH}" pnpm check:sdks-generators
@@ -247,9 +250,6 @@ jobs:
       - name: SDK adapter upstream compatibility
         if: needs.changes.outputs.sdk_adapter_upstream_changed == 'true'
         run: pnpm test:sdks-adapters:upstream
-
-      - name: SDK vNext public surface smoke
-        run: pnpm check:sdk-vnext-public-surface-smoke
 
   runtime-quality:
     needs: changes

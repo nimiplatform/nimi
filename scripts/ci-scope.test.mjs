@@ -88,3 +88,14 @@ test('only expected unselected lanes may be skipped; selector and required-lane 
   assert.throws(() => assertCiResults({ ...needs, changes: { result: 'failure' } }), /selection/u);
   assert.throws(() => assertCiResults({ ...needs, changes: { result: 'success', outputs: {} } }), /selection/u);
 });
+
+test('known check-only and methodology changes do not rebuild product workspaces', () => {
+  for (const file of ['scripts/check-eol-noise.mjs', 'scripts/check-text-encoding-gate.mjs', 'scripts/lib/text-encoding-gate.mjs', '.nimi/methodology/authority-authoring.yaml', '.nimi/config/authority-verifiers.yaml']) {
+    const scope = selectCiScope([file]);
+    assert.equal(scope.core_changed, true, file);
+    assert.equal(scope.workspace_changed, false, file);
+    assert.deepEqual(scope.workspace_filters, [], file);
+  }
+  assert(selectCiScope(['scripts/lib/unknown-build-helper.mjs']).workspace_filters.includes('*'));
+  assert(selectCiScope(['.nimi/spec/nimiday/assistant.authority.yaml']).workspace_filters.includes('*'));
+});
