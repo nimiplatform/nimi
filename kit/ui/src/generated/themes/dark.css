@@ -2,7 +2,7 @@
 /* Source: config/platform-nimi-ui-themes.yaml */
 
 @layer nimi-theme.foundation {
-.dark, :root[data-nimi-scheme="dark"] {
+.dark, :root[data-nimi-scheme="dark"], [data-nimi-scheme="dark"] {
   --nimi-app-background: #081019;
   --nimi-surface-canvas: #0b1220;
   --nimi-surface-panel: #111827;

@@ -217,7 +217,7 @@ function renderFoundationTheme(tokensDoc, themesDoc, themeId, selector) {
 function renderAccentTheme(tokensDoc, themesDoc, themeId) {
   const pack = normalizePacks(themesDoc).find((item) => String(item?.theme_id) === themeId);
   if (!pack) throw new Error(`missing pack ${themeId}`);
-  const selector = `:root[data-nimi-accent="${themeId}"]`;
+  const selector = `:root[data-nimi-accent="${themeId}"], [data-nimi-accent="${themeId}"]`;
   return renderPackSelector(tokensDoc, pack, selector, 'accent', 'nimi-theme.accent');
 }
 
@@ -292,8 +292,8 @@ async function main() {
   const renderedEntries = [
     [path.join(outDir, 'tokens.ts'), renderTokensFile(tokensDoc, mergedThemesDoc)],
     [path.join(outDir, 'theme-base.css'), renderThemeBase(tokensDoc)],
-    [path.join(themesDir, 'light.css'), renderFoundationTheme(tokensDoc, mergedThemesDoc, 'nimi-light', ':root:not([data-nimi-scheme]), :root[data-nimi-scheme="light"]')],
-    [path.join(themesDir, 'dark.css'), renderFoundationTheme(tokensDoc, mergedThemesDoc, 'nimi-dark', '.dark, :root[data-nimi-scheme="dark"]')],
+    [path.join(themesDir, 'light.css'), renderFoundationTheme(tokensDoc, mergedThemesDoc, 'nimi-light', ':root:not([data-nimi-scheme]), :root[data-nimi-scheme="light"], [data-nimi-scheme="light"]')],
+    [path.join(themesDir, 'dark.css'), renderFoundationTheme(tokensDoc, mergedThemesDoc, 'nimi-dark', '.dark, :root[data-nimi-scheme="dark"], [data-nimi-scheme="dark"]')],
     ...mergedAccentPackIds.map((themeId) => [
       path.join(themesDir, `${themeId}.css`),
       renderAccentTheme(tokensDoc, mergedThemesDoc, themeId),

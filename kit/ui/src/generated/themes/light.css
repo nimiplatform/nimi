@@ -2,7 +2,7 @@
 /* Source: config/platform-nimi-ui-themes.yaml */
 
 @layer nimi-theme.foundation {
-:root:not([data-nimi-scheme]), :root[data-nimi-scheme="light"] {
+:root:not([data-nimi-scheme]), :root[data-nimi-scheme="light"], [data-nimi-scheme="light"] {
   --nimi-app-background: #f5f7fa;
   --nimi-surface-canvas: #f5f7fa;
   --nimi-surface-panel: #f8f9fb;

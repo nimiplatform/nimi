@@ -2,7 +2,7 @@
 /* Source: config/platform-nimi-ui-themes.yaml */
 
 @layer nimi-theme.accent {
-:root[data-nimi-accent="nimi-accent"] {
+:root[data-nimi-accent="nimi-accent"], [data-nimi-accent="nimi-accent"] {
   --nimi-surface-active: rgba(20,118,212,0.16);
   --nimi-action-primary-bg: #1476D4;
   --nimi-action-primary-bg-hover: #1166B8;
