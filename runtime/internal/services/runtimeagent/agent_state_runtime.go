@@ -57,7 +57,7 @@ func (r agentStateRuntime) insertAgent(entry *agentEntry, events ...*runtimev1.A
 			return err
 		}
 	}
-	if err := r.svc.stateRepo.saveStateLockedWithTxHook(r.svc, bindingHook); err != nil {
+	if err := r.svc.stateRepo.persistAgentDelta(r.svc.agents[localAgentRef], committedEvents, r.svc.sequence, bindingHook); err != nil {
 		if hadEntry {
 			r.svc.agents[localAgentRef] = previousEntry
 		} else {
@@ -97,7 +97,7 @@ func (r agentStateRuntime) updateAgentWithTxHook(entry *agentEntry, txHook runti
 	previousSequence := r.svc.sequence
 	r.svc.agents[localAgentRef] = cloneAgentEntry(entry)
 	committedEvents := r.svc.eventStreamRuntime().appendEventsLocked(events...)
-	if err := r.svc.stateRepo.saveStateLockedWithTxHook(r.svc, txHook); err != nil {
+	if err := r.svc.stateRepo.persistAgentDelta(r.svc.agents[localAgentRef], committedEvents, r.svc.sequence, txHook); err != nil {
 		if hadEntry {
 			r.svc.agents[localAgentRef] = previousEntry
 		} else {

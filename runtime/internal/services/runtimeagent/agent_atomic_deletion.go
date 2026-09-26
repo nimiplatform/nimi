@@ -3,7 +3,6 @@ package runtimeagent
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -26,10 +25,6 @@ func agentAtomicProjectionDeletionHook(
 	ref := strings.TrimSpace(localAgentRef)
 	if ref == "" {
 		return nil, fmt.Errorf("runtime agent deletion local_agent_ref is required")
-	}
-	chatRaw, err := json.Marshal(chatSnapshot)
-	if err != nil {
-		return nil, fmt.Errorf("marshal public chat deletion snapshot: %w", err)
 	}
 	anchorIDs := uniqueAgentDeletionStrings(removedAnchorIDs)
 	return func(tx *sql.Tx) error {
@@ -60,7 +55,7 @@ func agentAtomicProjectionDeletionHook(
 				return fmt.Errorf("delete conversation anchor metadata: %w", err)
 			}
 		}
-		if err := persistPublicChatSurfaceStateTx(tx, chatSnapshot, string(chatRaw)); err != nil {
+		if err := persistPublicChatSurfaceStateTx(tx, chatSnapshot); err != nil {
 			return fmt.Errorf("persist public chat deletion snapshot: %w", err)
 		}
 		// @nimi-authority: rule.nimi.runtime.agent-service.r054

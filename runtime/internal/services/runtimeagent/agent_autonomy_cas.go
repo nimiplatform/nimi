@@ -80,7 +80,7 @@ func (s *Service) updateAgentAutonomyCAS(
 	}
 	next.Agent.UpdatedAt = timestamppb.New(time.Now().UTC())
 	s.agents[identity.LocalAgentRef] = next
-	if err := s.saveStateLocked(); err != nil {
+	if err := s.stateRepo.persistAgentDelta(next, nil, s.sequence, nil); err != nil {
 		s.agents[identity.LocalAgentRef] = current
 		return nil, err
 	}

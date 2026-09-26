@@ -146,17 +146,18 @@ type publicChatVoiceSidecarState struct {
 // continuity token; OwnerUserID plus LocalAgentRef resolves the singleton.
 // SubjectUserID is captured at first open and must equal OwnerUserID.
 type publicChatAnchorState struct {
-	ConversationAnchorID string
-	AgentID              string
-	LocalAgentRef        string
-	OwnerUserID          string
-	RuntimeSourceRef     string
-	CallerAppID          string
-	RegisteredAppSubject string
-	SubjectUserID        string
-	ThreadID             string
-	Binding              publicChatExecutionBinding
-	Bindings             publicChatExecutionBindings
+	persistedTranscriptCount int
+	ConversationAnchorID     string
+	AgentID                  string
+	LocalAgentRef            string
+	OwnerUserID              string
+	RuntimeSourceRef         string
+	CallerAppID              string
+	RegisteredAppSubject     string
+	SubjectUserID            string
+	ThreadID                 string
+	Binding                  publicChatExecutionBinding
+	Bindings                 publicChatExecutionBindings
 	// ConfigRevision is the committed Runtime Agent AI Config revision fixed into
 	// the anchor at the most recent turn admission (K-AGCORE-147). It is
 	// per-turn admission truth projected on the session snapshot; the anchor

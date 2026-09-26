@@ -780,3 +780,16 @@ func assertMetadataValue(t *testing.T, path string, key string, want bool) {
 		t.Fatalf("metadata %q exists=%t want=%t", key, got, want)
 	}
 }
+
+func TestRepairDatabaseSkipsCurrentConversationRows(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "memory.db")
+	original := `{"storageVersion":2,"version":4,"savedAt":"2026-09-26T00:00:00Z","anchors":null,"followUps":null}`
+	createRepairTestDatabase(t, path, original)
+	result, err := repairDatabase(context.Background(), repairOptions{DBPath: path, Apply: true})
+	if err != nil || result.Applicable || result.Applied || result.SkipReason != "conversation_row_storage" {
+		t.Fatalf("row layout repair: %+v %v", result, err)
+	}
+	if got := storedStateValue(t, path); got != original {
+		t.Fatal("retired repair rewrote current storage")
+	}
+}

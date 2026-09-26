@@ -195,7 +195,7 @@ func (r publicChatRuntime) reserveTurn(
 		turnSnapshot := *turn
 		turnSnapshot.Reasoning = clonePublicChatReasoningConfig(turn.Reasoning)
 		r.svc.chatSurfaceMu.Unlock()
-		r.svc.persistCurrentPublicChatSurfaceState()
+		r.svc.persistCurrentPublicChatSurfaceState(session.ConversationAnchorID)
 		return snapshot, turnSnapshot, turnCtx, nil
 	}
 }
@@ -240,7 +240,7 @@ func (r publicChatRuntime) releaseTurnReservation(anchorID string, turnID string
 		delete(r.svc.chatActiveByAgent, turn.AgentID)
 	}
 	r.svc.chatSurfaceMu.Unlock()
-	r.svc.persistCurrentPublicChatSurfaceState()
+	r.svc.persistCurrentPublicChatSurfaceState(trimmedAnchorID)
 	if bindingRelease != nil {
 		bindingRelease()
 	}

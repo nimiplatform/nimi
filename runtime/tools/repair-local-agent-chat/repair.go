@@ -153,6 +153,18 @@ func repairDatabase(ctx context.Context, options repairOptions) (repairResult, e
 		}
 		return repairResult{}, err
 	}
+	var layout struct {
+		StorageVersion int `json:"storageVersion"`
+	}
+	if err := json.Unmarshal([]byte(stored.raw), &layout); err != nil {
+		return repairResult{}, err
+	}
+	if layout.StorageVersion == 2 {
+		return repairResult{Applicable: false, SkipReason: "conversation_row_storage"}, nil
+	}
+	if layout.StorageVersion != 0 {
+		return repairResult{}, fmt.Errorf("unsupported conversation storage version %d", layout.StorageVersion)
+	}
 	plan, err := buildRepairPlan([]byte(stored.raw), stored.version, now)
 	if err != nil {
 		return repairResult{}, err

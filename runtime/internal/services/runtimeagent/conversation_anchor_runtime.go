@@ -134,7 +134,7 @@ func (s *Service) OpenConversationAnchor(ctx context.Context, req *runtimev1.Ope
 		return nil, status.Error(codes.AlreadyExists, "conversation anchor already exists")
 	}
 	s.chatAnchors[anchorID] = anchor
-	snapshotState, err := s.capturePublicChatSurfaceSnapshotLocked()
+	snapshotState, err := s.capturePublicChatSurfaceSnapshotLocked(anchorID)
 	if err != nil {
 		delete(s.chatAnchors, anchorID)
 		s.chatSurfaceMu.Unlock()
@@ -146,6 +146,9 @@ func (s *Service) OpenConversationAnchor(ctx context.Context, req *runtimev1.Ope
 		)
 	}
 	committedMetadata, err := s.chatStateRepo.persistPublicChatSurfaceStateWithAnchorMetadata(snapshotState, anchorID, metadata)
+	if err == nil {
+		s.markPersistedTranscriptLocked(snapshotState)
+	}
 	if err != nil {
 		delete(s.chatAnchors, anchorID)
 		s.chatSurfaceMu.Unlock()

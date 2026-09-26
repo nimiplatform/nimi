@@ -147,7 +147,7 @@ func (s *Service) commitLocalAppConversationVoiceSidecar(
 	copy := *voice
 	anchor.VoiceSidecars[voice.TurnID] = &copy
 	anchor.UpdatedAt = time.Now().UTC()
-	if err := s.persistPublicChatSurfaceStateLocked(); err != nil {
+	if err := s.persistPublicChatSurfaceStateLocked(anchor.ConversationAnchorID); err != nil {
 		anchor.VoiceSidecars = before
 		anchor.UpdatedAt = updatedAtBefore
 		s.chatSurfaceVersion = versionBefore

@@ -234,7 +234,7 @@ func (s *Service) commitPublicChatTranscriptTurn(
 		}
 	}
 
-	transcriptBefore := clonePublicChatCommittedTranscript(session.CommittedTranscript)
+	transcriptBefore := session.CommittedTranscript
 	activeBefore := clonePublicChatTurnProjectionState(session.ActiveTurnSnapshot)
 	lastBefore := clonePublicChatTurnProjectionState(session.LastTurnSnapshot)
 	completedBefore := clonePublicChatTurnProjectionStateMap(session.CompletedTurnSnapshots)
@@ -320,7 +320,7 @@ func (s *Service) commitPublicChatTranscriptTurn(
 	if trimmedAssistant != "" {
 		activityHook, activityPublished = s.appActivityTurnTxHook(session, committedTurnID, session.UpdatedAt)
 	}
-	if err := s.persistPublicChatSurfaceStateWithTxHookLocked(chainRuntimeAgentStateTxHooks(memoryHook, activityHook)); err != nil {
+	if err := s.persistPublicChatSurfaceStateWithTxHookLocked(chainRuntimeAgentStateTxHooks(memoryHook, activityHook), trimmedAnchorID); err != nil {
 		rollback()
 		return grpcerr.WrapWithReasonCode(
 			codes.Internal,
@@ -419,12 +419,15 @@ func (s *Service) commitPublicChatTurnOutputArtifact(anchorID string, turnID str
 	transcriptBefore := clonePublicChatCommittedTranscript(session.CommittedTranscript)
 	updatedAtBefore := session.UpdatedAt
 	versionBefore := s.chatSurfaceVersion
+	persistedBefore := session.persistedTranscriptCount
+	session.persistedTranscriptCount = turnIndex
 	session.CommittedTranscript[turnIndex].OutputArtifacts = append(
 		session.CommittedTranscript[turnIndex].OutputArtifacts,
 		*normalized,
 	)
 	session.UpdatedAt = time.Now().UTC()
-	if err := s.persistPublicChatSurfaceStateLocked(); err != nil {
+	if err := s.persistPublicChatSurfaceStateLocked(trimmedAnchorID); err != nil {
+		session.persistedTranscriptCount = persistedBefore
 		session.CommittedTranscript = transcriptBefore
 		session.UpdatedAt = updatedAtBefore
 		s.chatSurfaceVersion = versionBefore
@@ -792,7 +795,7 @@ func (s *Service) mutatePublicChatTurnProjection(turnID string, persist bool, mu
 	out := clonePublicChatTurnProjectionState(projection)
 	s.chatSurfaceMu.Unlock()
 	if persist {
-		s.persistCurrentPublicChatSurfaceState()
+		s.persistCurrentPublicChatSurfaceState(turn.ConversationAnchorID)
 	}
 	return out
 }
@@ -840,7 +843,7 @@ func (s *Service) finalizePublicChatTurnProjection(turnID string, persist bool, 
 		out := clonePublicChatTurnProjectionState(projection)
 		s.chatSurfaceMu.Unlock()
 		if persist {
-			s.persistCurrentPublicChatSurfaceState()
+			s.persistCurrentPublicChatSurfaceState(terminalSession.ConversationAnchorID)
 		}
 		return out
 	}
@@ -856,7 +859,7 @@ func (s *Service) finalizePublicChatTurnProjection(turnID string, persist bool, 
 	out := clonePublicChatTurnProjectionState(projection)
 	s.chatSurfaceMu.Unlock()
 	if persist {
-		s.persistCurrentPublicChatSurfaceState()
+		s.persistCurrentPublicChatSurfaceState(turn.ConversationAnchorID)
 	}
 	return out
 }

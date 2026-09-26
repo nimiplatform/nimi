@@ -642,6 +642,7 @@ func (b *Backend) ensureSchema() error {
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_runtime_app_activity_change_record ON runtime_app_activity_change(activity_id)`,
 	}
+	stmts = append(stmts, ConversationStorageSchema()...)
 	for _, stmt := range stmts {
 		if _, err := b.writeDB.Exec(stmt); err != nil {
 			return fmt.Errorf("ensure sqlite schema: %w", err)

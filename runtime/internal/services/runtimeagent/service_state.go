@@ -56,7 +56,7 @@ func (s *Service) commitAgentEvents(events ...*runtimev1.AgentEvent) error {
 	previousEvents := append([]*runtimev1.AgentEvent(nil), s.events...)
 	previousSequence := s.sequence
 	committedEvents := s.eventStreamRuntime().appendEventsLocked(events...)
-	if err := s.saveStateLocked(); err != nil {
+	if err := s.stateRepo.persistAgentDelta(nil, committedEvents, s.sequence, nil); err != nil {
 		s.events = previousEvents
 		s.sequence = previousSequence
 		s.mu.Unlock()
@@ -170,9 +170,6 @@ func (r *runtimeAgentStateRepository) snapshotStateLocked(s *Service) (persisted
 			return persistedRuntimeAgentState{}, fmt.Errorf("marshal event: %w", err)
 		}
 		persisted.Events = append(persisted.Events, raw)
-	}
-	if _, err := json.MarshalIndent(persisted, "", "  "); err != nil {
-		return persistedRuntimeAgentState{}, fmt.Errorf("marshal runtime agent state file: %w", err)
 	}
 	return persisted, nil
 }
@@ -313,16 +310,52 @@ func (r *runtimeAgentStateRepository) persistSnapshotTx(tx *sql.Tx, persisted pe
 	if tx == nil {
 		return fmt.Errorf("persist runtime agent snapshot transaction is required")
 	}
-	if _, err := tx.Exec(`DELETE FROM runtime_local_agent`); err != nil {
+	refs := make([]string, 0, len(persisted.Agents))
+	hooks := []string{}
+	sequences := make([]uint64, 0, len(persisted.Events))
+	for _, item := range persisted.Agents {
+		agent := &runtimev1.LocalAgentRecord{}
+		if err := protojson.Unmarshal(item.Agent, agent); err != nil {
+			return err
+		}
+		ref := strings.TrimSpace(agent.GetLocalAgentRef())
+		refs = append(refs, ref)
+		for _, raw := range item.Hooks {
+			hook := &runtimev1.PendingHook{}
+			if err := protojson.Unmarshal(raw, hook); err != nil {
+				return err
+			}
+			hooks = append(hooks, ref+"\x00"+hookIntentID(hook))
+		}
+	}
+	for _, raw := range persisted.Events {
+		event := &runtimev1.AgentEvent{}
+		if err := protojson.Unmarshal(raw, event); err != nil {
+			return err
+		}
+		sequences = append(sequences, event.GetSequence())
+	}
+	refsJSON, err := json.Marshal(refs)
+	if err != nil {
 		return err
 	}
-	if _, err := tx.Exec(`DELETE FROM runtime_local_agent_state_projection`); err != nil {
+	hooksJSON, err := json.Marshal(hooks)
+	if err != nil {
 		return err
 	}
-	if _, err := tx.Exec(`DELETE FROM runtime_local_agent_hook`); err != nil {
+	sequencesJSON, err := json.Marshal(sequences)
+	if err != nil {
 		return err
 	}
-	if _, err := tx.Exec(`DELETE FROM runtime_local_agent_event_log`); err != nil {
+	for _, table := range []string{"runtime_local_agent", "runtime_local_agent_state_projection"} {
+		if _, err := tx.Exec("DELETE FROM "+table+" WHERE local_agent_ref NOT IN (SELECT value FROM json_each(?))", string(refsJSON)); err != nil {
+			return err
+		}
+	}
+	if _, err := tx.Exec(`DELETE FROM runtime_local_agent_hook WHERE local_agent_ref||char(0)||hook_id NOT IN (SELECT value FROM json_each(?))`, string(hooksJSON)); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(`DELETE FROM runtime_local_agent_event_log WHERE sequence NOT IN (SELECT value FROM json_each(?))`, string(sequencesJSON)); err != nil {
 		return err
 	}
 	for _, item := range persisted.Agents {
@@ -334,10 +367,10 @@ func (r *runtimeAgentStateRepository) persistSnapshotTx(tx *sql.Tx, persisted pe
 		if localAgentRef == "" {
 			return fmt.Errorf("persist runtime agent missing local_agent_ref")
 		}
-		if _, err := tx.Exec(`INSERT INTO runtime_local_agent(local_agent_ref, agent_json) VALUES (?, ?)`, localAgentRef, string(item.Agent)); err != nil {
+		if _, err := tx.Exec(`INSERT INTO runtime_local_agent(local_agent_ref, agent_json) VALUES (?, ?) ON CONFLICT(local_agent_ref) DO UPDATE SET agent_json=excluded.agent_json WHERE agent_json<>excluded.agent_json`, localAgentRef, string(item.Agent)); err != nil {
 			return err
 		}
-		if _, err := tx.Exec(`INSERT INTO runtime_local_agent_state_projection(local_agent_ref, state_json) VALUES (?, ?)`, localAgentRef, string(item.State)); err != nil {
+		if _, err := tx.Exec(`INSERT INTO runtime_local_agent_state_projection(local_agent_ref, state_json) VALUES (?, ?) ON CONFLICT(local_agent_ref) DO UPDATE SET state_json=excluded.state_json WHERE state_json<>excluded.state_json`, localAgentRef, string(item.State)); err != nil {
 			return err
 		}
 		for _, hookRaw := range item.Hooks {
@@ -345,7 +378,7 @@ func (r *runtimeAgentStateRepository) persistSnapshotTx(tx *sql.Tx, persisted pe
 			if err := protojson.Unmarshal(hookRaw, hook); err != nil {
 				return err
 			}
-			if _, err := tx.Exec(`INSERT INTO runtime_local_agent_hook(local_agent_ref, hook_id, status, scheduled_for, hook_json) VALUES (?, ?, ?, ?, ?)`, localAgentRef, hookIntentID(hook), int(hookAdmissionState(hook)), timestampString(hook.GetScheduledFor()), string(hookRaw)); err != nil {
+			if _, err := tx.Exec(`INSERT INTO runtime_local_agent_hook(local_agent_ref, hook_id, status, scheduled_for, hook_json) VALUES (?, ?, ?, ?, ?) ON CONFLICT(local_agent_ref,hook_id) DO UPDATE SET status=excluded.status,scheduled_for=excluded.scheduled_for,hook_json=excluded.hook_json WHERE hook_json<>excluded.hook_json`, localAgentRef, hookIntentID(hook), int(hookAdmissionState(hook)), timestampString(hook.GetScheduledFor()), string(hookRaw)); err != nil {
 				return err
 			}
 		}
@@ -355,7 +388,7 @@ func (r *runtimeAgentStateRepository) persistSnapshotTx(tx *sql.Tx, persisted pe
 		if err := protojson.Unmarshal(eventRaw, event); err != nil {
 			return err
 		}
-		if _, err := tx.Exec(`INSERT INTO runtime_local_agent_event_log(sequence, local_agent_ref, event_type, timestamp, event_json) VALUES (?, ?, ?, ?, ?)`, event.GetSequence(), event.GetLocalAgentRef(), int(event.GetEventType()), timestampString(event.GetTimestamp()), string(eventRaw)); err != nil {
+		if _, err := tx.Exec(`INSERT INTO runtime_local_agent_event_log(sequence, local_agent_ref, event_type, timestamp, event_json) VALUES (?, ?, ?, ?, ?) ON CONFLICT(sequence) DO UPDATE SET local_agent_ref=excluded.local_agent_ref,event_type=excluded.event_type,timestamp=excluded.timestamp,event_json=excluded.event_json WHERE event_json<>excluded.event_json`, event.GetSequence(), event.GetLocalAgentRef(), int(event.GetEventType()), timestampString(event.GetTimestamp()), string(eventRaw)); err != nil {
 			return err
 		}
 	}

@@ -566,7 +566,7 @@ func (s *Service) commitPublicChatConversationSummaryForJob(job *publicChatConve
 		anchor.ConversationSummary = previous
 		return err
 	}
-	if err := s.persistPublicChatSurfaceStateLocked(); err != nil {
+	if err := s.persistPublicChatSurfaceStateLocked(strings.TrimSpace(anchorID)); err != nil {
 		anchor.ConversationSummary = previous
 		s.chatSurfaceVersion = versionBefore
 		return fmt.Errorf("%w: %v", errPublicChatConversationSummaryUnavailable, err)
@@ -608,7 +608,7 @@ func (s *Service) commitPublicChatConversationSummaryAttemptForJob(job *publicCh
 		anchor.ConversationSummary = previous
 		return err
 	}
-	if err := s.persistPublicChatSurfaceStateLocked(); err != nil {
+	if err := s.persistPublicChatSurfaceStateLocked(strings.TrimSpace(anchorID)); err != nil {
 		// LastValid remains the previously committed durable payload, while this
 		// bounded attempt is the Runtime-observed truth needed by the next turn.
 		// Keep it in the existing anchor state so a continuing persistence outage

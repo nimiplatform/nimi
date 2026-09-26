@@ -60,8 +60,12 @@ func TestPublicChatTranscriptAndContextSummaryRecoverAcrossRestart(t *testing.T)
 	if err := first.backend.DB().QueryRow(`SELECT value FROM runtime_local_agent_meta WHERE key = ?`, runtimeAgentMetaPublicChatSurfaceStateKey).Scan(&persistedRaw); err != nil {
 		t.Fatalf("load persisted public chat state: %v", err)
 	}
-	if !strings.Contains(persistedRaw, `"committedTranscript"`) || strings.Contains(persistedRaw, `"transcript"`) || strings.Contains(persistedRaw, `"contextHistory"`) {
-		t.Fatalf("persistence must contain only canonical committed transcript truth: %s", persistedRaw)
+	if strings.Contains(persistedRaw, "first user") {
+		t.Fatal("inline marker retained transcript content")
+	}
+	var turnCount int
+	if err := first.backend.DB().QueryRow(`SELECT COUNT(*) FROM runtime_conversation_turn WHERE anchor_id=?`, anchorID).Scan(&turnCount); err != nil || turnCount != 3 {
+		t.Fatalf("canonical turn rows: count=%d %v", turnCount, err)
 	}
 	closeFirst()
 
@@ -432,8 +436,19 @@ func TestPublicChatSurfaceStateRejectsInvalidCommittedTranscript(t *testing.T) {
 					CommittedTranscript:  transcript,
 				}},
 			}
+			// Write a structurally valid row set, then corrupt the durable turn to
+			// verify the actual startup reader, independent of writer validation.
+			original := state.Anchors[0].CommittedTranscript[0]
+			state.Anchors[0].CommittedTranscript[0].Sequence = 0
 			if err := svc.chatStateRepo.persistPublicChatSurfaceState(state); err != nil {
-				t.Fatalf("persist forged transcript: %v", err)
+				t.Fatalf("seed transcript: %v", err)
+			}
+			forged, err := json.Marshal(original)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := svc.backend.DB().Exec(`UPDATE runtime_conversation_turn SET turn_json=? WHERE anchor_id=? AND sequence=0`, string(forged), state.Anchors[0].ConversationAnchorID); err != nil {
+				t.Fatal(err)
 			}
 			if err := svc.loadPublicChatSurfaceStateFromDB(); err == nil {
 				t.Fatal("invalid persisted committed transcript must fail closed")

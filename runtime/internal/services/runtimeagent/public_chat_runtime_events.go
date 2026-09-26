@@ -94,7 +94,7 @@ func (r publicChatRuntime) setExecutionStateWithOriginLocked(
 	previousSequence := r.svc.sequence
 	r.svc.agents[committedAgentRef] = cloneAgentEntry(entry)
 	committedEvents := r.svc.eventStreamRuntime().appendEventsLocked(events...)
-	if err := r.svc.saveStateLocked(); err != nil {
+	if err := r.svc.stateRepo.persistAgentDelta(r.svc.agents[committedAgentRef], committedEvents, r.svc.sequence, nil); err != nil {
 		r.svc.agents[committedAgentRef] = previousEntry
 		r.svc.events = previousEvents
 		r.svc.sequence = previousSequence

@@ -110,7 +110,7 @@ func (s *Service) launchPublicChatFollowUp(followUpID string) {
 		return
 	}
 	turn := s.markPublicChatTurnAsFollowUp(reservedTurn.TurnID, *followUp)
-	s.persistCurrentPublicChatSurfaceState()
+	s.persistCurrentPublicChatSurfaceState(followUp.ConversationAnchorID)
 	if err := s.setPublicChatExecutionStateWithOrigin(
 		reservedSession.AgentID,
 		reservedSession.SubjectUserID,

@@ -24,7 +24,7 @@ func (s *Service) cancelPublicChatFollowUpForAnchor(anchorID string, reason stri
 	if followUp != nil && followUp.Cancel != nil {
 		followUp.Cancel()
 	}
-	s.persistCurrentPublicChatSurfaceState()
+	s.persistCurrentPublicChatSurfaceState(strings.TrimSpace(anchorID))
 	if emit && followUp != nil {
 		if err := s.emitPublicChatFollowUpCanceled(*followUp, reason, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, "", ""); err != nil {
 			return followUp, err
@@ -45,7 +45,7 @@ func (s *Service) takePublicChatFollowUp(followUpID string) *publicChatFollowUpS
 		session.PendingFollowUpID = ""
 	}
 	s.chatSurfaceMu.Unlock()
-	s.persistCurrentPublicChatSurfaceState()
+	s.persistCurrentPublicChatSurfaceState(followUp.ConversationAnchorID)
 	return followUp
 }
 

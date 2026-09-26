@@ -350,7 +350,7 @@ func (s *Service) setPublicChatStoredFollowUpOutcome(anchorID string, sourceTurn
 	}
 	s.chatSurfaceMu.Unlock()
 	if changed {
-		s.persistCurrentPublicChatSurfaceState()
+		s.persistCurrentPublicChatSurfaceState(trimmedAnchorID)
 	}
 }
 

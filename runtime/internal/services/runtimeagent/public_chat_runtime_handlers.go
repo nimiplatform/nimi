@@ -179,7 +179,7 @@ func (r publicChatRuntime) handleTurnInterruptWithID(
 		cancel = current.Cancel
 	}
 	r.svc.chatSurfaceMu.Unlock()
-	r.svc.persistCurrentPublicChatSurfaceState()
+	r.svc.persistCurrentPublicChatSurfaceState(session.ConversationAnchorID)
 	if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnInterruptAckType, map[string]any{
 		"interrupted_turn_id": turn.TurnID,
 	}); err != nil {

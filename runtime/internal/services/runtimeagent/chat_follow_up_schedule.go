@@ -132,7 +132,7 @@ func (s *Service) schedulePublicChatFollowUp(
 	s.chatFollowUps[followUpID] = state
 	s.chatSurfaceMu.Unlock()
 
-	s.persistCurrentPublicChatSurfaceState()
+	s.persistCurrentPublicChatSurfaceState(session.ConversationAnchorID)
 	if err := s.emitPublicChatFollowUpHookEvents(session, turn, action,
 		publicChatHookLifecycleTransition{state: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED},
 		publicChatHookLifecycleTransition{state: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING},
@@ -144,7 +144,7 @@ func (s *Service) schedulePublicChatFollowUp(
 		}
 		delete(s.chatFollowUps, followUpID)
 		s.chatSurfaceMu.Unlock()
-		s.persistCurrentPublicChatSurfaceState()
+		s.persistCurrentPublicChatSurfaceState(session.ConversationAnchorID)
 		return publicChatFollowUpOutcome{
 			Status:           "rejected",
 			ChainID:          chainID,
