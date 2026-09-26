@@ -33,9 +33,8 @@ func (s *Service) OpenLocalAppSession(ctx context.Context, req *runtimev1.OpenLo
 	return localAppSessionResponse(projection), nil
 }
 
-// RenewLocalAppSession atomically replaces one short-lived technical session
-// on the exact already-promoted local_app_host connection. The empty request
-// cannot select a session, process, account, or recovery path.
+// RenewLocalAppSession extends only the same live, unexpired technical session.
+// The empty request cannot select a session, process, account, or recovery path.
 func (s *Service) RenewLocalAppSession(ctx context.Context, req *runtimev1.RenewLocalAppSessionRequest) (*runtimev1.OpenLocalAppSessionResponse, error) {
 	if req == nil || len(req.ProtoReflect().GetUnknown()) != 0 {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
@@ -51,6 +50,26 @@ func (s *Service) RenewLocalAppSession(ctx context.Context, req *runtimev1.Renew
 		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 	}
 	projection, err := s.localAppOpener.RenewLocalAppSessionProjection(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return localAppSessionResponse(projection), nil
+}
+
+// RebindLocalAppSession revalidates the original verified connection after
+// scope invalidation. It cannot bootstrap an unknown or replacement connection.
+func (s *Service) RebindLocalAppSession(ctx context.Context, req *runtimev1.RebindLocalAppSessionRequest) (*runtimev1.OpenLocalAppSessionResponse, error) {
+	if req == nil || len(req.ProtoReflect().GetUnknown()) != 0 {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
+	}
+	if s == nil || s.accountSecurity == nil || s.localAppOpener == nil {
+		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_PROTECTED_LOCAL_TRANSPORT_UNSUPPORTED)
+	}
+	connection, ok := protectedlocal.LocalAppConnectionFromContext(ctx)
+	if !ok || !localAppSessionConnectionAllowed(connection) {
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
+	}
+	projection, err := s.localAppOpener.RebindLocalAppSessionProjection(ctx)
 	if err != nil {
 		return nil, err
 	}

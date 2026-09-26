@@ -139,6 +139,20 @@ func hashRequest(req any) (string, error) {
 
 func isWriteMethod(fullMethod string) bool {
 	switch fullMethod {
+	case "/nimi.runtime.v1.RuntimeAgentService/StartLocalAppAgentWork",
+		"/nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppAgentWorkToolResult",
+		"/nimi.runtime.v1.RuntimeAgentService/CancelLocalAppAgentWork",
+		"/nimi.runtime.v1.RuntimeIntegrationService/InvokeIntegrationCall",
+		"/nimi.runtime.v1.RuntimeIntegrationService/CancelIntegrationCall",
+		"/nimi.runtime.v1.RuntimeIntegrationService/RegisterIntegrationProvider",
+		"/nimi.runtime.v1.RuntimeIntegrationService/UnregisterIntegrationProvider",
+		"/nimi.runtime.v1.RuntimeIntegrationService/PollIntegrationProvider",
+		"/nimi.runtime.v1.RuntimeIntegrationService/CompleteIntegrationProvider",
+		"/nimi.runtime.v1.RuntimeIntegrationService/PutIntegrationConnection",
+		"/nimi.runtime.v1.RuntimeIntegrationService/RemoveIntegrationConnection",
+		"/nimi.runtime.v1.RuntimeIntegrationService/SetIntegrationPermission":
+		return true
+
 	case "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig",
 		"/nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate",
 		"/nimi.runtime.v1.RuntimeAiService/ExecuteLocalAppScenario",
@@ -173,8 +187,6 @@ func isWriteMethod(fullMethod string) bool {
 		"/nimi.runtime.v1.RuntimeAgentService/CloseLocalAppAgentRealtime",
 		"/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation",
 		"/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn",
-		"/nimi.runtime.v1.RuntimeAgentService/ListLocalAppConversationToolCalls",
-		"/nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppConversationToolResult",
 		"/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment",
 		"/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact",
 		"/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppConversationVoice",
@@ -202,6 +214,7 @@ func isWriteMethod(fullMethod string) bool {
 		"/nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession",
 		"/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession",
 		"/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession",
+		"/nimi.runtime.v1.RuntimeAuthService/RebindLocalAppSession",
 		"/nimi.runtime.v1.RuntimeAuthService/RegisterExternalPrincipal",
 		"/nimi.runtime.v1.RuntimeAuthService/OpenExternalPrincipalSession",
 		"/nimi.runtime.v1.RuntimeAuthService/RevokeExternalPrincipalSession",

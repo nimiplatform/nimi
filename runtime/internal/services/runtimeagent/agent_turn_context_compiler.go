@@ -70,6 +70,7 @@ func compileAgentTurnContext(input agentTurnContextCompileInput) (*agentTurnCont
 		CompilerSchemaVersion:      agentTurnContextCompilerSchemaV1,
 		LocalAgentRef:              input.LocalAgentRef,
 		ConversationAnchorID:       input.ConversationAnchorID,
+		ExecutionID:                input.ExecutionID,
 		TurnID:                     input.TurnID,
 		RequestID:                  input.RequestID,
 		SourceSnapshotHash:         input.Source.SnapshotHash,
@@ -107,14 +108,19 @@ func compileAgentTurnContext(input agentTurnContextCompileInput) (*agentTurnCont
 
 func validateAgentTurnContextCompileInput(input agentTurnContextCompileInput) error {
 	for field, value := range map[string]string{
-		"local_agent_ref":        input.LocalAgentRef,
-		"conversation_anchor_id": input.ConversationAnchorID,
-		"turn_id":                input.TurnID,
-		"request_id":             input.RequestID,
+		"local_agent_ref": input.LocalAgentRef,
+		"request_id":      input.RequestID,
 	} {
 		if strings.TrimSpace(value) == "" {
 			return fmt.Errorf("agent turn context %s is required", field)
 		}
+	}
+	if input.AppWork != nil {
+		if strings.TrimSpace(input.ExecutionID) == "" || input.ConversationAnchorID != "" || input.TurnID != "" || len(input.Transcript) != 0 || input.ConversationSummary != nil {
+			return fmt.Errorf("App work must have an independent execution without Conversation context")
+		}
+	} else if input.ExecutionID != "" || strings.TrimSpace(input.ConversationAnchorID) == "" || strings.TrimSpace(input.TurnID) == "" {
+		return fmt.Errorf("chat context requires its Conversation anchor and turn")
 	}
 	if input.Source.LocalAgentRef != input.LocalAgentRef || validateLocalAgentTurnSourceViewV1(input.Source) != nil {
 		return fmt.Errorf("agent turn context source snapshot is bound to another LocalAgent")

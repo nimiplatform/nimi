@@ -35,6 +35,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/services/cognitionmemory"
 	connectorservice "github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	externalagentservice "github.com/nimiplatform/nimi/runtime/internal/services/externalagent"
+	"github.com/nimiplatform/nimi/runtime/internal/services/integration"
 	localservice "github.com/nimiplatform/nimi/runtime/internal/services/localservice"
 	realmrealtimeservice "github.com/nimiplatform/nimi/runtime/internal/services/realmrealtime"
 	runtimeagentservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeagent"
@@ -66,6 +67,7 @@ type Server struct {
 	cognitionV1Owner      *cognitionservice.Service
 	agentService          *runtimeagentservice.Service
 	appActivityService    *appactivity.Service
+	integrationService    *integration.Service
 	realmRealtimeService  *realmrealtimeservice.Service
 	localDevelopmentStore interface{ Close() error }
 	localAppKernel        *localappkernel.Kernel
@@ -749,6 +751,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	}
 	agentSvc.SetRuntimeAccountProjectionProvider(accountSvc)
 	agentSvc.SetRealmCharacterPublicAvatarResolver(accountSvc)
+	agentSvc.SetRealmCharacterPublicIntroductionResolver(accountSvc)
 	accountSvc.SetLocalAgentOwnershipResolver(agentSvc)
 	agentSvc.SetAuditStore(auditStore)
 	agentSvc.SetRuntimeArtifactStore(artifactStore)
@@ -948,6 +951,19 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		Backend: backend, Registrations: activityRegistrations, Agents: agentSvc, Revalidator: appSvc, Logger: logger,
 	})
 	agentSvc.SetAppActivityNotifier(activitySvc)
+	var integrationSecrets connectorservice.SecretStore
+	var integrationSources integrationRegistrations
+	if protected != nil {
+		integrationSecrets = protected.ConnectorSecrets
+	}
+	if localAppKernel != nil {
+		integrationSources.store = localAppKernel.Registrations()
+	}
+	integrationSvc, err := integration.New(integration.Options{Backend: backend, Secrets: integrationSecrets, Revalidator: appSvc, Registrations: integrationSources})
+	if err != nil {
+		return nil, fmt.Errorf("initialize Integration owner: %w", err)
+	}
+
 	artifactSvc := runtimeartifactservice.New(
 		artifactStore,
 		logger,
@@ -975,6 +991,8 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		localAppGRPCServer = newProtectedLocalAppRPCServer(runtimeControlSvc, authSvc, accountSvc, realmRealtimeSvc, localSvc, aiSvc, agentSvc, appSvc, rpcRegistry)
 		runtimev1.RegisterRuntimeAppActivityServiceServer(protectedGRPCServer, activitySvc)
 		runtimev1.RegisterRuntimeAppActivityServiceServer(localAppGRPCServer, activitySvc)
+		runtimev1.RegisterRuntimeIntegrationServiceServer(protectedGRPCServer, integrationSvc)
+		runtimev1.RegisterRuntimeIntegrationServiceServer(localAppGRPCServer, integrationSvc)
 	}
 	activitySvc.StartRetention()
 	appSvc.RegisterInternalConsumer("runtime.agent.internal.chat_track_sidecar", agentSvc.ConsumeChatTrackSidecarAppMessage)
@@ -990,7 +1008,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 
 	runtimev1.RegisterRuntimeArtifactServiceServer(g, artifactSvc)
 	rootHandoff := &productControlRuntimeRootHandoff{
-		registry: rpcRegistry, ai: aiSvc, agent: agentSvc, cognition: cognitionSvc, backend: backend, appActivity: activitySvc,
+		registry: rpcRegistry, ai: aiSvc, agent: agentSvc, cognition: cognitionSvc, backend: backend, appActivity: activitySvc, integrations: integrationSvc,
 	}
 	if appInstallCoordinator != nil {
 		rootHandoff.appPackages = appInstallCoordinator
@@ -1030,6 +1048,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		cognitionV1Owner:      cognitionSvc,
 		agentService:          agentSvc,
 		appActivityService:    activitySvc,
+		integrationService:    integrationSvc,
 		realmRealtimeService:  realmRealtimeSvc,
 		localDevelopmentStore: localDevelopmentStore,
 		localAppKernel:        localAppKernel,

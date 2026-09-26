@@ -17,7 +17,7 @@ units:
   - id: definition.nimi.desktop.agent-projection.delegation-control
     kind: definition
     title: Deferred delegated capability projection
-    meaning: Workflow, MCP, external-agent entry, and other delegated capability controls are optional future projections outside ordinary LocalAgent readiness and do not create a Desktop execution, credential, gateway, or audit owner.
+    meaning: Workflow, MCP, external-agent entry, and other delegated capability controls are optional future projections outside ordinary LocalAgent readiness and do not create a Desktop execution, credential, gateway, or audit owner. Admitted integration connection, permission and usage management is a Home projection of its Runtime owner, not a Desktop workflow engine or a blanket MCP prohibition.
   - id: definition.nimi.desktop.agent-projection.companion-panel
     kind: definition
     title: Desktop LocalAgent companion projection
@@ -382,3 +382,27 @@ units:
         target: definition.nimi.avatar.embodiment.product-boundary
       - type: applies_to
         target: definition.nimi.desktop.agent-projection.avatar-surface
+  - id: rule.nimi.desktop.agent-projection.business-reference
+    kind: rule
+    title: Chat shows published App references and bounded resource contention
+    modality: must
+    statement: Desktop chat composes authorized source-labeled App Activity references beside canonical Conversation without promoting them into chat messages, automatic model context or Memory. The primary action explicitly opens the source App object and does not resume it. While an Agent is occupied, the chat preserves unsent input, presents bounded busy status and an honest wait or retry choice and never reads business contents or cancels another execution to explain or resolve contention.
+    condition: Whenever Desktop chat presents App activity or competes with business execution.
+    failure: Show unavailable or busy truth without task mutation, content leakage, lost input or false chat acceptance.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.agent-chat
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.app-work-plane
+      - type: applies_to
+        target: definition.nimi.runtime.app-surface.app-activity-plane
+  - id: rule.nimi.desktop.agent-projection.agent-introduction
+    kind: rule
+    title: Home consumes the shared Agent introduction
+    modality: must
+    statement: Home LocalAgent Conversation introduction consumes the same agentHandle-addressed SDK operation and Kit display mapping as every formal App, including missing-data and playback behavior; it does not fetch Realm source detail or use a source identity sideband to populate the chat empty state.
+    condition: Whenever this surface consumes or renders a LocalAgent introduction.
+    failure: Reject divergent private data paths, fabricated source facts or execution authority in display code.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.agent-introduction

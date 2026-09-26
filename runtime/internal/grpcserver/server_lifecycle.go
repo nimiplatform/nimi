@@ -81,6 +81,9 @@ func (s *Server) Stop(ctx context.Context) StopResult {
 		if s.agentService != nil {
 			s.agentService.Close()
 		}
+		if s.integrationService != nil {
+			_ = s.integrationService.Close()
+		}
 		if s.appActivityService != nil {
 			_ = s.appActivityService.Close()
 		}

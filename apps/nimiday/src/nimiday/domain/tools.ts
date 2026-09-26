@@ -34,6 +34,8 @@ export type ToolContext = {
   readonly now: Date;
   readonly runId: string;
   readonly agentName: string;
+  /** App-owned selection captured when this run was accepted; never supplied by a tool. */
+  readonly focusCircleId?: string | null;
 };
 
 export type ToolOutcome = {
@@ -421,8 +423,24 @@ export function notSavedResult(attempted: unknown, reason: string): unknown {
 
 export function executeDayTool(name: string, rawArgs: unknown, context: ToolContext): ToolOutcome {
   try {
-    const args = record(rawArgs);
+    const args = { ...record(rawArgs) };
     const { state, now } = context;
+    // @nimi-authority: rule.nimi.nimiday.assistant.business-effects
+    const focus = context.focusCircleId;
+    if (focus) {
+      if (!state.circles.some(circle => circle.id === focus && circle.status !== 'ended')) throw new ToolInputError('The person selected for this run is no longer available.');
+      const selected = optionalString(args, 'circleId', 80);
+      if (selected !== undefined && selected !== focus) throw new ToolInputError('This run is limited to the person the user selected.');
+      if (['day_list_items', 'day_create_item', 'day_update_item', 'day_ask_user', 'day_read_handbook', 'day_save_note', 'day_recent_changes'].includes(name)) args.circleId = focus;
+      if (name === 'day_update_item' || name === 'day_complete_item') {
+        const item = findItem(state, args);
+        if (item.circleId !== focus) throw new ToolInputError('The requested item is outside this run’s selected person.');
+      }
+      const noteId = name === 'day_save_note' ? optionalString(args, 'noteId', 80) : undefined;
+      if (noteId && state.notes.find(note => note.id === noteId)?.circleId !== focus) throw new ToolInputError('The requested note is outside this run’s selected person.');
+      const reminderId = optionalString(args, 'forReminderId', 200);
+      if (reminderId && context.changes.find(change => change.id === reminderId)?.circleId !== focus) throw new ToolInputError('The source reminder is outside this run’s selected person.');
+    }
     switch (name) {
       case 'day_list_items': {
         const scope = requiredString(args, 'scope', 20);
@@ -538,7 +556,7 @@ export function executeDayTool(name: string, rawArgs: unknown, context: ToolCont
         };
       }
       case 'day_list_circles': {
-        const circles = state.circles.filter((circle) => circle.status !== 'ended');
+        const circles = state.circles.filter((circle) => circle.status !== 'ended' && (!focus || circle.id === focus));
         return {
           isError: false,
           summary: `Listed ${circles.length} circles`,

@@ -40,6 +40,7 @@ import {
   createNimiLocalAppStandardShellSurface,
 } from '@nimiplatform/kit/shell/renderer/bridge';
 import { DESKTOP_RUNTIME_PROTECTED_SCOPES } from '../../../shared/runtime-account-contract';
+import { invokeChecked } from '../../bridge/runtime-bridge/invoke.js';
 
 export interface DesktopNimiClientSession {
   readonly appId: string;
@@ -261,18 +262,45 @@ export function getDesktopMachineProductClient(): NimiDesktopMachineProductRunti
 
 export type DesktopRendererAccountProductClient = Omit<
   NimiDesktopAccountProductRuntimeClient,
-  'connectors'
->;
+  'connectors' | 'agents'
+> & { readonly agents: Omit<NimiDesktopAccountProductRuntimeClient['agents'], 'resolveDesktopAgentReference'> };
 
 export function getDesktopAccountProductClient(): DesktopRendererAccountProductClient {
   const client = getDesktopRuntimeRealmSession().runtimeClients.accountProduct;
+  const { resolveDesktopAgentReference: _privateReferenceResolver, ...agents } = client.agents;
   return Object.freeze({
     appAIConfig: client.appAIConfig,
     profiles: client.profiles,
-    agents: client.agents,
+    agents: Object.freeze(agents),
     appMessages: client.appMessages,
     artifacts: client.artifacts,
     materializeRealmSource: client.materializeRealmSource,
+  });
+}
+
+type DesktopAgentReferenceResponse = Awaited<ReturnType<NimiDesktopAccountProductRuntimeClient['agents']['resolveDesktopAgentReference']>>;
+
+// @nimi-authority: rule.nimi.runtime.agent-participation.r197
+export function resolveDesktopAgentReference(input: { readonly localAgentRef: string }): Promise<DesktopAgentReferenceResponse> {
+  getDesktopRuntimeRealmSession();
+  return invokeChecked('desktop_agent_reference_resolve', {
+    localAgentRef: requireText(input.localAgentRef, 'localAgentRef'),
+  }, (value) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)
+      || Object.keys(value).some(key => key !== 'reference')) throw new Error('Invalid Desktop Agent reference response.');
+    const reference = (value as { reference?: unknown }).reference;
+    if (!reference || typeof reference !== 'object' || Array.isArray(reference)) throw new Error('Desktop Agent reference is unavailable.');
+    const row = reference as Record<string, unknown>;
+    const keys = ['agentHandle', 'agentBinding', 'activityAgentRef', 'displayName', 'avatarUrl'];
+    if (Object.keys(row).some(key => !keys.includes(key))
+      || typeof row.agentHandle !== 'string' || !/^agent_ref_[A-Za-z0-9_-]{43}$/u.test(row.agentHandle)
+      || typeof row.agentBinding !== 'string' || !/^agent_binding_[A-Za-z0-9_-]{43}$/u.test(row.agentBinding)
+      || typeof row.activityAgentRef !== 'string' || !/^agr_[A-Za-z0-9_-]{1,60}$/u.test(row.activityAgentRef)
+      || typeof row.displayName !== 'string' || !row.displayName.trim()
+      || (row.avatarUrl !== undefined && typeof row.avatarUrl !== 'string')) {
+      throw new Error('Invalid Desktop Agent reference projection.');
+    }
+    return value as DesktopAgentReferenceResponse;
   });
 }
 

@@ -420,3 +420,13 @@ scopes:
     bindings:
       - kind: path_glob
         value: "apps/nimigo/src/product/**"
+  - scope: runtime.integration
+    bindings:
+      - kind: path_glob
+        value: runtime/internal/services/integration/**/*.go
+      - kind: path_glob
+        value: runtime/internal/services/app/**/*.go
+  - scope: nimiday.assistant
+    bindings:
+      - kind: path_glob
+        value: apps/nimiday/src/nimiday/**

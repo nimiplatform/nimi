@@ -121,6 +121,22 @@ func (listener *MacOSVerifiedDesktopListener) acceptVerified(ctx context.Context
 			_ = raw.Close()
 			continue
 		}
+		desktopConnection.revalidateProcess = func(ctx context.Context) error {
+			if err := ctx.Err(); err != nil {
+				return err
+			}
+			if err := revalidateMacOSAuditProcess(audit); err != nil {
+				return err
+			}
+			_, current, err := verifyConnectedMacOSDesktop(audit, listener.state.expectedDesktopExecutable)
+			if err != nil {
+				return err
+			}
+			if current != process {
+				return fmt.Errorf("verified Desktop process changed")
+			}
+			return nil
+		}
 		verified := &macOSVerifiedDesktopNetConn{Conn: raw, connection: desktopConnection, listener: listener}
 		replaced, activated := listener.activate(verified)
 		if !activated {
@@ -315,6 +331,22 @@ func (listener *MacOSVerifiedLocalAppListener) Accept() (net.Conn, error) {
 		if err != nil {
 			_ = raw.Close()
 			continue
+		}
+		connection.revalidateProcess = func(ctx context.Context) error {
+			if err := ctx.Err(); err != nil {
+				return err
+			}
+			if err := revalidateMacOSAuditProcess(audit); err != nil {
+				return err
+			}
+			current, err := verifyConnectedMacOSLocalApp(audit, launch)
+			if err != nil {
+				return err
+			}
+			if current != peer {
+				return fmt.Errorf("verified App process changed")
+			}
+			return nil
 		}
 		verified := &macOSVerifiedLocalAppNetConn{Conn: raw, connection: connection, listener: listener}
 		if !listener.track(verified) {

@@ -1,7 +1,7 @@
 import type { useTranslation } from 'react-i18next';
 import type { SourceDetailData } from './source-detail-model.js';
 import { personaStyleDisplayText } from './source-detail-persona-style-labels.js';
-import { simplifySourceDetailChineseText as simplifyDisplayText } from './source-detail-simplified-chinese.js';
+import { simplifyChineseDisplayText as simplifyDisplayText } from '@nimiplatform/kit/features/chat/headless';
 import { topicChips } from './source-detail-world-character-labels.js';
 
 type TranslationFn = ReturnType<typeof useTranslation>['t'];

@@ -504,6 +504,10 @@ impl NimiDesktopControl for MacOSDesktopControl {
         })
     }
 
+    fn local_development_run_access(&self, request: crate::LocalDevelopmentRunAccessRequest) -> Pin<Box<dyn Future<Output = Result<crate::LocalDevelopmentRunAccess, NimiHostError>> + Send + '_>> {
+        Box::pin(async move { crate::windows_local_development::run_access(self.host_channel()?, request).await })
+    }
+
     fn local_development_host_running(
         &self,
         supervisor_run_id: [u8; 32],

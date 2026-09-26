@@ -5,11 +5,11 @@ units:
   - id: definition.nimi.runtime.delegation.capability-gateway-plane
     kind: definition
     title: Runtime delegated capability gateway plane
-    meaning: The Runtime delegated capability gateway plane owns delegated provider profile identity and lifecycle, trust tiers, normalized capability descriptors and effect classes, delegated session identity and context slices, normalized delegation request and result envelopes, streaming segment envelopes, the protocol metadata evidence boundary, descriptor drift detection, and gateway evidence custody before a firewall verdict.
+    meaning: "The Runtime delegated capability gateway plane owns delegated provider profile identity and lifecycle, trust tiers, normalized capability descriptors and effect classes, delegated session identity and context slices, normalized delegation request and result envelopes, streaming segment envelopes, the protocol metadata evidence boundary, descriptor drift detection, and gateway evidence custody before a firewall verdict. This is the optional Runtime Agent observation or suggestion-evaluation path, not the integration call plane: ordinary App calls and independent App business executions do not require its Agent/Conversation session, confidence normalization, quarantine or approval-replay model. This Runtime-originated gateway is not an admitted Integration consumer and cannot borrow an App standing permission or fabricate a Registered App Subject. Any future canonical-Agent or Runtime-autonomy Integration consumption requires an explicitly admitted consumer identity and permission contract; this does not block App-originated business execution from calling Integration under its actual protected App context."
   - id: definition.nimi.runtime.delegation.mcp-adapter-plane
     kind: definition
-    title: Deferred MCP adapter boundary
-    meaning: MCP is outside the current Runtime core and its future owner, adapter, transport, protocol, tool, credential, lifecycle, and product semantics remain undecided; the absent capability never blocks Local AI, LocalAgent, Conversation, Memory, Knowledge, voice, or ordinary readiness.
+    title: MCP integration adapter boundary
+    meaning: MCP may supply an adapter to the Runtime-owned integration contract using a suitable upstream SDK; it owns no Nimi business task, permission or credential policy and adds no direct consumer protocol client. Actual callable carrier, selected transport, account mode and implementation remain separately required before availability is claimed; absence never blocks ordinary LocalAgent, Conversation, Memory, voice or readiness.
   - id: definition.nimi.runtime.delegation.output-firewall-plane
     kind: definition
     title: Runtime delegated output firewall plane
@@ -40,7 +40,7 @@ units:
     kind: rule
     title: Provider profiles require separately admitted capability owners
     modality: must
-    statement: A delegated provider profile exists only for a separately admitted Runtime capability with stable identity, lifecycle, authorization, credential custody, and audit ownership, while MCP and A2A provider kinds remain inactive and unavailable until their future owner and product contracts are separately decided.
+    statement: A delegated provider profile exists only for a separately admitted Runtime capability with stable identity, lifecycle, authorization, credential custody, and audit ownership, while MCP adapter availability follows the integration contract and exact carrier admission, and A2A remains inactive until separately admitted.
     condition: Whenever a delegated provider profile is created, stored, or projected.
     failure: Reject a profile without an admitted capability owner or one that activates MCP or A2A by registry presence alone.
     relations:
@@ -173,11 +173,11 @@ units:
         target: definition.nimi.runtime.delegation.capability-gateway-plane
   - id: rule.nimi.runtime.delegation.r016
     kind: rule
-    title: MCP remains deferred and non-core
+    title: MCP integration uses the integration boundary
     modality: must
-    statement: Runtime exposes no current MCP product contract, SDK surface, transport, server lifecycle, tool registry, execution path, or readiness dependency, and any future MCP design requires separate owner and security authority without redefining Runtime core architecture.
-    condition: Whenever MCP is proposed, referenced, configured, or unavailable.
-    failure: Keep MCP unavailable and isolated rather than inferring a Runtime owner, adapter design, or successful execution.
+    statement: MCP integration belongs to a selected integration adapter and normalizes discovery, invocation, account custody and actual supported asynchronous or cancel semantics under that owner; SDK Apps use the fixed protected Nimi carrier rather than raw MCP transport. Adapter authorization does not admit A2A, a universal workflow namespace or a current readiness dependency, and public support requires its exact admitted operations and real implementation.
+    condition: Whenever MCP is integrated, referenced or unavailable.
+    failure: Keep an absent or unmapped adapter unavailable and reject direct consumer bypass or protocol-driven business ownership.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.delegation.mcp-adapter-plane

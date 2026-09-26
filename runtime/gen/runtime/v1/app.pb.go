@@ -3203,11 +3203,14 @@ func (x *GetInstalledAppRunAccessRequest) GetLaunchId() []byte {
 }
 
 type GetInstalledAppRunAccessResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Available     bool                   `protobuf:"varint,1,opt,name=available,proto3" json:"available,omitempty"`
-	ReasonCode    ReasonCode             `protobuf:"varint,2,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	Available  bool                   `protobuf:"varint,1,opt,name=available,proto3" json:"available,omitempty"`
+	ReasonCode ReasonCode             `protobuf:"varint,2,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
+	// Host-private, non-authorizing correlation for the current execution scope.
+	// Empty while pending or unavailable; routine renewal preserves it.
+	ExecutionScopeRef string `protobuf:"bytes,3,opt,name=execution_scope_ref,json=executionScopeRef,proto3" json:"execution_scope_ref,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *GetInstalledAppRunAccessResponse) Reset() {
@@ -3252,6 +3255,13 @@ func (x *GetInstalledAppRunAccessResponse) GetReasonCode() ReasonCode {
 		return x.ReasonCode
 	}
 	return ReasonCode_REASON_CODE_UNSPECIFIED
+}
+
+func (x *GetInstalledAppRunAccessResponse) GetExecutionScopeRef() string {
+	if x != nil {
+		return x.ExecutionScopeRef
+	}
+	return ""
 }
 
 type BindLocalAppProcessResponse struct {
@@ -6386,11 +6396,12 @@ const file_runtime_v1_app_proto_rawDesc = "" +
 	"\vreason_code\x18\x01 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\">\n" +
 	"\x1fGetInstalledAppRunAccessRequest\x12\x1b\n" +
-	"\tlaunch_id\x18\x01 \x01(\fR\blaunchId\"~\n" +
+	"\tlaunch_id\x18\x01 \x01(\fR\blaunchId\"\xae\x01\n" +
 	" GetInstalledAppRunAccessResponse\x12\x1c\n" +
 	"\tavailable\x18\x01 \x01(\bR\tavailable\x12<\n" +
 	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
-	"reasonCode\"\xb9\x01\n" +
+	"reasonCode\x12.\n" +
+	"\x13execution_scope_ref\x18\x03 \x01(\tR\x11executionScopeRef\"\xb9\x01\n" +
 	"\x1bBindLocalAppProcessResponse\x12\x1b\n" +
 	"\tlaunch_id\x18\x01 \x01(\fR\blaunchId\x12?\n" +
 	"\rbind_deadline\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\fbindDeadline\x12<\n" +

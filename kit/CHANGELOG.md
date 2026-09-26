@@ -1,5 +1,50 @@
 # Changelog
 
+## Shared Agent introduction (next minor, development)
+
+- Add `agents.getIntroduction({ agentHandle })` under `agent.local` for every
+  covered App, including Home. Rebuild Runtime, SDK, Kit and native carriers
+  together; custom standard-shell implementations must supply this method.
+- The result contains optional display facts and safe static media, without
+  source identity. Source detail is not an App-side substitute for this call.
+- Kit exports the shared introduction reader, display mapping and component.
+  Home and Zhiyu now use the same projection; no Conversation is opened or
+  generated to read the introduction.
+
+## 0.16.0 — Integration and independent Agent work (development)
+
+- The complete protected shell adds `agentWork` and `integration`; custom shell
+  implementations must carry their exact typed methods. Retired Conversation
+  work fields and tool-result commands are removed, with no compatibility path.
+  Upgrade SDK 0.19, Runtime and native npm 0.16 / Rust 0.8 together.
+- Integration call carriers preserve `targetDisplayName` and `accountLabel`
+  captured by Runtime at admission, including when the connection is later
+  removed. These required projection strings may be empty for older facts.
+- Known Integration connection failures retain their bounded owner reason in
+  `details.reasonMetadata.integration_reason` for Home's localized action
+  hints. Transport classification and retry semantics stay unchanged; unknown
+  reasons and raw provider messages are not forwarded.
+- Electron `bridge.services` adds `agentWork`, `integration`, `activity` and
+  `realm.worldCore` for App-owned Node work. Use the existing
+  `onSessionInvalidated` hook to stop queues and timers; successful routine
+  renewal preserves the same scope. Old in-flight results cannot become success
+  in a replacement scope. Provider calls are bounded polls and single results,
+  and the App retains its object validation and workflow state.
+- Chat can show independent bounded App Activity cards matched only through the
+  new `activityAgentRef`. The display correlation never grants Agent access.
+- Verified Desktop main-process controls project current execution availability
+  and an opaque scope comparison reference. The reference is Host-private and
+  must never enter an App client, renderer or Activity record.
+- Normal renewal extends the same live scope. Real invalidation fences all old
+  business work before empty Host-private `RebindLocalAppSession`; reads and
+  writes during rebind fail instead of queuing into the new scope. Old reads
+  never transparently receive another account's data. Only the technical status
+  probe may finish across rebind; new services explicitly read after readiness.
+- Node modules receive fresh clients in `onSessionReady(services)`. Captured old
+  `bridge.services` objects are permanently retired on invalidation; bind new
+  modules or load new state in the callback without resuming old tasks. Routine
+  renewal does not replace clients or invoke the callback.
+
 ## Unreleased (0.15.3)
 
 - `CanonicalTranscriptView` no longer keeps the 24px copy gap above

@@ -33,6 +33,7 @@ const REQUIRED_PROFILE_IDENTITIES = Object.freeze({
 const FORMAL_APP_SESSION_METHODS = new Set([
   '/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession',
   '/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession',
+  '/nimi.runtime.v1.RuntimeAuthService/RebindLocalAppSession',
 ]);
 const SDK_RAW_HOST_METHOD_IDS = new Set([
   '/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget',

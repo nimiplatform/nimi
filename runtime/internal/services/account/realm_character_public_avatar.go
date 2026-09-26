@@ -14,11 +14,21 @@ import (
 const realmCharacterPublicAvatarOperationID = "WorldPublicController_getCharacterSource"
 
 type realmCharacterPublicSourceProjection struct {
+	WorldName          string   `json:"worldName"`
+	Role               *string  `json:"role"`
+	Tags               []string `json:"tags"`
+	CharacterBiography *struct {
+		LifeEvents []struct {
+			Kind  string `json:"kind"`
+			Title string `json:"title"`
+		} `json:"lifeEvents"`
+	} `json:"characterBiography"`
 	SourceRef json.RawMessage                  `json:"sourceRef"`
 	Media     *realmCharacterPublicSourceMedia `json:"media"`
 }
 
 type realmCharacterPublicSourceMedia struct {
+	VoiceSampleURL    *string                                `json:"voiceSampleUrl"`
 	AvatarURL         *string                                `json:"avatarUrl"`
 	PortraitURL       *string                                `json:"portraitUrl"`
 	ReferenceImageURL *string                                `json:"referenceImageUrl"`
@@ -26,23 +36,33 @@ type realmCharacterPublicSourceMedia struct {
 }
 
 type realmCharacterPublicSourceMediaAssets struct {
+	VoiceSample    *realmCharacterPublicAsset `json:"voiceSample"`
 	Avatar         *realmCharacterPublicAsset `json:"avatar"`
 	Portrait       *realmCharacterPublicAsset `json:"portrait"`
 	ReferenceImage *realmCharacterPublicAsset `json:"referenceImage"`
 }
 
 type realmCharacterPublicAsset struct {
-	URL *string `json:"url"`
+	DurationSec *float64 `json:"durationSec"`
+	URL         *string  `json:"url"`
 }
 
 // ResolveRealmCharacterPublicAvatar is a Runtime-private fixed Realm
 // projection. Callers supply an already-owned LocalAgent source binding, never
 // a Realm origin, bearer, operation id, or app-selected authority.
-func (s *Service) ResolveRealmCharacterPublicAvatar(
+func (s *Service) ResolveRealmCharacterPublicAvatar(ctx context.Context, accountID string, sourceRef RealmSourceMaterializationSourceRefV3) (*string, error) {
+	projection, err := s.resolveRealmCharacterPublicSource(ctx, accountID, sourceRef)
+	if err != nil {
+		return nil, err
+	}
+	return projectRealmCharacterPublicAvatar(projection)
+}
+
+func (s *Service) resolveRealmCharacterPublicSource(
 	ctx context.Context,
 	accountID string,
 	sourceRef RealmSourceMaterializationSourceRefV3,
-) (*string, error) {
+) (*realmCharacterPublicSourceProjection, error) {
 	if s == nil {
 		return nil, fmt.Errorf("resolve Realm character public avatar: account service is unavailable")
 	}
@@ -108,10 +128,18 @@ func (s *Service) ResolveRealmCharacterPublicAvatar(
 			projected.GetAccountReasonCode().String(),
 		)
 	}
-	return decodeRealmCharacterPublicAvatar(projected.GetResponseJson(), expectedSourceRef)
+	return decodeRealmCharacterPublicSource(projected.GetResponseJson(), expectedSourceRef)
 }
 
 func decodeRealmCharacterPublicAvatar(raw string, expectedSourceRef any) (*string, error) {
+	projection, err := decodeRealmCharacterPublicSource(raw, expectedSourceRef)
+	if err != nil {
+		return nil, err
+	}
+	return projectRealmCharacterPublicAvatar(projection)
+}
+
+func decodeRealmCharacterPublicSource(raw string, expectedSourceRef any) (*realmCharacterPublicSourceProjection, error) {
 	var projection realmCharacterPublicSourceProjection
 	if err := json.Unmarshal([]byte(raw), &projection); err != nil {
 		return nil, fmt.Errorf("resolve Realm character public avatar: decode public projection: %w", err)
@@ -130,6 +158,10 @@ func decodeRealmCharacterPublicAvatar(raw string, expectedSourceRef any) (*strin
 	if !bytes.Equal(returnedCanonical, expectedCanonical) {
 		return nil, fmt.Errorf("resolve Realm character public avatar: public projection sourceRef mismatch")
 	}
+	return &projection, nil
+}
+
+func projectRealmCharacterPublicAvatar(projection *realmCharacterPublicSourceProjection) (*string, error) {
 	if projection.Media == nil {
 		return nil, nil
 	}

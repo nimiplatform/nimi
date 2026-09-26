@@ -298,6 +298,7 @@ func generatedRuntimeFullMethods() []string {
 		runtimev1.RuntimeAiRealtimeService_ServiceDesc,
 		runtimev1.RuntimeAiService_ServiceDesc,
 		runtimev1.RuntimeAppService_ServiceDesc,
+		runtimev1.RuntimeIntegrationService_ServiceDesc,
 		runtimev1.RuntimeArtifactService_ServiceDesc,
 		runtimev1.RuntimeAuditService_ServiceDesc,
 		runtimev1.RuntimeAuthService_ServiceDesc,

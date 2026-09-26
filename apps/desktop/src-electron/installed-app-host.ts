@@ -1,3 +1,4 @@
+import type { DesktopExecutorObservation } from './execution-notices-host.js';
 import {
   createNimiElectronInstalledAppControl,
   NimiElectronInstalledAppError,
@@ -9,7 +10,7 @@ import {
   type DesktopDataRootOperationGate,
 } from './data-root-operation-gate.js';
 
-type Run = { readonly selector: Uint8Array; launchId?: string; exitState?: 'stopped' | 'crashed'; pending: boolean; launchQueued?: boolean; view: InstalledAppRun };
+type Run = { readonly selector: Uint8Array; displayName?: string; launchId?: string; exitState?: 'stopped' | 'crashed'; pending: boolean; launchQueued?: boolean; view: InstalledAppRun };
 const COMMANDS = ['installed_app_launch', 'installed_app_focus', 'installed_app_stop', 'installed_app_runs_list', 'installed_app_uninstall'] as const;
 export type DesktopInstalledAppHost = ReturnType<typeof createDesktopInstalledAppHost>;
 
@@ -17,9 +18,38 @@ export type DesktopInstalledAppHost = ReturnType<typeof createDesktopInstalledAp
 export function createDesktopInstalledAppHost(
   control: NimiElectronInstalledAppControl = createNimiElectronInstalledAppControl(),
   operationGate: DesktopDataRootOperationGate = createDesktopDataRootOperationGate(),
+  onExecutorChanged?: (value: DesktopExecutorObservation) => void,
 ) {
   const runs = new Map<string, Run>();
   let closing = false;
+  let observing = false;
+  let observationTimer: ReturnType<typeof setInterval> | undefined;
+  const observe = (run: Run, intentional = false, access?: Awaited<ReturnType<NimiElectronInstalledAppControl['access']>>) => onExecutorChanged?.({
+    key: `installed:${Buffer.from(run.selector).toString('base64')}`,
+    displayName: run.displayName ?? 'Installed App',
+    state: run.view.state !== 'running' ? 'stopped'
+      : access?.available ? 'running'
+      : access?.reasonCode === 'LOCAL_APP_SESSION_REVOKED' ? 'scope-unavailable' : 'scope-unknown',
+    ...(access?.available ? { executionScopeRef: access.executionScopeRef } : {}),
+    intentional,
+  });
+  const observeRuns = async () => {
+    if (closing || observing) return;
+    observing = true;
+    try {
+      for (const run of runs.values()) {
+        if (!run.launchId || run.pending) continue;
+        try { await refresh(run); }
+        catch { onExecutorChanged?.({ key: `installed:${Buffer.from(run.selector).toString('base64')}`, displayName: run.displayName ?? 'Installed App', state: 'scope-unknown' }); }
+      }
+    } finally { observing = false; }
+  };
+  const startObserving = () => {
+    if (!onExecutorChanged || observationTimer) return;
+    observationTimer = setInterval(() => void observeRuns(), 2000);
+    observationTimer.unref?.();
+  };
+
   const releaseLease = async (run: Run, id: string): Promise<void> => {
     await control.end(id);
     if (run.launchId === id) run.launchId = undefined;
@@ -32,13 +62,15 @@ export function createDesktopInstalledAppHost(
       const status = await control.status(id);
       if (run.pending || run.launchId !== id || run.view !== before) return project(run);
       if (status.running) {
-        const access = await control.access(id).catch((error: unknown) => ({ available: false, reasonCode: reason(error) }));
+        const access = await control.access(id).catch((error: unknown) => ({ available: false, reasonCode: reason(error), executionScopeRef: '' }));
         if (run.pending || run.launchId !== id || run.view !== before) return project(run);
         run.view = { ...run.view, state: 'running', accessAvailable: access.available, accessReasonCode: access.reasonCode };
+        observe(run, false, access);
         return project(run);
       }
       run.exitState = run.view.state === 'stopped' || status.exitCode === null || status.exitCode === 0 ? 'stopped' : 'crashed';
       run.view = { ...run.view, state: run.exitState, accessAvailable: false, accessReasonCode: 'LOCAL_APP_SESSION_REVOKED' };
+      observe(run);
     }
     const exited = run.view;
     try {
@@ -97,6 +129,7 @@ export function createDesktopInstalledAppHost(
           }
           run.exitState ??= status?.exitCode === null || status?.exitCode === 0 ? 'stopped' : 'crashed';
           run.view = { ...run.view, state: run.exitState, accessAvailable: false, accessReasonCode: 'LOCAL_APP_SESSION_REVOKED' };
+      observe(run);
           await control.stop(id);
           await releaseLease(run, id);
         }
@@ -114,6 +147,7 @@ export function createDesktopInstalledAppHost(
           return control.launch(selector);
         }).finally(() => { queued.launchQueued = false; });
         run.launchId = launched.launchId;
+        run.displayName = launched.appId;
         run.view = { ...run.view, state: 'running' };
       } catch (error) {
         run.view = { ...run.view, state: run.exitState ?? 'crashed', reasonCode: reason(error), message: failureMessage(error), accessAvailable: false };
@@ -135,6 +169,7 @@ export function createDesktopInstalledAppHost(
       await control.stop(id);
       run.exitState = 'stopped';
       run.view = { ...run.view, state: 'stopped', accessAvailable: false, accessReasonCode: 'LOCAL_APP_SESSION_REVOKED', message: '' };
+      observe(run, true);
       await releaseLease(run, id);
     } catch (error) {
       const running = run.exitState ? false : (await control.status(id)).running;
@@ -143,8 +178,9 @@ export function createDesktopInstalledAppHost(
     } finally { run.pending = false; }
     return project(run);
   };
+  startObserving();
   return {
-    resume(): void { closing = false; },
+    resume(): void { closing = false; startObserving(); },
     /** Launches or focuses the exact installed registration selected by Runtime. */
     launchSelector: (selector: Uint8Array): Promise<unknown> => invoke('installed_app_launch', {
       payload: { launchSelector: [...selector] },
@@ -161,6 +197,8 @@ export function createDesktopInstalledAppHost(
     commandHandlers: Object.fromEntries(COMMANDS.map((command) => [command, (context: { readonly payload: Readonly<Record<string, unknown>> }) => invoke(command, context.payload)])),
     async shutdown(): Promise<void> {
       closing = true;
+      if (observationTimer) clearInterval(observationTimer);
+      observationTimer = undefined;
       for (const [key, run] of [...runs]) {
         // A queued launch is refused on gate admission while closing; after an
         // aborted handoff resumes this owner it proceeds and stays tracked.

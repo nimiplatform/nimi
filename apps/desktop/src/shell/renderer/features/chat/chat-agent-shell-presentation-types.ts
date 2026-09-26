@@ -20,7 +20,7 @@ import type {
   AgentVoiceSessionShellState,
   AgentVoiceTranscriptProjection,
 } from './chat-agent-voice-session.js';
-import type { AgentEmptyStateCharacterPresence } from './chat-agent-empty-state-character-presence.js';
+import type { NimiLocalAppAgentIntroduction } from '@nimiplatform/sdk/app';
 
 export type UseAgentConversationPresentationInput = {
   activeTarget: AgentLocalTargetSnapshot | null;
@@ -45,7 +45,9 @@ export type UseAgentConversationPresentationInput = {
   onDismissHostFeedback: () => void;
   onAttachmentsChange: (attachments: readonly PendingAttachment[]) => void;
   onComposerPrefillRequest?: (text: string) => void;
-  emptyStateCharacterPresence?: AgentEmptyStateCharacterPresence | null;
+  emptyStateCharacterPresence?: NimiLocalAppAgentIntroduction | null;
+  introductionUnavailable?: boolean;
+  onRetryIntroduction?: () => void;
   reasoningLabel: string;
   renderMessageAccessory?: CanonicalMessageAccessorySlot;
   renderMessageContent: CanonicalMessageContentSlot;

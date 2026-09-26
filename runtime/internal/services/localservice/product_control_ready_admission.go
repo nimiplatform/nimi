@@ -22,6 +22,13 @@ func (s *Service) authenticatedProductControlAccount(ctx context.Context) (*runt
 }
 
 func (s *Service) verifyProductControlReadyAdmission(ctx context.Context, record *productControlRecord) (productControlState, string) {
+	if state, failure := verifyProductControlSelectedDataRoot(record, s.productControlDataRootSecurityBinding()); failure != "" {
+		return state, failure
+	}
+	return s.verifyProductControlReadyAccount(ctx, record)
+}
+
+func (s *Service) verifyProductControlReadyAccount(ctx context.Context, record *productControlRecord) (productControlState, string) {
 	if record == nil {
 		return productControlStateConfigMissing, "product-control record is required before ready admission"
 	}
@@ -41,9 +48,6 @@ func (s *Service) verifyProductControlReadyAdmission(ctx context.Context, record
 	}
 	if err := validateProductControlDataRootBoundary(dataRootPath, filepath.Dir(path)); err != nil {
 		return productControlStateBlocked, err.Error()
-	}
-	if state, failure := verifyProductControlSelectedDataRoot(record, s.productControlDataRootSecurityBinding()); failure != "" {
-		return state, failure
 	}
 	projection, ok := s.authenticatedProductControlAccount(ctx)
 	if !ok || projection == nil || strings.TrimSpace(projection.GetAccountId()) == "" {

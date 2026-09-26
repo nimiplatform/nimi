@@ -12,6 +12,31 @@ const AGENT_HANDLE_PREFIX: &str = "agent_ref_";
 const MAX_DISPLAY_NAME_BYTES: usize = 256;
 const MAX_AVATAR_URL_BYTES: usize = 2048;
 
+pub(super) async fn introduction(channel: Channel, request: crate::LocalAppAgentHandleRequest) -> Result<serde_json::Value, LocalAppOperationError> {
+    if !safe_handle(&request.agent_handle) { return Err(super::invalid_payload()); }
+    let value = crate::grpc_limits::runtime_agent_client(channel)
+        .get_local_app_agent_introduction(crate::generated::GetLocalAppAgentIntroductionRequest { agent_handle: request.agent_handle })
+        .await.map_err(crate::grpc_status::local_app_error_from_status)?.into_inner().introduction.ok_or_else(untrusted)?;
+    for (text, limit) in [(&value.world_name, 256), (&value.era, 256), (&value.role, 256), (&value.greeting, 4096)] {
+        if text.as_deref().is_some_and(|v| !introduction_text(v, limit)) { return Err(untrusted()); }
+    }
+    for url in [&value.reference_image_url, &value.voice_sample_url] {
+        if url.as_deref().is_some_and(|v| !safe_avatar_url(v)) { return Err(untrusted()); }
+    }
+    if value.voice_sample_duration_sec.is_some_and(|v| !v.is_finite() || v <= 0.0 || value.voice_sample_url.is_none()) || value.question_topics.len() > 16 { return Err(untrusted()); }
+    let topics = value.question_topics.into_iter().map(|topic| {
+        let kind = match topic.kind { 1 => "role", 2 => "work", 3 => "relationship", 4 => "topic", _ => return Err(untrusted()) };
+        if !introduction_text(&topic.text, 256) { return Err(untrusted()); }
+        Ok(serde_json::json!({"kind": kind, "text": topic.text}))
+    }).collect::<Result<Vec<_>, LocalAppOperationError>>()?;
+    Ok(serde_json::json!({"worldName": value.world_name, "era": value.era, "role": value.role, "greeting": value.greeting,
+        "referenceImageUrl": value.reference_image_url, "voiceSampleUrl": value.voice_sample_url, "voiceSampleDurationSec": value.voice_sample_duration_sec, "questionTopics": topics}))
+}
+
+fn introduction_text(value: &str, limit: usize) -> bool {
+    !value.is_empty() && value.trim() == value && value.len() <= limit && !value.chars().any(|c| c.is_control() && c != '\n' && c != '\t')
+}
+
 pub(super) async fn list(
     channel: Channel,
 ) -> Result<Vec<LocalAppAgentReference>, LocalAppOperationError> {
@@ -37,9 +62,11 @@ pub(super) async fn list(
             {
                 return Err(untrusted());
             }
+            if !reference.activity_agent_ref.starts_with("agr_") || reference.activity_agent_ref.len() > 64 { return Err(untrusted()); }
             Ok(LocalAppAgentReference {
                 agent_handle: reference.agent_handle,
                 agent_binding: reference.agent_binding,
+                activity_agent_ref: reference.activity_agent_ref,
                 display_name: reference.display_name,
                 avatar_url: reference.avatar_url,
             })

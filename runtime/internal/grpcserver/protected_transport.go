@@ -85,6 +85,7 @@ func protectedDesktopMethodRole(method string) (protectedlocal.OriginRole, bool)
 		"/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess",
 		"/nimi.runtime.v1.RuntimeAppService/RebindLocalAppProcess",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/GetDeveloperModeStatus",
+		"/nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentRunAccess",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/SetDeveloperMode",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/RegisterLocalDevelopmentProject",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentRegistrations",
@@ -405,7 +406,7 @@ func newUnaryProtectedDesktopTransportInterceptor(desktopSessions *protectedloca
 }
 
 func formalAppSessionMethod(method string) bool {
-	return method == protectedOpenLocalAppSessionMethod || method == protectedRenewLocalAppSessionMethod
+	return method == protectedOpenLocalAppSessionMethod || method == protectedRenewLocalAppSessionMethod || method == protectedRebindLocalAppSessionMethod
 }
 
 func withAuthorizedAppOwnerDecision(ctx context.Context, method string, request any, admission protectedAppOwnerAdmission) (context.Context, error) {

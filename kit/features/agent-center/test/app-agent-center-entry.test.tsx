@@ -98,7 +98,7 @@ describe('App Agent Center entry', () => {
     const managerCalls: unknown[] = [];
     const client = entryClient({
       managerCalls,
-      references: vi.fn(async () => [{ agentHandle: HANDLE_A, displayName: 'Agent A', avatarUrl: null }]),
+      references: vi.fn(async () => [{ agentHandle: HANDLE_A, agentBinding: `agent_binding_${'A'.repeat(43)}`, activityAgentRef: 'agr_A', displayName: 'Agent A', avatarUrl: null }]),
     });
     const node = await renderEntry({
       client,
@@ -115,8 +115,8 @@ describe('App Agent Center entry', () => {
     const client = entryClient({
       managerCalls,
       references: vi.fn(async () => [
-        { agentHandle: HANDLE_A, displayName: 'Same name', avatarUrl: null },
-        { agentHandle: HANDLE_B, displayName: 'Same name', avatarUrl: null },
+        { agentHandle: HANDLE_A, agentBinding: `agent_binding_${'A'.repeat(43)}`, activityAgentRef: 'agr_A', displayName: 'Same name', avatarUrl: null },
+        { agentHandle: HANDLE_B, agentBinding: `agent_binding_${'B'.repeat(43)}`, activityAgentRef: 'agr_B', displayName: 'Same name', avatarUrl: null },
       ]),
     });
     const node = await renderEntry({ client, conversationAnchorId: 'must-not-reuse', language: 'en' });
@@ -138,7 +138,7 @@ describe('App Agent Center entry', () => {
     const listReferences = vi.fn(async () => {
       attempts += 1;
       if (attempts === 1) throw new Error('Runtime unavailable');
-      return [{ agentHandle: HANDLE_A, displayName: 'Agent A', avatarUrl: null }];
+      return [{ agentHandle: HANDLE_A, agentBinding: `agent_binding_${'A'.repeat(43)}`, activityAgentRef: 'agr_A', displayName: 'Agent A', avatarUrl: null }];
     });
     const node = await renderEntry({
       client: entryClient({ managerCalls, references: listReferences }),

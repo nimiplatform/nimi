@@ -1,3 +1,4 @@
+import type { DesktopExecutorObservation } from './execution-notices-host.js';
 import { PNG } from 'pngjs';
 import { parse as parseYaml } from 'yaml';
 import { createHash, randomBytes } from 'node:crypto';
@@ -91,6 +92,7 @@ type RunStatus = {
 };
 
 type RunContext = {
+  readonly onExecutorChanged?: (value: DesktopExecutorObservation) => void;
   readonly intentSequence: number;
   readonly status: RunStatus;
   readonly plan: ElectronLocalDevelopmentPlan;
@@ -155,6 +157,7 @@ export type DesktopElectronLocalDevelopmentHost = {
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-035f
 export async function createDesktopElectronLocalDevelopmentHost(input: {
   readonly homeDirectory: string;
+  readonly onExecutorChanged?: (value: DesktopExecutorObservation) => void;
   readonly control?: NimiElectronLocalDevelopmentControl;
   readonly operationGate?: DesktopDataRootOperationGate;
 }): Promise<DesktopElectronLocalDevelopmentHost> {
@@ -162,6 +165,8 @@ export async function createDesktopElectronLocalDevelopmentHost(input: {
     input.control ?? createNimiElectronLocalDevelopmentControl(),
     path.resolve(input.homeDirectory),
     input.operationGate ?? createDesktopDataRootOperationGate(),
+    undefined,
+    input.onExecutorChanged,
   );
   await host.start();
   return {
@@ -195,6 +200,7 @@ export class ElectronLocalDevelopmentHost {
     homeDirectory: string,
     private readonly operationGate: DesktopDataRootOperationGate = createDesktopDataRootOperationGate(),
     private readonly launcherLeaseMs = LAUNCHER_LEASE_MS,
+    private readonly onExecutorChanged?: (value: DesktopExecutorObservation) => void,
   ) {
     this.presencePublisher = createDesktopElectronLocalDevelopmentPresencePublisher({ homeDirectory });
   }
@@ -459,6 +465,7 @@ export class ElectronLocalDevelopmentHost {
     }
     const runId = randomSelector('dev-run');
     const run: RunContext = {
+      onExecutorChanged: this.onExecutorChanged,
       intentSequence: ++this.registrationIntentSequence,
       plan,
       requestedCdpPort,
@@ -889,6 +896,7 @@ export class ElectronLocalDevelopmentHost {
     // registration remains active and the next launch receives a fresh PID
     // binding.
     await this.endRunWithTransportRetry(run.registrationHandle, run.supervisorRunId);
+    run.onExecutorChanged?.({ key: run.status.runId, displayName: run.status.displayName, state: 'scope-unavailable', intentional: true });
     await this.control.terminateHost(run.supervisorRunId);
     if (!run.stopped) await this.launchHost(run);
   }
@@ -955,6 +963,7 @@ export class ElectronLocalDevelopmentHost {
         }
       }
       if (!running && run.status.hostGeneration > 0) {
+        run.onExecutorChanged?.({ key: run.status.runId, displayName: run.status.displayName, state: 'stopped', intentional: false });
         if (!run.renderer) {
           this.startSupervisor(run);
           return;
@@ -962,6 +971,24 @@ export class ElectronLocalDevelopmentHost {
         appendLog(run, 'supervisor', 'host exited; ending the development run');
         await this.stopRun(run, 'stopped');
         return;
+      }
+      if (running && run.registrationHandle) {
+        const observedRegistration = run.registrationHandle;
+        try {
+          const access = await this.control.access(observedRegistration, run.supervisorRunId);
+          if (run.stopped || run.registrationHandle !== observedRegistration) return;
+          run.onExecutorChanged?.({ key: run.status.runId, displayName: run.status.displayName,
+            state: access.available ? 'running' : access.reasonCode === 'LOCAL_APP_SESSION_REVOKED' ? 'scope-unavailable' : 'scope-unknown',
+            ...(access.available ? { executionScopeRef: access.executionScopeRef } : {}),
+          });
+        } catch {
+          // A failed observation (including a foreign owner/run) proves no
+          // invalidation. Preserve the last valid baseline without claiming
+          // that the process is authorized or stopping any business work.
+          if (!run.stopped && run.registrationHandle === observedRegistration) run.onExecutorChanged?.({
+            key: run.status.runId, displayName: run.status.displayName, state: 'scope-unknown',
+          });
+        }
       }
       if (!run.supervising && !run.renderer) this.startSupervisor(run);
     } catch (error) {
@@ -1308,6 +1335,12 @@ function isIdleRetainedRun(run: RunContext): boolean {
 }
 
 function setRunState(run: RunContext, state: string, message: string, reasonCode: string | undefined, retryable: boolean): void {
+  const technical = state === 'running' ? 'running'
+    : state === 'runtime-unavailable' ? 'connection-unavailable'
+    : state === 'cleanup-failed' ? 'scope-unknown'
+    : ['project-changed', 'registration-unavailable', 'registration-removed'].includes(state) ? 'stopped'
+    : ['stopped', 'failed', 'launcher-disconnected'].includes(state) ? 'stopped' : null;
+  if (technical) run.onExecutorChanged?.({ key: run.status.runId, displayName: run.status.displayName, state: technical, intentional: state === 'stopped' && run.stopped });
   run.status.state = state;
   run.status.message = message;
   run.status.retryable = retryable;

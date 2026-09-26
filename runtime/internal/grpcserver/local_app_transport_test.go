@@ -264,6 +264,23 @@ func TestProtectedLocalAppManagerSnapshotDispatchesAfterAdmission(t *testing.T) 
 	}
 }
 
+func TestProtectedLocalAppIntroductionDispatchesAfterExactAdmission(t *testing.T) {
+	connection := newGRPCLocalAppConnection(t, 0x5a)
+	if err := connection.BindSession(protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(0x5b), SessionProof: grpcLocalAppIdentifier(0x5c)}); err != nil {
+		t.Fatal(err)
+	}
+	ctx := peer.NewContext(context.Background(), &peer.Peer{AuthInfo: &protectedLocalAppAuthInfo{connection: connection}})
+	admission := &localAppAdmissionStub{}
+	handlerCalled := false
+	_, err := newUnaryProtectedLocalAppTransportInterceptor(admission)(ctx, &runtimev1.GetLocalAppAgentIntroductionRequest{}, &grpc.UnaryServerInfo{FullMethod: protectedAgentIntroductionGetMethod}, func(context.Context, any) (any, error) {
+		handlerCalled = true
+		return &runtimev1.GetLocalAppAgentIntroductionResponse{}, nil
+	})
+	if err != nil || !handlerCalled || admission.ingress != localappop.IngressAgentIntroductionGet {
+		t.Fatalf("introduction owner = handler:%v ingress:%v error:%v", handlerCalled, admission.ingress, err)
+	}
+}
+
 func TestProtectedLocalAppEmbodimentOwnersDispatchAfterExactAdmission(t *testing.T) {
 	connection := newGRPCLocalAppConnection(t, 0x5d)
 	if err := connection.BindSession(protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(0x5e), SessionProof: grpcLocalAppIdentifier(0x5f)}); err != nil {
@@ -347,8 +364,9 @@ func TestProtectedLocalAppConversationUnaryOwnersDispatchAfterAdmission(t *testi
 		request any
 		ingress localappop.Ingress
 	}{
-		{method: protectedListConversationToolCallsMethod, request: &runtimev1.ListLocalAppConversationToolCallsRequest{}, ingress: localappop.IngressConversationToolCallsList},
-		{method: protectedSubmitConversationToolResultMethod, request: &runtimev1.SubmitLocalAppConversationToolResultRequest{}, ingress: localappop.IngressConversationToolResultSubmit},
+		{method: protectedAgentWorkToolCallsListMethod, request: &runtimev1.ListLocalAppAgentWorkToolCallsRequest{}, ingress: localappop.IngressAgentWorkToolCallsList},
+		{method: protectedAgentWorkToolResultSubmitMethod, request: &runtimev1.SubmitLocalAppAgentWorkToolResultRequest{}, ingress: localappop.IngressAgentWorkToolResultSubmit},
+		{method: protectedIntegrationCallInvokeMethod, request: &runtimev1.InvokeIntegrationCallRequest{}, ingress: localappop.IngressIntegrationCallInvoke},
 		{method: protectedUploadConversationAttachmentMethod, request: &runtimev1.UploadLocalAppConversationAttachmentRequest{}, ingress: localappop.IngressConversationAttachmentUpload},
 		{method: protectedReadConversationArtifactMethod, request: &runtimev1.ReadLocalAppConversationArtifactRequest{}, ingress: localappop.IngressConversationArtifactRead},
 		{method: protectedTranscribeConversationVoiceMethod, request: &runtimev1.TranscribeLocalAppConversationVoiceRequest{}, ingress: localappop.IngressConversationVoiceTranscribe},
@@ -773,4 +791,33 @@ func grpcLocalAppIdentifier(value byte) protectedlocal.Identifier {
 func localAppTransportReason(err error) runtimev1.ReasonCode {
 	reason, _ := grpcerr.ExtractReasonCode(err)
 	return reason
+}
+
+func TestRetiredConversationWorkIngressIsUnavailable(t *testing.T) {
+	for _, method := range []string{"/nimi.runtime.v1.RuntimeAgentService/ListLocalAppConversationToolCalls", "/nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppConversationToolResult"} {
+		if protectedLocalAppUnaryMethodAllowed(method) || protectedLocalAppUnaryIngress(method, nil) != localappop.IngressUnknown {
+			t.Fatalf("retired work RPC remained admitted: %s", method)
+		}
+	}
+}
+
+func TestIntegrationBusinessOperationIsNotCallerAuthority(t *testing.T) {
+	request := &runtimev1.InvokeIntegrationCallRequest{TargetRef: "icon_test", Operation: "microsoft_docs_search", InputJson: `{"query":"MCP"}`}
+	if protectedLocalAppRequestHasCallerAssertionForMethod(context.Background(), request, protectedIntegrationCallInvokeMethod) {
+		t.Fatal("declared Integration business name rejected as AppOperationId")
+	}
+	if request.Operation != "microsoft_docs_search" {
+		t.Fatal("assertion validation mutated dispatched business input")
+	}
+	if !protectedLocalAppRequestHasCallerAssertionForMethod(context.Background(), request, protectedGenerateTextCandidateMethod) {
+		t.Fatal("Integration exception escaped its exact ingress")
+	}
+	asserted := metadata.NewIncomingContext(context.Background(), metadata.Pairs("app-operation-id", "runtime.ai.text-candidate.generate"))
+	if !protectedLocalAppRequestHasCallerAssertionForMethod(asserted, request, protectedIntegrationCallInvokeMethod) {
+		t.Fatal("business operation exemption admitted metadata authority")
+	}
+	request.ProtoReflect().SetUnknown([]byte{0xa0, 0x06, 0x01})
+	if !protectedLocalAppRequestHasCallerAssertionForMethod(context.Background(), request, protectedIntegrationCallInvokeMethod) {
+		t.Fatal("business operation exemption admitted unknown wire assertion")
+	}
 }

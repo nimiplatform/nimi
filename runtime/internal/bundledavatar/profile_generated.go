@@ -29,6 +29,8 @@ func Method(methodID string) (MethodProfile, bool) {
 		return MethodProfile{Kind: MethodUnary, Capability: ""}, true
 	case "/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession":
 		return MethodProfile{Kind: MethodUnary, Capability: ""}, true
+	case "/nimi.runtime.v1.RuntimeAuthService/RebindLocalAppSession":
+		return MethodProfile{Kind: MethodUnary, Capability: ""}, true
 	case "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary":
 		return MethodProfile{Kind: MethodUnary, Capability: "realm.data"}, true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset":
@@ -107,6 +109,8 @@ func Method(methodID string) (MethodProfile, bool) {
 		return MethodProfile{Kind: MethodUnary, Capability: "agent.configure"}, true
 	case "/nimi.runtime.v1.RuntimeAgentService/DeleteAllLocalAppAgentMemory":
 		return MethodProfile{Kind: MethodUnary, Capability: "agent.configure"}, true
+	case "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentIntroduction":
+		return MethodProfile{Kind: MethodUnary, Capability: "agent.local"}, true
 	case "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences":
 		return MethodProfile{Kind: MethodUnary, Capability: "agent.local"}, true
 	case "/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget":
@@ -114,10 +118,6 @@ func Method(methodID string) (MethodProfile, bool) {
 	case "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation":
 		return MethodProfile{Kind: MethodUnary, Capability: "agent.local"}, true
 	case "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn":
-		return MethodProfile{Kind: MethodUnary, Capability: "agent.local"}, true
-	case "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppConversationToolCalls":
-		return MethodProfile{Kind: MethodUnary, Capability: "agent.local"}, true
-	case "/nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppConversationToolResult":
 		return MethodProfile{Kind: MethodUnary, Capability: "agent.local"}, true
 	case "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment":
 		return MethodProfile{Kind: MethodUnary, Capability: "agent.local"}, true

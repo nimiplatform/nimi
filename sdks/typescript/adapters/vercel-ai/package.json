@@ -1,6 +1,6 @@
 {
   "name": "@nimiplatform/sdk-adapter-vercel-ai",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": false,
   "license": "Apache-2.0",
   "type": "module",
@@ -23,7 +23,7 @@
   ],
   "peerDependencies": {
     "@ai-sdk/provider": "^3.0.0",
-    "@nimiplatform/sdk": "^0.18.1",
+    "@nimiplatform/sdk": "^0.19.0",
     "ai": "^6.0.0"
   },
   "devDependencies": {

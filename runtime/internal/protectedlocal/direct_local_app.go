@@ -51,6 +51,8 @@ func (witness DirectLocalAppProcessWitness) valid() bool {
 // join a Desktop-prepared launch to a native local-endpoint peer. It is
 // in-memory only.
 type DirectLocalAppLaunch struct {
+	// Runtime retains the exact verified Desktop owner; this is never wire input.
+	DesktopOwner                *Connection
 	LaunchID                    Identifier
 	RegistrationHandle          Identifier
 	SupervisorRunID             Identifier
@@ -102,6 +104,7 @@ func NewDirectLocalAppLaunches() *DirectLocalAppLaunches {
 }
 
 func (launches *DirectLocalAppLaunches) Prepare(
+	desktopOwner *Connection,
 	registrationHandle Identifier,
 	supervisorRunID Identifier,
 	sourceGeneration uint64,
@@ -112,7 +115,8 @@ func (launches *DirectLocalAppLaunches) Prepare(
 	expiresAt time.Time,
 ) (DirectLocalAppLaunch, error) {
 	hostExecutablePath = filepath.Clean(strings.TrimSpace(hostExecutablePath))
-	if launches == nil || registrationHandle == (Identifier{}) || supervisorRunID == (Identifier{}) ||
+	ownerPeer, ownerOK := desktopOwner.DirectDesktopPeer()
+	if launches == nil || !ownerOK || !desktopOwner.VerifiedDesktopTransport() || ownerPeer.PID != desktopPID || ownerPeer.UID != expectedUID || registrationHandle == (Identifier{}) || supervisorRunID == (Identifier{}) ||
 		sourceGeneration == 0 || declarationGeneration == 0 || desktopPID == 0 || expectedUID == 0 ||
 		!filepath.IsAbs(hostExecutablePath) || expiresAt.IsZero() {
 		return DirectLocalAppLaunch{}, fmt.Errorf("complete direct local-app launch authority is required")
@@ -129,7 +133,7 @@ func (launches *DirectLocalAppLaunches) Prepare(
 		if pending.RegistrationHandle != registrationHandle || pending.SupervisorRunID != supervisorRunID {
 			continue
 		}
-		if pending.SourceGeneration != sourceGeneration || pending.DeclarationGeneration != declarationGeneration ||
+		if pending.DesktopOwner != desktopOwner || pending.SourceGeneration != sourceGeneration || pending.DeclarationGeneration != declarationGeneration ||
 			pending.DesktopPID != desktopPID || pending.ExpectedUID != expectedUID ||
 			pending.HostExecutablePath != hostExecutablePath {
 			return DirectLocalAppLaunch{}, fmt.Errorf("existing direct local-app launch no longer matches current authority")
@@ -144,7 +148,8 @@ func (launches *DirectLocalAppLaunches) Prepare(
 		return DirectLocalAppLaunch{}, fmt.Errorf("generate direct local-app launch identifier: %w", err)
 	}
 	launch := DirectLocalAppLaunch{
-		LaunchID: launchID, RegistrationHandle: registrationHandle, SupervisorRunID: supervisorRunID,
+		DesktopOwner: desktopOwner,
+		LaunchID:     launchID, RegistrationHandle: registrationHandle, SupervisorRunID: supervisorRunID,
 		SourceGeneration: sourceGeneration, DeclarationGeneration: declarationGeneration,
 		DesktopPID: desktopPID, ExpectedUID: expectedUID, HostExecutablePath: hostExecutablePath,
 		ExpiresAt: expiresAt,

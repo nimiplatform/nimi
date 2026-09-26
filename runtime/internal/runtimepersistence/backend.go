@@ -593,6 +593,13 @@ func (b *Backend) ensureSchema() error {
 			PRIMARY KEY(local_agent_ref, asset_ref)
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_runtime_agent_presentation_asset_agent ON runtime_agent_presentation_asset(local_agent_ref)`,
+		// Integration resource policy and bounded call facts; no business tasks.
+		`CREATE TABLE IF NOT EXISTS runtime_integration_target (account_id TEXT NOT NULL,target_ref TEXT NOT NULL,config_json TEXT NOT NULL,PRIMARY KEY(account_id,target_ref))`,
+		`CREATE TABLE IF NOT EXISTS runtime_integration_permission (account_id TEXT NOT NULL,consumer_subject TEXT NOT NULL,target_ref TEXT NOT NULL,operations_json TEXT NOT NULL,PRIMARY KEY(account_id,consumer_subject,target_ref))`,
+		`CREATE TABLE IF NOT EXISTS runtime_integration_call (call_id TEXT PRIMARY KEY,account_id TEXT NOT NULL,consumer_subject TEXT NOT NULL,target_ref TEXT NOT NULL,operation TEXT NOT NULL,status TEXT NOT NULL,error_code TEXT NOT NULL,consumer_display_name TEXT NOT NULL,created_ms INTEGER NOT NULL,updated_ms INTEGER NOT NULL,target_display_name TEXT NOT NULL DEFAULT '',account_label TEXT NOT NULL DEFAULT '')`,
+		`CREATE INDEX IF NOT EXISTS idx_runtime_integration_call_account ON runtime_integration_call(account_id,consumer_subject,created_ms)`,
+		`CREATE TABLE IF NOT EXISTS runtime_integration_receiver (account_id TEXT NOT NULL,target_ref TEXT NOT NULL,next_offset INTEGER NOT NULL DEFAULT 0,last_sequence INTEGER NOT NULL DEFAULT 0,replay_floor_sequence INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(account_id,target_ref))`,
+		`CREATE TABLE IF NOT EXISTS runtime_integration_update (account_id TEXT NOT NULL,target_ref TEXT NOT NULL,update_id INTEGER NOT NULL,sequence INTEGER NOT NULL,payload TEXT NOT NULL,received_ms INTEGER NOT NULL,PRIMARY KEY(account_id,target_ref,update_id))`,
 		// App activity owner tables. Records, ordered changes, and the per-account
 		// change sequence commit together; see internal/services/appactivity.
 		`CREATE TABLE IF NOT EXISTS runtime_app_activity_account (

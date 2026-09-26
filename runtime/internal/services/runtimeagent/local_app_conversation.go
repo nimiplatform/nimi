@@ -111,8 +111,8 @@ func (s *Service) SendLocalAppConversationTurn(
 	ctx context.Context,
 	req *runtimev1.SendLocalAppConversationTurnRequest,
 ) (*runtimev1.SendLocalAppConversationTurnResponse, error) {
-	if req == nil {
-		return nil, localAppConversationInvalid("local-app conversation turn request is required")
+	if req == nil || len(req.ProtoReflect().GetUnknown()) != 0 {
+		return nil, localAppConversationInvalid("local-app conversation turn request is invalid; App work requires its own execution entry")
 	}
 	anchorID := strings.TrimSpace(req.GetConversationAnchorId())
 	requestID := strings.TrimSpace(req.GetRequestId())
@@ -134,13 +134,6 @@ func (s *Service) SendLocalAppConversationTurn(
 	text, artifactID, err := parseLocalAppConversationInputParts(req.GetParts())
 	if err != nil {
 		return nil, err
-	}
-	work, err := admitLocalAppWork(ctx, resolved, req.GetWork())
-	if err != nil {
-		return nil, err
-	}
-	if work != nil && work.input.RoutineName != nil {
-		text = "[App: " + resolved.decision.AppID + " · Routine: " + work.input.GetRoutineName() + "]\n" + text
 	}
 	message := publicChatMessagePayload{Role: "user", Content: text}
 	if artifactID != "" {
@@ -164,7 +157,6 @@ func (s *Service) SendLocalAppConversationTurn(
 		ConversationAnchorID: anchorID,
 		RequestID:            requestID,
 		Messages:             []publicChatMessagePayload{message},
-		appWork:              work,
 	})
 	if err != nil {
 		return nil, err

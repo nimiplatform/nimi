@@ -39,4 +39,4 @@ pnpm --filter @nimiplatform/nimigo build
 
 用户说明见 [USAGE.md](USAGE.md)。本目录不维护独立仓库的发布 workflow、安装锁文件或 Tauri 替代宿主。当前源码验证与此前本地安装包的结果分开记录；这次 workspace 调整不发布或更新已有安装包。
 
-下一阶段重点是个人 Agent 的共同能力：持续目标、工具与执行环境、等待与唤醒、按真实结果验收，再完善工作/生活方向。当前已有功能不代表这套通用能力已经全部实现。
+当前源码已接入 Integration 和独立 Agent 业务执行，后台执行位于本 App 的受保护 Electron Host。真实资料读取、保存成果和聊天记录隔离已通过本轮源码验收；关窗运行与安装更新仍为 NOT-VERIFIED。各项验收状态由仓库的 integration-status 单一记录管理。

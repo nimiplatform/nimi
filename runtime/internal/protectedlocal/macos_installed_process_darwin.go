@@ -20,6 +20,22 @@ import (
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-034a
 func VerifyInstalledAppProcess(ctx context.Context, pid uint32, policy InstalledAppProcessPolicy) (ProcessTuple, DesktopProcessLiveness, error) {
+	return verifyInstalledAppProcess(ctx, pid, policy, true)
+}
+
+func RevalidateInstalledAppProcess(ctx context.Context, expected ProcessTuple, policy InstalledAppProcessPolicy) error {
+	current, live, err := verifyInstalledAppProcess(ctx, expected.PID, policy, false)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = live.Close() }()
+	if current != expected {
+		return fmt.Errorf("installed App process changed")
+	}
+	return nil
+}
+
+func verifyInstalledAppProcess(ctx context.Context, pid uint32, policy InstalledAppProcessPolicy, suspended bool) (ProcessTuple, DesktopProcessLiveness, error) {
 	if ctx == nil || !policy.valid() || policy.SupervisorProcess.OS != OSMacOS || pid == 0 {
 		return ProcessTuple{}, nil, fmt.Errorf("complete macOS installed process policy is required")
 	}
@@ -33,7 +49,7 @@ func VerifyInstalledAppProcess(ctx context.Context, pid uint32, policy Installed
 		return ProcessTuple{}, nil, fmt.Errorf("macOS Desktop process changed")
 	}
 	snapshot, err := inspectMacOSProcess(pid)
-	if err != nil || snapshot.status != 4 || snapshot.parentPID != parent.pid || snapshot.euid != uint32(uid) || snapshot.ruid != uint32(uid) || snapshot.executablePath != policy.HostExecutablePath {
+	if err != nil || (suspended && snapshot.status != 4) || snapshot.parentPID != parent.pid || snapshot.euid != uint32(uid) || snapshot.ruid != uint32(uid) || snapshot.executablePath != policy.HostExecutablePath {
 		return ProcessTuple{}, nil, fmt.Errorf("macOS installed child is not the exact suspended same-user child")
 	}
 	code, err := verifyMacOSInstalledCode(ctx, snapshot, nil, policy.HostExecutablePath, policy.HostExecutableDigest)

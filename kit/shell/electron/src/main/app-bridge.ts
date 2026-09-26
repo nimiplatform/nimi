@@ -22,7 +22,7 @@ import {
 
 const LOCAL_APP_PROTECTED_CARRIER_SENTINEL = 'local-app-protected-carrier-only';
 const REQUIRED_INPUT_KEYS = ['allowedRendererUrls', 'appId', 'assetMediaPlatform', 'ipcMain'] as const;
-const OPTIONAL_INPUT_KEYS = ['agentCenterOpenFileDialog', 'appCommandHandlers', 'onSessionInvalidated'] as const;
+const OPTIONAL_INPUT_KEYS = ['agentCenterOpenFileDialog', 'appCommandHandlers', 'onSessionInvalidated', 'onSessionReady'] as const;
 const RESERVED_COMMAND_PREFIX = 'nimi.shell.';
 let sourceLocalDevelopmentParentMonitor: NodeJS.Timeout | undefined;
 
@@ -42,6 +42,8 @@ export type RegisterNimiElectronAppBridgeInput = {
   readonly appCommandHandlers?: Readonly<Record<string, NimiElectronCommandHandler>>;
   /** Cancel App-owned work and discard account-scoped memory on this Host. */
   readonly onSessionInvalidated?: () => void;
+  /** Receive fresh scope-bound services after initial readiness or a real rebind. Never resumes old work. */
+  readonly onSessionReady?: (services: NimiElectronAppBusinessServices) => void;
 };
 
 export type NimiElectronAgentCenterOpenFileDialog = NonNullable<
@@ -50,7 +52,7 @@ export type NimiElectronAgentCenterOpenFileDialog = NonNullable<
 
 export type RegisteredNimiElectronAppBridge = RegisteredNimiElectronRuntimeBridge & Readonly<{
   localAppHost: Pick<NimiElectronLocalAppHost, 'agentReferenceList' | 'conversationSnapshot'>;
-  /** Main-process SDK clients sharing this bridge's protected session. */
+  /** Current scope-bound clients. Captured old objects remain permanently retired after invalidation. */
   services: NimiElectronAppBusinessServices;
 }>;
 
@@ -79,12 +81,27 @@ export function registerNimiElectronAppBridge(
   }
   let localAppAssetMediaHost: ReturnType<typeof createNimiElectronLocalAppAssetMediaHost> | undefined;
   let business: ReturnType<typeof createAppBusinessServices> | undefined;
+  let closed = false;
+  let businessInvalidated = false;
+  let readyDelivered = false;
   const invalidate = () => {
+    if (closed || businessInvalidated) return;
+    businessInvalidated = true;
+    readyDelivered = false;
     localAppAssetMediaHost?.invalidateAll();
-    business?.invalidate();
+    business?.close();
     input.onSessionInvalidated?.();
   };
-  const localAppHost = createNimiElectronLocalAppHost(invalidate);
+  const ready = () => {
+    if (closed || readyDelivered) return;
+    if (businessInvalidated) {
+      business = createAppBusinessServices(localAppHost);
+      businessInvalidated = false;
+    }
+    readyDelivered = true;
+    if (business) input.onSessionReady?.(business.services);
+  };
+  const localAppHost = createNimiElectronLocalAppHost(invalidate, ready);
   business = createAppBusinessServices(localAppHost);
   localAppAssetMediaHost = createNimiElectronLocalAppAssetMediaHost({
     localAppHost,
@@ -119,13 +136,12 @@ export function registerNimiElectronAppBridge(
   // registration. Renderer compilation/navigation is outside the one-time
   // process-bind window and must not own its timing. Rotation stays in the
   // native host for the full Electron process lifetime.
-  let closed = false;
   let maintenance: ReturnType<typeof startNimiElectronLocalAppHostMaintenance> | undefined;
   const closeBridge = () => {
     if (closed) return;
     closed = true;
     maintenance?.close();
-    business.close();
+    business?.close();
     input.onSessionInvalidated?.();
     localAppAssetMediaHost.close();
     registered.unregister();
@@ -139,7 +155,7 @@ export function registerNimiElectronAppBridge(
   return {
     invokeChannel: registered.invokeChannel,
     localAppHost: placementLocalAppHost,
-    services: business.services,
+    get services() { return business!.services; },
     unregister: closeBridge,
   };
 }
@@ -217,6 +233,9 @@ function assertExactAppBridgeInput(input: RegisterNimiElectronAppBridgeInput): v
       'electron-local-app-invalidation-callback-invalid',
       'provide_host_session_invalidation_callback',
     );
+  }
+  if (input.onSessionReady !== undefined && typeof input.onSessionReady !== 'function') {
+    throw appBridgeInputError('Electron App session readiness callback must be a Host function', 'electron-local-app-readiness-callback-invalid', 'provide_host_session_readiness_callback');
   }
 }
 

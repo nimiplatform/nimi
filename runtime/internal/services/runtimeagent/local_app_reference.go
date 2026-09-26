@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/url"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -15,6 +16,8 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
+	"github.com/nimiplatform/nimi/runtime/internal/services/appactivity"
+	"golang.org/x/net/idna"
 	"google.golang.org/grpc/codes"
 )
 
@@ -87,9 +90,19 @@ func projectLocalAppAgentReferences(
 	decision accountservice.LocalAppCallerDecision,
 	inventory []accountservice.LocalAgentOwnerProjection,
 ) ([]*runtimev1.LocalAppAgentReference, bool) {
+	return projectLocalAppAgentReferencesForOperation(decision, inventory, accountservice.LocalAppOperationReferenceList)
+}
+
+func projectLocalAppAgentReferencesForOperation(decision accountservice.LocalAppCallerDecision, inventory []accountservice.LocalAgentOwnerProjection, operation accountservice.LocalAppOperation) ([]*runtimev1.LocalAppAgentReference, bool) {
+	if operation != accountservice.LocalAppOperationReferenceList && operation != localappop.OperationAgentWorkReferenceList {
+		return nil, false
+	}
+	classification, err := localappop.ClassifyOperation(operation)
+	if err != nil || decision.OperationCapability != string(classification.Domain) {
+		return nil, false
+	}
 	if _, ok := authorizedLocalAppAgentDecision(
-		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), decision),
-		accountservice.LocalAppOperationReferenceList,
+		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), decision), operation,
 	); !ok {
 		return nil, false
 	}
@@ -116,9 +129,10 @@ func projectLocalAppAgentReferences(
 		}
 		seenHandles[handle] = struct{}{}
 		reference := &runtimev1.LocalAppAgentReference{
-			AgentHandle:  handle,
-			AgentBinding: mintLocalAppAgentBinding(decision, localAgentID),
-			DisplayName:  displayName,
+			AgentHandle:      handle,
+			AgentBinding:     mintLocalAppAgentBinding(decision, localAgentID),
+			ActivityAgentRef: appactivity.AgentAssociationRef(decision.AccountID, localAgentID),
+			DisplayName:      displayName,
 		}
 		if item.AvatarURL != nil && safeLocalAppAgentAvatarURL(*item.AvatarURL) {
 			avatarURL := *item.AvatarURL
@@ -166,7 +180,7 @@ func safeLocalAppAgentDisplayName(value string) bool {
 
 func safeLocalAppAgentAvatarURL(value string) bool {
 	if value == "" || value != strings.TrimSpace(value) || len(value) > 2048 ||
-		strings.ContainsAny(value, "\x00\r\n") {
+		strings.ContainsFunc(value, unicode.IsControl) {
 		return false
 	}
 	parsed, err := url.Parse(value)
@@ -175,12 +189,23 @@ func safeLocalAppAgentAvatarURL(value string) bool {
 		parsed.Hostname() == "" || (parsed.Port() != "" && parsed.Port() != "443") {
 		return false
 	}
-	host := strings.ToLower(strings.TrimSuffix(parsed.Hostname(), "."))
+	// Media is interpreted by browsers. Normalize IDNA separators and names
+	// before checking locality, and reject browser IPv4 number spellings too.
+	asciiHost, err := idna.Lookup.ToASCII(parsed.Hostname())
+	if err != nil || strings.ContainsAny(parsed.Host, "[]") {
+		return false
+	}
+	host := strings.ToLower(strings.TrimRight(asciiHost, "."))
 	if host == "localhost" || strings.HasSuffix(host, ".localhost") ||
 		strings.HasSuffix(host, ".local") || strings.HasSuffix(host, ".internal") {
 		return false
 	}
-	if net.ParseIP(host) != nil {
+	lastLabel := host[strings.LastIndex(host, ".")+1:]
+	numericHost := lastLabel != "" && strings.IndexFunc(lastLabel, func(r rune) bool { return r < '0' || r > '9' }) < 0
+	if strings.HasPrefix(lastLabel, "0x") {
+		numericHost = strings.IndexFunc(lastLabel[2:], func(r rune) bool { return !(r >= '0' && r <= '9' || r >= 'a' && r <= 'f') }) < 0
+	}
+	if host == "" || numericHost || net.ParseIP(host) != nil {
 		return false
 	}
 	return parsed.Path == "" || strings.HasPrefix(parsed.Path, "/")

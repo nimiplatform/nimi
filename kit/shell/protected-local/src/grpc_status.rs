@@ -38,6 +38,9 @@ pub(crate) fn desktop_runtime_reason_metadata(status: &Status) -> BTreeMap<Strin
     let Some(info) = runtime_error_info(status) else {
         return BTreeMap::new();
     };
+    if let Some(reason) = integration_reason_metadata(&info) {
+        return BTreeMap::from([("integration_reason".to_string(), reason.to_string())]);
+    }
     if info.reason == "APP_PACKAGE_SELECTION_INVALID" {
         return info
             .metadata
@@ -411,6 +414,9 @@ fn public_reason_metadata(info: Option<&GoogleRpcErrorInfo>) -> BTreeMap<String,
     ];
     let mut metadata = BTreeMap::new();
     if let Some(info) = info {
+        if let Some(reason) = integration_reason_metadata(info) {
+            metadata.insert("integration_reason".to_string(), reason.to_string());
+        }
         for key in PUBLIC_KEYS {
             if let Some(value) = info.metadata.get(key) {
                 let normalized = value.trim();
@@ -434,9 +440,95 @@ fn status_is_retryable(code: Code) -> bool {
     )
 }
 
+// @nimi-authority: rule.nimi.runtime.integration.fixed-operations
+fn integration_reason_metadata(info: &GoogleRpcErrorInfo) -> Option<&str> {
+    if info.domain != ERROR_INFO_DOMAIN
+        || !matches!(
+            info.reason.as_str(),
+            "LOCAL_APP_OPERATION_UNAVAILABLE" | "LOCAL_APP_OWNER_UNAVAILABLE"
+        )
+    {
+        return None;
+    }
+    let value = info.metadata.get("integration_reason")?;
+    matches!(
+        value.as_str(),
+        "INTEGRATION_TELEGRAM_BOT_ALREADY_CONNECTED"
+            | "INTEGRATION_TELEGRAM_VERIFICATION_REQUIRED"
+            | "INTEGRATION_TELEGRAM_IDENTITY_INVALID"
+            | "INTEGRATION_TELEGRAM_WEBHOOK_CONFLICT"
+            | "INTEGRATION_NEW_TARGET_REQUIRED"
+            | "INTEGRATION_CREDENTIAL_UNAVAILABLE"
+            | "INTEGRATION_CUSTODY_UNAVAILABLE"
+            | "INTEGRATION_PROVIDER_REJECTED"
+            | "INTEGRATION_DISCOVERY_FAILED"
+            | "INTEGRATION_ENDPOINT_INVALID"
+    )
+    .then_some(value.as_str())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn integration_status(domain: &str, reason: &str, value: &str, code: Code) -> Status {
+        let info = GoogleRpcErrorInfo {
+            reason: reason.to_string(),
+            domain: domain.to_string(),
+            metadata: HashMap::from([
+                ("integration_reason".to_string(), value.to_string()),
+                ("provider_message".to_string(), "private-provider-detail".to_string()),
+            ]),
+        };
+        let details = GoogleRpcStatus {
+            code: code as i32,
+            message: "private-status-message".to_string(),
+            details: vec![prost_types::Any {
+                type_url: ERROR_INFO_TYPE_URL.to_string(),
+                value: info.encode_to_vec(),
+            }],
+        };
+        Status::with_details(code, "private-status-message", details.encode_to_vec().into())
+    }
+
+    #[test]
+    fn integration_owner_code_reaches_both_native_carriers_without_raw_error_text() {
+        for (reason, code, expected, value) in [
+            ("LOCAL_APP_OPERATION_UNAVAILABLE", Code::AlreadyExists, LocalAppReasonCode::OperationUnavailable, "INTEGRATION_TELEGRAM_BOT_ALREADY_CONNECTED"),
+            ("LOCAL_APP_OWNER_UNAVAILABLE", Code::Unavailable, LocalAppReasonCode::OwnerUnavailable, "INTEGRATION_DISCOVERY_FAILED"),
+        ] {
+            let status = integration_status(ERROR_INFO_DOMAIN, reason, value, code);
+            let metadata = BTreeMap::from([("integration_reason".to_string(), value.to_string())]);
+            assert_eq!(desktop_runtime_reason_metadata(&status), metadata);
+            let error = local_app_error_from_status(status);
+            assert_eq!(error.reason_code(), expected);
+            assert_eq!(error.reason_metadata(), &metadata);
+            assert!(!error.to_string().contains("private"));
+        }
+    }
+
+    #[test]
+    fn integration_metadata_rejects_foreign_domain_reason_and_non_code_content() {
+        let too_long = format!("INTEGRATION_{}", "A".repeat(81));
+        for (domain, reason, value) in [
+            ("other.owner", "LOCAL_APP_OPERATION_UNAVAILABLE", "INTEGRATION_TELEGRAM_BOT_ALREADY_CONNECTED"),
+            (ERROR_INFO_DOMAIN, "AI_PROVIDER_UNAVAILABLE", "INTEGRATION_TELEGRAM_BOT_ALREADY_CONNECTED"),
+            (ERROR_INFO_DOMAIN, "LOCAL_APP_OPERATION_UNAVAILABLE", "INTEGRATION_FUTURE_REASON"),
+            (ERROR_INFO_DOMAIN, "LOCAL_APP_OPERATION_UNAVAILABLE", "INTEGRATION_"),
+            (ERROR_INFO_DOMAIN, "LOCAL_APP_OPERATION_UNAVAILABLE", "INTEGRATION_token"),
+            (ERROR_INFO_DOMAIN, "LOCAL_APP_OPERATION_UNAVAILABLE", "INTEGRATION_TOKEN_123"),
+            (ERROR_INFO_DOMAIN, "LOCAL_APP_OPERATION_UNAVAILABLE", "INTEGRATION_ERROR\nPRIVATE"),
+            (ERROR_INFO_DOMAIN, "LOCAL_APP_OPERATION_UNAVAILABLE", "INTEGRATION_ERROR: private detail"),
+            (ERROR_INFO_DOMAIN, "LOCAL_APP_OPERATION_UNAVAILABLE", too_long.as_str()),
+        ] {
+            let status = integration_status(domain, reason, value, Code::Unavailable);
+            assert!(desktop_runtime_reason_metadata(&status).is_empty());
+            assert!(local_app_error_from_status(status).reason_metadata().is_empty());
+        }
+        let raw = Status::already_exists("INTEGRATION_TELEGRAM_BOT_ALREADY_CONNECTED");
+        assert!(desktop_runtime_reason_metadata(&raw).is_empty());
+        assert!(local_app_error_from_status(raw).reason_metadata().get("integration_reason").is_none());
+    }
 
     #[test]
     fn protected_text_behavior_failures_stay_typed() {

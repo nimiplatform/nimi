@@ -15,10 +15,6 @@ import type {
   ReadLocalAppConversationArtifactResponse,
   RenderLocalAppConversationVoiceRequest,
   RenderLocalAppConversationVoiceResponse,
-  ListLocalAppConversationToolCallsRequest,
-  ListLocalAppConversationToolCallsResponse,
-  SubmitLocalAppConversationToolResultRequest,
-  SubmitLocalAppConversationToolResultResponse,
   SendLocalAppConversationTurnRequest,
   SendLocalAppConversationTurnResponse,
   SubscribeLocalAppConversationEventsRequest,
@@ -45,8 +41,6 @@ import {
 } from './local-app-runtime-platform-conversation.js';
 
 export type NimiLocalAppConversationRuntime = {
-  readonly listLocalAppConversationToolCalls: (request: ListLocalAppConversationToolCallsRequest) => Promise<ListLocalAppConversationToolCallsResponse>;
-  readonly submitLocalAppConversationToolResult: (request: SubmitLocalAppConversationToolResultRequest) => Promise<SubmitLocalAppConversationToolResultResponse>;
   readonly openLocalAppConversation: (request: OpenLocalAppConversationRequest) => Promise<OpenLocalAppConversationResponse>;
   readonly sendLocalAppConversationTurn: (request: SendLocalAppConversationTurnRequest) => Promise<SendLocalAppConversationTurnResponse>;
   readonly uploadLocalAppConversationAttachment: (request: UploadLocalAppConversationAttachmentRequest) => Promise<UploadLocalAppConversationAttachmentResponse>;
@@ -62,16 +56,13 @@ export function createNimiLocalAppConversationRuntimeClient(
   runtime: NimiLocalAppConversationRuntime,
 ): NimiLocalAppConversationClient {
   const shell: NimiLocalAppConversationShell = {
-    listToolCalls: async (input) => runtime.listLocalAppConversationToolCalls(input),
-    submitToolResult: async (input) => runtime.submitLocalAppConversationToolResult(input),
     open: async ({ agentHandle }) => {
       const response = await runtime.openLocalAppConversation({ agentHandle });
       return { conversationAnchorId: response.conversationAnchorId, activeTurnId: response.activeTurnId ?? null };
     },
-    send: async ({ agentHandle, conversationAnchorId, requestId, parts, work }) => {
+    send: async ({ agentHandle, conversationAnchorId, requestId, parts }) => {
       const response = await runtime.sendLocalAppConversationTurn({
         agentHandle, conversationAnchorId, requestId,
-        work: work ? { ...work, sources: [...work.sources], tools: [...work.tools] } : undefined,
         parts: parts.map((part) => part.kind === 'text'
           ? { part: { oneofKind: 'text', text: { text: part.text } } }
           : { part: { oneofKind: 'artifactRef', artifactRef: { artifactId: part.artifactId } } }),

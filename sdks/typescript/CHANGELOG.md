@@ -1,5 +1,39 @@
 # SDK migration notes
 
+## Shared Agent introduction (next minor, development)
+
+- Add `agents.getIntroduction({ agentHandle })` under `agent.local` for every
+  covered App, including Home. Rebuild Runtime, SDK, Kit and native carriers
+  together; custom standard-shell implementations must supply this method.
+- The result contains optional display facts and safe static media, without
+  source identity. Source detail is not an App-side substitute for this call.
+- Kit exports the shared introduction reader, display mapping and component.
+  Home and Zhiyu now use the same projection; no Conversation is opened or
+  generated to read the introduction.
+
+## 0.19.0 — Integration and independent Agent work (development)
+
+- Replace `conversation.send({ work })`, `conversation.listToolCalls` and
+  `conversation.submitToolResult` with `agentWork.listReferences`, `start`,
+  `get`, `status`, `listToolCalls`, `submitToolResult`, `cancel` and `subscribe`.
+  Work uses an execution ID, never a Conversation anchor. The old fields and
+  methods are rejected. Register the `agent.work` declaration and use fresh
+  business Agent references after a real session change; work does not confer
+  access to chat history.
+- Add `integration` typed discovery, calls, provider and management methods.
+  `invoke` returns an accepted call; query that call until its actual outcome,
+  and cancel it when the consumer stops. An unconfirmed write must not be
+  resent. Management remains restricted to the trusted Home owner.
+- Integration call projections include `targetDisplayName` and `accountLabel`
+  alongside the captured consumer name, timestamps and call ID. Empty display
+  fields mean the name was not recorded; consumers must not replace historical
+  attribution with a currently selected connection. Custom carriers and test
+  fixtures must include both string fields.
+- Agent references add required `activityAgentRef`, an account-scoped display
+  correlation for Activity filters. It is never an Agent selector or permission.
+- Upgrade Runtime, SDK 0.19, Kit/native npm 0.16 and Rust carriers 0.8 together.
+  These local candidate versions do not claim public publication or product acceptance.
+
 ## Unreleased (0.18.1)
 
 - Keep observing the Runtime activity-open stream while Desktop launches the

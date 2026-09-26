@@ -342,6 +342,9 @@ message GetInstalledAppRunAccessRequest {
 message GetInstalledAppRunAccessResponse {
   bool available = 1;
   ReasonCode reason_code = 2;
+  // Host-private, non-authorizing correlation for the current execution scope.
+  // Empty while pending or unavailable; routine renewal preserves it.
+  string execution_scope_ref = 3;
 }
 
 message BindLocalAppProcessResponse {

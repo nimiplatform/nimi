@@ -273,7 +273,7 @@ export function HomeAgentCard({ heading, status }: { heading: ReactNode; status:
   const references = useQueries({
     queries: (agent ? [agent, ...shownOthers] : []).map((item) => ({
       queryKey: ['home-agent-reference', item.localAgentRef],
-      queryFn: async () => (await bindings.sdk.accountProduct().agents.resolveDesktopAgentReference({
+      queryFn: async () => (await bindings.sdk.resolveDesktopAgentReference({
         localAgentRef: item.localAgentRef,
       })).reference ?? null,
       staleTime: 60_000,

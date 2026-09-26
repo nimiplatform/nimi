@@ -75,6 +75,13 @@ message OpenLocalAppSessionResponse {
 message RenewLocalAppSessionRequest {
 }
 
+// Host-private and request-empty. Only a still-verified connection previously
+// bound to this exact supervised Host may revalidate and replace an invalidated
+// scope. A live scope is returned unchanged; cached identity cannot rebind a
+// lost connection or bypass a new launch required by changed launch facts.
+message RebindLocalAppSessionRequest {
+}
+
 message RegisterExternalPrincipalRequest {
   string app_id = 1;
   string external_principal_id = 2;
@@ -112,6 +119,7 @@ service RuntimeAuthService {
   rpc OpenDesktopSession(OpenDesktopSessionRequest) returns (OpenDesktopSessionResponse);
   rpc OpenLocalAppSession(OpenLocalAppSessionRequest) returns (OpenLocalAppSessionResponse);
   rpc RenewLocalAppSession(RenewLocalAppSessionRequest) returns (OpenLocalAppSessionResponse);
+  rpc RebindLocalAppSession(RebindLocalAppSessionRequest) returns (OpenLocalAppSessionResponse);
   rpc RegisterExternalPrincipal(RegisterExternalPrincipalRequest) returns (RegisterExternalPrincipalResponse);
   rpc OpenExternalPrincipalSession(OpenExternalPrincipalSessionRequest) returns (OpenExternalPrincipalSessionResponse);
   rpc RevokeExternalPrincipalSession(RevokeExternalPrincipalSessionRequest) returns (Ack);

@@ -26,7 +26,7 @@ import type {
   CharacterProfileRelationshipProjection,
   CharacterSourceViewerRelationProjection,
 } from '../realm-source/character-source-profile-projection.js';
-import { simplifySourceDetailChineseText } from './source-detail-simplified-chinese.js';
+import { simplifyChineseDisplayText as simplifySourceDetailChineseText } from '@nimiplatform/kit/features/chat/headless';
 
 
 export type SourceDetailData = {

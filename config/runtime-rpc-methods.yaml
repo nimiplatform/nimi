@@ -19,6 +19,7 @@ surfaces:
   - RuntimeAuditService
   - RuntimeAppService
   - RuntimeAppActivityService
+  - RuntimeIntegrationService
   - RuntimeArtifactService
   - RuntimeAgentService
   - RuntimeDevelopmentService
@@ -334,6 +335,9 @@ services:
       - name: RenewLocalAppSession
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession
+      - name: RebindLocalAppSession
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAuthService/RebindLocalAppSession
       - name: RegisterExternalPrincipal
         type: unary
       - name: OpenExternalPrincipalSession
@@ -534,6 +538,9 @@ services:
   - name: RuntimeDevelopmentService
     source_rule: K-PLOCAL-009
     methods:
+      - name: GetLocalDevelopmentRunAccess
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentRunAccess
       - name: GetDeveloperModeStatus
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/GetDeveloperModeStatus
@@ -606,6 +613,30 @@ services:
   - name: RuntimeAgentService
     source_rule: K-RPC-004b
     methods:
+      - name: ListLocalAppAgentWorkReferences
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentWorkReferences
+      - name: StartLocalAppAgentWork
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/StartLocalAppAgentWork
+      - name: GetLocalAppAgentWork
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentWork
+      - name: GetLocalAppAgentWorkStatus
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentWorkStatus
+      - name: ListLocalAppAgentWorkToolCalls
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentWorkToolCalls
+      - name: SubmitLocalAppAgentWorkToolResult
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppAgentWorkToolResult
+      - name: CancelLocalAppAgentWork
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/CancelLocalAppAgentWork
+      - name: SubscribeLocalAppAgentWorkEvents
+        type: server_stream
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentWorkEvents
       - name: MaterializeRealmSource
         type: unary
       - name: TerminateAgent
@@ -670,6 +701,9 @@ services:
         type: unary
       - name: ListPortableAIProfiles
         type: unary
+      - name: GetLocalAppAgentIntroduction
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentIntroduction
       - name: ListLocalAppAgentReferences
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences
@@ -727,12 +761,6 @@ services:
       - name: SendLocalAppConversationTurn
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn
-      - name: SubmitLocalAppConversationToolResult
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppConversationToolResult
-      - name: ListLocalAppConversationToolCalls
-        type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppConversationToolCalls
       - name: UploadLocalAppConversationAttachment
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment
@@ -778,3 +806,76 @@ services:
       - name: CloseLocalAppAgentRealtime
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/CloseLocalAppAgentRealtime
+  - name: RuntimeIntegrationService
+    source_rule: rule.nimi.runtime.integration.fixed-operations
+    methods:
+      - name: ListIntegrationCatalog
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationCatalog
+      - name: ListIntegrationConnections
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationConnections
+      - name: InvokeIntegrationCall
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.RuntimeIntegrationService/InvokeIntegrationCall
+      - name: GetIntegrationCall
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationCall
+      - name: ListIntegrationCalls
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationCalls
+      - name: CancelIntegrationCall
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.RuntimeIntegrationService/CancelIntegrationCall
+      - name: RegisterIntegrationProvider
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.RuntimeIntegrationService/RegisterIntegrationProvider
+      - name: UnregisterIntegrationProvider
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.RuntimeIntegrationService/UnregisterIntegrationProvider
+      - name: PollIntegrationProvider
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.RuntimeIntegrationService/PollIntegrationProvider
+      - name: CompleteIntegrationProvider
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.RuntimeIntegrationService/CompleteIntegrationProvider
+      - name: GetIntegrationManagement
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationManagement
+      - name: PutIntegrationConnection
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.RuntimeIntegrationService/PutIntegrationConnection
+      - name: RemoveIntegrationConnection
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.RuntimeIntegrationService/RemoveIntegrationConnection
+      - name: SetIntegrationPermission
+        type: unary
+        authority_status: admitted_local_app
+        transport_disposition: protected_local_app_host_only
+        protected_transport_ref: /nimi.runtime.v1.RuntimeIntegrationService/SetIntegrationPermission

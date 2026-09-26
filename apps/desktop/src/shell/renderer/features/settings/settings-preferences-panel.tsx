@@ -1,3 +1,4 @@
+import { ExecutionNotificationSetting } from '../home/execution-notices.js';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import {
@@ -241,7 +242,7 @@ export function NotificationsPage() {
 
   // Home messages are Desktop display preferences with their own storage and
   // status; they stay usable whatever state the Realm settings read is in.
-  const homeMessages = <HomeMessagesSettingsSection />;
+  const homeMessages = <><HomeMessagesSettingsSection /><ExecutionNotificationSetting /></>;
 
   if (settingsQuery.isPending) {
     return (

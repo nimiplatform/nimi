@@ -112,7 +112,7 @@ export async function resolveAgentTargetSnapshotForSourceRef(input: {
     return null;
   }
   const agent = agents[0]!;
-  const { reference } = await input.sdk.accountProduct().agents.resolveDesktopAgentReference({
+  const { reference } = await input.sdk.resolveDesktopAgentReference({
     localAgentRef: agent.localAgentRef,
   });
   if (!reference?.agentHandle || input.isCurrent?.() === false) return null;

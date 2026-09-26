@@ -192,7 +192,7 @@ func publishTx(
 	}
 	agentRefValue := ""
 	if agent.LocalAgentRef != "" {
-		agentRefValue = agentRef(accountID, agent.LocalAgentRef)
+		agentRefValue = AgentAssociationRef(accountID, agent.LocalAgentRef)
 	}
 	record := storedRecord{
 		AccountID: accountID, PublisherKind: publisherKind, PublisherRef: publisherRef, PublisherKey: input.Key,

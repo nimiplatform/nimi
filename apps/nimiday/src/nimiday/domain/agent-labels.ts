@@ -1,4 +1,10 @@
-import type { CareCircle } from './types.js';
+import type { CareCircle, SkillRun } from './types.js';
+
+/** A stored name is display evidence, never proof that two appointments are the same agent. */
+export function historicalReplyAuthor(run: Pick<SkillRun, 'agentName' | 'agentBinding'> | null, currentBinding: string | null): { name: string | null; linked: boolean } | null {
+  if (run?.agentBinding && currentBinding && run.agentBinding === currentBinding) return null;
+  return { name: run?.agentName?.trim() || null, linked: !!run?.agentBinding };
+}
 
 /**
  * How a person or area is named to the agent. The user's own circle is often

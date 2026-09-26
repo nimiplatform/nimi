@@ -2,7 +2,7 @@ import type { useTranslation } from 'react-i18next';
 import type { describeCharacterPrimaryAction } from '../explore/character-source-materialization';
 import type { SourceDetailData } from './source-detail-model.js';
 import { personaStyleDisplayText } from './source-detail-persona-style-labels.js';
-import { simplifySourceDetailChineseText as simplifyDisplayText } from './source-detail-simplified-chinese.js';
+import { simplifyChineseDisplayText as simplifyDisplayText } from '@nimiplatform/kit/features/chat/headless';
 
 type TranslationFn = ReturnType<typeof useTranslation>['t'];
 
@@ -63,16 +63,16 @@ function normalizeDynastyText(value: string): string | null {
     }
   }
   const dynastyAliases: readonly [RegExp, string][] = [
-    [/(?:秦朝|qin(?:[-_\s]?dynasty)?)/iu, '秦代'],
-    [/(?:汉朝|漢朝|han(?:[-_\s]?dynasty)?)/iu, '汉代'],
-    [/(?:隋朝|sui(?:[-_\s]?dynasty)?)/iu, '隋代'],
-    [/(?:唐朝|tang(?:[-_\s]?dynasty)?)/iu, '唐代'],
-    [/(?:宋朝|song(?:[-_\s]?dynasty)?)/iu, '宋代'],
-    [/(?:辽朝|遼朝|liao(?:[-_\s]?dynasty)?)/iu, '辽代'],
-    [/(?:金朝|jin(?:[-_\s]?dynasty)?)/iu, '金代'],
-    [/(?:元朝|yuan(?:[-_\s]?dynasty)?)/iu, '元代'],
-    [/(?:明朝|ming(?:[-_\s]?dynasty)?)/iu, '明代'],
-    [/(?:清朝|qing(?:[-_\s]?dynasty)?)/iu, '清代'],
+    [/(?:秦朝|(?<![a-z])qin(?:[-_\s]?dynasty)?(?![a-z]))/iu, '秦代'],
+    [/(?:汉朝|漢朝|(?<![a-z])han(?:[-_\s]?dynasty)?(?![a-z]))/iu, '汉代'],
+    [/(?:隋朝|(?<![a-z])sui(?:[-_\s]?dynasty)?(?![a-z]))/iu, '隋代'],
+    [/(?:唐朝|(?<![a-z])tang(?:[-_\s]?dynasty)?(?![a-z]))/iu, '唐代'],
+    [/(?:宋朝|(?<![a-z])song(?:[-_\s]?dynasty)?(?![a-z]))/iu, '宋代'],
+    [/(?:辽朝|遼朝|(?<![a-z])liao(?:[-_\s]?dynasty)?(?![a-z]))/iu, '辽代'],
+    [/(?:金朝|(?<![a-z])jin(?:[-_\s]?dynasty)?(?![a-z]))/iu, '金代'],
+    [/(?:元朝|(?<![a-z])yuan(?:[-_\s]?dynasty)?(?![a-z]))/iu, '元代'],
+    [/(?:明朝|(?<![a-z])ming(?:[-_\s]?dynasty)?(?![a-z]))/iu, '明代'],
+    [/(?:清朝|(?<![a-z])qing(?:[-_\s]?dynasty)?(?![a-z]))/iu, '清代'],
   ];
   for (const [pattern, label] of dynastyAliases) {
     if (pattern.test(normalized)) {

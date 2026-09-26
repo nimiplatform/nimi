@@ -78,12 +78,9 @@ func (r publicChatRuntime) reserveTurn(
 			r.svc.chatSurfaceMu.Unlock()
 			return publicChatAnchorState{}, publicChatTurnState{}, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE)
 		}
-		if activeTurnID := strings.TrimSpace(r.svc.chatActiveByAgent[localAgentRef]); activeTurnID != "" {
-			if activeTurn := r.svc.chatTurns[activeTurnID]; activeTurn != nil {
-				r.svc.chatSurfaceMu.Unlock()
-				return publicChatAnchorState{}, publicChatTurnState{}, nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AGENT_BUSY)
-			}
-			delete(r.svc.chatActiveByAgent, localAgentRef)
+		if r.svc.localAgentExecutionBusyLocked(localAgentRef) {
+			r.svc.chatSurfaceMu.Unlock()
+			return publicChatAnchorState{}, publicChatTurnState{}, nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AGENT_BUSY)
 		}
 		session := r.svc.chatAnchors[anchorID]
 		if session == nil {
@@ -180,9 +177,7 @@ func (r publicChatRuntime) reserveTurn(
 			BindingRelease:       bindingRelease,
 		}
 		releaseUnclaimedBinding = nil
-		if req.appWork != nil && req.appWork.input.RoutineName != nil {
-			turn.Origin = publicChatTurnOriginApp
-		}
+
 		turn.Projection = newPublicChatTurnProjection(turn)
 		session.ActiveTurnID = turnID
 		session.ActiveTurnSnapshot = clonePublicChatTurnProjectionState(turn.Projection)

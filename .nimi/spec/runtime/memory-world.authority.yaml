@@ -340,3 +340,17 @@ units:
         target: definition.nimi.runtime.memory-world.memory-mediation-plane
       - type: applies_to
         target: definition.nimi.runtime.service-operations.memory-derived-payload
+  - id: rule.nimi.runtime.memory-world.app-business-source
+    kind: rule
+    title: App business Memory contribution is optional and source-preserving
+    modality: must
+    statement: App business execution and published Activity references are excluded from automatic Conversation summary and committed-chat Memory delivery even when Memory is enabled and available; genuine chat continues its existing eligible-event path. An App may choose to submit a finite sourced summary or experience through a separately admitted Runtime operation for the selected Agent under current authorization and Memory settings. Such content is an App-authored source submission, not a canonical Memory candidate, accepted fact, fabricated user utterance or correction of nonexistent Memory; Cognition alone decides what to admit. The operation remains unavailable until its public carrier is admitted, no App is required to provide it, and neither a Memory summary nor a completed Memory operation resumes an App task.
+    condition: Whenever business execution, publication or an optional App Memory contribution is processed.
+    failure: Reject implicit business-to-chat Memory delivery, false provenance, direct App-authored Memory truth or an unadmitted submission; preserve normal chat processing.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.app-work-plane
+      - type: applies_to
+        target: definition.nimi.runtime.memory-world.memory-delivery-plane
+      - type: applies_to
+        target: definition.nimi.runtime.memory-world.memory-mediation-plane

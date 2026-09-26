@@ -2,13 +2,13 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "strict": true,
     "skipLibCheck": true,
-    "noEmit": false,
+    "noEmit": true,
     "outDir": "dist-electron",
-    "rootDir": "src-electron",
+    "rootDir": ".",
     "types": [
       "node",
       "electron"

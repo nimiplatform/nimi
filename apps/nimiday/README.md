@@ -39,4 +39,4 @@ pnpm --filter @nimiplatform/nimiday build
 
 用户说明见 [GUIDE.md](GUIDE.md)。本目录不维护独立仓库的发布 workflow、安装锁文件或 Tauri 替代宿主。当前源码验证与此前本地安装包的结果分开记录；这次 workspace 调整不发布或更新已有安装包。
 
-下一阶段重点是个人 Agent 的共同能力：持续目标、工具与执行环境、等待与唤醒、按真实结果验收，再完善工作/生活方向。当前已有功能不代表这套通用能力已经全部实现。
+当前源码已接入 Integration 和独立 Agent 业务执行，安排跟进位于本 App 的受保护 Electron Host。真实外部资料与 Go 指定成果读取已通过本轮源码验收；消息发送及真实回复、关窗运行与安装更新仍为 NOT-VERIFIED。各项验收状态由仓库的 integration-status 单一记录管理。

@@ -182,7 +182,7 @@ func (s *Service) PrepareLocalAppLaunch(ctx context.Context, req *runtimev1.Prep
 		if !direct {
 			return nil, localDevelopmentFailure(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_LAUNCH_LEASE_REQUIRED)
 		}
-		prepared, prepareErr := s.directLocalAppLaunches.Prepare(handle, runID, registration.SourceGeneration, registration.DeclarationGeneration, desktopPeer.PID, desktopPeer.UID, hostExecutable, s.now().UTC().Add(localDevelopmentLaunchTTL))
+		prepared, prepareErr := s.directLocalAppLaunches.Prepare(desktopConnection, handle, runID, registration.SourceGeneration, registration.DeclarationGeneration, desktopPeer.PID, desktopPeer.UID, hostExecutable, s.now().UTC().Add(localDevelopmentLaunchTTL))
 		if prepareErr != nil {
 			return nil, localDevelopmentFailureAtStageFromCause(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE, "launch-memory", prepareErr)
 		}
@@ -193,7 +193,7 @@ func (s *Service) PrepareLocalAppLaunch(ctx context.Context, req *runtimev1.Prep
 		if digestErr != nil {
 			return nil, localDevelopmentFailureAtStageFromCause(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE, "registration", digestErr)
 		}
-		ticket, prepareErr := s.localDevelopment.PrepareLaunch(ctx, localDevelopmentLaunchRequest{RegistrationHandle: handle, SupervisorRunID: runID, Project: project, HostExecutable: hostExecutable, ExpectedHostDigest: expectedHostDigest})
+		ticket, prepareErr := s.localDevelopment.PrepareLaunch(ctx, localDevelopmentLaunchRequest{DesktopOwner: desktopConnection, RegistrationHandle: handle, SupervisorRunID: runID, Project: project, HostExecutable: hostExecutable, ExpectedHostDigest: expectedHostDigest})
 		if prepareErr != nil {
 			return nil, localDevelopmentStoreError(prepareErr)
 		}

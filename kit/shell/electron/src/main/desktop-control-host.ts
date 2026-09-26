@@ -114,6 +114,13 @@ export type NimiElectronDesktopControlBinding = {
   readonly desktopBundledAvatarStreamClose: (input: { readonly streamId: string }) => Promise<NativeJsonOutcome>;
 };
 
+/** Main-process-only lifetime of the actual protected native stream. */
+export type NimiElectronDesktopControlStream = RuntimeGrpcBridgeStream & {
+  /** Native Open settled and its receiver reached EOF or acknowledged Close.
+   * Rejection means closure was not confirmed and must block scope rebind. */
+  readonly closed: Promise<void>;
+};
+
 export type NimiElectronDesktopControlHost = {
   readonly machineProductUnary: (input: NimiElectronDesktopControlUnaryInput) => Promise<Uint8Array>;
   readonly accountProductUnary: (input: NimiElectronDesktopControlUnaryInput) => Promise<Uint8Array>;
@@ -121,12 +128,12 @@ export type NimiElectronDesktopControlHost = {
     readonly methodId: string;
     readonly requestBytes: Uint8Array;
     readonly timeoutMs?: number;
-  }) => RuntimeGrpcBridgeStream;
+  }) => NimiElectronDesktopControlStream;
   readonly accountProductServerStream: (input: {
     readonly methodId: string;
     readonly requestBytes: Uint8Array;
     readonly timeoutMs?: number;
-  }) => RuntimeGrpcBridgeStream;
+  }) => NimiElectronDesktopControlStream;
   readonly accountProductClientStream: (
     input: NimiElectronDesktopControlClientStreamInput,
   ) => Promise<Uint8Array>;
@@ -135,7 +142,7 @@ export type NimiElectronDesktopControlHost = {
     readonly methodId: string;
     readonly requestBytes: Uint8Array;
     readonly timeoutMs?: number;
-  }) => RuntimeGrpcBridgeStream;
+  }) => NimiElectronDesktopControlStream;
   readonly bundledAvatarClientStream: (
     input: NimiElectronDesktopControlClientStreamInput,
   ) => Promise<Uint8Array>;
@@ -176,7 +183,7 @@ class ElectronDesktopControlHost implements NimiElectronDesktopControlHost {
     readonly methodId: string;
     readonly requestBytes: Uint8Array;
     readonly timeoutMs?: number;
-  }): RuntimeGrpcBridgeStream {
+  }): NimiElectronDesktopControlStream {
     if (!isNimiElectronDesktopMachineProductMethod(input.methodId, 'server_stream')) throw untrusted();
     return new ElectronFirstPartyProductStream(this.binding, input, 'machine');
   }
@@ -185,7 +192,7 @@ class ElectronDesktopControlHost implements NimiElectronDesktopControlHost {
     readonly methodId: string;
     readonly requestBytes: Uint8Array;
     readonly timeoutMs?: number;
-  }): RuntimeGrpcBridgeStream {
+  }): NimiElectronDesktopControlStream {
     if (!isNimiElectronDesktopAccountProductMethod(input.methodId, 'server_stream')) throw untrusted();
     return new ElectronFirstPartyProductStream(this.binding, input, 'account');
   }
@@ -208,7 +215,7 @@ class ElectronDesktopControlHost implements NimiElectronDesktopControlHost {
     readonly methodId: string;
     readonly requestBytes: Uint8Array;
     readonly timeoutMs?: number;
-  }): RuntimeGrpcBridgeStream {
+  }): NimiElectronDesktopControlStream {
     if (!isNimiElectronBundledAvatarServerStreamMethod(input.methodId)) throw untrusted();
     return new ElectronBundledAvatarStream(this.binding, input);
   }
@@ -238,7 +245,7 @@ class ElectronDesktopControlHost implements NimiElectronDesktopControlHost {
       throw new NimiElectronDesktopControlHostError(
         outcome.reasonCode,
         outcome.retryable,
-        boundedReasonMetadata(outcome.reasonMetadata),
+        boundedReasonMetadata(outcome.reasonMetadata, outcome.reasonCode),
       );
     }
     if (outcome?.status !== 'ok' || !isUint8Array(outcome.value)) {
@@ -294,7 +301,7 @@ class LazyElectronDesktopControlHost implements NimiElectronDesktopControlHost {
     readonly methodId: string;
     readonly requestBytes: Uint8Array;
     readonly timeoutMs?: number;
-  }): RuntimeGrpcBridgeStream {
+  }): NimiElectronDesktopControlStream {
     this.host ??= new ElectronDesktopControlHost(loadPlatformBinding());
     return this.host.machineProductServerStream(input);
   }
@@ -303,7 +310,7 @@ class LazyElectronDesktopControlHost implements NimiElectronDesktopControlHost {
     readonly methodId: string;
     readonly requestBytes: Uint8Array;
     readonly timeoutMs?: number;
-  }): RuntimeGrpcBridgeStream {
+  }): NimiElectronDesktopControlStream {
     this.host ??= new ElectronDesktopControlHost(loadPlatformBinding());
     return this.host.accountProductServerStream(input);
   }
@@ -322,7 +329,7 @@ class LazyElectronDesktopControlHost implements NimiElectronDesktopControlHost {
     readonly methodId: string;
     readonly requestBytes: Uint8Array;
     readonly timeoutMs?: number;
-  }): RuntimeGrpcBridgeStream {
+  }): NimiElectronDesktopControlStream {
     this.host ??= new ElectronDesktopControlHost(loadPlatformBinding());
     return this.host.bundledAvatarServerStream(input);
   }
@@ -333,46 +340,81 @@ class LazyElectronDesktopControlHost implements NimiElectronDesktopControlHost {
   }
 }
 
-class ElectronFirstPartyProductStream implements RuntimeGrpcBridgeStream {
+// The closed promise is evidence from native Open/Close, independent of a
+// renderer decoder waking its own pending next after cancellation.
+class ElectronProtectedProductStream implements NimiElectronDesktopControlStream {
   private cancelled = false;
   private started = false;
+  private finished = false;
   private streamId = '';
+  private closing: Promise<void> | undefined;
+  private resolveClosed!: () => void;
+  private rejectClosed!: (error: unknown) => void;
+  readonly closed: Promise<void>;
 
   constructor(
-    private readonly binding: NimiElectronDesktopControlBinding,
-    private readonly input: { readonly methodId: string; readonly requestBytes: Uint8Array; readonly timeoutMs?: number },
-    private readonly profile: 'machine' | 'account',
-  ) {}
+    private readonly nativeOpen: () => Promise<NativeJsonOutcome>,
+    private readonly nativeNext: (streamId: string) => Promise<NativeStreamNextOutcome>,
+    private readonly nativeClose: (streamId: string) => Promise<NativeJsonOutcome>,
+  ) {
+    this.closed = new Promise<void>((resolve, reject) => { this.resolveClosed = resolve; this.rejectClosed = reject; });
+    // Ordinary stream users need not observe this Host-private barrier; keep
+    // rejection available to the formal owner without an unhandled rejection.
+    void this.closed.catch(() => undefined);
+  }
 
   start(handlers: RuntimeGrpcBridgeStreamHandlers): void {
     if (this.started) throw untrusted();
     this.started = true;
-    void this.pump(handlers);
+    if (this.cancelled) { this.confirmClosed(); return; }
+    void this.pump(handlers).catch(error => this.failClosed(error));
   }
 
   cancel(): void {
     this.cancelled = true;
-    if (this.streamId) {
-      void this.binding.desktopFirstPartyProductStreamClose({ streamId: this.streamId }).catch(() => undefined);
-    }
+    if (this.finished) return;
+    if (!this.started) { this.confirmClosed(); return; }
+    if (this.streamId) void this.closeNative().catch(() => undefined);
+  }
+
+  private confirmClosed(): void { this.finished = true; this.resolveClosed(); }
+  private failClosed(error: unknown): void { this.finished = true; this.rejectClosed(error); }
+  private closeNative(): Promise<void> {
+    this.closing ??= (async () => {
+      const outcome = await this.nativeClose(this.streamId);
+      if (outcome.status === 'error') throw nativeError(outcome);
+      const value = outcome.value;
+      if (!value || typeof value !== 'object' || Array.isArray(value)
+        || Object.keys(value).length !== 1 || typeof (value as { closed?: unknown }).closed !== 'boolean') throw untrusted();
+      this.confirmClosed();
+    })().catch(error => { this.failClosed(error); throw error; });
+    return this.closing;
   }
 
   private async pump(handlers: RuntimeGrpcBridgeStreamHandlers): Promise<void> {
+    let opened: NativeJsonOutcome;
+    try { opened = await this.nativeOpen(); }
+    catch (error) {
+      this.failClosed(error);
+      if (!this.cancelled) handlers.onError(error);
+      return;
+    }
+    if (opened.status === 'error') {
+      // Native returns this only after its Open has failed without an owned receiver.
+      this.confirmClosed();
+      if (!this.cancelled) handlers.onError(nativeError(opened));
+      return;
+    }
+    try { this.streamId = readStreamId(opened.value); }
+    catch (error) { this.failClosed(error); if (!this.cancelled) handlers.onError(error); return; }
+    if (this.cancelled) { await this.closeNative(); return; }
     try {
-      const opened = await (this.profile === 'machine'
-        ? this.binding.desktopMachineProductStreamOpen(this.input)
-        : this.binding.desktopAccountProductStreamOpen(this.input));
-      if (opened.status === 'error') throw nativeError(opened);
-      const streamId = readStreamId(opened.value);
-      this.streamId = streamId;
-      if (this.cancelled) {
-        await this.binding.desktopFirstPartyProductStreamClose({ streamId }).catch(() => undefined);
-        return;
-      }
       while (!this.cancelled) {
-        const next = await this.binding.desktopFirstPartyProductStreamNext({ streamId });
+        const next = await this.nativeNext(this.streamId);
+        if (this.cancelled) return;
         if (next.status === 'error') throw nativeError(next);
         if (next.completed === true) {
+          this.confirmClosed();
           handlers.onEnd();
           return;
         }
@@ -381,56 +423,29 @@ class ElectronFirstPartyProductStream implements RuntimeGrpcBridgeStream {
       }
     } catch (error) {
       if (!this.cancelled) handlers.onError(error);
+    } finally {
+      if (!this.finished) await this.closeNative();
     }
   }
 }
 
-class ElectronBundledAvatarStream implements RuntimeGrpcBridgeStream {
-  private cancelled = false;
-  private started = false;
-  private streamId = '';
-
-  constructor(
-    private readonly binding: NimiElectronDesktopControlBinding,
-    private readonly input: { readonly methodId: string; readonly requestBytes: Uint8Array; readonly timeoutMs?: number },
-  ) {}
-
-  start(handlers: RuntimeGrpcBridgeStreamHandlers): void {
-    if (this.started) throw untrusted();
-    this.started = true;
-    void this.pump(handlers);
+class ElectronFirstPartyProductStream extends ElectronProtectedProductStream {
+  constructor(binding: NimiElectronDesktopControlBinding, input: { readonly methodId: string; readonly requestBytes: Uint8Array; readonly timeoutMs?: number }, profile: 'machine' | 'account') {
+    super(
+      () => profile === 'machine' ? binding.desktopMachineProductStreamOpen(input) : binding.desktopAccountProductStreamOpen(input),
+      streamId => binding.desktopFirstPartyProductStreamNext({ streamId }),
+      streamId => binding.desktopFirstPartyProductStreamClose({ streamId }),
+    );
   }
+}
 
-  cancel(): void {
-    this.cancelled = true;
-    if (this.streamId) {
-      void this.binding.desktopBundledAvatarStreamClose({ streamId: this.streamId }).catch(() => undefined);
-    }
-  }
-
-  private async pump(handlers: RuntimeGrpcBridgeStreamHandlers): Promise<void> {
-    try {
-      const opened = await this.binding.desktopBundledAvatarStreamOpen(this.input);
-      if (opened.status === 'error') throw nativeError(opened);
-      const streamId = readStreamId(opened.value);
-      this.streamId = streamId;
-      if (this.cancelled) {
-        await this.binding.desktopBundledAvatarStreamClose({ streamId }).catch(() => undefined);
-        return;
-      }
-      while (!this.cancelled) {
-        const next = await this.binding.desktopBundledAvatarStreamNext({ streamId });
-        if (next.status === 'error') throw nativeError(next);
-        if (next.completed === true) {
-          handlers.onEnd();
-          return;
-        }
-        if (!isUint8Array(next.value)) throw untrusted();
-        handlers.onData(Uint8Array.from(next.value));
-      }
-    } catch (error) {
-      if (!this.cancelled) handlers.onError(error);
-    }
+class ElectronBundledAvatarStream extends ElectronProtectedProductStream {
+  constructor(binding: NimiElectronDesktopControlBinding, input: { readonly methodId: string; readonly requestBytes: Uint8Array; readonly timeoutMs?: number }) {
+    super(
+      () => binding.desktopBundledAvatarStreamOpen(input),
+      streamId => binding.desktopBundledAvatarStreamNext({ streamId }),
+      streamId => binding.desktopBundledAvatarStreamClose({ streamId }),
+    );
   }
 }
 
@@ -504,17 +519,35 @@ function nativeError(value: {
   return new NimiElectronDesktopControlHostError(
     value.reasonCode,
     value.retryable,
-    boundedReasonMetadata(value.reasonMetadata),
+    boundedReasonMetadata(value.reasonMetadata, value.reasonCode),
   );
 }
 
-function boundedReasonMetadata(value: unknown): Readonly<Record<string, string>> {
+const INTEGRATION_CONNECTION_ERROR_REASONS: ReadonlySet<string> = new Set([
+  'INTEGRATION_TELEGRAM_BOT_ALREADY_CONNECTED',
+  'INTEGRATION_TELEGRAM_VERIFICATION_REQUIRED',
+  'INTEGRATION_TELEGRAM_IDENTITY_INVALID',
+  'INTEGRATION_TELEGRAM_WEBHOOK_CONFLICT',
+  'INTEGRATION_NEW_TARGET_REQUIRED',
+  'INTEGRATION_CREDENTIAL_UNAVAILABLE',
+  'INTEGRATION_CUSTODY_UNAVAILABLE',
+  'INTEGRATION_PROVIDER_REJECTED',
+  'INTEGRATION_DISCOVERY_FAILED',
+  'INTEGRATION_ENDPOINT_INVALID',
+]);
+
+function boundedReasonMetadata(value: unknown, reasonCode: string): Readonly<Record<string, string>> {
   if (value === undefined) return {};
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw untrusted();
   const metadata: Record<string, string> = {};
   for (const [key, entry] of Object.entries(value)) {
+    if (key === 'integration_reason') {
+      if (['LOCAL_APP_OPERATION_UNAVAILABLE', 'LOCAL_APP_OWNER_UNAVAILABLE', 'local-app-operation-unavailable', 'local-app-owner-unavailable'].includes(reasonCode)
+        && typeof entry === 'string' && INTEGRATION_CONNECTION_ERROR_REASONS.has(entry)) metadata[key] = entry;
+      continue;
+    }
     if (!['permission_id', 'permission_reason', 'permission_admission', 'diagnostic_stage',
-      'local_development_reason_code', 'local_import_reason', 'policy_reason', 'policy_revision', 'grpc_status_code'].includes(key)
+      'local_development_reason_code', 'local_import_reason', 'policy_reason', 'policy_revision', 'grpc_status_code', 'integration_reason'].includes(key)
       || typeof entry !== 'string'
       || entry.length === 0
       || entry.length > 2048

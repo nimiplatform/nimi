@@ -23,6 +23,8 @@ assert.ok(existsSync(addonPath), `protected-local Node addon is missing: ${addon
 const nativeModule = { exports: {} };
 process.dlopen(nativeModule, addonPath);
 const addon = nativeModule.exports;
+assert.equal(typeof addon.localAppSessionRebind, 'function', 'Host-private rebind ABI is present');
+assert.equal(typeof addon.desktopLocalDevelopmentRunAccess, 'function', 'Host-private execution access ABI is present');
 const agentHandle = 'lah_contract_nonexistent';
 const embodimentAgentHandle = `agent_ref_${'A'.repeat(43)}`;
 const activityPutInput = {
@@ -40,6 +42,30 @@ const activityPutInput = {
 };
 
 const calls = [
+  ['desktopLocalDevelopmentRunAccess', {}],
+  ['localAppAgentWorkReferenceList', {}],
+  ['localAppAgentWorkStart', {}],
+  ['localAppAgentWorkGet', {}],
+  ['localAppAgentWorkStatus', {}],
+  ['localAppAgentWorkToolCallsList', {}],
+  ['localAppAgentWorkToolResultSubmit', {}],
+  ['localAppAgentWorkCancel', {}],
+  ['localAppAgentWorkSubscribe', {}],
+  ['localAppIntegrationListCatalog', {}],
+  ['localAppIntegrationListConnections', {}],
+  ['localAppIntegrationInvoke', {}],
+  ['localAppIntegrationGetCall', {}],
+  ['localAppIntegrationListCalls', {}],
+  ['localAppIntegrationCancelCall', {}],
+  ['localAppIntegrationRegisterProvider', {}],
+  ['localAppIntegrationUnregisterProvider', {}],
+  ['localAppIntegrationPollProvider', {}],
+  ['localAppIntegrationCompleteProvider', {}],
+  ['localAppIntegrationGetManagement', {}],
+  ['localAppIntegrationPutConnection', {}],
+  ['localAppIntegrationRemoveConnection', {}],
+  ['localAppIntegrationSetPermission', {}],
+
   ['localAppRealmWorldCreationEligibilityGet'],
   ['localAppRealmWorldCoreGet', { worldId: 'world-1' }],
   ['localAppRealmWorldCoreReplace', { worldId: 'world-1', body: { baseContentHash: 'a'.repeat(64), core: {}, lorebookDeclaration: {}, origin: { kind: 'manual' } } }],
@@ -276,6 +302,10 @@ async function main() {
     assert.ok(outcome.reasonCode.length > 0);
   }
 
+  assert.equal(typeof addon.localAppConversationToolCallsList, 'undefined');
+  assert.equal(typeof addon.localAppConversationToolResultSubmit, 'undefined');
+  assert.equal((await addon.localAppConversationSendTurn({ agentHandle, conversationAnchorId: 'anchor', requestId: 'req', parts: [{ kind: 'text', text: 'business' }], work: {} })).reasonCode, 'invalid-payload');
+
   const removedInputs = [
     ['localAppConversationOpen', { selectedAgentHandle: agentHandle }],
     ['localAppConversationSendTurn', {
@@ -298,6 +328,10 @@ async function main() {
     }],
   ];
   for (const [name, input] of removedInputs) {
+    if (name === 'localAppConversationSendTurn') {
+      assert.equal((await addon[name](input)).reasonCode, 'invalid-payload');
+      continue;
+    }
     assert.throws(
       () => addon[name](input),
       /Missing field `agentHandle`/u,

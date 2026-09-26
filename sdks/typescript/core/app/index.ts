@@ -245,10 +245,6 @@ export type {
   NimiLocalAppPresentationSnapshotInput,
   NimiLocalAppRevision,
   NimiLocalAppTimestamp,
-  NimiLocalAppConversationWork,
-  NimiLocalAppConversationToolCall,
-  NimiLocalAppConversationToolScope,
-  NimiLocalAppConversationToolResultInput,
   NimiLocalAppConversationAction,
   NimiLocalAppConversationClient,
   NimiLocalAppConversationEvent,
@@ -491,4 +487,13 @@ export type { NimiLocalAppVoiceConvertSpec, NimiLocalAppVoiceConversion, NimiLoc
 
 export { projectMusicInputCapabilities, type NimiMusicInputCapabilities, type NimiMusicGenerationInputProfile, type NimiMusicTranscriptionInputProfile, type NimiVoiceConvertInputProfile } from '../ai/music-input.js';
 
-export { validateConversationWork as validateNimiLocalAppConversationWork } from './local-app-conversation-work.js';
+
+export * from './local-app-runtime-platform-agent-work.js';
+export * from './local-app-runtime-platform-direct-agent-work.js';
+
+export * from './local-app-runtime-platform-integration.js';
+
+export { createNimiLocalAppWorldCoreClient } from './local-app-runtime-platform.js';
+
+export { createNimiLocalAppAgentIntroductionClient, createNimiLocalAppAgentIntroductionRuntimeClient } from './local-app-agent-introduction.js';
+export type { NimiLocalAppAgentIntroduction, NimiLocalAppAgentIntroductionTopic, NimiLocalAppAgentIntroductionInput, NimiLocalAppAgentIntroductionClient, NimiLocalAppAgentIntroductionShell } from './local-app-agent-introduction.js';

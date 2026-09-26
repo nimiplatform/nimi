@@ -14,3 +14,10 @@ await build({
   external: ['electron'],
   logLevel: 'silent',
 });
+
+await build({
+  entryPoints: [path.join(appRoot, 'src-electron/main.ts')],
+  outfile: path.join(appRoot, 'dist-electron/main.js'),
+  bundle: true, platform: 'node', target: 'node22', format: 'esm',
+  packages: 'external', logLevel: 'silent',
+});

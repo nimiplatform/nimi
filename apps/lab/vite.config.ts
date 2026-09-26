@@ -59,6 +59,11 @@ function manualChunks(id: string) {
     return 'vendor-nimi-sdk-protobuf-core';
   }
   if (isNimiSdk) {
+    // Generated Runtime descriptors and codecs grow with the public protocol.
+    // Keep their cache boundary separate from the handwritten SDK clients.
+    if (normalized.includes('/dist/core-generated/runtime-')) {
+      return 'vendor-nimi-sdk-runtime-protocol';
+    }
     if (
       normalized.includes('/core-generated/realm-')
       || normalized.includes('/dist/realm/')

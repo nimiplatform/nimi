@@ -22,7 +22,7 @@ units:
     kind: rule
     title: Work completion follows owner facts and durable business effects
     modality: must
-    statement: NimiGo submits the chosen work goal, sourced business material and reusable method to the appointed LocalAgent through the formal work contract, executes only that turn's admitted App skills, saves complete deliverables in private Nimi-mediated assets with immutable versions before returning success, and presents accepted, queued, running, awaiting input, failed, interrupted and completed states from the corresponding actual facts; Runtime final completion does not fabricate a saved deliverable or a source-business effect, and reopening observes existing turns rather than replaying submissions or tool effects; stopping a work item uses its recorded turn id as the Runtime expected-turn fence and never interrupts a later turn.
+    statement: NimiGo submits the chosen work goal, sourced business material and reusable method to the appointed LocalAgent through the formal work contract, executes only that independent business execution's admitted App skills, saves complete deliverables in private Nimi-mediated assets with immutable versions before returning success, and presents accepted, queued, running, awaiting input, failed, interrupted and completed states from the corresponding actual facts; Runtime final completion does not fabricate a saved deliverable or a source-business effect, and reopening reads its saved work and available execution facts rather than replaying submissions or tool effects; optional recovery is an App-defined new valid attempt. Stopping a work item targets its exact execution and never an unrelated or later chat turn.
     condition: Whenever NimiGo performs, recovers, edits or exports work.
     failure: Preserve already saved work and show failure or uncertainty without fake results, undeclared external calls, lost versions or automatic retry of an indeterminate effect.
     relations:
@@ -44,11 +44,25 @@ units:
     kind: rule
     title: Routines have an explicit foreground lifetime and App origin
     modality: must
-    statement: A user-enabled daily routine creates a new App-owned work item and submits an App-originated routineName only while NimiGo's renderer and its Nimi session are running; multiple work items are processed serially, the user can pause or run a routine explicitly, and a due time missed while closed is shown as missed without automatic catch-up. A final Home update is optional and reports only actual saved work or committed response facts.
+    statement: A user-enabled daily routine creates a new App-owned work item and submits its bounded routine description with App provenance through the independent business-execution contract only while NimiGo's renderer and its Nimi session are running; multiple work items are processed serially, the user can pause or run a routine explicitly, and a due time missed while closed is shown as missed without automatic catch-up. A final Home update is optional and reports only actual saved work or committed response facts.
     condition: Whenever NimiGo enables, triggers, pauses or recovers a routine.
     failure: Do not impersonate user speech, promise always-on background execution, replay missed effects or mark a timer record as a completed task.
     relations:
       - type: applies_to
         target: definition.nimi.nimigo.workbench.product
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.app-work-plane
+  - id: rule.nimi.nimigo.workbench.background-delivery
+    kind: rule
+    title: An accepted analysis can finish while the Go window is closed
+    modality: must
+    statement: For its supported analysis and versioned-delivery workflow, NimiGo retains the required business engine and private tools in its live protected Host when the window closes, performs the authorized reads or searches, evaluates the goal, saves the actual version and publishes a bounded result reference. It gives the user a stop action; stopping or losing the execution scope halts progress, with recovery remaining a Go product choice. This contract does not automatically make every Go feature or missed routine background-capable.
+    condition: Whenever the user starts the supported Go analysis workflow.
+    failure: Show honest interruption or uncertainty rather than relying on a closed renderer, unsaved model text, Runtime task takeover or automatic replay.
+    relations:
+      - type: applies_to
+        target: definition.nimi.nimigo.workbench.product
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.app-business-execution
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.app-work-plane

@@ -251,7 +251,8 @@ for (const absPath of runtimeCarrierRustFiles) {
     continue;
   }
   const content = fs.readFileSync(absPath, 'utf8');
-  if (/Runtime[A-Za-z0-9]+ServiceClient::new\s*\(/u.test(content) || /Grpc::new\s*\(/u.test(content)) {
+  // A regression's actual tonic server is not an outbound carrier client.
+  if (/Runtime[A-Za-z0-9]+ServiceClient::new\s*\(/u.test(content) || /(?<!tonic::server::)Grpc::new\s*\(/u.test(content)) {
     fail(`${fileRel}: Runtime gRPC clients must use the shared 33 MiB carrier constructor`);
   }
   if (/\.max_(?:encoding|decoding)_message_size\s*\(/u.test(content)) {

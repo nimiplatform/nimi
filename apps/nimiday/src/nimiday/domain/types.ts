@@ -251,6 +251,10 @@ export type SkillRun = {
   readonly scheduledFor: Instant | null;
   readonly state: RunState;
   readonly agentName: string | null;
+  /** Runtime-issued durable correlation for this App business execution, not a selector. */
+  readonly agentBinding?: string | null;
+  /** Care sources available to this run; unknown old scope is not reused as model context. */
+  readonly careCircleIds?: readonly string[] | null;
   readonly requestText: string;
   readonly turnId: string | null;
   readonly createdAt: Instant;

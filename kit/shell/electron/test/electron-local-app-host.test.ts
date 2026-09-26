@@ -9,6 +9,29 @@ import {
 } from '../src/main/local-app-host.js';
 
 describe('Electron protected local-app host', () => {
+  it.each(['local-app-operation-unavailable', 'local-app-owner-unavailable'])('preserves bounded Integration metadata on %s', async (reasonCode) => {
+    const host = createNimiElectronLocalAppHostForBinding({ ...binding([]),
+      localAppIntegrationPutConnection: async () => ({ status: 'error' as const, reasonCode, retryable: false,
+        reasonMetadata: { integration_reason: 'INTEGRATION_TELEGRAM_BOT_ALREADY_CONNECTED' } }),
+    });
+    await expect(host.integrationPutConnection({})).rejects.toMatchObject({ reasonCode,
+      reasonMetadata: { integration_reason: 'INTEGRATION_TELEGRAM_BOT_ALREADY_CONNECTED' } });
+  });
+
+  it.each([
+    ['ai-provider-unavailable', 'INTEGRATION_PROVIDER_UNAVAILABLE'],
+    ['local-app-operation-unavailable', 'INTEGRATION_FUTURE_REASON'],
+    ['local-app-operation-unavailable', 'INTEGRATION_invalid'],
+    ['local-app-operation-unavailable', 'INTEGRATION_ERROR: private detail'],
+    ['local-app-operation-unavailable', `INTEGRATION_${'A'.repeat(81)}`],
+  ])('refuses Integration metadata outside its reason/code boundary: %s %s', async (reasonCode, value) => {
+    const host = createNimiElectronLocalAppHostForBinding({ ...binding([]),
+      localAppIntegrationPutConnection: async () => ({ status: 'error' as const, reasonCode, retryable: false,
+        reasonMetadata: { integration_reason: value } }),
+    });
+    await expect(host.integrationPutConnection({})).rejects.toMatchObject({ reasonCode, reasonMetadata: {} });
+  });
+
   it('preserves the native stale-turn refusal for a fenced work interruption', async () => {
     const host = createNimiElectronLocalAppHostForBinding({ ...binding([]),
       localAppConversationInterruptTurn: async () => ({ status: 'error' as const, reasonCode: 'agent-turn-not-active', retryable: false }),
@@ -98,7 +121,7 @@ describe('Electron protected local-app host', () => {
       reasonCode: 'runtime-service-untrusted',
     });
   });
-  it('gates new-scope reads until rebind and rejects old responses without a second invalidation', async () => {
+  it('rejects business reads and writes during rebind and rejects late old-scope responses', async () => {
     let account = 'A'; let invalidations = 0; let renewals = 0; let reads = 0;
     let releaseRenew!: () => void; let releaseOld!: () => void;
     const renewing = new Promise<void>(resolve => { releaseRenew = resolve; });
@@ -108,32 +131,80 @@ describe('Electron protected local-app host', () => {
     const host = createNimiElectronLocalAppHostForBinding({ ...binding([]),
       localAppStorageReadJson: async () => { reads++; if (reads === 1) { enteredOld(); await oldPending; return { status: 'ok' as const, value: { value: { owner: 'A' }, sizeBytes: 13 } }; } return { status: 'ok' as const, value: { value: { owner: account }, sizeBytes: 13 } }; },
       localAppStorageWriteJson: async () => ({ status: 'error' as const, reasonCode: 'account-changed', retryable: false }),
-      localAppSessionRenew: async () => { renewals++; enteredRenew(); await renewing; account = 'B'; return { status: 'ok' as const, value: statusProjection() }; },
+      localAppSessionRebind: async () => { renewals++; enteredRenew(); await renewing; account = 'B'; return { status: 'ok' as const, value: statusProjection() }; },
     }, () => { invalidations++; });
     const oldRead = host.storageReadJson({ relativePath: 'state.json' });
     const oldRejected = expect(oldRead).rejects.toMatchObject({ reasonCode: 'runtime-unauthenticated' });
     await oldEntered;
     const write = host.storageWriteJson({ relativePath: 'state.json', value: { owner: 'A' } });
     const writeRejected = expect(write).rejects.toMatchObject({ reasonCode: 'account-changed' });
-    await renewEntered;
-    const newRead = host.storageReadJson({ relativePath: 'state.json' });
-    await Promise.resolve(); expect(reads).toBe(1); expect(invalidations).toBe(1);
-    releaseRenew(); await writeRejected;
-    await expect(newRead).resolves.toMatchObject({ value: { owner: 'B' } });
+    await vi.waitFor(() => expect(invalidations).toBe(1));
+    expect(renewals).toBe(0);
+    const duringRebind = host.storageReadJson({ relativePath: 'state.json' });
+    await expect(duringRebind).rejects.toMatchObject({ reasonCode: 'runtime-unauthenticated' });
+    await expect(host.storageWriteJson({ relativePath: 'state.json', value: { owner: 'old-callback' } })).rejects.toMatchObject({ reasonCode: 'runtime-unauthenticated' });
+    expect(reads).toBe(1); expect(invalidations).toBe(1);
     releaseOld(); await oldRejected;
+    await renewEntered;
+    releaseRenew(); await writeRejected;
+    await expect(host.storageReadJson({ relativePath: 'state.json' })).resolves.toMatchObject({ value: { owner: 'B' } });
     expect(invalidations).toBe(1); expect(renewals).toBe(1);
+  });
+
+  it('settles a native Promise that has not read its session yet before allowing rebind', async () => {
+    let account = 'A'; let rebinds = 0; let invalidations = 0;
+    const effects: string[] = [];
+    let release!: () => void;
+    const nativeQueue = new Promise<void>(resolve => { release = resolve; });
+    const host = createNimiElectronLocalAppHostForBinding({ ...binding([]),
+      localAppStorageWriteJson: async () => { await nativeQueue; effects.push(account); return { status: 'ok', value: { value: {}, sizeBytes: 2 } }; },
+      localAppStorageReadJson: async () => ({ status: 'error', reasonCode: 'account-changed', retryable: false }),
+      localAppSessionRebind: async () => { rebinds++; account = 'B'; return { status: 'ok', value: statusProjection() }; },
+    }, () => { invalidations++; });
+    const pendingWrite = host.storageWriteJson({ relativePath: 'old.json', value: {} });
+    const rejectedWrite = expect(pendingWrite).rejects.toMatchObject({ reasonCode: 'runtime-unauthenticated' });
+    const pendingRead = host.storageReadJson({ relativePath: 'old.json' });
+    const rejectedRead = expect(pendingRead).rejects.toMatchObject({ reasonCode: 'account-changed' });
+    await vi.waitFor(() => expect(invalidations).toBe(1));
+    expect(rebinds).toBe(0);
+    release(); await Promise.all([rejectedWrite, rejectedRead]);
+    expect(effects).toEqual(['A']); expect(rebinds).toBe(1); expect(account).toBe('B');
+  });
+
+  it('does not issue a late rebind after an unconfirmed native drain times out', async () => {
+    vi.useFakeTimers();
+    let release!: () => void; let rebinds = 0;
+    const pending = new Promise<void>(resolve => { release = resolve; });
+    const host = createNimiElectronLocalAppHostForBinding({ ...binding([]),
+      localAppStorageWriteJson: async () => { await pending; return { status: 'ok', value: { value: {}, sizeBytes: 2 } }; },
+      localAppStorageReadJson: async () => ({ status: 'error', reasonCode: 'account-changed', retryable: false }),
+      localAppSessionRebind: async () => { rebinds++; return { status: 'ok', value: statusProjection() }; },
+    });
+    try {
+      const oldWrite = host.storageWriteJson({ relativePath: 'old.json', value: {} });
+      const rejectedWrite = expect(oldWrite).rejects.toMatchObject({ reasonCode: 'runtime-unauthenticated' });
+      const trigger = host.storageReadJson({ relativePath: 'old.json' });
+      const rejectedTrigger = expect(trigger).rejects.toMatchObject({ reasonCode: 'account-changed' });
+      await vi.advanceTimersByTimeAsync(2001); await rejectedTrigger;
+      expect(rebinds).toBe(0);
+      release(); await rejectedWrite; await Promise.resolve();
+      expect(rebinds).toBe(0, 'settlement after timeout must not start an abandoned rebind');
+      await expect(host.storageReadJson({ relativePath: 'new.json' })).rejects.toMatchObject({ reasonCode: 'runtime-unauthenticated' });
+      await host.sessionStatus(); expect(rebinds).toBe(1);
+    } finally { vi.useRealTimers(); }
   });
 
   it('invalidates a lost native transport once and waits for a ready scope before a fresh read', async () => {
     let renewals = 0; let invalidations = 0; let reads = 0; let ready = false;
     const host = createNimiElectronLocalAppHostForBinding({ ...binding([]),
       localAppStorageReadJson: async () => { reads++; return ready ? { status: 'ok' as const, value: { value: { owner: 'B' }, sizeBytes: 13 } } : { status: 'error' as const, reasonCode: 'runtime-service-unavailable', retryable: true }; },
-      localAppSessionRenew: async () => { renewals++; return ready ? { status: 'ok' as const, value: statusProjection() } : { status: 'error' as const, reasonCode: 'runtime-service-unavailable', retryable: true }; },
+      localAppSessionRebind: async () => { renewals++; return ready ? { status: 'ok' as const, value: statusProjection() } : { status: 'error' as const, reasonCode: 'runtime-service-unavailable', retryable: true }; },
     }, () => { invalidations++; });
     await expect(host.storageReadJson({ relativePath: 'state.json' })).rejects.toMatchObject({ reasonCode: 'runtime-service-unavailable' });
-    await expect(host.storageReadJson({ relativePath: 'state.json' })).rejects.toMatchObject({ reasonCode: 'runtime-service-unavailable' });
+    await expect(host.sessionStatus()).rejects.toMatchObject({ reasonCode: 'runtime-service-unavailable' });
     expect(invalidations).toBe(1); expect(reads).toBe(1);
     ready = true;
+    await host.sessionStatus();
     await expect(host.storageReadJson({ relativePath: 'state.json' })).resolves.toMatchObject({ value: { owner: 'B' } });
     expect(invalidations).toBe(1); expect(renewals).toBe(3); expect(reads).toBe(2);
   });
@@ -145,16 +216,37 @@ describe('Electron protected local-app host', () => {
     expect(invalidated).toBe(0);
   });
 
+  it('does not invalidate newly ready services again when an old maintenance renewal reports its refusal', async () => {
+    vi.useFakeTimers();
+    let renewals = 0; let invalidations = 0;
+    const candidate = binding([]);
+    candidate.localAppSessionRenew = async () => ++renewals === 1
+      ? { status: 'error', reasonCode: 'revoked', retryable: false }
+      : { status: 'ok', value: statusProjection() };
+    const host = createNimiElectronLocalAppHostForBinding(candidate, () => { invalidations++; });
+    const onFailure = vi.fn();
+    const maintenance = startNimiElectronLocalAppHostMaintenance(host, 1000, onFailure);
+    try {
+      await maintenance.ready;
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(invalidations).toBe(1);
+      expect(onFailure).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(renewals).toBe(2);
+      expect(invalidations).toBe(1);
+    } finally { maintenance.close(); vi.useRealTimers(); }
+  });
+
   it('invalidates App-owned work before an unsuccessful technical rebind', async () => {
     let invalidated = false;
     const candidate = binding([]);
     candidate.localAppStorageReadJson = async () => ({ status: 'error', reasonCode: 'account-changed', retryable: false });
-    candidate.localAppSessionRenew = async () => {
+    candidate.localAppSessionRebind = async () => {
       expect(invalidated).toBe(true);
       return { status: 'error', reasonCode: 'runtime-service-unavailable', retryable: true };
     };
     const host = createNimiElectronLocalAppHostForBinding(candidate, () => { invalidated = true; });
-    await expect(host.storageReadJson({ relativePath: 'config.json' })).rejects.toMatchObject({ reasonCode: 'runtime-service-unavailable' });
+    await expect(host.storageReadJson({ relativePath: 'config.json' })).rejects.toMatchObject({ reasonCode: 'account-changed' });
     expect(invalidated).toBe(true);
   });
 
@@ -214,6 +306,7 @@ describe('Electron protected local-app host', () => {
       let invalidated = false;
       const candidate = {
         ...binding([]),
+        localAppSessionRebind: async () => { calls.push('localAppSessionRebind'); return { status: 'ok' as const, value: statusProjection() }; },
         localAppSessionStatus: async () => {
           calls.push('localAppSessionStatus');
           if (invalidated) {
@@ -238,7 +331,7 @@ describe('Electron protected local-app host', () => {
       expect(sessionChanges).toBe(1);
       expect(calls).toEqual([
         'localAppSessionStatus',
-        'localAppSessionRenew',
+        'localAppSessionRebind',
         'localAppSessionStatus',
         'localAppSessionRenew',
       ]);
@@ -258,6 +351,9 @@ describe('Electron protected local-app host', () => {
         ? { status: 'ok', value: statusProjection() }
         : { status: 'error', reasonCode: 'runtime-service-unavailable', retryable: true };
     };
+    candidate.localAppSessionRebind = async () => available
+      ? { status: 'ok', value: statusProjection() }
+      : { status: 'error', reasonCode: 'runtime-service-unavailable', retryable: true };
     let reads = 0;
     candidate.localAppStorageReadJson = async () => ++reads === 1
       ? { status: 'error', reasonCode: 'revoked', retryable: false }
@@ -274,7 +370,11 @@ describe('Electron protected local-app host', () => {
 
       available = true;
       if (recovery === 'status') await host.sessionStatus();
-      else await host.storageReadJson({ relativePath: 'config.json' });
+      else {
+        await expect(host.storageReadJson({ relativePath: 'config.json' })).rejects.toMatchObject({ reasonCode: 'runtime-unauthenticated' });
+        await host.sessionStatus();
+        await expect(host.storageReadJson({ relativePath: 'config.json' })).rejects.toMatchObject({ reasonCode: 'revoked' });
+      }
       const afterRecovery = renewals;
       await vi.advanceTimersByTimeAsync(1_000);
       expect(renewals).toBe(afterRecovery + 1);
@@ -325,7 +425,7 @@ describe('Electron protected local-app host', () => {
       .resolves.toEqual({ value: { version: 1 }, sizeBytes: 13 });
     await expect(host.agentReferenceList()).resolves.toEqual([{
       agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-      agentBinding: 'agent_binding_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', displayName: 'Agent One',
+      activityAgentRef: 'agr_test', agentBinding: 'agent_binding_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', displayName: 'Agent One',
       avatarUrl: null,
     }]);
     await expect(host.avatarHostTargetResolve({
@@ -463,14 +563,14 @@ describe('Electron protected local-app host', () => {
     ]);
   });
 
-  it('performs one bounded same-Host rebind on typed session invalidation', async () => {
+  it('rebinds after invalidation but never supplies new-account data to the old business read', async () => {
     const calls: Array<{ method: string; input?: unknown }> = [];
     let sessionChanges = 0;
     let attempts = 0;
     const candidate = {
       ...binding(calls),
-      localAppSessionRenew: async () => {
-        calls.push({ method: 'localAppSessionRenew' });
+      localAppSessionRebind: async () => {
+        calls.push({ method: 'localAppSessionRebind' });
         return { status: 'ok' as const, value: statusProjection() };
       },
       localAppStorageReadJson: async (input: unknown) => {
@@ -478,27 +578,29 @@ describe('Electron protected local-app host', () => {
         attempts++;
         return attempts === 1
           ? { status: 'error' as const, reasonCode: 'account-changed', retryable: false }
-          : { status: 'error' as const, reasonCode: 'local-app-owner-unavailable', retryable: false };
+          : { status: 'ok' as const, value: { value: { owner: 'new-account' }, sizeBytes: 23 } };
       },
     };
     const host = createNimiElectronLocalAppHostForBinding(candidate, () => { sessionChanges += 1; });
     await expect(host.storageReadJson({ relativePath: 'state.json' })).rejects.toMatchObject({
-      reasonCode: 'local-app-owner-unavailable', retryable: false,
+      reasonCode: 'account-changed', retryable: false,
     });
     expect(calls).toEqual([
       { method: 'localAppStorageReadJson', input: { relativePath: 'state.json' } },
-      { method: 'localAppSessionRenew' },
-      { method: 'localAppStorageReadJson', input: { relativePath: 'state.json' } },
+      { method: 'localAppSessionRebind' },
     ]);
     expect(sessionChanges).toBe(1);
+    expect(attempts).toBe(1);
+    await expect(host.storageReadJson({ relativePath: 'state.json' })).resolves.toEqual({ value: { owner: 'new-account' }, sizeBytes: 23 });
+    expect(attempts).toBe(2);
   });
 
   it('repairs the native session without replaying a mutation after uncertain invalidation', async () => {
     const calls: Array<{ method: string; input?: unknown }> = [];
     const candidate = {
       ...binding(calls),
-      localAppSessionRenew: async () => {
-        calls.push({ method: 'localAppSessionRenew' });
+      localAppSessionRebind: async () => {
+        calls.push({ method: 'localAppSessionRebind' });
         return { status: 'ok' as const, value: statusProjection() };
       },
       localAppConversationOpen: async (input: unknown) => {
@@ -511,7 +613,7 @@ describe('Electron protected local-app host', () => {
       .rejects.toMatchObject({ reasonCode: 'revoked' });
     expect(calls).toEqual([
       { method: 'localAppConversationOpen', input: { agentHandle: `agent_ref_${'a'.repeat(43)}` } },
-      { method: 'localAppSessionRenew' },
+      { method: 'localAppSessionRebind' },
     ]);
   });
 
@@ -520,8 +622,8 @@ describe('Electron protected local-app host', () => {
     let sessionChanges = 0;
     const candidate = {
       ...binding(calls),
-      localAppSessionRenew: async () => {
-        calls.push({ method: 'localAppSessionRenew' });
+      localAppSessionRebind: async () => {
+        calls.push({ method: 'localAppSessionRebind' });
         return { status: 'ok' as const, value: statusProjection() };
       },
       localAppActivityPut: async (input: unknown) => {
@@ -544,7 +646,7 @@ describe('Electron protected local-app host', () => {
     // The session is repaired for later explicit calls, but neither mutation
     // reaches the next account.
     expect(calls.map((call) => call.method)).toEqual([
-      'localAppActivityPut', 'localAppSessionRenew', 'localAppActivityMarkRead', 'localAppSessionRenew',
+      'localAppActivityPut', 'localAppSessionRebind', 'localAppActivityMarkRead', 'localAppSessionRebind',
     ]);
     expect(sessionChanges).toBe(2);
   });
@@ -562,8 +664,8 @@ describe('Electron protected local-app host', () => {
           ? { status: 'error' as const, reasonCode: 'revoked', retryable: false }
           : { status: 'ok' as const, value: statusProjection() };
       },
-      localAppSessionRenew: async () => {
-        calls.push({ method: 'localAppSessionRenew' });
+      localAppSessionRebind: async () => {
+        calls.push({ method: 'localAppSessionRebind' });
         return { status: 'ok' as const, value: statusProjection() };
       },
     };
@@ -572,7 +674,7 @@ describe('Electron protected local-app host', () => {
     await expect(host.sessionStatus()).resolves.toEqual(statusProjection());
     expect(calls).toEqual([
       { method: 'localAppSessionStatus' },
-      { method: 'localAppSessionRenew' },
+      { method: 'localAppSessionRebind' },
       { method: 'localAppSessionStatus' },
     ]);
     expect(sessionChanges).toBe(1);
@@ -610,6 +712,20 @@ describe('Electron protected local-app host', () => {
       requestId: 'request-1',
       parts: [{ kind: 'text', text: 'hello' }],
     })).rejects.toMatchObject({ reasonCode: 'local-app-operation-unavailable', retryable: false });
+  });
+
+  it.each(['local-app-owner-unavailable', 'local-app-operation-unavailable'])('keeps the consumer session on Integration business failure %s without replay', async (reasonCode) => {
+    let invalidations = 0; let invocations = 0; let rebinds = 0;
+    const candidate = {
+      ...binding([]),
+      localAppIntegrationInvoke: async () => { invocations++; return { status: 'error' as const, reasonCode, retryable: true }; },
+      localAppSessionRebind: async () => { rebinds++; return { status: 'ok' as const, value: statusProjection() }; },
+      localAppStorageReadJson: async () => ({ status: 'ok' as const, value: { value: { current: true }, sizeBytes: 16 } }),
+    };
+    const host = createNimiElectronLocalAppHostForBinding(candidate, () => { invalidations++; });
+    await expect(host.integrationInvoke({ targetRef: 'provider-offline', operation: 'deliverable.read', inputJson: '{}' })).rejects.toMatchObject({ reasonCode });
+    await expect(host.storageReadJson({ relativePath: 'state.json' })).resolves.toEqual({ value: { current: true }, sizeBytes: 16 });
+    expect(invocations).toBe(1); expect(rebinds).toBe(0); expect(invalidations).toBe(0);
   });
 
   it('preserves exact Local owner composition failures', async () => {
@@ -1097,6 +1213,7 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
   return {
     localAppSessionStatus: record('localAppSessionStatus', statusProjection()),
     localAppSessionRenew: record('localAppSessionRenew', statusProjection()),
+    localAppSessionRebind: record('localAppSessionRebind', statusProjection()),
     localAppAIConfigGet: record('localAppAIConfigGet', {
       config: { owner: { owner: { oneofKind: 'app', app: { appId: 'app.example' } } }, capabilities: [] },
       revision: '0', effectiveSelections: [],
@@ -1146,9 +1263,10 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppRealmRealtimeAck: record('localAppRealmRealtimeAck', {}),
     localAppRealmRealtimeSubscriptionClose: record('localAppRealmRealtimeSubscriptionClose', {}),
     localAppRealmRealtimeChannelClose: record('localAppRealmRealtimeChannelClose', {}),
+    localAppAgentIntroductionGet: record('localAppAgentIntroductionGet', {worldName:null,era:null,role:null,greeting:null,referenceImageUrl:null,voiceSampleUrl:null,voiceSampleDurationSec:null,questionTopics:[]}),
     localAppAgentReferenceList: record('localAppAgentReferenceList', [{
       agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-      agentBinding: 'agent_binding_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', displayName: 'Agent One',
+      activityAgentRef: 'agr_test', agentBinding: 'agent_binding_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', displayName: 'Agent One',
       avatarUrl: null,
     }]),
     localAppAvatarHostTargetResolve: record('localAppAvatarHostTargetResolve', {
@@ -1229,6 +1347,28 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppAssetMove: record('localAppAssetMove', assetProjection()),
     localAppAssetReveal: record('localAppAssetReveal', { revealed: true }),
     localAppAssetAdopt: record('localAppAssetAdopt', assetProjection()),
+    localAppAgentWorkReferenceList: record('localAppAgentWorkReferenceList', {}),
+    localAppAgentWorkStart: record('localAppAgentWorkStart', {}),
+    localAppAgentWorkGet: record('localAppAgentWorkGet', {}),
+    localAppAgentWorkStatus: record('localAppAgentWorkStatus', {}),
+    localAppAgentWorkToolCallsList: record('localAppAgentWorkToolCallsList', {}),
+    localAppAgentWorkToolResultSubmit: record('localAppAgentWorkToolResultSubmit', {}),
+    localAppAgentWorkCancel: record('localAppAgentWorkCancel', {}),
+    localAppAgentWorkSubscribe: record('localAppAgentWorkSubscribe', {}),
+    localAppIntegrationListCatalog: record('localAppIntegrationListCatalog', {}),
+    localAppIntegrationListConnections: record('localAppIntegrationListConnections', {}),
+    localAppIntegrationInvoke: record('localAppIntegrationInvoke', {}),
+    localAppIntegrationGetCall: record('localAppIntegrationGetCall', {}),
+    localAppIntegrationListCalls: record('localAppIntegrationListCalls', {}),
+    localAppIntegrationCancelCall: record('localAppIntegrationCancelCall', {}),
+    localAppIntegrationRegisterProvider: record('localAppIntegrationRegisterProvider', {}),
+    localAppIntegrationUnregisterProvider: record('localAppIntegrationUnregisterProvider', {}),
+    localAppIntegrationPollProvider: record('localAppIntegrationPollProvider', {}),
+    localAppIntegrationCompleteProvider: record('localAppIntegrationCompleteProvider', {}),
+    localAppIntegrationGetManagement: record('localAppIntegrationGetManagement', {}),
+    localAppIntegrationPutConnection: record('localAppIntegrationPutConnection', {}),
+    localAppIntegrationRemoveConnection: record('localAppIntegrationRemoveConnection', {}),
+    localAppIntegrationSetPermission: record('localAppIntegrationSetPermission', {}),
     localAppConversationOpen: record('localAppConversationOpen', { conversationAnchorId: 'anchor-1', activeTurnId: null }),
     localAppConversationSendTurn: record('localAppConversationSendTurn', { turnId: 'turn-1' }),
     localAppConversationToolCallsList: record('localAppConversationToolCallsList', { calls: [] }),
@@ -1446,12 +1586,14 @@ describe('Electron synchronous Scenario call control', () => {
     const host = createNimiElectronLocalAppHostForBinding(candidate, () => { invalidated += 1; });
     const first = host.scenarioExecute({ spec: decideSpec });
     const second = host.scenarioExecute({ spec: { type: 'text-embed', inputs: ['hello'] } });
+    const firstRejected = expect(first).rejects.toMatchObject({ reasonCode: 'account-changed', retryable: false });
+    const secondRejected = expect(second).rejects.toMatchObject({ reasonCode: 'account-changed', retryable: false });
     await settle();
     await expect(host.storageReadJson({ relativePath: 'config.json' })).rejects.toBeDefined();
-    await expect(first).rejects.toMatchObject({ reasonCode: 'account-changed', retryable: false });
-    await expect(second).rejects.toMatchObject({ reasonCode: 'account-changed', retryable: false });
+    await Promise.all([firstRejected, secondRejected]);
     expect(invalidated).toBe(1);
     expect(calls.filter(({ method }) => method === 'localAppScenarioExecuteCancel')).toHaveLength(2);
+    expect(calls.filter(({ method }) => method === 'localAppSessionRebind')).toHaveLength(0, 'unconfirmed native cancellation must block rebind');
   });
 
   it('rejects a native decision that does not answer the submitted questions exactly', async () => {

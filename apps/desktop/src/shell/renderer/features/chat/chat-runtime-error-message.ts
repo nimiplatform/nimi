@@ -3,6 +3,7 @@ import {
   toNimiRuntimeUserFacingError,
 } from '@nimiplatform/sdk/runtime';
 import type { TFunction } from 'i18next';
+import { extractNimiErrorFields } from '@nimiplatform/sdk/types';
 
 function translateMessage(
   t: TFunction,
@@ -19,6 +20,9 @@ export function chatRuntimeReasonCodeMessage(
   reasonCode: string,
   t: TFunction,
 ): string | null {
+  if (reasonCode === 'AGENT_BUSY' || reasonCode === 'agent-busy') {
+    return translateMessage(t, 'Chat.agentBusyRetry', 'This partner is busy with another request. Your input is saved here; try sending again shortly.');
+  }
   const entry = getNimiRuntimeReasonCodeMessage(reasonCode);
   if (!entry) {
     return null;
@@ -31,6 +35,10 @@ export function toChatUserFacingRuntimeError(
   fallbackMessage: string,
   t: TFunction,
 ): { code: string; message: string } {
+  const reason = extractNimiErrorFields(error).reasonCode;
+  if (reason === 'AGENT_BUSY' || reason === 'agent-busy') {
+    return { code: reason, message: chatRuntimeReasonCodeMessage(reason, t)! };
+  }
   return toNimiRuntimeUserFacingError(error, {
     fallbackMessage,
     resolveReasonCodeMessage: (reasonCode) => chatRuntimeReasonCodeMessage(reasonCode, t),

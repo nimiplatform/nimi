@@ -1,6 +1,6 @@
 {
   "name": "@nimiplatform/nimiday",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "private": true,
   "type": "module",
   "main": "dist-electron/main.js",
@@ -14,6 +14,7 @@
     "build:prepared": "tsc --noEmit && vite build",
     "build": "node ../../scripts/with-workspace-surfaces.mjs -- pnpm run build:prepared",
     "build:electron": "node ../../scripts/build-supervised-app-electron.mjs --consumer nimiday",
+    "build:electron:production": "node ../../scripts/build-supervised-app-electron-production.mjs --consumer nimiday",
     "test:app": "vitest run",
     "test": "node ../../scripts/with-workspace-surfaces.mjs -- pnpm run test:app",
     "validate": "node scripts/validate.mjs",

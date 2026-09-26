@@ -128,6 +128,8 @@ methods:
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession
     posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAuthService/RebindLocalAppSession
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAuthService/RegisterExternalPrincipal
     posture: anonymous_read
   - method_id: /nimi.runtime.v1.RuntimeAuthService/OpenExternalPrincipalSession
@@ -142,3 +144,33 @@ methods:
     posture: anonymous_read
   - method_id: /nimi.runtime.v1.RuntimeExternalAgentService/ListExternalAgentTokens
     posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationCatalog
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationConnections
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeIntegrationService/InvokeIntegrationCall
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationCall
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationCalls
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeIntegrationService/CancelIntegrationCall
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeIntegrationService/RegisterIntegrationProvider
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeIntegrationService/UnregisterIntegrationProvider
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeIntegrationService/PollIntegrationProvider
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeIntegrationService/CompleteIntegrationProvider
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationManagement
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeIntegrationService/PutIntegrationConnection
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeIntegrationService/RemoveIntegrationConnection
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeIntegrationService/SetIntegrationPermission
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentRunAccess
+    posture: protected_origin_required

@@ -21,8 +21,32 @@ import (
 )
 
 const (
+	protectedAgentWorkReferenceListMethod        = "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentWorkReferences"
+	protectedAgentWorkStartMethod                = "/nimi.runtime.v1.RuntimeAgentService/StartLocalAppAgentWork"
+	protectedAgentWorkGetMethod                  = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentWork"
+	protectedAgentWorkStatusGetMethod            = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentWorkStatus"
+	protectedAgentWorkToolCallsListMethod        = "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentWorkToolCalls"
+	protectedAgentWorkToolResultSubmitMethod     = "/nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppAgentWorkToolResult"
+	protectedAgentWorkCancelMethod               = "/nimi.runtime.v1.RuntimeAgentService/CancelLocalAppAgentWork"
+	protectedAgentWorkEventsSubscribeMethod      = "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentWorkEvents"
+	protectedIntegrationCatalogListMethod        = "/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationCatalog"
+	protectedIntegrationConnectionListMethod     = "/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationConnections"
+	protectedIntegrationCallInvokeMethod         = "/nimi.runtime.v1.RuntimeIntegrationService/InvokeIntegrationCall"
+	protectedIntegrationCallGetMethod            = "/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationCall"
+	protectedIntegrationCallListMethod           = "/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationCalls"
+	protectedIntegrationCallCancelMethod         = "/nimi.runtime.v1.RuntimeIntegrationService/CancelIntegrationCall"
+	protectedIntegrationProviderRegisterMethod   = "/nimi.runtime.v1.RuntimeIntegrationService/RegisterIntegrationProvider"
+	protectedIntegrationProviderUnregisterMethod = "/nimi.runtime.v1.RuntimeIntegrationService/UnregisterIntegrationProvider"
+	protectedIntegrationProviderPollMethod       = "/nimi.runtime.v1.RuntimeIntegrationService/PollIntegrationProvider"
+	protectedIntegrationProviderCompleteMethod   = "/nimi.runtime.v1.RuntimeIntegrationService/CompleteIntegrationProvider"
+	protectedIntegrationManagementGetMethod      = "/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationManagement"
+	protectedIntegrationConnectionPutMethod      = "/nimi.runtime.v1.RuntimeIntegrationService/PutIntegrationConnection"
+	protectedIntegrationConnectionRemoveMethod   = "/nimi.runtime.v1.RuntimeIntegrationService/RemoveIntegrationConnection"
+	protectedIntegrationPermissionSetMethod      = "/nimi.runtime.v1.RuntimeIntegrationService/SetIntegrationPermission"
+
 	protectedOpenLocalAppSessionMethod            = "/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession"
 	protectedRenewLocalAppSessionMethod           = "/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession"
+	protectedRebindLocalAppSessionMethod          = "/nimi.runtime.v1.RuntimeAuthService/RebindLocalAppSession"
 	protectedReadLocalAppStorageJSONMethod        = "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson"
 	protectedWriteLocalAppStorageJSONMethod       = "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson"
 	protectedRemoveLocalAppStorageJSONMethod      = "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson"
@@ -34,14 +58,13 @@ const (
 	protectedMoveLocalAppAssetMethod              = "/nimi.runtime.v1.RuntimeAppService/MoveLocalAppAsset"
 	protectedRevealLocalAppAssetMethod            = "/nimi.runtime.v1.RuntimeAppService/RevealLocalAppAsset"
 	protectedAdoptLocalAppArtifactMethod          = "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact"
+	protectedAgentIntroductionGetMethod           = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentIntroduction"
 	protectedAgentReferenceListMethod             = "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences"
 	protectedDesktopAgentReferenceResolveMethod   = "/nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference"
 	protectedAvatarHostTargetResolveMethod        = "/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget"
 	protectedAvatarHostTargetRevalidateMethod     = "/nimi.runtime.v1.RuntimeAgentService/RevalidateLocalAppAvatarHostTarget"
 	protectedOpenConversationMethod               = "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation"
 	protectedSendConversationTurnMethod           = "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn"
-	protectedListConversationToolCallsMethod      = "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppConversationToolCalls"
-	protectedSubmitConversationToolResultMethod   = "/nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppConversationToolResult"
 	protectedUploadConversationAttachmentMethod   = "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment"
 	protectedReadConversationArtifactMethod       = "/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact"
 	protectedTranscribeConversationVoiceMethod    = "/nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppConversationVoice"
@@ -123,11 +146,34 @@ type protectedLocalAppMethodPolicy struct {
 }
 
 var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPolicy{
+	protectedAgentWorkReferenceListMethod:        localAppSessionMethodPolicy(),
+	protectedAgentWorkStartMethod:                localAppSessionMethodPolicy(),
+	protectedAgentWorkGetMethod:                  localAppSessionMethodPolicy(),
+	protectedAgentWorkStatusGetMethod:            localAppSessionMethodPolicy(),
+	protectedAgentWorkToolCallsListMethod:        localAppSessionMethodPolicy(),
+	protectedAgentWorkToolResultSubmitMethod:     localAppSessionMethodPolicy(),
+	protectedAgentWorkCancelMethod:               localAppSessionMethodPolicy(),
+	protectedIntegrationCatalogListMethod:        localAppSessionMethodPolicy(),
+	protectedIntegrationConnectionListMethod:     localAppSessionMethodPolicy(),
+	protectedIntegrationCallInvokeMethod:         localAppSessionMethodPolicy(),
+	protectedIntegrationCallGetMethod:            localAppSessionMethodPolicy(),
+	protectedIntegrationCallListMethod:           localAppSessionMethodPolicy(),
+	protectedIntegrationCallCancelMethod:         localAppSessionMethodPolicy(),
+	protectedIntegrationProviderRegisterMethod:   localAppSessionMethodPolicy(),
+	protectedIntegrationProviderUnregisterMethod: localAppSessionMethodPolicy(),
+	protectedIntegrationProviderPollMethod:       localAppSessionMethodPolicy(),
+	protectedIntegrationProviderCompleteMethod:   localAppSessionMethodPolicy(),
+	protectedIntegrationManagementGetMethod:      localAppSessionMethodPolicy(),
+	protectedIntegrationConnectionPutMethod:      localAppSessionMethodPolicy(),
+	protectedIntegrationConnectionRemoveMethod:   localAppSessionMethodPolicy(),
+	protectedIntegrationPermissionSetMethod:      localAppSessionMethodPolicy(),
+
 	protectedOpenLocalAppSessionMethod: {
 		transport: protectedlocal.TransportLocalAppBootstrap, role: protectedlocal.RoleLocalAppProcess,
 		missingRoleReason: runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH,
 	},
 	protectedRenewLocalAppSessionMethod:           localAppSessionMethodPolicy(),
+	protectedRebindLocalAppSessionMethod:          localAppSessionMethodPolicy(),
 	protectedReadLocalAppStorageJSONMethod:        localAppSessionMethodPolicy(),
 	protectedWriteLocalAppStorageJSONMethod:       localAppSessionMethodPolicy(),
 	protectedRemoveLocalAppStorageJSONMethod:      localAppSessionMethodPolicy(),
@@ -137,13 +183,12 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 	protectedMoveLocalAppAssetMethod:              localAppSessionMethodPolicy(),
 	protectedRevealLocalAppAssetMethod:            localAppSessionMethodPolicy(),
 	protectedAdoptLocalAppArtifactMethod:          localAppSessionMethodPolicy(),
+	protectedAgentIntroductionGetMethod:           localAppSessionMethodPolicy(),
 	protectedAgentReferenceListMethod:             localAppSessionMethodPolicy(),
 	protectedAvatarHostTargetResolveMethod:        localAppSessionMethodPolicy(),
 	protectedAvatarHostTargetRevalidateMethod:     localAppSessionMethodPolicy(),
 	protectedOpenConversationMethod:               localAppSessionMethodPolicy(),
 	protectedSendConversationTurnMethod:           localAppSessionMethodPolicy(),
-	protectedListConversationToolCallsMethod:      localAppSessionMethodPolicy(),
-	protectedSubmitConversationToolResultMethod:   localAppSessionMethodPolicy(),
 	protectedUploadConversationAttachmentMethod:   localAppSessionMethodPolicy(),
 	protectedReadConversationArtifactMethod:       localAppSessionMethodPolicy(),
 	protectedTranscribeConversationVoiceMethod:    localAppSessionMethodPolicy(),
@@ -204,6 +249,7 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 }
 
 var protectedLocalAppStreamMethodPolicies = map[string]protectedLocalAppMethodPolicy{
+	protectedAgentWorkEventsSubscribeMethod:     localAppSessionMethodPolicy(),
 	protectedSubscribeConversationMethod:        localAppSessionMethodPolicy(),
 	protectedSubscribeEmbodimentEventsMethod:    localAppSessionMethodPolicy(),
 	protectedStreamTextTurnMethod:               localAppSessionMethodPolicy(),
@@ -352,7 +398,7 @@ func newUnaryProtectedLocalAppTransportInterceptor(admissions ...protectedLocalA
 			return nil, protectedLocalAppRoleError(policy.missingRoleReason)
 		}
 		protectedContext := protectedlocal.ContextWithLocalAppConnection(ctx, connection)
-		if info.FullMethod == protectedOpenLocalAppSessionMethod || info.FullMethod == protectedRenewLocalAppSessionMethod {
+		if formalAppSessionMethod(info.FullMethod) {
 			if protectedLocalAppRequestHasCallerAssertionForMethod(protectedContext, req, info.FullMethod) {
 				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
 			}
@@ -453,6 +499,49 @@ func newStreamProtectedLocalAppTransportInterceptor(admissions ...protectedLocal
 
 func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingress {
 	switch method {
+	case protectedAgentWorkReferenceListMethod:
+		return localappop.IngressAgentWorkReferenceList
+	case protectedAgentWorkStartMethod:
+		return localappop.IngressAgentWorkStart
+	case protectedAgentWorkGetMethod:
+		return localappop.IngressAgentWorkGet
+	case protectedAgentWorkStatusGetMethod:
+		return localappop.IngressAgentWorkStatusGet
+	case protectedAgentWorkToolCallsListMethod:
+		return localappop.IngressAgentWorkToolCallsList
+	case protectedAgentWorkToolResultSubmitMethod:
+		return localappop.IngressAgentWorkToolResultSubmit
+	case protectedAgentWorkCancelMethod:
+		return localappop.IngressAgentWorkCancel
+	case protectedIntegrationCatalogListMethod:
+		return localappop.IngressIntegrationCatalogList
+	case protectedIntegrationConnectionListMethod:
+		return localappop.IngressIntegrationConnectionList
+	case protectedIntegrationCallInvokeMethod:
+		return localappop.IngressIntegrationCallInvoke
+	case protectedIntegrationCallGetMethod:
+		return localappop.IngressIntegrationCallGet
+	case protectedIntegrationCallListMethod:
+		return localappop.IngressIntegrationCallList
+	case protectedIntegrationCallCancelMethod:
+		return localappop.IngressIntegrationCallCancel
+	case protectedIntegrationProviderRegisterMethod:
+		return localappop.IngressIntegrationProviderRegister
+	case protectedIntegrationProviderUnregisterMethod:
+		return localappop.IngressIntegrationProviderUnregister
+	case protectedIntegrationProviderPollMethod:
+		return localappop.IngressIntegrationProviderPoll
+	case protectedIntegrationProviderCompleteMethod:
+		return localappop.IngressIntegrationProviderComplete
+	case protectedIntegrationManagementGetMethod:
+		return localappop.IngressIntegrationManagementGet
+	case protectedIntegrationConnectionPutMethod:
+		return localappop.IngressIntegrationConnectionPut
+	case protectedIntegrationConnectionRemoveMethod:
+		return localappop.IngressIntegrationConnectionRemove
+	case protectedIntegrationPermissionSetMethod:
+		return localappop.IngressIntegrationPermissionSet
+
 	case protectedOpenVideoSessionMethod:
 		return localappop.IngressVideoSessionOpen
 	case protectedSubmitVideoSessionFrameMethod:
@@ -501,6 +590,8 @@ func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingres
 		return localappop.IngressArtifactUpload
 	case protectedListLocalAppVoiceAssetsMethod:
 		return localappop.IngressVoiceAssetsList
+	case protectedAgentIntroductionGetMethod:
+		return localappop.IngressAgentIntroductionGet
 	case protectedAgentReferenceListMethod, protectedDesktopAgentReferenceResolveMethod:
 		return localappop.IngressAgentReferenceList
 	case protectedAvatarHostTargetResolveMethod:
@@ -586,10 +677,6 @@ func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingres
 		return localappop.IngressAgentRealtimeClose
 	case protectedOpenConversationMethod:
 		return localappop.IngressConversationOpen
-	case protectedListConversationToolCallsMethod:
-		return localappop.IngressConversationToolCallsList
-	case protectedSubmitConversationToolResultMethod:
-		return localappop.IngressConversationToolResultSubmit
 	case protectedSendConversationTurnMethod:
 		return localappop.IngressConversationTurnSend
 	case protectedUploadConversationAttachmentMethod:
@@ -651,6 +738,9 @@ func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingres
 
 func protectedLocalAppOwnerEnabled(method string, request any, ingress localappop.Ingress) bool {
 	switch method {
+	case protectedAgentWorkReferenceListMethod, protectedAgentWorkStartMethod, protectedAgentWorkGetMethod, protectedAgentWorkStatusGetMethod, protectedAgentWorkToolCallsListMethod, protectedAgentWorkToolResultSubmitMethod, protectedAgentWorkCancelMethod, protectedIntegrationCatalogListMethod, protectedIntegrationConnectionListMethod, protectedIntegrationCallInvokeMethod, protectedIntegrationCallGetMethod, protectedIntegrationCallListMethod, protectedIntegrationCallCancelMethod, protectedIntegrationProviderRegisterMethod, protectedIntegrationProviderUnregisterMethod, protectedIntegrationProviderPollMethod, protectedIntegrationProviderCompleteMethod, protectedIntegrationManagementGetMethod, protectedIntegrationConnectionPutMethod, protectedIntegrationConnectionRemoveMethod, protectedIntegrationPermissionSetMethod:
+		return true
+
 	case protectedOpenVideoSessionMethod, protectedSubmitVideoSessionFrameMethod, protectedReadVideoSessionResultMethod, protectedCloseVideoSessionMethod:
 		return true
 	case protectedReadLocalAppStorageJSONMethod, protectedWriteLocalAppStorageJSONMethod, protectedRemoveLocalAppStorageJSONMethod,
@@ -660,10 +750,9 @@ func protectedLocalAppOwnerEnabled(method string, request any, ingress localappo
 		protectedListAppAIConfigOptionsMethod, protectedGenerateTextCandidateMethod,
 		protectedExecuteLocalAppScenarioMethod, protectedSubmitScenarioJobMethod, protectedGetScenarioJobMethod, protectedCancelScenarioJobMethod,
 		protectedReadLocalAppArtifactMethod, protectedUploadLocalAppArtifactMethod, protectedListLocalAppVoiceAssetsMethod,
-		protectedAgentReferenceListMethod, protectedAvatarHostTargetResolveMethod,
+		protectedAgentIntroductionGetMethod, protectedAgentReferenceListMethod, protectedAvatarHostTargetResolveMethod,
 		protectedAvatarHostTargetRevalidateMethod,
 		protectedOpenConversationMethod, protectedSendConversationTurnMethod,
-		protectedListConversationToolCallsMethod, protectedSubmitConversationToolResultMethod,
 		protectedUploadConversationAttachmentMethod, protectedReadConversationArtifactMethod, protectedTranscribeConversationVoiceMethod, protectedRenderConversationVoiceMethod,
 		protectedInterruptConversationTurnMethod, protectedConversationSnapshotMethod,
 		protectedEmbodimentSnapshotMethod,
@@ -743,6 +832,9 @@ func protectedLocalAppOwnerEnabled(method string, request any, ingress localappo
 
 func protectedLocalAppStreamIngress(method string) localappop.Ingress {
 	switch method {
+	case protectedAgentWorkEventsSubscribeMethod:
+		return localappop.IngressAgentWorkEventsSubscribe
+
 	case protectedSubscribeConversationMethod:
 		return localappop.IngressConversationEventsSubscribe
 	case protectedSubscribeEmbodimentEventsMethod:
@@ -781,6 +873,17 @@ func protectedLocalAppRequestHasCallerAssertionForMethod(ctx context.Context, re
 		return true
 	}
 	message, ok := request.(proto.Message)
+	// Integration's operation is a provider business name, never the protected
+	// AppOperationId. Exempt only this exact typed field on its exact ingress;
+	// metadata, unknown wire fields and every other authority assertion retain
+	// the existing rejection path.
+	if method == protectedIntegrationCallInvokeMethod {
+		if invocation, matches := message.(*runtimev1.InvokeIntegrationCallRequest); matches && invocation != nil {
+			business := proto.Clone(invocation).(*runtimev1.InvokeIntegrationCallRequest)
+			business.Operation = ""
+			message = business
+		}
+	}
 	allowTextJSON := method == protectedStreamTextTurnMethod || method == protectedExecuteLocalAppScenarioMethod
 	return !ok || protectedLocalAppMessageHasCallerAssertion(message.ProtoReflect(), protectedLocalAppMethodAllowsRealtimeGeneration(method), allowTextJSON, false)
 }

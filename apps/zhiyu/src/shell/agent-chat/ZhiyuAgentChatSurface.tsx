@@ -1,3 +1,7 @@
+import { AgentIntroduction } from '@nimiplatform/kit/features/chat/ui';
+import { useAgentIntroduction } from '@nimiplatform/kit/features/chat/runtime';
+import type { NimiLocalAppAgentIntroductionClient } from '@nimiplatform/sdk/app';
+import { getZhiyuLocalAppClient } from '../auth/runtime-platform';
 import {
   nimiToast,
   StatusBadge,
@@ -56,11 +60,12 @@ import {
 } from '../app/home-surface-sections';
 import { followZhiyuTranscriptToLatest } from './transcript-auto-follow';
 import { runZhiyuVoiceTranscriptionAttempt } from './voice-transcription-guard';
-import { isZhiyuRecoverableTerminalTurn } from '../app/direct-local-app-submit-gate';
+import { isZhiyuAgentBusyReason, isZhiyuRecoverableTerminalTurn } from '../app/direct-local-app-submit-gate';
 import { zhiyuConversationActionKey } from './agent-conversation-state';
 import { ZhiyuResourcePackSurface } from '../../resource-pack/ZhiyuResourcePackSurface';
 import { ZhiyuResourcePackStatusNotice } from '../../resource-pack/ZhiyuResourcePackStatusNotice';
 import type { ZhiyuResourcePackPresentationState } from '../../resource-pack/presentation-controller';
+import { ZhiyuAgentActivityReferences } from './ZhiyuAgentActivityReferences';
 
 export type ZhiyuAgentChatSurfaceProps = {
   readonly evidence: ZhiyuEvidence;
@@ -111,6 +116,8 @@ export function ZhiyuAgentChatSurface({
   const hasCurrentPartner = evidence.localAgent.ready;
   const hasLocalPartners = evidence.inventory.localAgents.length > 0;
   const primaryPartnerName = hasCurrentPartner ? '当前伙伴' : currentPartnerName;
+  const readIntroduction = useCallback<NimiLocalAppAgentIntroductionClient['getIntroduction']>(request => getZhiyuLocalAppClient().agents.getIntroduction(request), []);
+  const { introduction, unavailable: introductionUnavailable, retry: retryIntroduction } = useAgentIntroduction({ agentHandle: hasCurrentPartner ? evidence.localAgent.agentHandle : null, getIntroduction: readIntroduction });
   const [showNoPartnerGuidance, setShowNoPartnerGuidance] = useState(false);
   const [desktopOpenPending, setDesktopOpenPending] = useState(false);
   const [desktopOpenResult, setDesktopOpenResult] = useState<ZhiyuDesktopOpenActionResult | null>(null);
@@ -288,7 +295,9 @@ export function ZhiyuAgentChatSurface({
     && typeof MediaRecorder !== 'undefined'
     ? { status: voiceStatus, onToggle: toggleVoiceCapture, onCancel: cancelVoiceCapture }
     : undefined;
-  const chatRuntimeHint = chatDisabled && (hasCurrentPartner || evidence.chat.state === 'streaming')
+  const chatRuntimeHint = isZhiyuAgentBusyReason(evidence.chat.reasonCode)
+    ? '伙伴正在处理另一项请求。输入已保留，请稍后重试。'
+    : chatDisabled && (hasCurrentPartner || evidence.chat.state === 'streaming')
     ? (
       evidence.chat.state === 'streaming'
         ? '当前伙伴正在回复。'
@@ -563,14 +572,16 @@ export function ZhiyuAgentChatSurface({
                 activeConversationId={evidence.conversation.conversationAnchorId}
                 agentName={primaryPartnerName}
                 formatDateLabel={formatZhiyuTranscriptDateLabel}
-                emptyEyebrow="ZHIYU"
-                emptyTitle={emptyTitle}
-                emptyDescription={emptyDescription}
+                emptyEyebrow={hasCurrentPartner ? '' : 'ZHIYU'}
+                emptyTitle={hasCurrentPartner ? '' : emptyTitle}
+                emptyDescription={hasCurrentPartner ? '' : emptyDescription}
+                emptyStateContent={hasCurrentPartner ? <AgentIntroduction key={evidence.localAgent.agentHandle} introduction={introduction} imageMaxSize="clamp(180px, calc(100dvh - 630px), 420px)" unavailable={introductionUnavailable} onRetry={retryIntroduction} displayName={currentPartnerName} avatarUrl={currentPartnerAvatar} locale="zh-CN" questionsEnabled={!chatDisabled} onPrefill={onDraftChange} /> : undefined}
                 content={noLocalPartnerEmptyState}
                 footerContent={(
                   <>
                     {chatTurnNotices}
                     {chatFooter}
+                    <ZhiyuAgentActivityReferences agentHandle={evidence.conversation.agentHandle} />
                     <span
                       ref={chatTranscriptEndRef}
                       data-zhiyu-transcript-end="true"
@@ -582,7 +593,7 @@ export function ZhiyuAgentChatSurface({
                 widthClassName="w-full max-w-none"
                 widthPositionClassName="mx-0"
                 scrollViewportWidthClassName="w-full"
-                contentPaddingBottomClassName="pb-[clamp(160px,18vh,220px)]"
+                contentPaddingBottomClassName={hasCurrentPartner && evidence.chat.messageCount === 0 ? 'pb-[120px]' : 'pb-[clamp(160px,18vh,220px)]'}
                 disableRpContent
                 voicePlayingMessageId={voicePlayingMessageId}
                 isVoiceTranscriptVisible={() => true}
@@ -610,7 +621,7 @@ export function ZhiyuAgentChatSurface({
                 disabled={chatDisabled}
                 placeholder={hasCurrentPartner ? '和这个伙伴聊点什么...' : hasLocalPartners ? '先选择本地伙伴...' : '添加本地伙伴后开始聊天...'}
                 runtimeHint={chatRuntimeHint}
-                sendHint={evidence.chat.state === 'streaming' ? '回复中' : undefined}
+                sendHint={evidence.chat.state === 'streaming' ? '回复中' : isZhiyuAgentBusyReason(evidence.chat.reasonCode) ? '重试' : undefined}
                 layout="stacked"
                 leadingSlot={(
                   <ComposerAvatarButton

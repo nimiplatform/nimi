@@ -8,7 +8,7 @@ import type { DesktopCanonicalRendererBindings } from '../src/shell/renderer/ren
 export { changeLocale, initI18n } from '../src/shell/renderer/i18n';
 export { SourceDetailView } from '../src/shell/renderer/features/source-detail/source-detail-view';
 export { toSourceDetailData } from '../src/shell/renderer/features/source-detail/source-detail-model';
-export { simplifySourceDetailChineseText } from '../src/shell/renderer/features/source-detail/source-detail-simplified-chinese';
+export { simplifyChineseDisplayText as simplifySourceDetailChineseText } from '@nimiplatform/kit/features/chat/headless';
 export { React };
 
 const TEST_BINDINGS = {

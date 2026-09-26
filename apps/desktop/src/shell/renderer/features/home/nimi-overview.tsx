@@ -1,3 +1,4 @@
+import { IntegrationsPanel } from '../integrations/integrations-panel.js';
 import { Button, InlineAlert, LoadingSkeleton, ScrollArea } from '@nimiplatform/kit/ui';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowRight, ArrowUp } from 'lucide-react';
@@ -104,7 +105,7 @@ export function NimiOverview() {
   // The Message center is a Home-internal view; every Home entry, including
   // the Logo while Home is already open, shows the overview.
   const homeEntryRevision = useAppStore((state) => state.homeEntryRevision);
-  const [view, setView] = useState<'overview' | 'center'>('overview');
+  const [view, setView] = useState<'overview' | 'center' | 'integrations'>('overview');
   useEffect(() => setView('overview'), [homeEntryRevision]);
   const [centerFilter, setCenterFilter] = useState<HomeMessageFilter>('all');
   const [centerSource, setCenterSource] = useState<string | null>(null);
@@ -292,6 +293,10 @@ export function NimiOverview() {
         </div>
       ) : null}
       <div className="flex min-w-0 flex-col gap-5 xl:col-start-1 xl:row-start-2">
+        <section className="rounded-[24px] bg-[var(--nimi-surface-panel)] p-5 shadow-[var(--nimi-elevation-base)]" data-testid="home-integrations">
+          <SectionHeader title={t('Integrations.title')} action={t('Integrations.manage')} onAction={() => setView('integrations')} />
+          <p className="mt-2 text-sm text-[var(--nimi-text-secondary)]">{t('Integrations.homeBody')}</p>
+        </section>
         {firstRun ? (
           <section className="flex flex-col gap-4 rounded-[24px] bg-[var(--nimi-surface-panel)] p-5 shadow-[var(--nimi-elevation-base)]" data-testid="home-first-run">
             <h2 className="text-base font-semibold">{t('runtimeConfig.overview.firstRunTitle')}</h2>
@@ -394,7 +399,7 @@ export function NimiOverview() {
         viewportClassName="bg-transparent"
         contentClassName={`${SHELL_PAGE_WIDTH_CLASS} pb-7 pt-5`}
       >
-        {view === 'center' && messages ? (
+        {view === 'integrations' ? <IntegrationsPanel onBack={() => setView('overview')} /> : view === 'center' && messages ? (
           <HomeMessageCenter
             messages={messages}
             context={cardContext(messages)}

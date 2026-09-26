@@ -64,31 +64,49 @@ and backend diagnostics remain outside the standard shell.
 Protected-session unavailability does not terminate the App, request a Host
 reopen, or unregister the renderer bridge. Protected calls continue to return
 bounded typed unavailable posture while Kit performs bounded same-Host session
-rebind. App code receives no session material or authority selector.
+rebind on the still-verified connection. A lost connection needs a legitimate
+supervised launch path. App code receives no session material or authority selector.
 After a maintenance failure, a successful session status read or same-Host
 rebind resumes periodic renewal. Failed sessions are not retried by that timer,
 and resuming maintenance does not replay interrupted business work.
 
-App-owned Node modules use `bridge.services.ai`, `bridge.services.aiConfig`
-and `bridge.services.storage`, which are SDK feature clients over this same
+App-owned Node modules use `bridge.services.ai`, `bridge.services.aiConfig`,
+`bridge.services.storage`, `bridge.services.agentWork`, `bridge.services.integration`,
+`bridge.services.activity` and `bridge.services.realm.worldCore`, which are SDK feature clients over this same
 Host. Register fixed business commands through `appCommandHandlers` and use
 `onSessionInvalidated` to abort application tasks and clear their account-scoped
 memory. These handlers never occupy the reserved `nimi.shell.*` namespace.
+Use `onSessionReady(services)` to bind Node business modules to each ready
+scope. It fires once on initial readiness or real rebind, and never on routine
+renewal. Objects retained from an invalidated `bridge.services` stay permanently
+closed, including calls initiated by old callbacks after readiness returns.
 Business requests carry their own cancellation signal into the SDK model
 binding and check it before committing asynchronous work.
 The callback runs before rebind; it must synchronously make old App work
-unusable. New renderer calls wait for the rebind to finish, and old in-flight
-responses cannot become a successful response in the new scope. Standard App
+unusable. Business reads and writes made during rebind are refused, and old
+in-flight responses cannot become a successful response in the new scope.
+Only the technical session-status probe may finish across rebind; after readiness,
+new business services make their own fresh reads. Standard App
 Tools Hosts destroy the old renderer windows and create new ones in the same
 Host on this callback, so old renderer timers and queues cannot retry into the
 new scope. Load a fresh store there; never flush or copy the invalidated store.
-Normal successful technical renewal does not trigger this callback.
- Renderer disconnect
+Normal successful technical renewal extends the same live scope and does not
+trigger this callback. Renderer disconnect
 does not itself replay or cancel a business workflow; the App owns that policy.
 Synchronous Scenario calls (`ai.scenario.execute(spec, { signal, timeoutMs })`)
 settle an abort or an elapsed deadline at once, drop the pending native call by
 its Host-generated identity and never return a late result; session invalidation
 cancels every outstanding call, while a caller deadline leaves the session valid.
+
+The `agentWork` namespace uses business Agent references and independent execution
+IDs. Its finite status, tool calls, events and successful output never read or
+write canonical chat. `integration.invoke` returns an accepted call; observe
+`getCall` for its actual outcome and call `cancelCall` when the App stops waiting.
+Do not resend an unconfirmed write. App providers register declared operations,
+use bounded `pollProvider({ waitMs })` and complete each delivered call once;
+validate business objects in the App handler and stop handling old-scope calls
+on invalidation. The trusted Home management owner alone can configure shared
+connections and permissions.
 
 This entrypoint has no Runtime endpoint, ordinary gRPC factory, native-host
 injection or capability-set selection. Services become unavailable when the

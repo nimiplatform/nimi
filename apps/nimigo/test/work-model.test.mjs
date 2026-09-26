@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { nextRoutineTime, createWorkspace, createWork, attachMaterial, nextQueuedWork, projectDeliverables, reviseMaterial, reviseWorkDetails, workSources } from '../src/product/model.ts';
+import { nextRoutineTime, createWorkspace, createWork, attachMaterial, deliverableReadReference, nextQueuedWork, projectDeliverables, reviseMaterial, reviseWorkDetails, workSources } from '../src/product/model.ts';
 test('daily schedules select the next future wall-clock time, never automatic catch-up', () => {
   const after = new Date(2026, 8, 24, 10, 30);
   const next = new Date(nextRoutineTime('09:00', after));
@@ -14,13 +14,25 @@ test('workspace starts with no fabricated Agent or completed task', () => {
   assert.throws(() => createWork(state.projects[0].id, '', 'Goal', 'brief'));
 });
 
+test('a copied deliverable reference selects the exact saved version with readable hints', () => {
+  const work = createWork('project', '项目报告', '保存报告', 'brief');
+  work.deliverables = [{ id: 'report', title: '采购建议', revisions: [
+    { id: 'v1-exact', path: 'first.md', by: 'agent', note: '', createdAt: '2026-09-25T00:00:00Z' },
+    { id: 'v2-exact', path: 'second.md', by: 'user', note: '', createdAt: '2026-09-26T00:00:00Z' },
+  ] }];
+  assert.deepEqual(deliverableReadReference(work, 'report', 'v1-exact'), { workId: work.id, deliverableId: 'report', revisionId: 'v1-exact', title: '采购建议', version: 1 });
+  assert.equal(deliverableReadReference(work, 'report', 'v2-exact').version, 2);
+  assert.throws(() => deliverableReadReference(work, 'another-report', 'v1-exact'), /无法复制/u);
+  assert.throws(() => deliverableReadReference(work, 'report', 'unsaved'), /无法复制/u);
+});
+
 test('a completed Agent reply only counts as delivered after a real scoped business effect', async () => {
   const { deliveredWorkStatus } = await import('../src/product/model.ts');
   const work = createWork('project', '交付', '保存报告', 'brief');
   assert.equal(deliveredWorkStatus(work, 'turn-current'), 'review');
-  work.deliverables.push({ id: 'doc', title: '旧稿', revisions: [{ id: 'v1', path: 'old.md', by: 'agent', note: '', createdAt: new Date().toISOString(), turnId: 'turn-before' }] });
+  work.deliverables.push({ id: 'doc', title: '旧稿', revisions: [{ id: 'v1', path: 'old.md', by: 'agent', note: '', createdAt: new Date().toISOString(), executionId: 'turn-before' }] });
   assert.equal(deliveredWorkStatus(work, 'turn-current'), 'review');
-  work.deliverables[0].revisions.push({ ...work.deliverables[0].revisions[0], id: 'v2', turnId: 'turn-current' });
+  work.deliverables[0].revisions.push({ ...work.deliverables[0].revisions[0], id: 'v2', executionId: 'turn-current' });
   assert.equal(deliveredWorkStatus(work, 'turn-current'), 'complete');
 });
 
@@ -40,8 +52,8 @@ test('queue order follows enqueue order, independently of newest-first work disp
 test('correcting inputs resets delivery state but retains real artifacts and execution evidence', () => {
   const work = createWork('project', '旧名', '旧目标', 'brief');
   work.status = 'complete';
-  work.attempts = [{ id: 'attempt', agentBinding: 'agent', turnId: 'turn', anchorId: 'anchor', startedAt: new Date().toISOString(), status: 'complete' }];
-  work.deliverables = [{ id: 'doc', title: '原稿', revisions: [{ id: 'v1', path: 'doc.md', by: 'agent', note: '', createdAt: new Date().toISOString(), turnId: 'turn' }] }];
+  work.attempts = [{ id: 'attempt', agentBinding: 'agent', executionId: 'turn', retiredAnchorId: 'anchor', startedAt: new Date().toISOString(), status: 'complete' }];
+  work.deliverables = [{ id: 'doc', title: '原稿', revisions: [{ id: 'v1', path: 'doc.md', by: 'agent', note: '', createdAt: new Date().toISOString(), executionId: 'turn' }] }];
   work.steps = [{ id: 'step', title: '旧步骤', done: true }];
   const evidence = structuredClone({ attempts: work.attempts, deliverables: work.deliverables });
   reviseWorkDetails(work, { title: '新名', brief: work.brief, projectId: 'new-project', skillId: work.skillId });

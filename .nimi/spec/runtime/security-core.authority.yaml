@@ -672,9 +672,9 @@ units:
     kind: rule
     title: Third-party App access is declaration derived
     modality: must
-    statement: Runtime derives each Effective App Access Snapshot from the current registered App subject, source generation, declaration generation, protected session, and account context with only the supported declared AppAccess domains; Runtime separately consumes the canonical App operation contract to classify each stable callable operation as Base or map it to one AppAccess domain, without user grants, approval, request, revoke, JIT, permission settings, or marketplace review semantics.
+    statement: Runtime derives each Effective App Access Snapshot from the current registered App subject, source generation, declaration generation, protected session, and account context with only the supported declared AppAccess domains; Runtime separately consumes the canonical App operation contract to classify each stable callable operation as Base or map it to one AppAccess domain, without user grants, approval, request, revoke, JIT, permission settings, or marketplace review semantics. These exclusions govern technical-session access derivation; separately admitted Integration resource permissions are evaluated by their owner after protected ingress.
     condition: Whenever a protected Third-party App session is opened, rebound, or evaluated.
-    failure: Keep Nimi access unavailable when any required current fact is missing or inconsistent and never create a permission workflow or fallback.
+    failure: Keep Nimi access unavailable when any required current technical fact is missing or inconsistent; never manufacture session coverage through a permission workflow or fallback.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.app-operation-contract
@@ -686,7 +686,7 @@ units:
     kind: rule
     title: Runtime consumes one canonical App operation contract
     modality: must
-    statement: Runtime consumes the canonical App operation contract as the sole stable declaration-domain and AppOperationId mapping and maintains no second permission catalog, hand-maintained authorization union, generated authority ledger, or caller-selectable generic forwarding surface.
+    statement: Runtime consumes the canonical App operation contract as the sole stable declaration-domain and AppOperationId mapping and maintains no second protected-operation permission catalog, hand-maintained authorization union, generated authority ledger, or caller-selectable generic forwarding surface. Operation-specific resource policy does not alter that mapping.
     condition: Whenever a Third-party App declaration is translated or a protected App operation is dispatched.
     failure: Reject unknown, unsupported, unmapped, or duplicate operation identity before owner execution.
     relations:
@@ -736,7 +736,7 @@ units:
     kind: rule
     title: Unknown declaration domains remain inert
     modality: must
-    statement: An unknown or currently unsupported declaration domain contributes no Effective App Access Snapshot coverage for its current declaration generation, and later Runtime support does not activate that declaration until the App supplies a new declaration generation that explicitly includes the supported domain.
+    statement: An unknown or currently unsupported declaration domain contributes no Effective App Access Snapshot coverage for its current declaration generation, and later Runtime support does not activate that declaration until the App supplies a new declaration generation that explicitly includes the supported domain. This applies equally to newly admitted agent.work, integration.consume, integration.provide and integration.manage; upgrading Runtime alone neither activates old unknown declarations nor grants integration resource permission.
     condition: Whenever Runtime encounters an unknown declaration domain or gains support for a previously unknown domain.
     failure: Keep the domain inert and reject every operation that would depend on implicit reinterpretation or automatic activation.
     relations:
@@ -746,3 +746,15 @@ units:
         target: definition.nimi.platform.core-protocol.effective-app-access-snapshot
       - type: supersedes
         target: rule.nimi.runtime.security-core.r042
+  - id: rule.nimi.runtime.security-core.integration-resource-policy
+    kind: rule
+    title: Integration resource permission is separate from protected access and AI route custody
+    modality: must
+    statement: After valid protected App ingress, the Integration owner evaluates its Runtime-owned durable and revocable permission for the current account, actual consumer App subject, operations and selected connection or provider target. This owner resource policy does not mint a session, bearer or EAS coverage, restore the retired App Permission or ConnectorGrant planes, or create a second AppOperationId catalog. External business-account connections follow Integration ownership and their explicitly selected credential custodian; existing protected secret storage may be reused, but those connections do not become Cloud Connector route selections or inherit AIConfig, Local Loadout or model-provider authority. Code scope-binding overlap is review navigation rather than an authorization or custody decision.
+    condition: Whenever Integration permission or external business-account custody is implemented or evaluated.
+    failure: Reject permission-based protected-session admission, raw credential transfer to consumers, silent custody substitution or business-account data interpreted as AI route authority.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.integration.connection-plane
+      - type: applies_to
+        target: definition.nimi.runtime.security-core.ownership-authorization-plane

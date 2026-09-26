@@ -1,3 +1,4 @@
+import { createDesktopExecutionNoticesHost } from './execution-notices-host.js';
 import { createDesktopHomeCommandPolicy } from './home-host-policy.js';
 import path from 'node:path';
 import { existsSync } from 'node:fs';
@@ -9,6 +10,7 @@ import {
   dialog,
   ipcMain,
   Menu,
+  Notification,
   nativeImage,
   protocol,
   shell,
@@ -166,6 +168,19 @@ const localAssetProtocolHost: NimiElectronShellFileProtocolHost = createElectron
 });
 let mainWindow: BrowserWindow | undefined;
 const desktopSenderInvalidationListeners = new Set<() => void>();
+const systemNotices = new Set<Notification>();
+const executionNotices = createDesktopExecutionNoticesHost({
+  supported: () => Notification.isSupported(),
+  notify: (title, body, outcome) => {
+    const notification = new Notification({ title, body });
+    systemNotices.add(notification);
+    notification.once('show', () => outcome('shown'));
+    notification.once('failed', () => { outcome('failed'); systemNotices.delete(notification); });
+    notification.once('close', () => systemNotices.delete(notification));
+    notification.on('click', () => focusDesktopMainWindow());
+    notification.show();
+  },
+});
 let localDevelopmentHost: DesktopElectronLocalDevelopmentHost | undefined;
 let installedAppHost: DesktopInstalledAppHost | undefined;
 let desktopOpenIntentHost: DesktopElectronOpenIntentHost | undefined;
@@ -357,8 +372,9 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
     localDevelopmentHost = await createDesktopElectronLocalDevelopmentHost({
       homeDirectory: app.getPath('home'),
       operationGate: appLaunchGate,
+      onExecutorChanged: executionNotices.observe,
     });
-    installedAppHost = createDesktopInstalledAppHost(undefined, appLaunchGate);
+    installedAppHost = createDesktopInstalledAppHost(undefined, appLaunchGate, executionNotices.observe);
     const runtimeDeploymentProfile = resolveElectronRuntimeDeploymentProfile({
       electronDevelopmentBuild: ELECTRON_DEVELOPMENT_BUILD,
       macOSLocalDevelopmentBuild: MACOS_LOCAL_DEVELOPMENT_BUILD,
@@ -664,6 +680,18 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         },
       },
       commandHandlers: {
+        // @nimi-authority: rule.nimi.runtime.agent-participation.r197
+        desktop_agent_reference_resolve: async ({ payload, event }) => {
+          if (!authorizeDesktopRendererSender(event)) throw new Error('Desktop sender is required.');
+          if (Object.keys(payload).length !== 1 || typeof payload.localAgentRef !== 'string'
+            || !payload.localAgentRef || payload.localAgentRef !== payload.localAgentRef.trim()
+            || payload.localAgentRef.length > 512 || payload.localAgentRef.includes('\0')) {
+            throw new Error('A single LocalAgent reference is required.');
+          }
+          const resolve = registeredRuntimeBridge?.resolveDesktopAgentReference;
+          if (!resolve) throw new Error('Desktop Agent reference resolution is unavailable.');
+          return resolve({ localAgentRef: payload.localAgentRef });
+        },
         desktop_home_profile_status_get: () => ({
           mode: homeHostProfile?.mode ?? 'bootstrap',
           workAllowed: normalHomeWorkAllowed(),
@@ -678,6 +706,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
           await checkDesktopHomeProfileScope(() => productControlHost.resolveHostProfileScope(), 'user-action');
           return { requested: homeRelaunchRequested || normalHomeWorkAllowed() };
         },
+        ...executionNotices.commandHandlers,
         ...localDevelopmentHost.commandHandlers,
         ...installedAppHost.commandHandlers,
         ...desktopOpenIntentHost.commandHandlers,
@@ -976,6 +1005,7 @@ async function createMainWindow(): Promise<BrowserWindow> {
   window.on('show', () => menuBarHost?.setWindowVisible(true));
   window.on('hide', () => menuBarHost?.setWindowVisible(false));
   const invalidateDesktopSender = () => {
+    executionNotices.disableNotifications();
     for (const listener of desktopSenderInvalidationListeners) listener();
   };
   bindDesktopSenderInvalidation(window.webContents, invalidateDesktopSender);

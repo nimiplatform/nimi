@@ -1,3 +1,4 @@
+import { isZhiyuAgentBusyReason } from './direct-local-app-submit-gate';
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { createInitialZhiyuEvidence, type ZhiyuEvidence } from './evidence';
 import {
@@ -314,6 +315,7 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
     attachment?: ZhiyuRuntimeAgentChatAttachment,
   ) {
     const text = textInput.trim();
+    const chatBeforeSubmit = evidence.chat;
     activeChatAbortRef.current?.abort('zhiyu_chat_turn_superseded');
     const activeChatAbort = new AbortController();
     activeChatAbortRef.current = activeChatAbort;
@@ -455,14 +457,16 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
       })) {
         return current;
       }
-      const resultChat = ensureSubmittedUserMessageInChat(
+      const resultChat = isZhiyuAgentBusyReason(submitted.reasonCode)
+        ? chatStatusFromResult(submitted)
+        : ensureSubmittedUserMessageInChat(
         chatStatusFromResult(submitted),
         current.conversation,
         submitted.requestId ?? requestId,
         text,
         new Date(bindings.clock.now()).toISOString(),
       );
-      const chat = mergeChatTranscript(current.chat, resultChat);
+      const chat = mergeChatTranscript(isZhiyuAgentBusyReason(submitted.reasonCode) ? chatBeforeSubmit : current.chat, resultChat);
       return {
         ...current,
         chat,
@@ -478,6 +482,9 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
         },
       };
     });
+    if (isZhiyuAgentBusyReason(submitted.reasonCode)) {
+      throw Object.assign(new Error(submitted.message), { reasonCode: submitted.reasonCode });
+    }
     if (submitted.ready && shouldApplyZhiyuRuntimeChatUpdate({
       currentConversation: latestConversationIdentityRef.current,
       submittedConversation,

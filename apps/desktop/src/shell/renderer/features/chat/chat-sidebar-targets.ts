@@ -177,6 +177,12 @@ export function toAgentReferenceTargetSummary(
   };
 }
 
+// A refresh keeps the same account's last authenticated display projection.
+// This selects cached data only; new reads still require authenticated status.
+export function chatSidebarQueryAuthStatus(authStatus: AuthStatus, ownerUserId: string): AuthStatus {
+  return authStatus === 'refresh-pending' && Boolean(ownerUserId.trim()) ? 'authenticated' : authStatus;
+}
+
 export function useChatTargetsForSidebar(
   authStatus: AuthStatus,
 ): readonly ConversationTargetSummary[] {
@@ -185,25 +191,27 @@ export function useChatTargetsForSidebar(
   const realmSocialData = useRealmSocialData();
   const { t } = useTranslation();
   const ownerUserId = useAppStore((state) => normalizeText(state.auth.user?.id));
+  const queryAuthStatus = chatSidebarQueryAuthStatus(authStatus, ownerUserId);
+  const canRead = authStatus === 'authenticated' && Boolean(ownerUserId);
 
   const humanChatsQuery = useQuery({
-    queryKey: ['chats', authStatus],
+    queryKey: ['chats', queryAuthStatus],
     queryFn: async () => realmHumanChatData.loadChatList(),
-    enabled: authStatus === 'authenticated' && Boolean(ownerUserId),
+    enabled: canRead,
     staleTime: 30_000,
   });
 
   const socialSnapshotQuery = useQuery({
-    queryKey: ['contacts', authStatus],
+    queryKey: ['contacts', queryAuthStatus],
     queryFn: async () => realmSocialData.loadSocialSnapshot() as Promise<SocialSnapshot>,
-    enabled: authStatus === 'authenticated',
+    enabled: canRead,
     staleTime: 30_000,
   });
 
   const localAgentReferencesQuery = useQuery({
-    queryKey: ['desktop-local-app-agent-references', authStatus, ownerUserId],
+    queryKey: ['desktop-local-app-agent-references', queryAuthStatus, ownerUserId],
     queryFn: async () => sdk.appProduct().agents.listReferences(),
-    enabled: authStatus === 'authenticated' && Boolean(ownerUserId),
+    enabled: canRead,
     staleTime: 15_000,
   });
 

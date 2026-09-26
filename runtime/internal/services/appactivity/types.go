@@ -141,9 +141,9 @@ func sourceRef(accountID, publisherKind, publisherRef string) string {
 	return "src_" + shortDigest("nimi.runtime.app-activity.source/v1", accountID, publisherKind, publisherRef)
 }
 
-// agentRef derives the account-scoped non-authorizing Agent grouping
+// AgentAssociationRef derives the account-scoped non-authorizing Agent grouping
 // reference. It is never accepted as an Agent handle.
-func agentRef(accountID, localAgentRef string) string {
+func AgentAssociationRef(accountID, localAgentRef string) string {
 	return "agr_" + shortDigest("nimi.runtime.app-activity.agent/v1", accountID, localAgentRef)
 }
 

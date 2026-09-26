@@ -39,6 +39,13 @@ presentation accept only an opaque session-scoped handle and independent
 revision CAS. Presentation commit projects the previous profile needed for
 restore. AI profile mutation and Artifact operations are not exposed.
 
+Independent `agent.work` requests use business Agent references, execution IDs,
+ordered bounded events and tool-result handoff. No work input or tool result is
+accepted by Conversation. Fixed Integration methods carry dynamic descriptors
+and operation data while Runtime retains identity, resource permission and
+credential custody. The native boundary exposes no dynamic Runtime method
+selector; Home management is revalidated by its protected Runtime owner.
+
 The `agent.local` carrier also exposes the exact embodiment snapshot and
 ordered subscription operations. Their projection is limited to Runtime-owned
 activity, emotion, semantic posture, provenance, and bounded voice-timing

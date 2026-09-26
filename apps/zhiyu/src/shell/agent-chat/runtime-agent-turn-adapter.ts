@@ -1,3 +1,4 @@
+import { isZhiyuAgentBusyReason } from '../app/direct-local-app-submit-gate';
 import { hasElectronRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   createRuntimeAgentConversationProjectionState,
@@ -202,6 +203,9 @@ export async function runZhiyuAgentChatTurn(
       requestId,
     });
   } catch (error) {
+    if (!turnAdmissionObserved && isZhiyuAgentBusyReason(errorReasonCode(error))) {
+      return chatUnavailable({ ...identity, requestId, reasonCode: 'AGENT_BUSY', actionHint: 'retry_when_agent_available', source: 'runtime', message: '伙伴正在处理另一项请求。输入已保留，请稍后重试。' });
+    }
     if (errorReasonCode(error) === 'local-app-access-denied') {
       return chatSessionRefreshRequired({
         ...identity,
@@ -344,7 +348,7 @@ async function* localAppConversationParts(
     while (true) {
       const next = await nextConversationEvent(iterator, signal);
       if (next.kind === 'aborted') {
-        await conversation.interruptTurn(scope);
+        await conversation.interruptTurn({ ...scope, expectedTurnId: sent.turnId });
         yield { type: 'turn-canceled', scope: 'turn' };
         return;
       }

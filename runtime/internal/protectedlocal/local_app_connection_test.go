@@ -66,6 +66,16 @@ func TestLocalAppSessionRotationFencesStreamsAndCleansExactResources(t *testing.
 		t.Fatal("rotation invalidated the replacement technical session")
 	default:
 	}
+	third := LocalAppSessionHandle{SessionID: localAppTestIdentifier(0x66), SessionProof: localAppTestIdentifier(0x67)}
+	if err := connection.RotateSession(first, third); err == nil {
+		t.Fatal("late rotation bypassed exact previous-session comparison")
+	}
+	if connection.InvalidateSession(first) || connection.BindSessionResource(first, "late", func() {}) {
+		t.Fatal("late old-scope operation reached replacement resources")
+	}
+	if current, _ := connection.Session(); current != second {
+		t.Fatal("late rotation replaced the current session")
+	}
 }
 
 func TestLocalAppSessionExplicitInvalidationKeepsHostButRejectsResources(t *testing.T) {

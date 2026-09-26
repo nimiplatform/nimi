@@ -63,8 +63,8 @@ describe('Agent Realtime public entry', () => {
 
   it('lists minimal references and requires explicit handle selection without reusing an unrelated anchor', async () => {
     const client = formalClient(async () => [
-      { agentHandle: HANDLE_A, displayName: 'Same name', avatarUrl: null },
-      { agentHandle: HANDLE_B, displayName: 'Same name', avatarUrl: null },
+      { agentHandle: HANDLE_A, agentBinding: `agent_binding_${'A'.repeat(43)}`, activityAgentRef: 'agr_A', displayName: 'Same name', avatarUrl: null },
+      { agentHandle: HANDLE_B, agentBinding: `agent_binding_${'B'.repeat(43)}`, activityAgentRef: 'agr_B', displayName: 'Same name', avatarUrl: null },
     ]);
     const node = await renderEntry({
       client,
@@ -98,7 +98,7 @@ describe('Agent Realtime public entry', () => {
 
   it('reloads current references after a session fails and requires a new explicit selection for a rotated handle', async () => {
     const client = formalClient(async () => [
-      { agentHandle: HANDLE_A, displayName: 'Agent A', avatarUrl: null },
+      { agentHandle: HANDLE_A, agentBinding: `agent_binding_${'A'.repeat(43)}`, activityAgentRef: 'agr_A', displayName: 'Agent A', avatarUrl: null },
     ]);
     const node = await renderEntry({
       client, initialAgentHandle: HANDLE_A, conversationAnchorId: 'old-anchor',
@@ -112,7 +112,7 @@ describe('Agent Realtime public entry', () => {
     expect((node.querySelector('textarea') as HTMLTextAreaElement).disabled).toBe(true);
 
     vi.mocked(client.agents.listReferences).mockResolvedValueOnce([
-      { agentHandle: HANDLE_B, displayName: 'Agent A', avatarUrl: null },
+      { agentHandle: HANDLE_B, agentBinding: `agent_binding_${'B'.repeat(43)}`, activityAgentRef: 'agr_B', displayName: 'Agent A', avatarUrl: null },
     ]);
     const retry = button('Retry');
     expect(retry).toBeTruthy();
@@ -131,7 +131,7 @@ describe('Agent Realtime public entry', () => {
 
   it('validates a supplied current handle through the reference list and preserves its exact anchor', async () => {
     const client = formalClient(async () => [
-      { agentHandle: HANDLE_A, displayName: 'Agent A', avatarUrl: null },
+      { agentHandle: HANDLE_A, agentBinding: `agent_binding_${'A'.repeat(43)}`, activityAgentRef: 'agr_A', displayName: 'Agent A', avatarUrl: null },
     ]);
     const node = await renderEntry({
       client,

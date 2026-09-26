@@ -668,6 +668,9 @@ export function registerNimiElectronRuntimeBridge(
       : {}),
     ...(desktopControlHost && desktopFormalHostOwner
       ? {
+          resolveDesktopAgentReference: (request: Readonly<{ localAgentRef: string }>) => (
+            desktopFormalHostOwner.resolveDesktopAgentReference(request)
+          ),
           resolveAppActivityOpenLaunch: (openRequestId: string) => (
             desktopFormalHostOwner.resolveAppActivityOpenLaunch(openRequestId)
           ),

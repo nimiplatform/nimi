@@ -12,13 +12,17 @@ and fail closed; publishing a D2 artifact does not change that service boundary.
 
 The addon exposes exact Local App operations, including:
 
-- session status and renewal;
+- session status, same-scope renewal, and explicit Host-private rebind;
 - App AIConfig reads and revision-checked configuration;
 - narrow text candidate generation, and model turns with tools, structured
   output, ordered continuity and user image parts;
 - Realm world-core list and create;
 - App storage read, write, and remove;
-- session-scoped Agent reference listing; and
+- session-scoped Agent reference listing;
+- independent `agentWork` references, bounded execution, status, result,
+  ordered events and single tool-result handoff without Conversation access;
+- fixed Integration discovery, call, provider and trusted-management operations;
+  provider polls have a 25-second maximum and never become a workflow owner; and
 - typed Conversation open, send, attachments, interrupt, snapshot, and stream lifecycle;
 - App-owned Artifact upload and reads;
 - bounded `agent.local` embodiment snapshot and ordered stream lifecycle;

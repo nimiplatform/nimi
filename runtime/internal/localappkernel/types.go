@@ -157,6 +157,15 @@ type RegistrationStatus struct {
 	Available            bool
 }
 
+// RegistrationDescription contains canonical display facts only. It does not
+// establish current-host binding, lifecycle availability or App Access.
+type RegistrationDescription struct {
+	AppID       string
+	DisplayName string
+	SourceClass SourceClass
+	Platform    bool
+}
+
 type SecurityKeys struct {
 	StoragePartitionKey string
 	AudienceKey         string

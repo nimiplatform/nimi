@@ -129,3 +129,26 @@ test('agent submit outcome keeps submitted composer text and syncs selection fro
     message: 'Generation stopped.',
   });
 });
+
+test('invalid model output preserves the selected partner, canonical anchor and earlier history', () => {
+  const existing = sampleBundle();
+  const failure = { code: 'AI_OUTPUT_INVALID', message: 'unsupported APML top-level tag <activity>' };
+  const outcome = resolveInterruptedAgentSubmitOutcome({
+    optimisticBundle: existing, refreshedBundle: null, fallbackThread: existing.thread,
+    assistantMessageId: 'failed-assistant',
+    assistantPlaceholder: createAgentTextMessage({
+      id: 'failed-assistant', threadId: existing.thread.id, role: 'assistant', status: 'pending',
+      contentText: '', parentMessageId: 'draft-user', createdAtMs: 200, updatedAtMs: 200,
+    }),
+    partialText: '', partialReasoningText: '', runtimeError: failure, traceId: 'failed-turn',
+    submittedText: 'Keep this input with my selected partner', updatedAtMs: 210,
+  });
+  assert.deepEqual(outcome.selection, {
+    agentHandle: existing.thread.targetSnapshot.agentHandle,
+    conversationAnchorId: existing.thread.targetSnapshot.conversationAnchorId,
+    targetId: existing.thread.targetSnapshot.agentHandle,
+  });
+  assert.deepEqual(outcome.bundle.messages.slice(0, existing.messages.length), existing.messages);
+  assert.deepEqual(outcome.bundle.messages.at(-1)?.error, failure);
+  assert.equal(outcome.composerText, 'Keep this input with my selected partner');
+});

@@ -61,9 +61,9 @@ test('Desktop remints an active Agent target only through its durable Conversati
     agents: {
       async listReferences() {
         return [
-          { agentHandle: firstCurrentHandle, agentBinding: firstCurrentHandle.replace('agent_ref_', 'agent_binding_'), displayName: 'Other Agent', avatarUrl: null },
+          { agentHandle: firstCurrentHandle, activityAgentRef: 'agr_test', agentBinding: firstCurrentHandle.replace('agent_ref_', 'agent_binding_'), displayName: 'Other Agent', avatarUrl: null },
           {
-            agentHandle: matchingCurrentHandle, agentBinding: matchingCurrentHandle.replace('agent_ref_', 'agent_binding_'),
+            agentHandle: matchingCurrentHandle, activityAgentRef: 'agr_test', agentBinding: matchingCurrentHandle.replace('agent_ref_', 'agent_binding_'),
             displayName: 'Current Agent',
             avatarUrl: 'https://cdn.nimi.example/current.webp',
           },
@@ -104,7 +104,7 @@ test('Desktop does not reinterpret an ordinary access denial as a rotated handle
   const clients: DesktopAgentSessionRebindClients = {
     agents: {
       async listReferences() {
-        return [{ agentHandle: staleHandle, agentBinding: staleHandle.replace('agent_ref_', 'agent_binding_'), displayName: 'Current Agent', avatarUrl: null }];
+        return [{ agentHandle: staleHandle, activityAgentRef: 'agr_test', agentBinding: staleHandle.replace('agent_ref_', 'agent_binding_'), displayName: 'Current Agent', avatarUrl: null }];
       },
     },
     conversation: {
@@ -135,7 +135,7 @@ test('Desktop makes no rebind decision when a candidate probe has a non-identity
     const clients: DesktopAgentSessionRebindClients = {
       agents: {
         async listReferences() {
-          return [{ agentHandle: matchingCurrentHandle, agentBinding: matchingCurrentHandle.replace('agent_ref_', 'agent_binding_'), displayName: 'Current Agent', avatarUrl: null }];
+          return [{ agentHandle: matchingCurrentHandle, activityAgentRef: 'agr_test', agentBinding: matchingCurrentHandle.replace('agent_ref_', 'agent_binding_'), displayName: 'Current Agent', avatarUrl: null }];
         },
       },
       conversation: {

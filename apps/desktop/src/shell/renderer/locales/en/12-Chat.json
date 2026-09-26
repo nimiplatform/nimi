@@ -1,4 +1,16 @@
 {
+  "appReferences": {
+    "title": "App messages for this partner",
+    "loading": "Loading App messages…",
+    "unavailable": "App messages are unavailable.",
+    "incomplete": "Showing the messages loaded so far.",
+    "open": "View in source App",
+    "opening": "Opening…",
+    "openFailed": "The source App or object could not be opened. Try again later.",
+    "retry": "Retry",
+    "more": "More App messages"
+  },
+  "agentBusyRetry": "This partner is busy with another request. Your input is saved here; try sending again shortly.",
   "title": "Chat",
   "mode": {
     "ai": "AI",

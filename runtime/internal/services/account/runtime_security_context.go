@@ -20,6 +20,7 @@ func (s *Service) AuthenticatedRuntimeSecurityContext(ctx context.Context) (*run
 // BindAuthenticatedRuntimeGeneration atomically captures the Runtime-owned
 // account identity, generation, and its central invalidation signal. Protected
 // streams bind to the signal instead of polling account state.
+// @nimi-authority: rule.nimi.runtime.protected-session.r031
 func (s *Service) BindAuthenticatedRuntimeGeneration(context.Context) (*runtimev1.AccountProjection, uint64, <-chan struct{}, bool) {
 	if s == nil || !s.isActivated() {
 		return nil, 0, nil, false
@@ -27,13 +28,20 @@ func (s *Service) BindAuthenticatedRuntimeGeneration(context.Context) (*runtimev
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED && s.accountMaterialExpiredLocked() {
+	// Refresh is a credential transaction, not an identity replacement. Keep
+	// only a previously authenticated, still-unexpired generation available
+	// while it runs (or safely waits before dispatch). Cold expired custody and
+	// every already-invalidated generation remain unavailable.
+	liveState := s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED ||
+		s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REFRESH_PENDING
+	if liveState && s.authenticatedRuntimeIdentity && s.accountMaterialExpiredLocked() {
 		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED
 		s.invalidateAuthenticatedRuntimeIdentityLocked()
+		liveState = false
 	}
 	generation := s.accountGeneration
 	invalidated := s.accountGenerationInvalidated
-	if s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED ||
+	if !liveState ||
 		!s.authenticatedRuntimeIdentity || generation == 0 || invalidated == nil {
 		return nil, generation, invalidated, false
 	}
@@ -54,6 +62,12 @@ func (s *Service) installAuthenticatedRuntimeIdentityLocked(material AccountMate
 	if accountID == "" || realmEnvironmentID == "" {
 		s.clearAuthenticatedRuntimeIdentityLocked()
 		return false
+	}
+	// A refresh may finish after the prior authorization expired while no App
+	// was polling. Install the new material without carrying that expired fence
+	// across the gap; the replacement still follows the existing generation path.
+	if s.authenticatedRuntimeIdentity && s.accountMaterialExpiredLocked() {
+		s.invalidateAuthenticatedRuntimeIdentityLocked()
 	}
 
 	sameIdentity := s.authenticatedRuntimeIdentity &&

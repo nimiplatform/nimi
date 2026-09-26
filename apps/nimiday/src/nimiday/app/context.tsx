@@ -1,4 +1,5 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { invoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import { useNimiTheme } from '@nimiplatform/kit/ui';
 import type { Language } from '../domain/types.js';
 import { copyFor, resolveLanguage, type Copy } from '../i18n/index.js';
@@ -16,7 +17,7 @@ const NAV_STORAGE_KEY = 'nimiday.view.v1';
 function initialNav(): NavTarget {
   try {
     const stored = globalThis.localStorage?.getItem(NAV_STORAGE_KEY);
-    if (stored === 'care' || stored === 'items' || stored === 'routines' || stored === 'assistant' || stored === 'settings') return { view: stored };
+    if (stored === 'care' || stored === 'items' || stored === 'routines' || stored === 'assistant' || stored === 'settings' || stored === 'followups') return { view: stored };
   } catch {
     // Remembering the last page is a convenience only.
   }
@@ -45,7 +46,7 @@ export function NimiDayProvider({ children }: { readonly children: ReactNode }) 
     let languageRef: Language = resolveLanguage('auto');
     const store = createDayStore(runtimeDocumentStore(client.storage), { language: () => languageRef });
     const actions = dayActions(store);
-    const desk = createAgentDesk(client);
+    const desk = createAgentDesk(client, { history: () => store.getSnapshot().state.runs });
     const activity = createActivityBridge(client.activity);
     const engine = createDayEngine({
       store,
@@ -72,10 +73,12 @@ export function NimiDayProvider({ children }: { readonly children: ReactNode }) 
 
   useEffect(() => {
     void services.store.load();
+    const navigationTimer = setInterval(() => { void invoke('nimiday.navigation.take').then(value => { if (value) navigateRef.current(value as NavTarget); }).catch(() => {}); }, 1000);
     const flush = () => { void services.store.flush(); };
     globalThis.addEventListener?.('pagehide', flush);
     return () => {
       globalThis.removeEventListener?.('pagehide', flush);
+      clearInterval(navigationTimer);
     };
   }, [services]);
 

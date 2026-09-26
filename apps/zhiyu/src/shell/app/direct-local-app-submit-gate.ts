@@ -27,7 +27,7 @@ export function isZhiyuRecoverableTerminalTurn(
     && evidence.turn.reasonCode === 'runtime-agent-chat-user-canceled'
     && Boolean(evidence.chat.requestId)
     && evidence.chat.requestId === evidence.turn.requestId;
-  return runtimeTerminal || callerCanceled;
+  return runtimeTerminal || callerCanceled || isZhiyuAgentBusyReason(evidence.chat.reasonCode);
 }
 
 export async function refreshZhiyuDirectLocalAppSubmitGate(input: {
@@ -43,4 +43,8 @@ export async function refreshZhiyuDirectLocalAppSubmitGate(input: {
     inventory,
     turn: input.projectTurnReadiness(input.conversation, inventory),
   };
+}
+
+export function isZhiyuAgentBusyReason(reasonCode: unknown): boolean {
+  return reasonCode === 'AGENT_BUSY' || reasonCode === 'agent-busy';
 }

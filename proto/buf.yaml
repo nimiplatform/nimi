@@ -18,6 +18,8 @@ lint:
       - runtime/v1/ai_scheduling.proto
       - runtime/v1/app.proto
       - runtime/v1/app_activity.proto
+      - runtime/v1/integration.proto
+      - runtime/v1/agent_work.proto
       - runtime/v1/capability_configuration.proto
       - runtime/v1/agent_service.proto
       - runtime/v1/artifact_service.proto

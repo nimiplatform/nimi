@@ -7,4 +7,6 @@ app_access:
   - agent.local
   - agent.configure
   - app.activity
+  - integration.consume
+  - integration.manage
 disposition: first_party_host_with_formal_app_self

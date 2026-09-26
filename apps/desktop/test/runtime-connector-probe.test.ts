@@ -117,7 +117,10 @@ function installRuntimeConnectorProbeDesktopSession(): void {
     runtimeTransport: { type: 'electron-ipc' },
     runtimeClients: {
       machineProduct: { connectors: runtime.connectors },
-      accountProduct: { connectors: runtime.connectors },
+      accountProduct: {
+        connectors: runtime.connectors,
+        agents: { resolveDesktopAgentReference: () => assert.fail('private Agent resolver must not be called') },
+      },
     },
     localAppClient: {},
     accountRuntime: {},
@@ -804,6 +807,7 @@ test('desktop renderer account product projection does not expose raw connector 
   const restoreElectron = installElectronRuntime(calls);
   try {
     assert.equal(Object.hasOwn(getDesktopAccountProductClient(), 'connectors'), false);
+    assert.equal(Object.hasOwn(getDesktopAccountProductClient().agents, 'resolveDesktopAgentReference'), false);
     assert.equal(calls.length, 0);
   } finally {
     restoreElectron();

@@ -8,6 +8,7 @@ import { useAppStore } from '../../app-shell/providers/app-store';
 import { useAgentConversationModeHost } from './chat-agent-shell-adapter';
 import { ChatAgentSceneBackground } from './chat-agent-scene-background';
 import { ChatCanonicalModeFrame } from './chat-canonical-mode-frame';
+import { ChatAgentActivityReferences } from './chat-agent-activity-references.js';
 
 export type ChatAgentModeContentProps = {
   allTargets: readonly ConversationTargetSummary[];
@@ -129,6 +130,13 @@ export function ChatAgentModeContent({
       className="relative"
       sceneBackground={sceneBackground}
       settingsSheetBare
+      transcriptPropsOverride={{
+        ...host.transcriptProps,
+        footerContent: <>
+          {host.transcriptProps?.footerContent}
+          <ChatAgentActivityReferences agentHandle={agentConversationSelection.agentHandle} />
+        </>,
+      }}
     />
   );
 }

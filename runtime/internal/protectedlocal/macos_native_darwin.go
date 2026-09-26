@@ -233,6 +233,15 @@ static int nimi_macos_code_for_process(uint32_t pid, const audit_token_t *token,
     return status == errSecSuccess && *output != NULL ? 0 : (int)status;
 }
 
+static int nimi_macos_revalidate_audit_process(const nimi_macos_audit_identity *audit) {
+    if (audit == NULL || audit->pidversion == 0) return EINVAL;
+    SecCodeRef code = NULL;
+    int result = nimi_macos_code_for_process(audit->pid, &audit->token, &code);
+    if (code == NULL) return result != 0 ? result : EACCES;
+    CFRelease(code);
+    return result;
+}
+
 static int nimi_macos_verify_code(uint32_t pid, const nimi_macos_audit_identity *audit,
                                   const char *expected_requirement,
                                   const char *expected_team,
@@ -594,6 +603,13 @@ func revalidateMacOSGraphicSession(euid, auditSession uint32) error {
 		return fmt.Errorf("revalidate macOS graphic login session: native status %d", int(result))
 	}
 	return nil
+}
+
+func revalidateMacOSAuditProcess(audit macOSAuditIdentity) error {
+	if result := C.nimi_macos_revalidate_audit_process(&audit.native); result != 0 {
+		return fmt.Errorf("revalidate exact macOS audit process: native status %d", int(result))
+	}
+	return revalidateMacOSGraphicSession(audit.euid, audit.auditSession)
 }
 
 func inspectMacOSProcess(pid uint32) (macOSProcessSnapshot, error) {

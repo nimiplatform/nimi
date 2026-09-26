@@ -1,0 +1,160 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "google/protobuf/timestamp.proto";
+
+// Integration operations are provider-defined business operations. They never
+// extend the fixed protected App operation contract or AI capability catalog.
+message IntegrationOperation {
+  string name = 1;
+  string description = 2;
+  string input_schema_json = 3;
+  string output_schema_json = 4;
+  // "read" or "write"; absence and unknown values are rejected.
+  string effect = 5;
+  bool supports_cancel = 6;
+  // "none" or "safe". Protocol/tool annotations alone do not establish safety.
+  string retry_policy = 7;
+}
+
+message IntegrationTarget {
+  string target_ref = 1;
+  string integration_id = 2;
+  string display_name = 3;
+  string account_label = 4;
+  // "mcp", "telegram", or "app".
+  string kind = 5;
+  bool available = 6;
+  repeated IntegrationOperation operations = 7;
+  string skill = 8;
+  repeated string permitted_operations = 9;
+}
+
+message IntegrationPermission {
+  string consumer_ref = 1;
+  string target_ref = 2;
+  repeated string operations = 3;
+  // Management display from the registration owner. It does not make an
+  // unavailable consumer eligible for a new grant and is not caller input.
+  IntegrationConsumer consumer = 4;
+}
+
+message IntegrationConsumer {
+  string consumer_ref = 1;
+  string app_id = 2;
+  string display_name = 3;
+  // Display-only: development, installed, platform, or unknown.
+  string source_kind = 4;
+}
+
+message IntegrationCall {
+  string call_id = 1;
+  string target_ref = 2;
+  string operation = 3;
+  // accepted, completed, failed, canceled, or unconfirmed.
+  string status = 4;
+  // Only present to the exact invoking live scope; ordinary call facts omit it.
+  string result_json = 5;
+  string error_code = 6;
+  string consumer_display_name = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+  // Display facts captured at admission, retained if the target is removed.
+  string target_display_name = 10;
+  string account_label = 11;
+}
+
+message ListIntegrationCatalogRequest {}
+message ListIntegrationCatalogResponse { repeated IntegrationTarget targets = 1; }
+message ListIntegrationConnectionsRequest {}
+message ListIntegrationConnectionsResponse { repeated IntegrationTarget connections = 1; }
+message InvokeIntegrationCallRequest {
+  string target_ref = 1;
+  string operation = 2;
+  string input_json = 3;
+}
+message InvokeIntegrationCallResponse { IntegrationCall call = 1; }
+message GetIntegrationCallRequest { string call_id = 1; }
+message GetIntegrationCallResponse { IntegrationCall call = 1; }
+message ListIntegrationCallsRequest { uint32 limit = 1; }
+message ListIntegrationCallsResponse { repeated IntegrationCall calls = 1; }
+message CancelIntegrationCallRequest { string call_id = 1; }
+message CancelIntegrationCallResponse { IntegrationCall call = 1; }
+
+message RegisterIntegrationProviderRequest {
+  string integration_id = 1;
+  string display_name = 2;
+  repeated IntegrationOperation operations = 3;
+  string skill = 4;
+}
+message RegisterIntegrationProviderResponse { IntegrationTarget target = 1; }
+message UnregisterIntegrationProviderRequest { string target_ref = 1; }
+message UnregisterIntegrationProviderResponse { bool removed = 1; }
+message PollIntegrationProviderRequest { uint32 wait_ms = 1; }
+message IntegrationProviderCall {
+  string call_id = 1;
+  string target_ref = 2;
+  string operation = 3;
+  string input_json = 4;
+  string consumer_display_name = 5;
+}
+message PollIntegrationProviderResponse {
+  repeated IntegrationProviderCall calls = 1;
+  repeated string canceled_call_ids = 2;
+}
+message CompleteIntegrationProviderRequest {
+  string call_id = 1;
+  string result_json = 2;
+  string error_code = 3;
+}
+message CompleteIntegrationProviderResponse { bool accepted = 1; }
+
+// Home management has its own protected mapping and trusted-owner check.
+// Consumer declaration coverage cannot grant management or approve itself.
+message GetIntegrationManagementRequest {}
+message GetIntegrationManagementResponse {
+  repeated IntegrationTarget targets = 1;
+  repeated IntegrationPermission permissions = 2;
+  repeated IntegrationConsumer consumers = 3;
+  repeated IntegrationCall calls = 4;
+}
+message PutIntegrationConnectionRequest {
+  // Empty creates a new connection. Updates retain only an identical target.
+  string target_ref = 1;
+  string adapter = 2;
+  string endpoint = 3;
+  string display_name = 4;
+  string account_label = 5;
+  // Write-only credential sent only from trusted Home into Runtime custody.
+  string secret = 6;
+}
+message PutIntegrationConnectionResponse { IntegrationTarget connection = 1; }
+message RemoveIntegrationConnectionRequest { string target_ref = 1; }
+message RemoveIntegrationConnectionResponse { bool removed = 1; }
+message SetIntegrationPermissionRequest {
+  string consumer_ref = 1;
+  string target_ref = 2;
+  // Empty revokes this consumer only. Names are exact, never wildcard grants.
+  repeated string operations = 3;
+}
+message SetIntegrationPermissionResponse { IntegrationPermission permission = 1; }
+
+service RuntimeIntegrationService {
+  rpc ListIntegrationCatalog(ListIntegrationCatalogRequest) returns (ListIntegrationCatalogResponse);
+  rpc ListIntegrationConnections(ListIntegrationConnectionsRequest) returns (ListIntegrationConnectionsResponse);
+  rpc InvokeIntegrationCall(InvokeIntegrationCallRequest) returns (InvokeIntegrationCallResponse);
+  rpc GetIntegrationCall(GetIntegrationCallRequest) returns (GetIntegrationCallResponse);
+  rpc ListIntegrationCalls(ListIntegrationCallsRequest) returns (ListIntegrationCallsResponse);
+  rpc CancelIntegrationCall(CancelIntegrationCallRequest) returns (CancelIntegrationCallResponse);
+  rpc RegisterIntegrationProvider(RegisterIntegrationProviderRequest) returns (RegisterIntegrationProviderResponse);
+  rpc UnregisterIntegrationProvider(UnregisterIntegrationProviderRequest) returns (UnregisterIntegrationProviderResponse);
+  rpc PollIntegrationProvider(PollIntegrationProviderRequest) returns (PollIntegrationProviderResponse);
+  rpc CompleteIntegrationProvider(CompleteIntegrationProviderRequest) returns (CompleteIntegrationProviderResponse);
+  rpc GetIntegrationManagement(GetIntegrationManagementRequest) returns (GetIntegrationManagementResponse);
+  rpc PutIntegrationConnection(PutIntegrationConnectionRequest) returns (PutIntegrationConnectionResponse);
+  rpc RemoveIntegrationConnection(RemoveIntegrationConnectionRequest) returns (RemoveIntegrationConnectionResponse);
+  rpc SetIntegrationPermission(SetIntegrationPermissionRequest) returns (SetIntegrationPermissionResponse);
+}

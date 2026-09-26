@@ -1,4 +1,4 @@
-import { validateNimiLocalAppConversationWork } from '@nimiplatform/kit/core/sdk-contract';
+import { validateNimiLocalAppAgentWorkStart, validateNimiLocalAppAgentWorkScope, validateNimiLocalAppAgentWorkToolResult, validateNimiLocalAppAgentWorkSubscribe, validateNimiLocalAppIntegrationInput, type NimiLocalAppIntegrationMethod } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppMusicGenerateSpec, validateNimiLocalAppMusicTranscribeSpec, validateNimiLocalAppVoiceConvertSpec } from '@nimiplatform/kit/core/sdk-contract';
 import { Buffer } from 'node:buffer';
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
@@ -119,11 +119,32 @@ const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmRealtimeAck'], 'realmRealtimeAck'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmRealtimeSubscriptionClose'], 'realmRealtimeSubscriptionClose'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.realmRealtimeChannelClose'], 'realmRealtimeChannelClose'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentIntroductionGet'], 'agentIntroductionGet'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentReferenceList'], 'agentReferenceList'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentWorkReferenceList'], 'agentWorkReferenceList'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentWorkStart'], 'agentWorkStart'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentWorkGet'], 'agentWorkGet'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentWorkStatus'], 'agentWorkStatus'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentWorkToolCallsList'], 'agentWorkToolCallsList'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentWorkToolResultSubmit'], 'agentWorkToolResultSubmit'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentWorkCancel'], 'agentWorkCancel'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentWorkSubscribe'], 'agentWorkSubscribe'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationListCatalog'], 'integrationListCatalog'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationListConnections'], 'integrationListConnections'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationInvoke'], 'integrationInvoke'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationGetCall'], 'integrationGetCall'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationListCalls'], 'integrationListCalls'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationCancelCall'], 'integrationCancelCall'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationRegisterProvider'], 'integrationRegisterProvider'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationUnregisterProvider'], 'integrationUnregisterProvider'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationPollProvider'], 'integrationPollProvider'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationCompleteProvider'], 'integrationCompleteProvider'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationGetManagement'], 'integrationGetManagement'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationPutConnection'], 'integrationPutConnection'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationRemoveConnection'], 'integrationRemoveConnection'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationSetPermission'], 'integrationSetPermission'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationOpen'], 'conversationOpen'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSendTurn'], 'conversationSendTurn'],
-  [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationToolCallsList'], 'conversationToolCallsList'],
-  [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationToolResultSubmit'], 'conversationToolResultSubmit'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationAttachmentUpload'], 'conversationAttachmentUpload'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationArtifactRead'], 'conversationArtifactRead'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationVoiceTranscribe'], 'conversationVoiceTranscribe'],
@@ -197,10 +218,11 @@ export function isElectronLocalAppScenarioExecute(command: string): boolean {
   return COMMAND_METHODS.get(command) === 'scenarioExecute';
 }
 
-/** True for a renderer pull that waits on an App activity subscription. */
+/** Waits must leave the exclusive root gate free for cancellation and invalidation. */
 export function isElectronLocalAppPullWait(command: string, payload: Readonly<Record<string, unknown>>): boolean {
   const method = COMMAND_METHODS.get(command);
-  return (method === 'activitySubscribe' || method === 'activityOpenDeliveriesSubscribe') && payload.action === 'next';
+  return method === 'integrationPollProvider'
+    || ((method === 'activitySubscribe' || method === 'activityOpenDeliveriesSubscribe' || method === 'agentWorkSubscribe') && payload.action === 'next');
 }
 
 export async function dispatchElectronLocalAppCommand(input: {
@@ -215,8 +237,14 @@ export async function dispatchElectronLocalAppCommand(input: {
 }): Promise<unknown> {
   const method = COMMAND_METHODS.get(input.command);
   if (!method) throw invalidPayload(input.command, 'unknown local-app operation');
-  assertNoForbiddenAuthority(input.payload, input.command);
-  const payload = validatePayload(method, input.payload, input.command);
+  if (method === 'integrationPutConnection') { const { endpoint: _endpoint, secret: _secret, ...scope } = input.payload; assertNoForbiddenAuthority(scope, input.command); }
+  else assertNoForbiddenAuthority(input.payload, input.command);
+  let payload: NimiElectronLocalAppRecord;
+  try { payload = validatePayload(method, input.payload, input.command); }
+  catch (error) {
+    if (error instanceof NimiElectronShellHostError) throw error;
+    throw invalidPayload(input.command, 'local-app input violates its typed contract');
+  }
   if (!input.host) throw carrierRequired(input.command);
   try {
     if (method === 'sessionStatus') return await input.host.sessionStatus();
@@ -320,7 +348,7 @@ export async function dispatchElectronLocalAppCommand(input: {
       streams.set(subscriptionId, kind);
       return { subscriptionId };
     }
-    if (method === 'embodimentSubscribe') {
+    if (method === 'embodimentSubscribe' || method === 'agentWorkSubscribe') {
       if (payload.action === 'cancel') {
         const subscriptionId = String(payload.subscriptionId);
         activeRealtimeStreams(input.host).delete(subscriptionId);
@@ -333,7 +361,7 @@ export async function dispatchElectronLocalAppCommand(input: {
         if (result.completed === true) activeRealtimeStreams(input.host).delete(subscriptionId);
         return { subscriptionId, ...result };
       }
-      const opened = await input.host.embodimentSubscribe(payload);
+      const opened = method === 'agentWorkSubscribe' ? await input.host.agentWorkSubscribe(payload) : await input.host.embodimentSubscribe(payload);
       const subscriptionId = String(opened.streamId);
       activeRealtimeStreams(input.host).add(subscriptionId);
       return { subscriptionId };
@@ -637,24 +665,41 @@ function validatePayload(
     }
     case 'realmPersonaCharacterDelete':
       return identifiers(payload, ['personaCharacterId'], command);
+    case 'agentWorkReferenceList':
+      assertExactKeys(payload, [], command); return {};
+    case 'agentWorkStart': return validateNimiLocalAppAgentWorkStart(payload as never) as unknown as NimiElectronLocalAppRecord;
+    case 'agentWorkGet': case 'agentWorkToolCallsList': case 'agentWorkCancel':
+      return validateNimiLocalAppAgentWorkScope(payload as never) as unknown as NimiElectronLocalAppRecord;
+    case 'agentWorkStatus': return identifiers(payload, ['agentHandle'], command);
+    case 'agentWorkToolResultSubmit': return validateNimiLocalAppAgentWorkToolResult(payload as never) as unknown as NimiElectronLocalAppRecord;
+    case 'agentWorkSubscribe':
+      if (payload.action === 'next' || payload.action === 'cancel') {
+        assertExactKeys(payload, ['action', 'subscriptionId'], command);
+        return { action: payload.action, subscriptionId: requiredText(payload.subscriptionId, 'subscriptionId', command, MAX_IDENTIFIER_LENGTH) };
+      }
+      return validateNimiLocalAppAgentWorkSubscribe(payload as never) as unknown as NimiElectronLocalAppRecord;
+    case 'integrationListCatalog': return validateNimiLocalAppIntegrationInput('listCatalog', payload) as NimiElectronLocalAppRecord;
+    case 'integrationListConnections': return validateNimiLocalAppIntegrationInput('listConnections', payload) as NimiElectronLocalAppRecord;
+    case 'integrationInvoke': return validateNimiLocalAppIntegrationInput('invoke', payload) as NimiElectronLocalAppRecord;
+    case 'integrationGetCall': return validateNimiLocalAppIntegrationInput('getCall', payload) as NimiElectronLocalAppRecord;
+    case 'integrationListCalls': return validateNimiLocalAppIntegrationInput('listCalls', payload) as NimiElectronLocalAppRecord;
+    case 'integrationCancelCall': return validateNimiLocalAppIntegrationInput('cancelCall', payload) as NimiElectronLocalAppRecord;
+    case 'integrationRegisterProvider': return validateNimiLocalAppIntegrationInput('registerProvider', payload) as NimiElectronLocalAppRecord;
+    case 'integrationUnregisterProvider': return validateNimiLocalAppIntegrationInput('unregisterProvider', payload) as NimiElectronLocalAppRecord;
+    case 'integrationPollProvider': return validateNimiLocalAppIntegrationInput('pollProvider', payload) as NimiElectronLocalAppRecord;
+    case 'integrationCompleteProvider': return validateNimiLocalAppIntegrationInput('completeProvider', payload) as NimiElectronLocalAppRecord;
+    case 'integrationGetManagement': return validateNimiLocalAppIntegrationInput('getManagement', payload) as NimiElectronLocalAppRecord;
+    case 'integrationPutConnection': return validateNimiLocalAppIntegrationInput('putConnection', payload) as NimiElectronLocalAppRecord;
+    case 'integrationRemoveConnection': return validateNimiLocalAppIntegrationInput('removeConnection', payload) as NimiElectronLocalAppRecord;
+    case 'integrationSetPermission': return validateNimiLocalAppIntegrationInput('setPermission', payload) as NimiElectronLocalAppRecord;
     case 'conversationOpen':
       return identifiers(payload, ['agentHandle'], command);
-    case 'conversationToolCallsList':
-      return identifiers(payload, ['agentHandle', 'conversationAnchorId', 'turnId'], command);
-    case 'conversationToolResultSubmit': {
-      assertExactKeys(payload, ['agentHandle', 'conversationAnchorId', 'turnId', 'callId', 'resultJson', 'isError'], command);
-      const resultJson = requiredUtf8Text(payload.resultJson, 'resultJson', command, 32768);
-      JSON.parse(resultJson);
-      if (typeof payload.isError !== 'boolean') throw invalidPayload(command, 'isError is invalid');
-      return { ...identifiers(payload, ['agentHandle', 'conversationAnchorId', 'turnId', 'callId'], command, new Set(), ['agentHandle', 'conversationAnchorId', 'turnId', 'callId', 'resultJson', 'isError']), resultJson, isError: payload.isError };
-    }
     case 'conversationSendTurn': {
-      assertAllowedKeys(payload, ['agentHandle', 'conversationAnchorId', 'requestId', 'parts', 'work'], ['agentHandle', 'conversationAnchorId', 'requestId', 'parts'], command);
+      assertAllowedKeys(payload, ['agentHandle', 'conversationAnchorId', 'requestId', 'parts'], ['agentHandle', 'conversationAnchorId', 'requestId', 'parts'], command);
       return {
         ...identifiers(payload, ['agentHandle', 'conversationAnchorId', 'requestId'], command,
-          new Set(), payload.work === undefined ? ['agentHandle', 'conversationAnchorId', 'requestId', 'parts'] : ['agentHandle', 'conversationAnchorId', 'requestId', 'parts', 'work']),
+          new Set(), ['agentHandle', 'conversationAnchorId', 'requestId', 'parts']),
         parts: conversationInputParts(payload.parts, command),
-        ...(payload.work === undefined ? {} : { work: validateNimiLocalAppConversationWork(payload.work) }),
       };
     }
     case 'conversationAttachmentUpload': {
@@ -867,6 +912,7 @@ function validatePayload(
           : { conversationAnchorId: requiredText(payload.conversationAnchorId, 'conversationAnchorId', command, MAX_IDENTIFIER_LENGTH) }),
       };
     }
+    case 'agentIntroductionGet':
     case 'agentAutonomySnapshot':
     case 'agentPresentationSnapshot':
       return identifiers(payload, ['agentHandle'], command);

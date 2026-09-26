@@ -147,6 +147,8 @@ type Service struct {
 	localAppAssetStore         *appstorage.AssetStore
 	localAppAssetStoreErr      error
 	localAppAssetPolicy        appstorage.AssetPolicy
+	localAppSessionRebindMu    sync.Mutex
+	localAppRebindVerifier     func(context.Context, *protectedlocal.LocalAppConnection, localAppRuntimeSession) (localappkernel.Registration, error)
 	localAppSessionMu          sync.RWMutex
 	localAppSessions           map[*protectedlocal.LocalAppConnection]localAppRuntimeSession
 	localAppSessionEntropy     io.Reader

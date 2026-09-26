@@ -5,6 +5,8 @@ import (
 	"math"
 	"sort"
 	"strings"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
 // agentChatSurfaceDeletionRollback is a shallow snapshot of the Runtime-owned
@@ -108,6 +110,12 @@ func (s *Service) fenceAgentChatExecutionForTerminationLocked(localAgentRef stri
 		}
 		cancels = append(cancels, followUp.Cancel)
 	}
+	for _, work := range s.localAppWorkExecutions {
+		if work.owner.identity.LocalAgentRef == ref && !localAppWorkTerminal(work.snapshot.State) {
+			s.terminalizeLocalAppWorkLocked(work, runtimev1.LocalAppAgentWorkState_LOCAL_APP_AGENT_WORK_STATE_CANCELLED, "", runtimev1.ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE)
+			cancels = append(cancels, work.cancel)
+		}
+	}
 	summaryJobs := s.detachAgentPublicChatConversationSummaryJobsLocked(ref)
 	s.chatSurfaceMu.Unlock()
 	return cancels, summaryJobs
@@ -148,6 +156,13 @@ func (s *Service) prepareAgentScopedChatSurfaceDeletionLocked(localAgentRef stri
 		delete(s.chatTurns, turnID)
 		changed = true
 	}
+	for id, work := range s.localAppWorkExecutions {
+		if work.owner.identity.LocalAgentRef == ref {
+			cancels = append(cancels, work.cancel)
+			delete(s.localAppWorkExecutions, id)
+		}
+	}
+	delete(s.localAppWorkActiveByAgent, ref)
 	for followUpID, followUp := range s.chatFollowUps {
 		if followUp == nil || strings.TrimSpace(followUp.AgentID) != ref {
 			continue

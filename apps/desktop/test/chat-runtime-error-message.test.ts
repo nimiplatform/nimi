@@ -23,3 +23,9 @@ test('Agent Chat does not parse internal capacity text into product truth', () =
   assert.equal(projected.message, 'Runtime call failed.');
   assert.doesNotMatch(projected.message, /required=|available=|source_identity/u);
 });
+
+test('Agent busy gives a bounded retry explanation without business detail', () => {
+  const projected = toChatUserFacingRuntimeError({ reasonCode: 'AGENT_BUSY', message: 'private business material' }, 'Agent response failed', i18n.t);
+  assert.match(projected.message, /input is saved.*try sending again/u);
+  assert.doesNotMatch(projected.message, /private business material/u);
+});

@@ -838,6 +838,13 @@ export interface GetInstalledAppRunAccessResponse {
      * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 2
      */
     reasonCode: ReasonCode;
+    /**
+     * Host-private, non-authorizing correlation for the current execution scope.
+     * Empty while pending or unavailable; routine renewal preserves it.
+     *
+     * @generated from protobuf field: string execution_scope_ref = 3
+     */
+    executionScopeRef: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.BindLocalAppProcessResponse
@@ -4797,13 +4804,15 @@ class GetInstalledAppRunAccessResponse$Type extends MessageType<GetInstalledAppR
     constructor() {
         super("nimi.runtime.v1.GetInstalledAppRunAccessResponse", [
             { no: 1, name: "available", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 2, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+            { no: 2, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 3, name: "execution_scope_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<GetInstalledAppRunAccessResponse>): GetInstalledAppRunAccessResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.available = false;
         message.reasonCode = 0;
+        message.executionScopeRef = "";
         if (value !== undefined)
             reflectionMergePartial<GetInstalledAppRunAccessResponse>(this, message, value);
         return message;
@@ -4818,6 +4827,9 @@ class GetInstalledAppRunAccessResponse$Type extends MessageType<GetInstalledAppR
                     break;
                 case /* nimi.runtime.v1.ReasonCode reason_code */ 2:
                     message.reasonCode = reader.int32();
+                    break;
+                case /* string execution_scope_ref */ 3:
+                    message.executionScopeRef = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -4837,6 +4849,9 @@ class GetInstalledAppRunAccessResponse$Type extends MessageType<GetInstalledAppR
         /* nimi.runtime.v1.ReasonCode reason_code = 2; */
         if (message.reasonCode !== 0)
             writer.tag(2, WireType.Varint).int32(message.reasonCode);
+        /* string execution_scope_ref = 3; */
+        if (message.executionScopeRef !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.executionScopeRef);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

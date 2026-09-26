@@ -10,7 +10,7 @@ import { AgentAvatar, Card, Chip, Hint, PageHead } from './common.js';
 import { SourceCoverageNote } from './source-row.js';
 import { useUi } from './ui-context.js';
 
-const APP_VERSION = '0.1.0';
+import appPackage from '../../../package.json';
 
 export function SettingsPage() {
   const { copy, actions, desk: deskApi } = useNimiDay();
@@ -188,7 +188,7 @@ export function SettingsPage() {
           <p className="nd-muted" style={{ margin: 0, fontSize: 13, lineHeight: 1.6 }}>{copy.settings.aboutRuntime}</p>
           <p className="nd-muted" style={{ margin: '8px 0 0', fontSize: 13, lineHeight: 1.6 }}>{copy.settings.aboutData}</p>
           <div className="nd-row-meta" style={{ marginTop: 10 }}>
-            <Chip>{copy.settings.version(APP_VERSION)}</Chip>
+            <Chip>{copy.settings.version(appPackage.version)}</Chip>
           </div>
         </Card>
       </div>

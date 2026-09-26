@@ -4,6 +4,7 @@ use tonic::transport::{Channel, Endpoint};
 
 use crate::generated::runtime_account_service_client::RuntimeAccountServiceClient;
 use crate::generated::runtime_agent_service_client::RuntimeAgentServiceClient;
+use crate::generated::runtime_integration_service_client::RuntimeIntegrationServiceClient;
 use crate::generated::runtime_ai_realtime_service_client::RuntimeAiRealtimeServiceClient;
 use crate::generated::runtime_ai_video_session_service_client::RuntimeAiVideoSessionServiceClient;
 use crate::generated::runtime_ai_service_client::RuntimeAiServiceClient;
@@ -49,6 +50,7 @@ macro_rules! limited_runtime_client {
 
 limited_runtime_client!(runtime_account_client, RuntimeAccountServiceClient);
 limited_runtime_client!(runtime_agent_client, RuntimeAgentServiceClient);
+limited_runtime_client!(runtime_integration_client, RuntimeIntegrationServiceClient);
 limited_runtime_client!(runtime_ai_client, RuntimeAiServiceClient);
 limited_runtime_client!(runtime_ai_realtime_client, RuntimeAiRealtimeServiceClient);
 limited_runtime_client!(runtime_ai_video_session_client, RuntimeAiVideoSessionServiceClient);

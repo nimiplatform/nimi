@@ -198,7 +198,7 @@ const TRADITIONAL_TO_SIMPLIFIED: Record<string, string> = {
   黃: '黄',
 };
 
-export function simplifySourceDetailChineseText(value: string): string {
+export function simplifyChineseDisplayText(value: string): string {
   const traditionalTextPattern = new RegExp(`[${Object.keys(TRADITIONAL_TO_SIMPLIFIED).join('')}]`, 'gu');
   return value.replace(
     traditionalTextPattern,

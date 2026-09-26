@@ -62,6 +62,11 @@ func TestLocalAppSessionRequestsRejectCallerAssertions(t *testing.T) {
 	if _, err := (&Service{}).RenewLocalAppSession(context.Background(), renew); localAppSessionTestReason(err) != runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED {
 		t.Fatalf("renew caller assertion error = %v", err)
 	}
+	rebind := &runtimev1.RebindLocalAppSessionRequest{}
+	rebind.ProtoReflect().SetUnknown([]byte{0x0a, 0x01, 'x'})
+	if _, err := (&Service{}).RebindLocalAppSession(context.Background(), rebind); localAppSessionTestReason(err) != runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED {
+		t.Fatalf("rebind caller assertion error = %v", err)
+	}
 }
 
 func TestLocalAppSessionResultAndErrorArePostureOnly(t *testing.T) {

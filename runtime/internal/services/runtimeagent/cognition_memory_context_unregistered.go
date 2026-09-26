@@ -27,17 +27,20 @@ func publicChatPreTurnMemoryQuery(messages []publicChatMessagePayload) string {
 }
 
 func (r publicChatRuntime) loadPublicChatCognitionMemoryInputs(ctx context.Context, session publicChatAnchorState, req publicChatTurnRequestPayload) ([]agentTurnMemoryInput, error) {
-	if r.svc == nil || r.svc.cognitionMemoryFacade == nil {
+	if r.svc == nil {
 		return nil, nil
 	}
-	query := publicChatPreTurnMemoryQuery(req.Messages)
-	if strings.TrimSpace(query) == "" {
+	return r.svc.loadLocalAgentCognitionMemoryInputs(ctx, session.LocalAgentRef, publicChatPreTurnMemoryQuery(req.Messages))
+}
+
+func (s *Service) loadLocalAgentCognitionMemoryInputs(ctx context.Context, localAgentRef, query string) ([]agentTurnMemoryInput, error) {
+	if s == nil || s.cognitionMemoryFacade == nil || strings.TrimSpace(query) == "" {
 		return nil, nil
 	}
-	result, err := r.svc.cognitionMemoryFacade.Recall(ctx, cognitionmemory.RecallIntent{LocalAgentRef: session.LocalAgentRef, Query: query, Limit: publicChatPreTurnMemoryLimit})
+	result, err := s.cognitionMemoryFacade.Recall(ctx, cognitionmemory.RecallIntent{LocalAgentRef: localAgentRef, Query: query, Limit: publicChatPreTurnMemoryLimit})
 	if err != nil {
-		if r.svc.logger != nil {
-			r.svc.logger.Warn("optional Cognition Memory Recall unavailable", "local_agent_ref", session.LocalAgentRef, "outcome", result.Outcome, "error", err)
+		if s.logger != nil {
+			s.logger.Warn("optional Cognition Memory Recall unavailable", "local_agent_ref", localAgentRef, "outcome", result.Outcome, "error", err)
 		}
 		return nil, nil
 	}

@@ -345,6 +345,13 @@ pub struct LocalAppSessionStatus {
     pub current_user: LocalAppCurrentUserStatus,
 }
 
+/// Fresh local carrier view of the Runtime-validated scope on the same
+/// transport. The old view stays retired and cannot issue more business RPCs.
+pub struct LocalAppSessionRebind {
+    pub status: LocalAppSessionStatus,
+    pub session: Box<dyn NimiLocalAppSession>,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalAppTextCandidateMessage {
     pub role: String,
@@ -710,6 +717,7 @@ pub struct LocalAppPersonaCharacterDeleteRequest {
 pub struct LocalAppAgentReference {
     pub agent_handle: String,
     pub agent_binding: String,
+    pub activity_agent_ref: String,
     pub display_name: String,
     pub avatar_url: Option<String>,
 }
@@ -742,28 +750,12 @@ pub struct LocalAppConversationSendRequest {
     pub conversation_anchor_id: String,
     pub request_id: String,
     pub parts: Vec<LocalAppConversationInputPart>,
-    pub work: Option<JsonValue>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LocalAppConversationInputPart {
     Text(String),
     ArtifactRef(String),
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct LocalAppConversationToolScopeRequest {
-    pub agent_handle: String,
-    pub conversation_anchor_id: String,
-    pub turn_id: String,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct LocalAppConversationToolResultRequest {
-    pub scope: LocalAppConversationToolScopeRequest,
-    pub call_id: String,
-    pub result_json: String,
-    pub is_error: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -1494,6 +1486,24 @@ pub trait NimiDesktopControl: Send + Sync {
         Box<dyn Future<Output = Result<LocalDevelopmentLaunchOutcome, NimiHostError>> + Send + '_>,
     >;
 
+    fn local_development_run_access(
+        &self,
+        _request: crate::LocalDevelopmentRunAccessRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<crate::LocalDevelopmentRunAccess, NimiHostError>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(async {
+            Err(NimiHostError::new(
+                crate::NimiHostErrorReasonCode::LocalAppOperationUnavailable,
+                false,
+            ))
+        })
+    }
+
     fn local_development_host_running(
         &self,
         supervisor_run_id: [u8; 32],
@@ -1574,20 +1584,40 @@ pub trait NimiDesktopControl: Send + Sync {
 /// Connection-bound third-party Local App session. These exact typed methods
 /// are the complete public carrier surface for the 0K checkpoint.
 pub trait NimiLocalAppSession: Send + Sync {
+    /// Only an unbound initial transport may retry its bootstrap after login.
+    /// A session that has ever bound requires explicit Host rebind instead.
+    fn can_retry_initial_bootstrap(&self) -> bool {
+        false
+    }
     fn session_status(
         &self,
     ) -> Pin<
         Box<dyn Future<Output = Result<LocalAppSessionStatus, LocalAppOperationError>> + Send + '_>,
     >;
 
-    /// Rotates only the Runtime-private short-lived technical session on the
-    /// exact current protected host connection. No authority material is
-    /// returned to the caller.
+    /// Extends the same live Runtime-private technical scope on the exact
+    /// current protected host connection. It never installs a replacement.
     fn renew_technical_session(
         &self,
     ) -> Pin<
         Box<dyn Future<Output = Result<LocalAppSessionStatus, LocalAppOperationError>> + Send + '_>,
     >;
+
+    /// Explicit Host lifecycle rebind after old business resources are fenced.
+    /// The Runtime revalidates the still-verified Host; callers provide no
+    /// credential or selector and receive no authority material.
+    fn rebind_technical_session(
+        &self,
+    ) -> Pin<
+        Box<dyn Future<Output = Result<LocalAppSessionRebind, LocalAppOperationError>> + Send + '_>,
+    > {
+        Box::pin(async {
+            Err(LocalAppOperationError::new(
+                LocalAppReasonCode::OperationUnavailable,
+                false,
+            ))
+        })
+    }
 
     fn generate_text_candidate(
         &self,
@@ -1871,6 +1901,11 @@ pub trait NimiLocalAppSession: Send + Sync {
         Box<dyn Future<Output = Result<LocalAppAssetRecord, LocalAppOperationError>> + Send + '_>,
     >;
 
+    fn agent_introduction_get(
+        &self,
+        request: LocalAppAgentHandleRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
     fn agent_reference_list(
         &self,
     ) -> Pin<
@@ -1895,6 +1930,101 @@ pub trait NimiLocalAppSession: Send + Sync {
         >,
     >;
 
+    fn agent_work_reference_list(
+        &self,
+        request: JsonValue,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+    fn agent_work_start(
+        &self,
+        request: JsonValue,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+    fn agent_work_get(
+        &self,
+        request: JsonValue,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+    fn agent_work_status(
+        &self,
+        request: JsonValue,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+    fn agent_work_tool_calls_list(
+        &self,
+        request: JsonValue,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+    fn agent_work_tool_result_submit(
+        &self,
+        request: JsonValue,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+    fn agent_work_cancel(
+        &self,
+        request: JsonValue,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+    fn agent_work_subscribe(
+        &self,
+        request: JsonValue,
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<LocalAppRealtimeSubscriptionReceiver, LocalAppOperationError>,
+                > + Send
+                + '_,
+        >,
+    >;
+    fn integration_list_catalog(
+        &self,
+        request: JsonValue,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+    fn integration_list_connections(
+        &self,
+        request: JsonValue,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+    fn integration_invoke(
+        &self,
+        request: JsonValue,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+    fn integration_get_call(
+        &self,
+        request: JsonValue,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+    fn integration_list_calls(
+        &self,
+        request: JsonValue,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+    fn integration_cancel_call(
+        &self,
+        request: JsonValue,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+    fn integration_register_provider(
+        &self,
+        request: JsonValue,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+    fn integration_unregister_provider(
+        &self,
+        request: JsonValue,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+    fn integration_poll_provider(
+        &self,
+        request: JsonValue,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+    fn integration_complete_provider(
+        &self,
+        request: JsonValue,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+    fn integration_get_management(
+        &self,
+        request: JsonValue,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+    fn integration_put_connection(
+        &self,
+        request: JsonValue,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+    fn integration_remove_connection(
+        &self,
+        request: JsonValue,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+    fn integration_set_permission(
+        &self,
+        request: JsonValue,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
     fn conversation_open(
         &self,
         request: LocalAppConversationOpenRequest,
@@ -1916,10 +2046,6 @@ pub trait NimiLocalAppSession: Send + Sync {
                 + '_,
         >,
     >;
-
-    fn conversation_tool_calls_list(&self, request: LocalAppConversationToolScopeRequest) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
-
-    fn conversation_tool_result_submit(&self, request: LocalAppConversationToolResultRequest) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
     fn conversation_attachment_upload(
         &self,

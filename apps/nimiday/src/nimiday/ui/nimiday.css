@@ -1159,3 +1159,7 @@
   font-size: 12px;
   line-height: 1.5;
 }
+
+.nd-followup-form { display: grid; gap: 14px; }
+.nd-followup-form label { display: grid; gap: 6px; font-size: 13px; }
+.nd-followup-form input, .nd-followup-form textarea, .nd-followup-form select { width: 100%; border: 1px solid var(--nd-line, #c8c8c8); border-radius: 8px; padding: 9px 11px; font: inherit; color: inherit; background: transparent; }

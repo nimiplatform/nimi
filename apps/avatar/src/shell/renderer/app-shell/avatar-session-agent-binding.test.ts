@@ -52,6 +52,7 @@ function references(current: () => readonly NimiLocalAppAgentHandle[]): NimiLoca
       return current().map((agentHandle, index) => ({
         agentHandle,
         agentBinding: agentHandle.replace('agent_ref_', 'agent_binding_'),
+        activityAgentRef: `agr_${index + 1}`,
         displayName: `Agent ${index + 1}`,
         avatarUrl: null,
       }));

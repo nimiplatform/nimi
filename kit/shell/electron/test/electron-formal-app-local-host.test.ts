@@ -9,6 +9,9 @@ import { OpenLocalAppSessionResponse } from '../../../../sdks/typescript/core-ge
 import {
   GetAgentPresentationAssetRequest,
   GetAgentPresentationAssetResponse,
+  OpenLocalAppConversationResponse,
+  ResolveDesktopAgentReferenceRequest,
+  ResolveDesktopAgentReferenceResponse,
   ResolveLocalAppAvatarHostTargetRequest,
   ResolveLocalAppAvatarHostTargetResponse,
   TranscribeLocalAppConversationVoiceRequest,
@@ -80,6 +83,65 @@ function control(profile: 'desktop' | 'avatar') {
 }
 
 describe('Electron formal App local host', () => {
+  it('keeps the Desktop named reference resolver on the same pending-call and rebind barrier', async () => {
+    let finish!: (response: Uint8Array) => void;
+    let resolverCalls = 0;
+    let rebindCalls = 0;
+    const reference = { agentHandle: `agent_ref_${'a'.repeat(43)}`, agentBinding: `agent_binding_${'b'.repeat(43)}`, activityAgentRef: 'agr_selected', displayName: 'Selected' };
+    const unary = vi.fn(async (input: { methodId: string; requestBytes: Uint8Array }) => {
+      if (input.methodId.endsWith('/ResolveDesktopAgentReference')) {
+        resolverCalls++;
+        expect(ResolveDesktopAgentReferenceRequest.fromBinary(input.requestBytes)).toEqual({ localAgentRef: 'selected' });
+        if (resolverCalls === 1) return new Promise<Uint8Array>(resolve => { finish = resolve; });
+        return ResolveDesktopAgentReferenceResponse.toBinary({ reference });
+      }
+      if (input.methodId.endsWith('/RenewLocalAppSession')) throw new NimiElectronDesktopControlHostError('LOCAL_APP_SESSION_REVOKED', false);
+      expect(input.methodId.endsWith('/RebindLocalAppSession')).toBe(true);
+      rebindCalls++;
+      return OpenLocalAppSessionResponse.toBinary(OpenLocalAppSessionResponse.create({ state: LocalAppSessionState.READY, reasonCode: ReasonCode.ACTION_EXECUTED, currentUserReasonCode: ReasonCode.CURRENT_USER_DISPLAY_UNAVAILABLE }));
+    });
+    const owner = createNimiElectronFormalAppLocalHostOwner({ profile: 'desktop', appId: 'nimi.desktop', control: { accountProductUnary: unary } as unknown as NimiElectronDesktopControlHost });
+    const response = ResolveDesktopAgentReferenceResponse.toBinary({ reference });
+    try {
+      expect('resolveDesktopAgentReference' in owner.host).toBe(false);
+      const scope = owner.createResourceScope();
+      expect('resolveDesktopAgentReference' in scope.host).toBe(false);
+      const oldRequest = expect(owner.resolveDesktopAgentReference({ localAgentRef: 'selected' })).rejects.toMatchObject({ reasonCode: 'session-invalid' });
+      await vi.waitFor(() => expect(resolverCalls).toBe(1));
+      const failedRenewal = expect(owner.host.renewTechnicalSession()).rejects.toMatchObject({ reasonCode: 'revoked' });
+      await new Promise<void>(resolve => setTimeout(resolve, 0));
+      await expect(owner.resolveDesktopAgentReference({ localAgentRef: 'selected' })).rejects.toMatchObject({ reasonCode: 'session-invalid' });
+      expect(resolverCalls).toBe(1);
+      expect(rebindCalls).toBe(0);
+      finish(response);
+      await oldRequest;
+      await failedRenewal;
+      expect(resolverCalls).toBe(1);
+      expect(rebindCalls).toBe(1);
+      await expect(owner.resolveDesktopAgentReference({ localAgentRef: 'selected' })).resolves.toEqual({ reference });
+      expect(resolverCalls).toBe(2);
+      await scope.dispose();
+    } finally {
+      finish?.(response);
+      await owner.dispose();
+    }
+  });
+
+  it('rejects non-Desktop and malformed named resolver requests before native dispatch', async () => {
+    const unary = vi.fn(async () => new Uint8Array());
+    const avatar = createNimiElectronFormalAppLocalHostOwner({ profile: 'avatar', appId: 'nimi.avatar', control: { bundledAvatarUnary: unary } as unknown as NimiElectronDesktopControlHost });
+    const desktop = createNimiElectronFormalAppLocalHostOwner({ profile: 'desktop', appId: 'nimi.desktop', control: { accountProductUnary: unary } as unknown as NimiElectronDesktopControlHost });
+    try {
+      await expect(avatar.resolveDesktopAgentReference({ localAgentRef: 'selected' })).rejects.toMatchObject({ reasonCode: 'local-app-access-denied' });
+      await expect(desktop.resolveDesktopAgentReference({ localAgentRef: ' selected ' })).rejects.toMatchObject({ reasonCode: 'invalid-input' });
+      await expect(desktop.resolveDesktopAgentReference({ localAgentRef: 'selected', appId: 'nimi.desktop' } as never)).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+      expect(unary).not.toHaveBeenCalled();
+    } finally {
+      await avatar.dispose();
+      await desktop.dispose();
+    }
+  });
+
   it.each(['desktop', 'avatar'] as const)('preserves Runtime video generation errors on %s owned resources', async (profile) => {
     const runtime = control(profile);
     const invoke = profile === 'desktop' ? runtime.host.accountProductUnary : runtime.host.bundledAvatarUnary;
@@ -545,7 +607,7 @@ describe('Electron formal App local host', () => {
     }
   });
 
-  it('renews the bundled Avatar formal session once and retries a read-only bootstrap operation', async () => {
+  it('fences the bundled Avatar formal session without replaying a business read', async () => {
     let referenceCalls = 0;
     const calls: string[] = [];
     const unary = vi.fn(async (input: { methodId: string }) => {
@@ -557,7 +619,7 @@ describe('Electron formal App local host', () => {
         }
         return new Uint8Array();
       }
-      if (input.methodId.endsWith('/RenewLocalAppSession')) {
+      if (input.methodId.endsWith('/RebindLocalAppSession')) {
         return OpenLocalAppSessionResponse.toBinary(OpenLocalAppSessionResponse.create({
           state: LocalAppSessionState.READY,
           reasonCode: ReasonCode.ACTION_EXECUTED,
@@ -571,12 +633,304 @@ describe('Electron formal App local host', () => {
       control: { bundledAvatarUnary: unary } as unknown as NimiElectronDesktopControlHost,
     });
 
-    await expect(host.agentReferenceList()).resolves.toEqual([]);
+    await expect(host.agentReferenceList()).rejects.toMatchObject({ reasonCode: 'revoked' });
     expect(calls).toEqual([
       '/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences',
-      '/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession',
-      '/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences',
+      '/nimi.runtime.v1.RuntimeAuthService/RebindLocalAppSession',
     ]);
+    expect(referenceCalls).toBe(1);
+    await expect(host.agentReferenceList()).resolves.toEqual([]);
+    expect(referenceCalls).toBe(2);
+  });
+
+  it.each([
+    ['desktop', 'read'], ['desktop', 'mutation'], ['avatar', 'read'], ['avatar', 'mutation'],
+  ] as const)('drains the old %s %s before rebind can change its admission scope', async (profile, kind) => {
+    let finish!: () => void;
+    let scope = 'A';
+    const admissionScopes: string[] = [];
+    const calls: string[] = [];
+    const waiting = new Promise<void>(resolve => { finish = resolve; });
+    const unary = vi.fn(async (input: { methodId: string }) => {
+      calls.push(input.methodId);
+      if (input.methodId.endsWith('/RenewLocalAppSession')) {
+        throw new NimiElectronDesktopControlHostError('LOCAL_APP_SESSION_REVOKED', false);
+      }
+      if (input.methodId.endsWith('/RebindLocalAppSession')) {
+        scope = 'B';
+        return OpenLocalAppSessionResponse.toBinary(OpenLocalAppSessionResponse.create({
+          state: LocalAppSessionState.READY, reasonCode: ReasonCode.ACTION_EXECUTED,
+          currentUserReasonCode: ReasonCode.CURRENT_USER_DISPLAY_UNAVAILABLE,
+        }));
+      }
+      // Model a native request accepted into a queue but not yet admitted by
+      // Runtime. Its read or side effect occurs only after that queue releases.
+      await waiting;
+      admissionScopes.push(scope);
+      return input.methodId.endsWith('/OpenLocalAppConversation')
+        ? OpenLocalAppConversationResponse.toBinary({ conversationAnchorId: 'old-anchor' })
+        : new Uint8Array();
+    });
+    const owner = createNimiElectronFormalAppLocalHostOwner({
+      profile, appId: `nimi.${profile}`,
+      control: { accountProductUnary: unary, bundledAvatarUnary: unary } as unknown as NimiElectronDesktopControlHost,
+    });
+    const host = owner.host;
+    try {
+      const pending = kind === 'mutation'
+        ? host.conversationOpen({ agentHandle: `agent_ref_${'a'.repeat(43)}` })
+        : host.agentReferenceList();
+      const rejected = expect(pending).rejects.toMatchObject({ reasonCode: 'session-invalid' });
+      const failedRenewal = expect(host.renewTechnicalSession()).rejects.toMatchObject({ reasonCode: 'revoked' });
+      await new Promise<void>(resolve => setTimeout(resolve, 0));
+      await expect(host.agentReferenceList()).rejects.toMatchObject({ reasonCode: 'session-invalid' });
+      expect(calls.filter(method => method.endsWith('/RebindLocalAppSession'))).toHaveLength(0);
+      expect(admissionScopes).toEqual([]);
+      expect(scope).toBe('A');
+      finish();
+      await rejected;
+      await failedRenewal;
+      expect(admissionScopes).toEqual(['A']);
+      expect(scope).toBe('B');
+      expect(calls.filter(method => method.endsWith('/RebindLocalAppSession'))).toHaveLength(1);
+      await expect(host.agentReferenceList()).resolves.toEqual([]);
+      expect(admissionScopes).toEqual(['A', 'B']);
+    } finally {
+      finish();
+      await owner.dispose();
+    }
+  });
+
+  it.each(['desktop', 'avatar'] as const)('waits for the %s native unary after its SDK caller has already canceled', async (profile) => {
+    let finish!: () => void;
+    let scope = 'A';
+    const admissionScopes: string[] = [];
+    const waiting = new Promise<void>(resolve => { finish = resolve; });
+    const unary = vi.fn(async (input: { methodId: string }) => {
+      if (input.methodId.endsWith('/ExecuteLocalAppScenario')) {
+        await waiting;
+        admissionScopes.push(scope);
+        return ExecuteLocalAppScenarioResponse.toBinary(ExecuteLocalAppScenarioResponse.create({}));
+      }
+      if (input.methodId.endsWith('/RenewLocalAppSession')) {
+        throw new NimiElectronDesktopControlHostError('LOCAL_APP_SESSION_REVOKED', false);
+      }
+      if (input.methodId.endsWith('/RebindLocalAppSession')) {
+        scope = 'B';
+        return OpenLocalAppSessionResponse.toBinary(OpenLocalAppSessionResponse.create({
+          state: LocalAppSessionState.READY, reasonCode: ReasonCode.ACTION_EXECUTED,
+          currentUserReasonCode: ReasonCode.CURRENT_USER_DISPLAY_UNAVAILABLE,
+        }));
+      }
+      throw new Error(`Unexpected method ${input.methodId}`);
+    });
+    const owner = createNimiElectronFormalAppLocalHostOwner({
+      profile, appId: `nimi.${profile}`,
+      control: { accountProductUnary: unary, bundledAvatarUnary: unary } as unknown as NimiElectronDesktopControlHost,
+    });
+    try {
+      const caller = new AbortController();
+      const canceled = expect(owner.host.scenarioExecute({ spec: {
+        type: 'text-decide', state: { json: '{}' },
+        questions: [{ id: 'act', instructions: { text: 'Act?' }, kind: 'boolean', trueCriterion: { text: 'Act now.' } }],
+      } }, { signal: caller.signal })).rejects.toMatchObject({ reasonCode: 'canceled' });
+      await vi.waitFor(() => expect(unary).toHaveBeenCalledTimes(1));
+      caller.abort();
+      await canceled;
+      const failedRenewal = expect(owner.host.renewTechnicalSession()).rejects.toMatchObject({ reasonCode: 'revoked' });
+      await new Promise<void>(resolve => setTimeout(resolve, 0));
+      expect(scope).toBe('A');
+      expect(unary).toHaveBeenCalledTimes(2);
+      finish();
+      await failedRenewal;
+      expect(admissionScopes).toEqual(['A']);
+      expect(scope).toBe('B');
+    } finally {
+      finish();
+      await owner.dispose();
+    }
+  });
+
+  it.each(['desktop', 'avatar'] as const)('does not drain an active %s business call for normal renewal', async (profile) => {
+    let finish!: (bytes: Uint8Array) => void;
+    const pending = new Promise<Uint8Array>(resolve => { finish = resolve; });
+    const unary = vi.fn(async (input: { methodId: string }) => {
+      if (input.methodId.endsWith('/OpenLocalAppConversation')) return pending;
+      if (input.methodId.endsWith('/RenewLocalAppSession')) return OpenLocalAppSessionResponse.toBinary(OpenLocalAppSessionResponse.create({
+        state: LocalAppSessionState.READY, reasonCode: ReasonCode.ACTION_EXECUTED,
+        currentUserReasonCode: ReasonCode.CURRENT_USER_DISPLAY_UNAVAILABLE,
+      }));
+      throw new Error(`Unexpected method ${input.methodId}`);
+    });
+    const owner = createNimiElectronFormalAppLocalHostOwner({
+      profile, appId: `nimi.${profile}`,
+      control: { accountProductUnary: unary, bundledAvatarUnary: unary } as unknown as NimiElectronDesktopControlHost,
+    });
+    try {
+      const opening = owner.host.conversationOpen({ agentHandle: `agent_ref_${'a'.repeat(43)}` });
+      await expect(owner.host.renewTechnicalSession()).resolves.toMatchObject({ state: 'ready' });
+      finish(OpenLocalAppConversationResponse.toBinary({ conversationAnchorId: 'same-scope' }));
+      await expect(opening).resolves.toMatchObject({ conversationAnchorId: 'same-scope' });
+      expect(unary).toHaveBeenCalledTimes(2);
+    } finally {
+      finish(OpenLocalAppConversationResponse.toBinary({ conversationAnchorId: 'same-scope' }));
+      await owner.dispose();
+    }
+  });
+
+  it('cancels a pending formal pull before draining and does not require native onEnd', async () => {
+    const cancelStream = vi.fn();
+    const startStream = vi.fn();
+    const unary = vi.fn(async (input: { methodId: string }) => {
+      if (input.methodId.endsWith('/RenewLocalAppSession')) {
+        throw new NimiElectronDesktopControlHostError('LOCAL_APP_SESSION_REVOKED', false);
+      }
+      expect(input.methodId.endsWith('/RebindLocalAppSession')).toBe(true);
+      expect(cancelStream).toHaveBeenCalled();
+      return OpenLocalAppSessionResponse.toBinary(OpenLocalAppSessionResponse.create({
+        state: LocalAppSessionState.READY, reasonCode: ReasonCode.ACTION_EXECUTED,
+        currentUserReasonCode: ReasonCode.CURRENT_USER_DISPLAY_UNAVAILABLE,
+      }));
+    });
+    const owner = createNimiElectronFormalAppLocalHostOwner({
+      profile: 'avatar', appId: 'nimi.avatar',
+      control: {
+        bundledAvatarUnary: unary,
+        bundledAvatarServerStream: () => ({ start: startStream, cancel: cancelStream, closed: Promise.resolve() }),
+      } as unknown as NimiElectronDesktopControlHost,
+    });
+    try {
+      const opened = await owner.host.conversationSubscribe({
+        agentHandle: `agent_ref_${'a'.repeat(43)}`, conversationAnchorId: 'old-anchor',
+      });
+      const pending = owner.host.conversationStreamNext({ streamId: opened.streamId });
+      const rejected = expect(pending).rejects.toMatchObject({ reasonCode: 'session-invalid' });
+      await vi.waitFor(() => expect(startStream).toHaveBeenCalledOnce());
+      await expect(owner.host.renewTechnicalSession()).rejects.toMatchObject({ reasonCode: 'revoked' });
+      await rejected;
+      expect(unary).toHaveBeenCalledTimes(2);
+    } finally {
+      await owner.dispose();
+    }
+  });
+
+  it.each([
+    ['desktop', true], ['desktop', false], ['avatar', true], ['avatar', false],
+  ] as const)('keeps %s stream Open before rebind until native Close confirms (%s)', async (profile, confirmed) => {
+    let releaseOpen!: () => void;
+    let confirmClose!: () => void;
+    let rejectClose!: (error: Error) => void;
+    let settleClosed!: () => void;
+    let failClosed!: (error: Error) => void;
+    const nativeOpen = new Promise<void>(resolve => { releaseOpen = resolve; });
+    const nativeClose = new Promise<void>((resolve, reject) => { confirmClose = resolve; rejectClose = reject; });
+    const closed = new Promise<void>((resolve, reject) => { settleClosed = resolve; failClosed = reject; });
+    let scope = 'A';
+    let opened = false;
+    let canceled = false;
+    let closeRequested = false;
+    const admissionScopes: string[] = [];
+    const closeNative = vi.fn(() => {
+      if (closeRequested) return;
+      closeRequested = true;
+      void nativeClose.then(settleClosed, failClosed);
+    });
+    const startStream = vi.fn(() => {
+      void nativeOpen.then(() => {
+        // This models the native Open reaching Runtime only after leaving its
+        // queue. A model stream must still be admitted in A, never in B.
+        admissionScopes.push(scope);
+        opened = true;
+        if (canceled) closeNative();
+      });
+    });
+    const cancelStream = vi.fn(() => {
+      canceled = true;
+      if (opened) closeNative();
+    });
+    const unary = vi.fn(async (input: { methodId: string }) => {
+      if (input.methodId.endsWith('/RenewLocalAppSession')) {
+        throw new NimiElectronDesktopControlHostError('LOCAL_APP_SESSION_REVOKED', false);
+      }
+      expect(input.methodId.endsWith('/RebindLocalAppSession')).toBe(true);
+      scope = 'B';
+      return OpenLocalAppSessionResponse.toBinary(OpenLocalAppSessionResponse.create({
+        state: LocalAppSessionState.READY, reasonCode: ReasonCode.ACTION_EXECUTED,
+        currentUserReasonCode: ReasonCode.CURRENT_USER_DISPLAY_UNAVAILABLE,
+      }));
+    });
+    const streamFactory = vi.fn((input: { methodId: string }) => {
+      expect(input.methodId.endsWith('/StreamLocalAppTextTurn')).toBe(true);
+      return { start: startStream, cancel: cancelStream, closed };
+    });
+    const owner = createNimiElectronFormalAppLocalHostOwner({
+      profile, appId: `nimi.${profile}`,
+      control: {
+        accountProductUnary: unary, bundledAvatarUnary: unary,
+        accountProductServerStream: streamFactory, bundledAvatarServerStream: streamFactory,
+      } as unknown as NimiElectronDesktopControlHost,
+    });
+    try {
+      const subscription = await owner.host.textTurnSubscribe({ messages: [{ role: 'user', text: 'queued model turn' }] });
+      const next = owner.host.textTurnStreamNext({ streamId: subscription.streamId });
+      const oldRejected = expect(next).rejects.toMatchObject({ reasonCode: 'session-invalid' });
+      await vi.waitFor(() => expect(startStream).toHaveBeenCalledOnce());
+      const failedRenewal = expect(owner.host.renewTechnicalSession()).rejects.toMatchObject({ reasonCode: 'revoked' });
+      await vi.waitFor(() => expect(cancelStream).toHaveBeenCalled());
+      await oldRejected;
+      expect(scope).toBe('A');
+      expect(unary).toHaveBeenCalledTimes(1);
+      expect(admissionScopes).toEqual([]);
+      releaseOpen();
+      await vi.waitFor(() => expect(closeNative).toHaveBeenCalled());
+      expect(scope).toBe('A');
+      expect(unary).toHaveBeenCalledTimes(1);
+      expect(admissionScopes).toEqual(['A']);
+      if (confirmed) {
+        confirmClose();
+        await failedRenewal;
+        expect(scope).toBe('B');
+        expect(unary).toHaveBeenCalledTimes(2);
+      } else {
+        rejectClose(new Error('native cancellation confirmation unavailable'));
+        await failedRenewal;
+        await expect(owner.host.sessionStatus()).rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
+        await expect(owner.host.agentReferenceList()).rejects.toMatchObject({ reasonCode: 'session-invalid' });
+        expect(scope).toBe('A');
+        expect(unary).toHaveBeenCalledTimes(1);
+      }
+    } finally {
+      releaseOpen();
+      confirmClose();
+      await owner.dispose();
+    }
+  });
+
+  it('rejects business requests during formal rebind instead of queuing them into the new scope', async () => {
+    let entered!: () => void; let finish!: () => void; let calls = 0;
+    const started = new Promise<void>(resolve => { entered = resolve; });
+    const waiting = new Promise<void>(resolve => { finish = resolve; });
+    const unary = vi.fn(async (input: { methodId: string }) => {
+      if (input.methodId.endsWith('/RebindLocalAppSession')) {
+        entered(); await waiting;
+        return OpenLocalAppSessionResponse.toBinary(OpenLocalAppSessionResponse.create({ state: LocalAppSessionState.READY, reasonCode: ReasonCode.ACTION_EXECUTED, currentUserReasonCode: ReasonCode.CURRENT_USER_DISPLAY_UNAVAILABLE }));
+      }
+      if (input.methodId.endsWith('/ListLocalAppAgentReferences')) {
+        if (++calls === 1) throw new NimiElectronDesktopControlHostError('LOCAL_APP_SESSION_REVOKED', false);
+        return new Uint8Array();
+      }
+      throw new Error(`Unexpected method ${input.methodId}`);
+    });
+    const host = createNimiElectronFormalAppLocalHost({ profile: 'avatar', appId: 'nimi.avatar', control: { bundledAvatarUnary: unary } as unknown as NimiElectronDesktopControlHost });
+    const pending = host.agentReferenceList();
+    const rejected = expect(pending).rejects.toMatchObject({ reasonCode: 'revoked' });
+    await started;
+    await expect(host.agentReferenceList()).rejects.toMatchObject({ reasonCode: 'session-invalid' });
+    await expect(host.conversationOpen({ agentHandle: `agent_ref_${'A'.repeat(43)}` })).rejects.toMatchObject({ reasonCode: 'session-invalid' });
+    expect(calls).toBe(1);
+    finish(); await rejected;
+    await expect(host.agentReferenceList()).resolves.toEqual([]);
+    expect(calls).toBe(2);
   });
 
   it('renews after mutation admission failure without blindly replaying the mutation', async () => {
@@ -586,7 +940,7 @@ describe('Electron formal App local host', () => {
       if (input.methodId.endsWith('/OpenLocalAppConversation')) {
         throw new NimiElectronDesktopControlHostError('LOCAL_APP_SESSION_REVOKED', false);
       }
-      if (input.methodId.endsWith('/RenewLocalAppSession')) {
+      if (input.methodId.endsWith('/RebindLocalAppSession')) {
         return OpenLocalAppSessionResponse.toBinary(OpenLocalAppSessionResponse.create({
           state: LocalAppSessionState.READY,
           reasonCode: ReasonCode.ACTION_EXECUTED,
@@ -604,7 +958,7 @@ describe('Electron formal App local host', () => {
       .rejects.toMatchObject({ reasonCode: 'revoked' });
     expect(calls).toEqual([
       '/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation',
-      '/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession',
+      '/nimi.runtime.v1.RuntimeAuthService/RebindLocalAppSession',
     ]);
   });
 
@@ -615,7 +969,7 @@ describe('Electron formal App local host', () => {
       if (input.methodId.endsWith('/PutAppActivity') || input.methodId.endsWith('/MarkAppActivityRead')) {
         throw new NimiElectronDesktopControlHostError('LOCAL_APP_SESSION_REVOKED', false);
       }
-      if (input.methodId.endsWith('/RenewLocalAppSession')) {
+      if (input.methodId.endsWith('/RebindLocalAppSession')) {
         return OpenLocalAppSessionResponse.toBinary(OpenLocalAppSessionResponse.create({
           state: LocalAppSessionState.READY,
           reasonCode: ReasonCode.ACTION_EXECUTED,
@@ -638,9 +992,9 @@ describe('Electron formal App local host', () => {
       .rejects.toMatchObject({ reasonCode: 'revoked' });
     expect(calls).toEqual([
       '/nimi.runtime.v1.RuntimeAppActivityService/PutAppActivity',
-      '/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession',
+      '/nimi.runtime.v1.RuntimeAuthService/RebindLocalAppSession',
       '/nimi.runtime.v1.RuntimeAppActivityService/MarkAppActivityRead',
-      '/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession',
+      '/nimi.runtime.v1.RuntimeAuthService/RebindLocalAppSession',
     ]);
   });
 
@@ -755,6 +1109,7 @@ describe('Electron formal App local host', () => {
         bundledAvatarServerStream: vi.fn(() => ({
           start() {},
           cancel: cancelStream,
+          closed: Promise.resolve(),
         })),
       } as unknown as NimiElectronDesktopControlHost,
     });

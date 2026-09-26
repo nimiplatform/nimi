@@ -116,6 +116,19 @@ pub struct LocalDevelopmentEndRunRequest {
     pub registration_handle: [u8; 32],
     pub supervisor_run_id: [u8; 32],
 }
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LocalDevelopmentRunAccessRequest {
+    pub registration_handle: [u8; 32],
+    pub supervisor_run_id: [u8; 32],
+}
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LocalDevelopmentRunAccess {
+    pub available: bool,
+    pub reason_code: String,
+    /// Host-private comparison only, never an App selector or proof.
+    pub execution_scope_ref: String,
+}
+
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum NimiHostErrorReasonCode {

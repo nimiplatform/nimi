@@ -79,3 +79,15 @@ func windowsSourceParentProcessID(pid uint32) (uint32, error) {
 		}
 	}
 }
+
+func RevalidateInstalledAppProcess(ctx context.Context, expected ProcessTuple, policy InstalledAppProcessPolicy) error {
+	current, live, err := VerifyInstalledAppProcess(ctx, expected.PID, policy)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = live.Close() }()
+	if current != expected {
+		return fmt.Errorf("installed App process changed")
+	}
+	return nil
+}

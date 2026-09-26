@@ -96,6 +96,14 @@ RUNTIME_METHODS = [
     "response_type": "CancelHookResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/CancelLocalAppAgentWork",
+    "service": "RuntimeAgentService",
+    "method": "CancelLocalAppAgentWork",
+    "kind": "unary",
+    "request_type": "CancelLocalAppAgentWorkRequest",
+    "response_type": "CancelLocalAppAgentWorkResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/CloseLocalAppAgentRealtime",
     "service": "RuntimeAgentService",
     "method": "CloseLocalAppAgentRealtime",
@@ -208,6 +216,14 @@ RUNTIME_METHODS = [
     "response_type": "LocalAppAgentAutonomySnapshotResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentIntroduction",
+    "service": "RuntimeAgentService",
+    "method": "GetLocalAppAgentIntroduction",
+    "kind": "unary",
+    "request_type": "GetLocalAppAgentIntroductionRequest",
+    "response_type": "GetLocalAppAgentIntroductionResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot",
     "service": "RuntimeAgentService",
     "method": "GetLocalAppAgentManagerSnapshot",
@@ -230,6 +246,22 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "GetLocalAppAgentRealtimeStatusRequest",
     "response_type": "GetLocalAppAgentRealtimeStatusResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentWork",
+    "service": "RuntimeAgentService",
+    "method": "GetLocalAppAgentWork",
+    "kind": "unary",
+    "request_type": "GetLocalAppAgentWorkRequest",
+    "response_type": "GetLocalAppAgentWorkResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentWorkStatus",
+    "service": "RuntimeAgentService",
+    "method": "GetLocalAppAgentWorkStatus",
+    "kind": "unary",
+    "request_type": "GetLocalAppAgentWorkStatusRequest",
+    "response_type": "GetLocalAppAgentWorkStatusResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot",
@@ -352,12 +384,20 @@ RUNTIME_METHODS = [
     "response_type": "ListLocalAppAgentReferencesResponse"
   },
   {
-    "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppConversationToolCalls",
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentWorkReferences",
     "service": "RuntimeAgentService",
-    "method": "ListLocalAppConversationToolCalls",
+    "method": "ListLocalAppAgentWorkReferences",
     "kind": "unary",
-    "request_type": "ListLocalAppConversationToolCallsRequest",
-    "response_type": "ListLocalAppConversationToolCallsResponse"
+    "request_type": "ListLocalAppAgentWorkReferencesRequest",
+    "response_type": "ListLocalAppAgentWorkReferencesResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentWorkToolCalls",
+    "service": "RuntimeAgentService",
+    "method": "ListLocalAppAgentWorkToolCalls",
+    "kind": "unary",
+    "request_type": "ListLocalAppAgentWorkToolCallsRequest",
+    "response_type": "ListLocalAppAgentWorkToolCallsResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions",
@@ -512,6 +552,14 @@ RUNTIME_METHODS = [
     "response_type": "SetLocalAppAgentMemoryEnabledResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/StartLocalAppAgentWork",
+    "service": "RuntimeAgentService",
+    "method": "StartLocalAppAgentWork",
+    "kind": "unary",
+    "request_type": "StartLocalAppAgentWorkRequest",
+    "response_type": "StartLocalAppAgentWorkResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision",
     "service": "RuntimeAgentService",
     "method": "SubmitDelegatedApprovalDecision",
@@ -520,12 +568,12 @@ RUNTIME_METHODS = [
     "response_type": "SubmitDelegatedApprovalDecisionResponse"
   },
   {
-    "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppConversationToolResult",
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppAgentWorkToolResult",
     "service": "RuntimeAgentService",
-    "method": "SubmitLocalAppConversationToolResult",
+    "method": "SubmitLocalAppAgentWorkToolResult",
     "kind": "unary",
-    "request_type": "SubmitLocalAppConversationToolResultRequest",
-    "response_type": "SubmitLocalAppConversationToolResultResponse"
+    "request_type": "SubmitLocalAppAgentWorkToolResultRequest",
+    "response_type": "SubmitLocalAppAgentWorkToolResultResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents",
@@ -534,6 +582,14 @@ RUNTIME_METHODS = [
     "kind": "server_stream",
     "request_type": "SubscribeLocalAppAgentRealtimeEventsRequest",
     "response_type": "LocalAppAgentRealtimeEvent"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentWorkEvents",
+    "service": "RuntimeAgentService",
+    "method": "SubscribeLocalAppAgentWorkEvents",
+    "kind": "server_stream",
+    "request_type": "SubscribeLocalAppAgentWorkEventsRequest",
+    "response_type": "LocalAppAgentWorkEvent"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents",
@@ -1128,14 +1184,6 @@ RUNTIME_METHODS = [
     "response_type": "GetAppStorageResponse"
   },
   {
-    "method_id": "/nimi.runtime.v1.RuntimeAppService/GetInstalledAppRunAccess",
-    "service": "RuntimeAppService",
-    "method": "GetInstalledAppRunAccess",
-    "kind": "unary",
-    "request_type": "GetInstalledAppRunAccessRequest",
-    "response_type": "GetInstalledAppRunAccessResponse"
-  },
-  {
     "method_id": "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAssets",
     "service": "RuntimeAppService",
     "method": "ListLocalAppAssets",
@@ -1574,6 +1622,118 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "ExternalAgentRevokeTokenRequest",
     "response_type": "Ack"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/CancelIntegrationCall",
+    "service": "RuntimeIntegrationService",
+    "method": "CancelIntegrationCall",
+    "kind": "unary",
+    "request_type": "CancelIntegrationCallRequest",
+    "response_type": "CancelIntegrationCallResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/CompleteIntegrationProvider",
+    "service": "RuntimeIntegrationService",
+    "method": "CompleteIntegrationProvider",
+    "kind": "unary",
+    "request_type": "CompleteIntegrationProviderRequest",
+    "response_type": "CompleteIntegrationProviderResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationCall",
+    "service": "RuntimeIntegrationService",
+    "method": "GetIntegrationCall",
+    "kind": "unary",
+    "request_type": "GetIntegrationCallRequest",
+    "response_type": "GetIntegrationCallResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationManagement",
+    "service": "RuntimeIntegrationService",
+    "method": "GetIntegrationManagement",
+    "kind": "unary",
+    "request_type": "GetIntegrationManagementRequest",
+    "response_type": "GetIntegrationManagementResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/InvokeIntegrationCall",
+    "service": "RuntimeIntegrationService",
+    "method": "InvokeIntegrationCall",
+    "kind": "unary",
+    "request_type": "InvokeIntegrationCallRequest",
+    "response_type": "InvokeIntegrationCallResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationCalls",
+    "service": "RuntimeIntegrationService",
+    "method": "ListIntegrationCalls",
+    "kind": "unary",
+    "request_type": "ListIntegrationCallsRequest",
+    "response_type": "ListIntegrationCallsResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationCatalog",
+    "service": "RuntimeIntegrationService",
+    "method": "ListIntegrationCatalog",
+    "kind": "unary",
+    "request_type": "ListIntegrationCatalogRequest",
+    "response_type": "ListIntegrationCatalogResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationConnections",
+    "service": "RuntimeIntegrationService",
+    "method": "ListIntegrationConnections",
+    "kind": "unary",
+    "request_type": "ListIntegrationConnectionsRequest",
+    "response_type": "ListIntegrationConnectionsResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/PollIntegrationProvider",
+    "service": "RuntimeIntegrationService",
+    "method": "PollIntegrationProvider",
+    "kind": "unary",
+    "request_type": "PollIntegrationProviderRequest",
+    "response_type": "PollIntegrationProviderResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/PutIntegrationConnection",
+    "service": "RuntimeIntegrationService",
+    "method": "PutIntegrationConnection",
+    "kind": "unary",
+    "request_type": "PutIntegrationConnectionRequest",
+    "response_type": "PutIntegrationConnectionResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/RegisterIntegrationProvider",
+    "service": "RuntimeIntegrationService",
+    "method": "RegisterIntegrationProvider",
+    "kind": "unary",
+    "request_type": "RegisterIntegrationProviderRequest",
+    "response_type": "RegisterIntegrationProviderResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/RemoveIntegrationConnection",
+    "service": "RuntimeIntegrationService",
+    "method": "RemoveIntegrationConnection",
+    "kind": "unary",
+    "request_type": "RemoveIntegrationConnectionRequest",
+    "response_type": "RemoveIntegrationConnectionResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/SetIntegrationPermission",
+    "service": "RuntimeIntegrationService",
+    "method": "SetIntegrationPermission",
+    "kind": "unary",
+    "request_type": "SetIntegrationPermissionRequest",
+    "response_type": "SetIntegrationPermissionResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeIntegrationService/UnregisterIntegrationProvider",
+    "service": "RuntimeIntegrationService",
+    "method": "UnregisterIntegrationProvider",
+    "kind": "unary",
+    "request_type": "UnregisterIntegrationProviderRequest",
+    "response_type": "UnregisterIntegrationProviderResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse",

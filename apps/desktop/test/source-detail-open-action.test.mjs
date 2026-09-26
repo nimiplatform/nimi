@@ -75,13 +75,13 @@ async function run(surface, posture = 'missing', action = 'open') {
         materialized = true;
         return { localAgentRef: localAgent.localAgentRef, reasonCode: 1, idempotentReplay: false };
       },
-      agents: { resolveDesktopAgentReference: async ({ localAgentRef }) => {
+    }),
+    resolveDesktopAgentReference: async ({ localAgentRef }) => {
         events.push(`resolve:${localAgentRef}`);
         if (posture === 'denied') throw new Error('denied');
         if (posture === 'stale') return {};
         return { reference: { agentHandle: 'agent_ref_' + 'B'.repeat(43), displayName: 'Partner', avatarUrl: null } };
-      } },
-    }),
+    },
     conversation: () => ({ open: async ({ agentHandle }) => {
       events.push(`OPEN_CONVERSATION:${agentHandle}`);
       return { conversationAnchorId: 'anchor-new', activeTurnId: null };

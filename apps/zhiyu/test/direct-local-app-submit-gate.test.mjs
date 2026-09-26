@@ -45,6 +45,13 @@ test('direct local-app composer gate requires an admitted conversation turn', ()
   }), false);
 });
 
+test('busy before admission keeps the draft eligible for an explicit retry', () => {
+  const evidence = readyEvidence();
+  evidence.turn = { ...evidence.turn, ready: false, runtimeTurnId: null, reasonCode: 'AGENT_BUSY' };
+  evidence.chat = { ...evidence.chat, state: 'failed', ready: false, reasonCode: 'AGENT_BUSY', source: 'runtime' };
+  assert.equal(isZhiyuDirectLocalAppSubmitEnabled({ evidence, draft: '仍待发送的原始材料' }), true);
+});
+
 test('a Runtime-terminal failed turn does not close the Conversation composer', () => {
   const evidence = readyEvidence();
   const failed = {

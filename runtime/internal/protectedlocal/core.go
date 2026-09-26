@@ -192,8 +192,9 @@ type Connection struct {
 	done        chan struct{}
 	revokedDone chan struct{}
 
-	clientLiveness DesktopProcessLiveness
-	livenessSignal <-chan struct{}
+	revalidateProcess func(context.Context) error
+	clientLiveness    DesktopProcessLiveness
+	livenessSignal    <-chan struct{}
 
 	revokeMu         sync.Mutex
 	revokeHooks      []func()
@@ -491,6 +492,18 @@ func (connection *Connection) BindRevocationHook(binding Identifier, hook func()
 	connection.boundRevokeHooks[binding] = hook
 	connection.revokeMu.Unlock()
 	return nil
+}
+
+// HasBoundRevocationHook reports only this exact live Desktop connection's
+// existing Runtime-owned binding. It is not proof of an App session or access.
+func (connection *Connection) HasBoundRevocationHook(binding Identifier) bool {
+	if connection == nil || binding == (Identifier{}) {
+		return false
+	}
+	connection.revokeMu.Lock()
+	defer connection.revokeMu.Unlock()
+	_, exists := connection.boundRevokeHooks[binding]
+	return connection.live.Load() && exists
 }
 
 // UnbindRevocationHook removes a completed Runtime-owned binding without

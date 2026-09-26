@@ -182,7 +182,7 @@ units:
     kind: rule
     title: Reconnection does not restore prior authority
     modality: must
-    statement: Reconnection or rebinding repeats current exact Host peer admission and derives a fresh session, Effective App Access Snapshot, Agent handles, and owner decisions; the same still-verified Host may bind again after account or declaration changes without relaunch, while a changed executable, entrypoint, another security-relevant launch input, or process fact, Developer Mode off, explicit stop, or ended supervision requires a new verified launch.
+    statement: Reconnection or rebinding repeats current exact Host peer admission and derives a fresh session, Effective App Access Snapshot, Agent handles, and owner decisions; the same still-verified previously bound Host connection may explicitly rebind after account or declaration changes or session expiry without relaunch, while a changed executable, entrypoint, another security-relevant launch input, or process fact, Developer Mode off, explicit stop, ended supervision, or actual connection loss requires a new verified launch. A source-generation change requires its owner to revalidate current security-relevant launch facts and may retain the running Host only when that owner proves the same legal launch; cached success and client-side generation checks cannot supply this proof. An already live valid scope remains unchanged on repeated rebind, and old business calls or callbacks cannot cross into fresh scope.
     condition: Whenever a caller reconnects after invalidation.
     failure: Reject restored authority based only on previous success or cached session state.
     relations:
@@ -328,7 +328,7 @@ units:
     kind: rule
     title: Account transition invalidation is fail closed
     modality: must
-    statement: Logout, account switch, unrecoverable refresh failure, expired authorization, or invalid callback atomically invalidates the affected Runtime account custody and dependent local account projection before any replacement is admitted, restart recovery validates owner-held custody before republishing it, and switch-account causes the next Runtime-owned authorization attempt to require fresh account selection.
+    statement: Logout, account switch, unrecoverable refresh failure, expired authorization, or invalid callback atomically invalidates the affected Runtime account custody and dependent local account projection before any replacement is admitted, restart recovery validates owner-held custody before republishing it, and switch-account causes the next Runtime-owned authorization attempt to require fresh account selection. Routine REFRESH_PENDING preserves an already authenticated same-identity generation and fence only while its current owner-held authorization remains unexpired; initial pending has no identity, expiry during a blocked refresh ends the old fence, and replacement material cannot retain an expired fence merely because no caller observed the expiry.
     condition: Whenever Runtime restores, expires, logs out, switches, or replaces a local account session.
     failure: Keep the account unauthenticated or unavailable and reject stale projection reuse, replay, silent recovery, or switch without a fresh owner-issued attempt.
     relations:

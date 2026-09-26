@@ -17,6 +17,7 @@ import {
   currentDesktopAccountIdForSetup,
 } from '../runtime-config/runtime-setup-task-ports.js';
 import {
+  chatSidebarQueryAuthStatus,
   openAgentTargetSnapshotFromSummary,
   useChatTargetsForSidebar,
 } from './chat-sidebar-targets';
@@ -126,6 +127,7 @@ export function ChatPage() {
   const runtimeConfigNavigation = useDesktopRendererCommands().runtimeConfigNavigation;
   const navigate = useNavigate();
   const authStatus = useAppStore((state) => state.auth.status);
+  const ownerUserId = useAppStore((state) => String(state.auth.user?.id || '').trim());
   const chatMode = useAppStore((state) => state.chatMode);
   const storeSelectedTargetId = useAppStore((state) => state.selectedTargetBySource[state.chatMode] ?? null);
   const setChatMode = useAppStore((state) => state.setChatMode);
@@ -218,6 +220,11 @@ export function ChatPage() {
     if (targetExists) {
       return;
     }
+    // Pending account refresh is not a change of recipient. The sidebar may
+    // still be loading its retained projection, so keep the current selection.
+    if (authStatus === 'refresh-pending' && chatSidebarQueryAuthStatus(authStatus, ownerUserId) === 'authenticated') {
+      return;
+    }
     if (authStatus !== 'authenticated') {
       setChatMode('ai');
       setSelectedTargetForSource('ai', 'ai:assistant');
@@ -230,7 +237,7 @@ export function ChatPage() {
       return;
     }
     setSelectedTargetForSource(chatMode, null);
-  }, [allTargets, authStatus, chatMode, setChatMode, setSelectedTargetForSource, storeSelectedTargetId]);
+  }, [allTargets, authStatus, chatMode, ownerUserId, setChatMode, setSelectedTargetForSource, storeSelectedTargetId]);
 
   useLayoutEffect(() => {
     setChatSettingsOpen(false);

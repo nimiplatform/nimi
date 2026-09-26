@@ -1,3 +1,6 @@
+import { createNimiLocalAppAgentIntroductionClient, type NimiLocalAppAgentIntroductionClient, type NimiLocalAppAgentIntroductionShell } from './local-app-agent-introduction.js';
+import { createNimiLocalAppIntegrationClient, type NimiLocalAppIntegrationClient, type NimiLocalAppIntegrationShell } from './local-app-runtime-platform-integration.js';
+import { createNimiLocalAppAgentWorkClient, type NimiLocalAppAgentWorkClient, type NimiLocalAppAgentWorkShell } from './local-app-runtime-platform-agent-work.js';
 import type { NimiLocalAppConversationClient } from './local-app-runtime-platform-conversation.js';
 import { assertSafeWorldCreatorProjection, createNimiLocalAppWorldCreatorClient, type NimiLocalAppWorldCreatorShell, type NimiLocalAppWorldCreatorClient } from './local-app-runtime-platform-world-creator.js';
 import type { JsonValue } from '../../types';
@@ -258,10 +261,6 @@ export {
   createNimiLocalAppAgentReferencesRuntimeClient,
 } from './local-app-runtime-platform-agent-references.js';
 export type {
-  NimiLocalAppConversationWork,
-  NimiLocalAppConversationToolCall,
-  NimiLocalAppConversationToolScope,
-  NimiLocalAppConversationToolResultInput,
   NimiLocalAppConversationAction,
   NimiLocalAppConversationClient,
   NimiLocalAppConversationEvent,
@@ -475,7 +474,9 @@ export type NimiLocalAppStandardShell = {
     readonly personaCharacter: NimiLocalAppPersonaCharacterShell;
     readonly realtime: NimiRealmRealtimeShell;
   };
-  readonly agents: NimiLocalAppAgentReferencesShell;
+  readonly agents: NimiLocalAppAgentReferencesShell & NimiLocalAppAgentIntroductionShell;
+  readonly integration: NimiLocalAppIntegrationShell;
+  readonly agentWork: NimiLocalAppAgentWorkShell;
   readonly conversation: NimiLocalAppConversationShell;
   readonly embodiment: NimiLocalAppEmbodimentShell;
   readonly agentRealtime: NimiAgentRealtimeShell;
@@ -531,8 +532,10 @@ export type NimiLocalAppClient = {
     readonly personaCharacter: NimiLocalAppPersonaCharacterClient;
     readonly realtime: NimiRealmRealtimeClient;
   };
-  readonly agents: NimiLocalAppAgentReferencesClient;
+  readonly agents: NimiLocalAppAgentReferencesClient & NimiLocalAppAgentIntroductionClient;
   readonly agentConfigure: NimiLocalAppAgentConfigureClient;
+  readonly integration: NimiLocalAppIntegrationClient;
+  readonly agentWork: NimiLocalAppAgentWorkClient;
   readonly conversation: NimiLocalAppConversationClient;
   readonly embodiment: NimiLocalAppEmbodimentClient;
   readonly agentRealtime: NimiAgentRealtimeClient;
@@ -548,7 +551,7 @@ export function createNimiLocalAppClient(
 ): NimiLocalAppClient {
   assertExactKeys(input, ['standardShell'], 'SDK local-app client input');
   const standardShell = input.standardShell;
-  const expectedNamespaces = ['session', 'ai', 'aiConfig', 'storage', 'realm', 'agents', 'conversation', 'embodiment', 'agentRealtime', 'agentConfigure', 'activity'] as const;
+  const expectedNamespaces = ['session', 'ai', 'aiConfig', 'storage', 'realm', 'agents', 'conversation', 'embodiment', 'agentRealtime', 'agentConfigure', 'activity', 'agentWork', 'integration'] as const;
   if (!asRecord(standardShell)
     || Object.keys(standardShell).sort().join('|') !== [...expectedNamespaces].sort().join('|')) {
     return localAppError(
@@ -595,8 +598,10 @@ export function createNimiLocalAppClient(
   assertExactMethodNamespace(realm.chat, ['list'], 'realm.chat');
   assertExactMethodNamespace(realm.personaCharacter, ['listOwned', 'getOwned', 'create', 'replace', 'delete'], 'realm.personaCharacter');
   assertExactMethodNamespace(realm.realtime, ['open', 'subscribe', 'ack', 'closeSubscription', 'closeChannel'], 'realm.realtime');
-  assertExactMethodNamespace(standardShell.agents, ['listReferences'], 'agents');
-  assertExactMethodNamespace(standardShell.conversation, ['open', 'send', 'listToolCalls', 'submitToolResult', 'uploadAttachment', 'readArtifact', 'transcribeVoice', 'renderVoice', 'interruptTurn', 'subscribe', 'snapshot'], 'conversation');
+  assertExactMethodNamespace(standardShell.integration, ['listCatalog', 'listConnections', 'invoke', 'getCall', 'listCalls', 'cancelCall', 'registerProvider', 'unregisterProvider', 'pollProvider', 'completeProvider', 'getManagement', 'putConnection', 'removeConnection', 'setPermission'], 'integration');
+  assertExactMethodNamespace(standardShell.agentWork, ['listReferences', 'start', 'get', 'status', 'listToolCalls', 'submitToolResult', 'cancel', 'subscribe'], 'agentWork');
+  assertExactMethodNamespace(standardShell.agents, ['listReferences', 'getIntroduction'], 'agents');
+  assertExactMethodNamespace(standardShell.conversation, ['open', 'send', 'uploadAttachment', 'readArtifact', 'transcribeVoice', 'renderVoice', 'interruptTurn', 'subscribe', 'snapshot'], 'conversation');
   assertExactMethodNamespace(standardShell.embodiment, ['snapshot', 'subscribe'], 'embodiment');
   assertExactMethodNamespace(standardShell.agentRealtime, ['open', 'appendInput', 'subscribe', 'status', 'interruptOutput', 'close'], 'agentRealtime');
   const agentConfigure = asRecord(standardShell.agentConfigure);
@@ -635,11 +640,13 @@ export function createNimiLocalAppClient(
     }),
     realm: Object.freeze({
       chat: createNimiRealmChatClient(standardShell.realm.chat),
-      worldCore: createWorldCoreClient(standardShell.realm.worldCore),
+      worldCore: createNimiLocalAppWorldCoreClient(standardShell.realm.worldCore),
       personaCharacter: createNimiLocalAppPersonaCharacterClient(standardShell.realm.personaCharacter),
       realtime: createNimiRealmRealtimeClient(standardShell.realm.realtime),
     }),
-    agents: createNimiLocalAppAgentReferencesClient(standardShell.agents),
+    agents: Object.freeze({ ...createNimiLocalAppAgentReferencesClient(standardShell.agents), ...createNimiLocalAppAgentIntroductionClient(standardShell.agents) }),
+    integration: createNimiLocalAppIntegrationClient(standardShell.integration),
+    agentWork: createNimiLocalAppAgentWorkClient(standardShell.agentWork),
     conversation: createNimiLocalAppConversationClient(standardShell.conversation),
     embodiment: createNimiLocalAppEmbodimentClient(standardShell.embodiment),
     agentRealtime: createNimiAgentRealtimeClient(standardShell.agentRealtime),
@@ -794,7 +801,7 @@ function projectionUtf8Content(value: unknown, field: string, maxBytes: number):
   return value;
 }
 
-function createWorldCoreClient(
+export function createNimiLocalAppWorldCoreClient(
   shell: NimiLocalAppStandardShell['realm']['worldCore'],
 ): NimiLocalAppClient['realm']['worldCore'] {
   return Object.freeze({

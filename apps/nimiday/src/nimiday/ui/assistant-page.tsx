@@ -13,6 +13,7 @@ import {
 import { createBrowserAppConversationHostPort } from '@nimiplatform/kit/features/chat';
 import { AudioLines, CalendarPlus, Mic, Send, Square, UserRoundCog, Volume2, Monitor } from 'lucide-react';
 import { circleMentioned, draftFromRequest } from '../domain/quick-capture.js';
+import { historicalReplyAuthor } from '../domain/agent-labels.js';
 import { isActive } from '../domain/reminders.js';
 import { toLocalDate } from '../domain/time.js';
 import { itemLine } from '../domain/work.js';
@@ -26,6 +27,7 @@ import { AppointPanel } from './appoint-panel.js';
 import { RunChanges } from './run-card.js';
 import { useUi } from './ui-context.js';
 import { VoicePanel } from './voice-panel.js';
+import { getNimiLocalAppClient } from '../../shell/auth/local-app-client.js';
 
 export function AssistantPage() {
   const { copy } = useNimiDay();
@@ -64,9 +66,9 @@ function AppointmentHistory() {
   );
 }
 
-function MessageBubble({ message, agentName, run, unconfirmed }: {
+function MessageBubble({ message, agentBinding, run, unconfirmed }: {
   readonly message: DeskMessage;
-  readonly agentName: string;
+  readonly agentBinding: string | null;
   readonly run: SkillRun | null;
   readonly unconfirmed: string | null;
 }) {
@@ -74,17 +76,7 @@ function MessageBubble({ message, agentName, run, unconfirmed }: {
   const { state } = useDayStore();
   const { now } = useEngine();
   const ui = useUi();
-  const [images, setImages] = useState<string[]>([]);
-  const [speaking, setSpeaking] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    if (message.images.length === 0) return;
-    void Promise.all(message.images.map((image) => deskApi.readImage(image.artifactId).catch(() => null))).then((urls) => {
-      if (active) setImages(urls.filter((url): url is string => Boolean(url)));
-    });
-    return () => { active = false; };
-  }, [deskApi, message.images]);
+  const author = message.role === 'assistant' ? historicalReplyAuthor(run, agentBinding) : null;
 
   if (message.role === 'app') {
     // Runtime prefixes an App-originated turn with its App and routine; the rest is addressed to the agent.
@@ -97,32 +89,11 @@ function MessageBubble({ message, agentName, run, unconfirmed }: {
     );
   }
 
-  const speak = async () => {
-    if (speaking) {
-      deskApi.stopSpeaking();
-      setSpeaking(false);
-      return;
-    }
-    setSpeaking(true);
-    const result = await deskApi.speak(message.id, `speak-${message.id}-${Date.now()}`);
-    if (result.ok) {
-      await result.finished;
-      setSpeaking(false);
-      return;
-    }
-    setSpeaking(false);
-    nimiToast.show({
-      tone: 'warning',
-      message: result.reason === 'voice-unavailable' ? copy.assistant.voiceUnavailable(agentName) : copy.assistant.voiceFailed,
-      durationMs: 7000,
-    });
-  };
-
   return (
     <div className="nd-bubble" data-role={message.role} data-testid={`nd-bubble-${message.role}`}>
+      {author && <div className="nd-faint" style={{ marginBottom: 4 }} data-testid="nd-historical-author">{author.name ? (author.linked ? copy.assistant.historicalAuthor(author.name) : copy.assistant.uncorrelatedAuthor(author.name)) : copy.assistant.unknownAuthor}</div>}
       {message.text}
-      {images.map((url) => <img key={url} src={url} alt={copy.assistant.image} />)}
-      {run && run.changes.length > 0 ? (
+      {run && run.trigger === 'chat' && run.changes.length > 0 ? (
         <div className="nd-bubble-changes" data-testid="nd-chat-changes">
           <RunChanges run={run} />
           {run.undone ? <span className="nd-faint">{describeUndone(copy, run, state.items)}</span> : (
@@ -154,14 +125,7 @@ function MessageBubble({ message, agentName, run, unconfirmed }: {
           </span>
         </div>
       ) : null}
-      {message.role === 'assistant' && message.text ? (
-        <div className="nd-bubble-tools">
-          <button type="button" className="nd-link nd-link-icon" onClick={() => { void speak(); }} aria-label={copy.assistant.readAloud}>
-            <Volume2 size={13} aria-hidden="true" />{speaking ? copy.run.stopListening : copy.assistant.readAloud}
-          </button>
-          <span className="nd-faint">{agentName}</span>
-        </div>
-      ) : null}
+
     </div>
   );
 }
@@ -180,8 +144,8 @@ function Conversation() {
   const [switchPrompt, setSwitchPrompt] = useState<((value: boolean) => void) | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const hostPort = useMemo(() => createBrowserAppConversationHostPort(), []);
-  const replying = desk.activeTurnId !== null;
-  // The conversation is shared across Nimi: another App's turn can be running here too.
+  const replying = desk.activeTurnId !== null || desk.resourceBusy;
+  // Only this App's business executions are displayed here.
   const ownTurn = replying && deskApi.ownsTurn(desk.activeTurnId);
 
   useEffect(() => {
@@ -248,15 +212,16 @@ function Conversation() {
 
   const [avatarPending, setAvatarPending] = useState(false);
   const showAvatar = async () => {
-    if (!desk.anchorId || avatarPending) return;
+    if (avatarPending) return;
     setAvatarPending(true);
     nimiToast.show({ tone: 'info', message: copy.assistant.avatarCalling(agent.displayName), durationMs: 4000 });
     // The desktop may take a while to present the companion; say so instead of staying silent.
     const slow = setTimeout(() => nimiToast.show({ tone: 'warning', message: copy.assistant.avatarSlow(agent.displayName), durationMs: 8000 }), 30_000);
     try {
+      const opened = await getNimiLocalAppClient().conversation.open({ agentHandle: agent.agentHandle });
       const outcome = await showAgentAvatar({
         agentHandle: agent.agentHandle,
-        conversationAnchorId: desk.anchorId,
+        conversationAnchorId: opened.conversationAnchorId,
         confirmSwitch: () => new Promise<boolean>((resolve) => setSwitchPrompt(() => resolve)),
       });
       if (outcome.kind === 'shown') nimiToast.show({ tone: 'success', message: copy.assistant.avatarOpened(agent.displayName), durationMs: 4000 });
@@ -268,8 +233,8 @@ function Conversation() {
   };
 
   const liveTools = desk.liveTools.filter((tool) => tool.turnId === desk.activeTurnId && tool.lifecycle === 'started');
-  const chatRuns = useMemo(() => new Map(state.runs
-    .filter((run) => run.trigger === 'chat' && run.replyMessageId)
+  const runsByReply = useMemo(() => new Map(state.runs
+    .filter((run) => run.replyMessageId)
     .map((run) => [run.replyMessageId!, run] as const)), [state.runs]);
 
   return (
@@ -309,8 +274,8 @@ function Conversation() {
             <MessageBubble
               key={message.id}
               message={message}
-              agentName={agent.displayName}
-              run={message.role === 'assistant' ? chatRuns.get(message.id) ?? null : null}
+              agentBinding={agent.binding}
+              run={message.role === 'assistant' ? runsByReply.get(message.id) ?? null : null}
               unconfirmed={unconfirmed && unconfirmed.messageId === message.id ? unconfirmed.request : null}
             />
           ))}
@@ -378,7 +343,7 @@ function Conversation() {
                 agentHandle={agent.agentHandle}
                 agentName={agent.displayName}
                 avatarUrl={agent.avatarUrl}
-                conversationAnchorId={desk.anchorId}
+                conversationAnchorId={null}
               />
             </DialogBody>
           </DialogContent>

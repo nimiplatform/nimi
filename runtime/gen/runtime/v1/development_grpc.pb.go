@@ -25,6 +25,7 @@ const (
 	RuntimeDevelopmentService_ListLocalDevelopmentRegistrations_FullMethodName  = "/nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentRegistrations"
 	RuntimeDevelopmentService_RemoveLocalDevelopmentRegistration_FullMethodName = "/nimi.runtime.v1.RuntimeDevelopmentService/RemoveLocalDevelopmentRegistration"
 	RuntimeDevelopmentService_EndLocalDevelopmentRun_FullMethodName             = "/nimi.runtime.v1.RuntimeDevelopmentService/EndLocalDevelopmentRun"
+	RuntimeDevelopmentService_GetLocalDevelopmentRunAccess_FullMethodName       = "/nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentRunAccess"
 )
 
 // RuntimeDevelopmentServiceClient is the client API for RuntimeDevelopmentService service.
@@ -40,6 +41,7 @@ type RuntimeDevelopmentServiceClient interface {
 	ListLocalDevelopmentRegistrations(ctx context.Context, in *ListLocalDevelopmentRegistrationsRequest, opts ...grpc.CallOption) (*ListLocalDevelopmentRegistrationsResponse, error)
 	RemoveLocalDevelopmentRegistration(ctx context.Context, in *RemoveLocalDevelopmentRegistrationRequest, opts ...grpc.CallOption) (*RemoveLocalDevelopmentRegistrationResponse, error)
 	EndLocalDevelopmentRun(ctx context.Context, in *EndLocalDevelopmentRunRequest, opts ...grpc.CallOption) (*EndLocalDevelopmentRunResponse, error)
+	GetLocalDevelopmentRunAccess(ctx context.Context, in *GetLocalDevelopmentRunAccessRequest, opts ...grpc.CallOption) (*GetLocalDevelopmentRunAccessResponse, error)
 }
 
 type runtimeDevelopmentServiceClient struct {
@@ -110,6 +112,16 @@ func (c *runtimeDevelopmentServiceClient) EndLocalDevelopmentRun(ctx context.Con
 	return out, nil
 }
 
+func (c *runtimeDevelopmentServiceClient) GetLocalDevelopmentRunAccess(ctx context.Context, in *GetLocalDevelopmentRunAccessRequest, opts ...grpc.CallOption) (*GetLocalDevelopmentRunAccessResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetLocalDevelopmentRunAccessResponse)
+	err := c.cc.Invoke(ctx, RuntimeDevelopmentService_GetLocalDevelopmentRunAccess_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RuntimeDevelopmentServiceServer is the server API for RuntimeDevelopmentService service.
 // All implementations should embed UnimplementedRuntimeDevelopmentServiceServer
 // for forward compatibility.
@@ -123,6 +135,7 @@ type RuntimeDevelopmentServiceServer interface {
 	ListLocalDevelopmentRegistrations(context.Context, *ListLocalDevelopmentRegistrationsRequest) (*ListLocalDevelopmentRegistrationsResponse, error)
 	RemoveLocalDevelopmentRegistration(context.Context, *RemoveLocalDevelopmentRegistrationRequest) (*RemoveLocalDevelopmentRegistrationResponse, error)
 	EndLocalDevelopmentRun(context.Context, *EndLocalDevelopmentRunRequest) (*EndLocalDevelopmentRunResponse, error)
+	GetLocalDevelopmentRunAccess(context.Context, *GetLocalDevelopmentRunAccessRequest) (*GetLocalDevelopmentRunAccessResponse, error)
 }
 
 // UnimplementedRuntimeDevelopmentServiceServer should be embedded to have
@@ -149,6 +162,9 @@ func (UnimplementedRuntimeDevelopmentServiceServer) RemoveLocalDevelopmentRegist
 }
 func (UnimplementedRuntimeDevelopmentServiceServer) EndLocalDevelopmentRun(context.Context, *EndLocalDevelopmentRunRequest) (*EndLocalDevelopmentRunResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method EndLocalDevelopmentRun not implemented")
+}
+func (UnimplementedRuntimeDevelopmentServiceServer) GetLocalDevelopmentRunAccess(context.Context, *GetLocalDevelopmentRunAccessRequest) (*GetLocalDevelopmentRunAccessResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetLocalDevelopmentRunAccess not implemented")
 }
 func (UnimplementedRuntimeDevelopmentServiceServer) testEmbeddedByValue() {}
 
@@ -278,6 +294,24 @@ func _RuntimeDevelopmentService_EndLocalDevelopmentRun_Handler(srv interface{}, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RuntimeDevelopmentService_GetLocalDevelopmentRunAccess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetLocalDevelopmentRunAccessRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeDevelopmentServiceServer).GetLocalDevelopmentRunAccess(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeDevelopmentService_GetLocalDevelopmentRunAccess_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeDevelopmentServiceServer).GetLocalDevelopmentRunAccess(ctx, req.(*GetLocalDevelopmentRunAccessRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RuntimeDevelopmentService_ServiceDesc is the grpc.ServiceDesc for RuntimeDevelopmentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -308,6 +342,10 @@ var RuntimeDevelopmentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "EndLocalDevelopmentRun",
 			Handler:    _RuntimeDevelopmentService_EndLocalDevelopmentRun_Handler,
+		},
+		{
+			MethodName: "GetLocalDevelopmentRunAccess",
+			Handler:    _RuntimeDevelopmentService_GetLocalDevelopmentRunAccess_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

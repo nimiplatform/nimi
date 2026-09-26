@@ -52,7 +52,7 @@ func (s *Service) AuthorizeFormalAppIngress(
 }
 
 // BindFormalAppSession supplies the same installed LocalAppConnection to the
-// request-empty AuthService Open/Renew handlers. The release keeps session
+// request-empty AuthService Open/Renew/Rebind handlers. The release keeps session
 // rotation serialized with formal App operation admission on this binding.
 func (s *Service) BindFormalAppSession(
 	ctx context.Context,

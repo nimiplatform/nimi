@@ -14,7 +14,7 @@ import {
   milestoneTitlesOverlap,
   normalizedCareerMergeText,
 } from './source-detail-world-character-common.js';
-import { simplifySourceDetailChineseText } from './source-detail-simplified-chinese.js';
+import { simplifyChineseDisplayText as simplifySourceDetailChineseText } from '@nimiplatform/kit/features/chat/headless';
 import {
   isCareerRelationshipType,
   relationshipAttributes,

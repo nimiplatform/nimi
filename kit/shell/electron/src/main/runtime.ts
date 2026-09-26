@@ -1,5 +1,11 @@
 import { NIMI_STANDARD_SHELL_CAPABILITY_IDS, NIMI_STANDARD_SHELL_COMMANDS, type NimiStandardShellCapabilityId } from '@nimiplatform/kit/shell/capabilities';
 import {
+  GetAppAIConfigRequest,
+  OverwriteAppAIConfigRequest,
+  ListAppAIConfigOptionsRequest,
+  InvokeRealmUnaryRequest,
+} from '@nimiplatform/sdk/runtime/host';
+import {
   isElectronDesktopAccountProductMethod,
   isElectronDesktopMachineProductMethod,
   NimiElectronDesktopControlHostError,
@@ -88,7 +94,7 @@ export async function invokeElectronRuntimeUnary(input: {
   readonly signal?: AbortSignal;
 }): Promise<ElectronRuntimeBridgeUnaryResponse> {
   const request = parseElectronRuntimeUnaryRequest(input.payload);
-  if (input.desktopControlHost && isElectronFormalAppOnlyRuntimeMethod(request.methodId)) {
+  if (input.desktopControlHost && isElectronFormalAppOnlyRuntimeMethod(request, input.bundledAvatarProfile === true)) {
     throw electronDesktopRuntimeMethodNotAdmitted(input.command, request.methodId);
   }
   if (input.bundledAvatarProfile) {
@@ -333,7 +339,7 @@ export async function openElectronRuntimeStream(input: {
   readonly bundledAvatarProfile?: boolean;
 }): Promise<ElectronRuntimeBridgeStreamOpenResponse> {
   const request = parseElectronRuntimeStreamOpenRequest(input.payload);
-  if (input.desktopControlHost && isElectronFormalAppOnlyRuntimeMethod(request.methodId)) {
+  if (input.desktopControlHost && isElectronFormalAppOnlyRuntimeMethod(request, input.bundledAvatarProfile === true)) {
     throw electronDesktopRuntimeStreamNotAdmitted(input.command, request.methodId);
   }
   const metadataInput = {
@@ -486,16 +492,102 @@ export async function openElectronRuntimeStream(input: {
   return { streamId: request.streamId };
 }
 
-function isElectronFormalAppOnlyRuntimeMethod(methodId: string): boolean {
+// These exact methods are classified by Runtime's protectedLocalAppUnaryIngress
+// and protectedLocalAppStreamIngress even though their names omit "LocalApp".
+// Their only renderer carrier is the scoped formal App Host.
+const FORMAL_APP_RUNTIME_METHODS: ReadonlySet<string> = new Set([
+  '/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset',
+  '/nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference',
+  '/nimi.runtime.v1.RuntimeAiVideoSessionService/OpenVideoSession',
+  '/nimi.runtime.v1.RuntimeAiVideoSessionService/SubmitVideoSessionFrame',
+  '/nimi.runtime.v1.RuntimeAiVideoSessionService/ReadVideoSessionResult',
+  '/nimi.runtime.v1.RuntimeAiVideoSessionService/CloseVideoSession',
+  '/nimi.runtime.v1.RuntimeAppActivityService/PutAppActivity',
+  '/nimi.runtime.v1.RuntimeAppActivityService/ListAppActivities',
+  '/nimi.runtime.v1.RuntimeAppActivityService/MarkAppActivityRead',
+  '/nimi.runtime.v1.RuntimeAppActivityService/CompleteAppActivityOpenRequest',
+  '/nimi.runtime.v1.RuntimeAppActivityService/ResolveAppActivityOpenLaunch',
+  '/nimi.runtime.v1.RuntimeAppActivityService/OpenAppActivity',
+  '/nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityChanges',
+  '/nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityOpenRequests',
+  '/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationCatalog',
+  '/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationConnections',
+  '/nimi.runtime.v1.RuntimeIntegrationService/InvokeIntegrationCall',
+  '/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationCall',
+  '/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationCalls',
+  '/nimi.runtime.v1.RuntimeIntegrationService/CancelIntegrationCall',
+  '/nimi.runtime.v1.RuntimeIntegrationService/RegisterIntegrationProvider',
+  '/nimi.runtime.v1.RuntimeIntegrationService/UnregisterIntegrationProvider',
+  '/nimi.runtime.v1.RuntimeIntegrationService/PollIntegrationProvider',
+  '/nimi.runtime.v1.RuntimeIntegrationService/CompleteIntegrationProvider',
+  '/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationManagement',
+  '/nimi.runtime.v1.RuntimeIntegrationService/PutIntegrationConnection',
+  '/nimi.runtime.v1.RuntimeIntegrationService/RemoveIntegrationConnection',
+  '/nimi.runtime.v1.RuntimeIntegrationService/SetIntegrationPermission',
+]);
+
+const FORMAL_APP_REALM_METHODS: ReadonlySet<string> = new Set([
+  'WorldCoreController_listWorldCores',
+  'WorldCoreController_createWorldCore',
+  'WorldCoreController_getWorldCreationEligibility',
+  'WorldCoreController_getWorldCore',
+  'WorldCoreController_replaceWorldCore',
+  'WorldCoreController_listWorldCharacters',
+  'WorldCoreController_getWorldCharacter',
+  'WorldCoreController_createWorldCharacter',
+  'WorldCoreController_replaceWorldCharacter',
+  'WorldCoreController_listWorldEntities',
+  'WorldCoreController_getWorldEntity',
+  'WorldCoreController_createWorldEntity',
+  'WorldCoreController_listWorldRelationships',
+  'WorldCoreController_getWorldRelationship',
+  'WorldCoreController_listPersonaCharacters',
+  'WorldCoreController_getPersonaCharacter',
+  'WorldCoreController_createPersonaCharacter',
+  'WorldCoreController_replacePersonaCharacter',
+  'WorldCoreController_deletePersonaCharacter',
+]);
+
+// @nimi-authority: rule.nimi.runtime.protected-session.r017
+function isElectronFormalAppOnlyRuntimeMethod(request: ElectronRuntimeBridgeUnaryRequest, avatar: boolean): boolean {
+  const methodId = request.methodId;
   // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040e
   // Package management belongs to the exact Desktop machine-product profile;
   // "LocalApp" in an import method's name does not make it an App operation.
   if (methodId.startsWith('/nimi.runtime.v1.RuntimeAppPackageService/')
     && isElectronDesktopMachineProductMethod(methodId, 'unary')) return false;
   const methodName = methodId.slice(methodId.lastIndexOf('/') + 1);
-  return methodName.includes('LocalApp')
+  if (FORMAL_APP_RUNTIME_METHODS.has(methodId)
+    || methodName.includes('LocalApp')
     || methodId.startsWith('/nimi.runtime.v1.RuntimeAiRealtimeService/')
-    || methodId.startsWith('/nimi.runtime.v1.RuntimeRealmRealtimeService/');
+    || methodId.startsWith('/nimi.runtime.v1.RuntimeRealmRealtimeService/')) return true;
+  try {
+    if (methodId === '/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary') {
+      const decoded = InvokeRealmUnaryRequest.fromBinary(fromBase64(request.requestBytesBase64));
+      return FORMAL_APP_REALM_METHODS.has(decoded.methodId);
+    }
+    let owner;
+    switch (methodId) {
+      case '/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig':
+        owner = GetAppAIConfigRequest.fromBinary(fromBase64(request.requestBytesBase64)).owner;
+        break;
+      case '/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig':
+        owner = OverwriteAppAIConfigRequest.fromBinary(fromBase64(request.requestBytesBase64)).config?.owner;
+        break;
+      case '/nimi.runtime.v1.RuntimeAiService/ListAppAIConfigOptions':
+        owner = ListAppAIConfigOptionsRequest.fromBinary(fromBase64(request.requestBytesBase64)).owner;
+        break;
+      default:
+        return false;
+    }
+    // Match Runtime's desktopManagedAppAIConfigAssertion: only the Desktop's
+    // explicit non-self App owner is a manager call. Avatar has no such branch.
+    const appId = owner?.owner.oneofKind === 'app' ? owner.owner.app.appId : '';
+    return avatar || !appId || appId.trim() !== appId || appId === 'nimi.desktop';
+  } catch {
+    // Malformed protobuf cannot establish a distinct manager/broker route.
+    return true;
+  }
 }
 
 export function closeElectronRuntimeStream(

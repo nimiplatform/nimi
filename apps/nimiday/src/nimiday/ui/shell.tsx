@@ -8,6 +8,7 @@ import { CarePage } from './care-page.js';
 import { ItemsPage } from './items-page.js';
 import { RoutinesPage } from './routines-page.js';
 import { SettingsPage } from './settings-page.js';
+import { FollowUpsPage } from './followups-page.js';
 import { TodayPage } from './today-page.js';
 
 type View = NavTarget['view'];
@@ -18,6 +19,7 @@ const NAV: readonly { readonly view: View; readonly icon: LucideIcon }[] = [
   { view: 'items', icon: ListChecks },
   { view: 'routines', icon: Repeat2 },
   { view: 'assistant', icon: MessageCircle },
+  { view: 'followups', icon: CalendarHeart },
 ];
 
 function Page() {
@@ -33,6 +35,8 @@ function Page() {
       return <RoutinesPage focusRunId={nav.runId} />;
     case 'assistant':
       return <AssistantPage />;
+    case 'followups':
+      return <FollowUpsPage focusId={nav.followupId} />;
     case 'settings':
       return <SettingsPage />;
   }

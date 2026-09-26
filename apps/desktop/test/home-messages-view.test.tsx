@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import React, { act } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { JSDOM } from 'jsdom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { NimiAppActivityRecord, NimiAppActivityViewSnapshot } from '@nimiplatform/sdk/app';
 import { changeLocale, i18n, initI18n, productionDesktopI18n } from '../src/shell/renderer/i18n';
 import { DesktopI18nResourceProvider } from '../src/shell/renderer/i18n/i18n-context.js';
@@ -128,7 +129,7 @@ function context(overrides: Partial<HomeMessageCardContext> = {}): HomeMessageCa
 }
 
 function wrap(node: React.ReactNode) {
-  return <DesktopI18nResourceProvider resource={productionDesktopI18n}>{node}</DesktopI18nResourceProvider>;
+  return <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><DesktopI18nResourceProvider resource={productionDesktopI18n}>{node}</DesktopI18nResourceProvider></QueryClientProvider>;
 }
 
 /** The markup of one card, from its test id to the end of its article. */

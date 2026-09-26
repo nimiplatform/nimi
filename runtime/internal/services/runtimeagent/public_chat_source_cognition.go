@@ -30,6 +30,10 @@ func (r publicChatRuntime) retrievePublicChatSourceCognition(
 	relationships []agentTurnRelationshipInput,
 	actions publicChatAvailableActions,
 ) agentTurnCognitionInput {
+	return r.retrieveLocalAgentSourceCognition(ctx, session.OwnerUserID, session.LocalAgentRef, source, current, transcript, conversationSummary, relationships, actions)
+}
+
+func (r publicChatRuntime) retrieveLocalAgentSourceCognition(ctx context.Context, ownerUserID, localAgentRef string, source localAgentTurnSourceViewV1, current agentTurnCurrentUserInput, transcript []agentTurnTranscriptPairInput, conversationSummary *agentTurnConversationSummaryInput, relationships []agentTurnRelationshipInput, actions publicChatAvailableActions) agentTurnCognitionInput {
 	if r.svc == nil || r.svc.sourceCognitionBridge == nil {
 		return agentTurnCognitionInput{AdapterStatus: "unavailable", SelectionStatus: "unavailable"}
 	}
@@ -37,22 +41,22 @@ func (r publicChatRuntime) retrievePublicChatSourceCognition(
 	if query == "" {
 		return agentTurnCognitionInput{AdapterStatus: "failure", SelectionStatus: "failure"}
 	}
-	scopeID := sourceCognitionScopeID(session.LocalAgentRef)
+	scopeID := sourceCognitionScopeID(localAgentRef)
 	outcome, err := r.svc.sourceCognitionBridge.SearchAgentSource(
 		ctx,
-		session.OwnerUserID,
-		session.LocalAgentRef,
+		ownerUserID,
+		localAgentRef,
 		scopeID,
 		source.SnapshotHash,
 		query,
 		publicChatSourceCognitionCandidateLimit,
 	)
 	if err != nil {
-		r.svc.scheduleSourceCognitionRebuild(session.OwnerUserID, session.LocalAgentRef, true)
+		r.svc.scheduleSourceCognitionRebuild(ownerUserID, localAgentRef, true)
 		return agentTurnCognitionInput{AdapterStatus: "failure", SelectionStatus: "failure"}
 	}
 	if err := validateSourceCognitionOutcomeBinding(outcome, scopeID, source.SnapshotHash); err != nil || validateSourceCognitionGenerationBinding(outcome, source.Partition) != nil {
-		r.svc.scheduleSourceCognitionRebuild(session.OwnerUserID, session.LocalAgentRef, true)
+		r.svc.scheduleSourceCognitionRebuild(ownerUserID, localAgentRef, true)
 		return agentTurnCognitionInput{AdapterStatus: "failure", SelectionStatus: "failure"}
 	}
 	result := agentTurnCognitionInput{
@@ -61,7 +65,7 @@ func (r publicChatRuntime) retrievePublicChatSourceCognition(
 	}
 	if outcome.Status != "ready" {
 		if outcome.Status == "failure" || outcome.Status == "unavailable" {
-			r.svc.scheduleSourceCognitionRebuild(session.OwnerUserID, session.LocalAgentRef, false)
+			r.svc.scheduleSourceCognitionRebuild(ownerUserID, localAgentRef, false)
 		}
 		return result
 	}

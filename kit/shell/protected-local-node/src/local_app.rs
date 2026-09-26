@@ -1,6 +1,5 @@
 use super::*;
 use nimi_shell_protected_local::{
-    LocalAppConversationToolScopeRequest, LocalAppConversationToolResultRequest,
     LocalAppVideoSessionFrameRequest, LocalAppVideoSessionOpenRequest,
     LocalAppVideoSessionScopeRequest,
 };
@@ -203,6 +202,108 @@ pub async fn local_app_session_renew() -> NativeJsonOutcome {
             clear_session_on_transport_failure(&session, &error).await;
             NativeJsonOutcome::error(error)
         }
+    }
+}
+
+// @nimi-authority: rule.nimi.runtime.protected-session.r016
+// Kit fences old business work before calling this main-process-only operation.
+// Runtime revalidates the verified Host; this accepts no selector or credential.
+static LOCAL_APP_BINDING_GENERATION: AtomicU64 = AtomicU64::new(0);
+struct LocalAppRebindGuard;
+impl Drop for LocalAppRebindGuard {
+    fn drop(&mut self) {
+        LOCAL_APP_BINDING_GENERATION.fetch_add(1, Ordering::AcqRel);
+    }
+}
+#[napi(js_name = "localAppSessionRebind")]
+pub async fn local_app_session_rebind() -> NativeJsonOutcome {
+    let generation = LOCAL_APP_BINDING_GENERATION.load(Ordering::Acquire);
+    if generation % 2 != 0
+        || LOCAL_APP_BINDING_GENERATION
+            .compare_exchange(
+                generation,
+                generation + 1,
+                Ordering::AcqRel,
+                Ordering::Acquire,
+            )
+            .is_err()
+    {
+        return NativeJsonOutcome::error(LocalAppOperationError::new(
+            LocalAppReasonCode::RuntimeUnauthenticated,
+            false,
+        ));
+    }
+    let _rebinding = LocalAppRebindGuard;
+    let mut cache = LOCAL_APP_SESSION.lock().await;
+    let transport_lost = cache.invalidated.as_ref().is_some_and(|error| {
+        matches!(
+            error.reason_code(),
+            LocalAppReasonCode::RuntimeServiceUnavailable
+                | LocalAppReasonCode::RuntimeServiceUntrusted
+                | LocalAppReasonCode::RuntimeServiceErrorUnclassified
+                | LocalAppReasonCode::ProcessReplaced
+                | LocalAppReasonCode::RuntimeRestarted
+        )
+    });
+    if !transport_lost {
+        if let Some(session) = cache.session.as_ref() {
+            // Input producers may otherwise hold the native client-write
+            // guard forever. Drop only these local receivers/tasks; none of
+            // this cleanup acquires the session-cache lock or sends an RPC.
+            let writes = std::mem::take(&mut *asset_write_streams().lock().await);
+            for (_, stream) in writes {
+                stream.task.abort();
+                drop(stream.sender);
+            }
+            let status = if session.can_retry_initial_bootstrap() {
+                session
+                    .renew_technical_session()
+                    .await
+                    .map(|status| (status, session.0.clone()))
+            } else {
+                session.rebind_technical_session().await.map(|rebound| {
+                    (
+                        rebound.status,
+                        Arc::<dyn NimiLocalAppSession>::from(rebound.session),
+                    )
+                })
+            };
+            return match status {
+                Ok((status, next)) => {
+                    cache.session = Some(Arc::new(CachedLocalAppSession(next)));
+                    cache.invalidated = None;
+                    NativeJsonOutcome::success(project_session_status(status))
+                }
+                Err(error) => {
+                    cache.invalidated = Some(error.clone());
+                    NativeJsonOutcome::error(error)
+                }
+            };
+        }
+    }
+    // A lost transport cannot use Rebind. Fresh Open still requires a new
+    // legitimate launch witness from the supervisor; it cannot revive a stop.
+    cache.session = None;
+    cache.invalidated = Some(LocalAppOperationError::new(
+        LocalAppReasonCode::RuntimeUnauthenticated,
+        false,
+    ));
+    let opened = match PlatformLocalAppCarrier::default()
+        .open_local_app_session()
+        .await
+    {
+        Ok(opened) => Arc::<dyn NimiLocalAppSession>::from(opened),
+        Err(error) => {
+            cache.invalidated = Some(error.clone());
+            return NativeJsonOutcome::error(error);
+        }
+    };
+    let status = opened.session_status().await;
+    cache.session = Some(Arc::new(CachedLocalAppSession(opened)));
+    cache.invalidated = None;
+    match status {
+        Ok(status) => NativeJsonOutcome::success(project_session_status(status)),
+        Err(error) => NativeJsonOutcome::error(error),
     }
 }
 
@@ -501,8 +602,16 @@ pub async fn local_app_artifact_upload(
     input: NativeScenarioArtifactUploadInput,
 ) -> NativeJsonOutcome {
     invoke_agent(|session| async move {
-        let source = input.source.map(serde_json::from_value).transpose().map_err(|_| native_invalid_payload())?;
-        let audio_preparation = input.audio_preparation.map(serde_json::from_value).transpose().map_err(|_| native_invalid_payload())?;
+        let source = input
+            .source
+            .map(serde_json::from_value)
+            .transpose()
+            .map_err(|_| native_invalid_payload())?;
+        let audio_preparation = input
+            .audio_preparation
+            .map(serde_json::from_value)
+            .transpose()
+            .map_err(|_| native_invalid_payload())?;
         session
             .upload_scenario_artifact(LocalAppScenarioUploadArtifactRequest {
                 bytes: input.bytes.map(|bytes| bytes.to_vec()).unwrap_or_default(),
@@ -855,7 +964,7 @@ fn project_asset_record(asset: LocalAppAssetRecord) -> JsonValue {
 
 async fn invoke_asset_record<F, Fut>(operation: F) -> NativeJsonOutcome
 where
-    F: FnOnce(Arc<dyn NimiLocalAppSession>) -> Fut,
+    F: FnOnce(Arc<CachedLocalAppSession>) -> Fut,
     Fut: std::future::Future<Output = Result<LocalAppAssetRecord, LocalAppOperationError>>,
 {
     let session = match current_or_open_session().await {
@@ -1237,6 +1346,13 @@ pub async fn local_app_realm_persona_character_delete(
     .await
 }
 
+#[napi(js_name = "localAppAgentIntroductionGet")]
+pub async fn local_app_agent_introduction_get(input: NativeAgentHandleInput) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session.agent_introduction_get(LocalAppAgentHandleRequest { agent_handle: input.agent_handle }).await
+    }).await
+}
+
 #[napi(js_name = "localAppAgentReferenceList")]
 pub async fn local_app_agent_reference_list() -> NativeJsonOutcome {
     invoke_agent(|session| async move {
@@ -1272,6 +1388,7 @@ fn project_agent_reference(reference: LocalAppAgentReference) -> JsonValue {
     json!({
         "agentHandle": reference.agent_handle,
         "agentBinding": reference.agent_binding,
+        "activityAgentRef": reference.activity_agent_ref,
         "displayName": reference.display_name,
         "avatarUrl": reference.avatar_url,
     })
@@ -1558,9 +1675,30 @@ pub async fn local_app_conversation_open(input: NativeConversationOpenInput) -> 
 }
 
 #[napi(js_name = "localAppConversationSendTurn")]
-pub async fn local_app_conversation_send_turn(
-    input: NativeConversationSendInput,
-) -> NativeJsonOutcome {
+pub async fn local_app_conversation_send_turn(input: JsonValue) -> NativeJsonOutcome {
+    let Some(record) = input.as_object() else {
+        return NativeJsonOutcome::error(native_invalid_payload());
+    };
+    if record.len() != 4
+        || !["agentHandle", "conversationAnchorId", "requestId", "parts"]
+            .iter()
+            .all(|key| record.contains_key(*key))
+    {
+        return NativeJsonOutcome::error(native_invalid_payload());
+    }
+    let (Some(agent_handle), Some(conversation_anchor_id), Some(request_id)) = (
+        record["agentHandle"].as_str(),
+        record["conversationAnchorId"].as_str(),
+        record["requestId"].as_str(),
+    ) else {
+        return NativeJsonOutcome::error(native_invalid_payload());
+    };
+    let input = NativeConversationSendInput {
+        agent_handle: agent_handle.to_string(),
+        conversation_anchor_id: conversation_anchor_id.to_string(),
+        request_id: request_id.to_string(),
+        parts: record["parts"].clone(),
+    };
     let parts = match native_conversation_input_parts(input.parts) {
         Ok(parts) => parts,
         Err(error) => return NativeJsonOutcome::error(error),
@@ -1572,7 +1710,6 @@ pub async fn local_app_conversation_send_turn(
                 conversation_anchor_id: input.conversation_anchor_id,
                 request_id: input.request_id,
                 parts,
-                work: input.work,
             })
             .await
             .map(|result| json!({ "turnId": result.turn_id }))
@@ -1580,19 +1717,6 @@ pub async fn local_app_conversation_send_turn(
     .await
 }
 
-#[napi(js_name = "localAppConversationToolCallsList")]
-pub async fn local_app_conversation_tool_calls_list(input: NativeConversationToolScopeInput) -> NativeJsonOutcome {
-    invoke_agent(|session| async move { session.conversation_tool_calls_list(LocalAppConversationToolScopeRequest {
-        agent_handle: input.agent_handle, conversation_anchor_id: input.conversation_anchor_id, turn_id: input.turn_id,
-    }).await }).await
-}
-#[napi(js_name = "localAppConversationToolResultSubmit")]
-pub async fn local_app_conversation_tool_result_submit(input: NativeConversationToolResultInput) -> NativeJsonOutcome {
-    invoke_agent(|session| async move { session.conversation_tool_result_submit(LocalAppConversationToolResultRequest {
-        scope: LocalAppConversationToolScopeRequest { agent_handle: input.agent_handle, conversation_anchor_id: input.conversation_anchor_id, turn_id: input.turn_id },
-        call_id: input.call_id, result_json: input.result_json, is_error: input.is_error,
-    }).await }).await
-}
 #[napi(js_name = "localAppConversationAttachmentUpload")]
 pub async fn local_app_conversation_attachment_upload(
     input: NativeConversationAttachmentUploadInput,
@@ -2486,7 +2610,7 @@ pub async fn local_app_agent_realtime_close(
 
 async fn subscribe_realtime<F, Fut>(kind: &str, operation: F) -> NativeJsonOutcome
 where
-    F: FnOnce(Arc<dyn NimiLocalAppSession>) -> Fut,
+    F: FnOnce(Arc<CachedLocalAppSession>) -> Fut,
     Fut: Future<Output = Result<LocalAppRealtimeSubscriptionReceiver, LocalAppOperationError>>,
 {
     let session = match current_or_open_session().await {
@@ -2682,7 +2806,7 @@ fn project_conversation_event(event: LocalAppConversationEvent) -> JsonValue {
 
 async fn invoke_agent<F, Fut>(operation: F) -> NativeJsonOutcome
 where
-    F: FnOnce(Arc<dyn NimiLocalAppSession>) -> Fut,
+    F: FnOnce(Arc<CachedLocalAppSession>) -> Fut,
     Fut: std::future::Future<Output = Result<JsonValue, LocalAppOperationError>>,
 {
     let session = match current_or_open_session().await {
@@ -2714,25 +2838,40 @@ fn decimal_revision(value: &str, allow_zero: bool) -> Result<u64, LocalAppOperat
         .map_err(|_| LocalAppOperationError::new(LocalAppReasonCode::InvalidPayload, false))
 }
 
-async fn current_or_open_session() -> Result<Arc<dyn NimiLocalAppSession>, LocalAppOperationError> {
+async fn current_or_open_session() -> Result<Arc<CachedLocalAppSession>, LocalAppOperationError> {
+    let generation = LOCAL_APP_BINDING_GENERATION.load(Ordering::Acquire);
+    if generation % 2 != 0 {
+        return Err(LocalAppOperationError::new(
+            LocalAppReasonCode::RuntimeUnauthenticated,
+            false,
+        ));
+    }
     let mut current = LOCAL_APP_SESSION.lock().await;
-    if let Some(session) = current.as_ref() {
+    if generation != LOCAL_APP_BINDING_GENERATION.load(Ordering::Acquire) {
+        return Err(LocalAppOperationError::new(
+            LocalAppReasonCode::RuntimeUnauthenticated,
+            false,
+        ));
+    }
+    if let Some(error) = current.invalidated.as_ref() {
+        return Err(error.clone());
+    }
+    if let Some(session) = current.session.as_ref() {
         return Ok(session.clone());
     }
     let opened = PlatformLocalAppCarrier::default()
         .open_local_app_session()
         .await?;
-    let session = Arc::<dyn NimiLocalAppSession>::from(opened);
-    *current = Some(session.clone());
+    let session = Arc::new(CachedLocalAppSession(Arc::<dyn NimiLocalAppSession>::from(
+        opened,
+    )));
+    current.session = Some(session.clone());
     Ok(session)
 }
 
 fn invalidates_local_app_session(reason: LocalAppReasonCode) -> bool {
-    // These channels have a one-shot connector: any transport-level failure is
-    // unrecoverable in place, so the cached session must be dropped for the
-    // next call to open a freshly verified channel. Unclassified covers the
-    // abrupt-loss case (a mid-RPC/mid-stream Runtime death surfaces as an
-    // unmapped transport error).
+    // A retired scope cannot be implicitly reopened by a concurrent business
+    // call. Only Host-private rebind may install a fresh verified channel.
     matches!(
         reason,
         LocalAppReasonCode::RuntimeServiceUnavailable
@@ -2740,22 +2879,33 @@ fn invalidates_local_app_session(reason: LocalAppReasonCode) -> bool {
             | LocalAppReasonCode::RuntimeServiceErrorUnclassified
             | LocalAppReasonCode::ProcessReplaced
             | LocalAppReasonCode::RuntimeRestarted
+            | LocalAppReasonCode::RuntimeUnauthenticated
+            | LocalAppReasonCode::AccountChanged
+            | LocalAppReasonCode::Revoked
+            | LocalAppReasonCode::ProjectChanged
+            | LocalAppReasonCode::SnapshotUnavailable
     )
 }
 
 async fn clear_session_on_transport_failure(
-    session: &Arc<dyn NimiLocalAppSession>,
+    session: &Arc<CachedLocalAppSession>,
     error: &LocalAppOperationError,
 ) {
     if !invalidates_local_app_session(error.reason_code()) {
         return;
     }
+    if error.reason_code() == LocalAppReasonCode::RuntimeUnauthenticated
+        && session.can_retry_initial_bootstrap()
+    {
+        return;
+    }
     let mut current = LOCAL_APP_SESSION.lock().await;
     if current
+        .session
         .as_ref()
         .is_some_and(|candidate| Arc::ptr_eq(candidate, session))
     {
-        *current = None;
+        current.invalidated = Some(error.clone());
     }
 }
 
@@ -2781,7 +2931,10 @@ mod scenario_execute_cancellation_tests {
     }
 
     async fn registered(request_id: &str) -> bool {
-        scenario_execute_calls().lock().await.contains_key(request_id)
+        scenario_execute_calls()
+            .lock()
+            .await
+            .contains_key(request_id)
     }
 
     #[tokio::test]
@@ -2847,7 +3000,10 @@ mod scenario_execute_cancellation_tests {
             NativeJsonOutcome::success(json!({ "traceId": "replayed" }))
         })
         .await;
-        assert_eq!(duplicate.reason_code.as_deref(), Some("runtime-service-untrusted"));
+        assert_eq!(
+            duplicate.reason_code.as_deref(),
+            Some("runtime-service-untrusted")
+        );
         let released = local_app_scenario_execute_release(call(request_id)).await;
         assert_eq!(released.value, Some(json!({ "released": true })));
 
@@ -2863,11 +3019,17 @@ mod scenario_execute_cancellation_tests {
             NativeJsonOutcome::success(json!({}))
         })
         .await;
-        assert_eq!(second.reason_code.as_deref(), Some("runtime-service-untrusted"));
+        assert_eq!(
+            second.reason_code.as_deref(),
+            Some("runtime-service-untrusted")
+        );
         let not_released = local_app_scenario_execute_release(call(active_id)).await;
         assert_eq!(not_released.value, Some(json!({ "released": false })));
         local_app_scenario_execute_cancel(call(active_id)).await;
-        assert_eq!(task.await.expect("join").reason_code.as_deref(), Some("canceled"));
+        assert_eq!(
+            task.await.expect("join").reason_code.as_deref(),
+            Some("canceled")
+        );
         local_app_scenario_execute_release(call(active_id)).await;
         assert!(!registered(active_id).await);
     }
@@ -2904,9 +3066,17 @@ mod scenario_execute_cancellation_tests {
                 timeout_ms: None,
             })
             .await;
-            assert_eq!(outcome.reason_code.as_deref(), Some("invalid-payload"), "{request_id}");
+            assert_eq!(
+                outcome.reason_code.as_deref(),
+                Some("invalid-payload"),
+                "{request_id}"
+            );
             let cancel = local_app_scenario_execute_cancel(call(request_id)).await;
-            assert_eq!(cancel.reason_code.as_deref(), Some("invalid-payload"), "{request_id}");
+            assert_eq!(
+                cancel.reason_code.as_deref(),
+                Some("invalid-payload"),
+                "{request_id}"
+            );
         }
         for timeout in [0.0, -1.0, 120_001.0, 1.5, f64::NAN, f64::INFINITY] {
             let outcome = local_app_scenario_execute(NativeScenarioExecuteInput {
@@ -2915,7 +3085,11 @@ mod scenario_execute_cancellation_tests {
                 timeout_ms: Some(timeout),
             })
             .await;
-            assert_eq!(outcome.reason_code.as_deref(), Some("invalid-payload"), "{timeout}");
+            assert_eq!(
+                outcome.reason_code.as_deref(),
+                Some("invalid-payload"),
+                "{timeout}"
+            );
         }
         assert_eq!(
             native_scenario_execute_timeout(Some(120_000.0)).expect("bound"),
@@ -2938,13 +3112,13 @@ mod session_rebind_tests {
     use super::*;
 
     #[test]
-    fn account_and_session_invalidation_preserve_same_host_rebind_carrier() {
+    fn account_and_session_invalidation_require_explicit_host_rebind() {
         for reason in [
             LocalAppReasonCode::RuntimeUnauthenticated,
             LocalAppReasonCode::AccountChanged,
             LocalAppReasonCode::Revoked,
         ] {
-            assert!(!invalidates_local_app_session(reason), "{reason:?}");
+            assert!(invalidates_local_app_session(reason), "{reason:?}");
         }
         assert!(invalidates_local_app_session(
             LocalAppReasonCode::RuntimeServiceUnavailable
@@ -3061,7 +3235,14 @@ mod session_rebind_tests {
 
     #[test]
     fn native_activity_numbers_reject_unsafe_or_noncanonical_values() {
-        for revision in [0.0, -1.0, 1.5, 9_007_199_254_740_992.0, f64::NAN, f64::INFINITY] {
+        for revision in [
+            0.0,
+            -1.0,
+            1.5,
+            9_007_199_254_740_992.0,
+            f64::NAN,
+            f64::INFINITY,
+        ] {
             let mut input = activity_put_input();
             input.revision = revision;
             assert_eq!(
@@ -3076,13 +3257,25 @@ mod session_rebind_tests {
             native_positive_safe_revision(9_007_199_254_740_991.0).expect("max safe"),
             9_007_199_254_740_991
         );
-        for seconds in ["", "-", "-0", "01", "+1", "1.5", "1e3", "9223372036854775808"] {
+        for seconds in [
+            "",
+            "-",
+            "-0",
+            "01",
+            "+1",
+            "1.5",
+            "1e3",
+            "9223372036854775808",
+        ] {
             assert!(native_timestamp_seconds(seconds).is_err(), "{seconds}");
         }
         assert!(native_timestamp_nanos(1_000_000_000).is_err());
         assert!(native_activity_timestamp(Some("1".to_string()), None).is_err());
         assert!(native_activity_timestamp(None, Some(0)).is_err());
-        assert_eq!(native_activity_timestamp(None, None).expect("absent bound"), None);
+        assert_eq!(
+            native_activity_timestamp(None, None).expect("absent bound"),
+            None
+        );
         assert_eq!(
             native_activity_timestamp(Some("1790000000".to_string()), Some(0))
                 .expect("exact bound"),
@@ -3336,4 +3529,97 @@ pub async fn local_app_realm_world_relationship_get(
 pub async fn local_app_realm_world_creation_eligibility_get() -> NativeJsonOutcome {
     invoke_agent(|session| async move { session.realm_world_creation_eligibility_get().await })
         .await
+}
+
+#[napi(js_name = "localAppAgentWorkReferenceList")]
+pub async fn local_app_agent_work_reference_list(input: JsonValue) -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.agent_work_reference_list(input).await }).await
+}
+#[napi(js_name = "localAppAgentWorkStart")]
+pub async fn local_app_agent_work_start(input: JsonValue) -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.agent_work_start(input).await }).await
+}
+#[napi(js_name = "localAppAgentWorkGet")]
+pub async fn local_app_agent_work_get(input: JsonValue) -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.agent_work_get(input).await }).await
+}
+#[napi(js_name = "localAppAgentWorkStatus")]
+pub async fn local_app_agent_work_status(input: JsonValue) -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.agent_work_status(input).await }).await
+}
+#[napi(js_name = "localAppAgentWorkToolCallsList")]
+pub async fn local_app_agent_work_tool_calls_list(input: JsonValue) -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.agent_work_tool_calls_list(input).await }).await
+}
+#[napi(js_name = "localAppAgentWorkToolResultSubmit")]
+pub async fn local_app_agent_work_tool_result_submit(input: JsonValue) -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.agent_work_tool_result_submit(input).await }).await
+}
+#[napi(js_name = "localAppAgentWorkCancel")]
+pub async fn local_app_agent_work_cancel(input: JsonValue) -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.agent_work_cancel(input).await }).await
+}
+#[napi(js_name = "localAppAgentWorkSubscribe")]
+pub async fn local_app_agent_work_subscribe(input: JsonValue) -> NativeJsonOutcome {
+    subscribe_realtime("agent-work", |session| async move {
+        session.agent_work_subscribe(input).await
+    })
+    .await
+}
+#[napi(js_name = "localAppIntegrationListCatalog")]
+pub async fn local_app_integration_list_catalog(input: JsonValue) -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.integration_list_catalog(input).await }).await
+}
+#[napi(js_name = "localAppIntegrationListConnections")]
+pub async fn local_app_integration_list_connections(input: JsonValue) -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.integration_list_connections(input).await }).await
+}
+#[napi(js_name = "localAppIntegrationInvoke")]
+pub async fn local_app_integration_invoke(input: JsonValue) -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.integration_invoke(input).await }).await
+}
+#[napi(js_name = "localAppIntegrationGetCall")]
+pub async fn local_app_integration_get_call(input: JsonValue) -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.integration_get_call(input).await }).await
+}
+#[napi(js_name = "localAppIntegrationListCalls")]
+pub async fn local_app_integration_list_calls(input: JsonValue) -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.integration_list_calls(input).await }).await
+}
+#[napi(js_name = "localAppIntegrationCancelCall")]
+pub async fn local_app_integration_cancel_call(input: JsonValue) -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.integration_cancel_call(input).await }).await
+}
+#[napi(js_name = "localAppIntegrationRegisterProvider")]
+pub async fn local_app_integration_register_provider(input: JsonValue) -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.integration_register_provider(input).await }).await
+}
+#[napi(js_name = "localAppIntegrationUnregisterProvider")]
+pub async fn local_app_integration_unregister_provider(input: JsonValue) -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.integration_unregister_provider(input).await })
+        .await
+}
+#[napi(js_name = "localAppIntegrationPollProvider")]
+pub async fn local_app_integration_poll_provider(input: JsonValue) -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.integration_poll_provider(input).await }).await
+}
+#[napi(js_name = "localAppIntegrationCompleteProvider")]
+pub async fn local_app_integration_complete_provider(input: JsonValue) -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.integration_complete_provider(input).await }).await
+}
+#[napi(js_name = "localAppIntegrationGetManagement")]
+pub async fn local_app_integration_get_management(input: JsonValue) -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.integration_get_management(input).await }).await
+}
+#[napi(js_name = "localAppIntegrationPutConnection")]
+pub async fn local_app_integration_put_connection(input: JsonValue) -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.integration_put_connection(input).await }).await
+}
+#[napi(js_name = "localAppIntegrationRemoveConnection")]
+pub async fn local_app_integration_remove_connection(input: JsonValue) -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.integration_remove_connection(input).await }).await
+}
+#[napi(js_name = "localAppIntegrationSetPermission")]
+pub async fn local_app_integration_set_permission(input: JsonValue) -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.integration_set_permission(input).await }).await
 }

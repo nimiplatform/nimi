@@ -1,3 +1,4 @@
+import { ExecutionNotificationPreferenceSync } from '../../features/home/execution-notices.js';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import logoImage from '../../assets/logo.png';
 import { useTranslation } from 'react-i18next';
@@ -258,6 +259,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
       variant="mesh"
       className="flex h-full w-full min-h-0 min-w-0 flex-col overflow-hidden bg-[var(--nimi-surface-canvas)]"
     >
+      <ExecutionNotificationPreferenceSync />
       {collapseTopbar ? (
         titlebarDragEnabled ? (
           <div

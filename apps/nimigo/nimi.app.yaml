@@ -1,9 +1,12 @@
 schema_version: 1
 app_id: nimi.go
 display_name: NimiGo
-version: 0.1.1
+version: 0.2.1
 app_access:
   - agent.local
+  - agent.work
+  - integration.consume
+  - integration.provide
   - app.activity
   - realm.data
 capability_contract_refs: []

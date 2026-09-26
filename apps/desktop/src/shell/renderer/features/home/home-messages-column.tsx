@@ -1,3 +1,4 @@
+import { HomeExecutionNotices } from './execution-notices.js';
 import { Button, IconButton, InlineAlert, LoadingSkeleton } from '@nimiplatform/kit/ui';
 import { ArrowRight, Bell, ListTodo, SlidersHorizontal } from 'lucide-react';
 import { useRef, useState, type ReactNode } from 'react';
@@ -203,6 +204,7 @@ export function HomeMessagesColumn({ messages, context, onViewAll, onViewPending
         <ArrowRight size={14} aria-hidden="true" className="shrink-0 text-[var(--nimi-text-muted)] transition-transform group-hover:translate-x-0.5" />
       </button>
 
+      <HomeExecutionNotices />
       <HomeMessageSourceNotices messages={messages} realm={false} />
 
       <div

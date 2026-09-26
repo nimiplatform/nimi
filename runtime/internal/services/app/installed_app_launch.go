@@ -11,7 +11,6 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
-	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	"github.com/nimiplatform/nimi/runtime/internal/nimiappinstall"
 	"github.com/nimiplatform/nimi/runtime/internal/nimiappnative"
 	"github.com/nimiplatform/nimi/runtime/internal/nimiapppackage"
@@ -79,7 +78,7 @@ func (s *Service) PrepareInstalledAppLaunch(ctx context.Context, req *runtimev1.
 			if !direct {
 				return installedLaunchUnavailable()
 			}
-			prepared, err := s.directLocalAppLaunches.Prepare(handle, runID, verified.Registration.SourceGeneration,
+			prepared, err := s.directLocalAppLaunches.Prepare(owner, handle, runID, verified.Registration.SourceGeneration,
 				verified.Registration.DeclarationGeneration, peer.PID, peer.UID, verified.RuntimeEntry, expires)
 			if err != nil {
 				return err
@@ -255,6 +254,7 @@ func (s *Service) EndInstalledAppRun(ctx context.Context, req *runtimev1.EndInst
 	return &runtimev1.EndInstalledAppRunResponse{ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
 }
 
+// @nimi-authority: rule.nimi.runtime.app-surface.run-access-scope-projection
 func (s *Service) GetInstalledAppRunAccess(ctx context.Context, req *runtimev1.GetInstalledAppRunAccessRequest) (*runtimev1.GetInstalledAppRunAccessResponse, error) {
 	if err := requireProtectedLocalDevelopmentDesktop(ctx); err != nil {
 		return nil, err
@@ -267,24 +267,16 @@ func (s *Service) GetInstalledAppRunAccess(ctx context.Context, req *runtimev1.G
 	if lease == nil || lease.owner != owner {
 		return nil, installedLaunchMismatch()
 	}
-	// Inspect the actual Runtime-created session, never process existence.
-	s.localAppSessionMu.RLock()
-	var connection *protectedlocal.LocalAppConnection
-	for candidate, session := range s.localAppSessions {
-		if session.launchCorrelation == lease.id && session.registrationHandle == lease.policy.RegistrationHandle {
-			connection = candidate
-			break
-		}
-	}
-	s.localAppSessionMu.RUnlock()
-	if connection == nil {
+	lease.mu.Lock()
+	live := lease.bound && !lease.closed
+	lease.mu.Unlock()
+	if !live {
 		return &runtimev1.GetInstalledAppRunAccessResponse{ReasonCode: runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED}, nil
 	}
-	_, _, err := s.admitLocalAppIngress(protectedlocal.ContextWithLocalAppConnection(ctx, connection), localappop.IngressStorageJSONRead)
-	if err != nil {
-		return &runtimev1.GetInstalledAppRunAccessResponse{ReasonCode: runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED}, nil
-	}
-	return &runtimev1.GetInstalledAppRunAccessResponse{Available: true, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
+	available, scopeRef, reason := s.localAppRunAccess(ctx, owner, func(session localAppRuntimeSession) bool {
+		return session.launchCorrelation == lease.id && session.registrationHandle == lease.policy.RegistrationHandle
+	})
+	return &runtimev1.GetInstalledAppRunAccessResponse{Available: available, ExecutionScopeRef: scopeRef, ReasonCode: reason}, nil
 }
 
 func (s *Service) revokeInstalledLaunch(id protectedlocal.Identifier) {

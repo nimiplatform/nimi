@@ -506,6 +506,7 @@ describe('Electron local-development protected control', () => {
       desktopListLocalDevelopmentRegistrations: async () => ok([registration]),
       desktopRemoveLocalDevelopmentRegistration: async () => ok({ removed: true }),
       desktopLaunchLocalDevelopmentHost: async () => ok({ processId: 4242, bindDeadlineUnixMs: Date.now() + 5_000, hostProfileRoot }),
+      desktopLocalDevelopmentRunAccess: async () => ok({ available: true, reasonCode: 'ACTION_EXECUTED', executionScopeRef: `execution_scope_${'A'.repeat(43)}` }),
       desktopLocalDevelopmentHostRunning: async () => ok({ running: true }),
       desktopFocusLocalDevelopmentHost: async () => ok({ focused: true }),
       desktopTerminateLocalDevelopmentHost: async () => ok({ terminated: true }),
@@ -564,6 +565,25 @@ describe('Electron local-development protected control', () => {
       hostArguments: ['D:\main.js'],
       workingDirectory: project.canonicalProjectRoot,
     })).rejects.toThrow();
+  });
+
+  it('keeps scope comparison in private typed access and rejects malformed owner projections', async () => {
+    const executionScopeRef = `execution_scope_${'A'.repeat(43)}`;
+    const access = vi.fn(binding().desktopLocalDevelopmentRunAccess);
+    const control = createNimiElectronLocalDevelopmentControlForBinding(binding({ desktopLocalDevelopmentRunAccess: access }));
+    await expect(control.access(registrationHandle, supervisorRunId)).resolves.toEqual({ available: true, reasonCode: 'ACTION_EXECUTED', executionScopeRef });
+    expect(access).toHaveBeenCalledWith({ registrationHandle, supervisorRunId });
+    for (const value of [
+      { available: true, reasonCode: 'ACTION_EXECUTED', executionScopeRef: '' },
+      { available: true, reasonCode: 'LOCAL_APP_SESSION_REVOKED', executionScopeRef },
+      { available: false, reasonCode: 'LOCAL_APP_SESSION_REVOKED', executionScopeRef },
+      { available: false, reasonCode: 'LOCAL_APP_OWNER_UNAVAILABLE', executionScopeRef: '', accountId: 'forged' },
+    ]) {
+      const invalid = createNimiElectronLocalDevelopmentControlForBinding(binding({ desktopLocalDevelopmentRunAccess: async () => ({ status: 'ok', value }) }));
+      await expect(invalid.access(registrationHandle, supervisorRunId)).rejects.toThrow();
+    }
+    const unknown = createNimiElectronLocalDevelopmentControlForBinding(binding({ desktopLocalDevelopmentRunAccess: async () => ({ status: 'ok', value: { available: false, reasonCode: 'LOCAL_APP_OWNER_UNAVAILABLE', executionScopeRef: '' } }) }));
+    await expect(unknown.access(registrationHandle, supervisorRunId)).resolves.toEqual({ available: false, reasonCode: 'LOCAL_APP_OWNER_UNAVAILABLE', executionScopeRef: '' });
   });
 
   it('shares overlapping registration reads without caching completed snapshots', async () => {

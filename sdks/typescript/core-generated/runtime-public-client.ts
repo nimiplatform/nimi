@@ -102,6 +102,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "CancelHookResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/CancelLocalAppAgentWork",
+    "service": "RuntimeAgentService",
+    "method": "CancelLocalAppAgentWork",
+    "kind": "unary",
+    "requestType": "CancelLocalAppAgentWorkRequest",
+    "responseType": "CancelLocalAppAgentWorkResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/CloseLocalAppAgentRealtime",
     "service": "RuntimeAgentService",
     "method": "CloseLocalAppAgentRealtime",
@@ -214,6 +222,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "LocalAppAgentAutonomySnapshotResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentIntroduction",
+    "service": "RuntimeAgentService",
+    "method": "GetLocalAppAgentIntroduction",
+    "kind": "unary",
+    "requestType": "GetLocalAppAgentIntroductionRequest",
+    "responseType": "GetLocalAppAgentIntroductionResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot",
     "service": "RuntimeAgentService",
     "method": "GetLocalAppAgentManagerSnapshot",
@@ -236,6 +252,22 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "GetLocalAppAgentRealtimeStatusRequest",
     "responseType": "GetLocalAppAgentRealtimeStatusResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentWork",
+    "service": "RuntimeAgentService",
+    "method": "GetLocalAppAgentWork",
+    "kind": "unary",
+    "requestType": "GetLocalAppAgentWorkRequest",
+    "responseType": "GetLocalAppAgentWorkResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentWorkStatus",
+    "service": "RuntimeAgentService",
+    "method": "GetLocalAppAgentWorkStatus",
+    "kind": "unary",
+    "requestType": "GetLocalAppAgentWorkStatusRequest",
+    "responseType": "GetLocalAppAgentWorkStatusResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot",
@@ -358,12 +390,20 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListLocalAppAgentReferencesResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppConversationToolCalls",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentWorkReferences",
     "service": "RuntimeAgentService",
-    "method": "ListLocalAppConversationToolCalls",
+    "method": "ListLocalAppAgentWorkReferences",
     "kind": "unary",
-    "requestType": "ListLocalAppConversationToolCallsRequest",
-    "responseType": "ListLocalAppConversationToolCallsResponse"
+    "requestType": "ListLocalAppAgentWorkReferencesRequest",
+    "responseType": "ListLocalAppAgentWorkReferencesResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentWorkToolCalls",
+    "service": "RuntimeAgentService",
+    "method": "ListLocalAppAgentWorkToolCalls",
+    "kind": "unary",
+    "requestType": "ListLocalAppAgentWorkToolCallsRequest",
+    "responseType": "ListLocalAppAgentWorkToolCallsResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions",
@@ -518,6 +558,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "SetLocalAppAgentMemoryEnabledResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/StartLocalAppAgentWork",
+    "service": "RuntimeAgentService",
+    "method": "StartLocalAppAgentWork",
+    "kind": "unary",
+    "requestType": "StartLocalAppAgentWorkRequest",
+    "responseType": "StartLocalAppAgentWorkResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision",
     "service": "RuntimeAgentService",
     "method": "SubmitDelegatedApprovalDecision",
@@ -526,12 +574,12 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "SubmitDelegatedApprovalDecisionResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppConversationToolResult",
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppAgentWorkToolResult",
     "service": "RuntimeAgentService",
-    "method": "SubmitLocalAppConversationToolResult",
+    "method": "SubmitLocalAppAgentWorkToolResult",
     "kind": "unary",
-    "requestType": "SubmitLocalAppConversationToolResultRequest",
-    "responseType": "SubmitLocalAppConversationToolResultResponse"
+    "requestType": "SubmitLocalAppAgentWorkToolResultRequest",
+    "responseType": "SubmitLocalAppAgentWorkToolResultResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents",
@@ -540,6 +588,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "server_stream",
     "requestType": "SubscribeLocalAppAgentRealtimeEventsRequest",
     "responseType": "LocalAppAgentRealtimeEvent"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentWorkEvents",
+    "service": "RuntimeAgentService",
+    "method": "SubscribeLocalAppAgentWorkEvents",
+    "kind": "server_stream",
+    "requestType": "SubscribeLocalAppAgentWorkEventsRequest",
+    "responseType": "LocalAppAgentWorkEvent"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents",
@@ -1134,14 +1190,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetAppStorageResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeAppService/GetInstalledAppRunAccess",
-    "service": "RuntimeAppService",
-    "method": "GetInstalledAppRunAccess",
-    "kind": "unary",
-    "requestType": "GetInstalledAppRunAccessRequest",
-    "responseType": "GetInstalledAppRunAccessResponse"
-  },
-  {
     "methodId": "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAssets",
     "service": "RuntimeAppService",
     "method": "ListLocalAppAssets",
@@ -1580,6 +1628,118 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "ExternalAgentRevokeTokenRequest",
     "responseType": "Ack"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeIntegrationService/CancelIntegrationCall",
+    "service": "RuntimeIntegrationService",
+    "method": "CancelIntegrationCall",
+    "kind": "unary",
+    "requestType": "CancelIntegrationCallRequest",
+    "responseType": "CancelIntegrationCallResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeIntegrationService/CompleteIntegrationProvider",
+    "service": "RuntimeIntegrationService",
+    "method": "CompleteIntegrationProvider",
+    "kind": "unary",
+    "requestType": "CompleteIntegrationProviderRequest",
+    "responseType": "CompleteIntegrationProviderResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationCall",
+    "service": "RuntimeIntegrationService",
+    "method": "GetIntegrationCall",
+    "kind": "unary",
+    "requestType": "GetIntegrationCallRequest",
+    "responseType": "GetIntegrationCallResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationManagement",
+    "service": "RuntimeIntegrationService",
+    "method": "GetIntegrationManagement",
+    "kind": "unary",
+    "requestType": "GetIntegrationManagementRequest",
+    "responseType": "GetIntegrationManagementResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeIntegrationService/InvokeIntegrationCall",
+    "service": "RuntimeIntegrationService",
+    "method": "InvokeIntegrationCall",
+    "kind": "unary",
+    "requestType": "InvokeIntegrationCallRequest",
+    "responseType": "InvokeIntegrationCallResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationCalls",
+    "service": "RuntimeIntegrationService",
+    "method": "ListIntegrationCalls",
+    "kind": "unary",
+    "requestType": "ListIntegrationCallsRequest",
+    "responseType": "ListIntegrationCallsResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationCatalog",
+    "service": "RuntimeIntegrationService",
+    "method": "ListIntegrationCatalog",
+    "kind": "unary",
+    "requestType": "ListIntegrationCatalogRequest",
+    "responseType": "ListIntegrationCatalogResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationConnections",
+    "service": "RuntimeIntegrationService",
+    "method": "ListIntegrationConnections",
+    "kind": "unary",
+    "requestType": "ListIntegrationConnectionsRequest",
+    "responseType": "ListIntegrationConnectionsResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeIntegrationService/PollIntegrationProvider",
+    "service": "RuntimeIntegrationService",
+    "method": "PollIntegrationProvider",
+    "kind": "unary",
+    "requestType": "PollIntegrationProviderRequest",
+    "responseType": "PollIntegrationProviderResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeIntegrationService/PutIntegrationConnection",
+    "service": "RuntimeIntegrationService",
+    "method": "PutIntegrationConnection",
+    "kind": "unary",
+    "requestType": "PutIntegrationConnectionRequest",
+    "responseType": "PutIntegrationConnectionResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeIntegrationService/RegisterIntegrationProvider",
+    "service": "RuntimeIntegrationService",
+    "method": "RegisterIntegrationProvider",
+    "kind": "unary",
+    "requestType": "RegisterIntegrationProviderRequest",
+    "responseType": "RegisterIntegrationProviderResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeIntegrationService/RemoveIntegrationConnection",
+    "service": "RuntimeIntegrationService",
+    "method": "RemoveIntegrationConnection",
+    "kind": "unary",
+    "requestType": "RemoveIntegrationConnectionRequest",
+    "responseType": "RemoveIntegrationConnectionResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeIntegrationService/SetIntegrationPermission",
+    "service": "RuntimeIntegrationService",
+    "method": "SetIntegrationPermission",
+    "kind": "unary",
+    "requestType": "SetIntegrationPermissionRequest",
+    "responseType": "SetIntegrationPermissionResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeIntegrationService/UnregisterIntegrationProvider",
+    "service": "RuntimeIntegrationService",
+    "method": "UnregisterIntegrationProvider",
+    "kind": "unary",
+    "requestType": "UnregisterIntegrationProviderRequest",
+    "responseType": "UnregisterIntegrationProviderResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse",

@@ -17,6 +17,10 @@ try {
   throw error;
 }
 
+const IS_PRODUCTION_BUNDLE = typeof __NIMI_ELECTRON_PRODUCTION__ !== 'undefined'
+  && __NIMI_ELECTRON_PRODUCTION__;
+if (IS_PRODUCTION_BUNDLE) rejectProductionDebugging();
+
 const {
   isAllowedElectronRendererUrl,
   registerNimiElectronAppAssetProtocolScheme,
@@ -25,8 +29,6 @@ const {
 
 const APP_ID = 'nimi.go';
 const NATIVE_BUNDLE_IDENTIFIER = "ai.nimi.apps.nimi.go";
-const IS_PRODUCTION_BUNDLE = typeof __NIMI_ELECTRON_PRODUCTION__ !== 'undefined'
-  && __NIMI_ELECTRON_PRODUCTION__;
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const appRoot = path.resolve(currentDir, '..');
 const preloadPath = path.join(currentDir, 'preload.cjs');
@@ -36,19 +38,24 @@ const rendererUrl = developmentRendererUrl || productionRendererUrl;
 const allowedRendererUrls = [rendererUrl];
 let resettingRenderer = false;
 let quitting = false;
+let workspace: Awaited<ReturnType<typeof import('./workspace-host.js')['createGoWorkspaceHost']>> | undefined;
 
 app.setName("NimiGo");
 app.setAppUserModelId(NATIVE_BUNDLE_IDENTIFIER);
-Menu.setApplicationMenu(null);
+Menu.setApplicationMenu(Menu.buildFromTemplate([{ label: 'NimiGo', submenu: [{ label: '打开工作空间', click: () => { const window = BrowserWindow.getAllWindows()[0]; if (window) { window.show(); window.focus(); } else void createMainWindow(); } }, { label: '退出并停止 NimiGo', role: 'quit' }] }]));
 registerNimiElectronAppAssetProtocolScheme(protocol);
 
 void app.whenReady().then(async () => {
+  const { createGoWorkspaceHost } = await import('./workspace-host.js');
+  workspace = createGoWorkspaceHost({ windowOpen: () => BrowserWindow.getAllWindows().length > 0, openWork: () => { const window = BrowserWindow.getAllWindows()[0]; if (window) { window.show(); window.focus(); } else void createMainWindow(); } });
   registerNimiElectronAppBridge({
     appId: APP_ID,
     allowedRendererUrls,
     assetMediaPlatform: { protocol, webRequest: session.defaultSession.webRequest, webContents },
     ipcMain,
-    onSessionInvalidated: resetAccountScopedRenderer,
+    appCommandHandlers: workspace.handlers,
+    onSessionReady: services => { workspace?.bind(services); },
+    onSessionInvalidated: () => { workspace?.invalidate(); resetAccountScopedRenderer(); },
   });
   await createMainWindow();
   app.on('activate', () => {
@@ -56,10 +63,9 @@ void app.whenReady().then(async () => {
   });
 });
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin' && !resettingRenderer && BrowserWindow.getAllWindows().length === 0) app.quit();
-});
-app.on('before-quit', () => { quitting = true; });
+// Accepted analysis belongs to this live Host; closing its window leaves it running.
+app.on('window-all-closed', () => { workspace?.windowClosed(); });
+app.on('before-quit', () => { quitting = true; workspace?.invalidate(); });
 
 // A revoked/account-changed scope must not leave renderer timers or queued
 // promises alive to use the rebound Host. This does not run on normal renewal.
@@ -98,6 +104,21 @@ async function createMainWindow(): Promise<void> {
     await window.loadURL(rendererUrl);
   } catch (error) {
     if (!window.isDestroyed()) throw error;
+  }
+}
+
+function rejectProductionDebugging(): void {
+  const switches = new Set(['remote-debugging-port', 'remote-debugging-pipe', 'inspect', 'inspect-brk', 'inspect-wait', 'inspect-port', 'inspect-publish-uid']);
+  for (const argument of [...process.argv, ...process.execArgv]) {
+    const name = /^--(inspect[^=]*)(?:=|$)/u.exec(argument)?.[1];
+    if (name) switches.add(name);
+  }
+  const active = [...switches].find(name => app.commandLine.hasSwitch(name));
+  if (active) {
+    const error = new Error(`The production Electron bundle rejects --${active}.`);
+    process.stderr.write(`[nimi-app-production] ${error.message}\n`);
+    app.exit(78);
+    throw error;
   }
 }
 

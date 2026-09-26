@@ -277,3 +277,6 @@ export function createConversationShellViewModel(
       : null,
   };
 }
+
+export { simplifyChineseDisplayText } from './introduction-text.js';
+export { agentIntroductionDisplayText, agentIntroductionQuestions, agentIntroductionSubtitle } from './agent-introduction.js';

@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Button, nimiToast, TextField } from '@nimiplatform/kit/ui';
-import { Volume2 } from 'lucide-react';
 import { toLocalDate } from '../domain/time.js';
 import { resolveSkills } from '../domain/skills.js';
 import type { SkillRun } from '../domain/types.js';
@@ -43,12 +42,11 @@ export function RunChanges({ run }: { readonly run: SkillRun }) {
 }
 
 export function RunCard({ run, compact = false }: { readonly run: SkillRun; readonly compact?: boolean }) {
-  const { engine, desk: deskApi, copy, actions, language } = useNimiDay();
+  const { engine, copy, actions, language } = useNimiDay();
   const { state } = useDayStore();
   const desk = useDesk();
   const { now, activeRunId, waitingForAgent } = useEngine();
   const ui = useUi();
-  const [speaking, setSpeaking] = useState(false);
   const [lesson, setLesson] = useState<string | null>(null);
   const today = toLocalDate(now);
   const agent = run.agentName ?? desk.agent?.displayName ?? copy.common.agentFallback;
@@ -61,28 +59,6 @@ export function RunCard({ run, compact = false }: { readonly run: SkillRun; read
       ? await engine.startSkill({ skillId: run.skillId, trigger: run.trigger === 'chat' ? 'user' : run.trigger, runId: run.id, rhythmId: run.rhythmId, focusCircleId: run.focusCircleId ?? null })
       : await engine.retry(run.id);
     if (!result.ok) nimiToast.show({ tone: 'warning', message: result.message, durationMs: 6000 });
-  };
-
-  const listen = async () => {
-    if (!run.replyMessageId) return;
-    if (speaking) {
-      deskApi.stopSpeaking();
-      setSpeaking(false);
-      return;
-    }
-    setSpeaking(true);
-    const result = await deskApi.speak(run.replyMessageId, `speak-${run.id}-${Date.now()}`);
-    if (result.ok) {
-      await result.finished;
-      setSpeaking(false);
-      return;
-    }
-    setSpeaking(false);
-    nimiToast.show({
-      tone: 'warning',
-      message: result.reason === 'voice-unavailable' ? copy.assistant.voiceUnavailable(agent) : copy.assistant.voiceFailed,
-      durationMs: 7000,
-    });
   };
 
   const undo = () => {
@@ -149,12 +125,6 @@ export function RunCard({ run, compact = false }: { readonly run: SkillRun; read
           ) : null}
           {run.changes.length > 0 || run.state === 'done' ? <RunChanges run={run} /> : null}
           <div className="nd-inline-actions" style={{ marginTop: 8 }}>
-            {/* The reply lives in the conversation of whoever ran it; only the one on duty can read it aloud here. */}
-            {run.replyMessageId && desk.phase === 'ready' && run.agentName === desk.agent?.displayName ? (
-              <Button tone="ghost" size="sm" leadingIcon={<Volume2 size={14} aria-hidden="true" />} onClick={() => { void listen(); }}>
-                {speaking ? copy.run.stopListening : copy.run.listen(agent)}
-              </Button>
-            ) : null}
             {run.changes.length > 0 && !run.undone ? <Button tone="ghost" size="sm" onClick={undo}>{copy.run.undoAll}</Button> : null}
             {run.undone ? <span className="nd-faint">{describeUndone(copy, run, state.items)}</span> : null}
             {run.state !== 'done' && run.trigger !== 'chat' ? <Button tone="secondary" size="sm" onClick={() => { void start(); }}>{copy.run.retry}</Button> : null}

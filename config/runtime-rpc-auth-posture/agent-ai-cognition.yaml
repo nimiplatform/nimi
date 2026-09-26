@@ -10,6 +10,8 @@ methods:
     posture: anonymous_read
   - method_id: /nimi.runtime.v1.RuntimeAgentService/ListAgents
     posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentIntroduction
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference
@@ -23,10 +25,6 @@ methods:
   - method_id: /nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn
-    posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppConversationToolResult
-    posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppConversationToolCalls
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment
     posture: protected_origin_required
@@ -180,3 +178,19 @@ methods:
     posture: anonymous_read
   - method_id: /nimi.runtime.v1.RuntimeAiService/PeekScheduling
     posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentWorkReferences
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/StartLocalAppAgentWork
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentWork
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentWorkStatus
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentWorkToolCalls
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppAgentWorkToolResult
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/CancelLocalAppAgentWork
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentWorkEvents
+    posture: protected_origin_required

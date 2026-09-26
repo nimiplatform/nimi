@@ -117,7 +117,7 @@ func (s *Service) verifyProductControlReadyRecord(ctx context.Context, record *p
 	if err := validateReadyForUseShape(record); err != nil {
 		return productControlStateDataRootSelected, err.Error()
 	}
-	if state, failure := s.verifyProductControlReadyAdmission(ctx, record); failure != "" {
+	if state, failure := s.verifyProductControlReadyAccount(ctx, record); failure != "" {
 		return state, "Runtime product-control ready read failed admission verification: " + failure
 	}
 	return "", ""

@@ -171,18 +171,8 @@ func (r publicChatRuntime) composeLocalAgentTurnContextWithRecall(
 			))
 	}
 	reservedOutput := publicChatContextDefaultOutputTokens
-	if req.appWork != nil {
-		reservedOutput = 4096
-	}
 	if req.MaxOutputTokens > 0 {
 		reservedOutput = uint64(req.MaxOutputTokens)
-	}
-	if req.appWork != nil {
-		capabilities = append([]agentTurnCapabilityInput(nil), capabilities...)
-		for _, tool := range req.appWork.tools {
-			capabilities = append(capabilities, agentTurnCapabilityInput{CapabilityID: "app-tool:" + tool.GetName(), Kind: "tool", Version: "nimi.runtime.app-work/v1", Description: "Native App function " + tool.GetName() + ": " + tool.GetDescription(), Authorized: true, Ready: true})
-		}
-		outputContract.Instruction += "\nApp work: use the admitted native functions to perform the user's requested work before a final reply. A promise to act is not a completed result. Functions use the native tool channel, never APML action tags. App tools do not grant other business or OS permissions. Final textual output still follows APML; activity/emotion tags must remain inside message, never outside."
 	}
 	compiled, err := compileAgentTurnContext(agentTurnContextCompileInput{
 		Source:               source,
@@ -204,7 +194,6 @@ func (r publicChatRuntime) composeLocalAgentTurnContextWithRecall(
 		CurrentUserTurn:     currentTurn,
 		Cognition:           cognition,
 		PrivateRecall:       privateRecall,
-		AppWork:             req.appWork,
 		Budget: agentTurnContextBudgetInput{
 			ContextWindowTokens:     session.Binding.ContextWindowTokens,
 			ReservedOutputTokens:    reservedOutput,

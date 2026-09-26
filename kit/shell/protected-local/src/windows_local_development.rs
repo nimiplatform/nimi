@@ -746,3 +746,20 @@ mod tests {
         assert!(controlled_renderer_origin("https://localhost:5173").is_err());
     }
 }
+
+// @nimi-authority: rule.nimi.desktop.product-surfaces.execution-notice
+pub(crate) async fn run_access(channel: Channel, input: crate::LocalDevelopmentRunAccessRequest) -> Result<crate::LocalDevelopmentRunAccess, NimiHostError> {
+    validate_identifier(input.registration_handle)?;
+    validate_identifier(input.supervisor_run_id)?;
+    let mut request = tonic::Request::new(crate::generated::GetLocalDevelopmentRunAccessRequest {
+        registration_handle: input.registration_handle.to_vec(), supervisor_run_id: input.supervisor_run_id.to_vec(),
+    });
+    request.set_timeout(Duration::from_secs(2));
+    let response = crate::grpc_limits::runtime_development_client(channel).get_local_development_run_access(request).await.map_err(host_error_from_status)?.into_inner();
+    let reason = crate::generated::ReasonCode::try_from(response.reason_code).map_err(|_|untrusted())?;
+    if response.available {
+        let suffix = response.execution_scope_ref.strip_prefix("execution_scope_").ok_or_else(untrusted)?;
+        if reason != crate::generated::ReasonCode::ActionExecuted || suffix.len() != 43 || !suffix.bytes().all(|v| v.is_ascii_alphanumeric() || v == b'_' || v == b'-') { return Err(untrusted()); }
+    } else if !response.execution_scope_ref.is_empty() { return Err(untrusted()); }
+    Ok(crate::LocalDevelopmentRunAccess { available: response.available, reason_code: reason.as_str_name().to_string(), execution_scope_ref: response.execution_scope_ref })
+}

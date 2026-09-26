@@ -46,7 +46,7 @@ func TestLocalAppAgentReferenceListProjectsAllCurrentAccountActiveAgents(t *test
 			strings.Contains(reference.GetAgentHandle(), "agent-") {
 			t.Fatalf("reference handle exposes owner identity: %q", reference.GetAgentHandle())
 		}
-		if reference.ProtoReflect().Descriptor().Fields().Len() != 4 {
+		if reference.ProtoReflect().Descriptor().Fields().Len() != 5 {
 			t.Fatalf("reference wire field count = %d", reference.ProtoReflect().Descriptor().Fields().Len())
 		}
 	}
@@ -69,8 +69,11 @@ func TestLocalAppAgentReferenceHandlesAreSessionAndAccountScopedSelectors(t *tes
 	if !ok || otherSession[0].GetAgentHandle() == same[0].GetAgentHandle() {
 		t.Fatal("handle survived a session change")
 	}
+	if same[0].GetActivityAgentRef() == "" || same[0].GetActivityAgentRef() != otherSession[0].GetActivityAgentRef() || validLocalAppAgentHandle(same[0].GetActivityAgentRef()) {
+		t.Fatal("Activity grouping changed with session or became an Agent selector")
+	}
 	otherAccount, ok := projectLocalAppAgentReferences(localAppReferenceDecision(0x21, "account-2"), inventory)
-	if !ok || otherAccount[0].GetAgentHandle() == same[0].GetAgentHandle() {
+	if !ok || otherAccount[0].GetActivityAgentRef() == same[0].GetActivityAgentRef() || otherAccount[0].GetAgentHandle() == same[0].GetAgentHandle() {
 		t.Fatal("handle survived an account change")
 	}
 }

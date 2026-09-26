@@ -1,3 +1,4 @@
+import { createNimiLocalAppAgentWorkRuntimeClient, createNimiLocalAppIntegrationRuntimeShell } from '@nimiplatform/kit/core/sdk-contract';
 import { nimiLocalAppTextDecideSpecFromShell, validateNimiLocalAppArtifactUploadShellInput } from '@nimiplatform/kit/core/sdk-contract';
 import {
   createNimiAgentRealtimeRuntimeClient,
@@ -5,6 +6,7 @@ import {
   createNimiLocalAppAIConsumptionRuntimeClient,
   createNimiLocalAppAgentConfigureRuntimeShell,
   createNimiLocalAppAgentReferencesRuntimeClient,
+  createNimiLocalAppAgentIntroductionRuntimeClient,
   createNimiLocalAppConversationRuntimeClient,
   createNimiLocalAppEmbodimentRuntimeClient,
   createNimiLocalAppActivityRuntimeShell,
@@ -29,9 +31,11 @@ import {
   createNimiHostRuntimeTypedClient,
   getHostRuntimeWireCodec,
 } from '@nimiplatform/sdk/runtime/host';
+import type { ResolveDesktopAgentReferenceResponse } from '@nimiplatform/sdk/runtime/host';
 import {
   NimiElectronDesktopControlHostError,
   type NimiElectronDesktopControlHost,
+  type NimiElectronDesktopControlStream,
 } from './desktop-control-host.js';
 import {
   NimiElectronLocalAppHostError,
@@ -44,6 +48,8 @@ import { invalidateElectronLocalAppCommandResources } from './local-app-commands
 
 type FormalAppProfile = 'desktop' | 'avatar';
 type RuntimeCallOptions = Readonly<{ signal?: AbortSignal; timeoutMs?: number }>;
+type FormalOperationTracker = <T>(operation: () => Promise<T>) => Promise<T>;
+type FormalStreamTracker = (stream: NimiElectronDesktopControlStream) => void;
 type PullStream = Readonly<{
   iterator: AsyncIterator<unknown>;
   cancel: () => Promise<void>;
@@ -65,12 +71,16 @@ const FORMAL_SESSION_RENEW_INTERVAL_MS = 5 * 60 * 1_000;
 
 export type NimiElectronFormalAppLocalHostOwner = Readonly<{
   host: NimiElectronLocalAppHost;
+  /** Desktop-main-only owner lookup; never part of the ordinary App Host. */
+  resolveDesktopAgentReference: (input: Readonly<{ localAgentRef: string }>) => Promise<ResolveDesktopAgentReferenceResponse>;
   /** Desktop-Host-private exact source resolution for one pending open request. */
   resolveAppActivityOpenLaunch: (openRequestId: string) => Promise<NimiElectronAppActivityOpenLaunchTarget>;
   createResourceScope: () => NimiElectronFormalAppLocalHostResourceScope;
   invalidateResources: () => Promise<void>;
   dispose: () => Promise<void>;
 }>;
+
+type FormalAppHostOperations = NimiElectronLocalAppHost & Pick<NimiElectronFormalAppLocalHostOwner, 'resolveDesktopAgentReference'>;
 
 export type NimiElectronFormalAppLocalHostResourceScope = Readonly<{
   host: NimiElectronLocalAppHost;
@@ -97,9 +107,32 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
   readonly revealInOs?: (path: string) => Promise<void> | void;
   readonly activityLaunch?: NimiElectronAppActivityLaunch;
 }): NimiElectronFormalAppLocalHostOwner {
-  const runtime = createNimiHostRuntimeTypedClient(profileTransport(input.control, input.profile, maintainFormalSession));
+  const inFlightOperations = new Set<Promise<unknown>>();
+  const streamClosures = new Set<Promise<void>>();
+  const trackOperation: FormalOperationTracker = async (operation) => {
+    const pending = operation();
+    inFlightOperations.add(pending);
+    try {
+      return await pending;
+    } finally {
+      inFlightOperations.delete(pending);
+    }
+  };
+  const trackStream: FormalStreamTracker = (stream) => {
+    streamClosures.add(stream.closed);
+    void stream.closed.then(
+      () => { streamClosures.delete(stream.closed); },
+      // An unconfirmed native cancellation remains a failed barrier. A later
+      // readiness probe cannot discard it and rebind over the old Open.
+      () => undefined,
+    );
+  };
+  const runtime = createNimiHostRuntimeTypedClient(profileTransport(input.control, input.profile, maintainFormalSession, trackOperation, trackStream));
   const agents = createNimiLocalAppAgentReferencesRuntimeClient(runtime);
+  const introduction = createNimiLocalAppAgentIntroductionRuntimeClient(runtime);
   const conversation = createNimiLocalAppConversationRuntimeClient(runtime);
+  const agentWork = createNimiLocalAppAgentWorkRuntimeClient(runtime);
+  const integration = createNimiLocalAppIntegrationRuntimeShell(runtime);
   const embodiment = createNimiLocalAppEmbodimentRuntimeClient(runtime);
   const activity = createNimiLocalAppActivityRuntimeShell(
     runtime,
@@ -129,7 +162,7 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
   function maintainFormalSession(): void {
     if (disposed || sessionRenewalTimer !== undefined) return;
     sessionRenewalTimer = setInterval(() => {
-      void renewFormalSession().catch((error: unknown) => {
+      void publicHost.renewTechnicalSession().catch((error: unknown) => {
         if (disposed) return;
         const reasonCode = error && typeof error === 'object' && 'reasonCode' in error
           ? String(error.reasonCode) : 'runtime-operation-failed';
@@ -190,6 +223,21 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
       return projectFormalSession(await runtime.renewLocalAppSession({}, {
         signal,
       }));
+    });
+  };
+  // @nimi-authority: rule.nimi.runtime.protected-session.r017
+  const rebindFormalSession = async (): Promise<void> => {
+    // Resource invalidation already stopped new business calls. Await actual
+    // carrier settlement too: an SDK caller deadline may settle its public
+    // promise while a native unary is still queued on the old connection.
+    while (inFlightOperations.size > 0 || streamClosures.size > 0) {
+      await Promise.all([
+        Promise.allSettled([...inFlightOperations]),
+        ...streamClosures,
+      ]);
+    }
+    await runBoundedFormalHostOperation(async (signal) => {
+      projectFormalSession(await runtime.rebindLocalAppSession({}, { signal }));
     });
   };
 
@@ -548,6 +596,7 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
     realmRealtimeAck: (record) => realmRealtime.ack(record as never) as Promise<NimiElectronLocalAppRecord>,
     realmRealtimeSubscriptionClose: (record) => realmRealtime.closeSubscription(record as never) as Promise<NimiElectronLocalAppRecord>,
     realmRealtimeChannelClose: (record) => realmRealtime.closeChannel(record as never) as Promise<NimiElectronLocalAppRecord>,
+    agentIntroductionGet: (record) => introduction.getIntroduction(record as never) as unknown as Promise<NimiElectronLocalAppRecord>,
     agentReferenceList: () => agents.listReferences() as Promise<readonly NimiElectronLocalAppRecord[]>,
     avatarHostTargetResolve: async (record) => {
       if (!formalExactKeys(record, ['agentHandle', 'conversationAnchorId'])) {
@@ -566,10 +615,30 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
       }
       return Object.freeze({ avatarHostTargetRef: response.avatarHostTargetRef });
     },
+    agentWorkReferenceList: async () => ({ references: await agentWork.listReferences() }) as unknown as NimiElectronLocalAppRecord,
+    agentWorkStart: record => agentWork.start(record as never) as Promise<NimiElectronLocalAppRecord>,
+    agentWorkGet: async record => ({ execution: await agentWork.get(record as never) }) as unknown as NimiElectronLocalAppRecord,
+    agentWorkStatus: record => agentWork.status(record as never) as Promise<NimiElectronLocalAppRecord>,
+    agentWorkToolCallsList: async record => ({ calls: await agentWork.listToolCalls(record as never) }) as unknown as NimiElectronLocalAppRecord,
+    agentWorkToolResultSubmit: record => agentWork.submitToolResult(record as never) as Promise<NimiElectronLocalAppRecord>,
+    agentWorkCancel: async record => ({ execution: await agentWork.cancel(record as never) }) as unknown as NimiElectronLocalAppRecord,
+    agentWorkSubscribe: async record => openPullStream(await agentWork.subscribe(record as never)),
+    integrationListCatalog: record => integration.listCatalog() as Promise<NimiElectronLocalAppRecord>,
+    integrationListConnections: record => integration.listConnections() as Promise<NimiElectronLocalAppRecord>,
+    integrationInvoke: record => integration.invoke(record as never) as Promise<NimiElectronLocalAppRecord>,
+    integrationGetCall: record => integration.getCall(record as never) as Promise<NimiElectronLocalAppRecord>,
+    integrationListCalls: record => integration.listCalls(record as never) as Promise<NimiElectronLocalAppRecord>,
+    integrationCancelCall: record => integration.cancelCall(record as never) as Promise<NimiElectronLocalAppRecord>,
+    integrationRegisterProvider: record => integration.registerProvider(record as never) as Promise<NimiElectronLocalAppRecord>,
+    integrationUnregisterProvider: record => integration.unregisterProvider(record as never) as Promise<NimiElectronLocalAppRecord>,
+    integrationPollProvider: record => integration.pollProvider(record as never) as Promise<NimiElectronLocalAppRecord>,
+    integrationCompleteProvider: record => integration.completeProvider(record as never) as Promise<NimiElectronLocalAppRecord>,
+    integrationGetManagement: record => integration.getManagement() as Promise<NimiElectronLocalAppRecord>,
+    integrationPutConnection: record => integration.putConnection(record as never) as Promise<NimiElectronLocalAppRecord>,
+    integrationRemoveConnection: record => integration.removeConnection(record as never) as Promise<NimiElectronLocalAppRecord>,
+    integrationSetPermission: record => integration.setPermission(record as never) as Promise<NimiElectronLocalAppRecord>,
     conversationOpen: (record) => conversation.open(record as never) as Promise<NimiElectronLocalAppRecord>,
     conversationSendTurn: (record) => conversation.send(record as never) as Promise<NimiElectronLocalAppRecord>,
-    conversationToolCallsList: async (record) => ({ calls: await conversation.listToolCalls(record as never) }) as NimiElectronLocalAppRecord,
-    conversationToolResultSubmit: (record) => conversation.submitToolResult(record as never) as Promise<NimiElectronLocalAppRecord>,
     conversationAttachmentUpload: (record) => conversation.uploadAttachment({
       ...record,
       bytes: Uint8Array.from(record.bytes as readonly number[]),
@@ -680,7 +749,18 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
     agentMemoryDelete: (record) => configure.memory.deleteAll(record as never) as Promise<NimiElectronLocalAppRecord>,
   };
 
-  publicHost = wrapFormalHost(implemented, invalidateFormalSessionResources);
+  // @nimi-authority: rule.nimi.runtime.agent-participation.r197
+  const resolveDesktopAgentReference = async (request: Readonly<{ localAgentRef: string }>): Promise<ResolveDesktopAgentReferenceResponse> => {
+    if (input.profile !== 'desktop' || input.appId !== 'nimi.desktop') throw new NimiElectronLocalAppHostError('local-app-access-denied', false);
+    if (disposed) throw new NimiElectronLocalAppHostError('runtime-service-unavailable', true);
+    if (!request || typeof request !== 'object' || Array.isArray(request)
+      || !formalExactKeys(request, ['localAgentRef'])) throw new NimiElectronLocalAppHostError('invalid-payload', false);
+    const localAgentRef = exactFormalText(request.localAgentRef);
+    return runBoundedFormalHostOperation(signal => runtime.resolveDesktopAgentReference({ localAgentRef }, { signal }));
+  };
+  const wrapped = wrapFormalHost({ ...implemented, resolveDesktopAgentReference }, invalidateFormalSessionResources, rebindFormalSession, trackOperation);
+  const { resolveDesktopAgentReference: resolveDesktopAgentReferenceForOwner, ...standardHost } = wrapped;
+  publicHost = Object.freeze(standardHost);
   const createResourceScope = (): NimiElectronFormalAppLocalHostResourceScope => {
     if (disposed) throw new NimiElectronLocalAppHostError('runtime-service-unavailable', true);
     const resourceScope = createFormalAppResourceScope(publicHost, implemented, () => {
@@ -709,6 +789,7 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
   };
   return Object.freeze({
     host: defaultScope.host,
+    resolveDesktopAgentReference: resolveDesktopAgentReferenceForOwner,
     resolveAppActivityOpenLaunch,
     createResourceScope,
     invalidateResources,
@@ -884,6 +965,7 @@ function createFormalAppResourceScope(
     realmRealtimeSubscribe: (record) => openPull(
       'realtime', () => host.realmRealtimeSubscribe(record),
     ),
+    agentWorkSubscribe: (record) => openPull('realtime', () => host.agentWorkSubscribe(record)),
     embodimentSubscribe: (record) => openPull(
       'realtime', () => host.embodimentSubscribe(record),
     ),
@@ -1139,17 +1221,24 @@ async function runBoundedFormalHostOperation<T>(
 }
 
 function wrapFormalHost(
-  host: NimiElectronLocalAppHost,
+  host: FormalAppHostOperations,
   invalidateResources: () => Promise<void>,
-): NimiElectronLocalAppHost {
+  rebindSession: () => Promise<void>,
+  trackOperation: FormalOperationTracker,
+): FormalAppHostOperations {
   let sessionRevision = 0;
   let renewalInFlight: Promise<void> | undefined;
+  let invalidated = false;
   const renewAfter = async (observedRevision: number): Promise<void> => {
     if (sessionRevision !== observedRevision) return;
     renewalInFlight ??= formalCall(async () => {
-      await host.renewTechnicalSession();
-      await invalidateResources();
-      sessionRevision += 1;
+      if (!invalidated) {
+        sessionRevision += 1;
+        invalidated = true;
+        await invalidateResources();
+      }
+      await rebindSession();
+      invalidated = false;
     }).finally(() => {
       renewalInFlight = undefined;
     });
@@ -1159,51 +1248,40 @@ function wrapFormalHost(
     Object.entries(host).map(([name, operation]) => [
       name,
       async (...args: unknown[]) => {
-        const invoke = () => formalCall(async () => Promise.resolve(Reflect.apply(operation, host, args)));
+        // Track only the underlying invocation. Remove the failed promise
+        // before its catch requests Rebind, so the drain cannot await itself.
+        const invoke = () => trackOperation(() => formalCall(async () => Promise.resolve(Reflect.apply(operation, host, args))));
+        if (renewalInFlight || invalidated) {
+          if (name !== 'sessionStatus') throw new NimiElectronLocalAppHostError('session-invalid', false);
+          await (renewalInFlight ?? renewAfter(sessionRevision));
+        }
         const observedRevision = sessionRevision;
+        let result: unknown;
         try {
-          return await invoke();
+          result = await invoke();
         } catch (error) {
-          if (name === 'renewTechnicalSession' || !isFormalSessionInvalid(error)) throw error;
-          await renewAfter(observedRevision);
+          if (!isFormalSessionInvalid(error) || observedRevision !== sessionRevision) throw error;
+          try { await renewAfter(observedRevision); }
+          catch (rebindError) {
+            if (name === 'sessionStatus') throw rebindError;
+            throw error;
+          }
           if (FORMAL_SESSION_RETRY_SAFE_METHODS.has(name as keyof NimiElectronLocalAppHost)) {
             return invoke();
           }
-          // Mutation admission is now repaired for a future explicit action,
-          // but this call is never replayed after an uncertain owner boundary.
+          // Both reads and writes remain tied to their original scope.
           throw error;
         }
+        if (observedRevision !== sessionRevision) throw new NimiElectronLocalAppHostError('session-invalid', false);
+        return result;
       },
     ]),
-  )) as NimiElectronLocalAppHost;
+  )) as FormalAppHostOperations;
 }
 
-const FORMAL_SESSION_RETRY_SAFE_METHODS: ReadonlySet<keyof NimiElectronLocalAppHost> = new Set([
-  'sessionStatus',
-  'aiConfigGet', 'aiConfigLocalOptions',
-  'scenarioJobGet', 'artifactRead', 'voiceAssetsList',
-  'realmWorldCreationEligibilityGet',
-  'realmWorldCoreGet',
-  'realmWorldCharacterList',
-  'realmWorldCharacterGet',
-  'realmWorldEntityList',
-  'realmWorldEntityGet',
-  'realmWorldRelationshipList',
-  'realmWorldRelationshipGet',
-  'realmWorldCoreList', 'realmPersonaCharacterListOwned', 'realmPersonaCharacterGetOwned',
-  'realmChatList',
-  'agentReferenceList', 'avatarHostTargetResolve',
-  'conversationSubscribe', 'conversationSnapshot',
-  'embodimentSnapshot', 'embodimentSubscribe',
-  // Activity cursors, read marks, and open deliveries are bound to the
-  // session's account; the consumer re-lists or re-subscribes explicitly.
-  'activityList',
-  'aiRealtimeSubscribe', 'agentRealtimeSubscribe', 'agentRealtimeStatus',
-  'sharedAgentAIConfigGet', 'sharedAgentAIConfigLocalOptions',
-  'agentManagerSnapshot', 'agentAutonomySnapshot',
-  'agentPresentationSnapshot', 'agentPresentationReadAsset', 'agentMemoryInspect',
-  'storageReadJson', 'assetStat', 'assetList', 'assetReadOpen',
-]);
+// Business reads and subscriptions are scoped to their original caller too.
+// Only a technical readiness probe may complete across a replacement scope.
+const FORMAL_SESSION_RETRY_SAFE_METHODS: ReadonlySet<keyof NimiElectronLocalAppHost> = new Set(['sessionStatus']);
 
 function isFormalSessionInvalid(error: unknown): error is NimiElectronLocalAppHostError {
   return error instanceof NimiElectronLocalAppHostError && [
@@ -1215,6 +1293,8 @@ function profileTransport(
   control: NimiElectronDesktopControlHost,
   profile: FormalAppProfile,
   onSessionActive: () => void,
+  trackOperation: FormalOperationTracker,
+  trackStream: FormalStreamTracker,
 ): Parameters<typeof createNimiHostRuntimeTypedClient>[0] {
   const unary = profile === 'avatar'
     ? (request: Parameters<NimiElectronDesktopControlHost['bundledAvatarUnary']>[0]) => control.bundledAvatarUnary(request)
@@ -1225,12 +1305,12 @@ function profileTransport(
   return {
     async unary(request) {
       const codec = getHostRuntimeWireCodec(request.methodId);
-      const response = await unary({
+      const response = await trackOperation(() => unary({
         methodId: request.methodId,
         requestBytes: codec.encodeRequest(request.body),
         timeoutMs: request.timeoutMs,
         signal: request.signal,
-      });
+      }));
       const decoded = codec.decodeResponse(response);
       onSessionActive();
       return decoded as never;
@@ -1242,6 +1322,14 @@ function profileTransport(
         requestBytes: codec.encodeRequest(request.body),
         timeoutMs: request.timeoutMs,
       });
+      trackStream(stream);
+      // Native Open/Close settlement belongs to the stream even if nobody
+      // pulls the lazy iterator, or its local caller has already been aborted.
+      const cancel = () => stream.cancel();
+      const release = () => request.signal?.removeEventListener('abort', cancel);
+      request.signal?.addEventListener('abort', cancel, { once: true });
+      void stream.closed.then(release, release);
+      if (request.signal?.aborted) cancel();
       return decodeServerStream(stream, codec.decodeResponse, request.signal) as never;
     },
   };
@@ -1259,14 +1347,24 @@ async function* decodeServerStream(
     wake?.();
     wake = undefined;
   };
-  stream.start({
-    onData: (value) => push({ value }),
-    onError: (error) => push({ error }),
-    onEnd: () => push({ done: true }),
-  });
-  const abort = () => stream.cancel();
+  const abort = () => {
+    stream.cancel();
+    // The native cancel surface is void and need not emit onEnd. Wake the
+    // local pull so invalidation can finish draining its old Host invocation.
+    queue.length = 0;
+    push({ done: true });
+  };
   signal?.addEventListener('abort', abort, { once: true });
   try {
+    if (signal?.aborted) {
+      abort();
+    } else {
+      stream.start({
+        onData: (value) => push({ value }),
+        onError: (error) => push({ error }),
+        onEnd: () => push({ done: true }),
+      });
+    }
     while (true) {
       if (queue.length === 0) await new Promise<void>((resolve) => { wake = resolve; });
       const next = queue.shift();

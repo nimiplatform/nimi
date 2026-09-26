@@ -26,6 +26,7 @@ import {
 import { resolveLocalDevelopmentElectronHostLaunch } from '../src-electron/local-development-host-arguments.js';
 import { createDesktopDataRootOperationGate } from '../src-electron/data-root-operation-gate.js';
 import { localDevelopmentCdpPort } from '../src-electron/local-development-host-protocol.js';
+import type { DesktopExecutorObservation } from '../src-electron/execution-notices-host.js';
 
 const HANDLE = '11'.repeat(32);
 const SUPERVISOR = '22'.repeat(32);
@@ -61,6 +62,7 @@ function control(overrides: Partial<NimiElectronLocalDevelopmentControl> = {}): 
       bindDeadlineUnixMs: Date.now() + 10_000,
       hostProfileRoot: '/data/app-hosts/scope/apps/subject',
     }),
+    access: async () => ({ available: true, reasonCode: 'ACTION_EXECUTED', executionScopeRef: `execution_scope_${'A'.repeat(43)}` }),
     hostRunning: async () => false,
     focusHost: async () => undefined,
     terminateHost: async () => undefined,
@@ -127,6 +129,35 @@ function activeRun() {
 }
 
 describe('Desktop Electron local-development registration host', () => {
+  it('observes exact scope facts while idle and does not stop a Host after an unconfirmed access read', async () => {
+    const observations: DesktopExecutorObservation[] = [];
+    let access: Awaited<ReturnType<NimiElectronLocalDevelopmentControl['access']>> | Error = { available: true, reasonCode: 'ACTION_EXECUTED', executionScopeRef: `execution_scope_${'A'.repeat(43)}` };
+    let stops = 0;
+    const host = new ElectronLocalDevelopmentHost(control({
+      hostRunning: async () => true,
+      access: async (registrationHandle, supervisorRunId) => {
+        assert.equal(registrationHandle, HANDLE); assert.equal(supervisorRunId, SUPERVISOR);
+        if (access instanceof Error) throw access;
+        return access;
+      },
+      terminateHost: async () => { stops++; },
+    }), '/tmp');
+    const run = { ...activeRun(), renderer: {}, onExecutorChanged: (value: DesktopExecutorObservation) => { observations.push(value); } };
+    const internal = host as unknown as { refreshRegistration(context: typeof run): Promise<void> };
+    await internal.refreshRegistration(run);
+    access = new Error('permission mismatch is not proof of invalidation');
+    await internal.refreshRegistration(run);
+    access = { available: false, reasonCode: 'LOCAL_APP_OWNER_UNAVAILABLE', executionScopeRef: '' };
+    await internal.refreshRegistration(run);
+    access = { available: false, reasonCode: 'LOCAL_APP_SESSION_REVOKED', executionScopeRef: '' };
+    await internal.refreshRegistration(run);
+    access = { available: true, reasonCode: 'ACTION_EXECUTED', executionScopeRef: `execution_scope_${'B'.repeat(43)}` };
+    await internal.refreshRegistration(run);
+    assert.deepEqual(observations.map(row => row.state), ['running', 'scope-unknown', 'scope-unknown', 'scope-unavailable', 'running']);
+    assert.equal(observations[0]?.executionScopeRef, `execution_scope_${'A'.repeat(43)}`);
+    assert.equal(observations[4]?.executionScopeRef, `execution_scope_${'B'.repeat(43)}`);
+    assert.equal(stops, 0); assert.equal(run.status.hostGeneration, 1);
+  });
   it('focuses only the Runtime-selected running activity source without relaunching', async () => {
     const focused: string[] = [];
     const host = new ElectronLocalDevelopmentHost(control({

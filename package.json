@@ -191,6 +191,8 @@
     "yaml": "^2.9.0"
   },
   "devDependencies": {
+    "@electron/fuses": "2.1.3",
+    "@electron/packager": "^20.3.0",
     "@nimiplatform/nimi-coding": "0.6.3",
     "@protobuf-ts/plugin": "2.11.1",
     "email-validator": "2.0.4",

@@ -194,6 +194,7 @@ test('Zhiyu stop routes through the exact local App interrupt operation', async 
     assert.deepEqual(captured[2].input, {
       agentHandle: 'lah_v1_agent_opaque',
       conversationAnchorId: 'conversation-anchor:opaque',
+      expectedTurnId: 'runtime-turn-interrupted',
     });
   } finally {
     delete globalThis.__nimiZhiyuHasElectronRuntime;

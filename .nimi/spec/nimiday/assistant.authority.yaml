@@ -1,0 +1,34 @@
+format: nimicoding.authority/v2
+owner: team.nimiday
+scope: nimiday.assistant
+units:
+  - id: definition.nimi.nimiday.assistant.business
+    kind: definition
+    title: NimiDay App-owned arrangements and follow-up
+    meaning: NimiDay owns its user arrangements, items, routines, skills, user decisions, waits and completion checks while using an appointed existing LocalAgent and formally admitted integrations. App exchanges and results remain business state, with optional publication and Memory submission rather than an additional canonical Conversation.
+  - id: rule.nimi.nimiday.assistant.background-follow-up
+    kind: rule
+    title: Day follows real replies while its admitted executor lives
+    modality: must
+    statement: For its supported arrange, notify and collect-replies workflow, Day keeps its necessary business code in its live protected Host when its window closes, binds the selected account and permitted recipients or selection rules, consumes the selected real reply or object-state interface, and updates its own arrangement or requests an actual user decision. Agent busy retains definitely unaccepted work and later continues with its original material and connection. Day distinguishes created arrangement, sent notification, received reply and actual goal completion; exit or session loss halts progress and recovery remains App-selected under a new valid context.
+    condition: Whenever Day performs its supported arrangement follow-up.
+    failure: Report unavailable, interrupted or unconfirmed instead of treating a timer, outbound send, model reply or Runtime reconnection as completed follow-up.
+    relations:
+      - type: applies_to
+        target: definition.nimi.nimiday.assistant.business
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.app-business-execution
+      - type: applies_to
+        target: definition.nimi.runtime.integration.call-plane
+  - id: rule.nimi.nimiday.assistant.business-effects
+    kind: rule
+    title: Day commits only its own actual effects
+    modality: must
+    statement: Day saves its own item or handbook change before reporting successful tool completion, preserves source linkage and treats a related App reminder as separately owned. Scheduling or completing a Day item and opening its source do not mark that source business complete. Source replies are data under the original authorized selection rules and cannot expand the account, action or recipient scope.
+    condition: Whenever Day handles a tool write or cross-App arrangement.
+    failure: Return unsaved, conflict, unavailable or uncertainty without duplicate-effect assumptions, unauthorized source mutation or fabricated completion.
+    relations:
+      - type: applies_to
+        target: definition.nimi.nimiday.assistant.business
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.app-business-execution

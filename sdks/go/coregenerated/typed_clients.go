@@ -1036,6 +1036,16 @@ const (
 	LOCALAPPAGENTAUTONOMYMODEHIGH        LocalAppAgentAutonomyMode = "LOCAL_APP_AGENT_AUTONOMY_MODE_HIGH"
 )
 
+type LocalAppAgentIntroductionTopicKind string
+
+const (
+	LOCALAPPAGENTINTRODUCTIONTOPICKINDUNSPECIFIED  LocalAppAgentIntroductionTopicKind = "LOCAL_APP_AGENT_INTRODUCTION_TOPIC_KIND_UNSPECIFIED"
+	LOCALAPPAGENTINTRODUCTIONTOPICKINDROLE         LocalAppAgentIntroductionTopicKind = "LOCAL_APP_AGENT_INTRODUCTION_TOPIC_KIND_ROLE"
+	LOCALAPPAGENTINTRODUCTIONTOPICKINDWORK         LocalAppAgentIntroductionTopicKind = "LOCAL_APP_AGENT_INTRODUCTION_TOPIC_KIND_WORK"
+	LOCALAPPAGENTINTRODUCTIONTOPICKINDRELATIONSHIP LocalAppAgentIntroductionTopicKind = "LOCAL_APP_AGENT_INTRODUCTION_TOPIC_KIND_RELATIONSHIP"
+	LOCALAPPAGENTINTRODUCTIONTOPICKINDTOPIC        LocalAppAgentIntroductionTopicKind = "LOCAL_APP_AGENT_INTRODUCTION_TOPIC_KIND_TOPIC"
+)
+
 type LocalAppAgentManagerActionAvailabilityState string
 
 const (
@@ -1071,6 +1081,17 @@ const (
 	LOCALAPPAGENTMANAGERPRODUCTACTIONMEMORYDELETE        LocalAppAgentManagerProductAction = "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_DELETE"
 	LOCALAPPAGENTMANAGERPRODUCTACTIONAPPEARANCECOMMIT    LocalAppAgentManagerProductAction = "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_APPEARANCE_COMMIT"
 	LOCALAPPAGENTMANAGERPRODUCTACTIONAPPEARANCERESTORE   LocalAppAgentManagerProductAction = "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_APPEARANCE_RESTORE"
+)
+
+type LocalAppAgentWorkState string
+
+const (
+	LOCALAPPAGENTWORKSTATEUNSPECIFIED LocalAppAgentWorkState = "LOCAL_APP_AGENT_WORK_STATE_UNSPECIFIED"
+	LOCALAPPAGENTWORKSTATERUNNING     LocalAppAgentWorkState = "LOCAL_APP_AGENT_WORK_STATE_RUNNING"
+	LOCALAPPAGENTWORKSTATEWAITINGTOOL LocalAppAgentWorkState = "LOCAL_APP_AGENT_WORK_STATE_WAITING_TOOL"
+	LOCALAPPAGENTWORKSTATESUCCEEDED   LocalAppAgentWorkState = "LOCAL_APP_AGENT_WORK_STATE_SUCCEEDED"
+	LOCALAPPAGENTWORKSTATEFAILED      LocalAppAgentWorkState = "LOCAL_APP_AGENT_WORK_STATE_FAILED"
+	LOCALAPPAGENTWORKSTATECANCELLED   LocalAppAgentWorkState = "LOCAL_APP_AGENT_WORK_STATE_CANCELLED"
 )
 
 type LocalAppConversationActionStatus string
@@ -3276,6 +3297,23 @@ type CancelHookResponse struct {
 	Outcome *HookExecutionOutcome `json:"outcome,omitempty"`
 }
 
+type CancelIntegrationCallRequest struct {
+	CallId string `json:"call_id,omitempty"`
+}
+
+type CancelIntegrationCallResponse struct {
+	Call *IntegrationCall `json:"call,omitempty"`
+}
+
+type CancelLocalAppAgentWorkRequest struct {
+	AgentHandle string `json:"agent_handle,omitempty"`
+	ExecutionId string `json:"execution_id,omitempty"`
+}
+
+type CancelLocalAppAgentWorkResponse struct {
+	Execution *LocalAppAgentWorkExecution `json:"execution,omitempty"`
+}
+
 type CancelLocalAppScenarioJobRequest struct {
 	JobId  string `json:"job_id,omitempty"`
 	Reason string `json:"reason,omitempty"`
@@ -3846,6 +3884,16 @@ type CompleteAppPackageUninstallRequest struct {
 type CompleteAppPackageUninstallResponse struct {
 	Job        *AppPackageJob `json:"job,omitempty"`
 	ReasonCode ReasonCode     `json:"reason_code,omitempty"`
+}
+
+type CompleteIntegrationProviderRequest struct {
+	CallId     string `json:"call_id,omitempty"`
+	ResultJson string `json:"result_json,omitempty"`
+	ErrorCode  string `json:"error_code,omitempty"`
+}
+
+type CompleteIntegrationProviderResponse struct {
+	Accepted bool `json:"accepted,omitempty"`
 }
 
 type CompleteLoginRequest struct {
@@ -4487,13 +4535,22 @@ type GetDeveloperModeStatusResponse struct {
 	ReasonCode ReasonCode         `json:"reason_code,omitempty"`
 }
 
-type GetInstalledAppRunAccessRequest struct {
-	LaunchId []byte `json:"launch_id,omitempty"`
+type GetIntegrationCallRequest struct {
+	CallId string `json:"call_id,omitempty"`
 }
 
-type GetInstalledAppRunAccessResponse struct {
-	Available  bool       `json:"available,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+type GetIntegrationCallResponse struct {
+	Call *IntegrationCall `json:"call,omitempty"`
+}
+
+type GetIntegrationManagementRequest struct {
+}
+
+type GetIntegrationManagementResponse struct {
+	Targets     []IntegrationTarget     `json:"targets,omitempty"`
+	Permissions []IntegrationPermission `json:"permissions,omitempty"`
+	Consumers   []IntegrationConsumer   `json:"consumers,omitempty"`
+	Calls       []IntegrationCall       `json:"calls,omitempty"`
 }
 
 type GetLoadoutRequest struct {
@@ -4506,6 +4563,14 @@ type GetLoadoutResponse struct {
 
 type GetLocalAppAgentAutonomySnapshotRequest struct {
 	AgentHandle string `json:"agent_handle,omitempty"`
+}
+
+type GetLocalAppAgentIntroductionRequest struct {
+	AgentHandle string `json:"agent_handle,omitempty"`
+}
+
+type GetLocalAppAgentIntroductionResponse struct {
+	Introduction *LocalAppAgentIntroduction `json:"introduction,omitempty"`
 }
 
 type GetLocalAppAgentManagerSnapshotRequest struct {
@@ -4529,6 +4594,24 @@ type GetLocalAppAgentRealtimeStatusRequest struct {
 
 type GetLocalAppAgentRealtimeStatusResponse struct {
 	Control *RealtimeControlStatus `json:"control,omitempty"`
+}
+
+type GetLocalAppAgentWorkRequest struct {
+	AgentHandle string `json:"agent_handle,omitempty"`
+	ExecutionId string `json:"execution_id,omitempty"`
+}
+
+type GetLocalAppAgentWorkResponse struct {
+	Execution *LocalAppAgentWorkExecution `json:"execution,omitempty"`
+}
+
+type GetLocalAppAgentWorkStatusRequest struct {
+	AgentHandle string `json:"agent_handle,omitempty"`
+}
+
+type GetLocalAppAgentWorkStatusResponse struct {
+	Busy           bool    `json:"busy,omitempty"`
+	OwnExecutionId *string `json:"own_execution_id,omitempty"`
 }
 
 type GetLocalAppConversationSnapshotRequest struct {
@@ -4779,6 +4862,64 @@ type InstallModelFromPlanResponse struct {
 	Disposition      LocalTransferDisposition `json:"disposition,omitempty"`
 }
 
+type IntegrationCall struct {
+	CallId              string `json:"call_id,omitempty"`
+	TargetRef           string `json:"target_ref,omitempty"`
+	Operation           string `json:"operation,omitempty"`
+	Status              string `json:"status,omitempty"`
+	ResultJson          string `json:"result_json,omitempty"`
+	ErrorCode           string `json:"error_code,omitempty"`
+	ConsumerDisplayName string `json:"consumer_display_name,omitempty"`
+	CreatedAt           string `json:"created_at,omitempty"`
+	UpdatedAt           string `json:"updated_at,omitempty"`
+	TargetDisplayName   string `json:"target_display_name,omitempty"`
+	AccountLabel        string `json:"account_label,omitempty"`
+}
+
+type IntegrationConsumer struct {
+	ConsumerRef string `json:"consumer_ref,omitempty"`
+	AppId       string `json:"app_id,omitempty"`
+	DisplayName string `json:"display_name,omitempty"`
+	SourceKind  string `json:"source_kind,omitempty"`
+}
+
+type IntegrationOperation struct {
+	Name             string `json:"name,omitempty"`
+	Description      string `json:"description,omitempty"`
+	InputSchemaJson  string `json:"input_schema_json,omitempty"`
+	OutputSchemaJson string `json:"output_schema_json,omitempty"`
+	Effect           string `json:"effect,omitempty"`
+	SupportsCancel   bool   `json:"supports_cancel,omitempty"`
+	RetryPolicy      string `json:"retry_policy,omitempty"`
+}
+
+type IntegrationPermission struct {
+	ConsumerRef string               `json:"consumer_ref,omitempty"`
+	TargetRef   string               `json:"target_ref,omitempty"`
+	Operations  []string             `json:"operations,omitempty"`
+	Consumer    *IntegrationConsumer `json:"consumer,omitempty"`
+}
+
+type IntegrationProviderCall struct {
+	CallId              string `json:"call_id,omitempty"`
+	TargetRef           string `json:"target_ref,omitempty"`
+	Operation           string `json:"operation,omitempty"`
+	InputJson           string `json:"input_json,omitempty"`
+	ConsumerDisplayName string `json:"consumer_display_name,omitempty"`
+}
+
+type IntegrationTarget struct {
+	TargetRef           string                 `json:"target_ref,omitempty"`
+	IntegrationId       string                 `json:"integration_id,omitempty"`
+	DisplayName         string                 `json:"display_name,omitempty"`
+	AccountLabel        string                 `json:"account_label,omitempty"`
+	Kind                string                 `json:"kind,omitempty"`
+	Available           bool                   `json:"available,omitempty"`
+	Operations          []IntegrationOperation `json:"operations,omitempty"`
+	Skill               string                 `json:"skill,omitempty"`
+	PermittedOperations []string               `json:"permitted_operations,omitempty"`
+}
+
 type InterruptLocalAppAgentRealtimeOutputRequest struct {
 	RealtimeSessionId  string `json:"realtime_session_id,omitempty"`
 	Generation         uint64 `json:"generation,omitempty"`
@@ -4811,6 +4952,16 @@ type InterruptRealtimeOutputRequest struct {
 type InterruptRealtimeOutputResponse struct {
 	Ack     *Ack                   `json:"ack,omitempty"`
 	Control *RealtimeControlStatus `json:"control,omitempty"`
+}
+
+type InvokeIntegrationCallRequest struct {
+	TargetRef string `json:"target_ref,omitempty"`
+	Operation string `json:"operation,omitempty"`
+	InputJson string `json:"input_json,omitempty"`
+}
+
+type InvokeIntegrationCallResponse struct {
+	Call *IntegrationCall `json:"call,omitempty"`
 }
 
 type InvokeRealmUnaryRequest struct {
@@ -5039,6 +5190,28 @@ type ListFeaturedModelAssetsResponse struct {
 	Items  []ModelAssetMarketCandidate          `json:"items,omitempty"`
 }
 
+type ListIntegrationCallsRequest struct {
+	Limit uint32 `json:"limit,omitempty"`
+}
+
+type ListIntegrationCallsResponse struct {
+	Calls []IntegrationCall `json:"calls,omitempty"`
+}
+
+type ListIntegrationCatalogRequest struct {
+}
+
+type ListIntegrationCatalogResponse struct {
+	Targets []IntegrationTarget `json:"targets,omitempty"`
+}
+
+type ListIntegrationConnectionsRequest struct {
+}
+
+type ListIntegrationConnectionsResponse struct {
+	Connections []IntegrationTarget `json:"connections,omitempty"`
+}
+
 type ListLoadoutRecipesRequest struct {
 	CapabilityContract string `json:"capability_contract,omitempty"`
 }
@@ -5054,6 +5227,22 @@ type ListLocalAppAgentReferencesResponse struct {
 	References []LocalAppAgentReference `json:"references,omitempty"`
 }
 
+type ListLocalAppAgentWorkReferencesRequest struct {
+}
+
+type ListLocalAppAgentWorkReferencesResponse struct {
+	References []LocalAppAgentWorkReference `json:"references,omitempty"`
+}
+
+type ListLocalAppAgentWorkToolCallsRequest struct {
+	AgentHandle string `json:"agent_handle,omitempty"`
+	ExecutionId string `json:"execution_id,omitempty"`
+}
+
+type ListLocalAppAgentWorkToolCallsResponse struct {
+	Calls []LocalAppAgentWorkToolCall `json:"calls,omitempty"`
+}
+
 type ListLocalAppAssetsRequest struct {
 	Prefix   string `json:"prefix,omitempty"`
 	Cursor   string `json:"cursor,omitempty"`
@@ -5064,16 +5253,6 @@ type ListLocalAppAssetsResponse struct {
 	Assets     []LocalAppAssetRecord `json:"assets,omitempty"`
 	NextCursor string                `json:"next_cursor,omitempty"`
 	ReasonCode ReasonCode            `json:"reason_code,omitempty"`
-}
-
-type ListLocalAppConversationToolCallsRequest struct {
-	AgentHandle          string `json:"agent_handle,omitempty"`
-	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
-	TurnId               string `json:"turn_id,omitempty"`
-}
-
-type ListLocalAppConversationToolCallsResponse struct {
-	Calls []LocalAppConversationToolCall `json:"calls,omitempty"`
 }
 
 type ListLocalAppSharedLocalAgentAIConfigOptionsRequest struct {
@@ -5492,6 +5671,22 @@ type LocalAppAgentCommitPresentationResponse struct {
 	Projection *LocalAppAgentPresentationProjection `json:"projection,omitempty"`
 }
 
+type LocalAppAgentIntroduction struct {
+	WorldName              *string                          `json:"world_name,omitempty"`
+	Era                    *string                          `json:"era,omitempty"`
+	Role                   *string                          `json:"role,omitempty"`
+	Greeting               *string                          `json:"greeting,omitempty"`
+	ReferenceImageUrl      *string                          `json:"reference_image_url,omitempty"`
+	VoiceSampleUrl         *string                          `json:"voice_sample_url,omitempty"`
+	VoiceSampleDurationSec *float64                         `json:"voice_sample_duration_sec,omitempty"`
+	QuestionTopics         []LocalAppAgentIntroductionTopic `json:"question_topics,omitempty"`
+}
+
+type LocalAppAgentIntroductionTopic struct {
+	Kind LocalAppAgentIntroductionTopicKind `json:"kind,omitempty"`
+	Text string                             `json:"text,omitempty"`
+}
+
 type LocalAppAgentManagerActionAvailability struct {
 	Action LocalAppAgentManagerProductAction           `json:"action,omitempty"`
 	State  LocalAppAgentManagerActionAvailabilityState `json:"state,omitempty"`
@@ -5633,14 +5828,68 @@ type LocalAppAgentRealtimeTranscript struct {
 }
 
 type LocalAppAgentReference struct {
-	AgentHandle  string  `json:"agent_handle,omitempty"`
-	DisplayName  string  `json:"display_name,omitempty"`
-	AvatarUrl    *string `json:"avatar_url,omitempty"`
-	AgentBinding string  `json:"agent_binding,omitempty"`
+	AgentHandle      string  `json:"agent_handle,omitempty"`
+	DisplayName      string  `json:"display_name,omitempty"`
+	AvatarUrl        *string `json:"avatar_url,omitempty"`
+	AgentBinding     string  `json:"agent_binding,omitempty"`
+	ActivityAgentRef string  `json:"activity_agent_ref,omitempty"`
 }
 
 type LocalAppAgentUpdateAutonomyResponse struct {
 	Projection *LocalAppAgentAutonomyProjection `json:"projection,omitempty"`
+}
+
+type LocalAppAgentWorkEvent struct {
+	ExecutionId string                      `json:"execution_id,omitempty"`
+	Sequence    uint64                      `json:"sequence,omitempty"`
+	Snapshot    *LocalAppAgentWorkExecution `json:"snapshot,omitempty"`
+	TextDelta   string                      `json:"text_delta,omitempty"`
+	ToolCall    *LocalAppAgentWorkToolCall  `json:"tool_call,omitempty"`
+}
+
+type LocalAppAgentWorkExecution struct {
+	ExecutionId string                 `json:"execution_id,omitempty"`
+	WorkId      string                 `json:"work_id,omitempty"`
+	State       LocalAppAgentWorkState `json:"state,omitempty"`
+	OutputText  string                 `json:"output_text,omitempty"`
+	ReasonCode  ReasonCode             `json:"reason_code,omitempty"`
+	Message     string                 `json:"message,omitempty"`
+	Sequence    uint64                 `json:"sequence,omitempty"`
+}
+
+type LocalAppAgentWorkInput struct {
+	WorkId       string                    `json:"work_id,omitempty"`
+	Instructions string                    `json:"instructions,omitempty"`
+	Sources      []LocalAppAgentWorkSource `json:"sources,omitempty"`
+	Tools        []LocalAppAgentWorkTool   `json:"tools,omitempty"`
+	RoutineName  *string                   `json:"routine_name,omitempty"`
+}
+
+type LocalAppAgentWorkReference struct {
+	AgentHandle      string  `json:"agent_handle,omitempty"`
+	DisplayName      string  `json:"display_name,omitempty"`
+	AvatarUrl        *string `json:"avatar_url,omitempty"`
+	AgentBinding     string  `json:"agent_binding,omitempty"`
+	ActivityAgentRef string  `json:"activity_agent_ref,omitempty"`
+}
+
+type LocalAppAgentWorkSource struct {
+	SourceId string `json:"source_id,omitempty"`
+	Title    string `json:"title,omitempty"`
+	Content  string `json:"content,omitempty"`
+}
+
+type LocalAppAgentWorkTool struct {
+	Name            string `json:"name,omitempty"`
+	Description     string `json:"description,omitempty"`
+	InputSchemaJson string `json:"input_schema_json,omitempty"`
+}
+
+type LocalAppAgentWorkToolCall struct {
+	CallId        string `json:"call_id,omitempty"`
+	ExecutionId   string `json:"execution_id,omitempty"`
+	Name          string `json:"name,omitempty"`
+	ArgumentsJson string `json:"arguments_json,omitempty"`
 }
 
 type LocalAppAssetRange struct {
@@ -5791,13 +6040,6 @@ type LocalAppConversationTextPart struct {
 	Text string `json:"text,omitempty"`
 }
 
-type LocalAppConversationToolCall struct {
-	CallId        string `json:"call_id,omitempty"`
-	TurnId        string `json:"turn_id,omitempty"`
-	Name          string `json:"name,omitempty"`
-	ArgumentsJson string `json:"arguments_json,omitempty"`
-}
-
 type LocalAppConversationTurn struct {
 	TurnId         string                         `json:"turn_id,omitempty"`
 	Status         LocalAppConversationTurnStatus `json:"status,omitempty"`
@@ -5843,26 +6085,6 @@ type LocalAppConversationVoice struct {
 
 type LocalAppConversationVoiceEvent struct {
 	Voice *LocalAppConversationVoice `json:"voice,omitempty"`
-}
-
-type LocalAppConversationWork struct {
-	WorkId       string                           `json:"work_id,omitempty"`
-	Instructions string                           `json:"instructions,omitempty"`
-	Sources      []LocalAppConversationWorkSource `json:"sources,omitempty"`
-	Tools        []LocalAppConversationWorkTool   `json:"tools,omitempty"`
-	RoutineName  *string                          `json:"routine_name,omitempty"`
-}
-
-type LocalAppConversationWorkSource struct {
-	SourceId string `json:"source_id,omitempty"`
-	Title    string `json:"title,omitempty"`
-	Content  string `json:"content,omitempty"`
-}
-
-type LocalAppConversationWorkTool struct {
-	Name            string `json:"name,omitempty"`
-	Description     string `json:"description,omitempty"`
-	InputSchemaJson string `json:"input_schema_json,omitempty"`
 }
 
 type LocalAppEmbodimentActivity struct {
@@ -6972,6 +7194,15 @@ type PersonaCharacterSourceRefV3 struct {
 	SourceHash     string                `json:"source_hash,omitempty"`
 }
 
+type PollIntegrationProviderRequest struct {
+	WaitMs uint32 `json:"wait_ms,omitempty"`
+}
+
+type PollIntegrationProviderResponse struct {
+	Calls           []IntegrationProviderCall `json:"calls,omitempty"`
+	CanceledCallIds []string                  `json:"canceled_call_ids,omitempty"`
+}
+
 type PortableAIProfileRecord struct {
 	ProfileId   string `json:"profile_id,omitempty"`
 	Title       string `json:"title,omitempty"`
@@ -7090,6 +7321,19 @@ type PutArtifactRequest struct {
 
 type PutArtifactResponse struct {
 	ArtifactId string `json:"artifact_id,omitempty"`
+}
+
+type PutIntegrationConnectionRequest struct {
+	TargetRef    string `json:"target_ref,omitempty"`
+	Adapter      string `json:"adapter,omitempty"`
+	Endpoint     string `json:"endpoint,omitempty"`
+	DisplayName  string `json:"display_name,omitempty"`
+	AccountLabel string `json:"account_label,omitempty"`
+	Secret       string `json:"secret,omitempty"`
+}
+
+type PutIntegrationConnectionResponse struct {
+	Connection *IntegrationTarget `json:"connection,omitempty"`
 }
 
 type RawChunk struct {
@@ -7424,6 +7668,17 @@ type RegisterExternalPrincipalResponse struct {
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
+type RegisterIntegrationProviderRequest struct {
+	IntegrationId string                 `json:"integration_id,omitempty"`
+	DisplayName   string                 `json:"display_name,omitempty"`
+	Operations    []IntegrationOperation `json:"operations,omitempty"`
+	Skill         string                 `json:"skill,omitempty"`
+}
+
+type RegisterIntegrationProviderResponse struct {
+	Target *IntegrationTarget `json:"target,omitempty"`
+}
+
 type RegisterLocalDevelopmentProjectRequest struct {
 	ExpectedAppId   string                    `json:"expected_app_id,omitempty"`
 	ProjectRoot     string                    `json:"project_root,omitempty"`
@@ -7434,6 +7689,14 @@ type RegisterLocalDevelopmentProjectRequest struct {
 type RegisterLocalDevelopmentProjectResponse struct {
 	Registration *LocalDevelopmentRegistrationProjection `json:"registration,omitempty"`
 	ReasonCode   ReasonCode                              `json:"reason_code,omitempty"`
+}
+
+type RemoveIntegrationConnectionRequest struct {
+	TargetRef string `json:"target_ref,omitempty"`
+}
+
+type RemoveIntegrationConnectionResponse struct {
+	Removed bool `json:"removed,omitempty"`
 }
 
 type RemoveLocalAppAssetRequest struct {
@@ -7901,7 +8164,6 @@ type SendLocalAppConversationTurnRequest struct {
 	ConversationAnchorId string                          `json:"conversation_anchor_id,omitempty"`
 	RequestId            string                          `json:"request_id,omitempty"`
 	Parts                []LocalAppConversationInputPart `json:"parts,omitempty"`
-	Work                 *LocalAppConversationWork       `json:"work,omitempty"`
 }
 
 type SendLocalAppConversationTurnResponse struct {
@@ -7944,6 +8206,16 @@ type SetDeveloperModeResponse struct {
 	State      DeveloperModeState `json:"state,omitempty"`
 	Revision   uint64             `json:"revision,omitempty"`
 	ReasonCode ReasonCode         `json:"reason_code,omitempty"`
+}
+
+type SetIntegrationPermissionRequest struct {
+	ConsumerRef string   `json:"consumer_ref,omitempty"`
+	TargetRef   string   `json:"target_ref,omitempty"`
+	Operations  []string `json:"operations,omitempty"`
+}
+
+type SetIntegrationPermissionResponse struct {
+	Permission *IntegrationPermission `json:"permission,omitempty"`
 }
 
 type SetLocalAppAgentMemoryEnabledRequest struct {
@@ -8079,6 +8351,17 @@ type StartAppPackageUpdateResponse struct {
 	ReasonCode ReasonCode     `json:"reason_code,omitempty"`
 }
 
+type StartLocalAppAgentWorkRequest struct {
+	AgentHandle string                  `json:"agent_handle,omitempty"`
+	RequestId   string                  `json:"request_id,omitempty"`
+	Prompt      string                  `json:"prompt,omitempty"`
+	Work        *LocalAppAgentWorkInput `json:"work,omitempty"`
+}
+
+type StartLocalAppAgentWorkResponse struct {
+	ExecutionId string `json:"execution_id,omitempty"`
+}
+
 type StartLocalAppPackageInstallRequest struct {
 	CandidateSelector []byte `json:"candidate_selector,omitempty"`
 }
@@ -8182,16 +8465,15 @@ type SubmitDelegatedApprovalDecisionResponse struct {
 	ApprovalRequest *DelegatedApprovalRequest `json:"approval_request,omitempty"`
 }
 
-type SubmitLocalAppConversationToolResultRequest struct {
-	AgentHandle          string `json:"agent_handle,omitempty"`
-	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
-	TurnId               string `json:"turn_id,omitempty"`
-	CallId               string `json:"call_id,omitempty"`
-	ResultJson           string `json:"result_json,omitempty"`
-	IsError              bool   `json:"is_error,omitempty"`
+type SubmitLocalAppAgentWorkToolResultRequest struct {
+	AgentHandle string `json:"agent_handle,omitempty"`
+	ExecutionId string `json:"execution_id,omitempty"`
+	CallId      string `json:"call_id,omitempty"`
+	ResultJson  string `json:"result_json,omitempty"`
+	IsError     bool   `json:"is_error,omitempty"`
 }
 
-type SubmitLocalAppConversationToolResultResponse struct {
+type SubmitLocalAppAgentWorkToolResultResponse struct {
 	CallId string `json:"call_id,omitempty"`
 }
 
@@ -8297,6 +8579,12 @@ type SubscribeLocalAppAgentRealtimeEventsRequest struct {
 	RealtimeSessionId string `json:"realtime_session_id,omitempty"`
 	Generation        uint64 `json:"generation,omitempty"`
 	AgentHandle       string `json:"agent_handle,omitempty"`
+}
+
+type SubscribeLocalAppAgentWorkEventsRequest struct {
+	AgentHandle   string `json:"agent_handle,omitempty"`
+	ExecutionId   string `json:"execution_id,omitempty"`
+	AfterSequence uint64 `json:"after_sequence,omitempty"`
 }
 
 type SubscribeLocalAppConversationEventsRequest struct {
@@ -8613,6 +8901,14 @@ type TranscribeLocalAppConversationVoiceRequest struct {
 
 type TranscribeLocalAppConversationVoiceResponse struct {
 	Text string `json:"text,omitempty"`
+}
+
+type UnregisterIntegrationProviderRequest struct {
+	TargetRef string `json:"target_ref,omitempty"`
+}
+
+type UnregisterIntegrationProviderResponse struct {
+	Removed bool `json:"removed,omitempty"`
 }
 
 type UpdateAgentStateRequest struct {
@@ -9227,6 +9523,14 @@ func (c RuntimeTypedClient) CancelHook(ctx context.Context, request CancelHookRe
 	return decodeRuntimeTypedResponse[CancelHookResponse](raw, "CancelHookResponse")
 }
 
+func (c RuntimeTypedClient) CancelLocalAppAgentWork(ctx context.Context, request CancelLocalAppAgentWorkRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CancelLocalAppAgentWorkResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/CancelLocalAppAgentWork", request, metadata, timeoutMS)
+	if err != nil {
+		return CancelLocalAppAgentWorkResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[CancelLocalAppAgentWorkResponse](raw, "CancelLocalAppAgentWorkResponse")
+}
+
 func (c RuntimeTypedClient) CloseLocalAppAgentRealtime(ctx context.Context, request CloseLocalAppAgentRealtimeRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CloseLocalAppAgentRealtimeResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/CloseLocalAppAgentRealtime", request, metadata, timeoutMS)
 	if err != nil {
@@ -9339,6 +9643,14 @@ func (c RuntimeTypedClient) GetLocalAppAgentAutonomySnapshot(ctx context.Context
 	return decodeRuntimeTypedResponse[LocalAppAgentAutonomySnapshotResponse](raw, "LocalAppAgentAutonomySnapshotResponse")
 }
 
+func (c RuntimeTypedClient) GetLocalAppAgentIntroduction(ctx context.Context, request GetLocalAppAgentIntroductionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetLocalAppAgentIntroductionResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentIntroduction", request, metadata, timeoutMS)
+	if err != nil {
+		return GetLocalAppAgentIntroductionResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[GetLocalAppAgentIntroductionResponse](raw, "GetLocalAppAgentIntroductionResponse")
+}
+
 func (c RuntimeTypedClient) GetLocalAppAgentManagerSnapshot(ctx context.Context, request GetLocalAppAgentManagerSnapshotRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetLocalAppAgentManagerSnapshotResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot", request, metadata, timeoutMS)
 	if err != nil {
@@ -9361,6 +9673,22 @@ func (c RuntimeTypedClient) GetLocalAppAgentRealtimeStatus(ctx context.Context, 
 		return GetLocalAppAgentRealtimeStatusResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[GetLocalAppAgentRealtimeStatusResponse](raw, "GetLocalAppAgentRealtimeStatusResponse")
+}
+
+func (c RuntimeTypedClient) GetLocalAppAgentWork(ctx context.Context, request GetLocalAppAgentWorkRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetLocalAppAgentWorkResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentWork", request, metadata, timeoutMS)
+	if err != nil {
+		return GetLocalAppAgentWorkResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[GetLocalAppAgentWorkResponse](raw, "GetLocalAppAgentWorkResponse")
+}
+
+func (c RuntimeTypedClient) GetLocalAppAgentWorkStatus(ctx context.Context, request GetLocalAppAgentWorkStatusRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetLocalAppAgentWorkStatusResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentWorkStatus", request, metadata, timeoutMS)
+	if err != nil {
+		return GetLocalAppAgentWorkStatusResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[GetLocalAppAgentWorkStatusResponse](raw, "GetLocalAppAgentWorkStatusResponse")
 }
 
 func (c RuntimeTypedClient) GetLocalAppConversationSnapshot(ctx context.Context, request GetLocalAppConversationSnapshotRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetLocalAppConversationSnapshotResponse, error) {
@@ -9483,12 +9811,20 @@ func (c RuntimeTypedClient) ListLocalAppAgentReferences(ctx context.Context, req
 	return decodeRuntimeTypedResponse[ListLocalAppAgentReferencesResponse](raw, "ListLocalAppAgentReferencesResponse")
 }
 
-func (c RuntimeTypedClient) ListLocalAppConversationToolCalls(ctx context.Context, request ListLocalAppConversationToolCallsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalAppConversationToolCallsResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppConversationToolCalls", request, metadata, timeoutMS)
+func (c RuntimeTypedClient) ListLocalAppAgentWorkReferences(ctx context.Context, request ListLocalAppAgentWorkReferencesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalAppAgentWorkReferencesResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentWorkReferences", request, metadata, timeoutMS)
 	if err != nil {
-		return ListLocalAppConversationToolCallsResponse{}, err
+		return ListLocalAppAgentWorkReferencesResponse{}, err
 	}
-	return decodeRuntimeTypedResponse[ListLocalAppConversationToolCallsResponse](raw, "ListLocalAppConversationToolCallsResponse")
+	return decodeRuntimeTypedResponse[ListLocalAppAgentWorkReferencesResponse](raw, "ListLocalAppAgentWorkReferencesResponse")
+}
+
+func (c RuntimeTypedClient) ListLocalAppAgentWorkToolCalls(ctx context.Context, request ListLocalAppAgentWorkToolCallsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalAppAgentWorkToolCallsResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentWorkToolCalls", request, metadata, timeoutMS)
+	if err != nil {
+		return ListLocalAppAgentWorkToolCallsResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ListLocalAppAgentWorkToolCallsResponse](raw, "ListLocalAppAgentWorkToolCallsResponse")
 }
 
 func (c RuntimeTypedClient) ListLocalAppSharedLocalAgentAIConfigOptions(ctx context.Context, request ListLocalAppSharedLocalAgentAIConfigOptionsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalAppSharedLocalAgentAIConfigOptionsResponse, error) {
@@ -9643,6 +9979,14 @@ func (c RuntimeTypedClient) SetLocalAppAgentMemoryEnabled(ctx context.Context, r
 	return decodeRuntimeTypedResponse[SetLocalAppAgentMemoryEnabledResponse](raw, "SetLocalAppAgentMemoryEnabledResponse")
 }
 
+func (c RuntimeTypedClient) StartLocalAppAgentWork(ctx context.Context, request StartLocalAppAgentWorkRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (StartLocalAppAgentWorkResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/StartLocalAppAgentWork", request, metadata, timeoutMS)
+	if err != nil {
+		return StartLocalAppAgentWorkResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[StartLocalAppAgentWorkResponse](raw, "StartLocalAppAgentWorkResponse")
+}
+
 func (c RuntimeTypedClient) SubmitDelegatedApprovalDecision(ctx context.Context, request SubmitDelegatedApprovalDecisionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SubmitDelegatedApprovalDecisionResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision", request, metadata, timeoutMS)
 	if err != nil {
@@ -9651,12 +9995,12 @@ func (c RuntimeTypedClient) SubmitDelegatedApprovalDecision(ctx context.Context,
 	return decodeRuntimeTypedResponse[SubmitDelegatedApprovalDecisionResponse](raw, "SubmitDelegatedApprovalDecisionResponse")
 }
 
-func (c RuntimeTypedClient) SubmitLocalAppConversationToolResult(ctx context.Context, request SubmitLocalAppConversationToolResultRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SubmitLocalAppConversationToolResultResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppConversationToolResult", request, metadata, timeoutMS)
+func (c RuntimeTypedClient) SubmitLocalAppAgentWorkToolResult(ctx context.Context, request SubmitLocalAppAgentWorkToolResultRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SubmitLocalAppAgentWorkToolResultResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppAgentWorkToolResult", request, metadata, timeoutMS)
 	if err != nil {
-		return SubmitLocalAppConversationToolResultResponse{}, err
+		return SubmitLocalAppAgentWorkToolResultResponse{}, err
 	}
-	return decodeRuntimeTypedResponse[SubmitLocalAppConversationToolResultResponse](raw, "SubmitLocalAppConversationToolResultResponse")
+	return decodeRuntimeTypedResponse[SubmitLocalAppAgentWorkToolResultResponse](raw, "SubmitLocalAppAgentWorkToolResultResponse")
 }
 
 func (c RuntimeTypedClient) SubscribeLocalAppAgentRealtimeEvents(ctx context.Context, request SubscribeLocalAppAgentRealtimeEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[LocalAppAgentRealtimeEvent], error) {
@@ -9665,6 +10009,14 @@ func (c RuntimeTypedClient) SubscribeLocalAppAgentRealtimeEvents(ctx context.Con
 		return nil, err
 	}
 	return &RuntimeTypedStream[LocalAppAgentRealtimeEvent]{reader: reader}, nil
+}
+
+func (c RuntimeTypedClient) SubscribeLocalAppAgentWorkEvents(ctx context.Context, request SubscribeLocalAppAgentWorkEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[LocalAppAgentWorkEvent], error) {
+	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentWorkEvents", request, metadata, timeoutMS)
+	if err != nil {
+		return nil, err
+	}
+	return &RuntimeTypedStream[LocalAppAgentWorkEvent]{reader: reader}, nil
 }
 
 func (c RuntimeTypedClient) SubscribeLocalAppConversationEvents(ctx context.Context, request SubscribeLocalAppConversationEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[LocalAppConversationEvent], error) {
@@ -10255,14 +10607,6 @@ func (c RuntimeTypedClient) GetAppStorage(ctx context.Context, request GetAppSto
 	return decodeRuntimeTypedResponse[GetAppStorageResponse](raw, "GetAppStorageResponse")
 }
 
-func (c RuntimeTypedClient) GetInstalledAppRunAccess(ctx context.Context, request GetInstalledAppRunAccessRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetInstalledAppRunAccessResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/GetInstalledAppRunAccess", request, metadata, timeoutMS)
-	if err != nil {
-		return GetInstalledAppRunAccessResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[GetInstalledAppRunAccessResponse](raw, "GetInstalledAppRunAccessResponse")
-}
-
 func (c RuntimeTypedClient) ListLocalAppAssets(ctx context.Context, request ListLocalAppAssetsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLocalAppAssetsResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAssets", request, metadata, timeoutMS)
 	if err != nil {
@@ -10697,6 +11041,118 @@ func (c RuntimeTypedClient) RevokeExternalAgentToken(ctx context.Context, reques
 		return Ack{}, err
 	}
 	return decodeRuntimeTypedResponse[Ack](raw, "Ack")
+}
+
+func (c RuntimeTypedClient) CancelIntegrationCall(ctx context.Context, request CancelIntegrationCallRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CancelIntegrationCallResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeIntegrationService/CancelIntegrationCall", request, metadata, timeoutMS)
+	if err != nil {
+		return CancelIntegrationCallResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[CancelIntegrationCallResponse](raw, "CancelIntegrationCallResponse")
+}
+
+func (c RuntimeTypedClient) CompleteIntegrationProvider(ctx context.Context, request CompleteIntegrationProviderRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CompleteIntegrationProviderResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeIntegrationService/CompleteIntegrationProvider", request, metadata, timeoutMS)
+	if err != nil {
+		return CompleteIntegrationProviderResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[CompleteIntegrationProviderResponse](raw, "CompleteIntegrationProviderResponse")
+}
+
+func (c RuntimeTypedClient) GetIntegrationCall(ctx context.Context, request GetIntegrationCallRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetIntegrationCallResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationCall", request, metadata, timeoutMS)
+	if err != nil {
+		return GetIntegrationCallResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[GetIntegrationCallResponse](raw, "GetIntegrationCallResponse")
+}
+
+func (c RuntimeTypedClient) GetIntegrationManagement(ctx context.Context, request GetIntegrationManagementRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetIntegrationManagementResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationManagement", request, metadata, timeoutMS)
+	if err != nil {
+		return GetIntegrationManagementResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[GetIntegrationManagementResponse](raw, "GetIntegrationManagementResponse")
+}
+
+func (c RuntimeTypedClient) InvokeIntegrationCall(ctx context.Context, request InvokeIntegrationCallRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (InvokeIntegrationCallResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeIntegrationService/InvokeIntegrationCall", request, metadata, timeoutMS)
+	if err != nil {
+		return InvokeIntegrationCallResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[InvokeIntegrationCallResponse](raw, "InvokeIntegrationCallResponse")
+}
+
+func (c RuntimeTypedClient) ListIntegrationCalls(ctx context.Context, request ListIntegrationCallsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListIntegrationCallsResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationCalls", request, metadata, timeoutMS)
+	if err != nil {
+		return ListIntegrationCallsResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ListIntegrationCallsResponse](raw, "ListIntegrationCallsResponse")
+}
+
+func (c RuntimeTypedClient) ListIntegrationCatalog(ctx context.Context, request ListIntegrationCatalogRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListIntegrationCatalogResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationCatalog", request, metadata, timeoutMS)
+	if err != nil {
+		return ListIntegrationCatalogResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ListIntegrationCatalogResponse](raw, "ListIntegrationCatalogResponse")
+}
+
+func (c RuntimeTypedClient) ListIntegrationConnections(ctx context.Context, request ListIntegrationConnectionsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListIntegrationConnectionsResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationConnections", request, metadata, timeoutMS)
+	if err != nil {
+		return ListIntegrationConnectionsResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ListIntegrationConnectionsResponse](raw, "ListIntegrationConnectionsResponse")
+}
+
+func (c RuntimeTypedClient) PollIntegrationProvider(ctx context.Context, request PollIntegrationProviderRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PollIntegrationProviderResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeIntegrationService/PollIntegrationProvider", request, metadata, timeoutMS)
+	if err != nil {
+		return PollIntegrationProviderResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[PollIntegrationProviderResponse](raw, "PollIntegrationProviderResponse")
+}
+
+func (c RuntimeTypedClient) PutIntegrationConnection(ctx context.Context, request PutIntegrationConnectionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PutIntegrationConnectionResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeIntegrationService/PutIntegrationConnection", request, metadata, timeoutMS)
+	if err != nil {
+		return PutIntegrationConnectionResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[PutIntegrationConnectionResponse](raw, "PutIntegrationConnectionResponse")
+}
+
+func (c RuntimeTypedClient) RegisterIntegrationProvider(ctx context.Context, request RegisterIntegrationProviderRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RegisterIntegrationProviderResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeIntegrationService/RegisterIntegrationProvider", request, metadata, timeoutMS)
+	if err != nil {
+		return RegisterIntegrationProviderResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[RegisterIntegrationProviderResponse](raw, "RegisterIntegrationProviderResponse")
+}
+
+func (c RuntimeTypedClient) RemoveIntegrationConnection(ctx context.Context, request RemoveIntegrationConnectionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RemoveIntegrationConnectionResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeIntegrationService/RemoveIntegrationConnection", request, metadata, timeoutMS)
+	if err != nil {
+		return RemoveIntegrationConnectionResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[RemoveIntegrationConnectionResponse](raw, "RemoveIntegrationConnectionResponse")
+}
+
+func (c RuntimeTypedClient) SetIntegrationPermission(ctx context.Context, request SetIntegrationPermissionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SetIntegrationPermissionResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeIntegrationService/SetIntegrationPermission", request, metadata, timeoutMS)
+	if err != nil {
+		return SetIntegrationPermissionResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[SetIntegrationPermissionResponse](raw, "SetIntegrationPermissionResponse")
+}
+
+func (c RuntimeTypedClient) UnregisterIntegrationProvider(ctx context.Context, request UnregisterIntegrationProviderRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UnregisterIntegrationProviderResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeIntegrationService/UnregisterIntegrationProvider", request, metadata, timeoutMS)
+	if err != nil {
+		return UnregisterIntegrationProviderResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[UnregisterIntegrationProviderResponse](raw, "UnregisterIntegrationProviderResponse")
 }
 
 func (c RuntimeTypedClient) AdmitProductControlReadyForUse(ctx context.Context, request AdmitProductControlReadyForUseRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {

@@ -71,7 +71,7 @@ func (r publicChatRuntime) runTurn(
 	r.svc.mutatePublicChatTurnProjection(turn.TurnID, true, func(projection *publicChatTurnProjectionState) {
 		projection.ContextSummary = cloneAgentTurnContextSummary(contextCompilation.Summary)
 	})
-	err := r.streamAppWorkTurn(ctx, session, turn, req.appWork, &PublicChatTurnExecutionRequest{
+	err := r.svc.currentPublicChatTurnExecutor().StreamChatTurn(ctx, &PublicChatTurnExecutionRequest{
 		AppID:            session.CallerAppID,
 		SubjectUserID:    session.SubjectUserID,
 		Messages:         publicChatAgentTurnProviderMessages(contextCompilation.ProviderPrompt.Messages),

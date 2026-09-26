@@ -1,0 +1,174 @@
+format: nimicoding.authority/v2
+owner: team.runtime
+scope: runtime.integration
+units:
+  - id: definition.nimi.runtime.integration.call-plane
+    kind: definition
+    title: Integration invocation
+    meaning: Runtime owns the common discovery, permission evaluation, dispatch, cancellation and bounded invocation facts for operations supplied by external services, selected executors or Nimi Apps. Ordinary Apps can call without a LocalAgent, Conversation or public business-task entity; operation-level asynchronous execution does not transfer the consumer App goal, plan, waiting or recovery to Runtime. Integration and Integration Operation name service or App operations, whereas AI Capability and CapabilityContract retain their existing model-inference semantics; an integration operation is neither an AI CapabilityContract nor a new AppOperationId, and a model function Tool is only an optional way to expose an operation to an Agent.
+  - id: definition.nimi.runtime.integration.connection-plane
+    kind: definition
+    title: Shared connection and standing integration permission
+    meaning: A connection identifies one selected external account and its declared execution and credential-custody location. A standing integration permission is Runtime-owned resource policy binding the current Nimi account, actual consumer Registered App Subject, integration operations and selected connection or provider target; it is separate from declaration-derived protected-session admission and supplies no portable credential.
+  - id: definition.nimi.runtime.integration.provider-plane
+    kind: definition
+    title: Integration operation provider
+    meaning: A provider exposes described operations, bounded input and output schemas and actual handlers or configured executors. Nimi App providers retain their object validation and business state and derive identity and handler lifetime from their protected Host session; a Skill explains use but creates no handler, account, permission or execution by itself.
+  - id: rule.nimi.runtime.integration.admission
+    kind: rule
+    title: Shared calls preserve protected admission and independent resource permission
+    modality: must
+    statement: "Every App request first passes current protected ingress, exact operation classification and declaration coverage, then the integration owner applies the policy for that operation: discovery checks descriptor visibility; connection and permission configuration checks the user-authorized management scope; provider registration checks the current provider subject and exact Host; invocation checks the current account, consumer subject, standing integration permission, selected target and executor availability. Discovery and first-time configuration do not require an already granted invocation permission or a running provider handler. Installing a source, discovering its descriptor, declaring AppAccess or loading a Skill alone grants no connection use; a consumer cannot approve itself."
+    condition: Whenever an App discovers, configures or invokes an integration.
+    failure: Reject missing, stale, foreign or self-asserted authority before dispatch without manufacturing a session or grant.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.integration.call-plane
+      - type: applies_to
+        target: definition.nimi.runtime.integration.connection-plane
+  - id: rule.nimi.runtime.integration.public-carrier
+    kind: rule
+    title: Dynamic provider operations use a fixed protected carrier
+    modality: must
+    statement: The integration contract admits dynamic provider operation descriptions and schema-validated parameters through fixed typed protected public carriers; new provider business operations do not become new Runtime core business types. Exact carrier AppOperationIds and declaration coverage must enter the canonical App Operation Contract before public enablement; until then the new path is unavailable, never an arbitrary endpoint, raw owner RPC, legacy Conversation work or generic protected forwarding fallback. The semantic contract alone does not claim an implemented or released API.
+    condition: Whenever an integration public surface is introduced or extended.
+    failure: Keep an unmapped carrier unavailable and reject descriptor-based widening of protected ingress.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.runtime.integration.call-plane
+  - id: rule.nimi.runtime.integration.standing-permission
+    kind: rule
+    title: One user choice permits ordinary continued use
+    modality: must
+    statement: A user may allow one or several actual App subjects to use selected operations and targets once; ordinary permitted reads, writes and background calls use that standing permission without per-invocation confirmation. Users can inspect and revoke it, revoking one consumer neither deletes a shared connection nor stops another permitted consumer, and compatible updates retain permission while changed account, credential custodian, execution location or newly widened operation scope requires the corresponding explicit user choice. Technical reconnect revalidates the same resource permission rather than issuing a new consent prompt.
+    condition: Whenever integration permission is created, evaluated, updated or revoked.
+    failure: Reject an out-of-scope new call, silent permission widening or consumer-side approval, and preserve unrelated consumers.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.integration.call-plane
+      - type: applies_to
+        target: definition.nimi.runtime.integration.connection-plane
+  - id: rule.nimi.runtime.integration.custody
+    kind: rule
+    title: Consumers use connection references rather than account credentials
+    modality: must
+    statement: Runtime or the explicitly selected trusted executor retains raw external credentials; consumer configuration, standard results and logs expose only bounded connection references, account display facts and authorized business results. An invocation binds its selected connection and executor before dispatch and later defaults cannot redirect it. Nimi App providers reuse current account, subject and Host admission without a simulated external login. Managed-channel permission and audit do not claim an OS sandbox or oversight of App access outside that channel.
+    condition: Whenever a connection is selected, dispatched or represented to a consumer.
+    failure: Reject raw credential passthrough, silent connection substitution and unsupported whole-machine security claims.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.integration.connection-plane
+      - type: applies_to
+        target: definition.nimi.runtime.integration.provider-plane
+  - id: rule.nimi.runtime.integration.description
+    kind: rule
+    title: Operation descriptions preserve actual provider semantics
+    modality: must
+    statement: An operation declares its purpose, bounded input and output schemas, effect, errors and supported cancellation or asynchronous-result behavior; supported safe retry or outcome query is stated per operation from the actual provider contract. Runtime validates current descriptions and does not infer permission, compatibility, retry safety or successful execution from a tool name, Skill, protocol extension or registry entry.
+    condition: Whenever an operation is registered, discovered, invoked or updated.
+    failure: Reject invalid or stale operation contracts and report unsupported behavior rather than inventing it.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.integration.call-plane
+      - type: applies_to
+        target: definition.nimi.runtime.integration.provider-plane
+  - id: rule.nimi.runtime.integration.call-facts
+    kind: rule
+    title: One invocation owner records actual dispatch and outcome
+    modality: must
+    statement: Runtime preserves one bounded invocation record with actual consumer, provider, selected target, operation, dispatch and outcome correlation; a write is not dispatched unless its minimum call fact can be saved, and a query may report an explicit logging gap. Rejected-before-dispatch, accepted, completed, failed, canceled and outcome-unconfirmed remain distinguishable; credentials and full private bodies are excluded from ordinary logs, retention is finite and described, and a missing or expired record never proves that an effect did not occur.
+    condition: Whenever a shared invocation is dispatched, recorded or queried.
+    failure: Reject an unrecordable write before dispatch and return honest failure or uncertainty instead of fabricated completion.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.integration.call-plane
+  - id: rule.nimi.runtime.integration.uncertain-effect
+    kind: rule
+    title: Unknown effects do not authorize blind resend
+    modality: must
+    statement: An uncertain external write uses only a provider-supported outcome query or genuinely safe same-operation retry; otherwise the caller receives unconfirmed and may stop for manual handling. Neither a repeated model suggestion nor similar parameters proves the prior call failed or defines business deduplication. An App choosing cross-run recovery preserves a queryable association before possible dispatch and checks the original invocation; missing correlation or cleaned records remain uncertain and do not require platform business recovery.
+    condition: Whenever a write result is uncertain or an App elects to recover work.
+    failure: Do not blindly resend an uncertain effect or claim exactly-once execution unsupported by the provider.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.integration.call-plane
+  - id: rule.nimi.runtime.integration.provider-lifetime
+    kind: rule
+    title: App handlers exist only under their current protected Host
+    modality: must
+    statement: An App registers only operations it chooses to expose under its current protected account, subject and exact Host session; handler validity is distinct from discoverable description retention. The provider validates its own objects and performs the operation. Provider stop or session invalidation removes execution availability and fails or marks affected in-flight calls unconfirmed; Runtime neither launches the provider, reads its private database in its place nor returns a stale result as a new success.
+    condition: Whenever an App-provided integration is registered, called or loses its executor.
+    failure: Return typed unavailable, failure or uncertainty and reject stale or foreign handler results.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.integration.call-plane
+      - type: applies_to
+        target: definition.nimi.runtime.integration.provider-plane
+  - id: rule.nimi.runtime.integration.call-cancellation
+    kind: rule
+    title: Cancellation is scoped to the particular invocation
+    modality: must
+    statement: A cancellation or expired consumer scope prevents new not-yet-admitted actions for that request without stopping the provider or other consumers. For an actually selected nested provider operation, Runtime-derived source and single-call cancellation context follow its associated downstream admission; the provider standing permission alone cannot restart canceled associated actions. Effects already admitted and impossible to retract keep their actual result, and late completion never advances a stopped consumer business task.
+    condition: Whenever a call is canceled or a selected provider handler performs nested operations.
+    failure: Reject new associated actions after cancellation or scope invalidation and avoid canceling unrelated work.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.integration.call-plane
+      - type: applies_to
+        target: definition.nimi.runtime.integration.provider-plane
+  - id: rule.nimi.runtime.integration.inbound
+    kind: rule
+    title: Shared inbound reception has an explicit owner and finite support
+    modality: must
+    statement: A selected connector or executor owns upstream reception and any destructive acknowledgment cursor, then exposes its declared finite delivery or query behavior to authorized consumers; independent current-object queries may be used when the upstream supports them. Apps do not independently advance the same destructive upstream cursor. The integration states its consumer limit, no-consumer receive and acknowledgment policy, buffer retention and loss behavior; one invalid consumer cannot block remaining valid consumers, and upstream retention never implies indefinite recovery. Stopped, revoked or stale scopes receive no business-triggering events; reception neither starts an App nor resumes its tasks.
+    condition: Whenever a shared operation needs external replies or events.
+    failure: Reject conflicting cursor ownership, undeclared delivery guarantees and stale-consumer dispatch, and expose expiration or loss honestly.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.integration.call-plane
+      - type: applies_to
+        target: definition.nimi.runtime.integration.connection-plane
+  - id: rule.nimi.runtime.integration.adapter-boundary
+    kind: rule
+    title: Existing protocols are adapters rather than workflow authority
+    modality: must
+    statement: Implementations may reuse suitable maintained protocol SDKs and provider clients, including an MCP adapter under the integration owner, while preserving the Nimi call, permission, custody and result contract. Authentication to an intermediary and to its downstream business account remain distinct. Protocol tasks represent only the supported individual operation; they never become Nimi-owned App goals. Optional adapters do not become ordinary LocalAgent readiness dependencies or imply admission of A2A or a universal workflow engine.
+    condition: Whenever an external protocol or executor is integrated.
+    failure: Return unsupported for an absent or incompatible adapter instead of private consumer bypass, invented support or workflow takeover.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.integration.call-plane
+      - type: applies_to
+        target: definition.nimi.runtime.integration.provider-plane
+  - id: rule.nimi.runtime.integration.fixed-operations
+    kind: rule
+    title: Exact integration carrier and management boundary
+    modality: must
+    statement: RuntimeIntegrationService exposes runtime.integration.catalog.list, connection.list, call.invoke, call.get, call.list and call.cancel under integration.consume, provider.register, provider.unregister, provider.poll and provider.complete under integration.provide, and management.get, connection.put, connection.remove and permission.set under integration.manage, where each abbreviated suffix has the runtime.integration prefix. Consumer calls use a Runtime-issued target reference and the current operation name and schema; a provider registers its bounded descriptor and polls and completes only its exact session calls. Management additionally requires the Runtime-derived built-in nimi.desktop formal App decision and a live verified Desktop connection attached by protected Desktop ingress after the desktop_account_product_v1 profile and DesktopSessionManager checks; request fields, a same-name App, self-declared integration.manage and ordinary LocalApp transport cannot construct this context or approve themselves. SDK and Kit expose the typed integration namespace without generic owner forwarding.
+    condition: Whenever the Integration API is implemented or consumed.
+    failure: Deny unmapped operations, cross-subject or stale calls, untrusted management and malformed schema input before effect dispatch.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-operation-contract
+      - type: applies_to
+        target: definition.nimi.runtime.integration.call-plane
+      - type: applies_to
+        target: definition.nimi.runtime.integration.connection-plane
+      - type: applies_to
+        target: definition.nimi.runtime.integration.provider-plane
+  - id: rule.nimi.runtime.integration.initial-adapters
+    kind: rule
+    title: Selected MCP and Telegram adapter behavior
+    modality: must
+    statement: The initial external integration adapters use the official Go MCP client for explicitly configured Streamable HTTP endpoints and a Telegram Bot API adapter for sendMessage and bounded updates.read. Runtime retains credential custody and owns the Telegram getUpdates offset; admitted readers have independent finite cursors over a shared connection buffer retained for at most twenty-four hours and one thousand updates. A live reader exists only for the bounded updates.read invocation, for at most twenty-five seconds; completion, single-call cancellation, consumer permission revocation or actual session invalidation ends that reader. With no live admitted readers the receiver stops new reception and does not advance upstream acknowledgment; a missing or expired cursor reports loss, one stopped reader does not block another, and getUpdates or its destructive offset is never directly exposed as a consumer operation. A Telegram webhook conflict fails visibly without deleting the webhook, sendMessage with an indeterminate outcome is unconfirmed and is not automatically retried, and MCP tool annotations do not grant permission or establish safe retry. The first App provider exposes a bounded Go result-version read with no nested operations.
+    condition: Whenever one of the initial selected adapters is configured or invoked.
+    failure: Report absent account or executor, protocol mismatch, conflicting receiver, expired cursor or unconfirmed effect accurately without a simulated result or workflow takeover.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.integration.call-plane
+      - type: applies_to
+        target: definition.nimi.runtime.integration.connection-plane
+      - type: applies_to
+        target: definition.nimi.runtime.integration.provider-plane

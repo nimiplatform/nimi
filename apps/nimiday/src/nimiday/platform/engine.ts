@@ -3,7 +3,7 @@
 // step and turns shared activity into source changes. Nothing here runs when
 // NimiDay is closed, and nothing is replayed behind the user's back.
 
-import type { NimiAppActivityRecord, NimiLocalAppConversationEvent } from '@nimiplatform/sdk/app';
+import type { NimiAppActivityRecord } from '@nimiplatform/sdk/app';
 import { planReminders } from '../domain/deliveries.js';
 import { planHomeSync, type HomeCopy, type OwnRecord } from '../domain/home-sync.js';
 import { newId } from '../domain/ids.js';
@@ -23,7 +23,7 @@ import type { DayActions } from '../store/actions.js';
 import type { DayStore } from '../store/day-store.js';
 import type { ActivityBridge, ActivityCoverage, ActivityStatus } from './activity-bridge.js';
 import { parseObjectRef } from './activity-bridge.js';
-import type { AgentDesk, SendResult, TurnScope } from './agent-desk.js';
+import type { AgentDesk, DeskEvent, SendResult, TurnScope } from './agent-desk.js';
 import { deliver } from './notifier.js';
 
 const TICK_MS = 20_000;
@@ -32,7 +32,7 @@ const TOOL_POLL_MS = 1_000;
 /** Output-format failures worth one automatic retry when nothing has changed yet. */
 const RETRYABLE_OUTPUT_FAILURES: ReadonlySet<string> = new Set(['AI_OUTPUT_INVALID']);
 /** How often an active run asks Runtime whether its turn is still running. */
-const RECONCILE_MS = 15_000;
+const RECONCILE_MS = 2_000;
 const HOME_SYNC_DELAY_MS = 1_500;
 /** Desk phases on the way to a kept appointment. */
 const RESTORING_PHASES: ReadonlySet<string> = new Set(['idle', 'loading', 'opening']);
@@ -43,7 +43,8 @@ export type NavTarget =
   | { readonly view: 'care'; readonly circleId?: string }
   | { readonly view: 'routines'; readonly runId?: string }
   | { readonly view: 'assistant' }
-  | { readonly view: 'settings' };
+  | { readonly view: 'settings' }
+  | { readonly view: 'followups'; readonly followupId?: string };
 
 export type EngineState = {
   readonly now: Date;
@@ -96,7 +97,9 @@ type ActiveRun = {
   readonly turnId: string;
   /** The agent and conversation this turn was sent to; never whoever is on duty later. */
   readonly scope: TurnScope;
+  readonly focusCircleId: string | null;
   readonly handled: Set<string>;
+  stopped?: boolean;
   processing: Promise<void>;
   poll: ReturnType<typeof setInterval> | null;
   /** Diagnostics kept for the run's technical details. */
@@ -443,7 +446,7 @@ export function createDayEngine(deps: EngineDeps) {
       if (run.changes.length === 0 && patch.state === 'done' && run.replyMessageId && asksToRecord(run.requestText)) {
         publish({ unconfirmed: { messageId: run.replyMessageId, request: run.requestText } });
       }
-      if (run.toolCalls.length === 0 && run.changes.length === 0) deps.actions.removeRun(run.id);
+
       void pump();
       return;
     }
@@ -465,18 +468,18 @@ export function createDayEngine(deps: EngineDeps) {
   const processToolCalls = (run: ActiveRun) => {
     run.processing = run.processing.then(async () => {
       const work = deps.desk.work();
-      if (!work || active !== run) return;
+      if (!work || active !== run || run.stopped) return;
       const scope = run.scope;
       let calls;
       try {
-        calls = await work.listToolCalls({ ...scope, turnId: run.turnId });
+        calls = await work.listToolCalls(scope);
       } catch (error) {
         run.toolIssue = `tool-calls.list: ${reasonOf(error)}`;
         return;
       }
-      if (!live()) return;
+      if (!live() || active !== run || run.stopped) return;
       for (const call of calls) {
-        if (run.handled.has(call.callId) || active !== run) continue;
+        if (run.handled.has(call.callId) || active !== run || run.stopped) continue;
         run.handled.add(call.callId);
         let args: unknown = null;
         try {
@@ -484,14 +487,16 @@ export function createDayEngine(deps: EngineDeps) {
         } catch {
           args = null;
         }
+        const toolState = data();
         const outcome = executeDayTool(call.name, args, {
-          state: data(),
+          state: toolState,
           changes: state.changes,
           sourcesAvailable: state.activityStatus === 'ready',
           sourceCoverage: state.activityCoverage,
           now: now(),
           runId: run.runId,
           agentName: agentName(),
+          focusCircleId: run.focusCircleId,
         });
         let result = outcome.result;
         let isError = outcome.isError;
@@ -514,12 +519,11 @@ export function createDayEngine(deps: EngineDeps) {
             result = notSavedResult(outcome.result, saved.error);
           }
         }
-        if (!live()) return;
+        if (!live() || active !== run || run.stopped) return;
         let delivered = true;
         try {
           await work.submitToolResult({
             ...scope,
-            turnId: run.turnId,
             callId: call.callId,
             resultJson: JSON.stringify(result),
             isError,
@@ -528,10 +532,13 @@ export function createDayEngine(deps: EngineDeps) {
           delivered = false;
           run.toolIssue = `tool-result.submit: ${reasonOf(error)}`;
         }
+        if (!live() || active !== run || run.stopped) return;
         const copy = deps.copy();
         const summary = [outcome.summary, unsaved ? copy.run.notSaved : '', delivered ? '' : copy.run.uncertain].filter(Boolean).join(' · ');
         deps.actions.patchRun(run.runId, (current) => ({
           ...current,
+          // Tool reads can see care sources added after the turn started.
+          careCircleIds: current.careCircleIds ? [...new Set([...current.careCircleIds, ...toolState.circles.filter(circle => circle.status !== 'ended').map(circle => circle.id)])] : null,
           toolCalls: [...current.toolCalls, {
             callId: call.callId,
             name: call.name,
@@ -569,7 +576,7 @@ export function createDayEngine(deps: EngineDeps) {
     });
   };
 
-  const onDeskEvent = (event: NimiLocalAppConversationEvent) => {
+  const onDeskEvent = (event: DeskEvent) => {
     const run = active;
     if (run && event.turnId === run.turnId) {
       switch (event.type) {
@@ -586,13 +593,15 @@ export function createDayEngine(deps: EngineDeps) {
           }
           break;
         case 'turn-completed':
-          void run.processing.then(() => finishActive({ state: 'done', error: null }));
+          void run.processing.then(() => { if (active === run && live()) finishActive({ state: run.stopped ? 'interrupted' : 'done', error: null }); });
           break;
         case 'turn-failed': {
+          void run.processing.then(() => {
+          if (active !== run || !live()) return;
           const record = runById(run.runId);
           // A reply in the wrong format, with nothing changed yet, is simply asked for once more.
           const retry = record !== null && RETRYABLE_OUTPUT_FAILURES.has(event.reasonCode)
-            && record.changes.length === 0 && !autoRetried.has(run.runId);
+            && record.changes.length === 0 && run.handled.size === 0 && !autoRetried.has(run.runId);
           const detail = [
             event.message && event.message !== event.reasonCode ? event.message : null,
             `live tools ${run.toolStarts}, handled ${run.handled.size}`,
@@ -601,6 +610,7 @@ export function createDayEngine(deps: EngineDeps) {
           ].filter(Boolean).join(' · ');
           finishActive({ state: 'failed', error: { code: event.reasonCode, message: detail } });
           if (retry && record) void retryRun(record);
+          });
           break;
         }
         case 'turn-interrupted':
@@ -619,7 +629,7 @@ export function createDayEngine(deps: EngineDeps) {
     if (!live() || handingOver || pumping || active || queue.length === 0) return;
     const desk = deps.desk.getState();
     if (desk.phase !== 'ready' || !desk.agent) return;
-    if (desk.activeTurnId) {
+    if (desk.resourceBusy) {
       publish({ waitingForAgent: true });
       return;
     }
@@ -657,17 +667,20 @@ export function createDayEngine(deps: EngineDeps) {
     const desk = deps.desk.getState();
     if (desk.phase !== 'ready' || !desk.agent) return { ok: false, reason: 'not-ready', message: notReadyMessage() };
     let work: ReturnType<typeof buildDayWork>;
+    const workState = data();
+    const careCircleIds = workState.circles.filter(circle => circle.status !== 'ended').map(circle => circle.id);
     try {
       work = buildDayWork({
         runId,
         skill,
-        state: data(),
+        state: workState,
         changes: state.changes,
         sourcesAvailable: state.activityStatus === 'ready',
         sourceCoverage: state.activityCoverage,
         language: deps.language(),
         now: now(),
         focusCircleId: runById(runId)?.focusCircleId ?? null,
+        ...(run.trigger === 'chat' ? { assistantBinding: desk.agent.binding } : {}),
       }, desk.agent.displayName);
     } catch (error) {
       // Never hand over a shortened method: the run fails and says why.
@@ -678,12 +691,12 @@ export function createDayEngine(deps: EngineDeps) {
     if (!live()) return { ok: false, reason: 'not-ready', message: notReadyMessage() };
     const result = await deps.desk.sendWork({ text: run.requestText, requestId: runId, work, ...(routineName ? { routineName } : {}) });
     if (!result.ok) return result;
-    active = { runId, turnId: result.turnId, scope: result.scope, handled: new Set(), processing: Promise.resolve(), poll: null, toolStarts: 0, toolIssue: null, reconcile: null };
+    active = { runId, turnId: result.turnId, scope: result.scope, focusCircleId: run.focusCircleId ?? null, handled: new Set(), processing: Promise.resolve(), poll: null, toolStarts: 0, toolIssue: null, reconcile: null };
     const current = active;
     // Events drive execution; a light poll covers a recovered subscription that missed one.
     current.poll = setInterval(() => processToolCalls(current), TOOL_POLL_MS);
     current.reconcile = setInterval(() => { void reconcileActive(current); }, RECONCILE_MS);
-    deps.actions.patchRun(runId, { state: 'running', turnId: result.turnId, startedAt: now().toISOString(), agentName: desk.agent.displayName });
+    deps.actions.patchRun(runId, { state: 'running', turnId: result.turnId, startedAt: now().toISOString(), agentName: desk.agent.displayName, agentBinding: desk.agent.binding, careCircleIds });
     publish({ activeRunId: runId, waitingForAgent: false });
     return result;
   };
@@ -700,9 +713,9 @@ export function createDayEngine(deps: EngineDeps) {
     const current = now();
     const runId = newId('run', current);
     onRun?.(runId);
-    if (!deps.desk.work()) return deps.desk.send(text, runId);
+    if (!deps.desk.work()) return { ok: false, reason: 'failed', message: deps.copy().engine.workUnavailable };
     if (desk.phase !== 'ready' || !desk.agent) return { ok: false, reason: 'not-ready', message: notReadyMessage() };
-    if (active || pumping || queue.length > 0 || desk.activeTurnId) return { ok: false, reason: 'busy', message: deps.copy().engine.busy(desk.agent.displayName) };
+    if (active || pumping || queue.length > 0 || desk.resourceBusy) return { ok: false, reason: 'busy', message: deps.copy().engine.busy(desk.agent.displayName) };
     if (state.unconfirmed) publish({ unconfirmed: null });
     const skill = chatSkill(deps.language());
     const run: SkillRun = {
@@ -753,7 +766,7 @@ export function createDayEngine(deps: EngineDeps) {
   const retryRun = async (failed: SkillRun) => {
     if (failed.trigger === 'chat') {
       // The failed conversation turn left nothing behind; say it again as the same request.
-      deps.actions.removeRun(failed.id);
+
       const result = await chatWith(failed.requestText, (runId) => autoRetried.add(runId));
       if (!result.ok) return;
       return;
@@ -856,13 +869,13 @@ export function createDayEngine(deps: EngineDeps) {
           if (!RESTORING_PHASES.has(desk.phase)) tick();
         }
         if (active && desk.connection === 'lost') void reconcileActive(active);
-        if (state.waitingForAgent && !desk.activeTurnId) {
+        if (state.waitingForAgent && !desk.resourceBusy) {
           publish({ waitingForAgent: false });
           void pump();
         }
       }));
       deps.activity.start();
-      void deps.activity.onOpenRequest(handleOpenRequest).then((stop) => cleanups.push(() => { void stop(); })).catch(() => undefined);
+
       const onVisible = () => { if (globalThis.document?.visibilityState === 'visible') tick(); };
       globalThis.document?.addEventListener('visibilitychange', onVisible);
       cleanups.push(() => globalThis.document?.removeEventListener('visibilitychange', onVisible));
@@ -888,6 +901,7 @@ export function createDayEngine(deps: EngineDeps) {
     /** Stop the turn NimiDay started from the Assistant page (a chat or a running skill). */
     stopActive: async (turnId: string) => {
       const run = active && active.turnId === turnId ? active : null;
+      if (run) run.stopped = true;
       const outcome = await deps.desk.interrupt(turnId);
       // Whatever the stop reported short of success, Runtime's own view of the turn decides.
       if (outcome !== 'interrupted' && run) await reconcileActive(run);
@@ -895,6 +909,7 @@ export function createDayEngine(deps: EngineDeps) {
     stopRun: async () => {
       const run = active;
       if (!run) return;
+      run.stopped = true;
       const outcome = await deps.desk.interrupt(run.turnId);
       // Its turn may already have ended without NimiDay hearing about it: Runtime's view decides.
       if (outcome !== 'interrupted') await reconcileActive(run);
@@ -913,6 +928,7 @@ export function createDayEngine(deps: EngineDeps) {
      */
     handOver: async <T>(appointNext: () => Promise<T>, options: { readonly stopCurrent: boolean }): Promise<T> => {
       handingOver = true;
+      let appointed = false;
       try {
         const run = active;
         if (run && options.stopCurrent) {
@@ -920,10 +936,12 @@ export function createDayEngine(deps: EngineDeps) {
           await run.processing;
           if (active === run) finishActive({ state: 'interrupted', error: { code: 'agent-changed', message: 'The on-duty agent changed while this was running.' } });
         }
-        return await appointNext();
+        const result = await appointNext();
+        appointed = result !== null && result !== false;
+        return result;
       } finally {
-        handingOver = false;
-        void pump();
+        handingOver = !appointed;
+        if (appointed) void pump();
       }
     },
     /** Try an earlier run again as the same request, also after NimiDay was reopened. */

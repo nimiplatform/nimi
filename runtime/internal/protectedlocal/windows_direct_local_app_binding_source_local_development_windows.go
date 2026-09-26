@@ -92,3 +92,31 @@ func verifyWindowsSourceDirectLocalAppPeer(
 	}
 	return DirectLocalAppPeer{OS: OSWindows, PID: process.pid, UID: process.sessionID}, nil
 }
+
+func RevalidateDirectLocalAppProcess(ctx context.Context, connection *LocalAppConnection) error {
+	if connection == nil || !connection.Live() {
+		return fmt.Errorf("direct App process is unavailable")
+	}
+	launch, ok := connection.DirectLaunch()
+	if !ok || launch.DesktopOwner == nil || !launch.DesktopOwner.VerifiedDesktopTransport() {
+		return fmt.Errorf("direct App supervision is unavailable")
+	}
+	if err := RevalidateDesktopConnectionProcess(ctx, launch.DesktopOwner); err != nil {
+		return err
+	}
+	desktop, ok := launch.DesktopOwner.DirectDesktopPeer()
+	if !ok || desktop.PID != launch.DesktopPID || desktop.UID != launch.ExpectedUID {
+		return fmt.Errorf("direct App supervisor changed")
+	}
+	active, err := resolveWindowsActiveSessionIdentity(desktop.AuditSession)
+	if err != nil {
+		return err
+	}
+	process, liveness, err := inspectWindowsSourceProcess(ctx, launch.Process.PID, active, launch.HostExecutablePath)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = liveness.Close() }()
+	_, err = verifyWindowsSourceDirectLocalAppPeer(launch, process)
+	return err
+}

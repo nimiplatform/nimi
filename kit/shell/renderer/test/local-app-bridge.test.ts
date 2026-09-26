@@ -920,7 +920,7 @@ describe('renderer local-app standard-shell surface', () => {
         invocations.push({ command, payload });
         return [{
           agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-          agentBinding: 'agent_binding_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', displayName: 'Agent One',
+          activityAgentRef: 'agr_test', agentBinding: 'agent_binding_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', displayName: 'Agent One',
           avatarUrl: null,
         }];
       },
@@ -928,7 +928,7 @@ describe('renderer local-app standard-shell surface', () => {
     };
     await expect(createNimiLocalAppStandardShellSurface().agents.listReferences()).resolves.toEqual([{
       agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-      agentBinding: 'agent_binding_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', displayName: 'Agent One',
+      activityAgentRef: 'agr_test', agentBinding: 'agent_binding_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', displayName: 'Agent One',
       avatarUrl: null,
     }]);
     expect(invocations).toEqual([{
@@ -1113,7 +1113,7 @@ describe('renderer local-app standard-shell surface', () => {
     const surface = createNimiLocalAppStandardShellSurface() as unknown as Record<string, unknown>;
     expect(Object.keys(surface).sort()).toEqual([
       'session', 'ai', 'aiConfig', 'storage', 'realm', 'agents', 'agentConfigure', 'conversation', 'embodiment', 'agentRealtime',
-      'activity',
+      'activity', 'agentWork', 'integration',
     ].sort());
     expect(Object.keys(surface.agentConfigure as Record<string, unknown>).sort()).toEqual([
       'sharedAIConfig', 'manager', 'autonomy', 'presentation', 'memory',

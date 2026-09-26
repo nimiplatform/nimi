@@ -7,7 +7,7 @@ import {
   readOptionalString,
   readScalarString,
 } from './source-detail-model-readers.js';
-import { simplifySourceDetailChineseText } from './source-detail-simplified-chinese.js';
+import { simplifyChineseDisplayText as simplifySourceDetailChineseText } from '@nimiplatform/kit/features/chat/headless';
 
 export function normalizeWorkStatus(value: unknown): SourceDetailWorkCollection['status'] {
   const status = readScalarString(value)?.toLocaleLowerCase();

@@ -127,7 +127,6 @@ pub(super) async fn send_turn(
             agent_handle: request.agent_handle,
             conversation_anchor_id: request.conversation_anchor_id,
             request_id: request.request_id,
-            work: super::conversation_work::parse_work(request.work)?,
             parts,
         })
         .await

@@ -50,6 +50,7 @@ type localDevelopmentMode struct {
 }
 
 type localDevelopmentLaunchRequest struct {
+	DesktopOwner       *protectedlocal.Connection
 	RegistrationHandle protectedlocal.Identifier
 	SupervisorRunID    protectedlocal.Identifier
 	Project            localDevelopmentProjectSnapshot
@@ -58,6 +59,7 @@ type localDevelopmentLaunchRequest struct {
 }
 
 type localDevelopmentLaunchTicket struct {
+	DesktopOwner       *protectedlocal.Connection
 	LaunchID           protectedlocal.Identifier
 	RegistrationHandle protectedlocal.Identifier
 	SupervisorRunID    protectedlocal.Identifier
@@ -186,7 +188,7 @@ func (store *localDevelopmentStore) PrepareLaunch(_ context.Context, request loc
 		return localDevelopmentLaunchTicket{}, err
 	}
 	now := store.now().UTC()
-	ticket := localDevelopmentLaunchTicket{LaunchID: launchID, RegistrationHandle: request.RegistrationHandle, SupervisorRunID: request.SupervisorRunID, Project: request.Project, HostExecutable: request.HostExecutable, ExpectedHostDigest: request.ExpectedHostDigest, ExpiresAt: now.Add(localDevelopmentLaunchTTL), BindDeadline: now.Add(localDevelopmentLaunchTTL)}
+	ticket := localDevelopmentLaunchTicket{DesktopOwner: request.DesktopOwner, LaunchID: launchID, RegistrationHandle: request.RegistrationHandle, SupervisorRunID: request.SupervisorRunID, Project: request.Project, HostExecutable: request.HostExecutable, ExpectedHostDigest: request.ExpectedHostDigest, ExpiresAt: now.Add(localDevelopmentLaunchTTL), BindDeadline: now.Add(localDevelopmentLaunchTTL)}
 	store.mu.Lock()
 	defer store.mu.Unlock()
 	store.removeExpiredLocked(now)

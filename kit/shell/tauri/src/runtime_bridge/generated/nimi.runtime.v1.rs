@@ -1520,6 +1520,12 @@ pub struct OpenLocalAppSessionResponse {
 /// No request data or metadata may select session, process, account, or trust.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct RenewLocalAppSessionRequest {}
+/// Host-private and request-empty. Only a still-verified connection previously
+/// bound to this exact supervised Host may revalidate and replace an invalidated
+/// scope. A live scope is returned unchanged; cached identity cannot rebind a
+/// lost connection or bypass a new launch required by changed launch facts.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RebindLocalAppSessionRequest {}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct RegisterExternalPrincipalRequest {
     #[prost(string, tag = "1")]
@@ -1843,6 +1849,35 @@ pub mod runtime_auth_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAuthService",
                         "RenewLocalAppSession",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn rebind_local_app_session(
+            &mut self,
+            request: impl tonic::IntoRequest<super::RebindLocalAppSessionRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::OpenLocalAppSessionResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAuthService/RebindLocalAppSession",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAuthService",
+                        "RebindLocalAppSession",
                     ),
                 );
             self.inner.unary(req, path, codec).await
@@ -13390,12 +13425,16 @@ pub struct GetInstalledAppRunAccessRequest {
     #[prost(bytes = "vec", tag = "1")]
     pub launch_id: ::prost::alloc::vec::Vec<u8>,
 }
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetInstalledAppRunAccessResponse {
     #[prost(bool, tag = "1")]
     pub available: bool,
     #[prost(enumeration = "ReasonCode", tag = "2")]
     pub reason_code: i32,
+    /// Host-private, non-authorizing correlation for the current execution scope.
+    /// Empty while pending or unavailable; routine renewal preserves it.
+    #[prost(string, tag = "3")]
+    pub execution_scope_ref: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct BindLocalAppProcessResponse {
@@ -18657,6 +18696,240 @@ impl LocalAppEmbodimentVoicePhase {
     }
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentWorkReference {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub display_name: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "3")]
+    pub avatar_url: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, tag = "4")]
+    pub agent_binding: ::prost::alloc::string::String,
+    /// Non-authorizing Activity grouping reference, never an Agent selector.
+    #[prost(string, tag = "5")]
+    pub activity_agent_ref: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListLocalAppAgentWorkReferencesRequest {}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListLocalAppAgentWorkReferencesResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub references: ::prost::alloc::vec::Vec<LocalAppAgentWorkReference>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentWorkSource {
+    #[prost(string, tag = "1")]
+    pub source_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub content: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentWorkTool {
+    #[prost(string, tag = "1")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub input_schema_json: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAppAgentWorkInput {
+    #[prost(string, tag = "1")]
+    pub work_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub instructions: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "3")]
+    pub sources: ::prost::alloc::vec::Vec<LocalAppAgentWorkSource>,
+    #[prost(message, repeated, tag = "4")]
+    pub tools: ::prost::alloc::vec::Vec<LocalAppAgentWorkTool>,
+    #[prost(string, optional, tag = "5")]
+    pub routine_name: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct StartLocalAppAgentWorkRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub request_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub prompt: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub work: ::core::option::Option<LocalAppAgentWorkInput>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct StartLocalAppAgentWorkResponse {
+    #[prost(string, tag = "1")]
+    pub execution_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentWorkExecution {
+    #[prost(string, tag = "1")]
+    pub execution_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub work_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalAppAgentWorkState", tag = "3")]
+    pub state: i32,
+    /// Present only after successful complete validated model output.
+    #[prost(string, tag = "4")]
+    pub output_text: ::prost::alloc::string::String,
+    #[prost(enumeration = "ReasonCode", tag = "5")]
+    pub reason_code: i32,
+    #[prost(string, tag = "6")]
+    pub message: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "7")]
+    pub sequence: u64,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetLocalAppAgentWorkRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub execution_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetLocalAppAgentWorkResponse {
+    #[prost(message, optional, tag = "1")]
+    pub execution: ::core::option::Option<LocalAppAgentWorkExecution>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetLocalAppAgentWorkStatusRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetLocalAppAgentWorkStatusResponse {
+    #[prost(bool, tag = "1")]
+    pub busy: bool,
+    /// Omitted for another App's execution or canonical chat.
+    #[prost(string, optional, tag = "2")]
+    pub own_execution_id: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentWorkToolCall {
+    #[prost(string, tag = "1")]
+    pub call_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub execution_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub arguments_json: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListLocalAppAgentWorkToolCallsRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub execution_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListLocalAppAgentWorkToolCallsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub calls: ::prost::alloc::vec::Vec<LocalAppAgentWorkToolCall>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SubmitLocalAppAgentWorkToolResultRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub execution_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub call_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub result_json: ::prost::alloc::string::String,
+    #[prost(bool, tag = "5")]
+    pub is_error: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SubmitLocalAppAgentWorkToolResultResponse {
+    #[prost(string, tag = "1")]
+    pub call_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CancelLocalAppAgentWorkRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub execution_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CancelLocalAppAgentWorkResponse {
+    #[prost(message, optional, tag = "1")]
+    pub execution: ::core::option::Option<LocalAppAgentWorkExecution>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SubscribeLocalAppAgentWorkEventsRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub execution_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "3")]
+    pub after_sequence: u64,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentWorkEvent {
+    #[prost(string, tag = "1")]
+    pub execution_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "2")]
+    pub sequence: u64,
+    #[prost(oneof = "local_app_agent_work_event::Event", tags = "3, 4, 5")]
+    pub event: ::core::option::Option<local_app_agent_work_event::Event>,
+}
+/// Nested message and enum types in `LocalAppAgentWorkEvent`.
+pub mod local_app_agent_work_event {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Event {
+        #[prost(message, tag = "3")]
+        Snapshot(super::LocalAppAgentWorkExecution),
+        #[prost(string, tag = "4")]
+        TextDelta(::prost::alloc::string::String),
+        #[prost(message, tag = "5")]
+        ToolCall(super::LocalAppAgentWorkToolCall),
+    }
+}
+/// A bounded model execution owned by the initiating protected App scope.
+/// No message in this surface is a canonical Conversation message.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalAppAgentWorkState {
+    Unspecified = 0,
+    Running = 1,
+    WaitingTool = 2,
+    Succeeded = 3,
+    Failed = 4,
+    Cancelled = 5,
+}
+impl LocalAppAgentWorkState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_APP_AGENT_WORK_STATE_UNSPECIFIED",
+            Self::Running => "LOCAL_APP_AGENT_WORK_STATE_RUNNING",
+            Self::WaitingTool => "LOCAL_APP_AGENT_WORK_STATE_WAITING_TOOL",
+            Self::Succeeded => "LOCAL_APP_AGENT_WORK_STATE_SUCCEEDED",
+            Self::Failed => "LOCAL_APP_AGENT_WORK_STATE_FAILED",
+            Self::Cancelled => "LOCAL_APP_AGENT_WORK_STATE_CANCELLED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_APP_AGENT_WORK_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_APP_AGENT_WORK_STATE_RUNNING" => Some(Self::Running),
+            "LOCAL_APP_AGENT_WORK_STATE_WAITING_TOOL" => Some(Self::WaitingTool),
+            "LOCAL_APP_AGENT_WORK_STATE_SUCCEEDED" => Some(Self::Succeeded),
+            "LOCAL_APP_AGENT_WORK_STATE_FAILED" => Some(Self::Failed),
+            "LOCAL_APP_AGENT_WORK_STATE_CANCELLED" => Some(Self::Cancelled),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct RealtimeControlStatus {
     #[prost(string, tag = "1")]
     pub realtime_session_id: ::prost::alloc::string::String,
@@ -21312,6 +21585,9 @@ pub struct LocalAppAgentReference {
     /// Stable only within this account and registered App; correlation, never access.
     #[prost(string, tag = "4")]
     pub agent_binding: ::prost::alloc::string::String,
+    /// Non-authorizing Activity grouping reference, never an Agent selector.
+    #[prost(string, tag = "5")]
+    pub activity_agent_ref: ::prost::alloc::string::String,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListLocalAppAgentReferencesRequest {}
@@ -21319,6 +21595,43 @@ pub struct ListLocalAppAgentReferencesRequest {}
 pub struct ListLocalAppAgentReferencesResponse {
     #[prost(message, repeated, tag = "1")]
     pub references: ::prost::alloc::vec::Vec<LocalAppAgentReference>,
+}
+/// Read-only source display projection shared by every covered formal App.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetLocalAppAgentIntroductionRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetLocalAppAgentIntroductionResponse {
+    #[prost(message, optional, tag = "1")]
+    pub introduction: ::core::option::Option<LocalAppAgentIntroduction>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAppAgentIntroduction {
+    #[prost(string, optional, tag = "1")]
+    pub world_name: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "2")]
+    pub era: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "3")]
+    pub role: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "4")]
+    pub greeting: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "5")]
+    pub reference_image_url: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "6")]
+    pub voice_sample_url: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(double, optional, tag = "7")]
+    pub voice_sample_duration_sec: ::core::option::Option<f64>,
+    #[prost(message, repeated, tag = "8")]
+    pub question_topics: ::prost::alloc::vec::Vec<LocalAppAgentIntroductionTopic>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentIntroductionTopic {
+    #[prost(enumeration = "LocalAppAgentIntroductionTopicKind", tag = "1")]
+    pub kind: i32,
+    #[prost(string, tag = "2")]
+    pub text: ::prost::alloc::string::String,
 }
 /// Desktop account-product lookup; absent from ordinary App transport profiles.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -21484,86 +21797,6 @@ pub struct SendLocalAppConversationTurnRequest {
     pub request_id: ::prost::alloc::string::String,
     #[prost(message, repeated, tag = "5")]
     pub parts: ::prost::alloc::vec::Vec<LocalAppConversationInputPart>,
-    #[prost(message, optional, tag = "6")]
-    pub work: ::core::option::Option<LocalAppConversationWork>,
-}
-/// App-authored business context. Runtime supplies provenance and composes it
-/// below its policy and the LocalAgent's own source identity.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAppConversationWorkSource {
-    #[prost(string, tag = "1")]
-    pub source_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub title: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub content: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAppConversationWorkTool {
-    #[prost(string, tag = "1")]
-    pub name: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub description: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub input_schema_json: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalAppConversationWork {
-    #[prost(string, tag = "1")]
-    pub work_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub instructions: ::prost::alloc::string::String,
-    #[prost(message, repeated, tag = "3")]
-    pub sources: ::prost::alloc::vec::Vec<LocalAppConversationWorkSource>,
-    #[prost(message, repeated, tag = "4")]
-    pub tools: ::prost::alloc::vec::Vec<LocalAppConversationWorkTool>,
-    #[prost(string, optional, tag = "5")]
-    pub routine_name: ::core::option::Option<::prost::alloc::string::String>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ListLocalAppConversationToolCallsRequest {
-    #[prost(string, tag = "1")]
-    pub agent_handle: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub conversation_anchor_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub turn_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalAppConversationToolCall {
-    #[prost(string, tag = "1")]
-    pub call_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub turn_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub name: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub arguments_json: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ListLocalAppConversationToolCallsResponse {
-    #[prost(message, repeated, tag = "1")]
-    pub calls: ::prost::alloc::vec::Vec<LocalAppConversationToolCall>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SubmitLocalAppConversationToolResultRequest {
-    #[prost(string, tag = "1")]
-    pub agent_handle: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub conversation_anchor_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub turn_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub call_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub result_json: ::prost::alloc::string::String,
-    #[prost(bool, tag = "6")]
-    pub is_error: bool,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SubmitLocalAppConversationToolResultResponse {
-    #[prost(string, tag = "1")]
-    pub call_id: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct SendLocalAppConversationTurnResponse {
@@ -23189,6 +23422,45 @@ impl ConversationAnchorStatus {
         }
     }
 }
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalAppAgentIntroductionTopicKind {
+    Unspecified = 0,
+    Role = 1,
+    Work = 2,
+    Relationship = 3,
+    Topic = 4,
+}
+impl LocalAppAgentIntroductionTopicKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_APP_AGENT_INTRODUCTION_TOPIC_KIND_UNSPECIFIED",
+            Self::Role => "LOCAL_APP_AGENT_INTRODUCTION_TOPIC_KIND_ROLE",
+            Self::Work => "LOCAL_APP_AGENT_INTRODUCTION_TOPIC_KIND_WORK",
+            Self::Relationship => "LOCAL_APP_AGENT_INTRODUCTION_TOPIC_KIND_RELATIONSHIP",
+            Self::Topic => "LOCAL_APP_AGENT_INTRODUCTION_TOPIC_KIND_TOPIC",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_APP_AGENT_INTRODUCTION_TOPIC_KIND_UNSPECIFIED" => {
+                Some(Self::Unspecified)
+            }
+            "LOCAL_APP_AGENT_INTRODUCTION_TOPIC_KIND_ROLE" => Some(Self::Role),
+            "LOCAL_APP_AGENT_INTRODUCTION_TOPIC_KIND_WORK" => Some(Self::Work),
+            "LOCAL_APP_AGENT_INTRODUCTION_TOPIC_KIND_RELATIONSHIP" => {
+                Some(Self::Relationship)
+            }
+            "LOCAL_APP_AGENT_INTRODUCTION_TOPIC_KIND_TOPIC" => Some(Self::Topic),
+            _ => None,
+        }
+    }
+}
 /// Product actions are stable Manager semantics, not AppOperationIds or access
 /// decisions. The protected session has already admitted the shared
 /// agent.configure domain before Runtime projects current owner availability.
@@ -23857,6 +24129,35 @@ pub mod runtime_agent_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        pub async fn get_local_app_agent_introduction(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetLocalAppAgentIntroductionRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetLocalAppAgentIntroductionResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentIntroduction",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "GetLocalAppAgentIntroduction",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
         pub async fn list_local_app_agent_references(
             &mut self,
             request: impl tonic::IntoRequest<super::ListLocalAppAgentReferencesRequest>,
@@ -24035,13 +24336,13 @@ pub mod runtime_agent_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
-        pub async fn list_local_app_conversation_tool_calls(
+        pub async fn list_local_app_agent_work_references(
             &mut self,
             request: impl tonic::IntoRequest<
-                super::ListLocalAppConversationToolCallsRequest,
+                super::ListLocalAppAgentWorkReferencesRequest,
             >,
         ) -> std::result::Result<
-            tonic::Response<super::ListLocalAppConversationToolCallsResponse>,
+            tonic::Response<super::ListLocalAppAgentWorkReferencesResponse>,
             tonic::Status,
         > {
             self.inner
@@ -24054,25 +24355,23 @@ pub mod runtime_agent_service_client {
                 })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppConversationToolCalls",
+                "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentWorkReferences",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
-                        "ListLocalAppConversationToolCalls",
+                        "ListLocalAppAgentWorkReferences",
                     ),
                 );
             self.inner.unary(req, path, codec).await
         }
-        pub async fn submit_local_app_conversation_tool_result(
+        pub async fn start_local_app_agent_work(
             &mut self,
-            request: impl tonic::IntoRequest<
-                super::SubmitLocalAppConversationToolResultRequest,
-            >,
+            request: impl tonic::IntoRequest<super::StartLocalAppAgentWorkRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::SubmitLocalAppConversationToolResultResponse>,
+            tonic::Response<super::StartLocalAppAgentWorkResponse>,
             tonic::Status,
         > {
             self.inner
@@ -24085,17 +24384,197 @@ pub mod runtime_agent_service_client {
                 })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppConversationToolResult",
+                "/nimi.runtime.v1.RuntimeAgentService/StartLocalAppAgentWork",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
-                        "SubmitLocalAppConversationToolResult",
+                        "StartLocalAppAgentWork",
                     ),
                 );
             self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_local_app_agent_work(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetLocalAppAgentWorkRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetLocalAppAgentWorkResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentWork",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "GetLocalAppAgentWork",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_local_app_agent_work_status(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetLocalAppAgentWorkStatusRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetLocalAppAgentWorkStatusResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentWorkStatus",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "GetLocalAppAgentWorkStatus",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_local_app_agent_work_tool_calls(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::ListLocalAppAgentWorkToolCallsRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::ListLocalAppAgentWorkToolCallsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentWorkToolCalls",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "ListLocalAppAgentWorkToolCalls",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn submit_local_app_agent_work_tool_result(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::SubmitLocalAppAgentWorkToolResultRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::SubmitLocalAppAgentWorkToolResultResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppAgentWorkToolResult",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "SubmitLocalAppAgentWorkToolResult",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn cancel_local_app_agent_work(
+            &mut self,
+            request: impl tonic::IntoRequest<super::CancelLocalAppAgentWorkRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::CancelLocalAppAgentWorkResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/CancelLocalAppAgentWork",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "CancelLocalAppAgentWork",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn subscribe_local_app_agent_work_events(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::SubscribeLocalAppAgentWorkEventsRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<tonic::codec::Streaming<super::LocalAppAgentWorkEvent>>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentWorkEvents",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "SubscribeLocalAppAgentWorkEvents",
+                    ),
+                );
+            self.inner.server_streaming(req, path, codec).await
         }
         pub async fn upload_local_app_conversation_attachment(
             &mut self,

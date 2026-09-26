@@ -3,11 +3,12 @@ export type Project = { id: string; name: string; description: string; sourceRef
 export type Skill = { id: string; name: string; description: string; materials?: string; result?: string; instructions: string; updatedAt: string };
 export type Routine = { id: string; name: string; projectId: string; skillId: string; brief: string; time: string; enabled: boolean; nextAt: string; missedAt?: string; lastWorkId?: string };
 export type Workspace = { version: 1; id: string; agentBinding: string | null; projects: Project[]; workIds: string[]; skills: Skill[]; routines: Routine[]; notifyHome: boolean; theme: 'light' | 'dark' };
-export type Attempt = { id: string; agentBinding: string; turnId: string | null; anchorId: string | null; startedAt: string; status: WorkStatus; input?: string; error?: string };
-export type Material = { id: string; title: string; content: string; createdAt: string; editedAt?: string; origin?: { activityId?: string; worldId?: string; title: string; updatedAt: string } };
-export type Revision = { id: string; path: string; createdAt: string; by: 'agent' | 'user'; note: string; turnId?: string };
+export type Attempt = { id: string; agentBinding: string; executionId: string | null; startedAt: string; status: WorkStatus; input?: string; error?: string };
+export type WorkMessage = { messageId: string; executionId: string; role: 'user' | 'assistant' | 'app'; parts: { kind: 'text'; text: string }[] };
+export type Material = { id: string; title: string; content: string; createdAt: string; editedAt?: string; origin?: { activityId?: string; worldId?: string; integration?: { targetRef: string; operation: string; callId: string }; title: string; updatedAt: string } };
+export type Revision = { id: string; path: string; createdAt: string; by: 'agent' | 'user'; note: string; executionId?: string };
 export type Deliverable = { id: string; title: string; revisions: Revision[] };
-export type Work = { version: 1; id: string; projectId: string; title: string; brief: string; skillId: string; status: WorkStatus; createdAt: string; updatedAt: string; materials: Material[]; deliverables: Deliverable[]; steps: { id: string; title: string; done: boolean }[]; attempts: Attempt[]; history: { id: string; at: string; text: string; kind?: 'source-update'; turnId?: string }[]; error?: string; question?: string; queuedInput?: { sequence: number; followup?: string; routineName?: string }; archived: boolean };
+export type Work = { version: 1; id: string; projectId: string; title: string; brief: string; skillId: string; status: WorkStatus; createdAt: string; updatedAt: string; materials: Material[]; deliverables: Deliverable[]; steps: { id: string; title: string; done: boolean }[]; attempts: Attempt[]; history: { id: string; at: string; text: string; kind?: 'source-update'; executionId?: string }[]; messages?: WorkMessage[]; integrationReads?: { targetRef: string; operation: string }[]; error?: string; question?: string; queuedInput?: { sequence: number; followup?: string; routineName?: string }; archived: boolean };
 export const statusLabel: Record<WorkStatus, string> = { draft: '待开始', review: '待交付', queued: '排队中', running: '进行中', 'needs-input': '需要你', complete: '已交付', failed: '遇到问题', stopped: '已停止', uncertain: '待确认' };
 export const uuid = () => crypto.randomUUID();
 export const now = () => new Date().toISOString();
@@ -44,9 +45,9 @@ export function isMissing(error: unknown): boolean {
   return [e?.code, e?.reasonCode].some(value => ['not-found', 'app_storage_entry_not_found', 'APP_STORAGE_ENTRY_NOT_FOUND'].includes(value || ''));
 }
 
-export function deliveredWorkStatus(work: Work, turnId: string): 'complete' | 'review' {
-  return work.deliverables.some(doc => doc.revisions.some(revision => revision.turnId === turnId))
-    || work.history.some(event => event.kind === 'source-update' && event.turnId === turnId) ? 'complete' : 'review';
+export function deliveredWorkStatus(work: Work, executionId: string): 'complete' | 'review' {
+  return work.deliverables.some(doc => doc.revisions.some(revision => revision.executionId === executionId))
+    || work.history.some(event => event.kind === 'source-update' && event.executionId === executionId) ? 'complete' : 'review';
 }
 
 export function workCanEdit(work: Work): boolean {
@@ -118,6 +119,13 @@ export function projectDeliverables(work: Work, works: readonly Work[], query = 
     .flatMap(candidate => candidate.deliverables.map(doc => ({ deliverableId: doc.id, title: doc.title, work: candidate.title, canReviseHere: candidate.id === work.id, archived: candidate.archived, updatedAt: doc.revisions.at(-1)!.createdAt })))
     .filter(doc => !search || `${doc.title} ${doc.work} ${doc.updatedAt}`.toLocaleLowerCase().includes(search))
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+}
+
+export function deliverableReadReference(work: Work, deliverableId: string, revisionId: string) {
+  const doc = work.deliverables.find(value => value.id === deliverableId);
+  const index = doc?.revisions.findIndex(revision => revision.id === revisionId) ?? -1;
+  if (!doc || index < 0) throw new Error('找不到这个已保存版本，无法复制读取引用。');
+  return { workId: work.id, deliverableId: doc.id, revisionId: doc.revisions[index]!.id, title: doc.title, version: index + 1 };
 }
 
 export function workSources(work: Work, workspace: Workspace, works: readonly Work[]) {

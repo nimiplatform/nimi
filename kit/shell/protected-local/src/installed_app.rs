@@ -10,4 +10,6 @@ pub struct InstalledAppLaunchOutcome {
 pub struct InstalledAppRunAccess {
     pub available: bool,
     pub reason_code: String,
+    /// Host-private comparison only; empty when no unique current scope is available.
+    pub execution_scope_ref: String,
 }

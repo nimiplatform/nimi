@@ -36,7 +36,8 @@ type DesktopRuntimeAgentDiscoverySurface = Pick<
   'listLocalAgents' | 'discoverLocalAgentsBySource'
 >;
 
-type DesktopRendererAccountProductClient = Omit<NimiDesktopAccountProductRuntimeClient, 'connectors'>;
+type DesktopRendererAccountProductClient = Omit<NimiDesktopAccountProductRuntimeClient, 'connectors' | 'agents'>
+  & { readonly agents: Omit<NimiDesktopAccountProductRuntimeClient['agents'], 'resolveDesktopAgentReference'> };
 type DesktopConnectorAdminClient = NimiDesktopAccountProductRuntimeClient['connectors']
   & Pick<NimiDesktopMachineProductRuntimeClient['connectors'], 'listProviderCatalog'>;
 
@@ -46,6 +47,7 @@ export interface DesktopRendererSdkPort {
   appId(): string;
   machineProduct(): NimiDesktopMachineProductRuntimeClient;
   accountProduct(): DesktopRendererAccountProductClient;
+  resolveDesktopAgentReference(input: { readonly localAgentRef: string }): ReturnType<NimiDesktopAccountProductRuntimeClient['agents']['resolveDesktopAgentReference']>;
   connectorAdmin(): DesktopConnectorAdminClient;
   localEnvironmentRpc(): NimiDesktopMachineProductRuntimeClient['local'];
   localAudit(): NimiDesktopMachineProductRuntimeClient['local'];

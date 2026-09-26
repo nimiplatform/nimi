@@ -1,3 +1,5 @@
+import { useActiveAgentConversationSourceRef } from '../agents/agent-conversation-source-resolution.js';
+import { characterSourceRefKey } from '../realm-source/realm-source-identity.js';
 import {
   useCallback,
   useEffect,
@@ -66,9 +68,8 @@ import {
   resolveDesktopAgentSessionRebind,
 } from './chat-agent-session-rebind.js';
 import type { ReportAgentConversationHostError } from './chat-agent-shell-adapter-host-feedback.js';
-import { useAgentEmptyStateCharacterPresence } from './chat-agent-empty-state-character-presence.js';
-import { useActiveAgentConversationSourceRef } from '../agents/agent-conversation-source-resolution.js';
-import { characterSourceRefKey } from '../realm-source/realm-source-identity.js';
+import { useAgentIntroduction } from '@nimiplatform/kit/features/chat/runtime';
+import type { NimiLocalAppAgentIntroductionClient } from '@nimiplatform/sdk/app';
 
 type UseAgentConversationModeHostInput = {
   authStatus: AuthStatus;
@@ -275,17 +276,20 @@ export function useAgentConversationModeHost(
     () => mergeAgentTargetWithPresentationProfile(shellActiveTarget, runtimePresentationProfile),
     [runtimePresentationProfile, shellActiveTarget],
   );
-  const activeConversationSourceRef = useActiveAgentConversationSourceRef({
-    activeTarget,
+  const readIntroduction = useCallback<NimiLocalAppAgentIntroductionClient['getIntroduction']>(
+    request => bindings.sdk.appProduct().agents.getIntroduction(request), [bindings.sdk],
+  );
+  const { introduction: emptyStateCharacterPresence, unavailable: introductionUnavailable, retry: onRetryIntroduction } = useAgentIntroduction({
+    agentHandle: input.authStatus === 'authenticated' ? activeTarget?.agentHandle : null,
+    getIntroduction: readIntroduction,
+  });
+  // Source-page prefill intent retains its owner navigation correlation;
+  // introduction data above uses only the formal App handle.
+  const prefillSourceRef = useActiveAgentConversationSourceRef({
+    activeTarget: pendingAgentComposerPrefill?.sourceKey && !pendingAgentComposerPrefill.agentHandle ? activeTarget : null,
     authStatus: input.authStatus,
   });
-  const emptyStateCharacterPresence = useAgentEmptyStateCharacterPresence({
-    sourceRef: activeConversationSourceRef,
-    authStatus: input.authStatus,
-  });
-  const activeTargetSourceKey = activeConversationSourceRef
-    ? characterSourceRefKey(activeConversationSourceRef)
-    : null;
+  const activeTargetSourceKey = prefillSourceRef ? characterSourceRefKey(prefillSourceRef) : null;
 
   useEffect(() => {
     if (!activeTarget?.agentHandle || !pendingAgentComposerPrefill) {
@@ -535,6 +539,8 @@ export function useAgentConversationModeHost(
     onAttachmentsChange: (nextAttachments) => setPendingAttachmentsForThread(activeThreadId, nextAttachments),
     onComposerPrefillRequest: handleComposerPrefillRequest,
     emptyStateCharacterPresence,
+    introductionUnavailable,
+    onRetryIntroduction,
     reasoningLabel,
     renderMessageAccessory,
     renderMessageContent,

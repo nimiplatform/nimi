@@ -439,6 +439,8 @@ export type RegisteredNimiElectronRuntimeBridge = {
   readonly bundledAvatarLocalAppHost?: import('./local-app-host.js').NimiElectronLocalAppHost;
   /** Desktop-main-only private current Avatar target revalidation. */
   readonly revalidateAvatarHostTarget?: (avatarHostTargetRef: string) => Promise<string>;
+  /** Desktop-main-only exact owner lookup through the formal scope barrier. */
+  readonly resolveDesktopAgentReference?: (input: Readonly<{ localAgentRef: string }>) => Promise<import('@nimiplatform/sdk/runtime/host').ResolveDesktopAgentReferenceResponse>;
   /** Desktop-main-only exact source resolution for a pending App activity open request. */
   readonly resolveAppActivityOpenLaunch?: (openRequestId: string) => Promise<NimiElectronAppActivityOpenLaunchTarget>;
   /** Bounded owner cleanup used before Desktop Host shutdown. */

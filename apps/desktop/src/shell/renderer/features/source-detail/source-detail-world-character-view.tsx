@@ -7,7 +7,7 @@ import { toSafeBackgroundImage } from '../explore/explore-background-image.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { describeCharacterPrimaryAction } from '../explore/character-source-materialization';
 import type { SourceDetailData, SourceDetailWorldCharacterMilestone } from './source-detail-model.js';
-import { simplifySourceDetailChineseText as simplifyDisplayText } from './source-detail-simplified-chinese.js';
+import { simplifyChineseDisplayText as simplifyDisplayText } from '@nimiplatform/kit/features/chat/headless';
 import {
   biographicalTimelineMarker,
   buildSourceDetailBiographicalTimeline,

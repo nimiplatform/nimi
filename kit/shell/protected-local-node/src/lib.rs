@@ -22,21 +22,20 @@ use nimi_shell_protected_local::{
     LocalAppAIConfigOverwriteRequest, LocalAppActivityListRequest, LocalAppActivityMarkReadRequest,
     LocalAppActivityOpenRequest, LocalAppActivityOpenRequestCompleteRequest,
     LocalAppActivityPutRequest, LocalAppActivitySubscribeRequest, LocalAppActivityTimestamp,
-    LocalAppAgentCommitPresentationRequest,
-    LocalAppAgentHandleRequest, LocalAppAgentManagerSnapshotRequest,
-    LocalAppAgentMemoryCorrectRequest, LocalAppAgentMemoryDeleteRequest,
-    LocalAppAgentMemoryForgetRequest, LocalAppAgentMemoryInspectRequest,
-    LocalAppAgentMemorySwitchRequest, LocalAppAgentPresentationAssetInput,
-    LocalAppAgentPresentationAssetReadRequest, LocalAppAgentRealtimeAppendInputRequest,
-    LocalAppAgentRealtimeOpenRequest, LocalAppAgentRealtimeOutputInterruptRequest,
-    LocalAppAgentRealtimeSessionRequest, LocalAppAgentReference,
-    LocalAppAgentUpdateAutonomyRequest, LocalAppAiRealtimeAppendInputRequest,
-    LocalAppAiRealtimeOpenRequest, LocalAppAiRealtimeOutputInterruptRequest,
-    LocalAppAiRealtimeOwnerControlRequest, LocalAppAiRealtimeSessionRequest,
-    LocalAppAssetAdoptRequest, LocalAppAssetListRequest, LocalAppAssetMoveRequest,
-    LocalAppAssetReadReceiver, LocalAppAssetReadRequest, LocalAppAssetRecord,
-    LocalAppAssetRemoveRequest, LocalAppAssetRevealRequest, LocalAppAssetStatRequest,
-    LocalAppAssetWriteRequest, LocalAppAvatarHostTargetResolveRequest,
+    LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest,
+    LocalAppAgentManagerSnapshotRequest, LocalAppAgentMemoryCorrectRequest,
+    LocalAppAgentMemoryDeleteRequest, LocalAppAgentMemoryForgetRequest,
+    LocalAppAgentMemoryInspectRequest, LocalAppAgentMemorySwitchRequest,
+    LocalAppAgentPresentationAssetInput, LocalAppAgentPresentationAssetReadRequest,
+    LocalAppAgentRealtimeAppendInputRequest, LocalAppAgentRealtimeOpenRequest,
+    LocalAppAgentRealtimeOutputInterruptRequest, LocalAppAgentRealtimeSessionRequest,
+    LocalAppAgentReference, LocalAppAgentUpdateAutonomyRequest,
+    LocalAppAiRealtimeAppendInputRequest, LocalAppAiRealtimeOpenRequest,
+    LocalAppAiRealtimeOutputInterruptRequest, LocalAppAiRealtimeOwnerControlRequest,
+    LocalAppAiRealtimeSessionRequest, LocalAppAssetAdoptRequest, LocalAppAssetListRequest,
+    LocalAppAssetMoveRequest, LocalAppAssetReadReceiver, LocalAppAssetReadRequest,
+    LocalAppAssetRecord, LocalAppAssetRemoveRequest, LocalAppAssetRevealRequest,
+    LocalAppAssetStatRequest, LocalAppAssetWriteRequest, LocalAppAvatarHostTargetResolveRequest,
     LocalAppConversationArtifactReadRequest, LocalAppConversationAttachmentUploadRequest,
     LocalAppConversationEvent, LocalAppConversationEventKind, LocalAppConversationInputPart,
     LocalAppConversationInterruptRequest, LocalAppConversationMessageRole,
@@ -58,8 +57,8 @@ use nimi_shell_protected_local::{
     LocalAppScenarioUploadArtifactRequest, LocalAppSessionStatus,
     LocalAppSharedAgentAIConfigLocalOptionsRequest, LocalAppSharedAgentAIConfigOverwriteRequest,
     LocalAppStorageReadRequest, LocalAppStorageRemoveRequest, LocalAppStorageWriteRequest,
-    LocalAppTextCandidateMessage, LocalAppTextCandidateRequest, LocalAppTextMessage, LocalAppTextTurnRequest,
-    LocalAppWorldCharacterCreateRequest, LocalAppWorldCharacterGetRequest,
+    LocalAppTextCandidateMessage, LocalAppTextCandidateRequest, LocalAppTextMessage,
+    LocalAppTextTurnRequest, LocalAppWorldCharacterCreateRequest, LocalAppWorldCharacterGetRequest,
     LocalAppWorldCharacterListRequest, LocalAppWorldCharacterReplaceRequest,
     LocalAppWorldCoreCreateRequest, LocalAppWorldCoreGetRequest, LocalAppWorldCoreListRequest,
     LocalAppWorldCoreReplaceRequest, LocalAppWorldEntityCreateRequest,
@@ -84,7 +83,21 @@ use std::{
 };
 use tokio::sync::{Mutex, Notify};
 
-static LOCAL_APP_SESSION: Mutex<Option<Arc<dyn NimiLocalAppSession>>> = Mutex::const_new(None);
+struct LocalAppSessionCache {
+    session: Option<Arc<CachedLocalAppSession>>,
+    invalidated: Option<LocalAppOperationError>,
+}
+struct CachedLocalAppSession(Arc<dyn NimiLocalAppSession>);
+impl std::ops::Deref for CachedLocalAppSession {
+    type Target = dyn NimiLocalAppSession;
+    fn deref(&self) -> &Self::Target {
+        self.0.as_ref()
+    }
+}
+static LOCAL_APP_SESSION: Mutex<LocalAppSessionCache> = Mutex::const_new(LocalAppSessionCache {
+    session: None,
+    invalidated: None,
+});
 static DESKTOP_CONTROL: Mutex<Option<Arc<dyn NimiDesktopControl>>> = Mutex::const_new(None);
 const FIRST_PARTY_UNARY_MAX_DURATION: Duration = Duration::from_secs(300);
 #[cfg(any(
@@ -1047,7 +1060,7 @@ pub async fn desktop_installed_app_run_access(
     invoke_desktop_json(|control| async move {
         control.installed_app_run_access(id).await.map(|result| {
             json!({
-                "available": result.available, "reasonCode": result.reason_code,
+                "available": result.available, "reasonCode": result.reason_code, "executionScopeRef": result.execution_scope_ref,
             })
         })
     })
@@ -1091,6 +1104,34 @@ pub async fn desktop_launch_local_development_host(
             })
     })
     .await
+}
+
+#[napi(js_name = "desktopLocalDevelopmentRunAccess")]
+pub async fn desktop_local_development_run_access(input: JsonValue) -> NativeJsonOutcome {
+    let Some(record) = input.as_object() else {
+        return NativeJsonOutcome::host_reason("runtime-service-untrusted", false);
+    };
+    if record.len() != 2 {
+        return NativeJsonOutcome::host_reason("runtime-service-untrusted", false);
+    }
+    let registration_handle = record
+        .get("registrationHandle")
+        .and_then(JsonValue::as_str)
+        .and_then(decode_identifier);
+    let supervisor_run_id = record
+        .get("supervisorRunId")
+        .and_then(JsonValue::as_str)
+        .and_then(decode_identifier);
+    let (Some(registration_handle), Some(supervisor_run_id)) =
+        (registration_handle, supervisor_run_id)
+    else {
+        return NativeJsonOutcome::host_reason("runtime-service-untrusted", false);
+    };
+    invoke_desktop_json(|control| async move {
+        control.local_development_run_access(nimi_shell_protected_local::LocalDevelopmentRunAccessRequest { registration_handle, supervisor_run_id }).await.map(|value| json!({
+            "available": value.available, "reasonCode": value.reason_code, "executionScopeRef": value.execution_scope_ref,
+        }))
+    }).await
 }
 
 #[napi(js_name = "desktopLocalDevelopmentHostRunning")]

@@ -537,3 +537,7 @@ function createAppAiChatSessionMessageId(): string {
   }
   return `chat-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
+
+export { useAgentActivityReferences, type AgentActivityReferencesState } from './runtime/agent-activity-references.js';
+
+export { useAgentIntroduction } from './runtime/agent-introduction.js';

@@ -103,6 +103,16 @@ export interface OpenLocalAppSessionResponse {
 export interface RenewLocalAppSessionRequest {
 }
 /**
+ * Host-private and request-empty. Only a still-verified connection previously
+ * bound to this exact supervised Host may revalidate and replace an invalidated
+ * scope. A live scope is returned unchanged; cached identity cannot rebind a
+ * lost connection or bypass a new launch required by changed launch facts.
+ *
+ * @generated from protobuf message nimi.runtime.v1.RebindLocalAppSessionRequest
+ */
+export interface RebindLocalAppSessionRequest {
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.RegisterExternalPrincipalRequest
  */
 export interface RegisterExternalPrincipalRequest {
@@ -563,6 +573,44 @@ class RenewLocalAppSessionRequest$Type extends MessageType<RenewLocalAppSessionR
  * @generated MessageType for protobuf message nimi.runtime.v1.RenewLocalAppSessionRequest
  */
 export const RenewLocalAppSessionRequest = new RenewLocalAppSessionRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RebindLocalAppSessionRequest$Type extends MessageType<RebindLocalAppSessionRequest> {
+    constructor() {
+        super("nimi.runtime.v1.RebindLocalAppSessionRequest", []);
+    }
+    create(value?: PartialMessage<RebindLocalAppSessionRequest>): RebindLocalAppSessionRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<RebindLocalAppSessionRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RebindLocalAppSessionRequest): RebindLocalAppSessionRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RebindLocalAppSessionRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RebindLocalAppSessionRequest
+ */
+export const RebindLocalAppSessionRequest = new RebindLocalAppSessionRequest$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class RegisterExternalPrincipalRequest$Type extends MessageType<RegisterExternalPrincipalRequest> {
     constructor() {

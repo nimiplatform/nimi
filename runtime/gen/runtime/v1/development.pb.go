@@ -905,6 +905,120 @@ func (x *EndLocalDevelopmentRunResponse) GetReasonCode() ReasonCode {
 	return ReasonCode_REASON_CODE_UNSPECIFIED
 }
 
+type GetLocalDevelopmentRunAccessRequest struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	RegistrationHandle []byte                 `protobuf:"bytes,1,opt,name=registration_handle,json=registrationHandle,proto3" json:"registration_handle,omitempty"`
+	SupervisorRunId    []byte                 `protobuf:"bytes,2,opt,name=supervisor_run_id,json=supervisorRunId,proto3" json:"supervisor_run_id,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *GetLocalDevelopmentRunAccessRequest) Reset() {
+	*x = GetLocalDevelopmentRunAccessRequest{}
+	mi := &file_runtime_v1_development_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetLocalDevelopmentRunAccessRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetLocalDevelopmentRunAccessRequest) ProtoMessage() {}
+
+func (x *GetLocalDevelopmentRunAccessRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_development_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetLocalDevelopmentRunAccessRequest.ProtoReflect.Descriptor instead.
+func (*GetLocalDevelopmentRunAccessRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_development_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *GetLocalDevelopmentRunAccessRequest) GetRegistrationHandle() []byte {
+	if x != nil {
+		return x.RegistrationHandle
+	}
+	return nil
+}
+
+func (x *GetLocalDevelopmentRunAccessRequest) GetSupervisorRunId() []byte {
+	if x != nil {
+		return x.SupervisorRunId
+	}
+	return nil
+}
+
+type GetLocalDevelopmentRunAccessResponse struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	Available  bool                   `protobuf:"varint,1,opt,name=available,proto3" json:"available,omitempty"`
+	ReasonCode ReasonCode             `protobuf:"varint,2,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
+	// Host-private, non-authorizing correlation for the current execution scope.
+	// Empty while pending or unavailable; routine renewal preserves it.
+	ExecutionScopeRef string `protobuf:"bytes,3,opt,name=execution_scope_ref,json=executionScopeRef,proto3" json:"execution_scope_ref,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *GetLocalDevelopmentRunAccessResponse) Reset() {
+	*x = GetLocalDevelopmentRunAccessResponse{}
+	mi := &file_runtime_v1_development_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetLocalDevelopmentRunAccessResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetLocalDevelopmentRunAccessResponse) ProtoMessage() {}
+
+func (x *GetLocalDevelopmentRunAccessResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_development_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetLocalDevelopmentRunAccessResponse.ProtoReflect.Descriptor instead.
+func (*GetLocalDevelopmentRunAccessResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_development_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *GetLocalDevelopmentRunAccessResponse) GetAvailable() bool {
+	if x != nil {
+		return x.Available
+	}
+	return false
+}
+
+func (x *GetLocalDevelopmentRunAccessResponse) GetReasonCode() ReasonCode {
+	if x != nil {
+		return x.ReasonCode
+	}
+	return ReasonCode_REASON_CODE_UNSPECIFIED
+}
+
+func (x *GetLocalDevelopmentRunAccessResponse) GetExecutionScopeRef() string {
+	if x != nil {
+		return x.ExecutionScopeRef
+	}
+	return ""
+}
+
 var File_runtime_v1_development_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_development_proto_rawDesc = "" +
@@ -971,7 +1085,15 @@ const file_runtime_v1_development_proto_rawDesc = "" +
 	"\x11supervisor_run_id\x18\x02 \x01(\fR\x0fsupervisorRunId\"^\n" +
 	"\x1eEndLocalDevelopmentRunResponse\x12<\n" +
 	"\vreason_code\x18\x01 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
-	"reasonCode*\x9c\x01\n" +
+	"reasonCode\"\x82\x01\n" +
+	"#GetLocalDevelopmentRunAccessRequest\x12/\n" +
+	"\x13registration_handle\x18\x01 \x01(\fR\x12registrationHandle\x12*\n" +
+	"\x11supervisor_run_id\x18\x02 \x01(\fR\x0fsupervisorRunId\"\xb2\x01\n" +
+	"$GetLocalDevelopmentRunAccessResponse\x12\x1c\n" +
+	"\tavailable\x18\x01 \x01(\bR\tavailable\x12<\n" +
+	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
+	"reasonCode\x12.\n" +
+	"\x13execution_scope_ref\x18\x03 \x01(\tR\x11executionScopeRef*\x9c\x01\n" +
 	"\x19LocalDevelopmentShellKind\x12,\n" +
 	"(LOCAL_DEVELOPMENT_SHELL_KIND_UNSPECIFIED\x10\x00\x12)\n" +
 	"%LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON\x10\x01\x12&\n" +
@@ -980,14 +1102,15 @@ const file_runtime_v1_development_proto_rawDesc = "" +
 	" DEVELOPER_MODE_STATE_UNSPECIFIED\x10\x00\x12!\n" +
 	"\x1dDEVELOPER_MODE_STATE_DISABLED\x10\x01\x12 \n" +
 	"\x1cDEVELOPER_MODE_STATE_ENABLED\x10\x02\x12$\n" +
-	" DEVELOPER_MODE_STATE_UNAVAILABLE\x10\x032\xce\x06\n" +
+	" DEVELOPER_MODE_STATE_UNAVAILABLE\x10\x032\xdc\a\n" +
 	"\x19RuntimeDevelopmentService\x12y\n" +
 	"\x16GetDeveloperModeStatus\x12..nimi.runtime.v1.GetDeveloperModeStatusRequest\x1a/.nimi.runtime.v1.GetDeveloperModeStatusResponse\x12g\n" +
 	"\x10SetDeveloperMode\x12(.nimi.runtime.v1.SetDeveloperModeRequest\x1a).nimi.runtime.v1.SetDeveloperModeResponse\x12\x94\x01\n" +
 	"\x1fRegisterLocalDevelopmentProject\x127.nimi.runtime.v1.RegisterLocalDevelopmentProjectRequest\x1a8.nimi.runtime.v1.RegisterLocalDevelopmentProjectResponse\x12\x9a\x01\n" +
 	"!ListLocalDevelopmentRegistrations\x129.nimi.runtime.v1.ListLocalDevelopmentRegistrationsRequest\x1a:.nimi.runtime.v1.ListLocalDevelopmentRegistrationsResponse\x12\x9d\x01\n" +
 	"\"RemoveLocalDevelopmentRegistration\x12:.nimi.runtime.v1.RemoveLocalDevelopmentRegistrationRequest\x1a;.nimi.runtime.v1.RemoveLocalDevelopmentRegistrationResponse\x12y\n" +
-	"\x16EndLocalDevelopmentRun\x12..nimi.runtime.v1.EndLocalDevelopmentRunRequest\x1a/.nimi.runtime.v1.EndLocalDevelopmentRunResponseB?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
+	"\x16EndLocalDevelopmentRun\x12..nimi.runtime.v1.EndLocalDevelopmentRunRequest\x1a/.nimi.runtime.v1.EndLocalDevelopmentRunResponse\x12\x8b\x01\n" +
+	"\x1cGetLocalDevelopmentRunAccess\x124.nimi.runtime.v1.GetLocalDevelopmentRunAccessRequest\x1a5.nimi.runtime.v1.GetLocalDevelopmentRunAccessResponseB?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
 
 var (
 	file_runtime_v1_development_proto_rawDescOnce sync.Once
@@ -1002,7 +1125,7 @@ func file_runtime_v1_development_proto_rawDescGZIP() []byte {
 }
 
 var file_runtime_v1_development_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_runtime_v1_development_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_runtime_v1_development_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_runtime_v1_development_proto_goTypes = []any{
 	(LocalDevelopmentShellKind)(0),                     // 0: nimi.runtime.v1.LocalDevelopmentShellKind
 	(DeveloperModeState)(0),                            // 1: nimi.runtime.v1.DeveloperModeState
@@ -1020,43 +1143,48 @@ var file_runtime_v1_development_proto_goTypes = []any{
 	(*RemoveLocalDevelopmentRegistrationResponse)(nil), // 13: nimi.runtime.v1.RemoveLocalDevelopmentRegistrationResponse
 	(*EndLocalDevelopmentRunRequest)(nil),              // 14: nimi.runtime.v1.EndLocalDevelopmentRunRequest
 	(*EndLocalDevelopmentRunResponse)(nil),             // 15: nimi.runtime.v1.EndLocalDevelopmentRunResponse
-	(ReasonCode)(0),                                    // 16: nimi.runtime.v1.ReasonCode
-	(*timestamppb.Timestamp)(nil),                      // 17: google.protobuf.Timestamp
+	(*GetLocalDevelopmentRunAccessRequest)(nil),        // 16: nimi.runtime.v1.GetLocalDevelopmentRunAccessRequest
+	(*GetLocalDevelopmentRunAccessResponse)(nil),       // 17: nimi.runtime.v1.GetLocalDevelopmentRunAccessResponse
+	(ReasonCode)(0),               // 18: nimi.runtime.v1.ReasonCode
+	(*timestamppb.Timestamp)(nil), // 19: google.protobuf.Timestamp
 }
 var file_runtime_v1_development_proto_depIdxs = []int32{
 	1,  // 0: nimi.runtime.v1.GetDeveloperModeStatusResponse.state:type_name -> nimi.runtime.v1.DeveloperModeState
-	16, // 1: nimi.runtime.v1.GetDeveloperModeStatusResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	18, // 1: nimi.runtime.v1.GetDeveloperModeStatusResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	1,  // 2: nimi.runtime.v1.SetDeveloperModeResponse.state:type_name -> nimi.runtime.v1.DeveloperModeState
-	16, // 3: nimi.runtime.v1.SetDeveloperModeResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	18, // 3: nimi.runtime.v1.SetDeveloperModeResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	0,  // 4: nimi.runtime.v1.LocalDevelopmentProjectProjection.shell_kind:type_name -> nimi.runtime.v1.LocalDevelopmentShellKind
 	6,  // 5: nimi.runtime.v1.LocalDevelopmentRegistrationProjection.project:type_name -> nimi.runtime.v1.LocalDevelopmentProjectProjection
-	17, // 6: nimi.runtime.v1.LocalDevelopmentRegistrationProjection.registered_at:type_name -> google.protobuf.Timestamp
-	17, // 7: nimi.runtime.v1.LocalDevelopmentRegistrationProjection.updated_at:type_name -> google.protobuf.Timestamp
-	16, // 8: nimi.runtime.v1.LocalDevelopmentRegistrationProjection.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	19, // 6: nimi.runtime.v1.LocalDevelopmentRegistrationProjection.registered_at:type_name -> google.protobuf.Timestamp
+	19, // 7: nimi.runtime.v1.LocalDevelopmentRegistrationProjection.updated_at:type_name -> google.protobuf.Timestamp
+	18, // 8: nimi.runtime.v1.LocalDevelopmentRegistrationProjection.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	0,  // 9: nimi.runtime.v1.RegisterLocalDevelopmentProjectRequest.shell_kind:type_name -> nimi.runtime.v1.LocalDevelopmentShellKind
 	7,  // 10: nimi.runtime.v1.RegisterLocalDevelopmentProjectResponse.registration:type_name -> nimi.runtime.v1.LocalDevelopmentRegistrationProjection
-	16, // 11: nimi.runtime.v1.RegisterLocalDevelopmentProjectResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	18, // 11: nimi.runtime.v1.RegisterLocalDevelopmentProjectResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	7,  // 12: nimi.runtime.v1.ListLocalDevelopmentRegistrationsResponse.registrations:type_name -> nimi.runtime.v1.LocalDevelopmentRegistrationProjection
-	16, // 13: nimi.runtime.v1.ListLocalDevelopmentRegistrationsResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	16, // 14: nimi.runtime.v1.RemoveLocalDevelopmentRegistrationResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	16, // 15: nimi.runtime.v1.EndLocalDevelopmentRunResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	2,  // 16: nimi.runtime.v1.RuntimeDevelopmentService.GetDeveloperModeStatus:input_type -> nimi.runtime.v1.GetDeveloperModeStatusRequest
-	4,  // 17: nimi.runtime.v1.RuntimeDevelopmentService.SetDeveloperMode:input_type -> nimi.runtime.v1.SetDeveloperModeRequest
-	8,  // 18: nimi.runtime.v1.RuntimeDevelopmentService.RegisterLocalDevelopmentProject:input_type -> nimi.runtime.v1.RegisterLocalDevelopmentProjectRequest
-	10, // 19: nimi.runtime.v1.RuntimeDevelopmentService.ListLocalDevelopmentRegistrations:input_type -> nimi.runtime.v1.ListLocalDevelopmentRegistrationsRequest
-	12, // 20: nimi.runtime.v1.RuntimeDevelopmentService.RemoveLocalDevelopmentRegistration:input_type -> nimi.runtime.v1.RemoveLocalDevelopmentRegistrationRequest
-	14, // 21: nimi.runtime.v1.RuntimeDevelopmentService.EndLocalDevelopmentRun:input_type -> nimi.runtime.v1.EndLocalDevelopmentRunRequest
-	3,  // 22: nimi.runtime.v1.RuntimeDevelopmentService.GetDeveloperModeStatus:output_type -> nimi.runtime.v1.GetDeveloperModeStatusResponse
-	5,  // 23: nimi.runtime.v1.RuntimeDevelopmentService.SetDeveloperMode:output_type -> nimi.runtime.v1.SetDeveloperModeResponse
-	9,  // 24: nimi.runtime.v1.RuntimeDevelopmentService.RegisterLocalDevelopmentProject:output_type -> nimi.runtime.v1.RegisterLocalDevelopmentProjectResponse
-	11, // 25: nimi.runtime.v1.RuntimeDevelopmentService.ListLocalDevelopmentRegistrations:output_type -> nimi.runtime.v1.ListLocalDevelopmentRegistrationsResponse
-	13, // 26: nimi.runtime.v1.RuntimeDevelopmentService.RemoveLocalDevelopmentRegistration:output_type -> nimi.runtime.v1.RemoveLocalDevelopmentRegistrationResponse
-	15, // 27: nimi.runtime.v1.RuntimeDevelopmentService.EndLocalDevelopmentRun:output_type -> nimi.runtime.v1.EndLocalDevelopmentRunResponse
-	22, // [22:28] is the sub-list for method output_type
-	16, // [16:22] is the sub-list for method input_type
-	16, // [16:16] is the sub-list for extension type_name
-	16, // [16:16] is the sub-list for extension extendee
-	0,  // [0:16] is the sub-list for field type_name
+	18, // 13: nimi.runtime.v1.ListLocalDevelopmentRegistrationsResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	18, // 14: nimi.runtime.v1.RemoveLocalDevelopmentRegistrationResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	18, // 15: nimi.runtime.v1.EndLocalDevelopmentRunResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	18, // 16: nimi.runtime.v1.GetLocalDevelopmentRunAccessResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	2,  // 17: nimi.runtime.v1.RuntimeDevelopmentService.GetDeveloperModeStatus:input_type -> nimi.runtime.v1.GetDeveloperModeStatusRequest
+	4,  // 18: nimi.runtime.v1.RuntimeDevelopmentService.SetDeveloperMode:input_type -> nimi.runtime.v1.SetDeveloperModeRequest
+	8,  // 19: nimi.runtime.v1.RuntimeDevelopmentService.RegisterLocalDevelopmentProject:input_type -> nimi.runtime.v1.RegisterLocalDevelopmentProjectRequest
+	10, // 20: nimi.runtime.v1.RuntimeDevelopmentService.ListLocalDevelopmentRegistrations:input_type -> nimi.runtime.v1.ListLocalDevelopmentRegistrationsRequest
+	12, // 21: nimi.runtime.v1.RuntimeDevelopmentService.RemoveLocalDevelopmentRegistration:input_type -> nimi.runtime.v1.RemoveLocalDevelopmentRegistrationRequest
+	14, // 22: nimi.runtime.v1.RuntimeDevelopmentService.EndLocalDevelopmentRun:input_type -> nimi.runtime.v1.EndLocalDevelopmentRunRequest
+	16, // 23: nimi.runtime.v1.RuntimeDevelopmentService.GetLocalDevelopmentRunAccess:input_type -> nimi.runtime.v1.GetLocalDevelopmentRunAccessRequest
+	3,  // 24: nimi.runtime.v1.RuntimeDevelopmentService.GetDeveloperModeStatus:output_type -> nimi.runtime.v1.GetDeveloperModeStatusResponse
+	5,  // 25: nimi.runtime.v1.RuntimeDevelopmentService.SetDeveloperMode:output_type -> nimi.runtime.v1.SetDeveloperModeResponse
+	9,  // 26: nimi.runtime.v1.RuntimeDevelopmentService.RegisterLocalDevelopmentProject:output_type -> nimi.runtime.v1.RegisterLocalDevelopmentProjectResponse
+	11, // 27: nimi.runtime.v1.RuntimeDevelopmentService.ListLocalDevelopmentRegistrations:output_type -> nimi.runtime.v1.ListLocalDevelopmentRegistrationsResponse
+	13, // 28: nimi.runtime.v1.RuntimeDevelopmentService.RemoveLocalDevelopmentRegistration:output_type -> nimi.runtime.v1.RemoveLocalDevelopmentRegistrationResponse
+	15, // 29: nimi.runtime.v1.RuntimeDevelopmentService.EndLocalDevelopmentRun:output_type -> nimi.runtime.v1.EndLocalDevelopmentRunResponse
+	17, // 30: nimi.runtime.v1.RuntimeDevelopmentService.GetLocalDevelopmentRunAccess:output_type -> nimi.runtime.v1.GetLocalDevelopmentRunAccessResponse
+	24, // [24:31] is the sub-list for method output_type
+	17, // [17:24] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_development_proto_init() }
@@ -1071,7 +1199,7 @@ func file_runtime_v1_development_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_development_proto_rawDesc), len(file_runtime_v1_development_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   14,
+			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

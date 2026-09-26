@@ -28,7 +28,7 @@ export interface NimiElectronInstalledAppControl {
   focus(launchId: string): Promise<void>;
   stop(launchId: string): Promise<void>;
   end(launchId: string): Promise<void>;
-  access(launchId: string): Promise<{ readonly available: boolean; readonly reasonCode: string }>;
+  access(launchId: string): Promise<{ readonly available: boolean; readonly reasonCode: string; readonly executionScopeRef: string }>;
   completeUninstall(jobId: Uint8Array, selector: Uint8Array): Promise<void>;
 }
 
@@ -92,8 +92,9 @@ function createInstalledControl(resolve: () => Binding): NimiElectronInstalledAp
     },
     async access(id) {
       const result = await invoke('desktopInstalledAppRunAccess', { launchId: identifier(id) });
-      if (typeof result.available !== 'boolean' || Object.keys(result).sort().join('|') !== 'available|reasonCode') invalid();
-      return { available: result.available, reasonCode: requiredText(result.reasonCode) };
+      if (typeof result.available !== 'boolean' || Object.keys(result).sort().join('|') !== 'available|executionScopeRef|reasonCode') invalid();
+      if (typeof result.executionScopeRef !== 'string' || (result.available ? !/^execution_scope_[A-Za-z0-9_-]{43}$/u.test(result.executionScopeRef) || result.reasonCode !== 'ACTION_EXECUTED' : result.executionScopeRef !== '')) invalid();
+      return { available: result.available, reasonCode: requiredText(result.reasonCode), executionScopeRef: result.executionScopeRef };
     },
   };
 }

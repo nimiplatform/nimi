@@ -50,6 +50,7 @@ type LocalAppSessionProjection struct {
 type localAppSessionOpener interface {
 	OpenLocalAppSessionProjection(context.Context) (LocalAppSessionProjection, error)
 	RenewLocalAppSessionProjection(context.Context) (LocalAppSessionProjection, error)
+	RebindLocalAppSessionProjection(context.Context) (LocalAppSessionProjection, error)
 }
 
 func WithDesktopSessionManager(manager *protectedlocal.DesktopSessionManager) Option {

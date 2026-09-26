@@ -6,7 +6,7 @@ import type {
   SourceDetailRelationshipClue,
 } from './source-detail-model.js';
 import type { CharacterProfileRelationshipProjection } from '../realm-source/character-source-profile-projection.js';
-import { simplifySourceDetailChineseText as simplifyDisplayText } from './source-detail-simplified-chinese.js';
+import { simplifyChineseDisplayText as simplifyDisplayText } from '@nimiplatform/kit/features/chat/headless';
 import { uniqueStrings } from './source-detail-world-character-labels.js';
 import { allRelationshipsTheme, relationKindLabel, relationshipTheme } from './source-detail-world-character-theme.js';
 

@@ -1828,6 +1828,21 @@ impl Default for LocalAppAgentAutonomyMode {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LocalAppAgentIntroductionTopicKind {
+    LOCALAPPAGENTINTRODUCTIONTOPICKINDUNSPECIFIED,
+    LOCALAPPAGENTINTRODUCTIONTOPICKINDROLE,
+    LOCALAPPAGENTINTRODUCTIONTOPICKINDWORK,
+    LOCALAPPAGENTINTRODUCTIONTOPICKINDRELATIONSHIP,
+    LOCALAPPAGENTINTRODUCTIONTOPICKINDTOPIC,
+}
+
+impl Default for LocalAppAgentIntroductionTopicKind {
+    fn default() -> Self {
+        Self::LOCALAPPAGENTINTRODUCTIONTOPICKINDUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum LocalAppAgentManagerActionAvailabilityState {
     LOCALAPPAGENTMANAGERACTIONAVAILABILITYSTATEUNSPECIFIED,
     LOCALAPPAGENTMANAGERACTIONAVAILABILITYSTATEAVAILABLE,
@@ -1876,6 +1891,22 @@ pub enum LocalAppAgentManagerProductAction {
 impl Default for LocalAppAgentManagerProductAction {
     fn default() -> Self {
         Self::LOCALAPPAGENTMANAGERPRODUCTACTIONUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LocalAppAgentWorkState {
+    LOCALAPPAGENTWORKSTATEUNSPECIFIED,
+    LOCALAPPAGENTWORKSTATERUNNING,
+    LOCALAPPAGENTWORKSTATEWAITINGTOOL,
+    LOCALAPPAGENTWORKSTATESUCCEEDED,
+    LOCALAPPAGENTWORKSTATEFAILED,
+    LOCALAPPAGENTWORKSTATECANCELLED,
+}
+
+impl Default for LocalAppAgentWorkState {
+    fn default() -> Self {
+        Self::LOCALAPPAGENTWORKSTATEUNSPECIFIED
     }
 }
 
@@ -5868,6 +5899,27 @@ pub struct CancelHookResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct CancelIntegrationCallRequest {
+    pub call_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CancelIntegrationCallResponse {
+    pub call: Option<Box<IntegrationCall>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CancelLocalAppAgentWorkRequest {
+    pub agent_handle: Option<String>,
+    pub execution_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CancelLocalAppAgentWorkResponse {
+    pub execution: Option<Box<LocalAppAgentWorkExecution>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct CancelLocalAppScenarioJobRequest {
     pub job_id: Option<String>,
     pub reason: Option<String>,
@@ -6747,6 +6799,82 @@ pub struct CompleteAppPackageUninstallRequest {
 pub struct CompleteAppPackageUninstallResponse {
     pub job: Option<Box<AppPackageJob>>,
     pub reason_code: Option<ReasonCode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct CompleteIntegrationProviderRequest {
+    #[serde(rename = "call_id", skip_serializing_if = "Option::is_none")]
+    pub call_id: Option<String>,
+    #[serde(rename = "result_json", skip_serializing_if = "Option::is_none")]
+    pub result_json: Option<String>,
+    #[serde(rename = "error_code", skip_serializing_if = "Option::is_none")]
+    pub error_code: Option<String>,
+}
+
+impl CompleteIntegrationProviderRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
+    }
+
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "CompleteIntegrationProviderRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
+        let mut out = Self::default();
+        out.call_id = match object.get("call_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("call_id"))?),
+            None => None,
+        };
+        out.result_json = match object.get("result_json") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("result_json"))?),
+            None => None,
+        };
+        out.error_code = match object.get("error_code") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("error_code"))?),
+            None => None,
+        };
+        Ok(out)
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct CompleteIntegrationProviderResponse {
+    #[serde(rename = "accepted", skip_serializing_if = "Option::is_none")]
+    pub accepted: Option<bool>,
+}
+
+impl CompleteIntegrationProviderResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
+    }
+
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "CompleteIntegrationProviderResponse", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
+        let mut out = Self::default();
+        out.accepted = match object.get("accepted") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_bool().ok_or_else(|| Self::decode_error("accepted"))?),
+            None => None,
+        };
+        Ok(out)
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7797,14 +7925,26 @@ impl GetDeveloperModeStatusResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetInstalledAppRunAccessRequest {
-    pub launch_id: Option<Vec<u8>>,
+pub struct GetIntegrationCallRequest {
+    pub call_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetInstalledAppRunAccessResponse {
-    pub available: Option<bool>,
-    pub reason_code: Option<ReasonCode>,
+pub struct GetIntegrationCallResponse {
+    pub call: Option<Box<IntegrationCall>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetIntegrationManagementRequest {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetIntegrationManagementResponse {
+    pub targets: Vec<Box<IntegrationTarget>>,
+    pub permissions: Vec<Box<IntegrationPermission>>,
+    pub consumers: Vec<Box<IntegrationConsumer>>,
+    pub calls: Vec<Box<IntegrationCall>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7820,6 +7960,16 @@ pub struct GetLoadoutResponse {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct GetLocalAppAgentAutonomySnapshotRequest {
     pub agent_handle: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetLocalAppAgentIntroductionRequest {
+    pub agent_handle: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetLocalAppAgentIntroductionResponse {
+    pub introduction: Option<Box<LocalAppAgentIntroduction>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7848,6 +7998,86 @@ pub struct GetLocalAppAgentRealtimeStatusRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct GetLocalAppAgentRealtimeStatusResponse {
     pub control: Option<Box<RealtimeControlStatus>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetLocalAppAgentWorkRequest {
+    pub agent_handle: Option<String>,
+    pub execution_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetLocalAppAgentWorkResponse {
+    pub execution: Option<Box<LocalAppAgentWorkExecution>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct GetLocalAppAgentWorkStatusRequest {
+    #[serde(rename = "agent_handle", skip_serializing_if = "Option::is_none")]
+    pub agent_handle: Option<String>,
+}
+
+impl GetLocalAppAgentWorkStatusRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
+    }
+
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "GetLocalAppAgentWorkStatusRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
+        let mut out = Self::default();
+        out.agent_handle = match object.get("agent_handle") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("agent_handle"))?),
+            None => None,
+        };
+        Ok(out)
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct GetLocalAppAgentWorkStatusResponse {
+    #[serde(rename = "busy", skip_serializing_if = "Option::is_none")]
+    pub busy: Option<bool>,
+    #[serde(rename = "own_execution_id", skip_serializing_if = "Option::is_none")]
+    pub own_execution_id: Option<String>,
+}
+
+impl GetLocalAppAgentWorkStatusResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
+    }
+
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "GetLocalAppAgentWorkStatusResponse", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
+        let mut out = Self::default();
+        out.busy = match object.get("busy") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_bool().ok_or_else(|| Self::decode_error("busy"))?),
+            None => None,
+        };
+        out.own_execution_id = match object.get("own_execution_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("own_execution_id"))?),
+            None => None,
+        };
+        Ok(out)
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -8307,6 +8537,70 @@ pub struct InstallModelFromPlanResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct IntegrationCall {
+    pub call_id: Option<String>,
+    pub target_ref: Option<String>,
+    pub operation: Option<String>,
+    pub status: Option<String>,
+    pub result_json: Option<String>,
+    pub error_code: Option<String>,
+    pub consumer_display_name: Option<String>,
+    pub created_at: Option<String>,
+    pub updated_at: Option<String>,
+    pub target_display_name: Option<String>,
+    pub account_label: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct IntegrationConsumer {
+    pub consumer_ref: Option<String>,
+    pub app_id: Option<String>,
+    pub display_name: Option<String>,
+    pub source_kind: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct IntegrationOperation {
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub input_schema_json: Option<String>,
+    pub output_schema_json: Option<String>,
+    pub effect: Option<String>,
+    pub supports_cancel: Option<bool>,
+    pub retry_policy: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct IntegrationPermission {
+    pub consumer_ref: Option<String>,
+    pub target_ref: Option<String>,
+    pub operations: Vec<String>,
+    pub consumer: Option<Box<IntegrationConsumer>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct IntegrationProviderCall {
+    pub call_id: Option<String>,
+    pub target_ref: Option<String>,
+    pub operation: Option<String>,
+    pub input_json: Option<String>,
+    pub consumer_display_name: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct IntegrationTarget {
+    pub target_ref: Option<String>,
+    pub integration_id: Option<String>,
+    pub display_name: Option<String>,
+    pub account_label: Option<String>,
+    pub kind: Option<String>,
+    pub available: Option<bool>,
+    pub operations: Vec<Box<IntegrationOperation>>,
+    pub skill: Option<String>,
+    pub permitted_operations: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct InterruptLocalAppAgentRealtimeOutputRequest {
     pub realtime_session_id: Option<String>,
     pub generation: Option<u64>,
@@ -8408,6 +8702,18 @@ pub struct InterruptRealtimeOutputRequest {
 pub struct InterruptRealtimeOutputResponse {
     pub ack: Option<Box<Ack>>,
     pub control: Option<Box<RealtimeControlStatus>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct InvokeIntegrationCallRequest {
+    pub target_ref: Option<String>,
+    pub operation: Option<String>,
+    pub input_json: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct InvokeIntegrationCallResponse {
+    pub call: Option<Box<IntegrationCall>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
@@ -8805,6 +9111,36 @@ pub struct ListFeaturedModelAssetsResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListIntegrationCallsRequest {
+    pub limit: Option<u32>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListIntegrationCallsResponse {
+    pub calls: Vec<Box<IntegrationCall>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListIntegrationCatalogRequest {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListIntegrationCatalogResponse {
+    pub targets: Vec<Box<IntegrationTarget>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListIntegrationConnectionsRequest {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListIntegrationConnectionsResponse {
+    pub connections: Vec<Box<IntegrationTarget>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ListLoadoutRecipesRequest {
     pub capability_contract: Option<String>,
 }
@@ -8825,6 +9161,27 @@ pub struct ListLocalAppAgentReferencesResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListLocalAppAgentWorkReferencesRequest {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListLocalAppAgentWorkReferencesResponse {
+    pub references: Vec<Box<LocalAppAgentWorkReference>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListLocalAppAgentWorkToolCallsRequest {
+    pub agent_handle: Option<String>,
+    pub execution_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListLocalAppAgentWorkToolCallsResponse {
+    pub calls: Vec<Box<LocalAppAgentWorkToolCall>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ListLocalAppAssetsRequest {
     pub prefix: Option<String>,
     pub cursor: Option<String>,
@@ -8836,18 +9193,6 @@ pub struct ListLocalAppAssetsResponse {
     pub assets: Vec<Box<LocalAppAssetRecord>>,
     pub next_cursor: Option<String>,
     pub reason_code: Option<ReasonCode>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ListLocalAppConversationToolCallsRequest {
-    pub agent_handle: Option<String>,
-    pub conversation_anchor_id: Option<String>,
-    pub turn_id: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ListLocalAppConversationToolCallsResponse {
-    pub calls: Vec<Box<LocalAppConversationToolCall>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -9330,6 +9675,24 @@ pub struct LocalAppAgentCommitPresentationResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentIntroduction {
+    pub world_name: Option<String>,
+    pub era: Option<String>,
+    pub role: Option<String>,
+    pub greeting: Option<String>,
+    pub reference_image_url: Option<String>,
+    pub voice_sample_url: Option<String>,
+    pub voice_sample_duration_sec: Option<f64>,
+    pub question_topics: Vec<Box<LocalAppAgentIntroductionTopic>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentIntroductionTopic {
+    pub kind: Option<LocalAppAgentIntroductionTopicKind>,
+    pub text: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppAgentManagerActionAvailability {
     pub action: Option<LocalAppAgentManagerProductAction>,
     pub state: Option<LocalAppAgentManagerActionAvailabilityState>,
@@ -9493,11 +9856,72 @@ pub struct LocalAppAgentReference {
     pub display_name: Option<String>,
     pub avatar_url: Option<String>,
     pub agent_binding: Option<String>,
+    pub activity_agent_ref: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppAgentUpdateAutonomyResponse {
     pub projection: Option<Box<LocalAppAgentAutonomyProjection>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentWorkEvent {
+    pub execution_id: Option<String>,
+    pub sequence: Option<u64>,
+    pub snapshot: Option<Box<LocalAppAgentWorkExecution>>,
+    pub text_delta: Option<String>,
+    pub tool_call: Option<Box<LocalAppAgentWorkToolCall>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentWorkExecution {
+    pub execution_id: Option<String>,
+    pub work_id: Option<String>,
+    pub state: Option<LocalAppAgentWorkState>,
+    pub output_text: Option<String>,
+    pub reason_code: Option<ReasonCode>,
+    pub message: Option<String>,
+    pub sequence: Option<u64>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentWorkInput {
+    pub work_id: Option<String>,
+    pub instructions: Option<String>,
+    pub sources: Vec<Box<LocalAppAgentWorkSource>>,
+    pub tools: Vec<Box<LocalAppAgentWorkTool>>,
+    pub routine_name: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentWorkReference {
+    pub agent_handle: Option<String>,
+    pub display_name: Option<String>,
+    pub avatar_url: Option<String>,
+    pub agent_binding: Option<String>,
+    pub activity_agent_ref: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentWorkSource {
+    pub source_id: Option<String>,
+    pub title: Option<String>,
+    pub content: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentWorkTool {
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub input_schema_json: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentWorkToolCall {
+    pub call_id: Option<String>,
+    pub execution_id: Option<String>,
+    pub name: Option<String>,
+    pub arguments_json: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -9669,14 +10093,6 @@ pub struct LocalAppConversationTextPart {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalAppConversationToolCall {
-    pub call_id: Option<String>,
-    pub turn_id: Option<String>,
-    pub name: Option<String>,
-    pub arguments_json: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppConversationTurn {
     pub turn_id: Option<String>,
     pub status: Option<LocalAppConversationTurnStatus>,
@@ -9729,29 +10145,6 @@ pub struct LocalAppConversationVoice {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppConversationVoiceEvent {
     pub voice: Option<Box<LocalAppConversationVoice>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalAppConversationWork {
-    pub work_id: Option<String>,
-    pub instructions: Option<String>,
-    pub sources: Vec<Box<LocalAppConversationWorkSource>>,
-    pub tools: Vec<Box<LocalAppConversationWorkTool>>,
-    pub routine_name: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalAppConversationWorkSource {
-    pub source_id: Option<String>,
-    pub title: Option<String>,
-    pub content: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalAppConversationWorkTool {
-    pub name: Option<String>,
-    pub description: Option<String>,
-    pub input_schema_json: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -11232,6 +11625,17 @@ pub struct PersonaCharacterSourceRefV3 {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct PollIntegrationProviderRequest {
+    pub wait_ms: Option<u32>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PollIntegrationProviderResponse {
+    pub calls: Vec<Box<IntegrationProviderCall>>,
+    pub canceled_call_ids: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct PortableAIProfileRecord {
     pub profile_id: Option<String>,
     pub title: Option<String>,
@@ -11392,6 +11796,21 @@ pub struct PutArtifactRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct PutArtifactResponse {
     pub artifact_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PutIntegrationConnectionRequest {
+    pub target_ref: Option<String>,
+    pub adapter: Option<String>,
+    pub endpoint: Option<String>,
+    pub display_name: Option<String>,
+    pub account_label: Option<String>,
+    pub secret: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PutIntegrationConnectionResponse {
+    pub connection: Option<Box<IntegrationTarget>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -11899,6 +12318,19 @@ impl RegisterExternalPrincipalResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RegisterIntegrationProviderRequest {
+    pub integration_id: Option<String>,
+    pub display_name: Option<String>,
+    pub operations: Vec<Box<IntegrationOperation>>,
+    pub skill: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RegisterIntegrationProviderResponse {
+    pub target: Option<Box<IntegrationTarget>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RegisterLocalDevelopmentProjectRequest {
     pub expected_app_id: Option<String>,
     pub project_root: Option<String>,
@@ -11910,6 +12342,68 @@ pub struct RegisterLocalDevelopmentProjectRequest {
 pub struct RegisterLocalDevelopmentProjectResponse {
     pub registration: Option<Box<LocalDevelopmentRegistrationProjection>>,
     pub reason_code: Option<ReasonCode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct RemoveIntegrationConnectionRequest {
+    #[serde(rename = "target_ref", skip_serializing_if = "Option::is_none")]
+    pub target_ref: Option<String>,
+}
+
+impl RemoveIntegrationConnectionRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
+    }
+
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "RemoveIntegrationConnectionRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
+        let mut out = Self::default();
+        out.target_ref = match object.get("target_ref") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("target_ref"))?),
+            None => None,
+        };
+        Ok(out)
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct RemoveIntegrationConnectionResponse {
+    #[serde(rename = "removed", skip_serializing_if = "Option::is_none")]
+    pub removed: Option<bool>,
+}
+
+impl RemoveIntegrationConnectionResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
+    }
+
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "RemoveIntegrationConnectionResponse", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
+        let mut out = Self::default();
+        out.removed = match object.get("removed") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_bool().ok_or_else(|| Self::decode_error("removed"))?),
+            None => None,
+        };
+        Ok(out)
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
@@ -12779,7 +13273,6 @@ pub struct SendLocalAppConversationTurnRequest {
     pub conversation_anchor_id: Option<String>,
     pub request_id: Option<String>,
     pub parts: Vec<Box<LocalAppConversationInputPart>>,
-    pub work: Option<Box<LocalAppConversationWork>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -12899,6 +13392,18 @@ impl SetDeveloperModeResponse {
         };
         Ok(out)
     }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SetIntegrationPermissionRequest {
+    pub consumer_ref: Option<String>,
+    pub target_ref: Option<String>,
+    pub operations: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SetIntegrationPermissionResponse {
+    pub permission: Option<Box<IntegrationPermission>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -13093,6 +13598,19 @@ pub struct StartAppPackageUpdateResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct StartLocalAppAgentWorkRequest {
+    pub agent_handle: Option<String>,
+    pub request_id: Option<String>,
+    pub prompt: Option<String>,
+    pub work: Option<Box<LocalAppAgentWorkInput>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct StartLocalAppAgentWorkResponse {
+    pub execution_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct StartLocalAppPackageInstallRequest {
     pub candidate_selector: Option<Vec<u8>>,
 }
@@ -13227,13 +13745,11 @@ pub struct SubmitDelegatedApprovalDecisionResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
-pub struct SubmitLocalAppConversationToolResultRequest {
+pub struct SubmitLocalAppAgentWorkToolResultRequest {
     #[serde(rename = "agent_handle", skip_serializing_if = "Option::is_none")]
     pub agent_handle: Option<String>,
-    #[serde(rename = "conversation_anchor_id", skip_serializing_if = "Option::is_none")]
-    pub conversation_anchor_id: Option<String>,
-    #[serde(rename = "turn_id", skip_serializing_if = "Option::is_none")]
-    pub turn_id: Option<String>,
+    #[serde(rename = "execution_id", skip_serializing_if = "Option::is_none")]
+    pub execution_id: Option<String>,
     #[serde(rename = "call_id", skip_serializing_if = "Option::is_none")]
     pub call_id: Option<String>,
     #[serde(rename = "result_json", skip_serializing_if = "Option::is_none")]
@@ -13242,13 +13758,13 @@ pub struct SubmitLocalAppConversationToolResultRequest {
     pub is_error: Option<bool>,
 }
 
-impl SubmitLocalAppConversationToolResultRequest {
+impl SubmitLocalAppAgentWorkToolResultRequest {
     pub fn to_transport(&self) -> Vec<u8> {
         serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
     fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
-        RuntimeResponseDecodeError { type_name: "SubmitLocalAppConversationToolResultRequest", field }
+        RuntimeResponseDecodeError { type_name: "SubmitLocalAppAgentWorkToolResultRequest", field }
     }
 
     pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
@@ -13263,14 +13779,9 @@ impl SubmitLocalAppConversationToolResultRequest {
             Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("agent_handle"))?),
             None => None,
         };
-        out.conversation_anchor_id = match object.get("conversation_anchor_id") {
+        out.execution_id = match object.get("execution_id") {
             Some(value) if value.is_null() => None,
-            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("conversation_anchor_id"))?),
-            None => None,
-        };
-        out.turn_id = match object.get("turn_id") {
-            Some(value) if value.is_null() => None,
-            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("turn_id"))?),
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("execution_id"))?),
             None => None,
         };
         out.call_id = match object.get("call_id") {
@@ -13293,18 +13804,18 @@ impl SubmitLocalAppConversationToolResultRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
-pub struct SubmitLocalAppConversationToolResultResponse {
+pub struct SubmitLocalAppAgentWorkToolResultResponse {
     #[serde(rename = "call_id", skip_serializing_if = "Option::is_none")]
     pub call_id: Option<String>,
 }
 
-impl SubmitLocalAppConversationToolResultResponse {
+impl SubmitLocalAppAgentWorkToolResultResponse {
     pub fn to_transport(&self) -> Vec<u8> {
         serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
     }
 
     fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
-        RuntimeResponseDecodeError { type_name: "SubmitLocalAppConversationToolResultResponse", field }
+        RuntimeResponseDecodeError { type_name: "SubmitLocalAppAgentWorkToolResultResponse", field }
     }
 
     pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
@@ -13500,6 +14011,13 @@ pub struct SubscribeLocalAppAgentRealtimeEventsRequest {
     pub realtime_session_id: Option<String>,
     pub generation: Option<u64>,
     pub agent_handle: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SubscribeLocalAppAgentWorkEventsRequest {
+    pub agent_handle: Option<String>,
+    pub execution_id: Option<String>,
+    pub after_sequence: Option<u64>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -13880,6 +14398,68 @@ pub struct TranscribeLocalAppConversationVoiceRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct TranscribeLocalAppConversationVoiceResponse {
     pub text: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct UnregisterIntegrationProviderRequest {
+    #[serde(rename = "target_ref", skip_serializing_if = "Option::is_none")]
+    pub target_ref: Option<String>,
+}
+
+impl UnregisterIntegrationProviderRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
+    }
+
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "UnregisterIntegrationProviderRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
+        let mut out = Self::default();
+        out.target_ref = match object.get("target_ref") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("target_ref"))?),
+            None => None,
+        };
+        Ok(out)
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct UnregisterIntegrationProviderResponse {
+    #[serde(rename = "removed", skip_serializing_if = "Option::is_none")]
+    pub removed: Option<bool>,
+}
+
+impl UnregisterIntegrationProviderResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
+    }
+
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "UnregisterIntegrationProviderResponse", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
+        let mut out = Self::default();
+        out.removed = match object.get("removed") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_bool().ok_or_else(|| Self::decode_error("removed"))?),
+            None => None,
+        };
+        Ok(out)
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -14449,6 +15029,14 @@ impl TryFrom<Vec<u8>> for LogoutResponse {
     }
 }
 
+impl TryFrom<Vec<u8>> for GetLocalAppAgentWorkStatusResponse {
+    type Error = RuntimeResponseDecodeError;
+
+    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
+        Self::from_transport(&body)
+    }
+}
+
 impl TryFrom<Vec<u8>> for InterruptLocalAppConversationTurnResponse {
     type Error = RuntimeResponseDecodeError;
 
@@ -14465,7 +15053,7 @@ impl TryFrom<Vec<u8>> for OpenLocalAppConversationResponse {
     }
 }
 
-impl TryFrom<Vec<u8>> for SubmitLocalAppConversationToolResultResponse {
+impl TryFrom<Vec<u8>> for SubmitLocalAppAgentWorkToolResultResponse {
     type Error = RuntimeResponseDecodeError;
 
     fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
@@ -14585,6 +15173,30 @@ impl TryFrom<Vec<u8>> for ExternalAgentGatewayStatusResponse {
     }
 }
 
+impl TryFrom<Vec<u8>> for CompleteIntegrationProviderResponse {
+    type Error = RuntimeResponseDecodeError;
+
+    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
+        Self::from_transport(&body)
+    }
+}
+
+impl TryFrom<Vec<u8>> for RemoveIntegrationConnectionResponse {
+    type Error = RuntimeResponseDecodeError;
+
+    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
+        Self::from_transport(&body)
+    }
+}
+
+impl TryFrom<Vec<u8>> for UnregisterIntegrationProviderResponse {
+    type Error = RuntimeResponseDecodeError;
+
+    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
+        Self::from_transport(&body)
+    }
+}
+
 impl TryFrom<Vec<u8>> for ProductControlProjectionJson {
     type Error = RuntimeResponseDecodeError;
 
@@ -14684,6 +15296,20 @@ where
         })
     }
 
+    pub fn get_local_app_agent_work_status(&self, request: GetLocalAppAgentWorkStatusRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetLocalAppAgentWorkStatusResponse, RuntimeTypedClientError<T::Error>> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentWorkStatus".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        GetLocalAppAgentWorkStatusResponse::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentWorkStatus",
+            type_name: error.type_name,
+            field: error.field,
+        })
+    }
+
     pub fn interrupt_local_app_conversation_turn(&self, request: InterruptLocalAppConversationTurnRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<InterruptLocalAppConversationTurnResponse, RuntimeTypedClientError<T::Error>> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn".to_string(),
@@ -14712,15 +15338,15 @@ where
         })
     }
 
-    pub fn submit_local_app_conversation_tool_result(&self, request: SubmitLocalAppConversationToolResultRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SubmitLocalAppConversationToolResultResponse, RuntimeTypedClientError<T::Error>> {
+    pub fn submit_local_app_agent_work_tool_result(&self, request: SubmitLocalAppAgentWorkToolResultRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<SubmitLocalAppAgentWorkToolResultResponse, RuntimeTypedClientError<T::Error>> {
         let raw = self.core.unary(CoreUnaryRequest {
-            method_id: "/nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppConversationToolResult".to_string(),
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppAgentWorkToolResult".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
         }).map_err(RuntimeTypedClientError::Transport)?;
-        SubmitLocalAppConversationToolResultResponse::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
-            method_id: "/nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppConversationToolResult",
+        SubmitLocalAppAgentWorkToolResultResponse::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppAgentWorkToolResult",
             type_name: error.type_name,
             field: error.field,
         })
@@ -14929,6 +15555,48 @@ where
         }).map_err(RuntimeTypedClientError::Transport)?;
         Ack::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
             method_id: "/nimi.runtime.v1.RuntimeExternalAgentService/RevokeExternalAgentToken",
+            type_name: error.type_name,
+            field: error.field,
+        })
+    }
+
+    pub fn complete_integration_provider(&self, request: CompleteIntegrationProviderRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CompleteIntegrationProviderResponse, RuntimeTypedClientError<T::Error>> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeIntegrationService/CompleteIntegrationProvider".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        CompleteIntegrationProviderResponse::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeIntegrationService/CompleteIntegrationProvider",
+            type_name: error.type_name,
+            field: error.field,
+        })
+    }
+
+    pub fn remove_integration_connection(&self, request: RemoveIntegrationConnectionRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RemoveIntegrationConnectionResponse, RuntimeTypedClientError<T::Error>> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeIntegrationService/RemoveIntegrationConnection".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        RemoveIntegrationConnectionResponse::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeIntegrationService/RemoveIntegrationConnection",
+            type_name: error.type_name,
+            field: error.field,
+        })
+    }
+
+    pub fn unregister_integration_provider(&self, request: UnregisterIntegrationProviderRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UnregisterIntegrationProviderResponse, RuntimeTypedClientError<T::Error>> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeIntegrationService/UnregisterIntegrationProvider".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        UnregisterIntegrationProviderResponse::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeIntegrationService/UnregisterIntegrationProvider",
             type_name: error.type_name,
             field: error.field,
         })

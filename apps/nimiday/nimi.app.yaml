@@ -1,9 +1,11 @@
 schema_version: 1
 app_id: nimi.day
 display_name: NimiDay
-version: 0.1.0
+version: 0.2.1
 app_access:
   - agent.local
+  - agent.work
+  - integration.consume
   - app.activity
 capability_contract_refs: []
 required_standardized_feature_refs: []

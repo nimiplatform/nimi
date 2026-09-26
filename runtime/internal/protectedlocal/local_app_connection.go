@@ -63,6 +63,7 @@ type LocalAppConnection struct {
 	process                        ProcessTuple
 	boot                           Identifier
 	liveness                       DesktopProcessLiveness
+	revalidateProcess              func(context.Context) error
 	directPeer                     *DirectLocalAppPeer
 	directLaunch                   *DirectLocalAppLaunch
 	installedRegistrationHandle    string
@@ -383,8 +384,8 @@ func (connection *LocalAppConnection) SessionInvalidated(handle LocalAppSessionH
 }
 
 // InvalidateSession closes the current technical-session fence without
-// terminating the still-verified Host connection. Renewal may subsequently
-// install a fresh session after complete revalidation.
+// terminating the still-verified Host connection. Explicit rebinding may
+// subsequently install a fresh session after complete owner revalidation.
 func (connection *LocalAppConnection) InvalidateSession(handle LocalAppSessionHandle) bool {
 	if connection == nil || handle.SessionID == (Identifier{}) || handle.SessionProof == (Identifier{}) {
 		return false
@@ -400,8 +401,10 @@ func (connection *LocalAppConnection) InvalidateSession(handle LocalAppSessionHa
 		resources = append(resources, cleanup)
 	}
 	connection.sessionResources = make(map[string]func())
-	connection.sessionMu.Unlock()
+	// Close before releasing the resource lock so no old-scope resource can
+	// attach between removal and invalidation.
 	invalidation.invalidate()
+	connection.sessionMu.Unlock()
 	for _, cleanup := range resources {
 		cleanup()
 	}

@@ -182,12 +182,36 @@ function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
         closeChannel: touched('realm.realtime.closeChannel'),
       },
     },
-    agents: { listReferences: touched('agents.listReferences') },
+    agents: { listReferences: touched('agents.listReferences'), getIntroduction: touched('agents.getIntroduction') },
+    agentWork: {
+      listReferences: touched('agentWork.listReferences'),
+      start: touched('agentWork.start'),
+      get: touched('agentWork.get'),
+      status: touched('agentWork.status'),
+      listToolCalls: touched('agentWork.listToolCalls'),
+      submitToolResult: touched('agentWork.submitToolResult'),
+      cancel: touched('agentWork.cancel'),
+      subscribe: touched('agentWork.subscribe'),
+    },
+    integration: {
+      listCatalog: touched('integration.listCatalog'),
+      listConnections: touched('integration.listConnections'),
+      invoke: touched('integration.invoke'),
+      getCall: touched('integration.getCall'),
+      listCalls: touched('integration.listCalls'),
+      cancelCall: touched('integration.cancelCall'),
+      registerProvider: touched('integration.registerProvider'),
+      unregisterProvider: touched('integration.unregisterProvider'),
+      pollProvider: touched('integration.pollProvider'),
+      completeProvider: touched('integration.completeProvider'),
+      getManagement: touched('integration.getManagement'),
+      putConnection: touched('integration.putConnection'),
+      removeConnection: touched('integration.removeConnection'),
+      setPermission: touched('integration.setPermission'),
+    },
     conversation: {
       open: touched('conversation.open'),
       send: touched('conversation.send'),
-      listToolCalls: touched('conversation.listToolCalls'),
-      submitToolResult: touched('conversation.submitToolResult'),
       uploadAttachment: touched('conversation.uploadAttachment'),
       readArtifact: touched('conversation.readArtifact'),
       transcribeVoice: touched('conversation.transcribeVoice'),
@@ -328,7 +352,7 @@ test('generated local-app session wire projection is posture-only', () => {
 test('local-app client hard-cuts the access workflow namespace', () => {
   const client = createNimiLocalAppClient({ standardShell: standardShell([]) });
   assert.deepEqual(Object.keys(client).sort(), [
-    'activity', 'agentConfigure', 'agentRealtime', 'agents', 'ai', 'aiConfig', 'auth', 'conversation', 'currentUser', 'embodiment', 'realm', 'storage',
+    'activity', 'agentConfigure', 'agentRealtime', 'agentWork', 'agents', 'ai', 'aiConfig', 'auth', 'conversation', 'currentUser', 'embodiment', 'integration', 'realm', 'storage',
   ]);
   assert.deepEqual(Object.keys(client.activity).sort(), ['list', 'markRead', 'onOpenRequest', 'open', 'put', 'subscribe']);
   assert.equal('permissions' in client, false);
@@ -712,28 +736,28 @@ test('Current User projects exactly four display-safe fields', async () => {
   });
 });
 
-test('Agent reference list projects every item as exactly four display-safe fields', async () => {
+test('Agent reference list projects every item as exactly five display-safe fields', async () => {
   const base = standardShell([]);
   const shell: NimiLocalAppStandardShell = {
     ...base,
-    agents: { listReferences: async () => [
-      { agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', agentBinding: 'agent_binding_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', displayName: 'Alpha', avatarUrl: null },
-      { agentHandle: 'agent_ref_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB', agentBinding: 'agent_binding_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB', displayName: 'Beta', avatarUrl: 'https://cdn.nimi.ai/beta.webp' },
+    agents: { ...base.agents, listReferences: async () => [
+      { agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', activityAgentRef: 'agr_test', agentBinding: 'agent_binding_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', displayName: 'Alpha', avatarUrl: null },
+      { agentHandle: 'agent_ref_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB', activityAgentRef: 'agr_test', agentBinding: 'agent_binding_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB', displayName: 'Beta', avatarUrl: 'https://cdn.nimi.ai/beta.webp' },
     ] },
   };
   const references = await createNimiLocalAppClient({ standardShell: shell }).agents.listReferences();
   assert.deepEqual(references.map((reference) => Object.keys(reference).sort()), [
-    ['agentBinding', 'agentHandle', 'avatarUrl', 'displayName'],
-    ['agentBinding', 'agentHandle', 'avatarUrl', 'displayName'],
+    ['activityAgentRef', 'agentBinding', 'agentHandle', 'avatarUrl', 'displayName'],
+    ['activityAgentRef', 'agentBinding', 'agentHandle', 'avatarUrl', 'displayName'],
   ]);
   assert.equal(JSON.stringify(references).includes('localAgentId'), false);
 
   for (const malformed of [
     [{ agentHandle: 'raw-agent-id', displayName: 'Alpha', avatarUrl: null }],
-    [{ agentHandle: 'agent_ref_CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC', agentBinding: 'agent_binding_CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC', displayName: 'Alpha', avatarUrl: 'https://cdn.nimi.ai/a?token=private' }],
-    [{ agentHandle: 'agent_ref_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD', agentBinding: 'agent_binding_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD', displayName: 'Alpha', avatarUrl: null, accountId: 'private' }],
+    [{ agentHandle: 'agent_ref_CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC', activityAgentRef: 'agr_test', agentBinding: 'agent_binding_CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC', displayName: 'Alpha', avatarUrl: 'https://cdn.nimi.ai/a?token=private' }],
+    [{ agentHandle: 'agent_ref_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD', activityAgentRef: 'agr_test', agentBinding: 'agent_binding_DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD', displayName: 'Alpha', avatarUrl: null, accountId: 'private' }],
   ]) {
-    const invalid: NimiLocalAppStandardShell = { ...base, agents: { listReferences: async () => malformed } };
+    const invalid: NimiLocalAppStandardShell = { ...base, agents: { ...base.agents, listReferences: async () => malformed } };
     await assert.rejects(
       () => createNimiLocalAppClient({ standardShell: invalid }).agents.listReferences(),
       (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_PROJECTION_INVALID',

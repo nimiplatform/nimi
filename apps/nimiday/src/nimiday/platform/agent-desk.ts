@@ -1,624 +1,154 @@
-// The on-duty agent, through the public Local App agent.local surface only.
-// Runtime owns the agent, its single Conversation and every committed turn;
-// NimiDay keeps a projection for display and correlates its own work items.
+// Day's business desk uses the independent work plane. It never reads canonical chat.
+import type { NimiLocalAppAgentHandle, NimiLocalAppAgentReference, NimiLocalAppAgentWorkClient, NimiLocalAppAgentWorkExecution, NimiLocalAppAgentWorkScope, NimiLocalAppAgentWorkSubscription, NimiLocalAppClient } from '@nimiplatform/sdk/app';
+import type { Appointment, SkillRun } from '../domain/types.js';
+import type { DayWork } from '../domain/work.js';
 
-import type {
-  NimiLocalAppAgentHandle,
-  NimiLocalAppAgentReference,
-  NimiLocalAppClient,
-  NimiLocalAppConversationEvent,
-  NimiLocalAppConversationMessage,
-  NimiLocalAppConversationSubscription,
-} from '@nimiplatform/sdk/app';
-import type { Appointment } from '../domain/types.js';
-import { conversationWorkApi, toSdkWork, type ConversationWorkApi, type WorkSendInput } from './conversation-work.js';
-
-export type AgentRef = {
-  readonly agentHandle: NimiLocalAppAgentHandle;
-  readonly displayName: string;
-  readonly avatarUrl: string | null;
-  /** App-scoped durable correlation, when the Runtime provides one. */
-  readonly binding: string | null;
-};
-
-export type DeskPhase =
-  | 'idle'
-  | 'loading'
-  | 'unavailable'
-  | 'no-agents'
-  | 'choose'
-  | 'opening'
-  | 'ready';
-
-export type DeskMessage = {
-  readonly id: string;
-  readonly turnId: string;
-  /** `app` marks a request an App started on its own (a routine), never user speech. */
-  readonly role: 'user' | 'assistant' | 'app';
-  readonly text: string;
-  readonly images: readonly { readonly artifactId: string; readonly mimeType: string; readonly name: string | null }[];
-};
-
-export type LiveTool = {
-  readonly turnId: string;
-  readonly toolId: string;
-  readonly name: string;
-  readonly lifecycle: 'started' | 'updated' | 'completed' | 'failed';
-};
-
-export type TurnOutcome = {
-  readonly turnId: string;
-  readonly kind: 'completed' | 'failed' | 'interrupted';
-  readonly detail: string | null;
-};
-
+export type AgentRef = { readonly agentHandle: NimiLocalAppAgentHandle; readonly displayName: string; readonly avatarUrl: string | null; readonly binding: string | null };
+export type DeskPhase = 'idle' | 'loading' | 'unavailable' | 'no-agents' | 'choose' | 'opening' | 'ready';
+export type DeskMessage = { readonly id: string; readonly turnId: string; readonly role: 'user' | 'assistant' | 'app'; readonly text: string; readonly images: readonly { artifactId: string; mimeType: string; name: string | null }[] };
+export type LiveTool = { readonly turnId: string; readonly toolId: string; readonly name: string; readonly lifecycle: 'started' | 'updated' | 'completed' | 'failed' };
+export type TurnOutcome = { readonly turnId: string; readonly kind: 'completed' | 'failed' | 'interrupted'; readonly detail: string | null };
 export type DeskState = {
-  readonly phase: DeskPhase;
-  readonly references: readonly AgentRef[];
-  readonly agent: AgentRef | null;
-  /** The appointment kept in NimiDay that could not be matched automatically. */
-  readonly awaitingConfirmation: Appointment | null;
-  /** The on-duty agent was found, but their conversation could not be opened right now. */
-  readonly unreachable: AgentRef | null;
-  /** An appointment (kept, or just chosen) is on its way to being ready; who is on duty is not settled yet. */
-  readonly restoring: boolean;
-  readonly anchorId: string | null;
-  readonly messages: readonly DeskMessage[];
-  readonly truncatedBefore: boolean;
-  readonly activeTurnId: string | null;
+  readonly phase: DeskPhase; readonly references: readonly AgentRef[]; readonly agent: AgentRef | null;
+  readonly awaitingConfirmation: Appointment | null; readonly unreachable: AgentRef | null; readonly restoring: boolean;
+  readonly messages: readonly DeskMessage[]; readonly truncatedBefore: boolean;
+  readonly activeTurnId: string | null; readonly resourceBusy: boolean;
   readonly streaming: { readonly turnId: string; readonly text: string } | null;
-  readonly liveTools: readonly LiveTool[];
-  readonly lastOutcome: TurnOutcome | null;
-  readonly connection: 'live' | 'reconnecting' | 'lost';
-  readonly error: string | null;
-  readonly canUseWork: boolean;
+  readonly liveTools: readonly LiveTool[]; readonly lastOutcome: TurnOutcome | null;
+  readonly connection: 'live' | 'reconnecting' | 'lost'; readonly error: string | null; readonly canUseWork: boolean;
 };
+export type TurnScope = NimiLocalAppAgentWorkScope;
+export type SendResult = { readonly ok: true; readonly turnId: string; readonly scope: TurnScope } | { readonly ok: false; readonly reason: 'busy' | 'not-ready' | 'failed'; readonly message: string };
+export type WorkSendInput = { readonly text: string; readonly requestId: string; readonly work: DayWork; readonly routineName?: string };
+export type DeskEvent =
+  | { readonly type: 'live-tool'; readonly turnId: string; readonly tool: LiveTool }
+  | { readonly type: 'message-committed'; readonly turnId: string; readonly message: { readonly messageId: string; readonly role: 'assistant'; readonly parts: readonly { readonly kind: 'text'; readonly text: string }[] } }
+  | { readonly type: 'turn-completed'; readonly turnId: string; readonly terminalReason: string }
+  | { readonly type: 'turn-failed'; readonly turnId: string; readonly reasonCode: string; readonly message: string }
+  | { readonly type: 'turn-interrupted'; readonly turnId: string; readonly reason: string };
+export type DeskEventListener = (event: DeskEvent) => void;
 
-export type TurnScope = { readonly agentHandle: NimiLocalAppAgentHandle; readonly conversationAnchorId: string };
+export type AgentDesk = ReturnType<typeof createAgentDesk>;
 
-export type SendResult =
-  /** `scope`: the agent and conversation the turn was sent to, which own it for its whole life. */
-  | { readonly ok: true; readonly turnId: string; readonly scope: TurnScope }
-  | { readonly ok: false; readonly reason: 'busy' | 'not-ready' | 'failed'; readonly message: string };
+const INITIAL: DeskState = { phase: 'idle', references: [], agent: null, awaitingConfirmation: null, unreachable: null, restoring: false, messages: [], truncatedBefore: false, activeTurnId: null, resourceBusy: false, streaming: null, liveTools: [], lastOutcome: null, connection: 'live', error: null, canUseWork: true };
+const code = (error: unknown) => String((error as { reasonCode?: string; code?: string })?.reasonCode || (error as { code?: string })?.code || '');
+export function isStaleSelector(error: unknown): boolean { return /session|account-changed|runtime-restarted|local.app.access.denied/iu.test(code(error)); }
+const toRef = (agent: NimiLocalAppAgentReference): AgentRef => ({ agentHandle: agent.agentHandle, displayName: agent.displayName, avatarUrl: agent.avatarUrl, binding: agent.agentBinding || null });
 
-export type DeskEventListener = (event: NimiLocalAppConversationEvent) => void;
-
-export type SpeakResult =
-  | { readonly ok: true; readonly finished: Promise<void> }
-  | { readonly ok: false; readonly reason: 'voice-unavailable' | 'not-ready' | 'failed'; readonly code: string };
-
-type DeskClient = Pick<NimiLocalAppClient, 'agents' | 'conversation'>;
-
-/** Phases on the way to an outcome. */
-const SETTLING_PHASES: ReadonlySet<DeskPhase> = new Set(['idle', 'loading', 'opening']);
-
-const INITIAL: DeskState = {
-  phase: 'idle',
-  references: [],
-  agent: null,
-  awaitingConfirmation: null,
-  unreachable: null,
-  restoring: false,
-  anchorId: null,
-  messages: [],
-  truncatedBefore: false,
-  activeTurnId: null,
-  streaming: null,
-  liveTools: [],
-  lastOutcome: null,
-  connection: 'live',
-  error: null,
-  canUseWork: false,
-};
-
-function errorText(error: unknown, fallback: string): string {
-  if (error instanceof Error && error.message.trim()) return error.message.trim();
-  if (error && typeof error === 'object' && typeof (error as { message?: unknown }).message === 'string') {
-    return (error as { message: string }).message;
-  }
-  return fallback;
-}
-
-function errorCode(error: unknown): string {
-  if (!error || typeof error !== 'object') return '';
-  const record = error as { reasonCode?: unknown; code?: unknown };
-  return String(record.reasonCode ?? record.code ?? '');
-}
-
-function isOverflow(error: unknown): boolean {
-  if (!error || typeof error !== 'object') return false;
-  const record = error as { retryable?: unknown; code?: unknown; reasonCode?: unknown; details?: { retryable?: unknown } };
-  const retryable = record.retryable === true || record.details?.retryable === true;
-  return retryable && (record.code === 'resource-exhausted' || record.reasonCode === 'renderer-local-app-conversation-buffer-exhausted');
-}
-
-/** A handle from an earlier session, account or Runtime generation is no longer valid. */
-export function isStaleSelector(error: unknown): boolean {
-  const code = errorCode(error).toLowerCase();
-  return code === 'local-app-access-denied' || code === 'local_app_access_denied'
-    || code.includes('session-revoked') || code.includes('account-changed') || code.includes('runtime-restarted');
-}
-
-/** Runtime rejects a second turn while one is active (typed as AGENT_BUSY / agent-busy). */
-function isBusy(error: unknown): boolean {
-  return /already has an active turn/iu.test(errorText(error, ''))
-    || errorCode(error).toLowerCase().replace('_', '-').includes('agent-busy');
-}
-
-function toRef(reference: NimiLocalAppAgentReference): AgentRef {
-  return {
-    agentHandle: reference.agentHandle,
-    displayName: reference.displayName,
-    avatarUrl: reference.avatarUrl,
-    binding: reference.agentBinding || null,
-  };
-}
-
-function project(message: NimiLocalAppConversationMessage): DeskMessage {
-  return {
-    id: message.messageId,
-    turnId: message.turnId,
-    role: message.role,
-    text: message.parts.filter((part) => part.kind === 'text').map((part) => (part.kind === 'text' ? part.text : '')).join('\n'),
-    images: message.parts.flatMap((part) => (part.kind === 'artifact-ref'
-      ? [{ artifactId: part.artifactId, mimeType: part.mimeType, name: part.displayName }]
-      : [])),
-  };
-}
-
-function parseSequence(value: string): bigint | null {
-  return /^(?:0|[1-9][0-9]*)$/u.test(value) ? BigInt(value) : null;
-}
-
-type ActiveSession = {
-  readonly epoch: number;
-  readonly agent: AgentRef;
-  readonly anchorId: string;
-  subscription: NimiLocalAppConversationSubscription;
-  pending: NimiLocalAppConversationEvent[];
-  initialized: boolean;
-  recovering: boolean;
-  through: bigint;
-};
-
-export type AgentDesk = {
-  readonly getState: () => DeskState;
-  readonly subscribe: (listener: () => void) => () => void;
-  readonly onEvent: (listener: DeskEventListener) => () => void;
-  /** List current agents and restore the appointment when it can be matched safely. */
-  readonly start: (appointment: Appointment | null) => Promise<void>;
-  readonly appoint: (agentHandle: NimiLocalAppAgentHandle) => Promise<AgentRef | null>;
-  /** Re-list the account's agents without touching the open conversation. */
-  readonly refreshReferences: () => Promise<void>;
-  readonly reconnect: () => Promise<void>;
-  /**
-   * The turn Runtime currently runs for this conversation, asked directly so a
-   * missed terminal event cannot leave NimiDay waiting forever. `undefined`
-   * when it cannot be asked right now.
-   */
-  readonly runtimeActiveTurn: () => Promise<string | null | undefined>;
-  readonly send: (text: string, requestId: string) => Promise<SendResult>;
-  readonly sendWork: (input: WorkSendInput) => Promise<SendResult>;
-  readonly work: () => ConversationWorkApi | null;
-  /**
-   * Stop one turn NimiDay started. The conversation is shared with other Apps,
-   * so NimiDay only ever names its own turn; a turn that already ended reports
-   * `not-active` and is never retried as an untargeted stop.
-   */
-  readonly interrupt: (turnId: string) => Promise<'interrupted' | 'not-active' | 'failed'>;
-  /** Whether NimiDay started this turn (as opposed to another App or Nimi itself). */
-  readonly ownsTurn: (turnId: string | null) => boolean;
-  readonly readImage: (artifactId: string) => Promise<string | null>;
-  /** Resolves once playback starts; `finished` settles when it ends or is stopped. */
-  readonly speak: (messageId: string, requestId: string) => Promise<SpeakResult>;
-  readonly stopSpeaking: () => void;
-  readonly transcribe: (input: { readonly requestId: string; readonly mimeType: string; readonly bytes: Uint8Array }) => Promise<string>;
-  readonly dispose: () => Promise<void>;
-};
-
-export function createAgentDesk(client: DeskClient): AgentDesk {
+// @nimi-authority: rule.nimi.nimiday.assistant.business-effects
+export function createAgentDesk(client: Pick<NimiLocalAppClient, 'agentWork'> & Partial<Pick<NimiLocalAppClient, 'conversation'>>, options: { history?: () => readonly SkillRun[] } = {}) {
   let state: DeskState = INITIAL;
+  let closed = false;
   let epoch = 0;
-  let active: ActiveSession | null = null;
-  let disposed = false;
   let lastAppointment: Appointment | null = null;
-  /** Turns this NimiDay session started; the only ones it may stop. */
-  const ownTurns = new Set<string>();
+  let active: TurnScope | null = null;
+  let timer: ReturnType<typeof setInterval> | undefined;
+  let polling = false;
+  let subscription: NimiLocalAppAgentWorkSubscription | undefined;
   const listeners = new Set<() => void>();
-  const eventListeners = new Set<DeskEventListener>();
-  const imageUrls = new Map<string, string>();
-  let audio: HTMLAudioElement | null = null;
-  let audioUrl: string | null = null;
-  const workApi = conversationWorkApi(client.conversation);
+  const events = new Set<DeskEventListener>();
+  const owned = new Set<string>();
+  const terminal = new Set<string>();
+  const publish = (patch: Partial<DeskState>) => { state = { ...state, ...patch }; listeners.forEach(listener => listener()); };
+  const emit = (event: DeskEvent) => { events.forEach(listener => listener(event)); };
+  const acceptResult = (execution: NimiLocalAppAgentWorkExecution) => {
+    if (terminal.has(execution.executionId) || ['running', 'waiting_tool'].includes(execution.state)) return;
+    terminal.add(execution.executionId);
+    const turnId = execution.executionId;
+    if (active?.executionId === turnId) { active = null; void subscription?.cancel().catch(() => {}); subscription = undefined; }
+    publish({ activeTurnId: null, resourceBusy: false, streaming: null, lastOutcome: { turnId, kind: execution.state === 'succeeded' ? 'completed' : execution.state === 'failed' ? 'failed' : 'interrupted', detail: execution.message || null } });
+    if (execution.state === 'succeeded') {
+      const message: DeskMessage = { id: `${turnId}:result`, turnId, role: 'assistant', text: execution.outputText, images: [] };
+      publish({ messages: [...state.messages, message] });
+      emit({ type: 'message-committed', turnId, message: { messageId: message.id, role: 'assistant', parts: [{ kind: 'text', text: message.text }] } });
+      emit({ type: 'turn-completed', turnId, terminalReason: '' });
+    } else if (execution.state === 'failed') emit({ type: 'turn-failed', turnId, reasonCode: execution.reasonCode, message: execution.message });
+    else emit({ type: 'turn-interrupted', turnId, reason: execution.reasonCode || 'cancelled' });
 
-  const publish = (patch: Partial<DeskState>) => {
-    const next = { ...state, ...patch };
-    // Once the desk settles on any outcome, nothing is being restored any more.
-    state = SETTLING_PHASES.has(next.phase) ? next : { ...next, restoring: false };
-    listeners.forEach((listener) => listener());
   };
-
-  const releaseActive = async () => {
-    const previous = active;
-    active = null;
-    if (previous) await previous.subscription.cancel().catch(() => undefined);
-  };
-
-  const applyEvent = (session: ActiveSession, event: NimiLocalAppConversationEvent): void => {
-    if (event.conversationAnchorId !== session.anchorId) return;
-    const sequence = parseSequence(event.sequence);
-    if (sequence === null || sequence <= session.through) return;
-    session.through = sequence;
-    let { messages, activeTurnId, streaming, liveTools, lastOutcome } = state;
-    switch (event.type) {
-      case 'turn-accepted':
-      case 'turn-started':
-        activeTurnId = event.turnId;
-        break;
-      case 'text-delta':
-        streaming = streaming && streaming.turnId === event.turnId
-          ? { turnId: event.turnId, text: streaming.text + event.delta }
-          : { turnId: event.turnId, text: event.delta };
-        break;
-      case 'live-tool': {
-        const entry: LiveTool = { turnId: event.turnId, toolId: event.tool.toolId, name: event.tool.name, lifecycle: event.tool.lifecycle };
-        liveTools = [...liveTools.filter((tool) => tool.toolId !== entry.toolId && tool.turnId === event.turnId), entry];
-        break;
-      }
-      case 'message-committed': {
-        const projected = project(event.message);
-        const index = messages.findIndex((message) => message.id === projected.id);
-        messages = index < 0 ? [...messages, projected] : messages.map((message, position) => (position === index ? projected : message));
-        if (projected.role === 'assistant' && streaming?.turnId === event.turnId) streaming = null;
-        break;
-      }
-      case 'turn-completed':
-      case 'turn-failed':
-      case 'turn-interrupted': {
-        if (activeTurnId === event.turnId) activeTurnId = null;
-        if (streaming?.turnId === event.turnId) streaming = null;
-        liveTools = liveTools.filter((tool) => tool.turnId !== event.turnId);
-        lastOutcome = {
-          turnId: event.turnId,
-          kind: event.type === 'turn-completed' ? 'completed' : event.type === 'turn-failed' ? 'failed' : 'interrupted',
-          detail: event.type === 'turn-failed' ? (event.message ?? event.reasonCode) : event.type === 'turn-interrupted' ? event.reason : event.terminalReason || null,
-        };
-        break;
-      }
-      default:
-        break;
-    }
-    publish({ messages, activeTurnId, streaming, liveTools, lastOutcome, connection: 'live' });
-    eventListeners.forEach((listener) => {
-      try {
-        listener(event);
-      } catch {
-        // A listener failure never corrupts the Conversation projection.
-      }
-    });
-  };
-
-  const hydrate = async (session: ActiveSession, fallbackActiveTurn: string | null): Promise<void> => {
-    const snapshot = await client.conversation.snapshot({ agentHandle: session.agent.agentHandle, conversationAnchorId: session.anchorId });
-    if (active !== session || disposed) return;
-    const through = parseSequence(snapshot.throughSequence);
-    if (snapshot.conversationAnchorId !== session.anchorId || through === null) {
-      throw new Error('The conversation snapshot does not match the open conversation.');
-    }
-    session.through = through;
-    publish({
-      phase: 'ready',
-      agent: session.agent,
-      anchorId: session.anchorId,
-      messages: snapshot.messages.map(project),
-      truncatedBefore: snapshot.truncatedBefore,
-      activeTurnId: snapshot.turns.find((turn) => turn.status === 'active')?.turnId ?? fallbackActiveTurn,
-      streaming: null,
-      liveTools: [],
-      connection: 'live',
-      error: null,
-    });
-    healAttempts = 0;
-    const pending = session.pending.splice(0);
-    session.initialized = true;
-    for (const event of pending) applyEvent(session, event);
-  };
-
-  /** Re-subscribe the same session; resolves false when that session cannot be resumed. */
-  const recover = async (session: ActiveSession): Promise<boolean> => {
-    if (session.recovering || active !== session) return false;
-    session.recovering = true;
-    publish({ connection: 'reconnecting' });
+  const consume = async (source: NimiLocalAppAgentWorkSubscription, expected: number) => {
     try {
-      await session.subscription.cancel().catch(() => undefined);
-      session.subscription = await client.conversation.subscribe({ agentHandle: session.agent.agentHandle, conversationAnchorId: session.anchorId });
-      session.pending = [];
-      session.initialized = false;
-      void consume(session);
-      await hydrate(session, state.activeTurnId);
-      healAttempts = 0;
-      return true;
-    } catch (error) {
-      if (active === session) publish({ connection: 'lost', error: `${errorCode(error) || 'error'} · ${errorText(error, 'The conversation connection was lost.')}` });
-      return false;
-    } finally {
-      session.recovering = false;
-    }
+      for await (const event of source) {
+        if (closed || expected !== epoch || subscription !== source) return;
+        if (event.type === 'snapshot') acceptResult(event.execution);
+        else if (event.type === 'text-delta') publish({ streaming: { turnId: event.executionId, text: (state.streaming?.turnId === event.executionId ? state.streaming.text : '') + event.delta } });
+        else emit({ type: 'live-tool', turnId: event.executionId, tool: { turnId: event.executionId, toolId: event.call.callId, name: event.call.name, lifecycle: 'started' } });
+      }
+    } catch (error) { if (!closed && expected === epoch) publish({ connection: 'lost', error: reasonText(error) }); }
   };
-
-  /**
-   * Bring the conversation back: first the same session, then a fresh open by
-   * the saved binding (an Agent handle belongs to one technical session, so a
-   * renewed session needs fresh references).
-   */
-  const heal = async () => {
-    const session = active;
-    if (session && await recover(session)) return;
-    if (disposed) return;
-    await restart();
-  };
-
-  /** A dropped connection retries on its own a few times before waiting for the user. */
-  let healAttempts = 0;
-  let healTimer: ReturnType<typeof setTimeout> | null = null;
-  const scheduleHeal = () => {
-    if (healTimer || disposed || healAttempts >= 3) return;
-    const delay = [1_500, 5_000, 15_000][healAttempts]!;
-    healAttempts += 1;
-    healTimer = setTimeout(() => {
-      healTimer = null;
-      if (!disposed && state.connection === 'lost') void heal();
-    }, delay);
-  };
-
-  const consume = async (session: ActiveSession) => {
-    const subscription = session.subscription;
+  const reasonText = (error: unknown) => code(error) || String(error);
+  const poll = async () => {
+    if (closed || polling || state.phase !== 'ready' || !state.agent) return;
+    polling = true; const expected = epoch;
     try {
-      for await (const event of subscription) {
-        if (active !== session || disposed || session.subscription !== subscription) return;
-        if (!session.initialized) {
-          session.pending.push(event);
-          continue;
-        }
-        applyEvent(session, event);
-      }
-      if (active === session && session.subscription === subscription && !disposed) {
-        publish({ connection: 'lost' });
-        scheduleHeal();
-      }
+      if (active) { const execution = await client.agentWork.get(active); if (closed || expected !== epoch) return; acceptResult(execution); }
+      const status = await client.agentWork.status({ agentHandle: state.agent.agentHandle });
+      if (!closed && expected === epoch) publish({ resourceBusy: status.busy, connection: 'live' });
     } catch (error) {
-      if (active !== session || disposed || session.subscription !== subscription) return;
-      if (isOverflow(error)) {
-        await recover(session);
-        return;
-      }
-      if (isStaleSelector(error)) {
-        void restart();
-        return;
-      }
-      publish({ connection: 'lost', error: `${errorCode(error) || 'error'} · ${errorText(error, 'The conversation connection was lost.')}` });
-      scheduleHeal();
-    }
+      if (closed || expected !== epoch) return;
+      publish({ connection: 'lost', error: code(error) || String(error) });
+      if (isStaleSelector(error)) { closed = true; epoch++; active = null; if (timer) clearInterval(timer); publish({ phase: 'unavailable', activeTurnId: null }); }
+    } finally { polling = false; }
   };
-
-  const open = async (agent: AgentRef, currentEpoch: number): Promise<boolean> => {
-    publish({ phase: 'opening', agent, error: null, awaitingConfirmation: null, restoring: true });
-    const opened = await client.conversation.open({ agentHandle: agent.agentHandle });
-    if (disposed || currentEpoch !== epoch) return false;
-    // Subscribe before the snapshot so no event can fall between them.
-    const subscription = await client.conversation.subscribe({ agentHandle: agent.agentHandle, conversationAnchorId: opened.conversationAnchorId });
-    if (disposed || currentEpoch !== epoch) {
-      await subscription.cancel().catch(() => undefined);
-      return false;
-    }
-    const session: ActiveSession = {
-      epoch: currentEpoch,
-      agent,
-      anchorId: opened.conversationAnchorId,
-      subscription,
-      pending: [],
-      initialized: false,
-      recovering: false,
-      through: 0n,
-    };
-    active = session;
-    void consume(session);
-    await hydrate(session, opened.activeTurnId);
-    return true;
-  };
-
+  const history = () => [...(options.history?.() || [])].sort((left, right) => left.createdAt.localeCompare(right.createdAt)).flatMap(run => {
+    if (!run.turnId) return [];
+    const messages: DeskMessage[] = [{ id: `${run.turnId}:request`, turnId: run.turnId, role: run.trigger === 'rhythm' ? 'app' : 'user', text: run.requestText, images: [] }];
+    if (run.replyText && run.replyMessageId) messages.push({ id: run.replyMessageId, turnId: run.turnId, role: 'assistant', text: run.replyText, images: [] });
+    return messages;
+  });
   const start = async (appointment: Appointment | null) => {
-    // A stopped desk can be started again (React re-mounts effects in development).
-    disposed = false;
-    lastAppointment = appointment;
-    const currentEpoch = ++epoch;
-    // Said at once, before anything is awaited: whoever starts next must not
-    // mistake an appointment that is being restored for none at all.
-    const releasing = releaseActive();
-    publish({ ...INITIAL, phase: 'loading', canUseWork: workApi !== null, restoring: appointment !== null });
-    await releasing;
-    let references: AgentRef[];
+    closed = false; const expected = ++epoch; lastAppointment = appointment; active = null;
+    if (timer) clearInterval(timer);
+    publish({ ...INITIAL, phase: 'loading', restoring: !!appointment, messages: history() });
     try {
-      references = (await client.agents.listReferences()).map(toRef);
-    } catch (error) {
-      if (currentEpoch === epoch) publish({ phase: 'unavailable', error: errorText(error, 'Agents could not be listed.') });
-      return;
-    }
-    if (disposed || currentEpoch !== epoch) return;
-    if (references.length === 0) {
-      publish({ phase: 'no-agents', references });
-      return;
-    }
-    const matched = appointment?.binding
-      ? references.find((reference) => reference.binding === appointment.binding) ?? null
-      : null;
-    if (!matched) {
-      // Without a Runtime-issued binding the user confirms who is on duty; names are never matched.
-      publish({ phase: 'choose', references, awaitingConfirmation: appointment });
-      return;
-    }
-    publish({ references });
+      const references = (await client.agentWork.listReferences()).map(toRef);
+      if (closed || expected !== epoch) return;
+      const agent = references.find(item => item.binding === appointment?.binding && item.binding !== null) || null;
+      publish({ references, agent, restoring: false, phase: references.length === 0 ? 'no-agents' : agent ? 'ready' : 'choose', awaitingConfirmation: agent ? null : appointment });
+      timer = setInterval(() => { void poll(); }, 1000);
+      await poll();
+    } catch (error) { if (expected === epoch) publish({ phase: 'unavailable', restoring: false, error: String(error) }); }
+  };
+  const sendWork = async (input: WorkSendInput): Promise<SendResult> => {
+    const agent = state.agent; const expected = epoch;
+    if (closed || state.phase !== 'ready' || !agent) return { ok: false, reason: 'not-ready', message: '当前助理尚未就绪' };
+    if (state.resourceBusy || active) return { ok: false, reason: 'busy', message: '助理正在处理另一项请求' };
     try {
-      await open(matched, currentEpoch);
+      const result = await client.agentWork.start({ agentHandle: agent.agentHandle, requestId: input.requestId, prompt: input.text, work: { ...input.work, ...(input.routineName ? { routineName: input.routineName } : {}) } });
+      if (closed || expected !== epoch) { await client.agentWork.cancel({ agentHandle: agent.agentHandle, executionId: result.executionId }).catch(() => {}); return { ok: false, reason: 'failed', message: '执行范围已失效；不会继续旧工作' }; }
+      active = { agentHandle: agent.agentHandle, executionId: result.executionId }; owned.add(result.executionId);
+      publish({ activeTurnId: result.executionId, resourceBusy: true, messages: [...state.messages, { id: `${result.executionId}:request`, turnId: result.executionId, role: input.routineName ? 'app' : 'user', text: input.text, images: [] }] });
+      const ownScope = active;
+      // Return admission before observing events so the engine can associate
+      // this execution with its run, even while subscription setup is pending.
+      void (async () => {
+        try {
+          const source = await client.agentWork.subscribe(ownScope);
+          if (closed || expected !== epoch || active?.executionId !== ownScope.executionId) { await source.cancel(); return; }
+          subscription = source;
+          setTimeout(() => { void consume(source, expected); }, 0);
+        } catch { /* Own get polling still observes the actual execution. */ }
+      })();
+      return { ok: true, turnId: result.executionId, scope: ownScope };
     } catch (error) {
-      // The binding matched: this is still the same agent, only their conversation is out of reach.
-      if (currentEpoch === epoch) publish({ phase: 'unavailable', unreachable: matched, error: errorCode(error) || errorText(error, 'The conversation could not be opened.') });
+      if (code(error).replaceAll('_', '-').toLowerCase() === 'agent-busy') { publish({ resourceBusy: true }); return { ok: false, reason: 'busy', message: '助理正在处理另一项请求' }; }
+      return { ok: false, reason: 'failed', message: String(error) };
     }
   };
-
-  const restart = async () => start(lastAppointment);
-
-  const requireSession = (): ActiveSession | null => (state.phase === 'ready' && active ? active : null);
-
-  const sendWith = async (payload: { text: string; requestId: string; work?: WorkSendInput['work']; routineName?: string }): Promise<SendResult> => {
-    const session = requireSession();
-    if (!session) return { ok: false, reason: 'not-ready', message: 'The on-duty agent is not connected.' };
-    if (state.activeTurnId) return { ok: false, reason: 'busy', message: 'The agent is still replying.' };
-    try {
-      const base = {
-        agentHandle: session.agent.agentHandle,
-        conversationAnchorId: session.anchorId,
-        requestId: payload.requestId,
-        parts: [{ kind: 'text' as const, text: payload.text }],
-      };
-      const result = payload.work && workApi
-        ? await workApi.send({ ...base, work: toSdkWork(payload.work, payload.routineName) })
-        : await client.conversation.send(base);
-      ownTurns.add(result.turnId);
-      if (ownTurns.size > 200) ownTurns.delete(ownTurns.values().next().value!);
-      if (!state.activeTurnId) publish({ activeTurnId: result.turnId });
-      return { ok: true, turnId: result.turnId, scope: { agentHandle: session.agent.agentHandle, conversationAnchorId: session.anchorId } };
-    } catch (error) {
-      if (isBusy(error)) return { ok: false, reason: 'busy', message: 'The agent is busy with another conversation turn.' };
-      if (isStaleSelector(error)) void restart();
-      return { ok: false, reason: 'failed', message: errorText(error, 'The message could not be sent.') };
-    }
-  };
-
   return {
     getState: () => state,
-    subscribe: (listener) => {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
-    onEvent: (listener) => {
-      eventListeners.add(listener);
-      return () => eventListeners.delete(listener);
-    },
+    subscribe: (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener); }; },
+    onEvent: (listener: DeskEventListener) => { events.add(listener); return () => { events.delete(listener); }; },
     start,
-    appoint: async (agentHandle) => {
-      const reference = state.references.find((candidate) => candidate.agentHandle === agentHandle);
-      if (!reference) return null;
-      const currentEpoch = ++epoch;
-      await releaseActive();
-      try {
-        const opened = await open(reference, currentEpoch);
-        if (!opened) return null;
-        // From now on a reconnect that has to look everyone up again restores
-        // this agent (by binding), never the one appointed before.
-        lastAppointment = { displayName: reference.displayName, avatarUrl: reference.avatarUrl, binding: reference.binding, appointedAt: new Date().toISOString() };
-        return reference;
-      } catch (error) {
-        if (currentEpoch === epoch) publish({ phase: 'choose', error: errorText(error, 'The conversation could not be opened.') });
-        return null;
-      }
-    },
-    refreshReferences: async () => {
-      try {
-        const references = (await client.agents.listReferences()).map(toRef);
-        publish({ references, ...(state.phase === 'no-agents' && references.length > 0 ? { phase: 'choose' as const } : {}) });
-      } catch (error) {
-        if (isStaleSelector(error)) void restart();
-      }
-    },
-    reconnect: async () => {
-      healAttempts = 0;
-      await heal();
-    },
-    runtimeActiveTurn: async () => {
-      const session = active;
-      if (!session) return undefined;
-      try {
-        const opened = await client.conversation.open({ agentHandle: session.agent.agentHandle });
-        return opened.activeTurnId ?? null;
-      } catch {
-        return undefined;
-      }
-    },
-    send: (text, requestId) => sendWith({ text, requestId }),
-    sendWork: (input) => sendWith({ text: input.text, requestId: input.requestId, work: input.work, ...(input.routineName ? { routineName: input.routineName } : {}) }),
-    work: () => workApi,
-    interrupt: async (turnId) => {
-      const session = requireSession();
-      if (!session) return 'failed';
-      try {
-        await client.conversation.interruptTurn({ agentHandle: session.agent.agentHandle, conversationAnchorId: session.anchorId, expectedTurnId: turnId });
-        return 'interrupted';
-      } catch (error) {
-        return /turn[-_]not[-_]active/iu.test(errorCode(error)) ? 'not-active' : 'failed';
-      }
-    },
-    ownsTurn: (turnId) => turnId !== null && ownTurns.has(turnId),
-    readImage: async (artifactId) => {
-      const cached = imageUrls.get(artifactId);
-      if (cached) return cached;
-      const session = requireSession();
-      if (!session) return null;
-      const artifact = await client.conversation.readArtifact({ agentHandle: session.agent.agentHandle, conversationAnchorId: session.anchorId, artifactId });
-      if (!artifact.mimeType.startsWith('image/')) return null;
-      const url = URL.createObjectURL(new Blob([artifact.bytes.slice().buffer], { type: artifact.mimeType }));
-      imageUrls.set(artifactId, url);
-      return url;
-    },
-    speak: async (messageId, requestId) => {
-      const session = requireSession();
-      if (!session) return { ok: false, reason: 'not-ready', code: 'agent-not-connected' };
-      try {
-        const voice = await client.conversation.renderVoice({ agentHandle: session.agent.agentHandle, conversationAnchorId: session.anchorId, messageId, requestId });
-        if (voice.status !== 'ready') return { ok: false, reason: 'voice-unavailable', code: voice.message ?? voice.reasonCode };
-        const artifact = await client.conversation.readArtifact({ agentHandle: session.agent.agentHandle, conversationAnchorId: session.anchorId, artifactId: voice.artifactId });
-        if (!artifact.mimeType.startsWith('audio/')) return { ok: false, reason: 'voice-unavailable', code: artifact.mimeType };
-        if (audio) audio.pause();
-        if (audioUrl) URL.revokeObjectURL(audioUrl);
-        audioUrl = URL.createObjectURL(new Blob([artifact.bytes.slice().buffer], { type: artifact.mimeType }));
-        const player = new Audio(audioUrl);
-        audio = player;
-        const finished = new Promise<void>((resolve) => {
-          player.addEventListener('ended', () => resolve(), { once: true });
-          player.addEventListener('pause', () => resolve(), { once: true });
-          player.addEventListener('error', () => resolve(), { once: true });
-        });
-        await player.play();
-        return { ok: true, finished };
-      } catch (error) {
-        return { ok: false, reason: 'failed', code: errorCode(error) || errorText(error, 'voice-failed') };
-      }
-    },
-    stopSpeaking: () => {
-      if (audio) audio.pause();
-    },
-    transcribe: async ({ requestId, mimeType, bytes }) => {
-      const session = requireSession();
-      if (!session) throw new Error('The on-duty agent is not connected.');
-      const result = await client.conversation.transcribeVoice({
-        agentHandle: session.agent.agentHandle,
-        conversationAnchorId: session.anchorId,
-        requestId,
-        mimeType,
-        audioBytes: bytes,
-      });
-      return result.text;
-    },
-    dispose: async () => {
-      disposed = true;
-      if (healTimer) clearTimeout(healTimer);
-      healTimer = null;
-      epoch += 1;
-      await releaseActive();
-      if (audio) audio.pause();
-      if (audioUrl) URL.revokeObjectURL(audioUrl);
-      imageUrls.forEach((url) => URL.revokeObjectURL(url));
-      imageUrls.clear();
-    },
+    appoint: async (handle: NimiLocalAppAgentHandle) => { const agent = state.references.find(item => item.agentHandle === handle); if (!agent || active) return null; lastAppointment = { displayName: agent.displayName, avatarUrl: agent.avatarUrl, binding: agent.binding, appointedAt: new Date().toISOString() }; publish({ agent, phase: 'ready', awaitingConfirmation: null, resourceBusy: false }); await poll(); return agent; },
+    refreshReferences: async () => { const references = (await client.agentWork.listReferences()).map(toRef); publish({ references }); },
+    reconnect: async () => { if (closed) await start(lastAppointment); else await poll(); },
+    runtimeActiveTurn: async () => { if (active) { try { const result = await client.agentWork.get(active); acceptResult(result); return ['running', 'waiting_tool'].includes(result.state) ? result.executionId : null; } catch { return undefined; } } return null; },
+    sendWork,
+    work: (): NimiLocalAppAgentWorkClient => client.agentWork,
+    interrupt: async (executionId: string): Promise<'interrupted' | 'not-active' | 'failed'> => { if (!active || active.executionId !== executionId || !owned.has(executionId)) return 'not-active'; try { acceptResult(await client.agentWork.cancel(active)); return 'interrupted'; } catch { return 'failed'; } },
+    ownsTurn: (id: string | null) => id !== null && owned.has(id),
+    transcribe: async (input: { requestId: string; mimeType: string; bytes: Uint8Array }) => { if (!state.agent || !client.conversation) throw new Error('语音输入尚不可用'); const opened = await client.conversation.open({ agentHandle: state.agent.agentHandle }); const result = await client.conversation.transcribeVoice({ agentHandle: state.agent.agentHandle, conversationAnchorId: opened.conversationAnchorId, requestId: input.requestId, mimeType: input.mimeType, audioBytes: input.bytes }); return result.text; },
+    dispose: async () => { closed = true; epoch++; if (timer) clearInterval(timer); const own = active; active = null; void subscription?.cancel().catch(() => {}); subscription = undefined; if (own) await client.agentWork.cancel(own).catch(() => {}); },
   };
 }

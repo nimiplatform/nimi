@@ -433,3 +433,15 @@ units:
         target: definition.nimi.desktop.product-surfaces.home-message-preferences
       - type: applies_to
         target: definition.nimi.desktop.product-surfaces.home-overview
+  - id: rule.nimi.desktop.product-surfaces.execution-notice
+    kind: rule
+    title: Home distinguishes technical interruption from App business state
+    modality: must
+    statement: "The surviving Host or availability owner reports confirmed App executor or session unavailability to Home and related message projections, including when no model or tool call is active and when Runtime restart invalidates a still-running App session. Home distinguishes executor stopped, connection unavailable and source App openability, retains an in-app technical notice and uses the local OS notification channel once per meaningful interruption according to user preferences and OS permission. Disabled notifications expose their limitation without repeated permission prompts; reconnect does not hide an old interrupted execution. The Host privately compares Runtime execution-scope references for each exact run: an initial pending result without a prior valid reference creates no old-scope interruption, A to B confirms A ended even when both observations are available, and repeated observations do not duplicate notices. Unknown or failed reads describe connection uncertainty without declaring scope revocation; a confirmed revocation or a new valid reference retains the prior interruption while separately projecting current availability. Scope references stay outside renderer and message payloads. App progress and terminal business outcomes remain App-origin facts, and notification or object open does not restart work or imply remote delivery."
+    condition: Whenever an App loses its execution conditions and a surviving owner can report it.
+    failure: Do not fabricate task failure, completion, resumption or notification delivery; preserve the known technical state and explicit unavailable path.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.home-overview
+      - type: applies_to
+        target: definition.nimi.runtime.app-surface.app-activity-plane

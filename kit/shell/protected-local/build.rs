@@ -89,6 +89,8 @@ fn main() {
     let ai_realtime_proto = proto_root.join("runtime/v1/ai_realtime.proto");
     let realm_realtime_proto = proto_root.join("runtime/v1/realm_realtime.proto");
     let local_runtime_proto = proto_root.join("runtime/v1/local_runtime.proto");
+    let integration_proto = proto_root.join("runtime/v1/integration.proto");
+    let agent_work_proto = proto_root.join("runtime/v1/agent_work.proto");
     let app_activity_proto = proto_root.join("runtime/v1/app_activity.proto");
     let protoc = protoc_bin_vendored::protoc_bin_path().expect("vendored protoc");
     std::env::set_var("PROTOC", protoc);
@@ -110,6 +112,8 @@ fn main() {
                 realm_realtime_proto,
                 local_runtime_proto,
                 app_activity_proto,
+                integration_proto,
+                agent_work_proto,
             ],
             &[proto_root.clone()],
         )

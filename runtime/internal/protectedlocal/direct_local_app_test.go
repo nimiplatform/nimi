@@ -11,22 +11,27 @@ import (
 
 func TestDirectLocalAppLaunchIsIdempotentAndPIDReuseSafe(t *testing.T) {
 	launches := NewDirectLocalAppLaunches()
+	owner := directLocalAppTestDesktop(t, 41, 501)
 	registration := Identifier{1}
 	run := Identifier{2}
 	hostExecutable := filepath.Join(os.TempDir(), "Nimi", "Host")
 	expires := time.Now().Add(time.Minute)
-	first, err := launches.Prepare(registration, run, 3, 4, 41, 501, hostExecutable, expires)
+	first, err := launches.Prepare(owner, registration, run, 3, 4, 41, 501, hostExecutable, expires)
 	if err != nil {
 		t.Fatal(err)
 	}
-	second, err := launches.Prepare(registration, run, 3, 4, 41, 501, hostExecutable, expires)
+	second, err := launches.Prepare(owner, registration, run, 3, 4, 41, 501, hostExecutable, expires)
 	if err != nil {
 		t.Fatal(err)
+	}
+	foreignOwner := directLocalAppTestDesktop(t, 41, 501)
+	if _, err := launches.Prepare(foreignOwner, registration, run, 3, 4, 41, 501, hostExecutable, expires); err == nil {
+		t.Fatal("same PID and run id replaced exact Desktop owner")
 	}
 	if second.LaunchID != first.LaunchID {
 		t.Fatal("same supervisor run minted a second pending launch")
 	}
-	if _, err := launches.Prepare(registration, run, 5, 4, 41, 501, hostExecutable, expires); err == nil {
+	if _, err := launches.Prepare(owner, registration, run, 5, 4, 41, 501, hostExecutable, expires); err == nil {
 		t.Fatal("changed authority reused an existing supervisor run")
 	}
 	witness := DirectLocalAppProcessWitness{
@@ -38,7 +43,7 @@ func TestDirectLocalAppLaunchIsIdempotentAndPIDReuseSafe(t *testing.T) {
 		t.Fatal(err)
 	}
 	renewedExpiry := expires.Add(time.Minute)
-	renewed, err := launches.Prepare(registration, run, 3, 4, 41, 501, hostExecutable, renewedExpiry)
+	renewed, err := launches.Prepare(owner, registration, run, 3, 4, 41, 501, hostExecutable, renewedExpiry)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,6 +68,9 @@ func TestDirectLocalAppLaunchIsIdempotentAndPIDReuseSafe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if consumed.DesktopOwner != owner {
+		t.Fatal("consumed launch lost exact Desktop owner")
+	}
 	if consumed.Process != witness {
 		t.Fatalf("consumed witness = %+v, want %+v", consumed.Process, witness)
 	}
@@ -74,6 +82,9 @@ func TestDirectLocalAppLaunchIsIdempotentAndPIDReuseSafe(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(connection.Revoke)
+	if retained, ok := connection.DirectLaunch(); !ok || retained.DesktopOwner != owner {
+		t.Fatal("native connection lost exact launch owner")
+	}
 	if connection.RuntimeBootEpoch() != runtimeGeneration {
 		t.Fatal("direct local-App connection omitted the Runtime generation")
 	}
@@ -84,11 +95,12 @@ func TestDirectLocalAppLaunchIsIdempotentAndPIDReuseSafe(t *testing.T) {
 
 func TestDirectLocalAppRebindAfterConsumptionRequiresFreshLaunch(t *testing.T) {
 	launches := NewDirectLocalAppLaunches()
+	owner := directLocalAppTestDesktop(t, 41, 501)
 	executable := filepath.Join(t.TempDir(), "host.exe")
 	witness := DirectLocalAppProcessWitness{PID: 52, ParentPID: 41, UID: 501, StartSeconds: 6, ExecutablePath: executable}
 	prepare := func() DirectLocalAppLaunch {
 		t.Helper()
-		launch, err := launches.Prepare(Identifier{1}, Identifier{2}, 3, 4, 41, 501, executable, time.Now().Add(time.Minute))
+		launch, err := launches.Prepare(owner, Identifier{1}, Identifier{2}, 3, 4, 41, 501, executable, time.Now().Add(time.Minute))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -134,12 +146,13 @@ func TestDirectInstalledBindingPreservesSourceGenerationsAndOneUse(t *testing.T)
 			handle := "rar_v1_" + base64.RawURLEncoding.EncodeToString(registration[:])
 			executable := filepath.Join(os.TempDir(), "installed", "app.exe")
 			parent := localAppRegistryProcess(7101, 0x72)
+			owner := directLocalAppTestDesktop(t, parent.PID, 1)
 			process := localAppRegistryProcess(7102, 0x73)
 			process.CreationMarker = "1234"
 			process.CanonicalExecutablePath = executable
 			policy := InstalledAppProcessPolicy{RegistrationHandle: handle, TrustClass: trustClass, SourceGeneration: 3, DeclarationGeneration: 4,
 				HostExecutablePath: executable, HostExecutableDigest: process.ExecutableDigest, ExecutionProfileRef: "windows-user-mode-as-invoker-v1", SupervisorProcess: parent}
-			prepared, err := launches.Prepare(registration, Identifier{12}, 3, 4, parent.PID, 1, executable, time.Now().Add(time.Minute))
+			prepared, err := launches.Prepare(owner, registration, Identifier{12}, 3, 4, parent.PID, 1, executable, time.Now().Add(time.Minute))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -177,6 +190,7 @@ func TestDirectInstalledBindingPreservesSourceGenerationsAndOneUse(t *testing.T)
 
 func TestDirectLocalAppLaunchRenewsAfterConsumeAndExpiry(t *testing.T) {
 	launches := NewDirectLocalAppLaunches()
+	owner := directLocalAppTestDesktop(t, 41, 501)
 	now := time.Now().UTC()
 	launches.now = func() time.Time { return now }
 	registration := Identifier{1}
@@ -187,7 +201,7 @@ func TestDirectLocalAppLaunchRenewsAfterConsumeAndExpiry(t *testing.T) {
 		StartSeconds: 6, StartMicros: 7, ExecutablePath: hostExecutable,
 	}
 	prepareAndBind := func() (DirectLocalAppLaunch, error) {
-		launch, err := launches.Prepare(registration, run, 3, 4, 41, 501, hostExecutable, now.Add(30*time.Second))
+		launch, err := launches.Prepare(owner, registration, run, 3, 4, 41, 501, hostExecutable, now.Add(30*time.Second))
 		if err != nil {
 			return DirectLocalAppLaunch{}, err
 		}
@@ -242,4 +256,14 @@ func TestDirectLocalAppLaunchRenewsAfterConsumeAndExpiry(t *testing.T) {
 	if _, err := launches.Consume(witness.PID, witness.UID); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func directLocalAppTestDesktop(t *testing.T, pid, uid uint32) *Connection {
+	t.Helper()
+	owner, err := newDirectDesktopConnection(DesktopPeerIdentity{OS: OSMacOS, PID: pid, UID: uid, AuditSession: 77}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(owner.Revoke)
+	return owner
 }

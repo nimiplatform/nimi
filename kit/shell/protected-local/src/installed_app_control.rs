@@ -230,12 +230,14 @@ pub(crate) async fn access(
         .map_err(runtime_error)?
         .into_inner();
     let reason = ReasonCode::try_from(result.reason_code).map_err(|_| invalid())?;
-    if result.available && reason != ReasonCode::ActionExecuted {
-        return Err(invalid());
-    }
+    if result.available {
+        let suffix = result.execution_scope_ref.strip_prefix("execution_scope_").ok_or_else(invalid)?;
+        if reason != ReasonCode::ActionExecuted || suffix.len() != 43 || !suffix.bytes().all(|v| v.is_ascii_alphanumeric() || v == b'_' || v == b'-') { return Err(invalid()); }
+    } else if !result.execution_scope_ref.is_empty() { return Err(invalid()); }
     Ok(InstalledAppRunAccess {
         available: result.available,
         reason_code: reason.as_str_name().into(),
+        execution_scope_ref: result.execution_scope_ref,
     })
 }
 

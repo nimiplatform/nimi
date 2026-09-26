@@ -1,0 +1,122 @@
+syntax = "proto3";
+package nimi.runtime.v1;
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+import "runtime/v1/common.proto";
+
+// A bounded model execution owned by the initiating protected App scope.
+// No message in this surface is a canonical Conversation message.
+enum LocalAppAgentWorkState {
+  LOCAL_APP_AGENT_WORK_STATE_UNSPECIFIED = 0;
+  LOCAL_APP_AGENT_WORK_STATE_RUNNING = 1;
+  LOCAL_APP_AGENT_WORK_STATE_WAITING_TOOL = 2;
+  LOCAL_APP_AGENT_WORK_STATE_SUCCEEDED = 3;
+  LOCAL_APP_AGENT_WORK_STATE_FAILED = 4;
+  LOCAL_APP_AGENT_WORK_STATE_CANCELLED = 5;
+}
+message LocalAppAgentWorkReference {
+  string agent_handle = 1;
+  string display_name = 2;
+  optional string avatar_url = 3;
+  string agent_binding = 4;
+  // Non-authorizing Activity grouping reference, never an Agent selector.
+  string activity_agent_ref = 5;
+}
+message ListLocalAppAgentWorkReferencesRequest {}
+message ListLocalAppAgentWorkReferencesResponse {
+  repeated LocalAppAgentWorkReference references = 1;
+}
+message LocalAppAgentWorkSource {
+  string source_id = 1;
+  string title = 2;
+  string content = 3;
+}
+message LocalAppAgentWorkTool {
+  string name = 1;
+  string description = 2;
+  string input_schema_json = 3;
+}
+message LocalAppAgentWorkInput {
+  string work_id = 1;
+  string instructions = 2;
+  repeated LocalAppAgentWorkSource sources = 3;
+  repeated LocalAppAgentWorkTool tools = 4;
+  optional string routine_name = 5;
+}
+message StartLocalAppAgentWorkRequest {
+  string agent_handle = 1;
+  string request_id = 2;
+  string prompt = 3;
+  LocalAppAgentWorkInput work = 4;
+}
+message StartLocalAppAgentWorkResponse {
+  string execution_id = 1;
+}
+message LocalAppAgentWorkExecution {
+  string execution_id = 1;
+  string work_id = 2;
+  LocalAppAgentWorkState state = 3;
+  // Present only after successful complete validated model output.
+  string output_text = 4;
+  ReasonCode reason_code = 5;
+  string message = 6;
+  uint64 sequence = 7;
+}
+message GetLocalAppAgentWorkRequest {
+  string agent_handle = 1;
+  string execution_id = 2;
+}
+message GetLocalAppAgentWorkResponse {
+  LocalAppAgentWorkExecution execution = 1;
+}
+message GetLocalAppAgentWorkStatusRequest {
+  string agent_handle = 1;
+}
+message GetLocalAppAgentWorkStatusResponse {
+  bool busy = 1;
+  // Omitted for another App's execution or canonical chat.
+  optional string own_execution_id = 2;
+}
+message LocalAppAgentWorkToolCall {
+  string call_id = 1;
+  string execution_id = 2;
+  string name = 3;
+  string arguments_json = 4;
+}
+message ListLocalAppAgentWorkToolCallsRequest {
+  string agent_handle = 1;
+  string execution_id = 2;
+}
+message ListLocalAppAgentWorkToolCallsResponse {
+  repeated LocalAppAgentWorkToolCall calls = 1;
+}
+message SubmitLocalAppAgentWorkToolResultRequest {
+  string agent_handle = 1;
+  string execution_id = 2;
+  string call_id = 3;
+  string result_json = 4;
+  bool is_error = 5;
+}
+message SubmitLocalAppAgentWorkToolResultResponse {
+  string call_id = 1;
+}
+message CancelLocalAppAgentWorkRequest {
+  string agent_handle = 1;
+  string execution_id = 2;
+}
+message CancelLocalAppAgentWorkResponse {
+  LocalAppAgentWorkExecution execution = 1;
+}
+message SubscribeLocalAppAgentWorkEventsRequest {
+  string agent_handle = 1;
+  string execution_id = 2;
+  uint64 after_sequence = 3;
+}
+message LocalAppAgentWorkEvent {
+  string execution_id = 1;
+  uint64 sequence = 2;
+  oneof event {
+    LocalAppAgentWorkExecution snapshot = 3;
+    string text_delta = 4;
+    LocalAppAgentWorkToolCall tool_call = 5;
+  }
+}

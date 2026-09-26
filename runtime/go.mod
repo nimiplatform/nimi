@@ -7,6 +7,7 @@ require (
 	github.com/dlclark/regexp2 v1.11.0
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/golang-jwt/jwt/v5 v5.3.1
+	github.com/modelcontextprotocol/go-sdk v1.8.0
 	github.com/nimiplatform/nimi/nimi-cognition v0.0.0
 	github.com/oklog/ulid/v2 v2.1.2
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3

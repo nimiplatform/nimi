@@ -3,6 +3,31 @@ import { test } from 'node:test';
 import { createDesktopInstalledAppHost } from '../src-electron/installed-app-host.js';
 import type { NimiElectronInstalledAppControl } from '@nimiplatform/kit/shell/electron/main';
 import type { InstalledAppRun } from '../src/shell/shared/installed-app-types.js';
+import type { DesktopExecutorObservation } from '../src-electron/execution-notices-host.js';
+
+test('installed Host detects an idle executor exit without a renderer list request', async () => {
+  let running = true;
+  let launches = 0;
+  let observedExit!: () => void;
+  const exited = new Promise<void>(resolve => { observedExit = resolve; });
+  const control: NimiElectronInstalledAppControl = {
+    launch: async () => { launches++; return { launchId: '11'.repeat(32), processId: 123, appId: 'example.app', version: '1' }; },
+    status: async () => ({ running, exitCode: running ? null : 17 }),
+    access: async () => ({ available: true, reasonCode: 'ACTION_EXECUTED', executionScopeRef: `execution_scope_${'A'.repeat(43)}` }),
+    focus: async () => undefined, stop: async () => { running = false; }, end: async () => undefined,
+    completeUninstall: async () => undefined,
+  };
+  const host = createDesktopInstalledAppHost(control, undefined, value => {
+    if (value.state === 'stopped') { assert.equal(value.displayName, 'example.app'); observedExit(); }
+  });
+  await host.launchSelector(Uint8Array.from([1, 2, 3]));
+  running = false;
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([exited, new Promise<never>((_, reject) => { timeout = setTimeout(() => reject(new Error('idle executor exit not observed')), 4000); })]);
+    assert.equal(launches, 1, 'technical observation never launches an App');
+  } finally { if (timeout) clearTimeout(timeout); await host.shutdown(); }
+});
 
 test('installed host keeps exact process, focus, stop and Access independent', async () => {
   const selector = [...new TextEncoder().encode('opaque-committed-selector')];
@@ -12,7 +37,7 @@ test('installed host keeps exact process, focus, stop and Access independent', a
   let running = false;
   let access = false;
   let accessPending = false;
-  let resolveAccess: ((value: { available: boolean; reasonCode: string }) => void) | undefined;
+  let resolveAccess: ((value: { available: boolean; reasonCode: string; executionScopeRef: string }) => void) | undefined;
   const control: NimiElectronInstalledAppControl = {
     async launch(bytes) { assert.deepEqual([...bytes], selector); launches += 1; running = true; return { launchId: '11'.repeat(32), processId: 123, appId: 'example', version: '1.0.0' }; },
     async status() { return { running, exitCode: running ? null : 0 }; },
@@ -22,7 +47,7 @@ test('installed host keeps exact process, focus, stop and Access independent', a
     async completeUninstall() { assert.equal(running, false); },
     async access() {
       if (accessPending) return new Promise((resolve) => { resolveAccess = resolve; });
-      return { available: access, reasonCode: access ? 'ACTION_EXECUTED' : 'LOCAL_APP_SESSION_REVOKED' };
+      return { available: access, reasonCode: access ? 'ACTION_EXECUTED' : 'LOCAL_APP_SESSION_REVOKED', executionScopeRef: access ? `execution_scope_${'A'.repeat(43)}` : '' };
     },
   };
   const host = createDesktopInstalledAppHost(control);
@@ -33,6 +58,7 @@ test('installed host keeps exact process, focus, stop and Access independent', a
   assert.equal('launchId' in run, false);
   assert.equal('processId' in run, false);
   assert.equal('executablePath' in run, false);
+  assert.equal('executionScopeRef' in run, false);
   await call('installed_app_launch');
   assert.equal(launches, 1);
   assert.equal(focuses, 1);
@@ -64,13 +90,35 @@ test('installed host keeps exact process, focus, stop and Access independent', a
   run = await call('installed_app_stop') as InstalledAppRun;
   assert.equal(run.state, 'stopped');
   assert.equal(run.accessAvailable, false);
-  resolveAccess({ available: true, reasonCode: 'ACTION_EXECUTED' });
+  resolveAccess({ available: true, reasonCode: 'ACTION_EXECUTED', executionScopeRef: `execution_scope_${'A'.repeat(43)}` });
   const afterStop = await stalePoll as InstalledAppRun[];
   assert.equal(afterStop[0]?.state, 'stopped');
   assert.equal(afterStop[0]?.accessAvailable, false);
   await assert.rejects(() => host.commandHandlers.installed_app_launch!({ payload: { payload: { launchSelector: selector, executablePath: 'caller.exe' } } }));
   assert.equal(launches, 1);
   await host.shutdown();
+});
+
+test('installed Host scopes stay private and unknown reads do not claim revocation', async () => {
+  const observations: DesktopExecutorObservation[] = [];
+  let scope = 'A'; let unknown = false;
+  const host = createDesktopInstalledAppHost({
+    launch: async () => ({ launchId: '11'.repeat(32), processId: 123, appId: 'example', version: '1' }),
+    status: async () => ({ running: true, exitCode: null }),
+    access: async () => unknown ? { available: false, reasonCode: 'LOCAL_APP_OWNER_UNAVAILABLE', executionScopeRef: '' }
+      : { available: true, reasonCode: 'ACTION_EXECUTED', executionScopeRef: `execution_scope_${scope.repeat(43)}` },
+    focus: async () => undefined, stop: async () => undefined, end: async () => undefined, completeUninstall: async () => undefined,
+  }, undefined, value => observations.push(value));
+  try {
+    await host.launchSelector(Uint8Array.from([5]));
+    unknown = true;
+    await host.commandHandlers.installed_app_runs_list!({ payload: {} });
+    unknown = false; scope = 'B';
+    const projected = await host.commandHandlers.installed_app_runs_list!({ payload: {} });
+    assert.deepEqual(observations.map(row => row.state), ['running', 'scope-unknown', 'running']);
+    assert.equal(observations[2]?.executionScopeRef, `execution_scope_${'B'.repeat(43)}`);
+    assert.equal(JSON.stringify(projected).includes('execution_scope_'), false);
+  } finally { await host.shutdown(); }
 });
 
 test('installed host preserves an abnormal exit across later polls and resets it on relaunch', async () => {
@@ -84,7 +132,7 @@ test('installed host preserves an abnormal exit across later polls and resets it
     async stop() { running = false; tracked = false; },
     async end() {},
     async completeUninstall() {},
-    async access() { return { available: false, reasonCode: 'LOCAL_APP_SESSION_REVOKED' }; },
+    async access() { return { available: false, reasonCode: 'LOCAL_APP_SESSION_REVOKED', executionScopeRef: '' }; },
   };
   const host = createDesktopInstalledAppHost(control);
   const payload = { payload: { launchSelector: [1] } };
@@ -126,7 +174,7 @@ for (const retryVia of ['poll', 'launch', 'shutdown'] as const) {
         lease = null;
       },
       async focus() {},
-      async access() { return { available: false, reasonCode: 'LOCAL_APP_SESSION_REVOKED' }; },
+      async access() { return { available: false, reasonCode: 'LOCAL_APP_SESSION_REVOKED', executionScopeRef: '' }; },
       async completeUninstall() {},
     };
     const host = createDesktopInstalledAppHost(control);
@@ -181,7 +229,7 @@ test('relaunch keeps its captured lease while an overlapping poll completes clea
       if (id === lease) lease = null;
     },
     async focus() {},
-    async access() { return { available: false, reasonCode: 'LOCAL_APP_SESSION_REVOKED' }; },
+    async access() { return { available: false, reasonCode: 'LOCAL_APP_SESSION_REVOKED', executionScopeRef: '' }; },
     async completeUninstall() {},
   };
   const host = createDesktopInstalledAppHost(control);
@@ -212,7 +260,7 @@ test('installed launches share the data-root gate and a queued launch never outl
     async stop() { running = false; },
     async end() {},
     async completeUninstall() {},
-    async access() { return { available: false, reasonCode: 'LOCAL_APP_SESSION_REVOKED' }; },
+    async access() { return { available: false, reasonCode: 'LOCAL_APP_SESSION_REVOKED', executionScopeRef: '' }; },
   };
   const gate = createDesktopDataRootOperationGate();
   const host = createDesktopInstalledAppHost(control, gate);

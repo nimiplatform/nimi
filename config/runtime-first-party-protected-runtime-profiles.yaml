@@ -86,6 +86,7 @@ profiles:
       # Formal App session mechanics. Product coverage remains release/EAS-owned.
       - method_id: /nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession
       - method_id: /nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession
+      - method_id: /nimi.runtime.v1.RuntimeAuthService/RebindLocalAppSession
       - method_id: /nimi.runtime.v1.RuntimeAiService/GetAppAIConfig
       - method_id: /nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig
       - method_id: /nimi.runtime.v1.RuntimeAiService/ListAppAIConfigOptions
@@ -197,6 +198,7 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentRealtimeStatus
       - method_id: /nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppAgentRealtimeOutput
       - method_id: /nimi.runtime.v1.RuntimeAgentService/CloseLocalAppAgentRealtime
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentIntroduction
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference
       # Host-private Avatar target correlation; never projected to the Desktop renderer.
@@ -206,8 +208,6 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAgentService/RevalidateLocalAppAvatarHostTarget
       - method_id: /nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation
       - method_id: /nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppConversationToolCalls
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppConversationToolResult
       - method_id: /nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact
       - method_id: /nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppConversationVoice
@@ -229,6 +229,20 @@ profiles:
       # Desktop-Host-private exact source launch resolution for a pending
       # activity open request; never projected to the Desktop renderer.
       - method_id: /nimi.runtime.v1.RuntimeAppActivityService/ResolveAppActivityOpenLaunch
+      - method_id: /nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationCatalog
+      - method_id: /nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationConnections
+      - method_id: /nimi.runtime.v1.RuntimeIntegrationService/InvokeIntegrationCall
+      - method_id: /nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationCall
+      - method_id: /nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationCalls
+      - method_id: /nimi.runtime.v1.RuntimeIntegrationService/CancelIntegrationCall
+      - method_id: /nimi.runtime.v1.RuntimeIntegrationService/RegisterIntegrationProvider
+      - method_id: /nimi.runtime.v1.RuntimeIntegrationService/UnregisterIntegrationProvider
+      - method_id: /nimi.runtime.v1.RuntimeIntegrationService/PollIntegrationProvider
+      - method_id: /nimi.runtime.v1.RuntimeIntegrationService/CompleteIntegrationProvider
+      - method_id: /nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationManagement
+      - method_id: /nimi.runtime.v1.RuntimeIntegrationService/PutIntegrationConnection
+      - method_id: /nimi.runtime.v1.RuntimeIntegrationService/RemoveIntegrationConnection
+      - method_id: /nimi.runtime.v1.RuntimeIntegrationService/SetIntegrationPermission
   - profile_id: bundled_avatar_v1
     identity_class: avatar
     app_id: nimi.avatar
@@ -240,6 +254,7 @@ profiles:
       # Formal App session mechanics carry no Avatar entitlement.
       - method_id: /nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession
       - method_id: /nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession
+      - method_id: /nimi.runtime.v1.RuntimeAuthService/RebindLocalAppSession
       - method_id: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary
         capability: realm.data
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset
@@ -326,6 +341,8 @@ profiles:
         capability: agent.configure
       # Avatar uses the same canonical App-facing Conversation contract as
       # every formal App.
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentIntroduction
+        capability: agent.local
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences
         capability: agent.local
       # Host-private target correlation is carried by the supervised Avatar
@@ -335,10 +352,6 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation
         capability: agent.local
       - method_id: /nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn
-        capability: agent.local
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppConversationToolCalls
-        capability: agent.local
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppConversationToolResult
         capability: agent.local
       - method_id: /nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment
         capability: agent.local

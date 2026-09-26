@@ -58,12 +58,13 @@ const unavailable = Object.freeze({
   localAgents: Object.freeze([]),
 });
 
-test('Zhiyu manifest declares Conversation and Agent Center without broad AI consume coverage', () => {
+test('Zhiyu manifest declares Conversation, Agent Center and published Activity without broad AI consume coverage', () => {
   const manifest = readFileSync(path.join(root, 'nimi.app.yaml'), 'utf8');
   assert.match(manifest, /^app_access:/mu);
   assert.doesNotMatch(manifest, /^\s+- runtime\.consume$/mu);
   assert.match(manifest, /^\s+- agent\.local$/mu);
   assert.match(manifest, /^\s+- agent\.configure$/mu);
+  assert.match(manifest, /^\s+- app\.activity$/mu);
   assert.doesNotMatch(manifest, /^permissions:/mu);
   assert.doesNotMatch(manifest, /^\s+reason:/mu);
 });

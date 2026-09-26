@@ -25,6 +25,14 @@ export enum LocalAppAgentAutonomyMode {
   HIGH = 4,
 }
 
+export enum LocalAppAgentIntroductionTopicKind {
+  UNSPECIFIED = 0,
+  ROLE = 1,
+  WORK = 2,
+  RELATIONSHIP = 3,
+  TOPIC = 4,
+}
+
 export enum LocalAppAgentManagerActionAvailabilityState {
   UNSPECIFIED = 0,
   AVAILABLE = 1,
@@ -54,6 +62,15 @@ export enum LocalAppAgentManagerProductAction {
   MEMORY_DELETE = 9,
   APPEARANCE_COMMIT = 10,
   APPEARANCE_RESTORE = 11,
+}
+
+export enum LocalAppAgentWorkState {
+  UNSPECIFIED = 0,
+  RUNNING = 1,
+  WAITING_TOOL = 2,
+  SUCCEEDED = 3,
+  FAILED = 4,
+  CANCELLED = 5,
 }
 
 export enum LocalAppConversationActionStatus {

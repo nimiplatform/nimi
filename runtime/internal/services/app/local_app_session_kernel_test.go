@@ -52,88 +52,48 @@ func TestInstalledPackageTrustComesFromCommittedSource(t *testing.T) {
 }
 
 func TestLocalAppSessionInvalidationAndSameHostRebind(t *testing.T) {
-	fixture := newLocalAppSessionFixture(t, nil)
-	ctx := fixture.context
-
-	if _, err := fixture.service.OpenLocalAppSessionProjection(ctx); err != nil {
-		t.Fatalf("open protected session: %v", err)
+	for _, kind := range []string{"declaration", "source", "account"} {
+		t.Run(kind, func(t *testing.T) {
+			f := newLocalAppSessionFixture(t, nil)
+			if _, err := f.service.OpenLocalAppSessionProjection(f.context); err != nil {
+				t.Fatal(err)
+			}
+			first, _ := f.connection.Session()
+			admitted, err := f.service.AuthorizeLocalAppIngress(f.context, localappop.IngressStorageJSONRead)
+			if err != nil {
+				t.Fatal(err)
+			}
+			switch kind {
+			case "declaration":
+				f.registrationInput.RawDeclaration = []string{"realm.data"}
+				if _, err := f.kernel.Registrations().RegisterDevelopment(f.context, f.registrationInput); err != nil {
+					t.Fatal(err)
+				}
+			case "source":
+				f.registrationInput.HostExecutableDigest = "host-digest-2"
+				if _, err := f.kernel.Registrations().RegisterDevelopment(f.context, f.registrationInput); err != nil {
+					t.Fatal(err)
+				}
+			case "account":
+				f.account.replace("account-2", "realm-2")
+			}
+			if _, err := f.service.RenewLocalAppSessionProjection(f.context); err == nil {
+				t.Fatal("renewal silently replaced an invalidated scope")
+			}
+			current, _ := f.connection.Session()
+			if current != first || !f.connection.Live() || f.connection.Process().PID != f.process.PID {
+				t.Fatal("rejected renewal changed the session or terminated the Host")
+			}
+			select {
+			case <-admitted.Done():
+			case <-time.After(time.Second):
+				t.Fatal("old admitted scope remained active")
+			}
+			if _, err := f.service.OpenLocalAppSessionProjection(f.context); err == nil {
+				t.Fatal("old bound connection was bootstrapped again")
+			}
+		})
 	}
-	firstHandle, ok := fixture.connection.Session()
-	if !ok {
-		t.Fatal("protected connection has no private session handle")
-	}
-	if err := fixture.service.AdmitLocalAppIngress(ctx, localappop.IngressStorageJSONRead); err != nil {
-		t.Fatalf("Base admission with present empty snapshot: %v", err)
-	}
-	assertLocalAppReason(t, fixture.service.AdmitLocalAppIngress(ctx, localappop.IngressRealmWorldCoreList), runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
-	assertLocalAppReason(t, fixture.service.AdmitLocalAppIngress(ctx, localappop.IngressRealmPersonaCharacterReplace), runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
-	staleContext, err := fixture.service.AuthorizeLocalAppIngress(ctx, localappop.IngressStorageJSONRead)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	fixture.registrationInput.RawDeclaration = []string{"realm.data"}
-	updated, err := fixture.kernel.Registrations().RegisterDevelopment(ctx, fixture.registrationInput)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if updated.DeclarationGeneration != fixture.registration.DeclarationGeneration+1 {
-		t.Fatalf("declaration generation = %d", updated.DeclarationGeneration)
-	}
-	assertLocalAppReason(t, fixture.service.AdmitLocalAppIngress(ctx, localappop.IngressStorageJSONRead), runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
-	select {
-	case <-staleContext.Done():
-	case <-time.After(time.Second):
-		t.Fatal("declaration-generation mismatch did not close the stale authorized context")
-	}
-	if _, err := fixture.service.RenewLocalAppSessionProjection(ctx); err != nil {
-		t.Fatalf("same-Host declaration rebind: %v", err)
-	}
-	secondHandle, ok := fixture.connection.Session()
-	if !ok || secondHandle == firstHandle {
-		t.Fatal("declaration rebind did not replace the private session")
-	}
-	if !fixture.connection.Live() || fixture.connection.Process().PID != fixture.process.PID {
-		t.Fatal("declaration rebind replaced or terminated the verified Host")
-	}
-	if err := fixture.service.AdmitLocalAppIngress(ctx, localappop.IngressRealmWorldCoreList); err != nil {
-		t.Fatalf("rebound realm.data admission: %v", err)
-	}
-	if err := fixture.service.AdmitLocalAppIngress(ctx, localappop.IngressRealmPersonaCharacterReplace); err != nil {
-		t.Fatalf("rebound realm.data PersonaCharacter admission: %v", err)
-	}
-
-	fixture.registrationInput.HostExecutableDigest = "host-digest-2"
-	if _, err := fixture.kernel.Registrations().RegisterDevelopment(ctx, fixture.registrationInput); err != nil {
-		t.Fatal(err)
-	}
-	assertLocalAppReason(t, fixture.service.AdmitLocalAppIngress(ctx, localappop.IngressStorageJSONRead), runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
-	if _, err := fixture.service.RenewLocalAppSessionProjection(ctx); err != nil {
-		t.Fatalf("same-Host source-generation rebind: %v", err)
-	}
-	if !fixture.connection.Live() || fixture.connection.Process().PID != fixture.process.PID {
-		t.Fatal("source-generation rebind replaced or terminated the verified Host")
-	}
-
-	fixture.account.replace("account-2", "realm-2")
-	assertLocalAppReason(t, fixture.service.AdmitLocalAppIngress(ctx, localappop.IngressStorageJSONRead), runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED)
-	if _, err := fixture.service.RenewLocalAppSessionProjection(ctx); err != nil {
-		t.Fatalf("same-Host account rebind: %v", err)
-	}
-	thirdHandle, ok := fixture.connection.Session()
-	if !ok || thirdHandle == secondHandle || !fixture.connection.Live() {
-		t.Fatal("account rebind did not replace only the private session")
-	}
-	if err := fixture.service.AdmitLocalAppIngress(ctx, localappop.IngressStorageJSONRead); err != nil {
-		t.Fatalf("Base admission after account rebind: %v", err)
-	}
-
-	restarted := New(nil,
-		WithRuntimeAccountProjectionProvider(fixture.account),
-		WithLocalAppKernel(fixture.kernel),
-		WithLocalAppSessionRuntime(bytes.NewReader(sessionTestEntropy()), time.Minute),
-	)
-	assertLocalAppReason(t, restarted.AdmitLocalAppIngress(ctx, localappop.IngressStorageJSONRead), runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
 }
 
 func TestLocalAppSessionRenewalPreservesPreviouslyAuthorizedStreamContext(t *testing.T) {
@@ -212,12 +172,12 @@ func TestLocalAppSessionRenewalUsesCurrentExpiryAndStillExpires(t *testing.T) {
 		t.Fatal("a session without further renewal did not expire")
 	}
 	expiredHandle, _ := fixture.connection.Session()
-	if _, err := fixture.service.RenewLocalAppSessionProjection(fixture.context); err != nil {
-		t.Fatal(err)
+	if _, err := fixture.service.RenewLocalAppSessionProjection(fixture.context); err == nil {
+		t.Fatal("renewal replaced an expired scope")
 	}
-	reboundHandle, _ := fixture.connection.Session()
-	if reboundHandle == expiredHandle {
-		t.Fatal("renewal revived the expired technical session")
+	after, _ := fixture.connection.Session()
+	if after != expiredHandle {
+		t.Fatal("rejected renewal rotated the expired session")
 	}
 	select {
 	case <-authorized.Done():
@@ -381,8 +341,6 @@ func TestLocalAppSessionOwnerHandoffContainsOnlyRuntimeDerivedAdmission(t *testi
 			operation: accountservice.LocalAppOperationPersonaDelete,
 			class:     localappop.AuthorityClassAppAccess, capability: localappop.AppOperationIDPersonaDelete,
 		},
-		localappop.IngressConversationToolCallsList:    {operation: localappop.OperationConversationToolCallsList, class: localappop.AuthorityClassAppAccess, capability: "agent.local"},
-		localappop.IngressConversationToolResultSubmit: {operation: localappop.OperationConversationToolResultSubmit, class: localappop.AuthorityClassAppAccess, capability: "agent.local"},
 		localappop.IngressConversationOpen: {
 			operation: accountservice.LocalAppOperationOpenConversation,
 			class:     localappop.AuthorityClassAppAccess, capability: "agent.local",
@@ -587,7 +545,7 @@ type localAppSessionFixture struct {
 	now                time.Time
 }
 
-func newLocalAppSessionFixture(t testing.TB, domains []string) localAppSessionFixture {
+func newLocalAppSessionFixture(t testing.TB, domains []string, extraOptions ...Option) localAppSessionFixture {
 	t.Helper()
 	ctx := context.Background()
 	identity, err := localappkernel.ValidateVerifiedMacOSInteractiveUser(501, 42)
@@ -644,13 +602,14 @@ func newLocalAppSessionFixture(t testing.TB, domains []string) localAppSessionFi
 		},
 	}}
 	account := newLocalAppSessionTestAccount("account-1", "realm-1")
-	service := New(nil,
+	options := []Option{
 		WithClock(func() time.Time { return now }),
 		WithRuntimeAccountProjectionProvider(account),
 		WithLocalDevelopmentAuthority(store, nil, nil, nil),
 		WithLocalAppKernel(kernel),
 		WithLocalAppSessionRuntime(bytes.NewReader(sessionTestEntropy()), time.Minute),
-	)
+	}
+	service := New(nil, append(options, extraOptions...)...)
 	return localAppSessionFixture{
 		service: service, kernel: kernel, account: account, connection: connection,
 		context: protectedlocal.ContextWithLocalAppConnection(ctx, connection), process: process,
@@ -754,4 +713,40 @@ func sessionTestEntropy() []byte {
 		result[index] = byte(index%251 + 1)
 	}
 	return result
+}
+
+func TestIndependentWorkAndIntegrationDeclarationDoNotGrantChat(t *testing.T) {
+	fixture := newLocalAppSessionFixture(t, []string{"agent.work", "integration.consume", "integration.provide", "integration.manage"})
+	if _, err := fixture.service.OpenLocalAppSessionProjection(fixture.context); err != nil {
+		t.Fatal(err)
+	}
+	for _, ingress := range []localappop.Ingress{localappop.IngressAgentWorkReferenceList, localappop.IngressAgentWorkStart, localappop.IngressAgentWorkGet, localappop.IngressAgentWorkStatusGet, localappop.IngressAgentWorkToolCallsList, localappop.IngressAgentWorkToolResultSubmit, localappop.IngressAgentWorkCancel, localappop.IngressAgentWorkEventsSubscribe, localappop.IngressIntegrationCatalogList, localappop.IngressIntegrationCallInvoke, localappop.IngressIntegrationProviderRegister, localappop.IngressIntegrationPermissionSet} {
+		admitted, err := fixture.service.AuthorizeLocalAppIngress(fixture.context, ingress)
+		if err != nil {
+			t.Fatalf("new ingress %v: %v", ingress, err)
+		}
+		decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(admitted)
+		classification, _ := localappop.ClassifyIngress(ingress)
+		if !ok || decision.OperationCapability != string(classification.Domain) {
+			t.Fatalf("incorrect derived owner handoff %v", ingress)
+		}
+	}
+	for _, ingress := range []localappop.Ingress{localappop.IngressAgentIntroductionGet, localappop.IngressAgentReferenceList, localappop.IngressConversationOpen, localappop.IngressConversationSnapshotGet, localappop.IngressConversationEventsSubscribe} {
+		assertLocalAppReason(t, fixture.service.AdmitLocalAppIngress(fixture.context, ingress), runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+	}
+}
+
+func TestOrdinaryAppIntroductionAdmissionUsesAgentLocal(t *testing.T) {
+	fixture := newLocalAppSessionFixture(t, []string{"agent.local"})
+	if _, err := fixture.service.OpenLocalAppSessionProjection(fixture.context); err != nil {
+		t.Fatal(err)
+	}
+	ctx, err := fixture.service.AuthorizeLocalAppIngress(fixture.context, localappop.IngressAgentIntroductionGet)
+	if err != nil {
+		t.Fatal(err)
+	}
+	decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx)
+	if !ok || decision.Operation != localappop.OperationAgentIntroductionGet || decision.OperationCapability != "agent.local" {
+		t.Fatalf("unexpected introduction admission: %+v", decision)
+	}
 }

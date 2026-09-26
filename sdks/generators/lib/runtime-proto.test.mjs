@@ -8,7 +8,7 @@ import {
   projectRuntimeForNonHostPublicSdks,
 } from './runtime-proto.mjs';
 
-test('non-Host public SDK projection hard-cuts Avatar Host methods and messages', () => {
+test('non-Host public SDK projection hard-cuts private Avatar and execution access methods and messages', () => {
   const runtime = extractRuntimeProto();
   const projected = projectRuntimeForNonHostPublicSdks(runtime);
   const rawMethods = new Set(runtime.method_ids);

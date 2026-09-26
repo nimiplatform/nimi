@@ -216,11 +216,11 @@ units:
         target: definition.nimi.runtime.rpc-foundations.error-plane
   - id: rule.nimi.runtime.rpc-foundations.r019
     kind: rule
-    title: Deferred services do not enter readiness
+    title: Deferred services and integration adapters do not enter core readiness
     modality: must
-    statement: General Workflow, MCP, and World Evolution have no current Runtime core method family, activation gate, reason family, or readiness prerequisite and remain deferred and non-blocking.
+    statement: General Workflow and World Evolution have no current Runtime core method family, activation gate, reason family or readiness prerequisite and remain deferred. MCP may implement a selected Integration adapter under the Integration owner after exact public-carrier admission and real implementation; it introduces no raw MCP core method family or ordinary Runtime readiness dependency.
     condition: Whenever Runtime protocol or readiness capabilities are declared.
-    failure: Keep the capability unavailable until a separate product authority admits it.
+    failure: Keep an unadmitted or unimplemented service or adapter unavailable without blocking ordinary Runtime readiness or inferring protocol support.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.rpc-foundations.error-plane

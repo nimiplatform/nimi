@@ -64,7 +64,7 @@ async function* runCanonicalDesktopAgentTurn(input: {
     const runtimeTurnId = accepted.turnId;
 	interrupt = () => {
 		interrupted = true;
-		void input.conversation.interruptTurn(scope).catch(() => undefined);
+		void input.conversation.interruptTurn({ ...scope, expectedTurnId: runtimeTurnId }).catch(() => undefined);
 	};
 	input.signal?.addEventListener('abort', interrupt, { once: true });
 	if (input.signal?.aborted) interrupt();

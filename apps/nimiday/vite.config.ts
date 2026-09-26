@@ -7,7 +7,7 @@ export default defineConfig({
   cacheDir: '.vite',
   plugins: [react(), tailwindcss()],
   server: {
-    watch: { ignored: ['**/.nimi/local/**', '**/dist/**', '**/dist-electron/**', '**/dist-electron-package/**'] },
+    watch: { ignored: ['**/.nimi/local/**', '**/dist/**', '**/dist-electron/**', '**/dist-electron-package/**', '**/.dist-electron-package.staging-*/**', '**/.dist-electron-package.previous-*/**'] },
   },
   resolve: {
     dedupe: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime'],

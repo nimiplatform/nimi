@@ -96,3 +96,8 @@ export type {
   ChatComposerMediaAction,
   ChatComposerVoiceState,
 } from './types.js';
+
+export { AgentActivityReferences, type AgentActivityReferencesProps } from './components/agent-activity-references.js';
+
+export { AgentIntroduction } from './components/agent-introduction.js';
+export type { AgentIntroductionProps } from './components/agent-introduction.js';

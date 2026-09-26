@@ -136,8 +136,6 @@ export {
   removeNimiLocalAppStorageJson,
   openNimiLocalAppAssetMediaUrl,
   sendNimiLocalAppConversationTurn,
-  listNimiLocalAppConversationToolCalls,
-  submitNimiLocalAppConversationToolResult,
   subscribeNimiLocalAppConversation,
   commitNimiLocalAppAgentPresentation,
   updateNimiLocalAppAgentAutonomy,

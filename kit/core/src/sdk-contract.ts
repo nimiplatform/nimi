@@ -297,6 +297,7 @@ export {
   createNimiLocalAppAIConsumptionRuntimeClient,
   createNimiLocalAppAgentConfigureRuntimeShell,
   createNimiLocalAppAgentReferencesRuntimeClient,
+  createNimiLocalAppAgentIntroductionRuntimeClient,
   createNimiLocalAppConversationRuntimeClient,
   createNimiLocalAppEmbodimentRuntimeClient,
   createNimiLocalAppActivityRuntimeShell,
@@ -357,7 +358,6 @@ export type {
   NimiLocalAppAgentPresentationProfile,
   NimiLocalAppAgentPresentationProjection,
   NimiLocalAppConversationClient,
-  NimiLocalAppConversationWork,
   NimiLocalAppConversationEvent,
   NimiLocalAppConversationInputPart,
   NimiLocalAppConversationMessage,
@@ -385,7 +385,6 @@ export { validateNimiLocalAppMusicGenerateSpec, validateNimiLocalAppMusicGenerat
 export { projectMusicInputCapabilities, type NimiMusicInputCapabilities, type NimiMusicGenerationInputProfile, type NimiMusicTranscriptionInputProfile, type NimiVoiceConvertInputProfile } from '@nimiplatform/sdk/app';
 export { validateNimiLocalAppMusicTranscribeSpec, validateNimiLocalAppMusicTranscription, type NimiLocalAppMusicTranscribeSpec, type NimiLocalAppMusicTranscription } from '@nimiplatform/sdk/app';
 export { validateNimiLocalAppVoiceConvertSpec, validateNimiLocalAppVoiceConversion, type NimiLocalAppVoiceConvertSpec, type NimiLocalAppVoiceConversion, type NimiLocalAppVoiceConvertTargetVoice, type NimiLocalAppVoiceConvertSource, type NimiVoiceConvertSourceKind, type NimiVoiceConvertTargetKind, type NimiVoiceConversionLengthRelation } from '@nimiplatform/sdk/app';
-export { validateNimiLocalAppConversationWork } from '@nimiplatform/sdk';
 export {
   nimiLocalAppTextDecideSpecFromShell,
   validateNimiLocalAppTextDecideOutput,
@@ -396,3 +395,15 @@ export {
   type NimiLocalAppTextDecideShellSpec,
   type NimiLocalAppTextDecideSpec,
 } from '@nimiplatform/sdk/app';
+
+export { createNimiLocalAppAgentWorkClient, createNimiLocalAppAgentWorkRuntimeClient, validateNimiLocalAppAgentWorkStart, validateNimiLocalAppAgentWorkScope, validateNimiLocalAppAgentWorkToolResult, validateNimiLocalAppAgentWorkSubscribe } from '@nimiplatform/sdk';
+export type { NimiLocalAppAgentWorkClient, NimiLocalAppAgentWorkShell, NimiLocalAppAgentWorkStartInput, NimiLocalAppAgentWorkScope, NimiLocalAppAgentWorkSubscribeInput, NimiLocalAppAgentWorkToolResultInput } from '@nimiplatform/sdk';
+
+export { createNimiLocalAppIntegrationClient, createNimiLocalAppIntegrationRuntimeClient, createNimiLocalAppIntegrationRuntimeShell, validateNimiLocalAppIntegrationInput } from '@nimiplatform/sdk';
+export type { NimiLocalAppIntegrationClient, NimiLocalAppIntegrationShell, NimiLocalAppIntegrationMethod } from '@nimiplatform/sdk';
+
+export { createNimiLocalAppWorldCoreClient, createNimiLocalAppActivityClient } from '@nimiplatform/sdk';
+
+export type { NimiAppActivityRecord, NimiLocalAppActivityClient, NimiAppActivityView, NimiAppActivityViewSnapshot } from '@nimiplatform/sdk/app';
+
+export type { NimiLocalAppAgentIntroduction, NimiLocalAppAgentIntroductionTopic, NimiLocalAppAgentIntroductionClient } from '@nimiplatform/sdk/app';

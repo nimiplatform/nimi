@@ -198,6 +198,7 @@ export function CanonicalTranscriptView({
   useLayoutEffect(() => {
     cancelInitialPin();
     didInitialScrollRef.current = false;
+    if (scrollRootRef.current) scrollRootRef.current.scrollTop = 0;
     nearBottomRef.current = true;
     previousRenderStateRef.current = {
       messageCount: 0,
@@ -238,7 +239,7 @@ export function CanonicalTranscriptView({
         initialPinReleaseTimerRef.current = null;
       }, INITIAL_TRANSCRIPT_PIN_SETTLE_MS);
       root.scrollTop = root.scrollHeight;
-    } else if (transcriptChanged && (nearBottomRef.current || ownMessageAppended)) {
+    } else if (!showEmptyState && transcriptChanged && (nearBottomRef.current || ownMessageAppended)) {
       root.scrollTop = root.scrollHeight;
     }
     const nextNearBottom = isNearBottom(root);
@@ -251,12 +252,12 @@ export function CanonicalTranscriptView({
       footerVisible,
     };
     onNearBottomChange?.(nextNearBottom);
-  }, [activeConversationId, footerVisible, lastMessage?.id, lastMessage?.updatedAt, loading, messages.length, onNearBottomChange, pendingFirstBeat]);
+  }, [activeConversationId, footerVisible, lastMessage?.id, lastMessage?.updatedAt, loading, messages.length, onNearBottomChange, pendingFirstBeat, showEmptyState]);
 
   useLayoutEffect(() => {
     const root = scrollRootRef.current;
     const contentRoot = contentRootRef.current;
-    if (!root || !contentRoot || typeof ResizeObserver === 'undefined') {
+    if (showEmptyState || !root || !contentRoot || typeof ResizeObserver === 'undefined') {
       return;
     }
     const observer = new ResizeObserver(() => {
@@ -283,7 +284,7 @@ export function CanonicalTranscriptView({
     });
     observer.observe(contentRoot);
     return () => observer.disconnect();
-  }, [onNearBottomChange]);
+  }, [onNearBottomChange, showEmptyState]);
 
   return (
     <div className="min-h-0 flex flex-1 overflow-hidden pl-6 pr-2 pt-0">

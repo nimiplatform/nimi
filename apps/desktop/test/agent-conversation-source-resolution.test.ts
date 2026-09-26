@@ -226,12 +226,10 @@ function sourceTargetSdk(reference: { agentHandle: string; displayName: string; 
   const base = createAgentTargetSdkStub({ conversationAnchorId: 'anchor-b', summariesByLocalAgentRef: {} });
   return {
     ...base,
-    accountProduct: () => ({ agents: {
-      resolveDesktopAgentReference: async ({ localAgentRef }: { localAgentRef: string }) => {
-        lookedUp.push(localAgentRef);
-        return { reference };
-      },
-    } }),
+    resolveDesktopAgentReference: async ({ localAgentRef }: { localAgentRef: string }) => {
+      lookedUp.push(localAgentRef);
+      return { reference };
+    },
     appProduct: () => ({ agents: { listReferences: async () => { throw new Error('must not enumerate App references'); } } }),
     conversation: () => ({ open: async ({ agentHandle }: { agentHandle: string }) => {
       opened.push(agentHandle);

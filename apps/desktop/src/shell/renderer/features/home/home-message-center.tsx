@@ -1,3 +1,4 @@
+import { HomeExecutionNotices } from './execution-notices.js';
 import { Button, LoadingSkeleton, PillTabs, SelectField } from '@nimiplatform/kit/ui';
 import { ArrowLeft, Inbox } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -118,6 +119,7 @@ export function HomeMessageCenter({ messages, context, filter, sourceKey, onFilt
         />
       </div>
 
+      <HomeExecutionNotices />
       <HomeMessageSourceNotices messages={messages} app={appRelevant} realm={realmRelevant} />
 
       <div className="flex flex-col gap-2.5" data-testid="home-message-center-list">

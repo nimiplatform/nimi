@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { ReasonCode } from '@nimiplatform/kit/core/sdk-contract';
 
@@ -10,6 +10,13 @@ import {
 } from '../src/main/desktop-control-host.js';
 import { invokeElectronRuntimeUnary } from '../src/main/runtime.js';
 import type { RuntimeGrpcBridgeClient } from '../src/main/types.js';
+import { createNimiElectronFormalAppLocalHost } from '../src/main/formal-app-local-host.js';
+import { dispatchElectronLocalAppCommand } from '../src/main/local-app-commands.js';
+import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
+import { LocalAppSessionState, ReasonCode as RuntimeReasonCode } from '@nimiplatform/sdk/runtime/generated';
+import { OpenLocalAppSessionResponse } from '../../../../sdks/typescript/core-generated/runtime-protobuf/runtime/v1/auth.js';
+import { toSerializedElectronShellError } from '../src/main/errors.js';
+import { toShellBridgeNimiError } from '../../renderer/src/bridge/nimi-error.js';
 
 const MACHINE_METHOD = '/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord';
 const ACCOUNT_METHOD = '/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource';
@@ -70,6 +77,111 @@ function unusedPublicClient(onUnary?: () => void): RuntimeGrpcBridgeClient {
 }
 
 describe('Electron verified Desktop control host', () => {
+  it('carries the bounded Integration owner code through formal Home and renderer error details', async () => {
+    const sessionBytes = Uint8Array.from(OpenLocalAppSessionResponse.toBinary(OpenLocalAppSessionResponse.create({
+      state: LocalAppSessionState.READY, reasonCode: RuntimeReasonCode.ACTION_EXECUTED,
+      currentUserReasonCode: RuntimeReasonCode.CURRENT_USER_DISPLAY_UNAVAILABLE,
+    })));
+    const control = createNimiElectronDesktopControlHostForBinding(binding({
+      desktopAccountProductUnary: async ({ methodId }) => methodId.endsWith('/OpenLocalAppSession')
+        ? { status: 'ok', value: sessionBytes }
+        : { status: 'error', reasonCode: 'LOCAL_APP_OPERATION_UNAVAILABLE', retryable: false,
+          reasonMetadata: { integration_reason: 'INTEGRATION_TELEGRAM_BOT_ALREADY_CONNECTED' } },
+    }));
+    const host = createNimiElectronFormalAppLocalHost({ profile: 'desktop', appId: 'nimi.desktop', control });
+    await host.sessionStatus();
+    const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationPutConnection'];
+    const error = await dispatchElectronLocalAppCommand({ host, command,
+      payload: { targetRef: '', adapter: 'telegram', endpoint: '', displayName: 'Existing bot', accountLabel: 'Work', secret: 'fixture-secret' },
+    }).then(() => { throw new Error('expected owner rejection'); }, error => error);
+    const rendered = toShellBridgeNimiError(toSerializedElectronShellError(error));
+    expect(rendered.reasonCode).toBe('local-app-operation-unavailable');
+    expect(rendered.details).toMatchObject({ command, retryable: false,
+      reasonMetadata: { integration_reason: 'INTEGRATION_TELEGRAM_BOT_ALREADY_CONNECTED' } });
+    expect(rendered.message).toBe('local-app-operation-unavailable');
+  });
+
+  it.each([
+    ['AI_PROVIDER_UNAVAILABLE', 'INTEGRATION_PROVIDER_UNAVAILABLE'],
+    ['LOCAL_APP_OPERATION_UNAVAILABLE', 'INTEGRATION_FUTURE_REASON'],
+    ['LOCAL_APP_OPERATION_UNAVAILABLE', 'INTEGRATION_invalid'],
+    ['LOCAL_APP_OPERATION_UNAVAILABLE', 'INTEGRATION_ERROR: private detail'],
+    ['LOCAL_APP_OPERATION_UNAVAILABLE', `INTEGRATION_${'A'.repeat(81)}`],
+  ])('rejects Desktop Integration metadata outside its owner/code boundary: %s %s', async (reasonCode, value) => {
+    const host = createNimiElectronDesktopControlHostForBinding(binding({ desktopAccountProductUnary: async () => ({
+      status: 'error', reasonCode, retryable: false, reasonMetadata: { integration_reason: value },
+    }) }));
+    await expect(host.accountProductUnary({ methodId: ACCOUNT_METHOD, requestBytes: new Uint8Array() }))
+      .rejects.toMatchObject({ reasonCode, reasonMetadata: {} });
+  });
+
+  it.each(['account', 'avatar'] as const)('waits for pending native %s Open and acknowledged Close before resolving the private stream barrier', async (profile) => {
+    let open!: (value: { status: 'ok'; value: { streamId: string } }) => void;
+    let close!: (value: { status: 'ok'; value: { closed: boolean } }) => void;
+    const nativeOpen = vi.fn(() => new Promise<{ status: 'ok'; value: { streamId: string } }>(resolve => { open = resolve; }));
+    const nativeClose = vi.fn(() => new Promise<{ status: 'ok'; value: { closed: boolean } }>(resolve => { close = resolve; }));
+    const nativeNext = vi.fn();
+    const host = createNimiElectronDesktopControlHostForBinding(binding({
+      desktopAccountProductStreamOpen: nativeOpen, desktopBundledAvatarStreamOpen: nativeOpen,
+      desktopFirstPartyProductStreamClose: nativeClose, desktopBundledAvatarStreamClose: nativeClose,
+      desktopFirstPartyProductStreamNext: nativeNext, desktopBundledAvatarStreamNext: nativeNext,
+    }));
+    const request = { methodId: '/nimi.runtime.v1.RuntimeAiService/StreamLocalAppTextTurn', requestBytes: new Uint8Array() };
+    const stream = profile === 'account' ? host.accountProductServerStream(request) : host.bundledAvatarServerStream(request);
+    const handlers = { onData: vi.fn(), onError: vi.fn(), onEnd: vi.fn() };
+    let settled = false; void stream.closed.then(() => { settled = true; });
+    stream.start(handlers); stream.cancel();
+    await Promise.resolve(); expect(settled).toBe(false); expect(nativeOpen).toHaveBeenCalledOnce();
+    open({ status: 'ok', value: { streamId: 'old-open' } });
+    await vi.waitFor(() => expect(nativeClose).toHaveBeenCalledWith({ streamId: 'old-open' }));
+    expect(settled).toBe(false);
+    close({ status: 'ok', value: { closed: true } }); await stream.closed;
+    expect(nativeNext).not.toHaveBeenCalled(); expect(handlers.onData).not.toHaveBeenCalled();
+  });
+
+  it('never starts a native stream canceled before the first consumer poll', async () => {
+    const open = vi.fn(binding().desktopAccountProductStreamOpen);
+    const host = createNimiElectronDesktopControlHostForBinding(binding({ desktopAccountProductStreamOpen: open }));
+    const stream = host.accountProductServerStream({ methodId: SCENARIO_STREAM_METHOD, requestBytes: new Uint8Array() });
+    stream.cancel(); await stream.closed;
+    stream.start({ onData: vi.fn(), onError: vi.fn(), onEnd: vi.fn() });
+    expect(open).not.toHaveBeenCalled();
+  });
+
+  it('keeps failed native Close unconfirmed and drops frames that arrive after cancellation', async () => {
+    for (const accepted of [true, false]) {
+      let next!: (value: { status: 'ok'; completed: boolean; value: Uint8Array }) => void;
+      const nativeNext = vi.fn(() => new Promise<{ status: 'ok'; completed: boolean; value: Uint8Array }>(resolve => { next = resolve; }));
+      const host = createNimiElectronDesktopControlHostForBinding(binding({
+        desktopAccountProductStreamOpen: async () => ({ status: 'ok', value: { streamId: 'stream-1' } }),
+        desktopFirstPartyProductStreamNext: nativeNext,
+        desktopFirstPartyProductStreamClose: async () => accepted
+          ? { status: 'ok', value: { closed: true } }
+          : { status: 'error', reasonCode: 'runtime-service-unavailable', retryable: true },
+      }));
+      const stream = host.accountProductServerStream({ methodId: SCENARIO_STREAM_METHOD, requestBytes: new Uint8Array() });
+      const handlers = { onData: vi.fn(), onError: vi.fn(), onEnd: vi.fn() };
+      stream.start(handlers); await vi.waitFor(() => expect(nativeNext).toHaveBeenCalledOnce());
+      stream.cancel();
+      if (accepted) await stream.closed;
+      else await expect(stream.closed).rejects.toMatchObject({ reasonCode: 'runtime-service-unavailable' });
+      next({ status: 'ok', completed: false, value: new Uint8Array([1]) }); await Promise.resolve();
+      expect(handlers.onData).not.toHaveBeenCalled();
+    }
+  });
+
+  it('distinguishes a failed native Open from an unconfirmed malformed successful Open', async () => {
+    for (const opened of [
+      { status: 'error' as const, reasonCode: 'LOCAL_APP_SESSION_REVOKED', retryable: false },
+      { status: 'ok' as const, value: { missingStreamId: true } },
+    ]) {
+      const host = createNimiElectronDesktopControlHostForBinding(binding({ desktopAccountProductStreamOpen: async () => opened }));
+      const stream = host.accountProductServerStream({ methodId: SCENARIO_STREAM_METHOD, requestBytes: new Uint8Array() });
+      stream.start({ onData: vi.fn(), onError: vi.fn(), onEnd: vi.fn() });
+      if (opened.status === 'error') await stream.closed;
+      else await expect(stream.closed).rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
+    }
+  });
   it.each([
     ...['unsupported-target', 'native-verification-failed', 'invalid-package', 'local-file-unavailable'].map((reason) => ({
       reasonCode: 'APP_PACKAGE_SELECTION_INVALID', reasonMetadata: { local_import_reason: reason }, method: 'PrepareLocalAppPackage',
@@ -331,14 +443,11 @@ describe('Electron verified Desktop control host', () => {
         return { status: 'ok', value: { canceled: true } };
       },
     }));
-    const operation = invokeElectronRuntimeUnary({
-      payload: { methodId: AVATAR_METHOD, requestBytesBase64: '' },
-      appId: 'nimi.avatar',
-      event: {},
-      runtimeEndpoint: 'protected-avatar-control',
-      command: 'runtime_bridge_unary',
-      desktopControlHost: host,
-      bundledAvatarProfile: true,
+    // Formal App methods retain this exact private carrier; the renderer raw
+    // bridge no longer provides a second route around the formal scope owner.
+    const operation = host.bundledAvatarUnary({
+      methodId: AVATAR_METHOD,
+      requestBytes: new Uint8Array(),
       requestId: 'runtime-client-avatar-unary-1',
       signal: controller.signal,
     });

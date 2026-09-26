@@ -108,6 +108,19 @@ message EndLocalDevelopmentRunResponse {
   ReasonCode reason_code = 1;
 }
 
+message GetLocalDevelopmentRunAccessRequest {
+  bytes registration_handle = 1;
+  bytes supervisor_run_id = 2;
+}
+
+message GetLocalDevelopmentRunAccessResponse {
+  bool available = 1;
+  ReasonCode reason_code = 2;
+  // Host-private, non-authorizing correlation for the current execution scope.
+  // Empty while pending or unavailable; routine renewal preserves it.
+  string execution_scope_ref = 3;
+}
+
 // Registered only on protected Desktop control. Registration is per verified
 // local OS-user scope and does not require or persist an account decision.
 service RuntimeDevelopmentService {
@@ -117,4 +130,5 @@ service RuntimeDevelopmentService {
   rpc ListLocalDevelopmentRegistrations(ListLocalDevelopmentRegistrationsRequest) returns (ListLocalDevelopmentRegistrationsResponse);
   rpc RemoveLocalDevelopmentRegistration(RemoveLocalDevelopmentRegistrationRequest) returns (RemoveLocalDevelopmentRegistrationResponse);
   rpc EndLocalDevelopmentRun(EndLocalDevelopmentRunRequest) returns (EndLocalDevelopmentRunResponse);
+  rpc GetLocalDevelopmentRunAccess(GetLocalDevelopmentRunAccessRequest) returns (GetLocalDevelopmentRunAccessResponse);
 }

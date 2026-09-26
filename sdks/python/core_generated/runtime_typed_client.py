@@ -148,9 +148,11 @@ HookTriggerFamily = Literal["HOOK_TRIGGER_FAMILY_UNSPECIFIED"]
 LoadoutValidationState = Literal["LOADOUT_VALIDATION_STATE_UNSPECIFIED", "LOADOUT_VALIDATION_STATE_CONFIGURED", "LOADOUT_VALIDATION_STATE_UNRESOLVED", "LOADOUT_VALIDATION_STATE_BLOCKED"]
 LocalAgentCapabilityParticipationRole = Literal["LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_UNSPECIFIED", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_PRIMARY", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_MEMORY_EMBEDDING", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_INPUT_VOICE", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_OUTPUT_VOICE", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_ACTION_IMAGE", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_REALTIME"]
 LocalAppAgentAutonomyMode = Literal["LOCAL_APP_AGENT_AUTONOMY_MODE_UNSPECIFIED", "LOCAL_APP_AGENT_AUTONOMY_MODE_OFF", "LOCAL_APP_AGENT_AUTONOMY_MODE_LOW", "LOCAL_APP_AGENT_AUTONOMY_MODE_MEDIUM", "LOCAL_APP_AGENT_AUTONOMY_MODE_HIGH"]
+LocalAppAgentIntroductionTopicKind = Literal["LOCAL_APP_AGENT_INTRODUCTION_TOPIC_KIND_UNSPECIFIED", "LOCAL_APP_AGENT_INTRODUCTION_TOPIC_KIND_ROLE", "LOCAL_APP_AGENT_INTRODUCTION_TOPIC_KIND_WORK", "LOCAL_APP_AGENT_INTRODUCTION_TOPIC_KIND_RELATIONSHIP", "LOCAL_APP_AGENT_INTRODUCTION_TOPIC_KIND_TOPIC"]
 LocalAppAgentManagerActionAvailabilityState = Literal["LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_UNSPECIFIED", "LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_AVAILABLE", "LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_UNAVAILABLE"]
 LocalAppAgentManagerActionUnavailableReason = Literal["LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_UNSPECIFIED", "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_NONE", "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_OPERATION_UNAVAILABLE", "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_OWNER_UNAVAILABLE", "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_MEMORY_DISABLED", "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_MEMORY_ADOPTION_REQUIRED", "LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_PREVIOUS_PRESENTATION_UNAVAILABLE"]
 LocalAppAgentManagerProductAction = Literal["LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_UNSPECIFIED", "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_SHARED_AI_CONFIG_READ", "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_SHARED_AI_CONFIG_WRITE", "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_AUTONOMY_READ", "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_AUTONOMY_WRITE", "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_INSPECT", "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_CORRECT", "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_FORGET", "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_SWITCH", "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_DELETE", "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_APPEARANCE_COMMIT", "LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_APPEARANCE_RESTORE"]
+LocalAppAgentWorkState = Literal["LOCAL_APP_AGENT_WORK_STATE_UNSPECIFIED", "LOCAL_APP_AGENT_WORK_STATE_RUNNING", "LOCAL_APP_AGENT_WORK_STATE_WAITING_TOOL", "LOCAL_APP_AGENT_WORK_STATE_SUCCEEDED", "LOCAL_APP_AGENT_WORK_STATE_FAILED", "LOCAL_APP_AGENT_WORK_STATE_CANCELLED"]
 LocalAppConversationActionStatus = Literal["LOCAL_APP_CONVERSATION_ACTION_STATUS_UNSPECIFIED", "LOCAL_APP_CONVERSATION_ACTION_STATUS_PLANNED", "LOCAL_APP_CONVERSATION_ACTION_STATUS_STARTED", "LOCAL_APP_CONVERSATION_ACTION_STATUS_COMPLETED", "LOCAL_APP_CONVERSATION_ACTION_STATUS_FAILED"]
 LocalAppConversationLiveChildLifecycle = Literal["LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_UNSPECIFIED", "LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_STARTED", "LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_UPDATED", "LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_COMPLETED", "LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_FAILED"]
 LocalAppConversationMediaKind = Literal["LOCAL_APP_CONVERSATION_MEDIA_KIND_UNSPECIFIED", "LOCAL_APP_CONVERSATION_MEDIA_KIND_IMAGE"]
@@ -1318,6 +1320,23 @@ class CancelHookResponse:
     outcome: HookExecutionOutcome | None = None
 
 @dataclass(frozen=True)
+class CancelIntegrationCallRequest:
+    call_id: str | None = None
+
+@dataclass(frozen=True)
+class CancelIntegrationCallResponse:
+    call: IntegrationCall | None = None
+
+@dataclass(frozen=True)
+class CancelLocalAppAgentWorkRequest:
+    agent_handle: str | None = None
+    execution_id: str | None = None
+
+@dataclass(frozen=True)
+class CancelLocalAppAgentWorkResponse:
+    execution: LocalAppAgentWorkExecution | None = None
+
+@dataclass(frozen=True)
 class CancelLocalAppScenarioJobRequest:
     job_id: str | None = None
     reason: str | None = None
@@ -1889,6 +1908,16 @@ class CompleteAppPackageUninstallRequest:
 class CompleteAppPackageUninstallResponse:
     job: AppPackageJob | None = None
     reason_code: ReasonCode | None = None
+
+@dataclass(frozen=True)
+class CompleteIntegrationProviderRequest:
+    call_id: str | None = None
+    result_json: str | None = None
+    error_code: str | None = None
+
+@dataclass(frozen=True)
+class CompleteIntegrationProviderResponse:
+    accepted: bool | None = None
 
 @dataclass(frozen=True)
 class CompleteLoginRequest:
@@ -2535,13 +2564,23 @@ class GetDeveloperModeStatusResponse:
     reason_code: ReasonCode | None = None
 
 @dataclass(frozen=True)
-class GetInstalledAppRunAccessRequest:
-    launch_id: bytes | None = None
+class GetIntegrationCallRequest:
+    call_id: str | None = None
 
 @dataclass(frozen=True)
-class GetInstalledAppRunAccessResponse:
-    available: bool | None = None
-    reason_code: ReasonCode | None = None
+class GetIntegrationCallResponse:
+    call: IntegrationCall | None = None
+
+@dataclass(frozen=True)
+class GetIntegrationManagementRequest:
+    pass
+
+@dataclass(frozen=True)
+class GetIntegrationManagementResponse:
+    targets: tuple[IntegrationTarget, ...] = field(default_factory=tuple)
+    permissions: tuple[IntegrationPermission, ...] = field(default_factory=tuple)
+    consumers: tuple[IntegrationConsumer, ...] = field(default_factory=tuple)
+    calls: tuple[IntegrationCall, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class GetLoadoutRequest:
@@ -2554,6 +2593,14 @@ class GetLoadoutResponse:
 @dataclass(frozen=True)
 class GetLocalAppAgentAutonomySnapshotRequest:
     agent_handle: str | None = None
+
+@dataclass(frozen=True)
+class GetLocalAppAgentIntroductionRequest:
+    agent_handle: str | None = None
+
+@dataclass(frozen=True)
+class GetLocalAppAgentIntroductionResponse:
+    introduction: LocalAppAgentIntroduction | None = None
 
 @dataclass(frozen=True)
 class GetLocalAppAgentManagerSnapshotRequest:
@@ -2577,6 +2624,24 @@ class GetLocalAppAgentRealtimeStatusRequest:
 @dataclass(frozen=True)
 class GetLocalAppAgentRealtimeStatusResponse:
     control: RealtimeControlStatus | None = None
+
+@dataclass(frozen=True)
+class GetLocalAppAgentWorkRequest:
+    agent_handle: str | None = None
+    execution_id: str | None = None
+
+@dataclass(frozen=True)
+class GetLocalAppAgentWorkResponse:
+    execution: LocalAppAgentWorkExecution | None = None
+
+@dataclass(frozen=True)
+class GetLocalAppAgentWorkStatusRequest:
+    agent_handle: str | None = None
+
+@dataclass(frozen=True)
+class GetLocalAppAgentWorkStatusResponse:
+    busy: bool | None = None
+    own_execution_id: str | None = None
 
 @dataclass(frozen=True)
 class GetLocalAppConversationSnapshotRequest:
@@ -2835,6 +2900,64 @@ class InstallModelFromPlanResponse:
     disposition: LocalTransferDisposition | None = None
 
 @dataclass(frozen=True)
+class IntegrationCall:
+    call_id: str | None = None
+    target_ref: str | None = None
+    operation: str | None = None
+    status: str | None = None
+    result_json: str | None = None
+    error_code: str | None = None
+    consumer_display_name: str | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+    target_display_name: str | None = None
+    account_label: str | None = None
+
+@dataclass(frozen=True)
+class IntegrationConsumer:
+    consumer_ref: str | None = None
+    app_id: str | None = None
+    display_name: str | None = None
+    source_kind: str | None = None
+
+@dataclass(frozen=True)
+class IntegrationOperation:
+    name: str | None = None
+    description: str | None = None
+    input_schema_json: str | None = None
+    output_schema_json: str | None = None
+    effect: str | None = None
+    supports_cancel: bool | None = None
+    retry_policy: str | None = None
+
+@dataclass(frozen=True)
+class IntegrationPermission:
+    consumer_ref: str | None = None
+    target_ref: str | None = None
+    operations: tuple[str, ...] = field(default_factory=tuple)
+    consumer: IntegrationConsumer | None = None
+
+@dataclass(frozen=True)
+class IntegrationProviderCall:
+    call_id: str | None = None
+    target_ref: str | None = None
+    operation: str | None = None
+    input_json: str | None = None
+    consumer_display_name: str | None = None
+
+@dataclass(frozen=True)
+class IntegrationTarget:
+    target_ref: str | None = None
+    integration_id: str | None = None
+    display_name: str | None = None
+    account_label: str | None = None
+    kind: str | None = None
+    available: bool | None = None
+    operations: tuple[IntegrationOperation, ...] = field(default_factory=tuple)
+    skill: str | None = None
+    permitted_operations: tuple[str, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
 class InterruptLocalAppAgentRealtimeOutputRequest:
     realtime_session_id: str | None = None
     generation: int | None = None
@@ -2867,6 +2990,16 @@ class InterruptRealtimeOutputRequest:
 class InterruptRealtimeOutputResponse:
     ack: Ack | None = None
     control: RealtimeControlStatus | None = None
+
+@dataclass(frozen=True)
+class InvokeIntegrationCallRequest:
+    target_ref: str | None = None
+    operation: str | None = None
+    input_json: str | None = None
+
+@dataclass(frozen=True)
+class InvokeIntegrationCallResponse:
+    call: IntegrationCall | None = None
 
 @dataclass(frozen=True)
 class InvokeRealmUnaryRequest:
@@ -3098,6 +3231,30 @@ class ListFeaturedModelAssetsResponse:
     items: tuple[ModelAssetMarketCandidate, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
+class ListIntegrationCallsRequest:
+    limit: int | None = None
+
+@dataclass(frozen=True)
+class ListIntegrationCallsResponse:
+    calls: tuple[IntegrationCall, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class ListIntegrationCatalogRequest:
+    pass
+
+@dataclass(frozen=True)
+class ListIntegrationCatalogResponse:
+    targets: tuple[IntegrationTarget, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class ListIntegrationConnectionsRequest:
+    pass
+
+@dataclass(frozen=True)
+class ListIntegrationConnectionsResponse:
+    connections: tuple[IntegrationTarget, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
 class ListLoadoutRecipesRequest:
     capability_contract: str | None = None
 
@@ -3114,6 +3271,23 @@ class ListLocalAppAgentReferencesResponse:
     references: tuple[LocalAppAgentReference, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
+class ListLocalAppAgentWorkReferencesRequest:
+    pass
+
+@dataclass(frozen=True)
+class ListLocalAppAgentWorkReferencesResponse:
+    references: tuple[LocalAppAgentWorkReference, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class ListLocalAppAgentWorkToolCallsRequest:
+    agent_handle: str | None = None
+    execution_id: str | None = None
+
+@dataclass(frozen=True)
+class ListLocalAppAgentWorkToolCallsResponse:
+    calls: tuple[LocalAppAgentWorkToolCall, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
 class ListLocalAppAssetsRequest:
     prefix: str | None = None
     cursor: str | None = None
@@ -3124,16 +3298,6 @@ class ListLocalAppAssetsResponse:
     assets: tuple[LocalAppAssetRecord, ...] = field(default_factory=tuple)
     next_cursor: str | None = None
     reason_code: ReasonCode | None = None
-
-@dataclass(frozen=True)
-class ListLocalAppConversationToolCallsRequest:
-    agent_handle: str | None = None
-    conversation_anchor_id: str | None = None
-    turn_id: str | None = None
-
-@dataclass(frozen=True)
-class ListLocalAppConversationToolCallsResponse:
-    calls: tuple[LocalAppConversationToolCall, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class ListLocalAppSharedLocalAgentAIConfigOptionsRequest:
@@ -3556,6 +3720,22 @@ class LocalAppAgentCommitPresentationResponse:
     projection: LocalAppAgentPresentationProjection | None = None
 
 @dataclass(frozen=True)
+class LocalAppAgentIntroduction:
+    world_name: str | None = None
+    era: str | None = None
+    role: str | None = None
+    greeting: str | None = None
+    reference_image_url: str | None = None
+    voice_sample_url: str | None = None
+    voice_sample_duration_sec: float | None = None
+    question_topics: tuple[LocalAppAgentIntroductionTopic, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class LocalAppAgentIntroductionTopic:
+    kind: LocalAppAgentIntroductionTopicKind | None = None
+    text: str | None = None
+
+@dataclass(frozen=True)
 class LocalAppAgentManagerActionAvailability:
     action: LocalAppAgentManagerProductAction | None = None
     state: LocalAppAgentManagerActionAvailabilityState | None = None
@@ -3701,10 +3881,64 @@ class LocalAppAgentReference:
     display_name: str | None = None
     avatar_url: str | None = None
     agent_binding: str | None = None
+    activity_agent_ref: str | None = None
 
 @dataclass(frozen=True)
 class LocalAppAgentUpdateAutonomyResponse:
     projection: LocalAppAgentAutonomyProjection | None = None
+
+@dataclass(frozen=True)
+class LocalAppAgentWorkEvent:
+    execution_id: str | None = None
+    sequence: int | None = None
+    snapshot: LocalAppAgentWorkExecution | None = None
+    text_delta: str | None = None
+    tool_call: LocalAppAgentWorkToolCall | None = None
+
+@dataclass(frozen=True)
+class LocalAppAgentWorkExecution:
+    execution_id: str | None = None
+    work_id: str | None = None
+    state: LocalAppAgentWorkState | None = None
+    output_text: str | None = None
+    reason_code: ReasonCode | None = None
+    message: str | None = None
+    sequence: int | None = None
+
+@dataclass(frozen=True)
+class LocalAppAgentWorkInput:
+    work_id: str | None = None
+    instructions: str | None = None
+    sources: tuple[LocalAppAgentWorkSource, ...] = field(default_factory=tuple)
+    tools: tuple[LocalAppAgentWorkTool, ...] = field(default_factory=tuple)
+    routine_name: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppAgentWorkReference:
+    agent_handle: str | None = None
+    display_name: str | None = None
+    avatar_url: str | None = None
+    agent_binding: str | None = None
+    activity_agent_ref: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppAgentWorkSource:
+    source_id: str | None = None
+    title: str | None = None
+    content: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppAgentWorkTool:
+    name: str | None = None
+    description: str | None = None
+    input_schema_json: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppAgentWorkToolCall:
+    call_id: str | None = None
+    execution_id: str | None = None
+    name: str | None = None
+    arguments_json: str | None = None
 
 @dataclass(frozen=True)
 class LocalAppAssetRange:
@@ -3855,13 +4089,6 @@ class LocalAppConversationTextPart:
     text: str | None = None
 
 @dataclass(frozen=True)
-class LocalAppConversationToolCall:
-    call_id: str | None = None
-    turn_id: str | None = None
-    name: str | None = None
-    arguments_json: str | None = None
-
-@dataclass(frozen=True)
 class LocalAppConversationTurn:
     turn_id: str | None = None
     status: LocalAppConversationTurnStatus | None = None
@@ -3907,26 +4134,6 @@ class LocalAppConversationVoice:
 @dataclass(frozen=True)
 class LocalAppConversationVoiceEvent:
     voice: LocalAppConversationVoice | None = None
-
-@dataclass(frozen=True)
-class LocalAppConversationWork:
-    work_id: str | None = None
-    instructions: str | None = None
-    sources: tuple[LocalAppConversationWorkSource, ...] = field(default_factory=tuple)
-    tools: tuple[LocalAppConversationWorkTool, ...] = field(default_factory=tuple)
-    routine_name: str | None = None
-
-@dataclass(frozen=True)
-class LocalAppConversationWorkSource:
-    source_id: str | None = None
-    title: str | None = None
-    content: str | None = None
-
-@dataclass(frozen=True)
-class LocalAppConversationWorkTool:
-    name: str | None = None
-    description: str | None = None
-    input_schema_json: str | None = None
 
 @dataclass(frozen=True)
 class LocalAppEmbodimentActivity:
@@ -5039,6 +5246,15 @@ class PersonaCharacterSourceRefV3:
     source_hash: str | None = None
 
 @dataclass(frozen=True)
+class PollIntegrationProviderRequest:
+    wait_ms: int | None = None
+
+@dataclass(frozen=True)
+class PollIntegrationProviderResponse:
+    calls: tuple[IntegrationProviderCall, ...] = field(default_factory=tuple)
+    canceled_call_ids: tuple[str, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
 class PortableAIProfileRecord:
     profile_id: str | None = None
     title: str | None = None
@@ -5157,6 +5373,19 @@ class PutArtifactRequest:
 @dataclass(frozen=True)
 class PutArtifactResponse:
     artifact_id: str | None = None
+
+@dataclass(frozen=True)
+class PutIntegrationConnectionRequest:
+    target_ref: str | None = None
+    adapter: str | None = None
+    endpoint: str | None = None
+    display_name: str | None = None
+    account_label: str | None = None
+    secret: str | None = None
+
+@dataclass(frozen=True)
+class PutIntegrationConnectionResponse:
+    connection: IntegrationTarget | None = None
 
 @dataclass(frozen=True)
 class RawChunk:
@@ -5494,6 +5723,17 @@ class RegisterExternalPrincipalResponse:
     reason_code: ReasonCode | None = None
 
 @dataclass(frozen=True)
+class RegisterIntegrationProviderRequest:
+    integration_id: str | None = None
+    display_name: str | None = None
+    operations: tuple[IntegrationOperation, ...] = field(default_factory=tuple)
+    skill: str | None = None
+
+@dataclass(frozen=True)
+class RegisterIntegrationProviderResponse:
+    target: IntegrationTarget | None = None
+
+@dataclass(frozen=True)
 class RegisterLocalDevelopmentProjectRequest:
     expected_app_id: str | None = None
     project_root: str | None = None
@@ -5504,6 +5744,14 @@ class RegisterLocalDevelopmentProjectRequest:
 class RegisterLocalDevelopmentProjectResponse:
     registration: LocalDevelopmentRegistrationProjection | None = None
     reason_code: ReasonCode | None = None
+
+@dataclass(frozen=True)
+class RemoveIntegrationConnectionRequest:
+    target_ref: str | None = None
+
+@dataclass(frozen=True)
+class RemoveIntegrationConnectionResponse:
+    removed: bool | None = None
 
 @dataclass(frozen=True)
 class RemoveLocalAppAssetRequest:
@@ -5973,7 +6221,6 @@ class SendLocalAppConversationTurnRequest:
     conversation_anchor_id: str | None = None
     request_id: str | None = None
     parts: tuple[LocalAppConversationInputPart, ...] = field(default_factory=tuple)
-    work: LocalAppConversationWork | None = None
 
 @dataclass(frozen=True)
 class SendLocalAppConversationTurnResponse:
@@ -6016,6 +6263,16 @@ class SetDeveloperModeResponse:
     state: DeveloperModeState | None = None
     revision: int | None = None
     reason_code: ReasonCode | None = None
+
+@dataclass(frozen=True)
+class SetIntegrationPermissionRequest:
+    consumer_ref: str | None = None
+    target_ref: str | None = None
+    operations: tuple[str, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class SetIntegrationPermissionResponse:
+    permission: IntegrationPermission | None = None
 
 @dataclass(frozen=True)
 class SetLocalAppAgentMemoryEnabledRequest:
@@ -6153,6 +6410,17 @@ class StartAppPackageUpdateResponse:
     reason_code: ReasonCode | None = None
 
 @dataclass(frozen=True)
+class StartLocalAppAgentWorkRequest:
+    agent_handle: str | None = None
+    request_id: str | None = None
+    prompt: str | None = None
+    work: LocalAppAgentWorkInput | None = None
+
+@dataclass(frozen=True)
+class StartLocalAppAgentWorkResponse:
+    execution_id: str | None = None
+
+@dataclass(frozen=True)
 class StartLocalAppPackageInstallRequest:
     candidate_selector: bytes | None = None
 
@@ -6257,16 +6525,15 @@ class SubmitDelegatedApprovalDecisionResponse:
     approval_request: DelegatedApprovalRequest | None = None
 
 @dataclass(frozen=True)
-class SubmitLocalAppConversationToolResultRequest:
+class SubmitLocalAppAgentWorkToolResultRequest:
     agent_handle: str | None = None
-    conversation_anchor_id: str | None = None
-    turn_id: str | None = None
+    execution_id: str | None = None
     call_id: str | None = None
     result_json: str | None = None
     is_error: bool | None = None
 
 @dataclass(frozen=True)
-class SubmitLocalAppConversationToolResultResponse:
+class SubmitLocalAppAgentWorkToolResultResponse:
     call_id: str | None = None
 
 @dataclass(frozen=True)
@@ -6373,6 +6640,12 @@ class SubscribeLocalAppAgentRealtimeEventsRequest:
     realtime_session_id: str | None = None
     generation: int | None = None
     agent_handle: str | None = None
+
+@dataclass(frozen=True)
+class SubscribeLocalAppAgentWorkEventsRequest:
+    agent_handle: str | None = None
+    execution_id: str | None = None
+    after_sequence: int | None = None
 
 @dataclass(frozen=True)
 class SubscribeLocalAppConversationEventsRequest:
@@ -6690,6 +6963,14 @@ class TranscribeLocalAppConversationVoiceRequest:
 @dataclass(frozen=True)
 class TranscribeLocalAppConversationVoiceResponse:
     text: str | None = None
+
+@dataclass(frozen=True)
+class UnregisterIntegrationProviderRequest:
+    target_ref: str | None = None
+
+@dataclass(frozen=True)
+class UnregisterIntegrationProviderResponse:
+    removed: bool | None = None
 
 @dataclass(frozen=True)
 class UpdateAgentStateRequest:
@@ -7199,6 +7480,10 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/CancelHook", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CancelHookResponse, raw)
 
+    async def cancel_local_app_agent_work(self, request: CancelLocalAppAgentWorkRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CancelLocalAppAgentWorkResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/CancelLocalAppAgentWork", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(CancelLocalAppAgentWorkResponse, raw)
+
     async def close_local_app_agent_realtime(self, request: CloseLocalAppAgentRealtimeRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CloseLocalAppAgentRealtimeResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/CloseLocalAppAgentRealtime", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CloseLocalAppAgentRealtimeResponse, raw)
@@ -7255,6 +7540,10 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(LocalAppAgentAutonomySnapshotResponse, raw)
 
+    async def get_local_app_agent_introduction(self, request: GetLocalAppAgentIntroductionRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetLocalAppAgentIntroductionResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentIntroduction", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GetLocalAppAgentIntroductionResponse, raw)
+
     async def get_local_app_agent_manager_snapshot(self, request: GetLocalAppAgentManagerSnapshotRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetLocalAppAgentManagerSnapshotResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetLocalAppAgentManagerSnapshotResponse, raw)
@@ -7266,6 +7555,14 @@ class RuntimeTypedClient:
     async def get_local_app_agent_realtime_status(self, request: GetLocalAppAgentRealtimeStatusRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetLocalAppAgentRealtimeStatusResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentRealtimeStatus", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetLocalAppAgentRealtimeStatusResponse, raw)
+
+    async def get_local_app_agent_work(self, request: GetLocalAppAgentWorkRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetLocalAppAgentWorkResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentWork", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GetLocalAppAgentWorkResponse, raw)
+
+    async def get_local_app_agent_work_status(self, request: GetLocalAppAgentWorkStatusRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetLocalAppAgentWorkStatusResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentWorkStatus", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GetLocalAppAgentWorkStatusResponse, raw)
 
     async def get_local_app_conversation_snapshot(self, request: GetLocalAppConversationSnapshotRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetLocalAppConversationSnapshotResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -7327,9 +7624,13 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListLocalAppAgentReferencesResponse, raw)
 
-    async def list_local_app_conversation_tool_calls(self, request: ListLocalAppConversationToolCallsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListLocalAppConversationToolCallsResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListLocalAppConversationToolCalls", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(ListLocalAppConversationToolCallsResponse, raw)
+    async def list_local_app_agent_work_references(self, request: ListLocalAppAgentWorkReferencesRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListLocalAppAgentWorkReferencesResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentWorkReferences", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ListLocalAppAgentWorkReferencesResponse, raw)
+
+    async def list_local_app_agent_work_tool_calls(self, request: ListLocalAppAgentWorkToolCallsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListLocalAppAgentWorkToolCallsResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentWorkToolCalls", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ListLocalAppAgentWorkToolCallsResponse, raw)
 
     async def list_local_app_shared_local_agent_aiconfig_options(self, request: ListLocalAppSharedLocalAgentAIConfigOptionsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListLocalAppSharedLocalAgentAIConfigOptionsResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -7407,16 +7708,23 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/SetLocalAppAgentMemoryEnabled", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(SetLocalAppAgentMemoryEnabledResponse, raw)
 
+    async def start_local_app_agent_work(self, request: StartLocalAppAgentWorkRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> StartLocalAppAgentWorkResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/StartLocalAppAgentWork", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(StartLocalAppAgentWorkResponse, raw)
+
     async def submit_delegated_approval_decision(self, request: SubmitDelegatedApprovalDecisionRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SubmitDelegatedApprovalDecisionResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(SubmitDelegatedApprovalDecisionResponse, raw)
 
-    async def submit_local_app_conversation_tool_result(self, request: SubmitLocalAppConversationToolResultRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SubmitLocalAppConversationToolResultResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppConversationToolResult", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(SubmitLocalAppConversationToolResultResponse, raw)
+    async def submit_local_app_agent_work_tool_result(self, request: SubmitLocalAppAgentWorkToolResultRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SubmitLocalAppAgentWorkToolResultResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/SubmitLocalAppAgentWorkToolResult", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(SubmitLocalAppAgentWorkToolResultResponse, raw)
 
     def subscribe_local_app_agent_realtime_events(self, request: SubscribeLocalAppAgentRealtimeEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[LocalAppAgentRealtimeEvent]:
         return self._stream("/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents", _model_body(request), LocalAppAgentRealtimeEvent, metadata=metadata, timeout_ms=timeout_ms)
+
+    def subscribe_local_app_agent_work_events(self, request: SubscribeLocalAppAgentWorkEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[LocalAppAgentWorkEvent]:
+        return self._stream("/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentWorkEvents", _model_body(request), LocalAppAgentWorkEvent, metadata=metadata, timeout_ms=timeout_ms)
 
     def subscribe_local_app_conversation_events(self, request: SubscribeLocalAppConversationEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[LocalAppConversationEvent]:
         return self._stream("/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents", _model_body(request), LocalAppConversationEvent, metadata=metadata, timeout_ms=timeout_ms)
@@ -7703,10 +8011,6 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAppService/GetAppStorage", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetAppStorageResponse, raw)
 
-    async def get_installed_app_run_access(self, request: GetInstalledAppRunAccessRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetInstalledAppRunAccessResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAppService/GetInstalledAppRunAccess", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(GetInstalledAppRunAccessResponse, raw)
-
     async def list_local_app_assets(self, request: ListLocalAppAssetsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListLocalAppAssetsResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAppService/ListLocalAppAssets", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListLocalAppAssetsResponse, raw)
@@ -7921,6 +8225,62 @@ class RuntimeTypedClient:
     async def revoke_external_agent_token(self, request: ExternalAgentRevokeTokenRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> Ack:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeExternalAgentService/RevokeExternalAgentToken", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(Ack, raw)
+
+    async def cancel_integration_call(self, request: CancelIntegrationCallRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CancelIntegrationCallResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeIntegrationService/CancelIntegrationCall", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(CancelIntegrationCallResponse, raw)
+
+    async def complete_integration_provider(self, request: CompleteIntegrationProviderRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CompleteIntegrationProviderResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeIntegrationService/CompleteIntegrationProvider", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(CompleteIntegrationProviderResponse, raw)
+
+    async def get_integration_call(self, request: GetIntegrationCallRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetIntegrationCallResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationCall", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GetIntegrationCallResponse, raw)
+
+    async def get_integration_management(self, request: GetIntegrationManagementRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetIntegrationManagementResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationManagement", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GetIntegrationManagementResponse, raw)
+
+    async def invoke_integration_call(self, request: InvokeIntegrationCallRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> InvokeIntegrationCallResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeIntegrationService/InvokeIntegrationCall", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(InvokeIntegrationCallResponse, raw)
+
+    async def list_integration_calls(self, request: ListIntegrationCallsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListIntegrationCallsResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationCalls", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ListIntegrationCallsResponse, raw)
+
+    async def list_integration_catalog(self, request: ListIntegrationCatalogRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListIntegrationCatalogResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationCatalog", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ListIntegrationCatalogResponse, raw)
+
+    async def list_integration_connections(self, request: ListIntegrationConnectionsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListIntegrationConnectionsResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationConnections", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ListIntegrationConnectionsResponse, raw)
+
+    async def poll_integration_provider(self, request: PollIntegrationProviderRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> PollIntegrationProviderResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeIntegrationService/PollIntegrationProvider", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(PollIntegrationProviderResponse, raw)
+
+    async def put_integration_connection(self, request: PutIntegrationConnectionRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> PutIntegrationConnectionResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeIntegrationService/PutIntegrationConnection", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(PutIntegrationConnectionResponse, raw)
+
+    async def register_integration_provider(self, request: RegisterIntegrationProviderRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RegisterIntegrationProviderResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeIntegrationService/RegisterIntegrationProvider", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(RegisterIntegrationProviderResponse, raw)
+
+    async def remove_integration_connection(self, request: RemoveIntegrationConnectionRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RemoveIntegrationConnectionResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeIntegrationService/RemoveIntegrationConnection", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(RemoveIntegrationConnectionResponse, raw)
+
+    async def set_integration_permission(self, request: SetIntegrationPermissionRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SetIntegrationPermissionResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeIntegrationService/SetIntegrationPermission", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(SetIntegrationPermissionResponse, raw)
+
+    async def unregister_integration_provider(self, request: UnregisterIntegrationProviderRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> UnregisterIntegrationProviderResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeIntegrationService/UnregisterIntegrationProvider", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(UnregisterIntegrationProviderResponse, raw)
 
     async def admit_product_control_ready_for_use(self, request: AdmitProductControlReadyForUseRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ProductControlProjectionJson:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

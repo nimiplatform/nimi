@@ -173,6 +173,9 @@ func TestPlatformSourceRegistrationPreservesSubjectAndSessionBoundaries(t *testi
 	if _, err := service.OpenLocalAppSessionProjection(localCtx); err != nil {
 		t.Fatalf("source BuiltIn session: %v", err)
 	}
+	if _, err := service.AuthorizeLocalAppIngress(localCtx, localappop.IngressAgentIntroductionGet); err != nil {
+		t.Fatalf("introduction admission: %v", err)
+	}
 	if _, err := service.AuthorizeLocalAppIngress(localCtx, localappop.IngressAgentReferenceList); err != nil {
 		t.Fatalf("declared operation denied: %v", err)
 	}
@@ -204,8 +207,8 @@ func TestPlatformSourceRegistrationPreservesSubjectAndSessionBoundaries(t *testi
 	if _, err := service.AuthorizeLocalAppIngress(localCtx, localappop.IngressAgentReferenceList); err == nil {
 		t.Fatal("old declaration session remained authorized")
 	}
-	if _, err := service.RenewLocalAppSessionProjection(localCtx); err != nil {
-		t.Fatalf("current declaration session could not renew: %v", err)
+	if _, err := service.RenewLocalAppSessionProjection(localCtx); err == nil {
+		t.Fatal("changed declaration silently rebound through renewal")
 	}
 	if _, err := service.AuthorizeLocalAppIngress(localCtx, localappop.IngressAgentReferenceList); err == nil {
 		t.Fatal("renewal restored removed declaration")

@@ -88,7 +88,7 @@ func RemoveAgentActivityTx(ctx context.Context, tx *sql.Tx, localAgentRef string
 		return nil, err
 	}
 	for _, accountID := range partitions {
-		purged, err := purgeAgentPayloadsTx(ctx, tx, accountID, agentRef(accountID, localAgentRef))
+		purged, err := purgeAgentPayloadsTx(ctx, tx, accountID, AgentAssociationRef(accountID, localAgentRef))
 		if err != nil {
 			return nil, err
 		}

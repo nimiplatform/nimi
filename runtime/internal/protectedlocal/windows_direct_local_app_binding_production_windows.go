@@ -3,6 +3,7 @@
 package protectedlocal
 
 import (
+	"context"
 	"fmt"
 	"time"
 )
@@ -27,4 +28,8 @@ func RebindPlatformDirectLocalAppLaunch(
 	time.Time,
 ) (time.Time, error) {
 	return time.Time{}, fmt.Errorf("direct local-app rebinding is unavailable in the Windows production profile")
+}
+
+func RevalidateDirectLocalAppProcess(_ context.Context, _ *LocalAppConnection) error {
+	return fmt.Errorf("direct App process revalidation unavailable in Windows production profile")
 }

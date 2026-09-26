@@ -321,7 +321,6 @@ type publicChatTurnRequestPayload struct {
 	// resolvedAttachments is Runtime-internal admission truth, never caller
 	// JSON: store-validated attachment references fixed at turn admission.
 	resolvedAttachments []publicChatResolvedAttachment
-	appWork             *localAppWorkExecution
 }
 type publicChatTurnInterruptPayload struct {
 	ExpectedTurnID       string `json:"-"`

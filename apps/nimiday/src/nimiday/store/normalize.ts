@@ -256,6 +256,8 @@ export function normalizeRun(value: unknown): SkillRun | null {
     scheduledFor: strOrNull(raw.scheduledFor),
     state,
     agentName: strOrNull(raw.agentName),
+    agentBinding: strOrNull(raw.agentBinding),
+    careCircleIds: Array.isArray(raw.careCircleIds) && raw.careCircleIds.every(id => typeof id === 'string') ? raw.careCircleIds : null,
     requestText: str(raw.requestText),
     turnId: strOrNull(raw.turnId),
     createdAt: str(raw.createdAt, new Date(0).toISOString()),

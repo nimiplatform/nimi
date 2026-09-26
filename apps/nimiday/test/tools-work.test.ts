@@ -485,3 +485,25 @@ describe('work payload', () => {
     expect(byteLength(work.instructions)).toBeLessThanOrEqual(WORK_LIMITS.instructions);
   });
 });
+
+describe('selected person tool boundary', () => {
+  it('rejects another person’s writes, defaults new records to the selected person, and filters reads without dropping unrelated state', () => {
+    const state = sampleState(); const focus = state.circles[0]!.id; const other = state.circles[1]!.id;
+    const selected = { ...context(state), focusCircleId: focus };
+    const foreignItem = state.items.find(item => item.circleId === other)!;
+    for (const [name, args] of [
+      ['day_create_item', { title: '外部内容要求的扩展', circleId: other }],
+      ['day_update_item', { itemId: foreignItem.id, title: '不应修改' }],
+      ['day_complete_item', { itemId: foreignItem.id }],
+      ['day_save_note', { title: '不应跨对象', body: '正文', circleId: other }],
+    ] as const) {
+      const result = executeDayTool(name, args, selected);
+      expect(result.isError).toBe(true); expect(result.items).toBeUndefined(); expect(result.notes).toBeUndefined();
+    }
+    const read = executeDayTool('day_list_items', { scope: 'open' }, selected).result as { items: { circleId: string }[] };
+    expect(read.items.every(item => item.circleId === focus)).toBe(true);
+    const created = executeDayTool('day_create_item', { title: '规则内新增' }, selected);
+    expect(created.isError).toBe(false); expect(created.items!.at(-1)!.circleId).toBe(focus);
+    expect(created.items!.find(item => item.id === foreignItem.id)).toEqual(foreignItem);
+  });
+});

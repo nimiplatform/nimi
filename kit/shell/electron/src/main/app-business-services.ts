@@ -1,5 +1,9 @@
 import {
   createNimiLocalAppAIConsumptionClient,
+  createNimiLocalAppAgentWorkClient,
+  createNimiLocalAppIntegrationClient,
+  createNimiLocalAppActivityClient,
+  createNimiLocalAppWorldCoreClient,
   createNimiLocalAppAIConfigClient,
   createNimiAppRuntimeStorageClient,
   createNimiLocalAppAssetsClient,
@@ -14,8 +18,9 @@ import {
 } from './local-app-host.js';
 
 /** SDK clients for App-owned Node work running inside the verified App Host. */
-export type NimiElectronAppBusinessServices = Pick<NimiLocalAppClient, 'aiConfig' | 'storage'> & {
+export type NimiElectronAppBusinessServices = Pick<NimiLocalAppClient, 'aiConfig' | 'storage' | 'agentWork' | 'integration' | 'activity'> & {
   readonly ai: NimiLocalAppAIConsumptionClient;
+  readonly realm: Pick<NimiLocalAppClient['realm'], 'worldCore'>;
 };
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-016b
@@ -37,9 +42,9 @@ export function createAppBusinessServices(host: NimiElectronLocalAppHost) {
     return result;
   };
   const stream = async (
-    open: 'textTurnSubscribe' | 'scenarioJobSubscribe',
-    next: 'textTurnStreamNext' | 'scenarioJobStreamNext',
-    close: 'textTurnStreamClose' | 'scenarioJobStreamClose',
+    open: 'textTurnSubscribe' | 'scenarioJobSubscribe' | 'agentWorkSubscribe' | 'activitySubscribe' | 'activityOpenDeliveriesSubscribe',
+    next: 'textTurnStreamNext' | 'scenarioJobStreamNext' | 'realtimeStreamNext' | 'activityStreamNext',
+    close: 'textTurnStreamClose' | 'scenarioJobStreamClose' | 'realtimeStreamClose' | 'activityStreamClose',
     payload: unknown,
   ) => {
     const expected = generation;
@@ -196,6 +201,59 @@ export function createAppBusinessServices(host: NimiElectronLocalAppHost) {
   });
   const services: NimiElectronAppBusinessServices = Object.freeze({
     ai,
+    agentWork: createNimiLocalAppAgentWorkClient({
+      listReferences: async () => (await request('agentWorkReferenceList')).references,
+      start: input => request('agentWorkStart', input),
+      get: input => request('agentWorkGet', input),
+      status: input => request('agentWorkStatus', input),
+      listToolCalls: input => request('agentWorkToolCallsList', input),
+      submitToolResult: input => request('agentWorkToolResultSubmit', input),
+      cancel: input => request('agentWorkCancel', input),
+      subscribe: input => stream('agentWorkSubscribe', 'realtimeStreamNext', 'realtimeStreamClose', input),
+    }),
+    activity: createNimiLocalAppActivityClient({
+      put: input => request('activityPut', input),
+      list: input => request('activityList', input),
+      subscribe: input => stream('activitySubscribe', 'activityStreamNext', 'activityStreamClose', input),
+      markRead: input => request('activityMarkRead', input),
+      open: input => request('activityOpen', input),
+      openRequests: {
+        subscribe: () => stream('activityOpenDeliveriesSubscribe', 'activityStreamNext', 'activityStreamClose', {}),
+        complete: input => request('activityOpenDeliveryComplete', input),
+      },
+    }),
+    realm: Object.freeze({ worldCore: createNimiLocalAppWorldCoreClient({
+      list: input => request('realmWorldCoreList', input ?? {}),
+      create: input => request('realmWorldCoreCreate', input),
+      getCreationEligibility: () => request('realmWorldCreationEligibilityGet'),
+      get: worldId => request('realmWorldCoreGet', {worldId}),
+      replace: (worldId, body) => request('realmWorldCoreReplace', {worldId, body}),
+      listCharacters: (worldId, input) => request('realmWorldCharacterList', {worldId, ...input}),
+      getCharacter: characterId => request('realmWorldCharacterGet', {characterId}),
+      createCharacter: (worldId, body) => request('realmWorldCharacterCreate', {worldId, body}),
+      replaceCharacter: (characterId, body) => request('realmWorldCharacterReplace', {characterId, body}),
+      listEntities: (worldId, input) => request('realmWorldEntityList', {worldId, ...input}),
+      getEntity: entityId => request('realmWorldEntityGet', {entityId}),
+      createEntity: (worldId, body) => request('realmWorldEntityCreate', {worldId, body}),
+      listRelationships: (worldId, input) => request('realmWorldRelationshipList', {worldId, ...input}),
+      getRelationship: relationshipId => request('realmWorldRelationshipGet', {relationshipId}),
+    }) }),
+    integration: createNimiLocalAppIntegrationClient({
+      listCatalog: () => request('integrationListCatalog'),
+      listConnections: () => request('integrationListConnections'),
+      invoke: input => request('integrationInvoke', input),
+      getCall: input => request('integrationGetCall', input),
+      listCalls: input => request('integrationListCalls', input),
+      cancelCall: input => request('integrationCancelCall', input),
+      registerProvider: input => request('integrationRegisterProvider', input),
+      unregisterProvider: input => request('integrationUnregisterProvider', input),
+      pollProvider: input => request('integrationPollProvider', input),
+      completeProvider: input => request('integrationCompleteProvider', input),
+      getManagement: () => request('integrationGetManagement'),
+      putConnection: input => request('integrationPutConnection', input),
+      removeConnection: input => request('integrationRemoveConnection', input),
+      setPermission: input => request('integrationSetPermission', input),
+    }),
     aiConfig: createNimiLocalAppAIConfigClient({
       get: () => request('aiConfigGet'),
       overwrite: (input) => request('aiConfigOverwrite', input),

@@ -248,11 +248,32 @@ capability_sets:
       - local-app.artifactRead
       - local-app.artifactUpload
       - local-app.voiceAssetsList
+      - local-app.agentIntroductionGet
       - local-app.agentReferenceList
+      - local-app.agentWorkReferenceList
+      - local-app.agentWorkStart
+      - local-app.agentWorkGet
+      - local-app.agentWorkStatus
+      - local-app.agentWorkToolCallsList
+      - local-app.agentWorkToolResultSubmit
+      - local-app.agentWorkCancel
+      - local-app.agentWorkSubscribe
+      - local-app.integrationListCatalog
+      - local-app.integrationListConnections
+      - local-app.integrationInvoke
+      - local-app.integrationGetCall
+      - local-app.integrationListCalls
+      - local-app.integrationCancelCall
+      - local-app.integrationRegisterProvider
+      - local-app.integrationUnregisterProvider
+      - local-app.integrationPollProvider
+      - local-app.integrationCompleteProvider
+      - local-app.integrationGetManagement
+      - local-app.integrationPutConnection
+      - local-app.integrationRemoveConnection
+      - local-app.integrationSetPermission
       - local-app.conversationOpen
       - local-app.conversationSendTurn
-      - local-app.conversationToolCallsList
-      - local-app.conversationToolResultSubmit
       - local-app.conversationAttachmentUpload
       - local-app.conversationArtifactRead
       - local-app.conversationVoiceTranscribe
@@ -770,15 +791,199 @@ local_app_operation_contract:
       transport_boundary: unary
       effect_boundary: read
       owner: runtime_ai_service
+    agentIntroductionGet:
+      command: local-app.agentIntroductionGet
+      operation_id: runtime.agent.introduction.get
+      request_fields: [agentHandle]
+      response_fields: [worldName, era, role, greeting, referenceImageUrl, voiceSampleUrl, voiceSampleDurationSec, questionTopics]
+      transport_boundary: unary
+      effect_boundary: read
+      owner: runtime_agent_service
     agentReferenceList:
       command: local-app.agentReferenceList
       operation_id: runtime_agent.reference.list
       request_fields: []
-      response_fields: [agentHandle, agentBinding, displayName, avatarUrl]
+      response_fields: [agentHandle, agentBinding, activityAgentRef, displayName, avatarUrl]
       transport_boundary: unary
       effect_boundary: read
       typed_failures: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, resource-exhausted, host-internal-error]
       owner: runtime_agent_service
+    agentWorkReferenceList:
+      command: local-app.agentWorkReferenceList
+      operation_id: runtime.agent.work.reference.list
+      request_fields: []
+      response_fields: [references]
+      transport_boundary: unary
+      effect_boundary: read
+      owner: runtime_agent_service
+    agentWorkStart:
+      command: local-app.agentWorkStart
+      operation_id: runtime.agent.work.start
+      request_fields: [agentHandle, requestId, prompt, work]
+      response_fields: [executionId]
+      transport_boundary: unary
+      effect_boundary: write
+      owner: runtime_agent_service
+    agentWorkGet:
+      command: local-app.agentWorkGet
+      operation_id: runtime.agent.work.get
+      request_fields: [agentHandle, executionId]
+      response_fields: [execution]
+      transport_boundary: unary
+      effect_boundary: read
+      owner: runtime_agent_service
+    agentWorkStatus:
+      command: local-app.agentWorkStatus
+      operation_id: runtime.agent.work.status.get
+      request_fields: [agentHandle]
+      response_fields: [busy, ownExecutionId]
+      transport_boundary: unary
+      effect_boundary: read
+      owner: runtime_agent_service
+    agentWorkToolCallsList:
+      command: local-app.agentWorkToolCallsList
+      operation_id: runtime.agent.work.tool-calls.list
+      request_fields: [agentHandle, executionId]
+      response_fields: [calls]
+      transport_boundary: unary
+      effect_boundary: read
+      owner: runtime_agent_service
+    agentWorkToolResultSubmit:
+      command: local-app.agentWorkToolResultSubmit
+      operation_id: runtime.agent.work.tool-result.submit
+      request_fields: [agentHandle, executionId, callId, resultJson, isError]
+      response_fields: [callId]
+      transport_boundary: unary
+      effect_boundary: write
+      owner: runtime_agent_service
+    agentWorkCancel:
+      command: local-app.agentWorkCancel
+      operation_id: runtime.agent.work.cancel
+      request_fields: [agentHandle, executionId]
+      response_fields: [execution]
+      transport_boundary: unary
+      effect_boundary: write
+      owner: runtime_agent_service
+    agentWorkSubscribe:
+      command: local-app.agentWorkSubscribe
+      operation_id: runtime.agent.work.events.subscribe
+      request_fields: [agentHandle, executionId, afterSequence]
+      response_fields: [events]
+      transport_boundary: stream
+      effect_boundary: stream_read
+      owner: runtime_agent_service
+    integrationListCatalog:
+      command: local-app.integrationListCatalog
+      operation_id: runtime.integration.catalog.list
+      request_fields: []
+      response_fields: [targets]
+      transport_boundary: unary
+      effect_boundary: read
+      owner: runtime_integration_service
+    integrationListConnections:
+      command: local-app.integrationListConnections
+      operation_id: runtime.integration.connection.list
+      request_fields: []
+      response_fields: [connections]
+      transport_boundary: unary
+      effect_boundary: read
+      owner: runtime_integration_service
+    integrationInvoke:
+      command: local-app.integrationInvoke
+      operation_id: runtime.integration.call.invoke
+      request_fields: [targetRef, operation, inputJson]
+      response_fields: [call]
+      transport_boundary: unary
+      effect_boundary: write
+      owner: runtime_integration_service
+    integrationGetCall:
+      command: local-app.integrationGetCall
+      operation_id: runtime.integration.call.get
+      request_fields: [callId]
+      response_fields: [call]
+      transport_boundary: unary
+      effect_boundary: read
+      owner: runtime_integration_service
+    integrationListCalls:
+      command: local-app.integrationListCalls
+      operation_id: runtime.integration.call.list
+      request_fields: [limit]
+      response_fields: [calls]
+      transport_boundary: unary
+      effect_boundary: read
+      owner: runtime_integration_service
+    integrationCancelCall:
+      command: local-app.integrationCancelCall
+      operation_id: runtime.integration.call.cancel
+      request_fields: [callId]
+      response_fields: [call]
+      transport_boundary: unary
+      effect_boundary: write
+      owner: runtime_integration_service
+    integrationRegisterProvider:
+      command: local-app.integrationRegisterProvider
+      operation_id: runtime.integration.provider.register
+      request_fields: [integrationId, displayName, operations, skill]
+      response_fields: [target]
+      transport_boundary: unary
+      effect_boundary: write
+      owner: runtime_integration_service
+    integrationUnregisterProvider:
+      command: local-app.integrationUnregisterProvider
+      operation_id: runtime.integration.provider.unregister
+      request_fields: [targetRef]
+      response_fields: [removed]
+      transport_boundary: unary
+      effect_boundary: write
+      owner: runtime_integration_service
+    integrationPollProvider:
+      command: local-app.integrationPollProvider
+      operation_id: runtime.integration.provider.poll
+      request_fields: [waitMs]
+      response_fields: [calls, canceledCallIds]
+      transport_boundary: unary
+      effect_boundary: read
+      owner: runtime_integration_service
+    integrationCompleteProvider:
+      command: local-app.integrationCompleteProvider
+      operation_id: runtime.integration.provider.complete
+      request_fields: [callId, resultJson, errorCode]
+      response_fields: [accepted]
+      transport_boundary: unary
+      effect_boundary: write
+      owner: runtime_integration_service
+    integrationGetManagement:
+      command: local-app.integrationGetManagement
+      operation_id: runtime.integration.management.get
+      request_fields: []
+      response_fields: [targets, permissions, consumers, calls]
+      transport_boundary: unary
+      effect_boundary: read
+      owner: runtime_integration_service
+    integrationPutConnection:
+      command: local-app.integrationPutConnection
+      operation_id: runtime.integration.connection.put
+      request_fields: [targetRef, adapter, endpoint, displayName, accountLabel, secret]
+      response_fields: [connection]
+      transport_boundary: unary
+      effect_boundary: write
+      owner: runtime_integration_service
+    integrationRemoveConnection:
+      command: local-app.integrationRemoveConnection
+      operation_id: runtime.integration.connection.remove
+      request_fields: [targetRef]
+      response_fields: [removed]
+      transport_boundary: unary
+      effect_boundary: write
+      owner: runtime_integration_service
+    integrationSetPermission:
+      command: local-app.integrationSetPermission
+      operation_id: runtime.integration.permission.set
+      request_fields: [consumerRef, targetRef, operations]
+      response_fields: [permission]
+      transport_boundary: unary
+      effect_boundary: write
+      owner: runtime_integration_service
     conversationOpen:
       command: local-app.conversationOpen
       operation_id: runtime_agent.conversation.open
@@ -791,14 +996,13 @@ local_app_operation_contract:
     conversationSendTurn:
       command: local-app.conversationSendTurn
       operation_id: runtime_agent.conversation.turn_send
-      request_fields: [agentHandle, conversationAnchorId, requestId, parts, work]
+      request_fields: [agentHandle, conversationAnchorId, requestId, parts]
       response_fields: [turnId]
       transport_boundary: unary
       effect_boundary: write
       typed_failures: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, host-internal-error]
       owner: runtime_agent_service
     conversationToolCallsList:
-      command: local-app.conversationToolCallsList
       operation_id: runtime_agent.conversation.tool_calls_list
       request_fields: [agentHandle, conversationAnchorId, turnId]
       response_fields: [calls]
@@ -807,7 +1011,6 @@ local_app_operation_contract:
       typed_failures: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, host-internal-error]
       owner: runtime_agent_service
     conversationToolResultSubmit:
-      command: local-app.conversationToolResultSubmit
       operation_id: runtime_agent.conversation.tool_result_submit
       request_fields: [agentHandle, conversationAnchorId, turnId, callId, resultJson, isError]
       response_fields: [callId]
@@ -1542,20 +1745,83 @@ capabilities:
       - id: realmRealtimeChannelClose
         command: nimi.shell.localApp.realmRealtimeChannelClose
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, not-found, host-internal-error]
+      - id: agentIntroductionGet
+        command: nimi.shell.localApp.agentIntroductionGet
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, not-found, host-internal-error]
       - id: agentReferenceList
         command: nimi.shell.localApp.agentReferenceList
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, resource-exhausted, host-internal-error]
+      - id: agentWorkReferenceList
+        command: nimi.shell.localApp.agentWorkReferenceList
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, not-found, host-internal-error]
+      - id: agentWorkStart
+        command: nimi.shell.localApp.agentWorkStart
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, not-found, host-internal-error]
+      - id: agentWorkGet
+        command: nimi.shell.localApp.agentWorkGet
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, not-found, host-internal-error]
+      - id: agentWorkStatus
+        command: nimi.shell.localApp.agentWorkStatus
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, not-found, host-internal-error]
+      - id: agentWorkToolCallsList
+        command: nimi.shell.localApp.agentWorkToolCallsList
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, not-found, host-internal-error]
+      - id: agentWorkToolResultSubmit
+        command: nimi.shell.localApp.agentWorkToolResultSubmit
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, not-found, host-internal-error]
+      - id: agentWorkCancel
+        command: nimi.shell.localApp.agentWorkCancel
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, not-found, host-internal-error]
+      - id: agentWorkSubscribe
+        command: nimi.shell.localApp.agentWorkSubscribe
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, not-found, host-internal-error]
+      - id: integrationListCatalog
+        command: nimi.shell.localApp.integrationListCatalog
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, not-found, host-internal-error]
+      - id: integrationListConnections
+        command: nimi.shell.localApp.integrationListConnections
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, not-found, host-internal-error]
+      - id: integrationInvoke
+        command: nimi.shell.localApp.integrationInvoke
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, not-found, host-internal-error]
+      - id: integrationGetCall
+        command: nimi.shell.localApp.integrationGetCall
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, not-found, host-internal-error]
+      - id: integrationListCalls
+        command: nimi.shell.localApp.integrationListCalls
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, not-found, host-internal-error]
+      - id: integrationCancelCall
+        command: nimi.shell.localApp.integrationCancelCall
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, not-found, host-internal-error]
+      - id: integrationRegisterProvider
+        command: nimi.shell.localApp.integrationRegisterProvider
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, not-found, host-internal-error]
+      - id: integrationUnregisterProvider
+        command: nimi.shell.localApp.integrationUnregisterProvider
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, not-found, host-internal-error]
+      - id: integrationPollProvider
+        command: nimi.shell.localApp.integrationPollProvider
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, not-found, host-internal-error]
+      - id: integrationCompleteProvider
+        command: nimi.shell.localApp.integrationCompleteProvider
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, not-found, host-internal-error]
+      - id: integrationGetManagement
+        command: nimi.shell.localApp.integrationGetManagement
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, not-found, host-internal-error]
+      - id: integrationPutConnection
+        command: nimi.shell.localApp.integrationPutConnection
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, not-found, host-internal-error]
+      - id: integrationRemoveConnection
+        command: nimi.shell.localApp.integrationRemoveConnection
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, not-found, host-internal-error]
+      - id: integrationSetPermission
+        command: nimi.shell.localApp.integrationSetPermission
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, not-found, host-internal-error]
       - id: conversationOpen
         command: nimi.shell.localApp.conversationOpen
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, host-internal-error]
       - id: conversationSendTurn
         command: nimi.shell.localApp.conversationSendTurn
-        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, host-internal-error]
-      - id: conversationToolCallsList
-        command: nimi.shell.localApp.conversationToolCallsList
-        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, host-internal-error]
-      - id: conversationToolResultSubmit
-        command: nimi.shell.localApp.conversationToolResultSubmit
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, host-internal-error]
       - id: conversationAttachmentUpload
         command: nimi.shell.localApp.conversationAttachmentUpload

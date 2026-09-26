@@ -4,6 +4,47 @@ import { createAppBusinessServices } from '../src/main/app-business-services.js'
 import type { NimiElectronLocalAppHost } from '../src/main/local-app-host.js';
 
 describe('App-owned Node services on the existing protected Host', () => {
+  it('permanently retires captured services, rejects late reads and permits only a new owner to read the fresh scope', async () => {
+    let finish!: (value: Record<string, unknown>) => void;
+    let reads = 0; let writes = 0;
+    const host = {
+      storageReadJson: async () => { if (++reads === 1) return new Promise<Record<string, unknown>>(resolve => { finish = resolve; }); return { value: { account: 'B' }, sizeBytes: 15 }; },
+      storageWriteJson: async () => { writes++; return { value: {}, sizeBytes: 2 }; },
+    } as unknown as NimiElectronLocalAppHost;
+    const old = createAppBusinessServices(host); const captured = old.services;
+    const pending = captured.storage.readJson('saved.json');
+    const rejected = expect(pending).rejects.toMatchObject({ reasonCode: 'session-invalid' });
+    old.close();
+    const fresh = createAppBusinessServices(host);
+    await expect(captured.storage.readJson('saved.json')).rejects.toMatchObject({ reasonCode: 'session-invalid' });
+    await expect(captured.storage.writeJson('saved.json', {})).rejects.toMatchObject({ reasonCode: 'session-invalid' });
+    finish({ value: { account: 'A' }, sizeBytes: 15 }); await rejected;
+    await expect(fresh.services.storage.readJson('saved.json')).resolves.toEqual({ value: { account: 'B' }, sizeBytes: 15 });
+    expect(reads).toBe(2); expect(writes).toBe(0);
+    fresh.close();
+  });
+  it('drops old work and provider results when the protected session changes', async () => {
+    let finishWork!: (value: Record<string, unknown>) => void;
+    let finishProvider!: (value: Record<string, unknown>) => void;
+    const owner = createAppBusinessServices({
+      agentWorkStart: () => new Promise(resolve => { finishWork = resolve; }),
+      integrationPollProvider: () => new Promise(resolve => { finishProvider = resolve; }),
+    } as unknown as NimiElectronLocalAppHost);
+    const work = owner.services.agentWork.start({
+      agentHandle: `agent_ref_${'a'.repeat(43)}` as never,
+      requestId: 'request-1', prompt: 'Analyze.',
+      work: { workId: 'work-1', instructions: '', sources: [], tools: [] },
+    });
+    const poll = owner.services.integration.pollProvider({ waitMs: 25000 });
+    const rejectedWork = expect(work).rejects.toMatchObject({ reasonCode: 'session-invalid' });
+    const rejectedPoll = expect(poll).rejects.toMatchObject({ reasonCode: 'session-invalid' });
+    owner.invalidate();
+    finishWork({ executionId: 'old-execution' });
+    finishProvider({ calls: [{ callId: 'late-call' }], canceledCallIds: [] });
+    await Promise.all([rejectedWork, rejectedPoll]);
+    owner.close();
+  });
+
   it('finishes an asset read without closing an EOF-retired Host resource', async () => {
     let next = 0;
     let closes = 0;

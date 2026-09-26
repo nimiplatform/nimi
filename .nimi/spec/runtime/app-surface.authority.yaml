@@ -265,7 +265,7 @@ units:
     kind: rule
     title: LocalAgent owner access has one session-derived seam
     modality: must
-    statement: A Desktop-hosted formal App reaches LocalAgent Conversation and Agent-owned Realtime only through the canonical typed Runtime Agent Service operations after Runtime derives the current account, App subject, Effective App Access Snapshot, exact AppOperationId, generation, and a session-scoped opaque Agent handle from the active session; the handle is the only Agent selector and is a non-secret selector rather than a grant, bearer, durable identity, or reusable relationship, a Runtime-issued Conversation anchor may serve only as a revalidated operation-specific continuity fence, and internal Agent transport cannot create a second admission or richer protocol path.
+    statement: A Desktop-hosted formal App reaches LocalAgent Conversation, separately admitted independent App business execution and Agent-owned Realtime only through the canonical typed Runtime Agent Service operations after Runtime derives the current account, App subject, Effective App Access Snapshot, exact AppOperationId, generation, and a session-scoped opaque Agent handle from the active session; the handle is the only Agent selector and is a non-secret selector rather than a grant, bearer, durable identity, or reusable relationship, a Runtime-issued Conversation anchor may serve only as a revalidated operation-specific continuity fence, and internal Agent transport cannot create a second admission or richer protocol path.
     condition: Whenever a Local App requests a LocalAgent operation.
     failure: Fail the affected operation closed when the current account, App subject, snapshot, Agent-handle resolution, exact operation admission, or owner policy is unavailable.
     relations:
@@ -565,9 +565,9 @@ units:
     kind: rule
     title: Protected session requests carry no caller authority
     modality: must
-    statement: A protected Desktop or Local App session request accepts no app id, caller class, source host, subject, trust, launch correlation, process, account, snapshot, domain, operation, classification, or portable proof override and returns no portable authorization bearer; Local App renewal atomically replaces only the current short-lived session and Effective App Access Snapshot on the same verified exact Host connection after complete revalidation and does not repeat launch or create durable consent.
-    condition: Whenever a protected session is opened or renewed.
-    failure: Reject caller authority fields, portable bearers, and renewal used as a new launch or origin path.
+    statement: A protected Desktop or Local App session request accepts no app id, caller class, source host, subject, trust, launch correlation, process, account, snapshot, domain, operation, classification, or portable proof override and returns no portable authorization bearer. OpenLocalAppSession consumes only a legal unbound bootstrap. RenewLocalAppSession extends only the current live unexpired scope after complete revalidation, preserving its session identity, fence and owned resources. Request-empty Host-private RebindLocalAppSession may derive a fresh session and Effective App Access Snapshot only on the same still-verified previously bound exact Host connection after current supervision, process, registration, account, declaration and launch facts pass their owners; it returns an already live current scope unchanged and never rotates again for a duplicate request. Old resources are invalidated before fresh admission, and old App reads, writes and callbacks never queue or replay into the new scope; a new session-ready event may initiate new reads. These mechanics do not repeat launch, establish durable consent, restore business work or add an AppOperationId or domain.
+    condition: Whenever a protected session is opened, renewed or explicitly rebound.
+    failure: Reject caller authority fields, portable bearers, stale renewal, rebind after connection loss or failed current owner validation, and any session mechanic used to bypass a required new verified launch.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.auth-service-plane
@@ -825,3 +825,31 @@ units:
         target: definition.nimi.platform.product-lifecycle.host-technical-profile
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-lifecycle-plane
+  - id: rule.nimi.runtime.app-surface.activity-chat-reference
+    kind: rule
+    title: Published App references remain distinct from chat content
+    modality: must
+    statement: An App may deliberately publish a bounded title or summary and object reference through App Activity for Home and an authorized associated-Agent chat projection. Runtime derives publisher and validates the Agent association; projection requires the publication read authorization independently of canonical chat access. The Activity owner retains the record, retention and updates while chat displays a distinct source-labeled reference rather than copying a mutable message or inserting user or assistant speech. The reference alone enters no model context, chat summary or Memory event; explicit user-provided or quoted authorized content may become real chat. The primary action opens or focuses the source object through the existing Host path, carries no retry or resume instruction, and failed, removed or expired targets show unavailable rather than permanent transcript custody or execution success.
+    condition: Whenever an App publication appears in a chat or Home projection or is opened.
+    failure: Reject unauthorized associations, content exposure, automatic context promotion, stale success or navigation-triggered replay.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-activity-open
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.app-activity-record
+      - type: applies_to
+        target: definition.nimi.runtime.app-surface.app-activity-plane
+  - id: rule.nimi.runtime.app-surface.run-access-scope-projection
+    kind: rule
+    title: Exact Host observes Runtime run access and scope changes
+    modality: must
+    statement: GetLocalDevelopmentRunAccess on RuntimeDevelopmentService takes the existing registration handle and supervisor run reference and validates their verified launch and exact current Desktop owner before inspecting that run's actual protected App session; GetInstalledAppRunAccess preserves the equivalent installed lease and owner checks. Both return availability and ReasonCode plus execution_scope_ref only for an actually current Base-admitted live session. The execution_scope_ reference is a domain-separated HMAC derived from the existing session proof, session identity, launch correlation and Runtime generation, is non-authorizing and Host-private, stays unchanged through normal live renewal and changes for a new execution scope. Unavailable, pending or ambiguous owner facts return no scope reference; owner read failure or multiple conflicting live sessions report unconfirmed owner availability rather than fabricated revocation. Exact launch owner and run association travel through existing prepared launch and session records, not a second scope lifecycle, durable ledger, AppOperationId, declaration domain or business task API. Only Runtime, native and Host main consume this reference; ordinary App clients, renderer projections and published messages receive necessary technical states without the reference, proof or raw generation.
+    condition: Whenever a supervising Host observes development or installed App execution access.
+    failure: Reject a foreign owner or mismatched run, preserve uncertainty when owner evidence is unavailable, and never grant access, reconstruct a session or resume work from this projection.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.app-surface.app-lifecycle-plane
+      - type: applies_to
+        target: definition.nimi.runtime.app-surface.auth-service-plane
+      - type: applies_to
+        target: definition.nimi.runtime.app-surface.registered-app-subject-record-plane

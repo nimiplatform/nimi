@@ -367,6 +367,26 @@ func (store *RegistrationStore) GetBySubject(ctx context.Context, subject string
 	return registrationFromCanonicalAndBinding(canonical, binding), nil
 }
 
+// DescribeBySubject reads the retained canonical display facts for an exact
+// subject, including tombstoned records and records without a host binding.
+// Callers must continue to use the admission methods for all authorization.
+func (store *RegistrationStore) DescribeBySubject(ctx context.Context, subject string) (RegistrationDescription, error) {
+	if store == nil || store.kernel == nil {
+		return RegistrationDescription{}, ErrInvalidArgument
+	}
+	if err := requireExactText("registered_app_subject", subject); err != nil {
+		return RegistrationDescription{}, err
+	}
+	canonical, err := loadCanonicalBySubject(ctx, store.kernel.db, subject)
+	if err != nil {
+		return RegistrationDescription{}, err
+	}
+	return RegistrationDescription{
+		AppID: canonical.AppID, DisplayName: canonical.DisplayName, SourceClass: canonical.SourceClass,
+		Platform: canonical.SourceClass == SourceClassVerified && canonical.SourceRef == "platform-app:"+canonical.AppID,
+	}, nil
+}
+
 func (store *RegistrationStore) Status(ctx context.Context, handle string) (RegistrationStatus, error) {
 	if store == nil || store.kernel == nil {
 		return RegistrationStatus{}, ErrInvalidArgument

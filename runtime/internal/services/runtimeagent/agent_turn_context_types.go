@@ -222,6 +222,7 @@ type agentTurnContextCompileInput struct {
 	Source               localAgentTurnSourceViewV1
 	LocalAgentRef        string
 	ConversationAnchorID string
+	ExecutionID          string
 	TurnID               string
 	RequestID            string
 	RuntimePolicy        []agentTurnRuntimePolicyInput
@@ -311,6 +312,7 @@ type agentTurnContextManifestV1 struct {
 	CompilerSchemaVersion      string                                        `json:"compilerSchemaVersion"`
 	LocalAgentRef              string                                        `json:"localAgentRef"`
 	ConversationAnchorID       string                                        `json:"conversationAnchorId"`
+	ExecutionID                string                                        `json:"executionId,omitempty"`
 	TurnID                     string                                        `json:"turnId"`
 	RequestID                  string                                        `json:"requestId"`
 	SourceSnapshotHash         string                                        `json:"sourceSnapshotHash"`

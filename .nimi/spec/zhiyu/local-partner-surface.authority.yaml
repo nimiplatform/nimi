@@ -212,3 +212,27 @@ units:
         target: definition.nimi.zhiyu.local-partner-surface.conversation-surface
       - type: applies_to
         target: definition.nimi.zhiyu.local-partner-surface.resource-pack-target
+  - id: rule.nimi.zhiyu.local-partner-surface.business-reference
+    kind: rule
+    title: Zhiyu preserves chat and business-reference boundaries
+    modality: must
+    statement: Zhiyu may compose authorized source-labeled App Activity references with its canonical Conversation view while keeping the publication owner, limited content and lifetime separate from transcript, automatic model context and Memory. The primary action opens the source App object without resume intent. Shared-Agent contention preserves user input and exposes a bounded busy and wait or retry path without acquiring another App business contents or interrupting its execution.
+    condition: Whenever Zhiyu displays an App reference or encounters shared-Agent contention.
+    failure: Reject fabricated conversation messages, automatic task routing, private-content exposure or unrelated cancellation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.app-work-plane
+      - type: applies_to
+        target: definition.nimi.runtime.app-surface.app-activity-plane
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.conversation-surface
+  - id: rule.nimi.zhiyu.local-partner-surface.agent-introduction
+    kind: rule
+    title: Zhiyu consumes the shared Agent introduction
+    modality: must
+    statement: Zhiyu renders available introduction material through the shared SDK and Kit projection, keeps the introduction independent from composer readiness, and offers up to two source-derived questions that only prefill the controlled draft when input is available. Absent introduction material uses the name and avatar plus generic conversation guidance. Static public voice samples may attempt local autoplay with an explicit play or stop control, stop on scope change or unmount, and never call Conversation interruption or drive Avatar.
+    condition: Whenever this surface consumes or renders a LocalAgent introduction.
+    failure: Reject divergent private data paths, fabricated source facts or execution authority in display code.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.agent-introduction

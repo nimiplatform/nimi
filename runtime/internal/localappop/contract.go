@@ -103,6 +103,29 @@ const (
 
 const (
 	IngressUnknown Ingress = iota
+	IngressAgentWorkReferenceList
+	IngressAgentWorkStart
+	IngressAgentWorkGet
+	IngressAgentWorkStatusGet
+	IngressAgentWorkToolCallsList
+	IngressAgentWorkToolResultSubmit
+	IngressAgentWorkCancel
+	IngressAgentWorkEventsSubscribe
+	IngressIntegrationCatalogList
+	IngressIntegrationConnectionList
+	IngressIntegrationCallInvoke
+	IngressIntegrationCallGet
+	IngressIntegrationCallList
+	IngressIntegrationCallCancel
+	IngressIntegrationProviderRegister
+	IngressIntegrationProviderUnregister
+	IngressIntegrationProviderPoll
+	IngressIntegrationProviderComplete
+	IngressIntegrationManagementGet
+	IngressIntegrationConnectionPut
+	IngressIntegrationConnectionRemove
+	IngressIntegrationPermissionSet
+
 	IngressStorageJSONRead
 	IngressStorageJSONWrite
 	IngressStorageJSONRemove
@@ -165,10 +188,9 @@ const (
 	IngressAgentRealtimeOutputInterrupt
 	IngressAgentRealtimeClose
 	IngressAgentReferenceList
+	IngressAgentIntroductionGet
 	IngressConversationOpen
 	IngressConversationTurnSend
-	IngressConversationToolCallsList
-	IngressConversationToolResultSubmit
 	IngressConversationTurnInterrupt
 	IngressConversationEventsSubscribe
 	IngressConversationSnapshotGet
@@ -206,6 +228,29 @@ const (
 
 const (
 	OperationUnknown Operation = iota
+	OperationAgentWorkReferenceList
+	OperationAgentWorkStart
+	OperationAgentWorkGet
+	OperationAgentWorkStatusGet
+	OperationAgentWorkToolCallsList
+	OperationAgentWorkToolResultSubmit
+	OperationAgentWorkCancel
+	OperationAgentWorkEventsSubscribe
+	OperationIntegrationCatalogList
+	OperationIntegrationConnectionList
+	OperationIntegrationCallInvoke
+	OperationIntegrationCallGet
+	OperationIntegrationCallList
+	OperationIntegrationCallCancel
+	OperationIntegrationProviderRegister
+	OperationIntegrationProviderUnregister
+	OperationIntegrationProviderPoll
+	OperationIntegrationProviderComplete
+	OperationIntegrationManagementGet
+	OperationIntegrationConnectionPut
+	OperationIntegrationConnectionRemove
+	OperationIntegrationPermissionSet
+
 	OperationStorageJSONRead
 	OperationStorageJSONWrite
 	OperationStorageJSONRemove
@@ -268,10 +313,9 @@ const (
 	OperationAgentRealtimeOutputInterrupt
 	OperationAgentRealtimeClose
 	OperationAgentReferenceList
+	OperationAgentIntroductionGet
 	OperationConversationOpen
 	OperationConversationTurnSend
-	OperationConversationToolCallsList
-	OperationConversationToolResultSubmit
 	OperationConversationTurnInterrupt
 	OperationConversationEventsSubscribe
 	OperationConversationSnapshotGet
@@ -307,6 +351,31 @@ const (
 	OperationAppActivityOpenRequestComplete
 )
 
+const (
+	AppOperationIDAgentWorkReferenceList        = "runtime.agent.work.reference.list"
+	AppOperationIDAgentWorkStart                = "runtime.agent.work.start"
+	AppOperationIDAgentWorkGet                  = "runtime.agent.work.get"
+	AppOperationIDAgentWorkStatusGet            = "runtime.agent.work.status.get"
+	AppOperationIDAgentWorkToolCallsList        = "runtime.agent.work.tool-calls.list"
+	AppOperationIDAgentWorkToolResultSubmit     = "runtime.agent.work.tool-result.submit"
+	AppOperationIDAgentWorkCancel               = "runtime.agent.work.cancel"
+	AppOperationIDAgentWorkEventsSubscribe      = "runtime.agent.work.events.subscribe"
+	AppOperationIDIntegrationCatalogList        = "runtime.integration.catalog.list"
+	AppOperationIDIntegrationConnectionList     = "runtime.integration.connection.list"
+	AppOperationIDIntegrationCallInvoke         = "runtime.integration.call.invoke"
+	AppOperationIDIntegrationCallGet            = "runtime.integration.call.get"
+	AppOperationIDIntegrationCallList           = "runtime.integration.call.list"
+	AppOperationIDIntegrationCallCancel         = "runtime.integration.call.cancel"
+	AppOperationIDIntegrationProviderRegister   = "runtime.integration.provider.register"
+	AppOperationIDIntegrationProviderUnregister = "runtime.integration.provider.unregister"
+	AppOperationIDIntegrationProviderPoll       = "runtime.integration.provider.poll"
+	AppOperationIDIntegrationProviderComplete   = "runtime.integration.provider.complete"
+	AppOperationIDIntegrationManagementGet      = "runtime.integration.management.get"
+	AppOperationIDIntegrationConnectionPut      = "runtime.integration.connection.put"
+	AppOperationIDIntegrationConnectionRemove   = "runtime.integration.connection.remove"
+	AppOperationIDIntegrationPermissionSet      = "runtime.integration.permission.set"
+)
+
 type contractRow struct {
 	ingress   Ingress
 	operation Operation
@@ -321,6 +390,29 @@ type contractRow struct {
 // canonicalAppOperationContract is the sole Runtime operation-ID and
 // classification map. AppOperationIds intentionally occur nowhere else.
 var canonicalAppOperationContract = [...]contractRow{
+	{IngressAgentWorkReferenceList, OperationAgentWorkReferenceList, AppOperationIDAgentWorkReferenceList, AuthorityClassAppAccess, "agent.work"},
+	{IngressAgentWorkStart, OperationAgentWorkStart, AppOperationIDAgentWorkStart, AuthorityClassAppAccess, "agent.work"},
+	{IngressAgentWorkGet, OperationAgentWorkGet, AppOperationIDAgentWorkGet, AuthorityClassAppAccess, "agent.work"},
+	{IngressAgentWorkStatusGet, OperationAgentWorkStatusGet, AppOperationIDAgentWorkStatusGet, AuthorityClassAppAccess, "agent.work"},
+	{IngressAgentWorkToolCallsList, OperationAgentWorkToolCallsList, AppOperationIDAgentWorkToolCallsList, AuthorityClassAppAccess, "agent.work"},
+	{IngressAgentWorkToolResultSubmit, OperationAgentWorkToolResultSubmit, AppOperationIDAgentWorkToolResultSubmit, AuthorityClassAppAccess, "agent.work"},
+	{IngressAgentWorkCancel, OperationAgentWorkCancel, AppOperationIDAgentWorkCancel, AuthorityClassAppAccess, "agent.work"},
+	{IngressAgentWorkEventsSubscribe, OperationAgentWorkEventsSubscribe, AppOperationIDAgentWorkEventsSubscribe, AuthorityClassAppAccess, "agent.work"},
+	{IngressIntegrationCatalogList, OperationIntegrationCatalogList, AppOperationIDIntegrationCatalogList, AuthorityClassAppAccess, "integration.consume"},
+	{IngressIntegrationConnectionList, OperationIntegrationConnectionList, AppOperationIDIntegrationConnectionList, AuthorityClassAppAccess, "integration.consume"},
+	{IngressIntegrationCallInvoke, OperationIntegrationCallInvoke, AppOperationIDIntegrationCallInvoke, AuthorityClassAppAccess, "integration.consume"},
+	{IngressIntegrationCallGet, OperationIntegrationCallGet, AppOperationIDIntegrationCallGet, AuthorityClassAppAccess, "integration.consume"},
+	{IngressIntegrationCallList, OperationIntegrationCallList, AppOperationIDIntegrationCallList, AuthorityClassAppAccess, "integration.consume"},
+	{IngressIntegrationCallCancel, OperationIntegrationCallCancel, AppOperationIDIntegrationCallCancel, AuthorityClassAppAccess, "integration.consume"},
+	{IngressIntegrationProviderRegister, OperationIntegrationProviderRegister, AppOperationIDIntegrationProviderRegister, AuthorityClassAppAccess, "integration.provide"},
+	{IngressIntegrationProviderUnregister, OperationIntegrationProviderUnregister, AppOperationIDIntegrationProviderUnregister, AuthorityClassAppAccess, "integration.provide"},
+	{IngressIntegrationProviderPoll, OperationIntegrationProviderPoll, AppOperationIDIntegrationProviderPoll, AuthorityClassAppAccess, "integration.provide"},
+	{IngressIntegrationProviderComplete, OperationIntegrationProviderComplete, AppOperationIDIntegrationProviderComplete, AuthorityClassAppAccess, "integration.provide"},
+	{IngressIntegrationManagementGet, OperationIntegrationManagementGet, AppOperationIDIntegrationManagementGet, AuthorityClassAppAccess, "integration.manage"},
+	{IngressIntegrationConnectionPut, OperationIntegrationConnectionPut, AppOperationIDIntegrationConnectionPut, AuthorityClassAppAccess, "integration.manage"},
+	{IngressIntegrationConnectionRemove, OperationIntegrationConnectionRemove, AppOperationIDIntegrationConnectionRemove, AuthorityClassAppAccess, "integration.manage"},
+	{IngressIntegrationPermissionSet, OperationIntegrationPermissionSet, AppOperationIDIntegrationPermissionSet, AuthorityClassAppAccess, "integration.manage"},
+
 	{IngressStorageJSONRead, OperationStorageJSONRead, "runtime.app-storage.json.read", AuthorityClassBase, ""},
 	{IngressStorageJSONWrite, OperationStorageJSONWrite, "runtime.app-storage.json.write", AuthorityClassBase, ""},
 	{IngressStorageJSONRemove, OperationStorageJSONRemove, "runtime.app-storage.json.remove", AuthorityClassBase, ""},
@@ -386,11 +478,10 @@ var canonicalAppOperationContract = [...]contractRow{
 	{IngressAgentRealtimeStatusGet, OperationAgentRealtimeStatusGet, AppOperationIDAgentRealtimeStatusGet, AuthorityClassAppAccess, "agent.local"},
 	{IngressAgentRealtimeOutputInterrupt, OperationAgentRealtimeOutputInterrupt, AppOperationIDAgentRealtimeOutputInterrupt, AuthorityClassAppAccess, "agent.local"},
 	{IngressAgentRealtimeClose, OperationAgentRealtimeClose, AppOperationIDAgentRealtimeClose, AuthorityClassAppAccess, "agent.local"},
+	{IngressAgentIntroductionGet, OperationAgentIntroductionGet, "runtime.agent.introduction.get", AuthorityClassAppAccess, "agent.local"},
 	{IngressAgentReferenceList, OperationAgentReferenceList, "runtime.agent.reference.list", AuthorityClassAppAccess, "agent.local"},
 	{IngressConversationOpen, OperationConversationOpen, "runtime.agent.conversation.open", AuthorityClassAppAccess, "agent.local"},
 	{IngressConversationTurnSend, OperationConversationTurnSend, "runtime.agent.conversation.turn.send", AuthorityClassAppAccess, "agent.local"},
-	{IngressConversationToolCallsList, OperationConversationToolCallsList, "runtime.agent.conversation.tool-calls.list", AuthorityClassAppAccess, "agent.local"},
-	{IngressConversationToolResultSubmit, OperationConversationToolResultSubmit, "runtime.agent.conversation.tool-result.submit", AuthorityClassAppAccess, "agent.local"},
 	{IngressConversationTurnInterrupt, OperationConversationTurnInterrupt, "runtime.agent.conversation.turn.interrupt", AuthorityClassAppAccess, "agent.local"},
 	{IngressConversationEventsSubscribe, OperationConversationEventsSubscribe, "runtime.agent.conversation.events.subscribe", AuthorityClassAppAccess, "agent.local"},
 	{IngressConversationSnapshotGet, OperationConversationSnapshotGet, "runtime.agent.conversation.snapshot.get", AuthorityClassAppAccess, "agent.local"},

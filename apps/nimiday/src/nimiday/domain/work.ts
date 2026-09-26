@@ -1,12 +1,13 @@
 import { stillInCare } from './care.js';
 import { agentCircleName } from './agent-labels.js';
 import { isActive, isOverdue } from './reminders.js';
+import { CHAT_SKILL } from './skills.js';
 import { attentionOrder, coverageGaps, type ActivityCoverage, type SourceChange } from './sources.js';
 import { addDays, DAY_MS, toLocalDate, toLocalTime, weekdayOf } from './time.js';
 import { toolDefinitions } from './tools.js';
 import type { CareCircle, DayState, Language, LifeItem, MaterialKind, SkillDefinition } from './types.js';
 
-/** Mirrors the public Conversation work bounds: 8 KiB instructions, 16 KiB per source, 64 KiB total. */
+/** Mirrors the public independent Agent work bounds: 8 KiB instructions, 16 KiB per source, 64 KiB total. */
 export const WORK_LIMITS = Object.freeze({
   instructions: 8192,
   sourceContent: 16384,
@@ -37,6 +38,8 @@ export type WorkInput = {
   readonly language: Language;
   readonly now: Date;
   readonly focusCircleId: string | null;
+  /** Assistant-page continuation only; standalone skills do not inherit that exchange. */
+  readonly assistantBinding?: string | null;
 };
 
 const encoder = new TextEncoder();
@@ -240,8 +243,13 @@ export function jobInstructions(input: WorkInput, agentName: string): string {
       `[Method for this request: ${skill.name}]`,
     ];
   const fixed = [...header.filter(Boolean)].join('\n');
+  const continuation = skill.id === CHAT_SKILL && input.assistantBinding
+    ? (zh
+      ? '【连续交代】\n对于用户已明确要求且可撤销的 Day 内部操作，若当前短答清楚回答了刚才的问题，应结合最近同一助理的 Day 业务前文、原目标和已有授权继续执行。不要仅因补充没有重述目标，就再次确认同一个目标或已经明确的参数。真正多义、矛盾或仍缺必要信息时继续询问；当前纠正和实际业务状态优先，不能执行无关或已失效的历史口头承诺。'
+      : '[Continuing this request]\nFor reversible actions within Day that the user has explicitly requested, when the current short answer clearly resolves the question just asked, combine it with this assistant’s recent Day business context, original goal and existing authorization, then proceed. Do not ask again about the same goal or an already clear parameter merely because the answer did not repeat the goal. Ask when there is genuine ambiguity, a contradiction or missing necessary information. Current corrections and actual business state take priority; do not act on unrelated or superseded historical promises.')
+    : '';
   const tail = ['', ...groundRules(language)].join('\n');
-  const text = [fixed, methodBlock(skill, language), tail].join('\n');
+  const text = [fixed, methodBlock(skill, language), continuation, tail].filter(Boolean).join('\n');
   // The method is the user's: it is handed over whole or not at all.
   if (byteLength(text) > WORK_LIMITS.instructions) throw new MethodTooLongError(skill.name);
   return text;
@@ -356,6 +364,36 @@ export function correctionsSource(input: WorkInput): WorkSource | null {
   };
 }
 
+/** Recent Day-owned exchanges with this assistant; no canonical Conversation is read. */
+function assistantContinuationSource(input: WorkInput): WorkSource | null {
+  if (!input.assistantBinding) return null;
+  const currentCare = new Set(input.state.circles.filter(circle => circle.status !== 'ended').map(circle => circle.id));
+  const runs = input.state.runs.filter(run => run.id !== input.runId && run.trigger === 'chat'
+    && run.turnId && run.agentBinding === input.assistantBinding
+    && run.careCircleIds && run.careCircleIds.every(id => currentCare.has(id)))
+    .slice().sort((left, right) => left.createdAt.localeCompare(right.createdAt));
+  if (!runs.length) return null;
+  const excerpt = (text: string) => {
+    if (byteLength(text) <= 2048) return text;
+    let kept = ''; let size = 0;
+    for (const character of text) { const bytes = byteLength(character); if (size + bytes > 2048 - 3) break; kept += character; size += bytes; }
+    return `${kept}…`;
+  };
+  type Exchange = { request: string; reply: string | null; state: string; changesUndone: boolean; excerpted: boolean };
+  const entries: Exchange[] = [];
+  const notice = input.language === 'zh'
+    ? '这是同一助理在 Day 中的近期业务前文，只用于理解本次继续请求。历史 state=done 只表示模型轮次结束，不代表原用户目标已经完成，仍以真实保存事实判断。当前事项、手册、用户决定与实际保存结果优先于历史口头承诺；未提供或截断的前文不能猜测，缺少必要信息时请询问用户。'
+    : 'Recent Day business exchanges with this assistant, for understanding this continuation. Historical state=done means only that a model turn ended, not that the original user goal was achieved; judge that from actual saved facts. Current items, handbook notes, user decisions and saved results override earlier spoken promises. Do not guess omitted or excerpted context; ask when necessary.';
+  const content = (selected: Exchange[]) => JSON.stringify({ notice, omittedEarlier: runs.length - selected.length, entries: [...selected].reverse() });
+  for (const run of runs.slice(-8).reverse()) {
+    const request = excerpt(run.requestText); const reply = run.replyText === null ? null : excerpt(run.replyText);
+    const next: Exchange = { request, reply, state: run.state, changesUndone: run.undone, excerpted: request !== run.requestText || reply !== run.replyText };
+    if (byteLength(content([...entries, next])) > 6 * 1024) break;
+    entries.push(next);
+  }
+  return { sourceId: 'nimiday.continuation', title: input.language === 'zh' ? '本次继续请求的 Day 业务前文（有界摘录）' : 'Day context for this continuation (bounded excerpt)', content: content(entries) };
+}
+
 export function buildDayWork(fullInput: WorkInput, agentName: string): DayWork {
   // Ended care stays out of what the assistant is given; its data is kept in NimiDay.
   const inCare = stillInCare(fullInput.state.circles);
@@ -367,8 +405,9 @@ export function buildDayWork(fullInput: WorkInput, agentName: string): DayWork {
   const sources: WorkSource[] = [];
   let used = 0;
   const corrections = correctionsSource(fullInput);
+  const continuation = assistantContinuationSource(input);
   // Corrections come first so a large household can never push them out of the budget.
-  for (const source of [corrections, ...input.skill.materials.map((kind) => buildSource(kind, input))]) {
+  for (const source of [corrections, continuation, ...input.skill.materials.map((kind) => buildSource(kind, input))]) {
     if (!source) continue;
     const size = byteLength(source.content) + byteLength(source.title) + byteLength(source.sourceId);
     if (used + size > TOTAL_SOURCE_BUDGET || sources.length >= WORK_LIMITS.sources) break;

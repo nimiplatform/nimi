@@ -75,3 +75,17 @@ Authoritative parity fixtures live in `kit/features/chat/test/conversation-shell
 ## Verification
 - `pnpm --filter @nimiplatform/kit test`
 - `pnpm check:nimi-kit`
+
+## Shared Agent introduction
+
+Use `useAgentIntroduction` from the runtime entry with a stable callback to
+`client.agents.getIntroduction({ agentHandle })`, then render `AgentIntroduction`
+from the UI entry. The same read-only `agent.local` operation serves Home and
+ordinary Apps. Never resolve a source ID in the App to populate this surface.
+
+Pass the current reference name/avatar, locale and controlled-draft prefill
+callback. `questionsEnabled` controls only the question buttons; introduction
+content remains visible when the composer is unavailable. Key the component
+by the current handle so static audio stops on a partner or session change.
+The reader discards late results from old handles or reader scopes and exposes
+loading/unavailable separately from Conversation readiness.

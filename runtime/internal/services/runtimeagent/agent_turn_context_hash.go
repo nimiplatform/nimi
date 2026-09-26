@@ -98,6 +98,7 @@ func hashAgentTurnContextManifest(manifest agentTurnContextManifestV1) (string, 
 		CompilerSchemaVersion      string                                    `json:"compilerSchemaVersion"`
 		LocalAgentRef              string                                    `json:"localAgentRef"`
 		ConversationAnchorID       string                                    `json:"conversationAnchorId"`
+		ExecutionID                string                                    `json:"executionId,omitempty"`
 		TurnID                     string                                    `json:"turnId"`
 		RequestID                  string                                    `json:"requestId"`
 		SourceSnapshotHash         string                                    `json:"sourceSnapshotHash"`
@@ -120,6 +121,7 @@ func hashAgentTurnContextManifest(manifest agentTurnContextManifestV1) (string, 
 		CompilerSchemaVersion:      manifest.CompilerSchemaVersion,
 		LocalAgentRef:              manifest.LocalAgentRef,
 		ConversationAnchorID:       manifest.ConversationAnchorID,
+		ExecutionID:                manifest.ExecutionID,
 		TurnID:                     manifest.TurnID,
 		RequestID:                  manifest.RequestID,
 		SourceSnapshotHash:         manifest.SourceSnapshotHash,

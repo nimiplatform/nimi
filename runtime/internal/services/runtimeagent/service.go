@@ -77,9 +77,10 @@ type Service struct {
 	accountTerminationRetryRequested         bool
 	accountTerminationFencedAccounts         map[string]bool
 	realmCharacterPublicAvatar               realmCharacterPublicAvatarResolver
+	realmCharacterPublicIntroduction         realmCharacterPublicIntroductionResolver
 	localAppIngressRevalidator               localAppIngressRevalidator
-	localAppWorkMu                           sync.Mutex
-	localAppWorkCalls                        map[string]*localAppWorkCall
+	localAppWorkExecutions                   map[string]*localAppWorkExecution
+	localAppWorkActiveByAgent                map[string]string
 	localAppConversationMu                   sync.Mutex
 	localAppConversationPublishMu            sync.Mutex
 	localAppConversationNextSubscriberID     uint64

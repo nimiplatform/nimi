@@ -121,7 +121,7 @@ describe('Electron standard data root binding', () => {
     });
   });
 
-  it('keeps an activity pull wait outside the exclusive product Host root gate', async () => {
+  it.each(['activity', 'agentWork'] as const)('keeps a %s pull wait outside the exclusive product Host root gate', async (kind) => {
     let chain = Promise.resolve();
     const exclusive = <T>(operation: () => Promise<T>): Promise<T> => {
       const run = chain.then(operation);
@@ -131,6 +131,11 @@ describe('Electron standard data root binding', () => {
     let releaseNext: (() => void) | undefined;
     const localAppHost = {
       activitySubscribe: async () => ({ streamId: 'changes-1' }),
+      agentWorkSubscribe: async () => ({ streamId: 'changes-1' }),
+      realtimeStreamNext: () => new Promise((resolve) => {
+        releaseNext = () => resolve({ completed: true });
+      }),
+      realtimeStreamClose: async () => ({ closed: true }),
       activityStreamNext: () => new Promise((resolve) => {
         releaseNext = () => resolve({ completed: true });
       }),
@@ -141,12 +146,13 @@ describe('Electron standard data root binding', () => {
       standardShellHost: { localAppHost: localAppHost as never, runDataRootOperation: exclusive },
     });
     const event = createInvokeEvent().event;
+    const command = NIMI_STANDARD_SHELL_COMMANDS[kind === 'activity' ? 'local-app.activitySubscribe' : 'local-app.agentWorkSubscribe'];
     const opened = await invokeBridge(ipcMain, event, {
-      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.activitySubscribe'],
-      payload: { afterChangeSeq: '0' },
+      command,
+      payload: kind === 'activity' ? { afterChangeSeq: '0' } : { agentHandle: `agent_ref_${'a'.repeat(43)}`, executionId: 'execution-1', afterSequence: '0' },
     }) as { subscriptionId: string };
     const waiting = invokeBridge(ipcMain, event, {
-      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.activitySubscribe'],
+      command,
       payload: { action: 'next', subscriptionId: opened.subscriptionId },
     });
     await expect(invokeBridge(ipcMain, event, {
@@ -159,6 +165,18 @@ describe('Electron standard data root binding', () => {
     })).resolves.toEqual({ records: [], nextPageToken: null, baselineChangeSeq: '0' });
     releaseNext?.();
     await expect(waiting).resolves.toMatchObject({ subscriptionId: 'changes-1', completed: true });
+  });
+
+  it('does not hold the root gate during a bounded provider poll', async () => {
+    let rootEntries = 0;
+    const ipcMain = registerBindingBridge({ standardShellHost: {
+      runDataRootOperation: async operation => { rootEntries++; return operation(); },
+      localAppHost: { integrationPollProvider: async () => ({ calls: [], canceledCallIds: [] }) } as never,
+    } });
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['local-app.integrationPollProvider'], payload: { waitMs: 25000 },
+    })).resolves.toEqual({ calls: [], canceledCallIds: [] });
+    expect(rootEntries).toBe(0);
   });
 
   it('fails closed when the Product Control binding has no selected data root', async () => {
