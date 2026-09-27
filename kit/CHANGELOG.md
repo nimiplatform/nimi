@@ -13,6 +13,11 @@
 
 ## 0.16.0 — Integration and independent Agent work (development)
 
+- Preserve Runtime's existing `AI_CONNECTOR_NOT_FOUND` as `ai-connector-not-found`
+  through the native, Electron and Tauri carriers. A stale App AIConfig remains
+  a recoverable configuration error and does not invalidate its protected session.
+  Rebuild the matching native package when taking this correction.
+
 - The complete protected shell adds `agentWork` and `integration`; custom shell
   implementations must carry their exact typed methods. Retired Conversation
   work fields and tool-result commands are removed, with no compatibility path.

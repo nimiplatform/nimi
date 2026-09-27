@@ -1978,6 +1978,7 @@ fn standard_code(reason: &str) -> &'static str {
         | "ai-voice-job-not-cancellable" => "invalid-payload",
         "not-found"
         | "ai-config-not-found"
+        | "ai-connector-not-found"
         | "ai-voice-asset-not-found"
         | "ai-voice-job-not-found" => "not-found",
         "resource-exhausted" => "resource-exhausted",

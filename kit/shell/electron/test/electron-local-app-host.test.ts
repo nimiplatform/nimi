@@ -9,6 +9,20 @@ import {
 } from '../src/main/local-app-host.js';
 
 describe('Electron protected local-app host', () => {
+  it('keeps a missing Connector error in the existing session so configuration can be corrected', async () => {
+    let invalidations = 0; let rebinds = 0;
+    const candidate = { ...binding([]),
+      localAppTextTurnStreamNext: async () => ({ status: 'error' as const, reasonCode: 'ai-connector-not-found', retryable: false }),
+      localAppSessionRebind: async () => { rebinds++; return { status: 'error' as const, reasonCode: 'runtime-unauthenticated', retryable: false }; },
+    };
+    const host = createNimiElectronLocalAppHostForBinding(candidate, () => { invalidations++; });
+    const opened = await host.textTurnSubscribe({ messages: [{ role: 'user', text: 'hello' }] });
+    await expect(host.textTurnStreamNext({ streamId: opened.streamId })).rejects.toMatchObject({ reasonCode: 'ai-connector-not-found', retryable: false });
+    await expect(host.sessionStatus()).resolves.toMatchObject({ state: 'ready' });
+    expect(invalidations).toBe(0);
+    expect(rebinds).toBe(0);
+  });
+
   it.each(['local-app-operation-unavailable', 'local-app-owner-unavailable'])('preserves bounded Integration metadata on %s', async (reasonCode) => {
     const host = createNimiElectronLocalAppHostForBinding({ ...binding([]),
       localAppIntegrationPutConnection: async () => ({ status: 'error' as const, reasonCode, retryable: false,

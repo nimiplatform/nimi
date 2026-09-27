@@ -2372,6 +2372,7 @@ function standardCode(reasonCode: string) {
     case 'invalid-path': return 'invalid-path' as const;
     case 'not-found':
     case 'ai-config-not-found':
+    case 'ai-connector-not-found':
     case 'ai-voice-asset-not-found':
     case 'ai-voice-job-not-found': return 'not-found' as const;
     case 'ai-config-persistence-unavailable': return 'runtime-service-unavailable' as const;

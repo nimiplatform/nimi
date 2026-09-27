@@ -165,6 +165,7 @@ func ListAIConfigCloudConnectorOptions(
 	return options, false, nil
 }
 
+// @nimi-authority: rule.nimi.runtime.security-core.r048
 func ListAIConfigCloudTargetOptions(
 	store *ConnectorStore,
 	modelCatalog *aicatalog.Resolver,
@@ -208,6 +209,8 @@ func ListAIConfigCloudTargetOptions(
 		reasons = append(reasons, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING)
 	}
 	options := make([]AIConfigCloudTargetOption, 0)
+	seenTargets := make(map[string]struct{})
+	matchingTargets := make(map[string]bool)
 	for _, model := range models {
 		if !containsExact(model.Model.Capabilities, capabilityContract) {
 			continue
@@ -217,10 +220,17 @@ func ListAIConfigCloudTargetOptions(
 		if label == "" {
 			label = providerModelID
 		}
-		if search != "" && !strings.Contains(strings.ToLower(label+" "+providerModelID+" "+provider), search) {
+		identity := remoteModelCatalogIdentityForConnector(record, providerRecord, model)
+		id := identity.remoteModelCatalogID
+		if search == "" || strings.Contains(strings.ToLower(label+" "+providerModelID+" "+provider), search) {
+			matchingTargets[id] = true
+		}
+		// Catalog aliases share one executable target. Keep its canonical
+		// projection, as ListConnectorModels does, while allowing searches to
+		// match any alias. Pagination counts resources rather than aliases.
+		if _, found := seenTargets[id]; found {
 			continue
 		}
-		identity := remoteModelCatalogIdentityForConnector(record, providerRecord, model)
 		target, err := structpb.NewStruct(map[string]any{
 			"provider": provider, "providerModelId": providerModelID,
 			"remoteModelCatalogId": identity.remoteModelCatalogID,
@@ -232,6 +242,7 @@ func ListAIConfigCloudTargetOptions(
 		if !implementationSupported {
 			continue
 		}
+		seenTargets[id] = struct{}{}
 		options = append(options, AIConfigCloudTargetOption{
 			ConnectorRef: connectorRef, Label: label, Capability: capabilityContract,
 			Implementation: implementation,
@@ -240,6 +251,14 @@ func ListAIConfigCloudTargetOptions(
 			State:               state, Reasons: append([]runtimev1.ReasonCode(nil), reasons...),
 		})
 	}
+	filtered := options[:0]
+	for _, option := range options {
+		id := option.ProviderTarget.GetFields()["remoteModelCatalogId"].GetStringValue()
+		if matchingTargets[id] {
+			filtered = append(filtered, option)
+		}
+	}
+	options = filtered
 	sort.Slice(options, func(i, j int) bool { return options[i].Label < options[j].Label })
 	if len(options) > limit {
 		return options[:limit], true, nil

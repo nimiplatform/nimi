@@ -293,6 +293,7 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "AI_VOICE_TARGET_MODEL_MISMATCH" => LocalAppReasonCode::AiVoiceTargetModelMismatch,
         "AI_CONFIG_INVALID" => LocalAppReasonCode::AiConfigInvalid,
         "AI_CONFIG_NOT_FOUND" => LocalAppReasonCode::AiConfigNotFound,
+        "AI_CONNECTOR_NOT_FOUND" => LocalAppReasonCode::AiConnectorNotFound,
         "AI_CONFIG_PERSISTENCE_UNAVAILABLE" => LocalAppReasonCode::AiConfigPersistenceUnavailable,
         "AGENT_PRESENTATION_REVISION_CONFLICT" => {
             LocalAppReasonCode::AgentPresentationRevisionConflict
@@ -819,6 +820,19 @@ mod tests {
                     .map(LocalAppReasonCode::as_str),
                 Some(expected)
             );
+        }
+    }
+
+    #[test]
+    fn missing_connector_is_a_configuration_failure_not_a_session_failure() {
+        for code in [Code::NotFound, Code::FailedPrecondition] {
+            let error = local_app_error_from_status(integration_status(
+                ERROR_INFO_DOMAIN, "AI_CONNECTOR_NOT_FOUND", "private-connector", code,
+            ));
+            assert_eq!(error.reason_code(), LocalAppReasonCode::AiConnectorNotFound);
+            assert_eq!(error.reason_code().as_str(), "ai-connector-not-found");
+            assert!(error.reason_metadata().is_empty());
+            assert!(!error.to_string().contains("private"));
         }
     }
 

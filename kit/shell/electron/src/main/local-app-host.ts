@@ -253,6 +253,7 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'response-too-large',
   'ai-config-invalid',
   'ai-config-not-found',
+  'ai-connector-not-found',
   'ai-config-persistence-unavailable',
   'agent-presentation-revision-conflict',
   'agent-busy',
