@@ -8,7 +8,7 @@ import {
   type AvatarAgentCenterPreviewRequest,
 } from './agent-center-preview-handoff.js';
 
-const PREVIEW_MATERIAL_REF = 'agent-center-avatar-asset:id_account:id_agent:live2d:live2d_111111111111';
+const PREVIEW_MATERIAL_REF = 'avatar-materialization:live2d:live2d_111111111111';
 const AVATAR_HANDLE = `agent_ref_${'a'.repeat(43)}`;
 const request: AvatarAgentCenterPreviewRequest = {
   requestId: 'request-1',
@@ -80,7 +80,7 @@ describe('Avatar Agent Center preview handoff', () => {
       committedPresentationSelection: {
         avatarAssetRef: vrmRequest.avatarAssetRef,
         backendKind: 'vrm',
-        previewMaterialRef: 'agent-center-avatar-asset:id_account:id_agent:vrm:vrm_222222222222',
+        previewMaterialRef: 'avatar-materialization:vrm:vrm_222222222222',
         presentationRevision: vrmRequest.presentationRevision,
       },
       backend: { kind: 'vrm' },
@@ -123,7 +123,7 @@ describe('Avatar Agent Center preview handoff', () => {
           committedPresentationSelection: {
             avatarAssetRef: 'live2d_aaaaaaaaaaaa',
             backendKind: 'live2d',
-            previewMaterialRef: 'agent-center-avatar-asset:id_account:id_agent:live2d:live2d_aaaaaaaaaaaa',
+            previewMaterialRef: 'avatar-materialization:live2d:live2d_aaaaaaaaaaaa',
             presentationRevision: request.presentationRevision,
           },
         }),
@@ -153,7 +153,7 @@ describe('Avatar Agent Center preview handoff', () => {
       committedPresentationSelection: {
         avatarAssetRef: 'live2d_aaaaaaaaaaaa',
         backendKind: 'live2d',
-        previewMaterialRef: 'agent-center-avatar-asset:id_account:id_agent:live2d:live2d_aaaaaaaaaaaa',
+        previewMaterialRef: 'avatar-materialization:live2d:live2d_aaaaaaaaaaaa',
         presentationRevision: '6',
       },
     });

@@ -135,10 +135,14 @@ function assertExactKeys(
 }
 
 function decodePngBase64(value: unknown): Uint8Array {
-  const text = requireText(value, 'previewPngBase64');
+  const maxPngBytes = 8 * 1024 * 1024;
+  const text = optionalText(value);
+  if (!text || text.length > Math.ceil(maxPngBytes / 3) * 4) {
+    throw new Error('desktop Avatar preview projection returned an invalid PNG payload');
+  }
   const binary = globalThis.atob(text);
   const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
-  if (bytes.length < 8
+  if (bytes.length < 8 || bytes.length > maxPngBytes
     || bytes[0] !== 0x89
     || bytes[1] !== 0x50
     || bytes[2] !== 0x4e

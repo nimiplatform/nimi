@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { createAgentCenterAvatarPreviewService } from './agent-center-preview-service.js';
 
 const LIVE2D_ASSET_REF = 'live2d_111111111111';
-const LIVE2D_MATERIAL_REF = `agent-center-avatar-asset:account-1:local-agent-ren:live2d:${LIVE2D_ASSET_REF}`;
+const LIVE2D_MATERIAL_REF = `avatar-materialization:live2d:${LIVE2D_ASSET_REF}`;
 const VRM_ASSET_REF = 'vrm_222222222222';
-const VRM_MATERIAL_REF = `agent-center-avatar-asset:account-1:local-agent-ren:vrm:${VRM_ASSET_REF}`;
+const VRM_MATERIAL_REF = `avatar-materialization:vrm:${VRM_ASSET_REF}`;
 
 describe('AgentCenterAvatarPreviewService', () => {
   it('returns ready for a registered Live2D renderer-ready surface', () => {
@@ -89,7 +89,7 @@ describe('AgentCenterAvatarPreviewService', () => {
     expect(service.resolvePreview({
       avatarAssetRef: 'live2d_aaaaaaaaaaaa',
       backendKind: 'live2d',
-      previewMaterialRef: 'agent-center-avatar-asset:account-1:local-agent-ren:live2d:live2d_aaaaaaaaaaaa',
+      previewMaterialRef: 'avatar-materialization:live2d:live2d_aaaaaaaaaaaa',
       previewSurfaceHandle: surface.previewSurfaceHandle,
       live2d: { status: 'ready' },
     })).toMatchObject({ state: 'failed', reasonCode: 'invalid_manifest' });
@@ -103,5 +103,22 @@ describe('AgentCenterAvatarPreviewService', () => {
       previewMaterialRef: LIVE2D_MATERIAL_REF,
       previewImageRef: 'https://example.com/avatar.png',
     })).toThrow(/controlled root-relative or current-origin blob URL/u);
+  });
+
+  it('rejects a different opaque materialization for the same asset and backend', () => {
+    const service = createAgentCenterAvatarPreviewService();
+    const surface = service.registerPreviewSurface({
+      avatarAssetRef: LIVE2D_ASSET_REF,
+      backendKind: 'live2d',
+      previewMaterialRef: LIVE2D_MATERIAL_REF,
+      previewImageRef: '/__nimi/avatar-preview/live2d/current',
+    });
+    expect(service.resolvePreview({
+      avatarAssetRef: LIVE2D_ASSET_REF,
+      backendKind: 'live2d',
+      previewMaterialRef: 'another-materialization',
+      previewSurfaceHandle: surface.previewSurfaceHandle,
+      live2d: { status: 'ready' },
+    })).toMatchObject({ state: 'failed', reasonCode: 'invalid_manifest' });
   });
 });

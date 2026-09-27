@@ -92,11 +92,7 @@ export function createAgentCenterAvatarPreviewService(): AgentCenterAvatarPrevie
     registerPreviewSurface(input) {
       const backendKind = requireBackendKind(input.backendKind);
       const avatarAssetRef = requireManagedAvatarAssetRef(input.avatarAssetRef, backendKind);
-      const previewMaterialRef = requireBoundPreviewMaterialRef(
-        input.previewMaterialRef,
-        backendKind,
-        avatarAssetRef,
-      );
+      const previewMaterialRef = requirePreviewMaterialRef(input.previewMaterialRef);
       const previewImageRef = requireControlledPreviewSurface(input.previewImageRef);
       const previewSurfaceHandle = createPreviewSurfaceHandle();
       registeredSurfaces.set(previewSurfaceHandle, {
@@ -147,13 +143,13 @@ function resolveAgentCenterAvatarPreviewService(
       });
     }
     previewMaterialRef = normalizeText(record.previewMaterialRef) || null;
-    if (!previewMaterialRef || !isBoundPreviewMaterialRef(previewMaterialRef, backendKind, avatarAssetRef)) {
+    if (!previewMaterialRef || !isPreviewMaterialRef(previewMaterialRef)) {
       return failedResult({
         avatarAssetRef,
         backendKind,
         previewMaterialRef,
         reasonCode: 'invalid_manifest',
-        reason: 'Avatar preview material does not match the selected backend and asset.',
+        reason: 'Avatar preview material reference is missing or invalid.',
       });
     }
 
@@ -350,35 +346,20 @@ function isManagedAvatarAssetRef(
   return value.startsWith(`${backendKind}_`) && /^(?:live2d|vrm)_[a-f0-9]{12}$/u.test(value);
 }
 
-function requireBoundPreviewMaterialRef(
-  value: unknown,
-  backendKind: AgentCenterAvatarPreviewBackendKind,
-  avatarAssetRef: string,
-): string {
+function requirePreviewMaterialRef(value: unknown): string {
   const text = normalizeText(value);
-  if (!isBoundPreviewMaterialRef(text, backendKind, avatarAssetRef)) {
-    throw new Error('Avatar preview surface material does not match its backend and asset.');
+  if (!isPreviewMaterialRef(text)) {
+    throw new Error('Avatar preview material reference is missing or invalid.');
   }
   return text;
 }
 
-function isBoundPreviewMaterialRef(
-  value: string,
-  backendKind: AgentCenterAvatarPreviewBackendKind,
-  avatarAssetRef: string,
-): boolean {
-  const parts = value.split(':');
-  return parts.length === 5
-    && parts[0] === 'agent-center-avatar-asset'
-    && isShellCustodySegment(parts[1] ?? '')
-    && isShellCustodySegment(parts[2] ?? '')
-    && parts[3] === backendKind
-    && parts[4] === avatarAssetRef;
-}
-
-function isShellCustodySegment(value: string): boolean {
-  const body = value.startsWith('~') ? value.slice(1) : value;
-  return value.length <= 128 && /^[a-z0-9][a-z0-9_-]*$/u.test(body);
+// @nimi-authority: rule.nimi.avatar.embodiment.r023
+function isPreviewMaterialRef(value: string): boolean {
+  // Host custody refs are opaque. The registered surface checks the exact
+  // asset/backend/ref tuple, and Desktop revalidates the active materialization
+  // before publishing a captured preview.
+  return value.length > 0 && value.length <= 1_024;
 }
 
 function isNamespacedOpaqueRef(value: string, namespace: string): boolean {

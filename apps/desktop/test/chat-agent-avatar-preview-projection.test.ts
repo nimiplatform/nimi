@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
+import { randomBytes } from 'node:crypto';
 import test from 'node:test';
+import { PNG } from 'pngjs';
 import { requestDesktopAvatarPreviewProjection } from '../src/shell/renderer/bridge/runtime-bridge/chat-agent-avatar-preview-projection.js';
 
 const CONVERSATION_ANCHOR_ID = 'agent_anchor_preview_current';
@@ -74,4 +76,54 @@ test('Desktop committed preview bridge rejects a missing Conversation anchor bef
     backendKind: 'live2d',
     presentationRevision: '7',
   }), /conversationAnchorId/u);
+});
+
+test('development preview carries a captured PNG larger than the text field limit into a same-origin Blob', async () => {
+  const png = new PNG({ width: 128, height: 128 });
+  png.data = randomBytes(128 * 128 * 4);
+  const bytes = PNG.sync.write(png);
+  const base64 = bytes.toString('base64');
+  assert.ok(base64.length > 32_768);
+  const root = globalThis as unknown as PreviewTestGlobal;
+  const previous = root.__NIMI_ELECTRON_TEST__;
+  const previousWindow = root.window;
+  const previousLocation = Object.getOwnPropertyDescriptor(globalThis, 'location');
+  const previousCreateObjectURL = URL.createObjectURL;
+  const captured: Blob[] = [];
+  const hook: PreviewTestHook = {
+    invoke: async () => ({
+      result: {
+        state: 'ready', tier: 'avatar_preview_service', backendKind: 'live2d',
+        avatarAssetRef: 'live2d_111111111111',
+        previewMaterialRef: 'avatar-materialization:live2d:live2d_111111111111',
+        previewImageRef: '/__nimi/avatar-preview/captured.png', warnings: [],
+      },
+      previewPngBase64: base64,
+    }),
+    listen: () => () => undefined,
+  };
+  root.__NIMI_ELECTRON_TEST__ = hook;
+  root.window = { ...previousWindow, __NIMI_HTML_BOOT_ID__: 'desktop-preview-png-test', __NIMI_ELECTRON_TEST__: hook };
+  Object.defineProperty(globalThis, 'location', { configurable: true, value: new URL('http://127.0.0.1:1420') });
+  URL.createObjectURL = (value) => {
+    assert.ok(value instanceof Blob);
+    captured.push(value);
+    return 'blob:http://127.0.0.1:1420/captured-preview';
+  };
+  try {
+    const result = await requestDesktopAvatarPreviewProjection({
+      conversationAnchorId: CONVERSATION_ANCHOR_ID, avatarAssetRef: 'live2d_111111111111',
+      backendKind: 'live2d', presentationRevision: '7',
+    });
+    assert.equal(result.state, 'ready');
+    assert.equal(result.previewImageRef, 'blob:http://127.0.0.1:1420/captured-preview');
+    assert.equal(captured.length, 1);
+    assert.deepEqual(Buffer.from(await captured[0]!.arrayBuffer()), bytes);
+  } finally {
+    URL.createObjectURL = previousCreateObjectURL;
+    if (previousLocation) Object.defineProperty(globalThis, 'location', previousLocation);
+    else Reflect.deleteProperty(globalThis, 'location');
+    root.__NIMI_ELECTRON_TEST__ = previous;
+    root.window = previousWindow;
+  }
 });

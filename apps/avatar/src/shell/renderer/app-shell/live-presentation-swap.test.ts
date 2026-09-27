@@ -51,7 +51,7 @@ function carrier(input: {
     committedPresentationSelection: {
       avatarAssetRef: input.assetRef,
       backendKind: 'live2d',
-      previewMaterialRef: `agent-center-avatar-asset:id_account:id_agent:live2d:${input.assetRef}`,
+      previewMaterialRef: `avatar-materialization:live2d:${input.assetRef}`,
       presentationRevision: input.revision,
     },
     backend: { kind: 'live2d' },
@@ -133,7 +133,7 @@ describe('Avatar live presentation swap', () => {
         reference: {
           localAvatarAssetRef: NEW_ASSET_REF,
           backendKind: 'live2d',
-          materializationRef: `agent-center-avatar-asset:id_account:id_agent:live2d:${NEW_ASSET_REF}`,
+          materializationRef: `avatar-materialization:live2d:${NEW_ASSET_REF}`,
           materializationLeaseRef: `avatar_materialization_lease_${'b'.repeat(32)}`,
         },
       })) as never,
@@ -161,7 +161,7 @@ describe('Avatar live presentation swap', () => {
     expect(activeCarrier).toBe(replacement);
     expect(commitMaterializationLease).toHaveBeenCalledWith({
       materializationLeaseRef: `avatar_materialization_lease_${'b'.repeat(32)}`,
-      materializationRef: `agent-center-avatar-asset:id_account:id_agent:live2d:${NEW_ASSET_REF}`,
+      materializationRef: `avatar-materialization:live2d:${NEW_ASSET_REF}`,
       avatarAssetRef: NEW_ASSET_REF,
       backendKind: 'live2d',
       presentationRevision: NEW_REVISION,
@@ -200,7 +200,7 @@ describe('Avatar live presentation swap', () => {
         reference: {
           localAvatarAssetRef: NEW_ASSET_REF,
           backendKind: 'live2d',
-          materializationRef: `agent-center-avatar-asset:id_account:id_agent:live2d:${NEW_ASSET_REF}`,
+          materializationRef: `avatar-materialization:live2d:${NEW_ASSET_REF}`,
           materializationLeaseRef: `avatar_materialization_lease_${'c'.repeat(32)}`,
         },
       })) as never,
@@ -308,7 +308,7 @@ describe('Avatar live presentation swap', () => {
         reference: {
           localAvatarAssetRef: NEW_ASSET_REF,
           backendKind: 'live2d',
-          materializationRef: `agent-center-avatar-asset:id_account:id_agent:live2d:${NEW_ASSET_REF}`,
+          materializationRef: `avatar-materialization:live2d:${NEW_ASSET_REF}`,
           materializationLeaseRef: `avatar_materialization_lease_${'d'.repeat(32)}`,
         },
       })) as never,
@@ -366,7 +366,7 @@ describe('Avatar live presentation swap', () => {
         reference: {
           localAvatarAssetRef: NEW_ASSET_REF,
           backendKind: 'live2d',
-          materializationRef: `agent-center-avatar-asset:id_account:id_agent:live2d:${NEW_ASSET_REF}`,
+          materializationRef: `avatar-materialization:live2d:${NEW_ASSET_REF}`,
           materializationLeaseRef: `avatar_materialization_lease_${'e'.repeat(32)}`,
         },
       })) as never,
@@ -434,7 +434,7 @@ describe('Avatar live presentation swap', () => {
         reference: {
           localAvatarAssetRef: NEW_ASSET_REF,
           backendKind: 'live2d',
-          materializationRef: `agent-center-avatar-asset:id_account:id_agent:live2d:${NEW_ASSET_REF}`,
+          materializationRef: `avatar-materialization:live2d:${NEW_ASSET_REF}`,
           materializationLeaseRef: `avatar_materialization_lease_${'2'.repeat(32)}`,
         },
       })) as never,
@@ -508,7 +508,7 @@ describe('Avatar live presentation swap', () => {
         reference: {
           localAvatarAssetRef: NEW_ASSET_REF,
           backendKind: 'live2d',
-          materializationRef: `agent-center-avatar-asset:id_account:id_agent:live2d:${NEW_ASSET_REF}`,
+          materializationRef: `avatar-materialization:live2d:${NEW_ASSET_REF}`,
           materializationLeaseRef: `avatar_materialization_lease_${'f'.repeat(32)}`,
         },
       })) as never,
@@ -566,7 +566,7 @@ describe('Avatar live presentation swap', () => {
         reference: {
           localAvatarAssetRef: NEW_ASSET_REF,
           backendKind: 'live2d',
-          materializationRef: `agent-center-avatar-asset:id_account:id_agent:live2d:${NEW_ASSET_REF}`,
+          materializationRef: `avatar-materialization:live2d:${NEW_ASSET_REF}`,
           materializationLeaseRef: `avatar_materialization_lease_${'1'.repeat(32)}`,
         },
       })) as never,

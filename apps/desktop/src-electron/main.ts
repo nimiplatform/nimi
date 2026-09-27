@@ -568,7 +568,9 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
     bundledAvatarHost = await createDesktopElectronBundledAvatarHost({
       rendererUrl: bundledAvatarRendererUrl,
       packagedRendererIndexPath: ELECTRON_DEVELOPMENT_BUILD ? undefined : rendererDistAvatarIndex,
-      publishPreviewImage: (bytes) => appOriginProtocol.publishAvatarPreview(bytes),
+      ...(!rendererUrl ? {
+        publishPreviewImage: (bytes: Uint8Array) => appOriginProtocol.publishAvatarPreview(bytes),
+      } : {}),
       preloadPath,
       resolveFormalLaunchBinding: (request) => {
         const host = registeredRuntimeBridge?.bundledAvatarLocalAppHost;

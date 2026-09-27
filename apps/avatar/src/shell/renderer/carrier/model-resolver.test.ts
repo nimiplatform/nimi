@@ -11,7 +11,7 @@ describe('Runtime presentation Avatar asset resolver', () => {
 
   it('binds native materialization to the exact presentation revision', async () => {
     invokeAvatarHostCommandMock.mockResolvedValue({
-      materializationRef: 'agent-center-avatar-asset:id_account:id_agent:vrm:vrm_222222222222',
+      materializationRef: 'avatar-materialization:vrm:vrm_222222222222',
       materializationLeaseRef: `avatar_materialization_lease_${'a'.repeat(32)}`,
       manifest: {
         kind: 'vrm',
