@@ -42,7 +42,14 @@ let followups: ReturnType<typeof import('./followup-host.js')['createDayFollowUp
 
 app.setName("NimiDay");
 app.setAppUserModelId(NATIVE_BUNDLE_IDENTIFIER);
-Menu.setApplicationMenu(Menu.buildFromTemplate([{ label: 'NimiDay', submenu: [{ label: '打开 Day', click: () => { const window = BrowserWindow.getAllWindows()[0]; if (window) { window.show(); window.focus(); } else void createMainWindow(); } }, { label: '退出并停止 Day', role: 'quit' }] }]));
+Menu.setApplicationMenu(Menu.buildFromTemplate([
+  { label: 'NimiDay', submenu: [{ label: '打开 Day', click: () => { const window = BrowserWindow.getAllWindows()[0]; if (window) { window.show(); window.focus(); } else void createMainWindow(); } }, { label: '退出并停止 Day', role: 'quit' }] },
+  ...(process.platform === 'darwin' ? [
+    { role: 'fileMenu' as const },
+    { role: 'editMenu' as const },
+    { role: 'windowMenu' as const },
+  ] : []),
+]));
 registerNimiElectronAppAssetProtocolScheme(protocol);
 
 void app.whenReady().then(async () => {

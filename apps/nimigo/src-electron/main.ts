@@ -42,7 +42,14 @@ let workspace: Awaited<ReturnType<typeof import('./workspace-host.js')['createGo
 
 app.setName("NimiGo");
 app.setAppUserModelId(NATIVE_BUNDLE_IDENTIFIER);
-Menu.setApplicationMenu(Menu.buildFromTemplate([{ label: 'NimiGo', submenu: [{ label: '打开工作空间', click: () => { const window = BrowserWindow.getAllWindows()[0]; if (window) { window.show(); window.focus(); } else void createMainWindow(); } }, { label: '退出并停止 NimiGo', role: 'quit' }] }]));
+Menu.setApplicationMenu(Menu.buildFromTemplate([
+  { label: 'NimiGo', submenu: [{ label: '打开工作空间', click: () => { const window = BrowserWindow.getAllWindows()[0]; if (window) { window.show(); window.focus(); } else void createMainWindow(); } }, { label: '退出并停止 NimiGo', role: 'quit' }] },
+  ...(process.platform === 'darwin' ? [
+    { role: 'fileMenu' as const },
+    { role: 'editMenu' as const },
+    { role: 'windowMenu' as const },
+  ] : []),
+]));
 registerNimiElectronAppAssetProtocolScheme(protocol);
 
 void app.whenReady().then(async () => {
