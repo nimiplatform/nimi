@@ -162,6 +162,10 @@ Local archives may also use paths relative to the App. Install, run sync and
 check, then use the normal dev/test/build/pack loop. Sync retains these choices;
 check verifies matrix compatibility and compares the selected tarball version,
 source and integrity with pnpm's installed dependency lock and package manifest.
+The additional SDK `^0.19.0` / Kit `^0.16.0` / Rust carrier `0.8.0`
+development combination supports independent Agent work and Integration.
+Select the complete matching Runtime and native package set explicitly; this
+does not change fresh scaffold defaults or claim public package availability.
 Workspace members declare their own SDK/Kit dependencies and share the root
 tarball overrides. pnpm writes each member's `specifier` relative to that member,
 while resolved versions and package records remain workspace-relative; check
