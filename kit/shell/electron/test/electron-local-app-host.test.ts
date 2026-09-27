@@ -894,6 +894,33 @@ describe('Electron protected local-app host', () => {
       .rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted', retryable: false });
   });
 
+  it('carries exact Agent work events through the shared native pull stream', async () => {
+    const hostFor = (value: unknown) => createNimiElectronLocalAppHostForBinding({
+      ...binding([]),
+      localAppRealtimeStreamNext: async () => ({ status: 'ok' as const, value }),
+    });
+    const events = [
+      { executionId: 'agent_work_1', sequence: '1', type: 'snapshot', execution: {
+        executionId: 'agent_work_1', workId: 'day-1', state: 'running', outputText: '',
+        reasonCode: '', message: '', sequence: '1',
+      } },
+      { executionId: 'agent_work_1', sequence: '2', type: 'text-delta', delta: '你好' },
+      { executionId: 'agent_work_1', sequence: '3', type: 'tool-call', call: {
+        callId: 'call-1', executionId: 'agent_work_1', name: 'save_deliverable', argumentsJson: '{}',
+      } },
+    ];
+    for (const event of events) {
+      await expect(hostFor({ completed: false, event }).realtimeStreamNext({ streamId: 'realtime-agent-work-1' }))
+        .resolves.toEqual({ completed: false, event });
+    }
+    await expect(hostFor({ completed: false, event: { ...events[0], endpoint: 'http://localhost/private' } })
+      .realtimeStreamNext({ streamId: 'realtime-agent-work-1' }))
+      .rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted', retryable: false });
+    await expect(hostFor({ completed: false, event: { executionId: 'agent_work_1', sequence: '4', type: 'unknown' } })
+      .realtimeStreamNext({ streamId: 'realtime-agent-work-1' }))
+      .rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted', retryable: false });
+  });
+
   it.each(['audio/wav', 'audio/mpeg'])('projects imported %s without expanding the owner request', async (mimeType) => {
     const calls: unknown[] = [];
     const host = createNimiElectronLocalAppHostForBinding({

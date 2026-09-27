@@ -2987,8 +2987,17 @@ async function invokeRealtimeStreamNext(call: () => Promise<NativeLocalAppOutcom
     'realtimeSessionId', 'channelId', 'subscriptionId', 'generation', 'sequence',
     'correlationId', 'occurredAt', 'event',
   ]);
-  if (!isRuntimeEnvelope && !isRealmEnvelope) throw untrustedRuntimeError();
+  if (!isRuntimeEnvelope && !isRealmEnvelope && !isAgentWorkEvent(value.event)) throw untrustedRuntimeError();
   return Object.freeze({ completed: false, event: validateProjection(value.event) });
+}
+
+// @nimi-authority: rule.nimi.runtime.agent-participation.app-work
+function isAgentWorkEvent(event: Record<string, unknown>): boolean {
+  const payload = event.type === 'snapshot' ? 'execution'
+    : event.type === 'text-delta' ? 'delta'
+      : event.type === 'tool-call' ? 'call'
+        : null;
+  return payload !== null && hasExactKeys(event, ['executionId', 'sequence', 'type', payload]);
 }
 
 // Renderer-visible App activity pull streams carry exactly change and
