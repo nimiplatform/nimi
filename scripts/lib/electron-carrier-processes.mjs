@@ -10,12 +10,16 @@ export function findBlockingElectronCarriers(rows, repoRoot) {
     const processName = String(row.name || '').trim().toLowerCase();
     const commandLine = normalizedWindowsPath(row.commandLine);
     const repositoryExecutable = executable.startsWith(`${root}\\`);
+    const macExecutable = String(row.executablePath || '').trim();
+    const macRepositoryExecutable = macExecutable.startsWith(`${String(repoRoot).replace(/\/$/u, '')}/`);
     const zhiyuCheckpointRenderer = commandLine.includes(zhiyuRoot)
       && commandLine.includes('vite')
       && /(?:^|\s)--port(?:=|\s+)1472(?:\s|$)/u.test(commandLine);
     return executable.startsWith(electronRuntimeRoot)
       || executable === zhiyuElectron
       || (processName === 'electron.exe' && repositoryExecutable)
+      || (processName === 'electron' && macRepositoryExecutable
+        && macExecutable.endsWith('/Electron.app/Contents/MacOS/Electron'))
       || zhiyuCheckpointRenderer;
   });
 }

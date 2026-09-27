@@ -91,13 +91,17 @@ export function findLegacyCarrierRows(rows, repo, activeDesktopPid = 0) {
 }
 
 export async function runDevDoctor(input = {}) {
+  const platform = input.platform ?? process.platform;
   const nowUnixMs = input.nowUnixMs ?? Date.now();
   const probeHttp = input.probeHttp ?? probeHttpEndpoint;
-  const queryService = input.queryService ?? queryFixedRuntimeService;
-  const queryProcesses = input.queryProcesses ?? queryProcessRows;
+  const queryProcesses = input.queryProcesses ?? (() => queryProcessRows(platform));
   const readPresence = input.readPresence ?? readPresenceDescriptor;
-  const serviceResultPromise = queryService();
   const processRowsPromise = queryProcesses();
+  const serviceResultPromise = input.queryService
+    ? input.queryService()
+    : platform === 'darwin'
+      ? Promise.resolve(processRowsPromise).then((rows) => inspectMacSourceRuntime(rows, repoRoot))
+      : queryFixedRuntimeService();
   const [serviceResult, processRows, realm, web, presenceResult] = await Promise.all([
     serviceResultPromise,
     processRowsPromise,
@@ -105,7 +109,7 @@ export async function runDevDoctor(input = {}) {
     probeHttp('http://127.0.0.1:3000'),
     readPresence(nowUnixMs),
   ]);
-  const service = validateFixedRuntimeService(serviceResult);
+  const service = platform === 'darwin' ? serviceResult : validateFixedRuntimeService(serviceResult);
   const activeDesktopPid = presenceResult.state === 'ok' ? presenceResult.desktopPid : 0;
   const legacyCarriers = findLegacyCarrierRows(processRows, repoRoot, activeDesktopPid);
   const stamp = await readWorkspaceSurfaceStamp(repoRoot);
@@ -123,12 +127,12 @@ export async function runDevDoctor(input = {}) {
   const tier1 = [
     { id: 'realm', ...realm },
     { id: 'web', ...web },
-    { id: 'fixed-runtime-service', ...service },
+    { id: platform === 'darwin' ? 'source-runtime' : 'fixed-runtime-service', ...service },
     { id: 'desktop-presence', ...presenceResult },
     {
       id: 'legacy-carriers',
-      state: legacyCarriers.length === 0 ? 'ok' : 'error',
-      reason: legacyCarriers.length === 0 ? 'no-legacy-carriers' : 'legacy-carriers-running',
+      state: !Array.isArray(processRows) ? 'not-observed' : legacyCarriers.length === 0 ? 'ok' : 'error',
+      reason: !Array.isArray(processRows) ? 'process-inventory-unavailable' : legacyCarriers.length === 0 ? 'no-legacy-carriers' : 'legacy-carriers-running',
       processIds: legacyCarriers.map((row) => row.processId),
     },
     { id: 'sdk-kit-dist', ...workspaceSurfaces },
@@ -138,7 +142,14 @@ export async function runDevDoctor(input = {}) {
     checkedAt: new Date(nowUnixMs).toISOString(),
     ok: tier1.every((row) => row.state === 'ok'),
     tier1,
-    tier2: unobservedLocalDevelopmentFacts(),
+    tier2: [
+      ...unobservedLocalDevelopmentFacts(),
+      ...(platform === 'darwin' ? [{
+        id: 'protected-runtime-health',
+        state: 'not-observed',
+        reason: 'process-and-socket-observation-does-not-prove-native-peer-trust-or-runtime-readiness',
+      }] : []),
+    ],
   };
 }
 
@@ -233,8 +244,60 @@ async function queryFixedRuntimeService() {
   return parseEmbeddedJson(result.stdout);
 }
 
-async function queryProcessRows() {
-  if (process.platform !== 'win32') return [];
+export function parseMacProcessRows(output) {
+  const rows = [];
+  for (const line of String(output).split('\n').filter((value) => value.trim())) {
+    const match = /^\s*(\d+)\s+(\d+)\s+(.+?)\s*$/u.exec(line);
+    if (!match) return null;
+    rows.push({
+      processId: Number(match[1]), parentProcessId: Number(match[2]),
+      name: path.basename(match[3]), executablePath: match[3],
+    });
+  }
+  return rows.length > 0 ? rows : null;
+}
+
+// This is an observation of the source development topology. Native admission
+// and Runtime readiness remain with their owners, not this diagnostic command.
+export async function inspectMacSourceRuntime(rows, root, querySockets = queryMacProcessSockets) {
+  if (!Array.isArray(rows)) return { state: 'not-observed', reason: 'process-inventory-unavailable' };
+  const processes = normalizedProcessRows(rows);
+  const candidates = processes.filter((row) => row.name === 'nimi-runtime'
+    && row.executablePath.startsWith(`${path.resolve(root)}${path.sep}`)
+    && processes.some((parent) => parent.processId === row.parentProcessId
+      && parent.name === 'nimi-source-runtime-supervisor'));
+  if (candidates.length !== 1) return {
+    state: 'error',
+    reason: candidates.length === 0 ? 'source-runtime-not-observed' : 'source-runtime-process-ambiguous',
+  };
+  const processId = candidates[0].processId;
+  const sockets = await querySockets(processId);
+  if (!Array.isArray(sockets)) return { state: 'not-observed', reason: 'runtime-sockets-unavailable', processId };
+  const present = ['runtime-desktop.sock', 'runtime-local-app.sock']
+    .every((name) => sockets.some((socket) => path.basename(socket) === name));
+  return {
+    state: present ? 'ok' : 'error',
+    reason: present ? 'source-runtime-process-and-sockets-observed' : 'source-runtime-sockets-missing',
+    processId,
+  };
+}
+
+async function queryMacProcessSockets(processId) {
+  const result = await collectCommandResult('/usr/sbin/lsof', ['-nP', '-a', '-p', String(processId), '-U', '-Fn'], {
+    cwd: repoRoot, stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  if (result.error || result.status !== 0) return null;
+  return result.stdout.split('\n').filter((line) => line.startsWith('n')).map((line) => line.slice(1));
+}
+
+async function queryProcessRows(platform = process.platform) {
+  if (platform === 'darwin') {
+    const result = await collectCommandResult('/bin/ps', ['-axo', 'pid=,ppid=,comm='], {
+      cwd: repoRoot, stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    return result.error || result.status !== 0 ? null : parseMacProcessRows(result.stdout);
+  }
+  if (platform !== 'win32') return null;
   const command = 'Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,Name,ExecutablePath,CommandLine | ConvertTo-Json -Compress';
   const result = await collectCommandResult('powershell.exe', ['-NoProfile', '-Command', command], {
     cwd: repoRoot,
@@ -243,11 +306,11 @@ async function queryProcessRows() {
     stdio: ['ignore', 'pipe', 'pipe'],
     windowsHide: true,
   });
-  if (result.error || result.status !== 0) return [];
+  if (result.error || result.status !== 0) return null;
   try {
     return JSON.parse(String(result.stdout || '[]'));
   } catch {
-    return [];
+    return null;
   }
 }
 
@@ -293,7 +356,7 @@ function parseEmbeddedJson(output) {
 
 function printHumanReport(report) {
   for (const row of report.tier1) {
-    process.stdout.write(`[${row.state === 'ok' ? 'ok' : 'error'}] ${row.id}: ${row.reason}\n`);
+    process.stdout.write(`[${row.state}] ${row.id}: ${row.reason}\n`);
   }
   for (const row of report.tier2) {
     process.stdout.write(`[${row.state}] ${row.id}: ${row.reason}\n`);

@@ -5,6 +5,8 @@ import test from 'node:test';
 
 import {
   findLegacyCarrierRows,
+  inspectMacSourceRuntime,
+  parseMacProcessRows,
   runDevDoctor,
   validateFixedRuntimeService,
   validateLocalDevelopmentPresence,
@@ -55,6 +57,7 @@ test('carrier detection excludes only the active Desktop process tree', () => {
 
 test('doctor does not infer registration or App Access from Desktop presence', async () => {
   const report = await runDevDoctor({
+    platform: 'win32',
     nowUnixMs,
     probeHttp: async () => ({ state: 'ok', reason: 'http-reachable', statusCode: 200 }),
     queryService: async () => ({ status: 'absent' }),
@@ -94,6 +97,7 @@ test('doctor http probes survive a blocking service query', async (context) => {
   const probeUrl = `http://127.0.0.1:${address.port}`;
 
   const report = await runDevDoctor({
+    platform: 'win32',
     nowUnixMs,
     probeHttp: async () => {
       try {
@@ -126,4 +130,45 @@ test('doctor http probes survive a blocking service query', async (context) => {
       { state: 'ok', reason: 'http-reachable', statusCode: 404 },
     ],
   );
+});
+
+test('Mac process inventory preserves executable paths and excludes the live Home tree', () => {
+  const repo = '/Users/example/nimi workspace';
+  const executable = `${repo}/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron`;
+  const rows = parseMacProcessRows(` 100 1 ${executable}\n 101 100 ${executable}\n 200 1 ${executable}\n`);
+  assert.equal(rows[0].executablePath, executable);
+  assert.deepEqual(findLegacyCarrierRows(rows, repo, 100).map((row) => row.processId), [200]);
+  assert.equal(parseMacProcessRows(''), null);
+  assert.equal(parseMacProcessRows('unavailable'), null);
+});
+
+test('Mac source Runtime observation requires its supervisor and both process-owned sockets', async () => {
+  const rows = [
+    { processId: 10, parentProcessId: 1, name: 'nimi-source-runtime-supervisor', executablePath: '/tmp/nimi-source-runtime-supervisor' },
+    { processId: 11, parentProcessId: 10, name: 'nimi-runtime', executablePath: '/workspace/nimi/.nimi/local/runtime/nimi-runtime' },
+  ];
+  const sockets = ['/source/run/runtime-desktop.sock', '/source/run/runtime-local-app.sock'];
+  const observe = (processes, observedSockets) => inspectMacSourceRuntime(processes, '/workspace/nimi', async (pid) => {
+    assert.equal(pid, 11);
+    return observedSockets;
+  });
+  assert.equal((await observe(rows, sockets)).state, 'ok');
+  assert.equal((await observe(rows, sockets.slice(0, 1))).reason, 'source-runtime-sockets-missing');
+  assert.equal((await observe(rows, null)).state, 'not-observed');
+  assert.equal((await observe(rows.slice(1), sockets)).reason, 'source-runtime-not-observed');
+  assert.equal((await observe(null, sockets)).state, 'not-observed');
+});
+
+test('Mac doctor reports an unavailable process inventory without claiming no legacy carriers', async () => {
+  const report = await runDevDoctor({
+    platform: 'darwin', nowUnixMs,
+    probeHttp: async () => ({ state: 'ok', reason: 'http-reachable', statusCode: 200 }),
+    queryService: async () => ({ state: 'not-observed', reason: 'process-inventory-unavailable' }),
+    queryProcesses: async () => null,
+    readPresence: async () => validateLocalDevelopmentPresence(validPresence, nowUnixMs),
+  });
+  assert.equal(report.ok, false);
+  assert.equal(report.tier1.find((row) => row.id === 'source-runtime').state, 'not-observed');
+  assert.equal(report.tier1.find((row) => row.id === 'legacy-carriers').state, 'not-observed');
+  assert.equal(report.tier2.find((row) => row.id === 'protected-runtime-health').state, 'not-observed');
 });
