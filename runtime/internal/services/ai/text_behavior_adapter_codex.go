@@ -9,7 +9,7 @@ import (
 func codexTextBehaviorRegistration(modelID, adapterID string) textBehaviorAdapterRegistration {
 	modes := []runtimev1.ExecutionMode{runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, runtimev1.ExecutionMode_EXECUTION_MODE_STREAM}
 	return textBehaviorAdapterRegistration{
-		AdapterID: adapterID, Version: "2",
+		AdapterID: adapterID, Version: "3",
 		ImplementationID: "openai_codex", DriverID: "nimillm", DriverDialect: "openai_codex",
 		CloudTarget: &textBehaviorCloudTarget{Provider: "openai_codex", ProviderModelID: modelID},
 		Support: textBehaviorSupport{
@@ -24,11 +24,12 @@ func codexTextBehaviorRegistration(modelID, adapterID string) textBehaviorAdapte
 				{Modes: modes},
 				{ToolUse: true, Modes: modes}, {StructuredOutput: true, Modes: modes}, {Reasoning: true, Modes: modes},
 				{ToolUse: true, Reasoning: true, Modes: modes}, {StructuredOutput: true, Reasoning: true, Modes: modes},
+				{ToolUse: true, StructuredOutput: true, Modes: modes}, {ToolUse: true, StructuredOutput: true, Reasoning: true, Modes: modes},
 			},
 		},
 		ExecutionSemantics:  textBehaviorExecutionSemantics{ProcessIdentityImpact: textBehaviorProcessIdentityUnaffected},
-		RequestSerializerID: "openai_codex/responses/request/v2", RequestSerializer: capabilitydriver.CodexTextBehaviorRequestSerializer,
-		NonStreamParserID: "openai_codex/responses/nonstream/v1", NonStreamParser: capabilitydriver.CodexTextBehaviorNonStreamParser,
-		StreamAssemblerID: "openai_codex/responses/stream/v1", StreamAssembler: capabilitydriver.CodexTextBehaviorStreamAssembler,
+		RequestSerializerID: "openai_codex/responses/request/v3", RequestSerializer: capabilitydriver.CodexTextBehaviorRequestSerializer,
+		NonStreamParserID: "openai_codex/responses/nonstream/v2", NonStreamParser: capabilitydriver.CodexTextBehaviorNonStreamParser,
+		StreamAssemblerID: "openai_codex/responses/stream/v2", StreamAssembler: capabilitydriver.CodexTextBehaviorStreamAssembler,
 	}
 }

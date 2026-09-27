@@ -158,7 +158,7 @@ func CodexTextBehaviorRequestSerializer(spec *runtimev1.TextGenerateScenarioSpec
 		body["tool_choice"] = choice
 	}
 	if format := spec.ResponseFormat; format != nil && format.Kind != runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_UNSPECIFIED && format.Kind != runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_TEXT {
-		if len(spec.Tools) > 0 || format.Kind != runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_SCHEMA {
+		if format.Kind != runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_SCHEMA {
 			return textbehavior.SerializedRequest{}, codexUnsupported("response format combination")
 		}
 		schema := format.GetJsonSchema().AsMap()
@@ -168,14 +168,14 @@ func CodexTextBehaviorRequestSerializer(spec *runtimev1.TextGenerateScenarioSpec
 		if schema["type"] != "object" || schema["anyOf"] != nil {
 			return textbehavior.SerializedRequest{}, codexUnsupported("structured root")
 		}
-		if err := validateCodexStructuredSchema(schema); err != nil {
+		if err := validateCodexStructuredSchema(schema, format.Strict); err != nil {
 			return textbehavior.SerializedRequest{}, err
 		}
 		name := format.SchemaName
 		if name == "" {
 			name = "response"
 		}
-		body["text"] = map[string]any{"format": map[string]any{"type": "json_schema", "name": name, "description": format.SchemaDescription, "schema": schema, "strict": true}}
+		body["text"] = map[string]any{"format": map[string]any{"type": "json_schema", "name": name, "description": format.SchemaDescription, "schema": schema, "strict": format.Strict}}
 	}
 	payload, err := json.Marshal(body)
 	if err != nil {
@@ -184,13 +184,22 @@ func CodexTextBehaviorRequestSerializer(spec *runtimev1.TextGenerateScenarioSpec
 	return textbehavior.SerializedRequest{ContentType: "application/json", Payload: payload}, nil
 }
 
-func validateCodexStructuredSchema(schema map[string]any) error {
+func validateCodexStructuredSchema(schema map[string]any, strict bool) error {
 	for key, value := range schema {
 		switch key {
 		case "$schema", "title", "description", "type", "enum", "required", "pattern", "format", "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf", "minItems", "maxItems", "$ref":
+		case "default", "const", "minLength", "maxLength", "minProperties", "maxProperties":
+			if strict {
+				return codexUnsupported("strict JSON Schema keyword " + key)
+			}
 		case "additionalProperties":
-			if value != false {
+			if strict && value != false {
 				return codexUnsupported("open structured object")
+			}
+			if child, ok := value.(map[string]any); ok {
+				if err := validateCodexStructuredSchema(child, strict); err != nil {
+					return err
+				}
 			}
 		case "properties", "$defs":
 			children, ok := value.(map[string]any)
@@ -202,7 +211,7 @@ func validateCodexStructuredSchema(schema map[string]any) error {
 				if !ok {
 					return codexInput("schema child")
 				}
-				if err := validateCodexStructuredSchema(node); err != nil {
+				if err := validateCodexStructuredSchema(node, strict); err != nil {
 					return err
 				}
 			}
@@ -211,10 +220,13 @@ func validateCodexStructuredSchema(schema map[string]any) error {
 			if !ok {
 				return codexUnsupported("tuple schema")
 			}
-			if err := validateCodexStructuredSchema(child); err != nil {
+			if err := validateCodexStructuredSchema(child, strict); err != nil {
 				return err
 			}
-		case "anyOf":
+		case "anyOf", "oneOf", "allOf":
+			if strict && key != "anyOf" {
+				return codexUnsupported("strict schema composition")
+			}
 			children, ok := value.([]any)
 			if !ok {
 				return codexInput("schema alternatives")
@@ -224,7 +236,7 @@ func validateCodexStructuredSchema(schema map[string]any) error {
 				if !ok {
 					return codexInput("schema alternative")
 				}
-				if err := validateCodexStructuredSchema(node); err != nil {
+				if err := validateCodexStructuredSchema(node, strict); err != nil {
 					return err
 				}
 			}
@@ -232,7 +244,7 @@ func validateCodexStructuredSchema(schema map[string]any) error {
 			return codexUnsupported("JSON Schema keyword " + key)
 		}
 	}
-	if properties, ok := schema["properties"].(map[string]any); ok {
+	if properties, ok := schema["properties"].(map[string]any); ok && strict {
 		required, _ := schema["required"].([]any)
 		fields := map[string]bool{}
 		for _, name := range required {
@@ -466,11 +478,11 @@ func (stream *codexBehaviorStream) Finish() (textbehavior.NormalizedResult, erro
 			text.WriteString(item.Text)
 		}
 	}
-	if stream.spec.GetResponseFormat().GetKind() == runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_SCHEMA {
+	if stream.spec.GetResponseFormat().GetKind() == runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_SCHEMA && finish == runtimev1.FinishReason_FINISH_REASON_STOP {
 		var instance any
 		decoder := json.NewDecoder(strings.NewReader(text.String()))
 		decoder.UseNumber()
-		if finish != runtimev1.FinishReason_FINISH_REASON_STOP || decoder.Decode(&instance) != nil || decoder.Decode(new(any)) != io.EOF {
+		if decoder.Decode(&instance) != nil || decoder.Decode(new(any)) != io.EOF {
 			return textbehavior.NormalizedResult{}, codexOutput("structured JSON")
 		}
 		schema, err := textbehavior.CompileJSONSchema(stream.spec.ResponseFormat.JsonSchema.AsMap())

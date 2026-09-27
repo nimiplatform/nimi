@@ -128,3 +128,78 @@ func TestCodexBehaviorRejectsInvalidArgumentsAndCarrierOnlyOutput(t *testing.T) 
 		}
 	}
 }
+
+func TestCodexNonStrictSchemaPreservesOptionalOpenAndComposedFields(t *testing.T) {
+	schema, err := structpb.NewStruct(map[string]any{
+		"type": "object", "properties": map[string]any{
+			"title": map[string]any{"type": "string", "minLength": 1},
+			"note":  map[string]any{"anyOf": []any{map[string]any{"type": "string"}, map[string]any{"type": "null"}}, "default": nil},
+		}, "required": []any{"title"}, "additionalProperties": true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	spec := &runtimev1.TextGenerateScenarioSpec{Input: []*runtimev1.ChatMessage{{Role: "user", Content: "Return presentation JSON"}}, ResponseFormat: &runtimev1.ResponseFormat{Kind: runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_SCHEMA, JsonSchema: schema}}
+	request, err := CodexTextBehaviorRequestSerializer(spec, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var body map[string]any
+	if err := json.Unmarshal(request.Payload, &body); err != nil {
+		t.Fatal(err)
+	}
+	format := body["text"].(map[string]any)["format"].(map[string]any)
+	if format["strict"] != false {
+		t.Fatal("caller strictness was changed")
+	}
+	encoded, _ := json.Marshal(format["schema"])
+	original, _ := json.Marshal(schema.AsMap())
+	if string(encoded) != string(original) {
+		t.Fatal("caller schema was rewritten")
+	}
+	for _, tc := range []struct {
+		text  string
+		valid bool
+	}{
+		{`{"title":"中文","extra":"preserved"}`, true},
+		{`{"title":""}`, false}, {`{"note":null}`, false}, {`{"title":"one"} {"title":"two"}`, false},
+	} {
+		response, _ := json.Marshal(map[string]any{"status": "completed", "output": []any{map[string]any{"type": "message", "id": "msg", "content": []any{map[string]any{"type": "output_text", "text": tc.text}}}}})
+		_, err := CodexTextBehaviorNonStreamParser(response, spec)
+		if (err == nil) != tc.valid {
+			t.Fatalf("%s: %v", tc.text, err)
+		}
+	}
+	spec.ResponseFormat.Strict = true
+	if _, err := CodexTextBehaviorRequestSerializer(spec, true); err == nil {
+		t.Fatal("strict request accepted an open optional schema")
+	}
+}
+
+func TestCodexCombinedToolsAndSchemaValidateEachKindOfCompletedStep(t *testing.T) {
+	spec := codexBehaviorSpec(t)
+	spec.ResponseFormat = &runtimev1.ResponseFormat{Kind: runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_SCHEMA, JsonSchema: spec.Tools[0].InputSchema, Strict: true}
+	request, err := CodexTextBehaviorRequestSerializer(spec, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var body map[string]any
+	_ = json.Unmarshal(request.Payload, &body)
+	if body["text"] == nil || len(body["tools"].([]any)) != 1 {
+		t.Fatal("one half of the request was dropped")
+	}
+	for _, tc := range []struct {
+		response string
+		valid    bool
+	}{
+		{`{"status":"completed","output":[{"type":"message","id":"msg","content":[{"type":"output_text","text":"Checking the preview."}]},{"type":"function_call","id":"fc_1","call_id":"call_1","name":"lookup","arguments":"{\"q\":\"中文\"}"}]}`, true},
+		{`{"status":"completed","output":[{"type":"function_call","id":"fc_1","call_id":"call_1","name":"lookup","arguments":"{\"q\":2}"}]}`, false},
+		{`{"status":"completed","output":[{"type":"message","id":"msg","content":[{"type":"output_text","text":"{\"q\":\"final\"}"}]}]}`, true},
+		{`{"status":"completed","output":[{"type":"message","id":"msg","content":[{"type":"output_text","text":"Not a final JSON object"}]}]}`, false},
+	} {
+		_, err := CodexTextBehaviorNonStreamParser([]byte(tc.response), spec)
+		if (err == nil) != tc.valid {
+			t.Fatalf("%s: %v", tc.response, err)
+		}
+	}
+}

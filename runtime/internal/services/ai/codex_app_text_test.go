@@ -460,3 +460,50 @@ func TestCodexAppTextMissingTerminalAndCancelNeverComplete(t *testing.T) {
 		})
 	}
 }
+
+func TestCodexAppCombinedNonStrictSchemaToolRoundTrip(t *testing.T) {
+	for _, modelID := range []string{"gpt-5.6-sol", "gpt-6-astra"} {
+		t.Run(modelID, func(t *testing.T) {
+			var requests atomic.Int32
+			fixture, decision := codexAppFixture(t, modelID, func(w http.ResponseWriter, r *http.Request) {
+				var body map[string]any
+				if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+					t.Fatal(err)
+				}
+				format := body["text"].(map[string]any)["format"].(map[string]any)
+				if format["strict"] != false || len(body["tools"].([]any)) != 1 {
+					t.Error("combined request or strictness lost")
+				}
+				if requests.Add(1) == 1 {
+					writeCodexAppResponse(t, w, []map[string]any{{"type": "reasoning", "id": "rs", "encrypted_content": "opaque-test"}, {"type": "function_call", "id": "fc", "call_id": "call", "name": "lookup", "arguments": `{"query":"preview"}`}}, true)
+				} else {
+					writeCodexAppResponse(t, w, []map[string]any{{"type": "message", "id": "msg", "content": []any{map[string]any{"type": "output_text", "text": `{"title":"中文"}`}}}}, true)
+				}
+			})
+			schema, _ := structpb.NewStruct(map[string]any{"type": "object", "properties": map[string]any{"title": map[string]any{"type": "string"}, "note": map[string]any{"type": "string"}}, "required": []any{"title"}})
+			input := &runtimev1.StreamLocalAppTextTurnRequest{Messages: []*runtimev1.LocalAppTextCandidateMessage{{Role: "user", Text: "Create a slide after checking the preview"}}, Tools: []*runtimev1.ToolSpec{localAppLookupTool(t)}, ResponseFormat: &runtimev1.ResponseFormat{Kind: runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_SCHEMA, JsonSchema: schema}}
+			ctx := decision(accountservice.LocalAppOperationScenarioExecute, localappop.AppOperationIDScenarioExecute)
+			first, err := fixture.service.ExecuteLocalAppScenario(ctx, &runtimev1.ExecuteLocalAppScenarioRequest{Spec: &runtimev1.ExecuteLocalAppScenarioRequest_TextGenerate{TextGenerate: input}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			items := first.GetTextGenerate().GetItems()
+			if len(items) != 2 || items[0].GetReasoningContinuity() == nil || items[1].GetToolCall() == nil {
+				t.Fatal(items)
+			}
+			turn := &runtimev1.LocalAppTextCandidateMessage{Role: "assistant"}
+			for _, item := range items {
+				turn.TurnItems = append(turn.TurnItems, &runtimev1.TextTurnItem{Item: &runtimev1.TextTurnItem_Output{Output: item}})
+			}
+			turn.TurnItems = append(turn.TurnItems, &runtimev1.TextTurnItem{Item: &runtimev1.TextTurnItem_ToolResult{ToolResult: &runtimev1.ToolResult{ToolCallId: "call", ToolName: "lookup", Result: structpb.NewStringValue("preview checked")}}})
+			input.Messages = append(input.Messages, turn)
+			stream := &mockLocalAppTextTurnStream{ctx: decision(accountservice.LocalAppOperationTextTurnStream, localappop.AppOperationIDTextTurnStream)}
+			if err := fixture.service.StreamLocalAppTextTurn(input, stream); err != nil {
+				t.Fatal(err)
+			}
+			if len(stream.events) != 2 || stream.events[0].GetDelta().GetText() != `{"title":"中文"}` || stream.events[1].GetCompleted() == nil || requests.Load() != 2 {
+				t.Fatal(stream.events)
+			}
+		})
+	}
+}
