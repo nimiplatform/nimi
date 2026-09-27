@@ -8,6 +8,7 @@ import (
 	"io"
 	"mime"
 	"mime/multipart"
+	"os"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -44,7 +45,18 @@ func (host *SpeechExecutionHost) ExecuteAudioSeparation(ctx context.Context, pla
 		return localexecution.AudioSeparationResult{}, host.speechHostBackendError(ctx, err)
 	}
 	started := time.Now()
-	response, err := backend.OpenAudioSeparation(ctx, plan.ModelAssetID(), plan.AudioBytes(), plan.MIMEType())
+	var source io.Reader
+	if plan.SourcePath() != "" {
+		file, err := os.Open(plan.SourcePath())
+		if err != nil {
+			return localexecution.AudioSeparationResult{}, speechHostError(localexecution.FailureLoad, fmt.Errorf("open captured separation source: %w", err))
+		}
+		defer func() { _ = file.Close() }()
+		source = file
+	} else {
+		source = bytes.NewReader(plan.AudioBytes())
+	}
+	response, err := backend.OpenAudioSeparation(ctx, plan.ModelAssetID(), source, plan.MIMEType())
 	if err != nil {
 		return localexecution.AudioSeparationResult{}, host.speechHostBackendError(ctx, err)
 	}
@@ -53,6 +65,10 @@ func (host *SpeechExecutionHost) ExecuteAudioSeparation(ctx context.Context, pla
 	if err != nil {
 		_ = body.Close()
 		return localexecution.AudioSeparationResult{}, speechHostError(localexecution.FailureInference, err)
+	}
+	if expected := plan.SourceInfo(); expected != nil && (uint64(result.SampleCount) != expected.GetFrameCount() || uint32(result.SampleRateHz) != expected.GetSampleRateHz() || uint32(result.Channels) != expected.GetChannels()) {
+		_ = body.Close()
+		return localexecution.AudioSeparationResult{}, speechHostError(localexecution.FailureInference, fmt.Errorf("separation stems changed the captured source timeline"))
 	}
 	result.Usage = &runtimev1.UsageStats{ComputeMs: time.Since(started).Milliseconds()}
 	return result, nil

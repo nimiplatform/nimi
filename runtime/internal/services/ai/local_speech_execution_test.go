@@ -1008,6 +1008,9 @@ func selectedSpeechExecutionForTest(t *testing.T, contract string, configuration
 	case capabilitydriver.AudioTranscribeContract:
 		driver = capabilitydriver.Qwen3ASRDriver{}
 		identity = capabilitydriver.Identity{ImplementationID: capabilitydriver.Qwen3ASRImplementationID, DriverID: capabilitydriver.Qwen3ASRDriverID, DriverDialect: capabilitydriver.Qwen3ASRDriverDialect}
+	case capabilitydriver.AudioSeparateContract:
+		driver = capabilitydriver.DemucsDriver{}
+		identity = capabilitydriver.Identity{ImplementationID: capabilitydriver.DemucsImplementationID, DriverID: capabilitydriver.DemucsDriverID, DriverDialect: capabilitydriver.DemucsDriverDialect}
 	default:
 		t.Fatalf("unsupported speech contract %q", contract)
 	}

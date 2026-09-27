@@ -1,7 +1,9 @@
 package ai
 
 import (
+	"bytes"
 	"context"
+	"encoding/binary"
 	"io"
 	"os"
 	"path/filepath"
@@ -11,9 +13,57 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
+	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
+	"github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"google.golang.org/protobuf/types/known/structpb"
 )
+
+func TestDemucsOwnedCanonicalInputCapturesRangeWithoutCUDAAndRehydrates(t *testing.T) {
+	svc := newTestService(nil)
+	svc.localSpeechStagingRoot = t.TempDir()
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedSpeechExecutionForTest(t, capabilitydriver.AudioSeparateContract, "demucs-cpu")})
+	payload := canonicalUploadFixture(t)
+	binary.LittleEndian.PutUint32(payload[24:28], 44100)
+	binary.LittleEndian.PutUint32(payload[28:32], 44100*8)
+	if err := svc.runtimeArtifacts.Put("source", runtimeartifact.ArtifactRecord{
+		Bytes: payload, MimeType: "audio/wav", SizeBytes: int64(len(payload)),
+		Owner:          &runtimeartifact.ArtifactOwner{AppID: "app.local", SubjectUserID: "anonymous"},
+		CanonicalAudio: &runtimeartifact.CanonicalAudioInfo{SampleRateHz: 44100, Channels: 2, FrameCount: 2, DataOffset: 56},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	ctx := executionintent.WithIntent(scenarioJobUserContext("app.local", "anonymous"), executionintent.Intent{
+		CapabilityContract: capabilitydriver.AudioSeparateContract, LocalLoadoutRef: "test-loadout:audio.separate", Route: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+	})
+	head := &runtimev1.ScenarioRequestHead{AppId: "app.local", SubjectUserId: "anonymous"}
+	effective, err := svc.captureLocalSpeechEffectiveInputs(ctx, head, &runtimev1.SubmitScenarioJobRequest{
+		Head: head, ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SEPARATE,
+		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_AudioSeparate{AudioSeparate: &runtimev1.AudioSeparateScenarioSpec{
+			MimeType: "audio/wav", SourceAudio: &runtimev1.MusicAudioInput{ArtifactId: "source", Range: &runtimev1.AudioFrameRange{StartFrame: 1, EndFrame: 2}},
+		}}},
+	})
+	if err != nil {
+		t.Fatalf("capture managed Python separation: %v", err)
+	}
+	defer cleanupLocalSpeechStagingPaths(effective.stagingPaths)
+	persisted, err := cloneLocalResolvedAssembly(effective.resolvedAssembly)
+	if err != nil {
+		t.Fatal(err)
+	}
+	restored, err := svc.localSpeechEffectiveInputsFromResolvedAssembly(persisted)
+	if err != nil {
+		t.Fatalf("rehydrate managed Python separation: %v", err)
+	}
+	plan := restored.separatePlan
+	if plan.IsNative() || plan.SourceInfo().GetFrameCount() != 1 || len(plan.AudioBytes()) != 0 || len(persisted.Request.BinaryInput) != 0 {
+		t.Fatal("owned Python source was replaced with native execution or inline bytes")
+	}
+	captured, err := os.ReadFile(plan.SourcePath())
+	if err != nil || len(captured) < 8 || !bytes.Equal(captured[len(captured)-8:], payload[len(payload)-8:]) {
+		t.Fatalf("captured frame range changed samples: %v", err)
+	}
+}
 
 func htdemucsSelectedExecutionForTest(root string) *localexecution.SelectedLocalExecution {
 	audioRoot, cudaRoot := filepath.Join(root, "audio-cpp"), filepath.Join(root, "cuda13")
@@ -73,8 +123,8 @@ func TestNativeSeparationResolvedAssemblyRehydratesCapturedSource(t *testing.T) 
 		t.Fatalf("rehydrate native separation: %v", err)
 	}
 	rehydrated := effective.separatePlan
-	if !rehydrated.IsNative() || rehydrated.NativeSourcePath() != filepath.Join(stagingDir, "source.wav") || rehydrated.NativeSourceInfo().GetFrameCount() != 661500 || !rehydrated.IncludeInstrumentParts() {
-		t.Fatalf("rehydrated plan lost the captured native source: native=%v source=%s", rehydrated.IsNative(), rehydrated.NativeSourcePath())
+	if !rehydrated.IsNative() || rehydrated.SourcePath() != filepath.Join(stagingDir, "source.wav") || rehydrated.SourceInfo().GetFrameCount() != 661500 || !rehydrated.IncludeInstrumentParts() {
+		t.Fatalf("rehydrated plan lost the captured native source: native=%v source=%s", rehydrated.IsNative(), rehydrated.SourcePath())
 	}
 	if got := strings.Join(effective.stagingPaths, "|"); got != strings.Join([]string{filepath.Join(stagingDir, "source.wav"), filepath.Join(stagingDir, "stems"), stagingDir}, "|") {
 		t.Fatalf("rehydrated staging cleanup = %s", got)
@@ -84,8 +134,8 @@ func TestNativeSeparationResolvedAssemblyRehydratesCapturedSource(t *testing.T) 
 		t.Fatal(err)
 	}
 	outside := filepath.Join(root, "sep-outside")
-	escaped.LoadPlan.Speech.NativeSeparation.StagingDirectory = outside
-	escaped.LoadPlan.Speech.NativeSeparation.SourcePath = filepath.Join(outside, "source.wav")
+	escaped.LoadPlan.Speech.SeparationSource.StagingDirectory = outside
+	escaped.LoadPlan.Speech.SeparationSource.SourcePath = filepath.Join(outside, "source.wav")
 	if _, err := service.localSpeechEffectiveInputsFromResolvedAssembly(escaped); err == nil {
 		t.Fatal("captured native separation staging outside the Runtime root was admitted")
 	}

@@ -121,13 +121,17 @@ func (s *Service) captureLocalSpeechEffectiveInputs(ctx context.Context, head *r
 			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE)
 		}
 		if owned := spec.GetSourceAudio(); owned != nil {
-			packageInput, packageErr := audioCppRuntimePackageInput(selected)
-			if packageErr != nil {
-				return nil, localSpeechInvocationError(packageErr)
+			var packageInput capabilitydriver.AudioCppRuntimePackageInput
+			if identity.DriverID == capabilitydriver.HTDemucsDriverID {
+				var packageErr error
+				packageInput, packageErr = audioCppRuntimePackageInput(selected)
+				if packageErr != nil {
+					return nil, localSpeechInvocationError(packageErr)
+				}
 			}
-			nativeErr := s.captureNativeSeparationInput(ctx, head, spec, packageInput, portable, exactBindings, separationDriver, effective)
-			if nativeErr != nil {
-				return nil, nativeErr
+			if captureErr := s.captureSeparationInput(ctx, head, spec, packageInput, portable, exactBindings, separationDriver, effective); captureErr != nil {
+				cleanupLocalSpeechStagingPaths(effective.stagingPaths)
+				return nil, captureErr
 			}
 		} else {
 			audioBytes, mimeType, _, sourceErr := nimillm.ResolveTranscriptionAudioSource(ctx, &runtimev1.SpeechTranscribeScenarioSpec{MimeType: spec.GetMimeType(), AudioSource: spec.GetAudioSource()})
@@ -375,17 +379,21 @@ func (s *Service) localSpeechEffectiveInputsFromResolvedAssembly(assembly *local
 		if !ok {
 			return nil, fmt.Errorf("captured separation Driver has no invocation contract")
 		}
-		if native := assembly.LoadPlan.Speech.NativeSeparation; native != nil {
-			if native.SourceInfo == nil || !s.localNativeSeparationStagingAdmitted(native.StagingDirectory, native.SourcePath) {
-				return nil, fmt.Errorf("captured native separation staging path is invalid")
+		if source := assembly.LoadPlan.Speech.SeparationSource; source != nil {
+			if source.SourceInfo == nil || !s.localSeparationStagingAdmitted(source.StagingDirectory, source.SourcePath) {
+				return nil, fmt.Errorf("captured separation staging path is invalid")
 			}
-			packageInput, packageErr := audioCppRuntimePackageInput(selectedLocalExecutionFromResolvedAssembly(assembly))
-			if packageErr != nil {
-				return nil, packageErr
+			var packageInput capabilitydriver.AudioCppRuntimePackageInput
+			if assembly.ProcessIdentity.DriverID == capabilitydriver.HTDemucsDriverID {
+				var packageErr error
+				packageInput, packageErr = audioCppRuntimePackageInput(selectedLocalExecutionFromResolvedAssembly(assembly))
+				if packageErr != nil {
+					return nil, packageErr
+				}
 			}
 			effective.separatePlan, err = separationDriver.PlanAudioSeparateInvocation(capabilitydriver.AudioSeparateInvocationInput{PortableConfig: portable, ExactBindings: bindings, Request: request,
-				Package: packageInput, SourcePath: native.SourcePath, SourceInfo: native.SourceInfo, StagingDir: native.StagingDirectory})
-			effective.stagingPaths = append(effective.stagingPaths, native.SourcePath, filepath.Join(native.StagingDirectory, "stems"), native.StagingDirectory)
+				Package: packageInput, SourcePath: source.SourcePath, SourceInfo: source.SourceInfo, StagingDir: source.StagingDirectory})
+			effective.stagingPaths = append(effective.stagingPaths, source.SourcePath, filepath.Join(source.StagingDirectory, "stems"), source.StagingDirectory)
 		} else {
 			effective.separatePlan, err = separationDriver.PlanAudioSeparateInvocation(capabilitydriver.AudioSeparateInvocationInput{PortableConfig: portable, ExactBindings: bindings, Request: request, AudioBytes: assembly.Request.BinaryInput, MIMEType: assembly.Request.MIMEType})
 		}
@@ -478,9 +486,9 @@ func cleanupLocalSpeechStagingPaths(paths []string) {
 	}
 }
 
-// localNativeSeparationStagingAdmitted accepts only a private sep-* directory
+// localSeparationStagingAdmitted accepts only a private sep-* directory
 // directly under the speech staging root and its canonical source.wav.
-func (s *Service) localNativeSeparationStagingAdmitted(directory, source string) bool {
+func (s *Service) localSeparationStagingAdmitted(directory, source string) bool {
 	root := strings.TrimSpace(s.localSpeechStagingRoot)
 	if !filepath.IsAbs(root) || !filepath.IsAbs(directory) || filepath.Clean(source) != filepath.Join(filepath.Clean(directory), "source.wav") {
 		return false

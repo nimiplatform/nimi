@@ -118,8 +118,8 @@ func (HTDemucsAudioCppDriver) PlanAudioSeparateInvocation(input AudioSeparateInv
 		native: true, nativeProcessKey: hex.EncodeToString(hasher.Sum(nil)),
 		nativeDriverIdentity: Identity{ImplementationID: HTDemucsImplementationID, DriverID: HTDemucsDriverID, DriverDialect: HTDemucsDriverDialect},
 		nativeModelRoot:      binding.AbsolutePath, nativeAudioCppPackage: pkg,
-		nativeCLIArgs: args, nativeSourcePath: input.SourcePath,
-		nativeSourceInfo: proto.Clone(info).(*runtimev1.LocalAppAudioInfo), nativeOutDir: outDir,
+		nativeCLIArgs: args, sourcePath: input.SourcePath,
+		sourceInfo: proto.Clone(info).(*runtimev1.LocalAppAudioInfo), nativeOutDir: outDir,
 		includeInstrument: request.GetIncludeInstrumentParts(),
 	}, nil
 }

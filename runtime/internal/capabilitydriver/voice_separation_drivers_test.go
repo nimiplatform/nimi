@@ -2,6 +2,7 @@ package capabilitydriver
 
 import (
 	"path/filepath"
+	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -11,6 +12,30 @@ func nativeAudioCppPackageForTest(root string) AudioCppRuntimePackageInput {
 	return AudioCppRuntimePackageInput{AudioCppVersion: AudioCppMusicPackageVersion, AudioCppPackageID: AudioCppWindowsCUDA13PackageID,
 		AudioCppSelectedSourceRecordID: "package-source", AudioCppRoot: root, AudioCppExecutablePath: filepath.Join(root, "audiocpp_cli.exe"),
 		CUDA13DependencyID: AudioCppCUDA13RuntimeDependencyID, CUDA13SelectedSourceRecordID: "cuda-source", CUDA13Root: root}
+}
+
+func TestDemucsOwnedInputKeepsItsBoundAndRejectsUnsupportedStems(t *testing.T) {
+	root := t.TempDir()
+	input := AudioSeparateInvocationInput{
+		ExactBindings: []InvocationExactBinding{{RequirementID: DemucsModelRequirementID, ModelAssetID: "demucs", AbsolutePath: filepath.Join(root, "model.th"),
+			VerifiedContentID: "sha256:" + strings.Repeat("a", 64), EntrySHA256: strings.Repeat("a", 64)}},
+		Request:    &runtimev1.AudioSeparateScenarioSpec{SourceAudio: &runtimev1.MusicAudioInput{ArtifactId: "owned"}},
+		SourcePath: filepath.Join(root, "source.wav"), StagingDir: root,
+		SourceInfo: &runtimev1.LocalAppAudioInfo{SampleRateHz: 44100, Channels: 2, FrameCount: 300 * 44100},
+	}
+	plan, err := (DemucsDriver{}).PlanAudioSeparateInvocation(input)
+	if err != nil || plan.IsNative() || plan.SourceInfo().GetFrameCount() != 300*44100 {
+		t.Fatalf("full supported CPU input rejected: %v", err)
+	}
+	input.SourceInfo.FrameCount++
+	if _, err := (DemucsDriver{}).PlanAudioSeparateInvocation(input); err == nil {
+		t.Fatal("more than 300 seconds was admitted")
+	}
+	input.SourceInfo.FrameCount--
+	input.Request.IncludeInstrumentParts = true
+	if _, err := (DemucsDriver{}).PlanAudioSeparateInvocation(input); err == nil {
+		t.Fatal("unsupported instrument stems were silently ignored")
+	}
 }
 
 func argValue(args []string, key string) (string, bool) {
@@ -42,7 +67,7 @@ func TestHTDemucsPlanRequestsCanonicalFloatStemsFromStereoSource(t *testing.T) {
 	if out, _ := argValue(args, "--out-dir"); out != filepath.Join(root, "stems") || !plan.IsNative() || !plan.IncludeInstrumentParts() {
 		t.Fatalf("unexpected native separation plan: %v", args)
 	}
-	if info := plan.NativeSourceInfo(); info.GetFrameCount() != 1102511 || info.GetChannels() != 2 {
+	if info := plan.SourceInfo(); info.GetFrameCount() != 1102511 || info.GetChannels() != 2 {
 		t.Fatalf("plan lost the submitted source facts: %+v", info)
 	}
 	for _, info := range []*runtimev1.LocalAppAudioInfo{

@@ -18,7 +18,7 @@ import (
 )
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.audio-separation
-func (s *Service) captureNativeSeparationInput(ctx context.Context, head *runtimev1.ScenarioRequestHead, spec *runtimev1.AudioSeparateScenarioSpec, packageInput capabilitydriver.AudioCppRuntimePackageInput, portable *structpb.Struct, exactBindings []capabilitydriver.InvocationExactBinding, driver capabilitydriver.AudioSeparateInvocationDriver, effective *localSpeechEffectiveInputs) error {
+func (s *Service) captureSeparationInput(ctx context.Context, head *runtimev1.ScenarioRequestHead, spec *runtimev1.AudioSeparateScenarioSpec, packageInput capabilitydriver.AudioCppRuntimePackageInput, portable *structpb.Struct, exactBindings []capabilitydriver.InvocationExactBinding, driver capabilitydriver.AudioSeparateInvocationDriver, effective *localSpeechEffectiveInputs) error {
 	owned := spec.GetSourceAudio()
 	source, err := s.openMusicInputSource(ctx, head, owned.GetArtifactId())
 	if err != nil {

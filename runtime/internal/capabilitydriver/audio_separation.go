@@ -28,7 +28,7 @@ type AudioSeparateInvocationInput struct {
 	Request        *runtimev1.AudioSeparateScenarioSpec
 	AudioBytes     []byte
 	MIMEType       string
-	// Owned canonical audio input for the native HTDemucs path. Mutually
+	// Owned canonical audio input for local separation. Mutually
 	// exclusive with the inline AudioBytes carrier.
 	Package    AudioCppRuntimePackageInput
 	SourcePath string
@@ -48,8 +48,8 @@ type AudioSeparateInvocationPlan struct {
 	nativeModelRoot       string
 	nativeAudioCppPackage AudioCppRuntimePackageInput
 	nativeCLIArgs         []string
-	nativeSourcePath      string
-	nativeSourceInfo      *runtimev1.LocalAppAudioInfo
+	sourcePath            string
+	sourceInfo            *runtimev1.LocalAppAudioInfo
 	nativeOutDir          string
 	includeInstrument     bool
 }
@@ -85,17 +85,17 @@ func (p *AudioSeparateInvocationPlan) NativeCLIArgs() []string {
 	}
 	return append([]string(nil), p.nativeCLIArgs...)
 }
-func (p *AudioSeparateInvocationPlan) NativeSourcePath() string {
+func (p *AudioSeparateInvocationPlan) SourcePath() string {
 	if p == nil {
 		return ""
 	}
-	return p.nativeSourcePath
+	return p.sourcePath
 }
-func (p *AudioSeparateInvocationPlan) NativeSourceInfo() *runtimev1.LocalAppAudioInfo {
-	if p == nil || p.nativeSourceInfo == nil {
+func (p *AudioSeparateInvocationPlan) SourceInfo() *runtimev1.LocalAppAudioInfo {
+	if p == nil || p.sourceInfo == nil {
 		return nil
 	}
-	return proto.Clone(p.nativeSourceInfo).(*runtimev1.LocalAppAudioInfo)
+	return proto.Clone(p.sourceInfo).(*runtimev1.LocalAppAudioInfo)
 }
 func (p *AudioSeparateInvocationPlan) NativeOutDir() string {
 	if p == nil {
@@ -219,7 +219,19 @@ func (DemucsDriver) PlanAudioSeparateInvocation(input AudioSeparateInvocationInp
 	if err != nil {
 		return nil, invocationError(InvocationFailureInvalidBinding, err)
 	}
-	if input.Request == nil || len(input.AudioBytes) == 0 || len(input.AudioBytes) > 32<<20 {
+	if input.Request == nil || input.Request.GetIncludeInstrumentParts() {
+		return nil, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("Demucs separation returns only vocals and background"))
+	}
+	if input.Request.GetSourceAudio() != nil {
+		info := input.SourceInfo
+		if len(input.AudioBytes) != 0 || !filepath.IsAbs(input.SourcePath) || !filepath.IsAbs(input.StagingDir) || filepath.Dir(input.SourcePath) != filepath.Clean(input.StagingDir) || info.GetSampleRateHz() != 44100 || info.GetChannels() != 2 || info.GetFrameCount() == 0 || info.GetFrameCount() > 300*44100 {
+			return nil, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("Demucs requires a captured 44100 Hz stereo source of at most 300 seconds"))
+		}
+		request, _ := proto.Clone(input.Request).(*runtimev1.AudioSeparateScenarioSpec)
+		return &AudioSeparateInvocationPlan{modelFiles: []InvocationExactBinding{binding}, request: request,
+			sourcePath: input.SourcePath, sourceInfo: proto.Clone(info).(*runtimev1.LocalAppAudioInfo), mimeType: "audio/wav"}, nil
+	}
+	if input.SourcePath != "" || input.SourceInfo != nil || len(input.AudioBytes) == 0 || len(input.AudioBytes) > 32<<20 {
 		return nil, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("audio separation requires bounded source audio"))
 	}
 	request, _ := proto.Clone(input.Request).(*runtimev1.AudioSeparateScenarioSpec)

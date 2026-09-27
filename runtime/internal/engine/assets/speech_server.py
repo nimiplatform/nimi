@@ -471,12 +471,20 @@ def create_app() -> FastAPI:
         temporary = tempfile.TemporaryDirectory(prefix="nimi-separation-", dir=driver_work_root())
         try:
             active_model = find_ready_model(model.strip(), "audio.separate", registered_models_snapshot())
-            raw_audio = await file.read((32 << 20) + 1)
-            if not raw_audio or len(raw_audio) > 32 << 20:
-                raise ValueError("audio separation requires source audio within 32 MiB")
             output_dir = pathlib.Path(temporary.name)
             audio_path = safe_uploaded_audio_path(output_dir, file.filename, mime_type)
-            audio_path.write_bytes(raw_audio)
+            # A captured canonical input can exceed the public inline ceiling:
+            # 300 seconds of stereo 44100 Hz float32 plus its Runtime WAV header.
+            max_source_bytes = 300 * 44100 * 2 * 4 + 58
+            source_bytes = 0
+            with audio_path.open("xb") as output:
+                while chunk := await file.read(SPEECH_RESPONSE_CHUNK_BYTES):
+                    source_bytes += len(chunk)
+                    if source_bytes > max_source_bytes:
+                        raise ValueError("audio separation source exceeds its 300-second PCM bound")
+                    await run_in_threadpool(output.write, chunk)
+            if source_bytes == 0:
+                raise ValueError("audio separation requires source audio")
             result = await run_speech_request(request, separate_with_driver, active_model, {
                 "operation": "audio.separate", "entry_path": active_model.entry_path,
                 "audio_path": str(audio_path), "output_dir": str(output_dir),

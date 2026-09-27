@@ -80,6 +80,12 @@ pnpm dev:desktop --cdp-port 19470
 终端启动 workspace Electron。该组合适合 Runtime、UI、main、preload 与 loopback
 CDP 的真实本地迭代。
 
+### 音频与视频解码
+
+源码 Runtime 的媒体准备还需要受管理的 FFmpeg/ffprobe；模型和 Python 环境准备成功不代表解码工具已就绪。当前 macOS arm64 固定路径是所选 Runtime 的 `dependencies/media-codec/ffmpeg-8.0.1-darwin-arm64/bin/{ffmpeg,ffprobe}`，版本由 `runtime/internal/videomedia/videomedia.go` 定义。
+
+准备时核对两个工具的实际版本、arm64 架构及动态库可用性。Runtime 不从 PATH 查找替代工具；启动后才补齐依赖时，需要重启 Runtime 才会接入音频/视频准备链。本机 Homebrew 工具仍依赖其原有动态库，不能作为独立安装包交付。
+
 ### 固定 ad-hoc development candidate
 
 ```bash

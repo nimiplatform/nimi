@@ -39,7 +39,7 @@ func nativeStemsPreserveSource(stems audiomedia.Facts, source *runtimev1.LocalAp
 func (host *SpeechExecutionHost) executeNativeAudioSeparation(ctx context.Context, plan *capabilitydriver.AudioSeparateInvocationPlan, onStart localexecution.SpeechExecutionStartFunc) (localexecution.AudioSeparationResult, error) {
 	pkg := plan.NativeAudioCppPackage()
 	outDir := plan.NativeOutDir()
-	if !filepath.IsAbs(outDir) || !filepath.IsAbs(plan.NativeSourcePath()) || !filepath.IsAbs(pkg.AudioCppExecutablePath) {
+	if !filepath.IsAbs(outDir) || !filepath.IsAbs(plan.SourcePath()) || !filepath.IsAbs(pkg.AudioCppExecutablePath) {
 		return localexecution.AudioSeparationResult{}, speechHostError(localexecution.FailureContentMismatch, fmt.Errorf("native separation plan is incomplete"))
 	}
 	if err := beginSpeechExecution(ctx, onStart); err != nil {
@@ -87,7 +87,7 @@ func (host *SpeechExecutionHost) executeNativeAudioSeparation(ctx context.Contex
 			return localexecution.AudioSeparationResult{}, speechHostError(localexecution.FailureContentMismatch, fmt.Errorf("native separation stems do not share one timeline"))
 		}
 	}
-	if err := nativeStemsPreserveSource(facts, plan.NativeSourceInfo()); err != nil {
+	if err := nativeStemsPreserveSource(facts, plan.SourceInfo()); err != nil {
 		cleanupAll()
 		return localexecution.AudioSeparationResult{}, speechHostError(localexecution.FailureContentMismatch, err)
 	}

@@ -1105,6 +1105,43 @@ class SpeechServerTests(unittest.TestCase):
             self.assertNotIn("secret", audio_path.name)
             self.assertNotIn("..", audio_path.parts)
 
+    def test_separation_streams_owned_pcm_larger_than_inline_limit(self) -> None:
+        expected_bytes = (33 << 20) + 17
+
+        class SourceUpload:
+            filename = "source.wav"
+            remaining = expected_bytes
+
+            async def read(self, size):
+                if size > SPEECH_SERVER.SPEECH_RESPONSE_CHUNK_BYTES:
+                    raise AssertionError("source was read as one large inline buffer")
+                count = min(size, self.remaining)
+                self.remaining -= count
+                return bytes(count)
+
+        async def captured_execution(_request, _operation, _model, payload):
+            self.assertEqual(pathlib.Path(payload["audio_path"]).stat().st_size, expected_bytes)
+            root = pathlib.Path(payload["output_dir"])
+            for name in ("vocals", "background"):
+                (root / f"{name}.wav").write_bytes(name.encode())
+            return {"sample_rate_hz": 44100, "channels": 2, "sample_count": 1,
+                    "vocals_path": str(root / "vocals.wav"), "background_path": str(root / "background.wav")}
+
+        async def run():
+            app = SPEECH_SERVER.create_app()
+            handler = next(fn for method, route, fn in app.routes if method == "POST" and route == "/nimi/audio/separate")
+            response = await handler(object(), model="captured-demucs", file=SourceUpload(), mime_type="audio/wav")
+            self.assertIsInstance(response, SPEECH_SERVER.StreamingResponse)
+            async for _ in response.body_iterator:
+                pass
+
+        with tempfile.TemporaryDirectory() as root, \
+                mock.patch.object(SPEECH_SERVER, "driver_work_root", return_value=root), \
+                mock.patch.object(SPEECH_SERVER, "find_ready_model", return_value=types.SimpleNamespace(entry_path="/captured.th")), \
+                mock.patch.object(SPEECH_SERVER, "run_speech_request", side_effect=captured_execution):
+            asyncio.run(run())
+            self.assertEqual(list(pathlib.Path(root).iterdir()), [])
+
     def test_safe_uploaded_audio_path_uses_mime_suffix_for_invalid_filename(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             audio_path = SPEECH_SERVER.safe_uploaded_audio_path(temp_dir, "/tmp/audio.bad-extension-name", "audio/mpeg")
