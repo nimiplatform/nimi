@@ -32,6 +32,7 @@ jobs:
       desktop_changed: ${{ steps.detect.outputs.desktop_changed }}
       desktop_native_changed: ${{ steps.detect.outputs.desktop_native_changed }}
       kit_native_changed: ${{ steps.detect.outputs.kit_native_changed }}
+      macos_platform_changed: ${{ steps.detect.outputs.macos_platform_changed }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -202,6 +203,76 @@ jobs:
 
       - name: Test Kit native crates on the supported Windows host
         run: pnpm test:kit:native
+
+  macos-platform-tests:
+    needs: changes
+    if: needs.changes.outputs.macos_platform_changed == 'true'
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      CARGO_BUILD_JOBS: '2'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
+        with:
+          version: 10.34.5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+
+      - name: Setup Go
+        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+        with:
+          go-version-file: runtime/go.mod
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: stable
+
+      - name: Require Apple Silicon and install dependencies
+        run: |
+          test "$(uname -m)" = arm64
+          pnpm install --frozen-lockfile
+
+      - name: Check Darwin Runtime and model storage
+        run: |
+          go -C runtime test -count=1 -timeout=5m ./internal/protectedlocal ./internal/services/localservice
+          go -C runtime test -count=1 -timeout=5m -tags=nimi_macos_source_local_development ./internal/protectedlocal
+
+      - name: Check default and source native carriers
+        run: |
+          cargo test --locked --manifest-path kit/shell/protected-local/Cargo.toml
+          cargo test --locked --manifest-path kit/shell/protected-local/Cargo.toml --features macos-source-local-development
+          cargo test --locked --manifest-path kit/shell/protected-local-node/Cargo.toml --features macos-source-local-development
+          cargo build --locked --manifest-path kit/shell/protected-local-node/Cargo.toml --features macos-source-local-development
+          node kit/shell/protected-local-node/test/native-input-contract.cjs
+
+      - name: Check source launch and diagnostics
+        run: node --test scripts/dev-runtime.test.mjs scripts/lib/dev-app-launch.test.mjs scripts/doctor-dev.test.mjs
+
+      - name: Check local audio capture and streaming
+        run: go -C runtime test -count=1 -timeout=5m ./internal/capabilitydriver ./internal/nimillm ./internal/engine ./internal/services/ai -run 'Test(DemucsOwned|AudioSeparation|NativeSeparation|SeparationArtifacts|HTDemucs)'
+
+      - name: Check supervised Python audio Host
+        working-directory: runtime/internal/engine/assets
+        run: python3 -m unittest speech_server_test
+
+      - name: Check affected workspace consumers on macOS
+        if: needs.changes.outputs.workspace_changed == 'true'
+        env:
+          WORKSPACE_FILTERS: ${{ needs.changes.outputs.workspace_filters }}
+          SCRIPTS_CHANGED: 'false'
+        run: |
+          node scripts/run-workspace-checks.mjs
+          for consumer in lab zhiyu nimigo nimiday; do
+            pnpm --filter "@nimiplatform/$consumer" exec tsc --noEmit -p tsconfig.electron.json
+          done
 
   sdk-quality:
     needs: changes
@@ -395,6 +466,7 @@ jobs:
       - core-static
       - workspace-regression
       - kit-native-tests
+      - macos-platform-tests
       - sdk-quality
       - runtime-quality
       - proto-quality

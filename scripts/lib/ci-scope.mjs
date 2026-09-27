@@ -3,6 +3,7 @@ export const CI_LANES = {
   'core-static': 'core_changed',
   'workspace-regression': 'workspace_changed',
   'kit-native-tests': 'kit_native_changed',
+  'macos-platform-tests': 'macos_platform_changed',
   'sdk-quality': 'sdk_changed',
   'runtime-quality': 'runtime_changed',
   'proto-quality': 'proto_changed',
@@ -31,6 +32,7 @@ export function selectCiScope(files, { full = false } = {}) {
   const kitNative = shared || proto || touches(/^kit\/shell\/(?:capabilities|protected-local|protected-local-node|tauri)\//u);
   const desktopNative = shared || proto || touches(/^(?:apps\/desktop\/product-control-|kit\/shell\/protected-local\/)/u);
   const desktop = desktopNative || touches(/^apps\/desktop\/(?!AGENTS\.md$)/u);
+  const macosPlatform = runtime || kitNative || desktopNative || touches(/^(?:kit\/shell\/electron\/|apps\/(?:desktop|avatar|lab|zhiyu|nimigo|nimiday)\/(?:src-electron\/|scripts\/|package\.json$|tsconfig\.electron\.json$|nimi\.app\.yaml$)|scripts\/(?:dev-app|dev-runtime|doctor-dev|macos-dev-runtime-service|build-supervised-app-electron)[^/]*\.mjs$|scripts\/lib\/(?:dev-app-launch|electron-carrier-processes|supervised-app-electron-production|ci-scope)\.mjs$)/u);
   const filters = new Set();
 
   // pnpm resolves transitive workspace consumers; only source-copy dependencies
@@ -68,6 +70,7 @@ export function selectCiScope(files, { full = false } = {}) {
     desktop_changed: desktop,
     desktop_native_changed: desktopNative,
     kit_native_changed: kitNative,
+    macos_platform_changed: macosPlatform,
   };
 }
 

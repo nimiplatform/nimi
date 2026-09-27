@@ -63,6 +63,24 @@ test('native and proto changes retain their supported platform checks', () => {
   }
 });
 
+test('Mac checks follow native, Runtime and App Host changes without selecting ordinary renderer edits', () => {
+  for (const file of [
+    'runtime/internal/protectedlocal/local_app_revalidation_darwin.go',
+    'runtime/internal/services/localservice/model_object_store.go',
+    'kit/shell/protected-local-node/src/local_app.rs',
+    'kit/shell/electron/src/main/app-host-profile.ts',
+    'apps/nimigo/src-electron/main.ts',
+    'apps/nimiday/scripts/bundle-electron-preload.mjs',
+    'apps/lab/tsconfig.electron.json',
+    'scripts/doctor-dev.mjs',
+  ]) assert.equal(selectCiScope([file]).macos_platform_changed, true, file);
+  for (const file of ['apps/web/src/view.tsx', 'apps/nimiday/src/nimiday/ui/shell.tsx', 'apps/desktop/AGENTS.md']) {
+    assert.equal(selectCiScope([file]).macos_platform_changed, false, file);
+  }
+  const needs = successfulResults(['apps/nimigo/src-electron/main.ts']);
+  assert.throws(() => assertCiResults({ ...needs, 'macos-platform-tests': { result: 'skipped' } }), /macos-platform-tests/u);
+});
+
 test('authority and shared command changes retain complete checks, workflow-only changes retain lint', () => {
   assert.equal(selectCiScope(['.nimi/spec/platform/core.authority.md']).authority_changed, true);
   assert.equal(selectCiScope(['scripts/lib/ci-scope.mjs']).scripts_changed, true);

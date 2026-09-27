@@ -414,6 +414,41 @@ mod tests {
 
     #[test]
     fn installed_child_starts_suspended_and_retains_its_real_exit_status() {
+        #[cfg(feature = "macos-source-local-development")]
+        {
+            let test_executable = std::env::current_exe()
+                .and_then(std::fs::canonicalize)
+                .expect("current test executable");
+            let native_entry = Path::new(env!("CARGO_MANIFEST_DIR"))
+                .parent()
+                .unwrap()
+                .join("protected-local-node/npm/darwin-arm64/index.cjs")
+                .canonicalize()
+                .expect("source native entry");
+            if std::env::var_os(SOURCE_RUNTIME_EXECUTABLE_ENVIRONMENT).as_deref()
+                != Some(test_executable.as_os_str())
+                || std::env::var_os("NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_NATIVE_ENTRY").as_deref()
+                    != Some(native_entry.as_os_str())
+            {
+                // Supply the source launch context in a separate process so
+                // parallel tests never observe a mutated global environment.
+                let test_name = std::thread::current()
+                    .name()
+                    .expect("named test thread")
+                    .to_owned();
+                let status = std::process::Command::new(&test_executable)
+                    .args(["--exact", &test_name, "--nocapture"])
+                    .env(SOURCE_RUNTIME_EXECUTABLE_ENVIRONMENT, &test_executable)
+                    .env(
+                        "NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT_NATIVE_ENTRY",
+                        native_entry,
+                    )
+                    .status()
+                    .expect("run source child-process test");
+                assert!(status.success(), "source child-process test failed");
+                return;
+            }
+        }
         let root = std::env::temp_dir().join(format!(
             "nimi-installed-child-{}-{}",
             std::process::id(),
