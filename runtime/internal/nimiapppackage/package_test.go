@@ -89,6 +89,39 @@ func TestMacOSArchivePreservesFrameworkLinksAndDetectsLinkReplacement(t *testing
 	}
 }
 
+func TestMacOSProbeVerifiesWholeBundleAndRemovesTransientFiles(t *testing.T) {
+	if runtime.GOOS != "darwin" {
+		t.Skip("macOS filesystem semantics")
+	}
+	for _, tamper := range []bool{false, true} {
+		t.Run(fmt.Sprintf("tamper-%t", tamper), func(t *testing.T) {
+			archive, expected := macOSArchiveFixture(t, "A")
+			owner, ownerPath := openOwnerRoot(t)
+			_, err := ProbeRuntimeEntry(context.Background(), archive, owner, "probe", expected,
+				runtimeEntryVerifierFunc(func(_ context.Context, executable string, _ [sha256.Size]byte) error {
+					framework := filepath.Join(filepath.Dir(executable), "../Frameworks/F.framework/Versions/Current/F")
+					raw, err := os.ReadFile(framework)
+					if err != nil || string(raw) != "framework contents" {
+						t.Fatalf("probe did not preserve complete framework: %q, %v", raw, err)
+					}
+					if tamper {
+						return os.WriteFile(framework, []byte("changed resource"), 0o755)
+					}
+					return nil
+				}))
+			if tamper && !errors.Is(err, ErrPackageIntegrity) {
+				t.Fatalf("tampered probe accepted: %v", err)
+			}
+			if !tamper && err != nil {
+				t.Fatal(err)
+			}
+			if _, err := os.Stat(filepath.Join(ownerPath, "probe")); !errors.Is(err, os.ErrNotExist) {
+				t.Fatalf("transient probe remained: %v", err)
+			}
+		})
+	}
+}
+
 func TestMacOSArchiveRejectsEscapingAndCyclicFrameworkLinksBeforeMaterialization(t *testing.T) {
 	for _, target := range []string{"../../../../../../../../outside", "Current", "/outside", "missing"} {
 		t.Run(target, func(t *testing.T) {

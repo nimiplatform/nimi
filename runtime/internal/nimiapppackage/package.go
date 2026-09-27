@@ -176,7 +176,7 @@ func ProbeRuntimeEntry(
 	if expected.OS == "macos" {
 		// macOS signatures seal Info.plist, resources and framework links. The
 		// existing ephemeral native probe must therefore contain the bundle.
-		materialized, probeErr := Materialize(ctx, archivePath, ownerRoot, probeChild, expected)
+		materialized, probeErr := materialize(ctx, archivePath, ownerRoot, probeChild, expected, false)
 		if probeErr != nil {
 			return RuntimeEntryProbe{}, probeErr
 		}
@@ -262,6 +262,13 @@ func ProbeRuntimeEntry(
 // destination. It writes only regular files below that root with create-new
 // semantics, then re-reads the staged tree to produce Runtime-owned digests.
 func Materialize(ctx context.Context, archivePath string, ownerRoot *os.Root, stagingChild string, expected Expected) (result Materialized, err error) {
+	return materialize(ctx, archivePath, ownerRoot, stagingChild, expected, true)
+}
+
+// Native probes are transient and removed before returning; they need complete
+// validation and visibility to the verifier, but no crash-durable file flushes.
+// Installation staging retains durable writes through Materialize above.
+func materialize(ctx context.Context, archivePath string, ownerRoot *os.Root, stagingChild string, expected Expected, durable bool) (result Materialized, err error) {
 	archive, err := openAndInspect(ctx, archivePath, expected)
 	if err != nil {
 		return Materialized{}, err
@@ -325,7 +332,10 @@ func Materialize(ctx context.Context, archivePath string, ownerRoot *os.Root, st
 		if expected.OS == "macos" && copyErr == nil {
 			copyErr = output.Chmod(entry.Mode().Perm())
 		}
-		syncErr := output.Sync()
+		var syncErr error
+		if durable {
+			syncErr = output.Sync()
+		}
 		closeOutputErr := output.Close()
 		closeInputErr := input.Close()
 		if copyErr != nil || syncErr != nil || closeOutputErr != nil || closeInputErr != nil {

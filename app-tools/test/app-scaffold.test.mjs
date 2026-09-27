@@ -363,6 +363,7 @@ test('Electron production maps exact App SemVer to bounded Windows resource meta
   assert.match(packagerSource, /const RESOURCE_VERSION = MACOS_BUILD \? APP_VERSION : resolveWindowsResourceVersion\(APP_VERSION\);/u);
   assert.match(packagerSource, /appVersion: RESOURCE_VERSION,/u);
   assert.match(packagerSource, /buildVersion: RESOURCE_VERSION,/u);
+  assert.match(packagerSource, /strictVerify: true, continueOnError: false/u);
   assert.match(packagerSource, /beforeAsar: \[async \(\{ buildPath \}\) => \{/u);
   assert.match(packagerSource, /packagedManifest\.version = APP_VERSION;/u);
 });

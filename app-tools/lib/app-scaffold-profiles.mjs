@@ -284,7 +284,7 @@ function renderDefaultElectronProductionPackager(identity) {
     '    // Runtime preserves these bytes; Nimi never signs installed third-party code.',
     '    ...(MACOS_BUILD ? { osxSign: {',
     "      identity: '-', identityValidation: false, preAutoEntitlements: false,",
-    '      preEmbedProvisioningProfile: false, strictVerify: true,',
+    '      preEmbedProvisioningProfile: false, strictVerify: true, continueOnError: false,',
     "      optionsForFile: () => ({ entitlements: [], hardenedRuntime: false, timestamp: 'none' }),",
     '    } } : {}),',
     '    beforeAsar: [async ({ buildPath }) => {',
