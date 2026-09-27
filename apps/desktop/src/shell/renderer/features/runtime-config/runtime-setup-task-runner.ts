@@ -1043,7 +1043,7 @@ function buildAuthorization(input: {
     })),
     ...input.plan.components.map((item) => ({
       kind: 'component' as const,
-      id: item.dependencyId,
+      id: dependencyKey(item),
       label: item.label,
       detail: item.state,
     })),

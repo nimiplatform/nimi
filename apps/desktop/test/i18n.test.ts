@@ -153,6 +153,17 @@ test('missing renderer translation keys emit issues and return fallback copy wit
   }
 });
 
+test('explicit fallback copy is preserved for dynamic component ids and empty optional labels', async () => {
+  const resource = createDesktopI18n({ initialLocale: 'en', development: false, now: Date.now });
+  await resource.init();
+  const familyName = resource.instance.t('runtimeConfig.setupTask.componentFamilyName.python.venv');
+  assert.equal(familyName, 'Isolated Python environment');
+  assert.equal(resource.instance.t('runtimeConfig.setupTask.component.python-profile.fixture', {
+    defaultValue: familyName,
+  }), familyName);
+  assert.equal(resource.instance.t('I18nSpecRegression.optionalLabel', { defaultValue: '' }), '');
+});
+
 test('duplicate missing renderer translation keys emit a single issue per session fingerprint', async () => {
   await initI18n();
 

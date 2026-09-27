@@ -229,12 +229,15 @@ export function createDesktopI18n(input: CreateDesktopI18nInput): DesktopI18nRes
             source: 'missingKeyHandler',
           });
         },
-        parseMissingKeyHandler: (key) => reportMissingKey({
-          locale: String(instance.resolvedLanguage || input.initialLocale),
-          namespace: 'translation',
-          key,
-          source: 'parseMissingKeyHandler',
-        }),
+        parseMissingKeyHandler: (key, defaultValue) => {
+          const fallback = reportMissingKey({
+            locale: String(instance.resolvedLanguage || input.initialLocale),
+            namespace: 'translation',
+            key,
+            source: 'parseMissingKeyHandler',
+          });
+          return typeof defaultValue === 'string' ? defaultValue : fallback;
+        },
       });
       await syncDocument(input.initialLocale);
     })();

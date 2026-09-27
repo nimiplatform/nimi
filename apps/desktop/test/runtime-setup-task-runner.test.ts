@@ -593,6 +593,32 @@ test('first-time local setup runs the full authorized chain in order with expect
   assert.equal(task?.selectionRevisionBaseline, 'sel-2');
 });
 
+test('preparation authorization keeps components with the same id in different families distinct', async () => {
+  const store = makeStore();
+  const state = baseState();
+  const dependency = state.plan.dependencies[0]!;
+  const families = ['python.venv', 'python.package-set'];
+  state.plan = environmentPlan({
+    dependencies: families.map((dependencyFamily) => ({
+      ...dependency,
+      dependencyFamily,
+      dependencyId: 'python-profile.shared',
+    })),
+  });
+  state.appliedJobs = families.map((dependencyFamily) => envJob('queued', {
+    jobId: `job-${dependencyFamily}`, dependencyFamily, dependencyId: 'python-profile.shared',
+  }));
+  state.envJobs = state.appliedJobs.map((job) => ({ ...job, state: 'ready_managed' }));
+  const ports = createPorts(state, []);
+  const taskId = await createAppTask(store);
+  const plan = await reachReview(store, taskId, ports);
+  const result = await runRuntimeSetupPreparation(store, taskId, ports, { mode: 'prepare-only', reviewedPlan: plan });
+  assert.equal(result.status, 'ok');
+  const components = store.getTask(taskId)?.authorization?.scope.items.filter((item) => item.kind === 'component') ?? [];
+  assert.equal(components.length, 2);
+  assert.equal(new Set(components.map((item) => item.id)).size, 2, 'the two runtime components need distinct list identities');
+});
+
 test('prepare-only never selects and never writes the owner AIConfig', async () => {
   const store = makeStore();
   const calls: CallLog = [];
