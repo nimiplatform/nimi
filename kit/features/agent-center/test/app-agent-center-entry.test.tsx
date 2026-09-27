@@ -74,7 +74,10 @@ function entryClient(input: {
   readonly managerCalls: unknown[];
 }): Pick<NimiLocalAppClient, 'agents' | 'agentConfigure'> {
   return {
-    agents: { listReferences: input.references },
+    agents: {
+      listReferences: input.references,
+      getIntroduction: async () => ownerUnavailable(),
+    },
     agentConfigure: configureClient(input.managerCalls),
   };
 }

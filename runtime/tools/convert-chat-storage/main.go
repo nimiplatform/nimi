@@ -48,7 +48,7 @@ func run() error {
 	if *apply {
 		mode = "rw"
 	}
-	u := url.URL{Scheme: "file", Path: abs, RawQuery: "mode=" + mode}
+	u := databaseURL(abs, mode)
 	db, err := sql.Open("sqlite", u.String())
 	if err != nil {
 		return err
@@ -92,4 +92,12 @@ func run() error {
 	}
 	fmt.Println("Conversation storage converted; backup:", backupAbs)
 	return nil
+}
+
+func databaseURL(path, mode string) url.URL {
+	uriPath := filepath.ToSlash(path)
+	if filepath.VolumeName(path) != "" && !strings.HasPrefix(uriPath, "/") {
+		uriPath = "/" + uriPath
+	}
+	return url.URL{Scheme: "file", Path: uriPath, RawQuery: "mode=" + mode}
 }

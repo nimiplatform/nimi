@@ -178,7 +178,10 @@ function formalClient(
   listReferences: Pick<NimiLocalAppClient, 'agents'>['agents']['listReferences'],
 ): Pick<NimiLocalAppClient, 'agents' | 'agentRealtime'> {
   return {
-    agents: { listReferences: vi.fn(listReferences) },
+    agents: {
+      listReferences: vi.fn(listReferences),
+      getIntroduction: async () => { throw new Error('Unexpected getIntroduction call'); },
+    },
     agentRealtime: realtimeClient(),
   };
 }
