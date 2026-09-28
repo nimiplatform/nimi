@@ -85,8 +85,19 @@ func TestQwen35FourBBaseTextModelContractBindsOnlyExplicitMainAsset(t *testing.T
 	if reason := driver.ValidateCombination(requirements, []*runtimev1.ModelAssetExactBinding{binding}, []ModelAssetDescriptor{projection.Descriptor}); reason != success {
 		t.Fatalf("Qwen exact Loadout binding rejected: %v", reason)
 	}
-	if behaviors, reason := driver.TextBehaviorCapabilities(LlamaQwen35RecipeID); reason != success || len(behaviors) != 3 || behaviors[0].GetImplementationSupported() {
-		t.Fatalf("unverified Qwen advanced behavior offered: %+v reason=%v", behaviors, reason)
+	if behaviors, reason := driver.TextBehaviorCapabilities(LlamaQwen35RecipeID); reason != success || len(behaviors) != 3 ||
+		!behaviors[0].GetImplementationSupported() || behaviors[0].GetConfigurationState() != runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_UNAVAILABLE ||
+		behaviors[1].GetImplementationSupported() || !behaviors[2].GetImplementationSupported() {
+		t.Fatalf("Qwen behavior projection before exact binding = %+v reason=%v", behaviors, reason)
+	}
+	facts := []TextBehaviorBindingFacts{{RequirementID: MainGGUFRequirementID, VerifiedContentID: Qwen35Q4ContentID,
+		EntrySHA256: Qwen35Q4EntrySHA256, TemplateIdentity: Qwen35Q4TemplateIdentity}}
+	if behaviors, reason := driver.TextBehaviorCapabilitiesForBindings(LlamaQwen35RecipeID, facts); reason != success ||
+		behaviors[0].GetConfigurationState() != runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_CONFIGURED ||
+		behaviors[0].GetConfiguredToolUse() == nil ||
+		behaviors[1].GetConfigurationState() != runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_UNAVAILABLE ||
+		behaviors[2].GetConfigurationState() != runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_CONFIGURED {
+		t.Fatalf("Qwen exact behavior projection = %+v reason=%v", behaviors, reason)
 	}
 }
 

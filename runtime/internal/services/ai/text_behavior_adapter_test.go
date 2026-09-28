@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
 	"google.golang.org/protobuf/proto"
@@ -14,8 +15,8 @@ import (
 
 func TestTextBehaviorAdapterResolutionIsExactAndClosed(t *testing.T) {
 	registrations := productionTextBehaviorAdapterRegistrations()
-	if len(registrations) != 16 {
-		t.Fatalf("production adapter registrations = %d, want nine Gemma mappings and seven Cloud targets", len(registrations))
+	if len(registrations) != 17 {
+		t.Fatalf("production adapter registrations = %d, want nine Gemma mappings, one Qwen mapping and seven Cloud targets", len(registrations))
 	}
 	expectedCloudTargets := map[string]string{
 		"anthropic/claude-sonnet-4-6": "anthropic.sonnet46.messages",
@@ -37,8 +38,16 @@ func TestTextBehaviorAdapterResolutionIsExactAndClosed(t *testing.T) {
 			continue
 		}
 		if !validTextBehaviorAdapterRegistration(registration) || registration.LocalTarget == nil ||
-			registration.DriverDialect != gemma4TextDriverDialect || registration.LocalTarget.RecipeID != gemma4TextRecipeID ||
-			len(registration.LocalTarget.ModelContents) != 1 {
+			registration.DriverDialect != gemma4TextDriverDialect || len(registration.LocalTarget.ModelContents) != 1 {
+			t.Fatalf("invalid production Local adapter registration: %+v", registration)
+		}
+		if registration.LocalTarget.RecipeID == capabilitydriver.LlamaQwen35RecipeID {
+			if registration.AdapterID != "llama.cpp.qwen35-4b.text-behavior" ||
+				registration.LocalTarget.ModelContents[0].ContentID != capabilitydriver.Qwen35Q4ContentID ||
+				registration.ExecutionSemantics.RequiredTemplateIdentity != capabilitydriver.Qwen35Q4TemplateIdentity {
+				t.Fatalf("invalid production Qwen3.5 adapter registration: %+v", registration)
+			}
+		} else if registration.LocalTarget.RecipeID != gemma4TextRecipeID {
 			t.Fatalf("invalid production Gemma 4 adapter registration: %+v", registration)
 		}
 		contentID := registration.LocalTarget.ModelContents[0].ContentID

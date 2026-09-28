@@ -50,6 +50,9 @@ func (driver LlamaTextDriver) TextBehaviorCapabilities(recipeID string) ([]*runt
 	if strings.TrimSpace(recipeID) == LlamaGemma4RecipeID {
 		return gemma4TextBehaviorProjections(runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_UNAVAILABLE), runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 	}
+	if strings.TrimSpace(recipeID) == LlamaQwen35RecipeID {
+		return qwen35TextBehaviorProjections(runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_UNAVAILABLE), runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+	}
 	result := make([]*runtimev1.TextBehaviorCapabilityProjection, 0, 3)
 	for _, kind := range []runtimev1.TextBehaviorKind{
 		runtimev1.TextBehaviorKind_TEXT_BEHAVIOR_KIND_TOOL_USE,
@@ -67,7 +70,11 @@ func (driver LlamaTextDriver) TextBehaviorCapabilities(recipeID string) ([]*runt
 
 func (driver LlamaTextDriver) TextBehaviorCapabilitiesForBindings(recipeID string, facts []TextBehaviorBindingFacts) ([]*runtimev1.TextBehaviorCapabilityProjection, runtimev1.LocalCapabilityReason) {
 	base, reason := driver.TextBehaviorCapabilities(recipeID)
-	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED || strings.TrimSpace(recipeID) != LlamaGemma4RecipeID {
+	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
+		return base, reason
+	}
+	recipeID = strings.TrimSpace(recipeID)
+	if recipeID != LlamaGemma4RecipeID && recipeID != LlamaQwen35RecipeID {
 		return base, reason
 	}
 	var main []TextBehaviorBindingFacts
@@ -80,13 +87,55 @@ func (driver LlamaTextDriver) TextBehaviorCapabilitiesForBindings(recipeID strin
 	case 0:
 		return base, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 	case 1:
+		if recipeID == LlamaQwen35RecipeID {
+			if qwen35Q4BehaviorAssetMatches(main[0]) {
+				return qwen35TextBehaviorProjections(runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_CONFIGURED), runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+			}
+			return base, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+		}
 		if _, ok := gemma4CohortEntryForMain(main[0].VerifiedContentID, main[0].EntrySHA256, main[0].TemplateIdentity); !ok {
 			return base, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 		}
 		return gemma4TextBehaviorProjections(runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_CONFIGURED), runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 	default:
+		if recipeID == LlamaQwen35RecipeID {
+			return qwen35TextBehaviorProjections(runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_AMBIGUOUS), runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+		}
 		return gemma4TextBehaviorProjections(runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_AMBIGUOUS), runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 	}
+}
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.r121
+func qwen35TextBehaviorProjections(state runtimev1.TextBehaviorConfigurationState) []*runtimev1.TextBehaviorCapabilityProjection {
+	result := make([]*runtimev1.TextBehaviorCapabilityProjection, 0, 3)
+	for _, kind := range []runtimev1.TextBehaviorKind{
+		runtimev1.TextBehaviorKind_TEXT_BEHAVIOR_KIND_TOOL_USE,
+		runtimev1.TextBehaviorKind_TEXT_BEHAVIOR_KIND_REASONING,
+		runtimev1.TextBehaviorKind_TEXT_BEHAVIOR_KIND_STRUCTURED_OUTPUT,
+	} {
+		projection := &runtimev1.TextBehaviorCapabilityProjection{Kind: kind}
+		if kind == runtimev1.TextBehaviorKind_TEXT_BEHAVIOR_KIND_REASONING {
+			projection.ConfigurationState = runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_UNAVAILABLE
+			projection.Reasons = []runtimev1.LocalCapabilityReason{runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_TEXT_BEHAVIOR_UNAVAILABLE}
+		} else {
+			projection.ImplementationSupported = true
+			projection.ConfigurationState = state
+			switch state {
+			case runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_UNAVAILABLE:
+				projection.Reasons = []runtimev1.LocalCapabilityReason{runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_TEXT_BEHAVIOR_UNAVAILABLE}
+			case runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_AMBIGUOUS:
+				projection.Reasons = []runtimev1.LocalCapabilityReason{runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_TEXT_BEHAVIOR_AMBIGUOUS}
+			}
+			if kind == runtimev1.TextBehaviorKind_TEXT_BEHAVIOR_KIND_TOOL_USE {
+				projection.ImplementationToolUse = Qwen35ToolUseCapabilityProjection()
+				if state == runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_CONFIGURED {
+					projection.ConfiguredToolUse = Qwen35ToolUseCapabilityProjection()
+				}
+			}
+		}
+		result = append(result, projection)
+	}
+	return result
 }
 
 func gemma4TextBehaviorProjections(state runtimev1.TextBehaviorConfigurationState) []*runtimev1.TextBehaviorCapabilityProjection {

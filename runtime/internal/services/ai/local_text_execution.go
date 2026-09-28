@@ -574,6 +574,9 @@ func integerDefault(value *structpb.Value) (int64, bool) {
 }
 
 func localTextInvocationError(err error) error {
+	if _, typed := grpcerr.ExtractReasonCode(err); typed {
+		return err
+	}
 	var invocationErr *capabilitydriver.InvocationError
 	if !errors.As(err, &invocationErr) {
 		return grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE, err, grpcerr.ReasonOptions{})

@@ -1599,8 +1599,8 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 	}
 
 	all := list("")
-	if len(all) != 95 {
-		t.Fatalf("all Loadout recipes = %d, want 95", len(all))
+	if len(all) != 96 {
+		t.Fatalf("all Loadout recipes = %d, want 96", len(all))
 	}
 	byID := make(map[string]*runtimev1.LoadoutRecipeDescriptor, len(all))
 	for _, recipe := range all {
@@ -1610,6 +1610,11 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 	if qwen == nil || len(qwen.GetSlots()) != 1 || qwen.GetSlots()[0].GetSlotId() != capabilitydriver.MainGGUFRequirementID ||
 		len(qwen.GetImplementationSupportedFeatures()) != 0 {
 		t.Fatalf("Qwen3.5 4B base-text recipe must project one exact main slot: %+v", qwen)
+	}
+	qwenEmbedding := byID[capabilitydriver.LlamaQwen3EmbedRecipeID]
+	if qwenEmbedding == nil || len(qwenEmbedding.GetSlots()) != 1 ||
+		qwenEmbedding.GetSlots()[0].GetSlotId() != capabilitydriver.EmbeddingGGUFRequirementID {
+		t.Fatalf("Qwen3 embedding recipe must project one exact model slot: %+v", qwenEmbedding)
 	}
 	whisper := byID[capabilitydriver.FasterWhisperRecipeID]
 	library := byID[capabilitydriver.Qwen3VoiceLibraryRecipeID]

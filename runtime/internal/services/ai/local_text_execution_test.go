@@ -414,6 +414,10 @@ func TestLocalTextExecutionFailureReasonsRemainDistinct(t *testing.T) {
 }
 
 func TestLocalTextInvocationFailureSeparatesBehaviorFromModality(t *testing.T) {
+	typed := grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED)
+	if reason, ok := grpcerr.ExtractReasonCode(localTextInvocationError(typed)); !ok || reason != runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED {
+		t.Fatal("typed behavior serializer failure was collapsed to driver unavailable")
+	}
 	for _, test := range []struct {
 		kind   capabilitydriver.InvocationFailureKind
 		reason runtimev1.ReasonCode
