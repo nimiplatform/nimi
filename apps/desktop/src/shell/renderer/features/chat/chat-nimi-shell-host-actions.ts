@@ -30,6 +30,7 @@ type UseAiConversationHostActionsInput = {
   currentDraftTextRef: { current: string };
   ephemeralThread: ChatAiThreadRecord | null;
   executeTextCapability: (text: string) => Promise<DesktopNimiTextCapabilityResult>;
+  clearHostError: () => void;
   now: () => number;
   queryClient: QueryClient;
   reportHostError: (error: unknown) => void;
@@ -146,6 +147,7 @@ export function useAiConversationHostActions(
   const handleSubmit = useCallback(async (value: string) => {
     const text = value.trim();
     if (!text || input.submittingThreadId) return;
+    input.clearHostError();
     const createdAtMs = input.now();
     const baseThread: ChatAiThreadRecord = input.ephemeralThread
       ?? (input.selectedThreadRecord && input.activeThreadId

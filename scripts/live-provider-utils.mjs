@@ -21,7 +21,6 @@ const PROVIDER_ALIASES = {
   groq: 'groq',
   xai: 'xai',
   qianfan: 'qianfan',
-  hunyuan: 'hunyuan',
   spark: 'spark',
   openaicompatible: 'openai_compatible',
   volcengineopenspeech: 'volcengine_openspeech',

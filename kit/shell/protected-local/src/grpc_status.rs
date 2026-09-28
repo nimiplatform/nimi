@@ -292,8 +292,12 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "AI_VOICE_ASSET_SCOPE_FORBIDDEN" => LocalAppReasonCode::AiVoiceAssetScopeForbidden,
         "AI_VOICE_TARGET_MODEL_MISMATCH" => LocalAppReasonCode::AiVoiceTargetModelMismatch,
         "AI_CONFIG_INVALID" => LocalAppReasonCode::AiConfigInvalid,
+        "CAPABILITY_CATALOG_MISMATCH" => LocalAppReasonCode::CapabilityCatalogMismatch,
         "AI_CONFIG_NOT_FOUND" => LocalAppReasonCode::AiConfigNotFound,
         "AI_CONNECTOR_NOT_FOUND" => LocalAppReasonCode::AiConnectorNotFound,
+        "AI_CONNECTOR_DISABLED" => LocalAppReasonCode::AiConnectorDisabled,
+        "AI_CONNECTOR_CREDENTIAL_MISSING" => LocalAppReasonCode::AiConnectorCredentialMissing,
+        "AI_REMOTE_MODEL_CATALOG_STALE" => LocalAppReasonCode::AiRemoteModelCatalogStale,
         "AI_CONFIG_PERSISTENCE_UNAVAILABLE" => LocalAppReasonCode::AiConfigPersistenceUnavailable,
         "AGENT_PRESENTATION_REVISION_CONFLICT" => {
             LocalAppReasonCode::AgentPresentationRevisionConflict
@@ -831,6 +835,44 @@ mod tests {
             ));
             assert_eq!(error.reason_code(), LocalAppReasonCode::AiConnectorNotFound);
             assert_eq!(error.reason_code().as_str(), "ai-connector-not-found");
+            assert!(error.reason_metadata().is_empty());
+            assert!(!error.to_string().contains("private"));
+        }
+    }
+
+    #[test]
+    fn committed_cloud_target_failures_keep_typed_configuration_reasons() {
+        for (runtime_reason, expected, public) in [
+            (
+                "AI_REMOTE_MODEL_CATALOG_STALE",
+                LocalAppReasonCode::AiRemoteModelCatalogStale,
+                "ai-remote-model-catalog-stale",
+            ),
+            (
+                "CAPABILITY_CATALOG_MISMATCH",
+                LocalAppReasonCode::CapabilityCatalogMismatch,
+                "capability-catalog-mismatch",
+            ),
+            (
+                "AI_CONNECTOR_DISABLED",
+                LocalAppReasonCode::AiConnectorDisabled,
+                "ai-connector-disabled",
+            ),
+            (
+                "AI_CONNECTOR_CREDENTIAL_MISSING",
+                LocalAppReasonCode::AiConnectorCredentialMissing,
+                "ai-connector-credential-missing",
+            ),
+        ] {
+            let error = local_app_error_from_status(integration_status(
+                ERROR_INFO_DOMAIN,
+                runtime_reason,
+                "private-connector",
+                Code::FailedPrecondition,
+            ));
+            assert_eq!(error.reason_code(), expected);
+            assert_eq!(error.reason_code().as_str(), public);
+            assert!(!error.retryable());
             assert!(error.reason_metadata().is_empty());
             assert!(!error.to_string().contains("private"));
         }

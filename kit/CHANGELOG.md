@@ -1,5 +1,34 @@
 # Changelog
 
+## Committed Cloud target reasons (next minor, development)
+
+- Preserve Runtime's `AI_REMOTE_MODEL_CATALOG_STALE`, `AI_CONNECTOR_DISABLED` and
+  `AI_CONNECTOR_CREDENTIAL_MISSING` as `ai-remote-model-catalog-stale`,
+  `ai-connector-disabled` and `ai-connector-credential-missing` through the
+  native, Electron and Tauri carriers; they previously surfaced as
+  `runtime-service-error-unclassified`. Like `ai-connector-not-found`, they are
+  recoverable configuration errors and keep the protected session.
+- The carrier action hint for these reasons, `ai-connector-not-found` and
+  `ai-config-invalid` now names the recovery: `reselect_app_ai_config_target`,
+  `enable_cloud_connector_or_reselect_target` or
+  `add_cloud_connector_credential_or_reselect_target`. Rebuild the matching
+  native package when taking this correction.
+- Preserve `CAPABILITY_CATALOG_MISMATCH` as `capability-catalog-mismatch` when a
+  committed embedding target lacks a verified fixed output dimension. The App
+  can reselect a supported target in the same protected session.
+
+## Model config Cloud blocking reasons (next minor, development)
+
+- A committed Cloud selection that Runtime does not report as ready now explains
+  why in the model-config surface. `AI_REMOTE_MODEL_CATALOG_STALE` asks the owner
+  to choose the model again from the current list; other reasons use a generic
+  message, and the typed reason codes stay under Technical details.
+- `ModelConfigCopy` adds optional `cloudBlockedLabel` and `cloudCatalogStaleLabel`.
+  Consumers that do not override them get English defaults.
+- The Cloud model picker treats a committed Connector that is no longer offered,
+  for example after its provider was retired, as unselected and asks for another
+  Connector instead of reporting that no models exist.
+
 ## Shared Agent introduction (next minor, development)
 
 - Add `agents.getIntroduction({ agentHandle })` under `agent.local` for every

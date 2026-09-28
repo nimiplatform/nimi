@@ -1,6 +1,10 @@
 package connector
 
-import "github.com/nimiplatform/nimi/runtime/internal/providerregistry"
+import (
+	"strings"
+
+	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
+)
 
 // ProviderCatalogEntry defines default endpoint and requirements for a provider.
 type ProviderCatalogEntry struct {
@@ -97,4 +101,14 @@ func IsKnownProvider(provider string) bool {
 	}
 	_, ok = ProviderCapabilities[provider]
 	return ok
+}
+
+// storedConnectorProviderAdmitted reports whether a stored Connector still
+// carries a canonical provider identity. When a provider leaves the source
+// catalog, its Connectors stay listed and deletable, but Test Connector and
+// List Connector Models reject them before any credential or provider access.
+//
+// @nimi-authority: rule.nimi.runtime.ai-provider.r032
+func storedConnectorProviderAdmitted(rec ConnectorRecord) bool {
+	return IsKnownProvider(strings.TrimSpace(rec.Provider))
 }

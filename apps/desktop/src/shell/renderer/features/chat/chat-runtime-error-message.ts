@@ -23,6 +23,15 @@ export function chatRuntimeReasonCodeMessage(
   if (reasonCode === 'AGENT_BUSY' || reasonCode === 'agent-busy') {
     return translateMessage(t, 'Chat.agentBusyRetry', 'This partner is busy with another request. Your input is saved here; try sending again shortly.');
   }
+  if (reasonCode === 'AI_REMOTE_MODEL_CATALOG_STALE') {
+    return translateMessage(t, 'Chat.nimiCatalogStale', 'The saved cloud model changed. Choose it again in AI Capabilities, then send your message.');
+  }
+  if (reasonCode === 'CAPABILITY_CATALOG_MISMATCH') {
+    return translateMessage(t, 'Chat.nimiCatalogMismatch', 'This model lacks verified details needed to run. Choose another model in AI Capabilities, then send your message.');
+  }
+  if (reasonCode === 'AI_CONFIG_INVALID') {
+    return translateMessage(t, 'Chat.nimiConfigInvalid', 'The selected model cannot run. Choose another model in AI Capabilities, then send your message.');
+  }
   const entry = getNimiRuntimeReasonCodeMessage(reasonCode);
   if (!entry) {
     return null;

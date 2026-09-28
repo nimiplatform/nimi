@@ -404,6 +404,7 @@ export function TextStudioResultState({
   onRegenerate,
   onCancel,
   onUseAsDraft,
+  onOpenIntentConfig,
 }: {
   registration: StudioCapabilityRegistration;
   activeRun: TextStudioActiveRun;
@@ -420,6 +421,7 @@ export function TextStudioResultState({
   onRegenerate: () => void;
   onCancel?: () => void;
   onUseAsDraft: (record: StudioRunHistoryRecord) => void;
+  onOpenIntentConfig?: () => void;
 }) {
   const { translate: t } = useAIStudioHost();
   const capability = registration.descriptor;
@@ -470,6 +472,7 @@ export function TextStudioResultState({
                 onDownload={onDownload}
                 onRegenerate={onRegenerate}
                 onCancel={onCancel}
+                onOpenIntentConfig={onOpenIntentConfig}
               />
             </>
           ) : activeRun.record ? (

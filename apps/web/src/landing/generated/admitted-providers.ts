@@ -1,7 +1,7 @@
 /**
  * @generated
  * Source: config/runtime-provider-catalog.yaml
- *   sha256: cab0afbe0696c2247f8e68f62c1e5e5f3b621f5334f395dcdf81c31a0dae6b68
+ *   sha256: 21ccf73177a731cd2fbcc42192763285be535fa37e478fd63fbb0329971f8645
  * Generator: apps/web/scripts/generate-landing-data.mjs
  * DO NOT EDIT MANUALLY. Re-run generator (`pnpm prebuild` or
  * `node scripts/generate-landing-data.mjs` from apps/web/) to refresh.
@@ -153,14 +153,6 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
     defaultTextModel: null,
     requiresExplicitEndpoint: false,
     inventoryMode: "dynamic_endpoint",
-    sourceRule: "K-MCAT-027",
-  },
-  {
-    provider: "hunyuan",
-    defaultEndpoint: "https://api.hunyuan.cloud.tencent.com/v1",
-    defaultTextModel: null,
-    requiresExplicitEndpoint: false,
-    inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
   },
   {

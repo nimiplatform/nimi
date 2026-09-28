@@ -103,6 +103,14 @@ function aiConfigCopy(i18n: AgentCenterI18n | undefined): ModelConfigCopy {
       'AgentCenter.aiConfig.localUnavailableLabel',
       'Machine-local configuration status is currently unavailable.',
     ),
+    cloudBlockedLabel: t(
+      'AgentCenter.aiConfig.cloudBlockedLabel',
+      'This Cloud selection cannot run right now. Choose the model again or choose another model.',
+    ),
+    cloudCatalogStaleLabel: t(
+      'AgentCenter.aiConfig.cloudCatalogStaleLabel',
+      'The Cloud model list changed after this model was selected. Choose the model again from the current list.',
+    ),
     localMismatchLabel: (features: string) => translateAgentCenter(
       i18n,
       'AgentCenter.aiConfig.localMismatchLabel',

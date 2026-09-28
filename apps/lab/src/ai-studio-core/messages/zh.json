@@ -107,6 +107,7 @@
     "stopped": "已停止"
   },
   "NonSuccess": {
+    "openAIConfig": "打开 App AI 配置",
     "title": {
       "runtimeUnavailable": "本地 AI 暂时不可用",
       "inputInvalid": "请检查输入",
@@ -130,6 +131,12 @@
       "streamInterrupted": "实时结果连接已结束，但 Runtime 尚未确认最终状态。",
       "runtimeCallFailed": "这次生成未能完成。",
       "inputLimitExceeded": "当前配置的模型无法完整读取这次输入。输入没有被截断，也没有返回部分结果。",
+      "catalogStale": "选择这个模型之后，云端模型目录已经更新，保存的选择需要重新确认。本次请求没有发送给云服务。",
+      "catalogMismatch": "这个云端嵌入模型没有经过验证的固定输出维度，因此无法运行。本次请求没有发送给云服务。",
+      "connectorDisabled": "此能力使用的云服务连接已停用。本次请求没有发送给云服务。",
+      "connectorCredentialMissing": "此能力使用的云服务连接没有可用的 API 密钥。本次请求没有发送给云服务。",
+      "connectorNotFound": "此能力使用的云服务连接已不存在。本次请求没有发送给云服务。",
+      "configInvalid": "此能力保存的 AI 配置无法在当前 Runtime 中运行，例如所用的云服务已不再支持。",
       "fallback": "本次生成未完成。",
       "stoppedDirectCall": "已停止等待这次调用，之后返回的结果不会显示。"
     },
@@ -144,6 +151,12 @@
       "streamInterrupted": "请先检查任务状态；确认任务未完成后再重试。",
       "runtimeCallFailed": "先重试一次；如果仍然失败，再展开 Runtime 详情查看原因。",
       "inputLimitExceeded": "请缩短输入，或配置可接受更长输入的模型，然后重新运行。",
+      "catalogStale": "打开 App AI 配置，从当前列表为此能力重新选择模型，然后重新运行。",
+      "catalogMismatch": "打开 App AI 配置，选择已验证输出维度的嵌入模型，然后重新运行。",
+      "connectorDisabled": "打开 App AI 配置，改选可用云服务或本机的模型，然后重新运行。",
+      "connectorCredentialMissing": "在 Desktop 的「云服务」中为这个连接添加 API 密钥，或打开 App AI 配置改选其他模型，然后重新运行。",
+      "connectorNotFound": "打开 App AI 配置，为此能力重新选择模型，然后重新运行。",
+      "configInvalid": "打开 App AI 配置，为此能力重新选择模型，然后重新运行。",
       "fallback": "请重试；如果仍然失败，再展开 Runtime 详情查看原因。",
       "stoppedDirectCall": "准备好后可以直接重新运行。"
     },

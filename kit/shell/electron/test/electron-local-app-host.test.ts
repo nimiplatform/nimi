@@ -23,6 +23,23 @@ describe('Electron protected local-app host', () => {
     expect(rebinds).toBe(0);
   });
 
+  it.each(['ai-remote-model-catalog-stale', 'capability-catalog-mismatch', 'ai-connector-disabled', 'ai-connector-credential-missing'])(
+    'keeps %s from a committed Cloud target in the existing session so the owner can reselect',
+    async (reasonCode) => {
+      let invalidations = 0; let rebinds = 0;
+      const candidate = { ...binding([]),
+        localAppTextTurnStreamNext: async () => ({ status: 'error' as const, reasonCode, retryable: false }),
+        localAppSessionRebind: async () => { rebinds++; return { status: 'error' as const, reasonCode: 'runtime-unauthenticated', retryable: false }; },
+      };
+      const host = createNimiElectronLocalAppHostForBinding(candidate, () => { invalidations++; });
+      const opened = await host.textTurnSubscribe({ messages: [{ role: 'user', text: 'hello' }] });
+      await expect(host.textTurnStreamNext({ streamId: opened.streamId })).rejects.toMatchObject({ reasonCode, retryable: false });
+      await expect(host.sessionStatus()).resolves.toMatchObject({ state: 'ready' });
+      expect(invalidations).toBe(0);
+      expect(rebinds).toBe(0);
+    },
+  );
+
   it.each(['local-app-operation-unavailable', 'local-app-owner-unavailable'])('preserves bounded Integration metadata on %s', async (reasonCode) => {
     const host = createNimiElectronLocalAppHostForBinding({ ...binding([]),
       localAppIntegrationPutConnection: async () => ({ status: 'error' as const, reasonCode, retryable: false,

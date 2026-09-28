@@ -2364,6 +2364,10 @@ function standardCode(reasonCode: string) {
     case 'agent-presentation-asset-dependency-missing':
     case 'agent-presentation-asset-not-validated':
     case 'ai-config-invalid':
+    case 'capability-catalog-mismatch':
+    case 'ai-remote-model-catalog-stale':
+    case 'ai-connector-disabled':
+    case 'ai-connector-credential-missing':
     case 'ai-voice-input-invalid':
     case 'ai-voice-workflow-unsupported':
     case 'ai-voice-asset-expired':
@@ -2417,6 +2421,12 @@ function actionHint(reasonCode: string): string {
     case 'runtime-service-error-unclassified': return 'inspect_runtime_service_error';
     case 'runtime-service-repair-required': return 'repair_fixed_runtime_service';
     case 'runtime-unauthenticated': return 'open_request_empty_local_app_session';
+    case 'ai-remote-model-catalog-stale':
+    case 'capability-catalog-mismatch':
+    case 'ai-config-invalid':
+    case 'ai-connector-not-found': return 'reselect_app_ai_config_target';
+    case 'ai-connector-disabled': return 'enable_cloud_connector_or_reselect_target';
+    case 'ai-connector-credential-missing': return 'add_cloud_connector_credential_or_reselect_target';
     case 'agent-presentation-revision-conflict': return 'refresh_presentation_snapshot';
     case 'agent-presentation-asset-type-invalid':
     case 'agent-presentation-asset-too-large':

@@ -564,29 +564,11 @@ models:
       output: unknown
       currency: CNY
       as_of: 2026-04-18
-      notes: Ark embedding pricing varies by account plan and dimension tier.
+      notes: Ark embedding pricing varies by account plan and dimension tier. The exact Ark output width for this target is unverified; text.embed AIConfig admission remains blocked until a fixed dimension is verified.
     source_ref:
       url: https://www.volcengine.com/docs/84716/1288890
       retrieved_at: 2026-04-18
       note: Volcengine embedding model documentation.
-  - model_id: doubao-embedding-250615
-    provider: volcengine
-    model_type: embedding
-    updated_at: 2026-04-18
-    capabilities:
-      - text.embed
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-04-18
-      notes: Ark embedding pricing varies by account plan and dimension tier.
-    source_ref:
-      url: https://www.volcengine.com/docs/84716/1288890
-      retrieved_at: 2026-04-18
-      note: Volcengine embedding model documentation.
-    api_model_id: doubao-embedding
   - model_id: doubao-seedream-5-0-260128
     provider: volcengine
     model_type: image

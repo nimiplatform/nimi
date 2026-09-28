@@ -44,6 +44,12 @@ func (s *Service) TestConnector(ctx context.Context, req *runtimev1.TestConnecto
 			Ack: &runtimev1.Ack{Ok: false, ReasonCode: runtimev1.ReasonCode_AI_LOCAL_CONNECTOR_RETIRED},
 		}, nil
 	}
+	if !storedConnectorProviderAdmitted(rec) {
+		s.emitAudit(ctx, "connector.test", runtimev1.ReasonCode_AI_CONNECTOR_INVALID, auditPayload)
+		return &runtimev1.TestConnectorResponse{
+			Ack: &runtimev1.Ack{Ok: false, ReasonCode: runtimev1.ReasonCode_AI_CONNECTOR_INVALID},
+		}, nil
+	}
 
 	secretPayload, err := s.store.LoadSecretPayload(connectorID)
 	if err != nil {
@@ -110,6 +116,9 @@ func (s *Service) ListConnectorModels(ctx context.Context, req *runtimev1.ListCo
 	}
 	if IsRetiredLocalConnectorKind(rec.Kind) {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONNECTOR_RETIRED)
+	}
+	if !storedConnectorProviderAdmitted(rec) {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
 	}
 
 	filterDigest := pagination.FilterDigest(connectorID)

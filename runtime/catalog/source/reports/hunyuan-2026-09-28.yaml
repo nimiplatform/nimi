@@ -1,20 +1,25 @@
 provider: hunyuan
 report_date: 2026-09-28
-audit_mode: family_scoped
+audit_mode: provider_wide
 families_in_scope:
   - text
+  - embedding
+  - image
 taxonomy_axes:
   product_family:
     - hunyuan
   capability_family:
     - text
     - embedding
+    - image
   lineage_or_track:
     - hunyuan_2_0
+    - hunyuan_embedding
+    - hunyuan_dit
     - tokenhub_hy
 refresh_policy:
   keep_latest_generations: 2
-  authority_home: runtime/catalog/source/providers/hunyuan.source.yaml
+  authority_home: runtime/catalog/source/providers/hunyuan.source.yaml (removed by this report's provider retirement)
 evidence_urls:
   official:
     - https://cloud.tencent.com/document/product/1729/131925
@@ -33,16 +38,24 @@ current_source_inventory:
       - hunyuan-2.0-thinking-20251109
       - hunyuan-turbos-latest
       - hunyuan-t1-latest
+  embedding:
+    - hunyuan-embedding
+  image:
+    - hunyuan-dit
 official_current_inventory:
   text:
     offline: hunyuan-2.0-instruct-20251111, hunyuan-2.0-thinking-20251109, hunyuan-turbos-latest and hunyuan-t1-latest went offline at 2026-06-22 00:00 Beijing time
-    platform: The legacy Hunyuan platform behind api.hunyuan.cloud.tencent.com shuts down on 2026-09-30; successors such as hy3 are on TokenHub at a different endpoint
+  platform:
+    sales_stopped: Announcement 2287 closed purchase and resource creation on the legacy platform at 2026-06-30 00:00 Beijing time, so no new subscription, service activation, or API key can be created there
+    shutdown: Announcement 2287 shuts down the legacy platform console and API at 2026-09-30 00:00 Beijing time, which ends hunyuan-embedding and hunyuan-dit behind api.hunyuan.cloud.tencent.com
+    successor: Tencent moves these services to TokenHub, which uses its own API key and base URL
 gap_summary:
   missing_in_source:
     - hy3 and hy4-preview on TokenHub
   stale_in_source:
     - both selection profiles and the default text model point to offline models
     - all four text rows are offline
+    - hunyuan-embedding and hunyuan-dit depend on a platform that accepts no new API keys and shuts down on 2026-09-30
   extra_legacy_in_source: []
   uncertain_items: []
 curation_decision:
@@ -52,17 +65,19 @@ curation_decision:
     - selection_profiles text.general and text.reasoning
     - defaults.default_text_model
     - text rows hunyuan-2.0-instruct-20251111, hunyuan-2.0-thinking-20251109, hunyuan-turbos-latest, and hunyuan-t1-latest, offline since 2026-06-22
+    - "provider hunyuan: its source file, generated snapshot, registry entry, provider tables, and landing projection, including the hunyuan-embedding and hunyuan-dit rows"
   defer:
-    - "TokenHub migration or retirement of the hunyuan provider: TokenHub needs a different API key and base URL, which changes Connector custody (definition.nimi.runtime.ai-provider.connector-plane with rule.nimi.runtime.ai-provider.r017, r020, and r021) or provider identity (rule.nimi.runtime.ai-provider.r032, which rejects aliases and legacy names), so it needs an authority decision; catalog data alone never migrates existing Connectors or committed targets (rule.nimi.runtime.model-catalog.r016)."
-    - "hunyuan-embedding and hunyuan-dit: the legacy platform API that serves them shuts down on 2026-09-30; they stay only until that confirmed shutdown or the provider-level decision, with no profile or default recommending them."
-  reject_or_noise: []
+    - "TokenHub: a separate provider integration with its own canonical identity, endpoint, credential, source rows, and live acceptance; it does not reuse the hunyuan identity or migrate existing hunyuan Connectors or committed targets."
+  reject_or_noise:
+    - An endpoint or base-URL swap on the hunyuan provider, which would silently move existing Connector custody to TokenHub
 review_actions:
   selection_profiles_review_required: true
   defaults_review_required: true
   capability_review_required: true
 notes:
   - No admitted Hunyuan text row remains callable, so the source now carries no recommendation instead of an offline one.
-  - The four offline text rows were removed with no replacement row and no substitute provider, so Hunyuan no longer declares text.generate and its catalog_version changes to 2026-09-28-hunyuan-legacy-text-retired.
-  - A committed Hunyuan text target projects BLOCKED with AI_REMOTE_MODEL_CATALOG_STALE and ExecuteScenario fails with AI_CONFIG_INVALID before any provider request; committed Hunyuan embedding and image targets must be re-selected after the catalog_version change.
-  - The live text smoke test and its NIMI_LIVE_HUNYUAN_MODEL_ID example variable were removed with the text rows.
+  - The four offline text rows were removed with no replacement row and no substitute provider, so Hunyuan no longer declares text.generate and its catalog_version changed to 2026-09-28-hunyuan-legacy-text-retired.
+  - "Provider retirement decision: the project has not launched, no local data root, App, SDK, Kit, or Desktop flow uses a Hunyuan Connector or row, no new legacy API key can be created, and the remaining API ends on 2026-09-30. The provider is therefore removed now instead of leaving selectable rows that cannot serve a new user and stop within two days."
+  - "Owners: model-catalog r001 makes the source file set the provider set; ai-provider r032 rejects a non-canonical provider name at Create Connector, Test Connector, List Connector Models, AIConfig, and Job validation; r031 keeps committed Cloud intent and reports a typed reason; r024 serves Connector models only from the active snapshot. No authority unit enumerates hunyuan, so no authority text changes."
+  - "Existing hunyuan Connectors stay listed and deletable. Test Connector and List Connector Models reject them with AI_CONNECTOR_INVALID before any credential or provider access; they offer no AIConfig target; a committed hunyuan target projects BLOCKED with AI_REMOTE_MODEL_CATALOG_STALE and fails admission without dispatch. User catalog overlays for hunyuan are ignored by the loader."
 confidence: high

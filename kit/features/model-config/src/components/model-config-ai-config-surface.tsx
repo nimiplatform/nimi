@@ -829,6 +829,9 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
       : [],
   }), [listChoices, props.copy.localLabel]);
 
+  // A committed Connector that is no longer offered, such as one whose provider
+  // was retired, reads as unselected so the owner is asked to choose another.
+  const pickerConnectorOffered = connectors.some((entry) => entry.connectorRef === pickerConnectorRef && entry.state === 'ready');
   const selectedConnector = draftChoice?.route === 'cloud'
     ? connectors.find((entry) => entry.connectorRef === draftChoice.connectorRef) || {
         connectorRef: draftChoice.connectorRef,
@@ -977,6 +980,19 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
         props.currentIntent?.route.oneofKind === 'local',
       )
     : draftChoice;
+  // The committed Cloud target keeps its typed Runtime reasons so the owner can
+  // see why it cannot run, for example after a catalog change, and choose again.
+  const committedCloudBlocked = draftChoice?.route === 'cloud'
+    && currentChoice?.route === 'cloud'
+    && currentChoice.id === draftChoice.id
+    && props.selection !== undefined
+    && props.selection?.state !== 'ready';
+  const committedCloudReasons = committedCloudBlocked ? props.selection?.reasons || [] : [];
+  const committedCloudBlockedMessage = !committedCloudBlocked
+    ? ''
+    : committedCloudReasons.includes('AI_REMOTE_MODEL_CATALOG_STALE')
+      ? props.copy.cloudCatalogStaleLabel
+      : props.copy.cloudBlockedLabel;
 
   return (
     <div className="min-w-0 space-y-4" data-nimi-model-config-capability={props.capabilityContract}>
@@ -1022,7 +1038,7 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
             loadingLabel: props.copy.modelPickerLoadingLabel,
             emptyLabel: cloudError || (connectors.length === 0
                 ? props.copy.cloudNoConnectorsLabel
-                : !pickerConnectorRef
+                : !pickerConnectorOffered
                   ? props.copy.cloudConnectorSelectionRequired
                   : props.copy.modelPickerEmptyLabel),
             sourceLabels: { local: props.copy.localLabel, cloud: props.copy.cloudLabel },
@@ -1038,7 +1054,7 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
                     <span>{props.copy.cloudConnectorPickerLabel}</span>
                     <SelectField
                       aria-label={props.copy.cloudConnectorPickerLabel}
-                      value={pickerConnectorRef}
+                      value={pickerConnectorOffered ? pickerConnectorRef : ''}
                       placeholder={props.copy.cloudConnectorPickerPlaceholder}
                       contentLayer="dialog"
                       disabled={isLoading && connectors.length === 0}
@@ -1060,7 +1076,7 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
                     </span>
                   </div>
                 )}
-                {connectors.length > 0 && !pickerConnectorRef ? (
+                {connectors.length > 0 && !pickerConnectorOffered ? (
                   <p className="m-0 text-[length:var(--nimi-type-overline-size)] text-[var(--nimi-text-muted)]">{props.copy.cloudConnectorSelectionRequired}</p>
                 ) : null}
               </div>
@@ -1106,6 +1122,17 @@ function EditableCapabilityIntentEditor(props: CapabilityIntentEditorProps) {
               {selectedConnector ? `${selectedConnector.label} · ${selectedConnector.provider}` : props.copy.cloudConnectorSelectionRequired}
             </div>
           </InlineAlert>
+          {committedCloudBlockedMessage ? (
+            <div className="space-y-2" data-nimi-model-config-cloud-blocked="true">
+              <InlineAlert tone="warning">{committedCloudBlockedMessage}</InlineAlert>
+              {committedCloudReasons.length > 0 ? (
+                <details className="rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] p-2 text-xs text-[var(--nimi-text-secondary)]">
+                  <summary className="cursor-pointer font-semibold">{props.copy.technicalDetailsLabel}</summary>
+                  <pre className="mt-2 whitespace-pre-wrap break-words font-mono text-[length:var(--nimi-type-overline-size)]">{committedCloudReasons.join('\n')}</pre>
+                </details>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       ) : null}
 

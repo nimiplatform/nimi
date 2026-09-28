@@ -123,6 +123,8 @@ export type ModelConfigCopy = Partial<{
   readonly cloudConnectorLabel: string;
   readonly cloudConnectorPlaceholder: string;
   readonly cloudLoadFailed: string;
+  readonly cloudBlockedLabel: string;
+  readonly cloudCatalogStaleLabel: string;
   readonly retryLabel: string;
   readonly loadFailed: string;
   readonly saveFailed: string;

@@ -7,14 +7,14 @@ import { TextExchangeResultView } from './section-ai-testing-exchange-result.js'
 import { TextDecisionResultView } from './section-ai-testing-decision-result.js';
 import { FaceSwapNotice, SessionSummaryView } from './section-ai-testing-session-result.js';
 import { useEffect, useState, type ReactNode } from 'react';
-import { EmptyState, IconButton, StatusBadge, Surface, Tooltip } from '@nimiplatform/kit/ui';
-import { AlertTriangle, ChevronRight, Clock, Copy as CopyIcon, Download as DownloadIcon, FileText, FolderOpen, Loader2, RefreshCw, Sparkles, Square } from 'lucide-react';
+import { Button, EmptyState, IconButton, StatusBadge, Surface, Tooltip } from '@nimiplatform/kit/ui';
+import { AlertTriangle, ChevronRight, Clock, Copy as CopyIcon, Download as DownloadIcon, FileText, FolderOpen, Loader2, RefreshCw, SlidersHorizontal, Sparkles, Square } from 'lucide-react';
 import { useAIStudioHost } from './host-context.js';
 import { VisionLocateResultView } from './section-ai-testing-vision-result.js';
 import type { StudioCapabilityRunResult } from './runtime-types.js';
 import type { StudioCapabilityDescriptor, StudioCapabilityRegistration } from './module-registration.js';
 import { formatStudioRunTimestamp } from './history.js';
-import { isStoppedDirectCall, studioNonSuccessReasonUserAction, studioNonSuccessReasonUserMessage, type StudioTranslate } from './non-success-presentation.js';
+import { isStoppedDirectCall, studioNonSuccessNeedsTargetReselection, studioNonSuccessReasonUserAction, studioNonSuccessReasonUserMessage, type StudioTranslate } from './non-success-presentation.js';
 import { countStudioWords } from './studio-directives.js';
 import type { CapabilityStatus } from './section-ai-testing-admission.js';
 import { ArtifactMediaResult, EmbeddingResultBody, KnownJobNotice, RuntimeDiagnosticsActions, formatTypedOutput, formatNonSuccessOutput, resultPlainText, TextStudioOutputBody } from './section-ai-testing-output.js';
@@ -201,6 +201,7 @@ export function StudioResult({
   onDownload,
   onRegenerate,
   onCancel,
+  onOpenIntentConfig,
 }: {
   result: StudioCapabilityRunResult | null;
   running: boolean;
@@ -218,6 +219,7 @@ export function StudioResult({
   onDownload: () => void;
   onRegenerate: () => void;
   onCancel?: () => void;
+  onOpenIntentConfig?: () => void;
 }) {
   const rendererHost = useAIStudioHost();
   const t = rendererHost.translate;
@@ -405,6 +407,18 @@ export function StudioResult({
         </div>
         <p>{studioNonSuccessReasonUserMessage(blocked.reason, t, blocked.capabilityId, blocked.diagnostics)}</p>
         <p className="studio-result__hint">{studioNonSuccessReasonUserAction(blocked.reason, t, blocked.capabilityId, blocked.diagnostics)}</p>
+        {onOpenIntentConfig && studioNonSuccessNeedsTargetReselection(blocked.diagnostics) ? (
+          <Button
+            type="button"
+            tone="secondary"
+            size="sm"
+            className="studio-result__reselect"
+            leadingIcon={<SlidersHorizontal size={15} aria-hidden="true" />}
+            onClick={onOpenIntentConfig}
+          >
+            {t('NonSuccess.openAIConfig')}
+          </Button>
+        ) : null}
         <KnownJobNotice jobId={blocked.jobId} />
       </div>
     );

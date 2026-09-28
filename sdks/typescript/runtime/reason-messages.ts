@@ -15,6 +15,9 @@ export const NIMI_RUNTIME_REASON_CODES = Object.freeze({
   AI_CONNECTOR_CREDENTIAL_MISSING: 'AI_CONNECTOR_CREDENTIAL_MISSING',
   AI_CONNECTOR_DISABLED: 'AI_CONNECTOR_DISABLED',
   AI_CONNECTOR_NOT_FOUND: 'AI_CONNECTOR_NOT_FOUND',
+  AI_REMOTE_MODEL_CATALOG_STALE: 'AI_REMOTE_MODEL_CATALOG_STALE',
+  CAPABILITY_CATALOG_MISMATCH: 'CAPABILITY_CATALOG_MISMATCH',
+  AI_CONFIG_INVALID: 'AI_CONFIG_INVALID',
   AI_MODEL_NOT_FOUND: 'AI_MODEL_NOT_FOUND',
   AI_MODEL_NOT_READY: 'AI_MODEL_NOT_READY',
   AI_LOCAL_MODEL_UNAVAILABLE: 'AI_LOCAL_MODEL_UNAVAILABLE',
@@ -48,6 +51,9 @@ const RUNTIME_REASON_CODE_MESSAGE_ENTRIES = [
   [NIMI_RUNTIME_REASON_CODES.AI_CONNECTOR_CREDENTIAL_MISSING, 'Runtime cloud credentials are missing.'],
   [NIMI_RUNTIME_REASON_CODES.AI_CONNECTOR_DISABLED, 'Runtime cloud configuration is disabled.'],
   [NIMI_RUNTIME_REASON_CODES.AI_CONNECTOR_NOT_FOUND, 'Runtime cloud configuration was not found.'],
+  [NIMI_RUNTIME_REASON_CODES.AI_REMOTE_MODEL_CATALOG_STALE, 'The saved cloud model selection is outdated. Choose a current model and try again.'],
+  [NIMI_RUNTIME_REASON_CODES.CAPABILITY_CATALOG_MISMATCH, 'This model lacks verified capability details. Choose a supported model and try again.'],
+  [NIMI_RUNTIME_REASON_CODES.AI_CONFIG_INVALID, 'The saved AI configuration cannot run. Choose another model and try again.'],
   [NIMI_RUNTIME_REASON_CODES.AI_MODEL_NOT_FOUND, 'Runtime found no admitted implementation for this capability.'],
   [NIMI_RUNTIME_REASON_CODES.AI_MODEL_NOT_READY, 'Runtime could not prepare an admitted implementation.'],
   [NIMI_RUNTIME_REASON_CODES.AI_LOCAL_MODEL_UNAVAILABLE, 'Runtime local execution is unavailable.'],
@@ -183,6 +189,7 @@ function resolveRuntimeErrorReasonCodeMessage(
 
 function shouldUseRuntimeErrorRawMessage(
   rawMessage: string,
+  reasonCode: string,
   actionHint: string,
   fallbackMessage: string,
 ): boolean {
@@ -190,6 +197,9 @@ function shouldUseRuntimeErrorRawMessage(
     return false;
   }
   const normalizedRaw = rawMessage.toLowerCase();
+  if (normalizedRaw === reasonCode.toLowerCase()) {
+    return false;
+  }
   if (actionHint && normalizedRaw === actionHint.toLowerCase()) {
     return false;
   }
@@ -217,7 +227,7 @@ export function toNimiRuntimeUserFacingError(
 
   return {
     code,
-    message: shouldUseRuntimeErrorRawMessage(rawMessage, actionHint, fallbackMessage)
+    message: shouldUseRuntimeErrorRawMessage(rawMessage, code, actionHint, fallbackMessage)
       ? rawMessage
       : (reasonCodeMessage || rawMessage || fallbackMessage),
   };

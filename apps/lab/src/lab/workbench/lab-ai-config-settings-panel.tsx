@@ -64,6 +64,8 @@ function useLabModelConfigCopy(): ModelConfigCopy {
     localUnavailableLabel: t('ModelConfig.localUnavailableLabel'),
     localMismatchLabel: (features: string) => t('ModelConfig.localMismatchLabel', { features }),
     openCloudConnectorsLabel: t('ModelConfig.openOwnerConfigurationLabel'),
+    cloudBlockedLabel: t('ModelConfig.cloudBlockedLabel'),
+    cloudCatalogStaleLabel: t('ModelConfig.cloudCatalogStaleLabel'),
     retryLabel: t('Common.retry'),
     loadFailed: t('ModelConfig.loadFailed'),
     unsupportedCapabilityLabel: t('ModelConfig.unsupportedCapabilityLabel'),

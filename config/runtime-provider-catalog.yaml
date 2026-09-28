@@ -52,7 +52,6 @@ entries:
   - providers_45
   - providers_46
   - providers_47
-  - providers_48
 providers:
   - provider: anthropic
     default_endpoint: https://api.anthropic.com
@@ -155,12 +154,6 @@ providers:
     default_text_model: null
     requires_explicit_endpoint: false
     inventory_mode: dynamic_endpoint
-    source_rule: K-MCAT-027
-  - provider: hunyuan
-    default_endpoint: https://api.hunyuan.cloud.tencent.com/v1
-    default_text_model: null
-    requires_explicit_endpoint: false
-    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: ideogram
     default_endpoint: null

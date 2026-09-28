@@ -107,6 +107,7 @@
     "stopped": "Stopped"
   },
   "NonSuccess": {
+    "openAIConfig": "Open App AI configuration",
     "title": {
       "runtimeUnavailable": "Local AI is unavailable",
       "inputInvalid": "Check your input",
@@ -130,6 +131,12 @@
       "streamInterrupted": "The live result connection ended before Runtime confirmed a final state.",
       "runtimeCallFailed": "This generation could not be completed.",
       "inputLimitExceeded": "The configured model cannot take this whole input. Nothing was shortened or answered in part.",
+      "catalogStale": "The cloud model catalog changed after this model was chosen, so the saved choice has to be confirmed again. Nothing was sent to the cloud service.",
+      "catalogMismatch": "This cloud embedding model has no verified fixed output size, so it cannot run. Nothing was sent to the cloud service.",
+      "connectorDisabled": "The cloud connection this capability uses is turned off. Nothing was sent to the cloud service.",
+      "connectorCredentialMissing": "The cloud connection this capability uses has no usable API key. Nothing was sent to the cloud service.",
+      "connectorNotFound": "The cloud connection this capability uses no longer exists. Nothing was sent to the cloud service.",
+      "configInvalid": "This capability's saved AI configuration can't run on the current Runtime, for example because its cloud service is no longer supported.",
       "fallback": "The generation did not complete.",
       "stoppedDirectCall": "You stopped waiting for this call. A result that arrives later will not be shown."
     },
@@ -144,6 +151,12 @@
       "streamInterrupted": "Check the task status; retry only after confirming it did not complete.",
       "runtimeCallFailed": "Try again once. If it still fails, open Runtime details to find the cause.",
       "inputLimitExceeded": "Shorten the input, or configure a model that accepts longer input, then run it again.",
+      "catalogStale": "Open App AI configuration, choose this capability's model again from the current list, then run it again.",
+      "catalogMismatch": "Open App AI configuration and choose an embedding model with a verified output size, then run it again.",
+      "connectorDisabled": "Open App AI configuration and choose a model from an available cloud service or this device, then run it again.",
+      "connectorCredentialMissing": "Add an API key to this connection in Desktop Cloud Services, or open App AI configuration and choose another model, then run it again.",
+      "connectorNotFound": "Open App AI configuration, choose a model for this capability again, then run it again.",
+      "configInvalid": "Open App AI configuration, choose a model for this capability again, then run it again.",
       "fallback": "Try again. If it still fails, open Runtime details to find the cause.",
       "stoppedDirectCall": "Run it again whenever you are ready."
     },

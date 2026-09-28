@@ -2714,6 +2714,7 @@
     "tryRun": "发送",
     "tryRunning": "生成中…",
     "errorCredentialRejected": "密钥未通过此服务验证。请检查密钥是否完整或已过期。",
+    "errorConnectorUnsupported": "Nimi 已不再支持此连接的服务或设置。请删除此连接，然后连接受支持的服务。",
     "errorEndpointUnreachable": "无法连接到服务地址。请检查端点和网络。",
     "connectionCheckedModels": "已连接 · {{count}} 个模型可用",
     "checkAgain": "再次检查",

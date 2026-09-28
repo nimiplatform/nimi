@@ -149,6 +149,7 @@
 .studio-result__blocked-line,
 .studio-result__pending-line{ display: flex; align-items: center; gap: 8px; font-weight: var(--nimi-type-page-title-weight);}
 .studio-result__blocked-line{ color: var(--nimi-status-warning);}
+.studio-result__reselect{ justify-self: start;}
 .studio-result__pending-line{ color: var(--nimi-text-secondary);}
 .studio-spin{ animation: nimi-ui-module-lab-studio-spin 0.9s linear infinite;}
 .studio-chips{ display: flex; flex-wrap: wrap; gap: 6px;}

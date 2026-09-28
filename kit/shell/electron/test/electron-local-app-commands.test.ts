@@ -276,6 +276,29 @@ describe('Electron local-app standard-shell operations', () => {
     }
   });
 
+  it('keeps committed Cloud target reasons with a reselect next step', async () => {
+    const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit'];
+    const payload = { spec: { type: 'music-generate', prompt: 'ballad', lyrics: 'sing', durationSeconds: 20 }, timeoutMs: 0, clientSubmissionId: 'song-action' };
+    for (const [reasonCode, actionHint] of [
+      ['ai-remote-model-catalog-stale', 'reselect_app_ai_config_target'],
+      ['capability-catalog-mismatch', 'reselect_app_ai_config_target'],
+      ['ai-config-invalid', 'reselect_app_ai_config_target'],
+      ['ai-connector-not-found', 'reselect_app_ai_config_target'],
+      ['ai-connector-disabled', 'enable_cloud_connector_or_reselect_target'],
+      ['ai-connector-credential-missing', 'add_cloud_connector_credential_or_reselect_target'],
+    ] as const) {
+      await expect(dispatchElectronLocalAppCommand({
+        command,
+        payload,
+        host: {
+          scenarioJobSubmit: async () => {
+            throw new NimiElectronLocalAppHostError(reasonCode, false);
+          },
+        } as never,
+      })).rejects.toMatchObject({ reasonCode, actionHint, source: 'runtime' });
+    }
+  });
+
   it('maps unavailable Manager owner state to the standard Runtime-unavailable code', async () => {
     const host = {
       agentManagerSnapshot: async () => {

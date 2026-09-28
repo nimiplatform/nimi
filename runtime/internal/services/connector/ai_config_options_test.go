@@ -93,3 +93,59 @@ func TestAIConfigCloudTargetOptionsCanonicalizeExecutableAliases(t *testing.T) {
 		t.Fatalf("alias search changed the target presentation: got=%q canonical=%q", got.Label, canonical.Label)
 	}
 }
+
+func TestAIConfigCloudEmbeddingRequiresVerifiedFixedDimension(t *testing.T) {
+	svc := newTestService(t)
+	catalog := svc.modelCatalogResolver()
+	for _, tc := range []struct {
+		provider string
+		model    string
+		ready    bool
+	}{
+		{provider: "volcengine", model: "doubao-embedding"},
+		{provider: "gemini", model: "gemini-embedding-2-preview"},
+		{provider: "gemini", model: "gemini-embedding-001", ready: true},
+	} {
+		t.Run(tc.provider+"/"+tc.model, func(t *testing.T) {
+			created, err := svc.CreateConnector(userContext("user-1"), &runtimev1.CreateConnectorRequest{
+				Provider: tc.provider, ApiKey: "managed-key",
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			connectorID := created.GetConnector().GetConnectorId()
+			options, _, err := ListAIConfigCloudTargetOptions(svc.Store(), catalog, "user-1", "text.embed", connectorID, tc.model, 200)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var option *AIConfigCloudTargetOption
+			for i := range options {
+				if options[i].Label == tc.model {
+					option = &options[i]
+					break
+				}
+			}
+			if option == nil {
+				t.Fatalf("model %q missing from target options", tc.model)
+			}
+			fields := option.ProviderTarget.AsMap()
+			_, _, err = ValidateAIConfigCloudSelection(svc.Store(), catalog, "user-1", "text.embed", option.Implementation, RemoteModelCatalogRef{
+				ConnectorID: connectorID, RemoteModelCatalogID: fields["remoteModelCatalogId"].(string),
+				Provider: tc.provider, ProviderModelID: fields["providerModelId"].(string),
+			})
+			if tc.ready {
+				if option.State != runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_READY || err != nil {
+					t.Fatalf("fixed-width target rejected: state=%s err=%v", option.State, err)
+				}
+				return
+			}
+			if option.State != runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED ||
+				len(option.Reasons) != 1 || option.Reasons[0] != runtimev1.ReasonCode_CAPABILITY_CATALOG_MISMATCH {
+				t.Fatalf("unverified-width target offered as executable: %+v", option)
+			}
+			if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_CAPABILITY_CATALOG_MISMATCH {
+				t.Fatalf("unverified-width target validation reason=%v present=%v err=%v", reason, ok, err)
+			}
+		})
+	}
+}

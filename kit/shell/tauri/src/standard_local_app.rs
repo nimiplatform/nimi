@@ -1971,6 +1971,10 @@ fn standard_code(reason: &str) -> &'static str {
         "runtime-unauthenticated" => "runtime-unauthenticated",
         "invalid-payload"
         | "ai-config-invalid"
+        | "capability-catalog-mismatch"
+        | "ai-remote-model-catalog-stale"
+        | "ai-connector-disabled"
+        | "ai-connector-credential-missing"
         | "ai-voice-input-invalid"
         | "ai-voice-workflow-unsupported"
         | "ai-voice-asset-expired"
@@ -1992,6 +1996,11 @@ fn action_hint(reason: &str) -> &'static str {
         "runtime-service-unavailable" => "start_fixed_runtime_service",
         "runtime-service-error-unclassified" => "inspect_runtime_service_error",
         "runtime-unauthenticated" => "open_request_empty_local_app_session",
+        "ai-remote-model-catalog-stale" | "capability-catalog-mismatch" | "ai-config-invalid" | "ai-connector-not-found" => {
+            "reselect_app_ai_config_target"
+        }
+        "ai-connector-disabled" => "enable_cloud_connector_or_reselect_target",
+        "ai-connector-credential-missing" => "add_cloud_connector_credential_or_reselect_target",
         _ => "refresh_local_app_runtime_projection",
     }
 }

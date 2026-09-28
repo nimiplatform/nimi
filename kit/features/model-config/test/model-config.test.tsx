@@ -740,6 +740,83 @@ describe('public Model Config contract', () => {
     expect(JSON.stringify(onOverwrite.mock.calls[0])).not.toContain('machine-text');
   });
 
+  it('explains a committed Cloud target blocked by a catalog change without changing it', async () => {
+    const onOverwrite = committedOverwrite();
+    const intent = createNimiCloudAIConfigCapabilityIntent({ capabilityContract: 'text.generate', connectorRef: 'connector-test', implementation: { implementationId: 'cloud-test', driverId: 'nimillm', driverDialect: 'openai' }, providerModelTarget: { provider: 'provider-test', providerModelId: 'cloud-model', remoteModelCatalogId: 'rmc-before-catalog-change' } });
+    const node = await renderSurface(onOverwrite, vi.fn(), {
+      initialCapabilityContract: 'text.generate',
+      capabilities: [intent],
+      effectiveSelections: [{ capabilityContract: 'text.generate', state: 'blocked', resource: null, reasons: ['AI_REMOTE_MODEL_CATALOG_STALE'] }],
+    });
+    const blocked = node.querySelector('[data-nimi-model-config-cloud-blocked="true"]');
+    expect(blocked?.textContent).toContain('The Cloud model list changed after this model was selected.');
+    expect(blocked?.querySelector('pre')?.textContent).toBe('AI_REMOTE_MODEL_CATALOG_STALE');
+    expect(onOverwrite).not.toHaveBeenCalled();
+  });
+
+  it('keeps other Cloud blocking reasons generic and hides the notice once the target is ready', async () => {
+    const intent = createNimiCloudAIConfigCapabilityIntent({ capabilityContract: 'text.generate', connectorRef: 'connector-test', implementation: { implementationId: 'cloud-test', driverId: 'nimillm', driverDialect: 'openai' }, providerModelTarget: { provider: 'provider-test', providerModelId: 'cloud-model', remoteModelCatalogId: 'rmc-cloud-model' } });
+    const disabled = await renderSurface(committedOverwrite(), vi.fn(), {
+      initialCapabilityContract: 'text.generate',
+      capabilities: [intent],
+      effectiveSelections: [{ capabilityContract: 'text.generate', state: 'blocked', resource: null, reasons: ['AI_CONNECTOR_DISABLED'] }],
+    });
+    const blocked = disabled.querySelector('[data-nimi-model-config-cloud-blocked="true"]');
+    expect(blocked?.textContent).toContain('This Cloud selection cannot run right now.');
+    expect(blocked?.querySelector('pre')?.textContent).toBe('AI_CONNECTOR_DISABLED');
+    act(() => root?.unmount());
+    container?.remove();
+
+    const ready = await renderSurface(committedOverwrite(), vi.fn(), {
+      initialCapabilityContract: 'text.generate',
+      capabilities: [intent],
+      effectiveSelections: [{capabilityContract:'text.generate',state:'ready',resource:{oneofKind:'cloud',cloud:{connector:{connectorRef:'connector-test',label:'Test account',provider:'provider-test',state:'ready',reasons:[]},target:{connectorRef:'connector-test',label:'Cloud Model',capabilityContract:'text.generate',implementation:{implementationId:'cloud-test',driverId:'nimillm',driverDialect:'openai'},providerModelTarget:{provider:'provider-test',providerModelId:'cloud-model',remoteModelCatalogId:'rmc-cloud-model'},supportedFeatures:[],state:'ready',reasons:[]}}},reasons:[]}],
+    });
+    expect(ready.querySelector('[data-nimi-model-config-cloud]')).toBeTruthy();
+    expect(ready.querySelector('[data-nimi-model-config-cloud-blocked]')).toBeNull();
+  });
+
+  it('asks for another Connector when the committed Connector is no longer offered', async () => {
+    const listOptions = vi.fn<ModelConfigListOptions>(async (query) => {
+      if (query.kind === 'local-loadouts') return { kind: query.kind, options: [], truncated: false };
+      if (query.kind === 'cloud-connectors') return {
+        kind: query.kind,
+        options: [{ connectorRef: 'connector-test', label: 'Work account', provider: 'provider-test', state: 'ready', reasons: [] }],
+        truncated: false,
+      };
+      if (query.kind === 'preset-voices') return { kind: query.kind, options: [], truncated: false };
+      return {
+        kind: query.kind,
+        options: [{
+          connectorRef: query.connectorRef, label: 'Cloud Model', capabilityContract: query.capabilityContract,
+          implementation: { implementationId: 'cloud-test', driverId: 'nimillm', driverDialect: 'openai' },
+          providerModelTarget: { provider: 'provider-test', providerModelId: 'cloud-model', remoteModelCatalogId: 'rmc-cloud-model' },
+          supportedFeatures: [], state: 'ready', reasons: [],
+        }],
+        truncated: false,
+      };
+    });
+    const retired = createNimiCloudAIConfigCapabilityIntent({ capabilityContract: 'text.generate', connectorRef: 'connector-retired', implementation: { implementationId: 'retired-provider', driverId: 'nimillm', driverDialect: 'retired-provider' }, providerModelTarget: { provider: 'retired-provider', providerModelId: 'retired-model', remoteModelCatalogId: 'rmc-retired-model' } });
+    const node = await renderSurface(committedOverwrite(), vi.fn(), {
+      listOptions,
+      initialCapabilityContract: 'text.generate',
+      capabilities: [retired],
+      effectiveSelections: [{ capabilityContract: 'text.generate', state: 'blocked', resource: null, reasons: ['AI_REMOTE_MODEL_CATALOG_STALE'] }],
+    });
+    act(() => {
+      (node.querySelector('[data-testid="model-config-model-trigger:text.generate"]') as HTMLButtonElement).click();
+    });
+    await flush();
+    const dialog = document.body.querySelector('[data-testid="nimi-model-picker-dialog"]') as HTMLElement;
+    const picker = dialog.querySelector('[data-nimi-model-config-cloud-connector-picker="true"]') as HTMLElement;
+    expect(picker.textContent).toContain('Select a configured Connector before choosing a model.');
+    expect(dialog.textContent).not.toContain('No models are available for this capability.');
+    expect(listOptions.mock.calls.some(([query]) => query.kind === 'cloud-targets')).toBe(false);
+
+    await selectField(document.body, 'Cloud Connector', 'Work account');
+    expect(document.body.querySelector('[data-nimi-model-picker-source="cloud"]')?.textContent).toContain('Cloud Model');
+  });
+
   it('loads Cloud targets only after choosing a configured Connector', async () => {
     const listOptions = vi.fn<ModelConfigListOptions>(async (query) => {
       if (query.kind === 'local-loadouts') return { kind: query.kind, options: [], truncated: false };

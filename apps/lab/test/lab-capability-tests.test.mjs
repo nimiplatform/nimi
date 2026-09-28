@@ -509,6 +509,41 @@ test('text.decide failures keep typed non-success reasons and the input limit ha
   }
 });
 
+test('a committed target Runtime can no longer run names its cause and leads back to AI configuration', async () => {
+  const { runLabCapability } = await load('lab/lab-runtime.js');
+  const { studioNonSuccessNeedsTargetReselection, studioNonSuccessReasonUserMessage, studioNonSuccessReasonUserAction } = await load('ai-studio-core/non-success-presentation.js');
+  const { t } = await load('shell/i18n/index.js');
+  const run = async (execute) => runLabCapability({ capabilityId: 'text.decide', prompt: '', parameters: decisionForm() }, ready(fakeClient({ execute }).client));
+  // Protected carriers deliver kebab-case reasons; diagnostics keep the exact Runtime code.
+  const cases = [
+    ['ai-remote-model-catalog-stale', 'AI_REMOTE_MODEL_CATALOG_STALE', 'catalogStale'],
+    ['capability-catalog-mismatch', 'CAPABILITY_CATALOG_MISMATCH', 'catalogMismatch'],
+    ['ai-connector-disabled', 'AI_CONNECTOR_DISABLED', 'connectorDisabled'],
+    ['ai-connector-credential-missing', 'AI_CONNECTOR_CREDENTIAL_MISSING', 'connectorCredentialMissing'],
+    ['ai-connector-not-found', 'AI_CONNECTOR_NOT_FOUND', 'connectorNotFound'],
+    ['ai-config-invalid', 'AI_CONFIG_INVALID', 'configInvalid'],
+  ];
+  for (const [carrierReason, reasonCode, key] of cases) {
+    const result = await run(() => { throw typedError(carrierReason); });
+    assert.equal(result.ok, false, carrierReason);
+    assert.equal(result.reason, 'runtime-call-failed', carrierReason);
+    assert.equal(result.diagnostics.reasonCode, reasonCode);
+    assert.equal(studioNonSuccessNeedsTargetReselection(result.diagnostics), true, carrierReason);
+    for (const [present, kind] of [[studioNonSuccessReasonUserMessage, 'message'], [studioNonSuccessReasonUserAction, 'action']]) {
+      const copyKey = `NonSuccess.${kind}.${key}`;
+      assert.notEqual(t(copyKey), copyKey, copyKey);
+      assert.equal(present(result.reason, t, result.capabilityId, result.diagnostics), t(copyKey));
+      assert.notEqual(t(copyKey), t(`NonSuccess.${kind}.runtimeCallFailed`));
+    }
+  }
+  // An unclassified carrier failure is not presented as a stale selection.
+  const unclassified = await run(() => { throw typedError('runtime-service-error-unclassified'); });
+  assert.equal(unclassified.diagnostics.reasonCode, 'RUNTIME_SERVICE_ERROR_UNCLASSIFIED');
+  assert.equal(studioNonSuccessNeedsTargetReselection(unclassified.diagnostics), false);
+  assert.notEqual(studioNonSuccessReasonUserAction(unclassified.reason, t, unclassified.capabilityId, unclassified.diagnostics), t('NonSuccess.action.catalogStale'));
+  assert.notEqual(t('NonSuccess.openAIConfig'), 'NonSuccess.openAIConfig');
+});
+
 test('text.decide history records the exact spec, restores the form and the answers', async () => {
   const { createStudioRunHistoryRecord, restoreStudioCapabilityRunResult, getStudioRunMetricSummary, getStudioRunResultTags } = await load('ai-studio-core/history.js');
   const { labTextDecideParameters, encodeLabTextDecideRequest, decodeLabTextDecideRequest } = await load('lab/lab-only/text-decide.js');

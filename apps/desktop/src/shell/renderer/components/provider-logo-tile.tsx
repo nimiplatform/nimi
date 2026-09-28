@@ -27,7 +27,6 @@ const PROVIDER_LOGO_KEY: Readonly<Record<string, ProviderLogoKey>> = Object.free
   google_cloud_tts: 'googlecloud-color',
   google_veo: 'google-color',
   groq: 'groq',
-  hunyuan: 'hunyuan-color',
   ideogram: 'ideogram',
   kimi: 'kimi',
   kling: 'kling-color',

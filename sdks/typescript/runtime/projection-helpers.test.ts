@@ -85,6 +85,13 @@ test('Runtime reason message projection normalizes generated enum values and SDK
   );
   assert.equal(
     toNimiRuntimeUserFacingError(
+      { reasonCode: 'AI_REMOTE_MODEL_CATALOG_STALE', message: 'AI_REMOTE_MODEL_CATALOG_STALE' },
+      { fallbackMessage: 'Nimi Chat could not complete this request.' },
+    ).message,
+    'The saved cloud model selection is outdated. Choose a current model and try again.',
+  );
+  assert.equal(
+    toNimiRuntimeUserFacingError(
       { reasonCode: ReasonCode.AI_CONNECTOR_DISABLED, message: 'Connector disabled by policy' },
       {
         fallbackMessage: 'Runtime call failed',

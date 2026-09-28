@@ -2714,6 +2714,7 @@
     "tryRun": "Send",
     "tryRunning": "Generating…",
     "errorCredentialRejected": "The key was not accepted by this service. Check that it is complete and still valid.",
+    "errorConnectorUnsupported": "Nimi no longer supports this connection's service or settings. Remove this connection, then connect a supported service.",
     "errorEndpointUnreachable": "The service endpoint could not be reached. Check the endpoint and your network.",
     "connectionCheckedModels": "Connected · {{count}} models available",
     "checkAgain": "Check again",

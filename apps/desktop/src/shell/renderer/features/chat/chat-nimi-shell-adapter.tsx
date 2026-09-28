@@ -220,6 +220,7 @@ export function useAiConversationModeHost(
     currentDraftTextRef,
     ephemeralThread,
     executeTextCapability,
+    clearHostError: () => setHostFeedback(null),
     now: bindings.clock.now,
     queryClient,
     reportHostError,

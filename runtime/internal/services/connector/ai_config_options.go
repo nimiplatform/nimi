@@ -96,6 +96,9 @@ func ValidateAIConfigCloudSelection(
 		!proto.Equal(implementation, expected) {
 		return ConnectorRecord{}, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 	}
+	if capabilityContract == "text.embed" && binding.EmbeddingDimension <= 0 {
+		return ConnectorRecord{}, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_CAPABILITY_CATALOG_MISMATCH)
+	}
 	return record, binding, nil
 }
 
@@ -215,6 +218,12 @@ func ListAIConfigCloudTargetOptions(
 		if !containsExact(model.Model.Capabilities, capabilityContract) {
 			continue
 		}
+		modelState := state
+		modelReasons := append([]runtimev1.ReasonCode(nil), reasons...)
+		if capabilityContract == "text.embed" && (model.Model.Embedding == nil || model.Model.Embedding.Dimension <= 0) {
+			modelState = runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED
+			modelReasons = append(modelReasons, runtimev1.ReasonCode_CAPABILITY_CATALOG_MISMATCH)
+		}
 		providerModelID := catalogProviderModelID(model.Model)
 		label := strings.TrimSpace(model.Model.ModelID)
 		if label == "" {
@@ -248,7 +257,7 @@ func ListAIConfigCloudTargetOptions(
 			Implementation: implementation,
 			ProviderTarget: target, SupportedFeatures: append([]string(nil), model.Model.Features...),
 			ReferenceAudioInput: VoiceReferenceInputProjection(modelCatalog, accountID, provider, model.Model.ModelID, capabilityContract),
-			State:               state, Reasons: append([]runtimev1.ReasonCode(nil), reasons...),
+			State:               modelState, Reasons: modelReasons,
 		})
 	}
 	filtered := options[:0]

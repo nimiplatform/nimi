@@ -1,7 +1,9 @@
 package nimillm
 
 import (
+	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -40,15 +42,32 @@ func detachMediaArtifactBodies(ctx context.Context, artifacts []*runtimev1.Scena
 				cleanup()
 				return nil, err
 			}
-			bodies[artifactID] = &MediaArtifactBody{Stream: stream}
 			if strings.TrimSpace(artifact.GetMimeType()) == "" {
 				artifact.MimeType = mimeType
 			}
+			if isImageArtifactMIME(artifact.GetMimeType()) {
+				// Image bodies are small; reading their signature ahead keeps the
+				// committed type true to the served bytes. Other media keep
+				// streaming without read-ahead.
+				buffered := bufio.NewReaderSize(stream, imageSignatureBytes)
+				head, peekErr := buffered.Peek(imageSignatureBytes)
+				if peekErr != nil && !errors.Is(peekErr, io.EOF) {
+					_ = stream.Close()
+					cleanup()
+					return nil, peekErr
+				}
+				artifact.MimeType = imageArtifactMIMEFromBytes(artifact.GetMimeType(), head)
+				stream = &peekedMediaArtifactStream{Reader: buffered, Closer: stream}
+			}
+			bodies[artifactID] = &MediaArtifactBody{Stream: stream}
 			if sizeBytes >= 0 {
 				artifact.SizeBytes = sizeBytes
 			}
 			artifact.Sha256 = ""
 		} else if len(artifact.GetBytes()) > 0 {
+			if isImageArtifactMIME(artifact.GetMimeType()) {
+				artifact.MimeType = imageArtifactMIMEFromBytes(artifact.GetMimeType(), artifact.GetBytes())
+			}
 			bodies[artifactID] = &MediaArtifactBody{Bytes: append([]byte(nil), artifact.GetBytes()...)}
 		} else {
 			cleanup()
@@ -58,6 +77,31 @@ func detachMediaArtifactBodies(ctx context.Context, artifacts []*runtimev1.Scena
 		artifact.Uri = ""
 	}
 	return bodies, nil
+}
+
+// imageSignatureBytes covers the content sniffing window for image formats.
+const imageSignatureBytes = 512
+
+func isImageArtifactMIME(mimeType string) bool {
+	return strings.HasPrefix(strings.ToLower(strings.TrimSpace(mimeType)), "image/")
+}
+
+// imageArtifactMIMEFromBytes lets recognizable image bytes decide the type of
+// an image artifact. A provider or adapter label that disagrees with the bytes
+// would make App media readers reject the committed artifact.
+func imageArtifactMIMEFromBytes(declared string, payload []byte) string {
+	if len(payload) > imageSignatureBytes {
+		payload = payload[:imageSignatureBytes]
+	}
+	if detected := strings.TrimSpace(http.DetectContentType(payload)); strings.HasPrefix(detected, "image/") {
+		return detected
+	}
+	return declared
+}
+
+type peekedMediaArtifactStream struct {
+	*bufio.Reader
+	io.Closer
 }
 
 func openBinaryArtifactStream(ctx context.Context, artifactURL string) (io.ReadCloser, string, int64, error) {

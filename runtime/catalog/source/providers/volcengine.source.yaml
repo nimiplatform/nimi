@@ -325,10 +325,8 @@ models:
       output: unknown
       currency: CNY
       as_of: 2026-04-18
-      notes: Ark embedding pricing varies by account plan and dimension tier.
+      notes: Ark embedding pricing varies by account plan and dimension tier. The exact Ark output width for this target is unverified; text.embed AIConfig admission remains blocked until a fixed dimension is verified.
     source_ids: [volcengine_embedding_doc]
-    aliases:
-      - doubao-embedding-250615
 
   - model_id: doubao-seedream-5-0-260128
     model_type: image

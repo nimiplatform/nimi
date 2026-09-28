@@ -42,10 +42,32 @@ export function studioNonSuccessReasonTitle(reason: StudioNonSuccessReason, tran
 // is neither a malformed request nor a retryable failure.
 const INPUT_LIMIT_EXCEEDED_REASON_CODE = 'AI_INPUT_LIMIT_EXCEEDED';
 
+// A committed target that Runtime can no longer run is recovered by choosing a
+// target again (or repairing its Connector in Desktop), never by retrying the
+// same request.
+const TARGET_RESELECTION_KEY_SEGMENTS: ReadonlyMap<string, string> = new Map([
+  ['AI_REMOTE_MODEL_CATALOG_STALE', 'catalogStale'],
+  ['CAPABILITY_CATALOG_MISMATCH', 'catalogMismatch'],
+  ['AI_CONNECTOR_DISABLED', 'connectorDisabled'],
+  ['AI_CONNECTOR_CREDENTIAL_MISSING', 'connectorCredentialMissing'],
+  ['AI_CONNECTOR_NOT_FOUND', 'connectorNotFound'],
+  ['AI_CONFIG_INVALID', 'configInvalid'],
+]);
+
+function targetReselectionKeySegment(diagnostics?: StudioNonSuccessDiagnostics): string {
+  return diagnostics ? TARGET_RESELECTION_KEY_SEGMENTS.get(diagnostics.reasonCode) ?? '' : '';
+}
+
+export function studioNonSuccessNeedsTargetReselection(diagnostics?: StudioNonSuccessDiagnostics): boolean {
+  return targetReselectionKeySegment(diagnostics) !== '';
+}
+
 export function studioNonSuccessReasonUserMessage(reason: string, translate: StudioTranslate, capabilityId?: string, diagnostics?: StudioNonSuccessDiagnostics): string {
   if (capabilityId === 'vision.locate' && diagnostics?.reasonCode === 'AI_LOCAL_SELECTION_NOT_FOUND') return translate('VisionLocate.modelSelectionRequired');
   if (isStoppedDirectCall(reason, capabilityId)) return translate('NonSuccess.message.stoppedDirectCall');
   if (diagnostics?.reasonCode === INPUT_LIMIT_EXCEEDED_REASON_CODE) return translate('NonSuccess.message.inputLimitExceeded');
+  const reselection = targetReselectionKeySegment(diagnostics);
+  if (reselection) return translate(`NonSuccess.message.${reselection}`);
   if (reason === 'input-invalid' && capabilityId === 'vision.locate') return translate('VisionLocate.invalidInput');
   const segment = reasonKeySegment(reason);
   return translate(segment ? `NonSuccess.message.${segment}` : 'NonSuccess.message.fallback');
@@ -55,6 +77,8 @@ export function studioNonSuccessReasonUserAction(reason: string, translate: Stud
   if (capabilityId === 'vision.locate' && diagnostics?.reasonCode === 'AI_LOCAL_SELECTION_NOT_FOUND') return translate('VisionLocate.selectModelAction');
   if (isStoppedDirectCall(reason, capabilityId)) return translate('NonSuccess.action.stoppedDirectCall');
   if (diagnostics?.reasonCode === INPUT_LIMIT_EXCEEDED_REASON_CODE) return translate('NonSuccess.action.inputLimitExceeded');
+  const reselection = targetReselectionKeySegment(diagnostics);
+  if (reselection) return translate(`NonSuccess.action.${reselection}`);
   if (reason === 'input-invalid' && capabilityId === 'vision.locate') return translate('VisionLocate.correctInput');
   const segment = reasonKeySegment(reason);
   return translate(segment ? `NonSuccess.action.${segment}` : 'NonSuccess.action.fallback');

@@ -32,6 +32,8 @@
     "localUnavailableLabel": "The current on-device selection could not be loaded.",
     "localMismatchLabel": "The selected on-device model does not support: {{features}}",
     "openOwnerConfigurationLabel": "Manage in Nimi",
+    "cloudBlockedLabel": "This Cloud selection cannot run right now. Choose the model again or choose another model.",
+    "cloudCatalogStaleLabel": "The Cloud model list changed after this model was selected. Choose the model again from the current list.",
     "loadFailed": "Nimi Lab AI configuration could not be loaded from Runtime.",
     "unsupportedCapabilityLabel": "This capability is unavailable.",
     "notConfiguredLabel": "Not configured",

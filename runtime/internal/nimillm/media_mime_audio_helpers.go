@@ -16,24 +16,27 @@ import (
 // MIME resolution
 // ---------------------------------------------------------------------------
 
-// ResolveImageArtifactMIME determines the MIME type for an image artifact
-// from the spec response_format or content detection.
+// ResolveImageArtifactMIME determines the MIME type for an image artifact.
+// Returned bytes decide the type: b64_json and url name the transport, not the
+// image format, and a declared type that disagrees with the bytes makes App
+// media readers reject the artifact. The requested format applies only when no
+// recognizable image bytes are available.
 func ResolveImageArtifactMIME(spec *runtimev1.ImageGenerateScenarioSpec, payload []byte) string {
+	if len(payload) > 0 {
+		detected := strings.TrimSpace(http.DetectContentType(payload))
+		if strings.HasPrefix(detected, "image/") {
+			return detected
+		}
+	}
 	responseFormat := ""
 	if spec != nil {
 		responseFormat = strings.ToLower(strings.TrimSpace(spec.GetResponseFormat()))
 	}
 	switch responseFormat {
-	case "png", "image/png", "b64_json":
-		return "image/png"
 	case "jpeg", "jpg", "image/jpeg":
 		return "image/jpeg"
 	case "webp", "image/webp":
 		return "image/webp"
-	}
-	detected := strings.TrimSpace(http.DetectContentType(payload))
-	if strings.HasPrefix(detected, "image/") {
-		return detected
 	}
 	return "image/png"
 }

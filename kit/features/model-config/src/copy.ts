@@ -62,6 +62,8 @@ export const DEFAULT_MODEL_CONFIG_COPY: Required<ModelConfigCopy> = Object.freez
   cloudConnectorLabel: 'Configured Connector',
   cloudConnectorPlaceholder: 'Choose a connector',
   cloudLoadFailed: 'Cloud service, model, or account choices could not be loaded.',
+  cloudBlockedLabel: 'This Cloud selection cannot run right now. Choose the model again or choose another model.',
+  cloudCatalogStaleLabel: 'The Cloud model list changed after this model was selected. Choose the model again from the current list.',
   retryLabel: 'Retry',
   loadFailed: 'Model settings could not be loaded.',
   saveFailed: 'Model settings could not be saved.',

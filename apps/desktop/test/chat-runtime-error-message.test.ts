@@ -29,3 +29,13 @@ test('Agent busy gives a bounded retry explanation without business detail', () 
   assert.match(projected.message, /input is saved.*try sending again/u);
   assert.doesNotMatch(projected.message, /private business material/u);
 });
+
+test('Nimi Chat explains a stale saved model instead of showing its raw reason code', () => {
+  const projected = toChatUserFacingRuntimeError(
+    { reasonCode: 'AI_REMOTE_MODEL_CATALOG_STALE', message: 'AI_REMOTE_MODEL_CATALOG_STALE' },
+    'Nimi Chat could not complete this request.',
+    i18n.t,
+  );
+  assert.match(projected.message, /Choose it again in AI Capabilities/u);
+  assert.doesNotMatch(projected.message, /AI_REMOTE_MODEL_CATALOG_STALE/u);
+});

@@ -473,6 +473,7 @@ function TextStudioShell({
                   ? handleCancel
                   : undefined}
                 onUseAsDraft={useHistoryRunAsDraft}
+                onOpenIntentConfig={capability.execution === 'runtime-sdk' ? onOpenConfig : undefined}
               />
             ) : (
               <TextStudioStartState

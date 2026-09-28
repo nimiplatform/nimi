@@ -74,7 +74,11 @@ type CloudConnectorDetailPanelProps = {
 /** Plain-language reading of a save/check failure; the raw text stays in details. */
 export function humanizeConnectorError(raw: string, t: TFunction): string {
   const text = raw.toUpperCase();
-  if (text.includes('AI_CONNECTOR_INVALID') || text.includes('UNAUTHORIZED') || text.includes('401') || text.includes('INVALID_API_KEY'))
+  // Runtime rejects a Connector whose service or settings it no longer admits,
+  // such as a retired provider; a new key cannot repair that.
+  if (text.includes('AI_CONNECTOR_INVALID'))
+    return t('runtimeConfig.product.errorConnectorUnsupported');
+  if (text.includes('AI_PROVIDER_AUTH_FAILED') || text.includes('UNAUTHORIZED') || text.includes('401') || text.includes('INVALID_API_KEY'))
     return t('runtimeConfig.product.errorCredentialRejected');
   if (text.includes('UNREACHABLE') || text.includes('ECONNREFUSED') || text.includes('ENOTFOUND') || text.includes('TIMEOUT') || text.includes('NETWORK'))
     return t('runtimeConfig.product.errorEndpointUnreachable');

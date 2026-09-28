@@ -127,3 +127,31 @@ func TestTranscriptionInputURINeverBecomesOutputArtifactURI(t *testing.T) {
 		t.Fatalf("transcript body=%+v", body)
 	}
 }
+
+func TestDetachMediaArtifactBodiesLetsImageBytesDecideTheType(t *testing.T) {
+	jpeg := append([]byte{0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 'J', 'F', 'I', 'F', 0x00}, make([]byte, 900)...)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "image/png")
+		_, _ = w.Write(jpeg)
+	}))
+	defer server.Close()
+	ctx := WithMediaAdapterEndpointPolicy(context.Background(), MediaAdapterConfig{AllowLoopbackEndpoint: true})
+
+	provided := &runtimev1.ScenarioArtifact{ArtifactId: "provider-image", MimeType: "image/png", Uri: server.URL + "/image.png"}
+	inline := &runtimev1.ScenarioArtifact{ArtifactId: "inline-image", MimeType: "image/png", Bytes: append([]byte(nil), jpeg...)}
+	bodies, err := detachMediaArtifactBodies(ctx, []*runtimev1.ScenarioArtifact{provided, inline})
+	if err != nil {
+		t.Fatalf("detach image bodies: %v", err)
+	}
+	defer func() { _ = bodies[provided.GetArtifactId()].Stream.Close() }()
+	if provided.GetMimeType() != "image/jpeg" || inline.GetMimeType() != "image/jpeg" {
+		t.Fatalf("image types follow labels instead of bytes: provided=%q inline=%q", provided.GetMimeType(), inline.GetMimeType())
+	}
+	streamed, err := io.ReadAll(bodies[provided.GetArtifactId()].Stream)
+	if err != nil || string(streamed) != string(jpeg) {
+		t.Fatalf("signature read-ahead changed the streamed body: len=%d err=%v", len(streamed), err)
+	}
+	if string(bodies[inline.GetArtifactId()].Bytes) != string(jpeg) {
+		t.Fatal("inline image body changed")
+	}
+}

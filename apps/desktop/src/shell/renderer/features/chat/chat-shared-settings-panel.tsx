@@ -140,6 +140,12 @@ function useNimiChatModelConfigCopy(): ModelConfigCopy {
     localUnavailableLabel: t('Chat.settingsLocalSelectionUnavailable', {
       defaultValue: 'Machine-local configuration status is currently unavailable.',
     }),
+    cloudBlockedLabel: t('Chat.settingsCloudSelectionBlocked', {
+      defaultValue: 'This Cloud selection cannot run right now. Choose the model again or choose another model.',
+    }),
+    cloudCatalogStaleLabel: t('Chat.settingsCloudCatalogStale', {
+      defaultValue: 'The Cloud model list changed after this model was selected. Choose the model again from the current list.',
+    }),
     localMismatchLabel: (features: string) => t('Chat.settingsLocalSelectionMismatch', {
       defaultValue: 'The selected machine configuration does not provide required features: {{features}}',
       features,
