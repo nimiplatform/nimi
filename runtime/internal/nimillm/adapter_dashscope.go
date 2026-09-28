@@ -57,6 +57,12 @@ func ExecuteAlibabaNative(
 		if spec == nil {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
+		if modelResolved == dashscopeQwen3ImageModel {
+			if len(scenarioExtensionPayloadForScenario(req)) > 0 {
+				return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+			}
+			return executeDashscopeQwen3Image(ctx, baseURL, apiKey, spec)
+		}
 		scenarioExtensions := scenarioExtensionPayloadForScenario(req)
 		submitPath, queryPathTemplate, submitPayload, submitHeaders := buildAlibabaImageSubmitRequest(modelResolved, spec, scenarioExtensions)
 		submitResp := map[string]any{}

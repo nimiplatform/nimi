@@ -61,6 +61,10 @@ sources:
     url: https://help.aliyun.com/en/model-studio/qwen-api-via-openai-chat-completions
     retrieved_at: 2026-09-29
     note: OpenAI-compatible Chat Completions endpoint and enable_thinking control.
+  - source_id: dashscope_qwen_image3_api_doc
+    url: https://help.aliyun.com/en/model-studio/qwen-image-generation-and-editing-api-reference
+    retrieved_at: 2026-09-29
+    note: Exact qwen-image-3.0 ID, synchronous DashScope multimodal endpoint, one PNG URL result, 1-3 optional reference images and 24-hour result URL lifetime.
   - source_id: dashscope_qwen_api_doc
     url: https://help.aliyun.com/zh/model-studio/qwen-api-via-dashscope
     retrieved_at: 2026-06-06
@@ -1124,6 +1128,31 @@ models:
     aliases:
       - fun-asr-realtime-2026-02-28
       - fun-asr-realtime-2025-09-15
+
+  - model_id: qwen-image-3.0
+    model_type: image
+    updated_at: 2026-09-29
+    capabilities: [image.generate]
+    features: [input.image]
+    image_request_options:
+      response_formats: [url]
+      max_images_per_request: 1
+      supports_negative_prompt: false
+      supports_reference_images: true
+      supports_mask: false
+      supports_seed: false
+      supports_size: false
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-09-29
+      notes: Image metering depends on actual input count and output pixel tier; no unified region-independent request price is asserted.
+    source_ids: [dashscope_qwen_image3_api_doc]
 
   - model_id: qwen-image-2.0-pro
     model_type: image

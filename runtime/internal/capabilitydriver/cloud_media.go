@@ -586,6 +586,11 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 			return nil, err
 		}
 	}
+	if d.provider == "dashscope" && target.capabilityContract == "image.generate" && target.providerModelID == dashscopeQwen3ImageModel {
+		if err := validateDashscopeQwen3ImageRequest(mapped.GetSpec().GetImageGenerate()); err != nil {
+			return nil, err
+		}
+	}
 	if d.provider == "google_veo" && target.capabilityContract == "video.generate" {
 		if err := validateGoogleVeoVideoRequest(mapped, target.providerModelID); err != nil {
 			return nil, err
