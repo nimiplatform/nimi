@@ -35,7 +35,7 @@ func TestValidateImageGenerateAgainstCatalogUsesSelectedModelFeatures(t *testing
 func TestValidateVideoGenerateAgainstCatalogAllowsDeclaredOptions(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 
-	err := svc.validateVideoGenerateAgainstCatalog(context.Background(), "google_veo", "veo-3.1-generate-preview", &runtimev1.VideoGenerateScenarioSpec{
+	err := svc.validateVideoGenerateAgainstCatalog(context.Background(), "google_veo", "veo-3.1-fast-generate-preview", &runtimev1.VideoGenerateScenarioSpec{
 		Mode: runtimev1.VideoMode_VIDEO_MODE_T2V,
 		Content: []*runtimev1.VideoContentItem{
 			{
@@ -45,7 +45,7 @@ func TestValidateVideoGenerateAgainstCatalogAllowsDeclaredOptions(t *testing.T) 
 			},
 		},
 		Options: &runtimev1.VideoGenerationOptions{
-			DurationSec: testInt32(8),
+			DurationSec: testInt32(4),
 			Ratio:       "16:9",
 		},
 	})
@@ -57,7 +57,7 @@ func TestValidateVideoGenerateAgainstCatalogAllowsDeclaredOptions(t *testing.T) 
 func TestValidateVideoGenerateAgainstCatalogRejectsUndeclaredOption(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 
-	err := svc.validateVideoGenerateAgainstCatalog(context.Background(), "google_veo", "veo-3.1-generate-preview", &runtimev1.VideoGenerateScenarioSpec{
+	err := svc.validateVideoGenerateAgainstCatalog(context.Background(), "google_veo", "veo-3.1-fast-generate-preview", &runtimev1.VideoGenerateScenarioSpec{
 		Mode: runtimev1.VideoMode_VIDEO_MODE_T2V,
 		Content: []*runtimev1.VideoContentItem{
 			{
@@ -83,7 +83,7 @@ func TestValidateVideoGenerateAgainstCatalogRejectsUndeclaredOption(t *testing.T
 func TestValidateVideoGenerateAgainstCatalogRejectsUnavailableOutput(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 
-	err := svc.validateVideoGenerateAgainstCatalog(context.Background(), "google_veo", "veo-3.1-generate-preview", &runtimev1.VideoGenerateScenarioSpec{
+	err := svc.validateVideoGenerateAgainstCatalog(context.Background(), "google_veo", "veo-3.1-fast-generate-preview", &runtimev1.VideoGenerateScenarioSpec{
 		Mode: runtimev1.VideoMode_VIDEO_MODE_T2V,
 		Content: []*runtimev1.VideoContentItem{
 			{
@@ -108,12 +108,12 @@ func TestValidateVideoGenerateAgainstCatalogRejectsUnavailableOutput(t *testing.
 
 func TestValidateCatalogAwareScenarioSupportShortCircuitsOnNilInputs(t *testing.T) {
 	var nilSvc *Service
-	if err := nilSvc.validateCatalogAwareScenarioSupport(context.Background(), runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, "google_veo", "veo-3.1-generate-preview", nil); err != nil {
+	if err := nilSvc.validateCatalogAwareScenarioSupport(context.Background(), runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, "google_veo", "veo-3.1-fast-generate-preview", nil); err != nil {
 		t.Fatalf("nil service should short-circuit, got %v", err)
 	}
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
-	if err := svc.validateCatalogAwareScenarioSupport(context.Background(), runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, "google_veo", "veo-3.1-generate-preview", nil); err != nil {
+	if err := svc.validateCatalogAwareScenarioSupport(context.Background(), runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, "google_veo", "veo-3.1-fast-generate-preview", nil); err != nil {
 		t.Fatalf("nil spec should short-circuit, got %v", err)
 	}
 }
@@ -121,7 +121,7 @@ func TestValidateCatalogAwareScenarioSupportShortCircuitsOnNilInputs(t *testing.
 func TestValidateVideoGenerateAgainstCatalogRejectsInvalidShape(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 
-	if err := svc.validateVideoGenerateAgainstCatalog(context.Background(), "google_veo", "veo-3.1-generate-preview", nil); err == nil {
+	if err := svc.validateVideoGenerateAgainstCatalog(context.Background(), "google_veo", "veo-3.1-fast-generate-preview", nil); err == nil {
 		t.Fatalf("expected invalid spec rejection")
 	}
 
@@ -145,7 +145,7 @@ func TestValidateVideoGenerateAgainstCatalogRejectsInvalidShape(t *testing.T) {
 func TestValidateVideoGenerateAgainstCatalogRejectsInvalidModeAndRoles(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 
-	err := svc.validateVideoGenerateAgainstCatalog(context.Background(), "google_veo", "veo-3.1-generate-preview", &runtimev1.VideoGenerateScenarioSpec{
+	err := svc.validateVideoGenerateAgainstCatalog(context.Background(), "google_veo", "veo-3.1-fast-generate-preview", &runtimev1.VideoGenerateScenarioSpec{
 		Mode: runtimev1.VideoMode_VIDEO_MODE_I2V_FIRST_FRAME,
 		Content: []*runtimev1.VideoContentItem{
 			{
@@ -161,7 +161,7 @@ func TestValidateVideoGenerateAgainstCatalogRejectsInvalidModeAndRoles(t *testin
 		t.Fatalf("expected AI_MEDIA_OPTION_UNSUPPORTED for invalid input roles, got reason=%v ok=%v err=%v", reason, ok, err)
 	}
 
-	err = svc.validateVideoGenerateAgainstCatalog(context.Background(), "google_veo", "veo-3.1-generate-preview", &runtimev1.VideoGenerateScenarioSpec{
+	err = svc.validateVideoGenerateAgainstCatalog(context.Background(), "google_veo", "veo-3.1-fast-generate-preview", &runtimev1.VideoGenerateScenarioSpec{
 		Mode: runtimev1.VideoMode_VIDEO_MODE_UNSPECIFIED,
 		Content: []*runtimev1.VideoContentItem{
 			{

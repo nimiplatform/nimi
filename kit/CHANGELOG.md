@@ -1,5 +1,13 @@
 # Changelog
 
+## Video audio option (next minor, development)
+
+- `runRuntimeVideoGenerate` now forwards `generateAudio` only when the App
+  supplies it. The old Kit-wide implicit `true` applied a MiniMax-H3 rule to
+  unrelated Cloud models and made their supported text-to-video request fail.
+  Apps using MiniMax-H3 must explicitly set `generateAudio: true` when they
+  need its always-on audio contract.
+
 ## Embedding space identity (next minor, development)
 
 - The Kit Local App scenario result type now includes the required `spaceId`

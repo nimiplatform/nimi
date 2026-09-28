@@ -189,8 +189,7 @@ describe('runRuntimeVideoGenerate', () => {
     if (!options) throw new Error('expected video options');
     expect(options.durationSec).toBe(4);
     expect(options.ratio).toBe('16:9');
-    // Absent generateAudio receives the first-party default; H3 requires audio.
-    expect(options.generateAudio).toBe(true);
+    expect(options.generateAudio).toBeUndefined();
     expect(onJobUpdate).toHaveBeenCalled();
 
     if (!result.ok) throw new Error(`expected success, got ${result.reason}: ${result.message}`);
@@ -241,7 +240,7 @@ describe('runRuntimeVideoGenerate', () => {
     expect(second?.previewUrl).toBeUndefined();
   });
 
-  it('preserves an explicit generateAudio false instead of overriding it', async () => {
+  it('preserves an explicit generateAudio choice without inventing one', async () => {
     const fake = fakeScenarioJobClient({ events: [videoJobForTest(ScenarioJobStatus.COMPLETED)] });
 
     const result = await runRuntimeVideoGenerate(videoInputForTest(fake.client, {

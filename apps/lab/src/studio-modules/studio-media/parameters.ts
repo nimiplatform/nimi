@@ -142,7 +142,7 @@ export const studioImageGenerateParameters = defineStudioParameters<StudioImageG
 });
 
 export const studioVideoGenerateParameters = defineStudioParameters<StudioVideoGenerationParameters>({
-  initial: () => ({ mode: 't2v', generateAudio: true }),
+	initial: () => ({ mode: 't2v' }),
   routeMatrix: {
     mode: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
     referenceArtifactId: LOCAL_AND_CLOUD_STUDIO_PARAMETER,

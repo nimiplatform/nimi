@@ -30,7 +30,7 @@ func TestCommittedRetiredCloudMediaTargetsFailTypedWithoutDispatch(t *testing.T)
 			Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT,
 			Text: "A harbor at dawn.",
 		}},
-		Options: &runtimev1.VideoGenerationOptions{DurationSec: testInt32(8)},
+		Options: &runtimev1.VideoGenerationOptions{DurationSec: testInt32(4)},
 	}}}
 	imageSpec := &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_ImageGenerate{ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{Prompt: "A harbor at dawn."}}}
 	for _, tc := range []struct {
@@ -46,8 +46,8 @@ func TestCommittedRetiredCloudMediaTargetsFailTypedWithoutDispatch(t *testing.T)
 	}{
 		// OpenAI keeps no video row, so its Driver no longer implements video.generate.
 		{name: "openai sora-2", provider: "openai", activeModel: "gpt-image-1.5", retiredModel: "sora-2", capability: "video.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, spec: videoSpec, submitReason: runtimev1.ReasonCode_AI_CONFIG_INVALID, activeListed: false},
-		{name: "google veo 3.0", provider: "google_veo", activeModel: "veo-3.1-generate-preview", retiredModel: "veo-3.0-generate-001", capability: "video.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, spec: videoSpec, submitReason: runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE, activeListed: true},
-		{name: "google veo 3.0 fast", provider: "google_veo", activeModel: "veo-3.1-generate-preview", retiredModel: "veo-3.0-fast-generate-001", capability: "video.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, spec: videoSpec, submitReason: runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE, activeListed: true},
+		{name: "google veo 3.0", provider: "google_veo", activeModel: "veo-3.1-fast-generate-preview", retiredModel: "veo-3.0-generate-001", capability: "video.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, spec: videoSpec, submitReason: runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE, activeListed: true},
+		{name: "google veo 3.0 fast", provider: "google_veo", activeModel: "veo-3.1-fast-generate-preview", retiredModel: "veo-3.0-fast-generate-001", capability: "video.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, spec: videoSpec, submitReason: runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE, activeListed: true},
 		{name: "gemini image preview", provider: "gemini", activeModel: "gemini-3.1-flash-image", retiredModel: "gemini-3.1-flash-image-preview", capability: "image.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE, spec: imageSpec, submitReason: runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE, activeListed: true},
 		// Removed with its stable successor ahead of the announced 2026-10-02 shutdown.
 		{name: "gemini 2.5 flash image", provider: "gemini", activeModel: "gemini-3.1-flash-image", retiredModel: "gemini-2.5-flash-image", capability: "image.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE, spec: imageSpec, submitReason: runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE, activeListed: true},

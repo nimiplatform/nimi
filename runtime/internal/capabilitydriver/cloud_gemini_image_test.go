@@ -62,3 +62,27 @@ func TestGeminiImageMapRequestRejectsTargetsWithoutAdmittedContract(t *testing.T
 		t.Fatalf("unadmitted Gemini image target must fail as target configuration: %v", err)
 	}
 }
+
+func TestGeminiFlashLiteImageAdmitsOnlyItsDocumentedRatiosAndDefaultOneK(t *testing.T) {
+	driver, target := cloudMediaDriverTarget(t, "gemini", "gemini-3.1-flash-lite-image", "image.generate")
+	for _, spec := range []*runtimev1.ImageGenerateScenarioSpec{
+		{Prompt: "a blue square"},
+		{Prompt: "a blue square", AspectRatio: "16:9"},
+		{Prompt: "make the square green", ReferenceImages: []string{"https://example.com/square.jpg"}},
+	} {
+		mapped, err := driver.MapRequest(target, geminiImageRequest(spec), nil, CloudMediaStreamNone)
+		if err != nil || mapped.Adapter() != CloudMediaAdapterGeminiOperation || mapped.ProviderModelID() != "gemini-3.1-flash-lite-image" {
+			t.Fatalf("Flash Lite valid combination rejected: mapped=%+v err=%v", mapped, err)
+		}
+	}
+	for _, spec := range []*runtimev1.ImageGenerateScenarioSpec{
+		{Prompt: "a blue square", AspectRatio: "1:4"},
+		{Prompt: "a blue square", Size: "2048x2048"},
+		{Prompt: "a blue square", N: testInt32(2)},
+	} {
+		_, err := driver.MapRequest(target, geminiImageRequest(spec), nil, CloudMediaStreamNone)
+		if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+			t.Fatalf("Flash Lite unsupported combination reason=%v present=%v err=%v", reason, ok, err)
+		}
+	}
+}

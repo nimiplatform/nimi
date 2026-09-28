@@ -174,7 +174,7 @@ func TestVideoReferenceAudioRetainsModeAndCatalogAdmission(t *testing.T) {
 		{name: "first frame remains required", mode: runtimev1.VideoMode_VIDEO_MODE_I2V_FIRST_FRAME, audioCount: 1, want: runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID},
 		{name: "first and last frames remain required", mode: runtimev1.VideoMode_VIDEO_MODE_I2V_FIRST_LAST, audioCount: 1, want: runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID},
 		{name: "reference image remains required", mode: runtimev1.VideoMode_VIDEO_MODE_I2V_REFERENCE, audioCount: 1, want: runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID},
-		{name: "undeclared model audio support", mode: runtimev1.VideoMode_VIDEO_MODE_T2V, audioCount: 1, provider: "google_veo", model: "veo-3.1-generate-preview", want: runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED},
+		{name: "undeclared model audio support", mode: runtimev1.VideoMode_VIDEO_MODE_T2V, audioCount: 1, provider: "google_veo", model: "veo-3.1-fast-generate-preview", want: runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED},
 		{name: "audio in another mode does not grant T2V", mode: runtimev1.VideoMode_VIDEO_MODE_T2V, audioCount: 1, provider: "dashscope", model: "wan2.7-i2v", want: runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

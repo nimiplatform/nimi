@@ -1,6 +1,7 @@
 package nimillm
 
 import (
+	"context"
 	"strings"
 	"sync"
 	"time"
@@ -47,6 +48,22 @@ func NormalizeTokenProviderID(raw string) (string, error) {
 		return token, nil
 	}
 	return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
+}
+
+// ProbeConnector resolves the provider's exact read-only credential check.
+// Native media providers do not inherit the OpenAI-compatible token probe.
+func (p *CloudProvider) ProbeConnector(ctx context.Context, providerID string, endpoint string, apiKey string, headers map[string]string) error {
+	if p == nil {
+		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+	if strings.TrimSpace(providerID) == "google_veo" {
+		return p.probeGoogleVeoConnector(ctx, endpoint, apiKey)
+	}
+	backend, _, err := p.ResolveProbeBackend(providerID, endpoint, apiKey, headers)
+	if err != nil {
+		return err
+	}
+	return backend.ProbeConnector(ctx)
 }
 
 func normalizeProbeProviderToken(raw string) string {

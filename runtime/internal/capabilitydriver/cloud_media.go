@@ -582,6 +582,11 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 			return nil, err
 		}
 	}
+	if d.provider == "google_veo" && target.capabilityContract == "video.generate" {
+		if err := validateGoogleVeoVideoRequest(mapped, target.providerModelID); err != nil {
+			return nil, err
+		}
+	}
 	adapter := cloudMediaAdapterFor(d.provider, target.capabilityContract)
 	// @nimi-authority: rule.nimi.runtime.ai-provider.speech-transcription-result
 	if d.provider == "dashscope" && target.capabilityContract == "audio.transcribe" && dashScopeFiniteASRTarget(target.providerModelID) {

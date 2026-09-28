@@ -16,8 +16,10 @@ const geminiImageMaxReferenceImages = 14
 // geminiImageAspectRatios lists the imageConfig aspect ratios each admitted
 // Gemini image target documents for generateContent. A target absent from this
 // table has no admitted request contract.
+// @nimi-authority: rule.nimi.runtime.ai-provider.r051
 var geminiImageAspectRatios = map[string]map[string]struct{}{
-	"gemini-3.1-flash-image": geminiImageRatioSet("1:1", "1:4", "1:8", "2:3", "3:2", "3:4", "4:1", "4:3", "4:5", "5:4", "8:1", "9:16", "16:9", "21:9"),
+	"gemini-3.1-flash-image":      geminiImageRatioSet("1:1", "1:4", "1:8", "2:3", "3:2", "3:4", "4:1", "4:3", "4:5", "5:4", "8:1", "9:16", "16:9", "21:9"),
+	"gemini-3.1-flash-lite-image": geminiImageRatioSet("1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"),
 }
 
 func geminiImageRatioSet(values ...string) map[string]struct{} {

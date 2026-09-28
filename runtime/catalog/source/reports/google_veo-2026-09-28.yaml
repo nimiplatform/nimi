@@ -67,3 +67,34 @@ notes:
   - The Veo adapter no longer substitutes veo-2.0-generate-001 when the captured model is empty; it fails with AI_MODEL_ID_REQUIRED.
   - catalog_version changes to 2026-09-28-google-veo-3-0-retired, so committed Google Veo targets must be re-selected.
 confidence: high
+
+# Later execution review of the three retained 3.1 rows. The inventory above
+# records the earlier lifecycle decision; this bounded review supersedes only
+# their Nimi executable combinations, not Google's provider model availability.
+execution_review:
+  reviewed_at: 2026-09-28
+  exact_evidence:
+    official:
+      - https://ai.google.dev/gemini-api/docs/veo
+      - https://ai.google.dev/gemini-api/docs/pricing
+    credentialed_live_probe:
+      - GET /v1beta/models/veo-3.1-fast-generate-preview returned predictLongRunning
+      - POST /v1beta/models/veo-3.1-fast-generate-preview:predictLongRunning accepted text, 16:9, four seconds
+      - GET the returned models/veo-3.1-fast-generate-preview/operations/{id} completed with one HTTPS video URI
+      - GET the returned /v1beta/files/{id}:download required x-goog-api-key; without it returned 403
+  current_nimi_gap:
+    - Generic task polling wrongly escaped the complete provider operation name under /v1beta/operations/{task_id}.
+    - Generic artifact extraction did not read response.generateVideoResponse.generatedSamples[0].video.uri.
+    - Generic artifact download omitted the key required by Google's file endpoint.
+    - The existing adapter did not send the catalog-declared image roles, resolution or generate_audio controls.
+  reviewed_nimi_scope:
+    keep_after_repair:
+      - veo-3.1-fast-generate-preview text-to-video at 720p, 16:9 and four seconds only
+    hold_from_executable_source_until_separate_acceptance:
+      - veo-3.1-generate-preview
+      - veo-3.1-lite-generate-preview
+      - Fast image-to-video, reference, first/last frame, other durations and resolutions, seed and audio control
+  source_action:
+    - Retain only the exact Fast text-to-video cell after its Runtime and protected App path succeeds.
+    - Remove unverified Standard/Lite rows from the executable source; no provider substitution or migration.
+    - Change catalog_version so any saved Google Veo target must be reselected against the reviewed source.

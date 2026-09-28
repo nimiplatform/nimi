@@ -70,14 +70,7 @@ func (s *Service) TestConnector(ctx context.Context, req *runtimev1.TestConnecto
 			Ack: &runtimev1.Ack{Ok: false, ReasonCode: runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE},
 		}, nil
 	}
-	backend, _, probeErr := cloud.ResolveProbeBackend(rec.Provider, rec.Endpoint, resolvedCredential.APIKey, resolvedCredential.Headers)
-	if probeErr != nil {
-		s.emitAudit(ctx, "connector.test", runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, auditPayload)
-		return &runtimev1.TestConnectorResponse{
-			Ack: &runtimev1.Ack{Ok: false, ReasonCode: runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE},
-		}, nil
-	}
-	probeErr = backend.ProbeConnector(ctx)
+	probeErr := cloud.ProbeConnector(ctx, rec.Provider, rec.Endpoint, resolvedCredential.APIKey, resolvedCredential.Headers)
 	if probeErr != nil {
 		s.logger.Warn("connector test probe failed", "connector_id", connectorID, "error", probeErr)
 		reasonCode := runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE

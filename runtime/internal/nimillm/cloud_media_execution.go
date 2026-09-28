@@ -119,7 +119,13 @@ func (p *CloudProvider) ExecuteMediaAdapter(
 	}
 	var bodies map[string]*MediaArtifactBody
 	if err == nil {
-		bodies, err = detachMediaArtifactBodies(ctx, artifacts)
+		if adapter == AdapterGoogleVeoOperation {
+			bodies, err = detachMediaArtifactBodiesWithOpener(ctx, artifacts, func(ctx context.Context, uri string) (io.ReadCloser, string, int64, error) {
+				return openGoogleVeoArtifactStream(ctx, uri, cfg.APIKey)
+			})
+		} else {
+			bodies, err = detachMediaArtifactBodies(ctx, artifacts)
+		}
 	}
 	return MediaExecutionResult{
 		Artifacts:      artifacts,

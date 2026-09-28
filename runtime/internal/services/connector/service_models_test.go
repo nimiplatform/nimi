@@ -558,6 +558,41 @@ func TestTestConnectorRemoteStillProbesOutbound(t *testing.T) {
 		t.Fatalf("expected exactly one outbound probe during TestConnector, got %d", got)
 	}
 }
+
+func TestTestConnectorGoogleVeoUsesNativeModelProbe(t *testing.T) {
+	svc := newTestService(t)
+	ctx := userContext("user-1")
+	var hits atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits.Add(1)
+		if r.Method != http.MethodGet || r.URL.Path != "/v1beta/models/veo-3.1-fast-generate-preview" ||
+			r.Header.Get("x-goog-api-key") != "managed-key" || r.Header.Get("Authorization") != "" {
+			t.Errorf("wrong native Veo probe: method=%s path=%s auth=%q", r.Method, r.URL.Path, r.Header.Get("Authorization"))
+			http.Error(w, "invalid probe", http.StatusBadRequest)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"name":"models/veo-3.1-fast-generate-preview","supportedGenerationMethods":["predictLongRunning"]}`)
+	}))
+	t.Cleanup(server.Close)
+	svc.SetCloudProvider(nimillm.NewCloudProvider(nimillm.CloudConfig{
+		Providers: map[string]nimillm.ProviderCredentials{
+			"google_veo": {BaseURL: server.URL, APIKey: "template-key"},
+		},
+		HTTPTimeout:           5 * time.Second,
+		AllowLoopbackEndpoint: true,
+	}))
+	created, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
+		Provider: "google_veo", Endpoint: server.URL, ApiKey: "managed-key",
+	})
+	if err != nil {
+		t.Fatalf("CreateConnector: %v", err)
+	}
+	resp, err := svc.TestConnector(ctx, &runtimev1.TestConnectorRequest{ConnectorId: created.GetConnector().GetConnectorId()})
+	if err != nil || !resp.GetAck().GetOk() || hits.Load() != 1 {
+		t.Fatalf("native Veo probe ack=%v hits=%d err=%v", resp.GetAck(), hits.Load(), err)
+	}
+}
 func TestTestConnectorRemotePropagatesProviderAuthFailure(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")

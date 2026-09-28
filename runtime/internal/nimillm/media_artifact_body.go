@@ -15,6 +15,12 @@ import (
 const maxStreamedMediaArtifactBytes int64 = 8 * 1024 * 1024 * 1024
 
 func detachMediaArtifactBodies(ctx context.Context, artifacts []*runtimev1.ScenarioArtifact) (map[string]*MediaArtifactBody, error) {
+	return detachMediaArtifactBodiesWithOpener(ctx, artifacts, openBinaryArtifactStream)
+}
+
+type mediaArtifactStreamOpener func(context.Context, string) (io.ReadCloser, string, int64, error)
+
+func detachMediaArtifactBodiesWithOpener(ctx context.Context, artifacts []*runtimev1.ScenarioArtifact, opener mediaArtifactStreamOpener) (map[string]*MediaArtifactBody, error) {
 	if len(artifacts) == 0 {
 		return nil, nil
 	}
@@ -37,7 +43,7 @@ func detachMediaArtifactBodies(ctx context.Context, artifacts []*runtimev1.Scena
 			return nil, fmt.Errorf("provider artifact identity is duplicated")
 		}
 		if providerURL := strings.TrimSpace(artifact.GetUri()); providerURL != "" {
-			stream, mimeType, sizeBytes, err := openBinaryArtifactStream(ctx, providerURL)
+			stream, mimeType, sizeBytes, err := opener(ctx, providerURL)
 			if err != nil {
 				cleanup()
 				return nil, err

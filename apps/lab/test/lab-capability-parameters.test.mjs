@@ -34,3 +34,9 @@ test('voice creation starts on the text-description path shown by the primary co
     creationSource: 'text-description',
   });
 });
+
+test('video generation does not send an audio control before the user chooses one', () => {
+  assert.deepEqual(labStudioComposition.createInitialParameterState()['video.generate'], {
+    mode: 't2v',
+  });
+});

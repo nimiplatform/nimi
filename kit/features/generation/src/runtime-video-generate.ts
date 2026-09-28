@@ -109,7 +109,7 @@ export async function runRuntimeVideoGenerate(
       prompt: input.prompt ?? '',
       ...(input.negativePrompt !== undefined ? { negativePrompt: input.negativePrompt } : {}),
       ...(input.content !== undefined ? { content: input.content } : {}),
-      options: withVideoAudioDefault(input.options),
+		options: input.options,
       requestId: identity.requestId,
       idempotencyKey: identity.idempotencyKey,
       labels: videoScenarioLabels(input),
@@ -150,21 +150,6 @@ export async function runRuntimeVideoGenerate(
       error,
     };
   }
-}
-
-/**
- * MiniMax-H3 always renders audio, so the first-party vertical-slice default
- * treats an absent generateAudio flag as true (aligned with the L0 acceptance
- * profile). An explicit false is preserved and fails closed at the Runtime
- * driver instead of being silently overridden.
- */
-function withVideoAudioDefault(
-  options: NimiRuntimeVideoGenerationOptions | undefined,
-): NimiRuntimeVideoGenerationOptions {
-  if (options?.generateAudio !== undefined) {
-    return options;
-  }
-  return { ...(options ?? {}), generateAudio: true };
 }
 
 function videoScenarioLabels(input: RuntimeVideoGenerateInput): Record<string, string> {
