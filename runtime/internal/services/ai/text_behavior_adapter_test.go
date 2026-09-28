@@ -14,8 +14,8 @@ import (
 
 func TestTextBehaviorAdapterResolutionIsExactAndClosed(t *testing.T) {
 	registrations := productionTextBehaviorAdapterRegistrations()
-	if len(registrations) != 15 {
-		t.Fatalf("production adapter registrations = %d, want nine Gemma mappings and six Cloud targets", len(registrations))
+	if len(registrations) != 16 {
+		t.Fatalf("production adapter registrations = %d, want nine Gemma mappings and seven Cloud targets", len(registrations))
 	}
 	expectedCloudTargets := map[string]string{
 		"anthropic/claude-sonnet-4-6": "anthropic.sonnet46.messages",
@@ -24,6 +24,7 @@ func TestTextBehaviorAdapterResolutionIsExactAndClosed(t *testing.T) {
 		"deepseek/deepseek-flash":     "deepseek.flash.chat",
 		"deepseek/deepseek-v4-flash":  "deepseek.v4-flash.chat",
 		"deepseek/deepseek-v4-pro":    "deepseek.v4-pro.chat",
+		"dashscope/qwen3.8-flash":     "dashscope.qwen38-flash.chat",
 	}
 	seenContents := map[string]struct{}{}
 	for _, registration := range registrations {

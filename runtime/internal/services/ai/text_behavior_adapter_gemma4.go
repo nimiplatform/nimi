@@ -22,6 +22,7 @@ func productionTextBehaviorAdapterRegistrations() []textBehaviorAdapterRegistrat
 		registrations = append(registrations, gemma4TextBehaviorRegistration(entry))
 	}
 	registrations = append(registrations, anthropicSonnet46TextBehaviorRegistration())
+	registrations = append(registrations, dashscopeQwen38FlashBehaviorRegistration())
 	registrations = append(registrations,
 		deepseekChatBehaviorRegistration("deepseek-flash", "deepseek.flash.chat"),
 		deepseekChatBehaviorRegistration("deepseek-v4-flash", "deepseek.v4-flash.chat"),

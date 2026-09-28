@@ -45,6 +45,22 @@ sources:
     url: https://help.aliyun.com/zh/model-studio/text-generation-model
     retrieved_at: 2026-07-20
     note: Official DashScope text model recommendations distinguishing balanced Plus, strongest-reasoning Max, and Flash routes.
+  - source_id: dashscope_qwen38_flash_model_doc
+    url: https://help.aliyun.com/zh/model-studio/qwen3-8-flash
+    retrieved_at: 2026-09-29
+    note: Exact Qwen3.8-Flash API ID, one-million-token context and base text/advanced behavior capabilities; prices vary by region.
+  - source_id: dashscope_qwen_function_calling_doc
+    url: https://help.aliyun.com/en/model-studio/qwen-function-calling
+    retrieved_at: 2026-09-29
+    note: Qwen Chat Completions function calling, ToolResult continuation and tool_choice restrictions.
+  - source_id: dashscope_qwen_structured_output_doc
+    url: https://help.aliyun.com/en/model-studio/qwen-structured-output
+    retrieved_at: 2026-09-29
+    note: Qwen3.8-Flash JSON Schema support and exact OpenAI-compatible response_format shape.
+  - source_id: dashscope_qwen_chat_completion_doc
+    url: https://help.aliyun.com/en/model-studio/qwen-api-via-openai-chat-completions
+    retrieved_at: 2026-09-29
+    note: OpenAI-compatible Chat Completions endpoint and enable_thinking control.
   - source_id: dashscope_qwen_api_doc
     url: https://help.aliyun.com/zh/model-studio/qwen-api-via-dashscope
     retrieved_at: 2026-06-06
@@ -563,6 +579,19 @@ models:
         supports_language: true
     aliases:
       - qwen3-tts-vd-realtime-2025-12-16
+
+  - model_id: qwen3.8-flash
+    model_type: chat
+    updated_at: 2026-09-29
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-09-29
+      notes: Exact base-text target with a separate Nimi synchronous non-thinking Function Tool auto and strict JSON Schema behavior adapter. Reasoning, other tool-choice modes, optional tuning controls, parallel tool execution and advanced streaming remain unadmitted for that adapter. Official Qwen3.8-Flash rates differ by region and workspace.
+    source_ids: [dashscope_qwen38_flash_model_doc, dashscope_text_generation_doc, dashscope_qwen_function_calling_doc, dashscope_qwen_structured_output_doc, dashscope_qwen_chat_completion_doc, dashscope_models_pricing_doc]
 
   - model_id: qwen3.7-max
     model_type: chat

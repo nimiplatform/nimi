@@ -695,6 +695,24 @@ models:
     voice_discovery_mode: dynamic_user_scoped
     voice_request_options: *a11
     voice_ref_kinds: *a12
+  - model_id: qwen3.8-flash
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-09-29
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-09-29
+      notes: Exact base-text target with a separate Nimi synchronous non-thinking Function Tool auto and strict JSON Schema behavior adapter. Reasoning, other tool-choice modes, optional tuning controls, parallel tool execution and advanced streaming remain unadmitted for that adapter. Official Qwen3.8-Flash rates differ by region and workspace.
+    source_ref:
+      url: https://help.aliyun.com/zh/model-studio/qwen3-8-flash
+      retrieved_at: 2026-09-29
+      note: Exact Qwen3.8-Flash API ID, one-million-token context and base text/advanced behavior capabilities; prices vary by region.
+    context_window_tokens: 8192
   - model_id: qwen3.7-max
     provider: dashscope
     model_type: chat
