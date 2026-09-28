@@ -68,6 +68,8 @@ func (p *CloudProvider) ExecuteMediaAdapter(
 		artifacts, usage, providerJobID, err = ExecuteGeminiLyriaClipGenerateContent(ctx, cfg, request, modelID)
 	case "dashscope_chat_transcribe_adapter":
 		artifacts, usage, providerJobID, err = ExecuteDashScopeTranscribe(ctx, cfg, request, modelID)
+	case "dashscope_qwen_audio31_inline_adapter":
+		artifacts, usage, providerJobID, err = ExecuteDashscopeQwenAudio31InlineTranscribe(ctx, cfg, scenarioSpeechTranscribeSpec(request))
 	case "dashscope_finite_asr_adapter":
 		artifacts, usage, providerJobID, err = executeDashScopeFiniteASR(ctx, cfg, request, modelID)
 	case "gemini_chat_transcribe_adapter":

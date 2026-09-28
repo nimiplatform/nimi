@@ -65,6 +65,14 @@ sources:
     url: https://help.aliyun.com/en/model-studio/qwen-image-generation-and-editing-api-reference
     retrieved_at: 2026-09-29
     note: Exact qwen-image-3.0 ID, synchronous DashScope multimodal endpoint, one PNG URL result, 1-3 optional reference images and 24-hour result URL lifetime.
+  - source_id: dashscope_qwen_audio31_sync_asr_doc
+    url: https://help.aliyun.com/en/model-studio/fun-asr-flash-recorded-speech-recognition-http-api
+    retrieved_at: 2026-09-29
+    note: Qwen-Audio-3.1-ASR-Flash synchronous DashScope HTTP request, inline WAV Data URI, format/sample_rate fields and final output.text response.
+  - source_id: dashscope_qwen_audio31_asr_models_doc
+    url: https://help.aliyun.com/en/model-studio/asr-model
+    retrieved_at: 2026-09-29
+    note: Separates qwen-audio-3.1-asr-flash short offline URL/Base64 access from filetrans public-URL and streaming WebSocket identities.
   - source_id: dashscope_qwen_api_doc
     url: https://help.aliyun.com/zh/model-studio/qwen-api-via-dashscope
     retrieved_at: 2026-06-06
@@ -1099,6 +1107,19 @@ models:
     source_ids: [dashscope_funasr_doc, dashscope_models_pricing_doc]
     aliases:
       - fun-asr-2025-11-07
+
+  - model_id: qwen-audio-3.1-asr-flash
+    model_type: stt
+    updated_at: 2026-09-29
+    capabilities: [audio.transcribe]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-09-29
+      notes: Short stateless inline WAV subset; provider bills token usage and published rates depend on region.
+    source_ids: [dashscope_qwen_audio31_sync_asr_doc, dashscope_qwen_audio31_asr_models_doc]
 
   - model_id: qwen-audio-3.0-asr-flash-streaming
     model_type: stt

@@ -47,6 +47,7 @@ const (
 	CloudMediaAdapterGeminiChatSTT           = "gemini_chat_transcribe_adapter"
 	CloudMediaAdapterDashScopeChatSTT        = "dashscope_chat_transcribe_adapter"
 	CloudMediaAdapterDashScopeFiniteASR      = "dashscope_finite_asr_adapter"
+	CloudMediaAdapterDashScopeQwenAudio31ASR = "dashscope_qwen_audio31_inline_adapter"
 	CloudMediaAdapterMimoChatTTS             = "mimo_chat_synthesize_adapter"
 	CloudMediaAdapterMimoChatSTT             = "mimo_chat_transcribe_adapter"
 	CloudMediaAdapterMiniMaxTask             = "minimax_task_adapter"
@@ -621,6 +622,12 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 			return nil, err
 		}
 		adapter = CloudMediaAdapterDashScopeFiniteASR
+	}
+	if d.provider == "dashscope" && target.capabilityContract == "audio.transcribe" && target.providerModelID == dashscopeQwenAudio31ASRModel {
+		if err := validateDashscopeQwenAudio31InlineTranscribeRequest(mapped, streamMode); err != nil {
+			return nil, err
+		}
+		adapter = CloudMediaAdapterDashScopeQwenAudio31ASR
 	}
 	if adapter == "" {
 		return nil, cloudInvocationError(CloudInvocationFailureTarget, fmt.Errorf("provider %q has no %s transport dialect", d.provider, target.capabilityContract))
