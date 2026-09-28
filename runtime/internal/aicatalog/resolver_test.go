@@ -840,3 +840,24 @@ func TestSupportsScenarioSpeechTranscribeForAuditedSourceProviders(t *testing.T)
 		}
 	}
 }
+
+func TestSupportsScenarioMusicGenerateForExactCatalogTargets(t *testing.T) {
+	resolver, err := NewResolver(ResolverConfig{})
+	if err != nil {
+		t.Fatalf("NewResolver: %v", err)
+	}
+	for _, tc := range []struct {
+		provider string
+		modelID  string
+		want     bool
+	}{
+		{provider: "gemini", modelID: "lyria-3-clip-preview", want: true},
+		{provider: "stability", modelID: "stable-audio-2", want: true},
+		{provider: "gemini", modelID: "gemini-3-pro-image", want: false},
+	} {
+		supported, err := resolver.SupportsScenario(tc.provider, tc.modelID, runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE)
+		if err != nil || supported != tc.want {
+			t.Fatalf("SupportsScenario(%s,%s)=%v want=%v err=%v", tc.provider, tc.modelID, supported, tc.want, err)
+		}
+	}
+}

@@ -188,6 +188,7 @@ func (s *Service) projectCloudEffectiveSelection(
 			ProviderModelTarget: providerTarget, State: runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_READY,
 			SupportedFeatures:   append([]string(nil), binding.Features...),
 			ReferenceAudioInput: connector.VoiceReferenceInputProjection(s.speechCatalog, accountNamespace, binding.Provider, binding.ProviderModelID, capabilityContract),
+			MusicInput:          capabilitydriver.CloudMusicInputCapabilities(binding.Provider, binding.ProviderModelID, capabilityContract),
 		},
 	}}
 	return selection

@@ -34,7 +34,12 @@ export function MusicRecoveryPanel({ disabled, capability = 'music.generate' }: 
         parameters: { recoverySubmissionId: entry.clientSubmissionId } });
       setResult(next);
       await refresh();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
+    } catch (cause) {
+      const record = cause && typeof cause === 'object' ? cause as { reasonCode?: unknown; code?: unknown } : null;
+      const code = String(record?.reasonCode ?? record?.code ?? '').toLowerCase().replaceAll('-', '_');
+      setError(code === 'not_found'
+        ? t('Music.recoveryJobNotFound') : cause instanceof Error ? cause.message : String(cause));
+    }
     finally { abort.current = null; setBusy(false); }
   }
   const generatedScorePath = result?.ok && result.output.kind === 'artifacts' ? result.output.musicGeneration?.generatedScore?.relativePath : undefined;
@@ -49,13 +54,16 @@ export function MusicRecoveryPanel({ disabled, capability = 'music.generate' }: 
       {[...entries].reverse().map((entry) => <div key={entry.clientSubmissionId} className="flex flex-wrap items-center gap-2">
         <time dateTime={entry.createdAt}>{new Date(entry.createdAt).toLocaleString(host.locale)}</time>
         <Button disabled={disabled || busy} onClick={() => void recover(entry)}>{t(entry.result ? 'Music.openSaved' : 'Music.recover')}</Button>
-        <Button disabled={disabled || busy} onClick={() => void forgetMusicRecovery(host.sdk.storage, entry.clientSubmissionId, capability).then(refresh)
+        <Button disabled={disabled || busy} onClick={() => void forgetMusicRecovery(host.sdk.storage, entry.clientSubmissionId, capability).then(() => {
+          setResult(null); setError(''); return refresh();
+        })
           .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : String(cause)))}>{t('Music.forgetRecord')}</Button>
       </div>)}
     </div>
     {busy ? <div className="flex items-center gap-2"><span>{t('Music.recovering')}</span><Button onClick={() => abort.current?.abort()}>{t('Music.cancelJob')}</Button></div> : null}
     {error ? <p role="alert">{error}</p> : null}
-    {result && !result.ok ? <p role="alert">{result.message}</p> : null}
+    {result && !result.ok ? <p role="alert">{result.diagnostics?.reasonCode === 'NOT_FOUND'
+      ? t('Music.recoveryJobNotFound') : result.message}</p> : null}
     {result?.ok && result.output.kind === 'artifacts' ? <div className="space-y-3">
       <MusicGenerationNotice value={result.output.musicGeneration} />
       <MusicTranscriptionNotice value={result.output.musicTranscription} />

@@ -11,6 +11,8 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/audiomedia"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"google.golang.org/grpc/codes"
 )
 
 type musicContextReader struct {
@@ -93,5 +95,22 @@ func (s *Service) commitCloudMusicGeneration(ctx context.Context, jobID string, 
 	if err != nil {
 		return err
 	}
+	if err := validateCloudMusicMeasuredDuration(effective.mapped.Adapter(), effective.request.GetSpec().GetMusicGenerate().GetDurationSeconds(), wav.DurationMS); err != nil {
+		return err
+	}
 	return s.commitMusicGeneration(ctx, jobID, effective.request.GetHead(), musicGenerationPublication{WAV: wav, Termination: runtimev1.MusicGenerationTermination_MUSIC_GENERATION_TERMINATION_UNKNOWN, Usage: result.Usage})
+}
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.music-generation
+func validateCloudMusicMeasuredDuration(adapter string, budgetSeconds int32, durationMS int64) error {
+	if adapter != capabilitydriver.CloudMediaAdapterGeminiLyriaClipGenerateContent {
+		return nil
+	}
+	if budgetSeconds != 35 || durationMS <= 0 || durationMS > int64(budgetSeconds)*1000 {
+		return grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, grpcerr.ReasonOptions{
+			Message:    "Lyria clip exceeded its captured output duration budget",
+			ActionHint: "review_lyria_clip_duration_and_model",
+		})
+	}
+	return nil
 }

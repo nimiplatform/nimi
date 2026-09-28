@@ -48,6 +48,9 @@ func (r *Resolver) SupportsScenarioForSubject(subjectUserID string, providerType
 		return hasAny(aicapabilities.AudioSynthesize), nil
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
 		return hasAny(aicapabilities.AudioTranscribe), nil
+	// @nimi-authority: rule.nimi.runtime.ai-provider.music-generation
+	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
+		return hasAny(aicapabilities.MusicGenerate), nil
 	case runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:
 		return hasAny(aicapabilities.WorldGenerate), nil
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE:

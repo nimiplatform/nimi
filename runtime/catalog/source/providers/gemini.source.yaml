@@ -124,6 +124,14 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/interactions-overview
     retrieved_at: 2026-09-29
     note: Synchronous store=false Interaction behavior without a retained server-side turn.
+  - source_id: lyria_3_clip_model_doc
+    url: https://ai.google.dev/gemini-api/docs/models/lyria-3-clip-preview
+    retrieved_at: 2026-09-29
+    note: Exact preview model ID with text input and fixed 30-second MP3 stereo output.
+  - source_id: lyria_generate_content_music_guide
+    url: https://ai.google.dev/gemini-api/docs/generate-content/music-generation
+    retrieved_at: 2026-09-29
+    note: Native GenerateContent music request and inline MP3 response with text and audio parts.
   - source_id: gemini_generate_content_image_doc
     url: https://ai.google.dev/gemini-api/docs/generate-content/image-generation
     retrieved_at: 2026-09-28
@@ -455,6 +463,19 @@ models:
       as_of: 2026-09-29
       notes: Standard paid tier per 1M audio input and text output tokens, about $0.005/minute combined at Google's stated estimate. Nimi currently admits only short inline mono 24 kHz PCM WAV and plain transcript output with store=false; no Files upload or retained Interaction.
     source_ids: [gemini_3_5_transcribe_doc, gemini_transcribe_guide, gemini_interactions_audio_guide, gemini_interactions_state_guide, gemini_pricing_doc]
+
+  - model_id: lyria-3-clip-preview
+    model_type: music
+    updated_at: 2026-09-29
+    capabilities: [music.generate]
+    pricing:
+      unit: request
+      input: unknown
+      output: "0.04"
+      currency: USD
+      as_of: 2026-09-29
+      notes: Paid preview model at $0.04 per nominal 30-second clip. Nimi first admits text prompt only and one inline MP3 mix; a real decoded output measured 30.772 seconds of non-silent audio, so Nimi captures a 35-second upper budget and rejects output beyond it. Generated lyrics text is not a score artifact.
+    source_ids: [lyria_3_clip_model_doc, lyria_generate_content_music_guide, gemini_deprecations_doc, gemini_pricing_doc]
 
   - model_id: gemini-3.1-pro-preview
     model_type: chat

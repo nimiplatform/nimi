@@ -83,6 +83,7 @@ const (
 
 const CloudMediaAdapterGeminiTTSGenerateContent = "gemini_tts_generate_content_adapter"
 const CloudMediaAdapterGeminiInteractionsTranscribe = "gemini_interactions_transcribe_adapter"
+const CloudMediaAdapterGeminiLyriaClipGenerateContent = "gemini_lyria_clip_generate_content_adapter"
 
 // CloudMediaTarget is one exact provider/model target interpreted by a media
 // Driver. It contains no route, credential, endpoint, or Host facts.
@@ -577,7 +578,7 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 	if err := validateCloudMediaMappedRequest(mapped); err != nil {
 		return nil, err
 	}
-	if mapped.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE && cloudMusicReferenceRequested(mapped) && d.provider != "stability" {
+	if mapped.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE && cloudMusicReferenceRequested(mapped) && d.provider != "stability" && !(d.provider == "gemini" && target.providerModelID == geminiLyriaClipModel) {
 		return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("provider does not support music iteration mapping"))
 	}
 	if d.provider == "gemini" && target.capabilityContract == "image.generate" {
@@ -602,6 +603,12 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 			return nil, err
 		}
 		adapter = CloudMediaAdapterGeminiInteractionsTranscribe
+	}
+	if d.provider == "gemini" && target.capabilityContract == "music.generate" && target.providerModelID == geminiLyriaClipModel {
+		if err := validateGeminiLyriaClipRequest(mapped, target.providerModelID); err != nil {
+			return nil, err
+		}
+		adapter = CloudMediaAdapterGeminiLyriaClipGenerateContent
 	}
 	// @nimi-authority: rule.nimi.runtime.ai-provider.speech-transcription-result
 	if d.provider == "dashscope" && target.capabilityContract == "audio.transcribe" && dashScopeFiniteASRTarget(target.providerModelID) {

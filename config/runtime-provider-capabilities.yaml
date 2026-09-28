@@ -234,6 +234,7 @@ providers:
       - audio.synthesize
       - audio.transcribe
       - image.generate
+      - music.generate
       - text.embed
       - text.generate
     sources:

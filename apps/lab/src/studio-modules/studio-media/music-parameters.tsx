@@ -59,8 +59,10 @@ export function MusicFields(props: StudioParameterPanelProps) {
       <TextareaField value={parameters.lyrics ?? ''} disabled={disabled || parameters.instrumental === true}
         textareaClassName="min-h-36 font-mono" onChange={(event) => update({ ...parameters, lyrics: event.currentTarget.value })} />
     </StudioParameterField>
+    {profile?.lyricsMode === 'unsupported' ? <p className="text-sm opacity-70">{t('Music.lyricsUnsupported')}</p> : null}
     <StudioNumberParameter current={parameters} field="durationSeconds" label={t('Music.duration', { max: profile?.maxDurationSeconds ?? '—' })} onChange={update} disabled={disabled} />
-    <p className="text-sm opacity-70">{t('Music.durationHint')}</p>
+    <p className="text-sm opacity-70">{profile && profile.maxDurationSeconds > 0 && profile.maxDurationSeconds === profile.defaultDurationSeconds
+      ? t('Music.fixedClipDuration', { seconds: profile.defaultDurationSeconds }) : t('Music.durationHint')}</p>
     {profile?.supportsSeed ? <StudioNumberParameter current={parameters} field="seed" label={t('Music.seed')} onChange={update} disabled={disabled} /> : null}
     {profile?.supportsInstrumental ? <StudioBooleanParameter current={parameters} field="instrumental" label={t('Music.instrumental')} onChange={(next) => update({ ...next, ...(next.instrumental ? { lyrics: '' } : {}) })} disabled={disabled} /> : null}
     {scoreProfile ? <StudioParameterField label={t('Music.score')}>
