@@ -61,7 +61,8 @@ func (s *Service) submitScenarioAsyncJob(
 		jobCtx = nimillm.WithProviderPollWait(jobCtx, s.config.providerPollWait)
 	}
 	var cancel context.CancelFunc
-	timeout, err := scenarioJobTimeoutDuration(effective.request, defaultScenarioJobTimeout(effective.request.GetScenarioType()), false)
+	timeout, err := scenarioJobTimeoutDuration(effective.request, defaultCloudMediaJobTimeout(
+		effective.request.GetScenarioType(), effective.target.Provider(), effective.target.ProviderModelID()), false)
 	if err != nil {
 		return fail(err)
 	}
@@ -129,4 +130,15 @@ func (s *Service) submitScenarioAsyncJob(
 	effective.release()
 	go s.executeScenarioAsyncJob(jobCtx, jobID)
 	return &runtimev1.SubmitScenarioJobResponse{Job: snapshot}, nil
+}
+
+// @nimi-authority: rule.nimi.runtime.service-operations.r066
+func defaultCloudMediaJobTimeout(scenarioType runtimev1.ScenarioType, provider, model string) time.Duration {
+	if scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE && provider == "dashscope" && model == "qwen-image-3.0-pro" {
+		// The synchronous Pro edit call can exceed the ordinary 120-second image
+		// window; leave it the complete existing Cloud Job maximum for response
+		// and immediate Runtime artifact custody. An explicit caller deadline wins.
+		return maxRuntimeRequestTimeout
+	}
+	return defaultScenarioJobTimeout(scenarioType)
 }

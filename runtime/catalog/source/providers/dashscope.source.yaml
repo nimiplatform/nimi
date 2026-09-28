@@ -1154,6 +1154,31 @@ models:
       notes: Image metering depends on actual input count and output pixel tier; no unified region-independent request price is asserted.
     source_ids: [dashscope_qwen_image3_api_doc]
 
+  - model_id: qwen-image-3.0-pro
+    model_type: image
+    updated_at: 2026-09-29
+    capabilities: [image.generate]
+    features: [input.image]
+    image_request_options:
+      response_formats: [url]
+      max_images_per_request: 1
+      supports_negative_prompt: false
+      supports_reference_images: true
+      supports_mask: false
+      supports_seed: false
+      supports_size: false
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-09-29
+      notes: Pro image metering depends on actual input count and output pixel tier; no unified region-independent request price is asserted.
+    source_ids: [dashscope_qwen_image3_api_doc]
+
   - model_id: qwen-image-2.0-pro
     model_type: image
     updated_at: 2026-03-07

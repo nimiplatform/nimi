@@ -298,3 +298,22 @@ func TestLocalMusicTimeoutAllowsFullSongRendering(t *testing.T) {
 		t.Fatal("unbounded local music timeout")
 	}
 }
+
+func TestQwenImageProCloudDefaultUsesFullBoundedJobWindow(t *testing.T) {
+	imageType := runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE
+	if got := defaultCloudMediaJobTimeout(imageType, "dashscope", "qwen-image-3.0-pro"); got != maxRuntimeRequestTimeout {
+		t.Fatalf("Qwen Image Pro Cloud default = %s", got)
+	}
+	for _, target := range []struct{ provider, model string }{
+		{"dashscope", "qwen-image-3.0"}, {"gemini", "qwen-image-3.0-pro"},
+	} {
+		if got := defaultCloudMediaJobTimeout(imageType, target.provider, target.model); got != defaultGenerateImageTimeout {
+			t.Fatalf("other image target %s/%s default = %s", target.provider, target.model, got)
+		}
+	}
+	req := &runtimev1.SubmitScenarioJobRequest{Head: &runtimev1.ScenarioRequestHead{TimeoutMs: 30_000}, ScenarioType: imageType}
+	got, err := scenarioJobTimeoutDuration(req, defaultCloudMediaJobTimeout(imageType, "dashscope", "qwen-image-3.0-pro"), false)
+	if err != nil || got != 30*time.Second {
+		t.Fatalf("explicit Qwen Image Pro caller timeout = %s err=%v", got, err)
+	}
+}

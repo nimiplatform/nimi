@@ -9,6 +9,11 @@ import (
 )
 
 const dashscopeQwen3ImageModel = "qwen-image-3.0"
+const dashscopeQwen3ImageProModel = "qwen-image-3.0-pro"
+
+func isDashscopeQwen3ImageModel(model string) bool {
+	return model == dashscopeQwen3ImageModel || model == dashscopeQwen3ImageProModel
+}
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.r051
 func validateDashscopeQwen3ImageRequest(spec *runtimev1.ImageGenerateScenarioSpec) error {
