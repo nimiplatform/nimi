@@ -14,6 +14,7 @@ import (
 
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestNewFailsClosedForUnavailableExecutables(t *testing.T) {
@@ -193,7 +194,7 @@ func videoPlanForTest(t *testing.T, frameCount int, returnLastFrame bool) *capab
 		LoadoutID: "video-media-test", ExactBindings: bindings,
 		Request: capabilitydriver.VideoInvocationRequest{
 			Prompt: "a test clip", Width: 64, Height: 64, FrameCount: frameCount, FPS: 24,
-			GenerateAudio: true, ReturnLastFrame: returnLastFrame,
+			GenerateAudio: proto.Bool(true), ReturnLastFrame: returnLastFrame,
 		},
 	})
 	if err != nil {

@@ -81,6 +81,8 @@ const (
 	CloudMediaAdapterFishAudioVoiceDelete    = "fish_audio_voice_delete_adapter"
 )
 
+const CloudMediaAdapterGeminiTTSGenerateContent = "gemini_tts_generate_content_adapter"
+
 // CloudMediaTarget is one exact provider/model target interpreted by a media
 // Driver. It contains no route, credential, endpoint, or Host facts.
 type CloudMediaTarget struct {
@@ -588,6 +590,12 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 		}
 	}
 	adapter := cloudMediaAdapterFor(d.provider, target.capabilityContract)
+	if d.provider == "gemini" && target.capabilityContract == "audio.synthesize" {
+		if err := validateGeminiTTSRequest(mapped, target.providerModelID, streamMode); err != nil {
+			return nil, err
+		}
+		adapter = CloudMediaAdapterGeminiTTSGenerateContent
+	}
 	// @nimi-authority: rule.nimi.runtime.ai-provider.speech-transcription-result
 	if d.provider == "dashscope" && target.capabilityContract == "audio.transcribe" && dashScopeFiniteASRTarget(target.providerModelID) {
 		if err := validateDashScopeFiniteASRRequest(mapped.GetSpec().GetSpeechTranscribe(), target.providerModelID); err != nil {

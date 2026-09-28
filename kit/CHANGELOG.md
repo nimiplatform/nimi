@@ -1,5 +1,12 @@
 # Changelog
 
+## Select field exit reliability (next patch, development)
+
+- `SelectField` now releases Radix modal focus after the governed exit motion
+  settles even when a background Electron renderer defers Motion's completion
+  callback. A chosen voice or Connector no longer leaves later form fields
+  inaccessible behind an invisible popover.
+
 ## Video audio option (next minor, development)
 
 - `runRuntimeVideoGenerate` now forwards `generateAudio` only when the App

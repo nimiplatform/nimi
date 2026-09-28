@@ -3,6 +3,7 @@ import * as SelectPrimitive from '@radix-ui/react-select';
 import { cn, type FieldTone } from '../design-tokens.js';
 import {
   AnimatePresence,
+  NIMI_SPRING_DEFAULT,
   motion,
   nimiOverlayPanelMotion,
   useNimiReducedMotion,
@@ -130,6 +131,14 @@ export const SelectField = forwardRef<HTMLButtonElement, SelectFieldProps>(funct
       setContentMounted(true);
     }
   }, [requestedOpen]);
+  React.useEffect(() => {
+    if (requestedOpen || !contentMounted) return;
+    // Motion completion can be deferred by a background Electron renderer.
+    // Release Radix's modal focus after the visual exit has settled anyway.
+    const delayMs = reducedMotion ? 250 : NIMI_SPRING_DEFAULT.responseSeconds * 1000 + 200;
+    const timer = window.setTimeout(() => setContentMounted(false), delayMs);
+    return () => window.clearTimeout(timer);
+  }, [requestedOpen, contentMounted, reducedMotion]);
 
   const handleValueChange = (nextValue: string) => {
     onValueChange?.(nextValue);
@@ -144,6 +153,12 @@ export const SelectField = forwardRef<HTMLButtonElement, SelectFieldProps>(funct
       setContentMounted(true);
     }
     onOpenChange?.(nextOpen);
+  };
+
+  const finishExit = () => {
+    if (!requestedOpenRef.current) {
+      setContentMounted(false);
+    }
   };
 
   return (
@@ -194,11 +209,7 @@ export const SelectField = forwardRef<HTMLButtonElement, SelectFieldProps>(funct
             : 'z-[var(--nimi-z-popover)]'}
         >
           <AnimatePresence
-            onExitComplete={() => {
-              if (!requestedOpenRef.current) {
-                setContentMounted(false);
-              }
-            }}
+            onExitComplete={finishExit}
           >
             {requestedOpen ? (
               <motion.div
@@ -207,6 +218,7 @@ export const SelectField = forwardRef<HTMLButtonElement, SelectFieldProps>(funct
                   contentClassName,
                 )}
                 {...panelMotion}
+                onAnimationComplete={finishExit}
                 style={panelMotion.style}
               >
                 <SelectPrimitive.Viewport className="max-h-[min(var(--radix-select-content-available-height),24rem)] overflow-y-auto overscroll-contain p-1">

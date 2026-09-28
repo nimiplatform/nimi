@@ -269,6 +269,60 @@ models:
       supports_aspect_ratio: true
       supports_quality: false
       supports_style: false
+  - model_id: gemini-3.8-flash-tts
+    provider: gemini
+    model_type: tts
+    updated_at: 2026-09-29
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: token
+      input: "0.50"
+      output: "9.00"
+      currency: USD
+      as_of: 2026-09-29
+      notes: Standard paid tier per 1M text input and audio output tokens through 2026-12-31; the rates double on 2027-01-01. Nimi currently admits only single-speaker Kore WAV at 24 kHz.
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts
+      retrieved_at: 2026-09-29
+      note: Stable Gemini 3.8 Flash TTS exact model code, single-speaker voice and default WAV output.
+    voice_set_id: gemini:gemini-3-8-kore-v1
+    voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - wav
+      supports_language: true
+    voice_ref_kinds:
+      - preset_voice_id
+  - model_id: gemini-3.8-flash-lite-tts
+    provider: gemini
+    model_type: tts
+    updated_at: 2026-09-29
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: token
+      input: "0.50"
+      output: "6.00"
+      currency: USD
+      as_of: 2026-09-29
+      notes: Standard paid tier per 1M text input and audio output tokens through 2026-12-31; the rates double on 2027-01-01. Nimi currently admits only single-speaker Kore WAV at 24 kHz.
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-lite-tts
+      retrieved_at: 2026-09-29
+      note: Stable Gemini 3.8 Flash-Lite TTS exact model code with the same native speech request schema and default WAV output.
+    voice_set_id: gemini:gemini-3-8-kore-v1
+    voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - wav
+      supports_language: true
+    voice_ref_kinds:
+      - preset_voice_id
   - model_id: gemini-3.1-pro-preview
     provider: gemini
     model_type: chat
@@ -309,7 +363,20 @@ models:
     features:
       - input.image
     context_window_tokens: 8192
-voices: []
+voices:
+  - voice_id: Kore
+    voice_set_id: gemini:gemini-3-8-kore-v1
+    provider: gemini
+    name: Kore
+    langs:
+      - en
+    model_ids:
+      - gemini-3.8-flash-tts
+      - gemini-3.8-flash-lite-tts
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash-tts
+      retrieved_at: 2026-09-29
+      note: Stable Gemini 3.8 Flash TTS exact model code, single-speaker voice and default WAV output.
 selection_profiles:
   - provider: gemini
     profile_id: text.general

@@ -231,6 +231,7 @@ providers:
     endpoint_requirement: default_or_explicit
     inventory_mode: static_source
     capabilities:
+      - audio.synthesize
       - audio.transcribe
       - image.generate
       - text.embed
