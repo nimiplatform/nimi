@@ -1,6 +1,7 @@
 package capabilitydriver
 
 import (
+	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -22,6 +23,9 @@ func TestGeminiLyriaClipDriverCapturesFixedDurationAndRejectsOtherModes(t *testi
 	if request.GetSpec().GetMusicGenerate().GetDurationSeconds() != 0 {
 		t.Fatal("mapping mutated the caller request")
 	}
+	if _, err := driver.MapRequest(target, geminiLyriaClipRequest(&runtimev1.MusicGenerateScenarioSpec{Prompt: strings.Repeat("é", geminiLyriaClipMaxPromptBytes/2)}), nil, CloudMediaStreamNone); err != nil {
+		t.Fatalf("exact UTF-8 byte-bound prompt rejected: %v", err)
+	}
 	profile := CloudMusicInputCapabilities("gemini", geminiLyriaClipModel, "music.generate")
 	if len(profile.GetGeneration()) != 1 || profile.GetGeneration()[0].GetLyricsMode() != "unsupported" ||
 		profile.GetGeneration()[0].GetMaxDurationSeconds() != 35 || profile.GetGeneration()[0].GetDefaultDurationSeconds() != 35 {
@@ -39,6 +43,7 @@ func TestGeminiLyriaClipDriverCapturesFixedDurationAndRejectsOtherModes(t *testi
 		"seed":              {Prompt: "warm loop", Seed: &seed},
 		"reference audio":   {Prompt: "warm loop", AudioReference: &runtimev1.MusicAudioInput{ArtifactId: "source"}},
 		"score request":     {Prompt: "warm loop", ReturnGeneratedScore: true},
+		"prompt byte limit": {Prompt: strings.Repeat("é", geminiLyriaClipMaxPromptBytes/2+1)},
 	} {
 		t.Run(name, func(t *testing.T) {
 			_, err := driver.MapRequest(target, geminiLyriaClipRequest(spec), nil, CloudMediaStreamNone)

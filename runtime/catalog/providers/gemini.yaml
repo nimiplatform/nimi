@@ -383,11 +383,11 @@ models:
       output: "0.04"
       currency: USD
       as_of: 2026-09-29
-      notes: Paid preview model at $0.04 per nominal 30-second clip. Nimi first admits text prompt only and one inline MP3 mix; a real decoded output measured 30.772 seconds of non-silent audio, so Nimi captures a 35-second upper budget and rejects output beyond it. Generated lyrics text is not a score artifact.
+      notes: Legacy paid-preview model at $0.04 per nominal 30-second clip; this is an explicit development cell, not a current stable music recommendation. Nimi first admits text prompt only and one inline MP3 mix; a real decoded output measured 30.772 seconds of non-silent audio, so Nimi captures a 35-second upper budget and rejects output beyond it. Generated lyrics text is not a score artifact.
     source_ref:
       url: https://ai.google.dev/gemini-api/docs/models/lyria-3-clip-preview
       retrieved_at: 2026-09-29
-      note: Exact preview model ID with text input and fixed 30-second MP3 stereo output.
+      note: Exact legacy-preview model ID with text input and nominal 30-second MP3 stereo output.
   - model_id: gemini-3.1-pro-preview
     provider: gemini
     model_type: chat

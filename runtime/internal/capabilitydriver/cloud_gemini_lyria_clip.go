@@ -9,6 +9,7 @@ import (
 )
 
 const geminiLyriaClipModel = "lyria-3-clip-preview"
+const geminiLyriaClipMaxPromptBytes = 32768
 
 // The provider calls this a 30-second clip, but one real decoded output was
 // 30.772 seconds of non-silent audio. Capture a whole-second upper budget and
@@ -29,7 +30,7 @@ func validateGeminiLyriaClipRequest(request *runtimev1.SubmitScenarioJobRequest,
 		return unsupported()
 	}
 	spec := request.GetSpec().GetMusicGenerate()
-	if strings.TrimSpace(spec.GetPrompt()) == "" || strings.TrimSpace(spec.GetLyrics()) != "" ||
+	if strings.TrimSpace(spec.GetPrompt()) == "" || len(spec.GetPrompt()) > geminiLyriaClipMaxPromptBytes || strings.TrimSpace(spec.GetLyrics()) != "" ||
 		strings.TrimSpace(spec.GetNegativePrompt()) != "" || strings.TrimSpace(spec.GetStyle()) != "" || strings.TrimSpace(spec.GetTitle()) != "" ||
 		spec.GetInstrumental() || spec.GetScore() != nil || spec.GetScoreConditioning() != runtimev1.MusicScoreConditioning_MUSIC_SCORE_CONDITIONING_UNSPECIFIED ||
 		spec.Seed != nil || spec.GetReturnGeneratedScore() || spec.GetAudioReference() != nil ||
@@ -47,6 +48,6 @@ func CloudMusicInputCapabilities(provider, model, capability string) *runtimev1.
 	}
 	return &runtimev1.MusicInputCapabilities{Generation: []*runtimev1.MusicGenerationInputProfile{{
 		LyricsMode: "unsupported", ScoreMode: "unsupported", MaxDurationSeconds: geminiLyriaClipDurationSeconds,
-		DefaultDurationSeconds: geminiLyriaClipDurationSeconds, MaxPromptBytes: 32768,
+		DefaultDurationSeconds: geminiLyriaClipDurationSeconds, MaxPromptBytes: geminiLyriaClipMaxPromptBytes,
 	}}}
 }
