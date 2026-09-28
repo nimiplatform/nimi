@@ -296,7 +296,7 @@ func ExecuteGeminiImageGenerateContent(
 		return nil, nil, "", err
 	}
 
-	artifactBytes, mimeType, artifactURI := ExtractImageArtifactFromAny(ctx, responsePayload["candidates"])
+	artifactBytes, mimeType, artifactURI := geminiFinalInlineImage(ctx, responsePayload["candidates"])
 	if len(artifactBytes) == 0 {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
@@ -326,6 +326,40 @@ func ExecuteGeminiImageGenerateContent(
 	artifact.Height = int32(imageConfig.Height)
 	usage := ArtifactUsage(prompt, artifactBytes, 180)
 	return []*runtimev1.ScenarioArtifact{artifact}, usage, "", nil
+}
+
+// Gemini image models may include intermediate thought images. Only one final
+// inline image is a committed image.generate result.
+func geminiFinalInlineImage(ctx context.Context, candidates any) ([]byte, string, string) {
+	items, ok := candidates.([]any)
+	if !ok || len(items) != 1 {
+		return nil, "", ""
+	}
+	parts, ok := MapField(MapField(items[0], "content"), "parts").([]any)
+	if !ok {
+		return nil, "", ""
+	}
+	var artifactBytes []byte
+	var mimeType, artifactURI string
+	for _, item := range parts {
+		part, ok := item.(map[string]any)
+		if !ok || part["thought"] == true {
+			continue
+		}
+		inline := part["inlineData"]
+		if inline == nil {
+			inline = part["inline_data"]
+		}
+		if inline == nil {
+			continue
+		}
+		data, mime, uri := ExtractImageArtifactFromAny(ctx, inline)
+		if len(data) == 0 || len(artifactBytes) != 0 {
+			return nil, "", ""
+		}
+		artifactBytes, mimeType, artifactURI = data, mime, uri
+	}
+	return artifactBytes, mimeType, artifactURI
 }
 
 func resolveGeminiNativeBaseURL(baseURL string) string {

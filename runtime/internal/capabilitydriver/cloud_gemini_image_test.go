@@ -86,3 +86,27 @@ func TestGeminiFlashLiteImageAdmitsOnlyItsDocumentedRatiosAndDefaultOneK(t *test
 		}
 	}
 }
+
+func TestGeminiProImageAdmitsOnlyBoundedSingleImageModes(t *testing.T) {
+	driver, target := cloudMediaDriverTarget(t, "gemini", "gemini-3-pro-image", "image.generate")
+	for _, spec := range []*runtimev1.ImageGenerateScenarioSpec{
+		{Prompt: "a red apple"},
+		{Prompt: "a red apple", AspectRatio: "16:9"},
+		{Prompt: "make the apple green", ReferenceImages: []string{"https://example.com/apple.jpg"}},
+	} {
+		mapped, err := driver.MapRequest(target, geminiImageRequest(spec), nil, CloudMediaStreamNone)
+		if err != nil || mapped.Adapter() != CloudMediaAdapterGeminiOperation || mapped.ProviderModelID() != "gemini-3-pro-image" {
+			t.Fatalf("Pro Image valid combination rejected: mapped=%+v err=%v", mapped, err)
+		}
+	}
+	for _, spec := range []*runtimev1.ImageGenerateScenarioSpec{
+		{Prompt: "a red apple", AspectRatio: "1:8"},
+		{Prompt: "a red apple", Size: "2048x2048"},
+		{Prompt: "combine", ReferenceImages: []string{"https://example.com/a.jpg", "https://example.com/b.jpg"}},
+	} {
+		_, err := driver.MapRequest(target, geminiImageRequest(spec), nil, CloudMediaStreamNone)
+		if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+			t.Fatalf("Pro Image unsupported combination reason=%v present=%v err=%v", reason, ok, err)
+		}
+	}
+}

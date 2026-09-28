@@ -282,6 +282,22 @@ func TestExecuteGeminiImageGenerateContentUsesNativeEndpoint(t *testing.T) {
 	}
 }
 
+func TestGeminiFinalInlineImageSkipsThoughtAndRejectsMultipleFinalImages(t *testing.T) {
+	part := func(data string, thought bool) map[string]any {
+		return map[string]any{"thought": thought, "inlineData": map[string]any{"mimeType": "image/png", "data": base64.StdEncoding.EncodeToString([]byte(data))}}
+	}
+	response := []any{map[string]any{"content": map[string]any{"parts": []any{part("intermediate", true), part("final", false)}}}}
+	image, mime, _ := geminiFinalInlineImage(context.Background(), response)
+	if string(image) != "final" || mime != "image/png" {
+		t.Fatalf("final image=%q mime=%q", image, mime)
+	}
+	response = []any{map[string]any{"content": map[string]any{"parts": []any{part("one", false), part("two", false)}}}}
+	image, _, _ = geminiFinalInlineImage(context.Background(), response)
+	if len(image) != 0 {
+		t.Fatalf("multiple final images must not collapse to one: %q", image)
+	}
+}
+
 func TestExecuteGeminiOperationReturnsCanceledOnContextCancelWhilePolling(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {

@@ -544,6 +544,15 @@ test('a committed target Runtime can no longer run names its cause and leads bac
   assert.notEqual(t('NonSuccess.openAIConfig'), 'NonSuccess.openAIConfig');
 });
 
+test('unsupported media settings offer parameter correction instead of a blind retry', async () => {
+  const { studioNonSuccessReasonUserMessage, studioNonSuccessReasonUserAction } = await load('ai-studio-core/non-success-presentation.js');
+  const { t } = await load('shell/i18n/index.js');
+  const diagnostics = { reasonCode: 'AI_MEDIA_OPTION_UNSUPPORTED' };
+  assert.equal(studioNonSuccessReasonUserMessage('runtime-call-failed', t, 'image.generate', diagnostics), t('NonSuccess.message.mediaOptionUnsupported'));
+  assert.equal(studioNonSuccessReasonUserAction('runtime-call-failed', t, 'image.generate', diagnostics), t('NonSuccess.action.mediaOptionUnsupported'));
+  assert.notEqual(t('NonSuccess.action.mediaOptionUnsupported'), t('NonSuccess.action.runtimeCallFailed'));
+});
+
 test('text.decide history records the exact spec, restores the form and the answers', async () => {
   const { createStudioRunHistoryRecord, restoreStudioCapabilityRunResult, getStudioRunMetricSummary, getStudioRunResultTags } = await load('ai-studio-core/history.js');
   const { labTextDecideParameters, encodeLabTextDecideRequest, decodeLabTextDecideRequest } = await load('lab/lab-only/text-decide.js');
