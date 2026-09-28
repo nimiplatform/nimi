@@ -51,6 +51,14 @@ sources:
     url: https://huggingface.co/unsloth/gemma-4-26B-A4B-it-GGUF
     retrieved_at: 2026-05-21
     note: Curated local chat checkpoint (Gemma 4 26B-A4B MoE, GGUF quants).
+  - source_id: qwen35_4b_author_modelcard
+    url: https://huggingface.co/Qwen/Qwen3.5-4B
+    retrieved_at: 2026-09-28
+    note: Author Qwen3.5 4B model, architecture and Apache-2.0 terms.
+  - source_id: qwen35_4b_unsloth_gguf_modelcard
+    url: https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/tree/e87f176479d0855a907a41277aca2f8ee7a09523
+    retrieved_at: 2026-09-28
+    note: Reviewed immutable Qwen3.5 4B GGUF distribution; Q4_K_M main tested on pinned llama.cpp b8645 Windows CUDA.
   - source_id: z_image_turbo_gguf_modelcard
     url: https://huggingface.co/leejet/Z-Image-Turbo-GGUF
     retrieved_at: 2026-05-21

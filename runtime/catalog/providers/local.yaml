@@ -3222,6 +3222,64 @@ models:
       url: https://huggingface.co/unsloth/gemma-4-26B-A4B-it-GGUF
       retrieved_at: 2026-05-21
       note: Curated local chat checkpoint (Gemma 4 26B-A4B MoE, GGUF quants).
+  - model_id: qwen3.5-4b-local
+    provider: local
+    model_type: chat
+    updated_at: 2026-09-28
+    capabilities:
+      - text.generate
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/Qwen/Qwen3.5-4B
+      retrieved_at: 2026-09-28
+      note: Author Qwen3.5 4B model, architecture and Apache-2.0 terms.
+    install:
+      repo: unsloth/Qwen3.5-4B-GGUF
+      revision: e87f176479d0855a907a41277aca2f8ee7a09523
+      install_kind: weights
+      entry: Qwen3.5-4B-Q4_K_M.gguf
+      artifact_roles:
+        - llm
+      preferred_engine: llama
+    variants:
+      - variant_id: local.chat.qwen3.5-4b.q4-k-m.cuda
+        quant: Q4_K_M
+        entry: Qwen3.5-4B-Q4_K_M.gguf
+        files:
+          - Qwen3.5-4B-Q4_K_M.gguf
+        hashes:
+          Qwen3.5-4B-Q4_K_M.gguf: sha256:00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4
+        total_size_bytes: 2740937888
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 17179869184
+          min_vram_bytes: 17179869184
+    fitness:
+      param_count: 4205751296
+      context_length: 262144
+  - model_id: unsloth/Qwen3.5-4B-GGUF
+    provider: local
+    model_type: chat
+    updated_at: 2026-09-28
+    capabilities:
+      - text.generate
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/Qwen/Qwen3.5-4B
+      retrieved_at: 2026-09-28
+      note: Author Qwen3.5 4B model, architecture and Apache-2.0 terms.
   - model_id: whisper-large-v3-turbo-local
     provider: local
     model_type: stt
@@ -9644,6 +9702,26 @@ loadout_recipes:
         model_contract:
           format: gguf
           artifact_role: mmproj
+  - recipe_id: llama.text-generate.qwen35-4b.v1
+    revision: "1"
+    title: Qwen3.5 4B base text generation
+    capability_contract: text.generate
+    implementation_id: local.text.generate.llama-cpp
+    driver_id: nimi.runtime.driver.llama-cpp
+    driver_dialect: llama.cpp/text-generate/v2
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: main.gguf
+        display_label: Qwen3.5 4B main model
+        recommended_variant_ids:
+          - local.chat.qwen3.5-4b.q4-k-m.cuda
+        recommended_content_ids:
+          - sha256:00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4
+        model_contract:
+          format: gguf
+          gguf_architectures:
+            - qwen35
   - recipe_id: llama.text-embed.gguf.v1
     revision: "1"
     title: llama.cpp GGUF embeddings

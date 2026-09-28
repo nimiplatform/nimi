@@ -39,6 +39,7 @@ const (
 	LlamaCapabilityContract    = "text.generate"
 
 	LlamaGemma4RecipeID    = "llama.text-generate.gemma4.v1"
+	LlamaQwen35RecipeID    = "llama.text-generate.qwen35-4b.v1"
 	LlamaEmbedGGUFRecipeID = "llama.text-embed.gguf.v1"
 
 	MainGGUFRequirementID        = "main.gguf"

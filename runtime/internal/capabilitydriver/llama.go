@@ -25,7 +25,7 @@ const inputImageFeature = "input.image"
 type LlamaTextDriver struct{}
 
 func (LlamaTextDriver) ModelAssetFormatProbeBytes(input ModelAssetFormatProbeInput) int64 {
-	if strings.TrimSpace(input.RecipeID) == LlamaGemma4RecipeID &&
+	if (strings.TrimSpace(input.RecipeID) == LlamaGemma4RecipeID || strings.TrimSpace(input.RecipeID) == LlamaQwen35RecipeID) &&
 		input.RequirementID == MainGGUFRequirementID && input.Entry &&
 		filepath.Ext(strings.ToLower(input.RelativePath)) == ".gguf" {
 		return MaxDriverAssetFormatProbeBytes
@@ -142,6 +142,8 @@ func (LlamaTextDriver) recipeModelArchitectures(recipeID string, slotID string) 
 	switch strings.TrimSpace(recipeID) {
 	case LlamaGemma4RecipeID:
 		return []string{"gemma4"}
+	case LlamaQwen35RecipeID:
+		return []string{"qwen35"}
 	default:
 		return nil
 	}
@@ -161,7 +163,16 @@ func (driver LlamaTextDriver) ProjectModelAssetBinding(input ModelAssetBindingIn
 	var templateIdentity string
 	switch input.Requirement.GetRequirementId() {
 	case MainGGUFRequirementID:
-		summary, err := ggufmeta.InspectLLMMetadataWithChatTemplate(bytes.NewReader(probe))
+		var summary ggufmeta.Summary
+		var err error
+		if strings.TrimSpace(input.RecipeID) == LlamaQwen35RecipeID {
+			summary, err = ggufmeta.Inspect(bytes.NewReader(probe))
+			if err == nil && !qwen35BaseTextModelContract(summary) {
+				err = fmt.Errorf("qwen35 4B Model Contract mismatch")
+			}
+		} else {
+			summary, err = ggufmeta.InspectLLMMetadataWithChatTemplate(bytes.NewReader(probe))
+		}
 		if err != nil || !contains(driver.recipeModelArchitectures(input.RecipeID, MainGGUFRequirementID), ggufmeta.LLMDetectedArchitecture(summary)) {
 			return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
 		}
@@ -201,6 +212,8 @@ func (LlamaTextDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabi
 	)
 	if strings.TrimSpace(input.RecipeID) == LlamaGemma4RecipeID {
 		main.CompatibilityConstraints.Fields["gemma4_contract"] = structpb.NewStringValue("v1")
+	} else if strings.TrimSpace(input.RecipeID) == LlamaQwen35RecipeID {
+		main.CompatibilityConstraints.Fields["qwen35_4b_contract"] = structpb.NewStringValue("v1")
 	}
 	requirements := []*runtimev1.LocalCapabilityRequirement{main}
 	if contains(features, inputImageFeature) {

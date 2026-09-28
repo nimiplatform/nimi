@@ -1599,12 +1599,17 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 	}
 
 	all := list("")
-	if len(all) != 94 {
-		t.Fatalf("all Loadout recipes = %d, want 94", len(all))
+	if len(all) != 95 {
+		t.Fatalf("all Loadout recipes = %d, want 95", len(all))
 	}
 	byID := make(map[string]*runtimev1.LoadoutRecipeDescriptor, len(all))
 	for _, recipe := range all {
 		byID[recipe.GetRecipeId()] = recipe
+	}
+	qwen := byID[capabilitydriver.LlamaQwen35RecipeID]
+	if qwen == nil || len(qwen.GetSlots()) != 1 || qwen.GetSlots()[0].GetSlotId() != capabilitydriver.MainGGUFRequirementID ||
+		len(qwen.GetImplementationSupportedFeatures()) != 0 {
+		t.Fatalf("Qwen3.5 4B base-text recipe must project one exact main slot: %+v", qwen)
 	}
 	whisper := byID[capabilitydriver.FasterWhisperRecipeID]
 	library := byID[capabilitydriver.Qwen3VoiceLibraryRecipeID]

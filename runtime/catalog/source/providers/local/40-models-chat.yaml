@@ -126,3 +126,36 @@ models:
       - local/gemma-4-26b-a4b-it
       - llama/gemma-4-26b-a4b-it
       - unsloth/gemma-4-26B-A4B-it-GGUF
+
+  # Base text only. The pinned Windows CUDA llama.cpp b8645 package loaded the
+  # exact Q4_K_M GGUF with the model-authored 262144-token context and returned
+  # complete ordinary and streamed text. Optional projector and text behaviors
+  # remain separate admission work.
+  - model_id: qwen3.5-4b-local
+    model_type: chat
+    updated_at: 2026-09-28
+    capabilities: [text.generate]
+    source_ids: [qwen35_4b_author_modelcard, qwen35_4b_unsloth_gguf_modelcard]
+    install:
+      repo: unsloth/Qwen3.5-4B-GGUF
+      revision: e87f176479d0855a907a41277aca2f8ee7a09523 # pragma: allowlist secret -- public immutable model revision
+      install_kind: weights
+      entry: Qwen3.5-4B-Q4_K_M.gguf
+      artifact_roles: [llm]
+      preferred_engine: llama
+    variants:
+      - variant_id: local.chat.qwen3.5-4b.q4-k-m.cuda
+        quant: Q4_K_M
+        files: [Qwen3.5-4B-Q4_K_M.gguf]
+        hashes:
+          Qwen3.5-4B-Q4_K_M.gguf: "sha256:00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4"
+        total_size_bytes: 2740937888
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 17179869184
+          min_vram_bytes: 17179869184
+    fitness:
+      param_count: 4205751296
+      context_length: 262144
+    aliases:
+      - unsloth/Qwen3.5-4B-GGUF
