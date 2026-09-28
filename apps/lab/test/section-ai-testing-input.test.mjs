@@ -24,6 +24,7 @@ await build({
 const {
   canCancelStudioCapabilityRun,
   hasStudioCapabilityRunInput,
+  usesVerbatimStudioPrompt,
 } = await import(
   pathToFileURL(path.join(buildDir, 'section-ai-testing-input.mjs')).href
 );
@@ -56,6 +57,14 @@ test('prompt-backed capability runs still require a real input', () => {
     prompt: '',
     hasAlternativeInput: false,
   }), true);
+});
+
+test('speech synthesis sends the entered transcript verbatim', () => {
+  assert.equal(usesVerbatimStudioPrompt('audio.synthesize'), true);
+  assert.equal(usesVerbatimStudioPrompt('audio.transcribe'), true);
+  assert.equal(usesVerbatimStudioPrompt('vision.locate'), true);
+  assert.equal(usesVerbatimStudioPrompt('text.generate'), false);
+  assert.equal(usesVerbatimStudioPrompt('chat.stream'), false);
 });
 
 test('streamed text and async result kinds expose the product cancellation action', () => {

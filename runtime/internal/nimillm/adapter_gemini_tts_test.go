@@ -45,9 +45,9 @@ func TestGeminiTTSGenerateContentUsesNativeVoiceAndMeasuredWAV(t *testing.T) {
 			t.Errorf("decode request: %v", err)
 		}
 		config, _ := body["generationConfig"].(map[string]any)
-		voice := MapField(MapField(config["speechConfig"], "voiceConfig"), "prebuiltVoiceConfig")
-		if ValueAsString(MapField(voice, "voiceName")) != "Kore" {
-			t.Errorf("Kore voice missing from request")
+		voice := MapField(config["speechConfig"], "voiceConfig")
+		if ValueAsString(MapField(voice, "voice")) != "Kore" || MapField(voice, "prebuiltVoiceConfig") != nil {
+			t.Errorf("current Kore voice field missing or legacy shape retained")
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{"candidates": []any{map[string]any{"content": map[string]any{"parts": []any{map[string]any{"inlineData": map[string]any{"mimeType": "audio/wav", "data": base64.StdEncoding.EncodeToString(wav)}}}}}}})
@@ -64,5 +64,16 @@ func TestGeminiTTSAudioResultRejectsMalformedWAV(t *testing.T) {
 	_, _, err := geminiTTSAudioResult(map[string]any{"candidates": []any{map[string]any{"content": map[string]any{"parts": []any{map[string]any{"inlineData": map[string]any{"mimeType": "audio/wav", "data": base64.StdEncoding.EncodeToString([]byte("RIFFnot-a-wave"))}}}}}}})
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_OUTPUT_INVALID {
 		t.Fatalf("malformed WAV reason=%v ok=%v err=%v", reason, ok, err)
+	}
+}
+
+func TestGeminiTTSAudioResultRejectsValidPCM24Output(t *testing.T) {
+	wav := testGeminiTTSWAV()
+	binary.LittleEndian.PutUint32(wav[28:32], 72000)
+	binary.LittleEndian.PutUint16(wav[32:34], 3)
+	binary.LittleEndian.PutUint16(wav[34:36], 24)
+	_, _, err := geminiTTSAudioResult(map[string]any{"candidates": []any{map[string]any{"content": map[string]any{"parts": []any{map[string]any{"inlineData": map[string]any{"mimeType": "audio/wav", "data": base64.StdEncoding.EncodeToString(wav)}}}}}}})
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_OUTPUT_INVALID {
+		t.Fatalf("24-bit WAV reason=%v ok=%v err=%v", reason, ok, err)
 	}
 }

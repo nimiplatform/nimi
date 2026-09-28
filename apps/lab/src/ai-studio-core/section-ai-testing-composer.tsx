@@ -4,7 +4,7 @@ import { ArrowUp, Paperclip, Play, Plus, RefreshCw, ScanSearch, SlidersHorizonta
 import type { BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/headless';
 import { useAIStudioHost } from './host-context.js';
 import type { StudioCapabilityRegistration } from './module-registration.js';
-import { hasStudioCapabilityRunInput } from './section-ai-testing-input.js';
+import { hasStudioCapabilityRunInput, usesVerbatimStudioPrompt } from './section-ai-testing-input.js';
 import { VisionLocateImageInput } from './section-ai-testing-vision-input.js';
 
 function IntentSummaryChip({
@@ -92,7 +92,7 @@ export function TextStudioComposer({
   const isReadOnlyComposer = profile.inputKind === 'none';
   const requiresPrompt = !isReadOnlyComposer;
   const contextAttached = Boolean(context.trim());
-  const supportsContext = requiresPrompt && capability.id !== 'audio.transcribe' && !isVisionLocate && !profile.rawPrompt;
+  const supportsContext = requiresPrompt && !usesVerbatimStudioPrompt(capability.id) && !profile.rawPrompt;
   const [contextOpen, setContextOpen] = useState(false);
   const [parametersOpen, setParametersOpen] = useState(false);
   const promptReady = hasStudioCapabilityRunInput({ requiresPrompt, prompt, hasAlternativeInput })

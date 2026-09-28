@@ -323,6 +323,23 @@ models:
       supports_language: true
     voice_ref_kinds:
       - preset_voice_id
+  - model_id: gemini-3.5-transcribe
+    provider: gemini
+    model_type: stt
+    updated_at: 2026-09-29
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: token
+      input: "2.00"
+      output: "12.00"
+      currency: USD
+      as_of: 2026-09-29
+      notes: Standard paid tier per 1M audio input and text output tokens, about $0.005/minute combined at Google's stated estimate. Nimi currently admits only short inline mono 24 kHz PCM WAV and plain transcript output with store=false; no Files upload or retained Interaction.
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.5-transcribe
+      retrieved_at: 2026-09-29
+      note: Exact unary Gemini 3.5 Transcribe model code, text output and finite audio-file processing limits.
   - model_id: gemini-3.1-pro-preview
     provider: gemini
     model_type: chat

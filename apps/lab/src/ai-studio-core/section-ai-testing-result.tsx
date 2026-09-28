@@ -437,7 +437,7 @@ export function TextStudioResultState({
             </details>
             {activeRun.record?.inputTruncated ? <p className="studio-result__hint">{t('StudioShell.historyInputTruncated')}</p> : null}
           </article>
-        ) : registration.profile.inputKind !== 'none' ? <article className="studio-turn studio-turn--user">
+        ) : registration.profile.inputKind !== 'none' && activeRun.prompt ? <article className="studio-turn studio-turn--user">
           <div className="studio-turn__label">
             <MessageSquare size={14} aria-hidden="true" />
             <span>{t('StudioShell.promptLabel')}</span>

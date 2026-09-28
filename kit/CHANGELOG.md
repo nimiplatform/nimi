@@ -1,5 +1,12 @@
 # Changelog
 
+## Overlay shell exit reliability (next patch, development)
+
+- `OverlayShell` keeps its exit motion and releases the dialog or drawer DOM
+  after the spring settles when a fully obscured Electron renderer defers
+  Motion's completion callback. A closed drawer cannot leave an invisible
+  backdrop intercepting later App controls.
+
 ## Select field exit reliability (next patch, development)
 
 - `SelectField` now releases Radix modal focus after the governed exit motion

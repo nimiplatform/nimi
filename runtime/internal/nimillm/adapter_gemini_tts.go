@@ -51,7 +51,7 @@ func ExecuteGeminiTTSGenerateContent(
 		"generationConfig": map[string]any{
 			"responseModalities": []string{"AUDIO"},
 			"speechConfig": map[string]any{
-				"voiceConfig": map[string]any{"prebuiltVoiceConfig": map[string]any{"voiceName": "Kore"}},
+				"voiceConfig": map[string]any{"voice": "Kore"},
 			},
 		},
 	}
@@ -97,7 +97,7 @@ func geminiTTSAudioResult(payload map[string]any) ([]byte, int64, error) {
 		return nil, 0, invalid()
 	}
 	rate, duration, err := finiteASRWAVInfo(audio)
-	if err != nil || rate != 24000 || duration <= 0 {
+	if err != nil || rate != 24000 || duration <= 0 || !geminiWAVPCM16(audio) {
 		return nil, 0, invalid()
 	}
 	return audio, int64(duration * 1000), nil

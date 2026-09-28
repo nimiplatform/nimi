@@ -82,6 +82,7 @@ const (
 )
 
 const CloudMediaAdapterGeminiTTSGenerateContent = "gemini_tts_generate_content_adapter"
+const CloudMediaAdapterGeminiInteractionsTranscribe = "gemini_interactions_transcribe_adapter"
 
 // CloudMediaTarget is one exact provider/model target interpreted by a media
 // Driver. It contains no route, credential, endpoint, or Host facts.
@@ -595,6 +596,12 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 			return nil, err
 		}
 		adapter = CloudMediaAdapterGeminiTTSGenerateContent
+	}
+	if d.provider == "gemini" && target.capabilityContract == "audio.transcribe" && target.providerModelID == geminiInlineTranscribeModel {
+		if err := validateGeminiInlineTranscribeRequest(mapped, target.providerModelID); err != nil {
+			return nil, err
+		}
+		adapter = CloudMediaAdapterGeminiInteractionsTranscribe
 	}
 	// @nimi-authority: rule.nimi.runtime.ai-provider.speech-transcription-result
 	if d.provider == "dashscope" && target.capabilityContract == "audio.transcribe" && dashScopeFiniteASRTarget(target.providerModelID) {

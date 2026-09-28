@@ -104,6 +104,22 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/speech-generation
     retrieved_at: 2026-09-29
     note: Native GenerateContent speech metadata and voice configuration, plus WAV 24 kHz mono output.
+  - source_id: gemini_3_5_transcribe_doc
+    url: https://ai.google.dev/gemini-api/docs/models/gemini-3.5-transcribe
+    retrieved_at: 2026-09-29
+    note: Exact unary Gemini 3.5 Transcribe model code, text output and finite audio-file processing limits.
+  - source_id: gemini_transcribe_guide
+    url: https://ai.google.dev/gemini-api/docs/transcribe
+    retrieved_at: 2026-09-29
+    note: Interactions transcription request and word/diarization controls; Nimi's first cell is transcript-only.
+  - source_id: gemini_interactions_audio_guide
+    url: https://ai.google.dev/gemini-api/docs/audio
+    retrieved_at: 2026-09-29
+    note: Interactions inline audio data under the documented 20 MB total-request limit.
+  - source_id: gemini_interactions_state_guide
+    url: https://ai.google.dev/gemini-api/docs/interactions-overview
+    retrieved_at: 2026-09-29
+    note: Synchronous store=false Interaction behavior without a retained server-side turn.
   - source_id: gemini_generate_content_image_doc
     url: https://ai.google.dev/gemini-api/docs/generate-content/image-generation
     retrieved_at: 2026-09-28
@@ -397,6 +413,19 @@ models:
       as_of: 2026-09-29
       notes: Standard paid tier per 1M text input and audio output tokens through 2026-12-31; the rates double on 2027-01-01. Nimi currently admits only single-speaker Kore WAV at 24 kHz.
     source_ids: [gemini_3_8_flash_lite_tts_doc, gemini_tts_guide, gemini_pricing_doc]
+
+  - model_id: gemini-3.5-transcribe
+    model_type: stt
+    updated_at: 2026-09-29
+    capabilities: [audio.transcribe]
+    pricing:
+      unit: token
+      input: "2.00"
+      output: "12.00"
+      currency: USD
+      as_of: 2026-09-29
+      notes: Standard paid tier per 1M audio input and text output tokens, about $0.005/minute combined at Google's stated estimate. Nimi currently admits only short inline mono 24 kHz PCM WAV and plain transcript output with store=false; no Files upload or retained Interaction.
+    source_ids: [gemini_3_5_transcribe_doc, gemini_transcribe_guide, gemini_interactions_audio_guide, gemini_interactions_state_guide, gemini_pricing_doc]
 
   - model_id: gemini-3.1-pro-preview
     model_type: chat

@@ -3,6 +3,7 @@ import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { cn } from '../design-tokens.js';
 import {
   AnimatePresence,
+  NIMI_SPRING_DEFAULT,
   motion,
   nimiOverlayBackdropMotion,
   nimiOverlayPanelMotion,
@@ -223,12 +224,32 @@ export function OverlayShell({
   'data-testid': dataTestIdKebab,
 }: OverlayShellProps) {
   const focusReturnTargetRef = React.useRef<HTMLElement | null>(null);
+  const [presenceMounted, setPresenceMounted] = React.useState(open);
+  const openRef = React.useRef(open);
+  openRef.current = open;
   const reducedMotion = useNimiReducedMotion();
   const panelMotion = nimiOverlayPanelMotion({
     kind: kind === 'drawer' ? 'drawer' : kind === 'popover' ? 'popover' : 'dialog',
     reducedMotion,
   });
   const backdropMotion = nimiOverlayBackdropMotion({ reducedMotion });
+
+  React.useEffect(() => {
+    if (open) {
+      setPresenceMounted(true);
+      return;
+    }
+    if (!presenceMounted) return;
+    // A background Electron renderer may defer Motion's exit callback after
+    // the panel has visually finished. Keep the spring, then release its DOM.
+    const delayMs = reducedMotion ? 250 : NIMI_SPRING_DEFAULT.responseSeconds * 1000 + 200;
+    const timer = window.setTimeout(() => setPresenceMounted(false), delayMs);
+    return () => window.clearTimeout(timer);
+  }, [open, presenceMounted, reducedMotion]);
+
+  const finishExit = () => {
+    if (!openRef.current) setPresenceMounted(false);
+  };
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen && onClose) onClose();
@@ -318,7 +339,7 @@ export function OverlayShell({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <AnimatePresence>
+      {presenceMounted ? <AnimatePresence onExitComplete={finishExit}>
         {open ? (
           <DialogPrimitive.Portal forceMount>
             <DialogPrimitive.Overlay asChild forceMount>
@@ -333,6 +354,7 @@ export function OverlayShell({
             </DialogPrimitive.Overlay>
             <DialogPrimitive.Content asChild forceMount
               aria-modal="true"
+              aria-hidden={!open}
               {...(description ? {} : { 'aria-describedby': undefined })}
               onOpenAutoFocus={handleOpenAutoFocus}
               onCloseAutoFocus={handleCloseAutoFocus}
@@ -357,7 +379,7 @@ export function OverlayShell({
             </DialogPrimitive.Content>
           </DialogPrimitive.Portal>
         ) : null}
-      </AnimatePresence>
+      </AnimatePresence> : null}
     </Dialog>
   );
 }

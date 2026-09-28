@@ -14,6 +14,7 @@ import { ScenarioJobStatus } from '@nimiplatform/sdk/runtime/generated';
 import {
   canCancelStudioCapabilityRun,
   hasStudioCapabilityRunInput,
+  usesVerbatimStudioPrompt,
 } from './section-ai-testing-input.js';
 import { TextStudioResultState } from './section-ai-testing-result.js';
 import { canConfigureRunTarget, createRunConfigSnapshot, effectiveTextStudioPromptStyle, textStudioDirectiveForTarget, textStudioRunTargetIntentSummary, textStudioRuntimePrompt, useStudioRunTargetSummary, type TextStudioActiveRun } from './section-ai-testing-run.js';
@@ -196,7 +197,7 @@ function TextStudioShell({
     const startedAt = rendererHost.clock.now();
     const pendingRun: TextStudioActiveRun = {
       id: `pending-${startedAt}`,
-      prompt: displayPrompt || preset.prompt,
+      prompt: displayPrompt || (runHasAlternativeInput ? '' : preset.prompt),
       context: nextContext.trim(),
       createdAt: new Date(startedAt).toISOString(),
       result: null,
@@ -215,7 +216,7 @@ function TextStudioShell({
         const directive = textStudioDirectiveForTarget(runTarget, profile);
         result = await rendererHost.sdk.runCapability({
           capabilityId: capability.id,
-          prompt: capability.id === 'audio.transcribe' || capability.id === 'vision.locate' || profile.rawPrompt || recordedInput
+          prompt: usesVerbatimStudioPrompt(capability.id) || profile.rawPrompt || recordedInput
             ? displayPrompt
             : textStudioRuntimePrompt(displayPrompt, nextContext, directive),
           scenarioId: preset.id,

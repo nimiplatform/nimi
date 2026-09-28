@@ -1,5 +1,11 @@
 import type { StudioResultKind } from './module-registration.js';
 
+export function usesVerbatimStudioPrompt(capabilityId: string): boolean {
+  return capabilityId === 'audio.synthesize'
+    || capabilityId === 'audio.transcribe'
+    || capabilityId === 'vision.locate';
+}
+
 export function hasStudioCapabilityRunInput(input: {
   requiresPrompt: boolean;
   prompt: string;
