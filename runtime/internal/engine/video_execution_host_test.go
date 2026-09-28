@@ -15,6 +15,7 @@ import (
 
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -425,7 +426,7 @@ func videoPlanForHostTestWithPortable(t *testing.T, prompt string, portable *str
 	}
 	plan, err := (capabilitydriver.StableDiffusionVideoDriver{}).PlanVideoInvocation(capabilitydriver.VideoInvocationInput{
 		LoadoutID: "video-loadout", PortableConfig: portable, ExactBindings: bindings,
-		Request: capabilitydriver.VideoInvocationRequest{Prompt: prompt, Width: 32, Height: 32, FrameCount: 5, FPS: 24, Seed: 7, GenerateAudio: true},
+		Request: capabilitydriver.VideoInvocationRequest{Prompt: prompt, Width: 32, Height: 32, FrameCount: 5, FPS: 24, Seed: 7, GenerateAudio: proto.Bool(true)},
 	})
 	if err != nil {
 		t.Fatalf("PlanVideoInvocation: %v", err)

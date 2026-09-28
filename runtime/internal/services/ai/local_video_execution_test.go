@@ -702,6 +702,22 @@ func TestLocalVideoMissingRequestedLastFrameFailsWithoutPartialArtifact(t *testi
 	}
 }
 
+func TestLocalVideoInvocationPreservesAudioControlPresence(t *testing.T) {
+	svc := newTestService(nil)
+	request := localVideoJobRequestForTest(64, 64, 5)
+	spec := request.GetSpec().GetVideoGenerate()
+	spec.Options.GenerateAudio = nil
+	absent, err := svc.resolveLocalVideoInvocationRequest(context.Background(), request.GetHead(), spec)
+	if err != nil || absent.GenerateAudio != nil {
+		t.Fatalf("absent audio control was changed: value=%v err=%v", absent.GenerateAudio, err)
+	}
+	spec.Options.GenerateAudio = testBool(false)
+	explicit, err := svc.resolveLocalVideoInvocationRequest(context.Background(), request.GetHead(), spec)
+	if err != nil || explicit.GenerateAudio == nil || *explicit.GenerateAudio {
+		t.Fatalf("explicit audio opt-out was lost: value=%v err=%v", explicit.GenerateAudio, err)
+	}
+}
+
 func TestLocalVideoAdmissionRejectsBeforeJobOrHostDispatch(t *testing.T) {
 	tests := []struct {
 		name   string

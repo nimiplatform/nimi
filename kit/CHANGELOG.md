@@ -5,8 +5,9 @@
 - `runRuntimeVideoGenerate` now forwards `generateAudio` only when the App
   supplies it. The old Kit-wide implicit `true` applied a MiniMax-H3 rule to
   unrelated Cloud models and made their supported text-to-video request fail.
-  Apps using MiniMax-H3 must explicitly set `generateAudio: true` when they
-  need its always-on audio contract.
+  Runtime's MiniMax-H3 Driver treats an absent control as its always-on audio
+  behavior and rejects an explicit `false`; Apps can omit the field for the
+  default or send `true` explicitly.
 
 ## Embedding space identity (next minor, development)
 

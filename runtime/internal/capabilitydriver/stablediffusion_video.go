@@ -650,12 +650,9 @@ func normalizeStableDiffusionVideoRequest(request VideoInvocationRequest) (norma
 	if frameCount < 5 || frameCount > stableDiffusionVideoMaxFrames || (frameCount-5)%17 != 0 {
 		return normalizedStableDiffusionVideoRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("video.generate frame count must be 17k+5 and no greater than %d", stableDiffusionVideoMaxFrames))
 	}
-	// GenerateAudio stays a typed reject when false: proto3 erases bool
-	// presence upstream, so the driver cannot distinguish "absent" from an
-	// explicit opt-out, and silently overriding an explicit false would break
-	// fail-closed packet semantics. The first-party absent-to-true default is
-	// applied by the Kit caller instead.
-	if !request.GenerateAudio {
+	// MiniMax-H3 always generates audio. Absence means the caller did not
+	// request a control; an explicit false contradicts this exact recipe.
+	if request.GenerateAudio != nil && !*request.GenerateAudio {
 		return normalizedStableDiffusionVideoRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("video.generate audio is required for MiniMax-H3"))
 	}
 	result := normalizedStableDiffusionVideoRequest{

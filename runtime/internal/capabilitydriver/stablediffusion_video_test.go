@@ -335,7 +335,7 @@ func TestStableDiffusionVideoPlanRejectsEveryH3AdmissionViolation(t *testing.T) 
 		{name: "frame exceeds FFI carrier", mutate: func(request *VideoInvocationRequest) { request.FrameCount = 515 }},
 		{name: "duration range", mutate: func(request *VideoInvocationRequest) { request.FrameCount, request.DurationSec = 0, 21 }},
 		{name: "duration and frames", mutate: func(request *VideoInvocationRequest) { request.DurationSec = 2 }},
-		{name: "audio required", mutate: func(request *VideoInvocationRequest) { request.GenerateAudio = false }},
+		{name: "audio opt-out rejected", mutate: func(request *VideoInvocationRequest) { request.GenerateAudio = testBool(false) }},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -344,6 +344,17 @@ func TestStableDiffusionVideoPlanRejectsEveryH3AdmissionViolation(t *testing.T) 
 			_, err := driver.PlanVideoInvocation(VideoInvocationInput{LoadoutID: "loadout-h3", ExactBindings: bindings, Request: request})
 			assertVideoInvocationErrorKind(t, err, InvocationFailureInvalidRequest)
 		})
+	}
+}
+
+func TestStableDiffusionVideoAbsentAudioControlKeepsAlwaysAudioRecipe(t *testing.T) {
+	driver := StableDiffusionVideoDriver{}
+	request := stableDiffusionVideoRequestForTest()
+	request.GenerateAudio = nil
+	if _, err := driver.PlanVideoInvocation(VideoInvocationInput{
+		LoadoutID: "loadout-h3", ExactBindings: stableDiffusionVideoInvocationBindingsForTest(t.TempDir()), Request: request,
+	}); err != nil {
+		t.Fatalf("MiniMax-H3 rejected an absent audio control: %v", err)
 	}
 }
 
@@ -605,7 +616,7 @@ func safetensorsProbeForTest(header []byte) []byte {
 
 func stableDiffusionVideoRequestForTest() VideoInvocationRequest {
 	return VideoInvocationRequest{
-		Prompt: "video", Width: 640, Height: 480, FrameCount: 22, FPS: 24, Seed: 42, GenerateAudio: true,
+		Prompt: "video", Width: 640, Height: 480, FrameCount: 22, FPS: 24, Seed: 42, GenerateAudio: testBool(true),
 	}
 }
 

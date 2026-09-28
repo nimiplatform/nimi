@@ -500,7 +500,7 @@ type VideoInvocationRequest struct {
 	FrameCount      int
 	FPS             int
 	Seed            int64
-	GenerateAudio   bool
+	GenerateAudio   *bool
 	ReturnLastFrame bool
 	Inputs          []VideoResolvedInput
 }
