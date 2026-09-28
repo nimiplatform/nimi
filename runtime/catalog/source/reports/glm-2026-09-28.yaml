@@ -1,0 +1,66 @@
+provider: glm
+report_date: 2026-09-28
+audit_mode: family_scoped
+families_in_scope:
+  - text
+taxonomy_axes:
+  product_family:
+    - glm
+  capability_family:
+    - text
+  lineage_or_track:
+    - glm_5_2
+    - glm_5_3
+    - glm_5_turbo
+refresh_policy:
+  keep_latest_generations: 2
+  authority_home: runtime/catalog/source/providers/glm.source.yaml
+evidence_urls:
+  official:
+    - https://docs.bigmodel.cn/cn/guide/start/model-overview
+    - https://docs.bigmodel.cn/cn/guide/models/text/glm-5.3
+    - https://docs.bigmodel.cn/cn/guide/models/text/glm-5-turbo
+    - https://docs.bigmodel.cn/cn/guide/start/migrate-to-glm-new
+  official_product: []
+  aggregate_hints:
+    - Tencent TokenHub drops its hosted glm-5-turbo on 2026-10-09; not a Zhipu lifecycle event.
+current_source_inventory:
+  text:
+    selection_profiles:
+      text.general: glm-5.2
+      text.fast: glm-5-turbo
+      text.reasoning: glm-5.2
+official_current_inventory:
+  text:
+    recommended:
+      - glm-5.3 (flagship, thinking always on)
+      - glm-5.3-flash
+      - glm-5.3-flashx
+      - glm-5.2
+    other: glm-5-turbo is callable and positioned for OpenClaw long tasks
+gap_summary:
+  missing_in_source:
+    - glm-5.3
+    - glm-5.3-flash
+    - glm-5.3-flashx
+  stale_in_source:
+    - rationales that called GLM-5.2 the flagship and GLM-5-Turbo lower-latency
+  extra_legacy_in_source: []
+  uncertain_items: []
+curation_decision:
+  keep:
+    - glm-5.2
+    - glm-5-turbo with a corrected rationale
+  add: []
+  remove: []
+  defer:
+    - glm-5.3 family admission, which needs exact always-on thinking behavior review
+  reject_or_noise: []
+review_actions:
+  selection_profiles_review_required: true
+  defaults_review_required: false
+  capability_review_required: false
+notes:
+  - "Profile policy for this refresh: keep an active model that the provider does not label legacy, previous, or retiring and rewrite its rationale to current facts; otherwise move to an admitted row the provider recommends for the role, or add the provider-recommended model as a base-text row when its admission is not reserved for a later review. Rows are removed only for confirmed shutdowns."
+  - No GLM credentials were available; no live call was made.
+confidence: medium

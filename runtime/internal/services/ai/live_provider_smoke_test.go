@@ -140,10 +140,6 @@ func TestLiveSmokeQianfanGenerateText(t *testing.T) {
 	runLiveSmokeCloudGenerateText(t, "qianfan", "QIANFAN", "https://qianfan.baidubce.com/v2")
 }
 
-func TestLiveSmokeHunyuanGenerateText(t *testing.T) {
-	runLiveSmokeCloudGenerateText(t, "hunyuan", "HUNYUAN", "https://api.hunyuan.cloud.tencent.com/v1")
-}
-
 func TestLiveSmokeSparkGenerateText(t *testing.T) {
 	runLiveSmokeCloudGenerateText(t, "spark", "SPARK", "https://spark-api-open.xf-yun.com/v1")
 }

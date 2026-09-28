@@ -69,15 +69,15 @@ selection_profiles:
   - profile_id: text.general
     capability: text.generate
     model_id: mistral-large-latest
-    reviewed_at: 2026-07-20
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Best current general Mistral text route in the admitted alias-backed set, aligned to Mistral Large 3.
+    rationale: Alias currently resolving to Mistral Large 3 (mistral-large-2512), the GA model used in Mistral's API quickstart; Mistral Medium 3.5 is newer, but its admitted alias row still describes Medium 3.1.
   - profile_id: text.fast
     capability: text.generate
     model_id: mistral-small-latest
-    reviewed_at: 2026-07-20
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Cost-efficient Mistral text route for fast general tasks, aligned to Mistral Small 4.
+    rationale: Alias currently resolving to Mistral Small 4 (mistral-small-2603), Mistral's cost-efficient GA model.
 
 models:
   - model_id: mistral-large-latest

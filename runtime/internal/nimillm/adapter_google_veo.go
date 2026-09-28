@@ -43,7 +43,7 @@ func ExecuteGoogleVeoOperation(
 
 	resolvedModel := strings.TrimSpace(modelResolved)
 	if resolvedModel == "" {
-		resolvedModel = "veo-2.0-generate-001"
+		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MODEL_ID_REQUIRED)
 	}
 	instances := []map[string]any{
 		{"prompt": VideoPrompt(spec)},

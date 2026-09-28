@@ -28,6 +28,6 @@ selection_profiles:
     profile_id: text.general
     capability: text.generate
     model_id: spark-x
-    reviewed_at: 2026-07-20
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Current X2 endpoint-scoped reasoning route; the provider retains `spark-x` as the request model id.
+    rationale: The X2 reasoning endpoint still takes `spark-x` as its request model id; the newer X2.5 model is served from a separate MaaS host and is not admitted here.

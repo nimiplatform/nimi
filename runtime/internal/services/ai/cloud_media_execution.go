@@ -423,6 +423,11 @@ func (s *Service) resolveCloudMediaConsumerIntent(ctx context.Context, head *run
 func cloudMediaDriverError(capabilityContract string, err error) error {
 	var driverErr *capabilitydriver.CloudInvocationError
 	if !errors.As(err, &driverErr) {
+		// A Driver that already classified an exact unsupported option keeps
+		// that public reason instead of being reported as an internal failure.
+		if _, typed := grpcerr.ExtractReasonCode(err); typed {
+			return err
+		}
 		return grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{})
 	}
 	switch driverErr.Kind {

@@ -1,6 +1,6 @@
 schema_version: 3
 provider: openai
-catalog_version: 2026-07-20-openai-text-embedding-v5
+catalog_version: 2026-09-28-openai-sora-2-retired
 generated_target: runtime/catalog/providers/openai.yaml
 runtime:
   inventory_mode: static_source
@@ -37,6 +37,10 @@ sources:
     url: https://developers.openai.com/api/docs/models
     retrieved_at: 2026-07-20
     note: OpenAI official models index.
+  - source_id: openai_deprecations_doc
+    url: https://developers.openai.com/api/docs/deprecations
+    retrieved_at: 2026-09-28
+    note: Official OpenAI deprecation page, read through its 2026-09-26 Internet Archive capture because the live page returned HTTP 403 here; it announces the 2027-02-26 API removal of whisper-1, gpt-4o-transcribe, and gpt-4o-mini-transcribe, and the 2026-09-24 Sora 2 shutdown.
   - source_id: openai_pricing_doc
     url: https://developers.openai.com/api/docs/pricing
     retrieved_at: 2026-04-18
@@ -85,10 +89,6 @@ sources:
     url: https://platform.openai.com/docs/models/o3-mini
     retrieved_at: 2026-03-05
     note: OpenAI o3-mini reasoning model card.
-  - source_id: openai_sora_2_doc
-    url: https://platform.openai.com/docs/models/sora-2
-    retrieved_at: 2026-03-05
-    note: OpenAI Sora 2 video generation model card.
   - source_id: openai_gpt_5_3_codex_doc
     url: https://developers.openai.com/api/docs/models/gpt-5.3-codex
     retrieved_at: 2026-03-05
@@ -113,21 +113,21 @@ selection_profiles:
   - profile_id: text.general
     capability: text.generate
     model_id: gpt-5.6-sol
-    reviewed_at: 2026-07-20
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: OpenAI's current exact frontier model id for complex reasoning, coding, and agentic workloads.
+    rationale: Active exact GPT-5.6 Sol model with no announced shutdown; the newer GPT-6 models are not admitted for this standard OpenAI route yet.
   - profile_id: text.fast
     capability: text.generate
     model_id: gpt-5.6-terra
-    reviewed_at: 2026-07-20
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Current balanced GPT-5.6 route for conversational and high-volume workloads.
+    rationale: Active GPT-5.6 Terra for balanced conversational and high-volume workloads; GPT-6 Sol and Luna are not admitted for this route yet.
   - profile_id: text.reasoning
     capability: text.generate
     model_id: gpt-5.6-sol
-    reviewed_at: 2026-07-20
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Highest-capability current exact GPT reasoning route in the admitted set.
+    rationale: Highest-capability admitted standard OpenAI model; GPT-6 Astra is OpenAI's current flagship but is not admitted for this route yet.
 
 voice_sets:
   - voice_set_id: default-tts-v1
@@ -212,8 +212,8 @@ models:
       output: "0"
       currency: USD
       as_of: 2026-03-18
-      notes: Speech-to-text. Input = audio tokens. Per 1M tokens.
-    source_ids: [openai_speech_to_text_doc, openai_models_doc]
+      notes: Speech-to-text. Input = audio tokens. Per 1M tokens. Deprecated, with API removal on 2027-02-26; OpenAI names gpt-transcribe or gpt-live-transcribe as replacements.
+    source_ids: [openai_speech_to_text_doc, openai_models_doc, openai_deprecations_doc]
     transcription:
       tiers: [core_transcript]
       response_formats: [text, json]
@@ -230,8 +230,8 @@ models:
       output: "0"
       currency: USD
       as_of: 2026-03-18
-      notes: Speech-to-text (mini). Input = audio tokens. Per 1M tokens.
-    source_ids: [openai_speech_to_text_doc, openai_models_doc]
+      notes: Speech-to-text (mini). Input = audio tokens. Per 1M tokens. Deprecated, with API removal on 2027-02-26; OpenAI names gpt-transcribe or gpt-live-transcribe as replacements.
+    source_ids: [openai_speech_to_text_doc, openai_models_doc, openai_deprecations_doc]
     transcription:
       tiers: [core_transcript]
       response_formats: [text, json]
@@ -248,8 +248,8 @@ models:
       output: "0"
       currency: USD
       as_of: 2026-03-18
-      notes: Legacy STT. Approximate per-token equivalent of $0.006/minute. Per 1M tokens.
-    source_ids: [openai_speech_to_text_doc, openai_models_doc]
+      notes: Legacy STT. Approximate per-token equivalent of $0.006/minute. Per 1M tokens. Deprecated, with API removal on 2027-02-26; OpenAI names gpt-transcribe or gpt-live-transcribe as replacements.
+    source_ids: [openai_speech_to_text_doc, openai_models_doc, openai_deprecations_doc]
     transcription:
       tiers: [core_transcript]
       response_formats: [text, json]
@@ -520,34 +520,6 @@ models:
       as_of: 2026-03-18
       notes: Agentic coding model. Per 1M tokens.
     source_ids: [openai_gpt_5_3_codex_doc, openai_models_doc]
-
-  - model_id: sora-2
-    model_type: video
-    updated_at: 2026-03-05
-    capabilities: [video.generate]
-    features: [input.image]
-    pricing:
-      unit: request
-      input: "0.10"
-      output: "0"
-      currency: USD
-      as_of: 2026-03-18
-      notes: Video generation. Per request varies by resolution and duration.
-    source_ids: [openai_sora_2_doc, openai_models_doc]
-    video_generation:
-      modes: [t2v, i2v_first_frame]
-      input_roles:
-        t2v: [prompt]
-        i2v_first_frame: [prompt, first_frame]
-      limits:
-        resolution: [480p, 720p, 1080p]
-      options:
-        supports: [resolution, ratio, duration_sec]
-        constraints: {}
-      outputs:
-        video_url: true
-    aliases:
-      - sora-2-2025-12-08
 
 overrides:
   models: []

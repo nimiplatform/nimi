@@ -498,20 +498,20 @@ selection_profiles:
     profile_id: text.general
     capability: text.generate
     model_id: anthropic.claude-sonnet-5
-    reviewed_at: 2026-07-20
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Best current balanced generally available Bedrock text route in the admitted set.
+    rationale: Active Claude Sonnet 5 Bedrock route with end-of-life not before 2027-06-30, and the balanced Anthropic model in the admitted set.
   - provider: bedrock
     profile_id: text.fast
     capability: text.generate
     model_id: amazon.nova-micro-v1:0
-    reviewed_at: 2026-07-20
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Fastest admitted Bedrock text-only route in the reviewed Amazon Nova subset.
+    rationale: Active Nova Micro, which AWS describes as Amazon's fastest text-only model.
   - provider: bedrock
     profile_id: text.reasoning
     capability: text.generate
     model_id: anthropic.claude-fable-5
-    reviewed_at: 2026-07-20
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Highest-capability widely available Bedrock reasoning route; callers must handle its documented refusal and retention contract.
+    rationale: Highest-capability admitted Bedrock route, active with end-of-life not before 2027-06-09; callers must handle its documented refusal and retention contract. Claude Fable 5.1 is not admitted in this catalog yet.

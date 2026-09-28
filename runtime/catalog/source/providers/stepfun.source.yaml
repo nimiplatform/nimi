@@ -93,21 +93,21 @@ selection_profiles:
   - profile_id: text.general
     capability: text.generate
     model_id: step-3.7-flash
-    reviewed_at: 2026-07-20
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Current flagship StepFun production Agent route with native multimodal understanding and tool orchestration.
+    rationale: StepFun's recommended production flagship for multimodal reasoning and Agent work; the newer Step 5 is still a preview.
   - profile_id: text.fast
     capability: text.generate
-    model_id: step-2-mini
-    reviewed_at: 2026-07-20
+    model_id: step-3.5-flash-2603
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Current lowest-latency admitted StepFun text route for general and coding-heavy workloads.
+    rationale: Agent-optimized Step 3.5 Flash snapshot with faster inference and a low-reasoning mode; the previous step-2-mini target was retired on 2026-07-08.
   - profile_id: text.reasoning
     capability: text.generate
     model_id: step-3.7-flash
-    reviewed_at: 2026-07-20
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: StepFun's current flagship route for reasoning, long-running Agent workflows, and multimodal task execution.
+    rationale: StepFun's recommended production flagship for reasoning and long-running Agent work; Step 5 Preview is not admitted.
 
 voice_sets:
   - voice_set_id: tts_2_voice_set

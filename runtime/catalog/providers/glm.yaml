@@ -206,20 +206,20 @@ selection_profiles:
     profile_id: text.general
     capability: text.generate
     model_id: glm-5.2
-    reviewed_at: 2026-07-20
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Current flagship GLM route for long-horizon coding and general text workloads.
+    rationale: GLM-5.2 remains in BigModel's recommended lineup for stable long-horizon tasks with a 1M context window; the newer GLM-5.3 flagship is not admitted in this catalog yet.
   - provider: glm
     profile_id: text.fast
     capability: text.generate
     model_id: glm-5-turbo
-    reviewed_at: 2026-07-20
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Current turbo GLM base route for lower-latency long-task execution.
+    rationale: Callable GLM-5-Turbo; BigModel now positions it for OpenClaw long tasks rather than latency, and the GLM-5.3 Flash tier is not admitted in this catalog yet.
   - provider: glm
     profile_id: text.reasoning
     capability: text.generate
     model_id: glm-5.2
-    reviewed_at: 2026-07-20
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Current highest-capability GLM reasoning and coding route with a documented 1M context window.
+    rationale: Highest-capability admitted GLM route; GLM-5.3, BigModel's newer flagship with always-on thinking, is not admitted in this catalog yet.

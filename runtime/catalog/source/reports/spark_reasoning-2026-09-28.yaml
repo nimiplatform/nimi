@@ -1,0 +1,51 @@
+provider: spark_reasoning
+report_date: 2026-09-28
+audit_mode: family_scoped
+families_in_scope:
+  - text
+taxonomy_axes:
+  product_family:
+    - spark_x
+  capability_family:
+    - text
+  lineage_or_track:
+    - x2
+    - x2_5
+refresh_policy:
+  keep_latest_generations: 2
+  authority_home: runtime/catalog/source/providers/spark_reasoning.source.yaml
+evidence_urls:
+  official:
+    - https://www.xfyun.cn/doc/spark/X1http.html
+    - https://www.xfyun.cn/doc/spark/Spark-X2.5.html
+  official_product: []
+  aggregate_hints: []
+current_source_inventory:
+  text:
+    selection_profiles:
+      text.general: spark-x
+official_current_inventory:
+  text:
+    x2: The /x2 endpoint takes model spark-x
+    x2_5: spark-x2.5 launched on 2026-09-06 on a separate MaaS host with different keys
+gap_summary:
+  missing_in_source: []
+  stale_in_source: []
+  extra_legacy_in_source: []
+  uncertain_items: []
+curation_decision:
+  keep:
+    - spark-x
+  add: []
+  remove: []
+  defer:
+    - spark-x2.5, which needs a separate provider surface
+  reject_or_noise: []
+review_actions:
+  selection_profiles_review_required: true
+  defaults_review_required: false
+  capability_review_required: false
+notes:
+  - "Profile policy for this refresh: keep an active model that the provider does not label legacy, previous, or retiring and rewrite its rationale to current facts; otherwise move to an admitted row the provider recommends for the role, or add the provider-recommended model as a base-text row when its admission is not reserved for a later review. Rows are removed only for confirmed shutdowns."
+  - No Spark credentials were available; no live call was made.
+confidence: medium

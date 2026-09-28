@@ -1,0 +1,75 @@
+provider: volcengine
+report_date: 2026-09-28
+audit_mode: family_scoped
+families_in_scope:
+  - text
+taxonomy_axes:
+  product_family:
+    - doubao_seed
+  capability_family:
+    - text
+  lineage_or_track:
+    - seed_2_1
+    - seed_2_0
+refresh_policy:
+  keep_latest_generations: 2
+  authority_home: runtime/catalog/source/providers/volcengine.source.yaml
+evidence_urls:
+  official:
+    - https://www.volcengine.com/docs/82379/1330310
+  official_product: []
+  aggregate_hints: []
+  credentialed_live_probe:
+    - GET https://ark.cn-beijing.volces.com/api/v3/models
+    - POST https://ark.cn-beijing.volces.com/api/v3/chat/completions
+current_source_inventory:
+  text:
+    default_text_model: doubao-seed-2-1-pro-260628
+    selection_profiles:
+      text.general: doubao-seed-2-1-pro-260628
+      text.fast: doubao-seed-2-1-turbo-260628
+official_current_inventory:
+  text:
+    recommended:
+      - doubao-seed-evolving
+      - doubao-seed-2-1-pro-260915 (1024k context)
+      - doubao-seed-2-1-lite-260915
+      - doubao-seed-2-1-turbo-260628
+    previous:
+      - doubao-seed-2-1-pro-260628
+      - doubao-seed-2-0-lite-260428
+      - doubao-seed-2-0-mini-260428
+      - doubao-seed-2-0-pro-260215 (offline soon)
+gap_summary:
+  missing_in_source:
+    - doubao-seed-2-1-pro-260915
+    - doubao-seed-2-1-lite-260915
+  stale_in_source:
+    - text.general pointing to a previous-generation snapshot
+  extra_legacy_in_source:
+    - doubao-1.5-pro-256k
+    - seedance-1-5-pro
+    - doubao-seed-2-0-lite-260215 and doubao-seed-2-0-mini-260215 (offline 2026-10-22)
+  uncertain_items:
+    - doubao-seed-2-1-lite-260915 returned ModelNotOpen for this account.
+    - volcengine_openai_sdk_doc now opens an unrelated page.
+curation_decision:
+  keep:
+    - doubao-seed-2-1-turbo-260628 for text.fast
+    - doubao-seed-2-1-pro-260628 as a previous snapshot without the floating alias
+  add:
+    - doubao-seed-2-1-pro-260915 with the doubao-seed-2.1-pro alias
+  remove: []
+  defer:
+    - doubao-seed-2-1-lite-260915
+    - doubao-seed-evolving
+  reject_or_noise: []
+review_actions:
+  selection_profiles_review_required: true
+  defaults_review_required: true
+  capability_review_required: false
+notes:
+  - "Profile policy for this refresh: keep an active model that the provider does not label legacy, previous, or retiring and rewrite its rationale to current facts; otherwise move to an admitted row the provider recommends for the role, or add the provider-recommended model as a base-text row when its admission is not reserved for a later review. Rows are removed only for confirmed shutdowns."
+  - Live chat completions returned for doubao-seed-2-1-pro-260915, doubao-seed-2-1-pro-260628 and doubao-seed-2-1-turbo-260628 on 2026-09-28; the probe used VOLCENGINE_API_KEY from .env and printed no secrets.
+  - catalog_version changes to 2026-09-28-volcengine-ark-v6, so committed Volcengine Cloud targets must be re-selected.
+confidence: high

@@ -1,0 +1,69 @@
+provider: google_veo
+report_date: 2026-09-28
+audit_mode: family_scoped
+families_in_scope:
+  - video
+taxonomy_axes:
+  product_family:
+    - veo
+  capability_family:
+    - video
+  lineage_or_track:
+    - veo_3_0
+    - veo_3_1
+refresh_policy:
+  keep_latest_generations: 2
+  authority_home: runtime/catalog/source/providers/google_veo.source.yaml
+evidence_urls:
+  official:
+    - https://ai.google.dev/gemini-api/docs/deprecations
+  official_product: []
+  aggregate_hints: []
+  credentialed_live_probe:
+    - GET https://generativelanguage.googleapis.com/v1beta/models/{model}
+current_source_inventory:
+  video:
+    model_rows:
+      - veo-3.1-generate-preview
+      - veo-3.1-fast-generate-preview
+      - veo-3.1-lite-generate-preview
+      - veo-3.0-generate-001
+      - veo-3.0-fast-generate-001
+official_current_inventory:
+  video:
+    active:
+      - veo-3.1-generate-preview
+      - veo-3.1-fast-generate-preview
+      - veo-3.1-lite-generate-preview (no shutdown date announced)
+    shut_down:
+      - veo-3.0-generate-001 (2026-06-30)
+      - veo-3.0-fast-generate-001 (2026-06-30)
+      - veo-2.0-generate-001 (2026-06-30)
+gap_summary:
+  missing_in_source: []
+  stale_in_source:
+    - veo-3.0-generate-001
+    - veo-3.0-fast-generate-001
+  extra_legacy_in_source: []
+  uncertain_items: []
+curation_decision:
+  keep:
+    - veo-3.1-generate-preview
+    - veo-3.1-fast-generate-preview
+    - veo-3.1-lite-generate-preview
+  add: []
+  remove:
+    - veo-3.0-generate-001
+    - veo-3.0-fast-generate-001
+  defer:
+    - Exact Veo 3.1 Fast mode and result acceptance belongs to the media review.
+  reject_or_noise: []
+review_actions:
+  selection_profiles_review_required: false
+  defaults_review_required: false
+  capability_review_required: false
+notes:
+  - The live model API returned NOT_FOUND for veo-3.0-generate-001, veo-3.0-fast-generate-001 and veo-2.0-generate-001 on 2026-09-28.
+  - The Veo adapter no longer substitutes veo-2.0-generate-001 when the captured model is empty; it fails with AI_MODEL_ID_REQUIRED.
+  - catalog_version changes to 2026-09-28-google-veo-3-0-retired, so committed Google Veo targets must be re-selected.
+confidence: high

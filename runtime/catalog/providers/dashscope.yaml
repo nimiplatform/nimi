@@ -3743,23 +3743,23 @@ selection_profiles:
     profile_id: text.general
     capability: text.generate
     model_id: qwen3.7-plus
-    reviewed_at: 2026-07-20
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Official balanced recommendation for general production workloads with multimodal input, tools, and a 1M context window.
+    rationale: Alibaba's recommended balanced Qwen model with tools, image input, and a 1M context window; the stable name currently equals qwen3.7-plus-2026-05-26.
   - provider: dashscope
     profile_id: text.fast
     capability: text.generate
     model_id: qwen3.6-flash
-    reviewed_at: 2026-07-20
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Current admitted flash-tier provider-native DashScope text route for latency-sensitive tasks.
+    rationale: Callable Qwen 3.6 Flash with image input; Alibaba now lists it under legacy models and names Qwen 3.8 Flash as the lower-cost option, which is not admitted in this catalog yet.
   - provider: dashscope
     profile_id: text.reasoning
     capability: text.generate
     model_id: qwen3.7-max
-    reviewed_at: 2026-07-20
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Current Qwen Max line is documented as text-only with thinking mode enabled by default.
+    rationale: Callable Qwen 3.7 Max, text-only with thinking on by default; Alibaba now lists it under legacy models and names Qwen 3.8 Max for the strongest reasoning, which is not admitted in this catalog yet.
 voice_workflow_models:
   - workflow_model_id: qwen-voice-enrollment
     workflow_type: reference_audio

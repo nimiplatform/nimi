@@ -1,0 +1,54 @@
+provider: minimax
+report_date: 2026-09-28
+audit_mode: family_scoped
+families_in_scope:
+  - text
+taxonomy_axes:
+  product_family:
+    - minimax_m
+  capability_family:
+    - text
+  lineage_or_track:
+    - m3
+    - m3_1_preview
+refresh_policy:
+  keep_latest_generations: 2
+  authority_home: runtime/catalog/source/providers/minimax.source.yaml
+evidence_urls:
+  official:
+    - https://platform.minimax.cn/docs/guides/text-generation
+  official_product: []
+  aggregate_hints: []
+current_source_inventory:
+  text:
+    selection_profiles:
+      text.general: MiniMax-M3
+official_current_inventory:
+  text:
+    served:
+      - MiniMax-M3 (1M context, native multimodal)
+      - MiniMax-M2.7
+      - MiniMax-M2.7-highspeed
+    preview: MiniMax-M3.1-Flash-Preview is available only through Token Plan and MiniMax Code subscriptions
+gap_summary:
+  missing_in_source: []
+  stale_in_source: []
+  extra_legacy_in_source: []
+  uncertain_items:
+    - The documentation host moved from platform.minimaxi.com to platform.minimax.cn and now shows api.minimax.cn; the configured api.minimaxi.com endpoint was not exercised.
+curation_decision:
+  keep:
+    - MiniMax-M3
+  add: []
+  remove: []
+  defer:
+    - MiniMax-M3.1-Flash-Preview
+  reject_or_noise: []
+review_actions:
+  selection_profiles_review_required: true
+  defaults_review_required: false
+  capability_review_required: false
+notes:
+  - "Profile policy for this refresh: keep an active model that the provider does not label legacy, previous, or retiring and rewrite its rationale to current facts; otherwise move to an admitted row the provider recommends for the role, or add the provider-recommended model as a base-text row when its admission is not reserved for a later review. Rows are removed only for confirmed shutdowns."
+  - No MiniMax credentials were available; no live call was made.
+confidence: high

@@ -1,0 +1,122 @@
+provider: gemini
+report_date: 2026-09-28
+audit_mode: family_scoped
+families_in_scope:
+  - text
+  - image
+  - embedding
+taxonomy_axes:
+  product_family:
+    - gemini
+    - nano_banana
+    - gemini_embedding
+  capability_family:
+    - text
+    - image
+    - embedding
+  lineage_or_track:
+    - flash
+    - flash_lite
+    - pro_preview
+    - image_preview
+    - embedding_preview
+refresh_policy:
+  keep_latest_generations: 2
+  authority_home: runtime/catalog/source/providers/gemini.source.yaml
+evidence_urls:
+  official:
+    - https://ai.google.dev/gemini-api/docs/models
+    - https://ai.google.dev/gemini-api/docs/deprecations
+    - https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash
+    - https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash-lite
+    - https://ai.google.dev/gemini-api/docs/models/gemini-embedding-2-preview
+    - https://ai.google.dev/gemini-api/docs/pricing
+    - https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-image
+    - https://ai.google.dev/gemini-api/docs/generate-content/image-generation
+  official_product: []
+  aggregate_hints: []
+  credentialed_live_probe:
+    - GET https://generativelanguage.googleapis.com/v1beta/models
+    - POST https://generativelanguage.googleapis.com/v1beta/openai/chat/completions
+    - POST https://generativelanguage.googleapis.com/v1beta/openai/embeddings
+    - POST https://generativelanguage.googleapis.com/v1beta/models/{model}:embedContent
+    - POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image:generateContent
+    - Runtime protected App Job path (SubmitLocalAppScenarioJob, GetLocalAppScenarioJob, ReadLocalAppArtifact) for gemini-3.1-flash-image
+current_source_inventory:
+  text:
+    selection_profiles:
+      text.general: gemini-3.5-flash
+      text.fast: gemini-3.1-flash-lite
+      text.reasoning: gemini-3.1-pro-preview
+  image:
+    - gemini-2.5-flash-image
+    - gemini-3.1-flash-image-preview
+  embedding:
+    - gemini-embedding-001
+    - gemini-embedding-2-preview
+official_current_inventory:
+  text:
+    newest_stable:
+      - gemini-3.8-flash (2026-09-02)
+      - gemini-3.7-flash
+      - gemini-3.6-flash
+      - gemini-3.5-flash-lite (2026-07-21)
+    legacy: Google labels gemini-3.5-flash its legacy Flash model and directs new projects to 3.5 Flash-Lite or 3.8 Flash
+    scheduled_shutdown: gemini-3.1-flash-lite on 2027-05-07, replaced by gemini-3.5-flash-lite
+    pro: gemini-3.1-pro-preview remains the only Pro model, with no shutdown date
+  image:
+    shut_down: gemini-3.1-flash-image-preview on 2026-06-25, replaced by gemini-3.1-flash-image
+    scheduled_shutdown: gemini-2.5-flash-image on 2026-10-02
+    stable:
+      - gemini-3.1-flash-image
+      - gemini-3-pro-image
+      - gemini-3.1-flash-lite-image
+  embedding:
+    stable: gemini-embedding-2 (2026-04-22)
+    lifecycle_table: embedding-2-preview shows a 2026-08-10 shutdown
+    model_page: gemini-embedding-2-preview still documents the exact preview model code
+gap_summary:
+  missing_in_source:
+    - gemini-3.8-flash
+    - gemini-3.5-flash-lite
+    - gemini-3.1-flash-image
+    - gemini-3-pro-image
+    - gemini-embedding-2
+  stale_in_source:
+    - gemini-3.1-flash-image-preview after its 2026-06-25 shutdown
+    - text.general pointing to the legacy gemini-3.5-flash
+    - text.fast pointing to gemini-3.1-flash-lite with an announced shutdown
+  extra_legacy_in_source:
+    - gemini-2.5-flash-image shuts down on 2026-10-02
+    - Gemini 2.5 text models are access-limited for new projects
+  uncertain_items:
+    - "gemini-embedding-2-preview: the lifecycle table names the shortened embedding-2-preview ID (NOT_FOUND on the API), while the exact preview ID remains listed and returned 3072-dimensional vectors through native and OpenAI-compatible calls on 2026-09-28."
+curation_decision:
+  keep:
+    - gemini-3.1-pro-preview for text.reasoning
+    - gemini-embedding-2-preview without changes to its dimension or index semantics
+  add:
+    - gemini-3.8-flash (base text and image input verified live)
+    - gemini-3.5-flash-lite (base text and image input verified live)
+    - gemini-3.1-flash-image for image.generate with input.image (prompt generation and single-reference editing verified live through the protected App Job path)
+  remove:
+    - gemini-3.1-flash-image-preview after the confirmed 2026-06-25 shutdown
+    - gemini-2.5-flash-image ahead of its announced 2026-10-02 shutdown, once its stable successor was admitted
+  defer:
+    - "gemini-3-pro-image and gemini-3.1-flash-lite-image: reserved for the media review"
+    - "gemini-embedding-2: reserved for the embedding review with an exact text-only dimension"
+  reject_or_noise:
+    - embedding-2-preview as an API model id
+review_actions:
+  selection_profiles_review_required: true
+  defaults_review_required: true
+  capability_review_required: true
+notes:
+  - "Profile policy for this refresh: keep an active model that the provider does not label legacy, previous, or retiring and rewrite its rationale to current facts; otherwise move to an admitted row the provider recommends for the role, or add the provider-recommended model as a base-text row when its admission is not reserved for a later review. Rows are removed only for confirmed shutdowns."
+  - gemini-3.1-flash-image-preview still answered metadata and countTokens calls on 2026-09-28; generation was not probed. Removal follows the official shutdown date.
+  - The gemini-embedding-2-preview row declares no fixed output dimension, so Runtime already rejects Cloud text.embed admission for it with CAPABILITY_CATALOG_MISMATCH; no index was migrated.
+  - catalog_version changes to 2026-09-28-gemini-lifecycle-v5, so committed Gemini Cloud targets must be re-selected.
+  - "gemini-3.1-flash-image admits only the verified request contract: one image from a prompt, up to 14 reference images through Runtime (the protected App spec carries at most one https reference), and the documented imageConfig aspect ratios. Image count above one, pixel size, seed, negative prompt, quality, style, mask, strength, and URL output fail with AI_MEDIA_OPTION_UNSUPPORTED before Job publication; Cloud Jobs keep rejecting Runtime artifact references."
+  - "Live evidence on 2026-09-28: a 16:9 prompt returned a 1376x768 JPEG and a single-reference edit returned a 1264x846 JPEG that kept the reference aspect ratio; both were read back through ReadLocalAppArtifact and inspected visually. Seven unsupported combinations failed typed before dispatch."
+  - A committed gemini-2.5-flash-image target projects BLOCKED with AI_REMOTE_MODEL_CATALOG_STALE and fails Job admission without dispatch; re-selecting the listed gemini-3.1-flash-image option projects READY.
+confidence: high

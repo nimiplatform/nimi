@@ -11,7 +11,7 @@ runtime:
   requires_explicit_endpoint: false
 defaults:
   provider: openai_codex
-  default_text_model: gpt-5.6-sol-wm
+  default_text_model: gpt-5.6-sol
   model_type: chat
   capabilities: []
   context_window_tokens: 8192
@@ -82,16 +82,16 @@ sources:
 selection_profiles:
   - profile_id: text.general
     capability: text.generate
-    model_id: gpt-5.6-sol-wm
-    reviewed_at: 2026-08-09
+    model_id: gpt-5.6-sol
+    reviewed_at: 2026-09-28
     freshness_sla_days: 14
-    rationale: Codex-backed default text route for general subscription-backed consume.
+    rationale: Existing Codex Responses behavior target observed in Nimi's authenticated inventory on 2026-09-12 and the signed-in official CLI inventory on 2026-09-28; account availability remains conditional and the current Nimi Connector path is not live-verified.
   - profile_id: image.general
     capability: image.generate
     model_id: gpt-image-2
-    reviewed_at: 2026-08-09
+    reviewed_at: 2026-09-28
     freshness_sla_days: 14
-    rationale: Current Codex-backed image generation route.
+    rationale: Codex built-in image generation uses gpt-image-2, which OpenAI lists only as a replacement target rather than a deprecated model.
 
 models:
   - model_id: gpt-6-astra

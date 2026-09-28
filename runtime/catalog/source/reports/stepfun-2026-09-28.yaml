@@ -1,0 +1,79 @@
+provider: stepfun
+report_date: 2026-09-28
+audit_mode: family_scoped
+families_in_scope:
+  - text
+taxonomy_axes:
+  product_family:
+    - step
+  capability_family:
+    - text
+  lineage_or_track:
+    - step_3_7
+    - step_3_5
+    - step_5_preview
+    - retired_step_1_2
+refresh_policy:
+  keep_latest_generations: 2
+  authority_home: runtime/catalog/source/providers/stepfun.source.yaml
+evidence_urls:
+  official:
+    - https://platform.stepfun.com/docs/zh/guides/model-migration
+    - https://platform.stepfun.ai/docs/en/guides/models/step-3.5-flash
+    - https://platform.stepfun.ai/docs/en/api-reference/chat/chat-completion-create
+  official_product: []
+  aggregate_hints: []
+  credentialed_live_probe:
+    - GET https://api.stepfun.ai/v1/models
+    - POST https://api.stepfun.ai/v1/chat/completions
+current_source_inventory:
+  text:
+    selection_profiles:
+      text.general: step-3.7-flash
+      text.fast: step-2-mini
+      text.reasoning: step-3.7-flash
+official_current_inventory:
+  text:
+    current:
+      - step-3.7-flash
+      - step-3.5-flash
+      - step-3.5-flash-2603 (agent-optimized, faster inference)
+      - step-5-preview
+    retired_2026_07_08:
+      - step-1-8k
+      - step-1-32k
+      - step-1v-8k
+      - step-1v-32k
+      - step-2-mini
+      - step-1o-vision-32k
+      - step-2-16k
+      - step-3
+gap_summary:
+  missing_in_source:
+    - step-5-preview
+  stale_in_source:
+    - text.fast pointing to the retired step-2-mini
+  extra_legacy_in_source:
+    - eight text rows retired on 2026-07-08
+    - step-2x-large goes offline on 2026-10-10
+  uncertain_items:
+    - The official step-2-mini replacement, step-1o-turbo-vision, is not listed by the live /v1/models endpoint.
+curation_decision:
+  keep:
+    - step-3.7-flash for text.general and text.reasoning
+  add: []
+  remove: []
+  defer:
+    - retired row removal, outside this refresh
+    - step-5-preview
+  reject_or_noise: []
+review_actions:
+  selection_profiles_review_required: true
+  defaults_review_required: false
+  capability_review_required: false
+notes:
+  - "Profile policy for this refresh: keep an active model that the provider does not label legacy, previous, or retiring and rewrite its rationale to current facts; otherwise move to an admitted row the provider recommends for the role, or add the provider-recommended model as a base-text row when its admission is not reserved for a later review. Rows are removed only for confirmed shutdowns."
+  - text.fast moves to the admitted step-3.5-flash-2603 row.
+  - step-2-mini returned model_invalid on 2026-09-28; chat probes of current models returned quota_exceeded, so their chat path is NOT-VERIFIED.
+  - No model rows changed, so catalog_version is unchanged.
+confidence: medium

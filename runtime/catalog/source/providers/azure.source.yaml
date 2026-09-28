@@ -49,21 +49,21 @@ selection_profiles:
   - profile_id: text.general
     capability: text.generate
     model_id: gpt-5.6-sol
-    reviewed_at: 2026-07-20
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Current GA frontier Azure OpenAI route for general high-capability workloads.
+    rationale: GA GPT-5.6 Sol deployment retiring on 2028-01-11; the newer GA GPT-6 models are not admitted in this catalog yet.
   - profile_id: text.fast
     capability: text.generate
     model_id: gpt-5.6-terra
-    reviewed_at: 2026-07-20
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Current GA balanced Azure OpenAI route for conversational and high-volume workloads.
+    rationale: GA GPT-5.6 Terra deployment for balanced conversational and high-volume workloads, retiring on 2028-01-11; GPT-6 Sol and Luna are not admitted in this catalog yet.
   - profile_id: text.reasoning
     capability: text.generate
     model_id: gpt-5.6-sol
-    reviewed_at: 2026-07-20
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Highest-capability current GA reasoning route in the reviewed Azure deployable subset.
+    rationale: Highest-capability admitted Azure OpenAI deployment; GPT-6 Astra is GA on Azure but not admitted in this catalog yet.
 
 models:
   - model_id: gpt-5.6-sol

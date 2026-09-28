@@ -1,0 +1,52 @@
+provider: spark
+report_date: 2026-09-28
+audit_mode: family_scoped
+families_in_scope:
+  - text
+taxonomy_axes:
+  product_family:
+    - spark
+  capability_family:
+    - text
+  lineage_or_track:
+    - ultra
+    - lite
+refresh_policy:
+  keep_latest_generations: 2
+  authority_home: runtime/catalog/source/providers/spark.source.yaml
+evidence_urls:
+  official:
+    - https://www.xfyun.cn/doc/spark/HTTP%E8%B0%83%E7%94%A8%E6%96%87%E6%A1%A3.html
+  official_product: []
+  aggregate_hints: []
+current_source_inventory:
+  text:
+    selection_profiles:
+      text.general: 4.0Ultra
+      text.fast: lite
+official_current_inventory:
+  text:
+    models:
+      - 4.0Ultra (strongest non-reasoning model; now X1.5 fast mode)
+      - lite (faster responses, free)
+gap_summary:
+  missing_in_source: []
+  stale_in_source: []
+  extra_legacy_in_source: []
+  uncertain_items: []
+curation_decision:
+  keep:
+    - 4.0Ultra
+    - lite
+  add: []
+  remove: []
+  defer: []
+  reject_or_noise: []
+review_actions:
+  selection_profiles_review_required: true
+  defaults_review_required: false
+  capability_review_required: false
+notes:
+  - "Profile policy for this refresh: keep an active model that the provider does not label legacy, previous, or retiring and rewrite its rationale to current facts; otherwise move to an admitted row the provider recommends for the role, or add the provider-recommended model as a base-text row when its admission is not reserved for a later review. Rows are removed only for confirmed shutdowns."
+  - No Spark credentials were available; no live call was made.
+confidence: medium

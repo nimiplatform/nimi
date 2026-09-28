@@ -1,9 +1,45 @@
 version: 1
 provider: mimo
-catalog_version: 2026-07-20-mimo-v2-5
+catalog_version: 2026-09-28-mimo-v2-6
 inventory_mode: static_source
-default_text_model: mimo-v2.5-pro
+default_text_model: mimo-v2.6-pro
 models:
+  - model_id: mimo-v2.6-pro
+    provider: mimo
+    model_type: chat
+    updated_at: 2026-09-22
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-09-28
+      notes: Recommended MiMo V2.6 Pro model with a 1M context window and 128K output limit. Upstream full-modal input is not declared here until Runtime verifies it.
+    source_ref:
+      url: https://mimo.mi.com/docs/zh-CN/quick-start/summary/model
+      retrieved_at: 2026-09-28
+      note: Xiaomi MiMo official current model, selection-guide, and rate-limit page.
+    context_window_tokens: 8192
+  - model_id: mimo-v2.6-flash
+    provider: mimo
+    model_type: chat
+    updated_at: 2026-09-22
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-09-28
+      notes: Recommended MiMo V2.6 Flash model for high-frequency, large-scale work, with a 1M context window and 128K output limit. Upstream full-modal input is not declared here until Runtime verifies it.
+    source_ref:
+      url: https://mimo.mi.com/docs/zh-CN/quick-start/summary/model
+      retrieved_at: 2026-09-28
+      note: Xiaomi MiMo official current model, selection-guide, and rate-limit page.
+    context_window_tokens: 8192
   - model_id: mimo-v2.5-pro
     provider: mimo
     model_type: chat
@@ -15,12 +51,12 @@ models:
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-06-02
-      notes: Current MiMo Pro text model with the strongest published text limits.
+      as_of: 2026-09-28
+      notes: MiMo V2.5 Pro text model scheduled to go offline at 2026-10-21 10:00 Beijing time without a system replacement.
     source_ref:
-      url: https://platform.xiaomimimo.com/docs/zh-CN/quick-start/model
-      retrieved_at: 2026-07-20
-      note: Xiaomi MiMo official current model and rate-limit page.
+      url: https://mimo.mi.com/docs/zh-CN/quick-start/summary/model
+      retrieved_at: 2026-09-28
+      note: Xiaomi MiMo official current model, selection-guide, and rate-limit page.
     context_window_tokens: 8192
   - model_id: mimo-v2.5
     provider: mimo
@@ -33,12 +69,12 @@ models:
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-06-02
-      notes: Current MiMo Omni-family multimodal text route and the replacement for the retired V2 Flash and V2 Omni names.
+      as_of: 2026-09-28
+      notes: MiMo V2.5 multimodal text route scheduled to go offline at 2026-10-21 10:00 Beijing time without a system replacement.
     source_ref:
-      url: https://platform.xiaomimimo.com/docs/zh-CN/quick-start/model
-      retrieved_at: 2026-07-20
-      note: Xiaomi MiMo official current model and rate-limit page.
+      url: https://mimo.mi.com/docs/zh-CN/quick-start/summary/model
+      retrieved_at: 2026-09-28
+      note: Xiaomi MiMo official current model, selection-guide, and rate-limit page.
     features:
       - input.image
     context_window_tokens: 8192
@@ -56,9 +92,9 @@ models:
       as_of: 2026-06-02
       notes: Current MiMo ASR model. Official API uses chat completions with inline audio data URI.
     source_ref:
-      url: https://platform.xiaomimimo.com/docs/zh-CN/quick-start/model
-      retrieved_at: 2026-07-20
-      note: Xiaomi MiMo official current model and rate-limit page.
+      url: https://mimo.mi.com/docs/zh-CN/quick-start/summary/model
+      retrieved_at: 2026-09-28
+      note: Xiaomi MiMo official current model, selection-guide, and rate-limit page.
     transcription:
       tiers:
         - core_transcript
@@ -79,9 +115,9 @@ models:
       as_of: 2026-05-28
       notes: Current MiMo V2.5 preset TTS model. Official guide marks V2.5 TTS billing as temporarily free at retrieval time.
     source_ref:
-      url: https://platform.xiaomimimo.com/docs/zh-CN/quick-start/model
-      retrieved_at: 2026-07-20
-      note: Xiaomi MiMo official current model and rate-limit page.
+      url: https://mimo.mi.com/docs/zh-CN/quick-start/summary/model
+      retrieved_at: 2026-09-28
+      note: Xiaomi MiMo official current model, selection-guide, and rate-limit page.
     voice_set_id: mimo:tts_preset_v25
     voice_discovery_mode: static_catalog
     voice_request_options:
@@ -107,9 +143,9 @@ models:
       as_of: 2026-05-28
       notes: Current MiMo V2.5 voice-design TTS model. The user message carries the voice design prompt; no preset voice or audio sample is accepted.
     source_ref:
-      url: https://platform.xiaomimimo.com/docs/zh-CN/quick-start/model
-      retrieved_at: 2026-07-20
-      note: Xiaomi MiMo official current model and rate-limit page.
+      url: https://mimo.mi.com/docs/zh-CN/quick-start/summary/model
+      retrieved_at: 2026-09-28
+      note: Xiaomi MiMo official current model, selection-guide, and rate-limit page.
     features:
       - input.text
     voice_set_id: mimo:mimo-v2-5-tts-voicedesign-dynamic
@@ -137,9 +173,9 @@ models:
       as_of: 2026-05-28
       notes: Current MiMo V2.5 voice-clone TTS model. The audio.voice field must carry a wav/mp3 data URI sample no larger than the provider limit.
     source_ref:
-      url: https://platform.xiaomimimo.com/docs/zh-CN/quick-start/model
-      retrieved_at: 2026-07-20
-      note: Xiaomi MiMo official current model and rate-limit page.
+      url: https://mimo.mi.com/docs/zh-CN/quick-start/summary/model
+      retrieved_at: 2026-09-28
+      note: Xiaomi MiMo official current model, selection-guide, and rate-limit page.
     features:
       - input.audio
     voice_set_id: mimo:mimo-v2-5-tts-voiceclone-dynamic
@@ -272,9 +308,9 @@ voices:
     model_ids:
       - mimo-v2.5-tts-voicedesign
     source_ref:
-      url: https://platform.xiaomimimo.com/docs/zh-CN/quick-start/model
-      retrieved_at: 2026-07-20
-      note: Xiaomi MiMo official current model and rate-limit page.
+      url: https://mimo.mi.com/docs/zh-CN/quick-start/summary/model
+      retrieved_at: 2026-09-28
+      note: Xiaomi MiMo official current model, selection-guide, and rate-limit page.
   - voice_id: user-custom
     voice_set_id: mimo:mimo-v2-5-tts-voiceclone-dynamic
     provider: mimo
@@ -285,31 +321,31 @@ voices:
     model_ids:
       - mimo-v2.5-tts-voiceclone
     source_ref:
-      url: https://platform.xiaomimimo.com/docs/zh-CN/quick-start/model
-      retrieved_at: 2026-07-20
-      note: Xiaomi MiMo official current model and rate-limit page.
+      url: https://mimo.mi.com/docs/zh-CN/quick-start/summary/model
+      retrieved_at: 2026-09-28
+      note: Xiaomi MiMo official current model, selection-guide, and rate-limit page.
 selection_profiles:
   - provider: mimo
     profile_id: text.general
     capability: text.generate
-    model_id: mimo-v2.5-pro
-    reviewed_at: 2026-07-20
+    model_id: mimo-v2.6-pro
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Current MiMo Pro text route with the strongest published context and output limits.
+    rationale: MiMo's recommended V2.6 Pro model for complex and long-horizon work; the V2.5 text models go offline on 2026-10-21 without a system replacement.
   - provider: mimo
     profile_id: text.fast
     capability: text.generate
-    model_id: mimo-v2.5
-    reviewed_at: 2026-07-20
+    model_id: mimo-v2.6-flash
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Current multimodal MiMo V2.5 route replacing the retired V2 Flash name.
+    rationale: MiMo's recommended V2.6 Flash model for high-frequency, large-scale work; the V2.5 text models go offline on 2026-10-21 without a system replacement.
   - provider: mimo
     profile_id: text.reasoning
     capability: text.generate
-    model_id: mimo-v2.5-pro
-    reviewed_at: 2026-07-20
+    model_id: mimo-v2.6-pro
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Current Pro route advertises deep-thinking support and the largest published text limits.
+    rationale: MiMo's V2.6 Pro deep-thinking model; the V2.5 text models go offline on 2026-10-21 without a system replacement.
 voice_workflow_models:
   - workflow_model_id: mimo-v2.5-tts-voiceclone
     workflow_type: reference_audio

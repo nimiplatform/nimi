@@ -1,0 +1,60 @@
+provider: mistral
+report_date: 2026-09-28
+audit_mode: family_scoped
+families_in_scope:
+  - text
+taxonomy_axes:
+  product_family:
+    - mistral
+  capability_family:
+    - text
+  lineage_or_track:
+    - large
+    - medium
+    - small
+refresh_policy:
+  keep_latest_generations: 2
+  authority_home: runtime/catalog/source/providers/mistral.source.yaml
+evidence_urls:
+  official:
+    - https://docs.mistral.ai/models
+    - https://docs.mistral.ai/models/mistral-large-3-25-12
+    - https://docs.mistral.ai/models/mistral-small-4-0-26-03
+    - https://docs.mistral.ai/models/mistral-medium-3-5-26-04
+    - https://docs.mistral.ai/inference/model-lifecycle
+  official_product: []
+  aggregate_hints: []
+current_source_inventory:
+  text:
+    selection_profiles:
+      text.general: mistral-large-latest
+      text.fast: mistral-small-latest
+official_current_inventory:
+  text:
+    aliases:
+      mistral-large-latest: mistral-large-2512 (Large 3)
+      mistral-small-latest: mistral-small-2603 (Small 4)
+      mistral-medium-latest: Medium 3.5
+gap_summary:
+  missing_in_source: []
+  stale_in_source:
+    - mistral-medium-latest row still describes the retired Medium 3.1 and its price
+  extra_legacy_in_source: []
+  uncertain_items: []
+curation_decision:
+  keep:
+    - mistral-large-latest
+    - mistral-small-latest
+  add: []
+  remove: []
+  defer:
+    - mistral-medium-latest metadata refresh to Medium 3.5 before any profile use
+  reject_or_noise: []
+review_actions:
+  selection_profiles_review_required: true
+  defaults_review_required: false
+  capability_review_required: false
+notes:
+  - "Profile policy for this refresh: keep an active model that the provider does not label legacy, previous, or retiring and rewrite its rationale to current facts; otherwise move to an admitted row the provider recommends for the role, or add the provider-recommended model as a base-text row when its admission is not reserved for a later review. Rows are removed only for confirmed shutdowns."
+  - No Mistral credentials were available; no live call was made.
+confidence: medium

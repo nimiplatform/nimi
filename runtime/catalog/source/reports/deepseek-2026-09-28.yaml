@@ -1,0 +1,67 @@
+provider: deepseek
+report_date: 2026-09-28
+audit_mode: family_scoped
+families_in_scope:
+  - text
+taxonomy_axes:
+  product_family:
+    - deepseek
+  capability_family:
+    - text
+  lineage_or_track:
+    - v4_1_flash
+    - v4_pro
+    - legacy_flash_alias
+refresh_policy:
+  keep_latest_generations: 2
+  authority_home: runtime/catalog/source/providers/deepseek.source.yaml
+evidence_urls:
+  official:
+    - https://api-docs.deepseek.com/updates/
+    - https://api-docs.deepseek.com/quick_start/pricing
+  official_product: []
+  aggregate_hints: []
+  credentialed_live_probe:
+    - GET https://api.deepseek.com/models
+    - POST https://api.deepseek.com/chat/completions
+current_source_inventory:
+  text:
+    selection_profiles:
+      text.general: deepseek-flash
+      text.reasoning: deepseek-v4-pro
+    model_rows:
+      - deepseek-flash
+      - deepseek-v4-flash
+      - deepseek-v4-pro
+official_current_inventory:
+  text:
+    current:
+      - deepseek-flash (DeepSeek-V4.1-Flash, moving name)
+      - deepseek-v4-pro (DeepSeek-V4-Pro-0813, continued after 2026-09-14)
+    legacy: deepseek-v4-flash and deepseek-v4-flash-vision-exp are still accepted, but their models are retired and requests are temporarily served by V4.1 Flash
+gap_summary:
+  missing_in_source: []
+  stale_in_source:
+    - text.reasoning rationale that predated V4.1 Flash
+  extra_legacy_in_source: []
+  uncertain_items:
+    - DeepSeek has not announced when the temporary legacy-name routing ends.
+curation_decision:
+  keep:
+    - deepseek-flash for text.general
+    - deepseek-v4-pro for text.reasoning
+    - deepseek-v4-flash row and exact behavior registration, which Runtime authority admits as an explicit upstream API target rather than a version pin
+  add: []
+  remove: []
+  defer:
+    - deepseek-flash image input (V4.1 Flash supports vision upstream; not declared until Runtime verifies it)
+  reject_or_noise: []
+review_actions:
+  selection_profiles_review_required: true
+  defaults_review_required: false
+  capability_review_required: false
+notes:
+  - A live deepseek-v4-flash request returned response model deepseek-flash, confirming provider-side routing.
+  - "Live probes through the Runtime DeepSeek adapter passed for deepseek-flash and deepseek-v4-pro in sync and stream: named tool call, ToolResult round trip to the next model step, and JSON-object output."
+  - No model rows changed, so catalog_version stays 2026-09-16-deepseek-flash and committed DeepSeek targets keep their identity.
+confidence: high

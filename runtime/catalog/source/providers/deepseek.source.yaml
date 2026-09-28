@@ -30,30 +30,30 @@ sources:
     note: DeepSeek API documentation home and model matrix.
   - source_id: deepseek_pricing_doc
     url: https://api-docs.deepseek.com/quick_start/pricing
-    retrieved_at: 2026-09-16
-    note: Current deepseek-flash serves V4.1 Flash; old Flash API names remain provider-served aliases. V4 Pro remains available; prices distinguish peak and off-peak.
+    retrieved_at: 2026-09-28
+    note: Current model table maps deepseek-flash to DeepSeek-V4.1-Flash and deepseek-v4-pro to DeepSeek-V4-Pro-0813. The legacy deepseek-v4-flash name is still accepted, but its model is retired and requests are served by V4.1 Flash. Prices distinguish peak and off-peak.
   - source_id: deepseek_v4_release_doc
     url: https://api-docs.deepseek.com/news/news260424/
     retrieved_at: 2026-08-25
     note: Official DeepSeek V4 release announcement covering V4 Flash and V4 Pro model roles.
   - source_id: deepseek_updates_doc
     url: https://api-docs.deepseek.com/updates/
-    retrieved_at: 2026-07-20
-    note: DeepSeek release notes and compatibility updates.
+    retrieved_at: 2026-09-28
+    note: DeepSeek change log. The 2026-09-10 V4.1 Flash release retires V4 Flash, temporarily routes the legacy Flash names to V4.1 Flash, and continues V4 Pro after 2026-09-14.
 
 selection_profiles:
   - profile_id: text.general
     capability: text.generate
     model_id: deepseek-flash
-    reviewed_at: 2026-09-16
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Current official Flash API target, served by DeepSeek V4.1 Flash; exact behavior support remains Runtime adapter-owned.
+    rationale: Current official Flash API name, served by DeepSeek-V4.1-Flash. The name moves with provider releases, so its exact Runtime tool and JSON behavior is re-reviewed with this profile.
   - profile_id: text.reasoning
     capability: text.generate
     model_id: deepseek-v4-pro
-    reviewed_at: 2026-07-20
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Current highest-capability V4 route for reasoning-heavy workloads.
+    rationale: DeepSeek-V4-Pro-0813 stays officially served after 2026-09-14 as the larger text-only model; it keeps the higher published no-tool HLE score, while V4.1 Flash leads the agentic benchmarks.
 
 models:
   - model_id: deepseek-flash

@@ -2,9 +2,9 @@
  * @generated
  * Sources:
  *   config/runtime-provider-capabilities.yaml
- *     sha256: 07605767755db91c71d1a577c313267cfa4261b86c52da6241c5f13700266fcd
+ *     sha256: 288e33ee2771e5961f13bad10fb36dc49a3795322afb3fcdead1aefc90e1da67
  *   config/runtime-provider-catalog.yaml
- *     sha256: 5b4dd26817cb3e2af89a14680a156078adf20a5ec75b02ead9bdee9106c96bf2
+ *     sha256: cab0afbe0696c2247f8e68f62c1e5e5f3b621f5334f395dcdf81c31a0dae6b68
  * Generator: apps/web/scripts/generate-landing-data.mjs
  * DO NOT EDIT MANUALLY. Re-run generator (`pnpm prebuild` or
  * `node scripts/generate-landing-data.mjs` from apps/web/) to refresh.
@@ -269,7 +269,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "default_or_explicit",
     inventoryMode: "static_source",
-    capabilities: ["image.generate", "text.embed", "text.generate"],
+    capabilities: ["image.generate", "text.embed"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {
@@ -401,7 +401,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "default_or_explicit",
     inventoryMode: "static_source",
-    capabilities: ["audio.synthesize", "audio.transcribe", "image.generate", "text.embed", "text.generate", "video.generate"],
+    capabilities: ["audio.synthesize", "audio.transcribe", "image.generate", "text.embed", "text.generate"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {

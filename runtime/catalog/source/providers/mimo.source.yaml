@@ -1,6 +1,6 @@
 schema_version: 3
 provider: mimo
-catalog_version: 2026-07-20-mimo-v2-5
+catalog_version: 2026-09-28-mimo-v2-6
 generated_target: runtime/catalog/providers/mimo.yaml
 runtime:
   inventory_mode: static_source
@@ -12,7 +12,7 @@ runtime:
 resolution_mode: model_anchor_v2
 defaults:
   provider: mimo
-  default_text_model: mimo-v2.5-pro
+  default_text_model: mimo-v2.6-pro
   model_type: chat
   capabilities: []
   context_window_tokens: 8192
@@ -26,9 +26,13 @@ defaults:
 
 sources:
   - source_id: mimo_models_doc
-    url: https://platform.xiaomimimo.com/docs/zh-CN/quick-start/model
-    retrieved_at: 2026-07-20
-    note: Xiaomi MiMo official current model and rate-limit page.
+    url: https://mimo.mi.com/docs/zh-CN/quick-start/summary/model
+    retrieved_at: 2026-09-28
+    note: Xiaomi MiMo official current model, selection-guide, and rate-limit page.
+  - source_id: mimo_deprecation_doc
+    url: https://mimo.mi.com/docs/zh-CN/updates/deprecate
+    retrieved_at: 2026-09-28
+    note: Official MiMo retirement schedule; mimo-v2.5-pro and mimo-v2.5 go offline at 2026-10-21 10:00 Beijing time without a system replacement model.
   - source_id: mimo_v2_retirement_notice
     url: https://platform.xiaomimimo.com/token-plan
     retrieved_at: 2026-07-20
@@ -56,22 +60,22 @@ language_profiles:
 selection_profiles:
   - profile_id: text.general
     capability: text.generate
-    model_id: mimo-v2.5-pro
-    reviewed_at: 2026-07-20
+    model_id: mimo-v2.6-pro
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Current MiMo Pro text route with the strongest published context and output limits.
+    rationale: MiMo's recommended V2.6 Pro model for complex and long-horizon work; the V2.5 text models go offline on 2026-10-21 without a system replacement.
   - profile_id: text.fast
     capability: text.generate
-    model_id: mimo-v2.5
-    reviewed_at: 2026-07-20
+    model_id: mimo-v2.6-flash
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Current multimodal MiMo V2.5 route replacing the retired V2 Flash name.
+    rationale: MiMo's recommended V2.6 Flash model for high-frequency, large-scale work; the V2.5 text models go offline on 2026-10-21 without a system replacement.
   - profile_id: text.reasoning
     capability: text.generate
-    model_id: mimo-v2.5-pro
-    reviewed_at: 2026-07-20
+    model_id: mimo-v2.6-pro
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Current Pro route advertises deep-thinking support and the largest published text limits.
+    rationale: MiMo's V2.6 Pro deep-thinking model; the V2.5 text models go offline on 2026-10-21 without a system replacement.
 
 voice_sets:
   - voice_set_id: tts_preset_v25
@@ -105,6 +109,32 @@ voice_sets:
         name: Dean
         langs: [en]
 models:
+  - model_id: mimo-v2.6-pro
+    model_type: chat
+    updated_at: 2026-09-22
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-09-28
+      notes: Recommended MiMo V2.6 Pro model with a 1M context window and 128K output limit. Upstream full-modal input is not declared here until Runtime verifies it.
+    source_ids: [mimo_models_doc, mimo_openai_api_doc]
+
+  - model_id: mimo-v2.6-flash
+    model_type: chat
+    updated_at: 2026-09-22
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-09-28
+      notes: Recommended MiMo V2.6 Flash model for high-frequency, large-scale work, with a 1M context window and 128K output limit. Upstream full-modal input is not declared here until Runtime verifies it.
+    source_ids: [mimo_models_doc, mimo_openai_api_doc]
+
   - model_id: mimo-v2.5-pro
     model_type: chat
     updated_at: 2026-06-02
@@ -114,9 +144,9 @@ models:
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-06-02
-      notes: Current MiMo Pro text model with the strongest published text limits.
-    source_ids: [mimo_models_doc, mimo_openai_api_doc, mimo_v2_retirement_notice]
+      as_of: 2026-09-28
+      notes: MiMo V2.5 Pro text model scheduled to go offline at 2026-10-21 10:00 Beijing time without a system replacement.
+    source_ids: [mimo_models_doc, mimo_deprecation_doc, mimo_openai_api_doc, mimo_v2_retirement_notice]
 
   - model_id: mimo-v2.5
     model_type: chat
@@ -128,9 +158,9 @@ models:
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-06-02
-      notes: Current MiMo Omni-family multimodal text route and the replacement for the retired V2 Flash and V2 Omni names.
-    source_ids: [mimo_models_doc, mimo_openai_api_doc, mimo_v2_retirement_notice]
+      as_of: 2026-09-28
+      notes: MiMo V2.5 multimodal text route scheduled to go offline at 2026-10-21 10:00 Beijing time without a system replacement.
+    source_ids: [mimo_models_doc, mimo_deprecation_doc, mimo_openai_api_doc, mimo_v2_retirement_notice]
 
   - model_id: mimo-v2.5-asr
     model_type: stt

@@ -35,7 +35,7 @@ func TestValidateImageGenerateAgainstCatalogUsesSelectedModelFeatures(t *testing
 func TestValidateVideoGenerateAgainstCatalogAllowsDeclaredOptions(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 
-	err := svc.validateVideoGenerateAgainstCatalog(context.Background(), "openai", "sora-2", &runtimev1.VideoGenerateScenarioSpec{
+	err := svc.validateVideoGenerateAgainstCatalog(context.Background(), "google_veo", "veo-3.1-generate-preview", &runtimev1.VideoGenerateScenarioSpec{
 		Mode: runtimev1.VideoMode_VIDEO_MODE_T2V,
 		Content: []*runtimev1.VideoContentItem{
 			{
@@ -45,7 +45,7 @@ func TestValidateVideoGenerateAgainstCatalogAllowsDeclaredOptions(t *testing.T) 
 			},
 		},
 		Options: &runtimev1.VideoGenerationOptions{
-			DurationSec: testInt32(1),
+			DurationSec: testInt32(8),
 			Ratio:       "16:9",
 		},
 	})
@@ -57,7 +57,7 @@ func TestValidateVideoGenerateAgainstCatalogAllowsDeclaredOptions(t *testing.T) 
 func TestValidateVideoGenerateAgainstCatalogRejectsUndeclaredOption(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 
-	err := svc.validateVideoGenerateAgainstCatalog(context.Background(), "openai", "sora-2", &runtimev1.VideoGenerateScenarioSpec{
+	err := svc.validateVideoGenerateAgainstCatalog(context.Background(), "google_veo", "veo-3.1-generate-preview", &runtimev1.VideoGenerateScenarioSpec{
 		Mode: runtimev1.VideoMode_VIDEO_MODE_T2V,
 		Content: []*runtimev1.VideoContentItem{
 			{
@@ -83,7 +83,7 @@ func TestValidateVideoGenerateAgainstCatalogRejectsUndeclaredOption(t *testing.T
 func TestValidateVideoGenerateAgainstCatalogRejectsUnavailableOutput(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 
-	err := svc.validateVideoGenerateAgainstCatalog(context.Background(), "openai", "sora-2", &runtimev1.VideoGenerateScenarioSpec{
+	err := svc.validateVideoGenerateAgainstCatalog(context.Background(), "google_veo", "veo-3.1-generate-preview", &runtimev1.VideoGenerateScenarioSpec{
 		Mode: runtimev1.VideoMode_VIDEO_MODE_T2V,
 		Content: []*runtimev1.VideoContentItem{
 			{
@@ -108,12 +108,12 @@ func TestValidateVideoGenerateAgainstCatalogRejectsUnavailableOutput(t *testing.
 
 func TestValidateCatalogAwareScenarioSupportShortCircuitsOnNilInputs(t *testing.T) {
 	var nilSvc *Service
-	if err := nilSvc.validateCatalogAwareScenarioSupport(context.Background(), runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, "openai", "sora-2", nil); err != nil {
+	if err := nilSvc.validateCatalogAwareScenarioSupport(context.Background(), runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, "google_veo", "veo-3.1-generate-preview", nil); err != nil {
 		t.Fatalf("nil service should short-circuit, got %v", err)
 	}
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
-	if err := svc.validateCatalogAwareScenarioSupport(context.Background(), runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, "openai", "sora-2", nil); err != nil {
+	if err := svc.validateCatalogAwareScenarioSupport(context.Background(), runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, "google_veo", "veo-3.1-generate-preview", nil); err != nil {
 		t.Fatalf("nil spec should short-circuit, got %v", err)
 	}
 }
@@ -121,7 +121,7 @@ func TestValidateCatalogAwareScenarioSupportShortCircuitsOnNilInputs(t *testing.
 func TestValidateVideoGenerateAgainstCatalogRejectsInvalidShape(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 
-	if err := svc.validateVideoGenerateAgainstCatalog(context.Background(), "openai", "sora-2", nil); err == nil {
+	if err := svc.validateVideoGenerateAgainstCatalog(context.Background(), "google_veo", "veo-3.1-generate-preview", nil); err == nil {
 		t.Fatalf("expected invalid spec rejection")
 	}
 
@@ -145,7 +145,7 @@ func TestValidateVideoGenerateAgainstCatalogRejectsInvalidShape(t *testing.T) {
 func TestValidateVideoGenerateAgainstCatalogRejectsInvalidModeAndRoles(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 
-	err := svc.validateVideoGenerateAgainstCatalog(context.Background(), "openai", "sora-2", &runtimev1.VideoGenerateScenarioSpec{
+	err := svc.validateVideoGenerateAgainstCatalog(context.Background(), "google_veo", "veo-3.1-generate-preview", &runtimev1.VideoGenerateScenarioSpec{
 		Mode: runtimev1.VideoMode_VIDEO_MODE_I2V_FIRST_FRAME,
 		Content: []*runtimev1.VideoContentItem{
 			{
@@ -161,7 +161,7 @@ func TestValidateVideoGenerateAgainstCatalogRejectsInvalidModeAndRoles(t *testin
 		t.Fatalf("expected AI_MEDIA_OPTION_UNSUPPORTED for invalid input roles, got reason=%v ok=%v err=%v", reason, ok, err)
 	}
 
-	err = svc.validateVideoGenerateAgainstCatalog(context.Background(), "openai", "sora-2", &runtimev1.VideoGenerateScenarioSpec{
+	err = svc.validateVideoGenerateAgainstCatalog(context.Background(), "google_veo", "veo-3.1-generate-preview", &runtimev1.VideoGenerateScenarioSpec{
 		Mode: runtimev1.VideoMode_VIDEO_MODE_UNSPECIFIED,
 		Content: []*runtimev1.VideoContentItem{
 			{
@@ -378,5 +378,48 @@ func TestScenarioCatalogValidationHelpers(t *testing.T) {
 	}
 	if got, ok := anyToInt64(uint32(7)); !ok || got != 7 {
 		t.Fatalf("unexpected anyToInt64 result: got=%d ok=%v", got, ok)
+	}
+}
+
+// Provider-retired media rows are absent from the built-in catalog, so the
+// scenario guards fail typed instead of borrowing another model's metadata.
+func TestCatalogGuardsRejectProviderRetiredMediaTargets(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	video := &runtimev1.VideoGenerateScenarioSpec{
+		Mode: runtimev1.VideoMode_VIDEO_MODE_T2V,
+		Content: []*runtimev1.VideoContentItem{{
+			Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT,
+			Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT,
+			Text: "A short cinematic sunrise.",
+		}},
+		Options: &runtimev1.VideoGenerationOptions{DurationSec: testInt32(8)},
+	}
+	for _, target := range []struct{ provider, model string }{
+		{provider: "openai", model: "sora-2"},
+		{provider: "openai", model: "sora-2-2025-12-08"},
+		{provider: "google_veo", model: "veo-3.0-generate-001"},
+		{provider: "google_veo", model: "veo-3.0-fast-generate-001"},
+	} {
+		err := svc.validateVideoGenerateAgainstCatalog(context.Background(), target.provider, target.model, video)
+		if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MODEL_NOT_FOUND {
+			t.Fatalf("%s/%s retired video target: reason=%v ok=%v err=%v", target.provider, target.model, reason, ok, err)
+		}
+	}
+
+	for _, model := range []string{"gemini-3.1-flash-image-preview", "gemini-2.5-flash-image"} {
+		err := svc.validateImageGenerateAgainstCatalog(context.Background(), "gemini", model, &runtimev1.ImageGenerateScenarioSpec{
+			Prompt:          "Edit the reference image.",
+			ReferenceImages: []string{"https://example.com/reference.png"},
+		})
+		if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MODEL_NOT_FOUND {
+			t.Fatalf("retired Gemini image target %s: reason=%v ok=%v err=%v", model, reason, ok, err)
+		}
+	}
+	err := svc.validateImageGenerateAgainstCatalog(context.Background(), "gemini", "gemini-3.1-flash-image", &runtimev1.ImageGenerateScenarioSpec{
+		Prompt:          "Edit the reference image.",
+		ReferenceImages: []string{"https://example.com/reference.png"},
+	})
+	if err != nil {
+		t.Fatalf("stable Gemini image successor must admit reference editing: %v", err)
 	}
 }

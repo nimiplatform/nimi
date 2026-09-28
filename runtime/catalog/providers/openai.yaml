@@ -1,6 +1,6 @@
 version: 1
 provider: openai
-catalog_version: 2026-07-20-openai-text-embedding-v5
+catalog_version: 2026-09-28-openai-sora-2-retired
 inventory_mode: static_source
 default_text_model: gpt-5.6-sol
 models:
@@ -97,7 +97,7 @@ models:
       output: "0"
       currency: USD
       as_of: 2026-03-18
-      notes: Speech-to-text. Input = audio tokens. Per 1M tokens.
+      notes: Speech-to-text. Input = audio tokens. Per 1M tokens. Deprecated, with API removal on 2027-02-26; OpenAI names gpt-transcribe or gpt-live-transcribe as replacements.
     source_ref:
       url: https://platform.openai.com/docs/guides/speech-to-text
       retrieved_at: 2026-03-05
@@ -122,7 +122,7 @@ models:
       output: "0"
       currency: USD
       as_of: 2026-03-18
-      notes: Speech-to-text (mini). Input = audio tokens. Per 1M tokens.
+      notes: Speech-to-text (mini). Input = audio tokens. Per 1M tokens. Deprecated, with API removal on 2027-02-26; OpenAI names gpt-transcribe or gpt-live-transcribe as replacements.
     source_ref:
       url: https://platform.openai.com/docs/guides/speech-to-text
       retrieved_at: 2026-03-05
@@ -147,7 +147,7 @@ models:
       output: "0"
       currency: USD
       as_of: 2026-03-18
-      notes: Legacy STT. Approximate per-token equivalent of $0.006/minute. Per 1M tokens.
+      notes: Legacy STT. Approximate per-token equivalent of $0.006/minute. Per 1M tokens. Deprecated, with API removal on 2027-02-26; OpenAI names gpt-transcribe or gpt-live-transcribe as replacements.
     source_ref:
       url: https://platform.openai.com/docs/guides/speech-to-text
       retrieved_at: 2026-03-05
@@ -615,69 +615,6 @@ models:
       retrieved_at: 2026-03-05
       note: OpenAI GPT-5.3-Codex agentic coding model card.
     context_window_tokens: 8192
-  - model_id: sora-2
-    provider: openai
-    model_type: video
-    updated_at: 2026-03-05
-    capabilities:
-      - video.generate
-    pricing:
-      unit: request
-      input: "0.10"
-      output: "0"
-      currency: USD
-      as_of: 2026-03-18
-      notes: Video generation. Per request varies by resolution and duration.
-    source_ref:
-      url: https://platform.openai.com/docs/models/sora-2
-      retrieved_at: 2026-03-05
-      note: OpenAI Sora 2 video generation model card.
-    features:
-      - input.image
-    video_generation: &a2
-      modes:
-        - t2v
-        - i2v_first_frame
-      input_roles:
-        t2v:
-          - prompt
-        i2v_first_frame:
-          - prompt
-          - first_frame
-      limits:
-        resolution:
-          - 480p
-          - 720p
-          - 1080p
-      options:
-        supports:
-          - resolution
-          - ratio
-          - duration_sec
-        constraints: {}
-      outputs:
-        video_url: true
-  - model_id: sora-2-2025-12-08
-    provider: openai
-    model_type: video
-    updated_at: 2025-12-08
-    capabilities:
-      - video.generate
-    pricing:
-      unit: request
-      input: "0.10"
-      output: "0"
-      currency: USD
-      as_of: 2026-03-18
-      notes: Video generation. Per request varies by resolution and duration.
-    source_ref:
-      url: https://platform.openai.com/docs/models/sora-2
-      retrieved_at: 2026-03-05
-      note: OpenAI Sora 2 video generation model card.
-    api_model_id: sora-2
-    features:
-      - input.image
-    video_generation: *a2
 voices:
   - voice_id: alloy
     voice_set_id: openai:default-tts-v1
@@ -744,20 +681,20 @@ selection_profiles:
     profile_id: text.general
     capability: text.generate
     model_id: gpt-5.6-sol
-    reviewed_at: 2026-07-20
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: OpenAI's current exact frontier model id for complex reasoning, coding, and agentic workloads.
+    rationale: Active exact GPT-5.6 Sol model with no announced shutdown; the newer GPT-6 models are not admitted for this standard OpenAI route yet.
   - provider: openai
     profile_id: text.fast
     capability: text.generate
     model_id: gpt-5.6-terra
-    reviewed_at: 2026-07-20
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Current balanced GPT-5.6 route for conversational and high-volume workloads.
+    rationale: Active GPT-5.6 Terra for balanced conversational and high-volume workloads; GPT-6 Sol and Luna are not admitted for this route yet.
   - provider: openai
     profile_id: text.reasoning
     capability: text.generate
     model_id: gpt-5.6-sol
-    reviewed_at: 2026-07-20
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Highest-capability current exact GPT reasoning route in the admitted set.
+    rationale: Highest-capability admitted standard OpenAI model; GPT-6 Astra is OpenAI's current flagship but is not admitted for this route yet.

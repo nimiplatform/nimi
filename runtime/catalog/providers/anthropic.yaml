@@ -212,20 +212,20 @@ selection_profiles:
     profile_id: text.general
     capability: text.generate
     model_id: claude-sonnet-5
-    reviewed_at: 2026-07-20
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Current generally available Sonnet route with the best balance of speed and intelligence.
+    rationale: Current Sonnet model, which Anthropic positions as its best balance of speed and intelligence; active with retirement not before 2027-06-30.
   - provider: anthropic
     profile_id: text.fast
     capability: text.generate
     model_id: claude-haiku-4-5
-    reviewed_at: 2026-07-20
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Lowest-latency Claude track.
+    rationale: Anthropic's fastest current model; no newer Haiku exists, and it is active with no announced deprecation.
   - provider: anthropic
     profile_id: text.reasoning
     capability: text.generate
     model_id: claude-fable-5
-    reviewed_at: 2026-07-20
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Anthropic's most capable widely released route for demanding reasoning and long-horizon agentic work.
+    rationale: Highest-capability admitted Anthropic model, active with retirement not before 2027-06-09; Anthropic now labels it legacy in favor of Claude Fable 5.1, which is not admitted in this catalog yet.

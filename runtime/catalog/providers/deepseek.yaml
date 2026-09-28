@@ -19,8 +19,8 @@ models:
       notes: Current API target for DeepSeek V4.1 Flash. Per 1M tokens at peak cache-miss rates; off-peak input/output are $0.15/$0.6. Provider model aliases do not pin immutable weights; exact text behavior support is Runtime-owned.
     source_ref:
       url: https://api-docs.deepseek.com/quick_start/pricing
-      retrieved_at: 2026-09-16
-      note: Current deepseek-flash serves V4.1 Flash; old Flash API names remain provider-served aliases. V4 Pro remains available; prices distinguish peak and off-peak.
+      retrieved_at: 2026-09-28
+      note: Current model table maps deepseek-flash to DeepSeek-V4.1-Flash and deepseek-v4-pro to DeepSeek-V4-Pro-0813. The legacy deepseek-v4-flash name is still accepted, but its model is retired and requests are served by V4.1 Flash. Prices distinguish peak and off-peak.
     context_window_tokens: 1000000
   - model_id: deepseek-v4-flash
     provider: deepseek
@@ -37,8 +37,8 @@ models:
       notes: Legacy API alias still accepted by the provider and now served by DeepSeek V4.1 Flash, not a V4 Flash version pin. Per 1M tokens at peak cache-miss rates; off-peak input/output are $0.15/$0.6. Prefer the current deepseek-flash target for new selection.
     source_ref:
       url: https://api-docs.deepseek.com/quick_start/pricing
-      retrieved_at: 2026-09-16
-      note: Current deepseek-flash serves V4.1 Flash; old Flash API names remain provider-served aliases. V4 Pro remains available; prices distinguish peak and off-peak.
+      retrieved_at: 2026-09-28
+      note: Current model table maps deepseek-flash to DeepSeek-V4.1-Flash and deepseek-v4-pro to DeepSeek-V4-Pro-0813. The legacy deepseek-v4-flash name is still accepted, but its model is retired and requests are served by V4.1 Flash. Prices distinguish peak and off-peak.
     context_window_tokens: 1000000
   - model_id: deepseek-v4-pro
     provider: deepseek
@@ -55,8 +55,8 @@ models:
       notes: Current API target for DeepSeek V4 Pro 0813; official API availability continues after September 14. Per 1M tokens at peak cache-miss rates; off-peak input/output are $0.66/$1.98. Exact behavior support is Runtime-owned.
     source_ref:
       url: https://api-docs.deepseek.com/quick_start/pricing
-      retrieved_at: 2026-09-16
-      note: Current deepseek-flash serves V4.1 Flash; old Flash API names remain provider-served aliases. V4 Pro remains available; prices distinguish peak and off-peak.
+      retrieved_at: 2026-09-28
+      note: Current model table maps deepseek-flash to DeepSeek-V4.1-Flash and deepseek-v4-pro to DeepSeek-V4-Pro-0813. The legacy deepseek-v4-flash name is still accepted, but its model is retired and requests are served by V4.1 Flash. Prices distinguish peak and off-peak.
     context_window_tokens: 1000000
 voices: []
 selection_profiles:
@@ -64,13 +64,13 @@ selection_profiles:
     profile_id: text.general
     capability: text.generate
     model_id: deepseek-flash
-    reviewed_at: 2026-09-16
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Current official Flash API target, served by DeepSeek V4.1 Flash; exact behavior support remains Runtime adapter-owned.
+    rationale: Current official Flash API name, served by DeepSeek-V4.1-Flash. The name moves with provider releases, so its exact Runtime tool and JSON behavior is re-reviewed with this profile.
   - provider: deepseek
     profile_id: text.reasoning
     capability: text.generate
     model_id: deepseek-v4-pro
-    reviewed_at: 2026-07-20
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Current highest-capability V4 route for reasoning-heavy workloads.
+    rationale: DeepSeek-V4-Pro-0813 stays officially served after 2026-09-14 as the larger text-only model; it keeps the higher published no-tool HLE score, while V4.1 Flash leads the agentic benchmarks.

@@ -1,0 +1,65 @@
+provider: mimo
+report_date: 2026-09-28
+audit_mode: family_scoped
+families_in_scope:
+  - text
+taxonomy_axes:
+  product_family:
+    - mimo
+  capability_family:
+    - text
+  lineage_or_track:
+    - v2_5
+    - v2_6
+refresh_policy:
+  keep_latest_generations: 2
+  authority_home: runtime/catalog/source/providers/mimo.source.yaml
+evidence_urls:
+  official:
+    - https://mimo.mi.com/docs/zh-CN/quick-start/summary/model
+    - https://mimo.mi.com/docs/zh-CN/updates/deprecate
+  official_product: []
+  aggregate_hints: []
+current_source_inventory:
+  text:
+    default_text_model: mimo-v2.5-pro
+    selection_profiles:
+      text.general: mimo-v2.5-pro
+      text.fast: mimo-v2.5
+      text.reasoning: mimo-v2.5-pro
+official_current_inventory:
+  text:
+    recommended:
+      - mimo-v2.6-pro
+      - mimo-v2.6-flash
+      - mimo-v2.6-pro-ultraspeed (custom service only)
+    retiring: mimo-v2.5-pro and mimo-v2.5 go offline at 2026-10-21 10:00 Beijing time without a system replacement
+gap_summary:
+  missing_in_source:
+    - mimo-v2.6-pro
+    - mimo-v2.6-flash
+  stale_in_source:
+    - all three profiles and the default point to retiring models
+  extra_legacy_in_source: []
+  uncertain_items:
+    - V2.6 full-modal input is documented upstream but not verified through Runtime.
+curation_decision:
+  keep:
+    - mimo-v2.5-pro and mimo-v2.5 rows until 2026-10-21, labeled with the offline date
+  add:
+    - mimo-v2.6-pro
+    - mimo-v2.6-flash
+  remove: []
+  defer:
+    - mimo-v2.6-pro-ultraspeed
+    - V2.6 input.image declaration
+  reject_or_noise: []
+review_actions:
+  selection_profiles_review_required: true
+  defaults_review_required: true
+  capability_review_required: false
+notes:
+  - "Profile policy for this refresh: keep an active model that the provider does not label legacy, previous, or retiring and rewrite its rationale to current facts; otherwise move to an admitted row the provider recommends for the role, or add the provider-recommended model as a base-text row when its admission is not reserved for a later review. Rows are removed only for confirmed shutdowns."
+  - No MiMo credentials were available; the new rows are NOT-VERIFIED through Runtime.
+  - catalog_version changes to 2026-09-28-mimo-v2-6, so committed MiMo Cloud targets must be re-selected.
+confidence: medium

@@ -1,8 +1,8 @@
 version: 1
 provider: volcengine
-catalog_version: 2026-06-28-volcengine-ark-v5
+catalog_version: 2026-09-28-volcengine-ark-v6
 inventory_mode: static_source
-default_text_model: doubao-seed-2-1-pro-260628
+default_text_model: doubao-seed-2-1-pro-260915
 models:
   - model_id: seedance-1-5-pro
     provider: volcengine
@@ -239,6 +239,43 @@ models:
     features:
       - input.image
     video_generation: *a2
+  - model_id: doubao-seed-2-1-pro-260915
+    provider: volcengine
+    model_type: chat
+    updated_at: 2026-09-28
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-09-28
+      notes: Recommended Doubao-Seed 2.1 Pro Ark chat snapshot with a 1024k context window; pricing varies by account plan and endpoint tier.
+    source_ref:
+      url: https://www.volcengine.com/docs/82379/1330310
+      retrieved_at: 2026-09-28
+      note: Volcengine Ark model list documentation with recommended and previous model sections; refreshed against a credentialed GET /api/v3/models probe.
+    context_window_tokens: 8192
+  - model_id: doubao-seed-2.1-pro
+    provider: volcengine
+    model_type: chat
+    updated_at: 2026-09-28
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-09-28
+      notes: Recommended Doubao-Seed 2.1 Pro Ark chat snapshot with a 1024k context window; pricing varies by account plan and endpoint tier.
+    source_ref:
+      url: https://www.volcengine.com/docs/82379/1330310
+      retrieved_at: 2026-09-28
+      note: Volcengine Ark model list documentation with recommended and previous model sections; refreshed against a credentialed GET /api/v3/models probe.
+    api_model_id: doubao-seed-2-1-pro-260915
+    context_window_tokens: 8192
   - model_id: doubao-seed-2-1-pro-260628
     provider: volcengine
     model_type: chat
@@ -250,31 +287,12 @@ models:
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-06-28
-      notes: Current Doubao-Seed 2.1 Pro Ark chat model pricing varies by account plan and endpoint tier.
+      as_of: 2026-09-28
+      notes: Previous Doubao-Seed 2.1 Pro Ark chat snapshot, now listed under previous models; pricing varies by account plan and endpoint tier.
     source_ref:
       url: https://www.volcengine.com/docs/6489/1331021
       retrieved_at: 2026-06-28
       note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
-    context_window_tokens: 8192
-  - model_id: doubao-seed-2.1-pro
-    provider: volcengine
-    model_type: chat
-    updated_at: 2026-06-28
-    capabilities:
-      - text.generate
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-06-28
-      notes: Current Doubao-Seed 2.1 Pro Ark chat model pricing varies by account plan and endpoint tier.
-    source_ref:
-      url: https://www.volcengine.com/docs/6489/1331021
-      retrieved_at: 2026-06-28
-      note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
-    api_model_id: doubao-seed-2-1-pro-260628
     context_window_tokens: 8192
   - model_id: doubao-seed-2-1-turbo-260628
     provider: volcengine
@@ -662,14 +680,14 @@ selection_profiles:
   - provider: volcengine
     profile_id: text.general
     capability: text.generate
-    model_id: doubao-seed-2-1-pro-260628
-    reviewed_at: 2026-07-20
+    model_id: doubao-seed-2-1-pro-260915
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Current Doubao-Seed 2.1 Pro text route verified through Ark chat completions.
+    rationale: Ark's recommended Doubao-Seed 2.1 Pro snapshot with a 1024k context window, verified through Ark chat completions.
   - provider: volcengine
     profile_id: text.fast
     capability: text.generate
     model_id: doubao-seed-2-1-turbo-260628
-    reviewed_at: 2026-07-20
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Current Doubao-Seed 2.1 Turbo route verified through Ark chat completions.
+    rationale: Ark's recommended low-cost, low-latency Doubao-Seed 2.1 Turbo snapshot, verified through Ark chat completions.

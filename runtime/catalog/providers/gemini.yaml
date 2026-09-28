@@ -1,9 +1,49 @@
 version: 1
 provider: gemini
-catalog_version: 2026-07-20-gemini-text-embedding-v4
+catalog_version: 2026-09-28-gemini-lifecycle-v5
 inventory_mode: static_source
-default_text_model: gemini-3.5-flash
+default_text_model: gemini-3.8-flash
 models:
+  - model_id: gemini-3.8-flash
+    provider: gemini
+    model_type: chat
+    updated_at: 2026-09-02
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-09-28
+      notes: Stable Flash model for long-horizon agentic and software engineering workloads, with text, image, video, audio, and PDF inputs, a 1,048,576-token input limit, and a 65,536-token output limit.
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash
+      retrieved_at: 2026-09-28
+      note: Stable Gemini 3.8 Flash model card with exact model id, modalities, and token limits.
+    features:
+      - input.image
+    context_window_tokens: 8192
+  - model_id: gemini-3.5-flash-lite
+    provider: gemini
+    model_type: chat
+    updated_at: 2026-07-21
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-09-28
+      notes: Stable low-latency Flash-Lite model for high-throughput, cost-sensitive workloads, with text, image, video, audio, and PDF inputs, a 1,048,576-token input limit, and a 65,536-token output limit.
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash-lite
+      retrieved_at: 2026-09-28
+      note: Stable Gemini 3.5 Flash-Lite model card with exact model id, modalities, and token limits.
+    features:
+      - input.image
+    context_window_tokens: 8192
   - model_id: gemini-3.5-flash
     provider: gemini
     model_type: chat
@@ -15,11 +55,11 @@ models:
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-07-20
-      notes: Stable production model with text, image, video, audio, and PDF inputs, a 1,048,576-token input limit, and a 65,536-token output limit.
+      as_of: 2026-09-28
+      notes: Stable model that Google now labels its legacy Flash model, with text, image, video, audio, and PDF inputs, a 1,048,576-token input limit, and a 65,536-token output limit.
     source_ref:
       url: https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash
-      retrieved_at: 2026-07-20
+      retrieved_at: 2026-09-28
       note: Stable Gemini 3.5 Flash model card with exact model id, modalities, and token limits.
     features:
       - input.image
@@ -35,11 +75,11 @@ models:
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-07-20
-      notes: Stable Flash-Lite route for high-volume and cost-sensitive production workloads.
+      as_of: 2026-09-28
+      notes: Stable Flash-Lite route with an announced 2027-05-07 shutdown; Google names gemini-3.5-flash-lite as its replacement.
     source_ref:
       url: https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite
-      retrieved_at: 2026-07-20
+      retrieved_at: 2026-09-28
       note: Stable Gemini 3.1 Flash-Lite model card.
     features:
       - input.image
@@ -143,28 +183,28 @@ models:
       output: "0"
       currency: USD
       as_of: 2026-04-18
-      notes: Text input price for the multimodal embedding model. Image, audio, and video inputs have separate rates. Supports text, image, video, audio, and PDF inputs. Per 1M text tokens.
+      notes: Text input price for the multimodal embedding model. Image, audio, and video inputs have separate rates. Supports text, image, video, audio, and PDF inputs. Per 1M text tokens. The lifecycle table lists a shortened embedding-2-preview ID with a 2026-08-10 shutdown, while this exact preview ID was still listed and served on 2026-09-28; the row declares no fixed output dimension.
     source_ref:
       url: https://ai.google.dev/gemini-api/docs/models/gemini-embedding-2-preview
-      retrieved_at: 2026-04-18
-      note: Gemini Embedding 2 preview model card. First natively multimodal embedding model.
-  - model_id: gemini-2.5-flash-image
+      retrieved_at: 2026-09-28
+      note: Gemini Embedding 2 preview model card, which still lists the exact gemini-embedding-2-preview model code. First natively multimodal embedding model.
+  - model_id: gemini-3.1-flash-image
     provider: gemini
     model_type: image
-    updated_at: 2026-03-05
+    updated_at: 2026-05-28
     capabilities:
       - image.generate
     pricing:
       unit: request
-      input: "0.04"
-      output: "0.08"
+      input: unknown
+      output: "0.067"
       currency: USD
-      as_of: 2026-03-18
-      notes: Image generation via Gemini Flash. Per request.
+      as_of: 2026-09-28
+      notes: Standard paid tier bills $0.067 for each default 1K output image; text and image input tokens bill at $0.50 per 1M. Stable replacement for the retired image previews and for gemini-2.5-flash-image, which shuts down on 2026-10-02.
     source_ref:
-      url: https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash-image
-      retrieved_at: 2026-03-05
-      note: Gemini 2.5 Flash Image model card.
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-image
+      retrieved_at: 2026-09-28
+      note: Stable Gemini 3.1 Flash Image (Nano Banana 2) model card with exact model id, text and image input, and image output.
     features:
       - input.image
     image_request_options:
@@ -194,7 +234,7 @@ models:
       notes: Standard paid-tier pricing for prompts up to 200K tokens. Higher prompt-length and inference-tier prices also exist. Preview pricing may change. Per 1M tokens.
     source_ref:
       url: https://ai.google.dev/gemini-api/docs/models/gemini-3.1-pro-preview
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-09-28
       note: Gemini 3.1 Pro preview model card.
     features:
       - input.image
@@ -219,57 +259,26 @@ models:
     features:
       - input.image
     context_window_tokens: 8192
-  - model_id: gemini-3.1-flash-image-preview
-    provider: gemini
-    model_type: image
-    updated_at: 2026-03-05
-    capabilities:
-      - image.generate
-    pricing:
-      unit: request
-      input: "0.04"
-      output: "0.08"
-      currency: USD
-      as_of: 2026-03-18
-      notes: Image generation preview. Per request.
-    source_ref:
-      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-image-preview
-      retrieved_at: 2026-03-05
-      note: Gemini 3.1 Flash Image preview model card.
-    features:
-      - input.image
-    image_request_options:
-      response_formats:
-        - b64_json
-      max_images_per_request: 1
-      supports_negative_prompt: false
-      supports_reference_images: true
-      supports_mask: false
-      supports_seed: false
-      supports_size: false
-      supports_aspect_ratio: true
-      supports_quality: false
-      supports_style: false
 voices: []
 selection_profiles:
   - provider: gemini
     profile_id: text.general
     capability: text.generate
-    model_id: gemini-3.5-flash
-    reviewed_at: 2026-07-20
+    model_id: gemini-3.8-flash
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Current stable Gemini Flash route recommended for scaled production and sustained agentic workloads.
+    rationale: Newest stable Gemini Flash model and Google's named choice for new projects; base text and image input verified through the OpenAI-compatible endpoint.
   - provider: gemini
     profile_id: text.fast
     capability: text.generate
-    model_id: gemini-3.1-flash-lite
-    reviewed_at: 2026-07-20
+    model_id: gemini-3.5-flash-lite
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Current stable Gemini Flash-Lite route optimized for speed, scale, and cost efficiency.
+    rationale: Google's fastest and most cost-effective stable Flash-Lite model and the announced replacement for Gemini 3.1 Flash-Lite; base text and image input verified through the OpenAI-compatible endpoint.
   - provider: gemini
     profile_id: text.reasoning
     capability: text.generate
     model_id: gemini-3.1-pro-preview
-    reviewed_at: 2026-07-20
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Strongest current Gemini reasoning track.
+    rationale: Gemini 3.1 Pro Preview remains the only Pro-tier Gemini API text model for advanced reasoning; it is a preview with no announced shutdown date.

@@ -1,0 +1,59 @@
+provider: cohere
+report_date: 2026-09-28
+audit_mode: family_scoped
+families_in_scope:
+  - text
+taxonomy_axes:
+  product_family:
+    - command
+  capability_family:
+    - text
+  lineage_or_track:
+    - command_a_plus
+    - command_r7b
+refresh_policy:
+  keep_latest_generations: 2
+  authority_home: runtime/catalog/source/providers/cohere.source.yaml
+evidence_urls:
+  official:
+    - https://docs.cohere.com/docs/models
+    - https://docs.cohere.com/docs/deprecations
+    - https://docs.cohere.com/docs/command-a-plus
+    - https://docs.cohere.com/docs/command-r7b
+    - https://cohere.com/pricing
+  official_product: []
+  aggregate_hints: []
+current_source_inventory:
+  text:
+    selection_profiles:
+      text.general: command-a-plus-05-2026
+      text.fast: command-r7b-12-2024
+official_current_inventory:
+  text:
+    live:
+      - command-a-plus-05-2026
+      - command-r7b-12-2024
+    new_since_last_review: Only specialized Parse and North Small Translate models were added.
+gap_summary:
+  missing_in_source: []
+  stale_in_source:
+    - text.fast lowest-cost wording could not be confirmed because free tiers are listed
+  extra_legacy_in_source: []
+  uncertain_items:
+    - north-mini-code-1-0 row claims image input while the models table lists text only.
+curation_decision:
+  keep:
+    - command-a-plus-05-2026
+    - command-r7b-12-2024
+  add: []
+  remove: []
+  defer: []
+  reject_or_noise: []
+review_actions:
+  selection_profiles_review_required: true
+  defaults_review_required: false
+  capability_review_required: false
+notes:
+  - "Profile policy for this refresh: keep an active model that the provider does not label legacy, previous, or retiring and rewrite its rationale to current facts; otherwise move to an admitted row the provider recommends for the role, or add the provider-recommended model as a base-text row when its admission is not reserved for a later review. Rows are removed only for confirmed shutdowns."
+  - No Cohere credentials were available; no live call was made.
+confidence: high

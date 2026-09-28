@@ -1,6 +1,6 @@
 schema_version: 3
 provider: hunyuan
-catalog_version: 2026-04-18-hunyuan-text-embedding-v1
+catalog_version: 2026-09-28-hunyuan-legacy-text-retired
 generated_target: runtime/catalog/providers/hunyuan.yaml
 runtime:
   inventory_mode: static_source
@@ -11,7 +11,6 @@ runtime:
   requires_explicit_endpoint: false
 defaults:
   provider: hunyuan
-  default_text_model: hunyuan-2.0-instruct-20251111
   model_type: chat
   capabilities: []
   context_window_tokens: 8192
@@ -21,7 +20,7 @@ defaults:
     output: unknown
     currency: CNY
     as_of: 2026-04-18
-    notes: Hunyuan pricing is model-specific. Current text defaults should follow the stable public ids exposed by current product overview and OpenAI-compatible docs.
+    notes: Hunyuan pricing is model-specific. The legacy platform text models went offline on 2026-06-22, and its console and API shut down on 2026-09-30.
 
 sources:
   - source_id: hunyuan_model_overview_doc
@@ -40,74 +39,16 @@ sources:
     url: https://cloud.tencent.com/document/product/1729/97731
     retrieved_at: 2026-04-18
     note: Tencent Hunyuan pricing overview with current per-million-token rates.
-
-selection_profiles:
-  - profile_id: text.general
-    capability: text.generate
-    model_id: hunyuan-2.0-instruct-20251111
-    reviewed_at: 2026-07-20
-    freshness_sla_days: 21
-    rationale: Current TokenHub-backed Hunyuan 2.0 instruct route in Hunyuan's public contract.
-  - profile_id: text.reasoning
-    capability: text.generate
-    model_id: hunyuan-2.0-thinking-20251109
-    reviewed_at: 2026-07-20
-    freshness_sla_days: 21
-    rationale: Current TokenHub-backed Hunyuan 2.0 thinking route in Hunyuan's public contract.
+  - source_id: hunyuan_legacy_model_retirement_doc
+    url: https://cloud.tencent.com/document/product/1729/131925
+    retrieved_at: 2026-09-28
+    note: Official notice that 46 legacy Hunyuan text models, including hunyuan-2.0-instruct-20251111, hunyuan-2.0-thinking-20251109, hunyuan-turbos-latest, and hunyuan-t1-latest, went offline at 2026-06-22 00:00 Beijing time; migration requires a TokenHub API key and base URL.
+  - source_id: hunyuan_legacy_platform_shutdown_notice
+    url: https://cloud.tencent.com/announce/detail/2287
+    retrieved_at: 2026-09-28
+    note: Official notice that the legacy Tencent Hunyuan platform console and API shut down at 2026-09-30 00:00 Beijing time.
 
 models:
-  - model_id: hunyuan-2.0-instruct-20251111
-    model_type: chat
-    updated_at: 2026-06-03
-    capabilities: [text.generate]
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-06-03
-      notes: Current Hunyuan 2.0 instruct text route. Exact public pricing is intentionally not inferred when not machine-verifiable in this refresh.
-    source_ids: [hunyuan_model_overview_doc, hunyuan_chat_model_doc, hunyuan_pricing_doc]
-
-  - model_id: hunyuan-2.0-thinking-20251109
-    model_type: chat
-    updated_at: 2026-06-03
-    capabilities: [text.generate]
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-06-03
-      notes: Current Hunyuan 2.0 thinking route. Exact public pricing is intentionally not inferred when not machine-verifiable in this refresh.
-    source_ids: [hunyuan_model_overview_doc, hunyuan_pricing_doc]
-
-  - model_id: hunyuan-turbos-latest
-    model_type: chat
-    updated_at: 2026-04-18
-    capabilities: [text.generate]
-    pricing:
-      unit: token
-      input: "0.8"
-      output: "2.0"
-      currency: CNY
-      as_of: 2026-04-18
-      notes: Hunyuan-TurboS current stable public route. Pricing is the published list price per 1M tokens.
-    source_ids: [hunyuan_model_overview_doc, hunyuan_chat_model_doc, hunyuan_pricing_doc]
-
-  - model_id: hunyuan-t1-latest
-    model_type: chat
-    updated_at: 2026-04-18
-    capabilities: [text.generate]
-    pricing:
-      unit: token
-      input: "1.0"
-      output: "4.0"
-      currency: CNY
-      as_of: 2026-04-18
-      notes: Hunyuan-T1 current stable reasoning route. Pricing is the published list price per 1M tokens.
-    source_ids: [hunyuan_model_overview_doc, hunyuan_pricing_doc]
-
   - model_id: hunyuan-embedding
     model_type: embedding
     updated_at: 2026-04-18
@@ -122,8 +63,8 @@ models:
       output: "0"
       currency: CNY
       as_of: 2026-04-18
-      notes: Embedding pricing is published at 0.7 CNY per 1M input tokens. OpenAI-compatible embeddings currently fix `model=hunyuan-embedding` and `dimensions=1024`.
-    source_ids: [hunyuan_embedding_doc, hunyuan_chat_model_doc, hunyuan_pricing_doc]
+      notes: Embedding pricing is published at 0.7 CNY per 1M input tokens. OpenAI-compatible embeddings currently fix `model=hunyuan-embedding` and `dimensions=1024`. The legacy platform API that serves this row shuts down on 2026-09-30.
+    source_ids: [hunyuan_embedding_doc, hunyuan_chat_model_doc, hunyuan_pricing_doc, hunyuan_legacy_platform_shutdown_notice]
 
   - model_id: hunyuan-dit
     model_type: image
@@ -147,5 +88,5 @@ models:
       output: unknown
       currency: CNY
       as_of: 2026-03-05
-      notes: Image generation pricing varies by quality and resolution.
-    source_ids: [hunyuan_model_overview_doc]
+      notes: Image generation pricing varies by quality and resolution. The legacy platform API that serves this row shuts down on 2026-09-30.
+    source_ids: [hunyuan_model_overview_doc, hunyuan_legacy_platform_shutdown_notice]

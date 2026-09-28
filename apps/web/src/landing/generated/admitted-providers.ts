@@ -1,7 +1,7 @@
 /**
  * @generated
  * Source: config/runtime-provider-catalog.yaml
- *   sha256: 5b4dd26817cb3e2af89a14680a156078adf20a5ec75b02ead9bdee9106c96bf2
+ *   sha256: cab0afbe0696c2247f8e68f62c1e5e5f3b621f5334f395dcdf81c31a0dae6b68
  * Generator: apps/web/scripts/generate-landing-data.mjs
  * DO NOT EDIT MANUALLY. Re-run generator (`pnpm prebuild` or
  * `node scripts/generate-landing-data.mjs` from apps/web/) to refresh.
@@ -118,7 +118,7 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   {
     provider: "gemini",
     defaultEndpoint: "https://generativelanguage.googleapis.com/v1beta/openai",
-    defaultTextModel: "gemini-3.5-flash",
+    defaultTextModel: "gemini-3.8-flash",
     requiresExplicitEndpoint: false,
     inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
@@ -158,7 +158,7 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   {
     provider: "hunyuan",
     defaultEndpoint: "https://api.hunyuan.cloud.tencent.com/v1",
-    defaultTextModel: "hunyuan-2.0-instruct-20251111",
+    defaultTextModel: null,
     requiresExplicitEndpoint: false,
     inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
@@ -206,7 +206,7 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   {
     provider: "mimo",
     defaultEndpoint: "https://api.xiaomimimo.com/v1",
-    defaultTextModel: "mimo-v2.5-pro",
+    defaultTextModel: "mimo-v2.6-pro",
     requiresExplicitEndpoint: false,
     inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
@@ -254,7 +254,7 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   {
     provider: "openai_codex",
     defaultEndpoint: "https://chatgpt.com/backend-api/codex",
-    defaultTextModel: "gpt-5.6-sol-wm",
+    defaultTextModel: "gpt-5.6-sol",
     requiresExplicitEndpoint: false,
     inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
@@ -374,7 +374,7 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   {
     provider: "volcengine",
     defaultEndpoint: "https://ark.cn-beijing.volces.com/api/v3",
-    defaultTextModel: "doubao-seed-2-1-pro-260628",
+    defaultTextModel: "doubao-seed-2-1-pro-260915",
     requiresExplicitEndpoint: false,
     inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",

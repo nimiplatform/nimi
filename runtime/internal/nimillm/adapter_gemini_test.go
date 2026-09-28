@@ -1,9 +1,13 @@
 package nimillm
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"image"
+	"image/color"
+	"image/jpeg"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -137,11 +141,17 @@ func TestExecuteGeminiTranscribeRejectsUnsupportedAdvancedOptions(t *testing.T) 
 }
 
 func TestExecuteGeminiImageGenerateContentUsesNativeEndpoint(t *testing.T) {
-	imageBytes := []byte("gemini-image")
+	var imageBuffer bytes.Buffer
+	testImage := image.NewRGBA(image.Rect(0, 0, 3, 2))
+	testImage.Set(0, 0, color.RGBA{R: 200, G: 40, B: 20, A: 255})
+	if err := jpeg.Encode(&imageBuffer, testImage, nil); err != nil {
+		t.Fatal(err)
+	}
+	imageBytes := imageBuffer.Bytes()
 	referenceBytes := []byte("reference-image")
 	var captured map[string]any
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost || r.URL.Path != "/v1beta/models/gemini-3.1-flash-image-preview:generateContent" {
+		if r.Method != http.MethodPost || r.URL.Path != "/v1beta/models/gemini-3.1-flash-image:generateContent" {
 			http.NotFound(w, r)
 			return
 		}
@@ -163,7 +173,7 @@ func TestExecuteGeminiImageGenerateContentUsesNativeEndpoint(t *testing.T) {
 							},
 							{
 								"inline_data": map[string]any{
-									"mime_type": "image/png",
+									"mime_type": "image/jpeg",
 									"data":      base64.StdEncoding.EncodeToString(imageBytes),
 								},
 							},
@@ -196,7 +206,7 @@ func TestExecuteGeminiImageGenerateContentUsesNativeEndpoint(t *testing.T) {
 				},
 			},
 		},
-		"gemini-3.1-flash-image-preview",
+		"gemini-3.1-flash-image",
 		func(*runtimev1.SubmitScenarioJobRequest) *structpb.Struct { return nil },
 	)
 	if err != nil {
@@ -211,8 +221,11 @@ func TestExecuteGeminiImageGenerateContentUsesNativeEndpoint(t *testing.T) {
 	if got := string(artifacts[0].GetBytes()); got != string(imageBytes) {
 		t.Fatalf("unexpected artifact bytes=%q", got)
 	}
-	if got := strings.TrimSpace(artifacts[0].GetMimeType()); got != "image/png" {
+	if got := strings.TrimSpace(artifacts[0].GetMimeType()); got != "image/jpeg" {
 		t.Fatalf("unexpected artifact mime=%q", got)
+	}
+	if artifacts[0].GetWidth() != 3 || artifacts[0].GetHeight() != 2 {
+		t.Fatalf("artifact dimensions must come from image bytes, got=%dx%d", artifacts[0].GetWidth(), artifacts[0].GetHeight())
 	}
 	if usage == nil || usage.GetInputTokens() <= 0 {
 		t.Fatalf("expected usage stats, got=%v", usage)

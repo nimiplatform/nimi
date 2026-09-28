@@ -1,0 +1,74 @@
+provider: dashscope
+report_date: 2026-09-28
+audit_mode: family_scoped
+families_in_scope:
+  - text
+taxonomy_axes:
+  product_family:
+    - qwen
+  capability_family:
+    - text
+  lineage_or_track:
+    - plus
+    - flash
+    - max
+refresh_policy:
+  keep_latest_generations: 2
+  authority_home: runtime/catalog/source/providers/dashscope.source.yaml
+evidence_urls:
+  official:
+    - https://help.aliyun.com/zh/model-studio/text-generation-model
+    - https://help.aliyun.com/zh/model-studio/model-pricing
+    - https://help.aliyun.com/zh/model-studio/newly-released-models
+  official_product: []
+  aggregate_hints: []
+  credentialed_live_probe:
+    - POST https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions
+current_source_inventory:
+  text:
+    selection_profiles:
+      text.general: qwen3.7-plus
+      text.fast: qwen3.6-flash
+      text.reasoning: qwen3.7-max
+official_current_inventory:
+  text:
+    recommended:
+      - qwen3.8-max
+      - qwen3.8-max-0902
+      - qwen3.8-flash
+      - qwen3.7-plus
+      - qwen3.7-flash
+    legacy:
+      - qwen3.7-max
+      - qwen3.6-flash
+gap_summary:
+  missing_in_source:
+    - qwen3.8-max
+    - qwen3.8-flash
+    - qwen3.7-flash
+  stale_in_source:
+    - text.fast and text.reasoning rationales that described legacy-listed models as current
+  extra_legacy_in_source:
+    - qwen-vl-max-latest went offline on 2026-05-13
+    - several hosted third-party and TTS rows go offline on 2026-10-10
+  uncertain_items: []
+curation_decision:
+  keep:
+    - qwen3.7-plus
+    - qwen3.6-flash with a legacy-listed rationale
+    - qwen3.7-max with a legacy-listed rationale
+  add: []
+  remove: []
+  defer:
+    - "qwen3.8-flash and qwen3.8-max: Qwen 3.8 target admission is reserved for the Cloud text behavior review"
+    - "qwen3.7-flash: verified live for text and image input but not the provider-named cost option"
+  reject_or_noise: []
+review_actions:
+  selection_profiles_review_required: true
+  defaults_review_required: false
+  capability_review_required: false
+notes:
+  - "Profile policy for this refresh: keep an active model that the provider does not label legacy, previous, or retiring and rewrite its rationale to current facts; otherwise move to an admitted row the provider recommends for the role, or add the provider-recommended model as a base-text row when its admission is not reserved for a later review. Rows are removed only for confirmed shutdowns."
+  - Live chat completions on 2026-09-28 returned for qwen3.7-plus, qwen3.7-max, qwen3.6-flash and qwen3.7-flash.
+  - No model rows changed, so catalog_version is unchanged.
+confidence: high

@@ -1,0 +1,69 @@
+provider: bedrock
+report_date: 2026-09-28
+audit_mode: family_scoped
+families_in_scope:
+  - text
+taxonomy_axes:
+  product_family:
+    - anthropic_on_bedrock
+    - amazon_nova
+  capability_family:
+    - text
+  lineage_or_track:
+    - sonnet
+    - fable
+    - nova_micro
+refresh_policy:
+  keep_latest_generations: 2
+  authority_home: runtime/catalog/source/providers/bedrock.source.yaml
+evidence_urls:
+  official:
+    - https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-sonnet-5.html
+    - https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-fable-5.html
+    - https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-amazon-nova-micro.html
+    - https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-amazon-nova-premier.html
+    - https://docs.aws.amazon.com/bedrock/latest/userguide/model-lifecycle.html
+  official_product: []
+  aggregate_hints: []
+current_source_inventory:
+  text:
+    selection_profiles:
+      text.general: anthropic.claude-sonnet-5
+      text.fast: amazon.nova-micro-v1:0
+      text.reasoning: anthropic.claude-fable-5
+official_current_inventory:
+  text:
+    active:
+      - anthropic.claude-sonnet-5 (end-of-life not before 2027-06-30)
+      - anthropic.claude-fable-5 (end-of-life not before 2027-06-09)
+      - amazon.nova-micro-v1:0 (active; described as the fastest text-only Amazon model)
+      - anthropic.claude-fable-5-1 (2026-09-01)
+    legacy: amazon.nova-premier-v1:0 is Legacy; its card lists an EOL date of 2026-09-14 and, separately, EOL no sooner than 2026-10-31
+gap_summary:
+  missing_in_source:
+    - anthropic.claude-fable-5-1
+    - anthropic.claude-opus-5-5
+  stale_in_source: []
+  extra_legacy_in_source:
+    - amazon.nova-premier-v1:0 (conflicting EOL fields)
+  uncertain_items:
+    - AWS cards list Chat Completions as unsupported for these models while this provider route sends OpenAI chat completions; the transport was not exercised.
+curation_decision:
+  keep:
+    - anthropic.claude-sonnet-5
+    - amazon.nova-micro-v1:0
+    - anthropic.claude-fable-5
+  add: []
+  remove: []
+  defer:
+    - anthropic.claude-fable-5-1, with the demand-gated Anthropic review
+  reject_or_noise: []
+review_actions:
+  selection_profiles_review_required: true
+  defaults_review_required: false
+  capability_review_required: false
+notes:
+  - "Profile policy for this refresh: keep an active model that the provider does not label legacy, previous, or retiring and rewrite its rationale to current facts; otherwise move to an admitted row the provider recommends for the role, or add the provider-recommended model as a base-text row when its admission is not reserved for a later review. Rows are removed only for confirmed shutdowns."
+  - Bedrock lists Fable 5 as Active; the Anthropic legacy label is recorded but Bedrock lifecycle governs this provider.
+  - No AWS credentials were available; no live call was made.
+confidence: medium

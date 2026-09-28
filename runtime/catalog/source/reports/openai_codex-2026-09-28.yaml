@@ -1,0 +1,66 @@
+provider: openai_codex
+report_date: 2026-09-28
+audit_mode: family_scoped
+families_in_scope:
+  - text
+  - image
+taxonomy_axes:
+  product_family:
+    - codex_subscription
+  capability_family:
+    - text
+    - image
+  lineage_or_track:
+    - gpt_5_6_work_mode
+    - gpt_6
+    - gpt_image_2
+refresh_policy:
+  keep_latest_generations: 2
+  authority_home: runtime/catalog/source/providers/openai_codex.source.yaml
+evidence_urls:
+  official:
+    - https://learn.chatgpt.com/docs/models
+    - https://learn.chatgpt.com/docs/image-generation
+    - https://github.com/openai/codex (models.json and image generation tool source)
+  official_product: []
+  aggregate_hints: []
+  credentialed_live_probe:
+    - "Official Codex CLI 0.155.1 signed in with ChatGPT: codex debug models refreshed the account model catalog at 2026-09-28T07:09:09Z (client_version 0.155.1); no credential was printed."
+current_source_inventory:
+  text:
+    selection_profiles:
+      text.general: gpt-5.6-sol-wm
+  image:
+    selection_profiles:
+      image.general: gpt-image-2
+official_current_inventory:
+  text: Codex guidance leads with gpt-6-astra, gpt-6-sol and gpt-6-luna and keeps GPT-5.6 available during the rollout; availability is account-scoped
+  image: Codex built-in image generation uses gpt-image-2
+gap_summary:
+  missing_in_source:
+    - gpt-6-sol
+    - gpt-6-luna
+  stale_in_source: []
+  extra_legacy_in_source:
+    - gpt-5.4 was retired from Codex with ChatGPT sign-in on 2026-08-31
+    - gpt-5.3-codex is described as deprecated on this route
+  uncertain_items:
+    - gpt-5.6-sol-wm appears in no public source; its last evidence is the authenticated inventory observation of 2026-08-09.
+    - "The 2026-09-28 account inventory lists gpt-6-astra, gpt-6-sol, gpt-6-luna, gpt-5.6-sol, gpt-5.6-terra, gpt-5.6-luna, and gpt-5.5, plus the hidden gpt-reserve and codex-auto-review, and does not list gpt-5.6-sol-wm. The Nimi Connector reads client_version 1.0.0, and this host has no Nimi openai_codex Connector, so the exact Nimi-side inventory is unconfirmed."
+    - Runtime has mapped the provider rejection that gpt-5.6-sol-wm is not supported for Codex with a ChatGPT account to AI_MODEL_NOT_FOUND since 2026-09-12; that test fixture is not itself a dated live observation.
+curation_decision:
+  keep:
+    - gpt-image-2 for image.general
+    - gpt-5.6-sol for text.general and the non-binding default_text_model
+  add: []
+  remove: []
+  defer:
+    - "A current Nimi Connector inventory and protected text call for this account remain unverified; the signed-in Codex CLI and 2026-09-12 Nimi Connector observations support only the non-binding gpt-5.6-sol recommendation."
+  reject_or_noise: []
+review_actions:
+  selection_profiles_review_required: true
+  defaults_review_required: true
+  capability_review_required: false
+notes:
+  - The old gpt-5.6-sol-wm default and text.general recommendation are replaced with the already-admitted gpt-5.6-sol after a current account inventory review; this is a source recommendation, not a claim that the current Nimi Connector was exercised.
+confidence: medium

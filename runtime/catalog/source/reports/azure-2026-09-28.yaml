@@ -1,0 +1,63 @@
+provider: azure
+report_date: 2026-09-28
+audit_mode: family_scoped
+families_in_scope:
+  - text
+taxonomy_axes:
+  product_family:
+    - azure_openai
+  capability_family:
+    - text
+  lineage_or_track:
+    - gpt_5_6
+    - gpt_6
+refresh_policy:
+  keep_latest_generations: 2
+  authority_home: runtime/catalog/source/providers/azure.source.yaml
+evidence_urls:
+  official:
+    - https://learn.microsoft.com/azure/ai-foundry/openai/concepts/model-retirements
+    - https://learn.microsoft.com/azure/ai-foundry/openai/concepts/models
+    - Azure blog posts of 2026-09-03 and 2026-09-22 announcing GPT-6 availability
+  official_product: []
+  aggregate_hints: []
+current_source_inventory:
+  text:
+    selection_profiles:
+      text.general: gpt-5.6-sol
+      text.fast: gpt-5.6-terra
+      text.reasoning: gpt-5.6-sol
+official_current_inventory:
+  text:
+    gpt_5_6: gpt-5.6-sol, gpt-5.6-terra and gpt-5.6-luna version 2026-07-09 are GA with retirement on 2028-01-11
+    gpt_6:
+      - gpt-6-astra (2026-09-03)
+      - gpt-6-sol (2026-09-22)
+      - gpt-6-luna (2026-09-22)
+gap_summary:
+  missing_in_source:
+    - gpt-6-astra
+    - gpt-6-sol
+    - gpt-6-luna
+  stale_in_source:
+    - rationales that called GPT-5.6 the current frontier
+  extra_legacy_in_source: []
+  uncertain_items:
+    - Azure and OpenAI documents disagree on GPT-6 Astra sampling and reasoning-effort support.
+curation_decision:
+  keep:
+    - gpt-5.6-sol
+    - gpt-5.6-terra
+  add: []
+  remove: []
+  defer:
+    - GPT-6 Azure deployments, pending exact parameter review and admission
+  reject_or_noise: []
+review_actions:
+  selection_profiles_review_required: true
+  defaults_review_required: false
+  capability_review_required: false
+notes:
+  - "Profile policy for this refresh: keep an active model that the provider does not label legacy, previous, or retiring and rewrite its rationale to current facts; otherwise move to an admitted row the provider recommends for the role, or add the provider-recommended model as a base-text row when its admission is not reserved for a later review. Rows are removed only for confirmed shutdowns."
+  - No Azure credentials were available; no live call was made.
+confidence: medium

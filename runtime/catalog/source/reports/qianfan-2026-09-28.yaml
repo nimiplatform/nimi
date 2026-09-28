@@ -1,0 +1,65 @@
+provider: qianfan
+report_date: 2026-09-28
+audit_mode: family_scoped
+families_in_scope:
+  - text
+taxonomy_axes:
+  product_family:
+    - ernie
+  capability_family:
+    - text
+  lineage_or_track:
+    - ernie_5_1
+    - ernie_x1_1
+    - ernie_4_5_turbo
+refresh_policy:
+  keep_latest_generations: 2
+  authority_home: runtime/catalog/source/providers/qianfan.source.yaml
+evidence_urls:
+  official:
+    - https://cloud.baidu.com/doc/qianfan/s/zmh4stou3
+    - https://cloud.baidu.com/doc/qianfan/s/rmh4stp0j
+  official_product: []
+  aggregate_hints: []
+current_source_inventory:
+  text:
+    selection_profiles:
+      text.general: ernie-5.1
+      text.fast: ernie-4.5-turbo-128k
+      text.reasoning: ernie-x1.1
+official_current_inventory:
+  text:
+    current: ernie-5.1 is the newest ERNIE model and supports thinking_budget
+    retiring:
+      - ERNIE-X1.1 and ERNIE-X1.1-Preview on 2026-09-29, replaced by ERNIE-5.1
+      - ERNIE-4.5-Turbo-128K, ERNIE-4.5-Turbo-32K, ERNIE-4.5-Turbo-VL-128K, ERNIE-4.5-Turbo-VL-32K and ERNIE-5.0 on 2026-10-29, replaced by Qianfan-hosted DeepSeek-V4.1-Flash
+    forwarding: The platform does not forward old-model requests to new models.
+gap_summary:
+  missing_in_source: []
+  stale_in_source:
+    - text.reasoning pointing to ERNIE X1.1
+    - text.fast pointing to ERNIE-4.5-Turbo-128K
+  extra_legacy_in_source:
+    - ernie-x1.1 and ernie-x1.1-preview go offline on 2026-09-29
+    - ERNIE 4.5 Turbo rows and ernie-5.0 go offline on 2026-10-29
+  uncertain_items:
+    - Qianfan tables give the hosted DeepSeek replacement as both deepseek-v4.1-flash and deepseek-flash.
+curation_decision:
+  keep:
+    - ernie-5.1 for text.general
+  add: []
+  remove:
+    - text.fast selection profile
+  defer:
+    - Qianfan-hosted DeepSeek-V4.1-Flash, outside the ERNIE-scoped source and with an unresolved model id
+  reject_or_noise: []
+review_actions:
+  selection_profiles_review_required: true
+  defaults_review_required: false
+  capability_review_required: false
+notes:
+  - "Profile policy for this refresh: keep an active model that the provider does not label legacy, previous, or retiring and rewrite its rationale to current facts; otherwise move to an admitted row the provider recommends for the role, or add the provider-recommended model as a base-text row when its admission is not reserved for a later review. Rows are removed only for confirmed shutdowns."
+  - text.reasoning moves to ernie-5.1, the named replacement for ERNIE X1.1.
+  - No Qianfan credentials were available; no live call was made.
+  - No model rows changed, so catalog_version is unchanged.
+confidence: high

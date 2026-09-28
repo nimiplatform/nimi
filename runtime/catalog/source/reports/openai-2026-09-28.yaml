@@ -1,0 +1,93 @@
+provider: openai
+report_date: 2026-09-28
+audit_mode: family_scoped
+families_in_scope:
+  - text
+  - video
+  - asr
+taxonomy_axes:
+  product_family:
+    - gpt
+    - sora
+    - whisper
+  capability_family:
+    - text
+    - video
+    - asr
+  lineage_or_track:
+    - gpt_5_6
+    - gpt_6
+    - sora_2
+    - legacy_transcribe
+refresh_policy:
+  keep_latest_generations: 2
+  authority_home: runtime/catalog/source/providers/openai.source.yaml
+evidence_urls:
+  official:
+    - https://developers.openai.com/api/docs/deprecations (HTTP 403 from this environment; read via Internet Archive capture 20260926103727)
+    - https://developers.openai.com/api/docs/models (Internet Archive capture 20260927112655)
+    - https://developers.openai.com/api/docs/changelog (Internet Archive capture 20260926193156)
+  official_product: []
+  aggregate_hints:
+    - Web search snippets quoting the Sora 2 shutdown notice, used only as leads.
+current_source_inventory:
+  text:
+    selection_profiles:
+      text.general: gpt-5.6-sol
+      text.fast: gpt-5.6-terra
+      text.reasoning: gpt-5.6-sol
+    default_text_model: gpt-5.6-sol
+  video:
+    model_rows:
+      - sora-2 (alias sora-2-2025-12-08)
+  asr:
+    model_rows:
+      - gpt-4o-transcribe
+      - gpt-4o-mini-transcribe
+      - whisper-1
+official_current_inventory:
+  text:
+    gpt_6:
+      - gpt-6-astra (2026-09-03)
+      - gpt-6-sol (2026-09-22)
+      - gpt-6-luna (2026-09-22)
+    gpt_5_6: gpt-5.6-sol, gpt-5.6-terra and gpt-5.6-luna remain active with no announced shutdown
+  video: The Videos API and every Sora 2 alias and snapshot were removed from the API on 2026-09-24 with no replacement.
+  asr: whisper-1, gpt-4o-transcribe, gpt-4o-mini-transcribe and gpt-4o-transcribe-diarize were notified on 2026-08-26 for API removal on 2027-02-26; replacements are gpt-transcribe or gpt-live-transcribe.
+gap_summary:
+  missing_in_source:
+    - gpt-6-astra
+    - gpt-6-sol
+    - gpt-6-luna
+    - gpt-transcribe
+  stale_in_source:
+    - sora-2 row after its 2026-09-24 shutdown
+    - text profile rationales that called GPT-5.6 the current frontier
+  extra_legacy_in_source:
+    - o3-mini and o4-mini shut down on 2026-10-23
+    - gpt-image-1.5 shuts down on 2026-12-01
+    - gpt-audio and gpt-audio-mini shut down on 2027-01-20
+  uncertain_items:
+    - gpt-5.2-pro and gpt-5.3-codex are documented as Responses-only while this provider route uses Chat Completions.
+curation_decision:
+  keep:
+    - gpt-5.6-sol for text.general and text.reasoning
+    - gpt-5.6-terra for text.fast
+    - transcription rows until their 2027-02-26 removal, now labeled deprecated
+  add: []
+  remove:
+    - sora-2 and alias sora-2-2025-12-08 after the confirmed 2026-09-24 shutdown
+  defer:
+    - "gpt-6-astra, gpt-6-sol and gpt-6-luna: standard OpenAI GPT-6 target admission is reserved for the Cloud text behavior review"
+    - "gpt-transcribe: reserved for the speech model refresh"
+  reject_or_noise: []
+review_actions:
+  selection_profiles_review_required: true
+  defaults_review_required: false
+  capability_review_required: true
+notes:
+  - "Profile policy for this refresh: keep an active model that the provider does not label legacy, previous, or retiring and rewrite its rationale to current facts; otherwise move to an admitted row the provider recommends for the role, or add the provider-recommended model as a base-text row when its admission is not reserved for a later review. Rows are removed only for confirmed shutdowns."
+  - Removing the only video row removes video.generate from the OpenAI capability projection; committed OpenAI video targets now fail typed before dispatch.
+  - catalog_version changes to 2026-09-28-openai-sora-2-retired, so committed OpenAI Cloud targets must be re-selected (AI_REMOTE_MODEL_CATALOG_STALE).
+  - No Nimi selection logic or default references the deprecated transcription IDs.
+confidence: high

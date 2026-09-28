@@ -121,6 +121,6 @@ selection_profiles:
     profile_id: text.general
     capability: text.generate
     model_id: MiniMax-M3
-    reviewed_at: 2026-07-20
+    reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Current MiniMax frontier text and multimodal Agent model exposed by the production SDK and API docs.
+    rationale: MiniMax-M3 is served on the pay-as-you-go API with native multimodal input and a 1M context window; the newer M3.1 Flash Preview is subscription-only.

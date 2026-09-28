@@ -1,0 +1,68 @@
+provider: anthropic
+report_date: 2026-09-28
+audit_mode: family_scoped
+families_in_scope:
+  - text
+taxonomy_axes:
+  product_family:
+    - claude
+  capability_family:
+    - text
+  lineage_or_track:
+    - sonnet
+    - haiku
+    - fable
+    - opus
+refresh_policy:
+  keep_latest_generations: 2
+  authority_home: runtime/catalog/source/providers/anthropic.source.yaml
+evidence_urls:
+  official:
+    - https://platform.claude.com/docs/en/about-claude/models/overview
+    - https://platform.claude.com/docs/en/about-claude/model-deprecations
+    - https://platform.claude.com/docs/en/models/fable-5/overview
+    - https://platform.claude.com/docs/en/models/sonnet-5/overview
+    - https://platform.claude.com/docs/en/models/haiku-4-5/overview
+  official_product: []
+  aggregate_hints: []
+current_source_inventory:
+  text:
+    selection_profiles:
+      text.general: claude-sonnet-5
+      text.fast: claude-haiku-4-5
+      text.reasoning: claude-fable-5
+official_current_inventory:
+  text:
+    latest:
+      - claude-sonnet-5 (active, retirement not before 2027-06-30)
+      - claude-haiku-4-5 (active, retirement not before 2026-10-15)
+      - claude-fable-5-1 (2026-09-01)
+      - claude-opus-5-5 (2026-09-22)
+    legacy: claude-fable-5 is active with retirement not before 2027-06-09 but labeled legacy in favor of Fable 5.1
+gap_summary:
+  missing_in_source:
+    - claude-fable-5-1
+    - claude-opus-5-5
+  stale_in_source:
+    - text.reasoning rationale describing Fable 5 as the most capable model
+  extra_legacy_in_source:
+    - claude-opus-4-8 and claude-opus-4-7 row notes still say current flagship
+  uncertain_items: []
+curation_decision:
+  keep:
+    - claude-sonnet-5
+    - claude-haiku-4-5
+    - claude-fable-5 with a rationale that states its legacy label
+  add: []
+  remove: []
+  defer:
+    - "claude-fable-5-1 and claude-opus-5-5: Anthropic target admission is demand-gated; Fable 5.1 rejects forced tool choice, which the current Anthropic adapter maps to any/tool"
+  reject_or_noise: []
+review_actions:
+  selection_profiles_review_required: true
+  defaults_review_required: false
+  capability_review_required: false
+notes:
+  - "Profile policy for this refresh: keep an active model that the provider does not label legacy, previous, or retiring and rewrite its rationale to current facts; otherwise move to an admitted row the provider recommends for the role, or add the provider-recommended model as a base-text row when its admission is not reserved for a later review. Rows are removed only for confirmed shutdowns."
+  - No Anthropic credentials were available; no live call was made.
+confidence: high
