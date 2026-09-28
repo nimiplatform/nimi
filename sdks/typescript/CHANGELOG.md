@@ -1,5 +1,15 @@
 # SDK migration notes
 
+## Embedding space identity (next minor, development)
+
+- Direct `embedText` now returns the required Runtime-issued `spaceId` beside
+  `embeddings` and rejects a result without a valid space ID. Indexing callers
+  must keep this ID with each vector set and rebuild or isolate an index when
+  the space changes; equal dimensions alone do not make vectors comparable.
+- Typed result fixtures must add `spaceId`. The protected Local App carrier
+  already included it; Kit's public result type now reflects that existing
+  wire value.
+
 ## Shared Agent introduction (next minor, development)
 
 - Add `agents.getIntroduction({ agentHandle })` under `agent.local` for every

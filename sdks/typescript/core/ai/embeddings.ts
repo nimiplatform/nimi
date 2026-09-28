@@ -31,6 +31,7 @@ export interface NimiEmbedTextRequest {
 
 export interface NimiEmbedTextResult {
   readonly embeddings: readonly (readonly number[])[];
+  readonly spaceId: string;
   readonly usage?: NimiUsage;
   readonly raw: {
     readonly traceId: string;
@@ -100,8 +101,21 @@ function toEmbedTextResult(response: ExecuteScenarioResponse): NimiEmbedTextResu
       source: 'sdk',
     });
   }
+  // @nimi-authority: rule.nimi.runtime.ai-provider.embedding-space-identity
+  const spaceId = output.textEmbed.spaceId;
+  if (typeof spaceId !== 'string' || !spaceId || spaceId.trim() !== spaceId ||
+    new TextEncoder().encode(spaceId).byteLength > 128 || /[\u0000-\u001f\u007f]/u.test(spaceId)) {
+    throw createNimiError({
+      message: 'Runtime textEmbed output did not contain a valid embedding spaceId',
+      code: ReasonCode.SDK_AI_RUNTIME_OUTPUT_INVALID,
+      reasonCode: ReasonCode.SDK_AI_RUNTIME_OUTPUT_INVALID,
+      actionHint: 'check_runtime_embedding_scenario_output',
+      source: 'sdk',
+    });
+  }
   return {
     embeddings: output.textEmbed.vectors.map((row) => row.values.map((value) => Number(value))),
+    spaceId,
     usage: toNimiUsage(response.usage),
     raw: {
       traceId: response.traceId,

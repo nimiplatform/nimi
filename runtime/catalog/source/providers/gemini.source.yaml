@@ -72,6 +72,14 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/models/gemini-embedding-001
     retrieved_at: 2026-04-18
     note: Gemini embedding model card.
+  - source_id: gemini_embedding_2_stable_doc
+    url: https://ai.google.dev/gemini-api/docs/models/gemini-embedding-2
+    retrieved_at: 2026-09-28
+    note: Stable gemini-embedding-2 model code and 128–3072-dimensional text embedding output.
+  - source_id: gemini_embeddings_guide
+    url: https://ai.google.dev/gemini-api/docs/embeddings
+    retrieved_at: 2026-09-28
+    note: Gemini Embedding 2 defaults to 3072 output dimensions without output_dimensionality.
   - source_id: gemini_embedding_2_preview_doc
     url: https://ai.google.dev/gemini-api/docs/models/gemini-embedding-2-preview
     retrieved_at: 2026-09-28
@@ -237,6 +245,24 @@ models:
       as_of: 2026-04-18
       notes: Standard paid-tier text-only embedding price. Batch price is lower. Per 1M tokens.
     source_ids: [gemini_embedding_001_doc, gemini_models_doc, gemini_pricing_doc]
+
+  - model_id: gemini-embedding-2
+    model_type: embedding
+    updated_at: 2026-09-28
+    capabilities: [text.embed]
+    # This text-only route sends no output_dimensionality, so the reviewed
+    # native/default output is fixed at 3072; image/audio/video/PDF inputs are
+    # separate contract work, not implied by this source row.
+    embedding:
+      dimension: 3072
+    pricing:
+      unit: token
+      input: "0.20"
+      output: "0"
+      currency: USD
+      as_of: 2026-09-28
+      notes: Standard paid-tier text input per 1M tokens; Batch and non-text input have separate rates.
+    source_ids: [gemini_embedding_2_stable_doc, gemini_embeddings_guide, gemini_pricing_doc]
 
   - model_id: gemini-embedding-2-preview
     model_type: embedding

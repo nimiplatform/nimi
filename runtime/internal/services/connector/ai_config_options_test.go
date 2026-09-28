@@ -104,6 +104,7 @@ func TestAIConfigCloudEmbeddingRequiresVerifiedFixedDimension(t *testing.T) {
 	}{
 		{provider: "volcengine", model: "doubao-embedding"},
 		{provider: "gemini", model: "gemini-embedding-2-preview"},
+		{provider: "gemini", model: "gemini-embedding-2", ready: true},
 		{provider: "gemini", model: "gemini-embedding-001", ready: true},
 	} {
 		t.Run(tc.provider+"/"+tc.model, func(t *testing.T) {

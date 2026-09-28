@@ -1,5 +1,14 @@
 # Changelog
 
+## Embedding space identity (next minor, development)
+
+- The Kit Local App scenario result type now includes the required `spaceId`
+  already validated and carried by Runtime. The generation summary projects the
+  same ID so equal-width vectors from different model spaces stay distinct.
+- This widens the public embedding result shape; consumers that construct a
+  typed test result must include the Runtime-issued space ID. Rebuild Kit with
+  the matching SDK that now exposes `spaceId` on direct `embedText` results.
+
 ## Committed Cloud target reasons (next minor, development)
 
 - Preserve Runtime's `AI_REMOTE_MODEL_CATALOG_STALE`, `AI_CONNECTOR_DISABLED` and

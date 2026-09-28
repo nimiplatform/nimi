@@ -228,7 +228,7 @@ describe('runtime AI consume contract', () => {
       ok: true,
       capabilityId: 'text.embed',
       output: {
-        kind: 'embedding', vectorCount: 2, dimensions: 3, sample: [0.1, 0.2, 0.3], totalTokens: 4,
+        kind: 'embedding', vectorCount: 2, dimensions: 3, spaceId: 'embedding-space-fixture', sample: [0.1, 0.2, 0.3], totalTokens: 4,
       },
       trace: { traceId: 'trace-embed-1', modelResolved: 'runtime-embedder', routeDecision: 'local' },
     });

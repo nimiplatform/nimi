@@ -41,6 +41,7 @@ export type RuntimeAIConsumeOutput =
       readonly kind: 'embedding';
       readonly vectorCount: number;
       readonly dimensions: number;
+      readonly spaceId: string;
       readonly sample: readonly number[];
       readonly totalTokens?: number;
     };
@@ -142,6 +143,7 @@ export async function runRuntimeAIConsumeCapability(
           kind: 'embedding',
           vectorCount: result.embeddings.length,
           dimensions: first.length,
+          spaceId: result.spaceId,
           sample: first.slice(0, 8),
           ...(result.usage ? { totalTokens: result.usage.totalTokens } : {}),
         },

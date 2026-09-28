@@ -25,6 +25,7 @@ test('Runtime-backed embedding client maps text embedding Scenario requests and 
               output: {
                 oneofKind: 'textEmbed',
                 textEmbed: {
+                  spaceId: 'space-embedder-1',
                   vectors: [
                     { values: [0.1, 0.2] },
                     { values: [0.3, 0.4] },
@@ -57,6 +58,7 @@ test('Runtime-backed embedding client maps text embedding Scenario requests and 
   assert.equal(capturedRequest?.spec.spec.oneofKind, 'textEmbed');
   assert.deepEqual(capturedRequest?.spec.spec.textEmbed.inputs, ['first', 'second']);
   assert.deepEqual(result.embeddings, [[0.1, 0.2], [0.3, 0.4]]);
+  assert.equal(result.spaceId, 'space-embedder-1');
   assert.equal(result.usage?.totalTokens, 3);
   assert.equal(result.raw.routeDecision, 'local');
 });
@@ -84,6 +86,30 @@ test('Runtime-backed embedding client fails closed for invalid inputs and output
   );
   await assert.rejects(
     () => embedding.embedText({ values: ['ok'] }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_AI_RUNTIME_OUTPUT_INVALID,
+  );
+});
+
+test('Runtime-backed embedding client refuses vectors without their embedding space', async () => {
+  const embedding = createNimiRuntimeEmbeddingClient({
+    appId: 'app-1',
+    runtime: {
+      async executeScenario() {
+        return {
+          output: { output: { oneofKind: 'textEmbed', textEmbed: {
+            vectors: [{ values: [0.25, 0.75] }], spaceId: '',
+          } } },
+          finishReason: 1,
+          routeDecision: RoutePolicy.LOCAL,
+          modelResolved: 'embedder-1',
+          traceId: 'trace-embed',
+          ignoredExtensions: [],
+        };
+      },
+    },
+  });
+  await assert.rejects(
+    () => embedding.embedText({ values: ['hello'] }),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_AI_RUNTIME_OUTPUT_INVALID,
   );
 });

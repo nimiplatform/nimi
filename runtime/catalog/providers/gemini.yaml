@@ -171,6 +171,25 @@ models:
       note: Gemini embedding model card.
     embedding:
       dimension: 3072
+  - model_id: gemini-embedding-2
+    provider: gemini
+    model_type: embedding
+    updated_at: 2026-09-28
+    capabilities:
+      - text.embed
+    pricing:
+      unit: token
+      input: "0.20"
+      output: "0"
+      currency: USD
+      as_of: 2026-09-28
+      notes: Standard paid-tier text input per 1M tokens; Batch and non-text input have separate rates.
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-embedding-2
+      retrieved_at: 2026-09-28
+      note: Stable gemini-embedding-2 model code and 128–3072-dimensional text embedding output.
+    embedding:
+      dimension: 3072
   - model_id: gemini-embedding-2-preview
     provider: gemini
     model_type: embedding
