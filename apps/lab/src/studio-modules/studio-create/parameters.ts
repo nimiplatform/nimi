@@ -1,5 +1,4 @@
 import {
-  CLOUD_ONLY_STUDIO_PARAMETER,
   LOCAL_AND_CLOUD_STUDIO_PARAMETER,
   defineStudioParameters,
 } from '../../ai-studio-core/parameters.js';
@@ -61,7 +60,7 @@ export const studioChatStreamParameters = defineStudioParameters<StudioTextTurnP
 
 export const studioTextEmbedParameters = defineStudioParameters<StudioEmbeddingParameters>({
   initial: () => ({}),
-  routeMatrix: { inputs: CLOUD_ONLY_STUDIO_PARAMETER },
+  routeMatrix: { inputs: LOCAL_AND_CLOUD_STUDIO_PARAMETER },
   hasAlternativeInput: (parameters) => nonEmptyEmbeddingInputs(parameters).length > 0,
 });
 

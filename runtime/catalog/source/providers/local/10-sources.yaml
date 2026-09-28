@@ -143,6 +143,14 @@ sources:
     url: https://huggingface.co/nomic-ai/nomic-embed-text-v1.5
     retrieved_at: 2026-06-08
     note: Nomic Embed Text v1.5 model card declaring 8192 context and 768 native embedding dimension.
+  - source_id: qwen3_embedding_06b_gguf_modelcard
+    url: https://huggingface.co/Qwen/Qwen3-Embedding-0.6B-GGUF/tree/370f27d7550e0def9b39c1f16d3fbaa13aa67728
+    retrieved_at: 2026-09-29
+    note: Qwen-authored Apache-2.0 GGUF distribution with exact Q8_0 file and llama.cpp last-token pooling command.
+  - source_id: qwen3_embedding_06b_modelcard
+    url: https://huggingface.co/Qwen/Qwen3-Embedding-0.6B/tree/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3
+    retrieved_at: 2026-09-29
+    note: Original Qwen3 Embedding 0.6B 1024-dimensional model with last-token pooling, L2 normalization and 32K model context.
   - source_id: cosyvoice_repo
     url: https://github.com/FunAudioLLM/CosyVoice
     retrieved_at: 2026-03-05

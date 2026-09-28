@@ -30,7 +30,7 @@ func TestLlamaDriversProjectBoundedGGUFIdentityBeforeTruncatedMetadata(t *testin
 		{
 			name:         "text embed Qwen",
 			driver:       LlamaEmbedDriver{},
-			recipeID:     LlamaEmbedGGUFRecipeID,
+			recipeID:     LlamaQwen3EmbedRecipeID,
 			architecture: "qwen3",
 			kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING,
 			artifactRole: "embedding",

@@ -36,11 +36,13 @@ const (
 	LlamaDriverDialect         = "llama.cpp/text-generate/v2"
 	LlamaEmbedImplementationID = "local.text.embed.llama-cpp"
 	LlamaEmbedDriverDialect    = "llama.cpp/text-embed/v1"
+	LlamaQwen3EmbedDialect     = "llama.cpp/text-embed/qwen3-last/v1"
 	LlamaCapabilityContract    = "text.generate"
 
-	LlamaGemma4RecipeID    = "llama.text-generate.gemma4.v1"
-	LlamaQwen35RecipeID    = "llama.text-generate.qwen35-4b.v1"
-	LlamaEmbedGGUFRecipeID = "llama.text-embed.gguf.v1"
+	LlamaGemma4RecipeID     = "llama.text-generate.gemma4.v1"
+	LlamaQwen35RecipeID     = "llama.text-generate.qwen35-4b.v1"
+	LlamaEmbedGGUFRecipeID  = "llama.text-embed.gguf.v1"
+	LlamaQwen3EmbedRecipeID = "llama.text-embed.qwen3-last.v1"
 
 	MainGGUFRequirementID        = "main.gguf"
 	CompanionMMProjRequirementID = "companion.mmproj"
@@ -406,6 +408,7 @@ type TextInvocationInput struct {
 // input. It contains only the selected portable configuration, immutable exact
 // bindings, model-authored capacity, and the normalized request.
 type EmbedInvocationInput struct {
+	RecipeID                 string
 	PortableConfig           *structpb.Struct
 	ModelContextWindowTokens uint64
 	ExactBindings            []InvocationExactBinding
@@ -1608,6 +1611,7 @@ func NewProductionRegistry() *Registry {
 		// @nimi-authority: rule.nimi.runtime.local-compute.r112
 		{CapabilityContract: LlamaCapabilityContract, Identity: Identity{ImplementationID: LlamaImplementationID, DriverID: LlamaDriverID, DriverDialect: LlamaDriverDialect}}:                                                             LlamaTextDriver{},
 		{CapabilityContract: TextEmbedCapabilityContract, Identity: Identity{ImplementationID: LlamaEmbedImplementationID, DriverID: LlamaDriverID, DriverDialect: LlamaEmbedDriverDialect}}:                                               LlamaEmbedDriver{},
+		{CapabilityContract: TextEmbedCapabilityContract, Identity: Identity{ImplementationID: LlamaEmbedImplementationID, DriverID: LlamaDriverID, DriverDialect: LlamaQwen3EmbedDialect}}:                                                LlamaEmbedDriver{},
 		{CapabilityContract: StableDiffusionCapabilityContract, Identity: Identity{ImplementationID: StableDiffusionImplementationID, DriverID: StableDiffusionDriverID, DriverDialect: StableDiffusionDriverDialect}}:                     StableDiffusionImageDriver{},
 		{CapabilityContract: StableDiffusionVideoCapabilityContract, Identity: Identity{ImplementationID: StableDiffusionVideoImplementationID, DriverID: StableDiffusionVideoDriverID, DriverDialect: StableDiffusionVideoDriverDialect}}: StableDiffusionVideoDriver{},
 		{CapabilityContract: AudioSynthesizeContract, Identity: Identity{ImplementationID: Qwen3TTSImplementationID, DriverID: Qwen3TTSDriverID, DriverDialect: Qwen3TTSDriverDialect}}:                                                    Qwen3TTSDriver{},

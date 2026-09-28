@@ -65,6 +65,37 @@ models:
       - local/nomic-embed-text
       - llama/nomic-embed-text
 
+  - model_id: qwen3-embedding-0.6b-local
+    model_type: embedding
+    updated_at: 2026-09-29
+    capabilities: [text.embed]
+    source_ids: [qwen3_embedding_06b_gguf_modelcard, qwen3_embedding_06b_modelcard]
+    embedding:
+      dimension: 1024
+    install:
+      repo: Qwen/Qwen3-Embedding-0.6B-GGUF
+      revision: 370f27d7550e0def9b39c1f16d3fbaa13aa67728 # pragma: allowlist secret -- public immutable model revision
+      install_kind: weights
+      entry: Qwen3-Embedding-0.6B-Q8_0.gguf
+      artifact_roles: [embedding]
+      preferred_engine: llama
+    variants:
+      - variant_id: local.embedding.qwen3-0.6b.q8-0.cuda
+        quant: Q8_0
+        files: [Qwen3-Embedding-0.6B-Q8_0.gguf]
+        hashes:
+          Qwen3-Embedding-0.6B-Q8_0.gguf: "sha256:06507c7b42688469c4e7298b0a1e16deff06caf291cf0a5b278c308249c3e439"
+        total_size_bytes: 639150592
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 4294967296
+    fitness:
+      param_count: 595776512
+      context_length: 32768
+    aliases:
+      - Qwen/Qwen3-Embedding-0.6B-GGUF
+
   - model_id: whisper-large-v3-local
     model_type: stt
     updated_at: 2026-03-15

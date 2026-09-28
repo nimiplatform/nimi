@@ -314,7 +314,23 @@ loadout_recipes:
         recommended_variant_ids: [local.embedding.nomic-embed-text-v1.5.q4-k-m]
         model_contract:
           format: gguf
-          gguf_architectures: [bert, nomic-bert, qwen3]
+          gguf_architectures: [bert, nomic-bert]
+  - recipe_id: llama.text-embed.qwen3-last.v1
+    revision: "1"
+    title: Qwen3 last-token normalized embeddings
+    capability_contract: text.embed
+    implementation_id: local.text.embed.llama-cpp
+    driver_id: nimi.runtime.driver.llama-cpp
+    driver_dialect: llama.cpp/text-embed/qwen3-last/v1
+    default_options: { contextSize: 8192, gpuLayers: 99 }
+    supported_features: []
+    slot_metadata:
+      - slot_id: embedding.gguf
+        display_label: Qwen3 embedding model
+        recommended_variant_ids: [local.embedding.qwen3-0.6b.q8-0.cuda]
+        model_contract:
+          format: gguf
+          gguf_architectures: [qwen3]
   - recipe_id: voxcpm2
     revision: "2"
     title: VoxCPM2 speech synthesis

@@ -955,6 +955,7 @@ func llamaEmbedInvocationPlanForHostTest(t *testing.T, name string) *capabilityd
 		t.Fatalf("write captured embedding model: %v", err)
 	}
 	plan, err := (capabilitydriver.LlamaEmbedDriver{}).PlanEmbedInvocation(capabilitydriver.EmbedInvocationInput{
+		RecipeID:                 capabilitydriver.LlamaEmbedGGUFRecipeID,
 		ModelContextWindowTokens: 8192,
 		ExactBindings: []capabilitydriver.InvocationExactBinding{{
 			RequirementID:     capabilitydriver.EmbeddingGGUFRequirementID,

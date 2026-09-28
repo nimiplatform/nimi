@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -38,6 +39,32 @@ func TestLocalEmbeddingSpaceTracksContentNotLoadoutOrRequestIdentity(t *testing.
 	}
 	if identity.GetLoadoutId() != "loadout-a" || identity.ModelAxes[0].ModelAssetId != "asset-a" {
 		t.Fatal("space projection mutated captured attribution")
+	}
+}
+
+func TestQwen3EmbeddingDialectAndOptionsSeparateVectorSpace(t *testing.T) {
+	identity := &runtimev1.LoadoutEffectiveInputIdentity{
+		CapabilityContract: "text.embed", RecipeId: capabilitydriver.LlamaEmbedGGUFRecipeID, RecipeRevision: "1",
+		Implementation: &runtimev1.CapabilityImplementationIdentity{ImplementationId: capabilitydriver.LlamaEmbedImplementationID,
+			DriverId: capabilitydriver.LlamaDriverID, DriverDialect: capabilitydriver.LlamaEmbedDriverDialect},
+		ModelAxes: []*runtimev1.LoadoutEffectiveModelAxisIdentity{{SlotId: capabilitydriver.EmbeddingGGUFRequirementID, ContentId: "sha256:same-model-content"}},
+	}
+	vectors := []*runtimev1.EmbeddingVector{{Values: []float64{1, 0}}}
+	generic, err := localEmbeddingIdentitySpaceID(identity, vectors)
+	if err != nil {
+		t.Fatal(err)
+	}
+	qwen := proto.Clone(identity).(*runtimev1.LoadoutEffectiveInputIdentity)
+	qwen.RecipeId = capabilitydriver.LlamaQwen3EmbedRecipeID
+	qwen.Implementation.DriverDialect = capabilitydriver.LlamaQwen3EmbedDialect
+	qwenSpace, err := localEmbeddingIdentitySpaceID(qwen, vectors)
+	if err != nil || qwenSpace == generic {
+		t.Fatalf("last-pooling Qwen dialect reused generic space: generic=%q qwen=%q err=%v", generic, qwenSpace, err)
+	}
+	qwen.Options, _ = structpb.NewStruct(map[string]any{"contextSize": 8192, "gpuLayers": 99})
+	withOptions, err := localEmbeddingIdentitySpaceID(qwen, vectors)
+	if err != nil || withOptions == qwenSpace {
+		t.Fatalf("changed Qwen execution options reused space: before=%q after=%q err=%v", qwenSpace, withOptions, err)
 	}
 }
 

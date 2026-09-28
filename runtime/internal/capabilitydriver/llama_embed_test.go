@@ -11,7 +11,7 @@ import (
 
 func TestLlamaEmbedDriverProjectsExactEmbeddingSlotAndPlan(t *testing.T) {
 	driver := LlamaEmbedDriver{}
-	requirements, reason := driver.Interpret(InterpretInput{})
+	requirements, reason := driver.Interpret(InterpretInput{RecipeID: LlamaEmbedGGUFRecipeID})
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED || len(requirements) != 1 {
 		t.Fatalf("Interpret = requirements=%+v reason=%v", requirements, reason)
 	}
@@ -39,6 +39,7 @@ func TestLlamaEmbedDriverProjectsExactEmbeddingSlotAndPlan(t *testing.T) {
 		t.Fatalf("ValidateCombination reason = %v", reason)
 	}
 	plan, err := driver.PlanEmbedInvocation(EmbedInvocationInput{
+		RecipeID:                 LlamaEmbedGGUFRecipeID,
 		ModelContextWindowTokens: 8192,
 		ExactBindings: []InvocationExactBinding{{
 			RequirementID:     EmbeddingGGUFRequirementID,

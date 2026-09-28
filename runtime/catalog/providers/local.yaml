@@ -3412,6 +3412,67 @@ models:
       retrieved_at: 2026-06-08
       note: Nomic Embed Text v1.5 model card declaring 8192 context and 768 native embedding dimension.
     embedding: *a29
+  - model_id: qwen3-embedding-0.6b-local
+    provider: local
+    model_type: embedding
+    updated_at: 2026-09-29
+    capabilities:
+      - text.embed
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/Qwen/Qwen3-Embedding-0.6B-GGUF/tree/370f27d7550e0def9b39c1f16d3fbaa13aa67728
+      retrieved_at: 2026-09-29
+      note: Qwen-authored Apache-2.0 GGUF distribution with exact Q8_0 file and llama.cpp last-token pooling command.
+    embedding: &a30
+      dimension: 1024
+    install:
+      repo: Qwen/Qwen3-Embedding-0.6B-GGUF
+      revision: 370f27d7550e0def9b39c1f16d3fbaa13aa67728
+      install_kind: weights
+      entry: Qwen3-Embedding-0.6B-Q8_0.gguf
+      artifact_roles:
+        - embedding
+      preferred_engine: llama
+    variants:
+      - variant_id: local.embedding.qwen3-0.6b.q8-0.cuda
+        quant: Q8_0
+        entry: Qwen3-Embedding-0.6B-Q8_0.gguf
+        files:
+          - Qwen3-Embedding-0.6B-Q8_0.gguf
+        hashes:
+          Qwen3-Embedding-0.6B-Q8_0.gguf: sha256:06507c7b42688469c4e7298b0a1e16deff06caf291cf0a5b278c308249c3e439
+        total_size_bytes: 639150592
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 4294967296
+    fitness:
+      param_count: 595776512
+      context_length: 32768
+  - model_id: Qwen/Qwen3-Embedding-0.6B-GGUF
+    provider: local
+    model_type: embedding
+    updated_at: 2026-09-29
+    capabilities:
+      - text.embed
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/Qwen/Qwen3-Embedding-0.6B-GGUF/tree/370f27d7550e0def9b39c1f16d3fbaa13aa67728
+      retrieved_at: 2026-09-29
+      note: Qwen-authored Apache-2.0 GGUF distribution with exact Q8_0 file and llama.cpp last-token pooling command.
+    embedding: *a30
   - model_id: whisper-large-v3-local
     provider: local
     model_type: stt
@@ -3480,7 +3541,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B
       retrieved_at: 2026-04-17
       note: Default local STT checkpoint for first-wave local admission.
-    transcription: &a30
+    transcription: &a31
       tiers:
         - core_transcript
       response_formats:
@@ -3541,7 +3602,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B
       retrieved_at: 2026-04-17
       note: Default local STT checkpoint for first-wave local admission.
-    transcription: *a30
+    transcription: *a31
   - model_id: speech/qwen3asr
     provider: local
     model_type: stt
@@ -3559,7 +3620,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B
       retrieved_at: 2026-04-17
       note: Default local STT checkpoint for first-wave local admission.
-    transcription: *a30
+    transcription: *a31
   - model_id: Qwen/Qwen3-ASR-0.6B
     provider: local
     model_type: stt
@@ -3577,7 +3638,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B
       retrieved_at: 2026-04-17
       note: Default local STT checkpoint for first-wave local admission.
-    transcription: *a30
+    transcription: *a31
   - model_id: qwen3-asr-transformers-0.6b-local
     provider: local
     model_type: stt
@@ -3595,7 +3656,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B-hf
       retrieved_at: 2026-08-09
       note: Transformers-native Qwen3-ASR 0.6B checkpoint and recommended lower-resource option.
-    transcription: &a31
+    transcription: &a32
       tiers:
         - core_transcript
       response_formats:
@@ -3654,7 +3715,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B-hf
       retrieved_at: 2026-08-09
       note: Transformers-native Qwen3-ASR 0.6B checkpoint and recommended lower-resource option.
-    transcription: *a31
+    transcription: *a32
   - model_id: speech/qwen3asr-transformers-0.6b
     provider: local
     model_type: stt
@@ -3672,7 +3733,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B-hf
       retrieved_at: 2026-08-09
       note: Transformers-native Qwen3-ASR 0.6B checkpoint and recommended lower-resource option.
-    transcription: *a31
+    transcription: *a32
   - model_id: Qwen/Qwen3-ASR-0.6B-hf
     provider: local
     model_type: stt
@@ -3690,7 +3751,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B-hf
       retrieved_at: 2026-08-09
       note: Transformers-native Qwen3-ASR 0.6B checkpoint and recommended lower-resource option.
-    transcription: *a31
+    transcription: *a32
   - model_id: qwen3-asr-transformers-1.7b-local
     provider: local
     model_type: stt
@@ -3708,7 +3769,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-1.7B-hf
       retrieved_at: 2026-08-09
       note: Transformers-native Qwen3-ASR 1.7B checkpoint and explicit higher-resource option.
-    transcription: &a32
+    transcription: &a33
       tiers:
         - core_transcript
       response_formats:
@@ -3767,7 +3828,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-1.7B-hf
       retrieved_at: 2026-08-09
       note: Transformers-native Qwen3-ASR 1.7B checkpoint and explicit higher-resource option.
-    transcription: *a32
+    transcription: *a33
   - model_id: speech/qwen3asr-transformers-1.7b
     provider: local
     model_type: stt
@@ -3785,7 +3846,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-1.7B-hf
       retrieved_at: 2026-08-09
       note: Transformers-native Qwen3-ASR 1.7B checkpoint and explicit higher-resource option.
-    transcription: *a32
+    transcription: *a33
   - model_id: Qwen/Qwen3-ASR-1.7B-hf
     provider: local
     model_type: stt
@@ -3803,7 +3864,7 @@ models:
       url: https://huggingface.co/Qwen/Qwen3-ASR-1.7B-hf
       retrieved_at: 2026-08-09
       note: Transformers-native Qwen3-ASR 1.7B checkpoint and explicit higher-resource option.
-    transcription: *a32
+    transcription: *a33
   - model_id: citrinet-asr-audio-cpp-local
     provider: local
     model_type: stt
@@ -5866,7 +5927,7 @@ models:
     features:
       - input.image
       - input.mask
-    image_request_options: &a33
+    image_request_options: &a34
       response_formats:
         - b64_json
         - url
@@ -5899,7 +5960,7 @@ models:
     features:
       - input.image
       - input.mask
-    image_request_options: *a33
+    image_request_options: *a34
   - model_id: media/flux.1-schnell
     provider: local
     model_type: image
@@ -5920,7 +5981,7 @@ models:
     features:
       - input.image
       - input.mask
-    image_request_options: *a33
+    image_request_options: *a34
   - model_id: z-image-turbo-local
     provider: local
     model_type: image
@@ -6181,7 +6242,7 @@ models:
       retrieved_at: 2026-08-16
       note: Engine-compatible Ideogram4 main and unconditional GGUF artifacts pinned to one immutable revision.
     family: ideogram4
-    image_request_options: &a34
+    image_request_options: &a35
       response_formats:
         - b64_json
         - url
@@ -6236,7 +6297,7 @@ models:
       retrieved_at: 2026-08-16
       note: Engine-compatible Ideogram4 main and unconditional GGUF artifacts pinned to one immutable revision.
     family: ideogram4
-    image_request_options: *a34
+    image_request_options: *a35
   - model_id: ideogram4-qwen3-vl-8b-encoder-local
     provider: local
     model_type: chat
@@ -6537,7 +6598,7 @@ models:
     features:
       - input.image
     family: minimax-h3
-    video_generation: &a35
+    video_generation: &a36
       modes:
         - i2v_first_frame
       input_roles:
@@ -6611,7 +6672,7 @@ models:
     features:
       - input.image
     family: minimax-h3
-    video_generation: *a35
+    video_generation: *a36
   - model_id: minimax-h3-qwen3-vl-32b-encoder-local
     provider: local
     model_type: chat
@@ -6691,7 +6752,7 @@ models:
       note: Official Diffusers Wan text-to-video and image-to-video pipeline documentation.
     features:
       - input.image
-    video_generation: &a36
+    video_generation: &a37
       modes:
         - t2v
         - i2v_first_frame
@@ -6732,7 +6793,7 @@ models:
       note: Official Diffusers Wan text-to-video and image-to-video pipeline documentation.
     features:
       - input.image
-    video_generation: *a36
+    video_generation: *a37
   - model_id: media/wan2.1-video
     provider: local
     model_type: video
@@ -6752,7 +6813,7 @@ models:
       note: Official Diffusers Wan text-to-video and image-to-video pipeline documentation.
     features:
       - input.image
-    video_generation: *a36
+    video_generation: *a37
   - model_id: ace-step-local
     provider: local
     model_type: music
@@ -9743,6 +9804,27 @@ loadout_recipes:
           gguf_architectures:
             - bert
             - nomic-bert
+  - recipe_id: llama.text-embed.qwen3-last.v1
+    revision: "1"
+    title: Qwen3 last-token normalized embeddings
+    capability_contract: text.embed
+    implementation_id: local.text.embed.llama-cpp
+    driver_id: nimi.runtime.driver.llama-cpp
+    driver_dialect: llama.cpp/text-embed/qwen3-last/v1
+    default_options:
+      contextSize: 8192
+      gpuLayers: 99
+    supported_features: []
+    slot_metadata:
+      - slot_id: embedding.gguf
+        display_label: Qwen3 embedding model
+        recommended_variant_ids:
+          - local.embedding.qwen3-0.6b.q8-0.cuda
+        recommended_content_ids:
+          - sha256:06507c7b42688469c4e7298b0a1e16deff06caf291cf0a5b278c308249c3e439
+        model_contract:
+          format: gguf
+          gguf_architectures:
             - qwen3
   - recipe_id: voxcpm2
     revision: "2"

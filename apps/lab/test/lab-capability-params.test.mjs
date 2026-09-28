@@ -83,6 +83,12 @@ test('Local text preserves admitted fields and image exposes only artifact custo
   });
 });
 
+test('Local embedding accepts multiple inputs through the protected scenario', () => {
+  const inputs = ['first', 'second'];
+  assert.equal(states('text.embed', 'local').get('inputs')?.state, 'enabled');
+  assert.deepEqual(project('text.embed', 'local', { inputs }), { inputs });
+});
+
 test('Local synthesis preserves supported carrier controls and voice assets', () => {
   const local = states('audio.synthesize', 'local');
   for (const field of ['voiceKind', 'voicePreset', 'voiceAssetId', 'language', 'audioFormat', 'timingMode']) {

@@ -3,6 +3,7 @@ package ai
 import (
 	"context"
 	"fmt"
+	"math"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -87,6 +88,7 @@ func (s *Service) captureSelectedLocalEmbedEffectiveInputs(
 	portable, _ := proto.Clone(selected.PortableConfig).(*structpb.Struct)
 	request, _ := proto.Clone(spec).(*runtimev1.TextEmbedScenarioSpec)
 	plan, err := embedDriver.PlanEmbedInvocation(capabilitydriver.EmbedInvocationInput{
+		RecipeID:                 selected.RecipeID,
 		PortableConfig:           portable,
 		ModelContextWindowTokens: selected.ModelContextWindowTokens,
 		ExactBindings:            append([]capabilitydriver.InvocationExactBinding(nil), exactBindings...),
@@ -150,6 +152,7 @@ func (s *Service) localEmbedEffectiveInputsFromResolvedAssembly(assembly *localR
 		return nil, fmt.Errorf("captured local embed Driver is unavailable")
 	}
 	plan, err := embedDriver.PlanEmbedInvocation(capabilitydriver.EmbedInvocationInput{
+		RecipeID:                 assembly.RecipeID,
 		PortableConfig:           portable,
 		ModelContextWindowTokens: assembly.LoadPlan.Embed.ContextWindowTokens,
 		ExactBindings:            resolvedAssemblyExactBindings(assembly),
@@ -228,7 +231,30 @@ func (s *Service) executeCapturedLocalEmbed(
 			return localexecution.EmbedResult{}, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 		}
 	}
+	if effective.effectiveInputIdentity.GetRecipeId() == capabilitydriver.LlamaQwen3EmbedRecipeID && !qwen3EmbeddingVectorsNormalized(result.Vectors) {
+		return localexecution.EmbedResult{}, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
 	return result, nil
+}
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.embedding-output-contract
+func qwen3EmbeddingVectorsNormalized(vectors []*runtimev1.EmbeddingVector) bool {
+	if len(vectors) == 0 {
+		return false
+	}
+	for _, vector := range vectors {
+		if vector == nil || len(vector.GetValues()) == 0 {
+			return false
+		}
+		normSquared := 0.0
+		for _, value := range vector.GetValues() {
+			normSquared += value * value
+		}
+		if math.IsNaN(normSquared) || math.IsInf(normSquared, 0) || math.Abs(normSquared-1) > 0.01 {
+			return false
+		}
+	}
+	return true
 }
 
 func (s *Service) executeCapturedLocalEmbedJob(

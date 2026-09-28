@@ -92,7 +92,7 @@ function EmbeddingFields(props: StudioParameterPanelProps) {
   const parameters = props.parameters as StudioEmbeddingParameters;
   const values = parameters.inputs?.length ? parameters.inputs : [''];
   const updateValues = (nextValues: string[]) => {
-    if (nextValues.some((value) => value.trim())) props.onChange({ inputs: nextValues });
+    if (nextValues.length > 1 || nextValues.some((value) => value.trim())) props.onChange({ inputs: nextValues });
     else props.onChange({});
   };
   const label = t('Studio.parameters.fields.inputs');

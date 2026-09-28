@@ -23,14 +23,14 @@ const llamaEmbedModelAlias = "nimi-selected-local-embedding"
 type LlamaEmbedDriver struct{}
 
 func (LlamaEmbedDriver) ModelAssetFormatProbeBytes(input ModelAssetFormatProbeInput) int64 {
-	if input.Entry && input.RecipeID == LlamaEmbedGGUFRecipeID && input.RequirementID == EmbeddingGGUFRequirementID {
+	if input.Entry && (input.RecipeID == LlamaEmbedGGUFRecipeID || input.RecipeID == LlamaQwen3EmbedRecipeID) && input.RequirementID == EmbeddingGGUFRequirementID {
 		return MaxDriverAssetFormatProbeBytes
 	}
 	return MaxAssetFormatProbeBytes
 }
 
 func (LlamaEmbedDriver) ImplementationSupportedFeatures(recipeID string) ([]string, runtimev1.LocalCapabilityReason) {
-	if strings.TrimSpace(recipeID) != LlamaEmbedGGUFRecipeID {
+	if recipeID != LlamaEmbedGGUFRecipeID && recipeID != LlamaQwen3EmbedRecipeID {
 		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
 	}
 	return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
@@ -48,10 +48,17 @@ func (driver LlamaEmbedDriver) ProjectRecipe(recipeID string, options *structpb.
 }
 
 func (LlamaEmbedDriver) recipeModelArchitectures(recipeID string, slotID string) []string {
-	if strings.TrimSpace(recipeID) != LlamaEmbedGGUFRecipeID || slotID != EmbeddingGGUFRequirementID {
+	if slotID != EmbeddingGGUFRequirementID {
 		return nil
 	}
-	return []string{"bert", "nomic-bert", "qwen3"}
+	switch recipeID {
+	case LlamaEmbedGGUFRecipeID:
+		return []string{"bert", "nomic-bert"}
+	case LlamaQwen3EmbedRecipeID:
+		return []string{"qwen3"}
+	default:
+		return nil
+	}
 }
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.embedding-output-contract
@@ -65,6 +72,12 @@ func (driver LlamaEmbedDriver) ProjectModelAssetBinding(input ModelAssetBindingI
 		return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
 	}
 	architecture := ggufmeta.LLMDetectedArchitecture(summary)
+	if input.RecipeID == LlamaQwen3EmbedRecipeID {
+		pooling, valid := summary.Uint64Value("qwen3.pooling_type")
+		if !valid || pooling != 3 {
+			return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
+		}
+	}
 	dimension, ok := summary.Uint64Value(architecture + ".embedding_length")
 	if !ok || dimension == 0 || dimension > uint64(^uint32(0)>>1) {
 		return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
@@ -92,6 +105,9 @@ func (driver LlamaEmbedDriver) ProjectModelAssetBinding(input ModelAssetBindingI
 }
 
 func (LlamaEmbedDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
+	if input.RecipeID != LlamaEmbedGGUFRecipeID && input.RecipeID != LlamaQwen3EmbedRecipeID {
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
+	}
 	if len(input.SupportedFeatures) != 0 {
 		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_FEATURE_UNSUPPORTED
 	}
@@ -164,6 +180,9 @@ func (driver LlamaEmbedDriver) ValidateCombination(
 }
 
 func (driver LlamaEmbedDriver) PlanEmbedInvocation(input EmbedInvocationInput) (*EmbedInvocationPlan, error) {
+	if input.RecipeID != LlamaEmbedGGUFRecipeID && input.RecipeID != LlamaQwen3EmbedRecipeID {
+		return nil, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("unknown llama embedding recipe %q", input.RecipeID))
+	}
 	binding, err := exactLlamaEmbedInvocationBinding(input.ExactBindings)
 	if err != nil {
 		return nil, invocationError(InvocationFailureInvalidBinding, err)
@@ -187,6 +206,9 @@ func (driver LlamaEmbedDriver) PlanEmbedInvocation(input EmbedInvocationInput) (
 		"--ctx-size", strconv.FormatUint(contextWindow, 10),
 		"--ubatch-size", strconv.FormatUint(contextWindow, 10),
 		"--embedding",
+	}
+	if input.RecipeID == LlamaQwen3EmbedRecipeID {
+		processArgs = append(processArgs, "--pooling", "last", "--parallel", "1", "--cache-ram", "0")
 	}
 	if portable.cacheTypeK != "" {
 		processArgs = append(processArgs, "--cache-type-k", portable.cacheTypeK)
