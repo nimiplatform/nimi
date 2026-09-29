@@ -871,9 +871,6 @@ func verifyPythonDependencyProfileDriverBundle(root string, consumer string) err
 	if strings.HasPrefix(trimmedConsumer, "speech.") {
 		return verifySpeechPipelineScripts(root, trimmedConsumer)
 	}
-	if strings.HasPrefix(trimmedConsumer, "media.") || strings.HasPrefix(trimmedConsumer, "stable-diffusion.cpp.") {
-		return verifyRegularEmbeddedFile(filepath.Join(root, "media_server.py"), []byte(mediaServerScript), "media pipeline script")
-	}
 	return fmt.Errorf("python dependency profile Driver bundle is not admitted for consumer %s", consumer)
 }
 
@@ -900,9 +897,6 @@ func pythonDependencyProfileDriverScripts(root string, consumer string) []string
 	}
 	if strings.HasPrefix(trimmedConsumer, "speech.") {
 		return speechDriverScriptsForConsumer(root, trimmedConsumer)
-	}
-	if strings.HasPrefix(trimmedConsumer, "media.") || strings.HasPrefix(trimmedConsumer, "stable-diffusion.cpp.") {
-		return []string{filepath.Join(strings.TrimSpace(root), "media_server.py")}
 	}
 	return nil
 }

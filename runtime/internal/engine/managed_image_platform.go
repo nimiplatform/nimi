@@ -41,7 +41,7 @@ func detectLocalGPUVendor() string {
 	if normalizedGOOS == "darwin" && normalizedGOARCH == "arm64" {
 		return "Apple"
 	}
-	vendor, _ := detectMediaHostGPU()
+	vendor, _ := detectHostGPU()
 	return strings.TrimSpace(vendor)
 }
 

@@ -362,6 +362,9 @@ func clearRuntimeConfigEnv(t *testing.T) {
 		"NIMI_RUNTIME_ENGINE_NIMI_MEDIA_ENABLED",
 		"NIMI_RUNTIME_ENGINE_NIMI_MEDIA_VERSION",
 		"NIMI_RUNTIME_ENGINE_NIMI_MEDIA_PORT",
+		"NIMI_RUNTIME_ENGINE_MEDIA_ENABLED",
+		"NIMI_RUNTIME_ENGINE_MEDIA_VERSION",
+		"NIMI_RUNTIME_ENGINE_MEDIA_PORT",
 		"NIMI_RUNTIME_MODEL_CATALOG_REMOTE_ENABLED",
 		"NIMI_RUNTIME_MODEL_CATALOG_REMOTE_URL",
 		"NIMI_RUNTIME_MODEL_CATALOG_REFRESH_INTERVAL",
@@ -429,7 +432,6 @@ func TestConfigDefaultsMatchSpec(t *testing.T) {
 		{"aiHttpTimeoutSeconds", cfg.AIHTTPTimeoutSeconds, 30},
 		{"allowLoopbackProviderEndpoint", cfg.AllowLoopbackProviderEndpoint, false},
 		{"engineLlamaEnabled", cfg.EngineLlamaEnabled, false},
-		{"engineMediaEnabled", cfg.EngineMediaEnabled, false},
 	}
 
 	for _, tc := range table {

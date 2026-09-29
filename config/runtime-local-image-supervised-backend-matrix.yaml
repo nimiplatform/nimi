@@ -9,14 +9,10 @@ rows:
   - kind
   - engine
   - engine_runtime_mode
-  - execution_endpoint
-  - consume_path
 canonical_public_contract:
   kind: image
   engine: media
   engine_runtime_mode: supervised
-  execution_endpoint: local-media
-  consume_path: /v1/media/image/generate
 
 # v1 -> v2 migration rules:
 #   platforms[]         -> entries[]

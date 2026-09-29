@@ -21,15 +21,6 @@ func setLlamaSupervisedPlatformForTest(t *testing.T, supported bool, platform st
 	})
 }
 
-func setMediaSupervisedPlatformForTest(t *testing.T, supported bool) {
-	t.Helper()
-	original := mediaSupervisedPlatformSupported
-	mediaSupervisedPlatformSupported = func() bool { return supported }
-	t.Cleanup(func() {
-		mediaSupervisedPlatformSupported = original
-	})
-}
-
 func setRuntimeTestHome(t *testing.T, homeDir string) {
 	t.Helper()
 	t.Setenv("HOME", homeDir)
@@ -217,11 +208,6 @@ func TestLoadEngineConfigFromFile(t *testing.T) {
       "enabled": true,
       "version": "3.12.9",
       "port": 2234
-    },
-    "media": {
-      "enabled": true,
-      "version": "0.2.0",
-      "port": 9321
     }
   }
 }`
@@ -232,7 +218,6 @@ func TestLoadEngineConfigFromFile(t *testing.T) {
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
 	clearRuntimeConfigEnv(t)
 	setLlamaSupervisedPlatformForTest(t, true, "linux/amd64")
-	setMediaSupervisedPlatformForTest(t, true)
 
 	cfg, err := Load()
 	if err != nil {
@@ -240,9 +225,6 @@ func TestLoadEngineConfigFromFile(t *testing.T) {
 	}
 	if !cfg.EngineLlamaEnabled || cfg.EngineLlamaVersion != "3.12.9" || cfg.EngineLlamaPort != 2234 {
 		t.Fatalf("llama engine config mismatch: %+v", cfg)
-	}
-	if !cfg.EngineMediaEnabled || cfg.EngineMediaVersion != "0.2.0" || cfg.EngineMediaPort != 9321 {
-		t.Fatalf("media engine config mismatch: %+v", cfg)
 	}
 }
 
@@ -294,7 +276,7 @@ func TestLoadRejectsExplicitLlamaEnableOnUnsupportedPlatform(t *testing.T) {
 	}
 }
 
-func TestLoadRejectsExplicitMediaEnableOnUnsupportedPlatform(t *testing.T) {
+func TestLoadRejectsRetiredMediaEngineConfig(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
 	configBody := `{
   "schemaVersion": 1,
@@ -310,12 +292,24 @@ func TestLoadRejectsExplicitMediaEnableOnUnsupportedPlatform(t *testing.T) {
 
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
 	clearRuntimeConfigEnv(t)
-	setMediaSupervisedPlatformForTest(t, false)
-	setLlamaSupervisedPlatformForTest(t, false, "unsupported")
 
 	_, err := Load()
-	if err == nil || !strings.Contains(err.Error(), "supervised media is unsupported") {
-		t.Fatalf("Load error = %v, want exact supervised media unsupported failure", err)
+	if err == nil || !strings.Contains(err.Error(), "engines.media is removed") {
+		t.Fatalf("Load error = %v, want retired engines.media rejection", err)
+	}
+}
+
+func TestLoadRejectsRetiredMediaEngineEnv(t *testing.T) {
+	for _, key := range []string{"NIMI_RUNTIME_ENGINE_MEDIA_ENABLED", "NIMI_RUNTIME_ENGINE_MEDIA_VERSION", "NIMI_RUNTIME_ENGINE_MEDIA_PORT"} {
+		t.Run(key, func(t *testing.T) {
+			clearRuntimeConfigEnv(t)
+			t.Setenv("NIMI_RUNTIME_CONFIG_PATH", filepath.Join(t.TempDir(), "missing-config.json"))
+			t.Setenv(key, "1")
+			_, err := Load()
+			if err == nil || !strings.Contains(err.Error(), key) || !strings.Contains(err.Error(), "media engine was removed") {
+				t.Fatalf("Load error = %v, want retired media engine variable rejection", err)
+			}
+		})
 	}
 }
 

@@ -24,7 +24,7 @@ func TestResolveImageSupervisedMatrixRecognizesUnsupportedLinuxGGUF(t *testing.T
 	if selection.ProductState != ImageProductStateUnsupported {
 		t.Fatalf("unexpected product state: %s", selection.ProductState)
 	}
-	if selection.ControlPlane != ImageControlPlaneRuntime || selection.ExecutionPlane != EngineMedia {
+	if selection.ControlPlane != ImageControlPlaneRuntime || selection.ExecutionPlane != ImageExecutionPlaneMedia {
 		t.Fatalf("unexpected planes: control=%s execution=%s", selection.ControlPlane, selection.ExecutionPlane)
 	}
 	if !strings.Contains(selection.CompatibilityDetail, "no published runtime-owned managed image backend package") {
@@ -177,10 +177,10 @@ func TestResolveImageSupervisedMatrixSafetensorsNativeFailsCloseOnExecution(t *t
 		ProfileKind:     ImageProfileKindSingleBinaryModel,
 		ArtifactFormats: []string{"safetensors"},
 	})
-	// MediaModeFromSelection must fail-close for unsupported product_state
-	_, err := MediaModeFromSelection(selection)
-	if err == nil {
-		t.Fatal("expected MediaModeFromSelection to fail-close for unsupported safetensors native topology")
+	// The unsupported product_state is the matrix fail-closed signal: execution
+	// admission never treats the recognized topology as supported.
+	if !selection.Matched || selection.ProductState == ImageProductStateSupported || strings.TrimSpace(selection.CompatibilityDetail) == "" {
+		t.Fatalf("expected unsupported safetensors native topology to fail closed with detail, got %#v", selection)
 	}
 }
 
@@ -288,7 +288,7 @@ func TestResolveImageSupervisedMatrixConflictFailsClose(t *testing.T) {
 		BackendClass:          ImageBackendClassNativeBinary,
 		BackendFamily:         ImageBackendFamilyStableDiffusionGGML,
 		ControlPlane:          ImageControlPlaneRuntime,
-		ExecutionPlane:        EngineMedia,
+		ExecutionPlane:        ImageExecutionPlaneMedia,
 		SupportedCapabilities: []string{"image.generate"},
 		TopologyState:         ImageTopologyStateDefined,
 		ProductState:          ImageProductStateSupported,

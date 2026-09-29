@@ -151,9 +151,9 @@ func TestManagerStartReclaimsProvenStaleEnginesOfEveryKind(t *testing.T) {
 	stale := startSupervisorHelperProcess(t, "sleep")
 	writeStaleRecord(t, root, EngineSpeech, stale.Process.Pid, helperRecord(t, stale, EngineSpeech, executable))
 	unproven := startSupervisorHelperProcess(t, "sleep")
-	legacy := helperRecord(t, unproven, EngineMedia, executable)
+	legacy := helperRecord(t, unproven, engineManagedImageBackend, executable)
 	legacy.ProcessStartTime = ""
-	writeStaleRecord(t, root, EngineMedia, unproven.Process.Pid, legacy)
+	writeStaleRecord(t, root, engineManagedImageBackend, unproven.Process.Pid, legacy)
 	exited := make(chan struct{})
 	go func() {
 		_ = stale.Wait()

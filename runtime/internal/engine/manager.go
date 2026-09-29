@@ -215,11 +215,6 @@ func (m *Manager) EnsureEngine(ctx context.Context, cfg EngineConfig) (EngineCon
 	switch cfg.Kind {
 	case EngineLlama:
 		return m.requireLlamaBinaryDependency(cfg)
-	case EngineMedia:
-		m.mu.RLock()
-		runtimeWorkRoot := strings.TrimSpace(m.runtimeWorkRoot)
-		m.mu.RUnlock()
-		return ensureMedia(ctx, runtimeWorkRoot, cfg)
 	case EngineSpeech:
 		return ensureSpeech(ctx, m.baseDir, cfg)
 	default:
@@ -700,7 +695,7 @@ func (m *Manager) ListEngines() []SupervisorInfo {
 	}
 	m.mu.RUnlock()
 
-	knownKinds := []EngineKind{EngineLlama, EngineMedia, EngineSpeech}
+	knownKinds := []EngineKind{EngineLlama, EngineSpeech}
 	result := make([]SupervisorInfo, 0, len(running)+len(knownKinds))
 	seen := make(map[EngineKind]bool, len(running)+len(knownKinds))
 
@@ -736,8 +731,6 @@ func (m *Manager) stoppedEngineInfo(kind EngineKind) SupervisorInfo {
 	switch kind {
 	case EngineLlama:
 		cfg = DefaultLlamaConfig()
-	case EngineMedia:
-		cfg = DefaultMediaConfig()
 	case EngineSpeech:
 		cfg = DefaultSpeechConfig()
 	default:

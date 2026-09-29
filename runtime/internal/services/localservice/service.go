@@ -21,9 +21,6 @@ import (
 )
 
 const (
-	defaultLocalEndpoint      = "http://127.0.0.1:1234/v1"
-	defaultMediaEndpoint      = "http://127.0.0.1:8321/v1"
-	defaultSpeechEndpoint     = "http://127.0.0.1:8330/v1"
 	defaultLocalAuditCapacity = 5000
 	localAuditDomain          = "runtime.local_runtime"
 )

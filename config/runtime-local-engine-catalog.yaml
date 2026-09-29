@@ -33,11 +33,6 @@ engines:
     supported_platforms:
       - darwin/arm64
       - windows/amd64
-    health_path: "/healthz"
-    health_response: "\"ready\": true"
-    start_command: "stable-diffusion-server --host 127.0.0.1 --port {port}"
-    default_port: 8321
-    startup_timeout_seconds: 180
   - engine: speech
     runtime_mode: supervised
     protocol: nimi_runtime_speech

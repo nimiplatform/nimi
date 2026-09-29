@@ -13,7 +13,6 @@ type EngineKind string
 
 const (
 	EngineLlama    EngineKind = "llama"
-	EngineMedia    EngineKind = "media"
 	EngineSpeech   EngineKind = "speech"
 	EngineAudioCPP EngineKind = "audio-cpp"
 
@@ -203,14 +202,6 @@ type EngineConfig struct {
 	// (K-CFG-018, K-LENG-004)
 	SupervisedRoot string
 
-	// MediaMode carries the explicit media server topology mode selected by the
-	// caller. Media bootstrap must not infer this internally.
-	MediaMode MediaMode
-
-	// ImageSupervisedSelection carries the canonical image resolver output into
-	// media bootstrap when daemon-managed image loopback is active.
-	ImageSupervisedSelection *ImageSupervisedMatrixSelection
-
 	// Address overrides the default 127.0.0.1:<port> endpoint. It is primarily
 	// used for daemon-managed auxiliary services that expose a raw TCP socket.
 	Address string
@@ -230,14 +221,6 @@ type EngineConfig struct {
 
 	// WorkingDir overrides the child process working directory.
 	WorkingDir string
-
-	// MediaHostPackageSetRoot is the Runtime-verified immutable dependency
-	// profile root that owns the private media server and its Python runtime.
-	MediaHostPackageSetRoot string
-	// MediaHostAcceleratorPlane is the host-derived accelerator plane verified
-	// with MediaHostPackageSetRoot. It is Runtime-internal composition input,
-	// never a user-selectable accelerator override.
-	MediaHostAcceleratorPlane string
 
 	// ModelsPath is the Runtime-verified speech model directory.
 	ModelsPath string
@@ -331,24 +314,6 @@ func DefaultLlamaConfig() EngineConfig {
 		HealthMode:       HealthModeHTTP,
 		HealthPath:       "/v1/models",
 		StartupTimeout:   120 * time.Second,
-		HealthInterval:   30 * time.Second,
-		MaxRestarts:      5,
-		RestartBaseDelay: 2 * time.Second,
-		ShutdownTimeout:  10 * time.Second,
-	}
-}
-
-// DefaultMediaConfig returns the default configuration for the managed
-// image/video engine.
-func DefaultMediaConfig() EngineConfig {
-	return EngineConfig{
-		Kind:             EngineMedia,
-		Port:             8321,
-		Version:          "0.1.0",
-		HealthMode:       HealthModeHTTP,
-		HealthPath:       "/healthz",
-		HealthResponse:   "\"ready\": true",
-		StartupTimeout:   300 * time.Second,
 		HealthInterval:   30 * time.Second,
 		MaxRestarts:      5,
 		RestartBaseDelay: 2 * time.Second,

@@ -400,17 +400,6 @@ func localEnvironmentPlanState(dependencies []localEnvironmentPlanDependency) (s
 
 func (s *Service) resolveLocalEnvironmentDependency(def localComputePackDefinition, family string, required bool, hostState localEnvironmentHostProfileState, platformTuple string, runtimeDataRoot string, consumerScope string) localEnvironmentPlanDependency {
 	dependencyID := defaultLocalEnvironmentDependencyID(def.PackID, family)
-	if (family == localEnvironmentFamilyPythonVenv || family == localEnvironmentFamilyPythonPackageSet) && strings.HasPrefix(strings.TrimSpace(consumerScope), "media.") {
-		plane := "cpu"
-		if localEnvironmentHostSupportsCUDA(hostState) {
-			plane = "cuda"
-		}
-		identity, err := engine.ResolvePythonDependencyProfileIdentity(consumerScope, platformTuple, plane)
-		if err != nil {
-			return localEnvironmentUnsupportedPythonProfileDependency(family, required, consumerScope, runtimeDataRoot, err)
-		}
-		dependencyID = identity.DependencyID
-	}
 	return s.resolveLocalEnvironmentDependencyWithID(def, family, dependencyID, required, hostState, platformTuple, runtimeDataRoot, consumerScope)
 }
 
@@ -711,7 +700,7 @@ func localEnvironmentCUDAConsumerScopeRequiresRuntime(consumerScope string) bool
 	switch trimmed {
 	case engine.VisionLocateConsumerID + ".cuda", engine.TextDecisionConsumerID + ".cuda":
 		return true
-	case "llama.cpp.cuda", stableDiffusionCUDAConsumerID, audioCppCUDAConsumerID, audioCppQwen3TTSCUDAConsumerID, "media.diffusers.cuda", "media.video-python.cuda":
+	case "llama.cpp.cuda", stableDiffusionCUDAConsumerID, audioCppCUDAConsumerID, audioCppQwen3TTSCUDAConsumerID:
 		return true
 	default:
 		return audioCppConsumerIDKnown(trimmed) || strings.HasPrefix(trimmed, "speech.") && strings.HasSuffix(trimmed, ".cuda")
@@ -788,32 +777,6 @@ func localComputePackDefinitions() []localComputePackDefinition {
 			ProductLabel:               "Local music native",
 			RequiredDependencyFamilies: []string{localEnvironmentFamilyNativeAudioCPP, localEnvironmentFamilyCUDA},
 			OptionalDependencyFamilies: []string{},
-			CloudOnlyImpact:            "none",
-		},
-		{
-			PackID:       "local-image-python",
-			ProductLabel: "Local image Python workflows",
-			RequiredDependencyFamilies: []string{
-				localEnvironmentFamilyPythonUV,
-				localEnvironmentFamilyPythonRuntime,
-				localEnvironmentFamilyPythonVenv,
-				localEnvironmentFamilyPythonPackageSet,
-				localEnvironmentFamilyPythonTorchWheel,
-			},
-			OptionalDependencyFamilies: []string{localEnvironmentFamilyCUDA},
-			CloudOnlyImpact:            "none",
-		},
-		{
-			PackID:       "local-video-python",
-			ProductLabel: "Local video Python workflows",
-			RequiredDependencyFamilies: []string{
-				localEnvironmentFamilyPythonUV,
-				localEnvironmentFamilyPythonRuntime,
-				localEnvironmentFamilyPythonVenv,
-				localEnvironmentFamilyPythonPackageSet,
-				localEnvironmentFamilyPythonTorchWheel,
-			},
-			OptionalDependencyFamilies: []string{localEnvironmentFamilyCUDA},
 			CloudOnlyImpact:            "none",
 		},
 		{

@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"errors"
+	"os"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -10,16 +11,22 @@ import (
 	"time"
 )
 
-func TestStableDiffusionCPPPackageSetDeclaresNoExternalPackages(t *testing.T) {
-	manifest, err := resolvePythonPackageSetManifest("stable-diffusion.cpp.cuda")
+func TestPythonPackageSetRejectsNativeAndRetiredMediaConsumers(t *testing.T) {
+	root := t.TempDir()
+	for _, consumer := range []string{"stable-diffusion.cpp.cuda", "stable-diffusion.cpp.metal", "media.diffusers.cuda", "media.video-python.cpu"} {
+		if manifest, err := resolvePythonPackageSetManifest(consumer); err == nil {
+			t.Fatalf("consumer %s resolved a Python package set: %+v", consumer, manifest)
+		}
+		if err := materializePythonPipelineServerScript(root, consumer); err == nil {
+			t.Fatalf("consumer %s materialized a Python pipeline Driver", consumer)
+		}
+	}
+	entries, err := os.ReadDir(root)
 	if err != nil {
-		t.Fatalf("resolvePythonPackageSetManifest: %v", err)
+		t.Fatal(err)
 	}
-	if manifest.ID != "media-proxy-execution-core" {
-		t.Fatalf("manifest id = %q, want media-proxy-execution-core", manifest.ID)
-	}
-	if len(manifest.ImportProbes) != 1 || manifest.ImportProbes[0] != "json" {
-		t.Fatalf("import probes = %v, want json probe", manifest.ImportProbes)
+	if len(entries) != 0 {
+		t.Fatalf("rejected consumers left Driver files behind: %v", entries)
 	}
 }
 

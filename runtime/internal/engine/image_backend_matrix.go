@@ -47,6 +47,16 @@ const (
 	ImageControlPlaneRuntime ImageControlPlane = "runtime"
 )
 
+// ImageExecutionPlane identifies the public local engine that owns execution
+// for an image topology. It names the engine family, not a supervised process
+// kind; the Runtime-private image ExecutionHost that serves a topology stays
+// outside this matrix.
+type ImageExecutionPlane string
+
+const (
+	ImageExecutionPlaneMedia ImageExecutionPlane = "media"
+)
+
 // ImageTopologyState is the structural lifecycle state of a matrix entry.
 type ImageTopologyState string
 
@@ -79,7 +89,7 @@ type ImageSupervisedMatrixEntry struct {
 	BackendClass          ImageBackendClass
 	BackendFamily         ImageBackendFamily
 	ControlPlane          ImageControlPlane
-	ExecutionPlane        EngineKind
+	ExecutionPlane        ImageExecutionPlane
 	SupportedCapabilities []string
 	TopologyState         ImageTopologyState
 	ProductState          ImageProductState
@@ -88,7 +98,7 @@ type ImageSupervisedMatrixEntry struct {
 }
 
 // imageSupervisedMatrixV2 is the canonical v2 image supervised backend matrix.
-// This must stay in sync with spec/runtime/kernel/tables/local-image-supervised-backend-matrix.yaml.
+// This must stay in sync with config/runtime-local-image-supervised-backend-matrix.yaml.
 var imageSupervisedMatrixV2 = []ImageSupervisedMatrixEntry{
 	{
 		EntryID:               "macos-apple-silicon-gguf",
@@ -101,7 +111,7 @@ var imageSupervisedMatrixV2 = []ImageSupervisedMatrixEntry{
 		BackendClass:          ImageBackendClassNativeBinary,
 		BackendFamily:         ImageBackendFamilyStableDiffusionGGML,
 		ControlPlane:          ImageControlPlaneRuntime,
-		ExecutionPlane:        EngineMedia,
+		ExecutionPlane:        ImageExecutionPlaneMedia,
 		SupportedCapabilities: []string{"image.generate"},
 		TopologyState:         ImageTopologyStateDefined,
 		ProductState:          ImageProductStateSupported,
@@ -118,7 +128,7 @@ var imageSupervisedMatrixV2 = []ImageSupervisedMatrixEntry{
 		BackendClass:          ImageBackendClassNativeBinary,
 		BackendFamily:         ImageBackendFamilyStableDiffusionGGML,
 		ControlPlane:          ImageControlPlaneRuntime,
-		ExecutionPlane:        EngineMedia,
+		ExecutionPlane:        ImageExecutionPlaneMedia,
 		SupportedCapabilities: nil,
 		TopologyState:         ImageTopologyStateDefined,
 		ProductState:          ImageProductStateUnsupported,
@@ -135,7 +145,7 @@ var imageSupervisedMatrixV2 = []ImageSupervisedMatrixEntry{
 		BackendClass:          ImageBackendClassPythonPipeline,
 		BackendFamily:         ImageBackendFamilyDiffusers,
 		ControlPlane:          ImageControlPlaneRuntime,
-		ExecutionPlane:        EngineMedia,
+		ExecutionPlane:        ImageExecutionPlaneMedia,
 		SupportedCapabilities: nil,
 		TopologyState:         ImageTopologyStateDefined,
 		ProductState:          ImageProductStateProposed,
@@ -153,7 +163,7 @@ var imageSupervisedMatrixV2 = []ImageSupervisedMatrixEntry{
 		BackendClass:          ImageBackendClassNativeBinary,
 		BackendFamily:         ImageBackendFamilyStableDiffusionGGML,
 		ControlPlane:          ImageControlPlaneRuntime,
-		ExecutionPlane:        EngineMedia,
+		ExecutionPlane:        ImageExecutionPlaneMedia,
 		SupportedCapabilities: []string{"image.generate"},
 		TopologyState:         ImageTopologyStateDefined,
 		ProductState:          ImageProductStateSupported,
@@ -169,7 +179,7 @@ var imageSupervisedMatrixV2 = []ImageSupervisedMatrixEntry{
 		BackendClass:          ImageBackendClassNativeBinary,
 		BackendFamily:         ImageBackendFamilyStableDiffusionGGML,
 		ControlPlane:          ImageControlPlaneRuntime,
-		ExecutionPlane:        EngineMedia,
+		ExecutionPlane:        ImageExecutionPlaneMedia,
 		SupportedCapabilities: nil,
 		TopologyState:         ImageTopologyStateDefined,
 		ProductState:          ImageProductStateUnsupported,
@@ -186,7 +196,7 @@ var imageSupervisedMatrixV2 = []ImageSupervisedMatrixEntry{
 		BackendClass:          ImageBackendClassNativeBinary,
 		BackendFamily:         ImageBackendFamilyStableDiffusionGGML,
 		ControlPlane:          ImageControlPlaneRuntime,
-		ExecutionPlane:        EngineMedia,
+		ExecutionPlane:        ImageExecutionPlaneMedia,
 		SupportedCapabilities: nil,
 		TopologyState:         ImageTopologyStateDefined,
 		ProductState:          ImageProductStateUnsupported,
@@ -203,7 +213,7 @@ var imageSupervisedMatrixV2 = []ImageSupervisedMatrixEntry{
 		BackendClass:          ImageBackendClassPythonPipeline,
 		BackendFamily:         ImageBackendFamilyDiffusers,
 		ControlPlane:          ImageControlPlaneRuntime,
-		ExecutionPlane:        EngineMedia,
+		ExecutionPlane:        ImageExecutionPlaneMedia,
 		SupportedCapabilities: nil,
 		TopologyState:         ImageTopologyStateDefined,
 		ProductState:          ImageProductStateUnsupported,
@@ -220,7 +230,7 @@ var imageSupervisedMatrixV2 = []ImageSupervisedMatrixEntry{
 		BackendClass:          ImageBackendClassNativeBinary,
 		BackendFamily:         ImageBackendFamilyStableDiffusionGGML,
 		ControlPlane:          ImageControlPlaneRuntime,
-		ExecutionPlane:        EngineMedia,
+		ExecutionPlane:        ImageExecutionPlaneMedia,
 		SupportedCapabilities: nil,
 		TopologyState:         ImageTopologyStateDefined,
 		ProductState:          ImageProductStateUnsupported,
@@ -237,7 +247,7 @@ var imageSupervisedMatrixV2 = []ImageSupervisedMatrixEntry{
 		BackendClass:          ImageBackendClassPythonPipeline,
 		BackendFamily:         ImageBackendFamilyDiffusers,
 		ControlPlane:          ImageControlPlaneRuntime,
-		ExecutionPlane:        EngineMedia,
+		ExecutionPlane:        ImageExecutionPlaneMedia,
 		SupportedCapabilities: nil,
 		TopologyState:         ImageTopologyStateDefined,
 		ProductState:          ImageProductStateUnsupported,
@@ -262,7 +272,7 @@ type ImageSupervisedMatrixSelection struct {
 	BackendClass          ImageBackendClass
 	BackendFamily         ImageBackendFamily
 	ControlPlane          ImageControlPlane
-	ExecutionPlane        EngineKind
+	ExecutionPlane        ImageExecutionPlane
 	SupportedCapabilities []string
 
 	// Conflict indicates that multiple entries matched the same canonical

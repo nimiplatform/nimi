@@ -518,7 +518,7 @@ func (s *Supervisor) stopCanceledStart(cancelErr error) error {
 
 func supervisorCommandExecutablePath(cfg EngineConfig) string {
 	switch cfg.Kind {
-	case EngineMedia, EngineSpeech:
+	case EngineSpeech:
 		// Keep BinaryPath canonical for status and process-identity projections.
 		// Only the Windows process launch adapter consumes the shorter alias so
 		// CPython derives a legacy-safe sys.prefix for deeply nested packages.

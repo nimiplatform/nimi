@@ -123,11 +123,6 @@ func ensureEngineConfig(fileCfg *config.FileConfig, engineName string) *config.F
 			fileCfg.Engines.Llama = &config.FileConfigEngine{}
 		}
 		return fileCfg.Engines.Llama
-	case "media":
-		if fileCfg.Engines.Media == nil {
-			fileCfg.Engines.Media = &config.FileConfigEngine{}
-		}
-		return fileCfg.Engines.Media
 	default:
 		return &config.FileConfigEngine{}
 	}
@@ -140,10 +135,7 @@ func pruneEmptyEnginesConfig(fileCfg *config.FileConfig) {
 	if isEmptyFileConfigEngine(fileCfg.Engines.Llama) {
 		fileCfg.Engines.Llama = nil
 	}
-	if isEmptyFileConfigEngine(fileCfg.Engines.Media) {
-		fileCfg.Engines.Media = nil
-	}
-	if fileCfg.Engines.Llama == nil && fileCfg.Engines.Media == nil {
+	if fileCfg.Engines.Llama == nil {
 		fileCfg.Engines = nil
 	}
 }

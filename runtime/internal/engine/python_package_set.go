@@ -27,16 +27,6 @@ func resolvePythonPackageSetManifest(consumer string) (pythonPackageSetManifest,
 			ID:           "vision-locateanything-python-core",
 			ImportProbes: []string{"fastapi", "uvicorn", "PIL", "transformers"},
 		}, nil
-	case strings.HasPrefix(trimmed, "stable-diffusion.cpp."):
-		return pythonPackageSetManifest{
-			ID:           "media-proxy-execution-core",
-			ImportProbes: []string{"json"},
-		}, nil
-	case strings.HasPrefix(trimmed, "media."):
-		return pythonPackageSetManifest{
-			ID:           "media-python-pipeline-core",
-			ImportProbes: []string{"diffusers", "transformers", "accelerate", "safetensors", "PIL", "imageio"},
-		}, nil
 	case trimmed == "speech.qwen3-tts.python":
 		return pythonPackageSetManifest{
 			ID:           "speech-qwen3-tts-python-core",
@@ -308,10 +298,6 @@ func materializePythonPipelineServerScript(root string, consumer string) error {
 			}
 		}
 		return nil
-	case strings.HasPrefix(strings.TrimSpace(consumer), "stable-diffusion.cpp."):
-		return os.WriteFile(filepath.Join(trimmedRoot, "media_server.py"), []byte(mediaServerScript), 0o755)
-	case strings.HasPrefix(strings.TrimSpace(consumer), "media."):
-		return os.WriteFile(filepath.Join(trimmedRoot, "media_server.py"), []byte(mediaServerScript), 0o755)
 	case strings.HasPrefix(strings.TrimSpace(consumer), "speech."):
 		files := speechPipelineFilesForConsumer(consumer)
 		if len(files) == 0 {

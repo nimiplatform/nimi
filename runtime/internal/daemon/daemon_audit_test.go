@@ -24,7 +24,7 @@ func TestProviderTargetNameForEngineExcludesPrivateLlamaHost(t *testing.T) {
 	}
 	diffusersTarget, ok := engineAuditTargetName(engineManagedImageBackend)
 	if !ok || diffusersTarget != "local-image" {
-		t.Fatalf("unexpected media diffusers provider target: %q, %v", diffusersTarget, ok)
+		t.Fatalf("unexpected managed image backend provider target: %q, %v", diffusersTarget, ok)
 	}
 }
 
@@ -41,7 +41,7 @@ func TestAppendEngineBootstrapFailureAuditIncludesImageMatrixAttribution(t *test
 		EntryID: "linux-x64-nvidia-safetensors-native", BackendFamily: engine.ImageBackendFamilyStableDiffusionGGML,
 		BackendClass: engine.ImageBackendClassNativeBinary, ProductState: engine.ImageProductStateUnsupported,
 	}}
-	appendEngineBootstrapFailureAudit(store, "media", "local-media", "bootstrap failed", selection)
+	appendEngineBootstrapFailureAudit(store, string(engineManagedImageBackend), localImageEngineAuditKey, "bootstrap failed", selection)
 	payload := mustSingleRuntimeEngineAuditPayload(t, store)
 	assertImageMatrixAuditPayload(t, payload)
 }
@@ -52,7 +52,7 @@ func TestAppendRepairResolvedAuditIncludesImageMatrixAttribution(t *testing.T) {
 		EntryID: "linux-x64-nvidia-safetensors-native", BackendFamily: engine.ImageBackendFamilyStableDiffusionGGML,
 		BackendClass: engine.ImageBackendClassNativeBinary, ProductState: engine.ImageProductStateUnsupported,
 	}}
-	appendRepairResolvedAudit(store, "media", "recovered", selection)
+	appendRepairResolvedAudit(store, string(engineManagedImageBackend), "recovered", selection)
 	payload := mustSingleRuntimeEngineAuditPayload(t, store)
 	assertImageMatrixAuditPayload(t, payload)
 }

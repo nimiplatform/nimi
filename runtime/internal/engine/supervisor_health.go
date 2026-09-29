@@ -61,9 +61,6 @@ func waitSupervisorHealthy(ctx context.Context, cfg EngineConfig, interval time.
 		}
 		return waitTCPHealthy(ctx, address, interval, cfg.StartupTimeout)
 	default:
-		if cfg.Kind == EngineMedia {
-			return WaitMediaHealthy(ctx, cfg.Endpoint(), interval, cfg.StartupTimeout)
-		}
 		if cfg.Kind == EngineSpeech {
 			return waitSpeechHealthy(ctx, cfg.Endpoint(), interval, cfg.StartupTimeout, speechHealthDriverForConfig(cfg))
 		}
@@ -114,9 +111,6 @@ func probeSupervisorHealth(ctx context.Context, cfg EngineConfig) error {
 		_ = conn.Close()
 		return nil
 	default:
-		if cfg.Kind == EngineMedia {
-			return ProbeMediaHealth(ctx, cfg.Endpoint())
-		}
 		if cfg.Kind == EngineSpeech {
 			return probeSpeechHealth(ctx, cfg.Endpoint(), speechHealthDriverForConfig(cfg))
 		}

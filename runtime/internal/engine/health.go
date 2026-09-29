@@ -89,10 +89,6 @@ func WaitHealthy(ctx context.Context, endpoint string, healthPath string, expect
 	}
 }
 
-func ProbeMediaHealth(ctx context.Context, endpoint string) error {
-	return probeCanonicalCatalogHealth(ctx, endpoint, "media", "")
-}
-
 func ProbeSpeechHealth(ctx context.Context, endpoint string) error {
 	return probeSpeechHealth(ctx, endpoint, "")
 }
@@ -220,10 +216,6 @@ func probeCanonicalCatalogHealth(ctx context.Context, endpoint string, engineLab
 		}
 	}
 	return fmt.Errorf("%s catalog probe missing ready models", engineLabel)
-}
-
-func WaitMediaHealthy(ctx context.Context, endpoint string, interval time.Duration, timeout time.Duration) error {
-	return waitCanonicalCatalogHealthy(ctx, endpoint, interval, timeout, ProbeMediaHealth)
 }
 
 func WaitSpeechHealthy(ctx context.Context, endpoint string, interval time.Duration, timeout time.Duration) error {

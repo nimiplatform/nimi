@@ -94,14 +94,23 @@ func TestPythonTorchWheelPackageSpecReflectsExactManifest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("resolve speech manifest: %v", err)
 	}
-	media, err := resolvePythonTorchWheelManifest("media.diffusers.cuda")
+	vision, err := resolvePythonTorchWheelManifest(VisionLocateConsumerID + ".cuda")
 	if err != nil {
-		t.Fatalf("resolve media manifest: %v", err)
+		t.Fatalf("resolve vision manifest: %v", err)
 	}
 	if got := pythonTorchWheelPackageSpec(speech, "torchvision"); got != "" {
 		t.Fatalf("speech torchvision spec = %q, want absent", got)
 	}
-	if got := pythonTorchWheelPackageSpec(media, "torchvision"); got != "torchvision==0.22.1" {
-		t.Fatalf("media torchvision spec = %q", got)
+	if got := pythonTorchWheelPackageSpec(vision, "torchvision"); got != "torchvision==0.26.0" {
+		t.Fatalf("vision torchvision spec = %q", got)
+	}
+}
+
+func TestPythonTorchWheelRejectsRetiredMediaPipelineConsumers(t *testing.T) {
+	t.Parallel()
+	for _, consumer := range []string{"media.diffusers.cpu", "media.diffusers.cuda", "media.video-python.cpu", "media.video-python.cuda"} {
+		if manifest, err := resolvePythonTorchWheelManifest(consumer); err == nil {
+			t.Fatalf("retired media pipeline consumer %s resolved a Torch manifest: %+v", consumer, manifest)
+		}
 	}
 }

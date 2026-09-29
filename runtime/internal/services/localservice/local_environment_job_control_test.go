@@ -456,7 +456,7 @@ func TestRetryLocalEnvironmentDependencyProfileJobRequiresExactRememberedPlanCon
 	if !failed.Retryable {
 		t.Fatalf("seeded Python dependency job retryable = false, want true")
 	}
-	rememberPythonDependencyJobContractForTest(svc, localEnvironmentFamilyPythonRuntime, dependencyID, environmentKey, "media.diffusers.cpu")
+	rememberPythonDependencyJobContractForTest(svc, localEnvironmentFamilyPythonRuntime, dependencyID, environmentKey, "speech.qwen3-tts.python")
 
 	_, err = svc.RetryLocalEnvironmentDependencyJob(context.Background(), &runtimev1.RetryLocalEnvironmentDependencyJobRequest{
 		JobId:     failed.JobID,
@@ -566,7 +566,7 @@ func TestStartCUDADependencyJobPromotesVerifiedSelectedSource(t *testing.T) {
 	svc.SetEngineManager(&mockEngineManager{
 		sharedAcceleratorDependencyStatus: &engine.SharedAcceleratorDependencyStatus{
 			DependencyID:      cudaUserSpaceRuntimeDependencyID,
-			ConsumerID:        "media.diffusers.cuda",
+			ConsumerID:        stableDiffusionCUDAConsumerID,
 			State:             engine.SharedAcceleratorDependencyReadyManaged,
 			Source:            "runtime_managed",
 			CanonicalRoot:     filepath.Join(svc.runtimeDataRoot, "dependencies", "accelerator-dependencies", cudaUserSpaceRuntimeDependencyID),
@@ -576,7 +576,7 @@ func TestStartCUDADependencyJobPromotesVerifiedSelectedSource(t *testing.T) {
 	})
 
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "accelerator.cuda.runtime|nvidia-cuda-user-space-runtime|host|windows/amd64|root|media.diffusers.cuda",
+		EnvironmentKey:   "accelerator.cuda.runtime|nvidia-cuda-user-space-runtime|host|windows/amd64|root|stable-diffusion.cpp.cuda",
 		DependencyFamily: localEnvironmentFamilyCUDA,
 		DependencyId:     cudaUserSpaceRuntimeDependencyID,
 		Confirmed:        true,
@@ -599,8 +599,8 @@ func TestStartCUDADependencyJobPromotesVerifiedSelectedSource(t *testing.T) {
 		t.Fatalf("ListLocalEnvironmentSelectedSources: %v", err)
 	}
 	source := sources.GetSources()[0]
-	if got := source.GetSelectedConsumers(); len(got) != 1 || got[0] != "media.diffusers.cuda" {
-		t.Fatalf("selected consumers = %v, want media.diffusers.cuda", got)
+	if got := source.GetSelectedConsumers(); len(got) != 1 || got[0] != stableDiffusionCUDAConsumerID {
+		t.Fatalf("selected consumers = %v, want %s", got, stableDiffusionCUDAConsumerID)
 	}
 	if len(source.GetVerifiedArtifacts()) != 3 {
 		t.Fatalf("verified artifacts = %v, want CUDA runtime artifact set", source.GetVerifiedArtifacts())
@@ -614,7 +614,7 @@ func TestCUDADependencyJobProjectsSharedAcceleratorDownloadProgress(t *testing.T
 		sharedAcceleratorDependencyRelease: release,
 		sharedAcceleratorDependencyStatus: &engine.SharedAcceleratorDependencyStatus{
 			DependencyID:      cudaUserSpaceRuntimeDependencyID,
-			ConsumerID:        "media.diffusers.cuda",
+			ConsumerID:        stableDiffusionCUDAConsumerID,
 			State:             engine.SharedAcceleratorDependencyReadyManaged,
 			Source:            "runtime_managed",
 			CanonicalRoot:     filepath.Join(svc.runtimeDataRoot, "dependencies", "accelerator-dependencies", cudaUserSpaceRuntimeDependencyID),
@@ -624,7 +624,7 @@ func TestCUDADependencyJobProjectsSharedAcceleratorDownloadProgress(t *testing.T
 	})
 
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "accelerator.cuda.runtime|nvidia-cuda-user-space-runtime|host|windows/amd64|root|media.diffusers.cuda",
+		EnvironmentKey:   "accelerator.cuda.runtime|nvidia-cuda-user-space-runtime|host|windows/amd64|root|stable-diffusion.cpp.cuda",
 		DependencyFamily: localEnvironmentFamilyCUDA,
 		DependencyId:     cudaUserSpaceRuntimeDependencyID,
 		Confirmed:        true,
@@ -656,7 +656,7 @@ func TestRetryLocalEnvironmentDependencyJobReexecutesFailedJob(t *testing.T) {
 	svc.SetEngineManager(mgr)
 
 	startResp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "accelerator.cuda.runtime|nvidia-cuda-user-space-runtime|host|windows/amd64|root|media.diffusers.cuda",
+		EnvironmentKey:   "accelerator.cuda.runtime|nvidia-cuda-user-space-runtime|host|windows/amd64|root|stable-diffusion.cpp.cuda",
 		DependencyFamily: localEnvironmentFamilyCUDA,
 		DependencyId:     cudaUserSpaceRuntimeDependencyID,
 		Confirmed:        true,
@@ -853,9 +853,9 @@ func TestRepairPythonPackageSetMarksCanonicalSourceAcrossRestart(t *testing.T) {
 	}
 
 	const (
-		dependencyID  = "python-profile.shared"
-		imageConsumer = "media.diffusers.cuda"
-		videoConsumer = "media.video-python.cuda"
+		dependencyID = "python-profile.shared"
+		asrConsumer  = "speech.qwen3-asr.python"
+		ttsConsumer  = "speech.qwen3-tts.python"
 	)
 	environmentKey := localEnvironmentPythonProfileKey(localEnvironmentFamilyPythonPackageSet, dependencyID, runtimeDataRoot)
 	profileRoot := filepath.Join(runtimeDataRoot, "environments", "python-profiles", "shared")
@@ -866,27 +866,27 @@ func TestRepairPythonPackageSetMarksCanonicalSourceAcrossRestart(t *testing.T) {
 		CanonicalRoot:         profileRoot,
 		Version:               "shared-profile-digest",
 		CompatibilityEvidence: []string{"profile_digest=shared-profile-digest"},
-		VerifiedArtifacts:     []string{filepath.Join(profileRoot, "media-driver.py")},
+		VerifiedArtifacts:     []string{filepath.Join(profileRoot, "speech_server.py")},
 		Hashes:                map[string]string{"profile_digest": "shared-profile-digest"},
 	})
 	writeSelectedSourceLocalArtifactsForTest(t, record)
 	record = svc.upsertLocalEnvironmentSelectedSourceRecord(record)
-	recordReadyPythonPackageSetConsumptionJobForTest(t, svc, record, imageConsumer)
-	recordReadyPythonPackageSetConsumptionJobForTest(t, svc, record, videoConsumer)
+	recordReadyPythonPackageSetConsumptionJobForTest(t, svc, record, asrConsumer)
+	recordReadyPythonPackageSetConsumptionJobForTest(t, svc, record, ttsConsumer)
 
 	resp, err := svc.RepairLocalEnvironmentDependency(context.Background(), &runtimev1.RepairLocalEnvironmentDependencyRequest{
 		EnvironmentKey:   environmentKey,
 		DependencyFamily: localEnvironmentFamilyPythonPackageSet,
 		DependencyId:     dependencyID,
-		ConsumerScope:    imageConsumer,
+		ConsumerScope:    asrConsumer,
 		Confirmed:        true,
 		ReasonCode:       "consumer_driver_drift",
 	})
 	if err != nil {
 		t.Fatalf("RepairLocalEnvironmentDependency: %v", err)
 	}
-	if got := resp.GetJob().GetConsumerScope(); got != imageConsumer {
-		t.Fatalf("repair job consumer = %q, want %q", got, imageConsumer)
+	if got := resp.GetJob().GetConsumerScope(); got != asrConsumer {
+		t.Fatalf("repair job consumer = %q, want %q", got, asrConsumer)
 	}
 	cancelled, err := svc.CancelLocalEnvironmentDependencyJob(context.Background(), &runtimev1.CancelLocalEnvironmentDependencyJobRequest{
 		JobId: resp.GetJob().GetJobId(),
@@ -1361,7 +1361,7 @@ func TestStartNativeLlamaDependencyJobRepairRequiredWithoutHash(t *testing.T) {
 
 func TestStartPythonUVDependencyJobPromotesVerifiedSelectedSource(t *testing.T) {
 	svc := newTestService(t)
-	consumer, identity := currentMediaPythonDependencyProfileForTest(t)
+	consumer, identity := currentTorchPythonDependencyProfileForTest(t)
 	environmentKey := localEnvironmentManagedUVKey(identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot())
 	rememberPythonDependencyJobContractForTest(svc, localEnvironmentFamilyPythonUV, "uv", environmentKey, consumer)
 	svc.SetEngineManager(&mockEngineManager{
@@ -1412,7 +1412,7 @@ func TestStartPythonUVDependencyJobPromotesVerifiedSelectedSource(t *testing.T) 
 
 func TestPythonUVDependencyJobProjectsDownloadProgress(t *testing.T) {
 	svc := newTestService(t)
-	consumer, identity := currentMediaPythonDependencyProfileForTest(t)
+	consumer, identity := currentTorchPythonDependencyProfileForTest(t)
 	environmentKey := localEnvironmentManagedUVKey(identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot())
 	rememberPythonDependencyJobContractForTest(svc, localEnvironmentFamilyPythonUV, "uv", environmentKey, consumer)
 	release := make(chan struct{})

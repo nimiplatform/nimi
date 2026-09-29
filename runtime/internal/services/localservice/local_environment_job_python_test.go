@@ -47,19 +47,13 @@ func currentPythonDependencyProfileIdentityForTest(t *testing.T, consumer string
 	return identity
 }
 
-func currentMediaPythonDependencyProfileForTest(t *testing.T) (string, engine.PythonDependencyProfileIdentity) {
+// currentTorchPythonDependencyProfileForTest returns a live Python pipeline
+// consumer whose immutable profile carries a Torch wheel prerequisite. Its
+// Torch selected-source consumer is the profile consumer plus the host plane.
+func currentTorchPythonDependencyProfileForTest(t *testing.T) (string, engine.PythonDependencyProfileIdentity) {
 	t.Helper()
-	host := localEnvironmentHostProfileFromDeviceProfile(hostProfileOrCollected(nil))
-	plane := "cpu"
-	if localEnvironmentHostSupportsCUDA(host) {
-		plane = "cuda"
-	}
-	consumer := "media.diffusers." + plane
-	identity, err := engine.ResolvePythonDependencyProfileIdentity(consumer, localEnvironmentPlatformTuple(host), plane)
-	if err != nil {
-		t.Fatalf("resolve media Python dependency profile identity: %v", err)
-	}
-	return consumer, identity
+	consumer := "speech.qwen3-tts.python"
+	return consumer, currentPythonDependencyProfileIdentityForTest(t, consumer)
 }
 
 func upsertReadyManagedUVForProfileTest(t *testing.T, svc *Service, consumer string, identity engine.PythonDependencyProfileIdentity) localEnvironmentSelectedSourceRecordState {
@@ -271,7 +265,7 @@ func TestStartLocalImageNativePythonPackageSetJobFailsClosedAtAdmission(t *testi
 
 func TestStartPythonRuntimeDependencyJobRequiresSelectedUVRecord(t *testing.T) {
 	svc := newTestService(t)
-	consumer, identity := currentMediaPythonDependencyProfileForTest(t)
+	consumer, identity := currentTorchPythonDependencyProfileForTest(t)
 	// A genuinely absent prerequisite still fails closed once the bounded
 	// prerequisite wait elapses; shorten it so the test does not pause.
 	svc.SetLocalEnvironmentPrerequisiteWaitTimeout(100 * time.Millisecond)
@@ -297,7 +291,7 @@ func TestStartPythonRuntimeDependencyJobRequiresSelectedUVRecord(t *testing.T) {
 
 func TestStartPythonRuntimeDependencyJobPromotesVerifiedSelectedSource(t *testing.T) {
 	svc := newTestService(t)
-	consumer, identity := currentMediaPythonDependencyProfileForTest(t)
+	consumer, identity := currentTorchPythonDependencyProfileForTest(t)
 	uvRecord := upsertReadyManagedUVForProfileTest(t, svc, consumer, identity)
 	environmentKey := localEnvironmentPythonRuntimeKey(identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot())
 	rememberPythonDependencyJobContractForTest(svc, localEnvironmentFamilyPythonRuntime, localEnvironmentPythonRuntimeDependencyID(), environmentKey, consumer)
@@ -342,7 +336,7 @@ func TestStartPythonRuntimeDependencyJobPromotesVerifiedSelectedSource(t *testin
 
 func TestPythonRuntimeDependencyJobUsesInstallingWithoutDownloadProgress(t *testing.T) {
 	svc := newTestService(t)
-	consumer, identity := currentMediaPythonDependencyProfileForTest(t)
+	consumer, identity := currentTorchPythonDependencyProfileForTest(t)
 	uvRecord := upsertReadyManagedUVForProfileTest(t, svc, consumer, identity)
 	environmentKey := localEnvironmentPythonRuntimeKey(identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot())
 	rememberPythonDependencyJobContractForTest(svc, localEnvironmentFamilyPythonRuntime, localEnvironmentPythonRuntimeDependencyID(), environmentKey, consumer)
@@ -382,7 +376,7 @@ func TestPythonRuntimeDependencyJobUsesInstallingWithoutDownloadProgress(t *test
 
 func TestStartPythonRuntimeDependencyJobUsesRequestConsumerScope(t *testing.T) {
 	svc := newTestService(t)
-	consumer, identity := currentMediaPythonDependencyProfileForTest(t)
+	consumer, identity := currentTorchPythonDependencyProfileForTest(t)
 	upsertReadyManagedUVForProfileTest(t, svc, consumer, identity)
 	environmentKey := localEnvironmentPythonRuntimeKey(identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot())
 	rememberPythonDependencyJobContractForTest(svc, localEnvironmentFamilyPythonRuntime, localEnvironmentPythonRuntimeDependencyID(), environmentKey, consumer)
@@ -427,7 +421,7 @@ func TestStartPythonRuntimeDependencyJobUsesRequestConsumerScope(t *testing.T) {
 
 func TestStartPythonVenvDependencyJobRequiresSelectedPythonRuntimeRecord(t *testing.T) {
 	svc := newTestService(t)
-	consumer, identity := currentMediaPythonDependencyProfileForTest(t)
+	consumer, identity := currentTorchPythonDependencyProfileForTest(t)
 	svc.SetLocalEnvironmentPrerequisiteWaitTimeout(100 * time.Millisecond)
 	upsertReadyManagedUVForProfileTest(t, svc, consumer, identity)
 	svc.SetEngineManager(&mockEngineManager{})
@@ -451,7 +445,7 @@ func TestStartPythonVenvDependencyJobRequiresSelectedPythonRuntimeRecord(t *test
 
 func TestStartPythonVenvDependencyJobPromotesVerifiedSelectedSource(t *testing.T) {
 	svc := newTestService(t)
-	consumer, identity := currentMediaPythonDependencyProfileForTest(t)
+	consumer, identity := currentTorchPythonDependencyProfileForTest(t)
 	uvRecord := upsertReadyManagedUVForProfileTest(t, svc, consumer, identity)
 	runtimeRecord := upsertReadyManagedPythonRuntimeForProfileTest(t, svc, consumer, identity)
 	upsertReadyCUDAForProfileTest(t, svc, consumer, identity)
@@ -809,7 +803,7 @@ func TestPythonPackageSetWaitsForExactTTSProfileWhenASRProfileIsAlreadyReady(t *
 
 func TestStartPythonTorchWheelDependencyJobRequiresCUDARecordForCUDAConsumer(t *testing.T) {
 	svc := newTestService(t)
-	consumer, identity := currentMediaPythonDependencyProfileForTest(t)
+	consumer, identity := currentTorchPythonDependencyProfileForTest(t)
 	if identity.AcceleratorPlane != "cuda" {
 		t.Skip("current host does not select the CUDA dependency profile")
 	}
@@ -818,7 +812,8 @@ func TestStartPythonTorchWheelDependencyJobRequiresCUDARecordForCUDAConsumer(t *
 	upsertReadyManagedPythonRuntimeForProfileTest(t, svc, consumer, identity)
 	upsertReadyPythonProfileForTest(t, svc, localEnvironmentFamilyPythonPackageSet, consumer, identity)
 	svc.SetEngineManager(&mockEngineManager{})
-	torchIdentity, err := engine.ResolvePythonTorchWheelDependencyIdentity(consumer)
+	torchConsumer := consumer + "." + identity.AcceleratorPlane
+	torchIdentity, err := engine.ResolvePythonTorchWheelDependencyIdentity(torchConsumer)
 	if err != nil {
 		t.Fatalf("resolve Torch selected-source identity: %v", err)
 	}
@@ -826,13 +821,13 @@ func TestStartPythonTorchWheelDependencyJobRequiresCUDARecordForCUDAConsumer(t *
 	environmentKey := localEnvironmentPythonTorchWheelKey(torchIdentity, identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot())
 	dependencyID := localEnvironmentPythonTorchWheelDependencyID(torchIdentity)
 	svc.rememberLocalEnvironmentPlanDependencyContracts([]localEnvironmentPlanDependency{{
-		EnvironmentKey: environmentKey, DependencyFamily: localEnvironmentFamilyPythonTorchWheel, DependencyID: dependencyID, ConsumerScope: consumer,
+		EnvironmentKey: environmentKey, DependencyFamily: localEnvironmentFamilyPythonTorchWheel, DependencyID: dependencyID, ConsumerScope: torchConsumer,
 	}})
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
 		EnvironmentKey:   environmentKey,
 		DependencyFamily: localEnvironmentFamilyPythonTorchWheel,
 		DependencyId:     dependencyID,
-		ConsumerScope:    consumer,
+		ConsumerScope:    torchConsumer,
 		Confirmed:        true,
 	})
 	if err != nil {
@@ -846,7 +841,7 @@ func TestStartPythonTorchWheelDependencyJobRequiresCUDARecordForCUDAConsumer(t *
 
 func TestStartPythonTorchWheelDependencyJobPromotesVerifiedSelectedSource(t *testing.T) {
 	svc := newTestService(t)
-	consumer, identity := currentMediaPythonDependencyProfileForTest(t)
+	consumer, identity := currentTorchPythonDependencyProfileForTest(t)
 	uvRecord := upsertReadyManagedUVForProfileTest(t, svc, consumer, identity)
 	upsertReadyManagedPythonRuntimeForProfileTest(t, svc, consumer, identity)
 	packageRecord := upsertReadyPythonProfileForTest(t, svc, localEnvironmentFamilyPythonPackageSet, consumer, identity)
@@ -854,7 +849,8 @@ func TestStartPythonTorchWheelDependencyJobPromotesVerifiedSelectedSource(t *tes
 	packageCacheRoot := filepath.Join(svc.runtimeDataRoot, "dependencies", "python-package-cache")
 	status := pythonDependencyProfileStatusForTest(identity, consumer, packageRecord.CanonicalRoot, uvRecord.CanonicalRoot, packageCacheRoot)
 	svc.SetEngineManager(&mockEngineManager{pythonDependencyProfileStatus: &status})
-	torchIdentity, err := engine.ResolvePythonTorchWheelDependencyIdentity(consumer)
+	torchConsumer := consumer + "." + identity.AcceleratorPlane
+	torchIdentity, err := engine.ResolvePythonTorchWheelDependencyIdentity(torchConsumer)
 	if err != nil {
 		t.Fatalf("resolve Torch selected-source identity: %v", err)
 	}
@@ -862,13 +858,13 @@ func TestStartPythonTorchWheelDependencyJobPromotesVerifiedSelectedSource(t *tes
 	environmentKey := localEnvironmentPythonTorchWheelKey(torchIdentity, identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot())
 	dependencyID := localEnvironmentPythonTorchWheelDependencyID(torchIdentity)
 	svc.rememberLocalEnvironmentPlanDependencyContracts([]localEnvironmentPlanDependency{{
-		EnvironmentKey: environmentKey, DependencyFamily: localEnvironmentFamilyPythonTorchWheel, DependencyID: dependencyID, ConsumerScope: consumer,
+		EnvironmentKey: environmentKey, DependencyFamily: localEnvironmentFamilyPythonTorchWheel, DependencyID: dependencyID, ConsumerScope: torchConsumer,
 	}})
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
 		EnvironmentKey:   environmentKey,
 		DependencyFamily: localEnvironmentFamilyPythonTorchWheel,
 		DependencyId:     dependencyID,
-		ConsumerScope:    consumer,
+		ConsumerScope:    torchConsumer,
 		Confirmed:        true,
 	})
 	if err != nil {
@@ -906,14 +902,15 @@ func TestStartPythonTorchWheelDependencyJobPromotesVerifiedSelectedSource(t *tes
 
 func TestPythonTorchWheelDependencyJobUsesVerifyingWithoutDownloadProgress(t *testing.T) {
 	svc := newTestService(t)
-	consumer, identity := currentMediaPythonDependencyProfileForTest(t)
+	consumer, identity := currentTorchPythonDependencyProfileForTest(t)
 	uvRecord := upsertReadyManagedUVForProfileTest(t, svc, consumer, identity)
 	upsertReadyManagedPythonRuntimeForProfileTest(t, svc, consumer, identity)
 	packageRecord := upsertReadyPythonProfileForTest(t, svc, localEnvironmentFamilyPythonPackageSet, consumer, identity)
 	upsertReadyCUDAForProfileTest(t, svc, consumer, identity)
 	status := pythonDependencyProfileStatusForTest(identity, consumer, packageRecord.CanonicalRoot, uvRecord.CanonicalRoot, filepath.Join(svc.runtimeDataRoot, "dependencies", "python-package-cache"))
 	svc.SetEngineManager(&mockEngineManager{pythonDependencyProfileStatus: &status})
-	torchIdentity, err := engine.ResolvePythonTorchWheelDependencyIdentity(consumer)
+	torchConsumer := consumer + "." + identity.AcceleratorPlane
+	torchIdentity, err := engine.ResolvePythonTorchWheelDependencyIdentity(torchConsumer)
 	if err != nil {
 		t.Fatalf("resolve Torch selected-source identity: %v", err)
 	}
@@ -923,7 +920,7 @@ func TestPythonTorchWheelDependencyJobUsesVerifyingWithoutDownloadProgress(t *te
 		EnvironmentKey:   localEnvironmentPythonTorchWheelKey(torchIdentity, identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot()),
 		DependencyFamily: localEnvironmentFamilyPythonTorchWheel,
 		DependencyID:     localEnvironmentPythonTorchWheelDependencyID(torchIdentity),
-		ConsumerScope:    consumer,
+		ConsumerScope:    torchConsumer,
 	}, localEnvironmentDependencyJobProgressReporter{
 		State: func(state string) { states = append(states, state) },
 		Progress: func(localEnvironmentDependencyJobProgress) {
@@ -946,7 +943,7 @@ func TestPythonTorchWheelDependencyJobUsesVerifyingWithoutDownloadProgress(t *te
 
 func TestPythonPrerequisiteOrderingConvergesUnderConcurrentUnorderedStart(t *testing.T) {
 	svc := newTestService(t)
-	consumer, identity := currentMediaPythonDependencyProfileForTest(t)
+	consumer, identity := currentTorchPythonDependencyProfileForTest(t)
 	runtimeEnvironmentKey := localEnvironmentPythonRuntimeKey(identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot())
 	uvEnvironmentKey := localEnvironmentManagedUVKey(identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot())
 	rememberPythonDependencyJobContractForTest(svc, localEnvironmentFamilyPythonRuntime, localEnvironmentPythonRuntimeDependencyID(), runtimeEnvironmentKey, consumer)

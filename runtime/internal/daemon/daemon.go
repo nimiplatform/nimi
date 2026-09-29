@@ -739,8 +739,7 @@ func (d *Daemon) startSupervisedEngines(_ context.Context) {
 	// The llama flag requests only private manager setup used later by
 	// ExecutionHost; it never materializes a package, bootstraps a model, or
 	// creates an ambient provider route.
-	engineWorkRequested := d.cfg.EngineLlamaEnabled ||
-		d.cfg.EngineMediaEnabled || d.cfg.EngineSpeechEnabled
+	engineWorkRequested := d.cfg.EngineLlamaEnabled || d.cfg.EngineSpeechEnabled
 	mgr, err := managerFactory(d.logger, engineRoots, onState)
 	if err != nil {
 		// Runtime core readiness is independent from local environment

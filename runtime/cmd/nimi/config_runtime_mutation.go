@@ -189,23 +189,6 @@ func applyConfigSetOperation(cfg *config.FileConfig, key string, value string) e
 		}
 		ensureEngineConfig(cfg, "llama").Port = &parsed
 		return nil
-	case "engines.media.enabled":
-		parsed, err := parseBooleanConfigValue(value)
-		if err != nil {
-			return fmt.Errorf("engines.media.enabled must be boolean: %w", err)
-		}
-		ensureEngineConfig(cfg, "media").Enabled = &parsed
-		return nil
-	case "engines.media.version":
-		ensureEngineConfig(cfg, "media").Version = value
-		return nil
-	case "engines.media.port":
-		parsed, err := strconv.Atoi(strings.TrimSpace(value))
-		if err != nil {
-			return fmt.Errorf("engines.media.port must be integer: %w", err)
-		}
-		ensureEngineConfig(cfg, "media").Port = &parsed
-		return nil
 	}
 
 	return fmt.Errorf("unsupported config key %q", key)
@@ -326,18 +309,6 @@ func applyConfigUnsetOperation(cfg *config.FileConfig, key string) error {
 		return nil
 	case "engines.llama.port":
 		ensureEngineConfig(cfg, "llama").Port = nil
-		pruneEmptyEnginesConfig(cfg)
-		return nil
-	case "engines.media.enabled":
-		ensureEngineConfig(cfg, "media").Enabled = nil
-		pruneEmptyEnginesConfig(cfg)
-		return nil
-	case "engines.media.version":
-		ensureEngineConfig(cfg, "media").Version = ""
-		pruneEmptyEnginesConfig(cfg)
-		return nil
-	case "engines.media.port":
-		ensureEngineConfig(cfg, "media").Port = nil
 		pruneEmptyEnginesConfig(cfg)
 		return nil
 	}

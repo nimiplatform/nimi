@@ -256,9 +256,6 @@ func ValidateFileConfig(fileCfg FileConfig) error {
 		if err := validateOptionalFileConfigPort(fileConfigEngineInt(fileCfg, "llama", "port"), "engines.llama.port"); err != nil {
 			return err
 		}
-		if err := validateOptionalFileConfigPort(fileConfigEngineInt(fileCfg, "media", "port"), "engines.media.port"); err != nil {
-			return err
-		}
 		if err := validateOptionalFileConfigPort(fileConfigEngineInt(fileCfg, "speech", "port"), "engines.speech.port"); err != nil {
 			return err
 		}
@@ -304,7 +301,7 @@ func rejectRemovedExecutionRoutingConfigKeys(path string, root map[string]json.R
 		}
 		for providerID, providerRaw := range section {
 			if providerID == "local" || providerID == "nexa" || providerID == "nimi_media" {
-				return fmt.Errorf("parse runtime config file %q: providers.%s is removed; clear legacy local runtime config and reconfigure engines.llama and engines.media", path, providerID)
+				return fmt.Errorf("parse runtime config file %q: providers.%s is removed; clear legacy local runtime config and reconfigure engines.llama", path, providerID)
 			}
 			var providerFields map[string]json.RawMessage
 			if err := json.Unmarshal(providerRaw, &providerFields); err == nil {
@@ -322,9 +319,9 @@ func rejectRemovedExecutionRoutingConfigKeys(path string, root map[string]json.R
 	if err := json.Unmarshal(raw, &engines); err != nil {
 		return nil
 	}
-	for _, legacyKey := range []string{"localai", "nexa", "nimi_media"} {
+	for _, legacyKey := range []string{"localai", "nexa", "nimi_media", "media"} {
 		if _, exists := engines[legacyKey]; exists {
-			return fmt.Errorf("parse runtime config file %q: engines.%s is removed; clear legacy local runtime config and reconfigure engines.llama and engines.media", path, legacyKey)
+			return fmt.Errorf("parse runtime config file %q: engines.%s is removed; clear legacy local runtime config and reconfigure engines.llama", path, legacyKey)
 		}
 	}
 	return nil

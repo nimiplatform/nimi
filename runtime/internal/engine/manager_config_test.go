@@ -40,8 +40,8 @@ func TestNewManager(t *testing.T) {
 
 	// ListEngines should include known engines even when not running.
 	engines := mgr.ListEngines()
-	if len(engines) != 3 {
-		t.Fatalf("expected 3 known engines (llama+media+speech), got %d", len(engines))
+	if len(engines) != 2 {
+		t.Fatalf("expected 2 known engines (llama+speech), got %d", len(engines))
 	}
 	seen := map[EngineKind]bool{}
 	for _, info := range engines {
@@ -50,8 +50,8 @@ func TestNewManager(t *testing.T) {
 			t.Fatalf("expected stopped status for non-running engine %s, got %s", info.Kind, info.Status)
 		}
 	}
-	if !seen[EngineLlama] || !seen[EngineMedia] || !seen[EngineSpeech] {
-		t.Fatalf("expected list to include llama, media, and speech, got %+v", engines)
+	if !seen[EngineLlama] || !seen[EngineSpeech] {
+		t.Fatalf("expected list to include llama and speech, got %+v", engines)
 	}
 	if mgr.logger == nil {
 		t.Fatal("expected NewManager to install a default logger when nil is provided")
@@ -64,7 +64,7 @@ func TestManagerStopAllFencesLateEngineStart(t *testing.T) {
 		t.Fatalf("NewManager: %v", err)
 	}
 	mgr.StopAll(context.Background())
-	err = mgr.StartEngine(context.Background(), EngineConfig{Kind: EngineMedia})
+	err = mgr.StartEngine(context.Background(), EngineConfig{Kind: EngineSpeech})
 	if !errors.Is(err, ErrEngineManagerStopped) {
 		t.Fatalf("StartEngine after StopAll error = %v, want ErrEngineManagerStopped", err)
 	}
@@ -75,9 +75,10 @@ func TestManagerStopAllFencesLateEngineStart(t *testing.T) {
 	}
 }
 
-func TestListEnginesDoesNotProjectLegacyMutableMediaRoot(t *testing.T) {
+func TestListEnginesDoesNotProjectRetiredMediaEngine(t *testing.T) {
 	roots := testManagedRoots(t)
-	legacyRoot := engineVersionDir(roots.Environments, EngineMedia, DefaultMediaConfig().Version)
+	retired := EngineKind("media")
+	legacyRoot := engineVersionDir(roots.Environments, retired, "0.1.0")
 	legacyPython := managedPythonPath(legacyRoot)
 	if err := os.MkdirAll(filepath.Dir(legacyPython), 0o755); err != nil {
 		t.Fatal(err)
@@ -90,9 +91,12 @@ func TestListEnginesDoesNotProjectLegacyMutableMediaRoot(t *testing.T) {
 		t.Fatalf("NewManager: %v", err)
 	}
 	for _, info := range mgr.ListEngines() {
-		if info.Kind == EngineMedia && (info.BinaryPath != "" || info.BinarySizeBytes != 0) {
-			t.Fatalf("stopped media projected retired mutable root: %+v", info)
+		if info.Kind == retired {
+			t.Fatalf("retired media engine projected from a leftover root: %+v", info)
 		}
+	}
+	if _, err := parseEngineKind(string(retired)); err == nil {
+		t.Fatal("retired media engine name must not resolve to a supervised engine kind")
 	}
 }
 
@@ -182,7 +186,7 @@ func TestManagerStopAllRemovesStoppedSupervisors(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewManager: %v", err)
 	}
-	mgr.supervisors[EngineMedia] = NewSupervisor(EngineConfig{Kind: EngineMedia, ShutdownTimeout: time.Second}, nil, nil)
+	mgr.supervisors[EngineSpeech] = NewSupervisor(EngineConfig{Kind: EngineSpeech, ShutdownTimeout: time.Second}, nil, nil)
 	mgr.supervisors[engineManagedImageBackend] = NewSupervisor(EngineConfig{Kind: engineManagedImageBackend, ShutdownTimeout: time.Second}, nil, nil)
 
 	mgr.StopAll(context.Background())
@@ -197,13 +201,13 @@ func TestManagerStopEngineRemovesSupervisor(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewManager: %v", err)
 	}
-	sup := NewSupervisor(EngineConfig{Kind: EngineMedia, ShutdownTimeout: time.Second}, nil, nil)
-	mgr.supervisors[EngineMedia] = sup
+	sup := NewSupervisor(EngineConfig{Kind: EngineSpeech, ShutdownTimeout: time.Second}, nil, nil)
+	mgr.supervisors[EngineSpeech] = sup
 
-	if err := mgr.StopEngine(EngineMedia); err != nil {
+	if err := mgr.StopEngine(EngineSpeech); err != nil {
 		t.Fatalf("StopEngine: %v", err)
 	}
-	if _, exists := mgr.supervisors[EngineMedia]; exists {
+	if _, exists := mgr.supervisors[EngineSpeech]; exists {
 		t.Fatal("expected stopped supervisor to be removed from manager map")
 	}
 }
@@ -284,19 +288,19 @@ func TestManagerStartEngineStopsSupersededUnhealthySupervisor(t *testing.T) {
 		}
 	})
 	prior.SetStateForTesting(StatusUnhealthy, time.Time{})
-	mgr.SetSupervisorForTesting(EngineMedia, prior)
+	mgr.SetSupervisorForTesting(EngineSpeech, prior)
 
 	// StartEngine for the same engine: the superseded unhealthy supervisor must
 	// be stopped (its process killed) before the replacement spawns.
 	nextScript := writeTestScript(t, "sleep 60")
 	nextCfg := testSupervisorCfg(nextScript)
-	nextCfg.Kind = EngineMedia
+	nextCfg.Kind = EngineSpeech
 	nextCfg.StartupTimeout = 500 * time.Millisecond
 	nextCfg.MaxRestarts = 1
 	if err := mgr.StartEngine(context.Background(), nextCfg); err != nil {
 		t.Fatalf("StartEngine: %v", err)
 	}
-	t.Cleanup(func() { _ = mgr.StopEngine(EngineMedia) })
+	t.Cleanup(func() { _ = mgr.StopEngine(EngineSpeech) })
 
 	if !waitForCondition(3*time.Second, func() bool {
 		return !testProcessAlive(priorPID)
@@ -304,7 +308,7 @@ func TestManagerStartEngineStopsSupersededUnhealthySupervisor(t *testing.T) {
 		t.Fatalf("expected superseded supervisor process %d to be killed by StartEngine", priorPID)
 	}
 
-	info, err := mgr.EngineStatus(EngineMedia)
+	info, err := mgr.EngineStatus(EngineSpeech)
 	if err != nil {
 		t.Fatalf("EngineStatus: %v", err)
 	}
@@ -342,7 +346,7 @@ func TestManagerStartEngineFailsClosedWhenSupersededSupervisorStopFails(t *testi
 		t.Fatal("prior supervisor has no tracked process")
 	}
 	process.recordLifecycleError(errors.New("injected process-tree cleanup failure"))
-	mgr.SetSupervisorForTesting(EngineMedia, prior)
+	mgr.SetSupervisorForTesting(EngineSpeech, prior)
 
 	nextCfg := testSupervisorCfg(executablePath)
 	nextCfg.CommandArgs = []string{"-test.run=^TestSupervisorHelperProcess$", "--", "sleep"}
@@ -359,7 +363,7 @@ func TestManagerStartEngineFailsClosedWhenSupersededSupervisorStopFails(t *testi
 	}
 
 	mgr.mu.RLock()
-	managed := mgr.supervisors[EngineMedia]
+	managed := mgr.supervisors[EngineSpeech]
 	mgr.mu.RUnlock()
 	if managed != prior {
 		t.Fatal("failed supersede did not retain the poisoned prior supervisor")
@@ -414,8 +418,8 @@ func TestServiceAdapterListEnginesEmpty(t *testing.T) {
 
 	adapter := NewServiceAdapter(mgr)
 	engines := adapter.ListEngines()
-	if len(engines) != 3 {
-		t.Fatalf("expected 3 known engines, got %d", len(engines))
+	if len(engines) != 2 {
+		t.Fatalf("expected 2 known engines, got %d", len(engines))
 	}
 	seen := map[string]bool{}
 	for _, info := range engines {
@@ -424,8 +428,8 @@ func TestServiceAdapterListEnginesEmpty(t *testing.T) {
 			t.Fatalf("expected stopped status for non-running engine %s, got %s", info.Engine, info.Status)
 		}
 	}
-	if !seen[string(EngineLlama)] || !seen[string(EngineMedia)] || !seen[string(EngineSpeech)] {
-		t.Fatalf("expected adapter list to include llama, media, and speech, got %+v", engines)
+	if !seen[string(EngineLlama)] || !seen[string(EngineSpeech)] {
+		t.Fatalf("expected adapter list to include llama and speech, got %+v", engines)
 	}
 }
 
@@ -504,9 +508,9 @@ func TestParseEngineKind(t *testing.T) {
 		err   bool
 	}{
 		{"llama", EngineLlama, false},
-		{"media", EngineMedia, false},
+		{"media", "", true},
 		{"managed-image-backend", engineManagedImageBackend, false},
-		{"media-diffusers-backend", engineManagedImageBackend, false},
+		{"media-diffusers-backend", "", true},
 		{"speech", EngineSpeech, false},
 		{"audio-cpp", "", true},
 		{"sidecar", EngineKind("sidecar"), false},

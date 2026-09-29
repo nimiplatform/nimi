@@ -97,7 +97,7 @@ func (s *Supervisor) trackProcessLogPhase(stream, line string) string {
 	case EngineLlama:
 		phase = detectLlamaProcessLogPhase(line)
 	case engineManagedImageBackend:
-		phase = detectMediaProcessLogPhase(stream, line)
+		phase = detectManagedImageBackendLogPhase(stream, line)
 	default:
 		return ""
 	}
@@ -109,13 +109,13 @@ func (s *Supervisor) trackProcessLogPhase(stream, line string) string {
 	return s.processLogPhase
 }
 
-func detectMediaProcessLogPhase(stream, line string) string {
+func detectManagedImageBackendLogPhase(stream, line string) string {
 	trimmed := strings.TrimSpace(line)
 	if trimmed == "" {
 		return ""
 	}
 	if stream == "stdout" {
-		if phase, ok := classifyMediaProgressLine(trimmed); ok {
+		if phase, ok := classifyManagedImageBackendProgressLine(trimmed); ok {
 			return phase
 		}
 	}
@@ -142,7 +142,7 @@ func detectMediaProcessLogPhase(stream, line string) string {
 	}
 }
 
-func classifyMediaProgressLine(line string) (string, bool) {
+func classifyManagedImageBackendProgressLine(line string) (string, bool) {
 	matches := processProgressCounterPattern.FindStringSubmatch(line)
 	if len(matches) != 3 {
 		return "", false
@@ -296,7 +296,7 @@ func classifyManagedImageBackendProcessLog(record processLogRecord, stream strin
 		return record
 	}
 	if record.phase == "" {
-		record.phase = detectMediaProcessLogPhase(stream, line)
+		record.phase = detectManagedImageBackendLogPhase(stream, line)
 	}
 	switch {
 	case strings.Contains(line, "CPU info:"),

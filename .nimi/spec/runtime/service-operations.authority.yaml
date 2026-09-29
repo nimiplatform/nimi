@@ -709,7 +709,7 @@ units:
     kind: rule
     title: Protected configuration mutation has two results
     modality: must
-    statement: Typed protected config mutation returns CONFIG_RESTART_REQUIRED when any admitted Runtime-private Connector-custody or ExecutionHost operational field in providers.*, engines.llama.*, or engines.media.* changes and CONFIG_APPLIED for only hot changes or no material change; these namespaces never carry an AIConfig route, provider-model target choice, default model or provider, local binding, or machine selection, engines.localai.*, engines.nexa.*, and engines.nimi_media.* are rejected, and Desktop may request typed restart but never stop or select binary or config paths.
+    statement: Typed protected config mutation returns CONFIG_RESTART_REQUIRED when any admitted Runtime-private Connector-custody or ExecutionHost operational field in providers.* or engines.llama.* changes and CONFIG_APPLIED for only hot changes or no material change; these namespaces never carry an AIConfig route, provider-model target choice, default model or provider, local binding, or machine selection, engines.localai.*, engines.nexa.*, engines.nimi_media.*, and the retired engines.media.* are rejected, and Desktop may request typed restart but never stop or select binary or config paths.
     condition: Whenever Desktop requests a Runtime configuration mutation.
     failure: Reject an unknown result, wrong restart classification, retired engine field, direct stop, document write, or path selection.
     relations:

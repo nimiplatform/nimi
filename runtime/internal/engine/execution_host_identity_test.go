@@ -3,7 +3,7 @@ package engine
 import "testing"
 
 func TestSupervisorProjectsPrivateExecutionHostIdentity(t *testing.T) {
-	cfg := DefaultMediaConfig()
+	cfg := DefaultSpeechConfig()
 	cfg.ExecutionHostIdentity = "profile-root-and-driver-proof"
 	supervisor := NewSupervisor(cfg, nil, nil)
 

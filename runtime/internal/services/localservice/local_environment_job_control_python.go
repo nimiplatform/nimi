@@ -318,7 +318,7 @@ func (s *Service) executePythonTorchWheelEnvironmentDependencyJob(ctx context.Co
 		}, nil
 	}
 	consumer := pythonMaterializerConsumerForJob(job)
-	if !strings.HasPrefix(strings.TrimSpace(consumer), "media.") && !strings.HasPrefix(strings.TrimSpace(consumer), "speech.") &&
+	if !strings.HasPrefix(strings.TrimSpace(consumer), "speech.") &&
 		consumer != engine.VisionLocateConsumerID+".cuda" && consumer != engine.VisionLocateConsumerID+".cpu" &&
 		consumer != engine.TextDecisionConsumerID+".cuda" && consumer != engine.TextDecisionConsumerID+".cpu" {
 		return localEnvironmentDependencyJobResult{
@@ -464,10 +464,6 @@ func pythonSelectedConsumersForDependency(dependencyID string) []string {
 	switch {
 	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-speech-demucs."):
 		return []string{"speech.demucs.python"}
-	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-image-python."):
-		return []string{"media.diffusers.cpu", "media.diffusers.cuda"}
-	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-video-python."):
-		return []string{"media.video-python.cpu", "media.video-python.cuda"}
 	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-speech-qwen3-asr."):
 		return []string{"speech.qwen3-asr.python"}
 	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-speech-qwen3-asr-transformers."):
@@ -482,10 +478,6 @@ func pythonSelectedConsumersForDependency(dependencyID string) []string {
 			"stable-diffusion.cpp.cpu",
 			"stable-diffusion.cpp.metal",
 			"stable-diffusion.cpp.cuda",
-			"media.diffusers.cpu",
-			"media.diffusers.cuda",
-			"media.video-python.cpu",
-			"media.video-python.cuda",
 			"speech.qwen3-asr.python",
 			"speech.qwen3-asr-transformers.python",
 			"speech.faster-whisper.python",
@@ -504,7 +496,7 @@ func pythonSelectedConsumersForDependency(dependencyID string) []string {
 
 func resolvePythonDependencyProfileForJob(job localEnvironmentDependencyJobState, requireProfileDependencyID bool) (engine.PythonDependencyProfileIdentity, string, error) {
 	consumer := pythonTorchWheelPrerequisiteConsumer(pythonMaterializerConsumerForJob(job))
-	if !strings.HasPrefix(strings.TrimSpace(consumer), "speech.") && !strings.HasPrefix(strings.TrimSpace(consumer), "media.") && consumer != engine.VisionLocateConsumerID && consumer != engine.TextAnnotationConsumerID && consumer != engine.TextDecisionConsumerID {
+	if !strings.HasPrefix(strings.TrimSpace(consumer), "speech.") && consumer != engine.FaceSwapConsumerID && consumer != engine.VisionLocateConsumerID && consumer != engine.TextAnnotationConsumerID && consumer != engine.TextDecisionConsumerID {
 		return engine.PythonDependencyProfileIdentity{}, "", fmt.Errorf("python dependency profile is not admitted for consumer %s", consumer)
 	}
 	hostState := localEnvironmentHostProfileFromDeviceProfile(hostProfileOrCollected(nil))
@@ -579,10 +571,6 @@ func pythonMaterializerConsumerForDependency(dependencyID string) string {
 		return engine.VisionLocateConsumerID
 	case strings.HasPrefix(strings.TrimSpace(dependencyID), localDecisionPackID+"."):
 		return engine.TextDecisionConsumerID
-	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-image-python."):
-		return "media.diffusers.cuda"
-	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-video-python."):
-		return "media.video-python.cuda"
 	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-speech-qwen3-asr."):
 		return "speech.qwen3-asr.python"
 	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-speech-qwen3-asr-transformers."):
@@ -613,7 +601,7 @@ func pythonMaterializerConsumerScope(consumer string) bool {
 	return trimmed == engine.TextAnnotationConsumerID || trimmed == engine.VisionLocateConsumerID || trimmed == engine.VisionLocateConsumerID+".cpu" || trimmed == engine.VisionLocateConsumerID+".cuda" ||
 		localDecisionPythonConsumerScope(trimmed) ||
 		strings.HasPrefix(trimmed, "stable-diffusion.cpp.") ||
-		strings.HasPrefix(trimmed, "media.") ||
+		trimmed == engine.FaceSwapConsumerID ||
 		strings.HasPrefix(trimmed, "speech.")
 }
 

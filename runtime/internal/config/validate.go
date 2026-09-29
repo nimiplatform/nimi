@@ -62,9 +62,6 @@ func (c Config) Validate() error {
 	if err := validateOptionalPort(c.EngineLlamaPort, c.EngineLlamaEnabled, "llama engine port"); err != nil {
 		return err
 	}
-	if err := validateOptionalPort(c.EngineMediaPort, c.EngineMediaEnabled, "media engine port"); err != nil {
-		return err
-	}
 	if err := validateOptionalPort(c.EngineSpeechPort, c.EngineSpeechEnabled, "speech engine port"); err != nil {
 		return err
 	}
