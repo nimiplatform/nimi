@@ -290,6 +290,14 @@ type HostPlatformRecipeDriver interface {
 	ProjectRecipeForHost(recipeID string, options *structpb.Struct, supportedFeatures []string, platformTuple string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason)
 }
 
+// TextContextOptionDriver maps a Runtime-recommended context size into the
+// Driver's own portable option (model-catalog r061), so no other layer names
+// or interprets the option key.
+type TextContextOptionDriver interface {
+	RecipeDriver
+	WithTextContextSize(options *structpb.Struct, contextSize uint64) (*structpb.Struct, error)
+}
+
 // InvocationExactBinding is the immutable, already-verified occurrence passed
 // to a Driver at job submission. Drivers receive exact absolute paths plus any
 // captured ModelAsset bundle manifest; they never discover files or resolve

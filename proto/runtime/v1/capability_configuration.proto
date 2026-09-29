@@ -209,6 +209,22 @@ message LoadoutImpactProjection {
   bool confirmation_required = 4;
 }
 
+// Runtime's evaluation of one model's context against this host's memory
+// budget, under the tiers that choose variants at the catalog reference
+// context.
+message LoadoutRecipeContextFit {
+  // Context capacity authored by the model, in tokens: what the Driver uses
+  // when a Loadout omits its context-size option.
+  uint64 authored_context_size = 1;
+  // Context the recommended options run with, in tokens: the authored
+  // capacity when it fits this host, otherwise a smaller size that fits.
+  uint64 recommended_context_size = 2;
+  // Complete Loadout options for a configuration that binds this model: the
+  // recipe default options, plus the Driver's explicit context-size option
+  // when recommended_context_size is below authored_context_size.
+  google.protobuf.Struct recommended_options = 3;
+}
+
 message LoadoutRecipeOfferDescriptor {
   ModelAssetMarketCandidate candidate = 1;
   LocalRecommendationApplicability applicability = 2;
@@ -216,6 +232,9 @@ message LoadoutRecipeOfferDescriptor {
   reserved 4;
   reserved "installed";
   string installed_model_asset_id = 5;
+  // Absent when the model carries no context evidence or the offer does not
+  // fit this host at the reference context.
+  LoadoutRecipeContextFit context_fit = 6;
 }
 
 message LoadoutRecipeSlotDescriptor {
@@ -229,6 +248,8 @@ message LoadoutRecipeSlotDescriptor {
   repeated LoadoutRecipeOfferDescriptor offers = 8;
   LocalRecommendationApplicability applicability = 9;
   repeated ReasonCode reasons = 10;
+  // Context fit of the host-recommended variant in recommended_variant_ids.
+  LoadoutRecipeContextFit recommended_context_fit = 11;
 }
 
 message LoadoutRecipeDescriptor {
@@ -245,6 +266,10 @@ message LoadoutRecipeDescriptor {
   repeated string implementation_supported_features = 10;
   LocalRecommendationApplicability applicability = 11;
   repeated ReasonCode reasons = 12;
+  // Options of the host-recommended configuration: default_options, plus the
+  // Driver's explicit context-size option when a recommended slot's context
+  // fit is reduced.
+  google.protobuf.Struct recommended_options = 13;
 }
 
 message ListLoadoutRecipesRequest {

@@ -3588,6 +3588,12 @@ class LoadoutModelAxisInput:
     expected_content_id: str | None = None
 
 @dataclass(frozen=True)
+class LoadoutRecipeContextFit:
+    authored_context_size: int | None = None
+    recommended_context_size: int | None = None
+    recommended_options: Mapping[str, object] | None = None
+
+@dataclass(frozen=True)
 class LoadoutRecipeCustodyDescriptor:
     file: str | None = None
     sha256: str | None = None
@@ -3612,6 +3618,7 @@ class LoadoutRecipeDescriptor:
     implementation_supported_features: tuple[str, ...] = field(default_factory=tuple)
     applicability: LocalRecommendationApplicability | None = None
     reasons: tuple[ReasonCode, ...] = field(default_factory=tuple)
+    recommended_options: Mapping[str, object] | None = None
 
 @dataclass(frozen=True)
 class LoadoutRecipeOfferDescriptor:
@@ -3619,6 +3626,7 @@ class LoadoutRecipeOfferDescriptor:
     applicability: LocalRecommendationApplicability | None = None
     reasons: tuple[ReasonCode, ...] = field(default_factory=tuple)
     installed_model_asset_id: str | None = None
+    context_fit: LoadoutRecipeContextFit | None = None
 
 @dataclass(frozen=True)
 class LoadoutRecipeSlotDescriptor:
@@ -3632,6 +3640,7 @@ class LoadoutRecipeSlotDescriptor:
     offers: tuple[LoadoutRecipeOfferDescriptor, ...] = field(default_factory=tuple)
     applicability: LocalRecommendationApplicability | None = None
     reasons: tuple[ReasonCode, ...] = field(default_factory=tuple)
+    recommended_context_fit: LoadoutRecipeContextFit | None = None
 
 @dataclass(frozen=True)
 class LoadoutSelection:

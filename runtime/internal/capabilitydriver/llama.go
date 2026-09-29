@@ -16,6 +16,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/ggufmeta"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -456,6 +457,20 @@ func (driver LlamaTextDriver) validateTextBehaviorAdapterMatchFacts(facts TextBe
 		return TextBehaviorAdapterMatchFacts{}, fmt.Errorf("llama text behavior match facts do not match the exact main GGUF binding")
 	}
 	return facts, nil
+}
+
+// WithTextContextSize returns options with the explicit portable context
+// size set; the rest of options is kept unchanged.
+func (LlamaTextDriver) WithTextContextSize(options *structpb.Struct, contextSize uint64) (*structpb.Struct, error) {
+	result := &structpb.Struct{Fields: make(map[string]*structpb.Value)}
+	for key, value := range options.GetFields() {
+		result.Fields[key] = proto.Clone(value).(*structpb.Value)
+	}
+	result.Fields["contextSize"] = structpb.NewNumberValue(float64(contextSize))
+	if _, reason := parsePortableConfig(result, false); reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
+		return nil, fmt.Errorf("llama context size %d does not form valid portable options: %s", contextSize, reason.String())
+	}
+	return result, nil
 }
 
 func (LlamaTextDriver) TextContextWindow(value *structpb.Struct, modelContextWindowTokens uint64) (uint64, error) {

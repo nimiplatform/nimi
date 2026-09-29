@@ -158,7 +158,9 @@ func (s *Service) ListLoadoutRecipes(_ context.Context, request *runtimev1.ListL
 		identity := capabilitydriver.Identity{ImplementationID: recipe.ImplementationID, DriverID: recipe.DriverID, DriverDialect: recipe.DriverDialect}
 		applicability := runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_SUPPORTED
 		reasons := []runtimev1.ReasonCode{}
+		var contextDriver capabilitydriver.TextContextOptionDriver
 		if driver, reason := s.capabilityDrivers.Resolve(recipe.CapabilityContract, identity); reason == runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED && driver != nil {
+			contextDriver, _ = driver.(capabilitydriver.TextContextOptionDriver)
 			if hostDriver, ok := driver.(capabilitydriver.HostPlatformRecipeDriver); ok {
 				platformTuple := strings.ToLower(strings.TrimSpace(localRuntimeGOOS)) + "/" + strings.ToLower(strings.TrimSpace(localRuntimeGOARCH))
 				if _, hostReason := hostDriver.ProjectRecipeForHost(recipe.RecipeID, options, authoringFeatures, platformTuple); hostReason == runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED {
@@ -180,7 +182,7 @@ func (s *Service) ListLoadoutRecipes(_ context.Context, request *runtimev1.ListL
 		if err != nil {
 			return nil, err
 		}
-		projected, err := s.projectLoadoutRecipeDescriptor(recipe, hostRecommendedRecipe, requirements, implementationFeatures, hostProfile, applicability, reasons)
+		projected, err := s.projectLoadoutRecipeDescriptor(recipe, hostRecommendedRecipe, requirements, implementationFeatures, hostProfile, applicability, reasons, contextDriver)
 		if err != nil {
 			return nil, loadoutError(codes.Internal, runtimev1.ReasonCode_AI_LOADOUT_CATALOG_SCHEMA_INVALID, err.Error(), nil)
 		}
@@ -245,11 +247,18 @@ func (s *Service) projectLoadoutRecipeDescriptor(
 	hostProfile *runtimev1.LocalDeviceProfile,
 	applicability runtimev1.LocalRecommendationApplicability,
 	reasons []runtimev1.ReasonCode,
+	contextDriver capabilitydriver.TextContextOptionDriver,
 ) (*runtimev1.LoadoutRecipeDescriptor, error) {
 	options, err := structpb.NewStruct(recipe.DefaultOptions)
 	if err != nil {
 		return nil, err
 	}
+	var contextOptions *recipeContextOptions
+	if contextDriver != nil {
+		contextOptions = &recipeContextOptions{defaults: options, driver: contextDriver}
+	}
+	recommendedOptions := proto.Clone(options).(*structpb.Struct)
+	reducedContextSlot := ""
 	result := &runtimev1.LoadoutRecipeDescriptor{
 		RecipeId: recipe.RecipeID, Revision: recipe.Revision, Title: recipe.Title,
 		CapabilityContract:              recipe.CapabilityContract,
@@ -285,25 +294,80 @@ func (s *Service) projectLoadoutRecipeDescriptor(
 		if !ok {
 			return nil, fmt.Errorf("host recommendation is missing Driver slot %q", requirement.GetRequirementId())
 		}
-		offers := s.projectRecipeSlotOffers(
+		offers, err := s.projectRecipeSlotOffers(
 			slot.RecommendedVariantIDs,
 			hostProfile,
+			contextOptions,
 		)
+		if err != nil {
+			return nil, err
+		}
+		var recommendedContextFit *runtimev1.LoadoutRecipeContextFit
+		if len(hostRecommendation.RecommendedVariantIDs) == 1 {
+			recommendedContextFit, err = s.recipeContextFit(hostRecommendation.RecommendedVariantIDs[0], hostProfile, contextOptions)
+			if err != nil {
+				return nil, err
+			}
+		}
+		// The recommended configuration carries the one explicit context size
+		// its Driver owns; two reduced slots would be two sizes for one option.
+		if recommendedContextFit != nil && recommendedContextFit.GetRecommendedContextSize() < recommendedContextFit.GetAuthoredContextSize() {
+			if reducedContextSlot != "" {
+				return nil, fmt.Errorf("recipe slots %q and %q both reduce the recommended context", reducedContextSlot, slot.SlotID)
+			}
+			reducedContextSlot = slot.SlotID
+			recommendedOptions = proto.Clone(recommendedContextFit.GetRecommendedOptions()).(*structpb.Struct)
+		}
 		slotApplicability, slotReasons := recipeSlotApplicability(offers)
 		result.Slots = append(result.Slots, &runtimev1.LoadoutRecipeSlotDescriptor{
 			SlotId: slot.SlotID, DisplayLabel: slot.DisplayLabel,
 			RecommendedContentIds: append([]string(nil), hostRecommendation.RecommendedContentIDs...), ModelContract: contract,
 			RecommendedVariantIds: append([]string(nil), hostRecommendation.RecommendedVariantIDs...), Offers: offers,
 			Presence: requirement.GetPresence(), ConditionalFeatures: append([]string(nil), requirement.GetConditionalFeatures()...),
-			Applicability: slotApplicability, Reasons: slotReasons,
+			Applicability: slotApplicability, Reasons: slotReasons, RecommendedContextFit: recommendedContextFit,
 		})
 		delete(metadataBySlot, slot.SlotID)
 	}
 	if len(metadataBySlot) != 0 {
 		return nil, fmt.Errorf("recipe slot metadata contains slots outside the Driver projection")
 	}
+	result.RecommendedOptions = recommendedOptions
 	reduceRecipeApplicability(result)
 	return result, nil
+}
+
+// recipeContextOptions is what a recipe needs to express a context fit: its
+// default options and the Driver that owns the context-size option.
+type recipeContextOptions struct {
+	defaults *structpb.Struct
+	driver   capabilitydriver.TextContextOptionDriver
+}
+
+// recipeContextFit projects the model-catalog r061 context fit of one catalog
+// variant on the captured host, or nil when the variant has no context
+// evidence, does not fit at the reference context, or the recipe's Driver
+// owns no context-size option.
+// @nimi-authority: rule.nimi.runtime.model-catalog.r061
+func (s *Service) recipeContextFit(variantID string, hostProfile *runtimev1.LocalDeviceProfile, context *recipeContextOptions) (*runtimev1.LoadoutRecipeContextFit, error) {
+	if context == nil || context.driver == nil || context.defaults == nil {
+		return nil, nil
+	}
+	fit, ok := s.localProviderCatalog.ContextFitForHost(variantID, hostProfile)
+	if !ok {
+		return nil, nil
+	}
+	options := proto.Clone(context.defaults).(*structpb.Struct)
+	if fit.Reduced() {
+		var err error
+		if options, err = context.driver.WithTextContextSize(context.defaults, fit.RecommendedContextSize); err != nil {
+			return nil, fmt.Errorf("variant %q recommended context: %w", variantID, err)
+		}
+	}
+	return &runtimev1.LoadoutRecipeContextFit{
+		AuthoredContextSize:    fit.AuthoredContextSize,
+		RecommendedContextSize: fit.RecommendedContextSize,
+		RecommendedOptions:     options,
+	}, nil
 }
 
 func recipeApplicabilityRank(value runtimev1.LocalRecommendationApplicability) int {
@@ -329,18 +393,24 @@ type rankedRecipeSlotOffer struct {
 	reasons           []runtimev1.ReasonCode
 	canonicalOrdinal  int
 	hasCanonicalOrder bool
+	contextFit        *runtimev1.LoadoutRecipeContextFit
 }
 
 func (s *Service) projectRecipeSlotOffers(
 	variantIDs []string,
 	hostProfile *runtimev1.LocalDeviceProfile,
-) []*runtimev1.LoadoutRecipeOfferDescriptor {
+	context *recipeContextOptions,
+) ([]*runtimev1.LoadoutRecipeOfferDescriptor, error) {
 	ranked := s.localProviderCatalog.RankVariantsForHost(variantIDs, hostProfile)
 	candidates := make([]rankedRecipeSlotOffer, 0, len(ranked))
 	for _, candidate := range ranked {
 		offer, ok := s.catalogOfferForLocalVariant(candidate.Variant.VariantID)
 		if !ok || !catalogOfferInstallable(offer) {
 			continue
+		}
+		contextFit, err := s.recipeContextFit(candidate.Variant.VariantID, hostProfile, context)
+		if err != nil {
+			return nil, err
 		}
 		applicability := runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNKNOWN
 		reasons := []runtimev1.ReasonCode{}
@@ -355,7 +425,7 @@ func (s *Service) projectRecipeSlotOffers(
 		}
 		candidates = append(candidates, rankedRecipeSlotOffer{
 			offer: offer, applicability: applicability, reasons: reasons,
-			canonicalOrdinal: candidate.Ordinal, hasCanonicalOrder: true,
+			canonicalOrdinal: candidate.Ordinal, hasCanonicalOrder: true, contextFit: contextFit,
 		})
 	}
 	sort.SliceStable(candidates, func(i, j int) bool {
@@ -378,9 +448,10 @@ func (s *Service) projectRecipeSlotOffers(
 			Applicability:         candidate.applicability,
 			Reasons:               append([]runtimev1.ReasonCode(nil), candidate.reasons...),
 			InstalledModelAssetId: s.catalogOfferInstalledAssetID(candidate.offer),
+			ContextFit:            candidate.contextFit,
 		})
 	}
-	return result
+	return result, nil
 }
 
 func recipeSlotApplicability(offers []*runtimev1.LoadoutRecipeOfferDescriptor) (runtimev1.LocalRecommendationApplicability, []runtimev1.ReasonCode) {

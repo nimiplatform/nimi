@@ -181,14 +181,22 @@ test('the overview names the downloaded recipe and a direct enable only when not
     environmentPlanId: 'env', candidateRevision: '1', selectionRevisionPresent: false,
     ...overrides,
   });
-  assert.equal(setupPlanAllowsDirectUse(plan({}) as never), true);
-  assert.equal(setupPlanAllowsDirectUse(plan({ acquire: [{ slotId: 's', label: '', offer: { installedModelAssetId: 'asset' } }] }) as never), true);
+  assert.equal(setupPlanAllowsDirectUse(plan({}) as never, undefined), true);
+  assert.equal(setupPlanAllowsDirectUse(plan({ acquire: [{ slotId: 's', label: '', offer: { installedModelAssetId: 'asset' } }] }) as never, undefined), true);
   // Anything that would download, install, ask or is unavailable keeps the review screen.
-  assert.equal(setupPlanAllowsDirectUse(plan({ components: [{ dependencyFamily: 'f', dependencyId: 'd', label: '', state: 'missing', required: true }] }) as never), false);
-  assert.equal(setupPlanAllowsDirectUse(plan({ acquire: [{ slotId: 's', label: '', offer: {} }] }) as never), false);
-  assert.equal(setupPlanAllowsDirectUse(plan({ awaitingChoice: [{ slotId: 's', label: '', options: [] }] }) as never), false);
-  assert.equal(setupPlanAllowsDirectUse(plan({ unavailable: [{ slotId: 's', label: '' }] }) as never), false);
-  assert.equal(setupPlanAllowsDirectUse(plan({ environmentUnavailable: { reasonCode: 'AI_LOADOUT_DRIVER_UNAVAILABLE' } }) as never), false);
+  assert.equal(setupPlanAllowsDirectUse(plan({ components: [{ dependencyFamily: 'f', dependencyId: 'd', label: '', state: 'missing', required: true }] }) as never, undefined), false);
+  assert.equal(setupPlanAllowsDirectUse(plan({ acquire: [{ slotId: 's', label: '', offer: {} }] }) as never, undefined), false);
+  assert.equal(setupPlanAllowsDirectUse(plan({ awaitingChoice: [{ slotId: 's', label: '', options: [] }] }) as never, undefined), false);
+  assert.equal(setupPlanAllowsDirectUse(plan({ unavailable: [{ slotId: 's', label: '' }] }) as never, undefined), false);
+  assert.equal(setupPlanAllowsDirectUse(plan({ environmentUnavailable: { reasonCode: 'AI_LOADOUT_DRIVER_UNAVAILABLE' } }) as never, undefined), false);
+  // A fresh setup that would write a reduced context shows the review first;
+  // a saved configuration keeps its own options and may still be used directly.
+  const reduced = { authoredContextSize: 262144, recommendedContextSize: 98304, recommendedOptions: { contextSize: 98304 } };
+  const automatic = { authoredContextSize: 262144, recommendedContextSize: 262144, recommendedOptions: {} };
+  const installed = (contextFit: unknown) => plan({ reuse: [{ slotId: 'main.gguf', label: '', modelAssetId: 'asset', contextFit }] }) as never;
+  assert.equal(setupPlanAllowsDirectUse(installed(reduced), undefined), false);
+  assert.equal(setupPlanAllowsDirectUse(installed(reduced), {}), true);
+  assert.equal(setupPlanAllowsDirectUse(installed(automatic), undefined), true);
 });
 
 test('needs attention always carries its reason', () => {

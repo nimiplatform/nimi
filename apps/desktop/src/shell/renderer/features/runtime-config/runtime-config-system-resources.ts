@@ -15,8 +15,9 @@ function normalizeSnapshot(raw: SystemResourceSnapshot, now: () => number): Syst
     cpuPercent: Math.max(0, Math.min(100, Number(raw.cpuPercent) || 0)),
     memoryUsedBytes: Math.max(0, Number(raw.memoryUsedBytes) || 0),
     memoryTotalBytes: Math.max(0, Number(raw.memoryTotalBytes) || 0),
-    diskUsedBytes: Math.max(0, Number(raw.diskUsedBytes) || 0),
-    diskTotalBytes: Math.max(0, Number(raw.diskTotalBytes) || 0),
+    memoryPressure: raw.memoryPressure,
+    diskUsedBytes: raw.diskUsedBytes,
+    diskTotalBytes: raw.diskTotalBytes,
     temperatureCelsius: Number.isFinite(Number(raw.temperatureCelsius))
       ? Number(raw.temperatureCelsius)
       : undefined,

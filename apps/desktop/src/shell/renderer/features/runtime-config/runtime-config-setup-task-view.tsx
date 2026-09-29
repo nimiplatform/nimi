@@ -4,6 +4,7 @@ import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } fr
 import { useTranslation } from 'react-i18next';
 import type {
   NimiLoadoutRecipe,
+  NimiLoadoutRecipeContextFit,
   NimiMachineLoadout,
   NimiRuntimeLocalTransferProgressEvent,
 } from '@nimiplatform/sdk/runtime';
@@ -19,7 +20,15 @@ import {
   loadoutSlotLabelKey,
   loadoutSlotOfferForAsset,
 } from './runtime-config-loadout-model-display.js';
-import { capabilityIcon, modelDisplayTitle, modelFamilySeed, recipeOfferSummary, setupPlanNeedsPreparation } from './runtime-capability-presentation.js';
+import {
+  capabilityIcon,
+  contextFitReduced,
+  formatContextTokens,
+  modelDisplayTitle,
+  modelFamilySeed,
+  recipeOfferSummary,
+  setupPlanNeedsPreparation,
+} from './runtime-capability-presentation.js';
 import { displayRuntimeConfigCapabilityLabel } from './runtime-config-capability-labels.js';
 import {
   runtimeSetupTaskUnconfirmed,
@@ -35,6 +44,8 @@ import {
   reuseRuntimeSetupCurrent,
   resumeRuntimeSetupOwnerRoute,
   runRuntimeSetupPreparation,
+  runtimeSetupContextApplication,
+  runtimeSetupPlanContextFit,
   stopRuntimeSetupTask,
   type RuntimeSetupPreparationPlan,
   type RuntimeSetupRunnerPorts,
@@ -237,6 +248,8 @@ export function SetupTaskPlanReview(props: {
   readonly aside?: ReactNode;
   /** Embedded only: what follows the summary in its text column, such as the confirmation. */
   readonly footer?: ReactNode;
+  /** The context this setup writes, when Runtime's fit for the bound model describes it. */
+  readonly contextPreview?: NimiLoadoutRecipeContextFit;
 }) {
   const { t } = useTranslation();
   const [openChoices, setOpenChoices] = useState<Readonly<Record<string, boolean>>>({});
@@ -409,6 +422,30 @@ export function SetupTaskPlanReview(props: {
         </div>
       ) : undefined,
     }));
+  }
+  if (props.contextPreview) {
+    const fit = props.contextPreview;
+    const size = formatContextTokens(fit.recommendedContextSize);
+    rows.push({
+      key: 'context',
+      label: t('runtimeConfig.setupTask.summary.context', { defaultValue: 'Context' }),
+      testId: 'runtime-setup-context',
+      value: (
+        <span className="min-w-0 text-[var(--nimi-text-primary)]">
+          {contextFitReduced(fit)
+            ? t('runtimeConfig.setupTask.contextReduced', { defaultValue: '{{size}} tokens', size })
+            : t('runtimeConfig.setupTask.contextAutomatic', { defaultValue: 'Up to {{size}} tokens', size })}
+          {contextFitReduced(fit) ? (
+            <span className="mt-0.5 block text-xs text-[var(--nimi-text-muted)]">
+              {t('runtimeConfig.product.contextReducedReason', {
+                defaultValue: "Reduced from {{full}} to fit this device's memory",
+                full: formatContextTokens(fit.authoredContextSize),
+              })}
+            </span>
+          ) : null}
+        </span>
+      ),
+    });
   }
   const components = [
     ...props.plan.components.filter((item) => item.required),
@@ -1149,6 +1186,10 @@ export function RuntimeConfigSetupTaskView(props: {
       }
       case 'review': {
         const direct = !!plan && !setupPlanNeedsPreparation(plan, choices);
+        // The same rule the run applies: what this setup writes decides what the review states.
+        const contextPreview = plan
+          ? runtimeSetupContextApplication(task.draft?.options, runtimeSetupPlanContextFit(plan, choices)).preview
+          : undefined;
         const blockedConfirm = busy || advancedOpen || !plan || plan.unavailable.length > 0 || Boolean(plan.environmentUnavailable)
           || plan.awaitingChoice.some((choice) => !choices[choice.slotId]);
         const downloadBytes = plan ? setupPlanDownloadBytes(plan, choices) : null;
@@ -1232,13 +1273,14 @@ export function RuntimeConfigSetupTaskView(props: {
               disabled={busy || advancedOpen}
               aside={embeddedControls}
               footer={<>{notices}{confirmation}</>}
+              contextPreview={contextPreview}
             />
           );
         }
         return (
           <div className="space-y-5">
             {plan ? (
-              <SetupTaskPlanReview plan={plan} choices={choices} onChoiceChange={onChoiceChange} recipe={candidateInfo?.recipe ?? null} disabled={busy || advancedOpen} />
+              <SetupTaskPlanReview plan={plan} choices={choices} onChoiceChange={onChoiceChange} recipe={candidateInfo?.recipe ?? null} disabled={busy || advancedOpen} contextPreview={contextPreview} />
             ) : (
               <LoadingSkeleton className="h-32 w-full" />
             )}

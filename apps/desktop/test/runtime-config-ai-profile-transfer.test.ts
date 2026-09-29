@@ -19,6 +19,8 @@ import {
 } from '../src/shell/renderer/features/runtime-config/runtime-config-ai-profile-transfer.js';
 import { prepareRuntimeConfigAIProfilePreview } from '../src/shell/renderer/features/runtime-config/runtime-config-ai-profile-preview.js';
 import { recommendedPortableProfile } from '../src/shell/renderer/features/runtime-config/runtime-profile-quick-start.js';
+import { recipeRecommendedContextFit } from '../src/shell/renderer/features/runtime-config/runtime-capability-presentation.js';
+import { runtimeSetupContextApplication } from '../src/shell/renderer/features/runtime-config/runtime-setup-task-runner.js';
 
 const A = `sha256:${'a'.repeat(64)}`;
 const B = `sha256:${'b'.repeat(64)}`;
@@ -35,6 +37,21 @@ test('official quick start remains acquirable on a device without installed asse
   const capability = profile.capabilities['image.generate'];
   assert.equal(capability?.route, 'local');
   assert.deepEqual(capability?.route === 'local' ? capability.loadout?.axes[0]?.source : undefined, { repo: 'example/image', revision: 'main', file: 'model.gguf', sizeBytes: 200 });
+});
+
+test('the official quick start writes the Runtime context it states for this device', () => {
+  const base = recipe({ id: 'text-recipe', capability: 'text.generate', slots: [{ id: 'main.gguf', contentId: B, variantId: 'image-v1' }] });
+  const fit = { authoredContextSize: 262144, recommendedContextSize: 98304, recommendedOptions: { contextSize: 98304 } };
+  const selected = { ...base, recommendedOptions: fit.recommendedOptions, slots: [{ ...base.slots[0]!, recommendedContextFit: fit }] } satisfies NimiLoadoutRecipe;
+  assert.deepEqual(recipeRecommendedContextFit(selected), fit);
+  const capability = recommendedPortableProfile(selected, VERIFIED).capabilities['text.generate'];
+  const options = capability?.route === 'local' ? capability.loadout?.options : undefined;
+  assert.deepEqual(options, { contextSize: 98304 });
+  // Its setup review states exactly this context and the run writes these options unchanged.
+  assert.deepEqual(runtimeSetupContextApplication(options, fit), { preview: fit });
+  // When the automatic capacity fits, the context option stays omitted.
+  const automatic = recommendedPortableProfile(base, VERIFIED).capabilities['text.generate'];
+  assert.deepEqual(automatic?.route === 'local' ? automatic.loadout?.options : undefined, {});
 });
 
 function asset(input: {
@@ -75,6 +92,7 @@ function recipe(input: {
     capabilityContract: input.capability,
     implementation: { implementationId: 'local.test', driverId: 'driver.test', driverDialect: `${input.id}/v1` },
     defaultOptions: {},
+    recommendedOptions: {},
     implementationSupportedFeatures: [],
     applicability: 'supported',
     reasons: [],

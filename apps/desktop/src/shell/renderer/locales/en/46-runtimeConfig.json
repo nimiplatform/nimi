@@ -201,8 +201,11 @@
     "heroTitle": "{{capability}} setup",
     "summary": {
       "model": "Model",
-      "component": "Component"
+      "component": "Component",
+      "context": "Context"
     },
+    "contextAutomatic": "Up to {{size}} tokens",
+    "contextReduced": "{{size}} tokens",
     "changeVersion": "Change version",
     "hideVersions": "Hide versions",
     "versionListLabel": "Choose a version",
@@ -623,6 +626,13 @@
     "cpu": "CPU",
     "memory": "Memory",
     "disk": "Disk",
+    "memoryPressureSummary": "Memory pressure: {{state}}",
+    "memoryPressureState": {
+      "normal": "Normal",
+      "warning": "Elevated",
+      "critical": "Critical",
+      "unknown": "Not reported by this device"
+    },
     "temperature": "Temperature",
     "temperatureValue": "{{value}} °C",
     "systemResourceUpdatedAt": "Updated {{capturedAt}}",
@@ -826,7 +836,8 @@
         "launch-failed": "{{source}} couldn't be started.",
         "error": "Couldn't open this item. Try again."
       }
-    }
+    },
+    "diskUnavailable": "Data disk unavailable"
   },
   "local": {
     "confirmModelInstall": "Install “{{name}}”? Model size: {{size}}. Existing content will be verified and reused; only missing files will be downloaded after confirmation.",
@@ -2558,6 +2569,9 @@
     "downloadSize": "{{size}} to download",
     "modelsOnDevice": "On this device",
     "deviceRecommendation": "Fits this device",
+    "contextAutomatic": "Context up to {{size}} tokens",
+    "contextReduced": "Context {{size}} tokens",
+    "contextReducedReason": "Reduced from {{full}} to fit this device's memory",
     "currentOnDevice": "Current model on this device",
     "currentModel": "Current",
     "chooseModelLead": "Choose a model. Nimi will guide you through the preparation it needs.",

@@ -3737,7 +3737,26 @@ pub struct LoadoutImpactProjection {
     #[prost(bool, tag = "4")]
     pub confirmation_required: bool,
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+/// Runtime's evaluation of one model's context against this host's memory
+/// budget, under the tiers that choose variants at the catalog reference
+/// context.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LoadoutRecipeContextFit {
+    /// Context capacity authored by the model, in tokens: what the Driver uses
+    /// when a Loadout omits its context-size option.
+    #[prost(uint64, tag = "1")]
+    pub authored_context_size: u64,
+    /// Context the recommended options run with, in tokens: the authored
+    /// capacity when it fits this host, otherwise a smaller size that fits.
+    #[prost(uint64, tag = "2")]
+    pub recommended_context_size: u64,
+    /// Complete Loadout options for a configuration that binds this model: the
+    /// recipe default options, plus the Driver's explicit context-size option
+    /// when recommended_context_size is below authored_context_size.
+    #[prost(message, optional, tag = "3")]
+    pub recommended_options: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LoadoutRecipeOfferDescriptor {
     #[prost(message, optional, tag = "1")]
     pub candidate: ::core::option::Option<ModelAssetMarketCandidate>,
@@ -3747,6 +3766,10 @@ pub struct LoadoutRecipeOfferDescriptor {
     pub reasons: ::prost::alloc::vec::Vec<i32>,
     #[prost(string, tag = "5")]
     pub installed_model_asset_id: ::prost::alloc::string::String,
+    /// Absent when the model carries no context evidence or the offer does not
+    /// fit this host at the reference context.
+    #[prost(message, optional, tag = "6")]
+    pub context_fit: ::core::option::Option<LoadoutRecipeContextFit>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LoadoutRecipeSlotDescriptor {
@@ -3774,6 +3797,9 @@ pub struct LoadoutRecipeSlotDescriptor {
     pub applicability: i32,
     #[prost(enumeration = "ReasonCode", repeated, tag = "10")]
     pub reasons: ::prost::alloc::vec::Vec<i32>,
+    /// Context fit of the host-recommended variant in recommended_variant_ids.
+    #[prost(message, optional, tag = "11")]
+    pub recommended_context_fit: ::core::option::Option<LoadoutRecipeContextFit>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LoadoutRecipeDescriptor {
@@ -3801,6 +3827,11 @@ pub struct LoadoutRecipeDescriptor {
     pub applicability: i32,
     #[prost(enumeration = "ReasonCode", repeated, tag = "12")]
     pub reasons: ::prost::alloc::vec::Vec<i32>,
+    /// Options of the host-recommended configuration: default_options, plus the
+    /// Driver's explicit context-size option when a recommended slot's context
+    /// fit is reduced.
+    #[prost(message, optional, tag = "13")]
+    pub recommended_options: ::core::option::Option<::prost_types::Struct>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListLoadoutRecipesRequest {

@@ -45,15 +45,17 @@ export function GaugeRing({
   icon,
   label,
   detail,
+  note,
 }: {
-  percent: number;
+  percent: number | null;
   tone: GaugeTone;
   icon: ReactNode;
   label: string;
   detail?: string;
+  note?: string;
 }) {
   const reduced = useDesktopReducedMotion();
-  const clamped = Math.max(0, Math.min(100, Number.isFinite(percent) ? percent : 0));
+  const clamped = Math.max(0, Math.min(100, percent !== null && Number.isFinite(percent) ? percent : 0));
   const targetOffset = GAUGE_CIRCUMFERENCE * (1 - clamped / 100);
   return (
     <div className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
@@ -83,8 +85,7 @@ export function GaugeRing({
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="text-lg font-bold tabular-nums text-[var(--nimi-text-primary)]">
-            {clamped.toFixed(0)}
-            <span className="text-xs font-medium text-[var(--nimi-text-muted)]">%</span>
+            {percent === null ? '—' : <>{clamped.toFixed(0)}<span className="text-xs font-medium text-[var(--nimi-text-muted)]">%</span></>}
           </span>
         </div>
       </div>
@@ -95,6 +96,11 @@ export function GaugeRing({
       {detail ? (
         <p className={cn('max-w-full truncate text-[length:var(--nimi-type-caption-size)] tabular-nums text-[var(--nimi-text-muted)]')} title={detail}>
           {detail}
+        </p>
+      ) : null}
+      {note ? (
+        <p className="max-w-full truncate text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]" title={note}>
+          {note}
         </p>
       ) : null}
     </div>

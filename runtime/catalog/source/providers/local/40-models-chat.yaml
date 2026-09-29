@@ -60,9 +60,15 @@ models:
         host_requirement:
           accelerator: cpu
           min_ram_bytes: 9663676416
+    # context_length is the reference context of the host requirements above.
+    # GGUF metadata: context_length 131072; 35 blocks with the last 20 sharing
+    # KV, so 3 global layers keep their own f16 KV (1 KV head, key/value 512).
+    # Sliding-window layers hold a bounded window, not per-token KV.
     fitness:
       param_count: 2000000000
       context_length: 32768
+      authored_context_length: 131072
+      kv_cache_bytes_per_token: 6144
     aliases:
       - local/gemma-4-e2b-it
       - llama/gemma-4-e2b-it
@@ -119,9 +125,14 @@ models:
         host_requirement:
           accelerator: cpu
           min_ram_bytes: 38654705664
+    # context_length is the reference context of the host requirements above.
+    # GGUF metadata: context_length 262144; 30 blocks, 5 global layers with
+    # f16 KV (2 KV heads, key/value 512); sliding-window layers are bounded.
     fitness:
       param_count: 26000000000
       context_length: 32768
+      authored_context_length: 262144
+      kv_cache_bytes_per_token: 20480
     aliases:
       - local/gemma-4-26b-a4b-it
       - llama/gemma-4-26b-a4b-it

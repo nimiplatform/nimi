@@ -16,6 +16,8 @@ import {
 import {
   reopenRuntimeSetupTask,
   resolveRuntimeSetupPreparation,
+  runtimeSetupContextApplication,
+  runtimeSetupPlanContextFit,
   type RuntimeSetupPreparationPlan,
   type RuntimeSetupRunnerPorts,
 } from './runtime-setup-task-runner.js';
@@ -223,6 +225,10 @@ export function RuntimeProfileTaskView(props: {
                 setChoices((prev) => ({ ...prev, [task.taskId]: { ...prev[task.taskId], [slot]: ref } }))
               }
               recipe={recipe}
+              contextPreview={runtimeSetupContextApplication(
+                task.draft?.options,
+                runtimeSetupPlanContextFit(plans[task.taskId]!, choices[task.taskId] ?? {}),
+              ).preview}
             />
           ) : null}
           <Button tone="ghost" size="sm" disabled={active} onClick={() => setDetail(task.taskId)}>

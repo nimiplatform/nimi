@@ -150,6 +150,9 @@ func (c *LocalProviderCatalog) validateLocalPlane() error {
 		if !passive && !fitnessOptional && model.Fitness == nil {
 			return fmt.Errorf("local runnable model %q requires fitness", model.ModelID)
 		}
+		if err := validateLocalPlaneContextEvidence(model.ModelID, model.Fitness); err != nil {
+			return err
+		}
 		if strings.TrimSpace(model.Install.Repo) == "" {
 			return fmt.Errorf("local model %q install.repo is required", model.ModelID)
 		}
@@ -179,6 +182,21 @@ func (c *LocalProviderCatalog) validateLocalPlane() error {
 		}
 	}
 	return c.validateLoadoutRecipes()
+}
+
+// validateLocalPlaneContextEvidence admits the optional context evidence
+// pair only above the reference context the host requirements describe.
+func validateLocalPlaneContextEvidence(modelID string, fitness *LocalPlaneFitness) error {
+	if fitness == nil || (fitness.AuthoredContextLength == 0 && fitness.KVCacheBytesPerToken == 0) {
+		return nil
+	}
+	if fitness.AuthoredContextLength <= 0 || fitness.KVCacheBytesPerToken <= 0 {
+		return fmt.Errorf("local model %q fitness context evidence requires positive authored_context_length and kv_cache_bytes_per_token together", modelID)
+	}
+	if fitness.ContextLength <= 0 || fitness.AuthoredContextLength < fitness.ContextLength {
+		return fmt.Errorf("local model %q fitness.authored_context_length must be at least the reference context_length", modelID)
+	}
+	return nil
 }
 
 var (

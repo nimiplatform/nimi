@@ -494,13 +494,15 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         },
       ]),
     ) as typeof productControlHost.commandHandlers;
-    const systemResourcesHost = createDesktopElectronSystemResourcesHost();
     const resolveProductControlDataRoot = createDesktopProductControlDataRootResolver(
       productControlHost.resolveSelectedDataRoot,
     );
     const resolveProductControlSupportDataRoot = createDesktopProductControlDataRootResolver(
       productControlHost.resolveSupportDataRoot,
     );
+    const systemResourcesHost = createDesktopElectronSystemResourcesHost({
+      resolveDataRoot: resolveProductControlSupportDataRoot,
+    });
     chatAiStoreHost = createDesktopElectronChatAiStoreHost({
       resolveSelectedDataRoot: productControlHost.resolveReadyDataRoot,
       operationGate: dataRootOperationGate,

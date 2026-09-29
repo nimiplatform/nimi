@@ -640,3 +640,13 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.local-install-recommendation-plane
+  - id: rule.nimi.runtime.model-catalog.r061
+    kind: rule
+    title: Host recommendation fits the context it executes with
+    modality: must
+    statement: A local text model row may carry fitness authored_context_length and kv_cache_bytes_per_token, both derived from its GGUF context and attention metadata for the Driver's default f16 KV cache, while fitness context_length remains the reference context at which its variant host requirements are authored; these are model-content facts, not resource tiers. For each offer of such a row that reaches the runnable tier at the reference context, Runtime evaluates the same host budget and tiers at the context the configuration would execute with, where the requirement at a context is the variant host requirement plus kv_cache_bytes_per_token for every token above the reference context. When the authored capacity reaches the runnable tier, the recommended context is the authored capacity and the recommended options keep the Driver context-size field omitted; otherwise the recommended context is the largest context reaching the runnable tier among the reference context and the whole multiples of 8192 tokens between it and the authored capacity, and the exact Driver maps it to its explicit context-size option over the recipe default options. Offer, host-recommended slot, and recipe projections carry the authored capacity, recommended context, and complete recommended options. Variant choice and applicability stay evaluated at the reference context, and the result is recommendation input that a consumer writes only into a Loadout the user applies; it never changes a saved Loadout, omitted-field semantics, admission, or execution.
+    condition: Whenever local text recommendations are projected from catalog context evidence.
+    failure: Reject partial context evidence, an authored capacity below the reference context, a recommended context outside the reference-to-authored range or not fitting the runnable tier, recommended options that disagree with the projected context, consumer-invented Driver option keys, and any recommendation that rewrites a saved configuration.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.local-install-recommendation-plane

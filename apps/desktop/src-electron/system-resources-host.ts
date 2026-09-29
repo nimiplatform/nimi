@@ -1,16 +1,31 @@
+import { execFile } from 'node:child_process';
 import { statfs } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
 const COMMAND = 'get_system_resource_snapshot' as const;
 const CPU_SAMPLE_MS = 120;
+const HOST_PROBE_WAIT_MS = 1_000;
+
+// Pressure is the OS's own verdict and stays apart from occupancy: on macOS
+// total minus free also counts cache the system can reclaim, so a high share is
+// not pressure by itself. Platforms without such a verdict report unknown.
+export type DesktopElectronMemoryPressure = 'normal' | 'warning' | 'critical' | 'unknown';
+
+// kern.memorystatus_vm_pressure_level carries the dispatch memory-pressure level.
+const MACOS_MEMORY_PRESSURE_LEVELS: Readonly<Record<string, DesktopElectronMemoryPressure>> = {
+  '1': 'normal',
+  '2': 'warning',
+  '4': 'critical',
+};
 
 export type DesktopElectronSystemResourceSnapshot = {
   readonly cpuPercent: number;
   readonly memoryUsedBytes: number;
   readonly memoryTotalBytes: number;
-  readonly diskUsedBytes: number;
-  readonly diskTotalBytes: number;
+  readonly memoryPressure: DesktopElectronMemoryPressure;
+  readonly diskUsedBytes: number | null;
+  readonly diskTotalBytes: number | null;
   readonly temperatureCelsius: null;
   readonly capturedAtMs: number;
   readonly source: string;
@@ -22,20 +37,32 @@ export type DesktopElectronSystemResourcesHost = {
   }) => Promise<DesktopElectronSystemResourceSnapshot>>>;
 };
 
-export function createDesktopElectronSystemResourcesHost(): DesktopElectronSystemResourcesHost {
+export type DesktopElectronSystemResourceSources = {
+  /** Disk usage describes the volume holding the selected Nimi data root. */
+  readonly resolveDataRoot?: () => Promise<string>;
+  readonly readMemoryPressure?: () => Promise<DesktopElectronMemoryPressure>;
+};
+
+export function createDesktopElectronSystemResourcesHost(
+  sources: DesktopElectronSystemResourceSources = {},
+): DesktopElectronSystemResourcesHost {
   return {
     commandHandlers: {
       [COMMAND]: async ({ payload }) => {
         if (Object.keys(payload).length !== 0) {
           throw new Error('desktop-system-resources-payload-invalid');
         }
-        return collectDesktopElectronSystemResourceSnapshot();
+        return collectDesktopElectronSystemResourceSnapshot(sources);
       },
     },
   };
 }
 
-export async function collectDesktopElectronSystemResourceSnapshot(): Promise<DesktopElectronSystemResourceSnapshot> {
+export async function collectDesktopElectronSystemResourceSnapshot(
+  sources: DesktopElectronSystemResourceSources = {},
+): Promise<DesktopElectronSystemResourceSnapshot> {
+  const dataRoot = resolveDataRootForDisk(sources.resolveDataRoot);
+  const memoryPressure = (sources.readMemoryPressure ?? readHostMemoryPressure)();
   const cpuBefore = readCpuTimes();
   await delay(CPU_SAMPLE_MS);
   const cpuAfter = readCpuTimes();
@@ -54,23 +81,66 @@ export async function collectDesktopElectronSystemResourceSnapshot(): Promise<De
     throw new Error('desktop-system-resources-memory-unavailable');
   }
 
-  const filesystem = await statfs(path.parse(process.cwd()).root);
-  const diskTotalBytes = checkedProduct(filesystem.bsize, filesystem.blocks);
-  const diskFreeBytes = checkedProduct(filesystem.bsize, filesystem.bfree);
-  if (diskTotalBytes <= 0 || diskFreeBytes < 0 || diskFreeBytes > diskTotalBytes) {
-    throw new Error('desktop-system-resources-disk-unavailable');
-  }
+  const disk = await statDiskVolume(await dataRoot);
 
   return Object.freeze({
     cpuPercent: Math.max(0, Math.min(100, 100 * (1 - (idleDelta / totalDelta)))),
     memoryUsedBytes: memoryTotalBytes - Math.min(memoryFreeBytes, memoryTotalBytes),
     memoryTotalBytes,
-    diskUsedBytes: diskTotalBytes - diskFreeBytes,
-    diskTotalBytes,
+    memoryPressure: await memoryPressure,
+    diskUsedBytes: disk?.used ?? null,
+    diskTotalBytes: disk?.total ?? null,
     temperatureCelsius: null,
     capturedAtMs: Date.now(),
     source: `electron-${process.platform}`,
   });
+}
+
+export function memoryPressureFromMacosLevel(level: string): DesktopElectronMemoryPressure {
+  return MACOS_MEMORY_PRESSURE_LEVELS[level.trim()] ?? 'unknown';
+}
+
+function readHostMemoryPressure(): Promise<DesktopElectronMemoryPressure> {
+  if (process.platform !== 'darwin') return Promise.resolve('unknown');
+  return new Promise((resolve) => {
+    execFile(
+      '/usr/sbin/sysctl',
+      ['-n', 'kern.memorystatus_vm_pressure_level'],
+      { timeout: HOST_PROBE_WAIT_MS },
+      (error, stdout) => resolve(error ? 'unknown' : memoryPressureFromMacosLevel(String(stdout))),
+    );
+  });
+}
+
+// A slow or unavailable data-root answer must not hold the whole snapshot; the
+// disk stays unavailable while CPU and memory retain their own measurements.
+export async function resolveDataRootForDisk(
+  resolveDataRoot: (() => Promise<string>) | undefined,
+): Promise<string | null> {
+  if (!resolveDataRoot) return null;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const dataRoot = await Promise.race([
+      resolveDataRoot(),
+      new Promise<null>((resolve) => { timer = setTimeout(() => resolve(null), HOST_PROBE_WAIT_MS); }),
+    ]);
+    return dataRoot && path.isAbsolute(dataRoot) ? dataRoot : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function statDiskVolume(dataRoot: string | null): Promise<{ used: number; total: number } | null> {
+  if (!dataRoot) return null;
+  try {
+    const filesystem = await statfs(dataRoot);
+    const total = checkedProduct(filesystem.bsize, filesystem.blocks);
+    const free = checkedProduct(filesystem.bsize, filesystem.bfree);
+    if (total <= 0 || free > total) return null;
+    return { used: total - free, total };
+  } catch { return null; }
 }
 
 function readCpuTimes(): { readonly idle: number; readonly total: number } {

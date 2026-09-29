@@ -42,19 +42,34 @@ test('mapUsageRecordsToEstimate aggregates request/token/compute totals', () => 
   assert.equal(estimate.breakdown[0]?.label, 'chat · openai/gpt-4o-mini');
 });
 
+const RESOURCE_PAYLOAD = {
+  cpuPercent: 34.2,
+  memoryUsedBytes: 4_000_000_000,
+  memoryTotalBytes: 16_000_000_000,
+  memoryPressure: 'normal',
+  diskUsedBytes: 120_000_000_000,
+  diskTotalBytes: 512_000_000_000,
+  capturedAtMs: 1762473600000,
+  source: 'electron-darwin',
+};
+
 test('parseSystemResourceSnapshot validates and normalizes bridge payload', () => {
-  const snapshot = parseSystemResourceSnapshot({
-    cpuPercent: 34.2,
-    memoryUsedBytes: 4_000_000_000,
-    memoryTotalBytes: 16_000_000_000,
-    diskUsedBytes: 120_000_000_000,
-    diskTotalBytes: 512_000_000_000,
-    capturedAtMs: 1762473600000,
-    source: 'electron-darwin',
-  });
+  const snapshot = parseSystemResourceSnapshot(RESOURCE_PAYLOAD);
   assert.equal(snapshot.cpuPercent, 34.2);
   assert.equal(snapshot.memoryTotalBytes, 16_000_000_000);
+  assert.equal(snapshot.memoryPressure, 'normal');
   assert.equal(snapshot.source, 'electron-darwin');
+});
+
+test('parseSystemResourceSnapshot accepts only the closed memory pressure set', () => {
+  for (const memoryPressure of ['normal', 'warning', 'critical', 'unknown']) {
+    assert.equal(parseSystemResourceSnapshot({ ...RESOURCE_PAYLOAD, memoryPressure }).memoryPressure, memoryPressure);
+  }
+  const withoutPressure: Record<string, unknown> = { ...RESOURCE_PAYLOAD };
+  delete withoutPressure.memoryPressure;
+  for (const payload of [withoutPressure, { ...RESOURCE_PAYLOAD, memoryPressure: 'high' }, { ...RESOURCE_PAYLOAD, memoryPressure: 2 }]) {
+    assert.throws(() => parseSystemResourceSnapshot(payload), /memoryPressure is invalid/u);
+  }
 });
 
 function pricingEntry(input: { unit: string; input: string; output: string; currency?: string }): PricingEntry {

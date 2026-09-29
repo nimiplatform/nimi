@@ -411,6 +411,37 @@ export interface LoadoutImpactProjection {
     confirmationRequired: boolean;
 }
 /**
+ * Runtime's evaluation of one model's context against this host's memory
+ * budget, under the tiers that choose variants at the catalog reference
+ * context.
+ *
+ * @generated from protobuf message nimi.runtime.v1.LoadoutRecipeContextFit
+ */
+export interface LoadoutRecipeContextFit {
+    /**
+     * Context capacity authored by the model, in tokens: what the Driver uses
+     * when a Loadout omits its context-size option.
+     *
+     * @generated from protobuf field: uint64 authored_context_size = 1
+     */
+    authoredContextSize: string;
+    /**
+     * Context the recommended options run with, in tokens: the authored
+     * capacity when it fits this host, otherwise a smaller size that fits.
+     *
+     * @generated from protobuf field: uint64 recommended_context_size = 2
+     */
+    recommendedContextSize: string;
+    /**
+     * Complete Loadout options for a configuration that binds this model: the
+     * recipe default options, plus the Driver's explicit context-size option
+     * when recommended_context_size is below authored_context_size.
+     *
+     * @generated from protobuf field: google.protobuf.Struct recommended_options = 3
+     */
+    recommendedOptions?: Struct;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.LoadoutRecipeOfferDescriptor
  */
 export interface LoadoutRecipeOfferDescriptor {
@@ -430,6 +461,13 @@ export interface LoadoutRecipeOfferDescriptor {
      * @generated from protobuf field: string installed_model_asset_id = 5
      */
     installedModelAssetId: string;
+    /**
+     * Absent when the model carries no context evidence or the offer does not
+     * fit this host at the reference context.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.LoadoutRecipeContextFit context_fit = 6
+     */
+    contextFit?: LoadoutRecipeContextFit;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LoadoutRecipeSlotDescriptor
@@ -475,6 +513,12 @@ export interface LoadoutRecipeSlotDescriptor {
      * @generated from protobuf field: repeated nimi.runtime.v1.ReasonCode reasons = 10
      */
     reasons: ReasonCode[];
+    /**
+     * Context fit of the host-recommended variant in recommended_variant_ids.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.LoadoutRecipeContextFit recommended_context_fit = 11
+     */
+    recommendedContextFit?: LoadoutRecipeContextFit;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LoadoutRecipeDescriptor
@@ -524,6 +568,14 @@ export interface LoadoutRecipeDescriptor {
      * @generated from protobuf field: repeated nimi.runtime.v1.ReasonCode reasons = 12
      */
     reasons: ReasonCode[];
+    /**
+     * Options of the host-recommended configuration: default_options, plus the
+     * Driver's explicit context-size option when a recommended slot's context
+     * fit is reduced.
+     *
+     * @generated from protobuf field: google.protobuf.Struct recommended_options = 13
+     */
+    recommendedOptions?: Struct;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListLoadoutRecipesRequest
@@ -2970,13 +3022,76 @@ class LoadoutImpactProjection$Type extends MessageType<LoadoutImpactProjection> 
  */
 export const LoadoutImpactProjection = new LoadoutImpactProjection$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class LoadoutRecipeContextFit$Type extends MessageType<LoadoutRecipeContextFit> {
+    constructor() {
+        super("nimi.runtime.v1.LoadoutRecipeContextFit", [
+            { no: 1, name: "authored_context_size", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 2, name: "recommended_context_size", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 3, name: "recommended_options", kind: "message", T: () => Struct }
+        ]);
+    }
+    create(value?: PartialMessage<LoadoutRecipeContextFit>): LoadoutRecipeContextFit {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.authoredContextSize = "0";
+        message.recommendedContextSize = "0";
+        if (value !== undefined)
+            reflectionMergePartial<LoadoutRecipeContextFit>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LoadoutRecipeContextFit): LoadoutRecipeContextFit {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* uint64 authored_context_size */ 1:
+                    message.authoredContextSize = reader.uint64().toString();
+                    break;
+                case /* uint64 recommended_context_size */ 2:
+                    message.recommendedContextSize = reader.uint64().toString();
+                    break;
+                case /* google.protobuf.Struct recommended_options */ 3:
+                    message.recommendedOptions = Struct.internalBinaryRead(reader, reader.uint32(), options, message.recommendedOptions);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LoadoutRecipeContextFit, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* uint64 authored_context_size = 1; */
+        if (message.authoredContextSize !== "0")
+            writer.tag(1, WireType.Varint).uint64(message.authoredContextSize);
+        /* uint64 recommended_context_size = 2; */
+        if (message.recommendedContextSize !== "0")
+            writer.tag(2, WireType.Varint).uint64(message.recommendedContextSize);
+        /* google.protobuf.Struct recommended_options = 3; */
+        if (message.recommendedOptions)
+            Struct.internalBinaryWrite(message.recommendedOptions, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LoadoutRecipeContextFit
+ */
+export const LoadoutRecipeContextFit = new LoadoutRecipeContextFit$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class LoadoutRecipeOfferDescriptor$Type extends MessageType<LoadoutRecipeOfferDescriptor> {
     constructor() {
         super("nimi.runtime.v1.LoadoutRecipeOfferDescriptor", [
             { no: 1, name: "candidate", kind: "message", T: () => ModelAssetMarketCandidate },
             { no: 2, name: "applicability", kind: "enum", T: () => ["nimi.runtime.v1.LocalRecommendationApplicability", LocalRecommendationApplicability, "LOCAL_RECOMMENDATION_APPLICABILITY_"] },
             { no: 3, name: "reasons", kind: "enum", repeat: 1 /*RepeatType.PACKED*/, T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
-            { no: 5, name: "installed_model_asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 5, name: "installed_model_asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "context_fit", kind: "message", T: () => LoadoutRecipeContextFit }
         ]);
     }
     create(value?: PartialMessage<LoadoutRecipeOfferDescriptor>): LoadoutRecipeOfferDescriptor {
@@ -3009,6 +3124,9 @@ class LoadoutRecipeOfferDescriptor$Type extends MessageType<LoadoutRecipeOfferDe
                 case /* string installed_model_asset_id */ 5:
                     message.installedModelAssetId = reader.string();
                     break;
+                case /* nimi.runtime.v1.LoadoutRecipeContextFit context_fit */ 6:
+                    message.contextFit = LoadoutRecipeContextFit.internalBinaryRead(reader, reader.uint32(), options, message.contextFit);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -3037,6 +3155,9 @@ class LoadoutRecipeOfferDescriptor$Type extends MessageType<LoadoutRecipeOfferDe
         /* string installed_model_asset_id = 5; */
         if (message.installedModelAssetId !== "")
             writer.tag(5, WireType.LengthDelimited).string(message.installedModelAssetId);
+        /* nimi.runtime.v1.LoadoutRecipeContextFit context_fit = 6; */
+        if (message.contextFit)
+            LoadoutRecipeContextFit.internalBinaryWrite(message.contextFit, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -3060,7 +3181,8 @@ class LoadoutRecipeSlotDescriptor$Type extends MessageType<LoadoutRecipeSlotDesc
             { no: 7, name: "conditional_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 8, name: "offers", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LoadoutRecipeOfferDescriptor },
             { no: 9, name: "applicability", kind: "enum", T: () => ["nimi.runtime.v1.LocalRecommendationApplicability", LocalRecommendationApplicability, "LOCAL_RECOMMENDATION_APPLICABILITY_"] },
-            { no: 10, name: "reasons", kind: "enum", repeat: 1 /*RepeatType.PACKED*/, T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+            { no: 10, name: "reasons", kind: "enum", repeat: 1 /*RepeatType.PACKED*/, T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 11, name: "recommended_context_fit", kind: "message", T: () => LoadoutRecipeContextFit }
         ]);
     }
     create(value?: PartialMessage<LoadoutRecipeSlotDescriptor>): LoadoutRecipeSlotDescriptor {
@@ -3117,6 +3239,9 @@ class LoadoutRecipeSlotDescriptor$Type extends MessageType<LoadoutRecipeSlotDesc
                     else
                         message.reasons.push(reader.int32());
                     break;
+                case /* nimi.runtime.v1.LoadoutRecipeContextFit recommended_context_fit */ 11:
+                    message.recommendedContextFit = LoadoutRecipeContextFit.internalBinaryRead(reader, reader.uint32(), options, message.recommendedContextFit);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -3163,6 +3288,9 @@ class LoadoutRecipeSlotDescriptor$Type extends MessageType<LoadoutRecipeSlotDesc
                 writer.int32(message.reasons[i]);
             writer.join();
         }
+        /* nimi.runtime.v1.LoadoutRecipeContextFit recommended_context_fit = 11; */
+        if (message.recommendedContextFit)
+            LoadoutRecipeContextFit.internalBinaryWrite(message.recommendedContextFit, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -3187,7 +3315,8 @@ class LoadoutRecipeDescriptor$Type extends MessageType<LoadoutRecipeDescriptor> 
             { no: 9, name: "custody", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LoadoutRecipeCustodyDescriptor },
             { no: 10, name: "implementation_supported_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 11, name: "applicability", kind: "enum", T: () => ["nimi.runtime.v1.LocalRecommendationApplicability", LocalRecommendationApplicability, "LOCAL_RECOMMENDATION_APPLICABILITY_"] },
-            { no: 12, name: "reasons", kind: "enum", repeat: 1 /*RepeatType.PACKED*/, T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+            { no: 12, name: "reasons", kind: "enum", repeat: 1 /*RepeatType.PACKED*/, T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 13, name: "recommended_options", kind: "message", T: () => Struct }
         ]);
     }
     create(value?: PartialMessage<LoadoutRecipeDescriptor>): LoadoutRecipeDescriptor {
@@ -3247,6 +3376,9 @@ class LoadoutRecipeDescriptor$Type extends MessageType<LoadoutRecipeDescriptor> 
                     else
                         message.reasons.push(reader.int32());
                     break;
+                case /* google.protobuf.Struct recommended_options */ 13:
+                    message.recommendedOptions = Struct.internalBinaryRead(reader, reader.uint32(), options, message.recommendedOptions);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -3296,6 +3428,9 @@ class LoadoutRecipeDescriptor$Type extends MessageType<LoadoutRecipeDescriptor> 
                 writer.int32(message.reasons[i]);
             writer.join();
         }
+        /* google.protobuf.Struct recommended_options = 13; */
+        if (message.recommendedOptions)
+            Struct.internalBinaryWrite(message.recommendedOptions, writer.tag(13, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

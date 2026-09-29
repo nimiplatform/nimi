@@ -6,6 +6,7 @@ import {
   ReasonCode as RuntimeGeneratedReasonCode,
   type Loadout,
   type LoadoutModelAxis,
+  type LoadoutRecipeContextFit,
   type LoadoutRecipeDescriptor,
   type LoadoutSelection,
   type RuntimeTypedCallOptions,
@@ -28,11 +29,26 @@ export type NimiLoadoutRequirementPresence = 'required' | 'optional-conditional'
 export type NimiLoadoutRequirementResolution = 'unresolved' | 'configured' | 'not-configured';
 export type NimiLoadoutRecommendationApplicability = 'supported' | 'unknown' | 'unsupported';
 
+/**
+ * Runtime's evaluation of one model's context on this host. When
+ * recommendedContextSize is below authoredContextSize, recommendedOptions
+ * carry the Driver's explicit context size; otherwise they keep the context
+ * option omitted (automatic). Consumers write recommendedOptions as given
+ * and never build Driver option keys themselves.
+ */
+export interface NimiLoadoutRecipeContextFit {
+  readonly authoredContextSize: number;
+  readonly recommendedContextSize: number;
+  readonly recommendedOptions: Readonly<JsonObject>;
+}
+
 export interface NimiLoadoutRecipeOffer {
   readonly candidate: NimiRuntimeModelAssetMarketCandidate;
   readonly applicability: NimiLoadoutRecommendationApplicability;
   readonly reasons: readonly string[];
   readonly installedModelAssetId?: string;
+  /** Absent when the model has no context evidence or does not fit this host. */
+  readonly contextFit?: NimiLoadoutRecipeContextFit;
 }
 
 export interface NimiLoadoutModelAxis {
@@ -91,6 +107,8 @@ export interface NimiLoadoutRecipe {
   readonly capabilityContract: string;
   readonly implementation: NimiMachineLoadout['implementation'];
   readonly defaultOptions: Readonly<JsonObject>;
+  /** Options of the host-recommended configuration (defaultOptions unless its context is reduced). */
+  readonly recommendedOptions: Readonly<JsonObject>;
   readonly implementationSupportedFeatures: readonly string[];
   readonly applicability: NimiLoadoutRecommendationApplicability;
   readonly reasons: readonly string[];
@@ -100,6 +118,8 @@ export interface NimiLoadoutRecipe {
     readonly recommendedContentIds: readonly string[];
     readonly recommendedVariantIds: readonly string[];
     readonly offers: readonly NimiLoadoutRecipeOffer[];
+    /** Context fit of the host-recommended variant in recommendedVariantIds. */
+    readonly recommendedContextFit?: NimiLoadoutRecipeContextFit;
     readonly applicability: NimiLoadoutRecommendationApplicability;
     readonly reasons: readonly string[];
     readonly modelContract: Readonly<JsonObject>;
@@ -323,6 +343,9 @@ function projectRecipe(value: LoadoutRecipeDescriptor): NimiLoadoutRecipe {
     title: requiredResponse(value.title, 'title'), capabilityContract: requiredResponse(value.capabilityContract, 'capability_contract'),
     implementation: Object.freeze({ implementationId: value.implementation.implementationId, driverId: value.implementation.driverId, driverDialect: value.implementation.driverDialect }),
     defaultOptions: Object.freeze(fromNimiRuntimeProtoStruct(value.defaultOptions) as JsonObject),
+    recommendedOptions: value.recommendedOptions
+      ? Object.freeze(fromNimiRuntimeProtoStruct(value.recommendedOptions) as JsonObject)
+      : responseError('Loadout recipe recommended_options is missing'),
     implementationSupportedFeatures: Object.freeze([...value.implementationSupportedFeatures]),
     applicability: recommendationApplicability(value.applicability),
     reasons: Object.freeze(value.reasons.map((reason) => RuntimeGeneratedReasonCode[reason] || 'REASON_CODE_UNSPECIFIED')),
@@ -339,7 +362,9 @@ function projectRecipe(value: LoadoutRecipeDescriptor): NimiLoadoutRecipe {
           applicability: recommendationApplicability(offer.applicability),
           reasons: Object.freeze(offer.reasons.map((reason) => RuntimeGeneratedReasonCode[reason] || 'REASON_CODE_UNSPECIFIED')),
           ...(text(offer.installedModelAssetId) ? { installedModelAssetId: text(offer.installedModelAssetId) } : {}),
+          ...(offer.contextFit ? { contextFit: projectContextFit(offer.contextFit) } : {}),
         }))),
+        ...(slot.recommendedContextFit ? { recommendedContextFit: projectContextFit(slot.recommendedContextFit) } : {}),
         applicability: recommendationApplicability(slot.applicability),
         reasons: Object.freeze(slot.reasons.map((reason) => RuntimeGeneratedReasonCode[reason] || 'REASON_CODE_UNSPECIFIED')),
         modelContract: Object.freeze(fromNimiRuntimeProtoStruct(slot.modelContract) as JsonObject),
@@ -348,6 +373,28 @@ function projectRecipe(value: LoadoutRecipeDescriptor): NimiLoadoutRecipe {
       });
     })),
   });
+}
+
+function projectContextFit(value: LoadoutRecipeContextFit): NimiLoadoutRecipeContextFit {
+  const authoredContextSize = contextTokens(value.authoredContextSize, 'authored_context_size');
+  const recommendedContextSize = contextTokens(value.recommendedContextSize, 'recommended_context_size');
+  if (recommendedContextSize > authoredContextSize) {
+    throw responseError('Loadout recipe context fit exceeds the authored context capacity');
+  }
+  if (!value.recommendedOptions) throw responseError('Loadout recipe context fit recommended_options is missing');
+  return Object.freeze({
+    authoredContextSize,
+    recommendedContextSize,
+    recommendedOptions: Object.freeze(fromNimiRuntimeProtoStruct(value.recommendedOptions) as JsonObject),
+  });
+}
+
+function contextTokens(value: string, field: string): number {
+  const parsed = Number(value);
+  if (!/^[1-9][0-9]*$/u.test(value) || !Number.isSafeInteger(parsed)) {
+    throw responseError(`Loadout recipe context fit ${field} is invalid`);
+  }
+  return parsed;
 }
 
 function recommendationApplicability(

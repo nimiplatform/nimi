@@ -201,8 +201,11 @@
     "heroTitle": "设置{{capability}}",
     "summary": {
       "model": "模型",
-      "component": "组件"
+      "component": "组件",
+      "context": "上下文"
     },
+    "contextAutomatic": "最长 {{size}}",
+    "contextReduced": "{{size}}",
     "changeVersion": "更换版本",
     "hideVersions": "收起",
     "versionListLabel": "选择版本",
@@ -623,6 +626,13 @@
     "cpu": "CPU",
     "memory": "内存",
     "disk": "磁盘",
+    "memoryPressureSummary": "内存压力：{{state}}",
+    "memoryPressureState": {
+      "normal": "正常",
+      "warning": "偏高",
+      "critical": "严重",
+      "unknown": "此设备未提供"
+    },
     "temperature": "温度",
     "temperatureValue": "{{value}} °C",
     "systemResourceUpdatedAt": "更新于 {{capturedAt}}",
@@ -826,7 +836,8 @@
         "launch-failed": "{{source}} 未能启动。",
         "error": "未能打开这一项，请重试。"
       }
-    }
+    },
+    "diskUnavailable": "数据磁盘不可用"
   },
   "local": {
     "confirmModelInstall": "确认安装“{{name}}”？模型总大小：{{size}}。已有内容会先校验并复用，仅在确认后下载缺失文件。",
@@ -2558,6 +2569,9 @@
     "downloadSize": "还需下载 {{size}}",
     "modelsOnDevice": "已在本机",
     "deviceRecommendation": "适合本机",
+    "contextAutomatic": "上下文最长 {{size}}",
+    "contextReduced": "上下文 {{size}}",
+    "contextReducedReason": "为适配本机内存，已从 {{full}} 缩短",
     "currentOnDevice": "本机当前模型",
     "currentModel": "当前使用",
     "chooseModelLead": "先选择一个模型，Nimi 会带你完成需要的准备。",

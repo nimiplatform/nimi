@@ -969,6 +969,38 @@ func TestLlamaTextContextWindowUsesModelAuthoredCapacityUnlessFixed(t *testing.T
 	}
 }
 
+func TestLlamaRecommendedContextSizeRoundTripsThroughTheDriverOption(t *testing.T) {
+	driver := LlamaTextDriver{}
+	var _ TextContextOptionDriver = driver
+	defaults, err := structpb.NewStruct(map[string]any{"flashAttention": true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	options, err := driver.WithTextContextSize(defaults, 98304)
+	if err != nil {
+		t.Fatalf("WithTextContextSize: %v", err)
+	}
+	if got, err := driver.TextContextWindow(options, 262144); err != nil || got != 98304 {
+		t.Fatalf("recommended options run with (%d, %v), want (98304, nil)", got, err)
+	}
+	if !options.GetFields()["flashAttention"].GetBoolValue() || len(defaults.GetFields()) != 1 {
+		t.Fatalf("default options must be kept and not mutated: options=%v defaults=%v", options, defaults)
+	}
+	if empty, err := driver.WithTextContextSize(nil, 32768); err != nil || len(empty.GetFields()) != 1 {
+		t.Fatalf("nil defaults = (%v, %v), want only the context size", empty, err)
+	}
+	if _, err := driver.WithTextContextSize(nil, 0); err == nil {
+		t.Fatal("a zero context size must not form valid options")
+	}
+	unknown, err := structpb.NewStruct(map[string]any{"unknownOption": 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := driver.WithTextContextSize(unknown, 32768); err == nil {
+		t.Fatal("defaults outside the Driver option space must fail closed")
+	}
+}
+
 func TestLlamaValidateBindingAllowsCompatibleSubstituteOnly(t *testing.T) {
 	requirements, reason := (LlamaTextDriver{}).Interpret(InterpretInput{})
 	if reason != success {

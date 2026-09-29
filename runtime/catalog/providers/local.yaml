@@ -3047,6 +3047,8 @@ models:
     fitness:
       param_count: 2000000000
       context_length: 32768
+      authored_context_length: 131072
+      kv_cache_bytes_per_token: 6144
   - model_id: local/gemma-4-e2b-it
     provider: local
     model_type: chat
@@ -3171,6 +3173,8 @@ models:
     fitness:
       param_count: 26000000000
       context_length: 32768
+      authored_context_length: 262144
+      kv_cache_bytes_per_token: 20480
   - model_id: local/gemma-4-26b-a4b-it
     provider: local
     model_type: chat

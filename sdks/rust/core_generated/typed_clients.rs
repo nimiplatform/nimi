@@ -9528,6 +9528,13 @@ pub struct LoadoutModelAxisInput {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct LoadoutRecipeContextFit {
+    pub authored_context_size: Option<u64>,
+    pub recommended_context_size: Option<u64>,
+    pub recommended_options: Option<BTreeMap<String, String>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct LoadoutRecipeCustodyDescriptor {
     pub file: Option<String>,
     pub sha256: Option<String>,
@@ -9554,6 +9561,7 @@ pub struct LoadoutRecipeDescriptor {
     pub implementation_supported_features: Vec<String>,
     pub applicability: Option<LocalRecommendationApplicability>,
     pub reasons: Vec<ReasonCode>,
+    pub recommended_options: Option<BTreeMap<String, String>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -9562,6 +9570,7 @@ pub struct LoadoutRecipeOfferDescriptor {
     pub applicability: Option<LocalRecommendationApplicability>,
     pub reasons: Vec<ReasonCode>,
     pub installed_model_asset_id: Option<String>,
+    pub context_fit: Option<Box<LoadoutRecipeContextFit>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -9576,6 +9585,7 @@ pub struct LoadoutRecipeSlotDescriptor {
     pub offers: Vec<Box<LoadoutRecipeOfferDescriptor>>,
     pub applicability: Option<LocalRecommendationApplicability>,
     pub reasons: Vec<ReasonCode>,
+    pub recommended_context_fit: Option<Box<LoadoutRecipeContextFit>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

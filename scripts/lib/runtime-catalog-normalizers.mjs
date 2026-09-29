@@ -1006,6 +1006,24 @@ export function normalizeLocalPlaneRow(model, modelID) {
       throw new Error(`local model ${modelID} fitness.context_length is required`);
     }
     out.fitness = { param_count: paramCount, context_length: contextLength };
+    // Context evidence comes from the model's GGUF metadata as one pair:
+    // the authored capacity and the per-token KV bytes above the reference
+    // context_length at which host requirements are authored.
+    const authoredContextLength = normalizeInt(model.fitness.authored_context_length, `local model ${modelID} fitness.authored_context_length`);
+    const kvCacheBytesPerToken = normalizeInt(model.fitness.kv_cache_bytes_per_token, `local model ${modelID} fitness.kv_cache_bytes_per_token`);
+    if ((authoredContextLength === undefined) !== (kvCacheBytesPerToken === undefined)) {
+      throw new Error(`local model ${modelID} fitness context evidence requires authored_context_length and kv_cache_bytes_per_token together`);
+    }
+    if (authoredContextLength !== undefined) {
+      if (contextLength <= 0 || authoredContextLength < contextLength) {
+        throw new Error(`local model ${modelID} fitness.authored_context_length must be at least the reference context_length`);
+      }
+      if (kvCacheBytesPerToken <= 0) {
+        throw new Error(`local model ${modelID} fitness.kv_cache_bytes_per_token must be a positive integer`);
+      }
+      out.fitness.authored_context_length = authoredContextLength;
+      out.fitness.kv_cache_bytes_per_token = kvCacheBytesPerToken;
+    }
   }
   return out;
 }

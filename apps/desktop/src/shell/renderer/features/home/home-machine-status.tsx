@@ -48,9 +48,11 @@ function percentOf(used: number, total: number): number {
   return Math.max(0, Math.min(100, (used / total) * 100));
 }
 
-// At or above these the value is tinted as a warning. No advice text: Home has
-// no action that would relieve the pressure, so it only points at diagnostics.
-export const HOME_RESOURCE_WARN_PERCENT = { cpu: 90, memory: 85, disk: 90 } as const;
+// CPU and disk at or above these are tinted as a warning. Memory is tinted only
+// when the OS itself reports pressure: its share also counts cache the system
+// can reclaim. No advice text: Home has no action that would relieve the
+// pressure, so it only points at diagnostics.
+export const HOME_RESOURCE_WARN_PERCENT = { cpu: 90, disk: 90 } as const;
 
 const RUNTIME_DOT: Record<HomeRuntimeState, string> = {
   checking: 'bg-[var(--nimi-text-muted)]',
@@ -69,15 +71,18 @@ const RUNTIME_LABEL_KEY: Record<HomeRuntimeState, string> = {
 const ITEM_CLASS =
   'flex h-9 min-w-0 items-center gap-2 rounded-full px-3 text-left text-xs text-[var(--nimi-text-secondary)] transition-colors hover:bg-[var(--nimi-surface-active)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]';
 
-function ResourceValue({ label, percent, warnAt }: { label: string; percent: number; warnAt: number }) {
-  const rounded = Math.round(Math.max(0, Math.min(100, Number.isFinite(percent) ? percent : 0)));
-  const warn = rounded >= warnAt;
+function roundPercent(percent: number): number {
+  return Math.round(Math.max(0, Math.min(100, Number.isFinite(percent) ? percent : 0)));
+}
+
+function ResourceValue({ label, percent, warn, note }: { label: string; percent: number | null; warn: boolean; note?: string }) {
   return (
-    <span className="flex items-center gap-1 whitespace-nowrap" data-warn={warn ? 'true' : undefined}>
+    <span className="flex items-center gap-1 whitespace-nowrap" data-warn={warn ? 'true' : undefined} title={note}>
       <span>{label}</span>
       <span className={`font-semibold tabular-nums ${warn ? 'text-[var(--nimi-status-warning)]' : 'text-[var(--nimi-text-primary)]'}`}>
-        {`${rounded}%`}
+        {percent === null ? '—' : `${percent}%`}
       </span>
+      {warn && note ? <span className="sr-only">{note}</span> : null}
     </span>
   );
 }
@@ -86,6 +91,10 @@ function ResourceValue({ label, percent, warnAt }: { label: string; percent: num
 export function HomeMachineStatusView({ runtime, resources, usage, onOpenDiagnostics }: HomeMachineStatusViewProps) {
   const { t } = useTranslation();
   const snapshot = resources.snapshot;
+  const cpu = roundPercent(snapshot?.cpuPercent ?? 0);
+  const memory = roundPercent(snapshot ? percentOf(snapshot.memoryUsedBytes, snapshot.memoryTotalBytes) : 0);
+  const disk = snapshot?.diskUsedBytes != null && snapshot.diskTotalBytes != null ? roundPercent(percentOf(snapshot.diskUsedBytes, snapshot.diskTotalBytes)) : null;
+  const memoryPressure = snapshot?.memoryPressure ?? 'unknown';
   const usageText = usage.error
     ? t('runtimeConfig.overview.todayCostUnavailable')
     : usage.loading && usage.totalRequests === 0
@@ -123,17 +132,16 @@ export function HomeMachineStatusView({ runtime, resources, usage, onOpenDiagnos
       >
         {snapshot ? (
           <>
-            <ResourceValue label={t('runtimeConfig.overview.cpu')} percent={snapshot.cpuPercent} warnAt={HOME_RESOURCE_WARN_PERCENT.cpu} />
+            <ResourceValue label={t('runtimeConfig.overview.cpu')} percent={cpu} warn={cpu >= HOME_RESOURCE_WARN_PERCENT.cpu} />
             <ResourceValue
               label={t('runtimeConfig.overview.memory')}
-              percent={percentOf(snapshot.memoryUsedBytes, snapshot.memoryTotalBytes)}
-              warnAt={HOME_RESOURCE_WARN_PERCENT.memory}
+              percent={memory}
+              warn={memoryPressure === 'warning' || memoryPressure === 'critical'}
+              note={memoryPressure === 'unknown'
+                ? undefined
+                : t('runtimeConfig.overview.memoryPressureSummary', { state: t(`runtimeConfig.overview.memoryPressureState.${memoryPressure}`) })}
             />
-            <ResourceValue
-              label={t('runtimeConfig.overview.disk')}
-              percent={percentOf(snapshot.diskUsedBytes, snapshot.diskTotalBytes)}
-              warnAt={HOME_RESOURCE_WARN_PERCENT.disk}
-            />
+            <ResourceValue label={t('runtimeConfig.overview.disk')} percent={disk} warn={disk !== null && disk >= HOME_RESOURCE_WARN_PERCENT.disk} note={disk === null ? t('runtimeConfig.overview.diskUnavailable') : undefined} />
           </>
         ) : (
           <span className="truncate">

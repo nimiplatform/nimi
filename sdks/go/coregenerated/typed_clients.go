@@ -5539,6 +5539,12 @@ type LoadoutModelAxisInput struct {
 	ExpectedContentId string `json:"expected_content_id,omitempty"`
 }
 
+type LoadoutRecipeContextFit struct {
+	AuthoredContextSize    uint64         `json:"authored_context_size,omitempty"`
+	RecommendedContextSize uint64         `json:"recommended_context_size,omitempty"`
+	RecommendedOptions     map[string]any `json:"recommended_options,omitempty"`
+}
+
 type LoadoutRecipeCustodyDescriptor struct {
 	File   string `json:"file,omitempty"`
 	Sha256 string `json:"sha256,omitempty"`
@@ -5563,6 +5569,7 @@ type LoadoutRecipeDescriptor struct {
 	ImplementationSupportedFeatures []string                          `json:"implementation_supported_features,omitempty"`
 	Applicability                   LocalRecommendationApplicability  `json:"applicability,omitempty"`
 	Reasons                         []ReasonCode                      `json:"reasons,omitempty"`
+	RecommendedOptions              map[string]any                    `json:"recommended_options,omitempty"`
 }
 
 type LoadoutRecipeOfferDescriptor struct {
@@ -5570,6 +5577,7 @@ type LoadoutRecipeOfferDescriptor struct {
 	Applicability         LocalRecommendationApplicability `json:"applicability,omitempty"`
 	Reasons               []ReasonCode                     `json:"reasons,omitempty"`
 	InstalledModelAssetId string                           `json:"installed_model_asset_id,omitempty"`
+	ContextFit            *LoadoutRecipeContextFit         `json:"context_fit,omitempty"`
 }
 
 type LoadoutRecipeSlotDescriptor struct {
@@ -5583,6 +5591,7 @@ type LoadoutRecipeSlotDescriptor struct {
 	Offers                []LoadoutRecipeOfferDescriptor     `json:"offers,omitempty"`
 	Applicability         LocalRecommendationApplicability   `json:"applicability,omitempty"`
 	Reasons               []ReasonCode                       `json:"reasons,omitempty"`
+	RecommendedContextFit *LoadoutRecipeContextFit           `json:"recommended_context_fit,omitempty"`
 }
 
 type LoadoutSelection struct {

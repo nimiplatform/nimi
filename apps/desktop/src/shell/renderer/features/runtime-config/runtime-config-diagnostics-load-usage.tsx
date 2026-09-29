@@ -164,9 +164,9 @@ export function SystemResourcesSection() {
   const memoryPercent = resourceSnapshot && resourceSnapshot.memoryTotalBytes > 0
     ? (resourceSnapshot.memoryUsedBytes / resourceSnapshot.memoryTotalBytes) * 100
     : 0;
-  const diskPercent = resourceSnapshot && resourceSnapshot.diskTotalBytes > 0
+  const diskPercent = resourceSnapshot && resourceSnapshot.diskUsedBytes !== null && resourceSnapshot.diskTotalBytes !== null && resourceSnapshot.diskTotalBytes > 0
     ? (resourceSnapshot.diskUsedBytes / resourceSnapshot.diskTotalBytes) * 100
-    : 0;
+    : null;
 
   return (
     <section>
@@ -210,13 +210,16 @@ export function SystemResourcesSection() {
                   icon={<MemoryStickIcon />}
                   label={t('runtimeConfig.overview.memory', { defaultValue: 'Memory' })}
                   detail={`${formatBytes(resourceSnapshot.memoryUsedBytes)} / ${formatBytes(resourceSnapshot.memoryTotalBytes)}`}
+                  note={t('runtimeConfig.overview.memoryPressureSummary', {
+                    state: t(`runtimeConfig.overview.memoryPressureState.${resourceSnapshot.memoryPressure}`),
+                  })}
                 />
                 <GaugeRing
                   percent={diskPercent}
                   tone="warning"
                   icon={<HardDriveIcon />}
                   label={t('runtimeConfig.overview.disk', { defaultValue: 'Disk' })}
-                  detail={`${formatBytes(resourceSnapshot.diskUsedBytes)} / ${formatBytes(resourceSnapshot.diskTotalBytes)}`}
+                  detail={resourceSnapshot.diskUsedBytes === null || resourceSnapshot.diskTotalBytes === null ? t('runtimeConfig.overview.diskUnavailable') : `${formatBytes(resourceSnapshot.diskUsedBytes)} / ${formatBytes(resourceSnapshot.diskTotalBytes)}`}
                 />
               </div>
               <p className={cn('mt-auto border-t border-[var(--nimi-border-subtle)] pt-2 text-xs', TOKEN_TEXT_MUTED)}>

@@ -293,7 +293,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
         return;
       }
       const resolved = await resolveRuntimeSetupPreparation(store, task.taskId, ports);
-      if (resolved.status !== 'ok' || !setupPlanAllowsDirectUse(resolved.value)) {
+      if (resolved.status !== 'ok' || !setupPlanAllowsDirectUse(resolved.value, store.getTask(task.taskId)?.draft?.options)) {
         openSetupTask(task.taskId);
         return;
       }
@@ -349,7 +349,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
       if (created.status !== 'ok') throw new Error(runtimeSetupFailureText(created.failure, t));
       const resolved = await resolveRuntimeSetupPreparation(store, task.taskId, ports);
       if (resolved.status !== 'ok') throw new Error(runtimeSetupFailureText(resolved.failure, t));
-      if (!setupPlanAllowsDirectUse(resolved.value)) {
+      if (!setupPlanAllowsDirectUse(resolved.value, store.getTask(task.taskId)?.draft?.options)) {
         openSetupTask(task.taskId);
         return;
       }
