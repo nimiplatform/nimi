@@ -154,3 +154,9 @@ For each published component, verify:
 These checks establish component publication only. They do not establish a Nimi
 product release, third-party App admission, installation, running process, or
 Nimi Access readiness.
+
+When the published SDK, Kit native packages, or shell crates carry a newer
+Runtime wire, refresh the proto breaking-change baseline to that component tag
+with `pnpm proto:baseline:refresh`, recording its published artifacts and the
+adjudication of every difference from the previous baseline. Until then the gate
+protects only the older published wire.

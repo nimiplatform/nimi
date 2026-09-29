@@ -25,7 +25,7 @@ export function selectCiScope(files, { full = false } = {}) {
     && /^(?:\.nimi\/(?:spec|config)\/)/u.test(file));
   const config = touches(/^config\//u);
   const authority = touches(/^\.nimi\/(?:spec\/|config\/|methodology\/)/u);
-  const proto = shared || touches(/^(?:proto\/|runtime\/(?:gen|proto)\/|scripts\/(?:proto-breaking|check-proto-drift|run-buf)[^/]*\.mjs$)/u);
+  const proto = shared || touches(/^(?:proto\/|runtime\/(?:gen|proto)\/|scripts\/(?:proto-breaking|proto-baseline|check-proto-drift|run-buf)[^/]*\.mjs$|scripts\/lib\/proto-wire-baseline\.mjs$)/u);
   const sdk = shared || config || proto || touches(/^(?:sdks\/|\.nimi\/spec\/sdks\/)/u);
   const kit = shared || config || sdk || touches(/^(?:kit\/|\.nimi\/spec\/platform\/ui-design-system\.authority\.)/u);
   const cognition = shared || touches(/^(?:nimi-cognition\/|go\.work(?:\.sum)?$)/u);

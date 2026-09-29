@@ -61,6 +61,12 @@ test('native and proto changes retain their supported platform checks', () => {
   for (const flag of ['proto_changed', 'sdk_changed', 'runtime_changed', 'kit_native_changed']) {
     assert.equal(proto[flag], true, flag);
   }
+  for (const file of [
+    'runtime/proto/runtime-v1.baseline.json',
+    'scripts/proto-breaking.test.mjs',
+    'scripts/proto-baseline-refresh.mjs',
+    'scripts/lib/proto-wire-baseline.mjs',
+  ]) assert.equal(selectCiScope([file]).proto_changed, true, file);
 });
 
 test('Mac checks follow native, Runtime and App Host changes without selecting ordinary renderer edits', () => {

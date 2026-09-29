@@ -27,7 +27,7 @@ Use each package's scripts for its test runner. The complete Desktop build inclu
 
 ## Contracts and generated output
 
-`pnpm proto:breaking` uses the committed `runtime/proto/runtime-v1.baseline.binpb` through the guarded script. A deliberately changed wire contract requires the corresponding implementation, consumers and tests to change; refreshing the baseline alone does not prove correctness or authorize a breaking change.
+`pnpm proto:breaking` compares the proto against the published wire named in `runtime/proto/runtime-v1.baseline.json`; the committed image must rebuild byte-for-byte from that component tag. The gate works offline, so a shallow checkout fetches that tag first, as CI does. A deliberate break is declared in that record with its reason and the CHANGELOG migration heading of the new 0.x minor, and still requires the corresponding implementation, consumers and tests to change. `pnpm proto:baseline:refresh` moves the baseline only to a newer published tag and records the difference adjudication; unpublished source never becomes the baseline.
 
 Change generator inputs, regenerate, then run the corresponding drift check. Do not hand-edit generated output to pass. Authority changes use the pinned project-local commands in [AGENTS.md](AGENTS.md) and the [authoring guide](.nimi/methodology/authority-authoring.yaml); unrelated code changes do not require authority compilation or a corpus audit.
 

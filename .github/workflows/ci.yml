@@ -482,6 +482,17 @@ jobs:
           go install github.com/bufbuild/buf/cmd/buf@v1.70.0
           echo "$(go env GOPATH)/bin" >> "${GITHUB_PATH}"
 
+      - name: Fetch the published wire baseline source
+        run: |
+          set -euo pipefail
+          source_tag="$(node scripts/proto-breaking.mjs --source-tag)"
+          git fetch --no-tags --depth=1 origin "+refs/tags/${source_tag}:refs/tags/${source_tag}"
+
+      - name: Proto breaking-change gate tests
+        env:
+          NIMI_PROTO_GATE_REQUIRE_BUF: '1'
+        run: node --test scripts/proto-breaking.test.mjs
+
       - name: Proto breaking-change gate
         run: pnpm proto:breaking
 

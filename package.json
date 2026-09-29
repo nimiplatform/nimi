@@ -148,6 +148,7 @@
     "proto:generate": "node scripts/run-buf.mjs generate",
     "proto:lint": "node scripts/run-buf.mjs lint",
     "proto:breaking": "node scripts/proto-breaking.mjs",
+    "proto:baseline:refresh": "node scripts/proto-baseline-refresh.mjs",
     "proto:drift-check": "node scripts/check-proto-drift.mjs",
     "check:actionlint": "node scripts/check-actionlint.mjs",
     "deploy:install-gateway": "pnpm --filter @nimiplatform/install-gateway deploy",
